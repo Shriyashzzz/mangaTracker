@@ -22,13 +22,18 @@ export default function () {
   return (
     <>
       <div className={styles.contianer}>
-        <div>{mangaData.name}</div>
-        <img src={mangaData.image} />
-        {mangaData.status ? (
-          <p>Finished</p>
-        ) : (
-          <p>Bookmark: {mangaData.bookmark}</p>
-        )}
+        <div className={styles.mangaPreview}>
+          <div>{mangaData.name}</div>
+          <img src={mangaData.image} />
+          <div>
+            <p>Bookmark: {mangaData.bookmark}</p>
+            Manga Status:{" "}
+            <button> {mangaData.status ? "Finished" : "Not Finished"}</button>
+          </div>
+        </div>
+        <div className={styles.mangaDetailContainer}>
+          {mangaData.description}
+        </div>
       </div>
     </>
   );
