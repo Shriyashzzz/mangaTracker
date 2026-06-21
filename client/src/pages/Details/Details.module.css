@@ -1,7 +1,78 @@
-.contianer {
-  min-height: 100dvh;
-  min-width: 100%;
+main {
   display: flex;
   justify-content: center;
   align-items: center;
+}
+.contianer {
+  min-height: 100dvh;
+  max-width: 80%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.mangaPreview {
+  font-size: var(--large-font-size);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  gap: 1rem;
+}
+
+.mangaDetailContainer {
+  align-self: flex-start;
+  display: flex;
+  text-wrap: balance;
+  overflow-wrap: break-word;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  gap: 2rem;
+  padding-top: 1rem;
+  font-size: vaR(--medium-font-size);
+  p {
+    line-height: 1.5px;
+  }
+}
+.contianerBox {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 2rem;
+}
+
+.updateContainer {
+  width: 100%;
+  display: flex;
+  gap: 2rem;
+
+  button {
+    height: 4rem;
+    flex: 0.2;
+  }
+}
+
+button {
+  cursor: pointer;
+}
+
+.bookmark {
+  display: flex;
+  width: 100%;
+  gap: 3rem;
+  button {
+    flex: 0.2;
+  }
+}
+
+@media screen and (max-width: 760px) {
+  h1,
+  h2 {
+    font-size: var(--large-font-size + 2px);
+  }
+  .contianerBox {
+    flex-direction: column;
+    font-size: var(--small-font-size);
+  }
 }

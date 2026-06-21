@@ -22,17 +22,35 @@ export default function () {
   return (
     <>
       <div className={styles.contianer}>
-        <div className={styles.mangaPreview}>
-          <div>{mangaData.name}</div>
-          <img src={mangaData.image} />
-          <div>
-            <p>Bookmark: {mangaData.bookmark}</p>
-            Manga Status:{" "}
-            <button> {mangaData.status ? "Finished" : "Not Finished"}</button>
+        <div className={styles.contianerBox}>
+          <div className={styles.mangaPreview}>
+            <div className={styles.mangaPreview}>
+              <h1>{mangaData.name}</h1>
+              <img src={mangaData.image} />
+              <div className={styles.mangaStatus}>
+                Manga Status:{" "}
+                <button>
+                  {" "}
+                  {mangaData.status ? "Finished" : "Not Finished"}
+                </button>
+              </div>
+            </div>
           </div>
-        </div>
-        <div className={styles.mangaDetailContainer}>
-          {mangaData.description}
+          <div className={styles.mangaDetailContainer}>
+            <div className={styles.bookmark}>
+              <h2>Bookmark: {mangaData.bookmark}</h2>
+              <button>+</button>
+
+              <button>-</button>
+            </div>
+
+            {mangaData.description}
+            <div className={styles.updateContainer}>
+              <button>Delete</button>
+              <button>Update</button>
+              <button>Rate</button>
+            </div>
+          </div>
         </div>
       </div>
     </>

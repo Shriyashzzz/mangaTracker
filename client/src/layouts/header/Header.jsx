@@ -1,13 +1,14 @@
 import styles from "./Header.module.css";
 import appIcon from "../../assets/appIcon.png";
+import { NavLink } from "react-router";
+
 export default function Header() {
   return (
     <>
       <header className={styles.head}>
-        <div className={styles.appName}>
+        <NavLink className={styles.appName} to="/">
           <img src={appIcon} alt="" /> <h2>Manga Tracker</h2>
-        </div>
-
+        </NavLink>
         <ul>
           <li>
             {" "}

@@ -13,6 +13,7 @@
 }
 
 .appName {
+  cursor: pointer;
   gap: 1rem;
   display: flex;
 }
