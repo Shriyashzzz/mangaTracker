@@ -1,7 +1,7 @@
 import { Router } from "express";
 import mangaHomeController from "../controller/mangaHomeController.js";
-export const mangaRouter = Router();
+export const mangaHomeRouter = Router();
 
-mangaRouter.get("/", mangaHomeController.getAllManga);
+mangaHomeRouter.get("/", mangaHomeController.getAllManga);
 
-export default mangaRouter;
+export default { mangaHomeRouter };

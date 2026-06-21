@@ -32,10 +32,33 @@ const deleteMangaFromDb = (id) => {
   );
 };
 
+const updateMangaPost = (id, name, bookmark, status, description) => {
+  if (bookmark) {
+    pool.query(
+      `
+        UPDATE manga
+        SET name = ($1), status = ($2), description = ($3), bookmark = ($4) 
+        WHERE id = $(5);
+        `,
+      [name, status, description, bookmark, id],
+    );
+  } else {
+    pool.query(
+      `
+        UPDATE manga
+        SET name = ($1), status = ($2), description = ($3)
+        WHERE id = ($4);
+        `,
+      [name, status, description, id],
+    );
+  }
+};
+
 const updateMangaDetails = (id, name, status, description, bookmark) => {};
 export default {
   getMangaData,
   getThatManga,
   changeMangaStatus,
   deleteMangaFromDb,
+  updateMangaPost,
 };
