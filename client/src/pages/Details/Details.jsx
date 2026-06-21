@@ -16,7 +16,6 @@ export default function () {
       );
       const data = await response.json();
       const thisManga = data.detail;
-      console.log(thisManga);
       setMangaData(thisManga);
       setMangaStatus(thisManga.status);
     }
@@ -50,7 +49,9 @@ export default function () {
       console.log(e);
     }
   };
-  const handleDetailsUpdate = () => {};
+  const handleDetailsUpdate = () => {
+    navigate(`/update/${mangaData.id}`);
+  };
 
   return (
     <>

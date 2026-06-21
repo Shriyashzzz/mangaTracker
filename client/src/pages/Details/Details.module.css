@@ -61,7 +61,7 @@ button {
 
 .mangaStatus {
   display: flex;
-  justify-content: center;
+  justify-content: space-between;
   align-items: center;
   gap: 1rem;
 
@@ -71,6 +71,7 @@ button {
     align-items: center;
     padding: 1rem;
     height: 30px;
+    width: 120px;
   }
 }
 

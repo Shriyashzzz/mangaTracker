@@ -8,7 +8,7 @@ export default function MangaCard({ currentManga }) {
         {currentManga.status ? (
           <p>Finished</p>
         ) : (
-          <p>Bookmark: {currentManga.bookmark}</p>
+          <p>Bookmark: Ch {currentManga.bookmark}</p>
         )}
 
         <img src={currentManga.image} alt="" />
