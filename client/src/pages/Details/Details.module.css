@@ -5,8 +5,8 @@ main {
 }
 .contianer {
   min-height: 100dvh;
-  max-width: 80%;
   display: flex;
+  padding: 0rem;
   justify-content: center;
   align-items: center;
 }
@@ -23,16 +23,16 @@ main {
 .mangaDetailContainer {
   align-self: flex-start;
   display: flex;
-  text-wrap: balance;
-  overflow-wrap: break-word;
+
   flex-direction: column;
   justify-content: center;
-  align-items: center;
-  gap: 2rem;
-  padding-top: 1rem;
+
+  gap: 3rem;
+  padding-top: 5rem;
   font-size: vaR(--medium-font-size);
   p {
-    line-height: 1.5px;
+    text-wrap: balance;
+    overflow-wrap: break-word;
   }
 }
 .contianerBox {
@@ -40,16 +40,18 @@ main {
   justify-content: center;
   align-items: center;
   gap: 2rem;
+  background-color: rgb(180, 193, 234);
+  padding: 3rem;
+  border: 1px solid grey;
 }
 
 .updateContainer {
   width: 100%;
   display: flex;
   gap: 2rem;
-
   button {
-    height: 4rem;
-    flex: 0.2;
+    flex: 0.3;
+    height: 3rem;
   }
 }
 
@@ -57,22 +59,44 @@ button {
   cursor: pointer;
 }
 
-.bookmark {
+.mangaStatus {
   display: flex;
-  width: 100%;
-  gap: 3rem;
+  justify-content: center;
+  align-items: center;
+  gap: 1rem;
+
   button {
-    flex: 0.2;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 1rem;
+    height: 30px;
   }
 }
 
 @media screen and (max-width: 760px) {
   h1,
   h2 {
-    font-size: var(--large-font-size + 2px);
+    font-size: 26px;
   }
   .contianerBox {
+    padding-top: 3rem;
     flex-direction: column;
     font-size: var(--small-font-size);
+  }
+
+  .mangaDetailContainer {
+    padding-top: 1rem;
+  }
+
+  .contianer {
+    padding: 0;
+  }
+
+  .updateContainer {
+    button {
+      flex: 0.4;
+      height: 2rem;
+    }
   }
 }

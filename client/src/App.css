@@ -8,7 +8,7 @@
   --small-font-size: 16px;
   --medium-font-size: 22px;
   --large-font-size: 26px;
-  --bg-color: rgb(193, 193, 179);
+  --bg-color: rgb(216, 190, 165);
   --text-color: #333333;
   --primary-color: #0070f3;
 }
@@ -32,6 +32,7 @@ main {
   min-height: 100dvh;
   min-width: 100dvw;
   background-color: var(--bg-color);
+  padding-bottom: 2rem;
 }
 
 a {

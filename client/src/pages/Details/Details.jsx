@@ -37,14 +37,8 @@ export default function () {
             </div>
           </div>
           <div className={styles.mangaDetailContainer}>
-            <div className={styles.bookmark}>
-              <h2>Bookmark: {mangaData.bookmark}</h2>
-              <button>+</button>
-
-              <button>-</button>
-            </div>
-
-            {mangaData.description}
+            <h2>Bookmark: Chapter {mangaData.bookmark}</h2>
+            <p>{mangaData.description}</p>
             <div className={styles.updateContainer}>
               <button>Delete</button>
               <button>Update</button>
