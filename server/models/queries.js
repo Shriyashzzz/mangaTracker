@@ -1,7 +1,7 @@
 import { pool } from "./pool.js";
 
 const getMangaData = async () => {
-  const data = await pool.query(`SELECT * FROM manga`);
+  const data = await pool.query(`SELECT * FROM manga ORDER BY bookmark DESC`);
   return data.rows;
 };
 
@@ -23,4 +23,17 @@ const changeMangaStatus = (id, newStatus) => {
   );
 };
 
-export default { getMangaData, getThatManga, changeMangaStatus };
+const deleteMangaFromDb = (id) => {
+  pool.query(
+    `DELETE FROM manga
+    WHERE id = ($1)
+    `,
+    [id],
+  );
+};
+export default {
+  getMangaData,
+  getThatManga,
+  changeMangaStatus,
+  deleteMangaFromDb,
+};

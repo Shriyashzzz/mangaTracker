@@ -12,13 +12,19 @@ export default function Header() {
         <ul>
           <li>
             {" "}
-            <button>Home</button>
+            <NavLink to="/">
+              <button>Home</button>
+            </NavLink>
           </li>
           <li>
-            <button>About</button>
+            <NavLink to="/">
+              <button>About</button>
+            </NavLink>
           </li>
           <li>
-            <button>Sign In</button>
+            <NavLink to="/">
+              <button>Sign in</button>
+            </NavLink>
           </li>
         </ul>
       </header>

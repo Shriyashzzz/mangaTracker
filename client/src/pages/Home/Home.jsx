@@ -14,6 +14,7 @@ export default function Home() {
     }
     fetchMangaData();
   }, []);
+
   return (
     <>
       <div className={styles.classContainer}>

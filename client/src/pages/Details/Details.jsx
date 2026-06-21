@@ -1,11 +1,14 @@
 import { useEffect } from "react";
 import styles from "./Details.module.css";
 import { useState } from "react";
-import { useParams } from "react-router";
+import { useNavigate, useParams } from "react-router";
 export default function () {
   const [mangaData, setMangaData] = useState({});
   const { id } = useParams();
   const [mangaStatus, setMangaStatus] = useState(null);
+
+  const navigate = useNavigate();
+
   useEffect(() => {
     async function getManga() {
       const response = await fetch(
@@ -20,6 +23,24 @@ export default function () {
     getManga();
   }, []);
 
+  const handleDeleteManga = async () => {
+    try {
+      const res = await fetch(
+        `${import.meta.env.VITE_API_URL}/details/${id}/delete`,
+        {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            id: mangaData.id,
+          }),
+        },
+      );
+      if (!res.ok) throw new Error(`Failed Changing manga status`);
+      navigate("/");
+    } catch (e) {
+      console.error(e);
+    }
+  };
   const handleStatusChnage = async () => {
     try {
       const res = await fetch(
@@ -63,7 +84,7 @@ export default function () {
 
             <p>{mangaData.description}</p>
             <div className={styles.updateContainer}>
-              <button>Delete</button>
+              <button onClick={handleDeleteManga}>Delete</button>
               <button>Update</button>
               <button>Rate</button>
             </div>

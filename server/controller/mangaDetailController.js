@@ -10,7 +10,6 @@ const getMangaDetailController = async (req, res) => {
 const changeMangaStatus = async (req, res) => {
   const { id } = req.params;
   const { status } = req.body;
-  console.log(id, status);
   if (!id && !status) return res.status(404).json({ error: "Not Found" });
   try {
     await queries.changeMangaStatus(id, status);
@@ -21,4 +20,15 @@ const changeMangaStatus = async (req, res) => {
   }
 };
 
-export default { getMangaDetailController, changeMangaStatus };
+const deleteManga = async (req, res) => {
+  const { id } = req.params;
+  try {
+    queries.deleteMangaFromDb(id);
+    res.sendStatus(200);
+  } catch (e) {
+    res.sendStatus(500);
+    throw new Error(e.message);
+  }
+};
+
+export default { getMangaDetailController, changeMangaStatus, deleteManga };

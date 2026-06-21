@@ -40,12 +40,19 @@ ul button:active {
 
 @media screen and (max-width: 450px) {
   .head {
+    font-size: 16px;
+
+    h2 {
+      font-size: larger;
+    }
+    a {
+      font-size: medium;
+    }
     img {
       display: none;
     }
     .appName {
       gap: 0.2rem;
     }
-    font-size: calc(var(--small-font-size) - 1px);
   }
 }
