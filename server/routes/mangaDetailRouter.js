@@ -6,6 +6,6 @@ export const mangaDetailRouter = Router({ mergeParams: true });
 
 mangaDetailRouter.get("/", mangaDetailController.getMangaDetailController);
 
-mangaDetailRouter.put("/status", mangaDetailController.changeMangaStatus);
+mangaDetailRouter.patch("/status", mangaDetailController.changeMangaStatus);
 
-mangaDetailRouter.put("/delete", mangaDetailController.deleteManga);
+mangaDetailRouter.delete("/", mangaDetailController.deleteManga);

@@ -25,16 +25,9 @@ export default function () {
 
   const handleDeleteManga = async () => {
     try {
-      const res = await fetch(
-        `${import.meta.env.VITE_API_URL}/details/${id}/delete`,
-        {
-          method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            id: mangaData.id,
-          }),
-        },
-      );
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/details/${id}`, {
+        method: "DELETE",
+      });
       if (!res.ok) throw new Error(`Failed Changing manga status`);
       navigate("/");
     } catch (e) {
@@ -46,7 +39,7 @@ export default function () {
       const res = await fetch(
         `${import.meta.env.VITE_API_URL}/details/${id}/status`,
         {
-          method: `PUT`,
+          method: `PATCH`,
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ status: !mangaStatus }),
         },
@@ -57,6 +50,7 @@ export default function () {
       console.log(e);
     }
   };
+  const handleDetailsUpdate = () => {};
 
   return (
     <>
@@ -85,7 +79,7 @@ export default function () {
             <p>{mangaData.description}</p>
             <div className={styles.updateContainer}>
               <button onClick={handleDeleteManga}>Delete</button>
-              <button>Update</button>
+              <button onClick={handleDetailsUpdate}>Update</button>
               <button>Rate</button>
             </div>
           </div>

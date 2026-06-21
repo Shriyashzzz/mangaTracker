@@ -31,6 +31,8 @@ const deleteMangaFromDb = (id) => {
     [id],
   );
 };
+
+const updateMangaDetails = (id, name, status, description, bookmark) => {};
 export default {
   getMangaData,
   getThatManga,
