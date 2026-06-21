@@ -1,0 +1,50 @@
+.head {
+  background-color: rgb(135, 146, 155);
+  padding: 1.5rem;
+  display: flex;
+  display: flex;
+  color: var(--text-color);
+  justify-content: space-between;
+  align-items: center;
+  img {
+    height: 30px;
+    width: 30px;
+  }
+}
+
+.appName {
+  gap: 1rem;
+  display: flex;
+}
+
+ul {
+  display: flex;
+  list-style: none;
+  gap: 1rem;
+  button {
+    font-size: var(--small-font-size);
+    border: none;
+    background-color: inherit;
+    cursor: pointer;
+  }
+}
+
+ul button:hover {
+  border-bottom: 2px solid aliceblue;
+}
+
+ul button:active {
+  color: skyblue;
+}
+
+@media screen and (max-width: 450px) {
+  .head {
+    img {
+      display: none;
+    }
+    .appName {
+      gap: 0.2rem;
+    }
+    font-size: calc(var(--small-font-size) - 1px);
+  }
+}

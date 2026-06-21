@@ -1,0 +1,14 @@
+.classContainer {
+  padding-top: 5rem;
+  justify-self: center;
+  width: 60%;
+  display: grid;
+  gap: 4rem;
+  grid-template-columns: repeat(auto-fit, minmax(220px, auto));
+}
+
+@media screen and (max-width: 600px) {
+  .classContainer {
+    width: 75%;
+  }
+}
