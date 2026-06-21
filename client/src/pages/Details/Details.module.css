@@ -4,9 +4,9 @@ main {
   align-items: center;
 }
 .contianer {
+  margin: 5rem;
   min-height: 100dvh;
   display: flex;
-  padding: 0rem;
   justify-content: center;
   align-items: center;
 }
@@ -91,6 +91,7 @@ button {
 
   .contianer {
     padding: 0;
+    margin: 0;
   }
 
   .updateContainer {

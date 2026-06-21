@@ -5,7 +5,7 @@ import { useParams } from "react-router";
 export default function () {
   const [mangaData, setMangaData] = useState({});
   const { id } = useParams();
-
+  const [mangaStatus, setMangaStatus] = useState(null);
   useEffect(() => {
     async function getManga() {
       const response = await fetch(
@@ -15,9 +15,27 @@ export default function () {
       const thisManga = data.detail;
       console.log(thisManga);
       setMangaData(thisManga);
+      setMangaStatus(thisManga.status);
     }
     getManga();
   }, []);
+
+  const handleStatusChnage = async () => {
+    try {
+      const res = await fetch(
+        `${import.meta.env.VITE_API_URL}/details/${id}/status`,
+        {
+          method: `PUT`,
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ status: !mangaStatus }),
+        },
+      );
+      if (!res.ok) throw new Error(`Failed Changing manga status`);
+      setMangaStatus(!mangaStatus);
+    } catch (e) {
+      console.log(e);
+    }
+  };
 
   return (
     <>
@@ -29,9 +47,9 @@ export default function () {
               <img src={mangaData.image} />
               <div className={styles.mangaStatus}>
                 Manga Status:{" "}
-                <button>
+                <button onClick={() => handleStatusChnage()}>
                   {" "}
-                  {mangaData.status ? "Finished" : "Not Finished"}
+                  {mangaStatus ? "Finished" : "Not Finished"}
                 </button>
               </div>
             </div>
