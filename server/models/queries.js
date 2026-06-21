@@ -1,0 +1,26 @@
+import { pool } from "./pool.js";
+
+const getMangaData = async () => {
+  const data = await pool.query(`SELECT * FROM manga`);
+  return data.rows;
+};
+
+const getThatManga = async (givenId) => {
+  const data = await pool.query(`SELECT * FROM manga WHERE id = ($1)`, [
+    givenId,
+  ]);
+  return data.rows[0];
+};
+
+const changeMangaStatus = (id, newStatus) => {
+  pool.query(
+    `
+    UPDATE manga
+    SET status = ($1)
+    WHERE id = ($2)
+    `,
+    [newStatus, id],
+  );
+};
+
+export default { getMangaData, getThatManga, changeMangaStatus };

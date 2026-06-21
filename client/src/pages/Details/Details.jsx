@@ -55,7 +55,12 @@ export default function () {
             </div>
           </div>
           <div className={styles.mangaDetailContainer}>
-            <h2>Bookmark: Chapter {mangaData.bookmark}</h2>
+            {mangaStatus ? (
+              <h2>Finished</h2>
+            ) : (
+              <h2>Bookmark: Chapter {mangaData.bookmark}</h2>
+            )}
+
             <p>{mangaData.description}</p>
             <div className={styles.updateContainer}>
               <button>Delete</button>
