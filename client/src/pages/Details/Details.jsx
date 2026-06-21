@@ -2,17 +2,34 @@ import { useEffect } from "react";
 import styles from "./Details.module.css";
 import { useState } from "react";
 import { useParams } from "react-router";
-export default function ({ mangaId }) {
-  const [mangaData, setMangData] = useState({});
+export default function () {
+  const [mangaData, setMangaData] = useState({});
   const { id } = useParams();
+
   useEffect(() => {
     async function getManga() {
-      const data = await fetch(`${import.meta.VITE_API_URL}/details/${id}`);
-      console.log(data);
+      const response = await fetch(
+        `${import.meta.env.VITE_API_URL}/details/${id}`,
+      );
+      const data = await response.json();
+      const thisManga = data.detail;
+      console.log(thisManga);
+      setMangaData(thisManga);
     }
-
     getManga();
   }, []);
 
-  return <></>;
+  return (
+    <>
+      <div className={styles.contianer}>
+        <div>{mangaData.name}</div>
+        <img src={mangaData.image} />
+        {mangaData.status ? (
+          <p>Finished</p>
+        ) : (
+          <p>Bookmark: {mangaData.bookmark}</p>
+        )}
+      </div>
+    </>
+  );
 }

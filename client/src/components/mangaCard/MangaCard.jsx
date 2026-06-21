@@ -5,7 +5,12 @@ export default function MangaCard({ currentManga }) {
   return (
     <NavLink to={`/details/${currentManga.id}`}>
       <div className={styles.card}>
-        <p>Bookmark: {currentManga.bookmark}</p>
+        {currentManga.status ? (
+          <p>Finished</p>
+        ) : (
+          <p>Bookmark: {currentManga.bookmark}</p>
+        )}
+
         <img src={currentManga.image} alt="" />
         {currentManga.name}
       </div>
