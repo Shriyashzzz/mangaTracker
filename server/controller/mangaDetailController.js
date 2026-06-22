@@ -23,7 +23,7 @@ const changeMangaStatus = async (req, res) => {
 const deleteManga = async (req, res) => {
   const { id } = req.params;
   try {
-    queries.deleteMangaFromDb(id);
+    await queries.deleteMangaFromDb(id);
     res.sendStatus(200);
   } catch (e) {
     res.sendStatus(500);

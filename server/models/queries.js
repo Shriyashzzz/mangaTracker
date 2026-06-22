@@ -12,8 +12,8 @@ const getThatManga = async (givenId) => {
   return data.rows[0];
 };
 
-const changeMangaStatus = (id, newStatus) => {
-  pool.query(
+const changeMangaStatus = async (id, newStatus) => {
+  await pool.query(
     `
     UPDATE manga
     SET status = ($1)
@@ -23,8 +23,8 @@ const changeMangaStatus = (id, newStatus) => {
   );
 };
 
-const deleteMangaFromDb = (id) => {
-  pool.query(
+const deleteMangaFromDb = async (id) => {
+  await pool.query(
     `DELETE FROM manga
     WHERE id = ($1)
     `,
@@ -32,18 +32,18 @@ const deleteMangaFromDb = (id) => {
   );
 };
 
-const updateMangaPost = (id, name, bookmark, status, description) => {
+const updateMangaPost = async (id, name, bookmark, status, description) => {
   if (bookmark) {
-    pool.query(
+    await pool.query(
       `
         UPDATE manga
         SET name = ($1), status = ($2), description = ($3), bookmark = ($4) 
-        WHERE id = $(5);
+        WHERE id = ($5);
         `,
       [name, status, description, bookmark, id],
     );
   } else {
-    pool.query(
+    await pool.query(
       `
         UPDATE manga
         SET name = ($1), status = ($2), description = ($3)

@@ -1,7 +1,8 @@
-import { useParams } from "react-router";
+import { useNavigate, useParams } from "react-router";
 import styles from "./UpdateManga.module.css";
 import { useState, useEffect, useRef } from "react";
 export function UpdateManga() {
+  const navigation = useNavigate();
   const { id } = useParams();
   const [mangaData, setMangaData] = useState([]);
   const formRef = useRef(null);
@@ -9,6 +10,7 @@ export function UpdateManga() {
   const descRef = useRef(null);
   const bookMarkRef = useRef(null);
   const selectRef = useRef(null);
+  const [error, setError] = useState(null);
   useEffect(() => {
     const getThatManga = async () => {
       try {
@@ -59,10 +61,17 @@ export function UpdateManga() {
         }),
       },
     );
+    if (response.status == 400) {
+      const errorDara = await response.json();
+      setError(errorDara.error);
+    } else {
+      setError(null);
+      navigation(`/details/${id}`);
+    }
   };
 
   return (
-    <div className={styles.Container}>
+    <div className={styles.container}>
       <form
         action={`/update/${id}/post`}
         ref={formRef}
@@ -108,7 +117,17 @@ export function UpdateManga() {
           <option value="true">Finished</option>
           <option value="false">Not Finished</option>
         </select>
-        <button type="submit">UPDATE</button>
+        {error && (
+          <ul className={styles.errorList}>
+            {error.map((e) => {
+              return <li>{e.msg}</li>;
+            })}
+          </ul>
+        )}
+        <div className={styles.btnContainer}>
+          <button onClick={() => navigation(`/update/${id}`)}>Go Back</button>
+          <button type="submit">UPDATE</button>
+        </div>
       </form>
     </div>
   );
