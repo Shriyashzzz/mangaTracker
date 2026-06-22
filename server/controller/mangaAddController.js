@@ -25,6 +25,11 @@ const validationChain = [
     .withMessage(
       `Description of the manga should be between 10 to 450 charachters long! <3`,
     ),
+  body["image"]
+    .optional({ values: "falsy" })
+    .trim()
+    .isURL()
+    .withMessage("Please provide a valid URL"),
 ];
 const addMangaController = [validationChain, async (req, res) => {}];
 
