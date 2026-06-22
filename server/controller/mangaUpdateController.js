@@ -2,14 +2,14 @@ import queries from "../models/queries.js";
 import { body, validationResult, matchedData } from "express-validator";
 
 const emptyMessage = `cannot be empty luv <3`;
-const lengthError = `Name of the manga should be between 3 to 150 charachters long! <3`;
+const lengthError = `Ttile should be between 3 to 150 charachters long! <3`;
 
 //valdiate all the params
 const validationData = [
   body("name")
     .trim()
     .notEmpty()
-    .withMessage(`Manga name ${emptyMessage}`)
+    .withMessage(`Manga Ttile ${emptyMessage}`)
     .isLength({ min: 3, max: 150 })
     .withMessage(lengthError),
   body("bookmark")

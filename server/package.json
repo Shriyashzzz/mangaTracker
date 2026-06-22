@@ -5,9 +5,9 @@
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "node --env-file=.env --watch index.js",
+    "start": "node --env-file=.env --watch server.js",
     "initdb": "node --env-file=.env models/initdb.js",
-    "dev": "nodemon --exec node --env-file=.env index.js"
+    "dev": "nodemon --exec node --env-file=.env server.js"
   },
   "keywords": [],
   "author": "",
