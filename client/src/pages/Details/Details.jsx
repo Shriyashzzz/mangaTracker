@@ -55,8 +55,8 @@ export default function () {
 
   return (
     <>
-      <div className={styles.contianer}>
-        <div className={styles.contianerBox}>
+      <div className={styles.container}>
+        <div className={styles.containerBox}>
           <div className={styles.mangaPreview}>
             <div className={styles.mangaPreview}>
               <h1>{mangaData.name}</h1>

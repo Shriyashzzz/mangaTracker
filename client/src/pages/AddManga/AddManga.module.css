@@ -47,6 +47,7 @@
 
 /* Text inputs and textarea */
 .container form input[type="text"],
+input[type="url"],
 .container form input[type="number"],
 .container form textarea,
 .container form select {
@@ -66,6 +67,7 @@
 }
 
 .container form input[type="text"]:focus,
+input[type="url"],
 .container form input[type="number"]:focus,
 .container form textarea:focus,
 .container form select:focus {
@@ -151,13 +153,17 @@
 }
 
 .errorList {
+  padding-top: 1rem;
   display: flex;
   flex-direction: column;
   justify-content: center;
   align-items: flex-start;
   text-align: start;
-  color: rgb(44, 16, 227);
-  list-style: square;
+  color: rgb(157, 3, 90);
+  list-style: none;
+  font-weight: 600;
+  line-height: 1.6;
+  max-width: 65ch;
 }
 
 /* Responsive */

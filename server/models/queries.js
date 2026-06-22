@@ -54,11 +54,27 @@ const updateMangaPost = async (id, name, bookmark, status, description) => {
   }
 };
 
-const updateMangaDetails = (id, name, status, description, bookmark) => {};
+const addManagToDb = async (
+  name,
+  genre,
+  description,
+  image,
+  status,
+  bookmark,
+) => {
+  await pool.query(
+    `
+    INSERT INTO manga ( name, genre, description, image, status, bookmark)
+    VALUES (($1),($2),($3),($4),($5),($6))
+    `,
+    [name, genre, description, image, status, bookmark],
+  );
+};
 export default {
   getMangaData,
   getThatManga,
   changeMangaStatus,
   deleteMangaFromDb,
   updateMangaPost,
+  addManagToDb,
 };

@@ -1,30 +1,45 @@
-main {
+.container {
+  width: 100%;
+  max-width: 1100px;
   display: flex;
   justify-content: center;
-  align-items: center;
+  align-self: center;
 }
 
-.contianer {
-  margin: 5rem;
-  min-height: 100%;
+.containerBox {
+  width: 100%;
+  min-height: 420px;
   display: flex;
-  justify-content: center;
-  align-self: flex-start;
+  justify-content: flex-start;
+  align-items: flex-start;
+  gap: 2.5rem;
+  background-color: rgb(180, 193, 234);
+  padding: 2.5rem;
+  border: 1px solid rgba(100, 115, 160, 0.4);
+  border-radius: 16px;
+  box-shadow: 0 2px 12px rgba(80, 100, 160, 0.08);
+  box-sizing: border-box;
 }
 
 .mangaPreview {
-  font-size: var(--small-font-size);
+  flex-shrink: 0;
+  min-width: 160px;
+  max-width: 200px;
   display: flex;
   flex-direction: column;
-  justify-content: center;
   align-items: center;
   gap: 1rem;
+  padding-top: 0.5rem;
+  font-size: var(--small-font-size);
 }
 
 .mangaPreview img {
+  width: 100%;
+  height: auto;
   border-radius: 8px;
   box-shadow: 0 4px 24px rgba(0, 0, 0, 0.13);
   transition: transform 0.2s ease;
+  display: block;
 }
 
 .mangaPreview img:hover {
@@ -32,47 +47,82 @@ main {
 }
 
 .mangaDetailContainer {
-  align-self: flex-start;
+  flex: 1;
+  min-width: 0;
   display: flex;
   flex-direction: column;
-  justify-content: center;
-  gap: 2rem;
-  padding-top: 5rem;
+  gap: 1.5rem;
+  padding-top: 0.5rem;
   font-size: var(--medium-font-size);
 
   p {
     text-wrap: balance;
     overflow-wrap: break-word;
-    line-height: 1.65;
+    word-break: break-word;
+    line-height: 1.7;
     color: #444;
+    margin: 0;
   }
 
   h1,
   h2 {
     letter-spacing: -0.02em;
+    margin: 0;
   }
 }
 
-.contianerBox {
+.mangaStatus {
   display: flex;
   justify-content: center;
-  align-items: flex-start;
-  gap: 2.5rem;
-  background-color: rgb(180, 193, 234);
-  padding: 3rem;
-  border: 1px solid rgba(100, 115, 160, 0.4);
-  border-radius: 12px;
-  box-shadow: 0 2px 12px rgba(80, 100, 160, 0.08);
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  padding: 0.75rem 1rem;
+  background: rgba(255, 255, 255, 0.45);
+  border-radius: 8px;
+  border: 1px solid rgba(100, 115, 160, 0.2);
+  font-size: var(--medium-font-size);
+
+  button {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 34px;
+    padding: 0 1rem;
+    min-width: 110px;
+    border-radius: 6px;
+    border: 1.5px solid rgba(60, 80, 140, 0.35);
+    background: rgb(230, 235, 250);
+    color: #2a3560;
+    font-weight: 600;
+    font-size: var(--small-font-size);
+    cursor: pointer;
+    transition:
+      background 0.15s ease,
+      border-color 0.15s ease,
+      transform 0.1s ease;
+  }
+
+  button:hover {
+    background: rgb(210, 220, 245);
+    border-color: rgba(60, 80, 140, 0.6);
+  }
+
+  button:active {
+    transform: scale(0.97);
+  }
 }
 
 .updateContainer {
   width: 100%;
   display: flex;
-  gap: 1rem;
+  flex-wrap: wrap;
+  gap: 0.75rem;
 
   button {
-    flex: 0.3;
-    height: 3rem;
+    flex: 1;
+    min-width: 100px;
+    height: 2.75rem;
     border-radius: 6px;
     border: 1.5px solid rgba(60, 80, 140, 0.35);
     background: rgb(230, 235, 250);
@@ -100,72 +150,63 @@ button {
   cursor: pointer;
 }
 
-.mangaStatus {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 1rem;
-  padding: 0.75rem 1rem;
-  background: rgba(255, 255, 255, 0.45);
-  border-radius: 8px;
-  border: 1px solid rgba(100, 115, 160, 0.2);
-  font-size: var(--medium-font-size);
-  button {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    padding: 1.5rem;
-    height: 34px;
-    width: 130px;
-    border-radius: 6px;
-    border: 1.5px solid rgba(60, 80, 140, 0.35);
-    background: rgb(230, 235, 250);
-    color: #2a3560;
-    font-weight: 600;
-    font-size: var(--small-font-size);
-    cursor: pointer;
-    transition:
-      background 0.15s ease,
-      border-color 0.15s ease,
-      transform 0.1s ease;
-  }
-
-  button:hover {
-    background: rgb(210, 220, 245);
-    border-color: rgba(60, 80, 140, 0.6);
-  }
-
-  button:active {
-    transform: scale(0.97);
+@media screen and (max-width: 900px) {
+  .containerBox {
+    margin: 0 2rem;
   }
 }
 
 @media screen and (max-width: 760px) {
   h1,
   h2 {
-    font-size: 26px;
+    font-size: 30px;
+    min-width: 100%;
   }
 
-  .contianerBox {
+  h1 {
+    text-align: center;
+  }
+  .container {
+    padding: 0;
+    margin: 0;
+    min-height: 100dvh;
+  }
+
+  .containerBox {
     flex-direction: column;
-    font-size: var(--small-font-size);
-    border-radius: 8px;
+    align-items: center;
     gap: 1.5rem;
+    padding: 1.5rem 1rem;
+    border-radius: 0;
+    border-left: none;
+    border-right: none;
+    min-height: 100%;
+    margin: 0;
+  }
+
+  .mangaPreview {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    max-width: 160px;
+    min-width: 100%;
+    padding-top: 0;
   }
 
   .mangaDetailContainer {
-    padding-top: 1rem;
-    gap: 1.5rem;
+    padding-top: 0;
+    gap: 1.25rem;
+    width: 100%;
   }
 
-  .contianer {
-    padding: 0;
-    margin: 0;
+  .mangaStatus {
+    font-size: var(--small-font-size);
   }
 
   .updateContainer {
     button {
-      flex: 0.4;
+      flex: 1;
+      min-width: 80px;
       height: 2.5rem;
     }
   }
