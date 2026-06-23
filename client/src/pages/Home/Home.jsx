@@ -9,6 +9,10 @@ import InputLabel from "@mui/material/InputLabel";
 import FormControl from "@mui/material/FormControl";
 export default function Home() {
   const [mangaData, setMangaData] = useState([]);
+  // using sessionstorage to get the last selected filter value
+  const [filterSelect, setFilterSelect] = useState(
+    sessionStorage.getItem("filterValue") || "",
+  );
   const navigator = useNavigate();
   useEffect(() => {
     async function fetchMangaData() {
@@ -21,10 +25,10 @@ export default function Home() {
     }
     fetchMangaData();
   }, []);
-  const filterChangeHandler = (e) => {
-    const filterValue = e.target.value;
+
+  const getFilteredData = () => {
     let filteredArray = [...mangaData];
-    switch (filterValue) {
+    switch (filterSelect) {
       case "rating-dsc":
         filteredArray.sort((a, b) => b.rating - a.rating);
         break;
@@ -32,17 +36,16 @@ export default function Home() {
         filteredArray.sort((a, b) => a.rating - b.rating);
         break;
       case "ch-dsc":
-        filteredArray.sort((a, b) => b.rating - a.rating);
+        filteredArray.sort((a, b) => b.bookmark - a.bookmark);
         break;
       case "ch-asc":
-        filteredArray.sort((a, b) => a.rating - b.rating);
+        filteredArray.sort((a, b) => a.bookmark - b.bookmark);
         break;
       case "":
         filteredArray = mangaData;
         break;
     }
-    console.log("filtered");
-    setMangaData(filteredArray);
+    return filteredArray;
   };
 
   return (
@@ -50,7 +53,15 @@ export default function Home() {
       <div className={styles.homeBtn}>
         <FormControl size="small">
           <InputLabel variant="standard">Filter</InputLabel>
-          <NativeSelect onChange={(e) => filterChangeHandler(e)}>
+          <NativeSelect
+            onChange={(e) => {
+              //update the sessionStorage so it can be used the next time ui renders
+              sessionStorage.setItem("filterValue", e.target.value);
+              //update the selectFilter state so ui rerenders with the new filtered mangaData
+              setFilterSelect(e.target.value);
+            }}
+            value={filterSelect}
+          >
             <option value="" aria-label="None"></option>
             <option value={"rating-dsc"}>Rating (High to Low)</option>
             <option value={"rating-asc"}>Rating (Low to High)</option>
@@ -67,7 +78,8 @@ export default function Home() {
         </Button>
       </div>
       <div className={styles.classContainer}>
-        {mangaData.map((currentManga) => {
+        {/* use the filtererd data from the fucntion to map => honest to teh user preference filterSelect */}
+        {getFilteredData().map((currentManga) => {
           return (
             <MangaCard key={currentManga.id} currentManga={currentManga} />
           );
