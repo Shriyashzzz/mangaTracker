@@ -1,13 +1,14 @@
 import { useEffect } from "react";
 import styles from "./Details.module.css";
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useNavigate, useParams } from "react-router";
+import Rating from "@mui/material/Rating";
 import Button from "@mui/material/Button";
 export default function () {
   const [mangaData, setMangaData] = useState({});
   const { id } = useParams();
   const [mangaStatus, setMangaStatus] = useState(null);
-
+  const [mangaRating, setMangaRating] = useState(null);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -18,6 +19,7 @@ export default function () {
       const data = await response.json();
       const thisManga = data.detail;
       setMangaData(thisManga);
+      setMangaRating(parseInt(thisManga.rating));
       setMangaStatus(thisManga.status);
     }
     getManga();
@@ -35,6 +37,7 @@ export default function () {
     }
   };
   const handleStatusChnage = async () => {
+    //HANDLE CHANGE OF MANGA READING STATUS
     try {
       const res = await fetch(
         `${import.meta.env.VITE_API_URL}/details/${id}/status`,
@@ -45,6 +48,7 @@ export default function () {
         },
       );
       if (!res.ok) throw new Error(`Failed Changing manga status`);
+
       setMangaStatus(!mangaStatus);
     } catch (e) {
       console.log(e);
@@ -52,6 +56,27 @@ export default function () {
   };
   const handleDetailsUpdate = () => {
     navigate(`/update/${mangaData.id}`);
+  };
+
+  const handleRatingChange = async (e) => {
+    //HANDLE CHANGE OF RATING
+    console.log(`current rating:`, e.target.value);
+    try {
+      const response = await fetch(
+        `${import.meta.env.VITE_API_URL}/details/${id}/rating`,
+        {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ newRating: e.target.value }),
+        },
+      );
+      if (response.ok) {
+        console.log("successfully changed rating");
+        setMangaRating(e.target.value);
+      }
+    } catch (e) {
+      console.log(`failed changing manga rating, ${e.message}`);
+    }
   };
 
   return (
@@ -82,6 +107,12 @@ export default function () {
             ) : (
               <h2>Bookmark: Chapter {mangaData.bookmark}</h2>
             )}
+            <Rating
+              value={mangaRating}
+              size="large"
+              name="rating"
+              onChange={(e) => handleRatingChange(e)}
+            />
 
             <p>{mangaData.description}</p>
             <div className={styles.updateContainer}>
@@ -91,7 +122,6 @@ export default function () {
               <Button variant="contained" onClick={handleDetailsUpdate}>
                 Update
               </Button>
-              <Button variant="contained">Rate</Button>
             </div>
           </div>
         </div>

@@ -31,4 +31,22 @@ const deleteManga = async (req, res) => {
   }
 };
 
-export default { getMangaDetailController, changeMangaStatus, deleteManga };
+const patchMangaRating = async (req, res) => {
+  const { id } = req.params;
+  const { newRating } = req.body;
+  console.log(newRating, "on server");
+  try {
+    await queries.chnageMangaRating(id, newRating);
+    res.sendStatus(200);
+  } catch (e) {
+    res.sendStatus(500);
+    throw new Error(e.message);
+  }
+};
+
+export default {
+  getMangaDetailController,
+  changeMangaStatus,
+  deleteManga,
+  patchMangaRating,
+};

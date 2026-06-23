@@ -72,6 +72,17 @@ const addManagToDb = async (
   );
   return result.rows[0].id;
 };
+
+const chnageMangaRating = async (id, newRating) => {
+  await pool.query(
+    `
+    UPDATE manga 
+    SET rating = ($2)
+    WHERE id = ($1)
+    `,
+    [id, newRating],
+  );
+};
 export default {
   getMangaData,
   getThatManga,
@@ -79,4 +90,5 @@ export default {
   deleteMangaFromDb,
   updateMangaPost,
   addManagToDb,
+  chnageMangaRating,
 };

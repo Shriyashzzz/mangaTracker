@@ -3,7 +3,6 @@ import styles from "./AddManga.module.css";
 import { useRef, useState } from "react";
 export function AddManga() {
   const navigate = useNavigate();
-
   const [status, setStatus] = useState(false);
   const statusRef = useRef(false);
   const formRef = useRef(null);

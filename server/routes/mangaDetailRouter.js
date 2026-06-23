@@ -9,3 +9,5 @@ mangaDetailRouter.get("/", mangaDetailController.getMangaDetailController);
 mangaDetailRouter.patch("/status", mangaDetailController.changeMangaStatus);
 
 mangaDetailRouter.delete("/", mangaDetailController.deleteManga);
+
+mangaDetailRouter.patch("/rating", mangaDetailController.patchMangaRating);
