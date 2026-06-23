@@ -1,0 +1,74 @@
+.footer {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: center;
+  gap: 3rem;
+  box-sizing: border-box;
+  width: 100%;
+  height: fit-content;
+  padding: 0.75rem 1.5rem; /* Left/Right padding keeps things off screen walls */
+  margin-top: auto;
+
+  background-color: rgb(180, 193, 234);
+  font-family: "Parry Hotter", "Times New Roman", Times, serif;
+  font-size: var(--medium-font-size);
+}
+.footer a,
+p {
+  cursor: pointer;
+  color: rgb(91, 86, 86);
+  text-shadow: 1px 1px rgba(0, 0, 0, 0.5);
+  transition: 0.2s all ease-in-out;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 0.5rem;
+}
+.stackUsed {
+  gap: 0.5rem;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+.topIcon {
+  width: 2rem;
+  height: 2rem;
+}
+.icon {
+  width: 2rem;
+  height: 2rem;
+  transition: 0.2s transform ease-out;
+  filter: invert(99%) sepia(1%) saturate(2975%) hue-rotate(190deg)
+    brightness(94%) contrast(108%);
+}
+
+.footerlink:hover {
+  transform: scale(0.95);
+}
+
+.footerlink:hover .icon {
+  transform: rotate(360deg);
+}
+
+@media screen and (max-width: 722px) {
+  /* On small screens, transition to a clean, centered vertical stack */
+  .footer {
+    flex-direction: column;
+    gap: 1rem;
+    padding: 1.5rem 0;
+    text-align: center;
+    font-size: var(--medium-font-size);
+  }
+
+  .stackUsed,
+  .sourceCredit {
+    flex: none;
+    justify-content: center;
+    width: 100%;
+  }
+
+  .sourceCredit {
+    gap: 1.5rem; /* Reduced gap so it looks compact when columns align */
+  }
+}

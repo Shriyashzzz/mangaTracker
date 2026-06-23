@@ -1,6 +1,7 @@
 import Header from "./layouts/header/header";
 import "./App.css";
 import { Outlet } from "react-router";
+import Footer from "./layouts/Footer/Footer";
 
 function App() {
   return (
@@ -9,6 +10,7 @@ function App() {
       <main>
         <Outlet />
       </main>
+      <Footer />
     </>
   );
 }
