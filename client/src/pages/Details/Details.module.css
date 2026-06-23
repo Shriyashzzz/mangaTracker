@@ -5,7 +5,9 @@
   justify-content: center;
   align-self: center;
 }
-
+* {
+  box-sizing: content-box;
+}
 .containerBox {
   width: 100%;
   min-height: 420px;
@@ -68,6 +70,7 @@
   h2 {
     letter-spacing: -0.02em;
     margin: 0;
+    padding: 0;
   }
 }
 
