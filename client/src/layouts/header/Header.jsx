@@ -22,7 +22,7 @@ export default function Header() {
             </NavLink>
           </li>
           <li>
-            <NavLink to="/">
+            <NavLink to="/signin">
               <button>Sign in</button>
             </NavLink>
           </li>

@@ -6,6 +6,7 @@ import Details from "./Details/Details";
 import { UpdateManga } from "./UpdateManga/UpdateManga";
 import { AddManga } from "./AddManga/AddManga";
 import { AboutPage } from "./About/About";
+import SignInPage from "./About/SignIn/SignIn";
 
 export const routes = [
   {
@@ -18,6 +19,7 @@ export const routes = [
       { path: "/update/:id", element: <UpdateManga /> },
       { path: "/add", element: <AddManga /> },
       { path: "/about", element: <AboutPage /> },
+      { path: "/signin", element: <SignInPage /> },
     ],
   },
 ];

@@ -3,7 +3,10 @@ import MangaCard from "../../components/mangaCard/mangaCard";
 import styles from "./Home.module.css";
 import Button from "@mui/material/Button";
 import { useNavigate } from "react-router";
-
+import Select from "@mui/material/Select";
+import NativeSelect from "@mui/material/NativeSelect";
+import InputLabel from "@mui/material/InputLabel";
+import FormControl from "@mui/material/FormControl";
 export default function Home() {
   const [mangaData, setMangaData] = useState([]);
   const navigator = useNavigate();
@@ -21,15 +24,28 @@ export default function Home() {
 
   return (
     <>
-      <Button
-        sx={{
-          marginTop: `5rem`,
-        }}
-        variant="contained"
-        onClick={() => navigator("/add")}
-      >
-        Add Manga +
-      </Button>
+      <div className={styles.homeBtn}>
+        <FormControl size="small">
+          <InputLabel variant="standard">Filter</InputLabel>
+          <NativeSelect
+            defaultValue={30}
+            inputProps={{
+              name: "age",
+            }}
+          >
+            <option value={10}>Ten</option>
+            <option value={20}>Twenty</option>
+            <option value={30}>Thirty</option>
+          </NativeSelect>
+        </FormControl>
+        <Button
+          sx={{ minWidth: 120 }}
+          variant="contained"
+          onClick={() => navigator("/add")}
+        >
+          Add Manga
+        </Button>
+      </div>
       <div className={styles.classContainer}>
         {mangaData.map((currentManga) => {
           return (

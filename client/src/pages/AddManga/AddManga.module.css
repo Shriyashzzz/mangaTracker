@@ -1,10 +1,10 @@
 .container {
+  padding-top: 5rem;
   min-height: 100dvh;
   width: 100%;
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 2rem;
   font-family: "Segoe UI", system-ui, sans-serif;
 }
 
@@ -168,7 +168,15 @@ input[type="url"],
 
 /* Responsive */
 @media (max-width: 540px) {
+  .container {
+    padding-top: 0;
+  }
   .container form {
     padding: 1.75rem 1.25rem;
+    border-radius: 0px;
+    height: 100%;
+  }
+  main {
+    padding-bottom: 0;
   }
 }
