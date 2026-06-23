@@ -1,5 +1,5 @@
 import githubIcon from "../../assets/github.svg";
-import topIcon from "../../assets/topIcon.png";
+import topIcon from "../../assets/topIcon.svg";
 
 import styles from "./Footer.module.css";
 export default function Footer() {
@@ -15,6 +15,7 @@ export default function Footer() {
           <p>Shriyashzzz</p>
         </a>
         <div className={styles.stackUsed}>
+          <p className={styles.topShoutout}>Made while learning through</p>
           <img src={topIcon} className={styles.topIcon} alt="" />
         </div>
       </footer>

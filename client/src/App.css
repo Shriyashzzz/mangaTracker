@@ -31,7 +31,6 @@
 }
 
 main {
-  min-height: 100%;
   min-width: 100dvw;
   background-color: var(--bg-color);
   padding-bottom: 2rem;

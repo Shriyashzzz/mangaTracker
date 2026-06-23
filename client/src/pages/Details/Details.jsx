@@ -1,10 +1,11 @@
 import { useEffect } from "react";
 import styles from "./Details.module.css";
-import { useState, useRef } from "react";
+import { useState } from "react";
 import { useNavigate, useParams } from "react-router";
 import Rating from "@mui/material/Rating";
 import Button from "@mui/material/Button";
-export default function () {
+
+export default function Details() {
   const [mangaData, setMangaData] = useState({});
   const { id } = useParams();
   const [mangaStatus, setMangaStatus] = useState(null);
@@ -36,8 +37,8 @@ export default function () {
       console.error(e);
     }
   };
+
   const handleStatusChnage = async () => {
-    //HANDLE CHANGE OF MANGA READING STATUS
     try {
       const res = await fetch(
         `${import.meta.env.VITE_API_URL}/details/${id}/status`,
@@ -48,18 +49,17 @@ export default function () {
         },
       );
       if (!res.ok) throw new Error(`Failed Changing manga status`);
-
       setMangaStatus(!mangaStatus);
     } catch (e) {
       console.log(e);
     }
   };
+
   const handleDetailsUpdate = () => {
     navigate(`/update/${mangaData.id}`, { viewTransition: true });
   };
 
   const handleRatingChange = async (e) => {
-    //HANDLE CHANGE OF RATING
     console.log(`current rating:`, e.target.value);
     try {
       const response = await fetch(
@@ -80,27 +80,29 @@ export default function () {
   };
 
   return (
-    <>
-      <div className={styles.container}>
-        <div className={styles.containerBox}>
+    <div className={styles.container}>
+      <div className={styles.containerBox}>
+        <div className={styles.titleBookmark}>
+          <h1>{mangaData.name}</h1>
+        </div>
+
+        <section className={styles.previewDesc}>
           <div className={styles.mangaPreview}>
-            <div className={styles.mangaPreview}>
-              <h1>{mangaData.name}</h1>
-              <img
-                src={
-                  mangaData.image ||
-                  "https://images.penguinrandomhouse.com/cover/9781569319003"
-                }
-              />
-              <div className={styles.mangaStatus}>
-                Manga Status:{" "}
-                <button onClick={() => handleStatusChnage()}>
-                  {" "}
-                  {mangaStatus ? "Finished" : "Not Finished"}
-                </button>
-              </div>
+            <img
+              src={
+                mangaData.image ||
+                "https://images.penguinrandomhouse.com/cover/9781569319003"
+              }
+              alt={mangaData.name}
+            />
+            <div className={styles.mangaStatus}>
+              Manga Status:{" "}
+              <button onClick={handleStatusChnage}>
+                {mangaStatus ? "Finished" : "Not Finished"}
+              </button>
             </div>
           </div>
+
           <div className={styles.mangaDetailContainer}>
             {mangaStatus ? (
               <h2>Finished</h2>
@@ -113,14 +115,13 @@ export default function () {
               name="rating"
               onChange={(e) => handleRatingChange(e)}
             />
-            <div className={styles.mangaGenre}>
-              {mangaData.genre && (
+            {mangaData.genre && (
+              <div className={styles.mangaGenre}>
                 <p>
                   <b>Genre:</b> {mangaData.genre}
                 </p>
-              )}
-            </div>
-
+              </div>
+            )}
             <p>{mangaData.description}</p>
             <div className={styles.updateContainer}>
               <Button variant="contained" onClick={handleDeleteManga}>
@@ -131,8 +132,8 @@ export default function () {
               </Button>
             </div>
           </div>
-        </div>
+        </section>
       </div>
-    </>
+    </div>
   );
 }

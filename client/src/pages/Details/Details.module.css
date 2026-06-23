@@ -10,6 +10,7 @@
   width: 100%;
   min-height: 420px;
   display: flex;
+  flex-direction: column;
   justify-content: flex-start;
   align-items: flex-start;
   gap: 2.5rem;
@@ -22,12 +23,20 @@
   box-sizing: border-box;
 }
 
+/* FIX: added align-items + gap so image and detail panel sit side by side properly */
+.previewDesc {
+  display: flex;
+  align-items: flex-start;
+  gap: 2rem;
+  width: 100%;
+}
+
 .mangaPreview {
   flex-shrink: 0;
-
+  align-self: flex-start;
   display: flex;
   flex-direction: column;
-  align-items: center;
+  align-items: flex-start;
   gap: 1rem;
   padding-top: 0.5rem;
   font-size: var(--small-font-size);
@@ -36,6 +45,8 @@
 .mangaPreview img {
   width: 100%;
   height: auto;
+  max-width: 300px;
+  max-height: 500px;
   border-radius: 8px;
   box-shadow: 0 4px 24px rgba(0, 0, 0, 0.13);
   transition: transform 0.2s ease;
@@ -48,11 +59,13 @@
 
 .mangaDetailContainer {
   flex: 1;
+  height: 100%;
+  align-content: center;
   min-width: 0;
   display: flex;
   flex-direction: column;
   gap: 1.5rem;
-  padding-top: 1rem;
+  margin-top: 1.5rem;
   font-size: var(--medium-font-size);
 
   p {
@@ -64,14 +77,26 @@
     margin: 0;
     font-family: "Bangers";
   }
+}
 
-  h1,
-  h2 {
+.titleBookmark {
+  display: flex;
+  width: 100%;
+
+  h1 {
     font-family: "Bangers";
     letter-spacing: 2px;
     margin: 0;
     padding: 0;
   }
+}
+
+/* FIX: added align-items + gap so title and chapter sit on the same baseline */
+.titleBookmark {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 1rem;
 }
 
 .mangaGenre {
@@ -174,6 +199,7 @@ button {
   h1 {
     text-align: center;
   }
+
   .container {
     padding: 0;
     margin: 0;
@@ -192,10 +218,20 @@ button {
     margin: 0;
   }
 
+  /* FIX: on mobile, stack image and details vertically */
+  .previewDesc {
+    flex-direction: column;
+    align-items: center;
+    width: 100%;
+  }
+
   .mangaPreview {
-    min-width: 160px;
-    max-width: 200px;
     min-width: 100%;
+    align-items: center;
+  }
+
+  .mangaPreview img {
+    max-width: 100%;
   }
 
   .mangaDetailContainer {

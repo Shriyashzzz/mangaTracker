@@ -68,10 +68,10 @@ export function AboutPage() {
         <div className={styles.wipBar}>
           <span className={styles.wipDot} />
           <p>
-            <strong>Work in progress.</strong> Authentication is coming soon —
-            after that, each person gets their own collection. For now this is
+            <strong>Work in progress.</strong> Authentication is coming soon -
+            After that, each person gets their own collection. For now this is
             my library, but you're welcome to add yours too, don't be sad it's
-            still a WIP :)
+            still a WIP ;&#41;
           </p>
         </div>
       </div>
