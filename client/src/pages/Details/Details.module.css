@@ -62,11 +62,13 @@
     line-height: 1.7;
     color: #444;
     margin: 0;
+    font-family: "Bangers";
   }
 
   h1,
   h2 {
-    letter-spacing: -0.02em;
+    font-family: "Bangers";
+    letter-spacing: 2px;
     margin: 0;
     padding: 0;
   }

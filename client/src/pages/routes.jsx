@@ -6,7 +6,7 @@ import Details from "./Details/Details";
 import { UpdateManga } from "./UpdateManga/UpdateManga";
 import { AddManga } from "./AddManga/AddManga";
 import { AboutPage } from "./About/About";
-import SignInPage from "./About/SignIn/SignIn";
+import SignInPage from "./SignIn/SignIn";
 
 export const routes = [
   {

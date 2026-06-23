@@ -21,21 +21,21 @@ export default function Home() {
     }
     fetchMangaData();
   }, []);
+  const filterChangeHandler = (e) => {
+    const filterValue = e.target.value;
+  };
 
   return (
     <>
       <div className={styles.homeBtn}>
         <FormControl size="small">
           <InputLabel variant="standard">Filter</InputLabel>
-          <NativeSelect
-            defaultValue={30}
-            inputProps={{
-              name: "age",
-            }}
-          >
-            <option value={10}>Ten</option>
-            <option value={20}>Twenty</option>
-            <option value={30}>Thirty</option>
+          <NativeSelect onChange={(e) => filterChangeHandler(e)}>
+            <option value="" aria-label="None"></option>
+            <option value={"rating-dsc"}>Rating (High to Low)</option>
+            <option value={"rating-asc"}>Rating (Low to High)</option>
+            <option value={"ch-dsc"}>Chapters (High to Low)</option>
+            <option value={"ch-asc"}>Chapters (Low to High)</option>
           </NativeSelect>
         </FormControl>
         <Button
