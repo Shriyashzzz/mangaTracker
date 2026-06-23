@@ -11,7 +11,13 @@ export default function MangaCard({ currentManga }) {
           <p>Bookmark: Ch {currentManga.bookmark}</p>
         )}
 
-        <img src={currentManga.image} alt="" />
+        <img
+          src={
+            currentManga.image ||
+            "https://images.penguinrandomhouse.com/cover/9781569319003"
+          }
+          alt=""
+        />
         {currentManga.name}
       </div>
     </NavLink>

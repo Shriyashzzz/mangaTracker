@@ -2,6 +2,7 @@ import { useEffect } from "react";
 import styles from "./Details.module.css";
 import { useState } from "react";
 import { useNavigate, useParams } from "react-router";
+import Button from "@mui/material/Button";
 export default function () {
   const [mangaData, setMangaData] = useState({});
   const { id } = useParams();
@@ -60,7 +61,12 @@ export default function () {
           <div className={styles.mangaPreview}>
             <div className={styles.mangaPreview}>
               <h1>{mangaData.name}</h1>
-              <img src={mangaData.image} />
+              <img
+                src={
+                  mangaData.image ||
+                  "https://images.penguinrandomhouse.com/cover/9781569319003"
+                }
+              />
               <div className={styles.mangaStatus}>
                 Manga Status:{" "}
                 <button onClick={() => handleStatusChnage()}>
@@ -79,9 +85,13 @@ export default function () {
 
             <p>{mangaData.description}</p>
             <div className={styles.updateContainer}>
-              <button onClick={handleDeleteManga}>Delete</button>
-              <button onClick={handleDetailsUpdate}>Update</button>
-              <button>Rate</button>
+              <Button variant="contained" onClick={handleDeleteManga}>
+                Delete
+              </Button>
+              <Button variant="contained" onClick={handleDetailsUpdate}>
+                Update
+              </Button>
+              <Button variant="contained">Rate</Button>
             </div>
           </div>
         </div>

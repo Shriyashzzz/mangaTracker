@@ -20,10 +20,9 @@ const validationChain = [
   body("status").notEmpty(),
   body("description")
     .trim()
-    .notEmpty()
-    .withMessage(`Description cannot be ${emptyMessage}`)
+    .optional({ values: "falsy" })
     .isLength({ min: 10, max: 450 })
-    .withMessage(`Description should be between 10-450 characters long!`),
+    .withMessage(`Description should be between 10-450 characters long <3`),
   body("image")
     .optional({ values: "falsy" })
     .trim()
@@ -45,9 +44,8 @@ const addMangaController = [
         bookmark = 0;
       }
 
-      console.log(name, description, image, status, bookmark, genre);
       try {
-        await queries.addManagToDb(
+        const newId = await queries.addManagToDb(
           name,
           genre,
           description,
@@ -55,8 +53,10 @@ const addMangaController = [
           status,
           bookmark,
         );
+
         res.status(200).json({
           error: [],
+          id: newId,
         });
       } catch (e) {
         console.log(`DB ERROR: ${e.message}`);

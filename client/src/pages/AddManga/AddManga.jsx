@@ -51,7 +51,7 @@ export function AddManga() {
         await setValidationError(data.error);
       } else {
         setValidationError([]);
-        navigate("/");
+        navigate(`/details/${data.id}`);
       }
     } catch (e) {
       throw Error(e.msg);
@@ -62,7 +62,7 @@ export function AddManga() {
       <form ref={formRef} onSubmit={(e) => handleFormSubmit(e)}>
         <h2 className={styles.formTitle}>Add Manga</h2>
 
-        <label htmlFor="name">Title</label>
+        <label htmlFor="name">Title *</label>
         <input
           id="name"
           name="name"
@@ -71,7 +71,7 @@ export function AddManga() {
           required
         />
 
-        <label htmlFor="description">Description</label>
+        <label htmlFor="description">Description </label>
         <textarea
           id="description"
           name="description"
@@ -120,12 +120,13 @@ export function AddManga() {
           <option value="Thriller">Thriller</option>
         </select>
 
-        <label htmlFor="status">Status</label>
+        <label htmlFor="status">Status *</label>
         <select
           ref={statusRef}
           id="status"
           name="status"
           onChange={handleStatusChange}
+          required
         >
           <option value="false">Ongoing</option>
           <option value="true">Finished</option>
