@@ -113,6 +113,13 @@ export default function () {
               name="rating"
               onChange={(e) => handleRatingChange(e)}
             />
+            <div className={styles.mangaGenre}>
+              {mangaData.genre && (
+                <p>
+                  <b>Genre:</b> {mangaData.genre}
+                </p>
+              )}
+            </div>
 
             <p>{mangaData.description}</p>
             <div className={styles.updateContainer}>

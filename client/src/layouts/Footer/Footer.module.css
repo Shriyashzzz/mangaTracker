@@ -14,8 +14,7 @@
   font-family: "Parry Hotter", "Times New Roman", Times, serif;
   font-size: var(--medium-font-size);
 }
-.footer a,
-p {
+.footer a {
   cursor: pointer;
   color: rgb(91, 86, 86);
   text-shadow: 1px 1px rgba(0, 0, 0, 0.5);
