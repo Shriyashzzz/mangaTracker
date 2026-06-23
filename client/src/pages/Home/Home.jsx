@@ -23,6 +23,26 @@ export default function Home() {
   }, []);
   const filterChangeHandler = (e) => {
     const filterValue = e.target.value;
+    let filteredArray = [...mangaData];
+    switch (filterValue) {
+      case "rating-dsc":
+        filteredArray.sort((a, b) => b.rating - a.rating);
+        break;
+      case "rating-asc":
+        filteredArray.sort((a, b) => a.rating - b.rating);
+        break;
+      case "ch-dsc":
+        filteredArray.sort((a, b) => b.rating - a.rating);
+        break;
+      case "ch-asc":
+        filteredArray.sort((a, b) => a.rating - b.rating);
+        break;
+      case "":
+        filteredArray = mangaData;
+        break;
+    }
+    console.log("filtered");
+    setMangaData(filteredArray);
   };
 
   return (
