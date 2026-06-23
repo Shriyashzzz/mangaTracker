@@ -31,7 +31,7 @@ export default function () {
         method: "DELETE",
       });
       if (!res.ok) throw new Error(`Failed Changing manga status`);
-      navigate("/");
+      navigate("/", { viewTransition: true });
     } catch (e) {
       console.error(e);
     }
@@ -55,7 +55,7 @@ export default function () {
     }
   };
   const handleDetailsUpdate = () => {
-    navigate(`/update/${mangaData.id}`);
+    navigate(`/update/${mangaData.id}`, { viewTransition: true });
   };
 
   const handleRatingChange = async (e) => {

@@ -66,7 +66,7 @@ export function UpdateManga() {
       setError(errorDara.error);
     } else {
       setError(null);
-      navigation(`/details/${id}`);
+      navigation(`/details/${id}`, { viewTransition: true });
     }
   };
 
@@ -125,7 +125,13 @@ export function UpdateManga() {
           </ul>
         )}
         <div className={styles.btnContainer}>
-          <button onClick={() => navigation(`/update/${id}`)}>Go Back</button>
+          <button
+            onClick={() =>
+              navigation(`/update/${id}`, { viewTransition: true })
+            }
+          >
+            Go Back
+          </button>
           <button type="submit">UPDATE</button>
         </div>
       </form>

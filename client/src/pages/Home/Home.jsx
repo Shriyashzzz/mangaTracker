@@ -61,7 +61,7 @@ export default function Home() {
         <Button
           sx={{ minWidth: 120 }}
           variant="contained"
-          onClick={() => navigator("/add")}
+          onClick={() => navigator("/add", { viewTransition: true })}
         >
           Add Manga
         </Button>

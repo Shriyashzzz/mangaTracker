@@ -1,9 +1,13 @@
-import { NavLink } from "react-router";
+import { Link } from "react-router";
 import styles from "./MangaCard.module.css";
 
 export default function MangaCard({ currentManga }) {
   return (
-    <NavLink to={`/details/${currentManga.id}`} key={currentManga.id}>
+    <Link
+      to={`/details/${currentManga.id}`}
+      key={currentManga.id}
+      viewTransition
+    >
       <div className={styles.card}>
         {currentManga.status ? (
           <p>Finished</p>
@@ -20,6 +24,6 @@ export default function MangaCard({ currentManga }) {
         />
         {currentManga.name}
       </div>
-    </NavLink>
+    </Link>
   );
 }
