@@ -3,7 +3,7 @@ import { Client } from "pg";
 const SQL = `
 CREATE TABLE IF NOT EXISTS manga(
   id INTEGER PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
-  name  TEXT NOT NULL UNIQUE,
+  name  TEXT NOT NULL UNIQUE, --cannot be unique when you have multiple user id pointing to this table later
   genre VARCHAR(100),
   description TEXT,
   image TEXT,
@@ -11,30 +11,6 @@ CREATE TABLE IF NOT EXISTS manga(
   bookmark INTEGER,
   rating SMALLINT CHECK (rating >= 0 AND rating <= 5)
 );
-
-CREATE TABLE IF NOT EXISTS author(
-  id INTEGER PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
-  name TEXT NOT NULL UNIQUE
-);
-
-CREATE TABLE IF NOT EXISTS manga_author(
-  manga_id INTEGER REFERENCES manga(id) ON DELETE CASCADE,
-  author_id INTEGER REFERENCES author(id) ON DELETE CASCADE,
-  PRIMARY KEY (manga_id, author_id)
-);
-
-INSERT INTO author (name) VALUES
-  ('Eiichiro Oda'),
-  ('Masashi Kishimoto'),
-  ('Hajime Isayama'),
-  ('Tite Kubo'),
-  ('Naoko Takeuchi'),
-  ('Hiromu Arakawa'),
-  ('Koyoharu Gotouge'),
-  ('Tsugumi Ohba'),
-  ('Kohei Horikoshi'),
-  ('Gege Akutami')
-ON CONFLICT (name) DO NOTHING;
 
 INSERT INTO manga (name, genre, description, image, status, bookmark) VALUES
   (

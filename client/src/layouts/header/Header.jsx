@@ -17,7 +17,7 @@ export default function Header() {
             </NavLink>
           </li>
           <li>
-            <NavLink to="/">
+            <NavLink to="/about">
               <button>About</button>
             </NavLink>
           </li>

@@ -1,0 +1,193 @@
+@import url("https://fonts.googleapis.com/css2?family=Bangers&display=swap");
+
+.container {
+  width: 100%;
+  max-width: 1100px;
+  display: flex;
+  justify-content: center;
+  align-self: center;
+}
+
+.containerBox {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 1.75rem;
+  background-color: rgb(180, 193, 234);
+  margin-top: 5rem;
+  padding: 2rem;
+  border: 1px solid rgba(100, 115, 160, 0.4);
+  border-radius: 16px;
+  box-shadow: 0 2px 12px rgba(80, 100, 160, 0.08);
+  box-sizing: border-box;
+}
+
+/* ── Hero ── */
+
+.chapterLabel {
+  font-size: var(--small-font-size, 13px);
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #2a3560;
+  opacity: 0.7;
+}
+
+.title {
+  font-family: "Bangers", cursive;
+  font-size: clamp(36px, 6vw, 56px);
+  letter-spacing: 0.04em;
+  line-height: 1.05;
+  margin: 0;
+  color: #1a2550;
+}
+
+.accent {
+  color: rgb(60, 80, 140);
+}
+
+/* ── Sections ── */
+
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding: 1.25rem;
+  background: rgba(255, 255, 255, 0.45);
+  border-radius: 8px;
+  border: 1px solid rgba(100, 115, 160, 0.2);
+}
+
+.section h2 {
+  letter-spacing: -0.02em;
+  margin: 0;
+  color: #1a2550;
+  font-size: var(--medium-font-size, 16px);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.section p {
+  text-wrap: balance;
+  overflow-wrap: break-word;
+  word-break: break-word;
+  line-height: 1.7;
+  color: #444;
+  margin: 0;
+  font-size: var(--medium-font-size, 15px);
+}
+
+/* ── Tech stack cards ── */
+
+.techRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.techCard {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 0.6rem 1rem;
+  border-radius: 6px;
+  border: 1.5px solid rgba(60, 80, 140, 0.35);
+  background: rgb(230, 235, 250);
+  min-width: 100px;
+}
+
+.techName {
+  font-size: var(--medium-font-size, 14px);
+  font-weight: 700;
+  color: #2a3560;
+}
+
+.techRole {
+  font-size: var(--small-font-size, 11px);
+  font-weight: 500;
+  color: rgba(42, 53, 96, 0.6);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+/* ── WIP bar ── */
+
+.wipBar {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.65rem;
+  padding: 0.75rem 1rem;
+  background: rgba(255, 255, 255, 0.45);
+  border-radius: 8px;
+  border: 1px solid rgba(100, 115, 160, 0.2);
+}
+
+.wipDot {
+  display: block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #2a3560;
+  flex-shrink: 0;
+  margin-top: 5px;
+  animation: pulse 1.8s ease-in-out infinite;
+}
+
+.wipBar p {
+  font-size: var(--small-font-size, 13px);
+  line-height: 1.6;
+  color: #444;
+  margin: 0;
+}
+
+.wipBar strong {
+  color: #1a2550;
+}
+
+@keyframes pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.25;
+  }
+}
+
+/* ── Responsive ── */
+
+@media screen and (max-width: 900px) {
+  .containerBox {
+    margin: 0 2rem;
+  }
+}
+
+@media screen and (max-width: 760px) {
+  .container {
+    padding: 0;
+    margin: 0;
+    min-height: 100dvh;
+  }
+
+  .containerBox {
+    gap: 1.25rem;
+    padding: 1.5rem 1rem;
+    border-radius: 0;
+    border-left: none;
+    border-right: none;
+    margin: 0;
+  }
+
+  .title {
+    font-size: 30px;
+  }
+
+  .techRow {
+    gap: 0.5rem;
+  }
+
+  .techCard {
+    min-width: 80px;
+  }
+}

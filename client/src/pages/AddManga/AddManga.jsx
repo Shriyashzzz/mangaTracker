@@ -1,6 +1,7 @@
 import { useNavigate } from "react-router";
 import styles from "./AddManga.module.css";
 import { useRef, useState } from "react";
+import Button from "@mui/material/Button";
 export function AddManga() {
   const navigate = useNavigate();
   const [status, setStatus] = useState(false);
@@ -61,7 +62,9 @@ export function AddManga() {
       <form ref={formRef} onSubmit={(e) => handleFormSubmit(e)}>
         <h2 className={styles.formTitle}>Add Manga</h2>
 
-        <label htmlFor="name">Title *</label>
+        <label htmlFor="name">
+          Title <b>*</b>
+        </label>
         <input
           id="name"
           name="name"
@@ -74,7 +77,7 @@ export function AddManga() {
         <textarea
           id="description"
           name="description"
-          placeholder="Brief synopsis or notes…"
+          placeholder="Your thoughts on the Manga…"
         />
 
         <label htmlFor="image">Cover Image URL</label>
@@ -119,7 +122,9 @@ export function AddManga() {
           <option value="Thriller">Thriller</option>
         </select>
 
-        <label htmlFor="status">Status *</label>
+        <label htmlFor="status">
+          Status <b>*</b>
+        </label>
         <select
           ref={statusRef}
           id="status"
@@ -150,7 +155,7 @@ export function AddManga() {
             })}
         </div>
         <div className={styles.btnContainer}>
-          <button type="submit">Add to Library</button>
+          <Button type="submit">Add to Library</Button>
         </div>
       </form>
     </div>

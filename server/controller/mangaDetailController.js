@@ -34,7 +34,6 @@ const deleteManga = async (req, res) => {
 const patchMangaRating = async (req, res) => {
   const { id } = req.params;
   const { newRating } = req.body;
-  console.log(newRating, "on server");
   try {
     await queries.chnageMangaRating(id, newRating);
     res.sendStatus(200);
