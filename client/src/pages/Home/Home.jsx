@@ -41,6 +41,12 @@ export default function Home() {
       case "ch-asc":
         filteredArray.sort((a, b) => a.bookmark - b.bookmark);
         break;
+      case "status-finish":
+        filteredArray = filteredArray.filter((manga) => manga.status === true);
+        break;
+      case "status-ongoing":
+        filteredArray = filteredArray.filter((manga) => manga.status === false);
+        break;
       case "":
         filteredArray = mangaData;
         break;
@@ -63,6 +69,8 @@ export default function Home() {
             value={filterSelect}
           >
             <option value="" aria-label="None"></option>
+            <option value={"status-finish"}>Finsihed</option>
+            <option value={"status-ongoing"}>Ongoing</option>
             <option value={"rating-dsc"}>Rating (High to Low)</option>
             <option value={"rating-asc"}>Rating (Low to High)</option>
             <option value={"ch-dsc"}>Chapters (High to Low)</option>
