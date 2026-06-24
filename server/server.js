@@ -10,7 +10,7 @@ const port = process.env.PORT || 8080;
 
 app.use(
   cors({
-    origin: [`http://localhost:5173`], // ensures onlt the request ocming from this address is accepted
+    origin: [process.env.CLIENT_URL], // ensures onlt the request ocming from this address is accepted
   }),
 );
 
