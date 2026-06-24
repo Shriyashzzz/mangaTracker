@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import MangaCard from "../../components/mangaCard/mangaCard";
+import MangaCard from "../../components/mangaCard/MangaCard";
 import styles from "./Home.module.css";
 import Button from "@mui/material/Button";
 import { useNavigate } from "react-router";
