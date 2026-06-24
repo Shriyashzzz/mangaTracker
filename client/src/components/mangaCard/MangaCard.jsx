@@ -22,7 +22,7 @@ export default function MangaCard({ currentManga }) {
           }
           alt=""
         />
-        {currentManga.name}
+        <p className={styles.mangaTitlePara}> {currentManga.name}</p>
       </div>
     </NavLink>
   );

@@ -1,32 +1,34 @@
 .card {
-  font-size: var(--large-font-size);
+  font-size: var(--medium-font-size);
   list-style: none;
   display: flex;
   cursor: pointer;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
-
+  justify-content: space-between;
   gap: 1rem;
-  transition: 0.2s transform ease-in-out;
   box-shadow:
     0 4px 6px -1px rgba(0, 0, 0, 0.1),
     0 2px 4px -2px rgba(0, 0, 0, 0.1);
   background-color: aliceblue;
-  overflow: hidden;
+  height: 100%;
+  min-height: 400px;
+  transition:
+    transform 0.3s ease-out,
+    box-shadow 0.3s ease-out;
   padding: 1rem;
-  transform: scale(1.1);
+  box-sizing: border-box;
 
   img {
-    height: 90%;
-    width: 90%;
-    object-fit: cover;
-    padding-bottom: 1rem;
-    transition: transform 0.3s ease-out;
+    box-sizing: bocrder-box;
+    width: 100%;
+    height: 250px;
+    object-fit: contain;
     animation: cardPopIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) both;
   }
+
   p {
-    font-size: var(--small-font-size);
+    font-size: var(--medium-font-size);
   }
 }
 
@@ -40,15 +42,16 @@
     transform: scale(1) translateY(0);
   }
 }
+
 .card:hover {
   box-shadow:
-    0 4px 6px -1px rgba(201, 0, 0, 0.1),
-    0 2px 4px -2px rgba(255, 0, 0, 0.1);
-  transform: scale(1.15);
+    0 10px 15px -3px rgba(201, 0, 0, 0.2),
+    0 4px 6px -4px rgba(255, 0, 0, 0.2);
+  transform: scale(1.05);
 }
 
 @media screen and (max-width: 450px) {
   .card {
-    margin: 3rem;
+    margin: 1.5rem;
   }
 }

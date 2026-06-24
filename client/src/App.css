@@ -6,6 +6,10 @@
   box-sizing: content-box;
 }
 
+#root {
+  height: 100dvh;
+}
+
 :root {
   --small-font-size: 18px;
   --medium-font-size: 23px;
@@ -31,12 +35,12 @@
 }
 
 main {
-  min-width: 100%;
-  min-height: 100dvh;
+  min-height: 100%;
+  padding: 2rem;
   background-color: var(--bg-color);
   padding-bottom: 2rem;
   display: flex;
-  justify-content: center;
+  justify-content: cent er;
   align-items: center;
 }
 

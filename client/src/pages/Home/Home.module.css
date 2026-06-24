@@ -5,10 +5,11 @@ main {
   padding-top: 5rem;
   justify-content: center;
   width: 80%;
+  height: max-content;
   display: grid;
   align-items: center;
-  gap: 5rem;
-  grid-template-columns: repeat(auto-fit, minmax(220px, auto));
+  gap: 2rem;
+  grid-template-columns: repeat(auto-fit, minmax(300px, auto));
   grid-template-rows: auto;
   padding-bottom: 5rem;
 }
