@@ -32,6 +32,7 @@
 
 main {
   min-width: 100dvw;
+  height: 100dvh;
   background-color: var(--bg-color);
   padding-bottom: 2rem;
   display: flex;
