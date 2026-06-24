@@ -24,4 +24,7 @@ main {
   .classContainer {
     width: 100%;
   }
+  .homeBtn {
+    margin-top: 2rem;
+  }
 }

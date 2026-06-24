@@ -2,12 +2,17 @@ import { useNavigate } from "react-router";
 import styles from "./AddManga.module.css";
 import { useRef, useState } from "react";
 import Button from "@mui/material/Button";
+import { useEffect } from "react";
 export function AddManga() {
   const navigate = useNavigate();
   const [status, setStatus] = useState(false);
   const statusRef = useRef(false);
   const formRef = useRef(null);
   const [validationError, setValidationError] = useState([]);
+
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  });
   const handleStatusChange = () => {
     if (statusRef.current.value === "true") {
       setStatus(true);

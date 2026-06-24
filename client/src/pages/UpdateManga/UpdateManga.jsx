@@ -12,6 +12,8 @@ export function UpdateManga() {
   const selectRef = useRef(null);
   const [error, setError] = useState(null);
   useEffect(() => {
+    window.scrollTo(0, 0);
+
     const getThatManga = async () => {
       try {
         const response = await fetch(

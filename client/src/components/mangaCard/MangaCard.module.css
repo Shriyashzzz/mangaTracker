@@ -1,6 +1,8 @@
 .card {
   font-size: var(--medium-font-size);
   list-style: none;
+  border-radius: 2rem;
+  border: 2px solid grey;
   display: flex;
   cursor: pointer;
   flex-direction: column;

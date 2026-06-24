@@ -2,10 +2,13 @@
   background-color: rgb(173, 163, 206);
   padding: 1.5rem;
   display: flex;
-  display: flex;
   color: var(--text-color);
   justify-content: space-between;
   align-items: center;
+  position: sticky;
+  z-index: 3;
+  width: 100%;
+  box-sizing: border-box;
   img {
     height: 30px;
     width: 30px;

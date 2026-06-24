@@ -1,6 +1,10 @@
+import { useEffect } from "react";
 import styles from "./About.module.css";
 
 export function AboutPage() {
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  });
   return (
     <div className={styles.container}>
       <div className={styles.containerBox}>

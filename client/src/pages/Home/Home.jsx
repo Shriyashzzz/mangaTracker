@@ -15,6 +15,7 @@ export default function Home() {
   );
   const navigator = useNavigate();
   useEffect(() => {
+    window.scrollTo(0, 0);
     async function fetchMangaData() {
       const response = await fetch(
         `${import.meta.env.VITE_API_URL}/api/mangadata`,

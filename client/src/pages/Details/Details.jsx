@@ -13,6 +13,7 @@ export default function Details() {
   const navigate = useNavigate();
 
   useEffect(() => {
+    window.scrollTo(0, 0);
     async function getManga() {
       const response = await fetch(
         `${import.meta.env.VITE_API_URL}/details/${id}`,
