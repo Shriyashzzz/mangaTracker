@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import MangaCard from "../../components/mangaCard/MangaCard";
 import styles from "./Home.module.css";
 import Button from "@mui/material/Button";
@@ -14,6 +14,8 @@ export default function Home() {
     sessionStorage.getItem("filterValue") || "",
   );
   const navigator = useNavigate();
+  const scrollRef = useRef(null);
+
   useEffect(() => {
     window.scrollTo(0, 0);
     async function fetchMangaData() {

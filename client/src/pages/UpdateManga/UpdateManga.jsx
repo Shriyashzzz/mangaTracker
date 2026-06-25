@@ -129,7 +129,7 @@ export function UpdateManga() {
         <div className={styles.btnContainer}>
           <button
             onClick={() =>
-              navigation(`/update/${id}`, { viewTransition: true })
+              navigation(`/details/${id}`, { viewTransition: true })
             }
           >
             Go Back
