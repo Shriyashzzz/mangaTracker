@@ -19,5 +19,7 @@
   "devDependencies": {
     "concurrently": "^10.0.3"
   },
-  "dependencies": {}
+  "dependencies": {
+    "bcryptjs": "^3.0.3"
+  }
 }

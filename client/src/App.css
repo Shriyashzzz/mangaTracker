@@ -39,10 +39,10 @@ main {
   min-height: 100%;
   padding: 2rem;
   background-color: var(--bg-color);
-  padding-bottom: 2rem;
   display: flex;
   justify-content: cent er;
   align-items: center;
+  padding-bottom: 3rem;
 }
 
 a {
