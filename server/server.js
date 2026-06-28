@@ -13,6 +13,9 @@ import { pool } from "./models/pool.js";
 const app = express();
 const port = process.env.PORT || 8080;
 
+console.log("ENV:", process.env.ENV);
+console.log("secure:", process.env.ENV === "PROD");
+
 app.use(
   cors({
     origin: [process.env.CLIENT_URL], // ensures only the request ocming from this address is accepted
@@ -29,7 +32,7 @@ app.use(
     //secure: true only sends the cookie over a secure protocol i.e http's' protocol
     cookie: {
       maxAge: 1000 * 60 * 60,
-      secure: process.env.ENV == "PROD",
+      secure: process.env.ENV === "PROD",
       sameSite: process.env.ENV === "PROD" ? "none" : "lax",
     },
     store: new (connectPgSimple(session))({
