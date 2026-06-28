@@ -12,7 +12,6 @@ export function AboutPage() {
         <h1 className={styles.title}>
           Built by a manga <span className={styles.accent}>enthusiast.</span>
         </h1>
-
         <div className={styles.section}>
           <p>
             Hi, welcome to my manga tracking app! My name is Shriyash, a fellow
@@ -24,7 +23,6 @@ export function AboutPage() {
             come back next time and start right where I want to.
           </p>
         </div>
-
         <div className={styles.section}>
           <h2>What feeeature does it have, you ask?</h2>
           <p>
@@ -38,7 +36,6 @@ export function AboutPage() {
             like Tempus (Eva Bell) from X-Men.
           </p>
         </div>
-
         <div className={styles.section}>
           <h2>The Stack</h2>
           <div className={styles.techRow}>
@@ -68,14 +65,20 @@ export function AboutPage() {
             </div>
           </div>
         </div>
-
         <div className={styles.wipBar}>
           <span className={styles.wipDot} />
           <p>
-            <strong>Work in progress.</strong> Authentication is coming soon -
-            After that, each person gets their own collection. For now this is
-            my library, but you're welcome to add yours too, don't be sad it's
-            still a WIP ;&#41;
+            <strong>Update : </strong> Authentication has been added. Now you
+            can create your <strong>own</strong> account to track your{" "}
+            <strong>personal</strong> list of mangas ;&#41;
+          </p>
+        </div>{" "}
+        <div className={styles.wipBar}>
+          <span className={styles.wipDotUpcoming} />
+          <p>
+            <strong>Coming soon : </strong> Search any <strong>Manga</strong>{" "}
+            title and compare <strong>prices</strong> across stores in your
+            region so you never overpay for your fav mangas!
           </p>
         </div>
       </div>

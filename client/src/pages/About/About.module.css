@@ -121,7 +121,8 @@
   border: 1px solid rgba(100, 115, 160, 0.2);
 }
 
-.wipDot {
+.wipDot,
+.wipDotUpcoming {
   display: block;
   width: 8px;
   height: 8px;
@@ -130,6 +131,10 @@
   flex-shrink: 0;
   margin-top: 5px;
   animation: pulse 1.8s ease-in-out infinite;
+}
+
+.wipDotUpcoming {
+  background: red;
 }
 
 .wipBar p {

@@ -19,6 +19,11 @@ export default function Details() {
         `${import.meta.env.VITE_API_URL}/details/${id}`,
         { credentials: "include" },
       );
+      if (!response.ok) {
+        throw new Error(
+          "Error: Failed to get the requested data. Make sure to sign in before attempting to view manga details",
+        );
+      }
       const data = await response.json();
       const thisManga = data.detail;
       setMangaData(thisManga);

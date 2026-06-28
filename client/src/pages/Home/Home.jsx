@@ -103,17 +103,33 @@ export default function Home() {
           </div>{" "}
         </>
       ) : (
-        <div>
-          <p>Please Sign in to see your manga List</p>
-          <NavLink to="/">
-            <button>Sign In</button>
-          </NavLink>
-          <div>
-            <p>Don't have an account ?</p>
-            <NavLink to="/signup" viewTransition>
-              <button>Sign Up</button>
+        <div className={styles.guestContainer}>
+          <span className={styles.guestEyebrow}>You're not signed in</span>
+          <h1 className={styles.guestTitle}>
+            Track your <span>manga</span> list.
+          </h1>
+          <p className={styles.guestBody}>
+            Keep track of every manga you're reading, the chapther you left off,
+            your ratings, your thoughts. All in one place.{" "}
+            <strong>Sign in to see your list.</strong>
+          </p>
+          <div className={styles.guestActions}>
+            <NavLink to="/" className={styles.btnPrimary}>
+              Log in
             </NavLink>
+            <div className={styles.divider}>
+              <span>or</span>
+            </div>
+            <div className={styles.signupRow}>
+              <p>New here?</p>
+              <NavLink to="/signup" viewTransition>
+                <button className={styles.btnGhost}>Create account</button>
+              </NavLink>
+            </div>
           </div>
+          <p className={styles.aboutLink}>
+            Curious about the app? <NavLink to="/about">Read the story</NavLink>
+          </p>
         </div>
       )}
     </>

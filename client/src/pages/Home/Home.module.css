@@ -20,11 +20,170 @@ main {
   gap: 2rem;
 }
 
+/* ── Not signed in ── */
+
+.guestContainer {
+  border-radius: 0;
+  width: 100%;
+  max-width: 480px;
+  margin: 6rem auto 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  background-color: rgb(180, 193, 234);
+  padding: 2.25rem 2rem;
+  border: 1px solid rgba(100, 115, 160, 0.4);
+  box-shadow: 0 2px 12px rgba(80, 100, 160, 0.08);
+}
+
+.guestEyebrow {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: #2a3560;
+  opacity: 0.6;
+}
+
+.guestTitle {
+  font-family: "Bangers", cursive;
+  font-size: var(--large-font-size);
+  letter-spacing: 0.04em;
+  line-height: 1.05;
+  margin: 0;
+  color: #1a2550;
+}
+
+.guestTitle span {
+  color: rgb(60, 80, 140);
+}
+
+.guestBody {
+  font-size: var(--small-font-size);
+  line-height: 1.7;
+  color: #444;
+  margin: 0;
+  background: rgba(255, 255, 255, 0.45);
+  border-radius: 8px;
+  border: 1px solid rgba(100, 115, 160, 0.2);
+  padding: 1rem 1.25rem;
+}
+
+.guestActions {
+  font-size: var(--medium-font-size);
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.btnPrimary {
+  width: 100%;
+  padding: 0.75rem;
+  border-radius: 8px;
+  border: none;
+  background: #1a2550;
+  color: #fff;
+  font-size: var(--small-font-size);
+
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  cursor: pointer;
+  transition:
+    background 0.15s,
+    transform 0.1s;
+  text-align: center;
+  text-decoration: none;
+  display: block;
+}
+
+.btnPrimary:hover {
+  background: #2a3560;
+}
+
+.btnPrimary:active {
+  transform: scale(0.98);
+}
+
+.divider {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.divider::before,
+.divider::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: rgba(100, 115, 160, 0.3);
+}
+
+.divider span {
+  font-size: 11px;
+  color: rgba(42, 53, 96, 0.5);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-weight: 600;
+}
+
+.signupRow {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+}
+
+.signupRow p {
+  font-size: 13px;
+  color: rgba(42, 53, 96, 0.65);
+  margin: 0;
+}
+
+.btnGhost {
+  padding: 0.4rem 0.85rem;
+  border-radius: 6px;
+  border: 1.5px solid rgba(60, 80, 140, 0.35);
+  background: rgb(230, 235, 250);
+  font-size: 13px;
+  font-weight: 700;
+  color: #2a3560;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.btnGhost:hover {
+  background: rgb(210, 220, 245);
+}
+
+.aboutLink {
+  text-align: center;
+  font-size: 12px;
+  color: rgba(42, 53, 96, 0.5);
+  margin: 0;
+}
+
+.aboutLink a {
+  color: rgb(60, 80, 140);
+  text-decoration: none;
+  font-weight: 600;
+}
+
+.aboutLink a:hover {
+  cursor: pointer;
+  text-decoration: underline;
+}
+
 @media screen and (max-width: 600px) {
   .classContainer {
     width: 100%;
   }
   .homeBtn {
     margin-top: 2rem;
+  }
+  .guestContainer {
+    margin-top: 5rem;
+    border-radius: 0;
+    border-left: none;
+    border-right: none;
   }
 }
