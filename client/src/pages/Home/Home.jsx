@@ -2,13 +2,14 @@ import { useState, useEffect, useRef } from "react";
 import MangaCard from "../../components/mangaCard/MangaCard";
 import styles from "./Home.module.css";
 import Button from "@mui/material/Button";
-import { useNavigate } from "react-router";
+import { NavLink, useNavigate, useOutletContext } from "react-router";
 import Select from "@mui/material/Select";
 import NativeSelect from "@mui/material/NativeSelect";
 import InputLabel from "@mui/material/InputLabel";
 import FormControl from "@mui/material/FormControl";
 export default function Home() {
   const [mangaData, setMangaData] = useState([]);
+  const [isSignedIn, setIsSignedIn] = useOutletContext();
   // using sessionstorage to get the last selected filter value
   const [filterSelect, setFilterSelect] = useState(
     sessionStorage.getItem("filterValue") || "",
@@ -60,43 +61,55 @@ export default function Home() {
 
   return (
     <>
-      <div className={styles.homeBtn}>
-        <FormControl size="small">
-          <InputLabel variant="standard">Filter</InputLabel>
-          <NativeSelect
-            onChange={(e) => {
-              //update the sessionStorage so it can be used the next time ui renders
-              sessionStorage.setItem("filterValue", e.target.value);
-              //update the selectFilter state so ui rerenders with the new filtered mangaData
-              setFilterSelect(e.target.value);
-            }}
-            value={filterSelect}
-          >
-            <option value="" aria-label="None"></option>
-            <option value={"status-finish"}>Finsihed</option>
-            <option value={"status-ongoing"}>Ongoing</option>
-            <option value={"rating-dsc"}>Rating (High to Low)</option>
-            <option value={"rating-asc"}>Rating (Low to High)</option>
-            <option value={"ch-dsc"}>Chapters (High to Low)</option>
-            <option value={"ch-asc"}>Chapters (Low to High)</option>
-          </NativeSelect>
-        </FormControl>
-        <Button
-          sx={{ minWidth: 120 }}
-          variant="contained"
-          onClick={() => navigator("/add", { viewTransition: true })}
-        >
-          Add Manga
-        </Button>
-      </div>
-      <div className={styles.classContainer}>
-        {/* use the filtererd data from the fucntion to map => honest to teh user preference filterSelect */}
-        {getFilteredData().map((currentManga) => {
-          return (
-            <MangaCard key={currentManga.id} currentManga={currentManga} />
-          );
-        })}
-      </div>
+      {isSignedIn ? (
+        <>
+          {" "}
+          <div className={styles.homeBtn}>
+            <FormControl size="small">
+              <InputLabel variant="standard">Filter</InputLabel>
+              <NativeSelect
+                onChange={(e) => {
+                  //update the sessionStorage so it can be used the next time ui renders
+                  sessionStorage.setItem("filterValue", e.target.value);
+                  //update the selectFilter state so ui rerenders with the new filtered mangaData
+                  setFilterSelect(e.target.value);
+                }}
+                value={filterSelect}
+              >
+                <option value="" aria-label="None"></option>
+                <option value={"status-finish"}>Finsihed</option>
+                <option value={"status-ongoing"}>Ongoing</option>
+                <option value={"rating-dsc"}>Rating (High to Low)</option>
+                <option value={"rating-asc"}>Rating (Low to High)</option>
+                <option value={"ch-dsc"}>Chapters (High to Low)</option>
+                <option value={"ch-asc"}>Chapters (Low to High)</option>
+              </NativeSelect>
+            </FormControl>
+            <Button
+              sx={{ minWidth: 120 }}
+              variant="contained"
+              onClick={() => navigator("/add", { viewTransition: true })}
+            >
+              Add Manga
+            </Button>
+          </div>
+          <div className={styles.classContainer}>
+            {/* use the filtererd data from the fucntion to map => honest to teh user preference filterSelect */}
+            {getFilteredData().map((currentManga) => {
+              return (
+                <MangaCard key={currentManga.id} currentManga={currentManga} />
+              );
+            })}
+          </div>{" "}
+        </>
+      ) : (
+        <div>
+          <p>Please Sign in to see your manga List</p>
+          <NavLink to="/">
+            <button>Sign In</button>
+          </NavLink>
+        </div>
+      )}
     </>
   );
 }

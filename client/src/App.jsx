@@ -24,7 +24,7 @@ function App() {
     <>
       <Header setIsSignedIn={setIsSignedIn} isSignedIn={isSignedIn} />
       <main>
-        <Outlet />
+        <Outlet context={[isSignedIn, setIsSignedIn]} />
       </main>
       <Footer />
     </>

@@ -1,14 +1,16 @@
 import { useRef } from "react";
 import styles from "./SignIn.module.css";
-import { useNavigate } from "react-router";
+import { useNavigate, useOutletContext } from "react-router";
 
 export default function SignInPage() {
   const navigater = useNavigate();
   const userNameRef = useRef(null);
   const passRef = useRef(null);
+  const [isSignedIn, setIsSignedIn] = useOutletContext();
+  console.log(isSignedIn);
+
   const handleFormSubmit = async (e) => {
     e.preventDefault();
-    console.log(userNameRef.current.value);
     const result = await fetch(`${import.meta.env.VITE_API_URL}/login`, {
       credentials: "include",
       method: "POST",
@@ -23,6 +25,7 @@ export default function SignInPage() {
 
     if (result.status == 200) {
       navigater("/home", { viewTransition: true });
+      setIsSignedIn(true);
     }
   };
   return (

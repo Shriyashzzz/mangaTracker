@@ -26,7 +26,9 @@ app.use(
     secret: "cats",
     resave: false,
     saveUninitialized: false,
-    cookie: { maxAge: 1000 * 60 * 60 },
+    //maxage: sets the time that keeps the cookie valid in the clients browser
+    //secure: true only sends the cookie over a secure protocol i.e http's' protocol
+    cookie: { maxAge: 1000 * 60 * 60, secure: process.env.ENV == "PROD" },
     store: new (connectPgSimple(session))({
       pool: pool,
     }),

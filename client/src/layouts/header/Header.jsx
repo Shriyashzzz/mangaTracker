@@ -11,7 +11,6 @@ export default function Header({ isSignedIn, setIsSignedIn }) {
       credentials: "include",
       method: "GET",
     });
-    console.log(response);
     if (response.status == 200) {
       setIsSignedIn(false);
       navigator("/");
@@ -23,7 +22,7 @@ export default function Header({ isSignedIn, setIsSignedIn }) {
   return (
     <>
       <header className={styles.head}>
-        <NavLink className={styles.appName} to="/" viewTransition>
+        <NavLink className={styles.appName} to="/home" viewTransition>
           <img src={appIcon} alt="" /> <h2>Manga Tracker</h2>
         </NavLink>
         <ul>
