@@ -32,7 +32,12 @@ export const checkIfValidSignIn = [
         res.sendStatus(getUser.status);
         return;
       } else {
+        res.send(400).json({
+          error: errors.array(),
+        });
       }
-    } catch (e) {}
+    } catch (err) {
+      next(err);
+    }
   },
 ];

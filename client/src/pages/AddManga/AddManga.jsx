@@ -79,21 +79,21 @@ export function AddManga() {
           required
         />
 
-        <label htmlFor="description">Description </label>
+        <label htmlFor="description">Description (optional) </label>
         <textarea
           id="description"
           name="description"
           placeholder="Your thoughts on the Manga…"
         />
 
-        <label htmlFor="image">Cover Image URL</label>
+        <label htmlFor="image">Cover Image URL (optional)</label>
         <input
           id="image"
           name="image"
           type="url"
           placeholder="https://example.com/cover.jpg"
         />
-        <label htmlFor="genre">Genre</label>
+        <label htmlFor="genre">Genre (optional)</label>
         <select name="genre" id="genre">
           <option value="unlabled">-- Select a Genre --</option>
           <option value="Action">Action</option>
