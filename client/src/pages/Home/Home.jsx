@@ -1,21 +1,19 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import MangaCard from "../../components/mangaCard/MangaCard";
 import styles from "./Home.module.css";
 import Button from "@mui/material/Button";
 import { NavLink, useNavigate, useOutletContext } from "react-router";
-import Select from "@mui/material/Select";
 import NativeSelect from "@mui/material/NativeSelect";
 import InputLabel from "@mui/material/InputLabel";
 import FormControl from "@mui/material/FormControl";
+
 export default function Home() {
   const [mangaData, setMangaData] = useState([]);
   const [isSignedIn, setIsSignedIn] = useOutletContext();
-  // using sessionstorage to get the last selected filter value
   const [filterSelect, setFilterSelect] = useState(
     sessionStorage.getItem("filterValue") || "",
   );
   const navigator = useNavigate();
-  const scrollRef = useRef(null);
 
   useEffect(() => {
     window.scrollTo(0, 0);
@@ -25,12 +23,16 @@ export default function Home() {
         { credentials: "include" },
       );
       const mangaObj = await response.json();
-      const mangaArray = mangaObj.mangaData;
-      setMangaData(mangaArray);
+      setMangaData(mangaObj.mangaData);
     }
     fetchMangaData();
   }, []);
-
+  useEffect(() => {
+    if (mangaData.length === 0) {
+      sessionStorage.removeItem("filterValue");
+      setFilterSelect("");
+    }
+  }, [mangaData]);
   const getFilteredData = () => {
     let filteredArray = [...mangaData];
     switch (filterSelect) {
@@ -52,9 +54,8 @@ export default function Home() {
       case "status-ongoing":
         filteredArray = filteredArray.filter((manga) => manga.status === false);
         break;
-      case "":
+      default:
         filteredArray = mangaData;
-        break;
     }
     return filteredArray;
   };
@@ -63,44 +64,59 @@ export default function Home() {
     <>
       {isSignedIn ? (
         <>
-          {" "}
-          <div className={styles.homeBtn}>
-            <FormControl size="small">
-              <InputLabel variant="standard">Filter</InputLabel>
-              <NativeSelect
-                onChange={(e) => {
-                  //update the sessionStorage so it can be used the next time ui renders
-                  sessionStorage.setItem("filterValue", e.target.value);
-                  //update the selectFilter state so ui rerenders with the new filtered mangaData
-                  setFilterSelect(e.target.value);
-                }}
-                value={filterSelect}
+          {mangaData.length != 0 && (
+            <div className={styles.homeBtn}>
+              <FormControl size="small">
+                <InputLabel variant="standard">Filter</InputLabel>
+                <NativeSelect
+                  onChange={(e) => {
+                    sessionStorage.setItem("filterValue", e.target.value);
+                    setFilterSelect(e.target.value);
+                  }}
+                  value={filterSelect}
+                >
+                  <option value="" aria-label="None"></option>
+                  <option value={"status-finish"}>Finished</option>
+                  <option value={"status-ongoing"}>Ongoing</option>
+                  <option value={"rating-dsc"}>Rating (High to Low)</option>
+                  <option value={"rating-asc"}>Rating (Low to High)</option>
+                  <option value={"ch-dsc"}>Chapters (High to Low)</option>
+                  <option value={"ch-asc"}>Chapters (Low to High)</option>
+                </NativeSelect>
+              </FormControl>
+              <Button
+                sx={{ minWidth: 120 }}
+                variant="contained"
+                onClick={() => navigator("/add", { viewTransition: true })}
               >
-                <option value="" aria-label="None"></option>
-                <option value={"status-finish"}>Finsihed</option>
-                <option value={"status-ongoing"}>Ongoing</option>
-                <option value={"rating-dsc"}>Rating (High to Low)</option>
-                <option value={"rating-asc"}>Rating (Low to High)</option>
-                <option value={"ch-dsc"}>Chapters (High to Low)</option>
-                <option value={"ch-asc"}>Chapters (Low to High)</option>
-              </NativeSelect>
-            </FormControl>
-            <Button
-              sx={{ minWidth: 120 }}
-              variant="contained"
-              onClick={() => navigator("/add", { viewTransition: true })}
-            >
-              Add Manga
-            </Button>
-          </div>
-          <div className={styles.classContainer}>
-            {/* use the filtererd data from the fucntion to map => honest to teh user preference filterSelect */}
-            {getFilteredData().map((currentManga) => {
-              return (
+                Add Manga
+              </Button>
+            </div>
+          )}
+          {getFilteredData().length === 0 ? (
+            <div className={styles.emptyState}>
+              <p className={styles.emptyTitle}>Your list is empty!</p>
+              <p className={styles.emptyBody}>
+                {filterSelect
+                  ? "No manga match that filter. Try a different one."
+                  : "Start building your collection by adding your first manga."}
+              </p>
+              {!filterSelect && (
+                <Button
+                  variant="contained"
+                  onClick={() => navigator("/add", { viewTransition: true })}
+                >
+                  Add your first manga
+                </Button>
+              )}
+            </div>
+          ) : (
+            <div className={styles.classContainer}>
+              {getFilteredData().map((currentManga) => (
                 <MangaCard key={currentManga.id} currentManga={currentManga} />
-              );
-            })}
-          </div>{" "}
+              ))}
+            </div>
+          )}
         </>
       ) : (
         <div className={styles.guestContainer}>
@@ -109,7 +125,7 @@ export default function Home() {
             Track your <span>manga</span> list.
           </h1>
           <p className={styles.guestBody}>
-            Keep track of every manga you're reading, the chapther you left off,
+            Keep track of every manga you're reading, the chapter you left off,
             your ratings, your thoughts. All in one place.{" "}
             <strong>Sign in to see your list.</strong>
           </p>
