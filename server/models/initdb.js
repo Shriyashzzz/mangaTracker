@@ -19,11 +19,6 @@ CREATE TABLE IF NOT EXISTS manga(
   rating      SMALLINT CHECK (rating >= 0 AND rating <= 5)
 );
 
-INSERT INTO users (username, password) VALUES
-  ('otaku_king', 'hashedpassword1'),
-  ('manga_girl', 'hashedpassword2'),
-  ('weeb_lord',  'hashedpassword3');
-
 CREATE TABLE "session" (
   "sid" varchar NOT NULL COLLATE "default",
   "sess" json NOT NULL,
