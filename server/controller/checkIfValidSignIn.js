@@ -5,6 +5,7 @@ const validateData = [
     .trim()
     .notEmpty()
     .withMessage("I need your name to let you in, come on you know that!")
+    .isAlphanumeric()
     .isLength({ min: 4, max: 40 }),
   body("password")
     .trim()
@@ -13,20 +14,25 @@ const validateData = [
     .isLength({ min: 5 }),
 ];
 
-export async function checkIfValidSignIn(req, res, next) {
-  try {
-    const errors = validationResult(req);
-    if (errors.isEmpty()) {
-      const { username, password } = matchedData(req);
-      const checkUser = await queries.checkIfUserExists(username, password);
-      if (checkUser.userId) {
-        req.session.userId = checkUser.userId;
-        res.sendStatus(200);
+export const checkIfValidSignIn = [
+  validateData,
+  async (req, res) => {
+    try {
+      const errors = validationResult(req);
+
+      if (errors.isEmpty()) {
+        const { username, password } = matchedData(req);
+        console.log(username);
+        const getUser = await queries.checkIfUserExists(username, password);
+        if (getUser.userId) {
+          req.session.userId = getUser.userId;
+          res.sendStatus(200);
+          return;
+        }
+        res.sendStatus(getUser.status);
         return;
+      } else {
       }
-      res.sendStatus(checkUser.status);
-      return;
-    } else {
-    }
-  } catch (e) {}
-}
+    } catch (e) {}
+  },
+];

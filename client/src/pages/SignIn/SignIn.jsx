@@ -28,7 +28,7 @@ export default function SignInPage() {
         credentials: "include",
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ username, password }),
+        body: JSON.stringify({ username: username, password: password }),
       });
 
       if (result.status === 200) {
@@ -78,7 +78,6 @@ export default function SignInPage() {
               autoComplete="current-password"
             />
           </div>
-
           {error && <p className={styles.error}>{error}</p>}
 
           <button

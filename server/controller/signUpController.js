@@ -13,7 +13,6 @@ const validateData = [
     .notEmpty()
     .withMessage("Password cannot be empty luv")
     .isLength({ min: 5 })
-    .escape()
     .withMessage("Password has to be atleast 5 charachters long! "),
 ];
 
