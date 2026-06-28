@@ -13,9 +13,6 @@ import { pool } from "./models/pool.js";
 const app = express();
 const port = process.env.PORT || 8080;
 
-console.log("ENV:", process.env.ENV);
-console.log("secure:", process.env.ENV === "PROD");
-
 app.use(
   cors({
     origin: [process.env.CLIENT_URL], // ensures only the request ocming from this address is accepted
@@ -40,7 +37,7 @@ app.use(
     }),
   }),
 );
-
+app.set("trust proxy", 1); //  tells express to trust Railway's proxy
 //middlewares to parse incoming requests
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
