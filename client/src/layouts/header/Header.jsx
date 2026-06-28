@@ -1,8 +1,25 @@
 import styles from "./Header.module.css";
 import appIcon from "../../assets/appIcon.png";
-import { NavLink } from "react-router";
+import { NavLink, useNavigate } from "react-router";
+import { useEffect } from "react";
 
-export default function Header() {
+export default function Header({ isSignedIn, setIsSignedIn }) {
+  const navigator = useNavigate();
+
+  const sendLogOutSignal = async () => {
+    const response = await fetch(`${import.meta.env.VITE_API_URL}/logout`, {
+      credentials: "include",
+      method: "GET",
+    });
+    console.log(response);
+    if (response.status == 200) {
+      setIsSignedIn(false);
+      navigator("/");
+    } else {
+      setIsSignedIn(true);
+    }
+  };
+
   return (
     <>
       <header className={styles.head}>
@@ -12,7 +29,7 @@ export default function Header() {
         <ul>
           <li>
             {" "}
-            <NavLink to="/" viewTransition>
+            <NavLink to="/home" viewTransition>
               <button>Home</button>
             </NavLink>
           </li>
@@ -21,10 +38,15 @@ export default function Header() {
               <button>About</button>
             </NavLink>
           </li>
+
           <li>
-            <NavLink to="/signin" viewTransition>
-              <button>Sign in</button>
-            </NavLink>
+            {isSignedIn ? (
+              <button onClick={sendLogOutSignal}>Log out</button>
+            ) : (
+              <NavLink to="/" viewTransition>
+                <button>Sign in</button>
+              </NavLink>
+            )}
           </li>
         </ul>
       </header>

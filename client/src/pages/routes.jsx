@@ -14,12 +14,12 @@ export const routes = [
     element: <App />,
     errorElement: <ErrorPage />,
     children: [
-      { index: true, element: <Home /> },
+      { index: true, element: <SignInPage /> },
+      { path: "/home", element: <Home /> },
       { path: "/details/:id", element: <Details /> },
       { path: "/update/:id", element: <UpdateManga /> },
       { path: "/add", element: <AddManga /> },
       { path: "/about", element: <AboutPage /> },
-      { path: "/signin", element: <SignInPage /> },
     ],
   },
 ];

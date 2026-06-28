@@ -1,7 +1,10 @@
 import { pool } from "./pool.js";
 
-const getMangaData = async () => {
-  const data = await pool.query(`SELECT * FROM manga ORDER BY bookmark DESC`);
+const getMangaData = async (userId) => {
+  const data = await pool.query(
+    `SELECT * FROM manga WHERE user_id = $1 ORDER BY bookmark DESC`,
+    [userId],
+  );
   return data.rows;
 };
 
@@ -83,6 +86,26 @@ const chnageMangaRating = async (id, newRating) => {
     [id, newRating],
   );
 };
+
+const checkIfUserExists = async (username, password) => {
+  const user = await pool.query(
+    `
+      SELECT id, password FROM users
+      WHERE username = ($1);
+    `,
+    [username],
+  );
+  if (user.rows.length !== 0) {
+    if (user.rows[0].password != password) {
+      return { status: 401, message: "Incorrect password" };
+    } else {
+      return { status: 200, message: "Success", userId: user.rows[0].id };
+    }
+  } else {
+    return { status: 404, message: "Incorrect Information" };
+  }
+};
+
 export default {
   getMangaData,
   getThatManga,
@@ -91,4 +114,5 @@ export default {
   updateMangaPost,
   addManagToDb,
   chnageMangaRating,
+  checkIfUserExists,
 };

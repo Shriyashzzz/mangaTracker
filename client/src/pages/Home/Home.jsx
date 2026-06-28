@@ -21,6 +21,7 @@ export default function Home() {
     async function fetchMangaData() {
       const response = await fetch(
         `${import.meta.env.VITE_API_URL}/api/mangadata`,
+        { credentials: "include" },
       );
       const mangaObj = await response.json();
       const mangaArray = mangaObj.mangaData;
