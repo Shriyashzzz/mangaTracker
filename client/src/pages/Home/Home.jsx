@@ -108,6 +108,12 @@ export default function Home() {
           <NavLink to="/">
             <button>Sign In</button>
           </NavLink>
+          <div>
+            <p>Don't have an account ?</p>
+            <NavLink to="/signup" viewTransition>
+              <button>Sign Up</button>
+            </NavLink>
+          </div>
         </div>
       )}
     </>

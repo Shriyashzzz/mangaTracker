@@ -6,7 +6,7 @@ import mangaRouter from "./routes/managaRouter.js";
 import { mangaDetailRouter } from "./routes/mangaDetailRouter.js";
 import { mangaUpdateRouter } from "./routes/mangaUpdateRouter.js";
 import { mangaAddRouter } from "./routes/mangaAddRouter.js";
-import { mangaEntryRouter } from "./routes/entryRouter.js";
+import { mangaEntryRouter } from "./routes/userLogRouter.js";
 import passport from "passport";
 import connectPgSimple from "connect-pg-simple";
 import { checkIfValidSignIn } from "./controller/checkIfValidSignIn.js";
@@ -49,6 +49,10 @@ app.use("/details/:id", mangaDetailRouter);
 app.use("/update/:id", mangaUpdateRouter);
 app.use("/add", mangaAddRouter);
 app.use("/", mangaEntryRouter);
+app.use((err, req, res, next) => {
+  console.error(err.stack);
+  res.status(500).send("Server Error! Please Try again later!");
+});
 app.listen(port, () => {
   console.log(`server running on http://localhost:${port} `);
 });

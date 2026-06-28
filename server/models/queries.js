@@ -1,4 +1,5 @@
 import { pool } from "./pool.js";
+import bcrypt from "bcryptjs";
 
 const getMangaData = async (userId) => {
   const data = await pool.query(
@@ -96,14 +97,27 @@ const checkIfUserExists = async (username, password) => {
     [username],
   );
   if (user.rows.length !== 0) {
-    if (user.rows[0].password != password) {
-      return { status: 401, message: "Incorrect password" };
-    } else {
+    if (await bcrypt.compare(password, user.rows[0].password)) {
       return { status: 200, message: "Success", userId: user.rows[0].id };
+    } else {
+      return { status: 401, message: "Incorrect password" };
     }
   } else {
     return { status: 404, message: "Incorrect Information" };
   }
+};
+
+const addNewUser = async (username, hashedPassword) => {
+  const result = await pool.query(
+    `
+        INSERT INTO users (username, password)
+        VALUES ($1,$2)
+        RETURNING id;
+        `,
+    [username, hashedPassword],
+  );
+
+  return result.rows[0].id;
 };
 
 export default {
@@ -115,4 +129,5 @@ export default {
   addManagToDb,
   chnageMangaRating,
   checkIfUserExists,
+  addNewUser,
 };
