@@ -4,7 +4,7 @@ import cors from "cors";
 import session from "express-session";
 import mangaRouter from "./routes/managaRouter.js";
 import { mangaDetailRouter } from "./routes/mangaDetailRouter.js";
-import { mangaUpdateRouter } from "./routes/mangaUpdateRouter.js";
+import { mangaUpdateRouter } from "./mangaUpdateRouter.js";
 import { mangaAddRouter } from "./routes/mangaAddRouter.js";
 import { mangaEntryRouter } from "./routes/userLogRouter.js";
 import passport from "passport";
