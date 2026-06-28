@@ -20,11 +20,10 @@ const validationData = [
   body("status").notEmpty(),
   body("description")
     .trim()
-    .notEmpty()
-    .withMessage(`Description cannot be ${emptyMessage}`)
+    .optional({ values: "falsy" })
     .isLength({ min: 10, max: 450 })
     .withMessage(
-      `Description of the manga should be between 10 to 450 charachters long! <3`,
+      `Description of the manga should be atleast between 10 to 450 charachters long! <3`,
     ),
 ];
 

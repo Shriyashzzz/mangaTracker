@@ -18,6 +18,7 @@ export function UpdateManga() {
       try {
         const response = await fetch(
           `${import.meta.env.VITE_API_URL}/details/${id}`,
+          { credentials: "include" },
         );
         if (!response.ok)
           throw new Error(`Error fetching data from the server`);
@@ -52,6 +53,7 @@ export function UpdateManga() {
       `${import.meta.env.VITE_API_URL}/update/${id}`,
       {
         method: "POST",
+        credentials: "include",
         headers: {
           "Content-Type": "application/json",
         },

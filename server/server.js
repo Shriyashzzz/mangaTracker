@@ -51,6 +51,12 @@ app.use("/update/:id", mangaUpdateRouter);
 app.use("/add", mangaAddRouter);
 
 app.use((err, req, res, next) => {
+  if (
+    err.message == "Cannot read properties of undefined (reading 'user_id')"
+  ) {
+    res.status(401).send("You are not authenticated to see this resource");
+    return;
+  }
   console.error(err.stack);
   res.status(500).send("Server Error! Please Try again later!");
 });

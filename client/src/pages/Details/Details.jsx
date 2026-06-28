@@ -17,6 +17,7 @@ export default function Details() {
     async function getManga() {
       const response = await fetch(
         `${import.meta.env.VITE_API_URL}/details/${id}`,
+        { credentials: "include" },
       );
       const data = await response.json();
       const thisManga = data.detail;
@@ -30,6 +31,7 @@ export default function Details() {
   const handleDeleteManga = async () => {
     try {
       const res = await fetch(`${import.meta.env.VITE_API_URL}/details/${id}`, {
+        credentials: "include",
         method: "DELETE",
       });
       if (!res.ok) throw new Error(`Failed Changing manga status`);
@@ -45,6 +47,7 @@ export default function Details() {
         `${import.meta.env.VITE_API_URL}/details/${id}/status`,
         {
           method: `PATCH`,
+          credentials: "include",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ status: !mangaStatus }),
         },
@@ -67,6 +70,7 @@ export default function Details() {
         `${import.meta.env.VITE_API_URL}/details/${id}/rating`,
         {
           method: "PATCH",
+          credentials: "include",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ newRating: e.target.value }),
         },
