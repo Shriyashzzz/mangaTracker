@@ -7,7 +7,6 @@ import { mangaDetailRouter } from "./routes/mangaDetailRouter.js";
 import { mangaUpdateRouter } from "./mangaUpdateRouter.js";
 import { mangaAddRouter } from "./routes/mangaAddRouter.js";
 import { mangaEntryRouter } from "./routes/userLogRouter.js";
-import passport from "passport";
 import connectPgSimple from "connect-pg-simple";
 
 import { pool } from "./models/pool.js";
