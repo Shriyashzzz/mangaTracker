@@ -32,6 +32,7 @@ const validationChain = [
 const addMangaController = [
   validationChain,
   async (req, res) => {
+    const userId = req.session.userId;
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
       res.status(400).json({
@@ -52,6 +53,7 @@ const addMangaController = [
           image,
           status,
           bookmark,
+          userId,
         );
 
         res.status(200).json({

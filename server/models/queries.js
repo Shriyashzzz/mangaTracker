@@ -65,14 +65,15 @@ const addManagToDb = async (
   image,
   status,
   bookmark,
+  userId,
 ) => {
   const result = await pool.query(
     `
-    INSERT INTO manga ( name, genre, description, image, status, bookmark)
-    VALUES (($1),($2),($3),($4),($5),($6))
+    INSERT INTO manga ( name, genre, description, image, status, bookmark, user_id)
+    VALUES (($1),($2),($3),($4),($5),($6),($7))
     RETURNING id;
     `,
-    [name, genre, description, image, status, bookmark],
+    [name, genre, description, image, status, bookmark, userId],
   );
   return result.rows[0].id;
 };

@@ -33,7 +33,7 @@ export default function Details() {
         method: "DELETE",
       });
       if (!res.ok) throw new Error(`Failed Changing manga status`);
-      navigate("/", { viewTransition: true });
+      navigate("/home", { viewTransition: true });
     } catch (e) {
       console.error(e);
     }

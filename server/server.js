@@ -9,7 +9,7 @@ import { mangaAddRouter } from "./routes/mangaAddRouter.js";
 import { mangaEntryRouter } from "./routes/userLogRouter.js";
 import passport from "passport";
 import connectPgSimple from "connect-pg-simple";
-import { checkIfValidSignIn } from "./controller/checkIfValidSignIn.js";
+
 import { pool } from "./models/pool.js";
 const app = express();
 const port = process.env.PORT || 8080;
@@ -44,11 +44,12 @@ app.use(express.urlencoded({ extended: true }));
 // Body: name=Alice&age=30
 //Together, they ensure req.body is populated regardless of how the client sends data — whether it's a fetch/axios call sending JSON, or an HTML <form> submission.
 // routers
+app.use("/", mangaEntryRouter);
 app.use("/api/mangadata", mangaRouter.mangaHomeRouter);
 app.use("/details/:id", mangaDetailRouter);
 app.use("/update/:id", mangaUpdateRouter);
 app.use("/add", mangaAddRouter);
-app.use("/", mangaEntryRouter);
+
 app.use((err, req, res, next) => {
   console.error(err.stack);
   res.status(500).send("Server Error! Please Try again later!");

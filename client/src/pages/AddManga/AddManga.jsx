@@ -46,6 +46,7 @@ export function AddManga() {
     try {
       const resposne = await fetch(`${import.meta.env.VITE_API_URL}/add`, {
         method: "POST",
+        credentials: "include",
         headers: {
           "Content-Type": "application/json",
         },
