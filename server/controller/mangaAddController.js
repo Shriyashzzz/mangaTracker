@@ -32,6 +32,11 @@ const validationChain = [
 const addMangaController = [
   validationChain,
   async (req, res) => {
+    console.log("=== ADD MANGA DEBUG ===");
+    console.log("session ID:", req.sessionID);
+    console.log("full session:", req.session);
+    console.log("userId:", req.session.userId);
+    console.log("cookies:", req.headers.cookie);
     const userId = req.session.userId;
     const errors = validationResult(req);
     if (!errors.isEmpty()) {

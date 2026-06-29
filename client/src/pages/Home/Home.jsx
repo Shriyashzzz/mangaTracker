@@ -130,7 +130,7 @@ export default function Home() {
             <strong>Sign in to see your list.</strong>
           </p>
           <div className={styles.guestActions}>
-            <NavLink to="/" className={styles.btnPrimary}>
+            <NavLink to="/signin" className={styles.btnPrimary}>
               Log in
             </NavLink>
             <div className={styles.divider}>

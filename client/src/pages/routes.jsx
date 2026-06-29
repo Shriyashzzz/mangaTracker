@@ -15,8 +15,8 @@ export const routes = [
     element: <App />,
     errorElement: <ErrorPage />,
     children: [
-      { index: true, element: <SignInPage /> },
-      { path: "/home", element: <Home /> },
+      { index: true, element: <Home /> },
+      { path: "/signin", element: <SignInPage /> },
       { path: "/details/:id", element: <Details /> },
       { path: "/update/:id", element: <UpdateManga /> },
       { path: "/add", element: <AddManga /> },

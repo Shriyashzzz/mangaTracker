@@ -104,7 +104,7 @@ export default function SignUp() {
 
         <div className={styles.signinRow}>
           <p>Already have an account?</p>
-          <NavLink to="/" viewTransition>
+          <NavLink to="/signin" viewTransition>
             <button className={styles.btnGhost}>Log in</button>
           </NavLink>
         </div>

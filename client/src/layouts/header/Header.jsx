@@ -28,7 +28,7 @@ export default function Header({ isSignedIn, setIsSignedIn }) {
         <ul>
           <li>
             {" "}
-            <NavLink to="/home" viewTransition>
+            <NavLink to="/" viewTransition>
               <button>Home</button>
             </NavLink>
           </li>
@@ -42,7 +42,7 @@ export default function Header({ isSignedIn, setIsSignedIn }) {
             {isSignedIn ? (
               <button onClick={sendLogOutSignal}>Log out</button>
             ) : (
-              <NavLink to="/" viewTransition>
+              <NavLink to="/signin" viewTransition>
                 <button>Sign in</button>
               </NavLink>
             )}
