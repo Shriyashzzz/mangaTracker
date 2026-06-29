@@ -31,6 +31,7 @@ app.use(
       maxAge: 1000 * 60 * 60,
       secure: process.env.ENV === "PROD",
       sameSite: process.env.ENV === "PROD" ? "none" : "lax",
+      //sends cookie only on http request
       httpOnly: true,
     },
     store: new (connectPgSimple(session))({

@@ -78,9 +78,7 @@ export default function SignUp() {
               name="password"
               autoComplete="new-password"
             />
-            <span className={styles.hint}>
-              Min 5 characters with uppercase, lowercase, number, and symbol
-            </span>
+            <span className={styles.hint}>Min 5 characters</span>
           </div>
 
           {errors.length > 0 && (

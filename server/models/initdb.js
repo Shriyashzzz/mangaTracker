@@ -19,7 +19,7 @@ CREATE TABLE IF NOT EXISTS manga(
   rating      SMALLINT CHECK (rating >= 0 AND rating <= 5)
 );
 
-CREATE TABLE "session" (
+CREATE TABLE IF NOT EXISTS "session" (
   "sid" varchar NOT NULL COLLATE "default",
   "sess" json NOT NULL,
   "expire" timestamp(6) NOT NULL
