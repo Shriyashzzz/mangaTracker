@@ -33,7 +33,6 @@ app.use(
       maxAge: 1000 * 60 * 60 * 24 * 7,
       secure: process.env.ENV === "PROD",
       sameSite: process.env.ENV === "PROD" ? "none" : "lax",
-      httpOnly: true,
     },
     store: new (connectPgSimple(session))({
       pool: pool,
