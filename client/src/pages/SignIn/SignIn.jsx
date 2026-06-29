@@ -33,7 +33,7 @@ export default function SignInPage() {
 
       if (result.status === 200) {
         setIsSignedIn(true);
-        navigater("/home", { viewTransition: true });
+        navigater("/", { viewTransition: true });
       } else {
         setError("Incorrect username or password. Try again.");
       }
