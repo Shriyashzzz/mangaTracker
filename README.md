@@ -2,7 +2,7 @@
 
 A manga tracking app for readers who follow multiple series at once. Built to solve a simple problem: forgetting which chapter you left off on.
 
-Live at [client-production-ae31.up.railway.app](https://client-production-ae31.up.railway.app/)
+Live at [client-production-ae31.up.railway.app](https://mangatracker.xyz/)
 
 ---
 
