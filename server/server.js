@@ -22,7 +22,7 @@ app.use(
 
 app.use(
   session({
-    secret: "cats",
+    secret: process.env.SECRET,
     resave: false,
     saveUninitialized: false,
     //maxage: sets the time that keeps the cookie valid in the clients browser
