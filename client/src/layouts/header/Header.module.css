@@ -40,13 +40,12 @@ ul button:hover {
 }
 
 ul button:active {
-  color: skyblue;
+  color: rgb(227, 234, 237);
 }
 
 @media screen and (max-width: 450px) {
   .head {
     font-size: 16px;
-
     h2 {
       font-size: larger;
     }
