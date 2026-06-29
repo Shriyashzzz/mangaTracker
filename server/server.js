@@ -13,6 +13,8 @@ import { pool } from "./models/pool.js";
 const app = express();
 const port = process.env.PORT || 8080;
 
+app.set("trust proxy", 1); //  tells express to trust Railway's proxy
+
 app.use(
   cors({
     origin: [process.env.CLIENT_URL], // ensures only the request ocming from this address is accepted
@@ -28,7 +30,7 @@ app.use(
     //maxage: sets the time that keeps the cookie valid in the clients browser
     //secure: true only sends the cookie over a secure protocol i.e http's' protocol
     cookie: {
-      maxAge: 1000 * 60 * 60,
+      maxAge: 1000 * 60 * 60 * 24 * 7,
       secure: process.env.ENV === "PROD",
       sameSite: process.env.ENV === "PROD" ? "none" : "lax",
       //sends cookie only on http request
@@ -39,7 +41,7 @@ app.use(
     }),
   }),
 );
-app.set("trust proxy", 1); //  tells express to trust Railway's proxy
+
 //middlewares to parse incoming requests
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));

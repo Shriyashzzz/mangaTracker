@@ -9,7 +9,6 @@ const validateData = [
     .isAlphanumeric()
     .withMessage("Username has to be between 4 to 40 charachters long <3"),
   body("password")
-    .trim()
     .notEmpty()
     .withMessage("Password cannot be empty luv")
     .isLength({ min: 5 })

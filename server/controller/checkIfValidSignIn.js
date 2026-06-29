@@ -8,7 +8,6 @@ const validateData = [
     .isAlphanumeric()
     .isLength({ min: 4, max: 40 }),
   body("password")
-    .trim()
     .notEmpty()
     .withMessage("Alright, don't forget your secret code. spill the beans now!")
     .isLength({ min: 5 }),
@@ -16,7 +15,7 @@ const validateData = [
 
 export const checkIfValidSignIn = [
   validateData,
-  async (req, res) => {
+  async (req, res, next) => {
     try {
       const errors = validationResult(req);
 
@@ -32,7 +31,7 @@ export const checkIfValidSignIn = [
         res.sendStatus(getUser.status);
         return;
       } else {
-        res.send(400).json({
+        res.status(400).json({
           error: errors.array(),
         });
       }
