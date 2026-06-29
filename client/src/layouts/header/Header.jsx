@@ -22,7 +22,7 @@ export default function Header({ isSignedIn, setIsSignedIn }) {
   return (
     <>
       <header className={styles.head}>
-        <NavLink className={styles.appName} to="/home" viewTransition>
+        <NavLink className={styles.appName} to="/" viewTransition>
           <img src={appIcon} alt="" /> <h2>Manga Tracker</h2>
         </NavLink>
         <ul>
