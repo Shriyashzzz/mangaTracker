@@ -33,6 +33,7 @@ app.use(
       maxAge: 1000 * 60 * 60 * 24 * 7,
       secure: process.env.ENV === "PROD",
       sameSite: process.env.ENV === "PROD" ? "none" : "lax",
+      domain: ".mangatracker.xyz",
     },
     store: new (connectPgSimple(session))({
       pool: pool,
