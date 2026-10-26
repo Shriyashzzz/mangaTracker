@@ -230,8 +230,8 @@ async function getSeriesWithVolumes(name) {
     }
   }
   const volumes = [...byNumber.values()].sort((a, b) => a.volume - b.volume);
-  // start finding every cover now, so they're ready by the time the
-  // browser asks for them (failures are retried when the browser asks)
+  // start finding every cover now, in one batch, so they're ready by the
+  // time the browser asks for them (failures are retried when it asks)
   volumes.forEach((v) => editionCoverId(v.isbn13).catch(() => {}));
   // the main name's problems always count. An other name's only count when
   // they left the page nearly empty: a slow obscure alias shouldn't flag a

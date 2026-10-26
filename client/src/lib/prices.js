@@ -77,9 +77,33 @@ export const coverSrc = (url) => {
     : url;
 };
 
-// hides a cover that failed to load, revealing the placeholder behind it
+// a cover that fails on our cover route is usually Open Library asking us to
+// slow down, so it's asked for again a couple of times, further apart each
+// time, with the placeholder showing meanwhile
+const COVER_RETRIES = 2;
+const COVER_RETRY_MS = 6000;
+
+// hides a cover that failed to load, revealing the placeholder behind it,
+// and fades it in if a later try works
 export const hideBrokenCover = (e) => {
-  e.currentTarget.hidden = true;
+  const img = e.currentTarget;
+  const tries = Number(img.dataset.tries ?? 0);
+  if (tries >= COVER_RETRIES || !img.src.includes("/api/prices/cover/")) {
+    img.hidden = true;
+    return;
+  }
+  // kept in the layout (not hidden) so a lazy image still loads
+  img.style.opacity = "0";
+  img.dataset.tries = String(tries + 1);
+  img.addEventListener("load", () => (img.style.opacity = ""), { once: true });
+  setTimeout(
+    () => {
+      const url = new URL(img.src);
+      url.searchParams.set("try", String(tries + 1));
+      img.src = url.href;
+    },
+    COVER_RETRY_MS * (tries + 1),
+  );
 };
 
 // "Jujutsu Kaisen, Vol. 24 (Shonen Jump)" -> "Jujutsu Kaisen", for the shelf

@@ -237,7 +237,7 @@ section > .count {
   position: relative;
   width: 100%;
   height: 100%;
-  object-fit: cover;
+  object-fit: cover;  transition: opacity 0.35s var(--ease);
 }
 
 .coverFallback {

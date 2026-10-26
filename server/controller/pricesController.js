@@ -1,6 +1,10 @@
 import { query, param, validationResult, matchedData } from "express-validator";
 import { searchVolumes, toIsbn13 } from "../prices/catalog.js";
-import { coverImageUrl, editionCoverId } from "../prices/covers.js";
+import {
+  CoverLookupPaused,
+  coverImageUrl,
+  editionCoverId,
+} from "../prices/covers.js";
 import {
   getHighlights,
   getSeries,
@@ -133,6 +137,13 @@ const cover = [
       res.set("Cache-Control", "public, max-age=604800");
       res.redirect(302, coverImageUrl(id, req.query.size === "L" ? "L" : "M"));
     } catch (e) {
+      // never cached, so the page's retry asks again
+      res.set("Cache-Control", "no-store");
+      if (e instanceof CoverLookupPaused) {
+        res.set("Retry-After", String(Math.ceil(e.retryAfterMs / 1000)));
+        res.sendStatus(503);
+        return;
+      }
       console.error("cover lookup failed:", e.message);
       res.sendStatus(502);
     }

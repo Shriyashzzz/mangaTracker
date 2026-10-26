@@ -198,6 +198,31 @@ const claimApiCall = async (provider, limit) => {
   return rowCount === 1;
 };
 
+// known edition covers; a "has none" answer only counts for a month
+const getCoverIds = async (isbns) => {
+  const { rows } = await pool.query(
+    `
+    SELECT isbn13, cover_id FROM edition_covers
+    WHERE isbn13 = ANY($1)
+      AND (cover_id IS NOT NULL OR checked_at > now() - interval '30 days')
+    `,
+    [isbns],
+  );
+  return rows;
+};
+
+const saveCoverIds = async (found) => {
+  await pool.query(
+    `
+    INSERT INTO edition_covers (isbn13, cover_id)
+    SELECT * FROM unnest($1::char(13)[], $2::integer[])
+    ON CONFLICT (isbn13) DO UPDATE
+      SET cover_id = EXCLUDED.cover_id, checked_at = now()
+    `,
+    [found.map(([isbn]) => isbn), found.map(([, id]) => id)],
+  );
+};
+
 export default {
   claimApiCall,
   getKnownPrices,
@@ -208,4 +233,6 @@ export default {
   saveCheck,
   getLatestOffers,
   getPriceStats,
+  getCoverIds,
+  saveCoverIds,
 };
