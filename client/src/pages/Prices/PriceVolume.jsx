@@ -196,7 +196,7 @@ export default function PriceVolume() {
                       {formatCents(o.priceCents)}
                     </span>
                     {o.url ? (
-                      <a href={o.url} target="_blank" rel="noreferrer">
+                      <a href={o.url} target="_blank" rel={linkRel(o)}>
                         Go to store
                       </a>
                     ) : (
@@ -246,7 +246,7 @@ export default function PriceVolume() {
             <ul className={styles.storeLinks}>
               {storeLinks.map((s) => (
                 <li key={s.store}>
-                  <a href={s.url} target="_blank" rel="noreferrer">
+                  <a href={s.url} target="_blank" rel={linkRel(s)}>
                     {s.store}
                   </a>
                 </li>
@@ -357,6 +357,10 @@ export default function PriceVolume() {
     </div>
   );
 }
+
+// affiliate links are marked as paid links, as search engines ask
+const linkRel = (link) =>
+  link.affiliate ? "sponsored noreferrer" : "noreferrer";
 
 function VolumeSkeleton() {
   return (

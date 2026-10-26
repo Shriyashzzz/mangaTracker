@@ -2,13 +2,16 @@
 //   AMAZON_ASSOCIATE_TAG   Amazon Associates tracking ID, e.g. "yourname-20"
 //   BOOKSHOP_AFFILIATE_ID  Bookshop.org affiliate ID (a number)
 //   EBAY_CAMPAIGN_ID       eBay Partner Network campaign ID (10 digits)
-// Walmart links are turned into affiliate links in the browser by the
-// Impact script in client/index.html.
+//   WALMART_AFFILIATE      set to "on" once Impact has approved the Walmart
+//                          program. The Impact script in client/index.html
+//                          turns Walmart links into affiliate links in the
+//                          browser; this only says whether that earns
 const setting = (name) => process.env[name]?.trim() || null;
 
 export const amazonTag = () => setting("AMAZON_ASSOCIATE_TAG");
 export const bookshopId = () => setting("BOOKSHOP_AFFILIATE_ID");
 export const ebayCampaignId = () => setting("EBAY_CAMPAIGN_ID");
+export const walmartAffiliate = () => setting("WALMART_AFFILIATE") === "on";
 
 // eBay Partner Network click tracking for ebay.com, per
 // https://developer.ebay.com/api-docs/buy/static/ref-epn-link.html
