@@ -1,16 +1,8 @@
 .picker {
   display: flex;
   flex-direction: column;
-  gap: 0.7rem;
+  gap: 0.6rem;
   min-width: 0;
-}
-
-.head {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: 0.5rem 1rem;
-  flex-wrap: wrap;
 }
 
 .label {
@@ -24,24 +16,56 @@
   font-size: 0.82rem;
 }
 
-.status {
-  font-family: var(--font-mono);
-  font-size: 0.72rem;
+/* the chosen cover, as it'll sit on the shelf. Its height follows the
+   viewport so the whole add form fits on short laptop screens too */
+.cover {
+  height: clamp(150px, calc(100dvh - 470px), 258px);
+  aspect-ratio: 2 / 3;
+  max-width: 100%;
+  margin-inline: auto;
+  display: grid;
+  place-items: center;
+  padding: 1rem;
+  border: 1.5px dashed var(--line-soft);
+  background: var(--paper);
+}
+
+.cover.hasImage {
+  padding: 0;
+  border: 1.5px solid var(--line);
+}
+
+.cover img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.coverHint {
+  font-family: var(--font-hand);
+  font-size: 1.2rem;
+  line-height: 1.2;
+  text-align: center;
   color: var(--muted);
 }
 
-/* a row of covers, scrolls sideways when the form is narrow */
-.strip {
+.status {
+  min-height: 1em;
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  line-height: 1.3;
+  color: var(--muted);
+}
+
+.status:empty {
+  display: none;
+}
+
+/* the other matches, small enough to sit under the cover */
+.grid {
   display: grid;
-  grid-auto-flow: column;
-  grid-auto-columns: 92px;
-  gap: 0.75rem;
-  overflow-x: auto;
-  padding: 4px 6px 10px 4px;
-  margin: -4px -6px -10px -4px;
-  scroll-snap-type: x proximity;
-  scrollbar-width: thin;
-  scrollbar-color: var(--line-soft) transparent;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.35rem;
   transition: opacity 0.2s ease;
 }
 
@@ -50,17 +74,19 @@
 }
 
 .thumb {
-  display: flex;
-  flex-direction: column;
-  gap: 0.35rem;
-  text-align: left;
-  scroll-snap-align: start;
+  position: relative;
+  display: block;
   cursor: pointer;
 }
 
-.thumb img {
+.thumb img,
+.thumbSkeleton {
+  display: block;
   width: 100%;
   aspect-ratio: 2 / 3;
+}
+
+.thumb img {
   object-fit: cover;
   background: var(--paper-2);
   border: 1.5px solid var(--line-soft);
@@ -80,16 +106,12 @@
 
 .thumb:focus-visible img {
   outline: 2px dashed var(--accent);
-  outline-offset: 3px;
+  outline-offset: 2px;
 }
 
-/* chosen cover gets an inked frame and a red corner tab */
+/* chosen match gets a red frame and a corner tick */
 .selected img {
-  border: 3px solid var(--accent);
-}
-
-.selected {
-  position: relative;
+  border: 2.5px solid var(--accent);
 }
 
 .selected::after {
@@ -97,81 +119,89 @@
   position: absolute;
   top: 0;
   right: 0;
-  width: 22px;
-  height: 22px;
+  width: 18px;
+  height: 18px;
   background: var(--accent)
     url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23fffaf2' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m5 12 5 5 9-10'/%3E%3C/svg%3E")
-    no-repeat center / 14px;
+    no-repeat center / 12px;
 }
 
-.thumbTitle {
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-  font-size: 0.76rem;
-  line-height: 1.3;
-  color: var(--ink-soft);
-}
-
-.selected .thumbTitle {
-  color: var(--ink);
-  font-weight: 600;
-}
-
-.year {
-  color: var(--muted);
-  font-family: var(--font-mono);
-  font-size: 0.7rem;
-}
-
-.thumbSkeleton {
-  aspect-ratio: 2 / 3;
-}
-
-.urlRow {
-  display: flex;
-  align-items: center;
-  gap: 0.6rem;
-  font-size: 0.82rem;
-  color: var(--muted);
-}
-
-.urlRow span {
-  flex-shrink: 0;
-}
-
-.urlRow input {
-  flex: 1;
-  min-width: 0;
-  height: 36px;
-  padding: 0 0.7rem;
+.url input {
+  width: 100%;
+  height: 34px;
+  padding: 0 0.6rem;
   background: var(--paper);
   border: 1.5px solid var(--line-soft);
   border-radius: 2px;
-  font-size: 0.85rem;
+  font-size: 0.8rem;
   transition:
     border-color 0.12s ease,
     box-shadow 0.12s ease;
 }
 
-.urlRow input::placeholder {
+.url input::placeholder {
   color: var(--muted);
-  opacity: 0.8;
+  opacity: 0.85;
 }
 
-.urlRow input:focus {
+.url input:focus {
   outline: none;
   border-color: var(--line);
   box-shadow: 3px 3px 0 var(--accent);
 }
 
-.credit {
-  font-size: 0.72rem;
-  color: var(--muted);
-}
-
-.credit a {
+.status a {
+  color: var(--ink-soft);
   text-decoration: underline;
   text-underline-offset: 2px;
+}
+
+/* on phones the column turns into a row: small cover beside the matches */
+@media (max-width: 760px) {
+  .picker {
+    display: grid;
+    grid-template-columns: 96px minmax(0, 1fr);
+    grid-template-areas:
+      "label label"
+      "cover status"
+      "cover grid"
+      "url url";
+    grid-template-rows: auto auto 1fr auto;
+    column-gap: 0.8rem;
+  }
+
+  .label {
+    grid-area: label;
+  }
+
+  .cover {
+    grid-area: cover;
+    height: auto;
+    width: 100%;
+    padding: 0.5rem;
+  }
+
+  .coverHint {
+    font-size: 0.95rem;
+  }
+
+  .status {
+    grid-area: status;
+  }
+
+  .grid {
+    grid-area: grid;
+    grid-auto-flow: column;
+    grid-template-columns: none;
+    grid-auto-columns: 58px;
+    overflow-x: auto;
+    align-content: start;
+    padding-bottom: 4px;
+    scrollbar-width: thin;
+    scrollbar-color: var(--line-soft) transparent;
+  }
+
+  .url {
+    grid-area: url;
+  }
 }

@@ -73,15 +73,23 @@ export function UpdateManga() {
 
   return (
     <div className={`${styles.page} fade-in`}>
-      <NavLink to={`/details/${id}`} className={styles.backLink} viewTransition>
-        ← back
-      </NavLink>
-      <h1 className={styles.formTitle}>Edit entry</h1>
-      <p className={styles.formSub}>
-        Read a few more chapters? Move your bookmark up.
-      </p>
+      <div className={styles.pageHead}>
+        <div>
+          <NavLink
+            to={`/details/${id}`}
+            className={styles.backLink}
+            viewTransition
+          >
+            ← back
+          </NavLink>
+          <h1 className={styles.formTitle}>Edit entry</h1>
+        </div>
+        <p className={styles.formSub}>
+          Read a few more chapters? Move your bookmark up.
+        </p>
+      </div>
 
-      <div className={`${styles.layout} ${styles.single}`}>
+      <div>
         {!mangaData ? (
           error ? (
             <ul className={styles.errorList} role="alert">
@@ -92,12 +100,12 @@ export function UpdateManga() {
           ) : (
             <div
               className="skeleton"
-              style={{ height: 460, borderRadius: "var(--radius)" }}
+              style={{ height: 520, borderRadius: "var(--radius)" }}
             />
           )
         ) : (
-          <form className={styles.card} onSubmit={handleFormSubmission}>
-            <div className={styles.field}>
+          <form className={styles.sheet} onSubmit={handleFormSubmission}>
+            <div className={`${styles.field} ${styles.titleField}`}>
               <label htmlFor="manganame">
                 Title <b>*</b>
               </label>
@@ -114,92 +122,95 @@ export function UpdateManga() {
               />
             </div>
 
-            <div className={styles.field}>
-              <span className={styles.fieldLabel}>Status</span>
-              <div className={styles.segmented}>
-                <input
-                  type="radio"
-                  id="status-ongoing"
-                  name="status"
-                  checked={!isFinished}
-                  onChange={() => setIsFinished(false)}
-                />
-                <label htmlFor="status-ongoing">
-                  Still reading
-                </label>
-                <input
-                  type="radio"
-                  id="status-finished"
-                  name="status"
-                  checked={isFinished}
-                  onChange={() => setIsFinished(true)}
-                />
-                <label htmlFor="status-finished">
-                  Finished it
-                </label>
-              </div>
-            </div>
+            <CoverPicker
+              className={styles.coverArea}
+              title={title}
+              value={image}
+              onChange={setImage}
+            />
 
-            {!isFinished && (
+            <div className={styles.details}>
               <div className={styles.field}>
-                <label htmlFor="bookmark">Current chapter</label>
-                <input
+                <span className={styles.fieldLabel}>Status</span>
+                <div className={styles.segmented}>
+                  <input
+                    type="radio"
+                    id="status-ongoing"
+                    name="status"
+                    checked={!isFinished}
+                    onChange={() => setIsFinished(false)}
+                  />
+                  <label htmlFor="status-ongoing">Still reading</label>
+                  <input
+                    type="radio"
+                    id="status-finished"
+                    name="status"
+                    checked={isFinished}
+                    onChange={() => setIsFinished(true)}
+                  />
+                  <label htmlFor="status-finished">Finished it</label>
+                </div>
+              </div>
+
+              {!isFinished && (
+                <div className={styles.field}>
+                  <label htmlFor="bookmark">Current chapter</label>
+                  <input
+                    className={styles.input}
+                    inputMode="decimal"
+                    type="number"
+                    min="0"
+                    step="any"
+                    name="bookmark"
+                    id="bookmark"
+                    defaultValue={mangaData.bookmark}
+                  />
+                </div>
+              )}
+
+              <div className={`${styles.field} ${styles.notesField}`}>
+                <div className={styles.labelRow}>
+                  <label htmlFor="description">
+                    Notes <span className={styles.optional}>(optional)</span>
+                  </label>
+                  <span className={styles.counter}>
+                    {description.length}/{DESC_MAX}
+                  </span>
+                </div>
+                <textarea
                   className={styles.input}
-                  type="number"
-                  min="0"
-                  step="any"
-                  name="bookmark"
-                  id="bookmark"
-                  defaultValue={mangaData.bookmark}
+                  name="description"
+                  id="description"
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
+                  maxLength={DESC_MAX}
                 />
               </div>
-            )}
 
-            <CoverPicker title={title} value={image} onChange={setImage} />
+              {error && (
+                <ul className={styles.errorList} role="alert">
+                  {error.map((e) => (
+                    <li key={e.msg}>{e.msg}</li>
+                  ))}
+                </ul>
+              )}
 
-            <div className={styles.field}>
-              <label htmlFor="description">
-                Notes <span className={styles.optional}>(optional)</span>
-              </label>
-              <textarea
-                className={styles.input}
-                name="description"
-                id="description"
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
-                maxLength={DESC_MAX}
-              />
-              <div className={styles.hintRow}>
-                <span>At least 10 characters if you add notes</span>
-                <span>
-                  {description.length}/{DESC_MAX}
-                </span>
+              <div className={styles.btnContainer}>
+                <NavLink
+                  to={`/details/${id}`}
+                  className="btn btn-ghost"
+                  viewTransition
+                >
+                  Cancel
+                </NavLink>
+                <button
+                  type="submit"
+                  className="btn btn-primary"
+                  disabled={submitting}
+                >
+                  {submitting ? "Saving…" : "Save changes"}
+                </button>
               </div>
-            </div>
-
-            {error && (
-              <ul className={styles.errorList} role="alert">
-                {error.map((e) => (
-                  <li key={e.msg}>{e.msg}</li>
-                ))}
-              </ul>
-            )}
-
-            <div className={styles.btnContainer}>
-              <NavLink
-                to={`/details/${id}`}
-                className="btn btn-ghost"
-                viewTransition
-              >
-                Cancel
-              </NavLink>
-              <button
-                type="submit"
-                className="btn btn-primary"
-                disabled={submitting}
-              >
-                {submitting ? "Saving…" : "Save changes"}
-              </button>
             </div>
           </form>
         )}

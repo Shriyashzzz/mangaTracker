@@ -12,15 +12,25 @@
   font-size: clamp(2.2rem, 5vw, 3.2rem);
 }
 
+/* the header scrolls away, this stays pinned so search and filters are
+   always one tap away on a long shelf */
 .toolbar {
+  position: sticky;
+  top: 0;
+  z-index: 5;
   display: flex;
   align-items: flex-end;
   justify-content: space-between;
   gap: 1rem 2rem;
   flex-wrap: wrap;
-  padding-bottom: 0.9rem;
+  padding: 0.9rem 0;
   margin-bottom: 2.25rem;
+  background: var(--paper);
   border-bottom: 1.5px solid var(--line);
+  /* paint the paper out to both edges of the window so card shadows and
+     tilts never peek out beside the toolbar while scrolling underneath */
+  box-shadow: 0 0 0 100vmax var(--paper);
+  clip-path: inset(0 -100vmax);
 }
 
 .tabs {
@@ -68,18 +78,25 @@
   display: flex;
   align-items: center;
   gap: 1.25rem;
-  flex-wrap: wrap;
 }
 
+/* compact until you use it, then it widens; it stays wide while it holds a query */
 .search {
   display: flex;
   align-items: center;
   gap: 0.45rem;
-  width: 230px;
+  width: 180px;
   padding: 0.3rem 0;
   border-bottom: 1.5px dashed var(--line-soft);
   color: var(--muted);
-  transition: border-color 0.15s ease;
+  transition:
+    width 0.3s var(--ease),
+    border-color 0.15s ease;
+}
+
+.search:focus-within,
+.search:has(input:not(:placeholder-shown)) {
+  width: 320px;
 }
 
 .search:focus-within {
@@ -110,8 +127,14 @@
   display: flex;
   align-items: center;
   gap: 0.4rem;
+  max-width: 260px;
+  overflow: hidden;
+  white-space: nowrap;
   font-size: 0.875rem;
   color: var(--muted);
+  transition:
+    max-width 0.3s var(--ease),
+    opacity 0.2s ease;
 }
 
 .sort select {
@@ -433,12 +456,21 @@
 
   .tools {
     width: 100%;
-    justify-content: space-between;
+    gap: 1rem;
   }
 
-  .search {
+  .search,
+  .search:focus-within,
+  .search:has(input:not(:placeholder-shown)) {
     flex: 1;
     width: auto;
+  }
+
+  /* while typing, sort folds away so the search gets the whole row */
+  .tools:has(.search:focus-within) .sort {
+    max-width: 0;
+    opacity: 0;
+    margin-left: -1rem;
   }
 
   .tabs {

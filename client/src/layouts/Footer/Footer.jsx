@@ -1,51 +1,42 @@
-import { NavLink } from "react-router";
-import topIcon from "../../assets/topIcon.svg";
+import { useState } from "react";
+import { NavLink, useLocation } from "react-router";
+import { QUOTES } from "../../lib/quotes";
 import styles from "./Footer.module.css";
 
-// styled like the last page of a manga volume
+// start somewhere different on each visit
+const START = Math.floor(Math.random() * QUOTES.length);
+
+// the last page of a manga volume: a sign-off, a parting line, the colophon
 export default function Footer() {
+  const { pathname } = useLocation();
+  // every page you open turns to the next quote in the loop
+  const [page, setPage] = useState({ path: pathname, index: START });
+  if (page.path !== pathname) {
+    setPage({ path: pathname, index: (page.index + 1) % QUOTES.length });
+  }
+
+  const quote = QUOTES[page.index];
+
   return (
     <footer className={styles.footer}>
       <div className={styles.inner}>
-        <p className={styles.tbc}>To be continued…</p>
+        <p className={styles.tbc}>Quote of the day</p>
 
-        <div className={styles.colophon}>
-          <p>
-            Drawn up by{" "}
-            <a
-              href="https://github.com/Shriyashzzz/mangaTracker"
-              target="_blank"
-              rel="noreferrer"
-            >
-              Shriyashzzz
-            </a>
-            , one late night at a time.
-          </p>
-          <p className={styles.top}>
-            <img src={topIcon} alt="" />
-            Made while learning through{" "}
-            <a
-              href="https://www.theodinproject.com/"
-              target="_blank"
-              rel="noreferrer"
-            >
-              The Odin Project
-            </a>
-          </p>
-          <p className={styles.links}>
-            <NavLink to="/about">About</NavLink>
-            <span aria-hidden>·</span>
-            <a
-              href="https://github.com/Shriyashzzz/mangaTracker"
-              target="_blank"
-              rel="noreferrer"
-            >
-              Source
-            </a>
-            <span aria-hidden>·</span>
-            <span>Vol. 1, {new Date().getFullYear()}</span>
-          </p>
-        </div>
+        <figure className={styles.quote}>
+          {/* keyed so each new quote fades in */}
+          <div key={page.index} className={styles.quoteText}>
+            <blockquote>{quote.text}</blockquote>
+            <figcaption>
+              {quote.who}, <cite>{quote.series}</cite>
+            </figcaption>
+          </div>
+        </figure>
+
+        <p className={styles.links}>
+          <NavLink to="/about">About</NavLink>
+          <span aria-hidden>·</span>
+          <span>Vol. 1, {new Date().getFullYear()}</span>
+        </p>
       </div>
     </footer>
   );

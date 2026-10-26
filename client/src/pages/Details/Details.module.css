@@ -11,69 +11,99 @@
   text-underline-offset: 3px;
 }
 
-.previewDesc {
+/* cover on the left, everything you came for on the right. The cover's
+   height follows the viewport so the whole entry fits on a laptop screen */
+.layout {
   display: grid;
-  grid-template-columns: minmax(200px, 300px) 1fr;
-  gap: clamp(2rem, 5vw, 4rem);
+  grid-template-columns: auto minmax(0, 1fr);
+  grid-template-rows: auto 1fr;
+  grid-template-areas:
+    "cover head"
+    "cover body";
+  gap: 1.5rem clamp(2rem, 5vw, 3.5rem);
   align-items: start;
 }
 
-.mangaPreview {
-  position: sticky;
-  top: 96px;
+.cover {
+  grid-area: cover;
+  position: relative;
+  height: clamp(260px, calc(100dvh - 230px), 390px);
+  aspect-ratio: 2 / 3;
   transform: rotate(-1.2deg);
 }
 
-.mangaPreview img {
+.cover img {
   width: 100%;
-  aspect-ratio: 2 / 3;
+  height: 100%;
   object-fit: cover;
   border: 1.5px solid var(--line);
-  box-shadow: 7px 7px 0 var(--hard-shadow);
+  box-shadow: 6px 6px 0 var(--hard-shadow);
   background: var(--paper-2);
 }
 
 .stamp {
   position: absolute;
-  top: 18px;
-  right: -14px;
-  padding: 0.2rem 0.7rem;
+  top: 14px;
+  right: -12px;
+  padding: 0.15rem 0.6rem;
   border: 2.5px solid var(--accent);
   border-radius: 4px;
   background: var(--paper);
   color: var(--accent);
   font-family: var(--font-brand);
-  font-size: 1.5rem;
+  font-size: 1.35rem;
   letter-spacing: 2px;
   transform: rotate(12deg);
 }
 
-.mangaDetailContainer {
+.head {
+  grid-area: head;
   display: flex;
   flex-direction: column;
-  gap: 1.4rem;
+  gap: 0.7rem;
   min-width: 0;
 }
 
-.kicker {
-  font-family: var(--font-mono);
-  font-size: 0.82rem;
-  color: var(--muted);
-  text-transform: lowercase;
-}
-
 .title {
-  font-size: clamp(2.4rem, 6vw, 4rem);
+  font-size: clamp(2.2rem, 4.6vw, 3.4rem);
   font-weight: 500;
   letter-spacing: -0.025em;
-  line-height: 1;
-  margin-top: -0.6rem;
+  line-height: 1.02;
   overflow-wrap: anywhere;
+  text-wrap: balance;
+}
+
+/* status + genre as small ink tags under the title */
+.meta {
+  list-style: none;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.meta li {
+  padding: 0.12rem 0.55rem;
+  border: 1.5px solid var(--line-soft);
+  border-radius: 2px;
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: var(--ink-soft);
+}
+
+.meta .metaReading {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.meta .metaDone {
+  border-color: var(--ok);
+  color: var(--ok);
 }
 
 .progress {
   font-family: var(--font-display);
-  font-size: 1.5rem;
+  font-size: 1.4rem;
+  line-height: 1.3;
   color: var(--ink-soft);
 }
 
@@ -87,39 +117,53 @@
   );
 }
 
+.body {
+  grid-area: body;
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  min-width: 0;
+}
+
 .label {
   display: block;
   font-family: var(--font-mono);
-  font-size: 0.75rem;
+  font-size: 0.72rem;
   color: var(--muted);
   margin-bottom: 0.3rem;
 }
 
 .rating {
-  padding: 1rem 0;
+  padding-top: 1rem;
   border-top: 1.5px solid var(--line);
-  border-bottom: 1px dashed var(--line-soft);
 }
 
-/* notebook margin: a red rule down the left */
-.description {
-  padding-left: 1.1rem;
-  border-left: 2px solid var(--accent);
+/* notes written on a ruled slip, like the paper notes this app replaces */
+.notes {
+  max-width: 62ch;
+  padding: 0.7rem 1rem 0.6rem;
+  background: var(--card);
+  border: 1.5px solid var(--line-soft);
 }
 
-.description p {
-  font-size: 1.05rem;
-  line-height: 1.75;
+/* the rule is drawn on the paragraph so every line of text sits on one */
+.notes p {
+  font-size: 1rem;
+  line-height: 1.6em;
+  background-image: repeating-linear-gradient(
+    to bottom,
+    transparent 0 calc(1.6em - 1px),
+    var(--line-soft) calc(1.6em - 1px) 1.6em
+  );
   white-space: pre-line;
   overflow-wrap: anywhere;
 }
 
-.updateContainer {
+.actions {
   display: flex;
   align-items: center;
   gap: 0.85rem;
   flex-wrap: wrap;
-  margin-top: 0.5rem;
 }
 
 .deleteBtn:hover:not(:disabled) {
@@ -151,7 +195,7 @@
 }
 
 .skeletonCover {
-  aspect-ratio: 2 / 3;
+  transform: none;
 }
 
 .errorState {
@@ -178,18 +222,50 @@
   margin-top: 1.75rem;
 }
 
+/* phones: a compact header (small cover beside title, tags and chapter),
+   then rating, notes and actions straight after */
 @media (max-width: 720px) {
-  .previewDesc {
-    grid-template-columns: 1fr;
+  .layout {
+    grid-template-columns: 108px minmax(0, 1fr);
+    grid-template-areas:
+      "cover head"
+      "body body";
+    gap: 1.25rem 1rem;
   }
 
-  .mangaPreview {
-    position: relative;
-    top: 0;
-    max-width: 220px;
+  .cover {
+    height: auto;
+    width: 100%;
+    transform: none;
   }
 
-  .skeletonCover {
-    max-width: 220px;
+  .cover img {
+    box-shadow: 4px 4px 0 var(--hard-shadow);
+  }
+
+  .stamp {
+    top: 8px;
+    right: -8px;
+    font-size: 0.95rem;
+    padding: 0.05rem 0.4rem;
+    border-width: 2px;
+  }
+
+  .head {
+    gap: 0.5rem;
+    align-self: center;
+  }
+
+  .title {
+    font-size: clamp(1.6rem, 7vw, 2.2rem);
+  }
+
+  .progress {
+    font-size: 1.1rem;
+  }
+
+  .actions > :global(.btn-primary),
+  .actions > :global(.btn-secondary) {
+    flex: 1;
   }
 }

@@ -23,8 +23,8 @@ const validationChain = [
   body("description")
     .trim()
     .optional({ values: "falsy" })
-    .isLength({ min: 10, max: 450 })
-    .withMessage(`Description should be between 10-450 characters long <3`),
+    .isLength({ max: 450 })
+    .withMessage(`Notes can be up to 450 characters long <3`),
   body("image")
     .optional({ values: "falsy" })
     .trim()

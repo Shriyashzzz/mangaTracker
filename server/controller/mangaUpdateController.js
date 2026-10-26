@@ -26,10 +26,8 @@ const validationData = [
   body("description")
     .trim()
     .optional({ values: "falsy" })
-    .isLength({ min: 10, max: 450 })
-    .withMessage(
-      `Description of the manga should be atleast between 10 to 450 charachters long! <3`,
-    ),
+    .isLength({ max: 450 })
+    .withMessage(`Notes can be up to 450 characters long <3`),
 ];
 
 const updateData = [

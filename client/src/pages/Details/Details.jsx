@@ -106,18 +106,29 @@ export default function Details() {
         ← back to the shelf
       </NavLink>
 
-      <section className={styles.previewDesc}>
-        <div className={styles.mangaPreview}>
-          <img src={cover} alt={mangaData.name} />
+      <article className={styles.layout}>
+        <figure className={styles.cover}>
+          <img
+            src={cover}
+            alt={mangaData.name}
+            onError={(e) => {
+              // a dead cover link falls back to the default cover once
+              if (e.currentTarget.src !== FALLBACK_COVER) {
+                e.currentTarget.src = FALLBACK_COVER;
+              }
+            }}
+          />
           {mangaStatus && <span className={styles.stamp}>Done</span>}
-        </div>
+        </figure>
 
-        <div className={styles.mangaDetailContainer}>
-          <p className={styles.kicker}>
-            {genre ?? "No genre"} · {mangaStatus ? "finished" : "reading"}
-          </p>
+        <header className={styles.head}>
           <h1 className={styles.title}>{mangaData.name}</h1>
-
+          <ul className={styles.meta}>
+            <li className={mangaStatus ? styles.metaDone : styles.metaReading}>
+              {mangaStatus ? "Finished" : "Reading"}
+            </li>
+            {genre && <li>{genre}</li>}
+          </ul>
           <p className={styles.progress}>
             {mangaStatus ? (
               <>Read all the way through.</>
@@ -127,7 +138,9 @@ export default function Details() {
               </>
             )}
           </p>
+        </header>
 
+        <div className={styles.body}>
           <div className={styles.rating}>
             <span className={styles.label}>
               {mangaRating ? "Your rating" : "Rate it"}
@@ -140,13 +153,13 @@ export default function Details() {
           </div>
 
           {mangaData.description && (
-            <blockquote className={styles.description}>
+            <div className={styles.notes}>
               <span className={styles.label}>Your notes</span>
               <p>{mangaData.description}</p>
-            </blockquote>
+            </div>
           )}
 
-          <div className={styles.updateContainer}>
+          <div className={styles.actions}>
             <button
               className="btn btn-primary"
               onClick={() =>
@@ -187,19 +200,21 @@ export default function Details() {
             )}
           </div>
         </div>
-      </section>
+      </article>
     </div>
   );
 }
 
 function DetailsSkeleton() {
   return (
-    <div className={styles.previewDesc} aria-busy="true" aria-label="Loading">
-      <div className={`skeleton ${styles.skeletonCover}`} />
-      <div className={styles.mangaDetailContainer}>
-        <div className="skeleton" style={{ width: 140, height: 16 }} />
-        <div className="skeleton" style={{ width: "70%", height: 52 }} />
-        <div className="skeleton" style={{ width: "45%", height: 28 }} />
+    <div className={styles.layout} aria-busy="true" aria-label="Loading">
+      <div className={`skeleton ${styles.cover} ${styles.skeletonCover}`} />
+      <div className={styles.head}>
+        <div className="skeleton" style={{ width: "60%", height: 44 }} />
+        <div className="skeleton" style={{ width: 160, height: 24 }} />
+        <div className="skeleton" style={{ width: "40%", height: 28 }} />
+      </div>
+      <div className={styles.body}>
         <div className="skeleton" style={{ width: "100%", height: 110 }} />
       </div>
     </div>

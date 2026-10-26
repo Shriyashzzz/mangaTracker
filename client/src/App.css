@@ -116,7 +116,7 @@ main {
   width: 100%;
   max-width: var(--page-width);
   margin: 0 auto;
-  padding: clamp(28px, 5vw, 56px) var(--gutter) 72px;
+  padding: clamp(20px, 3vw, 32px) var(--gutter) 72px;
 }
 
 img {
