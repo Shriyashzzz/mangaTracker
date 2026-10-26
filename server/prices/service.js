@@ -1,6 +1,11 @@
 import priceQueries from "../models/priceQueries.js";
 import { lookupIsbn, searchVolumes } from "./catalog.js";
-import { getSeriesInfo, getTrending, slugify } from "./anilist.js";
+import {
+  getSeriesInfo,
+  getTrending,
+  searchSeries,
+  slugify,
+} from "./anilist.js";
 import { seriesName, seriesOf, volumeOf } from "./match.js";
 import { enabledProviders } from "./providers/index.js";
 import { storeLinks } from "./storeLinks.js";
@@ -175,10 +180,20 @@ async function seriesVolumes(name) {
 }
 
 async function getSeriesWithVolumes(name) {
-  const [info, volumes] = await Promise.all([
+  const [info, mainVolumes] = await Promise.all([
     getSeriesInfo(name),
     seriesVolumes(name),
   ]);
+  // a series can be sold under another name (Detective Conan -> Case Closed);
+  // if the main name finds almost nothing, try the alternatives too
+  let volumes = mainVolumes;
+  if (volumes.length < 3 && info?.altNames?.length) {
+    for (const alt of info.altNames.slice(0, 4)) {
+      if (seriesOf(alt) === seriesOf(name)) continue;
+      const altVolumes = await seriesVolumes(alt);
+      if (altVolumes.length > volumes.length) volumes = altVolumes;
+    }
+  }
   const known = await priceQueries.getKnownPrices(volumes.map((v) => v.isbn13));
   return {
     name,
@@ -199,6 +214,8 @@ export async function getSeries(name) {
   if (!series.info && !series.volumes.length) return null;
   return series;
 }
+
+export { searchSeries };
 
 // ---------- price home ----------
 

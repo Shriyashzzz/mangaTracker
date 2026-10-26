@@ -18,6 +18,13 @@ pricesRouter.get(
   pricesController.highlights,
 );
 
+// typeahead: called as people type, so it gets a bigger allowance
+pricesRouter.get(
+  "/series-search",
+  rateLimit({ max: 120, windowMs: 60_000 }),
+  pricesController.seriesSearch,
+);
+
 pricesRouter.get(
   "/series",
   rateLimit({ max: 40, windowMs: 60_000 }),

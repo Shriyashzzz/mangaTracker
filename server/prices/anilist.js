@@ -41,7 +41,7 @@ const plainText = (html) =>
 const SERIES_QUERY = `
   query ($search: String) {
     Media(search: $search, type: MANGA, format: MANGA, sort: SEARCH_MATCH) {
-      id siteUrl status volumes averageScore genres
+      id siteUrl status volumes averageScore genres synonyms
       title { english romaji }
       coverImage { large }
       description(asHtml: false)
@@ -62,6 +62,10 @@ const toInfo = (m) => ({
   siteUrl: m.siteUrl,
   status: m.status,
   volumes: m.volumes ?? null,
+  // other names, e.g. Detective Conan is published in the US as Case Closed
+  altNames: [m.title.romaji, ...(m.synonyms ?? [])].filter(
+    (n) => n && /^[\x20-\x7e’]+$/.test(n),
+  ),
 });
 
 // series info, cached a week in the database so pages stay fast and we stay
@@ -94,6 +98,54 @@ export async function getSeriesInfo(name) {
     console.error("AniList series lookup failed:", e.message);
     return cached?.info ?? null;
   }
+}
+
+const SEARCH_QUERY = `
+  query ($search: String) {
+    Page(perPage: 20) {
+      media(search: $search, type: MANGA, format: MANGA, sort: SEARCH_MATCH, isAdult: false) {
+        id averageScore volumes status
+        title { english romaji }
+        startDate { year }
+        coverImage { large medium }
+      }
+    }
+  }
+`;
+
+const searchCache = new Map();
+const SEARCH_FRESH_MS = 60 * 60 * 1000;
+
+// series matching what someone typed. Officially translated series (with an
+// English title) come first, since those are the ones US stores sell
+export async function searchSeries(q) {
+  const key = q.trim().toLowerCase();
+  const hit = searchCache.get(key);
+  if (hit && Date.now() - hit.at < SEARCH_FRESH_MS) return hit.items;
+
+  const { Page } = await query(SEARCH_QUERY, { search: q });
+  const items = Page.media
+    .map((m, i) => ({
+      name: m.title.english || m.title.romaji,
+      originalName: m.title.english ? m.title.romaji : null,
+      slug: slugify(m.title.english || m.title.romaji),
+      year: m.startDate?.year ?? null,
+      score: m.averageScore ?? null,
+      volumes: m.volumes ?? null,
+      status: m.status,
+      coverUrl: m.coverImage?.large ?? m.coverImage?.medium ?? null,
+      thumbUrl: m.coverImage?.medium ?? null,
+      licensed: Boolean(m.title.english),
+      rank: i,
+    }))
+    .sort((a, b) => Number(b.licensed) - Number(a.licensed) || a.rank - b.rank)
+    .map(({ rank, ...rest }) => rest);
+
+  searchCache.set(key, { at: Date.now(), items });
+  if (searchCache.size > 1000) {
+    searchCache.delete(searchCache.keys().next().value);
+  }
+  return items;
 }
 
 let trending = { at: 0, items: [] };

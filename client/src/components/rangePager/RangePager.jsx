@@ -1,3 +1,4 @@
+import { useEffect, useRef } from "react";
 import { ChevronLeftIcon, ChevronRightIcon } from "../icons/Icons";
 import styles from "./RangePager.module.css";
 
@@ -13,7 +14,16 @@ export default function RangePager({
   labelFor = (start, end) => `${start}–${end}`,
   label = "Pages",
 }) {
+  const chipsRef = useRef(null);
   const pages = Math.ceil(total / pageSize);
+
+  // on phones the chips scroll sideways; keep the current one in view
+  useEffect(() => {
+    chipsRef.current
+      ?.querySelector("[aria-current]")
+      ?.scrollIntoView({ block: "nearest", inline: "nearest" });
+  }, [page]);
+
   if (pages <= 1) return null;
 
   const go = (p) => onChange(Math.min(Math.max(p, 0), pages - 1));
@@ -29,7 +39,7 @@ export default function RangePager({
       >
         <ChevronLeftIcon />
       </button>
-      <ul className={styles.chips}>
+      <ul className={styles.chips} ref={chipsRef}>
         {Array.from({ length: pages }, (_, p) => {
           const start = p * pageSize;
           const end = Math.min(start + pageSize, total) - 1;

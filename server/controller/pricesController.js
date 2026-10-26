@@ -78,13 +78,11 @@ const series = [
       res.json(data);
     } catch (e) {
       console.error("series lookup failed:", e);
-      res
-        .status(502)
-        .json({
-          error: [
-            { msg: "That series couldn't be loaded. Try again in a moment." },
-          ],
-        });
+      res.status(502).json({
+        error: [
+          { msg: "That series couldn't be loaded. Try again in a moment." },
+        ],
+      });
     }
   },
 ];
@@ -98,4 +96,26 @@ const highlights = async (req, res) => {
   }
 };
 
-export default { search, volume, series, highlights };
+const seriesSearch = [
+  query("q")
+    .trim()
+    .isLength({ min: 2, max: 100 })
+    .withMessage("Search for at least 2 characters"),
+  rejectInvalid,
+  async (req, res) => {
+    try {
+      res.json({ results: await searchSeries(matchedData(req).q) });
+    } catch (e) {
+      console.error("series search failed:", e);
+      res
+        .status(502)
+        .json({
+          error: [
+            { msg: "Series search didn't answer. Try again in a moment." },
+          ],
+        });
+    }
+  },
+];
+
+export default { search, volume, series, seriesSearch, highlights };
