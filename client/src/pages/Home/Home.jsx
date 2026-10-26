@@ -6,6 +6,9 @@ import styles from "./Home.module.css";
 import { NavLink, useNavigate, useOutletContext } from "react-router";
 import { SearchIcon, StarIcon } from "../../components/icons/Icons";
 import { apiFetch } from "../../lib/api";
+import RangePager from "../../components/rangePager/RangePager";
+
+const SHELF_PAGE_SIZE = 30;
 
 const SORT_OPTIONS = [
   { value: "", label: "Last bookmarked" },
@@ -50,6 +53,11 @@ function Library() {
   );
   const [sortBy, setSortBy] = useState(() => readSession("librarySort", ""));
   const navigator = useNavigate();
+  // the shelf shows one block of manga at a time; any change to the tab,
+  // search or sort starts again from the first block
+  const filterKey = `${statusFilter}|${sortBy}|${query.trim().toLowerCase()}`;
+  const [page, setPage] = useState({ key: filterKey, index: 0 });
+  const pageIndex = page.key === filterKey ? page.index : 0;
 
   useEffect(() => {
     async function fetchMangaData() {
@@ -106,6 +114,27 @@ function Library() {
   }, [mangaData, statusFilter, sortBy, query]);
 
   const goToAdd = () => navigator("/add", { viewTransition: true });
+
+  const changePage = (index) => {
+    setPage({ key: filterKey, index });
+    document
+      .getElementById("shelf-grid")
+      ?.scrollIntoView({ behavior: "smooth", block: "start" });
+  };
+  const shelfPage = visibleManga.slice(
+    pageIndex * SHELF_PAGE_SIZE,
+    (pageIndex + 1) * SHELF_PAGE_SIZE,
+  );
+  const pager = (
+    <RangePager
+      total={visibleManga.length}
+      pageSize={SHELF_PAGE_SIZE}
+      page={pageIndex}
+      onChange={changePage}
+      label="Shelf pages"
+      labelFor={(start, end) => `${start + 1}–${end + 1}`}
+    />
+  );
 
   if (loadError) {
     return (
@@ -215,15 +244,21 @@ function Library() {
           </button>
         </div>
       ) : (
-        <div className={styles.classContainer}>
-          {visibleManga.map((currentManga, i) => (
-            <MangaCard
-              key={currentManga.id}
-              currentManga={currentManga}
-              index={i}
-            />
-          ))}
-        </div>
+        <>
+          {pager}
+          <div id="shelf-grid" className={styles.classContainer}>
+            {shelfPage.map((currentManga, i) => (
+              <MangaCard
+                key={currentManga.id}
+                currentManga={currentManga}
+                index={i}
+              />
+            ))}
+          </div>
+          {visibleManga.length > SHELF_PAGE_SIZE && (
+            <div className={styles.pagerBottom}>{pager}</div>
+          )}
+        </>
       )}
     </div>
   );
@@ -330,8 +365,7 @@ function GuestHero() {
             Also: find the best price on the manga you want to buy.
           </h2>
           <p className={styles.priceBody}>
-            Search a volume and compare prices from US stores before you
-            buy.
+            Search a volume and compare prices from US stores before you buy.
           </p>
           <NavLink
             to="/prices"

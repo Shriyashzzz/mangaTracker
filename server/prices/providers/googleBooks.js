@@ -5,33 +5,9 @@
 // Ebooks have their own ISBN, so looking up the print ISBN finds nothing.
 // Instead we search the volume's title and keep the ebook whose series name
 // and volume number match.
+import { sameVolume } from "../match.js";
+
 const URL = "https://www.googleapis.com/books/v1/volumes";
-
-const normalize = (s) =>
-  s
-    .toLowerCase()
-    .replace(/[^a-z0-9 ]+/g, " ")
-    .replace(/\s+/g, " ")
-    .trim();
-
-const volumeOf = (title) =>
-  Number(
-    title.match(/\bvol(?:ume)?\.?\s*(\d+)/i)?.[1] ??
-      title.match(/(\d+)\s*$/)?.[1] ??
-      NaN,
-  );
-
-const seriesOf = (title) =>
-  normalize(
-    title
-      .replace(/\(.*?\)/g, "")
-      .replace(/,?\s*\bvol(?:ume)?\.?\s*\d+.*$/i, "")
-      .replace(/\s\d+\s*$/, ""),
-  );
-
-const sameVolume = (a, b) =>
-  seriesOf(a) === seriesOf(b) &&
-  (volumeOf(a) === volumeOf(b) || (isNaN(volumeOf(a)) && isNaN(volumeOf(b))));
 
 export default {
   id: "google-books",

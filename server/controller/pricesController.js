@@ -1,6 +1,10 @@
 import { query, param, validationResult, matchedData } from "express-validator";
 import { searchVolumes, toIsbn13 } from "../prices/catalog.js";
-import { getVolumePrices } from "../prices/service.js";
+import {
+  getHighlights,
+  getSeries,
+  getVolumePrices,
+} from "../prices/service.js";
 
 const rejectInvalid = (req, res, next) => {
   const errors = validationResult(req);
@@ -56,4 +60,42 @@ const volume = [
   },
 ];
 
-export default { search, volume };
+const series = [
+  query("name")
+    .trim()
+    .isLength({ min: 2, max: 120 })
+    .withMessage("Which series?"),
+  rejectInvalid,
+  async (req, res) => {
+    try {
+      const data = await getSeries(matchedData(req).name);
+      if (!data) {
+        res
+          .status(404)
+          .json({ error: [{ msg: "We couldn't find that series." }] });
+        return;
+      }
+      res.json(data);
+    } catch (e) {
+      console.error("series lookup failed:", e);
+      res
+        .status(502)
+        .json({
+          error: [
+            { msg: "That series couldn't be loaded. Try again in a moment." },
+          ],
+        });
+    }
+  },
+];
+
+const highlights = async (req, res) => {
+  try {
+    res.json(await getHighlights());
+  } catch (e) {
+    console.error("highlights failed:", e);
+    res.status(502).json({ error: [{ msg: "Couldn't load highlights." }] });
+  }
+};
+
+export default { search, volume, series, highlights };

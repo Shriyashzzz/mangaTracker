@@ -20,6 +20,24 @@ export const searchVolumes = (q, signal) =>
 export const getVolume = (isbn, signal) =>
   getJson(`/api/prices/${encodeURIComponent(isbn)}`, signal);
 
+export const getSeries = (name, signal) =>
+  getJson(`/api/prices/series?${new URLSearchParams({ name })}`, signal);
+
+export const getHighlights = (signal) =>
+  getJson("/api/prices/highlights", signal);
+
+// links a series page; the name rides along because slugs lose punctuation
+export const seriesPath = (name) =>
+  `/prices/series/${slugify(name)}?${new URLSearchParams({ name })}`;
+
+const slugify = (name) =>
+  name
+    .toLowerCase()
+    .normalize("NFKD")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 80);
+
 const usd = new Intl.NumberFormat("en-US", {
   style: "currency",
   currency: "USD",
@@ -48,8 +66,12 @@ export const hideBrokenCover = (e) => {
 };
 
 // "Jujutsu Kaisen, Vol. 24 (Shonen Jump)" -> "Jujutsu Kaisen", for the shelf
-export const seriesTitle = (title) =>
+export const seriesName = (title) =>
   title
-    .replace(/\s*\(.*?\)\s*/g, " ")
+    .replace(/\(.*?\)/g, " ")
     .replace(/,?\s*\bvol(?:ume)?\.?\s*\d+.*$/i, "")
+    .replace(/\s+\d+\s*$/, "")
+    .replace(/\s+/g, " ")
     .trim();
+
+export const seriesTitle = seriesName;

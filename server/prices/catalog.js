@@ -44,11 +44,11 @@ const toBook = (doc, isbn13) => {
   };
 };
 
-async function search(q, limit) {
+async function search(q, limit, timeoutMs = TIMEOUT_MS) {
   const url = `${SEARCH_URL}?${new URLSearchParams({ q, fields: FIELDS, limit })}`;
   const res = await fetch(url, {
     headers: { "User-Agent": "MangaTracker/1.0 (price checker)" },
-    signal: AbortSignal.timeout(TIMEOUT_MS),
+    signal: AbortSignal.timeout(timeoutMs),
   });
   if (!res.ok) throw new Error(`Open Library responded ${res.status}`);
   const { docs } = await res.json();
@@ -57,9 +57,13 @@ async function search(q, limit) {
 
 // title / author / series search, or a pasted ISBN. Numbered volumes first,
 // in order, then box sets and one-offs
-export async function searchVolumes(query) {
+export async function searchVolumes(query, { max = 24, timeoutMs } = {}) {
   const isbn = toIsbn13(query);
-  const docs = await search(isbn ? `isbn:${isbn}` : query, 40);
+  const docs = await search(
+    isbn ? `isbn:${isbn}` : query,
+    Math.max(40, max * 2),
+    timeoutMs,
+  );
 
   const seen = new Set();
   const books = [];
@@ -75,7 +79,7 @@ export async function searchVolumes(query) {
 
   return books
     .sort((a, b) => (a.volume ?? Infinity) - (b.volume ?? Infinity))
-    .slice(0, 24);
+    .slice(0, max);
 }
 
 export async function lookupIsbn(isbn13) {

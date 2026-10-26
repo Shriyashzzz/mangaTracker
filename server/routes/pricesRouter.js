@@ -11,6 +11,19 @@ pricesRouter.get(
   pricesController.search,
 );
 
+// these come before "/:isbn" so their names aren't read as an ISBN
+pricesRouter.get(
+  "/highlights",
+  rateLimit({ max: 60, windowMs: 60_000 }),
+  pricesController.highlights,
+);
+
+pricesRouter.get(
+  "/series",
+  rateLimit({ max: 40, windowMs: 60_000 }),
+  pricesController.series,
+);
+
 pricesRouter.get(
   "/:isbn",
   rateLimit({ max: 30, windowMs: 60_000 }),

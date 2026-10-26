@@ -1,20 +1,35 @@
 import { useEffect, useState } from "react";
-import { NavLink, useNavigate, useParams } from "react-router";
+import { NavLink, useParams } from "react-router";
 import {
   coverSrc,
   formatCents,
   getVolume,
   hideBrokenCover,
+  seriesPath,
   seriesTitle,
   timeAgo,
 } from "../../lib/prices";
+import SeriesFacts from "./SeriesFacts";
+import VolumeCard from "./VolumeCard";
 import styles from "./Prices.module.css";
 
-const CONDITION = { new: "New", used: "Used" };
+// longer price lists start collapsed, like manga.london's "Show N more"
+const VISIBLE_OFFERS = 5;
+const SIBLINGS_SHOWN = 12;
+
+const shortDate = (d) =>
+  new Date(d).toLocaleDateString("en-US", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  });
+
+const CONDITION = { new: "New", used: "Used", marketplace: "Marketplace" };
 
 export default function PriceVolume() {
   const { isbn } = useParams();
-  const navigate = useNavigate();
+  const [showAll, setShowAll] = useState({ isbn, open: false });
+  const offersOpen = showAll.isbn === isbn && showAll.open;
   const [state, setState] = useState({ isbn: null, data: null, error: "" });
 
   useEffect(() => {
@@ -50,8 +65,24 @@ export default function PriceVolume() {
     );
   }
 
-  const { book, offers, stats, checkedAt, liveSources, storeLinks } =
-    state.data;
+  const {
+    book,
+    series,
+    volume,
+    siblings,
+    offers,
+    stats,
+    checkedAt,
+    liveSources,
+    storeLinks,
+  } = state.data;
+  const seriesLabel = series.info?.name ?? series.name;
+  const shownOffers = offersOpen ? offers : offers.slice(0, VISIBLE_OFFERS);
+  // the next volumes first, then the ones before
+  const nearby = [
+    ...siblings.filter((v) => volume == null || v.volume > volume),
+    ...siblings.filter((v) => volume != null && v.volume < volume).reverse(),
+  ].slice(0, SIBLINGS_SHOWN);
   // the headline price is the cheapest new print copy, what most people buy
   const best = offers.find(
     (o) => o.condition === "new" && o.format === "print",
@@ -59,20 +90,19 @@ export default function PriceVolume() {
 
   return (
     <div className="fade-in">
-      {/* go back to the results you came from; a shared link has none */}
-      {window.history.state?.idx > 0 ? (
-        <button
-          type="button"
-          className={styles.backLink}
-          onClick={() => navigate(-1)}
-        >
-          ← back to results
-        </button>
-      ) : (
-        <NavLink to="/prices" className={styles.backLink} viewTransition>
-          ← price check
+      <nav className={styles.crumbs} aria-label="Breadcrumb">
+        <NavLink to="/prices" viewTransition>
+          Price check
         </NavLink>
-      )}
+        <span aria-hidden>/</span>
+        <NavLink to={seriesPath(series.name)} viewTransition>
+          {seriesLabel}
+        </NavLink>
+        <span aria-hidden>/</span>
+        <span aria-current="page">
+          {volume != null ? `Vol. ${volume}` : book.title}
+        </span>
+      </nav>
 
       <article className={styles.volume}>
         <figure className={styles.volumeCover}>
@@ -95,7 +125,18 @@ export default function PriceVolume() {
               .filter(Boolean)
               .join(" · ")}
           </p>
-          <p className={styles.isbn}>ISBN {book.isbn13}</p>
+          <p className={styles.isbn}>
+            {volume != null && (
+              <span className={styles.tag}>Vol. {volume}</span>
+            )}
+            <span className={styles.tag}>ISBN-13 {book.isbn13}</span>
+          </p>
+          <p className={styles.partOf}>
+            Part of{" "}
+            <NavLink to={seriesPath(series.name)} viewTransition>
+              {seriesLabel}
+            </NavLink>
+          </p>
           {best && (
             <p className={styles.bestLine}>
               New from <strong>{formatCents(best.priceCents)}</strong> at{" "}
@@ -105,6 +146,8 @@ export default function PriceVolume() {
         </header>
 
         <div className={styles.volumeBody}>
+          {series.info && <SeriesFacts info={series.info} />}
+
           <section aria-labelledby="offers-title">
             <div className={styles.sectionHead}>
               <h2 id="offers-title" className={styles.sectionTitle}>
@@ -119,7 +162,7 @@ export default function PriceVolume() {
 
             {offers.length > 0 ? (
               <ul className={styles.offers}>
-                {offers.map((o) => (
+                {shownOffers.map((o) => (
                   <li
                     key={`${o.store}-${o.format}-${o.condition}`}
                     className={o === best ? styles.bestOffer : ""}
@@ -149,6 +192,20 @@ export default function PriceVolume() {
                     )}
                   </li>
                 ))}
+                {offers.length > VISIBLE_OFFERS && (
+                  <li className={styles.moreRow}>
+                    <button
+                      type="button"
+                      className={styles.textBtn}
+                      aria-expanded={offersOpen}
+                      onClick={() => setShowAll({ isbn, open: !offersOpen })}
+                    >
+                      {offersOpen
+                        ? "Show fewer"
+                        : `Show ${offers.length - VISIBLE_OFFERS} more`}
+                    </button>
+                  </li>
+                )}
               </ul>
             ) : (
               <p className={styles.note}>
@@ -168,20 +225,27 @@ export default function PriceVolume() {
                 <div>
                   <dt>All-time low</dt>
                   <dd>{formatCents(stats.lowCents)}</dd>
+                  <dd className={styles.statDate}>{shortDate(stats.lowAt)}</dd>
                 </div>
                 <div>
                   <dt>All-time high</dt>
                   <dd>{formatCents(stats.highCents)}</dd>
+                  <dd className={styles.statDate}>{shortDate(stats.highAt)}</dd>
                 </div>
                 <div>
                   <dt>Average</dt>
                   <dd>{formatCents(stats.avgCents)}</dd>
                 </div>
+                <div>
+                  <dt>Median</dt>
+                  <dd>{formatCents(stats.medianCents)}</dd>
+                </div>
               </dl>
               <p className={styles.checked}>
-                New print copies, {stats.samples} price
-                {stats.samples > 1 ? "s" : ""} seen since{" "}
-                {new Date(stats.since).toLocaleDateString()}
+                Cheapest new print copy across {stats.samples} check
+                {stats.samples > 1 ? "s" : ""}, {shortDate(stats.since)}
+                {stats.samples > 1 && ` to ${shortDate(stats.lastSeen)}`} ·{" "}
+                {stats.changes} price change{stats.changes === 1 ? "" : "s"}
               </p>
             </section>
           )}
@@ -219,15 +283,43 @@ export default function PriceVolume() {
               Add to my shelf
             </NavLink>
             <NavLink
-              to={`/prices?${new URLSearchParams({ q: seriesTitle(book.title) })}`}
+              to={seriesPath(series.name)}
               className="btn btn-ghost"
               viewTransition
             >
-              Other volumes
+              All volumes
             </NavLink>
           </div>
         </div>
       </article>
+
+      {nearby.length > 0 && (
+        <section className={styles.siblings} aria-labelledby="siblings-title">
+          <div className={styles.sectionHead}>
+            <h2 id="siblings-title" className={styles.sectionTitle}>
+              From the same series
+            </h2>
+            <NavLink
+              to={seriesPath(series.name)}
+              className={styles.textBtn}
+              viewTransition
+            >
+              See all {siblings.length + 1}
+            </NavLink>
+          </div>
+          <ul className={styles.row}>
+            {nearby.map((v) => (
+              <li key={v.isbn13}>
+                <VolumeCard
+                  {...v}
+                  title={`Vol. ${v.volume}`}
+                  priceCents={v.knownPriceCents}
+                />
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
     </div>
   );
 }

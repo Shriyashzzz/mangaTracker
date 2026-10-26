@@ -29,6 +29,21 @@ CREATE TABLE IF NOT EXISTS price_samples(
 CREATE INDEX IF NOT EXISTS price_samples_isbn_time
   ON price_samples (isbn13, fetched_at DESC);
 
+-- AniList series info, cached a week per series
+CREATE TABLE IF NOT EXISTS series_info(
+  slug        VARCHAR(80) PRIMARY KEY,
+  info        JSONB,
+  fetched_at  TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+-- paid APIs with a monthly allowance: how many calls we've made this month
+CREATE TABLE IF NOT EXISTS api_usage(
+  provider    VARCHAR(40) NOT NULL,
+  month       DATE NOT NULL,
+  calls       INTEGER NOT NULL DEFAULT 0,
+  PRIMARY KEY (provider, month)
+);
+
 -- when each volume was last checked, even if no store had it
 CREATE TABLE IF NOT EXISTS price_checks(
   isbn13      CHAR(13) PRIMARY KEY REFERENCES books(isbn13) ON DELETE CASCADE,

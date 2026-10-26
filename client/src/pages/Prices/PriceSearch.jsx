@@ -1,7 +1,13 @@
 import { useEffect, useState } from "react";
 import { NavLink, useSearchParams } from "react-router";
 import { SearchIcon } from "../../components/icons/Icons";
-import { coverSrc, hideBrokenCover, searchVolumes } from "../../lib/prices";
+import {
+  getHighlights,
+  searchVolumes,
+  seriesName,
+  seriesPath,
+} from "../../lib/prices";
+import VolumeCard from "./VolumeCard";
 import styles from "./Prices.module.css";
 
 const QUICK_PICKS = ["One Piece", "Jujutsu Kaisen", "Chainsaw Man", "Frieren"];
@@ -40,6 +46,8 @@ export default function PriceSearch() {
 
   const searching = query.trim().length >= 2;
   const loading = searching && result.query !== query;
+  // most results from one series? offer its series page
+  const topSeries = mostCommonSeries(result.items);
 
   return (
     <div className={`${styles.page} fade-in`}>
@@ -114,6 +122,15 @@ export default function PriceSearch() {
 
       {!loading && searching && result.items.length > 0 && (
         <>
+          {topSeries && (
+            <NavLink
+              to={seriesPath(topSeries)}
+              className={styles.seriesLink}
+              viewTransition
+            >
+              See the whole {topSeries} series →
+            </NavLink>
+          )}
           <p className={styles.count} aria-live="polite">
             {result.items.length} volume{result.items.length > 1 ? "s" : ""} for
             “{query}”
@@ -121,35 +138,118 @@ export default function PriceSearch() {
           <ul className={styles.grid}>
             {result.items.map((book) => (
               <li key={book.isbn13}>
-                <NavLink
-                  to={`/prices/${book.isbn13}`}
-                  className={styles.card}
-                  viewTransition
-                >
-                  <span className={styles.cover}>
-                    <span className={styles.coverFallback} aria-hidden>
-                      {book.volume ?? "?"}
-                    </span>
-                    <img
-                      src={coverSrc(book.coverUrl)}
-                      alt=""
-                      loading="lazy"
-                      onError={hideBrokenCover}
-                    />
-                    {book.volume !== null && (
-                      <span className={styles.vol}>Vol. {book.volume}</span>
-                    )}
-                  </span>
-                  <span className={styles.cardTitle}>{book.title}</span>
-                  {book.authors && (
-                    <span className={styles.cardMeta}>{book.authors}</span>
-                  )}
-                </NavLink>
+                <VolumeCard {...book} subtitle={book.authors} />
               </li>
             ))}
           </ul>
         </>
       )}
+      {!searching && <Highlights />}
     </div>
+  );
+}
+
+function mostCommonSeries(items) {
+  const counts = new Map();
+  for (const book of items) {
+    if (book.volume == null) continue;
+    const name = seriesName(book.title);
+    counts.set(name, (counts.get(name) ?? 0) + 1);
+  }
+  const [name, count] = [...counts].sort((a, b) => b[1] - a[1])[0] ?? [];
+  return count >= 2 ? name : null;
+}
+
+// what to show before anyone searches: trending series (AniList), deals and
+// recent checks (from prices already saved). None of it spends a search
+function Highlights() {
+  const [data, setData] = useState(null);
+
+  useEffect(() => {
+    const controller = new AbortController();
+    getHighlights(controller.signal)
+      .then(setData)
+      .catch(() => setData({ trending: [], deals: [], recent: [] }));
+    return () => controller.abort();
+  }, []);
+
+  if (!data) {
+    return (
+      <div className={styles.grid} aria-busy="true" aria-label="Loading">
+        {Array.from({ length: 6 }, (_, i) => (
+          <div key={i} className={`skeleton ${styles.cardSkeleton}`} />
+        ))}
+      </div>
+    );
+  }
+
+  return (
+    <>
+      {data.trending.length > 0 && (
+        <section aria-labelledby="trending-title">
+          <h2 id="trending-title" className={styles.sectionTitle}>
+            Popular this season
+          </h2>
+          <ul className={styles.row}>
+            {data.trending.map((s) => (
+              <li key={s.slug}>
+                <NavLink
+                  to={seriesPath(s.name)}
+                  className={styles.card}
+                  viewTransition
+                >
+                  <span className={styles.cover}>
+                    <span className={styles.coverFallback} aria-hidden>
+                      ?
+                    </span>
+                    {s.coverUrl && (
+                      <img src={s.coverUrl} alt="" loading="lazy" />
+                    )}
+                  </span>
+                  <span className={styles.cardTitle}>{s.name}</span>
+                  {s.score != null && (
+                    <span className={styles.cardMeta}>Score {s.score}</span>
+                  )}
+                </NavLink>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+
+      {data.deals.length > 0 && (
+        <section aria-labelledby="deals-title">
+          <h2 id="deals-title" className={styles.sectionTitle}>
+            Latest deals
+          </h2>
+          <ul className={styles.row}>
+            {data.deals.map((d) => (
+              <li key={d.isbn13}>
+                <VolumeCard
+                  {...d}
+                  priceCents={d.priceCents}
+                  wasCents={d.avgCents}
+                />
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+
+      {data.recent.length > 0 && (
+        <section aria-labelledby="recent-title">
+          <h2 id="recent-title" className={styles.sectionTitle}>
+            Recently checked
+          </h2>
+          <ul className={styles.row}>
+            {data.recent.map((r) => (
+              <li key={r.isbn13}>
+                <VolumeCard {...r} priceCents={r.priceCents} />
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+    </>
   );
 }

@@ -10,6 +10,7 @@ import SignInPage from "./SignIn/SignIn";
 import SignUp from "./SignUp/SignUp";
 import PriceSearch from "./Prices/PriceSearch";
 import PriceVolume from "./Prices/PriceVolume";
+import PriceSeries from "./Prices/PriceSeries";
 
 export const routes = [
   {
@@ -25,6 +26,7 @@ export const routes = [
       { path: "/about", element: <AboutPage /> },
       { path: "/signup", element: <SignUp /> },
       { path: "/prices", element: <PriceSearch /> },
+      { path: "/prices/series/:slug", element: <PriceSeries /> },
       { path: "/prices/:isbn", element: <PriceVolume /> },
     ],
   },

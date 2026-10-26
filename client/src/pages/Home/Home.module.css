@@ -155,6 +155,14 @@
   gap: 2.25rem 1.5rem;
 }
 
+.pagerBottom {
+  margin-top: 2.5rem;
+}
+
+.toolbar + nav {
+  margin-top: -1rem;
+}
+
 .skeletonTitle {
   width: 240px;
   height: 46px;

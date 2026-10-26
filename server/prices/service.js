@@ -1,5 +1,7 @@
 import priceQueries from "../models/priceQueries.js";
-import { lookupIsbn } from "./catalog.js";
+import { lookupIsbn, searchVolumes } from "./catalog.js";
+import { getSeriesInfo, getTrending, slugify } from "./anilist.js";
+import { seriesName, seriesOf, volumeOf } from "./match.js";
 import { enabledProviders } from "./providers/index.js";
 import { storeLinks } from "./storeLinks.js";
 
@@ -76,7 +78,18 @@ export async function getVolumePrices(isbn13) {
     priceQueries.getPriceStats(isbn13),
   ]);
 
+  const series = await getSeriesWithVolumes(seriesName(book.title));
+  const volume = volumeOf(book.title);
+
   return {
+    series: {
+      name: series.name,
+      slug: series.slug,
+      info: series.info,
+    },
+    volume: isNaN(volume) ? null : volume,
+    // the rest of the series, for the "from the same series" row
+    siblings: series.volumes.filter((v) => v.isbn13 !== book.isbn13),
     book: {
       isbn13: book.isbn13,
       title: book.title,
@@ -99,13 +112,119 @@ export async function getVolumePrices(isbn13) {
       ? {
           samples: stats.samples,
           lowCents: stats.low_cents,
+          lowAt: stats.low_at,
           highCents: stats.high_cents,
+          highAt: stats.high_at,
           avgCents: stats.avg_cents,
+          medianCents: stats.median_cents,
           since: stats.since,
+          lastSeen: stats.last_seen,
+          changes: stats.changes,
         }
       : null,
     checkedAt: last?.checked_at ?? null,
     liveSources: enabledProviders().map((p) => p.store),
     storeLinks: storeLinks(isbn13),
+  };
+}
+
+// ---------- series ----------
+
+const SERIES_VOLUMES_FRESH_MS = 12 * 60 * 60 * 1000;
+const seriesVolumesCache = new Map();
+
+// every numbered volume of a series from the free catalog, one ISBN per
+// volume number, cached half a day. Never spends a paid price search
+async function seriesVolumes(name) {
+  const key = seriesOf(name);
+  const hit = seriesVolumesCache.get(key);
+  if (hit && Date.now() - hit.at < SERIES_VOLUMES_FRESH_MS) return hit.volumes;
+
+  // two free catalog queries merged: the plain one finds more, the quoted
+  // title one is more precise. Long runners can have 100+ volumes
+  const results = await Promise.allSettled([
+    searchVolumes(name, { max: 250, timeoutMs: 20000 }),
+    searchVolumes(`title:"${name.replace(/"/g, "")}"`, {
+      max: 250,
+      timeoutMs: 20000,
+    }),
+  ]);
+  const found = results.flatMap((r) =>
+    r.status === "fulfilled" ? r.value : [],
+  );
+  const failed = results.filter((r) => r.status === "rejected");
+  failed.forEach((r) =>
+    console.error("series volume lookup failed:", r.reason?.message),
+  );
+
+  const byNumber = new Map();
+  for (const v of found) {
+    if (seriesOf(v.title) !== key || v.volume === null) continue;
+    if (!byNumber.has(v.volume)) byNumber.set(v.volume, v);
+  }
+  const volumes = [...byNumber.values()].sort((a, b) => a.volume - b.volume);
+
+  // an answer hurt by a failed query is used once but not cached, so the next
+  // visit tries again instead of showing a short list for half a day
+  if (failed.length) return volumes.length ? volumes : (hit?.volumes ?? []);
+  seriesVolumesCache.set(key, { at: Date.now(), volumes });
+  if (seriesVolumesCache.size > 500) {
+    seriesVolumesCache.delete(seriesVolumesCache.keys().next().value);
+  }
+  return volumes;
+}
+
+async function getSeriesWithVolumes(name) {
+  const [info, volumes] = await Promise.all([
+    getSeriesInfo(name),
+    seriesVolumes(name),
+  ]);
+  const known = await priceQueries.getKnownPrices(volumes.map((v) => v.isbn13));
+  return {
+    name,
+    slug: slugify(name),
+    info,
+    volumes: volumes.map((v) => ({
+      isbn13: v.isbn13,
+      title: v.title,
+      volume: v.volume,
+      coverUrl: v.coverUrl,
+      knownPriceCents: known.get(v.isbn13)?.price_cents ?? null,
+    })),
+  };
+}
+
+export async function getSeries(name) {
+  const series = await getSeriesWithVolumes(name);
+  if (!series.info && !series.volumes.length) return null;
+  return series;
+}
+
+// ---------- price home ----------
+
+// latest deals: volumes now cheaper than their own average, from prices we
+// already have. Recently checked: the latest volumes anyone looked up
+export async function getHighlights() {
+  const [trending, recent] = await Promise.all([
+    getTrending(),
+    priceQueries.getRecentBestPrices(40),
+  ]);
+  const toCard = (r) => ({
+    isbn13: r.isbn13.trim(),
+    title: r.title,
+    coverUrl: r.cover_url,
+    priceCents: r.price_cents,
+    avgCents: r.avg_cents,
+    checkedAt: r.fetched_at,
+  });
+  const deals = recent
+    .filter((r) => r.samples >= 2 && r.price_cents < r.avg_cents * 0.95)
+    .sort((a, b) => a.price_cents / a.avg_cents - b.price_cents / b.avg_cents)
+    .slice(0, 8)
+    .map(toCard);
+  return {
+    trending,
+    deals,
+    recent: recent.slice(0, 12).map(toCard),
   };
 }
