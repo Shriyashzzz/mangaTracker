@@ -2,6 +2,8 @@
 // Needs EBAY_CLIENT_ID + EBAY_CLIENT_SECRET from developer.ebay.com, and
 // eBay may need to approve the app for the Buy APIs.
 // https://developer.ebay.com/api-docs/buy/browse/resources/item_summary/methods/search
+import { ebayAffiliateUrl, ebayCampaignId } from "../affiliates.js";
+
 const TOKEN_URL = "https://api.ebay.com/identity/v1/oauth2/token";
 const SEARCH_URL = "https://api.ebay.com/buy/browse/v1/item_summary/search";
 
@@ -55,6 +57,10 @@ export default {
       headers: {
         Authorization: `Bearer ${await appToken(signal)}`,
         "X-EBAY-C-MARKETPLACE-ID": "EBAY_US",
+        // asks eBay to include affiliate links in the results
+        ...(ebayCampaignId() && {
+          "X-EBAY-C-ENDUSERCTX": `affiliateCampaignId=${ebayCampaignId()}`,
+        }),
       },
       signal,
     });
@@ -78,7 +84,10 @@ export default {
           priceCents: total,
           currency: "USD",
           inStock: true,
-          url: item.itemWebUrl,
+          // with a campaign ID, eBay returns a ready-made affiliate link
+          url:
+            item.itemAffiliateWebUrl ??
+            ebayAffiliateUrl(item.itemWebUrl, "listing"),
         };
       }
     }

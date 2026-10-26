@@ -217,9 +217,20 @@ export default function PriceVolume() {
               </ul>
             ) : (
               <p className={styles.note}>
-                {liveSources.length
-                  ? `None of the stores we check (${liveSources.join(", ")}) have this one right now.`
-                  : "Live prices aren't switched on yet. Check the stores below directly for now."}
+                {liveSources.length ? (
+                  <>
+                    No live prices for this one right now. It's often still in
+                    stock, so{" "}
+                    <a href="#links-title">check the store links below</a> for
+                    Amazon, Barnes &amp; Noble and more.
+                  </>
+                ) : (
+                  <>
+                    Live prices aren't switched on yet.{" "}
+                    <a href="#links-title">Check the store links below</a> for
+                    now.
+                  </>
+                )}
               </p>
             )}
           </section>
@@ -324,6 +335,14 @@ export default function PriceVolume() {
             ))}
           </ul>
         </section>
+      )}
+
+      {/* wording required by the Amazon Associates agreement, kept on the
+          page that carries the store links */}
+      {storeLinks.some((s) => s.store === "Amazon" && s.affiliate) && (
+        <p className={styles.amazonDisclosure}>
+          As an Amazon Associate I earn from qualifying purchases.
+        </p>
       )}
     </div>
   );

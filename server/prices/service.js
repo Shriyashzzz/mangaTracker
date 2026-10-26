@@ -9,7 +9,7 @@ import {
 } from "./anilist.js";
 import { seriesName, seriesOf, volumeOf } from "./match.js";
 import { enabledProviders } from "./providers/index.js";
-import { storeLinks } from "./storeLinks.js";
+import { affiliateOfferUrl, storeLinks } from "./storeLinks.js";
 
 // prices are re-fetched at most this often per volume; in between, people
 // see the stored ones. Keeps us well inside every API's rate limits
@@ -111,7 +111,7 @@ export async function getVolumePrices(isbn13) {
       priceCents: o.price_cents,
       currency: o.currency,
       inStock: o.in_stock,
-      url: o.url,
+      url: affiliateOfferUrl(o.store, isbn13, o.url),
       fetchedAt: o.fetched_at,
     })),
     stats: stats.samples

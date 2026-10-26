@@ -1,4 +1,4 @@
-import { amazonAffiliate } from "../storeLinks.js";
+import { amazonTag } from "../affiliates.js";
 
 // Keepa: Amazon US prices (Amazon itself plus marketplace sellers), looked up
 // by ISBN. Paid: needs KEEPA_API_KEY from keepa.com/#!api, and every lookup
@@ -11,10 +11,8 @@ const AMAZON = 0;
 const NEW_3RD_PARTY = 1;
 const USED = 2;
 
-const productUrl = (asin) => {
-  const tag = process.env.AMAZON_ASSOCIATE_TAG?.trim();
-  return `https://www.amazon.com/dp/${asin}${amazonAffiliate() ? `?tag=${encodeURIComponent(tag)}` : ""}`;
-};
+const productUrl = (asin) =>
+  `https://www.amazon.com/dp/${asin}${amazonTag() ? `?tag=${encodeURIComponent(amazonTag())}` : ""}`;
 
 export default {
   id: "keepa",
