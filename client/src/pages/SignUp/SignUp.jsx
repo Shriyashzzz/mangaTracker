@@ -1,12 +1,15 @@
 import { useRef, useState } from "react";
-import styles from "./SignUp.module.css";
+import styles from "../../styles/Auth.module.css";
 import { NavLink, useNavigate, useOutletContext } from "react-router";
+import PasswordInput from "../../components/passwordInput/PasswordInput";
+import AuthArt from "../../components/authArt/AuthArt";
+import { apiFetch } from "../../lib/api";
 
 export default function SignUp() {
   const navigater = useNavigate();
   const userNameRef = useRef(null);
   const passRef = useRef(null);
-  const [isSignedIn, setIsSignedIn] = useOutletContext();
+  const [, setIsSignedIn] = useOutletContext();
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState([]);
 
@@ -24,16 +27,14 @@ export default function SignUp() {
 
     setLoading(true);
     try {
-      const result = await fetch(`${import.meta.env.VITE_API_URL}/signup`, {
-        credentials: "include",
+      const result = await apiFetch("/signup", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ username, password }),
+        body: { username, password },
       });
 
       if (result.ok) {
         setIsSignedIn(true);
-        navigater("/home", { viewTransition: true });
+        navigater("/shelf", { viewTransition: true });
       } else {
         const data = await result.json();
         setErrors(data.errors || [{ msg: "Something went wrong. Try again." }]);
@@ -47,66 +48,71 @@ export default function SignUp() {
 
   return (
     <div className={styles.container}>
-      <div className={styles.card}>
-        <div className={styles.header}>
-          <span className={styles.eyebrow}>Join the list</span>
-          <h1 className={styles.title}>
-            Sign <span className={styles.accent}>Up</span>
-          </h1>
-        </div>
+      <div className={`${styles.spread} fade-in`}>
+        <AuthArt
+          sfx="A new series begins!"
+          chapter="1"
+          line="Just a username and a password. No email, no newsletter."
+        />
 
-        <form onSubmit={handleFormSubmit} className={styles.fields}>
-          <div className={styles.field}>
-            <label htmlFor="username">Username</label>
-            <input
-              id="username"
-              ref={userNameRef}
-              type="text"
-              placeholder="your_username"
-              name="username"
-              autoComplete="username"
-            />
-          </div>
+        <div className={styles.card}>
+          <h1 className={styles.title}>Start a shelf</h1>
 
-          <div className={styles.field}>
-            <label htmlFor="password">Password</label>
-            <input
-              id="password"
-              ref={passRef}
-              type="password"
-              placeholder="••••••••"
-              name="password"
-              autoComplete="new-password"
-            />
-            <span className={styles.hint}>Min 5 characters</span>
-          </div>
-
-          {errors.length > 0 && (
-            <ul className={styles.errorList}>
-              {errors.map((e, i) => (
-                <li key={i}>{e.msg}</li>
-              ))}
-            </ul>
-          )}
-
-          <button
-            type="submit"
-            className={styles.btnPrimary}
-            disabled={loading}
+          <form
+            onSubmit={handleFormSubmit}
+            className={styles.fields}
+            noValidate
           >
-            {loading ? "Creating account…" : "Create account"}
-          </button>
-        </form>
+            <div className={styles.field}>
+              <label htmlFor="username">Username</label>
+              <input
+                className={styles.input}
+                id="username"
+                ref={userNameRef}
+                type="text"
+                placeholder="your_username"
+                name="username"
+                autoComplete="username"
+                autoFocus
+              />
+              <span className={styles.hint}>4–40 letters or numbers</span>
+            </div>
 
-        <div className={styles.divider}>
-          <span>or</span>
-        </div>
+            <div className={styles.field}>
+              <label htmlFor="password">Password</label>
+              <PasswordInput
+                id="password"
+                ref={passRef}
+                placeholder="••••••••"
+                name="password"
+                autoComplete="new-password"
+              />
+              <span className={styles.hint}>At least 5 characters</span>
+            </div>
 
-        <div className={styles.signinRow}>
-          <p>Already have an account?</p>
-          <NavLink to="/signin" viewTransition>
-            <button className={styles.btnGhost}>Log in</button>
-          </NavLink>
+            {errors.length > 0 && (
+              <ul className={styles.errorList} role="alert">
+                {errors.map((e, i) => (
+                  <li key={i}>{e.msg}</li>
+                ))}
+              </ul>
+            )}
+
+            <button
+              type="submit"
+              className={`btn btn-primary btn-lg btn-block ${styles.submit}`}
+              disabled={loading}
+            >
+              {loading ? "Creating account…" : "Create account"}
+            </button>
+          </form>
+
+          <p className={styles.switchRow}>
+            Already have an account?{" "}
+            <NavLink to="/signin" viewTransition>
+              Log in
+            </NavLink>
+          </p>
         </div>
       </div>
     </div>

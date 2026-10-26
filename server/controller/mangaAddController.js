@@ -18,11 +18,13 @@ const validationChain = [
     .isNumeric()
     .withMessage(`Bookmark has to be Numeric luv!`),
   body("status").notEmpty(),
+  // matchedData only returns validated fields, so genre needs a rule to be saved
+  body("genre").optional({ values: "falsy" }).trim(),
   body("description")
     .trim()
     .optional({ values: "falsy" })
-    .isLength({ min: 10, max: 450 })
-    .withMessage(`Description should be between 10-450 characters long <3`),
+    .isLength({ max: 450 })
+    .withMessage(`Notes can be up to 450 characters long <3`),
   body("image")
     .optional({ values: "falsy" })
     .trim()
@@ -32,11 +34,6 @@ const validationChain = [
 const addMangaController = [
   validationChain,
   async (req, res) => {
-    console.log("=== ADD MANGA DEBUG ===");
-    console.log("session ID:", req.sessionID);
-    console.log("full session:", req.session);
-    console.log("userId:", req.session.userId);
-    console.log("cookies:", req.headers.cookie);
     const userId = req.session.userId;
     const errors = validationResult(req);
     if (!errors.isEmpty()) {

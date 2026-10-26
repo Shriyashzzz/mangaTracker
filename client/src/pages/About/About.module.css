@@ -1,195 +1,342 @@
-.container {
-  width: 100%;
-  max-width: 1100px;
-  display: flex;
-  justify-content: center;
-  align-self: center;
-}
-
-.containerBox {
-  width: 100%;
+/* the about page reads like a short manga: an opening panel, a three-panel
+   strip, a next-volume teaser and the credits page */
+.page {
+  max-width: 980px;
+  margin: 0 auto;
   display: flex;
   flex-direction: column;
-  gap: 1.75rem;
-  background-color: rgb(180, 193, 234);
-  margin-top: 5rem;
-  padding: 2rem;
-  border: 1px solid rgba(100, 115, 160, 0.4);
-  border-radius: 16px;
-  box-shadow: 0 2px 12px rgba(80, 100, 160, 0.08);
-  box-sizing: border-box;
+  gap: clamp(3rem, 7vw, 4.5rem);
 }
 
-/* ── Hero ── */
+/* ---------- opening panel ---------- */
+.hero {
+  display: grid;
+  grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.2fr);
+  align-items: center;
+  gap: clamp(1.5rem, 5vw, 3.5rem);
+  padding: clamp(1.25rem, 3vw, 2rem);
+  border: 3px solid var(--line);
+  background-color: var(--card);
+  /* focus lines behind the character */
+  background-image:
+    radial-gradient(circle at 22% 55%, var(--card) 0 18%, transparent 46%),
+    repeating-conic-gradient(
+      from 0deg at 22% 55%,
+      var(--line-soft) 0deg 0.8deg,
+      transparent 0.8deg 7deg
+    );
+}
 
-.chapterLabel {
-  font-size: var(--small-font-size, 13px);
-  font-weight: 600;
-  letter-spacing: 0.08em;
+.heroArt {
+  position: relative;
+  max-width: 260px;
+  justify-self: center;
+  padding-top: 2.5rem;
+}
+
+.heroBubble {
+  position: absolute;
+  top: -0.5rem;
+  left: 52%;
+  width: max-content;
+  max-width: 13rem;
+  padding: 0.55rem 0.9rem;
+  background: var(--paper);
+  border: 2.5px solid var(--line);
+  border-radius: 50%;
+  font-family: var(--font-letter);
+  font-weight: 700;
+  font-size: 0.85rem;
+  line-height: 1.25;
+  text-align: center;
   text-transform: uppercase;
-  color: #2a3560;
-  opacity: 0.7;
+}
+
+.heroCopy {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
 }
 
 .title {
-  font-family: "Bangers", cursive;
-  font-size: clamp(36px, 6vw, 56px);
-  letter-spacing: 0.04em;
-  line-height: 1.05;
-  margin: 0;
-  color: #1a2550;
-}
-
-.accent {
-  color: rgb(60, 80, 140);
-}
-
-/* ── Sections ── */
-
-.section {
-  display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
-  padding: 1.25rem;
-  background: rgba(255, 255, 255, 0.45);
-  border-radius: 8px;
-  border: 1px solid rgba(100, 115, 160, 0.2);
-}
-
-.section h2 {
-  letter-spacing: -0.02em;
-  margin: 0;
-  color: #1a2550;
-  font-size: var(--medium-font-size, 16px);
-  font-weight: 700;
+  font-family: var(--font-brand);
+  font-size: clamp(2.3rem, 5.4vw, 3.8rem);
+  font-weight: 400;
+  line-height: 0.98;
+  letter-spacing: 0.01em;
   text-transform: uppercase;
-  letter-spacing: 0.08em;
-}
-
-.section p {
   text-wrap: balance;
-  overflow-wrap: break-word;
-  word-break: break-word;
-  line-height: 1.7;
-  color: #444;
-  margin: 0;
-  font-size: var(--medium-font-size, 15px);
 }
 
-/* ── Tech stack cards ── */
-
-.techRow {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.75rem;
+.hit {
+  display: inline-block;
+  padding: 0 0.12em;
+  background: var(--accent);
+  color: var(--on-accent);
+  transform: rotate(-2deg);
 }
 
-.techCard {
+.lead {
+  max-width: 34rem;
+  font-size: 1.08rem;
+  line-height: 1.65;
+  color: var(--ink-soft);
+}
+
+/* ---------- three-panel strip ---------- */
+.sectionTitle {
+  margin-bottom: 1.1rem;
+  font-family: var(--font-brand);
+  font-size: clamp(1.8rem, 4vw, 2.4rem);
+  font-weight: 400;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+
+.strip {
+  list-style: none;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  padding: 12px;
+  background: var(--card);
+  border: 1.5px solid var(--line-soft);
+}
+
+.panel {
   display: flex;
   flex-direction: column;
-  gap: 2px;
-  padding: 0.6rem 1rem;
-  border-radius: 6px;
-  border: 1.5px solid rgba(60, 80, 140, 0.35);
-  background: rgb(230, 235, 250);
-  min-width: 100px;
+  border: 3px solid var(--line);
+  background: var(--paper);
 }
 
-.techName {
-  font-size: var(--medium-font-size, 14px);
+/* screentone behind the panic panel, like the shading for a bad moment */
+.panel:nth-child(2) .panelArt {
+  background-image: radial-gradient(
+    var(--dots-strong) 1.2px,
+    transparent 1.5px
+  );
+  background-size: 7px 7px;
+}
+
+.caption {
+  padding: 0.45rem 0.75rem;
+  border-bottom: 3px solid var(--line);
+  background: var(--card);
+  font-family: var(--font-letter);
   font-weight: 700;
-  color: #2a3560;
-}
-
-.techRole {
-  font-size: var(--small-font-size, 11px);
-  font-weight: 500;
-  color: rgba(42, 53, 96, 0.6);
+  font-size: 0.82rem;
+  letter-spacing: 0.02em;
   text-transform: uppercase;
-  letter-spacing: 0.06em;
 }
 
-/* ── WIP bar ── */
-
-.wipBar {
-  display: flex;
-  align-items: flex-start;
-  gap: 0.65rem;
-  padding: 0.75rem 1rem;
-  background: rgba(255, 255, 255, 0.45);
-  border-radius: 8px;
-  border: 1px solid rgba(100, 115, 160, 0.2);
+.panelArt {
+  flex: 1;
+  display: grid;
+  place-items: center;
+  padding: 1.25rem 1.5rem 0.5rem;
 }
 
-.wipDot,
-.wipDotUpcoming {
-  display: block;
-  width: 8px;
-  height: 8px;
+.panelArt svg {
+  max-width: 150px;
+}
+
+.bubble {
+  position: relative;
+  margin: 0.9rem 0.9rem 1rem;
+  padding: 0.6rem 0.9rem;
+  background: var(--card);
+  border: 2.5px solid var(--line);
   border-radius: 50%;
-  background: #2a3560;
-  flex-shrink: 0;
-  margin-top: 5px;
-  animation: pulse 1.8s ease-in-out infinite;
+  font-family: var(--font-letter);
+  font-weight: 700;
+  font-size: 0.85rem;
+  line-height: 1.3;
+  text-align: center;
+  text-transform: uppercase;
 }
 
-.wipDotUpcoming {
-  background: red;
+/* balloon tail pointing up at the character */
+.bubble::before,
+.bubble::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  border-style: solid;
+  border-color: transparent transparent var(--line);
 }
 
-.wipBar p {
-  font-size: var(--small-font-size, 13px);
-  line-height: 1.6;
-  color: #444;
-  margin: 0;
+.bubble::before {
+  bottom: calc(100% - 1px);
+  border-width: 0 0 18px 14px;
 }
 
-.wipBar strong {
-  color: #1a2550;
+.bubble::after {
+  bottom: calc(100% - 4px);
+  margin-left: 3px;
+  border-width: 0 0 14px 10px;
+  border-color: transparent transparent var(--card);
 }
 
-@keyframes pulse {
-  0%,
-  100% {
-    opacity: 1;
-  }
-  50% {
-    opacity: 0.25;
-  }
+/* teaser and credits share a row, like the back pages of a volume */
+.backMatter {
+  display: grid;
+  grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr);
+  gap: clamp(2rem, 5vw, 3.5rem);
+  align-items: start;
 }
 
-/* ── Responsive ── */
-
-@media screen and (max-width: 900px) {
-  .containerBox {
-    margin: 0 2rem;
-  }
+/* ---------- next-volume teaser ---------- */
+.next {
+  position: relative;
+  padding: 1.5rem 1.75rem;
+  border: 3px dashed var(--line);
+  background: var(--card);
 }
 
-@media screen and (max-width: 760px) {
-  .container {
-    padding: 0;
-    margin: 0;
+.nextSfx {
+  position: absolute;
+  top: -1.2rem;
+  right: 1.25rem;
+  font-family: var(--font-brand);
+  font-size: 1.9rem;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  color: var(--accent);
+  -webkit-text-stroke: 1.5px var(--line);
+  paint-order: stroke fill;
+  transform: rotate(6deg);
+}
+
+.nextTitle {
+  margin-bottom: 0.4rem;
+  font-family: var(--font-display);
+  font-size: 1.6rem;
+  font-weight: 500;
+}
+
+.next p {
+  color: var(--ink-soft);
+}
+
+/* ---------- credits page ---------- */
+.credits {
+  min-width: 0;
+}
+
+.creditsTitle {
+  margin-bottom: 0.75rem;
+  font-family: var(--font-brand);
+  font-size: 1.6rem;
+  font-weight: 400;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.creditList {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0 2rem;
+}
+
+.creditList div {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.5rem 0;
+  border-bottom: 1px dashed var(--line-soft);
+}
+
+.creditList dt {
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  color: var(--muted);
+}
+
+.creditList dd {
+  font-weight: 600;
+}
+
+.cta {
+  display: flex;
+}
+
+@media (max-width: 760px) {
+  .backMatter {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 3rem;
   }
 
-  .containerBox {
-    gap: 1.25rem;
-    padding: 1.5rem 1rem;
-    border-radius: 0;
-    border-left: none;
-    border-right: none;
-    margin: 0;
+  .hero {
+    grid-template-columns: minmax(0, 1fr);
+    background-image:
+      radial-gradient(circle at 50% 22%, var(--card) 0 16%, transparent 40%),
+      repeating-conic-gradient(
+        from 0deg at 50% 22%,
+        var(--line-soft) 0deg 0.8deg,
+        transparent 0.8deg 7deg
+      );
   }
 
-  .title {
-    font-size: 30px;
+  .heroArt {
+    max-width: 170px;
   }
 
-  .techRow {
-    gap: 0.5rem;
+  .heroBubble {
+    left: 60%;
+    max-width: 10rem;
+    font-size: 0.78rem;
   }
 
-  .techCard {
-    min-width: 80px;
+  .strip {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 9px;
+    padding: 9px;
+  }
+
+  /* panels go side-on: character left, words right */
+  .panel {
+    display: grid;
+    grid-template-columns: 110px minmax(0, 1fr);
+    grid-template-areas:
+      "caption caption"
+      "art bubble";
+    align-items: center;
+  }
+
+  .caption {
+    grid-area: caption;
+  }
+
+  .panelArt {
+    grid-area: art;
+    padding: 0.75rem;
+  }
+
+  .bubble {
+    grid-area: bubble;
+    margin: 0.75rem 0.75rem 0.75rem 0;
+  }
+
+  /* tail points left at the character instead */
+  .bubble::before {
+    left: auto;
+    right: calc(100% - 1px);
+    bottom: 40%;
+    border-width: 0 16px 12px 0;
+    border-color: transparent var(--line) transparent transparent;
+  }
+
+  .bubble::after {
+    left: auto;
+    right: calc(100% - 4px);
+    bottom: calc(40% + 3px);
+    margin-left: 0;
+    border-width: 0 12px 8px 0;
+    border-color: transparent var(--card) transparent transparent;
+  }
+
+  .creditList {
+    grid-template-columns: minmax(0, 1fr);
   }
 }

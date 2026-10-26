@@ -1,215 +1,484 @@
-main {
-  flex-direction: column;
-}
-.classContainer {
-  padding-top: 5rem;
-  justify-content: center;
-  width: 80%;
-  height: max-content;
-  display: grid;
-
-  gap: 2rem;
-  grid-template-columns: repeat(auto-fit, minmax(300px, auto));
-  grid-template-rows: auto;
-  padding-bottom: 5rem;
-}
-
-.homeBtn {
+/* ---------- shelf ---------- */
+.pageHead {
   display: flex;
-  margin-top: 3rem;
-  gap: 2rem;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+  margin-bottom: 1.75rem;
 }
 
-/* ── Not signed in ── */
+.pageTitle {
+  font-size: clamp(2.2rem, 5vw, 3.2rem);
+}
 
-.guestContainer {
-  border-radius: 0;
-  width: 100%;
-  max-width: 480px;
-  margin: 6rem auto 0;
+/* the header scrolls away, this stays pinned so search and filters are
+   always one tap away on a long shelf */
+.toolbar {
+  position: sticky;
+  top: 0;
+  z-index: 5;
   display: flex;
-  flex-direction: column;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 1rem 2rem;
+  flex-wrap: wrap;
+  padding: 0.9rem 0;
+  margin-bottom: 2.25rem;
+  background: var(--paper);
+  border-bottom: 1.5px solid var(--line);
+  /* paint the paper out to both edges of the window so card shadows and
+     tilts never peek out beside the toolbar while scrolling underneath */
+  box-shadow: 0 0 0 100vmax var(--paper);
+  clip-path: inset(0 -100vmax);
+}
+
+.tabs {
+  display: flex;
   gap: 1.5rem;
-  background-color: rgb(180, 193, 234);
-  padding: 2.25rem 2rem;
-  border: 1px solid rgba(100, 115, 160, 0.4);
-  box-shadow: 0 2px 12px rgba(80, 100, 160, 0.08);
 }
 
-.guestEyebrow {
-  font-size: 11px;
+.tabs button {
+  position: relative;
+  padding: 0.2rem 0;
+  font-size: 1rem;
+  color: var(--muted);
+  transition: color 0.15s ease;
+}
+
+.tabs button:hover {
+  color: var(--ink);
+}
+
+.tabs .tabActive {
+  color: var(--ink);
   font-weight: 600;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  color: #2a3560;
-  opacity: 0.6;
 }
 
-.guestTitle {
-  font-family: "Bangers", cursive;
-  font-size: var(--large-font-size);
-  letter-spacing: 0.04em;
-  line-height: 1.05;
-  margin: 0;
-  color: #1a2550;
-}
-
-.guestTitle span {
-  color: rgb(60, 80, 140);
-}
-
-.guestBody {
-  font-size: var(--small-font-size);
-  line-height: 1.7;
-  color: #444;
-  margin: 0;
-  background: rgba(255, 255, 255, 0.45);
-  border-radius: 8px;
-  border: 1px solid rgba(100, 115, 160, 0.2);
-  padding: 1rem 1.25rem;
-}
-
-.guestActions {
-  font-size: var(--medium-font-size);
-  display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
-}
-
-.btnPrimary {
-  box-sizing: border-box;
-  width: 100%;
-  padding: 0.75rem;
-  border-radius: 8px;
-  border: none;
-  background: #1a2550;
-  color: #fff;
-  font-size: var(--small-font-size);
-  font-weight: 600;
-  letter-spacing: 0.04em;
-  cursor: pointer;
-  transition:
-    background 0.15s,
-    transform 0.1s;
-  text-align: center;
-  text-decoration: none;
-  display: block;
-}
-
-.btnPrimary:hover {
-  background: #2a3560;
-}
-
-.btnPrimary:active {
-  transform: scale(0.98);
-}
-
-.divider {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-}
-
-.divider::before,
-.divider::after {
+/* thick marker line that sits on the toolbar rule */
+.tabs .tabActive::after {
   content: "";
-  flex: 1;
-  height: 1px;
-  background: rgba(100, 115, 160, 0.3);
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: calc(-0.9rem - 2.5px);
+  height: 4px;
+  background: var(--accent);
 }
 
-.divider span {
-  font-size: 11px;
-  color: rgba(42, 53, 96, 0.5);
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  font-weight: 600;
+.count {
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  font-weight: 400;
+  color: var(--muted);
+  margin-left: 2px;
 }
 
-.signupRow {
+.tools {
   display: flex;
   align-items: center;
-  justify-content: center;
-  gap: 0.5rem;
+  gap: 1.25rem;
 }
 
-.signupRow p {
-  font-size: 13px;
-  color: rgba(42, 53, 96, 0.65);
-  margin: 0;
+/* compact until you use it, then it widens; it stays wide while it holds a query */
+.search {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  width: 180px;
+  padding: 0.3rem 0;
+  border-bottom: 1.5px dashed var(--line-soft);
+  color: var(--muted);
+  transition:
+    width 0.3s var(--ease),
+    border-color 0.15s ease;
 }
 
-.btnGhost {
-  padding: 0.4rem 0.85rem;
-  border-radius: 6px;
-  border: 1.5px solid rgba(60, 80, 140, 0.35);
-  background: rgb(230, 235, 250);
-  font-size: 13px;
-  font-weight: 700;
-  color: #2a3560;
-  cursor: pointer;
-  transition: background 0.15s;
+.search:focus-within,
+.search:has(input:not(:placeholder-shown)) {
+  width: 320px;
 }
 
-.btnGhost:hover {
-  background: rgb(210, 220, 245);
+.search:focus-within {
+  border-bottom-color: var(--accent);
+  border-bottom-style: solid;
 }
 
-.aboutLink {
-  text-align: center;
-  font-size: 12px;
-  color: rgba(42, 53, 96, 0.5);
-  margin: 0;
+.search svg {
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
 }
 
-.aboutLink a {
-  color: rgb(60, 80, 140);
-  text-decoration: none;
-  font-weight: 600;
+.search input {
+  flex: 1;
+  min-width: 0;
+  border: none;
+  background: transparent;
+  outline: none;
+  font-size: 0.95rem;
 }
 
-.aboutLink a:hover {
+.search input::placeholder {
+  color: var(--muted);
+}
+
+.sort {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  max-width: 260px;
+  overflow: hidden;
+  white-space: nowrap;
+  font-size: 0.875rem;
+  color: var(--muted);
+  transition:
+    max-width 0.3s var(--ease),
+    opacity 0.2s ease;
+}
+
+.sort select {
+  border: none;
+  background: transparent;
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: var(--ink);
   cursor: pointer;
   text-decoration: underline;
+  text-decoration-color: var(--line-soft);
+  text-underline-offset: 4px;
 }
 
+.classContainer {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 2.25rem 1.5rem;
+}
+
+.pagerBottom {
+  margin-top: 2.5rem;
+}
+
+.toolbar + nav {
+  margin-top: -1rem;
+}
+
+.skeletonTitle {
+  width: 240px;
+  height: 46px;
+  margin-bottom: 2.5rem;
+}
+
+/* ---------- empty states ---------- */
 .emptyState {
-  grid-column: 1 / -1;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 0.75rem;
-  padding: 4rem 2rem;
+  max-width: 440px;
+  margin: 3rem auto;
+  padding: 2.25rem 2rem;
   text-align: center;
+  border: 1.5px dashed var(--line-soft);
+  border-radius: var(--radius);
 }
 
 .emptyTitle {
-  font-family: "Bangers", cursive;
-  font-size: 28px;
-  letter-spacing: 0.04em;
-  color: #1a2550;
-  margin: 0;
+  font-family: var(--font-display);
+  font-size: 1.6rem;
+  font-weight: 600;
 }
 
 .emptyBody {
-  font-size: 14px;
-  color: #666;
-  margin: 0;
-  max-width: 280px;
-  line-height: 1.6;
+  color: var(--ink-soft);
+  margin: 0.5rem 0 1.5rem;
 }
 
-@media screen and (max-width: 600px) {
-  .classContainer {
-    width: 100%;
+/* ---------- guest landing ---------- */
+.guestContainer {
+  display: grid;
+  grid-template-columns: 1fr 1.05fr;
+  gap: clamp(2.5rem, 6vw, 4.5rem);
+  align-items: center;
+  padding: clamp(0rem, 4vw, 2.5rem) 0;
+}
+
+.guestTitle {
+  font-family: var(--font-brand);
+  font-size: clamp(3rem, 7.4vw, 5.6rem);
+  font-weight: 400;
+  line-height: 0.92;
+  letter-spacing: 0.01em;
+  text-transform: uppercase;
+  text-wrap: balance;
+}
+
+/* the hit word gets an ink stamp, like a panel's punchline */
+.titleHit {
+  display: inline-block;
+  padding: 0 0.12em;
+  background: var(--ink);
+  color: var(--paper);
+  transform: rotate(-2.5deg);
+}
+
+.guestActions {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+  margin-top: 2rem;
+}
+
+/* manga page: white gutters, inked panel borders */
+.page {
+  list-style: none;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  padding: 12px;
+  background: var(--card);
+  border: 1.5px solid var(--line-soft);
+  transform: rotate(1deg);
+}
+
+.panel {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  min-height: 150px;
+  border: 3px solid var(--line);
+  background: var(--paper);
+  animation: panel-in 0.6s var(--ease) both;
+}
+
+.panelWide {
+  grid-column: 1 / -1;
+  min-height: 170px;
+}
+
+.page > .panel:nth-child(2) {
+  animation-delay: 0.12s;
+}
+
+.page > .panel:nth-child(3) {
+  animation-delay: 0.24s;
+}
+
+/* panels are read in order, each one slides open from its left edge */
+@keyframes panel-in {
+  /* generous negative insets so the sfx that overhang the border never get cut */
+  from {
+    clip-path: inset(-3rem 100% -3rem -3rem);
   }
-  .homeBtn {
-    margin-top: 2rem;
+  to {
+    clip-path: inset(-3rem -3rem -3rem -3rem);
   }
+}
+
+.art {
+  flex: 1;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+}
+
+/* focus lines radiating from the middle of the panel */
+.speed {
+  background:
+    radial-gradient(circle at 50% 50%, var(--paper) 0 26%, transparent 62%),
+    repeating-conic-gradient(
+      from 0deg at 50% 50%,
+      var(--line) 0deg 0.7deg,
+      transparent 0.7deg 6deg
+    );
+}
+
+/* screentone */
+.tone {
+  background-image: radial-gradient(
+    var(--dots-strong) 1.3px,
+    transparent 1.6px
+  );
+  background-size: 7px 7px;
+}
+
+.bigCh {
+  position: relative;
+  font-family: var(--font-brand);
+  font-size: clamp(3.6rem, 8vw, 5rem);
+  line-height: 1;
+  letter-spacing: 0.02em;
+  color: var(--ink);
+  background: var(--paper);
+  padding: 0.05em 0.25em;
+}
+
+.bigCh small {
+  font-size: 0.45em;
+  margin-right: 0.1em;
+  color: var(--muted);
+}
+
+.panelStars {
+  display: flex;
+  gap: 2px;
+  padding: 0.35rem 0.5rem;
+  background: var(--paper);
+  color: var(--star);
+}
+
+.panelStars svg {
+  width: 26px;
+  height: 26px;
+}
+
+/* three blank volumes, as if the covers were still loading in */
+.covers {
+  display: flex;
+  align-items: flex-end;
+}
+
+.covers span {
+  display: grid;
+  place-items: end center;
+  width: 46px;
+  aspect-ratio: 2 / 3;
+  padding-bottom: 6px;
+  background: var(--card);
+  border: 2px solid var(--line);
+  font-family: var(--font-mono);
+  font-size: 0.6rem;
+  color: var(--muted);
+}
+
+.covers span + span {
+  margin-left: -10px;
+}
+
+.covers span:nth-child(1) {
+  transform: rotate(-8deg);
+}
+
+.covers span:nth-child(2) {
+  position: relative;
+  z-index: 1;
+  width: 54px;
+  transform: translateY(-4px);
+}
+
+.covers span:nth-child(3) {
+  transform: rotate(7deg);
+}
+
+/* sound effects break out of the panel border, as they do on the page */
+.sfx {
+  position: absolute;
+  z-index: 1;
+  font-family: var(--font-brand);
+  line-height: 1;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  color: var(--card);
+  -webkit-text-stroke: 1.5px var(--line);
+  paint-order: stroke fill;
+  text-shadow: 2px 2px 0 var(--line);
+  pointer-events: none;
+}
+
+.sfxA {
+  top: -16px;
+  right: 14px;
+  font-size: 2.2rem;
+  transform: rotate(-8deg);
+}
+
+.sfxB {
+  top: -14px;
+  left: 8px;
+  font-size: 1.9rem;
+  transform: rotate(-12deg);
+}
+
+.sfxC {
+  top: -14px;
+  right: 6px;
+  font-size: 1.9rem;
+  transform: rotate(9deg);
+}
+
+/* narration box along the panel's bottom edge */
+.caption {
+  padding: 0.45rem 0.7rem;
+  border-top: 3px solid var(--line);
+  background: var(--card);
+  font-family: var(--font-letter);
+  font-weight: 700;
+  font-size: 0.85rem;
+  line-height: 1.25;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .panel {
+    animation: none;
+  }
+}
+
+.guestCopy {
+  min-width: 0;
+}
+
+@media (max-width: 860px) {
   .guestContainer {
-    margin-top: 5rem;
-    border-radius: 0;
-    border-left: none;
-    border-right: none;
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .page {
+    max-width: 520px;
+    width: 100%;
+    margin: 0 auto;
+  }
+}
+
+@media (max-width: 520px) {
+  .classContainer {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 1.75rem 1rem;
+  }
+
+  .tools {
+    width: 100%;
+    gap: 1rem;
+  }
+
+  .search,
+  .search:focus-within,
+  .search:has(input:not(:placeholder-shown)) {
+    flex: 1;
+    width: auto;
+  }
+
+  /* while typing, sort folds away so the search gets the whole row */
+  .tools:has(.search:focus-within) .sort {
+    max-width: 0;
+    opacity: 0;
+    margin-left: -1rem;
+  }
+
+  .tabs {
+    gap: 1.1rem;
+  }
+
+  .page {
+    transform: none;
+    gap: 9px;
+    padding: 9px;
+  }
+
+  .sfxA {
+    font-size: 1.8rem;
+  }
+
+  .sfxB,
+  .sfxC {
+    font-size: 1.5rem;
   }
 }

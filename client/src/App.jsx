@@ -1,20 +1,19 @@
 import Header from "./layouts/header/Header";
 import "./App.css";
-import { Outlet } from "react-router";
+import { Outlet, ScrollRestoration } from "react-router";
 import Footer from "./layouts/Footer/Footer";
 import { useState, useEffect } from "react";
+import { apiFetch } from "./lib/api";
 
 function App() {
-  const [isSignedIn, setIsSignedIn] = useState(false);
+  // null while we're still asking the server, so pages don't flash the guest view
+  const [isSignedIn, setIsSignedIn] = useState(null);
   useEffect(() => {
     const checkIfSignedIn = async () => {
-      const response = await fetch(`${import.meta.env.VITE_API_URL}/api/me`, {
-        credentials: "include",
-        method: "GET",
-      });
-      if (response.ok) {
-        setIsSignedIn(true);
-      } else {
+      try {
+        const response = await apiFetch("/api/me");
+        setIsSignedIn(response.ok);
+      } catch {
         setIsSignedIn(false);
       }
     };
@@ -27,6 +26,7 @@ function App() {
         <Outlet context={[isSignedIn, setIsSignedIn]} />
       </main>
       <Footer />
+      <ScrollRestoration />
     </>
   );
 }

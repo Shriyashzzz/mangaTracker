@@ -1,22 +1,29 @@
-import { Link } from "react-router";
+import { isRouteErrorResponse, Link, useRouteError } from "react-router";
 import styles from "./Error.module.css";
+import Mascot from "../../components/mascot/Mascot";
+import "../../App.css";
 
-function ErrorPage({
-  message = "404 Not Found: The page you are trying to search for does not exist",
-}) {
+function ErrorPage({ message }) {
+  const error = useRouteError();
+  const is404 = !error || (isRouteErrorResponse(error) && error.status === 404);
+
   return (
-    <>
-      <section className={styles.errorSection}>
-        <h2>{message}</h2>
-        {message == "Error Fetching API Data" ? (
-          ""
-        ) : (
-          <Link className={styles.goBackLink} to="/">
-            Go back Home
-          </Link>
-        )}
-      </section>
-    </>
+    <section className={styles.errorSection}>
+      <span className="printed mascot-spot" aria-hidden>
+        <Mascot mood={is404 ? "confused" : "panic"} />
+      </span>
+      <span className={styles.code}>{is404 ? "404" : "Oops"}</span>
+      <h1>{is404 ? "This page wandered off" : "Something broke"}</h1>
+      <p>
+        {message ||
+          (is404
+            ? "The page you are trying to find does not exist. Maybe it's still being drawn."
+            : "An unexpected error happened. Try again in a moment.")}
+      </p>
+      <Link className="btn btn-primary btn-lg" to="/">
+        Go back home
+      </Link>
+    </section>
   );
 }
 

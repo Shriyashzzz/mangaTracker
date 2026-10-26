@@ -8,6 +8,10 @@ import { AddManga } from "./AddManga/AddManga";
 import { AboutPage } from "./About/About";
 import SignInPage from "./SignIn/SignIn";
 import SignUp from "./SignUp/SignUp";
+import PriceSearch from "./Prices/PriceSearch";
+import PriceVolume from "./Prices/PriceVolume";
+import PriceSeries from "./Prices/PriceSeries";
+import ToPriceHome from "./Prices/ToPriceHome";
 
 export const routes = [
   {
@@ -15,13 +19,18 @@ export const routes = [
     element: <App />,
     errorElement: <ErrorPage />,
     children: [
-      { index: true, element: <Home /> },
+      // the price checker is the front door; the shelf is one click away
+      { index: true, element: <PriceSearch /> },
+      { path: "/shelf", element: <Home /> },
       { path: "/signin", element: <SignInPage /> },
       { path: "/details/:id", element: <Details /> },
       { path: "/update/:id", element: <UpdateManga /> },
       { path: "/add", element: <AddManga /> },
       { path: "/about", element: <AboutPage /> },
       { path: "/signup", element: <SignUp /> },
+      { path: "/prices", element: <ToPriceHome /> },
+      { path: "/prices/series/:slug", element: <PriceSeries /> },
+      { path: "/prices/:isbn", element: <PriceVolume /> },
     ],
   },
 ];

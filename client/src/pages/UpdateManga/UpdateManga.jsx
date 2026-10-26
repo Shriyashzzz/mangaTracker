@@ -1,144 +1,220 @@
-import { useNavigate, useParams } from "react-router";
-import styles from "./UpdateManga.module.css";
-import { useState, useEffect, useRef } from "react";
+import { NavLink, useNavigate, useParams } from "react-router";
+import styles from "../../styles/Form.module.css";
+import { useState, useEffect } from "react";
+import { apiFetch } from "../../lib/api";
+import CoverPicker from "../../components/coverPicker/CoverPicker";
+
+const DESC_MAX = 450;
+
 export function UpdateManga() {
   const navigation = useNavigate();
   const { id } = useParams();
-  const [mangaData, setMangaData] = useState([]);
-  const formRef = useRef(null);
-  const nameRef = useRef(null);
-  const descRef = useRef(null);
-  const bookMarkRef = useRef(null);
-  const selectRef = useRef(null);
+  const [mangaData, setMangaData] = useState(null);
+  const [title, setTitle] = useState("");
+  const [image, setImage] = useState("");
+  const [isFinished, setIsFinished] = useState(false);
+  const [description, setDescription] = useState("");
   const [error, setError] = useState(null);
-  useEffect(() => {
-    window.scrollTo(0, 0);
+  const [submitting, setSubmitting] = useState(false);
 
+  useEffect(() => {
     const getThatManga = async () => {
       try {
-        const response = await fetch(
-          `${import.meta.env.VITE_API_URL}/details/${id}`,
-          { credentials: "include" },
-        );
+        const response = await apiFetch(`/details/${id}`);
         if (!response.ok)
           throw new Error(`Error fetching data from the server`);
         const data = await response.json();
         setMangaData(data.detail);
+        setIsFinished(Boolean(data.detail.status));
+        setDescription(data.detail.description ?? "");
+        setTitle(data.detail.name ?? "");
+        setImage(data.detail.image ?? "");
       } catch (e) {
         console.error(e);
+        setError([{ msg: "Couldn't load this manga. Are you signed in?" }]);
       }
     };
 
     getThatManga();
-  }, []);
+  }, [id]);
 
   const handleFormSubmission = async (e) => {
     e.preventDefault();
-    let formData = {};
-    if (selectRef.current.value === "true") {
-      formData = {
-        name: nameRef.current.value,
-        description: descRef.current.value,
-        status: selectRef.current.value,
-      };
-    } else {
-      formData = {
-        name: nameRef.current.value,
-        description: descRef.current.value,
-        bookmark: bookMarkRef.current.value,
-        status: selectRef.current.value,
-      };
-    }
-    const response = await fetch(
-      `${import.meta.env.VITE_API_URL}/update/${id}`,
-      {
+    const form = new FormData(e.currentTarget);
+    const formData = {
+      name: title,
+      image,
+      description,
+      status: String(isFinished),
+    };
+    if (!isFinished) formData.bookmark = form.get("bookmark");
+
+    setSubmitting(true);
+    try {
+      const response = await apiFetch(`/update/${id}`, {
         method: "POST",
-        credentials: "include",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          name: formData.name,
-          description: formData.description,
-          status: formData.status,
-          bookmark: formData.bookmark,
-        }),
-      },
-    );
-    if (response.status == 400) {
-      const errorDara = await response.json();
-      setError(errorDara.error);
-    } else {
-      setError(null);
-      navigation(`/details/${id}`, { viewTransition: true });
+        body: formData,
+      });
+      if (response.status == 400) {
+        const errorData = await response.json();
+        setError(errorData.error);
+      } else if (!response.ok) {
+        setError([{ msg: "Something went wrong, please try again." }]);
+      } else {
+        setError(null);
+        navigation(`/details/${id}`, { viewTransition: true });
+      }
+    } catch {
+      setError([{ msg: "Couldn't reach the server." }]);
+    } finally {
+      setSubmitting(false);
     }
   };
 
   return (
-    <div className={styles.container}>
-      <form
-        action={`/update/${id}/post`}
-        ref={formRef}
-        onSubmit={(e) => handleFormSubmission(e)}
-      >
-        <label htmlFor="manganame">Name: </label>
-        <input
-          defaultValue={mangaData.name}
-          ref={nameRef}
-          type="text"
-          name="manganame"
-          id="manganame"
-        />
-        <label htmlFor="desciption">Desciption: </label>
-        <textarea
-          ref={descRef}
-          type="text"
-          name="desciption"
-          id="desciption"
-          defaultValue={mangaData.description}
-        />
-
-        {!mangaData.status && (
-          <>
-            <label htmlFor="bookmark">Bookmark: </label>
-            <input
-              ref={bookMarkRef}
-              type="number"
-              name="bookmark"
-              id="bookmark"
-              defaultValue={mangaData.bookmark}
-            />
-          </>
-        )}
-
-        <select
-          ref={selectRef}
-          key={mangaData.status}
-          name="status"
-          id="status"
-          defaultValue={mangaData.status ? "true" : "false"}
-        >
-          <option value="true">Finished</option>
-          <option value="false">Not Finished</option>
-        </select>
-        {error && (
-          <ul className={styles.errorList}>
-            {error.map((e) => {
-              return <li>{e.msg}</li>;
-            })}
-          </ul>
-        )}
-        <div className={styles.btnContainer}>
-          <button
-            onClick={() =>
-              navigation(`/details/${id}`, { viewTransition: true })
-            }
+    <div className={`${styles.page} fade-in`}>
+      <div className={styles.pageHead}>
+        <div>
+          <NavLink
+            to={`/details/${id}`}
+            className={styles.backLink}
+            viewTransition
           >
-            Go Back
-          </button>
-          <button type="submit">UPDATE</button>
+            ← back
+          </NavLink>
+          <h1 className={styles.formTitle}>Edit entry</h1>
         </div>
-      </form>
+        <p className={styles.formSub}>
+          Read a few more chapters? Move your bookmark up.
+        </p>
+      </div>
+
+      <div>
+        {!mangaData ? (
+          error ? (
+            <ul className={styles.errorList} role="alert">
+              {error.map((e) => (
+                <li key={e.msg}>{e.msg}</li>
+              ))}
+            </ul>
+          ) : (
+            <div
+              className="skeleton"
+              style={{ height: 520, borderRadius: "var(--radius)" }}
+            />
+          )
+        ) : (
+          <form className={styles.sheet} onSubmit={handleFormSubmission}>
+            <div className={`${styles.field} ${styles.titleField}`}>
+              <label htmlFor="manganame">
+                Title <b>*</b>
+              </label>
+              <input
+                className={styles.input}
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                type="text"
+                name="manganame"
+                id="manganame"
+                minLength={3}
+                maxLength={150}
+                required
+              />
+            </div>
+
+            <CoverPicker
+              className={styles.coverArea}
+              title={title}
+              value={image}
+              onChange={setImage}
+            />
+
+            <div className={styles.details}>
+              <div className={styles.field}>
+                <span className={styles.fieldLabel}>Status</span>
+                <div className={styles.segmented}>
+                  <input
+                    type="radio"
+                    id="status-ongoing"
+                    name="status"
+                    checked={!isFinished}
+                    onChange={() => setIsFinished(false)}
+                  />
+                  <label htmlFor="status-ongoing">Still reading</label>
+                  <input
+                    type="radio"
+                    id="status-finished"
+                    name="status"
+                    checked={isFinished}
+                    onChange={() => setIsFinished(true)}
+                  />
+                  <label htmlFor="status-finished">Finished it</label>
+                </div>
+              </div>
+
+              {!isFinished && (
+                <div className={styles.field}>
+                  <label htmlFor="bookmark">Current chapter</label>
+                  <input
+                    className={styles.input}
+                    inputMode="decimal"
+                    type="number"
+                    min="0"
+                    step="any"
+                    name="bookmark"
+                    id="bookmark"
+                    defaultValue={mangaData.bookmark}
+                  />
+                </div>
+              )}
+
+              <div className={`${styles.field} ${styles.notesField}`}>
+                <div className={styles.labelRow}>
+                  <label htmlFor="description">
+                    Notes <span className={styles.optional}>(optional)</span>
+                  </label>
+                  <span className={styles.counter}>
+                    {description.length}/{DESC_MAX}
+                  </span>
+                </div>
+                <textarea
+                  className={styles.input}
+                  name="description"
+                  id="description"
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
+                  maxLength={DESC_MAX}
+                />
+              </div>
+
+              {error && (
+                <ul className={styles.errorList} role="alert">
+                  {error.map((e) => (
+                    <li key={e.msg}>{e.msg}</li>
+                  ))}
+                </ul>
+              )}
+
+              <div className={styles.btnContainer}>
+                <NavLink
+                  to={`/details/${id}`}
+                  className="btn btn-ghost"
+                  viewTransition
+                >
+                  Cancel
+                </NavLink>
+                <button
+                  type="submit"
+                  className="btn btn-primary"
+                  disabled={submitting}
+                >
+                  {submitting ? "Saving…" : "Save changes"}
+                </button>
+              </div>
+            </div>
+          </form>
+        )}
+      </div>
     </div>
   );
 }
