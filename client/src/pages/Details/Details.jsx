@@ -139,6 +139,11 @@ export default function Details() {
                 You're on <span>chapter {mangaData.bookmark}</span>
               </>
             )}
+            {mangaData.volumes_owned && (
+              <span className={styles.owned}>
+                Own up to vol. {mangaData.volumes_owned}
+              </span>
+            )}
           </p>
         </header>
 
@@ -161,7 +166,10 @@ export default function Details() {
             </div>
           )}
 
-          <BuyStrip name={mangaData.name} />
+          <BuyStrip
+            name={mangaData.name}
+            volumesOwned={mangaData.volumes_owned}
+          />
 
           <div className={styles.actions}>
             <button

@@ -50,6 +50,7 @@ export function UpdateManga() {
       status: String(isFinished),
     };
     if (!isFinished) formData.bookmark = form.get("bookmark");
+    formData.volumesOwned = form.get("volumesOwned");
 
     setSubmitting(true);
     try {
@@ -154,21 +155,40 @@ export function UpdateManga() {
                 </div>
               </div>
 
-              {!isFinished && (
+              <div className={styles.row}>
+                {!isFinished && (
+                  <div className={styles.field}>
+                    <label htmlFor="bookmark">Current chapter</label>
+                    <input
+                      className={styles.input}
+                      inputMode="decimal"
+                      type="number"
+                      min="0"
+                      step="any"
+                      name="bookmark"
+                      id="bookmark"
+                      defaultValue={mangaData.bookmark}
+                    />
+                  </div>
+                )}
                 <div className={styles.field}>
-                  <label htmlFor="bookmark">Current chapter</label>
+                  <label htmlFor="volumesOwned">
+                    Own up to vol.{" "}
+                    <span className={styles.optional}>(optional)</span>
+                  </label>
                   <input
                     className={styles.input}
-                    inputMode="decimal"
+                    inputMode="numeric"
+                    id="volumesOwned"
+                    name="volumesOwned"
                     type="number"
-                    min="0"
-                    step="any"
-                    name="bookmark"
-                    id="bookmark"
-                    defaultValue={mangaData.bookmark}
+                    min="1"
+                    step="1"
+                    placeholder="e.g. 14"
+                    defaultValue={mangaData.volumes_owned ?? ""}
                   />
                 </div>
-              )}
+              </div>
 
               <div className={`${styles.field} ${styles.notesField}`}>
                 <div className={styles.labelRow}>

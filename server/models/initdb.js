@@ -17,6 +17,8 @@ CREATE TABLE IF NOT EXISTS manga(
   image       TEXT,
   status      BOOLEAN DEFAULT FALSE NOT NULL, 
   bookmark    INTEGER,
+  -- the last volume they own ("up to Vol. 14"); NULL when they don't say
+  volumes_owned SMALLINT CHECK (volumes_owned > 0),
   rating      SMALLINT CHECK (rating >= 0 AND rating <= 5)
 );
 

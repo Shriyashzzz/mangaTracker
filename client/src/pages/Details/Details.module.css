@@ -117,6 +117,21 @@
   );
 }
 
+/* what they own, a quiet aside next to where they are in the story */
+.progress .owned {
+  margin-left: 0.6rem;
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  font-style: normal;
+  color: var(--muted);
+  background: none;
+  white-space: nowrap;
+}
+
+.progress .owned::before {
+  content: "· ";
+}
+
 .body {
   grid-area: body;
   display: flex;
@@ -207,6 +222,19 @@
   font-family: var(--font-mono);
   font-weight: 500;
   color: var(--accent);
+}
+
+/* "caught up": the same ticket shape, but nothing to click */
+.buyNote {
+  display: flex;
+  align-items: baseline;
+  gap: 0.45rem;
+  min-height: 40px;
+  padding: 0.45rem 0.75rem;
+  border: 1.5px dashed var(--line-soft);
+  border-radius: var(--radius);
+  font-size: 0.92rem;
+  color: var(--ink-soft);
 }
 
 .buySkeleton {

@@ -53,6 +53,7 @@ export function AddManga() {
       status: String(isFinished),
     };
     if (!isFinished) sendReq.bookmark = form.get("bookmark");
+    sendReq.volumesOwned = form.get("volumesOwned");
 
     setSubmitting(true);
     try {
@@ -163,6 +164,22 @@ export function AddManga() {
                 />
               </div>
             )}
+            <div className={styles.field}>
+              <label htmlFor="volumesOwned">
+                Own up to vol.{" "}
+                <span className={styles.optional}>(optional)</span>
+              </label>
+              <input
+                className={styles.input}
+                inputMode="numeric"
+                id="volumesOwned"
+                name="volumesOwned"
+                type="number"
+                min="1"
+                step="1"
+                placeholder="e.g. 14"
+              />
+            </div>
             <div className={styles.field}>
               <label htmlFor="genre">
                 Genre{" "}

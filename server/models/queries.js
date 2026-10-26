@@ -43,24 +43,27 @@ const updateMangaPost = async (
   status,
   description,
   image,
+  volumesOwned,
 ) => {
   if (bookmark) {
     await pool.query(
       `
         UPDATE manga
-        SET name = ($1), status = ($2), description = ($3), bookmark = ($4), image = ($5)
+        SET name = ($1), status = ($2), description = ($3), bookmark = ($4), image = ($5),
+            volumes_owned = ($7)
         WHERE id = ($6);
         `,
-      [name, status, description, bookmark, image, id],
+      [name, status, description, bookmark, image, id, volumesOwned],
     );
   } else {
     await pool.query(
       `
         UPDATE manga
-        SET name = ($1), status = ($2), description = ($3), image = ($4)
+        SET name = ($1), status = ($2), description = ($3), image = ($4),
+            volumes_owned = ($6)
         WHERE id = ($5);
         `,
-      [name, status, description, image, id],
+      [name, status, description, image, id, volumesOwned],
     );
   }
 };
@@ -73,14 +76,15 @@ const addManagToDb = async (
   status,
   bookmark,
   userId,
+  volumesOwned,
 ) => {
   const result = await pool.query(
     `
-    INSERT INTO manga ( name, genre, description, image, status, bookmark, user_id)
-    VALUES (($1),($2),($3),($4),($5),($6),($7))
+    INSERT INTO manga ( name, genre, description, image, status, bookmark, user_id, volumes_owned)
+    VALUES (($1),($2),($3),($4),($5),($6),($7),($8))
     RETURNING id;
     `,
-    [name, genre, description, image, status, bookmark, userId],
+    [name, genre, description, image, status, bookmark, userId, volumesOwned],
   );
   return result.rows[0].id;
 };

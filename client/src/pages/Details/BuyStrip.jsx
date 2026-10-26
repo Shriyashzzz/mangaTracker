@@ -12,7 +12,8 @@ import styles from "./Details.module.css";
 // lowest price we've seen (at the stores we check, so not a promise of the
 // cheapest anywhere), and the whole series' prices. Stays out of the way when the
 // series can't be found under the name on the shelf
-export default function BuyStrip({ name }) {
+// With `volumesOwned` ("up to Vol. 14") it leads with the next one they need
+export default function BuyStrip({ name, volumesOwned }) {
   const [state, setState] = useState({ name: null, data: null });
 
   useEffect(() => {
@@ -32,8 +33,13 @@ export default function BuyStrip({ name }) {
   if (!volumes.length) return null;
 
   const latest = volumes.reduce((a, b) => (b.volume > a.volume ? b : a));
+  const owned = Number(volumesOwned) || 0;
+  const caughtUp = owned > 0 && owned >= latest.volume;
+  const next = owned ? volumes.find((v) => v.volume === owned + 1) : null;
+  // once we know what they own, the lowest price only counts among the
+  // volumes they still need
   const cheapest = volumes
-    .filter((v) => v.knownPriceCents != null)
+    .filter((v) => v.knownPriceCents != null && v.volume > owned)
     .reduce(
       (a, b) => (!a || b.knownPriceCents < a.knownPriceCents ? b : a),
       null,
@@ -49,26 +55,49 @@ export default function BuyStrip({ name }) {
         Buy the volumes
       </h2>
       <ul className={styles.buyList}>
-        <li>
-          <NavLink to={volumePath(latest.isbn13, latest.title)} viewTransition>
-            <span className={styles.buyKind}>Newest</span>
-            Vol. {latest.volume}
-            <span className={styles.buyPrice}>{price(latest)}</span>
-          </NavLink>
-        </li>
-        {cheapest && cheapest.isbn13 !== latest.isbn13 && (
+        {next && (
           <li>
-            <NavLink
-              to={volumePath(cheapest.isbn13, cheapest.title)}
-              title="The lowest price we've seen at the stores we check"
-              viewTransition
-            >
-              <span className={styles.buyKind}>Lowest seen</span>
-              Vol. {cheapest.volume}
-              <span className={styles.buyPrice}>{price(cheapest)}</span>
+            <NavLink to={volumePath(next.isbn13, next.title)} viewTransition>
+              <span className={styles.buyKind}>Next for you</span>
+              Vol. {next.volume}
+              <span className={styles.buyPrice}>{price(next)}</span>
             </NavLink>
           </li>
         )}
+        {caughtUp ? (
+          <li className={styles.buyNote}>
+            <span className={styles.buyKind}>Caught up</span>
+            Vol. {latest.volume} is the newest in English
+          </li>
+        ) : (
+          next?.isbn13 !== latest.isbn13 && (
+            <li>
+              <NavLink
+                to={volumePath(latest.isbn13, latest.title)}
+                viewTransition
+              >
+                <span className={styles.buyKind}>Newest</span>
+                Vol. {latest.volume}
+                <span className={styles.buyPrice}>{price(latest)}</span>
+              </NavLink>
+            </li>
+          )
+        )}
+        {cheapest &&
+          cheapest.isbn13 !== latest.isbn13 &&
+          cheapest.isbn13 !== next?.isbn13 && (
+            <li>
+              <NavLink
+                to={volumePath(cheapest.isbn13, cheapest.title)}
+                title="The lowest price we've seen at the stores we check"
+                viewTransition
+              >
+                <span className={styles.buyKind}>Lowest seen</span>
+                Vol. {cheapest.volume}
+                <span className={styles.buyPrice}>{price(cheapest)}</span>
+              </NavLink>
+            </li>
+          )}
         <li>
           <NavLink to={seriesPath(seriesName)} viewTransition>
             <span className={styles.buyKind}>Series</span>
