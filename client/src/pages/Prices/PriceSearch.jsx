@@ -4,6 +4,7 @@ import { getHighlights, searchSeries, seriesPath } from "../../lib/prices";
 import SeriesSearchBox from "./SeriesSearchBox";
 import VolumeCard from "./VolumeCard";
 import styles from "./Prices.module.css";
+import Mascot from "../../components/mascot/Mascot";
 
 const QUICK_PICKS = ["One Piece", "Jujutsu Kaisen", "Chainsaw Man", "Frieren"];
 
@@ -62,6 +63,9 @@ export default function PriceSearch() {
 
       {!loading && searching && result.error && (
         <div className={styles.empty} role="alert">
+          <span className="printed mascot-spot" aria-hidden>
+            <Mascot mood="panic" />
+          </span>
           <p className={styles.emptyTitle}>Couldn't search right now.</p>
           <p>{result.error}</p>
         </div>
@@ -69,6 +73,9 @@ export default function PriceSearch() {
 
       {!loading && searching && !result.error && result.items.length === 0 && (
         <div className={styles.empty}>
+          <span className="printed mascot-spot" aria-hidden>
+            <Mascot mood="confused" />
+          </span>
           <p className={styles.emptyTitle}>No English series found.</p>
           <p>
             Try the name printed on the US cover, or paste the ISBN from the

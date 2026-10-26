@@ -1,5 +1,6 @@
 import { isRouteErrorResponse, Link, useRouteError } from "react-router";
 import styles from "./Error.module.css";
+import Mascot from "../../components/mascot/Mascot";
 import "../../App.css";
 
 function ErrorPage({ message }) {
@@ -8,6 +9,9 @@ function ErrorPage({ message }) {
 
   return (
     <section className={styles.errorSection}>
+      <span className="printed mascot-spot" aria-hidden>
+        <Mascot mood={is404 ? "confused" : "panic"} />
+      </span>
       <span className={styles.code}>{is404 ? "404" : "Oops"}</span>
       <h1>{is404 ? "This page wandered off" : "Something broke"}</h1>
       <p>

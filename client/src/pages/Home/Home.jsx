@@ -7,6 +7,7 @@ import { NavLink, useNavigate, useOutletContext } from "react-router";
 import { SearchIcon, StarIcon } from "../../components/icons/Icons";
 import { apiFetch } from "../../lib/api";
 import RangePager from "../../components/rangePager/RangePager";
+import Mascot from "../../components/mascot/Mascot";
 
 const SHELF_PAGE_SIZE = 30;
 
@@ -139,6 +140,9 @@ function Library() {
   if (loadError) {
     return (
       <div className={styles.emptyState}>
+        <span className="printed mascot-spot" aria-hidden>
+          <Mascot mood="panic" />
+        </span>
         <p className={styles.emptyTitle}>Couldn't reach your shelf.</p>
         <p className={styles.emptyBody}>
           The server didn't answer. Give it a minute and refresh.
@@ -152,6 +156,9 @@ function Library() {
   if (mangaData.length === 0) {
     return (
       <div className={`${styles.emptyState} fade-in`}>
+        <span className="printed mascot-spot" aria-hidden>
+          <Mascot mood="happy" />
+        </span>
         <p className={styles.emptyTitle}>Nothing on the shelf yet.</p>
         <p className={styles.emptyBody}>
           Add whatever you're reading right now, and the chapter you're on.
@@ -228,6 +235,9 @@ function Library() {
 
       {visibleManga.length === 0 ? (
         <div className={styles.emptyState}>
+          <span className="printed mascot-spot" aria-hidden>
+            <Mascot mood="confused" />
+          </span>
           <p className={styles.emptyTitle}>No matches.</p>
           <p className={styles.emptyBody}>
             Nothing on your shelf fits that. Try another word or tab.
@@ -305,7 +315,7 @@ function GuestHero() {
         </div>
 
         {/* a manga page: one panel per thing the app does */}
-        <ol className={styles.page} aria-label="What you can do">
+        <ol className={`${styles.page} printed`} aria-label="What you can do">
           <li className={`${styles.panel} ${styles.panelWide}`}>
             <div className={`${styles.art} ${styles.speed}`} aria-hidden>
               <span className={styles.bigCh}>

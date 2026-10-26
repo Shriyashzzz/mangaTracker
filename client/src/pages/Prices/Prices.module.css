@@ -12,9 +12,20 @@
   padding: clamp(1.25rem, 3vw, 2rem);
   border: 3px solid var(--line);
   background-color: var(--card);
-  /* screentone shading behind the search panel */
-  background-image: radial-gradient(var(--dots) 1.2px, transparent 1.5px);
-  background-size: 7px 7px;
+  /* speed lines burst from the top-right corner and fade out before the
+     title and search box, over a light screentone */
+  background-image:
+    linear-gradient(to right, var(--card) 38%, transparent 78%),
+    repeating-conic-gradient(
+      from 180deg at 96% 0%,
+      var(--line-soft) 0deg 0.6deg,
+      transparent 0.6deg 5deg
+    ),
+    radial-gradient(var(--dots) 1.2px, transparent 1.5px);
+  background-size:
+    auto,
+    auto,
+    7px 7px;
 }
 
 .title {
@@ -213,8 +224,11 @@ section > .count {
   aspect-ratio: 2 / 3;
   background: var(--paper-2);
   border: 1.5px solid var(--line);
+  box-shadow: 4px 4px 0 var(--hard-shadow);
   overflow: hidden;
-  transition: transform 0.2s var(--ease);
+  transition:
+    transform 0.2s var(--ease),
+    box-shadow 0.2s var(--ease);
 }
 
 /* both cover boxes stack the image over a drawn placeholder */
@@ -243,8 +257,14 @@ section > .count {
   color: var(--muted);
 }
 
+/* covers lean as if pulled off the shelf, each a little differently */
 .card:hover .cover {
-  transform: translateY(-3px);
+  transform: translate(-2px, -3px) rotate(-1deg);
+  box-shadow: 6px 7px 0 var(--hard-shadow);
+}
+
+li:nth-child(3n + 2) > .card:hover .cover {
+  transform: translate(-2px, -3px) rotate(0.8deg);
 }
 
 .card:focus-visible {
@@ -418,13 +438,18 @@ section > .count {
   gap: 1rem;
 }
 
+/* Bangers heading with a short inked stroke underneath */
 .sectionTitle {
+  display: inline-block;
   margin-bottom: 0.6rem;
+  padding-bottom: 0.2rem;
   font-family: var(--font-brand);
   font-size: 1.45rem;
   font-weight: 400;
   letter-spacing: 0.03em;
   text-transform: uppercase;
+  background: linear-gradient(var(--accent), var(--accent)) no-repeat left
+    bottom / 1.8em 3px;
 }
 
 .checked {

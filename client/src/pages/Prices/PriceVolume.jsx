@@ -12,6 +12,7 @@ import {
 import SeriesFacts from "./SeriesFacts";
 import VolumeCard from "./VolumeCard";
 import styles from "./Prices.module.css";
+import Mascot from "../../components/mascot/Mascot";
 
 // longer price lists start collapsed, like manga.london's "Show N more"
 const VISIBLE_OFFERS = 5;
@@ -56,6 +57,9 @@ export default function PriceVolume() {
   if (state.error) {
     return (
       <div className={styles.empty} role="alert">
+        <span className="printed mascot-spot" aria-hidden>
+          <Mascot mood="panic" />
+        </span>
         <p className={styles.emptyTitle}>Couldn't open this volume.</p>
         <p>{state.error}</p>
         <NavLink to="/" className="btn btn-secondary" viewTransition>

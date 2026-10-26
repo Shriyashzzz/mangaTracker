@@ -23,7 +23,8 @@ export default function ThemeToggle() {
     setTheme(next);
   };
 
-  const label = theme === "dark" ? "Switch to light mode" : "Switch to dark mode";
+  const label =
+    theme === "dark" ? "Switch to light mode" : "Switch to dark mode";
 
   return (
     <button

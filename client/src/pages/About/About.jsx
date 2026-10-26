@@ -34,7 +34,7 @@ export function AboutPage() {
   return (
     <article className={`${styles.page} fade-in`}>
       {/* opening panel: who made this and why */}
-      <header className={styles.hero}>
+      <header className={`${styles.hero} printed`}>
         <div className={styles.heroArt}>
           <Mascot mood="happy" />
           <p className={styles.heroBubble}>Yo! Welcome to the shelf.</p>
@@ -62,7 +62,7 @@ export function AboutPage() {
         <h2 id="strip-title" className={styles.sectionTitle}>
           Sound familiar?
         </h2>
-        <ol className={styles.strip}>
+        <ol className={`${styles.strip} printed`}>
           {STRIP.map((panel) => (
             <li key={panel.mood} className={styles.panel}>
               <p className={styles.caption}>{panel.caption}</p>

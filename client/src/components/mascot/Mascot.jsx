@@ -11,10 +11,7 @@ export default function Mascot({ mood = "happy", className = "" }) {
       aria-hidden
     >
       {/* body + the manga volume being read */}
-      <path
-        className={styles.skin}
-        d="M34 158c2-24 16-36 36-36s34 12 36 36Z"
-      />
+      <path className={styles.skin} d="M34 158c2-24 16-36 36-36s34 12 36 36Z" />
       <rect
         className={styles.book}
         x="44"

@@ -81,6 +81,30 @@
   color-scheme: dark;
 }
 
+/* a printed manga page: ink on paper in every theme. Illustrated panels
+   use it so the dark theme reads as manga pages on a dark table instead
+   of inverting the artwork */
+.printed {
+  --paper: #f3eee2;
+  --paper-2: #e9e2d1;
+  --card: #fbf8f0;
+  --ink: #1d1a16;
+  --ink-soft: #4a443b;
+  --muted: #6f6758;
+  --line: #1d1a16;
+  --line-soft: #d6ccb7;
+  --accent: #b14a3c;
+  --accent-hover: #963d31;
+  --accent-wash: rgba(177, 74, 60, 0.09);
+  --on-accent: #fffaf2;
+  --star: #d99a00;
+  --star-off: #cfc5b0;
+  --hard-shadow: #1d1a16;
+  --dots: rgba(29, 26, 22, 0.09);
+  --dots-strong: rgba(29, 26, 22, 0.28);
+  color: var(--ink);
+}
+
 /* ---------- reset ---------- */
 *,
 *::before,
@@ -106,7 +130,48 @@ body {
     color 0.2s ease;
 }
 
+/* screentone in the side margins only: it fades out before the content
+   column, so pages feel printed without anything behind the text */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background-image: radial-gradient(var(--dots-strong) 1.1px, transparent 1.4px);
+  background-size: 8px 8px;
+  -webkit-mask-image: linear-gradient(
+    to right,
+    #000 0,
+    transparent calc(50% - var(--page-width) / 2 + 24px),
+    transparent calc(50% + var(--page-width) / 2 - 24px),
+    #000 100%
+  );
+  mask-image: linear-gradient(
+    to right,
+    #000 0,
+    transparent calc(50% - var(--page-width) / 2 + 24px),
+    transparent calc(50% + var(--page-width) / 2 - 24px),
+    #000 100%
+  );
+  opacity: 0.55;
+}
+
+/* the reading buddy in empty and error states, always on paper */
+.mascot-spot {
+  display: block;
+  width: 112px;
+  margin: 0 auto 0.5rem;
+  padding: 0.6rem 0.6rem 0.2rem;
+  border: 2.5px solid var(--line);
+  border-radius: 50%;
+  background: var(--card);
+  aspect-ratio: 1;
+}
+
 #root {
+  position: relative;
+  z-index: 1;
   min-height: 100dvh;
   display: flex;
   flex-direction: column;

@@ -5,6 +5,7 @@ import VolumeCard from "./VolumeCard";
 import SeriesFacts from "./SeriesFacts";
 import RangePager from "../../components/rangePager/RangePager";
 import styles from "./Prices.module.css";
+import Mascot from "../../components/mascot/Mascot";
 
 const PAGE_SIZE = 30;
 
@@ -46,6 +47,9 @@ export default function PriceSeries() {
   if (state.error) {
     return (
       <div className={styles.empty} role="alert">
+        <span className="printed mascot-spot" aria-hidden>
+          <Mascot mood="panic" />
+        </span>
         <p className={styles.emptyTitle}>Couldn't open this series.</p>
         <p>{state.error}</p>
         <NavLink to="/" className="btn btn-secondary" viewTransition>
