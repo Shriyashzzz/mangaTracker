@@ -5,6 +5,7 @@ import {
   getTrending,
   searchSeries,
   slugify,
+  translationFailureCount,
 } from "./anilist.js";
 import { seriesName, seriesOf, volumeOf } from "./match.js";
 import { enabledProviders } from "./providers/index.js";
@@ -140,10 +141,16 @@ const seriesVolumesCache = new Map();
 
 // every numbered volume of a series from the free catalog, one ISBN per
 // volume number, cached half a day. Never spends a paid price search
+// returns { volumes, incomplete }. "incomplete" means a catalog query or a
+// title translation failed for a passing reason, so volumes may be missing;
+// such a list is never cached, so the next visit tries again
 async function seriesVolumes(name) {
   const key = seriesOf(name);
   const hit = seriesVolumesCache.get(key);
-  if (hit && Date.now() - hit.at < SERIES_VOLUMES_FRESH_MS) return hit.volumes;
+  if (hit && Date.now() - hit.at < SERIES_VOLUMES_FRESH_MS) {
+    return { volumes: hit.volumes, incomplete: false };
+  }
+  const failuresBefore = translationFailureCount();
 
   // two free catalog queries merged: the plain one finds more, the quoted
   // title one is more precise. Long runners can have 100+ volumes
@@ -169,34 +176,50 @@ async function seriesVolumes(name) {
   }
   const volumes = [...byNumber.values()].sort((a, b) => a.volume - b.volume);
 
-  // an answer hurt by a failed query is used once but not cached, so the next
-  // visit tries again instead of showing a short list for half a day
-  if (failed.length) return volumes.length ? volumes : (hit?.volumes ?? []);
+  const incomplete =
+    failed.length > 0 || translationFailureCount() > failuresBefore;
+  if (incomplete) {
+    // an older complete list beats a damaged new one
+    if (hit && hit.volumes.length > volumes.length) {
+      return { volumes: hit.volumes, incomplete: false };
+    }
+    return { volumes, incomplete: true };
+  }
   seriesVolumesCache.set(key, { at: Date.now(), volumes });
   if (seriesVolumesCache.size > 500) {
     seriesVolumesCache.delete(seriesVolumesCache.keys().next().value);
   }
-  return volumes;
+  return { volumes, incomplete: false };
 }
 
 async function getSeriesWithVolumes(name) {
-  const [info, mainVolumes] = await Promise.all([
+  const [info, main] = await Promise.all([
     getSeriesInfo(name),
     seriesVolumes(name),
   ]);
-  // a series can be sold under other names too (Detective Conan is mostly
-  // catalogued as Case Closed), so volumes found under its English
-  // alternative names are merged in by volume number
+  const mainVolumes = main.volumes;
+  let incomplete = main.incomplete;
+  // the link's name may be short ("Frieren") while the volumes carry the
+  // full English name ("Frieren: Beyond Journey's End"). A series can also be
+  // sold under other names (Detective Conan is mostly catalogued as Case
+  // Closed). Volumes found under AniList's official English name and its
+  // alternatives are merged in by volume number
   const byNumber = new Map(mainVolumes.map((v) => [v.volume, v]));
-  const altNames = (info?.altNames ?? [])
-    .filter((alt) => seriesOf(alt) !== seriesOf(name))
-    .slice(0, 3);
+  const otherNames = [info?.name, ...(info?.altNames ?? []).slice(0, 3)];
+  const seen = new Set([seriesOf(name)]);
+  const altNames = otherNames.filter((alt) => {
+    if (!alt || seen.has(seriesOf(alt))) return false;
+    seen.add(seriesOf(alt));
+    return true;
+  });
   const altResults = await Promise.all(
     altNames.map((alt) => seriesVolumes(alt)),
   );
-  for (const list of altResults) {
-    for (const v of list)
+  for (const alt of altResults) {
+    incomplete ||= alt.incomplete;
+    for (const v of alt.volumes) {
       if (!byNumber.has(v.volume)) byNumber.set(v.volume, v);
+    }
   }
   const volumes = [...byNumber.values()].sort((a, b) => a.volume - b.volume);
   const known = await priceQueries.getKnownPrices(volumes.map((v) => v.isbn13));
@@ -204,6 +227,7 @@ async function getSeriesWithVolumes(name) {
     name,
     slug: slugify(name),
     info,
+    incomplete,
     volumes: volumes.map((v) => ({
       isbn13: v.isbn13,
       title: v.title,
@@ -216,7 +240,11 @@ async function getSeriesWithVolumes(name) {
 
 export async function getSeries(name) {
   const series = await getSeriesWithVolumes(name);
-  if (!series.info && !series.volumes.length) return null;
+  if (!series.info && !series.volumes.length) {
+    // nothing at all because the catalog was down isn't "not found"
+    if (series.incomplete) throw new Error("catalog unavailable");
+    return null;
+  }
   return series;
 }
 

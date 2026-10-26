@@ -81,21 +81,31 @@ const toBook = async (doc, isbn13) => {
     publisher: doc.publisher?.[0] ?? null,
     year: doc.first_publish_year ?? null,
     volume: volumeNumber(title),
-    coverUrl: doc.cover_i
-      ? `https://covers.openlibrary.org/b/id/${doc.cover_i}-M.jpg`
-      : `https://covers.openlibrary.org/b/isbn/${isbn13}-M.jpg`,
+    // the cover of this exact edition. The work's cover (doc.cover_i) can
+    // belong to another language edition, or to an unrelated book when
+    // Open Library has grouped editions wrongly
+    coverUrl: `https://covers.openlibrary.org/b/isbn/${isbn13}-M.jpg`,
   };
 };
 
-async function search(q, limit, timeoutMs = TIMEOUT_MS) {
+// Open Library is free but uneven: the same query can take half a second or
+// time out. A failed attempt is retried once after a short pause
+async function search(q, limit, timeoutMs = TIMEOUT_MS, attempt = 1) {
   const url = `${SEARCH_URL}?${new URLSearchParams({ q, fields: FIELDS, limit })}`;
-  const res = await fetch(url, {
-    headers: { "User-Agent": "MangaTracker/1.0 (price checker)" },
-    signal: AbortSignal.timeout(timeoutMs),
-  });
-  if (!res.ok) throw new Error(`Open Library responded ${res.status}`);
-  const { docs } = await res.json();
-  return docs;
+  try {
+    const res = await fetch(url, {
+      headers: { "User-Agent": "MangaTracker/1.0 (price checker)" },
+      signal: AbortSignal.timeout(timeoutMs),
+    });
+    if (!res.ok) throw new Error(`Open Library responded ${res.status}`);
+    const { docs } = await res.json();
+    return docs;
+  } catch (e) {
+    const clientError = /responded 4\d\d/.test(e.message);
+    if (attempt >= 2 || clientError) throw e;
+    await new Promise((r) => setTimeout(r, 800));
+    return search(q, limit, timeoutMs, attempt + 1);
+  }
 }
 
 // title / author / series search, or a pasted ISBN. Numbered volumes first,
