@@ -3,6 +3,7 @@ import styles from "./Details.module.css";
 import { NavLink, useNavigate, useParams } from "react-router";
 import StarRating from "../../components/starRating/StarRating";
 import { apiFetch, FALLBACK_COVER } from "../../lib/api";
+import SlowLoadQuote from "../../components/slowLoadQuote/SlowLoadQuote";
 
 export default function Details() {
   const [mangaData, setMangaData] = useState(null);
@@ -213,6 +214,7 @@ export default function Details() {
 function DetailsSkeleton() {
   return (
     <div className={styles.layout} aria-busy="true" aria-label="Loading">
+      <SlowLoadQuote />
       <div className={`skeleton ${styles.cover} ${styles.skeletonCover}`} />
       <div className={styles.head}>
         <div className="skeleton" style={{ width: "60%", height: 44 }} />

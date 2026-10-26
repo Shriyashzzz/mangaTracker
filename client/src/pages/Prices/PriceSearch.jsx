@@ -5,6 +5,7 @@ import SeriesSearchBox from "./SeriesSearchBox";
 import VolumeCard from "./VolumeCard";
 import styles from "./Prices.module.css";
 import Mascot from "../../components/mascot/Mascot";
+import SlowLoadQuote from "../../components/slowLoadQuote/SlowLoadQuote";
 
 const QUICK_PICKS = ["One Piece", "Jujutsu Kaisen", "Chainsaw Man", "Frieren"];
 
@@ -55,6 +56,7 @@ export default function PriceSearch() {
 
       {loading && (
         <div className={styles.grid} aria-busy="true" aria-label="Searching">
+          <SlowLoadQuote />
           {Array.from({ length: 8 }, (_, i) => (
             <div key={i} className={`skeleton ${styles.cardSkeleton}`} />
           ))}
