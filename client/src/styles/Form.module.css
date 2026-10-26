@@ -30,13 +30,13 @@
 
 .layout {
   display: grid;
-  grid-template-columns: 1fr 240px;
+  grid-template-columns: minmax(0, 1fr) 240px;
   gap: 2.5rem;
   align-items: start;
 }
 
 .layout.single {
-  grid-template-columns: 1fr;
+  grid-template-columns: minmax(0, 1fr);
   max-width: 620px;
 }
 
@@ -247,7 +247,7 @@ select.input {
 
 @media (max-width: 760px) {
   .layout {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
   }
 
   .preview {

@@ -47,8 +47,6 @@ app.use(express.urlencoded({ extended: true }));
 //express.json() parses requests where the body is JSON:
 //express.urlencoded() parses requests where the body is URL-encoded — the format HTML forms use by default:
 // Content-Type: application/x-www-form-urlencoded
-// Body: name=Alice&age=30
-//Together, they ensure req.body is populated regardless of how the client sends data — whether it's a fetch/axios call sending JSON, or an HTML <form> submission.
 // routers
 app.use("/", mangaEntryRouter);
 app.use("/api/mangadata", mangaRouter.mangaHomeRouter);
