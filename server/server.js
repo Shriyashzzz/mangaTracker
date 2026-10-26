@@ -7,6 +7,7 @@ import { mangaUpdateRouter } from "./mangaUpdateRouter.js";
 import { mangaAddRouter } from "./routes/mangaAddRouter.js";
 import { mangaEntryRouter } from "./routes/userLogRouter.js";
 import { pricesRouter } from "./routes/pricesRouter.js";
+import { seoRouter } from "./routes/seoRouter.js";
 import connectPgSimple from "connect-pg-simple";
 
 import { pool } from "./models/pool.js";
@@ -55,6 +56,7 @@ app.use("/details/:id", mangaDetailRouter);
 app.use("/update/:id", mangaUpdateRouter);
 app.use("/add", mangaAddRouter);
 app.use("/api/prices", pricesRouter);
+app.use("/", seoRouter);
 
 app.use((err, req, res, next) => {
   if (

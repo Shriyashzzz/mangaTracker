@@ -3,10 +3,12 @@ import styles from "../../styles/Form.module.css";
 import { useState, useEffect } from "react";
 import { apiFetch } from "../../lib/api";
 import CoverPicker from "../../components/coverPicker/CoverPicker";
+import { usePrivatePage } from "../../lib/seo";
 
 const DESC_MAX = 450;
 
 export function UpdateManga() {
+  usePrivatePage("Edit manga");
   const navigation = useNavigate();
   const { id } = useParams();
   const [mangaData, setMangaData] = useState(null);

@@ -15,6 +15,8 @@ import styles from "./Prices.module.css";
 import Mascot from "../../components/mascot/Mascot";
 import { useOutletContext } from "react-router";
 import SlowLoadQuote from "../../components/slowLoadQuote/SlowLoadQuote";
+import { usePageMeta } from "../../lib/seo";
+import { volumeMeta } from "./pageMeta";
 
 // longer price lists start collapsed, like manga.london's "Show N more"
 const VISIBLE_OFFERS = 5;
@@ -35,6 +37,9 @@ export default function PriceVolume() {
   const [showAll, setShowAll] = useState({ isbn, open: false });
   const offersOpen = showAll.isbn === isbn && showAll.open;
   const [state, setState] = useState({ isbn: null, data: null, error: "" });
+  usePageMeta(
+    state.isbn === isbn && state.data ? volumeMeta(state.data) : null,
+  );
 
   useEffect(() => {
     const controller = new AbortController();

@@ -6,6 +6,7 @@ import VolumeCard from "./VolumeCard";
 import styles from "./Prices.module.css";
 import Mascot from "../../components/mascot/Mascot";
 import SlowLoadQuote from "../../components/slowLoadQuote/SlowLoadQuote";
+import { usePageMeta } from "../../lib/seo";
 
 const QUICK_PICKS = ["One Piece", "Jujutsu Kaisen", "Chainsaw Man", "Frieren"];
 
@@ -15,6 +16,13 @@ export default function PriceSearch() {
   // results are kept with the query they belong to, so a stale answer
   // never shows under a newer search
   const [result, setResult] = useState({ query: "", items: [], error: "" });
+  // the front page is the one to find; result lists for a typed query are
+  // thin and endless, so they stay out of search engines
+  usePageMeta(
+    query
+      ? { title: `"${query}" manga prices`, path: "/", noindex: true }
+      : { path: "/" },
+  );
 
   useEffect(() => {
     if (query.length < 2) return;

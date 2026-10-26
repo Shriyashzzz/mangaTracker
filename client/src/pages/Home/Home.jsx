@@ -10,6 +10,7 @@ import { apiFetch } from "../../lib/api";
 import RangePager from "../../components/rangePager/RangePager";
 import Mascot from "../../components/mascot/Mascot";
 import SlowLoadQuote from "../../components/slowLoadQuote/SlowLoadQuote";
+import { usePrivatePage } from "../../lib/seo";
 
 const SHELF_PAGE_SIZE = 30;
 
@@ -39,6 +40,7 @@ const writeSession = (key, value) => {
 };
 
 export default function Home() {
+  usePrivatePage("Your shelf");
   const [isSignedIn] = useOutletContext();
 
   if (isSignedIn === null) {

@@ -2,6 +2,7 @@ import { NavLink } from "react-router";
 import Mascot from "../../components/mascot/Mascot";
 
 import styles from "./About.module.css";
+import { usePageMeta } from "../../lib/seo";
 
 // the two problems the app fixes, told as a three-panel strip
 const STRIP = [
@@ -32,6 +33,12 @@ const STACK = [
 ];
 
 export function AboutPage() {
+  usePageMeta({
+    title: "About",
+    description:
+      "Why Manga Tracker exists: compare what US stores charge for each manga volume, and keep your place in every series you read.",
+    path: "/about",
+  });
   return (
     <article className={`${styles.page} fade-in`}>
       {/* opening panel: who made this and why */}

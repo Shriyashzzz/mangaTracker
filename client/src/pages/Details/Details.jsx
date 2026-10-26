@@ -4,8 +4,10 @@ import { NavLink, useNavigate, useParams } from "react-router";
 import StarRating from "../../components/starRating/StarRating";
 import { apiFetch, FALLBACK_COVER } from "../../lib/api";
 import SlowLoadQuote from "../../components/slowLoadQuote/SlowLoadQuote";
+import { usePrivatePage } from "../../lib/seo";
 
 export default function Details() {
+  usePrivatePage("Manga details");
   const [mangaData, setMangaData] = useState(null);
   const [loadError, setLoadError] = useState(false);
   const { id } = useParams();

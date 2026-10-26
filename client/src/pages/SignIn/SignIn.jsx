@@ -4,8 +4,10 @@ import { NavLink, useNavigate, useOutletContext } from "react-router";
 import PasswordInput from "../../components/passwordInput/PasswordInput";
 import AuthArt from "../../components/authArt/AuthArt";
 import { apiFetch } from "../../lib/api";
+import { usePrivatePage } from "../../lib/seo";
 
 export default function SignInPage() {
+  usePrivatePage("Sign in");
   const navigater = useNavigate();
   const userNameRef = useRef(null);
   const passRef = useRef(null);

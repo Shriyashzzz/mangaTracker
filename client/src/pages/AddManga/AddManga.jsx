@@ -10,10 +10,12 @@ import { apiFetch } from "../../lib/api";
 import { GENRES } from "../../lib/genres";
 import CoverPicker from "../../components/coverPicker/CoverPicker";
 import { useEffect } from "react";
+import { usePrivatePage } from "../../lib/seo";
 
 const DESC_MAX = 450;
 
 export function AddManga() {
+  usePrivatePage("Add manga");
   const navigate = useNavigate();
   const [isSignedIn] = useOutletContext();
   const [isFinished, setIsFinished] = useState(false);
