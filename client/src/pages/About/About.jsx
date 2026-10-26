@@ -1,82 +1,110 @@
 import { NavLink } from "react-router";
+import Mascot from "../../components/mascot/Mascot";
 import styles from "./About.module.css";
+
+// the two problems the app fixes, told as a three-panel strip
+const STRIP = [
+  {
+    mood: "confused",
+    caption: "Ten series at once.",
+    line: "Wait… which chapter was I on?",
+  },
+  {
+    mood: "panic",
+    caption: "Someone asks for your favourite.",
+    line: "Uh… they were all good??",
+  },
+  {
+    mood: "happy",
+    caption: "Now the shelf remembers.",
+    line: "Ch. 327. And Vagabond's a five.",
+  },
+];
 
 const STACK = [
   { name: "React", role: "Frontend" },
+  { name: "React Router", role: "Routing" },
   { name: "Express", role: "Backend" },
   { name: "PostgreSQL", role: "Database" },
-  { name: "React Router", role: "FE Routing" },
   { name: "Vite", role: "Bundler" },
-  { name: "CSS Modules", role: "Styling" },
+  { name: "AniList", role: "Covers" },
 ];
 
 export function AboutPage() {
   return (
-    <article className={`${styles.container} fade-in`}>
+    <article className={`${styles.page} fade-in`}>
+      {/* opening panel: who made this and why */}
       <header className={styles.hero}>
-        <span className={styles.chapterLabel}>Chapter 01 — Origin Story</span>
-        <h1 className={styles.title}>
-          Built by a manga <span className={styles.accent}>enthusiast.</span>
-        </h1>
+        <div className={styles.heroArt}>
+          <Mascot mood="happy" />
+          <p className={styles.heroBubble}>Yo! Welcome to the shelf.</p>
+        </div>
+
+        <div className={styles.heroCopy}>
+          <h1 className={styles.title}>
+            I kept losing my place. So I built a{" "}
+            <span className={styles.hit}>bookmark.</span>
+          </h1>
+          <p className={styles.lead}>
+            I'm Shriyash. I read way too many manga at once, and with ADHD I'd
+            forget where I stopped and end up scrolling through 50 chapters to
+            find my spot.
+          </p>
+          <p className={styles.lead}>
+            Now I jot down the chapter I'm on, rate what I finish, and pick
+            right back up. That's the whole app.
+          </p>
+        </div>
       </header>
 
-      <section className={styles.section}>
-        <p className={styles.lead}>
-          Hi, welcome to my manga tracking app! My name is Shriyash, a fellow
-          manga enthusiast with ADHD who likes to read multiple manga
-          concurrently. In doing so I sometimes forget where I left off, and end
-          up scrolling through 50 different chapters to figure out where I left
-          things last time. I can read as many mangas as I want at the same
-          time, while also keeping a record of where I left off so I can come
-          back next time and start right where I want to.
-        </p>
-      </section>
-
-      <section className={styles.section}>
-        <h2>What feeeature does it have, you ask?</h2>
-        <p>
-          Oh good thing you asked. Go back in time and try to remember that
-          conversation with your friend when they asked you what your favourite
-          manga was, and you just froze not knowing which to pick because you
-          forget which one was the peak? Worry not, I've solved that problem for
-          you by adding a rating feature that lets you rate the manga you're
-          currently reading or have read, so next time someone asks you what
-          your favourite manga is you won't be frozen like Tempus (Eva Bell)
-          from X-Men.
-        </p>
-      </section>
-
-      <section className={styles.section}>
-        <h2>The Stack</h2>
-        <div className={styles.techRow}>
-          {STACK.map((t) => (
-            <div key={t.name} className={styles.techCard}>
-              <span className={styles.techName}>{t.name}</span>
-              <span className={styles.techRole}>{t.role}</span>
-            </div>
+      {/* the problem, in three panels */}
+      <section aria-labelledby="strip-title">
+        <h2 id="strip-title" className={styles.sectionTitle}>
+          Sound familiar?
+        </h2>
+        <ol className={styles.strip}>
+          {STRIP.map((panel) => (
+            <li key={panel.mood} className={styles.panel}>
+              <p className={styles.caption}>{panel.caption}</p>
+              <div className={styles.panelArt}>
+                <Mascot mood={panel.mood} />
+              </div>
+              <p className={styles.bubble}>{panel.line}</p>
+            </li>
           ))}
-        </div>
+        </ol>
       </section>
 
-      <section className={styles.section}>
-        <h2>Changelog</h2>
-        <div className={styles.wipBar}>
-          <span className={styles.wipDot} />
+      <div className={styles.backMatter}>
+        {/* what's being worked on, as a next-volume teaser */}
+        <section className={styles.next} aria-labelledby="next-title">
+          <span className={styles.nextSfx} aria-hidden>
+            Coming soon!
+          </span>
+          <h2 id="next-title" className={styles.nextTitle}>
+            Next chapter: price check
+          </h2>
           <p>
-            <strong>Update:</strong> Authentication has been added. Now you can
-            create your <strong>own</strong> account to track your{" "}
-            <strong>personal</strong> list of mangas ;&#41;
+            Search any manga and compare prices across stores near you, so you
+            never overpay for a volume again.
           </p>
-        </div>
-        <div className={styles.wipBar}>
-          <span className={styles.wipDotUpcoming} />
-          <p>
-            <strong>Coming soon:</strong> Search any <strong>Manga</strong>{" "}
-            title and compare <strong>prices</strong> across stores in your
-            region so you never overpay for your fav mangas!
-          </p>
-        </div>
-      </section>
+        </section>
+
+        {/* the credits page at the back of a volume */}
+        <section className={styles.credits} aria-labelledby="credits-title">
+          <h2 id="credits-title" className={styles.creditsTitle}>
+            Staff
+          </h2>
+          <dl className={styles.creditList}>
+            {STACK.map((t) => (
+              <div key={t.name}>
+                <dt>{t.role}</dt>
+                <dd>{t.name}</dd>
+              </div>
+            ))}
+          </dl>
+        </section>
+      </div>
 
       <div className={styles.cta}>
         <NavLink to="/" className="btn btn-primary btn-lg" viewTransition>
