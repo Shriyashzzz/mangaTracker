@@ -53,13 +53,14 @@ export default {
       sort: "price",
       limit: "20",
     });
+    const campaignId = ebayCampaignId();
     const res = await fetch(`${SEARCH_URL}?${params}`, {
       headers: {
         Authorization: `Bearer ${await appToken(signal)}`,
         "X-EBAY-C-MARKETPLACE-ID": "EBAY_US",
         // asks eBay to include affiliate links in the results
-        ...(ebayCampaignId() && {
-          "X-EBAY-C-ENDUSERCTX": `affiliateCampaignId=${ebayCampaignId()}`,
+        ...(campaignId && {
+          "X-EBAY-C-ENDUSERCTX": `affiliateCampaignId=${campaignId}`,
         }),
       },
       signal,

@@ -10,16 +10,19 @@ import {
 // setting in server/.env (see affiliates.js) get affiliate links
 const amazonUrl = (isbn13) => {
   const params = new URLSearchParams({ k: isbn13 });
-  if (amazonTag()) params.set("tag", amazonTag());
+  const tag = amazonTag();
+  if (tag) params.set("tag", tag);
   return `https://www.amazon.com/s?${params}`;
 };
 
 // with an affiliate ID, Bookshop's own link format goes straight to the
 // book's page; without one, a plain search
-const bookshopUrl = (isbn13) =>
-  bookshopId()
-    ? `https://bookshop.org/a/${encodeURIComponent(bookshopId())}/${isbn13}`
+const bookshopUrl = (isbn13) => {
+  const id = bookshopId();
+  return id
+    ? `https://bookshop.org/a/${encodeURIComponent(id)}/${isbn13}`
     : `https://bookshop.org/search?keywords=${isbn13}`;
+};
 
 const ebayUrl = (isbn13, source = "store-link") =>
   ebayAffiliateUrl(
@@ -35,24 +38,33 @@ const isGoogleLink = (url) => {
   }
 };
 
+// Google Shopping store names for the affiliate stores themselves. Exact
+// names only: "Kinokuniya Bookshop" isn't Bookshop.org, and "eBay - seller"
+// is eBay itself
+const EBAY = /^ebay( - .+)?$/i;
+const AMAZON = /^amazon(\.com)?$/i;
+const BOOKSHOP = /^bookshop(\.org)?$/i;
+
 // Google Shopping rows link to a Google page, and the click from there to
-// the store carries none of our affiliate tracking. When the store is one
-// we're an affiliate of, send people straight there for this ISBN instead.
-// Real store links (e.g. from the eBay API) are left as they are
-export function affiliateOfferUrl(store, isbn13, url) {
+// the store carries none of our affiliate tracking. For a new print copy
+// from a store we're an affiliate of, send people straight to that store's
+// listing for this ISBN instead. Anything else (used or marketplace copies
+// at Amazon, ebooks, other shops, real store links) keeps its own link
+export function affiliateOfferUrl(offer, isbn13) {
+  const { store, url } = offer;
   if (!isGoogleLink(url)) return url;
-  if (/\bebay\b/i.test(store) && ebayCampaignId()) {
+  if (EBAY.test(store) && ebayCampaignId()) {
     return ebayUrl(isbn13, "shopping");
   }
-  if (/\bamazon\b/i.test(store) && amazonTag()) return amazonUrl(isbn13);
-  if (/\bbookshop\b/i.test(store) && bookshopId()) return bookshopUrl(isbn13);
+  const newPrint = offer.format === "print" && offer.condition === "new";
+  if (!newPrint) return url;
+  if (AMAZON.test(store) && amazonTag()) return amazonUrl(isbn13);
+  if (BOOKSHOP.test(store) && bookshopId()) return bookshopUrl(isbn13);
   return url;
 }
 
-export const amazonAffiliate = () => Boolean(amazonTag());
-
 export const storeLinks = (isbn13) => [
-  { store: "Amazon", url: amazonUrl(isbn13), affiliate: amazonAffiliate() },
+  { store: "Amazon", url: amazonUrl(isbn13), affiliate: Boolean(amazonTag()) },
   {
     store: "Barnes & Noble",
     url: `https://www.barnesandnoble.com/s/${isbn13}`,

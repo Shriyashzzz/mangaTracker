@@ -11,8 +11,10 @@ const AMAZON = 0;
 const NEW_3RD_PARTY = 1;
 const USED = 2;
 
-const productUrl = (asin) =>
-  `https://www.amazon.com/dp/${asin}${amazonTag() ? `?tag=${encodeURIComponent(amazonTag())}` : ""}`;
+const productUrl = (asin) => {
+  const tag = amazonTag();
+  return `https://www.amazon.com/dp/${asin}${tag ? `?tag=${encodeURIComponent(tag)}` : ""}`;
+};
 
 export default {
   id: "keepa",
