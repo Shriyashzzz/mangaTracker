@@ -205,51 +205,9 @@
 .titleHit {
   display: inline-block;
   padding: 0 0.12em;
-  background: var(--accent);
-  color: var(--on-accent);
+  background: var(--ink);
+  color: var(--paper);
   transform: rotate(-2.5deg);
-}
-
-/* speech balloon, lettered the way manga translations are */
-.bubble {
-  position: relative;
-  max-width: 29rem;
-  margin-top: 2rem;
-  padding: 1.9rem 3.6rem 2rem;
-  background: var(--card);
-  border: 2.5px solid var(--line);
-  border-radius: 46% 54% 50% 50% / 58% 52% 48% 42%;
-  font-family: var(--font-letter);
-  font-weight: 700;
-  font-size: 1.02rem;
-  line-height: 1.4;
-  letter-spacing: 0.02em;
-  text-transform: uppercase;
-  text-align: center;
-  color: var(--ink);
-}
-
-/* tail: a filled triangle with an ink outline behind it */
-.bubble::before,
-.bubble::after {
-  content: "";
-  position: absolute;
-  left: 34%;
-  border-style: solid;
-  border-color: var(--line) transparent transparent;
-}
-
-.bubble::before {
-  top: calc(100% - 1px);
-  border-width: 26px 20px 0 0;
-}
-
-/* sits over the balloon's own border so the tail opens into it */
-.bubble::after {
-  top: calc(100% - 4px);
-  margin-left: 3px;
-  border-width: 22px 15px 0 0;
-  border-color: var(--card) transparent transparent;
 }
 
 .guestActions {
@@ -257,7 +215,7 @@
   align-items: center;
   gap: 1rem;
   flex-wrap: wrap;
-  margin-top: 2.75rem;
+  margin-top: 2rem;
 }
 
 /* manga page: white gutters, inked panel borders */
@@ -276,7 +234,7 @@
   position: relative;
   display: flex;
   flex-direction: column;
-  min-height: 180px;
+  min-height: 150px;
   border: 3px solid var(--line);
   background: var(--paper);
   animation: panel-in 0.6s var(--ease) both;
@@ -284,7 +242,7 @@
 
 .panelWide {
   grid-column: 1 / -1;
-  min-height: 210px;
+  min-height: 170px;
 }
 
 .panel:nth-child(2) {
@@ -294,6 +252,7 @@
 .panel:nth-child(3) {
   animation-delay: 0.24s;
 }
+
 
 /* panels are read in order, each one slides open from its left edge */
 @keyframes panel-in {
@@ -344,7 +303,7 @@
 .bigCh small {
   font-size: 0.45em;
   margin-right: 0.1em;
-  color: var(--accent);
+  color: var(--muted);
 }
 
 .panelStars {
@@ -360,22 +319,129 @@
   height: 26px;
 }
 
-.miniTabs {
+/* three blank volumes, as if the covers were still loading in */
+.covers {
   display: flex;
-  flex-direction: column;
-  gap: 4px;
-  padding: 0.45rem 0.7rem;
-  background: var(--paper);
-  border: 1.5px solid var(--line);
-  font-size: 0.8rem;
+  align-items: flex-end;
+}
+
+.covers span {
+  display: grid;
+  place-items: end center;
+  width: 46px;
+  aspect-ratio: 2 / 3;
+  margin-left: -10px;
+  padding-bottom: 6px;
+  background: var(--card);
+  border: 2px solid var(--line);
+  font-family: var(--font-mono);
+  font-size: 0.6rem;
   color: var(--muted);
 }
 
-.miniOn {
+.covers span:nth-child(1) {
+  transform: rotate(-8deg);
+}
+
+.covers span:nth-child(2) {
+  position: relative;
+  z-index: 1;
+  width: 54px;
+  transform: translateY(-4px);
+}
+
+.covers span:nth-child(3) {
+  transform: rotate(7deg);
+}
+
+/* price check preview: a little receipt of offers */
+/* ---------- price check, its own section below the hero ---------- */
+.priceSection {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  align-items: center;
+  gap: clamp(2rem, 6vw, 4.5rem);
+  margin-top: clamp(3.5rem, 8vw, 6rem);
+  padding-top: clamp(2.5rem, 5vw, 3.5rem);
+  border-top: 1.5px dashed var(--line-soft);
+}
+
+.priceTitle {
+  font-family: var(--font-brand);
+  font-size: clamp(1.9rem, 4vw, 2.8rem);
+  font-weight: 400;
+  line-height: 1;
+  letter-spacing: 0.01em;
+  text-transform: uppercase;
+  text-wrap: balance;
+}
+
+.priceBody {
+  max-width: 28rem;
+  margin-top: 1rem;
+  font-size: 1.05rem;
+  color: var(--ink-soft);
+}
+
+.pricePanel {
+  position: relative;
+  min-height: 200px;
+  max-width: 440px;
+  width: 100%;
+  justify-self: center;
+  animation: none;
+}
+
+/* receipt sits left so the stamp keeps the top-right corner */
+.prices {
+  place-items: center start;
+  padding: 1rem 1.25rem;
+}
+
+.offers {
+  list-style: none;
+  width: min(100% - 7.5rem, 260px);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 0.6rem 0.8rem;
+  background: var(--card);
+  border: 1.5px solid var(--line);
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+}
+
+.offers li {
+  display: flex;
+  justify-content: space-between;
+  color: var(--muted);
+}
+
+.offers li + li {
+  padding-top: 4px;
+  border-top: 1px dashed var(--line-soft);
+}
+
+.offers .best {
   color: var(--ink);
-  font-weight: 600;
-  text-decoration: underline 3px var(--accent);
-  text-underline-offset: 4px;
+  font-weight: 500;
+}
+
+/* the one red thing on the page: an inked stamp */
+.soon {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  padding: 0.1rem 0.5rem;
+  border: 2px solid var(--accent);
+  border-radius: 3px;
+  background: var(--card);
+  color: var(--accent);
+  font-family: var(--font-brand);
+  font-size: 1rem;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  transform: rotate(6deg);
 }
 
 /* sound effects break out of the panel border, as they do on the page */
@@ -386,9 +452,10 @@
   line-height: 1;
   letter-spacing: 0.03em;
   text-transform: uppercase;
-  color: var(--accent);
+  color: var(--card);
   -webkit-text-stroke: 1.5px var(--line);
   paint-order: stroke fill;
+  text-shadow: 2px 2px 0 var(--line);
   pointer-events: none;
 }
 
@@ -437,6 +504,10 @@
 }
 
 @media (max-width: 860px) {
+  .priceSection {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
   .guestContainer {
     grid-template-columns: minmax(0, 1fr);
   }
@@ -483,10 +554,6 @@
     padding: 9px;
   }
 
-  .bubble {
-    padding: 1.6rem 2.4rem 1.7rem;
-    font-size: 0.95rem;
-  }
 
   .sfxA {
     font-size: 1.8rem;

@@ -242,73 +242,111 @@ function LibrarySkeleton() {
   );
 }
 
+// placeholder offers for the price panel; the real feature isn't live yet
+const SAMPLE_OFFERS = [
+  { store: "Store A", price: "$11.99" },
+  { store: "Store B", price: "$9.49" },
+  { store: "Store C", price: "$7.80", best: true },
+];
+
 function GuestHero() {
   return (
-    <div className={`${styles.guestContainer} fade-in`}>
-      <div className={styles.guestCopy}>
-        <h1 className={styles.guestTitle}>
-          Never lose your <span className={styles.titleHit}>chapter</span>{" "}
-          again!
-        </h1>
-        <p className={styles.bubble}>
-          Reading ten series at once? Save the chapter you're on, rate what you
-          finish, and jump back in right where you stopped.
-        </p>
-        <div className={styles.guestActions}>
-          <NavLink
-            to="/signup"
-            className="btn btn-primary btn-lg"
-            viewTransition
-          >
-            Start your shelf
-          </NavLink>
-          <NavLink to="/signin" className="btn btn-ghost btn-lg" viewTransition>
-            Sign in
-          </NavLink>
+    <>
+      <div className={`${styles.guestContainer} fade-in`}>
+        <div className={styles.guestCopy}>
+          <h1 className={styles.guestTitle}>
+            Never lose your <span className={styles.titleHit}>chapter</span>{" "}
+            again.
+          </h1>
+          <div className={styles.guestActions}>
+            <NavLink
+              to="/signup"
+              className="btn btn-primary btn-lg"
+              viewTransition
+            >
+              Start your shelf
+            </NavLink>
+            <NavLink
+              to="/signin"
+              className="btn btn-ghost btn-lg"
+              viewTransition
+            >
+              Sign in
+            </NavLink>
+          </div>
         </div>
+
+        {/* a manga page: one panel per thing the app does */}
+        <ol className={styles.page} aria-label="What you can do">
+          <li className={`${styles.panel} ${styles.panelWide}`}>
+            <div className={`${styles.art} ${styles.speed}`} aria-hidden>
+              <span className={styles.bigCh}>
+                <small>ch.</small>374
+              </span>
+            </div>
+            <span className={`${styles.sfx} ${styles.sfxA}`} aria-hidden>
+              Bookmarked!
+            </span>
+            <p className={styles.caption}>Save the chapter you're on</p>
+          </li>
+
+          <li className={styles.panel}>
+            <div className={`${styles.art} ${styles.tone}`} aria-hidden>
+              <span className={styles.panelStars}>
+                {[1, 2, 3, 4, 5].map((n) => (
+                  <StarIcon key={n} filled />
+                ))}
+              </span>
+            </div>
+            <span className={`${styles.sfx} ${styles.sfxB}`} aria-hidden>
+              Peak!
+            </span>
+            <p className={styles.caption}>Rate what you finish</p>
+          </li>
+
+          <li className={styles.panel}>
+            <div className={`${styles.art} ${styles.tone}`} aria-hidden>
+              <span className={styles.covers}>
+                <span>Vol. 1</span>
+                <span>Vol. 2</span>
+                <span>Vol. 3</span>
+              </span>
+            </div>
+            <span className={`${styles.sfx} ${styles.sfxC}`} aria-hidden>
+              Found it!
+            </span>
+            <p className={styles.caption}>Covers and genres fill in</p>
+          </li>
+        </ol>
       </div>
 
-      {/* a manga page: one panel per thing the app does */}
-      <ol className={styles.page} aria-label="What you can do">
-        <li className={`${styles.panel} ${styles.panelWide}`}>
-          <div className={`${styles.art} ${styles.speed}`} aria-hidden>
-            <span className={styles.bigCh}>
-              <small>ch.</small>374
-            </span>
-          </div>
-          <span className={`${styles.sfx} ${styles.sfxA}`} aria-hidden>
-            Bookmarked!
-          </span>
-          <p className={styles.caption}>Save the chapter you're on</p>
-        </li>
+      {/* the second half of the app, told on its own */}
+      <section className={styles.priceSection} aria-labelledby="price-title">
+        <div className={styles.priceCopy}>
+          <h2 id="price-title" className={styles.priceTitle}>
+            Also: find the best price on the manga you want to buy.
+          </h2>
+          <p className={styles.priceBody}>
+            Search a volume and compare live prices from US stores before you
+            buy.
+          </p>
+        </div>
 
-        <li className={styles.panel}>
-          <div className={`${styles.art} ${styles.tone}`} aria-hidden>
-            <span className={styles.panelStars}>
-              {[1, 2, 3, 4, 5].map((n) => (
-                <StarIcon key={n} filled />
+        <div className={`${styles.panel} ${styles.pricePanel}`} aria-hidden>
+          <div className={`${styles.art} ${styles.prices}`}>
+            <ul className={styles.offers}>
+              {SAMPLE_OFFERS.map((o) => (
+                <li key={o.store} className={o.best ? styles.best : ""}>
+                  <span>{o.store}</span>
+                  <span>{o.price}</span>
+                </li>
               ))}
-            </span>
+            </ul>
           </div>
-          <span className={`${styles.sfx} ${styles.sfxB}`} aria-hidden>
-            Peak!
-          </span>
-          <p className={styles.caption}>Rate what you finish</p>
-        </li>
-
-        <li className={styles.panel}>
-          <div className={`${styles.art} ${styles.tone}`} aria-hidden>
-            <span className={styles.miniTabs}>
-              <span className={styles.miniOn}>Reading 7</span>
-              <span>Finished 12</span>
-            </span>
-          </div>
-          <span className={`${styles.sfx} ${styles.sfxC}`} aria-hidden>
-            Sorted!
-          </span>
-          <p className={styles.caption}>Search and sort your shelf</p>
-        </li>
-      </ol>
-    </div>
+          <span className={styles.soon}>Coming soon</span>
+          <p className={styles.caption}>Lowest price, at a glance</p>
+        </div>
+      </section>
+    </>
   );
 }

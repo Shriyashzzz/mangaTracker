@@ -8,9 +8,10 @@
   --muted: #7a7263;
   --line: #1d1a16;
   --line-soft: #d6ccb7;
-  --accent: #d23a2c;
-  --accent-hover: #b52f23;
-  --accent-wash: rgba(210, 58, 44, 0.1);
+  /* a muted brick red, used as manga spot colour: actions and small details */
+  --accent: #b14a3c;
+  --accent-hover: #963d31;
+  --accent-wash: rgba(177, 74, 60, 0.09);
   --on-accent: #fffaf2;
   --ok: #2e6b4c;
   --star: #d99a00;
@@ -44,9 +45,9 @@
     --muted: #918874;
     --line: #cfc5ae;
     --line-soft: #3a3429;
-    --accent: #f0624b;
-    --accent-hover: #ff7a63;
-    --accent-wash: rgba(240, 98, 75, 0.12);
+    --accent: #d27a66;
+    --accent-hover: #e08f7c;
+    --accent-wash: rgba(210, 122, 102, 0.11);
     --on-accent: #16140f;
     --ok: #6fbf8f;
     --star: #f2b630;
@@ -67,9 +68,9 @@
   --muted: #918874;
   --line: #cfc5ae;
   --line-soft: #3a3429;
-  --accent: #f0624b;
-  --accent-hover: #ff7a63;
-  --accent-wash: rgba(240, 98, 75, 0.12);
+  --accent: #d27a66;
+  --accent-hover: #e08f7c;
+  --accent-wash: rgba(210, 122, 102, 0.11);
   --on-accent: #16140f;
   --ok: #6fbf8f;
   --star: #f2b630;
