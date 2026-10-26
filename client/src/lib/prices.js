@@ -35,6 +35,10 @@ export const asIsbn = (text) => {
 export const getSeries = (name, signal) =>
   getJson(`/api/prices/series?${new URLSearchParams({ name })}`, signal);
 
+// the cheapest known price for each manga on the signed-in shelf, by id
+export const getShelfPriceTags = (signal) =>
+  getJson("/api/mangadata/prices", signal);
+
 export const getHighlights = (signal) =>
   getJson("/api/prices/highlights", signal);
 

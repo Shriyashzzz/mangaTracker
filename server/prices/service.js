@@ -274,6 +274,68 @@ export async function getSeries(asked) {
 
 export { searchSeries };
 
+// ---------- the shelf ----------
+
+// the volumes we know for each series, grouped by the series' slug.
+// Rebuilt every few minutes; shared by everyone's shelf
+const KNOWN_VOLUMES_MS = 10 * 60 * 1000;
+let knownVolumes = { at: 0, bySeries: new Map() };
+
+async function knownVolumesBySeries() {
+  if (Date.now() - knownVolumes.at < KNOWN_VOLUMES_MS) {
+    return knownVolumes.bySeries;
+  }
+  const bySeries = new Map();
+  const add = (v) => {
+    const key = slugify(seriesName(v.title));
+    if (!bySeries.has(key)) bySeries.set(key, new Map());
+    bySeries.get(key).set(v.isbn13, v);
+  };
+  (await priceQueries.getBookTitles()).forEach(add);
+  // full volume lists from series pages people opened recently
+  for (const hit of seriesVolumesCache.values()) hit.volumes.forEach(add);
+  knownVolumes = { at: Date.now(), bySeries };
+  return bySeries;
+}
+
+// the cheapest price we already know for each manga on a shelf. Database
+// and memory only: a whole shelf never sets off catalog or store lookups.
+// `manga` is [{ id, name }]; returns { [id]: { fromCents, volume, isbn13, title } }
+export async function getShelfPrices(manga) {
+  const bySeries = await knownVolumesBySeries();
+  const matches = new Map();
+  for (const m of manga) {
+    const keys = new Set([slugify(m.name), slugify(seriesName(m.name))]);
+    const known = await knownSeriesName(m.name).catch(() => m.name);
+    keys.add(slugify(known));
+    const volumes = [...keys].flatMap((k) => [
+      ...(bySeries.get(k)?.values() ?? []),
+    ]);
+    if (volumes.length) matches.set(m.id, volumes);
+  }
+
+  const isbns = [...matches.values()].flat().map((v) => v.isbn13);
+  const prices = await priceQueries.getKnownPrices([...new Set(isbns)]);
+  const result = {};
+  for (const [id, volumes] of matches) {
+    let best = null;
+    for (const v of volumes) {
+      const cents = prices.get(v.isbn13)?.price_cents;
+      if (cents != null && (!best || cents < best.fromCents)) {
+        const number = volumeOf(v.title);
+        best = {
+          fromCents: cents,
+          isbn13: v.isbn13,
+          title: v.title,
+          volume: Number.isFinite(number) ? number : null,
+        };
+      }
+    }
+    if (best) result[id] = best;
+  }
+  return result;
+}
+
 // ---------- link previews ----------
 
 // what a shared link's preview needs, from the database alone: no catalog,

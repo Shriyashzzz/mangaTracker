@@ -97,6 +97,18 @@
   text-overflow: ellipsis;
 }
 
+/* the cheapest price we know for the series, quiet until you look */
+.price {
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  color: var(--muted);
+}
+
+.price span {
+  color: var(--accent);
+  font-weight: 500;
+}
+
 .skeletonCard {
   display: flex;
   flex-direction: column;

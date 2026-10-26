@@ -5,6 +5,7 @@ import StarRating from "../../components/starRating/StarRating";
 import { apiFetch, FALLBACK_COVER } from "../../lib/api";
 import SlowLoadQuote from "../../components/slowLoadQuote/SlowLoadQuote";
 import { usePrivatePage } from "../../lib/seo";
+import BuyStrip from "./BuyStrip";
 
 export default function Details() {
   usePrivatePage("Manga details");
@@ -159,6 +160,8 @@ export default function Details() {
               <p>{mangaData.description}</p>
             </div>
           )}
+
+          <BuyStrip name={mangaData.name} />
 
           <div className={styles.actions}>
             <button

@@ -2,8 +2,10 @@ import { NavLink } from "react-router";
 import styles from "./MangaCard.module.css";
 import StarRating from "../starRating/StarRating";
 import { FALLBACK_COVER } from "../../lib/api";
+import { formatCents } from "../../lib/prices";
 
-export default function MangaCard({ currentManga, index = 0 }) {
+// priceTag: the cheapest price we've seen for the series, if any
+export default function MangaCard({ currentManga, priceTag, index = 0 }) {
   const genre =
     currentManga.genre && currentManga.genre !== "unlabled"
       ? currentManga.genre
@@ -35,6 +37,14 @@ export default function MangaCard({ currentManga, index = 0 }) {
           {currentManga.status ? "finished" : `ch. ${currentManga.bookmark}`}
           {genre && <span> · {genre}</span>}
         </p>
+        {priceTag && (
+          <p
+            className={styles.price}
+            title={`Cheapest we've seen: ${priceTag.title}`}
+          >
+            from <span>{formatCents(priceTag.fromCents)}</span>
+          </p>
+        )}
         {Number(currentManga.rating) > 0 && (
           <StarRating value={Number(currentManga.rating)} size="sm" />
         )}

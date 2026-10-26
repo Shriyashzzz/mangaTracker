@@ -246,6 +246,12 @@ const getSitemapEntries = async () => {
   return { volumes: volumes.rows, series: series.rows };
 };
 
+// every volume we've stored, for matching shelf manga to their series
+const getBookTitles = async () => {
+  const { rows } = await pool.query(`SELECT isbn13, title FROM books`);
+  return rows.map((r) => ({ isbn13: r.isbn13.trim(), title: r.title }));
+};
+
 export default {
   claimApiCall,
   getKnownPrices,
@@ -259,4 +265,5 @@ export default {
   getCoverIds,
   saveCoverIds,
   getSitemapEntries,
+  getBookTitles,
 };

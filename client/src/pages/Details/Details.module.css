@@ -159,6 +159,60 @@
   overflow-wrap: anywhere;
 }
 
+/* where to buy: three small price tickets in a row */
+.buy {
+  padding-top: 0.75rem;
+  border-top: 1.5px dashed var(--line-soft);
+}
+
+.buyList {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  list-style: none;
+}
+
+.buyList a {
+  display: flex;
+  align-items: baseline;
+  gap: 0.45rem;
+  min-height: 40px;
+  padding: 0.45rem 0.75rem;
+  border: 1.5px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--card);
+  font-weight: 600;
+  font-size: 0.92rem;
+  transition:
+    background-color 0.12s ease,
+    border-color 0.12s ease;
+}
+
+.buyList a:hover,
+.buyList a:focus-visible {
+  background: var(--accent-wash);
+  border-color: var(--accent);
+}
+
+.buyKind {
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  font-weight: 400;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.buyPrice {
+  font-family: var(--font-mono);
+  font-weight: 500;
+  color: var(--accent);
+}
+
+.buySkeleton {
+  height: 70px;
+}
+
 .actions {
   display: flex;
   align-items: center;
