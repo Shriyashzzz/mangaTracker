@@ -1,5 +1,6 @@
 import { query, param, validationResult, matchedData } from "express-validator";
 import { searchVolumes, toIsbn13 } from "../prices/catalog.js";
+import { coverImageUrl, editionCoverId } from "../prices/covers.js";
 import {
   getHighlights,
   getSeries,
@@ -115,4 +116,27 @@ const seriesSearch = [
   },
 ];
 
-export default { search, volume, series, seriesSearch, highlights };
+const cover = [
+  param("isbn")
+    .customSanitizer(toIsbn13)
+    .custom((v) => v !== null)
+    .withMessage("That isn't a valid ISBN"),
+  rejectInvalid,
+  async (req, res) => {
+    try {
+      const id = await editionCoverId(matchedData(req).isbn);
+      if (!id) {
+        // no cover for this edition: the page shows its drawn placeholder
+        res.set("Cache-Control", "public, max-age=86400").sendStatus(404);
+        return;
+      }
+      res.set("Cache-Control", "public, max-age=604800");
+      res.redirect(302, coverImageUrl(id, req.query.size === "L" ? "L" : "M"));
+    } catch (e) {
+      console.error("cover lookup failed:", e.message);
+      res.sendStatus(502);
+    }
+  },
+];
+
+export default { search, volume, series, seriesSearch, highlights, cover };

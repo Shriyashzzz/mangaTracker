@@ -1,15 +1,15 @@
 import priceQueries from "../models/priceQueries.js";
-import { lookupIsbn, searchVolumes } from "./catalog.js";
+import { lookupIsbn, searchVolumesDetailed } from "./catalog.js";
 import {
   getSeriesInfo,
   getTrending,
   searchSeries,
   slugify,
-  translationFailureCount,
 } from "./anilist.js";
 import { seriesName, seriesOf, volumeOf } from "./match.js";
 import { enabledProviders } from "./providers/index.js";
 import { affiliateOfferUrl, storeLinks } from "./storeLinks.js";
+import { editionCoverId } from "./covers.js";
 
 // prices are re-fetched at most this often per volume; in between, people
 // see the stored ones. Keeps us well inside every API's rate limits
@@ -111,7 +111,7 @@ export async function getVolumePrices(isbn13) {
       priceCents: o.price_cents,
       currency: o.currency,
       inStock: o.in_stock,
-      url: affiliateOfferUrl(o.store, isbn13, o.url),
+      url: affiliateOfferUrl(o, isbn13),
       fetchedAt: o.fetched_at,
     })),
     stats: stats.samples
@@ -150,21 +150,24 @@ async function seriesVolumes(name) {
   if (hit && Date.now() - hit.at < SERIES_VOLUMES_FRESH_MS) {
     return { volumes: hit.volumes, incomplete: false };
   }
-  const failuresBefore = translationFailureCount();
 
   // two free catalog queries merged: the plain one finds more, the quoted
   // title one is more precise. Long runners can have 100+ volumes
   const results = await Promise.allSettled([
-    searchVolumes(name, { max: 250, timeoutMs: 20000 }),
-    searchVolumes(`title:"${name.replace(/"/g, "")}"`, {
+    searchVolumesDetailed(name, { max: 250, timeoutMs: 20000 }),
+    searchVolumesDetailed(`title:"${name.replace(/"/g, "")}"`, {
       max: 250,
       timeoutMs: 20000,
     }),
   ]);
   const found = results.flatMap((r) =>
-    r.status === "fulfilled" ? r.value : [],
+    r.status === "fulfilled" ? r.value.books : [],
   );
   const failed = results.filter((r) => r.status === "rejected");
+  // a title this lookup couldn't translate right now
+  const untranslated = results.some(
+    (r) => r.status === "fulfilled" && r.value.degraded,
+  );
   failed.forEach((r) =>
     console.error("series volume lookup failed:", r.reason?.message),
   );
@@ -176,8 +179,7 @@ async function seriesVolumes(name) {
   }
   const volumes = [...byNumber.values()].sort((a, b) => a.volume - b.volume);
 
-  const incomplete =
-    failed.length > 0 || translationFailureCount() > failuresBefore;
+  const incomplete = failed.length > 0 || untranslated;
   if (incomplete) {
     // an older complete list beats a damaged new one
     if (hit && hit.volumes.length > volumes.length) {
@@ -192,36 +194,51 @@ async function seriesVolumes(name) {
   return { volumes, incomplete: false };
 }
 
+// AniList's official English name plus up to three other English names,
+// skipping any that are the link's own name
+const otherNamesFor = (name, info) => {
+  const seen = new Set([seriesOf(name)]);
+  return [info?.name, ...(info?.altNames ?? []).slice(0, 3)].filter((alt) => {
+    if (!alt || seen.has(seriesOf(alt))) return false;
+    seen.add(seriesOf(alt));
+    return true;
+  });
+};
+
 async function getSeriesWithVolumes(name) {
-  const [info, main] = await Promise.all([
-    getSeriesInfo(name),
+  const infoLookup = getSeriesInfo(name);
+  // the other names only need AniList's answer, so they're searched while
+  // the main name's catalog search is still running
+  const altLookup = infoLookup.then((info) =>
+    Promise.all(otherNamesFor(name, info).map((alt) => seriesVolumes(alt))),
+  );
+  const [info, main, altResults] = await Promise.all([
+    infoLookup,
     seriesVolumes(name),
+    altLookup,
   ]);
   const mainVolumes = main.volumes;
-  let incomplete = main.incomplete;
   // the link's name may be short ("Frieren") while the volumes carry the
   // full English name ("Frieren: Beyond Journey's End"). A series can also be
   // sold under other names (Detective Conan is mostly catalogued as Case
   // Closed). Volumes found under AniList's official English name and its
   // alternatives are merged in by volume number
   const byNumber = new Map(mainVolumes.map((v) => [v.volume, v]));
-  const otherNames = [info?.name, ...(info?.altNames ?? []).slice(0, 3)];
-  const seen = new Set([seriesOf(name)]);
-  const altNames = otherNames.filter((alt) => {
-    if (!alt || seen.has(seriesOf(alt))) return false;
-    seen.add(seriesOf(alt));
-    return true;
-  });
-  const altResults = await Promise.all(
-    altNames.map((alt) => seriesVolumes(alt)),
-  );
   for (const alt of altResults) {
-    incomplete ||= alt.incomplete;
     for (const v of alt.volumes) {
       if (!byNumber.has(v.volume)) byNumber.set(v.volume, v);
     }
   }
   const volumes = [...byNumber.values()].sort((a, b) => a.volume - b.volume);
+  // start finding every cover now, so they're ready by the time the
+  // browser asks for them (failures are retried when the browser asks)
+  volumes.forEach((v) => editionCoverId(v.isbn13).catch(() => {}));
+  // the main name's problems always count. An other name's only count when
+  // they left the page nearly empty: a slow obscure alias shouldn't flag a
+  // series that already has its volumes
+  const incomplete =
+    main.incomplete ||
+    (altResults.some((a) => a.incomplete) && volumes.length < 3);
   const known = await priceQueries.getKnownPrices(volumes.map((v) => v.isbn13));
   return {
     name,

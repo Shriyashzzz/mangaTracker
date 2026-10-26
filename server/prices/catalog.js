@@ -1,6 +1,7 @@
 // Open Library: free, no key. Finds volumes and their ISBNs.
 // https://openlibrary.org/dev/docs/api/search
 import { englishSeriesName } from "./anilist.js";
+import { coverPath } from "./covers.js";
 
 const SEARCH_URL = "https://openlibrary.org/search.json";
 const FIELDS =
@@ -51,41 +52,54 @@ const FORMAT_TAG = /\s*\(\s*(manga|comic|graphic novel)\s*\)/gi;
 
 // a US edition listed only under its Japanese title, like "葬送のフリーレン 12":
 // look up the official English series name and rebuild "Name, Vol. 12"
+// { title } on success, { title: null } when there's no English name, and
+// { title: null, degraded: true } when AniList couldn't be asked
 async function translateTitle(japaneseTitle) {
   const number = japaneseTitle.match(/(\d+)\s*$/)?.[1];
   const series = japaneseTitle.replace(/\s*\d+\s*$/, "").trim();
-  const english = series && (await englishSeriesName(series));
-  if (!english) return null;
-  return number ? `${english}, Vol. ${Number(number)}` : english;
+  if (!series) return { title: null };
+  try {
+    const english = await englishSeriesName(series);
+    if (!english) return { title: null };
+    return {
+      title: number ? `${english}, Vol. ${Number(number)}` : english,
+    };
+  } catch {
+    return { title: null, degraded: true };
+  }
 }
 
 // Japanese stripped out, or translated when nothing English is left
 async function englishOnly(rawTitle) {
-  if (LIGHT_NOVEL.test(rawTitle)) return null;
+  if (LIGHT_NOVEL.test(rawTitle)) return { title: null };
   const untagged = rawTitle.replace(FORMAT_TAG, "").trim();
-  if (!JAPANESE.test(untagged)) return untagged;
+  if (!JAPANESE.test(untagged)) return { title: untagged };
   const stripped = englishTitle(untagged);
-  if (/[a-z]{2}/i.test(stripped)) return stripped;
+  if (/[a-z]{2}/i.test(stripped)) return { title: stripped };
   return translateTitle(untagged);
 }
 
+// { book } or { book: null }, plus degraded: true when the title couldn't be
+// translated right now (so the result may be missing this volume)
 const toBook = async (doc, isbn13) => {
-  if (!isbn13 || !doc.title) return null;
-  const title = await englishOnly(doc.title);
+  if (!isbn13 || !doc.title) return { book: null };
+  const { title, degraded } = await englishOnly(doc.title);
   // no English title even after translating: leave it out
-  if (!title) return null;
-  return {
+  if (!title) return { book: null, degraded };
+  const book = {
     isbn13,
     title,
     authors: doc.author_name?.join(", ") ?? null,
     publisher: doc.publisher?.[0] ?? null,
     year: doc.first_publish_year ?? null,
     volume: volumeNumber(title),
-    // the cover of this exact edition. The work's cover (doc.cover_i) can
-    // belong to another language edition, or to an unrelated book when
-    // Open Library has grouped editions wrongly
-    coverUrl: `https://covers.openlibrary.org/b/isbn/${isbn13}-M.jpg`,
+    // the cover of this exact edition, looked up and cached by our server
+    // (see covers.js). The work's cover (doc.cover_i) can belong to another
+    // language edition, or to an unrelated book when Open Library has
+    // grouped editions wrongly
+    coverUrl: coverPath(isbn13),
   };
+  return { book };
 };
 
 // Open Library is free but uneven: the same query can take half a second or
@@ -101,8 +115,10 @@ async function search(q, limit, timeoutMs = TIMEOUT_MS, attempt = 1) {
     const { docs } = await res.json();
     return docs;
   } catch (e) {
+    // a timeout already waited the full time; retrying would double it
+    const timedOut = e.name === "TimeoutError" || e.name === "AbortError";
     const clientError = /responded 4\d\d/.test(e.message);
-    if (attempt >= 2 || clientError) throw e;
+    if (attempt >= 2 || clientError || timedOut) throw e;
     await new Promise((r) => setTimeout(r, 800));
     return search(q, limit, timeoutMs, attempt + 1);
   }
@@ -110,7 +126,12 @@ async function search(q, limit, timeoutMs = TIMEOUT_MS, attempt = 1) {
 
 // title / author / series search, or a pasted ISBN. Numbered volumes first,
 // in order, then box sets and one-offs
-export async function searchVolumes(query, { max = 24, timeoutMs } = {}) {
+// like searchVolumes, but also says whether the answer may be missing
+// volumes because a title couldn't be translated right now
+export async function searchVolumesDetailed(
+  query,
+  { max = 24, timeoutMs } = {},
+) {
   const isbn = toIsbn13(query);
   const docs = await search(
     isbn ? `isbn:${isbn}` : query,
@@ -128,19 +149,27 @@ export async function searchVolumes(query, { max = 24, timeoutMs } = {}) {
   );
   const seen = new Set();
   const books = [];
-  for (const book of candidates) {
+  let degraded = false;
+  for (const { book, degraded: d } of candidates) {
+    degraded ||= Boolean(d);
     if (!book || seen.has(book.isbn13)) continue;
     seen.add(book.isbn13);
     books.push(book);
   }
 
-  return books
-    .sort((a, b) => (a.volume ?? Infinity) - (b.volume ?? Infinity))
-    .slice(0, max);
+  return {
+    books: books
+      .sort((a, b) => (a.volume ?? Infinity) - (b.volume ?? Infinity))
+      .slice(0, max),
+    degraded,
+  };
 }
+
+export const searchVolumes = async (query, options) =>
+  (await searchVolumesDetailed(query, options)).books;
 
 export async function lookupIsbn(isbn13) {
   const docs = await search(`isbn:${isbn13}`, 1);
   // the requested ISBN wins even if Open Library lists another edition first
-  return docs.length ? toBook(docs[0], isbn13) : null;
+  return docs.length ? (await toBook(docs[0], isbn13)).book : null;
 }

@@ -29,10 +29,30 @@ async function query(gql, variables) {
 }
 
 // AniList descriptions carry <br> and <i> tags and source notes
+// the HTML escapes AniList uses in plain-text descriptions
+const ENTITIES = {
+  "&lt;": "<",
+  "&gt;": ">",
+  "&quot;": '"',
+  "&#039;": "'",
+  "&#39;": "'",
+  "&apos;": "'",
+  "&nbsp;": " ",
+  "&mdash;": "—",
+  "&ndash;": "–",
+  "&hellip;": "…",
+  "&amp;": "&", // last, so "&amp;lt;" becomes "&lt;" and not "<"
+};
+const decodeEntities = (text) =>
+  Object.entries(ENTITIES).reduce(
+    (out, [entity, char]) => out.replaceAll(entity, char),
+    text,
+  );
+
 const plainText = (html) =>
-  (html ?? "")
-    .replace(/<br\s*\/?>/gi, "\n")
-    .replace(/<[^>]+>/g, "")
+  decodeEntities(
+    (html ?? "").replace(/<br\s*\/?>/gi, "\n").replace(/<[^>]+>/g, ""),
+  )
     .replace(/\(Source:[^)]*\)/gi, "")
     .replace(/\n{3,}/g, "\n\n")
     .trim()
@@ -153,13 +173,11 @@ const ENGLISH_NAME_QUERY = `
 `;
 const englishNames = new Map();
 
-// translation lookups that failed for a passing reason (rate limit, outage).
-// Anything built while this number went up may be missing volumes
-let translationFailures = 0;
-export const translationFailureCount = () => translationFailures;
-
 // official English name for a Japanese series title ("葬送のフリーレン" ->
 // "Frieren: Beyond Journey's End"), or null. Cached for the server's life
+// resolves to the English name, or null when AniList has no match. Rejects
+// when AniList couldn't answer (rate limit, outage), so the caller can tell
+// "no English name" from "couldn't check right now"
 export function englishSeriesName(japanese) {
   // the promise itself is cached, so many results asking about the same
   // Japanese name at once share one AniList request
@@ -167,13 +185,11 @@ export function englishSeriesName(japanese) {
   const lookup = query(ENGLISH_NAME_QUERY, { search: japanese })
     .then(({ Media }) => Media?.title?.english?.replace(/’/g, "'") ?? null)
     .catch((e) => {
-      // AniList answers 404 when nothing matches: a real "no", kept cached.
-      // Anything else (rate limit, outage) is forgotten so it's tried again
+      // a 404 means no match: a real answer, kept cached
       if (/responded 404/.test(e.message)) return null;
       console.error("AniList name lookup failed:", e.message);
-      translationFailures += 1;
       englishNames.delete(japanese);
-      return null;
+      throw e;
     });
   englishNames.set(japanese, lookup);
   return lookup;

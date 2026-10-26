@@ -25,6 +25,13 @@ pricesRouter.get(
   pricesController.seriesSearch,
 );
 
+// covers: a series page loads 30+ at once, so a much bigger allowance
+pricesRouter.get(
+  "/cover/:isbn",
+  rateLimit({ max: 600, windowMs: 60_000 }),
+  pricesController.cover,
+);
+
 pricesRouter.get(
   "/series",
   rateLimit({ max: 40, windowMs: 60_000 }),

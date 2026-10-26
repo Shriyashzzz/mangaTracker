@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { NavLink, useParams, useSearchParams } from "react-router";
-import { coverSrc, getSeries } from "../../lib/prices";
+import { coverSrc, getSeries, hideBrokenCover } from "../../lib/prices";
 import VolumeCard from "./VolumeCard";
 import SeriesFacts from "./SeriesFacts";
 import RangePager from "../../components/rangePager/RangePager";
@@ -14,7 +14,8 @@ export default function PriceSeries() {
   const [params] = useSearchParams();
   // the link carries the real name; a bare slug still works as a search
   const name = params.get("name") ?? slug.replace(/-/g, " ");
-  const [state, setState] = useState({ name: null, data: null, error: "" });
+  // `key` names the request a result answers: the series plus the attempt
+  const [state, setState] = useState({ key: null, data: null, error: "" });
   // bumping this asks the server again ("Try again")
   const [attempt, setAttempt] = useState(0);
   const key = `${name}|${attempt}`;
@@ -25,18 +26,20 @@ export default function PriceSeries() {
   useEffect(() => {
     const controller = new AbortController();
     getSeries(name, controller.signal)
-      .then((data) => setState({ name: key, data, error: "" }))
+      .then((data) => setState({ key, data, error: "" }))
       .catch((e) => {
         if (e.name !== "AbortError") {
-          setState({ name: key, data: null, error: e.message });
+          setState({ key, data: null, error: e.message });
         }
       });
     return () => controller.abort();
-  }, [name, key]);
+    // key already includes name
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [key]);
 
   const retry = () => setAttempt((a) => a + 1);
 
-  if (state.name !== key) {
+  if (state.key !== key) {
     return (
       <div className={styles.page} aria-busy="true" aria-label="Loading">
         <div className="skeleton" style={{ height: 220 }} />
@@ -112,9 +115,13 @@ export default function PriceSeries() {
             }
             alt=""
             onError={(e) => {
-              // no US cover on file: fall back to AniList's
+              // no US cover on file: fall back to AniList's, and if that
+              // fails too (or there isn't one), show nothing rather than a
+              // broken image
               if (info?.coverUrl && e.currentTarget.src !== info.coverUrl) {
                 e.currentTarget.src = info.coverUrl;
+              } else {
+                hideBrokenCover(e);
               }
             }}
           />

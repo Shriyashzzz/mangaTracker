@@ -1,4 +1,4 @@
-import { apiFetch } from "./api";
+import { API_URL, apiFetch } from "./api";
 
 // throws with the server's own message so pages can show it as is
 async function getJson(path, signal) {
@@ -65,12 +65,17 @@ export function timeAgo(date) {
   return rtf.format(Math.round(hours / 24), "day");
 }
 
-// Open Library serves a blank 1x1 image for covers it doesn't have; asking
-// for default=false makes it 404 instead, so onError can show our placeholder
-export const coverSrc = (url) =>
-  url?.startsWith("https://covers.openlibrary.org/") && !url.includes("?")
+// edition covers come from our server's cover route (it finds the edition's
+// cover once and redirects to it). Open Library's own URLs serve a blank 1x1
+// image for missing covers unless asked for default=false, which makes them
+// 404 instead, so onError can show our placeholder
+export const coverSrc = (url) => {
+  if (url?.startsWith("/api/")) return `${API_URL}${url}`;
+  return url?.startsWith("https://covers.openlibrary.org/") &&
+    !url.includes("?")
     ? `${url}?default=false`
     : url;
+};
 
 // hides a cover that failed to load, revealing the placeholder behind it
 export const hideBrokenCover = (e) => {
