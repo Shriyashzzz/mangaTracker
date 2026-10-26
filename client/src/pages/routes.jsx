@@ -12,6 +12,7 @@ import PriceSearch from "./Prices/PriceSearch";
 import PriceVolume from "./Prices/PriceVolume";
 import PriceSeries from "./Prices/PriceSeries";
 import ToPriceHome from "./Prices/ToPriceHome";
+import SeriesIndex from "./Prices/SeriesIndex";
 
 export const routes = [
   {
@@ -28,6 +29,7 @@ export const routes = [
       { path: "/add", element: <AddManga /> },
       { path: "/about", element: <AboutPage /> },
       { path: "/signup", element: <SignUp /> },
+      { path: "/series", element: <SeriesIndex /> },
       { path: "/prices", element: <ToPriceHome /> },
       { path: "/prices/series/:slug", element: <PriceSeries /> },
       // the title part is optional, so ISBN-only links keep working

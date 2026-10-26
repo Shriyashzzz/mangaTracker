@@ -39,6 +39,10 @@ export const getSeries = (name, signal) =>
 export const getShelfPriceTags = (signal) =>
   getJson("/api/mangadata/prices", signal);
 
+// every series we know, for the /series page
+export const getSeriesIndex = (signal) =>
+  getJson("/api/prices/series-index", signal);
+
 export const getHighlights = (signal) =>
   getJson("/api/prices/highlights", signal);
 

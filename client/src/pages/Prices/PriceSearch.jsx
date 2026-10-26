@@ -144,9 +144,14 @@ function Highlights() {
     <>
       {data.trending.length > 0 && (
         <section aria-labelledby="trending-title">
-          <h2 id="trending-title" className={styles.sectionTitle}>
-            Popular this season
-          </h2>
+          <div className={styles.sectionHead}>
+            <h2 id="trending-title" className={styles.sectionTitle}>
+              Popular this season
+            </h2>
+            <NavLink to="/series" className={styles.textBtn} viewTransition>
+              All series →
+            </NavLink>
+          </div>
           <ul className={styles.row}>
             {data.trending.map((s) => (
               <li key={s.slug}>
