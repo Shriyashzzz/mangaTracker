@@ -46,7 +46,12 @@ export default function VolumeCard({
             onError={hideBrokenCover}
           />
         )}
-        {volume != null && <span className={styles.vol}>Vol. {volume}</span>}
+        {volume != null && (
+          <span className={styles.vol}>
+            <small>Vol.</small>
+            {volume}
+          </span>
+        )}
       </span>
       <span className={styles.cardTitle}>{title}</span>
       {subtitle && <span className={styles.cardMeta}>{subtitle}</span>}

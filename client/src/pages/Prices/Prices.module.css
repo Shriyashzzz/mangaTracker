@@ -286,15 +286,29 @@ li:nth-child(3n + 2) > .card:hover .cover {
   outline-offset: 3px;
 }
 
+/* the volume number as a tab on the top corner, readable at a glance
+   even when several volumes share the series cover */
 .vol {
   position: absolute;
+  top: 0;
   left: 0;
-  bottom: 0;
-  padding: 0.1rem 0.45rem;
+  display: flex;
+  align-items: baseline;
+  gap: 0.2rem;
+  padding: 0.2rem 0.85rem 0.1rem 0.5rem;
   background: var(--ink);
   color: var(--paper);
-  font-family: var(--font-mono);
-  font-size: 0.72rem;
+  font-family: var(--font-brand);
+  font-size: 1.5rem;
+  line-height: 1;
+  letter-spacing: 0.02em;
+  clip-path: polygon(0 0, 100% 0, calc(100% - 8px) 100%, 0 100%);
+}
+
+.vol small {
+  font-size: 0.62rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
 }
 
 .cardTitle {
