@@ -18,6 +18,11 @@ const validationData = [
     .isNumeric()
     .withMessage(`Bookmark has to be Numeric luv!`),
   body("status").notEmpty(),
+  body("image")
+    .optional({ values: "falsy" })
+    .trim()
+    .isURL()
+    .withMessage("Please provide a valid URL"),
   body("description")
     .trim()
     .optional({ values: "falsy" })
@@ -35,8 +40,16 @@ const updateData = [
       const error = validationResult(req);
       if (error.isEmpty()) {
         console.log("no errors on client side");
-        const { name, bookmark, status, description } = matchedData(req);
-        await queries.updateMangaPost(id, name, bookmark, status, description);
+        const { name, bookmark, status, description, image } =
+          matchedData(req);
+        await queries.updateMangaPost(
+          id,
+          name,
+          bookmark,
+          status,
+          description,
+          image ?? null,
+        );
         res.sendStatus(200);
       } else {
         res.status(400).json({

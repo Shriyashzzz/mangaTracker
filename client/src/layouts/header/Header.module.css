@@ -1,62 +1,86 @@
 .head {
-  background-color: rgb(173, 163, 206);
-  padding: 1.5rem;
-  display: flex;
-  color: var(--text-color);
-  justify-content: space-between;
-  align-items: center;
   position: sticky;
-  z-index: 3;
-  width: 100%;
-  box-sizing: border-box;
-  img {
-    height: 30px;
-    width: 30px;
-  }
+  top: 0;
+  z-index: 10;
+  background: var(--paper);
+  /* newspaper-style double rule */
+  border-bottom: 3px double var(--line);
+}
+
+.inner {
+  max-width: var(--page-width);
+  margin: 0 auto;
+  height: 62px;
+  padding: 0 var(--gutter);
+  display: flex;
+  align-items: center;
+  gap: 1rem;
 }
 
 .appName {
-  cursor: pointer;
-  font-family: "Bangers";
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  margin-right: auto;
+  font-family: var(--font-brand);
+  font-size: 1.6rem;
   letter-spacing: 1px;
-  gap: 1rem;
-  display: flex;
+  line-height: 1;
 }
 
-ul {
+.appName img {
+  width: 30px;
+  height: 30px;
+  transition: transform 0.25s var(--ease);
+}
+
+.appName:hover img {
+  transform: rotate(-10deg);
+}
+
+.nav {
   display: flex;
-  list-style: none;
-  gap: 1rem;
-  button {
-    font-size: var(--small-font-size);
-    border: none;
-    background-color: inherit;
-    cursor: pointer;
+  align-items: center;
+  gap: 1.4rem;
+}
+
+.navLink {
+  position: relative;
+  padding: 0.25rem 0;
+  font-size: 0.95rem;
+  color: var(--ink-soft);
+  transition: color 0.15s ease;
+}
+
+.navLink:hover {
+  color: var(--ink);
+}
+
+/* hand-drawn squiggle under the current page */
+.active {
+  color: var(--ink);
+}
+
+.active::after {
+  content: "";
+  position: absolute;
+  left: -2px;
+  right: -2px;
+  bottom: -4px;
+  height: 6px;
+  background: var(--accent);
+  mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 6' preserveAspectRatio='none'%3E%3Cpath d='M1 4c5-3 8 1 13-1s8-2 12 0 8 1 13-2' fill='none' stroke='black' stroke-width='1.6' stroke-linecap='round'/%3E%3C/svg%3E")
+    no-repeat center / 100% 100%;
+  -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 6' preserveAspectRatio='none'%3E%3Cpath d='M1 4c5-3 8 1 13-1s8-2 12 0 8 1 13-2' fill='none' stroke='black' stroke-width='1.6' stroke-linecap='round'/%3E%3C/svg%3E")
+    no-repeat center / 100% 100%;
+}
+
+@media (max-width: 560px) {
+  .appName span {
+    display: none;
   }
-}
 
-ul button:hover {
-  border-bottom: 2px solid aliceblue;
-}
-
-ul button:active {
-  color: rgb(227, 234, 237);
-}
-
-@media screen and (max-width: 450px) {
-  .head {
-    font-size: 16px;
-    h2 {
-      font-size: larger;
-    }
-    a {
-      font-size: medium;
-    }
-    img {
-      display: none;
-    }
-    .appName {
-      gap: 0.2rem;
-    }
+  .nav {
+    gap: 1rem;
   }
 }

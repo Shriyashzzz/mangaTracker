@@ -1,0 +1,177 @@
+.picker {
+  display: flex;
+  flex-direction: column;
+  gap: 0.7rem;
+  min-width: 0;
+}
+
+.head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.5rem 1rem;
+  flex-wrap: wrap;
+}
+
+.label {
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.optional {
+  font-weight: 400;
+  color: var(--muted);
+  font-size: 0.82rem;
+}
+
+.status {
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  color: var(--muted);
+}
+
+/* a row of covers, scrolls sideways when the form is narrow */
+.strip {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: 92px;
+  gap: 0.75rem;
+  overflow-x: auto;
+  padding: 4px 6px 10px 4px;
+  margin: -4px -6px -10px -4px;
+  scroll-snap-type: x proximity;
+  scrollbar-width: thin;
+  scrollbar-color: var(--line-soft) transparent;
+  transition: opacity 0.2s ease;
+}
+
+.stale {
+  opacity: 0.5;
+}
+
+.thumb {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  text-align: left;
+  scroll-snap-align: start;
+  cursor: pointer;
+}
+
+.thumb img {
+  width: 100%;
+  aspect-ratio: 2 / 3;
+  object-fit: cover;
+  background: var(--paper-2);
+  border: 1.5px solid var(--line-soft);
+  transition:
+    border-color 0.12s ease,
+    transform 0.2s var(--ease);
+}
+
+.thumb:hover img {
+  border-color: var(--line);
+  transform: translateY(-2px);
+}
+
+.thumb:focus-visible {
+  outline: none;
+}
+
+.thumb:focus-visible img {
+  outline: 2px dashed var(--accent);
+  outline-offset: 3px;
+}
+
+/* chosen cover gets an inked frame and a red corner tab */
+.selected img {
+  border: 3px solid var(--accent);
+}
+
+.selected {
+  position: relative;
+}
+
+.selected::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 22px;
+  height: 22px;
+  background: var(--accent)
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23fffaf2' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m5 12 5 5 9-10'/%3E%3C/svg%3E")
+    no-repeat center / 14px;
+}
+
+.thumbTitle {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  font-size: 0.76rem;
+  line-height: 1.3;
+  color: var(--ink-soft);
+}
+
+.selected .thumbTitle {
+  color: var(--ink);
+  font-weight: 600;
+}
+
+.year {
+  color: var(--muted);
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+}
+
+.thumbSkeleton {
+  aspect-ratio: 2 / 3;
+}
+
+.urlRow {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  font-size: 0.82rem;
+  color: var(--muted);
+}
+
+.urlRow span {
+  flex-shrink: 0;
+}
+
+.urlRow input {
+  flex: 1;
+  min-width: 0;
+  height: 36px;
+  padding: 0 0.7rem;
+  background: var(--paper);
+  border: 1.5px solid var(--line-soft);
+  border-radius: 2px;
+  font-size: 0.85rem;
+  transition:
+    border-color 0.12s ease,
+    box-shadow 0.12s ease;
+}
+
+.urlRow input::placeholder {
+  color: var(--muted);
+  opacity: 0.8;
+}
+
+.urlRow input:focus {
+  outline: none;
+  border-color: var(--line);
+  box-shadow: 3px 3px 0 var(--accent);
+}
+
+.credit {
+  font-size: 0.72rem;
+  color: var(--muted);
+}
+
+.credit a {
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}

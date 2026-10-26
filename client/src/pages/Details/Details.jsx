@@ -1,148 +1,206 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import styles from "./Details.module.css";
-import { useState } from "react";
-import { useNavigate, useParams } from "react-router";
-import Rating from "@mui/material/Rating";
-import Button from "@mui/material/Button";
+import { NavLink, useNavigate, useParams } from "react-router";
+import StarRating from "../../components/starRating/StarRating";
+import { apiFetch, FALLBACK_COVER } from "../../lib/api";
 
 export default function Details() {
-  const [mangaData, setMangaData] = useState({});
+  const [mangaData, setMangaData] = useState(null);
+  const [loadError, setLoadError] = useState(false);
   const { id } = useParams();
-  const [mangaStatus, setMangaStatus] = useState(null);
-  const [mangaRating, setMangaRating] = useState(null);
+  const [mangaStatus, setMangaStatus] = useState(false);
+  const [mangaRating, setMangaRating] = useState(0);
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  const [busy, setBusy] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
-    window.scrollTo(0, 0);
     async function getManga() {
-      const response = await fetch(
-        `${import.meta.env.VITE_API_URL}/details/${id}`,
-        { credentials: "include" },
-      );
-      if (!response.ok) {
-        throw new Error(
-          "Error: Failed to get the requested data. Make sure to sign in before attempting to view manga details",
-        );
+      try {
+        const response = await apiFetch(`/details/${id}`);
+        if (!response.ok) throw new Error(response.statusText);
+        const data = await response.json();
+        const thisManga = data.detail;
+        if (!thisManga) throw new Error("Not found");
+        setMangaData(thisManga);
+        setMangaRating(parseInt(thisManga.rating) || 0);
+        setMangaStatus(thisManga.status);
+      } catch {
+        setLoadError(true);
       }
-      const data = await response.json();
-      const thisManga = data.detail;
-      setMangaData(thisManga);
-      setMangaRating(parseInt(thisManga.rating));
-      setMangaStatus(thisManga.status);
     }
     getManga();
-  }, []);
+  }, [id]);
 
   const handleDeleteManga = async () => {
+    setBusy(true);
     try {
-      const res = await fetch(`${import.meta.env.VITE_API_URL}/details/${id}`, {
-        credentials: "include",
-        method: "DELETE",
-      });
-      if (!res.ok) throw new Error(`Failed Changing manga status`);
+      const res = await apiFetch(`/details/${id}`, { method: "DELETE" });
+      if (!res.ok) throw new Error(`Failed deleting manga`);
       navigate("/", { viewTransition: true });
     } catch (e) {
       console.error(e);
+      setBusy(false);
     }
   };
 
-  const handleStatusChnage = async () => {
+  const handleStatusChange = async () => {
+    const next = !mangaStatus;
+    // optimistic, roll back if the server says no
+    setMangaStatus(next);
     try {
-      const res = await fetch(
-        `${import.meta.env.VITE_API_URL}/details/${id}/status`,
-        {
-          method: `PATCH`,
-          credentials: "include",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ status: !mangaStatus }),
-        },
-      );
-      if (!res.ok) throw new Error(`Failed Changing manga status`);
-      setMangaStatus(!mangaStatus);
+      const res = await apiFetch(`/details/${id}/status`, {
+        method: "PATCH",
+        body: { status: next },
+      });
+      if (!res.ok) throw new Error(`Failed changing manga status`);
     } catch (e) {
-      console.log(e);
+      console.error(e);
+      setMangaStatus(!next);
     }
   };
 
-  const handleDetailsUpdate = () => {
-    navigate(`/update/${mangaData.id}`, { viewTransition: true });
-  };
-
-  const handleRatingChange = async (e) => {
-    console.log(`current rating:`, e.target.value);
+  const handleRatingChange = async (newRating) => {
+    const previous = mangaRating;
+    setMangaRating(newRating);
     try {
-      const response = await fetch(
-        `${import.meta.env.VITE_API_URL}/details/${id}/rating`,
-        {
-          method: "PATCH",
-          credentials: "include",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ newRating: e.target.value }),
-        },
-      );
-      if (response.ok) {
-        console.log("successfully changed rating");
-        setMangaRating(e.target.value);
-      }
+      const response = await apiFetch(`/details/${id}/rating`, {
+        method: "PATCH",
+        body: { newRating },
+      });
+      if (!response.ok) throw new Error(response.statusText);
     } catch (e) {
-      console.log(`failed changing manga rating, ${e.message}`);
+      console.error(`failed changing manga rating, ${e.message}`);
+      setMangaRating(previous);
     }
   };
+
+  if (loadError) {
+    return (
+      <div className={styles.errorState}>
+        <h1>Couldn't open this one.</h1>
+        <p>
+          It might have been deleted, or you might need to sign in first.
+        </p>
+        <div className={styles.errorActions}>
+          <NavLink to="/signin" className="btn btn-primary" viewTransition>
+            Sign in
+          </NavLink>
+          <NavLink to="/" className="btn btn-ghost" viewTransition>
+            Back to the shelf
+          </NavLink>
+        </div>
+      </div>
+    );
+  }
+
+  if (!mangaData) return <DetailsSkeleton />;
+
+  const cover = mangaData.image || FALLBACK_COVER;
+  const genre =
+    mangaData.genre && mangaData.genre !== "unlabled" ? mangaData.genre : null;
 
   return (
-    <div className={styles.container}>
-      <div className={styles.containerBox}>
-        <div className={styles.titleBookmark}>
-          <h1>{mangaData.name}</h1>
+    <div className="fade-in">
+      <NavLink to="/" className={styles.backLink} viewTransition>
+        ← back to the shelf
+      </NavLink>
+
+      <section className={styles.previewDesc}>
+        <div className={styles.mangaPreview}>
+          <img src={cover} alt={mangaData.name} />
+          {mangaStatus && <span className={styles.stamp}>Done</span>}
         </div>
 
-        <section className={styles.previewDesc}>
-          <div className={styles.mangaPreview}>
-            <img
-              src={
-                mangaData.image ||
-                "https://images.penguinrandomhouse.com/cover/9781569319003"
-              }
-              alt={mangaData.name}
+        <div className={styles.mangaDetailContainer}>
+          <p className={styles.kicker}>
+            {genre ?? "No genre"} · {mangaStatus ? "finished" : "reading"}
+          </p>
+          <h1 className={styles.title}>{mangaData.name}</h1>
+
+          <p className={styles.progress}>
+            {mangaStatus ? (
+              <>Read all the way through.</>
+            ) : (
+              <>
+                You're on <span>chapter {mangaData.bookmark}</span>
+              </>
+            )}
+          </p>
+
+          <div className={styles.rating}>
+            <span className={styles.label}>
+              {mangaRating ? "Your rating" : "Rate it"}
+            </span>
+            <StarRating
+              value={mangaRating}
+              size="lg"
+              onChange={handleRatingChange}
             />
-            <div className={styles.mangaStatus}>
-              Manga Status:{" "}
-              <button onClick={handleStatusChnage}>
-                {mangaStatus ? "Finished" : "Not Finished"}
-              </button>
-            </div>
           </div>
 
-          <div className={styles.mangaDetailContainer}>
-            {mangaStatus ? (
-              <h2>Finished</h2>
+          {mangaData.description && (
+            <blockquote className={styles.description}>
+              <span className={styles.label}>Your notes</span>
+              <p>{mangaData.description}</p>
+            </blockquote>
+          )}
+
+          <div className={styles.updateContainer}>
+            <button
+              className="btn btn-primary"
+              onClick={() =>
+                navigate(`/update/${mangaData.id}`, { viewTransition: true })
+              }
+            >
+              Edit
+            </button>
+            <button className="btn btn-secondary" onClick={handleStatusChange}>
+              {mangaStatus ? "Mark as reading" : "Mark as finished"}
+            </button>
+
+            {confirmDelete ? (
+              <span className={styles.confirm} role="alert">
+                Really delete it?
+                <button
+                  className={styles.confirmYes}
+                  onClick={handleDeleteManga}
+                  disabled={busy}
+                >
+                  {busy ? "deleting…" : "yes, delete"}
+                </button>
+                <button
+                  className={styles.confirmNo}
+                  onClick={() => setConfirmDelete(false)}
+                  disabled={busy}
+                >
+                  keep it
+                </button>
+              </span>
             ) : (
-              <h2>Bookmark: Chapter {mangaData.bookmark}</h2>
-            )}
-            <Rating
-              value={mangaRating}
-              size="large"
-              name="rating"
-              onChange={(e) => handleRatingChange(e)}
-            />
-            {mangaData.genre && (
-              <div className={styles.mangaGenre}>
-                <p>
-                  <b>Genre:</b> {mangaData.genre}
-                </p>
-              </div>
-            )}
-            <p>{mangaData.description}</p>
-            <div className={styles.updateContainer}>
-              <Button variant="contained" onClick={handleDeleteManga}>
+              <button
+                className={`btn btn-ghost ${styles.deleteBtn}`}
+                onClick={() => setConfirmDelete(true)}
+              >
                 Delete
-              </Button>
-              <Button variant="contained" onClick={handleDetailsUpdate}>
-                Update
-              </Button>
-            </div>
+              </button>
+            )}
           </div>
-        </section>
+        </div>
+      </section>
+    </div>
+  );
+}
+
+function DetailsSkeleton() {
+  return (
+    <div className={styles.previewDesc} aria-busy="true" aria-label="Loading">
+      <div className={`skeleton ${styles.skeletonCover}`} />
+      <div className={styles.mangaDetailContainer}>
+        <div className="skeleton" style={{ width: 140, height: 16 }} />
+        <div className="skeleton" style={{ width: "70%", height: 52 }} />
+        <div className="skeleton" style={{ width: "45%", height: 28 }} />
+        <div className="skeleton" style={{ width: "100%", height: 110 }} />
       </div>
     </div>
   );

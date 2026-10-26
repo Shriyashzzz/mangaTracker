@@ -4,8 +4,30 @@
     <meta charset="UTF-8" />
     <link rel="icon" href="./appIcon.png" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="description"
+      content="Track every manga you're reading, the chapter you left off, and how much you loved it."
+    />
+    <meta name="theme-color" content="#f3eee2" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#16140f" media="(prefers-color-scheme: dark)" />
     <title>Manga Tracker</title>
-    <meta name="viewport" content="initial-scale=1, width=device-width" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Bangers&family=Caveat:wght@500&family=Comic+Neue:wght@700&family=Fraunces:ital,opsz,wght@0,9..144,400..700;1,9..144,400..700&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap"
+      rel="stylesheet"
+    />
+    <script>
+      // apply the saved theme before first paint so there is no flash
+      try {
+        const saved = localStorage.getItem("theme");
+        if (saved === "light" || saved === "dark") {
+          document.documentElement.dataset.theme = saved;
+        }
+      } catch {
+        /* storage unavailable, fall back to system preference */
+      }
+    </script>
   </head>
   <body>
     <div id="root"></div>

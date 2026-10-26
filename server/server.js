@@ -1,5 +1,4 @@
 import express from "express";
-import path from "node:path";
 import cors from "cors";
 import session from "express-session";
 import mangaRouter from "./routes/managaRouter.js";
@@ -33,7 +32,8 @@ app.use(
       maxAge: 1000 * 60 * 60 * 24 * 7,
       secure: process.env.ENV === "PROD",
       sameSite: process.env.ENV === "PROD" ? "none" : "lax",
-      domain: ".mangatracker.xyz",
+      // only scope to the real domain in prod, browsers drop it on localhost
+      domain: process.env.ENV === "PROD" ? ".mangatracker.xyz" : undefined,
     },
     store: new (connectPgSimple(session))({
       pool: pool,

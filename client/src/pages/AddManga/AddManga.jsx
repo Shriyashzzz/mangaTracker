@@ -1,169 +1,224 @@
-import { useNavigate } from "react-router";
-import styles from "./AddManga.module.css";
-import { useRef, useState } from "react";
-import Button from "@mui/material/Button";
-import { useEffect } from "react";
+import { NavLink, useNavigate } from "react-router";
+import styles from "../../styles/Form.module.css";
+import { useState } from "react";
+import { apiFetch } from "../../lib/api";
+import { GENRES } from "../../lib/genres";
+import CoverPicker from "../../components/coverPicker/CoverPicker";
+
+const DESC_MAX = 450;
+
 export function AddManga() {
   const navigate = useNavigate();
-  const [status, setStatus] = useState(false);
-  const statusRef = useRef(false);
-  const formRef = useRef(null);
+  const [isFinished, setIsFinished] = useState(false);
+  const [title, setTitle] = useState("");
+  const [image, setImage] = useState("");
+  const [imageBroken, setImageBroken] = useState(false);
+  const [description, setDescription] = useState("");
   const [validationError, setValidationError] = useState([]);
-
-  useEffect(() => {
-    window.scrollTo(0, 0);
-  });
-  const handleStatusChange = () => {
-    if (statusRef.current.value === "true") {
-      setStatus(true);
-    } else {
-      setStatus(false);
-    }
-  };
+  const [submitting, setSubmitting] = useState(false);
 
   const handleFormSubmit = async (e) => {
     e.preventDefault();
     setValidationError([]);
-    const { name, description, image, status, genre, bookmark } =
-      formRef.current;
-    let sendReq = {
-      name: name.value,
-      description: description.value,
-      image: image.value,
-      genre: genre.value,
-      status: status.value,
+    const form = new FormData(e.currentTarget);
+    const sendReq = {
+      name: title,
+      description,
+      image,
+      genre: form.get("genre"),
+      status: String(isFinished),
     };
-    if (status.value === "false") {
-      sendReq = {
-        name: name.value,
-        description: description.value,
-        image: image.value,
-        status: status.value,
-        genre: genre.value,
-        bookmark: bookmark.value,
-      };
-    }
+    if (!isFinished) sendReq.bookmark = form.get("bookmark");
+
+    setSubmitting(true);
     try {
-      const resposne = await fetch(`${import.meta.env.VITE_API_URL}/add`, {
-        method: "POST",
-        credentials: "include",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(sendReq),
-      });
-      const data = await resposne.json();
+      const response = await apiFetch("/add", { method: "POST", body: sendReq });
+      const data = await response.json();
       if (data.error.length != 0) {
-        await setValidationError(data.error);
+        setValidationError(data.error);
       } else {
-        setValidationError([]);
-        navigate(`/details/${data.id}`);
+        navigate(`/details/${data.id}`, { viewTransition: true });
       }
-    } catch (e) {
-      throw Error(e.msg);
+    } catch {
+      setValidationError([
+        { msg: "Couldn't reach the server. Are you signed in?" },
+      ]);
+    } finally {
+      setSubmitting(false);
     }
   };
+
+  const showImage = image && !imageBroken;
+
   return (
-    <div className={styles.container}>
-      <form ref={formRef} onSubmit={(e) => handleFormSubmit(e)}>
-        <h2 className={styles.formTitle}>Add Manga</h2>
+    <div className={`${styles.page} fade-in`}>
+      <NavLink to="/" className={styles.backLink} viewTransition>
+        ← back to the shelf
+      </NavLink>
+      <h1 className={styles.formTitle}>New entry</h1>
+      <p className={styles.formSub}>
+        What are you reading? Write down where you are and I'll hold the page.
+      </p>
 
-        <label htmlFor="name">
-          Title <b>*</b>
-        </label>
-        <input
-          id="name"
-          name="name"
-          type="text"
-          placeholder="e.g. Berserk"
-          required
-        />
-
-        <label htmlFor="description">Description (optional) </label>
-        <textarea
-          id="description"
-          name="description"
-          placeholder="Your thoughts on the Manga…"
-        />
-
-        <label htmlFor="image">Cover Image URL (optional)</label>
-        <input
-          id="image"
-          name="image"
-          type="url"
-          placeholder="https://example.com/cover.jpg"
-        />
-        <label htmlFor="genre">Genre (optional)</label>
-        <select name="genre" id="genre">
-          <option value="unlabled">-- Select a Genre --</option>
-          <option value="Action">Action</option>
-          <option value="Adventure">Adventure</option>
-          <option value="Dark Fantasy">Dark Fantasy</option>
-          <option value="Magical Girl">Magical Girl</option>
-          <option value="Psychological Thriller">Psychological Thriller</option>
-          <option value="Steampunk">Steampunk</option>
-          <option value="Superhero">Superhero</option>
-          <option value="Supernatural">Supernatural</option>
-
-          <option value="Comedy">Comedy</option>
-          <option value="Cyberpunk">Cyberpunk</option>
-          <option value="Drama">Drama</option>
-          <option value="Dystopian">Dystopian</option>
-          <option value="Ecchi">Ecchi</option>
-          <option value="Fantasy">Fantasy</option>
-          <option value="Gourmet">Gourmet (Cooking)</option>
-          <option value="Harem">Harem</option>
-          <option value="Historical">Historical</option>
-          <option value="Horror">Horror</option>
-          <option value="Isekai">Isekai</option>
-          <option value="Mecha">Mecha (Robots)</option>
-          <option value="Military">Military</option>
-          <option value="Mystery">Mystery</option>
-          <option value="Post-Apocalyptic">Post-Apocalyptic</option>
-          <option value="Romance">Romance</option>
-          <option value="Sci-Fi">Sci-Fi</option>
-          <option value="Slice of Life">Slice of Life</option>
-          <option value="Sports">Sports</option>
-          <option value="Suspense">Suspense</option>
-          <option value="Thriller">Thriller</option>
-        </select>
-
-        <label htmlFor="status">
-          Status <b>*</b>
-        </label>
-        <select
-          ref={statusRef}
-          id="status"
-          name="status"
-          onChange={handleStatusChange}
-          required
-        >
-          <option value="false">Ongoing</option>
-          <option value="true">Finished</option>
-        </select>
-        {!status && (
-          <>
-            {" "}
-            <label htmlFor="name">Bookmark</label>
+      <div className={styles.layout}>
+        <form className={styles.card} onSubmit={handleFormSubmit}>
+          <div className={styles.field}>
+            <label htmlFor="name">
+              Title <b>*</b>
+            </label>
             <input
-              id="bookmark"
-              name="bookmark"
-              type="number"
-              placeholder="e.g. 1073"
+              className={styles.input}
+              id="name"
+              name="name"
+              type="text"
+              placeholder="e.g. Berserk"
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              minLength={3}
+              maxLength={150}
               required
+              autoFocus
             />
-          </>
-        )}
-        <div className={styles.errorList}>
-          {validationError.length != 0 &&
-            validationError.map((e) => {
-              return <li key={e.msg}>{e.msg}</li>;
-            })}
-        </div>
-        <div className={styles.btnContainer}>
-          <Button type="submit">Add to Library</Button>
-        </div>
-      </form>
+          </div>
+
+          <div className={styles.field}>
+            <span className={styles.fieldLabel}>
+              Status <b>*</b>
+            </span>
+            <div className={styles.segmented}>
+              <input
+                type="radio"
+                id="status-ongoing"
+                name="status"
+                checked={!isFinished}
+                onChange={() => setIsFinished(false)}
+              />
+              <label htmlFor="status-ongoing">
+                Still reading
+              </label>
+              <input
+                type="radio"
+                id="status-finished"
+                name="status"
+                checked={isFinished}
+                onChange={() => setIsFinished(true)}
+              />
+              <label htmlFor="status-finished">
+                Finished it
+              </label>
+            </div>
+          </div>
+
+          <div className={styles.row}>
+            {!isFinished && (
+              <div className={styles.field}>
+                <label htmlFor="bookmark">
+                  Current chapter <b>*</b>
+                </label>
+                <input
+                  className={styles.input}
+                  id="bookmark"
+                  name="bookmark"
+                  type="number"
+                  min="0"
+                  step="any"
+                  placeholder="e.g. 1073"
+                  required
+                />
+              </div>
+            )}
+            <div className={styles.field}>
+              <label htmlFor="genre">
+                Genre <span className={styles.optional}>(optional)</span>
+              </label>
+              <select
+                className={styles.input}
+                name="genre"
+                id="genre"
+                defaultValue=""
+              >
+                <option value="">Select a genre</option>
+                {GENRES.map((g) => (
+                  <option key={g.value} value={g.value}>
+                    {g.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          <CoverPicker
+            title={title}
+            value={image}
+            onChange={(url) => {
+              setImage(url);
+              setImageBroken(false);
+            }}
+          />
+
+          <div className={styles.field}>
+            <label htmlFor="description">
+              Notes <span className={styles.optional}>(optional)</span>
+            </label>
+            <textarea
+              className={styles.input}
+              id="description"
+              name="description"
+              placeholder="Your thoughts on the manga…"
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              maxLength={DESC_MAX}
+            />
+            <div className={styles.hintRow}>
+              <span>At least 10 characters if you add notes</span>
+              <span>
+                {description.length}/{DESC_MAX}
+              </span>
+            </div>
+          </div>
+
+          {validationError.length != 0 && (
+            <ul className={styles.errorList} role="alert">
+              {validationError.map((e) => (
+                <li key={e.msg}>{e.msg}</li>
+              ))}
+            </ul>
+          )}
+
+          <div className={styles.btnContainer}>
+            <NavLink to="/" className="btn btn-ghost" viewTransition>
+              Cancel
+            </NavLink>
+            <button
+              type="submit"
+              className="btn btn-primary"
+              disabled={submitting}
+            >
+              {submitting ? "Adding…" : "Put it on the shelf"}
+            </button>
+          </div>
+        </form>
+
+        <aside className={styles.preview} aria-hidden>
+          <span className={styles.previewLabel}>how it'll look →</span>
+          <div
+            className={`${styles.previewCover} ${
+              showImage ? styles.hasImage : ""
+            }`}
+          >
+            {showImage ? (
+              <img src={image} alt="" onError={() => setImageBroken(true)} />
+            ) : imageBroken ? (
+              "hm, that link isn't loading as an image"
+            ) : (
+              "type a title and pick a cover"
+            )}
+          </div>
+          <span className={styles.previewTitle}>
+            {title || "untitled"}
+          </span>
+        </aside>
+      </div>
     </div>
   );
 }

@@ -18,6 +18,8 @@ const validationChain = [
     .isNumeric()
     .withMessage(`Bookmark has to be Numeric luv!`),
   body("status").notEmpty(),
+  // matchedData only returns validated fields, so genre needs a rule to be saved
+  body("genre").optional({ values: "falsy" }).trim(),
   body("description")
     .trim()
     .optional({ values: "falsy" })

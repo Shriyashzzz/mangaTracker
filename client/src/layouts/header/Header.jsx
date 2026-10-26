@@ -1,54 +1,54 @@
 import styles from "./Header.module.css";
 import appIcon from "../../assets/appIcon.png";
 import { NavLink, useNavigate } from "react-router";
-import { useEffect } from "react";
+import ThemeToggle from "../../components/themeToggle/ThemeToggle";
+import { apiFetch } from "../../lib/api";
 
 export default function Header({ isSignedIn, setIsSignedIn }) {
   const navigator = useNavigate();
 
   const sendLogOutSignal = async () => {
-    const response = await fetch(`${import.meta.env.VITE_API_URL}/logout`, {
-      credentials: "include",
-      method: "GET",
-    });
+    const response = await apiFetch("/logout");
     if (response.status == 200) {
       setIsSignedIn(false);
-      navigator("/");
+      navigator("/", { viewTransition: true });
     } else {
       setIsSignedIn(true);
     }
   };
 
-  return (
-    <>
-      <header className={styles.head}>
-        <NavLink className={styles.appName} to="/" viewTransition>
-          <img src={appIcon} alt="" /> <h2>Manga Tracker</h2>
-        </NavLink>
-        <ul>
-          <li>
-            {" "}
-            <NavLink to="/" viewTransition>
-              <button>Home</button>
-            </NavLink>
-          </li>
-          <li>
-            <NavLink to="/about" viewTransition>
-              <button>About</button>
-            </NavLink>
-          </li>
+  const navClass = ({ isActive }) =>
+    isActive ? `${styles.navLink} ${styles.active}` : styles.navLink;
 
-          <li>
-            {isSignedIn ? (
-              <button onClick={sendLogOutSignal}>Log out</button>
-            ) : (
-              <NavLink to="/signin" viewTransition>
-                <button>Sign in</button>
-              </NavLink>
-            )}
-          </li>
-        </ul>
-      </header>
-    </>
+  return (
+    <header className={styles.head}>
+      <div className={styles.inner}>
+        <NavLink className={styles.appName} to="/" viewTransition>
+          <img src={appIcon} alt="" />
+          <span>Manga Tracker</span>
+        </NavLink>
+
+        <nav className={styles.nav} aria-label="Main">
+          <NavLink to="/" end className={navClass} viewTransition>
+            {isSignedIn ? "Shelf" : "Home"}
+          </NavLink>
+          <NavLink to="/about" className={navClass} viewTransition>
+            About
+          </NavLink>
+          {isSignedIn === false && (
+            <NavLink to="/signin" className={navClass} viewTransition>
+              Sign in
+            </NavLink>
+          )}
+          {isSignedIn && (
+            <button className={styles.navLink} onClick={sendLogOutSignal}>
+              Log out
+            </button>
+          )}
+        </nav>
+
+        <ThemeToggle />
+      </div>
+    </header>
   );
 }
