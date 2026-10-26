@@ -1,159 +1,195 @@
 # Manga Tracker
 
-**Your personal manga shelf, now with price comparison.**
+**Track what you read. Find what to buy next.**
 
-Manga Tracker started as a simple solution to a familiar problem: keeping track of where you left off across multiple manga series. It has since grown into something bigger — a place to organize your reading collection and find better prices on physical manga volumes.
+Manga Tracker is a reading shelf and a US price checker for physical manga, in one app. Keep your place in every series you read, record the volumes you own, and see what stores charge for the next one without opening ten tabs.
 
-The goal is to bring two things together: **tracking what you read and finding what to buy next.**
+**Live:** [mangatracker.xyz](https://mangatracker.xyz/) · **Code:** [github.com/Shriyashzzz/mangaTracker](https://github.com/Shriyashzzz/mangaTracker)
 
-**Live app:** [mangatracker.xyz](https://mangatracker.xyz/)  
-**Source code:** [GitHub](https://github.com/Shriyashzzz/mangaTracker)
+> **Status: early.** The shelf is solid. Price coverage is the work in progress: prices come from a few sources today, and price history is still thin while data builds up.
 
-> **Status:** Early development. The reading tracker is the foundation, while price comparison, historical pricing, and retailer coverage are being expanded.
+## What it does
 
-## Features
+### Your shelf
 
-### Personal Manga Shelf
+- **Chapter bookmarks:** save the chapter you're on and pick up where you left off.
+- **Volumes you own:** optionally record "own up to Vol. 14". Chapters say where you are in the story; volumes say what's on your physical shelf. The app never guesses one from the other.
+- **Status and ratings:** reading or finished, rated out of 5 stars.
+- **Search, filter and sort** across your whole collection.
+- **Prices on the shelf:** each card shows the lowest price we've seen for that series, and a manga's page shows the next volume you need with its price.
+- **Your account, any device:** sign in and your shelf, theme and background follow you.
 
-Keep your reading collection organized in one place.
+### Price checker
 
-- **Chapter bookmarks:** Save your reading progress and pick up where you left off.
-- **Reading status:** Track ongoing and completed series.
-- **Ratings:** Rate manga on a 0–5 star scale.
-- **Filtering and sorting:** Organize your collection by status, rating, chapters, and more.
-- **Private collection:** Your saved manga belongs to your account.
-- **Cross-device access:** Sign in to access your collection across devices.
+- **Series search** with English titles from AniList, as you type.
+- **Series pages** listing every English volume, with known prices.
+- **Volume pages** with:
+  - live prices from the stores we check, cheapest first;
+  - "Lowest price" and "Lowest new print" badges, each claiming only what it says;
+  - links to search Amazon, Barnes & Noble, Bookshop.org, Walmart, eBay and Books-A-Million for that exact ISBN;
+  - price history: all-time low and high with dates, average, median and how often the price changed.
+- **A shelf-aware button:** add the series to your shelf, or mark "I own Vol. 15" in one tap, with undo.
+- **The price home:** popular series this season, recent deals (volumes cheaper than their own average) and recently checked volumes.
+- **An A to Z series index** at `/series`, with a genre filter.
 
-### Manga Price Comparison
+### Made for manga readers
 
-The next major addition is a price comparison tool for physical manga volumes in the US.
+- A manga visual style: comic lettering, inked panels, screentone and an original mascot.
+- Light and dark themes, plus four page backgrounds to choose from.
+- Works on phones down to iPhone SE width.
+- Shared links preview properly in Discord, iMessage and X, with the volume's title, price and cover.
 
-- **Series search:** Find a manga and browse its English volumes.
-- **Price discovery:** Aggregate listings from multiple sources to give readers more purchasing options.
-- **Retailer comparison:** Find competitive prices without manually checking every store.
-- **Price history:** Build historical records from saved price snapshots.
-- **Historical statistics:** Work toward showing each volume's historical low, high, average, and median.
+## How prices work
 
-Price coverage and catalog matching are still being developed. Not every retailer or volume will necessarily have complete or current pricing.
+No single source has every US volume and every price, so the app combines several:
 
-## Data Sources
+| Source                                              | What it gives us                                 | Status                 |
+| --------------------------------------------------- | ------------------------------------------------ | ---------------------- |
+| [AniList](https://anilist.co/)                      | Series names, covers, scores, genres, popularity | Live, free             |
+| [Open Library](https://openlibrary.org/)            | Every US edition and its ISBN, edition covers    | Live, free             |
+| [SerpApi](https://serpapi.com/) Google Shopping     | Prices from many stores in one search            | Live, monthly budget   |
+| [Google Books](https://developers.google.com/books) | Ebook prices from Google Play Books              | Needs an API key       |
+| [eBay Browse API](https://developer.ebay.com/)      | New and used listings by ISBN                    | Built, waiting on keys |
+| Walmart (walmart.io)                                | Walmart.com listings                             | Built, untested        |
+| [Keepa](https://keepa.com/)                         | Amazon prices                                    | Built, untested (paid) |
 
-No single source provides all the metadata and pricing information needed for a reliable manga price comparison tool. Manga Tracker combines multiple sources to help fill those gaps.
+Each price source switches on when its keys are set, and is skipped otherwise.
 
-| Source                                            | Purpose                                  |
-| ------------------------------------------------- | ---------------------------------------- |
-| [AniList](https://anilist.co/)                    | Manga metadata                           |
-| [Open Library](https://openlibrary.org/)          | Book metadata and cover information      |
-| [SerpApi](https://serpapi.com/) — Google Shopping | Product and price discovery              |
-| [Google Books](https://books.google.com/)         | Book listings and ebook information      |
-| [eBay](https://www.ebay.com/)                     | Marketplace listings and price discovery |
+- **Prices are refreshed when a volume is opened,** at most every 6 hours, and every check is saved. Price history comes from those saved checks.
+- **Paid searches are budgeted** (`SERPAPI_MONTHLY_LIMIT`, 250 by default), and search engines crawling the site never trigger one.
+- **"Lowest" means lowest among the stores we check,** and the site says so. It isn't a promise of the cheapest price anywhere.
 
-Retailers being integrated into the purchasing workflow include:
+## Tech stack
 
-- [Amazon](https://www.amazon.com/)
-- [Barnes & Noble](https://www.barnesandnoble.com/)
-- [Bookshop.org](https://bookshop.org/)
-- [Walmart](https://www.walmart.com/)
-- [eBay](https://www.ebay.com/)
-- [Books-A-Million](https://www.booksamillion.com/)
+| Layer       | Technology                                                      |
+| ----------- | --------------------------------------------------------------- |
+| Frontend    | React 19, React Router, Vite, CSS Modules                       |
+| Site server | Express (serves the build and fills in link-preview tags)       |
+| API         | Node.js, Express 5, express-validator                           |
+| Database    | PostgreSQL (`pg`, plain parameterized SQL)                      |
+| Auth        | express-session, connect-pg-simple, bcryptjs, HTTP-only cookies |
+| Hosting     | Railway (site and API as separate services)                     |
 
-Retailer availability depends on data access, API limitations, and affiliate program approvals. Not every retailer is necessarily connected through a direct integration.
+## Engineering notes
 
-## Tech Stack
+**Rate limits are the real constraint.** A burst of about 40 lookups got the server temporarily blocked by Open Library. Since then:
 
-| Layer           | Technology                             |
-| --------------- | -------------------------------------- |
-| Frontend        | React, Vite, React Router, CSS Modules |
-| Backend         | Node.js, Express                       |
-| Database        | PostgreSQL                             |
-| Authentication  | `express-session`, `bcrypt`            |
-| Session storage | `connect-pg-simple`                    |
-| Validation      | `express-validator`                    |
-| Price discovery | SerpApi, Google Books, eBay            |
-| Deployment      | Railway                                |
+- Cover lookups are **batched**: one request answers up to 40 ISBNs.
+- Lookups are **saved in Postgres**, so restarts and deploys don't start over.
+- The app **backs off** when an API says slow down.
+- The page **retries** a cover that's waiting, and falls back to the series cover from AniList, then to a drawn placeholder.
 
-### Architecture Decisions
+**Postgres does the caching.** Series info, edition covers and every price check live in the database. That's why Redis isn't needed yet: it only becomes worth adding with more than one server or background job queues.
 
-**PostgreSQL for persistence**
+**Crawlers can cost money.** Opening a volume can start a paid price search, and the sitemap invites search engines to open every volume. Crawlers are recognized by their User-Agent and only ever see stored prices.
 
-PostgreSQL stores user data, reading collections, session records, and price snapshots. Persisting price data allows the application to build historical trends without relying on a fresh paid search for every visit.
+**SEO without server-side rendering.**
 
-**Session-based authentication**
+- Every page sets its own title, description, canonical URL and structured data (Product/Book with price ranges, BookSeries, breadcrumbs).
+- The API serves a sitemap of every series and volume.
+- Volume URLs carry the title (`/prices/9781974749485/jujutsu-kaisen-vol-24`).
+- A small Express server in front of the site writes each page's preview tags into the HTML, for link previews and crawlers that don't run JavaScript.
 
-The original tracker uses server-side sessions rather than storing authentication state entirely on the client. Sessions are persisted in PostgreSQL through `connect-pg-simple`, with HTTP-only cookies used to maintain authenticated sessions.
+**Catalog matching is messy.** The same volume can appear under different titles, editions and languages. Volumes are matched by ISBN, and series by slugs of their names, so "SPY x FAMILY" on a shelf finds "Spy x Family, Vol. 15".
 
-**Multiple external data sources**
+**Sessions across two origins.** The site and API are separate services, so cookies need credentialed CORS, `SameSite=None; Secure` in production, a shared cookie domain, and Express trusting Railway's proxy.
 
-Metadata and price discovery are handled separately because different providers expose different information. Combining sources helps compensate for missing listings and incomplete catalog data.
+## Running it locally
 
-## Engineering Challenges
+You'll need Node.js 20.6 or newer (for `--env-file`) and PostgreSQL.
 
-### API Rate Limits and Data Availability
+```bash
+git clone https://github.com/Shriyashzzz/mangaTracker.git
+cd mangaTracker
+```
 
-External APIs impose rate limits, and some price discovery requests incur costs. A single provider cannot reliably supply every volume and retailer.
+**API** (`server/`): create `server/.env` with at least:
 
-The current approach is to combine data sources and persist retrieved prices. Redis caching is also planned to reduce redundant API requests, improve response times, and make better use of limited API quotas.
+```dotenv
+DATABASE_URL=postgres://user:password@localhost:5432/mangatracker
+SECRET=any-long-random-string
+CLIENT_URL=http://localhost:5173
+```
 
-### Catalog Matching
+Then:
 
-The same physical volume can appear under different titles, editions, identifiers, or language metadata. Listings can also have incomplete information or missing covers.
+```bash
+cd server
+npm install
+npm run initdb-dev      # creates the tables (first time only)
+npm run initprices-dev  # price tables (safe to run again)
+npm run migrate-dev     # newer columns and tables (safe to run again)
+npm run dev             # http://localhost:8080
+```
 
-Matching listings to the correct series and volume is essential: comparing prices only makes sense when the products being compared are actually equivalent.
+**Site** (`client/`): create `client/.env` with `VITE_API_URL=http://localhost:8080`, then:
 
-### Session Persistence and Cross-Origin Cookies
+```bash
+cd client
+npm install
+npm run dev             # http://localhost:5173
+```
 
-The frontend and backend are deployed as separate services. Getting session cookies to persist across origins required configuring credentialed CORS on the backend and including credentials in frontend requests.
+### Optional settings (`server/.env`)
 
-Production deployment also introduced differences in secure-cookie behavior behind a hosting proxy. Configuring Express to trust the proxy appropriately was necessary for secure session handling to work as expected.
+| Setting                                                             | Turns on                                                |
+| ------------------------------------------------------------------- | ------------------------------------------------------- |
+| `SERPAPI_API_KEY`, `SERPAPI_MONTHLY_LIMIT`                          | Google Shopping prices                                  |
+| `GOOGLE_BOOKS_API_KEY`                                              | Ebook prices                                            |
+| `EBAY_CLIENT_ID`, `EBAY_CLIENT_SECRET`                              | eBay listings                                           |
+| `WALMART_CONSUMER_ID`, `WALMART_KEY_VERSION`, `WALMART_PRIVATE_KEY` | Walmart listings                                        |
+| `KEEPA_API_KEY`                                                     | Amazon prices                                           |
+| `AMAZON_ASSOCIATE_TAG`, `BOOKSHOP_AFFILIATE_ID`, `EBAY_CAMPAIGN_ID` | Affiliate links                                         |
+| `WALMART_AFFILIATE=on`                                              | Marks Walmart links as affiliate (once Impact approves) |
 
-### Authentication Edge Cases
+## Deploying
 
-Building authentication manually provided a better understanding of the underlying mechanics, including password hashing, session creation, session persistence, and cookie behavior.
+The API and the site run as two Railway services:
 
-Passwords are hashed with `bcrypt`, SQL queries use parameterized statements, and request validation is handled with `express-validator`.
+| Service          | Build           | Start       | Settings                                                                       |
+| ---------------- | --------------- | ----------- | ------------------------------------------------------------------------------ |
+| API (`server/`)  | `npm install`   | `npm start` | `DATABASE_URL`, `SECRET`, `CLIENT_URL`, `ENV=PROD`, plus any optional settings |
+| Site (`client/`) | `npm run build` | `npm start` | `VITE_API_URL`                                                                 |
 
-## Design
+After a deploy that changes the database, run `npm run migrate` (and `npm run initprices` the first time) on the API.
 
-The interface is being developed around a manga-inspired visual identity:
+## Project layout
 
-- Bold, comic-style typography
-- Ink panels, screentone, and speed-line details
-- An original chibi mascot
-- Light and dark themes
-- Responsive layouts for desktop and mobile
-
-The goal is to make the experience feel designed for manga readers rather than like a generic shopping dashboard.
+```text
+client/
+  server.js            serves the build, adds link-preview tags
+  src/pages/           shelf, details, add/edit, price pages, series index
+  src/components/      cards, mascot, settings menu, backdrop, ...
+  src/lib/             API calls, prices, SEO helpers, preferences
+server/
+  server.js            Express app
+  routes/, controller/ HTTP endpoints
+  models/              SQL queries, table setup, migrations
+  prices/              catalog, covers, price providers, affiliates, caching
+```
 
 ## Roadmap
 
-- [x] Personal manga collection
-- [x] Chapter bookmarking and reading status
-- [x] Ratings, filtering, and sorting
-- [x] Session-based authentication
-- [x] PostgreSQL-backed persistence
-- [x] Initial external metadata and price sources
-- [ ] Expand English-volume coverage
-- [ ] Improve matching across inconsistent product listings
-- [ ] Expand retailer price coverage
-- [ ] Build out historical price statistics
-- [ ] Add Redis caching for frequently requested data
-- [ ] Continue expanding retailer and affiliate integrations
+- [x] Reading shelf: chapters, status, ratings, filters
+- [x] Session auth with PostgreSQL
+- [x] Price checker: series and volume pages, live prices, history
+- [x] Volumes owned, shelf prices and a shelf-aware buy button
+- [x] SEO: sitemap, structured data, readable URLs, link previews
+- [ ] eBay listings, including used copies
+- [ ] More price sources, especially Amazon
+- [ ] Price-drop alerts for volumes on your shelf
+- [ ] Richer price history as data builds up
+- [ ] TypeScript, and an ORM (Prisma or Drizzle) in place of raw SQL
 
-This roadmap reflects ongoing development; items and priorities may change as the project evolves.
+## Affiliate disclosure
 
-## Affiliate Disclosure
+Some store links are affiliate links (Amazon, Bookshop.org, eBay, and Walmart once approved). Buying through them may earn Manga Tracker a commission at no extra cost to you, which helps keep the site running. Affiliate links are marked `rel="sponsored"` and disclosed on the pages where they appear.
 
-Some retailer links may be affiliate links. If a purchase is made through an eligible link, Manga Tracker may earn a commission at no additional cost to the buyer. Affiliate availability and participation vary by retailer.
+## Why I built it
 
-## Why I Built It
+I wanted one place to keep my place in every series I read. Then I kept opening ten tabs to find the next volume at a fair price, so the price checker followed. The goal is a tool that knows both what you've read and what you own, so buying the next volume takes one look.
 
-I built Manga Tracker because I wanted a better way to keep track of the manga I read. The price comparison feature grew out of another problem: finding the right physical volume at a reasonable price without checking multiple stores manually.
-
-I'm keeping the original reading-tracker experience while expanding the project into something that helps readers both organize their shelves and decide what to add next.
-
-The project is still evolving, and there are plenty of challenges left to solve — especially around external data, rate limits, and catalog consistency.
-
-Feedback and suggestions are welcome.
+Feedback and ideas are welcome: open an issue, or tell me which stores you buy from.
 
 ---
 
