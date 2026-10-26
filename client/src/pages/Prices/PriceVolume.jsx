@@ -13,6 +13,7 @@ import SeriesFacts from "./SeriesFacts";
 import VolumeCard from "./VolumeCard";
 import styles from "./Prices.module.css";
 import Mascot from "../../components/mascot/Mascot";
+import { useOutletContext } from "react-router";
 
 // longer price lists start collapsed, like manga.london's "Show N more"
 const VISIBLE_OFFERS = 5;
@@ -28,6 +29,7 @@ const shortDate = (d) =>
 const CONDITION = { new: "New", used: "Used", marketplace: "Marketplace" };
 
 export default function PriceVolume() {
+  const [isSignedIn] = useOutletContext();
   const { isbn } = useParams();
   const [showAll, setShowAll] = useState({ isbn, open: false });
   const offersOpen = showAll.isbn === isbn && showAll.open;
@@ -292,12 +294,17 @@ export default function PriceVolume() {
 
           <div className={styles.volumeActions}>
             <NavLink
-              to={`/add?${new URLSearchParams({ title: seriesTitle(book.title) })}`}
+              to={
+                isSignedIn
+                  ? `/add?${new URLSearchParams({ title: seriesTitle(book.title) })}`
+                  : `/signin`
+              }
               className="btn btn-primary"
               viewTransition
             >
               Add to my shelf
             </NavLink>
+
             <NavLink
               to={seriesPath(series.name)}
               className="btn btn-ghost"
