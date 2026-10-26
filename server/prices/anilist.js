@@ -153,6 +153,11 @@ const ENGLISH_NAME_QUERY = `
 `;
 const englishNames = new Map();
 
+// translation lookups that failed for a passing reason (rate limit, outage).
+// Anything built while this number went up may be missing volumes
+let translationFailures = 0;
+export const translationFailureCount = () => translationFailures;
+
 // official English name for a Japanese series title ("葬送のフリーレン" ->
 // "Frieren: Beyond Journey's End"), or null. Cached for the server's life
 export function englishSeriesName(japanese) {
@@ -166,6 +171,7 @@ export function englishSeriesName(japanese) {
       // Anything else (rate limit, outage) is forgotten so it's tried again
       if (/responded 404/.test(e.message)) return null;
       console.error("AniList name lookup failed:", e.message);
+      translationFailures += 1;
       englishNames.delete(japanese);
       return null;
     });

@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { NavLink, useParams, useSearchParams } from "react-router";
-import { getSeries } from "../../lib/prices";
+import { coverSrc, getSeries } from "../../lib/prices";
 import VolumeCard from "./VolumeCard";
 import SeriesFacts from "./SeriesFacts";
 import RangePager from "../../components/rangePager/RangePager";
@@ -15,6 +15,9 @@ export default function PriceSeries() {
   // the link carries the real name; a bare slug still works as a search
   const name = params.get("name") ?? slug.replace(/-/g, " ");
   const [state, setState] = useState({ name: null, data: null, error: "" });
+  // bumping this asks the server again ("Try again")
+  const [attempt, setAttempt] = useState(0);
+  const key = `${name}|${attempt}`;
   // which block of volumes is showing; resets when the series changes
   const [page, setPage] = useState({ name, index: 0 });
   const pageIndex = page.name === name ? page.index : 0;
@@ -22,16 +25,18 @@ export default function PriceSeries() {
   useEffect(() => {
     const controller = new AbortController();
     getSeries(name, controller.signal)
-      .then((data) => setState({ name, data, error: "" }))
+      .then((data) => setState({ name: key, data, error: "" }))
       .catch((e) => {
         if (e.name !== "AbortError") {
-          setState({ name, data: null, error: e.message });
+          setState({ name: key, data: null, error: e.message });
         }
       });
     return () => controller.abort();
-  }, [name]);
+  }, [name, key]);
 
-  if (state.name !== name) {
+  const retry = () => setAttempt((a) => a + 1);
+
+  if (state.name !== key) {
     return (
       <div className={styles.page} aria-busy="true" aria-label="Loading">
         <div className="skeleton" style={{ height: 220 }} />
@@ -52,14 +57,19 @@ export default function PriceSeries() {
         </span>
         <p className={styles.emptyTitle}>Couldn't open this series.</p>
         <p>{state.error}</p>
-        <NavLink to="/" className="btn btn-secondary" viewTransition>
-          Back to price check
-        </NavLink>
+        <div className={styles.emptyActions}>
+          <button type="button" className="btn btn-primary" onClick={retry}>
+            Try again
+          </button>
+          <NavLink to="/" className="btn btn-ghost" viewTransition>
+            Back to price check
+          </NavLink>
+        </div>
       </div>
     );
   }
 
-  const { info, volumes } = state.data;
+  const { info, volumes, incomplete } = state.data;
   const priced = volumes.filter((v) => v.knownPriceCents != null).length;
   // ranges go by volume number, so gaps in the catalog don't skew them
   const lastNumber = Math.max(
@@ -91,8 +101,23 @@ export default function PriceSeries() {
       </nav>
 
       <header className={styles.seriesHead}>
-        {info?.coverUrl && (
-          <img className={styles.seriesCover} src={info.coverUrl} alt="" />
+        {/* the US edition's first volume; AniList's cover is the Japanese one */}
+        {(volumes[0]?.coverUrl || info?.coverUrl) && (
+          <img
+            className={styles.seriesCover}
+            src={
+              volumes[0]?.coverUrl
+                ? coverSrc(volumes[0].coverUrl)
+                : info.coverUrl
+            }
+            alt=""
+            onError={(e) => {
+              // no US cover on file: fall back to AniList's
+              if (info?.coverUrl && e.currentTarget.src !== info.coverUrl) {
+                e.currentTarget.src = info.coverUrl;
+              }
+            }}
+          />
         )}
         <div className={styles.seriesCopy}>
           <h1 className={styles.volumeTitle}>
@@ -107,10 +132,12 @@ export default function PriceSeries() {
           <h2 id="volumes-title" className={styles.sectionTitle}>
             Volumes
           </h2>
-          <span className={styles.checked}>
-            {volumes.length} in English
-            {priced > 0 && ` · ${priced} with prices`}
-          </span>
+          {volumes.length > 0 && (
+            <span className={styles.checked}>
+              {volumes.length} in English
+              {priced > 0 && ` · ${priced} with prices`}
+            </span>
+          )}
         </div>
         <RangePager
           total={lastNumber}
@@ -140,10 +167,28 @@ export default function PriceSeries() {
               </li>
             ))}
           </ul>
+        ) : incomplete ? (
+          <div className={styles.note} role="alert">
+            <p>
+              The book catalog is slow to answer right now, so volumes didn't
+              load. It usually works on the next try.
+            </p>
+            <button type="button" className="btn btn-secondary" onClick={retry}>
+              Try again
+            </button>
+          </div>
         ) : (
           <p className={styles.note}>
             We couldn't find English volumes for this series yet. Try searching
             a volume by name or ISBN.
+          </p>
+        )}
+        {incomplete && volumes.length > 0 && (
+          <p className={styles.checked} role="status">
+            Some volumes may be missing: the book catalog was slow to answer.{" "}
+            <button type="button" className={styles.textBtn} onClick={retry}>
+              Try again
+            </button>
           </p>
         )}
       </section>
