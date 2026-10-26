@@ -112,6 +112,15 @@ export default function PriceVolume() {
   const best = offers.find(
     (o) => o.condition === "new" && o.format === "print",
   );
+  // "Lowest price" goes on the cheapest printed copy of any condition (new,
+  // used or marketplace); ebooks aren't the same thing, so they don't
+  // compete. The cheapest new copy keeps its own badge when it's a different
+  // listing, since the headline price is about it. Offers are sorted cheapest
+  // first
+  const badges = new Map();
+  if (best) badges.set(best, "Lowest new print");
+  const lowest = offers.find((o) => o.format === "print" && o.inStock);
+  if (lowest) badges.set(lowest, "Lowest price");
 
   return (
     <div className="fade-in">
@@ -195,13 +204,15 @@ export default function PriceVolume() {
                 {shownOffers.map((o) => (
                   <li
                     key={`${o.store}-${o.format}-${o.condition}`}
-                    className={o === best ? styles.bestOffer : ""}
+                    className={badges.has(o) ? styles.bestOffer : ""}
                   >
                     <span className={styles.offerStore}>
                       <span>
                         {o.store}
-                        {o === best && (
-                          <span className={styles.bestTag}>Lowest here</span>
+                        {badges.has(o) && (
+                          <span className={styles.bestTag}>
+                            {badges.get(o)}
+                          </span>
                         )}
                       </span>
                       <span className={styles.offerTags}>
