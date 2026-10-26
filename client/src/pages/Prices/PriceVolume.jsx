@@ -58,7 +58,7 @@ export default function PriceVolume() {
       <div className={styles.empty} role="alert">
         <p className={styles.emptyTitle}>Couldn't open this volume.</p>
         <p>{state.error}</p>
-        <NavLink to="/prices" className="btn btn-secondary" viewTransition>
+        <NavLink to="/" className="btn btn-secondary" viewTransition>
           Back to price check
         </NavLink>
       </div>
@@ -91,7 +91,7 @@ export default function PriceVolume() {
   return (
     <div className="fade-in">
       <nav className={styles.crumbs} aria-label="Breadcrumb">
-        <NavLink to="/prices" viewTransition>
+        <NavLink to="/" viewTransition>
           Price check
         </NavLink>
         <span aria-hidden>/</span>

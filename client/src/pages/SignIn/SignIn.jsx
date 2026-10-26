@@ -34,7 +34,7 @@ export default function SignInPage() {
 
       if (result.status === 200) {
         setIsSignedIn(true);
-        navigater("/", { viewTransition: true });
+        navigater("/shelf", { viewTransition: true });
       } else {
         setError("Incorrect username or password. Try again.");
       }

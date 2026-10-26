@@ -37,7 +37,7 @@ export default function Details() {
     try {
       const res = await apiFetch(`/details/${id}`, { method: "DELETE" });
       if (!res.ok) throw new Error(`Failed deleting manga`);
-      navigate("/", { viewTransition: true });
+      navigate("/shelf", { viewTransition: true });
     } catch (e) {
       console.error(e);
       setBusy(false);
@@ -84,7 +84,7 @@ export default function Details() {
           <NavLink to="/signin" className="btn btn-primary" viewTransition>
             Sign in
           </NavLink>
-          <NavLink to="/" className="btn btn-ghost" viewTransition>
+          <NavLink to="/shelf" className="btn btn-ghost" viewTransition>
             Back to the shelf
           </NavLink>
         </div>
@@ -100,7 +100,7 @@ export default function Details() {
 
   return (
     <div className="fade-in">
-      <NavLink to="/" className={styles.backLink} viewTransition>
+      <NavLink to="/shelf" className={styles.backLink} viewTransition>
         ← back to the shelf
       </NavLink>
 
@@ -170,7 +170,7 @@ export default function Details() {
               {mangaStatus ? "Mark as reading" : "Mark as finished"}
             </button>
             <NavLink
-              to={`/prices?${new URLSearchParams({ q: mangaData.name })}`}
+              to={`/?${new URLSearchParams({ q: mangaData.name })}`}
               className="btn btn-ghost"
               viewTransition
             >

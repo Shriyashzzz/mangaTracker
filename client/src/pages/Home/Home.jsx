@@ -277,13 +277,6 @@ function LibrarySkeleton() {
   );
 }
 
-// placeholder offers for the price panel; the real feature isn't live yet
-const SAMPLE_OFFERS = [
-  { store: "Store A", price: "$11.99" },
-  { store: "Store B", price: "$9.49" },
-  { store: "Store C", price: "$7.80", best: true },
-];
-
 function GuestHero() {
   return (
     <>
@@ -354,43 +347,6 @@ function GuestHero() {
           </li>
         </ol>
       </div>
-
-      {/* the second half of the app, told on its own */}
-      <section
-        className={`${styles.priceSection} fade-in`}
-        aria-labelledby="price-title"
-      >
-        <div className={styles.priceCopy}>
-          <h2 id="price-title" className={styles.priceTitle}>
-            Also: find the best price on the manga you want to buy.
-          </h2>
-          <p className={styles.priceBody}>
-            Search a volume and compare prices from US stores before you buy.
-          </p>
-          <NavLink
-            to="/prices"
-            className={`btn btn-secondary ${styles.priceCta}`}
-            viewTransition
-          >
-            Try price check
-          </NavLink>
-        </div>
-
-        <div className={`${styles.panel} ${styles.pricePanel}`} aria-hidden>
-          <div className={`${styles.art} ${styles.prices}`}>
-            <ul className={styles.offers}>
-              {SAMPLE_OFFERS.map((o) => (
-                <li key={o.store} className={o.best ? styles.best : ""}>
-                  <span>{o.store}</span>
-                  <span>{o.price}</span>
-                </li>
-              ))}
-            </ul>
-          </div>
-          <span className={styles.soon}>New</span>
-          <p className={styles.caption}>Lowest price, at a glance</p>
-        </div>
-      </section>
     </>
   );
 }

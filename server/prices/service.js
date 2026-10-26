@@ -184,16 +184,21 @@ async function getSeriesWithVolumes(name) {
     getSeriesInfo(name),
     seriesVolumes(name),
   ]);
-  // a series can be sold under another name (Detective Conan -> Case Closed);
-  // if the main name finds almost nothing, try the alternatives too
-  let volumes = mainVolumes;
-  if (volumes.length < 3 && info?.altNames?.length) {
-    for (const alt of info.altNames.slice(0, 4)) {
-      if (seriesOf(alt) === seriesOf(name)) continue;
-      const altVolumes = await seriesVolumes(alt);
-      if (altVolumes.length > volumes.length) volumes = altVolumes;
-    }
+  // a series can be sold under other names too (Detective Conan is mostly
+  // catalogued as Case Closed), so volumes found under its English
+  // alternative names are merged in by volume number
+  const byNumber = new Map(mainVolumes.map((v) => [v.volume, v]));
+  const altNames = (info?.altNames ?? [])
+    .filter((alt) => seriesOf(alt) !== seriesOf(name))
+    .slice(0, 3);
+  const altResults = await Promise.all(
+    altNames.map((alt) => seriesVolumes(alt)),
+  );
+  for (const list of altResults) {
+    for (const v of list)
+      if (!byNumber.has(v.volume)) byNumber.set(v.volume, v);
   }
+  const volumes = [...byNumber.values()].sort((a, b) => a.volume - b.volume);
   const known = await priceQueries.getKnownPrices(volumes.map((v) => v.isbn13));
   return {
     name,

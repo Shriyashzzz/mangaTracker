@@ -4,6 +4,7 @@ import {
   getHighlights,
   getSeries,
   getVolumePrices,
+  searchSeries,
 } from "../prices/service.js";
 
 const rejectInvalid = (req, res, next) => {
@@ -107,13 +108,9 @@ const seriesSearch = [
       res.json({ results: await searchSeries(matchedData(req).q) });
     } catch (e) {
       console.error("series search failed:", e);
-      res
-        .status(502)
-        .json({
-          error: [
-            { msg: "Series search didn't answer. Try again in a moment." },
-          ],
-        });
+      res.status(502).json({
+        error: [{ msg: "Series search didn't answer. Try again in a moment." }],
+      });
     }
   },
 ];

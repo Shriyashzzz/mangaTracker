@@ -37,8 +37,91 @@
   margin-top: 0.5rem;
 }
 
-.searchBox {
+/* the box and its dropdown share a positioning context */
+.comboWrap {
+  position: relative;
   flex: 1;
+  min-width: 0;
+}
+
+.suggestions {
+  position: absolute;
+  z-index: 20;
+  top: calc(100% + 6px);
+  left: 0;
+  right: 0;
+  list-style: none;
+  padding: 0.35rem;
+  background: var(--card);
+  border: 2.5px solid var(--line);
+  box-shadow: 0 12px 28px -12px rgba(0, 0, 0, 0.45);
+}
+
+.suggestion {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.45rem 0.55rem;
+  border-radius: 2px;
+  cursor: pointer;
+}
+
+.suggestActive {
+  background: var(--paper-2);
+}
+
+.suggestThumb {
+  flex-shrink: 0;
+  width: 34px;
+  aspect-ratio: 2 / 3;
+  background: var(--paper-2);
+  border: 1px solid var(--line-soft);
+  overflow: hidden;
+}
+
+.suggestThumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.suggestText {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.suggestName {
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.suggestMeta {
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  color: var(--muted);
+}
+
+.suggestNote {
+  padding: 0.6rem 0.55rem;
+  font-size: 0.9rem;
+  color: var(--muted);
+}
+
+.seeAll {
+  justify-content: center;
+  margin-top: 0.25rem;
+  padding: 0.6rem;
+  border-top: 1px dashed var(--line-soft);
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: var(--ink-soft);
+}
+
+.searchBox {
+  width: 100%;
   display: flex;
   align-items: center;
   gap: 0.6rem;
@@ -84,7 +167,7 @@
   color: var(--muted);
 }
 
-.quick button {
+.quick a {
   padding: 0.2rem 0.65rem;
   border: 1.5px solid var(--line-soft);
   border-radius: 2px;
@@ -94,7 +177,7 @@
   transition: border-color 0.12s ease;
 }
 
-.quick button:hover {
+.quick a:hover {
   border-color: var(--line);
   color: var(--ink);
 }
@@ -104,6 +187,11 @@
   font-size: 0.78rem;
   color: var(--muted);
   margin-bottom: -1rem;
+}
+
+/* inside a results section the count sits above the grid, not overlapping */
+section > .count {
+  margin-bottom: 0.9rem;
 }
 
 .grid {
@@ -216,6 +304,25 @@
   font-size: 1.5rem;
   font-weight: 600;
   color: var(--ink);
+}
+
+.promo {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem 2rem;
+  flex-wrap: wrap;
+  padding: 1.25rem 1.5rem;
+  border: 1.5px dashed var(--line-soft);
+}
+
+.promo .sectionTitle {
+  margin-bottom: 0.25rem;
+}
+
+.promoBody {
+  max-width: 46ch;
+  color: var(--ink-soft);
 }
 
 /* ---------- volume ---------- */
@@ -668,6 +775,15 @@
 }
 
 @media (max-width: 720px) {
+  /* on phones the dropdown spans the whole search row, not just the input */
+  .searchForm {
+    position: relative;
+  }
+
+  .comboWrap {
+    position: static;
+  }
+
   .searchForm > :global(.btn) {
     padding: 0 1.1rem;
   }

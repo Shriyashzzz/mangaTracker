@@ -116,36 +116,61 @@ const SEARCH_QUERY = `
 const searchCache = new Map();
 const SEARCH_FRESH_MS = 60 * 60 * 1000;
 
-// series matching what someone typed. Officially translated series (with an
-// English title) come first, since those are the ones US stores sell
+// series matching what someone typed
 export async function searchSeries(q) {
   const key = q.trim().toLowerCase();
   const hit = searchCache.get(key);
   if (hit && Date.now() - hit.at < SEARCH_FRESH_MS) return hit.items;
 
   const { Page } = await query(SEARCH_QUERY, { search: q });
+  // our readers are in the US: only series with an official English title
   const items = Page.media
-    .map((m, i) => ({
-      name: m.title.english || m.title.romaji,
-      originalName: m.title.english ? m.title.romaji : null,
-      slug: slugify(m.title.english || m.title.romaji),
+    .filter((m) => m.title.english)
+    .map((m) => ({
+      name: m.title.english,
+      slug: slugify(m.title.english),
       year: m.startDate?.year ?? null,
       score: m.averageScore ?? null,
       volumes: m.volumes ?? null,
       status: m.status,
       coverUrl: m.coverImage?.large ?? m.coverImage?.medium ?? null,
       thumbUrl: m.coverImage?.medium ?? null,
-      licensed: Boolean(m.title.english),
-      rank: i,
-    }))
-    .sort((a, b) => Number(b.licensed) - Number(a.licensed) || a.rank - b.rank)
-    .map(({ rank, ...rest }) => rest);
+    }));
 
   searchCache.set(key, { at: Date.now(), items });
   if (searchCache.size > 1000) {
     searchCache.delete(searchCache.keys().next().value);
   }
   return items;
+}
+
+const ENGLISH_NAME_QUERY = `
+  query ($search: String) {
+    Media(search: $search, type: MANGA, format: MANGA, sort: SEARCH_MATCH) {
+      title { english }
+    }
+  }
+`;
+const englishNames = new Map();
+
+// official English name for a Japanese series title ("葬送のフリーレン" ->
+// "Frieren: Beyond Journey's End"), or null. Cached for the server's life
+export function englishSeriesName(japanese) {
+  // the promise itself is cached, so many results asking about the same
+  // Japanese name at once share one AniList request
+  if (englishNames.has(japanese)) return englishNames.get(japanese);
+  const lookup = query(ENGLISH_NAME_QUERY, { search: japanese })
+    .then(({ Media }) => Media?.title?.english?.replace(/’/g, "'") ?? null)
+    .catch((e) => {
+      // AniList answers 404 when nothing matches: a real "no", kept cached.
+      // Anything else (rate limit, outage) is forgotten so it's tried again
+      if (/responded 404/.test(e.message)) return null;
+      console.error("AniList name lookup failed:", e.message);
+      englishNames.delete(japanese);
+      return null;
+    });
+  englishNames.set(japanese, lookup);
+  return lookup;
 }
 
 let trending = { at: 0, items: [] };

@@ -367,99 +367,6 @@
   transform: rotate(7deg);
 }
 
-/* ---------- price check, its own section below the hero ---------- */
-.priceSection {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-  align-items: center;
-  gap: clamp(2rem, 6vw, 4.5rem);
-  margin-top: clamp(3.5rem, 8vw, 6rem);
-  padding-top: clamp(2.5rem, 5vw, 3.5rem);
-  border-top: 1.5px dashed var(--line-soft);
-}
-
-.priceTitle {
-  font-family: var(--font-brand);
-  font-size: clamp(1.9rem, 4vw, 2.8rem);
-  font-weight: 400;
-  line-height: 1;
-  letter-spacing: 0.01em;
-  text-transform: uppercase;
-  text-wrap: balance;
-}
-
-.priceBody {
-  max-width: 28rem;
-  margin-top: 1rem;
-  font-size: 1.05rem;
-  color: var(--ink-soft);
-}
-
-.priceCta {
-  margin-top: 1.5rem;
-}
-
-.pricePanel {
-  position: relative;
-  min-height: 200px;
-  max-width: 440px;
-  width: 100%;
-  justify-self: center;
-  animation: none;
-}
-
-/* receipt sits left so the stamp keeps the top-right corner */
-.prices {
-  place-items: center start;
-  padding: 1rem 1.25rem;
-}
-
-.offers {
-  list-style: none;
-  width: min(100% - 7.5rem, 260px);
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  padding: 0.6rem 0.8rem;
-  background: var(--card);
-  border: 1.5px solid var(--line);
-  font-family: var(--font-mono);
-  font-size: 0.8rem;
-}
-
-.offers li {
-  display: flex;
-  justify-content: space-between;
-  color: var(--muted);
-}
-
-.offers li + li {
-  padding-top: 4px;
-  border-top: 1px dashed var(--line-soft);
-}
-
-.offers .best {
-  color: var(--ink);
-  font-weight: 500;
-}
-
-/* the one red thing on the page: an inked stamp */
-.soon {
-  position: absolute;
-  top: 14px;
-  right: 14px;
-  padding: 0.1rem 0.5rem;
-  border: 2px solid var(--accent);
-  border-radius: 3px;
-  background: var(--card);
-  color: var(--accent);
-  font-family: var(--font-brand);
-  font-size: 1rem;
-  letter-spacing: 1.5px;
-  text-transform: uppercase;
-  transform: rotate(6deg);
-}
-
 /* sound effects break out of the panel border, as they do on the page */
 .sfx {
   position: absolute;
@@ -520,10 +427,6 @@
 }
 
 @media (max-width: 860px) {
-  .priceSection {
-    grid-template-columns: minmax(0, 1fr);
-  }
-
   .guestContainer {
     grid-template-columns: minmax(0, 1fr);
   }

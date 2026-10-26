@@ -20,6 +20,18 @@ export const searchVolumes = (q, signal) =>
 export const getVolume = (isbn, signal) =>
   getJson(`/api/prices/${encodeURIComponent(isbn)}`, signal);
 
+export const searchSeries = (q, signal) =>
+  getJson(
+    `/api/prices/series-search?${new URLSearchParams({ q })}`,
+    signal,
+  ).then((d) => d.results);
+
+// a pasted ISBN-10/13 (dashes and spaces fine), or null
+export const asIsbn = (text) => {
+  const digits = text.replace(/[\s-]/g, "");
+  return /^(97[89]\d{10}|\d{9}[\dXx])$/.test(digits) ? digits : null;
+};
+
 export const getSeries = (name, signal) =>
   getJson(`/api/prices/series?${new URLSearchParams({ name })}`, signal);
 

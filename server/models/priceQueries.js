@@ -172,6 +172,8 @@ const getRecentBestPrices = async (limit = 40) => {
     -- only US English editions on the price home page
     WHERE l.isbn13 ~ '^(9780|9781|9798)'
       AND b.title !~ '[぀-ヿ一-鿿]'
+      -- numbered volumes only: keeps other books that share a name out
+      AND b.title ~* 'vol(ume)?[.]?[[:space:]]*[0-9]'
     ORDER BY l.fetched_at DESC
     LIMIT $1
     `,

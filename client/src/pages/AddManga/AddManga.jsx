@@ -62,7 +62,7 @@ export function AddManga() {
     <div className={`${styles.page} fade-in`}>
       <div className={styles.pageHead}>
         <div>
-          <NavLink to="/" className={styles.backLink} viewTransition>
+          <NavLink to="/shelf" className={styles.backLink} viewTransition>
             ← back to the shelf
           </NavLink>
           <h1 className={styles.formTitle}>New entry</h1>
@@ -203,7 +203,7 @@ export function AddManga() {
           )}
 
           <div className={styles.btnContainer}>
-            <NavLink to="/" className="btn btn-ghost" viewTransition>
+            <NavLink to="/shelf" className="btn btn-ghost" viewTransition>
               Cancel
             </NavLink>
             <button

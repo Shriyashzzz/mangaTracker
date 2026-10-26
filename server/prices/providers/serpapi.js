@@ -23,7 +23,15 @@ const JAPANESE_EDITION =
 // are case packs, collector lots or mislabeled sets. Bulk listings can
 // outnumber real ones, so anchor on the cheaper end (25th percentile)
 // rather than the median
-const withinTypicalRange = (offers) => {
+// any single volume, deluxe editions included, sits inside this. It catches
+// bad listings even when there are too few to compare with each other
+const MIN_CENTS = 200;
+const MAX_CENTS = 7500;
+
+const withinTypicalRange = (allOffers) => {
+  const offers = allOffers.filter(
+    (o) => o.priceCents >= MIN_CENTS && o.priceCents <= MAX_CENTS,
+  );
   const prices = offers
     .filter((o) => o.condition === "new" && o.format === "print")
     .map((o) => o.priceCents)

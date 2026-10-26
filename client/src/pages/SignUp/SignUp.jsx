@@ -34,7 +34,7 @@ export default function SignUp() {
 
       if (result.ok) {
         setIsSignedIn(true);
-        navigater("/", { viewTransition: true });
+        navigater("/shelf", { viewTransition: true });
       } else {
         const data = await result.json();
         setErrors(data.errors || [{ msg: "Something went wrong. Try again." }]);

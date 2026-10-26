@@ -1,11 +1,13 @@
 import styles from "./Header.module.css";
 import appIcon from "../../assets/appIcon.png";
-import { NavLink, useNavigate } from "react-router";
+import { NavLink, useLocation, useNavigate } from "react-router";
 import ThemeToggle from "../../components/themeToggle/ThemeToggle";
 import { apiFetch } from "../../lib/api";
 
 export default function Header({ isSignedIn, setIsSignedIn }) {
   const navigator = useNavigate();
+  const { pathname } = useLocation();
+  const onPrices = pathname === "/" || pathname.startsWith("/prices");
 
   const sendLogOutSignal = async () => {
     const response = await apiFetch("/logout");
@@ -29,11 +31,15 @@ export default function Header({ isSignedIn, setIsSignedIn }) {
         </NavLink>
 
         <nav className={styles.nav} aria-label="Main">
-          <NavLink to="/" end className={navClass} viewTransition>
-            {isSignedIn ? "Shelf" : "Home"}
-          </NavLink>
-          <NavLink to="/prices" className={navClass} viewTransition>
+          <NavLink
+            to="/"
+            className={() => navClass({ isActive: onPrices })}
+            viewTransition
+          >
             Prices
+          </NavLink>
+          <NavLink to="/shelf" className={navClass} viewTransition>
+            My shelf
           </NavLink>
           <NavLink to="/about" className={navClass} viewTransition>
             About
