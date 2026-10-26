@@ -118,8 +118,16 @@ export default function PriceVolume() {
   // listing, since the headline price is about it. Offers are sorted cheapest
   // first
   const badges = new Map();
-  if (best) badges.set(best, "Lowest new print");
-  const lowest = offers.find((o) => o.format === "print" && o.inStock);
+  if (best) badges.set(best, "Lowest Physical print");
+  console.log(offers.priceCents);
+  const lowest = Math.min(offers.priceCents);
+
+  offers.find((o) => {
+    if (o.priceCents === lowest) {
+    }
+    o.format === "print" && o.inStock;
+    console.log(o);
+  });
   if (lowest) badges.set(lowest, "Lowest price");
 
   return (
