@@ -1,5 +1,6 @@
 import { NavLink } from "react-router";
 import Mascot from "../../components/mascot/Mascot";
+
 import styles from "./About.module.css";
 
 // the two problems the app fixes, told as a three-panel strip

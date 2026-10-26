@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo } from "react";
 import MangaCard, {
   MangaCardSkeleton,
 } from "../../components/mangaCard/MangaCard";
+
 import styles from "./Home.module.css";
 import { NavLink, useNavigate, useOutletContext } from "react-router";
 import { SearchIcon, StarIcon } from "../../components/icons/Icons";

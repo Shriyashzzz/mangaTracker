@@ -1,14 +1,21 @@
-import { NavLink, useNavigate, useSearchParams } from "react-router";
+import {
+  NavLink,
+  useNavigate,
+  useOutletContext,
+  useSearchParams,
+} from "react-router";
 import styles from "../../styles/Form.module.css";
 import { useRef, useState } from "react";
 import { apiFetch } from "../../lib/api";
 import { GENRES } from "../../lib/genres";
 import CoverPicker from "../../components/coverPicker/CoverPicker";
+import { useEffect } from "react";
 
 const DESC_MAX = 450;
 
 export function AddManga() {
   const navigate = useNavigate();
+  const [isSignedIn] = useOutletContext();
   const [isFinished, setIsFinished] = useState(false);
   const [searchParams] = useSearchParams();
   // "Add to my shelf" from the price checker passes the series name along
@@ -23,7 +30,15 @@ export function AddManga() {
   const [description, setDescription] = useState("");
   const [validationError, setValidationError] = useState([]);
   const [submitting, setSubmitting] = useState(false);
-
+  useEffect(() => {
+    if (!isSignedIn) {
+      navigate("/error", {
+        state: { message: "You are not signed in" },
+        viewTransition: true,
+        replace: true,
+      });
+    }
+  }, []);
   const handleFormSubmit = async (e) => {
     e.preventDefault();
     setValidationError([]);
