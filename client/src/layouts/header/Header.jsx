@@ -1,5 +1,6 @@
 import styles from "./Header.module.css";
-import appIcon from "../../assets/appIcon.png";
+// same mark as the favicon: a manga volume in an inked panel
+import logo from "../../assets/logo.svg";
 import { NavLink, useLocation, useNavigate } from "react-router";
 import ThemeToggle from "../../components/themeToggle/ThemeToggle";
 import { apiFetch } from "../../lib/api";
@@ -26,7 +27,7 @@ export default function Header({ isSignedIn, setIsSignedIn }) {
     <header className={styles.head}>
       <div className={styles.inner}>
         <NavLink className={styles.appName} to="/" viewTransition>
-          <img src={appIcon} alt="" />
+          <img src={logo} alt="" />
           <span>Manga Tracker</span>
         </NavLink>
 
