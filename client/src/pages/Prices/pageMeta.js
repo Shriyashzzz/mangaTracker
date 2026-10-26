@@ -27,7 +27,7 @@ export function volumeMeta({ book, series, offers, storeLinks }) {
         ? `at ${stores.slice(0, 4).join(", ")} and more.`
         : "across stores.",
       best
-        ? `Cheapest new copy: ${formatCents(best.priceCents)} at ${best.store}.`
+        ? `Lowest new price we've found: ${formatCents(best.priceCents)} at ${best.store}.`
         : "",
       book.publisher ? `Published by ${book.publisher}.` : "",
     ].join(" "),

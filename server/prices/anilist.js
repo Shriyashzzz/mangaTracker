@@ -109,6 +109,20 @@ export async function knownSeriesName(name) {
   return rows[0]?.name ?? name;
 }
 
+// every series we've looked up, once each (several searched names can lead
+// to the same AniList entry), newest answer first. Database only
+export async function listKnownSeries() {
+  const { rows } = await pool.query(
+    `
+    SELECT DISTINCT ON (info->>'anilistId') info
+    FROM series_info
+    WHERE info IS NOT NULL AND info->>'name' IS NOT NULL
+    ORDER BY info->>'anilistId', fetched_at DESC
+    `,
+  );
+  return rows.map((r) => r.info);
+}
+
 // series info, cached a week in the database so pages stay fast and we stay
 // far inside AniList's rate limit. Returns null if AniList has no match
 export async function getSeriesInfo(name) {

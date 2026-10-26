@@ -67,7 +67,7 @@ function volumeTags(v, origin) {
         ? `at ${v.stores.slice(0, 4).join(", ")} and more.`
         : "across stores.",
       v.bestNew
-        ? `Cheapest new copy: ${usd(v.bestNew.priceCents)} at ${v.bestNew.store}.`
+        ? `Lowest new price we've found: ${usd(v.bestNew.priceCents)} at ${v.bestNew.store}.`
         : "",
       v.publisher ? `Published by ${v.publisher}.` : "",
     ].join(" "),

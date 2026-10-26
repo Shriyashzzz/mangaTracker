@@ -9,6 +9,7 @@ import {
 import {
   getHighlights,
   getSeries,
+  getSeriesIndex,
   getSeriesSummary,
   getVolumePrices,
   getVolumeSummary,
@@ -158,6 +159,10 @@ const cover = [
   },
 ];
 
+const seriesIndex = async (req, res) => {
+  res.set("Cache-Control", "public, max-age=600").json(await getSeriesIndex());
+};
+
 // for the site's link-preview server; database only, so they're quick
 const volumeSummary = [
   param("isbn")
@@ -197,4 +202,5 @@ export default {
   cover,
   volumeSummary,
   seriesSummary,
+  seriesIndex,
 };

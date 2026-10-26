@@ -4,6 +4,7 @@ import {
   getSeriesInfo,
   getTrending,
   knownSeriesName,
+  listKnownSeries,
   searchSeries,
   slugify,
 } from "./anilist.js";
@@ -334,6 +335,27 @@ export async function getShelfPrices(manga) {
     if (best) result[id] = best;
   }
   return result;
+}
+
+// ---------- series index ----------
+
+// every series on the site for the /series page: AniList's facts plus how
+// many US volumes we know. Database and memory only
+export async function getSeriesIndex() {
+  const [series, bySeries] = await Promise.all([
+    listKnownSeries(),
+    knownVolumesBySeries(),
+  ]);
+  return series.map((info) => ({
+    name: info.name,
+    coverUrl: info.coverUrl,
+    score: info.score,
+    popularityRank: info.popularityRank,
+    genres: info.genres ?? [],
+    status: info.status,
+    volumes: info.volumes,
+    knownVolumes: bySeries.get(slugify(info.name))?.size ?? 0,
+  }));
 }
 
 // ---------- link previews ----------

@@ -40,9 +40,9 @@ export default function MangaCard({ currentManga, priceTag, index = 0 }) {
         {priceTag && (
           <p
             className={styles.price}
-            title={`Cheapest we've seen: ${priceTag.title}`}
+            title={`Lowest price we've seen at the stores we check: ${priceTag.title}`}
           >
-            from <span>{formatCents(priceTag.fromCents)}</span>
+            seen from <span>{formatCents(priceTag.fromCents)}</span>
           </p>
         )}
         {Number(currentManga.rating) > 0 && (

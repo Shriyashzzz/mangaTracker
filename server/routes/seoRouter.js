@@ -45,6 +45,7 @@ seoRouter.get("/sitemap.xml", async (req, res) => {
   const urls = [
     entry("/"),
     entry("/about"),
+    entry("/series"),
     ...series.map((s) => entry(seriesPath(s.name), s.fetched_at)),
     ...volumes.map((v) =>
       entry(volumePath(v.isbn13.trim(), v.title), v.updated),

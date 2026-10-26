@@ -97,7 +97,8 @@
   text-overflow: ellipsis;
 }
 
-/* the cheapest price we know for the series, quiet until you look */
+/* the lowest price we've seen for the series at the stores we check (not
+   every store), quiet until you look */
 .price {
   font-family: var(--font-mono);
   font-size: 0.78rem;

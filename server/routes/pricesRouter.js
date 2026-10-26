@@ -32,6 +32,13 @@ pricesRouter.get(
   pricesController.cover,
 );
 
+// the /series page: every series we know, from the database
+pricesRouter.get(
+  "/series-index",
+  rateLimit({ max: 60, windowMs: 60_000 }),
+  pricesController.seriesIndex,
+);
+
 // link previews for the site's pages; cheap database reads
 pricesRouter.get(
   "/summary/volume/:isbn",

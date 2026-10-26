@@ -8,8 +8,9 @@ import {
 } from "../../lib/prices";
 import styles from "./Details.module.css";
 
-// where to buy more of this manga: the newest US volume, the cheapest one
-// we've seen, and the whole series' prices. Stays out of the way when the
+// where to buy more of this manga: the newest US volume, the one with the
+// lowest price we've seen (at the stores we check, so not a promise of the
+// cheapest anywhere), and the whole series' prices. Stays out of the way when the
 // series can't be found under the name on the shelf
 export default function BuyStrip({ name }) {
   const [state, setState] = useState({ name: null, data: null });
@@ -59,9 +60,10 @@ export default function BuyStrip({ name }) {
           <li>
             <NavLink
               to={volumePath(cheapest.isbn13, cheapest.title)}
+              title="The lowest price we've seen at the stores we check"
               viewTransition
             >
-              <span className={styles.buyKind}>Cheapest</span>
+              <span className={styles.buyKind}>Lowest seen</span>
               Vol. {cheapest.volume}
               <span className={styles.buyPrice}>{price(cheapest)}</span>
             </NavLink>

@@ -3,6 +3,7 @@ import { NavLink, useOutletContext, useSearchParams } from "react-router";
 import { getHighlights, searchSeries, seriesPath } from "../../lib/prices";
 import SeriesSearchBox from "./SeriesSearchBox";
 import VolumeCard from "./VolumeCard";
+import SeriesCard from "./SeriesCard";
 import styles from "./Prices.module.css";
 import Mascot from "../../components/mascot/Mascot";
 import SlowLoadQuote from "../../components/slowLoadQuote/SlowLoadQuote";
@@ -116,33 +117,6 @@ export default function PriceSearch() {
 }
 
 // one series: cover, name and what AniList knows about it
-function SeriesCard({ series }) {
-  return (
-    <NavLink
-      to={seriesPath(series.name)}
-      className={styles.card}
-      viewTransition
-    >
-      <span className={styles.cover}>
-        <span className={styles.coverFallback} aria-hidden>
-          ?
-        </span>
-        {series.coverUrl && <img src={series.coverUrl} alt="" loading="lazy" />}
-      </span>
-      <span className={styles.cardTitle}>{series.name}</span>
-      <span className={styles.cardMeta}>
-        {[
-          series.year,
-          series.volumes && `${series.volumes} vols`,
-          series.score && `Score ${series.score}`,
-        ]
-          .filter(Boolean)
-          .join(" · ")}
-      </span>
-    </NavLink>
-  );
-}
-
 // what to show before anyone searches: trending series (AniList), deals and
 // recent checks (from prices already saved). None of it spends a search
 function Highlights() {

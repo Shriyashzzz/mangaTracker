@@ -200,7 +200,7 @@ export default function PriceVolume() {
                       <span>
                         {o.store}
                         {o === best && (
-                          <span className={styles.bestTag}>Best new</span>
+                          <span className={styles.bestTag}>Lowest here</span>
                         )}
                       </span>
                       <span className={styles.offerTags}>
@@ -303,7 +303,8 @@ export default function PriceVolume() {
                 </div>
               </dl>
               <p className={styles.checked}>
-                Cheapest new print copy across {stats.samples} check
+                Lowest new print price at the stores we check, across{" "}
+                {stats.samples} check
                 {stats.samples > 1 ? "s" : ""}, {shortDate(stats.since)}
                 {stats.samples > 1 && ` to ${shortDate(stats.lastSeen)}`} ·{" "}
                 {stats.changes} price change{stats.changes === 1 ? "" : "s"}
