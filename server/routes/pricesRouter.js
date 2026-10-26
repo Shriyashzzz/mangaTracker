@@ -32,6 +32,18 @@ pricesRouter.get(
   pricesController.cover,
 );
 
+// link previews for the site's pages; cheap database reads
+pricesRouter.get(
+  "/summary/volume/:isbn",
+  rateLimit({ max: 300, windowMs: 60_000 }),
+  pricesController.volumeSummary,
+);
+pricesRouter.get(
+  "/summary/series",
+  rateLimit({ max: 300, windowMs: 60_000 }),
+  pricesController.seriesSummary,
+);
+
 pricesRouter.get(
   "/series",
   rateLimit({ max: 40, windowMs: 60_000 }),

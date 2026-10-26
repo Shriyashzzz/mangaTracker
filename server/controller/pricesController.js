@@ -9,9 +9,12 @@ import {
 import {
   getHighlights,
   getSeries,
+  getSeriesSummary,
   getVolumePrices,
+  getVolumeSummary,
   searchSeries,
 } from "../prices/service.js";
+import { isCrawler } from "../prices/crawlers.js";
 
 const rejectInvalid = (req, res, next) => {
   const errors = validationResult(req);
@@ -50,7 +53,9 @@ const volume = [
   rejectInvalid,
   async (req, res) => {
     try {
-      const data = await getVolumePrices(matchedData(req).isbn);
+      const data = await getVolumePrices(matchedData(req).isbn, {
+        refresh: !isCrawler(req.get("user-agent")),
+      });
       if (!data) {
         res
           .status(404)
@@ -153,4 +158,43 @@ const cover = [
   },
 ];
 
-export default { search, volume, series, seriesSearch, highlights, cover };
+// for the site's link-preview server; database only, so they're quick
+const volumeSummary = [
+  param("isbn")
+    .customSanitizer(toIsbn13)
+    .custom((v) => v !== null)
+    .withMessage("That isn't a valid ISBN"),
+  rejectInvalid,
+  async (req, res) => {
+    const data = await getVolumeSummary(matchedData(req).isbn);
+    if (!data) {
+      res.sendStatus(404);
+      return;
+    }
+    res.set("Cache-Control", "public, max-age=600").json(data);
+  },
+];
+
+const seriesSummary = [
+  query("name").trim().isLength({ min: 2, max: 120 }),
+  rejectInvalid,
+  async (req, res) => {
+    const data = await getSeriesSummary(matchedData(req).name);
+    if (!data) {
+      res.sendStatus(404);
+      return;
+    }
+    res.set("Cache-Control", "public, max-age=600").json(data);
+  },
+];
+
+export default {
+  search,
+  volume,
+  series,
+  seriesSearch,
+  highlights,
+  cover,
+  volumeSummary,
+  seriesSummary,
+};

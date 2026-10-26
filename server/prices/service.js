@@ -72,11 +72,12 @@ async function getOrCreateBook(isbn13) {
   return priceQueries.getBook(isbn13);
 }
 
-export async function getVolumePrices(isbn13) {
+// `refresh: false` shows what's stored without fetching new prices (crawlers)
+export async function getVolumePrices(isbn13, { refresh = true } = {}) {
   const book = await getOrCreateBook(isbn13);
   if (!book) return null;
 
-  await refreshIfStale(isbn13, book);
+  if (refresh) await refreshIfStale(isbn13, book);
 
   const last = await priceQueries.getLastCheck(isbn13);
   // a check and its samples share one transaction, so they share now()
@@ -272,6 +273,53 @@ export async function getSeries(asked) {
 }
 
 export { searchSeries };
+
+// ---------- link previews ----------
+
+// what a shared link's preview needs, from the database alone: no catalog,
+// no store APIs, so the site's preview server can ask on every page load
+export async function getVolumeSummary(isbn13) {
+  const book = await priceQueries.getBook(isbn13);
+  if (!book) return null;
+  const last = await priceQueries.getLastCheck(isbn13);
+  const offers = last
+    ? await priceQueries.getLatestOffers(isbn13, last.checked_at)
+    : [];
+  const inStock = offers.filter((o) => o.in_stock);
+  const bestNew = inStock.find(
+    (o) => o.condition === "new" && o.format === "print",
+  );
+  const series = await getSeriesInfo(seriesName(book.title)).catch(() => null);
+  return {
+    isbn13: book.isbn13.trim(),
+    title: book.title,
+    authors: book.authors,
+    publisher: book.publisher,
+    year: book.year,
+    coverUrl: book.cover_url,
+    seriesName: series?.name ?? seriesName(book.title),
+    seriesCoverUrl: series?.coverUrl ?? null,
+    stores: [...new Set(offers.map((o) => o.store))],
+    lowCents: inStock.length ? inStock[0].price_cents : null,
+    highCents: inStock.length ? inStock[inStock.length - 1].price_cents : null,
+    offerCount: inStock.length,
+    bestNew: bestNew
+      ? { store: bestNew.store, priceCents: bestNew.price_cents }
+      : null,
+  };
+}
+
+export async function getSeriesSummary(asked) {
+  const name = await knownSeriesName(asked);
+  const info = await getSeriesInfo(name).catch(() => null);
+  if (!info) return null;
+  return {
+    name: info.name,
+    description: info.description,
+    coverUrl: info.coverUrl,
+    genres: info.genres,
+  };
+}
 
 // ---------- price home ----------
 

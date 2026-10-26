@@ -18,4 +18,9 @@ export default defineConfig([
       parserOptions: { ecmaFeatures: { jsx: true } },
     },
   },
+  // the production site server and the build config run in Node
+  {
+    files: ['server.js', 'vite.config.js'],
+    languageOptions: { globals: globals.node },
+  },
 ])

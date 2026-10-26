@@ -60,12 +60,14 @@ function apply({ title, description, path, image, noindex, jsonLd }) {
   } else old?.remove();
 }
 
-// `meta` is null while a page is still loading what it shows; the previous
-// page's tags are cleared rather than left describing the wrong thing
+// `meta` is null while a page is still loading what it shows. The tags are
+// left as they are meanwhile: on a first visit they're the ones the site's
+// server already wrote for this page (server.js), and they stay right even
+// if loading fails
 export function usePageMeta(meta) {
   const key = JSON.stringify(meta);
   useEffect(() => {
-    apply(meta ?? {});
+    if (meta) apply(meta);
     // the key stands for meta, which is a fresh object every render
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [key]);
