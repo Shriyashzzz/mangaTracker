@@ -8,6 +8,8 @@ import { AddManga } from "./AddManga/AddManga";
 import { AboutPage } from "./About/About";
 import SignInPage from "./SignIn/SignIn";
 import SignUp from "./SignUp/SignUp";
+import PriceSearch from "./Prices/PriceSearch";
+import PriceVolume from "./Prices/PriceVolume";
 
 export const routes = [
   {
@@ -22,6 +24,8 @@ export const routes = [
       { path: "/add", element: <AddManga /> },
       { path: "/about", element: <AboutPage /> },
       { path: "/signup", element: <SignUp /> },
+      { path: "/prices", element: <PriceSearch /> },
+      { path: "/prices/:isbn", element: <PriceVolume /> },
     ],
   },
 ];

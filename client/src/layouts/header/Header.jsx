@@ -32,6 +32,9 @@ export default function Header({ isSignedIn, setIsSignedIn }) {
           <NavLink to="/" end className={navClass} viewTransition>
             {isSignedIn ? "Shelf" : "Home"}
           </NavLink>
+          <NavLink to="/prices" className={navClass} viewTransition>
+            Prices
+          </NavLink>
           <NavLink to="/about" className={navClass} viewTransition>
             About
           </NavLink>

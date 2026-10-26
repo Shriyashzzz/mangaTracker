@@ -112,7 +112,10 @@
 
 /* screentone behind the panic panel, like the shading for a bad moment */
 .panel:nth-child(2) .panelArt {
-  background-image: radial-gradient(var(--dots-strong) 1.2px, transparent 1.5px);
+  background-image: radial-gradient(
+    var(--dots-strong) 1.2px,
+    transparent 1.5px
+  );
   background-size: 7px 7px;
 }
 

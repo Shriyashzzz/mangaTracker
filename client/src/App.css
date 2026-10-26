@@ -125,6 +125,11 @@ img {
   max-width: 100%;
 }
 
+/* the reset above would otherwise override the hidden attribute */
+[hidden] {
+  display: none !important;
+}
+
 a {
   color: inherit;
   text-decoration: none;

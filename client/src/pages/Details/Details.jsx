@@ -79,9 +79,7 @@ export default function Details() {
     return (
       <div className={styles.errorState}>
         <h1>Couldn't open this one.</h1>
-        <p>
-          It might have been deleted, or you might need to sign in first.
-        </p>
+        <p>It might have been deleted, or you might need to sign in first.</p>
         <div className={styles.errorActions}>
           <NavLink to="/signin" className="btn btn-primary" viewTransition>
             Sign in
@@ -171,6 +169,13 @@ export default function Details() {
             <button className="btn btn-secondary" onClick={handleStatusChange}>
               {mangaStatus ? "Mark as reading" : "Mark as finished"}
             </button>
+            <NavLink
+              to={`/prices?${new URLSearchParams({ q: mangaData.name })}`}
+              className="btn btn-ghost"
+              viewTransition
+            >
+              Check prices
+            </NavLink>
 
             {confirmDelete ? (
               <span className={styles.confirm} role="alert">

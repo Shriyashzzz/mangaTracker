@@ -1,4 +1,4 @@
-import { NavLink, useNavigate } from "react-router";
+import { NavLink, useNavigate, useSearchParams } from "react-router";
 import styles from "../../styles/Form.module.css";
 import { useRef, useState } from "react";
 import { apiFetch } from "../../lib/api";
@@ -10,7 +10,11 @@ const DESC_MAX = 450;
 export function AddManga() {
   const navigate = useNavigate();
   const [isFinished, setIsFinished] = useState(false);
-  const [title, setTitle] = useState("");
+  const [searchParams] = useSearchParams();
+  // "Add to my shelf" from the price checker passes the series name along
+  const [title, setTitle] = useState(() =>
+    (searchParams.get("title") ?? "").slice(0, 150),
+  );
   const [image, setImage] = useState("");
   const [genre, setGenre] = useState("");
   const [genreFromAniList, setGenreFromAniList] = useState(false);

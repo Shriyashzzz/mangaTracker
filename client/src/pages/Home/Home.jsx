@@ -330,10 +330,16 @@ function GuestHero() {
             Also: find the best price on the manga you want to buy.
           </h2>
           <p className={styles.priceBody}>
-            <span className="sr-only">Coming soon. </span>
-            Search a volume and compare live prices from US stores before you
+            Search a volume and compare prices from US stores before you
             buy.
           </p>
+          <NavLink
+            to="/prices"
+            className={`btn btn-secondary ${styles.priceCta}`}
+            viewTransition
+          >
+            Try price check
+          </NavLink>
         </div>
 
         <div className={`${styles.panel} ${styles.pricePanel}`} aria-hidden>
@@ -347,7 +353,7 @@ function GuestHero() {
               ))}
             </ul>
           </div>
-          <span className={styles.soon}>Coming soon</span>
+          <span className={styles.soon}>New</span>
           <p className={styles.caption}>Lowest price, at a glance</p>
         </div>
       </section>

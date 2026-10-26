@@ -79,14 +79,14 @@ export function AboutPage() {
         {/* what's being worked on, as a next-volume teaser */}
         <section className={styles.next} aria-labelledby="next-title">
           <span className={styles.nextSfx} aria-hidden>
-            Coming soon!
+            New!
           </span>
           <h2 id="next-title" className={styles.nextTitle}>
-            Next chapter: price check
+            Now out: price check
           </h2>
           <p>
-            Search any manga and compare prices across stores near you, so you
-            never overpay for a volume again.
+            Search any volume and compare prices from US stores, so you never
+            overpay for the next one.
           </p>
         </section>
 

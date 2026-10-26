@@ -387,6 +387,10 @@
   color: var(--ink-soft);
 }
 
+.priceCta {
+  margin-top: 1.5rem;
+}
+
 .pricePanel {
   position: relative;
   min-height: 200px;
