@@ -50,6 +50,14 @@ CREATE TABLE IF NOT EXISTS price_checks(
   checked_at  TIMESTAMPTZ NOT NULL DEFAULT now(),
   sources     TEXT[] NOT NULL DEFAULT '{}'
 );
+
+-- the Open Library cover of each US edition, found once and kept. A NULL
+-- cover_id means the edition has none; those are looked at again monthly
+CREATE TABLE IF NOT EXISTS edition_covers(
+  isbn13      CHAR(13) PRIMARY KEY,
+  cover_id    INTEGER,
+  checked_at  TIMESTAMPTZ NOT NULL DEFAULT now()
+);
 `;
 
 async function main() {

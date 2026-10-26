@@ -128,6 +128,28 @@ const addNewUser = async (username, hashedPassword) => {
   return result.rows[0].id;
 };
 
+// display preferences (background, theme), kept as one small JSON object
+const getPrefs = async (userId) => {
+  const result = await pool.query(`SELECT prefs FROM users WHERE id = $1`, [
+    userId,
+  ]);
+  return result.rows[0]?.prefs ?? {};
+};
+
+// merges the given keys into what's stored, leaving the rest alone
+const updatePrefs = async (userId, patch) => {
+  const result = await pool.query(
+    `
+      UPDATE users
+      SET prefs = prefs || $2::jsonb
+      WHERE id = $1
+      RETURNING prefs;
+    `,
+    [userId, JSON.stringify(patch)],
+  );
+  return result.rows[0]?.prefs ?? {};
+};
+
 export default {
   getMangaData,
   getThatManga,
@@ -138,4 +160,6 @@ export default {
   chnageMangaRating,
   checkIfUserExists,
   addNewUser,
+  getPrefs,
+  updatePrefs,
 };

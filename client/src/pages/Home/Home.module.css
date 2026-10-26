@@ -23,14 +23,12 @@
   justify-content: space-between;
   gap: 1rem 2rem;
   flex-wrap: wrap;
-  padding: 0.9rem 0;
-  margin-bottom: 2.25rem;
-  background: var(--paper);
+  /* reaches a little past the grid on both sides so tilted cards never
+     peek out beside it while scrolling underneath, without leaving the page */
+  margin: 0 -12px 2.25rem;
+  padding: 0.9rem 12px;
+  background: var(--surface, var(--paper));
   border-bottom: 1.5px solid var(--line);
-  /* paint the paper out to both edges of the window so card shadows and
-     tilts never peek out beside the toolbar while scrolling underneath */
-  box-shadow: 0 0 0 100vmax var(--paper);
-  clip-path: inset(0 -100vmax);
 }
 
 .tabs {

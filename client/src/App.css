@@ -130,33 +130,6 @@ body {
     color 0.2s ease;
 }
 
-/* screentone in the side margins only: it fades out before the content
-   column, so pages feel printed without anything behind the text */
-body::before {
-  content: "";
-  position: fixed;
-  inset: 0;
-  z-index: 0;
-  pointer-events: none;
-  background-image: radial-gradient(var(--dots-strong) 1.1px, transparent 1.4px);
-  background-size: 8px 8px;
-  -webkit-mask-image: linear-gradient(
-    to right,
-    #000 0,
-    transparent calc(50% - var(--page-width) / 2 + 24px),
-    transparent calc(50% + var(--page-width) / 2 - 24px),
-    #000 100%
-  );
-  mask-image: linear-gradient(
-    to right,
-    #000 0,
-    transparent calc(50% - var(--page-width) / 2 + 24px),
-    transparent calc(50% + var(--page-width) / 2 - 24px),
-    #000 100%
-  );
-  opacity: 0.55;
-}
-
 /* the reading buddy in empty and error states, always on paper */
 .mascot-spot {
   display: block;
