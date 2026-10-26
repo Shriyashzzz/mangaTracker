@@ -1,5 +1,4 @@
 import express from "express";
-import path from "node:path";
 import cors from "cors";
 import session from "express-session";
 import mangaRouter from "./routes/managaRouter.js";
@@ -7,6 +6,7 @@ import { mangaDetailRouter } from "./routes/mangaDetailRouter.js";
 import { mangaUpdateRouter } from "./mangaUpdateRouter.js";
 import { mangaAddRouter } from "./routes/mangaAddRouter.js";
 import { mangaEntryRouter } from "./routes/userLogRouter.js";
+import { pricesRouter } from "./routes/pricesRouter.js";
 import connectPgSimple from "connect-pg-simple";
 
 import { pool } from "./models/pool.js";
@@ -33,7 +33,8 @@ app.use(
       maxAge: 1000 * 60 * 60 * 24 * 7,
       secure: process.env.ENV === "PROD",
       sameSite: process.env.ENV === "PROD" ? "none" : "lax",
-      domain: ".mangatracker.xyz",
+      // only scope to the real domain in prod, browsers drop it on localhost
+      domain: process.env.ENV === "PROD" ? ".mangatracker.xyz" : undefined,
     },
     store: new (connectPgSimple(session))({
       pool: pool,
@@ -47,14 +48,13 @@ app.use(express.urlencoded({ extended: true }));
 //express.json() parses requests where the body is JSON:
 //express.urlencoded() parses requests where the body is URL-encoded — the format HTML forms use by default:
 // Content-Type: application/x-www-form-urlencoded
-// Body: name=Alice&age=30
-//Together, they ensure req.body is populated regardless of how the client sends data — whether it's a fetch/axios call sending JSON, or an HTML <form> submission.
 // routers
 app.use("/", mangaEntryRouter);
 app.use("/api/mangadata", mangaRouter.mangaHomeRouter);
 app.use("/details/:id", mangaDetailRouter);
 app.use("/update/:id", mangaUpdateRouter);
 app.use("/add", mangaAddRouter);
+app.use("/api/prices", pricesRouter);
 
 app.use((err, req, res, next) => {
   if (

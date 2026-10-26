@@ -8,6 +8,8 @@
     "start": "node server.js",
     "initdb": "node models/initdb.js",
     "initdb-dev": "node --env-file=.env models/initdb.js",
+    "initprices": "node models/initPrices.js",
+    "initprices-dev": "node --env-file=.env models/initPrices.js",
     "dev": "nodemon --exec node --env-file=.env server.js"
   },
   "keywords": [],

@@ -36,24 +36,31 @@ const deleteMangaFromDb = async (id) => {
   );
 };
 
-const updateMangaPost = async (id, name, bookmark, status, description) => {
+const updateMangaPost = async (
+  id,
+  name,
+  bookmark,
+  status,
+  description,
+  image,
+) => {
   if (bookmark) {
     await pool.query(
       `
         UPDATE manga
-        SET name = ($1), status = ($2), description = ($3), bookmark = ($4) 
-        WHERE id = ($5);
+        SET name = ($1), status = ($2), description = ($3), bookmark = ($4), image = ($5)
+        WHERE id = ($6);
         `,
-      [name, status, description, bookmark, id],
+      [name, status, description, bookmark, image, id],
     );
   } else {
     await pool.query(
       `
         UPDATE manga
-        SET name = ($1), status = ($2), description = ($3)
-        WHERE id = ($4);
+        SET name = ($1), status = ($2), description = ($3), image = ($4)
+        WHERE id = ($5);
         `,
-      [name, status, description, id],
+      [name, status, description, image, id],
     );
   }
 };
