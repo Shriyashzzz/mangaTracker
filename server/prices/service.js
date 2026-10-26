@@ -3,6 +3,7 @@ import { lookupIsbn, searchVolumesDetailed } from "./catalog.js";
 import {
   getSeriesInfo,
   getTrending,
+  knownSeriesName,
   searchSeries,
   slugify,
 } from "./anilist.js";
@@ -259,7 +260,8 @@ async function getSeriesWithVolumes(name) {
   };
 }
 
-export async function getSeries(name) {
+export async function getSeries(asked) {
+  const name = await knownSeriesName(asked);
   const series = await getSeriesWithVolumes(name);
   if (!series.info && !series.volumes.length) {
     // nothing at all because the catalog was down isn't "not found"

@@ -88,6 +88,27 @@ const toInfo = (m) => ({
   ),
 });
 
+// A series address can be just the slug of AniList's name
+// (/prices/series/frieren-beyond-journey-s-end), which reaches us as
+// "frieren beyond journey s end". If a series we've seen has that slug,
+// this gives back its real name; otherwise the name as it came
+export async function knownSeriesName(name) {
+  const slug = slugify(name);
+  if (!slug) return name;
+  const { rows } = await pool.query(
+    `
+    SELECT info->>'name' AS name FROM series_info
+    WHERE info IS NOT NULL
+      AND trim(both '-' from
+        regexp_replace(lower(info->>'name'), '[^a-z0-9]+', '-', 'g')) = $1
+    ORDER BY fetched_at DESC
+    LIMIT 1
+    `,
+    [slug],
+  );
+  return rows[0]?.name ?? name;
+}
+
 // series info, cached a week in the database so pages stay fast and we stay
 // far inside AniList's rate limit. Returns null if AniList has no match
 export async function getSeriesInfo(name) {

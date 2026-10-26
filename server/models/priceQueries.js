@@ -229,7 +229,7 @@ const getSitemapEntries = async () => {
   const [volumes, series] = await Promise.all([
     pool.query(
       `
-      SELECT b.isbn13, GREATEST(b.updated_at, pc.checked_at) AS updated
+      SELECT b.isbn13, b.title, GREATEST(b.updated_at, pc.checked_at) AS updated
       FROM books b LEFT JOIN price_checks pc USING (isbn13)
       ORDER BY b.isbn13
       `,

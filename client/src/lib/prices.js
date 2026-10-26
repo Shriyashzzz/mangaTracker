@@ -42,6 +42,16 @@ export const getHighlights = (signal) =>
 export const seriesPath = (name) =>
   `/prices/series/${slugify(name)}?${new URLSearchParams({ name })}`;
 
+// the address a series is known by in search engines and the sitemap: the
+// bare slug of AniList's name, which the server turns back into the series
+export const seriesCanonicalPath = (name) => `/prices/series/${slugify(name)}`;
+
+// a volume's address: the ISBN finds it, the title is there to be read
+export const volumePath = (isbn13, title) => {
+  const slug = title ? slugify(title) : "";
+  return slug ? `/prices/${isbn13}/${slug}` : `/prices/${isbn13}`;
+};
+
 const slugify = (name) =>
   name
     .toLowerCase()

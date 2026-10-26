@@ -1,5 +1,10 @@
 import { breadcrumbs, clip } from "../../lib/seo";
-import { coverSrc, formatCents, seriesPath } from "../../lib/prices";
+import {
+  coverSrc,
+  formatCents,
+  seriesCanonicalPath,
+  volumePath,
+} from "../../lib/prices";
 
 // what search engines and link previews see for the price pages
 
@@ -8,7 +13,7 @@ const dollars = (cents) => (cents / 100).toFixed(2);
 
 export function volumeMeta({ book, series, offers, storeLinks }) {
   const seriesLabel = series.info?.name ?? series.name;
-  const path = `/prices/${book.isbn13}`;
+  const path = volumePath(book.isbn13, book.title);
   const prices = offers.filter((o) => o.inStock).map((o) => o.priceCents);
   const best = offers.find(
     (o) => o.condition === "new" && o.format === "print" && o.inStock,
@@ -65,7 +70,7 @@ export function volumeMeta({ book, series, offers, storeLinks }) {
         product,
         breadcrumbs([
           ["Price check", "/"],
-          [seriesLabel, seriesPath(seriesLabel)],
+          [seriesLabel, seriesCanonicalPath(seriesLabel)],
           [book.title, path],
         ]),
       ],
@@ -76,7 +81,7 @@ export function volumeMeta({ book, series, offers, storeLinks }) {
 export function seriesMeta({ name, info, volumes }) {
   // AniList's name, so every way of reaching a series shares one URL
   const label = info?.name ?? name;
-  const path = seriesPath(label);
+  const path = seriesCanonicalPath(label);
   const count = volumes.length;
 
   const description = clip(
@@ -107,7 +112,7 @@ export function seriesMeta({ name, info, volumes }) {
             "@type": "Book",
             name: v.title,
             isbn: v.isbn13,
-            url: absolute(`/prices/${v.isbn13}`),
+            url: absolute(volumePath(v.isbn13, v.title)),
             ...(v.volume != null && { position: v.volume }),
           })),
         },

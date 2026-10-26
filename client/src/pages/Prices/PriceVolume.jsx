@@ -1,10 +1,11 @@
 import { useEffect, useState } from "react";
-import { NavLink, useParams } from "react-router";
+import { NavLink, useLocation, useNavigate, useParams } from "react-router";
 import {
   coverSrc,
   formatCents,
   getVolume,
   hideBrokenCover,
+  volumePath,
   seriesPath,
   seriesTitle,
   timeAgo,
@@ -37,9 +38,20 @@ export default function PriceVolume() {
   const [showAll, setShowAll] = useState({ isbn, open: false });
   const offersOpen = showAll.isbn === isbn && showAll.open;
   const [state, setState] = useState({ isbn: null, data: null, error: "" });
+  const loadedBook = state.isbn === isbn ? state.data?.book : null;
   usePageMeta(
     state.isbn === isbn && state.data ? volumeMeta(state.data) : null,
   );
+
+  // an ISBN-only or outdated link: show the address with the title in it,
+  // without loading the page again
+  const navigate = useNavigate();
+  const { pathname, search } = useLocation();
+  useEffect(() => {
+    if (!loadedBook) return;
+    const path = volumePath(loadedBook.isbn13, loadedBook.title);
+    if (pathname !== path) navigate(path + search, { replace: true });
+  }, [loadedBook, pathname, search, navigate]);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -343,6 +355,7 @@ export default function PriceVolume() {
                 <VolumeCard
                   {...v}
                   title={`Vol. ${v.volume}`}
+                  fullTitle={v.title}
                   seriesCoverUrl={series.info?.coverUrl}
                   priceCents={v.knownPriceCents}
                 />

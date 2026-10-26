@@ -30,7 +30,8 @@ export const routes = [
       { path: "/signup", element: <SignUp /> },
       { path: "/prices", element: <ToPriceHome /> },
       { path: "/prices/series/:slug", element: <PriceSeries /> },
-      { path: "/prices/:isbn", element: <PriceVolume /> },
+      // the title part is optional, so ISBN-only links keep working
+      { path: "/prices/:isbn/:slug?", element: <PriceVolume /> },
     ],
   },
 ];

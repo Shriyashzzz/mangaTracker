@@ -1,5 +1,10 @@
 import { NavLink } from "react-router";
-import { coverSrc, formatCents, hideBrokenCover } from "../../lib/prices";
+import {
+  coverSrc,
+  formatCents,
+  hideBrokenCover,
+  volumePath,
+} from "../../lib/prices";
 import styles from "./Prices.module.css";
 
 // one volume: cover, volume tag, title and, when we have one, the best known
@@ -27,6 +32,8 @@ export function CoverFallback({ number, seriesCoverUrl }) {
 export default function VolumeCard({
   isbn13,
   title,
+  // the book's full title when `title` is a short label like "Vol. 3"
+  fullTitle,
   volume,
   coverUrl,
   seriesCoverUrl,
@@ -35,7 +42,11 @@ export default function VolumeCard({
   wasCents,
 }) {
   return (
-    <NavLink to={`/prices/${isbn13}`} className={styles.card} viewTransition>
+    <NavLink
+      to={volumePath(isbn13, fullTitle ?? title)}
+      className={styles.card}
+      viewTransition
+    >
       <span className={styles.cover}>
         <CoverFallback number={volume} seriesCoverUrl={seriesCoverUrl} />
         {coverUrl && (

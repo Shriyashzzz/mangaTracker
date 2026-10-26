@@ -22,9 +22,12 @@ const escapeXml = (text) =>
       })[c],
   );
 
-// the same URL the series page names as its canonical one
-const seriesPath = (name) =>
-  `/prices/series/${slugify(name)}?${new URLSearchParams({ name })}`;
+// the same addresses the pages name as their canonical ones
+const seriesPath = (name) => `/prices/series/${slugify(name)}`;
+const volumePath = (isbn13, title) => {
+  const slug = title ? slugify(title) : "";
+  return slug ? `/prices/${isbn13}/${slug}` : `/prices/${isbn13}`;
+};
 
 const entry = (path, lastmod) =>
   `  <url><loc>${escapeXml(site() + path)}</loc>${
@@ -43,7 +46,9 @@ seoRouter.get("/sitemap.xml", async (req, res) => {
     entry("/"),
     entry("/about"),
     ...series.map((s) => entry(seriesPath(s.name), s.fetched_at)),
-    ...volumes.map((v) => entry(`/prices/${v.isbn13.trim()}`, v.updated)),
+    ...volumes.map((v) =>
+      entry(volumePath(v.isbn13.trim(), v.title), v.updated),
+    ),
   ];
   res
     .type("application/xml")
