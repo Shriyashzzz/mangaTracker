@@ -321,12 +321,16 @@ function GuestHero() {
       </div>
 
       {/* the second half of the app, told on its own */}
-      <section className={styles.priceSection} aria-labelledby="price-title">
+      <section
+        className={`${styles.priceSection} fade-in`}
+        aria-labelledby="price-title"
+      >
         <div className={styles.priceCopy}>
           <h2 id="price-title" className={styles.priceTitle}>
             Also: find the best price on the manga you want to buy.
           </h2>
           <p className={styles.priceBody}>
+            <span className="sr-only">Coming soon. </span>
             Search a volume and compare live prices from US stores before you
             buy.
           </p>

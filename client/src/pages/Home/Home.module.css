@@ -245,14 +245,13 @@
   min-height: 170px;
 }
 
-.panel:nth-child(2) {
+.page > .panel:nth-child(2) {
   animation-delay: 0.12s;
 }
 
-.panel:nth-child(3) {
+.page > .panel:nth-child(3) {
   animation-delay: 0.24s;
 }
-
 
 /* panels are read in order, each one slides open from its left edge */
 @keyframes panel-in {
@@ -285,7 +284,10 @@
 
 /* screentone */
 .tone {
-  background-image: radial-gradient(var(--dots-strong) 1.3px, transparent 1.6px);
+  background-image: radial-gradient(
+    var(--dots-strong) 1.3px,
+    transparent 1.6px
+  );
   background-size: 7px 7px;
 }
 
@@ -330,13 +332,16 @@
   place-items: end center;
   width: 46px;
   aspect-ratio: 2 / 3;
-  margin-left: -10px;
   padding-bottom: 6px;
   background: var(--card);
   border: 2px solid var(--line);
   font-family: var(--font-mono);
   font-size: 0.6rem;
   color: var(--muted);
+}
+
+.covers span + span {
+  margin-left: -10px;
 }
 
 .covers span:nth-child(1) {
@@ -354,7 +359,6 @@
   transform: rotate(7deg);
 }
 
-/* price check preview: a little receipt of offers */
 /* ---------- price check, its own section below the hero ---------- */
 .priceSection {
   display: grid;
@@ -554,7 +558,6 @@
     padding: 9px;
   }
 
-
   .sfxA {
     font-size: 1.8rem;
   }
@@ -562,9 +565,5 @@
   .sfxB,
   .sfxC {
     font-size: 1.5rem;
-  }
-
-  .panel {
-    min-height: 160px;
   }
 }
