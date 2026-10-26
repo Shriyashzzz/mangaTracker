@@ -3,6 +3,7 @@ import {
   bookshopId,
   ebayAffiliateUrl,
   ebayCampaignId,
+  walmartAffiliate,
 } from "./affiliates.js";
 
 // stores without a price API we can use: we link to them for this ISBN so
@@ -63,6 +64,22 @@ export function affiliateOfferUrl(offer, isbn13) {
   return url;
 }
 
+// whether a link earns us anything, so the page can mark it rel="sponsored"
+export function isAffiliateUrl(url) {
+  let link;
+  try {
+    link = new URL(url);
+  } catch {
+    return false;
+  }
+  const host = link.hostname.replace(/^www\./, "");
+  if (host.endsWith("ebay.com")) return link.searchParams.has("campid");
+  if (host === "amazon.com") return link.searchParams.has("tag");
+  if (host === "bookshop.org") return link.pathname.startsWith("/a/");
+  if (host.endsWith("walmart.com")) return walmartAffiliate();
+  return false;
+}
+
 export const storeLinks = (isbn13) => [
   { store: "Amazon", url: amazonUrl(isbn13), affiliate: Boolean(amazonTag()) },
   {
@@ -78,7 +95,7 @@ export const storeLinks = (isbn13) => [
   {
     store: "Walmart",
     url: `https://www.walmart.com/search?q=${isbn13}`,
-    affiliate: true,
+    affiliate: walmartAffiliate(),
   },
   { store: "eBay", url: ebayUrl(isbn13), affiliate: Boolean(ebayCampaignId()) },
   {

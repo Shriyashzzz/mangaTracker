@@ -8,7 +8,7 @@ import {
 } from "./anilist.js";
 import { seriesName, seriesOf, volumeOf } from "./match.js";
 import { enabledProviders } from "./providers/index.js";
-import { affiliateOfferUrl, storeLinks } from "./storeLinks.js";
+import { affiliateOfferUrl, isAffiliateUrl, storeLinks } from "./storeLinks.js";
 import { editionCoverId } from "./covers.js";
 
 // prices are re-fetched at most this often per volume; in between, people
@@ -104,16 +104,20 @@ export async function getVolumePrices(isbn13) {
       coverUrl: book.cover_url,
       year: book.year,
     },
-    offers: offers.map((o) => ({
-      store: o.store,
-      format: o.format,
-      condition: o.condition,
-      priceCents: o.price_cents,
-      currency: o.currency,
-      inStock: o.in_stock,
-      url: affiliateOfferUrl(o, isbn13),
-      fetchedAt: o.fetched_at,
-    })),
+    offers: offers.map((o) => {
+      const url = affiliateOfferUrl(o, isbn13);
+      return {
+        store: o.store,
+        format: o.format,
+        condition: o.condition,
+        priceCents: o.price_cents,
+        currency: o.currency,
+        inStock: o.in_stock,
+        url,
+        affiliate: isAffiliateUrl(url),
+        fetchedAt: o.fetched_at,
+      };
+    }),
     stats: stats.samples
       ? {
           samples: stats.samples,
