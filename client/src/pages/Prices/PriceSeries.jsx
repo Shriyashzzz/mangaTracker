@@ -168,6 +168,7 @@ export default function PriceSeries() {
                 <VolumeCard
                   {...v}
                   title={`Vol. ${v.volume}`}
+                  seriesCoverUrl={info?.coverUrl}
                   priceCents={v.knownPriceCents}
                   subtitle={v.knownPriceCents == null ? "Check price" : null}
                 />

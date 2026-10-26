@@ -257,6 +257,16 @@ section > .count {
   color: var(--muted);
 }
 
+/* the series cover standing in for a missing volume cover; the drawn
+   number shows again if it fails too */
+.coverFallback .seriesFallback {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
 /* covers lean as if pulled off the shelf, each a little differently */
 .card:hover .cover {
   transform: translate(-2px, -3px) rotate(-1deg);

@@ -10,7 +10,7 @@ import {
   timeAgo,
 } from "../../lib/prices";
 import SeriesFacts from "./SeriesFacts";
-import VolumeCard from "./VolumeCard";
+import VolumeCard, { CoverFallback } from "./VolumeCard";
 import styles from "./Prices.module.css";
 import Mascot from "../../components/mascot/Mascot";
 import { useOutletContext } from "react-router";
@@ -112,9 +112,10 @@ export default function PriceVolume() {
 
       <article className={styles.volume}>
         <figure className={styles.volumeCover}>
-          <span className={styles.coverFallback} aria-hidden>
-            {book.title.match(/\bvol(?:ume)?\.?\s*(\d+)/i)?.[1] ?? "?"}
-          </span>
+          <CoverFallback
+            number={book.title.match(/\bvol(?:ume)?\.?\s*(\d+)/i)?.[1]}
+            seriesCoverUrl={series.info?.coverUrl}
+          />
           {book.coverUrl && (
             <img
               src={coverSrc(book.coverUrl)}
@@ -336,6 +337,7 @@ export default function PriceVolume() {
                 <VolumeCard
                   {...v}
                   title={`Vol. ${v.volume}`}
+                  seriesCoverUrl={series.info?.coverUrl}
                   priceCents={v.knownPriceCents}
                 />
               </li>

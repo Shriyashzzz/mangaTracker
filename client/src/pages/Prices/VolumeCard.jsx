@@ -2,13 +2,34 @@ import { NavLink } from "react-router";
 import { coverSrc, formatCents, hideBrokenCover } from "../../lib/prices";
 import styles from "./Prices.module.css";
 
-// one volume: cover (with a drawn fallback), volume tag, title and, when we
-// have one, the best known price. Used by search, series and home sections
+// one volume: cover, volume tag, title and, when we have one, the best known
+// price. Used by search, series and home sections. Without this edition's
+// cover it shows the series cover from AniList when the page has it, and a
+// drawn volume number when it doesn't
+// what sits behind a volume's own cover, showing when it's missing
+export function CoverFallback({ number, seriesCoverUrl }) {
+  return (
+    <span className={styles.coverFallback} aria-hidden>
+      {number ?? "?"}
+      {seriesCoverUrl && (
+        <img
+          className={styles.seriesFallback}
+          src={seriesCoverUrl}
+          alt=""
+          loading="lazy"
+          onError={hideBrokenCover}
+        />
+      )}
+    </span>
+  );
+}
+
 export default function VolumeCard({
   isbn13,
   title,
   volume,
   coverUrl,
+  seriesCoverUrl,
   subtitle,
   priceCents,
   wasCents,
@@ -16,9 +37,7 @@ export default function VolumeCard({
   return (
     <NavLink to={`/prices/${isbn13}`} className={styles.card} viewTransition>
       <span className={styles.cover}>
-        <span className={styles.coverFallback} aria-hidden>
-          {volume ?? "?"}
-        </span>
+        <CoverFallback number={volume} seriesCoverUrl={seriesCoverUrl} />
         {coverUrl && (
           <img
             src={coverSrc(coverUrl)}
