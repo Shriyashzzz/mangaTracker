@@ -6,9 +6,6 @@
 // JavaScript only ever see this first HTML. The React app then takes over
 // and keeps these tags up to date as people move around, as before.
 //
-// Settings (Railway service variables):
-//   PORT          set by Railway
-//   VITE_API_URL  the API's address, already set for the build
 import express from "express";
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
@@ -180,6 +177,37 @@ async function summary(path) {
 const app = express();
 app.set("trust proxy", 1); // Railway's proxy, for the https:// in URLs
 app.disable("x-powered-by");
+
+// The sitemap is made by the API, which knows every series and volume, but
+// search engines trust a sitemap on the site's own domain most. So it's
+// passed through here, and robots.txt points at this copy
+app.get("/sitemap.xml", async (req, res) => {
+  try {
+    const upstream = await fetch(`${API_URL}/sitemap.xml`, {
+      signal: AbortSignal.timeout(10_000),
+    });
+    if (!upstream.ok) throw new Error(`API responded ${upstream.status}`);
+    res
+      .type("application/xml")
+      .set("Cache-Control", "public, max-age=3600")
+      .send(await upstream.text());
+  } catch (e) {
+    console.error("sitemap pass-through failed:", e.message);
+    res.sendStatus(502);
+  }
+});
+
+// the built robots.txt names the API's sitemap; this one names ours
+const robots = readFileSync(`${DIST}robots.txt`, "utf8").replace(
+  /^Sitemap:.*$/m,
+  "",
+);
+app.get("/robots.txt", (req, res) => {
+  const origin = `${req.protocol}://${req.get("host")}`;
+  res.type("text/plain").send(`${robots.trimEnd()}
+Sitemap: ${origin}/sitemap.xml
+`);
+});
 
 // hashed build files never change; everything else is checked each time
 app.use(
