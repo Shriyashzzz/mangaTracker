@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 1000">
+  <defs>
+    <!-- heavy where the brush lands, drying out toward the tail -->
+    <linearGradient id="load" x1="0.2" y1="1" x2="0.8" y2="0">
+      <stop offset="0" stop-color="#000" />
+      <stop offset="0.6" stop-color="#000" stop-opacity="0.85" />
+      <stop offset="1" stop-color="#000" stop-opacity="0.45" />
+    </linearGradient>
+    <filter id="dry" x="-5%" y="-5%" width="110%" height="110%">
+      <!-- bristle streaks -->
+      <feTurbulence type="fractalNoise" baseFrequency="0.09 0.006" numOctaves="2" seed="7" result="streak" />
+      <feColorMatrix in="streak" type="matrix" values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  -5 0 0 0 3.5" result="streakA" />
+      <feComposite in="SourceGraphic" in2="streakA" operator="in" result="streaked" />
+      <!-- ragged edges where the ink bites into the paper -->
+      <feTurbulence type="fractalNoise" baseFrequency="0.05" numOctaves="3" seed="3" result="edge" />
+      <feDisplacementMap in="streaked" in2="edge" scale="9" xChannelSelector="R" yChannelSelector="G" />
+    </filter>
+  </defs>
+  <!-- an enso: one open circle in a single brush stroke -->
+  <path filter="url(#dry)" fill="url(#load)" d="M331.0 862.5 A400 400 0 1 1 569.5 893.9 Q591.7 863.1 594.0 860.2 A330 330 0 1 0 388.5 785.1 Z" />
+</svg>

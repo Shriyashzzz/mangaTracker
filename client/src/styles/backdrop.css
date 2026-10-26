@@ -1,0 +1,196 @@
+/* ---------- background candidates, switched by <html data-bg> ---------- */
+:root {
+  --sfx-ink: #cfc3aa;
+  --brush-opacity: 0.11;
+  --panel-rule: rgba(29, 26, 22, 0.32);
+  --grain-opacity: 0.7;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --sfx-ink: #3d372c;
+    --brush-opacity: 0.08;
+    --panel-rule: rgba(238, 230, 212, 0.16);
+    --grain-opacity: 0.18;
+  }
+}
+
+:root[data-theme="dark"] {
+  --sfx-ink: #3d372c;
+  --brush-opacity: 0.08;
+  --panel-rule: rgba(238, 230, 212, 0.16);
+  --grain-opacity: 0.18;
+}
+
+.backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.backdrop > * {
+  display: none;
+}
+
+/* 1. one giant sound effect, outlined and hatched like printed SFX,
+   cut off by the right edge of the screen */
+[data-bg="sfx"] .backdrop-sfx {
+  display: block;
+  position: absolute;
+  top: 50%;
+  right: -5vw;
+  font-family: "Dela Gothic One", "Hiragino Sans", sans-serif;
+  font-size: min(54vh, 36vw);
+  line-height: 1;
+  writing-mode: vertical-rl;
+  letter-spacing: -0.06em;
+  color: transparent;
+  -webkit-text-stroke: 2px var(--sfx-ink);
+  background: repeating-linear-gradient(
+    -45deg,
+    var(--sfx-ink) 0 1.5px,
+    transparent 1.5px 10px
+  );
+  -webkit-background-clip: text;
+  background-clip: text;
+  transform: translateY(-50%) rotate(-7deg);
+}
+
+/* 2. a single dry-brush ensō, half off the left edge of the screen */
+[data-bg="ink"] .backdrop::before {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: max(-34vw, -420px);
+  width: min(78vw, 1000px);
+  aspect-ratio: 1;
+  background: var(--ink);
+  -webkit-mask: url("../assets/ink-stroke.svg") no-repeat center / contain;
+  mask: url("../assets/ink-stroke.svg") no-repeat center / contain;
+  opacity: var(--brush-opacity);
+  transform: translateY(-46%);
+}
+
+/* 3. a desk of grainy paper with the page on top of a second, askew sheet */
+[data-bg="pages"] body {
+  background-color: var(--paper-2);
+}
+
+[data-bg="pages"] .backdrop::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='240'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  mix-blend-mode: soft-light;
+  opacity: var(--grain-opacity);
+}
+
+[data-bg="pages"] main {
+  /* sticky bars inside the page match the sheet, not the desk */
+  --surface: var(--card);
+  position: relative;
+  z-index: 0;
+  margin: 32px auto 64px;
+}
+
+[data-bg="pages"] main::before,
+[data-bg="pages"] main::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: var(--card);
+  border: 1px solid var(--line-soft);
+  box-shadow:
+    0 1px 2px rgba(40, 30, 20, 0.08),
+    0 18px 40px -18px rgba(40, 30, 20, 0.35);
+}
+
+[data-bg="pages"] main::before {
+  z-index: -1;
+}
+
+[data-bg="pages"] main::after {
+  z-index: -2;
+  transform: rotate(-1.4deg) translate(-10px, 6px);
+}
+
+@media (max-width: 700px) {
+  [data-bg="pages"] main {
+    margin: 0;
+  }
+
+  [data-bg="pages"] main::before {
+    border-inline: 0;
+  }
+
+  [data-bg="pages"] main::after {
+    display: none;
+  }
+}
+
+/* 4. the screen cut into manga panels by slanted gutters, each panel
+   carrying its own faint tone */
+[data-bg="panels"] .backdrop {
+  filter: drop-shadow(1.5px 0 0 var(--panel-rule))
+    drop-shadow(-1.5px 0 0 var(--panel-rule))
+    drop-shadow(0 1.5px 0 var(--panel-rule))
+    drop-shadow(0 -1.5px 0 var(--panel-rule));
+}
+
+[data-bg="panels"] .backdrop-panel {
+  display: block;
+  position: absolute;
+  inset: 0;
+}
+
+[data-bg="panels"] .backdrop-panel:nth-child(2) {
+  background: var(--paper-2);
+  clip-path: polygon(
+    0 0,
+    calc(46% - 8px) 0,
+    calc(41% - 8px) calc(40% - 8px),
+    0 calc(44% - 8px)
+  );
+}
+
+[data-bg="panels"] .backdrop-panel:nth-child(3) {
+  background-color: var(--card);
+  background-image: repeating-conic-gradient(
+    from 0deg at 100% 0%,
+    var(--line-soft) 0deg 0.5deg,
+    transparent 0.5deg 4deg
+  );
+  clip-path: polygon(
+    calc(46% + 8px) 0,
+    100% 0,
+    100% calc(34% - 8px),
+    calc(41% + 8px) calc(40% - 8px)
+  );
+}
+
+[data-bg="panels"] .backdrop-panel:nth-child(4) {
+  background-color: var(--paper);
+  background-image: repeating-linear-gradient(
+    -45deg,
+    var(--line-soft) 0 1px,
+    transparent 1px 7px
+  );
+  clip-path: polygon(
+    0 calc(44% + 8px),
+    calc(62% - 8px) calc(38% + 8px),
+    calc(58% - 8px) 100%,
+    0 100%
+  );
+}
+
+[data-bg="panels"] .backdrop-panel:nth-child(5) {
+  background: var(--paper-2);
+  clip-path: polygon(
+    calc(62% + 8px) calc(38% + 8px),
+    100% calc(34% + 8px),
+    100% 100%,
+    calc(58% + 8px) 100%
+  );
+}

@@ -31,6 +31,18 @@ export const MoonIcon = (props) => (
   </svg>
 );
 
+export const MenuIcon = (props) => (
+  <svg {...base} {...props}>
+    <path d="M4 7h16M4 12h16M4 17h10" />
+  </svg>
+);
+
+export const CheckIcon = (props) => (
+  <svg {...base} {...props}>
+    <path d="m5 12.5 4.5 4.5L19 7.5" />
+  </svg>
+);
+
 export const StarIcon = ({ filled, ...props }) => (
   <svg
     {...base}

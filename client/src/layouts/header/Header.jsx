@@ -2,7 +2,7 @@ import styles from "./Header.module.css";
 // same mark as the favicon: a manga volume in an inked panel
 import logo from "../../assets/logo.svg";
 import { NavLink, useLocation, useNavigate } from "react-router";
-import ThemeToggle from "../../components/themeToggle/ThemeToggle";
+import SettingsMenu from "../../components/settingsMenu/SettingsMenu";
 import { apiFetch } from "../../lib/api";
 
 export default function Header({ isSignedIn, setIsSignedIn }) {
@@ -42,22 +42,14 @@ export default function Header({ isSignedIn, setIsSignedIn }) {
           <NavLink to="/shelf" className={navClass} viewTransition>
             My shelf
           </NavLink>
-          <NavLink to="/about" className={navClass} viewTransition>
-            About
-          </NavLink>
           {isSignedIn === false && (
             <NavLink to="/signin" className={navClass} viewTransition>
               Sign in
             </NavLink>
           )}
-          {isSignedIn && (
-            <button className={styles.navLink} onClick={sendLogOutSignal}>
-              Log out
-            </button>
-          )}
         </nav>
 
-        <ThemeToggle />
+        <SettingsMenu isSignedIn={isSignedIn} onLogOut={sendLogOutSignal} />
       </div>
     </header>
   );

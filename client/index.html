@@ -51,12 +51,22 @@
       href="https://fonts.googleapis.com/css2?family=Bangers&family=Caveat:wght@500&family=Comic+Neue:wght@700&family=Fraunces:ital,opsz,wght@0,9..144,400..700;1,9..144,400..700&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap"
       rel="stylesheet"
     />
+    <!-- only the two glyphs of the background sound effect -->
+    <link
+      href="https://fonts.googleapis.com/css2?family=Dela+Gothic+One&text=%E3%83%89%E3%83%B3&display=swap"
+      rel="stylesheet"
+    />
     <script>
-      // apply the saved theme before first paint so there is no flash
+      // apply the saved theme and background before first paint so there is no flash
+      document.documentElement.dataset.bg = "sfx";
       try {
         const saved = localStorage.getItem("theme");
         if (saved === "light" || saved === "dark") {
           document.documentElement.dataset.theme = saved;
+        }
+        const bg = localStorage.getItem("bg");
+        if (["sfx", "ink", "pages", "panels"].includes(bg)) {
+          document.documentElement.dataset.bg = bg;
         }
       } catch {
         /* storage unavailable, fall back to system preference */
