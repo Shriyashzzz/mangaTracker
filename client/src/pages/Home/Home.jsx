@@ -9,6 +9,7 @@ import { SearchIcon, StarIcon } from "../../components/icons/Icons";
 import { apiFetch } from "../../lib/api";
 import RangePager from "../../components/rangePager/RangePager";
 import Mascot from "../../components/mascot/Mascot";
+import SlowLoadQuote from "../../components/slowLoadQuote/SlowLoadQuote";
 
 const SHELF_PAGE_SIZE = 30;
 
@@ -278,6 +279,7 @@ function Library() {
 function LibrarySkeleton() {
   return (
     <div aria-busy="true" aria-label="Loading">
+      <SlowLoadQuote />
       <div className={`skeleton ${styles.skeletonTitle}`} />
       <div className={styles.classContainer}>
         {Array.from({ length: 10 }, (_, i) => (

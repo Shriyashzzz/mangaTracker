@@ -14,6 +14,7 @@ import VolumeCard, { CoverFallback } from "./VolumeCard";
 import styles from "./Prices.module.css";
 import Mascot from "../../components/mascot/Mascot";
 import { useOutletContext } from "react-router";
+import SlowLoadQuote from "../../components/slowLoadQuote/SlowLoadQuote";
 
 // longer price lists start collapsed, like manga.london's "Show N more"
 const VISIBLE_OFFERS = 5;
@@ -360,6 +361,7 @@ export default function PriceVolume() {
 function VolumeSkeleton() {
   return (
     <div className={styles.volume} aria-busy="true" aria-label="Loading">
+      <SlowLoadQuote />
       <div
         className={`skeleton ${styles.volumeCover} ${styles.coverSkeleton}`}
       />

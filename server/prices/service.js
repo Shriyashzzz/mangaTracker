@@ -276,22 +276,40 @@ export async function getHighlights() {
     getTrending(),
     priceQueries.getRecentBestPrices(40),
   ]);
-  const toCard = (r) => ({
-    isbn13: r.isbn13.trim(),
-    title: r.title,
-    coverUrl: r.cover_url,
-    priceCents: r.price_cents,
-    avgCents: r.avg_cents,
-    checkedAt: r.fetched_at,
-  });
-  const deals = recent
+  const dealRows = recent
     .filter((r) => r.samples >= 2 && r.price_cents < r.avg_cents * 0.95)
     .sort((a, b) => a.price_cents / a.avg_cents - b.price_cents / b.avg_cents)
-    .slice(0, 8)
-    .map(toCard);
+    .slice(0, 8);
+  const recentRows = recent.slice(0, 12);
+
+  // each series' AniList cover, shown when a volume has no US cover of its
+  // own. Cached a week, and a series AniList can't find just goes without
+  const names = [
+    ...new Set([...dealRows, ...recentRows].map((r) => seriesName(r.title))),
+  ];
+  const infos = await Promise.all(
+    names.map((name) => getSeriesInfo(name).catch(() => null)),
+  );
+  const seriesCovers = new Map(
+    names.map((name, i) => [name, infos[i]?.coverUrl ?? null]),
+  );
+
+  const toCard = (r) => {
+    const volume = volumeOf(r.title);
+    return {
+      isbn13: r.isbn13.trim(),
+      title: r.title,
+      volume: Number.isFinite(volume) ? volume : null,
+      coverUrl: r.cover_url,
+      seriesCoverUrl: seriesCovers.get(seriesName(r.title)),
+      priceCents: r.price_cents,
+      avgCents: r.avg_cents,
+      checkedAt: r.fetched_at,
+    };
+  };
   return {
     trending,
-    deals,
-    recent: recent.slice(0, 12).map(toCard),
+    deals: dealRows.map(toCard),
+    recent: recentRows.map(toCard),
   };
 }

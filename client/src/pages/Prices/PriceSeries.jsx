@@ -6,6 +6,7 @@ import SeriesFacts from "./SeriesFacts";
 import RangePager from "../../components/rangePager/RangePager";
 import styles from "./Prices.module.css";
 import Mascot from "../../components/mascot/Mascot";
+import SlowLoadQuote from "../../components/slowLoadQuote/SlowLoadQuote";
 
 const PAGE_SIZE = 30;
 
@@ -42,6 +43,7 @@ export default function PriceSeries() {
   if (state.key !== key) {
     return (
       <div className={styles.page} aria-busy="true" aria-label="Loading">
+        <SlowLoadQuote />
         <div className="skeleton" style={{ height: 220 }} />
         <div className={styles.grid}>
           {Array.from({ length: 8 }, (_, i) => (
