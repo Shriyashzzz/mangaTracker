@@ -42,17 +42,17 @@ export function AboutPage() {
 
         <div className={styles.heroCopy}>
           <h1 className={styles.title}>
-            I kept losing my place. So I built a{" "}
-            <span className={styles.hit}>bookmark.</span>
+            <span className={styles.hit}>bookmark</span> for your mangas!
           </h1>
           <p className={styles.lead}>
-            I'm Shriyash. I read way too many manga at once, and with ADHD I'd
-            forget where I stopped and end up scrolling through 50 chapters to
-            find my spot.
+            Hi, I'm Shriyash. I tend to start way too many manga at once and
+            drop them the moment I lose my place. <a href="/shelf">Shelf</a>{" "}
+            fixes that by saving your exact chapter in seconds.
           </p>
           <p className={styles.lead}>
-            Now I jot down the chapter I'm on, rate what I finish, and pick
-            right back up. That's the whole app.
+            As a broke college student who loves physical manga,I feel for y'all
+            fellow broke students. <a href="/">Price Tracker</a> searches US
+            stores so you never overpay for a volume.
           </p>
         </div>
       </header>
@@ -90,26 +90,11 @@ export function AboutPage() {
           </p>
         </section>
 
-        {/* the credits page at the back of a volume */}
-        <section className={styles.credits} aria-labelledby="credits-title">
-          <h2 id="credits-title" className={styles.creditsTitle}>
-            Staff
-          </h2>
-          <dl className={styles.creditList}>
-            {STACK.map((t) => (
-              <div key={t.name}>
-                <dt>{t.role}</dt>
-                <dd>{t.name}</dd>
-              </div>
-            ))}
-          </dl>
-        </section>
-      </div>
-
-      <div className={styles.cta}>
-        <NavLink to="/" className="btn btn-primary btn-lg" viewTransition>
-          Okay, let me try it
-        </NavLink>
+        <div className={styles.cta}>
+          <NavLink to="/" className="btn btn-primary btn-lg" viewTransition>
+            Okay, let me try it
+          </NavLink>
+        </div>
       </div>
     </article>
   );

@@ -10,8 +10,7 @@
     "build:client": "cd client && npm install && npm run build",
     "build:server": "cd server && npm install",
     "start:client": "cd client && npm run preview",
-    "start:server": "cd server && npm start",
-    "initdb:prices": "node server/models/initPrices.js"
+    "start:server": "cd server && npm start"
   },
   "keywords": [],
   "author": "",

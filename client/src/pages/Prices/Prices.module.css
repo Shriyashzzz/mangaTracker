@@ -431,13 +431,6 @@ li:nth-child(3n + 2) > .card:hover .cover {
   min-width: 0;
 }
 
-.sectionHead {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: 1rem;
-}
-
 /* Bangers heading with a short inked stroke underneath */
 .sectionTitle {
   display: inline-block;
@@ -598,6 +591,30 @@ li:nth-child(3n + 2) > .card:hover .cover {
   align-items: center;
   gap: 0.85rem;
   flex-wrap: wrap;
+}
+
+.sectionHead {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 0.75rem;
+}
+.live_info {
+  display: flex;
+  gap: 1rem;
+  justify-content: center;
+  align-items: flex-start;
+}
+
+.sectionNote {
+  margin-top: -0.2rem;
+  font-size: 0.82rem;
+  font-style: italic;
+  color: var(--muted);
+  line-height: 1.35;
+  max-width: 48ch;
 }
 
 /* ---------- shared bits for series + volume pages ---------- */

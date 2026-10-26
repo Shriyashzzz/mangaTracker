@@ -154,14 +154,18 @@ export default function PriceVolume() {
 
           <section aria-labelledby="offers-title">
             <div className={styles.sectionHead}>
-              <h2 id="offers-title" className={styles.sectionTitle}>
-                Live prices
-              </h2>
-              {checkedAt && (
-                <span className={styles.checked}>
-                  Checked {timeAgo(checkedAt)}
-                </span>
-              )}
+              <div className={styles.live_info}>
+                <h2 id="offers-title" className={styles.sectionTitle}>
+                  Live prices{" "}
+                </h2>
+                {checkedAt && (
+                  <span className={styles.checked}>{timeAgo(checkedAt)}</span>
+                )}
+              </div>
+              <p className={styles.sectionNote}>
+                * May exclude direct retailers like Amazon or B&N, which could
+                be cheaper. Check store links below.
+              </p>
             </div>
 
             {offers.length > 0 ? (
@@ -220,6 +224,27 @@ export default function PriceVolume() {
             )}
           </section>
 
+          <section aria-labelledby="links-title">
+            <h2 id="links-title" className={styles.sectionTitle}>
+              Check price at
+            </h2>
+            <ul className={styles.storeLinks}>
+              {storeLinks.map((s) => (
+                <li key={s.store}>
+                  <a href={s.url} target="_blank" rel="noreferrer">
+                    {s.store}
+                  </a>
+                </li>
+              ))}
+            </ul>
+          </section>
+          {storeLinks.some((s) => s.affiliate) && (
+            <p className={styles.disclosure}>
+              Some store links are affiliate links which will be used to keep
+              the server running.
+            </p>
+          )}
+
           {stats && (
             <section aria-labelledby="history-title">
               <h2 id="history-title" className={styles.sectionTitle}>
@@ -252,30 +277,6 @@ export default function PriceVolume() {
                 {stats.changes} price change{stats.changes === 1 ? "" : "s"}
               </p>
             </section>
-          )}
-
-          <section aria-labelledby="links-title">
-            <h2 id="links-title" className={styles.sectionTitle}>
-              Check price at
-            </h2>
-            <ul className={styles.storeLinks}>
-              {storeLinks.map((s) => (
-                <li key={s.store}>
-                  <a href={s.url} target="_blank" rel="noreferrer">
-                    {s.store}
-                  </a>
-                </li>
-              ))}
-            </ul>
-          </section>
-
-          {storeLinks.some((s) => s.affiliate) && (
-            <p className={styles.disclosure}>
-              Some store links are affiliate links: if you buy through them we
-              may earn a small commission, at no extra cost to you.
-              {storeLinks.some((s) => s.store === "Amazon" && s.affiliate) &&
-                " As an Amazon Associate I earn from qualifying purchases."}
-            </p>
           )}
 
           <div className={styles.volumeActions}>
