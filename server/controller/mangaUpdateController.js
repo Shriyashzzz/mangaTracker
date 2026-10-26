@@ -18,6 +18,13 @@ const validationData = [
     .isNumeric()
     .withMessage(`Bookmark has to be Numeric luv!`),
   body("status").notEmpty(),
+  // the last volume they own; blank (or 0) means they don't say
+  body("volumesOwned")
+    .optional({ values: "falsy" })
+    .trim()
+    .isInt({ min: 0, max: 999 })
+    .withMessage("Volumes owned has to be a whole number, like 14")
+    .toInt(),
   body("image")
     .optional({ values: "falsy" })
     .trim()
@@ -38,7 +45,7 @@ const updateData = [
       const error = validationResult(req);
       if (error.isEmpty()) {
         console.log("no errors on client side");
-        const { name, bookmark, status, description, image } =
+        const { name, bookmark, status, description, image, volumesOwned } =
           matchedData(req);
         await queries.updateMangaPost(
           id,
@@ -47,6 +54,7 @@ const updateData = [
           status,
           description,
           image ?? null,
+          volumesOwned || null,
         );
         res.sendStatus(200);
       } else {

@@ -4,8 +4,11 @@ import { NavLink, useNavigate, useParams } from "react-router";
 import StarRating from "../../components/starRating/StarRating";
 import { apiFetch, FALLBACK_COVER } from "../../lib/api";
 import SlowLoadQuote from "../../components/slowLoadQuote/SlowLoadQuote";
+import { usePrivatePage } from "../../lib/seo";
+import BuyStrip from "./BuyStrip";
 
 export default function Details() {
+  usePrivatePage("Manga details");
   const [mangaData, setMangaData] = useState(null);
   const [loadError, setLoadError] = useState(false);
   const { id } = useParams();
@@ -136,6 +139,11 @@ export default function Details() {
                 You're on <span>chapter {mangaData.bookmark}</span>
               </>
             )}
+            {mangaData.volumes_owned && (
+              <span className={styles.owned}>
+                Own up to vol. {mangaData.volumes_owned}
+              </span>
+            )}
           </p>
         </header>
 
@@ -157,6 +165,11 @@ export default function Details() {
               <p>{mangaData.description}</p>
             </div>
           )}
+
+          <BuyStrip
+            name={mangaData.name}
+            volumesOwned={mangaData.volumes_owned}
+          />
 
           <div className={styles.actions}>
             <button

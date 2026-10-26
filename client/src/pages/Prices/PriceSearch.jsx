@@ -3,9 +3,11 @@ import { NavLink, useOutletContext, useSearchParams } from "react-router";
 import { getHighlights, searchSeries, seriesPath } from "../../lib/prices";
 import SeriesSearchBox from "./SeriesSearchBox";
 import VolumeCard from "./VolumeCard";
+import SeriesCard from "./SeriesCard";
 import styles from "./Prices.module.css";
 import Mascot from "../../components/mascot/Mascot";
 import SlowLoadQuote from "../../components/slowLoadQuote/SlowLoadQuote";
+import { usePageMeta } from "../../lib/seo";
 
 const QUICK_PICKS = ["One Piece", "Jujutsu Kaisen", "Chainsaw Man", "Frieren"];
 
@@ -15,6 +17,13 @@ export default function PriceSearch() {
   // results are kept with the query they belong to, so a stale answer
   // never shows under a newer search
   const [result, setResult] = useState({ query: "", items: [], error: "" });
+  // the front page is the one to find; result lists for a typed query are
+  // thin and endless, so they stay out of search engines
+  usePageMeta(
+    query
+      ? { title: `"${query}" manga prices`, path: "/", noindex: true }
+      : { path: "/" },
+  );
 
   useEffect(() => {
     if (query.length < 2) return;
@@ -108,33 +117,6 @@ export default function PriceSearch() {
 }
 
 // one series: cover, name and what AniList knows about it
-function SeriesCard({ series }) {
-  return (
-    <NavLink
-      to={seriesPath(series.name)}
-      className={styles.card}
-      viewTransition
-    >
-      <span className={styles.cover}>
-        <span className={styles.coverFallback} aria-hidden>
-          ?
-        </span>
-        {series.coverUrl && <img src={series.coverUrl} alt="" loading="lazy" />}
-      </span>
-      <span className={styles.cardTitle}>{series.name}</span>
-      <span className={styles.cardMeta}>
-        {[
-          series.year,
-          series.volumes && `${series.volumes} vols`,
-          series.score && `Score ${series.score}`,
-        ]
-          .filter(Boolean)
-          .join(" · ")}
-      </span>
-    </NavLink>
-  );
-}
-
 // what to show before anyone searches: trending series (AniList), deals and
 // recent checks (from prices already saved). None of it spends a search
 function Highlights() {
@@ -162,9 +144,14 @@ function Highlights() {
     <>
       {data.trending.length > 0 && (
         <section aria-labelledby="trending-title">
-          <h2 id="trending-title" className={styles.sectionTitle}>
-            Popular this season
-          </h2>
+          <div className={styles.sectionHead}>
+            <h2 id="trending-title" className={styles.sectionTitle}>
+              Popular this season
+            </h2>
+            <NavLink to="/series" className={styles.textBtn} viewTransition>
+              All series →
+            </NavLink>
+          </div>
           <ul className={styles.row}>
             {data.trending.map((s) => (
               <li key={s.slug}>

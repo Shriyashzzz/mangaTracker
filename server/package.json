@@ -12,6 +12,8 @@
     "initprices-dev": "node --env-file=.env models/initPrices.js",
     "initprefs": "node models/initPrefs.js",
     "initprefs-dev": "node --env-file=.env models/initPrefs.js",
+    "migrate": "node models/migrate.js",
+    "migrate-dev": "node --env-file=.env models/migrate.js",
     "dev": "nodemon --exec node --env-file=.env server.js"
   },
   "keywords": [],

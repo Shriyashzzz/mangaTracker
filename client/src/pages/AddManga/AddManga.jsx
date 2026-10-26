@@ -10,10 +10,12 @@ import { apiFetch } from "../../lib/api";
 import { GENRES } from "../../lib/genres";
 import CoverPicker from "../../components/coverPicker/CoverPicker";
 import { useEffect } from "react";
+import { usePrivatePage } from "../../lib/seo";
 
 const DESC_MAX = 450;
 
 export function AddManga() {
+  usePrivatePage("Add manga");
   const navigate = useNavigate();
   const [isSignedIn] = useOutletContext();
   const [isFinished, setIsFinished] = useState(false);
@@ -51,6 +53,7 @@ export function AddManga() {
       status: String(isFinished),
     };
     if (!isFinished) sendReq.bookmark = form.get("bookmark");
+    sendReq.volumesOwned = form.get("volumesOwned");
 
     setSubmitting(true);
     try {
@@ -161,6 +164,23 @@ export function AddManga() {
                 />
               </div>
             )}
+            <div className={styles.field}>
+              <label htmlFor="volumesOwned">
+                Own up to vol.{" "}
+                <span className={styles.optional}>(optional)</span>
+              </label>
+              <input
+                className={styles.input}
+                inputMode="numeric"
+                id="volumesOwned"
+                name="volumesOwned"
+                type="number"
+                min="1"
+                step="1"
+                placeholder="e.g. 14"
+                defaultValue={searchParams.get("volumesOwned") ?? ""}
+              />
+            </div>
             <div className={styles.field}>
               <label htmlFor="genre">
                 Genre{" "}

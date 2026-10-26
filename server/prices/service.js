@@ -3,6 +3,8 @@ import { lookupIsbn, searchVolumesDetailed } from "./catalog.js";
 import {
   getSeriesInfo,
   getTrending,
+  knownSeriesName,
+  listKnownSeries,
   searchSeries,
   slugify,
 } from "./anilist.js";
@@ -71,11 +73,12 @@ async function getOrCreateBook(isbn13) {
   return priceQueries.getBook(isbn13);
 }
 
-export async function getVolumePrices(isbn13) {
+// `refresh: false` shows what's stored without fetching new prices (crawlers)
+export async function getVolumePrices(isbn13, { refresh = true } = {}) {
   const book = await getOrCreateBook(isbn13);
   if (!book) return null;
 
-  await refreshIfStale(isbn13, book);
+  if (refresh) await refreshIfStale(isbn13, book);
 
   const last = await priceQueries.getLastCheck(isbn13);
   // a check and its samples share one transaction, so they share now()
@@ -259,7 +262,8 @@ async function getSeriesWithVolumes(name) {
   };
 }
 
-export async function getSeries(name) {
+export async function getSeries(asked) {
+  const name = await knownSeriesName(asked);
   const series = await getSeriesWithVolumes(name);
   if (!series.info && !series.volumes.length) {
     // nothing at all because the catalog was down isn't "not found"
@@ -270,6 +274,149 @@ export async function getSeries(name) {
 }
 
 export { searchSeries };
+
+// ---------- the shelf ----------
+
+// the volumes we know for each series, grouped by the series' slug.
+// Rebuilt every few minutes; shared by everyone's shelf
+const KNOWN_VOLUMES_MS = 10 * 60 * 1000;
+let knownVolumes = { at: 0, bySeries: new Map() };
+
+async function knownVolumesBySeries() {
+  if (Date.now() - knownVolumes.at < KNOWN_VOLUMES_MS) {
+    return knownVolumes.bySeries;
+  }
+  const bySeries = new Map();
+  const add = (v) => {
+    const key = slugify(seriesName(v.title));
+    if (!bySeries.has(key)) bySeries.set(key, new Map());
+    bySeries.get(key).set(v.isbn13, v);
+  };
+  (await priceQueries.getBookTitles()).forEach(add);
+  // full volume lists from series pages people opened recently
+  for (const hit of seriesVolumesCache.values()) hit.volumes.forEach(add);
+  knownVolumes = { at: Date.now(), bySeries };
+  return bySeries;
+}
+
+// the cheapest price we already know for each manga on a shelf. Database
+// and memory only: a whole shelf never sets off catalog or store lookups.
+// `manga` is [{ id, name }]; returns { [id]: { fromCents, volume, isbn13, title } }
+export async function getShelfPrices(manga) {
+  const bySeries = await knownVolumesBySeries();
+  const matches = new Map();
+  for (const m of manga) {
+    const keys = new Set([slugify(m.name), slugify(seriesName(m.name))]);
+    const known = await knownSeriesName(m.name).catch(() => m.name);
+    keys.add(slugify(known));
+    const volumes = [...keys].flatMap((k) => [
+      ...(bySeries.get(k)?.values() ?? []),
+    ]);
+    if (volumes.length) matches.set(m.id, volumes);
+  }
+
+  const isbns = [...matches.values()].flat().map((v) => v.isbn13);
+  const prices = await priceQueries.getKnownPrices([...new Set(isbns)]);
+  const result = {};
+  for (const [id, volumes] of matches) {
+    let best = null;
+    for (const v of volumes) {
+      const cents = prices.get(v.isbn13)?.price_cents;
+      if (cents != null && (!best || cents < best.fromCents)) {
+        const number = volumeOf(v.title);
+        best = {
+          fromCents: cents,
+          isbn13: v.isbn13,
+          title: v.title,
+          volume: Number.isFinite(number) ? number : null,
+        };
+      }
+    }
+    if (best) result[id] = best;
+  }
+  return result;
+}
+
+// the manga on someone's shelf that is this series, if any. Names are
+// compared by slug, so "SPY x FAMILY" on a shelf finds "Spy x Family"
+export async function findOnShelf(manga, series) {
+  const wanted = new Set([slugify(series), slugify(seriesName(series))]);
+  wanted.add(slugify(await knownSeriesName(series).catch(() => series)));
+  return (
+    manga.find(
+      (m) =>
+        wanted.has(slugify(m.name)) || wanted.has(slugify(seriesName(m.name))),
+    ) ?? null
+  );
+}
+
+// ---------- series index ----------
+
+// every series on the site for the /series page: AniList's facts plus how
+// many US volumes we know. Database and memory only
+export async function getSeriesIndex() {
+  const [series, bySeries] = await Promise.all([
+    listKnownSeries(),
+    knownVolumesBySeries(),
+  ]);
+  return series.map((info) => ({
+    name: info.name,
+    coverUrl: info.coverUrl,
+    score: info.score,
+    popularityRank: info.popularityRank,
+    genres: info.genres ?? [],
+    status: info.status,
+    volumes: info.volumes,
+    knownVolumes: bySeries.get(slugify(info.name))?.size ?? 0,
+  }));
+}
+
+// ---------- link previews ----------
+
+// what a shared link's preview needs, from the database alone: no catalog,
+// no store APIs, so the site's preview server can ask on every page load
+export async function getVolumeSummary(isbn13) {
+  const book = await priceQueries.getBook(isbn13);
+  if (!book) return null;
+  const last = await priceQueries.getLastCheck(isbn13);
+  const offers = last
+    ? await priceQueries.getLatestOffers(isbn13, last.checked_at)
+    : [];
+  const inStock = offers.filter((o) => o.in_stock);
+  const bestNew = inStock.find(
+    (o) => o.condition === "new" && o.format === "print",
+  );
+  const series = await getSeriesInfo(seriesName(book.title)).catch(() => null);
+  return {
+    isbn13: book.isbn13.trim(),
+    title: book.title,
+    authors: book.authors,
+    publisher: book.publisher,
+    year: book.year,
+    coverUrl: book.cover_url,
+    seriesName: series?.name ?? seriesName(book.title),
+    seriesCoverUrl: series?.coverUrl ?? null,
+    stores: [...new Set(offers.map((o) => o.store))],
+    lowCents: inStock.length ? inStock[0].price_cents : null,
+    highCents: inStock.length ? inStock[inStock.length - 1].price_cents : null,
+    offerCount: inStock.length,
+    bestNew: bestNew
+      ? { store: bestNew.store, priceCents: bestNew.price_cents }
+      : null,
+  };
+}
+
+export async function getSeriesSummary(asked) {
+  const name = await knownSeriesName(asked);
+  const info = await getSeriesInfo(name).catch(() => null);
+  if (!info) return null;
+  return {
+    name: info.name,
+    description: info.description,
+    coverUrl: info.coverUrl,
+    genres: info.genres,
+  };
+}
 
 // ---------- price home ----------
 

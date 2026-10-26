@@ -10,6 +10,8 @@ import { apiFetch } from "../../lib/api";
 import RangePager from "../../components/rangePager/RangePager";
 import Mascot from "../../components/mascot/Mascot";
 import SlowLoadQuote from "../../components/slowLoadQuote/SlowLoadQuote";
+import { usePrivatePage } from "../../lib/seo";
+import { getShelfPriceTags } from "../../lib/prices";
 
 const SHELF_PAGE_SIZE = 30;
 
@@ -39,6 +41,7 @@ const writeSession = (key, value) => {
 };
 
 export default function Home() {
+  usePrivatePage("Your shelf");
   const [isSignedIn] = useOutletContext();
 
   if (isSignedIn === null) {
@@ -75,6 +78,19 @@ function Library() {
     }
     fetchMangaData();
   }, []);
+
+  // price lines for the cards, once the shelf is in. Nice to have: the
+  // shelf works the same without them
+  const [priceTags, setPriceTags] = useState({});
+  const hasManga = Boolean(mangaData?.length);
+  useEffect(() => {
+    if (!hasManga) return;
+    const controller = new AbortController();
+    getShelfPriceTags(controller.signal)
+      .then(setPriceTags)
+      .catch(() => {});
+    return () => controller.abort();
+  }, [hasManga]);
 
   const counts = useMemo(() => {
     const list = mangaData ?? [];
@@ -263,6 +279,7 @@ function Library() {
               <MangaCard
                 key={currentManga.id}
                 currentManga={currentManga}
+                priceTag={priceTags[currentManga.id]}
                 index={i}
               />
             ))}

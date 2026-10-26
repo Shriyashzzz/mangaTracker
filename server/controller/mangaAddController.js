@@ -18,6 +18,13 @@ const validationChain = [
     .isNumeric()
     .withMessage(`Bookmark has to be Numeric luv!`),
   body("status").notEmpty(),
+  // the last volume they own; blank (or 0) means they don't say
+  body("volumesOwned")
+    .optional({ values: "falsy" })
+    .trim()
+    .isInt({ min: 0, max: 999 })
+    .withMessage("Volumes owned has to be a whole number, like 14")
+    .toInt(),
   // matchedData only returns validated fields, so genre needs a rule to be saved
   body("genre").optional({ values: "falsy" }).trim(),
   body("description")
@@ -41,7 +48,7 @@ const addMangaController = [
         error: errors.array(),
       });
     } else {
-      let { name, description, image, status, bookmark, genre } =
+      let { name, description, image, status, bookmark, genre, volumesOwned } =
         matchedData(req);
       if (!bookmark) {
         bookmark = 0;
@@ -56,6 +63,7 @@ const addMangaController = [
           status,
           bookmark,
           userId,
+          volumesOwned || null,
         );
 
         res.status(200).json({

@@ -223,6 +223,35 @@ const saveCoverIds = async (found) => {
   );
 };
 
+// everything worth a search engine's time: each US volume we know, and each
+// series once (several searched names can lead to the same AniList entry)
+const getSitemapEntries = async () => {
+  const [volumes, series] = await Promise.all([
+    pool.query(
+      `
+      SELECT b.isbn13, b.title, GREATEST(b.updated_at, pc.checked_at) AS updated
+      FROM books b LEFT JOIN price_checks pc USING (isbn13)
+      ORDER BY b.isbn13
+      `,
+    ),
+    pool.query(
+      `
+      SELECT DISTINCT ON (info->>'anilistId') info->>'name' AS name, fetched_at
+      FROM series_info
+      WHERE info IS NOT NULL AND info->>'name' IS NOT NULL
+      ORDER BY info->>'anilistId', fetched_at DESC
+      `,
+    ),
+  ]);
+  return { volumes: volumes.rows, series: series.rows };
+};
+
+// every volume we've stored, for matching shelf manga to their series
+const getBookTitles = async () => {
+  const { rows } = await pool.query(`SELECT isbn13, title FROM books`);
+  return rows.map((r) => ({ isbn13: r.isbn13.trim(), title: r.title }));
+};
+
 export default {
   claimApiCall,
   getKnownPrices,
@@ -235,4 +264,6 @@ export default {
   getPriceStats,
   getCoverIds,
   saveCoverIds,
+  getSitemapEntries,
+  getBookTitles,
 };

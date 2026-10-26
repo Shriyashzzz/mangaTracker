@@ -20,7 +20,32 @@
       content="#16140f"
       media="(prefers-color-scheme: dark)"
     />
-    <title>Manga Tracker</title>
+    <title>Manga Tracker: compare US manga prices</title>
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Manga Tracker" />
+    <meta
+      property="og:title"
+      content="Manga Tracker: compare US manga prices"
+    />
+    <meta
+      property="og:description"
+      content="Compare US manga prices across stores for every volume, and track the chapter you're on in every series you read."
+    />
+    <meta name="twitter:card" content="summary" />
+    <!-- the site itself, and its search, for search engines -->
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "WebSite",
+        "name": "Manga Tracker",
+        "url": "https://mangatracker.xyz/",
+        "potentialAction": {
+          "@type": "SearchAction",
+          "target": "https://mangatracker.xyz/?q={search_term_string}",
+          "query-input": "required name=search_term_string"
+        }
+      }
+    </script>
     <!-- Impact (Walmart affiliate): turns Walmart links into affiliate links -->
     <script type="text/javascript">
       (function (i, m, p, a, c, t) {

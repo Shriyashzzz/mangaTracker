@@ -1,10 +1,11 @@
 import { useEffect, useState } from "react";
-import { NavLink, useParams } from "react-router";
+import { NavLink, useLocation, useNavigate, useParams } from "react-router";
 import {
   coverSrc,
   formatCents,
   getVolume,
   hideBrokenCover,
+  volumePath,
   seriesPath,
   seriesTitle,
   timeAgo,
@@ -15,6 +16,9 @@ import styles from "./Prices.module.css";
 import Mascot from "../../components/mascot/Mascot";
 import { useOutletContext } from "react-router";
 import SlowLoadQuote from "../../components/slowLoadQuote/SlowLoadQuote";
+import { usePageMeta } from "../../lib/seo";
+import { volumeMeta } from "./pageMeta";
+import ShelfAction from "./ShelfAction";
 
 // longer price lists start collapsed, like manga.london's "Show N more"
 const VISIBLE_OFFERS = 5;
@@ -35,6 +39,20 @@ export default function PriceVolume() {
   const [showAll, setShowAll] = useState({ isbn, open: false });
   const offersOpen = showAll.isbn === isbn && showAll.open;
   const [state, setState] = useState({ isbn: null, data: null, error: "" });
+  const loadedBook = state.isbn === isbn ? state.data?.book : null;
+  usePageMeta(
+    state.isbn === isbn && state.data ? volumeMeta(state.data) : null,
+  );
+
+  // an ISBN-only or outdated link: show the address with the title in it,
+  // without loading the page again
+  const navigate = useNavigate();
+  const { pathname, search } = useLocation();
+  useEffect(() => {
+    if (!loadedBook) return;
+    const path = volumePath(loadedBook.isbn13, loadedBook.title);
+    if (pathname !== path) navigate(path + search, { replace: true });
+  }, [loadedBook, pathname, search, navigate]);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -183,7 +201,7 @@ export default function PriceVolume() {
                       <span>
                         {o.store}
                         {o === best && (
-                          <span className={styles.bestTag}>Best new</span>
+                          <span className={styles.bestTag}>Lowest here</span>
                         )}
                       </span>
                       <span className={styles.offerTags}>
@@ -286,7 +304,8 @@ export default function PriceVolume() {
                 </div>
               </dl>
               <p className={styles.checked}>
-                Cheapest new print copy across {stats.samples} check
+                Lowest new print price at the stores we check, across{" "}
+                {stats.samples} check
                 {stats.samples > 1 ? "s" : ""}, {shortDate(stats.since)}
                 {stats.samples > 1 && ` to ${shortDate(stats.lastSeen)}`} ·{" "}
                 {stats.changes} price change{stats.changes === 1 ? "" : "s"}
@@ -295,17 +314,12 @@ export default function PriceVolume() {
           )}
 
           <div className={styles.volumeActions}>
-            <NavLink
-              to={
-                isSignedIn
-                  ? `/add?${new URLSearchParams({ title: seriesTitle(book.title) })}`
-                  : `/signin`
-              }
-              className="btn btn-primary"
-              viewTransition
-            >
-              Add to my shelf
-            </NavLink>
+            <ShelfAction
+              isSignedIn={isSignedIn}
+              series={seriesLabel}
+              title={seriesTitle(book.title)}
+              volume={volume}
+            />
 
             <NavLink
               to={seriesPath(series.name)}
@@ -338,6 +352,7 @@ export default function PriceVolume() {
                 <VolumeCard
                   {...v}
                   title={`Vol. ${v.volume}`}
+                  fullTitle={v.title}
                   seriesCoverUrl={series.info?.coverUrl}
                   priceCents={v.knownPriceCents}
                 />

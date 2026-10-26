@@ -2,8 +2,10 @@ import { isRouteErrorResponse, Link, useRouteError } from "react-router";
 import styles from "./Error.module.css";
 import Mascot from "../../components/mascot/Mascot";
 import "../../App.css";
+import { usePrivatePage } from "../../lib/seo";
 
 function ErrorPage({ message }) {
+  usePrivatePage("Oops");
   const error = useRouteError();
   const is404 = !error || (isRouteErrorResponse(error) && error.status === 404);
 

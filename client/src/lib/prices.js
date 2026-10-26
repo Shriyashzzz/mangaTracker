@@ -35,12 +35,30 @@ export const asIsbn = (text) => {
 export const getSeries = (name, signal) =>
   getJson(`/api/prices/series?${new URLSearchParams({ name })}`, signal);
 
+// the cheapest known price for each manga on the signed-in shelf, by id
+export const getShelfPriceTags = (signal) =>
+  getJson("/api/mangadata/prices", signal);
+
+// every series we know, for the /series page
+export const getSeriesIndex = (signal) =>
+  getJson("/api/prices/series-index", signal);
+
 export const getHighlights = (signal) =>
   getJson("/api/prices/highlights", signal);
 
 // links a series page; the name rides along because slugs lose punctuation
 export const seriesPath = (name) =>
   `/prices/series/${slugify(name)}?${new URLSearchParams({ name })}`;
+
+// the address a series is known by in search engines and the sitemap: the
+// bare slug of AniList's name, which the server turns back into the series
+export const seriesCanonicalPath = (name) => `/prices/series/${slugify(name)}`;
+
+// a volume's address: the ISBN finds it, the title is there to be read
+export const volumePath = (isbn13, title) => {
+  const slug = title ? slugify(title) : "";
+  return slug ? `/prices/${isbn13}/${slug}` : `/prices/${isbn13}`;
+};
 
 const slugify = (name) =>
   name

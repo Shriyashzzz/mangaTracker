@@ -97,6 +97,19 @@
   text-overflow: ellipsis;
 }
 
+/* the lowest price we've seen for the series at the stores we check (not
+   every store), quiet until you look */
+.price {
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  color: var(--muted);
+}
+
+.price span {
+  color: var(--accent);
+  font-weight: 500;
+}
+
 .skeletonCard {
   display: flex;
   flex-direction: column;

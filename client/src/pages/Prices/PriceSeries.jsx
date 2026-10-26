@@ -7,6 +7,8 @@ import RangePager from "../../components/rangePager/RangePager";
 import styles from "./Prices.module.css";
 import Mascot from "../../components/mascot/Mascot";
 import SlowLoadQuote from "../../components/slowLoadQuote/SlowLoadQuote";
+import { usePageMeta } from "../../lib/seo";
+import { seriesMeta } from "./pageMeta";
 
 const PAGE_SIZE = 30;
 
@@ -39,6 +41,9 @@ export default function PriceSeries() {
   }, [key]);
 
   const retry = () => setAttempt((a) => a + 1);
+  usePageMeta(
+    state.key === key && state.data ? seriesMeta(state.data) : null,
+  );
 
   if (state.key !== key) {
     return (
@@ -170,6 +175,7 @@ export default function PriceSeries() {
                 <VolumeCard
                   {...v}
                   title={`Vol. ${v.volume}`}
+                  fullTitle={v.title}
                   seriesCoverUrl={info?.coverUrl}
                   priceCents={v.knownPriceCents}
                   subtitle={v.knownPriceCents == null ? "Check price" : null}

@@ -30,6 +30,8 @@ export default function Footer() {
         </figure>
 
         <p className={styles.links}>
+          <NavLink to="/series">Series</NavLink>
+          <span aria-hidden>·</span>
           <NavLink to="/about">About</NavLink>
           <span aria-hidden>·</span>
           <span>Vol. 1, {new Date().getFullYear()}</span>
