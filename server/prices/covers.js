@@ -134,3 +134,8 @@ async function lookUpChunk(isbns) {
 
 export const coverImageUrl = (id, size = "M") =>
   `https://covers.openlibrary.org/b/id/${id}-${size}.jpg`;
+
+// the same cover found by ISBN on the image host; rate limited per visitor,
+// so only a fallback. default=false makes a missing cover a 404, not a blank
+export const isbnCoverImageUrl = (isbn13, size = "M") =>
+  `https://covers.openlibrary.org/b/isbn/${isbn13}-${size}.jpg?default=false`;

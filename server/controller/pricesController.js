@@ -4,6 +4,7 @@ import {
   CoverLookupPaused,
   coverImageUrl,
   editionCoverId,
+  isbnCoverImageUrl,
 } from "../prices/covers.js";
 import {
   getHighlights,
@@ -127,25 +128,27 @@ const cover = [
     .withMessage("That isn't a valid ISBN"),
   rejectInvalid,
   async (req, res) => {
+    const { isbn } = matchedData(req);
+    const size = req.query.size === "L" ? "L" : "M";
     try {
-      const id = await editionCoverId(matchedData(req).isbn);
+      const id = await editionCoverId(isbn);
       if (!id) {
         // no cover for this edition: the page shows its drawn placeholder
         res.set("Cache-Control", "public, max-age=86400").sendStatus(404);
         return;
       }
       res.set("Cache-Control", "public, max-age=604800");
-      res.redirect(302, coverImageUrl(id, req.query.size === "L" ? "L" : "M"));
+      res.redirect(302, coverImageUrl(id, size));
     } catch (e) {
-      // never cached, so the page's retry asks again
-      res.set("Cache-Control", "no-store");
-      if (e instanceof CoverLookupPaused) {
-        res.set("Retry-After", String(Math.ceil(e.retryAfterMs / 1000)));
-        res.sendStatus(503);
-        return;
+      if (!(e instanceof CoverLookupPaused)) {
+        console.error("cover lookup failed:", e.message);
       }
-      console.error("cover lookup failed:", e.message);
-      res.sendStatus(502);
+      // Open Library's API is out of reach, but its image host usually
+      // isn't: send the browser to the by-ISBN image. That one is limited
+      // per visitor rather than per server, so it's fine as a stopgap.
+      // Never cached, so the next visit gets the by-ID image again
+      res.set("Cache-Control", "no-store");
+      res.redirect(302, isbnCoverImageUrl(isbn, size));
     }
   },
 ];
