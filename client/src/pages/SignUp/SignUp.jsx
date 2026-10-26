@@ -1,14 +1,20 @@
 import { useRef, useState } from "react";
 import styles from "../../styles/Auth.module.css";
-import { NavLink, useNavigate, useOutletContext } from "react-router";
+import {
+  NavLink,
+  useNavigate,
+  useOutletContext,
+  useSearchParams,
+} from "react-router";
 import PasswordInput from "../../components/passwordInput/PasswordInput";
 import AuthArt from "../../components/authArt/AuthArt";
-import { apiFetch } from "../../lib/api";
+import { apiFetch, afterSignIn } from "../../lib/api";
 import { usePrivatePage } from "../../lib/seo";
 
 export default function SignUp() {
   usePrivatePage("Create account");
   const navigater = useNavigate();
+  const [params] = useSearchParams();
   const userNameRef = useRef(null);
   const passRef = useRef(null);
   const [, setIsSignedIn] = useOutletContext();
@@ -36,7 +42,7 @@ export default function SignUp() {
 
       if (result.ok) {
         setIsSignedIn(true);
-        navigater("/shelf", { viewTransition: true });
+        navigater(afterSignIn(params), { viewTransition: true });
       } else {
         const data = await result.json();
         setErrors(data.errors || [{ msg: "Something went wrong. Try again." }]);
@@ -111,7 +117,7 @@ export default function SignUp() {
 
           <p className={styles.switchRow}>
             Already have an account?{" "}
-            <NavLink to="/signin" viewTransition>
+            <NavLink to={`/signin?${params}`} viewTransition>
               Log in
             </NavLink>
           </p>

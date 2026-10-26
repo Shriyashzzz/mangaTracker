@@ -178,6 +178,7 @@ export function AddManga() {
                 min="1"
                 step="1"
                 placeholder="e.g. 14"
+                defaultValue={searchParams.get("volumesOwned") ?? ""}
               />
             </div>
             <div className={styles.field}>

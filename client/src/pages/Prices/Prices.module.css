@@ -644,6 +644,56 @@ li:nth-child(3n + 2) > .card:hover .cover {
   flex-wrap: wrap;
 }
 
+/* the shelf button's pieces join the action row: its state line above,
+   its undo note below */
+.shelfAction {
+  display: contents;
+}
+
+.shelfState {
+  flex-basis: 100%;
+  order: -1;
+  margin-bottom: -0.35rem;
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  color: var(--muted);
+}
+
+.shelfState a {
+  color: var(--ink-soft);
+  text-decoration: underline;
+  text-decoration-color: var(--line-soft);
+  text-underline-offset: 3px;
+}
+
+.shelfState a:hover {
+  color: var(--accent);
+}
+
+.shelfNote {
+  order: 1;
+  flex-basis: 100%;
+  font-size: 0.88rem;
+  color: var(--ink-soft);
+}
+
+.shelfNote:empty {
+  display: none;
+}
+
+.undoBtn {
+  font-weight: 600;
+  color: var(--accent);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+/* holds the button's place while we check the shelf */
+.shelfPending {
+  opacity: 0.55;
+  pointer-events: none;
+}
+
 .sectionHead {
   display: flex;
   flex-direction: column;

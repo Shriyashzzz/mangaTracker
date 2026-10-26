@@ -154,6 +154,15 @@ const updatePrefs = async (userId, patch) => {
   return result.rows[0]?.prefs ?? {};
 };
 
+// how many volumes someone owns; null clears it. Returns the new value
+const setVolumesOwned = async (id, volumesOwned) => {
+  const result = await pool.query(
+    `UPDATE manga SET volumes_owned = $2 WHERE id = $1 RETURNING volumes_owned`,
+    [id, volumesOwned],
+  );
+  return result.rows[0]?.volumes_owned ?? null;
+};
+
 export default {
   getMangaData,
   getThatManga,
@@ -166,4 +175,5 @@ export default {
   addNewUser,
   getPrefs,
   updatePrefs,
+  setVolumesOwned,
 };

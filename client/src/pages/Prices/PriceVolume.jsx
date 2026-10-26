@@ -18,6 +18,7 @@ import { useOutletContext } from "react-router";
 import SlowLoadQuote from "../../components/slowLoadQuote/SlowLoadQuote";
 import { usePageMeta } from "../../lib/seo";
 import { volumeMeta } from "./pageMeta";
+import ShelfAction from "./ShelfAction";
 
 // longer price lists start collapsed, like manga.london's "Show N more"
 const VISIBLE_OFFERS = 5;
@@ -313,17 +314,12 @@ export default function PriceVolume() {
           )}
 
           <div className={styles.volumeActions}>
-            <NavLink
-              to={
-                isSignedIn
-                  ? `/add?${new URLSearchParams({ title: seriesTitle(book.title) })}`
-                  : `/signin`
-              }
-              className="btn btn-primary"
-              viewTransition
-            >
-              Add to my shelf
-            </NavLink>
+            <ShelfAction
+              isSignedIn={isSignedIn}
+              series={seriesLabel}
+              title={seriesTitle(book.title)}
+              volume={volume}
+            />
 
             <NavLink
               to={seriesPath(series.name)}

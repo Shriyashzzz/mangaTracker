@@ -1,14 +1,20 @@
 import { useRef, useState } from "react";
 import styles from "../../styles/Auth.module.css";
-import { NavLink, useNavigate, useOutletContext } from "react-router";
+import {
+  NavLink,
+  useNavigate,
+  useOutletContext,
+  useSearchParams,
+} from "react-router";
 import PasswordInput from "../../components/passwordInput/PasswordInput";
 import AuthArt from "../../components/authArt/AuthArt";
-import { apiFetch } from "../../lib/api";
+import { apiFetch, afterSignIn } from "../../lib/api";
 import { usePrivatePage } from "../../lib/seo";
 
 export default function SignInPage() {
   usePrivatePage("Sign in");
   const navigater = useNavigate();
+  const [params] = useSearchParams();
   const userNameRef = useRef(null);
   const passRef = useRef(null);
   const [, setIsSignedIn] = useOutletContext();
@@ -36,7 +42,7 @@ export default function SignInPage() {
 
       if (result.status === 200) {
         setIsSignedIn(true);
-        navigater("/shelf", { viewTransition: true });
+        navigater(afterSignIn(params), { viewTransition: true });
       } else {
         setError("Incorrect username or password. Try again.");
       }
@@ -106,7 +112,7 @@ export default function SignInPage() {
 
           <p className={styles.switchRow}>
             Don't have an account?{" "}
-            <NavLink to="/signup" viewTransition>
+            <NavLink to={`/signup?${params}`} viewTransition>
               Sign up
             </NavLink>
           </p>

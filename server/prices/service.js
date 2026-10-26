@@ -337,6 +337,19 @@ export async function getShelfPrices(manga) {
   return result;
 }
 
+// the manga on someone's shelf that is this series, if any. Names are
+// compared by slug, so "SPY x FAMILY" on a shelf finds "Spy x Family"
+export async function findOnShelf(manga, series) {
+  const wanted = new Set([slugify(series), slugify(seriesName(series))]);
+  wanted.add(slugify(await knownSeriesName(series).catch(() => series)));
+  return (
+    manga.find(
+      (m) =>
+        wanted.has(slugify(m.name)) || wanted.has(slugify(seriesName(m.name))),
+    ) ?? null
+  );
+}
+
 // ---------- series index ----------
 
 // every series on the site for the /series page: AniList's facts plus how
