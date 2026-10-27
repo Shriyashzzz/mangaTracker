@@ -6,12 +6,23 @@
 // JavaScript only ever see this first HTML. The React app then takes over
 // and keeps these tags up to date as people move around, as before.
 //
+// It also passes the browser's /api requests on to the API, so in production
+// the API only needs Railway's private network (API_INTERNAL_URL) and the
+// site and API share one domain.
+//
 import express, { type Request, type Response } from "express";
+import http from "node:http";
+import https from "node:https";
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 
 const DIST = fileURLToPath(new URL("./dist/", import.meta.url));
-const API_URL = process.env.VITE_API_URL?.replace(/\/+$/, "");
+// where this server reaches the API: the private address on Railway
+// (http://mangatracker.railway.internal:8080), the public one otherwise
+const API_URL = (process.env.API_INTERNAL_URL || process.env.VITE_API_URL)?.replace(
+  /\/+$/,
+  "",
+);
 const PORT = process.env.PORT || 3000;
 // a preview that takes longer than this isn't worth holding the page for
 const API_TIMEOUT_MS = 2500;
@@ -47,7 +58,9 @@ const slugify = (name: string) =>
     .slice(0, 80);
 
 const usd = (cents: number) => `$${(cents / 100).toFixed(2)}`;
-const apiImage = (url: string | null) => (url?.startsWith("/api/") ? API_URL + url : url);
+// /api/ covers are served through this site, so link previews can fetch them
+const apiImage = (url: string | null, origin: string) =>
+  url?.startsWith("/api/") ? origin + url : url;
 
 const volumePath = (isbn13: string, title: string) => {
   const slug = title ? slugify(title) : "";
@@ -100,7 +113,7 @@ function volumeTags(v: VolumeSummary, origin: string): Tags {
       v.publisher ? `Published by ${v.publisher}.` : "",
     ].join(" "),
   );
-  const image = apiImage(v.coverUrl) ?? v.seriesCoverUrl;
+  const image = apiImage(v.coverUrl, origin) ?? v.seriesCoverUrl;
   const jsonLd = {
     "@context": "https://schema.org",
     "@type": ["Book", "Product"],
@@ -208,6 +221,45 @@ async function summary<T>(path: string): Promise<T | null> {
 const app = express();
 app.set("trust proxy", 1); // Railway's proxy, for the https:// in URLs
 app.disable("x-powered-by");
+
+// The browser calls /api on this site; each request is streamed to the API
+// and its answer streamed back (live price checks included). The forwarded
+// headers tell the API the visitor's IP and that they're on https, so its
+// secure session cookie is still set
+app.use("/api", (req, res) => {
+  if (!API_URL) {
+    res.status(502).json({ error: [{ msg: "API_INTERNAL_URL isn't set" }] });
+    return;
+  }
+  const target = new URL(req.originalUrl, API_URL);
+  const client = target.protocol === "https:" ? https : http;
+  const upstream = client.request(
+    target,
+    {
+      method: req.method,
+      headers: {
+        ...req.headers,
+        host: target.host,
+        "x-forwarded-for": req.ip ?? "",
+        "x-forwarded-proto": req.protocol,
+        "x-forwarded-host": req.get("host") ?? "",
+      },
+    },
+    (answer) => {
+      res.writeHead(answer.statusCode ?? 502, answer.headers);
+      answer.pipe(res);
+    },
+  );
+  upstream.on("error", (e) => {
+    console.error(`API pass-through failed for ${req.originalUrl}:`, e.message);
+    if (res.headersSent) res.destroy();
+    else
+      res
+        .status(502)
+        .json({ error: [{ msg: "The server isn't answering. Try again in a moment." }] });
+  });
+  req.pipe(upstream);
+});
 
 // The sitemap is made by the API, which knows every series and volume, but
 // search engines trust a sitemap on the site's own domain most. So it's

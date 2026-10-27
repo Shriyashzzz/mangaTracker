@@ -449,14 +449,16 @@ The tests cover the parts where a mistake shows a wrong price or loses money: ti
 
 ## Deploying
 
-Two Railway services, as before. **Their build/start commands change in v2:**
+Two Railway services. Only the site is public: the API sits on Railway's private network, and the site's server (`client/server.ts`) passes every `/api` request on to it, so the browser only ever talks to `mangatracker.xyz`.
 
-| Service          | Build                          | Start                            | Settings                                                                       |
-| ---------------- | ------------------------------ | -------------------------------- | ------------------------------------------------------------------------------ |
-| API (`server/`)  | `npm install && npm run build` | `npm run db:deploy && npm start` | `DATABASE_URL`, `SECRET`, `CLIENT_URL`, `ENV=PROD`, plus any optional settings |
-| Site (`client/`) | `npm install && npm run build` | `npm start`                      | `VITE_API_URL`                                                                 |
+| Service          | Build                                | Start                                        | Settings                                                                       |
+| ---------------- | ------------------------------------ | -------------------------------------------- | ------------------------------------------------------------------------------ |
+| API (`server/`)  | none (its `Dockerfile` builds it)    | none (the `Dockerfile` migrates, then starts) | `DATABASE_URL`, `SECRET`, `CLIENT_URL`, `ENV=PROD`, plus any optional settings |
+| Site (`client/`) | `npm install && npm run build`       | `npm start`                                  | `API_INTERNAL_URL=http://mangatracker.railway.internal:8080`, and **no** `VITE_API_URL` |
 
-`npm run db:deploy` applies any new migrations and does nothing when there are none, so it's safe on every start. The API also ships a `Dockerfile` that does the same.
+- Leave the API's custom build, pre-deploy and start commands empty. With a Dockerfile, Railway runs a custom start command without a shell, so `npm run db:deploy && npm start` only migrates and then exits.
+- `VITE_API_URL` is baked into the JavaScript the browser runs, so it must be empty in production (calls then go to `/api` on the site). Never set it to a `.railway.internal` address: browsers can't reach those. Locally it stays `http://localhost:8080`.
+- The API needs no public domain. `db:deploy` applies any new migrations and does nothing when there are none, so it's safe on every start.
 
 ### Moving production from v1 to v2 (one time)
 
