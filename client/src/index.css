@@ -1,0 +1,641 @@
+/*
+ * Global styles. Tailwind v4 is configured here (no tailwind.config.js).
+ *
+ *  1. tokens      the manga palette as CSS variables, swapped for dark mode
+ *  2. @theme      those tokens exposed to Tailwind: bg-paper, text-ink,
+ *                 border-line, font-brand, shadow-ink, ...
+ *  3. base        page-wide defaults (body, headings, focus, selection)
+ *  4. components  the shared button / skeleton classes (.btn, .btn-primary)
+ *
+ * Colors live in variables rather than straight in @theme so one class
+ * (bg-paper) follows the theme: light, dark, or .printed (always light).
+ */
+@import "tailwindcss";
+@import "./styles/backdrop.css";
+
+/* the breakpoints the pages were designed at, inclusive like the original
+   CSS (Tailwind's own max-[...] variants exclude the edge). Use them like
+   any variant: upto-760:grid-cols-1 */
+@custom-variant upto-860 (@media (max-width: 860px));
+@custom-variant upto-760 (@media (max-width: 760px));
+@custom-variant upto-720 (@media (max-width: 720px));
+@custom-variant upto-560 (@media (max-width: 560px));
+@custom-variant upto-520 (@media (max-width: 520px));
+@custom-variant upto-480 (@media (max-width: 480px));
+/* laptops with short screens, where the add / edit form must still fit */
+@custom-variant short-laptop (@media (min-width: 761px) and (max-height: 720px));
+
+/* dark mode follows <html data-theme="dark"> (set from settings), else the OS */
+@custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
+
+/* ---------- 1. tokens ---------- */
+:root {
+  --paper: #f3eee2;
+  --paper-2: #e9e2d1;
+  --card: #fbf8f0;
+  --ink: #1d1a16;
+  --ink-soft: #4a443b;
+  --muted: #7a7263;
+  --line: #1d1a16;
+  --line-soft: #d6ccb7;
+  /* a muted brick red, used as manga spot colour: actions and small details */
+  --accent: #b14a3c;
+  --accent-hover: #963d31;
+  --accent-wash: rgba(177, 74, 60, 0.09);
+  --on-accent: #fffaf2;
+  --ok: #2e6b4c;
+  --star: #d99a00;
+  --star-off: #cfc5b0;
+  --hard-shadow: #1d1a16;
+  --dots: rgba(29, 26, 22, 0.09);
+  --dots-strong: rgba(29, 26, 22, 0.28);
+
+  color-scheme: light;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --paper: #16140f;
+    --paper-2: #211e18;
+    --card: #1c1914;
+    --ink: #eee6d4;
+    --ink-soft: #c8bfab;
+    --muted: #918874;
+    --line: #cfc5ae;
+    --line-soft: #3a3429;
+    --accent: #d27a66;
+    --accent-hover: #e08f7c;
+    --accent-wash: rgba(210, 122, 102, 0.11);
+    --on-accent: #16140f;
+    --ok: #6fbf8f;
+    --star: #f2b630;
+    --star-off: #4a4337;
+    --hard-shadow: #463e31;
+    --dots: rgba(238, 230, 212, 0.06);
+    --dots-strong: rgba(238, 230, 212, 0.2);
+    color-scheme: dark;
+  }
+}
+
+:root[data-theme="dark"] {
+  --paper: #16140f;
+  --paper-2: #211e18;
+  --card: #1c1914;
+  --ink: #eee6d4;
+  --ink-soft: #c8bfab;
+  --muted: #918874;
+  --line: #cfc5ae;
+  --line-soft: #3a3429;
+  --accent: #d27a66;
+  --accent-hover: #e08f7c;
+  --accent-wash: rgba(210, 122, 102, 0.11);
+  --on-accent: #16140f;
+  --ok: #6fbf8f;
+  --star: #f2b630;
+  --star-off: #4a4337;
+  --hard-shadow: #463e31;
+  --dots: rgba(238, 230, 212, 0.06);
+  --dots-strong: rgba(238, 230, 212, 0.2);
+  color-scheme: dark;
+}
+
+/* a printed manga page: ink on paper in every theme. Illustrated panels
+   use it so the dark theme reads as manga pages on a dark table instead
+   of inverting the artwork */
+.printed {
+  --paper: #f3eee2;
+  --paper-2: #e9e2d1;
+  --card: #fbf8f0;
+  --ink: #1d1a16;
+  --ink-soft: #4a443b;
+  --muted: #6f6758;
+  --line: #1d1a16;
+  --line-soft: #d6ccb7;
+  --accent: #b14a3c;
+  --accent-hover: #963d31;
+  --accent-wash: rgba(177, 74, 60, 0.09);
+  --on-accent: #fffaf2;
+  --star: #d99a00;
+  --star-off: #cfc5b0;
+  --hard-shadow: #1d1a16;
+  --dots: rgba(29, 26, 22, 0.09);
+  --dots-strong: rgba(29, 26, 22, 0.28);
+  color: var(--ink);
+}
+
+
+/* ---------- 2. Tailwind theme ---------- */
+/* static: always written to :root, since CSS modules read these too */
+@theme static {
+  --font-body: "IBM Plex Sans", system-ui, -apple-system, sans-serif;
+  --font-display: "Fraunces", Georgia, "Times New Roman", serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, Menlo, monospace;
+  /* Bangers: the shouty manga display voice (logo, labels, badges) */
+  --font-brand: "Bangers", "Fraunces", serif;
+  --font-hand: "Caveat", "Comic Sans MS", cursive;
+  /* Comic Neue: speech bubbles and captions */
+  --font-letter: "Comic Neue", "Comic Sans MS", cursive;
+
+  --radius-ink: 4px;
+  --ease-ink: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --container-page: 1120px;
+}
+
+@theme inline {
+  --color-paper: var(--paper);
+  --color-paper-2: var(--paper-2);
+  --color-card: var(--card);
+  --color-ink: var(--ink);
+  --color-ink-soft: var(--ink-soft);
+  --color-muted: var(--muted);
+  --color-line: var(--line);
+  --color-line-soft: var(--line-soft);
+  --color-accent: var(--accent);
+  --color-accent-hover: var(--accent-hover);
+  --color-accent-wash: var(--accent-wash);
+  --color-on-accent: var(--on-accent);
+  --color-ok: var(--ok);
+  --color-star: var(--star);
+  --color-star-off: var(--star-off);
+  --color-dots: var(--dots);
+  --color-dots-strong: var(--dots-strong);
+  /* the flat ink shadow under panels and buttons */
+  --shadow-ink: 3px 3px 0 var(--hard-shadow);
+  --shadow-ink-lg: 4px 4px 0 var(--hard-shadow);
+}
+
+/* the same values under their old names, for the CSS modules still to port */
+:root {
+  --radius: 4px;
+  --page-width: 1120px;
+  --gutter: clamp(16px, 4vw, 36px);
+  --ease: cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+/* ---------- 3. base ---------- */
+@layer base {
+  html {
+    -webkit-text-size-adjust: 100%;
+  }
+
+  body {
+    background-color: var(--paper);
+    color: var(--ink);
+    font-family: var(--font-body);
+    font-size: 16px;
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+    transition:
+      background-color 0.2s ease,
+      color 0.2s ease;
+  }
+
+  #root {
+    position: relative;
+    z-index: 1;
+    min-height: 100dvh;
+    display: flex;
+    flex-direction: column;
+  }
+
+  main {
+    flex: 1;
+    width: 100%;
+    max-width: var(--page-width);
+    margin: 0 auto;
+    padding: clamp(20px, 3vw, 32px) var(--gutter) 72px;
+  }
+
+  /* the old hand-written reset kept list bullets and heading sizes;
+     Tailwind's preflight removes them, so restore what pages relied on */
+  h1, h2, h3 {
+    font-family: var(--font-display);
+    font-weight: 600;
+    line-height: 1.1;
+    letter-spacing: -0.01em;
+  }
+  h1 { font-size: 2em; }
+  h2 { font-size: 1.5em; }
+  h3 { font-size: 1.17em; }
+
+  em { font-style: italic; }
+
+  button:not(:disabled),
+  [role="button"]:not(:disabled) {
+    cursor: pointer;
+  }
+
+  /* Tailwind's reset would otherwise override the hidden attribute */
+  [hidden] {
+    display: none !important;
+  }
+
+  ::selection {
+    background: var(--accent);
+    color: var(--on-accent);
+  }
+
+  :focus-visible {
+    outline: 2px dashed var(--accent);
+    outline-offset: 3px;
+  }
+
+  /* inputs: the caret and scrollbar carry the palette too */
+  input, textarea {
+    caret-color: var(--accent);
+  }
+  html {
+    scrollbar-color: var(--line-soft) transparent;
+  }
+}
+
+/* ---------- 4. components ---------- */
+@layer components {
+/* the reading buddy in empty and error states, always on paper */
+.mascot-spot {
+  display: block;
+  width: 112px;
+  margin: 0 auto 0.5rem;
+  padding: 0.6rem 0.6rem 0.2rem;
+  border: 2.5px solid var(--line);
+  border-radius: 50%;
+  background: var(--card);
+  aspect-ratio: 1;
+}
+
+/* ---------- buttons: ink outline + flat offset shadow ---------- */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  height: 42px;
+  padding: 0 1.1rem;
+  border: 1.5px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--card);
+  color: var(--ink);
+  font-size: 0.95rem;
+  font-weight: 500;
+  white-space: nowrap;
+  box-shadow: 3px 3px 0 var(--hard-shadow);
+  transition:
+    transform 0.12s ease,
+    box-shadow 0.12s ease,
+    background-color 0.15s ease;
+}
+
+.btn:hover:not(:disabled) {
+  transform: translate(-1px, -1px);
+  box-shadow: 4px 4px 0 var(--hard-shadow);
+}
+
+.btn:active:not(:disabled) {
+  transform: translate(3px, 3px);
+  box-shadow: 0 0 0 var(--hard-shadow);
+}
+
+.btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.btn svg {
+  width: 17px;
+  height: 17px;
+  flex-shrink: 0;
+}
+
+.btn-primary {
+  background: var(--accent);
+  color: var(--on-accent);
+}
+
+.btn-primary:hover:not(:disabled) {
+  background: var(--accent-hover);
+}
+
+.btn-secondary {
+  background: var(--card);
+}
+
+/* plain text button, no box */
+.btn-ghost {
+  border-color: transparent;
+  background: transparent;
+  box-shadow: none;
+  color: var(--ink-soft);
+  text-decoration: underline;
+  text-decoration-color: var(--line-soft);
+  text-underline-offset: 4px;
+}
+
+.btn-ghost:hover:not(:disabled) {
+  transform: none;
+  box-shadow: none;
+  color: var(--ink);
+  text-decoration-color: currentColor;
+}
+
+.btn-ghost:active:not(:disabled) {
+  transform: none;
+}
+
+.btn-danger {
+  background: var(--accent);
+  color: var(--on-accent);
+}
+
+.btn-sm {
+  height: 34px;
+  padding: 0 0.8rem;
+  font-size: 0.875rem;
+}
+
+.btn-lg {
+  height: 50px;
+  padding: 0 1.5rem;
+  font-size: 1rem;
+}
+
+.btn-block {
+  width: 100%;
+}
+
+.icon-btn {
+  display: inline-grid;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  border-radius: var(--radius);
+  color: var(--ink-soft);
+  transition: color 0.15s ease;
+}
+
+.icon-btn:hover {
+  color: var(--accent);
+}
+
+.icon-btn svg {
+  width: 19px;
+  height: 19px;
+}
+
+/* ---------- loading ---------- */
+.skeleton {
+  background: var(--paper-2);
+  border-radius: var(--radius);
+  animation: breathe 1.6s ease-in-out infinite;
+}
+
+@keyframes breathe {
+  50% {
+    opacity: 0.5;
+  }
+}
+
+.fade-in {
+  animation: fadeIn 0.35s var(--ease) both;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+}
+
+/* ---------- 5. manga utilities (use like any Tailwind class) ---------- */
+
+/* page side padding that grows with the screen */
+@utility px-gutter {
+  padding-inline: var(--gutter);
+}
+
+/* screentone dots, like the shading in a manga panel */
+@utility screentone {
+  background-image: radial-gradient(rgba(128, 128, 128, 0.16) 1px, transparent 1.2px);
+  background-size: 7px 7px;
+}
+
+/* the corner tick on a chosen cover in the cover picker */
+@utility tick-corner {
+  position: relative;
+  &::after {
+    content: "";
+    position: absolute;
+    top: 0;
+    right: 0;
+    width: 18px;
+    height: 18px;
+    background: var(--accent)
+      url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23fffaf2' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m5 12 5 5 9-10'/%3E%3C/svg%3E")
+      no-repeat center / 12px;
+  }
+}
+
+/* focus lines radiating from the middle of a panel (sign in / up art) */
+@utility focus-lines {
+  background:
+    radial-gradient(circle at 50% 50%, var(--paper) 0 22%, transparent 64%),
+    repeating-conic-gradient(
+      from 0deg at 50% 50%,
+      var(--line) 0deg 0.7deg,
+      transparent 0.7deg 6deg
+    );
+}
+
+/* a speech balloon's tail, pointing up toward the action. The balloon
+   needs position: relative and a 2.5px ink border */
+@utility bubble-tail-up {
+  &::before,
+  &::after {
+    content: "";
+    position: absolute;
+    right: 30%;
+    border-style: solid;
+    border-color: transparent transparent var(--line);
+  }
+  &::before {
+    bottom: calc(100% - 1px);
+    border-width: 0 0 24px 18px;
+  }
+  &::after {
+    bottom: calc(100% - 4px);
+    margin-right: 3px;
+    border-width: 0 0 20px 13px;
+    border-color: transparent transparent var(--card);
+  }
+}
+
+/* the chevron on a styled <select> (add / edit forms) */
+@utility select-chevron {
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='none' stroke='%23888' stroke-width='2.2' stroke-linecap='round' viewBox='0 0 24 24'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.85rem center;
+}
+
+/* the About strip's balloon tail: points up at the character, and left at
+   it on phones where the panels go side-on */
+@utility bubble-tail-mascot {
+  &::before,
+  &::after {
+    content: "";
+    position: absolute;
+    left: 50%;
+    border-style: solid;
+    border-color: transparent transparent var(--line);
+  }
+  &::before {
+    bottom: calc(100% - 1px);
+    border-width: 0 0 18px 14px;
+  }
+  &::after {
+    bottom: calc(100% - 4px);
+    margin-left: 3px;
+    border-width: 0 0 14px 10px;
+    border-color: transparent transparent var(--card);
+  }
+  @media (max-width: 760px) {
+    &::before {
+      left: auto;
+      right: calc(100% - 1px);
+      bottom: 40%;
+      border-width: 0 16px 12px 0;
+      border-color: transparent var(--line) transparent transparent;
+    }
+    &::after {
+      left: auto;
+      right: calc(100% - 4px);
+      bottom: calc(40% + 3px);
+      margin-left: 0;
+      border-width: 0 12px 8px 0;
+      border-color: transparent var(--card) transparent transparent;
+    }
+  }
+}
+
+/* the price home's header panel: speed lines bursting from the top-right
+   corner, fading out before the title and search box, over light tone */
+@utility speed-burst {
+  background-color: var(--card);
+  background-image:
+    linear-gradient(to right, var(--card) 38%, transparent 78%),
+    repeating-conic-gradient(
+      from 180deg at 96% 0%,
+      var(--line-soft) 0deg 0.6deg,
+      transparent 0.6deg 5deg
+    ),
+    radial-gradient(var(--dots) 1.2px, transparent 1.5px);
+  background-size:
+    auto,
+    auto,
+    7px 7px;
+}
+
+/* the drawn placeholder behind a missing volume cover */
+@utility cover-lines {
+  background:
+    repeating-conic-gradient(
+      from 0deg at 50% 50%,
+      var(--line-soft) 0deg 0.8deg,
+      transparent 0.8deg 8deg
+    ),
+    var(--card);
+}
+
+/* hand-drawn squiggle under the current nav link */
+@utility squiggle {
+  position: relative;
+  &::after {
+    content: "";
+    position: absolute;
+    left: -2px;
+    right: -2px;
+    bottom: -4px;
+    height: 6px;
+    background: var(--accent);
+    --squiggle: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 6' preserveAspectRatio='none'%3E%3Cpath d='M1 4c5-3 8 1 13-1s8-2 12 0 8 1 13-2' fill='none' stroke='black' stroke-width='1.6' stroke-linecap='round'/%3E%3C/svg%3E");
+    mask: var(--squiggle) no-repeat center / 100% 100%;
+    -webkit-mask: var(--squiggle) no-repeat center / 100% 100%;
+  }
+}
+
+/* a translated-manga caption box: thick paper border with an inked inset */
+@utility caption-box {
+  border: 2px solid var(--paper);
+  outline: 1.5px solid var(--ink);
+  outline-offset: -4px;
+}
+
+@theme {
+  --animate-quote-in: quote-in 0.45s var(--ease-ink) both;
+  /* the slow-load quote panel rising into the middle of the window */
+  --animate-panel-in: panel-in 0.4s var(--ease-ink) both;
+  /* shelf and price cards settling into place */
+  --animate-card-in: card-in 0.4s var(--ease-ink) both;
+  @keyframes card-in {
+    from {
+      opacity: 0;
+      transform: translateY(10px);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
+  /* guest hero panels sliding open from their left edge, read in order.
+     Generous negative insets so sound effects overhanging the border are
+     never cut */
+  --animate-panel-open: panel-open 0.6s var(--ease-ink) both;
+  @keyframes panel-open {
+    from {
+      clip-path: inset(-3rem 100% -3rem -3rem);
+    }
+    to {
+      clip-path: inset(-3rem -3rem -3rem -3rem);
+    }
+  }
+  /* the settings menu dropping from the header */
+  --animate-drop: drop 0.18s var(--ease-ink);
+  @keyframes panel-in {
+    from {
+      opacity: 0;
+      /* the `translate` property, which Tailwind's -translate-1/2 sets */
+      translate: -50% calc(-50% + 8px);
+    }
+  }
+  @keyframes drop {
+    from {
+      opacity: 0;
+      transform: translateY(-4px) scale(0.98);
+    }
+  }
+  @keyframes quote-in {
+    from {
+      opacity: 0;
+      filter: blur(2px);
+    }
+    to {
+      opacity: 1;
+      filter: none;
+    }
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-delay: 0ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}

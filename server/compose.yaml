@@ -1,0 +1,35 @@
+# Local development: `docker compose up db` gives you a Postgres on :5433
+# (DATABASE_URL=postgresql://manga:manga@localhost:5433/manga). `docker
+# compose up` also runs the API image on :8080.
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: manga
+      POSTGRES_PASSWORD: manga
+      POSTGRES_DB: manga
+    ports:
+      - "5433:5432"
+    volumes:
+      - manga_pg_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U manga -d manga"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  api:
+    build: .
+    ports:
+      - "8080:8080"
+    environment:
+      DATABASE_URL: postgresql://manga:manga@db:5432/manga
+      SECRET: change-me
+      CLIENT_URL: http://localhost:5173
+      PORT: 8080
+    depends_on:
+      db:
+        condition: service_healthy
+
+volumes:
+  manga_pg_data:
