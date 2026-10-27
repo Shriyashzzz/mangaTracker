@@ -1,6 +1,7 @@
 // Talking to the API. Every request sends the session cookie, so the
 // server knows who's signed in. VITE_API_URL is the API's address
-// (http://localhost:8080 in development).
+// (http://localhost:8080 in development). It's empty in production, where
+// /api on the site itself is passed on to the API (see client/server.ts)
 import type { ApiError } from "./types";
 
 export const API_URL: string = import.meta.env.VITE_API_URL ?? "";
