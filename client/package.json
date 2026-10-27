@@ -1,23 +1,31 @@
 {
-  "name": "client",
+  "name": "manga-tracker-client",
   "private": true,
-  "version": "0.0.0",
+  "version": "2.0.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "vite build",
+    "build": "tsc -b && vite build",
+    "typecheck": "tsc -b",
     "lint": "eslint .",
     "preview": "vite preview",
-    "start": "node server.js"
+    "start": "tsx server.ts"
   },
   "dependencies": {
+    "@tailwindcss/vite": "^4.3.3",
+    "clsx": "^2.1.1",
     "express": "^5.3.0",
     "react": "^19.2.6",
     "react-dom": "^19.2.6",
-    "react-router": "^8.0.1"
+    "react-router": "^8.0.1",
+    "tailwindcss": "^4.3.3",
+    "tsx": "^4.23.15",
+    "zustand": "^5.0.16"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
+    "@types/express": "^5.0.6",
+    "@types/node": "^26.6.5",
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
     "@vitejs/plugin-react": "^6.0.1",
@@ -25,7 +33,11 @@
     "eslint-plugin-react-hooks": "^7.1.1",
     "eslint-plugin-react-refresh": "^0.5.2",
     "globals": "^17.6.0",
-    "serve": "^14.2.6",
+    "typescript": "^6.0.3",
+    "typescript-eslint": "^8.72.1",
     "vite": "^8.0.12"
+  },
+  "allowScripts": {
+    "esbuild@0.28.2": true
   }
 }

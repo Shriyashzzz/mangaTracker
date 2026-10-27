@@ -1,23 +1,21 @@
 {
-  "name": "inventoryapp",
-  "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
+  "name": "manga-tracker",
+  "version": "2.0.0",
+  "description": "Track what you read, find what to buy next: a manga shelf + US price checker",
+  "private": true,
+  "type": "module",
   "scripts": {
+    "dev": "concurrently -n api,site -c red,blue \"npm run dev-server\" \"npm run dev-client\"",
     "dev-client": "cd client && npm run dev",
     "dev-server": "cd server && npm run dev",
-    "start": "concurrently \"npm run dev-client\" \"npm run dev-server\"",
-    "build:client": "cd client && npm install && npm run build",
-    "build:server": "cd server && npm install",
-    "start:client": "cd client && npm run preview",
-    "start:server": "cd server && npm start"
+    "install:all": "npm install && cd server && npm install && cd ../client && npm install",
+    "typecheck": "cd server && npm run typecheck && cd ../client && npm run typecheck",
+    "test": "cd server && npm test",
+    "build": "cd server && npm run build && cd ../client && npm run build"
   },
-  "keywords": [],
-  "author": "",
+  "author": "Shriyash",
   "license": "ISC",
-  "type": "module",
   "devDependencies": {
     "concurrently": "^10.0.3"
-  },
-  "dependencies": {}
+  }
 }

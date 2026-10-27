@@ -1,0 +1,129 @@
+// Mapped onto the tables the JS version made with raw SQL (models/initdb.js,
+// initPrices.js, migrate.js), so an existing database is used as it is:
+// run `npm run db:baseline` once against it instead of migrating.
+
+generator client {
+  provider = "prisma-client"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ---------- the shelf ----------
+
+model User {
+  id       Int     @id @default(autoincrement())
+  username String  @unique @db.VarChar(40)
+  password String
+  // display preferences: { background, theme }
+  prefs    Json    @default("{}")
+  manga    Manga[]
+
+  @@map("users")
+}
+
+model Manga {
+  id           Int     @id @default(autoincrement())
+  userId       Int?    @map("user_id")
+  user         User?   @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  name         String
+  genre        String? @db.VarChar(100)
+  description  String?
+  image        String?
+  // true = finished reading
+  status       Boolean @default(false)
+  // the chapter they're on
+  bookmark     Int?
+  // the last volume they own ("up to Vol. 14"); null when they don't say
+  volumesOwned Int?    @map("volumes_owned") @db.SmallInt
+  rating       Int?    @db.SmallInt
+
+  @@index([userId])
+  @@map("manga")
+}
+
+// express-session's store (connect-pg-simple). Kept in the schema so
+// migrations never try to drop it
+model Session {
+  sid    String   @id @db.VarChar
+  sess   Json     @db.Json
+  expire DateTime @db.Timestamp(6)
+
+  @@index([expire], map: "IDX_session_expire")
+  @@map("session")
+}
+
+// ---------- the price checker ----------
+
+model Book {
+  isbn13    String        @id @db.Char(13)
+  title     String
+  authors   String?
+  publisher String?
+  coverUrl  String?       @map("cover_url")
+  year      Int?          @db.SmallInt
+  updatedAt DateTime      @default(now()) @map("updated_at") @db.Timestamptz(6)
+  samples   PriceSample[]
+  check     PriceCheck?
+
+  @@map("books")
+}
+
+// every price we ever fetch, so we can show the latest offers and the history
+model PriceSample {
+  id         BigInt   @id @default(autoincrement())
+  isbn13     String   @db.Char(13)
+  book       Book     @relation(fields: [isbn13], references: [isbn13], onDelete: Cascade, onUpdate: NoAction)
+  store      String   @db.VarChar(60)
+  format     String   @default("print") @db.VarChar(20)
+  condition  String   @default("new") @db.VarChar(20)
+  priceCents Int      @map("price_cents")
+  currency   String   @default("USD") @db.Char(3)
+  inStock    Boolean  @default(true) @map("in_stock")
+  url        String?
+  fetchedAt  DateTime @default(now()) @map("fetched_at") @db.Timestamptz(6)
+
+  @@index([isbn13, fetchedAt(sort: Desc)], map: "price_samples_isbn_time")
+  @@map("price_samples")
+}
+
+// when each volume was last checked, even if no store had it
+model PriceCheck {
+  isbn13    String   @id @db.Char(13)
+  book      Book     @relation(fields: [isbn13], references: [isbn13], onDelete: Cascade, onUpdate: NoAction)
+  checkedAt DateTime @default(now()) @map("checked_at") @db.Timestamptz(6)
+  sources   String[] @default([])
+
+  @@map("price_checks")
+}
+
+// AniList series info, cached a week per series
+model SeriesInfo {
+  slug      String   @id @db.VarChar(80)
+  info      Json?
+  fetchedAt DateTime @default(now()) @map("fetched_at") @db.Timestamptz(6)
+
+  @@map("series_info")
+}
+
+// paid APIs with a monthly allowance: how many calls we've made this month
+model ApiUsage {
+  provider String   @db.VarChar(40)
+  month    DateTime @db.Date
+  calls    Int      @default(0)
+
+  @@id([provider, month])
+  @@map("api_usage")
+}
+
+// the Open Library cover of each US edition, found once and kept. A null
+// coverId means the edition has none; those are looked at again monthly
+model EditionCover {
+  isbn13    String   @id @db.Char(13)
+  coverId   Int?     @map("cover_id")
+  checkedAt DateTime @default(now()) @map("checked_at") @db.Timestamptz(6)
+
+  @@map("edition_covers")
+}

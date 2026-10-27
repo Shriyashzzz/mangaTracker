@@ -1,6 +1,9 @@
 node_modules
-client/node_modules
-server/node_modules
-node_modules
-client/node_modules
-server/node_modules
+.env
+.env.*
+!.env.example
+dist
+.DS_Store
+
+# Prisma's generated client (rebuilt by `npm run db:generate` / `npm run build`)
+server/generated

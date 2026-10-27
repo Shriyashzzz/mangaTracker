@@ -1,0 +1,96 @@
+import { NavLink } from "react-router";
+import {
+  coverSrc,
+  formatCents,
+  hideBrokenCover,
+  volumePath,
+} from "../../lib/prices";
+import { pricesStyles as styles } from "./styles";
+
+// one volume: cover, volume tag, title and, when we have one, the best known
+// price. Used by search, series and home sections. Without this edition's
+// cover it shows the series cover from AniList when the page has it, and a
+// drawn volume number when it doesn't
+// what sits behind a volume's own cover, showing when it's missing
+export function CoverFallback({
+  number,
+  seriesCoverUrl,
+}: {
+  number?: number | null;
+  seriesCoverUrl?: string | null;
+}) {
+  return (
+    <span className={styles.coverFallback} aria-hidden>
+      {number ?? "?"}
+      {seriesCoverUrl && (
+        <img
+          className={styles.seriesFallback}
+          src={seriesCoverUrl}
+          alt=""
+          loading="lazy"
+          onError={hideBrokenCover}
+        />
+      )}
+    </span>
+  );
+}
+
+export default function VolumeCard({
+  isbn13,
+  title,
+  // the book's full title when `title` is a short label like "Vol. 3"
+  fullTitle,
+  volume,
+  coverUrl,
+  seriesCoverUrl,
+  subtitle,
+  priceCents,
+  wasCents,
+}: {
+  isbn13: string;
+  title: string;
+  fullTitle?: string;
+  volume?: number | null;
+  coverUrl?: string | null;
+  seriesCoverUrl?: string | null;
+  subtitle?: string;
+  priceCents?: number | null;
+  // the usual price, struck through when this one is a deal
+  wasCents?: number | null;
+}) {
+  return (
+    <NavLink
+      to={volumePath(isbn13, fullTitle ?? title)}
+      className={styles.card}
+      viewTransition
+    >
+      <span className={styles.cover}>
+        <CoverFallback number={volume} seriesCoverUrl={seriesCoverUrl} />
+        {coverUrl && (
+          <img
+            src={coverSrc(coverUrl)}
+            alt=""
+            loading="lazy"
+            onError={hideBrokenCover}
+          />
+        )}
+        {volume != null && (
+          <span className={styles.vol}>
+            <small>Vol.</small>
+            {volume}
+          </span>
+        )}
+      </span>
+      <span className={styles.cardTitle}>{title}</span>
+      {subtitle && <span className={styles.cardMeta}>{subtitle}</span>}
+      {priceCents != null && (
+        <span className={styles.cardPrice}>
+          {formatCents(priceCents)}
+          {wasCents != null && (
+            <s className={styles.cardWas}>{formatCents(wasCents)}</s>
+          )}
+        </span>
+      )}
+    </NavLink>
+  );
+}
