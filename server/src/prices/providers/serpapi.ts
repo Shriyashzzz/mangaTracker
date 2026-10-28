@@ -6,20 +6,19 @@
 import config from "../../config/config.js";
 import priceQueries from "../../models/priceQueries.js";
 import { listingMatches } from "../match.js";
+import { dropUnlikelyNew, isResaleSite, isNotABook } from "../retailers.js";
 import type { Offer, Provider } from "../types.js";
 
 const URL = "https://serpapi.com/search.json";
 const USED = /\b(used|pre-?owned|refurbished|second-?hand)\b/i;
 
-// resale sites where listings are mostly used copies from individual sellers
-const MARKETPLACES =
-  /\b(ebay|poshmark|mercari|etsy|tiktok|abebooks|thriftbooks|depop|facebook|offerup|alibris|biblio)\b/i;
 // digital storefronts: their "price" is an ebook
 const DIGITAL =
   /\b(bookwalker|kindle|kobo|comixology|google play|apple books|nook)\b/i;
 // Japanese-language imports show up for popular series
 const JAPANESE_EDITION =
   /\bjapanese\b|[぀-ヿ一-龯]|japanzon|kanji hunter/i;
+
 
 // any single volume, deluxe editions included, sits inside this. It catches
 // bad listings even when there are too few to compare with each other
@@ -95,7 +94,8 @@ const serpapi: Provider = {
         " ",
       );
       if (JAPANESE_EDITION.test(`${text} ${item.source}`)) continue;
-      const condition = MARKETPLACES.test(item.source)
+      if (isNotABook(item.source)) continue;
+      const condition = isResaleSite(item.source)
         ? "marketplace"
         : USED.test(text)
           ? "used"
@@ -116,7 +116,9 @@ const serpapi: Provider = {
         });
       }
     }
-    return withinTypicalRange([...best.values()]);
+    // unbelievable "new" copies go before the typical range is worked out,
+    // so they can't drag it down
+    return withinTypicalRange(dropUnlikelyNew([...best.values()]));
   },
 };
 

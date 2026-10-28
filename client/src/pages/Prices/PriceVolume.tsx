@@ -44,6 +44,14 @@ const CONDITION: Record<string, string> = {
   marketplace: "Marketplace",
 };
 
+// the stamps an offer can wear, in the order they're shown
+const STAMPS = [
+  { kind: "lowest", label: "Lowest price", className: styles.stampLowest },
+  { kind: "newLow", label: "New copy low", className: styles.stampNew },
+  { kind: "marketLow", label: "Marketplace low", className: styles.stampMarket },
+  { kind: "ebook", label: "Ebook", className: styles.stampEbook },
+] as const;
+
 export default function PriceVolume() {
   // the route always has an :isbn
   const isbn = useParams().isbn!;
@@ -128,15 +136,23 @@ export default function PriceVolume() {
   const best = offers.find(
     (o) => o.condition === "new" && o.format === "print",
   );
-  // "Lowest price" goes on the cheapest printed copy of any condition (new,
-  // used or marketplace); ebooks aren't the same thing, so they don't
-  // compete. The cheapest new copy keeps its own badge when it's a different
-  // listing, since the headline price is about it. Offers are sorted cheapest
-  // first
-  const badges = new Map<Offer, string>();
-  const lowestPrint = offers.find((o) => o.format === "print" && o.inStock);
-  if (best && best !== lowestPrint) badges.set(best, "Low New print");
-  if (lowestPrint) badges.set(lowestPrint, "Lowest price");
+  // the "low" stamps go to copies you can buy now. Offers are sorted
+  // cheapest first, so each is the first match: the lowest of anything
+  // (ebooks included), the cheapest new print copy, and the cheapest used
+  // or marketplace one. A copy can earn two, say "Lowest price" and "New
+  // copy low". Every ebook gets its "Ebook" label
+  const inStock = offers.filter((o) => o.inStock);
+  const lowest = inStock[0];
+  const newLow = inStock.find((o) => o.format === "print" && o.condition === "new");
+  const marketLow = inStock.find((o) => o.format === "print" && o.condition !== "new");
+  const stampsOf = (o: Offer) =>
+    STAMPS.filter(
+      ({ kind }) =>
+        (kind === "lowest" && o === lowest) ||
+        (kind === "newLow" && o === newLow) ||
+        (kind === "marketLow" && o === marketLow) ||
+        (kind === "ebook" && o.format === "ebook"),
+    );
 
   return (
     <div className="fade-in">
@@ -220,20 +236,19 @@ export default function PriceVolume() {
                 {shownOffers.map((o) => (
                   <li
                     key={`${o.store}-${o.format}-${o.condition}`}
-                    className={badges.has(o) ? styles.bestOffer : ""}
+                    className={o === lowest ? styles.lowestOffer : ""}
                   >
                     <span className={styles.offerStore}>
-                      <span>
+                      <span className={styles.offerName}>
                         {o.store}
-                        {badges.has(o) && (
-                          <span className={styles.bestTag}>
-                            {badges.get(o)}
+                        {stampsOf(o).map(({ kind, label, className }) => (
+                          <span key={kind} className={className}>
+                            {label}
                           </span>
-                        )}
+                        ))}
                       </span>
                       <span className={styles.offerTags}>
                         {CONDITION[o.condition] ?? o.condition}
-                        {o.format === "ebook" && " · ebook"}
                         {!o.inStock && " · out of stock"}
                       </span>
                     </span>
