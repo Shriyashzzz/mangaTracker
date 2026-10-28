@@ -3,6 +3,7 @@
 import type { Request, Response } from "express";
 import { body, matchedData } from "express-validator";
 import { rejectInvalid } from "../middlewares/validate.js";
+import { sendError } from "../middlewares/errorHandler.js";
 import userQueries, { type Prefs } from "../models/userQueries.js";
 
 const credentials = [
@@ -74,12 +75,14 @@ const signup = [
 
 const logout = (req: Request, res: Response) => {
   req.session.destroy((err) => {
-    res.sendStatus(err ? 500 : 200);
+    if (err) sendError(res, 500, "Couldn't sign you out. Try again.");
+    else res.sendStatus(200);
   });
 };
 
 const me = (req: Request, res: Response) => {
-  res.sendStatus(req.session.userId ? 200 : 401);
+  if (req.session.userId) res.sendStatus(200);
+  else sendError(res, 401, "Not signed in.");
 };
 
 // the values each display preference may take; anything else is ignored
