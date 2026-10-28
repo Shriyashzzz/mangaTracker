@@ -7,3 +7,6 @@ dist
 
 # Prisma's generated client (rebuilt by `npm run db:generate` / `npm run build`)
 server/generated
+
+# personal notes and the local developer handbook
+*.local.md
