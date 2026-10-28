@@ -124,10 +124,19 @@ export const pricesStyles = {
   // "Show N more": one centered button across the row
   moreRow: "justify-center grid-cols-[auto]!",
   note: "border-[1.5px] border-dashed border-line-soft px-4 py-[0.85rem] text-[0.95rem] text-ink-soft [&_.btn]:mt-3 [&_a]:font-medium [&_a]:text-ink [&_a]:underline [&_a]:decoration-accent [&_a]:underline-offset-3",
-  // all-time low / high / average / median; two by two on phones
-  stats:
-    "mb-[0.4rem] grid grid-cols-4 border-[1.5px] border-line-soft upto-720:grid-cols-2 [&_dd]:font-mono [&_dd]:text-[1.05rem] [&_dd]:tabular-nums [&_dt]:font-mono [&_dt]:text-[0.7rem] [&_dt]:text-muted [&>div]:px-[0.85rem] [&>div]:py-[0.6rem] [&>div+div]:border-l [&>div+div]:border-dashed [&>div+div]:border-line-soft upto-720:[&>div:nth-child(3)]:border-l-0 upto-720:[&>div:nth-child(n+3)]:border-t",
-  statDate: "font-mono text-[0.68rem]! text-muted",
+  // price history: a row per kind of copy (new print, used & marketplace,
+  // ebook), its label beside lowest / highest / median; on phones the
+  // label sits above the three numbers
+  history:
+    "mb-[0.4rem] border-[1.5px] border-line-soft bg-card [&>div+div]:border-t [&>div+div]:border-dashed [&>div+div]:border-line-soft",
+  historyRow:
+    "grid grid-cols-[10.5rem_minmax(0,1fr)] items-center gap-4 px-[0.85rem] py-[0.7rem] upto-720:grid-cols-1 upto-720:gap-2 [&>span]:justify-self-start",
+  historyStats:
+    "grid grid-cols-3 gap-3 [&_dd]:font-mono [&_dd]:text-[1.05rem] [&_dd]:tabular-nums [&_dt]:font-mono [&_dt]:text-[0.7rem] [&_dt]:text-muted",
+  // the date and store under a price; a long store name is cut short
+  // (its full name is the tooltip)
+  statDate: "font-mono text-[0.68rem]! leading-[1.35] text-muted",
+  statStore: "truncate font-mono text-[0.68rem]! leading-[1.35] text-muted",
   storeLinks:
     "flex flex-wrap gap-2 [&_a]:inline-block [&_a]:rounded-[2px] [&_a]:border-[1.5px] [&_a]:border-line [&_a]:bg-card [&_a]:px-[0.8rem] [&_a]:py-[0.35rem] [&_a]:text-[0.88rem] [&_a]:font-medium [&_a]:transition-[background-color,color] [&_a]:duration-120 [&_a]:ease-[ease] [&_a]:hover:bg-ink [&_a]:hover:text-paper",
   disclosure: "-mt-3 max-w-[62ch] text-[0.78rem] leading-normal text-muted italic",

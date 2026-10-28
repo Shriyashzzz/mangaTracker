@@ -53,6 +53,19 @@ describe("dropUnlikelyNew", () => {
     expect(dropUnlikelyNew([offer("Target", 449)])).toHaveLength(1);
   });
 
+  test("with no big store, the volume's usual new price is the yardstick", () => {
+    // usually $11.99 new: a $6.50 "new" copy is too good to be true,
+    // though it would pass the flat $6 floor
+    const offers = [offer("Unknown Shop", 650), offer("Comic Shop", 1099)];
+    expect(stores(dropUnlikelyNew(offers, 1199))).toEqual(["Comic Shop"]);
+  });
+
+  test("a big store in the check beats the history", () => {
+    // B&N's half-off sale makes $6.50 believable today
+    const offers = [offer("Barnes & Noble", 600), offer("Comic Shop", 650)];
+    expect(dropUnlikelyNew(offers, 1199)).toEqual(offers);
+  });
+
   test("cheap used and marketplace copies are never judged", () => {
     const offers = [offer("eBay", 300, { condition: "marketplace" }), offer("Some Shop", 350, { condition: "used" })];
     expect(dropUnlikelyNew(offers)).toEqual(offers);

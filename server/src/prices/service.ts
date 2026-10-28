@@ -23,6 +23,7 @@ import { seriesName, seriesOf, slugify, volumeOf } from "./match.js";
 import { enabledProviders } from "./providers/index.js";
 import { affiliateOfferUrl, isAffiliateUrl, storeLinks } from "./storeLinks.js";
 import { editionCoverId } from "./covers.js";
+import { dropUnlikelyNew } from "./retailers.js";
 import type { CatalogBook, Offer, SeriesInfo } from "./types.js";
 
 export { searchSeries };
@@ -63,7 +64,10 @@ async function fetchAllProviders(isbn13: string, book: Book) {
   // only record a check if at least one source answered, so an outage
   // doesn't leave a volume looking "checked, nothing found" for six hours
   if (providers.length && sources.length) {
-    await priceQueries.saveCheck(isbn13, sources, offers);
+    // judged against this volume's own usual new price before storing, so
+    // a fake bargain never reaches the history
+    const usual = await priceQueries.getNewPriceMedian(isbn13);
+    await priceQueries.saveCheck(isbn13, sources, dropUnlikelyNew(offers, usual));
   }
 }
 
@@ -99,9 +103,9 @@ export async function getVolumePrices(isbn13: string, { refresh = true } = {}) {
   if (refresh) await refreshIfStale(isbn13, book);
 
   const last = await priceQueries.getLastCheck(isbn13);
-  const [offers, stats] = await Promise.all([
+  const [offers, history] = await Promise.all([
     last ? priceQueries.getLatestOffers(isbn13, last.checkedAt) : [],
-    priceQueries.getPriceStats(isbn13),
+    priceQueries.getPriceHistory(isbn13),
   ]);
 
   const series = await getSeriesWithVolumes(seriesName(book.title));
@@ -123,7 +127,7 @@ export async function getVolumePrices(isbn13: string, { refresh = true } = {}) {
       const url = affiliateOfferUrl(o, isbn13);
       return { ...o, url, affiliate: isAffiliateUrl(url) };
     }),
-    stats: stats.samples ? stats : null,
+    history: history.checks ? history : null,
     checkedAt: last?.checkedAt ?? null,
     liveSources: enabledProviders().map((p) => p.store),
     storeLinks: storeLinks(isbn13),

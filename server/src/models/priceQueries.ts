@@ -20,17 +20,28 @@ export type NewBook = Pick<
 
 export type StoredOffer = Offer & { fetchedAt: Date };
 
-export type PriceStats = {
-  samples: number;
-  lowCents: number | null;
-  highCents: number | null;
-  avgCents: number | null;
-  medianCents: number | null;
-  lowAt: Date | null;
-  highAt: Date | null;
+// what kind of copy a price is for, in the history: new print, used and
+// marketplace copies together, and ebooks
+export type PriceKind = "new" | "marketplace" | "ebook";
+
+// one kind's history: every in-stock price ever stored for it
+export type KindHistory = {
+  kind: PriceKind;
+  listings: number;
+  lowCents: number;
+  lowAt: Date;
+  lowStore: string;
+  highCents: number;
+  highAt: Date;
+  highStore: string;
+  medianCents: number;
+};
+
+export type PriceHistory = {
+  checks: number;
   since: Date | null;
   lastSeen: Date | null;
-  changes: number;
+  kinds: KindHistory[];
 };
 
 export const getBook = (isbn13: string) =>
@@ -95,35 +106,59 @@ export async function getLatestOffers(
   return rows.sort((a, b) => a.priceCents - b.priceCents);
 }
 
-// all-time stats for new print copies, the price people actually compare.
-// Each check's cheapest new copy is one data point ("samples"); a "change"
-// is a check whose best price differs from the one before
-export async function getPriceStats(isbn13: string): Promise<PriceStats> {
-  const rows = await prisma.$queryRaw<PriceStats[]>`
-    WITH best AS (
-      SELECT fetched_at, MIN(price_cents) AS p
+// everything we've seen for one volume, worked out from the stored samples
+// every time (they're the only record, so the numbers can't drift from
+// them). Each kind of copy gets its own lowest, highest and median across
+// every in-stock price at every check; mixing them would compare a $5
+// ebook with a $25 collector's copy
+export async function getPriceHistory(isbn13: string): Promise<PriceHistory> {
+  const [kinds, checks] = await Promise.all([
+    prisma.$queryRaw<KindHistory[]>`
+      WITH s AS (
+        SELECT
+          CASE WHEN format = 'ebook' THEN 'ebook'
+               WHEN condition = 'new' THEN 'new'
+               ELSE 'marketplace' END AS kind,
+          price_cents AS p, fetched_at AS at, store
+        FROM price_samples
+        WHERE isbn13 = ${isbn13} AND in_stock
+      )
+      SELECT
+        kind,
+        COUNT(*)::int AS "listings",
+        (ARRAY_AGG(p ORDER BY p ASC, at ASC))[1]::int AS "lowCents",
+        (ARRAY_AGG(at ORDER BY p ASC, at ASC))[1] AS "lowAt",
+        (ARRAY_AGG(store ORDER BY p ASC, at ASC))[1] AS "lowStore",
+        (ARRAY_AGG(p ORDER BY p DESC, at ASC))[1]::int AS "highCents",
+        (ARRAY_AGG(at ORDER BY p DESC, at ASC))[1] AS "highAt",
+        (ARRAY_AGG(store ORDER BY p DESC, at ASC))[1] AS "highStore",
+        ROUND(percentile_cont(0.5) WITHIN GROUP (ORDER BY p))::int AS "medianCents"
+      FROM s
+      GROUP BY kind
+    `,
+    prisma.$queryRaw<Omit<PriceHistory, "kinds">[]>`
+      SELECT COUNT(DISTINCT fetched_at)::int AS "checks",
+             MIN(fetched_at) AS "since", MAX(fetched_at) AS "lastSeen"
       FROM price_samples
-      WHERE isbn13 = ${isbn13} AND condition = 'new' AND format = 'print'
-      GROUP BY fetched_at
-    ),
-    ordered AS (
-      SELECT p, fetched_at, LAG(p) OVER (ORDER BY fetched_at) AS prev FROM best
-    )
-    SELECT
-      (SELECT COUNT(*) FROM best)::int AS "samples",
-      (SELECT MIN(p) FROM best)::int AS "lowCents",
-      (SELECT MAX(p) FROM best)::int AS "highCents",
-      (SELECT ROUND(AVG(p)) FROM best)::int AS "avgCents",
-      (SELECT ROUND(percentile_cont(0.5) WITHIN GROUP (ORDER BY p)) FROM best)::int
-        AS "medianCents",
-      (SELECT fetched_at FROM best ORDER BY p ASC, fetched_at ASC LIMIT 1) AS "lowAt",
-      (SELECT fetched_at FROM best ORDER BY p DESC, fetched_at ASC LIMIT 1) AS "highAt",
-      (SELECT MIN(fetched_at) FROM best) AS "since",
-      (SELECT MAX(fetched_at) FROM best) AS "lastSeen",
-      (SELECT COUNT(*) FROM ordered WHERE prev IS NOT NULL AND p <> prev)::int
-        AS "changes"
+      WHERE isbn13 = ${isbn13} AND in_stock
+    `,
+  ]);
+  const order: PriceKind[] = ["new", "marketplace", "ebook"];
+  return {
+    ...checks[0]!,
+    kinds: kinds.sort((a, b) => order.indexOf(a.kind) - order.indexOf(b.kind)),
+  };
+}
+
+// the median of a volume's believable new print prices so far, for judging
+// a new check's prices before they're stored. Null with no history yet
+export async function getNewPriceMedian(isbn13: string): Promise<number | null> {
+  const rows = await prisma.$queryRaw<{ median: number | null }[]>`
+    SELECT ROUND(percentile_cont(0.5) WITHIN GROUP (ORDER BY price_cents))::int AS "median"
+    FROM price_samples
+    WHERE isbn13 = ${isbn13} AND in_stock AND condition = 'new' AND format = 'print'
   `;
-  return rows[0]!;
+  return rows[0]?.median ?? null;
 }
 
 // the cheapest new print price from each volume's latest check, for showing
@@ -268,7 +303,8 @@ export default {
   getLastCheck,
   saveCheck,
   getLatestOffers,
-  getPriceStats,
+  getPriceHistory,
+  getNewPriceMedian,
   getCoverIds,
   saveCoverIds,
   getSitemapEntries,
