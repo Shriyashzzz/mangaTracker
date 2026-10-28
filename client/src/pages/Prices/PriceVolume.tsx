@@ -38,6 +38,16 @@ const shortDate = (d: string) =>
     year: "numeric",
   });
 
+// "Oct 26", with the year only when it isn't this one
+const dayDate = (d: string) => {
+  const date = new Date(d);
+  return date.toLocaleDateString("en-US", {
+    month: "short",
+    day: "numeric",
+    ...(date.getFullYear() !== new Date().getFullYear() && { year: "numeric" }),
+  });
+};
+
 const CONDITION: Record<string, string> = {
   new: "New",
   used: "Used",
@@ -55,6 +65,12 @@ const TYPE_LABEL = {
   used: { label: "Used", className: styles.labelMarket },
   marketplace: { label: "Marketplace", className: styles.labelMarket },
   ebook: { label: "Ebook", className: styles.labelEbook },
+};
+// the history's rows, labelled like the offers' type labels
+const KIND_LABEL = {
+  new: TYPE_LABEL.newPrint,
+  marketplace: { label: "Used & marketplace", className: styles.labelMarket },
+  ebook: TYPE_LABEL.ebook,
 };
 const typeOf = (o: Offer) =>
   o.format === "ebook"
@@ -133,7 +149,7 @@ export default function PriceVolume() {
     volume,
     siblings,
     offers,
-    stats,
+    history,
     checkedAt,
     liveSources,
     storeLinks,
@@ -333,37 +349,50 @@ export default function PriceVolume() {
             </p>
           )}
 
-          {stats && (
+          {history && (
             <section aria-labelledby="history-title">
               <h2 id="history-title" className={styles.sectionTitle}>
                 Price history
               </h2>
-              <dl className={styles.stats}>
-                <div>
-                  <dt>All-time low</dt>
-                  <dd>{formatCents(stats.lowCents)}</dd>
-                  <dd className={styles.statDate}>{shortDate(stats.lowAt)}</dd>
-                </div>
-                <div>
-                  <dt>All-time high</dt>
-                  <dd>{formatCents(stats.highCents)}</dd>
-                  <dd className={styles.statDate}>{shortDate(stats.highAt)}</dd>
-                </div>
-                <div>
-                  <dt>Average</dt>
-                  <dd>{formatCents(stats.avgCents)}</dd>
-                </div>
-                <div>
-                  <dt>Median</dt>
-                  <dd>{formatCents(stats.medianCents)}</dd>
-                </div>
-              </dl>
+              <div className={styles.history}>
+                {history.kinds.map((k) => (
+                  <div key={k.kind} className={styles.historyRow}>
+                    <span className={KIND_LABEL[k.kind].className}>
+                      {KIND_LABEL[k.kind].label}
+                    </span>
+                    <dl className={styles.historyStats}>
+                      <div>
+                        <dt>Lowest</dt>
+                        <dd>{formatCents(k.lowCents)}</dd>
+                        <dd className={styles.statDate}>{dayDate(k.lowAt)}</dd>
+                        <dd className={styles.statStore} title={k.lowStore}>
+                          {k.lowStore}
+                        </dd>
+                      </div>
+                      <div>
+                        <dt>Highest</dt>
+                        <dd>{formatCents(k.highCents)}</dd>
+                        <dd className={styles.statDate}>{dayDate(k.highAt)}</dd>
+                        <dd className={styles.statStore} title={k.highStore}>
+                          {k.highStore}
+                        </dd>
+                      </div>
+                      <div>
+                        <dt>Median</dt>
+                        <dd>{formatCents(k.medianCents)}</dd>
+                        <dd className={styles.statDate}>
+                          {k.listings} price{k.listings === 1 ? "" : "s"} seen
+                        </dd>
+                      </div>
+                    </dl>
+                  </div>
+                ))}
+              </div>
               <p className={styles.checked}>
-                Lowest new print price at the stores we check, across{" "}
-                {stats.samples} check
-                {stats.samples > 1 ? "s" : ""}, {shortDate(stats.since)}
-                {stats.samples > 1 && ` to ${shortDate(stats.lastSeen)}`} ·{" "}
-                {stats.changes} price change{stats.changes === 1 ? "" : "s"}
+                Every in-stock price at the stores we check, across{" "}
+                {history.checks} check{history.checks === 1 ? "" : "s"},{" "}
+                {shortDate(history.since)}
+                {history.checks > 1 && ` to ${shortDate(history.lastSeen)}`}
               </p>
             </section>
           )}

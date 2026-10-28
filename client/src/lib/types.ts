@@ -119,19 +119,27 @@ export type Offer = {
   fetchedAt: string;
 };
 
-// only sent when there's at least one sample (stats is null otherwise),
-// so every number here is filled in
-export type PriceStats = {
-  samples: number;
+// one kind of copy's history: every in-stock price we've stored for it.
+// "marketplace" covers used copies too
+export type KindHistory = {
+  kind: "new" | "marketplace" | "ebook";
+  listings: number;
   lowCents: number;
-  highCents: number;
-  avgCents: number;
-  medianCents: number;
   lowAt: string;
+  lowStore: string;
+  highCents: number;
   highAt: string;
+  highStore: string;
+  medianCents: number;
+};
+
+// only sent when there's at least one stored price (history is null
+// otherwise), so `since` and `lastSeen` are always filled in
+export type PriceHistory = {
+  checks: number;
   since: string;
   lastSeen: string;
-  changes: number;
+  kinds: KindHistory[];
 };
 
 export type StoreLink = { store: string; url: string; affiliate: boolean };
@@ -149,7 +157,7 @@ export type VolumePrices = {
     year: number | null;
   };
   offers: Offer[];
-  stats: PriceStats | null;
+  history: PriceHistory | null;
   checkedAt: string | null;
   liveSources: string[];
   storeLinks: StoreLink[];
