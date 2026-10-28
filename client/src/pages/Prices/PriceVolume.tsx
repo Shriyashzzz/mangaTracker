@@ -44,13 +44,26 @@ const CONDITION: Record<string, string> = {
   marketplace: "Marketplace",
 };
 
-// the stamps an offer can wear, in the order they're shown
-const STAMPS = [
-  { kind: "lowest", label: "Lowest price", className: styles.stampLowest },
-  { kind: "newLow", label: "New copy low", className: styles.stampNew },
-  { kind: "marketLow", label: "Marketplace low", className: styles.stampMarket },
-  { kind: "ebook", label: "Ebook", className: styles.stampEbook },
-] as const;
+// awards go to the cheapest copies; type labels say what kind of copy it is
+const AWARDS = {
+  lowest: { label: "Lowest overall", className: styles.awardLowest },
+  newLow: { label: "Cheapest new", className: styles.awardNew },
+  marketLow: { label: "Cheapest marketplace", className: styles.awardMarket },
+};
+const TYPE_LABEL = {
+  newPrint: { label: "New print", className: styles.labelNew },
+  used: { label: "Used", className: styles.labelMarket },
+  marketplace: { label: "Marketplace", className: styles.labelMarket },
+  ebook: { label: "Ebook", className: styles.labelEbook },
+};
+const typeOf = (o: Offer) =>
+  o.format === "ebook"
+    ? TYPE_LABEL.ebook
+    : o.condition === "new"
+      ? TYPE_LABEL.newPrint
+      : o.condition === "used"
+        ? TYPE_LABEL.used
+        : TYPE_LABEL.marketplace;
 
 export default function PriceVolume() {
   // the route always has an :isbn
@@ -136,23 +149,23 @@ export default function PriceVolume() {
   const best = offers.find(
     (o) => o.condition === "new" && o.format === "print",
   );
-  // the "low" stamps go to copies you can buy now. Offers are sorted
-  // cheapest first, so each is the first match: the lowest of anything
-  // (ebooks included), the cheapest new print copy, and the cheapest used
-  // or marketplace one. A copy can earn two, say "Lowest price" and "New
-  // copy low". Every ebook gets its "Ebook" label
+  // the awards go to copies you can buy now. Offers are sorted cheapest
+  // first, so each is the first match. The lowest overall (ebooks included)
+  // always shows what kind of copy it is ("Lowest overall" + "New print"),
+  // which also says it's the cheapest of its kind, so it never doubles up
+  // with "Cheapest new" or "Cheapest marketplace". Ebooks always say so
   const inStock = offers.filter((o) => o.inStock);
   const lowest = inStock[0];
   const newLow = inStock.find((o) => o.format === "print" && o.condition === "new");
   const marketLow = inStock.find((o) => o.format === "print" && o.condition !== "new");
   const stampsOf = (o: Offer) =>
-    STAMPS.filter(
-      ({ kind }) =>
-        (kind === "lowest" && o === lowest) ||
-        (kind === "newLow" && o === newLow) ||
-        (kind === "marketLow" && o === marketLow) ||
-        (kind === "ebook" && o.format === "ebook"),
-    );
+    o === lowest
+      ? [AWARDS.lowest, typeOf(o)]
+      : [
+          ...(o === newLow ? [AWARDS.newLow] : []),
+          ...(o === marketLow ? [AWARDS.marketLow] : []),
+          ...(o.format === "ebook" ? [TYPE_LABEL.ebook] : []),
+        ];
 
   return (
     <div className="fade-in">
@@ -241,8 +254,8 @@ export default function PriceVolume() {
                     <span className={styles.offerStore}>
                       <span className={styles.offerName}>
                         {o.store}
-                        {stampsOf(o).map(({ kind, label, className }) => (
-                          <span key={kind} className={className}>
+                        {stampsOf(o).map(({ label, className }) => (
+                          <span key={label} className={className}>
                             {label}
                           </span>
                         ))}
