@@ -1,10 +1,14 @@
 import type { NextFunction, Request, Response } from "express";
 import mangaQueries from "../models/mangaQueries.js";
+import { sendError } from "./errorHandler.js";
+
+const SIGN_IN = "Please sign in first.";
+const NO_MANGA = "We couldn't find that manga.";
 
 // only lets signed in users through
 export function requireSignIn(req: Request, res: Response, next: NextFunction) {
   if (!req.session.userId) {
-    res.sendStatus(401);
+    sendError(res, 401, SIGN_IN);
     return;
   }
   next();
@@ -19,21 +23,21 @@ export async function requireOwner(
 ) {
   const userId = req.session.userId;
   if (!userId) {
-    res.sendStatus(401);
+    sendError(res, 401, SIGN_IN);
     return;
   }
   const id = Number(req.params.id);
   if (!Number.isInteger(id) || id <= 0) {
-    res.sendStatus(404);
+    sendError(res, 404, NO_MANGA);
     return;
   }
   const manga = await mangaQueries.getManga(id);
   if (!manga) {
-    res.sendStatus(404);
+    sendError(res, 404, NO_MANGA);
     return;
   }
   if (manga.userId !== userId) {
-    res.sendStatus(403);
+    sendError(res, 403, "That manga is on someone else's shelf.");
     return;
   }
   res.locals.manga = manga;

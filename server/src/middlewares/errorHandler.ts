@@ -1,6 +1,11 @@
 import type { NextFunction, Request, Response } from "express";
 import { AppError } from "../errors/AppError.js";
 
+// every error the API sends has this one shape: { error: [{ msg }] }
+export function sendError(res: Response, status: number, msg: string) {
+  res.status(status).json({ error: [{ msg }] });
+}
+
 export function errorHandler(
   err: unknown,
   req: Request,
@@ -11,11 +16,9 @@ export function errorHandler(
 ) {
   if (err instanceof AppError) {
     if (err.status >= 500) console.error(`${req.method} ${req.originalUrl}:`, err);
-    res.status(err.status).json({ error: [{ msg: err.message }] });
+    sendError(res, err.status, err.message);
     return;
   }
   console.error(`${req.method} ${req.originalUrl}:`, err);
-  res
-    .status(500)
-    .json({ error: [{ msg: "Server error! Please try again later." }] });
+  sendError(res, 500, "Server error! Please try again later.");
 }

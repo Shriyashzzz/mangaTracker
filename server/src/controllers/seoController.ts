@@ -6,6 +6,7 @@ import type { Request, Response } from "express";
 import config from "../config/config.js";
 import priceQueries from "../models/priceQueries.js";
 import { slugify } from "../prices/match.js";
+import { sendError } from "../middlewares/errorHandler.js";
 
 const site = () => config.CLIENT_URL?.replace(/\/+$/, "");
 
@@ -32,7 +33,7 @@ const entry = (path: string, lastmod?: Date | null) =>
 
 const sitemap = async (_req: Request, res: Response) => {
   if (!site()) {
-    res.status(503).send("CLIENT_URL isn't set");
+    sendError(res, 503, "CLIENT_URL isn't set");
     return;
   }
   const { volumes, series } = await priceQueries.getSitemapEntries();

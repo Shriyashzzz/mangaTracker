@@ -5,6 +5,7 @@ import type { Request, Response } from "express";
 import { matchedData, param, query } from "express-validator";
 import { NotFoundError, UpstreamError } from "../errors/AppError.js";
 import { rejectInvalid } from "../middlewares/validate.js";
+import { sendError } from "../middlewares/errorHandler.js";
 import { searchVolumes, toIsbn13 } from "../prices/catalog.js";
 import {
   CoverLookupPaused,
@@ -140,7 +141,8 @@ const cover = [
       const id = await editionCoverId(isbn);
       if (!id) {
         // no cover for this edition: the page shows its drawn placeholder
-        res.set("Cache-Control", "public, max-age=86400").sendStatus(404);
+        res.set("Cache-Control", "public, max-age=86400");
+        sendError(res, 404, "This edition has no cover.");
         return;
       }
       res.set("Cache-Control", "public, max-age=604800");

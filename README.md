@@ -328,7 +328,7 @@ Also: `GET /api/health`, `GET /sitemap.xml`, `GET /robots.txt`.
 
 ### Errors
 
-Errors are JSON with an `error` array:
+Every error is JSON with an `error` array:
 
 ```json
 { "error": [{ "msg": "That isn't a valid ISBN", "path": "isbn", "location": "params" }] }
@@ -336,7 +336,7 @@ Errors are JSON with an `error` array:
 
 | Status | Meaning |
 |---|---|
-| `400` | Validation failed; one entry per failed rule |
+| `400` | Validation failed; one entry per invalid field (its first broken rule) |
 | `401` | Not signed in, or wrong password |
 | `403` | The resource belongs to another user |
 | `404` | Not found |
@@ -344,8 +344,6 @@ Errors are JSON with an `error` array:
 | `429` | Rate limited; honor `Retry-After` |
 | `502` | An upstream catalog or store failed |
 | `500` | Unexpected server error |
-
-The auth guards on shelf routes answer `401`, `403` and `404` with a plain-text status body rather than JSON.
 
 ---
 
