@@ -1,15 +1,10 @@
-import {
-  useEffect,
-  useId,
-  useRef,
-  useState,
-  type KeyboardEvent,
-} from "react";
+import { useEffect, useId, useRef, useState, type KeyboardEvent } from "react";
 import type { SeriesHit } from "../../lib/types";
 import { useNavigate } from "react-router";
 import { SearchIcon } from "../../components/icons/Icons";
 import { asIsbn, searchSeries, seriesPath } from "../../lib/prices";
 import { pricesStyles as styles } from "./styles";
+import { isMobile } from "react-device-detect";
 
 const SHOWN = 5;
 const DEBOUNCE_MS = 250;
@@ -17,9 +12,12 @@ const DEBOUNCE_MS = 250;
 // search box with a dropdown of matching series. Picking one opens its
 // series page; the last row ("See all") opens the full results. A pasted
 // ISBN skips straight to that volume
-type Props = { initialQuery?: string; autoFocus?: boolean };
+type Props = { initialQuery?: string; autoFocus: boolean };
 
-export default function SeriesSearchBox({ initialQuery = "", autoFocus }: Props) {
+export default function SeriesSearchBox({
+  initialQuery = "",
+  autoFocus = false,
+}: Props) {
   const navigate = useNavigate();
   const listId = useId();
   const rootRef = useRef<HTMLFormElement>(null);
@@ -150,7 +148,7 @@ export default function SeriesSearchBox({ initialQuery = "", autoFocus }: Props)
             placeholder="Search a series, or paste an ISBN"
             maxLength={100}
             autoComplete="off"
-            autoFocus={autoFocus}
+            autoFocus={isMobile ? false : autoFocus}
           />
         </label>
 

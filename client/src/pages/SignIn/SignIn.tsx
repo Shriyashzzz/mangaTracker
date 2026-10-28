@@ -6,6 +6,7 @@ import AuthArt from "../../components/authArt/AuthArt";
 import { apiFetch, afterSignIn, errorMessages } from "../../lib/api";
 import { usePrivatePage } from "../../lib/seo";
 import { useAuth } from "../../store/auth";
+import { isMobile } from "react-device-detect";
 
 export default function SignInPage() {
   usePrivatePage("Sign in");
@@ -78,7 +79,7 @@ export default function SignInPage() {
                 placeholder="your_username"
                 name="username"
                 autoComplete="username"
-                autoFocus
+                autoFocus={isMobile ? false : true}
               />
             </div>
 
