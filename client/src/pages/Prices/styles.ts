@@ -104,16 +104,20 @@ export const pricesStyles = {
   lowestOffer: "bg-accent-wash",
   // the store name with its stamps; stamps wrap under a long name
   offerName: "flex flex-wrap items-center gap-x-2 gap-y-[0.3rem]",
-  // stamps: the "low" ones are tilted marker stickers with an ink shadow,
-  // red for the overall lowest; "Ebook" is a flat label, a format, not a prize
-  stampLowest:
-    "inline-block -rotate-2 rounded-[2px] border-[1.5px] border-line bg-accent px-[0.4rem] pt-[0.1rem] font-brand text-[1rem] leading-[1.15] font-normal tracking-[1px] text-on-accent uppercase shadow-[2px_2px_0_var(--hard-shadow)]",
-  stampNew:
-    "inline-block rotate-1 rounded-[2px] border-[1.5px] border-line bg-stamp-new px-[0.4rem] pt-[0.1rem] font-brand text-[1rem] leading-[1.15] font-normal tracking-[1px] text-stamp-ink uppercase shadow-[2px_2px_0_var(--hard-shadow)]",
-  stampMarket:
-    "inline-block -rotate-1 rounded-[2px] border-[1.5px] border-line bg-stamp-market px-[0.4rem] pt-[0.1rem] font-brand text-[1rem] leading-[1.15] font-normal tracking-[1px] text-stamp-ink uppercase shadow-[2px_2px_0_var(--hard-shadow)]",
-  stampEbook:
-    "inline-block rounded-[2px] border-[1.5px] border-line bg-stamp-ebook px-[0.4rem] pt-[0.1rem] font-brand text-[1rem] leading-[1.15] font-normal tracking-[1px] text-stamp-ink uppercase",
+  // stamps. Awards are tilted stickers with an ink shadow in strong colors:
+  // red for the lowest overall, green for the cheapest new copy, marigold
+  // for the cheapest marketplace one. Type labels sit flat in the light
+  // version of the same color, so green always means new, marigold
+  // marketplace or used, blue ebook
+  awardLowest:
+    "inline-block -rotate-2 rounded-[2px] border-[1.5px] border-line px-[0.4rem] pt-[0.1rem] font-brand text-[1rem] leading-[1.15] font-normal tracking-[1px] uppercase shadow-[2px_2px_0_var(--hard-shadow)] bg-accent text-on-accent",
+  awardNew:
+    "inline-block rotate-1 rounded-[2px] border-[1.5px] border-line px-[0.4rem] pt-[0.1rem] font-brand text-[1rem] leading-[1.15] font-normal tracking-[1px] uppercase shadow-[2px_2px_0_var(--hard-shadow)] bg-award-new text-on-award-new",
+  awardMarket:
+    "inline-block -rotate-1 rounded-[2px] border-[1.5px] border-line px-[0.4rem] pt-[0.1rem] font-brand text-[1rem] leading-[1.15] font-normal tracking-[1px] uppercase shadow-[2px_2px_0_var(--hard-shadow)] bg-award-market text-stamp-ink",
+  labelNew: "inline-block rounded-[2px] border border-line px-[0.35rem] pt-[0.05rem] font-brand text-[0.88rem] leading-[1.15] font-normal tracking-[1px] text-stamp-ink uppercase bg-stamp-new",
+  labelMarket: "inline-block rounded-[2px] border border-line px-[0.35rem] pt-[0.05rem] font-brand text-[0.88rem] leading-[1.15] font-normal tracking-[1px] text-stamp-ink uppercase bg-stamp-market",
+  labelEbook: "inline-block rounded-[2px] border border-line px-[0.35rem] pt-[0.05rem] font-brand text-[0.88rem] leading-[1.15] font-normal tracking-[1px] text-stamp-ink uppercase bg-stamp-ebook",
   offerStore: "flex flex-col gap-[0.15rem] font-semibold",
   offerTags: "font-mono text-[0.72rem] font-normal text-muted",
   offerPrice: "font-mono text-[1.05rem] font-medium tabular-nums",
