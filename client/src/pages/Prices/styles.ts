@@ -100,11 +100,21 @@ export const pricesStyles = {
   // the price list; phones put each store's link on its own line
   offers:
     "border-2 border-line bg-card [&_li]:grid [&_li]:grid-cols-[minmax(0,1fr)_auto_auto] [&_li]:items-center [&_li]:gap-5 [&_li]:px-4 [&_li]:py-[0.7rem] [&_li+li]:border-t [&_li+li]:border-dashed [&_li+li]:border-line-soft [&_a]:text-[0.88rem] [&_a]:underline [&_a]:decoration-line-soft [&_a]:underline-offset-3 [&_a]:hover:decoration-current upto-720:[&_li]:grid-cols-[minmax(0,1fr)_auto] upto-720:[&_li]:gap-x-4 upto-720:[&_li]:gap-y-1 upto-720:[&_a]:col-span-full",
-  // the cheapest copies get a wash and a small inked stamp
-  bestOffer: "bg-accent-wash",
-  bestTag:
-    "ml-2 rounded-[2px] border-[1.5px] border-accent px-[0.35rem] align-[1px] font-brand text-[1.1rem] font-normal tracking-[1px] text-accent uppercase",
-  offerStore: "flex flex-col font-semibold",
+  // the overall cheapest copy's row gets a wash
+  lowestOffer: "bg-accent-wash",
+  // the store name with its stamps; stamps wrap under a long name
+  offerName: "flex flex-wrap items-center gap-x-2 gap-y-[0.3rem]",
+  // stamps: the "low" ones are tilted marker stickers with an ink shadow,
+  // red for the overall lowest; "Ebook" is a flat label, a format, not a prize
+  stampLowest:
+    "inline-block -rotate-2 rounded-[2px] border-[1.5px] border-line bg-accent px-[0.4rem] pt-[0.1rem] font-brand text-[1rem] leading-[1.15] font-normal tracking-[1px] text-on-accent uppercase shadow-[2px_2px_0_var(--hard-shadow)]",
+  stampNew:
+    "inline-block rotate-1 rounded-[2px] border-[1.5px] border-line bg-stamp-new px-[0.4rem] pt-[0.1rem] font-brand text-[1rem] leading-[1.15] font-normal tracking-[1px] text-stamp-ink uppercase shadow-[2px_2px_0_var(--hard-shadow)]",
+  stampMarket:
+    "inline-block -rotate-1 rounded-[2px] border-[1.5px] border-line bg-stamp-market px-[0.4rem] pt-[0.1rem] font-brand text-[1rem] leading-[1.15] font-normal tracking-[1px] text-stamp-ink uppercase shadow-[2px_2px_0_var(--hard-shadow)]",
+  stampEbook:
+    "inline-block rounded-[2px] border-[1.5px] border-line bg-stamp-ebook px-[0.4rem] pt-[0.1rem] font-brand text-[1rem] leading-[1.15] font-normal tracking-[1px] text-stamp-ink uppercase",
+  offerStore: "flex flex-col gap-[0.15rem] font-semibold",
   offerTags: "font-mono text-[0.72rem] font-normal text-muted",
   offerPrice: "font-mono text-[1.05rem] font-medium tabular-nums",
   // "Show N more": one centered button across the row

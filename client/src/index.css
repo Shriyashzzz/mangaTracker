@@ -49,6 +49,11 @@
   --hard-shadow: #1d1a16;
   --dots: rgba(29, 26, 22, 0.09);
   --dots-strong: rgba(29, 26, 22, 0.28);
+  /* price stamps: marker-pen stickers with ink lettering in every theme */
+  --stamp-new: #bfe6c8;
+  --stamp-market: #f8d46b;
+  --stamp-ebook: #cdd6fb;
+  --stamp-ink: #1d1a16;
 
   color-scheme: light;
 }
@@ -73,6 +78,10 @@
     --hard-shadow: #463e31;
     --dots: rgba(238, 230, 212, 0.06);
     --dots-strong: rgba(238, 230, 212, 0.2);
+    --stamp-new: #86c99a;
+    --stamp-market: #e6b84a;
+    --stamp-ebook: #9fb0ec;
+    --stamp-ink: #16140f;
     color-scheme: dark;
   }
 }
@@ -96,6 +105,10 @@
   --hard-shadow: #463e31;
   --dots: rgba(238, 230, 212, 0.06);
   --dots-strong: rgba(238, 230, 212, 0.2);
+  --stamp-new: #86c99a;
+  --stamp-market: #e6b84a;
+  --stamp-ebook: #9fb0ec;
+  --stamp-ink: #16140f;
   color-scheme: dark;
 }
 
@@ -157,6 +170,10 @@
   --color-ok: var(--ok);
   --color-star: var(--star);
   --color-star-off: var(--star-off);
+  --color-stamp-new: var(--stamp-new);
+  --color-stamp-market: var(--stamp-market);
+  --color-stamp-ebook: var(--stamp-ebook);
+  --color-stamp-ink: var(--stamp-ink);
   --color-dots: var(--dots);
   --color-dots-strong: var(--dots-strong);
   /* the flat ink shadow under panels and buttons */
