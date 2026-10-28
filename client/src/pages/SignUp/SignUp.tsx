@@ -1,4 +1,5 @@
 import { useRef, useState, type FormEvent } from "react";
+import { isMobile } from "react-device-detect";
 import { authStyles as styles } from "../../styles/auth";
 import { NavLink, useNavigate, useSearchParams } from "react-router";
 import PasswordInput from "../../components/passwordInput/PasswordInput";
@@ -77,7 +78,7 @@ export default function SignUp() {
                 placeholder="your_username"
                 name="username"
                 autoComplete="username"
-                autoFocus
+                autoFocus={isMobile ? false : true}
               />
               <span className={styles.hint}>4–40 letters or numbers</span>
             </div>
