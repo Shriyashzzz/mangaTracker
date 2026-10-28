@@ -27,6 +27,7 @@ Manga Tracker is a reading shelf and a US price checker for physical manga, in o
 - [Design system](#design-system)
 - [Roadmap](#roadmap)
 - [Affiliate disclosure](#affiliate-disclosure)
+- [License](#license)
 
 ---
 
@@ -532,6 +533,12 @@ Some store links are affiliate links (Amazon, Bookshop.org, eBay, and Walmart on
 ## Why I built it
 
 I wanted one place to keep my place in every series I read. Then I kept opening ten tabs to find the next volume at a fair price, so the price checker followed. The goal is a tool that knows both what you've read and what you own, so buying the next volume takes one look.
+
+## License
+
+Copyright © 2026 Shriyash Ghimire. All rights reserved.
+
+The source is public so you can read and learn from it. No license is granted to copy, modify, distribute or host it, in whole or in part, without written permission.
 
 ---
 
