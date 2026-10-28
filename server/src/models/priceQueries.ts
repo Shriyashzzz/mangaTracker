@@ -36,11 +36,20 @@ export type PriceStats = {
 export const getBook = (isbn13: string) =>
   prisma.book.findUnique({ where: { isbn13 } });
 
-export async function upsertBook(book: NewBook) {
-  const { isbn13, ...fields } = book;
+// only the columns books has: catalog lookups carry extras (volume, ...)
+// that Prisma would reject as unknown arguments
+export async function upsertBook({
+  isbn13,
+  title,
+  authors,
+  publisher,
+  coverUrl,
+  year,
+}: NewBook) {
+  const fields = { title, authors, publisher, coverUrl, year };
   await prisma.book.upsert({
     where: { isbn13 },
-    create: book,
+    create: { isbn13, ...fields },
     update: { ...fields, updatedAt: new Date() },
   });
 }
