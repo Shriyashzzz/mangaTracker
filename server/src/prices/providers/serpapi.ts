@@ -16,9 +16,7 @@ const USED = /\b(used|pre-?owned|refurbished|second-?hand)\b/i;
 const DIGITAL =
   /\b(bookwalker|kindle|kobo|comixology|google play|apple books|nook)\b/i;
 // Japanese-language imports show up for popular series
-const JAPANESE_EDITION =
-  /\bjapanese\b|[぀-ヿ一-龯]|japanzon|kanji hunter/i;
-
+const JAPANESE_EDITION = /\bjapanese\b|[぀-ヿ一-龯]|japanzon|kanji hunter/i;
 
 // any single volume, deluxe editions included, sits inside this. It catches
 // bad listings even when there are too few to compare with each other
@@ -62,7 +60,9 @@ const serpapi: Provider = {
     if (!book.title) return [];
 
     // claim a search from this month's budget before spending it
-    if (!(await priceQueries.claimApiCall(this.id, config.SERPAPI_MONTHLY_LIMIT))) {
+    if (
+      !(await priceQueries.claimApiCall(this.id, config.SERPAPI_MONTHLY_LIMIT))
+    ) {
       console.warn("SerpApi monthly limit reached, skipping until next month");
       return [];
     }

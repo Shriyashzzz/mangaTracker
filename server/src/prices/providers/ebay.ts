@@ -35,7 +35,10 @@ async function appToken(signal: AbortSignal) {
     signal,
   });
   if (!res.ok) throw new Error(`eBay token request failed (${res.status})`);
-  const data = (await res.json()) as { access_token: string; expires_in: number };
+  const data = (await res.json()) as {
+    access_token: string;
+    expires_in: number;
+  };
   cached = {
     token: data.access_token,
     expiresAt: Date.now() + data.expires_in * 1000,
@@ -87,7 +90,9 @@ const ebay: Provider = {
     for (const item of itemSummaries) {
       if (!item.price || item.price.currency !== "USD") continue;
       const condition = item.conditionId === "1000" ? "new" : "used";
-      const shipping = cents(item.shippingOptions?.[0]?.shippingCost?.value ?? 0);
+      const shipping = cents(
+        item.shippingOptions?.[0]?.shippingCost?.value ?? 0,
+      );
       const total = cents(item.price.value) + shipping;
       if (!best[condition] || total < best[condition].priceCents) {
         best[condition] = {
