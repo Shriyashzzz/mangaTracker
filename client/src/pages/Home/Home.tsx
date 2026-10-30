@@ -211,7 +211,9 @@ function Library() {
           {tabs.map((t) => (
             <button
               key={t.value}
-              className={statusFilter === t.value ? styles.tabActive : styles.tab}
+              className={
+                statusFilter === t.value ? styles.tabActive : styles.tab
+              }
               aria-pressed={statusFilter === t.value}
               onClick={() => {
                 setStatusFilter(t.value);
