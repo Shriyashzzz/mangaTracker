@@ -17,7 +17,11 @@ type Props = {
 const cover =
   "relative aspect-2/3 rounded-[2px] border-[1.5px] border-line bg-paper-2 shadow-ink-lg transition-[translate,rotate,box-shadow] duration-180 ease-[ease] group-hover:-translate-x-0.5 group-hover:-translate-y-[3px] group-hover:-rotate-1 group-hover:shadow-[6px_7px_0_var(--hard-shadow)] [.group:nth-child(3n+2):hover_&]:rotate-[0.8deg] [.group:nth-child(3n):hover_&]:-rotate-[0.4deg]";
 
-export default function MangaCard({ currentManga, priceTag, index = 0 }: Props) {
+export default function MangaCard({
+  currentManga,
+  priceTag,
+  index = 0,
+}: Props) {
   const genre =
     currentManga.genre && currentManga.genre !== "unlabled"
       ? currentManga.genre
@@ -50,7 +54,9 @@ export default function MangaCard({ currentManga, priceTag, index = 0 }: Props) 
         )}
       </div>
       <div className="flex flex-col gap-[0.15rem]">
-        <p className="line-clamp-2 font-display text-[1.05rem] leading-[1.25] font-semibold decoration-accent underline-offset-3 group-hover:underline">{currentManga.name}</p>
+        <p className="line-clamp-2 font-display text-[1.05rem] leading-[1.25] font-semibold decoration-accent underline-offset-3 group-hover:underline">
+          {currentManga.name}
+        </p>
         <p className="truncate font-mono text-[0.78rem] text-muted">
           {currentManga.status ? "finished" : `ch. ${currentManga.bookmark}`}
           {genre && <span> · {genre}</span>}
@@ -62,7 +68,10 @@ export default function MangaCard({ currentManga, priceTag, index = 0 }: Props) 
             className="font-mono text-[0.78rem] text-muted"
             title={`Lowest price we've seen at the stores we check: ${priceTag.title}`}
           >
-            seen from <span className="font-medium text-accent">{formatCents(priceTag.fromCents)}</span>
+            seen from{" "}
+            <span className="font-medium text-accent">
+              {formatCents(priceTag.fromCents)}
+            </span>
           </p>
         )}
         {Number(currentManga.rating) > 0 && (

@@ -59,7 +59,7 @@ export function AddManga() {
       });
       if (response.ok) {
         const { id } = (await response.json()) as { id: number };
-        navigate(`/details/${id}`, { viewTransition: true });
+        navigate(`/details/${id}`, { viewTransition: true, replace: true });
       } else {
         const messages = await errorMessages(response);
         setValidationError(messages.map((msg) => ({ msg })));
@@ -130,7 +130,9 @@ export function AddManga() {
                 checked={!isFinished}
                 onChange={() => setIsFinished(false)}
               />
-              <label htmlFor="status-ongoing" className={styles.segmentLabel}>Still reading</label>
+              <label htmlFor="status-ongoing" className={styles.segmentLabel}>
+                Still reading
+              </label>
               <input
                 type="radio"
                 id="status-finished"
@@ -138,7 +140,9 @@ export function AddManga() {
                 checked={isFinished}
                 onChange={() => setIsFinished(true)}
               />
-              <label htmlFor="status-finished" className={styles.segmentLabel}>Finished it</label>
+              <label htmlFor="status-finished" className={styles.segmentLabel}>
+                Finished it
+              </label>
             </div>
           </div>
 
@@ -235,7 +239,12 @@ export function AddManga() {
           )}
 
           <div className={styles.btnContainer}>
-            <NavLink to="/shelf" className="btn btn-ghost" viewTransition>
+            <NavLink
+              to="/shelf"
+              className="btn btn-ghost"
+              viewTransition
+              replace
+            >
               Cancel
             </NavLink>
             <button
