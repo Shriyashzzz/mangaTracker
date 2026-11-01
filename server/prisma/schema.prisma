@@ -39,6 +39,10 @@ model Manga {
   // the last volume they own ("up to Vol. 14"); null when they don't say
   volumesOwned Int?    @map("volumes_owned") @db.SmallInt
   rating       Int?    @db.SmallInt
+  // the newest release they've said "Seen it" to; anything newer shows as new
+  seenVolume      Float? @map("seen_volume")
+  seenChapter     Float? @map("seen_chapter")
+  seenJapanVolume Float? @map("seen_japan_volume")
 
   @@index([userId])
   @@map("manga")

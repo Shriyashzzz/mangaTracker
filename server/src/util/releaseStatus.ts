@@ -18,7 +18,14 @@ export type ReleaseStatus = {
   latestJapaneseVolume: number | null;
 };
 
-type Shelved = { volumesOwned: number | null; bookmark: number | null };
+type Shelved = {
+  volumesOwned: number | null;
+  bookmark: number | null;
+  // the newest they've said "Seen it" to; only something newer counts as new
+  seenVolume?: number | null;
+  seenChapter?: number | null;
+  seenJapanVolume?: number | null;
+};
 
 type Sources = {
   dates: FormatedDates | null; // MangaDex, for chapters
@@ -29,7 +36,7 @@ type Sources = {
 // plenty of people read without owning, or never fill these numbers in. So a
 // blank counts as nothing yet
 export function getReleaseStatus(
-  { volumesOwned, bookmark }: Shelved,
+  { volumesOwned, bookmark, seenVolume, seenChapter, seenJapanVolume }: Shelved,
   { dates, englishVolumes }: Sources,
 ): ReleaseStatus {
   const numbers = (englishVolumes ?? [])
@@ -47,15 +54,22 @@ export function getReleaseStatus(
     volumesOwned || volumeOfChapter(bookmark, dates?.volumeStarts ?? []);
 
   return {
-    hasNewVolume: latestVolume != null && owned < latestVolume,
-    hasNewChapter: latestChapter != null && (bookmark ?? 0) < latestChapter,
+    hasNewVolume:
+      latestVolume != null &&
+      owned < latestVolume &&
+      latestVolume > (seenVolume ?? 0),
+    hasNewChapter:
+      latestChapter != null &&
+      (bookmark ?? 0) < latestChapter &&
+      latestChapter > (seenChapter ?? 0),
     // past what they own, and not just a volume that's already out in English
     hasNewJapaneseVolume:
       // without the catalog we can't say it isn't out in English already
       englishVolumes != null &&
       latestJapaneseVolume != null &&
       latestJapaneseVolume > owned &&
-      latestJapaneseVolume > (latestVolume ?? 0),
+      latestJapaneseVolume > (latestVolume ?? 0) &&
+      latestJapaneseVolume > (seenJapanVolume ?? 0),
     isNextVolumeOut:
       latestVolume != null &&
       currentVolume != null &&

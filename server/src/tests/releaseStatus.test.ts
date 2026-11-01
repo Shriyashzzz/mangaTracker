@@ -122,3 +122,38 @@ describe("the panel's next volume", () => {
     expect(status(null, 0, 3).currentVolume).toBeNull();
   });
 });
+
+test("seen it hides that release, until a newer one is out", () => {
+  const shelved = { ...owns(3), seenVolume: 25 };
+  expect(
+    getReleaseStatus(shelved, volumesOnly(english(24, 25))).hasNewVolume,
+  ).toBe(false);
+  expect(
+    getReleaseStatus(shelved, volumesOnly(english(25, 26))).hasNewVolume,
+  ).toBe(true);
+});
+
+test("seen it on a chapter leaves volumes alone, and the other way round", () => {
+  const out = { dates: chapter("100"), englishVolumes: english(25) };
+  const seenChapter = getReleaseStatus(
+    { volumesOwned: 3, bookmark: 10, seenChapter: 100 },
+    out,
+  );
+  expect(seenChapter.hasNewChapter).toBe(false);
+  expect(seenChapter.hasNewVolume).toBe(true);
+  const seenVolume = getReleaseStatus(
+    { volumesOwned: 3, bookmark: 10, seenVolume: 25 },
+    out,
+  );
+  expect(seenVolume.hasNewChapter).toBe(true);
+  expect(seenVolume.hasNewVolume).toBe(false);
+});
+
+test("seen it doesn't stop the details panel saying the next volume is out", () => {
+  const status = getReleaseStatus(
+    { volumesOwned: 24, bookmark: null, seenVolume: 25 },
+    volumesOnly(english(24, 25)),
+  );
+  expect(status.hasNewVolume).toBe(false);
+  expect(status.isNextVolumeOut).toBe(true);
+});

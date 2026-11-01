@@ -36,6 +36,13 @@ export const homeStyles = {
   classContainer:
     "grid grid-cols-[repeat(auto-fill,minmax(160px,1fr))] gap-x-6 gap-y-9 upto-520:grid-cols-2 upto-520:gap-x-4 upto-520:gap-y-7",
   pagerBottom: "mt-10",
+  // "Seen it" sits under the card rather than in it: the card is one big link
+  cardWithSeen: "flex min-w-0 flex-col items-start [&>a]:w-full",
+  seenBtn:
+    "tap mt-2 inline-flex items-center gap-1 py-1 text-[0.85rem] font-medium text-ink-soft underline decoration-line-soft underline-offset-3 transition-colors duration-120 ease-[ease] hover:text-accent hover:decoration-accent [&_svg]:size-3.5",
+  seenNote: "mb-5 text-[0.9rem] text-ink-soft",
+  seenUndo:
+    "tap font-medium text-ink underline decoration-accent decoration-2 underline-offset-3",
   // the New tab's own switch: new volumes or new chapters, one at a time
   releaseTools:
     "mb-7 flex flex-wrap items-center justify-between gap-x-6 gap-y-2",

@@ -53,6 +53,19 @@ export const setRating = (id: number, rating: number) =>
 export const setBookmark = (id: number, bookmark: number) =>
   prisma.manga.update({ where: { id }, data: { bookmark } });
 
+const SEEN_FIELD = {
+  volume: "seenVolume",
+  chapter: "seenChapter",
+  japan: "seenJapanVolume",
+} as const;
+
+export const setSeen = (
+  id: number,
+  kind: keyof typeof SEEN_FIELD,
+  number: number | null,
+) =>
+  prisma.manga.update({ where: { id }, data: { [SEEN_FIELD[kind]]: number } });
+
 // how many volumes someone owns; null clears it. Returns the new value
 export async function setVolumesOwned(id: number, volumesOwned: number | null) {
   const manga = await prisma.manga.update({
@@ -74,6 +87,7 @@ export default {
   setStatus,
   setRating,
   setBookmark,
+  setSeen,
   setVolumesOwned,
   deleteManga,
 };

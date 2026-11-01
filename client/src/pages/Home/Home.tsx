@@ -6,7 +6,7 @@ import MangaCard, {
 
 import { homeStyles as styles } from "./styles";
 import { NavLink, useNavigate } from "react-router";
-import { SearchIcon, StarIcon } from "../../components/icons/Icons";
+import { CheckIcon, SearchIcon, StarIcon } from "../../components/icons/Icons";
 import RangePager from "../../components/rangePager/RangePager";
 import Mascot from "../../components/mascot/Mascot";
 import SlowLoadQuote from "../../components/slowLoadQuote/SlowLoadQuote";
@@ -16,7 +16,7 @@ import type { Manga, ShelfPrice } from "../../lib/types";
 import { useAuth } from "../../store/auth";
 import { useShelf } from "../../store/shelf";
 import { readLocal, writeLocal } from "../../lib/prefs";
-import { CHECKED_BEFORE_KEY } from "../../lib/shelf";
+import { CHECKED_BEFORE_KEY, type SeenKind } from "../../lib/shelf";
 import ReleaseTip from "../../components/whatsNew/ReleaseTip";
 
 const SHELF_PAGE_SIZE = 30;
@@ -30,21 +30,21 @@ const RELEASE_KINDS = {
     note: "English releases only. Japan may be ahead.",
     emptyTitle: "No new volumes. Your wallet lives!",
     emptyBody:
-      "You're past every English volume we could find. Your shelf gets a day off.",
+      "Nothing new to show for now. Your shelf gets a day off.",
   },
   chapters: {
     label: "Chapters",
     note: "English releases only. Japan may be ahead.",
     emptyTitle: "Nothing new to read. Go touch grass!",
     emptyBody:
-      "You've read past the newest English chapter we could find. Check back soon.",
+      "Nothing new to show for now. Check back soon.",
   },
   japan: {
     label: "In Japan",
     note: "Out in Japan, maybe not in English yet.",
     emptyTitle: "Japan has nothing on you. Yet!",
     emptyBody:
-      "No volumes out in Japan beyond what you own and what's in English.",
+      "No volumes in Japan to show for now.",
   },
 } as const;
 type ReleaseKind = keyof typeof RELEASE_KINDS;
@@ -82,6 +82,19 @@ export default function Home() {
   return isSignedIn ? <Library /> : <GuestHero />;
 }
 
+// where they were on the shelf when they opened a manga, so coming back puts them
+// there again. Per tab, so an old spot can't turn up days later
+const SHELF_SPOT_KEY = "shelfSpot";
+type ShelfSpot = { y: number; key: string; index: number; query: string };
+const readSpot = (): ShelfSpot | null => {
+  try {
+    return JSON.parse(readSession(SHELF_SPOT_KEY, "null")) as ShelfSpot | null;
+  } catch {
+    return null;
+  }
+};
+const SEEN_KIND = { volumes: "volume", chapters: "chapter", japan: "japan" } as const;
+
 function Library() {
   const mangaData = useShelf((s) => s.manga);
   const loadError = useShelf((s) => s.loadFailed);
@@ -89,7 +102,8 @@ function Library() {
   const loadShelf = useShelf((s) => s.load);
   const checkReleases = useShelf((s) => s.checkReleases);
   const recheckReleases = useShelf((s) => s.recheckReleases);
-  const [query, setQuery] = useState("");
+  const [spot] = useState(readSpot);
+  const [query, setQuery] = useState(spot?.query ?? "");
   const [statusFilter, setStatusFilter] = useState(() =>
     readSession("libraryStatus", "all"),
   );
@@ -105,12 +119,44 @@ function Library() {
     return saved in RELEASE_KINDS ? (saved as ReleaseKind) : "volumes";
   });
   const filterKey = `${statusFilter}|${releaseKind}|${sortBy}|${query.trim().toLowerCase()}`;
-  const [page, setPage] = useState({ key: filterKey, index: 0 });
+  const [page, setPage] = useState({
+    key: spot?.key ?? filterKey,
+    index: spot?.index ?? 0,
+  });
   const pageIndex = page.key === filterKey ? page.index : 0;
 
   useEffect(() => {
     loadShelf();
   }, [loadShelf]);
+
+  const saveSpot = () =>
+    writeSession(
+      SHELF_SPOT_KEY,
+      JSON.stringify({ y: window.scrollY, key: filterKey, index: pageIndex, query }),
+    );
+  // back where they were, once there's a shelf to be somewhere on. A frame later,
+  // so it lands after the router's own scroll to the top
+  const shelfReady = Boolean(mangaData?.length);
+  useEffect(() => {
+    if (!spot || !shelfReady) return;
+    try {
+      sessionStorage.removeItem(SHELF_SPOT_KEY);
+    } catch {
+      /* ignore */
+    }
+    const frame = requestAnimationFrame(() => window.scrollTo(0, spot.y));
+    return () => cancelAnimationFrame(frame);
+  }, [spot, shelfReady]);
+
+  // the last "Seen it", for its undo; or a save that failed
+  const markSeen = useShelf((s) => s.markSeen);
+  const [hidden, setHidden] = useState<{
+    id: number;
+    name: string;
+    kind: SeenKind;
+    previous: number | null;
+  } | null>(null);
+  const [seenFailed, setSeenFailed] = useState(false);
 
   // price lines for the cards, once the shelf is in. Nice to have: the
   // shelf works the same without them
@@ -268,6 +314,35 @@ function Library() {
     chapters: counts.newChapters,
     japan: counts.newInJapan,
   };
+  const handleSeen = async (m: Manga) => {
+    const kind = SEEN_KIND[releaseKind];
+    const found = releases[m.id];
+    const newest =
+      kind === "volume"
+        ? found?.latestVolume
+        : kind === "chapter"
+          ? found?.latestChapter
+          : found?.latestJapaneseVolume;
+    if (newest == null) return;
+    const previous =
+      (kind === "volume"
+        ? m.seenVolume
+        : kind === "chapter"
+          ? m.seenChapter
+          : m.seenJapanVolume) ?? null;
+    setSeenFailed(false);
+    const saved = await markSeen(m.id, kind, newest);
+    if (saved) setHidden({ id: m.id, name: m.name, kind, previous });
+    else setSeenFailed(true);
+  };
+
+  const undoSeen = async () => {
+    if (!hidden) return;
+    const { id, kind, previous } = hidden;
+    setHidden(null);
+    if (!(await markSeen(id, kind, previous))) setSeenFailed(true);
+  };
+
   // what a card in the New tab says. The list stays broad, so a card only
   // shouts when the next one really is what's just out; further behind, it says
   // how far. A blank shelf number can't say how far, so it just names the latest
@@ -384,6 +459,21 @@ function Library() {
         </div>
       </div>
 
+      {showingNew && (hidden || seenFailed) && (
+        <p className={styles.seenNote} role="status">
+          {seenFailed ? (
+            "That didn't save. Try again."
+          ) : (
+            <>
+              Hidden until something newer is out: {hidden?.name}.{" "}
+              <button type="button" className={styles.seenUndo} onClick={undoSeen}>
+                Undo
+              </button>
+            </>
+          )}
+        </p>
+      )}
+
       {/* sighted readers see the cards change; this says so to everyone else */}
       <p className="sr-only" role="status">
         {mangaData.length ? `${visibleManga.length} shown` : ""}
@@ -492,24 +582,40 @@ function Library() {
       ) : (
         <>
           {pager}
-          <div id="shelf-grid" className={styles.classContainer}>
+          <div
+            id="shelf-grid"
+            className={styles.classContainer}
+            onClickCapture={saveSpot}
+          >
             {shelfPage.map((currentManga, i) => (
-              <MangaCard
-                key={currentManga.id}
-                currentManga={currentManga}
-                priceTag={priceTags[currentManga.id]}
-                news={newsFor(currentManga)}
-                detailsSearch={
-                  !showingNew
-                    ? undefined
-                    : releaseKind === "japan"
-                      ? "?edition=japan"
-                      : releaseKind === "chapters"
-                        ? "?new=chapter"
-                        : undefined
-                }
-                index={i}
-              />
+              <div key={currentManga.id} className={styles.cardWithSeen}>
+                <MangaCard
+                    currentManga={currentManga}
+                  priceTag={priceTags[currentManga.id]}
+                  news={newsFor(currentManga)}
+                  detailsSearch={
+                    !showingNew
+                      ? undefined
+                      : releaseKind === "japan"
+                        ? "?edition=japan"
+                        : releaseKind === "chapters"
+                          ? "?new=chapter"
+                          : undefined
+                  }
+                  index={i}
+                />
+                {showingNew && (
+                  <button
+                    type="button"
+                    className={styles.seenBtn}
+                    aria-label={`Seen it: ${currentManga.name}`}
+                    onClick={() => handleSeen(currentManga)}
+                  >
+                    <CheckIcon />
+                    Seen it
+                  </button>
+                )}
+              </div>
             ))}
           </div>
           {visibleManga.length > SHELF_PAGE_SIZE && (

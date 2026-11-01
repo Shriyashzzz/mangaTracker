@@ -16,6 +16,16 @@ export const getReleases = (id: number, signal?: AbortSignal) =>
 // the shelf moves on to the next title rather than waiting forever
 export const RELEASE_CHECK_TIMEOUT_MS = 50_000;
 
+export type SeenKind = "volume" | "chapter" | "japan";
+
+export async function saveSeen(id: number, kind: SeenKind, number: number | null) {
+  const res = await apiFetch(`/api/manga/${id}/seen`, {
+    method: "PATCH",
+    body: { kind, number },
+  });
+  if (!res.ok) throw new Error("Couldn't save that");
+}
+
 // set once a whole shelf has had its releases checked
 export const CHECKED_BEFORE_KEY = "releasesCheckedBefore";
 
