@@ -6,7 +6,7 @@ const tab = "relative py-[0.2rem] text-[1rem] transition-colors duration-150 eas
 
 // one side of the New tab's volumes / chapters switch
 const releaseKind =
-  "min-h-11 px-4 font-brand text-[1.15rem] tracking-[1px] transition-colors duration-150 ease-[ease] not-first:border-l-2 not-first:border-line upto-520:flex-1 upto-520:px-2 upto-520:text-[1.05rem]";
+  "min-h-11 px-4 font-brand text-[1.15rem] tracking-[1px] whitespace-nowrap transition-colors duration-150 ease-[ease] not-first:border-l-2 not-first:border-line upto-520:flex-1 upto-520:px-2 upto-520:text-[1.05rem]";
 
 // one manga panel of the guest landing
 const panel =
@@ -44,6 +44,18 @@ export const homeStyles = {
   releaseKindActive: `${releaseKind} bg-accent text-on-accent`,
   releaseKindCount: "ml-1 font-mono text-[0.78rem] tracking-normal",
   releaseNote: "font-letter text-[1rem] font-bold text-ink-soft",
+  // the check's progress: above the cards once there are some
+  checkingInline:
+    "mb-6 font-letter text-[1rem] font-bold text-ink-soft [&>p+p]:mt-1",
+  // and in the middle of the page until there are
+  checkingCentre:
+    "mx-auto flex min-h-[46dvh] max-w-[460px] flex-col items-center justify-center gap-3 text-center",
+  checkingTitle: "font-brand text-[1.7rem] leading-[1.15] tracking-[1px] text-balance",
+  bigShelfNote: "font-letter text-[1rem] font-bold text-ink-soft text-pretty",
+  // nothing new: a little inked panel, tilted like it was stuck on the page
+  nothingNew:
+    "mx-auto my-12 max-w-[440px] -rotate-1 rounded-ink border-[2.5px] border-line bg-card px-8 pt-8 pb-3 text-center shadow-ink-lg motion-reduce:rotate-0 upto-520:mx-0 upto-520:rotate-0",
+  nothingNewTitle: "font-brand text-[1.9rem] leading-[1.1] tracking-[1px] text-balance",
   skeletonTitle: "mb-10 h-[46px] w-60",
 
   // ---------- empty states ----------

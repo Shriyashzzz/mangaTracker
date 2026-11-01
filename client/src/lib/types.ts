@@ -40,8 +40,11 @@ export type ReleaseData = {
 export type ReleaseStatus = {
   hasNewVolume: boolean;
   hasNewChapter: boolean;
+  // out in Japan past what they own and what's in English
+  hasNewJapaneseVolume: boolean;
   latestVolume: number | null;
   latestChapter: number | null;
+  latestJapaneseVolume: number | null;
 };
 
 // what the add / edit forms send

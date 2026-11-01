@@ -6,15 +6,20 @@ import type { ReleaseData } from "../../lib/types";
 type Props = {
   latestVolume: number;
   volumesOwned: number;
+  latestJapaneseVolume: number | null;
   data: ReleaseData | null;
 };
 
-type Row = { label: string; what: string; when: string; estimate?: boolean };
+type Row = { label: string; what: string; when?: string; estimate?: boolean };
 
 // the rows MangaDex had something to say about; "undefined" is what the
 // server sends when it has no date to give. Its next volume date follows the
 // Japanese editions, so it's labelled as that rather than passed off as English
-const rowsFrom = (data: ReleaseData | null) => {
+const rowsFrom = (
+  data: ReleaseData | null,
+  latestVolume: number,
+  latestJapaneseVolume: number | null,
+) => {
   const rows: Row[] = [];
   const latest = data?.chapter?.latestReleased;
   if (latest?.chapterNumber && latest.releaseDate !== "undefined") {
@@ -31,6 +36,13 @@ const rowsFrom = (data: ReleaseData | null) => {
       what: `Ch. ${next.chapterNumber}`,
       when: next.releaseDate,
       estimate: next.isEstimate,
+    });
+  }
+  // only worth saying when Japan is ahead of the English edition
+  if (latestJapaneseVolume && latestJapaneseVolume > latestVolume) {
+    rows.push({
+      label: "Newest volume in Japan",
+      what: `Vol. ${latestJapaneseVolume}`,
     });
   }
   const volume = data?.newVolume;
@@ -50,11 +62,12 @@ const rowsFrom = (data: ReleaseData | null) => {
 export default function ReleasePanel({
   latestVolume,
   volumesOwned,
+  latestJapaneseVolume,
   data,
 }: Props) {
   const [open, setOpen] = useState(false);
   const bodyId = useId();
-  const rows = rowsFrom(data);
+  const rows = rowsFrom(data, latestVolume, latestJapaneseVolume);
   const headline = `Vol. ${latestVolume} is out!`;
   const barText = (
     <>
@@ -103,7 +116,10 @@ export default function ReleasePanel({
             <div key={row.label} className={styles.releaseRow}>
               <dt className={styles.releaseLabel}>{row.label}</dt>
               <dd className={styles.releaseValue}>
-                {row.what} <span className={styles.releaseWhen}>· {row.when}</span>
+                {row.what}{" "}
+                {row.when && (
+                  <span className={styles.releaseWhen}>· {row.when}</span>
+                )}
                 {row.estimate && (
                   <span className={styles.releaseEstimate}>estimate</span>
                 )}

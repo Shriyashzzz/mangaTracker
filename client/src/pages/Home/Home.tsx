@@ -12,11 +12,40 @@ import Mascot from "../../components/mascot/Mascot";
 import SlowLoadQuote from "../../components/slowLoadQuote/SlowLoadQuote";
 import { usePrivatePage } from "../../lib/seo";
 import { getShelfPriceTags } from "../../lib/prices";
-import { getReleases } from "../../lib/shelf";
+import { getReleases, RELEASE_CHECK_TIMEOUT_MS } from "../../lib/shelf";
 import type { Manga, ReleaseStatus, ShelfPrice } from "../../lib/types";
 import { useAuth } from "../../store/auth";
 
 const SHELF_PAGE_SIZE = 30;
+// shelves this size get a heads-up that their first release check is slow
+const BIG_SHELF = 10;
+const CHECKED_BEFORE_KEY = "releasesCheckedBefore";
+
+// what each side of the New tab's switch shows, and how it says there's nothing
+const RELEASE_KINDS = {
+  volumes: {
+    label: "Volumes",
+    note: "English releases only. Japan may be ahead of us: see In Japan.",
+    emptyTitle: "No new volumes. Your wallet lives!",
+    emptyBody:
+      "You're caught up on every English volume we could find. Your shelf gets a day off.",
+  },
+  chapters: {
+    label: "Chapters",
+    note: "English releases only. Japan may be ahead of us.",
+    emptyTitle: "Nothing new to read. Go touch grass!",
+    emptyBody:
+      "You've read past the newest English chapter we could find. Check back soon.",
+  },
+  japan: {
+    label: "In Japan",
+    note: "Out in Japan, maybe not in English yet.",
+    emptyTitle: "Japan has nothing on you. Yet!",
+    emptyBody:
+      "No volumes out in Japan beyond what you own and what's in English.",
+  },
+} as const;
+type ReleaseKind = keyof typeof RELEASE_KINDS;
 
 const SORT_OPTIONS = [
   { value: "", label: "Last bookmarked" },
@@ -38,6 +67,21 @@ const readSession = (key: string, fallback: string) => {
 const writeSession = (key: string, value: string) => {
   try {
     sessionStorage.setItem(key, value);
+  } catch {
+    /* ignore */
+  }
+};
+// the same, for what should outlast the tab
+const readLocal = (key: string) => {
+  try {
+    return localStorage.getItem(key);
+  } catch {
+    return null;
+  }
+};
+const writeLocal = (key: string, value: string) => {
+  try {
+    localStorage.setItem(key, value);
   } catch {
     /* ignore */
   }
@@ -64,9 +108,10 @@ function Library() {
   const navigator = useNavigate();
   // the shelf shows one block of manga at a time; any change to the tab,
   // search or sort starts again from the first block
-  const [releaseKind, setReleaseKind] = useState(() =>
-    readSession("libraryReleaseKind", "volumes"),
-  );
+  const [releaseKind, setReleaseKind] = useState<ReleaseKind>(() => {
+    const saved = readSession("libraryReleaseKind", "volumes");
+    return saved in RELEASE_KINDS ? (saved as ReleaseKind) : "volumes";
+  });
   const filterKey = `${statusFilter}|${releaseKind}|${sortBy}|${query.trim().toLowerCase()}`;
   const [page, setPage] = useState({ key: filterKey, index: 0 });
   const pageIndex = page.key === filterKey ? page.index : 0;
@@ -112,7 +157,13 @@ function Library() {
     (async () => {
       for (const { id } of mangaData) {
         if (checkedIds.current.has(id)) continue;
-        const status = await getReleases(id, controller.signal)
+        const status = await getReleases(
+          id,
+          AbortSignal.any([
+            controller.signal,
+            AbortSignal.timeout(RELEASE_CHECK_TIMEOUT_MS),
+          ]),
+        )
           .then((found) => found.releaseStatus)
           .catch(() => null);
         if (controller.signal.aborted) return;
@@ -124,18 +175,27 @@ function Library() {
   }, [mangaData, showingNew]);
   const checked = Object.keys(releases).length;
   const checking = showingNew && checked < (mangaData?.length ?? 0);
+  const allChecked = checked > 0 && checked >= (mangaData?.length ?? 0);
+  const [checkedBefore] = useState(() => readLocal(CHECKED_BEFORE_KEY) !== null);
+  useEffect(() => {
+    if (allChecked) writeLocal(CHECKED_BEFORE_KEY, "yes");
+  }, [allChecked]);
 
   const counts = useMemo(() => {
     const list = mangaData ?? [];
     const finished = list.filter((m) => m.status).length;
     const newVolumes = list.filter((m) => releases[m.id]?.hasNewVolume).length;
     const newChapters = list.filter((m) => releases[m.id]?.hasNewChapter).length;
+    const newInJapan = list.filter(
+      (m) => releases[m.id]?.hasNewJapaneseVolume,
+    ).length;
     return {
       all: list.length,
       ongoing: list.length - finished,
       finished,
       newVolumes,
       newChapters,
+      newInJapan,
       new: list.filter(
         (m) => releases[m.id]?.hasNewVolume || releases[m.id]?.hasNewChapter,
       ).length,
@@ -147,11 +207,12 @@ function Library() {
     if (statusFilter === "finished") list = list.filter((m) => m.status);
     if (statusFilter === "ongoing") list = list.filter((m) => !m.status);
     if (statusFilter === "new") {
-      list = list.filter((m) =>
-        releaseKind === "chapters"
-          ? releases[m.id]?.hasNewChapter
-          : releases[m.id]?.hasNewVolume,
-      );
+      list = list.filter((m) => {
+        const found = releases[m.id];
+        if (releaseKind === "chapters") return found?.hasNewChapter;
+        if (releaseKind === "japan") return found?.hasNewJapaneseVolume;
+        return found?.hasNewVolume;
+      });
     }
 
     const q = query.trim().toLowerCase();
@@ -247,17 +308,31 @@ function Library() {
     // no number until they've looked: we don't know it yet
     { value: "new", label: "New", count: checked ? counts.new : null },
   ];
-  const releaseKinds = [
-    { value: "volumes", label: "New volumes", count: counts.newVolumes },
-    { value: "chapters", label: "New chapters", count: counts.newChapters },
-  ];
+  const kindCounts: Record<ReleaseKind, number> = {
+    volumes: counts.newVolumes,
+    chapters: counts.newChapters,
+    japan: counts.newInJapan,
+  };
   // what a card in the New tab has come out for
   const newsFor = (m: Manga) => {
     if (!showingNew) return undefined;
-    return releaseKind === "chapters"
-      ? `Ch. ${releases[m.id]?.latestChapter} is out`
-      : `Vol. ${releases[m.id]?.latestVolume} is out`;
+    if (releaseKind === "chapters") {
+      return `Ch. ${releases[m.id]?.latestChapter} is out`;
+    }
+    if (releaseKind === "japan") {
+      return `Vol. ${releases[m.id]?.latestJapaneseVolume} in Japan`;
+    }
+    return `Vol. ${releases[m.id]?.latestVolume} is out`;
   };
+  const checkingText = `Checking for new releases, ${checked} of ${mangaData.length}…`;
+  const bigFirstCheck =
+    checking && !checkedBefore && mangaData.length >= BIG_SHELF;
+  const bigShelfNote = bigFirstCheck && (
+    <p className={styles.bigShelfNote}>
+      Big shelf! The first check looks up every title one at a time, so it can
+      take a few minutes. Wander off if you like: what's been checked is saved.
+    </p>
+  );
 
   return (
     <div className="fade-in">
@@ -327,48 +402,58 @@ function Library() {
             role="group"
             aria-label="Kind of release"
           >
-            {releaseKinds.map((k) => (
+            {(Object.keys(RELEASE_KINDS) as ReleaseKind[]).map((kind) => (
               <button
-                key={k.value}
+                key={kind}
                 className={
-                  releaseKind === k.value
+                  releaseKind === kind
                     ? styles.releaseKindActive
                     : styles.releaseKind
                 }
-                aria-pressed={releaseKind === k.value}
+                aria-pressed={releaseKind === kind}
                 onClick={() => {
-                  setReleaseKind(k.value);
-                  writeSession("libraryReleaseKind", k.value);
+                  setReleaseKind(kind);
+                  writeSession("libraryReleaseKind", kind);
                 }}
               >
-                {k.label} <span className={styles.releaseKindCount}>{k.count}</span>
+                {RELEASE_KINDS[kind].label}{" "}
+                <span className={styles.releaseKindCount}>
+                  {kindCounts[kind]}
+                </span>
               </button>
             ))}
           </div>
-          <p className={styles.releaseNote} role="status">
-            {checking
-              ? `Checking for new releases, ${checked} of ${mangaData.length}…`
-              : "English releases only."}
-          </p>
+          <p className={styles.releaseNote}>{RELEASE_KINDS[releaseKind].note}</p>
         </div>
       )}
 
-      {showingNew && visibleManga.length === 0 && checking ? null : showingNew &&
-        visibleManga.length === 0 &&
-        !query.trim() ? (
-        <div className={styles.emptyState}>
+      {/* with results on screen the progress sits quietly above them; with
+          none yet, it's the only thing to look at */}
+      {checking && visibleManga.length > 0 && (
+        <div className={styles.checkingInline} role="status">
+          <p>{checkingText}</p>
+          {bigShelfNote}
+        </div>
+      )}
+
+      {checking && visibleManga.length === 0 ? (
+        <div className={styles.checkingCentre} role="status">
+          <span className="printed mascot-spot" aria-hidden>
+            <Mascot mood="confused" />
+          </span>
+          <p className={styles.checkingTitle}>{checkingText}</p>
+          {bigShelfNote}
+        </div>
+      ) : showingNew && visibleManga.length === 0 && !query.trim() ? (
+        <div className={styles.nothingNew}>
           <span className="printed mascot-spot" aria-hidden>
             <Mascot mood="happy" />
           </span>
-          <p className={styles.emptyTitle}>
-            {releaseKind === "chapters"
-              ? "No new English chapters."
-              : "No new English volumes."}
+          <p className={styles.nothingNewTitle}>
+            {RELEASE_KINDS[releaseKind].emptyTitle}
           </p>
           <p className={styles.emptyBody}>
-            {releaseKind === "chapters"
-              ? "You've read up to the newest one we can find."
-              : "You own up to the newest one we can find."}
+            {RELEASE_KINDS[releaseKind].emptyBody}
           </p>
         </div>
       ) : visibleManga.length === 0 ? (

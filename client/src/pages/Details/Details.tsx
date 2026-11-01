@@ -180,6 +180,7 @@ export default function Details() {
           <ReleasePanel
             latestVolume={releaseStatus.latestVolume!}
             volumesOwned={mangaData.volumesOwned!}
+            latestJapaneseVolume={releaseStatus.latestJapaneseVolume}
             data={releaseData}
           />
         )}
