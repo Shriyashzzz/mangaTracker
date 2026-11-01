@@ -69,14 +69,15 @@ export const detailsStyles = {
   releaseBarHeadline:
     "font-brand text-[1.3rem] leading-none tracking-[1px] whitespace-nowrap",
   releaseBarOwned: "font-letter text-[0.8rem] leading-tight font-bold",
-  releaseRows: "px-3.5 pt-1 pb-2.5",
-  releaseRowsShut: "max-[1000px]:hidden",
-  releaseRow: "border-b border-dashed border-line-soft py-2 last:border-b-0",
-  releaseLabel: "font-mono text-[0.72rem] text-muted",
-  releaseValue: "mt-0.5 font-semibold",
-  releaseWhen: "font-normal text-ink-soft",
-  releaseEstimate:
-    "mt-0.5 block font-mono text-[0.68rem] font-normal tracking-[0.06em] text-muted uppercase",
+  releaseBody: "px-3.5 pt-2 pb-3",
+  releaseBodyShut: "max-[1000px]:hidden",
+  // "Out now", "Coming up"
+  releaseGroup: "not-first:mt-3 not-first:border-t not-first:border-dashed not-first:border-line-soft not-first:pt-3",
+  releaseGroupTitle: "mb-1 font-mono text-[0.72rem] font-normal text-muted",
+  releaseRow: "flex items-baseline justify-between gap-3 py-0.5",
+  releaseWhat: "font-semibold whitespace-nowrap",
+  releaseWhen: "text-right text-[0.92rem] text-ink-soft",
+  releaseEstimate: "ml-1 font-mono text-[0.68rem] text-muted",
   label: "mb-[0.3rem] block font-mono text-[0.72rem] text-muted",
   rating: "border-t-[1.5px] border-line pt-4",
   // notes written on a ruled slip; the rule is drawn on the paragraph so

@@ -472,6 +472,11 @@ function Library() {
                 currentManga={currentManga}
                 priceTag={priceTags[currentManga.id]}
                 news={newsFor(currentManga)}
+                detailsSearch={
+                  showingNew && releaseKind === "japan"
+                    ? "?edition=japan"
+                    : undefined
+                }
                 index={i}
               />
             ))}

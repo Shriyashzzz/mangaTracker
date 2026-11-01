@@ -4,82 +4,84 @@ import { detailsStyles as styles } from "./styles";
 import type { ReleaseData } from "../../lib/types";
 
 type Props = {
-  latestVolume: number;
+  volume: number;
+  inJapan: boolean;
   volumesOwned: number | null;
-  latestJapaneseVolume: number | null;
   data: ReleaseData | null;
 };
 
-type Row = { label: string; what: string; when?: string; estimate?: boolean };
+type Row = { what: string; when: string; estimate?: boolean };
+type Group = { title: string; rows: Row[] };
 
-// the rows MangaDex had something to say about; "undefined" is what the
-// server sends when it has no date to give. Its next volume date follows the
-// Japanese editions, so it's labelled as that rather than passed off as English
-const rowsFrom = (
-  data: ReleaseData | null,
-  latestVolume: number,
-  latestJapaneseVolume: number | null,
-) => {
-  const rows: Row[] = [];
-  const latest = data?.chapter?.latestReleased;
-  if (latest?.chapterNumber && latest.releaseDate !== "undefined") {
-    rows.push({
-      label: "Newest English chapter",
-      what: `Ch. ${latest.chapterNumber}`,
-      when: latest.releaseDate,
-    });
+// "undefined" is what the server sends when it has no date to give
+const hasDate = (date?: string) => Boolean(date) && date !== "undefined";
+
+// English: its chapters, since there are no English volume dates to go on.
+// Japan: its volumes only, since MangaDex has translations and no Japanese
+// chapters. The volume that's out already is the panel's headline
+const groupsFrom = (data: ReleaseData | null, inJapan: boolean): Group[] => {
+  const outNow: Row[] = [];
+  const comingUp: Row[] = [];
+
+  if (inJapan) {
+    const next = data?.newVolume;
+    if (next?.volume && hasDate(next.releaseDate)) {
+      comingUp.push({
+        what: `Vol. ${next.volume}`,
+        when: next.releaseDate,
+        estimate: next.isEstimate,
+      });
+    }
+  } else {
+    const latest = data?.chapter?.latestReleased;
+    if (latest?.chapterNumber && hasDate(latest.releaseDate)) {
+      outNow.push({
+        what: `Ch. ${latest.chapterNumber}`,
+        when: latest.releaseDate,
+      });
+    }
+    const next = data?.chapter?.estimateRelease;
+    if (next?.chapterNumber && hasDate(next.releaseDate)) {
+      comingUp.push({
+        what: `Ch. ${next.chapterNumber}`,
+        when: next.releaseDate,
+        estimate: next.isEstimate,
+      });
+    }
   }
-  const next = data?.chapter?.estimateRelease;
-  if (next?.chapterNumber && next.releaseDate !== "undefined") {
-    rows.push({
-      label: "Next English chapter",
-      what: `Ch. ${next.chapterNumber}`,
-      when: next.releaseDate,
-      estimate: next.isEstimate,
-    });
-  }
-  // only worth saying when Japan is ahead of the English edition
-  if (latestJapaneseVolume && latestJapaneseVolume > latestVolume) {
-    rows.push({
-      label: "Newest volume in Japan",
-      what: `Vol. ${latestJapaneseVolume}`,
-    });
-  }
-  const volume = data?.newVolume;
-  if (volume?.volume && volume.releaseDate !== "undefined") {
-    rows.push({
-      label: "Next volume in Japan",
-      what: `Vol. ${volume.volume}`,
-      when: volume.releaseDate,
-      estimate: volume.isEstimate,
-    });
-  }
-  return rows;
+
+  return [
+    { title: "Out now", rows: outNow },
+    { title: "Coming up", rows: comingUp },
+  ].filter((group) => group.rows.length > 0);
 };
 
-// "there's a new volume in English": beside the entry on a laptop, a bar that
-// folds open on anything narrower
+// "there's a new volume": beside the entry on a laptop, a bar that folds open
+// on anything narrower
 export default function ReleasePanel({
-  latestVolume,
+  volume,
+  inJapan,
   volumesOwned,
-  latestJapaneseVolume,
   data,
 }: Props) {
   const [open, setOpen] = useState(false);
   const bodyId = useId();
-  const rows = rowsFrom(data, latestVolume, latestJapaneseVolume);
-  const headline = `Vol. ${latestVolume} is out!`;
+  const groups = groupsFrom(data, inJapan);
+  const headline = `Vol. ${volume} is out!`;
+  const where = inJapan ? "Japan" : "English";
+  const place = inJapan ? "in Japan" : "in English";
   const barText = (
     <>
       <span className={styles.releaseBarHeadline}>{headline}</span>
       <span className={styles.releaseBarOwned}>
-        in English{volumesOwned ? ` · you own ${volumesOwned}` : ""}
+        {place}
+        {volumesOwned ? ` · you own ${volumesOwned}` : ""}
       </span>
     </>
   );
 
   return (
-    <section className={styles.release} aria-label="New English release">
+    <section className={styles.release} aria-label={`New release, ${where}`}>
       <span className={styles.releaseStamp} aria-hidden>
         Psst!
       </span>
@@ -87,12 +89,13 @@ export default function ReleasePanel({
       <div className={styles.releaseHit}>
         <h2 className={styles.releaseHeadline}>{headline}</h2>
         <p className={styles.releaseOwned}>
-          In English.{volumesOwned ? ` You own up to vol. ${volumesOwned}.` : ""}
+          {inJapan ? "In Japan." : "In English."}
+          {volumesOwned ? ` You own up to vol. ${volumesOwned}.` : ""}
         </p>
       </div>
 
       {/* nothing to fold open if MangaDex had no dates */}
-      {rows.length > 0 ? (
+      {groups.length > 0 ? (
         <button
           type="button"
           className={styles.releaseBar}
@@ -107,26 +110,33 @@ export default function ReleasePanel({
         <p className={styles.releaseBarPlain}>{barText}</p>
       )}
 
-      {rows.length > 0 && (
-        <dl
+      {groups.length > 0 && (
+        <div
           id={bodyId}
-          className={`${styles.releaseRows} ${open ? "" : styles.releaseRowsShut}`}
+          className={`${styles.releaseBody} ${open ? "" : styles.releaseBodyShut}`}
         >
-          {rows.map((row) => (
-            <div key={row.label} className={styles.releaseRow}>
-              <dt className={styles.releaseLabel}>{row.label}</dt>
-              <dd className={styles.releaseValue}>
-                {row.what}{" "}
-                {row.when && (
-                  <span className={styles.releaseWhen}>· {row.when}</span>
-                )}
-                {row.estimate && (
-                  <span className={styles.releaseEstimate}>estimate</span>
-                )}
-              </dd>
+          {groups.map((group) => (
+            <div key={group.title} className={styles.releaseGroup}>
+              <h3 className={styles.releaseGroupTitle}>{group.title}</h3>
+              {group.rows.map((row) => (
+                <p key={row.what} className={styles.releaseRow}>
+                  <span className={styles.releaseWhat}>{row.what}</span>
+                  <span className={styles.releaseWhen}>
+                    {row.when}
+                    {row.estimate && (
+                      <abbr
+                        className={styles.releaseEstimate}
+                        title="Estimated from past releases"
+                      >
+                        est.
+                      </abbr>
+                    )}
+                  </span>
+                </p>
+              ))}
             </div>
           ))}
-        </dl>
+        </div>
       )}
     </section>
   );

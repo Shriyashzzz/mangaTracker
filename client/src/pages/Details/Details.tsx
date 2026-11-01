@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { detailsStyles as styles } from "./styles";
-import { NavLink, useNavigate, useParams } from "react-router";
+import { NavLink, useNavigate, useParams, useSearchParams } from "react-router";
 import StarRating from "../../components/starRating/StarRating";
 import { apiFetch, FALLBACK_COVER } from "../../lib/api";
 import type { Manga, ReleaseData, ReleaseStatus } from "../../lib/types";
@@ -17,6 +17,9 @@ export default function Details() {
   const [releaseStatus, setReleaseStatus] = useState<ReleaseStatus | null>(null);
   const [loadError, setLoadError] = useState(false);
   const { id } = useParams();
+  // English unless they came from the shelf's In Japan tab
+  const [searchParams] = useSearchParams();
+  const inJapan = searchParams.get("edition") === "japan";
   const [mangaStatus, setMangaStatus] = useState(false);
   const [mangaRating, setMangaRating] = useState(0);
   const [confirmDelete, setConfirmDelete] = useState(false);
@@ -119,9 +122,10 @@ export default function Details() {
   const cover = mangaData.image || FALLBACK_COVER;
   const genre =
     mangaData.genre && mangaData.genre !== "unlabled" ? mangaData.genre : null;
-  const showRelease =
-    releaseStatus?.hasNewVolume &&
-    releaseStatus.latestVolume != null;
+  const releasedVolume = inJapan
+    ? releaseStatus?.hasNewJapaneseVolume && releaseStatus.latestJapaneseVolume
+    : releaseStatus?.hasNewVolume && releaseStatus.latestVolume;
+  const showRelease = Boolean(releasedVolume);
 
   return (
     <div className="fade-in">
@@ -177,9 +181,9 @@ export default function Details() {
 
         {showRelease && (
           <ReleasePanel
-            latestVolume={releaseStatus.latestVolume!}
+            volume={releasedVolume as number}
+            inJapan={inJapan}
             volumesOwned={mangaData.volumesOwned}
-            latestJapaneseVolume={releaseStatus.latestJapaneseVolume}
             data={releaseData}
           />
         )}
