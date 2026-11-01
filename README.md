@@ -40,6 +40,8 @@ Manga Tracker is a reading shelf and a US price checker for physical manga, in o
 - **Status and ratings.** Reading or finished, rated out of five stars.
 - **Search, filter and sort** across the whole collection, paged in blocks of 30.
 - **Prices on the shelf.** Each card shows the lowest price seen for that series, and a manga's page leads with the next volume you need and its price.
+- **New releases.** The shelf's New tab lists series with a new English volume or chapter, and volumes already out in Japan. A manga's page shows when the next chapter should land if you're one volume behind.
+- **Title suggestions.** Pick a title when adding a manga and its cover and genre fill in.
 - **Synced preferences.** Theme and page background follow the account across devices.
 
 ### Price checker
@@ -520,6 +522,7 @@ All styling is Tailwind CSS 4, configured in `client/src/index.css`:
 - [x] Volumes owned, shelf prices and a shelf-aware buy button
 - [x] SEO: sitemap, structured data, readable URLs, link previews
 - [x] Price stamps and per-kind price history
+- [x] New releases: New tab, In Japan view and next chapter dates
 - [ ] Live eBay listings from eBay's own API, including used copies (eBay prices currently arrive through Google Shopping)
 - [ ] More price sources, especially Amazon (access to live Amazon prices opens after the first affiliate sales)
 - [ ] Scheduled price refreshes and price-drop alerts for volumes on your shelf, using Redis, BullMQ and an email newsletter via Resend

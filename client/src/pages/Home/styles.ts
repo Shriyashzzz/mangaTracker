@@ -77,7 +77,7 @@ export const homeStyles = {
   titleHit: "inline-block -rotate-[2.5deg] bg-ink px-[0.12em] text-paper",
   guestActions: "mt-8 flex flex-wrap items-center gap-4",
   // a manga page: white gutters, inked panel borders, slightly askew
-  page: "grid rotate-1 grid-cols-[1fr_1fr] gap-3 border-[1.5px] border-line-soft bg-card p-3 upto-860:mx-auto upto-860:w-full upto-860:max-w-[520px] upto-520:rotate-0 upto-520:gap-[9px] upto-520:p-[9px] [&>li:nth-child(2)]:[animation-delay:0.12s] [&>li:nth-child(3)]:[animation-delay:0.24s]",
+  page: "grid rotate-1 grid-cols-[1fr_1fr] gap-3 border-[1.5px] border-line-soft bg-card p-3 upto-860:mx-auto upto-860:w-full upto-860:max-w-[520px] upto-520:rotate-0 upto-520:gap-[9px] upto-520:p-[9px] [&>li:nth-child(2)]:[animation-delay:0.12s] [&>li:nth-child(3)]:[animation-delay:0.24s] [&>li:nth-child(4)]:[animation-delay:0.36s]",
   panel: `${panel} min-h-[150px]`,
   panelWide: `${panel} col-span-full min-h-[170px]`,
   art: "grid flex-1 place-items-center overflow-hidden",
@@ -97,6 +97,7 @@ export const homeStyles = {
   sfxA: "-top-4 right-3.5 -rotate-8 text-[2.2rem] upto-520:text-[1.8rem]",
   sfxB: "-top-3.5 left-2 -rotate-12 text-[1.9rem] upto-520:text-[1.5rem]",
   sfxC: "-top-3.5 right-1.5 rotate-9 text-[1.9rem] upto-520:text-[1.5rem]",
+  sfxD: "-top-4 left-3 -rotate-6 text-[2.2rem] upto-520:text-[1.8rem]",
   // narration box along the panel's bottom edge
   caption:
     "border-t-3 border-line bg-card px-[0.7rem] py-[0.45rem] font-letter text-[0.85rem] leading-[1.25] font-bold tracking-[0.02em] uppercase",

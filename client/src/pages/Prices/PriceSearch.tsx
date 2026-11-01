@@ -10,6 +10,8 @@ import { pricesStyles as styles } from "./styles";
 import Mascot from "../../components/mascot/Mascot";
 import SlowLoadQuote from "../../components/slowLoadQuote/SlowLoadQuote";
 import { usePageMeta } from "../../lib/seo";
+import WhatsNew from "../../components/whatsNew/WhatsNew";
+import ReleaseTip from "../../components/whatsNew/ReleaseTip";
 
 const QUICK_PICKS = ["One Piece", "Jujutsu Kaisen", "Chainsaw Man", "Frieren"];
 
@@ -49,25 +51,29 @@ export default function PriceSearch() {
 
   return (
     <div className={`${styles.page} fade-in`}>
-      <header className={styles.searchHead}>
-        <h1 className={styles.title}>Price check</h1>
-        <p className={styles.sub}>
-          Find a series, then see what US stores charge for each volume.
-        </p>
-
-        <SeriesSearchBox initialQuery={query} autoFocus={!query} />
-
-        {!searching && (
-          <p className={styles.quick}>
-            <span>Try</span>
-            {QUICK_PICKS.map((pick) => (
-              <NavLink key={pick} to={seriesPath(pick)} viewTransition>
-                {pick}
-              </NavLink>
-            ))}
+      <div className={searching ? "" : styles.front}>
+        <header className={styles.searchHead}>
+          <h1 className={styles.title}>Price check</h1>
+          <p className={styles.sub}>
+            Find a series, then see what US stores charge for each volume.
           </p>
-        )}
-      </header>
+
+          <SeriesSearchBox initialQuery={query} autoFocus={!query} />
+
+          {!searching && (
+            <p className={styles.quick}>
+              <span>Try</span>
+              {QUICK_PICKS.map((pick) => (
+                <NavLink key={pick} to={seriesPath(pick)} viewTransition>
+                  {pick}
+                </NavLink>
+              ))}
+            </p>
+          )}
+        </header>
+
+        {!searching && <WhatsNew />}
+      </div>
 
       {loading && (
         <div className={styles.grid} aria-busy="true" aria-label="Searching">
@@ -118,6 +124,7 @@ export default function PriceSearch() {
 
       {!searching && <Highlights />}
       {!searching && <ShelfPromo />}
+      <ReleaseTip enabled={!searching} />
     </div>
   );
 }
@@ -216,7 +223,7 @@ function ShelfPromo() {
         </h2>
         <p className={styles.promoBody}>
           Save the chapter you're on for every series, rate what you finish, and
-          pick up right where you stopped.
+          see which ones have a new volume out.
         </p>
       </div>
       {isSignedIn ? (

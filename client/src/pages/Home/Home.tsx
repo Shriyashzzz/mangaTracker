@@ -15,11 +15,12 @@ import type { Manga, ShelfPrice } from "../../lib/types";
 import { useAuth } from "../../store/auth";
 import { useShelf } from "../../store/shelf";
 import { readLocal, writeLocal } from "../../lib/prefs";
+import { CHECKED_BEFORE_KEY } from "../../lib/shelf";
+import ReleaseTip from "../../components/whatsNew/ReleaseTip";
 
 const SHELF_PAGE_SIZE = 30;
 // shelves this size get a heads-up that their first release check is slow
 const BIG_SHELF = 10;
-const CHECKED_BEFORE_KEY = "releasesCheckedBefore";
 
 // what each side of the New tab's switch shows, and how it says there's nothing
 const RELEASE_KINDS = {
@@ -493,6 +494,14 @@ function Library() {
           )}
         </>
       )}
+
+      <ReleaseTip
+        enabled={hasManga && !showingNew}
+        onCheck={() => {
+          setStatusFilter("new");
+          writeSession("libraryStatus", "new");
+        }}
+      />
     </div>
   );
 }
@@ -578,6 +587,18 @@ function GuestHero() {
               Found it!
             </span>
             <p className={styles.caption}>Covers and genres fill in</p>
+          </li>
+
+          <li className={styles.panelWide}>
+            <div className={`${styles.art} ${styles.tone}`} aria-hidden>
+              <span className={styles.bigCh}>
+                <small>vol.</small>25
+              </span>
+            </div>
+            <span className={`${styles.sfx} ${styles.sfxD}`} aria-hidden>
+              It's out!
+            </span>
+            <p className={styles.caption}>See which series have new volumes</p>
           </li>
         </ol>
       </div>

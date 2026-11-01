@@ -16,7 +16,10 @@ const softLink = "underline decoration-line-soft underline-offset-3";
 export const pricesStyles = {
   // ---------- price home + search ----------
   page: "prices-page flex flex-col gap-8",
-  searchHead: "speed-burst flex flex-col gap-3 border-3 border-line p-[clamp(1.25rem,3vw,2rem)]",
+  // the search with the what's new list on its right; the list hides on phones
+  front:
+    "grid grid-cols-[minmax(0,1fr)_minmax(270px,310px)] items-stretch gap-6 upto-860:grid-cols-[minmax(0,1fr)]",
+  searchHead: "speed-burst flex flex-col justify-center gap-3 border-3 border-line p-[clamp(1.25rem,3vw,2rem)]",
   title:
     "font-brand text-[clamp(2.4rem,6vw,3.6rem)] leading-[0.95] font-normal tracking-[0.02em] uppercase",
   sub: "text-[1.05rem] text-ink-soft",
