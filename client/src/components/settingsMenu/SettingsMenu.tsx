@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { NavLink, useLocation } from "react-router";
-import { CheckIcon, MenuIcon, MoonIcon, SunIcon } from "../icons/Icons";
+import { CheckIcon, SettingsIcon, MoonIcon, SunIcon } from "../icons/Icons";
 import {
   BACKGROUNDS,
   currentBackground,
@@ -99,7 +99,7 @@ export default function SettingsMenu({ isSignedIn, onLogOut }: Props) {
         title="Settings"
         onClick={toggle}
       >
-        <MenuIcon />
+        <SettingsIcon />
       </button>
 
       {open && (

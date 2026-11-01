@@ -1,5 +1,6 @@
-// A small note for screens with no room for WhatsNew: your shelf can show what's newly out. It appears
-// once ever, covers nothing important, blocks nothing and leaves on its own.
+// A small note for screens with no room for WhatsNew: your shelf can show what's
+// newly out. Blocks nothing and leaves on its own. Shown twice at most, in case
+// they weren't looking the first time; once if they answer it.
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { NavLink } from "react-router";
@@ -10,7 +11,7 @@ import Mascot from "../mascot/Mascot";
 
 const SEEN_KEY = "releaseTipSeen";
 const SHOW_AFTER_MS = 2500;
-const LEAVE_AFTER_MS = 12_000;
+const LEAVE_AFTER_MS = 20_000;
 // wider screens have room for the WhatsNew list instead
 const SMALL_SCREEN = "(max-width: 1339px)";
 
@@ -29,13 +30,14 @@ export default function ReleaseTip({ enabled, onCheck }: Props) {
     if (!enabled || isSignedIn === null) return;
     if (!window.matchMedia(SMALL_SCREEN).matches) return;
     // anyone who has opened the New tab already knows about it
-    if (readLocal(SEEN_KEY) || readLocal(CHECKED_BEFORE_KEY)) return;
+    const seen = readLocal(SEEN_KEY);
+    if (seen === "yes" || readLocal(CHECKED_BEFORE_KEY)) return;
 
     const timer = setTimeout(() => {
       // mid-typing is a bad moment; a later visit can try again
       const active = document.activeElement;
       if (active instanceof HTMLInputElement && active.value) return;
-      writeLocal(SEEN_KEY, "yes");
+      writeLocal(SEEN_KEY, seen === "once" ? "yes" : "once");
       setOpen(true);
     }, SHOW_AFTER_MS);
     return () => clearTimeout(timer);
@@ -49,6 +51,12 @@ export default function ReleaseTip({ enabled, onCheck }: Props) {
 
   if (!open || !enabled) return null;
 
+  // they've answered it, so that's the last of it
+  const answered = () => {
+    writeLocal(SEEN_KEY, "yes");
+    setOpen(false);
+  };
+
   const action =
     "tap py-2 text-[0.9rem] font-semibold text-ink underline decoration-accent decoration-2 underline-offset-3";
 
@@ -57,7 +65,7 @@ export default function ReleaseTip({ enabled, onCheck }: Props) {
   return createPortal(
     <div
       role="status"
-      className="printed fixed inset-x-3 bottom-[max(0.75rem,env(safe-area-inset-bottom))] z-30 mx-auto grid max-w-[420px] min-[861px]:mr-0 animate-card-in grid-cols-[44px_minmax(0,1fr)_auto] items-center gap-x-2 rounded-ink border-[2.5px] border-line bg-card py-1 pr-1 pl-2 text-ink shadow-[0_14px_30px_-14px_rgba(20,14,8,0.6)] motion-reduce:animate-none"
+      className="printed fixed inset-x-3 bottom-[max(0.75rem,env(safe-area-inset-bottom))] z-30 upto-720:bottom-[calc(4.25rem+env(safe-area-inset-bottom))] mx-auto grid max-w-[420px] min-[861px]:mr-0 animate-card-in grid-cols-[44px_minmax(0,1fr)_auto] items-center gap-x-2 rounded-ink border-[2.5px] border-line bg-card py-1 pr-1 pl-2 text-ink shadow-[0_14px_30px_-14px_rgba(20,14,8,0.6)] motion-reduce:animate-none"
     >
       <span aria-hidden>
         <Mascot mood="happy" />
@@ -73,7 +81,7 @@ export default function ReleaseTip({ enabled, onCheck }: Props) {
             className={action}
             onClick={() => {
               onCheck();
-              setOpen(false);
+              answered();
             }}
           >
             Check now
@@ -82,7 +90,10 @@ export default function ReleaseTip({ enabled, onCheck }: Props) {
           <NavLink
             to={isSignedIn ? "/shelf" : "/signup"}
             className={`inline-block ${action}`}
-            onClick={isSignedIn ? openReleasesOnShelf : undefined}
+            onClick={() => {
+              if (isSignedIn) openReleasesOnShelf();
+              answered();
+            }}
             viewTransition
           >
             {isSignedIn ? "Check my shelf" : "Start your shelf"}
@@ -94,7 +105,7 @@ export default function ReleaseTip({ enabled, onCheck }: Props) {
         type="button"
         className="grid size-11 place-items-center self-start text-ink-soft hover:text-ink"
         aria-label="Dismiss"
-        onClick={() => setOpen(false)}
+        onClick={answered}
       >
         <svg
           viewBox="0 0 24 24"

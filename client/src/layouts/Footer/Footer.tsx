@@ -19,7 +19,10 @@ export default function Footer() {
   const quote = quoteOfTheDay();
 
   return (
-    <footer className="screentone mt-auto bg-ink text-paper">
+    <footer
+      // room for the phones' bottom bar
+      className="screentone mt-auto bg-ink text-paper upto-720:pb-[calc(3.75rem+env(safe-area-inset-bottom))]"
+    >
       {/* one slim strip on laptops; on phones the quote gets its own row and
           the links go under it, so they never run into the heading */}
       <div className="px-gutter mx-auto grid max-w-page grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-x-10 gap-y-4 py-[1.1rem] upto-760:grid-cols-[minmax(0,1fr)_auto] upto-760:gap-x-4 upto-760:gap-y-[0.9rem] upto-760:pt-4">
@@ -34,7 +37,8 @@ export default function Footer() {
               {quote.text}
             </blockquote>
             <figcaption className="mt-[0.15rem] text-right font-mono text-[0.75rem] text-ink-soft">
-              {quote.who}, <cite className="text-accent not-italic">{quote.series}</cite>
+              {quote.who},{" "}
+              <cite className="text-accent not-italic">{quote.series}</cite>
             </figcaption>
           </div>
         </figure>

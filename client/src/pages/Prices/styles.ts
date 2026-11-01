@@ -156,7 +156,14 @@ export const pricesStyles = {
     "flex flex-wrap gap-2 [&_a]:tap [&_a]:inline-block [&_a]:rounded-[2px] [&_a]:border-[1.5px] [&_a]:border-line [&_a]:bg-card [&_a]:px-[0.8rem] [&_a]:py-[0.35rem] [&_a]:text-[0.88rem] [&_a]:font-medium [&_a]:transition-[background-color,color] [&_a]:duration-120 [&_a]:ease-[ease] [&_a]:hover:bg-ink [&_a]:hover:text-paper",
   disclosure: "-mt-3 max-w-[62ch] text-[0.78rem] leading-normal text-muted italic",
   amazonDisclosure: "mt-10 text-right text-[0.75rem] text-muted",
-  volumeActions: "flex flex-wrap items-center gap-[0.85rem]",
+  volumeActions: "mt-1 flex flex-wrap items-center gap-[0.85rem]",
+  // stores with no price, tucked under the list they belong with
+  otherStores: "mt-3",
+  otherStoresTitle: "mb-2 font-body text-[0.92rem] font-normal text-ink-soft",
+  // history folded shut: most people only need the one number on its heading
+  historyFold: "group/fold",
+  historySummary:
+    "flex min-h-11 cursor-pointer list-none flex-wrap items-center gap-x-3 [&_h2]:mb-0 [&::-webkit-details-marker]:hidden [&_svg]:ml-auto [&_svg]:size-5 [&_svg]:transition-transform [&_svg]:duration-150 group-open/fold:[&_svg]:rotate-180 group-open/fold:mb-3",
   // the shelf button's pieces join the action row: its state line above,
   // its undo note below
   shelfAction: "contents",

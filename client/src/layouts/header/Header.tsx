@@ -1,5 +1,5 @@
-// The masthead: logo, the two halves of the app (Prices, My shelf), and the
-// settings menu. Sits on a newspaper-style double rule.
+// The masthead: logo, the two halves of the app (Prices, My shelf; a bar along
+// the bottom on phones), and the settings menu. Sits on a newspaper-style double rule.
 import { NavLink, useLocation, useNavigate } from "react-router";
 import clsx from "clsx";
 // same mark as the favicon: a manga volume in an inked panel
@@ -11,6 +11,13 @@ const linkClass = (active: boolean) =>
   clsx(
     "tap relative py-1 text-[0.95rem] transition-colors duration-150 hover:text-ink",
     active ? "squiggle text-ink" : "text-ink-soft",
+  );
+
+// one side of the phones' bottom bar: the whole width is the target
+const barClass = (active: boolean) =>
+  clsx(
+    "grid min-h-14 flex-1 place-items-center font-brand text-[1.2rem] tracking-[1px] uppercase transition-colors duration-150",
+    active ? "bg-accent text-on-accent" : "text-ink-soft",
   );
 
 export default function Header() {
@@ -40,11 +47,11 @@ export default function Header() {
             alt=""
             className="size-[30px] transition-transform duration-250 ease-ink group-hover:-rotate-10"
           />
-          {/* the logo alone on small phones */}
-          <span className="upto-560:sr-only">Manga Tracker</span>
+          <span>Manga Tracker</span>
         </NavLink>
 
-        <nav className="flex items-center gap-[1.4rem] upto-560:gap-4" aria-label="Main">
+        {/* phones have it at the bottom, within reach of a thumb */}
+        <nav className="flex items-center gap-[1.4rem] upto-720:hidden" aria-label="Main">
           <NavLink to="/" className={() => linkClass(onPrices)} viewTransition>
             Prices
           </NavLink>
@@ -68,6 +75,32 @@ export default function Header() {
 
         <SettingsMenu isSignedIn={isSignedIn} onLogOut={handleLogOut} />
       </div>
+
+      {/* out of the way while the keyboard is up */}
+      <nav
+        className="fixed inset-x-0 bottom-0 z-20 hidden border-t-[3px] border-double border-line bg-paper pb-[env(safe-area-inset-bottom)] upto-720:flex [body:has(input:focus,textarea:focus,select:focus)_&]:hidden!"
+        aria-label="Main"
+      >
+        <NavLink to="/" className={() => barClass(onPrices)} viewTransition>
+          Prices
+        </NavLink>
+        <NavLink
+          to="/shelf"
+          className={({ isActive }) => barClass(isActive)}
+          viewTransition
+        >
+          My shelf
+        </NavLink>
+        {isSignedIn === false && (
+          <NavLink
+            to="/signin"
+            className={({ isActive }) => barClass(isActive)}
+            viewTransition
+          >
+            Sign in
+          </NavLink>
+        )}
+      </nav>
     </header>
   );
 }

@@ -238,7 +238,12 @@
 
   /* the old hand-written reset kept list bullets and heading sizes;
      Tailwind's preflight removes them, so restore what pages relied on */
+  p {
+    text-wrap: pretty;
+  }
+
   h1, h2, h3 {
+    text-wrap: balance;
     font-family: var(--font-display);
     font-weight: 600;
     line-height: 1.1;

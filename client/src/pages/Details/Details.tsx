@@ -280,7 +280,7 @@ export default function Details() {
         >
           <div className={styles.rating}>
             <span className={styles.label}>
-              {mangaRating ? "Your rating" : "Rate it"}
+              {mangaRating ? "Your rating. Tap it again to clear" : "Rate it"}
             </span>
             <StarRating
               value={mangaRating}

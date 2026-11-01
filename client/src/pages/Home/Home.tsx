@@ -52,9 +52,7 @@ type ReleaseKind = keyof typeof RELEASE_KINDS;
 const SORT_OPTIONS = [
   { value: "", label: "Last bookmarked" },
   { value: "rating-dsc", label: "Highest rated" },
-  { value: "rating-asc", label: "Lowest rated" },
   { value: "ch-dsc", label: "Most chapters read" },
-  { value: "ch-asc", label: "Fewest chapters read" },
   { value: "name-asc", label: "Title, A to Z" },
 ];
 
@@ -95,7 +93,10 @@ function Library() {
   const [statusFilter, setStatusFilter] = useState(() =>
     readSession("libraryStatus", "all"),
   );
-  const [sortBy, setSortBy] = useState(() => readSession("librarySort", ""));
+  const [sortBy, setSortBy] = useState(() => {
+    const saved = readSession("librarySort", "");
+    return SORT_OPTIONS.some((o) => o.value === saved) ? saved : "";
+  });
   const navigator = useNavigate();
   // the shelf shows one block of manga at a time; any change to the tab,
   // search or sort starts again from the first block
@@ -185,14 +186,8 @@ function Library() {
       case "rating-dsc":
         list.sort((a, b) => (b.rating ?? 0) - (a.rating ?? 0));
         break;
-      case "rating-asc":
-        list.sort((a, b) => (a.rating ?? 0) - (b.rating ?? 0));
-        break;
       case "ch-dsc":
         list.sort((a, b) => (b.bookmark ?? 0) - (a.bookmark ?? 0));
-        break;
-      case "ch-asc":
-        list.sort((a, b) => (a.bookmark ?? 0) - (b.bookmark ?? 0));
         break;
       case "name-asc":
         list.sort((a, b) => a.name.localeCompare(b.name));
