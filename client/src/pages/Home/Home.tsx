@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useRef } from "react";
+import { useState, useEffect, useMemo } from "react";
 import MangaCard, {
   MangaCardSkeleton,
 } from "../../components/mangaCard/MangaCard";
@@ -6,15 +6,14 @@ import MangaCard, {
 import { homeStyles as styles } from "./styles";
 import { NavLink, useNavigate } from "react-router";
 import { SearchIcon, StarIcon } from "../../components/icons/Icons";
-import { apiFetch } from "../../lib/api";
 import RangePager from "../../components/rangePager/RangePager";
 import Mascot from "../../components/mascot/Mascot";
 import SlowLoadQuote from "../../components/slowLoadQuote/SlowLoadQuote";
 import { usePrivatePage } from "../../lib/seo";
 import { getShelfPriceTags } from "../../lib/prices";
-import { getReleases, RELEASE_CHECK_TIMEOUT_MS } from "../../lib/shelf";
-import type { Manga, ReleaseStatus, ShelfPrice } from "../../lib/types";
+import type { Manga, ShelfPrice } from "../../lib/types";
 import { useAuth } from "../../store/auth";
+import { useShelf } from "../../store/shelf";
 
 const SHELF_PAGE_SIZE = 30;
 // shelves this size get a heads-up that their first release check is slow
@@ -98,8 +97,11 @@ export default function Home() {
 }
 
 function Library() {
-  const [mangaData, setMangaData] = useState<Manga[] | null>(null);
-  const [loadError, setLoadError] = useState(false);
+  const mangaData = useShelf((s) => s.manga);
+  const loadError = useShelf((s) => s.loadFailed);
+  const releases = useShelf((s) => s.releases);
+  const loadShelf = useShelf((s) => s.load);
+  const checkReleases = useShelf((s) => s.checkReleases);
   const [query, setQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState(() =>
     readSession("libraryStatus", "all"),
@@ -117,18 +119,8 @@ function Library() {
   const pageIndex = page.key === filterKey ? page.index : 0;
 
   useEffect(() => {
-    async function fetchMangaData() {
-      try {
-        const response = await apiFetch("/api/manga");
-        if (!response.ok) throw new Error(response.statusText);
-        const { manga } = (await response.json()) as { manga: Manga[] };
-        setMangaData(manga);
-      } catch {
-        setLoadError(true);
-      }
-    }
-    fetchMangaData();
-  }, []);
+    loadShelf();
+  }, [loadShelf]);
 
   // price lines for the cards, once the shelf is in. Nice to have: the
   // shelf works the same without them
@@ -143,37 +135,13 @@ function Library() {
     return () => controller.abort();
   }, [hasManga]);
 
-  // what's new for each manga. Only asked for once the New tab is opened, and
-  // one title at a time, since the server has to ask other sites about each
-  // title it hasn't seen lately. Leaving the tab stops the checking
+  // what's new for each manga. Only asked for once the New tab is opened; after
+  // that it carries on even if they leave, and new titles get picked up
   const showingNew = statusFilter === "new";
-  const [releases, setReleases] = useState<Record<number, ReleaseStatus | null>>(
-    {},
-  );
-  const checkedIds = useRef(new Set<number>());
   useEffect(() => {
-    if (!showingNew || !mangaData?.length) return;
-    const controller = new AbortController();
-    (async () => {
-      for (const { id } of mangaData) {
-        if (checkedIds.current.has(id)) continue;
-        const status = await getReleases(
-          id,
-          AbortSignal.any([
-            controller.signal,
-            AbortSignal.timeout(RELEASE_CHECK_TIMEOUT_MS),
-          ]),
-        )
-          .then((found) => found.releaseStatus)
-          .catch(() => null);
-        if (controller.signal.aborted) return;
-        checkedIds.current.add(id);
-        setReleases((current) => ({ ...current, [id]: status }));
-      }
-    })();
-    return () => controller.abort();
-  }, [mangaData, showingNew]);
-  const checked = Object.keys(releases).length;
+    if (showingNew && mangaData?.length) checkReleases();
+  }, [mangaData, releases, showingNew, checkReleases]);
+  const checked = (mangaData ?? []).filter((m) => m.id in releases).length;
   const checking = showingNew && checked < (mangaData?.length ?? 0);
   const allChecked = checked > 0 && checked >= (mangaData?.length ?? 0);
   const [checkedBefore] = useState(() => readLocal(CHECKED_BEFORE_KEY) !== null);
