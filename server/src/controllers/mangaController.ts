@@ -105,7 +105,6 @@ const releases = async (_req: Request, res: Response) => {
     releaseStatus: getReleaseStatus(manga, {
       dates: releaseData,
       englishVolumes: series?.volumes ?? [],
-      anilistMax: series?.info?.volumes ?? null,
     }),
   });
 };

@@ -18,14 +18,14 @@ type Shelved = { volumesOwned: number | null; bookmark: number | null };
 type Sources = {
   dates: FormatedDates | null; // MangaDex, for chapters
   englishVolumes: { volume: number | null }[]; // the US catalog
-  anilistMax: number | null; // AniList's volume count, if it has one
 };
 
-// New volume: they own AniList's last volume but a later one is out in English.
-// AniList has no count for most ongoing series, so then the catalog alone decides
+// The shelf can only rule something out when it says they're already past it:
+// plenty of people read without owning, or never fill these numbers in. So a
+// blank counts as nothing yet
 export function getReleaseStatus(
   { volumesOwned, bookmark }: Shelved,
-  { dates, englishVolumes, anilistMax }: Sources,
+  { dates, englishVolumes }: Sources,
 ): ReleaseStatus {
   const numbers = englishVolumes
     .map((v) => v.volume)
@@ -40,16 +40,10 @@ export function getReleaseStatus(
   const owned = volumesOwned ?? 0;
 
   return {
-    hasNewVolume:
-      owned > 0 &&
-      latestVolume != null &&
-      owned < latestVolume &&
-      (anilistMax == null || owned >= anilistMax),
-    hasNewChapter:
-      bookmark != null && latestChapter != null && bookmark < latestChapter,
+    hasNewVolume: latestVolume != null && owned < latestVolume,
+    hasNewChapter: latestChapter != null && (bookmark ?? 0) < latestChapter,
     // past what they own, and not just a volume that's already out in English
     hasNewJapaneseVolume:
-      owned > 0 &&
       latestJapaneseVolume != null &&
       latestJapaneseVolume > owned &&
       latestJapaneseVolume > (latestVolume ?? 0),
