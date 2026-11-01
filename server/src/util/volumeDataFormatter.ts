@@ -1,4 +1,3 @@
-import { formatReleaseDate } from "./fomratISO8601Date.js";
 import type { ChapterEstimate } from "./estimateNextChapter.js";
 import type { VolumeEstimate } from "./estimateNextVolume.js";
 import type { VolumeStart } from "./volumeStarts.js";
@@ -6,11 +5,11 @@ import type { VolumeStart } from "./volumeStarts.js";
 type ChapterRelease = {
   latestReleased: {
     chapterNumber: string | null;
-    releaseDate: string;
+    releaseDate: string | null;
   }; // last released chapter
   estimateRelease: {
     chapterNumber: string | null;
-    releaseDate: string;
+    releaseDate: string | null;
     isEstimate: boolean; // true when predicted, false when scheduled on MangaDex
     confidence: ChapterEstimate["confidence"];
   }; // upcoming new chapter
@@ -23,7 +22,7 @@ type Volume = {
 
 type NewVolume = {
   volume: string | null;
-  releaseDate: string;
+  releaseDate: string | null;
   isEstimate: boolean;
   confidence: VolumeEstimate["confidence"];
   note: string;
@@ -72,6 +71,8 @@ export type MangaDexChapterResponse = {
   total: number;
 };
 
+// Dates stay ISO: saved answers live for hours, so "Tomorrow" has to be worked
+// out when it's shown, in the reader's timezone.
 function getFormatedDates(
   chapterData: MangaDexChapterResponse,
   coverData: MangaDexCoverResponse,
@@ -85,7 +86,7 @@ function getFormatedDates(
     // Map volume data
     const newVolumeData: Volume[] = coverData.data.map((c) => ({
       volume: c.attributes.volume,
-      releaseDate: formatReleaseDate(c.attributes.createdAt),
+      releaseDate: c.attributes.createdAt,
     }));
 
     // Chapters are ordered by number desc, so index 0 is the latest released chapter.
@@ -95,13 +96,11 @@ function getFormatedDates(
     const chapterRelease: ChapterRelease = {
       latestReleased: {
         chapterNumber: chapters[0]?.attributes.chapter ?? null,
-        releaseDate: formatReleaseDate(chapters[0]?.attributes.publishAt),
+        releaseDate: chapters[0]?.attributes.publishAt ?? null,
       },
       estimateRelease: {
         chapterNumber: chapterEstimate.nextChapter,
-        releaseDate: formatReleaseDate(
-          chapterEstimate.estimatedAt?.toISOString(),
-        ),
+        releaseDate: chapterEstimate.estimatedAt?.toISOString() ?? null,
         isEstimate: chapterEstimate.method === "estimated",
         confidence: chapterEstimate.confidence,
       },
@@ -110,7 +109,7 @@ function getFormatedDates(
     // Upcoming volume: always an estimate, since MangaDex has no volume release dates.
     const newVolume: NewVolume = {
       volume: volumeEstimate.nextVolume,
-      releaseDate: formatReleaseDate(volumeEstimate.estimatedAt?.toISOString()),
+      releaseDate: volumeEstimate.estimatedAt?.toISOString() ?? null,
       isEstimate: volumeEstimate.method === "estimated",
       confidence: volumeEstimate.confidence,
       note: volumeEstimate.note,

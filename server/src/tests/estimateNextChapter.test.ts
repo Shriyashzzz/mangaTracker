@@ -27,15 +27,36 @@ test("chapters uploaded in bulk give no estimate, and don't hang", async () => {
 });
 
 test("a steady schedule still gets an estimate in the future", async () => {
-  feed([
-    ["1", "2020-01-01T00:00:00Z"],
-    ["2", "2020-01-15T00:00:00Z"],
-    ["3", "2020-01-29T00:00:00Z"],
-    ["4", "2020-02-12T00:00:00Z"],
-    ["5", "2020-02-26T00:00:00Z"],
-  ]);
+  // fortnightly, the last one out a week ago
+  const day = 24 * 60 * 60 * 1000;
+  feed(
+    ["1", "2", "3", "4", "5"].map((chapter, i): [string, string] => [
+      chapter,
+      new Date(Date.now() - (7 + (4 - i) * 14) * day).toISOString(),
+    ]),
+  );
   const estimate = await estimateNextChapter("series");
   expect(estimate.method).toBe("estimated");
   expect(estimate.nextChapter).toBe("6");
   expect(estimate.estimatedAt!.getTime()).toBeGreaterThan(Date.now());
+});
+
+test("the scheduled chapter query only asks for chapters still to come", async () => {
+  feed([]);
+  await estimateNextChapter("series");
+  const firstUrl = String((global.fetch as jest.Mock).mock.calls[0]![0]);
+  expect(firstUrl).toContain("publishAtSince=");
+});
+
+test("a series that stopped long ago gets no date", async () => {
+  // a steady schedule, years in the past
+  feed(
+    ["1", "2", "3", "4", "5"].map((chapter, i): [string, string] => [
+      chapter,
+      new Date(Date.UTC(2015, 0, 1 + i * 14)).toISOString(),
+    ]),
+  );
+  const estimate = await estimateNextChapter("series");
+  expect(estimate.method).toBe("none");
+  expect(estimate.estimatedAt).toBeNull();
 });

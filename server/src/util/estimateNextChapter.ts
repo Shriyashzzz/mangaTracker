@@ -1,7 +1,10 @@
 // src/util/estimateNextChapter.ts
 // Estimates the next chapter release for a MangaDex manga.
+import { median } from "./median.js";
+
 const MangaDexBaseUrl = "https://api.mangadex.org";
 const DAY = 24 * 60 * 60 * 1000;
+const MAX_MISSED = 3; // more late than this and it's ended or on a long break
 const MIN_GAP_MS = 60 * 60 * 1000; // smaller gaps mean chapters were bulk-uploaded, so they say nothing
 
 export type ChapterEstimate = {
@@ -15,12 +18,6 @@ export type ChapterEstimate = {
 type FeedChapter = {
   attributes: { chapter: string | null; publishAt: string };
 };
-
-function median(nums: number[]): number {
-  const s = [...nums].sort((a, b) => a - b);
-  const mid = Math.floor(s.length / 2);
-  return s.length % 2 ? s[mid]! : (s[mid - 1]! + s[mid]!) / 2;
-}
 
 function mode<T>(arr: T[]): T {
   const counts = new Map<T, number>();
@@ -48,9 +45,11 @@ export async function estimateNextChapter(
 ): Promise<ChapterEstimate> {
   const now = new Date();
 
-  // 1) Already scheduled on MangaDex -> exact date.
+  // 1) Already scheduled on MangaDex -> exact date. The date limit matters:
+  // oldest first without it, the 10 we get back are the series' first chapters.
   const futureRaw = await getFeed(seriesId, [
     ["translatedLanguage[]", language],
+    ["publishAtSince", now.toISOString().slice(0, 19)],
     ["order[publishAt]", "asc"],
     ["includeFuturePublishAt", "1"],
     ["includeExternalUrl", "1"],
@@ -151,6 +150,17 @@ export async function estimateNextChapter(
   while (next <= now) {
     next = new Date(next.getTime() + gap);
     missed++;
+  }
+
+  // Rolling forward would give even a series that ended years ago a date.
+  if (missed > MAX_MISSED) {
+    return {
+      method: "none",
+      nextChapter: null,
+      estimatedAt: null,
+      confidence: "none",
+      note: "No new chapters for a while; it has likely ended or is on a long break.",
+    };
   }
 
   const lastNum = Math.max(...[...byChapter.keys()].map(parseFloat));

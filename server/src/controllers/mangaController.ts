@@ -5,7 +5,9 @@ import type { Request, Response } from "express";
 import { body, matchedData, query } from "express-validator";
 import { rejectInvalid } from "../middlewares/validate.js";
 import mangaQueries, { type MangaInput } from "../models/mangaQueries.js";
+import { getSeriesInfo } from "../prices/anilist.js";
 import { findOnShelf, getSeries, getShelfPrices } from "../prices/service.js";
+import { canonicalTitle } from "../util/canonicalTitle.js";
 import { getCachedReleaseDates, withTimeout } from "../util/releaseCache.js";
 import { getReleaseStatus } from "../util/releaseStatus.js";
 import type { Manga } from "../../generated/prisma/client.js";
@@ -70,12 +72,18 @@ const add = [
   ...mangaFields,
   rejectInvalid,
   async (req: Request, res: Response) => {
-    const id = await mangaQueries.addManga(req.session.userId!, toInput(req));
+    const input = toInput(req);
+    // named the way AniList names it, if AniList lists it. If AniList can't be
+    // reached the title they typed is fine
+    const listing = await getSeriesInfo(input.name).catch(() => null);
+    input.name = canonicalTitle(input.name, listing);
+    const id = await mangaQueries.addManga(req.session.userId!, input);
     res.status(201).json({ id });
   },
 ];
 
 const SERIES_TIMEOUT_MS = 25_000;
+const INFO_TIMEOUT_MS = 10_000;
 
 const detail = (_req: Request, res: Response) => {
   res.json({ manga: res.locals.manga });
@@ -85,27 +93,30 @@ const detail = (_req: Request, res: Response) => {
 // it can be slow, so the details page and the edit form don't wait for it
 const releases = async (_req: Request, res: Response) => {
   const manga: Manga = res.locals.manga;
-  // a catalog failure or a slow one only costs the volume half of the answer;
-  // if it's slow it carries on and is ready for the next check
-  const series = await withTimeout(
-    getSeries(manga.name).catch(() => null),
-    SERIES_TIMEOUT_MS,
-    null,
-  );
+  // asked apart: AniList confirms which series this is on MangaDex, and is
+  // usually answered from the database even when the catalog is being slow
+  const [info, series] = await Promise.all([
+    withTimeout(getSeriesInfo(manga.name).catch(() => null), INFO_TIMEOUT_MS, null),
+    // a catalog failure or a slow one only costs the volume half of the answer;
+    // if it's slow it carries on and is ready for the next check
+    withTimeout(getSeries(manga.name).catch(() => null), SERIES_TIMEOUT_MS, null),
+  ]);
   const dates = await getCachedReleaseDates(manga.name, {
-    anilistId: series?.info?.anilistId,
-    altNames: series?.info?.altNames,
+    anilistId: info?.anilistId,
+    altNames: info?.altNames,
   });
   const releaseData = dates.ok && dates.data ? dates.data : null;
   if (!releaseData && !series) {
-    return res.json({ releaseData: null, releaseStatus: null });
+    return res.json({ releaseData: null, releaseStatus: null, complete: false });
   }
   return res.json({
     releaseData,
     releaseStatus: getReleaseStatus(manga, {
       dates: releaseData,
-      englishVolumes: series?.volumes ?? [],
+      englishVolumes: series?.volumes ?? null,
     }),
+    // a source didn't answer, so it's worth asking again later
+    complete: Boolean(releaseData && series),
   });
 };
 

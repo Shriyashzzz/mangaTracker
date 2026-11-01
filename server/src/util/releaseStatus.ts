@@ -22,7 +22,7 @@ type Shelved = { volumesOwned: number | null; bookmark: number | null };
 
 type Sources = {
   dates: FormatedDates | null; // MangaDex, for chapters
-  englishVolumes: { volume: number | null }[]; // the US catalog
+  englishVolumes: { volume: number | null }[] | null; // the US catalog; null if it didn't answer
 };
 
 // The shelf can only rule something out when it says they're already past it:
@@ -32,7 +32,7 @@ export function getReleaseStatus(
   { volumesOwned, bookmark }: Shelved,
   { dates, englishVolumes }: Sources,
 ): ReleaseStatus {
-  const numbers = englishVolumes
+  const numbers = (englishVolumes ?? [])
     .map((v) => v.volume)
     .filter((v): v is number => v != null);
   const latestVolume = numbers.length ? Math.max(...numbers) : null;
@@ -51,6 +51,8 @@ export function getReleaseStatus(
     hasNewChapter: latestChapter != null && (bookmark ?? 0) < latestChapter,
     // past what they own, and not just a volume that's already out in English
     hasNewJapaneseVolume:
+      // without the catalog we can't say it isn't out in English already
+      englishVolumes != null &&
       latestJapaneseVolume != null &&
       latestJapaneseVolume > owned &&
       latestJapaneseVolume > (latestVolume ?? 0),

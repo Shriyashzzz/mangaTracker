@@ -84,6 +84,7 @@ async function getCoverData(seriesId: string) {
     const response = await fetch(`https://api.mangadex.org/cover?${params}`, {
       signal: AbortSignal.timeout(10_000),
     });
+    if (!response.ok) throw new Error(`MangaDex covers: ${response.status}`);
     const data = await response.json();
     return data;
   } catch (e) {
@@ -101,12 +102,15 @@ async function getAllChapthers(seriesId: string) {
       ["order[chapter]", "desc"],
 
       ["limit", String(1)],
+      // "latest" means out already, not one scheduled for next week
+      ["includeFuturePublishAt", "0"],
     ]);
 
     const res = await fetch(
       `https://api.mangadex.org/manga/${seriesId}/feed?${params.toString()}`,
       { signal: AbortSignal.timeout(10_000) },
     );
+    if (!res.ok) throw new Error(`MangaDex feed: ${res.status}`);
     const data = await res.json();
     return data;
   } catch (e) {
@@ -147,7 +151,7 @@ async function getReleaseDates(
     const chaptherData = await getAllChapthers(seriesId);
     const [chapterEstimate, volumeEstimate, volumeStarts] = await Promise.all([
       estimateNextChapter(seriesId),
-      estimateNextVolume(seriesId),
+      estimateNextVolume(seriesId, "en", 8, coverData.data),
       getVolumeStarts(seriesId),
     ]);
     const formatedDates = getFormatedDates(

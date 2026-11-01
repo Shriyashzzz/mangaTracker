@@ -61,6 +61,13 @@ test("a Japanese volume counts only past what they own and what's in English", (
   expect(ahead(20, english(26))).toBe(false);
 });
 
+test("no answer from the catalog means we can't call a volume ahead of English", () => {
+  const dates = { volume: [{ volume: "26", releaseDate: null }] } as FormatedDates;
+  const status = getReleaseStatus(owns(3), { dates, englishVolumes: null });
+  expect(status.hasNewJapaneseVolume).toBe(false);
+  expect(status.hasNewVolume).toBe(false);
+});
+
 test("volumes still work when MangaDex couldn't answer", () => {
   const status = getReleaseStatus(
     { volumesOwned: 24, bookmark: 203 },

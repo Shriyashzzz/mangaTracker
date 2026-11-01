@@ -1,9 +1,10 @@
-// Keeps getReleaseDates polite: one call makes about 7 MangaDex requests and
-// MangaDex allows 5 a second, so a whole shelf has to go one title at a time.
-// Answers are kept 6 hours in the database, so a restart doesn't mean asking
-// again. Failures are only remembered for a while in memory, so one bad title
-// doesn't slow every check down. A stuck lookup is given up on, so it can never
-// hold up the titles queued behind it.
+// Keeps getReleaseDates polite: one call makes about 8 MangaDex requests and
+// MangaDex allows 5 a second, so a whole shelf goes one title at a time with a
+// pause between each. Answers are kept 6 hours in the database, so a restart
+// doesn't mean asking again. Failures, and answers found without AniList's id
+// to confirm the series, are only remembered briefly in memory: a wrong match
+// shouldn't be shared with everyone for hours. A stuck lookup is given up on, so
+// it can never hold up the titles queued behind it.
 import { prisma } from "../config/prisma.js";
 import { Prisma } from "../../generated/prisma/client.js";
 import { slugify } from "../prices/match.js";
@@ -17,11 +18,12 @@ import type { FormatedDates } from "./volumeDataFormatter.js";
 type Answer = MangaReleaseDates<FormatedDates>;
 
 const FRESH_MS = 6 * 60 * 60 * 1000;
-const FAILED_MS = 30 * 60 * 1000;
+const BRIEF_MS = 10 * 60 * 1000;
+const PAUSE_MS = 1000; // between titles
 const LOOKUP_TIMEOUT_MS = 20_000; // the lookup itself
 const WAIT_TIMEOUT_MS = 15_000; // how long a page waits for it
 
-const failed = new Map<string, number>();
+const brief = new Map<string, { answer: Answer; at: number }>();
 const running = new Map<string, Promise<Answer>>();
 let queue: Promise<unknown> = Promise.resolve();
 
@@ -74,8 +76,10 @@ export async function getCachedReleaseDates(
 
   const stored = await readStored(key);
   if (stored) return stored;
-  const failedAt = failed.get(key);
-  if (failedAt && Date.now() - failedAt < FAILED_MS) return { ok: false };
+  const remembered = brief.get(key);
+  if (remembered && Date.now() - remembered.at < BRIEF_MS) {
+    return remembered.answer;
+  }
 
   let lookup = running.get(key);
   if (!lookup) {
@@ -84,15 +88,18 @@ export async function getCachedReleaseDates(
         ok: false,
       }),
     );
-    queue = lookup;
+    queue = lookup.then(
+      () => new Promise((resolve) => setTimeout(resolve, PAUSE_MS)),
+    );
     running.set(key, lookup);
     lookup
       .then(async (answer) => {
-        if (answer.ok && answer.data) {
-          failed.delete(key);
+        if (answer.ok && answer.data && match.anilistId) {
+          brief.delete(key);
           await store(key, answer.data);
         } else {
-          failed.set(key, Date.now());
+          brief.set(key, { answer, at: Date.now() });
+          if (brief.size > 500) brief.delete(brief.keys().next().value!);
         }
       })
       .finally(() => running.delete(key));
