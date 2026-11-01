@@ -14,6 +14,7 @@ import { getShelfPriceTags } from "../../lib/prices";
 import type { Manga, ShelfPrice } from "../../lib/types";
 import { useAuth } from "../../store/auth";
 import { useShelf } from "../../store/shelf";
+import { readLocal, writeLocal } from "../../lib/prefs";
 
 const SHELF_PAGE_SIZE = 30;
 // shelves this size get a heads-up that their first release check is slow
@@ -70,21 +71,6 @@ const writeSession = (key: string, value: string) => {
     /* ignore */
   }
 };
-// the same, for what should outlast the tab
-const readLocal = (key: string) => {
-  try {
-    return localStorage.getItem(key);
-  } catch {
-    return null;
-  }
-};
-const writeLocal = (key: string, value: string) => {
-  try {
-    localStorage.setItem(key, value);
-  } catch {
-    /* ignore */
-  }
-};
 
 export default function Home() {
   usePrivatePage("Your shelf");
@@ -102,6 +88,7 @@ function Library() {
   const releases = useShelf((s) => s.releases);
   const loadShelf = useShelf((s) => s.load);
   const checkReleases = useShelf((s) => s.checkReleases);
+  const recheckReleases = useShelf((s) => s.recheckReleases);
   const [query, setQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState(() =>
     readSession("libraryStatus", "all"),
@@ -293,6 +280,13 @@ function Library() {
     return `Vol. ${releases[m.id]?.latestVolume} is out`;
   };
   const total = mangaData.length;
+  // every title failed, so "nothing new" would be a false comfort. A few failing
+  // goes unsaid: the rest still stand, and they get tried again on the next visit
+  const allFailed =
+    showingNew &&
+    !checking &&
+    total > 0 &&
+    mangaData.every((m) => releases[m.id] === null);
   const bigFirstCheck =
     checking && !checkedBefore && total >= BIG_SHELF;
   // the check's progress: something to glance at, never the point of the page
@@ -429,6 +423,19 @@ function Library() {
               <span className={styles.checkAside}>{bigShelfNote}</span>
             )}
           </p>
+        </div>
+      ) : allFailed ? (
+        <div className={styles.emptyState}>
+          <span className="printed mascot-spot" aria-hidden>
+            <Mascot mood="panic" />
+          </span>
+          <p className={styles.emptyTitle}>Couldn't check right now.</p>
+          <p className={styles.emptyBody}>
+            The sites we ask for releases didn't answer. Give it a minute.
+          </p>
+          <button className="btn btn-secondary" onClick={recheckReleases}>
+            Try again
+          </button>
         </div>
       ) : showingNew && visibleManga.length === 0 && !query.trim() ? (
         <div className={styles.nothingNew}>

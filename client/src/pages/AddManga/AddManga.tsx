@@ -6,6 +6,8 @@ import type { MangaForm } from "../../lib/types";
 import { useAuth } from "../../store/auth";
 import { GENRES } from "../../lib/genres";
 import CoverPicker from "../../components/coverPicker/CoverPicker";
+import type { CoverHit } from "../../lib/anilist";
+import TitleField from "./TitleField";
 import { useEffect } from "react";
 import { usePrivatePage } from "../../lib/seo";
 
@@ -22,6 +24,12 @@ export function AddManga() {
     (searchParams.get("title") ?? "").slice(0, 150),
   );
   const [image, setImage] = useState("");
+  // AniList's guesses at the title, and whether they've picked one of them
+  const [found, setFound] = useState<{ query: string; hits: CoverHit[] }>({
+    query: "",
+    hits: [],
+  });
+  const [pickedTitle, setPickedTitle] = useState<string | null>(null);
   const [genre, setGenre] = useState("");
   const [genreFromAniList, setGenreFromAniList] = useState(false);
   // a genre the user picked by hand is never overwritten by a cover match
@@ -36,6 +44,16 @@ export function AddManga() {
       navigate(signInPath(`/add?${searchParams}`), { replace: true });
     }
   }, [isSignedIn, navigate, searchParams]);
+
+  const pickTitle = (hit: CoverHit) => {
+    setTitle(hit.title);
+    setPickedTitle(hit.title);
+    setImage(hit.cover);
+    if (hit.genre && !genreTouched.current) {
+      setGenre(hit.genre);
+      setGenreFromAniList(true);
+    }
+  };
 
   const handleFormSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -89,18 +107,15 @@ export function AddManga() {
           <label htmlFor="name" className={styles.label}>
             Title <b>*</b>
           </label>
-          <input
-            className={styles.input}
-            id="name"
-            name="name"
-            type="text"
-            placeholder="e.g. Berserk"
+          <TitleField
             value={title}
-            onChange={(e) => setTitle(e.target.value)}
-            minLength={3}
-            maxLength={150}
-            required
-            autoFocus
+            onChange={setTitle}
+            hits={
+              found.query === title.trim() && pickedTitle !== title
+                ? found.hits
+                : []
+            }
+            onPick={pickTitle}
           />
         </div>
 
@@ -108,6 +123,8 @@ export function AddManga() {
           className={styles.coverArea}
           title={title}
           value={image}
+          coverChosen={pickedTitle === title}
+          onResults={(hits, query) => setFound({ query, hits })}
           onChange={(url, match) => {
             setImage(url);
             if (match?.genre && !genreTouched.current) {

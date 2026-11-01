@@ -8,6 +8,8 @@ export const getReleases = (id: number, signal?: AbortSignal) =>
   getJson<{
     releaseData: ReleaseData | null;
     releaseStatus: ReleaseStatus | null;
+    // false if a source didn't answer, so it's worth asking again
+    complete: boolean;
   }>(`/api/manga/${id}/releases`, signal);
 
 // the server gives up on a slow title before this; if even it stops answering,

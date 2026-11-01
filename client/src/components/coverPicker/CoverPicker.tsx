@@ -18,6 +18,10 @@ type Props = {
   title: string;
   value: string;
   onChange: (url: string, match: CoverHit | null) => void;
+  // don't choose a cover on their behalf: they've already picked this manga
+  coverChosen?: boolean;
+  // everything AniList found, and for which title
+  onResults?: (found: CoverHit[], query: string) => void;
   className?: string;
 };
 
@@ -27,6 +31,8 @@ export default function CoverPicker({
   title,
   value,
   onChange,
+  coverChosen = false,
+  onResults,
   className = "",
 }: Props) {
   const [results, setResults] = useState<CoverHit[]>([]);
@@ -48,7 +54,8 @@ export default function CoverPicker({
         const found = await searchCovers(query, controller.signal);
         setResults(found);
         setStatus("done");
-        if (!touched.current && found.length) {
+        onResults?.(found, query);
+        if (!touched.current && !coverChosen && found.length) {
           onChange(found[0]!.cover, found[0]!);
         }
       } catch (e) {

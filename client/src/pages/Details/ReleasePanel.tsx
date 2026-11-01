@@ -1,6 +1,7 @@
 import { useId, useState } from "react";
 import { ChevronDownIcon } from "../../components/icons/Icons";
 import { detailsStyles as styles } from "./styles";
+import { formatReleaseDate } from "../../lib/releaseDates";
 import type { ReleaseData } from "../../lib/types";
 
 type Props = {
@@ -13,9 +14,6 @@ type Props = {
 type Row = { what: string; when: string; estimate?: boolean };
 type Group = { title: string; rows: Row[] };
 
-// "undefined" is what the server sends when it has no date to give
-const hasDate = (date?: string) => Boolean(date) && date !== "undefined";
-
 // English: its chapters, since there are no English volume dates to go on.
 // Japan: its volumes only, since MangaDex has translations and no Japanese
 // chapters. The volume that's out already is the panel's headline
@@ -25,26 +23,29 @@ const groupsFrom = (data: ReleaseData | null, inJapan: boolean): Group[] => {
 
   if (inJapan) {
     const next = data?.newVolume;
-    if (next?.volume && hasDate(next.releaseDate)) {
+    const when = formatReleaseDate(next?.releaseDate);
+    if (next?.volume && when) {
       comingUp.push({
         what: `Vol. ${next.volume}`,
-        when: next.releaseDate,
+        when,
         estimate: next.isEstimate,
       });
     }
   } else {
     const latest = data?.chapter?.latestReleased;
-    if (latest?.chapterNumber && hasDate(latest.releaseDate)) {
+    const latestWhen = formatReleaseDate(latest?.releaseDate);
+    if (latest?.chapterNumber && latestWhen) {
       outNow.push({
         what: `Ch. ${latest.chapterNumber}`,
-        when: latest.releaseDate,
+        when: latestWhen,
       });
     }
     const next = data?.chapter?.estimateRelease;
-    if (next?.chapterNumber && hasDate(next.releaseDate)) {
+    const nextWhen = formatReleaseDate(next?.releaseDate);
+    if (next?.chapterNumber && nextWhen) {
       comingUp.push({
         what: `Ch. ${next.chapterNumber}`,
-        when: next.releaseDate,
+        when: nextWhen,
         estimate: next.isEstimate,
       });
     }

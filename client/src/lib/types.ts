@@ -19,10 +19,9 @@ export type Manga = {
   rating: number | null;
 };
 
-// when the next chapter or volume is due. releaseDate is ready to display and
-// is the text "undefined" when there's no estimate
+// when the next chapter or volume is due. Dates are ISO, null if there isn't one
 type ReleaseEstimate = {
-  releaseDate: string;
+  releaseDate: string | null;
   isEstimate: boolean;
 };
 
@@ -31,7 +30,7 @@ export type ReleaseData = {
   volume?: { volume: string | null; releaseDate: string | null }[];
   newVolume?: ReleaseEstimate & { volume: string | null };
   chapter?: {
-    latestReleased: { chapterNumber: string | null; releaseDate: string };
+    latestReleased: { chapterNumber: string | null; releaseDate: string | null };
     estimateRelease: ReleaseEstimate & { chapterNumber: string | null };
   };
 };

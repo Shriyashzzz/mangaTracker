@@ -7,6 +7,7 @@ import type { Manga, ReleaseData, ReleaseStatus } from "../../lib/types";
 import SlowLoadQuote from "../../components/slowLoadQuote/SlowLoadQuote";
 import { usePrivatePage } from "../../lib/seo";
 import { getReleases } from "../../lib/shelf";
+import { useShelf } from "../../store/shelf";
 import BuyStrip from "./BuyStrip";
 import ReleasePanel from "./ReleasePanel";
 
@@ -62,6 +63,7 @@ export default function Details() {
     try {
       const res = await apiFetch(`/api/manga/${id}`, { method: "DELETE" });
       if (!res.ok) throw new Error(`Failed deleting manga`);
+      useShelf.getState().remove(Number(id));
       navigate("/shelf", { viewTransition: true });
     } catch (e) {
       console.error(e);
