@@ -121,8 +121,7 @@ export default function Details() {
     mangaData.genre && mangaData.genre !== "unlabled" ? mangaData.genre : null;
   const showRelease =
     releaseStatus?.hasNewVolume &&
-    releaseStatus.latestVolume != null &&
-    mangaData.volumesOwned != null;
+    releaseStatus.latestVolume != null;
 
   return (
     <div className="fade-in">
@@ -179,7 +178,7 @@ export default function Details() {
         {showRelease && (
           <ReleasePanel
             latestVolume={releaseStatus.latestVolume!}
-            volumesOwned={mangaData.volumesOwned!}
+            volumesOwned={mangaData.volumesOwned}
             latestJapaneseVolume={releaseStatus.latestJapaneseVolume}
             data={releaseData}
           />

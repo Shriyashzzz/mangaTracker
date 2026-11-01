@@ -40,7 +40,8 @@ export type ReleaseData = {
 export type ReleaseStatus = {
   hasNewVolume: boolean;
   hasNewChapter: boolean;
-  // out in Japan past what they own and what's in English
+  // out in Japan past what they own and what's in English; a blank on the shelf
+  // counts as owning nothing
   hasNewJapaneseVolume: boolean;
   latestVolume: number | null;
   latestChapter: number | null;

@@ -24,14 +24,14 @@ const CHECKED_BEFORE_KEY = "releasesCheckedBefore";
 const RELEASE_KINDS = {
   volumes: {
     label: "Volumes",
-    note: "English releases only. Japan may be ahead of us: see In Japan.",
+    note: "English releases only. Japan may be ahead.",
     emptyTitle: "No new volumes. Your wallet lives!",
     emptyBody:
-      "You're caught up on every English volume we could find. Your shelf gets a day off.",
+      "You're past every English volume we could find. Your shelf gets a day off.",
   },
   chapters: {
     label: "Chapters",
-    note: "English releases only. Japan may be ahead of us.",
+    note: "English releases only. Japan may be ahead.",
     emptyTitle: "Nothing new to read. Go touch grass!",
     emptyBody:
       "You've read past the newest English chapter we could find. Check back soon.",
@@ -292,15 +292,27 @@ function Library() {
     }
     return `Vol. ${releases[m.id]?.latestVolume} is out`;
   };
-  const checkingText = `Checking for new releases, ${checked} of ${mangaData.length}…`;
+  const total = mangaData.length;
   const bigFirstCheck =
-    checking && !checkedBefore && mangaData.length >= BIG_SHELF;
-  const bigShelfNote = bigFirstCheck && (
-    <p className={styles.bigShelfNote}>
-      Big shelf! The first check looks up every title one at a time, so it can
-      take a few minutes. Wander off if you like: what's been checked is saved.
-    </p>
+    checking && !checkedBefore && total >= BIG_SHELF;
+  // the check's progress: something to glance at, never the point of the page
+  const progress = (
+    <div
+      className={styles.checkBar}
+      role="progressbar"
+      aria-label="Checking for new releases"
+      aria-valuemin={0}
+      aria-valuemax={total}
+      aria-valuenow={checked}
+    >
+      <div
+        className={styles.checkBarFill}
+        style={{ width: `${(checked / total) * 100}%` }}
+      />
+    </div>
   );
+  const bigShelfNote =
+    bigFirstCheck && "The first check on a big shelf can take a few minutes.";
 
   return (
     <div className="fade-in">
@@ -395,22 +407,28 @@ function Library() {
         </div>
       )}
 
-      {/* with results on screen the progress sits quietly above them; with
-          none yet, it's the only thing to look at */}
+      {/* a thin line above the cards once there are some; with none yet it
+          sits in the middle of the page, where the cards will be */}
       {checking && visibleManga.length > 0 && (
-        <div className={styles.checkingInline} role="status">
-          <p>{checkingText}</p>
-          {bigShelfNote}
+        <div className={styles.checkInline}>
+          {progress}
+          <p className={styles.checkText}>
+            Checking {checked} of {total}
+            {bigShelfNote && ` · ${bigShelfNote}`}
+          </p>
         </div>
       )}
 
       {checking && visibleManga.length === 0 ? (
-        <div className={styles.checkingCentre} role="status">
-          <span className="printed mascot-spot" aria-hidden>
-            <Mascot mood="confused" />
-          </span>
-          <p className={styles.checkingTitle}>{checkingText}</p>
-          {bigShelfNote}
+        <div className={styles.checkCentre}>
+          <p className={styles.checkTitle}>Checking for new releases</p>
+          {progress}
+          <p className={styles.checkText}>
+            {checked} of {total}
+            {bigShelfNote && (
+              <span className={styles.checkAside}>{bigShelfNote}</span>
+            )}
+          </p>
         </div>
       ) : showingNew && visibleManga.length === 0 && !query.trim() ? (
         <div className={styles.nothingNew}>

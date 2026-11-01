@@ -5,7 +5,7 @@ import type { ReleaseData } from "../../lib/types";
 
 type Props = {
   latestVolume: number;
-  volumesOwned: number;
+  volumesOwned: number | null;
   latestJapaneseVolume: number | null;
   data: ReleaseData | null;
 };
@@ -73,7 +73,7 @@ export default function ReleasePanel({
     <>
       <span className={styles.releaseBarHeadline}>{headline}</span>
       <span className={styles.releaseBarOwned}>
-        in English · you own {volumesOwned}
+        in English{volumesOwned ? ` · you own ${volumesOwned}` : ""}
       </span>
     </>
   );
@@ -87,7 +87,7 @@ export default function ReleasePanel({
       <div className={styles.releaseHit}>
         <h2 className={styles.releaseHeadline}>{headline}</h2>
         <p className={styles.releaseOwned}>
-          In English. You own up to vol. {volumesOwned}.
+          In English.{volumesOwned ? ` You own up to vol. ${volumesOwned}.` : ""}
         </p>
       </div>
 

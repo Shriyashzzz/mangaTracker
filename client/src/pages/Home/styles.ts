@@ -37,21 +37,24 @@ export const homeStyles = {
   pagerBottom: "mt-10",
   // the New tab's own switch: new volumes or new chapters, one at a time
   releaseTools:
-    "mb-8 flex flex-wrap items-center justify-between gap-x-6 gap-y-3",
+    "mb-7 flex flex-wrap items-center justify-between gap-x-6 gap-y-2",
   releaseKinds:
     "flex overflow-hidden rounded-ink border-2 border-line upto-520:w-full",
   releaseKind: `${releaseKind} bg-card text-ink-soft hover:text-ink`,
   releaseKindActive: `${releaseKind} bg-accent text-on-accent`,
   releaseKindCount: "ml-1 font-mono text-[0.78rem] tracking-normal",
-  releaseNote: "font-letter text-[1rem] font-bold text-ink-soft",
-  // the check's progress: above the cards once there are some
-  checkingInline:
-    "mb-6 font-letter text-[1rem] font-bold text-ink-soft [&>p+p]:mt-1",
-  // and in the middle of the page until there are
-  checkingCentre:
-    "mx-auto flex min-h-[46dvh] max-w-[460px] flex-col items-center justify-center gap-3 text-center",
-  checkingTitle: "font-brand text-[1.7rem] leading-[1.15] tracking-[1px] text-balance",
-  bigShelfNote: "font-letter text-[1rem] font-bold text-ink-soft text-pretty",
+  // side info: it should read as a footnote to the switch, not compete with it
+  releaseNote: "text-[0.85rem] text-ink-soft",
+  // the check's progress, a thin ink line with a small label
+  checkBar: "h-[3px] w-full overflow-hidden rounded-full bg-line-soft",
+  checkBarFill:
+    "h-full bg-ink transition-[width] duration-300 ease-ink motion-reduce:transition-none",
+  checkText: "text-[0.85rem] text-ink-soft",
+  checkAside: "mt-1 block text-pretty",
+  checkInline: "mb-7 flex flex-col gap-1.5",
+  checkCentre:
+    "mx-auto flex min-h-[34dvh] max-w-[300px] flex-col items-center justify-center gap-2.5 text-center",
+  checkTitle: "font-display text-[1.25rem] text-ink-soft",
   // nothing new: a little inked panel, tilted like it was stuck on the page
   nothingNew:
     "mx-auto my-12 max-w-[440px] -rotate-1 rounded-ink border-[2.5px] border-line bg-card px-8 pt-8 pb-3 text-center shadow-ink-lg motion-reduce:rotate-0 upto-520:mx-0 upto-520:rotate-0",
