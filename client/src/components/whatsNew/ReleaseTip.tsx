@@ -1,4 +1,4 @@
-// A small note for phones: your shelf can show what's newly out. It appears
+// A small note for screens with no room for WhatsNew: your shelf can show what's newly out. It appears
 // once ever, covers nothing important, blocks nothing and leaves on its own.
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
@@ -11,8 +11,8 @@ import Mascot from "../mascot/Mascot";
 const SEEN_KEY = "releaseTipSeen";
 const SHOW_AFTER_MS = 2500;
 const LEAVE_AFTER_MS = 12_000;
-// wider screens have the WhatsNew list instead
-const SMALL_SCREEN = "(max-width: 860px)";
+// wider screens have room for the WhatsNew list instead
+const SMALL_SCREEN = "(max-width: 1339px)";
 
 type Props = {
   // false while it would be in the way, or already pointless
@@ -33,7 +33,8 @@ export default function ReleaseTip({ enabled, onCheck }: Props) {
 
     const timer = setTimeout(() => {
       // mid-typing is a bad moment; a later visit can try again
-      if (document.activeElement?.tagName === "INPUT") return;
+      const active = document.activeElement;
+      if (active instanceof HTMLInputElement && active.value) return;
       writeLocal(SEEN_KEY, "yes");
       setOpen(true);
     }, SHOW_AFTER_MS);
@@ -56,7 +57,7 @@ export default function ReleaseTip({ enabled, onCheck }: Props) {
   return createPortal(
     <div
       role="status"
-      className="printed fixed inset-x-3 bottom-[max(0.75rem,env(safe-area-inset-bottom))] z-30 mx-auto grid max-w-[420px] animate-card-in grid-cols-[44px_minmax(0,1fr)_auto] items-center gap-x-2 rounded-ink border-[2.5px] border-line bg-card py-1 pr-1 pl-2 text-ink shadow-[0_14px_30px_-14px_rgba(20,14,8,0.6)] motion-reduce:animate-none"
+      className="printed fixed inset-x-3 bottom-[max(0.75rem,env(safe-area-inset-bottom))] z-30 mx-auto grid max-w-[420px] min-[861px]:mr-0 animate-card-in grid-cols-[44px_minmax(0,1fr)_auto] items-center gap-x-2 rounded-ink border-[2.5px] border-line bg-card py-1 pr-1 pl-2 text-ink shadow-[0_14px_30px_-14px_rgba(20,14,8,0.6)] motion-reduce:animate-none"
     >
       <span aria-hidden>
         <Mascot mood="happy" />

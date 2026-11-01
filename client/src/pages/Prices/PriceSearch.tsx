@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useId, useState } from "react";
 import { NavLink, useSearchParams } from "react-router";
 import type { Highlights as HighlightsData, SeriesHit } from "../../lib/types";
 import { useAuth } from "../../store/auth";
@@ -51,7 +51,7 @@ export default function PriceSearch() {
 
   return (
     <div className={`${styles.page} fade-in`}>
-      <div className={searching ? "" : styles.front}>
+      <div className={styles.front}>
         <header className={styles.searchHead}>
           <h1 className={styles.title}>Price check</h1>
           <p className={styles.sub}>
@@ -72,7 +72,11 @@ export default function PriceSearch() {
           )}
         </header>
 
-        {!searching && <WhatsNew />}
+        {!searching && (
+          <WhatsNew>
+            <ShelfPromo inMargin />
+          </WhatsNew>
+        )}
       </div>
 
       {loading && (
@@ -122,15 +126,8 @@ export default function PriceSearch() {
         </section>
       )}
 
-      {/* the rows, with the shelf pointer in the free space on their right */}
-      {!searching && (
-        <div className={styles.frontBody}>
-          <div className={styles.frontRows}>
-            <Highlights />
-          </div>
-          <ShelfPromo />
-        </div>
-      )}
+      {!searching && <Highlights />}
+      {!searching && <ShelfPromo />}
       <ReleaseTip enabled={!searching} />
     </div>
   );
@@ -219,26 +216,42 @@ function Highlights() {
   );
 }
 
-// the second half of the app: a quiet pointer to the reading tracker
-function ShelfPromo() {
+// the second half of the app: a quiet pointer to the reading tracker. Above
+// what's new when the margin has room for it, otherwise at the end of the page
+function ShelfPromo({ inMargin = false }: { inMargin?: boolean }) {
   const isSignedIn = useAuth((s) => s.isSignedIn);
+  const titleId = useId();
   return (
-    <section className={styles.promo} aria-labelledby="promo-title">
+    <section
+      className={inMargin ? styles.promoMargin : styles.promo}
+      aria-labelledby={titleId}
+    >
       <div>
-        <h2 id="promo-title" className={styles.sectionTitle}>
-          Also: track what you read
+        <h2
+          id={titleId}
+          className={inMargin ? styles.promoMarginTitle : styles.sectionTitle}
+        >
+          Track what you read
         </h2>
-        <p className={styles.promoBody}>
+        <p className={inMargin ? styles.promoMarginBody : styles.promoBody}>
           Save the chapter you're on for every series, rate what you finish, and
           see which ones have a new volume out.
         </p>
       </div>
       {isSignedIn ? (
-        <NavLink to="/shelf" className="btn btn-secondary" viewTransition>
+        <NavLink
+          to="/shelf"
+          className={`btn btn-secondary ${inMargin ? styles.promoMarginBtn : ""}`}
+          viewTransition
+        >
           Go to my shelf
         </NavLink>
       ) : (
-        <NavLink to="/signup" className="btn btn-secondary" viewTransition>
+        <NavLink
+          to="/signup"
+          className={`btn btn-secondary ${inMargin ? styles.promoMarginBtn : ""}`}
+          viewTransition
+        >
           Start your shelf
         </NavLink>
       )}

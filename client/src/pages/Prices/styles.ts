@@ -16,10 +16,9 @@ const softLink = "underline decoration-line-soft underline-offset-3";
 export const pricesStyles = {
   // ---------- price home + search ----------
   page: "prices-page flex flex-col gap-8",
-  // the search with the what's new list on its right; the list hides on phones
-  front:
-    "grid grid-cols-[minmax(0,1fr)_minmax(270px,310px)] items-stretch gap-6 upto-860:grid-cols-[minmax(0,1fr)]",
-  searchHead: "speed-burst flex flex-col justify-center gap-3 border-3 border-line p-[clamp(1.25rem,3vw,2rem)]",
+  // the what's new list hangs off this, out in the page's right margin
+  front: "relative",
+  searchHead: "speed-burst flex flex-col gap-3 border-3 border-line p-[clamp(1.25rem,3vw,2rem)]",
   title:
     "font-brand text-[clamp(2.4rem,6vw,3.6rem)] leading-[0.95] font-normal tracking-[0.02em] uppercase",
   sub: "text-[1.05rem] text-ink-soft",
@@ -45,11 +44,6 @@ export const pricesStyles = {
     "flex flex-wrap items-center gap-2 text-[0.85rem] text-muted [&_a]:rounded-[2px] [&_a]:border-[1.5px] [&_a]:border-line-soft [&_a]:bg-paper [&_a]:px-[0.65rem] [&_a]:py-[0.2rem] [&_a]:text-[0.85rem] [&_a]:text-ink-soft [&_a]:transition-[border-color] [&_a]:duration-120 [&_a]:ease-[ease] [&_a]:hover:border-line [&_a]:hover:text-ink",
   // inside a results section the count sits above the grid, not overlapping
   count: "-mb-4 font-mono text-[0.78rem] text-muted [section>&]:mb-[0.9rem]",
-
-  // same two columns as `front`, so the right side lines up; phones stack
-  frontBody:
-    "grid grid-cols-[minmax(0,1fr)_minmax(270px,310px)] items-start gap-6 upto-860:grid-cols-[minmax(0,1fr)] upto-860:gap-8",
-  frontRows: "flex min-w-0 flex-col gap-8",
 
   // ---------- cards ----------
   grid: "grid grid-cols-[repeat(auto-fill,minmax(140px,1fr))] gap-x-5 gap-y-7 upto-720:grid-cols-2 upto-720:gap-x-4 upto-720:gap-y-6",
@@ -80,7 +74,14 @@ export const pricesStyles = {
   emptyActions: "mt-2 flex flex-wrap justify-center gap-3",
   emptyTitle: "font-display text-[1.5rem] font-semibold text-ink",
   promo:
-    "prices-promo sticky top-5 flex flex-col items-start gap-3 border-[1.5px] border-dashed border-line-soft bg-card px-5 py-4 upto-860:static upto-860:flex-row upto-860:flex-wrap upto-860:items-center upto-860:justify-between upto-860:gap-x-8 upto-860:gap-y-4 upto-860:bg-transparent upto-860:px-6 upto-860:py-5",
+    "prices-promo flex flex-wrap items-center justify-between gap-x-8 gap-y-4 border-[1.5px] border-dashed border-line-soft px-6 py-5 min-[1340px]:hidden",
+  // the same pointer, slimmed down for the margin above what's new
+  promoMargin:
+    "flex flex-col items-start gap-2 border-[1.5px] border-dashed border-line-soft bg-card px-3 py-3",
+  promoMarginTitle:
+    "font-brand text-[1.2rem] leading-[1.05] font-normal tracking-[0.03em] uppercase",
+  promoMarginBody: "mt-1 text-[0.82rem] leading-[1.35] text-ink-soft",
+  promoMarginBtn: "h-[34px] w-full px-0 text-[0.76rem] whitespace-nowrap",
   promoBody: "max-w-[46ch] text-ink-soft",
 
   // ---------- volume page: cover beside everything else ----------
