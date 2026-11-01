@@ -1,5 +1,7 @@
+import { estimateNextChapter } from "../src/util/estimateNextChapter.js";
 import getFormatedDates from "../src/util/volumeDataFormatter.js";
 import type { FormatedDates } from "../src/util/volumeDataFormatter.js";
+import { estimateNextVolume } from "../src/util/estimateNextVolume.js";
 
 type MangaReleaseDates<T> = {
   ok: boolean;
@@ -22,7 +24,6 @@ const getMangaDexId = async (mangaName: string): Promise<string> => {
       throw new Error("Unable to fetch manga details from MangaDex");
     const data = await response.json();
     const seriesId = await data.data[0].id;
-    console.log(seriesId);
     return seriesId;
   } catch (e) {
     console.error(e);
@@ -35,6 +36,7 @@ async function getCoverData(seriesId: string) {
   try {
     const params = new URLSearchParams({});
     params.append("manga[]", `${seriesId}`);
+    params.append("limit", "100"); // more data to make accurate estimate
     const response = await fetch(`https://api.mangadex.org/cover?${params}`);
     const data = await response.json();
     return data;
@@ -50,7 +52,8 @@ async function getAllChapthers(seriesId: string) {
     const params = new URLSearchParams([
       ["translatedLanguage[]", "en"],
       ["order[publishAt]", "desc"],
-      ["limit", String(4)],
+
+      ["limit", String(1)],
     ]);
 
     const res = await fetch(
@@ -76,10 +79,18 @@ async function findNewVolumeReleaseDate(
       };
     const coverData = await getCoverData(seriesId);
     const chaptherData = await getAllChapthers(seriesId);
-    //get the formated value
-    const formatedDates = getFormatedDates(chaptherData, coverData);
+    const [chapterEstimate, volumeEstimate] = await Promise.all([
+      estimateNextChapter(seriesId),
+      estimateNextVolume(seriesId),
+    ]);
+    const formatedDates = getFormatedDates(
+      chaptherData,
+      coverData,
+      chapterEstimate,
+      volumeEstimate,
+    );
     console.log(formatedDates);
-    return { ...formatedDates, ok: true };
+    return { ok: true, data: formatedDates };
   } catch (e) {
     console.error(e);
     return {
@@ -87,5 +98,6 @@ async function findNewVolumeReleaseDate(
     };
   }
 }
+findNewVolumeReleaseDate("Spy x Family");
 
 export default findNewVolumeReleaseDate;

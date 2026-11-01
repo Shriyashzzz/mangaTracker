@@ -1,6 +1,18 @@
+import { formatReleaseDate } from "./fomratISO8601Date.js";
+import type { ChapterEstimate } from "./estimateNextChapter.js";
+import type { VolumeEstimate } from "./estimateNextVolume.js";
+
 type ChapterRelease = {
-  lastChapter: { chapterNumber: string | null; releaseDate: string }; // last released chapter
-  newChapter: { chapterNumber: string | null; releaseDate: string }; // upcoming new chapter
+  latestReleased: {
+    chapterNumber: string | null;
+    releaseDate: string;
+  }; // last released chapter
+  estimateRelease: {
+    chapterNumber: string | null;
+    releaseDate: string;
+    isEstimate: boolean; // true when predicted, false when scheduled on MangaDex
+    confidence: ChapterEstimate["confidence"];
+  }; // upcoming new chapter
 };
 
 type Volume = {
@@ -8,8 +20,17 @@ type Volume = {
   releaseDate: string | null;
 };
 
+type NewVolume = {
+  volume: string | null;
+  releaseDate: string;
+  isEstimate: boolean;
+  confidence: VolumeEstimate["confidence"];
+  note: string;
+};
+
 export type FormatedDates = {
   volume?: Array<Volume>;
+  newVolume?: NewVolume; // upcoming new volume
   chapter?: ChapterRelease;
 };
 
@@ -52,35 +73,50 @@ export type MangaDexChapterResponse = {
 function getFormatedDates(
   chapterData: MangaDexChapterResponse,
   coverData: MangaDexCoverResponse,
+  chapterEstimate: ChapterEstimate,
+  volumeEstimate: VolumeEstimate,
 ): FormatedDates {
   try {
     if (!chapterData || !coverData) {
       throw new Error("Either Chapter Data or Volume Data is null");
     }
-
     // Map volume data
     const newVolumeData: Volume[] = coverData.data.map((c) => ({
       volume: c.attributes.volume,
-      releaseDate: c.attributes.createdAt,
+      releaseDate: formatReleaseDate(c.attributes.createdAt),
     }));
 
-    // Map and sort/pick chapters to fit the ChapterRelease structure
-    // Assuming data is ordered, index 0 is the latest/last chapter, index 1 is the next/new one
+    // Chapters are ordered by publishAt desc, so index 0 is the latest released chapter.
+    // The upcoming chapter comes from the estimate (exact if scheduled, otherwise predicted).
     const chapters = chapterData.data;
 
     const chapterRelease: ChapterRelease = {
-      lastChapter: {
+      latestReleased: {
         chapterNumber: chapters[0]?.attributes.chapter ?? null,
-        releaseDate: chapters[0]?.attributes.publishAt ?? "",
+        releaseDate: formatReleaseDate(chapters[0]?.attributes.publishAt),
       },
-      newChapter: {
-        chapterNumber: chapters[1]?.attributes.chapter ?? null,
-        releaseDate: chapters[1]?.attributes.publishAt ?? "",
+      estimateRelease: {
+        chapterNumber: chapterEstimate.nextChapter,
+        releaseDate: formatReleaseDate(
+          chapterEstimate.estimatedAt?.toISOString(),
+        ),
+        isEstimate: chapterEstimate.method === "estimated",
+        confidence: chapterEstimate.confidence,
       },
+    };
+
+    // Upcoming volume: always an estimate, since MangaDex has no volume release dates.
+    const newVolume: NewVolume = {
+      volume: volumeEstimate.nextVolume,
+      releaseDate: formatReleaseDate(volumeEstimate.estimatedAt?.toISOString()),
+      isEstimate: volumeEstimate.method === "estimated",
+      confidence: volumeEstimate.confidence,
+      note: volumeEstimate.note,
     };
 
     return {
       volume: newVolumeData,
+      newVolume,
       chapter: chapterRelease,
     };
   } catch (e) {
