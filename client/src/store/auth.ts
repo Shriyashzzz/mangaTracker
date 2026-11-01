@@ -7,7 +7,15 @@
 import { create } from "zustand";
 import { apiFetch } from "../lib/api";
 import { useShelf } from "./shelf";
-import { syncPrefs } from "../lib/prefs";
+import { readLocal, syncPrefs, writeLocal } from "../lib/prefs";
+
+// were they signed in last time? Lets the front page wait for the answer rather
+// than flash the price search at someone about to go to their shelf. Only a hint:
+// the session cookie and /api/auth/me still decide
+const SIGNED_IN_KEY = "signedInBefore";
+export const probablySignedIn = () => readLocal(SIGNED_IN_KEY) === "yes";
+const remember = (signedIn: boolean) =>
+  writeLocal(SIGNED_IN_KEY, signedIn ? "yes" : "");
 
 type AuthState = {
   isSignedIn: boolean | null;
@@ -25,9 +33,11 @@ export const useAuth = create<AuthState>()((set) => ({
     try {
       const res = await apiFetch("/api/auth/me");
       set({ isSignedIn: res.ok });
+      remember(res.ok);
       // the account's background and theme follow the user
       if (res.ok) syncPrefs();
     } catch {
+      // the server didn't answer, which says nothing about their session
       set({ isSignedIn: false });
     }
   },
@@ -35,6 +45,7 @@ export const useAuth = create<AuthState>()((set) => ({
   signedIn: () => {
     useShelf.getState().reset();
     set({ isSignedIn: true });
+    remember(true);
     syncPrefs();
   },
 
@@ -43,6 +54,7 @@ export const useAuth = create<AuthState>()((set) => ({
     if (res.ok) {
       useShelf.getState().reset();
       set({ isSignedIn: false });
+      remember(false);
     }
     return res.ok;
   },

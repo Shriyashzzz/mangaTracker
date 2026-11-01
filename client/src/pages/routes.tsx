@@ -8,7 +8,7 @@ import { AddManga } from "./AddManga/AddManga";
 import { AboutPage } from "./About/About";
 import SignInPage from "./SignIn/SignIn";
 import SignUp from "./SignUp/SignUp";
-import PriceSearch from "./Prices/PriceSearch";
+import FrontDoor from "./Prices/FrontDoor";
 import PriceVolume from "./Prices/PriceVolume";
 import PriceSeries from "./Prices/PriceSeries";
 import ToPriceHome from "./Prices/ToPriceHome";
@@ -20,8 +20,9 @@ export const routes = [
     element: <App />,
     errorElement: <ErrorPage />,
     children: [
-      // the price checker is the front door; the shelf is one click away
-      { index: true, element: <PriceSearch /> },
+      // the price checker is the front door, except that someone signed in
+      // arrives on their shelf
+      { index: true, element: <FrontDoor /> },
       { path: "/shelf", element: <Home /> },
       { path: "/signin", element: <SignInPage /> },
       { path: "/details/:id", element: <Details /> },
