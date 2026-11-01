@@ -92,7 +92,10 @@ export default function SignUp() {
                 name="password"
                 autoComplete="new-password"
               />
-              <span className={styles.hint}>At least 5 characters</span>
+              <span className={styles.hint}>
+                At least 5 characters. With no email, there's no way to reset
+                it, so keep it somewhere safe.
+              </span>
             </div>
 
             {errors.length > 0 && (
@@ -115,7 +118,7 @@ export default function SignUp() {
           <p className={styles.switchRow}>
             Already have an account?{" "}
             <NavLink to={`/signin?${params}`} viewTransition>
-              Log in
+              Sign in
             </NavLink>
           </p>
         </div>

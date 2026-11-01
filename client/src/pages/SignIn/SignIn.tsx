@@ -62,7 +62,7 @@ export default function SignInPage() {
         />
 
         <div className={styles.card}>
-          <h1 className={styles.title}>Log in</h1>
+          <h1 className={styles.title}>Sign in</h1>
 
           <form
             onSubmit={handleFormSubmit}
@@ -105,7 +105,7 @@ export default function SignInPage() {
               className={`btn btn-primary btn-lg btn-block ${styles.submit}`}
               disabled={loading}
             >
-              {loading ? "Logging in…" : "Log in"}
+              {loading ? "Signing in…" : "Sign in"}
             </button>
           </form>
 

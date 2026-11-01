@@ -55,26 +55,28 @@ export default function WhatsNew({ children }: { children?: ReactNode }) {
         <p className="mt-1 text-[0.82rem] leading-[1.35] text-ink-soft">
           See which series on your shelf have a new volume or chapter out in English.
         </p>
-        {/* wait for the answer so a signed-in reader never sees the guest link */}
-        {isSignedIn !== null && (
-          <NavLink
-            to={isSignedIn ? "/shelf" : "/signup"}
-            className="mt-1 inline-block py-1 text-[0.82rem] whitespace-nowrap font-medium text-ink underline decoration-accent decoration-2 underline-offset-3 hover:decoration-line"
-            onClick={isSignedIn ? openReleasesOnShelf : undefined}
-            viewTransition
-          >
-            {isSignedIn ? "Check shelf →" : "Start a shelf →"}
-          </NavLink>
-        )}
+        {/* a guest's way in is the box above; two sign-ups would be one too many */}
+      {isSignedIn && (
+        <NavLink
+          to="/shelf"
+          className="tap mt-1 inline-block py-1 text-[0.82rem] font-medium whitespace-nowrap text-ink underline decoration-accent decoration-2 underline-offset-3 hover:decoration-line"
+          onClick={openReleasesOnShelf}
+          viewTransition
+        >
+          Check shelf →
+        </NavLink>
+      )}
 
-        {/* just the names in a slim margin; wider ones have room to explain */}
+      {/* just the names in a slim margin; wider ones have room to explain */}
         <ul className="mt-2 border-t-[1.5px] border-line-soft">
           {ITEMS.map((item) => (
             <li
               key={item.name}
               className="border-b border-dashed border-line-soft py-[0.4rem] text-[0.8rem] leading-[1.3] text-ink-soft last:border-b-0 last:pb-0"
             >
-              <strong className="font-semibold text-ink">{item.name}</strong>
+              <strong className="font-medium text-ink-soft min-[1560px]:font-semibold min-[1560px]:text-ink">
+              {item.name}
+            </strong>
               <span className="mt-[0.1rem] hidden min-[1560px]:block">
                 {item.body}
               </span>

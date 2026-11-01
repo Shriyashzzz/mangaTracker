@@ -52,7 +52,7 @@ export const aboutStyles = {
   doesTitle:
     "font-brand text-[1.6rem] leading-[1.05] font-normal tracking-[0.03em] uppercase",
   doesLink:
-    "mt-1 py-1 font-medium text-ink underline decoration-accent decoration-2 underline-offset-3 hover:decoration-line",
+    "tap mt-1 py-1 font-medium text-ink underline decoration-accent decoration-2 underline-offset-3 hover:decoration-line",
 
   // ---------- teaser + call to action, like the back pages of a volume ----------
   backMatter:

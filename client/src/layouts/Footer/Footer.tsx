@@ -13,7 +13,7 @@ const quoteOfTheDay = (date = new Date()): Quote => {
 };
 
 const footerLink =
-  "underline decoration-[rgba(127,127,127,0.6)] underline-offset-3 hover:decoration-current";
+  "tap underline decoration-[rgba(127,127,127,0.6)] underline-offset-3 hover:decoration-current";
 
 export default function Footer() {
   const quote = quoteOfTheDay();
@@ -33,13 +33,13 @@ export default function Footer() {
             <blockquote className="font-letter text-[0.82rem] leading-[1.3] font-bold tracking-[0.02em] uppercase">
               {quote.text}
             </blockquote>
-            <figcaption className="mt-[0.15rem] text-right font-mono text-[0.68rem] text-ink-soft">
+            <figcaption className="mt-[0.15rem] text-right font-mono text-[0.75rem] text-ink-soft">
               {quote.who}, <cite className="text-accent not-italic">{quote.series}</cite>
             </figcaption>
           </div>
         </figure>
 
-        <p className="flex gap-[0.6rem] font-mono text-[0.75rem] whitespace-nowrap opacity-80 upto-760:col-span-full upto-760:row-start-3 upto-760:gap-[0.45rem] upto-760:text-[0.7rem]">
+        <p className="flex gap-[0.6rem] font-mono text-[0.75rem] whitespace-nowrap opacity-80 upto-760:col-span-full upto-760:row-start-3 upto-760:gap-[0.45rem] upto-760:text-[0.75rem]">
           <NavLink to="/series" className={footerLink}>
             Series
           </NavLink>

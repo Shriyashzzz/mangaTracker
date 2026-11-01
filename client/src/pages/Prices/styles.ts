@@ -33,7 +33,7 @@ export const pricesStyles = {
     "aspect-2/3 w-[34px] shrink-0 overflow-hidden border border-line-soft bg-paper-2 [&_img]:size-full [&_img]:object-cover",
   suggestText: "flex min-w-0 flex-col",
   suggestName: "truncate font-semibold",
-  suggestMeta: "font-mono text-[0.72rem] text-muted",
+  suggestMeta: "font-mono text-[0.75rem] text-muted",
   suggestNote: "px-[0.55rem] py-[0.6rem] text-[0.9rem] text-muted",
   // the last row: "See all results"
   seeAll: `${suggestionRow} mt-1 justify-center border-t border-dashed border-line-soft p-[0.6rem] text-[0.9rem] font-medium text-ink-soft`,
@@ -41,7 +41,7 @@ export const pricesStyles = {
     "flex h-[50px] w-full min-w-0 items-center gap-[0.6rem] border-[2.5px] border-line bg-paper px-4 text-muted focus-within:border-accent focus-within:shadow-[0_0_0_3px_var(--accent-wash)] [&_input]:min-w-0 [&_input]:flex-1 [&_input]:border-none [&_input]:bg-transparent [&_input]:text-[1.05rem] [&_input]:text-ink [&_input]:outline-none [&_input]:placeholder:text-muted [&_svg]:size-[19px] [&_svg]:shrink-0",
   // "Try: One Piece, Jujutsu Kaisen, ..."
   quick:
-    "flex flex-wrap items-center gap-2 text-[0.85rem] text-muted [&_a]:rounded-[2px] [&_a]:border-[1.5px] [&_a]:border-line-soft [&_a]:bg-paper [&_a]:px-[0.65rem] [&_a]:py-[0.2rem] [&_a]:text-[0.85rem] [&_a]:text-ink-soft [&_a]:transition-[border-color] [&_a]:duration-120 [&_a]:ease-[ease] [&_a]:hover:border-line [&_a]:hover:text-ink",
+    "flex flex-wrap items-center gap-2 text-[0.85rem] text-muted [&_a]:tap [&_a]:rounded-[2px] [&_a]:border-[1.5px] [&_a]:border-line-soft [&_a]:bg-paper [&_a]:px-[0.65rem] [&_a]:py-[0.2rem] [&_a]:text-[0.85rem] [&_a]:text-ink-soft [&_a]:transition-[border-color] [&_a]:duration-120 [&_a]:ease-[ease] [&_a]:hover:border-line [&_a]:hover:text-ink",
   // inside a results section the count sits above the grid, not overlapping
   count: "-mb-4 font-mono text-[0.78rem] text-muted [section>&]:mb-[0.9rem]",
 
@@ -59,7 +59,7 @@ export const pricesStyles = {
   seriesFallback: "absolute inset-0 size-full object-cover",
   // the volume number as a tab on the top corner, readable at a glance even
   // when several volumes share the series cover
-  vol: "absolute top-0 left-0 flex items-baseline gap-[0.2rem] bg-ink pt-[0.2rem] pr-[0.85rem] pb-[0.1rem] pl-2 font-brand text-[1.5rem] leading-none tracking-[0.02em] text-paper [clip-path:polygon(0_0,100%_0,calc(100%-8px)_100%,0_100%)] [&_small]:text-[0.62rem] [&_small]:tracking-[0.08em] [&_small]:uppercase",
+  vol: "absolute top-0 left-0 flex items-baseline gap-[0.2rem] bg-ink pt-[0.2rem] pr-[0.85rem] pb-[0.1rem] pl-2 font-brand text-[1.5rem] leading-none tracking-[0.02em] text-paper [clip-path:polygon(0_0,100%_0,calc(100%-8px)_100%,0_100%)] [&_small]:text-[0.75rem] [&_small]:tracking-[0.08em] [&_small]:uppercase",
   cardTitle: "line-clamp-2 text-[0.92rem] leading-[1.3] font-semibold",
   cardMeta: "text-[0.8rem] text-muted",
   cardPrice: "flex items-baseline gap-[0.4rem] font-mono text-[0.9rem] font-medium",
@@ -103,12 +103,18 @@ export const pricesStyles = {
   sectionTitle:
     "mb-[0.6rem] inline-block bg-[linear-gradient(var(--accent),var(--accent))] bg-size-[1.8em_3px] bg-left-bottom bg-no-repeat pb-[0.2rem] font-brand text-[1.45rem] font-normal tracking-[0.03em] uppercase [.prices-promo_&]:mb-1",
   sectionHead: "mb-3 flex flex-col items-start justify-between gap-4",
-  live_info: "flex items-start justify-center gap-4",
-  sectionNote: "-mt-[0.2rem] max-w-[48ch] text-[medium] leading-[1.35] text-muted",
-  checked: "font-mono text-[0.72rem] text-muted",
-  // the price list; phones put each store's link on its own line
+  // the heading with something small across from it
+  sectionHeadRow: "mb-3 flex flex-wrap items-baseline justify-between gap-x-4 [&_h2]:mb-0",
+  sectionNote: "-mt-[0.2rem] mb-3 max-w-[48ch] text-[0.95rem] leading-[1.35] text-ink-soft",
+  checked: "font-mono text-[0.75rem] text-muted",
+  // the price list
   offers:
-    "border-2 border-line bg-card [&_li]:grid [&_li]:grid-cols-[minmax(0,1fr)_auto_auto] [&_li]:items-center [&_li]:gap-5 [&_li]:px-4 [&_li]:py-[0.7rem] [&_li+li]:border-t [&_li+li]:border-dashed [&_li+li]:border-line-soft [&_a]:text-[0.88rem] [&_a]:underline [&_a]:decoration-line-soft [&_a]:underline-offset-3 [&_a]:hover:decoration-current upto-720:[&_li]:grid-cols-[minmax(0,1fr)_auto] upto-720:[&_li]:gap-x-4 upto-720:[&_li]:gap-y-1 upto-720:[&_a]:col-span-full",
+    "border-2 border-line bg-card [&>li+li]:border-t [&>li+li]:border-dashed [&>li+li]:border-line-soft",
+  // one whole row is the link: thumb sized, and it lights up as one thing
+  offerRow:
+    "grid min-h-14 grid-cols-[minmax(0,1fr)_auto_auto] items-center gap-x-5 px-4 py-[0.7rem] transition-colors duration-120 ease-[ease] [a&]:hover:bg-accent-wash upto-720:gap-x-3",
+  offerGo:
+    "flex items-center gap-1 text-[0.88rem] font-medium text-ink-soft underline-offset-3 [a:hover_&]:text-accent [&_svg]:size-4 [&_span]:underline [&_span]:decoration-line-soft",
   // the overall cheapest copy's row gets a wash
   lowestOffer: "bg-accent-wash",
   // the store name with its stamps; stamps wrap under a long name
@@ -128,10 +134,10 @@ export const pricesStyles = {
   labelMarket: "inline-block rounded-[2px] border border-line px-[0.35rem] pt-[0.05rem] font-brand text-[0.88rem] leading-[1.15] font-normal tracking-[1px] text-stamp-ink uppercase bg-stamp-market",
   labelEbook: "inline-block rounded-[2px] border border-line px-[0.35rem] pt-[0.05rem] font-brand text-[0.88rem] leading-[1.15] font-normal tracking-[1px] text-stamp-ink uppercase bg-stamp-ebook",
   offerStore: "flex flex-col gap-[0.15rem] font-semibold",
-  offerTags: "font-mono text-[0.72rem] font-normal text-muted",
+  offerTags: "font-mono text-[0.75rem] font-normal text-muted",
   offerPrice: "font-mono text-[1.05rem] font-medium tabular-nums",
   // "Show N more": one centered button across the row
-  moreRow: "justify-center grid-cols-[auto]!",
+  moreRow: "grid justify-center py-1",
   note: "border-[1.5px] border-dashed border-line-soft px-4 py-[0.85rem] text-[0.95rem] text-ink-soft [&_.btn]:mt-3 [&_a]:font-medium [&_a]:text-ink [&_a]:underline [&_a]:decoration-accent [&_a]:underline-offset-3",
   // price history: a row per kind of copy (new print, used & marketplace,
   // ebook), its label beside lowest / highest / median; on phones the
@@ -141,13 +147,13 @@ export const pricesStyles = {
   historyRow:
     "grid grid-cols-[10.5rem_minmax(0,1fr)] items-center gap-4 px-[0.85rem] py-[0.7rem] upto-720:grid-cols-1 upto-720:gap-2 [&>span]:justify-self-start",
   historyStats:
-    "grid grid-cols-3 gap-3 [&_dd]:font-mono [&_dd]:text-[1.05rem] [&_dd]:tabular-nums [&_dt]:font-mono [&_dt]:text-[0.7rem] [&_dt]:text-muted",
+    "grid grid-cols-3 gap-3 [&_dd]:font-mono [&_dd]:text-[1.05rem] [&_dd]:tabular-nums [&_dt]:font-mono [&_dt]:text-[0.75rem] [&_dt]:text-muted",
   // the date and store under a price; a long store name is cut short
   // (its full name is the tooltip)
-  statDate: "font-mono text-[0.68rem]! leading-[1.35] text-muted",
-  statStore: "truncate font-mono text-[0.68rem]! leading-[1.35] text-muted",
+  statDate: "font-mono text-[0.75rem]! leading-[1.35] text-muted",
+  statStore: "truncate font-mono text-[0.75rem]! leading-[1.35] text-muted",
   storeLinks:
-    "flex flex-wrap gap-2 [&_a]:inline-block [&_a]:rounded-[2px] [&_a]:border-[1.5px] [&_a]:border-line [&_a]:bg-card [&_a]:px-[0.8rem] [&_a]:py-[0.35rem] [&_a]:text-[0.88rem] [&_a]:font-medium [&_a]:transition-[background-color,color] [&_a]:duration-120 [&_a]:ease-[ease] [&_a]:hover:bg-ink [&_a]:hover:text-paper",
+    "flex flex-wrap gap-2 [&_a]:tap [&_a]:inline-block [&_a]:rounded-[2px] [&_a]:border-[1.5px] [&_a]:border-line [&_a]:bg-card [&_a]:px-[0.8rem] [&_a]:py-[0.35rem] [&_a]:text-[0.88rem] [&_a]:font-medium [&_a]:transition-[background-color,color] [&_a]:duration-120 [&_a]:ease-[ease] [&_a]:hover:bg-ink [&_a]:hover:text-paper",
   disclosure: "-mt-3 max-w-[62ch] text-[0.78rem] leading-normal text-muted italic",
   amazonDisclosure: "mt-10 text-right text-[0.75rem] text-muted",
   volumeActions: "flex flex-wrap items-center gap-[0.85rem]",
@@ -166,7 +172,7 @@ export const pricesStyles = {
     "mb-5 flex flex-wrap items-center gap-[0.45rem] text-[0.85rem] text-muted [.prices-page_&]:-mb-3 [&_[aria-current]]:text-ink-soft [&_a]:underline-offset-3 [&_a]:hover:text-ink [&_a]:hover:underline",
   tag: "mr-[0.4rem] inline-block rounded-[2px] border border-line-soft px-[0.45rem] py-[0.05rem]",
   partOf: "text-[0.92rem] text-ink-soft [&_a]:text-ink [&_a]:underline [&_a]:decoration-line-soft [&_a]:underline-offset-3 [&_a]:hover:decoration-current",
-  textBtn: `text-[0.85rem] text-ink-soft ${softLink} hover:text-ink hover:decoration-current`,
+  textBtn: `tap text-[0.85rem] text-ink-soft ${softLink} hover:text-ink hover:decoration-current`,
   facts: "flex flex-col gap-[0.6rem]",
   factRow: "flex flex-wrap gap-x-5 gap-y-[0.35rem] text-[0.88rem] text-ink-soft [&_strong]:font-semibold [&_strong]:text-ink [&_a]:underline [&_a]:decoration-line-soft [&_a]:underline-offset-3",
   genres:

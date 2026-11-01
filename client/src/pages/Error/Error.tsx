@@ -9,7 +9,7 @@ function ErrorPage({ message }: { message?: string }) {
   const is404 = !error || (isRouteErrorResponse(error) && error.status === 404);
 
   return (
-    <section className="px-gutter flex min-h-dvh flex-col items-center justify-center gap-4 py-8 text-center">
+    <section className="px-gutter flex min-h-[70dvh] flex-col items-center justify-center gap-4 py-8 text-center">
       <span className="printed mascot-spot" aria-hidden>
         <Mascot mood={is404 ? "confused" : "panic"} />
       </span>

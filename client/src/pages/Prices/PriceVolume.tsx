@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { ChevronRightIcon } from "../../components/icons/Icons";
 import { NavLink, useLocation, useNavigate, useParams } from "react-router";
 import {
   coverSrc,
@@ -135,7 +136,7 @@ export default function PriceVolume() {
           <Mascot mood="panic" />
         </span>
         <p className={styles.emptyTitle}>Couldn't open this volume.</p>
-        <p>{state.error}</p>
+        <p>Check your connection and try again in a moment.</p>
         <NavLink to="/" className="btn btn-secondary" viewTransition>
           Back to price check
         </NavLink>
@@ -161,6 +162,14 @@ export default function PriceVolume() {
     ...siblings.filter((v) => volume == null || (v.volume ?? 0) > volume),
     ...siblings.filter((v) => volume != null && (v.volume ?? 0) < volume).reverse(),
   ].slice(0, SIBLINGS_SHOWN);
+  // the stores with no row in the price list; the ones in it would just repeat
+  const hasOffer = (store: string) =>
+    offers.some((o) => {
+      const a = o.store.toLowerCase();
+      const b = store.toLowerCase();
+      return a.includes(b) || b.includes(a);
+    });
+  const otherStores = storeLinks.filter((s) => !hasOffer(s.store));
   // the headline price is the cheapest new print copy, what most people buy
   const best = offers.find(
     (o) => o.condition === "new" && o.format === "print",
@@ -245,54 +254,66 @@ export default function PriceVolume() {
           {series.info && <SeriesFacts info={series.info} />}
 
           <section aria-labelledby="offers-title">
-            <div className={styles.sectionHead}>
-              <div className={styles.live_info}>
-                <h2 id="offers-title" className={styles.sectionTitle}>
-                  Live prices{" "}
-                </h2>
-                {checkedAt && (
-                  <span className={styles.checked}>{timeAgo(checkedAt)}</span>
-                )}
-              </div>
-              <p className={styles.sectionNote}>
-                May exclude direct retailers like Amazon or B&N, which could be
-                cheaper. Check store links below.
-              </p>
+            <div className={styles.sectionHeadRow}>
+              <h2 id="offers-title" className={styles.sectionTitle}>
+                Prices
+              </h2>
+              {checkedAt && (
+                <span className={styles.checked}>checked {timeAgo(checkedAt)}</span>
+              )}
             </div>
 
             {offers.length > 0 ? (
               <ul className={styles.offers}>
-                {shownOffers.map((o) => (
-                  <li
-                    key={`${o.store}-${o.format}-${o.condition}`}
-                    className={o === lowest ? styles.lowestOffer : ""}
-                  >
-                    <span className={styles.offerStore}>
-                      <span className={styles.offerName}>
-                        {o.store}
-                        {stampsOf(o).map(({ label, className }) => (
-                          <span key={label} className={className}>
-                            {label}
+                {shownOffers.map((o) => {
+                  const condition = CONDITION[o.condition] ?? o.condition;
+                  const row = (
+                    <>
+                      <span className={styles.offerStore}>
+                        <span className={styles.offerName}>
+                          {o.store}
+                          {stampsOf(o).map(({ label, className }) => (
+                            <span key={label} className={className}>
+                              {label}
+                            </span>
+                          ))}
+                        </span>
+                        <span className={styles.offerTags}>
+                          {condition}
+                          {!o.inStock && " · out of stock"}
+                        </span>
+                      </span>
+                      <span className={styles.offerPrice}>
+                        {formatCents(o.priceCents)}
+                      </span>
+                    </>
+                  );
+                  return (
+                    <li
+                      key={`${o.store}-${o.format}-${o.condition}`}
+                      className={o === lowest ? styles.lowestOffer : ""}
+                    >
+                      {/* the whole row is the way to the store */}
+                      {o.url ? (
+                        <a
+                          className={styles.offerRow}
+                          href={o.url}
+                          target="_blank"
+                          rel={linkRel(o)}
+                          aria-label={`${o.store}, ${formatCents(o.priceCents)}, ${condition}. Opens the store in a new tab`}
+                        >
+                          {row}
+                          <span className={styles.offerGo} aria-hidden>
+                            <span className="upto-720:hidden">Go to store</span>
+                            <ChevronRightIcon />
                           </span>
-                        ))}
-                      </span>
-                      <span className={styles.offerTags}>
-                        {CONDITION[o.condition] ?? o.condition}
-                        {!o.inStock && " · out of stock"}
-                      </span>
-                    </span>
-                    <span className={styles.offerPrice}>
-                      {formatCents(o.priceCents)}
-                    </span>
-                    {o.url ? (
-                      <a href={o.url} target="_blank" rel={linkRel(o)}>
-                        Go to store
-                      </a>
-                    ) : (
-                      <span />
-                    )}
-                  </li>
-                ))}
+                        </a>
+                      ) : (
+                        <span className={styles.offerRow}>{row}</span>
+                      )}
+                    </li>
+                  );
+                })}
                 {offers.length > VISIBLE_OFFERS && (
                   <li className={styles.moreRow}>
                     <button
@@ -328,20 +349,32 @@ export default function PriceVolume() {
             )}
           </section>
 
-          <section aria-labelledby="links-title">
-            <h2 id="links-title" className={styles.sectionTitle}>
-              Check price at
-            </h2>
-            <ul className={styles.storeLinks}>
-              {storeLinks.map((s) => (
-                <li key={s.store}>
-                  <a href={s.url} target="_blank" rel={linkRel(s)}>
-                    {s.store}
-                  </a>
-                </li>
-              ))}
-            </ul>
-          </section>
+          {otherStores.length > 0 && (
+            <section aria-labelledby="links-title">
+              <h2 id="links-title" className={styles.sectionTitle}>
+                {offers.length > 0 ? "Also worth a look" : "Check price at"}
+              </h2>
+              {offers.length > 0 && (
+                <p className={styles.sectionNote}>
+                  We have no price from these, and they could be cheaper.
+                </p>
+              )}
+              <ul className={styles.storeLinks}>
+                {otherStores.map((s) => (
+                  <li key={s.store}>
+                    <a
+                      href={s.url}
+                      target="_blank"
+                      rel={linkRel(s)}
+                      aria-label={`${s.store}. Opens the store in a new tab`}
+                    >
+                      {s.store}
+                    </a>
+                  </li>
+                ))}
+              </ul>
+            </section>
+          )}
           {storeLinks.some((s) => s.affiliate) && (
             <p className={styles.disclosure}>
               *Some store links are affiliate links which will be used to keep
@@ -417,7 +450,7 @@ export default function PriceVolume() {
 
       {nearby.length > 0 && (
         <section className={styles.siblings} aria-labelledby="siblings-title">
-          <div className={styles.sectionHead}>
+          <div className={styles.sectionHeadRow}>
             <h2 id="siblings-title" className={styles.sectionTitle}>
               From the same series
             </h2>

@@ -50,7 +50,7 @@ export default function ReleaseTip({ enabled, onCheck }: Props) {
   if (!open || !enabled) return null;
 
   const action =
-    "py-2 text-[0.9rem] font-semibold text-ink underline decoration-accent decoration-2 underline-offset-3";
+    "tap py-2 text-[0.9rem] font-semibold text-ink underline decoration-accent decoration-2 underline-offset-3";
 
   // on <body>, because the pages' fade-in would otherwise pin "fixed" to the
   // page instead of the screen
@@ -85,7 +85,7 @@ export default function ReleaseTip({ enabled, onCheck }: Props) {
             onClick={isSignedIn ? openReleasesOnShelf : undefined}
             viewTransition
           >
-            {isSignedIn ? "Check my shelf" : "Start a shelf"}
+            {isSignedIn ? "Check my shelf" : "Start your shelf"}
           </NavLink>
         )}
       </div>

@@ -28,6 +28,8 @@ export default function Details() {
   // English unless they came from the shelf's In Japan tab
   const [searchParams] = useSearchParams();
   const inJapan = searchParams.get("edition") === "japan";
+  // or the Chapters side of it, which is about the chapter rather than a volume
+  const chapterNews = searchParams.get("new") === "chapter";
   const [mangaStatus, setMangaStatus] = useState(false);
   const [mangaRating, setMangaRating] = useState(0);
   const [confirmDelete, setConfirmDelete] = useState(false);
@@ -187,10 +189,24 @@ export default function Details() {
   const cover = mangaData.image || FALLBACK_COVER;
   const genre =
     mangaData.genre && mangaData.genre !== "unlabled" ? mangaData.genre : null;
-  const releasedVolume = inJapan
-    ? releaseStatus?.hasNewJapaneseVolume && releaseStatus.latestJapaneseVolume
-    : releaseStatus?.isNextVolumeOut && releaseStatus.latestVolume;
-  const showRelease = Boolean(releasedVolume);
+  // the side panel: only what's next for them, and what they came here about
+  const release = !releaseStatus
+    ? null
+    : inJapan
+      ? releaseStatus.hasNewJapaneseVolume && {
+          what: `Vol. ${releaseStatus.latestJapaneseVolume}`,
+          yours: releaseStatus.currentVolume && `vol. ${releaseStatus.currentVolume}`,
+        }
+      : chapterNews && !mangaStatus
+        ? releaseStatus.hasNewChapter && {
+            what: `Ch. ${releaseStatus.latestChapter}`,
+            yours: mangaData.bookmark ? `ch. ${mangaData.bookmark}` : null,
+          }
+        : releaseStatus.isNextVolumeOut && {
+            what: `Vol. ${releaseStatus.latestVolume}`,
+            yours: releaseStatus.currentVolume && `vol. ${releaseStatus.currentVolume}`,
+          };
+  const showRelease = Boolean(release);
 
   return (
     <div className="fade-in">
@@ -250,11 +266,11 @@ export default function Details() {
           </p>
         </header>
 
-        {showRelease && (
+        {release && (
           <ReleasePanel
-            volume={releasedVolume as number}
+            what={release.what}
             inJapan={inJapan}
-            currentVolume={releaseStatus?.currentVolume ?? null}
+            yours={release.yours || null}
             data={releaseData}
           />
         )}

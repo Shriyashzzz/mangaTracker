@@ -12,7 +12,7 @@ const ticket =
 
 export const detailsStyles = {
   backLink:
-    "mb-8 inline-block text-[0.9rem] text-muted underline-offset-3 hover:text-ink hover:underline",
+    "tap mb-8 inline-block text-[0.9rem] text-muted underline-offset-3 hover:text-ink hover:underline",
 
   layout:
     "grid grid-cols-[auto_minmax(0,1fr)] grid-rows-[auto_1fr] items-start gap-x-[clamp(2rem,5vw,3.5rem)] gap-y-6 upto-720:grid-cols-[108px_minmax(0,1fr)] upto-720:gap-x-4 upto-720:gap-y-5",
@@ -87,12 +87,12 @@ export const detailsStyles = {
   releaseBodyShut: "max-[1000px]:hidden",
   // "Out now", "Coming up"
   releaseGroup: "not-first:mt-3 not-first:border-t not-first:border-dashed not-first:border-line-soft not-first:pt-3",
-  releaseGroupTitle: "mb-1 font-mono text-[0.72rem] font-normal text-muted",
+  releaseGroupTitle: "mb-1 font-mono text-[0.75rem] font-normal text-muted",
   releaseRow: "flex items-baseline justify-between gap-3 py-0.5",
   releaseWhat: "font-semibold whitespace-nowrap",
   releaseWhen: "text-right text-[0.92rem] text-ink-soft",
-  releaseEstimate: "ml-1 font-mono text-[0.68rem] text-muted",
-  label: "mb-[0.3rem] block font-mono text-[0.72rem] text-muted",
+  releaseEstimate: "ml-1.5 font-mono text-[0.75rem] text-muted",
+  label: "mb-[0.3rem] block font-mono text-[0.75rem] text-muted",
   rating: "border-t-[1.5px] border-line pt-4",
   // notes written on a ruled slip; the rule is drawn on the paragraph so
   // every line of text sits on one
@@ -102,14 +102,14 @@ export const detailsStyles = {
   // where to buy: small price tickets in a row
   buy: "border-t-[1.5px] border-dashed border-line-soft pt-3",
   buyList: "flex flex-wrap gap-2",
-  buyLink: `${ticket} border-line bg-card font-semibold transition-[background-color,border-color] duration-120 ease-[ease] hover:border-accent hover:bg-accent-wash focus-visible:border-accent focus-visible:bg-accent-wash`,
+  buyLink: `${ticket} min-h-11 border-line bg-card font-semibold transition-[background-color,border-color] duration-120 ease-[ease] hover:border-accent hover:bg-accent-wash focus-visible:border-accent focus-visible:bg-accent-wash`,
   // the heading with the series link across from it: a plain link, with room
   // around it for a thumb
   buyHead: "mb-1 flex items-baseline justify-between gap-3 [&_h2]:mb-0",
   buySeries:
-    "-my-1.5 py-1.5 text-[0.85rem] font-medium whitespace-nowrap text-ink-soft underline decoration-line-soft underline-offset-3 transition-colors duration-120 ease-[ease] hover:text-accent hover:decoration-accent",
+    "tap -my-1.5 py-1.5 text-[0.85rem] font-medium whitespace-nowrap text-ink-soft underline decoration-line-soft underline-offset-3 transition-colors duration-120 ease-[ease] hover:text-accent hover:decoration-accent",
   buyKind:
-    "font-mono text-[0.68rem] font-normal tracking-[0.06em] text-muted uppercase",
+    "font-mono text-[0.75rem] font-normal tracking-[0.06em] text-muted uppercase",
   buyPrice: "font-mono font-medium text-accent",
   // "caught up": the same ticket shape, but nothing to click
   buyNote: `${ticket} border-dashed border-line-soft text-ink-soft`,

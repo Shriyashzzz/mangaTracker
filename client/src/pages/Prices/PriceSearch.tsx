@@ -94,7 +94,7 @@ export default function PriceSearch() {
             <Mascot mood="panic" />
           </span>
           <p className={styles.emptyTitle}>Couldn't search right now.</p>
-          <p>{result.error}</p>
+          <p>Check your connection and try again in a moment.</p>
         </div>
       )}
 
@@ -107,6 +107,11 @@ export default function PriceSearch() {
           <p>
             Try the name printed on the US cover, or paste the ISBN from the
             back of a volume.
+          </p>
+          <p className={styles.quick}>
+            <NavLink to="/series" viewTransition>
+              Browse every series
+            </NavLink>
           </p>
         </div>
       )}
@@ -161,7 +166,7 @@ function Highlights() {
     <>
       {data.trending.length > 0 && (
         <section aria-labelledby="trending-title">
-          <div className={styles.sectionHead}>
+          <div className={styles.sectionHeadRow}>
             <h2 id="trending-title" className={styles.sectionTitle}>
               Popular this season
             </h2>

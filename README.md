@@ -35,7 +35,7 @@ Manga Tracker is a reading shelf and a US price checker for physical manga, in o
 
 ### Reading shelf
 
-- **Chapter bookmarks.** Save the chapter you're on and pick up where you left off.
+- **Chapter bookmarks.** Save the chapter you're on and step it forward right on the manga's page.
 - **Volumes owned.** Optionally record "own up to Vol. 14". Chapters track the story; volumes track your physical shelf. The app never guesses one from the other.
 - **Status and ratings.** Reading or finished, rated out of five stars.
 - **Search, filter and sort** across the whole collection, paged in blocks of 30.

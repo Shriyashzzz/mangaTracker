@@ -61,7 +61,7 @@ export function AboutPage() {
             As a broke college student who loves physical manga, I feel for
             y'all fellow broke students.{" "}
             <NavLink to="/" viewTransition>
-              Price Tracker
+              Price check
             </NavLink>{" "}
             searches US stores so you never overpay for a volume.
           </p>

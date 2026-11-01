@@ -16,8 +16,8 @@ export const formStyles = {
   pageHead:
     "mb-4 flex flex-wrap items-end justify-between gap-x-8 gap-y-2 short-laptop:mb-[0.85rem] short-laptop:[&>div]:flex short-laptop:[&>div]:items-baseline short-laptop:[&>div]:gap-5",
   backLink:
-    "mb-[0.15rem] inline-block text-[0.85rem] text-muted underline-offset-3 hover:text-ink hover:underline short-laptop:mb-0",
-  formTitle: "text-[clamp(1.9rem,3.4vw,2.3rem)] leading-[1.05] font-medium",
+    "tap mb-[0.15rem] inline-block text-[0.85rem] text-muted underline-offset-3 hover:text-ink hover:underline short-laptop:mb-0",
+  formTitle: "font-brand font-normal uppercase tracking-[0.02em] text-[clamp(1.9rem,3.4vw,2.3rem)] leading-[1.05] font-medium",
   formSub:
     "max-w-sm text-[0.95rem] leading-[1.45] text-ink-soft short-laptop:hidden",
 
@@ -38,7 +38,7 @@ export const formStyles = {
   // notes soak up whatever height is left so both columns end together
   notesField: "flex-1",
   labelRow: "flex items-baseline justify-between",
-  counter: "font-mono text-[0.72rem] text-muted",
+  counter: "font-mono text-[0.75rem] text-muted",
   // chapter, volumes and genre side by side; stacked on small phones so
   // long genres fit
   row: "grid auto-cols-[minmax(0,1fr)] grid-flow-col gap-5 upto-480:grid-flow-row",
