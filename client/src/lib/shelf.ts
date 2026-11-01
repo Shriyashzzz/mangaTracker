@@ -12,7 +12,7 @@ export const getReleases = (id: number, signal?: AbortSignal) =>
 
 // the server gives up on a slow title before this; if even it stops answering,
 // the shelf moves on to the next title rather than waiting forever
-export const RELEASE_CHECK_TIMEOUT_MS = 40_000;
+export const RELEASE_CHECK_TIMEOUT_MS = 50_000;
 
 // the manga on the signed-in shelf that is this series, or null
 export const findOnShelf = (series: string, signal?: AbortSignal) =>

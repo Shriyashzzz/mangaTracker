@@ -2,6 +2,7 @@
 // Estimates the next chapter release for a MangaDex manga.
 const MangaDexBaseUrl = "https://api.mangadex.org";
 const DAY = 24 * 60 * 60 * 1000;
+const MIN_GAP_MS = 60 * 60 * 1000; // smaller gaps mean chapters were bulk-uploaded, so they say nothing
 
 export type ChapterEstimate = {
   method: "scheduled" | "estimated" | "none";
@@ -106,7 +107,23 @@ export async function estimateNextChapter(
     };
   }
 
-  const gaps = dates.slice(1).map((d, i) => d.getTime() - dates[i]!.getTime());
+  // Rolling forward below needs a real gap: at 0 it would never finish, and that
+  // would freeze the whole server, not just this request.
+  const gaps = dates
+    .slice(1)
+    .map((d, i) => d.getTime() - dates[i]!.getTime())
+    .filter((g) => g >= MIN_GAP_MS);
+
+  if (gaps.length < 3) {
+    return {
+      method: "none",
+      nextChapter: null,
+      estimatedAt: null,
+      confidence: "none",
+      note: "Chapters were uploaded in bulk, so there's no release cadence to go on.",
+    };
+  }
+
   const rough = median(gaps);
   const cleanGaps = gaps.filter((g) => g <= rough * 3); // drop hiatus gaps
   const gap = median(cleanGaps);

@@ -75,7 +75,7 @@ const add = [
   },
 ];
 
-const SERIES_TIMEOUT_MS = 15_000;
+const SERIES_TIMEOUT_MS = 25_000;
 
 const detail = (_req: Request, res: Response) => {
   res.json({ manga: res.locals.manga });
