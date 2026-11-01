@@ -354,20 +354,17 @@ function Library() {
     }
     if (releaseKind === "chapters") {
       const latest = found?.latestChapter ?? 0;
-      if (!m.bookmark) return { text: `Latest is ch. ${latest}`, loud: false };
+      if (!m.bookmark) return { text: `Now at ch. ${latest}`, loud: false };
       const behind = Math.ceil(latest - m.bookmark);
       return behind <= 1
         ? { text: `Ch. ${latest} is out`, loud: true }
-        : { text: `${behind} chapters behind, latest ch. ${latest}`, loud: false };
+        : { text: `Now at ch. ${latest}, ${behind} to catch up`, loud: false };
     }
     const latest = found?.latestVolume ?? 0;
     if (found?.isNextVolumeOut) return { text: `Vol. ${latest} is out`, loud: true };
-    if (!m.volumesOwned) return { text: `Latest is vol. ${latest}`, loud: false };
+    if (!m.volumesOwned) return { text: `Now at vol. ${latest}`, loud: false };
     const behind = latest - m.volumesOwned;
-    return {
-      text: `${behind} volume${behind === 1 ? "" : "s"} behind, latest vol. ${latest}`,
-      loud: false,
-    };
+    return { text: `Now at vol. ${latest}, ${behind} to catch up`, loud: false };
   };
   const total = mangaData.length;
   // every title failed, so "nothing new" would be a false comfort. A few failing
