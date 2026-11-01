@@ -21,7 +21,10 @@ const mangaFields = [
     .isInt({ min: 0, max: 100000 })
     .withMessage("Bookmark has to be a number luv!")
     .toInt(),
-  body("status").isBoolean().withMessage("Status is reading or done").toBoolean(),
+  body("status")
+    .isBoolean()
+    .withMessage("Status is reading or done")
+    .toBoolean(),
   // the last volume they own; blank (or 0) means they don't say
   body("volumesOwned")
     .optional({ values: "falsy" })
@@ -71,6 +74,8 @@ const add = [
 ];
 
 const detail = (_req: Request, res: Response) => {
+  console.log(res.locals.manga);
+  res.locals.mangaName = res.locals.manga.name;
   res.json({ manga: res.locals.manga });
 };
 
@@ -117,7 +122,10 @@ const setOwned = [
   async (req: Request, res: Response) => {
     const value = matchedData(req).volumesOwned ?? null;
     res.json({
-      volumesOwned: await mangaQueries.setVolumesOwned(res.locals.manga.id, value),
+      volumesOwned: await mangaQueries.setVolumesOwned(
+        res.locals.manga.id,
+        value,
+      ),
     });
   },
 ];
@@ -125,7 +133,9 @@ const setOwned = [
 // the cheapest known price for each manga on the shelf, for the cards
 const shelfPrices = async (req: Request, res: Response) => {
   const manga = await mangaQueries.getShelf(req.session.userId!);
-  res.json(await getShelfPrices(manga.map((m) => ({ id: m.id, name: m.name }))));
+  res.json(
+    await getShelfPrices(manga.map((m) => ({ id: m.id, name: m.name }))),
+  );
 };
 
 // is this series on the shelf? For the volume page's shelf button
@@ -135,6 +145,7 @@ const match = [
   async (req: Request, res: Response) => {
     const manga = await mangaQueries.getShelf(req.session.userId!);
     const found = await findOnShelf(manga, matchedData(req).series);
+
     res.json(
       found && {
         id: found.id,
