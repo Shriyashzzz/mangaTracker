@@ -21,7 +21,7 @@ export default function Footer() {
   return (
     <footer
       // room for the phones' bottom bar
-      className="screentone mt-auto bg-ink text-paper upto-720:pb-[calc(3.75rem+env(safe-area-inset-bottom))]"
+      className="screentone mt-auto bg-ink text-paper upto-720:pb-[calc(3rem+env(safe-area-inset-bottom))]"
     >
       {/* one slim strip on laptops; on phones the quote gets its own row and
           the links go under it, so they never run into the heading */}
