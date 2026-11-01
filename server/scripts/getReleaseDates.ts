@@ -8,23 +8,63 @@ export type MangaReleaseDates<T> = {
   data?: T;
 };
 
-// gets the manga id from the realtive to mangadex api
-const getMangaDexId = async (mangaName: string): Promise<string> => {
+// what we already know about the series from AniList, to find the right one
+export type SeriesMatch = {
+  anilistId?: number | null;
+  altNames?: string[];
+};
+
+type MangaDexSearchHit = {
+  id: string;
+  attributes: {
+    title: Record<string, string>;
+    altTitles: Record<string, string>[];
+    links: Record<string, string> | null;
+  };
+};
+
+const sameTitle = (a: string, b: string) =>
+  a.trim().toLowerCase() === b.trim().toLowerCase();
+
+// gets the manga id from the realtive to mangadex api. MangaDex's first search
+// hit is often another series ("Monster" gives a monster girl romance), so the
+// answer has to carry AniList's id, or failing that be the exact title and not
+// be linked to some other AniList entry. No match means no id
+const getMangaDexId = async (
+  mangaName: string,
+  { anilistId, altNames = [] }: SeriesMatch = {},
+): Promise<string | null> => {
   const MANGADEX_BASE_URL = "https://api.mangadex.org/manga?";
 
   try {
-    const params: URLSearchParams = new URLSearchParams({
-      title: mangaName,
-      limit: "1",
-    });
-    params.append("includes[]", "cover_art");
-    const response = await fetch(`${MANGADEX_BASE_URL}${params}`);
+    for (const title of [mangaName, ...altNames].slice(0, 3)) {
+      const params: URLSearchParams = new URLSearchParams({
+        title,
+        limit: "25",
+      });
+      params.append("order[relevance]", "desc");
+      const response = await fetch(`${MANGADEX_BASE_URL}${params}`);
 
-    if (!response.ok)
-      throw new Error("Unable to fetch manga details from MangaDex");
-    const data = await response.json();
-    const seriesId = await data.data[0].id;
-    return seriesId;
+      if (!response.ok)
+        throw new Error("Unable to fetch manga details from MangaDex");
+      const data = (await response.json()) as { data: MangaDexSearchHit[] };
+
+      const linked = data.data.find(
+        (hit) => anilistId && hit.attributes.links?.al === String(anilistId),
+      );
+      if (linked) return linked.id;
+
+      const exact = data.data.find((hit) => {
+        const al = hit.attributes.links?.al;
+        if (anilistId && al) return false;
+        return [
+          ...Object.values(hit.attributes.title),
+          ...hit.attributes.altTitles.flatMap((alt) => Object.values(alt)),
+        ].some((name) => sameTitle(name, title));
+      });
+      if (exact) return exact.id;
+    }
+    return null;
   } catch (e) {
     console.error(e);
     throw e;
@@ -37,6 +77,7 @@ async function getCoverData(seriesId: string) {
     const params = new URLSearchParams({});
     params.append("manga[]", `${seriesId}`);
     params.append("limit", "100"); // more data to make accurate estimate
+    params.append("order[volume]", "desc"); // long series have more than 100
     const response = await fetch(`https://api.mangadex.org/cover?${params}`);
     const data = await response.json();
     return data;
@@ -51,7 +92,8 @@ async function getAllChapthers(seriesId: string) {
   try {
     const params = new URLSearchParams([
       ["translatedLanguage[]", "en"],
-      ["order[publishAt]", "desc"],
+      // by number, since the newest upload can be an old chapter posted again
+      ["order[chapter]", "desc"],
 
       ["limit", String(1)],
     ]);
@@ -70,9 +112,10 @@ async function getAllChapthers(seriesId: string) {
 //main function to orchestrate small fucntions
 async function getReleaseDates(
   mangaName: string,
+  match: SeriesMatch = {},
 ): Promise<MangaReleaseDates<FormatedDates>> {
   try {
-    const seriesId = await getMangaDexId(mangaName);
+    const seriesId = await getMangaDexId(mangaName, match);
     if (!seriesId)
       return {
         ok: false,

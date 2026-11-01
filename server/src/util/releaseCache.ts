@@ -2,7 +2,10 @@
 // MangaDex allows 5 a second, so a whole shelf has to go one title at a time.
 // Answers are kept in memory for 6 hours; failures aren't kept, so they retry.
 import getReleaseDates from "../../scripts/getReleaseDates.js";
-import type { MangaReleaseDates } from "../../scripts/getReleaseDates.js";
+import type {
+  MangaReleaseDates,
+  SeriesMatch,
+} from "../../scripts/getReleaseDates.js";
 import type { FormatedDates } from "./volumeDataFormatter.js";
 
 type Answer = MangaReleaseDates<FormatedDates>;
@@ -14,14 +17,17 @@ const cache = new Map<string, { answer: Answer; at: number }>();
 const running = new Map<string, Promise<Answer>>();
 let queue: Promise<unknown> = Promise.resolve();
 
-export async function getCachedReleaseDates(name: string): Promise<Answer> {
+export async function getCachedReleaseDates(
+  name: string,
+  match: SeriesMatch = {},
+): Promise<Answer> {
   const key = name.trim().toLowerCase();
   const cached = cache.get(key);
   if (cached && Date.now() - cached.at < FRESH_MS) return cached.answer;
 
   let lookup = running.get(key);
   if (!lookup) {
-    lookup = queue.then(() => getReleaseDates(name));
+    lookup = queue.then(() => getReleaseDates(name, match));
     queue = lookup;
     running.set(key, lookup);
     lookup

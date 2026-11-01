@@ -5,8 +5,7 @@ import type { Request, Response } from "express";
 import { body, matchedData, query } from "express-validator";
 import { rejectInvalid } from "../middlewares/validate.js";
 import mangaQueries, { type MangaInput } from "../models/mangaQueries.js";
-import { findOnShelf, getShelfPrices } from "../prices/service.js";
-import { getSeriesInfo } from "../prices/anilist.js";
+import { findOnShelf, getSeries, getShelfPrices } from "../prices/service.js";
 import { getCachedReleaseDates } from "../util/releaseCache.js";
 import { getReleaseStatus } from "../util/releaseStatus.js";
 import type { Manga } from "../../generated/prisma/client.js";
@@ -76,28 +75,32 @@ const add = [
   },
 ];
 
-// release dates and what's new for this reader; null if MangaDex can't say
-const lookUpReleases = async (manga: Manga) => {
-  const [dates, info] = await Promise.all([
-    getCachedReleaseDates(manga.name),
-    getSeriesInfo(manga.name),
-  ]);
-  if (!dates.ok || !dates.data) return null;
-  return {
-    releaseData: dates.data,
-    releaseStatus: getReleaseStatus(manga, dates.data, info?.volumes ?? null),
-  };
+const detail = (_req: Request, res: Response) => {
+  res.json({ manga: res.locals.manga });
 };
 
-const detail = async (_req: Request, res: Response) => {
-  const releases = await lookUpReleases(res.locals.manga);
-  res.json({ manga: res.locals.manga, ...releases });
-};
-
-// what's new for one manga, for the shelf's New tab
+// release dates and what's new in English for one manga. Its own route because
+// it can be slow, so the details page and the edit form don't wait for it
 const releases = async (_req: Request, res: Response) => {
-  const found = await lookUpReleases(res.locals.manga);
-  res.json({ releaseStatus: found?.releaseStatus ?? null });
+  const manga: Manga = res.locals.manga;
+  // a passing catalog failure only costs the volume half of the answer
+  const series = await getSeries(manga.name).catch(() => null);
+  const dates = await getCachedReleaseDates(manga.name, {
+    anilistId: series?.info?.anilistId,
+    altNames: series?.info?.altNames,
+  });
+  const releaseData = dates.ok && dates.data ? dates.data : null;
+  if (!releaseData && !series) {
+    return res.json({ releaseData: null, releaseStatus: null });
+  }
+  return res.json({
+    releaseData,
+    releaseStatus: getReleaseStatus(manga, {
+      dates: releaseData,
+      englishVolumes: series?.volumes ?? [],
+      anilistMax: series?.info?.volumes ?? null,
+    }),
+  });
 };
 
 const update = [

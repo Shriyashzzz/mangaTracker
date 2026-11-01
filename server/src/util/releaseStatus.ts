@@ -1,5 +1,6 @@
-// Is there something new for this reader? Compares what's on their shelf with
-// the release dates from MangaDex and the volume count from AniList.
+// Is there something new in English for this reader? MangaDex lists English
+// chapters but barely knows English volumes (most of its covers are the
+// Japanese editions), so volumes come from our US book catalog instead.
 import type { FormatedDates } from "./volumeDataFormatter.js";
 
 export type ReleaseStatus = {
@@ -11,21 +12,24 @@ export type ReleaseStatus = {
 
 type Shelved = { volumesOwned: number | null; bookmark: number | null };
 
-// the highest real number in a list of MangaDex's text volume/chapter numbers
-const highest = (values: (string | null | undefined)[]) => {
-  const numbers = values.map((v) => parseFloat(v ?? "")).filter(Number.isFinite);
-  return numbers.length ? Math.max(...numbers) : null;
+type Sources = {
+  dates: FormatedDates | null; // MangaDex, for chapters
+  englishVolumes: { volume: number | null }[]; // the US catalog
+  anilistMax: number | null; // AniList's volume count, if it has one
 };
 
-// New volume: they own AniList's last volume but MangaDex has a later one.
-// AniList has no count for most ongoing series, so then MangaDex alone decides
+// New volume: they own AniList's last volume but a later one is out in English.
+// AniList has no count for most ongoing series, so then the catalog alone decides
 export function getReleaseStatus(
   { volumesOwned, bookmark }: Shelved,
-  dates: FormatedDates,
-  anilistMax: number | null,
+  { dates, englishVolumes, anilistMax }: Sources,
 ): ReleaseStatus {
-  const latestVolume = highest((dates.volume ?? []).map((v) => v.volume));
-  const latestChapter = highest([dates.chapter?.latestReleased.chapterNumber]);
+  const numbers = englishVolumes
+    .map((v) => v.volume)
+    .filter((v): v is number => v != null);
+  const latestVolume = numbers.length ? Math.max(...numbers) : null;
+  const chapter = parseFloat(dates?.chapter?.latestReleased.chapterNumber ?? "");
+  const latestChapter = Number.isFinite(chapter) ? chapter : null;
   const owned = volumesOwned ?? 0;
 
   return {
