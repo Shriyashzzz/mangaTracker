@@ -3,11 +3,16 @@
 // so English volumes come from our US book catalog. Its covers still tell us
 // how far Japan has got, for anyone who wants to know.
 import type { FormatedDates } from "./volumeDataFormatter.js";
+import { volumeOfChapter } from "./volumeStarts.js";
 
 export type ReleaseStatus = {
   hasNewVolume: boolean;
   hasNewChapter: boolean;
   hasNewJapaneseVolume: boolean;
+  // the panel on the details page: they're on the volume right before the newest
+  isNextVolumeOut: boolean;
+  // how far they've got: what they own, or else the volume their chapter is in
+  currentVolume: number | null;
   latestVolume: number | null;
   latestChapter: number | null;
   latestJapaneseVolume: number | null;
@@ -17,17 +22,17 @@ type Shelved = { volumesOwned: number | null; bookmark: number | null };
 
 type Sources = {
   dates: FormatedDates | null; // MangaDex, for chapters
-  englishVolumes: { volume: number | null }[]; // the US catalog
-  anilistMax: number | null; // AniList's volume count, if it has one
+  englishVolumes: { volume: number | null }[] | null; // the US catalog; null if it didn't answer
 };
 
-// New volume: they own AniList's last volume but a later one is out in English.
-// AniList has no count for most ongoing series, so then the catalog alone decides
+// The shelf can only rule something out when it says they're already past it:
+// plenty of people read without owning, or never fill these numbers in. So a
+// blank counts as nothing yet
 export function getReleaseStatus(
   { volumesOwned, bookmark }: Shelved,
-  { dates, englishVolumes, anilistMax }: Sources,
+  { dates, englishVolumes }: Sources,
 ): ReleaseStatus {
-  const numbers = englishVolumes
+  const numbers = (englishVolumes ?? [])
     .map((v) => v.volume)
     .filter((v): v is number => v != null);
   const latestVolume = numbers.length ? Math.max(...numbers) : null;
@@ -38,21 +43,25 @@ export function getReleaseStatus(
     .filter(Number.isFinite);
   const latestJapaneseVolume = japanese.length ? Math.max(...japanese) : null;
   const owned = volumesOwned ?? 0;
+  const currentVolume =
+    volumesOwned || volumeOfChapter(bookmark, dates?.volumeStarts ?? []);
 
   return {
-    hasNewVolume:
-      owned > 0 &&
-      latestVolume != null &&
-      owned < latestVolume &&
-      (anilistMax == null || owned >= anilistMax),
-    hasNewChapter:
-      bookmark != null && latestChapter != null && bookmark < latestChapter,
+    hasNewVolume: latestVolume != null && owned < latestVolume,
+    hasNewChapter: latestChapter != null && (bookmark ?? 0) < latestChapter,
     // past what they own, and not just a volume that's already out in English
     hasNewJapaneseVolume:
-      owned > 0 &&
+      // without the catalog we can't say it isn't out in English already
+      englishVolumes != null &&
       latestJapaneseVolume != null &&
       latestJapaneseVolume > owned &&
       latestJapaneseVolume > (latestVolume ?? 0),
+    isNextVolumeOut:
+      latestVolume != null &&
+      currentVolume != null &&
+      currentVolume >= latestVolume - 1 &&
+      currentVolume < latestVolume,
+    currentVolume,
     latestVolume,
     latestChapter,
     latestJapaneseVolume,

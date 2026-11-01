@@ -2,6 +2,7 @@ import { estimateNextChapter } from "../src/util/estimateNextChapter.js";
 import getFormatedDates from "../src/util/volumeDataFormatter.js";
 import type { FormatedDates } from "../src/util/volumeDataFormatter.js";
 import { estimateNextVolume } from "../src/util/estimateNextVolume.js";
+import { volumeStartsFrom } from "../src/util/volumeStarts.js";
 
 export type MangaReleaseDates<T> = {
   ok: boolean;
@@ -83,6 +84,7 @@ async function getCoverData(seriesId: string) {
     const response = await fetch(`https://api.mangadex.org/cover?${params}`, {
       signal: AbortSignal.timeout(10_000),
     });
+    if (!response.ok) throw new Error(`MangaDex covers: ${response.status}`);
     const data = await response.json();
     return data;
   } catch (e) {
@@ -100,17 +102,37 @@ async function getAllChapthers(seriesId: string) {
       ["order[chapter]", "desc"],
 
       ["limit", String(1)],
+      // "latest" means out already, not one scheduled for next week
+      ["includeFuturePublishAt", "0"],
     ]);
 
     const res = await fetch(
       `https://api.mangadex.org/manga/${seriesId}/feed?${params.toString()}`,
       { signal: AbortSignal.timeout(10_000) },
     );
+    if (!res.ok) throw new Error(`MangaDex feed: ${res.status}`);
     const data = await res.json();
     return data;
   } catch (e) {
     console.error(e);
     throw e;
+  }
+}
+
+// which chapters are in which volume, in any language: English uploads alone
+// mostly aren't sorted into volumes. Nice to have, so a failure just means none
+async function getVolumeStarts(seriesId: string) {
+  try {
+    const res = await fetch(
+      `https://api.mangadex.org/manga/${seriesId}/aggregate`,
+      { signal: AbortSignal.timeout(10_000) },
+    );
+    if (!res.ok) return [];
+    const data = await res.json();
+    return volumeStartsFrom(data.volumes ?? {});
+  } catch (e) {
+    console.error(e);
+    return [];
   }
 }
 
@@ -127,9 +149,10 @@ async function getReleaseDates(
       };
     const coverData = await getCoverData(seriesId);
     const chaptherData = await getAllChapthers(seriesId);
-    const [chapterEstimate, volumeEstimate] = await Promise.all([
+    const [chapterEstimate, volumeEstimate, volumeStarts] = await Promise.all([
       estimateNextChapter(seriesId),
-      estimateNextVolume(seriesId),
+      estimateNextVolume(seriesId, "en", 8, coverData.data),
+      getVolumeStarts(seriesId),
     ]);
     const formatedDates = getFormatedDates(
       chaptherData,
@@ -138,7 +161,7 @@ async function getReleaseDates(
       volumeEstimate,
     );
 
-    return { ok: true, data: formatedDates };
+    return { ok: true, data: { ...formatedDates, volumeStarts } };
   } catch (e) {
     console.error(e);
     return {

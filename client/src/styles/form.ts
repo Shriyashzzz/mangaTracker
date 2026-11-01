@@ -29,6 +29,10 @@ export const formStyles = {
   coverArea:
     "col-start-1 row-span-2 row-start-1 upto-760:row-span-1 upto-760:row-start-2",
   titleField: "col-start-2 row-start-1 upto-760:col-start-1",
+  // the title box and AniList's guesses dropping down from it
+  titleCombo: "relative",
+  titleComboNote:
+    "mt-1 border-t border-dashed border-line-soft px-[0.55rem] pt-[0.45rem] pb-[0.2rem] text-[0.85rem] text-ink-soft",
   details:
     "col-start-2 row-start-2 flex min-w-0 flex-col gap-[0.95rem] upto-760:col-start-1 upto-760:row-start-3",
   // notes soak up whatever height is left so both columns end together

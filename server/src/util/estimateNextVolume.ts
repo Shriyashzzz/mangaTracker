@@ -5,8 +5,11 @@
 // was uploaded as a stand-in, then projects the usual gap between volumes forward.
 // It also reports chapter progress toward the next volume as a sanity check.
 
+import { median } from "./median.js";
+
 const API = "https://api.mangadex.org";
 const DAY = 24 * 60 * 60 * 1000;
+const MAX_MISSED = 3; // more late than this and it has ended or is on a long break
 const MIN_GAP_DAYS = 14; // smaller gaps usually mean covers were bulk-uploaded, so they say nothing
 
 export type VolumeEstimate = {
@@ -19,7 +22,7 @@ export type VolumeEstimate = {
   note: string;
 };
 
-type CoverItem = { attributes: { volume: string | null; createdAt: string } };
+export type CoverItem = { attributes: { volume: string | null; createdAt: string } };
 
 type AggregateVolume = {
   volume: string;
@@ -30,12 +33,6 @@ type AggregateVolume = {
 type AggregateResponse = {
   volumes?: Record<string, AggregateVolume>;
 };
-
-function median(nums: number[]): number {
-  const s = [...nums].sort((a, b) => a - b);
-  const mid = Math.floor(s.length / 2);
-  return s.length % 2 ? s[mid]! : (s[mid - 1]! + s[mid]!) / 2;
-}
 
 async function getCovers(seriesId: string): Promise<CoverItem[]> {
   const params = new URLSearchParams();
@@ -89,6 +86,7 @@ export async function estimateNextVolume(
   seriesId: string,
   language = "en",
   sampleSize = 8,
+  knownCovers?: CoverItem[], // already fetched, so MangaDex isn't asked twice
 ): Promise<VolumeEstimate> {
   const now = new Date();
   const none = (note: string): VolumeEstimate => ({
@@ -102,7 +100,7 @@ export async function estimateNextVolume(
   });
 
   const [covers, progress] = await Promise.all([
-    getCovers(seriesId),
+    knownCovers ?? getCovers(seriesId),
     getChapterProgress(seriesId, language),
   ]);
 
@@ -150,6 +148,10 @@ export async function estimateNextVolume(
   while (next <= now) {
     next = new Date(next.getTime() + gap);
     missed++;
+  }
+  // Rolling forward would give even a series that ended years ago a date.
+  if (missed > MAX_MISSED) {
+    return none("No new volumes for a while; it has likely ended or is on a long break.");
   }
   if (missed > 0) confidence = "low";
 

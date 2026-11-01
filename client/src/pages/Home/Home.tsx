@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useRef } from "react";
+import { useState, useEffect, useMemo } from "react";
 import MangaCard, {
   MangaCardSkeleton,
 } from "../../components/mangaCard/MangaCard";
@@ -6,15 +6,15 @@ import MangaCard, {
 import { homeStyles as styles } from "./styles";
 import { NavLink, useNavigate } from "react-router";
 import { SearchIcon, StarIcon } from "../../components/icons/Icons";
-import { apiFetch } from "../../lib/api";
 import RangePager from "../../components/rangePager/RangePager";
 import Mascot from "../../components/mascot/Mascot";
 import SlowLoadQuote from "../../components/slowLoadQuote/SlowLoadQuote";
 import { usePrivatePage } from "../../lib/seo";
 import { getShelfPriceTags } from "../../lib/prices";
-import { getReleases, RELEASE_CHECK_TIMEOUT_MS } from "../../lib/shelf";
-import type { Manga, ReleaseStatus, ShelfPrice } from "../../lib/types";
+import type { Manga, ShelfPrice } from "../../lib/types";
 import { useAuth } from "../../store/auth";
+import { useShelf } from "../../store/shelf";
+import { readLocal, writeLocal } from "../../lib/prefs";
 
 const SHELF_PAGE_SIZE = 30;
 // shelves this size get a heads-up that their first release check is slow
@@ -25,14 +25,14 @@ const CHECKED_BEFORE_KEY = "releasesCheckedBefore";
 const RELEASE_KINDS = {
   volumes: {
     label: "Volumes",
-    note: "English releases only. Japan may be ahead of us: see In Japan.",
+    note: "English releases only. Japan may be ahead.",
     emptyTitle: "No new volumes. Your wallet lives!",
     emptyBody:
-      "You're caught up on every English volume we could find. Your shelf gets a day off.",
+      "You're past every English volume we could find. Your shelf gets a day off.",
   },
   chapters: {
     label: "Chapters",
-    note: "English releases only. Japan may be ahead of us.",
+    note: "English releases only. Japan may be ahead.",
     emptyTitle: "Nothing new to read. Go touch grass!",
     emptyBody:
       "You've read past the newest English chapter we could find. Check back soon.",
@@ -71,21 +71,6 @@ const writeSession = (key: string, value: string) => {
     /* ignore */
   }
 };
-// the same, for what should outlast the tab
-const readLocal = (key: string) => {
-  try {
-    return localStorage.getItem(key);
-  } catch {
-    return null;
-  }
-};
-const writeLocal = (key: string, value: string) => {
-  try {
-    localStorage.setItem(key, value);
-  } catch {
-    /* ignore */
-  }
-};
 
 export default function Home() {
   usePrivatePage("Your shelf");
@@ -98,8 +83,12 @@ export default function Home() {
 }
 
 function Library() {
-  const [mangaData, setMangaData] = useState<Manga[] | null>(null);
-  const [loadError, setLoadError] = useState(false);
+  const mangaData = useShelf((s) => s.manga);
+  const loadError = useShelf((s) => s.loadFailed);
+  const releases = useShelf((s) => s.releases);
+  const loadShelf = useShelf((s) => s.load);
+  const checkReleases = useShelf((s) => s.checkReleases);
+  const recheckReleases = useShelf((s) => s.recheckReleases);
   const [query, setQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState(() =>
     readSession("libraryStatus", "all"),
@@ -117,18 +106,8 @@ function Library() {
   const pageIndex = page.key === filterKey ? page.index : 0;
 
   useEffect(() => {
-    async function fetchMangaData() {
-      try {
-        const response = await apiFetch("/api/manga");
-        if (!response.ok) throw new Error(response.statusText);
-        const { manga } = (await response.json()) as { manga: Manga[] };
-        setMangaData(manga);
-      } catch {
-        setLoadError(true);
-      }
-    }
-    fetchMangaData();
-  }, []);
+    loadShelf();
+  }, [loadShelf]);
 
   // price lines for the cards, once the shelf is in. Nice to have: the
   // shelf works the same without them
@@ -143,37 +122,13 @@ function Library() {
     return () => controller.abort();
   }, [hasManga]);
 
-  // what's new for each manga. Only asked for once the New tab is opened, and
-  // one title at a time, since the server has to ask other sites about each
-  // title it hasn't seen lately. Leaving the tab stops the checking
+  // what's new for each manga. Only asked for once the New tab is opened; after
+  // that it carries on even if they leave, and new titles get picked up
   const showingNew = statusFilter === "new";
-  const [releases, setReleases] = useState<Record<number, ReleaseStatus | null>>(
-    {},
-  );
-  const checkedIds = useRef(new Set<number>());
   useEffect(() => {
-    if (!showingNew || !mangaData?.length) return;
-    const controller = new AbortController();
-    (async () => {
-      for (const { id } of mangaData) {
-        if (checkedIds.current.has(id)) continue;
-        const status = await getReleases(
-          id,
-          AbortSignal.any([
-            controller.signal,
-            AbortSignal.timeout(RELEASE_CHECK_TIMEOUT_MS),
-          ]),
-        )
-          .then((found) => found.releaseStatus)
-          .catch(() => null);
-        if (controller.signal.aborted) return;
-        checkedIds.current.add(id);
-        setReleases((current) => ({ ...current, [id]: status }));
-      }
-    })();
-    return () => controller.abort();
-  }, [mangaData, showingNew]);
-  const checked = Object.keys(releases).length;
+    if (showingNew && mangaData?.length) checkReleases();
+  }, [mangaData, releases, showingNew, checkReleases]);
+  const checked = (mangaData ?? []).filter((m) => m.id in releases).length;
   const checking = showingNew && checked < (mangaData?.length ?? 0);
   const allChecked = checked > 0 && checked >= (mangaData?.length ?? 0);
   const [checkedBefore] = useState(() => readLocal(CHECKED_BEFORE_KEY) !== null);
@@ -324,15 +279,34 @@ function Library() {
     }
     return `Vol. ${releases[m.id]?.latestVolume} is out`;
   };
-  const checkingText = `Checking for new releases, ${checked} of ${mangaData.length}…`;
+  const total = mangaData.length;
+  // every title failed, so "nothing new" would be a false comfort. A few failing
+  // goes unsaid: the rest still stand, and they get tried again on the next visit
+  const allFailed =
+    showingNew &&
+    !checking &&
+    total > 0 &&
+    mangaData.every((m) => releases[m.id] === null);
   const bigFirstCheck =
-    checking && !checkedBefore && mangaData.length >= BIG_SHELF;
-  const bigShelfNote = bigFirstCheck && (
-    <p className={styles.bigShelfNote}>
-      Big shelf! The first check looks up every title one at a time, so it can
-      take a few minutes. Wander off if you like: what's been checked is saved.
-    </p>
+    checking && !checkedBefore && total >= BIG_SHELF;
+  // the check's progress: something to glance at, never the point of the page
+  const progress = (
+    <div
+      className={styles.checkBar}
+      role="progressbar"
+      aria-label="Checking for new releases"
+      aria-valuemin={0}
+      aria-valuemax={total}
+      aria-valuenow={checked}
+    >
+      <div
+        className={styles.checkBarFill}
+        style={{ width: `${(checked / total) * 100}%` }}
+      />
+    </div>
   );
+  const bigShelfNote =
+    bigFirstCheck && "The first check on a big shelf can take a few minutes.";
 
   return (
     <div className="fade-in">
@@ -427,22 +401,41 @@ function Library() {
         </div>
       )}
 
-      {/* with results on screen the progress sits quietly above them; with
-          none yet, it's the only thing to look at */}
+      {/* a thin line above the cards once there are some; with none yet it
+          sits in the middle of the page, where the cards will be */}
       {checking && visibleManga.length > 0 && (
-        <div className={styles.checkingInline} role="status">
-          <p>{checkingText}</p>
-          {bigShelfNote}
+        <div className={styles.checkInline}>
+          {progress}
+          <p className={styles.checkText}>
+            Checking {checked} of {total}
+            {bigShelfNote && ` · ${bigShelfNote}`}
+          </p>
         </div>
       )}
 
       {checking && visibleManga.length === 0 ? (
-        <div className={styles.checkingCentre} role="status">
+        <div className={styles.checkCentre}>
+          <p className={styles.checkTitle}>Checking for new releases</p>
+          {progress}
+          <p className={styles.checkText}>
+            {checked} of {total}
+            {bigShelfNote && (
+              <span className={styles.checkAside}>{bigShelfNote}</span>
+            )}
+          </p>
+        </div>
+      ) : allFailed ? (
+        <div className={styles.emptyState}>
           <span className="printed mascot-spot" aria-hidden>
-            <Mascot mood="confused" />
+            <Mascot mood="panic" />
           </span>
-          <p className={styles.checkingTitle}>{checkingText}</p>
-          {bigShelfNote}
+          <p className={styles.emptyTitle}>Couldn't check right now.</p>
+          <p className={styles.emptyBody}>
+            The sites we ask for releases didn't answer. Give it a minute.
+          </p>
+          <button className="btn btn-secondary" onClick={recheckReleases}>
+            Try again
+          </button>
         </div>
       ) : showingNew && visibleManga.length === 0 && !query.trim() ? (
         <div className={styles.nothingNew}>
@@ -486,6 +479,11 @@ function Library() {
                 currentManga={currentManga}
                 priceTag={priceTags[currentManga.id]}
                 news={newsFor(currentManga)}
+                detailsSearch={
+                  showingNew && releaseKind === "japan"
+                    ? "?edition=japan"
+                    : undefined
+                }
                 index={i}
               />
             ))}

@@ -1,12 +1,13 @@
 import { useEffect, useState } from "react";
 import { detailsStyles as styles } from "./styles";
-import { NavLink, useNavigate, useParams } from "react-router";
+import { NavLink, useNavigate, useParams, useSearchParams } from "react-router";
 import StarRating from "../../components/starRating/StarRating";
 import { apiFetch, FALLBACK_COVER } from "../../lib/api";
 import type { Manga, ReleaseData, ReleaseStatus } from "../../lib/types";
 import SlowLoadQuote from "../../components/slowLoadQuote/SlowLoadQuote";
 import { usePrivatePage } from "../../lib/seo";
 import { getReleases } from "../../lib/shelf";
+import { useShelf } from "../../store/shelf";
 import BuyStrip from "./BuyStrip";
 import ReleasePanel from "./ReleasePanel";
 
@@ -17,6 +18,9 @@ export default function Details() {
   const [releaseStatus, setReleaseStatus] = useState<ReleaseStatus | null>(null);
   const [loadError, setLoadError] = useState(false);
   const { id } = useParams();
+  // English unless they came from the shelf's In Japan tab
+  const [searchParams] = useSearchParams();
+  const inJapan = searchParams.get("edition") === "japan";
   const [mangaStatus, setMangaStatus] = useState(false);
   const [mangaRating, setMangaRating] = useState(0);
   const [confirmDelete, setConfirmDelete] = useState(false);
@@ -59,6 +63,7 @@ export default function Details() {
     try {
       const res = await apiFetch(`/api/manga/${id}`, { method: "DELETE" });
       if (!res.ok) throw new Error(`Failed deleting manga`);
+      useShelf.getState().remove(Number(id));
       navigate("/shelf", { viewTransition: true });
     } catch (e) {
       console.error(e);
@@ -119,10 +124,10 @@ export default function Details() {
   const cover = mangaData.image || FALLBACK_COVER;
   const genre =
     mangaData.genre && mangaData.genre !== "unlabled" ? mangaData.genre : null;
-  const showRelease =
-    releaseStatus?.hasNewVolume &&
-    releaseStatus.latestVolume != null &&
-    mangaData.volumesOwned != null;
+  const releasedVolume = inJapan
+    ? releaseStatus?.hasNewJapaneseVolume && releaseStatus.latestJapaneseVolume
+    : releaseStatus?.isNextVolumeOut && releaseStatus.latestVolume;
+  const showRelease = Boolean(releasedVolume);
 
   return (
     <div className="fade-in">
@@ -178,9 +183,9 @@ export default function Details() {
 
         {showRelease && (
           <ReleasePanel
-            latestVolume={releaseStatus.latestVolume!}
-            volumesOwned={mangaData.volumesOwned!}
-            latestJapaneseVolume={releaseStatus.latestJapaneseVolume}
+            volume={releasedVolume as number}
+            inJapan={inJapan}
+            currentVolume={releaseStatus?.currentVolume ?? null}
             data={releaseData}
           />
         )}

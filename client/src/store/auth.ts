@@ -6,6 +6,7 @@
 //               true / false once it has answered
 import { create } from "zustand";
 import { apiFetch } from "../lib/api";
+import { useShelf } from "./shelf";
 import { syncPrefs } from "../lib/prefs";
 
 type AuthState = {
@@ -32,13 +33,17 @@ export const useAuth = create<AuthState>()((set) => ({
   },
 
   signedIn: () => {
+    useShelf.getState().reset();
     set({ isSignedIn: true });
     syncPrefs();
   },
 
   logOut: async () => {
     const res = await apiFetch("/api/auth/logout", { method: "POST" });
-    if (res.ok) set({ isSignedIn: false });
+    if (res.ok) {
+      useShelf.getState().reset();
+      set({ isSignedIn: false });
+    }
     return res.ok;
   },
 }));

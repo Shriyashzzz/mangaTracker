@@ -8,11 +8,13 @@ export const getReleases = (id: number, signal?: AbortSignal) =>
   getJson<{
     releaseData: ReleaseData | null;
     releaseStatus: ReleaseStatus | null;
+    // false if a source didn't answer, so it's worth asking again
+    complete: boolean;
   }>(`/api/manga/${id}/releases`, signal);
 
 // the server gives up on a slow title before this; if even it stops answering,
 // the shelf moves on to the next title rather than waiting forever
-export const RELEASE_CHECK_TIMEOUT_MS = 40_000;
+export const RELEASE_CHECK_TIMEOUT_MS = 50_000;
 
 // the manga on the signed-in shelf that is this series, or null
 export const findOnShelf = (series: string, signal?: AbortSignal) =>

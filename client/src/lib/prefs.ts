@@ -19,7 +19,15 @@ const isBackground = (value: unknown): value is Background =>
 const isTheme = (value: unknown): value is Theme =>
   value === "light" || value === "dark";
 
-const writeLocal = (key: string, value: string) => {
+export const readLocal = (key: string) => {
+  try {
+    return localStorage.getItem(key);
+  } catch {
+    return null;
+  }
+};
+
+export const writeLocal = (key: string, value: string) => {
   try {
     localStorage.setItem(key, value);
   } catch {
