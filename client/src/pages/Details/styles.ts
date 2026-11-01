@@ -87,9 +87,13 @@ export const detailsStyles = {
 
   // where to buy: small price tickets in a row
   buy: "border-t-[1.5px] border-dashed border-line-soft pt-3",
-  buyList: `flex flex-wrap gap-2 [&_a]:bg-card [&_a]:font-semibold [&_a]:transition-[background-color,border-color] [&_a]:duration-120 [&_a]:ease-[ease] [&_a]:hover:border-accent [&_a]:hover:bg-accent-wash [&_a]:focus-visible:border-accent [&_a]:focus-visible:bg-accent-wash`,
-  // each link in buyList
-  buyLink: `${ticket} border-line`,
+  buyList: "flex flex-wrap gap-2",
+  buyLink: `${ticket} border-line bg-card font-semibold transition-[background-color,border-color] duration-120 ease-[ease] hover:border-accent hover:bg-accent-wash focus-visible:border-accent focus-visible:bg-accent-wash`,
+  // the heading with the series link across from it: a plain link, with room
+  // around it for a thumb
+  buyHead: "mb-1 flex items-baseline justify-between gap-3 [&_h2]:mb-0",
+  buySeries:
+    "-my-1.5 py-1.5 text-[0.85rem] font-medium whitespace-nowrap text-ink-soft underline decoration-line-soft underline-offset-3 transition-colors duration-120 ease-[ease] hover:text-accent hover:decoration-accent",
   buyKind:
     "font-mono text-[0.68rem] font-normal tracking-[0.06em] text-muted uppercase",
   buyPrice: "font-mono font-medium text-accent",
