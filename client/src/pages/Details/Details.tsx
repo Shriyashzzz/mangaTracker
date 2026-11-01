@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { detailsStyles as styles } from "./styles";
 import { NavLink, useNavigate, useParams, useSearchParams } from "react-router";
 import StarRating from "../../components/starRating/StarRating";
@@ -10,13 +10,20 @@ import { getReleases } from "../../lib/shelf";
 import { useShelf } from "../../store/shelf";
 import BuyStrip from "./BuyStrip";
 import ReleasePanel from "./ReleasePanel";
+import ChapterStepper from "./ChapterStepper";
+
+const DIDNT_SAVE = "That didn't save. Try again.";
 
 export default function Details() {
   usePrivatePage("Manga details");
   const [mangaData, setMangaData] = useState<Manga | null>(null);
   const [releaseData, setReleaseData] = useState<ReleaseData | null>(null);
   const [releaseStatus, setReleaseStatus] = useState<ReleaseStatus | null>(null);
-  const [loadError, setLoadError] = useState(false);
+  // "signin": the server says it isn't theirs to see; "network": it didn't answer
+  const [loadError, setLoadError] = useState<"signin" | "network" | null>(null);
+  const [loadTry, setLoadTry] = useState(0);
+  // a chapter was saved, so what's new for them needs asking again
+  const [chapterSaves, setChapterSaves] = useState(0);
   const { id } = useParams();
   // English unless they came from the shelf's In Japan tab
   const [searchParams] = useSearchParams();
@@ -25,12 +32,33 @@ export default function Details() {
   const [mangaRating, setMangaRating] = useState(0);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [ratingFailed, setRatingFailed] = useState(false);
+  // under the buttons: a failed save, or the undo for marking it finished
+  const [actionNote, setActionNote] = useState("");
+  const [canUndoStatus, setCanUndoStatus] = useState(false);
+  const deleteButton = useRef<HTMLButtonElement>(null);
+  const keepButton = useRef<HTMLButtonElement>(null);
+  // the Delete button is about to vanish from under the keyboard: put focus
+  // on the safe answer, and back again when they keep it
+  const askedDelete = useRef(false);
+  useEffect(() => {
+    if (confirmDelete) {
+      askedDelete.current = true;
+      keepButton.current?.focus();
+    } else if (askedDelete.current) {
+      deleteButton.current?.focus();
+    }
+  }, [confirmDelete]);
   const navigate = useNavigate();
 
   useEffect(() => {
     async function getManga() {
       try {
         const response = await apiFetch(`/api/manga/${id}`);
+        if (response.status === 401 || response.status === 403 || response.status === 404) {
+          setLoadError("signin");
+          return;
+        }
         if (!response.ok) throw new Error(response.statusText);
         const data = await response.json();
         const thisManga = (data as { manga?: Manga }).manga;
@@ -39,11 +67,11 @@ export default function Details() {
         setMangaRating(thisManga.rating ?? 0);
         setMangaStatus(thisManga.status);
       } catch {
-        setLoadError(true);
+        setLoadError("network");
       }
     }
     getManga();
-  }, [id]);
+  }, [id, loadTry]);
 
   // can take a few seconds, so the page doesn't wait for it. Nice to have: the
   // panel just doesn't appear if this fails
@@ -56,10 +84,11 @@ export default function Details() {
       })
       .catch(() => {});
     return () => controller.abort();
-  }, [id]);
+  }, [id, chapterSaves]);
 
   const handleDeleteManga = async () => {
     setBusy(true);
+    setActionNote("");
     try {
       const res = await apiFetch(`/api/manga/${id}`, { method: "DELETE" });
       if (!res.ok) throw new Error(`Failed deleting manga`);
@@ -67,29 +96,38 @@ export default function Details() {
       navigate("/shelf", { viewTransition: true });
     } catch (e) {
       console.error(e);
+      setActionNote("That didn't delete. Try again.");
       setBusy(false);
     }
   };
 
-  const handleStatusChange = async () => {
+  const handleStatusChange = async (isUndo = false) => {
     const next = !mangaStatus;
     // optimistic, roll back if the server says no
     setMangaStatus(next);
+    setActionNote("");
+    setCanUndoStatus(false);
     try {
       const res = await apiFetch(`/api/manga/${id}/status`, {
         method: "PATCH",
         body: { status: next },
       });
       if (!res.ok) throw new Error(`Failed changing manga status`);
+      if (!isUndo) {
+        setActionNote(next ? "Marked as finished." : "Back to reading.");
+        setCanUndoStatus(true);
+      }
     } catch (e) {
       console.error(e);
       setMangaStatus(!next);
+      setActionNote(DIDNT_SAVE);
     }
   };
 
   const handleRatingChange = async (newRating: number) => {
     const previous = mangaRating;
     setMangaRating(newRating);
+    setRatingFailed(false);
     try {
       const response = await apiFetch(`/api/manga/${id}/rating`, {
         method: "PATCH",
@@ -99,8 +137,33 @@ export default function Details() {
     } catch (e) {
       console.error(`failed changing manga rating, ${(e as Error).message}`);
       setMangaRating(previous);
+      setRatingFailed(true);
     }
   };
+
+  if (loadError === "network") {
+    return (
+      <div className={styles.errorState} role="alert">
+        <h1>Couldn't reach the shelf.</h1>
+        <p>The server didn't answer. Check your connection and try again.</p>
+        <div className={styles.errorActions}>
+          <button
+            type="button"
+            className="btn btn-primary"
+            onClick={() => {
+              setLoadError(null);
+              setLoadTry(loadTry + 1);
+            }}
+          >
+            Try again
+          </button>
+          <NavLink to="/shelf" className="btn btn-ghost" viewTransition>
+            Back to the shelf
+          </NavLink>
+        </div>
+      </div>
+    );
+  }
 
   if (loadError) {
     return (
@@ -167,10 +230,16 @@ export default function Details() {
               <>Read all the way through.</>
             ) : (
               <>
-                You're on{" "}
-                <span className={styles.chapter}>
-                  chapter {mangaData.bookmark}
-                </span>
+                You're on chapter{" "}
+                <ChapterStepper
+                  key={mangaData.id}
+                  mangaId={mangaData.id}
+                  value={mangaData.bookmark}
+                  onSaved={(chapter) => {
+                    setMangaData({ ...mangaData, bookmark: chapter });
+                    setChapterSaves((n) => n + 1);
+                  }}
+                />
               </>
             )}
             {mangaData.volumesOwned && (
@@ -202,6 +271,9 @@ export default function Details() {
               size="lg"
               onChange={handleRatingChange}
             />
+            <p className={styles.saveFailed} role="status">
+              {ratingFailed && DIDNT_SAVE}
+            </p>
           </div>
 
           {mangaData.description && (
@@ -218,36 +290,33 @@ export default function Details() {
 
           <div className={styles.actions}>
             <button
-              className="btn btn-primary"
+              className="btn btn-secondary"
               onClick={() =>
                 navigate(`/update/${mangaData.id}`, { viewTransition: true })
               }
             >
-              Edit
+              Edit details
             </button>
-            <button className="btn btn-secondary" onClick={handleStatusChange}>
+            <button
+              className="btn btn-secondary"
+              onClick={() => handleStatusChange()}
+            >
               {mangaStatus ? "Mark as reading" : "Mark as finished"}
             </button>
-            <NavLink
-              to={`/?${new URLSearchParams({ q: mangaData.name })}`}
-              className="btn btn-ghost"
-              viewTransition
-            >
-              Check prices
-            </NavLink>
 
             {confirmDelete ? (
               <span className={styles.confirm} role="alert">
-                Really delete it?
+                Delete this from your shelf?
                 <button
                   className={styles.confirmYes}
                   onClick={handleDeleteManga}
                   disabled={busy}
                 >
-                  {busy ? "deleting…" : "yes, delete"}
+                  {busy ? "deleting…" : "yes, delete it"}
                 </button>
                 <button
                   className={styles.confirmNo}
+                  ref={keepButton}
                   onClick={() => setConfirmDelete(false)}
                   disabled={busy}
                 >
@@ -256,12 +325,26 @@ export default function Details() {
               </span>
             ) : (
               <button
+                ref={deleteButton}
                 className={`btn btn-ghost ${styles.deleteBtn}`}
                 onClick={() => setConfirmDelete(true)}
               >
                 Delete
               </button>
             )}
+
+            <p className={styles.actionNote} role="status">
+              {actionNote}
+              {canUndoStatus && (
+                <button
+                  type="button"
+                  className={styles.undo}
+                  onClick={() => handleStatusChange(true)}
+                >
+                  Undo
+                </button>
+              )}
+            </p>
           </div>
         </div>
       </article>

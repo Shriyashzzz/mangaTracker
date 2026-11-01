@@ -19,4 +19,5 @@ mangaRouter.put("/:id", requireOwner, manga.update);
 mangaRouter.delete("/:id", requireOwner, manga.remove);
 mangaRouter.patch("/:id/status", requireOwner, manga.setStatus);
 mangaRouter.patch("/:id/rating", requireOwner, manga.setRating);
+mangaRouter.patch("/:id/bookmark", requireOwner, manga.setBookmark);
 mangaRouter.put("/:id/owned", requireOwner, manga.setOwned);
