@@ -43,7 +43,9 @@ const getMangaDexId = async (
         limit: "25",
       });
       params.append("order[relevance]", "desc");
-      const response = await fetch(`${MANGADEX_BASE_URL}${params}`);
+      const response = await fetch(`${MANGADEX_BASE_URL}${params}`, {
+        signal: AbortSignal.timeout(10_000),
+      });
 
       if (!response.ok)
         throw new Error("Unable to fetch manga details from MangaDex");
@@ -78,7 +80,9 @@ async function getCoverData(seriesId: string) {
     params.append("manga[]", `${seriesId}`);
     params.append("limit", "100"); // more data to make accurate estimate
     params.append("order[volume]", "desc"); // long series have more than 100
-    const response = await fetch(`https://api.mangadex.org/cover?${params}`);
+    const response = await fetch(`https://api.mangadex.org/cover?${params}`, {
+      signal: AbortSignal.timeout(10_000),
+    });
     const data = await response.json();
     return data;
   } catch (e) {
@@ -100,6 +104,7 @@ async function getAllChapthers(seriesId: string) {
 
     const res = await fetch(
       `https://api.mangadex.org/manga/${seriesId}/feed?${params.toString()}`,
+      { signal: AbortSignal.timeout(10_000) },
     );
     const data = await res.json();
     return data;

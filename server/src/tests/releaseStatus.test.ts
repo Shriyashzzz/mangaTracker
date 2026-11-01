@@ -53,6 +53,18 @@ test("a new chapter means the latest is past their bookmark", () => {
   expect(getReleaseStatus(readTo(203), chaptersOnly(chapter(null))).hasNewChapter).toBe(false);
 });
 
+test("a Japanese volume counts only past what they own and what's in English", () => {
+  const dates = {
+    volume: [{ volume: "26", releaseDate: "Today" }, { volume: null, releaseDate: null }],
+  } as FormatedDates;
+  const ahead = (owned: number, englishVolumes: { volume: number | null }[]) =>
+    getReleaseStatus(owns(owned), { dates, englishVolumes, anilistMax: null }).hasNewJapaneseVolume;
+  expect(ahead(25, english(25))).toBe(true);
+  expect(ahead(3, [])).toBe(true);
+  expect(ahead(26, english(25))).toBe(false);
+  expect(ahead(20, english(26))).toBe(false);
+});
+
 test("volumes still work when MangaDex couldn't answer", () => {
   const status = getReleaseStatus(
     { volumesOwned: 24, bookmark: 203 },

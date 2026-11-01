@@ -42,7 +42,9 @@ async function getCovers(seriesId: string): Promise<CoverItem[]> {
   params.append("manga[]", seriesId);
   params.append("limit", "100");
   params.append("order[volume]", "desc");
-  const res = await fetch(`${API}/cover?${params}`);
+  const res = await fetch(`${API}/cover?${params}`, {
+    signal: AbortSignal.timeout(10_000),
+  });
   if (!res.ok) throw new Error(`MangaDex cover request failed: ${res.status}`);
   const json = (await res.json()) as { data?: CoverItem[] };
   return json.data ?? [];
@@ -56,7 +58,9 @@ async function getChapterProgress(
   try {
     const params = new URLSearchParams();
     params.append("translatedLanguage[]", language);
-    const res = await fetch(`${API}/manga/${seriesId}/aggregate?${params}`);
+    const res = await fetch(`${API}/manga/${seriesId}/aggregate?${params}`, {
+      signal: AbortSignal.timeout(10_000),
+    });
     if (!res.ok) return { unassigned: null, avgPerVolume: null };
     const json = (await res.json()) as AggregateResponse;
     const vols = json.volumes ?? {};
