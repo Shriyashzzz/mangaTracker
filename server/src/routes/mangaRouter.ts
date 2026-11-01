@@ -14,6 +14,7 @@ mangaRouter.get("/match", manga.match);
 
 // requireOwner: the manga exists and belongs to whoever is signed in
 mangaRouter.get("/:id", requireOwner, manga.detail);
+mangaRouter.get("/:id/releases", requireOwner, manga.releases);
 mangaRouter.put("/:id", requireOwner, manga.update);
 mangaRouter.delete("/:id", requireOwner, manga.remove);
 mangaRouter.patch("/:id/status", requireOwner, manga.setStatus);

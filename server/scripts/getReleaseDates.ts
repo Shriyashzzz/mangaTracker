@@ -3,7 +3,7 @@ import getFormatedDates from "../src/util/volumeDataFormatter.js";
 import type { FormatedDates } from "../src/util/volumeDataFormatter.js";
 import { estimateNextVolume } from "../src/util/estimateNextVolume.js";
 
-type MangaReleaseDates<T> = {
+export type MangaReleaseDates<T> = {
   ok: boolean;
   data?: T;
 };
@@ -89,7 +89,7 @@ async function getReleaseDates(
       chapterEstimate,
       volumeEstimate,
     );
-    console.log(formatedDates);
+
     return { ok: true, data: formatedDates };
   } catch (e) {
     console.error(e);

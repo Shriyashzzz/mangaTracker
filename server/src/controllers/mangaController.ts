@@ -6,9 +6,12 @@ import { body, matchedData, query } from "express-validator";
 import { rejectInvalid } from "../middlewares/validate.js";
 import mangaQueries, { type MangaInput } from "../models/mangaQueries.js";
 import { findOnShelf, getShelfPrices } from "../prices/service.js";
+import { getSeriesInfo } from "../prices/anilist.js";
+import { getCachedReleaseDates } from "../util/releaseCache.js";
+import { getReleaseStatus } from "../util/releaseStatus.js";
+import type { Manga } from "../../generated/prisma/client.js";
 
 // ---------- validation shared by add and edit ----------
-
 const mangaFields = [
   body("name")
     .trim()
@@ -73,10 +76,28 @@ const add = [
   },
 ];
 
-const detail = (_req: Request, res: Response) => {
-  console.log(res.locals.manga);
-  res.locals.mangaName = res.locals.manga.name;
-  res.json({ manga: res.locals.manga });
+// release dates and what's new for this reader; null if MangaDex can't say
+const lookUpReleases = async (manga: Manga) => {
+  const [dates, info] = await Promise.all([
+    getCachedReleaseDates(manga.name),
+    getSeriesInfo(manga.name),
+  ]);
+  if (!dates.ok || !dates.data) return null;
+  return {
+    releaseData: dates.data,
+    releaseStatus: getReleaseStatus(manga, dates.data, info?.volumes ?? null),
+  };
+};
+
+const detail = async (_req: Request, res: Response) => {
+  const releases = await lookUpReleases(res.locals.manga);
+  res.json({ manga: res.locals.manga, ...releases });
+};
+
+// what's new for one manga, for the shelf's New tab
+const releases = async (_req: Request, res: Response) => {
+  const found = await lookUpReleases(res.locals.manga);
+  res.json({ releaseStatus: found?.releaseStatus ?? null });
 };
 
 const update = [
@@ -162,6 +183,7 @@ export default {
   list,
   add,
   detail,
+  releases,
   update,
   remove,
   setStatus,
