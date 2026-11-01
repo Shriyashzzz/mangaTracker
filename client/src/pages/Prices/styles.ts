@@ -46,6 +46,11 @@ export const pricesStyles = {
   // inside a results section the count sits above the grid, not overlapping
   count: "-mb-4 font-mono text-[0.78rem] text-muted [section>&]:mb-[0.9rem]",
 
+  // same two columns as `front`, so the right side lines up; phones stack
+  frontBody:
+    "grid grid-cols-[minmax(0,1fr)_minmax(270px,310px)] items-start gap-6 upto-860:grid-cols-[minmax(0,1fr)] upto-860:gap-8",
+  frontRows: "flex min-w-0 flex-col gap-8",
+
   // ---------- cards ----------
   grid: "grid grid-cols-[repeat(auto-fill,minmax(140px,1fr))] gap-x-5 gap-y-7 upto-720:grid-cols-2 upto-720:gap-x-4 upto-720:gap-y-6",
   card: "group flex flex-col gap-[0.35rem] focus-visible:outline-none",
@@ -75,7 +80,7 @@ export const pricesStyles = {
   emptyActions: "mt-2 flex flex-wrap justify-center gap-3",
   emptyTitle: "font-display text-[1.5rem] font-semibold text-ink",
   promo:
-    "prices-promo flex flex-wrap items-center justify-between gap-x-8 gap-y-4 border-[1.5px] border-dashed border-line-soft px-6 py-5",
+    "prices-promo sticky top-5 flex flex-col items-start gap-3 border-[1.5px] border-dashed border-line-soft bg-card px-5 py-4 upto-860:static upto-860:flex-row upto-860:flex-wrap upto-860:items-center upto-860:justify-between upto-860:gap-x-8 upto-860:gap-y-4 upto-860:bg-transparent upto-860:px-6 upto-860:py-5",
   promoBody: "max-w-[46ch] text-ink-soft",
 
   // ---------- volume page: cover beside everything else ----------

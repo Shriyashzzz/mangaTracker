@@ -25,22 +25,8 @@ const STRIP = [
   {
     mood: "happy" as const,
     caption: "Now it's all in one place.",
-    line: "Ch. 327. Vol. 12's out. And it's $8!",
+    line: "Ch. 327. Vol. 12. Only $8!",
   },
-];
-
-const PRICE_FEATURES = [
-  "Compare what US stores charge for any volume, new, marketplace or ebook.",
-  "Search by title, or paste the ISBN from the back of a volume.",
-  "Check the price history, so you know a real deal when you see one.",
-  "Browse every series by popularity or A to Z, and filter by genre.",
-];
-
-const SHELF_FEATURES = [
-  "Save your exact chapter, and search, sort or filter the whole shelf.",
-  "Rate what you finish and keep your own notes.",
-  "Record the volumes you own and see the next one's price.",
-  "Pick a title when you add a manga, and its cover and genre fill in.",
 ];
 
 export function AboutPage() {
@@ -69,8 +55,7 @@ export function AboutPage() {
             <NavLink to="/shelf" viewTransition>
               Shelf
             </NavLink>{" "}
-            fixes that by saving your exact chapter in seconds, and shows you
-            which series have something new to read.
+            fixes that by saving your exact chapter in seconds.
           </p>
           <p className={styles.lead}>
             As a broke college student who loves physical manga, I feel for
@@ -101,58 +86,44 @@ export function AboutPage() {
         </ol>
       </section>
 
-      {/* everything the site does, laid out as one more manga page */}
+      {/* the two halves of the site, one panel each */}
       <section aria-labelledby="does-title">
         <h2 id="does-title" className={styles.sectionTitle}>
           What it can do
         </h2>
         <div className={`${styles.does} printed`}>
-          <section className={styles.doesWide} aria-labelledby="does-new">
-            <div className={styles.doesArt} aria-hidden>
-              <span className={styles.doesVol}>
-                <small>vol.</small>25
+          <section className={styles.doesPanel} aria-labelledby="does-shelf">
+            <div className={`${styles.doesArt} ${styles.doesLines}`} aria-hidden>
+              <span className={styles.doesBig}>
+                <small>ch.</small>327
               </span>
-              <span className={styles.doesSfx}>It's out!</span>
+              <span className={styles.doesSfx}>Saved!</span>
             </div>
             <div className={styles.doesCopy}>
-              <h3 id="does-new" className={styles.doesTitle}>
-                New releases
+              <h3 id="does-shelf" className={styles.doesTitle}>
+                Your shelf
               </h3>
-              <p>
-                Your shelf's New tab shows which series have a new English
-                volume or chapter, and which volumes Japan already has. One
-                volume behind? The manga's page shows when the next chapter
-                should land.
-              </p>
+              <p>Save your chapter, rate what you finish, track what you own.</p>
+              <NavLink to="/shelf" className={styles.doesLink} viewTransition>
+                Open my shelf →
+              </NavLink>
             </div>
           </section>
 
           <section className={styles.doesPanel} aria-labelledby="does-prices">
-            <h3 id="does-prices" className={styles.doesTitle}>
-              Price check
-            </h3>
-            <ul className={styles.doesList}>
-              {PRICE_FEATURES.map((feature) => (
-                <li key={feature}>{feature}</li>
-              ))}
-            </ul>
-            <NavLink to="/" className={styles.doesLink} viewTransition>
-              Check a price →
-            </NavLink>
-          </section>
-
-          <section className={styles.doesPanel} aria-labelledby="does-shelf">
-            <h3 id="does-shelf" className={styles.doesTitle}>
-              Your shelf
-            </h3>
-            <ul className={styles.doesList}>
-              {SHELF_FEATURES.map((feature) => (
-                <li key={feature}>{feature}</li>
-              ))}
-            </ul>
-            <NavLink to="/shelf" className={styles.doesLink} viewTransition>
-              Open my shelf →
-            </NavLink>
+            <div className={`${styles.doesArt} ${styles.doesTone}`} aria-hidden>
+              <span className={styles.doesBig}>$8</span>
+              <span className={styles.doesSfx}>Deal!</span>
+            </div>
+            <div className={styles.doesCopy}>
+              <h3 id="does-prices" className={styles.doesTitle}>
+                Price check
+              </h3>
+              <p>See what US stores charge for any volume, and its price history.</p>
+              <NavLink to="/" className={styles.doesLink} viewTransition>
+                Check a price →
+              </NavLink>
+            </div>
           </section>
         </div>
       </section>
@@ -167,8 +138,7 @@ export function AboutPage() {
             Now out: new release check
           </h2>
           <p>
-            Open the New tab on your shelf and see what's come out since you
-            last read or bought.
+            See which series on your shelf have a new volume or chapter out.
           </p>
         </section>
 

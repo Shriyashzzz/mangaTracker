@@ -122,8 +122,15 @@ export default function PriceSearch() {
         </section>
       )}
 
-      {!searching && <Highlights />}
-      {!searching && <ShelfPromo />}
+      {/* the rows, with the shelf pointer in the free space on their right */}
+      {!searching && (
+        <div className={styles.frontBody}>
+          <div className={styles.frontRows}>
+            <Highlights />
+          </div>
+          <ShelfPromo />
+        </div>
+      )}
       <ReleaseTip enabled={!searching} />
     </div>
   );
