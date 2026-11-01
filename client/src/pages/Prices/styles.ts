@@ -77,7 +77,7 @@ export const pricesStyles = {
     "prices-promo flex flex-wrap items-center justify-between gap-x-8 gap-y-4 border-[1.5px] border-dashed border-line-soft px-6 py-5 min-[1340px]:hidden",
   // the same pointer, slimmed down for the margin above what's new
   promoMargin:
-    "flex flex-col items-start gap-2 border-[1.5px] border-dashed border-line-soft bg-card px-3 py-3",
+    "flex flex-col items-start gap-2 border-[2.5px] border-dashed border-line bg-card px-3 py-3",
   promoMarginTitle:
     "font-brand text-[1.2rem] leading-[1.05] font-normal tracking-[0.03em] uppercase",
   promoMarginBody: "mt-1 text-[0.82rem] leading-[1.35] text-ink-soft",

@@ -6,18 +6,20 @@ import { NavLink } from "react-router";
 import { openReleasesOnShelf } from "../../lib/shelf";
 import { useAuth } from "../../store/auth";
 
+// what an English reader asks after "is there a new one?": when's the next
+// chapter, what will the volume cost, and how fast can I add a series
 const ITEMS = [
-  {
-    name: "In Japan",
-    body: "See the volumes Japan already has, before English catches up.",
-  },
   {
     name: "Next chapter dates",
     body: "A volume behind? The manga's page shows when the next chapter should land.",
   },
   {
-    name: "Title suggestions",
-    body: "Adding a manga? Pick its title and the cover and genre fill in.",
+    name: "Next volume's price",
+    body: "The manga's page shows the next volume you need and the lowest price we've seen.",
+  },
+  {
+    name: "Quick add",
+    body: "Pick a title and the cover and genre fill in.",
   },
 ];
 
@@ -48,10 +50,10 @@ export default function WhatsNew({ children }: { children?: ReactNode }) {
         </h2>
 
         <h3 className="mt-2 font-display text-[0.98rem] leading-[1.15] font-medium">
-          New release check
+          New English volumes
         </h3>
         <p className="mt-1 text-[0.82rem] leading-[1.35] text-ink-soft">
-          See which series have a new volume or chapter out.
+          See which series on your shelf have a new volume or chapter out in English.
         </p>
         {/* wait for the answer so a signed-in reader never sees the guest link */}
         {isSignedIn !== null && (
