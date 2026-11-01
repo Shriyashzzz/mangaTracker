@@ -21,8 +21,14 @@ export type VolumeEstimate = {
 
 type CoverItem = { attributes: { volume: string | null; createdAt: string } };
 
+type AggregateVolume = {
+  volume: string;
+  count: number;
+  chapters?: Record<string, unknown>;
+};
+
 type AggregateResponse = {
-  volumes?: Record<string, { volume: string; count: number }>;
+  volumes?: Record<string, AggregateVolume>;
 };
 
 function median(nums: number[]): number {
@@ -36,7 +42,9 @@ async function getCovers(seriesId: string): Promise<CoverItem[]> {
   params.append("manga[]", seriesId);
   params.append("limit", "100");
   params.append("order[volume]", "desc");
-  const res = await fetch(`${API}/cover?${params}`);
+  const res = await fetch(`${API}/cover?${params}`, {
+    signal: AbortSignal.timeout(10_000),
+  });
   if (!res.ok) throw new Error(`MangaDex cover request failed: ${res.status}`);
   const json = (await res.json()) as { data?: CoverItem[] };
   return json.data ?? [];
@@ -50,17 +58,22 @@ async function getChapterProgress(
   try {
     const params = new URLSearchParams();
     params.append("translatedLanguage[]", language);
-    const res = await fetch(`${API}/manga/${seriesId}/aggregate?${params}`);
+    const res = await fetch(`${API}/manga/${seriesId}/aggregate?${params}`, {
+      signal: AbortSignal.timeout(10_000),
+    });
     if (!res.ok) return { unassigned: null, avgPerVolume: null };
     const json = (await res.json()) as AggregateResponse;
     const vols = json.volumes ?? {};
 
-    const unassigned = vols["none"]?.count ?? 0;
+    // count is uploads, and a chapter can have several; chapters has one key each
+    const chapterCount = (v?: AggregateVolume) =>
+      Object.keys(v?.chapters ?? {}).length;
+    const unassigned = chapterCount(vols["none"]);
     const counts = Object.entries(vols)
       .filter(([key]) => key !== "none" && Number.isFinite(parseFloat(key)))
       .sort((a, b) => parseFloat(a[0]) - parseFloat(b[0]))
       .slice(-8)
-      .map(([, v]) => v.count)
+      .map(([, v]) => chapterCount(v))
       .filter((n) => n > 0);
 
     return {
@@ -145,7 +158,11 @@ export async function estimateNextVolume(
   if (missed > 0) {
     note =
       "The next volume looks overdue; there may be a break, so this is rough.";
-  } else if (unassigned != null && avgPerVolume != null) {
+  } else if (
+    unassigned != null &&
+    avgPerVolume != null &&
+    unassigned <= avgPerVolume // more than that means MangaDex's volume data is thin
+  ) {
     note += ` ${unassigned} of ~${avgPerVolume} chapters are out for the next volume.`;
   }
 

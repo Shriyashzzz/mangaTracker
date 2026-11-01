@@ -8,6 +8,8 @@ import type { Manga, ShelfPrice } from "../../lib/types";
 type Props = {
   currentManga: Manga;
   priceTag?: ShelfPrice;
+  // what's just come out for it, on the shelf's New tab
+  news?: string;
   // position on the shelf, for the staggered entrance
   index?: number;
 };
@@ -20,6 +22,7 @@ const cover =
 export default function MangaCard({
   currentManga,
   priceTag,
+  news,
   index = 0,
 }: Props) {
   const genre =
@@ -61,6 +64,11 @@ export default function MangaCard({
           {currentManga.status ? "finished" : `ch. ${currentManga.bookmark}`}
           {genre && <span> · {genre}</span>}
         </p>
+        {news && (
+          <p className="font-brand text-[1.05rem] tracking-[1px] text-accent">
+            {news}
+          </p>
+        )}
         {priceTag && (
           <p
             // the lowest price we've seen for the series at the stores we

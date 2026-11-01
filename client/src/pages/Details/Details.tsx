@@ -3,14 +3,18 @@ import { detailsStyles as styles } from "./styles";
 import { NavLink, useNavigate, useParams } from "react-router";
 import StarRating from "../../components/starRating/StarRating";
 import { apiFetch, FALLBACK_COVER } from "../../lib/api";
-import type { Manga } from "../../lib/types";
+import type { Manga, ReleaseData, ReleaseStatus } from "../../lib/types";
 import SlowLoadQuote from "../../components/slowLoadQuote/SlowLoadQuote";
 import { usePrivatePage } from "../../lib/seo";
+import { getReleases } from "../../lib/shelf";
 import BuyStrip from "./BuyStrip";
+import ReleasePanel from "./ReleasePanel";
 
 export default function Details() {
   usePrivatePage("Manga details");
   const [mangaData, setMangaData] = useState<Manga | null>(null);
+  const [releaseData, setReleaseData] = useState<ReleaseData | null>(null);
+  const [releaseStatus, setReleaseStatus] = useState<ReleaseStatus | null>(null);
   const [loadError, setLoadError] = useState(false);
   const { id } = useParams();
   const [mangaStatus, setMangaStatus] = useState(false);
@@ -35,6 +39,19 @@ export default function Details() {
       }
     }
     getManga();
+  }, [id]);
+
+  // can take a few seconds, so the page doesn't wait for it. Nice to have: the
+  // panel just doesn't appear if this fails
+  useEffect(() => {
+    const controller = new AbortController();
+    getReleases(Number(id), controller.signal)
+      .then((found) => {
+        setReleaseData(found.releaseData);
+        setReleaseStatus(found.releaseStatus);
+      })
+      .catch(() => {});
+    return () => controller.abort();
   }, [id]);
 
   const handleDeleteManga = async () => {
@@ -102,6 +119,10 @@ export default function Details() {
   const cover = mangaData.image || FALLBACK_COVER;
   const genre =
     mangaData.genre && mangaData.genre !== "unlabled" ? mangaData.genre : null;
+  const showRelease =
+    releaseStatus?.hasNewVolume &&
+    releaseStatus.latestVolume != null &&
+    mangaData.volumesOwned != null;
 
   return (
     <div className="fade-in">
@@ -109,8 +130,12 @@ export default function Details() {
         ← back to the shelf
       </NavLink>
 
-      <article className={styles.layout}>
-        <figure className={`${styles.cover} ${styles.coverTilt}`}>
+      <article
+        className={`${styles.layout} ${showRelease ? styles.layoutWithRelease : ""}`}
+      >
+        <figure
+          className={`${styles.cover} ${styles.coverTilt} ${showRelease ? styles.coverBesideRelease : ""}`}
+        >
           <img
             src={cover}
             alt={mangaData.name}
@@ -137,7 +162,10 @@ export default function Details() {
               <>Read all the way through.</>
             ) : (
               <>
-                You're on <span className={styles.chapter}>chapter {mangaData.bookmark}</span>
+                You're on{" "}
+                <span className={styles.chapter}>
+                  chapter {mangaData.bookmark}
+                </span>
               </>
             )}
             {mangaData.volumesOwned && (
@@ -148,7 +176,18 @@ export default function Details() {
           </p>
         </header>
 
-        <div className={styles.body}>
+        {showRelease && (
+          <ReleasePanel
+            latestVolume={releaseStatus.latestVolume!}
+            volumesOwned={mangaData.volumesOwned!}
+            latestJapaneseVolume={releaseStatus.latestJapaneseVolume}
+            data={releaseData}
+          />
+        )}
+
+        <div
+          className={`${styles.body} ${showRelease ? styles.bodyBelowRelease : ""}`}
+        >
           <div className={styles.rating}>
             <span className={styles.label}>
               {mangaRating ? "Your rating" : "Rate it"}

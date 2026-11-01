@@ -86,7 +86,7 @@ function getFormatedDates(
       releaseDate: formatReleaseDate(c.attributes.createdAt),
     }));
 
-    // Chapters are ordered by publishAt desc, so index 0 is the latest released chapter.
+    // Chapters are ordered by number desc, so index 0 is the latest released chapter.
     // The upcoming chapter comes from the estimate (exact if scheduled, otherwise predicted).
     const chapters = chapterData.data;
 

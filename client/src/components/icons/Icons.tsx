@@ -73,6 +73,12 @@ export const ChevronLeftIcon = (props: IconProps) => (
   </svg>
 );
 
+export const ChevronDownIcon = (props: IconProps) => (
+  <svg {...base} {...props}>
+    <path d="m6 9 6 6 6-6" />
+  </svg>
+);
+
 export const ChevronRightIcon = (props: IconProps) => (
   <svg {...base} {...props}>
     <path d="m9 18 6-6-6-6" />

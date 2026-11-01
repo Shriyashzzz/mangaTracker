@@ -5,10 +5,12 @@ import type { Request, Response } from "express";
 import { body, matchedData, query } from "express-validator";
 import { rejectInvalid } from "../middlewares/validate.js";
 import mangaQueries, { type MangaInput } from "../models/mangaQueries.js";
-import { findOnShelf, getShelfPrices } from "../prices/service.js";
+import { findOnShelf, getSeries, getShelfPrices } from "../prices/service.js";
+import { getCachedReleaseDates, withTimeout } from "../util/releaseCache.js";
+import { getReleaseStatus } from "../util/releaseStatus.js";
+import type { Manga } from "../../generated/prisma/client.js";
 
 // ---------- validation shared by add and edit ----------
-
 const mangaFields = [
   body("name")
     .trim()
@@ -73,10 +75,39 @@ const add = [
   },
 ];
 
+const SERIES_TIMEOUT_MS = 15_000;
+
 const detail = (_req: Request, res: Response) => {
-  console.log(res.locals.manga);
-  res.locals.mangaName = res.locals.manga.name;
   res.json({ manga: res.locals.manga });
+};
+
+// release dates and what's new in English for one manga. Its own route because
+// it can be slow, so the details page and the edit form don't wait for it
+const releases = async (_req: Request, res: Response) => {
+  const manga: Manga = res.locals.manga;
+  // a catalog failure or a slow one only costs the volume half of the answer;
+  // if it's slow it carries on and is ready for the next check
+  const series = await withTimeout(
+    getSeries(manga.name).catch(() => null),
+    SERIES_TIMEOUT_MS,
+    null,
+  );
+  const dates = await getCachedReleaseDates(manga.name, {
+    anilistId: series?.info?.anilistId,
+    altNames: series?.info?.altNames,
+  });
+  const releaseData = dates.ok && dates.data ? dates.data : null;
+  if (!releaseData && !series) {
+    return res.json({ releaseData: null, releaseStatus: null });
+  }
+  return res.json({
+    releaseData,
+    releaseStatus: getReleaseStatus(manga, {
+      dates: releaseData,
+      englishVolumes: series?.volumes ?? [],
+      anilistMax: series?.info?.volumes ?? null,
+    }),
+  });
 };
 
 const update = [
@@ -162,6 +193,7 @@ export default {
   list,
   add,
   detail,
+  releases,
   update,
   remove,
   setStatus,

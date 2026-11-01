@@ -37,10 +37,15 @@ export default function RangePager({
   const pages = Math.ceil(total / pageSize);
 
   // on phones the chips scroll sideways; keep the current one in view
+  // (only the chips: scrollIntoView would also drag the whole page to the pager)
   useEffect(() => {
-    chipsRef.current
-      ?.querySelector("[aria-current]")
-      ?.scrollIntoView({ block: "nearest", inline: "nearest" });
+    const chips = chipsRef.current;
+    const chip = chips?.querySelector("[aria-current]");
+    if (!chips || !chip) return;
+    const box = chips.getBoundingClientRect();
+    const { left, right } = chip.getBoundingClientRect();
+    if (left < box.left) chips.scrollLeft -= box.left - left;
+    else if (right > box.right) chips.scrollLeft += right - box.right;
   }, [page]);
 
   if (pages <= 1) return null;

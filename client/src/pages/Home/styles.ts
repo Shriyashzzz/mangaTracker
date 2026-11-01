@@ -4,6 +4,10 @@
 // a status tab; the active one is inked with a marker on the toolbar rule
 const tab = "relative py-[0.2rem] text-[1rem] transition-colors duration-150 ease-[ease]";
 
+// one side of the New tab's volumes / chapters switch
+const releaseKind =
+  "min-h-11 px-4 font-brand text-[1.15rem] tracking-[1px] whitespace-nowrap transition-colors duration-150 ease-[ease] not-first:border-l-2 not-first:border-line upto-520:flex-1 upto-520:px-2 upto-520:text-[1.05rem]";
+
 // one manga panel of the guest landing
 const panel =
   "relative flex flex-col border-3 border-line bg-paper animate-panel-open motion-reduce:animate-none";
@@ -17,7 +21,7 @@ export const homeStyles = {
   // sides so tilted cards never peek out beside it while scrolling
   toolbar:
     "sticky top-0 z-5 -mx-3 mb-9 flex flex-wrap items-end justify-between gap-x-8 gap-y-4 border-b-[1.5px] border-line bg-[var(--surface,var(--paper))] px-3 py-[0.9rem] [&+nav]:-mt-4",
-  tabs: "flex gap-6 upto-520:gap-[1.1rem]",
+  tabs: "flex gap-6 upto-520:gap-3 upto-520:[&_button]:text-[0.92rem]",
   tab: `${tab} text-muted hover:text-ink`,
   tabActive: `${tab} font-semibold text-ink after:absolute after:inset-x-0 after:-bottom-[calc(0.9rem+2.5px)] after:h-1 after:bg-accent`,
   count: "ml-0.5 font-mono text-[0.78rem] font-normal text-muted",
@@ -31,6 +35,27 @@ export const homeStyles = {
   classContainer:
     "grid grid-cols-[repeat(auto-fill,minmax(160px,1fr))] gap-x-6 gap-y-9 upto-520:grid-cols-2 upto-520:gap-x-4 upto-520:gap-y-7",
   pagerBottom: "mt-10",
+  // the New tab's own switch: new volumes or new chapters, one at a time
+  releaseTools:
+    "mb-8 flex flex-wrap items-center justify-between gap-x-6 gap-y-3",
+  releaseKinds:
+    "flex overflow-hidden rounded-ink border-2 border-line upto-520:w-full",
+  releaseKind: `${releaseKind} bg-card text-ink-soft hover:text-ink`,
+  releaseKindActive: `${releaseKind} bg-accent text-on-accent`,
+  releaseKindCount: "ml-1 font-mono text-[0.78rem] tracking-normal",
+  releaseNote: "font-letter text-[1rem] font-bold text-ink-soft",
+  // the check's progress: above the cards once there are some
+  checkingInline:
+    "mb-6 font-letter text-[1rem] font-bold text-ink-soft [&>p+p]:mt-1",
+  // and in the middle of the page until there are
+  checkingCentre:
+    "mx-auto flex min-h-[46dvh] max-w-[460px] flex-col items-center justify-center gap-3 text-center",
+  checkingTitle: "font-brand text-[1.7rem] leading-[1.15] tracking-[1px] text-balance",
+  bigShelfNote: "font-letter text-[1rem] font-bold text-ink-soft text-pretty",
+  // nothing new: a little inked panel, tilted like it was stuck on the page
+  nothingNew:
+    "mx-auto my-12 max-w-[440px] -rotate-1 rounded-ink border-[2.5px] border-line bg-card px-8 pt-8 pb-3 text-center shadow-ink-lg motion-reduce:rotate-0 upto-520:mx-0 upto-520:rotate-0",
+  nothingNewTitle: "font-brand text-[1.9rem] leading-[1.1] tracking-[1px] text-balance",
   skeletonTitle: "mb-10 h-[46px] w-60",
 
   // ---------- empty states ----------
