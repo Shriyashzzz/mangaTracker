@@ -149,7 +149,7 @@ export default function PriceSeries() {
       </header>
 
       <section aria-labelledby="volumes-title">
-        <div className={styles.sectionHead}>
+        <div className={styles.sectionHeadRow}>
           <h2 id="volumes-title" className={styles.sectionTitle}>
             Volumes
           </h2>

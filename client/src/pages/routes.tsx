@@ -34,6 +34,8 @@ export const routes = [
       { path: "/prices/series/:slug", element: <PriceSeries /> },
       // the title part is optional, so ISBN-only links keep working
       { path: "/prices/:isbn/:slug?", element: <PriceVolume /> },
+      // an unknown address keeps the header and footer, so there's a way on
+      { path: "*", element: <ErrorPage /> },
     ],
   },
 ];

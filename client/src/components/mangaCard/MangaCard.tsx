@@ -4,12 +4,14 @@ import { FALLBACK_COVER } from "../../lib/api";
 import { formatCents } from "../../lib/prices";
 import type { Manga, ShelfPrice } from "../../lib/types";
 
+// what's come out for it on the New tab; loud when it's the very next one
+export type CardNews = { text: string; loud: boolean };
+
 // priceTag: the cheapest price we've seen for the series, if any
 type Props = {
   currentManga: Manga;
   priceTag?: ShelfPrice;
-  // what's just come out for it, on the shelf's New tab
-  news?: string;
+  news?: CardNews;
   // added to the card's link, e.g. to open the details in the Japan view
   detailsSearch?: string;
   // position on the shelf, for the staggered entrance
@@ -68,8 +70,14 @@ export default function MangaCard({
           {genre && <span> · {genre}</span>}
         </p>
         {news && (
-          <p className="font-brand text-[1.05rem] tracking-[1px] text-accent">
-            {news}
+          <p
+            className={
+              news.loud
+                ? "font-brand text-[1.05rem] tracking-[1px] text-accent"
+                : "text-[0.85rem] leading-[1.3] font-medium text-ink-soft"
+            }
+          >
+            {news.text}
           </p>
         )}
         {priceTag && (
@@ -77,9 +85,9 @@ export default function MangaCard({
             // the lowest price we've seen for the series at the stores we
             // check (not every store), quiet until you look
             className="font-mono text-[0.78rem] text-muted"
-            title={`Lowest price we've seen at the stores we check: ${priceTag.title}`}
+            title={`At the stores we check: ${priceTag.title}`}
           >
-            seen from{" "}
+            lowest seen{" "}
             <span className="font-medium text-accent">
               {formatCents(priceTag.fromCents)}
             </span>

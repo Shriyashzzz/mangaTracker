@@ -16,6 +16,18 @@ export const getReleases = (id: number, signal?: AbortSignal) =>
 // the shelf moves on to the next title rather than waiting forever
 export const RELEASE_CHECK_TIMEOUT_MS = 50_000;
 
+// set once a whole shelf has had its releases checked
+export const CHECKED_BEFORE_KEY = "releasesCheckedBefore";
+
+// makes the shelf open on its New tab; call just before going to /shelf
+export const openReleasesOnShelf = () => {
+  try {
+    sessionStorage.setItem("libraryStatus", "new");
+  } catch {
+    // storage can be blocked; the shelf just opens on its usual tab
+  }
+};
+
 // the manga on the signed-in shelf that is this series, or null
 export const findOnShelf = (series: string, signal?: AbortSignal) =>
   getJson<ShelfMatch>(

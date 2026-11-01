@@ -19,10 +19,10 @@ type Props = {
 
 // shared by the chips and the arrow buttons
 const pagerButton =
-  "h-[34px] shrink-0 rounded-[2px] border-[1.5px] border-line-soft bg-card font-mono text-[0.8rem] whitespace-nowrap text-ink-soft transition-[border-color,color] duration-120 ease-[ease] focus-visible:outline-offset-2";
+  "h-[34px] upto-720:h-11 shrink-0 rounded-[2px] border-[1.5px] border-line-soft bg-card font-mono text-[0.8rem] whitespace-nowrap text-ink-soft transition-[border-color,color] duration-120 ease-[ease] focus-visible:outline-offset-2";
 const stepButton = clsx(
   pagerButton,
-  "grid w-[34px] place-items-center p-0 hover:enabled:border-line hover:enabled:text-ink disabled:cursor-default disabled:opacity-40 [&_svg]:size-4",
+  "grid w-[34px] upto-720:w-11 place-items-center p-0 hover:enabled:border-line hover:enabled:text-ink disabled:cursor-default disabled:opacity-40 [&_svg]:size-4",
 );
 
 export default function RangePager({

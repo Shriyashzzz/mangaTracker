@@ -87,7 +87,10 @@ export default function VolumeCard({
         <span className={styles.cardPrice}>
           {formatCents(priceCents)}
           {wasCents != null && (
-            <s className={styles.cardWas}>{formatCents(wasCents)}</s>
+            <s className={styles.cardWas}>
+              <span className="sr-only">usually </span>
+              {formatCents(wasCents)}
+            </s>
           )}
         </span>
       )}

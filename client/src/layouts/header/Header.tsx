@@ -9,7 +9,7 @@ import { useAuth } from "../../store/auth";
 
 const linkClass = (active: boolean) =>
   clsx(
-    "relative py-1 text-[0.95rem] transition-colors duration-150 hover:text-ink",
+    "tap relative py-1 text-[0.95rem] transition-colors duration-150 hover:text-ink",
     active ? "squiggle text-ink" : "text-ink-soft",
   );
 
@@ -17,8 +17,11 @@ export default function Header() {
   const navigate = useNavigate();
   const { pathname } = useLocation();
   const { isSignedIn, logOut } = useAuth();
-  // the price checker lives at "/" and under /prices
-  const onPrices = pathname === "/" || pathname.startsWith("/prices");
+  // the price checker lives at "/", under /prices and at /series
+  const onPrices =
+    pathname === "/" ||
+    pathname.startsWith("/prices") ||
+    pathname.startsWith("/series");
 
   const handleLogOut = async () => {
     if (await logOut()) navigate("/", { viewTransition: true });
@@ -30,7 +33,7 @@ export default function Header() {
         <NavLink
           to="/"
           viewTransition
-          className="group mr-auto flex items-center gap-[0.55rem] font-brand text-[1.6rem] leading-none tracking-[1px]"
+          className="tap group mr-auto flex items-center gap-[0.55rem] font-brand text-[1.6rem] leading-none tracking-[1px]"
         >
           <img
             src={logo}

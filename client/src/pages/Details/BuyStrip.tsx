@@ -62,9 +62,15 @@ export default function BuyStrip({ name, volumesOwned }: Props) {
 
   return (
     <section className={styles.buy} aria-labelledby="buy-title">
-      <h2 id="buy-title" className={styles.label}>
-        Buy the volumes
-      </h2>
+      <div className={styles.buyHead}>
+        <h2 id="buy-title" className={styles.label}>
+          Buy the volumes
+        </h2>
+        {/* a way to look further, not something to buy, so not a ticket */}
+        <NavLink className={styles.buySeries} to={seriesPath(seriesName)} viewTransition>
+          {volumes.length === 1 ? "The series" : `All ${volumes.length} volumes`} →
+        </NavLink>
+      </div>
       <ul className={styles.buyList}>
         {next && (
           <li>
@@ -109,12 +115,6 @@ export default function BuyStrip({ name, volumesOwned }: Props) {
               </NavLink>
             </li>
           )}
-        <li>
-          <NavLink className={styles.buyLink} to={seriesPath(seriesName)} viewTransition>
-            <span className={styles.buyKind}>Series</span>
-            All {volumes.length} volumes →
-          </NavLink>
-        </li>
       </ul>
     </section>
   );

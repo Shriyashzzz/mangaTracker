@@ -152,6 +152,22 @@ const setRating = [
   },
 ];
 
+// the chapter they're on, from the steppers on the details page
+const setBookmark = [
+  body("bookmark")
+    .isInt({ min: 0, max: 100000 })
+    .withMessage("Bookmark has to be a number luv!")
+    .toInt(),
+  rejectInvalid,
+  async (req: Request, res: Response) => {
+    await mangaQueries.setBookmark(
+      res.locals.manga.id,
+      matchedData(req).bookmark,
+    );
+    res.sendStatus(204);
+  },
+];
+
 // "I own Vol. 15", and its undo. Sets the number as given; null clears it
 const setOwned = [
   body("volumesOwned")
@@ -208,6 +224,7 @@ export default {
   remove,
   setStatus,
   setRating,
+  setBookmark,
   setOwned,
   shelfPrices,
   match,

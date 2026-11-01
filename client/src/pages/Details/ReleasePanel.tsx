@@ -5,9 +5,11 @@ import { formatReleaseDate } from "../../lib/releaseDates";
 import type { ReleaseData } from "../../lib/types";
 
 type Props = {
-  volume: number;
+  // what's out: "Vol. 25" or "Ch. 250"
+  what: string;
   inJapan: boolean;
-  currentVolume: number | null;
+  // where they've got to: "vol. 24" or "ch. 203"
+  yours: string | null;
   data: ReleaseData | null;
 };
 
@@ -60,15 +62,15 @@ const groupsFrom = (data: ReleaseData | null, inJapan: boolean): Group[] => {
 // "there's a new volume": beside the entry on a laptop, a bar that folds open
 // on anything narrower
 export default function ReleasePanel({
-  volume,
+  what,
   inJapan,
-  currentVolume,
+  yours,
   data,
 }: Props) {
   const [open, setOpen] = useState(false);
   const bodyId = useId();
   const groups = groupsFrom(data, inJapan);
-  const headline = `Vol. ${volume} is out!`;
+  const headline = `${what} is out!`;
   const where = inJapan ? "Japan" : "English";
   const place = inJapan ? "in Japan" : "in English";
   const barText = (
@@ -76,7 +78,7 @@ export default function ReleasePanel({
       <span className={styles.releaseBarHeadline}>{headline}</span>
       <span className={styles.releaseBarOwned}>
         {place}
-        {currentVolume ? ` · you're on ${currentVolume}` : ""}
+        {yours ? ` · you're on ${yours}` : ""}
       </span>
     </>
   );
@@ -91,7 +93,7 @@ export default function ReleasePanel({
         <h2 className={styles.releaseHeadline}>{headline}</h2>
         <p className={styles.releaseOwned}>
           {inJapan ? "In Japan." : "In English."}
-          {currentVolume ? ` You're on vol. ${currentVolume}.` : ""}
+          {yours ? ` You're on ${yours}.` : ""}
         </p>
       </div>
 
@@ -125,12 +127,7 @@ export default function ReleasePanel({
                   <span className={styles.releaseWhen}>
                     {row.when}
                     {row.estimate && (
-                      <abbr
-                        className={styles.releaseEstimate}
-                        title="Estimated from past releases"
-                      >
-                        est.
-                      </abbr>
+                      <span className={styles.releaseEstimate}>estimated</span>
                     )}
                   </span>
                 </p>

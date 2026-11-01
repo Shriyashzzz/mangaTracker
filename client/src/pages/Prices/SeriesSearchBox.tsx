@@ -145,7 +145,7 @@ export default function SeriesSearchBox({
             }}
             onFocus={() => setOpen(true)}
             onKeyDown={onKeyDown}
-            placeholder="Search a series, or paste an ISBN"
+            placeholder={isMobile ? "Title or ISBN" : "Search a series, or paste an ISBN"}
             maxLength={100}
             autoComplete="off"
             autoFocus={isMobile ? false : autoFocus}

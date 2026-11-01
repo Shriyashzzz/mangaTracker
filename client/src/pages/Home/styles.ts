@@ -2,7 +2,7 @@
 // empty states, and the guest landing (a manga page of three panels).
 
 // a status tab; the active one is inked with a marker on the toolbar rule
-const tab = "relative py-[0.2rem] text-[1rem] transition-colors duration-150 ease-[ease]";
+const tab = "tap relative py-[0.2rem] text-[1rem] transition-colors duration-150 ease-[ease]";
 
 // one side of the New tab's volumes / chapters switch
 const releaseKind =
@@ -15,7 +15,8 @@ const panel =
 export const homeStyles = {
   // ---------- shelf ----------
   pageHead: "mb-7 flex flex-wrap items-center justify-between gap-4",
-  pageTitle: "text-[clamp(2.2rem,5vw,3.2rem)]",
+  pageTitle:
+    "font-brand text-[clamp(2.4rem,5.5vw,3.4rem)] leading-none font-normal tracking-[0.02em] uppercase",
   // the header scrolls away, this stays pinned so search and filters are
   // one tap away on a long shelf. It reaches a little past the grid on both
   // sides so tilted cards never peek out beside it while scrolling
@@ -29,9 +30,9 @@ export const homeStyles = {
   // compact until you use it, then it widens; it stays wide while it holds
   // a query. On small phones it takes the row
   search:
-    "peer/search flex w-[180px] items-center gap-[0.45rem] border-b-[1.5px] border-dashed border-line-soft py-[0.3rem] text-muted transition-[width,border-color] duration-300 ease-ink focus-within:w-80 focus-within:border-solid focus-within:border-accent has-[input:not(:placeholder-shown)]:w-80 upto-520:w-auto upto-520:flex-1 upto-520:focus-within:w-auto upto-520:has-[input:not(:placeholder-shown)]:w-auto [&_input]:min-w-0 [&_input]:flex-1 [&_input]:border-none [&_input]:bg-transparent [&_input]:text-[0.95rem] [&_input]:outline-none [&_input]:placeholder:text-muted [&_svg]:size-4 [&_svg]:shrink-0",
+    "peer/search flex min-h-11 w-[180px] items-center gap-[0.45rem] border-b-[1.5px] border-dashed border-line-soft py-[0.3rem] text-muted transition-[width,border-color] duration-300 ease-ink focus-within:w-80 focus-within:border-solid focus-within:border-accent has-[input:not(:placeholder-shown)]:w-80 upto-520:w-auto upto-520:flex-1 upto-520:focus-within:w-auto upto-520:has-[input:not(:placeholder-shown)]:w-auto [&_input]:min-w-0 [&_input]:flex-1 [&_input]:border-none [&_input]:bg-transparent [&_input]:text-[0.95rem] [&_input]:outline-none [&_input]:placeholder:text-muted [&_svg]:size-4 [&_svg]:shrink-0",
   // while typing on a phone, sort folds away so search gets the whole row
-  sort: "flex max-w-[260px] items-center gap-[0.4rem] overflow-hidden text-[0.875rem] whitespace-nowrap text-muted transition-[max-width,opacity] duration-300 ease-ink upto-520:peer-focus-within/search:-ml-4 upto-520:peer-focus-within/search:max-w-0 upto-520:peer-focus-within/search:opacity-0 [&_select]:cursor-pointer [&_select]:border-none [&_select]:bg-transparent [&_select]:text-[0.9rem] [&_select]:font-medium [&_select]:text-ink [&_select]:underline [&_select]:decoration-line-soft [&_select]:underline-offset-4",
+  sort: "flex min-h-11 max-w-[260px] items-center gap-[0.4rem] overflow-hidden text-[0.875rem] whitespace-nowrap text-muted transition-[max-width,opacity] duration-300 ease-ink upto-520:peer-focus-within/search:-ml-4 upto-520:peer-focus-within/search:max-w-0 upto-520:peer-focus-within/search:opacity-0 [&_select]:cursor-pointer [&_select]:border-none [&_select]:bg-transparent [&_select]:text-[0.9rem] [&_select]:font-medium [&_select]:text-ink [&_select]:underline [&_select]:decoration-line-soft [&_select]:underline-offset-4",
   classContainer:
     "grid grid-cols-[repeat(auto-fill,minmax(160px,1fr))] gap-x-6 gap-y-9 upto-520:grid-cols-2 upto-520:gap-x-4 upto-520:gap-y-7",
   pagerBottom: "mt-10",
@@ -77,7 +78,7 @@ export const homeStyles = {
   titleHit: "inline-block -rotate-[2.5deg] bg-ink px-[0.12em] text-paper",
   guestActions: "mt-8 flex flex-wrap items-center gap-4",
   // a manga page: white gutters, inked panel borders, slightly askew
-  page: "grid rotate-1 grid-cols-[1fr_1fr] gap-3 border-[1.5px] border-line-soft bg-card p-3 upto-860:mx-auto upto-860:w-full upto-860:max-w-[520px] upto-520:rotate-0 upto-520:gap-[9px] upto-520:p-[9px] [&>li:nth-child(2)]:[animation-delay:0.12s] [&>li:nth-child(3)]:[animation-delay:0.24s]",
+  page: "grid rotate-1 grid-cols-[1fr_1fr] gap-3 border-[1.5px] border-line-soft bg-card p-3 upto-860:mx-auto upto-860:w-full upto-860:max-w-[520px] upto-520:rotate-0 upto-520:gap-[9px] upto-520:p-[9px] [&>li:nth-child(2)]:[animation-delay:0.12s] [&>li:nth-child(3)]:[animation-delay:0.24s] [&>li:nth-child(4)]:[animation-delay:0.36s]",
   panel: `${panel} min-h-[150px]`,
   panelWide: `${panel} col-span-full min-h-[170px]`,
   art: "grid flex-1 place-items-center overflow-hidden",
@@ -97,6 +98,7 @@ export const homeStyles = {
   sfxA: "-top-4 right-3.5 -rotate-8 text-[2.2rem] upto-520:text-[1.8rem]",
   sfxB: "-top-3.5 left-2 -rotate-12 text-[1.9rem] upto-520:text-[1.5rem]",
   sfxC: "-top-3.5 right-1.5 rotate-9 text-[1.9rem] upto-520:text-[1.5rem]",
+  sfxD: "-top-4 left-3 -rotate-6 text-[2.2rem] upto-520:text-[1.8rem]",
   // narration box along the panel's bottom edge
   caption:
     "border-t-3 border-line bg-card px-[0.7rem] py-[0.45rem] font-letter text-[0.85rem] leading-[1.25] font-bold tracking-[0.02em] uppercase",

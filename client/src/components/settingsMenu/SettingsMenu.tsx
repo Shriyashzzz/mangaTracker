@@ -95,7 +95,7 @@ export default function SettingsMenu({ isSignedIn, onLogOut }: Props) {
         className="icon-btn"
         aria-expanded={open}
         aria-controls="settings-menu"
-        aria-label="Settings"
+        aria-label="Settings and About"
         title="Settings"
         onClick={toggle}
       >
@@ -155,7 +155,7 @@ export default function SettingsMenu({ isSignedIn, onLogOut }: Props) {
           {isSignedIn && (
             <li>
               <button className={item} onClick={onLogOut}>
-                Log out
+                Sign out
               </button>
             </li>
           )}

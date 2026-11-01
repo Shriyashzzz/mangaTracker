@@ -7,7 +7,7 @@ import { useEffect } from "react";
 const SITE_NAME = "Manga Tracker";
 const DEFAULT_TITLE = "Manga Tracker: compare US manga prices";
 const DEFAULT_DESCRIPTION =
-  "Compare US manga prices across stores for every volume, and track the chapter you're on in every series you read.";
+  "Compare US manga prices across stores, track the chapter you're on in every series, and see which ones have new volumes out.";
 
 // finds a <meta>/<link> in <head>, making it when the page has none
 // what a page says about itself; null while it's still loading

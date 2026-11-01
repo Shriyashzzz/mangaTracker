@@ -31,13 +31,16 @@ export async function addManga(userId: number, input: MangaInput) {
   return id;
 }
 
-// an edit leaves the bookmark alone when the form sends none, and never
-// changes the genre (the edit form doesn't have one)
+// an edit leaves the bookmark and genre alone when the form sends none
 export async function updateManga(id: number, input: MangaInput) {
-  const { bookmark, genre: _genre, ...rest } = input;
+  const { bookmark, genre, ...rest } = input;
   await prisma.manga.update({
     where: { id },
-    data: { ...rest, ...(bookmark ? { bookmark } : {}) },
+    data: {
+      ...rest,
+      ...(bookmark ? { bookmark } : {}),
+      ...(genre ? { genre } : {}),
+    },
   });
 }
 
@@ -46,6 +49,9 @@ export const setStatus = (id: number, status: boolean) =>
 
 export const setRating = (id: number, rating: number) =>
   prisma.manga.update({ where: { id }, data: { rating } });
+
+export const setBookmark = (id: number, bookmark: number) =>
+  prisma.manga.update({ where: { id }, data: { bookmark } });
 
 // how many volumes someone owns; null clears it. Returns the new value
 export async function setVolumesOwned(id: number, volumesOwned: number | null) {
@@ -67,6 +73,7 @@ export default {
   updateManga,
   setStatus,
   setRating,
+  setBookmark,
   setVolumesOwned,
   deleteManga,
 };

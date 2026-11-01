@@ -12,7 +12,7 @@ const ticket =
 
 export const detailsStyles = {
   backLink:
-    "mb-8 inline-block text-[0.9rem] text-muted underline-offset-3 hover:text-ink hover:underline",
+    "tap mb-8 inline-block text-[0.9rem] text-muted underline-offset-3 hover:text-ink hover:underline",
 
   layout:
     "grid grid-cols-[auto_minmax(0,1fr)] grid-rows-[auto_1fr] items-start gap-x-[clamp(2rem,5vw,3.5rem)] gap-y-6 upto-720:grid-cols-[108px_minmax(0,1fr)] upto-720:gap-x-4 upto-720:gap-y-5",
@@ -38,9 +38,23 @@ export const detailsStyles = {
   // "chapter 140", underlined with a wash of spot colour
   chapter:
     "bg-[linear-gradient(to_top,var(--accent-wash)_0_40%,transparent_40%)] text-ink italic",
+  // the chapter you're on, stepped right here. Inked like a panel, and big
+  // enough for a thumb
+  stepperWrap: "inline-flex flex-wrap items-center gap-x-3 gap-y-1 align-middle",
+  stepper:
+    "inline-flex items-stretch rounded-ink border-[2.5px] border-line bg-card not-italic",
+  stepperBtn:
+    "grid size-11 place-items-center text-ink transition-colors duration-120 ease-[ease] hover:enabled:bg-accent-wash hover:enabled:text-accent disabled:cursor-default disabled:opacity-40 [&_svg]:size-4 [&_svg]:fill-none [&_svg]:stroke-current [&_svg]:stroke-[2.5] [&_svg]:[stroke-linecap:round]",
+  stepperInput:
+    "min-w-14 border-x-[2.5px] border-line bg-transparent text-center font-brand text-[1.5rem] leading-none tracking-[0.02em] text-ink tabular-nums [appearance:textfield] focus:bg-accent-wash focus:outline-none [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none",
+  saveDone: "font-mono text-[0.8rem] text-ink-soft not-italic empty:hidden",
+  saveFailed: "text-[0.9rem] font-medium text-accent not-italic empty:hidden",
+  // a line under the control it's about: a failed save, or an undo
+  actionNote: "w-full text-[0.9rem] text-ink-soft empty:hidden",
+  undo: "ml-1 inline-block py-1 font-medium text-ink underline decoration-accent decoration-2 underline-offset-3",
   // what they own, a quiet aside next to where they are in the story
   owned:
-    "ml-[0.6rem] font-mono text-[0.8rem] whitespace-nowrap text-muted not-italic before:content-['·_']",
+    "mt-2 block font-mono text-[0.8rem] whitespace-nowrap text-muted not-italic",
 
   body: "col-start-2 row-start-2 flex min-w-0 flex-col gap-5 upto-720:col-span-2 upto-720:col-start-1",
   // with the release panel there's a third column on a laptop. Narrower, it
@@ -73,12 +87,12 @@ export const detailsStyles = {
   releaseBodyShut: "max-[1000px]:hidden",
   // "Out now", "Coming up"
   releaseGroup: "not-first:mt-3 not-first:border-t not-first:border-dashed not-first:border-line-soft not-first:pt-3",
-  releaseGroupTitle: "mb-1 font-mono text-[0.72rem] font-normal text-muted",
+  releaseGroupTitle: "mb-1 font-mono text-[0.75rem] font-normal text-muted",
   releaseRow: "flex items-baseline justify-between gap-3 py-0.5",
   releaseWhat: "font-semibold whitespace-nowrap",
   releaseWhen: "text-right text-[0.92rem] text-ink-soft",
-  releaseEstimate: "ml-1 font-mono text-[0.68rem] text-muted",
-  label: "mb-[0.3rem] block font-mono text-[0.72rem] text-muted",
+  releaseEstimate: "ml-1.5 font-mono text-[0.75rem] text-muted",
+  label: "mb-[0.3rem] block font-mono text-[0.75rem] text-muted",
   rating: "border-t-[1.5px] border-line pt-4",
   // notes written on a ruled slip; the rule is drawn on the paragraph so
   // every line of text sits on one
@@ -87,11 +101,15 @@ export const detailsStyles = {
 
   // where to buy: small price tickets in a row
   buy: "border-t-[1.5px] border-dashed border-line-soft pt-3",
-  buyList: `flex flex-wrap gap-2 [&_a]:bg-card [&_a]:font-semibold [&_a]:transition-[background-color,border-color] [&_a]:duration-120 [&_a]:ease-[ease] [&_a]:hover:border-accent [&_a]:hover:bg-accent-wash [&_a]:focus-visible:border-accent [&_a]:focus-visible:bg-accent-wash`,
-  // each link in buyList
-  buyLink: `${ticket} border-line`,
+  buyList: "flex flex-wrap gap-2",
+  buyLink: `${ticket} min-h-11 border-line bg-card font-semibold transition-[background-color,border-color] duration-120 ease-[ease] hover:border-accent hover:bg-accent-wash focus-visible:border-accent focus-visible:bg-accent-wash`,
+  // the heading with the series link across from it: a plain link, with room
+  // around it for a thumb
+  buyHead: "mb-1 flex items-baseline justify-between gap-3 [&_h2]:mb-0",
+  buySeries:
+    "tap -my-1.5 py-1.5 text-[0.85rem] font-medium whitespace-nowrap text-ink-soft underline decoration-line-soft underline-offset-3 transition-colors duration-120 ease-[ease] hover:text-accent hover:decoration-accent",
   buyKind:
-    "font-mono text-[0.68rem] font-normal tracking-[0.06em] text-muted uppercase",
+    "font-mono text-[0.75rem] font-normal tracking-[0.06em] text-muted uppercase",
   buyPrice: "font-mono font-medium text-accent",
   // "caught up": the same ticket shape, but nothing to click
   buyNote: `${ticket} border-dashed border-line-soft text-ink-soft`,
@@ -99,11 +117,13 @@ export const detailsStyles = {
 
   actions:
     "flex flex-wrap items-center gap-[0.85rem] upto-720:[&>.btn-primary]:flex-1 upto-720:[&>.btn-secondary]:flex-1",
-  deleteBtn: "hover:enabled:text-accent",
-  confirm: "inline-flex items-center gap-3 text-[0.9rem] text-ink-soft",
+  // apart from the everyday actions, so a thumb can't catch it by accident
+  deleteBtn: "ml-auto hover:enabled:text-accent upto-720:ml-0",
+  confirm:
+    "ml-auto inline-flex flex-wrap items-center gap-x-4 text-[0.9rem] text-ink-soft upto-720:ml-0",
   confirmYes:
-    "text-[0.9rem] font-semibold text-accent underline underline-offset-3",
-  confirmNo: "text-[0.9rem] text-muted underline underline-offset-3",
+    "min-h-11 text-[0.9rem] font-semibold text-accent underline underline-offset-3",
+  confirmNo: "min-h-11 text-[0.9rem] text-ink-soft underline underline-offset-3",
 
   errorState:
     "mx-auto my-12 max-w-[440px] text-center [&_h1]:mb-2 [&_h1]:text-[2rem] [&_h1]:font-medium [&_p]:text-ink-soft",

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useId, useState } from "react";
 import { NavLink, useSearchParams } from "react-router";
 import type { Highlights as HighlightsData, SeriesHit } from "../../lib/types";
 import { useAuth } from "../../store/auth";
@@ -10,6 +10,8 @@ import { pricesStyles as styles } from "./styles";
 import Mascot from "../../components/mascot/Mascot";
 import SlowLoadQuote from "../../components/slowLoadQuote/SlowLoadQuote";
 import { usePageMeta } from "../../lib/seo";
+import WhatsNew from "../../components/whatsNew/WhatsNew";
+import ReleaseTip from "../../components/whatsNew/ReleaseTip";
 
 const QUICK_PICKS = ["One Piece", "Jujutsu Kaisen", "Chainsaw Man", "Frieren"];
 
@@ -49,25 +51,33 @@ export default function PriceSearch() {
 
   return (
     <div className={`${styles.page} fade-in`}>
-      <header className={styles.searchHead}>
-        <h1 className={styles.title}>Price check</h1>
-        <p className={styles.sub}>
-          Find a series, then see what US stores charge for each volume.
-        </p>
+      <div className={styles.front}>
+        <header className={styles.searchHead}>
+          <h1 className={styles.title}>Price check</h1>
+          <p className={styles.sub}>
+            Find a series, then see what US stores charge for each volume.
+          </p>
 
-        <SeriesSearchBox initialQuery={query} autoFocus={!query} />
+          <SeriesSearchBox initialQuery={query} autoFocus={!query} />
+
+          {!searching && (
+            <p className={styles.quick}>
+              <span>Try</span>
+              {QUICK_PICKS.map((pick) => (
+                <NavLink key={pick} to={seriesPath(pick)} viewTransition>
+                  {pick}
+                </NavLink>
+              ))}
+            </p>
+          )}
+        </header>
 
         {!searching && (
-          <p className={styles.quick}>
-            <span>Try</span>
-            {QUICK_PICKS.map((pick) => (
-              <NavLink key={pick} to={seriesPath(pick)} viewTransition>
-                {pick}
-              </NavLink>
-            ))}
-          </p>
+          <WhatsNew>
+            <ShelfPromo inMargin />
+          </WhatsNew>
         )}
-      </header>
+      </div>
 
       {loading && (
         <div className={styles.grid} aria-busy="true" aria-label="Searching">
@@ -84,7 +94,7 @@ export default function PriceSearch() {
             <Mascot mood="panic" />
           </span>
           <p className={styles.emptyTitle}>Couldn't search right now.</p>
-          <p>{result.error}</p>
+          <p>Check your connection and try again in a moment.</p>
         </div>
       )}
 
@@ -97,6 +107,11 @@ export default function PriceSearch() {
           <p>
             Try the name printed on the US cover, or paste the ISBN from the
             back of a volume.
+          </p>
+          <p className={styles.quick}>
+            <NavLink to="/series" viewTransition>
+              Browse every series
+            </NavLink>
           </p>
         </div>
       )}
@@ -118,6 +133,7 @@ export default function PriceSearch() {
 
       {!searching && <Highlights />}
       {!searching && <ShelfPromo />}
+      <ReleaseTip enabled={!searching} />
     </div>
   );
 }
@@ -150,7 +166,7 @@ function Highlights() {
     <>
       {data.trending.length > 0 && (
         <section aria-labelledby="trending-title">
-          <div className={styles.sectionHead}>
+          <div className={styles.sectionHeadRow}>
             <h2 id="trending-title" className={styles.sectionTitle}>
               Popular this season
             </h2>
@@ -205,26 +221,42 @@ function Highlights() {
   );
 }
 
-// the second half of the app: a quiet pointer to the reading tracker
-function ShelfPromo() {
+// the second half of the app: a quiet pointer to the reading tracker. Above
+// what's new when the margin has room for it, otherwise at the end of the page
+function ShelfPromo({ inMargin = false }: { inMargin?: boolean }) {
   const isSignedIn = useAuth((s) => s.isSignedIn);
+  const titleId = useId();
   return (
-    <section className={styles.promo} aria-labelledby="promo-title">
+    <section
+      className={inMargin ? styles.promoMargin : styles.promo}
+      aria-labelledby={titleId}
+    >
       <div>
-        <h2 id="promo-title" className={styles.sectionTitle}>
-          Also: track what you read
+        <h2
+          id={titleId}
+          className={inMargin ? styles.promoMarginTitle : styles.sectionTitle}
+        >
+          Track what you read
         </h2>
-        <p className={styles.promoBody}>
+        <p className={inMargin ? styles.promoMarginBody : styles.promoBody}>
           Save the chapter you're on for every series, rate what you finish, and
-          pick up right where you stopped.
+          see which ones have a new volume out.
         </p>
       </div>
       {isSignedIn ? (
-        <NavLink to="/shelf" className="btn btn-secondary" viewTransition>
+        <NavLink
+          to="/shelf"
+          className={`btn btn-secondary ${inMargin ? styles.promoMarginBtn : ""}`}
+          viewTransition
+        >
           Go to my shelf
         </NavLink>
       ) : (
-        <NavLink to="/signup" className="btn btn-secondary" viewTransition>
+        <NavLink
+          to="/signup"
+          className={`btn btn-secondary ${inMargin ? styles.promoMarginBtn : ""}`}
+          viewTransition
+        >
           Start your shelf
         </NavLink>
       )}

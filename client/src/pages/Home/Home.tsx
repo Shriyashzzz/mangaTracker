@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo } from "react";
 import MangaCard, {
   MangaCardSkeleton,
+  type CardNews,
 } from "../../components/mangaCard/MangaCard";
 
 import { homeStyles as styles } from "./styles";
@@ -15,11 +16,12 @@ import type { Manga, ShelfPrice } from "../../lib/types";
 import { useAuth } from "../../store/auth";
 import { useShelf } from "../../store/shelf";
 import { readLocal, writeLocal } from "../../lib/prefs";
+import { CHECKED_BEFORE_KEY } from "../../lib/shelf";
+import ReleaseTip from "../../components/whatsNew/ReleaseTip";
 
 const SHELF_PAGE_SIZE = 30;
 // shelves this size get a heads-up that their first release check is slow
 const BIG_SHELF = 10;
-const CHECKED_BEFORE_KEY = "releasesCheckedBefore";
 
 // what each side of the New tab's switch shows, and how it says there's nothing
 const RELEASE_KINDS = {
@@ -230,8 +232,11 @@ function Library() {
         </span>
         <p className={styles.emptyTitle}>Couldn't reach your shelf.</p>
         <p className={styles.emptyBody}>
-          The server didn't answer. Give it a minute and refresh.
+          The server didn't answer. Give it a minute, then try again.
         </p>
+        <button type="button" className="btn btn-primary" onClick={loadShelf}>
+          Try again
+        </button>
       </div>
     );
   }
@@ -268,16 +273,31 @@ function Library() {
     chapters: counts.newChapters,
     japan: counts.newInJapan,
   };
-  // what a card in the New tab has come out for
-  const newsFor = (m: Manga) => {
+  // what a card in the New tab says. The list stays broad, so a card only
+  // shouts when the next one really is what's just out; further behind, it says
+  // how far. A blank shelf number can't say how far, so it just names the latest
+  const newsFor = (m: Manga): CardNews | undefined => {
     if (!showingNew) return undefined;
-    if (releaseKind === "chapters") {
-      return `Ch. ${releases[m.id]?.latestChapter} is out`;
-    }
+    const found = releases[m.id];
     if (releaseKind === "japan") {
-      return `Vol. ${releases[m.id]?.latestJapaneseVolume} in Japan`;
+      return { text: `Vol. ${found?.latestJapaneseVolume} in Japan`, loud: true };
     }
-    return `Vol. ${releases[m.id]?.latestVolume} is out`;
+    if (releaseKind === "chapters") {
+      const latest = found?.latestChapter ?? 0;
+      if (!m.bookmark) return { text: `Latest is ch. ${latest}`, loud: false };
+      const behind = Math.ceil(latest - m.bookmark);
+      return behind <= 1
+        ? { text: `Ch. ${latest} is out`, loud: true }
+        : { text: `${behind} chapters behind, latest ch. ${latest}`, loud: false };
+    }
+    const latest = found?.latestVolume ?? 0;
+    if (found?.isNextVolumeOut) return { text: `Vol. ${latest} is out`, loud: true };
+    if (!m.volumesOwned) return { text: `Latest is vol. ${latest}`, loud: false };
+    const behind = latest - m.volumesOwned;
+    return {
+      text: `${behind} volume${behind === 1 ? "" : "s"} behind, latest vol. ${latest}`,
+      loud: false,
+    };
   };
   const total = mangaData.length;
   // every title failed, so "nothing new" would be a false comfort. A few failing
@@ -351,7 +371,7 @@ function Library() {
             />
           </label>
           <label className={styles.sort}>
-            <span>Sort</span>
+            <span className="upto-520:sr-only">Sort</span>
             <select
               value={sortBy}
               onChange={(e) => {
@@ -368,6 +388,11 @@ function Library() {
           </label>
         </div>
       </div>
+
+      {/* sighted readers see the cards change; this says so to everyone else */}
+      <p className="sr-only" role="status">
+        {mangaData.length ? `${visibleManga.length} shown` : ""}
+      </p>
 
       {showingNew && (
         <div className={styles.releaseTools}>
@@ -406,7 +431,7 @@ function Library() {
       {checking && visibleManga.length > 0 && (
         <div className={styles.checkInline}>
           {progress}
-          <p className={styles.checkText}>
+          <p className={styles.checkText} aria-live="polite">
             Checking {checked} of {total}
             {bigShelfNote && ` · ${bigShelfNote}`}
           </p>
@@ -417,7 +442,7 @@ function Library() {
         <div className={styles.checkCentre}>
           <p className={styles.checkTitle}>Checking for new releases</p>
           {progress}
-          <p className={styles.checkText}>
+          <p className={styles.checkText} aria-live="polite">
             {checked} of {total}
             {bigShelfNote && (
               <span className={styles.checkAside}>{bigShelfNote}</span>
@@ -480,9 +505,13 @@ function Library() {
                 priceTag={priceTags[currentManga.id]}
                 news={newsFor(currentManga)}
                 detailsSearch={
-                  showingNew && releaseKind === "japan"
-                    ? "?edition=japan"
-                    : undefined
+                  !showingNew
+                    ? undefined
+                    : releaseKind === "japan"
+                      ? "?edition=japan"
+                      : releaseKind === "chapters"
+                        ? "?new=chapter"
+                        : undefined
                 }
                 index={i}
               />
@@ -493,6 +522,14 @@ function Library() {
           )}
         </>
       )}
+
+      <ReleaseTip
+        enabled={hasManga && !showingNew}
+        onCheck={() => {
+          setStatusFilter("new");
+          writeSession("libraryStatus", "new");
+        }}
+      />
     </div>
   );
 }
@@ -578,6 +615,18 @@ function GuestHero() {
               Found it!
             </span>
             <p className={styles.caption}>Covers and genres fill in</p>
+          </li>
+
+          <li className={styles.panelWide}>
+            <div className={`${styles.art} ${styles.tone}`} aria-hidden>
+              <span className={styles.bigCh}>
+                <small>vol.</small>25
+              </span>
+            </div>
+            <span className={`${styles.sfx} ${styles.sfxD}`} aria-hidden>
+              It's out!
+            </span>
+            <p className={styles.caption}>See which series have new volumes</p>
           </li>
         </ol>
       </div>

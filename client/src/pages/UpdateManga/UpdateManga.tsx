@@ -5,6 +5,7 @@ import { apiFetch, errorMessages } from "../../lib/api";
 import type { Manga, MangaForm } from "../../lib/types";
 import CoverPicker from "../../components/coverPicker/CoverPicker";
 import { usePrivatePage } from "../../lib/seo";
+import { GENRES } from "../../lib/genres";
 
 const DESC_MAX = 450;
 
@@ -15,6 +16,7 @@ export function UpdateManga() {
   const [mangaData, setMangaData] = useState<Manga | null>(null);
   const [title, setTitle] = useState("");
   const [image, setImage] = useState("");
+  const [genre, setGenre] = useState("");
   const [isFinished, setIsFinished] = useState(false);
   const [description, setDescription] = useState("");
   const [error, setError] = useState<{ msg: string }[] | null>(null);
@@ -32,6 +34,7 @@ export function UpdateManga() {
         setDescription(manga.description ?? "");
         setTitle(manga.name);
         setImage(manga.image ?? "");
+        setGenre(manga.genre && manga.genre !== "unlabled" ? manga.genre : "");
       } catch (e) {
         console.error(e);
         setError([{ msg: "Couldn't load this manga. Are you signed in?" }]);
@@ -47,6 +50,7 @@ export function UpdateManga() {
     const formData: MangaForm = {
       name: title,
       image,
+      genre,
       description,
       status: isFinished,
       volumesOwned: String(form.get("volumesOwned") ?? ""),
@@ -85,10 +89,10 @@ export function UpdateManga() {
           >
             ← back
           </NavLink>
-          <h1 className={styles.formTitle}>Edit entry</h1>
+          <h1 className={styles.formTitle}>Edit details</h1>
         </div>
         <p className={styles.formSub}>
-          Read a few more chapters? Move your bookmark up.
+          Fix the title, cover or genre, or update where you're up to.
         </p>
       </div>
 
@@ -133,28 +137,6 @@ export function UpdateManga() {
             />
 
             <div className={styles.details}>
-              <div className={styles.field}>
-                <span className={styles.fieldLabel}>Status</span>
-                <div className={styles.segmented}>
-                  <input
-                    type="radio"
-                    id="status-ongoing"
-                    name="status"
-                    checked={!isFinished}
-                    onChange={() => setIsFinished(false)}
-                  />
-                  <label htmlFor="status-ongoing" className={styles.segmentLabel}>Still reading</label>
-                  <input
-                    type="radio"
-                    id="status-finished"
-                    name="status"
-                    checked={isFinished}
-                    onChange={() => setIsFinished(true)}
-                  />
-                  <label htmlFor="status-finished" className={styles.segmentLabel}>Finished it</label>
-                </div>
-              </div>
-
               <div className={styles.row}>
                 {!isFinished && (
                   <div className={styles.field}>
@@ -187,6 +169,51 @@ export function UpdateManga() {
                     placeholder="e.g. 14"
                     defaultValue={mangaData.volumesOwned ?? ""}
                   />
+                </div>
+                <div className={styles.field}>
+                  <label htmlFor="genre" className={styles.label}>
+                    Genre <span className={styles.optional}>(optional)</span>
+                  </label>
+                  <select
+                    className={styles.select}
+                    name="genre"
+                    id="genre"
+                    value={genre}
+                    onChange={(e) => setGenre(e.target.value)}
+                  >
+                    <option value="">Select a genre</option>
+                    {/* a genre AniList gave that isn't in our list still shows */}
+                    {genre && !GENRES.some((g) => g.value === genre) && (
+                      <option value={genre}>{genre}</option>
+                    )}
+                    {GENRES.map((g) => (
+                      <option key={g.value} value={g.value}>
+                        {g.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              <div className={styles.field}>
+                <span className={styles.fieldLabel}>Status</span>
+                <div className={styles.segmented}>
+                  <input
+                    type="radio"
+                    id="status-ongoing"
+                    name="status"
+                    checked={!isFinished}
+                    onChange={() => setIsFinished(false)}
+                  />
+                  <label htmlFor="status-ongoing" className={styles.segmentLabel}>Still reading</label>
+                  <input
+                    type="radio"
+                    id="status-finished"
+                    name="status"
+                    checked={isFinished}
+                    onChange={() => setIsFinished(true)}
+                  />
+                  <label htmlFor="status-finished" className={styles.segmentLabel}>Finished it</label>
                 </div>
               </div>
 
