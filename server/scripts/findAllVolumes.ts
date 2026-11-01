@@ -98,6 +98,5 @@ async function findNewVolumeReleaseDate(
     };
   }
 }
-findNewVolumeReleaseDate("Spy x Family");
 
 export default findNewVolumeReleaseDate;
