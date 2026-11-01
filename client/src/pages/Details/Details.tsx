@@ -6,6 +6,7 @@ import { apiFetch, FALLBACK_COVER } from "../../lib/api";
 import type { Manga, ReleaseData, ReleaseStatus } from "../../lib/types";
 import SlowLoadQuote from "../../components/slowLoadQuote/SlowLoadQuote";
 import { usePrivatePage } from "../../lib/seo";
+import { getReleases } from "../../lib/shelf";
 import BuyStrip from "./BuyStrip";
 import ReleasePanel from "./ReleasePanel";
 
@@ -27,16 +28,10 @@ export default function Details() {
       try {
         const response = await apiFetch(`/api/manga/${id}`);
         if (!response.ok) throw new Error(response.statusText);
-        const data = (await response.json()) as {
-          manga?: Manga;
-          releaseData?: ReleaseData;
-          releaseStatus?: ReleaseStatus;
-        };
-        const thisManga = data.manga;
+        const data = await response.json();
+        const thisManga = (data as { manga?: Manga }).manga;
         if (!thisManga) throw new Error("Not found");
         setMangaData(thisManga);
-        setReleaseData(data.releaseData ?? null);
-        setReleaseStatus(data.releaseStatus ?? null);
         setMangaRating(thisManga.rating ?? 0);
         setMangaStatus(thisManga.status);
       } catch {
@@ -44,6 +39,19 @@ export default function Details() {
       }
     }
     getManga();
+  }, [id]);
+
+  // can take a few seconds, so the page doesn't wait for it. Nice to have: the
+  // panel just doesn't appear if this fails
+  useEffect(() => {
+    const controller = new AbortController();
+    getReleases(Number(id), controller.signal)
+      .then((found) => {
+        setReleaseData(found.releaseData);
+        setReleaseStatus(found.releaseStatus);
+      })
+      .catch(() => {});
+    return () => controller.abort();
   }, [id]);
 
   const handleDeleteManga = async () => {
@@ -114,8 +122,7 @@ export default function Details() {
   const showRelease =
     releaseStatus?.hasNewVolume &&
     releaseStatus.latestVolume != null &&
-    mangaData.volumesOwned != null &&
-    releaseData;
+    mangaData.volumesOwned != null;
 
   return (
     <div className="fade-in">

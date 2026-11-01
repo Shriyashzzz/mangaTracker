@@ -4,6 +4,10 @@
 // a status tab; the active one is inked with a marker on the toolbar rule
 const tab = "relative py-[0.2rem] text-[1rem] transition-colors duration-150 ease-[ease]";
 
+// one side of the New tab's volumes / chapters switch
+const releaseKind =
+  "min-h-11 px-4 font-brand text-[1.15rem] tracking-[1px] transition-colors duration-150 ease-[ease] not-first:border-l-2 not-first:border-line upto-520:flex-1 upto-520:px-2 upto-520:text-[1.05rem]";
+
 // one manga panel of the guest landing
 const panel =
   "relative flex flex-col border-3 border-line bg-paper animate-panel-open motion-reduce:animate-none";
@@ -31,11 +35,15 @@ export const homeStyles = {
   classContainer:
     "grid grid-cols-[repeat(auto-fill,minmax(160px,1fr))] gap-x-6 gap-y-9 upto-520:grid-cols-2 upto-520:gap-x-4 upto-520:gap-y-7",
   pagerBottom: "mt-10",
-  // the New tab: a group for new volumes and one for new chapters
-  checking: "mb-6 font-letter text-[1rem] font-bold text-ink-soft",
-  releaseGroup: "mb-12 last:mb-0",
-  releaseGroupTitle:
-    "mb-5 font-brand text-[1.8rem] leading-none font-normal tracking-[1px]",
+  // the New tab's own switch: new volumes or new chapters, one at a time
+  releaseTools:
+    "mb-8 flex flex-wrap items-center justify-between gap-x-6 gap-y-3",
+  releaseKinds:
+    "flex overflow-hidden rounded-ink border-2 border-line upto-520:w-full",
+  releaseKind: `${releaseKind} bg-card text-ink-soft hover:text-ink`,
+  releaseKindActive: `${releaseKind} bg-accent text-on-accent`,
+  releaseKindCount: "ml-1 font-mono text-[0.78rem] tracking-normal",
+  releaseNote: "font-letter text-[1rem] font-bold text-ink-soft",
   skeletonTitle: "mb-10 h-[46px] w-60",
 
   // ---------- empty states ----------

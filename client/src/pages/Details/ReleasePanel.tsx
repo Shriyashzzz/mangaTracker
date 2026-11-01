@@ -6,45 +6,47 @@ import type { ReleaseData } from "../../lib/types";
 type Props = {
   latestVolume: number;
   volumesOwned: number;
-  data: ReleaseData;
+  data: ReleaseData | null;
 };
 
 type Row = { label: string; what: string; when: string; estimate?: boolean };
 
 // the rows MangaDex had something to say about; "undefined" is what the
-// server sends when it has no date to give
-const rowsFrom = ({ chapter, newVolume }: ReleaseData) => {
+// server sends when it has no date to give. Its next volume date follows the
+// Japanese editions, so it's labelled as that rather than passed off as English
+const rowsFrom = (data: ReleaseData | null) => {
   const rows: Row[] = [];
-  const latest = chapter?.latestReleased;
-  if (latest?.chapterNumber) {
+  const latest = data?.chapter?.latestReleased;
+  if (latest?.chapterNumber && latest.releaseDate !== "undefined") {
     rows.push({
-      label: "Newest chapter",
+      label: "Newest English chapter",
       what: `Ch. ${latest.chapterNumber}`,
       when: latest.releaseDate,
     });
   }
-  const next = chapter?.estimateRelease;
+  const next = data?.chapter?.estimateRelease;
   if (next?.chapterNumber && next.releaseDate !== "undefined") {
     rows.push({
-      label: "Next chapter",
+      label: "Next English chapter",
       what: `Ch. ${next.chapterNumber}`,
       when: next.releaseDate,
       estimate: next.isEstimate,
     });
   }
-  if (newVolume?.volume && newVolume.releaseDate !== "undefined") {
+  const volume = data?.newVolume;
+  if (volume?.volume && volume.releaseDate !== "undefined") {
     rows.push({
-      label: "Next volume",
-      what: `Vol. ${newVolume.volume}`,
-      when: newVolume.releaseDate,
-      estimate: newVolume.isEstimate,
+      label: "Next volume in Japan",
+      what: `Vol. ${volume.volume}`,
+      when: volume.releaseDate,
+      estimate: volume.isEstimate,
     });
   }
   return rows;
 };
 
-// "there's a new volume": beside the entry on a laptop, a bar that folds open
-// on anything narrower
+// "there's a new volume in English": beside the entry on a laptop, a bar that
+// folds open on anything narrower
 export default function ReleasePanel({
   latestVolume,
   volumesOwned,
@@ -54,28 +56,43 @@ export default function ReleasePanel({
   const bodyId = useId();
   const rows = rowsFrom(data);
   const headline = `Vol. ${latestVolume} is out!`;
+  const barText = (
+    <>
+      <span className={styles.releaseBarHeadline}>{headline}</span>
+      <span className={styles.releaseBarOwned}>
+        in English · you own {volumesOwned}
+      </span>
+    </>
+  );
 
   return (
-    <section className={styles.release} aria-label="New release">
+    <section className={styles.release} aria-label="New English release">
       <span className={styles.releaseStamp} aria-hidden>
         Psst!
       </span>
 
       <div className={styles.releaseHit}>
         <h2 className={styles.releaseHeadline}>{headline}</h2>
-        <p className={styles.releaseOwned}>You own up to vol. {volumesOwned}.</p>
+        <p className={styles.releaseOwned}>
+          In English. You own up to vol. {volumesOwned}.
+        </p>
       </div>
-      <button
-        type="button"
-        className={styles.releaseBar}
-        aria-expanded={open}
-        aria-controls={bodyId}
-        onClick={() => setOpen(!open)}
-      >
-        <span className={styles.releaseBarHeadline}>{headline}</span>
-        <span className={styles.releaseBarOwned}>you own {volumesOwned}</span>
-        <ChevronDownIcon />
-      </button>
+
+      {/* nothing to fold open if MangaDex had no dates */}
+      {rows.length > 0 ? (
+        <button
+          type="button"
+          className={styles.releaseBar}
+          aria-expanded={open}
+          aria-controls={bodyId}
+          onClick={() => setOpen(!open)}
+        >
+          {barText}
+          <ChevronDownIcon />
+        </button>
+      ) : (
+        <p className={styles.releaseBarPlain}>{barText}</p>
+      )}
 
       {rows.length > 0 && (
         <dl

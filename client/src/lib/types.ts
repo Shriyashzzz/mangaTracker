@@ -36,7 +36,7 @@ export type ReleaseData = {
   };
 };
 
-// what's new for this reader
+// what's new in English for this reader
 export type ReleaseStatus = {
   hasNewVolume: boolean;
   hasNewChapter: boolean;
