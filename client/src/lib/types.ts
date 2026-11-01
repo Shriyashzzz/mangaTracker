@@ -19,6 +19,31 @@ export type Manga = {
   rating: number | null;
 };
 
+// when the next chapter or volume is due. releaseDate is ready to display and
+// is the text "undefined" when there's no estimate
+type ReleaseEstimate = {
+  releaseDate: string;
+  isEstimate: boolean;
+};
+
+// the release dates MangaDex gave us for a series
+export type ReleaseData = {
+  volume?: { volume: string | null; releaseDate: string | null }[];
+  newVolume?: ReleaseEstimate & { volume: string | null };
+  chapter?: {
+    latestReleased: { chapterNumber: string | null; releaseDate: string };
+    estimateRelease: ReleaseEstimate & { chapterNumber: string | null };
+  };
+};
+
+// what's new for this reader
+export type ReleaseStatus = {
+  hasNewVolume: boolean;
+  hasNewChapter: boolean;
+  latestVolume: number | null;
+  latestChapter: number | null;
+};
+
 // what the add / edit forms send
 export type MangaForm = {
   name: string;

@@ -3,14 +3,17 @@ import { detailsStyles as styles } from "./styles";
 import { NavLink, useNavigate, useParams } from "react-router";
 import StarRating from "../../components/starRating/StarRating";
 import { apiFetch, FALLBACK_COVER } from "../../lib/api";
-import type { Manga } from "../../lib/types";
+import type { Manga, ReleaseData, ReleaseStatus } from "../../lib/types";
 import SlowLoadQuote from "../../components/slowLoadQuote/SlowLoadQuote";
 import { usePrivatePage } from "../../lib/seo";
 import BuyStrip from "./BuyStrip";
+import ReleasePanel from "./ReleasePanel";
 
 export default function Details() {
   usePrivatePage("Manga details");
   const [mangaData, setMangaData] = useState<Manga | null>(null);
+  const [releaseData, setReleaseData] = useState<ReleaseData | null>(null);
+  const [releaseStatus, setReleaseStatus] = useState<ReleaseStatus | null>(null);
   const [loadError, setLoadError] = useState(false);
   const { id } = useParams();
   const [mangaStatus, setMangaStatus] = useState(false);
@@ -24,10 +27,16 @@ export default function Details() {
       try {
         const response = await apiFetch(`/api/manga/${id}`);
         if (!response.ok) throw new Error(response.statusText);
-        const data = await response.json();
-        const thisManga = (data as { manga?: Manga }).manga;
+        const data = (await response.json()) as {
+          manga?: Manga;
+          releaseData?: ReleaseData;
+          releaseStatus?: ReleaseStatus;
+        };
+        const thisManga = data.manga;
         if (!thisManga) throw new Error("Not found");
         setMangaData(thisManga);
+        setReleaseData(data.releaseData ?? null);
+        setReleaseStatus(data.releaseStatus ?? null);
         setMangaRating(thisManga.rating ?? 0);
         setMangaStatus(thisManga.status);
       } catch {
@@ -102,6 +111,11 @@ export default function Details() {
   const cover = mangaData.image || FALLBACK_COVER;
   const genre =
     mangaData.genre && mangaData.genre !== "unlabled" ? mangaData.genre : null;
+  const showRelease =
+    releaseStatus?.hasNewVolume &&
+    releaseStatus.latestVolume != null &&
+    mangaData.volumesOwned != null &&
+    releaseData;
 
   return (
     <div className="fade-in">
@@ -109,8 +123,12 @@ export default function Details() {
         ← back to the shelf
       </NavLink>
 
-      <article className={styles.layout}>
-        <figure className={`${styles.cover} ${styles.coverTilt}`}>
+      <article
+        className={`${styles.layout} ${showRelease ? styles.layoutWithRelease : ""}`}
+      >
+        <figure
+          className={`${styles.cover} ${styles.coverTilt} ${showRelease ? styles.coverBesideRelease : ""}`}
+        >
           <img
             src={cover}
             alt={mangaData.name}
@@ -137,7 +155,10 @@ export default function Details() {
               <>Read all the way through.</>
             ) : (
               <>
-                You're on <span className={styles.chapter}>chapter {mangaData.bookmark}</span>
+                You're on{" "}
+                <span className={styles.chapter}>
+                  chapter {mangaData.bookmark}
+                </span>
               </>
             )}
             {mangaData.volumesOwned && (
@@ -148,7 +169,17 @@ export default function Details() {
           </p>
         </header>
 
-        <div className={styles.body}>
+        {showRelease && (
+          <ReleasePanel
+            latestVolume={releaseStatus.latestVolume!}
+            volumesOwned={mangaData.volumesOwned!}
+            data={releaseData}
+          />
+        )}
+
+        <div
+          className={`${styles.body} ${showRelease ? styles.bodyBelowRelease : ""}`}
+        >
           <div className={styles.rating}>
             <span className={styles.label}>
               {mangaRating ? "Your rating" : "Rate it"}

@@ -12,7 +12,8 @@ import Mascot from "../../components/mascot/Mascot";
 import SlowLoadQuote from "../../components/slowLoadQuote/SlowLoadQuote";
 import { usePrivatePage } from "../../lib/seo";
 import { getShelfPriceTags } from "../../lib/prices";
-import type { Manga, ShelfPrice } from "../../lib/types";
+import { getReleaseStatus } from "../../lib/shelf";
+import type { Manga, ReleaseStatus, ShelfPrice } from "../../lib/types";
 import { useAuth } from "../../store/auth";
 
 const SHELF_PAGE_SIZE = 30;
@@ -94,16 +95,50 @@ function Library() {
     return () => controller.abort();
   }, [hasManga]);
 
+  // what's new for each manga, for the New tab. One title at a time, since the
+  // server has to ask MangaDex about each one it hasn't seen lately
+  const [releases, setReleases] = useState<Record<number, ReleaseStatus | null>>(
+    {},
+  );
+  useEffect(() => {
+    if (!mangaData?.length) return;
+    const controller = new AbortController();
+    (async () => {
+      for (const { id } of mangaData) {
+        const status = await getReleaseStatus(id, controller.signal).catch(
+          () => null,
+        );
+        if (controller.signal.aborted) return;
+        setReleases((current) => ({ ...current, [id]: status }));
+      }
+    })();
+    return () => controller.abort();
+  }, [mangaData]);
+  const checked = Object.keys(releases).length;
+  const checking = checked < (mangaData?.length ?? 0);
+
   const counts = useMemo(() => {
     const list = mangaData ?? [];
     const finished = list.filter((m) => m.status).length;
-    return { all: list.length, ongoing: list.length - finished, finished };
-  }, [mangaData]);
+    return {
+      all: list.length,
+      ongoing: list.length - finished,
+      finished,
+      new: list.filter(
+        (m) => releases[m.id]?.hasNewVolume || releases[m.id]?.hasNewChapter,
+      ).length,
+    };
+  }, [mangaData, releases]);
 
   const visibleManga = useMemo(() => {
     let list = [...(mangaData ?? [])];
     if (statusFilter === "finished") list = list.filter((m) => m.status);
     if (statusFilter === "ongoing") list = list.filter((m) => !m.status);
+    if (statusFilter === "new") {
+      list = list.filter(
+        (m) => releases[m.id]?.hasNewVolume || releases[m.id]?.hasNewChapter,
+      );
+    }
 
     const q = query.trim().toLowerCase();
     if (q) {
@@ -132,7 +167,7 @@ function Library() {
         break;
     }
     return list;
-  }, [mangaData, statusFilter, sortBy, query]);
+  }, [mangaData, releases, statusFilter, sortBy, query]);
 
   const goToAdd = () => navigator("/add", { viewTransition: true });
 
@@ -195,7 +230,38 @@ function Library() {
     { value: "all", label: "Everything", count: counts.all },
     { value: "ongoing", label: "Reading", count: counts.ongoing },
     { value: "finished", label: "Finished", count: counts.finished },
+    { value: "new", label: "New", count: counts.new },
   ];
+  const showingNew = statusFilter === "new";
+  const newVolumes = visibleManga.filter((m) => releases[m.id]?.hasNewVolume);
+  const newChapters = visibleManga.filter((m) => releases[m.id]?.hasNewChapter);
+  // titles MangaDex couldn't answer for, so "nothing new" isn't taken as fact
+  const unchecked = Object.values(releases).filter((r) => r === null).length;
+  const checkingNote = (checking || unchecked > 0) && (
+    <p className={styles.checking} role="status">
+      {checking
+        ? `Checking for new releases, ${checked} of ${mangaData.length}…`
+        : `Couldn't check ${unchecked} of ${mangaData.length} titles on MangaDex.`}
+    </p>
+  );
+  const releaseGroup = (title: string, list: Manga[]) =>
+    list.length > 0 && (
+      <section className={styles.releaseGroup} aria-label={title}>
+        <h2 className={styles.releaseGroupTitle}>
+          {title} <span className={styles.count}>{list.length}</span>
+        </h2>
+        <div className={styles.classContainer}>
+          {list.map((currentManga, i) => (
+            <MangaCard
+              key={currentManga.id}
+              currentManga={currentManga}
+              priceTag={priceTags[currentManga.id]}
+              index={i}
+            />
+          ))}
+        </div>
+      </section>
+    );
 
   return (
     <div className="fade-in">
@@ -255,7 +321,26 @@ function Library() {
         </div>
       </div>
 
-      {visibleManga.length === 0 ? (
+      {showingNew && checkingNote}
+
+      {showingNew && visibleManga.length > 0 ? (
+        <>
+          {releaseGroup("New volumes", newVolumes)}
+          {releaseGroup("New chapters", newChapters)}
+        </>
+      ) : showingNew && checking ? null : showingNew && !query.trim() ? (
+        <div className={styles.emptyState}>
+          <span className="printed mascot-spot" aria-hidden>
+            <Mascot mood="happy" />
+          </span>
+          <p className={styles.emptyTitle}>
+            {unchecked > 0 ? "Nothing new found." : "All caught up."}
+          </p>
+          <p className={styles.emptyBody}>
+            Nothing newer than what you own and where you've read to.
+          </p>
+        </div>
+      ) : visibleManga.length === 0 ? (
         <div className={styles.emptyState}>
           <span className="printed mascot-spot" aria-hidden>
             <Mascot mood="confused" />

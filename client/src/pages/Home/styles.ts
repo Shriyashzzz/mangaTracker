@@ -17,7 +17,7 @@ export const homeStyles = {
   // sides so tilted cards never peek out beside it while scrolling
   toolbar:
     "sticky top-0 z-5 -mx-3 mb-9 flex flex-wrap items-end justify-between gap-x-8 gap-y-4 border-b-[1.5px] border-line bg-[var(--surface,var(--paper))] px-3 py-[0.9rem] [&+nav]:-mt-4",
-  tabs: "flex gap-6 upto-520:gap-[1.1rem]",
+  tabs: "flex gap-6 upto-520:gap-3 upto-520:[&_button]:text-[0.92rem]",
   tab: `${tab} text-muted hover:text-ink`,
   tabActive: `${tab} font-semibold text-ink after:absolute after:inset-x-0 after:-bottom-[calc(0.9rem+2.5px)] after:h-1 after:bg-accent`,
   count: "ml-0.5 font-mono text-[0.78rem] font-normal text-muted",
@@ -31,6 +31,11 @@ export const homeStyles = {
   classContainer:
     "grid grid-cols-[repeat(auto-fill,minmax(160px,1fr))] gap-x-6 gap-y-9 upto-520:grid-cols-2 upto-520:gap-x-4 upto-520:gap-y-7",
   pagerBottom: "mt-10",
+  // the New tab: a group for new volumes and one for new chapters
+  checking: "mb-6 font-letter text-[1rem] font-bold text-ink-soft",
+  releaseGroup: "mb-12 last:mb-0",
+  releaseGroupTitle:
+    "mb-5 font-brand text-[1.8rem] leading-none font-normal tracking-[1px]",
   skeletonTitle: "mb-10 h-[46px] w-60",
 
   // ---------- empty states ----------

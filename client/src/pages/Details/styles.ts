@@ -43,6 +43,38 @@ export const detailsStyles = {
     "ml-[0.6rem] font-mono text-[0.8rem] whitespace-nowrap text-muted not-italic before:content-['·_']",
 
   body: "col-start-2 row-start-2 flex min-w-0 flex-col gap-5 upto-720:col-span-2 upto-720:col-start-1",
+  // with the release panel there's a third column on a laptop. Narrower, it
+  // takes the row under the header and pushes the body down one
+  layoutWithRelease:
+    "min-[1001px]:grid-cols-[auto_minmax(0,1fr)_260px] min-[721px]:max-[1000px]:grid-rows-[auto_auto_1fr]",
+  coverBesideRelease: "min-[721px]:max-[1000px]:row-span-3",
+  bodyBelowRelease: "max-[1000px]:row-start-3",
+
+  // the new release panel: a red headline slip with the dates under it
+  release:
+    "relative min-w-0 rounded-ink border-2 border-line bg-card shadow-ink-lg min-[1001px]:col-start-3 min-[1001px]:row-span-2 min-[1001px]:row-start-1 min-[721px]:max-[1000px]:col-start-2 min-[721px]:max-[1000px]:row-start-2 upto-720:col-span-2 upto-720:col-start-1 upto-720:row-start-2",
+  // the hanko-style stamp knocked onto the panel's top edge, kin to "Done"
+  releaseStamp:
+    "pointer-events-none absolute -top-4.5 right-2.5 z-1 rotate-6 rounded-[4px] border-[2.5px] border-accent bg-paper px-[0.5rem] py-[0.1rem] font-brand text-[1.15rem] tracking-[2px] text-accent max-[1000px]:-top-2.5 max-[1000px]:right-9 max-[1000px]:border-2 max-[1000px]:px-[0.35rem] max-[1000px]:py-0 max-[1000px]:text-[0.9rem] max-[1000px]:tracking-[1.5px]",
+  releaseHit:
+    "bg-accent bg-[radial-gradient(rgba(255,255,255,0.14)_1px,transparent_1px)] bg-size-[5px_5px] px-3.5 pt-6 pb-2.5 text-on-accent max-[1000px]:hidden",
+  releaseHeadline:
+    "origin-left -rotate-[1.5deg] font-brand text-[2.05rem] leading-none font-normal tracking-[1.5px] wrap-anywhere",
+  releaseOwned: "mt-1.5 font-letter text-[0.95rem] font-bold",
+  // the folded version: a full-width bar, tall enough for a thumb
+  releaseBar:
+    "hidden min-h-11 w-full cursor-pointer items-center gap-2 bg-accent px-3 py-2 text-left text-on-accent focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent max-[1000px]:flex [&_svg]:ml-auto [&_svg]:size-4 [&_svg]:shrink-0 [&_svg]:transition-transform [&_svg]:duration-200 [&_svg]:ease-ink aria-expanded:[&_svg]:rotate-180",
+  releaseBarHeadline:
+    "font-brand text-[1.3rem] leading-none tracking-[1px] whitespace-nowrap",
+  releaseBarOwned: "font-letter text-[0.85rem] font-bold whitespace-nowrap",
+  releaseRows: "px-3.5 pt-1 pb-2.5",
+  releaseRowsShut: "max-[1000px]:hidden",
+  releaseRow: "border-b border-dashed border-line-soft py-2 last:border-b-0",
+  releaseLabel: "font-mono text-[0.72rem] text-muted",
+  releaseValue: "mt-0.5 font-semibold",
+  releaseWhen: "font-normal text-ink-soft",
+  releaseEstimate:
+    "mt-0.5 block font-mono text-[0.68rem] font-normal tracking-[0.06em] text-muted uppercase",
   label: "mb-[0.3rem] block font-mono text-[0.72rem] text-muted",
   rating: "border-t-[1.5px] border-line pt-4",
   // notes written on a ruled slip; the rule is drawn on the paragraph so

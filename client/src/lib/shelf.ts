@@ -1,7 +1,14 @@
 // Small shelf calls used outside the shelf pages (the volume page's
 // "On my shelf" button).
 import { apiFetch, getJson } from "./api";
-import type { ShelfMatch } from "./types";
+import type { ReleaseStatus, ShelfMatch } from "./types";
+
+// what's new for one manga on the shelf; null when MangaDex can't say
+export const getReleaseStatus = (id: number, signal?: AbortSignal) =>
+  getJson<{ releaseStatus: ReleaseStatus | null }>(
+    `/api/manga/${id}/releases`,
+    signal,
+  ).then((data) => data.releaseStatus);
 
 // the manga on the signed-in shelf that is this series, or null
 export const findOnShelf = (series: string, signal?: AbortSignal) =>
