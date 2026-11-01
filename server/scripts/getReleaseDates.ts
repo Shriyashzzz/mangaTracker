@@ -68,7 +68,7 @@ async function getAllChapthers(seriesId: string) {
 }
 
 //main function to orchestrate small fucntions
-async function findNewVolumeReleaseDate(
+async function getReleaseDates(
   mangaName: string,
 ): Promise<MangaReleaseDates<FormatedDates>> {
   try {
@@ -99,4 +99,4 @@ async function findNewVolumeReleaseDate(
   }
 }
 
-export default findNewVolumeReleaseDate;
+export default getReleaseDates;
