@@ -168,6 +168,21 @@ const setBookmark = [
   },
 ];
 
+// "Seen it" on the New tab, and its undo. Null clears it
+const setSeen = [
+  body("kind").isIn(["volume", "chapter", "japan"]),
+  body("number")
+    .optional({ values: "null" })
+    .isFloat({ min: 0, max: 100000 })
+    .toFloat(),
+  rejectInvalid,
+  async (req: Request, res: Response) => {
+    const { kind, number } = matchedData(req);
+    await mangaQueries.setSeen(res.locals.manga.id, kind, number ?? null);
+    res.sendStatus(204);
+  },
+];
+
 // "I own Vol. 15", and its undo. Sets the number as given; null clears it
 const setOwned = [
   body("volumesOwned")
@@ -225,6 +240,7 @@ export default {
   setStatus,
   setRating,
   setBookmark,
+  setSeen,
   setOwned,
   shelfPrices,
   match,

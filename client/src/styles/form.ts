@@ -5,7 +5,7 @@
 
 // a text field's look; textarea and select build on it
 const input =
-  "h-[42px] w-full rounded-[2px] border-[1.5px] border-line bg-paper px-[0.85rem] transition-[box-shadow,background-color] duration-120 ease-[ease] placeholder:text-muted placeholder:opacity-80 focus:bg-card focus:shadow-[3px_3px_0_var(--accent)] focus:outline-none";
+  "h-11 w-full rounded-[2px] border-[1.5px] border-line bg-paper px-[0.85rem] transition-[box-shadow,background-color] duration-120 ease-[ease] placeholder:text-muted placeholder:opacity-80 focus:bg-card focus:shadow-[3px_3px_0_var(--accent)] focus:outline-none";
 
 // the label above a field; <b> is the required star
 const label = "text-[0.9rem] font-semibold [&_b]:text-accent";

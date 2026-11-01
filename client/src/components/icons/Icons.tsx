@@ -36,9 +36,11 @@ export const MoonIcon = (props: IconProps) => (
   </svg>
 );
 
-export const MenuIcon = (props: IconProps) => (
+export const SettingsIcon = (props: IconProps) => (
   <svg {...base} {...props}>
-    <path d="M4 7h16M4 12h16M4 17h10" />
+    <path d="M4 7h8M18 7h2M4 17h2M12 17h8" />
+    <circle cx="15" cy="7" r="3" />
+    <circle cx="9" cy="17" r="3" />
   </svg>
 );
 

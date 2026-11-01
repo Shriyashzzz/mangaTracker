@@ -203,7 +203,7 @@ export default function CoverPicker({
           placeholder="or paste an image link"
           value={value}
           onChange={(e) => pick(e.target.value)}
-          className="h-[34px] w-full rounded-[2px] border-[1.5px] border-line-soft bg-paper px-[0.6rem] text-[0.8rem] transition-[border-color,box-shadow] duration-120 ease-[ease] placeholder:text-muted placeholder:opacity-85 focus:border-line focus:shadow-[3px_3px_0_var(--accent)] focus:outline-none"
+          className="h-11 w-full rounded-[2px] border-[1.5px] border-line-soft bg-paper px-[0.6rem] text-[0.8rem] transition-[border-color,box-shadow] duration-120 ease-[ease] placeholder:text-muted placeholder:opacity-85 focus:border-line focus:shadow-[3px_3px_0_var(--accent)] focus:outline-none"
         />
       </label>
     </div>

@@ -55,6 +55,10 @@ export default function BuyStrip({ name, volumesOwned }: Props) {
       (a, b) => (!a || b.knownPriceCents! < a.knownPriceCents! ? b : a),
       null,
     );
+  const showsLowest =
+    cheapest &&
+    cheapest.isbn13 !== latest.isbn13 &&
+    cheapest.isbn13 !== next?.isbn13;
   const seriesName = state.data?.info?.name ?? state.data?.name ?? name;
 
   const price = (v: SeriesVolume) =>
@@ -100,13 +104,10 @@ export default function BuyStrip({ name, volumesOwned }: Props) {
             </li>
           )
         )}
-        {cheapest &&
-          cheapest.isbn13 !== latest.isbn13 &&
-          cheapest.isbn13 !== next?.isbn13 && (
+        {showsLowest && (
             <li>
               <NavLink className={styles.buyLink}
                 to={volumePath(cheapest.isbn13, cheapest.title)}
-                title="The lowest price we've seen at the stores we check"
                 viewTransition
               >
                 <span className={styles.buyKind}>Lowest seen</span>
@@ -116,6 +117,9 @@ export default function BuyStrip({ name, volumesOwned }: Props) {
             </li>
           )}
       </ul>
+      {showsLowest && (
+        <p className={styles.buyFootnote}>Lowest seen at the stores we check.</p>
+      )}
     </section>
   );
 }

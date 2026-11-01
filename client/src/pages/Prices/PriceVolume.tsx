@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { ChevronRightIcon } from "../../components/icons/Icons";
+import { ChevronDownIcon, ChevronRightIcon } from "../../components/icons/Icons";
 import { NavLink, useLocation, useNavigate, useParams } from "react-router";
 import {
   coverSrc,
@@ -248,11 +248,17 @@ export default function PriceVolume() {
               {best.store}
             </p>
           )}
+          {/* where it's seen before anyone heads off to a store */}
+          <div className={styles.volumeActions}>
+            <ShelfAction
+              series={seriesLabel}
+              title={seriesTitle(book.title)}
+              volume={volume}
+            />
+          </div>
         </header>
 
         <div className={styles.volumeBody}>
-          {series.info && <SeriesFacts info={series.info} />}
-
           <section aria-labelledby="offers-title">
             <div className={styles.sectionHeadRow}>
               <h2 id="offers-title" className={styles.sectionTitle}>
@@ -347,46 +353,47 @@ export default function PriceVolume() {
                 )}
               </p>
             )}
+
+            {otherStores.length > 0 && (
+              <div className={styles.otherStores}>
+                <h3 id="links-title" className={styles.otherStoresTitle}>
+                  {offers.length > 0
+                    ? "No price from these, and they could be cheaper:"
+                    : "Check price at:"}
+                </h3>
+                <ul className={styles.storeLinks}>
+                  {otherStores.map((s) => (
+                    <li key={s.store}>
+                      <a
+                        href={s.url}
+                        target="_blank"
+                        rel={linkRel(s)}
+                        aria-label={`${s.store}. Opens the store in a new tab`}
+                      >
+                        {s.store}
+                      </a>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+            {storeLinks.some((s) => s.affiliate) && (
+              <p className={styles.disclosure}>
+                *Some store links are affiliate links which will be used to keep
+                the server running.*
+              </p>
+            )}
           </section>
 
-          {otherStores.length > 0 && (
-            <section aria-labelledby="links-title">
-              <h2 id="links-title" className={styles.sectionTitle}>
-                {offers.length > 0 ? "Also worth a look" : "Check price at"}
-              </h2>
-              {offers.length > 0 && (
-                <p className={styles.sectionNote}>
-                  We have no price from these, and they could be cheaper.
-                </p>
-              )}
-              <ul className={styles.storeLinks}>
-                {otherStores.map((s) => (
-                  <li key={s.store}>
-                    <a
-                      href={s.url}
-                      target="_blank"
-                      rel={linkRel(s)}
-                      aria-label={`${s.store}. Opens the store in a new tab`}
-                    >
-                      {s.store}
-                    </a>
-                  </li>
-                ))}
-              </ul>
-            </section>
-          )}
-          {storeLinks.some((s) => s.affiliate) && (
-            <p className={styles.disclosure}>
-              *Some store links are affiliate links which will be used to keep
-              the server running.*
-            </p>
-          )}
-
           {history && (
-            <section aria-labelledby="history-title">
-              <h2 id="history-title" className={styles.sectionTitle}>
-                Price history
-              </h2>
+            <details className={styles.historyFold}>
+              <summary className={styles.historySummary}>
+                <h2 className={styles.sectionTitle}>Price history</h2>
+                <span className={styles.checked}>
+                  lowest {formatCents(Math.min(...history.kinds.map((k) => k.lowCents)))}
+                </span>
+                <ChevronDownIcon />
+              </summary>
               <div className={styles.history}>
                 {history.kinds.map((k) => (
                   <div key={k.kind} className={styles.historyRow}>
@@ -427,24 +434,11 @@ export default function PriceVolume() {
                 {shortDate(history.since)}
                 {history.checks > 1 && ` to ${shortDate(history.lastSeen)}`}
               </p>
-            </section>
+            </details>
           )}
 
-          <div className={styles.volumeActions}>
-            <ShelfAction
-              series={seriesLabel}
-              title={seriesTitle(book.title)}
-              volume={volume}
-            />
+          {series.info && <SeriesFacts info={series.info} />}
 
-            <NavLink
-              to={seriesPath(series.name)}
-              className="btn btn-ghost"
-              viewTransition
-            >
-              All volumes
-            </NavLink>
-          </div>
         </div>
       </article>
 

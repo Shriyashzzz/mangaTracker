@@ -17,6 +17,10 @@ export type Manga = {
   // the last volume they own; null when they don't say
   volumesOwned: number | null;
   rating: number | null;
+  // the newest release they've said "Seen it" to
+  seenVolume?: number | null;
+  seenChapter?: number | null;
+  seenJapanVolume?: number | null;
 };
 
 // when the next chapter or volume is due. Dates are ISO, null if there isn't one

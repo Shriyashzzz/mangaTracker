@@ -113,6 +113,7 @@ export const detailsStyles = {
   buyPrice: "font-mono font-medium text-accent",
   // "caught up": the same ticket shape, but nothing to click
   buyNote: `${ticket} border-dashed border-line-soft text-ink-soft`,
+  buyFootnote: "mt-1.5 text-[0.82rem] text-ink-soft",
   buySkeleton: "h-[70px]",
 
   actions:

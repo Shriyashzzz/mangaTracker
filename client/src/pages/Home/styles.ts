@@ -32,10 +32,17 @@ export const homeStyles = {
   search:
     "peer/search flex min-h-11 w-[180px] items-center gap-[0.45rem] border-b-[1.5px] border-dashed border-line-soft py-[0.3rem] text-muted transition-[width,border-color] duration-300 ease-ink focus-within:w-80 focus-within:border-solid focus-within:border-accent has-[input:not(:placeholder-shown)]:w-80 upto-520:w-auto upto-520:flex-1 upto-520:focus-within:w-auto upto-520:has-[input:not(:placeholder-shown)]:w-auto [&_input]:min-w-0 [&_input]:flex-1 [&_input]:border-none [&_input]:bg-transparent [&_input]:text-[0.95rem] [&_input]:outline-none [&_input]:placeholder:text-muted [&_svg]:size-4 [&_svg]:shrink-0",
   // while typing on a phone, sort folds away so search gets the whole row
-  sort: "flex min-h-11 max-w-[260px] items-center gap-[0.4rem] overflow-hidden text-[0.875rem] whitespace-nowrap text-muted transition-[max-width,opacity] duration-300 ease-ink upto-520:peer-focus-within/search:-ml-4 upto-520:peer-focus-within/search:max-w-0 upto-520:peer-focus-within/search:opacity-0 [&_select]:cursor-pointer [&_select]:border-none [&_select]:bg-transparent [&_select]:text-[0.9rem] [&_select]:font-medium [&_select]:text-ink [&_select]:underline [&_select]:decoration-line-soft [&_select]:underline-offset-4",
+  sort: "flex min-h-11 max-w-[260px] items-center gap-[0.4rem] overflow-hidden text-[0.875rem] whitespace-nowrap text-muted transition-[max-width,opacity] duration-300 ease-ink upto-520:peer-focus-within/search:-ml-4 upto-520:peer-focus-within/search:max-w-0 upto-520:peer-focus-within/search:opacity-0 upto-520:[&_select]:appearance-none [&_select]:cursor-pointer [&_select]:border-none [&_select]:bg-transparent [&_select]:text-[0.9rem] [&_select]:font-medium [&_select]:text-ink [&_select]:underline [&_select]:decoration-line-soft [&_select]:underline-offset-4",
   classContainer:
     "grid grid-cols-[repeat(auto-fill,minmax(160px,1fr))] gap-x-6 gap-y-9 upto-520:grid-cols-2 upto-520:gap-x-4 upto-520:gap-y-7",
   pagerBottom: "mt-10",
+  // "Seen it" sits under the card rather than in it: the card is one big link
+  cardWithSeen: "flex min-w-0 flex-col items-start [&>a]:w-full",
+  seenBtn:
+    "tap mt-2 inline-flex items-center gap-1 py-1 text-[0.85rem] font-medium text-ink-soft underline decoration-line-soft underline-offset-3 transition-colors duration-120 ease-[ease] hover:text-accent hover:decoration-accent [&_svg]:size-3.5",
+  seenNote: "mb-5 text-[0.9rem] text-ink-soft",
+  seenUndo:
+    "tap font-medium text-ink underline decoration-accent decoration-2 underline-offset-3",
   // the New tab's own switch: new volumes or new chapters, one at a time
   releaseTools:
     "mb-7 flex flex-wrap items-center justify-between gap-x-6 gap-y-2",
