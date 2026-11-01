@@ -3,11 +3,16 @@
 // so English volumes come from our US book catalog. Its covers still tell us
 // how far Japan has got, for anyone who wants to know.
 import type { FormatedDates } from "./volumeDataFormatter.js";
+import { volumeOfChapter } from "./volumeStarts.js";
 
 export type ReleaseStatus = {
   hasNewVolume: boolean;
   hasNewChapter: boolean;
   hasNewJapaneseVolume: boolean;
+  // the panel on the details page: they're on the volume right before the newest
+  isNextVolumeOut: boolean;
+  // how far they've got: what they own, or else the volume their chapter is in
+  currentVolume: number | null;
   latestVolume: number | null;
   latestChapter: number | null;
   latestJapaneseVolume: number | null;
@@ -38,6 +43,8 @@ export function getReleaseStatus(
     .filter(Number.isFinite);
   const latestJapaneseVolume = japanese.length ? Math.max(...japanese) : null;
   const owned = volumesOwned ?? 0;
+  const currentVolume =
+    volumesOwned || volumeOfChapter(bookmark, dates?.volumeStarts ?? []);
 
   return {
     hasNewVolume: latestVolume != null && owned < latestVolume,
@@ -47,6 +54,12 @@ export function getReleaseStatus(
       latestJapaneseVolume != null &&
       latestJapaneseVolume > owned &&
       latestJapaneseVolume > (latestVolume ?? 0),
+    isNextVolumeOut:
+      latestVolume != null &&
+      currentVolume != null &&
+      currentVolume >= latestVolume - 1 &&
+      currentVolume < latestVolume,
+    currentVolume,
     latestVolume,
     latestChapter,
     latestJapaneseVolume,

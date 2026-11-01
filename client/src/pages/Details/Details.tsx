@@ -124,7 +124,7 @@ export default function Details() {
     mangaData.genre && mangaData.genre !== "unlabled" ? mangaData.genre : null;
   const releasedVolume = inJapan
     ? releaseStatus?.hasNewJapaneseVolume && releaseStatus.latestJapaneseVolume
-    : releaseStatus?.hasNewVolume && releaseStatus.latestVolume;
+    : releaseStatus?.isNextVolumeOut && releaseStatus.latestVolume;
   const showRelease = Boolean(releasedVolume);
 
   return (
@@ -183,7 +183,7 @@ export default function Details() {
           <ReleasePanel
             volume={releasedVolume as number}
             inJapan={inJapan}
-            volumesOwned={mangaData.volumesOwned}
+            currentVolume={releaseStatus?.currentVolume ?? null}
             data={releaseData}
           />
         )}

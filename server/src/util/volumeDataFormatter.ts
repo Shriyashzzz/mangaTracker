@@ -1,6 +1,7 @@
 import { formatReleaseDate } from "./fomratISO8601Date.js";
 import type { ChapterEstimate } from "./estimateNextChapter.js";
 import type { VolumeEstimate } from "./estimateNextVolume.js";
+import type { VolumeStart } from "./volumeStarts.js";
 
 type ChapterRelease = {
   latestReleased: {
@@ -29,6 +30,7 @@ type NewVolume = {
 };
 
 export type FormatedDates = {
+  volumeStarts?: VolumeStart[]; // for working out a reader's volume from their chapter
   volume?: Array<Volume>;
   newVolume?: NewVolume; // upcoming new volume
   chapter?: ChapterRelease;

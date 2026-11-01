@@ -69,3 +69,49 @@ test("volumes still work when MangaDex couldn't answer", () => {
   expect(status.hasNewVolume).toBe(true);
   expect(status.hasNewChapter).toBe(false);
 });
+
+describe("the panel's next volume", () => {
+  const starts = [
+    { volume: 1, firstChapter: 1 },
+    { volume: 2, firstChapter: 10 },
+    { volume: 3, firstChapter: 19 },
+  ];
+  const status = (
+    volumesOwned: number | null,
+    bookmark: number | null,
+    latest: number,
+  ) =>
+    getReleaseStatus(
+      { volumesOwned, bookmark },
+      {
+        dates: { volumeStarts: starts } as FormatedDates,
+        englishVolumes: english(latest),
+      },
+    );
+
+  test("shows only when they're on the volume before the newest", () => {
+    expect(status(13, null, 14).isNextVolumeOut).toBe(true);
+    expect(status(14, null, 14).isNextVolumeOut).toBe(false);
+    expect(status(12, null, 14).isNextVolumeOut).toBe(false);
+    // the New tab still counts all of those behind
+    expect(status(12, null, 14).hasNewVolume).toBe(true);
+  });
+
+  test("works out where they are from their chapter", () => {
+    const fromChapter = status(null, 12, 3);
+    expect(fromChapter.currentVolume).toBe(2);
+    expect(fromChapter.isNextVolumeOut).toBe(true);
+    expect(status(null, 12, 4).isNextVolumeOut).toBe(false);
+  });
+
+  test("what they own wins over their chapter", () => {
+    // own 2, read past vol. 3 online: vol. 3 is still the next one for them
+    expect(status(2, 500, 3).currentVolume).toBe(2);
+    expect(status(2, 500, 3).isNextVolumeOut).toBe(true);
+  });
+
+  test("with nothing to go on it stays hidden", () => {
+    expect(status(null, null, 3).isNextVolumeOut).toBe(false);
+    expect(status(null, 0, 3).currentVolume).toBeNull();
+  });
+});

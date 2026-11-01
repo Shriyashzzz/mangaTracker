@@ -6,7 +6,7 @@ import type { ReleaseData } from "../../lib/types";
 type Props = {
   volume: number;
   inJapan: boolean;
-  volumesOwned: number | null;
+  currentVolume: number | null;
   data: ReleaseData | null;
 };
 
@@ -61,7 +61,7 @@ const groupsFrom = (data: ReleaseData | null, inJapan: boolean): Group[] => {
 export default function ReleasePanel({
   volume,
   inJapan,
-  volumesOwned,
+  currentVolume,
   data,
 }: Props) {
   const [open, setOpen] = useState(false);
@@ -75,7 +75,7 @@ export default function ReleasePanel({
       <span className={styles.releaseBarHeadline}>{headline}</span>
       <span className={styles.releaseBarOwned}>
         {place}
-        {volumesOwned ? ` · you own ${volumesOwned}` : ""}
+        {currentVolume ? ` · you're on ${currentVolume}` : ""}
       </span>
     </>
   );
@@ -90,7 +90,7 @@ export default function ReleasePanel({
         <h2 className={styles.releaseHeadline}>{headline}</h2>
         <p className={styles.releaseOwned}>
           {inJapan ? "In Japan." : "In English."}
-          {volumesOwned ? ` You own up to vol. ${volumesOwned}.` : ""}
+          {currentVolume ? ` You're on vol. ${currentVolume}.` : ""}
         </p>
       </div>
 
