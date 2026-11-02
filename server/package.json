@@ -14,7 +14,6 @@
     "db:migrate": "prisma migrate dev",
     "db:deploy": "prisma migrate deploy",
     "db:baseline": "prisma migrate resolve --applied 0_init",
-    "db:seed-sample": "tsx src/seedSampleShelf.ts",
     "db:studio": "prisma studio"
   },
   "license": "ISC",

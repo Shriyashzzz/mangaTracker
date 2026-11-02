@@ -25,6 +25,5 @@ COPY --from=build /app/prisma ./prisma
 COPY --from=build /app/prisma.config.ts ./
 COPY package*.json ./
 EXPOSE 8080
-# apply any new migrations, make sure the sample shelf exists, then start. The
-# sample shelf must never stop a deploy
-CMD ["sh", "-c", "npx prisma migrate deploy && (node dist/src/seedSampleShelf.js || true) && node dist/src/server.js"]
+# apply any new migrations, then start
+CMD ["sh", "-c", "npx prisma migrate deploy && node dist/src/server.js"]
