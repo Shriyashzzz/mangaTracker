@@ -53,7 +53,7 @@ export default function DeletedNote() {
       {showing && (
         <div
           data-over-add-button
-          className="fixed inset-x-0 bottom-6 z-15 mx-auto flex w-fit max-w-[min(30rem,calc(100vw-2rem))] animate-drop items-center gap-4 rounded-ink border-[2.5px] border-line bg-card px-4 py-3 text-[0.95rem] text-ink shadow-ink motion-reduce:animate-none upto-720:bottom-[calc(3.75rem+env(safe-area-inset-bottom))]"
+          className="fixed inset-x-0 bottom-6 z-15 mx-auto flex w-fit max-w-[min(30rem,calc(100vw-2rem))] animate-drop items-center gap-4 rounded-ink border-[2.5px] border-line bg-card px-4 py-3 text-[0.95rem] text-ink shadow-ink motion-reduce:animate-none upto-720:bottom-[calc(4.5rem+env(safe-area-inset-bottom))]"
         >
           <span className="min-w-0 truncate">
             {problem || `Deleted: ${manga.name}`}

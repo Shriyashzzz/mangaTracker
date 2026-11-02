@@ -29,7 +29,7 @@ const linkClass = (active: boolean) =>
 // one side of the phones' bottom bar: the whole width is the target
 const barClass = (active: boolean) =>
   clsx(
-    "grid min-h-11 flex-1 place-items-center font-brand text-[1.05rem] tracking-[1px] uppercase transition-colors duration-150",
+    "grid min-h-14 flex-1 place-items-center font-brand text-[1.2rem] tracking-[1px] uppercase transition-colors duration-150",
     active ? "bg-accent text-on-accent" : "text-ink-soft",
   );
 
