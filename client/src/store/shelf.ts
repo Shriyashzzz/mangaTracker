@@ -5,6 +5,7 @@ import { create } from "zustand";
 import { apiFetch } from "../lib/api";
 import {
   getReleases,
+  isStillNew,
   LAST_NEW_COUNT_KEY,
   RELEASE_CHECK_TIMEOUT_MS,
   saveSeen,
@@ -24,7 +25,12 @@ type ShelfState = {
   recheckReleases: () => void;
   // "Hide", or its undo: off the New tab at once, back if the save fails.
   // Says whether it saved
-  markSeen: (id: number, kind: SeenKind, number: number | null) => Promise<boolean>;
+  markSeen: (
+    id: number,
+    kind: SeenKind,
+    number: number | null,
+    hiddenVolumes?: number[],
+  ) => Promise<boolean>;
   // it's been deleted: gone at once, not after the next refresh
   remove: (id: number) => void;
   // on signing in or out: it's someone else's shelf now
@@ -33,13 +39,9 @@ type ShelfState = {
 
 // where each kind of "Hide" lives on a manga, and the flag it switches off
 const SEEN = {
-  volume: { field: "seenVolume", flag: "hasNewVolume", latest: "nextVolume" },
-  chapter: { field: "seenChapter", flag: "hasNewChapter", latest: "nextChapter" },
-  japan: {
-    field: "seenJapanVolume",
-    flag: "hasNewJapaneseVolume",
-    latest: "latestJapaneseVolume",
-  },
+  volume: { field: "seenVolume", flag: "hasNewVolume" },
+  chapter: { field: "seenChapter", flag: "hasNewChapter" },
+  japan: { field: "seenJapanVolume", flag: "hasNewJapaneseVolume" },
 } as const;
 
 // the run in progress; only ever one, and resetting stops it
@@ -147,31 +149,42 @@ export const useShelf = create<ShelfState>()((set, get) => ({
     set({ releases: {} });
   },
 
-  markSeen: async (id, kind, number) => {
-    const { field, flag, latest } = SEEN[kind];
-    const apply = (seen: number | null, isNew: boolean) =>
+  markSeen: async (id, kind, number, hiddenVolumes) => {
+    const { field, flag } = SEEN[kind];
+    const apply = (seen: number | null, hiddenList?: number[]) =>
       set((state) => {
+        const manga =
+          state.manga?.map((m) =>
+            m.id === id
+              ? {
+                  ...m,
+                  [field]: seen,
+                  ...(hiddenList ? { hiddenVolumes: hiddenList } : {}),
+                }
+              : m,
+          ) ?? null;
         const release = state.releases[id];
+        const changed = manga?.find((m) => m.id === id);
         return {
-          manga:
-            state.manga?.map((m) => (m.id === id ? { ...m, [field]: seen } : m)) ??
-            null,
-          releases: release
-            ? { ...state.releases, [id]: { ...release, [flag]: isNew } }
-            : state.releases,
+          manga,
+          releases:
+            release && changed
+              ? {
+                  ...state.releases,
+                  [id]: { ...release, [flag]: isStillNew(kind, changed, release) },
+                }
+              : state.releases,
         };
       });
-    const before = get();
-    const previous = before.manga?.find((m) => m.id === id)?.[field] ?? null;
-    const wasNew = before.releases[id]?.[flag] ?? false;
-    // still new if what's seen falls short of the latest
-    const newest = before.releases[id]?.[latest] ?? 0;
-    apply(number, newest > (number ?? 0));
+    const before = get().manga?.find((m) => m.id === id);
+    const previous = before?.[field] ?? null;
+    const previousList = before?.hiddenVolumes ?? [];
+    apply(number, hiddenVolumes);
     try {
-      await saveSeen(id, kind, number);
+      await saveSeen(id, kind, number, hiddenVolumes);
       return true;
     } catch {
-      apply(previous, wasNew);
+      apply(previous, hiddenVolumes ? previousList : undefined);
       return false;
     }
   },

@@ -8,6 +8,7 @@ import { AddManga } from "./AddManga/AddManga";
 import { AboutPage } from "./About/About";
 import { ImportPage } from "./Import/Import";
 import { UpdatesPage } from "./Updates/Updates";
+import NewReleasesPage from "./NewReleases/NewReleases";
 import SignInPage from "./SignIn/SignIn";
 import SignUp from "./SignUp/SignUp";
 import FrontDoor from "./Prices/FrontDoor";
@@ -33,6 +34,7 @@ export const routes = [
       { path: "/import", element: <ImportPage /> },
       { path: "/about", element: <AboutPage /> },
       { path: "/updates", element: <UpdatesPage /> },
+      { path: "/new-releases", element: <NewReleasesPage /> },
       { path: "/signup", element: <SignUp /> },
       { path: "/series", element: <SeriesIndex /> },
       { path: "/prices", element: <ToPriceHome /> },

@@ -83,6 +83,30 @@ export const homeStyles = {
   releaseAside: "flex flex-wrap items-center gap-x-5 gap-y-1",
   hiddenToggle:
     "tap text-[0.85rem] font-medium text-ink underline decoration-accent decoration-2 underline-offset-3",
+  // the grouped list. A full screen on phones
+  modal:
+    "m-auto max-h-[80dvh] w-[min(30rem,calc(100vw-2rem))] flex-col rounded-ink border-[2.5px] border-line bg-card text-ink shadow-ink-lg open:flex backdrop:bg-[rgba(20,14,8,0.55)] upto-720:h-dvh upto-720:max-h-none upto-720:w-screen upto-720:max-w-none upto-720:rounded-none upto-720:border-0",
+  modalHead:
+    "flex items-start justify-between gap-4 border-b-[1.5px] border-line px-5 pt-4 pb-3",
+  modalTitle:
+    "font-brand text-[1.5rem] leading-[1.1] font-normal tracking-[0.02em] text-balance uppercase",
+  modalClose:
+    "tap shrink-0 py-1 text-[0.9rem] font-medium text-ink-soft underline decoration-line-soft underline-offset-3 hover:text-ink",
+  modalActions:
+    "flex flex-wrap items-center justify-between gap-x-4 gap-y-2 border-b-[1.5px] border-dashed border-line-soft px-5 py-3",
+  modalAll: "btn btn-secondary",
+  modalBack:
+    "tap text-[0.9rem] font-medium text-ink-soft underline decoration-line-soft underline-offset-3 hover:text-ink",
+  modalError: "px-5 pt-3 text-[0.9rem] font-medium text-accent",
+  modalRows: "min-h-0 flex-1 overflow-y-auto px-5 pb-3",
+  modalRow:
+    "flex min-h-12 items-center justify-between gap-4 border-b border-dashed border-line-soft last:border-b-0",
+  modalName: "font-medium",
+  modalLink:
+    "tap font-medium underline decoration-accent decoration-2 underline-offset-3",
+  modalHide:
+    "tap shrink-0 text-[0.9rem] font-medium text-ink-soft underline decoration-line-soft underline-offset-3 hover:text-accent",
+  modalMore: "py-3 text-[0.85rem] text-ink-soft",
   // the check's progress, a thin ink line with a small label
   checkBar: "h-[3px] w-full overflow-hidden rounded-full bg-line-soft",
   checkBarFill:

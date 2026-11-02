@@ -23,7 +23,16 @@ import type { Manga, ReleaseStatus, ShelfPrice } from "../../lib/types";
 import { useAuth } from "../../store/auth";
 import { useShelf } from "../../store/shelf";
 import { readLocal, writeLocal } from "../../lib/prefs";
-import { CHECKED_BEFORE_KEY, LAST_NEW_COUNT_KEY, type SeenKind } from "../../lib/shelf";
+import {
+  CHECKED_BEFORE_KEY,
+  isStillNew,
+  LAST_NEW_COUNT_KEY,
+  remainingChapters,
+  remainingJapanVolumes,
+  remainingVolumes,
+  type SeenKind,
+} from "../../lib/shelf";
+import ReleaseModal from "./ReleaseModal";
 import ReleaseTip from "../../components/whatsNew/ReleaseTip";
 
 const SHELF_PAGE_SIZE = 30;
@@ -140,6 +149,8 @@ function Library() {
   });
   // the New tab's list of what they've hidden
   const [wantHidden, setWantHidden] = useState(false);
+  // the series whose grouped list is open
+  const [openRelease, setOpenRelease] = useState<number | null>(null);
   const hiddenCount = (mangaData ?? []).filter((m) =>
     isHiddenAs(releases[m.id], releaseKind),
   ).length;
@@ -182,6 +193,7 @@ function Library() {
     name: string;
     kind: SeenKind;
     previous: number | null;
+    previousList: number[];
     // true when they've just brought it back rather than hidden it
     restored?: boolean;
   } | null>(null);
@@ -375,35 +387,84 @@ function Library() {
     chapters: counts.newChapters,
     japan: counts.newInJapan,
   };
+  const seenOf = (m: Manga, kind: SeenKind) =>
+    (kind === "volume"
+      ? m.seenVolume
+      : kind === "chapter"
+        ? m.seenChapter
+        : m.seenJapanVolume) ?? null;
+  // this series, in this view, lists everything that's out as one entry
+  const isGrouped = (m: Manga) => {
+    const found = releases[m.id];
+    return (
+      (releaseKind === "chapters" ? found?.chapterMode : found?.volumeMode) === "all"
+    );
+  };
+
   const handleSeen = async (m: Manga) => {
     const kind = SEEN_KIND[releaseKind];
     const found = releases[m.id];
+    const grouped = isGrouped(m);
     const newest =
       kind === "volume"
-        ? found?.nextVolume
+        ? grouped
+          ? found?.latestVolume
+          : found?.nextVolume
         : kind === "chapter"
-          ? found?.nextChapter
+          ? grouped
+            ? found?.latestChapter
+            : found?.nextChapter
           : found?.latestJapaneseVolume;
     if (newest == null) return;
-    const previous =
-      (kind === "volume"
-        ? m.seenVolume
-        : kind === "chapter"
-          ? m.seenChapter
-          : m.seenJapanVolume) ?? null;
+    const previous = seenOf(m, kind);
+    const previousList = m.hiddenVolumes ?? [];
     setSeenFailed(false);
-    // clearing what they've seen is what puts it back on the list
+    // clearing what they've hidden is what puts it back on the list
     const restored = viewingHidden;
-    const saved = await markSeen(m.id, kind, restored ? null : newest);
-    if (saved) setHidden({ id: m.id, name: m.name, kind, previous, restored });
-    else setSeenFailed(true);
+    const saved = await markSeen(
+      m.id,
+      kind,
+      restored ? null : newest,
+      kind === "volume" && (restored || grouped) ? [] : undefined,
+    );
+    if (saved) {
+      setHidden({ id: m.id, name: m.name, kind, previous, previousList, restored });
+    } else {
+      setSeenFailed(true);
+    }
+  };
+
+  const openManga = mangaData.find((m) => m.id === openRelease);
+
+  // from the grouped list: part of it hidden. The last of it closes the list and
+  // offers the undo, as hiding the whole card does
+  const hideInModal = async (m: Manga, number: number | null, list?: number[]) => {
+    const kind = SEEN_KIND[releaseKind];
+    const previous = seenOf(m, kind);
+    const previousList = m.hiddenVolumes ?? [];
+    const found = releases[m.id];
+    const saved = await markSeen(m.id, kind, number, list);
+    if (!saved) return false;
+    const changed: Manga = {
+      ...m,
+      ...(kind === "volume" ? { seenVolume: number } : {}),
+      ...(kind === "chapter" ? { seenChapter: number } : {}),
+      ...(kind === "japan" ? { seenJapanVolume: number } : {}),
+      ...(list ? { hiddenVolumes: list } : {}),
+    };
+    if (found && !isStillNew(kind, changed, found)) {
+      setOpenRelease(null);
+      setHidden({ id: m.id, name: m.name, kind, previous, previousList });
+    }
+    return true;
   };
 
   const undoSeen = async () => {
     if (!hidden) return;
-    const { id, kind, previous } = hidden;
+    const { id, kind, previous, previousList } = hidden;
     setHidden(null);
-    if (!(await markSeen(id, kind, previous))) setSeenFailed(true);
+    const list = kind === "volume" ? previousList : undefined;
+    if (!(await markSeen(id, kind, previous, list))) setSeenFailed(true);
     // back on the card it came from
     requestAnimationFrame(() =>
       document
@@ -422,6 +483,36 @@ function Library() {
       : found?.currentVolume
         ? `You're on vol. ${found.currentVolume}`
         : undefined;
+    if (found && isGrouped(m)) {
+      // what's hidden is everything, when looking at what's hidden
+      const out = (left: number[], all: number[]) =>
+        viewingHidden || !left.length ? all : left;
+      const range = (prefix: string, numbers: number[]) =>
+        numbers.length > 1
+          ? `${prefix} ${numbers[0]}–${numbers.at(-1)}`
+          : `${prefix} ${numbers[0]}`;
+      if (releaseKind === "japan") {
+        const shown = out(remainingJapanVolumes(m, found), found.outJapanVolumes);
+        return { text: `${range("Vol.", shown)} in Japan`, yours: volumeYours };
+      }
+      if (releaseKind === "chapters") {
+        const left = remainingChapters(m, found);
+        const first = found.nextChapter;
+        const latest = found.latestChapter;
+        return {
+          text:
+            viewingHidden || !left.length
+              ? `Ch. ${first}–${latest} available`
+              : `${range("Ch.", [left[0]!, left.at(-1)!])} available`,
+          yours: m.bookmark ? `You're on ch. ${m.bookmark}` : undefined,
+        };
+      }
+      const shown = out(
+        remainingVolumes(m, found).map((v) => v.volume),
+        found.outVolumes.map((v) => v.volume),
+      );
+      return { text: `${range("Vol.", shown)} available`, yours: volumeYours };
+    }
     if (releaseKind === "japan") {
       return {
         text: `Vol. ${found?.latestJapaneseVolume} in Japan`,
@@ -450,7 +541,7 @@ function Library() {
   // but buy it. No catalog entry to go on: the details page, as usual
   const buyLinkFor = (m: Manga) => {
     const book = releases[m.id]?.nextVolumeBook;
-    return showingNew && releaseKind === "volumes" && book
+    return showingNew && releaseKind === "volumes" && book && !isGrouped(m)
       ? volumePath(book.isbn13, book.title)
       : undefined;
   };
@@ -645,6 +736,9 @@ function Library() {
                 ? "You hid these. They stay hidden until something newer is out."
                 : RELEASE_KINDS[releaseKind].note}
             </p>
+            <NavLink to="/new-releases" className={styles.hiddenToggle} viewTransition>
+              How this works
+            </NavLink>
             {hiddenCount > 0 && (
               <button
                 type="button"
@@ -754,6 +848,11 @@ function Library() {
                   priceTag={priceTags[currentManga.id]}
                   news={newsFor(currentManga)}
                   linkTo={buyLinkFor(currentManga)}
+                  onOpen={
+                    showingNew && !viewingHidden && isGrouped(currentManga)
+                      ? () => setOpenRelease(currentManga.id)
+                      : undefined
+                  }
                   detailsSearch={
                     !showingNew
                       ? undefined
@@ -769,12 +868,16 @@ function Library() {
                   <button
                     type="button"
                     className={styles.seenBtn}
-                    aria-label={`${viewingHidden ? "Show again" : "Hide"}: ${currentManga.name}`}
+                    aria-label={`${viewingHidden ? "Show again" : isGrouped(currentManga) ? "Hide all" : "Hide"}: ${currentManga.name}`}
                     data-seen-id={currentManga.id}
                     onClick={() => handleSeen(currentManga)}
                   >
                     {!viewingHidden && <CheckIcon />}
-                    {viewingHidden ? "Show again" : "Hide"}
+                    {viewingHidden
+                      ? "Show again"
+                      : isGrouped(currentManga)
+                        ? "Hide all"
+                        : "Hide"}
                   </button>
                 )}
               </div>
@@ -788,6 +891,20 @@ function Library() {
 
       {/* out of the way on phones, where the top of the page is for the manga */}
       <p className={styles.importBottom}>{importLink}</p>
+
+      {showingNew && openManga && releases[openManga.id] && (
+        <ReleaseModal
+          manga={openManga}
+          found={releases[openManga.id]!}
+          kind={SEEN_KIND[releaseKind]}
+          onHide={(number, list) => hideInModal(openManga, number, list)}
+          onHideAll={() => {
+            setOpenRelease(null);
+            handleSeen(openManga);
+          }}
+          onClose={() => setOpenRelease(null)}
+        />
+      )}
 
       {/* in a portal for the same reason as the note above */}
       {createPortal(
