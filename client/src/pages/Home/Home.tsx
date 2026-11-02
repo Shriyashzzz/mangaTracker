@@ -343,33 +343,42 @@ function Library() {
     if (!(await markSeen(id, kind, previous))) setSeenFailed(true);
   };
 
-  // what a card in the New tab says. The list stays broad, so a card only
-  // shouts when the next one really is what's just out; further behind, it says
-  // how far. A blank shelf number can't say how far, so it just names the latest
+  // what a card in the New tab says: what's out, and where they are, so the two
+  // numbers can't be mixed up
   const newsFor = (m: Manga): CardNews | undefined => {
     if (!showingNew) return undefined;
     const found = releases[m.id];
+    const volumeYours = m.volumesOwned
+      ? `You own up to vol. ${m.volumesOwned}`
+      : found?.currentVolume
+        ? `You're on vol. ${found.currentVolume}`
+        : undefined;
     if (releaseKind === "japan") {
-      return { text: `Vol. ${found?.latestJapaneseVolume} in Japan`, loud: true };
+      return {
+        text: `Vol. ${found?.latestJapaneseVolume} in Japan`,
+        yours: volumeYours,
+      };
     }
     if (releaseKind === "chapters") {
-      const latest = found?.latestChapter ?? 0;
-      if (!m.bookmark) return { text: `Latest is ch. ${latest}`, loud: false };
-      const behind = Math.ceil(latest - m.bookmark);
-      return behind <= 1
-        ? { text: `Ch. ${latest} is out`, loud: true }
-        : { text: `${behind} chapters behind, latest ch. ${latest}`, loud: false };
+      return {
+        text: `Ch. ${found?.latestChapter} is out`,
+        yours: m.bookmark ? `You're on ch. ${m.bookmark}` : undefined,
+      };
     }
-    const latest = found?.latestVolume ?? 0;
-    if (found?.isNextVolumeOut) return { text: `Vol. ${latest} is out`, loud: true };
-    if (!m.volumesOwned) return { text: `Latest is vol. ${latest}`, loud: false };
-    const behind = latest - m.volumesOwned;
-    return {
-      text: `${behind} volume${behind === 1 ? "" : "s"} behind, latest vol. ${latest}`,
-      loud: false,
-    };
+    return { text: `Vol. ${found?.latestVolume} is out`, yours: volumeYours };
   };
   const total = mangaData.length;
+  // a series with no saved place can't be called caught up, so it never shows
+  // here. An empty tab has to say so, or it reads as "nothing's out"
+  const unknownPlace = mangaData.filter((m) =>
+    releaseKind === "chapters"
+      ? !m.bookmark
+      : !m.volumesOwned && !releases[m.id]?.currentVolume,
+  ).length;
+  const missingNumber =
+    releaseKind === "chapters"
+      ? "Add the chapter you're on and we'll tell you when the next one's out."
+      : "Add the volumes you own and we'll tell you when the next one's out.";
   // every title failed, so "nothing new" would be a false comfort. A few failing
   // goes unsaid: the rest still stand, and they get tried again on the next visit
   const allFailed =
@@ -553,11 +562,22 @@ function Library() {
             <Mascot mood="happy" />
           </span>
           <p className={styles.nothingNewTitle}>
-            {RELEASE_KINDS[releaseKind].emptyTitle}
+            {unknownPlace === total
+              ? "We don't know where you're up to yet."
+              : RELEASE_KINDS[releaseKind].emptyTitle}
           </p>
-          <p className={styles.emptyBody}>
-            {RELEASE_KINDS[releaseKind].emptyBody}
-          </p>
+          {unknownPlace < total && (
+            <p className={styles.emptyBody}>
+              {RELEASE_KINDS[releaseKind].emptyBody}
+            </p>
+          )}
+          {unknownPlace > 0 && (
+            <p className={styles.emptyBody}>
+              {unknownPlace === total
+                ? missingNumber
+                : `${unknownPlace} of your series can't show up here yet. ${missingNumber}`}
+            </p>
+          )}
         </div>
       ) : visibleManga.length === 0 ? (
         <div className={styles.emptyState}>

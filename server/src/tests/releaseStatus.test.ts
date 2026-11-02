@@ -21,16 +21,16 @@ const chaptersOnly = (dates: FormatedDates | null) => ({
   englishVolumes: [],
 });
 
-test("a new volume is any English one past what they own", () => {
+test("a new volume only counts when they've caught up to the one before it", () => {
   const out = volumesOnly(english(24, 25));
   expect(getReleaseStatus(owns(24), out).hasNewVolume).toBe(true);
-  expect(getReleaseStatus(owns(3), out).hasNewVolume).toBe(true);
+  expect(getReleaseStatus(owns(3), out).hasNewVolume).toBe(false);
   expect(getReleaseStatus(owns(25), out).hasNewVolume).toBe(false);
 });
 
-test("a blank on the shelf doesn't hide anything", () => {
-  expect(getReleaseStatus(owns(null), volumesOnly(english(25))).hasNewVolume).toBe(true);
-  expect(getReleaseStatus(readTo(null), chaptersOnly(chapter("250"))).hasNewChapter).toBe(true);
+test("a blank on the shelf can't say they've caught up", () => {
+  expect(getReleaseStatus(owns(null), volumesOnly(english(25))).hasNewVolume).toBe(false);
+  expect(getReleaseStatus(readTo(null), chaptersOnly(chapter("250"))).hasNewChapter).toBe(false);
 });
 
 test("no English volumes means no new volume", () => {
@@ -42,22 +42,28 @@ test("the highest numbered English volume counts, in any order", () => {
   expect(status.latestVolume).toBe(10);
 });
 
-test("a new chapter means the latest is past their bookmark", () => {
-  expect(getReleaseStatus(readTo(203), chaptersOnly(chapter("250"))).hasNewChapter).toBe(true);
-  expect(getReleaseStatus(readTo(250), chaptersOnly(chapter("250"))).hasNewChapter).toBe(false);
+test("a new chapter only counts when they're nearly up to it", () => {
+  const out = chaptersOnly(chapter("250"));
+  expect(getReleaseStatus(readTo(249), out).hasNewChapter).toBe(true);
+  // a few came out since they last read: still caught up
+  expect(getReleaseStatus(readTo(247), out).hasNewChapter).toBe(true);
+  expect(getReleaseStatus(readTo(246), out).hasNewChapter).toBe(false);
+  expect(getReleaseStatus(readTo(203), out).hasNewChapter).toBe(false);
+  expect(getReleaseStatus(readTo(250), out).hasNewChapter).toBe(false);
   expect(getReleaseStatus(readTo(203), chaptersOnly(chapter(null))).hasNewChapter).toBe(false);
 });
 
-test("a Japanese volume counts only past what they own and what's in English", () => {
+test("a Japanese volume counts only once they've caught up with English", () => {
   const dates = {
     volume: [{ volume: "26", releaseDate: "Today" }, { volume: null, releaseDate: null }],
   } as FormatedDates;
-  const ahead = (owned: number, englishVolumes: { volume: number | null }[]) =>
+  const ahead = (owned: number | null, englishVolumes: { volume: number | null }[]) =>
     getReleaseStatus(owns(owned), { dates, englishVolumes }).hasNewJapaneseVolume;
   expect(ahead(25, english(25))).toBe(true);
   expect(ahead(3, [])).toBe(true);
-  expect(getReleaseStatus(owns(null), { dates, englishVolumes: [] }).hasNewJapaneseVolume).toBe(true);
+  expect(ahead(null, [])).toBe(false);
   expect(ahead(26, english(25))).toBe(false);
+  expect(ahead(20, english(25))).toBe(false);
   expect(ahead(20, english(26))).toBe(false);
 });
 
@@ -100,8 +106,9 @@ describe("the panel's next volume", () => {
     expect(status(13, null, 14).isNextVolumeOut).toBe(true);
     expect(status(14, null, 14).isNextVolumeOut).toBe(false);
     expect(status(12, null, 14).isNextVolumeOut).toBe(false);
-    // the New tab still counts all of those behind
-    expect(status(12, null, 14).hasNewVolume).toBe(true);
+    // and the New tab follows the same rule
+    expect(status(13, null, 14).hasNewVolume).toBe(true);
+    expect(status(12, null, 14).hasNewVolume).toBe(false);
   });
 
   test("works out where they are from their chapter", () => {
@@ -124,25 +131,26 @@ describe("the panel's next volume", () => {
 });
 
 test("seen it hides that release, until a newer one is out", () => {
-  const shelved = { ...owns(3), seenVolume: 25 };
+  const shelved = { ...owns(24), seenVolume: 25 };
   expect(
     getReleaseStatus(shelved, volumesOnly(english(24, 25))).hasNewVolume,
   ).toBe(false);
   expect(
-    getReleaseStatus(shelved, volumesOnly(english(25, 26))).hasNewVolume,
+    getReleaseStatus({ ...owns(25), seenVolume: 25 }, volumesOnly(english(25, 26)))
+      .hasNewVolume,
   ).toBe(true);
 });
 
 test("seen it on a chapter leaves volumes alone, and the other way round", () => {
   const out = { dates: chapter("100"), englishVolumes: english(25) };
   const seenChapter = getReleaseStatus(
-    { volumesOwned: 3, bookmark: 10, seenChapter: 100 },
+    { volumesOwned: 24, bookmark: 99, seenChapter: 100 },
     out,
   );
   expect(seenChapter.hasNewChapter).toBe(false);
   expect(seenChapter.hasNewVolume).toBe(true);
   const seenVolume = getReleaseStatus(
-    { volumesOwned: 3, bookmark: 10, seenVolume: 25 },
+    { volumesOwned: 24, bookmark: 99, seenVolume: 25 },
     out,
   );
   expect(seenVolume.hasNewChapter).toBe(true);
