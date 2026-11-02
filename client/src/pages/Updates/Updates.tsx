@@ -8,6 +8,10 @@ import { updatesStyles as styles } from "./styles";
 // the big features only, a line each. Add new ones here when they ship
 const UPDATES = [
   {
+    name: "Better search results",
+    body: "Greater accuracy and a wider list of live prices.",
+  },
+  {
     name: "Share your list",
     body: "Pick a silly picture and send friends your shelf.",
   },

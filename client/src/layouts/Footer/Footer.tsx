@@ -53,7 +53,7 @@ export default function Footer() {
             About
           </NavLink>
           <span aria-hidden>·</span>
-          <span>Vol. 1, {new Date().getFullYear()}</span>
+          <span>Vol. 2, {new Date().getFullYear()}</span>
         </p>
       </div>
     </footer>

@@ -10,6 +10,10 @@ import { useAuth } from "../../store/auth";
 // chapter, what will the volume cost, and how fast can I add a series
 const ITEMS = [
   {
+    name: "Better search results",
+    body: "Greater accuracy and a wider list of live prices.",
+  },
+  {
     name: "Next chapter dates",
     body: "A volume behind? The manga's page shows when the next chapter should land.",
   },
