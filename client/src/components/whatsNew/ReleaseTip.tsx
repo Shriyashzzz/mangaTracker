@@ -4,7 +4,7 @@
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { NavLink } from "react-router";
-import { readLocal, writeLocal } from "../../lib/prefs";
+import { readLocal, releaseChecksOn, writeLocal } from "../../lib/prefs";
 import { CHECKED_BEFORE_KEY, openReleasesOnShelf } from "../../lib/shelf";
 import { useAuth } from "../../store/auth";
 import Mascot from "../mascot/Mascot";
@@ -27,7 +27,7 @@ export default function ReleaseTip({ enabled, onCheck }: Props) {
   const [open, setOpen] = useState(false);
 
   useEffect(() => {
-    if (!enabled || isSignedIn === null) return;
+    if (!enabled || isSignedIn === null || !releaseChecksOn()) return;
     if (!window.matchMedia(SMALL_SCREEN).matches) return;
     // anyone who has opened the New tab already knows about it
     const seen = readLocal(SEEN_KEY);

@@ -7,6 +7,7 @@ import type { Manga, ReleaseData, ReleaseStatus } from "../../lib/types";
 import SlowLoadQuote from "../../components/slowLoadQuote/SlowLoadQuote";
 import { usePrivatePage } from "../../lib/seo";
 import { getReleases } from "../../lib/shelf";
+import { releaseChecksOn } from "../../lib/prefs";
 import { useShelf } from "../../store/shelf";
 import NotesField from "./NotesField";
 import BuyStrip from "./BuyStrip";
@@ -85,6 +86,7 @@ export default function Details() {
   // can take a few seconds, so the page doesn't wait for it. Nice to have: the
   // panel just doesn't appear if this fails
   useEffect(() => {
+    if (!releaseChecksOn()) return;
     const controller = new AbortController();
     getReleases(Number(id), controller.signal)
       .then((found) => {
@@ -215,15 +217,18 @@ export default function Details() {
     : inJapan
       ? releaseStatus.hasNewJapaneseVolume && {
           what: `Vol. ${releaseStatus.latestJapaneseVolume}`,
+          kind: "volume" as const,
           yours: volumeYours,
         }
       : chapterNews && !mangaStatus
         ? releaseStatus.hasNewChapter && {
             what: `Ch. ${releaseStatus.latestChapter}`,
+            kind: "chapter" as const,
             yours: mangaData.bookmark ? `you're on ch. ${mangaData.bookmark}` : null,
           }
         : releaseStatus.isNextVolumeOut && {
             what: `Vol. ${releaseStatus.latestVolume}`,
+            kind: "volume" as const,
             yours: volumeYours,
           };
   // an English volume release can be bought from the bar: the one they need next,
@@ -299,6 +304,7 @@ export default function Details() {
             <ReleaseBar
               key={release.what}
               what={release.what}
+              kind={release.kind}
               inJapan={inJapan}
               yours={release.yours || null}
               data={releaseData}

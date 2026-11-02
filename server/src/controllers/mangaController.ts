@@ -205,9 +205,17 @@ const detail = (_req: Request, res: Response) => {
 // it can be slow, so the details page and the edit form don't wait for it
 const releases = async (req: Request, res: Response) => {
   const manga: Manga = res.locals.manga;
+  // a problem here just means the default list
+  const prefs = await userQueries
+    .getPrefs(req.session.userId!)
+    .catch(() => null);
+  // switched off in settings: no other site gets asked about this manga
+  if (prefs?.releaseChecks === "off") {
+    return res.json({ releaseData: null, releaseStatus: null, complete: true });
+  }
   // asked apart: AniList confirms which series this is on MangaDex, and is
   // usually answered from the database even when the catalog is being slow
-  const [info, series, prefs] = await Promise.all([
+  const [info, series] = await Promise.all([
     withTimeout(
       getSeriesInfo(manga.name).catch(() => null),
       INFO_TIMEOUT_MS,
@@ -220,8 +228,6 @@ const releases = async (req: Request, res: Response) => {
       SERIES_TIMEOUT_MS,
       null,
     ),
-    // a problem here just means the default list
-    userQueries.getPrefs(req.session.userId!).catch(() => null),
   ]);
   const dates = await getCachedReleaseDates(manga.name, {
     anilistId: info?.anilistId,

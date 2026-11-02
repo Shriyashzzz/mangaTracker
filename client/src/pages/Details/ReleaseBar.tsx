@@ -8,6 +8,8 @@ import type { ReleaseData } from "../../lib/types";
 type Props = {
   // what's out: "Vol. 25" or "Ch. 250"
   what: string;
+  // which kind of release the headline is about, so the dates match it
+  kind: "volume" | "chapter";
   inJapan: boolean;
   // where they've got to: "you own up to vol. 24" or "you're on ch. 203"
   yours: string | null;
@@ -19,14 +21,33 @@ type Props = {
 type Row = { what: string; when: string; estimate?: boolean };
 type Group = { title: string; rows: Row[] };
 
-// English: its chapters, since there are no English volume dates to go on.
-// Japan: its volumes only, since MangaDex has translations and no Japanese
-// chapters. The volume that's out already is the bar's headline
-const groupsFrom = (data: ReleaseData | null, inJapan: boolean): Group[] => {
+// the newest volume we have a date for
+const newestDatedVolume = (data: ReleaseData | null): Row | null => {
+  let newest: { volume: string; when: string } | null = null;
+  for (const { volume, releaseDate } of data?.volume ?? []) {
+    const when = formatReleaseDate(releaseDate);
+    if (!volume || !when) continue;
+    if (!newest || Number(volume) > Number(newest.volume)) {
+      newest = { volume, when };
+    }
+  }
+  return newest && { what: `Vol. ${newest.volume}`, when: newest.when };
+};
+
+// Dates that match the headline: a volume gets volumes, a chapter gets chapters.
+// Volume dates are all Japan's: MangaDex has no English ones, so on an English
+// volume the groups say so
+const groupsFrom = (
+  data: ReleaseData | null,
+  kind: Props["kind"],
+  inJapan: boolean,
+): Group[] => {
   const outNow: Row[] = [];
   const comingUp: Row[] = [];
 
-  if (inJapan) {
+  if (kind === "volume") {
+    const newest = newestDatedVolume(data);
+    if (newest) outNow.push(newest);
     const next = data?.newVolume;
     const when = formatReleaseDate(next?.releaseDate);
     if (next?.volume && when) {
@@ -56,18 +77,26 @@ const groupsFrom = (data: ReleaseData | null, inJapan: boolean): Group[] => {
     }
   }
 
+  const inJapanToo = kind === "volume" && !inJapan;
   return [
-    { title: "Out now", rows: outNow },
-    { title: "Coming up", rows: comingUp },
+    { title: inJapanToo ? "Out in Japan" : "Out now", rows: outNow },
+    { title: inJapanToo ? "Next in Japan" : "Coming up", rows: comingUp },
   ].filter((group) => group.rows.length > 0);
 };
 
 // "there's a new one": a slim red bar that opens to the dates when clicked
 // anywhere, except on its Buy link
-export default function ReleaseBar({ what, inJapan, yours, data, buy }: Props) {
+export default function ReleaseBar({
+  what,
+  kind,
+  inJapan,
+  yours,
+  data,
+  buy,
+}: Props) {
   const [open, setOpen] = useState(false);
   const datesId = useId();
-  const groups = groupsFrom(data, inJapan);
+  const groups = groupsFrom(data, kind, inJapan);
   const hasDates = groups.length > 0;
   const headline = <span className={styles.releaseHeadline}>{what} is out!</span>;
   const yoursLine = yours ? `${yours[0]!.toUpperCase()}${yours.slice(1)}.` : "";

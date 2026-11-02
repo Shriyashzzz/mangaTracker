@@ -15,6 +15,7 @@ import {
   BACKGROUNDS,
   currentBackground,
   readLocal,
+  releaseChecksOn,
   savePrefs,
 } from "../../lib/prefs";
 import { usePrivatePage } from "../../lib/seo";
@@ -149,16 +150,38 @@ function AppearanceTab() {
 }
 
 function NewReleasesTab() {
+  const isSignedIn = useAuth((s) => s.isSignedIn);
+  const [checksOn, setChecksOn] = useState(releaseChecksOn);
   return (
     <div className={styles.tabBody}>
       <h2 className={styles.tabTitle}>New releases</h2>
-      <p className={styles.body}>
-        What your shelf's New tab lists.{" "}
-        <NavLink to="/new-releases" className={`tap ${styles.link}`} viewTransition>
-          How this works
-        </NavLink>
-      </p>
-      <ReleaseControls />
+      <label className={styles.row}>
+        <input
+          type="checkbox"
+          checked={checksOn}
+          onChange={(e) => {
+            setChecksOn(e.target.checked);
+            savePrefs({ releaseChecks: e.target.checked ? "on" : "off" }, isSignedIn);
+          }}
+        />
+        Check for new volumes and chapters
+      </label>
+      {checksOn ? (
+        <>
+          <p className={styles.body}>
+            What your shelf's New tab lists.{" "}
+            <NavLink to="/new-releases" className={`tap ${styles.link}`} viewTransition>
+              How this works
+            </NavLink>
+          </p>
+          <ReleaseControls />
+        </>
+      ) : (
+        <p className={styles.body}>
+          Off. Your shelf has no New tab, and manga pages don't show new releases
+          or next chapter dates. Prices still work.
+        </p>
+      )}
     </div>
   );
 }
