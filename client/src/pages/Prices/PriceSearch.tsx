@@ -15,10 +15,10 @@ import ReleaseTip from "../../components/whatsNew/ReleaseTip";
 
 // phones get short names, so three even buttons fit across
 const QUICK_PICKS = [
-  { name: "One Piece" },
+  { name: "One Piece", only: "upto-720:grid" },
   { name: "Jujutsu Kaisen", only: "upto-720:hidden" },
   { name: "Chainsaw Man", only: "upto-720:hidden" },
-  { name: "Frieren" },
+  { name: "Frieren", only: "upto-720:grid" },
   { name: "Berserk", only: "hidden upto-720:grid" },
   { name: "Dandadan", only: "hidden upto-720:grid" },
   { name: "Bleach", only: "hidden upto-720:grid" },
