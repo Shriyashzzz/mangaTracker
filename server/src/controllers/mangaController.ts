@@ -84,6 +84,33 @@ const add = [
   },
 ];
 
+// the undo for deleting: everything it had comes back, exactly as it was, so the
+// name doesn't go through AniList again. It gets a new id
+const restore = [
+  ...mangaFields,
+  body("rating").optional({ values: "null" }).isInt({ min: 0, max: 5 }).toInt(),
+  body("seenVolume").optional({ values: "null" }).isFloat({ min: 0 }).toFloat(),
+  body("seenChapter").optional({ values: "null" }).isFloat({ min: 0 }).toFloat(),
+  body("seenJapanVolume").optional({ values: "null" }).isFloat({ min: 0 }).toFloat(),
+  body("hiddenVolumes").optional().isArray({ max: 500 }),
+  body("hiddenVolumes.*").isFloat({ min: 0, max: 100000 }).toFloat(),
+  rejectInvalid,
+  async (req: Request, res: Response) => {
+    const d = matchedData(req);
+    const id = await mangaQueries.restoreManga(req.session.userId!, {
+      ...toInput(req),
+      // validation treats a 0 as blank
+      bookmark: d.bookmark ?? (req.body.bookmark === 0 ? 0 : null),
+      rating: d.rating ?? null,
+      seenVolume: d.seenVolume ?? null,
+      seenChapter: d.seenChapter ?? null,
+      seenJapanVolume: d.seenJapanVolume ?? null,
+      hiddenVolumes: d.hiddenVolumes ?? [],
+    });
+    res.status(201).json({ id });
+  },
+];
+
 // a piece of a MyAnimeList export. The page sends one piece at a time so a long
 // list can show progress and stop safely: anything already here is skipped, so
 // trying again after a failure can't add it twice
@@ -316,6 +343,7 @@ export default {
   importList,
   setBookmark,
   setSeen,
+  restore,
   setNotes,
   setOwned,
   shelfPrices,

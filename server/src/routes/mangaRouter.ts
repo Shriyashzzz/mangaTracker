@@ -9,6 +9,7 @@ mangaRouter.use(requireSignIn);
 
 mangaRouter.get("/", manga.list);
 mangaRouter.post("/", manga.add);
+mangaRouter.post("/restore", manga.restore);
 mangaRouter.post("/import", rateLimit({ max: 60, windowMs: 60_000 }), manga.importList);
 // these come before "/:id" so their names aren't read as an id
 mangaRouter.get("/prices", manga.shelfPrices);

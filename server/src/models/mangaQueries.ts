@@ -32,6 +32,22 @@ export async function addManga(userId: number, input: MangaInput) {
   return id;
 }
 
+export type RestoredManga = MangaInput & {
+  rating: number | null;
+  seenVolume: number | null;
+  seenChapter: number | null;
+  seenJapanVolume: number | null;
+  hiddenVolumes: number[];
+};
+
+export async function restoreManga(userId: number, input: RestoredManga) {
+  const { id } = await prisma.manga.create({
+    data: { ...input, userId },
+    select: { id: true },
+  });
+  return id;
+}
+
 export const addManyManga = (userId: number, inputs: MangaInput[]) =>
   prisma.manga.createMany({
     data: inputs.map((input) => ({ ...input, userId })),
@@ -100,6 +116,7 @@ export default {
   getShelf,
   getManga,
   addManga,
+  restoreManga,
   updateManga,
   setStatus,
   setRating,

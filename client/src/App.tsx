@@ -6,6 +6,7 @@ import "./index.css";
 import Backdrop from "./components/backdrop/Backdrop";
 import Header from "./layouts/header/Header";
 import Footer from "./layouts/Footer/Footer";
+import DeletedNote from "./components/deletedNote/DeletedNote";
 import { useAuth } from "./store/auth";
 
 export default function App() {
@@ -42,6 +43,7 @@ export default function App() {
         <Outlet />
       </main>
       <Footer />
+      <DeletedNote />
       <ScrollRestoration />
     </>
   );

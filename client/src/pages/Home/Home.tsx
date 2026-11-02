@@ -694,7 +694,9 @@ function Library() {
                       : styles.count
                   }
                 >
-                  {t.count}
+                  {/* series with anything new, which the views below each count
+                      their own way, so it can't look like a sum of them */}
+                  {t.value === "new" && t.count > 0 ? `${t.count} series` : t.count}
                 </span>
               )}
             </button>

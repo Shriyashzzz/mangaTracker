@@ -33,6 +33,9 @@ type ShelfState = {
   ) => Promise<boolean>;
   // it's been deleted: gone at once, not after the next refresh
   remove: (id: number) => void;
+  // the last one deleted, while its undo is on offer
+  lastDeleted: Manga | null;
+  setLastDeleted: (manga: Manga | null) => void;
   // on signing in or out: it's someone else's shelf now
   reset: () => void;
 };
@@ -74,6 +77,8 @@ export const useShelf = create<ShelfState>()((set, get) => ({
   manga: null,
   loadFailed: false,
   releases: {},
+  lastDeleted: null,
+  setLastDeleted: (lastDeleted) => set({ lastDeleted }),
 
   // refreshes in the background: whatever's on screen stays until this answers
   load: async () => {
@@ -208,6 +213,6 @@ export const useShelf = create<ShelfState>()((set, get) => ({
     incomplete.clear();
     retried.clear();
     writeLocal(LAST_NEW_COUNT_KEY, "");
-    set({ manga: null, loadFailed: false, releases: {} });
+    set({ manga: null, loadFailed: false, releases: {}, lastDeleted: null });
   },
 }));
