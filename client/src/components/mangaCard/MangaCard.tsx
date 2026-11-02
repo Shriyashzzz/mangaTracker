@@ -20,6 +20,8 @@ type Props = {
   detailsSearch?: string;
   // somewhere else for the card to lead instead of its details page
   linkTo?: string;
+  // opens something in place, rather than following the link
+  onOpen?: () => void;
   // position on the shelf, for the staggered entrance
   index?: number;
 };
@@ -35,6 +37,7 @@ export default function MangaCard({
   news,
   detailsSearch = "",
   linkTo,
+  onOpen,
   index = 0,
 }: Props) {
   const genre =
@@ -48,6 +51,13 @@ export default function MangaCard({
       className="group flex animate-card-in flex-col gap-[0.7rem]"
       style={{ animationDelay: `${Math.min(index, 12) * 35}ms` }}
       viewTransition
+      {...(onOpen && {
+        "aria-haspopup": "dialog" as const,
+        onClick: (e) => {
+          e.preventDefault();
+          onOpen();
+        },
+      })}
     >
       <div className={cover}>
         <img

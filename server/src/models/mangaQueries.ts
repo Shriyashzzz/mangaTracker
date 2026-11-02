@@ -69,8 +69,15 @@ export const setSeen = (
   id: number,
   kind: keyof typeof SEEN_FIELD,
   number: number | null,
+  hiddenVolumes?: number[],
 ) =>
-  prisma.manga.update({ where: { id }, data: { [SEEN_FIELD[kind]]: number } });
+  prisma.manga.update({
+    where: { id },
+    data: {
+      [SEEN_FIELD[kind]]: number,
+      ...(hiddenVolumes ? { hiddenVolumes } : {}),
+    },
+  });
 
 // how many volumes someone owns; null clears it. Returns the new value
 export async function setVolumesOwned(id: number, volumesOwned: number | null) {

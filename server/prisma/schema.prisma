@@ -19,6 +19,15 @@ model User {
   password String
   // display preferences: { background, theme }
   prefs    Json    @default("{}")
+  // what others see if they share their list; the username stays private
+  displayName   String? @map("display_name") @db.VarChar(40)
+  avatar        String? @db.VarChar(20)
+  // optional, set in settings. Nothing sends to it yet
+  recoveryEmail String? @map("recovery_email") @db.VarChar(254)
+  // the link is a random code, and stays the same if sharing is switched off and on
+  shareEnabled  Boolean @default(false) @map("share_enabled")
+  shareNotes    Boolean @default(false) @map("share_notes")
+  shareCode     String? @unique @map("share_code") @db.VarChar(16)
   manga    Manga[]
 
   @@map("users")
@@ -43,6 +52,8 @@ model Manga {
   seenVolume      Float? @map("seen_volume")
   seenChapter     Float? @map("seen_chapter")
   seenJapanVolume Float? @map("seen_japan_volume")
+  // volumes hidden one at a time, on top of everything up to seenVolume
+  hiddenVolumes   Float[] @default([]) @map("hidden_volumes")
 
   @@index([userId])
   @@map("manga")

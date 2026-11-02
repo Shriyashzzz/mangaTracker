@@ -21,6 +21,8 @@ export type Manga = {
   seenVolume?: number | null;
   seenChapter?: number | null;
   seenJapanVolume?: number | null;
+  // volumes hidden one at a time, on top of everything up to seenVolume
+  hiddenVolumes?: number[];
 };
 
 // when the next chapter or volume is due. Dates are ISO, null if there isn't one
@@ -46,6 +48,9 @@ export type ReleaseStatus = {
   // out in Japan past what they own and what's in English; a blank on the shelf
   // counts as owning nothing
   hasNewJapaneseVolume: boolean;
+  // how their settings ask for each to be listed
+  volumeMode: RangeMode;
+  chapterMode: RangeMode;
   // on the New tab but for "Hide": listed and not new means they've hidden it
   volumeListed: boolean;
   chapterListed: boolean;
@@ -60,6 +65,10 @@ export type ReleaseStatus = {
   // the next English volume after where they are, and its price page
   nextVolume: number | null;
   nextVolumeBook?: { isbn13: string; title: string } | null;
+  // every English volume past where they are, for the grouped entry
+  outVolumes: { volume: number; isbn13?: string; title?: string }[];
+  // the same for what's only out in Japan
+  outJapanVolumes: number[];
   latestChapter: number | null;
   latestJapaneseVolume: number | null;
 };
@@ -91,7 +100,16 @@ export type ShelfMatch = {
   volumesOwned: number | null;
 } | null;
 
-export type Prefs = { background?: Background; theme?: Theme };
+// what the New tab lists; see server/src/util/releaseStatus.ts
+export type RangeMode = "next" | "within" | "all";
+export type ReleaseRange = { mode: RangeMode; within: number };
+export type ReleaseSettings = { volumes: ReleaseRange; chapters: ReleaseRange };
+
+export type Prefs = {
+  background?: Background;
+  theme?: Theme;
+  releases?: ReleaseSettings;
+};
 export type Background = "sfx" | "ink" | "pages" | "panels";
 export type Theme = "light" | "dark";
 

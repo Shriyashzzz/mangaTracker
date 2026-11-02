@@ -9,7 +9,8 @@ import { getListingsByMalIds, getSeriesInfo, slugify } from "../prices/anilist.j
 import { findOnShelf, getSeries, getShelfPrices } from "../prices/service.js";
 import { canonicalTitle } from "../util/canonicalTitle.js";
 import { getCachedReleaseDates, withTimeout } from "../util/releaseCache.js";
-import { getReleaseStatus } from "../util/releaseStatus.js";
+import { getReleaseStatus, readReleaseSettings } from "../util/releaseStatus.js";
+import userQueries from "../models/userQueries.js";
 import { namesOf, toMangaInput, type MalEntry } from "../util/malEntry.js";
 import type { Manga } from "../../generated/prisma/client.js";
 
@@ -137,15 +138,17 @@ const detail = (_req: Request, res: Response) => {
 
 // release dates and what's new in English for one manga. Its own route because
 // it can be slow, so the details page and the edit form don't wait for it
-const releases = async (_req: Request, res: Response) => {
+const releases = async (req: Request, res: Response) => {
   const manga: Manga = res.locals.manga;
   // asked apart: AniList confirms which series this is on MangaDex, and is
   // usually answered from the database even when the catalog is being slow
-  const [info, series] = await Promise.all([
+  const [info, series, prefs] = await Promise.all([
     withTimeout(getSeriesInfo(manga.name).catch(() => null), INFO_TIMEOUT_MS, null),
     // a catalog failure or a slow one only costs the volume half of the answer;
     // if it's slow it carries on and is ready for the next check
     withTimeout(getSeries(manga.name).catch(() => null), SERIES_TIMEOUT_MS, null),
+    // a problem here just means the default list
+    userQueries.getPrefs(req.session.userId!).catch(() => null),
   ]);
   const dates = await getCachedReleaseDates(manga.name, {
     anilistId: info?.anilistId,
@@ -157,10 +160,11 @@ const releases = async (_req: Request, res: Response) => {
   }
   return res.json({
     releaseData,
-    releaseStatus: getReleaseStatus(manga, {
-      dates: releaseData,
-      englishVolumes: series?.volumes ?? null,
-    }),
+    releaseStatus: getReleaseStatus(
+      manga,
+      { dates: releaseData, englishVolumes: series?.volumes ?? null },
+      readReleaseSettings(prefs?.releases),
+    ),
     // a source didn't answer, so it's worth asking again later
     complete: Boolean(releaseData && series),
   });
@@ -214,17 +218,25 @@ const setBookmark = [
   },
 ];
 
-// "Seen it" on the New tab, and its undo. Null clears it
+// "Hide" on the New tab, and its undo. Null clears it. Volumes can also be hidden
+// one at a time, sent as the whole list; leaving it out keeps the list as it is
 const setSeen = [
   body("kind").isIn(["volume", "chapter", "japan"]),
   body("number")
     .optional({ values: "null" })
     .isFloat({ min: 0, max: 100000 })
     .toFloat(),
+  body("hiddenVolumes").optional().isArray({ max: 500 }),
+  body("hiddenVolumes.*").isFloat({ min: 0, max: 100000 }).toFloat(),
   rejectInvalid,
   async (req: Request, res: Response) => {
-    const { kind, number } = matchedData(req);
-    await mangaQueries.setSeen(res.locals.manga.id, kind, number ?? null);
+    const { kind, number, hiddenVolumes } = matchedData(req);
+    await mangaQueries.setSeen(
+      res.locals.manga.id,
+      kind,
+      number ?? null,
+      kind === "volume" ? hiddenVolumes : undefined,
+    );
     res.sendStatus(204);
   },
 ];
