@@ -7,6 +7,7 @@ import { apiFetch, afterSignIn, errorMessages } from "../../lib/api";
 import { usePrivatePage } from "../../lib/seo";
 import { useAuth } from "../../store/auth";
 import { isMobile } from "react-device-detect";
+import { hasBottomBar } from "../../lib/bottomBar";
 
 export default function SignInPage() {
   usePrivatePage("Sign in");
@@ -79,10 +80,10 @@ export default function SignInPage() {
                 id="username"
                 ref={userNameRef}
                 type="text"
-                placeholder="your_username"
+                placeholder="yourusername"
                 name="username"
                 autoComplete="username"
-                autoFocus={isMobile ? false : true}
+                autoFocus={!isMobile && !hasBottomBar()}
               />
             </div>
 

@@ -5,6 +5,7 @@ import { SearchIcon } from "../../components/icons/Icons";
 import { asIsbn, searchSeries, seriesPath } from "../../lib/prices";
 import { pricesStyles as styles } from "./styles";
 import { isMobile } from "react-device-detect";
+import { hasBottomBar } from "../../lib/bottomBar";
 
 const SHOWN = 5;
 const DEBOUNCE_MS = 250;
@@ -14,10 +15,6 @@ const DEBOUNCE_MS = 250;
 // ISBN skips straight to that volume
 type Props = { initialQuery?: string; autoFocus: boolean };
 
-// the bottom bar hides while an input has focus, to leave room for the keyboard,
-// so a box that focuses itself would take the bar away on arrival. By width as
-// well as device: a narrow window on a laptop gets the bar too
-const hasBottomBar = () => window.matchMedia("(max-width: 720px)").matches;
 
 export default function SeriesSearchBox({
   initialQuery = "",

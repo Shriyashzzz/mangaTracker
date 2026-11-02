@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 import { NavLink, useParams, useSearchParams } from "react-router";
 import type { Series } from "../../lib/types";
 import { coverSrc, getSeries, hideBrokenCover } from "../../lib/prices";
@@ -103,6 +103,18 @@ export default function PriceSeries() {
       (v.volume >= rangeStart || (pageIndex === 0 && v.volume < 1)) &&
       v.volume <= rangeEnd,
   );
+  // to the block holding that volume, then to the volume itself
+  const jumpToVolume = (e: FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    const number = Number(new FormData(e.currentTarget).get("volume"));
+    if (!Number.isFinite(number) || number < 1) return;
+    setPage({ name, index: Math.floor((number - 1) / PAGE_SIZE) });
+    requestAnimationFrame(() =>
+      document
+        .getElementById(`vol-${number}`)
+        ?.scrollIntoView({ behavior: "smooth", block: "center" }),
+    );
+  };
   const changePage = (index: number) => {
     setPage({ name, index });
     document
@@ -112,11 +124,9 @@ export default function PriceSeries() {
 
   return (
     <div className={`${styles.page} fade-in`}>
-      {fromShelf && (
-        <BackToNew />
-      )}
+      {fromShelf && <BackToNew />}
       <nav className={styles.crumbs} aria-label="Breadcrumb">
-        <NavLink to="/" viewTransition>
+        <NavLink to="/" className="tap" viewTransition>
           Price check
         </NavLink>
         <span aria-hidden>/</span>
@@ -181,10 +191,26 @@ export default function PriceSeries() {
             name or ISBN to price it.
           </p>
         )}
+        {volumes.length > 12 && (
+          <form className={styles.jump} onSubmit={jumpToVolume}>
+            <label htmlFor="jump-volume">Jump to volume</label>
+            <input
+              id="jump-volume"
+              name="volume"
+              type="number"
+              inputMode="numeric"
+              min={1}
+              max={lastNumber}
+            />
+            <button type="submit" className="btn btn-secondary">
+              Go
+            </button>
+          </form>
+        )}
         {volumes.length ? (
           <ul className={styles.grid}>
             {shown.map((v) => (
-              <li key={v.isbn13}>
+              <li key={v.isbn13} id={`vol-${v.volume}`}>
                 <VolumeCard
                   {...v}
                   title={`Vol. ${v.volume}`}

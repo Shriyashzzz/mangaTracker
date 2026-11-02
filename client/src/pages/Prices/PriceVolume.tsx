@@ -92,6 +92,7 @@ export default function PriceVolume() {
   // the route always has an :isbn
   const isbn = useParams().isbn!;
   const [showAll, setShowAll] = useState({ isbn, open: false });
+  const [attempt, setAttempt] = useState(0);
   const offersOpen = showAll.isbn === isbn && showAll.open;
   // which ISBN the data is for, so a stale answer never shows
   const [state, setState] = useState<{
@@ -125,7 +126,7 @@ export default function PriceVolume() {
         }
       });
     return () => controller.abort();
-  }, [isbn]);
+  }, [isbn, attempt]);
 
   // Impact (Walmart affiliate) rewrites links once when its script loads,
   // before this page has drawn them, so ask it again once they exist
@@ -144,6 +145,16 @@ export default function PriceVolume() {
         </span>
         <p className={styles.emptyTitle}>Couldn't open this volume.</p>
         <p>Check your connection and try again in a moment.</p>
+        <button
+          type="button"
+          className="btn btn-primary"
+          onClick={() => {
+            setState({ isbn: null, data: null, error: "" });
+            setAttempt((n) => n + 1);
+          }}
+        >
+          Try again
+        </button>
         <NavLink to="/" className="btn btn-secondary" viewTransition>
           Back to price check
         </NavLink>
@@ -173,6 +184,11 @@ export default function PriceVolume() {
     (k) => !hideEbooks || k.kind !== "ebook",
   );
   const history = allHistory && kinds.length ? { ...allHistory, kinds } : null;
+  // the summary is for a physical copy, like the rest of the page
+  const printKinds = kinds.filter((k) => k.kind !== "ebook");
+  const lowestInHistory = Math.min(
+    ...(printKinds.length ? printKinds : kinds).map((k) => k.lowCents),
+  );
   // people come here for a physical copy, so ebooks go under the print ones.
   // The awards below still use the true cheapest-first order
   const listedOffers = [
@@ -223,11 +239,16 @@ export default function PriceVolume() {
         <BackToNew />
       )}
       <nav className={styles.crumbs} aria-label="Breadcrumb">
-        <NavLink to="/" viewTransition>
+        <NavLink to="/" className="tap" viewTransition>
           Price check
         </NavLink>
         <span aria-hidden>/</span>
-        <NavLink to={seriesPath(series.name)} viewTransition {...stayInTrip(fromShelf)}>
+        <NavLink
+          to={seriesPath(series.name)}
+          className="tap"
+          viewTransition
+          {...stayInTrip(fromShelf)}
+        >
           {seriesLabel}
         </NavLink>
         <span aria-hidden>/</span>
@@ -385,7 +406,7 @@ export default function PriceVolume() {
             {hiddenEbooks > 0 && (
               <p className={styles.checked}>
                 {hiddenEbooks} ebook {hiddenEbooks === 1 ? "price" : "prices"} hidden.{" "}
-                <NavLink to="/settings" viewTransition>
+                <NavLink to="/settings/prices" viewTransition>
                   Change in settings
                 </NavLink>
               </p>
@@ -416,8 +437,8 @@ export default function PriceVolume() {
             )}
             {storeLinks.some((s) => s.affiliate) && (
               <p className={styles.disclosure}>
-                *Some store links are affiliate links which will be used to keep
-                the server running.*
+                Some store links are affiliate links which will be used to keep
+                the server running.
               </p>
             )}
           </section>
@@ -427,7 +448,7 @@ export default function PriceVolume() {
               <summary className={styles.historySummary}>
                 <h2 className={styles.sectionTitle}>Price history</h2>
                 <span className={styles.checked}>
-                  lowest {formatCents(Math.min(...history.kinds.map((k) => k.lowCents)))}
+                  lowest {formatCents(lowestInHistory)}
                 </span>
                 <ChevronDownIcon />
               </summary>
@@ -474,7 +495,14 @@ export default function PriceVolume() {
             </details>
           )}
 
-          {series.info && <SeriesFacts info={series.info} />}
+          {series.info && (
+            <section aria-labelledby="series-about">
+              <h2 id="series-about" className={styles.sectionTitle}>
+                About this series
+              </h2>
+              <SeriesFacts info={series.info} />
+            </section>
+          )}
 
         </div>
       </article>

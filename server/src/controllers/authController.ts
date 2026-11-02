@@ -15,7 +15,7 @@ const credentials = [
     .isAlphanumeric()
     .withMessage("Usernames are letters and numbers only")
     .isLength({ min: 4, max: 40 })
-    .withMessage("Username has to be between 4 to 40 characters long <3"),
+    .withMessage("Usernames need 4 to 40 letters or numbers."),
   body("password")
     .notEmpty()
     .withMessage("Alright, don't forget your secret code. Spill the beans now!")

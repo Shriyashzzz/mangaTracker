@@ -152,7 +152,7 @@ function NewReleasesTab() {
       <h2 className={styles.tabTitle}>New releases</h2>
       <p className={styles.body}>
         What your shelf's New tab lists.{" "}
-        <NavLink to="/new-releases" className={styles.link} viewTransition>
+        <NavLink to="/new-releases" className={`tap ${styles.link}`} viewTransition>
           How this works
         </NavLink>
       </p>

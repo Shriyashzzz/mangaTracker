@@ -926,7 +926,10 @@ function Library() {
             onClickCapture={saveSpot}
           >
             {shelfPage.map((currentManga, i) => (
-              <div key={currentManga.id} className={styles.cardWithSeen}>
+              <div
+                key={currentManga.id}
+                className={showingNew ? styles.cardAsRow : styles.cardWithSeen}
+              >
                 <MangaCard
                     currentManga={currentManga}
                   priceTag={priceTags[currentManga.id]}

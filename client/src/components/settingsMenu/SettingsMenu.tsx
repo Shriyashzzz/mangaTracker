@@ -14,7 +14,7 @@ import { useAccount } from "../../store/account";
 
 // one row of the menu: a button or link
 const item =
-  "flex min-h-10 w-full items-center gap-[0.65rem] rounded-[3px] px-[0.6rem] py-[0.35rem] text-left text-[0.95rem] text-ink-soft transition-[background-color,color] duration-120 ease-[ease] hover:bg-accent-wash hover:text-ink focus-visible:bg-accent-wash focus-visible:text-ink aria-pressed:font-semibold aria-pressed:text-ink [&>svg]:size-[17px] [&>svg]:shrink-0";
+  "flex min-h-11 w-full items-center gap-[0.65rem] rounded-[3px] px-[0.6rem] py-[0.35rem] text-left text-[0.95rem] text-ink-soft transition-[background-color,color] duration-120 ease-[ease] hover:bg-accent-wash hover:text-ink focus-visible:bg-accent-wash focus-visible:text-ink aria-pressed:font-semibold aria-pressed:text-ink [&>svg]:size-[17px] [&>svg]:shrink-0";
 
 // each background in miniature
 const thumb =
@@ -59,6 +59,8 @@ export default function SettingsMenu({ isSignedIn, onLogOut }: Props) {
   const wrapRef = useRef<HTMLDivElement>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
   const { pathname } = useLocation();
+  // gone once the page changes, so coming back doesn't find it still open
+  if (openOn && openOn !== pathname) setOpenOn(null);
   const open = openOn === pathname;
   const close = () => setOpenOn(null);
 
@@ -127,6 +129,10 @@ export default function SettingsMenu({ isSignedIn, onLogOut }: Props) {
         // an inked panel hanging off the header rule
         <ul
           id="settings-menu"
+          // choosing anything closes it
+          onClick={(e) => {
+            if ((e.target as HTMLElement).closest("a, button")) close();
+          }}
           className="absolute top-[calc(100%+12px)] right-0 z-30 w-[236px] origin-top-right rounded-ink border-[2.5px] border-line bg-card p-[0.4rem] shadow-[0_14px_30px_-14px_rgba(20,14,8,0.45)] animate-drop motion-reduce:animate-none"
         >
           {/* signed in, this lives on the settings page with everything else */}

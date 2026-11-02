@@ -55,5 +55,6 @@ export const afterSignIn = (params: URLSearchParams) => {
 export const signInPath = (path: string) =>
   `/signin?${new URLSearchParams({ next: path })}`;
 
-export const FALLBACK_COVER =
-  "https://images.penguinrandomhouse.com/cover/9781569319003";
+// drawn here in the site's ink, rather than someone else's stock image
+const FALLBACK_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 300"><defs><pattern id="d" width="8" height="8" patternUnits="userSpaceOnUse"><circle cx="2" cy="2" r="1.3" fill="#1d1a16" opacity=".22"/></pattern></defs><rect width="200" height="300" fill="#f3eee2"/><rect width="200" height="300" fill="url(#d)"/><g fill="none" stroke="#1d1a16" stroke-width="5" stroke-linejoin="round" stroke-linecap="round"><path d="M100 104c-13-11-31-14-48-12v62c17-2 35 1 48 12 13-11 31-14 48-12V92c-17-2-35 1-48 12Z" fill="#fbf8f0"/><path d="M100 104v62"/></g><g font-family="Arial Narrow,Arial,sans-serif" font-weight="700" font-size="17" letter-spacing="1" fill="#1d1a16" text-anchor="middle"><text x="100" y="205">COVER</text><text x="100" y="227">COMING SOON</text></g></svg>`;
+export const FALLBACK_COVER = `data:image/svg+xml,${encodeURIComponent(FALLBACK_SVG)}`;
