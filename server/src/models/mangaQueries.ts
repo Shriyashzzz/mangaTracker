@@ -32,6 +32,13 @@ export async function addManga(userId: number, input: MangaInput) {
   return id;
 }
 
+// just enough to tell whether a title is already on someone's shelf
+export const getMangaShelfNames = (userId: number) =>
+  prisma.manga.findMany({
+    where: { userId },
+    select: { id: true, name: true },
+  });
+
 export type RestoredManga = MangaInput & {
   rating: number | null;
   seenVolume: number | null;
@@ -118,6 +125,7 @@ export const deleteManga = (id: number) =>
 export default {
   setNotes,
   getShelf,
+  getMangaShelfNames,
   getManga,
   addManga,
   restoreManga,

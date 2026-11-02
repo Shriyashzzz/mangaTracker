@@ -52,6 +52,10 @@ test("notes are cut to what the shelf allows", () => {
 
 test("it can be matched under any of its names", () => {
   const names = namesOf(entry({ title: "Shingeki no Kyojin" }), listing);
-  expect(names).toContain("attack-on-titan");
-  expect(names).toContain("shingeki-no-kyojin");
+  expect(names).toContain("attackontitan");
+  expect(names).toContain("shingekinokyojin");
+});
+
+test("a title with no Latin letters still has a name to match on", () => {
+  expect(namesOf(entry({ title: "葬送のフリーレン" }), null)).toEqual(["葬送のフリーレン"]);
 });

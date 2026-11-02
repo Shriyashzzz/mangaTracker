@@ -1,11 +1,14 @@
 // The shelf: list, add, edit, delete, and the small inline updates (status,
 // rating, volumes owned). Every :id route runs requireOwner first, which
 // loads the manga onto res.locals.manga.
-import type { Request, Response } from "express";
+import { response, type Request, type Response } from "express";
 import { body, matchedData, query } from "express-validator";
 import { rejectInvalid } from "../middlewares/validate.js";
 import mangaQueries, { type MangaInput } from "../models/mangaQueries.js";
-import { getListingsByMalIds, getSeriesInfo, slugify } from "../prices/anilist.js";
+import {
+  getListingsByMalIds,
+  getSeriesInfo,
+} from "../prices/anilist.js";
 import { findOnShelf, getSeries, getShelfPrices } from "../prices/service.js";
 import { canonicalTitle } from "../util/canonicalTitle.js";
 import { getCachedReleaseDates, withTimeout } from "../util/releaseCache.js";
@@ -17,6 +20,8 @@ import {
 import userQueries from "../models/userQueries.js";
 import { namesOf, toMangaInput, type MalEntry } from "../util/malEntry.js";
 import type { Manga } from "../../generated/prisma/client.js";
+import session from "express-session";
+import { isOnShelf, titleKey } from "../util/titleKey.js";
 
 // ---------- validation shared by add and edit ----------
 const mangaFields = [
@@ -54,6 +59,21 @@ const mangaFields = [
     .withMessage("Please provide a valid URL"),
 ];
 
+// answers for anything that would put a title on the shelf twice. Checked in the
+// handlers rather than as a validation rule: adding has to check AniList's name for
+// it, which is only known after validation, and rules can only answer with a 400
+const onShelfAlready = async (
+  res: Response,
+  userId: number,
+  name: string,
+  exceptId?: number,
+) => {
+  const shelf = await mangaQueries.getMangaShelfNames(userId);
+  if (!isOnShelf(name, shelf, exceptId)) return false;
+  res.status(409).json({ error: [{ msg: "That's already on your shelf." }] });
+  return true;
+};
+
 // the validated body as the query layer wants it: blanks become null
 const toInput = (req: Request): MangaInput => {
   const d = matchedData(req);
@@ -83,6 +103,7 @@ const add = [
     // reached the title they typed is fine
     const listing = await getSeriesInfo(input.name).catch(() => null);
     input.name = canonicalTitle(input.name, listing);
+    if (await onShelfAlready(res, req.session.userId!, input.name)) return;
     const id = await mangaQueries.addManga(req.session.userId!, input);
     res.status(201).json({ id });
   },
@@ -94,14 +115,25 @@ const restore = [
   ...mangaFields,
   body("rating").optional({ values: "null" }).isInt({ min: 0, max: 5 }).toInt(),
   body("seenVolume").optional({ values: "null" }).isFloat({ min: 0 }).toFloat(),
-  body("seenChapter").optional({ values: "null" }).isFloat({ min: 0 }).toFloat(),
-  body("seenJapanVolume").optional({ values: "null" }).isFloat({ min: 0 }).toFloat(),
+  body("seenChapter")
+    .optional({ values: "null" })
+    .isFloat({ min: 0 })
+    .toFloat(),
+  body("seenJapanVolume")
+    .optional({ values: "null" })
+    .isFloat({ min: 0 })
+    .toFloat(),
   body("hiddenVolumes").optional().isArray({ max: 500 }),
   body("hiddenVolumes.*").isFloat({ min: 0, max: 100000 }).toFloat(),
-  body("latestChapter").optional({ values: "null" }).isFloat({ min: 0 }).toFloat(),
+  body("latestChapter")
+    .optional({ values: "null" })
+    .isFloat({ min: 0 })
+    .toFloat(),
   rejectInvalid,
   async (req: Request, res: Response) => {
     const d = matchedData(req);
+    // they may have added it again since deleting it
+    if (await onShelfAlready(res, req.session.userId!, d.name)) return;
     const id = await mangaQueries.restoreManga(req.session.userId!, {
       ...toInput(req),
       // validation treats a 0 as blank
@@ -136,7 +168,7 @@ const importList = [
     const userId = req.session.userId!;
     const entries: MalEntry[] = matchedData(req).entries;
     const shelf = await mangaQueries.getShelf(userId);
-    const taken = new Set(shelf.map((m) => slugify(m.name)));
+    const taken = new Set(shelf.map((m) => titleKey(m.name)));
     const listings = await getListingsByMalIds(
       entries.flatMap((e) => (e.malId ? [e.malId] : [])),
     );
@@ -176,10 +208,18 @@ const releases = async (req: Request, res: Response) => {
   // asked apart: AniList confirms which series this is on MangaDex, and is
   // usually answered from the database even when the catalog is being slow
   const [info, series, prefs] = await Promise.all([
-    withTimeout(getSeriesInfo(manga.name).catch(() => null), INFO_TIMEOUT_MS, null),
+    withTimeout(
+      getSeriesInfo(manga.name).catch(() => null),
+      INFO_TIMEOUT_MS,
+      null,
+    ),
     // a catalog failure or a slow one only costs the volume half of the answer;
     // if it's slow it carries on and is ready for the next check
-    withTimeout(getSeries(manga.name).catch(() => null), SERIES_TIMEOUT_MS, null),
+    withTimeout(
+      getSeries(manga.name).catch(() => null),
+      SERIES_TIMEOUT_MS,
+      null,
+    ),
     // a problem here just means the default list
     userQueries.getPrefs(req.session.userId!).catch(() => null),
   ]);
@@ -189,7 +229,11 @@ const releases = async (req: Request, res: Response) => {
   });
   const releaseData = dates.ok && dates.data ? dates.data : null;
   if (!releaseData && !series) {
-    return res.json({ releaseData: null, releaseStatus: null, complete: false });
+    return res.json({
+      releaseData: null,
+      releaseStatus: null,
+      complete: false,
+    });
   }
   const releaseStatus = getReleaseStatus(
     manga,
@@ -198,7 +242,10 @@ const releases = async (req: Request, res: Response) => {
   );
   // kept on the manga, so progress can show straight away next time. Failing to
   // save it shouldn't cost them the answer
-  const newLatest = chapterToSave(releaseStatus.latestChapter, manga.latestChapter);
+  const newLatest = chapterToSave(
+    releaseStatus.latestChapter,
+    manga.latestChapter,
+  );
   if (newLatest != null) {
     await mangaQueries
       .setLatestChapter(manga.id, newLatest)
@@ -216,7 +263,10 @@ const update = [
   ...mangaFields,
   rejectInvalid,
   async (req: Request, res: Response) => {
-    await mangaQueries.updateManga(res.locals.manga.id, toInput(req));
+    const input = toInput(req);
+    const { id } = res.locals.manga as Manga;
+    if (await onShelfAlready(res, req.session.userId!, input.name, id)) return;
+    await mangaQueries.updateManga(id, input);
     res.sendStatus(204);
   },
 ];
@@ -293,7 +343,8 @@ const setNotes = [
     .withMessage("Notes can be up to 450 characters long <3"),
   rejectInvalid,
   async (req: Request, res: Response) => {
-    const description = (matchedData(req).description as string | undefined) || null;
+    const description =
+      (matchedData(req).description as string | undefined) || null;
     await mangaQueries.setNotes(res.locals.manga.id, description);
     res.sendStatus(204);
   },

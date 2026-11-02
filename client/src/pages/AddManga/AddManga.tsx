@@ -56,7 +56,6 @@ export function AddManga() {
       setGenreFromAniList(true);
     }
   };
-
   const handleFormSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setValidationError([]);

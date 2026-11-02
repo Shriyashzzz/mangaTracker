@@ -1,6 +1,6 @@
 // One manga from a MyAnimeList export, as a shelf entry. AniList is asked about
 // it by its MyAnimeList id, which is exact, for the English title, cover and genre.
-import { slugify } from "../prices/match.js";
+import { titleKey } from "./titleKey.js";
 
 export type MalEntry = {
   malId?: number;
@@ -44,5 +44,5 @@ export function toMangaInput(entry: MalEntry, listing: MalListing | null) {
 export const namesOf = (entry: MalEntry, listing: MalListing | null) =>
   [entry.title, listing?.name, ...(listing?.altNames ?? [])]
     .filter((name): name is string => Boolean(name))
-    .map(slugify)
+    .map(titleKey)
     .filter(Boolean);
