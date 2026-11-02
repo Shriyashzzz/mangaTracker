@@ -234,7 +234,7 @@ Price checking works without any store keys: series, volumes and covers come fro
 | `PORT` | no | Defaults to `8080` |
 | `ENV` | no | `PROD` turns on secure, cross-subdomain cookies |
 | `COOKIE_DOMAIN` | no | Production cookie domain, default `.mangatracker.xyz` |
-| `SERPAPI_API_KEY`, `SERPAPI_MONTHLY_LIMIT` | no | Google Shopping prices; the limit (default 250) caps paid searches per month |
+| `SERPAPI_API_KEY`, `SERPAPI_API_KEYS` (comma-separated extras), `SERPAPI_MONTHLY_LIMIT` | no | Google Shopping prices; the limit (default 250, per key) caps paid searches per month |
 | `GOOGLE_BOOKS_API_KEY` | no | Ebook prices from Google Play Books |
 | `EBAY_CLIENT_ID`, `EBAY_CLIENT_SECRET` | no | eBay listings |
 | `WALMART_CONSUMER_ID`, `WALMART_KEY_VERSION`, `WALMART_PRIVATE_KEY` | no | Walmart listings |

@@ -1,13 +1,25 @@
 // SerpApi's Google Shopping search: one call returns listings from many US
 // stores (Amazon, Barnes & Noble, Walmart, Target, ...). Needs SERPAPI_API_KEY
-// from serpapi.com. Each search counts against the monthly plan, so we stop
-// at SERPAPI_MONTHLY_LIMIT (default 250, the free plan) for the calendar month.
+// from serpapi.com, and more keys can be added (see serpapiKeys.ts). Each search
+// counts against that key's monthly plan, so a key stops at SERPAPI_MONTHLY_LIMIT
+// (default 250, the free plan) for the calendar month and the next takes over.
 // https://serpapi.com/google-shopping-api
 import config from "../../config/config.js";
 import priceQueries from "../../models/priceQueries.js";
 import { listingMatches } from "../match.js";
 import { dropUnlikelyNew, isResaleSite, isNotABook } from "../retailers.js";
 import type { Offer, Provider } from "../types.js";
+import {
+  readAnswer,
+  searchWithKeys,
+  serpApiKeys,
+  usageLabel,
+} from "./serpapiKeys.js";
+
+// config has already loaded server/.env by now
+const KEYS = serpApiKeys(process.env);
+if (KEYS.length > 1) console.log(`SerpApi: ${KEYS.length} keys ready`);
+const labelOf = (key: string) => usageLabel(key, config.SERPAPI_API_KEY);
 
 const URL = "https://serpapi.com/search.json";
 const USED = /\b(used|pre-?owned|refurbished|second-?hand)\b/i;
@@ -51,36 +63,44 @@ type ShoppingResult = {
   product_link?: string;
 };
 
+type SearchResults = { error?: string; shopping_results?: ShoppingResult[] };
+
 const serpapi: Provider = {
   id: "serpapi",
   store: "Google Shopping",
-  enabled: () => Boolean(config.SERPAPI_API_KEY),
+  enabled: () => KEYS.length > 0,
 
   async fetchOffers(_isbn13, signal, book) {
     if (!book.title) return [];
 
-    // claim a search from this month's budget before spending it
-    if (
-      !(await priceQueries.claimApiCall(this.id, config.SERPAPI_MONTHLY_LIMIT))
-    ) {
-      console.warn("SerpApi monthly limit reached, skipping until next month");
+    const data = await searchWithKeys<SearchResults>({
+      keys: KEYS,
+      // claim a search from this month's budget before spending it
+      claim: (key) =>
+        priceQueries.claimApiCall(labelOf(key), config.SERPAPI_MONTHLY_LIMIT),
+      markSpent: async (key) => {
+        console.warn(`SerpApi key ${labelOf(key)} is out of searches this month`);
+        await priceQueries.markApiSpent(labelOf(key), config.SERPAPI_MONTHLY_LIMIT);
+      },
+      search: async (key) => {
+        const params = new URLSearchParams({
+          engine: "google_shopping",
+          q: `${book.title} manga`,
+          gl: "us",
+          hl: "en",
+          api_key: key,
+        });
+        const res = await fetch(`${URL}?${params}`, { signal });
+        const answer = (await res.json().catch(() => ({}))) as SearchResults;
+        const error =
+          answer.error ?? (res.ok ? undefined : `responded ${res.status}`);
+        return { answer: readAnswer(res.status, error), data: answer, error };
+      },
+    });
+    if (!data) {
+      console.warn("Every SerpApi key is used up for now, skipping this search");
       return [];
     }
-
-    const params = new URLSearchParams({
-      engine: "google_shopping",
-      q: `${book.title} manga`,
-      gl: "us",
-      hl: "en",
-      api_key: config.SERPAPI_API_KEY!,
-    });
-    const res = await fetch(`${URL}?${params}`, { signal });
-    if (!res.ok) throw new Error(`SerpApi responded ${res.status}`);
-    const data = (await res.json()) as {
-      error?: string;
-      shopping_results?: ShoppingResult[];
-    };
-    if (data.error) throw new Error(`SerpApi: ${data.error}`);
 
     // the cheapest matching listing from each store, new and used separately
     const best = new Map<string, Offer>();
