@@ -365,7 +365,13 @@ function Library() {
         yours: m.bookmark ? `You're on ch. ${m.bookmark}` : undefined,
       };
     }
-    return { text: `Vol. ${found?.nextVolume} is out`, yours: volumeYours };
+    // "is out" is news, so it's only for the newest; older ones are just there to buy
+    const next = found?.nextVolume;
+    return {
+      text:
+        next === found?.latestVolume ? `Vol. ${next} is out` : `Vol. ${next} available`,
+      yours: volumeYours,
+    };
   };
   // the next volume leads straight to its prices; there's nothing to do with it
   // but buy it. No catalog entry to go on: the details page, as usual
