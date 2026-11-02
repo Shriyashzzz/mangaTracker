@@ -124,44 +124,6 @@ test("Amazon's exact ISBN counts even when the title reads differently", async (
   expect(offer?.priceCents).toBe(899);
 });
 
-test("Walmart tells its own copies from sellers and used ones", async () => {
-  const { walmartOffers } = await load();
-  const offers = walmartOffers(
-    [
-      {
-        title: "Case Closed Case Closed, Vol. 7, Book 7, (Paperback)",
-        seller_name: "Walmart.com",
-        out_of_stock: false,
-        primary_offer: { offer_price: 9.59 },
-        product_page_url: "https://www.walmart.com/ip/Case-Closed/123?from=/search",
-      },
-      {
-        title: "Pre-Owned Case Closed, Vol. 7 (Paperback)",
-        seller_name: "ThriftBooks",
-        primary_offer: { offer_price: 10.69 },
-        product_page_url: "https://www.walmart.com/ip/Pre-Owned/456",
-      },
-      {
-        title: "Case Closed, Vol. 7",
-        seller_name: "Walmart.com",
-        out_of_stock: true,
-        primary_offer: { offer_price: 1 },
-        product_page_url: "https://www.walmart.com/ip/Gone/789",
-      },
-    ],
-    "Case Closed, Vol. 7",
-  );
-  expect(offers.map((o) => [o.store, o.condition, o.priceCents, o.url])).toEqual([
-    ["Walmart", "new", 959, "https://www.walmart.com/ip/Case-Closed/123"],
-    [
-      "Walmart - ThriftBooks",
-      "used",
-      1069,
-      "https://www.walmart.com/ip/Pre-Owned/456",
-    ],
-  ]);
-});
-
 test("a store's Google rows go only once it has a direct row", async () => {
   const { preferDirectRows } = await load();
   const google = "https://www.google.com/search?ibp=oshop";

@@ -30,7 +30,7 @@ import {
 } from "./storeLinks.js";
 import { editionCoverId } from "./covers.js";
 import { dropUnlikelyNew } from "./retailers.js";
-import type { CatalogBook, Offer, Provider, SeriesInfo } from "./types.js";
+import type { CatalogBook, Offer, SeriesInfo } from "./types.js";
 
 export { searchSeries };
 
@@ -46,40 +46,29 @@ const numberOrNull = (n: number) => (Number.isFinite(n) ? n : null);
 // one fetch per ISBN at a time, even if several people open it at once
 const inFlight = new Map<string, Promise<unknown>>();
 
-// asks every enabled provider at once; one failing doesn't stop the others.
-// Fallbacks go after, and only if the rest didn't already find that store
+// asks every enabled provider at once; one failing doesn't stop the others
 async function fetchAllProviders(isbn13: string, book: Book) {
   const providers = enabledProviders();
   const offers: Offer[] = [];
   const sources: string[] = [];
   let usedUp = false;
 
-  const ask = async (list: Provider[]) => {
-    const results = await Promise.allSettled(
-      list.map((p) =>
-        p.fetchOffers(isbn13, AbortSignal.timeout(PROVIDER_TIMEOUT_MS), book),
-      ),
-    );
-    results.forEach((r, i) => {
-      const provider = list[i]!;
-      if (r.status === "fulfilled") {
-        sources.push(provider.id);
-        offers.push(...r.value);
-      } else if (r.reason instanceof SearchesUsedUp) {
-        usedUp = true;
-      } else {
-        console.error(`price provider ${provider.id} failed:`, r.reason);
-      }
-    });
-  };
-
-  await ask(providers.filter((p) => !p.onlyIfNoRow));
-  await ask(
-    providers.filter(
-      (p) =>
-        p.onlyIfNoRow && !offers.some((o) => p.onlyIfNoRow!.test(o.store)),
+  const results = await Promise.allSettled(
+    providers.map((p) =>
+      p.fetchOffers(isbn13, AbortSignal.timeout(PROVIDER_TIMEOUT_MS), book),
     ),
   );
+  results.forEach((r, i) => {
+    const provider = providers[i]!;
+    if (r.status === "fulfilled") {
+      sources.push(provider.id);
+      offers.push(...r.value);
+    } else if (r.reason instanceof SearchesUsedUp) {
+      usedUp = true;
+    } else {
+      console.error(`price provider ${provider.id} failed:`, r.reason);
+    }
+  });
 
   // with no searches left and no store answering, a new check would hide the
   // stored prices behind whatever's left (ebooks at most), so keep the old one

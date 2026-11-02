@@ -3,7 +3,6 @@
 // it carries our affiliate tracking. Every search here costs one SerpApi search.
 // https://serpapi.com/ebay-search-api
 // https://serpapi.com/amazon-search-api
-// https://serpapi.com/walmart-search-api
 import { amazonTag, ebayAffiliateUrl } from "../affiliates.js";
 import {
   JAPANESE_EDITION,
@@ -16,7 +15,6 @@ import type { Offer, Provider } from "../types.js";
 import ebayApi from "./ebay.js";
 import keepa from "./keepa.js";
 import { searchSerpApi, serpApiEnabled } from "./serpapiClient.js";
-import walmartApi from "./walmart.js";
 
 const toCents = (dollars: number) => Math.round(dollars * 100);
 
@@ -175,58 +173,5 @@ export const amazonSearch: Provider = {
       organic_results?: AmazonResult[];
     }>({ engine: "amazon", k: isbn13 }, signal);
     return amazonOffers(data.organic_results ?? [], isbn13, book.title);
-  },
-};
-
-// ---------- Walmart ----------
-
-export type WalmartResult = {
-  title?: string;
-  seller_name?: string;
-  out_of_stock?: boolean;
-  product_page_url?: string;
-  primary_offer?: { offer_price?: number };
-};
-
-export function walmartOffers(results: WalmartResult[], title: string): Offer[] {
-  const offers: Offer[] = [];
-  for (const item of results) {
-    const name = item.title ?? "";
-    const price = item.primary_offer?.offer_price;
-    if (!price || item.out_of_stock || !item.product_page_url) continue;
-    if (!listingMatches(name, title) || JAPANESE_EDITION.test(name)) continue;
-    const priceCents = toCents(price);
-    if (!plausiblePrice(priceCents)) continue;
-    const url = new URL(item.product_page_url);
-    const seller = item.seller_name ?? "";
-    offers.push({
-      store: !seller || /^walmart(\.com)?$/i.test(seller)
-        ? "Walmart"
-        : `Walmart - ${seller}`.slice(0, 60),
-      format: "print",
-      condition: /\bpre-?owned\b/i.test(name) ? "used" : "new",
-      priceCents,
-      currency: "USD",
-      inStock: true,
-      url: `${url.origin}${url.pathname}`,
-    });
-  }
-  return cheapestOfEach(offers);
-}
-
-export const walmartSearch: Provider = {
-  id: "serpapi-walmart",
-  store: "Walmart",
-  enabled: () => serpApiEnabled() && !walmartApi.enabled(),
-  // Google Shopping usually has Walmart already, so this saves a search
-  onlyIfNoRow: /^walmart\b/i,
-
-  async fetchOffers(_isbn13, signal, book) {
-    if (!book.title) return [];
-    const data = await searchSerpApi<{
-      error?: string;
-      organic_results?: WalmartResult[];
-    }>({ engine: "walmart", query: book.title }, signal);
-    return walmartOffers(data.organic_results ?? [], book.title);
   },
 };

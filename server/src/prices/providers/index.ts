@@ -6,13 +6,12 @@ import ebay from "./ebay.js";
 import walmart from "./walmart.js";
 import keepa from "./keepa.js";
 import googleBooks from "./googleBooks.js";
-import { amazonSearch, ebaySearch, walmartSearch } from "./serpapiStores.js";
+import { amazonSearch, ebaySearch } from "./serpapiStores.js";
 
 export const PROVIDERS: Provider[] = [
   serpapi,
   ebaySearch,
   amazonSearch,
-  walmartSearch,
   ebay,
   walmart,
   keepa,
