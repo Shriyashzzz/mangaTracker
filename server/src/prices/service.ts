@@ -168,6 +168,9 @@ export type VolumePrices = NonNullable<
 // ---------- series ----------
 
 const SERIES_VOLUMES_FRESH_MS = 12 * 60 * 60 * 1000;
+// with a saved list to show, the catalog being down can wait this long before
+// anyone sits through asking it again
+const SERIES_VOLUMES_RETRY_MS = 10 * 60 * 1000;
 const seriesVolumesCache = new Map<
   string,
   { at: number; volumes: CatalogBook[] }
@@ -178,12 +181,29 @@ const seriesVolumesCache = new Map<
 // "incomplete" means a catalog query or a title translation failed for a
 // passing reason, so volumes may be missing; such a list is never cached,
 // so the next visit tries again
+// what's known already plus what the catalog says now, with its version of any
+// volume winning. Its answers vary from one search to the next, and a volume it
+// happened to leave out this time is still a real volume
+export const mergeVolumes = (known: CatalogBook[], found: CatalogBook[]) => {
+  const byNumber = new Map(known.map((v) => [v.volume, v]));
+  for (const v of found) byNumber.set(v.volume, v);
+  return [...byNumber.values()].sort((a, b) => (a.volume ?? 0) - (b.volume ?? 0));
+};
+
 async function seriesVolumes(
   name: string,
 ): Promise<{ volumes: CatalogBook[]; incomplete: boolean }> {
   const key = seriesOf(name);
-  const hit = seriesVolumesCache.get(key);
+  // memory first, then the database, which outlives a restart. A database
+  // problem just means asking the catalog
+  const hit =
+    seriesVolumesCache.get(key) ??
+    (await priceQueries.getSeriesVolumes(key).catch((e: Error) => {
+      console.error("Couldn't read saved series volumes:", e.message);
+      return null;
+    }));
   if (hit && Date.now() - hit.at < SERIES_VOLUMES_FRESH_MS) {
+    seriesVolumesCache.set(key, hit);
     return { volumes: hit.volumes, incomplete: false };
   }
 
@@ -218,18 +238,25 @@ async function seriesVolumes(
     if (!isSingleVolume(v.title)) continue;
     if (!byNumber.has(v.volume)) byNumber.set(v.volume, v);
   }
-  const volumes = [...byNumber.values()].sort(
-    (a, b) => (a.volume ?? 0) - (b.volume ?? 0),
-  );
+  const volumes = mergeVolumes(hit?.volumes ?? [], [...byNumber.values()]);
 
   if (failed.length > 0 || untranslated) {
-    // an older complete list beats a damaged new one
-    if (hit && hit.volumes.length > volumes.length) {
-      return { volumes: hit.volumes, incomplete: false };
+    // a saved list covers for the outage, and the catalog gets another go soon
+    if (hit?.volumes.length) {
+      const at = Date.now() - SERIES_VOLUMES_FRESH_MS + SERIES_VOLUMES_RETRY_MS;
+      seriesVolumesCache.set(key, { at, volumes: hit.volumes });
+      return { volumes, incomplete: false };
     }
     return { volumes, incomplete: true };
   }
   seriesVolumesCache.set(key, { at: Date.now(), volumes });
+  // an empty answer counts too: every other name a series goes by would
+  // otherwise be asked about again after each restart
+  await priceQueries
+    .saveSeriesVolumes(key, volumes)
+    .catch((e: Error) =>
+      console.error("Couldn't save series volumes:", e.message),
+    );
   if (seriesVolumesCache.size > 500) {
     seriesVolumesCache.delete(seriesVolumesCache.keys().next().value!);
   }
