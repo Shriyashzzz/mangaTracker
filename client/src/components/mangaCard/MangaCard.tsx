@@ -53,7 +53,7 @@ export default function MangaCard({
       to={linkTo ?? `/details/${currentManga.id}${detailsSearch}`}
       className={
         compact
-          ? "group flex animate-card-in flex-row items-center gap-3 py-1.5"
+          ? "group flex animate-card-in flex-row items-start gap-3 py-1.5"
           : news
           ? "group flex animate-card-in flex-col gap-[0.7rem] upto-720:flex-row upto-720:items-center upto-720:gap-3 upto-720:py-1.5"
           : "group flex animate-card-in flex-col gap-[0.7rem]"
