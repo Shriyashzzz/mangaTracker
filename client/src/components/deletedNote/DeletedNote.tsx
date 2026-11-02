@@ -10,15 +10,16 @@ const UNDO_MS = 8000;
 function useUndoDelete() {
   const undoDelete = useShelf((s) => s.undoDelete);
   const [restoring, setRestoring] = useState(false);
-  const [failed, setFailed] = useState(false);
+  const [problem, setProblem] = useState("");
   const undo = async () => {
     setRestoring(true);
-    setFailed(false);
-    const restored = await undoDelete();
-    setFailed(!restored);
+    setProblem("");
+    const result = await undoDelete();
+    if (result === "failed") setProblem("That didn't bring it back. Try again.");
+    if (result === "already-back") setProblem("It's already back on your shelf.");
     setRestoring(false);
   };
-  return { undo, restoring, failed };
+  return { undo, restoring, problem };
 }
 
 const undoButton =
@@ -29,7 +30,7 @@ export default function DeletedNote() {
   const shelfEmpty = useShelf((s) => s.manga?.length === 0);
   const setLastDeleted = useShelf((s) => s.setLastDeleted);
   const note = useRef<HTMLDivElement>(null);
-  const { undo, restoring, failed } = useUndoDelete();
+  const { undo, restoring, problem } = useUndoDelete();
   const showing = manga && !shelfEmpty;
 
   // it leaves on its own, but not from under someone reading or tabbing to it
@@ -55,7 +56,7 @@ export default function DeletedNote() {
           className="fixed inset-x-0 bottom-6 z-15 mx-auto flex w-fit max-w-[min(30rem,calc(100vw-2rem))] animate-drop items-center gap-4 rounded-ink border-[2.5px] border-line bg-card px-4 py-3 text-[0.95rem] text-ink shadow-ink motion-reduce:animate-none upto-720:bottom-[calc(3.75rem+env(safe-area-inset-bottom))]"
         >
           <span className="min-w-0 truncate">
-            {failed ? "That didn't bring it back. Try again." : `Deleted: ${manga.name}`}
+            {problem || `Deleted: ${manga.name}`}
           </span>
           <button type="button" className={undoButton} disabled={restoring} onClick={undo}>
             {restoring ? "Undoing…" : "Undo"}
@@ -70,12 +71,12 @@ export default function DeletedNote() {
 // inside the empty shelf's card, for when the last manga has just gone
 export function EmptyShelfUndo() {
   const manga = useShelf((s) => s.lastDeleted);
-  const { undo, restoring, failed } = useUndoDelete();
+  const { undo, restoring, problem } = useUndoDelete();
   if (!manga) return null;
   return (
     <p className="mb-5 flex items-center justify-center gap-3 rounded-ink bg-accent-wash px-3 py-2 text-[0.95rem] text-ink" role="status">
       <span className="min-w-0">
-        {failed ? "That didn't bring it back. Try again." : `Deleted: ${manga.name}`}
+        {problem || `Deleted: ${manga.name}`}
       </span>
       <button type="button" className={undoButton} disabled={restoring} onClick={undo}>
         {restoring ? "Undoing…" : "Undo"}

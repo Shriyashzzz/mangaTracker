@@ -7,10 +7,10 @@ export const settingsStyles = {
   // tabs down the left on laptops, across the top on phones
   layout:
     "grid grid-cols-[11rem_minmax(0,1fr)] items-start gap-[clamp(1.5rem,4vw,3rem)] upto-760:grid-cols-[minmax(0,1fr)] upto-760:gap-5",
-  tabs: "sticky top-4 flex flex-col gap-1 upto-760:static upto-760:flex-row upto-760:flex-wrap",
-  tab: "flex min-h-11 items-center rounded-ink border-2 border-transparent px-3 font-medium text-ink-soft transition-colors duration-120 ease-[ease] hover:text-ink upto-760:border-line-soft upto-760:text-[0.92rem]",
+  tabs: "sticky top-4 flex flex-col gap-1 upto-760:static upto-760:grid upto-760:grid-cols-3 upto-760:gap-2",
+  tab: "tap flex min-h-11 items-center rounded-ink border-2 border-transparent px-3 font-medium text-ink-soft transition-colors duration-120 ease-[ease] hover:text-ink upto-760:min-h-9 upto-760:justify-center upto-760:border-[1.5px] upto-760:border-line-soft upto-760:px-1 upto-760:text-center upto-760:text-[0.85rem]",
   tabActive:
-    "flex min-h-11 items-center rounded-ink border-2 border-line bg-card px-3 font-semibold text-ink upto-760:text-[0.92rem]",
+    "tap flex min-h-11 items-center rounded-ink border-2 border-line bg-card px-3 font-semibold text-ink upto-760:min-h-9 upto-760:justify-center upto-760:border-[1.5px] upto-760:px-1 upto-760:text-center upto-760:text-[0.85rem]",
   panel: "min-w-0",
   tabBody: "flex flex-col gap-5",
   tabTitle:

@@ -38,7 +38,10 @@ export type ReleaseData = {
   volume?: { volume: string | null; releaseDate: string | null }[];
   newVolume?: ReleaseEstimate & { volume: string | null };
   chapter?: {
-    latestReleased: { chapterNumber: string | null; releaseDate: string | null };
+    latestReleased: {
+      chapterNumber: string | null;
+      releaseDate: string | null;
+    };
     estimateRelease: ReleaseEstimate & { chapterNumber: string | null };
   };
 };

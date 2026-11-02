@@ -2,6 +2,8 @@
 // they typed, otherwise exactly what they typed. AniList's search is fuzzy and
 // answers with its closest guess, so "solo" could come back as another series
 // entirely; only the same title under any of its names counts.
+
+//compares the written title against anilist title, without selecitng the dropdown prompt.
 import { slugify } from "../prices/match.js";
 
 type Listing = { name: string; altNames: string[] };

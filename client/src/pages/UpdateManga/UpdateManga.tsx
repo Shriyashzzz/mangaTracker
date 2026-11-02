@@ -63,7 +63,8 @@ export function UpdateManga() {
         method: "PUT",
         body: formData,
       });
-      if (response.status == 400) {
+      // 400: what's wrong with the form; 409: that title is already on the shelf
+      if (response.status === 400 || response.status === 409) {
         setError((await errorMessages(response)).map((msg) => ({ msg })));
       } else if (!response.ok) {
         setError([{ msg: "Something went wrong, please try again." }]);
