@@ -190,22 +190,28 @@ export default function Details() {
   const cover = mangaData.image || FALLBACK_COVER;
   const genre =
     mangaData.genre && mangaData.genre !== "unlabled" ? mangaData.genre : null;
+  // owning and reading aren't the same, so say which it is
+  const volumeYours = mangaData?.volumesOwned
+    ? `you own up to vol. ${mangaData.volumesOwned}`
+    : releaseStatus?.currentVolume
+      ? `you're on vol. ${releaseStatus.currentVolume}`
+      : null;
   // the side panel: only what's next for them, and what they came here about
   const release = !releaseStatus
     ? null
     : inJapan
       ? releaseStatus.hasNewJapaneseVolume && {
           what: `Vol. ${releaseStatus.latestJapaneseVolume}`,
-          yours: releaseStatus.currentVolume && `vol. ${releaseStatus.currentVolume}`,
+          yours: volumeYours,
         }
       : chapterNews && !mangaStatus
         ? releaseStatus.hasNewChapter && {
             what: `Ch. ${releaseStatus.latestChapter}`,
-            yours: mangaData.bookmark ? `ch. ${mangaData.bookmark}` : null,
+            yours: mangaData.bookmark ? `you're on ch. ${mangaData.bookmark}` : null,
           }
         : releaseStatus.isNextVolumeOut && {
             what: `Vol. ${releaseStatus.latestVolume}`,
-            yours: releaseStatus.currentVolume && `vol. ${releaseStatus.currentVolume}`,
+            yours: volumeYours,
           };
   const showRelease = Boolean(release);
 

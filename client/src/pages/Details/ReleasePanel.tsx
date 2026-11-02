@@ -78,7 +78,7 @@ export default function ReleasePanel({
       <span className={styles.releaseBarHeadline}>{headline}</span>
       <span className={styles.releaseBarOwned}>
         {place}
-        {yours ? ` · you're on ${yours}` : ""}
+        {yours ? ` · ${yours}` : ""}
       </span>
     </>
   );
@@ -93,7 +93,7 @@ export default function ReleasePanel({
         <h2 className={styles.releaseHeadline}>{headline}</h2>
         <p className={styles.releaseOwned}>
           {inJapan ? "In Japan." : "In English."}
-          {yours ? ` You're on ${yours}.` : ""}
+          {yours ? ` ${yours[0]!.toUpperCase()}${yours.slice(1)}.` : ""}
         </p>
       </div>
 

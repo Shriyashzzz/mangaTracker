@@ -80,7 +80,7 @@ export default function SignInPage() {
                 id="username"
                 ref={userNameRef}
                 type="text"
-                placeholder="your_username"
+                placeholder="yourusername"
                 name="username"
                 autoComplete="username"
                 autoFocus={!isMobile && !hasBottomBar()}

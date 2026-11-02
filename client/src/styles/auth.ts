@@ -10,7 +10,7 @@ export const authStyles = {
     "grid w-full max-w-[860px] grid-cols-[minmax(0,0.95fr)_minmax(0,1fr)] gap-3 border-[1.5px] border-line-soft bg-card p-3 upto-720:max-w-[460px] upto-720:grid-cols-[minmax(0,1fr)] upto-720:gap-[9px] upto-720:p-[9px]",
 
   // ---------- art panel ----------
-  art: "relative flex min-h-[420px] flex-col overflow-hidden border-3 border-line bg-paper upto-720:min-h-[250px] upto-720:justify-end",
+  art: "relative flex min-h-[420px] flex-col overflow-hidden border-3 border-line bg-paper upto-720:min-h-[120px] upto-720:justify-end",
   // focus lines radiating from the chapter number
   speed:
     "focus-lines grid flex-1 place-items-center upto-720:absolute upto-720:inset-0 upto-720:[place-items:start_center] upto-720:pt-[74px]",

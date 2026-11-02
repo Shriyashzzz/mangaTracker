@@ -217,7 +217,7 @@ export default function ProfileTab({ account }: { account: Account }) {
             <button type="button" className="btn btn-secondary" onClick={copyLink}>
               {copied ? "Copied" : "Copy link"}
             </button>
-            <NavLink to={`/u/${account.shareCode}`} className={styles.link} viewTransition>
+            <NavLink to={`/u/${account.shareCode}`} className={`tap ${styles.link}`} viewTransition>
               See it
             </NavLink>
           </div>

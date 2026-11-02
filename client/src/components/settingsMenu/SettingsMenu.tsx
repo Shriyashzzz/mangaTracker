@@ -14,7 +14,7 @@ import { useAccount } from "../../store/account";
 
 // one row of the menu: a button or link
 const item =
-  "flex min-h-10 w-full items-center gap-[0.65rem] rounded-[3px] px-[0.6rem] py-[0.35rem] text-left text-[0.95rem] text-ink-soft transition-[background-color,color] duration-120 ease-[ease] hover:bg-accent-wash hover:text-ink focus-visible:bg-accent-wash focus-visible:text-ink aria-pressed:font-semibold aria-pressed:text-ink [&>svg]:size-[17px] [&>svg]:shrink-0";
+  "flex min-h-11 w-full items-center gap-[0.65rem] rounded-[3px] px-[0.6rem] py-[0.35rem] text-left text-[0.95rem] text-ink-soft transition-[background-color,color] duration-120 ease-[ease] hover:bg-accent-wash hover:text-ink focus-visible:bg-accent-wash focus-visible:text-ink aria-pressed:font-semibold aria-pressed:text-ink [&>svg]:size-[17px] [&>svg]:shrink-0";
 
 // each background in miniature
 const thumb =

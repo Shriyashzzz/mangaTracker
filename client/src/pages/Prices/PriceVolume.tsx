@@ -184,6 +184,11 @@ export default function PriceVolume() {
     (k) => !hideEbooks || k.kind !== "ebook",
   );
   const history = allHistory && kinds.length ? { ...allHistory, kinds } : null;
+  // the summary is for a physical copy, like the rest of the page
+  const printKinds = kinds.filter((k) => k.kind !== "ebook");
+  const lowestInHistory = Math.min(
+    ...(printKinds.length ? printKinds : kinds).map((k) => k.lowCents),
+  );
   // people come here for a physical copy, so ebooks go under the print ones.
   // The awards below still use the true cheapest-first order
   const listedOffers = [
@@ -443,7 +448,7 @@ export default function PriceVolume() {
               <summary className={styles.historySummary}>
                 <h2 className={styles.sectionTitle}>Price history</h2>
                 <span className={styles.checked}>
-                  lowest {formatCents(Math.min(...history.kinds.map((k) => k.lowCents)))}
+                  lowest {formatCents(lowestInHistory)}
                 </span>
                 <ChevronDownIcon />
               </summary>
