@@ -1,14 +1,11 @@
-// Lets someone look at a real shelf before signing up: the shared list of a demo
-// account. Hidden until VITE_SAMPLE_SHELF_CODE names that account's share code.
+// Lets someone look at a real shelf before signing up: the shared list of the demo
+// account that server/src/seedSampleShelf.ts creates.
 import { NavLink } from "react-router";
 
-const CODE: string | undefined = import.meta.env.VITE_SAMPLE_SHELF_CODE;
-
 export default function SampleShelfLink() {
-  if (!CODE) return null;
   return (
     <NavLink
-      to={`/u/${encodeURIComponent(CODE)}`}
+      to="/u/sample"
       className="tap py-2 font-medium whitespace-nowrap text-ink underline decoration-accent decoration-2 underline-offset-3 hover:decoration-line"
       viewTransition
     >
