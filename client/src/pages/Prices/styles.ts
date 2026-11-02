@@ -26,7 +26,9 @@ export const pricesStyles = {
     "grid grid-cols-2 items-stretch gap-[clamp(1rem,2.5vw,1.5rem)] upto-860:grid-cols-[minmax(0,1fr)] [&>*]:min-w-0",
   trackHalf:
     "speed-burst relative flex flex-col items-start gap-3 border-3 border-line p-[clamp(1.25rem,3vw,2rem)] upto-720:gap-2 upto-720:py-4",
-  halfMascot: "absolute top-3 right-3 w-16 upto-520:w-10",
+  // ink on paper in every theme, or his hair disappears into the dark panel
+  halfMascot:
+    "absolute top-3 right-3 block aspect-square w-16 overflow-hidden rounded-full border-2 border-line bg-card px-1.5 pt-1.5 upto-520:w-11 upto-520:px-1 upto-520:pt-1",
   halfTitle:
     "pr-12 font-brand text-[clamp(1.6rem,4vw,2.6rem)] leading-[1] font-normal tracking-[0.02em] uppercase",
   halfActions: "mt-auto flex flex-wrap items-center gap-3 pt-2 upto-720:pt-0.5",

@@ -231,6 +231,10 @@
 
   main {
     flex: 1;
+    /* a full screen less the header, so the footer waits below the fold instead
+       of jumping about as the content changes. svh: a phone's address bar hiding
+       shouldn't move it either */
+    min-height: calc(100svh - 65px);
     width: 100%;
     max-width: var(--page-width);
     margin: 0 auto;
