@@ -92,3 +92,15 @@ export const ChevronRightIcon = (props: IconProps) => (
     <path d="m9 18 6-6-6-6" />
   </svg>
 );
+
+export const CoffeeIcon = (props: IconProps) => (
+  <svg {...base} {...props}>
+    <path d="M4 9h13v6a5 5 0 0 1-5 5H9a5 5 0 0 1-5-5ZM17 11h1.5a2.5 2.5 0 0 1 0 5H17M8 3.5c-.6 1 .6 1.5 0 2.5M12.5 3.5c-.6 1 .6 1.5 0 2.5" />
+  </svg>
+);
+
+export const CloseIcon = (props: IconProps) => (
+  <svg {...base} {...props}>
+    <path d="M6 6l12 12M18 6L6 18" />
+  </svg>
+);

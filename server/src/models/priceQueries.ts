@@ -7,8 +7,8 @@
 // raw SQL ($queryRaw tagged templates: values are always sent as parameters,
 // never pasted into the SQL).
 import { prisma } from "../config/prisma.js";
-import type { Book } from "../../generated/prisma/client.js";
-import type { Offer } from "../prices/types.js";
+import type { Book, Prisma } from "../../generated/prisma/client.js";
+import type { CatalogBook, Offer } from "../prices/types.js";
 
 export type { Book };
 
@@ -248,6 +248,29 @@ export async function markApiSpent(provider: string, limit: number) {
   `;
 }
 
+// a series' last good volume list; see prices/service.ts
+export async function getSeriesVolumes(key: string) {
+  const row = await prisma.seriesVolumes.findUnique({ where: { key } });
+  return (
+    row && {
+      at: row.fetchedAt.getTime(),
+      volumes: row.volumes as unknown as CatalogBook[],
+    }
+  );
+}
+
+export async function saveSeriesVolumes(key: string, volumes: CatalogBook[]) {
+  const data = {
+    volumes: volumes as unknown as Prisma.InputJsonValue,
+    fetchedAt: new Date(),
+  };
+  await prisma.seriesVolumes.upsert({
+    where: { key },
+    create: { key, ...data },
+    update: data,
+  });
+}
+
 const MONTH_MS = 30 * 24 * 60 * 60 * 1000;
 
 // known edition covers; a "has none" answer only counts for a month
@@ -307,6 +330,8 @@ export async function getBookTitles() {
 export default {
   claimApiCall,
   markApiSpent,
+  getSeriesVolumes,
+  saveSeriesVolumes,
   getKnownPrices,
   getRecentBestPrices,
   getBook,

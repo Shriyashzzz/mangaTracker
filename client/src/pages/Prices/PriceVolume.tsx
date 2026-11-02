@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { noteStoreClick } from "../../lib/support";
 import {
   ChevronDownIcon,
   ChevronRightIcon,
@@ -360,6 +361,8 @@ export default function PriceVolume() {
                           href={o.url}
                           target="_blank"
                           rel={linkRel(o)}
+                          onClick={noteStoreClick}
+                          onAuxClick={noteStoreClick}
                           aria-label={`${o.store}, ${formatCents(o.priceCents)}, ${condition}. Opens the store in a new tab`}
                         >
                           {row}
@@ -431,6 +434,8 @@ export default function PriceVolume() {
                         href={s.url}
                         target="_blank"
                         rel={linkRel(s)}
+                        onClick={noteStoreClick}
+                        onAuxClick={noteStoreClick}
                         aria-label={`${s.store}. Opens the store in a new tab`}
                       >
                         {s.store}

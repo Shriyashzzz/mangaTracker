@@ -7,6 +7,7 @@ import Backdrop from "./components/backdrop/Backdrop";
 import Header from "./layouts/header/Header";
 import Footer from "./layouts/Footer/Footer";
 import DeletedNote from "./components/deletedNote/DeletedNote";
+import SupportPeek from "./components/supportPeek/SupportPeek";
 import { useAuth } from "./store/auth";
 
 export default function App() {
@@ -44,6 +45,7 @@ export default function App() {
       </main>
       <Footer />
       <DeletedNote />
+      <SupportPeek />
       <ScrollRestoration />
     </>
   );

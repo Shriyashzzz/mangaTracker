@@ -22,7 +22,7 @@ import { volumePath } from "../../lib/prices";
 import type { Manga, ReleaseStatus } from "../../lib/types";
 import { useAuth } from "../../store/auth";
 import { useShelf } from "../../store/shelf";
-import { readLocal, releaseChecksOn, writeLocal } from "../../lib/prefs";
+import { readLocal, useReleaseChecksOn, writeLocal } from "../../lib/prefs";
 import {
   CHECKED_BEFORE_KEY,
   isStillNew,
@@ -132,13 +132,15 @@ function Library() {
   // and returns to New, and coming back from a volume lands on it again
   const [searchParams] = useSearchParams();
   const wantHidden = searchParams.get("view") === "hidden";
-  const checksOn = releaseChecksOn();
+  const checksOn = useReleaseChecksOn();
   const [statusFilter, setStatusFilter] = useState(() => {
     if (wantHidden && checksOn) return "new";
     const saved = readSession("libraryStatus", readLocal("shelfTab") ?? "all");
     // no New tab with release checks off
     return saved === "new" && !checksOn ? "all" : saved;
   });
+  // switched off while on the New tab, or the account's choice just arrived
+  if (!checksOn && statusFilter === "new") setStatusFilter("all");
   const [sortBy, setSortBy] = useState(() => {
     const saved = readSession("librarySort", readLocal("shelfSort") ?? "");
     return SORT_OPTIONS.some((o) => o.value === saved) ? saved : "";
@@ -235,8 +237,8 @@ function Library() {
   // on even if they leave, and new titles get picked up
   const showingNew = statusFilter === "new";
   useEffect(() => {
-    if ((showingNew || rowsChosen) && mangaData?.length) checkReleases();
-  }, [mangaData, releases, showingNew, rowsChosen, checkReleases]);
+    if (checksOn && (showingNew || rowsChosen) && mangaData?.length) checkReleases();
+  }, [mangaData, releases, showingNew, rowsChosen, checksOn, checkReleases]);
   const checked = (mangaData ?? []).filter((m) => m.id in releases).length;
   const checking = showingNew && checked < (mangaData?.length ?? 0);
   const allChecked = checked > 0 && checked >= (mangaData?.length ?? 0);

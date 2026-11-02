@@ -15,7 +15,7 @@ import {
   BACKGROUNDS,
   currentBackground,
   readLocal,
-  releaseChecksOn,
+  useReleaseChecksOn,
   savePrefs,
 } from "../../lib/prefs";
 import { usePrivatePage } from "../../lib/seo";
@@ -151,7 +151,7 @@ function AppearanceTab() {
 
 function NewReleasesTab() {
   const isSignedIn = useAuth((s) => s.isSignedIn);
-  const [checksOn, setChecksOn] = useState(releaseChecksOn);
+  const checksOn = useReleaseChecksOn();
   return (
     <div className={styles.tabBody}>
       <h2 className={styles.tabTitle}>New releases</h2>
@@ -159,10 +159,9 @@ function NewReleasesTab() {
         <input
           type="checkbox"
           checked={checksOn}
-          onChange={(e) => {
-            setChecksOn(e.target.checked);
-            savePrefs({ releaseChecks: e.target.checked ? "on" : "off" }, isSignedIn);
-          }}
+          onChange={(e) =>
+            savePrefs({ releaseChecks: e.target.checked ? "on" : "off" }, isSignedIn)
+          }
         />
         Check for new volumes and chapters
       </label>

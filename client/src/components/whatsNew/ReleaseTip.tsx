@@ -4,7 +4,7 @@
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { NavLink } from "react-router";
-import { readLocal, releaseChecksOn, writeLocal } from "../../lib/prefs";
+import { readLocal, useReleaseChecksOn, writeLocal } from "../../lib/prefs";
 import { CHECKED_BEFORE_KEY, openReleasesOnShelf } from "../../lib/shelf";
 import { useAuth } from "../../store/auth";
 import Mascot from "../mascot/Mascot";
@@ -25,9 +25,10 @@ type Props = {
 export default function ReleaseTip({ enabled, onCheck }: Props) {
   const isSignedIn = useAuth((s) => s.isSignedIn);
   const [open, setOpen] = useState(false);
+  const checksOn = useReleaseChecksOn();
 
   useEffect(() => {
-    if (!enabled || isSignedIn === null || !releaseChecksOn()) return;
+    if (!enabled || isSignedIn === null || !checksOn) return;
     if (!window.matchMedia(SMALL_SCREEN).matches) return;
     // anyone who has opened the New tab already knows about it
     const seen = readLocal(SEEN_KEY);
@@ -41,7 +42,7 @@ export default function ReleaseTip({ enabled, onCheck }: Props) {
       setOpen(true);
     }, SHOW_AFTER_MS);
     return () => clearTimeout(timer);
-  }, [enabled, isSignedIn]);
+  }, [enabled, isSignedIn, checksOn]);
 
   useEffect(() => {
     if (!open) return;
@@ -49,7 +50,7 @@ export default function ReleaseTip({ enabled, onCheck }: Props) {
     return () => clearTimeout(timer);
   }, [open]);
 
-  if (!open || !enabled) return null;
+  if (!open || !enabled || !checksOn) return null;
 
   // they've answered it, so that's the last of it
   const answered = () => {
