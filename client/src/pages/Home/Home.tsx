@@ -6,7 +6,7 @@ import MangaCard, {
 } from "../../components/mangaCard/MangaCard";
 
 import { homeStyles as styles } from "./styles";
-import { NavLink, useLocation, useNavigate, useSearchParams } from "react-router";
+import { NavLink, useNavigate, useSearchParams } from "react-router";
 import {
   CheckIcon,
   ChevronDownIcon,
@@ -145,7 +145,6 @@ function Library() {
   // in the address, so it's a step of its own: the back gesture leaves the list
   // and returns to New, and coming back from a volume lands on it again
   const [searchParams] = useSearchParams();
-  const { state: linkState } = useLocation();
   const wantHidden = searchParams.get("view") === "hidden";
   // the series whose grouped list is open
   const [openRelease, setOpenRelease] = useState<number | null>(null);
@@ -320,14 +319,7 @@ function Library() {
 
   const goToAdd = () => navigator("/add", { viewTransition: true });
 
-  const openHidden = () =>
-    navigator("/shelf?view=hidden", { state: { openedHidden: true } });
-  // the same as the back gesture when that's how they got here. An address opened
-  // directly has nothing to go back to
-  const leaveHidden = () => {
-    if ((linkState as { openedHidden?: boolean } | null)?.openedHidden) navigator(-1);
-    else navigator("/shelf", { replace: true });
-  };
+  const openHidden = () => navigator("/shelf?view=hidden");
 
   const changePage = (index: number) => {
     setPage({ key: filterKey, index });
@@ -800,20 +792,19 @@ function Library() {
             <NavLink to="/new-releases" className={styles.hiddenToggle} viewTransition>
               How this works
             </NavLink>
-            {hiddenCount > 0 && (
+            {hiddenCount > 0 && !viewingHidden && (
               <button
                 type="button"
                 className={styles.hiddenToggle}
-                aria-pressed={viewingHidden}
-                onClick={viewingHidden ? leaveHidden : openHidden}
+                onClick={openHidden}
               >
-                {viewingHidden ? "Back to new" : `Hidden (${hiddenCount})`}
+                Hidden ({hiddenCount})
               </button>
             )}
             {viewingHidden && (
               <button
                 type="button"
-                className={styles.hiddenToggle}
+                className={styles.unhideAll}
                 onClick={unhideAll}
               >
                 Unhide all
