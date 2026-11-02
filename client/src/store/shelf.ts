@@ -22,7 +22,7 @@ type ShelfState = {
   checkReleases: () => Promise<void>;
   // forget the answers and check every title again
   recheckReleases: () => void;
-  // "Seen it", or its undo: off the New tab at once, back if the save fails.
+  // "Hide", or its undo: off the New tab at once, back if the save fails.
   // Says whether it saved
   markSeen: (id: number, kind: SeenKind, number: number | null) => Promise<boolean>;
   // it's been deleted: gone at once, not after the next refresh
@@ -31,7 +31,7 @@ type ShelfState = {
   reset: () => void;
 };
 
-// where each kind of "Seen it" lives on a manga, and the flag it switches off
+// where each kind of "Hide" lives on a manga, and the flag it switches off
 const SEEN = {
   volume: { field: "seenVolume", flag: "hasNewVolume", latest: "nextVolume" },
   chapter: { field: "seenChapter", flag: "hasNewChapter", latest: "nextChapter" },

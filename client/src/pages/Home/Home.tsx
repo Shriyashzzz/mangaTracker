@@ -23,7 +23,7 @@ import ReleaseTip from "../../components/whatsNew/ReleaseTip";
 const SHELF_PAGE_SIZE = 30;
 // shelves this size get a heads-up that their first release check is slow
 const BIG_SHELF = 10;
-// how long the "Seen it" note and its undo stay up
+// how long the "Hide" note and its undo stay up
 const SEEN_NOTE_MS = 8000;
 
 // what each side of the New tab's switch shows, and how it says there's nothing
@@ -59,7 +59,7 @@ const RELEASE_FLAGS = {
   chapters: { listed: "chapterListed", isNew: "hasNewChapter" },
   japan: { listed: "japanListed", isNew: "hasNewJapaneseVolume" },
 } as const;
-// they've said "Seen it" to this one, and nothing newer has come along
+// they've hidden this one, and nothing newer has come along
 const isHiddenAs = (found: ReleaseStatus | null | undefined, kind: ReleaseKind) =>
   Boolean(found?.[RELEASE_FLAGS[kind].listed] && !found[RELEASE_FLAGS[kind].isNew]);
 
@@ -132,7 +132,7 @@ function Library() {
     const saved = readSession("libraryReleaseKind", "volumes");
     return saved in RELEASE_KINDS ? (saved as ReleaseKind) : "volumes";
   });
-  // the New tab's list of what "Seen it" has hidden
+  // the New tab's list of what they've hidden
   const [wantHidden, setWantHidden] = useState(false);
   const hiddenCount = (mangaData ?? []).filter((m) =>
     isHiddenAs(releases[m.id], releaseKind),
@@ -169,7 +169,7 @@ function Library() {
     return () => cancelAnimationFrame(frame);
   }, [spot, shelfReady]);
 
-  // the last "Seen it", for its undo; or a save that failed
+  // the last "Hide", for its undo; or a save that failed
   const markSeen = useShelf((s) => s.markSeen);
   const [hidden, setHidden] = useState<{
     id: number;
@@ -566,7 +566,7 @@ function Library() {
         </div>
       </div>
 
-      {/* pinned to the screen, since "Seen it" is usually tapped far down the
+      {/* pinned to the screen, since "Hide" is usually tapped far down the
           list. In a portal: the page's fade-in would otherwise pin it to the page */}
       {createPortal(
         <div role="status" ref={seenNote}>
@@ -626,7 +626,7 @@ function Library() {
           <div className={styles.releaseAside}>
             <p className={styles.releaseNote}>
               {viewingHidden
-                ? "Hidden with Seen it, until something newer is out."
+                ? "You hid these. They stay hidden until something newer is out."
                 : RELEASE_KINDS[releaseKind].note}
             </p>
             {hiddenCount > 0 && (
@@ -753,12 +753,12 @@ function Library() {
                   <button
                     type="button"
                     className={styles.seenBtn}
-                    aria-label={`${viewingHidden ? "Show again" : "Seen it"}: ${currentManga.name}`}
+                    aria-label={`${viewingHidden ? "Show again" : "Hide"}: ${currentManga.name}`}
                     data-seen-id={currentManga.id}
                     onClick={() => handleSeen(currentManga)}
                   >
                     {!viewingHidden && <CheckIcon />}
-                    {viewingHidden ? "Show again" : "Seen it"}
+                    {viewingHidden ? "Show again" : "Hide"}
                   </button>
                 )}
               </div>
