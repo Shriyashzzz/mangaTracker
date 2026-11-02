@@ -31,7 +31,7 @@ export const homeStyles = {
   // a flat red disc fixed above the bottom bar, with a paper edge so it keeps its
   // shape over dark covers. Gone while typing, and while a note is in its place
   addButton:
-    "fixed right-4 bottom-[calc(4.5rem+env(safe-area-inset-bottom))] z-15 hidden size-12 place-items-center rounded-full border-2 border-paper bg-accent text-on-accent transition-colors duration-120 ease-[ease] hover:bg-accent-hover upto-720:grid [body:has(input:focus,textarea:focus,select:focus,[data-over-add-button])_&]:hidden! [&_svg]:size-6",
+    "fixed right-4 bottom-[calc(5.25rem+env(safe-area-inset-bottom))] z-15 hidden size-12 place-items-center rounded-full border-2 border-paper bg-accent text-on-accent transition-colors duration-120 ease-[ease] hover:bg-accent-hover upto-720:grid [body:has(input:focus,textarea:focus,select:focus,[data-over-add-button])_&]:hidden! [&_svg]:size-6",
   // the header scrolls away, this stays pinned so search and filters are
   // one tap away on a long shelf. It reaches a little past the grid on both
   // sides so tilted cards never peek out beside it while scrolling
