@@ -30,6 +30,8 @@ export function AddManga() {
     hits: [],
   });
   const [pickedTitle, setPickedTitle] = useState<string | null>(null);
+  // the suggestion under the mouse: its cover shows until they move away
+  const [preview, setPreview] = useState<CoverHit | null>(null);
   const [genre, setGenre] = useState("");
   const [genreFromAniList, setGenreFromAniList] = useState(false);
   // a genre the user picked by hand is never overwritten by a cover match
@@ -116,6 +118,7 @@ export function AddManga() {
                 : []
             }
             onPick={pickTitle}
+            onPreview={setPreview}
           />
         </div>
 
@@ -123,6 +126,7 @@ export function AddManga() {
           className={styles.coverArea}
           title={title}
           value={image}
+          previewUrl={preview?.cover}
           coverChosen={pickedTitle === title}
           onResults={(hits, query) => setFound({ query, hits })}
           onChange={(url, match) => {

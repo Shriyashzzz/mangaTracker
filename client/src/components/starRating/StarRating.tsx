@@ -47,7 +47,10 @@ export default function StarRating({ value = 0, onChange, size = "md" }: Props) 
         aria-label={current ? `Rated ${current} out of 5` : "Not rated"}
       >
         {[1, 2, 3, 4, 5].map((n) => (
-          <span key={n}>{star(n)}</span>
+          // flex, so no browser can sit a star on its text baseline instead
+          <span key={n} className="flex">
+            {star(n)}
+          </span>
         ))}
       </span>
     );

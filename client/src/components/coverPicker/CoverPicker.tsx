@@ -20,6 +20,8 @@ type Props = {
   onChange: (url: string, match: CoverHit | null) => void;
   // don't choose a cover on their behalf: they've already picked this manga
   coverChosen?: boolean;
+  // shown big for now in place of `value`, without choosing it
+  previewUrl?: string | null;
   // everything AniList found, and for which title
   onResults?: (found: CoverHit[], query: string) => void;
   className?: string;
@@ -32,6 +34,7 @@ export default function CoverPicker({
   value,
   onChange,
   coverChosen = false,
+  previewUrl = null,
   onResults,
   className = "",
 }: Props) {
@@ -74,14 +77,15 @@ export default function CoverPicker({
   // a cleared title hides old results without another round trip
   const shownStatus = tooShort ? "idle" : status;
   const shown = tooShort ? [] : results;
-  const broken = Boolean(value) && brokenUrl === value;
+  const bigCover = previewUrl || value;
+  const broken = Boolean(bigCover) && brokenUrl === bigCover;
 
   const pick = (url: string, match: CoverHit | null = null) => {
     touched.current = true;
     onChange(url, match);
   };
 
-  const hasImage = Boolean(value) && !broken;
+  const hasImage = Boolean(bigCover) && !broken;
 
   return (
     // a column beside the form on laptops; on phones a small cover sits
@@ -112,10 +116,10 @@ export default function CoverPicker({
       >
         {hasImage ? (
           <img
-            src={value}
+            src={bigCover}
             alt=""
             className="size-full object-cover"
-            onError={() => setBrokenUrl(value)}
+            onError={() => setBrokenUrl(bigCover)}
           />
         ) : (
           <span className="text-center font-hand text-[1.2rem] leading-[1.2] text-muted upto-760:text-[0.95rem]">
