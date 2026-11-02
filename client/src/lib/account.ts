@@ -81,7 +81,7 @@ export const shelfToCsv = (manga: Manga[]) =>
     .join("\r\n");
 
 export const SHELF_TABS = [
-  { value: "all", label: "Everything" },
+  { value: "all", label: "All" },
   { value: "ongoing", label: "Reading" },
   { value: "finished", label: "Finished" },
   { value: "new", label: "New" },

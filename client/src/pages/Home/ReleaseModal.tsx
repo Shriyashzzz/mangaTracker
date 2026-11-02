@@ -77,14 +77,18 @@ export default function ReleaseModal({
       onClose={onClose}
       // the backdrop counts as the dialog itself; its contents are all children
       onClick={(e) => {
-        if (e.target === dialog.current) onClose();
+        if (e.target === dialog.current) dialog.current.close();
       }}
     >
       <div className={styles.modalHead}>
         <h2 id="release-title" className={styles.modalTitle}>
           {manga.name}: {left} {heading}
         </h2>
-        <button type="button" className={styles.modalClose} onClick={onClose}>
+        <button
+          type="button"
+          className={styles.modalClose}
+          onClick={() => dialog.current?.close()}
+        >
           Close
         </button>
       </div>
@@ -177,6 +181,16 @@ export default function ReleaseModal({
           </li>
         )}
       </ul>
+
+      <div className={styles.modalFoot}>
+        <button
+          type="button"
+          className="btn btn-secondary btn-block"
+          onClick={() => dialog.current?.close()}
+        >
+          Close
+        </button>
+      </div>
     </dialog>
   );
 }

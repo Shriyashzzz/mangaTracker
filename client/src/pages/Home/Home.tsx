@@ -6,7 +6,7 @@ import MangaCard, {
 } from "../../components/mangaCard/MangaCard";
 
 import { homeStyles as styles } from "./styles";
-import { NavLink, useLocation, useNavigate, useSearchParams } from "react-router";
+import { NavLink, useNavigate, useSearchParams } from "react-router";
 import {
   CheckIcon,
   ChevronDownIcon,
@@ -127,8 +127,12 @@ function Library() {
   const recheckReleases = useShelf((s) => s.recheckReleases);
   const [spot] = useState(readSpot);
   const [query, setQuery] = useState(spot?.query ?? "");
+  // in the address, so it's a step of its own: the back gesture leaves the list
+  // and returns to New, and coming back from a volume lands on it again
+  const [searchParams] = useSearchParams();
+  const wantHidden = searchParams.get("view") === "hidden";
   const [statusFilter, setStatusFilter] = useState(() =>
-    readSession("libraryStatus", readLocal("shelfTab") ?? "all"),
+    wantHidden ? "new" : readSession("libraryStatus", readLocal("shelfTab") ?? "all"),
   );
   const [sortBy, setSortBy] = useState(() => {
     const saved = readSession("librarySort", readLocal("shelfSort") ?? "");
@@ -142,13 +146,10 @@ function Library() {
     return saved in RELEASE_KINDS ? (saved as ReleaseKind) : "volumes";
   });
   // the New tab's list of what they've hidden
-  // in the address, so it's a step of its own: the back gesture leaves the list
-  // and returns to New, and coming back from a volume lands on it again
-  const [searchParams] = useSearchParams();
-  const { state: linkState } = useLocation();
-  const wantHidden = searchParams.get("view") === "hidden";
   // the series whose grouped list is open
   const [openRelease, setOpenRelease] = useState<number | null>(null);
+  // on small screens, search and sort fold away on the New tab so the news comes first
+  const [toolsOpen, setToolsOpen] = useState(false);
   const hiddenCount = (mangaData ?? []).filter((m) =>
     isHiddenAs(releases[m.id], releaseKind),
   ).length;
@@ -320,14 +321,7 @@ function Library() {
 
   const goToAdd = () => navigator("/add", { viewTransition: true });
 
-  const openHidden = () =>
-    navigator("/shelf?view=hidden", { state: { openedHidden: true } });
-  // the same as the back gesture when that's how they got here. An address opened
-  // directly has nothing to go back to
-  const leaveHidden = () => {
-    if ((linkState as { openedHidden?: boolean } | null)?.openedHidden) navigator(-1);
-    else navigator("/shelf", { replace: true });
-  };
+  const openHidden = () => navigator("/shelf?view=hidden");
 
   const changePage = (index: number) => {
     setPage({ key: filterKey, index });
@@ -383,20 +377,30 @@ function Library() {
         <button className="btn btn-primary btn-lg" onClick={goToAdd}>
           Add your first manga
         </button>
-        <NavLink to="/import" className={`${styles.importLink} mt-4`} viewTransition>
+        <NavLink to="/import" className={`${styles.importLink} mx-auto mt-4 block w-fit`} viewTransition>
           Or import from MyAnimeList
         </NavLink>
       </div>
     );
   }
 
+  const everyCheckFailed =
+    allChecked && mangaData.every((m) => releases[m.id] === null);
   const tabs = [
-    { value: "all", label: "Everything", shortLabel: "All", count: counts.all },
+    { value: "all", label: "All", count: counts.all },
     { value: "ongoing", label: "Reading", count: counts.ongoing },
     { value: "finished", label: "Finished", count: counts.finished },
     // what the last check found until this visit's check says otherwise, so
     // what's new shows without opening the tab. Nothing until they've ever looked
-    { value: "new", label: "New", count: allChecked ? counts.new : (lastNewCount ?? (checked ? counts.new : null)) },
+    {
+      value: "new",
+      label: "New",
+      count: everyCheckFailed
+        ? null
+        : allChecked
+          ? counts.new
+          : (lastNewCount ?? (checked ? counts.new : null)),
+    },
   ];
   const kindCounts: Record<ReleaseKind, number> = {
     volumes: counts.newVolumes,
@@ -657,6 +661,9 @@ function Library() {
         <h1 className={styles.pageTitle}>Your shelf</h1>
         <div className={styles.pageActions}>
           {importLink}
+          <NavLink to="/settings/profile#share" className="btn btn-ghost" viewTransition>
+            Share
+          </NavLink>
           <button className="btn btn-primary" onClick={goToAdd}>
             + Add manga
           </button>
@@ -678,14 +685,7 @@ function Library() {
                 if (wantHidden) navigator("/shelf", { replace: true });
               }}
             >
-              {t.shortLabel ? (
-                <>
-                  <span className={styles.tabLabelLong}>{t.label}</span>
-                  <span className={styles.tabLabelShort}>{t.shortLabel}</span>
-                </>
-              ) : (
-                t.label
-              )}{" "}
+              {t.label}{" "}
               {t.count != null && (
                 <span
                   className={
@@ -701,7 +701,11 @@ function Library() {
           ))}
         </div>
 
-        <div className={styles.tools}>
+        <div
+          className={
+            showingNew && !toolsOpen && !query.trim() ? styles.toolsFolded : styles.tools
+          }
+        >
           <label className={styles.search}>
             <SearchIcon />
             <span className="sr-only">Search your shelf</span>
@@ -785,40 +789,50 @@ function Library() {
                 }}
               >
                 {RELEASE_KINDS[kind].label}{" "}
-                <span className={styles.releaseKindCount}>
-                  {kindCounts[kind]}
-                </span>
+                {!allFailed && (
+                  <span className={styles.releaseKindCount}>{kindCounts[kind]}</span>
+                )}
               </button>
             ))}
           </div>
           <div className={styles.releaseAside}>
-            <p className={styles.releaseNote}>
-              {viewingHidden
-                ? "You hid these. They stay hidden until something newer is out."
-                : RELEASE_KINDS[releaseKind].note}
-            </p>
-            <NavLink to="/new-releases" className={styles.hiddenToggle} viewTransition>
-              How this works
-            </NavLink>
-            {hiddenCount > 0 && (
+            {viewingHidden ? (
+              <h2 className={styles.hiddenHeading}>Hidden ({hiddenCount})</h2>
+            ) : (
+              <p className={styles.releaseNote}>{RELEASE_KINDS[releaseKind].note}</p>
+            )}
+            <div className={styles.releaseLinks}>
               <button
                 type="button"
-                className={styles.hiddenToggle}
-                aria-pressed={viewingHidden}
-                onClick={viewingHidden ? leaveHidden : openHidden}
+                className={styles.searchToggle}
+                aria-expanded={toolsOpen}
+                onClick={() => setToolsOpen(!toolsOpen)}
               >
-                {viewingHidden ? "Back to new" : `Hidden (${hiddenCount})`}
+                <SearchIcon />
+                Search
               </button>
-            )}
-            {viewingHidden && (
-              <button
-                type="button"
-                className={styles.hiddenToggle}
-                onClick={unhideAll}
-              >
-                Unhide all
-              </button>
-            )}
+              <NavLink to="/new-releases" className={styles.hiddenToggle} viewTransition>
+                How this works
+              </NavLink>
+              {hiddenCount > 0 && !viewingHidden && (
+                <button
+                  type="button"
+                  className={styles.hiddenToggle}
+                  onClick={openHidden}
+                >
+                  Hidden ({hiddenCount})
+                </button>
+              )}
+              {viewingHidden && (
+                <button
+                  type="button"
+                  className={styles.hiddenToggle}
+                  onClick={unhideAll}
+                >
+                  Unhide all
+                </button>
+              )}
+            </div>
           </div>
         </div>
       )}
@@ -908,7 +922,7 @@ function Library() {
           <div className="upto-520:hidden">{pager}</div>
           <div
             id="shelf-grid"
-            className={styles.classContainer}
+            className={showingNew ? styles.newGrid : styles.classContainer}
             onClickCapture={saveSpot}
           >
             {shelfPage.map((currentManga, i) => (
@@ -976,7 +990,7 @@ function Library() {
         />
       )}
 
-      <AddButton onClick={goToAdd} />
+      {!showingNew && <AddButton onClick={goToAdd} />}
 
       <ReleaseTip
         enabled={hasManga && !showingNew}
@@ -1019,18 +1033,18 @@ function LibrarySkeleton() {
   );
 }
 
-export function GuestHero() {
+function GuestHero() {
   return (
     <>
       <div className={`${styles.guestContainer} fade-in`}>
         <div className={styles.guestCopy}>
           <h1 className={styles.guestTitle}>
-            Never lose your <span className={styles.titleHit}>chapter</span>{" "}
-            again.
+            Your <span className={styles.titleHit}>shelf</span> lives here once
+            you sign up.
           </h1>
           <p className={styles.guestSub}>
-            Keep your place in every series you read, and see when the next
-            volume is out.
+            Never lose your chapter again. Keep your place in every series you
+            read, and see when the next volume is out.
           </p>
           <div className={styles.guestActions}>
             <NavLink

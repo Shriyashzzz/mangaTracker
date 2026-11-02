@@ -1,75 +1,64 @@
 // What other people see, if they share their list: a name and a picture. The
 // username stays out of it, since it's half of how they sign in.
-import { useEffect, useState, type FormEvent } from "react";
-import { NavLink, useNavigate } from "react-router";
+import { useEffect, useRef, useState, type FormEvent } from "react";
+import { NavLink, useLocation } from "react-router";
 import Avatar from "../../components/avatar/Avatar";
-import Mascot from "../../components/mascot/Mascot";
-import { getAccount, saveAccount, shareUrl, type Account } from "../../lib/account";
-import { signInPath } from "../../lib/api";
+import { shareUrl, type Account } from "../../lib/account";
 import { AVATARS, AVATARS_SHOWN_FIRST, DEFAULT_AVATAR } from "../../lib/avatars";
-import { usePrivatePage } from "../../lib/seo";
-import { useAuth } from "../../store/auth";
-import { settingsStyles as styles } from "../Settings/styles";
+import { useAccount } from "../../store/account";
+import { settingsStyles as styles } from "./styles";
 
-export default function ProfilePage() {
-  usePrivatePage("Profile");
-  const isSignedIn = useAuth((s) => s.isSignedIn);
-  const navigate = useNavigate();
-  const [account, setAccount] = useState<Account | null>(null);
-  const [loadFailed, setLoadFailed] = useState(false);
-  const [name, setName] = useState("");
-  const [note, setNote] = useState<{ text: string; failed?: boolean } | null>(null);
+// beside the control it's about, so nobody has to scroll to learn if it worked
+type Note = { where: "name" | "picture" | "share"; text: string; failed?: boolean };
+
+export default function ProfileTab({ account }: { account: Account }) {
+  const saveAccount = useAccount((s) => s.save);
+  const [name, setName] = useState(account.displayName ?? "");
+  const [note, setNote] = useState<Note | null>(null);
   const [copied, setCopied] = useState(false);
   const [allPictures, setAllPictures] = useState(false);
+  const shareSection = useRef<HTMLElement>(null);
+  const { hash } = useLocation();
 
+  // from "Share" on the shelf or in the menu
   useEffect(() => {
-    if (isSignedIn === false) navigate(signInPath("/profile"), { replace: true });
-    if (!isSignedIn) return;
-    const controller = new AbortController();
-    getAccount(controller.signal)
-      .then((found) => {
-        setAccount(found);
-        setName(found.displayName ?? "");
-      })
-      .catch((e: Error) => {
-        if (e.name !== "AbortError") setLoadFailed(true);
-      });
-    return () => controller.abort();
-  }, [isSignedIn, navigate]);
+    if (hash === "#share") shareSection.current?.scrollIntoView({ block: "start" });
+  }, [hash]);
 
-  if (loadFailed) {
-    return (
-      <div className={styles.page} role="alert">
-        <span className="printed mascot-spot" aria-hidden>
-          <Mascot mood="panic" />
-        </span>
-        <p className={styles.body}>Couldn't load your profile. Refresh to try again.</p>
-      </div>
-    );
-  }
-  if (!account) {
-    return <div className={`skeleton ${styles.page} min-h-96`} aria-busy="true" aria-label="Loading" />;
-  }
-
-  const save = async (patch: Parameters<typeof saveAccount>[0], saved = "Saved.") => {
+  const save = async (
+    where: Note["where"],
+    patch: Parameters<typeof saveAccount>[0],
+    saved = "Saved.",
+  ) => {
     setNote(null);
     try {
-      setAccount(await saveAccount(patch));
-      setNote({ text: saved });
+      await saveAccount(patch);
+      setNote({ where, text: saved });
     } catch (e) {
-      setNote({ text: (e as Error).message, failed: true });
+      setNote({ where, text: (e as Error).message, failed: true });
     }
+  };
+  const noteFor = (where: Note["where"]) => (
+    <p
+      className={note?.where === where && note.failed ? styles.failed : styles.saved}
+      role="status"
+    >
+      {note?.where === where && note.text}
+    </p>
+  );
+
+  const unsavedName = name.trim() !== (account.displayName ?? "");
+
+  const saveName = (e: FormEvent) => {
+    e.preventDefault();
+    save("name", { displayName: name.trim() || null });
   };
 
   // fills the box so they can still change it; a different one each time
   const surpriseMe = () => {
     const others = account.nameIdeas.filter((idea) => idea !== name);
     setName(others[Math.floor(Math.random() * others.length)] ?? name);
-  };
-
-  const saveName = (e: FormEvent) => {
-    e.preventDefault();
-    save({ displayName: name.trim() || null });
+    setNote(null);
   };
 
   // folded away, what they've picked still shows, in the last spot
@@ -91,25 +80,25 @@ export default function ProfilePage() {
       await navigator.clipboard.writeText(shareUrl(account.shareCode));
       setCopied(true);
     } catch {
-      setNote({ text: "Couldn't copy that. Select the link instead.", failed: true });
+      setNote({
+        where: "share",
+        text: "Couldn't copy that. Select the link instead.",
+        failed: true,
+      });
     }
   };
 
   return (
-    <article className={`${styles.page} fade-in`}>
+    <div className={styles.tabBody}>
       <header className={styles.head}>
         <Avatar id={account.avatar} className={styles.headArt} />
-        <h1 className={styles.title}>{account.displayName || account.defaultName}</h1>
+        <h2 className={styles.tabTitle}>{account.displayName || account.defaultName}</h2>
       </header>
 
-      <p className={note?.failed ? styles.failed : styles.saved} role="status">
-        {note?.text}
-      </p>
-
       <section className={styles.section} aria-labelledby="profile-name">
-        <h2 id="profile-name" className={styles.heading}>
+        <h3 id="profile-name" className={styles.heading}>
           Your name
-        </h2>
+        </h3>
         <form className={styles.field} onSubmit={saveName}>
           <label htmlFor="display-name">Display name</label>
           <input
@@ -119,7 +108,10 @@ export default function ProfilePage() {
             maxLength={40}
             autoComplete="nickname"
             placeholder={account.defaultName}
-            onChange={(e) => setName(e.target.value)}
+            onChange={(e) => {
+              setName(e.target.value);
+              setNote(null);
+            }}
           />
           <p className={styles.body}>
             Shown if you share your list
@@ -133,14 +125,16 @@ export default function ProfilePage() {
             <button type="button" className="btn btn-ghost" onClick={surpriseMe}>
               Surprise me
             </button>
+            {unsavedName && !note && <p className={styles.saved}>Not saved yet.</p>}
+            {noteFor("name")}
           </div>
         </form>
       </section>
 
       <section className={styles.section} aria-labelledby="profile-picture">
-        <h2 id="profile-picture" className={styles.heading}>
+        <h3 id="profile-picture" className={styles.heading}>
           Your picture
-        </h2>
+        </h3>
         <div
           id="picture-options"
           className={styles.pictures}
@@ -153,7 +147,7 @@ export default function ProfilePage() {
                 type="radio"
                 name="avatar"
                 checked={chosen === avatar.id}
-                onChange={() => save({ avatar: avatar.id })}
+                onChange={() => save("picture", { avatar: avatar.id })}
               />
               <Avatar id={avatar.id} className={styles.pictureArt} />
               {avatar.label}
@@ -170,13 +164,18 @@ export default function ProfilePage() {
           >
             {allPictures ? "Show fewer" : `Show ${morePictures} more`}
           </button>
+          {noteFor("picture")}
         </div>
       </section>
 
-      <section className={styles.section} aria-labelledby="profile-share">
-        <h2 id="profile-share" className={styles.heading}>
+      <section
+        ref={shareSection}
+        className={styles.section}
+        aria-labelledby="profile-share"
+      >
+        <h3 id="profile-share" className={styles.heading}>
           Share your list
-        </h2>
+        </h3>
         <p className={styles.body}>
           Anyone with the link can see your name, picture, and each series with
           its chapter and rating. Search engines are asked to stay away.
@@ -188,6 +187,7 @@ export default function ProfilePage() {
             onChange={(e) => {
               setCopied(false);
               save(
+                "share",
                 { shareEnabled: e.target.checked },
                 e.target.checked ? "Your list is shared." : "Your list is private again.",
               );
@@ -200,10 +200,17 @@ export default function ProfilePage() {
             type="checkbox"
             checked={account.shareNotes}
             disabled={!account.shareEnabled}
-            onChange={(e) => save({ shareNotes: e.target.checked })}
+            onChange={(e) =>
+              save(
+                "share",
+                { shareNotes: e.target.checked },
+                e.target.checked ? "Your notes are shared." : "Your notes are private.",
+              )
+            }
           />
           Include my notes
         </label>
+        {noteFor("share")}
         {account.shareEnabled && account.shareCode && (
           <div className={styles.shareLink}>
             <span className={styles.shareUrl}>{shareUrl(account.shareCode)}</span>
@@ -216,6 +223,6 @@ export default function ProfilePage() {
           </div>
         )}
       </section>
-    </article>
+    </div>
   );
 }

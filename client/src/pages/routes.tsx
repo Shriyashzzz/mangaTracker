@@ -1,4 +1,4 @@
-import { createBrowserRouter } from "react-router";
+import { createBrowserRouter, Navigate } from "react-router";
 import App from "../App";
 import ErrorPage from "./Error/Error";
 import Home from "./Home/Home";
@@ -10,7 +10,6 @@ import { ImportPage } from "./Import/Import";
 import { UpdatesPage } from "./Updates/Updates";
 import NewReleasesPage from "./NewReleases/NewReleases";
 import SettingsPage from "./Settings/Settings";
-import ProfilePage from "./Profile/Profile";
 import SharedShelfPage from "./SharedShelf/SharedShelf";
 import SignInPage from "./SignIn/SignIn";
 import SignUp from "./SignUp/SignUp";
@@ -38,8 +37,8 @@ export const routes = [
       { path: "/about", element: <AboutPage /> },
       { path: "/updates", element: <UpdatesPage /> },
       { path: "/new-releases", element: <NewReleasesPage /> },
-      { path: "/settings", element: <SettingsPage /> },
-      { path: "/profile", element: <ProfilePage /> },
+      { path: "/settings/:tab?", element: <SettingsPage /> },
+      { path: "/profile", element: <Navigate to="/settings/profile" replace /> },
       { path: "/u/:code", element: <SharedShelfPage /> },
       { path: "/signup", element: <SignUp /> },
       { path: "/series", element: <SeriesIndex /> },
