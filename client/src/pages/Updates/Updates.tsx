@@ -13,7 +13,7 @@ const UPDATES = [
   },
   {
     name: "Share your list",
-    body: "Pick a silly picture and send friends your shelf.",
+    body: "Send friends your list, with your notes if you want.",
   },
   {
     name: "Choose what shows up in New",
