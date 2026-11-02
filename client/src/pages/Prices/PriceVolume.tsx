@@ -209,9 +209,11 @@ export default function PriceVolume() {
       return a.includes(b) || b.includes(a);
     });
   // eBay stays either way: a row there is one seller, and many more may have it
-  const otherStores = storeLinks.filter(
-    (s) => s.store === "eBay" || !hasOffer(s.store),
-  );
+  // and it goes first
+  const otherStores = [
+    ...storeLinks.filter((s) => s.store === "eBay"),
+    ...storeLinks.filter((s) => s.store !== "eBay" && !hasOffer(s.store)),
+  ];
   // the headline price is the cheapest new print copy, what most people buy
   const best = offers.find(
     (o) => o.condition === "new" && o.format === "print",
