@@ -144,7 +144,7 @@ sequenceDiagram
     S->>DB: save the book
   end
   S->>DB: last price check
-  alt older than 6 hours, and not a crawler
+  alt older than 2 days, and not a crawler
     S->>P: every enabled provider in parallel (8s timeout each)
     P-->>S: offers (failures are logged, not fatal)
     S->>S: drop unbelievable "new" listings
@@ -430,7 +430,7 @@ No single source covers every US volume and price, so several are combined:
 | Walmart (walmart.io) | Walmart.com listings | Key required |
 | [Keepa](https://keepa.com/) | Amazon prices | Paid |
 
-**Freshness.** A volume's prices are refreshed when someone opens its page and the last check is more than six hours old. Search engines and link-preview bots are recognized by user agent and only ever see stored prices.
+**Freshness.** A volume's prices are refreshed when someone opens its page and the last check is more than two days old. Search engines and link-preview bots are recognized by user agent and only ever see stored prices.
 
 **Trust.** Anyone can list on Google Shopping, so listings are judged before they're stored:
 
