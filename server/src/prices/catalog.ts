@@ -2,6 +2,7 @@
 // https://openlibrary.org/dev/docs/api/search
 import { englishSeriesName } from "./anilist.js";
 import { coverPath } from "./covers.js";
+import { isSingleVolume, normalize, seriesOf } from "./match.js";
 import type { CatalogBook } from "./types.js";
 
 const SEARCH_URL = "https://openlibrary.org/search.json";
@@ -11,6 +12,7 @@ const TIMEOUT_MS = 8000;
 
 // one search hit, with only the fields we ask for
 type Doc = {
+  key?: string;
   title?: string;
   isbn?: string[];
   author_name?: string[];
@@ -148,12 +150,138 @@ async function search(
   }
 }
 
+// ---------- works that hold a whole series ----------
+// Open Library sometimes merges every volume into one work, like "Wistoria" with
+// ten English ISBNs and no volume number. Each edition still says which volume
+// it is ("Wistoria" + "Wand and Sword 1"), so those are read one by one. A volume
+// is only ever numbered from what its own edition says
+const EDITIONS_FRESH_MS = 24 * 60 * 60 * 1000;
+const MAX_EDITIONS = 200;
+// enough for the real work; a common title like "Vagabond" also matches novels
+const MAX_MERGED_WORKS = 5;
+// a Japanese-titled work per volume, read a few at a time to go easy on them
+const MAX_JAPANESE_WORKS = 24;
+const EDITION_BATCH = 6;
+
+type Edition = {
+  title?: string;
+  subtitle?: string;
+  isbn_13?: string[];
+  isbn_10?: string[];
+  publishers?: string[];
+  languages?: { key?: string }[];
+};
+
+// several searches can ask about the same work; failures aren't kept
+const editionsCache = new Map<string, { at: number; found: Promise<Edition[]> }>();
+
+function fetchEditions(workKey: string, timeoutMs = TIMEOUT_MS) {
+  const hit = editionsCache.get(workKey);
+  if (hit && Date.now() - hit.at < EDITIONS_FRESH_MS) return hit.found;
+  const found = fetch(
+    `https://openlibrary.org${workKey}/editions.json?limit=${MAX_EDITIONS}`,
+    {
+      headers: { "User-Agent": "MangaTracker/1.0 (price checker)" },
+      signal: AbortSignal.timeout(timeoutMs),
+    },
+  ).then(async (res) => {
+    if (!res.ok) throw new Error(`Open Library responded ${res.status}`);
+    const { entries = [] } = (await res.json()) as { entries?: Edition[] };
+    return entries;
+  });
+  editionsCache.set(workKey, { at: Date.now(), found });
+  found.catch(() => editionsCache.delete(workKey));
+  if (editionsCache.size > 500) {
+    editionsCache.delete(editionsCache.keys().next().value!);
+  }
+  return found;
+}
+
+// one work carrying several English editions under this series' own name, with
+// nothing in its title saying which volume it is
+export function isMergedWork(doc: Doc, seriesName: string) {
+  const englishEditions = (doc.isbn ?? []).filter((i) => ENGLISH_ISBN.test(i));
+  if (!doc.key || !doc.title || englishEditions.length < 2) return false;
+  const title = normalize(doc.title);
+  const wanted = normalize(seriesName);
+  if (!title) return false;
+  const related = wanted.includes(title) || title.includes(wanted);
+  return related && (title === wanted || volumeNumber(doc.title) === null);
+}
+
+// listed under its Japanese title, which didn't lead back to this series: AniList
+// can answer with a spin-off, as it does for 怪獣8号. Its English edition may
+// still carry the right name ("Kaiju No. 8, Vol. 1")
+export function isUntranslatedWork(
+  doc: Doc,
+  book: CatalogBook | null,
+  seriesName: string,
+) {
+  if (!doc.key || !doc.title || !JAPANESE.test(doc.title)) return false;
+  if (!(doc.isbn ?? []).some((i) => ENGLISH_ISBN.test(i))) return false;
+  return !book || seriesOf(book.title) !== seriesOf(seriesName);
+}
+
+// ① to ⑳, which some editions use for the volume
+const circledToDigits = (text: string) =>
+  text.replace(/[①-⑳]/g, (c) => ` ${c.charCodeAt(0) - 0x2460 + 1}`);
+
+// the volumes one merged work's editions name, filed under the series' own name
+export function booksFromEditions(
+  editions: Edition[],
+  doc: Doc,
+  seriesName: string,
+): CatalogBook[] {
+  const wanted = seriesOf(seriesName);
+  const whole = normalize(seriesName);
+  const books: CatalogBook[] = [];
+  for (const edition of editions) {
+    const isbn13 = [...(edition.isbn_13 ?? []), ...(edition.isbn_10 ?? [])]
+      .map(toIsbn13)
+      .find((i) => i && ENGLISH_ISBN.test(i));
+    if (!isbn13 || !edition.title) continue;
+    const languages = edition.languages ?? [];
+    if (languages.length && !languages.some((l) => l.key === "/languages/eng")) {
+      continue;
+    }
+    const full = circledToDigits(
+      [edition.title, edition.subtitle].filter(Boolean).join(" "),
+    );
+    if (LIGHT_NOVEL.test(full) || !isSingleVolume(full)) continue;
+    // "Kaiju No. 8" alone is the series, not its eighth volume
+    if (normalize(full) === whole) continue;
+    const volume = volumeNumber(full);
+    if (volume === null) continue;
+    // a name ending in a number loses it in seriesOf: "Kaiju No. 8 2"
+    if (seriesOf(full) !== wanted && seriesOf(full) !== whole) continue;
+    books.push({
+      isbn13,
+      title: `${seriesName}, Vol. ${volume}`,
+      authors: doc.author_name?.join(", ") ?? null,
+      publisher: edition.publishers?.[0] ?? doc.publisher?.[0] ?? null,
+      year: doc.first_publish_year ?? null,
+      volume,
+      coverUrl: coverPath(isbn13),
+    });
+  }
+  return books;
+}
+
 // title / author / series search, or a pasted ISBN. Numbered volumes first,
 // in order, then box sets and one-offs. `degraded` says the answer may be
 // missing volumes because a title couldn't be translated right now
 export async function searchVolumesDetailed(
   query: string,
-  { max = 24, timeoutMs }: { max?: number; timeoutMs?: number } = {},
+  {
+    max = 24,
+    timeoutMs,
+    seriesName,
+  }: {
+    max?: number;
+    timeoutMs?: number;
+    // looking for this series' volumes: also read inside works that merge them
+    seriesName?: string;
+  } = {},
 ): Promise<{ books: CatalogBook[]; degraded: boolean }> {
   const isbn = toIsbn13(query);
   const docs = await search(
@@ -178,6 +306,42 @@ export async function searchVolumesDetailed(
     if (!book || seen.has(book.isbn13)) continue;
     seen.add(book.isbn13);
     books.push(book);
+  }
+
+  if (seriesName) {
+    const toRead = [
+      ...docs
+        .filter((doc) => isMergedWork(doc, seriesName))
+        .slice(0, MAX_MERGED_WORKS),
+      ...docs
+        .filter((doc, i) =>
+          isUntranslatedWork(doc, candidates[i]!.book, seriesName),
+        )
+        .slice(0, MAX_JAPANESE_WORKS),
+    ];
+    const editions: PromiseSettledResult<Edition[]>[] = [];
+    for (let i = 0; i < toRead.length; i += EDITION_BATCH) {
+      editions.push(
+        ...(await Promise.allSettled(
+          toRead
+            .slice(i, i + EDITION_BATCH)
+            .map((doc) => fetchEditions(doc.key!, timeoutMs)),
+        )),
+      );
+    }
+    editions.forEach((result, i) => {
+      // a volume list that may be short, not a finished answer
+      if (result.status === "rejected") {
+        degraded = true;
+        return;
+      }
+      for (const book of booksFromEditions(result.value, toRead[i]!, seriesName)) {
+        // the search result for this ISBN may be the work's numberless title
+        const same = books.findIndex((b) => b.isbn13 === book.isbn13);
+        if (same === -1) books.push(book);
+        else if (books[same]!.volume === null) books[same] = book;
+      }
+    });
   }
 
   return {

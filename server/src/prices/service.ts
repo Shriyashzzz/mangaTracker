@@ -19,7 +19,14 @@ import {
   listKnownSeries,
   searchSeries,
 } from "./anilist.js";
-import { seriesName, seriesOf, slugify, volumeOf } from "./match.js";
+import {
+  isSingleVolume,
+  normalize,
+  seriesName,
+  seriesOf,
+  slugify,
+  volumeOf,
+} from "./match.js";
 import { enabledProviders } from "./providers/index.js";
 import { SearchesUsedUp } from "./providers/serpapiKeys.js";
 import {
@@ -183,10 +190,11 @@ async function seriesVolumes(
   // two free catalog queries merged: the plain one finds more, the quoted
   // title one is more precise. Long runners can have 100+ volumes
   const results = await Promise.allSettled([
-    searchVolumesDetailed(name, { max: 250, timeoutMs: 20000 }),
+    searchVolumesDetailed(name, { max: 250, timeoutMs: 20000, seriesName: name }),
     searchVolumesDetailed(`title:"${name.replace(/"/g, "")}"`, {
       max: 250,
       timeoutMs: 20000,
+      seriesName: name,
     }),
   ]);
   const found = results.flatMap((r) =>
@@ -204,6 +212,10 @@ async function seriesVolumes(
   const byNumber = new Map<number, CatalogBook>();
   for (const v of found) {
     if (seriesOf(v.title) !== key || v.volume === null) continue;
+    // "Kaiju No. 8" alone is the series, not its eighth volume
+    if (normalize(v.title) === normalize(name)) continue;
+    // a set is only ever sold as a set, so it can't stand in for one volume
+    if (!isSingleVolume(v.title)) continue;
     if (!byNumber.has(v.volume)) byNumber.set(v.volume, v);
   }
   const volumes = [...byNumber.values()].sort(
