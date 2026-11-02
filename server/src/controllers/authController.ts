@@ -89,7 +89,7 @@ const me = (req: Request, res: Response) => {
 // the values each display preference may take; anything else is ignored
 const PREF_VALUES = {
   background: ["sfx", "ink", "pages", "panels"],
-  theme: ["light", "dark"],
+  theme: ["light", "dark", "system"],
   hideEbooks: ["yes", "no"],
   shelfTab: ["all", "ongoing", "finished", "new"],
   shelfSort: ["", "rating-dsc", "ch-dsc", "name-asc"],

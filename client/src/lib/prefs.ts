@@ -64,6 +64,14 @@ export const applyPrefs = ({
     document.documentElement.dataset.theme = theme;
     writeLocal("theme", theme);
   }
+  if (theme === "system") {
+    delete document.documentElement.dataset.theme;
+    try {
+      localStorage.removeItem("theme");
+    } catch {
+      /* ignore */
+    }
+  }
   if (hideEbooks) writeLocal("hideEbooks", hideEbooks);
   if (shelfTab) writeLocal("shelfTab", shelfTab);
   if (shelfSort !== undefined) writeLocal("shelfSort", shelfSort);
