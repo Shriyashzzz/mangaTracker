@@ -4,6 +4,8 @@ import Mascot from "../../components/mascot/Mascot";
 import { aboutStyles as styles } from "./styles";
 import { usePageMeta } from "../../lib/seo";
 
+const CONTACT_EMAIL = "ghimireshriyash@gmail.com";
+
 // the three problems the app fixes and the payoff, told as a four-panel strip
 const STRIP = [
   {
@@ -132,6 +134,26 @@ export function AboutPage() {
           Okay, let me try it
         </NavLink>
       </div>
+
+      <section className={styles.contact} aria-labelledby="contact-title">
+        <h2 id="contact-title" className={styles.contactTitle}>
+          Feedback or questions?
+        </h2>
+        <p className={styles.contactBody}>
+          Found a bug, want a feature or just want to say hi? Send me an email.
+        </p>
+        <a href={`mailto:${CONTACT_EMAIL}`} className={styles.contactButton}>
+          Contact me
+        </a>
+        <p className={styles.contactAddress}>{CONTACT_EMAIL}</p>
+        <NavLink
+          to="/acknowledgements"
+          className={styles.credits}
+          viewTransition
+        >
+          Acknowledgements
+        </NavLink>
+      </section>
     </article>
   );
 }

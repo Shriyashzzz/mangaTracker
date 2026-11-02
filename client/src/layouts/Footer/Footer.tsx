@@ -44,7 +44,7 @@ export default function Footer() {
           </div>
         </figure>
 
-        <p className="flex gap-[0.6rem] font-mono text-[0.75rem] whitespace-nowrap opacity-80 upto-760:col-span-full upto-760:row-start-3 upto-760:gap-[0.45rem] upto-760:text-[0.75rem]">
+        <p className="flex gap-[0.6rem] font-mono text-[0.75rem] whitespace-nowrap opacity-80 upto-760:col-span-full upto-760:row-start-3 upto-760:flex-wrap upto-760:gap-x-[0.45rem] upto-760:gap-y-1 upto-760:text-[0.75rem]">
           <NavLink to="/updates" className={footerLink}>
             What's new
           </NavLink>
@@ -54,6 +54,13 @@ export default function Footer() {
           </NavLink>
           <span aria-hidden>·</span>
           <span>Vol. 2, {new Date().getFullYear()}</span>
+          {/* its own line on phones, where the row runs out of room */}
+          <span aria-hidden className="upto-760:hidden">
+            ·
+          </span>
+          <span className="upto-760:basis-full">
+            © {new Date().getFullYear()} Manga Tracker
+          </span>
         </p>
       </div>
     </footer>

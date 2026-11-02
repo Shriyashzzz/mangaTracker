@@ -8,6 +8,7 @@ import { AddManga } from "./AddManga/AddManga";
 import { AboutPage } from "./About/About";
 import { ImportPage } from "./Import/Import";
 import { UpdatesPage } from "./Updates/Updates";
+import { AcknowledgementsPage } from "./Acknowledgements/Acknowledgements";
 import NewReleasesPage from "./NewReleases/NewReleases";
 import SettingsPage from "./Settings/Settings";
 import SharedShelfPage from "./SharedShelf/SharedShelf";
@@ -36,6 +37,7 @@ export const routes = [
       { path: "/import", element: <ImportPage /> },
       { path: "/about", element: <AboutPage /> },
       { path: "/updates", element: <UpdatesPage /> },
+      { path: "/acknowledgements", element: <AcknowledgementsPage /> },
       { path: "/new-releases", element: <NewReleasesPage /> },
       { path: "/settings/:tab?", element: <SettingsPage /> },
       { path: "/profile", element: <Navigate to="/settings/profile" replace /> },

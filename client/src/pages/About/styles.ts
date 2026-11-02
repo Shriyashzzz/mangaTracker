@@ -54,4 +54,15 @@ export const aboutStyles = {
     "tap mt-1 py-1 font-medium text-ink underline decoration-accent decoration-2 underline-offset-3 hover:decoration-line",
 
   cta: "flex justify-center",
+
+  // ---------- getting in touch, and the credits ----------
+  contact:
+    "flex flex-col items-center gap-2 border-t-[1.5px] border-line pt-[clamp(2rem,5vw,3rem)] text-center",
+  contactTitle:
+    "font-brand text-[clamp(1.8rem,4vw,2.4rem)] leading-[1.05] font-normal tracking-[0.02em] uppercase",
+  contactBody: "max-w-[34rem] leading-[1.5] text-ink-soft",
+  contactButton: "btn btn-secondary mt-2",
+  contactAddress: "font-mono text-[0.85rem] break-all text-ink-soft",
+  credits:
+    "tap mt-3 py-1 font-medium text-ink underline decoration-accent decoration-2 underline-offset-3 hover:decoration-line",
 } as const;
