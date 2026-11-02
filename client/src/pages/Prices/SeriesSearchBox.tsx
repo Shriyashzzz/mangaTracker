@@ -14,6 +14,11 @@ const DEBOUNCE_MS = 250;
 // ISBN skips straight to that volume
 type Props = { initialQuery?: string; autoFocus: boolean };
 
+// the bottom bar hides while an input has focus, to leave room for the keyboard,
+// so a box that focuses itself would take the bar away on arrival. By width as
+// well as device: a narrow window on a laptop gets the bar too
+const hasBottomBar = () => window.matchMedia("(max-width: 720px)").matches;
+
 export default function SeriesSearchBox({
   initialQuery = "",
   autoFocus = false,
@@ -148,7 +153,7 @@ export default function SeriesSearchBox({
             placeholder={isMobile ? "Title or ISBN" : "Search a series, or paste an ISBN"}
             maxLength={100}
             autoComplete="off"
-            autoFocus={isMobile ? false : autoFocus}
+            autoFocus={isMobile || hasBottomBar() ? false : autoFocus}
           />
         </label>
 

@@ -15,21 +15,31 @@ const panel =
 export const homeStyles = {
   // ---------- shelf ----------
   // on phones the title and the add button share one row, so manga comes sooner
+  // with the bottom bar saying where you are, there's no title to show on small
+  // screens, and adding moves to a button within reach of a thumb
   pageHead:
-    "mb-7 flex flex-wrap items-center justify-between gap-4 upto-520:mb-3 upto-520:flex-nowrap",
+    "mb-7 flex flex-wrap items-center justify-between gap-4 upto-720:mb-0",
   pageActions:
-    "flex flex-wrap items-center justify-end gap-x-5 gap-y-2 upto-520:shrink-0",
+    "flex flex-wrap items-center justify-end gap-x-5 gap-y-2 upto-720:hidden",
   importLink:
     "tap text-[0.9rem] font-medium text-ink-soft underline decoration-line-soft underline-offset-3 hover:text-ink hover:decoration-current",
   pageTitle:
-    "font-brand text-[clamp(2.4rem,5.5vw,3.4rem)] leading-none font-normal tracking-[0.02em] uppercase upto-520:whitespace-nowrap",
-  importBottom: "mt-10 hidden text-center upto-520:block",
+    "font-brand text-[clamp(2.4rem,5.5vw,3.4rem)] leading-none font-normal tracking-[0.02em] uppercase upto-720:sr-only",
+  importBottom: "mt-10 hidden text-center upto-720:block",
+  // room for the add button, so it can't sit on the last row's Hide
+  library: "upto-720:pb-20",
+  // above the bottom bar. Gone while typing, and while a note is in its place
+  addButton:
+    "fixed right-4 bottom-[calc(3.75rem+env(safe-area-inset-bottom))] z-15 hidden size-14 place-items-center rounded-full border-[2.5px] border-line bg-accent text-on-accent shadow-ink transition-colors duration-120 ease-[ease] hover:bg-accent-hover upto-720:grid [body:has(input:focus,textarea:focus,select:focus,[data-over-add-button])_&]:hidden! [&_svg]:size-7",
   // the header scrolls away, this stays pinned so search and filters are
   // one tap away on a long shelf. It reaches a little past the grid on both
   // sides so tilted cards never peek out beside it while scrolling
   toolbar:
     "sticky top-0 z-5 -mx-3 mb-9 flex flex-wrap items-end justify-between gap-x-8 gap-y-4 border-b-[1.5px] border-line bg-[var(--surface,var(--paper))] px-3 py-[0.9rem] upto-520:mb-5 upto-520:gap-y-1 upto-520:py-[0.55rem] [&+nav]:-mt-4",
-  tabs: "flex gap-6 upto-520:gap-3 upto-520:[&_button]:text-[0.92rem]",
+  // on phones: four even columns, with each count under its label
+  tabs: "flex gap-6 upto-520:grid upto-520:w-full upto-520:grid-cols-4 upto-520:gap-0 upto-520:[&_button]:flex upto-520:[&_button]:flex-col upto-520:[&_button]:items-center upto-520:[&_button]:pb-1 upto-520:[&_button]:text-[0.9rem] upto-520:[&_button]:leading-[1.2]",
+  tabLabelLong: "upto-520:hidden",
+  tabLabelShort: "hidden upto-520:inline",
   tab: `${tab} text-muted hover:text-ink`,
   tabActive: `${tab} font-semibold text-ink after:absolute after:inset-x-0 after:-bottom-[calc(0.9rem+2.5px)] after:h-1 after:bg-accent upto-520:after:-bottom-0.5 upto-520:after:h-[3px]`,
   count: "ml-0.5 font-mono text-[0.78rem] font-normal text-muted",
@@ -40,13 +50,17 @@ export const homeStyles = {
   // compact until you use it, then it widens; it stays wide while it holds
   // a query. On small phones it takes the row
   search:
-    "peer/search flex min-h-11 w-[180px] items-center gap-[0.45rem] border-b-[1.5px] border-dashed border-line-soft py-[0.3rem] text-muted transition-[width,border-color] duration-300 ease-ink focus-within:w-80 focus-within:border-solid focus-within:border-accent has-[input:not(:placeholder-shown)]:w-80 upto-520:w-auto upto-520:flex-1 upto-520:focus-within:w-auto upto-520:has-[input:not(:placeholder-shown)]:w-auto [&_input]:min-w-0 [&_input]:flex-1 [&_input]:border-none [&_input]:bg-transparent [&_input]:text-[0.95rem] upto-760:[&_input]:text-[1rem] [&_input]:outline-none [&_input]:placeholder:text-muted [&_svg]:size-4 [&_svg]:shrink-0",
+    "peer/search flex min-h-11 w-[180px] items-center gap-[0.45rem] border-b-[1.5px] border-dashed border-line-soft py-[0.3rem] text-muted transition-[width,border-color] duration-300 ease-ink focus-within:w-80 focus-within:border-solid focus-within:border-accent has-[input:not(:placeholder-shown)]:w-80 upto-520:w-auto upto-520:min-w-0 upto-520:flex-1 upto-520:focus-within:w-auto upto-520:has-[input:not(:placeholder-shown)]:w-auto [&_input]:min-w-0 [&_input]:flex-1 [&_input]:border-none [&_input]:bg-transparent [&_input]:text-[0.95rem] upto-760:[&_input]:text-[1rem] [&_input]:outline-none [&_input]:placeholder:text-muted [&_svg]:size-4 [&_svg]:shrink-0",
   // while typing on a phone, sort folds away so search gets the whole row
-  sort: "flex min-h-11 max-w-[260px] items-center gap-[0.4rem] overflow-hidden text-[0.875rem] whitespace-nowrap text-muted transition-[max-width,opacity] duration-300 ease-ink upto-520:peer-focus-within/search:-ml-4 upto-520:peer-focus-within/search:max-w-0 upto-520:peer-focus-within/search:opacity-0 upto-520:[&_select]:appearance-none [&_select]:cursor-pointer [&_select]:border-none [&_select]:bg-transparent [&_select]:text-[0.9rem] upto-760:[&_select]:text-[1rem] [&_select]:font-medium [&_select]:text-ink [&_select]:underline [&_select]:decoration-line-soft [&_select]:underline-offset-4",
+  sort: "flex min-h-11 max-w-[260px] shrink-0 items-center gap-[0.4rem] overflow-hidden text-[0.875rem] whitespace-nowrap text-muted transition-[max-width,opacity] duration-300 ease-ink upto-520:peer-focus-within/search:-ml-4 upto-520:peer-focus-within/search:max-w-0 upto-520:peer-focus-within/search:opacity-0 [&_select]:appearance-none [&_select]:[field-sizing:content] [&_select]:cursor-pointer [&_select]:border-none [&_select]:bg-transparent [&_select]:pr-5 [&_select]:text-[0.9rem] upto-760:[&_select]:text-[1rem] [&_select]:font-medium [&_select]:text-ink [&_select]:underline [&_select]:decoration-line-soft [&_select]:underline-offset-4",
+  // the select's own arrow varies by browser, so it's drawn; taps go through it
+  sortPick: "relative inline-flex items-center",
+  sortArrow:
+    "pointer-events-none absolute right-0 size-4 text-ink-soft",
   classContainer:
     "grid grid-cols-[repeat(auto-fill,minmax(160px,1fr))] gap-x-6 gap-y-9 upto-520:grid-cols-2 upto-520:gap-x-4 upto-520:gap-y-7",
   pagerBottom: "mt-10",
-  // "Seen it" sits under the card rather than in it: the card is one big link
+  // "Hide" sits under the card rather than in it: the card is one big link
   cardWithSeen: "flex min-w-0 flex-col items-start [&>a]:w-full",
   seenBtn:
     "tap mt-2 inline-flex items-center gap-1 py-1 text-[0.85rem] font-medium text-ink-soft underline decoration-line-soft underline-offset-3 transition-colors duration-120 ease-[ease] hover:text-accent hover:decoration-accent [&_svg]:size-3.5",

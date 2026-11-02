@@ -17,7 +17,7 @@ export type Manga = {
   // the last volume they own; null when they don't say
   volumesOwned: number | null;
   rating: number | null;
-  // the newest release they've said "Seen it" to
+  // the newest release they've hidden
   seenVolume?: number | null;
   seenChapter?: number | null;
   seenJapanVolume?: number | null;
@@ -46,7 +46,7 @@ export type ReleaseStatus = {
   // out in Japan past what they own and what's in English; a blank on the shelf
   // counts as owning nothing
   hasNewJapaneseVolume: boolean;
-  // on the New tab but for "Seen it": listed and not new means they've hidden it
+  // on the New tab but for "Hide": listed and not new means they've hidden it
   volumeListed: boolean;
   chapterListed: boolean;
   japanListed: boolean;

@@ -69,6 +69,12 @@ export const EyeOffIcon = (props: IconProps) => (
   </svg>
 );
 
+export const PlusIcon = (props: IconProps) => (
+  <svg {...base} {...props}>
+    <path d="M12 5v14M5 12h14" />
+  </svg>
+);
+
 export const ChevronLeftIcon = (props: IconProps) => (
   <svg {...base} {...props}>
     <path d="m15 18-6-6 6-6" />

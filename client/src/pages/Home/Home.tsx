@@ -7,7 +7,13 @@ import MangaCard, {
 
 import { homeStyles as styles } from "./styles";
 import { NavLink, useNavigate } from "react-router";
-import { CheckIcon, SearchIcon, StarIcon } from "../../components/icons/Icons";
+import {
+  CheckIcon,
+  ChevronDownIcon,
+  PlusIcon,
+  SearchIcon,
+  StarIcon,
+} from "../../components/icons/Icons";
 import RangePager from "../../components/rangePager/RangePager";
 import Mascot from "../../components/mascot/Mascot";
 import SlowLoadQuote from "../../components/slowLoadQuote/SlowLoadQuote";
@@ -23,7 +29,7 @@ import ReleaseTip from "../../components/whatsNew/ReleaseTip";
 const SHELF_PAGE_SIZE = 30;
 // shelves this size get a heads-up that their first release check is slow
 const BIG_SHELF = 10;
-// how long the "Seen it" note and its undo stay up
+// how long the "Hide" note and its undo stay up
 const SEEN_NOTE_MS = 8000;
 
 // what each side of the New tab's switch shows, and how it says there's nothing
@@ -59,7 +65,7 @@ const RELEASE_FLAGS = {
   chapters: { listed: "chapterListed", isNew: "hasNewChapter" },
   japan: { listed: "japanListed", isNew: "hasNewJapaneseVolume" },
 } as const;
-// they've said "Seen it" to this one, and nothing newer has come along
+// they've hidden this one, and nothing newer has come along
 const isHiddenAs = (found: ReleaseStatus | null | undefined, kind: ReleaseKind) =>
   Boolean(found?.[RELEASE_FLAGS[kind].listed] && !found[RELEASE_FLAGS[kind].isNew]);
 
@@ -132,7 +138,7 @@ function Library() {
     const saved = readSession("libraryReleaseKind", "volumes");
     return saved in RELEASE_KINDS ? (saved as ReleaseKind) : "volumes";
   });
-  // the New tab's list of what "Seen it" has hidden
+  // the New tab's list of what they've hidden
   const [wantHidden, setWantHidden] = useState(false);
   const hiddenCount = (mangaData ?? []).filter((m) =>
     isHiddenAs(releases[m.id], releaseKind),
@@ -169,7 +175,7 @@ function Library() {
     return () => cancelAnimationFrame(frame);
   }, [spot, shelfReady]);
 
-  // the last "Seen it", for its undo; or a save that failed
+  // the last "Hide", for its undo; or a save that failed
   const markSeen = useShelf((s) => s.markSeen);
   const [hidden, setHidden] = useState<{
     id: number;
@@ -357,7 +363,7 @@ function Library() {
   }
 
   const tabs = [
-    { value: "all", label: "Everything", count: counts.all },
+    { value: "all", label: "Everything", shortLabel: "All", count: counts.all },
     { value: "ongoing", label: "Reading", count: counts.ongoing },
     { value: "finished", label: "Finished", count: counts.finished },
     // what the last check found until this visit's check says otherwise, so
@@ -495,11 +501,11 @@ function Library() {
     bigFirstCheck && "The first check on a big shelf can take a few minutes.";
 
   return (
-    <div className="fade-in">
+    <div className={`fade-in ${styles.library}`}>
       <div className={styles.pageHead}>
         <h1 className={styles.pageTitle}>Your shelf</h1>
         <div className={styles.pageActions}>
-          <span className="upto-520:hidden">{importLink}</span>
+          {importLink}
           <button className="btn btn-primary" onClick={goToAdd}>
             + Add manga
           </button>
@@ -520,7 +526,14 @@ function Library() {
                 writeSession("libraryStatus", t.value);
               }}
             >
-              {t.label}{" "}
+              {t.shortLabel ? (
+                <>
+                  <span className={styles.tabLabelLong}>{t.label}</span>
+                  <span className={styles.tabLabelShort}>{t.shortLabel}</span>
+                </>
+              ) : (
+                t.label
+              )}{" "}
               {t.count != null && (
                 <span
                   className={
@@ -549,29 +562,32 @@ function Library() {
           </label>
           <label className={styles.sort}>
             <span className="upto-520:sr-only">Sort</span>
-            <select
-              value={sortBy}
-              onChange={(e) => {
-                setSortBy(e.target.value);
-                writeSession("librarySort", e.target.value);
-              }}
-            >
-              {SORT_OPTIONS.map((o) => (
-                <option key={o.value} value={o.value}>
-                  {o.label}
-                </option>
-              ))}
-            </select>
+            <span className={styles.sortPick}>
+              <select
+                value={sortBy}
+                onChange={(e) => {
+                  setSortBy(e.target.value);
+                  writeSession("librarySort", e.target.value);
+                }}
+              >
+                {SORT_OPTIONS.map((o) => (
+                  <option key={o.value} value={o.value}>
+                    {o.label}
+                  </option>
+                ))}
+              </select>
+              <ChevronDownIcon className={styles.sortArrow} aria-hidden />
+            </span>
           </label>
         </div>
       </div>
 
-      {/* pinned to the screen, since "Seen it" is usually tapped far down the
+      {/* pinned to the screen, since "Hide" is usually tapped far down the
           list. In a portal: the page's fade-in would otherwise pin it to the page */}
       {createPortal(
         <div role="status" ref={seenNote}>
           {showingNew && (hidden || seenFailed) && (
-            <div className={styles.seenNote}>
+            <div className={styles.seenNote} data-over-add-button>
               {seenFailed ? (
                 "That didn't save. Try again."
               ) : (
@@ -626,7 +642,7 @@ function Library() {
           <div className={styles.releaseAside}>
             <p className={styles.releaseNote}>
               {viewingHidden
-                ? "Hidden with Seen it, until something newer is out."
+                ? "You hid these. They stay hidden until something newer is out."
                 : RELEASE_KINDS[releaseKind].note}
             </p>
             {hiddenCount > 0 && (
@@ -753,12 +769,12 @@ function Library() {
                   <button
                     type="button"
                     className={styles.seenBtn}
-                    aria-label={`${viewingHidden ? "Show again" : "Seen it"}: ${currentManga.name}`}
+                    aria-label={`${viewingHidden ? "Show again" : "Hide"}: ${currentManga.name}`}
                     data-seen-id={currentManga.id}
                     onClick={() => handleSeen(currentManga)}
                   >
                     {!viewingHidden && <CheckIcon />}
-                    {viewingHidden ? "Show again" : "Seen it"}
+                    {viewingHidden ? "Show again" : "Hide"}
                   </button>
                 )}
               </div>
@@ -772,6 +788,19 @@ function Library() {
 
       {/* out of the way on phones, where the top of the page is for the manga */}
       <p className={styles.importBottom}>{importLink}</p>
+
+      {/* in a portal for the same reason as the note above */}
+      {createPortal(
+        <button
+          type="button"
+          className={styles.addButton}
+          aria-label="Add manga"
+          onClick={goToAdd}
+        >
+          <PlusIcon aria-hidden />
+        </button>,
+        document.body,
+      )}
 
       <ReleaseTip
         enabled={hasManga && !showingNew}

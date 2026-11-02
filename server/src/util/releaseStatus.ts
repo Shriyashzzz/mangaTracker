@@ -9,7 +9,7 @@ export type ReleaseStatus = {
   hasNewVolume: boolean;
   hasNewChapter: boolean;
   hasNewJapaneseVolume: boolean;
-  // on the New tab but for "Seen it": listed and not new means they've hidden it
+  // on the New tab but for "Hide": listed and not new means they've hidden it
   volumeListed: boolean;
   chapterListed: boolean;
   japanListed: boolean;
