@@ -110,9 +110,15 @@ export default function MangaCard({
                   ? `ch. ${currentManga.bookmark}`
                   : "not started"}
             </p>
-            {genre && (
-              <p className="truncate font-mono text-[0.78rem] text-muted">{genre}</p>
-            )}
+            {/* one line for the rest, so every row is the same height */}
+            <div className="flex min-h-[1.2rem] min-w-0 items-center gap-3">
+              {genre && (
+                <p className="truncate font-mono text-[0.78rem] text-muted">{genre}</p>
+              )}
+              {Number(currentManga.rating) > 0 && (
+                <StarRating value={Number(currentManga.rating)} size="sm" />
+              )}
+            </div>
           </>
         ) : (
           <p
@@ -146,7 +152,7 @@ export default function MangaCard({
           </p>
         )}
         {/* the New tab's cards all match: only what's out and where they are */}
-        {!news && Number(currentManga.rating) > 0 && (
+        {!news && !compact && Number(currentManga.rating) > 0 && (
           <StarRating value={Number(currentManga.rating)} size="sm" />
         )}
       </div>
