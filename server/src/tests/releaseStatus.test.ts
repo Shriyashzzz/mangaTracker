@@ -21,12 +21,15 @@ const chaptersOnly = (dates: FormatedDates | null) => ({
   englishVolumes: [],
 });
 
-test("a new volume only counts when it's the next one for them", () => {
-  const out = volumesOnly(english(24, 25));
-  expect(getReleaseStatus(owns(24), out).hasNewVolume).toBe(true);
-  expect(getReleaseStatus(owns(23), out).hasNewVolume).toBe(false);
-  expect(getReleaseStatus(owns(3), out).hasNewVolume).toBe(false);
-  expect(getReleaseStatus(owns(25), out).hasNewVolume).toBe(false);
+test("the new volume is the next one they can buy, however far behind", () => {
+  const out = volumesOnly(english(13, 14, 15, 20));
+  const on13 = getReleaseStatus(owns(13), out);
+  expect(on13.hasNewVolume).toBe(true);
+  expect(on13.nextVolume).toBe(14);
+  // the catalog can have gaps
+  expect(getReleaseStatus(owns(15), out).nextVolume).toBe(20);
+  expect(getReleaseStatus(owns(20), out).hasNewVolume).toBe(false);
+  expect(getReleaseStatus(owns(20), out).nextVolume).toBeNull();
 });
 
 test("a blank on the shelf can't say they've caught up", () => {
@@ -43,12 +46,10 @@ test("the highest numbered English volume counts, in any order", () => {
   expect(status.latestVolume).toBe(10);
 });
 
-test("a new chapter only counts when they're nearly up to it", () => {
+test("a new chapter only counts when it's the next one for them", () => {
   const out = chaptersOnly(chapter("250"));
   expect(getReleaseStatus(readTo(249), out).hasNewChapter).toBe(true);
-  // a few came out since they last read: still caught up
-  expect(getReleaseStatus(readTo(247), out).hasNewChapter).toBe(true);
-  expect(getReleaseStatus(readTo(246), out).hasNewChapter).toBe(false);
+  expect(getReleaseStatus(readTo(248), out).hasNewChapter).toBe(false);
   expect(getReleaseStatus(readTo(203), out).hasNewChapter).toBe(false);
   expect(getReleaseStatus(readTo(250), out).hasNewChapter).toBe(false);
   expect(getReleaseStatus(readTo(203), chaptersOnly(chapter(null))).hasNewChapter).toBe(false);
@@ -107,9 +108,9 @@ describe("the panel's next volume", () => {
     expect(status(13, null, 14).isNextVolumeOut).toBe(true);
     expect(status(14, null, 14).isNextVolumeOut).toBe(false);
     expect(status(12, null, 14).isNextVolumeOut).toBe(false);
-    // and the New tab follows the same rule
-    expect(status(13, null, 14).hasNewVolume).toBe(true);
-    expect(status(12, null, 14).hasNewVolume).toBe(false);
+    // the New tab lists the next volume whatever the newest is
+    expect(status(12, null, 14).hasNewVolume).toBe(true);
+    expect(status(12, null, 14).nextVolume).toBe(14);
   });
 
   test("works out where they are from their chapter", () => {
@@ -131,15 +132,14 @@ describe("the panel's next volume", () => {
   });
 });
 
-test("seen it hides that release, until a newer one is out", () => {
-  const shelved = { ...owns(24), seenVolume: 25 };
+test("seen it hides that volume, until they've moved past it", () => {
+  const out = volumesOnly(english(13, 14, 15));
   expect(
-    getReleaseStatus(shelved, volumesOnly(english(24, 25))).hasNewVolume,
+    getReleaseStatus({ ...owns(13), seenVolume: 14 }, out).hasNewVolume,
   ).toBe(false);
-  expect(
-    getReleaseStatus({ ...owns(25), seenVolume: 25 }, volumesOnly(english(25, 26)))
-      .hasNewVolume,
-  ).toBe(true);
+  const moved = getReleaseStatus({ ...owns(14), seenVolume: 14 }, out);
+  expect(moved.hasNewVolume).toBe(true);
+  expect(moved.nextVolume).toBe(15);
 });
 
 test("seen it on a chapter leaves volumes alone, and the other way round", () => {
@@ -167,17 +167,17 @@ test("seen it doesn't stop the details panel saying the next volume is out", () 
   expect(status.isNextVolumeOut).toBe(true);
 });
 
-test("the newest volume comes with what its price page needs", () => {
-  const status = getReleaseStatus(owns(24), {
+test("the next volume comes with what its price page needs", () => {
+  const status = getReleaseStatus(owns(13), {
     dates: null,
     englishVolumes: [
-      { volume: 24, isbn13: "9780000000024", title: "Series, Vol. 24" },
-      { volume: 25, isbn13: "9780000000025", title: "Series, Vol. 25" },
+      { volume: 14, isbn13: "9780000000014", title: "Series, Vol. 14" },
+      { volume: 15, isbn13: "9780000000015", title: "Series, Vol. 15" },
     ],
   });
-  expect(status.latestVolumeBook).toEqual({
-    isbn13: "9780000000025",
-    title: "Series, Vol. 25",
+  expect(status.nextVolumeBook).toEqual({
+    isbn13: "9780000000014",
+    title: "Series, Vol. 14",
   });
-  expect(getReleaseStatus(owns(24), volumesOnly(english(25))).latestVolumeBook).toBeNull();
+  expect(getReleaseStatus(owns(13), volumesOnly(english(14))).nextVolumeBook).toBeNull();
 });

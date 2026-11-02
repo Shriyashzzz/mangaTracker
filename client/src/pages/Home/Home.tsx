@@ -319,7 +319,7 @@ function Library() {
     const found = releases[m.id];
     const newest =
       kind === "volume"
-        ? found?.latestVolume
+        ? found?.nextVolume
         : kind === "chapter"
           ? found?.latestChapter
           : found?.latestJapaneseVolume;
@@ -365,12 +365,12 @@ function Library() {
         yours: m.bookmark ? `You're on ch. ${m.bookmark}` : undefined,
       };
     }
-    return { text: `Vol. ${found?.latestVolume} is out`, yours: volumeYours };
+    return { text: `Vol. ${found?.nextVolume} is out`, yours: volumeYours };
   };
-  // a new volume leads straight to its prices; there's nothing to do with one
+  // the next volume leads straight to its prices; there's nothing to do with it
   // but buy it. No catalog entry to go on: the details page, as usual
   const buyLinkFor = (m: Manga) => {
-    const book = releases[m.id]?.latestVolumeBook;
+    const book = releases[m.id]?.nextVolumeBook;
     return showingNew && releaseKind === "volumes" && book
       ? volumePath(book.isbn13, book.title)
       : undefined;
@@ -483,7 +483,7 @@ function Library() {
             "That didn't save. Try again."
           ) : (
             <>
-              Hidden until something newer is out: {hidden?.name}.{" "}
+              Hidden: {hidden?.name}.{" "}
               <button type="button" className={styles.seenUndo} onClick={undoSeen}>
                 Undo
               </button>
