@@ -35,6 +35,10 @@ const update = [
   rejectInvalid,
   async (req: Request, res: Response) => {
     const data = matchedData(req, { includeOptionals: false }) as AccountPatch;
+    // null clears a field, and validation leaves those out
+    for (const key of ["displayName", "avatar", "recoveryEmail"] as const) {
+      if (req.body?.[key] === null) data[key] = null;
+    }
     if (Object.keys(data).length === 0) {
       return sendError(res, 400, "Nothing to save.");
     }
