@@ -28,9 +28,11 @@ export const homeStyles = {
   importBottom: "mt-10 hidden text-center upto-720:block",
   // room for the add button, so it can't sit on the last row's Hide
   library: "upto-720:pb-20",
-  // above the bottom bar. Gone while typing, and while a note is in its place
+  // a flat ink disc above the bottom bar, with a paper edge so it keeps its shape
+  // over dark covers. It slides away under the bar while scrolling down the list,
+  // and is gone while typing or while a note is in its place
   addButton:
-    "fixed right-4 bottom-[calc(3.75rem+env(safe-area-inset-bottom))] z-15 hidden size-14 place-items-center rounded-full border-[2.5px] border-line bg-accent text-on-accent shadow-ink transition-colors duration-120 ease-[ease] hover:bg-accent-hover upto-720:grid [body:has(input:focus,textarea:focus,select:focus,[data-over-add-button])_&]:hidden! [&_svg]:size-7",
+    "fixed right-4 bottom-[calc(3.75rem+env(safe-area-inset-bottom))] z-15 hidden size-12 place-items-center rounded-full border-2 border-paper bg-ink text-paper transition-[translate,background-color] duration-200 ease-ink hover:bg-ink-soft focus-visible:translate-y-0 data-[tucked=true]:translate-y-20 motion-reduce:transition-none upto-720:grid [body:has(input:focus,textarea:focus,select:focus,[data-over-add-button])_&]:hidden! [&_svg]:size-6",
   // the header scrolls away, this stays pinned so search and filters are
   // one tap away on a long shelf. It reaches a little past the grid on both
   // sides so tilted cards never peek out beside it while scrolling
