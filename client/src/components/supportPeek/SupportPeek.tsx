@@ -168,16 +168,12 @@ export default function SupportPeek() {
         >
           <CloseIcon />
         </button>
-        {way === "side" ? (
-          <>
-            <p>Psst! Found a good deal?</p>
-            <p className="support-peek-more">
-              Maybe spend the change on my coffee?
-            </p>
-          </>
-        ) : (
-          <p>Runs on coffee and manga!</p>
-        )}
+        <p>{way === "side" ? "Psst! Found a good deal?" : "Enjoying the site?"}</p>
+        <p className="support-peek-more">
+          {way === "side"
+            ? "Maybe spend the change on my coffee?"
+            : "A coffee keeps it running."}
+        </p>
         <a href={SUPPORT_URL} target="_blank" rel="noreferrer" onClick={answered}>
           Buy me a coffee
         </a>
