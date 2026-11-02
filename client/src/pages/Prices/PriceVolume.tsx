@@ -201,14 +201,17 @@ export default function PriceVolume() {
     ...siblings.filter((v) => volume == null || (v.volume ?? 0) > volume),
     ...siblings.filter((v) => volume != null && (v.volume ?? 0) < volume).reverse(),
   ].slice(0, SIBLINGS_SHOWN);
-  // the stores with no row in the price list; the ones in it would just repeat
+  // the stores with no row in the price list; the others would just repeat
   const hasOffer = (store: string) =>
     offers.some((o) => {
       const a = o.store.toLowerCase();
       const b = store.toLowerCase();
       return a.includes(b) || b.includes(a);
     });
-  const otherStores = storeLinks.filter((s) => !hasOffer(s.store));
+  // eBay stays either way: a row there is one seller, and many more may have it
+  const otherStores = storeLinks.filter(
+    (s) => s.store === "eBay" || !hasOffer(s.store),
+  );
   // the headline price is the cheapest new print copy, what most people buy
   const best = offers.find(
     (o) => o.condition === "new" && o.format === "print",
@@ -416,7 +419,7 @@ export default function PriceVolume() {
               <div className={styles.otherStores}>
                 <h3 id="links-title" className={styles.otherStoresTitle}>
                   {offers.length > 0
-                    ? "No price from these, and they could be cheaper:"
+                    ? "Also worth checking, they could be cheaper:"
                     : "Check price at:"}
                 </h3>
                 <ul className={styles.storeLinks}>
