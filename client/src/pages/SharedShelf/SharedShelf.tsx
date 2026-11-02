@@ -173,18 +173,6 @@ export default function SharedShelfPage() {
           <h1 className={settingsStyles.title}>{shelf.displayName}</h1>
           <p className={settingsStyles.body}>
             {shelf.manga.length} series on the shelf
-            {code === "sample" && (
-              <>
-                {" · A sample. "}
-                <NavLink
-                  to="/guide"
-                  className="underline decoration-accent decoration-2 underline-offset-3"
-                  viewTransition
-                >
-                  Take the tour
-                </NavLink>
-              </>
-            )}
           </p>
         </div>
       </header>
