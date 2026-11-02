@@ -46,6 +46,10 @@ export type ReleaseStatus = {
   // out in Japan past what they own and what's in English; a blank on the shelf
   // counts as owning nothing
   hasNewJapaneseVolume: boolean;
+  // on the New tab but for "Seen it": listed and not new means they've hidden it
+  volumeListed: boolean;
+  chapterListed: boolean;
+  japanListed: boolean;
   // the panel on the details page: they're on the volume right before the newest
   isNextVolumeOut: boolean;
   // how far they've got: what they own, or else the volume their chapter is in

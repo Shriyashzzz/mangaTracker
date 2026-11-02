@@ -9,6 +9,10 @@ export type ReleaseStatus = {
   hasNewVolume: boolean;
   hasNewChapter: boolean;
   hasNewJapaneseVolume: boolean;
+  // on the New tab but for "Seen it": listed and not new means they've hidden it
+  volumeListed: boolean;
+  chapterListed: boolean;
+  japanListed: boolean;
   // the panel on the details page: they're on the volume right before the newest
   isNextVolumeOut: boolean;
   // how far they've got: what they own, or else the volume their chapter is in
@@ -85,23 +89,29 @@ export function getReleaseStatus(
   const caughtUpWithEnglish =
     currentVolume != null && currentVolume >= (latestVolume ?? 0);
 
+  const volumeListed = nextVolume != null;
+  const chapterListed =
+    // a finished series has nothing new to come
+    !dates?.seriesFinished &&
+    nextChapter != null &&
+    latestChapter != null &&
+    latestChapter - (bookmark ?? 0) <= CAUGHT_UP_CHAPTERS;
+  const japanListed =
+    // without the catalog we can't say it isn't out in English already
+    englishVolumes != null &&
+    caughtUpWithEnglish &&
+    latestJapaneseVolume != null &&
+    latestJapaneseVolume > (currentVolume ?? 0) &&
+    latestJapaneseVolume > (latestVolume ?? 0);
+
   return {
-    hasNewVolume: nextVolume != null && nextVolume > (seenVolume ?? 0),
-    hasNewChapter:
-      // a finished series has nothing new to come
-      !dates?.seriesFinished &&
-      nextChapter != null &&
-      latestChapter != null &&
-      latestChapter - (bookmark ?? 0) <= CAUGHT_UP_CHAPTERS &&
-      nextChapter > (seenChapter ?? 0),
+    hasNewVolume: volumeListed && nextVolume > (seenVolume ?? 0),
+    hasNewChapter: chapterListed && nextChapter! > (seenChapter ?? 0),
     hasNewJapaneseVolume:
-      // without the catalog we can't say it isn't out in English already
-      englishVolumes != null &&
-      caughtUpWithEnglish &&
-      latestJapaneseVolume != null &&
-      latestJapaneseVolume > (currentVolume ?? 0) &&
-      latestJapaneseVolume > (latestVolume ?? 0) &&
-      latestJapaneseVolume > (seenJapanVolume ?? 0),
+      japanListed && latestJapaneseVolume! > (seenJapanVolume ?? 0),
+    volumeListed,
+    chapterListed,
+    japanListed,
     isNextVolumeOut,
     currentVolume,
     latestVolume,

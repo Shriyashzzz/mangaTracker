@@ -1,11 +1,23 @@
-// The masthead: logo, the two halves of the app (Prices, My shelf; a bar along
+// The masthead: logo, the two halves of the app (My shelf, Prices; a bar along
 // the bottom on phones), and the settings menu. Sits on a newspaper-style double rule.
+import { useEffect } from "react";
 import { NavLink, useLocation, useNavigate } from "react-router";
 import clsx from "clsx";
 // same mark as the favicon: a manga volume in an inked panel
 import logo from "../../assets/logo.svg";
 import SettingsMenu from "../../components/settingsMenu/SettingsMenu";
 import { useAuth } from "../../store/auth";
+import {
+  forgetAllSpots,
+  forgetSpot,
+  leaveTabFor,
+  notePage,
+  readSpot,
+  scrollBackIfReturning,
+  TAB_HOME,
+  tabOf,
+  type BarTab,
+} from "../../lib/tabMemory";
 
 const linkClass = (active: boolean) =>
   clsx(
@@ -22,16 +34,42 @@ const barClass = (active: boolean) =>
 
 export default function Header() {
   const navigate = useNavigate();
-  const { pathname } = useLocation();
+  const { pathname, search } = useLocation();
   const { isSignedIn, logOut } = useAuth();
+  const here = pathname + search;
+  const currentTab = tabOf(pathname);
   // the price checker lives at "/", under /prices and at /series
   const onPrices =
     pathname === "/" ||
     pathname.startsWith("/prices") ||
     pathname.startsWith("/series");
 
+  // the page each tab is on, as they move around. A guest's shelf pages only
+  // lead to signing in, so those aren't worth going back to
+  useEffect(() => {
+    if (currentTab && (currentTab !== "shelf" || isSignedIn)) {
+      notePage(currentTab, here);
+    }
+  }, [currentTab, here, isSignedIn]);
+
+  // someone else's pages shouldn't be waiting after a sign out
+  useEffect(() => {
+    if (isSignedIn === false) forgetSpot("shelf");
+  }, [isSignedIn]);
+
+  useEffect(() => scrollBackIfReturning(), [here]);
+
+  // the tab you're on goes to its top page; the other goes back to where you were
+  const barLink = (tab: BarTab) => ({
+    to: tab === currentTab ? TAB_HOME[tab] : (readSpot(tab)?.path ?? TAB_HOME[tab]),
+    onClick: () => leaveTabFor(tab, currentTab, here),
+  });
+
   const handleLogOut = async () => {
-    if (await logOut()) navigate("/", { viewTransition: true });
+    if (await logOut()) {
+      forgetAllSpots();
+      navigate("/", { viewTransition: true });
+    }
   };
 
   return (
@@ -52,15 +90,15 @@ export default function Header() {
 
         {/* phones have it at the bottom, within reach of a thumb */}
         <nav className="flex items-center gap-[1.4rem] upto-720:hidden" aria-label="Main">
-          <NavLink to="/" className={() => linkClass(onPrices)} viewTransition>
-            Prices
-          </NavLink>
           <NavLink
             to="/shelf"
             className={({ isActive }) => linkClass(isActive)}
             viewTransition
           >
             My shelf
+          </NavLink>
+          <NavLink to="/" className={() => linkClass(onPrices)} viewTransition>
+            Prices
           </NavLink>
           {isSignedIn === false && (
             <NavLink
@@ -81,15 +119,19 @@ export default function Header() {
         className="fixed inset-x-0 bottom-0 z-20 hidden border-t-[3px] border-double border-line bg-paper pb-[env(safe-area-inset-bottom)] upto-720:flex [body:has(input:focus,textarea:focus,select:focus)_&]:hidden!"
         aria-label="Main"
       >
-        <NavLink to="/" className={() => barClass(onPrices)} viewTransition>
-          Prices
-        </NavLink>
         <NavLink
-          to="/shelf"
-          className={({ isActive }) => barClass(isActive)}
+          {...barLink("shelf")}
+          className={() => barClass(currentTab === "shelf")}
           viewTransition
         >
           My shelf
+        </NavLink>
+        <NavLink
+          {...barLink("prices")}
+          className={() => barClass(currentTab === "prices")}
+          viewTransition
+        >
+          Prices
         </NavLink>
         {isSignedIn === false && (
           <NavLink
