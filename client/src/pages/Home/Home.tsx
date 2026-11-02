@@ -344,8 +344,8 @@ function Library() {
   };
 
   // what a card in the New tab says. The list stays broad, so a card only
-  // shouts when the next one really is what's just out; further behind, it says
-  // how far. A blank shelf number can't say how far, so it just names the latest
+  // shouts when the next one really is what's just out; otherwise it just says
+  // where the series has got to
   const newsFor = (m: Manga): CardNews | undefined => {
     if (!showingNew) return undefined;
     const found = releases[m.id];
@@ -354,17 +354,14 @@ function Library() {
     }
     if (releaseKind === "chapters") {
       const latest = found?.latestChapter ?? 0;
-      if (!m.bookmark) return { text: `Now at ch. ${latest}`, loud: false };
-      const behind = Math.ceil(latest - m.bookmark);
-      return behind <= 1
+      return m.bookmark && latest - m.bookmark <= 1
         ? { text: `Ch. ${latest} is out`, loud: true }
-        : { text: `Now at ch. ${latest}, ${behind} to catch up`, loud: false };
+        : { text: `Now at ch. ${latest}`, loud: false };
     }
     const latest = found?.latestVolume ?? 0;
-    if (found?.isNextVolumeOut) return { text: `Vol. ${latest} is out`, loud: true };
-    if (!m.volumesOwned) return { text: `Now at vol. ${latest}`, loud: false };
-    const behind = latest - m.volumesOwned;
-    return { text: `Now at vol. ${latest}, ${behind} to catch up`, loud: false };
+    return found?.isNextVolumeOut
+      ? { text: `Vol. ${latest} is out`, loud: true }
+      : { text: `Now at vol. ${latest}`, loud: false };
   };
   const total = mangaData.length;
   // every title failed, so "nothing new" would be a false comfort. A few failing
