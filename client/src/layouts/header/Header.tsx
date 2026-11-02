@@ -1,4 +1,4 @@
-// The masthead: logo, the two halves of the app (Prices, My shelf; a bar along
+// The masthead: logo, the two halves of the app (My shelf, Prices; a bar along
 // the bottom on phones), and the settings menu. Sits on a newspaper-style double rule.
 import { NavLink, useLocation, useNavigate } from "react-router";
 import clsx from "clsx";
@@ -52,15 +52,15 @@ export default function Header() {
 
         {/* phones have it at the bottom, within reach of a thumb */}
         <nav className="flex items-center gap-[1.4rem] upto-720:hidden" aria-label="Main">
-          <NavLink to="/" className={() => linkClass(onPrices)} viewTransition>
-            Prices
-          </NavLink>
           <NavLink
             to="/shelf"
             className={({ isActive }) => linkClass(isActive)}
             viewTransition
           >
             My shelf
+          </NavLink>
+          <NavLink to="/" className={() => linkClass(onPrices)} viewTransition>
+            Prices
           </NavLink>
           {isSignedIn === false && (
             <NavLink
@@ -81,15 +81,15 @@ export default function Header() {
         className="fixed inset-x-0 bottom-0 z-20 hidden border-t-[3px] border-double border-line bg-paper pb-[env(safe-area-inset-bottom)] upto-720:flex [body:has(input:focus,textarea:focus,select:focus)_&]:hidden!"
         aria-label="Main"
       >
-        <NavLink to="/" className={() => barClass(onPrices)} viewTransition>
-          Prices
-        </NavLink>
         <NavLink
           to="/shelf"
           className={({ isActive }) => barClass(isActive)}
           viewTransition
         >
           My shelf
+        </NavLink>
+        <NavLink to="/" className={() => barClass(onPrices)} viewTransition>
+          Prices
         </NavLink>
         {isSignedIn === false && (
           <NavLink

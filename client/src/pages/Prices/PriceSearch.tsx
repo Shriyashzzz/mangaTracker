@@ -1,7 +1,8 @@
 import { useEffect, useId, useState } from "react";
 import { NavLink, useSearchParams } from "react-router";
 import type { Highlights as HighlightsData, SeriesHit } from "../../lib/types";
-import { useAuth } from "../../store/auth";
+import { probablySignedIn, useAuth } from "../../store/auth";
+import { GuestHero } from "../Home/Home";
 import { getHighlights, searchSeries, seriesPath } from "../../lib/prices";
 import SeriesSearchBox from "./SeriesSearchBox";
 import VolumeCard from "./VolumeCard";
@@ -47,18 +48,28 @@ export default function PriceSearch() {
   }, [query]);
 
   const searching = query.length >= 2;
+  const isSignedIn = useAuth((s) => s.isSignedIn);
+  // newcomers meet the tracker first; prices are what comes next
+  const guest =
+    !query &&
+    (isSignedIn === false || (isSignedIn === null && !probablySignedIn()));
   const loading = searching && result.query !== query;
 
   return (
     <div className={`${styles.page} fade-in`}>
+      {guest && <GuestHero />}
       <div className={styles.front}>
         <header className={styles.searchHead}>
-          <h1 className={styles.title}>Price check</h1>
+          {guest ? (
+            <h2 className={styles.title}>Price check</h2>
+          ) : (
+            <h1 className={styles.title}>Price check</h1>
+          )}
           <p className={styles.sub}>
             Find a series, then see what US stores charge for each volume.
           </p>
 
-          <SeriesSearchBox initialQuery={query} autoFocus={!query} />
+          <SeriesSearchBox initialQuery={query} autoFocus={!query && !guest} />
 
           {!searching && (
             <p className={styles.quick}>
@@ -73,9 +84,7 @@ export default function PriceSearch() {
         </header>
 
         {!searching && (
-          <WhatsNew>
-            <ShelfPromo inMargin />
-          </WhatsNew>
+          <WhatsNew>{!guest && <ShelfPromo inMargin />}</WhatsNew>
         )}
       </div>
 
@@ -132,7 +141,7 @@ export default function PriceSearch() {
       )}
 
       {!searching && <Highlights />}
-      {!searching && <ShelfPromo />}
+      {!searching && !guest && <ShelfPromo />}
       <ReleaseTip enabled={!searching} />
     </div>
   );
