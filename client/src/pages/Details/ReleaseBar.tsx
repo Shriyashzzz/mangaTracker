@@ -1,4 +1,5 @@
 import { useId, useState } from "react";
+import { NavLink } from "react-router";
 import { ChevronDownIcon } from "../../components/icons/Icons";
 import { detailsStyles as styles } from "./styles";
 import { formatReleaseDate } from "../../lib/releaseDates";
@@ -8,9 +9,11 @@ type Props = {
   // what's out: "Vol. 25" or "Ch. 250"
   what: string;
   inJapan: boolean;
-  // where they've got to: "vol. 24" or "ch. 203"
+  // where they've got to: "you own up to vol. 24" or "you're on ch. 203"
   yours: string | null;
   data: ReleaseData | null;
+  // a volume that's for sale in English; there's nowhere to send a chapter
+  buy: { to: string; label: string } | null;
 };
 
 type Row = { what: string; when: string; estimate?: boolean };
@@ -18,7 +21,7 @@ type Group = { title: string; rows: Row[] };
 
 // English: its chapters, since there are no English volume dates to go on.
 // Japan: its volumes only, since MangaDex has translations and no Japanese
-// chapters. The volume that's out already is the panel's headline
+// chapters. The volume that's out already is the bar's headline
 const groupsFrom = (data: ReleaseData | null, inJapan: boolean): Group[] => {
   const outNow: Row[] = [];
   const comingUp: Row[] = [];
@@ -59,65 +62,73 @@ const groupsFrom = (data: ReleaseData | null, inJapan: boolean): Group[] => {
   ].filter((group) => group.rows.length > 0);
 };
 
-// "there's a new volume": beside the entry on a laptop, a bar that folds open
-// on anything narrower
-export default function ReleasePanel({
-  what,
-  inJapan,
-  yours,
-  data,
-}: Props) {
+// "there's a new one": a slim red bar that opens to the dates when clicked
+// anywhere, except on its Buy link
+export default function ReleaseBar({ what, inJapan, yours, data, buy }: Props) {
   const [open, setOpen] = useState(false);
-  const bodyId = useId();
+  const datesId = useId();
   const groups = groupsFrom(data, inJapan);
-  const headline = `${what} is out!`;
-  const where = inJapan ? "Japan" : "English";
-  const place = inJapan ? "in Japan" : "in English";
-  const barText = (
-    <>
-      <span className={styles.releaseBarHeadline}>{headline}</span>
-      <span className={styles.releaseBarOwned}>
-        {place}
-        {yours ? ` · ${yours}` : ""}
-      </span>
-    </>
+  const hasDates = groups.length > 0;
+  const headline = <span className={styles.releaseHeadline}>{what} is out!</span>;
+  const yoursLine = yours ? `${yours[0]!.toUpperCase()}${yours.slice(1)}.` : "";
+  const owned = (
+    <span className={styles.releaseOwned}>
+      {inJapan ? `In Japan. ${yoursLine}` : yoursLine || "In English."}
+    </span>
   );
 
   return (
-    <section className={styles.release} aria-label={`New release, ${where}`}>
-      <span className={styles.releaseStamp} aria-hidden>
-        Psst!
-      </span>
+    <section
+      className={styles.release}
+      aria-label={`New release, ${inJapan ? "Japan" : "English"}`}
+    >
+      <div
+        className={`${styles.releaseBar} ${hasDates ? styles.releaseBarOpens : ""}`}
+        onClick={(e) => {
+          if (hasDates && !(e.target as HTMLElement).closest("a")) setOpen(!open);
+        }}
+      >
+        <span
+          className={`${styles.releaseStamp} ${buy ? styles.releaseStampBesideBuy : ""}`}
+          aria-hidden
+        >
+          Psst!
+        </span>
 
-      <div className={styles.releaseHit}>
-        <h2 className={styles.releaseHeadline}>{headline}</h2>
-        <p className={styles.releaseOwned}>
-          {inJapan ? "In Japan." : "In English."}
-          {yours ? ` ${yours[0]!.toUpperCase()}${yours.slice(1)}.` : ""}
-        </p>
+        {/* the whole bar takes the click, which bubbles up from here; the button
+            is what keyboards and screen readers use */}
+        {hasDates ? (
+          <button
+            type="button"
+            className={styles.releaseToggle}
+            aria-expanded={open}
+            aria-controls={datesId}
+          >
+            {headline}
+            {owned}
+          </button>
+        ) : (
+          <p className={styles.releaseToggle}>
+            {headline}
+            {owned}
+          </p>
+        )}
+
+        {buy && (
+          <NavLink className={styles.releaseBuy} to={buy.to} viewTransition>
+            {buy.label} →
+          </NavLink>
+        )}
+        {hasDates && (
+          <ChevronDownIcon
+            className={`${styles.releaseChevron} ${open ? styles.releaseChevronOpen : ""}`}
+            aria-hidden
+          />
+        )}
       </div>
 
-      {/* nothing to fold open if MangaDex had no dates */}
-      {groups.length > 0 ? (
-        <button
-          type="button"
-          className={styles.releaseBar}
-          aria-expanded={open}
-          aria-controls={bodyId}
-          onClick={() => setOpen(!open)}
-        >
-          {barText}
-          <ChevronDownIcon />
-        </button>
-      ) : (
-        <p className={styles.releaseBarPlain}>{barText}</p>
-      )}
-
-      {groups.length > 0 && (
-        <div
-          id={bodyId}
-          className={`${styles.releaseBody} ${open ? "" : styles.releaseBodyShut}`}
-        >
+      {hasDates && (
+        <div id={datesId} className={styles.releaseDates} hidden={!open}>
           {groups.map((group) => (
             <div key={group.title} className={styles.releaseGroup}>
               <h3 className={styles.releaseGroupTitle}>{group.title}</h3>

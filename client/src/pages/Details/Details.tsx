@@ -10,8 +10,10 @@ import { getReleases } from "../../lib/shelf";
 import { useShelf } from "../../store/shelf";
 import NotesField from "./NotesField";
 import BuyStrip from "./BuyStrip";
-import ReleasePanel from "./ReleasePanel";
+import ReleaseBar from "./ReleaseBar";
 import ChapterStepper from "./ChapterStepper";
+import { useBuyOptions } from "./useBuyOptions";
+import { formatCents, volumePath } from "../../lib/prices";
 
 const DIDNT_SAVE = "That didn't save. Try again.";
 
@@ -53,6 +55,10 @@ export default function Details() {
     }
   }, [confirmDelete]);
   const navigate = useNavigate();
+  const buyOptions = useBuyOptions(
+    mangaData?.name ?? null,
+    mangaData?.volumesOwned ?? null,
+  );
 
   useEffect(() => {
     async function getManga() {
@@ -203,7 +209,7 @@ export default function Details() {
     : releaseStatus?.currentVolume
       ? `you're on vol. ${releaseStatus.currentVolume}`
       : null;
-  // the side panel: only what's next for them, and what they came here about
+  // the red bar: only what's next for them, and what they came here about
   const release = !releaseStatus
     ? null
     : inJapan
@@ -220,7 +226,31 @@ export default function Details() {
             what: `Vol. ${releaseStatus.latestVolume}`,
             yours: volumeYours,
           };
-  const showRelease = Boolean(release);
+  // an English volume release can be bought from the bar: the one they need next,
+  // named if that's not the one in the headline
+  const sellsVolume =
+    release &&
+    !inJapan &&
+    !(chapterNews && !mangaStatus) &&
+    !buyOptions.caughtUp;
+  const toBuy = sellsVolume ? (buyOptions.next ?? buyOptions.latest) : null;
+  const barBuy = toBuy && {
+    to: volumePath(toBuy.isbn13, toBuy.title),
+    label: (() => {
+      const other = toBuy.volume !== releaseStatus?.latestVolume;
+      if (toBuy.knownPriceCents == null) {
+        return other ? `Check vol. ${toBuy.volume}` : "Check price";
+      }
+      const price = formatCents(toBuy.knownPriceCents);
+      return other ? `Buy vol. ${toBuy.volume} for ${price}` : `Buy for ${price}`;
+    })(),
+  };
+  // no need to sell it twice, unless it's the only ticket there is
+  const hideNextTicket = Boolean(
+    barBuy &&
+      buyOptions.next &&
+      buyOptions.next.isbn13 !== buyOptions.latest?.isbn13,
+  );
 
   return (
     <div className="fade-in">
@@ -228,33 +258,19 @@ export default function Details() {
         ← back to the shelf
       </NavLink>
 
-      <article
-        className={`${styles.layout} ${showRelease ? styles.layoutWithRelease : ""}`}
-      >
-        <figure
-          className={`${styles.cover} ${styles.coverTilt} ${showRelease ? styles.coverBesideRelease : ""}`}
-        >
-          <img
-            src={cover}
-            alt={mangaData.name}
-            onError={(e) => {
-              // a dead cover link falls back to the default cover once
-              if (e.currentTarget.src !== FALLBACK_COVER) {
-                e.currentTarget.src = FALLBACK_COVER;
-              }
-            }}
-          />
-          {mangaStatus && <span className={styles.stamp}>Done</span>}
-        </figure>
+      <article className={styles.layout}>
+        <div className={styles.main}>
+          <header className={styles.head}>
+            <h1 className={styles.title}>{mangaData.name}</h1>
+            <ul className={styles.meta}>
+              <li className={mangaStatus ? styles.metaDone : styles.metaReading}>
+                {mangaStatus ? "Finished" : "Reading"}
+              </li>
+              {genre && <li className={styles.metaGenre}>{genre}</li>}
+            </ul>
+          </header>
 
-        <header className={styles.head}>
-          <h1 className={styles.title}>{mangaData.name}</h1>
-          <ul className={styles.meta}>
-            <li className={mangaStatus ? styles.metaDone : styles.metaReading}>
-              {mangaStatus ? "Finished" : "Reading"}
-            </li>
-            {genre && <li className={styles.metaGenre}>{genre}</li>}
-          </ul>
+          <h2 className={`${styles.deskTitle} ${styles.yourCopy}`}>Your copy</h2>
           <p className={styles.progress}>
             {mangaStatus ? (
               <>Read all the way through.</>
@@ -278,40 +294,34 @@ export default function Details() {
               </span>
             )}
           </p>
-        </header>
 
-        {release && (
-          <ReleasePanel
-            what={release.what}
-            inJapan={inJapan}
-            yours={release.yours || null}
-            data={releaseData}
-          />
-        )}
-
-        <div
-          className={`${styles.body} ${showRelease ? styles.bodyBelowRelease : ""}`}
-        >
-          <div className={styles.rating}>
-            <span className={styles.label}>
-              {mangaRating ? "Your rating. Tap it again to clear" : "Rate it"}
-            </span>
-            <StarRating
-              value={mangaRating}
-              size="lg"
-              onChange={handleRatingChange}
+          {release && (
+            <ReleaseBar
+              key={release.what}
+              what={release.what}
+              inJapan={inJapan}
+              yours={release.yours || null}
+              data={releaseData}
+              buy={barBuy}
             />
-            <p className={styles.saveFailed} role="status">
-              {ratingFailed && DIDNT_SAVE}
-            </p>
-          </div>
+          )}
 
-          <NotesField key={mangaData.id} id={mangaData.id} initial={mangaData.description} />
+          <div className={styles.body}>
+            <div className={styles.rating}>
+              <span className={styles.label}>
+                {mangaRating ? "Your rating. Tap it again to clear" : "Rate it"}
+              </span>
+              <StarRating
+                value={mangaRating}
+                size="lg"
+                onChange={handleRatingChange}
+              />
+              <p className={styles.saveFailed} role="status">
+                {ratingFailed && DIDNT_SAVE}
+              </p>
+            </div>
 
-          <BuyStrip
-            name={mangaData.name}
-            volumesOwned={mangaData.volumesOwned}
-          />
+            <NotesField key={mangaData.id} id={mangaData.id} initial={mangaData.description} />
 
           <div className={styles.actions}>
             <button
@@ -372,6 +382,25 @@ export default function Details() {
               )}
             </p>
           </div>
+          </div>
+        </div>
+
+        <div className={styles.side}>
+          <figure className={`${styles.cover} ${styles.coverTilt}`}>
+            <img
+              src={cover}
+              alt={mangaData.name}
+              onError={(e) => {
+                // a dead cover link falls back to the default cover once
+                if (e.currentTarget.src !== FALLBACK_COVER) {
+                  e.currentTarget.src = FALLBACK_COVER;
+                }
+              }}
+            />
+            {mangaStatus && <span className={styles.stamp}>Done</span>}
+          </figure>
+
+          <BuyStrip options={buyOptions} hideNext={hideNextTicket} />
         </div>
       </article>
     </div>
@@ -382,14 +411,17 @@ function DetailsSkeleton() {
   return (
     <div className={styles.layout} aria-busy="true" aria-label="Loading">
       <SlowLoadQuote />
-      <div className={`skeleton ${styles.cover}`} />
-      <div className={styles.head}>
-        <div className="skeleton" style={{ width: "60%", height: 44 }} />
-        <div className="skeleton" style={{ width: 160, height: 24 }} />
-        <div className="skeleton" style={{ width: "40%", height: 28 }} />
+      <div className={styles.main}>
+        <div className={styles.head}>
+          <div className="skeleton" style={{ width: "60%", height: 44 }} />
+          <div className="skeleton" style={{ width: 160, height: 24 }} />
+        </div>
+        <div className={styles.body}>
+          <div className="skeleton" style={{ width: "100%", height: 110 }} />
+        </div>
       </div>
-      <div className={styles.body}>
-        <div className="skeleton" style={{ width: "100%", height: 110 }} />
+      <div className={styles.side}>
+        <div className={`skeleton ${styles.cover}`} />
       </div>
     </div>
   );
