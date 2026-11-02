@@ -108,7 +108,7 @@ export const ebaySearch: Provider = {
       },
       signal,
     );
-    return ebayOffers(data?.organic_results ?? [], book.title);
+    return ebayOffers(data.organic_results ?? [], book.title);
   },
 };
 
@@ -174,7 +174,7 @@ export const amazonSearch: Provider = {
       error?: string;
       organic_results?: AmazonResult[];
     }>({ engine: "amazon", k: isbn13 }, signal);
-    return amazonOffers(data?.organic_results ?? [], isbn13, book.title);
+    return amazonOffers(data.organic_results ?? [], isbn13, book.title);
   },
 };
 
@@ -227,6 +227,6 @@ export const walmartSearch: Provider = {
       error?: string;
       organic_results?: WalmartResult[];
     }>({ engine: "walmart", query: book.title }, signal);
-    return walmartOffers(data?.organic_results ?? [], book.title);
+    return walmartOffers(data.organic_results ?? [], book.title);
   },
 };

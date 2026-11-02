@@ -65,7 +65,6 @@ const serpapi: Provider = {
       },
       signal,
     );
-    if (!data) return [];
 
     // the cheapest matching listing from each store, new and used separately
     const best = new Map<string, Offer>();

@@ -27,6 +27,10 @@ export const usageLabel = (key: string, mainKey: string | undefined) =>
     ? "serpapi"
     : `serpapi-${createHash("sha256").update(key).digest("hex").slice(0, 12)}`;
 
+// no key has a search left. Not the same as finding nothing: the stored prices
+// stay up rather than being replaced by an empty check
+export class SearchesUsedUp extends Error {}
+
 // what SerpApi's answer means for this key
 export type KeyAnswer =
   | "ok"

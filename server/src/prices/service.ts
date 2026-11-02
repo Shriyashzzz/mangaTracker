@@ -21,6 +21,7 @@ import {
 } from "./anilist.js";
 import { seriesName, seriesOf, slugify, volumeOf } from "./match.js";
 import { enabledProviders } from "./providers/index.js";
+import { SearchesUsedUp } from "./providers/serpapiKeys.js";
 import {
   affiliateOfferUrl,
   isAffiliateUrl,
@@ -51,6 +52,7 @@ async function fetchAllProviders(isbn13: string, book: Book) {
   const providers = enabledProviders();
   const offers: Offer[] = [];
   const sources: string[] = [];
+  let usedUp = false;
 
   const ask = async (list: Provider[]) => {
     const results = await Promise.allSettled(
@@ -63,6 +65,8 @@ async function fetchAllProviders(isbn13: string, book: Book) {
       if (r.status === "fulfilled") {
         sources.push(provider.id);
         offers.push(...r.value);
+      } else if (r.reason instanceof SearchesUsedUp) {
+        usedUp = true;
       } else {
         console.error(`price provider ${provider.id} failed:`, r.reason);
       }
@@ -76,6 +80,13 @@ async function fetchAllProviders(isbn13: string, book: Book) {
         p.onlyIfNoRow && !offers.some((o) => p.onlyIfNoRow!.test(o.store)),
     ),
   );
+
+  // with no searches left and no store answering, a new check would hide the
+  // stored prices behind whatever's left (ebooks at most), so keep the old one
+  if (usedUp && !sources.some((id) => id.startsWith("serpapi"))) {
+    console.warn("SerpApi searches used up, showing the stored prices");
+    return;
+  }
 
   // only record a check if at least one source answered, so an outage
   // doesn't leave a volume looking "checked, nothing found" for six hours

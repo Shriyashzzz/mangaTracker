@@ -3,6 +3,7 @@
 import config from "../../config/config.js";
 import priceQueries from "../../models/priceQueries.js";
 import {
+  SearchesUsedUp,
   readAnswer,
   searchWithKeys,
   serpApiKeys,
@@ -18,11 +19,11 @@ const labelOf = (key: string) => usageLabel(key, config.SERPAPI_API_KEY);
 
 export const serpApiEnabled = () => KEYS.length > 0;
 
-// the response, or null when every key is used up
+// the response; throws SearchesUsedUp when every key is used up
 export async function searchSerpApi<T extends { error?: string }>(
   params: Record<string, string>,
   signal: AbortSignal,
-): Promise<T | null> {
+): Promise<T> {
   const data = await searchWithKeys<T>({
     keys: KEYS,
     // claim a search from this month's budget before spending it
@@ -41,8 +42,6 @@ export async function searchSerpApi<T extends { error?: string }>(
       return { answer: readAnswer(res.status, error), data: answer, error };
     },
   });
-  if (!data) {
-    console.warn("Every SerpApi key is used up for now, skipping this search");
-  }
+  if (!data) throw new SearchesUsedUp("Every SerpApi key is used up for now");
   return data;
 }
