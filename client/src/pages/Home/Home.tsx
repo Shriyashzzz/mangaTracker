@@ -368,6 +368,17 @@ function Library() {
     return { text: `Vol. ${found?.latestVolume} is out`, yours: volumeYours };
   };
   const total = mangaData.length;
+  // a series with no saved place can't be called caught up, so it never shows
+  // here. An empty tab has to say so, or it reads as "nothing's out"
+  const unknownPlace = mangaData.filter((m) =>
+    releaseKind === "chapters"
+      ? !m.bookmark
+      : !m.volumesOwned && !releases[m.id]?.currentVolume,
+  ).length;
+  const missingNumber =
+    releaseKind === "chapters"
+      ? "Add the chapter you're on and we'll tell you when the next one's out."
+      : "Add the volumes you own and we'll tell you when the next one's out.";
   // every title failed, so "nothing new" would be a false comfort. A few failing
   // goes unsaid: the rest still stand, and they get tried again on the next visit
   const allFailed =
@@ -551,11 +562,22 @@ function Library() {
             <Mascot mood="happy" />
           </span>
           <p className={styles.nothingNewTitle}>
-            {RELEASE_KINDS[releaseKind].emptyTitle}
+            {unknownPlace === total
+              ? "We don't know where you're up to yet."
+              : RELEASE_KINDS[releaseKind].emptyTitle}
           </p>
-          <p className={styles.emptyBody}>
-            {RELEASE_KINDS[releaseKind].emptyBody}
-          </p>
+          {unknownPlace < total && (
+            <p className={styles.emptyBody}>
+              {RELEASE_KINDS[releaseKind].emptyBody}
+            </p>
+          )}
+          {unknownPlace > 0 && (
+            <p className={styles.emptyBody}>
+              {unknownPlace === total
+                ? missingNumber
+                : `${unknownPlace} of your series can't show up here yet. ${missingNumber}`}
+            </p>
+          )}
         </div>
       ) : visibleManga.length === 0 ? (
         <div className={styles.emptyState}>
