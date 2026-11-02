@@ -54,6 +54,8 @@ model Manga {
   seenJapanVolume Float? @map("seen_japan_volume")
   // volumes hidden one at a time, on top of everything up to seenVolume
   hiddenVolumes   Float[] @default([]) @map("hidden_volumes")
+  // the latest chapter last found for this series; updated by each lookup
+  latestChapter   Float?  @map("latest_chapter")
 
   @@index([userId])
   @@map("manga")

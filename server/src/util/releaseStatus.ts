@@ -53,6 +53,13 @@ export const validReleaseSettings = (value: unknown): ReleaseSettings | null => 
     : null;
 };
 
+// what to store after a lookup: only a real answer that differs. A lookup that found
+// nothing mustn't wipe what we already know
+export const chapterToSave = (
+  found: number | null,
+  saved: number | null,
+): number | null => (found != null && found !== saved ? found : null);
+
 export type ReleaseStatus = {
   hasNewVolume: boolean;
   hasNewChapter: boolean;

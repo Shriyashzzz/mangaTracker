@@ -1,4 +1,5 @@
 import {
+  chapterToSave,
   getReleaseStatus,
   readReleaseSettings,
   validReleaseSettings,
@@ -321,4 +322,14 @@ describe("each reader chooses what the New tab lists", () => {
     expect(validReleaseSettings({ ...good, chapters: { mode: "x", within: 3 } })).toBeNull();
     expect(validReleaseSettings(null)).toBeNull();
   });
+});
+
+test("a lookup updates the saved latest chapter only when it found a different one", () => {
+  expect(chapterToSave(142, null)).toBe(142);
+  expect(chapterToSave(143, 142)).toBe(143);
+  // a count that went down is still what the sources now say
+  expect(chapterToSave(140, 142)).toBe(140);
+  expect(chapterToSave(142, 142)).toBeNull();
+  // found nothing: keep what we know
+  expect(chapterToSave(null, 142)).toBeNull();
 });

@@ -9,7 +9,11 @@ import { getListingsByMalIds, getSeriesInfo, slugify } from "../prices/anilist.j
 import { findOnShelf, getSeries, getShelfPrices } from "../prices/service.js";
 import { canonicalTitle } from "../util/canonicalTitle.js";
 import { getCachedReleaseDates, withTimeout } from "../util/releaseCache.js";
-import { getReleaseStatus, readReleaseSettings } from "../util/releaseStatus.js";
+import {
+  chapterToSave,
+  getReleaseStatus,
+  readReleaseSettings,
+} from "../util/releaseStatus.js";
 import userQueries from "../models/userQueries.js";
 import { namesOf, toMangaInput, type MalEntry } from "../util/malEntry.js";
 import type { Manga } from "../../generated/prisma/client.js";
@@ -94,6 +98,7 @@ const restore = [
   body("seenJapanVolume").optional({ values: "null" }).isFloat({ min: 0 }).toFloat(),
   body("hiddenVolumes").optional().isArray({ max: 500 }),
   body("hiddenVolumes.*").isFloat({ min: 0, max: 100000 }).toFloat(),
+  body("latestChapter").optional({ values: "null" }).isFloat({ min: 0 }).toFloat(),
   rejectInvalid,
   async (req: Request, res: Response) => {
     const d = matchedData(req);
@@ -106,6 +111,7 @@ const restore = [
       seenChapter: d.seenChapter ?? null,
       seenJapanVolume: d.seenJapanVolume ?? null,
       hiddenVolumes: d.hiddenVolumes ?? [],
+      latestChapter: d.latestChapter ?? null,
     });
     res.status(201).json({ id });
   },
@@ -185,13 +191,22 @@ const releases = async (req: Request, res: Response) => {
   if (!releaseData && !series) {
     return res.json({ releaseData: null, releaseStatus: null, complete: false });
   }
+  const releaseStatus = getReleaseStatus(
+    manga,
+    { dates: releaseData, englishVolumes: series?.volumes ?? null },
+    readReleaseSettings(prefs?.releases),
+  );
+  // kept on the manga, so progress can show straight away next time. Failing to
+  // save it shouldn't cost them the answer
+  const newLatest = chapterToSave(releaseStatus.latestChapter, manga.latestChapter);
+  if (newLatest != null) {
+    await mangaQueries
+      .setLatestChapter(manga.id, newLatest)
+      .catch((e) => console.error("Couldn't save the latest chapter:", e));
+  }
   return res.json({
     releaseData,
-    releaseStatus: getReleaseStatus(
-      manga,
-      { dates: releaseData, englishVolumes: series?.volumes ?? null },
-      readReleaseSettings(prefs?.releases),
-    ),
+    releaseStatus,
     // a source didn't answer, so it's worth asking again later
     complete: Boolean(releaseData && series),
   });

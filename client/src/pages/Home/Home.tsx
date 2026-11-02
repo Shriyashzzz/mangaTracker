@@ -18,8 +18,8 @@ import RangePager from "../../components/rangePager/RangePager";
 import Mascot from "../../components/mascot/Mascot";
 import SlowLoadQuote from "../../components/slowLoadQuote/SlowLoadQuote";
 import { usePrivatePage } from "../../lib/seo";
-import { getShelfPriceTags, volumePath } from "../../lib/prices";
-import type { Manga, ReleaseStatus, ShelfPrice } from "../../lib/types";
+import { volumePath } from "../../lib/prices";
+import type { Manga, ReleaseStatus } from "../../lib/types";
 import { useAuth } from "../../store/auth";
 import { useShelf } from "../../store/shelf";
 import { readLocal, writeLocal } from "../../lib/prefs";
@@ -225,25 +225,14 @@ function Library() {
     if (hidden) seenNote.current?.querySelector("button")?.focus({ preventScroll: true });
   }, [hidden]);
 
-  // price lines for the cards, once the shelf is in. Nice to have: the
-  // shelf works the same without them
-  const [priceTags, setPriceTags] = useState<Record<number, ShelfPrice>>({});
   const hasManga = Boolean(mangaData?.length);
-  useEffect(() => {
-    if (!hasManga) return;
-    const controller = new AbortController();
-    getShelfPriceTags(controller.signal)
-      .then(setPriceTags)
-      .catch(() => {});
-    return () => controller.abort();
-  }, [hasManga]);
-
-  // what's new for each manga. Only asked for once the New tab is opened; after
-  // that it carries on even if they leave, and new titles get picked up
+  // what's new for each manga. Only asked for once the New tab is opened, or for
+  // anyone on rows, whose progress needs the latest chapter. After that it carries
+  // on even if they leave, and new titles get picked up
   const showingNew = statusFilter === "new";
   useEffect(() => {
-    if (showingNew && mangaData?.length) checkReleases();
-  }, [mangaData, releases, showingNew, checkReleases]);
+    if ((showingNew || rowsChosen) && mangaData?.length) checkReleases();
+  }, [mangaData, releases, showingNew, rowsChosen, checkReleases]);
   const checked = (mangaData ?? []).filter((m) => m.id in releases).length;
   const checking = showingNew && checked < (mangaData?.length ?? 0);
   const allChecked = checked > 0 && checked >= (mangaData?.length ?? 0);
@@ -950,7 +939,6 @@ function Library() {
               >
                 <MangaCard
                     currentManga={currentManga}
-                  priceTag={priceTags[currentManga.id]}
                   news={newsFor(currentManga)}
                   linkTo={buyLinkFor(currentManga)}
                   onOpen={
@@ -969,6 +957,10 @@ function Library() {
                   }
                   index={i}
                   compact={rowsChosen}
+                  latestChapter={
+                    releases[currentManga.id]?.latestChapter ??
+                    currentManga.latestChapter
+                  }
                 />
                 {showingNew && (
                   <button

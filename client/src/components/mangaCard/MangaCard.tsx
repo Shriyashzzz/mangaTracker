@@ -1,8 +1,7 @@
 import { NavLink } from "react-router";
 import StarRating from "../starRating/StarRating";
 import { FALLBACK_COVER } from "../../lib/api";
-import { formatCents } from "../../lib/prices";
-import type { Manga, ShelfPrice } from "../../lib/types";
+import type { Manga } from "../../lib/types";
 
 // what's come out for it on the New tab
 export type CardNews = {
@@ -11,10 +10,8 @@ export type CardNews = {
   yours?: string;
 };
 
-// priceTag: the cheapest price we've seen for the series, if any
 type Props = {
   currentManga: Manga;
-  priceTag?: ShelfPrice;
   news?: CardNews;
   // added to the card's link, e.g. to open the details in the Japan view
   detailsSearch?: string;
@@ -26,6 +23,8 @@ type Props = {
   index?: number;
   // a row with a small cover at every screen size, chosen in settings
   compact?: boolean;
+  // how far through the series they are, once we know the latest chapter
+  latestChapter?: number | null;
 };
 
 // every card leans a little differently when you hover it: the 1st, 2nd and
@@ -35,14 +34,19 @@ const coverBase =
 
 export default function MangaCard({
   currentManga,
-  priceTag,
   news,
   detailsSearch = "",
   linkTo,
   onOpen,
   index = 0,
   compact = false,
+  latestChapter,
 }: Props) {
+  const asColumns = compact && !news;
+  // a count that's behind where they are says nothing, so it isn't shown
+  const reading = currentManga.bookmark ?? 0;
+  const knownTotal =
+    latestChapter != null && latestChapter >= reading ? latestChapter : null;
   const genre =
     currentManga.genre && currentManga.genre !== "unlabled"
       ? currentManga.genre
@@ -52,8 +56,10 @@ export default function MangaCard({
     <NavLink
       to={linkTo ?? `/details/${currentManga.id}${detailsSearch}`}
       className={
-        compact
-          ? "group flex animate-card-in flex-row items-center gap-3 py-1.5"
+        asColumns
+          ? "group grid animate-card-in grid-cols-[2.75rem_minmax(0,1fr)_6.5rem_8rem] gap-x-3 py-1.5 upto-720:grid-cols-[2.75rem_minmax(0,1fr)_5.5rem]"
+          : compact
+          ? "group flex animate-card-in flex-row items-start gap-3 py-1.5"
           : news
           ? "group flex animate-card-in flex-col gap-[0.7rem] upto-720:flex-row upto-720:items-center upto-720:gap-3 upto-720:py-1.5"
           : "group flex animate-card-in flex-col gap-[0.7rem]"
@@ -104,27 +110,45 @@ export default function MangaCard({
         <p className={`${compact ? "line-clamp-1" : news ? "line-clamp-2 min-h-[2.5em] upto-720:min-h-0 upto-720:line-clamp-1" : "line-clamp-2"}  font-display text-[1.05rem] leading-[1.25] font-semibold decoration-accent underline-offset-3 group-hover:underline`}>
           {currentManga.name}
         </p>
-        <p
-          className={
-            compact
-              ? `truncate font-mono text-[0.78rem] text-muted${news ? " hidden" : ""}`
-              : `min-h-[1.5em] truncate font-mono text-[0.78rem] text-muted${news ? " upto-720:hidden" : ""}`
-          }
-        >
-          {news
-            ? genre
-            : // a blank or zero chapter says nothing worth showing
-              [
-                currentManga.status
-                  ? "finished"
-                  : currentManga.bookmark
-                    ? `ch. ${currentManga.bookmark}`
-                    : null,
-                genre,
-              ]
-                .filter(Boolean)
-                .join(" · ")}
-        </p>
+        {/* a row gives the chapter its own line: it's what they came to see */}
+        {compact && !news ? (
+          <>
+            <p className="truncate font-mono text-[0.85rem] font-medium text-ink-soft">
+              {/* the right side already says when it's finished */}
+              {currentManga.bookmark
+                ? `ch. ${currentManga.bookmark}`
+                : currentManga.status
+                  ? "no chapter saved"
+                  : "not started"}
+            </p>
+            {/* one line for the rest, so every row is the same height */}
+            <div className="flex min-h-[1.2rem] min-w-0 items-center gap-3">
+              {genre && (
+                <p className="truncate font-mono text-[0.78rem] text-muted">{genre}</p>
+              )}
+            </div>
+          </>
+        ) : (
+          <p
+            className={`min-h-[1.5em] truncate font-mono text-[0.78rem] text-muted${
+              news ? (compact ? " hidden" : " upto-720:hidden") : ""
+            }`}
+          >
+            {news
+              ? genre
+              : // a blank or zero chapter says nothing worth showing
+                [
+                  currentManga.status
+                    ? "finished"
+                    : currentManga.bookmark
+                      ? `ch. ${currentManga.bookmark}`
+                      : null,
+                  genre,
+                ]
+                  .filter(Boolean)
+                  .join(" · ")}
+          </p>
+        )}
         {news && (
           <p className="font-brand text-[1.05rem] tracking-[1px] text-accent">
             {news.text}
@@ -136,25 +160,40 @@ export default function MangaCard({
           </p>
         )}
         {/* the New tab's cards all match: only what's out and where they are */}
-        <div className={compact ? "flex flex-wrap items-center gap-x-3" : "contents"}>
-        {!news && priceTag && (
-          <p
-            // the lowest price we've seen for the series at the stores we
-            // check (not every store), quiet until you look
-            className="font-mono text-[0.78rem] text-muted"
-            title={`At the stores we check: ${priceTag.title}`}
-          >
-            lowest seen{" "}
-            <span className="font-medium text-accent">
-              {formatCents(priceTag.fromCents)}
-            </span>
-          </p>
-        )}
-        {!news && Number(currentManga.rating) > 0 && (
+        {!news && !compact && Number(currentManga.rating) > 0 && (
           <StarRating value={Number(currentManga.rating)} size="sm" />
         )}
-        </div>
       </div>
+      {asColumns && (
+        <>
+          <span className="flex items-center upto-720:hidden">
+            {/* unrated ones show empty stars, so the column always reads the same */}
+            <StarRating value={Number(currentManga.rating) || 0} size="sm" />
+          </span>
+          <span className="flex flex-col justify-center gap-1 text-right font-mono text-[0.82rem] text-ink-soft">
+            {currentManga.status ? (
+              "Finished"
+            ) : knownTotal != null ? (
+              <>
+                <span>
+                  {reading} of {knownTotal}
+                </span>
+                <span
+                  className="block h-1.5 overflow-hidden rounded-full border border-line bg-card"
+                  aria-hidden
+                >
+                  <span
+                    className="block h-full bg-accent"
+                    style={{
+                      width: `${knownTotal ? Math.min((reading / knownTotal) * 100, 100) : 0}%`,
+                    }}
+                  />
+                </span>
+              </>
+            ) : null}
+          </span>
+        </>
+      )}
     </NavLink>
   );
 }

@@ -70,9 +70,8 @@ export const homeStyles = {
   pagerBottom: "mt-10",
   // "Hide" sits under the card rather than in it: the card is one big link
   cardWithSeen: "flex min-w-0 flex-col items-start [&>a]:w-full [&>a]:flex-1",
-  // anyone who chose rows in settings: one column on phones, two on anything wider
-  rowsGrid:
-    "grid grid-cols-2 gap-x-8 border-t-[1.5px] border-line upto-720:grid-cols-[minmax(0,1fr)]",
+  // anyone who chose rows in settings: one manga per row at every size
+  rowsGrid: "grid grid-cols-[minmax(0,1fr)] border-t-[1.5px] border-line",
   cardRowAlways:
     "flex min-w-0 flex-row items-stretch border-b-[1.5px] border-line-soft [&>a]:min-w-0 [&>a]:flex-1",
   seenBtnRow:

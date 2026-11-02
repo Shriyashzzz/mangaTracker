@@ -8,7 +8,6 @@ import type {
   Series,
   SeriesHit,
   SeriesIndexEntry,
-  ShelfPrice,
   VolumePrices,
 } from "./types";
 
@@ -31,10 +30,6 @@ export const searchSeries = (q: string, signal?: AbortSignal) =>
 
 export const getSeries = (name: string, signal?: AbortSignal) =>
   getJson<Series>(`/api/prices/series?${new URLSearchParams({ name })}`, signal);
-
-// the cheapest known price for each manga on the signed-in shelf, by id
-export const getShelfPriceTags = (signal?: AbortSignal) =>
-  getJson<Record<number, ShelfPrice>>("/api/manga/prices", signal);
 
 // every series we know, for the /series page
 export const getSeriesIndex = (signal?: AbortSignal) =>
