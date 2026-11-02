@@ -424,6 +424,7 @@ No single source covers every US volume and price, so several are combined:
 | [AniList](https://anilist.co/) | Series names, covers, scores, genres, popularity | Free |
 | [Open Library](https://openlibrary.org/) | Every US edition and ISBN, edition covers | Free |
 | [SerpApi](https://serpapi.com/) Google Shopping | Prices from many stores in one search | Paid, budgeted monthly |
+| [SerpApi](https://serpapi.com/) eBay, Amazon, Walmart | Prices with direct links to the exact listing | Paid, same budget |
 | [Google Books](https://developers.google.com/books) | Ebook prices | Free key |
 | [eBay Browse API](https://developer.ebay.com/) | New and used listings | Key required |
 | Walmart (walmart.io) | Walmart.com listings | Key required |

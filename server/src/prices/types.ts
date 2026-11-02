@@ -24,6 +24,8 @@ export interface Provider {
   // the store name shown when this provider is live
   store: string;
   enabled(): boolean;
+  // a fallback: asked after the others, only if no row's store matches this
+  onlyIfNoRow?: RegExp;
   fetchOffers(isbn13: string, signal: AbortSignal, book: BookRef): Promise<Offer[]>;
 }
 

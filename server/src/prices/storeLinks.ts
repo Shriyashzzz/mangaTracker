@@ -53,6 +53,20 @@ const isGoogleLink = (url: string | null) => {
 const EBAY = /^ebay( - .+)?$/i;
 const AMAZON = /^amazon(\.com)?$/i;
 const BOOKSHOP = /^bookshop(\.org)?$/i;
+const WALMART = /^walmart\b/i;
+
+// with a row straight from eBay, Amazon or Walmart, the same store's Google
+// Shopping rows only repeat it with a worse link, so they go
+export function preferDirectRows<T extends Pick<Offer, "store" | "url">>(
+  offers: T[],
+): T[] {
+  const direct = [EBAY, AMAZON, WALMART].filter((store) =>
+    offers.some((o) => store.test(o.store) && o.url && !isGoogleLink(o.url)),
+  );
+  return offers.filter(
+    (o) => !isGoogleLink(o.url) || !direct.some((store) => store.test(o.store)),
+  );
+}
 
 // Google Shopping rows link to a Google page, and the click from there to
 // the store carries none of our affiliate tracking. For a new print copy

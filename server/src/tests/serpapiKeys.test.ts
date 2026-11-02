@@ -42,7 +42,8 @@ test("SerpApi's answers are told apart", () => {
   expect(readAnswer(429, "exceeds the hourly throughput limit")).toBe("skip");
   expect(readAnswer(401, "Invalid API key")).toBe("skip");
   expect(readAnswer(500, "boom")).toBe("error");
-  expect(readAnswer(200, "Google hasn't returned any results")).toBe("error");
+  expect(readAnswer(200, "Google hasn't returned any results")).toBe("ok");
+  expect(readAnswer(200, "something else went wrong")).toBe("error");
 });
 
 const run = (answers: Record<string, KeyAnswer>, allowance: Record<string, boolean> = {}) => {

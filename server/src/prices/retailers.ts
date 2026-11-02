@@ -56,6 +56,10 @@ const RETAILERS = new Set([
   "kodansha",
 ]);
 
+// any single volume, deluxe editions included, sits inside this. It catches
+// bad listings even when there are too few to compare with each other
+export const plausiblePrice = (cents: number) => cents >= 200 && cents <= 7500;
+
 // resale sites where listings are mostly used copies from individual sellers
 const RESALE =
   /\b(ebay|poshmark|mercari|etsy|tiktok|abebooks|thriftbooks|depop|facebook|offerup|alibris|biblio|whatnot|world of books|wob|half price books|better world books)\b/i;

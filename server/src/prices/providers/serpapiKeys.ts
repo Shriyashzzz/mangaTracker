@@ -38,6 +38,8 @@ export type KeyAnswer =
 
 export function readAnswer(status: number, error?: string): KeyAnswer {
   if (/run out of searches/i.test(error ?? "")) return "out-of-searches";
+  // nothing found is an answer, not a failure
+  if (/hasn.t returned any results/i.test(error ?? "")) return "ok";
   if (status === 401 || status === 403 || status === 429) return "skip";
   return status >= 200 && status < 300 && !error ? "ok" : "error";
 }
