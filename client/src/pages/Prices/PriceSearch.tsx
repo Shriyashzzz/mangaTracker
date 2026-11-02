@@ -12,6 +12,7 @@ import SlowLoadQuote from "../../components/slowLoadQuote/SlowLoadQuote";
 import { usePageMeta } from "../../lib/seo";
 import WhatsNew from "../../components/whatsNew/WhatsNew";
 import ReleaseTip from "../../components/whatsNew/ReleaseTip";
+import SampleShelfLink from "../../components/sampleShelf/SampleShelfLink";
 
 // phones get short names, so three even buttons fit across
 const QUICK_PICKS = [
@@ -99,6 +100,7 @@ export default function PriceSearch() {
                 <NavLink to="/signin" className="btn btn-ghost" viewTransition>
                   Sign in
                 </NavLink>
+                <SampleShelfLink />
               </div>
             </section>
           )}

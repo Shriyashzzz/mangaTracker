@@ -36,6 +36,7 @@ import {
 import ReleaseModal from "./ReleaseModal";
 import { EmptyShelfUndo } from "../../components/deletedNote/DeletedNote";
 import ReleaseTip from "../../components/whatsNew/ReleaseTip";
+import SampleShelfLink from "../../components/sampleShelf/SampleShelfLink";
 
 const SHELF_PAGE_SIZE = 30;
 // shelves this size get a heads-up that their first release check is slow
@@ -1067,8 +1068,8 @@ function GuestHero() {
             you sign up.
           </h1>
           <p className={styles.guestSub}>
-            Never lose your chapter again. Keep your place in every series you
-            read, and see when the next volume is out.
+            Keep your place in every series, track the volumes you own, and see
+            when the next one's out and what it costs.
           </p>
           <div className={styles.guestActions}>
             <NavLink
@@ -1085,6 +1086,7 @@ function GuestHero() {
             >
               Sign in
             </NavLink>
+            <SampleShelfLink />
           </div>
         </div>
 
