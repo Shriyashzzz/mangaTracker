@@ -88,10 +88,7 @@ export default function ReleaseBar({ what, inJapan, yours, data, buy }: Props) {
           if (hasDates && !(e.target as HTMLElement).closest("a")) setOpen(!open);
         }}
       >
-        <span
-          className={`${styles.releaseStamp} ${buy ? styles.releaseStampBesideBuy : ""}`}
-          aria-hidden
-        >
+        <span className={styles.releaseStamp} aria-hidden>
           Psst!
         </span>
 

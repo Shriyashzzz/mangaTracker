@@ -72,9 +72,7 @@ export const detailsStyles = {
   releaseBarOpens: "cursor-pointer transition-[filter] duration-120 ease-[ease] hover:brightness-105",
   // the hanko-style stamp knocked onto the bar's top edge, kin to "Done"
   releaseStamp:
-    "pointer-events-none absolute -top-3 upto-720:-top-4 right-12 z-1 rotate-6 rounded-[4px] border-2 border-accent bg-paper px-[0.35rem] font-brand text-[0.92rem] tracking-[1.5px] text-accent upto-720:right-2.5",
-  // on a laptop, clear of the Buy link it would otherwise sit on
-  releaseStampBesideBuy: "right-[14rem] upto-720:right-2.5",
+    "pointer-events-none absolute -top-5 right-2.5 z-1 upto-720:-top-4 rotate-6 rounded-[4px] border-2 border-accent bg-paper px-[0.35rem] font-brand text-[0.92rem] tracking-[1.5px] text-accent",
   releaseToggle:
     "flex min-w-0 flex-1 basis-40 upto-720:basis-30 cursor-[inherit] flex-wrap items-baseline gap-x-2.5 text-left focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-on-accent upto-720:flex-col upto-720:items-start",
   releaseHeadline:
