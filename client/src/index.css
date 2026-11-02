@@ -16,6 +16,7 @@
 /* the breakpoints the pages were designed at, inclusive like the original
    CSS (Tailwind's own max-[...] variants exclude the edge). Use them like
    any variant: upto-760:grid-cols-1 */
+@custom-variant upto-980 (@media (max-width: 980px));
 @custom-variant upto-860 (@media (max-width: 860px));
 @custom-variant upto-760 (@media (max-width: 760px));
 @custom-variant upto-720 (@media (max-width: 720px));

@@ -5,10 +5,12 @@ import { create } from "zustand";
 import { apiFetch } from "../lib/api";
 import {
   getReleases,
+  LAST_NEW_COUNT_KEY,
   RELEASE_CHECK_TIMEOUT_MS,
   saveSeen,
   type SeenKind,
 } from "../lib/shelf";
+import { writeLocal } from "../lib/prefs";
 import type { Manga, ReleaseStatus } from "../lib/types";
 
 type ShelfState = {
@@ -32,7 +34,7 @@ type ShelfState = {
 // where each kind of "Seen it" lives on a manga, and the flag it switches off
 const SEEN = {
   volume: { field: "seenVolume", flag: "hasNewVolume", latest: "nextVolume" },
-  chapter: { field: "seenChapter", flag: "hasNewChapter", latest: "latestChapter" },
+  chapter: { field: "seenChapter", flag: "hasNewChapter", latest: "nextChapter" },
   japan: {
     field: "seenJapanVolume",
     flag: "hasNewJapaneseVolume",
@@ -192,6 +194,7 @@ export const useShelf = create<ShelfState>()((set, get) => ({
     generation++;
     incomplete.clear();
     retried.clear();
+    writeLocal(LAST_NEW_COUNT_KEY, "");
     set({ manga: null, loadFailed: false, releases: {} });
   },
 }));

@@ -184,11 +184,26 @@ export async function listKnownSeries(): Promise<SeriesInfo[]> {
 
 // series info, cached a week in the database so pages stay fast and we stay
 // far inside AniList's rate limit. Returns null if AniList has no match
+// rows saved before altNames existed don't have it, so they're asked for afresh.
+// "Nothing found" is saved as null, and is a complete answer
+export const isComplete = (info: unknown) =>
+  info == null || Array.isArray((info as Partial<SeriesInfo>).altNames);
+
+// if AniList can't be asked, an old row still works with its names filled in
+export const withAltNames = (info: SeriesInfo): SeriesInfo => ({
+  ...info,
+  altNames: info.altNames ?? [],
+});
+
 export async function getSeriesInfo(name: string): Promise<SeriesInfo | null> {
   const slug = slugify(name);
   if (!slug) return null;
   const cached = await prisma.seriesInfo.findUnique({ where: { slug } });
-  if (cached && Date.now() - cached.fetchedAt.getTime() < SERIES_FRESH_MS) {
+  if (
+    cached &&
+    Date.now() - cached.fetchedAt.getTime() < SERIES_FRESH_MS &&
+    isComplete(cached.info)
+  ) {
     return cached.info as SeriesInfo | null;
   }
 
@@ -208,7 +223,7 @@ export async function getSeriesInfo(name: string): Promise<SeriesInfo | null> {
   } catch (e) {
     // a stale answer beats none if AniList is down or rate limiting us
     console.error("AniList series lookup failed:", (e as Error).message);
-    return (cached?.info as SeriesInfo | null) ?? null;
+    return cached?.info ? withAltNames(cached.info as SeriesInfo) : null;
   }
 }
 

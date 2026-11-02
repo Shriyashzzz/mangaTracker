@@ -148,11 +148,6 @@ export default function SettingsMenu({ isSignedIn, onLogOut }: Props) {
             </button>
           </li>
           <li>
-            <NavLink to="/updates" className={item} viewTransition>
-              What's new
-            </NavLink>
-          </li>
-          <li>
             <NavLink to="/about" className={item} viewTransition>
               About
             </NavLink>

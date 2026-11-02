@@ -156,7 +156,13 @@ export default function PriceVolume() {
     storeLinks,
   } = state.data;
   const seriesLabel = series.info?.name ?? series.name;
-  const shownOffers = offersOpen ? offers : offers.slice(0, VISIBLE_OFFERS);
+  // people come here for a physical copy, so ebooks go under the print ones.
+  // The awards below still use the true cheapest-first order
+  const listedOffers = [
+    ...offers.filter((o) => o.format !== "ebook"),
+    ...offers.filter((o) => o.format === "ebook"),
+  ];
+  const shownOffers = offersOpen ? listedOffers : listedOffers.slice(0, VISIBLE_OFFERS);
   // the next volumes first, then the ones before
   const nearby = [
     ...siblings.filter((v) => volume == null || (v.volume ?? 0) > volume),
@@ -183,6 +189,8 @@ export default function PriceVolume() {
   const lowest = inStock[0];
   const newLow = inStock.find((o) => o.format === "print" && o.condition === "new");
   const marketLow = inStock.find((o) => o.format === "print" && o.condition !== "new");
+  // one row stands out, and it's the one the headline names
+  const highlighted = newLow ?? lowest;
   const stampsOf = (o: Offer) =>
     o === lowest
       ? [AWARDS.lowest, typeOf(o)]
@@ -297,7 +305,7 @@ export default function PriceVolume() {
                   return (
                     <li
                       key={`${o.store}-${o.format}-${o.condition}`}
-                      className={o === lowest ? styles.lowestOffer : ""}
+                      className={o === highlighted ? styles.lowestOffer : ""}
                     >
                       {/* the whole row is the way to the store */}
                       {o.url ? (

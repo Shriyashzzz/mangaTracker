@@ -42,8 +42,11 @@ export default function SignInPage() {
         navigater(afterSignIn(params), { viewTransition: true });
       } else if (result.status === 400) {
         setError((await errorMessages(result))[0] ?? "Check your details.");
-      } else {
+      } else if (result.status === 401 || result.status === 404) {
         setError("Incorrect username or password. Try again.");
+      } else {
+        // there's no password reset, so never let an outage look like a lost account
+        setError("We couldn't reach your shelf. Your account is fine, try again in a minute.");
       }
     } catch {
       setError("Something went wrong. Please try again.");

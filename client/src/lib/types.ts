@@ -51,6 +51,8 @@ export type ReleaseStatus = {
   // how far they've got: what they own, or else the volume their chapter is in
   currentVolume: number | null;
   latestVolume: number | null;
+  // the chapter after theirs, up to the latest
+  nextChapter: number | null;
   // the next English volume after where they are, and its price page
   nextVolume: number | null;
   nextVolumeBook?: { isbn13: string; title: string } | null;

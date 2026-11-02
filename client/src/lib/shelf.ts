@@ -28,6 +28,8 @@ export async function saveSeen(id: number, kind: SeenKind, number: number | null
 
 // set once a whole shelf has had its releases checked
 export const CHECKED_BEFORE_KEY = "releasesCheckedBefore";
+// how many were new at the last full check, for the New tab before it's opened
+export const LAST_NEW_COUNT_KEY = "releasesLastNewCount";
 
 // makes the shelf open on its New tab; call just before going to /shelf
 export const openReleasesOnShelf = () => {
