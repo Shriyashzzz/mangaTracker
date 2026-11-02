@@ -8,6 +8,7 @@ import SlowLoadQuote from "../../components/slowLoadQuote/SlowLoadQuote";
 import { usePrivatePage } from "../../lib/seo";
 import { getReleases } from "../../lib/shelf";
 import { useShelf } from "../../store/shelf";
+import NotesField from "./NotesField";
 import BuyStrip from "./BuyStrip";
 import ReleasePanel from "./ReleasePanel";
 import ChapterStepper from "./ChapterStepper";
@@ -292,12 +293,7 @@ export default function Details() {
             </p>
           </div>
 
-          {mangaData.description && (
-            <div className={styles.notes}>
-              <span className={styles.label}>Your notes</span>
-              <p>{mangaData.description}</p>
-            </div>
-          )}
+          <NotesField key={mangaData.id} id={mangaData.id} initial={mangaData.description} />
 
           <BuyStrip
             name={mangaData.name}
