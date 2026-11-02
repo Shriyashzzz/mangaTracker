@@ -31,7 +31,7 @@ type ShelfState = {
 
 // where each kind of "Seen it" lives on a manga, and the flag it switches off
 const SEEN = {
-  volume: { field: "seenVolume", flag: "hasNewVolume", latest: "latestVolume" },
+  volume: { field: "seenVolume", flag: "hasNewVolume", latest: "nextVolume" },
   chapter: { field: "seenChapter", flag: "hasNewChapter", latest: "latestChapter" },
   japan: {
     field: "seenJapanVolume",
