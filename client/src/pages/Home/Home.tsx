@@ -7,7 +7,7 @@ import MangaCard, {
 
 import { homeStyles as styles } from "./styles";
 import { NavLink, useNavigate } from "react-router";
-import { CheckIcon, SearchIcon, StarIcon } from "../../components/icons/Icons";
+import { CheckIcon, ChevronDownIcon, SearchIcon, StarIcon } from "../../components/icons/Icons";
 import RangePager from "../../components/rangePager/RangePager";
 import Mascot from "../../components/mascot/Mascot";
 import SlowLoadQuote from "../../components/slowLoadQuote/SlowLoadQuote";
@@ -549,19 +549,22 @@ function Library() {
           </label>
           <label className={styles.sort}>
             <span className="upto-520:sr-only">Sort</span>
-            <select
-              value={sortBy}
-              onChange={(e) => {
-                setSortBy(e.target.value);
-                writeSession("librarySort", e.target.value);
-              }}
-            >
-              {SORT_OPTIONS.map((o) => (
-                <option key={o.value} value={o.value}>
-                  {o.label}
-                </option>
-              ))}
-            </select>
+            <span className={styles.sortPick}>
+              <select
+                value={sortBy}
+                onChange={(e) => {
+                  setSortBy(e.target.value);
+                  writeSession("librarySort", e.target.value);
+                }}
+              >
+                {SORT_OPTIONS.map((o) => (
+                  <option key={o.value} value={o.value}>
+                    {o.label}
+                  </option>
+                ))}
+              </select>
+              <ChevronDownIcon className={styles.sortArrow} aria-hidden />
+            </span>
           </label>
         </div>
       </div>
