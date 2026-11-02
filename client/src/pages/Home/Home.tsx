@@ -343,25 +343,35 @@ function Library() {
     if (!(await markSeen(id, kind, previous))) setSeenFailed(true);
   };
 
-  // what a card in the New tab says. The list stays broad, so a card only
-  // shouts when the next one really is what's just out; otherwise it just says
-  // where the series has got to
+  // what a card in the New tab says: what's out, and where they are, so the two
+  // numbers can't be mixed up. It only shouts when the next one really is what's
+  // just out, since the list stays broad
   const newsFor = (m: Manga): CardNews | undefined => {
     if (!showingNew) return undefined;
     const found = releases[m.id];
+    const volumeYours = m.volumesOwned
+      ? `You own up to vol. ${m.volumesOwned}`
+      : found?.currentVolume
+        ? `You're on vol. ${found.currentVolume}`
+        : undefined;
     if (releaseKind === "japan") {
-      return { text: `Vol. ${found?.latestJapaneseVolume} in Japan`, loud: true };
+      return {
+        text: `Vol. ${found?.latestJapaneseVolume} in Japan`,
+        loud: true,
+        yours: volumeYours,
+      };
     }
     if (releaseKind === "chapters") {
       const latest = found?.latestChapter ?? 0;
+      const yours = m.bookmark ? `You're on ch. ${m.bookmark}` : undefined;
       return m.bookmark && latest - m.bookmark <= 1
-        ? { text: `Ch. ${latest} is out`, loud: true }
-        : { text: `Now at ch. ${latest}`, loud: false };
+        ? { text: `Ch. ${latest} is out`, loud: true, yours }
+        : { text: `Out now: ch. ${latest}`, loud: false, yours };
     }
     const latest = found?.latestVolume ?? 0;
     return found?.isNextVolumeOut
-      ? { text: `Vol. ${latest} is out`, loud: true }
-      : { text: `Now at vol. ${latest}`, loud: false };
+      ? { text: `Vol. ${latest} is out`, loud: true, yours: volumeYours }
+      : { text: `Out now: vol. ${latest}`, loud: false, yours: volumeYours };
   };
   const total = mangaData.length;
   // every title failed, so "nothing new" would be a false comfort. A few failing

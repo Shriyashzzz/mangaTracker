@@ -5,7 +5,12 @@ import { formatCents } from "../../lib/prices";
 import type { Manga, ShelfPrice } from "../../lib/types";
 
 // what's come out for it on the New tab; loud when it's the very next one
-export type CardNews = { text: string; loud: boolean };
+export type CardNews = {
+  text: string;
+  loud: boolean;
+  // where they've got to, right under it
+  yours?: string;
+};
 
 // priceTag: the cheapest price we've seen for the series, if any
 type Props = {
@@ -66,18 +71,29 @@ export default function MangaCard({
           {currentManga.name}
         </p>
         <p className="truncate font-mono text-[0.78rem] text-muted">
-          {currentManga.status ? "finished" : `ch. ${currentManga.bookmark}`}
-          {genre && <span> · {genre}</span>}
+          {news ? (
+            genre
+          ) : (
+            <>
+              {currentManga.status ? "finished" : `ch. ${currentManga.bookmark}`}
+              {genre && <span> · {genre}</span>}
+            </>
+          )}
         </p>
         {news && (
           <p
             className={
               news.loud
                 ? "font-brand text-[1.05rem] tracking-[1px] text-accent"
-                : "text-[0.85rem] leading-[1.3] font-medium text-ink-soft"
+                : "text-[0.9rem] leading-[1.3] font-semibold text-ink"
             }
           >
             {news.text}
+          </p>
+        )}
+        {news?.yours && (
+          <p className="text-[0.82rem] leading-[1.3] text-ink-soft">
+            {news.yours}
           </p>
         )}
         {priceTag && (
