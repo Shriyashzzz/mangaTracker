@@ -69,7 +69,9 @@ export const homeStyles = {
     "grid grid-cols-[repeat(auto-fill,minmax(160px,1fr))] gap-x-6 gap-y-9 upto-520:grid-cols-2 upto-520:gap-x-4 upto-520:gap-y-7",
   pagerBottom: "mt-10",
   // "Hide" sits under the card rather than in it: the card is one big link
-  cardWithSeen:
+  cardWithSeen: "flex min-w-0 flex-col items-start [&>a]:w-full [&>a]:flex-1",
+  // the same card as a row, on the New tab on small screens
+  cardAsRow:
     "flex min-w-0 flex-col items-start [&>a]:w-full [&>a]:flex-1 upto-720:flex-row upto-720:items-stretch upto-720:border-b-[1.5px] upto-720:border-line-soft upto-720:[&>a]:w-auto upto-720:[&>a]:min-w-0",
   seenBtn:
     "tap mt-2 inline-flex shrink-0 items-center gap-1 py-1 upto-720:mt-0 upto-720:min-w-16 upto-720:justify-center upto-720:px-2 text-[0.85rem] font-medium text-ink-soft underline decoration-line-soft underline-offset-3 transition-colors duration-120 ease-[ease] hover:text-accent hover:decoration-accent [&_svg]:size-3.5",
