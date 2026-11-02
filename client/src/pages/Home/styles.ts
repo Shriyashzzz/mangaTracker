@@ -28,6 +28,8 @@ export const homeStyles = {
   importBottom: "mt-10 hidden text-center upto-720:block",
   // room for the add button, so it can't sit on the last row's Hide
   library: "upto-720:pb-20",
+  addInToolbar:
+    "hidden size-11 shrink-0 place-items-center rounded-full border-2 border-paper bg-accent text-on-accent transition-colors duration-120 ease-[ease] hover:bg-accent-hover upto-720:grid [&_svg]:size-6",
   // a flat red disc fixed above the bottom bar, with a paper edge so it keeps its
   // shape over dark covers. Gone while typing, and while a note is in its place
   addButton:

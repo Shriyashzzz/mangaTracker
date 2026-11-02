@@ -226,12 +226,13 @@ function Library() {
   }, [hidden]);
 
   const hasManga = Boolean(mangaData?.length);
-  // what's new for each manga. Only asked for once the New tab is opened; after
-  // that it carries on even if they leave, and new titles get picked up
+  // what's new for each manga. Only asked for once the New tab is opened, or for
+  // anyone on rows, whose progress needs the latest chapter. After that it carries
+  // on even if they leave, and new titles get picked up
   const showingNew = statusFilter === "new";
   useEffect(() => {
-    if (showingNew && mangaData?.length) checkReleases();
-  }, [mangaData, releases, showingNew, checkReleases]);
+    if ((showingNew || rowsChosen) && mangaData?.length) checkReleases();
+  }, [mangaData, releases, showingNew, rowsChosen, checkReleases]);
   const checked = (mangaData ?? []).filter((m) => m.id in releases).length;
   const checking = showingNew && checked < (mangaData?.length ?? 0);
   const allChecked = checked > 0 && checked >= (mangaData?.length ?? 0);
@@ -729,6 +730,16 @@ function Library() {
               <ChevronDownIcon className={styles.sortArrow} aria-hidden />
             </span>
           </label>
+          {rowsChosen && !showingNew && (
+            <button
+              type="button"
+              className={styles.addInToolbar}
+              aria-label="Add manga"
+              onClick={goToAdd}
+            >
+              <PlusIcon aria-hidden />
+            </button>
+          )}
         </div>
       </div>
 
@@ -956,6 +967,7 @@ function Library() {
                   }
                   index={i}
                   compact={rowsChosen}
+                  latestChapter={releases[currentManga.id]?.latestChapter}
                 />
                 {showingNew && (
                   <button
@@ -999,7 +1011,9 @@ function Library() {
         />
       )}
 
-      {!showingNew && <AddButton onClick={goToAdd} />}
+      {/* a floating button would sit on the rows' progress, so they get one in the
+          toolbar, which stays pinned as they scroll */}
+      {!showingNew && !rowsChosen && <AddButton onClick={goToAdd} />}
 
       <ReleaseTip
         enabled={hasManga && !showingNew}

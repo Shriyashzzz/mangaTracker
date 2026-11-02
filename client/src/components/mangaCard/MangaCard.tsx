@@ -23,6 +23,8 @@ type Props = {
   index?: number;
   // a row with a small cover at every screen size, chosen in settings
   compact?: boolean;
+  // how far through the series they are, once we know the latest chapter
+  latestChapter?: number | null;
 };
 
 // every card leans a little differently when you hover it: the 1st, 2nd and
@@ -38,7 +40,14 @@ export default function MangaCard({
   onOpen,
   index = 0,
   compact = false,
+  latestChapter,
 }: Props) {
+  const asColumns = compact && !news;
+  const rated = Number(currentManga.rating) > 0;
+  // a count that's behind where they are says nothing, so it isn't shown
+  const reading = currentManga.bookmark ?? 0;
+  const knownTotal =
+    latestChapter != null && latestChapter >= reading ? latestChapter : null;
   const genre =
     currentManga.genre && currentManga.genre !== "unlabled"
       ? currentManga.genre
@@ -48,7 +57,9 @@ export default function MangaCard({
     <NavLink
       to={linkTo ?? `/details/${currentManga.id}${detailsSearch}`}
       className={
-        compact
+        asColumns
+          ? "group grid animate-card-in grid-cols-[2.75rem_minmax(0,1fr)_6.5rem_8rem] gap-x-3 py-1.5 upto-720:grid-cols-[2.75rem_minmax(0,1fr)_5.5rem]"
+          : compact
           ? "group flex animate-card-in flex-row items-start gap-3 py-1.5"
           : news
           ? "group flex animate-card-in flex-col gap-[0.7rem] upto-720:flex-row upto-720:items-center upto-720:gap-3 upto-720:py-1.5"
@@ -104,19 +115,23 @@ export default function MangaCard({
         {compact && !news ? (
           <>
             <p className="truncate font-mono text-[0.85rem] font-medium text-ink-soft">
-              {currentManga.status
-                ? "finished"
-                : currentManga.bookmark
-                  ? `ch. ${currentManga.bookmark}`
+              {/* the right side already says when it's finished */}
+              {currentManga.bookmark
+                ? `ch. ${currentManga.bookmark}`
+                : currentManga.status
+                  ? "no chapter saved"
                   : "not started"}
             </p>
             {/* one line for the rest, so every row is the same height */}
-            <div className="flex min-h-[1.2rem] min-w-0 items-center gap-3">
+            <div className="flex min-h-[1.2rem] min-w-0 items-center gap-3 upto-720:min-h-6">
               {genre && (
                 <p className="truncate font-mono text-[0.78rem] text-muted">{genre}</p>
               )}
-              {Number(currentManga.rating) > 0 && (
-                <StarRating value={Number(currentManga.rating)} size="sm" />
+              {/* on wider screens the stars get a column of their own */}
+              {rated && (
+                <span className="min-[721px]:hidden">
+                  <StarRating value={Number(currentManga.rating)} size="sm" />
+                </span>
               )}
             </div>
           </>
@@ -156,6 +171,35 @@ export default function MangaCard({
           <StarRating value={Number(currentManga.rating)} size="sm" />
         )}
       </div>
+      {asColumns && (
+        <>
+          <span className="flex items-center upto-720:hidden">
+            {rated && <StarRating value={Number(currentManga.rating)} size="sm" />}
+          </span>
+          <span className="flex flex-col justify-center gap-1 text-right font-mono text-[0.82rem] text-ink-soft">
+            {currentManga.status ? (
+              "Finished"
+            ) : knownTotal != null ? (
+              <>
+                <span>
+                  {reading} of {knownTotal}
+                </span>
+                <span
+                  className="block h-1.5 overflow-hidden rounded-full border border-line bg-card"
+                  aria-hidden
+                >
+                  <span
+                    className="block h-full bg-accent"
+                    style={{
+                      width: `${knownTotal ? Math.min((reading / knownTotal) * 100, 100) : 0}%`,
+                    }}
+                  />
+                </span>
+              </>
+            ) : null}
+          </span>
+        </>
+      )}
     </NavLink>
   );
 }
