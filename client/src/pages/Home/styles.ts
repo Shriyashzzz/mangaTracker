@@ -38,7 +38,7 @@ export const homeStyles = {
   toolbar:
     "sticky top-0 z-5 -mx-3 mb-9 flex flex-wrap items-end justify-between gap-x-8 gap-y-4 border-b-[1.5px] border-line bg-[var(--surface,var(--paper))] px-3 py-[0.9rem] upto-520:mb-5 upto-520:gap-y-1 upto-520:py-[0.55rem] [&+nav]:-mt-4",
   // on phones: four even columns, with each count under its label
-  tabs: "flex gap-6 upto-520:grid upto-520:w-full upto-520:grid-cols-4 upto-520:gap-0 upto-520:[&_button]:flex upto-520:[&_button]:flex-col upto-520:[&_button]:items-center upto-520:[&_button]:pb-1 upto-520:[&_button]:text-[0.9rem] upto-520:[&_button]:leading-[1.2]",
+  tabs: "flex gap-6 upto-520:grid upto-520:w-full upto-520:auto-cols-fr upto-520:grid-flow-col upto-520:gap-0 upto-520:[&_button]:flex upto-520:[&_button]:flex-col upto-520:[&_button]:items-center upto-520:[&_button]:pb-1 upto-520:[&_button]:text-[0.9rem] upto-520:[&_button]:leading-[1.2]",
   tab: `${tab} text-muted hover:text-ink`,
   tabActive: `${tab} font-semibold text-ink after:absolute after:inset-x-0 after:-bottom-[calc(0.9rem+2.5px)] after:h-1 after:bg-accent upto-520:after:-bottom-0.5 upto-520:after:h-[3px]`,
   count: "ml-0.5 font-mono text-[0.78rem] font-normal text-muted",

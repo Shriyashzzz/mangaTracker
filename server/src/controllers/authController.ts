@@ -94,6 +94,7 @@ const PREF_VALUES = {
   shelfTab: ["all", "ongoing", "finished", "new"],
   shelfSort: ["", "rating-dsc", "ch-dsc", "name-asc"],
   shelfView: ["covers", "rows"],
+  releaseChecks: ["on", "off"],
 };
 type StringPref = keyof typeof PREF_VALUES;
 

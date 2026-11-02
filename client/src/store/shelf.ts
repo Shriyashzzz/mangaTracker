@@ -11,7 +11,7 @@ import {
   saveSeen,
   type SeenKind,
 } from "../lib/shelf";
-import { writeLocal } from "../lib/prefs";
+import { releaseChecksOn, writeLocal } from "../lib/prefs";
 import type { Manga, ReleaseStatus } from "../lib/types";
 
 type ShelfState = {
@@ -135,7 +135,7 @@ export const useShelf = create<ShelfState>()((set, get) => ({
   // one title at a time, since the server has to ask other sites about each one
   // it hasn't seen lately
   checkReleases: async () => {
-    if (run) return;
+    if (run || !releaseChecksOn()) return;
     const controller = new AbortController();
     run = controller;
     try {

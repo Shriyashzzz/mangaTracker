@@ -1,6 +1,7 @@
 import { NavLink } from "react-router";
 import Mascot from "../../components/mascot/Mascot";
 import { usePageMeta } from "../../lib/seo";
+import { releaseChecksOn } from "../../lib/prefs";
 import { openReleasesOnShelf } from "../../lib/shelf";
 import { useAuth } from "../../store/auth";
 import { updatesStyles as styles } from "./styles";
@@ -72,7 +73,7 @@ export function UpdatesPage() {
               Start your shelf
             </NavLink>
           )}
-          {isSignedIn && (
+          {isSignedIn && releaseChecksOn() && (
             <NavLink
               to="/shelf"
               className="btn btn-primary mt-2"

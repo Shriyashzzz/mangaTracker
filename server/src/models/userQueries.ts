@@ -11,6 +11,8 @@ export type Prefs = {
   shelfTab?: string;
   shelfSort?: string;
   shelfView?: string;
+  // "off": this reader's manga are never looked up for new releases
+  releaseChecks?: string;
   // what the New tab lists; see util/releaseStatus.ts
   releases?: unknown;
 };

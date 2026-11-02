@@ -113,6 +113,8 @@ export type Prefs = {
   shelfSort?: string;
   // how the shelf lists manga: big covers, or compact rows
   shelfView?: "covers" | "rows";
+  // "off": never look up new volumes and chapters
+  releaseChecks?: "on" | "off";
   releases?: ReleaseSettings;
 };
 export type Background = "sfx" | "ink" | "pages" | "panels";

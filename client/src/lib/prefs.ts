@@ -56,6 +56,7 @@ export const applyPrefs = ({
   shelfTab,
   shelfSort,
   shelfView,
+  releaseChecks,
 }: Prefs = {}) => {
   if (isBackground(background)) {
     document.documentElement.dataset.bg = background;
@@ -77,7 +78,11 @@ export const applyPrefs = ({
   if (shelfTab) writeLocal("shelfTab", shelfTab);
   if (shelfSort !== undefined) writeLocal("shelfSort", shelfSort);
   if (shelfView) writeLocal("shelfView", shelfView);
+  if (releaseChecks) writeLocal("releaseChecks", releaseChecks);
 };
+
+// whether to look up new volumes and chapters; on unless they've said otherwise
+export const releaseChecksOn = () => readLocal("releaseChecks") !== "off";
 
 // applies a change right away, and keeps it on the account when signed in
 export const savePrefs = (patch: Prefs, isSignedIn: boolean | null) => {

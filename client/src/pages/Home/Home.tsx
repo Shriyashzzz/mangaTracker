@@ -22,7 +22,7 @@ import { volumePath } from "../../lib/prices";
 import type { Manga, ReleaseStatus } from "../../lib/types";
 import { useAuth } from "../../store/auth";
 import { useShelf } from "../../store/shelf";
-import { readLocal, writeLocal } from "../../lib/prefs";
+import { readLocal, releaseChecksOn, writeLocal } from "../../lib/prefs";
 import {
   CHECKED_BEFORE_KEY,
   isStillNew,
@@ -132,9 +132,13 @@ function Library() {
   // and returns to New, and coming back from a volume lands on it again
   const [searchParams] = useSearchParams();
   const wantHidden = searchParams.get("view") === "hidden";
-  const [statusFilter, setStatusFilter] = useState(() =>
-    wantHidden ? "new" : readSession("libraryStatus", readLocal("shelfTab") ?? "all"),
-  );
+  const checksOn = releaseChecksOn();
+  const [statusFilter, setStatusFilter] = useState(() => {
+    if (wantHidden && checksOn) return "new";
+    const saved = readSession("libraryStatus", readLocal("shelfTab") ?? "all");
+    // no New tab with release checks off
+    return saved === "new" && !checksOn ? "all" : saved;
+  });
   const [sortBy, setSortBy] = useState(() => {
     const saved = readSession("librarySort", readLocal("shelfSort") ?? "");
     return SORT_OPTIONS.some((o) => o.value === saved) ? saved : "";
@@ -385,15 +389,19 @@ function Library() {
     { value: "finished", label: "Finished", count: counts.finished },
     // what the last check found until this visit's check says otherwise, so
     // what's new shows without opening the tab. Nothing until they've ever looked
-    {
-      value: "new",
-      label: "New",
-      count: everyCheckFailed
-        ? null
-        : allChecked
-          ? counts.new
-          : (lastNewCount ?? (checked ? counts.new : null)),
-    },
+    ...(checksOn
+      ? [
+          {
+            value: "new",
+            label: "New",
+            count: everyCheckFailed
+              ? null
+              : allChecked
+                ? counts.new
+                : (lastNewCount ?? (checked ? counts.new : null)),
+          },
+        ]
+      : []),
   ];
   const kindCounts: Record<ReleaseKind, number> = {
     volumes: counts.newVolumes,
