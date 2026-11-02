@@ -2,6 +2,7 @@ import { useId, useState, type KeyboardEvent } from "react";
 import { pricesStyles as list } from "../Prices/styles";
 import { formStyles as styles } from "../../styles/form";
 import type { CoverHit } from "../../lib/anilist";
+import { hasBottomBar } from "../../lib/bottomBar";
 
 const SHOWN = 5;
 
@@ -75,7 +76,7 @@ export default function TitleField({ value, onChange, hits, onPick }: Props) {
         maxLength={150}
         autoComplete="off"
         required
-        autoFocus
+        autoFocus={!hasBottomBar()}
       />
 
       {showing && (

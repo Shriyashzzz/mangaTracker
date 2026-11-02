@@ -689,3 +689,10 @@
     transition-duration: 0.01ms !important;
   }
 }
+
+/* tabbing never lands on something hidden behind the phones' bottom bar */
+@media (max-width: 720px) {
+  html {
+    scroll-padding-bottom: 4.5rem;
+  }
+}

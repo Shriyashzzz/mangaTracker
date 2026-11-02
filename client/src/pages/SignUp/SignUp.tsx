@@ -1,5 +1,6 @@
 import { useRef, useState, type FormEvent } from "react";
 import { isMobile } from "react-device-detect";
+import { hasBottomBar } from "../../lib/bottomBar";
 import { authStyles as styles } from "../../styles/auth";
 import { NavLink, useNavigate, useSearchParams } from "react-router";
 import PasswordInput from "../../components/passwordInput/PasswordInput";
@@ -79,13 +80,13 @@ export default function SignUp() {
                 id="username"
                 ref={userNameRef}
                 type="text"
-                placeholder="your_username"
+                placeholder="yourusername"
                 name="username"
                 autoComplete="username"
                 required
                 aria-invalid={hasError(/name/i)}
                 aria-describedby={describedBy("username-hint")}
-                autoFocus={isMobile ? false : true}
+                autoFocus={!isMobile && !hasBottomBar()}
               />
               <span id="username-hint" className={styles.hint}>
                 4–40 letters or numbers

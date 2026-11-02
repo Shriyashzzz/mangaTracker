@@ -27,12 +27,14 @@ const styles = {
     "flex items-start justify-between gap-4 border-b-[1.5px] border-line px-5 pt-4 pb-3",
   modalTitle:
     "font-brand text-[1.5rem] leading-[1.1] font-normal tracking-[0.02em] text-balance uppercase",
+  // Close is at the bottom on phones, where a thumb can reach it
   modalClose:
-    "tap shrink-0 py-1 text-[0.9rem] font-medium text-ink-soft underline decoration-line-soft underline-offset-3 hover:text-ink",
+    "tap shrink-0 py-1 text-[0.9rem] font-medium text-ink-soft underline decoration-line-soft underline-offset-3 hover:text-ink upto-720:hidden",
+  modalFoot: "hidden border-t-[1.5px] border-line p-3 upto-720:block",
   modalBody: "flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto px-5 py-4",
   modalCover: "w-28 shrink-0 rounded-[2px] border-[1.5px] border-line",
   notes: "leading-[1.55] whitespace-pre-line wrap-anywhere",
-  stamp: "absolute top-2.5 right-2 rotate-8 rounded-[3px] border-2 border-accent bg-[color-mix(in_srgb,var(--card)_85%,transparent)] px-2 py-[0.15rem] font-brand text-[1rem] leading-[1.2] tracking-[1.5px] text-accent",
+  stamp: "absolute top-2.5 right-2 rotate-8 rounded-[3px] border-2 border-accent-hover bg-[color-mix(in_srgb,var(--card)_92%,transparent)] px-2 py-[0.15rem] font-brand text-[1rem] leading-[1.2] tracking-[1.5px] text-accent-hover",
   missing: "mx-auto my-12 flex max-w-[440px] flex-col items-center gap-3 text-center",
 } as const;
 
@@ -84,20 +86,33 @@ function NotesModal({ m, onClose }: { m: SharedManga; onClose: () => void }) {
       onClose={onClose}
       // the backdrop counts as the dialog itself; its contents are all children
       onClick={(e) => {
-        if (e.target === dialog.current) onClose();
+        if (e.target === dialog.current) dialog.current.close();
       }}
     >
       <div className={styles.modalHead}>
         <h2 id="notes-title" className={styles.modalTitle}>
           {m.name}
         </h2>
-        <button type="button" className={styles.modalClose} onClick={onClose}>
+        <button
+          type="button"
+          className={styles.modalClose}
+          onClick={() => dialog.current?.close()}
+        >
           Close
         </button>
       </div>
       <div className={styles.modalBody}>
         <img src={m.image || FALLBACK_COVER} alt="" className={styles.modalCover} />
         <p className={styles.notes}>{m.notes}</p>
+      </div>
+      <div className={styles.modalFoot}>
+        <button
+          type="button"
+          className="btn btn-secondary btn-block"
+          onClick={() => dialog.current?.close()}
+        >
+          Close
+        </button>
       </div>
     </dialog>
   );

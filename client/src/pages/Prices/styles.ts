@@ -18,6 +18,18 @@ export const pricesStyles = {
   page: "prices-page flex flex-col gap-8",
   // the what's new list hangs off this, out in the page's right margin
   front: "relative",
+  // the two halves of the app, side by side for anyone new
+  homeTitle:
+    "font-brand text-[clamp(2.1rem,6.5vw,4.6rem)] leading-[0.98] font-normal tracking-[0.01em] text-balance uppercase",
+  homeHit: "inline-block -rotate-2 bg-ink px-[0.12em] text-paper",
+  halves:
+    "grid grid-cols-2 items-stretch gap-[clamp(1rem,2.5vw,1.5rem)] upto-860:grid-cols-[minmax(0,1fr)] [&>*]:min-w-0",
+  trackHalf:
+    "speed-burst relative flex flex-col items-start gap-3 border-3 border-line p-[clamp(1rem,3vw,2rem)]",
+  halfMascot: "absolute top-3 right-3 w-16 upto-520:w-11",
+  halfTitle:
+    "pr-14 font-brand text-[clamp(1.8rem,4vw,2.6rem)] leading-[1] font-normal tracking-[0.02em] uppercase",
+  halfActions: "mt-auto flex flex-wrap items-center gap-3 pt-2",
   searchHead: "speed-burst flex flex-col gap-3 border-3 border-line p-[clamp(1.25rem,3vw,2rem)]",
   title:
     "font-brand text-[clamp(2.4rem,6vw,3.6rem)] leading-[0.95] font-normal tracking-[0.02em] uppercase",
@@ -134,7 +146,7 @@ export const pricesStyles = {
   labelMarket: "inline-block rounded-[2px] border border-line px-[0.35rem] pt-[0.05rem] font-brand text-[0.88rem] leading-[1.15] font-normal tracking-[1px] text-stamp-ink uppercase bg-stamp-market",
   labelEbook: "inline-block rounded-[2px] border border-line px-[0.35rem] pt-[0.05rem] font-brand text-[0.88rem] leading-[1.15] font-normal tracking-[1px] text-stamp-ink uppercase bg-stamp-ebook",
   offerStore: "flex flex-col gap-[0.15rem] font-semibold",
-  offerTags: "font-mono text-[0.75rem] font-normal text-muted",
+  offerTags: "font-mono text-[0.75rem] font-normal text-ink-soft",
   offerPrice: "font-mono text-[1.05rem] font-medium tabular-nums",
   // "Show N more": one centered button across the row
   moreRow: "grid justify-center py-1",
@@ -175,6 +187,7 @@ export const pricesStyles = {
   siblings: "mt-10 border-t-[1.5px] border-dashed border-line-soft pt-6",
 
   // ---------- shared by series and volume pages ----------
+  jump: "mb-4 flex flex-wrap items-center gap-2 text-[0.9rem] font-medium [&_input]:h-11 [&_input]:w-20 [&_input]:rounded-[2px] [&_input]:border-2 [&_input]:border-line [&_input]:bg-card [&_input]:px-2 [&_input]:text-[1rem]",
   backToNew:
     "tap mb-3 inline-flex items-center gap-1 font-medium underline decoration-accent decoration-2 underline-offset-3 [&_svg]:size-4",
   crumbs:
@@ -200,9 +213,9 @@ export const pricesStyles = {
   indexControls: "mt-1 flex flex-wrap items-center gap-x-6 gap-y-3",
   // two inked tabs, the pressed one filled
   segmented:
-    "inline-flex overflow-hidden rounded-ink border-2 border-line [&_button]:min-h-10 [&_button]:bg-card [&_button]:px-4 [&_button]:text-[0.92rem] [&_button]:font-medium [&_button]:text-ink-soft [&_button]:transition-[background-color,color] [&_button]:duration-120 [&_button]:ease-[ease] [&_button]:hover:text-ink [&_button+button]:border-l-2 [&_button+button]:border-line [&_button[aria-pressed=true]]:bg-ink [&_button[aria-pressed=true]]:text-paper",
+    "inline-flex overflow-hidden rounded-ink border-2 border-line [&_button]:min-h-11 [&_button]:bg-card [&_button]:px-4 [&_button]:text-[0.92rem] [&_button]:font-medium [&_button]:text-ink-soft [&_button]:transition-[background-color,color] [&_button]:duration-120 [&_button]:ease-[ease] [&_button]:hover:text-ink [&_button+button]:border-l-2 [&_button+button]:border-line [&_button[aria-pressed=true]]:bg-ink [&_button[aria-pressed=true]]:text-paper",
   genrePick:
-    "flex items-center gap-2 text-[0.875rem] text-muted [&_select]:min-h-10 [&_select]:rounded-ink [&_select]:border-[1.5px] [&_select]:border-line [&_select]:bg-card [&_select]:px-[0.6rem] [&_select]:text-[16px] [&_select]:text-ink",
+    "flex items-center gap-2 text-[0.875rem] text-muted [&_select]:min-h-11 [&_select]:rounded-ink [&_select]:border-[1.5px] [&_select]:border-line [&_select]:bg-card [&_select]:px-[0.6rem] [&_select]:text-[16px] [&_select]:text-ink",
   // A to Z: a jump bar, then one block per letter
   letterBar:
     "flex flex-wrap gap-1 [&_a]:grid [&_a]:h-[34px] [&_a]:min-w-[34px] [&_a]:place-items-center [&_a]:rounded-[2px] [&_a]:border-[1.5px] [&_a]:border-line-soft [&_a]:font-brand [&_a]:text-[1.1rem] [&_a]:text-ink-soft [&_a]:transition-[border-color,color] [&_a]:duration-120 [&_a]:ease-[ease] [&_a]:hover:border-line [&_a]:hover:text-accent",
