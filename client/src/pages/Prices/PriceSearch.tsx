@@ -13,7 +13,17 @@ import { usePageMeta } from "../../lib/seo";
 import WhatsNew from "../../components/whatsNew/WhatsNew";
 import ReleaseTip from "../../components/whatsNew/ReleaseTip";
 
-const QUICK_PICKS = ["One Piece", "Jujutsu Kaisen", "Chainsaw Man", "Frieren"];
+// phones get short names, so three even buttons fit across
+const QUICK_PICKS = [
+  { name: "One Piece" },
+  { name: "Jujutsu Kaisen", only: "upto-720:hidden" },
+  { name: "Chainsaw Man", only: "upto-720:hidden" },
+  { name: "Frieren" },
+  { name: "Berserk", only: "hidden upto-720:grid" },
+  { name: "Dandadan", only: "hidden upto-720:grid" },
+  { name: "Bleach", only: "hidden upto-720:grid" },
+  { name: "Naruto", only: "hidden upto-720:grid" },
+];
 
 export default function PriceSearch() {
   const [params] = useSearchParams();
@@ -108,9 +118,14 @@ export default function PriceSearch() {
             {!searching && (
               <p className={styles.quick}>
                 <span>Try</span>
-                {QUICK_PICKS.map((pick) => (
-                  <NavLink key={pick} to={seriesPath(pick)} viewTransition>
-                    {pick}
+                {QUICK_PICKS.map(({ name, only }) => (
+                  <NavLink
+                    key={name}
+                    to={seriesPath(name)}
+                    className={only}
+                    viewTransition
+                  >
+                    {name}
                   </NavLink>
                 ))}
               </p>

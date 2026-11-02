@@ -53,7 +53,7 @@ export const pricesStyles = {
     "flex h-[50px] w-full min-w-0 items-center gap-[0.6rem] border-[2.5px] border-line bg-paper px-4 text-muted focus-within:border-accent focus-within:shadow-[0_0_0_3px_var(--accent-wash)] [&_input]:min-w-0 [&_input]:flex-1 [&_input]:border-none [&_input]:bg-transparent [&_input]:text-[1.05rem] [&_input]:text-ink [&_input]:outline-none [&_input]:placeholder:text-muted [&_svg]:size-[19px] [&_svg]:shrink-0",
   // "Try: One Piece, Jujutsu Kaisen, ..."
   quick:
-    "flex flex-wrap items-center gap-2 text-[0.85rem] text-muted upto-720:grid upto-720:grid-cols-2 upto-720:[&_span]:col-span-full upto-720:[&_a]:grid upto-720:[&_a]:min-h-11 upto-720:[&_a]:place-items-center upto-720:[&_a]:text-center [&_a]:tap [&_a]:rounded-[2px] [&_a]:border-[1.5px] [&_a]:border-line-soft [&_a]:bg-paper [&_a]:px-[0.65rem] [&_a]:py-[0.2rem] [&_a]:text-[0.85rem] [&_a]:text-ink-soft [&_a]:transition-[border-color] [&_a]:duration-120 [&_a]:ease-[ease] [&_a]:hover:border-line [&_a]:hover:text-ink",
+    "flex flex-wrap items-center gap-2 text-[0.85rem] text-muted upto-720:grid upto-720:grid-cols-3 upto-720:[&_span]:col-span-full upto-720:[&_a]:min-h-9 upto-720:[&_a]:place-items-center upto-720:[&_a]:px-1 upto-720:[&_a]:text-center [&_a]:tap [&_a]:rounded-[2px] [&_a]:border-[1.5px] [&_a]:border-line-soft [&_a]:bg-paper [&_a]:px-[0.65rem] [&_a]:py-[0.2rem] [&_a]:text-[0.85rem] [&_a]:text-ink-soft [&_a]:transition-[border-color] [&_a]:duration-120 [&_a]:ease-[ease] [&_a]:hover:border-line [&_a]:hover:text-ink",
   // inside a results section the count sits above the grid, not overlapping
   count: "-mb-4 font-mono text-[0.78rem] text-muted [section>&]:mb-[0.9rem]",
 
