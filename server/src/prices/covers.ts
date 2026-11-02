@@ -12,6 +12,7 @@
 //
 // https://openlibrary.org/dev/docs/api/books
 // https://openlibrary.org/dev/docs/api/covers
+import { openLibraryFetch } from "./openLibrary.js";
 import priceQueries from "../models/priceQueries.js";
 
 const BOOKS_URL = "https://openlibrary.org/api/books";
@@ -116,10 +117,7 @@ async function lookUpChunk(isbns: string[]): Promise<Map<string, CoverId>> {
 
   let res: Response;
   try {
-    res = await fetch(url, {
-      headers: { "User-Agent": "MangaTracker/1.0 (+https://mangatracker.xyz)" },
-      signal: AbortSignal.timeout(15_000),
-    });
+    res = await openLibraryFetch(url, 15_000);
   } catch (e) {
     // a refused connection is how Open Library's block looks from here
     pausedUntil = Date.now() + DEFAULT_PAUSE_MS / 2;

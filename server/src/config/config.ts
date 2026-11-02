@@ -37,6 +37,9 @@ const schema = z.object({
   KEEPA_API_KEY: optional,
   GOOGLE_BOOKS_API_KEY: optional,
 
+  // Open Library allows 3 requests a second instead of 1 with a contact email
+  EMAIL_FOR_OPEN_LIB: optional,
+
   // affiliate programs
   AMAZON_ASSOCIATE_TAG: optional,
   BOOKSHOP_AFFILIATE_ID: optional,
