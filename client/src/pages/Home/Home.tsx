@@ -969,7 +969,7 @@ function Library() {
         />
       )}
 
-      <AddButton onClick={goToAdd} />
+      {!showingNew && <AddButton onClick={goToAdd} />}
 
       <ReleaseTip
         enabled={hasManga && !showingNew}
