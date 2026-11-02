@@ -38,11 +38,10 @@ type Sources = {
 };
 
 // a little grace: a reader who was caught up shouldn't drop off the list because
-// a couple came out since they last updated their shelf
+// a couple came out since they last read
 const CAUGHT_UP_CHAPTERS = 3;
-const CAUGHT_UP_VOLUMES = 3;
 
-// "New" is for readers who've nearly caught up, not those with dozens to go. A blank shelf number can't say they've caught
+// "New" is for readers who've caught up: the next volume, not one of many to go. A blank shelf number can't say they've caught
 // up, so it doesn't count (a blank volume falls back on the chapter they're on)
 export function getReleaseStatus(
   { volumesOwned, bookmark, seenVolume, seenChapter, seenJapanVolume }: Shelved,
@@ -76,11 +75,7 @@ export function getReleaseStatus(
 
   return {
     hasNewVolume:
-      latestVolume != null &&
-      currentVolume != null &&
-      currentVolume < latestVolume &&
-      latestVolume - currentVolume <= CAUGHT_UP_VOLUMES &&
-      latestVolume > (seenVolume ?? 0),
+      isNextVolumeOut && latestVolume != null && latestVolume > (seenVolume ?? 0),
     hasNewChapter:
       latestChapter != null &&
       bookmark != null &&

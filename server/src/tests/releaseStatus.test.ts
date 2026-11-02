@@ -21,11 +21,10 @@ const chaptersOnly = (dates: FormatedDates | null) => ({
   englishVolumes: [],
 });
 
-test("a new volume only counts when they're within 3 of it", () => {
+test("a new volume only counts when it's the next one for them", () => {
   const out = volumesOnly(english(24, 25));
   expect(getReleaseStatus(owns(24), out).hasNewVolume).toBe(true);
-  expect(getReleaseStatus(owns(22), out).hasNewVolume).toBe(true);
-  expect(getReleaseStatus(owns(21), out).hasNewVolume).toBe(false);
+  expect(getReleaseStatus(owns(23), out).hasNewVolume).toBe(false);
   expect(getReleaseStatus(owns(3), out).hasNewVolume).toBe(false);
   expect(getReleaseStatus(owns(25), out).hasNewVolume).toBe(false);
 });
@@ -108,9 +107,9 @@ describe("the panel's next volume", () => {
     expect(status(13, null, 14).isNextVolumeOut).toBe(true);
     expect(status(14, null, 14).isNextVolumeOut).toBe(false);
     expect(status(12, null, 14).isNextVolumeOut).toBe(false);
-    // the New tab allows a little more room
-    expect(status(12, null, 14).hasNewVolume).toBe(true);
-    expect(status(10, null, 14).hasNewVolume).toBe(false);
+    // and the New tab follows the same rule
+    expect(status(13, null, 14).hasNewVolume).toBe(true);
+    expect(status(12, null, 14).hasNewVolume).toBe(false);
   });
 
   test("works out where they are from their chapter", () => {
