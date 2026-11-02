@@ -56,7 +56,7 @@ export default function ShelfAction({ series, title, volume }: Props) {
     return (
       <NavLink
         to={signInPath(pathname)}
-        className="btn btn-primary"
+        className="btn btn-secondary"
         viewTransition
       >
         Sign in to track this

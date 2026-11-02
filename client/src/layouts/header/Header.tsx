@@ -7,7 +7,7 @@ import clsx from "clsx";
 import logo from "../../assets/logo.svg";
 import SettingsMenu from "../../components/settingsMenu/SettingsMenu";
 import { useFromShelf } from "../../lib/fromShelf";
-import { useAuth } from "../../store/auth";
+import { probablySignedIn, useAuth } from "../../store/auth";
 import {
   forgetAllSpots,
   forgetSpot,
@@ -41,9 +41,15 @@ export default function Header() {
   const { isSignedIn, logOut } = useAuth();
   const here = pathname + search;
   const currentTab = fromShelf ? "shelf" : tabOf(pathname);
+  // the home page anyone new sees is both halves of the app, so neither lights up
+  const guestHome =
+    pathname === "/" &&
+    !search &&
+    (isSignedIn === false || (isSignedIn === null && !probablySignedIn()));
   // the price checker lives at "/", under /prices and at /series
   const onPrices =
     !fromShelf &&
+    !guestHome &&
     (pathname === "/" ||
     pathname.startsWith("/prices") ||
     pathname.startsWith("/series"));
@@ -133,7 +139,7 @@ export default function Header() {
         </NavLink>
         <NavLink
           {...barLink("prices")}
-          className={() => barClass(currentTab === "prices")}
+          className={() => barClass(onPrices)}
           viewTransition
         >
           Prices

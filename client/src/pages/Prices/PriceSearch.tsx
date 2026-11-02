@@ -2,7 +2,6 @@ import { useEffect, useId, useState } from "react";
 import { NavLink, useSearchParams } from "react-router";
 import type { Highlights as HighlightsData, SeriesHit } from "../../lib/types";
 import { probablySignedIn, useAuth } from "../../store/auth";
-import { GuestHero } from "../Home/Home";
 import { getHighlights, searchSeries, seriesPath } from "../../lib/prices";
 import SeriesSearchBox from "./SeriesSearchBox";
 import VolumeCard from "./VolumeCard";
@@ -58,31 +57,61 @@ export default function PriceSearch() {
 
   return (
     <div className={`${styles.page} fade-in`}>
-      {guest && <GuestHero />}
+      {guest && (
+        <h1 className={styles.homeTitle}>
+          Your manga, <span className={styles.homeHit}>tracked</span> and{" "}
+          <span className={styles.homeHit}>priced</span>.
+        </h1>
+      )}
       <div className={styles.front}>
-        <header className={styles.searchHead}>
-          {guest ? (
-            <h2 className={styles.title}>Price check</h2>
-          ) : (
-            <h1 className={styles.title}>Price check</h1>
-          )}
-          <p className={styles.sub}>
-            Find a series, then see what US stores charge for each volume.
-          </p>
-
-          <SeriesSearchBox initialQuery={query} autoFocus={!query && !guest} />
-
-          {!searching && (
-            <p className={styles.quick}>
-              <span>Try</span>
-              {QUICK_PICKS.map((pick) => (
-                <NavLink key={pick} to={seriesPath(pick)} viewTransition>
-                  {pick}
+        <div className={guest ? styles.halves : undefined}>
+          {guest && (
+            <section className={styles.trackHalf} aria-labelledby="track-title">
+              <span className={`printed ${styles.halfMascot}`} aria-hidden>
+                <Mascot mood="happy" />
+              </span>
+              <h2 id="track-title" className={styles.halfTitle}>
+                Track what you read
+              </h2>
+              <p className={styles.sub}>
+                Save the chapter you're on, rate what you finish, and see which
+                series have a new volume out.
+              </p>
+              <div className={styles.halfActions}>
+                <NavLink to="/signup" className="btn btn-primary" viewTransition>
+                  Start your shelf
                 </NavLink>
-              ))}
-            </p>
+                <NavLink to="/signin" className="btn btn-ghost" viewTransition>
+                  Sign in
+                </NavLink>
+              </div>
+            </section>
           )}
-        </header>
+
+          <header className={styles.searchHead}>
+            {guest ? (
+              <h2 className={styles.halfTitle}>Find what it costs</h2>
+            ) : (
+              <h1 className={styles.title}>Price check</h1>
+            )}
+            <p className={styles.sub}>
+              Find a series, then see what US stores charge for each volume.
+            </p>
+
+            <SeriesSearchBox initialQuery={query} autoFocus={!query && !guest} />
+
+            {!searching && (
+              <p className={styles.quick}>
+                <span>Try</span>
+                {QUICK_PICKS.map((pick) => (
+                  <NavLink key={pick} to={seriesPath(pick)} viewTransition>
+                    {pick}
+                  </NavLink>
+                ))}
+              </p>
+            )}
+          </header>
+        </div>
 
         {!searching && (
           <WhatsNew>{!guest && <ShelfPromo inMargin />}</WhatsNew>
