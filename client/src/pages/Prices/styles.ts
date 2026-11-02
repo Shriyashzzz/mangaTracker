@@ -175,6 +175,8 @@ export const pricesStyles = {
   siblings: "mt-10 border-t-[1.5px] border-dashed border-line-soft pt-6",
 
   // ---------- shared by series and volume pages ----------
+  backToNew:
+    "tap mb-3 inline-flex items-center gap-1 font-medium underline decoration-accent decoration-2 underline-offset-3 [&_svg]:size-4",
   crumbs:
     "mb-5 flex flex-wrap items-center gap-[0.45rem] text-[0.85rem] text-muted [.prices-page_&]:-mb-3 [&_[aria-current]]:text-ink-soft [&_a]:underline-offset-3 [&_a]:hover:text-ink [&_a]:hover:underline",
   tag: "mr-[0.4rem] inline-block rounded-[2px] border border-line-soft px-[0.45rem] py-[0.05rem]",

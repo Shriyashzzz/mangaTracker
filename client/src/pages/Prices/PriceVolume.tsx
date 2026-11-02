@@ -1,5 +1,8 @@
 import { useEffect, useState } from "react";
-import { ChevronDownIcon, ChevronRightIcon } from "../../components/icons/Icons";
+import {
+  ChevronDownIcon,
+  ChevronRightIcon,
+} from "../../components/icons/Icons";
 import { NavLink, useLocation, useNavigate, useParams } from "react-router";
 import {
   coverSrc,
@@ -12,10 +15,12 @@ import {
   timeAgo,
 } from "../../lib/prices";
 import SeriesFacts from "./SeriesFacts";
+import BackToNew from "./BackToNew";
 import VolumeCard, { CoverFallback } from "./VolumeCard";
 import { pricesStyles as styles } from "./styles";
 import Mascot from "../../components/mascot/Mascot";
 import SlowLoadQuote from "../../components/slowLoadQuote/SlowLoadQuote";
+import { stayInTrip, useFromShelf } from "../../lib/fromShelf";
 import { readLocal } from "../../lib/prefs";
 import { usePageMeta } from "../../lib/seo";
 import { volumeMeta } from "./pageMeta";
@@ -102,12 +107,13 @@ export default function PriceVolume() {
   // an ISBN-only or outdated link: show the address with the title in it,
   // without loading the page again
   const navigate = useNavigate();
-  const { pathname, search } = useLocation();
+  const { pathname, search, state: linkState } = useLocation();
+  const fromShelf = useFromShelf();
   useEffect(() => {
     if (!loadedBook) return;
     const path = volumePath(loadedBook.isbn13, loadedBook.title);
-    if (pathname !== path) navigate(path + search, { replace: true });
-  }, [loadedBook, pathname, search, navigate]);
+    if (pathname !== path) navigate(path + search, { replace: true, state: linkState });
+  }, [loadedBook, pathname, search, navigate, linkState]);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -213,12 +219,15 @@ export default function PriceVolume() {
 
   return (
     <div className="fade-in">
+      {fromShelf && (
+        <BackToNew />
+      )}
       <nav className={styles.crumbs} aria-label="Breadcrumb">
         <NavLink to="/" viewTransition>
           Price check
         </NavLink>
         <span aria-hidden>/</span>
-        <NavLink to={seriesPath(series.name)} viewTransition>
+        <NavLink to={seriesPath(series.name)} viewTransition {...stayInTrip(fromShelf)}>
           {seriesLabel}
         </NavLink>
         <span aria-hidden>/</span>
@@ -257,7 +266,7 @@ export default function PriceVolume() {
           </p>
           <p className={styles.partOf}>
             Part of{" "}
-            <NavLink to={seriesPath(series.name)} viewTransition>
+            <NavLink to={seriesPath(series.name)} viewTransition {...stayInTrip(fromShelf)}>
               {seriesLabel}
             </NavLink>
           </p>
@@ -480,6 +489,7 @@ export default function PriceVolume() {
               to={seriesPath(series.name)}
               className={styles.textBtn}
               viewTransition
+              {...stayInTrip(fromShelf)}
             >
               See all {siblings.length + 1}
             </NavLink>

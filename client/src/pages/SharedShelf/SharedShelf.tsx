@@ -44,7 +44,7 @@ const Cover = ({ m }: { m: SharedManga }) => (
       src={m.image || FALLBACK_COVER}
       alt=""
       loading="lazy"
-      className="size-full object-cover"
+      className="absolute inset-0 size-full object-cover"
       onError={(e) => {
         if (e.currentTarget.src !== FALLBACK_COVER) {
           e.currentTarget.src = FALLBACK_COVER;

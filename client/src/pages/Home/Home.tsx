@@ -6,7 +6,7 @@ import MangaCard, {
 } from "../../components/mangaCard/MangaCard";
 
 import { homeStyles as styles } from "./styles";
-import { NavLink, useNavigate } from "react-router";
+import { NavLink, useLocation, useNavigate, useSearchParams } from "react-router";
 import {
   CheckIcon,
   ChevronDownIcon,
@@ -142,7 +142,11 @@ function Library() {
     return saved in RELEASE_KINDS ? (saved as ReleaseKind) : "volumes";
   });
   // the New tab's list of what they've hidden
-  const [wantHidden, setWantHidden] = useState(false);
+  // in the address, so it's a step of its own: the back gesture leaves the list
+  // and returns to New, and coming back from a volume lands on it again
+  const [searchParams] = useSearchParams();
+  const { state: linkState } = useLocation();
+  const wantHidden = searchParams.get("view") === "hidden";
   // the series whose grouped list is open
   const [openRelease, setOpenRelease] = useState<number | null>(null);
   const hiddenCount = (mangaData ?? []).filter((m) =>
@@ -190,6 +194,8 @@ function Library() {
     previousList: number[];
     // true when they've just brought it back rather than hidden it
     restored?: boolean;
+    // after "Unhide all": everything to put back for the undo
+    others?: { id: number; previous: number | null; previousList: number[] }[];
   } | null>(null);
   const [seenFailed, setSeenFailed] = useState(false);
   const seenNote = useRef<HTMLDivElement>(null);
@@ -264,6 +270,13 @@ function Library() {
     };
   }, [mangaData, releases]);
 
+  // nothing left hidden, so there's no list to be on
+  useEffect(() => {
+    if (wantHidden && allChecked && hiddenCount === 0) {
+      navigator("/shelf", { replace: true });
+    }
+  }, [wantHidden, allChecked, hiddenCount, navigator]);
+
   useEffect(() => {
     if (!allChecked) return;
     writeLocal(CHECKED_BEFORE_KEY, "yes");
@@ -306,6 +319,15 @@ function Library() {
   }, [mangaData, releases, releaseKind, viewingHidden, statusFilter, sortBy, query]);
 
   const goToAdd = () => navigator("/add", { viewTransition: true });
+
+  const openHidden = () =>
+    navigator("/shelf?view=hidden", { state: { openedHidden: true } });
+  // the same as the back gesture when that's how they got here. An address opened
+  // directly has nothing to go back to
+  const leaveHidden = () => {
+    if ((linkState as { openedHidden?: boolean } | null)?.openedHidden) navigator(-1);
+    else navigator("/shelf", { replace: true });
+  };
 
   const changePage = (index: number) => {
     setPage({ key: filterKey, index });
@@ -453,10 +475,54 @@ function Library() {
     return true;
   };
 
+  // everything hidden in this view, back on the list at once
+  const unhideAll = async () => {
+    const kind = SEEN_KIND[releaseKind];
+    const series = mangaData.filter((m) => isHiddenAs(releases[m.id], releaseKind));
+    const others = series.map((m) => ({
+      id: m.id,
+      previous: seenOf(m, kind),
+      previousList: m.hiddenVolumes ?? [],
+    }));
+    setSeenFailed(false);
+    const saved = await Promise.all(
+      series.map((m) =>
+        markSeen(m.id, kind, null, kind === "volume" ? [] : undefined),
+      ),
+    );
+    if (saved.every(Boolean)) {
+      setHidden({
+        id: 0,
+        name: `${series.length} series`,
+        kind,
+        previous: null,
+        previousList: [],
+        restored: true,
+        others,
+      });
+    } else {
+      setSeenFailed(true);
+    }
+  };
+
   const undoSeen = async () => {
     if (!hidden) return;
-    const { id, kind, previous, previousList } = hidden;
+    const { id, kind, previous, previousList, others } = hidden;
     setHidden(null);
+    if (others) {
+      const saved = await Promise.all(
+        others.map((o) =>
+          markSeen(
+            o.id,
+            kind,
+            o.previous,
+            kind === "volume" ? o.previousList : undefined,
+          ),
+        ),
+      );
+      if (!saved.every(Boolean)) setSeenFailed(true);
+      return;
+    }
     const list = kind === "volume" ? previousList : undefined;
     if (!(await markSeen(id, kind, previous, list))) setSeenFailed(true);
     // back on the card it came from
@@ -609,6 +675,7 @@ function Library() {
               onClick={() => {
                 setStatusFilter(t.value);
                 writeSession("libraryStatus", t.value);
+                if (wantHidden) navigator("/shelf", { replace: true });
               }}
             >
               {t.shortLabel ? (
@@ -738,9 +805,18 @@ function Library() {
                 type="button"
                 className={styles.hiddenToggle}
                 aria-pressed={viewingHidden}
-                onClick={() => setWantHidden(!viewingHidden)}
+                onClick={viewingHidden ? leaveHidden : openHidden}
               >
                 {viewingHidden ? "Back to new" : `Hidden (${hiddenCount})`}
+              </button>
+            )}
+            {viewingHidden && (
+              <button
+                type="button"
+                className={styles.hiddenToggle}
+                onClick={unhideAll}
+              >
+                Unhide all
               </button>
             )}
           </div>
@@ -862,13 +938,13 @@ function Library() {
                   <button
                     type="button"
                     className={styles.seenBtn}
-                    aria-label={`${viewingHidden ? "Show again" : isGrouped(currentManga) ? "Hide all" : "Hide"}: ${currentManga.name}`}
+                    aria-label={`${viewingHidden ? "Unhide" : isGrouped(currentManga) ? "Hide all" : "Hide"}: ${currentManga.name}`}
                     data-seen-id={currentManga.id}
                     onClick={() => handleSeen(currentManga)}
                   >
                     {!viewingHidden && <CheckIcon />}
                     {viewingHidden
-                      ? "Show again"
+                      ? "Unhide"
                       : isGrouped(currentManga)
                         ? "Hide all"
                         : "Hide"}
@@ -913,30 +989,13 @@ function Library() {
   );
 }
 
-// on small screens, adding sits within reach of a thumb. It gets out of the way
-// while they're reading down the list and at the page's end, and comes back as
-// soon as they scroll up. In a portal for the same reason as the note above
+// on small screens, adding sits within reach of a thumb. In a portal for the same
+// reason as the note above
 function AddButton({ onClick }: { onClick: () => void }) {
-  const [tucked, setTucked] = useState(false);
-  useEffect(() => {
-    let last = window.scrollY;
-    const onScroll = () => {
-      const y = window.scrollY;
-      const atEnd =
-        y + window.innerHeight >= document.documentElement.scrollHeight - 160;
-      if (atEnd) setTucked(true);
-      else if (y < last - 6 || y < 80) setTucked(false);
-      else if (y > last + 6) setTucked(true);
-      if (Math.abs(y - last) > 6) last = y;
-    };
-    window.addEventListener("scroll", onScroll, { passive: true });
-    return () => window.removeEventListener("scroll", onScroll);
-  }, []);
   return createPortal(
     <button
       type="button"
       className={styles.addButton}
-      data-tucked={tucked}
       aria-label="Add manga"
       onClick={onClick}
     >

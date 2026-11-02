@@ -28,11 +28,10 @@ export const homeStyles = {
   importBottom: "mt-10 hidden text-center upto-720:block",
   // room for the add button, so it can't sit on the last row's Hide
   library: "upto-720:pb-20",
-  // a flat ink disc above the bottom bar, with a paper edge so it keeps its shape
-  // over dark covers. It slides away under the bar while scrolling down the list,
-  // and is gone while typing or while a note is in its place
+  // a flat red disc fixed above the bottom bar, with a paper edge so it keeps its
+  // shape over dark covers. Gone while typing, and while a note is in its place
   addButton:
-    "fixed right-4 bottom-[calc(3.75rem+env(safe-area-inset-bottom))] z-15 hidden size-12 place-items-center rounded-full border-2 border-paper bg-ink text-paper transition-[translate,background-color] duration-200 ease-ink hover:bg-ink-soft focus-visible:translate-y-0 data-[tucked=true]:translate-y-20 motion-reduce:transition-none upto-720:grid [body:has(input:focus,textarea:focus,select:focus,[data-over-add-button])_&]:hidden! [&_svg]:size-6",
+    "fixed right-4 bottom-[calc(3.75rem+env(safe-area-inset-bottom))] z-15 hidden size-12 place-items-center rounded-full border-2 border-paper bg-accent text-on-accent transition-colors duration-120 ease-[ease] hover:bg-accent-hover upto-720:grid [body:has(input:focus,textarea:focus,select:focus,[data-over-add-button])_&]:hidden! [&_svg]:size-6",
   // the header scrolls away, this stays pinned so search and filters are
   // one tap away on a long shelf. It reaches a little past the grid on both
   // sides so tilted cards never peek out beside it while scrolling
@@ -63,9 +62,9 @@ export const homeStyles = {
     "grid grid-cols-[repeat(auto-fill,minmax(160px,1fr))] gap-x-6 gap-y-9 upto-520:grid-cols-2 upto-520:gap-x-4 upto-520:gap-y-7",
   pagerBottom: "mt-10",
   // "Hide" sits under the card rather than in it: the card is one big link
-  cardWithSeen: "flex min-w-0 flex-col items-start [&>a]:w-full",
+  cardWithSeen: "flex min-w-0 flex-col items-start [&>a]:w-full [&>a]:flex-1",
   seenBtn:
-    "tap mt-2 inline-flex items-center gap-1 py-1 text-[0.85rem] font-medium text-ink-soft underline decoration-line-soft underline-offset-3 transition-colors duration-120 ease-[ease] hover:text-accent hover:decoration-accent [&_svg]:size-3.5",
+    "tap mt-2 inline-flex shrink-0 items-center gap-1 py-1 text-[0.85rem] font-medium text-ink-soft underline decoration-line-soft underline-offset-3 transition-colors duration-120 ease-[ease] hover:text-accent hover:decoration-accent [&_svg]:size-3.5",
   // above the phones' bottom bar
   seenNote:
     "fixed inset-x-0 bottom-6 z-15 mx-auto flex w-fit max-w-[min(30rem,calc(100vw-2rem))] animate-drop items-center gap-4 rounded-ink border-[2.5px] border-line bg-card px-4 py-3 text-[0.95rem] text-ink shadow-ink motion-reduce:animate-none upto-720:bottom-[calc(3.75rem+env(safe-area-inset-bottom))]",
