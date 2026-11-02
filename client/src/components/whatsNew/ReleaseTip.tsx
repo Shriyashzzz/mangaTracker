@@ -38,6 +38,8 @@ export default function ReleaseTip({ enabled, onCheck }: Props) {
       // mid-typing is a bad moment; a later visit can try again
       const active = document.activeElement;
       if (active instanceof HTMLInputElement && active.value) return;
+      // that corner's taken; a later visit can try again
+      if (document.querySelector(".support-peek")) return;
       writeLocal(SEEN_KEY, seen === "once" ? "yes" : "once");
       setOpen(true);
     }, SHOW_AFTER_MS);
