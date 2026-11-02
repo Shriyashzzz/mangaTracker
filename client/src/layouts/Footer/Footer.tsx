@@ -23,45 +23,45 @@ export default function Footer() {
       // room for the phones' bottom bar
       className="screentone mt-auto bg-ink text-paper upto-720:pb-[calc(3rem+env(safe-area-inset-bottom))]"
     >
-      {/* one slim strip on laptops. Narrower, the quote gets a row of its own,
-          with the heading and links above it; on phones the links go under it,
-          so they never run into the heading */}
-      <div className="px-gutter mx-auto grid max-w-page grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-x-10 gap-y-4 py-[1.1rem] upto-980:grid-cols-[minmax(0,1fr)_auto] upto-760:grid-cols-[minmax(0,1fr)_auto] upto-760:gap-x-4 upto-760:gap-y-[0.9rem] upto-760:pt-4">
-        <p className="-rotate-3 font-brand text-[1.7rem] leading-none tracking-[1.5px] whitespace-nowrap upto-760:text-[1.3rem]">
-          Quote of the day
-        </p>
+      <div className="px-gutter mx-auto max-w-page py-6 upto-760:py-5">
+        {/* equal side columns keep the quote on the page's true center, however
+            wide the heading is. Narrower, the heading sits above the quote */}
+        <div className="grid grid-cols-[minmax(0,1fr)_minmax(0,auto)_minmax(0,1fr)] items-center gap-x-8 gap-y-3 upto-980:grid-cols-[minmax(0,1fr)]">
+          <p className="-rotate-3 justify-self-start font-brand text-[1.7rem] leading-none tracking-[1.5px] whitespace-nowrap upto-760:text-[1.3rem]">
+            Quote of the day
+          </p>
 
-        {/* a narration caption box, lettered like a translated manga */}
-        <figure className="caption-box max-w-136 justify-self-center bg-paper px-[0.85rem] pt-[0.45rem] pb-2 text-ink upto-980:col-span-full upto-980:row-start-2 upto-980:max-w-none upto-980:justify-self-stretch">
-          <div className="animate-quote-in">
-            <blockquote className="font-letter text-[0.82rem] leading-[1.3] font-bold tracking-[0.02em] uppercase">
-              {quote.text}
-            </blockquote>
-            <figcaption className="mt-[0.15rem] text-right font-mono text-[0.75rem] text-ink-soft">
-              {quote.who},{" "}
-              <cite className="text-accent not-italic">{quote.series}</cite>
-            </figcaption>
-          </div>
-        </figure>
+          {/* a narration caption box, lettered like a translated manga */}
+          <figure className="caption-box max-w-136 bg-paper px-[0.85rem] pt-[0.45rem] pb-2 text-ink upto-980:max-w-none">
+            <div className="animate-quote-in">
+              <blockquote className="font-letter text-[0.82rem] leading-[1.3] font-bold tracking-[0.02em] uppercase">
+                {quote.text}
+              </blockquote>
+              <figcaption className="mt-[0.15rem] text-right font-mono text-[0.75rem] text-ink-soft">
+                {quote.who},{" "}
+                <cite className="text-accent not-italic">{quote.series}</cite>
+              </figcaption>
+            </div>
+          </figure>
+        </div>
 
-        <p className="flex gap-[0.6rem] font-mono text-[0.75rem] whitespace-nowrap opacity-80 upto-760:col-span-full upto-760:row-start-3 upto-760:flex-wrap upto-760:gap-x-[0.45rem] upto-760:gap-y-1 upto-760:text-[0.75rem]">
-          <NavLink to="/updates" className={footerLink}>
-            What's new
-          </NavLink>
-          <span aria-hidden>·</span>
-          <NavLink to="/about" className={footerLink}>
-            About
-          </NavLink>
-          <span aria-hidden>·</span>
-          <span>Vol. 2, {new Date().getFullYear()}</span>
-          {/* its own line on phones, where the row runs out of room */}
-          <span aria-hidden className="upto-760:hidden">
-            ·
-          </span>
-          <span className="upto-760:basis-full">
-            © {new Date().getFullYear()} Manga Tracker
-          </span>
-        </p>
+        {/* the colophon, on its own line under a rule: wraps on phones */}
+        <div className="mt-5 flex flex-wrap justify-between gap-x-6 gap-y-[0.4rem] border-t border-[rgba(127,127,127,0.45)] pt-3 font-mono text-[0.75rem] whitespace-nowrap upto-760:mt-4">
+          <p className="flex gap-[0.6rem] opacity-80">
+            <NavLink to="/updates" className={footerLink}>
+              What's new
+            </NavLink>
+            <span aria-hidden>·</span>
+            <NavLink to="/about" className={footerLink}>
+              About
+            </NavLink>
+          </p>
+          <p className="flex gap-[0.6rem] opacity-80">
+            <span>Vol. 2, {new Date().getFullYear()}</span>
+            <span aria-hidden>·</span>
+            <span>© {new Date().getFullYear()} Manga Tracker</span>
+          </p>
+        </div>
       </div>
     </footer>
   );
