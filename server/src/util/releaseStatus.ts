@@ -32,9 +32,13 @@ type Sources = {
   englishVolumes: { volume: number | null }[] | null; // the US catalog; null if it didn't answer
 };
 
-// The shelf can only rule something out when it says they're already past it:
-// plenty of people read without owning, or never fill these numbers in. So a
-// blank counts as nothing yet
+// a few chapters' grace: a reader who was caught up shouldn't drop off the list
+// because two came out in the same fortnight
+const CAUGHT_UP_CHAPTERS = 3;
+
+// "New" is for readers who've caught up: the release is next for them, not one
+// of dozens they haven't reached. A blank shelf number can't say they've caught
+// up, so it doesn't count (a blank volume falls back on the chapter they're on)
 export function getReleaseStatus(
   { volumesOwned, bookmark, seenVolume, seenChapter, seenJapanVolume }: Shelved,
   { dates, englishVolumes }: Sources,
@@ -49,32 +53,36 @@ export function getReleaseStatus(
     .map((v) => parseFloat(v.volume ?? ""))
     .filter(Number.isFinite);
   const latestJapaneseVolume = japanese.length ? Math.max(...japanese) : null;
-  const owned = volumesOwned ?? 0;
   const currentVolume =
     volumesOwned || volumeOfChapter(bookmark, dates?.volumeStarts ?? []);
+  const isNextVolumeOut =
+    latestVolume != null &&
+    currentVolume != null &&
+    currentVolume >= latestVolume - 1 &&
+    currentVolume < latestVolume;
+  // they've reached the end of what's in English, so Japan is what's next
+  const caughtUpWithEnglish =
+    currentVolume != null && currentVolume >= (latestVolume ?? 0);
 
   return {
     hasNewVolume:
-      latestVolume != null &&
-      owned < latestVolume &&
-      latestVolume > (seenVolume ?? 0),
+      isNextVolumeOut && latestVolume != null && latestVolume > (seenVolume ?? 0),
     hasNewChapter:
       latestChapter != null &&
-      (bookmark ?? 0) < latestChapter &&
+      bookmark != null &&
+      bookmark > 0 &&
+      bookmark < latestChapter &&
+      latestChapter - bookmark <= CAUGHT_UP_CHAPTERS &&
       latestChapter > (seenChapter ?? 0),
-    // past what they own, and not just a volume that's already out in English
     hasNewJapaneseVolume:
       // without the catalog we can't say it isn't out in English already
       englishVolumes != null &&
+      caughtUpWithEnglish &&
       latestJapaneseVolume != null &&
-      latestJapaneseVolume > owned &&
+      latestJapaneseVolume > (currentVolume ?? 0) &&
       latestJapaneseVolume > (latestVolume ?? 0) &&
       latestJapaneseVolume > (seenJapanVolume ?? 0),
-    isNextVolumeOut:
-      latestVolume != null &&
-      currentVolume != null &&
-      currentVolume >= latestVolume - 1 &&
-      currentVolume < latestVolume,
+    isNextVolumeOut,
     currentVolume,
     latestVolume,
     latestChapter,
