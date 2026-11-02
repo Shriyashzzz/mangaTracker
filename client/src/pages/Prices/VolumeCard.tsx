@@ -87,7 +87,9 @@ export default function VolumeCard({
         <span className={styles.cardPrice}>
           {formatCents(priceCents)}
           {wasCents != null && (
-            <s className={styles.cardWas}>
+            // relative: the hidden word stays inside the sideways-scrolling row,
+            // or it stretches the whole page on phones
+            <s className={`relative ${styles.cardWas}`}>
               <span className="sr-only">usually </span>
               {formatCents(wasCents)}
             </s>
