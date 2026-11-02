@@ -49,7 +49,13 @@ export const currentTheme = (): Theme => {
 };
 
 // puts preferences on the page and remembers them in this browser
-export const applyPrefs = ({ background, theme }: Prefs = {}) => {
+export const applyPrefs = ({
+  background,
+  theme,
+  hideEbooks,
+  shelfTab,
+  shelfSort,
+}: Prefs = {}) => {
   if (isBackground(background)) {
     document.documentElement.dataset.bg = background;
     writeLocal("bg", background);
@@ -58,6 +64,9 @@ export const applyPrefs = ({ background, theme }: Prefs = {}) => {
     document.documentElement.dataset.theme = theme;
     writeLocal("theme", theme);
   }
+  if (hideEbooks) writeLocal("hideEbooks", hideEbooks);
+  if (shelfTab) writeLocal("shelfTab", shelfTab);
+  if (shelfSort !== undefined) writeLocal("shelfSort", shelfSort);
 };
 
 // applies a change right away, and keeps it on the account when signed in

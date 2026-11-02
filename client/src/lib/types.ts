@@ -105,9 +105,14 @@ export type RangeMode = "next" | "within" | "all";
 export type ReleaseRange = { mode: RangeMode; within: number };
 export type ReleaseSettings = { volumes: ReleaseRange; chapters: ReleaseRange };
 
+export type ShelfTab = "all" | "ongoing" | "finished" | "new";
 export type Prefs = {
   background?: Background;
   theme?: Theme;
+  hideEbooks?: "yes" | "no";
+  // what the shelf opens on
+  shelfTab?: ShelfTab;
+  shelfSort?: string;
   releases?: ReleaseSettings;
 };
 export type Background = "sfx" | "ink" | "pages" | "panels";

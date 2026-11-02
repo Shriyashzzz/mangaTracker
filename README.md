@@ -40,7 +40,8 @@ Manga Tracker is a reading shelf and a US price checker for physical manga, in o
 - **Status and ratings.** Reading or finished, rated out of five stars.
 - **Search, filter and sort** across the whole collection, paged in blocks of 30.
 - **Prices on the shelf.** Each card shows the lowest price seen for that series, and a manga's page leads with the next volume you need and its price.
-- **New releases.** The shelf's New tab lists releases that are next for you: the next English volume you can buy after the one you're on, your next chapter when you're within 3 of the latest, and volumes out in Japan once you've caught up with English. You can change how far behind each one reaches, or list everything that's out. "Hide" clears one until something newer is out. A manga's page shows when the next chapter should land if you're one volume behind.
+- **New releases.** The shelf's New tab lists releases that are next for you: the next English volume you can buy after the one you're on, your next chapter when you're within 3 of the latest, and volumes out in Japan once you've caught up with English. You can change how far behind each one reaches, or list everything that's out.
+- **Profile and sharing.** Pick a display name and one of a few drawn pictures, then share your list by link if you want to, with or without your notes. Settings also lets you hide ebooks, set how the shelf opens, export your list as a spreadsheet, and delete your account. "Hide" clears one until something newer is out. A manga's page shows when the next chapter should land if you're one volume behind.
 - **Import from MyAnimeList.** Upload a manga list export and it lands on your shelf, with English titles, covers and genres filled in.
 - **Title suggestions.** Pick a title when adding a manga and its cover and genre fill in.
 - **Synced preferences.** Theme and page background follow the account across devices.

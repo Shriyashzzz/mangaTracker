@@ -30,6 +30,7 @@ import {
   remainingChapters,
   remainingJapanVolumes,
   remainingVolumes,
+  SORT_OPTIONS,
   type SeenKind,
 } from "../../lib/shelf";
 import ReleaseModal from "./ReleaseModal";
@@ -77,13 +78,6 @@ const RELEASE_FLAGS = {
 // they've hidden this one, and nothing newer has come along
 const isHiddenAs = (found: ReleaseStatus | null | undefined, kind: ReleaseKind) =>
   Boolean(found?.[RELEASE_FLAGS[kind].listed] && !found[RELEASE_FLAGS[kind].isNew]);
-
-const SORT_OPTIONS = [
-  { value: "", label: "Last bookmarked" },
-  { value: "rating-dsc", label: "Highest rated" },
-  { value: "ch-dsc", label: "Most chapters read" },
-  { value: "name-asc", label: "Title, A to Z" },
-];
 
 // sessionStorage can throw in locked-down browsers, the filters just won't persist then
 const readSession = (key: string, fallback: string) => {
@@ -134,10 +128,10 @@ function Library() {
   const [spot] = useState(readSpot);
   const [query, setQuery] = useState(spot?.query ?? "");
   const [statusFilter, setStatusFilter] = useState(() =>
-    readSession("libraryStatus", "all"),
+    readSession("libraryStatus", readLocal("shelfTab") ?? "all"),
   );
   const [sortBy, setSortBy] = useState(() => {
-    const saved = readSession("librarySort", "");
+    const saved = readSession("librarySort", readLocal("shelfSort") ?? "");
     return SORT_OPTIONS.some((o) => o.value === saved) ? saved : "";
   });
   const navigator = useNavigate();

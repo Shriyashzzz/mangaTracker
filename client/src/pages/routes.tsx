@@ -9,6 +9,9 @@ import { AboutPage } from "./About/About";
 import { ImportPage } from "./Import/Import";
 import { UpdatesPage } from "./Updates/Updates";
 import NewReleasesPage from "./NewReleases/NewReleases";
+import SettingsPage from "./Settings/Settings";
+import ProfilePage from "./Profile/Profile";
+import SharedShelfPage from "./SharedShelf/SharedShelf";
 import SignInPage from "./SignIn/SignIn";
 import SignUp from "./SignUp/SignUp";
 import FrontDoor from "./Prices/FrontDoor";
@@ -35,6 +38,9 @@ export const routes = [
       { path: "/about", element: <AboutPage /> },
       { path: "/updates", element: <UpdatesPage /> },
       { path: "/new-releases", element: <NewReleasesPage /> },
+      { path: "/settings", element: <SettingsPage /> },
+      { path: "/profile", element: <ProfilePage /> },
+      { path: "/u/:code", element: <SharedShelfPage /> },
       { path: "/signup", element: <SignUp /> },
       { path: "/series", element: <SeriesIndex /> },
       { path: "/prices", element: <ToPriceHome /> },

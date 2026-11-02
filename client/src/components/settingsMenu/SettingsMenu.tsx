@@ -30,8 +30,9 @@ const THUMBS: Record<Background, string> = {
     "bg-[linear-gradient(100deg,var(--paper-2)_44%,var(--card)_44%_52%,transparent_52%),repeating-linear-gradient(-45deg,var(--line-soft)_0_1px,var(--paper)_1px_4px)]",
 };
 
-// one drop-down for the less-used bits of the header: background,
-// light/dark, About, and logging out
+// one drop-down for the less-used bits of the header: light/dark, About and, signed
+// in, profile, settings and logging out. Guests have no settings page, so they
+// pick their background here
 type Props = {
   isSignedIn: boolean | null;
   onLogOut: () => void;
@@ -95,8 +96,8 @@ export default function SettingsMenu({ isSignedIn, onLogOut }: Props) {
         className="icon-btn"
         aria-expanded={open}
         aria-controls="settings-menu"
-        aria-label="Settings and About"
-        title="Settings"
+        aria-label="Menu"
+        title="Menu"
         onClick={toggle}
       >
         <SettingsIcon />
@@ -108,6 +109,9 @@ export default function SettingsMenu({ isSignedIn, onLogOut }: Props) {
           id="settings-menu"
           className="absolute top-[calc(100%+12px)] right-0 z-30 w-[236px] origin-top-right rounded-ink border-[2.5px] border-line bg-card p-[0.4rem] shadow-[0_14px_30px_-14px_rgba(20,14,8,0.45)] animate-drop motion-reduce:animate-none"
         >
+          {/* signed in, this lives on the settings page with everything else */}
+          {!isSignedIn && (
+            <>
           <li className="pb-[0.15rem]">
             <p
               className="px-[0.6rem] pt-[0.4rem] pb-[0.3rem] font-brand text-[1.05rem] leading-none tracking-[0.04em]"
@@ -140,6 +144,8 @@ export default function SettingsMenu({ isSignedIn, onLogOut }: Props) {
             className="mx-[0.6rem] my-[0.35rem] h-0 border-t-[1.5px] border-dashed border-line-soft"
             aria-hidden
           />
+            </>
+          )}
 
           <li>
             <button className={item} onClick={flipTheme}>
@@ -147,6 +153,20 @@ export default function SettingsMenu({ isSignedIn, onLogOut }: Props) {
               {theme === "dark" ? "Light mode" : "Dark mode"}
             </button>
           </li>
+          {isSignedIn && (
+            <>
+              <li>
+                <NavLink to="/profile" className={item} viewTransition>
+                  Profile
+                </NavLink>
+              </li>
+              <li>
+                <NavLink to="/settings" className={item} viewTransition>
+                  Settings
+                </NavLink>
+              </li>
+            </>
+          )}
           <li>
             <NavLink to="/about" className={item} viewTransition>
               About

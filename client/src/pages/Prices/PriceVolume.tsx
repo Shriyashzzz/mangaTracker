@@ -16,6 +16,7 @@ import VolumeCard, { CoverFallback } from "./VolumeCard";
 import { pricesStyles as styles } from "./styles";
 import Mascot from "../../components/mascot/Mascot";
 import SlowLoadQuote from "../../components/slowLoadQuote/SlowLoadQuote";
+import { readLocal } from "../../lib/prefs";
 import { usePageMeta } from "../../lib/seo";
 import { volumeMeta } from "./pageMeta";
 import ShelfAction from "./ShelfAction";
@@ -149,13 +150,23 @@ export default function PriceVolume() {
     series,
     volume,
     siblings,
-    offers,
-    history,
+    offers: allOffers,
+    history: allHistory,
     checkedAt,
     liveSources,
     storeLinks,
   } = state.data;
   const seriesLabel = series.info?.name ?? series.name;
+  // set in settings: they only want physical copies
+  const hideEbooks = readLocal("hideEbooks") === "yes";
+  const offers = hideEbooks
+    ? allOffers.filter((o) => o.format !== "ebook")
+    : allOffers;
+  const hiddenEbooks = allOffers.length - offers.length;
+  const kinds = (allHistory?.kinds ?? []).filter(
+    (k) => !hideEbooks || k.kind !== "ebook",
+  );
+  const history = allHistory && kinds.length ? { ...allHistory, kinds } : null;
   // people come here for a physical copy, so ebooks go under the print ones.
   // The awards below still use the true cheapest-first order
   const listedOffers = [
@@ -359,6 +370,15 @@ export default function PriceVolume() {
                     now.
                   </>
                 )}
+              </p>
+            )}
+
+            {hiddenEbooks > 0 && (
+              <p className={styles.checked}>
+                {hiddenEbooks} ebook {hiddenEbooks === 1 ? "price" : "prices"} hidden.{" "}
+                <NavLink to="/settings" viewTransition>
+                  Change in settings
+                </NavLink>
               </p>
             )}
 

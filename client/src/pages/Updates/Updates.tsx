@@ -8,6 +8,14 @@ import { updatesStyles as styles } from "./styles";
 // the big features only, a line each. Add new ones here when they ship
 const UPDATES = [
   {
+    name: "Share your list",
+    body: "Pick a silly picture and send friends your shelf.",
+  },
+  {
+    name: "Choose what shows up in New",
+    body: "Just the next one, within a few, or everything that's out.",
+  },
+  {
     name: "Import from MyAnimeList",
     body: "Bring your whole manga list over in one go.",
   },
