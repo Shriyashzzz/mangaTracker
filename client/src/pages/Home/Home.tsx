@@ -1,4 +1,5 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
+import { createPortal } from "react-dom";
 import MangaCard, {
   MangaCardSkeleton,
   type CardNews,
@@ -16,12 +17,14 @@ import type { Manga, ShelfPrice } from "../../lib/types";
 import { useAuth } from "../../store/auth";
 import { useShelf } from "../../store/shelf";
 import { readLocal, writeLocal } from "../../lib/prefs";
-import { CHECKED_BEFORE_KEY, type SeenKind } from "../../lib/shelf";
+import { CHECKED_BEFORE_KEY, LAST_NEW_COUNT_KEY, type SeenKind } from "../../lib/shelf";
 import ReleaseTip from "../../components/whatsNew/ReleaseTip";
 
 const SHELF_PAGE_SIZE = 30;
 // shelves this size get a heads-up that their first release check is slow
 const BIG_SHELF = 10;
+// how long the "Seen it" note and its undo stay up
+const SEEN_NOTE_MS = 8000;
 
 // what each side of the New tab's switch shows, and how it says there's nothing
 const RELEASE_KINDS = {
@@ -157,6 +160,28 @@ function Library() {
     previous: number | null;
   } | null>(null);
   const [seenFailed, setSeenFailed] = useState(false);
+  const seenNote = useRef<HTMLDivElement>(null);
+  // the note leaves on its own, but not from under someone reading or tabbing to it
+  useEffect(() => {
+    if (!hidden && !seenFailed) return;
+    let timer: ReturnType<typeof setTimeout>;
+    const wait = () => {
+      timer = setTimeout(() => {
+        const note = seenNote.current;
+        if (note?.matches(":hover") || note?.querySelector(":focus-visible")) wait();
+        else {
+          setHidden(null);
+          setSeenFailed(false);
+        }
+      }, SEEN_NOTE_MS);
+    };
+    wait();
+    return () => clearTimeout(timer);
+  }, [hidden, seenFailed]);
+  // the card that was just hidden is gone, so its focus moves to the undo
+  useEffect(() => {
+    if (hidden) seenNote.current?.querySelector("button")?.focus({ preventScroll: true });
+  }, [hidden]);
 
   // price lines for the cards, once the shelf is in. Nice to have: the
   // shelf works the same without them
@@ -181,9 +206,10 @@ function Library() {
   const checking = showingNew && checked < (mangaData?.length ?? 0);
   const allChecked = checked > 0 && checked >= (mangaData?.length ?? 0);
   const [checkedBefore] = useState(() => readLocal(CHECKED_BEFORE_KEY) !== null);
-  useEffect(() => {
-    if (allChecked) writeLocal(CHECKED_BEFORE_KEY, "yes");
-  }, [allChecked]);
+  const [lastNewCount] = useState(() => {
+    const saved = readLocal(LAST_NEW_COUNT_KEY);
+    return saved ? Number(saved) : null;
+  });
 
   const counts = useMemo(() => {
     const list = mangaData ?? [];
@@ -205,6 +231,12 @@ function Library() {
       ).length,
     };
   }, [mangaData, releases]);
+
+  useEffect(() => {
+    if (!allChecked) return;
+    writeLocal(CHECKED_BEFORE_KEY, "yes");
+    writeLocal(LAST_NEW_COUNT_KEY, String(counts.new));
+  }, [allChecked, counts.new]);
 
   const visibleManga = useMemo(() => {
     let list = [...(mangaData ?? [])];
@@ -309,8 +341,9 @@ function Library() {
     { value: "all", label: "Everything", count: counts.all },
     { value: "ongoing", label: "Reading", count: counts.ongoing },
     { value: "finished", label: "Finished", count: counts.finished },
-    // no number until they've looked: we don't know it yet
-    { value: "new", label: "New", count: checked ? counts.new : null },
+    // what the last check found until this visit's check says otherwise, so
+    // what's new shows without opening the tab. Nothing until they've ever looked
+    { value: "new", label: "New", count: allChecked ? counts.new : (lastNewCount ?? (checked ? counts.new : null)) },
   ];
   const kindCounts: Record<ReleaseKind, number> = {
     volumes: counts.newVolumes,
@@ -344,6 +377,12 @@ function Library() {
     const { id, kind, previous } = hidden;
     setHidden(null);
     if (!(await markSeen(id, kind, previous))) setSeenFailed(true);
+    // back on the card it came from
+    requestAnimationFrame(() =>
+      document
+        .querySelector<HTMLElement>(`[data-seen-id="${id}"]`)
+        ?.focus({ preventScroll: true }),
+    );
   };
 
   // what a card in the New tab says: what's out, and where they are, so the two
@@ -390,6 +429,11 @@ function Library() {
   };
 
   const total = mangaData.length;
+  const importLink = (
+    <NavLink to="/import" className={styles.importLink} viewTransition>
+      Import from MyAnimeList
+    </NavLink>
+  );
   // a series with no saved place can't be called caught up, so it never shows
   // here. An empty tab has to say so, or it reads as "nothing's out"
   const unknownPlace = mangaData.filter((m) =>
@@ -434,9 +478,7 @@ function Library() {
       <div className={styles.pageHead}>
         <h1 className={styles.pageTitle}>Your shelf</h1>
         <div className={styles.pageActions}>
-          <NavLink to="/import" className={styles.importLink} viewTransition>
-            Import from MyAnimeList
-          </NavLink>
+          <span className="upto-520:hidden">{importLink}</span>
           <button className="btn btn-primary" onClick={goToAdd}>
             + Add manga
           </button>
@@ -459,7 +501,15 @@ function Library() {
             >
               {t.label}{" "}
               {t.count != null && (
-                <span className={styles.count}>{t.count}</span>
+                <span
+                  className={
+                    t.value === "new" && t.count > 0
+                      ? styles.countNew
+                      : styles.count
+                  }
+                >
+                  {t.count}
+                </span>
               )}
             </button>
           ))}
@@ -495,19 +545,26 @@ function Library() {
         </div>
       </div>
 
-      {showingNew && (hidden || seenFailed) && (
-        <p className={styles.seenNote} role="status">
-          {seenFailed ? (
-            "That didn't save. Try again."
-          ) : (
-            <>
-              Hidden: {hidden?.name}.{" "}
-              <button type="button" className={styles.seenUndo} onClick={undoSeen}>
-                Undo
-              </button>
-            </>
+      {/* pinned to the screen, since "Seen it" is usually tapped far down the
+          list. In a portal: the page's fade-in would otherwise pin it to the page */}
+      {createPortal(
+        <div role="status" ref={seenNote}>
+          {showingNew && (hidden || seenFailed) && (
+            <div className={styles.seenNote}>
+              {seenFailed ? (
+                "That didn't save. Try again."
+              ) : (
+                <>
+                  <span className={styles.seenName}>Hidden: {hidden?.name}</span>
+                  <button type="button" className={styles.seenUndo} onClick={undoSeen}>
+                    Undo
+                  </button>
+                </>
+              )}
+            </div>
           )}
-        </p>
+        </div>,
+        document.body,
       )}
 
       {/* sighted readers see the cards change; this says so to everyone else */}
@@ -628,7 +685,8 @@ function Library() {
         </div>
       ) : (
         <>
-          {pager}
+          {/* phones get the manga first; their pager is the one under the grid */}
+          <div className="upto-520:hidden">{pager}</div>
           <div
             id="shelf-grid"
             className={styles.classContainer}
@@ -657,6 +715,7 @@ function Library() {
                     type="button"
                     className={styles.seenBtn}
                     aria-label={`Seen it: ${currentManga.name}`}
+                    data-seen-id={currentManga.id}
                     onClick={() => handleSeen(currentManga)}
                   >
                     <CheckIcon />
@@ -671,6 +730,9 @@ function Library() {
           )}
         </>
       )}
+
+      {/* out of the way on phones, where the top of the page is for the manga */}
+      <p className={styles.importBottom}>{importLink}</p>
 
       <ReleaseTip
         enabled={hasManga && !showingNew}
@@ -697,7 +759,7 @@ function LibrarySkeleton() {
   );
 }
 
-function GuestHero() {
+export function GuestHero() {
   return (
     <>
       <div className={`${styles.guestContainer} fade-in`}>
@@ -706,6 +768,10 @@ function GuestHero() {
             Never lose your <span className={styles.titleHit}>chapter</span>{" "}
             again.
           </h1>
+          <p className={styles.guestSub}>
+            Keep your place in every series you read, and see when the next
+            volume is out.
+          </p>
           <div className={styles.guestActions}>
             <NavLink
               to="/signup"
