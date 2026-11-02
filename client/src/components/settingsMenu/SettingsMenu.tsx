@@ -200,6 +200,11 @@ export default function SettingsMenu({ isSignedIn, onLogOut }: Props) {
             </>
           )}
           <li>
+            <NavLink to="/guide" className={item} viewTransition>
+              Take the tour
+            </NavLink>
+          </li>
+          <li>
             <NavLink to="/about" className={item} viewTransition>
               About
             </NavLink>

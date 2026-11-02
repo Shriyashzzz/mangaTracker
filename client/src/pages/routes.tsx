@@ -8,6 +8,7 @@ import { AddManga } from "./AddManga/AddManga";
 import { AboutPage } from "./About/About";
 import { ImportPage } from "./Import/Import";
 import { UpdatesPage } from "./Updates/Updates";
+import { GuidePage } from "./Guide/Guide";
 import { AcknowledgementsPage } from "./Acknowledgements/Acknowledgements";
 import NewReleasesPage from "./NewReleases/NewReleases";
 import SettingsPage from "./Settings/Settings";
@@ -37,6 +38,7 @@ export const routes = [
       { path: "/import", element: <ImportPage /> },
       { path: "/about", element: <AboutPage /> },
       { path: "/updates", element: <UpdatesPage /> },
+      { path: "/guide", element: <GuidePage /> },
       { path: "/acknowledgements", element: <AcknowledgementsPage /> },
       { path: "/new-releases", element: <NewReleasesPage /> },
       { path: "/settings/:tab?", element: <SettingsPage /> },

@@ -41,6 +41,7 @@ const sitemap = async (_req: Request, res: Response) => {
     entry("/"),
     entry("/about"),
     entry("/updates"),
+    entry("/guide"),
     entry("/acknowledgements"),
     entry("/series"),
     ...series.map((s) => entry(seriesPath(s.name), s.fetchedAt)),
