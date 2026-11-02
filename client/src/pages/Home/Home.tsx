@@ -730,16 +730,6 @@ function Library() {
               <ChevronDownIcon className={styles.sortArrow} aria-hidden />
             </span>
           </label>
-          {rowsChosen && !showingNew && (
-            <button
-              type="button"
-              className={styles.addInToolbar}
-              aria-label="Add manga"
-              onClick={goToAdd}
-            >
-              <PlusIcon aria-hidden />
-            </button>
-          )}
         </div>
       </div>
 
@@ -967,7 +957,10 @@ function Library() {
                   }
                   index={i}
                   compact={rowsChosen}
-                  latestChapter={releases[currentManga.id]?.latestChapter}
+                  latestChapter={
+                    releases[currentManga.id]?.latestChapter ??
+                    currentManga.latestChapter
+                  }
                 />
                 {showingNew && (
                   <button
@@ -1011,9 +1004,7 @@ function Library() {
         />
       )}
 
-      {/* a floating button would sit on the rows' progress, so they get one in the
-          toolbar, which stays pinned as they scroll */}
-      {!showingNew && !rowsChosen && <AddButton onClick={goToAdd} />}
+      {!showingNew && <AddButton onClick={goToAdd} />}
 
       <ReleaseTip
         enabled={hasManga && !showingNew}

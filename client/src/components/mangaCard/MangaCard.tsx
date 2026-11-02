@@ -43,7 +43,6 @@ export default function MangaCard({
   latestChapter,
 }: Props) {
   const asColumns = compact && !news;
-  const rated = Number(currentManga.rating) > 0;
   // a count that's behind where they are says nothing, so it isn't shown
   const reading = currentManga.bookmark ?? 0;
   const knownTotal =
@@ -123,15 +122,9 @@ export default function MangaCard({
                   : "not started"}
             </p>
             {/* one line for the rest, so every row is the same height */}
-            <div className="flex min-h-[1.2rem] min-w-0 items-center gap-3 upto-720:min-h-6">
+            <div className="flex min-h-[1.2rem] min-w-0 items-center gap-3">
               {genre && (
                 <p className="truncate font-mono text-[0.78rem] text-muted">{genre}</p>
-              )}
-              {/* on wider screens the stars get a column of their own */}
-              {rated && (
-                <span className="min-[721px]:hidden">
-                  <StarRating value={Number(currentManga.rating)} size="sm" />
-                </span>
               )}
             </div>
           </>
@@ -174,7 +167,8 @@ export default function MangaCard({
       {asColumns && (
         <>
           <span className="flex items-center upto-720:hidden">
-            {rated && <StarRating value={Number(currentManga.rating)} size="sm" />}
+            {/* unrated ones show empty stars, so the column always reads the same */}
+            <StarRating value={Number(currentManga.rating) || 0} size="sm" />
           </span>
           <span className="flex flex-col justify-center gap-1 text-right font-mono text-[0.82rem] text-ink-soft">
             {currentManga.status ? (

@@ -23,6 +23,8 @@ export type Manga = {
   seenJapanVolume?: number | null;
   // volumes hidden one at a time, on top of everything up to seenVolume
   hiddenVolumes?: number[];
+  // the latest chapter last found for this series
+  latestChapter?: number | null;
 };
 
 // when the next chapter or volume is due. Dates are ISO, null if there isn't one

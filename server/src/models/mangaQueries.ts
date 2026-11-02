@@ -38,6 +38,7 @@ export type RestoredManga = MangaInput & {
   seenChapter: number | null;
   seenJapanVolume: number | null;
   hiddenVolumes: number[];
+  latestChapter: number | null;
 };
 
 export async function restoreManga(userId: number, input: RestoredManga) {
@@ -74,6 +75,9 @@ export const setRating = (id: number, rating: number) =>
 
 export const setNotes = (id: number, description: string | null) =>
   prisma.manga.update({ where: { id }, data: { description } });
+
+export const setLatestChapter = (id: number, latestChapter: number) =>
+  prisma.manga.update({ where: { id }, data: { latestChapter } });
 
 export const setBookmark = (id: number, bookmark: number) =>
   prisma.manga.update({ where: { id }, data: { bookmark } });
@@ -117,6 +121,7 @@ export default {
   getManga,
   addManga,
   restoreManga,
+  setLatestChapter,
   updateManga,
   setStatus,
   setRating,
