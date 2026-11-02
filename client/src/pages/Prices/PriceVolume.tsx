@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 import {
   ChevronDownIcon,
-  ChevronLeftIcon,
   ChevronRightIcon,
 } from "../../components/icons/Icons";
 import { NavLink, useLocation, useNavigate, useParams } from "react-router";
@@ -16,6 +15,7 @@ import {
   timeAgo,
 } from "../../lib/prices";
 import SeriesFacts from "./SeriesFacts";
+import BackToNew from "./BackToNew";
 import VolumeCard, { CoverFallback } from "./VolumeCard";
 import { pricesStyles as styles } from "./styles";
 import Mascot from "../../components/mascot/Mascot";
@@ -220,10 +220,7 @@ export default function PriceVolume() {
   return (
     <div className="fade-in">
       {fromShelf && (
-        <NavLink to="/shelf" className={styles.backToNew} viewTransition>
-          <ChevronLeftIcon aria-hidden />
-          Back to New
-        </NavLink>
+        <BackToNew />
       )}
       <nav className={styles.crumbs} aria-label="Breadcrumb">
         <NavLink to="/" viewTransition>

@@ -6,7 +6,7 @@ import MangaCard, {
 } from "../../components/mangaCard/MangaCard";
 
 import { homeStyles as styles } from "./styles";
-import { NavLink, useNavigate } from "react-router";
+import { NavLink, useLocation, useNavigate, useSearchParams } from "react-router";
 import {
   CheckIcon,
   ChevronDownIcon,
@@ -142,9 +142,11 @@ function Library() {
     return saved in RELEASE_KINDS ? (saved as ReleaseKind) : "volumes";
   });
   // the New tab's list of what they've hidden
-  const [wantHidden, setWantHidden] = useState(
-    () => readSession("libraryHidden", "") === "yes",
-  );
+  // in the address, so it's a step of its own: the back gesture leaves the list
+  // and returns to New, and coming back from a volume lands on it again
+  const [searchParams] = useSearchParams();
+  const { state: linkState } = useLocation();
+  const wantHidden = searchParams.get("view") === "hidden";
   // the series whose grouped list is open
   const [openRelease, setOpenRelease] = useState<number | null>(null);
   const hiddenCount = (mangaData ?? []).filter((m) =>
@@ -268,6 +270,13 @@ function Library() {
     };
   }, [mangaData, releases]);
 
+  // nothing left hidden, so there's no list to be on
+  useEffect(() => {
+    if (wantHidden && allChecked && hiddenCount === 0) {
+      navigator("/shelf", { replace: true });
+    }
+  }, [wantHidden, allChecked, hiddenCount, navigator]);
+
   useEffect(() => {
     if (!allChecked) return;
     writeLocal(CHECKED_BEFORE_KEY, "yes");
@@ -310,6 +319,15 @@ function Library() {
   }, [mangaData, releases, releaseKind, viewingHidden, statusFilter, sortBy, query]);
 
   const goToAdd = () => navigator("/add", { viewTransition: true });
+
+  const openHidden = () =>
+    navigator("/shelf?view=hidden", { state: { openedHidden: true } });
+  // the same as the back gesture when that's how they got here. An address opened
+  // directly has nothing to go back to
+  const leaveHidden = () => {
+    if ((linkState as { openedHidden?: boolean } | null)?.openedHidden) navigator(-1);
+    else navigator("/shelf", { replace: true });
+  };
 
   const changePage = (index: number) => {
     setPage({ key: filterKey, index });
@@ -657,6 +675,7 @@ function Library() {
               onClick={() => {
                 setStatusFilter(t.value);
                 writeSession("libraryStatus", t.value);
+                if (wantHidden) navigator("/shelf", { replace: true });
               }}
             >
               {t.shortLabel ? (
@@ -786,10 +805,7 @@ function Library() {
                 type="button"
                 className={styles.hiddenToggle}
                 aria-pressed={viewingHidden}
-                onClick={() => {
-                  setWantHidden(!viewingHidden);
-                  writeSession("libraryHidden", viewingHidden ? "" : "yes");
-                }}
+                onClick={viewingHidden ? leaveHidden : openHidden}
               >
                 {viewingHidden ? "Back to new" : `Hidden (${hiddenCount})`}
               </button>

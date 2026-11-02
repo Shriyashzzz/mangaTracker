@@ -2,8 +2,8 @@ import { useEffect, useState } from "react";
 import { NavLink, useParams, useSearchParams } from "react-router";
 import type { Series } from "../../lib/types";
 import { coverSrc, getSeries, hideBrokenCover } from "../../lib/prices";
-import { ChevronLeftIcon } from "../../components/icons/Icons";
 import { useFromShelf } from "../../lib/fromShelf";
+import BackToNew from "./BackToNew";
 import VolumeCard from "./VolumeCard";
 import SeriesFacts from "./SeriesFacts";
 import RangePager from "../../components/rangePager/RangePager";
@@ -113,10 +113,7 @@ export default function PriceSeries() {
   return (
     <div className={`${styles.page} fade-in`}>
       {fromShelf && (
-        <NavLink to="/shelf" className={styles.backToNew} viewTransition>
-          <ChevronLeftIcon aria-hidden />
-          Back to New
-        </NavLink>
+        <BackToNew />
       )}
       <nav className={styles.crumbs} aria-label="Breadcrumb">
         <NavLink to="/" viewTransition>
