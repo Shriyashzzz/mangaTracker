@@ -9,6 +9,11 @@
 // far below a yardstick: what the big stores charge in the same check;
 // failing that, this volume's usual new price so far; failing both, a floor
 // no new English volume goes under.
+//
+// Overpriced ones go too: a fashion site "sold" One Piece Vol. 1 new for $42, and
+// that became the headline on a $10 book. An unknown seller's new copy goes if it's
+// far above the big stores, or failing that, the other copies in the same check. With
+// nothing to compare it to, only a price over a normal volume's range goes.
 import type { Offer } from "./types.js";
 
 // a store name reduced to lowercase words: "Books-A-Million" -> "books a million"
@@ -82,10 +87,27 @@ const MIN_SHARE = 0.6;
 // $9.99 and up, and real discounts stop well above this
 const MIN_UNKNOWN_CENTS = 600;
 
+// how far above the yardstick an unknown seller's new copy can go. Deluxe editions
+// survive this, since every other copy of one costs about the same
+const MAX_TIMES = 2.2;
+// the other copies needed before they can stand in for a big store's price
+const MIN_TO_COMPARE = 2;
+const MAX_UNCOMPARED_CENTS = 3500;
+
+const median = (values: number[]) => {
+  const sorted = [...values].sort((a, b) => a - b);
+  const middle = Math.floor(sorted.length / 2);
+  return sorted.length % 2
+    ? sorted[middle]!
+    : (sorted[middle - 1]! + sorted[middle]!) / 2;
+};
+
 const isNewPrint = (o: Offer) => o.condition === "new" && o.format === "print";
 
-// for one check's offers: whether a given offer is a new copy we don't
-// believe. `usualCents` is the volume's median new price from earlier checks
+// for one check's offers: whether a given offer is a new copy we don't believe, for
+// being too cheap or too dear. `usualCents` is the volume's median new price from
+// earlier checks. It's only used against low prices: a $42 listing's own history
+// would otherwise vouch for it
 export function unlikelyNewTest(offers: Offer[], usualCents?: number | null) {
   const bigStore = offers
     .filter((o) => isNewPrint(o) && isRetailer(o.store))
@@ -95,8 +117,19 @@ export function unlikelyNewTest(offers: Offer[], usualCents?: number | null) {
     : usualCents
       ? usualCents * MIN_SHARE
       : MIN_UNKNOWN_CENTS;
+  const tooDear = (o: Offer) => {
+    if (bigStore.length) return o.priceCents > Math.min(...bigStore) * MAX_TIMES;
+    const others = offers
+      .filter((other) => other !== o && other.format === "print")
+      .map((other) => other.priceCents);
+    return others.length >= MIN_TO_COMPARE
+      ? o.priceCents > median(others) * MAX_TIMES
+      : o.priceCents > MAX_UNCOMPARED_CENTS;
+  };
   return (o: Offer) =>
-    isNewPrint(o) && !isRetailer(o.store) && o.priceCents < floor;
+    isNewPrint(o) &&
+    !isRetailer(o.store) &&
+    (o.priceCents < floor || tooDear(o));
 }
 
 // one check's offers without the new copies we don't believe

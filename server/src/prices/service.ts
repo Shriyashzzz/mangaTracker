@@ -130,10 +130,13 @@ export async function getVolumePrices(isbn13: string, { refresh = true } = {}) {
   if (refresh) await refreshIfStale(isbn13, book);
 
   const last = await priceQueries.getLastCheck(isbn13);
-  const [offers, history] = await Promise.all([
+  const [stored, history, usual] = await Promise.all([
     last ? priceQueries.getLatestOffers(isbn13, last.checkedAt) : [],
     priceQueries.getPriceHistory(isbn13),
+    priceQueries.getNewPriceMedian(isbn13),
   ]);
+  // checks saved before a rule changed still get held to it
+  const offers = dropUnlikelyNew(stored, usual);
 
   const series = await getSeriesWithVolumes(seriesName(book.title));
 
@@ -457,9 +460,9 @@ export async function getVolumeSummary(isbn13: string) {
   const book = await priceQueries.getBook(isbn13);
   if (!book) return null;
   const last = await priceQueries.getLastCheck(isbn13);
-  const offers = last
-    ? await priceQueries.getLatestOffers(isbn13, last.checkedAt)
-    : [];
+  const offers = dropUnlikelyNew(
+    last ? await priceQueries.getLatestOffers(isbn13, last.checkedAt) : [],
+  );
   const inStock = offers.filter((o) => o.inStock);
   const bestNew = inStock.find(
     (o) => o.condition === "new" && o.format === "print",

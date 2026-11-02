@@ -1,5 +1,6 @@
 // Open Library: free, no key. Finds volumes and their ISBNs.
 // https://openlibrary.org/dev/docs/api/search
+import { openLibraryFetch } from "./openLibrary.js";
 import { englishSeriesName } from "./anilist.js";
 import { coverPath } from "./covers.js";
 import { isSingleVolume, normalize, seriesOf } from "./match.js";
@@ -132,10 +133,7 @@ async function search(
     limit: String(limit),
   });
   try {
-    const res = await fetch(`${SEARCH_URL}?${params}`, {
-      headers: { "User-Agent": "MangaTracker/1.0 (price checker)" },
-      signal: AbortSignal.timeout(timeoutMs),
-    });
+    const res = await openLibraryFetch(`${SEARCH_URL}?${params}`, timeoutMs);
     if (!res.ok) throw new Error(`Open Library responded ${res.status}`);
     const { docs } = (await res.json()) as { docs: Doc[] };
     return docs;
@@ -159,9 +157,8 @@ const EDITIONS_FRESH_MS = 24 * 60 * 60 * 1000;
 const MAX_EDITIONS = 200;
 // enough for the real work; a common title like "Vagabond" also matches novels
 const MAX_MERGED_WORKS = 5;
-// a Japanese-titled work per volume, read a few at a time to go easy on them
+// a Japanese-titled work per volume
 const MAX_JAPANESE_WORKS = 24;
-const EDITION_BATCH = 6;
 
 type Edition = {
   title?: string;
@@ -178,12 +175,9 @@ const editionsCache = new Map<string, { at: number; found: Promise<Edition[]> }>
 function fetchEditions(workKey: string, timeoutMs = TIMEOUT_MS) {
   const hit = editionsCache.get(workKey);
   if (hit && Date.now() - hit.at < EDITIONS_FRESH_MS) return hit.found;
-  const found = fetch(
+  const found = openLibraryFetch(
     `https://openlibrary.org${workKey}/editions.json?limit=${MAX_EDITIONS}`,
-    {
-      headers: { "User-Agent": "MangaTracker/1.0 (price checker)" },
-      signal: AbortSignal.timeout(timeoutMs),
-    },
+    timeoutMs,
   ).then(async (res) => {
     if (!res.ok) throw new Error(`Open Library responded ${res.status}`);
     const { entries = [] } = (await res.json()) as { entries?: Edition[] };
@@ -319,16 +313,9 @@ export async function searchVolumesDetailed(
         )
         .slice(0, MAX_JAPANESE_WORKS),
     ];
-    const editions: PromiseSettledResult<Edition[]>[] = [];
-    for (let i = 0; i < toRead.length; i += EDITION_BATCH) {
-      editions.push(
-        ...(await Promise.allSettled(
-          toRead
-            .slice(i, i + EDITION_BATCH)
-            .map((doc) => fetchEditions(doc.key!, timeoutMs)),
-        )),
-      );
-    }
+    const editions = await Promise.allSettled(
+      toRead.map((doc) => fetchEditions(doc.key!, timeoutMs)),
+    );
     editions.forEach((result, i) => {
       // a volume list that may be short, not a finished answer
       if (result.status === "rejected") {

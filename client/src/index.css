@@ -781,6 +781,11 @@
   font: 700 0.84rem/1.2 var(--font-letter);
   color: var(--ink);
 }
+.support-peek-line .support-peek-more {
+  margin-top: 0.15rem;
+  font: 400 0.76rem/1.25 var(--font-body);
+  color: var(--ink-soft);
+}
 .support-peek-line a {
   display: inline-flex;
   align-items: center;
@@ -824,6 +829,7 @@
   animation: support-peek-in 0.56s cubic-bezier(0.3, 1.4, 0.6, 1) 0.05s both;
 }
 .support-peek-side .support-peek-line {
+  width: 178px;
   margin: 0 0 26px 16px;
 }
 /* leaving: he ducks back */
