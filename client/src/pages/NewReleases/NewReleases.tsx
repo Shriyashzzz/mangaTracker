@@ -5,7 +5,6 @@ import Mascot from "../../components/mascot/Mascot";
 import { usePageMeta } from "../../lib/seo";
 import { openReleasesOnShelf } from "../../lib/shelf";
 import { useAuth } from "../../store/auth";
-import ReleaseControls from "./ReleaseControls";
 import { newReleasesStyles as styles } from "./styles";
 
 const SOURCES = [
@@ -64,26 +63,31 @@ export default function NewReleasesPage() {
 
       <section className={styles.section} aria-labelledby="new-choose">
         <h2 id="new-choose" className={styles.heading}>
-          What shows up in New
+          What you'll see
         </h2>
         <p>
-          Volumes and chapters have their own setting. The volume one covers
-          English and In Japan, each measured against its own newest volume.
+          Out of the box you see the next volume you can buy, however far behind
+          you are, and the next chapter once you're within 3 of the latest.
+        </p>
+        <p>
+          Volumes and chapters each have their own setting: just the next one,
+          only when you're within a number you choose, or everything that's out.
+          The volume one covers English and In Japan, each measured against its
+          own newest volume.
         </p>
         {isSignedIn ? (
-          <ReleaseControls />
+          <NavLink
+            to="/settings/new-releases"
+            className="btn btn-secondary self-start"
+            viewTransition
+          >
+            Change this in settings
+          </NavLink>
         ) : (
           isSignedIn === false && (
-            <>
-              <p>
-                Out of the box you see the next volume you can buy, however far
-                behind you are, and the next chapter once you're within 3 of the
-                latest. Start a shelf to choose your own.
-              </p>
-              <NavLink to="/signup" className="btn btn-primary self-start" viewTransition>
-                Start your shelf
-              </NavLink>
-            </>
+            <NavLink to="/signup" className="btn btn-primary self-start" viewTransition>
+              Start your shelf
+            </NavLink>
           )
         )}
       </section>

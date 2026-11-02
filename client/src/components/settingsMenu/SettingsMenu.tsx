@@ -9,6 +9,8 @@ import {
 } from "../../lib/prefs";
 import type { Background } from "../../lib/types";
 import clsx from "clsx";
+import Avatar from "../avatar/Avatar";
+import { useAccount } from "../../store/account";
 
 // one row of the menu: a button or link
 const item =
@@ -30,6 +32,9 @@ const THUMBS: Record<Background, string> = {
     "bg-[linear-gradient(100deg,var(--paper-2)_44%,var(--card)_44%_52%,transparent_52%),repeating-linear-gradient(-45deg,var(--line-soft)_0_1px,var(--paper)_1px_4px)]",
 };
 
+const styles_guestMenu =
+  "tap flex items-center gap-1.5 text-[0.95rem] text-ink-soft transition-colors duration-150 hover:text-ink [&_svg]:size-5";
+
 // one drop-down for the less-used bits of the header: light/dark, About and, signed
 // in, profile, settings and logging out. Guests have no settings page, so they
 // pick their background here
@@ -39,6 +44,14 @@ type Props = {
 };
 
 export default function SettingsMenu({ isSignedIn, onLogOut }: Props) {
+  const avatar = useAccount((s) => s.account?.avatar);
+  const loadAccount = useAccount((s) => s.load);
+  const clearAccount = useAccount((s) => s.clear);
+  // the button is their picture, so it needs the account from the start
+  useEffect(() => {
+    if (isSignedIn) loadAccount();
+    else if (isSignedIn === false) clearAccount();
+  }, [isSignedIn, loadAccount, clearAccount]);
   // remembers which page it was opened on, so changing page closes it
   const [openOn, setOpenOn] = useState<string | null>(null);
   const [background, setBackground] = useState(currentBackground);
@@ -93,14 +106,21 @@ export default function SettingsMenu({ isSignedIn, onLogOut }: Props) {
     <div className="relative" ref={wrapRef}>
       <button
         ref={buttonRef}
-        className="icon-btn"
+        className={isSignedIn ? "tap rounded-full" : styles_guestMenu}
         aria-expanded={open}
         aria-controls="settings-menu"
         aria-label="Menu"
         title="Menu"
         onClick={toggle}
       >
-        <SettingsIcon />
+        {isSignedIn ? (
+          <Avatar id={avatar} className="w-9" />
+        ) : (
+          <>
+            <SettingsIcon />
+            Menu
+          </>
+        )}
       </button>
 
       {open && (
@@ -156,13 +176,14 @@ export default function SettingsMenu({ isSignedIn, onLogOut }: Props) {
           {isSignedIn && (
             <>
               <li>
-                <NavLink to="/profile" className={item} viewTransition>
-                  Profile
+                <NavLink to="/settings" className={item} viewTransition>
+                  Profile and settings
                 </NavLink>
               </li>
-              <li>
-                <NavLink to="/settings" className={item} viewTransition>
-                  Settings
+              {/* laptops have this on the shelf */}
+              <li className="hidden upto-720:block">
+                <NavLink to="/settings/profile#share" className={item} viewTransition>
+                  Share my list
                 </NavLink>
               </li>
             </>

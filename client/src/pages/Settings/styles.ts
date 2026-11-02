@@ -3,7 +3,18 @@
 const row = "flex min-h-11 cursor-pointer items-center gap-3 [&_input]:size-[18px] [&_input]:shrink-0 [&_input]:accent-[var(--accent)]";
 
 export const settingsStyles = {
-  page: "mx-auto flex max-w-[720px] flex-col gap-[clamp(2rem,5vw,3rem)]",
+  page: "mx-auto flex max-w-[960px] flex-col gap-[clamp(1.25rem,3vw,2rem)]",
+  // tabs down the left on laptops, across the top on phones
+  layout:
+    "grid grid-cols-[11rem_minmax(0,1fr)] items-start gap-[clamp(1.5rem,4vw,3rem)] upto-760:grid-cols-[minmax(0,1fr)] upto-760:gap-5",
+  tabs: "sticky top-4 flex flex-col gap-1 upto-760:static upto-760:flex-row upto-760:flex-wrap",
+  tab: "flex min-h-11 items-center rounded-ink border-2 border-transparent px-3 font-medium text-ink-soft transition-colors duration-120 ease-[ease] hover:text-ink upto-760:border-line-soft upto-760:text-[0.92rem]",
+  tabActive:
+    "flex min-h-11 items-center rounded-ink border-2 border-line bg-card px-3 font-semibold text-ink upto-760:text-[0.92rem]",
+  panel: "min-w-0",
+  tabBody: "flex flex-col gap-5",
+  tabTitle:
+    "font-brand text-[clamp(1.9rem,4.5vw,2.6rem)] leading-[1] font-normal tracking-[0.02em] uppercase",
   title:
     "font-brand text-[clamp(2.6rem,6vw,3.8rem)] leading-[0.95] font-normal tracking-[0.01em] uppercase",
   section: "flex flex-col gap-3 border-t-[1.5px] border-line pt-5",
