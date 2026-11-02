@@ -39,8 +39,6 @@ export const homeStyles = {
     "sticky top-0 z-5 -mx-3 mb-9 flex flex-wrap items-end justify-between gap-x-8 gap-y-4 border-b-[1.5px] border-line bg-[var(--surface,var(--paper))] px-3 py-[0.9rem] upto-520:mb-5 upto-520:gap-y-1 upto-520:py-[0.55rem] [&+nav]:-mt-4",
   // on phones: four even columns, with each count under its label
   tabs: "flex gap-6 upto-520:grid upto-520:w-full upto-520:grid-cols-4 upto-520:gap-0 upto-520:[&_button]:flex upto-520:[&_button]:flex-col upto-520:[&_button]:items-center upto-520:[&_button]:pb-1 upto-520:[&_button]:text-[0.9rem] upto-520:[&_button]:leading-[1.2]",
-  tabLabelLong: "upto-520:hidden",
-  tabLabelShort: "hidden upto-520:inline",
   tab: `${tab} text-muted hover:text-ink`,
   tabActive: `${tab} font-semibold text-ink after:absolute after:inset-x-0 after:-bottom-[calc(0.9rem+2.5px)] after:h-1 after:bg-accent upto-520:after:-bottom-0.5 upto-520:after:h-[3px]`,
   count: "ml-0.5 font-mono text-[0.78rem] font-normal text-muted",
@@ -48,23 +46,33 @@ export const homeStyles = {
   countNew:
     "ml-0.5 rounded-[3px] bg-accent px-[0.35rem] font-mono text-[0.78rem] font-normal text-on-accent",
   tools: "flex items-center gap-5 upto-520:w-full upto-520:gap-4",
+  toolsFolded: "flex items-center gap-5 upto-720:hidden",
+  searchToggle:
+    "tap hidden items-center gap-1 text-[0.85rem] font-medium text-ink underline decoration-accent decoration-2 underline-offset-3 upto-720:inline-flex [&_svg]:size-4",
+  hiddenHeading:
+    "font-brand text-[1.3rem] leading-none font-normal tracking-[0.02em] uppercase",
   // compact until you use it, then it widens; it stays wide while it holds
   // a query. On small phones it takes the row
   search:
     "peer/search flex min-h-11 w-[180px] items-center gap-[0.45rem] border-b-[1.5px] border-dashed border-line-soft py-[0.3rem] text-muted transition-[width,border-color] duration-300 ease-ink focus-within:w-80 focus-within:border-solid focus-within:border-accent has-[input:not(:placeholder-shown)]:w-80 upto-520:w-auto upto-520:min-w-0 upto-520:flex-1 upto-520:focus-within:w-auto upto-520:has-[input:not(:placeholder-shown)]:w-auto [&_input]:min-w-0 [&_input]:flex-1 [&_input]:border-none [&_input]:bg-transparent [&_input]:text-[0.95rem] upto-760:[&_input]:text-[1rem] [&_input]:outline-none [&_input]:placeholder:text-muted [&_svg]:size-4 [&_svg]:shrink-0",
   // while typing on a phone, sort folds away so search gets the whole row
-  sort: "flex min-h-11 max-w-[260px] shrink-0 items-center gap-[0.4rem] overflow-hidden text-[0.875rem] whitespace-nowrap text-muted transition-[max-width,opacity] duration-300 ease-ink upto-520:peer-focus-within/search:-ml-4 upto-520:peer-focus-within/search:max-w-0 upto-520:peer-focus-within/search:opacity-0 [&_select]:appearance-none [&_select]:[field-sizing:content] [&_select]:cursor-pointer [&_select]:border-none [&_select]:bg-transparent [&_select]:pr-5 [&_select]:text-[0.9rem] upto-760:[&_select]:text-[1rem] [&_select]:font-medium [&_select]:text-ink [&_select]:underline [&_select]:decoration-line-soft [&_select]:underline-offset-4",
+  sort: "flex min-h-11 max-w-[260px] shrink-0 items-center gap-[0.4rem] overflow-hidden text-[0.875rem] whitespace-nowrap text-muted transition-[max-width,opacity] duration-300 ease-ink upto-520:peer-focus-within/search:-ml-4 upto-520:peer-focus-within/search:max-w-0 upto-520:peer-focus-within/search:opacity-0 [&_select]:min-h-11 [&_select]:appearance-none [&_select]:[field-sizing:content] [&_select]:cursor-pointer [&_select]:border-none [&_select]:bg-transparent [&_select]:pr-5 [&_select]:text-[0.9rem] upto-760:[&_select]:text-[1rem] [&_select]:font-medium [&_select]:text-ink [&_select]:underline [&_select]:decoration-line-soft [&_select]:underline-offset-4",
   // the select's own arrow varies by browser, so it's drawn; taps go through it
   sortPick: "relative inline-flex items-center",
   sortArrow:
     "pointer-events-none absolute right-0 size-4 text-ink-soft",
+  // the New tab: the shelf's grid on big screens, rows on small ones so more of
+  // the news fits on a screen
+  newGrid:
+    "grid grid-cols-[repeat(auto-fill,minmax(160px,1fr))] gap-x-6 gap-y-9 upto-720:grid-cols-[minmax(0,1fr)] upto-720:gap-0 upto-720:border-t-[1.5px] upto-720:border-line",
   classContainer:
     "grid grid-cols-[repeat(auto-fill,minmax(160px,1fr))] gap-x-6 gap-y-9 upto-520:grid-cols-2 upto-520:gap-x-4 upto-520:gap-y-7",
   pagerBottom: "mt-10",
   // "Hide" sits under the card rather than in it: the card is one big link
-  cardWithSeen: "flex min-w-0 flex-col items-start [&>a]:w-full [&>a]:flex-1",
+  cardWithSeen:
+    "flex min-w-0 flex-col items-start [&>a]:w-full [&>a]:flex-1 upto-720:flex-row upto-720:items-stretch upto-720:border-b-[1.5px] upto-720:border-line-soft upto-720:[&>a]:w-auto upto-720:[&>a]:min-w-0",
   seenBtn:
-    "tap mt-2 inline-flex shrink-0 items-center gap-1 py-1 text-[0.85rem] font-medium text-ink-soft underline decoration-line-soft underline-offset-3 transition-colors duration-120 ease-[ease] hover:text-accent hover:decoration-accent [&_svg]:size-3.5",
+    "tap mt-2 inline-flex shrink-0 items-center gap-1 py-1 upto-720:mt-0 upto-720:min-w-16 upto-720:justify-center upto-720:px-2 text-[0.85rem] font-medium text-ink-soft underline decoration-line-soft underline-offset-3 transition-colors duration-120 ease-[ease] hover:text-accent hover:decoration-accent [&_svg]:size-3.5",
   // above the phones' bottom bar
   seenNote:
     "fixed inset-x-0 bottom-6 z-15 mx-auto flex w-fit max-w-[min(30rem,calc(100vw-2rem))] animate-drop items-center gap-4 rounded-ink border-[2.5px] border-line bg-card px-4 py-3 text-[0.95rem] text-ink shadow-ink motion-reduce:animate-none upto-720:bottom-[calc(3.75rem+env(safe-area-inset-bottom))]",
@@ -93,8 +101,10 @@ export const homeStyles = {
     "flex items-start justify-between gap-4 border-b-[1.5px] border-line px-5 pt-4 pb-3",
   modalTitle:
     "font-brand text-[1.5rem] leading-[1.1] font-normal tracking-[0.02em] text-balance uppercase",
+  // Close is at the bottom on phones, where a thumb can reach it
   modalClose:
-    "tap shrink-0 py-1 text-[0.9rem] font-medium text-ink-soft underline decoration-line-soft underline-offset-3 hover:text-ink",
+    "tap shrink-0 py-1 text-[0.9rem] font-medium text-ink-soft underline decoration-line-soft underline-offset-3 hover:text-ink upto-720:hidden",
+  modalFoot: "hidden border-t-[1.5px] border-line p-3 upto-720:block",
   modalActions:
     "flex flex-wrap items-center justify-between gap-x-4 gap-y-2 border-b-[1.5px] border-dashed border-line-soft px-5 py-3",
   modalAll: "btn btn-secondary",

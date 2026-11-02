@@ -48,7 +48,11 @@ export default function MangaCard({
   return (
     <NavLink
       to={linkTo ?? `/details/${currentManga.id}${detailsSearch}`}
-      className="group flex animate-card-in flex-col gap-[0.7rem]"
+      className={
+        news
+          ? "group flex animate-card-in flex-col gap-[0.7rem] upto-720:flex-row upto-720:items-center upto-720:gap-3 upto-720:py-1.5"
+          : "group flex animate-card-in flex-col gap-[0.7rem]"
+      }
       style={{ animationDelay: `${Math.min(index, 12) * 35}ms` }}
       viewTransition
       // says where it came from, so the page it opens can lead back
@@ -61,7 +65,7 @@ export default function MangaCard({
         },
       })}
     >
-      <div className={cover}>
+      <div className={news ? `${cover} upto-720:w-11 upto-720:shrink-0 upto-720:shadow-ink` : cover}>
         <img
           src={currentManga.image || FALLBACK_COVER}
           alt=""
@@ -76,24 +80,33 @@ export default function MangaCard({
         />
         {/* hanko-style stamp for finished series */}
         {currentManga.status && (
-          <span className="absolute top-2.5 right-2 rotate-8 rounded-[3px] border-2 border-accent bg-[color-mix(in_srgb,var(--card)_85%,transparent)] px-2 py-[0.15rem] font-brand text-[1rem] leading-[1.2] tracking-[1.5px] text-accent">
+          <span
+            className={`absolute top-2.5 right-2 rotate-8 rounded-[3px] border-2 border-accent-hover bg-[color-mix(in_srgb,var(--card)_92%,transparent)] px-2 py-[0.15rem] font-brand text-[1rem] leading-[1.2] tracking-[1.5px] text-accent-hover${news ? " upto-720:hidden" : ""}`}
+          >
             Done
           </span>
         )}
       </div>
-      <div className="flex flex-col gap-[0.15rem]">
-        <p className={`${news ? "min-h-[2.5em] " : ""}line-clamp-2 font-display text-[1.05rem] leading-[1.25] font-semibold decoration-accent underline-offset-3 group-hover:underline`}>
+      <div className="flex min-w-0 flex-col gap-[0.15rem]">
+        <p className={`${news ? "min-h-[2.5em] upto-720:min-h-0 upto-720:line-clamp-1 " : ""}line-clamp-2 font-display text-[1.05rem] leading-[1.25] font-semibold decoration-accent underline-offset-3 group-hover:underline`}>
           {currentManga.name}
         </p>
-        <p className="min-h-[1.5em] truncate font-mono text-[0.78rem] text-muted">
-          {news ? (
-            genre
-          ) : (
-            <>
-              {currentManga.status ? "finished" : `ch. ${currentManga.bookmark}`}
-              {genre && <span> · {genre}</span>}
-            </>
-          )}
+        <p
+          className={`min-h-[1.5em] truncate font-mono text-[0.78rem] text-muted${news ? " upto-720:hidden" : ""}`}
+        >
+          {news
+            ? genre
+            : // a blank or zero chapter says nothing worth showing
+              [
+                currentManga.status
+                  ? "finished"
+                  : currentManga.bookmark
+                    ? `ch. ${currentManga.bookmark}`
+                    : null,
+                genre,
+              ]
+                .filter(Boolean)
+                .join(" · ")}
         </p>
         {news && (
           <p className="font-brand text-[1.05rem] tracking-[1px] text-accent">
