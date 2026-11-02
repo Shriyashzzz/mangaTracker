@@ -700,3 +700,198 @@
     scroll-padding-bottom: 4.5rem;
   }
 }
+
+/* ---------- Kenji peeking in to ask for support (SupportPeek.tsx) ----------
+   Over the bottom edge of the window, or the phones' bottom bar, or in from the
+   left side. The motion is one short scene: fingers, head, then the bubble */
+.support-peek {
+  position: fixed;
+  left: 12px;
+  bottom: 0;
+  z-index: 19;
+  display: flex;
+  align-items: flex-end;
+}
+@media (max-width: 720px) {
+  /* the bottom bar: its links, its double rule and the phone's home area */
+  .support-peek {
+    bottom: calc(59px + env(safe-area-inset-bottom));
+  }
+  body:has(input:focus, textarea:focus, select:focus) .support-peek {
+    display: none;
+  }
+}
+.support-peek-kenji {
+  flex: none;
+  width: 92px;
+  /* a sticker's paper edge, so he stands out on the dark theme */
+  filter: drop-shadow(2px 0 0 var(--card)) drop-shadow(-2px 0 0 var(--card))
+    drop-shadow(0 -2px 0 var(--card));
+}
+.support-peek-kenji svg {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+.support-peek-head {
+  animation: support-peek-up 0.56s cubic-bezier(0.3, 1.5, 0.6, 1) 0.1s both;
+}
+.support-peek-hands {
+  animation: support-peek-grip 0.16s ease-out both;
+}
+.support-peek-eyes {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: support-peek-blink 0.2s ease-in-out 1.15s;
+}
+.support-peek-line {
+  position: relative;
+  width: 164px;
+  margin: 0 0 20px 7px;
+  padding: 0.45rem 1.4rem 0.2rem 0.7rem;
+  background: var(--card);
+  border: 2.5px solid var(--line);
+  border-radius: 18px 20px 20px 18px;
+  box-shadow: 0 10px 20px -14px rgba(20, 14, 8, 0.55);
+  transform-origin: 0 85%;
+  animation: support-peek-say 0.26s cubic-bezier(0.3, 1.4, 0.6, 1) 0.46s both;
+}
+/* the bubble's tail, aimed at him */
+.support-peek-line::before,
+.support-peek-line::after {
+  content: "";
+  position: absolute;
+  border-style: solid;
+  border-color: transparent;
+}
+.support-peek-line::before {
+  left: -12px;
+  bottom: 6px;
+  border-width: 7px 13px 7px 0;
+  border-right-color: var(--line);
+}
+.support-peek-line::after {
+  left: -8px;
+  bottom: 8px;
+  border-width: 5px 10px 5px 0;
+  border-right-color: var(--card);
+}
+.support-peek-line p {
+  margin: 0;
+  font: 700 0.84rem/1.2 var(--font-letter);
+  color: var(--ink);
+}
+.support-peek-line a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 30px;
+  font-size: 0.84rem;
+  font-weight: 600;
+  color: var(--ink);
+  text-decoration: underline;
+  text-decoration-color: var(--accent);
+  text-decoration-thickness: 2px;
+  text-underline-offset: 3px;
+}
+.support-peek-close {
+  position: absolute;
+  top: -1px;
+  right: -1px;
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  color: var(--muted);
+}
+.support-peek-close:hover {
+  color: var(--ink);
+}
+.support-peek-close svg {
+  width: 13px;
+  height: 13px;
+}
+/* from the side: half out of the window, with his grin showing */
+.support-peek-side {
+  left: 0;
+}
+.support-peek-side .support-peek-kenji {
+  width: 104px;
+  margin: 0 0 2px -44px;
+  transform: rotate(16deg);
+  transform-origin: 50% 100%;
+}
+.support-peek-side .support-peek-head {
+  animation: support-peek-in 0.56s cubic-bezier(0.3, 1.4, 0.6, 1) 0.05s both;
+}
+.support-peek-side .support-peek-line {
+  margin: 0 0 26px 16px;
+}
+/* leaving: he ducks back */
+.is-leaving .support-peek-head {
+  animation: support-peek-down 0.22s ease-in both;
+}
+.is-leaving.support-peek-side .support-peek-head {
+  animation: support-peek-out 0.22s ease-in both;
+}
+.is-leaving .support-peek-hands {
+  animation: support-peek-let-go 0.16s ease-in 0.1s both;
+}
+.is-leaving .support-peek-line {
+  animation: support-peek-hush 0.14s ease-in both;
+}
+@keyframes support-peek-up {
+  from {
+    transform: translateY(72px);
+  }
+}
+@keyframes support-peek-grip {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+}
+@keyframes support-peek-blink {
+  50% {
+    transform: scaleY(0.1);
+  }
+}
+@keyframes support-peek-say {
+  from {
+    opacity: 0;
+    transform: scale(0.72);
+  }
+}
+@keyframes support-peek-in {
+  from {
+    transform: translateX(-90px);
+  }
+}
+@keyframes support-peek-down {
+  to {
+    transform: translateY(72px);
+  }
+}
+@keyframes support-peek-out {
+  to {
+    transform: translateX(-90px);
+  }
+}
+@keyframes support-peek-let-go {
+  to {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+}
+@keyframes support-peek-hush {
+  to {
+    opacity: 0;
+    transform: scale(0.8);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .support-peek *,
+  .support-peek *::before,
+  .support-peek *::after {
+    animation: none !important;
+  }
+}

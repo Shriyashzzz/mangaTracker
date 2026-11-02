@@ -3,6 +3,8 @@ import Mascot from "../../components/mascot/Mascot";
 
 import { aboutStyles as styles } from "./styles";
 import { usePageMeta } from "../../lib/seo";
+import { CoffeeIcon } from "../../components/icons/Icons";
+import { SUPPORT_URL, stopAsking } from "../../lib/support";
 
 const CONTACT_EMAIL = "ghimireshriyash@gmail.com";
 
@@ -141,10 +143,24 @@ export function AboutPage() {
         </h2>
         <p className={styles.contactBody}>
           Found a bug, want a feature or just want to say hi? Send me an email.
+          Manga Tracker is free, and if it's saved you money, you can buy me a
+          coffee.
         </p>
-        <a href={`mailto:${CONTACT_EMAIL}`} className={styles.contactButton}>
-          Contact me
-        </a>
+        <div className={styles.contactButtons}>
+          <a href={`mailto:${CONTACT_EMAIL}`} className="btn btn-secondary">
+            Contact me
+          </a>
+          <a
+            href={SUPPORT_URL}
+            target="_blank"
+            rel="noreferrer"
+            className="btn btn-secondary"
+            onClick={stopAsking}
+          >
+            <CoffeeIcon />
+            Buy me a coffee
+          </a>
+        </div>
         <p className={styles.contactAddress}>{CONTACT_EMAIL}</p>
         <NavLink
           to="/acknowledgements"
