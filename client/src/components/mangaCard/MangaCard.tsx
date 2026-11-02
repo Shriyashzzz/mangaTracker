@@ -165,7 +165,7 @@ export default function MangaCard({
         )}
       </div>
       {asColumns && (
-        <span className="flex items-center gap-14">
+        <span className="flex items-center gap-20">
           <span className="flex items-center upto-720:hidden">
             {/* unrated ones show empty stars, so the column always reads the same */}
             <StarRating value={Number(currentManga.rating) || 0} size="sm" />
