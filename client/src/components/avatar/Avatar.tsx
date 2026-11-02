@@ -3,6 +3,7 @@
 import type { ReactNode } from "react";
 import { DEFAULT_AVATAR } from "../../lib/avatars";
 import Mascot from "../mascot/Mascot";
+import * as Art from "./avatarArt";
 
 const INK = "fill-none stroke-line stroke-[3.5] [stroke-linecap:round] [stroke-linejoin:round]";
 const PAPER = "fill-card stroke-line stroke-[3.5] [stroke-linejoin:round]";
@@ -56,13 +57,53 @@ const crop = (mood: "happy" | "panic" | "confused"): ReactNode => (
   </span>
 );
 
-const ART: Record<string, ReactNode> = {
-  kenji: crop("happy"),
-  panic: crop("panic"),
-  lost: crop("confused"),
-  tower: <Tower />,
-  ink: <InkBlot />,
-  onigiri: <Onigiri />,
+// the panel behind each one: inked screentone, focus lines, or a flat colour
+const TONE =
+  "bg-paper-2 bg-[radial-gradient(var(--dots-strong)_1.1px,transparent_1.4px)] bg-size-[6px_6px]";
+const LINES =
+  "bg-paper bg-[radial-gradient(circle_at_50%_50%,var(--paper)_0_34%,transparent_70%),repeating-conic-gradient(from_0deg_at_50%_50%,var(--line)_0deg_0.7deg,transparent_0.7deg_7deg)]";
+const PLAIN = "bg-paper-2";
+const WASH = "bg-[color-mix(in_srgb,var(--accent)_22%,var(--card))]";
+const SUN = "bg-[color-mix(in_srgb,var(--star)_35%,var(--card))]";
+const NIGHT = "bg-line";
+
+const ART: Record<string, { art: ReactNode; panel: string }> = {
+  kenji: { art: crop("happy"), panel: PLAIN },
+  panic: { art: crop("panic"), panel: LINES },
+  lost: { art: crop("confused"), panel: TONE },
+  tower: { art: <Tower />, panel: SUN },
+  ink: { art: <InkBlot />, panel: WASH },
+  onigiri: { art: <Onigiri />, panel: TONE },
+  mangaka: { art: <Art.Mangaka />, panel: LINES },
+  librarian: { art: <Art.Librarian />, panel: SUN },
+  punk: { art: <Art.PunkBob />, panel: TONE },
+  grandma: { art: <Art.Grandma />, panel: WASH },
+  twintails: { art: <Art.TwinTails />, panel: SUN },
+  rival: { art: <Art.SilentRival />, panel: TONE },
+  training: { art: <Art.TrainingArc />, panel: LINES },
+  regular: { art: <Art.BookstoreRegular />, panel: WASH },
+  nook: { art: <Art.ReadingNook />, panel: SUN },
+  cool: { art: <Art.TooCool />, panel: TONE },
+  crying: { art: <Art.NotCrying />, panel: LINES },
+  onemore: { art: <Art.OneMoreChapter />, panel: NIGHT },
+  edgy: { art: <Art.EdgyArc />, panel: WASH },
+  master: { art: <Art.OldMaster />, panel: TONE },
+  strategist: { art: <Art.Strategist />, panel: LINES },
+  threeam: { art: <Art.ThreeAM />, panel: NIGHT },
+  cat: { art: <Art.ShelfCat />, panel: WASH },
+  tanuki: { art: <Art.Tanuki />, panel: TONE },
+  ghost: { art: <Art.BacklogGhost />, panel: NIGHT },
+  kappa: { art: <Art.Kappa />, panel: SUN },
+  oni: { art: <Art.LittleOni />, panel: TONE },
+  kitsune: { art: <Art.Kitsune />, panel: SUN },
+  daruma: { art: <Art.Daruma />, panel: PLAIN },
+  ramen: { art: <Art.RamenBowl />, panel: LINES },
+  dango: { art: <Art.Dango />, panel: PLAIN },
+  tea: { art: <Art.TeaBreak />, panel: TONE },
+  bubble: { art: <Art.SpeechBubble />, panel: WASH },
+  shock: { art: <Art.BigShock />, panel: LINES },
+  bookmark: { art: <Art.LiveBookmark />, panel: SUN },
+  nib: { art: <Art.PenNib />, panel: TONE },
 };
 
 // always shows something: anything unknown gets the default
@@ -73,12 +114,13 @@ export default function Avatar({
   id?: string | null;
   className?: string;
 }) {
+  const { art, panel } = ART[id ?? DEFAULT_AVATAR] ?? ART[DEFAULT_AVATAR]!;
   return (
     <span
-      className={`printed grid aspect-square place-items-center overflow-hidden rounded-full border-[2.5px] border-line bg-paper-2 ${className}`}
+      className={`printed grid aspect-square place-items-center overflow-hidden rounded-full border-[2.5px] border-line ${panel} ${className}`}
       aria-hidden
     >
-      {ART[id ?? DEFAULT_AVATAR] ?? ART[DEFAULT_AVATAR]}
+      {art}
     </span>
   );
 }

@@ -120,6 +120,7 @@ export const getSharedShelf = (shareCode: string) =>
   prisma.user.findFirst({
     where: { shareCode, shareEnabled: true },
     select: {
+      id: true,
       displayName: true,
       avatar: true,
       shareNotes: true,

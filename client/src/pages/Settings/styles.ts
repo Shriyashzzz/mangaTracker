@@ -23,7 +23,8 @@ export const settingsStyles = {
   failed: "text-[0.9rem] font-medium text-accent",
   link: "underline decoration-accent decoration-2 underline-offset-3",
   // the pictures
-  pictures: "grid grid-cols-3 gap-3 upto-520:gap-2",
+  // 36 of them, so every row comes out full
+  pictures: "grid grid-cols-6 gap-2 upto-760:grid-cols-4 upto-520:grid-cols-3",
   picture:
     "flex cursor-pointer flex-col items-center gap-1.5 rounded-ink border-2 border-transparent p-2 text-center text-[0.85rem] leading-[1.2] has-checked:border-accent has-checked:bg-accent-wash has-focus-visible:outline-2 has-focus-visible:outline-offset-2 has-focus-visible:outline-accent [&_input]:sr-only",
   pictureArt: "w-full max-w-24",

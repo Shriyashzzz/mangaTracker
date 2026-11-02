@@ -6,7 +6,7 @@ import Avatar from "../../components/avatar/Avatar";
 import Mascot from "../../components/mascot/Mascot";
 import { getAccount, saveAccount, shareUrl, type Account } from "../../lib/account";
 import { signInPath } from "../../lib/api";
-import { AVATARS, DEFAULT_AVATAR } from "../../lib/avatars";
+import { AVATARS, AVATARS_SHOWN_FIRST, DEFAULT_AVATAR } from "../../lib/avatars";
 import { usePrivatePage } from "../../lib/seo";
 import { useAuth } from "../../store/auth";
 import { settingsStyles as styles } from "../Settings/styles";
@@ -20,6 +20,7 @@ export default function ProfilePage() {
   const [name, setName] = useState("");
   const [note, setNote] = useState<{ text: string; failed?: boolean } | null>(null);
   const [copied, setCopied] = useState(false);
+  const [allPictures, setAllPictures] = useState(false);
 
   useEffect(() => {
     if (isSignedIn === false) navigate(signInPath("/profile"), { replace: true });
@@ -60,10 +61,29 @@ export default function ProfilePage() {
     }
   };
 
+  // fills the box so they can still change it; a different one each time
+  const surpriseMe = () => {
+    const others = account.nameIdeas.filter((idea) => idea !== name);
+    setName(others[Math.floor(Math.random() * others.length)] ?? name);
+  };
+
   const saveName = (e: FormEvent) => {
     e.preventDefault();
     save({ displayName: name.trim() || null });
   };
+
+  // folded away, what they've picked still shows, in the last spot
+  const chosen = account.avatar ?? DEFAULT_AVATAR;
+  const firstPictures = AVATARS.slice(0, AVATARS_SHOWN_FIRST);
+  const pictures = allPictures
+    ? AVATARS
+    : firstPictures.some((a) => a.id === chosen)
+      ? firstPictures
+      : [
+          ...firstPictures.slice(0, -1),
+          ...AVATARS.filter((a) => a.id === chosen),
+        ];
+  const morePictures = AVATARS.length - AVATARS_SHOWN_FIRST;
 
   const copyLink = async () => {
     if (!account.shareCode) return;
@@ -79,7 +99,7 @@ export default function ProfilePage() {
     <article className={`${styles.page} fade-in`}>
       <header className={styles.head}>
         <Avatar id={account.avatar} className={styles.headArt} />
-        <h1 className={styles.title}>{account.displayName || "Your profile"}</h1>
+        <h1 className={styles.title}>{account.displayName || account.defaultName}</h1>
       </header>
 
       <p className={note?.failed ? styles.failed : styles.saved} role="status">
@@ -98,14 +118,20 @@ export default function ProfilePage() {
             value={name}
             maxLength={40}
             autoComplete="nickname"
+            placeholder={account.defaultName}
             onChange={(e) => setName(e.target.value)}
           />
           <p className={styles.body}>
-            Shown if you share your list. Your username stays private.
+            Shown if you share your list
+            {!account.displayName && `, as ${account.defaultName} for now`}. Your
+            username stays private.
           </p>
           <div className={styles.actions}>
             <button type="submit" className="btn btn-secondary">
               Save name
+            </button>
+            <button type="button" className="btn btn-ghost" onClick={surpriseMe}>
+              Surprise me
             </button>
           </div>
         </form>
@@ -115,19 +141,35 @@ export default function ProfilePage() {
         <h2 id="profile-picture" className={styles.heading}>
           Your picture
         </h2>
-        <div className={styles.pictures} role="radiogroup" aria-labelledby="profile-picture">
-          {AVATARS.map((avatar) => (
+        <div
+          id="picture-options"
+          className={styles.pictures}
+          role="radiogroup"
+          aria-labelledby="profile-picture"
+        >
+          {pictures.map((avatar) => (
             <label key={avatar.id} className={styles.picture}>
               <input
                 type="radio"
                 name="avatar"
-                checked={(account.avatar ?? DEFAULT_AVATAR) === avatar.id}
+                checked={chosen === avatar.id}
                 onChange={() => save({ avatar: avatar.id })}
               />
               <Avatar id={avatar.id} className={styles.pictureArt} />
               {avatar.label}
             </label>
           ))}
+        </div>
+        <div className={styles.actions}>
+          <button
+            type="button"
+            className="btn btn-secondary"
+            aria-expanded={allPictures}
+            aria-controls="picture-options"
+            onClick={() => setAllPictures(!allPictures)}
+          >
+            {allPictures ? "Show fewer" : `Show ${morePictures} more`}
+          </button>
         </div>
       </section>
 

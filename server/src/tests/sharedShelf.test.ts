@@ -1,6 +1,8 @@
+import { READER_NAMES } from "../util/readerNames.js";
 import { toSharedShelf } from "../util/sharedShelf.js";
 
 const source = {
+  id: 3,
   displayName: "Ink Goblin",
   avatar: "ink",
   shareNotes: false,
@@ -36,6 +38,9 @@ test("notes stay private unless they choose to share them", () => {
   expect(shared.manga[0]).toMatchObject({ notes: "my private thoughts" });
 });
 
-test("no display name means a stand-in, not the username", () => {
-  expect(toSharedShelf({ ...source, displayName: null }).displayName).toBe("A reader");
+test("no display name means a fun stand-in that stays the same, never the username", () => {
+  const first = toSharedShelf({ ...source, displayName: null }).displayName;
+  expect(READER_NAMES).toContain(first);
+  expect(toSharedShelf({ ...source, displayName: null }).displayName).toBe(first);
+  expect(READER_NAMES.every((name) => name.length <= 40)).toBe(true);
 });

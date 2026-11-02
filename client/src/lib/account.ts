@@ -11,6 +11,9 @@ export type Account = {
   shareEnabled: boolean;
   shareNotes: boolean;
   shareCode: string | null;
+  // what they show as until they pick a name, and ideas for one
+  defaultName: string;
+  nameIdeas: string[];
 };
 
 export type SharedShelf = {
@@ -32,7 +35,9 @@ export const getAccount = (signal?: AbortSignal) =>
 
 // throws with what was wrong, in words for the page
 export async function saveAccount(
-  patch: Partial<Omit<Account, "username" | "shareCode">>,
+  patch: Partial<
+    Omit<Account, "username" | "shareCode" | "defaultName" | "nameIdeas">
+  >,
 ) {
   const res = await apiFetch("/api/account", { method: "PATCH", body: patch });
   if (!res.ok) throw new Error((await errorMessages(res))[0] ?? "That didn't save.");
