@@ -913,30 +913,13 @@ function Library() {
   );
 }
 
-// on small screens, adding sits within reach of a thumb. It gets out of the way
-// while they're reading down the list and at the page's end, and comes back as
-// soon as they scroll up. In a portal for the same reason as the note above
+// on small screens, adding sits within reach of a thumb. In a portal for the same
+// reason as the note above
 function AddButton({ onClick }: { onClick: () => void }) {
-  const [tucked, setTucked] = useState(false);
-  useEffect(() => {
-    let last = window.scrollY;
-    const onScroll = () => {
-      const y = window.scrollY;
-      const atEnd =
-        y + window.innerHeight >= document.documentElement.scrollHeight - 160;
-      if (atEnd) setTucked(true);
-      else if (y < last - 6 || y < 80) setTucked(false);
-      else if (y > last + 6) setTucked(true);
-      if (Math.abs(y - last) > 6) last = y;
-    };
-    window.addEventListener("scroll", onScroll, { passive: true });
-    return () => window.removeEventListener("scroll", onScroll);
-  }, []);
   return createPortal(
     <button
       type="button"
       className={styles.addButton}
-      data-tucked={tucked}
       aria-label="Add manga"
       onClick={onClick}
     >
