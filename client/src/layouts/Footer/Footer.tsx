@@ -21,7 +21,7 @@ export default function Footer() {
   return (
     <footer
       // room for the phones' bottom bar
-      className="screentone mt-auto bg-ink text-paper upto-720:pb-[calc(3rem+env(safe-area-inset-bottom))]"
+      className="screentone mt-auto bg-ink text-paper upto-720:pb-[calc(3.75rem+env(safe-area-inset-bottom))]"
     >
       {/* one slim strip on laptops, with equal side columns so the quote stays
           on the page's true center. Narrower, the quote gets a row of its own,
