@@ -167,3 +167,18 @@ test("seen it doesn't stop the details panel saying the next volume is out", () 
   expect(status.hasNewVolume).toBe(false);
   expect(status.isNextVolumeOut).toBe(true);
 });
+
+test("the newest volume comes with what its price page needs", () => {
+  const status = getReleaseStatus(owns(24), {
+    dates: null,
+    englishVolumes: [
+      { volume: 24, isbn13: "9780000000024", title: "Series, Vol. 24" },
+      { volume: 25, isbn13: "9780000000025", title: "Series, Vol. 25" },
+    ],
+  });
+  expect(status.latestVolumeBook).toEqual({
+    isbn13: "9780000000025",
+    title: "Series, Vol. 25",
+  });
+  expect(getReleaseStatus(owns(24), volumesOnly(english(25))).latestVolumeBook).toBeNull();
+});

@@ -14,6 +14,8 @@ export type ReleaseStatus = {
   // how far they've got: what they own, or else the volume their chapter is in
   currentVolume: number | null;
   latestVolume: number | null;
+  // that volume's price page, when the catalog has it
+  latestVolumeBook: { isbn13: string; title: string } | null;
   latestChapter: number | null;
   latestJapaneseVolume: number | null;
 };
@@ -29,7 +31,10 @@ type Shelved = {
 
 type Sources = {
   dates: FormatedDates | null; // MangaDex, for chapters
-  englishVolumes: { volume: number | null }[] | null; // the US catalog; null if it didn't answer
+  // the US catalog; null if it didn't answer
+  englishVolumes:
+    | { volume: number | null; isbn13?: string; title?: string }[]
+    | null;
 };
 
 // a little grace: a reader who was caught up shouldn't drop off the list because
@@ -47,6 +52,11 @@ export function getReleaseStatus(
     .map((v) => v.volume)
     .filter((v): v is number => v != null);
   const latestVolume = numbers.length ? Math.max(...numbers) : null;
+  const newest = (englishVolumes ?? []).find((v) => v.volume === latestVolume);
+  const latestVolumeBook =
+    latestVolume != null && newest?.isbn13
+      ? { isbn13: newest.isbn13, title: newest.title ?? "" }
+      : null;
   const chapter = parseFloat(dates?.chapter?.latestReleased.chapterNumber ?? "");
   const latestChapter = Number.isFinite(chapter) ? chapter : null;
   const japanese = (dates?.volume ?? [])
@@ -89,6 +99,7 @@ export function getReleaseStatus(
     isNextVolumeOut,
     currentVolume,
     latestVolume,
+    latestVolumeBook,
     latestChapter,
     latestJapaneseVolume,
   };

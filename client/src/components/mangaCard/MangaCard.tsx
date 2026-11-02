@@ -18,6 +18,8 @@ type Props = {
   news?: CardNews;
   // added to the card's link, e.g. to open the details in the Japan view
   detailsSearch?: string;
+  // somewhere else for the card to lead instead of its details page
+  linkTo?: string;
   // position on the shelf, for the staggered entrance
   index?: number;
 };
@@ -32,6 +34,7 @@ export default function MangaCard({
   priceTag,
   news,
   detailsSearch = "",
+  linkTo,
   index = 0,
 }: Props) {
   const genre =
@@ -41,7 +44,7 @@ export default function MangaCard({
 
   return (
     <NavLink
-      to={`/details/${currentManga.id}${detailsSearch}`}
+      to={linkTo ?? `/details/${currentManga.id}${detailsSearch}`}
       className="group flex animate-card-in flex-col gap-[0.7rem]"
       style={{ animationDelay: `${Math.min(index, 12) * 35}ms` }}
       viewTransition

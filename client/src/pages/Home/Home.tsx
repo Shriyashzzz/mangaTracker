@@ -11,7 +11,7 @@ import RangePager from "../../components/rangePager/RangePager";
 import Mascot from "../../components/mascot/Mascot";
 import SlowLoadQuote from "../../components/slowLoadQuote/SlowLoadQuote";
 import { usePrivatePage } from "../../lib/seo";
-import { getShelfPriceTags } from "../../lib/prices";
+import { getShelfPriceTags, volumePath } from "../../lib/prices";
 import type { Manga, ShelfPrice } from "../../lib/types";
 import { useAuth } from "../../store/auth";
 import { useShelf } from "../../store/shelf";
@@ -367,6 +367,15 @@ function Library() {
     }
     return { text: `Vol. ${found?.latestVolume} is out`, yours: volumeYours };
   };
+  // a new volume leads straight to its prices; there's nothing to do with one
+  // but buy it. No catalog entry to go on: the details page, as usual
+  const buyLinkFor = (m: Manga) => {
+    const book = releases[m.id]?.latestVolumeBook;
+    return showingNew && releaseKind === "volumes" && book
+      ? volumePath(book.isbn13, book.title)
+      : undefined;
+  };
+
   const total = mangaData.length;
   // a series with no saved place can't be called caught up, so it never shows
   // here. An empty tab has to say so, or it reads as "nothing's out"
@@ -613,6 +622,7 @@ function Library() {
                     currentManga={currentManga}
                   priceTag={priceTags[currentManga.id]}
                   news={newsFor(currentManga)}
+                  linkTo={buyLinkFor(currentManga)}
                   detailsSearch={
                     !showingNew
                       ? undefined
