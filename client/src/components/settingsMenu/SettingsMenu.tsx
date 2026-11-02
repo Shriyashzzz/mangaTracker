@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { NavLink, useLocation } from "react-router";
-import { CheckIcon, CoffeeIcon, SettingsIcon, MoonIcon, SunIcon } from "../icons/Icons";
+import { CheckIcon, SettingsIcon, MoonIcon, SunIcon } from "../icons/Icons";
 import { SUPPORT_URL, stopAsking } from "../../lib/support";
 import {
   BACKGROUNDS,
@@ -200,6 +200,11 @@ export default function SettingsMenu({ isSignedIn, onLogOut }: Props) {
             </>
           )}
           <li>
+            <NavLink to="/about" className={item} viewTransition>
+              About
+            </NavLink>
+          </li>
+          <li>
             <a
               href={SUPPORT_URL}
               target="_blank"
@@ -207,14 +212,8 @@ export default function SettingsMenu({ isSignedIn, onLogOut }: Props) {
               className={item}
               onClick={stopAsking}
             >
-              <CoffeeIcon />
-              Buy me a coffee
+              Support me
             </a>
-          </li>
-          <li>
-            <NavLink to="/about" className={item} viewTransition>
-              About
-            </NavLink>
           </li>
           {isSignedIn && (
             <li>
