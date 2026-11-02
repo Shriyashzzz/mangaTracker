@@ -13,6 +13,7 @@ import type {
   MangaReleaseDates,
   SeriesMatch,
 } from "../../scripts/getReleaseDates.js";
+import { getChapterSource, type ChapterSource } from "../prices/mangaUpdates.js";
 import type { FormatedDates } from "./volumeDataFormatter.js";
 
 type Answer = MangaReleaseDates<FormatedDates>;
@@ -38,6 +39,39 @@ export function withTimeout<T>(
     timer = setTimeout(() => resolve(fallback), ms);
   });
   return Promise.race([promise, timeout]).finally(() => clearTimeout(timer));
+}
+
+// a second opinion on the chapters. Whichever source is furthest along wins, as
+// each can only be behind. Its number has no date, and any guess at the next
+// chapter from the lower count no longer means anything
+export function withChapterSource(
+  dates: FormatedDates | null,
+  source: ChapterSource | null,
+): FormatedDates | null {
+  if (!source) return dates;
+  const merged: FormatedDates = {
+    ...dates,
+    ...(source.finished ? { seriesFinished: true } : {}),
+  };
+  const current = parseFloat(dates?.chapter?.latestReleased.chapterNumber ?? "");
+  const isAhead =
+    source.latestChapter != null &&
+    (!Number.isFinite(current) || source.latestChapter > current);
+  if (isAhead) {
+    merged.chapter = {
+      latestReleased: {
+        chapterNumber: String(source.latestChapter),
+        releaseDate: null,
+      },
+      estimateRelease: {
+        chapterNumber: null,
+        releaseDate: null,
+        isEstimate: false,
+        confidence: "low",
+      },
+    };
+  }
+  return dates || source.latestChapter != null ? merged : null;
 }
 
 // a database problem just means asking MangaDex again
@@ -83,11 +117,19 @@ export async function getCachedReleaseDates(
 
   let lookup = running.get(key);
   if (!lookup) {
-    lookup = queue.then(() =>
-      withTimeout(getReleaseDates(name, match), LOOKUP_TIMEOUT_MS, {
-        ok: false,
-      }),
-    );
+    lookup = queue.then(async () => {
+      const [answer, source] = await Promise.all([
+        withTimeout(getReleaseDates(name, match), LOOKUP_TIMEOUT_MS, {
+          ok: false,
+        } as Answer),
+        getChapterSource([name, ...(match.altNames ?? [])]),
+      ]);
+      const data = withChapterSource(
+        answer.ok ? (answer.data ?? null) : null,
+        source,
+      );
+      return data ? { ok: true as const, data } : answer;
+    });
     queue = lookup.then(
       () => new Promise((resolve) => setTimeout(resolve, PAUSE_MS)),
     );

@@ -324,7 +324,7 @@ function Library() {
       kind === "volume"
         ? found?.nextVolume
         : kind === "chapter"
-          ? found?.latestChapter
+          ? found?.nextChapter
           : found?.latestJapaneseVolume;
     if (newest == null) return;
     const previous =
@@ -363,12 +363,16 @@ function Library() {
       };
     }
     if (releaseKind === "chapters") {
+      const nextChapter = found?.nextChapter;
       return {
-        text: `Ch. ${found?.latestChapter} is out`,
+        text:
+          nextChapter === found?.latestChapter
+            ? `Ch. ${nextChapter} is out`
+            : `Ch. ${nextChapter} available`,
         yours: m.bookmark ? `You're on ch. ${m.bookmark}` : undefined,
       };
     }
-    // "is out" is news, so it's only for the newest; older ones are just there to buy
+    // "is out" is news, so it's only for the newest
     const next = found?.nextVolume;
     return {
       text:

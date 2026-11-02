@@ -14,6 +14,8 @@ export type ReleaseStatus = {
   // how far they've got: what they own, or else the volume their chapter is in
   currentVolume: number | null;
   latestVolume: number | null;
+  // the chapter after theirs, up to the latest
+  nextChapter: number | null;
   // the next English volume after where they are, and its price page
   nextVolume: number | null;
   nextVolumeBook: { isbn13: string; title: string } | null;
@@ -38,8 +40,12 @@ type Sources = {
     | null;
 };
 
+// a little grace: someone nearly caught up shouldn't drop off the list because a
+// couple of chapters came out at once
+const CAUGHT_UP_CHAPTERS = 3;
+
 // "New" is what's next for this reader: the next volume they can buy, however far
-// behind the newest that is, and a chapter only once they're one away from it. A blank shelf number can't say they've caught
+// behind the newest that is, and the next chapter once they've nearly caught up. A blank shelf number can't say they've caught
 // up, so it doesn't count (a blank volume falls back on the chapter they're on)
 export function getReleaseStatus(
   { volumesOwned, bookmark, seenVolume, seenChapter, seenJapanVolume }: Shelved,
@@ -51,6 +57,10 @@ export function getReleaseStatus(
   const latestVolume = numbers.length ? Math.max(...numbers) : null;
   const chapter = parseFloat(dates?.chapter?.latestReleased.chapterNumber ?? "");
   const latestChapter = Number.isFinite(chapter) ? chapter : null;
+  const nextChapter =
+    latestChapter != null && bookmark != null && bookmark > 0 && bookmark < latestChapter
+      ? Math.min(Math.floor(bookmark) + 1, latestChapter)
+      : null;
   const japanese = (dates?.volume ?? [])
     .map((v) => parseFloat(v.volume ?? ""))
     .filter(Number.isFinite);
@@ -78,12 +88,12 @@ export function getReleaseStatus(
   return {
     hasNewVolume: nextVolume != null && nextVolume > (seenVolume ?? 0),
     hasNewChapter:
+      // a finished series has nothing new to come
+      !dates?.seriesFinished &&
+      nextChapter != null &&
       latestChapter != null &&
-      bookmark != null &&
-      bookmark > 0 &&
-      bookmark < latestChapter &&
-      latestChapter - bookmark <= 1 &&
-      latestChapter > (seenChapter ?? 0),
+      latestChapter - (bookmark ?? 0) <= CAUGHT_UP_CHAPTERS &&
+      nextChapter > (seenChapter ?? 0),
     hasNewJapaneseVolume:
       // without the catalog we can't say it isn't out in English already
       englishVolumes != null &&
@@ -95,6 +105,7 @@ export function getReleaseStatus(
     isNextVolumeOut,
     currentVolume,
     latestVolume,
+    nextChapter,
     nextVolume,
     nextVolumeBook,
     latestChapter,

@@ -33,6 +33,8 @@ export type FormatedDates = {
   volume?: Array<Volume>;
   newVolume?: NewVolume; // upcoming new volume
   chapter?: ChapterRelease;
+  // the whole series is out, so there's nothing new to come
+  seriesFinished?: boolean;
 };
 
 export type MangaDexChapter = {

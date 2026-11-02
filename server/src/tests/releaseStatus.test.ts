@@ -46,13 +46,28 @@ test("the highest numbered English volume counts, in any order", () => {
   expect(status.latestVolume).toBe(10);
 });
 
-test("a new chapter only counts when it's the next one for them", () => {
+test("the next chapter shows once they're within 3 of the latest", () => {
   const out = chaptersOnly(chapter("250"));
-  expect(getReleaseStatus(readTo(249), out).hasNewChapter).toBe(true);
-  expect(getReleaseStatus(readTo(248), out).hasNewChapter).toBe(false);
+  const near = getReleaseStatus(readTo(247), out);
+  expect(near.hasNewChapter).toBe(true);
+  expect(near.nextChapter).toBe(248);
+  expect(getReleaseStatus(readTo(249), out).nextChapter).toBe(250);
+  expect(getReleaseStatus(readTo(246), out).hasNewChapter).toBe(false);
   expect(getReleaseStatus(readTo(203), out).hasNewChapter).toBe(false);
   expect(getReleaseStatus(readTo(250), out).hasNewChapter).toBe(false);
+  expect(getReleaseStatus(readTo(251), out).hasNewChapter).toBe(false);
   expect(getReleaseStatus(readTo(203), chaptersOnly(chapter(null))).hasNewChapter).toBe(false);
+});
+
+test("half chapters count, and the next one never passes the latest", () => {
+  const status = getReleaseStatus(readTo(250), chaptersOnly(chapter("250.5")));
+  expect(status.hasNewChapter).toBe(true);
+  expect(status.nextChapter).toBe(250.5);
+});
+
+test("a finished series has no new chapters", () => {
+  const dates = { ...chapter("201"), seriesFinished: true } as FormatedDates;
+  expect(getReleaseStatus(readTo(200), chaptersOnly(dates)).hasNewChapter).toBe(false);
 });
 
 test("a Japanese volume counts only once they've caught up with English", () => {
