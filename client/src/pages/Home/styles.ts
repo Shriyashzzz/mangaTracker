@@ -15,6 +15,10 @@ const panel =
 export const homeStyles = {
   // ---------- shelf ----------
   pageHead: "mb-7 flex flex-wrap items-center justify-between gap-4",
+  pageActions:
+    "flex flex-wrap items-center justify-end gap-x-5 gap-y-2 upto-520:flex-row-reverse upto-520:justify-start",
+  importLink:
+    "tap text-[0.9rem] font-medium text-ink-soft underline decoration-line-soft underline-offset-3 hover:text-ink hover:decoration-current",
   pageTitle:
     "font-brand text-[clamp(2.4rem,5.5vw,3.4rem)] leading-none font-normal tracking-[0.02em] uppercase",
   // the header scrolls away, this stays pinned so search and filters are

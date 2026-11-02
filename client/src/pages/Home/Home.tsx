@@ -298,6 +298,9 @@ function Library() {
         <button className="btn btn-primary btn-lg" onClick={goToAdd}>
           Add your first manga
         </button>
+        <NavLink to="/import" className={`${styles.importLink} mt-4`} viewTransition>
+          Or import from MyAnimeList
+        </NavLink>
       </div>
     );
   }
@@ -365,7 +368,13 @@ function Library() {
         yours: m.bookmark ? `You're on ch. ${m.bookmark}` : undefined,
       };
     }
-    return { text: `Vol. ${found?.nextVolume} is out`, yours: volumeYours };
+    // "is out" is news, so it's only for the newest; older ones are just there to buy
+    const next = found?.nextVolume;
+    return {
+      text:
+        next === found?.latestVolume ? `Vol. ${next} is out` : `Vol. ${next} available`,
+      yours: volumeYours,
+    };
   };
   // the next volume leads straight to its prices; there's nothing to do with it
   // but buy it. No catalog entry to go on: the details page, as usual
@@ -420,9 +429,14 @@ function Library() {
     <div className="fade-in">
       <div className={styles.pageHead}>
         <h1 className={styles.pageTitle}>Your shelf</h1>
-        <button className="btn btn-primary" onClick={goToAdd}>
-          + Add manga
-        </button>
+        <div className={styles.pageActions}>
+          <NavLink to="/import" className={styles.importLink} viewTransition>
+            Import from MyAnimeList
+          </NavLink>
+          <button className="btn btn-primary" onClick={goToAdd}>
+            + Add manga
+          </button>
+        </div>
       </div>
 
       <div className={styles.toolbar}>

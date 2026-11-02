@@ -48,6 +48,10 @@ export default function Footer() {
             Series
           </NavLink>
           <span aria-hidden>·</span>
+          <NavLink to="/updates" className={footerLink}>
+            What's new
+          </NavLink>
+          <span aria-hidden>·</span>
           <NavLink to="/about" className={footerLink}>
             About
           </NavLink>

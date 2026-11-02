@@ -285,7 +285,7 @@ async function fetchSitemap() {
 const basicSitemap = (origin: string) =>
   `<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-${["/", "/series", "/about"].map((path) => `  <url><loc>${origin}${path}</loc></url>`).join("\n")}
+${["/", "/series", "/about", "/updates"].map((path) => `  <url><loc>${origin}${path}</loc></url>`).join("\n")}
 </urlset>
 `;
 

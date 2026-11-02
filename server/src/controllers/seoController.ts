@@ -40,6 +40,7 @@ const sitemap = async (_req: Request, res: Response) => {
   const urls = [
     entry("/"),
     entry("/about"),
+    entry("/updates"),
     entry("/series"),
     ...series.map((s) => entry(seriesPath(s.name), s.fetchedAt)),
     ...volumes.map((v) => entry(volumePath(v.isbn13.trim(), v.title), v.updated)),
