@@ -93,9 +93,16 @@ export default function Details() {
     setBusy(true);
     setActionNote("");
     try {
+      // what's on the server right now for the undo: notes, chapter and rating
+      // may have changed since this page loaded
+      const current = await apiFetch(`/api/manga/${id}`);
+      const latest = current.ok
+        ? ((await current.json()) as { manga?: Manga }).manga
+        : null;
       const res = await apiFetch(`/api/manga/${id}`, { method: "DELETE" });
       if (!res.ok) throw new Error(`Failed deleting manga`);
       useShelf.getState().remove(Number(id));
+      useShelf.getState().setLastDeleted(latest ?? mangaData);
       navigate("/shelf", { viewTransition: true });
     } catch (e) {
       console.error(e);
@@ -325,7 +332,7 @@ export default function Details() {
             {confirmDelete ? (
               <span className={styles.confirm} role="alert">
                 Delete {mangaData.name} from your shelf? Your chapter, rating and
-                notes go with it.
+                notes go with it, though you'll get a moment to undo.
                 <button
                   className={styles.confirmYes}
                   onClick={handleDeleteManga}
