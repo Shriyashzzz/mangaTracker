@@ -24,9 +24,9 @@ export const updatesStyles = {
   panelTitle:
     "font-brand text-[clamp(1.7rem,4vw,2.2rem)] leading-[1.05] font-normal tracking-[0.02em] uppercase",
 
-  // the rest, side by side with a rule between. It wraps as the list grows
-  items:
-    "grid grid-cols-[repeat(auto-fit,minmax(220px,1fr))] gap-x-8 gap-y-5 upto-760:grid-cols-[minmax(0,1fr)] [&>li]:border-t-[1.5px] [&>li]:border-line [&>li]:pt-3",
+  // the rest, one under the other, each hung from a small inked diamond
+  items: "flex flex-col border-b-[1.5px] border-line",
+  item: "relative border-t-[1.5px] border-line py-4 pl-8 before:absolute before:top-[1.4rem] before:left-1 before:size-3 before:rotate-45 before:border-[1.5px] before:border-line before:bg-accent",
   itemName:
     "font-brand text-[1.45rem] leading-[1.1] font-normal tracking-[0.02em] uppercase",
   itemBody: "mt-1 leading-[1.45] text-ink-soft",

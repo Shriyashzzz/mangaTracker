@@ -81,9 +81,10 @@ export function UpdatesPage() {
         </div>
       </section>
 
-      <ul className={styles.items}>
+      {/* role: Safari stops announcing a list once its bullets are styled away */}
+      <ul role="list" className={styles.items}>
         {UPDATES.map((update) => (
-          <li key={update.name}>
+          <li key={update.name} className={styles.item}>
             <h2 className={styles.itemName}>{update.name}</h2>
             <p className={styles.itemBody}>{update.body}</p>
           </li>
