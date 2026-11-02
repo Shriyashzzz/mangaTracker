@@ -7,7 +7,13 @@ import MangaCard, {
 
 import { homeStyles as styles } from "./styles";
 import { NavLink, useNavigate } from "react-router";
-import { CheckIcon, ChevronDownIcon, SearchIcon, StarIcon } from "../../components/icons/Icons";
+import {
+  CheckIcon,
+  ChevronDownIcon,
+  PlusIcon,
+  SearchIcon,
+  StarIcon,
+} from "../../components/icons/Icons";
 import RangePager from "../../components/rangePager/RangePager";
 import Mascot from "../../components/mascot/Mascot";
 import SlowLoadQuote from "../../components/slowLoadQuote/SlowLoadQuote";
@@ -357,7 +363,7 @@ function Library() {
   }
 
   const tabs = [
-    { value: "all", label: "Everything", count: counts.all },
+    { value: "all", label: "Everything", shortLabel: "All", count: counts.all },
     { value: "ongoing", label: "Reading", count: counts.ongoing },
     { value: "finished", label: "Finished", count: counts.finished },
     // what the last check found until this visit's check says otherwise, so
@@ -495,11 +501,11 @@ function Library() {
     bigFirstCheck && "The first check on a big shelf can take a few minutes.";
 
   return (
-    <div className="fade-in">
+    <div className={`fade-in ${styles.library}`}>
       <div className={styles.pageHead}>
         <h1 className={styles.pageTitle}>Your shelf</h1>
         <div className={styles.pageActions}>
-          <span className="upto-520:hidden">{importLink}</span>
+          {importLink}
           <button className="btn btn-primary" onClick={goToAdd}>
             + Add manga
           </button>
@@ -520,7 +526,14 @@ function Library() {
                 writeSession("libraryStatus", t.value);
               }}
             >
-              {t.label}{" "}
+              {t.shortLabel ? (
+                <>
+                  <span className={styles.tabLabelLong}>{t.label}</span>
+                  <span className={styles.tabLabelShort}>{t.shortLabel}</span>
+                </>
+              ) : (
+                t.label
+              )}{" "}
               {t.count != null && (
                 <span
                   className={
@@ -574,7 +587,7 @@ function Library() {
       {createPortal(
         <div role="status" ref={seenNote}>
           {showingNew && (hidden || seenFailed) && (
-            <div className={styles.seenNote}>
+            <div className={styles.seenNote} data-over-add-button>
               {seenFailed ? (
                 "That didn't save. Try again."
               ) : (
@@ -775,6 +788,19 @@ function Library() {
 
       {/* out of the way on phones, where the top of the page is for the manga */}
       <p className={styles.importBottom}>{importLink}</p>
+
+      {/* in a portal for the same reason as the note above */}
+      {createPortal(
+        <button
+          type="button"
+          className={styles.addButton}
+          aria-label="Add manga"
+          onClick={goToAdd}
+        >
+          <PlusIcon aria-hidden />
+        </button>,
+        document.body,
+      )}
 
       <ReleaseTip
         enabled={hasManga && !showingNew}
