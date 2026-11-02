@@ -42,7 +42,25 @@ export const sameVolume = (a: string, b: string) =>
 
 // box sets, bundles and "vols 1-3" never count as a single volume
 const MULTI_VOLUME =
-  /\b(box(ed)?\s*set|set of|collection|bundle|lot of|omnibus|\d+\s*-\s*\d+|vol(ume)?s\b)/i;
+  /\b(box(ed)?\s*set|set of|collection|bundle|lot of|omnibus|\d+\s*[-–~]\s*\d+|\d+\s*(?:and|&)\s*\d+|vol(ume)?s\b)/i;
+export const isSingleVolume = (listingTitle: string) =>
+  !MULTI_VOLUME.test(listingTitle);
+
+// Japanese-language imports show up for popular series
+export const JAPANESE_EDITION =
+  /\bjapanese\b|[぀-ヿ一-龯]|japanzon|kanji hunter/i;
+
+// the volume number a listing spells out, undefined when it doesn't
+const statedVolume = (listingTitle: string) =>
+  listingTitle.match(/(?:\bvol(?:ume)?\.?|#)\s*(\d+)/i)?.[1];
+
+// for a search by ISBN, where a title can be worded any way at all: only a
+// title saying it's a different volume counts against it
+export const namesOtherVolume = (listingTitle: string, bookTitle: string) => {
+  const wanted = volumeOf(bookTitle);
+  const stated = statedVolume(listingTitle);
+  return !isNaN(wanted) && stated !== undefined && Number(stated) !== wanted;
+};
 
 // looser match for shop listings, which pad titles ("Jujutsu Kaisen, Vol. 24
 // (24) Paperback - by Gege Akutami"): the series words must all appear and
@@ -56,8 +74,7 @@ export const listingMatches = (listingTitle: string, bookTitle: string) => {
 
   const wanted = volumeOf(bookTitle);
   if (isNaN(wanted)) return true;
-  const vol = listingTitle.match(/(?:\bvol(?:ume)?\.?|#)\s*(\d+)/i)?.[1];
-  return Number(vol) === wanted;
+  return Number(statedVolume(listingTitle)) === wanted;
 };
 
 // "Frieren: Beyond Journey's End" -> "frieren-beyond-journey-s-end"

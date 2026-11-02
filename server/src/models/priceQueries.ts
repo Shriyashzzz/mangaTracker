@@ -238,6 +238,16 @@ export async function claimApiCall(provider: string, limit: number) {
   return changed === 1;
 }
 
+// the provider says this allowance is gone, whatever our own count thinks
+export async function markApiSpent(provider: string, limit: number) {
+  await prisma.$executeRaw`
+    INSERT INTO api_usage (provider, month, calls)
+    VALUES (${provider}, date_trunc('month', now())::date, ${limit})
+    ON CONFLICT (provider, month) DO UPDATE
+      SET calls = GREATEST(api_usage.calls, ${limit})
+  `;
+}
+
 const MONTH_MS = 30 * 24 * 60 * 60 * 1000;
 
 // known edition covers; a "has none" answer only counts for a month
@@ -296,6 +306,7 @@ export async function getBookTitles() {
 
 export default {
   claimApiCall,
+  markApiSpent,
   getKnownPrices,
   getRecentBestPrices,
   getBook,

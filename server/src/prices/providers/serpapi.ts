@@ -1,36 +1,31 @@
 // SerpApi's Google Shopping search: one call returns listings from many US
 // stores (Amazon, Barnes & Noble, Walmart, Target, ...). Needs SERPAPI_API_KEY
-// from serpapi.com. Each search counts against the monthly plan, so we stop
-// at SERPAPI_MONTHLY_LIMIT (default 250, the free plan) for the calendar month.
+// from serpapi.com, and more keys can be added (see serpapiKeys.ts). Each search
+// counts against that key's monthly plan, so a key stops at SERPAPI_MONTHLY_LIMIT
+// (default 250, the free plan) for the calendar month and the next takes over.
 // https://serpapi.com/google-shopping-api
-import config from "../../config/config.js";
-import priceQueries from "../../models/priceQueries.js";
-import { listingMatches } from "../match.js";
-import { dropUnlikelyNew, isResaleSite, isNotABook } from "../retailers.js";
+import { JAPANESE_EDITION, listingMatches } from "../match.js";
+import {
+  dropUnlikelyNew,
+  isResaleSite,
+  isNotABook,
+  plausiblePrice,
+} from "../retailers.js";
 import type { Offer, Provider } from "../types.js";
+import { searchSerpApi, serpApiEnabled } from "./serpapiClient.js";
 
-const URL = "https://serpapi.com/search.json";
 const USED = /\b(used|pre-?owned|refurbished|second-?hand)\b/i;
 
 // digital storefronts: their "price" is an ebook
 const DIGITAL =
   /\b(bookwalker|kindle|kobo|comixology|google play|apple books|nook)\b/i;
-// Japanese-language imports show up for popular series
-const JAPANESE_EDITION = /\bjapanese\b|[぀-ヿ一-龯]|japanzon|kanji hunter/i;
-
-// any single volume, deluxe editions included, sits inside this. It catches
-// bad listings even when there are too few to compare with each other
-const MIN_CENTS = 200;
-const MAX_CENTS = 7500;
 
 // a single paperback volume sits in a narrow band; listings far outside it
 // are case packs, collector lots or mislabeled sets. Bulk listings can
 // outnumber real ones, so anchor on the cheaper end (25th percentile)
 // rather than the median
 const withinTypicalRange = (allOffers: Offer[]) => {
-  const offers = allOffers.filter(
-    (o) => o.priceCents >= MIN_CENTS && o.priceCents <= MAX_CENTS,
-  );
+  const offers = allOffers.filter((o) => plausiblePrice(o.priceCents));
   const prices = offers
     .filter((o) => o.condition === "new" && o.format === "print")
     .map((o) => o.priceCents)
@@ -51,36 +46,25 @@ type ShoppingResult = {
   product_link?: string;
 };
 
+type SearchResults = { error?: string; shopping_results?: ShoppingResult[] };
+
 const serpapi: Provider = {
   id: "serpapi",
   store: "Google Shopping",
-  enabled: () => Boolean(config.SERPAPI_API_KEY),
+  enabled: serpApiEnabled,
 
   async fetchOffers(_isbn13, signal, book) {
     if (!book.title) return [];
 
-    // claim a search from this month's budget before spending it
-    if (
-      !(await priceQueries.claimApiCall(this.id, config.SERPAPI_MONTHLY_LIMIT))
-    ) {
-      console.warn("SerpApi monthly limit reached, skipping until next month");
-      return [];
-    }
-
-    const params = new URLSearchParams({
-      engine: "google_shopping",
-      q: `${book.title} manga`,
-      gl: "us",
-      hl: "en",
-      api_key: config.SERPAPI_API_KEY!,
-    });
-    const res = await fetch(`${URL}?${params}`, { signal });
-    if (!res.ok) throw new Error(`SerpApi responded ${res.status}`);
-    const data = (await res.json()) as {
-      error?: string;
-      shopping_results?: ShoppingResult[];
-    };
-    if (data.error) throw new Error(`SerpApi: ${data.error}`);
+    const data = await searchSerpApi<SearchResults>(
+      {
+        engine: "google_shopping",
+        q: `${book.title} manga`,
+        gl: "us",
+        hl: "en",
+      },
+      signal,
+    );
 
     // the cheapest matching listing from each store, new and used separately
     const best = new Map<string, Offer>();

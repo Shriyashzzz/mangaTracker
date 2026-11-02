@@ -21,7 +21,13 @@ import {
 } from "./anilist.js";
 import { seriesName, seriesOf, slugify, volumeOf } from "./match.js";
 import { enabledProviders } from "./providers/index.js";
-import { affiliateOfferUrl, isAffiliateUrl, storeLinks } from "./storeLinks.js";
+import { SearchesUsedUp } from "./providers/serpapiKeys.js";
+import {
+  affiliateOfferUrl,
+  isAffiliateUrl,
+  preferDirectRows,
+  storeLinks,
+} from "./storeLinks.js";
 import { editionCoverId } from "./covers.js";
 import { dropUnlikelyNew } from "./retailers.js";
 import type { CatalogBook, Offer, SeriesInfo } from "./types.js";
@@ -31,7 +37,7 @@ export { searchSeries };
 // prices are re-fetched at most this often per volume; in between, people
 // see the stored ones. Keeps us well inside every API's rate limits
 const FRESH_FOR_MS = 6 * 60 * 60 * 1000;
-const PROVIDER_TIMEOUT_MS = 8000;
+const PROVIDER_TIMEOUT_MS = 12000;
 
 const numberOrNull = (n: number) => (Number.isFinite(n) ? n : null);
 
@@ -43,23 +49,33 @@ const inFlight = new Map<string, Promise<unknown>>();
 // asks every enabled provider at once; one failing doesn't stop the others
 async function fetchAllProviders(isbn13: string, book: Book) {
   const providers = enabledProviders();
+  const offers: Offer[] = [];
+  const sources: string[] = [];
+  let usedUp = false;
+
   const results = await Promise.allSettled(
     providers.map((p) =>
       p.fetchOffers(isbn13, AbortSignal.timeout(PROVIDER_TIMEOUT_MS), book),
     ),
   );
-
-  const offers: Offer[] = [];
-  const sources: string[] = [];
   results.forEach((r, i) => {
     const provider = providers[i]!;
     if (r.status === "fulfilled") {
       sources.push(provider.id);
       offers.push(...r.value);
+    } else if (r.reason instanceof SearchesUsedUp) {
+      usedUp = true;
     } else {
       console.error(`price provider ${provider.id} failed:`, r.reason);
     }
   });
+
+  // with no searches left and no store answering, a new check would hide the
+  // stored prices behind whatever's left (ebooks at most), so keep the old one
+  if (usedUp && !sources.some((id) => id.startsWith("serpapi"))) {
+    console.warn("SerpApi searches used up, showing the stored prices");
+    return;
+  }
 
   // only record a check if at least one source answered, so an outage
   // doesn't leave a volume looking "checked, nothing found" for six hours
@@ -67,7 +83,11 @@ async function fetchAllProviders(isbn13: string, book: Book) {
     // judged against this volume's own usual new price before storing, so
     // a fake bargain never reaches the history
     const usual = await priceQueries.getNewPriceMedian(isbn13);
-    await priceQueries.saveCheck(isbn13, sources, dropUnlikelyNew(offers, usual));
+    await priceQueries.saveCheck(
+      isbn13,
+      sources,
+      dropUnlikelyNew(preferDirectRows(offers), usual),
+    );
   }
 }
 
