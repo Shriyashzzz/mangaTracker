@@ -5,6 +5,7 @@ import { body, matchedData } from "express-validator";
 import { rejectInvalid } from "../middlewares/validate.js";
 import { sendError } from "../middlewares/errorHandler.js";
 import userQueries, { type Prefs } from "../models/userQueries.js";
+import { validReleaseSettings } from "../util/releaseStatus.js";
 
 const credentials = [
   body("username")
@@ -86,7 +87,7 @@ const me = (req: Request, res: Response) => {
 };
 
 // the values each display preference may take; anything else is ignored
-const PREF_VALUES: Record<keyof Prefs, string[]> = {
+const PREF_VALUES: Record<"background" | "theme", string[]> = {
   background: ["sfx", "ink", "pages", "panels"],
   theme: ["light", "dark"],
 };
@@ -99,8 +100,10 @@ const updatePrefs = async (req: Request, res: Response) => {
   const patch: Prefs = {};
   for (const [key, allowed] of Object.entries(PREF_VALUES)) {
     const value = req.body?.[key];
-    if (allowed.includes(value)) patch[key as keyof Prefs] = value;
+    if (allowed.includes(value)) patch[key as "background" | "theme"] = value;
   }
+  const releases = validReleaseSettings(req.body?.releases);
+  if (releases) patch.releases = releases;
   if (Object.keys(patch).length === 0) {
     res.status(400).json({ error: [{ msg: "Nothing to save" }] });
     return;

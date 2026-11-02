@@ -3,7 +3,12 @@ import bcrypt from "bcryptjs";
 import { prisma } from "../config/prisma.js";
 import { Prisma } from "../../generated/prisma/client.js";
 
-export type Prefs = { background?: string; theme?: string };
+export type Prefs = {
+  background?: string;
+  theme?: string;
+  // what the New tab lists; see util/releaseStatus.ts
+  releases?: unknown;
+};
 
 // the account's id when the username and password match, otherwise why not
 export async function checkCredentials(

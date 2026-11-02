@@ -1,4 +1,9 @@
-import { getReleaseStatus } from "../util/releaseStatus.js";
+import {
+  getReleaseStatus,
+  readReleaseSettings,
+  validReleaseSettings,
+  type ReleaseSettings,
+} from "../util/releaseStatus.js";
 import type { FormatedDates } from "../util/volumeDataFormatter.js";
 
 const english = (...volumes: (number | null)[]) =>
@@ -218,4 +223,102 @@ test("the next volume comes with what its price page needs", () => {
     title: "Series, Vol. 14",
   });
   expect(getReleaseStatus(owns(13), volumesOnly(english(14))).nextVolumeBook).toBeNull();
+});
+
+describe("each reader chooses what the New tab lists", () => {
+  const settings = (
+    volumes: ReleaseSettings["volumes"],
+    chapters: ReleaseSettings["chapters"] = { mode: "within", within: 3 },
+  ): ReleaseSettings => ({ volumes, chapters });
+  const japan26 = { volume: [{ volume: "26", releaseDate: null }] } as FormatedDates;
+  const out = { dates: japan26, englishVolumes: english(21, 22, 23, 24, 25) };
+
+  test.each([
+    [20, false, false],
+    [22, true, false],
+    [23, true, true],
+    [25, false, true],
+  ])("within 3, owning vol. %i: English %s, Japan %s", (owned, inEnglish, inJapan) => {
+    const status = getReleaseStatus(
+      owns(owned),
+      out,
+      settings({ mode: "within", within: 3 }),
+    );
+    expect(status.hasNewVolume).toBe(inEnglish);
+    expect(status.hasNewJapaneseVolume).toBe(inJapan);
+  });
+
+  test("just the next one: however far behind, and Japan once past English", () => {
+    const status = getReleaseStatus(owns(20), out, settings({ mode: "next", within: 3 }));
+    expect(status.hasNewVolume).toBe(true);
+    expect(status.nextVolume).toBe(21);
+    expect(status.hasNewJapaneseVolume).toBe(false);
+    expect(
+      getReleaseStatus(owns(25), out, settings({ mode: "next", within: 3 }))
+        .hasNewJapaneseVolume,
+    ).toBe(true);
+  });
+
+  test("everything: lists all that's out, in Japan too", () => {
+    const status = getReleaseStatus(owns(20), out, settings({ mode: "all", within: 3 }));
+    expect(status.hasNewVolume).toBe(true);
+    expect(status.outVolumes.map((v) => v.volume)).toEqual([21, 22, 23, 24, 25]);
+    expect(status.hasNewJapaneseVolume).toBe(true);
+    expect(status.outJapanVolumes).toEqual([26]);
+  });
+
+  test("everything: hiding some leaves the rest, hiding all hides the entry", () => {
+    const all = settings({ mode: "all", within: 3 });
+    const some = getReleaseStatus(
+      { ...owns(20), hiddenVolumes: [21, 23] },
+      out,
+      all,
+    );
+    expect(some.hasNewVolume).toBe(true);
+    const every = getReleaseStatus(
+      { ...owns(20), hiddenVolumes: [21, 22, 23, 24, 25] },
+      out,
+      all,
+    );
+    expect(every.hasNewVolume).toBe(false);
+    expect(every.volumeListed).toBe(true);
+    expect(getReleaseStatus({ ...owns(20), seenVolume: 25 }, out, all).hasNewVolume).toBe(false);
+  });
+
+  test("chapters have their own setting", () => {
+    const far = chaptersOnly(chapter("142"));
+    const withChapters = (mode: "next" | "within" | "all") =>
+      settings({ mode: "next", within: 3 }, { mode, within: 5 });
+    expect(getReleaseStatus(readTo(33), far, withChapters("within")).hasNewChapter).toBe(false);
+    expect(getReleaseStatus(readTo(138), far, withChapters("within")).hasNewChapter).toBe(true);
+    const next = getReleaseStatus(readTo(33), far, withChapters("next"));
+    expect(next.hasNewChapter).toBe(true);
+    expect(next.nextChapter).toBe(34);
+    // hiding part of the way through a group leaves the rest showing
+    expect(
+      getReleaseStatus({ ...readTo(33), seenChapter: 100 }, far, withChapters("all")).hasNewChapter,
+    ).toBe(true);
+    expect(
+      getReleaseStatus({ ...readTo(33), seenChapter: 142 }, far, withChapters("all")).hasNewChapter,
+    ).toBe(false);
+  });
+
+  test("anyone who hasn't chosen keeps the defaults", () => {
+    const defaults = readReleaseSettings(undefined);
+    expect(defaults.volumes.mode).toBe("next");
+    expect(defaults.chapters).toEqual({ mode: "within", within: 3 });
+    expect(readReleaseSettings({ volumes: { mode: "nope", within: 2 } }).volumes.mode).toBe("next");
+  });
+
+  test("only sensible settings can be saved", () => {
+    const good = {
+      volumes: { mode: "within", within: 10 },
+      chapters: { mode: "all", within: 50 },
+    };
+    expect(validReleaseSettings(good)).toEqual(good);
+    expect(validReleaseSettings({ ...good, volumes: { mode: "within", within: 11 } })).toBeNull();
+    expect(validReleaseSettings({ ...good, chapters: { mode: "within", within: 0 } })).toBeNull();
+    expect(validReleaseSettings({ ...good, chapters: { mode: "x", within: 3 } })).toBeNull();
+    expect(validReleaseSettings(null)).toBeNull();
+  });
 });

@@ -43,6 +43,8 @@ model Manga {
   seenVolume      Float? @map("seen_volume")
   seenChapter     Float? @map("seen_chapter")
   seenJapanVolume Float? @map("seen_japan_volume")
+  // volumes hidden one at a time, on top of everything up to seenVolume
+  hiddenVolumes   Float[] @default([]) @map("hidden_volumes")
 
   @@index([userId])
   @@map("manga")
