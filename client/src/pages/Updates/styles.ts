@@ -8,7 +8,10 @@ export const updatesStyles = {
   title:
     "font-brand text-[clamp(2.8rem,7vw,4.4rem)] leading-[0.95] font-normal tracking-[0.01em] uppercase",
   hit: "inline-block -rotate-2 bg-accent px-[0.12em] text-on-accent",
-  kenji: "w-[110px] shrink-0 upto-760:w-[76px]",
+  // ink on paper in every theme, as on the About page; the dark theme would
+  // otherwise turn his face black
+  kenji:
+    "printed block aspect-square w-[110px] shrink-0 overflow-hidden rounded-full border-[2.5px] border-line bg-card px-2.5 pt-2.5 upto-760:w-[76px] upto-760:px-1.5 upto-760:pt-1.5",
 
   // the headline update: a shelf card as it really looks, beside what it means
   panel:
