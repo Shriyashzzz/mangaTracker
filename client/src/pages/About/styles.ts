@@ -1,7 +1,6 @@
 // Tailwind classes for the About page, which reads like a short manga: an
-// opening panel, a four-panel strip, a panel for each half of the site and a
-// next-volume teaser. Phones (upto-760) stack everything and turn the strip's
-// panels side-on.
+// opening panel, a four-panel strip, and a panel for each half of the site.
+// Phones (upto-760) stack everything and turn the strip's panels side-on.
 
 export const aboutStyles = {
   page: "mx-auto flex max-w-[980px] flex-col gap-[clamp(3rem,7vw,4.5rem)]",
@@ -54,12 +53,5 @@ export const aboutStyles = {
   doesLink:
     "tap mt-1 py-1 font-medium text-ink underline decoration-accent decoration-2 underline-offset-3 hover:decoration-line",
 
-  // ---------- teaser + call to action, like the back pages of a volume ----------
-  backMatter:
-    "grid grid-cols-[minmax(0,1.1fr)_minmax(0,1fr)] items-center justify-center gap-[clamp(2rem,5vw,3.5rem)] upto-760:grid-cols-[minmax(0,1fr)] upto-760:gap-12",
-  next: "relative border-3 border-dashed border-line bg-card px-7 py-6 [&_p]:text-ink-soft",
-  nextSfx:
-    "absolute -top-[1.2rem] right-5 rotate-6 font-brand text-[1.9rem] tracking-[0.03em] text-accent uppercase [-webkit-text-stroke:1.5px_var(--line)] [paint-order:stroke_fill]",
-  nextTitle: "mb-[0.4rem] font-display text-[1.6rem] font-medium",
-  cta: "flex w-fit",
+  cta: "flex justify-center",
 } as const;

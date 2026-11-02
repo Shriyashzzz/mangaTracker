@@ -3,7 +3,6 @@ import Mascot from "../../components/mascot/Mascot";
 
 import { aboutStyles as styles } from "./styles";
 import { usePageMeta } from "../../lib/seo";
-import { openReleasesOnShelf } from "../../lib/shelf";
 
 // the three problems the app fixes and the payoff, told as a four-panel strip
 const STRIP = [
@@ -128,30 +127,10 @@ export function AboutPage() {
         </div>
       </section>
 
-      <div className={styles.backMatter}>
-        {/* the latest thing out, as a next-volume teaser */}
-        <section className={styles.next} aria-labelledby="next-title">
-          <span className={styles.nextSfx} aria-hidden>
-            New!
-          </span>
-          <h2 id="next-title" className={styles.nextTitle}>
-            Now out: new release check
-          </h2>
-          <p>
-            See which series on your shelf have a new volume or chapter out.
-          </p>
-        </section>
-
-        <div className={styles.cta}>
-          <NavLink
-            to="/shelf"
-            className="btn btn-primary btn-lg"
-            onClick={openReleasesOnShelf}
-            viewTransition
-          >
-            Okay, let me try it
-          </NavLink>
-        </div>
+      <div className={styles.cta}>
+        <NavLink to="/shelf" className="btn btn-primary btn-lg" viewTransition>
+          Okay, let me try it
+        </NavLink>
       </div>
     </article>
   );
