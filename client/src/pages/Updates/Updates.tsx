@@ -1,7 +1,7 @@
 import { NavLink } from "react-router";
 import Mascot from "../../components/mascot/Mascot";
 import { usePageMeta } from "../../lib/seo";
-import { releaseChecksOn } from "../../lib/prefs";
+import { useReleaseChecksOn } from "../../lib/prefs";
 import { openReleasesOnShelf } from "../../lib/shelf";
 import { useAuth } from "../../store/auth";
 import { updatesStyles as styles } from "./styles";
@@ -38,6 +38,7 @@ export function UpdatesPage() {
     path: "/updates",
   });
   const isSignedIn = useAuth((s) => s.isSignedIn);
+  const checksOn = useReleaseChecksOn();
 
   return (
     <article className={`${styles.page} fade-in`}>
@@ -73,7 +74,7 @@ export function UpdatesPage() {
               Start your shelf
             </NavLink>
           )}
-          {isSignedIn && releaseChecksOn() && (
+          {isSignedIn && checksOn && (
             <NavLink
               to="/shelf"
               className="btn btn-primary mt-2"

@@ -7,7 +7,7 @@ import type { Manga, ReleaseData, ReleaseStatus } from "../../lib/types";
 import SlowLoadQuote from "../../components/slowLoadQuote/SlowLoadQuote";
 import { usePrivatePage } from "../../lib/seo";
 import { getReleases } from "../../lib/shelf";
-import { releaseChecksOn } from "../../lib/prefs";
+import { useReleaseChecksOn } from "../../lib/prefs";
 import { useShelf } from "../../store/shelf";
 import NotesField from "./NotesField";
 import BuyStrip from "./BuyStrip";
@@ -32,6 +32,7 @@ export default function Details() {
   // English unless they came from the shelf's In Japan tab
   const [searchParams] = useSearchParams();
   const inJapan = searchParams.get("edition") === "japan";
+  const checksOn = useReleaseChecksOn();
   // or the Chapters side of it, which is about the chapter rather than a volume
   const chapterNews = searchParams.get("new") === "chapter";
   const [mangaStatus, setMangaStatus] = useState(false);
@@ -86,7 +87,7 @@ export default function Details() {
   // can take a few seconds, so the page doesn't wait for it. Nice to have: the
   // panel just doesn't appear if this fails
   useEffect(() => {
-    if (!releaseChecksOn()) return;
+    if (!checksOn) return;
     const controller = new AbortController();
     getReleases(Number(id), controller.signal)
       .then((found) => {
@@ -95,7 +96,7 @@ export default function Details() {
       })
       .catch(() => {});
     return () => controller.abort();
-  }, [id, chapterSaves]);
+  }, [id, chapterSaves, checksOn]);
 
   const handleDeleteManga = async () => {
     setBusy(true);
@@ -212,7 +213,7 @@ export default function Details() {
       ? `you're on vol. ${releaseStatus.currentVolume}`
       : null;
   // the red bar: only what's next for them, and what they came here about
-  const release = !releaseStatus
+  const release = !releaseStatus || !checksOn
     ? null
     : inJapan
       ? releaseStatus.hasNewJapaneseVolume && {

@@ -139,7 +139,7 @@ export const useShelf = create<ShelfState>()((set, get) => ({
     const controller = new AbortController();
     run = controller;
     try {
-      while (!controller.signal.aborted) {
+      while (!controller.signal.aborted && releaseChecksOn()) {
         const { manga, releases } = get();
         const next =
           manga?.find((m) => !(m.id in releases)) ??

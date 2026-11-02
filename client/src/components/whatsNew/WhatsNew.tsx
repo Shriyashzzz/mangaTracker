@@ -3,7 +3,7 @@
 // instead (same 1340px line), so every screen hears about it exactly one way.
 import type { ReactNode } from "react";
 import { NavLink } from "react-router";
-import { releaseChecksOn } from "../../lib/prefs";
+import { useReleaseChecksOn } from "../../lib/prefs";
 import { openReleasesOnShelf } from "../../lib/shelf";
 import { useAuth } from "../../store/auth";
 
@@ -21,6 +21,7 @@ const ITEMS = [
 // children sit above the list, in the same margin column
 export default function WhatsNew({ children }: { children?: ReactNode }) {
   const isSignedIn = useAuth((s) => s.isSignedIn);
+  const checksOn = useReleaseChecksOn();
 
   return (
     // as wide as the margin allows: half the space beside the page's content,
@@ -52,7 +53,7 @@ export default function WhatsNew({ children }: { children?: ReactNode }) {
           English.
         </p>
         {/* a guest's way in is the box above; two sign-ups would be one too many */}
-        {isSignedIn && releaseChecksOn() && (
+        {isSignedIn && checksOn && (
           <NavLink
             to="/shelf"
             className="tap mt-1 inline-block py-1 text-[0.82rem] font-medium whitespace-nowrap text-ink underline decoration-accent decoration-2 underline-offset-3 hover:decoration-line"

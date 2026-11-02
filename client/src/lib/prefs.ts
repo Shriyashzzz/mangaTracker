@@ -2,6 +2,7 @@
 // <html data-bg data-theme>, remembered in localStorage, and kept on the
 // account when signed in. index.html applies the stored ones before first
 // paint so there's no flash.
+import { useSyncExternalStore } from "react";
 import { apiFetch } from "./api";
 import type { Background, Prefs, Theme } from "./types";
 
@@ -48,6 +49,8 @@ export const currentTheme = (): Theme => {
     : "light";
 };
 
+const checksListeners = new Set<() => void>();
+
 // puts preferences on the page and remembers them in this browser
 export const applyPrefs = ({
   background,
@@ -78,11 +81,22 @@ export const applyPrefs = ({
   if (shelfTab) writeLocal("shelfTab", shelfTab);
   if (shelfSort !== undefined) writeLocal("shelfSort", shelfSort);
   if (shelfView) writeLocal("shelfView", shelfView);
-  if (releaseChecks) writeLocal("releaseChecks", releaseChecks);
+  if (releaseChecks && releaseChecks !== readLocal("releaseChecks")) {
+    writeLocal("releaseChecks", releaseChecks);
+    checksListeners.forEach((listener) => listener());
+  }
 };
 
 // whether to look up new volumes and chapters; on unless they've said otherwise
 export const releaseChecksOn = () => readLocal("releaseChecks") !== "off";
+
+// for components: the account's choice can arrive after the page has drawn, or
+// be changed in settings, and whatever depends on it should follow straight away
+export const useReleaseChecksOn = () =>
+  useSyncExternalStore((listener) => {
+    checksListeners.add(listener);
+    return () => checksListeners.delete(listener);
+  }, releaseChecksOn);
 
 // applies a change right away, and keeps it on the account when signed in
 export const savePrefs = (patch: Prefs, isSignedIn: boolean | null) => {
@@ -101,7 +115,8 @@ export const syncPrefs = async () => {
     const response = await apiFetch("/api/prefs");
     if (!response.ok) return;
     const stored = (await response.json()) as Prefs;
-    applyPrefs(stored);
+    // never chosen means on, whatever someone else chose in this browser
+    applyPrefs({ releaseChecks: "on", ...stored });
     const missing: Prefs = {};
     if (!stored.background) missing.background = currentBackground();
     const theme = document.documentElement.dataset.theme;
