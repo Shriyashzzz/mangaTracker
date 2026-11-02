@@ -32,6 +32,8 @@ const THUMBS: Record<Background, string> = {
     "bg-[linear-gradient(100deg,var(--paper-2)_44%,var(--card)_44%_52%,transparent_52%),repeating-linear-gradient(-45deg,var(--line-soft)_0_1px,var(--paper)_1px_4px)]",
 };
 
+const THEME_BUTTON = "menu-theme-button";
+
 const styles_guestMenu =
   "tap flex items-center gap-1.5 text-[0.95rem] text-ink-soft transition-colors duration-150 hover:text-ink [&_svg]:size-5";
 
@@ -129,9 +131,11 @@ export default function SettingsMenu({ isSignedIn, onLogOut }: Props) {
         // an inked panel hanging off the header rule
         <ul
           id="settings-menu"
-          // choosing anything closes it
+          // choosing anything closes it, except light/dark: there the change
+          // shows right away, and people may want to flip it back
           onClick={(e) => {
-            if ((e.target as HTMLElement).closest("a, button")) close();
+            const choice = (e.target as HTMLElement).closest("a, button");
+            if (choice && choice.id !== THEME_BUTTON) close();
           }}
           className="absolute top-[calc(100%+12px)] right-0 z-30 w-[236px] origin-top-right rounded-ink border-[2.5px] border-line bg-card p-[0.4rem] shadow-[0_14px_30px_-14px_rgba(20,14,8,0.45)] animate-drop motion-reduce:animate-none"
         >
@@ -174,7 +178,7 @@ export default function SettingsMenu({ isSignedIn, onLogOut }: Props) {
           )}
 
           <li>
-            <button className={item} onClick={flipTheme}>
+            <button id={THEME_BUTTON} className={item} onClick={flipTheme}>
               {theme === "dark" ? <SunIcon /> : <MoonIcon />}
               {theme === "dark" ? "Light mode" : "Dark mode"}
             </button>

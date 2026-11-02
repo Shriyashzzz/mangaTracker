@@ -12,6 +12,7 @@ async function load(env: Record<string, string>) {
 afterEach(() => {
   delete process.env.AMAZON_ASSOCIATE_TAG;
   delete process.env.EBAY_CAMPAIGN_ID;
+  delete process.env.BOOKSHOP_AFFILIATE_ID;
 });
 
 test("no affiliate settings, no affiliate links", async () => {
@@ -37,6 +38,22 @@ test("Google Shopping rows go straight to the affiliate store for new print", as
   );
   // used copies keep their own link
   expect(affiliateOfferUrl({ ...offer, condition: "used" }, isbn)).toBe(google);
+});
+
+test("Bookshop links follow its format: /a/<affiliate id>/<isbn>", async () => {
+  const { affiliateOfferUrl, isAffiliateUrl, storeLinks } = await load({
+    BOOKSHOP_AFFILIATE_ID: "130460",
+  });
+  const expected = `https://bookshop.org/a/130460/${isbn}`;
+  const link = storeLinks(isbn).find((l) => l.store === "Bookshop.org")!;
+  expect(link.url).toBe(expected);
+  expect(isAffiliateUrl(link.url)).toBe(true);
+
+  const google = "https://www.google.com/shopping/product/123";
+  const offer = { store: "Bookshop.org", url: google, condition: "new" };
+  expect(affiliateOfferUrl({ ...offer, format: "print" }, isbn)).toBe(expected);
+  // an ebook has its own ISBN, so the print one would open the wrong book
+  expect(affiliateOfferUrl({ ...offer, format: "ebook" }, isbn)).toBe(google);
 });
 
 test("eBay links carry the EPN campaign", async () => {

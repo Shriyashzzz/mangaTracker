@@ -8,8 +8,12 @@ import { updatesStyles as styles } from "./styles";
 // the big features only, a line each. Add new ones here when they ship
 const UPDATES = [
   {
+    name: "Better search results",
+    body: "Greater accuracy and a wider list of live prices.",
+  },
+  {
     name: "Share your list",
-    body: "Pick a silly picture and send friends your shelf.",
+    body: "Send friends your list, with your notes if you want.",
   },
   {
     name: "Choose what shows up in New",
@@ -23,21 +27,13 @@ const UPDATES = [
     name: "Next chapter dates",
     body: "See when the next chapter should land.",
   },
-  {
-    name: "Next volume's price",
-    body: "See what your next volume costs.",
-  },
-  {
-    name: "Quick add",
-    body: "Pick a title. The cover and genre fill in.",
-  },
 ];
 
 export function UpdatesPage() {
   usePageMeta({
     title: "What's new",
     description:
-      "New on Manga Tracker: see new English volumes and chapters, next chapter dates and what your next volume costs. Email alerts are coming soon.",
+      "New on Manga Tracker: see new English volumes and chapters and next chapter dates. Email alerts are coming soon.",
     path: "/updates",
   });
   const isSignedIn = useAuth((s) => s.isSignedIn);
