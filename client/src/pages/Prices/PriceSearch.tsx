@@ -26,6 +26,7 @@ export default function PriceSearch() {
     items: SeriesHit[];
     error: string;
   }>({ query: "", items: [], error: "" });
+  const [attempt, setAttempt] = useState(0);
   // the front page is the one to find; result lists for a typed query are
   // thin and endless, so they stay out of search engines
   usePageMeta(
@@ -45,7 +46,7 @@ export default function PriceSearch() {
         }
       });
     return () => controller.abort();
-  }, [query]);
+  }, [query, attempt]);
 
   const searching = query.length >= 2;
   const isSignedIn = useAuth((s) => s.isSignedIn);
@@ -104,6 +105,16 @@ export default function PriceSearch() {
           </span>
           <p className={styles.emptyTitle}>Couldn't search right now.</p>
           <p>Check your connection and try again in a moment.</p>
+          <button
+            type="button"
+            className="btn btn-secondary"
+            onClick={() => {
+              setResult({ query: "", items: [], error: "" });
+              setAttempt((n) => n + 1);
+            }}
+          >
+            Try again
+          </button>
         </div>
       )}
 

@@ -17,6 +17,10 @@ export default function SignUp() {
   const signedIn = useAuth((s) => s.signedIn);
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState<{ msg: string }[]>([]);
+  // the server's messages name the field they're about
+  const hasError = (about: RegExp) => errors.some((e) => about.test(e.msg));
+  const describedBy = (hint: string) =>
+    errors.length ? `${hint} signup-errors` : hint;
 
   const handleFormSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -78,9 +82,14 @@ export default function SignUp() {
                 placeholder="your_username"
                 name="username"
                 autoComplete="username"
+                required
+                aria-invalid={hasError(/name/i)}
+                aria-describedby={describedBy("username-hint")}
                 autoFocus={isMobile ? false : true}
               />
-              <span className={styles.hint}>4–40 letters or numbers</span>
+              <span id="username-hint" className={styles.hint}>
+                4–40 letters or numbers
+              </span>
             </div>
 
             <div className={styles.field}>
@@ -91,15 +100,18 @@ export default function SignUp() {
                 placeholder="••••••••"
                 name="password"
                 autoComplete="new-password"
+                required
+                aria-invalid={hasError(/password|secret/i)}
+                aria-describedby={describedBy("password-hint")}
               />
-              <span className={styles.hint}>
+              <span id="password-hint" className={styles.hint}>
                 At least 5 characters. With no email, there's no way to reset
                 it, so keep it somewhere safe.
               </span>
             </div>
 
             {errors.length > 0 && (
-              <ul className={styles.errorList} role="alert">
+              <ul id="signup-errors" className={styles.errorList} role="alert">
                 {errors.map((e, i) => (
                   <li key={i}>{e.msg}</li>
                 ))}

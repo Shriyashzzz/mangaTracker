@@ -31,7 +31,7 @@ export const authStyles = {
   // wraps an input that has a button inside it (show password)
   inputWrap: "relative [&_input]:pr-12",
   input:
-    "h-[46px] w-full rounded-[2px] border-2 border-line bg-card px-[0.85rem] transition-[box-shadow,background-color] duration-120 ease-[ease] placeholder:text-muted placeholder:opacity-80 focus:border-accent focus:shadow-[0_0_0_3px_var(--accent-wash)] focus:outline-none",
+    "h-[46px] w-full rounded-[2px] border-2 border-line bg-card px-[0.85rem] transition-[box-shadow,background-color] duration-120 ease-[ease] placeholder:text-muted placeholder:opacity-80 focus:border-accent focus:shadow-[0_0_0_3px_var(--accent-wash)] focus:outline-none aria-invalid:border-accent",
   reveal:
     "absolute top-[3px] right-[3px] grid size-10 place-items-center text-muted hover:text-ink [&_svg]:size-[18px]",
   hint: "font-mono text-[0.72rem] text-muted",
