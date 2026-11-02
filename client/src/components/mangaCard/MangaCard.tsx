@@ -51,6 +51,8 @@ export default function MangaCard({
       className="group flex animate-card-in flex-col gap-[0.7rem]"
       style={{ animationDelay: `${Math.min(index, 12) * 35}ms` }}
       viewTransition
+      // says where it came from, so the page it opens can lead back
+      state={linkTo ? { fromShelf: true } : undefined}
       {...(onOpen && {
         "aria-haspopup": "dialog" as const,
         onClick: (e) => {
@@ -64,7 +66,8 @@ export default function MangaCard({
           src={currentManga.image || FALLBACK_COVER}
           alt=""
           loading="lazy"
-          className="size-full object-cover"
+          // out of the flow, or a tall image stretches the cover past its shape
+          className="absolute inset-0 size-full object-cover"
           onError={(e) => {
             if (e.currentTarget.src !== FALLBACK_COVER) {
               e.currentTarget.src = FALLBACK_COVER;
@@ -79,10 +82,10 @@ export default function MangaCard({
         )}
       </div>
       <div className="flex flex-col gap-[0.15rem]">
-        <p className="line-clamp-2 font-display text-[1.05rem] leading-[1.25] font-semibold decoration-accent underline-offset-3 group-hover:underline">
+        <p className={`${news ? "min-h-[2.5em] " : ""}line-clamp-2 font-display text-[1.05rem] leading-[1.25] font-semibold decoration-accent underline-offset-3 group-hover:underline`}>
           {currentManga.name}
         </p>
-        <p className="truncate font-mono text-[0.78rem] text-muted">
+        <p className="min-h-[1.5em] truncate font-mono text-[0.78rem] text-muted">
           {news ? (
             genre
           ) : (
@@ -97,12 +100,13 @@ export default function MangaCard({
             {news.text}
           </p>
         )}
-        {news?.yours && (
-          <p className="text-[0.82rem] leading-[1.3] text-ink-soft">
+        {news && (
+          <p className="min-h-[1.3em] text-[0.82rem] leading-[1.3] text-ink-soft">
             {news.yours}
           </p>
         )}
-        {priceTag && (
+        {/* the New tab's cards all match: only what's out and where they are */}
+        {!news && priceTag && (
           <p
             // the lowest price we've seen for the series at the stores we
             // check (not every store), quiet until you look
@@ -115,7 +119,7 @@ export default function MangaCard({
             </span>
           </p>
         )}
-        {Number(currentManga.rating) > 0 && (
+        {!news && Number(currentManga.rating) > 0 && (
           <StarRating value={Number(currentManga.rating)} size="sm" />
         )}
       </div>

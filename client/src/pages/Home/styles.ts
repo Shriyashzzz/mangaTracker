@@ -62,9 +62,9 @@ export const homeStyles = {
     "grid grid-cols-[repeat(auto-fill,minmax(160px,1fr))] gap-x-6 gap-y-9 upto-520:grid-cols-2 upto-520:gap-x-4 upto-520:gap-y-7",
   pagerBottom: "mt-10",
   // "Hide" sits under the card rather than in it: the card is one big link
-  cardWithSeen: "flex min-w-0 flex-col items-start [&>a]:w-full",
+  cardWithSeen: "flex min-w-0 flex-col items-start [&>a]:w-full [&>a]:flex-1",
   seenBtn:
-    "tap mt-2 inline-flex items-center gap-1 py-1 text-[0.85rem] font-medium text-ink-soft underline decoration-line-soft underline-offset-3 transition-colors duration-120 ease-[ease] hover:text-accent hover:decoration-accent [&_svg]:size-3.5",
+    "tap mt-2 inline-flex shrink-0 items-center gap-1 py-1 text-[0.85rem] font-medium text-ink-soft underline decoration-line-soft underline-offset-3 transition-colors duration-120 ease-[ease] hover:text-accent hover:decoration-accent [&_svg]:size-3.5",
   // above the phones' bottom bar
   seenNote:
     "fixed inset-x-0 bottom-6 z-15 mx-auto flex w-fit max-w-[min(30rem,calc(100vw-2rem))] animate-drop items-center gap-4 rounded-ink border-[2.5px] border-line bg-card px-4 py-3 text-[0.95rem] text-ink shadow-ink motion-reduce:animate-none upto-720:bottom-[calc(3.75rem+env(safe-area-inset-bottom))]",

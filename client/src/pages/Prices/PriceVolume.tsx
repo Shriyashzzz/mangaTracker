@@ -1,5 +1,9 @@
 import { useEffect, useState } from "react";
-import { ChevronDownIcon, ChevronRightIcon } from "../../components/icons/Icons";
+import {
+  ChevronDownIcon,
+  ChevronLeftIcon,
+  ChevronRightIcon,
+} from "../../components/icons/Icons";
 import { NavLink, useLocation, useNavigate, useParams } from "react-router";
 import {
   coverSrc,
@@ -102,12 +106,13 @@ export default function PriceVolume() {
   // an ISBN-only or outdated link: show the address with the title in it,
   // without loading the page again
   const navigate = useNavigate();
-  const { pathname, search } = useLocation();
+  const { pathname, search, state: linkState } = useLocation();
+  const fromShelf = Boolean((linkState as { fromShelf?: boolean } | null)?.fromShelf);
   useEffect(() => {
     if (!loadedBook) return;
     const path = volumePath(loadedBook.isbn13, loadedBook.title);
-    if (pathname !== path) navigate(path + search, { replace: true });
-  }, [loadedBook, pathname, search, navigate]);
+    if (pathname !== path) navigate(path + search, { replace: true, state: linkState });
+  }, [loadedBook, pathname, search, navigate, linkState]);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -213,6 +218,12 @@ export default function PriceVolume() {
 
   return (
     <div className="fade-in">
+      {fromShelf && (
+        <NavLink to="/shelf" className={styles.backToNew} viewTransition>
+          <ChevronLeftIcon aria-hidden />
+          Back to New
+        </NavLink>
+      )}
       <nav className={styles.crumbs} aria-label="Breadcrumb">
         <NavLink to="/" viewTransition>
           Price check

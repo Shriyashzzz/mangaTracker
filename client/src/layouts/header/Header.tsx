@@ -34,23 +34,27 @@ const barClass = (active: boolean) =>
 
 export default function Header() {
   const navigate = useNavigate();
-  const { pathname, search } = useLocation();
+  const { pathname, search, state } = useLocation();
+  // opened from a card on the New tab: still part of what they were doing there
+  const fromShelf = Boolean((state as { fromShelf?: boolean } | null)?.fromShelf);
   const { isSignedIn, logOut } = useAuth();
   const here = pathname + search;
-  const currentTab = tabOf(pathname);
+  const currentTab = fromShelf ? "shelf" : tabOf(pathname);
   // the price checker lives at "/", under /prices and at /series
   const onPrices =
-    pathname === "/" ||
+    !fromShelf &&
+    (pathname === "/" ||
     pathname.startsWith("/prices") ||
-    pathname.startsWith("/series");
+    pathname.startsWith("/series"));
 
   // the page each tab is on, as they move around. A guest's shelf pages only
   // lead to signing in, so those aren't worth going back to
   useEffect(() => {
+    if (fromShelf) return;
     if (currentTab && (currentTab !== "shelf" || isSignedIn)) {
       notePage(currentTab, here);
     }
-  }, [currentTab, here, isSignedIn]);
+  }, [currentTab, fromShelf, here, isSignedIn]);
 
   // someone else's pages shouldn't be waiting after a sign out
   useEffect(() => {
@@ -92,7 +96,7 @@ export default function Header() {
         <nav className="flex items-center gap-[1.4rem] upto-720:hidden" aria-label="Main">
           <NavLink
             to="/shelf"
-            className={({ isActive }) => linkClass(isActive)}
+            className={({ isActive }) => linkClass(isActive || fromShelf)}
             viewTransition
           >
             My shelf

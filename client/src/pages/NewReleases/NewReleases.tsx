@@ -94,8 +94,8 @@ export default function NewReleasesPage() {
         </h2>
         <p>
           Hide clears something from the list until something newer is out.
-          Anything you've hidden stays under Hidden on the New tab, where Show
-          again brings it back.
+          Anything you've hidden stays under Hidden on the New tab, where you can
+          unhide it, or everything at once.
         </p>
         {isSignedIn && (
           <NavLink

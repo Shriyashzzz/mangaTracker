@@ -142,7 +142,9 @@ function Library() {
     return saved in RELEASE_KINDS ? (saved as ReleaseKind) : "volumes";
   });
   // the New tab's list of what they've hidden
-  const [wantHidden, setWantHidden] = useState(false);
+  const [wantHidden, setWantHidden] = useState(
+    () => readSession("libraryHidden", "") === "yes",
+  );
   // the series whose grouped list is open
   const [openRelease, setOpenRelease] = useState<number | null>(null);
   const hiddenCount = (mangaData ?? []).filter((m) =>
@@ -190,6 +192,8 @@ function Library() {
     previousList: number[];
     // true when they've just brought it back rather than hidden it
     restored?: boolean;
+    // after "Unhide all": everything to put back for the undo
+    others?: { id: number; previous: number | null; previousList: number[] }[];
   } | null>(null);
   const [seenFailed, setSeenFailed] = useState(false);
   const seenNote = useRef<HTMLDivElement>(null);
@@ -453,10 +457,54 @@ function Library() {
     return true;
   };
 
+  // everything hidden in this view, back on the list at once
+  const unhideAll = async () => {
+    const kind = SEEN_KIND[releaseKind];
+    const series = mangaData.filter((m) => isHiddenAs(releases[m.id], releaseKind));
+    const others = series.map((m) => ({
+      id: m.id,
+      previous: seenOf(m, kind),
+      previousList: m.hiddenVolumes ?? [],
+    }));
+    setSeenFailed(false);
+    const saved = await Promise.all(
+      series.map((m) =>
+        markSeen(m.id, kind, null, kind === "volume" ? [] : undefined),
+      ),
+    );
+    if (saved.every(Boolean)) {
+      setHidden({
+        id: 0,
+        name: `${series.length} series`,
+        kind,
+        previous: null,
+        previousList: [],
+        restored: true,
+        others,
+      });
+    } else {
+      setSeenFailed(true);
+    }
+  };
+
   const undoSeen = async () => {
     if (!hidden) return;
-    const { id, kind, previous, previousList } = hidden;
+    const { id, kind, previous, previousList, others } = hidden;
     setHidden(null);
+    if (others) {
+      const saved = await Promise.all(
+        others.map((o) =>
+          markSeen(
+            o.id,
+            kind,
+            o.previous,
+            kind === "volume" ? o.previousList : undefined,
+          ),
+        ),
+      );
+      if (!saved.every(Boolean)) setSeenFailed(true);
+      return;
+    }
     const list = kind === "volume" ? previousList : undefined;
     if (!(await markSeen(id, kind, previous, list))) setSeenFailed(true);
     // back on the card it came from
@@ -738,9 +786,21 @@ function Library() {
                 type="button"
                 className={styles.hiddenToggle}
                 aria-pressed={viewingHidden}
-                onClick={() => setWantHidden(!viewingHidden)}
+                onClick={() => {
+                  setWantHidden(!viewingHidden);
+                  writeSession("libraryHidden", viewingHidden ? "" : "yes");
+                }}
               >
                 {viewingHidden ? "Back to new" : `Hidden (${hiddenCount})`}
+              </button>
+            )}
+            {viewingHidden && (
+              <button
+                type="button"
+                className={styles.hiddenToggle}
+                onClick={unhideAll}
+              >
+                Unhide all
               </button>
             )}
           </div>
@@ -862,13 +922,13 @@ function Library() {
                   <button
                     type="button"
                     className={styles.seenBtn}
-                    aria-label={`${viewingHidden ? "Show again" : isGrouped(currentManga) ? "Hide all" : "Hide"}: ${currentManga.name}`}
+                    aria-label={`${viewingHidden ? "Unhide" : isGrouped(currentManga) ? "Hide all" : "Hide"}: ${currentManga.name}`}
                     data-seen-id={currentManga.id}
                     onClick={() => handleSeen(currentManga)}
                   >
                     {!viewingHidden && <CheckIcon />}
                     {viewingHidden
-                      ? "Show again"
+                      ? "Unhide"
                       : isGrouped(currentManga)
                         ? "Hide all"
                         : "Hide"}
