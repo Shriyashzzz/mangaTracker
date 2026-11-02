@@ -298,6 +298,9 @@ function Library() {
         <button className="btn btn-primary btn-lg" onClick={goToAdd}>
           Add your first manga
         </button>
+        <NavLink to="/import" className={`${styles.importLink} mt-4`} viewTransition>
+          Or import from MyAnimeList
+        </NavLink>
       </div>
     );
   }
@@ -426,9 +429,14 @@ function Library() {
     <div className="fade-in">
       <div className={styles.pageHead}>
         <h1 className={styles.pageTitle}>Your shelf</h1>
-        <button className="btn btn-primary" onClick={goToAdd}>
-          + Add manga
-        </button>
+        <div className={styles.pageActions}>
+          <NavLink to="/import" className={styles.importLink} viewTransition>
+            Import from MyAnimeList
+          </NavLink>
+          <button className="btn btn-primary" onClick={goToAdd}>
+            + Add manga
+          </button>
+        </div>
       </div>
 
       <div className={styles.toolbar}>

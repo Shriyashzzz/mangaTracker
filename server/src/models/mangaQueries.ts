@@ -11,6 +11,7 @@ export type MangaInput = {
   status: boolean;
   bookmark?: number | null;
   volumesOwned?: number | null;
+  rating?: number | null;
 };
 
 // one user's shelf, furthest-read first (the order the JS version used)
@@ -30,6 +31,11 @@ export async function addManga(userId: number, input: MangaInput) {
   });
   return id;
 }
+
+export const addManyManga = (userId: number, inputs: MangaInput[]) =>
+  prisma.manga.createMany({
+    data: inputs.map((input) => ({ ...input, userId })),
+  });
 
 // an edit leaves the bookmark and genre alone when the form sends none
 export async function updateManga(id: number, input: MangaInput) {
@@ -86,6 +92,7 @@ export default {
   updateManga,
   setStatus,
   setRating,
+  addManyManga,
   setBookmark,
   setSeen,
   setVolumesOwned,

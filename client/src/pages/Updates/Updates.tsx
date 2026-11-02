@@ -8,6 +8,10 @@ import { updatesStyles as styles } from "./styles";
 // the big features only, a line each. Add new ones here when they ship
 const UPDATES = [
   {
+    name: "Import from MyAnimeList",
+    body: "Bring your whole manga list over in one go.",
+  },
+  {
     name: "Next chapter dates",
     body: "See when the next chapter should land.",
   },

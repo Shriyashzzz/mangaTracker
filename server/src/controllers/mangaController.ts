@@ -5,11 +5,12 @@ import type { Request, Response } from "express";
 import { body, matchedData, query } from "express-validator";
 import { rejectInvalid } from "../middlewares/validate.js";
 import mangaQueries, { type MangaInput } from "../models/mangaQueries.js";
-import { getSeriesInfo } from "../prices/anilist.js";
+import { getListingsByMalIds, getSeriesInfo, slugify } from "../prices/anilist.js";
 import { findOnShelf, getSeries, getShelfPrices } from "../prices/service.js";
 import { canonicalTitle } from "../util/canonicalTitle.js";
 import { getCachedReleaseDates, withTimeout } from "../util/releaseCache.js";
 import { getReleaseStatus } from "../util/releaseStatus.js";
+import { namesOf, toMangaInput, type MalEntry } from "../util/malEntry.js";
 import type { Manga } from "../../generated/prisma/client.js";
 
 // ---------- validation shared by add and edit ----------
@@ -79,6 +80,51 @@ const add = [
     input.name = canonicalTitle(input.name, listing);
     const id = await mangaQueries.addManga(req.session.userId!, input);
     res.status(201).json({ id });
+  },
+];
+
+// a piece of a MyAnimeList export. The page sends one piece at a time so a long
+// list can show progress and stop safely: anything already here is skipped, so
+// trying again after a failure can't add it twice
+const IMPORT_PIECE = 50;
+const importList = [
+  body("entries").isArray({ min: 1, max: IMPORT_PIECE }),
+  body("entries.*.malId").optional().isInt({ min: 1 }).toInt(),
+  body("entries.*.title").isString().trim().isLength({ min: 1, max: 300 }),
+  body("entries.*.finished").isBoolean().toBoolean(),
+  body("entries.*.chapters").isInt({ min: 0, max: 100000 }).toInt(),
+  body("entries.*.readVolumes").isInt({ min: 0, max: 999 }).toInt(),
+  body("entries.*.ownedVolumes").isInt({ min: 0, max: 999 }).toInt(),
+  body("entries.*.score").isInt({ min: 0, max: 10 }).toInt(),
+  body("entries.*.comments").optional().isString(),
+  rejectInvalid,
+  async (req: Request, res: Response) => {
+    const userId = req.session.userId!;
+    const entries: MalEntry[] = matchedData(req).entries;
+    const shelf = await mangaQueries.getShelf(userId);
+    const taken = new Set(shelf.map((m) => slugify(m.name)));
+    const listings = await getListingsByMalIds(
+      entries.flatMap((e) => (e.malId ? [e.malId] : [])),
+    );
+
+    const inputs = [];
+    let alreadyThere = 0;
+    let noCover = 0;
+    for (const entry of entries) {
+      const listing = (entry.malId && listings.get(entry.malId)) || null;
+      const names = namesOf(entry, listing);
+      if (names.some((name) => taken.has(name))) {
+        alreadyThere++;
+        continue;
+      }
+      names.forEach((name) => taken.add(name));
+      const input = toMangaInput(entry, listing);
+      // the shelf's titles stop at 150 characters
+      inputs.push({ ...input, name: input.name.slice(0, 150) });
+      if (!input.image) noCover++;
+    }
+    if (inputs.length) await mangaQueries.addManyManga(userId, inputs);
+    res.json({ added: inputs.length, alreadyThere, noCover });
   },
 ];
 
@@ -239,6 +285,7 @@ export default {
   remove,
   setStatus,
   setRating,
+  importList,
   setBookmark,
   setSeen,
   setOwned,

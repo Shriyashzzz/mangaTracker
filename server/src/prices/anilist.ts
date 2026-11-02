@@ -10,6 +10,7 @@ import { prisma } from "../config/prisma.js";
 import { slugify } from "./match.js";
 import { Prisma } from "../../generated/prisma/client.js";
 import type { SeriesHit, SeriesInfo } from "./types.js";
+import type { MalListing } from "../util/malEntry.js";
 
 export { slugify };
 
@@ -48,6 +49,47 @@ async function query<T>(gql: string, variables?: Record<string, unknown>) {
   };
   if (errors?.length) throw new Error(`AniList: ${errors[0]!.message}`);
   return data;
+}
+
+const BY_MAL_ID_QUERY = `
+  query ($ids: [Int]) {
+    Page(perPage: 50) {
+      media(idMal_in: $ids, type: MANGA) {
+        idMal genres synonyms
+        title { english romaji }
+        coverImage { large }
+      }
+    }
+  }
+`;
+
+// up to 50 series by their MyAnimeList ids, for importing a list. One retry, as
+// a burst of imports can hit AniList's rate limit. Failing is fine: they keep
+// the title from their list and go without a cover
+export async function getListingsByMalIds(ids: number[]) {
+  const listings = new Map<number, MalListing>();
+  if (!ids.length) return listings;
+  for (const pause of [0, 2000]) {
+    try {
+      if (pause) await new Promise((done) => setTimeout(done, pause));
+      const { Page } = await query<{
+        Page: { media: (Media & { idMal: number | null })[] };
+      }>(BY_MAL_ID_QUERY, { ids });
+      for (const m of Page.media) {
+        if (m.idMal == null) continue;
+        listings.set(m.idMal, {
+          name: m.title.english ?? m.title.romaji ?? "",
+          altNames: [m.title.romaji ?? "", ...(m.synonyms ?? [])].filter(Boolean),
+          cover: m.coverImage?.large ?? null,
+          genre: m.genres?.[0] ?? null,
+        });
+      }
+      return listings;
+    } catch (e) {
+      console.error("AniList by MAL id failed:", (e as Error).message);
+    }
+  }
+  return listings;
 }
 
 // the HTML escapes AniList uses in plain-text descriptions
