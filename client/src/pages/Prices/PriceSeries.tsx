@@ -172,7 +172,7 @@ export default function PriceSeries() {
           {volumes.length > 0 && (
             <span className={styles.checked}>
               {volumes.length} in English
-              {priced > 0 && ` · ${priced} with prices`}
+              {priced < volumes.length && " · Prices load when you open one"}
             </span>
           )}
         </div>

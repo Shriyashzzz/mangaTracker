@@ -71,3 +71,70 @@ describe("dropUnlikelyNew", () => {
     expect(dropUnlikelyNew(offers)).toEqual(offers);
   });
 });
+
+describe("overpriced new copies", () => {
+  const stores = (offers: Offer[], usual?: number) =>
+    dropUnlikelyNew(offers, usual).map((o) => o.store);
+  const used = (store: string, cents: number) =>
+    offer(store, cents, { condition: "marketplace" });
+
+  test("a fashion site's $42 goes when a big store sells it for $10", () => {
+    expect(stores([offer("Editorialist", 4200), offer("Amazon", 999)])).toEqual([
+      "Amazon",
+    ]);
+  });
+
+  test("with no big store, the other copies are the yardstick", () => {
+    const offers = [
+      offer("Editorialist", 4200),
+      used("AbeBooks.com", 800),
+      used("eBay", 1200),
+      used("Mercari", 900),
+    ];
+    expect(stores(offers)).not.toContain("Editorialist");
+    expect(stores(offers)).toHaveLength(3);
+  });
+
+  test("a price a bit above the rest stays", () => {
+    const offers = [offer("Comic Shop", 1600), offer("Amazon", 999)];
+    expect(stores(offers)).toContain("Comic Shop");
+  });
+
+  test("a deluxe edition stays when everything costs about that", () => {
+    const offers = [
+      offer("Comic Shop", 4500),
+      used("AbeBooks.com", 3200),
+      used("eBay", 3800),
+    ];
+    expect(stores(offers)).toContain("Comic Shop");
+    expect(
+      stores([offer("Comic Shop", 6000), offer("Barnes & Noble", 4400)]),
+    ).toContain("Comic Shop");
+  });
+
+  test("nothing to compare it to: only over a normal volume's range goes", () => {
+    expect(stores([offer("Comic Shop", 1400)])).toEqual(["Comic Shop"]);
+    expect(stores([offer("Editorialist", 4200)])).toEqual([]);
+    expect(
+      stores([offer("Editorialist", 4200), used("eBay", 800)]),
+    ).not.toContain("Editorialist");
+  });
+
+  test("its own past prices can't vouch for it", () => {
+    expect(stores([offer("Editorialist", 4200)], 4200)).toEqual([]);
+  });
+
+  test("big stores are always believed, and only new copies are judged", () => {
+    expect(stores([offer("Amazon", 26999), offer("Walmart", 999)])).toHaveLength(2);
+    expect(stores([used("eBay", 9000), offer("Amazon", 999)])).toContain("eBay");
+  });
+
+  test("ebooks don't count as the other copies", () => {
+    const offers = [
+      offer("Comic Shop", 1400),
+      offer("Kindle", 500, { format: "ebook" }),
+      offer("Kobo", 500, { format: "ebook" }),
+    ];
+    expect(stores(offers)).toContain("Comic Shop");
+  });
+});
