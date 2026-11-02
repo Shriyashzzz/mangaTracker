@@ -344,8 +344,7 @@ function Library() {
   };
 
   // what a card in the New tab says: what's out, and where they are, so the two
-  // numbers can't be mixed up. It only shouts when the next one really is what's
-  // just out, since the list stays broad
+  // numbers can't be mixed up
   const newsFor = (m: Manga): CardNews | undefined => {
     if (!showingNew) return undefined;
     const found = releases[m.id];
@@ -357,21 +356,16 @@ function Library() {
     if (releaseKind === "japan") {
       return {
         text: `Vol. ${found?.latestJapaneseVolume} in Japan`,
-        loud: true,
         yours: volumeYours,
       };
     }
     if (releaseKind === "chapters") {
-      const latest = found?.latestChapter ?? 0;
-      const yours = m.bookmark ? `You're on ch. ${m.bookmark}` : undefined;
-      return m.bookmark && latest - m.bookmark <= 1
-        ? { text: `Ch. ${latest} is out`, loud: true, yours }
-        : { text: `Out now: ch. ${latest}`, loud: false, yours };
+      return {
+        text: `Ch. ${found?.latestChapter} is out`,
+        yours: m.bookmark ? `You're on ch. ${m.bookmark}` : undefined,
+      };
     }
-    const latest = found?.latestVolume ?? 0;
-    return found?.isNextVolumeOut
-      ? { text: `Vol. ${latest} is out`, loud: true, yours: volumeYours }
-      : { text: `Out now: vol. ${latest}`, loud: false, yours: volumeYours };
+    return { text: `Vol. ${found?.latestVolume} is out`, yours: volumeYours };
   };
   const total = mangaData.length;
   // every title failed, so "nothing new" would be a false comfort. A few failing

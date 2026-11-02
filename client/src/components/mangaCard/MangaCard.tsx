@@ -4,10 +4,9 @@ import { FALLBACK_COVER } from "../../lib/api";
 import { formatCents } from "../../lib/prices";
 import type { Manga, ShelfPrice } from "../../lib/types";
 
-// what's come out for it on the New tab; loud when it's the very next one
+// what's come out for it on the New tab
 export type CardNews = {
   text: string;
-  loud: boolean;
   // where they've got to, right under it
   yours?: string;
 };
@@ -81,13 +80,7 @@ export default function MangaCard({
           )}
         </p>
         {news && (
-          <p
-            className={
-              news.loud
-                ? "font-brand text-[1.05rem] tracking-[1px] text-accent"
-                : "text-[0.9rem] leading-[1.3] font-semibold text-ink"
-            }
-          >
+          <p className="font-brand text-[1.05rem] tracking-[1px] text-accent">
             {news.text}
           </p>
         )}
