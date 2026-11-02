@@ -106,8 +106,7 @@ export default function SignUp() {
                 aria-describedby={describedBy("password-hint")}
               />
               <span id="password-hint" className={styles.hint}>
-                At least 5 characters. With no email, there's no way to reset
-                it, so keep it somewhere safe.
+                At least 5 characters.
               </span>
             </div>
 
