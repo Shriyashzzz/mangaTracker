@@ -5,6 +5,7 @@ import {
   hideBrokenCover,
   volumePath,
 } from "../../lib/prices";
+import { stayInTrip, useFromShelf } from "../../lib/fromShelf";
 import { pricesStyles as styles } from "./styles";
 
 // one volume: cover, volume tag, title and, when we have one, the best known
@@ -58,11 +59,13 @@ export default function VolumeCard({
   // the usual price, struck through when this one is a deal
   wasCents?: number | null;
 }) {
+  const fromShelf = useFromShelf();
   return (
     <NavLink
       to={volumePath(isbn13, fullTitle ?? title)}
       className={styles.card}
       viewTransition
+      {...stayInTrip(fromShelf)}
     >
       <span className={styles.cover}>
         <CoverFallback number={volume} seriesCoverUrl={seriesCoverUrl} />

@@ -6,6 +6,7 @@ import clsx from "clsx";
 // same mark as the favicon: a manga volume in an inked panel
 import logo from "../../assets/logo.svg";
 import SettingsMenu from "../../components/settingsMenu/SettingsMenu";
+import { useFromShelf } from "../../lib/fromShelf";
 import { useAuth } from "../../store/auth";
 import {
   forgetAllSpots,
@@ -34,9 +35,9 @@ const barClass = (active: boolean) =>
 
 export default function Header() {
   const navigate = useNavigate();
-  const { pathname, search, state } = useLocation();
+  const { pathname, search } = useLocation();
   // opened from a card on the New tab: still part of what they were doing there
-  const fromShelf = Boolean((state as { fromShelf?: boolean } | null)?.fromShelf);
+  const fromShelf = useFromShelf();
   const { isSignedIn, logOut } = useAuth();
   const here = pathname + search;
   const currentTab = fromShelf ? "shelf" : tabOf(pathname);

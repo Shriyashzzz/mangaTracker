@@ -20,6 +20,7 @@ import VolumeCard, { CoverFallback } from "./VolumeCard";
 import { pricesStyles as styles } from "./styles";
 import Mascot from "../../components/mascot/Mascot";
 import SlowLoadQuote from "../../components/slowLoadQuote/SlowLoadQuote";
+import { stayInTrip, useFromShelf } from "../../lib/fromShelf";
 import { readLocal } from "../../lib/prefs";
 import { usePageMeta } from "../../lib/seo";
 import { volumeMeta } from "./pageMeta";
@@ -107,7 +108,7 @@ export default function PriceVolume() {
   // without loading the page again
   const navigate = useNavigate();
   const { pathname, search, state: linkState } = useLocation();
-  const fromShelf = Boolean((linkState as { fromShelf?: boolean } | null)?.fromShelf);
+  const fromShelf = useFromShelf();
   useEffect(() => {
     if (!loadedBook) return;
     const path = volumePath(loadedBook.isbn13, loadedBook.title);
@@ -229,7 +230,7 @@ export default function PriceVolume() {
           Price check
         </NavLink>
         <span aria-hidden>/</span>
-        <NavLink to={seriesPath(series.name)} viewTransition>
+        <NavLink to={seriesPath(series.name)} viewTransition {...stayInTrip(fromShelf)}>
           {seriesLabel}
         </NavLink>
         <span aria-hidden>/</span>
@@ -268,7 +269,7 @@ export default function PriceVolume() {
           </p>
           <p className={styles.partOf}>
             Part of{" "}
-            <NavLink to={seriesPath(series.name)} viewTransition>
+            <NavLink to={seriesPath(series.name)} viewTransition {...stayInTrip(fromShelf)}>
               {seriesLabel}
             </NavLink>
           </p>
@@ -491,6 +492,7 @@ export default function PriceVolume() {
               to={seriesPath(series.name)}
               className={styles.textBtn}
               viewTransition
+              {...stayInTrip(fromShelf)}
             >
               See all {siblings.length + 1}
             </NavLink>

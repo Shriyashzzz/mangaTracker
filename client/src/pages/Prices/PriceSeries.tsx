@@ -2,6 +2,8 @@ import { useEffect, useState } from "react";
 import { NavLink, useParams, useSearchParams } from "react-router";
 import type { Series } from "../../lib/types";
 import { coverSrc, getSeries, hideBrokenCover } from "../../lib/prices";
+import { ChevronLeftIcon } from "../../components/icons/Icons";
+import { useFromShelf } from "../../lib/fromShelf";
 import VolumeCard from "./VolumeCard";
 import SeriesFacts from "./SeriesFacts";
 import RangePager from "../../components/rangePager/RangePager";
@@ -14,6 +16,7 @@ import { seriesMeta } from "./pageMeta";
 const PAGE_SIZE = 30;
 
 export default function PriceSeries() {
+  const fromShelf = useFromShelf();
   // the route always has a :slug
   const slug = useParams().slug!;
   const [params] = useSearchParams();
@@ -109,6 +112,12 @@ export default function PriceSeries() {
 
   return (
     <div className={`${styles.page} fade-in`}>
+      {fromShelf && (
+        <NavLink to="/shelf" className={styles.backToNew} viewTransition>
+          <ChevronLeftIcon aria-hidden />
+          Back to New
+        </NavLink>
+      )}
       <nav className={styles.crumbs} aria-label="Breadcrumb">
         <NavLink to="/" viewTransition>
           Price check
