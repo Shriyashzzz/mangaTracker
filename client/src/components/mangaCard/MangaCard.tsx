@@ -57,7 +57,7 @@ export default function MangaCard({
       to={linkTo ?? `/details/${currentManga.id}${detailsSearch}`}
       className={
         asColumns
-          ? "group grid animate-card-in grid-cols-[2.75rem_minmax(0,1fr)_6.5rem_8rem] gap-x-3 py-1.5 upto-720:grid-cols-[2.75rem_minmax(0,1fr)_5.5rem]"
+          ? "group grid animate-card-in grid-cols-[2.75rem_minmax(0,1fr)_auto] gap-x-3 py-1.5"
           : compact
           ? "group flex animate-card-in flex-row items-start gap-3 py-1.5"
           : news
@@ -165,12 +165,12 @@ export default function MangaCard({
         )}
       </div>
       {asColumns && (
-        <>
+        <span className="flex items-center gap-14">
           <span className="flex items-center upto-720:hidden">
             {/* unrated ones show empty stars, so the column always reads the same */}
             <StarRating value={Number(currentManga.rating) || 0} size="sm" />
           </span>
-          <span className="flex flex-col justify-center gap-1 text-right font-mono text-[0.82rem] text-ink-soft">
+          <span className="flex w-32 flex-col justify-center gap-1 text-right font-mono text-[0.82rem] text-ink-soft upto-720:w-[5.5rem]">
             {currentManga.status ? (
               "Finished"
             ) : knownTotal != null ? (
@@ -192,7 +192,7 @@ export default function MangaCard({
               </>
             ) : null}
           </span>
-        </>
+        </span>
       )}
     </NavLink>
   );
