@@ -36,6 +36,8 @@ type ShelfState = {
   // the last one deleted, while its undo is on offer
   lastDeleted: Manga | null;
   setLastDeleted: (manga: Manga | null) => void;
+  // puts it back as it was. Says whether that worked
+  undoDelete: () => Promise<boolean>;
   // on signing in or out: it's someone else's shelf now
   reset: () => void;
 };
@@ -79,6 +81,22 @@ export const useShelf = create<ShelfState>()((set, get) => ({
   releases: {},
   lastDeleted: null,
   setLastDeleted: (lastDeleted) => set({ lastDeleted }),
+  undoDelete: async () => {
+    const { lastDeleted, load } = get();
+    if (!lastDeleted) return false;
+    try {
+      const res = await apiFetch("/api/manga/restore", {
+        method: "POST",
+        body: lastDeleted,
+      });
+      if (!res.ok) throw new Error(res.statusText);
+      await load();
+      set({ lastDeleted: null });
+      return true;
+    } catch {
+      return false;
+    }
+  },
 
   // refreshes in the background: whatever's on screen stays until this answers
   load: async () => {

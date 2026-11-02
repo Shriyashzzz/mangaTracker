@@ -24,12 +24,14 @@ type Props = {
   onOpen?: () => void;
   // position on the shelf, for the staggered entrance
   index?: number;
+  // a row with a small cover at every screen size, chosen in settings
+  compact?: boolean;
 };
 
 // every card leans a little differently when you hover it: the 1st, 2nd and
 // 3rd of each three tilt their own way
-const cover =
-  "relative aspect-2/3 rounded-[2px] border-[1.5px] border-line bg-paper-2 shadow-ink-lg transition-[translate,rotate,box-shadow] duration-180 ease-[ease] group-hover:-translate-x-0.5 group-hover:-translate-y-[3px] group-hover:-rotate-1 group-hover:shadow-[6px_7px_0_var(--hard-shadow)] [.group:nth-child(3n+2):hover_&]:rotate-[0.8deg] [.group:nth-child(3n):hover_&]:-rotate-[0.4deg]";
+const coverBase =
+  "relative aspect-2/3 rounded-[2px] border-[1.5px] border-line bg-paper-2 transition-[translate,rotate,box-shadow] duration-180 ease-[ease] group-hover:-translate-x-0.5 group-hover:-translate-y-[3px] group-hover:-rotate-1 group-hover:shadow-[6px_7px_0_var(--hard-shadow)] [.group:nth-child(3n+2):hover_&]:rotate-[0.8deg] [.group:nth-child(3n):hover_&]:-rotate-[0.4deg]";
 
 export default function MangaCard({
   currentManga,
@@ -39,6 +41,7 @@ export default function MangaCard({
   linkTo,
   onOpen,
   index = 0,
+  compact = false,
 }: Props) {
   const genre =
     currentManga.genre && currentManga.genre !== "unlabled"
@@ -49,7 +52,9 @@ export default function MangaCard({
     <NavLink
       to={linkTo ?? `/details/${currentManga.id}${detailsSearch}`}
       className={
-        news
+        compact
+          ? "group flex animate-card-in flex-row items-center gap-3 py-1.5"
+          : news
           ? "group flex animate-card-in flex-col gap-[0.7rem] upto-720:flex-row upto-720:items-center upto-720:gap-3 upto-720:py-1.5"
           : "group flex animate-card-in flex-col gap-[0.7rem]"
       }
@@ -65,7 +70,15 @@ export default function MangaCard({
         },
       })}
     >
-      <div className={news ? `${cover} upto-720:w-11 upto-720:shrink-0 upto-720:shadow-ink` : cover}>
+      <div
+        className={
+          compact
+            ? `${coverBase} w-11 shrink-0 shadow-ink`
+            : news
+              ? `${coverBase} shadow-ink-lg upto-720:w-11 upto-720:shrink-0 upto-720:shadow-ink`
+              : `${coverBase} shadow-ink-lg`
+        }
+      >
         <img
           src={currentManga.image || FALLBACK_COVER}
           alt=""
@@ -79,7 +92,7 @@ export default function MangaCard({
           }}
         />
         {/* hanko-style stamp for finished series */}
-        {currentManga.status && (
+        {currentManga.status && !compact && (
           <span
             className={`absolute top-2.5 right-2 rotate-8 rounded-[3px] border-2 border-accent-hover bg-[color-mix(in_srgb,var(--card)_92%,transparent)] px-2 py-[0.15rem] font-brand text-[1rem] leading-[1.2] tracking-[1.5px] text-accent-hover${news ? " upto-720:hidden" : ""}`}
           >
@@ -88,11 +101,15 @@ export default function MangaCard({
         )}
       </div>
       <div className="flex min-w-0 flex-col gap-[0.15rem]">
-        <p className={`${news ? "min-h-[2.5em] upto-720:min-h-0 upto-720:line-clamp-1 " : ""}line-clamp-2 font-display text-[1.05rem] leading-[1.25] font-semibold decoration-accent underline-offset-3 group-hover:underline`}>
+        <p className={`${compact ? "line-clamp-1" : news ? "line-clamp-2 min-h-[2.5em] upto-720:min-h-0 upto-720:line-clamp-1" : "line-clamp-2"}  font-display text-[1.05rem] leading-[1.25] font-semibold decoration-accent underline-offset-3 group-hover:underline`}>
           {currentManga.name}
         </p>
         <p
-          className={`min-h-[1.5em] truncate font-mono text-[0.78rem] text-muted${news ? " upto-720:hidden" : ""}`}
+          className={
+            compact
+              ? `truncate font-mono text-[0.78rem] text-muted${news ? " hidden" : ""}`
+              : `min-h-[1.5em] truncate font-mono text-[0.78rem] text-muted${news ? " upto-720:hidden" : ""}`
+          }
         >
           {news
             ? genre
@@ -119,6 +136,7 @@ export default function MangaCard({
           </p>
         )}
         {/* the New tab's cards all match: only what's out and where they are */}
+        <div className={compact ? "flex flex-wrap items-center gap-x-3" : "contents"}>
         {!news && priceTag && (
           <p
             // the lowest price we've seen for the series at the stores we
@@ -135,6 +153,7 @@ export default function MangaCard({
         {!news && Number(currentManga.rating) > 0 && (
           <StarRating value={Number(currentManga.rating)} size="sm" />
         )}
+        </div>
       </div>
     </NavLink>
   );

@@ -14,7 +14,6 @@ import { apiFetch, signInPath } from "../../lib/api";
 import {
   BACKGROUNDS,
   currentBackground,
-  currentTheme,
   readLocal,
   savePrefs,
 } from "../../lib/prefs";
@@ -25,6 +24,8 @@ import { useAuth } from "../../store/auth";
 import ReleaseControls from "../NewReleases/ReleaseControls";
 import ProfileTab from "./ProfileTab";
 import { settingsStyles as styles } from "./styles";
+
+const THEME_LABELS = { light: "Light", dark: "Dark", system: "Same as my device" };
 
 const TABS = [
   { id: "profile", label: "Profile" },
@@ -103,14 +104,15 @@ export default function SettingsPage() {
 
 function AppearanceTab() {
   const isSignedIn = useAuth((s) => s.isSignedIn);
-  const [theme, setTheme] = useState(currentTheme);
+  // nothing saved means it follows the device
+  const [theme, setTheme] = useState(() => readLocal("theme") ?? "system");
   const [background, setBackground] = useState(currentBackground);
   return (
     <div className={styles.tabBody}>
       <h2 className={styles.tabTitle}>Appearance</h2>
       <fieldset className={styles.group}>
         <legend className={styles.legend}>Theme</legend>
-        {(["light", "dark"] as const).map((value) => (
+        {(["light", "dark", "system"] as const).map((value) => (
           <label key={value} className={styles.row}>
             <input
               type="radio"
@@ -121,7 +123,7 @@ function AppearanceTab() {
                 savePrefs({ theme: value }, isSignedIn);
               }}
             />
-            {value === "light" ? "Light" : "Dark"}
+            {THEME_LABELS[value]}
           </label>
         ))}
       </fieldset>
@@ -165,9 +167,32 @@ function ShelfSettingsTab() {
   const isSignedIn = useAuth((s) => s.isSignedIn);
   const [shelfTab, setShelfTab] = useState(() => readLocal("shelfTab") ?? "all");
   const [shelfSort, setShelfSort] = useState(() => readLocal("shelfSort") ?? "");
+  const [shelfView, setShelfView] = useState(() => readLocal("shelfView") ?? "covers");
   return (
     <div className={styles.tabBody}>
       <h2 className={styles.tabTitle}>Your shelf</h2>
+      <fieldset className={styles.group}>
+        <legend className={styles.legend}>Show manga as</legend>
+        {(
+          [
+            ["covers", "Big covers"],
+            ["rows", "Compact rows, so more fit on a screen"],
+          ] as const
+        ).map(([value, label]) => (
+          <label key={value} className={styles.row}>
+            <input
+              type="radio"
+              name="shelf-view"
+              checked={shelfView === value}
+              onChange={() => {
+                setShelfView(value);
+                savePrefs({ shelfView: value }, isSignedIn);
+              }}
+            />
+            {label}
+          </label>
+        ))}
+      </fieldset>
       <div className={styles.field}>
         <label htmlFor="shelf-tab">Opens on</label>
         <select

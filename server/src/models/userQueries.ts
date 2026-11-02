@@ -10,6 +10,7 @@ export type Prefs = {
   hideEbooks?: string;
   shelfTab?: string;
   shelfSort?: string;
+  shelfView?: string;
   // what the New tab lists; see util/releaseStatus.ts
   releases?: unknown;
 };

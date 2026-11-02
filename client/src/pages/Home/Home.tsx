@@ -34,6 +34,7 @@ import {
   type SeenKind,
 } from "../../lib/shelf";
 import ReleaseModal from "./ReleaseModal";
+import { EmptyShelfUndo } from "../../components/deletedNote/DeletedNote";
 import ReleaseTip from "../../components/whatsNew/ReleaseTip";
 
 const SHELF_PAGE_SIZE = 30;
@@ -150,6 +151,8 @@ function Library() {
   const [openRelease, setOpenRelease] = useState<number | null>(null);
   // on small screens, search and sort fold away on the New tab so the news comes first
   const [toolsOpen, setToolsOpen] = useState(false);
+  // set in settings
+  const [rowsChosen] = useState(() => readLocal("shelfView") === "rows");
   const hiddenCount = (mangaData ?? []).filter((m) =>
     isHiddenAs(releases[m.id], releaseKind),
   ).length;
@@ -370,6 +373,7 @@ function Library() {
           <Mascot mood="happy" />
         </span>
         <p className={styles.emptyTitle}>Nothing on the shelf yet.</p>
+        <EmptyShelfUndo />
         <p className={styles.emptyBody}>
           Add whatever you're reading right now, and the chapter you're on.
           That's all it takes.
@@ -924,13 +928,25 @@ function Library() {
           <div className="upto-520:hidden">{pager}</div>
           <div
             id="shelf-grid"
-            className={showingNew ? styles.newGrid : styles.classContainer}
+            className={
+              rowsChosen
+                ? styles.rowsGrid
+                : showingNew
+                  ? styles.newGrid
+                  : styles.classContainer
+            }
             onClickCapture={saveSpot}
           >
             {shelfPage.map((currentManga, i) => (
               <div
                 key={currentManga.id}
-                className={showingNew ? styles.cardAsRow : styles.cardWithSeen}
+                className={
+                  rowsChosen
+                    ? styles.cardRowAlways
+                    : showingNew
+                      ? styles.cardAsRow
+                      : styles.cardWithSeen
+                }
               >
                 <MangaCard
                     currentManga={currentManga}
@@ -952,11 +968,12 @@ function Library() {
                           : undefined
                   }
                   index={i}
+                  compact={rowsChosen}
                 />
                 {showingNew && (
                   <button
                     type="button"
-                    className={styles.seenBtn}
+                    className={rowsChosen ? styles.seenBtnRow : styles.seenBtn}
                     aria-label={`${viewingHidden ? "Unhide" : isGrouped(currentManga) ? "Hide all" : "Hide"}: ${currentManga.name}`}
                     data-seen-id={currentManga.id}
                     onClick={() => handleSeen(currentManga)}

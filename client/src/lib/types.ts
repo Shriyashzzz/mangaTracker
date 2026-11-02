@@ -108,11 +108,14 @@ export type ReleaseSettings = { volumes: ReleaseRange; chapters: ReleaseRange };
 export type ShelfTab = "all" | "ongoing" | "finished" | "new";
 export type Prefs = {
   background?: Background;
-  theme?: Theme;
+  // "system" follows the device
+  theme?: Theme | "system";
   hideEbooks?: "yes" | "no";
   // what the shelf opens on
   shelfTab?: ShelfTab;
   shelfSort?: string;
+  // how the shelf lists manga: big covers, or compact rows
+  shelfView?: "covers" | "rows";
   releases?: ReleaseSettings;
 };
 export type Background = "sfx" | "ink" | "pages" | "panels";
