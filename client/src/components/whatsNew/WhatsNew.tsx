@@ -6,8 +6,6 @@ import { NavLink } from "react-router";
 import { openReleasesOnShelf } from "../../lib/shelf";
 import { useAuth } from "../../store/auth";
 
-// what an English reader asks after "is there a new one?": when's the next
-// chapter, what will the volume cost, and how fast can I add a series
 const ITEMS = [
   {
     name: "Better search results",
@@ -16,14 +14,6 @@ const ITEMS = [
   {
     name: "Next chapter dates",
     body: "A volume behind? The manga's page shows when the next chapter should land.",
-  },
-  {
-    name: "Next volume's price",
-    body: "The manga's page shows the next volume you need and the lowest price we've seen.",
-  },
-  {
-    name: "Quick add",
-    body: "Pick a title and the cover and genre fill in.",
   },
 ];
 

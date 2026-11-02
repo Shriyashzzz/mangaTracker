@@ -27,21 +27,13 @@ const UPDATES = [
     name: "Next chapter dates",
     body: "See when the next chapter should land.",
   },
-  {
-    name: "Next volume's price",
-    body: "See what your next volume costs.",
-  },
-  {
-    name: "Quick add",
-    body: "Pick a title. The cover and genre fill in.",
-  },
 ];
 
 export function UpdatesPage() {
   usePageMeta({
     title: "What's new",
     description:
-      "New on Manga Tracker: see new English volumes and chapters, next chapter dates and what your next volume costs. Email alerts are coming soon.",
+      "New on Manga Tracker: see new English volumes and chapters and next chapter dates. Email alerts are coming soon.",
     path: "/updates",
   });
   const isSignedIn = useAuth((s) => s.isSignedIn);
