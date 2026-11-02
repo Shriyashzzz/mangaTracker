@@ -87,10 +87,14 @@ const me = (req: Request, res: Response) => {
 };
 
 // the values each display preference may take; anything else is ignored
-const PREF_VALUES: Record<"background" | "theme", string[]> = {
+const PREF_VALUES = {
   background: ["sfx", "ink", "pages", "panels"],
   theme: ["light", "dark"],
+  hideEbooks: ["yes", "no"],
+  shelfTab: ["all", "ongoing", "finished", "new"],
+  shelfSort: ["", "rating-dsc", "ch-dsc", "name-asc"],
 };
+type StringPref = keyof typeof PREF_VALUES;
 
 const getPrefs = async (req: Request, res: Response) => {
   res.json(await userQueries.getPrefs(req.session.userId!));
@@ -100,7 +104,7 @@ const updatePrefs = async (req: Request, res: Response) => {
   const patch: Prefs = {};
   for (const [key, allowed] of Object.entries(PREF_VALUES)) {
     const value = req.body?.[key];
-    if (allowed.includes(value)) patch[key as "background" | "theme"] = value;
+    if (allowed.includes(value)) patch[key as StringPref] = value;
   }
   const releases = validReleaseSettings(req.body?.releases);
   if (releases) patch.releases = releases;

@@ -1,4 +1,5 @@
 // Accounts and their display preferences.
+import { randomBytes } from "node:crypto";
 import bcrypt from "bcryptjs";
 import { prisma } from "../config/prisma.js";
 import { Prisma } from "../../generated/prisma/client.js";
@@ -6,6 +7,9 @@ import { Prisma } from "../../generated/prisma/client.js";
 export type Prefs = {
   background?: string;
   theme?: string;
+  hideEbooks?: string;
+  shelfTab?: string;
+  shelfSort?: string;
   // what the New tab lists; see util/releaseStatus.ts
   releases?: unknown;
 };
@@ -64,4 +68,83 @@ export async function updatePrefs(userId: number, patch: Prefs): Promise<Prefs> 
   return rows[0]?.prefs ?? {};
 }
 
-export default { checkCredentials, addUser, getPrefs, updatePrefs };
+const ACCOUNT_FIELDS = {
+  username: true,
+  displayName: true,
+  avatar: true,
+  recoveryEmail: true,
+  shareEnabled: true,
+  shareNotes: true,
+  shareCode: true,
+} as const;
+
+export const getAccount = (id: number) =>
+  prisma.user.findUnique({ where: { id }, select: ACCOUNT_FIELDS });
+
+export type AccountPatch = Partial<{
+  displayName: string | null;
+  avatar: string | null;
+  recoveryEmail: string | null;
+  shareEnabled: boolean;
+  shareNotes: boolean;
+}>;
+
+// the first time sharing goes on, it gets its link
+export async function updateAccount(id: number, patch: AccountPatch) {
+  const data: AccountPatch & { shareCode?: string } = { ...patch };
+  if (patch.shareEnabled) {
+    const current = await prisma.user.findUnique({
+      where: { id },
+      select: { shareCode: true },
+    });
+    if (!current?.shareCode) data.shareCode = randomBytes(9).toString("base64url");
+  }
+  return prisma.user.update({ where: { id }, data, select: ACCOUNT_FIELDS });
+}
+
+// false when the password is wrong. Their manga go with them, and so does every
+// session they're signed in on, so no other device is left pointing at nothing
+export async function deleteAccount(id: number, password: string) {
+  const user = await prisma.user.findUnique({
+    where: { id },
+    select: { password: true },
+  });
+  if (!user || !(await bcrypt.compare(password, user.password))) return false;
+  await prisma.user.delete({ where: { id } });
+  await prisma.$executeRaw`DELETE FROM session WHERE (sess->>'userId')::int = ${id}`;
+  return true;
+}
+
+// a shared list, or null if there isn't one at that link
+export const getSharedShelf = (shareCode: string) =>
+  prisma.user.findFirst({
+    where: { shareCode, shareEnabled: true },
+    select: {
+      displayName: true,
+      avatar: true,
+      shareNotes: true,
+      manga: {
+        orderBy: { name: "asc" },
+        select: {
+          name: true,
+          image: true,
+          genre: true,
+          status: true,
+          bookmark: true,
+          rating: true,
+          description: true,
+        },
+      },
+    },
+  });
+
+export default {
+  checkCredentials,
+  addUser,
+  getPrefs,
+  updatePrefs,
+  getAccount,
+  updateAccount,
+  deleteAccount,
+  getSharedShelf,
+};

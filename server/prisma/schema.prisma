@@ -19,6 +19,15 @@ model User {
   password String
   // display preferences: { background, theme }
   prefs    Json    @default("{}")
+  // what others see if they share their list; the username stays private
+  displayName   String? @map("display_name") @db.VarChar(40)
+  avatar        String? @db.VarChar(20)
+  // optional, set in settings. Nothing sends to it yet
+  recoveryEmail String? @map("recovery_email") @db.VarChar(254)
+  // the link is a random code, and stays the same if sharing is switched off and on
+  shareEnabled  Boolean @default(false) @map("share_enabled")
+  shareNotes    Boolean @default(false) @map("share_notes")
+  shareCode     String? @unique @map("share_code") @db.VarChar(16)
   manga    Manga[]
 
   @@map("users")
