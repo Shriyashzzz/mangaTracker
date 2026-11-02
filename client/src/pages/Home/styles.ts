@@ -82,9 +82,8 @@ export const homeStyles = {
   // side info: it should read as a footnote to the switch, not compete with it
   releaseNote: "text-[0.85rem] text-ink-soft",
   releaseAside: "flex flex-1 flex-wrap items-center gap-x-5 gap-y-1",
-  // over at the far right of its row
-  unhideAll:
-    "tap ml-auto text-[0.85rem] font-medium text-ink underline decoration-accent decoration-2 underline-offset-3",
+  // together at the far right of the row
+  releaseLinks: "ml-auto flex items-center gap-x-5",
   hiddenToggle:
     "tap text-[0.85rem] font-medium text-ink underline decoration-accent decoration-2 underline-offset-3",
   // the grouped list. A full screen on phones

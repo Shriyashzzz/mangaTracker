@@ -789,27 +789,29 @@ function Library() {
                 ? "You hid these. They stay hidden until something newer is out."
                 : RELEASE_KINDS[releaseKind].note}
             </p>
-            <NavLink to="/new-releases" className={styles.hiddenToggle} viewTransition>
-              How this works
-            </NavLink>
-            {hiddenCount > 0 && !viewingHidden && (
-              <button
-                type="button"
-                className={styles.hiddenToggle}
-                onClick={openHidden}
-              >
-                Hidden ({hiddenCount})
-              </button>
-            )}
-            {viewingHidden && (
-              <button
-                type="button"
-                className={styles.unhideAll}
-                onClick={unhideAll}
-              >
-                Unhide all
-              </button>
-            )}
+            <div className={styles.releaseLinks}>
+              <NavLink to="/new-releases" className={styles.hiddenToggle} viewTransition>
+                How this works
+              </NavLink>
+              {hiddenCount > 0 && !viewingHidden && (
+                <button
+                  type="button"
+                  className={styles.hiddenToggle}
+                  onClick={openHidden}
+                >
+                  Hidden ({hiddenCount})
+                </button>
+              )}
+              {viewingHidden && (
+                <button
+                  type="button"
+                  className={styles.hiddenToggle}
+                  onClick={unhideAll}
+                >
+                  Unhide all
+                </button>
+              )}
+            </div>
           </div>
         </div>
       )}
