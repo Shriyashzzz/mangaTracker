@@ -66,6 +66,9 @@ export const homeStyles = {
   releaseKindCount: "ml-1 font-mono text-[0.78rem] tracking-normal",
   // side info: it should read as a footnote to the switch, not compete with it
   releaseNote: "text-[0.85rem] text-ink-soft",
+  releaseAside: "flex flex-wrap items-center gap-x-5 gap-y-1",
+  hiddenToggle:
+    "tap text-[0.85rem] font-medium text-ink underline decoration-accent decoration-2 underline-offset-3",
   // the check's progress, a thin ink line with a small label
   checkBar: "h-[3px] w-full overflow-hidden rounded-full bg-line-soft",
   checkBarFill:

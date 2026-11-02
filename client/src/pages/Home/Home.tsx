@@ -13,7 +13,7 @@ import Mascot from "../../components/mascot/Mascot";
 import SlowLoadQuote from "../../components/slowLoadQuote/SlowLoadQuote";
 import { usePrivatePage } from "../../lib/seo";
 import { getShelfPriceTags, volumePath } from "../../lib/prices";
-import type { Manga, ShelfPrice } from "../../lib/types";
+import type { Manga, ReleaseStatus, ShelfPrice } from "../../lib/types";
 import { useAuth } from "../../store/auth";
 import { useShelf } from "../../store/shelf";
 import { readLocal, writeLocal } from "../../lib/prefs";
@@ -37,7 +37,8 @@ const RELEASE_KINDS = {
   },
   chapters: {
     label: "Chapters",
-    note: "English releases only. Japan may be ahead.",
+    // MangaUpdates counts every language and doesn't say which is which
+    note: "Mostly English. A chapter may still be on its way in English.",
     emptyTitle: "Nothing new to read. Go touch grass!",
     emptyBody:
       "Nothing new to show for now. Check back soon.",
@@ -51,6 +52,16 @@ const RELEASE_KINDS = {
   },
 } as const;
 type ReleaseKind = keyof typeof RELEASE_KINDS;
+
+// which flags say a release is on the New tab, and still new
+const RELEASE_FLAGS = {
+  volumes: { listed: "volumeListed", isNew: "hasNewVolume" },
+  chapters: { listed: "chapterListed", isNew: "hasNewChapter" },
+  japan: { listed: "japanListed", isNew: "hasNewJapaneseVolume" },
+} as const;
+// they've said "Seen it" to this one, and nothing newer has come along
+const isHiddenAs = (found: ReleaseStatus | null | undefined, kind: ReleaseKind) =>
+  Boolean(found?.[RELEASE_FLAGS[kind].listed] && !found[RELEASE_FLAGS[kind].isNew]);
 
 const SORT_OPTIONS = [
   { value: "", label: "Last bookmarked" },
@@ -121,7 +132,14 @@ function Library() {
     const saved = readSession("libraryReleaseKind", "volumes");
     return saved in RELEASE_KINDS ? (saved as ReleaseKind) : "volumes";
   });
-  const filterKey = `${statusFilter}|${releaseKind}|${sortBy}|${query.trim().toLowerCase()}`;
+  // the New tab's list of what "Seen it" has hidden
+  const [wantHidden, setWantHidden] = useState(false);
+  const hiddenCount = (mangaData ?? []).filter((m) =>
+    isHiddenAs(releases[m.id], releaseKind),
+  ).length;
+  // showing the last one again leaves nothing here, so it goes back to what's new
+  const viewingHidden = statusFilter === "new" && wantHidden && hiddenCount > 0;
+  const filterKey = `${statusFilter}|${releaseKind}|${viewingHidden}|${sortBy}|${query.trim().toLowerCase()}`;
   const [page, setPage] = useState({
     key: spot?.key ?? filterKey,
     index: spot?.index ?? 0,
@@ -158,6 +176,8 @@ function Library() {
     name: string;
     kind: SeenKind;
     previous: number | null;
+    // true when they've just brought it back rather than hidden it
+    restored?: boolean;
   } | null>(null);
   const [seenFailed, setSeenFailed] = useState(false);
   const seenNote = useRef<HTMLDivElement>(null);
@@ -243,12 +263,11 @@ function Library() {
     if (statusFilter === "finished") list = list.filter((m) => m.status);
     if (statusFilter === "ongoing") list = list.filter((m) => !m.status);
     if (statusFilter === "new") {
-      list = list.filter((m) => {
-        const found = releases[m.id];
-        if (releaseKind === "chapters") return found?.hasNewChapter;
-        if (releaseKind === "japan") return found?.hasNewJapaneseVolume;
-        return found?.hasNewVolume;
-      });
+      list = list.filter((m) =>
+        viewingHidden
+          ? isHiddenAs(releases[m.id], releaseKind)
+          : releases[m.id]?.[RELEASE_FLAGS[releaseKind].isNew],
+      );
     }
 
     const q = query.trim().toLowerCase();
@@ -272,7 +291,7 @@ function Library() {
         break;
     }
     return list;
-  }, [mangaData, releases, releaseKind, statusFilter, sortBy, query]);
+  }, [mangaData, releases, releaseKind, viewingHidden, statusFilter, sortBy, query]);
 
   const goToAdd = () => navigator("/add", { viewTransition: true });
 
@@ -367,8 +386,10 @@ function Library() {
           ? m.seenChapter
           : m.seenJapanVolume) ?? null;
     setSeenFailed(false);
-    const saved = await markSeen(m.id, kind, newest);
-    if (saved) setHidden({ id: m.id, name: m.name, kind, previous });
+    // clearing what they've seen is what puts it back on the list
+    const restored = viewingHidden;
+    const saved = await markSeen(m.id, kind, restored ? null : newest);
+    if (saved) setHidden({ id: m.id, name: m.name, kind, previous, restored });
     else setSeenFailed(true);
   };
 
@@ -555,7 +576,9 @@ function Library() {
                 "That didn't save. Try again."
               ) : (
                 <>
-                  <span className={styles.seenName}>Hidden: {hidden?.name}</span>
+                  <span className={styles.seenName}>
+                  {hidden?.restored ? "Back on the list" : "Hidden"}: {hidden?.name}
+                </span>
                   <button type="button" className={styles.seenUndo} onClick={undoSeen}>
                     Undo
                   </button>
@@ -600,7 +623,23 @@ function Library() {
               </button>
             ))}
           </div>
-          <p className={styles.releaseNote}>{RELEASE_KINDS[releaseKind].note}</p>
+          <div className={styles.releaseAside}>
+            <p className={styles.releaseNote}>
+              {viewingHidden
+                ? "Hidden with Seen it, until something newer is out."
+                : RELEASE_KINDS[releaseKind].note}
+            </p>
+            {hiddenCount > 0 && (
+              <button
+                type="button"
+                className={styles.hiddenToggle}
+                aria-pressed={viewingHidden}
+                onClick={() => setWantHidden(!viewingHidden)}
+              >
+                {viewingHidden ? "Back to new" : `Hidden (${hiddenCount})`}
+              </button>
+            )}
+          </div>
         </div>
       )}
 
@@ -714,12 +753,12 @@ function Library() {
                   <button
                     type="button"
                     className={styles.seenBtn}
-                    aria-label={`Seen it: ${currentManga.name}`}
+                    aria-label={`${viewingHidden ? "Show again" : "Seen it"}: ${currentManga.name}`}
                     data-seen-id={currentManga.id}
                     onClick={() => handleSeen(currentManga)}
                   >
-                    <CheckIcon />
-                    Seen it
+                    {!viewingHidden && <CheckIcon />}
+                    {viewingHidden ? "Show again" : "Seen it"}
                   </button>
                 )}
               </div>

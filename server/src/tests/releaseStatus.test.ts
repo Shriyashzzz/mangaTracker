@@ -157,6 +157,29 @@ test("seen it hides that volume, until they've moved past it", () => {
   expect(moved.nextVolume).toBe(15);
 });
 
+test("what's been hidden with seen it can still be found, until it moves on", () => {
+  const out = volumesOnly(english(13, 14, 15));
+  const hidden = getReleaseStatus({ ...owns(13), seenVolume: 14 }, out);
+  expect(hidden.volumeListed).toBe(true);
+  expect(hidden.hasNewVolume).toBe(false);
+  expect(getReleaseStatus(owns(15), out).volumeListed).toBe(false);
+
+  const chapters = chaptersOnly(chapter("250"));
+  const near = getReleaseStatus({ ...readTo(249), seenChapter: 250 }, chapters);
+  expect(near.chapterListed).toBe(true);
+  expect(near.hasNewChapter).toBe(false);
+  // too far behind to be listed at all, so there's nothing to find
+  expect(getReleaseStatus({ ...readTo(200), seenChapter: 250 }, chapters).chapterListed).toBe(false);
+
+  const dates = { volume: [{ volume: "26", releaseDate: null }] } as FormatedDates;
+  const japan = getReleaseStatus(
+    { ...owns(25), seenJapanVolume: 26 },
+    { dates, englishVolumes: english(25) },
+  );
+  expect(japan.japanListed).toBe(true);
+  expect(japan.hasNewJapaneseVolume).toBe(false);
+});
+
 test("seen it on a chapter leaves volumes alone, and the other way round", () => {
   const out = { dates: chapter("100"), englishVolumes: english(25) };
   const seenChapter = getReleaseStatus(
