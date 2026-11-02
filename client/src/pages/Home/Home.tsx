@@ -36,7 +36,6 @@ import {
 import ReleaseModal from "./ReleaseModal";
 import { EmptyShelfUndo } from "../../components/deletedNote/DeletedNote";
 import ReleaseTip from "../../components/whatsNew/ReleaseTip";
-import SampleShelfLink from "../../components/sampleShelf/SampleShelfLink";
 
 const SHELF_PAGE_SIZE = 30;
 // shelves this size get a heads-up that their first release check is slow
@@ -1086,7 +1085,6 @@ function GuestHero() {
             >
               Sign in
             </NavLink>
-            <SampleShelfLink />
           </div>
         </div>
 
