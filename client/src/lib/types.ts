@@ -84,14 +84,6 @@ export type MangaForm = {
   volumesOwned?: string | number;
 };
 
-// the cheapest known price for a shelf card, keyed by manga id
-export type ShelfPrice = {
-  fromCents: number;
-  isbn13: string;
-  title: string;
-  volume: number | null;
-};
-
 export type ShelfMatch = {
   id: number;
   name: string;

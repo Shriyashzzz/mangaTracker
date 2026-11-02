@@ -1,8 +1,7 @@
 import { NavLink } from "react-router";
 import StarRating from "../starRating/StarRating";
 import { FALLBACK_COVER } from "../../lib/api";
-import { formatCents } from "../../lib/prices";
-import type { Manga, ShelfPrice } from "../../lib/types";
+import type { Manga } from "../../lib/types";
 
 // what's come out for it on the New tab
 export type CardNews = {
@@ -11,10 +10,8 @@ export type CardNews = {
   yours?: string;
 };
 
-// priceTag: the cheapest price we've seen for the series, if any
 type Props = {
   currentManga: Manga;
-  priceTag?: ShelfPrice;
   news?: CardNews;
   // added to the card's link, e.g. to open the details in the Japan view
   detailsSearch?: string;
@@ -35,7 +32,6 @@ const coverBase =
 
 export default function MangaCard({
   currentManga,
-  priceTag,
   news,
   detailsSearch = "",
   linkTo,
@@ -104,27 +100,41 @@ export default function MangaCard({
         <p className={`${compact ? "line-clamp-1" : news ? "line-clamp-2 min-h-[2.5em] upto-720:min-h-0 upto-720:line-clamp-1" : "line-clamp-2"}  font-display text-[1.05rem] leading-[1.25] font-semibold decoration-accent underline-offset-3 group-hover:underline`}>
           {currentManga.name}
         </p>
-        <p
-          className={
-            compact
-              ? `truncate font-mono text-[0.78rem] text-muted${news ? " hidden" : ""}`
-              : `min-h-[1.5em] truncate font-mono text-[0.78rem] text-muted${news ? " upto-720:hidden" : ""}`
-          }
-        >
-          {news
-            ? genre
-            : // a blank or zero chapter says nothing worth showing
-              [
-                currentManga.status
-                  ? "finished"
-                  : currentManga.bookmark
-                    ? `ch. ${currentManga.bookmark}`
-                    : null,
-                genre,
-              ]
-                .filter(Boolean)
-                .join(" · ")}
-        </p>
+        {/* a row gives the chapter its own line: it's what they came to see */}
+        {compact && !news ? (
+          <>
+            <p className="truncate font-mono text-[0.85rem] font-medium text-ink-soft">
+              {currentManga.status
+                ? "finished"
+                : currentManga.bookmark
+                  ? `ch. ${currentManga.bookmark}`
+                  : "not started"}
+            </p>
+            {genre && (
+              <p className="truncate font-mono text-[0.78rem] text-muted">{genre}</p>
+            )}
+          </>
+        ) : (
+          <p
+            className={`min-h-[1.5em] truncate font-mono text-[0.78rem] text-muted${
+              news ? (compact ? " hidden" : " upto-720:hidden") : ""
+            }`}
+          >
+            {news
+              ? genre
+              : // a blank or zero chapter says nothing worth showing
+                [
+                  currentManga.status
+                    ? "finished"
+                    : currentManga.bookmark
+                      ? `ch. ${currentManga.bookmark}`
+                      : null,
+                  genre,
+                ]
+                  .filter(Boolean)
+                  .join(" · ")}
+          </p>
+        )}
         {news && (
           <p className="font-brand text-[1.05rem] tracking-[1px] text-accent">
             {news.text}
@@ -136,24 +146,9 @@ export default function MangaCard({
           </p>
         )}
         {/* the New tab's cards all match: only what's out and where they are */}
-        <div className={compact ? "flex flex-wrap items-center gap-x-3" : "contents"}>
-        {!news && priceTag && (
-          <p
-            // the lowest price we've seen for the series at the stores we
-            // check (not every store), quiet until you look
-            className="font-mono text-[0.78rem] text-muted"
-            title={`At the stores we check: ${priceTag.title}`}
-          >
-            lowest seen{" "}
-            <span className="font-medium text-accent">
-              {formatCents(priceTag.fromCents)}
-            </span>
-          </p>
-        )}
         {!news && Number(currentManga.rating) > 0 && (
           <StarRating value={Number(currentManga.rating)} size="sm" />
         )}
-        </div>
       </div>
     </NavLink>
   );
