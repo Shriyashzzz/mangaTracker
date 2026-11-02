@@ -1067,8 +1067,8 @@ function GuestHero() {
             you sign up.
           </h1>
           <p className={styles.guestSub}>
-            Never lose your chapter again. Keep your place in every series you
-            read, and see when the next volume is out.
+            Keep your place in every series, track the volumes you own, and see
+            when the next one's out and what it costs.
           </p>
           <div className={styles.guestActions}>
             <NavLink
