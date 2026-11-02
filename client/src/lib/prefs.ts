@@ -55,6 +55,7 @@ export const applyPrefs = ({
   hideEbooks,
   shelfTab,
   shelfSort,
+  shelfView,
 }: Prefs = {}) => {
   if (isBackground(background)) {
     document.documentElement.dataset.bg = background;
@@ -75,6 +76,7 @@ export const applyPrefs = ({
   if (hideEbooks) writeLocal("hideEbooks", hideEbooks);
   if (shelfTab) writeLocal("shelfTab", shelfTab);
   if (shelfSort !== undefined) writeLocal("shelfSort", shelfSort);
+  if (shelfView) writeLocal("shelfView", shelfView);
 };
 
 // applies a change right away, and keeps it on the account when signed in

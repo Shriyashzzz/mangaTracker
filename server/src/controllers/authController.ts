@@ -93,6 +93,7 @@ const PREF_VALUES = {
   hideEbooks: ["yes", "no"],
   shelfTab: ["all", "ongoing", "finished", "new"],
   shelfSort: ["", "rating-dsc", "ch-dsc", "name-asc"],
+  shelfView: ["covers", "rows"],
 };
 type StringPref = keyof typeof PREF_VALUES;
 

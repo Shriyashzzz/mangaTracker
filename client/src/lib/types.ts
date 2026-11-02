@@ -114,6 +114,8 @@ export type Prefs = {
   // what the shelf opens on
   shelfTab?: ShelfTab;
   shelfSort?: string;
+  // how the shelf lists manga: big covers, or compact rows
+  shelfView?: "covers" | "rows";
   releases?: ReleaseSettings;
 };
 export type Background = "sfx" | "ink" | "pages" | "panels";
