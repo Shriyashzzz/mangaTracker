@@ -5,14 +5,21 @@ import { body, matchedData, param } from "express-validator";
 import { sendError } from "../middlewares/errorHandler.js";
 import { rejectInvalid } from "../middlewares/validate.js";
 import userQueries, { type AccountPatch } from "../models/userQueries.js";
+import { AVATARS } from "../util/avatars.js";
+import { defaultReaderName, READER_NAMES } from "../util/readerNames.js";
 import { toSharedShelf } from "../util/sharedShelf.js";
 
-export const AVATARS = ["kenji", "panic", "lost", "tower", "ink", "onigiri"];
+// the name they show as until they pick one, and the ideas to pick from
+const withNames = <T>(userId: number, account: T) => ({
+  ...account,
+  defaultName: defaultReaderName(userId),
+  nameIdeas: READER_NAMES,
+});
 
 const get = async (req: Request, res: Response) => {
   const account = await userQueries.getAccount(req.session.userId!);
   if (!account) return sendError(res, 404, "No account found.");
-  res.json(account);
+  res.json(withNames(req.session.userId!, account));
 };
 
 const update = [
@@ -44,7 +51,12 @@ const update = [
     }
     // a blank name is no name
     if (data.displayName === "") data.displayName = null;
-    res.json(await userQueries.updateAccount(req.session.userId!, data));
+    res.json(
+      withNames(
+        req.session.userId!,
+        await userQueries.updateAccount(req.session.userId!, data),
+      ),
+    );
   },
 ];
 

@@ -56,6 +56,9 @@ export const setStatus = (id: number, status: boolean) =>
 export const setRating = (id: number, rating: number) =>
   prisma.manga.update({ where: { id }, data: { rating } });
 
+export const setNotes = (id: number, description: string | null) =>
+  prisma.manga.update({ where: { id }, data: { description } });
+
 export const setBookmark = (id: number, bookmark: number) =>
   prisma.manga.update({ where: { id }, data: { bookmark } });
 
@@ -93,6 +96,7 @@ export const deleteManga = (id: number) =>
   prisma.manga.delete({ where: { id } });
 
 export default {
+  setNotes,
   getShelf,
   getManga,
   addManga,

@@ -97,7 +97,12 @@ export const detailsStyles = {
   // notes written on a ruled slip; the rule is drawn on the paragraph so
   // every line of text sits on one
   notes:
-    "max-w-[62ch] border-[1.5px] border-line-soft bg-card px-4 pt-[0.7rem] pb-[0.6rem] [&_p]:bg-[repeating-linear-gradient(to_bottom,transparent_0_calc(1.6em-1px),var(--line-soft)_calc(1.6em-1px)_1.6em)] [&_p]:text-[1rem] [&_p]:leading-[1.6em] [&_p]:whitespace-pre-line [&_p]:wrap-anywhere",
+    "max-w-[62ch] border-[1.5px] border-line-soft bg-card px-4 pt-[0.7rem] pb-[0.6rem] transition-[border-color] duration-120 ease-[ease] focus-within:border-line",
+  notesHead: "flex items-baseline justify-between gap-3",
+  notesInput:
+    "block w-full resize-none bg-transparent bg-[repeating-linear-gradient(to_bottom,transparent_0_calc(1.6em-1px),var(--line-soft)_calc(1.6em-1px)_1.6em)] text-[1rem] leading-[1.6em] [background-attachment:local] [field-sizing:content] outline-none placeholder:text-muted min-h-[3.2em]",
+  notesSaved: "font-mono text-[0.75rem] text-muted",
+  notesFailed: "text-[0.8rem] font-medium text-accent",
 
   // where to buy: small price tickets in a row
   buy: "border-t-[1.5px] border-dashed border-line-soft pt-3",

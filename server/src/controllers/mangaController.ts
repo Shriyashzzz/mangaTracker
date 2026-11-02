@@ -241,6 +241,22 @@ const setSeen = [
   },
 ];
 
+// typed straight on the details page. Only touches the notes, and empty clears them
+const setNotes = [
+  body("description")
+    .optional({ values: "null" })
+    .isString()
+    .trim()
+    .isLength({ max: 450 })
+    .withMessage("Notes can be up to 450 characters long <3"),
+  rejectInvalid,
+  async (req: Request, res: Response) => {
+    const description = (matchedData(req).description as string | undefined) || null;
+    await mangaQueries.setNotes(res.locals.manga.id, description);
+    res.sendStatus(204);
+  },
+];
+
 // "I own Vol. 15", and its undo. Sets the number as given; null clears it
 const setOwned = [
   body("volumesOwned")
@@ -300,6 +316,7 @@ export default {
   importList,
   setBookmark,
   setSeen,
+  setNotes,
   setOwned,
   shelfPrices,
   match,

@@ -16,6 +16,13 @@ export const getReleases = (id: number, signal?: AbortSignal) =>
 // the shelf moves on to the next title rather than waiting forever
 export const RELEASE_CHECK_TIMEOUT_MS = 50_000;
 
+export const SORT_OPTIONS = [
+  { value: "", label: "Last bookmarked" },
+  { value: "rating-dsc", label: "Highest rated" },
+  { value: "ch-dsc", label: "Most chapters read" },
+  { value: "name-asc", label: "Title, A to Z" },
+];
+
 export type SeenKind = "volume" | "chapter" | "japan";
 
 export async function saveSeen(

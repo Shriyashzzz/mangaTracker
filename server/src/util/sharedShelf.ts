@@ -1,7 +1,10 @@
 // What someone with a share link gets to see. Listed field by field, so a new
 // column can't end up public by accident. Never the username, which is half of
 // the login, nor what they own or what they've hidden.
+import { defaultReaderName } from "./readerNames.js";
+
 export type SharedSource = {
+  id: number;
   displayName: string | null;
   avatar: string | null;
   shareNotes: boolean;
@@ -17,12 +20,13 @@ export type SharedSource = {
 };
 
 export const toSharedShelf = ({
+  id,
   displayName,
   avatar,
   shareNotes,
   manga,
 }: SharedSource) => ({
-  displayName: displayName || "A reader",
+  displayName: displayName || defaultReaderName(id),
   avatar,
   manga: manga.map((m) => ({
     name: m.name,
