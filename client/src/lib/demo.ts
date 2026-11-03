@@ -367,7 +367,7 @@ export function demoResponse(
       ...shelf,
       ...added.map((entry, i) => ({
         ...practice(firstId + i, entry.title, "", ""),
-        image: null,
+        image: entry.cover ?? null,
         status: entry.finished,
         bookmark: entry.chapters || null,
         volumesOwned: entry.ownedVolumes || null,

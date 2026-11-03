@@ -12,6 +12,8 @@ export type MalEntry = {
   ownedVolumes: number;
   score: number; // out of 10
   comments?: string;
+  // AniList's cover, from a book app import matched by name
+  cover?: string;
 };
 
 export type MalListing = {
@@ -30,7 +32,7 @@ export function toMangaInput(entry: MalEntry, listing: MalListing | null) {
   return {
     name,
     genre: listing?.genre ?? null,
-    image: listing?.cover ?? null,
+    image: listing?.cover ?? entry.cover ?? null,
     description: entry.comments?.trim().slice(0, MAX_NOTES) || null,
     status: entry.finished,
     bookmark: entry.chapters,

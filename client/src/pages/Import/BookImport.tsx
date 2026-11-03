@@ -33,7 +33,7 @@ const sleep = (ms: number, signal: AbortSignal) =>
     });
   });
 
-type Match = { malId: number | null; name: string } | null | "failed";
+type Match = { malId: number | null; name: string; cover: string | null } | null | "failed";
 
 const HOW: Record<BookSource, { step: string; link?: { href: string; label: string } }> = {
   goodreads: {
@@ -159,7 +159,7 @@ export default function BookImport({ source }: { source: BookSource }) {
       const done = await sendToShelf(
         chosen.map((s) => {
           const match = matchOf(s);
-          return toEntry(s, match && match !== "failed" ? (match.malId ?? undefined) : undefined);
+          return toEntry(s, match && match !== "failed" ? match : undefined);
         }),
         (sent, soFar) => {
           setProgress(sent);

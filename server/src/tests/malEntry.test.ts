@@ -59,3 +59,24 @@ test("it can be matched under any of its names", () => {
 test("a title with no Latin letters still has a name to match on", () => {
   expect(namesOf(entry({ title: "葬送のフリーレン" }), null)).toEqual(["葬送のフリーレン"]);
 });
+
+describe("covers from a book app import", () => {
+  const entry = {
+    title: "Chainsaw Man",
+    finished: false,
+    chapters: 0,
+    readVolumes: 2,
+    ownedVolumes: 4,
+    score: 8,
+    cover: "https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/x.jpg",
+  };
+
+  test("AniList's cover is used when there's no MyAnimeList listing", () => {
+    expect(toMangaInput(entry, null).image).toBe(entry.cover);
+  });
+
+  test("a MyAnimeList listing's cover still wins", () => {
+    const listing = { name: "Chainsaw Man", altNames: [], cover: "https://listing/cover.jpg", genre: null };
+    expect(toMangaInput(entry, listing).image).toBe("https://listing/cover.jpg");
+  });
+});

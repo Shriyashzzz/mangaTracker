@@ -244,8 +244,12 @@ export function groupBooks(books: Book[]): BookSeries[] {
   });
 }
 
-export const toEntry = (s: BookSeries, malId?: number): MalEntry => ({
-  ...(malId ? { malId } : {}),
+export const toEntry = (
+  s: BookSeries,
+  match?: { malId: number | null; cover: string | null },
+): MalEntry => ({
+  ...(match?.malId ? { malId: match.malId } : {}),
+  ...(match?.cover ? { cover: match.cover } : {}),
   title: s.title.slice(0, 300),
   finished: false,
   chapters: 0,
