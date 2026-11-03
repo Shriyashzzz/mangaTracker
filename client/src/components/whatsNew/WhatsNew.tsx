@@ -10,10 +10,6 @@ import TakeTourButton from "../tour/TakeTourButton";
 
 const ITEMS = [
   {
-    name: "A To read list",
-    body: "Save what you want to read next, from your shelf or any series' prices.",
-  },
-  {
     name: "Import from more places",
     body: "Goodreads, AniList, Kitsu, Book Catalogue, or any CSV.",
   },
