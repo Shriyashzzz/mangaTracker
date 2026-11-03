@@ -12,7 +12,6 @@ import type { Background } from "../../lib/types";
 import clsx from "clsx";
 import Avatar from "../avatar/Avatar";
 import { useAccount } from "../../store/account";
-import CountrySwitch from "../../pages/Prices/canada/CountrySwitch";
 
 // one row of the menu: a button or link
 const item =
@@ -138,13 +137,7 @@ export default function SettingsMenu({ isSignedIn, onLogOut }: Props) {
           // shows right away, and people may want to flip it back
           onClick={(e) => {
             const choice = (e.target as HTMLElement).closest("a, button");
-            if (
-              choice &&
-              choice.id !== THEME_BUTTON &&
-              !choice.closest("[data-keep-open]")
-            ) {
-              close();
-            }
+            if (choice && choice.id !== THEME_BUTTON) close();
           }}
           className="absolute top-[calc(100%+12px)] right-0 z-30 w-[236px] origin-top-right rounded-ink border-[2.5px] border-line bg-card p-[0.4rem] shadow-[0_14px_30px_-14px_rgba(20,14,8,0.45)] animate-drop motion-reduce:animate-none"
         >
@@ -222,14 +215,6 @@ export default function SettingsMenu({ isSignedIn, onLogOut }: Props) {
               </li>
             </>
           )}
-          {/* where prices come from; stays open, like light/dark */}
-          <li
-            data-keep-open
-            className="flex items-center justify-between gap-2 px-[0.6rem] py-[0.35rem] text-[0.95rem] text-ink-soft"
-          >
-            Prices from
-            <CountrySwitch />
-          </li>
           <li>
             <NavLink to="/about" className={item} viewTransition>
               About
