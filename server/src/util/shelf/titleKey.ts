@@ -7,7 +7,6 @@ import { slugify } from "../../prices/stores/match.js";
 export const titleKey = (name: string) =>
   slugify(name).replaceAll("-", "") || name.replace(/\s+/g, "").toLowerCase();
 
-// the manga and the light novel of a series can both be on a shelf
 // the manga and the light novel of a series are two entries: the format is
 // part of the key. Book imports group the same way in client/src/lib/imports
 export const shelfKey = (key: string, lightNovel: boolean) =>
