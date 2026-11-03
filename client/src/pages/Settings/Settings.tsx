@@ -15,6 +15,7 @@ import {
   BACKGROUNDS,
   currentBackground,
   readLocal,
+  useCountry,
   useReleaseChecksOn,
   savePrefs,
 } from "../../lib/prefs";
@@ -292,9 +293,7 @@ function PricesTab() {
   const [hideEbooks, setHideEbooks] = useState(
     () => readLocal("hideEbooks") === "yes",
   );
-  const [country, setCountry] = useState(() =>
-    readLocal("country") === "ca" ? "ca" : "us",
-  );
+  const country = useCountry();
   return (
     <div className={styles.tabBody}>
       <h2 className={styles.tabTitle}>Prices</h2>
@@ -328,10 +327,7 @@ function PricesTab() {
               type="radio"
               name="country"
               checked={country === value}
-              onChange={() => {
-                setCountry(value);
-                savePrefs({ country: value }, isSignedIn);
-              }}
+              onChange={() => savePrefs({ country: value }, isSignedIn)}
             />
             {label}
           </label>

@@ -1,3 +1,5 @@
+import CountrySwitch from "./canada/CountrySwitch";
+import { useCountry } from "../../lib/prefs";
 import { useEffect, useState } from "react";
 import { NavLink, useSearchParams } from "react-router";
 import type { Highlights as HighlightsData, SeriesHit } from "../../lib/types";
@@ -28,6 +30,8 @@ const QUICK_PICKS = [
 
 export default function PriceSearch() {
   const [params] = useSearchParams();
+  // US or Canada: the volume pages follow whatever's picked here
+  const country = useCountry();
   const query = (params.get("q") ?? "").trim();
   // results are kept with the query they belong to, so a stale answer
   // never shows under a newer search
@@ -120,7 +124,13 @@ export default function PriceSearch() {
               <h1 className={styles.title}>Price check</h1>
             )}
             <p className={styles.sub}>
-              Find a series, then see what US stores charge for each volume.
+              Find a series, then see what{" "}
+              {country === "ca" ? "stores in Canada" : "US stores"} charge for
+              each volume.
+            </p>
+            <p className="flex flex-wrap items-center gap-2 text-[0.9rem] text-ink-soft">
+              Prices from
+              <CountrySwitch />
             </p>
 
             <SeriesSearchBox
