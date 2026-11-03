@@ -132,6 +132,7 @@ const MATCH_QUERY = `
     Media(search: $search, type: MANGA, format_not: NOVEL, sort: SEARCH_MATCH) {
       idMal
       title { english romaji }
+      coverImage { extraLarge large }
     }
   }
 `;
@@ -150,7 +151,7 @@ export class AniListBusy extends Error {
 export async function findManga(
   search: string,
   signal?: AbortSignal,
-): Promise<{ malId: number | null; name: string } | null> {
+): Promise<{ malId: number | null; name: string; cover: string | null } | null> {
   const response = await fetch(ANILIST_URL, {
     method: "POST",
     headers: { "Content-Type": "application/json", Accept: "application/json" },
@@ -163,10 +164,20 @@ export async function findManga(
   if (response.status === 404) return null;
   if (!response.ok) throw new Error(`AniList responded ${response.status}`);
   const { data } = (await response.json()) as {
-    data?: { Media?: { idMal: number | null; title: { english: string | null; romaji: string } } };
+    data?: {
+      Media?: {
+        idMal: number | null;
+        title: { english: string | null; romaji: string };
+        coverImage?: { extraLarge?: string; large?: string };
+      };
+    };
   };
   const media = data?.Media;
   return media
-    ? { malId: media.idMal, name: media.title.english || media.title.romaji }
+    ? {
+        malId: media.idMal,
+        name: media.title.english || media.title.romaji,
+        cover: media.coverImage?.extraLarge || media.coverImage?.large || null,
+      }
     : null;
 }

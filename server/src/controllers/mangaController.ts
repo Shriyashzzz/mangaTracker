@@ -163,6 +163,11 @@ const importList = [
   body("entries.*.ownedVolumes").isInt({ min: 0, max: 999 }).toInt(),
   body("entries.*.score").isInt({ min: 0, max: 10 }).toInt(),
   body("entries.*.comments").optional().isString(),
+  // only AniList's own image server, so an import can't point covers anywhere else
+  body("entries.*.cover")
+    .optional()
+    .isURL({ protocols: ["https"], require_protocol: true })
+    .matches(/^https:\/\/s4\.anilist\.co\//),
   rejectInvalid,
   async (req: Request, res: Response) => {
     const userId = req.session.userId!;

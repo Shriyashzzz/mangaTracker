@@ -33,7 +33,7 @@ const sleep = (ms: number, signal: AbortSignal) =>
     });
   });
 
-type Match = { malId: number | null; name: string } | null | "failed";
+type Match = { malId: number | null; name: string; cover: string | null } | null | "failed";
 
 const HOW: Record<BookSource, { step: string; link?: { href: string; label: string } }> = {
   goodreads: {
@@ -159,7 +159,7 @@ export default function BookImport({ source }: { source: BookSource }) {
       const done = await sendToShelf(
         chosen.map((s) => {
           const match = matchOf(s);
-          return toEntry(s, match && match !== "failed" ? (match.malId ?? undefined) : undefined);
+          return toEntry(s, match && match !== "failed" ? match : undefined);
         }),
         (sent, soFar) => {
           setProgress(sent);
@@ -320,8 +320,9 @@ export default function BookImport({ source }: { source: BookSource }) {
 
             <p className={styles.note}>
               Ticked: what AniList knows as manga, that you've bought or read. Volumes owned
-              is the furthest volume you bought, or read if that's further. Chapters start
-              blank, and anything already on your shelf gets skipped.
+              is the furthest volume you bought, or read if that's further. A volume you're
+              reading now counts the ones before it as read. Chapters start blank, and
+              anything already on your shelf gets skipped.
             </p>
 
             {importing ? (

@@ -13,6 +13,9 @@ export type MalEntry = {
   ownedVolumes: number;
   score: number;
   comments?: string;
+  // AniList's cover, for a series matched by name: used when there's no
+  // MyAnimeList id to look one up by
+  cover?: string;
 };
 
 // the lists on MyAnimeList, in the order it shows them
