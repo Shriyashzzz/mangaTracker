@@ -155,7 +155,11 @@ export function ImportPage() {
         <h1 className={styles.title}>Import from MyAnimeList</h1>
       </div>
 
-      <section className={styles.sheet} aria-label="How to import">
+      <section
+        className={styles.sheet}
+        aria-label="How to import"
+        data-tour="import"
+      >
         <div className={styles.step}>
           <span className={styles.stepNumber} aria-hidden>
             1

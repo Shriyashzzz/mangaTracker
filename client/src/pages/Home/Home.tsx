@@ -679,6 +679,7 @@ function Library() {
           {tabs.map((t) => (
             <button
               key={t.value}
+              data-tour={t.value === "new" ? "tab-new" : undefined}
               className={
                 statusFilter === t.value ? styles.tabActive : styles.tab
               }

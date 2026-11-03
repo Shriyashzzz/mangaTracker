@@ -105,7 +105,7 @@ export default function PriceSearch() {
             </section>
           )}
 
-          <header className={styles.searchHead}>
+          <header className={styles.searchHead} data-tour="price-search">
             {guest ? (
               <h2 className={styles.halfTitle}>Find what it costs</h2>
             ) : (

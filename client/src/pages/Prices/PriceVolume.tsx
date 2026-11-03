@@ -325,7 +325,7 @@ export default function PriceVolume() {
             </div>
 
             {offers.length > 0 ? (
-              <ul className={styles.offers}>
+              <ul className={styles.offers} data-tour="offers">
                 {shownOffers.map((o) => {
                   const condition = CONDITION[o.condition] ?? o.condition;
                   const row = (

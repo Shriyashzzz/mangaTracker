@@ -111,7 +111,7 @@ function AppearanceTab() {
   return (
     <div className={styles.tabBody}>
       <h2 className={styles.tabTitle}>Appearance</h2>
-      <fieldset className={styles.group}>
+      <fieldset className={styles.group} data-tour="theme">
         <legend className={styles.legend}>Theme</legend>
         {(["light", "dark", "system"] as const).map((value) => (
           <label key={value} className={styles.row}>
@@ -173,7 +173,9 @@ function NewReleasesTab() {
               How this works
             </NavLink>
           </p>
-          <ReleaseControls />
+          <div data-tour="new-controls">
+        <ReleaseControls />
+      </div>
         </>
       ) : (
         <p className={styles.body}>
@@ -201,7 +203,11 @@ function ShelfSettingsTab() {
             ["rows", "Compact rows, so more fit on a screen"],
           ] as const
         ).map(([value, label]) => (
-          <label key={value} className={styles.row}>
+          <label
+            key={value}
+            className={styles.row}
+            data-tour={value === "rows" ? "view-rows" : undefined}
+          >
             <input
               type="radio"
               name="shelf-view"
@@ -261,7 +267,7 @@ function PricesTab() {
   return (
     <div className={styles.tabBody}>
       <h2 className={styles.tabTitle}>Prices</h2>
-      <label className={styles.row}>
+      <label className={styles.row} data-tour="hide-ebooks">
         <input
           type="checkbox"
           checked={hideEbooks}
@@ -369,7 +375,11 @@ function AccountTab({ account }: { account: Account }) {
         </form>
       </section>
 
-      <section className={styles.section} aria-labelledby="set-export">
+      <section
+        className={styles.section}
+        aria-labelledby="set-export"
+        data-tour="export"
+      >
         <h3 id="set-export" className={styles.heading}>
           Export my list
         </h3>

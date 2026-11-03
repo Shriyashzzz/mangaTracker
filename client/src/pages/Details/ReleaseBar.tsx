@@ -126,6 +126,7 @@ export default function ReleaseBar({
         {hasDates ? (
           <button
             type="button"
+            data-tour="release-toggle"
             className={styles.releaseToggle}
             aria-expanded={open}
             aria-controls={datesId}
@@ -141,7 +142,12 @@ export default function ReleaseBar({
         )}
 
         {buy && (
-          <NavLink className={styles.releaseBuy} to={buy.to} viewTransition>
+          <NavLink
+            className={styles.releaseBuy}
+            data-tour="buy"
+            to={buy.to}
+            viewTransition
+          >
             {buy.label} →
           </NavLink>
         )}
@@ -154,7 +160,12 @@ export default function ReleaseBar({
       </div>
 
       {hasDates && (
-        <div id={datesId} className={styles.releaseDates} hidden={!open}>
+        <div
+          id={datesId}
+          className={styles.releaseDates}
+          data-tour="release-dates"
+          hidden={!open}
+        >
           {groups.map((group) => (
             <div key={group.title} className={styles.releaseGroup}>
               <h3 className={styles.releaseGroupTitle}>{group.title}</h3>

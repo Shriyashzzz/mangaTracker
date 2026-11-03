@@ -1,18 +1,25 @@
-// Kenji's guided tour: everything blurs and dims but one real button, and he points
-// at it and explains it, like a video game tutorial. Runs on the pretend account in
-// lib/demo.ts. If a step's button can't be found, he says his line anyway and offers
-// a way on, so a changed page can't trap anyone.
+// Kenji's guided tour, like a video game tutorial: he points at a real button and
+// explains it, on the pretend account in lib/demo.ts. The page stays clear and usable
+// so people can really try things; only a few big moments blur the rest (step.focus).
+// Wandering off is fine: he waits, and offers the way back. If a step's button can't
+// be found he says his line anyway and offers a way on, so nothing can trap anyone.
 import { useCallback, useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { useLocation, useNavigate } from "react-router";
+import { hasBottomBar } from "../../lib/bottomBar";
 import { endDemo } from "../../lib/demo";
 import Mascot from "../mascot/Mascot";
-import { TOUR_STEPS } from "./steps";
+import { TOUR_STEPS, type TourStep } from "./steps";
 
 const STEP_KEY = "demoTourStep";
 const HOLE_PADDING = 8;
 const GIVE_UP_AFTER_MS = 2500;
+// long enough for the step's own page to have arrived; off it after this, they've
+// gone exploring
+const SETTLED_AFTER_MS = 900;
 const BUBBLE_GAP = 26;
 const SCREEN_MARGIN = 12;
+const BOTTOM_BAR = 59;
 
 type Box = { top: number; left: number; width: number; height: number };
 
@@ -24,6 +31,9 @@ const readStep = () => {
     return 0;
   }
 };
+
+const isOnStepPage = (step: TourStep, pathname: string) =>
+  step.exact ? pathname === step.path : pathname.startsWith(step.path);
 
 // the first one on screen: the shelf has one add button for phones, one for laptops
 const findTarget = (name: string) =>
@@ -42,34 +52,46 @@ export default function Tour() {
   const [index, setIndex] = useState(readStep);
   const [box, setBox] = useState<Box | null>(null);
   const [lost, setLost] = useState(false);
+  const [settled, setSettled] = useState(false);
   const [bubbleHeight, setBubbleHeight] = useState(180);
   const bubble = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
   const { pathname } = useLocation();
   const step = TOUR_STEPS[index]!;
-  const onPage = pathname.startsWith(step.path);
+  const onPage = isOnStepPage(step, pathname);
 
   const goTo = useCallback((next: number) => {
     setBox(null);
     setLost(false);
+    setSettled(false);
     setIndex(next);
     try {
       sessionStorage.setItem(STEP_KEY, String(next));
+      if (TOUR_STEPS[next]?.allTab) sessionStorage.setItem("libraryStatus", "all");
     } catch {
       /* it just won't survive a refresh */
     }
   }, []);
 
-  // this step's page, if tapping the last one didn't lead here. A moment's wait, so
-  // a real link that's already on its way isn't followed twice
+  const wentExploring = !onPage && settled;
+  const backToStep = useCallback(
+    () => navigate(step.go ?? step.path, { viewTransition: true }),
+    [navigate, step],
+  );
+
+  // a new step's page, if tapping the last one didn't lead there. Only when the step
+  // starts, never to pull someone back from exploring. A moment's wait, so a real
+  // link that's already on its way isn't followed twice
   useEffect(() => {
-    if (onPage || step.path.endsWith("/")) return;
-    const timer = setTimeout(
-      () => navigate(step.path, { viewTransition: true }),
-      250,
-    );
-    return () => clearTimeout(timer);
-  }, [onPage, step, navigate]);
+    const leads = setTimeout(() => {
+      if (!isOnStepPage(step, window.location.pathname)) backToStep();
+    }, 250);
+    const settles = setTimeout(() => setSettled(true), SETTLED_AFTER_MS);
+    return () => {
+      clearTimeout(leads);
+      clearTimeout(settles);
+    };
+  }, [step, backToStep]);
 
   // keep the hole on its button as the page loads, scrolls and resizes
   useEffect(() => {
@@ -84,7 +106,9 @@ export default function Tour() {
         found = true;
         if (!scrolled) {
           scrolled = true;
-          el.scrollIntoView({ block: "center" });
+          // a big section starts at the top, leaving Kenji room below it
+          const tall = el.offsetHeight > innerHeight * 0.45;
+          el.scrollIntoView({ block: tall ? "start" : "center" });
         }
         const r = el.getBoundingClientRect();
         // a tall target stops at the screen's edge, or the phones' bottom bar
@@ -127,7 +151,7 @@ export default function Tour() {
       // the real control, not just somewhere near it
       if (
         clicked?.closest(`[data-tour="${step.target}"]`) &&
-        clicked.closest("a, button")
+        clicked.closest("a, button, input, label")
       ) {
         goTo(index + 1);
       }
@@ -153,12 +177,25 @@ export default function Tour() {
   }, [index, lost]);
 
   const isLast = index === TOUR_STEPS.length - 1;
-  const showHole = Boolean(box) && !lost;
+  const showHole = Boolean(box) && !lost && onPage;
+  const veiled = step.focus && !wentExploring;
+  // over or under what he's pointing at, if either has the room. A section too big
+  // for that gets him out of the way at the bottom, where it can still be read
+  const roomAbove = box ? box.top - BUBBLE_GAP - SCREEN_MARGIN : 0;
+  const barSpace = hasBottomBar() ? BOTTOM_BAR : 0;
+  const roomBelow = box
+    ? innerHeight - barSpace - (box.top + box.height) - BUBBLE_GAP - SCREEN_MARGIN
+    : 0;
+  const fits = Math.max(roomAbove, roomBelow) >= bubbleHeight;
+  const inCorner = step.free || wentExploring || (showHole && !fits);
   // over or under the hole, whichever side has the room; middle of the screen if
   // there's nothing to point at
   const holeMiddle = box ? box.top + box.height / 2 : 0;
-  const below = holeMiddle < innerHeight / 2;
-  const bubbleTop = !showHole
+  const below =
+    roomBelow >= bubbleHeight && (roomAbove < bubbleHeight || holeMiddle < innerHeight / 2);
+  const bubbleTop = inCorner
+    ? innerHeight - bubbleHeight - SCREEN_MARGIN - (hasBottomBar() ? BOTTOM_BAR : 0)
+    : !showHole
     ? Math.max(SCREEN_MARGIN, (innerHeight - bubbleHeight) / 2)
     : Math.min(
         Math.max(
@@ -169,7 +206,9 @@ export default function Tour() {
       );
   const bubbleWidth = Math.min(340, innerWidth - SCREEN_MARGIN * 2);
   const holeCenter = box ? box.left + box.width / 2 : innerWidth / 2;
-  const bubbleLeft = !showHole
+  const bubbleLeft = inCorner
+    ? SCREEN_MARGIN
+    : !showHole
     ? (innerWidth - bubbleWidth) / 2
     : Math.min(
         Math.max(SCREEN_MARGIN, holeCenter - bubbleWidth / 2),
@@ -183,31 +222,36 @@ export default function Tour() {
   // waiting for the page: no veil over a page that's still arriving
   const waiting = Boolean(step.target) && onPage && !box && !lost;
 
-  return (
+  // on <body>, above things like the shelf's add button that live there too
+  return createPortal(
     <div className="tour" aria-live="polite">
-      <div
-        className="tour-veil"
-        style={showHole ? { clipPath: holePath(box!) } : undefined}
-      />
+      {veiled && (
+        <div
+          className="tour-veil"
+          style={showHole ? { clipPath: holePath(box!) } : undefined}
+        />
+      )}
       {showHole && (
         <>
           <div
             className={`tour-ring ${step.tap ? "tour-ring-tap" : ""}`}
             style={box!}
           />
-          {/* something only being explained can't be tapped by accident */}
-          {!step.tap && <div className="tour-shield" style={box!} />}
-          <svg
-            className={`tour-pointer ${below ? "tour-pointer-below" : ""}`}
-            style={{
-              left: pointerLeft - 16,
-              top: below ? box!.top + box!.height + 2 : box!.top - 26,
-            }}
-            viewBox="0 0 32 24"
-            aria-hidden
-          >
-            <path d="M4 3h24L16 21Z" />
-          </svg>
+          {/* in a blurred moment, what's only being explained stays put */}
+          {step.focus && !step.tap && <div className="tour-shield" style={box!} />}
+          {fits && (
+            <svg
+              className={`tour-pointer ${below ? "tour-pointer-below" : ""}`}
+              style={{
+                left: pointerLeft - 16,
+                top: below ? box!.top + box!.height + 2 : box!.top - 26,
+              }}
+              viewBox="0 0 32 24"
+              aria-hidden
+            >
+              <path d="M4 3h24L16 21Z" />
+            </svg>
+          )}
         </>
       )}
 
@@ -215,6 +259,7 @@ export default function Tour() {
         ref={bubble}
         role="dialog"
         aria-label="Kenji's tour"
+        data-target={step.target}
         tabIndex={-1}
         className={`tour-bubble ${waiting ? "tour-bubble-waiting" : ""}`}
         key={index}
@@ -227,7 +272,11 @@ export default function Tour() {
           <p className="tour-count">
             {index + 1} of {TOUR_STEPS.length}
           </p>
-          <p className="tour-say">{step.say}</p>
+          <p className="tour-say">
+            {wentExploring
+              ? "Exploring? Good, that's the idea. I'll be here when you want to carry on."
+              : step.say}
+          </p>
           <div className="tour-actions">
             {isLast ? (
               <>
@@ -242,6 +291,19 @@ export default function Tour() {
                   Leave the tour
                 </button>
               </>
+            ) : wentExploring ? (
+              <>
+                <button
+                  type="button"
+                  className="btn btn-primary btn-sm"
+                  onClick={backToStep}
+                >
+                  Back to the tour
+                </button>
+                <button type="button" className="tour-skip" onClick={() => endDemo()}>
+                  Skip tour
+                </button>
+              </>
             ) : (
               <>
                 {(step.button || lost) && (
@@ -253,6 +315,15 @@ export default function Tour() {
                     {step.button ?? "Next"}
                   </button>
                 )}
+                {index > 0 && (
+                  <button
+                    type="button"
+                    className="tour-skip"
+                    onClick={() => goTo(index - 1)}
+                  >
+                    Back
+                  </button>
+                )}
                 <button type="button" className="tour-skip" onClick={() => endDemo()}>
                   Skip tour
                 </button>
@@ -261,6 +332,7 @@ export default function Tour() {
           </div>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }
