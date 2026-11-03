@@ -20,6 +20,7 @@ const SETTLED_AFTER_MS = 900;
 const BUBBLE_GAP = 26;
 const SCREEN_MARGIN = 12;
 const RING_INSET = 3;
+const WIDE_SCREEN = 1024;
 const BOTTOM_BAR = 59;
 
 type Box = { top: number; left: number; width: number; height: number };
@@ -146,7 +147,10 @@ export default function Tour() {
             ? old
             : next,
         );
-      } else if (!found && Date.now() - startedAt > GIVE_UP_AFTER_MS) {
+        setLost(false);
+      } else if (found || Date.now() - startedAt > GIVE_UP_AFTER_MS) {
+        // never there, or gone since, like hiding the only thing on the list. No ring
+        // around nothing, and it comes back if they undo
         setLost(true);
       }
       frame = requestAnimationFrame(follow);
@@ -177,18 +181,18 @@ export default function Tour() {
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") endDemo();
+      // only from Kenji himself: Escape also closes menus and suggestion lists
+      if (e.key === "Escape" && bubble.current?.contains(document.activeElement)) {
+        endDemo();
+      }
     };
     document.addEventListener("keydown", onKey);
     return () => document.removeEventListener("keydown", onKey);
   }, []);
 
-  // screen readers and keyboards go to what he's saying, and the real measurement
-  // lets the bubble sit clear of the hole
+  // screen readers and keyboards go to what he's saying
   useEffect(() => {
-    if (!bubble.current) return;
-    setBubbleHeight(bubble.current.offsetHeight);
-    bubble.current.focus({ preventScroll: true });
+    bubble.current?.focus({ preventScroll: true });
   }, [index, lost]);
 
   // Next does what the step was about, so what comes after has what it needs: the
@@ -226,7 +230,17 @@ export default function Tour() {
         ),
         innerHeight - bubbleHeight - SCREEN_MARGIN,
       );
-  const bubbleWidth = Math.min(340, innerWidth - SCREEN_MARGIN * 2);
+  // in the corner of a wide screen he stays beside the page's column, not over it
+  const bubbleWidth =
+    inCorner && innerWidth >= WIDE_SCREEN
+      ? 300
+      : Math.min(340, innerWidth - SCREEN_MARGIN * 2);
+
+  // the real measurement lets the bubble sit clear of the hole
+  useEffect(() => {
+    if (bubble.current) setBubbleHeight(bubble.current.offsetHeight);
+  }, [index, lost, wentExploring, bubbleWidth]);
+
   const holeCenter = box ? box.left + box.width / 2 : innerWidth / 2;
   const bubbleLeft = inCorner
     ? SCREEN_MARGIN
@@ -296,7 +310,9 @@ export default function Tour() {
           </p>
           <p className="tour-say">
             {wentExploring
-              ? "Exploring? Good, that's the idea. I'll be here when you want to carry on."
+              ? step.doneOnLeaving && pathname.startsWith("/details/")
+                ? "It's on your shelf! Have a look, then carry on when you're ready."
+                : "Exploring? Good, that's the idea. I'll be here when you want to carry on."
               : step.say}
           </p>
           <div className="tour-actions">
@@ -339,7 +355,9 @@ export default function Tour() {
                   <button
                     type="button"
                     className="tour-skip"
-                    onClick={() => goTo(index - 1)}
+                    onClick={() =>
+                      goTo(TOUR_STEPS[index - 1]!.needsLastStep ? index - 2 : index - 1)
+                    }
                   >
                     Back
                   </button>

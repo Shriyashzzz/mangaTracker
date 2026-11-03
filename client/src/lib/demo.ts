@@ -2,11 +2,13 @@
 // every real page works on a practice shelf and nothing reaches the server: no real
 // data can change and no paid price search can run. It lives in this tab and goes
 // when the tour ends.
+import type { MalEntry } from "./malImport";
 import type { Manga } from "./types";
 
 const ON_KEY = "demoTour";
 const SHELF_KEY = "demoShelf";
 const ACCOUNT_KEY = "demoAccount";
+const PREFS_KEY = "demoPrefs";
 // what this browser had saved before the tour, put back after it. Trying a theme or
 // compact rows on the practice shelf shouldn't change the real ones
 const SAVED_KEY = "demoSavedLocal";
@@ -89,6 +91,7 @@ export function startDemo() {
     sessionStorage.setItem(SAVED_KEY, JSON.stringify({ ...localStorage }));
     sessionStorage.removeItem(SHELF_KEY);
     sessionStorage.removeItem(ACCOUNT_KEY);
+    sessionStorage.removeItem(PREFS_KEY);
     sessionStorage.removeItem("demoTourStep");
     sessionStorage.setItem("libraryStatus", "all");
   } catch {
@@ -112,6 +115,7 @@ export function endDemo(to = "/") {
     sessionStorage.removeItem(SAVED_KEY);
     sessionStorage.removeItem(SHELF_KEY);
     sessionStorage.removeItem(ACCOUNT_KEY);
+    sessionStorage.removeItem(PREFS_KEY);
     sessionStorage.removeItem("demoTourStep");
     sessionStorage.removeItem("libraryStatus");
   } catch {
@@ -254,6 +258,23 @@ function volumePage(isbn: string, shelf: Manga[]) {
   };
 }
 
+const readSaved = <T,>(key: string, fallback: T): T => {
+  try {
+    const saved = sessionStorage.getItem(key);
+    if (saved) return JSON.parse(saved) as T;
+  } catch {
+    /* start over */
+  }
+  return fallback;
+};
+const save = (key: string, value: unknown) => {
+  try {
+    sessionStorage.setItem(key, JSON.stringify(value));
+  } catch {
+    /* it just won't survive a refresh */
+  }
+};
+
 const STARTING_ACCOUNT = {
   username: "practice",
   displayName: null as string | null,
@@ -266,15 +287,26 @@ const STARTING_ACCOUNT = {
   nameIdeas: ["Chapter Goblin", "Volume Hoarder", "Panel Hopper"],
 };
 
-const readAccount = (): typeof STARTING_ACCOUNT => {
-  try {
-    const saved = sessionStorage.getItem(ACCOUNT_KEY);
-    if (saved) return JSON.parse(saved) as typeof STARTING_ACCOUNT;
-  } catch {
-    /* start over */
-  }
-  return STARTING_ACCOUNT;
-};
+const readAccount = () => readSaved(ACCOUNT_KEY, STARTING_ACCOUNT);
+
+const sameTitle = (a: unknown, b: unknown) =>
+  String(a).trim().toLowerCase() === String(b).trim().toLowerCase();
+const hasTitle = (shelf: Manga[], title: unknown) =>
+  shelf.some((m) => sameTitle(m.name, title));
+const TITLE_TAKEN = () =>
+  json({ error: [{ msg: "That title is already on your shelf" }] }, 409);
+const nextId = (shelf: Manga[]) => Math.max(0, ...shelf.map((m) => m.id)) + 1;
+
+// the add and edit forms send the same fields, numbers as text
+const fromForm = (body: Record<string, unknown>) => ({
+  name: String(body.name),
+  genre: String(body.genre ?? ""),
+  image: (body.image as string) || null,
+  description: (body.description as string) || null,
+  status: Boolean(body.status),
+  bookmark: Number(body.bookmark) || null,
+  volumesOwned: Number(body.volumesOwned) || null,
+});
 
 // what the app's own server would say, for what the tour can reach. Anything else
 // is a plain "not found": it must never go looking on the real server
@@ -289,30 +321,55 @@ export function demoResponse(
   const shelf = readShelf();
 
   if (route === "/api/auth/me") return json({ id: 0, username: "practice" });
-  if (route === "/api/prefs") return json({});
+  // the real ways out of an account end the practice one
+  if (route === "/api/auth/logout" || (route === "/api/account" && method === "DELETE")) {
+    endDemo();
+    return json({ ok: true });
+  }
+  if (route === "/api/prefs") {
+    const prefs = { ...readSaved(PREFS_KEY, {}), ...(method === "PUT" ? body : {}) };
+    save(PREFS_KEY, prefs);
+    return json(prefs);
+  }
   if (route === "/api/manga" && method === "GET") return json({ manga: shelf });
   if (route === "/api/manga" && method === "POST") {
-    const id = Math.max(0, ...shelf.map((m) => m.id)) + 1;
+    if (hasTitle(shelf, body.name)) return TITLE_TAKEN();
+    const id = nextId(shelf);
+    writeShelf([...shelf, { ...practice(id, "", "", ""), ...fromForm(body) }]);
+    return json({ id }, 201);
+  }
+  if (route === "/api/manga/restore") {
+    const manga = body as unknown as Manga;
+    if (shelf.some((m) => m.id === manga.id)) return json({ ok: true }, 409);
+    writeShelf([...shelf, manga]);
+    return json({ ok: true });
+  }
+  if (route === "/api/manga/import") {
+    const entries = body.entries as MalEntry[];
+    const added = entries.filter((entry) => !hasTitle(shelf, entry.title));
+    const firstId = nextId(shelf);
     writeShelf([
       ...shelf,
-      practice(id, String(body.name), String(body.genre ?? ""), "", {
-        image: (body.image as string) || null,
-        bookmark: Number(body.bookmark) || null,
-        volumesOwned: Number(body.volumesOwned) || null,
-        description: (body.description as string) || null,
-        status: Boolean(body.status),
-      }),
+      ...added.map((entry, i) => ({
+        ...practice(firstId + i, entry.title, "", ""),
+        image: null,
+        status: entry.finished,
+        bookmark: entry.chapters || null,
+        volumesOwned: entry.ownedVolumes || null,
+        rating: entry.score ? Math.ceil(entry.score / 2) : null,
+        description: entry.comments || null,
+      })),
     ]);
-    return json({ id }, 201);
+    return json({
+      added: added.length,
+      alreadyThere: entries.length - added.length,
+      noCover: added.length,
+    });
   }
   if (route === "/api/manga/match") return json(null);
   if (route === "/api/account") {
     const account = { ...readAccount(), ...(method === "PATCH" ? body : {}) };
-    try {
-      sessionStorage.setItem(ACCOUNT_KEY, JSON.stringify(account));
-    } catch {
-      /* it just won't survive a refresh */
-    }
+    save(ACCOUNT_KEY, account);
     return json(account);
   }
   if (route.startsWith("/api/share/")) {
@@ -355,9 +412,30 @@ export function demoResponse(
   const found = route.match(/^\/api\/manga\/(\d+)(?:\/(\w+))?$/);
   if (found) {
     const id = Number(found[1]);
-    const manga = shelf.find((m) => m.id === id);
+    let manga = shelf.find((m) => m.id === id);
+    // the red bar steps need One Piece, so deleting it can't strand the tour
+    if (!manga && id === 1 && method === "GET") {
+      manga = STARTING_SHELF[0]!;
+      writeShelf([manga, ...shelf]);
+    }
     if (!manga) return json({ error: [{ msg: "Not found" }] }, 404);
     const part = found[2];
+    if (!part && method === "DELETE") {
+      writeShelf(shelf.filter((m) => m.id !== id));
+      return json({ ok: true });
+    }
+    if (!part && method === "PUT") {
+      if (shelf.some((m) => m.id !== id && sameTitle(m.name, body.name))) {
+        return TITLE_TAKEN();
+      }
+      writeShelf(shelf.map((m) => (m.id === id ? { ...m, ...fromForm(body) } : m)));
+      return json({ ok: true });
+    }
+    if (part === "owned") {
+      const volumesOwned = body.volumesOwned as number | null;
+      writeShelf(shelf.map((m) => (m.id === id ? { ...m, volumesOwned } : m)));
+      return json({ volumesOwned });
+    }
     if (part === "releases") return json(releasesFor(manga));
     if (!part && method === "GET") return json({ manga });
     const changes: Partial<Manga> =

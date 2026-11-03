@@ -21,6 +21,8 @@ type Line = {
   // leaving this page means they're done with it, like adding a manga opens that
   // manga's page, so coming back to the tour carries on instead of returning here
   doneOnLeaving?: boolean;
+  // only there after the step before, so Back skips over it: the red bar's dates
+  needsLastStep?: boolean;
   // open the shelf on All, rather than the tab they last had
   allTab?: boolean;
 };
@@ -43,6 +45,7 @@ const PARTS: { name: string; lines: Line[] }[] = [
       {
         path: "/shelf",
         target: "add",
+        allTab: true,
         say: "Started something new? This adds it to your shelf.",
         tap: true,
       },
@@ -55,11 +58,13 @@ const PARTS: { name: string; lines: Line[] }[] = [
       {
         path: "/shelf",
         target: "import-link",
+        allTab: true,
         say: "Got a long list on MyAnimeList already? This brings the whole thing over in one go.",
       },
       {
         path: "/shelf",
         target: "card",
+        allTab: true,
         say: "Every manga has its own page. Let's open this one.",
         tap: true,
       },
@@ -104,6 +109,7 @@ const PARTS: { name: string; lines: Line[] }[] = [
       {
         path: MANGA,
         target: "release-dates",
+        needsLastStep: true,
         say: "Here's what's out and when the next one should land. Volumes show volume dates, chapters show chapter dates.",
       },
     ],
@@ -137,7 +143,7 @@ const PARTS: { name: string; lines: Line[] }[] = [
       {
         path: "/settings/new-releases",
         target: "new-controls",
-        say: "Too much on your New list, or too little? You decide: just the next one, only when you're close to the newest, or everything that's out. You can switch the checks off here too.",
+        say: "Too much on your New list, or too little? You decide here, and you can switch the checks off too.",
       },
     ],
   },
