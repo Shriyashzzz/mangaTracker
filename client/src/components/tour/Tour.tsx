@@ -20,7 +20,6 @@ const SETTLED_AFTER_MS = 900;
 const BUBBLE_GAP = 26;
 const SCREEN_MARGIN = 12;
 const RING_INSET = 3;
-const WIDE_SCREEN = 1024;
 const SWITCH_SETTLES_MS = 200;
 const BOTTOM_BAR = 59;
 
@@ -265,10 +264,7 @@ export default function Tour() {
         innerHeight - bubbleHeight - SCREEN_MARGIN,
       );
   // in the corner of a wide screen he stays beside the page's column, not over it
-  const bubbleWidth =
-    inCorner && innerWidth >= WIDE_SCREEN
-      ? 300
-      : Math.min(340, innerWidth - SCREEN_MARGIN * 2);
+  const bubbleWidth = Math.min(340, innerWidth - SCREEN_MARGIN * 2);
 
   // the real measurement lets the bubble sit clear of the hole
   useEffect(() => {
@@ -276,9 +272,8 @@ export default function Tour() {
   }, [index, lost, docked, bubbleWidth]);
 
   const holeCenter = box ? box.left + box.width / 2 : innerWidth / 2;
-  const bubbleLeft = inCorner
-    ? SCREEN_MARGIN
-    : !showHole
+  // a section too big to sit beside: at the bottom, centered under it
+  const bubbleLeft = !showHole
     ? (innerWidth - bubbleWidth) / 2
     : Math.min(
         Math.max(SCREEN_MARGIN, holeCenter - bubbleWidth / 2),
