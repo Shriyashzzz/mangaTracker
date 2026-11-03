@@ -232,7 +232,11 @@ export default function Tour() {
 
   const isLast = index === TOUR_STEPS.length - 1;
   const showHole = Boolean(box) && !lost && onPage;
-  const veiled = step.focus && !wentExploring;
+  // on the way to the step's page, or that page still arriving: out of sight, so
+  // his next line never flashes up in the middle of the page they're leaving
+  const waiting =
+    Boolean(step.target) && !lost && (onPage ? !box : !settled);
+  const veiled = step.focus && !wentExploring && !waiting;
   // over or under what he's pointing at, if either has the room. A section too big
   // for that gets him out of the way at the bottom, where it can still be read
   const roomAbove = box ? box.top - BUBBLE_GAP - SCREEN_MARGIN : 0;
@@ -286,7 +290,6 @@ export default function Tour() {
   );
 
   // waiting for the page: no veil over a page that's still arriving
-  const waiting = Boolean(step.target) && onPage && !box && !lost;
 
   // screen readers and keyboards go to what he's saying, once he can be seen. Not
   // to the bar when they've wandered off: they're busy with the page

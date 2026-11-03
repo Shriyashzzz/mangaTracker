@@ -825,7 +825,6 @@ function Library() {
               </button>
               <NavLink
                 to="/new-releases"
-                data-tour="how-new-works"
                 className={styles.hiddenToggle}
                 viewTransition
               >

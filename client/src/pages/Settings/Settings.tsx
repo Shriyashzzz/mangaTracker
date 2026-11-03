@@ -173,9 +173,7 @@ function NewReleasesTab() {
               How this works
             </NavLink>
           </p>
-          <div data-tour="new-controls">
-        <ReleaseControls />
-      </div>
+          <ReleaseControls />
         </>
       ) : (
         <p className={styles.body}>
@@ -378,7 +376,6 @@ function AccountTab({ account }: { account: Account }) {
       <section
         className={styles.section}
         aria-labelledby="set-export"
-        data-tour="export"
       >
         <h3 id="set-export" className={styles.heading}>
           Export my list

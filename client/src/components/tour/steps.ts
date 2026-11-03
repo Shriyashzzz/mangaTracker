@@ -114,22 +114,6 @@ const PARTS: { name: string; lines: Line[] }[] = [
         target: "shelf",
         say: "You'll see here when a new volume or chapter comes out for a manga on your shelf. Already got it? Hide takes it off the list until something newer is out.",
       },
-      {
-        path: "/shelf",
-        target: "how-new-works",
-        say: "Wondering how I know what's new, behind your shelf? This explains it.",
-        tap: true,
-      },
-      {
-        path: "/new-releases",
-        free: true,
-        say: "This is how I know what's new. Read as much as you like.",
-      },
-      {
-        path: "/settings/new-releases",
-        target: "new-controls",
-        say: "Too much on your New list, or too little? You decide here, and you can switch the checks off too.",
-      },
     ],
   },
   {
@@ -161,31 +145,13 @@ const PARTS: { name: string; lines: Line[] }[] = [
     lines: [
       {
         path: "/settings/profile",
-        target: "profile-picture",
-        say: "Last stretch: your settings, behind your picture up top. Pick a silly picture here, and a name if you want one.",
-      },
-      {
-        path: "/settings/profile",
-        target: "share-toggle",
-        opensNext: true,
-        focus: true,
-        say: "Want friends to see your list? This turns sharing on. It's off until you say so.",
-        tap: true,
-      },
-      {
-        path: "/settings/profile",
-        target: "share-link",
-        say: "That's your link! Anyone who has it can see your shelf, and your notes only if you tick Include my notes. Your username stays private.",
+        target: "profile",
+        say: "Last stretch: your settings, behind your picture up top. Here you can pick a picture and a name, and share your list with friends. Sharing stays off until you turn it on.",
       },
       {
         path: "/settings/prices",
         target: "hide-ebooks",
         say: "Only buy print? This hides ebooks from the price lists.",
-      },
-      {
-        path: "/settings/account",
-        target: "export",
-        say: "And it's your data. Download your list any time, or delete your account from this same page.",
       },
       {
         path: "/settings/shelf",
