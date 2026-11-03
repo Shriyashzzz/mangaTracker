@@ -124,7 +124,13 @@ export default function Tour() {
           el.inert = true;
           heldStill = el;
         }
-        if (!scrolled) {
+        if (step.onTop && Date.now() - startedAt < SETTLED_AFTER_MS) {
+          // room above the section for him and his arrow, kept while the page is
+          // still filling in above it
+          const above = (bubble.current?.offsetHeight ?? 160) + BUBBLE_GAP + SCREEN_MARGIN;
+          const off = el.getBoundingClientRect().top - above;
+          if (Math.abs(off) > 2) window.scrollBy(0, off);
+        } else if (!scrolled && !step.onTop) {
           scrolled = true;
           // a big section starts at the top, leaving Kenji room below it
           const tall = el.offsetHeight > innerHeight * 0.45;
@@ -248,21 +254,26 @@ export default function Tour() {
   const fits = Math.max(roomAbove, roomBelow) >= bubbleHeight;
   // too big to sit beside: he moves out of the way and stays there for the step,
   // so scrolling doesn't send him back and forth
-  const inCorner = stuckAside || (showHole && !fits);
-  if (showHole && !fits && !stuckAside) setStuckAside(true);
+  const inCorner = !step.onTop && (stuckAside || (showHole && !fits));
+  if (!step.onTop && showHole && !fits && !stuckAside) setStuckAside(true);
   // the page is theirs: Kenji shrinks to a bar at the bottom they tap to carry on
   const docked = (step.free || wentExploring) && !isLast;
   // over or under the hole, whichever side has the room; middle of the screen if
   // there's nothing to point at
   const holeMiddle = box ? box.top + box.height / 2 : 0;
   const below =
+    !step.onTop &&
     roomBelow >= bubbleHeight && (roomAbove < bubbleHeight || holeMiddle < innerHeight / 2);
-  // out of the way: pinned to the top on the big pages that ask for it, otherwise
-  // at the bottom. Either way it stays put however far they scroll
+  // too big to sit beside: at the bottom, staying put however far they scroll. The
+  // big pages marked onTop have him above the section instead, moving with it
   const bubbleTop = inCorner
-    ? step.onTop
-      ? SCREEN_MARGIN
-      : innerHeight - bubbleHeight - SCREEN_MARGIN - (hasBottomBar() ? BOTTOM_BAR : 0)
+    ? innerHeight - bubbleHeight - SCREEN_MARGIN - (hasBottomBar() ? BOTTOM_BAR : 0)
+    : step.onTop && showHole
+    ? // above the section, scrolling with it. At the very top of the page there
+      // may not be room, so there he stays on screen
+      window.scrollY > 0
+      ? box!.top - bubbleHeight - BUBBLE_GAP
+      : Math.max(SCREEN_MARGIN, box!.top - bubbleHeight - BUBBLE_GAP)
     : !showHole
     ? Math.max(SCREEN_MARGIN, (innerHeight - bubbleHeight) / 2)
     : Math.min(
@@ -350,7 +361,7 @@ export default function Tour() {
           />
           {/* in a blurred moment, what's only being explained stays put */}
           {step.focus && !step.tap && <div className="tour-shield" style={box!} />}
-          {fits && !inCorner && (
+          {(step.onTop || (fits && !inCorner)) && (
             <svg
               className={`tour-pointer ${below ? "tour-pointer-below" : ""}`}
               style={{

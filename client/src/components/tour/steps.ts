@@ -26,7 +26,7 @@ type Line = {
   opensNext?: boolean;
   // only there after the step before, so Back skips over it: the red bar's dates
   needsLastStep?: boolean;
-  // a big page he'd cover: pinned to the top of the screen, out of the way
+  // a big page he'd cover: he sits above it instead, scrolling with it
   onTop?: boolean;
   // open the shelf on All, rather than the tab they last had
   allTab?: boolean;
@@ -149,7 +149,7 @@ const PARTS: { name: string; lines: Line[] }[] = [
         path: "/settings/profile",
         target: "profile",
         onTop: true,
-        say: "Last stretch: your settings, behind your picture up top. Here you can pick a picture and a name, and share your list with friends. Sharing stays off until you turn it on.",
+        say: "Your profile: pick a picture and a name, and share your list with friends if you like. Sharing stays off until you turn it on.",
       },
       {
         path: "/settings/prices",
@@ -167,7 +167,7 @@ const PARTS: { name: string; lines: Line[] }[] = [
         target: "shelf",
         allTab: true,
         onTop: true,
-        say: "Same shelf, way more on one screen. In settings you can switch back any time, and choose which tab it opens on and how it's sorted.",
+        say: "Same shelf, more on one screen. Switch back in settings any time.",
       },
     ],
   },
