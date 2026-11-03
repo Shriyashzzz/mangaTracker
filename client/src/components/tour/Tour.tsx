@@ -100,11 +100,16 @@ export default function Tour() {
     let frame = 0;
     let found = false;
     let scrolled = false;
+    let heldStill: HTMLElement | null = null;
     const startedAt = Date.now();
     const follow = () => {
       const el = findTarget(step.target!);
       if (el) {
         found = true;
+        if (step.lookOnly && el !== heldStill) {
+          el.inert = true;
+          heldStill = el;
+        }
         if (!scrolled) {
           scrolled = true;
           // a big section starts at the top, leaving Kenji room below it
@@ -147,7 +152,10 @@ export default function Tour() {
       frame = requestAnimationFrame(follow);
     };
     frame = requestAnimationFrame(follow);
-    return () => cancelAnimationFrame(frame);
+    return () => {
+      cancelAnimationFrame(frame);
+      if (heldStill) heldStill.inert = false;
+    };
   }, [step, onPage]);
 
   // tapping the real thing does its job, and moves the tour on
@@ -183,6 +191,13 @@ export default function Tour() {
     bubble.current.focus({ preventScroll: true });
   }, [index, lost]);
 
+  // Next does what the step was about, so what comes after has what it needs: the
+  // dates are only there once the red bar is open
+  const next = () => {
+    if (step.tap && step.target) findTarget(step.target)?.click();
+    goTo(index + 1);
+  };
+
   const isLast = index === TOUR_STEPS.length - 1;
   const showHole = Boolean(box) && !lost && onPage;
   const veiled = step.focus && !wentExploring;
@@ -194,7 +209,7 @@ export default function Tour() {
     ? innerHeight - barSpace - (box.top + box.height) - BUBBLE_GAP - SCREEN_MARGIN
     : 0;
   const fits = Math.max(roomAbove, roomBelow) >= bubbleHeight;
-  const inCorner = step.free || step.dock || wentExploring || (showHole && !fits);
+  const inCorner = step.free || wentExploring || (showHole && !fits);
   // over or under the hole, whichever side has the room; middle of the screen if
   // there's nothing to point at
   const holeMiddle = box ? box.top + box.height / 2 : 0;
@@ -246,7 +261,7 @@ export default function Tour() {
           />
           {/* in a blurred moment, what's only being explained stays put */}
           {step.focus && !step.tap && <div className="tour-shield" style={box!} />}
-          {fits && !step.dock && (
+          {fits && (
             <svg
               className={`tour-pointer ${below ? "tour-pointer-below" : ""}`}
               style={{
@@ -313,15 +328,13 @@ export default function Tour() {
               </>
             ) : (
               <>
-                {(step.button || lost) && (
-                  <button
-                    type="button"
-                    className="btn btn-primary btn-sm"
-                    onClick={() => goTo(index + 1)}
-                  >
-                    {step.button ?? "Next"}
-                  </button>
-                )}
+                <button
+                  type="button"
+                  className="btn btn-primary btn-sm"
+                  onClick={next}
+                >
+                  Next
+                </button>
                 {index > 0 && (
                   <button
                     type="button"

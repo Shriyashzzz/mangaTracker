@@ -12,6 +12,7 @@ export const newReleasesStyles = {
   // ink on paper in every theme; the dark theme would otherwise turn his face black
   kenji:
     "printed block aspect-square w-[110px] shrink-0 overflow-hidden rounded-full border-[2.5px] border-line bg-card px-2.5 pt-2.5 upto-760:w-[76px] upto-760:px-1.5 upto-760:pt-1.5",
+  lead: "-mt-2 max-w-[50ch] text-[clamp(1.15rem,3vw,1.35rem)] leading-[1.45] text-ink",
   section: "flex flex-col gap-3 [&_p]:max-w-[65ch] [&_p]:leading-[1.55] [&_p]:text-ink-soft",
   heading,
   sources: "flex flex-col border-b-[1.5px] border-line",

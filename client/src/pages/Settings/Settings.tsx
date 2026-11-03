@@ -111,7 +111,7 @@ function AppearanceTab() {
   return (
     <div className={styles.tabBody}>
       <h2 className={styles.tabTitle}>Appearance</h2>
-      <fieldset className={styles.group} data-tour="theme">
+      <fieldset className={styles.group}>
         <legend className={styles.legend}>Theme</legend>
         {(["light", "dark", "system"] as const).map((value) => (
           <label key={value} className={styles.row}>

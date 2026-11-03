@@ -158,7 +158,6 @@ export function ImportPage() {
       <section
         className={styles.sheet}
         aria-label="How to import"
-        data-tour="import"
       >
         <div className={styles.step}>
           <span className={styles.stepNumber} aria-hidden>

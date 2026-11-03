@@ -616,7 +616,12 @@ function Library() {
 
   const total = mangaData.length;
   const importLink = (
-    <NavLink to="/import" className={styles.importLink} viewTransition>
+    <NavLink
+      to="/import"
+      data-tour="import-link"
+      className={styles.importLink}
+      viewTransition
+    >
       Import from MyAnimeList
     </NavLink>
   );

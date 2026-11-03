@@ -1,6 +1,6 @@
 // Kenji's script. A step points at the page element marked data-tour="<target>".
-// `tap` means the person moves on by using the real thing, and it really happens.
-// `button` is the word on Kenji's own button, for what only needs explaining.
+// Kenji's button is always Next, so moving on is one thing to learn. On a `tap` step
+// using the real thing moves on too, and Next does the real thing for them.
 type Line = {
   // the page this step is on: anything under this path counts
   path: string;
@@ -11,14 +11,13 @@ type Line = {
   target?: string;
   say: string;
   tap?: boolean;
-  button?: string;
   // one of the few big moments: everything but the target blurs. Otherwise the
   // page stays clear and usable, and Kenji just points
   focus?: boolean;
   // nothing to point at: the page is theirs until they press Kenji's button
   free?: boolean;
-  // sit in the corner, clear of what using the target opens up
-  dock?: boolean;
+  // can be looked at but not used, like a search box that would open over Kenji
+  lookOnly?: boolean;
   // leaving this page means they're done with it, like adding a manga opens that
   // manga's page, so coming back to the tour carries on instead of returning here
   doneOnLeaving?: boolean;
@@ -40,32 +39,28 @@ const PARTS: { name: string; lines: Line[] }[] = [
         target: "shelf",
         focus: true,
         say: "Hey, I'm Kenji! This is your shelf, every series you're reading. It's a practice one, so try anything. Nothing gets saved.",
-        button: "Let's go",
       },
       {
         path: "/shelf",
         target: "add",
-        say: "Started something new? Tap here to add it.",
+        say: "Started something new? This adds it to your shelf.",
         tap: true,
       },
       {
         path: "/add",
         target: "add-title",
         say: "Type a title and pick the match. The cover and genre fill in for you.",
-        button: "Next",
-        dock: true,
         doneOnLeaving: true,
       },
       {
-        path: "/import",
-        target: "import",
-        say: "Got a long list on MyAnimeList already? Follow these steps and the whole thing comes over in one go.",
-        button: "Next",
+        path: "/shelf",
+        target: "import-link",
+        say: "Got a long list on MyAnimeList already? This brings the whole thing over in one go.",
       },
       {
         path: "/shelf",
         target: "card",
-        say: "Tap a manga to open its page.",
+        say: "Every manga has its own page. Let's open this one.",
         tap: true,
       },
     ],
@@ -77,42 +72,39 @@ const PARTS: { name: string; lines: Line[] }[] = [
         path: "/details/",
         go: MANGA,
         target: "chapter-up",
-        say: "Finished a chapter? One tap and your place is saved. Try it!",
+        say: "Finished a chapter? One tap here saves your place.",
         tap: true,
       },
       {
         path: "/details/",
         go: MANGA,
         target: "rating",
-        say: "Nice! Now rate it. Tap a star.",
+        say: "Now rate it. Pick a star, if you like.",
         tap: true,
       },
       {
         path: "/details/",
         go: MANGA,
         target: "notes",
-        say: "Now write yourself a note, go on! Favorite arc, where you left off, anything. It saves by itself.",
-        button: "Done writing",
+        say: "Write yourself a note here. Favorite arc, where you left off, anything. It saves by itself.",
       },
       {
         path: "/details/",
         go: MANGA,
         free: true,
-        say: "This page is all yours for a minute. Poke around, then tap below when you're ready.",
-        button: "Keep going",
+        say: "This page is all yours for a minute. Poke around as long as you like.",
       },
       {
         path: MANGA,
         target: "release-toggle",
         focus: true,
-        say: "Psst! This red bar means something new is out, and it's past where you are. Tap it to see the dates.",
+        say: "Psst! This red bar means something new is out, past where you are. It opens to show the dates.",
         tap: true,
       },
       {
         path: MANGA,
         target: "release-dates",
         say: "Here's what's out and when the next one should land. Volumes show volume dates, chapters show chapter dates.",
-        button: "Got it",
       },
     ],
   },
@@ -123,26 +115,29 @@ const PARTS: { name: string; lines: Line[] }[] = [
         path: "/shelf",
         target: "tab-new",
         focus: true,
-        say: "Now my favorite. The New tab checks your whole shelf for you. Tap it!",
+        say: "Now my favorite. The New tab checks your whole shelf for you.",
         tap: true,
       },
       {
         path: "/shelf",
         target: "shelf",
         say: "Everything that's come out past where you are. Already got it, or don't care? Hide takes it off the list until something newer is out.",
-        button: "Got it",
       },
       {
         path: "/shelf",
         target: "how-new-works",
-        say: "Wondering how I know what's new, behind your shelf? Tap here.",
+        say: "Wondering how I know what's new, behind your shelf? This explains it.",
         tap: true,
       },
       {
         path: "/new-releases",
         free: true,
-        say: "I compare what's out with the volumes you own, or else the chapter you're on. That's why a series with neither saved never shows up. Read as much as you like.",
-        button: "Next",
+        say: "This is how I know what's new on your shelf. Read as much as you like.",
+      },
+      {
+        path: "/settings/new-releases",
+        target: "new-controls",
+        say: "Too much on your New list, or too little? You decide: just the next one, only when you're close to the newest, or everything that's out. You can switch the checks off here too.",
       },
     ],
   },
@@ -152,22 +147,21 @@ const PARTS: { name: string; lines: Line[] }[] = [
       {
         path: "/",
         target: "tab-prices",
-        say: "Now the other tab. Prices shows what a volume costs across stores, and you don't need it on your shelf. Tap it!",
+        say: "Now the other tab. Prices shows what a volume costs across stores, even if it isn't on your shelf.",
         tap: true,
       },
       {
         path: "/",
         exact: true,
         target: "price-search",
-        say: "Looking for something that isn't on your shelf? Search any series here and compare its volumes.",
-        button: "Nice",
+        lookOnly: true,
+        say: "After the tour, search any series here and compare its volumes. Typing is off for now.",
       },
       {
         path: "/prices/",
         go: "/prices/9780000000041",
         target: "offers",
         say: "Every store we found, cheapest first. The Buy button on that red bar lands here too. These prices are made up for the tour. Real ones also get a price history.",
-        button: "Got it",
       },
     ],
   },
@@ -178,49 +172,33 @@ const PARTS: { name: string; lines: Line[] }[] = [
         path: "/settings/profile",
         target: "profile-picture",
         say: "Last stretch: your settings, behind your picture up top. Pick a silly picture here, and a name if you want one.",
-        button: "Next",
       },
       {
         path: "/settings/profile",
         target: "share-toggle",
         focus: true,
-        say: "Want friends to see your list? Tick this. It's off until you say so.",
+        say: "Want friends to see your list? This turns sharing on. It's off until you say so.",
         tap: true,
       },
       {
         path: "/settings/profile",
         target: "share-link",
         say: "That's your link! Anyone who has it can see your shelf, and your notes only if you tick Include my notes. Your username stays private.",
-        button: "Got it",
-      },
-      {
-        path: "/settings/appearance",
-        target: "theme",
-        say: "Reading late? Try a theme. Tap one and the whole site changes. There are backgrounds to pick from just below too.",
-        tap: true,
-      },
-      {
-        path: "/settings/new-releases",
-        target: "new-controls",
-        say: "Too much on your New list, or too little? You decide: just the next one, only when you're close to the newest, or everything that's out. You can switch the checks off here too.",
-        button: "Good to know",
       },
       {
         path: "/settings/prices",
         target: "hide-ebooks",
         say: "Only buy print? This hides ebooks from the price lists.",
-        button: "Next",
       },
       {
         path: "/settings/account",
         target: "export",
         say: "And it's your data. Download your list any time, or delete your account from this same page.",
-        button: "Next",
       },
       {
         path: "/settings/shelf",
         target: "view-rows",
-        say: "Big covers not your thing? Tap this for compact rows, so more manga fit on a screen.",
+        say: "Big covers not your thing? Compact rows fit more manga on a screen.",
         tap: true,
       },
       {
@@ -228,7 +206,6 @@ const PARTS: { name: string; lines: Line[] }[] = [
         target: "shelf",
         allTab: true,
         say: "Same shelf, way more on one screen. In settings you can switch back any time, and choose which tab it opens on and how it's sorted.",
-        button: "Love it",
       },
     ],
   },
@@ -239,7 +216,6 @@ const PARTS: { name: string; lines: Line[] }[] = [
         path: "/updates",
         target: "updates",
         say: "One more place. New features land here, under What's new in the footer.",
-        button: "Cool",
       },
       {
         path: "/shelf",

@@ -970,7 +970,7 @@
   visibility: hidden;
 }
 /* a list of suggestions is open: Kenji steps aside until they've picked */
-body:has([role="listbox"]) .tour-bubble {
+body:has([role="listbox"]) :is(.tour-bubble, .tour-pointer) {
   opacity: 0;
   pointer-events: none;
 }
