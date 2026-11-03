@@ -460,9 +460,11 @@ export async function getVolumeSummary(isbn13: string) {
   const book = await priceQueries.getBook(isbn13);
   if (!book) return null;
   const last = await priceQueries.getLastCheck(isbn13);
-  const offers = dropUnlikelyNew(
-    last ? await priceQueries.getLatestOffers(isbn13, last.checkedAt) : [],
-  );
+  const [stored, usual] = await Promise.all([
+    last ? priceQueries.getLatestOffers(isbn13, last.checkedAt) : [],
+    priceQueries.getNewPriceMedian(isbn13),
+  ]);
+  const offers = dropUnlikelyNew(stored, usual);
   const inStock = offers.filter((o) => o.inStock);
   const bestNew = inStock.find(
     (o) => o.condition === "new" && o.format === "print",
@@ -504,10 +506,17 @@ export async function getSeriesSummary(asked: string) {
 // latest deals: volumes now cheaper than their own average, from prices we
 // already have. Recently checked: the latest volumes anyone looked up
 export async function getHighlights() {
-  const [trending, recent] = await Promise.all([
+  const [trending, latest] = await Promise.all([
     getTrending(),
     priceQueries.getRecentBestPrices(40),
   ]);
+  // the same believable price the volume's own page shows, so a fake one can't
+  // headline as a deal
+  const known = await priceQueries.getKnownPrices(latest.map((r) => r.isbn13.trim()));
+  const recent = latest.flatMap((r) => {
+    const price = known.get(r.isbn13.trim());
+    return price ? [{ ...r, priceCents: price.priceCents }] : [];
+  });
   const dealRows = recent
     .filter((r) => r.samples >= 2 && r.priceCents < r.avgCents * 0.95)
     .sort((a, b) => a.priceCents / a.avgCents - b.priceCents / b.avgCents)

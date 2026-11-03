@@ -1,6 +1,10 @@
 // Which "new" copies are believed. A wrong call either puts a fake price in
 // the headline and history, or hides a real comic shop's copy
-import { dropUnlikelyNew, isRetailer } from "../prices/retailers.js";
+import {
+  dropUnlikelyNew,
+  isRetailer,
+  lowestBelievableNew,
+} from "../prices/retailers.js";
 import type { Offer } from "../prices/types.js";
 
 const offer = (store: string, priceCents: number, extra: Partial<Offer> = {}): Offer => ({
@@ -129,6 +133,15 @@ describe("overpriced new copies", () => {
     expect(stores([used("eBay", 9000), offer("Amazon", 999)])).toContain("eBay");
   });
 
+  test("cheap used copies can't make a real new copy look too dear", () => {
+    const result = dropUnlikelyNew([
+      offer("ThriftBooks", 450, { condition: "used" }),
+      offer("eBay", 500, { condition: "used" }),
+      offer("Comic Shop", 1199),
+    ]);
+    expect(stores(result)).toEqual(["ThriftBooks", "eBay", "Comic Shop"]);
+  });
+
   test("ebooks don't count as the other copies", () => {
     const offers = [
       offer("Comic Shop", 1400),
@@ -136,5 +149,22 @@ describe("overpriced new copies", () => {
       offer("Kobo", 500, { format: "ebook" }),
     ];
     expect(stores(offers)).toContain("Comic Shop");
+  });
+});
+
+describe("lowestBelievableNew", () => {
+  test("skips a fake low price and anything that isn't new print", () => {
+    const low = lowestBelievableNew([
+      offer("Barnes & Noble", 1099),
+      offer("Green Cosmetics OÜ", 400),
+      offer("ThriftBooks", 300, { condition: "used" }),
+      offer("Kindle", 500, { format: "ebook" }),
+    ]);
+    expect(low).toBe(1099);
+  });
+
+  test("nothing believable leaves no price", () => {
+    expect(lowestBelievableNew([offer("Green Cosmetics OÜ", 400)])).toBeNull();
+    expect(lowestBelievableNew([offer("ThriftBooks", 300, { condition: "used" })])).toBeNull();
   });
 });
