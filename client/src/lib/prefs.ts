@@ -60,6 +60,7 @@ export const currentTheme = (): Theme => {
 };
 
 const checksListeners = new Set<() => void>();
+const countryListeners = new Set<() => void>();
 
 // puts preferences on the page and remembers them in this browser
 export const applyPrefs = ({
@@ -93,7 +94,10 @@ export const applyPrefs = ({
   if (shelfTab) writeLocal("shelfTab", shelfTab);
   if (shelfSort !== undefined) writeLocal("shelfSort", shelfSort);
   if (shelfView) writeLocal("shelfView", shelfView);
-  if (country) writeLocal("country", country);
+  if (country && country !== readLocal("country")) {
+    writeLocal("country", country);
+    countryListeners.forEach((listener) => listener());
+  }
   if (releaseChecks && releaseChecks !== readLocal("releaseChecks")) {
     writeLocal("releaseChecks", releaseChecks);
     checksListeners.forEach((listener) => listener());
@@ -110,6 +114,16 @@ export const useReleaseChecksOn = () =>
     checksListeners.add(listener);
     return () => checksListeners.delete(listener);
   }, releaseChecksOn);
+
+// where they shop: US unless they've picked Canada. Every page showing prices
+// follows it as it changes, from the menu, settings or a price page
+export const currentCountry = (): "us" | "ca" =>
+  readLocal("country") === "ca" ? "ca" : "us";
+export const useCountry = () =>
+  useSyncExternalStore((listener) => {
+    countryListeners.add(listener);
+    return () => countryListeners.delete(listener);
+  }, currentCountry);
 
 // applies a change right away, and keeps it on the account when signed in
 export const savePrefs = (patch: Prefs, isSignedIn: boolean | null) => {

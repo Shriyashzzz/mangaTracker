@@ -1,5 +1,6 @@
 import CanadaPrices from "./canada/CanadaPrices";
-import CountrySwitch, { type Country } from "./canada/CountrySwitch";
+import CountrySwitch from "./canada/CountrySwitch";
+import { useCountry } from "../../lib/prefs";
 import { useEffect, useState } from "react";
 import { noteStoreClick } from "../../lib/support";
 import {
@@ -93,9 +94,7 @@ const typeOf = (o: Offer) =>
 
 export default function PriceVolume() {
   // US or Canada: switched right on the page, by anyone
-  const [country, setCountry] = useState<Country>(() =>
-    readLocal("country") === "ca" ? "ca" : "us",
-  );
+  const country = useCountry();
   // the route always has an :isbn
   const isbn = useParams().isbn!;
   const [showAll, setShowAll] = useState({ isbn, open: false });
@@ -344,10 +343,7 @@ export default function PriceVolume() {
                     checked {timeAgo(checkedAt)}
                   </span>
                 )}
-                <CountrySwitch
-                  country={inCanada ? "ca" : "us"}
-                  onChange={setCountry}
-                />
+                <CountrySwitch />
               </span>
             </div>
 
