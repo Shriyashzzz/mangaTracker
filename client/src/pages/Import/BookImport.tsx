@@ -319,8 +319,9 @@ export default function BookImport({ source }: { source: BookSource }) {
             </div>
 
             <p className={styles.note}>
-              Ticked: what AniList knows as manga, that you've bought or read. Volumes owned
-              is the furthest volume you bought, or read if that's further. A volume you're
+              Volumes are grouped by series, so each manga comes in once. Ticked: what
+              AniList knows as manga, that you've bought or read. Volumes owned is the
+              furthest volume you bought, or read if that's further. A volume you're
               reading now counts the ones before it as read. Chapters start blank, and
               anything already on your shelf gets skipped.
             </p>
