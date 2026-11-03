@@ -13,6 +13,8 @@ export type Book = {
   volume: number | null;
   owned: boolean;
   read: boolean;
+  // reading it now: everything before it counts as read
+  reading: boolean;
   // 1-5, 0 for not rated
   rating: number;
   // on a want-to-read list and nothing else
@@ -157,6 +159,7 @@ function goodreadsBook(h: string[], row: string[]): Book | null {
     ...seriesFromTitle(title),
     owned,
     read,
+    reading: shelf === "currently-reading",
     rating: stars(cell(row, header(h, /^My Rating$/))),
     planned: shelf === "to-read" && !owned && !read,
   };
@@ -175,6 +178,7 @@ function bookCatalogueBook(h: string[], row: string[]): Book | null {
     ...(fromDetails ?? seriesFromTitle(title)),
     owned: !wanted,
     read,
+    reading: false,
     rating: stars(cell(row, header(h, /^rating$/))),
     planned: wanted && !read,
   };
@@ -194,12 +198,14 @@ function csvBook(h: string[], row: string[]): Book | null {
   const owned = ownedAt < 0 ? true : yes(cell(row, ownedAt)) || count(cell(row, ownedAt)) > 0;
   const readAt = header(h, /^(read|read status|status|exclusive shelf|shelf)$/i);
   const read = readAt >= 0 && yes(cell(row, readAt));
+  const reading = readAt >= 0 && /^(currently[- ]?)?reading$/i.test(cell(row, readAt));
   return {
     title,
     series: seriesColumn ? tidy(seriesColumn) : fromTitle.series,
     volume: Number.isFinite(volumeColumn) ? volumeColumn : fromTitle.volume,
     owned,
     read,
+    reading,
     rating: stars(cell(row, header(h, /^(my )?(rating|score|stars)$/i))),
     planned: !owned && !read,
   };
@@ -216,7 +222,8 @@ export function readBooks(rows: string[][], source: BookSource): Book[] {
 // ---------- grouping ----------
 
 // one shelf entry per series. Volumes owned is the highest volume they bought,
-// or the highest they've read if that's further on
+// or the highest they've read if that's further on. Reading a volume now counts
+// everything before it as read
 export function groupBooks(books: Book[]): BookSeries[] {
   const groups = new Map<string, Book[]>();
   for (const book of books) {
@@ -229,7 +236,11 @@ export function groupBooks(books: Book[]): BookSeries[] {
       return Math.floor(numbered.length ? Math.max(...numbered) : picked.length);
     };
     const owned = furthest(list.filter((b) => b.owned));
-    const read = furthest(list.filter((b) => b.read));
+    // on vol. 5 now means 1 to 4 are read, marked or not
+    const readingFrom = list.flatMap((b) =>
+      b.reading && b.volume ? [Math.floor(b.volume) - 1] : [],
+    );
+    const read = Math.max(furthest(list.filter((b) => b.read)), ...readingFrom);
     const rated = list.filter((b) => b.rating > 0);
     const average = rated.reduce((sum, b) => sum + b.rating, 0) / (rated.length || 1);
     return {
