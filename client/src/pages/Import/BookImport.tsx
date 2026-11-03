@@ -44,7 +44,7 @@ const HOW: Record<BookSource, { step: string; link?: { href: string; label: stri
     step: "In Book Catalogue, open the menu and export your books to a CSV file. The menu is called Admin & Prefs or Settings, depending on your version. Then move the file to this device.",
   },
   csv: {
-    step: "Export your library from your app as a CSV file. It needs a title column; a series and volume column helps too. We'll do our best to bring every book over, but there's no guarantee: a few might not come through quite right, so check the list before you add it.",
+    step: "Export your library from your app as a CSV file. It needs a title column; a series and volume column helps too.",
   },
 };
 
@@ -258,6 +258,12 @@ export default function BookImport({ source }: { source: BookSource }) {
           </div>
         </div>
 
+        {source === "csv" && (
+          <p className={styles.warning}>
+            Every app exports its own way, so there's no guarantee every book comes over
+            exactly right. Check the list before you add it.
+          </p>
+        )}
       </section>
 
       {found && (
@@ -313,9 +319,8 @@ export default function BookImport({ source }: { source: BookSource }) {
             </div>
 
             <p className={styles.note}>
-              Volumes are grouped by series, so each manga comes in once. Ticked: what
-              AniList knows as manga, that you've bought or read. Volumes owned is the
-              furthest volume you bought, or read if that's further. A volume you're
+              Ticked: what AniList knows as manga, that you've bought or read. Volumes owned
+              is the furthest volume you bought, or read if that's further. A volume you're
               reading now counts the ones before it as read. Chapters start blank, and
               anything already on your shelf gets skipped.
             </p>
