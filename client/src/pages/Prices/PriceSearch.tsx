@@ -100,15 +100,18 @@ export default function PriceSearch() {
               <div className={styles.halfActions}>
                 <NavLink
                   to="/signup"
-                  className="btn btn-primary"
+                  className={`btn btn-primary ${styles.halfButton}`}
                   viewTransition
                 >
                   Start your shelf
                 </NavLink>
-                <TakeTourButton />
+                <TakeTourButton
+                  shortOnPhones
+                  className={`btn btn-secondary ${styles.halfButton}`}
+                />
                 <NavLink
                   to="/signin"
-                  className="btn btn-ghost upto-720:hidden"
+                  className={`btn btn-ghost ${styles.halfButton} upto-720:hidden`}
                   viewTransition
                 >
                   Sign in

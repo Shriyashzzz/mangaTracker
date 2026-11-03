@@ -147,7 +147,6 @@
   color: var(--ink);
 }
 
-
 /* ---------- 2. Tailwind theme ---------- */
 /* static: always written to :root, since CSS modules read these too */
 @theme static {
@@ -247,18 +246,28 @@
     text-wrap: pretty;
   }
 
-  h1, h2, h3 {
+  h1,
+  h2,
+  h3 {
     text-wrap: balance;
     font-family: var(--font-display);
     font-weight: 600;
     line-height: 1.1;
     letter-spacing: -0.01em;
   }
-  h1 { font-size: 2em; }
-  h2 { font-size: 1.5em; }
-  h3 { font-size: 1.17em; }
+  h1 {
+    font-size: 2em;
+  }
+  h2 {
+    font-size: 1.5em;
+  }
+  h3 {
+    font-size: 1.17em;
+  }
 
-  em { font-style: italic; }
+  em {
+    font-style: italic;
+  }
 
   button:not(:disabled),
   [role="button"]:not(:disabled) {
@@ -281,7 +290,8 @@
   }
 
   /* inputs: the caret and scrollbar carry the palette too */
-  input, textarea {
+  input,
+  textarea {
     caret-color: var(--accent);
   }
   html {
@@ -291,166 +301,165 @@
 
 /* ---------- 4. components ---------- */
 @layer components {
-/* the reading buddy in empty and error states, always on paper */
-.mascot-spot {
-  display: block;
-  width: 112px;
-  margin: 0 auto 0.5rem;
-  padding: 0.6rem 0.6rem 0.2rem;
-  border: 2.5px solid var(--line);
-  border-radius: 50%;
-  background: var(--card);
-  aspect-ratio: 1;
-}
-
-/* ---------- buttons: ink outline + flat offset shadow ---------- */
-.btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.5rem;
-  height: 44px;
-  padding: 0 1.1rem;
-  border: 1.5px solid var(--line);
-  border-radius: var(--radius);
-  background: var(--card);
-  color: var(--ink);
-  font-size: 0.95rem;
-  font-weight: 500;
-  white-space: nowrap;
-  box-shadow: 3px 3px 0 var(--hard-shadow);
-  transition:
-    transform 0.12s ease,
-    box-shadow 0.12s ease,
-    background-color 0.15s ease;
-}
-
-.btn:hover:not(:disabled) {
-  transform: translate(-1px, -1px);
-  box-shadow: 4px 4px 0 var(--hard-shadow);
-}
-
-.btn:active:not(:disabled) {
-  transform: translate(3px, 3px);
-  box-shadow: 0 0 0 var(--hard-shadow);
-}
-
-.btn:disabled {
-  opacity: 0.55;
-  cursor: not-allowed;
-}
-
-.btn svg {
-  width: 17px;
-  height: 17px;
-  flex-shrink: 0;
-}
-
-.btn-primary {
-  background: var(--accent);
-  color: var(--on-accent);
-}
-
-.btn-primary:hover:not(:disabled) {
-  background: var(--accent-hover);
-}
-
-.btn-secondary {
-  background: var(--card);
-}
-
-/* plain text button, no box */
-.btn-ghost {
-  border-color: transparent;
-  background: transparent;
-  box-shadow: none;
-  color: var(--ink-soft);
-  text-decoration: underline;
-  text-decoration-color: var(--line-soft);
-  text-underline-offset: 4px;
-}
-
-.btn-ghost:hover:not(:disabled) {
-  transform: none;
-  box-shadow: none;
-  color: var(--ink);
-  text-decoration-color: currentColor;
-}
-
-.btn-ghost:active:not(:disabled) {
-  transform: none;
-}
-
-.btn-danger {
-  background: var(--accent);
-  color: var(--on-accent);
-}
-
-.btn-sm {
-  height: 34px;
-  padding: 0 0.8rem;
-  font-size: 0.875rem;
-}
-
-.btn-lg {
-  height: 50px;
-  padding: 0 1.5rem;
-  font-size: 1rem;
-}
-
-.btn-block {
-  width: 100%;
-}
-
-.icon-btn {
-  display: inline-grid;
-  place-items: center;
-  width: 44px;
-  height: 44px;
-  border-radius: var(--radius);
-  color: var(--ink-soft);
-  transition: color 0.15s ease;
-}
-
-.icon-btn:hover {
-  color: var(--accent);
-}
-
-.icon-btn svg {
-  width: 19px;
-  height: 19px;
-}
-
-/* ---------- loading ---------- */
-.skeleton {
-  background: var(--paper-2);
-  border-radius: var(--radius);
-  animation: breathe 1.6s ease-in-out infinite;
-}
-
-@keyframes breathe {
-  50% {
-    opacity: 0.5;
+  /* the reading buddy in empty and error states, always on paper */
+  .mascot-spot {
+    display: block;
+    width: 112px;
+    margin: 0 auto 0.5rem;
+    padding: 0.6rem 0.6rem 0.2rem;
+    border: 2.5px solid var(--line);
+    border-radius: 50%;
+    background: var(--card);
+    aspect-ratio: 1;
   }
-}
 
-.fade-in {
-  /* not kept after it ends: a kept transform would wrap the page in its own
-     layer, and its sticky toolbar could no longer sit above the tour's highlight */
-  animation: fadeIn 0.35s var(--ease) backwards;
-}
-
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-    transform: translateY(6px);
+  /* ---------- buttons: ink outline + flat offset shadow ---------- */
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    height: 44px;
+    padding: 0 1.1rem;
+    border: 1.5px solid var(--line);
+    border-radius: var(--radius);
+    background: var(--card);
+    color: var(--ink);
+    font-size: 0.95rem;
+    font-weight: 500;
+    white-space: nowrap;
+    box-shadow: 3px 3px 0 var(--hard-shadow);
+    transition:
+      transform 0.12s ease,
+      box-shadow 0.12s ease,
+      background-color 0.15s ease;
   }
-  to {
-    opacity: 1;
+
+  .btn:hover:not(:disabled) {
+    transform: translate(-1px, -1px);
+    box-shadow: 4px 4px 0 var(--hard-shadow);
+  }
+
+  .btn:active:not(:disabled) {
+    transform: translate(3px, 3px);
+    box-shadow: 0 0 0 var(--hard-shadow);
+  }
+
+  .btn:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+  }
+
+  .btn svg {
+    width: 17px;
+    height: 17px;
+    flex-shrink: 0;
+  }
+
+  .btn-primary {
+    background: var(--accent);
+    color: var(--on-accent);
+  }
+
+  .btn-primary:hover:not(:disabled) {
+    background: var(--accent-hover);
+  }
+
+  .btn-secondary {
+    background: var(--card);
+  }
+
+  /* plain text button, no box */
+  .btn-ghost {
+    border-color: transparent;
+    background: transparent;
+    box-shadow: none;
+    color: var(--ink-soft);
+    text-decoration: underline;
+    text-decoration-color: var(--line-soft);
+    text-underline-offset: 4px;
+  }
+
+  .btn-ghost:hover:not(:disabled) {
+    transform: none;
+    box-shadow: none;
+    color: var(--ink);
+    text-decoration-color: currentColor;
+  }
+
+  .btn-ghost:active:not(:disabled) {
     transform: none;
   }
-}
 
+  .btn-danger {
+    background: var(--accent);
+    color: var(--on-accent);
+  }
+
+  .btn-sm {
+    height: 34px;
+    padding: 0 0.8rem;
+    font-size: 0.875rem;
+  }
+
+  .btn-lg {
+    height: 50px;
+    padding: 0 1.5rem;
+    font-size: 1rem;
+  }
+
+  .btn-block {
+    width: 100%;
+  }
+
+  .icon-btn {
+    display: inline-grid;
+    place-items: center;
+    width: 44px;
+    height: 44px;
+    border-radius: var(--radius);
+    color: var(--ink-soft);
+    transition: color 0.15s ease;
+  }
+
+  .icon-btn:hover {
+    color: var(--accent);
+  }
+
+  .icon-btn svg {
+    width: 19px;
+    height: 19px;
+  }
+
+  /* ---------- loading ---------- */
+  .skeleton {
+    background: var(--paper-2);
+    border-radius: var(--radius);
+    animation: breathe 1.6s ease-in-out infinite;
+  }
+
+  @keyframes breathe {
+    50% {
+      opacity: 0.5;
+    }
+  }
+
+  .fade-in {
+    /* not kept after it ends: a kept transform would wrap the page in its own
+     layer, and its sticky toolbar could no longer sit above the tour's highlight */
+    animation: fadeIn 0.35s var(--ease) backwards;
+  }
+
+  @keyframes fadeIn {
+    from {
+      opacity: 0;
+      transform: translateY(6px);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
 }
 
 /* ---------- 5. manga utilities (use like any Tailwind class) ---------- */
@@ -462,7 +471,10 @@
 
 /* screentone dots, like the shading in a manga panel */
 @utility screentone {
-  background-image: radial-gradient(rgba(128, 128, 128, 0.16) 1px, transparent 1.2px);
+  background-image: radial-gradient(
+    rgba(128, 128, 128, 0.16) 1px,
+    transparent 1.2px
+  );
   background-size: 7px 7px;
 }
 
@@ -1163,5 +1175,18 @@ body:has([role="listbox"]) :is(.tour-bubble, .tour-pointer) {
   }
   .tour-pointer-left {
     transform: rotate(90deg);
+  }
+}
+
+@media (min-width: 861px) and (max-width: 985px) {
+  .half-actions {
+    gap: 1rem;
+  }
+
+  .half-actions > .half-button {
+    min-width: 0;
+    font-size: 0.75rem !important;
+    padding-inline: 0.5rem;
+    font-size: 0.7rem;
   }
 }
