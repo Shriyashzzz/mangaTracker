@@ -118,7 +118,7 @@ const groupBy = <T, K>(items: T[], keyOf: (item: T) => K) => {
 
 // samples saved before a rule changed, that it would have kept out: each is judged
 // against the other copies in its own check, the same way a new check is
-async function getUnbelievableSampleIds(isbn13: string) {
+async function getUnbelievableSampleIds(isbn13: string, median?: number | null) {
   const [rows, usual] = await Promise.all([
     prisma.$queryRaw<(StoredOffer & { id: string })[]>`
       SELECT id::text AS id, store, format, condition, price_cents AS "priceCents",
@@ -126,7 +126,7 @@ async function getUnbelievableSampleIds(isbn13: string) {
       FROM price_samples
       WHERE isbn13 = ${isbn13} AND in_stock
     `,
-    getNewPriceMedian(isbn13),
+    median !== undefined ? median : getNewPriceMedian(isbn13),
   ]);
   const checks = groupBy(rows, (row) => new Date(row.fetchedAt).getTime());
   return [...checks.values()].flatMap((check) => {
@@ -140,8 +140,12 @@ async function getUnbelievableSampleIds(isbn13: string) {
 // them). Each kind of copy gets its own lowest, highest and median across
 // every in-stock price at every check; mixing them would compare a $5
 // ebook with a $25 collector's copy
-export async function getPriceHistory(isbn13: string): Promise<PriceHistory> {
-  const ignored = await getUnbelievableSampleIds(isbn13);
+// `median`: the volume's usual new price, if the caller already has it
+export async function getPriceHistory(
+  isbn13: string,
+  median?: number | null,
+): Promise<PriceHistory> {
+  const ignored = await getUnbelievableSampleIds(isbn13, median);
   const [kinds, checks] = await Promise.all([
     prisma.$queryRaw<KindHistory[]>`
       WITH s AS (

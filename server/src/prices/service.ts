@@ -16,6 +16,7 @@ import {
   getSeriesInfo,
   getTrending,
   knownSeriesName,
+  knownSeriesNames,
   listKnownSeries,
   searchSeries,
 } from "./sources/anilist.js";
@@ -98,10 +99,11 @@ async function fetchAllProviders(isbn13: string, book: Book) {
   }
 }
 
+// the last check, when it's still the latest: no need to read it again
 async function refreshIfStale(isbn13: string, book: Book) {
   const last = await priceQueries.getLastCheck(isbn13);
   const fresh = last && Date.now() - last.checkedAt.getTime() < FRESH_FOR_MS;
-  if (fresh || !enabledProviders().length) return;
+  if (fresh || !enabledProviders().length) return { unchanged: last };
 
   if (!inFlight.has(isbn13)) {
     inFlight.set(
@@ -110,6 +112,8 @@ async function refreshIfStale(isbn13: string, book: Book) {
     );
   }
   await inFlight.get(isbn13);
+  // refreshed: the caller reads the new check
+  return null;
 }
 
 // the stored book, or the catalog's answer stored for next time
@@ -134,14 +138,17 @@ export async function getVolumePrices(isbn13: string, { refresh = true } = {}) {
   const known =
     Boolean(series.info) &&
     series.volumes.some((v) => v.isbn13.trim() === isbn13);
-  if (refresh && known) await refreshIfStale(isbn13, book);
+  const checked = refresh && known ? await refreshIfStale(isbn13, book) : null;
 
-  const last = await priceQueries.getLastCheck(isbn13);
-  const [stored, history, usual] = await Promise.all([
+  const last = checked
+    ? checked.unchanged
+    : await priceQueries.getLastCheck(isbn13);
+  const [stored, usual] = await Promise.all([
     last ? priceQueries.getLatestOffers(isbn13, last.checkedAt) : [],
-    priceQueries.getPriceHistory(isbn13),
     priceQueries.getNewPriceMedian(isbn13),
   ]);
+  // the median once, not again inside the history
+  const history = await priceQueries.getPriceHistory(isbn13, usual);
   // checks saved before a rule changed still get held to it
   const offers = dropUnlikelyNew(stored, usual);
 
@@ -387,11 +394,15 @@ export type ShelfPrice = {
 export async function getShelfPrices(
   manga: { id: number; name: string }[],
 ): Promise<Record<number, ShelfPrice>> {
-  const bySeries = await knownVolumesBySeries();
+  const [bySeries, names] = await Promise.all([
+    knownVolumesBySeries(),
+    // one query for the whole shelf, not one per manga
+    knownSeriesNames().catch(() => new Map<string, string>()),
+  ]);
   const matches = new Map<number, KnownVolume[]>();
   for (const m of manga) {
     const keys = new Set([slugify(m.name), slugify(seriesName(m.name))]);
-    const known = await knownSeriesName(m.name).catch(() => m.name);
+    const known = names.get(slugify(m.name)) ?? m.name;
     keys.add(slugify(known));
     const volumes = [...keys].flatMap((k) => [
       ...(bySeries.get(k)?.values() ?? []),

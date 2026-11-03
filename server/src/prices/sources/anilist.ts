@@ -155,6 +155,21 @@ const toInfo = (m: Media): SeriesInfo => ({
   ),
 });
 
+// every series we've seen, slug -> real name, newest first: knownSeriesName
+// for a whole shelf in one query
+export async function knownSeriesNames(): Promise<Map<string, string>> {
+  const rows = await prisma.$queryRaw<{ slug: string; name: string }[]>`
+    SELECT DISTINCT ON (slug) slug, name FROM (
+      SELECT left(trim(both '-' from
+               regexp_replace(lower(info->>'name'), '[^a-z0-9]+', '-', 'g')), 80) AS slug,
+             info->>'name' AS name, fetched_at
+      FROM series_info WHERE info IS NOT NULL
+    ) named
+    ORDER BY slug, fetched_at DESC
+  `;
+  return new Map(rows.map((r) => [r.slug, r.name]));
+}
+
 // A series address can be just the slug of AniList's name
 // (/prices/series/frieren-beyond-journey-s-end), which reaches us as
 // "frieren beyond journey s end". If a series we've seen has that slug,

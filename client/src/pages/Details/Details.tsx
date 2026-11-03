@@ -40,8 +40,6 @@ export default function Details() {
   const [mangaStatus, setMangaStatus] = useState(false);
   // on their To read list: not started, so no chapter or release news yet
   const [planned, setPlanned] = useState(false);
-  // no release news or prices for light novels yet
-  const [lightNovel, setLightNovel] = useState(false);
   const [mangaRating, setMangaRating] = useState(0);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -66,6 +64,9 @@ export default function Details() {
   }, [confirmDelete]);
   const navigate = useNavigate();
   // prices are for manga: a light novel by the same name would get the manga's
+  const loadedId = mangaData?.id;
+  // no release news or prices for light novels yet
+  const lightNovel = Boolean(mangaData?.lightNovel);
   const buyOptions = useBuyOptions(
     mangaData?.lightNovel ? null : (mangaData?.name ?? null),
     mangaData?.volumesOwned ?? null,
@@ -91,7 +92,6 @@ export default function Details() {
         setMangaRating(thisManga.rating ?? 0);
         setMangaStatus(thisManga.status);
         setPlanned(Boolean(thisManga.planned));
-        setLightNovel(Boolean(thisManga.lightNovel));
       } catch {
         setLoadError("network");
       }
@@ -102,7 +102,8 @@ export default function Details() {
   // can take a few seconds, so the page doesn't wait for it. Nice to have: the
   // panel just doesn't appear if this fails
   useEffect(() => {
-    if (!checksOn || lightNovel) return;
+    // once it's loaded: light novels aren't looked up yet
+    if (!checksOn || loadedId == null || lightNovel) return;
     const controller = new AbortController();
     getReleases(Number(id), controller.signal)
       .then((found) => {
@@ -111,7 +112,7 @@ export default function Details() {
       })
       .catch(() => {});
     return () => controller.abort();
-  }, [id, chapterSaves, checksOn, lightNovel]);
+  }, [id, chapterSaves, checksOn, loadedId, lightNovel]);
 
   const handleDeleteManga = async () => {
     setBusy(true);
