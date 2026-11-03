@@ -69,10 +69,14 @@ export default function WhatsNew({ children }: { children?: ReactNode }) {
         {/* anyone can try the whole site on a practice shelf, signed in or not */}
         <div className="mt-3 border-t-[1.5px] border-line-soft pt-3">
           <p className="text-[0.82rem] leading-[1.35] text-ink-soft">
-            New here, or want a refresher?
+            Play through the quick walkthrough to learn the basics or discover
+            what’s new.
           </p>
           <div className="mt-1.5">
-            <TakeTourButton small />
+            <TakeTourButton
+              small
+              className="tap mt-2 inline-block text-[0.82rem] font-medium whitespace-nowrap text-ink-soft underline decoration-line-soft underline-offset-3 hover:text-ink"
+            />
           </div>
         </div>
         <ul className="mt-2 border-t-[1.5px] border-line-soft">

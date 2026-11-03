@@ -7,7 +7,7 @@ import { useCallback, useEffect, useReducer, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useLocation, useNavigate } from "react-router";
 import { hasBottomBar } from "../../lib/bottomBar";
-import { endDemo } from "../../lib/demo";
+import { endDemo, wasSignedInBeforeTour } from "../../lib/demo";
 import Mascot from "../mascot/Mascot";
 import { TOUR_STEPS, type TourStep } from "./steps";
 
@@ -60,6 +60,8 @@ const holePath = ({ top, left, width, height }: Box) => {
 };
 
 export default function Tour() {
+  // their real account, not the practice one the tour signs them into
+  const hasShelf = wasSignedInBeforeTour();
   const [index, setIndex] = useState(readStep);
   const [box, setBox] = useState<Box | null>(null);
   const [lost, setLost] = useState(false);
@@ -203,7 +205,8 @@ export default function Tour() {
   // and close it again when the step ends, by Next, Back or leaving the page
   useEffect(() => {
     if (!step.inMenuOnPhone || !onPage || !hasBottomBar()) return;
-    const menuButton = () => document.querySelector<HTMLElement>('[data-tour="menu"]');
+    const menuButton = () =>
+      document.querySelector<HTMLElement>('[data-tour="menu"]');
     const isOpen = () => Boolean(document.getElementById("settings-menu"));
     const timer = setTimeout(() => {
       if (!isOpen()) menuButton()?.click();
@@ -474,7 +477,11 @@ export default function Tour() {
             {step.partSize > 1 && ` · ${step.partStep} of ${step.partSize}`}
           </p>
           <p className="tour-say">
-            {hasBottomBar() && step.phoneSay ? step.phoneSay : step.say}
+            {hasShelf && step.signedInSay
+              ? step.signedInSay
+              : hasBottomBar() && step.phoneSay
+                ? step.phoneSay
+                : step.say}
           </p>
           <div className="tour-actions">
             {isLast ? (
@@ -482,9 +489,9 @@ export default function Tour() {
                 <button
                   type="button"
                   className="btn btn-primary"
-                  onClick={() => endDemo("/signup")}
+                  onClick={() => endDemo(hasShelf ? "/shelf" : "/signup")}
                 >
-                  Start your shelf
+                  {hasShelf ? "Back to my shelf" : "Start your shelf"}
                 </button>
                 <button
                   type="button"

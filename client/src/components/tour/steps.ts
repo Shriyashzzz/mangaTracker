@@ -12,6 +12,8 @@ type Line = {
   say: string;
   // what he says instead on phones, where the thing he points at differs
   phoneSay?: string;
+  // what he says instead to someone who already had an account before the tour
+  signedInSay?: string;
   // on phones the target lives in the header menu, so he opens it first
   inMenuOnPhone?: boolean;
   tap?: boolean;
@@ -190,6 +192,7 @@ const PARTS: { name: string; lines: Line[] }[] = [
         path: "/shelf",
         focus: true,
         say: "That's everything! You've seen the whole shelf. Ready for one of your own?",
+        signedInSay: "That's everything! Your own shelf is waiting for you.",
       },
     ],
   },
