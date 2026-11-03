@@ -59,7 +59,7 @@ const HOW: Record<
     step: "In Book Catalogue, open the menu and export your books to a CSV file. Go to Admin & Prefs or Settings, depending on your version. Then drop the file.",
   },
   csv: {
-    step: "Export your library from your app as a CSV file. It needs a title column; a series and volume column helps too.",
+    step: "Export your library from your app as a CSV file.",
   },
 };
 

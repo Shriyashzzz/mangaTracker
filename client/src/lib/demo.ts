@@ -370,7 +370,8 @@ export function demoResponse(
         image: entry.cover ?? null,
         status: entry.finished,
         bookmark: entry.chapters || null,
-        volumesOwned: entry.ownedVolumes || null,
+        // as the server does: volumes read when they haven't said what they own
+        volumesOwned: entry.ownedVolumes || entry.readVolumes || null,
         rating: entry.score ? Math.ceil(entry.score / 2) : null,
         description: entry.comments || null,
       })),
