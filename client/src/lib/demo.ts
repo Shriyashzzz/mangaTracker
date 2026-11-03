@@ -2,7 +2,7 @@
 // every real page works on a practice shelf and nothing reaches the server: no real
 // data can change and no paid price search can run. It lives in this tab and goes
 // when the tour ends.
-import type { MalEntry } from "./malImport";
+import type { MalEntry } from "./imports/malImport";
 import type { Manga } from "./types";
 
 const ON_KEY = "demoTour";

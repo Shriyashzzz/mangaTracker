@@ -4,7 +4,7 @@ import { useEffect, useRef, useState, type FormEvent } from "react";
 import { NavLink, useLocation } from "react-router";
 import Avatar from "../../components/avatar/Avatar";
 import { shareUrl, type Account } from "../../lib/account";
-import { AVATARS, AVATARS_SHOWN_FIRST, DEFAULT_AVATAR } from "../../lib/avatars";
+import { AVATARS, AVATARS_SHOWN_FIRST, DEFAULT_AVATAR } from "../../lib/content/avatars";
 import { useAccount } from "../../store/account";
 import { settingsStyles as styles } from "./styles";
 

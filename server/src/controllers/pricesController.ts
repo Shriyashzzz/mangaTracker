@@ -6,13 +6,13 @@ import { matchedData, param, query } from "express-validator";
 import { NotFoundError, UpstreamError } from "../errors/AppError.js";
 import { rejectInvalid } from "../middlewares/validate.js";
 import { sendError } from "../middlewares/errorHandler.js";
-import { searchVolumes, toIsbn13 } from "../prices/catalog.js";
+import { searchVolumes, toIsbn13 } from "../prices/sources/catalog.js";
 import {
   CoverLookupPaused,
   coverImageUrl,
   editionCoverId,
   isbnCoverImageUrl,
-} from "../prices/covers.js";
+} from "../prices/sources/covers.js";
 import { isCrawler } from "../prices/crawlers.js";
 import { getCanadaPrices } from "../prices/canada/canadaPrices.js";
 import {

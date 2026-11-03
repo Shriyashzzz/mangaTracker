@@ -66,7 +66,7 @@ const GENRE_PRIORITY: [anilist: string, ours: string][] = [
   ["Ecchi", "Ecchi"],
 ];
 
-// picks the one genre from lib/genres.js that best describes an AniList entry
+// picks the one genre from lib/content/genres.js that best describes an AniList entry
 export function pickGenre(genres: string[] = [], tags: Tag[] = []) {
   const has = (g: string) => genres.includes(g);
   if (has("Mahou Shoujo")) return "Magical Girl";

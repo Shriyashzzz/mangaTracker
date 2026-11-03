@@ -1,7 +1,7 @@
 // The profile pictures: a few original drawings to choose from, in the same ink
 // as Kenji. Static, so nobody's stuck with something moving on their profile.
 import type { ReactNode } from "react";
-import { DEFAULT_AVATAR } from "../../lib/avatars";
+import { DEFAULT_AVATAR } from "../../lib/content/avatars";
 import Mascot from "../mascot/Mascot";
 import * as Art from "./avatarArt";
 

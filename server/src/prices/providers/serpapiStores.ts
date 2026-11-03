@@ -3,14 +3,14 @@
 // it carries our affiliate tracking. Every search here costs one SerpApi search.
 // https://serpapi.com/ebay-search-api
 // https://serpapi.com/amazon-search-api
-import { amazonTag, ebayAffiliateUrl } from "../affiliates.js";
+import { amazonTag, ebayAffiliateUrl } from "../stores/affiliates.js";
 import {
   JAPANESE_EDITION,
   isSingleVolume,
   listingMatches,
   namesOtherVolume,
-} from "../match.js";
-import { plausiblePrice } from "../retailers.js";
+} from "../stores/match.js";
+import { plausiblePrice } from "../stores/retailers.js";
 import type { Offer, Provider } from "../types.js";
 import ebayApi from "./ebay.js";
 import keepa from "./keepa.js";

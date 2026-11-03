@@ -4,7 +4,7 @@ import { useRef, useState, type FormEvent } from "react";
 import { apiFetch, errorMessages, signInPath } from "../../lib/api";
 import type { MangaForm } from "../../lib/types";
 import { useAuth } from "../../store/auth";
-import { GENRES } from "../../lib/genres";
+import { GENRES } from "../../lib/content/genres";
 import CoverPicker from "../../components/coverPicker/CoverPicker";
 import type { CoverHit } from "../../lib/anilist";
 import TitleField from "./TitleField";

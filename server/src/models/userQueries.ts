@@ -14,7 +14,7 @@ export type Prefs = {
   // "off": this reader's manga are never looked up for new releases
   releaseChecks?: string;
   country?: "us" | "ca";
-  // what the New tab lists; see util/releaseStatus.ts
+  // what the New tab lists; see util/releases/releaseStatus.ts
   releases?: unknown;
 };
 

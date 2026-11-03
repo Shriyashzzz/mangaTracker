@@ -11,14 +11,14 @@
 // Only opening a volume page can spend a paid search, and at most once per
 // volume every FRESH_FOR_MS; everything else reads what's already stored.
 import priceQueries, { type Book } from "../models/priceQueries.js";
-import { lookupIsbn, searchVolumesDetailed } from "./catalog.js";
+import { lookupIsbn, searchVolumesDetailed } from "./sources/catalog.js";
 import {
   getSeriesInfo,
   getTrending,
   knownSeriesName,
   listKnownSeries,
   searchSeries,
-} from "./anilist.js";
+} from "./sources/anilist.js";
 import {
   isSingleVolume,
   normalize,
@@ -26,7 +26,7 @@ import {
   seriesOf,
   slugify,
   volumeOf,
-} from "./match.js";
+} from "./stores/match.js";
 import { enabledProviders } from "./providers/index.js";
 import { SearchesUsedUp } from "./providers/serpapiKeys.js";
 import {
@@ -34,9 +34,9 @@ import {
   isAffiliateUrl,
   preferDirectRows,
   storeLinks,
-} from "./storeLinks.js";
-import { editionCoverId } from "./covers.js";
-import { dropUnlikelyNew } from "./retailers.js";
+} from "./stores/storeLinks.js";
+import { editionCoverId } from "./sources/covers.js";
+import { dropUnlikelyNew } from "./stores/retailers.js";
 import type { CatalogBook, Offer, SeriesInfo } from "./types.js";
 
 export { searchSeries };

@@ -13,7 +13,7 @@
 // Everything happens in one transaction; running it twice changes nothing.
 import "dotenv/config";
 import { Client } from "pg";
-import { isNotABook, isResaleSite, unlikelyNewTest } from "../src/prices/retailers.js";
+import { isNotABook, isResaleSite, unlikelyNewTest } from "../src/prices/stores/retailers.js";
 import type { Offer } from "../src/prices/types.js";
 
 const arg = (name: string) => {

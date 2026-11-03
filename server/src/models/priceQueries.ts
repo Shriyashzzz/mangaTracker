@@ -8,7 +8,7 @@
 // never pasted into the SQL).
 import { prisma } from "../config/prisma.js";
 import type { Book, Prisma } from "../../generated/prisma/client.js";
-import { lowestBelievableNew, unlikelyNewTest } from "../prices/retailers.js";
+import { lowestBelievableNew, unlikelyNewTest } from "../prices/stores/retailers.js";
 import type { CatalogBook, Offer } from "../prices/types.js";
 
 export type { Book };

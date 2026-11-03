@@ -5,7 +5,7 @@ import { body, matchedData } from "express-validator";
 import { rejectInvalid } from "../middlewares/validate.js";
 import { sendError } from "../middlewares/errorHandler.js";
 import userQueries, { type Prefs } from "../models/userQueries.js";
-import { validReleaseSettings } from "../util/releaseStatus.js";
+import { validReleaseSettings } from "../util/releases/releaseStatus.js";
 
 const credentials = [
   body("username")

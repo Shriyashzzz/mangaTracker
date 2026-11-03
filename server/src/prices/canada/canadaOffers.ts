@@ -5,13 +5,13 @@ import {
   isSingleVolume,
   listingMatches,
   namesOtherVolume,
-} from "../match.js";
+} from "../stores/match.js";
 import {
   dropUnlikelyNew,
   isNotABook,
   isResaleSite,
   plausiblePrice,
-} from "../retailers.js";
+} from "../stores/retailers.js";
 import type { Offer } from "../types.js";
 
 const USED = /\b(used|pre-?owned|refurbished|second-?hand)\b/i;

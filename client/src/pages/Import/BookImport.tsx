@@ -20,8 +20,8 @@ import {
   toEntry,
   type BookSeries,
   type BookSource,
-} from "../../lib/bookImport";
-import { sendToShelf, type ImportTotals } from "../../lib/malImport";
+} from "../../lib/imports/bookImport";
+import { sendToShelf, type ImportTotals } from "../../lib/imports/malImport";
 import { useShelf } from "../../store/shelf";
 import { importStyles as styles } from "./styles";
 

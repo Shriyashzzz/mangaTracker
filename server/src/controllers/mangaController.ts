@@ -8,15 +8,15 @@ import mangaQueries, { type MangaInput } from "../models/mangaQueries.js";
 import {
   getListingsByMalIds,
   getSeriesInfo,
-} from "../prices/anilist.js";
+} from "../prices/sources/anilist.js";
 import { findOnShelf, getSeries, getShelfPrices } from "../prices/service.js";
-import { canonicalTitle } from "../util/canonicalTitle.js";
-import { getCachedReleaseDates, withTimeout } from "../util/releaseCache.js";
+import { canonicalTitle } from "../util/shelf/canonicalTitle.js";
+import { getCachedReleaseDates, withTimeout } from "../util/releases/releaseCache.js";
 import {
   chapterToSave,
   getReleaseStatus,
   readReleaseSettings,
-} from "../util/releaseStatus.js";
+} from "../util/releases/releaseStatus.js";
 import userQueries from "../models/userQueries.js";
 import {
   entryIsLightNovel,
@@ -24,10 +24,10 @@ import {
   shelfKey,
   toMangaInput,
   type MalEntry,
-} from "../util/malEntry.js";
+} from "../util/shelf/malEntry.js";
 import type { Manga } from "../../generated/prisma/client.js";
 import session from "express-session";
-import { isOnShelf, titleKey } from "../util/titleKey.js";
+import { isOnShelf, titleKey } from "../util/shelf/titleKey.js";
 
 // ---------- validation shared by add and edit ----------
 const mangaFields = [

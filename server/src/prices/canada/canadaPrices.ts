@@ -6,7 +6,7 @@ import config from "../../config/config.js";
 import { prisma } from "../../config/prisma.js";
 import priceQueries from "../../models/priceQueries.js";
 import { searchSerpApi, serpApiEnabled } from "../providers/serpapiClient.js";
-import { ebayCampaignId } from "../affiliates.js";
+import { ebayCampaignId } from "../stores/affiliates.js";
 import type { Offer } from "../types.js";
 import {
   believableOffers,
