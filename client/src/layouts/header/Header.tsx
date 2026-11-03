@@ -140,7 +140,7 @@ export default function Header() {
 
       {/* out of the way while the keyboard is up */}
       <nav
-        className="fixed inset-x-0 bottom-0 z-55 hidden border-t-[3px] border-double border-line bg-paper pb-[env(safe-area-inset-bottom)] upto-720:flex [body:has(input:focus,textarea:focus,select:focus)_&]:hidden!"
+        className="fixed inset-x-0 bottom-0 z-20 hidden border-t-[3px] border-double border-line bg-paper pb-[env(safe-area-inset-bottom)] upto-720:flex [body:has(input:focus,textarea:focus,select:focus)_&]:hidden!"
         aria-label="Main"
       >
         <NavLink

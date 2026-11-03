@@ -41,7 +41,7 @@ export const pricesStyles = {
   searchForm: "mt-2 flex gap-3 upto-720:relative upto-720:[&>.btn]:px-[1.1rem]",
   comboWrap: "relative min-w-0 flex-1 upto-720:static",
   suggestions:
-    "absolute inset-x-0 top-[calc(100%+6px)] z-20 border-[2.5px] border-line bg-card p-[0.35rem] shadow-[0_12px_28px_-12px_rgba(0,0,0,0.45)]",
+    "absolute inset-x-0 top-[calc(100%+6px)] z-15 border-[2.5px] border-line bg-card p-[0.35rem] shadow-[0_12px_28px_-12px_rgba(0,0,0,0.45)]",
   suggestion: `${suggestionRow} px-[0.55rem] py-[0.45rem]`,
   suggestActive: "bg-paper-2",
   suggestThumb:

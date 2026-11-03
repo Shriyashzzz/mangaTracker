@@ -579,51 +579,74 @@ export default function Tour() {
     </div>
   );
 
-  return createPortal(
+  // inside the app's own layer (#root makes one), just above the page and under
+  // its sticky toolbar, floating buttons and bottom bar, so those still cover it
+  // the way they cover what it points at. Kenji stays above everything
+  const app = document.getElementById("root") ?? document.body;
+  return (
     <>
-      {/* on the page: scrolls with it, so it can't lag behind on a phone */}
-      {onPageLayer && (
-        <div
-          className="tour-page"
-          style={{ width: pageWidth, height: pageHeight }}
-        >
-          {veiled && (
-            <div
-              className="tour-veil"
-              style={
-                showHole
-                  ? { clipPath: holePath(onLayer(box!), pageWidth, pageHeight) }
-                  : undefined
-              }
-            />
-          )}
-          {hole}
-          {bubbleOnPage && kenji}
-        </div>
-      )}
-      {/* on the screen: pinned targets, and Kenji when he's out of the way */}
-      <div className="tour" aria-live="polite">
-        {!onPageLayer && veiled && (
+      {onPageLayer &&
+        createPortal(
           <div
-            className="tour-veil"
-            style={
-              showHole
-                ? { clipPath: holePath(visibleBox(box!, floor)) }
-                : undefined
-            }
-          />
-        )}
-        {!onPageLayer && showHole && (
-          <div
-            className="tour-stage"
-            style={{ clipPath: `inset(0 0 ${innerHeight - floor}px 0)` }}
+            className="tour-page tour-page-under"
+            style={{ width: pageWidth, height: pageHeight }}
           >
+            {veiled && (
+              <div
+                className="tour-veil"
+                style={
+                  showHole
+                    ? {
+                        clipPath: holePath(
+                          onLayer(box!),
+                          pageWidth,
+                          pageHeight,
+                        ),
+                      }
+                    : undefined
+                }
+              />
+            )}
             {hole}
-          </div>
+          </div>,
+          app,
         )}
-        {!bubbleOnPage && kenji}
-      </div>
-    </>,
-    document.body,
+      {createPortal(
+        <>
+          {/* on the page too, so he moves with what he points at */}
+          {bubbleOnPage && (
+            <div
+              className="tour-page"
+              style={{ width: pageWidth, height: pageHeight }}
+            >
+              {kenji}
+            </div>
+          )}
+          {/* on the screen: pinned targets, and Kenji when he's out of the way */}
+          <div className="tour" aria-live="polite">
+            {!onPageLayer && veiled && (
+              <div
+                className="tour-veil"
+                style={
+                  showHole
+                    ? { clipPath: holePath(visibleBox(box!, floor)) }
+                    : undefined
+                }
+              />
+            )}
+            {!onPageLayer && showHole && (
+              <div
+                className="tour-stage"
+                style={{ clipPath: `inset(0 0 ${innerHeight - floor}px 0)` }}
+              >
+                {hole}
+              </div>
+            )}
+            {!bubbleOnPage && kenji}
+          </div>
+        </>,
+        document.body,
+      )}
+    </>
   );
 }

@@ -435,7 +435,9 @@
 }
 
 .fade-in {
-  animation: fadeIn 0.35s var(--ease) both;
+  /* not kept after it ends: a kept transform would wrap the page in its own
+     layer, and its sticky toolbar could no longer sit above the tour's highlight */
+  animation: fadeIn 0.35s var(--ease) backwards;
 }
 
 @keyframes fadeIn {
@@ -922,6 +924,11 @@
   /* never wider or taller than the page: a bubble near an edge mustn't scroll it */
   overflow: clip;
   pointer-events: none;
+}
+/* the highlight itself: under the shelf's sticky toolbar (z-5) and everything
+   fixed, which slide over it on scroll like they slide over the page */
+.tour-page-under {
+  z-index: 4;
 }
 .tour-veil {
   position: absolute;
