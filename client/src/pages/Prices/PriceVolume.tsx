@@ -331,151 +331,156 @@ export default function PriceVolume() {
         </header>
 
         <div className={styles.volumeBody}>
+          {/* one country's prices at a time */}
           {inCanada && <CanadaPrices isbn={book.isbn13} />}
-          <section aria-labelledby="offers-title">
-            <div className={styles.sectionHeadRow}>
-              <h2 id="offers-title" className={styles.sectionTitle}>
-                {inCanada ? "US prices" : "Prices"}
-              </h2>
-              <span className="flex items-center gap-3">
-                {checkedAt && (
-                  <span className={styles.checked}>
-                    checked {timeAgo(checkedAt)}
-                  </span>
-                )}
-                <CountrySwitch />
-              </span>
-            </div>
+          {!inCanada && (
+            <section aria-labelledby="offers-title">
+              <div className={styles.sectionHeadRow}>
+                <h2 id="offers-title" className={styles.sectionTitle}>
+                  Prices
+                </h2>
+                <span className="flex items-center gap-3">
+                  {checkedAt && (
+                    <span className={styles.checked}>
+                      checked {timeAgo(checkedAt)}
+                    </span>
+                  )}
+                  <CountrySwitch />
+                </span>
+              </div>
 
-            {offers.length > 0 ? (
-              <ul className={styles.offers} data-tour="offers">
-                {shownOffers.map((o) => {
-                  const condition = CONDITION[o.condition] ?? o.condition;
-                  const row = (
-                    <>
-                      <span className={styles.offerStore}>
-                        <span className={styles.offerName}>
-                          {o.store}
-                          {stampsOf(o).map(({ label, className }) => (
-                            <span key={label} className={className}>
-                              {label}
+              {offers.length > 0 ? (
+                <ul className={styles.offers} data-tour="offers">
+                  {shownOffers.map((o) => {
+                    const condition = CONDITION[o.condition] ?? o.condition;
+                    const row = (
+                      <>
+                        <span className={styles.offerStore}>
+                          <span className={styles.offerName}>
+                            {o.store}
+                            {stampsOf(o).map(({ label, className }) => (
+                              <span key={label} className={className}>
+                                {label}
+                              </span>
+                            ))}
+                          </span>
+                          <span className={styles.offerTags}>
+                            {condition}
+                            {!o.inStock && " · out of stock"}
+                          </span>
+                        </span>
+                        <span className={styles.offerPrice}>
+                          {formatCents(o.priceCents)}
+                        </span>
+                      </>
+                    );
+                    return (
+                      <li
+                        key={`${o.store}-${o.format}-${o.condition}`}
+                        className={o === highlighted ? styles.lowestOffer : ""}
+                      >
+                        {/* the whole row is the way to the store */}
+                        {o.url ? (
+                          <a
+                            className={styles.offerRow}
+                            href={o.url}
+                            target="_blank"
+                            rel={linkRel(o)}
+                            onClick={noteStoreClick}
+                            onAuxClick={noteStoreClick}
+                            aria-label={`${o.store}, ${formatCents(o.priceCents)}, ${condition}. Opens the store in a new tab`}
+                          >
+                            {row}
+                            <span className={styles.offerGo} aria-hidden>
+                              <span className="upto-720:hidden">
+                                Go to store
+                              </span>
+                              <ChevronRightIcon />
                             </span>
-                          ))}
-                        </span>
-                        <span className={styles.offerTags}>
-                          {condition}
-                          {!o.inStock && " · out of stock"}
-                        </span>
-                      </span>
-                      <span className={styles.offerPrice}>
-                        {formatCents(o.priceCents)}
-                      </span>
+                          </a>
+                        ) : (
+                          <span className={styles.offerRow}>{row}</span>
+                        )}
+                      </li>
+                    );
+                  })}
+                  {offers.length > VISIBLE_OFFERS && (
+                    <li className={styles.moreRow}>
+                      <button
+                        type="button"
+                        className={styles.textBtn}
+                        aria-expanded={offersOpen}
+                        onClick={() => setShowAll({ isbn, open: !offersOpen })}
+                      >
+                        {offersOpen
+                          ? "Show fewer"
+                          : `Show ${offers.length - VISIBLE_OFFERS} more`}
+                      </button>
+                    </li>
+                  )}
+                </ul>
+              ) : (
+                <p className={styles.note}>
+                  {liveSources.length ? (
+                    <>
+                      No live prices for this one right now. It's often still in
+                      stock, so{" "}
+                      <a href="#links-title">check the store links below</a> for
+                      Amazon, Barnes &amp; Noble and more.
                     </>
-                  );
-                  return (
-                    <li
-                      key={`${o.store}-${o.format}-${o.condition}`}
-                      className={o === highlighted ? styles.lowestOffer : ""}
-                    >
-                      {/* the whole row is the way to the store */}
-                      {o.url ? (
+                  ) : (
+                    <>
+                      Live prices aren't switched on yet.{" "}
+                      <a href="#links-title">Check the store links below</a> for
+                      now.
+                    </>
+                  )}
+                </p>
+              )}
+
+              {hiddenEbooks > 0 && (
+                <p className={styles.checked}>
+                  {hiddenEbooks} ebook {hiddenEbooks === 1 ? "price" : "prices"}{" "}
+                  hidden.{" "}
+                  <NavLink to="/settings/prices" viewTransition>
+                    Change in settings
+                  </NavLink>
+                </p>
+              )}
+
+              {otherStores.length > 0 && (
+                <div className={styles.otherStores}>
+                  <h3 id="links-title" className={styles.otherStoresTitle}>
+                    {offers.length > 0
+                      ? "Also worth checking, they could be cheaper:"
+                      : "Check price at:"}
+                  </h3>
+                  <ul className={styles.storeLinks}>
+                    {otherStores.map((s) => (
+                      <li key={s.store}>
                         <a
-                          className={styles.offerRow}
-                          href={o.url}
+                          href={s.url}
                           target="_blank"
-                          rel={linkRel(o)}
+                          rel={linkRel(s)}
                           onClick={noteStoreClick}
                           onAuxClick={noteStoreClick}
-                          aria-label={`${o.store}, ${formatCents(o.priceCents)}, ${condition}. Opens the store in a new tab`}
+                          aria-label={`${s.store}. Opens the store in a new tab`}
                         >
-                          {row}
-                          <span className={styles.offerGo} aria-hidden>
-                            <span className="upto-720:hidden">Go to store</span>
-                            <ChevronRightIcon />
-                          </span>
+                          {s.store}
                         </a>
-                      ) : (
-                        <span className={styles.offerRow}>{row}</span>
-                      )}
-                    </li>
-                  );
-                })}
-                {offers.length > VISIBLE_OFFERS && (
-                  <li className={styles.moreRow}>
-                    <button
-                      type="button"
-                      className={styles.textBtn}
-                      aria-expanded={offersOpen}
-                      onClick={() => setShowAll({ isbn, open: !offersOpen })}
-                    >
-                      {offersOpen
-                        ? "Show fewer"
-                        : `Show ${offers.length - VISIBLE_OFFERS} more`}
-                    </button>
-                  </li>
-                )}
-              </ul>
-            ) : (
-              <p className={styles.note}>
-                {liveSources.length ? (
-                  <>
-                    No live prices for this one right now. It's often still in
-                    stock, so{" "}
-                    <a href="#links-title">check the store links below</a> for
-                    Amazon, Barnes &amp; Noble and more.
-                  </>
-                ) : (
-                  <>
-                    Live prices aren't switched on yet.{" "}
-                    <a href="#links-title">Check the store links below</a> for
-                    now.
-                  </>
-                )}
-              </p>
-            )}
-
-            {hiddenEbooks > 0 && (
-              <p className={styles.checked}>
-                {hiddenEbooks} ebook {hiddenEbooks === 1 ? "price" : "prices"}{" "}
-                hidden.{" "}
-                <NavLink to="/settings/prices" viewTransition>
-                  Change in settings
-                </NavLink>
-              </p>
-            )}
-
-            {otherStores.length > 0 && (
-              <div className={styles.otherStores}>
-                <h3 id="links-title" className={styles.otherStoresTitle}>
-                  {offers.length > 0
-                    ? "Also worth checking, they could be cheaper:"
-                    : "Check price at:"}
-                </h3>
-                <ul className={styles.storeLinks}>
-                  {otherStores.map((s) => (
-                    <li key={s.store}>
-                      <a
-                        href={s.url}
-                        target="_blank"
-                        rel={linkRel(s)}
-                        onClick={noteStoreClick}
-                        onAuxClick={noteStoreClick}
-                        aria-label={`${s.store}. Opens the store in a new tab`}
-                      >
-                        {s.store}
-                      </a>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            )}
-            {storeLinks.some((s) => s.affiliate) && (
-              <p className={styles.disclosure}>
-                Some store links are affiliate links which will be used to keep
-                the server running.
-              </p>
-            )}
-          </section>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+              {storeLinks.some((s) => s.affiliate) && (
+                <p className={styles.disclosure}>
+                  Some store links are affiliate links which will be used to
+                  keep the server running.
+                </p>
+              )}
+            </section>
+          )}
 
           {history && (
             <details className={styles.historyFold}>
