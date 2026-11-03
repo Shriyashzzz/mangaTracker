@@ -6,6 +6,7 @@ import config from "../../config/config.js";
 import { prisma } from "../../config/prisma.js";
 import priceQueries from "../../models/priceQueries.js";
 import { searchSerpApi, serpApiEnabled } from "../providers/serpapiClient.js";
+import { ebayCampaignId } from "../affiliates.js";
 import type { Offer } from "../types.js";
 import {
   believableOffers,
@@ -27,6 +28,22 @@ export type CanadaPrices = {
   links: { store: string; url: string; affiliate: boolean }[];
 };
 
+// eBay Partner Network for ebay.ca: the same campaign as the US links, with
+// eBay Canada's own codes (mkrid 706-53473-19255-0, siteid 2), per EPN's generator
+const ebayCa = (url: string, source: string) => {
+  const campid = ebayCampaignId();
+  if (!campid) return url;
+  const link = new URL(url);
+  link.searchParams.set("mkcid", "1");
+  link.searchParams.set("mkrid", "706-53473-19255-0");
+  link.searchParams.set("siteid", "2");
+  link.searchParams.set("campid", campid);
+  link.searchParams.set("customid", source);
+  link.searchParams.set("toolid", "10001");
+  link.searchParams.set("mkevt", "1");
+  return link.toString();
+};
+
 // Amazon.ca with our Associates tag when there is one
 const amazonCa = (isbn13: string) => {
   const tag = config.CANADA_AMAZON_AFFILIATE;
@@ -46,8 +63,8 @@ const storeLinks = (isbn13: string) => [
   },
   {
     store: "eBay.ca",
-    url: `https://www.ebay.ca/sch/i.html?_nkw=${isbn13}`,
-    affiliate: false,
+    url: ebayCa(`https://www.ebay.ca/sch/i.html?_nkw=${isbn13}`, "ca-search"),
+    affiliate: Boolean(ebayCampaignId()),
   },
   {
     store: "Walmart.ca",
@@ -56,7 +73,8 @@ const storeLinks = (isbn13: string) => [
   },
 ];
 
-// Amazon.ca's row goes to Amazon.ca itself, with the tag, rather than through Google
+// Amazon.ca's row goes to Amazon.ca itself, with the tag, rather than through
+// Google; eBay.ca's rows get eBay Canada's tracking
 const withLinks = (
   isbn13: string,
   result: Omit<CanadaPrices, "links">,
@@ -69,7 +87,13 @@ const withLinks = (
           url: amazonCa(isbn13),
           affiliate: Boolean(config.CANADA_AMAZON_AFFILIATE),
         }
-      : o,
+      : o.store === "eBay.ca" && o.url
+        ? {
+            ...o,
+            url: ebayCa(o.url, "ca-listing"),
+            affiliate: Boolean(ebayCampaignId()),
+          }
+        : o,
   ),
   links: storeLinks(isbn13),
 });

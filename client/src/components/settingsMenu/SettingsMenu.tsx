@@ -2,8 +2,14 @@ import { useEffect, useRef, useState } from "react";
 import { NavLink, useLocation } from "react-router";
 import {
   CheckIcon,
-  SettingsIcon,
+  ChevronRightIcon,
+  CoffeeIcon,
+  ImportIcon,
+  InfoIcon,
   MoonIcon,
+  SettingsIcon,
+  ShareIcon,
+  SignOutIcon,
   SunIcon,
   TagIcon,
 } from "../icons/Icons";
@@ -42,6 +48,26 @@ const THUMBS: Record<Background, string> = {
 
 const THEME_BUTTON = "menu-theme-button";
 
+// a dashed rule between groups of the menu
+const divider = (
+  <li
+    className="mx-[0.6rem] my-[0.35rem] h-0 border-t-[1.5px] border-dashed border-line-soft"
+    aria-hidden
+  />
+);
+
+// the same rule, only where the rows above it show: phones
+const phoneDivider = (
+  <li
+    className="mx-[0.6rem] my-[0.35rem] hidden h-0 border-t-[1.5px] border-dashed border-line-soft upto-720:block"
+    aria-hidden
+  />
+);
+
+// the signed-in head of the menu: their picture, name and settings
+const profileRow =
+  "flex w-full items-center gap-3 rounded-[3px] px-[0.6rem] py-[0.5rem] transition-colors duration-120 hover:bg-accent-wash focus-visible:bg-accent-wash";
+
 const styles_guestMenu =
   "tap flex items-center gap-1.5 text-[0.95rem] text-ink-soft transition-colors duration-150 hover:text-ink [&_svg]:size-5";
 
@@ -55,6 +81,9 @@ type Props = {
 
 export default function SettingsMenu({ isSignedIn, onLogOut }: Props) {
   const avatar = useAccount((s) => s.account?.avatar);
+  const name = useAccount(
+    (s) => s.account?.displayName || s.account?.defaultName,
+  );
   const loadAccount = useAccount((s) => s.load);
   const clearAccount = useAccount((s) => s.clear);
   // the button is their picture, so it needs the account from the start
@@ -186,26 +215,28 @@ export default function SettingsMenu({ isSignedIn, onLogOut }: Props) {
                 </ul>
               </li>
 
-              <li
-                className="mx-[0.6rem] my-[0.35rem] h-0 border-t-[1.5px] border-dashed border-line-soft"
-                aria-hidden
-              />
+              {divider}
             </>
           )}
 
-          <li>
-            <button id={THEME_BUTTON} className={item} onClick={flipTheme}>
-              {theme === "dark" ? <SunIcon /> : <MoonIcon />}
-              {theme === "dark" ? "Light mode" : "Dark mode"}
-            </button>
-          </li>
+          {/* who's signed in, and the way to everything about them */}
           {isSignedIn && (
             <>
               <li>
-                <NavLink to="/settings" className={item} viewTransition>
-                  Profile and settings
+                <NavLink to="/settings" className={profileRow} viewTransition>
+                  <Avatar id={avatar} className="w-10 shrink-0" />
+                  <span className="flex min-w-0 flex-col">
+                    <span className="truncate font-semibold text-ink">
+                      {name ?? "Your profile"}
+                    </span>
+                    <span className="text-[0.82rem] text-ink-soft">
+                      Profile and settings
+                    </span>
+                  </span>
+                  <ChevronRightIcon className="ml-auto size-4 shrink-0 text-ink-soft" />
                 </NavLink>
               </li>
+              {divider}
               {/* laptops have these on the shelf */}
               <li className="hidden upto-720:block">
                 <NavLink
@@ -213,6 +244,7 @@ export default function SettingsMenu({ isSignedIn, onLogOut }: Props) {
                   className={item}
                   viewTransition
                 >
+                  <ShareIcon />
                   Share my list
                 </NavLink>
               </li>
@@ -224,11 +256,20 @@ export default function SettingsMenu({ isSignedIn, onLogOut }: Props) {
                   data-tour="import-link"
                   viewTransition
                 >
+                  <ImportIcon />
                   Import your list
                 </NavLink>
               </li>
+              {phoneDivider}
             </>
           )}
+
+          <li>
+            <button id={THEME_BUTTON} className={item} onClick={flipTheme}>
+              {theme === "dark" ? <SunIcon /> : <MoonIcon />}
+              {theme === "dark" ? "Light mode" : "Dark mode"}
+            </button>
+          </li>
           {/* where prices come from; stays open, like light/dark */}
           <li>
             <button
@@ -250,8 +291,10 @@ export default function SettingsMenu({ isSignedIn, onLogOut }: Props) {
               )}
             </button>
           </li>
+          {divider}
           <li>
             <NavLink to="/about" className={item} viewTransition>
+              <InfoIcon />
               About
             </NavLink>
           </li>
@@ -263,15 +306,20 @@ export default function SettingsMenu({ isSignedIn, onLogOut }: Props) {
               className={item}
               onClick={stopAsking}
             >
+              <CoffeeIcon />
               Support me
             </a>
           </li>
           {isSignedIn && (
-            <li>
-              <button className={item} onClick={onLogOut}>
-                Sign out
-              </button>
-            </li>
+            <>
+              {divider}
+              <li>
+                <button className={item} onClick={onLogOut}>
+                  <SignOutIcon />
+                  Sign out
+                </button>
+              </li>
+            </>
           )}
         </ul>
       )}
