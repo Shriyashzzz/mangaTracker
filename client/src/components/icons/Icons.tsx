@@ -120,3 +120,30 @@ export const TagIcon = (props: IconProps) => (
     <circle cx="7.5" cy="7.5" r="1.5" />
   </svg>
 );
+
+// sending something out: sharing a list
+export const ShareIcon = (props: IconProps) => (
+  <svg {...base} {...props}>
+    <path d="M12 3v12M7 8l5-5 5 5M5 13v6a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-6" />
+  </svg>
+);
+
+// bringing something in: importing a list
+export const ImportIcon = (props: IconProps) => (
+  <svg {...base} {...props}>
+    <path d="M12 3v12M7 10l5 5 5-5M5 19h14" />
+  </svg>
+);
+
+export const InfoIcon = (props: IconProps) => (
+  <svg {...base} {...props}>
+    <circle cx="12" cy="12" r="9" />
+    <path d="M12 11v5M12 7.5v.5" />
+  </svg>
+);
+
+export const SignOutIcon = (props: IconProps) => (
+  <svg {...base} {...props}>
+    <path d="M14 4H6a1 1 0 0 0-1 1v14a1 1 0 0 0 1 1h8M10 12h10M17 9l3 3-3 3" />
+  </svg>
+);
