@@ -34,7 +34,7 @@ export type BookSeries = {
 
 // RFC 4180: quoted fields can hold commas, quotes ("") and line breaks
 export function parseCsv(text: string): string[][] {
-  const clean = text.replace(/^﻿/, "");
+  const clean = text.replace(/^\uFEFF/, "");
   const firstLine = clean.slice(0, clean.search(/\r?\n|$/));
   const delimiter = [",", ";", "\t"].reduce((best, d) =>
     firstLine.split(d).length > firstLine.split(best).length ? d : best,
@@ -72,9 +72,15 @@ export function parseCsv(text: string): string[][] {
 
 // ---------- series and volume numbers ----------
 
+// a special edition is still the same series: "Berserk Deluxe Edition" is Berserk
+const EDITION =
+  /[\s,:(\-–—]+(deluxe|omnibus|collector'?s|perfect|ultimate|master|complete|box ?set|\d-in-\d|\d+ ?in ?\d+)( edition)?\)?$/i;
+
 const tidy = (name: string) =>
   name
     .replace(/\s+/g, " ")
+    .replace(/[\s,:;.\-–—]+$/, "")
+    .replace(EDITION, "")
     .replace(/[\s,:;.\-–—]+$/, "")
     .trim();
 
