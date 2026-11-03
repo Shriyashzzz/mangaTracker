@@ -11,9 +11,6 @@ const ACCOUNT_KEY = "demoAccount";
 const PREFS_KEY = "demoPrefs";
 const START_MARK = "beforeTour";
 const TOUR_START = "/shelf";
-// what this browser had saved before the tour, put back after it. Trying a theme or
-// compact rows on the practice shelf shouldn't change the real ones
-const SAVED_KEY = "demoSavedLocal";
 const COVER = "https://s4.anilist.co/file/anilistcdn/media/manga/cover/large";
 
 export const isDemo = () => {
@@ -95,12 +92,9 @@ export function startDemo() {
     if (window.location.pathname === TOUR_START) {
       history.pushState(null, "", TOUR_START);
     }
+    // nothing from a guest's visit comes along
+    sessionStorage.clear();
     sessionStorage.setItem(ON_KEY, "on");
-    sessionStorage.setItem(SAVED_KEY, JSON.stringify({ ...localStorage }));
-    sessionStorage.removeItem(SHELF_KEY);
-    sessionStorage.removeItem(ACCOUNT_KEY);
-    sessionStorage.removeItem(PREFS_KEY);
-    sessionStorage.removeItem("demoTourStep");
     sessionStorage.setItem("libraryStatus", "all");
   } catch {
     return;
@@ -108,24 +102,11 @@ export function startDemo() {
   window.location.assign(TOUR_START);
 }
 
+// everything the tour keeps is in this tab's sessionStorage: practice shelf, settings,
+// remembered pages and filters. So leaving takes it all, and nothing carries over
 function clearDemo() {
   try {
-    const saved = sessionStorage.getItem(SAVED_KEY);
-    if (saved) {
-      localStorage.clear();
-      for (const [key, value] of Object.entries(
-        JSON.parse(saved) as Record<string, string>,
-      )) {
-        localStorage.setItem(key, value);
-      }
-    }
-    sessionStorage.removeItem(ON_KEY);
-    sessionStorage.removeItem(SAVED_KEY);
-    sessionStorage.removeItem(SHELF_KEY);
-    sessionStorage.removeItem(ACCOUNT_KEY);
-    sessionStorage.removeItem(PREFS_KEY);
-    sessionStorage.removeItem("demoTourStep");
-    sessionStorage.removeItem("libraryStatus");
+    sessionStorage.clear();
   } catch {
     /* nothing to tidy */
   }
@@ -262,7 +243,8 @@ const sampleOffer = (
 });
 
 function volumePage(isbn: string, shelf: Manga[]) {
-  const manga = shelf[0]!;
+  // One Piece, wherever it is on the shelf and even if they've deleted it
+  const manga = shelf.find((m) => m.id === 1) ?? STARTING_SHELF[0]!;
   const volume = Number(isbn.slice(-4)) || NEW_VOLUME;
   const series = { name: manga.name, slug: "one-piece", info: null };
   return {

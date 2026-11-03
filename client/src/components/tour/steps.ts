@@ -21,6 +21,9 @@ type Line = {
   // leaving this page means they're done with it, like adding a manga opens that
   // manga's page, so coming back to the tour carries on instead of returning here
   doneOnLeaving?: boolean;
+  // a switch that makes the next step's target appear: using it again would hide
+  // that, so the tour only moves on once it's showing
+  opensNext?: boolean;
   // only there after the step before, so Back skips over it: the red bar's dates
   needsLastStep?: boolean;
   // open the shelf on All, rather than the tab they last had
@@ -102,6 +105,7 @@ const PARTS: { name: string; lines: Line[] }[] = [
       {
         path: MANGA,
         target: "release-toggle",
+        opensNext: true,
         focus: true,
         say: "Psst! This red bar means something new is out, past where you are. It opens to show the dates.",
         tap: true,
@@ -182,6 +186,7 @@ const PARTS: { name: string; lines: Line[] }[] = [
       {
         path: "/settings/profile",
         target: "share-toggle",
+        opensNext: true,
         focus: true,
         say: "Want friends to see your list? This turns sharing on. It's off until you say so.",
         tap: true,

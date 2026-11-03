@@ -3,7 +3,7 @@
 // so people can really try things; only a few big moments blur the rest (step.focus).
 // Wandering off is fine: he waits, and offers the way back. If a step's button can't
 // be found he says his line anyway and offers a way on, so nothing can trap anyone.
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useReducer, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useLocation, useNavigate } from "react-router";
 import { hasBottomBar } from "../../lib/bottomBar";
@@ -21,6 +21,7 @@ const BUBBLE_GAP = 26;
 const SCREEN_MARGIN = 12;
 const RING_INSET = 3;
 const WIDE_SCREEN = 1024;
+const SWITCH_SETTLES_MS = 200;
 const BOTTOM_BAR = 59;
 
 type Box = { top: number; left: number; width: number; height: number };
@@ -55,6 +56,8 @@ export default function Tour() {
   const [box, setBox] = useState<Box | null>(null);
   const [lost, setLost] = useState(false);
   const [settled, setSettled] = useState(false);
+  // he's placed from the screen's size, so a rotated phone has to place him again
+  const [, onScreenChange] = useReducer((n: number) => n + 1, 0);
   const [bubbleHeight, setBubbleHeight] = useState(180);
   const bubble = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
@@ -165,6 +168,7 @@ export default function Tour() {
   // tapping the real thing does its job, and moves the tour on
   useEffect(() => {
     if (!step.tap || !step.target) return;
+    let opening: ReturnType<typeof setTimeout>;
     const onClick = (e: MouseEvent) => {
       const clicked = e.target as Element | null;
       // the real control, not just somewhere near it
@@ -172,12 +176,27 @@ export default function Tour() {
         clicked?.closest(`[data-tour="${step.target}"]`) &&
         clicked.closest("a, button, input, label")
       ) {
-        goTo(index + 1);
+        if (!step.opensNext) {
+          goTo(index + 1);
+          return;
+        }
+        // switched off instead of on: stay here
+        opening = setTimeout(() => {
+          if (findTarget(TOUR_STEPS[index + 1]!.target!)) goTo(index + 1);
+        }, SWITCH_SETTLES_MS);
       }
     };
     document.addEventListener("click", onClick);
-    return () => document.removeEventListener("click", onClick);
+    return () => {
+      clearTimeout(opening);
+      document.removeEventListener("click", onClick);
+    };
   }, [step, index, goTo]);
+
+  useEffect(() => {
+    window.addEventListener("resize", onScreenChange);
+    return () => window.removeEventListener("resize", onScreenChange);
+  }, []);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -190,15 +209,12 @@ export default function Tour() {
     return () => document.removeEventListener("keydown", onKey);
   }, []);
 
-  // screen readers and keyboards go to what he's saying
-  useEffect(() => {
-    bubble.current?.focus({ preventScroll: true });
-  }, [index, lost]);
-
   // Next does what the step was about, so what comes after has what it needs: the
   // dates are only there once the red bar is open
   const next = () => {
-    if (step.tap && step.target) findTarget(step.target)?.click();
+    const upcoming = TOUR_STEPS[index + 1]?.target;
+    const alreadyOpen = step.opensNext && upcoming && findTarget(upcoming);
+    if (step.tap && step.target && !alreadyOpen) findTarget(step.target)?.click();
     goTo(index + 1);
   };
 
@@ -257,6 +273,11 @@ export default function Tour() {
 
   // waiting for the page: no veil over a page that's still arriving
   const waiting = Boolean(step.target) && onPage && !box && !lost;
+
+  // screen readers and keyboards go to what he's saying, once he can be seen
+  useEffect(() => {
+    if (!waiting) bubble.current?.focus({ preventScroll: true });
+  }, [index, lost, waiting]);
 
   // on <body>, above things like the shelf's add button that live there too
   return createPortal(
