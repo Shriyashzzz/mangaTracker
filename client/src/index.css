@@ -1113,6 +1113,19 @@ body:has([role="listbox"]) :is(.tour-bubble, .tour-pointer) {
     transform: translateY(-6px);
   }
 }
+.tour-pointer-left {
+  transform: rotate(90deg);
+  animation-name: tour-bob-left;
+}
+@keyframes tour-bob-left {
+  0%,
+  100% {
+    transform: rotate(90deg);
+  }
+  50% {
+    transform: rotate(90deg) translateY(-6px);
+  }
+}
 @keyframes tour-bob-up {
   0%,
   100% {
@@ -1128,5 +1141,8 @@ body:has([role="listbox"]) :is(.tour-bubble, .tour-pointer) {
   }
   .tour-pointer-below {
     transform: rotate(180deg);
+  }
+  .tour-pointer-left {
+    transform: rotate(90deg);
   }
 }

@@ -28,6 +28,8 @@ type Line = {
   needsLastStep?: boolean;
   // a big page he'd cover: he sits above it instead, scrolling with it
   onTop?: boolean;
+  // on a wide enough screen, beside the section's right edge instead
+  besideIfRoom?: boolean;
   // open the shelf on All, rather than the tab they last had
   allTab?: boolean;
 };
@@ -149,6 +151,7 @@ const PARTS: { name: string; lines: Line[] }[] = [
         path: "/settings/profile",
         target: "profile",
         onTop: true,
+        besideIfRoom: true,
         say: "Your profile: pick a picture and a name, and share your list with friends if you like. Sharing stays off until you turn it on.",
       },
       {

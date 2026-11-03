@@ -21,6 +21,7 @@ const BUBBLE_GAP = 26;
 const SCREEN_MARGIN = 12;
 const RING_INSET = 3;
 const SWITCH_SETTLES_MS = 200;
+const MIN_SIDE_WIDTH = 280;
 const BOTTOM_BAR = 59;
 
 type Box = { top: number; left: number; width: number; height: number };
@@ -266,7 +267,15 @@ export default function Tour() {
     roomBelow >= bubbleHeight && (roomAbove < bubbleHeight || holeMiddle < innerHeight / 2);
   // too big to sit beside: at the bottom, staying put however far they scroll. The
   // big pages marked onTop have him above the section instead, moving with it
-  const bubbleTop = inCorner
+  // room to the right of the section, for the steps that would rather sit there
+  const sideRoom = box
+    ? // the page's width, without the scrollbar
+      document.documentElement.clientWidth - (box.left + box.width) - BUBBLE_GAP - SCREEN_MARGIN
+    : 0;
+  const beside = Boolean(step.besideIfRoom) && showHole && sideRoom >= MIN_SIDE_WIDTH;
+  const bubbleTop = beside
+    ? box!.top
+    : inCorner
     ? innerHeight - bubbleHeight - SCREEN_MARGIN - (hasBottomBar() ? BOTTOM_BAR : 0)
     : step.onTop && showHole
     ? // above the section, scrolling with it. At the very top of the page there
@@ -284,7 +293,9 @@ export default function Tour() {
         innerHeight - bubbleHeight - SCREEN_MARGIN,
       );
   // in the corner of a wide screen he stays beside the page's column, not over it
-  const bubbleWidth = Math.min(340, innerWidth - SCREEN_MARGIN * 2);
+  const bubbleWidth = beside
+    ? Math.min(340, sideRoom)
+    : Math.min(340, innerWidth - SCREEN_MARGIN * 2);
 
   // the real measurement lets the bubble sit clear of the hole
   useEffect(() => {
@@ -293,7 +304,9 @@ export default function Tour() {
 
   const holeCenter = box ? box.left + box.width / 2 : innerWidth / 2;
   // a section too big to sit beside: at the bottom, centered under it
-  const bubbleLeft = !showHole
+  const bubbleLeft = beside
+    ? box!.left + box!.width + BUBBLE_GAP
+    : !showHole
     ? (innerWidth - bubbleWidth) / 2
     : Math.min(
         Math.max(SCREEN_MARGIN, holeCenter - bubbleWidth / 2),
@@ -363,11 +376,17 @@ export default function Tour() {
           {step.focus && !step.tap && <div className="tour-shield" style={box!} />}
           {(step.onTop || (fits && !inCorner)) && (
             <svg
-              className={`tour-pointer ${below ? "tour-pointer-below" : ""}`}
-              style={{
-                left: pointerLeft - 16,
-                top: below ? box!.top + box!.height + 2 : box!.top - 26,
-              }}
+              className={`tour-pointer ${
+                beside ? "tour-pointer-left" : below ? "tour-pointer-below" : ""
+              }`}
+              style={
+                beside
+                  ? { left: box!.left + box!.width - 2, top: box!.top + 30 }
+                  : {
+                      left: pointerLeft - 16,
+                      top: below ? box!.top + box!.height + 2 : box!.top - 26,
+                    }
+              }
               viewBox="0 0 32 24"
               aria-hidden
             >
