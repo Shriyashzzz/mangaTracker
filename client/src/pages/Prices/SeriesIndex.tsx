@@ -1,5 +1,5 @@
 import type { SeriesIndexEntry } from "../../lib/types";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { NavLink, useSearchParams } from "react-router";
 import { getSeriesIndex, seriesCanonicalPath } from "../../lib/prices";
 import { usePageMeta } from "../../lib/seo";
@@ -7,12 +7,19 @@ import SeriesCard from "./SeriesCard";
 import { pickGenre } from "../../lib/anilist";
 import Mascot from "../../components/mascot/Mascot";
 import SlowLoadQuote from "../../components/slowLoadQuote/SlowLoadQuote";
+import RangePager from "../../components/rangePager/RangePager";
 import { pricesStyles as styles } from "./styles";
+
+const PAGE_SIZE = 20;
 
 // the letter a series files under: "The Apothecary Diaries" under A, and
 // anything not starting with a letter under #
 const letterOf = (name: string) => {
-  const first = name.replace(/^the\s+/i, "").trim()[0]?.toUpperCase() ?? "#";
+  const first =
+    name
+      .replace(/^the\s+/i, "")
+      .trim()[0]
+      ?.toUpperCase() ?? "#";
   return /[A-Z]/.test(first) ? first : "#";
 };
 const sortName = (name: string) => name.replace(/^the\s+/i, "").toLowerCase();
@@ -61,7 +68,7 @@ export default function SeriesIndex() {
     // a filtered list is the same page; only the full list gets indexed
     noindex: Boolean(genre || params.get("sort")),
     jsonLd: all?.length
-      ? ({
+      ? {
           "@context": "https://schema.org",
           "@type": "ItemList",
           name: "Manga series",
@@ -72,27 +79,72 @@ export default function SeriesIndex() {
             name: s.name,
             url: new URL(seriesCanonicalPath(s.name), location.origin).href,
           })),
-        })
+        }
       : undefined,
   });
 
+  // a new sort or genre starts again from the first page
   const setChoice = (key: string, value: string) => {
     const next = new URLSearchParams(params);
     if (value) next.set(key, value);
     else next.delete(key);
+    if (key !== "page") next.delete("page");
     setParams(next, { replace: true });
   };
+
+  // 20 at a time, the page in the URL so it can be shared
+  const pages = Math.max(1, Math.ceil(shown.length / PAGE_SIZE));
+  const page =
+    Math.min(Math.max(Number(params.get("page")) || 1, 1), pages) - 1;
+  const pageItems = shown.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
+  const scrollTo = useRef<string | null>(null);
+  const goToPage = (index: number, then?: string) => {
+    scrollTo.current = then ?? "series-list";
+    setChoice("page", index ? String(index + 1) : "");
+  };
+  // once the new page has drawn: to a letter on it, or to the top of the list
+  useEffect(() => {
+    if (!scrollTo.current) return;
+    document
+      .getElementById(scrollTo.current)
+      ?.scrollIntoView({ behavior: "smooth", block: "start" });
+    scrollTo.current = null;
+  }, [page, sort]);
+  const pager = (
+    <RangePager
+      total={shown.length}
+      pageSize={PAGE_SIZE}
+      page={page}
+      onChange={(index) => goToPage(index)}
+      label="Series pages"
+      labelFor={(start, end) =>
+        sort === "az"
+          ? `${letterOf(shown[start]!.name)}–${letterOf(shown[Math.min(end, shown.length - 1)]!.name)}`
+          : `${start + 1}–${Math.min(end + 1, shown.length)}`
+      }
+    />
+  );
 
   // A to Z: grouped under letter headings, with a bar to jump between them
   const groups = useMemo(() => {
     if (sort !== "az") return null;
     const map = new Map<string, SeriesIndexEntry[]>();
-    for (const s of shown) {
+    for (const s of pageItems) {
       const l = letterOf(s.name);
       if (!map.has(l)) map.set(l, []);
       map.get(l)!.push(s);
     }
     return [...map];
+  }, [pageItems, sort]);
+  // every letter, wherever it is: tapping one opens its page
+  const letters = useMemo(() => {
+    if (sort !== "az") return [];
+    const first = new Map<string, number>();
+    shown.forEach((s, i) => {
+      const l = letterOf(s.name);
+      if (!first.has(l)) first.set(l, i);
+    });
+    return [...first];
   }, [shown, sort]);
 
   return (
@@ -155,7 +207,9 @@ export default function SeriesIndex() {
             <Mascot mood="confused" />
           </span>
           <p className={styles.emptyTitle}>
-            {state.error ? "The list didn't load." : "Nothing in that genre yet."}
+            {state.error
+              ? "The list didn't load."
+              : "Nothing in that genre yet."}
           </p>
           <p>
             {state.error
@@ -169,12 +223,20 @@ export default function SeriesIndex() {
       ) : groups ? (
         <>
           <nav className={styles.letterBar} aria-label="Jump to letter">
-            {groups.map(([letter]) => (
-              <a key={letter} href={`#letter-${letter}`}>
+            {letters.map(([letter, index]) => (
+              <a
+                key={letter}
+                href={`#letter-${letter}`}
+                onClick={(e) => {
+                  e.preventDefault();
+                  goToPage(Math.floor(index / PAGE_SIZE), `letter-${letter}`);
+                }}
+              >
                 {letter}
               </a>
             ))}
           </nav>
+          <div id="series-list" className="scroll-mt-4" />
           {groups.map(([letter, list]) => (
             <section
               key={letter}
@@ -194,15 +256,20 @@ export default function SeriesIndex() {
               </ul>
             </section>
           ))}
+          {pager}
         </>
       ) : (
-        <ul className={styles.grid}>
-          {shown.map((s) => (
-            <li key={s.name}>
-              <SeriesCard series={{ ...s, genre: pickGenre(s.genres) }} />
-            </li>
-          ))}
-        </ul>
+        <>
+          <div id="series-list" className="scroll-mt-4" />
+          <ul className={styles.grid}>
+            {pageItems.map((s) => (
+              <li key={s.name}>
+                <SeriesCard series={{ ...s, genre: pickGenre(s.genres) }} />
+              </li>
+            ))}
+          </ul>
+          {pager}
+        </>
       )}
     </div>
   );
