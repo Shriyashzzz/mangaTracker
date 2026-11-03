@@ -8,16 +8,22 @@ export const titleKey = (name: string) =>
   slugify(name).replaceAll("-", "") || name.replace(/\s+/g, "").toLowerCase();
 
 // the manga and the light novel of a series can both be on a shelf
+// the manga and the light novel of a series are two entries: the format is
+// part of the key. Book imports group the same way in client/src/lib/imports
+export const shelfKey = (key: string, lightNovel: boolean) =>
+  lightNovel ? `${key} (light novel)` : key;
+
 export const isOnShelf = (
   name: string,
   shelf: { id: number; name: string; lightNovel?: boolean }[],
   // an edit can keep its own name
   exceptId?: number,
   lightNovel = false,
-) =>
-  shelf.some(
+) => {
+  const wanted = shelfKey(titleKey(name), lightNovel);
+  return shelf.some(
     (m) =>
       m.id !== exceptId &&
-      Boolean(m.lightNovel) === lightNovel &&
-      titleKey(m.name) === titleKey(name),
+      shelfKey(titleKey(m.name), Boolean(m.lightNovel)) === wanted,
   );
+};

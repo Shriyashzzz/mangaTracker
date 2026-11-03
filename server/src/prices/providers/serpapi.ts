@@ -13,12 +13,7 @@ import {
 } from "../stores/retailers.js";
 import type { Offer, Provider } from "../types.js";
 import { searchSerpApi, serpApiEnabled } from "./serpapiClient.js";
-
-const USED = /\b(used|pre-?owned|refurbished|second-?hand)\b/i;
-
-// digital storefronts: their "price" is an ebook
-const DIGITAL =
-  /\b(bookwalker|kindle|kobo|comixology|google play|apple books|nook)\b/i;
+import { DIGITAL, USED } from "../offerHelpers.js";
 
 // a single paperback volume sits in a narrow band; listings far outside it
 // are case packs, collector lots or mislabeled sets. Bulk listings can

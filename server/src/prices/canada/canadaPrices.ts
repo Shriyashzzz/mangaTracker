@@ -6,7 +6,11 @@ import config from "../../config/config.js";
 import { prisma } from "../../config/prisma.js";
 import priceQueries from "../../models/priceQueries.js";
 import { searchSerpApi, serpApiEnabled } from "../providers/serpapiClient.js";
-import { ebayCampaignId } from "../stores/affiliates.js";
+import {
+  EBAY_CA,
+  ebayAffiliateUrl,
+  ebayCampaignId,
+} from "../stores/affiliates.js";
 import type { Offer } from "../types.js";
 import {
   believableOffers,
@@ -31,26 +35,9 @@ export type CanadaPrices = {
 };
 
 // eBay Partner Network for ebay.ca: the same campaign as the US links, with
-// eBay Canada's own codes (mkrid 706-53473-19255-0, siteid 2), per EPN's generator
-const ebayCa = (url: string, source: string) => {
-  const campid = ebayCampaignId();
-  if (!campid) return url;
-  let link: URL;
-  try {
-    link = new URL(url);
-  } catch {
-    // an odd link stays as it came rather than breaking the whole answer
-    return url;
-  }
-  link.searchParams.set("mkcid", "1");
-  link.searchParams.set("mkrid", "706-53473-19255-0");
-  link.searchParams.set("siteid", "2");
-  link.searchParams.set("campid", campid);
-  link.searchParams.set("customid", source);
-  link.searchParams.set("toolid", "10001");
-  link.searchParams.set("mkevt", "1");
-  return link.toString();
-};
+// eBay Canada's own codes
+const ebayCa = (url: string, source: string) =>
+  ebayAffiliateUrl(url, source, EBAY_CA);
 
 // Amazon.ca with our Associates tag when there is one
 const amazonCa = (isbn13: string) => {

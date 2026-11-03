@@ -17,19 +17,31 @@ export const walmartAffiliate = () => config.WALMART_AFFILIATE === "on";
 // https://developer.ebay.com/api-docs/buy/static/ref-epn-link.html
 const EBAY_US_ROTATION_ID = "711-53200-19255-0";
 
+// eBay Canada's own codes, per EPN's link generator
+export const EBAY_CA = { rotationId: "706-53473-19255-0", siteId: "2" };
+const EBAY_US = { rotationId: EBAY_US_ROTATION_ID, siteId: "0" };
+
 // matches the links EPN's own "Create a promotable link" makes. `source`
-// becomes the customid, so EPN reports show which part of the app earned
+// becomes the customid, so EPN reports show which part of the app earned.
+// ebay.com unless `site` says otherwise (EBAY_CA for ebay.ca). A link that
+// can't be read stays as it came
 export function ebayAffiliateUrl<T extends string | null | undefined>(
   url: T,
   source?: string,
+  site: { rotationId: string; siteId: string } = EBAY_US,
 ): T {
   const campid = ebayCampaignId();
   if (!campid || !url) return url;
-  const link = new URL(url);
+  let link: URL;
+  try {
+    link = new URL(url);
+  } catch {
+    return url;
+  }
   // a campid already on it is someone else's: ours replaces it
   link.searchParams.set("mkcid", "1"); // eBay Partner Network
-  link.searchParams.set("mkrid", EBAY_US_ROTATION_ID);
-  link.searchParams.set("siteid", "0"); // ebay.com
+  link.searchParams.set("mkrid", site.rotationId);
+  link.searchParams.set("siteid", site.siteId);
   link.searchParams.set("campid", campid);
   if (source) link.searchParams.set("customid", source);
   link.searchParams.set("toolid", "10001");

@@ -289,6 +289,7 @@ export function groupBooks(books: Book[]): BookSeries[] {
   const groups = new Map<string, Book[]>();
   for (const book of books) {
     const name = seriesKey(book.series);
+    // as the server keys them (server/src/util/shelf/titleKey.ts shelfKey)
     const key = name && (book.lightNovel ? `${name} (light novel)` : name);
     if (key) groups.set(key, [...(groups.get(key) ?? []), book]);
   }

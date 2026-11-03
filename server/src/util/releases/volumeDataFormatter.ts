@@ -44,7 +44,7 @@ export type MangaDexChapter = {
     volume: string | null;
     chapter: string | null;
     publishAt: string;
-    [key: string]: any;
+    [key: string]: unknown;
   };
 };
 

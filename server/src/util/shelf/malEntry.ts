@@ -1,6 +1,6 @@
 // One manga from a MyAnimeList export, as a shelf entry. AniList is asked about
 // it by its MyAnimeList id, which is exact, for the English title, cover and genre.
-import { titleKey } from "./titleKey.js";
+import { shelfKey, titleKey } from "./titleKey.js";
 
 export type MalEntry = {
   malId?: number;
@@ -63,6 +63,4 @@ export const namesOf = (entry: MalEntry, listing: MalListing | null) =>
     .map(titleKey)
     .filter(Boolean);
 
-// the manga and the light novel of a series are two entries
-export const shelfKey = (key: string, lightNovel: boolean) =>
-  lightNovel ? `${key} (light novel)` : key;
+export { shelfKey };

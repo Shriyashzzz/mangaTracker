@@ -13,11 +13,14 @@ import {
   plausiblePrice,
 } from "../stores/retailers.js";
 import type { Offer } from "../types.js";
+import {
+  DIGITAL,
+  USED,
+  cheapestOfEach,
+  shippingCents,
+  toCents,
+} from "../offerHelpers.js";
 
-const USED = /\b(used|pre-?owned|refurbished|second-?hand)\b/i;
-const DIGITAL =
-  /\b(bookwalker|kindle|kobo|comixology|google play|apple books|nook)\b/i;
-const toCents = (dollars: number) => Math.round(dollars * 100);
 
 export type CaShoppingResult = {
   title?: string;
@@ -35,17 +38,6 @@ export type CaEbayResult = {
   condition?: string;
   shipping?: string | { extracted?: number };
   price?: { extracted?: number; from?: unknown };
-};
-
-// the cheapest of each store + format + condition
-const cheapestOfEach = (offers: Offer[]) => {
-  const best = new Map<string, Offer>();
-  for (const o of offers) {
-    const key = `${o.store}|${o.format}|${o.condition}`;
-    const current = best.get(key);
-    if (!current || o.priceCents < current.priceCents) best.set(key, o);
-  }
-  return [...best.values()];
 };
 
 // Google Shopping, Canada: Amazon.ca, Indigo, World of Books and the rest
@@ -81,15 +73,6 @@ export function shoppingOffers(
   }
   return cheapestOfEach(offers);
 }
-
-const shippingCents = (shipping: CaEbayResult["shipping"]) => {
-  if (typeof shipping === "object") {
-    return shipping.extracted === undefined
-      ? null
-      : toCents(shipping.extracted);
-  }
-  return /free/i.test(shipping ?? "") ? 0 : null;
-};
 
 // eBay.ca by ISBN: anything that ships to Canada, priced with shipping
 export function ebayCaOffers(results: CaEbayResult[], title: string): Offer[] {

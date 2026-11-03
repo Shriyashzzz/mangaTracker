@@ -47,11 +47,11 @@ export function toIsbn13(raw: unknown): string | null {
 // Open Library sometimes puts the Japanese title alongside the English one,
 // e.g. "Jujutsu Kaisen, Vol. 2 (呪術廻戦 Jujutsu Kaisen #2)". Our readers are
 // in the US, so keep the English part only
-const JAPANESE = /[　-ヿ㐀-鿿＀-￯]/;
+const JAPANESE = /[\u3000-ヿ㐀-鿿＀-￯]/;
 const englishTitle = (title: string) =>
   title
-    .replace(/\s*[(（][^)）]*[　-ヿ㐀-鿿][^)）]*[)）]/g, "")
-    .replace(/[　-ヿ㐀-鿿＀-￯]+/g, " ")
+    .replace(/\s*[(（][^)）]*[\u3000-ヿ㐀-鿿][^)）]*[)）]/g, "")
+    .replace(/[\u3000-ヿ㐀-鿿＀-￯]+/g, " ")
     .replace(/\s+/g, " ")
     .trim();
 
