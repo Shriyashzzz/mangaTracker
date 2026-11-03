@@ -1092,14 +1092,14 @@ function GuestHero() {
             >
               Start your shelf
             </NavLink>
+            <TakeTourButton large />
             <NavLink
               to="/signin"
-              className="btn btn-ghost btn-lg"
+              className="btn btn-ghost btn-lg upto-720:hidden"
               viewTransition
             >
               Sign in
             </NavLink>
-            <TakeTourButton className={styles.guestTour} />
           </div>
         </div>
 
