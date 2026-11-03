@@ -2,6 +2,7 @@
 // server knows who's signed in. VITE_API_URL is the API's address
 // (http://localhost:8080 in development). It's empty in production, where
 // /api on the site itself is passed on to the API (see client/server.ts)
+import { demoResponse, isDemo } from "./demo";
 import type { ApiError } from "./types";
 
 export const API_URL: string = import.meta.env.VITE_API_URL ?? "";
@@ -14,6 +15,14 @@ export function apiFetch(
   path: string,
   { body, headers, ...options }: FetchOptions = {},
 ) {
+  // the tour's practice account never touches the real server
+  if (isDemo()) {
+    return demoResponse(
+      path,
+      options.method,
+      body !== undefined ? JSON.stringify(body) : undefined,
+    );
+  }
   return fetch(`${API_URL}${path}`, {
     credentials: "include",
     ...options,

@@ -160,6 +160,8 @@ export const homeStyles = {
   // the hit word gets an ink stamp, like a panel's punchline
   titleHit: "inline-block -rotate-[2.5deg] bg-ink px-[0.12em] text-paper",
   guestActions: "mt-8 flex flex-wrap items-center gap-4",
+  guestTour:
+    "tap py-2 font-medium whitespace-nowrap text-ink underline decoration-accent decoration-2 underline-offset-3 hover:decoration-line",
   // a manga page: white gutters, inked panel borders, slightly askew
   page: "grid rotate-1 grid-cols-[1fr_1fr] gap-3 border-[1.5px] border-line-soft bg-card p-3 upto-860:mx-auto upto-860:w-full upto-860:max-w-[520px] upto-520:rotate-0 upto-520:gap-[9px] upto-520:p-[9px] [&>li:nth-child(2)]:[animation-delay:0.12s] [&>li:nth-child(3)]:[animation-delay:0.24s] [&>li:nth-child(4)]:[animation-delay:0.36s]",
   panel: `${panel} min-h-[150px]`,

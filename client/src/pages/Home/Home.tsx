@@ -36,6 +36,7 @@ import {
 import ReleaseModal from "./ReleaseModal";
 import { EmptyShelfUndo } from "../../components/deletedNote/DeletedNote";
 import ReleaseTip from "../../components/whatsNew/ReleaseTip";
+import TakeTourButton from "../../components/tour/TakeTourButton";
 
 const SHELF_PAGE_SIZE = 30;
 // shelves this size get a heads-up that their first release check is slow
@@ -667,7 +668,7 @@ function Library() {
           <NavLink to="/settings/profile#share" className="btn btn-ghost" viewTransition>
             Share
           </NavLink>
-          <button className="btn btn-primary" onClick={goToAdd}>
+          <button className="btn btn-primary" data-tour="add" onClick={goToAdd}>
             + Add manga
           </button>
         </div>
@@ -935,6 +936,7 @@ function Library() {
                   : styles.classContainer
             }
             onClickCapture={saveSpot}
+            data-tour="shelf"
           >
             {shelfPage.map((currentManga, i) => (
               <div
@@ -1035,6 +1037,7 @@ function AddButton({ onClick }: { onClick: () => void }) {
       type="button"
       className={styles.addButton}
       aria-label="Add manga"
+      data-tour="add"
       onClick={onClick}
     >
       <PlusIcon aria-hidden />
@@ -1085,6 +1088,7 @@ function GuestHero() {
             >
               Sign in
             </NavLink>
+            <TakeTourButton className={styles.guestTour} />
           </div>
         </div>
 

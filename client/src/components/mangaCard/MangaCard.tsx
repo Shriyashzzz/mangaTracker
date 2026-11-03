@@ -54,6 +54,7 @@ export default function MangaCard({
 
   return (
     <NavLink
+      data-tour="card"
       to={linkTo ?? `/details/${currentManga.id}${detailsSearch}`}
       className={
         asColumns
