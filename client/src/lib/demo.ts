@@ -293,7 +293,13 @@ export function demoResponse(
   if (route === "/api/manga" && method === "GET") return json({ manga: shelf });
   if (route === "/api/manga" && method === "POST") {
     const id = Math.max(0, ...shelf.map((m) => m.id)) + 1;
-    writeShelf([...shelf, practice(id, String(body.name), "", "", { image: null })]);
+    writeShelf([
+      ...shelf,
+      practice(id, String(body.name), String(body.genre ?? ""), "", {
+        image: (body.image as string) || null,
+        bookmark: Number(body.bookmark) || null,
+      }),
+    ]);
     return json({ id }, 201);
   }
   if (route === "/api/manga/match") return json(null);

@@ -17,6 +17,8 @@ export type TourStep = {
   focus?: boolean;
   // nothing to point at: the page is theirs until they press Kenji's button
   free?: boolean;
+  // sit in the corner, clear of what using the target opens up
+  dock?: boolean;
   // open the shelf on All, rather than the tab they last had
   allTab?: boolean;
 };
@@ -40,8 +42,9 @@ export const TOUR_STEPS: TourStep[] = [
   {
     path: "/add",
     target: "add-title",
-    say: "Type a title and pick the match. The cover and genre fill in for you. Let's head back and open one you already have.",
-    button: "Back to the shelf",
+    say: "Type a title and pick the match. The cover and genre fill in for you.",
+    button: "Next",
+    dock: true,
   },
   {
     path: "/shelf",

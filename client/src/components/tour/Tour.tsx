@@ -187,7 +187,7 @@ export default function Tour() {
     ? innerHeight - barSpace - (box.top + box.height) - BUBBLE_GAP - SCREEN_MARGIN
     : 0;
   const fits = Math.max(roomAbove, roomBelow) >= bubbleHeight;
-  const inCorner = step.free || wentExploring || (showHole && !fits);
+  const inCorner = step.free || step.dock || wentExploring || (showHole && !fits);
   // over or under the hole, whichever side has the room; middle of the screen if
   // there's nothing to point at
   const holeMiddle = box ? box.top + box.height / 2 : 0;
@@ -239,7 +239,7 @@ export default function Tour() {
           />
           {/* in a blurred moment, what's only being explained stays put */}
           {step.focus && !step.tap && <div className="tour-shield" style={box!} />}
-          {fits && (
+          {fits && !step.dock && (
             <svg
               className={`tour-pointer ${below ? "tour-pointer-below" : ""}`}
               style={{

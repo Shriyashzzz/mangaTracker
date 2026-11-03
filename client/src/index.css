@@ -969,6 +969,11 @@
 .tour-bubble-waiting {
   visibility: hidden;
 }
+/* a list of suggestions is open: Kenji steps aside until they've picked */
+body:has([role="listbox"]) .tour-bubble {
+  opacity: 0;
+  pointer-events: none;
+}
 .tour-who {
   flex: none;
   width: 56px;
