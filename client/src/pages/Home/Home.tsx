@@ -772,6 +772,11 @@ function Library() {
                     : t.count}
                 </span>
               )}
+              {t.value === "new" && t.count != null && t.count > 0 && (
+                <span className={styles.newStamp} aria-hidden>
+                  {t.count}
+                </span>
+              )}
             </button>
           ))}
         </div>
@@ -1084,7 +1089,6 @@ function Library() {
       )}
 
       {/* out of the way on phones, where the top of the page is for the manga */}
-      <p className={styles.importBottom}>{importLink}</p>
 
       {showingNew && openManga && releases[openManga.id] && (
         <ReleaseModal

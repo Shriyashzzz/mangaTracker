@@ -2,7 +2,8 @@
 // empty states, and the guest landing (a manga page of three panels).
 
 // a status tab; the active one is inked with a marker on the toolbar rule
-const tab = "tap relative py-[0.2rem] text-[1rem] transition-colors duration-150 ease-[ease]";
+const tab =
+  "tap relative py-[0.2rem] text-[1rem] transition-colors duration-150 ease-[ease]";
 
 // one side of the New tab's volumes / chapters switch
 const releaseKind =
@@ -25,7 +26,6 @@ export const homeStyles = {
     "tap text-[0.9rem] font-medium text-ink-soft underline decoration-line-soft underline-offset-3 hover:text-ink hover:decoration-current",
   pageTitle:
     "font-brand text-[clamp(2.4rem,5.5vw,3.4rem)] leading-none font-normal tracking-[0.02em] uppercase upto-720:sr-only",
-  importBottom: "mt-10 hidden text-center upto-720:block",
   // room for the add button, so it can't sit on the last row's Hide
   library: "upto-720:pb-23",
   // a flat red disc fixed above the bottom bar, with a paper edge so it keeps its
@@ -44,7 +44,11 @@ export const homeStyles = {
   count: "ml-0.5 font-mono text-[0.78rem] font-normal text-muted",
   // there's something new: this count has to be seen from any tab
   countNew:
-    "ml-0.5 rounded-[3px] bg-accent px-[0.35rem] font-mono text-[0.78rem] font-normal text-on-accent",
+    "ml-0.5 rounded-[3px] bg-accent px-[0.35rem] font-mono text-[0.78rem] font-normal text-on-accent upto-520:hidden",
+  // on phones the count sits under each tab's name, where "2 series" is too wide:
+  // New gets a little stamp on its corner instead, like a sticker on a panel
+  newStamp:
+    "pointer-events-none absolute -top-2 left-[calc(50%+0.85rem)] hidden min-w-5 rotate-[8deg] rounded-[3px] border-[1.5px] border-line bg-accent px-1 text-center font-brand text-[0.95rem] leading-[1.15] font-normal tracking-[0.03em] text-on-accent shadow-[0_2px_4px_-1px_rgba(0,0,0,0.35)] upto-520:block",
   tools: "flex items-center gap-5 upto-520:w-full upto-520:gap-4",
   toolsFolded: "flex items-center gap-5 upto-720:hidden",
   searchToggle:
@@ -59,8 +63,7 @@ export const homeStyles = {
   sort: "flex min-h-11 max-w-[260px] shrink-0 items-center gap-[0.4rem] overflow-hidden text-[0.875rem] whitespace-nowrap text-muted transition-[max-width,opacity] duration-300 ease-ink upto-520:peer-focus-within/search:-ml-4 upto-520:peer-focus-within/search:max-w-0 upto-520:peer-focus-within/search:opacity-0 [&_select]:min-h-11 [&_select]:appearance-none [&_select]:[field-sizing:content] [&_select]:cursor-pointer [&_select]:border-none [&_select]:bg-transparent [&_select]:pr-5 [&_select]:text-[0.9rem] upto-760:[&_select]:text-[1rem] [&_select]:font-medium [&_select]:text-ink [&_select]:underline [&_select]:decoration-line-soft [&_select]:underline-offset-4",
   // the select's own arrow varies by browser, so it's drawn; taps go through it
   sortPick: "relative inline-flex items-center",
-  sortArrow:
-    "pointer-events-none absolute right-0 size-4 text-ink-soft",
+  sortArrow: "pointer-events-none absolute right-0 size-4 text-ink-soft",
   // the New tab: the shelf's grid on big screens, rows on small ones so more of
   // the news fits on a screen
   newGrid:
@@ -141,7 +144,8 @@ export const homeStyles = {
   // nothing new: a little inked panel, tilted like it was stuck on the page
   nothingNew:
     "mx-auto my-12 max-w-[440px] -rotate-1 rounded-ink border-[2.5px] border-line bg-card px-8 pt-8 pb-3 text-center shadow-ink-lg motion-reduce:rotate-0 upto-520:mx-0 upto-520:rotate-0",
-  nothingNewTitle: "font-brand text-[1.9rem] leading-[1.1] tracking-[1px] text-balance",
+  nothingNewTitle:
+    "font-brand text-[1.9rem] leading-[1.1] tracking-[1px] text-balance",
   skeletonTitle: "mb-10 h-[46px] w-60",
 
   // ---------- empty states ----------
@@ -172,7 +176,8 @@ export const homeStyles = {
   tone: "bg-[radial-gradient(var(--dots-strong)_1.3px,transparent_1.6px)] bg-size-[7px_7px]",
   bigCh:
     "relative bg-paper px-[0.25em] py-[0.05em] font-brand text-[clamp(3.6rem,8vw,5rem)] leading-none tracking-[0.02em] text-ink [&_small]:mr-[0.1em] [&_small]:text-[0.45em] [&_small]:text-muted",
-  panelStars: "flex gap-0.5 bg-paper px-2 py-[0.35rem] text-star [&_svg]:size-[26px]",
+  panelStars:
+    "flex gap-0.5 bg-paper px-2 py-[0.35rem] text-star [&_svg]:size-[26px]",
   // three blank volumes, as if the covers were still loading in
   covers:
     "flex items-end [&>span]:grid [&>span]:aspect-2/3 [&>span]:w-[46px] [&>span]:[place-items:end_center] [&>span]:border-2 [&>span]:border-line [&>span]:bg-card [&>span]:pb-1.5 [&>span]:font-mono [&>span]:text-[0.6rem] [&>span]:text-muted [&>span+span]:-ml-2.5 [&>span:nth-child(1)]:-rotate-8 [&>span:nth-child(2)]:relative [&>span:nth-child(2)]:z-1 [&>span:nth-child(2)]:w-[54px] [&>span:nth-child(2)]:-translate-y-1 [&>span:nth-child(3)]:rotate-7",

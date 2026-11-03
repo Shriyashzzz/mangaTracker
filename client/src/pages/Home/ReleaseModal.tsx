@@ -51,7 +51,11 @@ export default function ReleaseModal({
   const chapters = remainingChapters(manga, found);
   const japan = remainingJapanVolumes(manga, found);
   const left =
-    kind === "volume" ? volumes.length : kind === "chapter" ? chapters.length : japan.length;
+    kind === "volume"
+      ? volumes.length
+      : kind === "chapter"
+        ? chapters.length
+        : japan.length;
   const hasHidden =
     kind === "volume"
       ? volumes.length < found.outVolumes.length
@@ -177,7 +181,8 @@ export default function ReleaseModal({
 
         {kind === "chapter" && chapters.length > MOST_ROWS && (
           <li className={styles.modalMore}>
-            And {chapters.length - MOST_ROWS} more, up to ch. {found.latestChapter}.
+            And {chapters.length - MOST_ROWS} more, up to ch.{" "}
+            {found.latestChapter}.
           </li>
         )}
       </ul>

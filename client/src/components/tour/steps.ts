@@ -10,6 +10,8 @@ type Line = {
   exact?: boolean;
   target?: string;
   say: string;
+  // what he says instead on phones, where the thing he points at differs
+  phoneSay?: string;
   tap?: boolean;
   // one of the few big moments: everything but the target blurs. Otherwise the
   // page stays clear and usable, and Kenji just points
@@ -68,6 +70,8 @@ const PARTS: { name: string; lines: Line[] }[] = [
         target: "import-link",
         allTab: true,
         say: "Keeping a list on MyAnimeList, Goodreads or another app? This brings it over in one go.",
+        phoneSay:
+          "Keeping a list on MyAnimeList, Goodreads or another app? Import your list is in this menu, and brings it over in one go.",
       },
       {
         path: "/shelf",
@@ -188,7 +192,11 @@ const PARTS: { name: string; lines: Line[] }[] = [
   },
 ];
 
-export type TourStep = Line & { part: string; partStep: number; partSize: number };
+export type TourStep = Line & {
+  part: string;
+  partStep: number;
+  partSize: number;
+};
 
 export const TOUR_STEPS: TourStep[] = PARTS.flatMap(({ name, lines }) =>
   lines.map((line, i) => ({
