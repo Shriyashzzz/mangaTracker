@@ -969,6 +969,88 @@
 .tour-bubble-waiting {
   visibility: hidden;
 }
+/* the page is theirs: Kenji waits in a bar at the bottom, one tap from the tour */
+.tour-stage {
+  position: absolute;
+  inset: 0;
+}
+.tour-dock {
+  position: absolute;
+  left: 12px;
+  right: 12px;
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  padding: 0.5rem 0.9rem 0.5rem 0.5rem;
+  color: var(--ink);
+  text-align: left;
+  background: var(--card);
+  border: 3px solid var(--line);
+  border-radius: 16px;
+  box-shadow: 0 16px 34px -18px rgba(0, 0, 0, 0.7);
+  pointer-events: auto;
+  cursor: pointer;
+  animation: tour-dock-in 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.tour-dock:hover {
+  transform: translateY(-2px);
+}
+.tour-dock:focus-visible {
+  outline: 3px solid var(--accent);
+  outline-offset: 3px;
+}
+.tour-dock-face {
+  flex: none;
+  width: 44px;
+  height: 44px;
+  overflow: hidden;
+  padding: 3px 3px 0;
+  background: var(--card);
+  border: 2.5px solid var(--line);
+  border-radius: 50%;
+}
+.tour-dock-words {
+  display: flex;
+  min-width: 0;
+  flex: 1;
+  flex-direction: column;
+  gap: 0.1rem;
+}
+.tour-dock-say {
+  font: 700 0.85rem/1.25 var(--font-letter);
+  color: var(--ink-soft);
+}
+.tour-dock-go {
+  font-family: var(--font-brand);
+  font-size: 1.15rem;
+  line-height: 1;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  color: var(--accent);
+}
+.tour-dock-arrow {
+  flex: none;
+  width: 22px;
+  height: 22px;
+  fill: none;
+  stroke: var(--accent);
+  stroke-width: 2.75px;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+@media (min-width: 721px) {
+  .tour-dock {
+    right: auto;
+    left: 24px;
+    width: 360px;
+  }
+}
+@keyframes tour-dock-in {
+  from {
+    transform: translateY(calc(100% + 24px));
+  }
+}
 /* a list of suggestions is open: Kenji steps aside until they've picked */
 body:has([role="listbox"]) :is(.tour-bubble, .tour-pointer) {
   opacity: 0;

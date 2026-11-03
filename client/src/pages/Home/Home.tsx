@@ -891,7 +891,7 @@ function Library() {
           </button>
         </div>
       ) : showingNew && visibleManga.length === 0 && !query.trim() ? (
-        <div className={styles.nothingNew}>
+        <div className={styles.nothingNew} data-tour="shelf">
           <span className="printed mascot-spot" aria-hidden>
             <Mascot mood="happy" />
           </span>

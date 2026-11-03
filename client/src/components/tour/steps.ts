@@ -100,7 +100,7 @@ const PARTS: { name: string; lines: Line[] }[] = [
         path: "/details/",
         go: MANGA,
         free: true,
-        say: "This page is all yours for a minute. Poke around as long as you like.",
+        say: "This page is all yours. Look around as long as you like.",
       },
       {
         path: MANGA,
@@ -142,7 +142,7 @@ const PARTS: { name: string; lines: Line[] }[] = [
       {
         path: "/new-releases",
         free: true,
-        say: "This is how I know what's new on your shelf. Read as much as you like.",
+        say: "This is how I know what's new. Read as much as you like.",
       },
       {
         path: "/settings/new-releases",
