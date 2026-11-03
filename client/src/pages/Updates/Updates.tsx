@@ -9,6 +9,18 @@ import { updatesStyles as styles } from "./styles";
 // the big features only, a line each. Add new ones here when they ship
 const UPDATES = [
   {
+    name: "A To read list",
+    body: "Save what you want to read next, from your shelf or any series' price page, and start it when you're ready.",
+  },
+  {
+    name: "Import from more places",
+    body: "Bring your list from Goodreads, AniList, Kitsu, Book Catalogue, or any CSV, alongside MyAnimeList.",
+  },
+  {
+    name: "Take the tour",
+    body: "Kenji walks you through the whole site on a practice shelf. No account needed.",
+  },
+  {
     name: "Better search results",
     body: "Greater accuracy and a wider list of live prices.",
   },
@@ -19,10 +31,6 @@ const UPDATES = [
   {
     name: "Choose what shows up in New",
     body: "Just the next one, within a few, or everything that's out.",
-  },
-  {
-    name: "Import from MyAnimeList",
-    body: "Bring your whole manga list over in one go.",
   },
   {
     name: "Next chapter dates",

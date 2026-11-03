@@ -1,4 +1,5 @@
 import { NavLink } from "react-router";
+import TakeTourButton from "../../components/tour/TakeTourButton";
 import Mascot from "../../components/mascot/Mascot";
 
 import { aboutStyles as styles } from "./styles";
@@ -96,7 +97,10 @@ export function AboutPage() {
         </h2>
         <div className={`${styles.does} printed`}>
           <section className={styles.doesPanel} aria-labelledby="does-shelf">
-            <div className={`${styles.doesArt} ${styles.doesLines}`} aria-hidden>
+            <div
+              className={`${styles.doesArt} ${styles.doesLines}`}
+              aria-hidden
+            >
               <span className={styles.doesBig}>
                 <small>ch.</small>327
               </span>
@@ -106,7 +110,9 @@ export function AboutPage() {
               <h3 id="does-shelf" className={styles.doesTitle}>
                 Your shelf
               </h3>
-              <p>Save your chapter, rate what you finish, track what you own.</p>
+              <p>
+                Save your chapter, rate what you finish, track what you own.
+              </p>
               <NavLink to="/shelf" className={styles.doesLink} viewTransition>
                 Open my shelf →
               </NavLink>
@@ -122,7 +128,9 @@ export function AboutPage() {
               <h3 id="does-prices" className={styles.doesTitle}>
                 Price check
               </h3>
-              <p>See what US stores charge for any volume, and its price history.</p>
+              <p>
+                See what US stores charge for any volume, and its price history.
+              </p>
               <NavLink to="/" className={styles.doesLink} viewTransition>
                 Check a price →
               </NavLink>
@@ -135,6 +143,7 @@ export function AboutPage() {
         <NavLink to="/shelf" className="btn btn-primary btn-lg" viewTransition>
           Okay, let me try it
         </NavLink>
+        <TakeTourButton large />
       </div>
 
       <section className={styles.contact} aria-labelledby="contact-title">
