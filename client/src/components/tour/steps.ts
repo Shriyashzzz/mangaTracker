@@ -47,7 +47,8 @@ const PARTS: { name: string; lines: Line[] }[] = [
         path: "/shelf",
         target: "shelf",
         focus: true,
-        say: "Hey, I'm Kenji! This is your shelf, every series you're reading. It's a practice one, so try anything. Nothing gets saved.",
+        onTop: true,
+        say: "Hi, I'm Kenji! This is a practice shelf, so try anything you want. I'll show you around.",
       },
       {
         path: "/shelf",
