@@ -33,6 +33,14 @@ export const importStyles = {
   listCheck: "size-5 shrink-0 cursor-pointer accent-accent disabled:cursor-default",
   listName: "flex-1 font-medium",
   listCount: "font-mono text-[0.9rem] text-ink-soft tabular-nums",
+  // which app the list comes from: two by two on phones, one row on laptops
+  sources: "grid grid-cols-4 gap-2 upto-520:grid-cols-2",
+  source:
+    "tap min-h-11 border-[2.5px] border-line bg-card px-2 py-2 text-[0.92rem] font-medium leading-tight transition-colors duration-150 hover:bg-accent-wash aria-pressed:bg-ink aria-pressed:text-paper",
+  seriesList: "mt-4 max-h-[min(60vh,32rem)] overflow-y-auto border-t-[1.5px] border-line-soft",
+  seriesText: "flex min-w-0 flex-1 flex-col py-1.5",
+  seriesMeta: "text-[0.85rem] text-ink-soft",
+  warning: "border-[1.5px] border-dashed border-accent bg-accent-wash px-3 py-2 text-[0.9rem] leading-[1.45]",
   note: "mt-3 text-[0.9rem] leading-[1.45] text-ink-soft",
   actions: "mt-5 flex flex-wrap items-center gap-3",
 

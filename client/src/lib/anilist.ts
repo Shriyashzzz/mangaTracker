@@ -124,3 +124,49 @@ export async function searchCovers(
       genre: pickGenre(m.genres, m.tags),
     }));
 }
+
+// ---------- matching an imported series ----------
+
+const MATCH_QUERY = `
+  query ($search: String) {
+    Media(search: $search, type: MANGA, format_not: NOVEL, sort: SEARCH_MATCH) {
+      idMal
+      title { english romaji }
+    }
+  }
+`;
+
+export class AniListBusy extends Error {
+  waitSeconds: number;
+  constructor(waitSeconds: number) {
+    super("AniList asked us to slow down");
+    this.waitSeconds = waitSeconds;
+  }
+}
+
+// the manga a series name most likely is, with its MyAnimeList id so the server
+// can fetch its cover and genre. Null when AniList has no manga by that name,
+// which for a book app's export usually means it isn't manga
+export async function findManga(
+  search: string,
+  signal?: AbortSignal,
+): Promise<{ malId: number | null; name: string } | null> {
+  const response = await fetch(ANILIST_URL, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Accept: "application/json" },
+    body: JSON.stringify({ query: MATCH_QUERY, variables: { search } }),
+    signal,
+  });
+  if (response.status === 429) {
+    throw new AniListBusy(Number(response.headers.get("Retry-After")) || 30);
+  }
+  if (response.status === 404) return null;
+  if (!response.ok) throw new Error(`AniList responded ${response.status}`);
+  const { data } = (await response.json()) as {
+    data?: { Media?: { idMal: number | null; title: { english: string | null; romaji: string } } };
+  };
+  const media = data?.Media;
+  return media
+    ? { malId: media.idMal, name: media.title.english || media.title.romaji }
+    : null;
+}

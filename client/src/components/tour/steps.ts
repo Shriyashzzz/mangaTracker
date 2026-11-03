@@ -66,7 +66,7 @@ const PARTS: { name: string; lines: Line[] }[] = [
         path: "/shelf",
         target: "import-link",
         allTab: true,
-        say: "Got a long list on MyAnimeList already? This brings the whole thing over in one go.",
+        say: "Keeping a list on MyAnimeList, Goodreads or another app? This brings it over in one go.",
       },
       {
         path: "/shelf",

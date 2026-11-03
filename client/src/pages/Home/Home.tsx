@@ -622,7 +622,7 @@ function Library() {
       className={styles.importLink}
       viewTransition
     >
-      Import from MyAnimeList
+      Import your list
     </NavLink>
   );
   // a series with no saved place can't be called caught up, so it never shows
