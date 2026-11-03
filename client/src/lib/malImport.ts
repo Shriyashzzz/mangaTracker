@@ -13,6 +13,8 @@ export type MalEntry = {
   ownedVolumes: number;
   score: number;
   comments?: string;
+  // from a plan to read or to-read list: goes on their To read list
+  planned?: boolean;
   // AniList's cover, for a series matched by name: used when there's no
   // MyAnimeList id to look one up by
   cover?: string;
@@ -43,17 +45,21 @@ const toXml = async (file: File) => {
   }
   const bytes = new Uint8Array(await file.arrayBuffer());
   try {
-    if (bytes[0] === 0x1f && bytes[1] === 0x8b) return strFromU8(gunzipSync(bytes));
+    if (bytes[0] === 0x1f && bytes[1] === 0x8b)
+      return strFromU8(gunzipSync(bytes));
     if (bytes[0] === 0x50 && bytes[1] === 0x4b) {
       const files = unzipSync(bytes);
       const name = Object.keys(files).find((n) => /\.xml(\.gz)?$/i.test(n));
       const inside = name ? files[name] : undefined;
-      if (!name || !inside) throw new ImportFileError("There's no list inside that zip.");
+      if (!name || !inside)
+        throw new ImportFileError("There's no list inside that zip.");
       return strFromU8(/\.gz$/i.test(name) ? gunzipSync(inside) : inside);
     }
   } catch (e) {
     if (e instanceof ImportFileError) throw e;
-    throw new ImportFileError("That file couldn't be opened. Try downloading it again.");
+    throw new ImportFileError(
+      "That file couldn't be opened. Try downloading it again.",
+    );
   }
   return strFromU8(bytes);
 };
@@ -66,7 +72,10 @@ const whole = (el: Element, tag: string) => {
 };
 
 export async function readMalExport(file: File): Promise<MalItem[]> {
-  const doc = new DOMParser().parseFromString(await toXml(file), "application/xml");
+  const doc = new DOMParser().parseFromString(
+    await toXml(file),
+    "application/xml",
+  );
   const isMal =
     !doc.getElementsByTagName("parsererror").length &&
     doc.documentElement.nodeName === "myanimelist";
@@ -94,6 +103,7 @@ export async function readMalExport(file: File): Promise<MalItem[]> {
         ...(malId ? { malId } : {}),
         title,
         finished: status === "Completed",
+        ...(status === "Plan to Read" ? { planned: true } : {}),
         chapters: Math.min(whole(el, "my_read_chapters"), 100000),
         readVolumes: Math.min(whole(el, "my_read_volumes"), 999),
         ownedVolumes: Math.min(whole(el, "my_retail_volumes"), 999),
@@ -105,7 +115,11 @@ export async function readMalExport(file: File): Promise<MalItem[]> {
   return items;
 }
 
-export type ImportTotals = { added: number; alreadyThere: number; noCover: number };
+export type ImportTotals = {
+  added: number;
+  alreadyThere: number;
+  noCover: number;
+};
 
 // a piece at a time, so a long list shows progress. Stops at the first failure
 // with the totals so far; trying again skips what's already been added

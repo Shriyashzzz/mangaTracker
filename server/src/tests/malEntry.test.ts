@@ -80,3 +80,11 @@ describe("covers from a book app import", () => {
     expect(toMangaInput(entry, listing).image).toBe("https://listing/cover.jpg");
   });
 });
+
+test("a plan to read entry goes on the To read list, not started", () => {
+  const input = toMangaInput(
+    { title: "Vagabond", finished: false, chapters: 12, readVolumes: 0, ownedVolumes: 0, score: 0, planned: true },
+    null,
+  );
+  expect([input.planned, input.status, input.bookmark]).toEqual([true, false, null]);
+});

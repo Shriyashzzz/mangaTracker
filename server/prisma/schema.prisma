@@ -43,6 +43,8 @@ model Manga {
   image        String?
   // true = finished reading
   status       Boolean @default(false)
+  // on their To read list: not started yet. Never true alongside status
+  planned      Boolean @default(false)
   // the chapter they're on
   bookmark     Int?
   // the last volume they own ("up to Vol. 14"); null when they don't say

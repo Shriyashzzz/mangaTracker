@@ -21,6 +21,7 @@ mangaRouter.get("/:id/releases", requireOwner, manga.releases);
 mangaRouter.put("/:id", requireOwner, manga.update);
 mangaRouter.delete("/:id", requireOwner, manga.remove);
 mangaRouter.patch("/:id/status", requireOwner, manga.setStatus);
+mangaRouter.patch("/:id/planned", requireOwner, manga.setPlanned);
 mangaRouter.patch("/:id/rating", requireOwner, manga.setRating);
 mangaRouter.patch("/:id/bookmark", requireOwner, manga.setBookmark);
 mangaRouter.patch("/:id/seen", requireOwner, manga.setSeen);

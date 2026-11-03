@@ -12,6 +12,8 @@ export type Manga = {
   image: string | null;
   // true = finished reading
   status: boolean;
+  // on their To read list: not started yet
+  planned: boolean;
   // the chapter they're on
   bookmark: number | null;
   // the last volume they own; null when they don't say
@@ -85,6 +87,7 @@ export type MangaForm = {
   description?: string;
   image?: string;
   status: boolean;
+  planned?: boolean;
   bookmark?: string | number;
   volumesOwned?: string | number;
 };

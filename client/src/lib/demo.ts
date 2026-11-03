@@ -35,6 +35,7 @@ const practice = (
   image: `${COVER}/${cover}`,
   description: null,
   status: false,
+  planned: false,
   bookmark: 1,
   volumesOwned: null,
   rating: null,
@@ -46,12 +47,20 @@ const STARTING_SHELF: Manga[] = [
     bookmark: 1100,
     volumesOwned: 40,
   }),
-  practice(2, "Frieren: Beyond Journey's End", "Adventure", "bx118586-CXKgWikBFQgS.jpg", {
-    bookmark: 90,
-    volumesOwned: 9,
-    rating: 5,
+  practice(
+    2,
+    "Frieren: Beyond Journey's End",
+    "Adventure",
+    "bx118586-CXKgWikBFQgS.jpg",
+    {
+      bookmark: 90,
+      volumesOwned: 9,
+      rating: 5,
+    },
+  ),
+  practice(3, "Chainsaw Man", "Action", "bx105778-euxXZEIfDY2u.png", {
+    bookmark: 120,
   }),
-  practice(3, "Chainsaw Man", "Action", "bx105778-euxXZEIfDY2u.png", { bookmark: 120 }),
   practice(4, "SPY x FAMILY", "Action", "bx108556-NHjkz0BNJhLx.jpg", {
     bookmark: 72,
     rating: 4,
@@ -120,7 +129,8 @@ export function endDemo(to = "/") {
 // the browser's back button from the tour's first page lands where they clicked Take
 // the tour, so that's them leaving. Only that page: the Prices steps also use "/".
 const backAtStart = () =>
-  isDemo() && Boolean((history.state as Record<string, unknown> | null)?.[START_MARK]);
+  isDemo() &&
+  Boolean((history.state as Record<string, unknown> | null)?.[START_MARK]);
 
 if (typeof window !== "undefined") {
   // back to a new page load, or one the browser kept in memory: that page never ran
@@ -213,7 +223,8 @@ function releasesFor(m: Manga) {
 }
 
 const NEW_VOLUME = 41;
-const isbnOf = (volume: number) => `978000000${String(volume).padStart(4, "0")}`;
+const isbnOf = (volume: number) =>
+  `978000000${String(volume).padStart(4, "0")}`;
 
 const seriesVolumes = (name: string, cover: string | null) =>
   Array.from({ length: NEW_VOLUME }, (_, i) => ({
@@ -273,7 +284,7 @@ function volumePage(isbn: string, shelf: Manga[]) {
   };
 }
 
-const readSaved = <T,>(key: string, fallback: T): T => {
+const readSaved = <T>(key: string, fallback: T): T => {
   try {
     const saved = sessionStorage.getItem(key);
     if (saved) return JSON.parse(saved) as T;
@@ -318,7 +329,8 @@ const fromForm = (body: Record<string, unknown>) => ({
   genre: String(body.genre ?? ""),
   image: (body.image as string) || null,
   description: (body.description as string) || null,
-  status: Boolean(body.status),
+  status: Boolean(body.status) && !body.planned,
+  planned: Boolean(body.planned),
   bookmark: Number(body.bookmark) || null,
   volumesOwned: Number(body.volumesOwned) || null,
 });
@@ -337,12 +349,18 @@ export function demoResponse(
 
   if (route === "/api/auth/me") return json({ id: 0, username: "practice" });
   // the real ways out of an account end the practice one
-  if (route === "/api/auth/logout" || (route === "/api/account" && method === "DELETE")) {
+  if (
+    route === "/api/auth/logout" ||
+    (route === "/api/account" && method === "DELETE")
+  ) {
     endDemo();
     return json({ ok: true });
   }
   if (route === "/api/prefs") {
-    const prefs = { ...readSaved(PREFS_KEY, {}), ...(method === "PUT" ? body : {}) };
+    const prefs = {
+      ...readSaved(PREFS_KEY, {}),
+      ...(method === "PUT" ? body : {}),
+    };
     save(PREFS_KEY, prefs);
     return json(prefs);
   }
@@ -368,7 +386,8 @@ export function demoResponse(
       ...added.map((entry, i) => ({
         ...practice(firstId + i, entry.title, "", ""),
         image: entry.cover ?? null,
-        status: entry.finished,
+        status: entry.finished && !entry.planned,
+        planned: Boolean(entry.planned),
         bookmark: entry.chapters || null,
         // as the server does: volumes read when they haven't said what they own
         volumesOwned: entry.ownedVolumes || entry.readVolumes || null,
@@ -393,15 +412,17 @@ export function demoResponse(
     return json({
       displayName: account.displayName ?? account.defaultName,
       avatar: account.avatar,
-      manga: shelf.map(({ name, image, genre, status, bookmark, rating, description }) => ({
-        name,
-        image,
-        genre,
-        status,
-        bookmark,
-        rating,
-        ...(account.shareNotes && description ? { notes: description } : {}),
-      })),
+      manga: shelf.map(
+        ({ name, image, genre, status, bookmark, rating, description }) => ({
+          name,
+          image,
+          genre,
+          status,
+          bookmark,
+          rating,
+          ...(account.shareNotes && description ? { notes: description } : {}),
+        }),
+      ),
     });
   }
   if (route === "/api/prices/series") {
@@ -444,7 +465,9 @@ export function demoResponse(
       if (shelf.some((m) => m.id !== id && sameTitle(m.name, body.name))) {
         return TITLE_TAKEN();
       }
-      writeShelf(shelf.map((m) => (m.id === id ? { ...m, ...fromForm(body) } : m)));
+      writeShelf(
+        shelf.map((m) => (m.id === id ? { ...m, ...fromForm(body) } : m)),
+      );
       return json({ ok: true });
     }
     if (part === "owned") {
@@ -462,13 +485,17 @@ export function demoResponse(
           : part === "notes"
             ? { description: body.description as string | null }
             : part === "status"
-              ? { status: body.status as boolean }
-              : part === "seen"
-                ? {
-                    [body.kind === "chapter" ? "seenChapter" : "seenVolume"]:
-                      body.number as number | null,
-                  }
-                : {};
+              ? { status: body.status as boolean, planned: false }
+              : part === "planned"
+                ? body.planned
+                  ? { planned: true, status: false }
+                  : { planned: false, bookmark: 1 }
+                : part === "seen"
+                  ? {
+                      [body.kind === "chapter" ? "seenChapter" : "seenVolume"]:
+                        body.number as number | null,
+                    }
+                  : {};
     writeShelf(shelf.map((m) => (m.id === id ? { ...m, ...changes } : m)));
     return json({ ok: true });
   }

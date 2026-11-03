@@ -50,23 +50,20 @@ const RELEASE_KINDS = {
     label: "Volumes",
     note: "English releases only. Japan may be ahead.",
     emptyTitle: "No new volumes. Your wallet lives!",
-    emptyBody:
-      "Nothing new to show for now. Your shelf gets a day off.",
+    emptyBody: "Nothing new to show for now. Your shelf gets a day off.",
   },
   chapters: {
     label: "Chapters",
     // MangaUpdates counts every language and doesn't say which is which
     note: "Mostly English. A chapter may still be on its way in English.",
     emptyTitle: "Nothing new to read. Go touch grass!",
-    emptyBody:
-      "Nothing new to show for now. Check back soon.",
+    emptyBody: "Nothing new to show for now. Check back soon.",
   },
   japan: {
     label: "In Japan",
     note: "Out in Japan, maybe not in English yet.",
     emptyTitle: "Japan has nothing on you. Yet!",
-    emptyBody:
-      "No volumes in Japan to show for now.",
+    emptyBody: "No volumes in Japan to show for now.",
   },
 } as const;
 type ReleaseKind = keyof typeof RELEASE_KINDS;
@@ -78,8 +75,13 @@ const RELEASE_FLAGS = {
   japan: { listed: "japanListed", isNew: "hasNewJapaneseVolume" },
 } as const;
 // they've hidden this one, and nothing newer has come along
-const isHiddenAs = (found: ReleaseStatus | null | undefined, kind: ReleaseKind) =>
-  Boolean(found?.[RELEASE_FLAGS[kind].listed] && !found[RELEASE_FLAGS[kind].isNew]);
+const isHiddenAs = (
+  found: ReleaseStatus | null | undefined,
+  kind: ReleaseKind,
+) =>
+  Boolean(
+    found?.[RELEASE_FLAGS[kind].listed] && !found[RELEASE_FLAGS[kind].isNew],
+  );
 
 // sessionStorage can throw in locked-down browsers, the filters just won't persist then
 const readSession = (key: string, fallback: string) => {
@@ -118,7 +120,11 @@ const readSpot = (): ShelfSpot | null => {
     return null;
   }
 };
-const SEEN_KIND = { volumes: "volume", chapters: "chapter", japan: "japan" } as const;
+const SEEN_KIND = {
+  volumes: "volume",
+  chapters: "chapter",
+  japan: "japan",
+} as const;
 
 function Library() {
   const mangaData = useShelf((s) => s.manga);
@@ -179,7 +185,12 @@ function Library() {
   const saveSpot = () =>
     writeSession(
       SHELF_SPOT_KEY,
-      JSON.stringify({ y: window.scrollY, key: filterKey, index: pageIndex, query }),
+      JSON.stringify({
+        y: window.scrollY,
+        key: filterKey,
+        index: pageIndex,
+        query,
+      }),
     );
   // back where they were, once there's a shelf to be somewhere on. A frame later,
   // so it lands after the router's own scroll to the top
@@ -217,7 +228,8 @@ function Library() {
     const wait = () => {
       timer = setTimeout(() => {
         const note = seenNote.current;
-        if (note?.matches(":hover") || note?.querySelector(":focus-visible")) wait();
+        if (note?.matches(":hover") || note?.querySelector(":focus-visible"))
+          wait();
         else {
           setHidden(null);
           setSeenFailed(false);
@@ -229,7 +241,8 @@ function Library() {
   }, [hidden, seenFailed]);
   // the card that was just hidden is gone, so its focus moves to the undo
   useEffect(() => {
-    if (hidden) seenNote.current?.querySelector("button")?.focus({ preventScroll: true });
+    if (hidden)
+      seenNote.current?.querySelector("button")?.focus({ preventScroll: true });
   }, [hidden]);
 
   const hasManga = Boolean(mangaData?.length);
@@ -238,12 +251,15 @@ function Library() {
   // on even if they leave, and new titles get picked up
   const showingNew = statusFilter === "new";
   useEffect(() => {
-    if (checksOn && (showingNew || rowsChosen) && mangaData?.length) checkReleases();
+    if (checksOn && (showingNew || rowsChosen) && mangaData?.length)
+      checkReleases();
   }, [mangaData, releases, showingNew, rowsChosen, checksOn, checkReleases]);
   const checked = (mangaData ?? []).filter((m) => m.id in releases).length;
   const checking = showingNew && checked < (mangaData?.length ?? 0);
   const allChecked = checked > 0 && checked >= (mangaData?.length ?? 0);
-  const [checkedBefore] = useState(() => readLocal(CHECKED_BEFORE_KEY) !== null);
+  const [checkedBefore] = useState(
+    () => readLocal(CHECKED_BEFORE_KEY) !== null,
+  );
   const [lastNewCount] = useState(() => {
     const saved = readLocal(LAST_NEW_COUNT_KEY);
     return saved ? Number(saved) : null;
@@ -252,19 +268,27 @@ function Library() {
   const counts = useMemo(() => {
     const list = mangaData ?? [];
     const finished = list.filter((m) => m.status).length;
-    const newVolumes = list.filter((m) => releases[m.id]?.hasNewVolume).length;
-    const newChapters = list.filter((m) => releases[m.id]?.hasNewChapter).length;
-    const newInJapan = list.filter(
+    const planned = list.filter((m) => m.planned).length;
+    // nothing's new for one they haven't started
+    const started = list.filter((m) => !m.planned);
+    const newVolumes = started.filter(
+      (m) => releases[m.id]?.hasNewVolume,
+    ).length;
+    const newChapters = started.filter(
+      (m) => releases[m.id]?.hasNewChapter,
+    ).length;
+    const newInJapan = started.filter(
       (m) => releases[m.id]?.hasNewJapaneseVolume,
     ).length;
     return {
       all: list.length,
-      ongoing: list.length - finished,
+      ongoing: list.length - finished - planned,
       finished,
+      planned,
       newVolumes,
       newChapters,
       newInJapan,
-      new: list.filter(
+      new: started.filter(
         (m) => releases[m.id]?.hasNewVolume || releases[m.id]?.hasNewChapter,
       ).length,
     };
@@ -286,10 +310,12 @@ function Library() {
   const visibleManga = useMemo(() => {
     let list = [...(mangaData ?? [])];
     if (statusFilter === "finished") list = list.filter((m) => m.status);
-    if (statusFilter === "ongoing") list = list.filter((m) => !m.status);
+    if (statusFilter === "ongoing")
+      list = list.filter((m) => !m.status && !m.planned);
+    if (statusFilter === "planned") list = list.filter((m) => m.planned);
     if (statusFilter === "new") {
       list = list.filter((m) =>
-        viewingHidden
+        !m.planned && viewingHidden
           ? isHiddenAs(releases[m.id], releaseKind)
           : releases[m.id]?.[RELEASE_FLAGS[releaseKind].isNew],
       );
@@ -316,7 +342,15 @@ function Library() {
         break;
     }
     return list;
-  }, [mangaData, releases, releaseKind, viewingHidden, statusFilter, sortBy, query]);
+  }, [
+    mangaData,
+    releases,
+    releaseKind,
+    viewingHidden,
+    statusFilter,
+    sortBy,
+    query,
+  ]);
 
   const goToAdd = () => navigator("/add", { viewTransition: true });
 
@@ -377,7 +411,11 @@ function Library() {
         <button className="btn btn-primary btn-lg" onClick={goToAdd}>
           Add your first manga
         </button>
-        <NavLink to="/import" className={`${styles.importLink} mx-auto mt-4 block w-fit`} viewTransition>
+        <NavLink
+          to="/import"
+          className={`${styles.importLink} mx-auto mt-4 block w-fit`}
+          viewTransition
+        >
           Or import your list
         </NavLink>
       </div>
@@ -390,6 +428,7 @@ function Library() {
     { value: "all", label: "All", count: counts.all },
     { value: "ongoing", label: "Reading", count: counts.ongoing },
     { value: "finished", label: "Finished", count: counts.finished },
+    { value: "planned", label: "To read", count: counts.planned },
     // what the last check found until this visit's check says otherwise, so
     // what's new shows without opening the tab. Nothing until they've ever looked
     ...(checksOn
@@ -421,7 +460,8 @@ function Library() {
   const isGrouped = (m: Manga) => {
     const found = releases[m.id];
     return (
-      (releaseKind === "chapters" ? found?.chapterMode : found?.volumeMode) === "all"
+      (releaseKind === "chapters" ? found?.chapterMode : found?.volumeMode) ===
+      "all"
     );
   };
 
@@ -452,7 +492,14 @@ function Library() {
       kind === "volume" && (restored || grouped) ? [] : undefined,
     );
     if (saved) {
-      setHidden({ id: m.id, name: m.name, kind, previous, previousList, restored });
+      setHidden({
+        id: m.id,
+        name: m.name,
+        kind,
+        previous,
+        previousList,
+        restored,
+      });
     } else {
       setSeenFailed(true);
     }
@@ -462,7 +509,11 @@ function Library() {
 
   // from the grouped list: part of it hidden. The last of it closes the list and
   // offers the undo, as hiding the whole card does
-  const hideInModal = async (m: Manga, number: number | null, list?: number[]) => {
+  const hideInModal = async (
+    m: Manga,
+    number: number | null,
+    list?: number[],
+  ) => {
     const kind = SEEN_KIND[releaseKind];
     const previous = seenOf(m, kind);
     const previousList = m.hiddenVolumes ?? [];
@@ -486,7 +537,9 @@ function Library() {
   // everything hidden in this view, back on the list at once
   const unhideAll = async () => {
     const kind = SEEN_KIND[releaseKind];
-    const series = mangaData.filter((m) => isHiddenAs(releases[m.id], releaseKind));
+    const series = mangaData.filter((m) =>
+      isHiddenAs(releases[m.id], releaseKind),
+    );
     const others = series.map((m) => ({
       id: m.id,
       previous: seenOf(m, kind),
@@ -560,7 +613,10 @@ function Library() {
           ? `${prefix} ${numbers[0]}–${numbers.at(-1)}`
           : `${prefix} ${numbers[0]}`;
       if (releaseKind === "japan") {
-        const shown = out(remainingJapanVolumes(m, found), found.outJapanVolumes);
+        const shown = out(
+          remainingJapanVolumes(m, found),
+          found.outJapanVolumes,
+        );
         return { text: `${range("Vol.", shown)} in Japan`, yours: volumeYours };
       }
       if (releaseKind === "chapters") {
@@ -601,7 +657,9 @@ function Library() {
     const next = found?.nextVolume;
     return {
       text:
-        next === found?.latestVolume ? `Vol. ${next} is out` : `Vol. ${next} available`,
+        next === found?.latestVolume
+          ? `Vol. ${next} is out`
+          : `Vol. ${next} available`,
       yours: volumeYours,
     };
   };
@@ -643,8 +701,7 @@ function Library() {
     !checking &&
     total > 0 &&
     mangaData.every((m) => releases[m.id] === null);
-  const bigFirstCheck =
-    checking && !checkedBefore && total >= BIG_SHELF;
+  const bigFirstCheck = checking && !checkedBefore && total >= BIG_SHELF;
   // the check's progress: something to glance at, never the point of the page
   const progress = (
     <div
@@ -670,7 +727,11 @@ function Library() {
         <h1 className={styles.pageTitle}>Your shelf</h1>
         <div className={styles.pageActions}>
           {importLink}
-          <NavLink to="/settings/profile#share" className="btn btn-ghost" viewTransition>
+          <NavLink
+            to="/settings/profile#share"
+            className="btn btn-ghost"
+            viewTransition
+          >
             Share
           </NavLink>
           <button className="btn btn-primary" data-tour="add" onClick={goToAdd}>
@@ -706,7 +767,9 @@ function Library() {
                 >
                   {/* series with anything new, which the views below each count
                       their own way, so it can't look like a sum of them */}
-                  {t.value === "new" && t.count > 0 ? `${t.count} series` : t.count}
+                  {t.value === "new" && t.count > 0
+                    ? `${t.count} series`
+                    : t.count}
                 </span>
               )}
             </button>
@@ -715,7 +778,9 @@ function Library() {
 
         <div
           className={
-            showingNew && !toolsOpen && !query.trim() ? styles.toolsFolded : styles.tools
+            showingNew && !toolsOpen && !query.trim()
+              ? styles.toolsFolded
+              : styles.tools
           }
         >
           <label className={styles.search}>
@@ -761,9 +826,14 @@ function Library() {
               ) : (
                 <>
                   <span className={styles.seenName}>
-                  {hidden?.restored ? "Back on the list" : "Hidden"}: {hidden?.name}
-                </span>
-                  <button type="button" className={styles.seenUndo} onClick={undoSeen}>
+                    {hidden?.restored ? "Back on the list" : "Hidden"}:{" "}
+                    {hidden?.name}
+                  </span>
+                  <button
+                    type="button"
+                    className={styles.seenUndo}
+                    onClick={undoSeen}
+                  >
                     Undo
                   </button>
                 </>
@@ -802,7 +872,9 @@ function Library() {
               >
                 {RELEASE_KINDS[kind].label}{" "}
                 {!allFailed && (
-                  <span className={styles.releaseKindCount}>{kindCounts[kind]}</span>
+                  <span className={styles.releaseKindCount}>
+                    {kindCounts[kind]}
+                  </span>
                 )}
               </button>
             ))}
@@ -811,7 +883,9 @@ function Library() {
             {viewingHidden ? (
               <h2 className={styles.hiddenHeading}>Hidden ({hiddenCount})</h2>
             ) : (
-              <p className={styles.releaseNote}>{RELEASE_KINDS[releaseKind].note}</p>
+              <p className={styles.releaseNote}>
+                {RELEASE_KINDS[releaseKind].note}
+              </p>
             )}
             <div className={styles.releaseLinks}>
               <button
@@ -960,7 +1034,7 @@ function Library() {
                 }
               >
                 <MangaCard
-                    currentManga={currentManga}
+                  currentManga={currentManga}
                   news={newsFor(currentManga)}
                   linkTo={buyLinkFor(currentManga)}
                   onOpen={

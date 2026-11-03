@@ -22,7 +22,9 @@ export default function Details() {
   usePrivatePage("Manga details");
   const [mangaData, setMangaData] = useState<Manga | null>(null);
   const [releaseData, setReleaseData] = useState<ReleaseData | null>(null);
-  const [releaseStatus, setReleaseStatus] = useState<ReleaseStatus | null>(null);
+  const [releaseStatus, setReleaseStatus] = useState<ReleaseStatus | null>(
+    null,
+  );
   // "signin": the server says it isn't theirs to see; "network": it didn't answer
   const [loadError, setLoadError] = useState<"signin" | "network" | null>(null);
   const [loadTry, setLoadTry] = useState(0);
@@ -36,6 +38,8 @@ export default function Details() {
   // or the Chapters side of it, which is about the chapter rather than a volume
   const chapterNews = searchParams.get("new") === "chapter";
   const [mangaStatus, setMangaStatus] = useState(false);
+  // on their To read list: not started, so no chapter or release news yet
+  const [planned, setPlanned] = useState(false);
   const [mangaRating, setMangaRating] = useState(0);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -66,7 +70,11 @@ export default function Details() {
     async function getManga() {
       try {
         const response = await apiFetch(`/api/manga/${id}`);
-        if (response.status === 401 || response.status === 403 || response.status === 404) {
+        if (
+          response.status === 401 ||
+          response.status === 403 ||
+          response.status === 404
+        ) {
           setLoadError("signin");
           return;
         }
@@ -77,6 +85,7 @@ export default function Details() {
         setMangaData(thisManga);
         setMangaRating(thisManga.rating ?? 0);
         setMangaStatus(thisManga.status);
+        setPlanned(Boolean(thisManga.planned));
       } catch {
         setLoadError("network");
       }
@@ -124,6 +133,9 @@ export default function Details() {
     const next = !mangaStatus;
     // optimistic, roll back if the server says no
     setMangaStatus(next);
+    // the server takes it off the To read list either way
+    const wasPlanned = planned;
+    setPlanned(false);
     setActionNote("");
     setCanUndoStatus(false);
     try {
@@ -139,6 +151,26 @@ export default function Details() {
     } catch (e) {
       console.error(e);
       setMangaStatus(!next);
+      setPlanned(wasPlanned);
+      setActionNote(DIDNT_SAVE);
+    }
+  };
+
+  // off the To read list and onto Reading, at chapter 1
+  const startReading = async () => {
+    setPlanned(false);
+    setActionNote("");
+    try {
+      const res = await apiFetch(`/api/manga/${id}/planned`, {
+        method: "PATCH",
+        body: { planned: false },
+      });
+      if (!res.ok) throw new Error("Failed starting manga");
+      setMangaData((m) => (m ? { ...m, planned: false, bookmark: 1 } : m));
+      setActionNote("Started! You're on chapter 1.");
+    } catch (e) {
+      console.error(e);
+      setPlanned(true);
       setActionNote(DIDNT_SAVE);
     }
   };
@@ -213,25 +245,28 @@ export default function Details() {
       ? `you're on vol. ${releaseStatus.currentVolume}`
       : null;
   // the red bar: only what's next for them, and what they came here about
-  const release = !releaseStatus || !checksOn
-    ? null
-    : inJapan
-      ? releaseStatus.hasNewJapaneseVolume && {
-          what: `Vol. ${releaseStatus.latestJapaneseVolume}`,
-          kind: "volume" as const,
-          yours: volumeYours,
-        }
-      : chapterNews && !mangaStatus
-        ? releaseStatus.hasNewChapter && {
-            what: `Ch. ${releaseStatus.latestChapter}`,
-            kind: "chapter" as const,
-            yours: mangaData.bookmark ? `you're on ch. ${mangaData.bookmark}` : null,
-          }
-        : releaseStatus.isNextVolumeOut && {
-            what: `Vol. ${releaseStatus.latestVolume}`,
+  const release =
+    !releaseStatus || !checksOn || planned
+      ? null
+      : inJapan
+        ? releaseStatus.hasNewJapaneseVolume && {
+            what: `Vol. ${releaseStatus.latestJapaneseVolume}`,
             kind: "volume" as const,
             yours: volumeYours,
-          };
+          }
+        : chapterNews && !mangaStatus
+          ? releaseStatus.hasNewChapter && {
+              what: `Ch. ${releaseStatus.latestChapter}`,
+              kind: "chapter" as const,
+              yours: mangaData.bookmark
+                ? `you're on ch. ${mangaData.bookmark}`
+                : null,
+            }
+          : releaseStatus.isNextVolumeOut && {
+              what: `Vol. ${releaseStatus.latestVolume}`,
+              kind: "volume" as const,
+              yours: volumeYours,
+            };
   // an English volume release can be bought from the bar: the one they need next,
   // named if that's not the one in the headline
   const sellsVolume =
@@ -248,14 +283,16 @@ export default function Details() {
         return other ? `Check vol. ${toBuy.volume}` : "Check price";
       }
       const price = formatCents(toBuy.knownPriceCents);
-      return other ? `Buy vol. ${toBuy.volume} for ${price}` : `Buy for ${price}`;
+      return other
+        ? `Buy vol. ${toBuy.volume} for ${price}`
+        : `Buy for ${price}`;
     })(),
   };
   // no need to sell it twice, unless it's the only ticket there is
   const hideNextTicket = Boolean(
     barBuy &&
-      buyOptions.next &&
-      buyOptions.next.isbn13 !== buyOptions.latest?.isbn13,
+    buyOptions.next &&
+    buyOptions.next.isbn13 !== buyOptions.latest?.isbn13,
   );
 
   return (
@@ -269,17 +306,32 @@ export default function Details() {
           <header className={styles.head}>
             <h1 className={styles.title}>{mangaData.name}</h1>
             <ul className={styles.meta}>
-              <li className={mangaStatus ? styles.metaDone : styles.metaReading}>
-                {mangaStatus ? "Finished" : "Reading"}
+              <li
+                className={mangaStatus ? styles.metaDone : styles.metaReading}
+              >
+                {mangaStatus ? "Finished" : planned ? "To read" : "Reading"}
               </li>
               {genre && <li className={styles.metaGenre}>{genre}</li>}
             </ul>
           </header>
 
-          <h2 className={`${styles.deskTitle} ${styles.yourCopy}`}>Your copy</h2>
+          <h2 className={`${styles.deskTitle} ${styles.yourCopy}`}>
+            Your copy
+          </h2>
           <p className={styles.progress}>
             {mangaStatus ? (
               <>Read all the way through.</>
+            ) : planned ? (
+              <span className={styles.startRow}>
+                Not started yet.
+                <button
+                  type="button"
+                  className="btn btn-primary btn-sm"
+                  onClick={startReading}
+                >
+                  Start reading
+                </button>
+              </span>
             ) : (
               <>
                 You're on chapter{" "}
@@ -330,67 +382,71 @@ export default function Details() {
               </p>
             </div>
 
-            <NotesField key={mangaData.id} id={mangaData.id} initial={mangaData.description} />
+            <NotesField
+              key={mangaData.id}
+              id={mangaData.id}
+              initial={mangaData.description}
+            />
 
-          <div className={styles.actions}>
-            <button
-              className="btn btn-secondary"
-              onClick={() =>
-                navigate(`/update/${mangaData.id}`, { viewTransition: true })
-              }
-            >
-              Edit details
-            </button>
-            <button
-              className="btn btn-secondary"
-              onClick={() => handleStatusChange()}
-            >
-              {mangaStatus ? "Mark as reading" : "Mark as finished"}
-            </button>
-
-            {confirmDelete ? (
-              <span className={styles.confirm} role="alert">
-                Delete {mangaData.name} from your shelf? Your chapter, rating and
-                notes go with it, though you'll get a moment to undo.
-                <button
-                  className={styles.confirmYes}
-                  onClick={handleDeleteManga}
-                  disabled={busy}
-                >
-                  {busy ? "deleting…" : "yes, delete it"}
-                </button>
-                <button
-                  className={styles.confirmNo}
-                  ref={keepButton}
-                  onClick={() => setConfirmDelete(false)}
-                  disabled={busy}
-                >
-                  keep it
-                </button>
-              </span>
-            ) : (
+            <div className={styles.actions}>
               <button
-                ref={deleteButton}
-                className={`btn btn-ghost ${styles.deleteBtn}`}
-                onClick={() => setConfirmDelete(true)}
+                className="btn btn-secondary"
+                onClick={() =>
+                  navigate(`/update/${mangaData.id}`, { viewTransition: true })
+                }
               >
-                Delete
+                Edit details
               </button>
-            )}
+              <button
+                className="btn btn-secondary"
+                onClick={() => handleStatusChange()}
+              >
+                {mangaStatus ? "Mark as reading" : "Mark as finished"}
+              </button>
 
-            <p className={styles.actionNote} role="status">
-              {actionNote}
-              {canUndoStatus && (
+              {confirmDelete ? (
+                <span className={styles.confirm} role="alert">
+                  Delete {mangaData.name} from your shelf? Your chapter, rating
+                  and notes go with it, though you'll get a moment to undo.
+                  <button
+                    className={styles.confirmYes}
+                    onClick={handleDeleteManga}
+                    disabled={busy}
+                  >
+                    {busy ? "deleting…" : "yes, delete it"}
+                  </button>
+                  <button
+                    className={styles.confirmNo}
+                    ref={keepButton}
+                    onClick={() => setConfirmDelete(false)}
+                    disabled={busy}
+                  >
+                    keep it
+                  </button>
+                </span>
+              ) : (
                 <button
-                  type="button"
-                  className={styles.undo}
-                  onClick={() => handleStatusChange(true)}
+                  ref={deleteButton}
+                  className={`btn btn-ghost ${styles.deleteBtn}`}
+                  onClick={() => setConfirmDelete(true)}
                 >
-                  Undo
+                  Delete
                 </button>
               )}
-            </p>
-          </div>
+
+              <p className={styles.actionNote} role="status">
+                {actionNote}
+                {canUndoStatus && (
+                  <button
+                    type="button"
+                    className={styles.undo}
+                    onClick={() => handleStatusChange(true)}
+                  >
+                    Undo
+                  </button>
+                )}
+              </p>
+            </div>
           </div>
         </div>
 

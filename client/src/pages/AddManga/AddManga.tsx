@@ -17,7 +17,11 @@ export function AddManga() {
   usePrivatePage("Add manga");
   const navigate = useNavigate();
   const isSignedIn = useAuth((s) => s.isSignedIn);
-  const [isFinished, setIsFinished] = useState(false);
+  // still reading, finished it, or want to read (not started, so no chapter)
+  const [stage, setStage] = useState<"reading" | "finished" | "planned">(
+    "reading",
+  );
+  const isFinished = stage === "finished";
   const [searchParams] = useSearchParams();
   // "Add to my shelf" from the price checker passes the series name along
   const [title, setTitle] = useState(() =>
@@ -66,9 +70,11 @@ export function AddManga() {
       image,
       genre,
       status: isFinished,
+      planned: stage === "planned",
       volumesOwned: String(form.get("volumesOwned") ?? ""),
     };
-    if (!isFinished) sendReq.bookmark = String(form.get("bookmark") ?? "");
+    if (stage === "reading")
+      sendReq.bookmark = String(form.get("bookmark") ?? "");
 
     setSubmitting(true);
     try {
@@ -150,8 +156,8 @@ export function AddManga() {
                 type="radio"
                 id="status-ongoing"
                 name="status"
-                checked={!isFinished}
-                onChange={() => setIsFinished(false)}
+                checked={stage === "reading"}
+                onChange={() => setStage("reading")}
               />
               <label htmlFor="status-ongoing" className={styles.segmentLabel}>
                 Still reading
@@ -161,16 +167,26 @@ export function AddManga() {
                 id="status-finished"
                 name="status"
                 checked={isFinished}
-                onChange={() => setIsFinished(true)}
+                onChange={() => setStage("finished")}
               />
               <label htmlFor="status-finished" className={styles.segmentLabel}>
                 Finished it
+              </label>
+              <input
+                type="radio"
+                id="status-planned"
+                name="status"
+                checked={stage === "planned"}
+                onChange={() => setStage("planned")}
+              />
+              <label htmlFor="status-planned" className={styles.segmentLabel}>
+                Want to read
               </label>
             </div>
           </div>
 
           <div className={styles.row}>
-            {!isFinished && (
+            {stage === "reading" && (
               <div className={styles.field}>
                 <label htmlFor="bookmark" className={styles.label}>
                   Current chapter <b>*</b>

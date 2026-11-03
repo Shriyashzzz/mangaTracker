@@ -40,6 +40,8 @@ const mangaFields = [
     .isBoolean()
     .withMessage("Status is reading or done")
     .toBoolean(),
+  // want to read: not started, so no chapter needed
+  body("planned").optional().isBoolean().toBoolean(),
   // the last volume they own; blank (or 0) means they don't say
   body("volumesOwned")
     .optional({ values: "falsy" })
@@ -79,8 +81,11 @@ const toInput = (req: Request): MangaInput => {
   const d = matchedData(req);
   return {
     name: d.name,
-    status: d.status,
-    bookmark: d.bookmark || null,
+    // to read and finished can't both be true
+    status: d.planned ? false : d.status,
+    // left alone when the form doesn't say, so editing keeps it on the list
+    planned: d.planned === undefined ? undefined : Boolean(d.planned),
+    bookmark: d.planned ? null : d.bookmark || null,
     volumesOwned: d.volumesOwned || null,
     genre: d.genre || null,
     description: d.description || null,
@@ -163,6 +168,7 @@ const importList = [
   body("entries.*.ownedVolumes").isInt({ min: 0, max: 999 }).toInt(),
   body("entries.*.score").isInt({ min: 0, max: 10 }).toInt(),
   body("entries.*.comments").optional().isString(),
+  body("entries.*.planned").optional().isBoolean().toBoolean(),
   // only AniList's and Kitsu's own image servers, so an import can't point covers
   // anywhere else
   body("entries.*.cover")
@@ -297,6 +303,15 @@ const setStatus = [
   },
 ];
 
+const setPlanned = [
+  body("planned").isBoolean().toBoolean(),
+  rejectInvalid,
+  async (req: Request, res: Response) => {
+    await mangaQueries.setPlanned(res.locals.manga.id, matchedData(req).planned);
+    res.sendStatus(204);
+  },
+];
+
 const setRating = [
   body("rating").isInt({ min: 0, max: 5 }).withMessage("0 to 5 stars").toInt(),
   rejectInvalid,
@@ -417,6 +432,7 @@ export default {
   update,
   remove,
   setStatus,
+  setPlanned,
   setRating,
   importList,
   setBookmark,

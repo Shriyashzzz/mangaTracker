@@ -40,6 +40,7 @@ const entry = (fields: {
     ...(fields.malId ? { malId: fields.malId } : {}),
     title: fields.title.slice(0, 300),
     finished: status === "Completed",
+    ...(status === "Plan to Read" ? { planned: true } : {}),
     chapters: whole(fields.chapters, 100000),
     readVolumes: whole(fields.readVolumes, 999),
     ownedVolumes: whole(fields.ownedVolumes, 999),
@@ -153,9 +154,16 @@ type Resource = {
   id: string;
   type: string;
   attributes: Record<string, unknown>;
-  relationships?: Record<string, { data: { id: string } | { id: string }[] | null }>;
+  relationships?: Record<
+    string,
+    { data: { id: string } | { id: string }[] | null }
+  >;
 };
-type JsonApi = { data: Resource[]; included?: Resource[]; links?: { next?: string } };
+type JsonApi = {
+  data: Resource[];
+  included?: Resource[];
+  links?: { next?: string };
+};
 
 const kitsuGet = async (url: string): Promise<JsonApi> => {
   const response = await fetch(url, {
