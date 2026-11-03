@@ -53,8 +53,13 @@ const shippingCents = (shipping: EbayResult["shipping"]) => {
 const ebayItemUrl = ({ product_id, link }: EbayResult) => {
   if (product_id) return `https://www.ebay.com/itm/${product_id}`;
   if (!link) return null;
-  const url = new URL(link);
-  return `${url.origin}${url.pathname}`;
+  // one odd link drops that listing, not every eBay price the search paid for
+  try {
+    const url = new URL(link);
+    return `${url.origin}${url.pathname}`;
+  } catch {
+    return null;
+  }
 };
 
 // The search is by ISBN, so a differently worded title is still this book. Only

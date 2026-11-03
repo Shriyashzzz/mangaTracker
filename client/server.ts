@@ -195,7 +195,9 @@ function render({ title, description, path, image, jsonLd }: Tags, origin: strin
     .replace(/<meta\s+name="description"[\s\S]*?\/>\s*/, "")
     .replace(/<meta\s+property="og:[^"]+"[\s\S]*?\/>\s*/g, "")
     .replace(/<meta\s+name="twitter:card"[\s\S]*?\/>\s*/, "")
-    .replace("</head>", `    ${tags.join("\n    ")}\n  </head>`);
+    // a function, so a "$'" or "$&" in a title is kept as written rather than
+    // read as a replace pattern
+    .replace("</head>", () => `    ${tags.join("\n    ")}\n  </head>`);
 }
 
 // ---------- asking the API, briefly cached ----------

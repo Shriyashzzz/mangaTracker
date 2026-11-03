@@ -422,8 +422,12 @@ function Library() {
     );
   }
 
+  // light novels aren't looked up yet, so their empty answer isn't a failure
+  const looked = mangaData.filter((m) => !m.lightNovel);
   const everyCheckFailed =
-    allChecked && mangaData.every((m) => releases[m.id] === null);
+    allChecked &&
+    looked.length > 0 &&
+    looked.every((m) => releases[m.id] === null);
   const tabs = [
     { value: "all", label: "All", count: counts.all },
     { value: "ongoing", label: "Reading", count: counts.ongoing },
@@ -685,7 +689,7 @@ function Library() {
   );
   // a series with no saved place can't be called caught up, so it never shows
   // here. An empty tab has to say so, or it reads as "nothing's out"
-  const unknownPlace = mangaData.filter((m) =>
+  const unknownPlace = looked.filter((m) =>
     releaseKind === "chapters"
       ? !m.bookmark
       : !m.volumesOwned && !releases[m.id]?.currentVolume,
@@ -699,8 +703,8 @@ function Library() {
   const allFailed =
     showingNew &&
     !checking &&
-    total > 0 &&
-    mangaData.every((m) => releases[m.id] === null);
+    looked.length > 0 &&
+    looked.every((m) => releases[m.id] === null);
   const bigFirstCheck = checking && !checkedBefore && total >= BIG_SHELF;
   // the check's progress: something to glance at, never the point of the page
   const progress = (
@@ -974,20 +978,25 @@ function Library() {
             <Mascot mood="happy" />
           </span>
           <p className={styles.nothingNewTitle}>
-            {unknownPlace === total
+            {looked.length > 0 && unknownPlace === looked.length
               ? "We don't know where you're up to yet."
               : RELEASE_KINDS[releaseKind].emptyTitle}
           </p>
-          {unknownPlace < total && (
+          {unknownPlace < looked.length && (
             <p className={styles.emptyBody}>
               {RELEASE_KINDS[releaseKind].emptyBody}
             </p>
           )}
           {unknownPlace > 0 && (
             <p className={styles.emptyBody}>
-              {unknownPlace === total
+              {unknownPlace === looked.length
                 ? missingNumber
                 : `${unknownPlace} of your series can't show up here yet. ${missingNumber}`}
+            </p>
+          )}
+          {looked.length < total && (
+            <p className={styles.emptyBody}>
+              Light novels aren't checked for new releases yet.
             </p>
           )}
         </div>

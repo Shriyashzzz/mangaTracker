@@ -26,6 +26,7 @@ export type SharedShelf = {
     status: boolean;
     // on their To read list
     planned?: boolean;
+    lightNovel?: boolean;
     bookmark: number | null;
     rating: number | null;
     notes?: string;

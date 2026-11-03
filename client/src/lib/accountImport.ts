@@ -46,7 +46,10 @@ const entry = (fields: {
     readVolumes: whole(fields.readVolumes, 999),
     ownedVolumes: whole(fields.ownedVolumes, 999),
     score: whole(fields.score, 10),
-    ...(fields.notes?.trim() ? { comments: fields.notes.trim() } : {}),
+    // the shelf keeps 450 characters, so a long list of notes stays small
+    ...(fields.notes?.trim()
+      ? { comments: fields.notes.trim().slice(0, 450) }
+      : {}),
     ...(fields.cover ? { cover: fields.cover } : {}),
     ...(fields.lightNovel ? { lightNovel: true } : {}),
   };

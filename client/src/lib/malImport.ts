@@ -111,7 +111,8 @@ export async function readMalExport(file: File): Promise<MalItem[]> {
         readVolumes: Math.min(whole(el, "my_read_volumes"), 999),
         ownedVolumes: Math.min(whole(el, "my_retail_volumes"), 999),
         score: Math.min(whole(el, "my_score"), 10),
-        ...(comments ? { comments } : {}),
+        // the shelf keeps 450 characters, so a long list of notes stays small
+        ...(comments ? { comments: comments.slice(0, 450) } : {}),
       },
     });
   }

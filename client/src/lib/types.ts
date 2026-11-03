@@ -100,6 +100,7 @@ export type ShelfMatch = {
   name: string;
   bookmark: number | null;
   status: boolean;
+  planned?: boolean;
   volumesOwned: number | null;
 } | null;
 

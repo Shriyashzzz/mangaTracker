@@ -3,6 +3,7 @@
 // itself a moment after the last tap, so five taps are one request.
 import { useEffect, useRef, useState } from "react";
 import { apiFetch } from "../../lib/api";
+import { useShelf } from "../../store/shelf";
 import { detailsStyles as styles } from "./styles";
 
 const SAVE_AFTER_MS = 600;
@@ -15,10 +16,12 @@ type Props = {
   onSaved: (chapter: number) => void;
 };
 
+// keepalive: a save sent as they close the tab still arrives
 const saveChapter = async (mangaId: number, bookmark: number) => {
   const res = await apiFetch(`/api/manga/${mangaId}/bookmark`, {
     method: "PATCH",
     body: { bookmark },
+    keepalive: true,
   });
   if (!res.ok) throw new Error("Couldn't save the chapter");
 };
@@ -31,17 +34,27 @@ export default function ChapterStepper({ mangaId, value, onSaved }: Props) {
   // the chapter still waiting to be saved
   const pending = useRef<number | null>(null);
   const timer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  // one save at a time, in order: a slow one can't land after a newer one and
+  // put the older chapter back
+  const queue = useRef<Promise<unknown>>(Promise.resolve());
+  const inOrder = (chapter: number) => {
+    const save = queue.current.then(() => saveChapter(mangaId, chapter));
+    queue.current = save.catch(() => {});
+    return save;
+  };
 
   const flush = async () => {
     const chapter = pending.current;
     pending.current = null;
     if (chapter == null || chapter === saved.current) return;
     try {
-      await saveChapter(mangaId, chapter);
+      await inOrder(chapter);
       saved.current = chapter;
       setNote("saved");
       onSaved(chapter);
     } catch {
+      // a newer tap is waiting: that one decides what's shown
+      if (pending.current != null) return;
       setDraft(String(saved.current));
       setNote("failed");
     }
@@ -65,7 +78,11 @@ export default function ChapterStepper({ mangaId, value, onSaved }: Props) {
       clearTimeout(timer.current);
       const chapter = pending.current;
       if (chapter != null && chapter !== saved.current) {
-        saveChapter(mangaId, chapter).catch(() => {});
+        // and the shelf they're going back to shows it
+        queue.current
+          .then(() => saveChapter(mangaId, chapter))
+          .then(() => useShelf.getState().load())
+          .catch(() => {});
       }
     },
     [mangaId],

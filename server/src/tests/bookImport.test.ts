@@ -1,7 +1,7 @@
 // the book import is the site's, run in the browser, but has no DOM in it
 import {
   groupBooks,
-  isLightNovel,
+  titleSaysLightNovel,
   parseCsv,
   readBooks,
   toEntry,
@@ -19,11 +19,11 @@ const goodreads = (titles: string[]) =>
   );
 
 test("publishers' light novel tags are spotted", () => {
-  expect(isLightNovel("Overlord, Vol. 1 (light novel): The Undead King")).toBe(true);
-  expect(isLightNovel("Re:ZERO, Vol. 2 (Light Novel)")).toBe(true);
-  expect(isLightNovel("Spice and Wolf, Vol. 3 (LN)")).toBe(true);
-  expect(isLightNovel("Overlord, Vol. 1 (manga)")).toBe(false);
-  expect(isLightNovel("One Piece, Vol. 1: Romance Dawn")).toBe(false);
+  expect(titleSaysLightNovel("Overlord, Vol. 1 (light novel): The Undead King")).toBe(true);
+  expect(titleSaysLightNovel("Re:ZERO, Vol. 2 (Light Novel)")).toBe(true);
+  expect(titleSaysLightNovel("Spice and Wolf, Vol. 3 (LN)")).toBe(true);
+  expect(titleSaysLightNovel("Overlord, Vol. 1 (manga)")).toBe(false);
+  expect(titleSaysLightNovel("One Piece, Vol. 1: Romance Dawn")).toBe(false);
 });
 
 test("the light novel and the manga of a series come in apart", () => {
@@ -51,4 +51,15 @@ test("a CSV can say so in a Type column, like the shelf's own export", () => {
     "csv",
   );
   expect(books.map((b) => b.lightNovel)).toEqual([true, false]);
+});
+
+test("the light novel tag doesn't stay in the series name", () => {
+  const [series] = groupBooks(
+    readBooks(
+      parseCsv("Title,Series\nSpice and Wolf Vol. 1,Spice and Wolf (Light Novel)"),
+      "csv",
+    ),
+  );
+  expect(series!.title).toBe("Spice and Wolf");
+  expect(series!.lightNovel).toBe(true);
 });

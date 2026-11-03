@@ -61,3 +61,25 @@ test("eBay links carry the EPN campaign", async () => {
   const ebay = storeLinks(isbn).find((l) => l.store === "eBay")!;
   expect(new URL(ebay.url).searchParams.get("campid")).toBe("5339000000");
 });
+
+test("someone else's tag on a store link is swapped for ours, or taken off", async () => {
+  const { ourTags, isAffiliateUrl } = await load({
+    AMAZON_ASSOCIATE_TAG: "ours-20",
+    EBAY_CAMPAIGN_ID: "5330000000",
+  });
+  const amazon = ourTags("https://www.amazon.com/dp/1974725762?tag=other-20")!;
+  expect(new URL(amazon).searchParams.get("tag")).toBe("ours-20");
+  expect(isAffiliateUrl("https://www.amazon.com/dp/1?tag=other-20")).toBe(false);
+  expect(isAffiliateUrl(amazon)).toBe(true);
+  const ebay = ourTags("https://www.ebay.com/itm/1?campid=9999999999")!;
+  expect(new URL(ebay).searchParams.get("campid")).toBe("5330000000");
+  // a lookalike host isn't the store
+  expect(isAffiliateUrl("https://notebay.com/itm/1?campid=5330000000")).toBe(false);
+
+  const none = await load({});
+  delete process.env.AMAZON_ASSOCIATE_TAG;
+  delete process.env.EBAY_CAMPAIGN_ID;
+  const plain = (await load({})).ourTags("https://www.amazon.com/dp/1?tag=other-20")!;
+  expect(new URL(plain).searchParams.has("tag")).toBe(false);
+  expect(none.isAffiliateUrl("https://www.amazon.com/dp/1?tag=other-20")).toBe(false);
+});

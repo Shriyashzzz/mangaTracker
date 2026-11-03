@@ -35,7 +35,13 @@ export type CanadaPrices = {
 const ebayCa = (url: string, source: string) => {
   const campid = ebayCampaignId();
   if (!campid) return url;
-  const link = new URL(url);
+  let link: URL;
+  try {
+    link = new URL(url);
+  } catch {
+    // an odd link stays as it came rather than breaking the whole answer
+    return url;
+  }
   link.searchParams.set("mkcid", "1");
   link.searchParams.set("mkrid", "706-53473-19255-0");
   link.searchParams.set("siteid", "2");
@@ -197,9 +203,11 @@ async function checkCanadaPrices(
     };
   }
 
-  // only volumes we already know: a made-up ISBN can't spend anything
+  // only volumes we already know are manga: a made-up ISBN, or any book
+  // someone opened a page for, can't spend anything
   const book = await priceQueries.getBook(isbn13);
-  if (!book) return { status: "unknown", offers: [], checkedAt: null };
+  if (!book || !(await priceQueries.isKnownVolume(isbn13)))
+    return { status: "unknown", offers: [], checkedAt: null };
   const title = book.title;
   const saved = async (): Promise<Omit<CanadaPrices, "links"> | null> =>
     last

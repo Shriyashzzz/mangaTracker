@@ -106,7 +106,13 @@ export default function ShelfAction({ series, title, volume }: Props) {
   };
 
   const progress = [
-    manga.status ? "finished" : `chapter ${manga.bookmark}`,
+    manga.status
+      ? "finished"
+      : manga.planned
+        ? "on your To read list"
+        : manga.bookmark
+          ? `chapter ${manga.bookmark}`
+          : null,
     owned ? `own up to vol. ${owned}` : null,
   ]
     .filter(Boolean)
@@ -116,7 +122,7 @@ export default function ShelfAction({ series, title, volume }: Props) {
     <div className={styles.shelfAction}>
       <p className={styles.shelfState}>
         On your shelf ·{" "}
-        <NavLink to={`/details/${manga.id}`}>{progress}</NavLink>
+        <NavLink to={`/details/${manga.id}`}>{progress || "open it"}</NavLink>
       </p>
       {volume != null && owned < volume ? (
         <button

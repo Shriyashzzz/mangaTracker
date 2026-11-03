@@ -128,7 +128,6 @@ export function UpdateManga() {
                 type="text"
                 name="manganame"
                 id="manganame"
-                minLength={3}
                 maxLength={150}
                 required
               />
@@ -148,10 +147,10 @@ export function UpdateManga() {
                     <label htmlFor="bookmark" className={styles.label}>Current chapter</label>
                     <input
                       className={styles.input}
-                      inputMode="decimal"
+                      inputMode="numeric"
                       type="number"
                       min="0"
-                      step="any"
+                      step="1"
                       name="bookmark"
                       id="bookmark"
                       defaultValue={mangaData.bookmark ?? ""}

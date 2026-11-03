@@ -294,6 +294,21 @@ export async function markApiSpent(provider: string, limit: number) {
   `;
 }
 
+// a volume we know is manga, not any ISBN someone typed in: in a series'
+// saved volume list, or priced before (only known volumes get priced, and
+// lists are only saved once someone opens the series). For Canada's searches
+export async function isKnownVolume(isbn13: string) {
+  const [row] = await prisma.$queryRaw<{ known: boolean }[]>`
+    SELECT EXISTS (
+      SELECT 1 FROM series_volumes
+      WHERE volumes @> ${JSON.stringify([{ isbn13 }])}::jsonb
+    ) OR EXISTS (
+      SELECT 1 FROM price_checks WHERE isbn13 = ${isbn13}
+    ) AS known
+  `;
+  return Boolean(row?.known);
+}
+
 // a series' last good volume list; see prices/service.ts
 export async function getSeriesVolumes(key: string) {
   const row = await prisma.seriesVolumes.findUnique({ where: { key } });
@@ -352,6 +367,13 @@ export async function getSitemapEntries() {
     prisma.$queryRaw<{ isbn13: string; title: string; updated: Date }[]>`
       SELECT b.isbn13, b.title, GREATEST(b.updated_at, pc.checked_at) AS updated
       FROM books b LEFT JOIN price_checks pc USING (isbn13)
+      -- only volumes we know are manga (see isKnownVolume), not every ISBN
+      -- someone opened a page for
+      WHERE pc.isbn13 IS NOT NULL OR EXISTS (
+        SELECT 1 FROM series_volumes sv
+        WHERE sv.volumes @> jsonb_build_array(
+          jsonb_build_object('isbn13', trim(b.isbn13)))
+      )
       ORDER BY b.isbn13
     `,
     prisma.$queryRaw<{ name: string; fetchedAt: Date }[]>`
@@ -381,6 +403,7 @@ export default {
   getKnownPrices,
   getRecentBestPrices,
   getBook,
+  isKnownVolume,
   upsertBook,
   getLastCheck,
   saveCheck,

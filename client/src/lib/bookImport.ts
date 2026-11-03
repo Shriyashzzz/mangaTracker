@@ -83,6 +83,8 @@ const EDITION =
 
 const tidy = (name: string) =>
   name
+    // the format is kept apart (titleSaysLightNovel), not in the name
+    .replace(/\s*\(\s*(light[\s-]?novels?|ln|novel)\s*\)/gi, "")
     .replace(/\s+/g, " ")
     .replace(/[\s,:;.\-–—]+$/, "")
     .replace(EDITION, "")
@@ -150,7 +152,7 @@ const seriesKey = (name: string) =>
 
 // publishers tag the novel editions, so the manga of the same name stays apart
 const LIGHT_NOVEL = /\blight[\s-]?novels?\b|\(\s*(ln|novel)\s*\)/i;
-export const isLightNovel = (...text: string[]) =>
+export const titleSaysLightNovel = (...text: string[]) =>
   text.some((t) => LIGHT_NOVEL.test(t));
 
 // ---------- each app's columns ----------
@@ -199,7 +201,7 @@ function goodreadsBook(h: string[], row: string[]): Book | null {
     reading: shelf === "currently-reading",
     rating: stars(cell(row, header(h, /^My Rating$/))),
     planned: shelf === "to-read" && !owned && !read,
-    lightNovel: isLightNovel(title),
+    lightNovel: titleSaysLightNovel(title),
   };
 }
 
@@ -220,7 +222,7 @@ function bookCatalogueBook(h: string[], row: string[]): Book | null {
     reading: false,
     rating: stars(cell(row, header(h, /^rating$/))),
     planned: wanted && !read,
-    lightNovel: isLightNovel(title, details),
+    lightNovel: titleSaysLightNovel(title, details),
   };
 }
 
@@ -258,7 +260,7 @@ function csvBook(h: string[], row: string[]): Book | null {
     reading,
     rating: stars(cell(row, header(h, /^(my )?(rating|score|stars)$/i))),
     planned: !owned && !read,
-    lightNovel: isLightNovel(
+    lightNovel: titleSaysLightNovel(
       title,
       seriesColumn,
       cell(row, header(h, /^(type|format|kind)$/i)),

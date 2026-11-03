@@ -165,8 +165,8 @@ export async function knownSeriesName(name: string): Promise<string> {
   const rows = await prisma.$queryRaw<{ name: string }[]>`
     SELECT info->>'name' AS name FROM series_info
     WHERE info IS NOT NULL
-      AND trim(both '-' from
-        regexp_replace(lower(info->>'name'), '[^a-z0-9]+', '-', 'g')) = ${slug}
+      AND left(trim(both '-' from
+        regexp_replace(lower(info->>'name'), '[^a-z0-9]+', '-', 'g')), 80) = ${slug}
     ORDER BY fetched_at DESC
     LIMIT 1
   `;

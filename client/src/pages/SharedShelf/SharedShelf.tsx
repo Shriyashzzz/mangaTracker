@@ -71,6 +71,7 @@ const Facts = ({ m }: { m: SharedManga }) => (
     <p className={styles.meta}>
       {[
         m.status ? "finished" : m.bookmark ? `ch. ${m.bookmark}` : null,
+        m.lightNovel && "light novel",
         m.genre && m.genre !== "unlabled" ? m.genre : null,
       ]
         .filter(Boolean)

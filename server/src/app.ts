@@ -44,16 +44,18 @@ app.use(
       maxAge: 1000 * 60 * 60 * 24 * 7, // a week
       httpOnly: true,
       secure: isProd,
-      // the site and API are different subdomains in production
-      sameSite: isProd ? "none" : "lax",
+      // the site and API are subdomains of one site, which Lax still sends to,
+      // while another site's form or script can't sign in, out or add as them
+      sameSite: "lax",
       // only scoped to the real domain in prod; browsers drop it on localhost
       ...(isProd && { domain: config.COOKIE_DOMAIN }),
     },
   }),
 );
 
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+// JSON only: the site never posts forms, and a form from another site is the
+// one kind of cross-site request a browser sends without asking us first
+app.use(express.json({ limit: "512kb" }));
 
 app.get("/api/health", (_req, res) => {
   res.json({ ok: true });
