@@ -318,11 +318,13 @@ export default function Details() {
               <span className={styles.label}>
                 {mangaRating ? "Your rating. Tap it again to clear" : "Rate it"}
               </span>
-              <StarRating
-                value={mangaRating}
-                size="lg"
-                onChange={handleRatingChange}
-              />
+              <span className="inline-block w-fit" data-tour="rating">
+                <StarRating
+                  value={mangaRating}
+                  size="lg"
+                  onChange={handleRatingChange}
+                />
+              </span>
               <p className={styles.saveFailed} role="status">
                 {ratingFailed && DIDNT_SAVE}
               </p>

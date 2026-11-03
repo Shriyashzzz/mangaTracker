@@ -36,6 +36,7 @@ import {
 import ReleaseModal from "./ReleaseModal";
 import { EmptyShelfUndo } from "../../components/deletedNote/DeletedNote";
 import ReleaseTip from "../../components/whatsNew/ReleaseTip";
+import TakeTourButton from "../../components/tour/TakeTourButton";
 
 const SHELF_PAGE_SIZE = 30;
 // shelves this size get a heads-up that their first release check is slow
@@ -615,7 +616,12 @@ function Library() {
 
   const total = mangaData.length;
   const importLink = (
-    <NavLink to="/import" className={styles.importLink} viewTransition>
+    <NavLink
+      to="/import"
+      data-tour="import-link"
+      className={styles.importLink}
+      viewTransition
+    >
       Import from MyAnimeList
     </NavLink>
   );
@@ -667,7 +673,7 @@ function Library() {
           <NavLink to="/settings/profile#share" className="btn btn-ghost" viewTransition>
             Share
           </NavLink>
-          <button className="btn btn-primary" onClick={goToAdd}>
+          <button className="btn btn-primary" data-tour="add" onClick={goToAdd}>
             + Add manga
           </button>
         </div>
@@ -678,6 +684,7 @@ function Library() {
           {tabs.map((t) => (
             <button
               key={t.value}
+              data-tour={t.value === "new" ? "tab-new" : undefined}
               className={
                 statusFilter === t.value ? styles.tabActive : styles.tab
               }
@@ -816,7 +823,12 @@ function Library() {
                 <SearchIcon />
                 Search
               </button>
-              <NavLink to="/new-releases" className={styles.hiddenToggle} viewTransition>
+              <NavLink
+                to="/new-releases"
+                data-tour="how-new-works"
+                className={styles.hiddenToggle}
+                viewTransition
+              >
                 How this works
               </NavLink>
               {hiddenCount > 0 && !viewingHidden && (
@@ -935,6 +947,7 @@ function Library() {
                   : styles.classContainer
             }
             onClickCapture={saveSpot}
+            data-tour="shelf"
           >
             {shelfPage.map((currentManga, i) => (
               <div
@@ -1035,6 +1048,7 @@ function AddButton({ onClick }: { onClick: () => void }) {
       type="button"
       className={styles.addButton}
       aria-label="Add manga"
+      data-tour="add"
       onClick={onClick}
     >
       <PlusIcon aria-hidden />
@@ -1085,6 +1099,7 @@ function GuestHero() {
             >
               Sign in
             </NavLink>
+            <TakeTourButton className={styles.guestTour} />
           </div>
         </div>
 

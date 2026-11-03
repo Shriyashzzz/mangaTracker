@@ -106,6 +106,7 @@ export default function ChapterStepper({ mangaId, value, onSaved }: Props) {
           type="button"
           className={styles.stepperBtn}
           aria-label="One chapter on"
+          data-tour="chapter-up"
           disabled={current >= MAX_CHAPTER}
           onClick={() => change(String(current + 1))}
         >

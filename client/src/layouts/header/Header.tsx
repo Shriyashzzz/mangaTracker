@@ -108,7 +108,12 @@ export default function Header() {
           >
             My shelf
           </NavLink>
-          <NavLink to="/" className={() => linkClass(onPrices)} viewTransition>
+          <NavLink
+            to="/"
+            data-tour="tab-prices"
+            className={() => linkClass(onPrices)}
+            viewTransition
+          >
             Prices
           </NavLink>
           {isSignedIn === false && (
@@ -139,6 +144,7 @@ export default function Header() {
         </NavLink>
         <NavLink
           {...barLink("prices")}
+          data-tour="tab-prices"
           className={() => barClass(onPrices)}
           viewTransition
         >

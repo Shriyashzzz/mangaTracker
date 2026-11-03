@@ -104,7 +104,10 @@ export function AddManga() {
       </div>
 
       <form className={styles.sheet} onSubmit={handleFormSubmit}>
-        <div className={`${styles.field} ${styles.titleField}`}>
+        <div
+          className={`${styles.field} ${styles.titleField}`}
+          data-tour="add-title"
+        >
           <label htmlFor="name" className={styles.label}>
             Title <b>*</b>
           </label>

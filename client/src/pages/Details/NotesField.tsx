@@ -65,7 +65,7 @@ export default function NotesField({
   );
 
   return (
-    <div className={styles.notes}>
+    <div className={styles.notes} data-tour="notes">
       <div className={styles.notesHead}>
         <label htmlFor="manga-notes" className={styles.label}>
           Your notes
