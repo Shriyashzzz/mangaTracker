@@ -1,6 +1,5 @@
 import { NavLink } from "react-router";
 import TakeTourButton from "../../components/tour/TakeTourButton";
-import { useAuth } from "../../store/auth";
 import Mascot from "../../components/mascot/Mascot";
 
 import { aboutStyles as styles } from "./styles";
@@ -35,7 +34,6 @@ const STRIP = [
 ];
 
 export function AboutPage() {
-  const isSignedIn = useAuth((s) => s.isSignedIn);
   usePageMeta({
     title: "About",
     description:
@@ -145,8 +143,7 @@ export function AboutPage() {
         <NavLink to="/shelf" className="btn btn-primary btn-lg" viewTransition>
           Okay, let me try it
         </NavLink>
-        {/* the practice shelf is for anyone without one of their own yet */}
-        {isSignedIn === false && <TakeTourButton large />}
+        <TakeTourButton large />
       </div>
 
       <section className={styles.contact} aria-labelledby="contact-title">

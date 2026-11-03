@@ -6,6 +6,7 @@ import { NavLink } from "react-router";
 import { useReleaseChecksOn } from "../../lib/prefs";
 import { openReleasesOnShelf } from "../../lib/shelf";
 import { useAuth } from "../../store/auth";
+import TakeTourButton from "../tour/TakeTourButton";
 
 const ITEMS = [
   {
@@ -69,6 +70,15 @@ export default function WhatsNew({ children }: { children?: ReactNode }) {
         )}
 
         {/* just the names in a slim margin; wider ones have room to explain */}
+        {/* anyone can try the whole site on a practice shelf, signed in or not */}
+        <div className="mt-3 border-t-[1.5px] border-line-soft pt-3">
+          <p className="text-[0.82rem] leading-[1.35] text-ink-soft">
+            New here, or want a refresher?
+          </p>
+          <div className="mt-1.5">
+            <TakeTourButton small />
+          </div>
+        </div>
         <ul className="mt-2 border-t-[1.5px] border-line-soft">
           {ITEMS.map((item) => (
             <li
