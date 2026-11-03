@@ -53,7 +53,10 @@ export default function RangePager({
   const go = (p: number) => onChange(Math.min(Math.max(p, 0), pages - 1));
 
   return (
-    <nav className="mt-1 mb-5 flex min-w-0 items-center gap-2" aria-label={label}>
+    <nav
+      className="mt-1 mb-5 flex min-w-0 items-center gap-2"
+      aria-label={label}
+    >
       <button
         type="button"
         className={stepButton}

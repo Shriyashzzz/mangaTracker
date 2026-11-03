@@ -60,10 +60,10 @@ export default function MangaCard({
         asColumns
           ? "group grid animate-card-in grid-cols-[2.75rem_minmax(0,1fr)_auto] gap-x-3 py-1.5"
           : compact
-          ? "group flex animate-card-in flex-row items-start gap-3 py-1.5"
-          : news
-          ? "group flex animate-card-in flex-col gap-[0.7rem] upto-720:flex-row upto-720:items-center upto-720:gap-3 upto-720:py-1.5"
-          : "group flex animate-card-in flex-col gap-[0.7rem]"
+            ? "group flex animate-card-in flex-row items-start gap-3 py-1.5"
+            : news
+              ? "group flex animate-card-in flex-col gap-[0.7rem] upto-720:flex-row upto-720:items-center upto-720:gap-3 upto-720:py-1.5"
+              : "group flex animate-card-in flex-col gap-[0.7rem]"
       }
       style={{ animationDelay: `${Math.min(index, 12) * 35}ms` }}
       viewTransition
@@ -108,7 +108,9 @@ export default function MangaCard({
         )}
       </div>
       <div className="flex min-w-0 flex-col gap-[0.15rem]">
-        <p className={`${compact ? "line-clamp-1" : news ? "line-clamp-2 min-h-[2.5em] upto-720:min-h-0 upto-720:line-clamp-1" : "line-clamp-2"}  font-display text-[1.05rem] leading-[1.25] font-semibold decoration-accent underline-offset-3 group-hover:underline`}>
+        <p
+          className={`${compact ? "line-clamp-1" : news ? "line-clamp-2 min-h-[2.5em] upto-720:min-h-0 upto-720:line-clamp-1" : "line-clamp-2"}  font-display text-[1.05rem] leading-[1.25] font-semibold decoration-accent underline-offset-3 group-hover:underline`}
+        >
           {currentManga.name}
         </p>
         {/* a row gives the chapter its own line: it's what they came to see */}
@@ -125,7 +127,9 @@ export default function MangaCard({
             {/* one line for the rest, so every row is the same height */}
             <div className="flex min-h-[1.2rem] min-w-0 items-center gap-3">
               {genre && (
-                <p className="truncate font-mono text-[0.78rem] text-muted">{genre}</p>
+                <p className="truncate font-mono text-[0.78rem] text-muted">
+                  {genre}
+                </p>
               )}
             </div>
           </>

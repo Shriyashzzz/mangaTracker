@@ -7,8 +7,10 @@ import { getJson } from "../../../lib/api";
 import { canadaStoreLinks, timeAgo } from "../../../lib/prices";
 import type { Offer } from "../../../lib/types";
 import { pricesStyles as styles } from "../styles";
+import CountrySwitch from "./CountrySwitch";
 
 type Answer = {
+  links?: { store: string; url: string; affiliate: boolean }[];
   status: "ok" | "off" | "budget" | "error";
   offers: Offer[];
   checkedAt: string | null;
@@ -24,6 +26,20 @@ const CONDITION: Record<string, string> = {
   used: "Used",
   marketplace: "Marketplace",
 };
+
+const OfferRow = ({ o }: { o: Offer }) => (
+  <>
+    <span className={styles.offerStore}>
+      {o.store}
+      <span className="font-mono text-[0.85rem] font-normal text-ink-soft">
+        {o.format === "ebook"
+          ? "Ebook"
+          : (CONDITION[o.condition] ?? o.condition)}
+      </span>
+    </span>
+    <span className={styles.offerPrice}>{cad.format(o.priceCents / 100)}</span>
+  </>
+);
 
 export default function CanadaPrices({ isbn }: { isbn: string }) {
   const [answer, setAnswer] = useState<{ isbn: string; data: Answer } | null>(
@@ -54,11 +70,14 @@ export default function CanadaPrices({ isbn }: { isbn: string }) {
         <h2 id="ca-prices-title" className={styles.sectionTitle}>
           Prices in Canada
         </h2>
-        {data?.checkedAt && (
-          <span className={styles.checked}>
-            checked {timeAgo(data.checkedAt)}
-          </span>
-        )}
+        <span className="flex items-center gap-3">
+          {data?.checkedAt && (
+            <span className={styles.checked}>
+              checked {timeAgo(data.checkedAt)}
+            </span>
+          )}
+          <CountrySwitch />
+        </span>
       </div>
 
       {!data ? (
@@ -69,25 +88,21 @@ export default function CanadaPrices({ isbn }: { isbn: string }) {
         <ul className={styles.offers}>
           {offers.map((o) => (
             <li key={`${o.store}|${o.format}|${o.condition}`}>
-              <span className={styles.offerRow}>
-                <span className={styles.offerStore}>
-                  {o.url ? (
-                    <a href={o.url} target="_blank" rel="noreferrer">
-                      {o.store}
-                    </a>
-                  ) : (
-                    o.store
-                  )}
-                  <span className="font-mono text-[0.85rem] font-normal text-ink-soft">
-                    {o.format === "ebook"
-                      ? "Ebook"
-                      : (CONDITION[o.condition] ?? o.condition)}
-                  </span>
+              {o.url ? (
+                <a
+                  className={styles.offerRow}
+                  href={o.url}
+                  target="_blank"
+                  rel={o.affiliate ? "sponsored noreferrer" : "noreferrer"}
+                  aria-label={`${o.store}, ${cad.format(o.priceCents / 100)}. Opens the store in a new tab`}
+                >
+                  <OfferRow o={o} />
+                </a>
+              ) : (
+                <span className={styles.offerRow}>
+                  <OfferRow o={o} />
                 </span>
-                <span className={styles.offerPrice}>
-                  {cad.format(o.priceCents / 100)}
-                </span>
-              </span>
+              )}
             </li>
           ))}
         </ul>
@@ -104,20 +119,32 @@ export default function CanadaPrices({ isbn }: { isbn: string }) {
       <div className={`${styles.otherStores} mt-4`}>
         <h3 className={styles.otherStoresTitle}>Check this volume at:</h3>
         <ul className={styles.storeLinks}>
-          {canadaStoreLinks(isbn).map((s) => (
-            <li key={s.store}>
-              <a
-                href={s.url}
-                target="_blank"
-                rel="noreferrer"
-                aria-label={`${s.store}. Opens the store in a new tab`}
-              >
-                {s.store}
-              </a>
-            </li>
-          ))}
+          {(data?.links?.length ? data.links : canadaStoreLinks(isbn)).map(
+            (s) => (
+              <li key={s.store}>
+                <a
+                  href={s.url}
+                  target="_blank"
+                  rel={
+                    "affiliate" in s && s.affiliate
+                      ? "sponsored noreferrer"
+                      : "noreferrer"
+                  }
+                  aria-label={`${s.store}. Opens the store in a new tab`}
+                >
+                  {s.store}
+                </a>
+              </li>
+            ),
+          )}
         </ul>
       </div>
+      {data?.links?.some((s) => s.affiliate) && (
+        <p className={styles.disclosure}>
+          The Amazon.ca link is an affiliate link, which helps keep the site
+          running at no cost to you.
+        </p>
+      )}
     </section>
   );
 }

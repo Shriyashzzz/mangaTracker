@@ -129,7 +129,6 @@ export default function PriceSearch() {
               each volume.
             </p>
             <p className="flex flex-wrap items-center gap-2 text-[0.9rem] text-ink-soft">
-              Prices from
               <CountrySwitch />
             </p>
 

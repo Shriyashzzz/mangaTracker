@@ -85,7 +85,9 @@ export default function SupportPeek() {
       timer = window.setTimeout(() => {
         if (document.hidden || !readyToPeek()) return;
         // not mid-typing, and not on top of another note in that corner
-        const typing = document.activeElement?.matches("input, textarea, select");
+        const typing = document.activeElement?.matches(
+          "input, textarea, select",
+        );
         if (typing || document.querySelector("[data-over-add-button]")) return;
         markPeekShown();
         setWay(Math.random() < 0.5 ? "edge" : "side");
@@ -168,13 +170,20 @@ export default function SupportPeek() {
         >
           <CloseIcon />
         </button>
-        <p>{way === "side" ? "Psst! Found a good deal?" : "Enjoying the site?"}</p>
+        <p>
+          {way === "side" ? "Psst! Found a good deal?" : "Enjoying the site?"}
+        </p>
         <p className="support-peek-more">
           {way === "side"
             ? "Maybe spend the change on my coffee?"
             : "A coffee keeps it running."}
         </p>
-        <a href={SUPPORT_URL} target="_blank" rel="noreferrer" onClick={answered}>
+        <a
+          href={SUPPORT_URL}
+          target="_blank"
+          rel="noreferrer"
+          onClick={answered}
+        >
           Buy me a coffee
         </a>
       </div>

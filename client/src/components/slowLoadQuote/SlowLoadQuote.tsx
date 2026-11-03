@@ -46,12 +46,16 @@ export default function SlowLoadQuote() {
         <p className="text-[1rem] text-muted" role="status">
           Taking a moment. One to read while you wait:
         </p>
-        <figure key={index} className="mt-[0.3rem] animate-quote-in motion-reduce:animate-none">
+        <figure
+          key={index}
+          className="mt-[0.3rem] animate-quote-in motion-reduce:animate-none"
+        >
           <blockquote className="font-letter text-[1rem] leading-[1.3] font-bold tracking-[0.02em] text-balance uppercase">
             {quote.text}
           </blockquote>
           <figcaption className="mt-[0.3rem] font-mono text-[0.72rem] text-ink-soft">
-            {quote.who}, <cite className="text-accent not-italic">{quote.series}</cite>
+            {quote.who},{" "}
+            <cite className="text-accent not-italic">{quote.series}</cite>
           </figcaption>
         </figure>
       </div>
