@@ -12,7 +12,6 @@ import type { Background } from "../../lib/types";
 import clsx from "clsx";
 import Avatar from "../avatar/Avatar";
 import { useAccount } from "../../store/account";
-import { hasBottomBar } from "../../lib/bottomBar";
 
 // one row of the menu: a button or link
 const item =
@@ -116,9 +115,8 @@ export default function SettingsMenu({ isSignedIn, onLogOut }: Props) {
         aria-expanded={open}
         aria-controls="settings-menu"
         aria-label="Menu"
+        data-tour="menu"
         title="Menu"
-        // on phones the tour points here for importing, which lives in this menu
-        data-tour={hasBottomBar() ? "import-link" : undefined}
         onClick={toggle}
       >
         {isSignedIn ? (
@@ -205,7 +203,13 @@ export default function SettingsMenu({ isSignedIn, onLogOut }: Props) {
                 </NavLink>
               </li>
               <li className="hidden upto-720:block">
-                <NavLink to="/import" className={item} viewTransition>
+                <NavLink
+                  to="/import"
+                  className={item}
+                  // the tour opens this menu on phones and points here
+                  data-tour="import-link"
+                  viewTransition
+                >
                   Import your list
                 </NavLink>
               </li>

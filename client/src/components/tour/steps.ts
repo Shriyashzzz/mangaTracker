@@ -12,6 +12,8 @@ type Line = {
   say: string;
   // what he says instead on phones, where the thing he points at differs
   phoneSay?: string;
+  // on phones the target lives in the header menu, so he opens it first
+  inMenuOnPhone?: boolean;
   tap?: boolean;
   // one of the few big moments: everything but the target blurs. Otherwise the
   // page stays clear and usable, and Kenji just points
@@ -71,7 +73,8 @@ const PARTS: { name: string; lines: Line[] }[] = [
         allTab: true,
         say: "Keeping a list on MyAnimeList, Goodreads or another app? This brings it over in one go.",
         phoneSay:
-          "Keeping a list on MyAnimeList, Goodreads or another app? Import your list is in this menu, and brings it over in one go.",
+          "Keeping a list on MyAnimeList, Goodreads or another app? Import your list lives here in the menu, and brings it over in one go.",
+        inMenuOnPhone: true,
       },
       {
         path: "/shelf",

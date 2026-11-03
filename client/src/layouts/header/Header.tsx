@@ -51,8 +51,8 @@ export default function Header() {
     !fromShelf &&
     !guestHome &&
     (pathname === "/" ||
-    pathname.startsWith("/prices") ||
-    pathname.startsWith("/series"));
+      pathname.startsWith("/prices") ||
+      pathname.startsWith("/series"));
 
   // the page each tab is on, as they move around. A guest's shelf pages only
   // lead to signing in, so those aren't worth going back to
@@ -72,7 +72,10 @@ export default function Header() {
 
   // the tab you're on goes to its top page; the other goes back to where you were
   const barLink = (tab: BarTab) => ({
-    to: tab === currentTab ? TAB_HOME[tab] : (readSpot(tab)?.path ?? TAB_HOME[tab]),
+    to:
+      tab === currentTab
+        ? TAB_HOME[tab]
+        : (readSpot(tab)?.path ?? TAB_HOME[tab]),
     onClick: () => leaveTabFor(tab, currentTab, here),
   });
 
@@ -83,8 +86,10 @@ export default function Header() {
     }
   };
 
+  // above the page and its floating add button, so the menu hanging off it
+  // never ends up underneath them
   return (
-    <header className="relative z-10 border-b-[3px] border-double border-line bg-paper">
+    <header className="relative z-30 border-b-[3px] border-double border-line bg-paper">
       <div className="px-gutter mx-auto flex h-[62px] max-w-page items-center gap-4">
         <NavLink
           to="/"
@@ -100,7 +105,10 @@ export default function Header() {
         </NavLink>
 
         {/* phones have it at the bottom, within reach of a thumb */}
-        <nav className="flex items-center gap-[1.4rem] upto-720:hidden" aria-label="Main">
+        <nav
+          className="flex items-center gap-[1.4rem] upto-720:hidden"
+          aria-label="Main"
+        >
           <NavLink
             to="/shelf"
             className={({ isActive }) => linkClass(isActive || fromShelf)}

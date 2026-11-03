@@ -21,6 +21,8 @@ const BUBBLE_GAP = 26;
 const SCREEN_MARGIN = 12;
 const RING_INSET = 3;
 const SWITCH_SETTLES_MS = 200;
+// once the page has settled, so it doesn't open over a page still arriving
+const MENU_OPENS_AFTER_MS = 400;
 const MIN_SIDE_WIDTH = 280;
 const BOTTOM_BAR = 59;
 
@@ -142,7 +144,10 @@ export default function Tour() {
         ) {
           // the page moved after we scrolled to it, like the shelf putting back
           // where they were: bring a small target back into view
-          window.scrollBy(0, el.getBoundingClientRect().top - SCREEN_MARGIN * 4);
+          window.scrollBy(
+            0,
+            el.getBoundingClientRect().top - SCREEN_MARGIN * 4,
+          );
         } else if (!scrolled && !step.onTop) {
           scrolled = true;
           // a big section starts at the top, leaving Kenji room below it
@@ -191,6 +196,21 @@ export default function Tour() {
     return () => {
       cancelAnimationFrame(frame);
       if (heldStill) heldStill.inert = false;
+    };
+  }, [step, onPage]);
+
+  // on phones some targets live in the header menu: open it so he can point inside
+  // and close it again when the step ends, by Next, Back or leaving the page
+  useEffect(() => {
+    if (!step.inMenuOnPhone || !onPage || !hasBottomBar()) return;
+    const menuButton = () => document.querySelector<HTMLElement>('[data-tour="menu"]');
+    const isOpen = () => Boolean(document.getElementById("settings-menu"));
+    const timer = setTimeout(() => {
+      if (!isOpen()) menuButton()?.click();
+    }, MENU_OPENS_AFTER_MS);
+    return () => {
+      clearTimeout(timer);
+      if (isOpen()) menuButton()?.click();
     };
   }, [step, onPage]);
 
