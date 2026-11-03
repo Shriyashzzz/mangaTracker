@@ -93,7 +93,18 @@ const writeShelf = (shelf: Manga[]) => {
 };
 
 // a full reload, so nothing from a guest's visit or the tour leaks into the other
-export function startDemo() {
+// inside the tour the practice account answers as signed in, so whether the real
+// person was is noted as it starts
+const WAS_SIGNED_IN_KEY = "demoWasSignedIn";
+export const wasSignedInBeforeTour = () => {
+  try {
+    return sessionStorage.getItem(WAS_SIGNED_IN_KEY) === "yes";
+  } catch {
+    return false;
+  }
+};
+
+export function startDemo(wasSignedIn = false) {
   try {
     // marks this page, so going back to it leaves the tour
     history.replaceState({ ...history.state, [START_MARK]: true }, "");
@@ -105,6 +116,7 @@ export function startDemo() {
     sessionStorage.clear();
     sessionStorage.setItem(ON_KEY, "on");
     sessionStorage.setItem("libraryStatus", "all");
+    if (wasSignedIn) sessionStorage.setItem(WAS_SIGNED_IN_KEY, "yes");
   } catch {
     return;
   }
