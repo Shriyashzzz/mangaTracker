@@ -19,6 +19,7 @@ const GIVE_UP_AFTER_MS = 2500;
 const SETTLED_AFTER_MS = 900;
 const BUBBLE_GAP = 26;
 const SCREEN_MARGIN = 12;
+const RING_INSET = 3;
 const BOTTOM_BAR = 59;
 
 type Box = { top: number; left: number; width: number; height: number };
@@ -117,12 +118,18 @@ export default function Tour() {
             getComputedStyle(nav).position === "fixed" &&
             nav.getClientRects().length > 0,
         );
-        const floor = (bar?.getBoundingClientRect().top ?? innerHeight) - SCREEN_MARGIN;
+        const floor =
+          bar && !bar.contains(el)
+            ? bar.getBoundingClientRect().top - SCREEN_MARGIN
+            : innerHeight - RING_INSET;
+        // the ring stays on screen, even around a tab that touches its edges
         const top = Math.round(r.top - HOLE_PADDING);
+        const left = Math.round(Math.max(r.left - HOLE_PADDING, RING_INSET));
+        const right = Math.min(r.right + HOLE_PADDING, innerWidth - RING_INSET);
         const next = {
           top,
-          left: Math.round(r.left - HOLE_PADDING),
-          width: Math.round(r.width + HOLE_PADDING * 2),
+          left,
+          width: Math.round(right - left),
           height: Math.round(Math.min(r.bottom + HOLE_PADDING, floor) - top),
         };
         setBox((old) =>
@@ -270,7 +277,7 @@ export default function Tour() {
         </div>
         <div className="tour-words">
           <p className="tour-count">
-            {index + 1} of {TOUR_STEPS.length}
+            {step.part} · {step.partStep} of {step.partSize}
           </p>
           <p className="tour-say">
             {wentExploring

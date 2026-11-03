@@ -818,7 +818,12 @@ function Library() {
                 <SearchIcon />
                 Search
               </button>
-              <NavLink to="/new-releases" className={styles.hiddenToggle} viewTransition>
+              <NavLink
+                to="/new-releases"
+                data-tour="how-new-works"
+                className={styles.hiddenToggle}
+                viewTransition
+              >
                 How this works
               </NavLink>
               {hiddenCount > 0 && !viewingHidden && (

@@ -144,7 +144,6 @@ export default function ReleaseBar({
         {buy && (
           <NavLink
             className={styles.releaseBuy}
-            data-tour="buy"
             to={buy.to}
             viewTransition
           >
