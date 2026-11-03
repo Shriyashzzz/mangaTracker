@@ -117,7 +117,12 @@ export default function SettingsMenu({ isSignedIn, onLogOut }: Props) {
   useEffect(() => {
     if (!open) return;
     const onPointer = (e: PointerEvent) => {
-      if (!wrapRef.current?.contains(e.target as Node)) close();
+      // the tour opens it to point inside, and closes it when the step ends. A
+      // tap on Kenji closing it first moves him out from under their finger
+      const onTour = (e.target as Element | null)?.closest?.(
+        ".tour-bubble, .tour-dock",
+      );
+      if (!onTour && !wrapRef.current?.contains(e.target as Node)) close();
     };
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") {
