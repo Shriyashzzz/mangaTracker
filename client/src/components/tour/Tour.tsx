@@ -296,7 +296,7 @@ export default function Tour() {
                 <button
                   type="button"
                   className="btn btn-primary btn-sm"
-                  onClick={backToStep}
+                  onClick={step.doneOnLeaving ? () => goTo(index + 1) : backToStep}
                 >
                   Back to the tour
                 </button>

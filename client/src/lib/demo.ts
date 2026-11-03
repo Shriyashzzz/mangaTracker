@@ -298,6 +298,9 @@ export function demoResponse(
       practice(id, String(body.name), String(body.genre ?? ""), "", {
         image: (body.image as string) || null,
         bookmark: Number(body.bookmark) || null,
+        volumesOwned: Number(body.volumesOwned) || null,
+        description: (body.description as string) || null,
+        status: Boolean(body.status),
       }),
     ]);
     return json({ id }, 201);

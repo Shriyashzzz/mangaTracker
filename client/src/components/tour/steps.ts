@@ -19,10 +19,14 @@ export type TourStep = {
   free?: boolean;
   // sit in the corner, clear of what using the target opens up
   dock?: boolean;
+  // leaving this page means they're done with it, like adding a manga opens that
+  // manga's page, so coming back to the tour carries on instead of returning here
+  doneOnLeaving?: boolean;
   // open the shelf on All, rather than the tab they last had
   allTab?: boolean;
 };
 
+// One Piece: the practice manga with a new volume, so the red bar steps always use it
 const MANGA = "/details/1";
 
 export const TOUR_STEPS: TourStep[] = [
@@ -45,6 +49,7 @@ export const TOUR_STEPS: TourStep[] = [
     say: "Type a title and pick the match. The cover and genre fill in for you.",
     button: "Next",
     dock: true,
+    doneOnLeaving: true,
   },
   {
     path: "/shelf",
@@ -81,23 +86,20 @@ export const TOUR_STEPS: TourStep[] = [
     button: "Keep going",
   },
   {
-    path: "/details/",
-    go: MANGA,
+    path: MANGA,
     target: "release-toggle",
     focus: true,
     say: "Psst! This red bar means something new is out, and it's past where you are. Tap it to see the dates.",
     tap: true,
   },
   {
-    path: "/details/",
-    go: MANGA,
+    path: MANGA,
     target: "release-dates",
     say: "Here's what's out and when the next one should land. Volumes show volume dates, chapters show chapter dates.",
     button: "Got it",
   },
   {
-    path: "/details/",
-    go: MANGA,
+    path: MANGA,
     target: "buy",
     say: "Want a copy? This takes you to its prices. Tap it!",
     tap: true,
