@@ -1,4 +1,4 @@
-import { useEffect, useId, useState } from "react";
+import { useEffect, useState } from "react";
 import { NavLink, useSearchParams } from "react-router";
 import type { Highlights as HighlightsData, SeriesHit } from "../../lib/types";
 import { probablySignedIn, useAuth } from "../../store/auth";
@@ -140,7 +140,7 @@ export default function PriceSearch() {
         </div>
 
         {!searching && (
-          <WhatsNew>{!guest && <ShelfPromo inMargin />}</WhatsNew>
+          <WhatsNew />
         )}
       </div>
 
@@ -207,7 +207,6 @@ export default function PriceSearch() {
       )}
 
       {!searching && <Highlights />}
-      {!searching && !guest && <ShelfPromo />}
       <ReleaseTip enabled={!searching} />
     </div>
   );
@@ -296,45 +295,3 @@ function Highlights() {
   );
 }
 
-// the second half of the app: a quiet pointer to the reading tracker. Above
-// what's new when the margin has room for it, otherwise at the end of the page
-function ShelfPromo({ inMargin = false }: { inMargin?: boolean }) {
-  const isSignedIn = useAuth((s) => s.isSignedIn);
-  const titleId = useId();
-  return (
-    <section
-      className={inMargin ? styles.promoMargin : styles.promo}
-      aria-labelledby={titleId}
-    >
-      <div>
-        <h2
-          id={titleId}
-          className={inMargin ? styles.promoMarginTitle : styles.sectionTitle}
-        >
-          Track what you read
-        </h2>
-        <p className={inMargin ? styles.promoMarginBody : styles.promoBody}>
-          Save the chapter you're on for every series, rate what you finish, and
-          see which ones have a new volume out.
-        </p>
-      </div>
-      {isSignedIn ? (
-        <NavLink
-          to="/shelf"
-          className={`btn btn-secondary ${inMargin ? styles.promoMarginBtn : ""}`}
-          viewTransition
-        >
-          Go to my shelf
-        </NavLink>
-      ) : (
-        <NavLink
-          to="/signup"
-          className={`btn btn-secondary ${inMargin ? styles.promoMarginBtn : ""}`}
-          viewTransition
-        >
-          Start your shelf
-        </NavLink>
-      )}
-    </section>
-  );
-}

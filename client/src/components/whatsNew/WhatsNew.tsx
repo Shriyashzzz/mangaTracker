@@ -9,12 +9,16 @@ import { useAuth } from "../../store/auth";
 
 const ITEMS = [
   {
-    name: "Better search results",
-    body: "Greater accuracy and a wider list of live prices.",
+    name: "A To read list",
+    body: "Save what you want to read next, from your shelf or any series' prices.",
   },
   {
-    name: "Next chapter dates",
-    body: "A volume behind? The manga's page shows when the next chapter should land.",
+    name: "Import from more places",
+    body: "Goodreads, AniList, Kitsu, Book Catalogue, or any CSV.",
+  },
+  {
+    name: "Better search results",
+    body: "Greater accuracy and a wider list of live prices.",
   },
 ];
 
