@@ -55,7 +55,7 @@ const BY_MAL_ID_QUERY = `
   query ($ids: [Int]) {
     Page(perPage: 50) {
       media(idMal_in: $ids, type: MANGA) {
-        idMal genres synonyms
+        idMal genres synonyms format
         title { english romaji }
         coverImage { large }
       }
@@ -73,7 +73,9 @@ export async function getListingsByMalIds(ids: number[]) {
     try {
       if (pause) await new Promise((done) => setTimeout(done, pause));
       const { Page } = await query<{
-        Page: { media: (Media & { idMal: number | null })[] };
+        Page: {
+          media: (Media & { idMal: number | null; format: string | null })[];
+        };
       }>(BY_MAL_ID_QUERY, { ids });
       for (const m of Page.media) {
         if (m.idMal == null) continue;
@@ -82,6 +84,7 @@ export async function getListingsByMalIds(ids: number[]) {
           altNames: [m.title.romaji ?? "", ...(m.synonyms ?? [])].filter(Boolean),
           cover: m.coverImage?.large ?? null,
           genre: m.genres?.[0] ?? null,
+          lightNovel: m.format === "NOVEL",
         });
       }
       return listings;

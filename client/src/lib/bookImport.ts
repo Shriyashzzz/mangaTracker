@@ -19,6 +19,8 @@ export type Book = {
   rating: number;
   // on a want-to-read list and nothing else
   planned: boolean;
+  // the title says so: "Overlord, Vol. 1 (light novel)"
+  lightNovel: boolean;
 };
 
 export type BookSeries = {
@@ -30,6 +32,7 @@ export type BookSeries = {
   score: number;
   // nothing owned or read yet: only on a to-read list
   planned: boolean;
+  lightNovel: boolean;
 };
 
 // ---------- CSV ----------
@@ -145,6 +148,11 @@ const seriesKey = (name: string) =>
     .replace(/[^\p{L}\p{N}]+/gu, " ")
     .trim();
 
+// publishers tag the novel editions, so the manga of the same name stays apart
+const LIGHT_NOVEL = /\blight[\s-]?novels?\b|\(\s*(ln|novel)\s*\)/i;
+export const isLightNovel = (...text: string[]) =>
+  text.some((t) => LIGHT_NOVEL.test(t));
+
 // ---------- each app's columns ----------
 
 const header = (headers: string[], ...patterns: RegExp[]) => {
@@ -191,6 +199,7 @@ function goodreadsBook(h: string[], row: string[]): Book | null {
     reading: shelf === "currently-reading",
     rating: stars(cell(row, header(h, /^My Rating$/))),
     planned: shelf === "to-read" && !owned && !read,
+    lightNovel: isLightNovel(title),
   };
 }
 
@@ -201,9 +210,8 @@ function bookCatalogueBook(h: string[], row: string[]): Book | null {
   const read = yes(cell(row, header(h, /^read$/)));
   // it's a catalogue of the books they have, unless a shelf says otherwise
   const wanted = /wish|to.?buy|to.?read|want/i.test(shelf);
-  const fromDetails = seriesFromDetails(
-    cell(row, header(h, /^series_details$/)),
-  );
+  const details = cell(row, header(h, /^series_details$/));
+  const fromDetails = seriesFromDetails(details);
   return {
     title,
     ...(fromDetails ?? seriesFromTitle(title)),
@@ -212,6 +220,7 @@ function bookCatalogueBook(h: string[], row: string[]): Book | null {
     reading: false,
     rating: stars(cell(row, header(h, /^rating$/))),
     planned: wanted && !read,
+    lightNovel: isLightNovel(title, details),
   };
 }
 
@@ -249,6 +258,11 @@ function csvBook(h: string[], row: string[]): Book | null {
     reading,
     rating: stars(cell(row, header(h, /^(my )?(rating|score|stars)$/i))),
     planned: !owned && !read,
+    lightNovel: isLightNovel(
+      title,
+      seriesColumn,
+      cell(row, header(h, /^(type|format|kind)$/i)),
+    ),
   };
 }
 
@@ -266,13 +280,14 @@ export function readBooks(rows: string[][], source: BookSource): Book[] {
 
 // ---------- grouping ----------
 
-// one shelf entry per series. Volumes owned is the highest volume they bought,
+// one shelf entry per series, and the light novel of a series is its own. Volumes owned is the highest volume they bought,
 // or the highest they've read if that's further on. Reading a volume now counts
 // everything before it as read
 export function groupBooks(books: Book[]): BookSeries[] {
   const groups = new Map<string, Book[]>();
   for (const book of books) {
-    const key = seriesKey(book.series);
+    const name = seriesKey(book.series);
+    const key = name && (book.lightNovel ? `${name} (light novel)` : name);
     if (key) groups.set(key, [...(groups.get(key) ?? []), book]);
   }
   return [...groups].map(([key, list]) => {
@@ -299,6 +314,7 @@ export function groupBooks(books: Book[]): BookSeries[] {
       readVolumes: Math.min(read, 999),
       score: Math.round(average * 2),
       planned: list.every((b) => b.planned),
+      lightNovel: list[0]!.lightNovel,
     };
   });
 }
@@ -312,6 +328,7 @@ export const toEntry = (
   title: s.title.slice(0, 300),
   finished: false,
   ...(s.planned ? { planned: true } : {}),
+  ...(s.lightNovel ? { lightNovel: true } : {}),
   chapters: 0,
   readVolumes: s.readVolumes,
   ownedVolumes: s.ownedVolumes,

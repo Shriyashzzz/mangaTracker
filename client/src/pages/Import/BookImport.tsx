@@ -105,7 +105,7 @@ export default function BookImport({ source }: { source: BookSource }) {
         attempt++
       ) {
         try {
-          match = await findManga(s.title, controller.signal);
+          match = await findManga(s.title, controller.signal, s.lightNovel);
           break;
         } catch (e) {
           if (!(e instanceof AniListBusy)) break;
@@ -351,12 +351,16 @@ export default function BookImport({ source }: { source: BookSource }) {
                           : match === "failed"
                             ? "Couldn't check AniList"
                             : match === null
-                              ? "Not on AniList, so probably not manga"
-                              : s.planned
-                                ? "Only on a to-read list"
-                                : s.ownedVolumes
-                                  ? `Own up to vol. ${s.ownedVolumes}`
-                                  : `${s.books} book${s.books === 1 ? "" : "s"}`}
+                              ? s.lightNovel
+                                ? "Not on AniList"
+                                : "Not on AniList, so probably not manga"
+                              : s.lightNovel
+                                ? `Light novel · ${s.books} book${s.books === 1 ? "" : "s"}`
+                                : s.planned
+                                  ? "Only on a to-read list"
+                                  : s.ownedVolumes
+                                    ? `Own up to vol. ${s.ownedVolumes}`
+                                    : `${s.books} book${s.books === 1 ? "" : "s"}`}
                       </span>
                     </span>
                   </label>

@@ -16,6 +16,7 @@ const listing = {
   altNames: ["Shingeki no Kyojin"],
   cover: "https://example.com/c.jpg",
   genre: "Action",
+  lightNovel: false,
 };
 
 test("uses AniList's name, cover and genre when it has them", () => {
@@ -87,4 +88,23 @@ test("a plan to read entry goes on the To read list, not started", () => {
     null,
   );
   expect([input.planned, input.status, input.bookmark]).toEqual([true, false, null]);
+});
+
+test("a light novel stays one: from the import, or from AniList", () => {
+  expect(toMangaInput(entry(), null).lightNovel).toBe(false);
+  expect(toMangaInput(entry({ lightNovel: true }), null).lightNovel).toBe(true);
+  expect(
+    toMangaInput(entry(), { ...listing, lightNovel: true }).lightNovel,
+  ).toBe(true);
+  // what the import already knows wins
+  expect(
+    toMangaInput(entry({ lightNovel: false }), { ...listing, lightNovel: true })
+      .lightNovel,
+  ).toBe(false);
+});
+
+test("the manga and the light novel of a series aren't the same entry", () => {
+  const manga = namesOf(entry({ title: "Overlord" }), null);
+  const novel = namesOf(entry({ title: "Overlord", lightNovel: true }), null);
+  expect(manga.some((name) => novel.includes(name))).toBe(false);
 });

@@ -70,9 +70,19 @@ const csvCell = (value: unknown) => {
 
 export const shelfToCsv = (manga: Manga[]) =>
   [
-    ["Title", "Status", "Chapter", "Volumes owned", "Rating", "Genre", "Notes"],
+    [
+      "Title",
+      "Type",
+      "Status",
+      "Chapter",
+      "Volumes owned",
+      "Rating",
+      "Genre",
+      "Notes",
+    ],
     ...manga.map((m) => [
       m.name,
+      m.lightNovel ? "Light novel" : "Manga",
       m.status ? "Finished" : m.planned ? "To read" : "Reading",
       m.bookmark,
       m.volumesOwned,

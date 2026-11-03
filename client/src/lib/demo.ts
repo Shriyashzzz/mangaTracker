@@ -36,6 +36,7 @@ const practice = (
   description: null,
   status: false,
   planned: false,
+  lightNovel: false,
   bookmark: 1,
   volumesOwned: null,
   rating: null,
@@ -345,6 +346,7 @@ const fromForm = (body: Record<string, unknown>) => ({
   description: (body.description as string) || null,
   status: Boolean(body.status) && !body.planned,
   planned: Boolean(body.planned),
+  lightNovel: Boolean(body.lightNovel),
   bookmark: Number(body.bookmark) || null,
   volumesOwned: Number(body.volumesOwned) || null,
 });
@@ -402,6 +404,7 @@ export function demoResponse(
         image: entry.cover ?? null,
         status: entry.finished && !entry.planned,
         planned: Boolean(entry.planned),
+        lightNovel: Boolean(entry.lightNovel),
         bookmark: entry.chapters || null,
         // as the server does: volumes read when they haven't said what they own
         volumesOwned: entry.ownedVolumes || entry.readVolumes || null,

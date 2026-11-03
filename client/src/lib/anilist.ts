@@ -6,6 +6,7 @@ const SEARCH_QUERY = `
     Page(perPage: 6) {
       media(search: $search, type: MANGA, sort: SEARCH_MATCH) {
         id
+        format
         title { english romaji }
         startDate { year }
         coverImage { extraLarge large }
@@ -27,6 +28,7 @@ export type CoverHit = {
   year: number | null;
   cover: string;
   genre: string;
+  lightNovel: boolean;
 };
 
 const TAG_GENRES: Record<string, { genre: string; minRank: number }> = {
@@ -105,6 +107,7 @@ export async function searchCovers(
 
   type Media = {
     id: number;
+    format?: string | null;
     title: { english: string | null; romaji: string };
     startDate?: { year: number | null };
     coverImage?: { extraLarge?: string; large?: string };
@@ -122,14 +125,22 @@ export async function searchCovers(
       year: m.startDate?.year ?? null,
       cover: (m.coverImage!.extraLarge || m.coverImage!.large)!,
       genre: pickGenre(m.genres, m.tags),
+      lightNovel: m.format === "NOVEL",
     }));
 }
 
 // ---------- matching an imported series ----------
 
+// a light novel only when the book says so: otherwise a novel by the same name
+// would win over the manga
 const MATCH_QUERY = `
-  query ($search: String) {
-    Media(search: $search, type: MANGA, format_not: NOVEL, sort: SEARCH_MATCH) {
+  query ($search: String, $novel: Boolean!) {
+    manga: Media(search: $search, type: MANGA, format_not: NOVEL, sort: SEARCH_MATCH) @skip(if: $novel) {
+      idMal
+      title { english romaji }
+      coverImage { extraLarge large }
+    }
+    novel: Media(search: $search, type: MANGA, format: NOVEL, sort: SEARCH_MATCH) @include(if: $novel) {
       idMal
       title { english romaji }
       coverImage { extraLarge large }
@@ -145,12 +156,13 @@ export class AniListBusy extends Error {
   }
 }
 
-// the manga a series name most likely is, with its MyAnimeList id so the server
-// can fetch its cover and genre. Null when AniList has no manga by that name,
-// which for a book app's export usually means it isn't manga
+// the manga (or light novel) a series name most likely is, with its MyAnimeList
+// id so the server can fetch its cover and genre. Null when AniList has nothing
+// by that name, which for a book app's export usually means it isn't manga
 export async function findManga(
   search: string,
   signal?: AbortSignal,
+  novel = false,
 ): Promise<{
   malId: number | null;
   name: string;
@@ -159,7 +171,7 @@ export async function findManga(
   const response = await fetch(ANILIST_URL, {
     method: "POST",
     headers: { "Content-Type": "application/json", Accept: "application/json" },
-    body: JSON.stringify({ query: MATCH_QUERY, variables: { search } }),
+    body: JSON.stringify({ query: MATCH_QUERY, variables: { search, novel } }),
     signal,
   });
   if (response.status === 429) {
@@ -168,15 +180,18 @@ export async function findManga(
   if (response.status === 404) return null;
   if (!response.ok) throw new Error(`AniList responded ${response.status}`);
   const { data } = (await response.json()) as {
-    data?: {
-      Media?: {
-        idMal: number | null;
-        title: { english: string | null; romaji: string };
-        coverImage?: { extraLarge?: string; large?: string };
-      };
-    };
+    data?: Record<
+      "manga" | "novel",
+      | {
+          idMal: number | null;
+          title: { english: string | null; romaji: string };
+          coverImage?: { extraLarge?: string; large?: string };
+        }
+      | null
+      | undefined
+    >;
   };
-  const media = data?.Media;
+  const media = novel ? data?.novel : data?.manga;
   return media
     ? {
         malId: media.idMal,

@@ -8,6 +8,7 @@ import { GENRES } from "../../lib/genres";
 import CoverPicker from "../../components/coverPicker/CoverPicker";
 import type { CoverHit } from "../../lib/anilist";
 import TitleField from "./TitleField";
+import FormatField from "../../components/formatField/FormatField";
 import { useEffect } from "react";
 import { usePrivatePage } from "../../lib/seo";
 
@@ -37,6 +38,9 @@ export function AddManga() {
   // the suggestion under the mouse: its cover shows until they move away
   const [preview, setPreview] = useState<CoverHit | null>(null);
   const [genre, setGenre] = useState("");
+  // set by the AniList title they pick, until they choose it themselves
+  const [lightNovel, setLightNovel] = useState(false);
+  const formatTouched = useRef(false);
   const [genreFromAniList, setGenreFromAniList] = useState(false);
   // a genre the user picked by hand is never overwritten by a cover match
   const genreTouched = useRef(false);
@@ -55,6 +59,7 @@ export function AddManga() {
     setTitle(hit.title);
     setPickedTitle(hit.title);
     setImage(hit.cover);
+    if (!formatTouched.current) setLightNovel(hit.lightNovel);
     if (hit.genre && !genreTouched.current) {
       setGenre(hit.genre);
       setGenreFromAniList(true);
@@ -71,6 +76,7 @@ export function AddManga() {
       genre,
       status: isFinished,
       planned: stage === "planned",
+      lightNovel,
       volumesOwned: String(form.get("volumesOwned") ?? ""),
     };
     if (stage === "reading")
@@ -139,6 +145,8 @@ export function AddManga() {
           onResults={(hits, query) => setFound({ query, hits })}
           onChange={(url, match) => {
             setImage(url);
+            if (match && !formatTouched.current)
+              setLightNovel(match.lightNovel);
             if (match?.genre && !genreTouched.current) {
               setGenre(match.genre);
               setGenreFromAniList(true);
@@ -147,6 +155,13 @@ export function AddManga() {
         />
 
         <div className={styles.details}>
+          <FormatField
+            lightNovel={lightNovel}
+            onChange={(value) => {
+              formatTouched.current = true;
+              setLightNovel(value);
+            }}
+          />
           <div className={styles.field}>
             <span className={styles.fieldLabel}>
               Status <b>*</b>

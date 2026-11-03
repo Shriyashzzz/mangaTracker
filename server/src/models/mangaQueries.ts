@@ -10,6 +10,7 @@ export type MangaInput = {
   image?: string | null;
   status: boolean;
   planned?: boolean;
+  lightNovel?: boolean;
   bookmark?: number | null;
   volumesOwned?: number | null;
   rating?: number | null;
@@ -37,7 +38,7 @@ export async function addManga(userId: number, input: MangaInput) {
 export const getMangaShelfNames = (userId: number) =>
   prisma.manga.findMany({
     where: { userId },
-    select: { id: true, name: true },
+    select: { id: true, name: true, lightNovel: true },
   });
 
 export type RestoredManga = MangaInput & {

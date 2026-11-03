@@ -4,6 +4,7 @@ import { useState, useEffect, type FormEvent } from "react";
 import { apiFetch, errorMessages } from "../../lib/api";
 import type { Manga, MangaForm } from "../../lib/types";
 import CoverPicker from "../../components/coverPicker/CoverPicker";
+import FormatField from "../../components/formatField/FormatField";
 import { usePrivatePage } from "../../lib/seo";
 import { GENRES } from "../../lib/genres";
 
@@ -18,6 +19,7 @@ export function UpdateManga() {
   const [image, setImage] = useState("");
   const [genre, setGenre] = useState("");
   const [isFinished, setIsFinished] = useState(false);
+  const [lightNovel, setLightNovel] = useState(false);
   const [description, setDescription] = useState("");
   const [error, setError] = useState<{ msg: string }[] | null>(null);
   const [submitting, setSubmitting] = useState(false);
@@ -31,6 +33,7 @@ export function UpdateManga() {
         const { manga } = (await response.json()) as { manga: Manga };
         setMangaData(manga);
         setIsFinished(manga.status);
+        setLightNovel(Boolean(manga.lightNovel));
         setDescription(manga.description ?? "");
         setTitle(manga.name);
         setImage(manga.image ?? "");
@@ -53,6 +56,7 @@ export function UpdateManga() {
       genre,
       description,
       status: isFinished,
+      lightNovel,
       volumesOwned: String(form.get("volumesOwned") ?? ""),
     };
     if (!isFinished) formData.bookmark = String(form.get("bookmark") ?? "");
@@ -195,6 +199,8 @@ export function UpdateManga() {
                   </select>
                 </div>
               </div>
+
+              <FormatField lightNovel={lightNovel} onChange={setLightNovel} />
 
               <div className={styles.field}>
                 <span className={styles.fieldLabel}>Status</span>

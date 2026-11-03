@@ -45,6 +45,8 @@ model Manga {
   status       Boolean @default(false)
   // on their To read list: not started yet. Never true alongside status
   planned      Boolean @default(false)
+  // a light novel rather than a manga: no manga prices or volume news for it
+  lightNovel   Boolean @default(false) @map("light_novel")
   // the chapter they're on
   bookmark     Int?
   // the last volume they own ("up to Vol. 14"); null when they don't say
