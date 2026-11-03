@@ -1,7 +1,13 @@
 // Importing from a book app: Goodreads, Book Catalogue, or any CSV. The file is
 // read here in the browser, volumes are grouped into series, and each series is
 // looked up on AniList for its cover and to tell manga from everything else.
-import { useEffect, useRef, useState, type ChangeEvent, type DragEvent } from "react";
+import {
+  useEffect,
+  useRef,
+  useState,
+  type ChangeEvent,
+  type DragEvent,
+} from "react";
 import { NavLink } from "react-router";
 import Mascot from "../../components/mascot/Mascot";
 import { AniListBusy, findManga } from "../../lib/anilist";
@@ -33,15 +39,24 @@ const sleep = (ms: number, signal: AbortSignal) =>
     });
   });
 
-type Match = { malId: number | null; name: string; cover: string | null } | null | "failed";
+type Match =
+  | { malId: number | null; name: string; cover: string | null }
+  | null
+  | "failed";
 
-const HOW: Record<BookSource, { step: string; link?: { href: string; label: string } }> = {
+const HOW: Record<
+  BookSource,
+  { step: string; link?: { href: string; label: string } }
+> = {
   goodreads: {
     step: "On Goodreads, go to My Books, then Import and export, and press Export Library. Download the file once it's ready.",
-    link: { href: "https://www.goodreads.com/review/import", label: "Open Goodreads' export page" },
+    link: {
+      href: "https://www.goodreads.com/review/import",
+      label: "Open Goodreads' export page",
+    },
   },
   bookcatalogue: {
-    step: "In Book Catalogue, open the menu and export your books to a CSV file. The menu is called Admin & Prefs or Settings, depending on your version. Then move the file to this device.",
+    step: "In Book Catalogue, open the menu and export your books to a CSV file. Go to Admin & Prefs or Settings, depending on your version. Then drop the file.",
   },
   csv: {
     step: "Export your library from your app as a CSV file. It needs a title column; a series and volume column helps too.",
@@ -49,8 +64,10 @@ const HOW: Record<BookSource, { step: string; link?: { href: string; label: stri
 };
 
 const NOT_THAT: Record<BookSource, string> = {
-  goodreads: "That isn't a Goodreads export. Pick the file you downloaded from Goodreads' export page.",
-  bookcatalogue: "That isn't a Book Catalogue export. If it's from another app, choose Other app instead.",
+  goodreads:
+    "That isn't a Goodreads export. Pick the file you downloaded from Goodreads' export page.",
+  bookcatalogue:
+    "That isn't a Book Catalogue export. If it's from another app, choose Other app instead.",
   csv: "We couldn't find a title column in that file.",
 };
 
@@ -76,11 +93,17 @@ export default function BookImport({ source }: { source: BookSource }) {
     const controller = new AbortController();
     lookups.current = controller;
     // what they've owned or read first, to-read lists last
-    const order = [...list].sort((a, b) => Number(a.planned) - Number(b.planned));
+    const order = [...list].sort(
+      (a, b) => Number(a.planned) - Number(b.planned),
+    );
     for (const s of order) {
       if (controller.signal.aborted) return;
       let match: Match = "failed";
-      for (let attempt = 0; attempt < 3 && !controller.signal.aborted; attempt++) {
+      for (
+        let attempt = 0;
+        attempt < 3 && !controller.signal.aborted;
+        attempt++
+      ) {
         try {
           match = await findManga(s.title, controller.signal);
           break;
@@ -106,7 +129,9 @@ export default function BookImport({ source }: { source: BookSource }) {
     setFailed(false);
     setFileName(file.name);
     if (file.size > MAX_FILE_BYTES) {
-      setFileError("That file is too big to be a library export. Check you picked the right one.");
+      setFileError(
+        "That file is too big to be a library export. Check you picked the right one.",
+      );
       return;
     }
     try {
@@ -120,7 +145,9 @@ export default function BookImport({ source }: { source: BookSource }) {
             : true;
       const list = right ? groupBooks(readBooks(rows, source)) : [];
       if (!right || !list.length) {
-        setFileError(right ? "There are no books in that file." : NOT_THAT[source]);
+        setFileError(
+          right ? "There are no books in that file." : NOT_THAT[source],
+        );
         return;
       }
       setFound(list);
@@ -186,7 +213,9 @@ export default function BookImport({ source }: { source: BookSource }) {
           <Mascot mood="happy" />
         </span>
         <h2 className={styles.resultTitle} role="status">
-          {totals.added ? `${series(totals.added)} added!` : "All already there!"}
+          {totals.added
+            ? `${series(totals.added)} added!`
+            : "All already there!"}
         </h2>
         <p className={styles.resultBody}>
           {totals.alreadyThere > 0 &&
@@ -194,7 +223,11 @@ export default function BookImport({ source }: { source: BookSource }) {
           {totals.noCover > 0 &&
             `${series(totals.noCover)} came in without a cover. You can add one with Edit details.`}
         </p>
-        <NavLink to="/shelf" className="btn btn-primary btn-lg mt-2" viewTransition>
+        <NavLink
+          to="/shelf"
+          className="btn btn-primary btn-lg mt-2"
+          viewTransition
+        >
           Go to my shelf
         </NavLink>
       </section>
@@ -215,7 +248,12 @@ export default function BookImport({ source }: { source: BookSource }) {
             <h2 className={styles.stepTitle}>Export your library</h2>
             <p className={styles.stepBody}>{how.step}</p>
             {how.link && (
-              <a className={styles.stepLink} href={how.link.href} target="_blank" rel="noreferrer">
+              <a
+                className={styles.stepLink}
+                href={how.link.href}
+                target="_blank"
+                rel="noreferrer"
+              >
                 {how.link.label}
                 <span className="sr-only"> (opens in a new tab)</span> →
               </a>
@@ -246,8 +284,12 @@ export default function BookImport({ source }: { source: BookSource }) {
                 onChange={onPick}
               />
               <span>
-                <span className={`${styles.dropTitle} block`}>Choose your file</span>
-                <span className={`${styles.dropHint} block`}>Or drop it here. It ends in .csv</span>
+                <span className={`${styles.dropTitle} block`}>
+                  Choose your file
+                </span>
+                <span className={`${styles.dropHint} block`}>
+                  Or drop it here. It ends in .csv
+                </span>
               </span>
             </label>
             {fileError && (
@@ -260,8 +302,8 @@ export default function BookImport({ source }: { source: BookSource }) {
 
         {source === "csv" && (
           <p className={styles.warning}>
-            Every app exports its own way, so there's no guarantee every book comes over
-            exactly right. Check the list before you add it.
+            Every app exports its own way, so there's no guarantee every book
+            comes over exactly right. Check the list before you add it.
           </p>
         )}
       </section>
@@ -282,7 +324,11 @@ export default function BookImport({ source }: { source: BookSource }) {
               </p>
             )}
 
-            <div className={styles.seriesList} role="group" aria-label="Series to add">
+            <div
+              className={styles.seriesList}
+              role="group"
+              aria-label="Series to add"
+            >
               {found.map((s) => {
                 const match = matchOf(s);
                 const name = match && match !== "failed" ? match.name : s.title;
@@ -319,11 +365,13 @@ export default function BookImport({ source }: { source: BookSource }) {
             </div>
 
             <p className={styles.note}>
-              Volumes are grouped by series, so each manga comes in once. Ticked: what
-              AniList knows as manga, that you've bought or read. Volumes owned is the
-              furthest volume you bought, or read if that's further. A volume you're
-              reading now counts the ones before it as read. Chapters start blank, and
-              anything already on your shelf gets skipped.
+              1) Volumes are grouped by series, so each manga comes in once.
+              Ticked: what AniList knows as manga, that you've bought or read.{" "}
+              <br />
+              2) Volumes owned is the furthest volume you bought, or read if
+              that's further. <br />
+              3) Chapters start blank, and anything already on your shelf gets
+              skipped.{" "}
             </p>
 
             {importing ? (
@@ -354,8 +402,8 @@ export default function BookImport({ source }: { source: BookSource }) {
             {failed && (
               <p className={styles.error} role="alert">
                 That stopped partway
-                {totals?.added ? `, after adding ${series(totals.added)}` : ""}. Try again and
-                anything already added will be skipped.
+                {totals?.added ? `, after adding ${series(totals.added)}` : ""}.
+                Try again and anything already added will be skipped.
               </p>
             )}
           </div>
