@@ -38,7 +38,7 @@ import { EmptyShelfUndo } from "../../components/deletedNote/DeletedNote";
 import ReleaseTip from "../../components/whatsNew/ReleaseTip";
 import TakeTourButton from "../../components/tour/TakeTourButton";
 
-const SHELF_PAGE_SIZE = 30;
+const SHELF_PAGE_SIZE = 20;
 // shelves this size get a heads-up that their first release check is slow
 const BIG_SHELF = 10;
 // how long the "Hide" note and its undo stay up
