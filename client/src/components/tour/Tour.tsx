@@ -488,7 +488,7 @@ export default function Tour() {
               <>
                 <button
                   type="button"
-                  className="btn btn-primary"
+                  className="btn btn-primary btn-sm"
                   onClick={() => endDemo(hasShelf ? "/shelf" : "/signup")}
                 >
                   {hasShelf ? "Back to my shelf" : "Start your shelf"}
