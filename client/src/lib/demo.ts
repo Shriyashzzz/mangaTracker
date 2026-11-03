@@ -9,6 +9,8 @@ const ON_KEY = "demoTour";
 const SHELF_KEY = "demoShelf";
 const ACCOUNT_KEY = "demoAccount";
 const PREFS_KEY = "demoPrefs";
+const START_MARK = "beforeTour";
+const TOUR_START = "/shelf";
 // what this browser had saved before the tour, put back after it. Trying a theme or
 // compact rows on the practice shelf shouldn't change the real ones
 const SAVED_KEY = "demoSavedLocal";
@@ -87,6 +89,12 @@ const writeShelf = (shelf: Manga[]) => {
 // a full reload, so nothing from a guest's visit or the tour leaks into the other
 export function startDemo() {
   try {
+    // marks this page, so going back to it leaves the tour
+    history.replaceState({ ...history.state, [START_MARK]: true }, "");
+    // opening the address already showing replaces it, so the tour needs its own
+    if (window.location.pathname === TOUR_START) {
+      history.pushState(null, "", TOUR_START);
+    }
     sessionStorage.setItem(ON_KEY, "on");
     sessionStorage.setItem(SAVED_KEY, JSON.stringify({ ...localStorage }));
     sessionStorage.removeItem(SHELF_KEY);
@@ -97,10 +105,10 @@ export function startDemo() {
   } catch {
     return;
   }
-  window.location.assign("/shelf");
+  window.location.assign(TOUR_START);
 }
 
-export function endDemo(to = "/") {
+function clearDemo() {
   try {
     const saved = sessionStorage.getItem(SAVED_KEY);
     if (saved) {
@@ -121,7 +129,32 @@ export function endDemo(to = "/") {
   } catch {
     /* nothing to tidy */
   }
+}
+
+export function endDemo(to = "/") {
+  clearDemo();
   window.location.assign(to);
+}
+
+// the browser's back button from the tour's first page lands where they clicked Take
+// the tour, so that's them leaving. Only that page: the Prices steps also use "/".
+const backAtStart = () =>
+  isDemo() && Boolean((history.state as Record<string, unknown> | null)?.[START_MARK]);
+
+if (typeof window !== "undefined") {
+  // back to a new page load, or one the browser kept in memory: that page never ran
+  // the tour, so tidying up is enough
+  const tidy = () => {
+    if (backAtStart()) clearDemo();
+  };
+  tidy();
+  window.addEventListener("pageshow", tidy);
+  // back within this page load: the tour is on screen, so start clean
+  window.addEventListener("popstate", () => {
+    if (!backAtStart()) return;
+    clearDemo();
+    window.location.reload();
+  });
 }
 
 const json = (body: unknown, status = 200) =>
