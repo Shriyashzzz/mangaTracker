@@ -825,7 +825,6 @@ function Library() {
               </button>
               <NavLink
                 to="/new-releases"
-                data-tour="how-new-works"
                 className={styles.hiddenToggle}
                 viewTransition
               >
@@ -891,7 +890,7 @@ function Library() {
           </button>
         </div>
       ) : showingNew && visibleManga.length === 0 && !query.trim() ? (
-        <div className={styles.nothingNew}>
+        <div className={styles.nothingNew} data-tour="shelf">
           <span className="printed mascot-spot" aria-hidden>
             <Mascot mood="happy" />
           </span>
@@ -1092,14 +1091,14 @@ function GuestHero() {
             >
               Start your shelf
             </NavLink>
+            <TakeTourButton large />
             <NavLink
               to="/signin"
-              className="btn btn-ghost btn-lg"
+              className="btn btn-ghost btn-lg upto-720:hidden"
               viewTransition
             >
               Sign in
             </NavLink>
-            <TakeTourButton className={styles.guestTour} />
           </div>
         </div>
 

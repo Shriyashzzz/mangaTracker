@@ -92,7 +92,8 @@ const MIN_UNKNOWN_CENTS = 600;
 const MAX_TIMES = 2.2;
 // the other copies needed before they can stand in for a big store's price
 const MIN_TO_COMPARE = 2;
-const MAX_UNCOMPARED_CENTS = 3500;
+// with no big store to go by, a new copy over this has to be vouched for by the others
+const MAX_NORMAL_CENTS = 3500;
 
 const median = (values: number[]) => {
   const sorted = [...values].sort((a, b) => a - b);
@@ -119,17 +120,28 @@ export function unlikelyNewTest(offers: Offer[], usualCents?: number | null) {
       : MIN_UNKNOWN_CENTS;
   const tooDear = (o: Offer) => {
     if (bigStore.length) return o.priceCents > Math.min(...bigStore) * MAX_TIMES;
+    // a normal volume's price is fine, however cheap the used copies are
+    if (o.priceCents <= MAX_NORMAL_CENTS) return false;
     const others = offers
       .filter((other) => other !== o && other.format === "print")
       .map((other) => other.priceCents);
-    return others.length >= MIN_TO_COMPARE
-      ? o.priceCents > median(others) * MAX_TIMES
-      : o.priceCents > MAX_UNCOMPARED_CENTS;
+    return others.length < MIN_TO_COMPARE || o.priceCents > median(others) * MAX_TIMES;
   };
   return (o: Offer) =>
     isNewPrint(o) &&
     !isRetailer(o.store) &&
     (o.priceCents < floor || tooDear(o));
+}
+
+// the lowest new print copy in one check that we believe
+export function lowestBelievableNew<T extends Offer>(
+  offers: T[],
+  usualCents?: number | null,
+) {
+  const prices = dropUnlikelyNew(offers, usualCents)
+    .filter(isNewPrint)
+    .map((o) => o.priceCents);
+  return prices.length ? Math.min(...prices) : null;
 }
 
 // one check's offers without the new copies we don't believe

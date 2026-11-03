@@ -2,6 +2,7 @@
 // <html data-bg data-theme>, remembered in localStorage, and kept on the
 // account when signed in. index.html applies the stored ones before first
 // paint so there's no flash.
+import { isDemo } from "./demo";
 import { useSyncExternalStore } from "react";
 import { apiFetch } from "./api";
 import type { Background, Prefs, Theme } from "./types";
@@ -20,8 +21,16 @@ const isBackground = (value: unknown): value is Background =>
 const isTheme = (value: unknown): value is Theme =>
   value === "light" || value === "dark";
 
+// the tour's choices stay in its own browser tab: they go when it does, and nothing
+// real has to be put back. It starts from whatever this browser already has
+const tourKey = (key: string) => `demoLocal:${key}`;
+
 export const readLocal = (key: string) => {
   try {
+    if (isDemo()) {
+      const chosen = sessionStorage.getItem(tourKey(key));
+      if (chosen !== null) return chosen;
+    }
     return localStorage.getItem(key);
   } catch {
     return null;
@@ -30,7 +39,8 @@ export const readLocal = (key: string) => {
 
 export const writeLocal = (key: string, value: string) => {
   try {
-    localStorage.setItem(key, value);
+    if (isDemo()) sessionStorage.setItem(tourKey(key), value);
+    else localStorage.setItem(key, value);
   } catch {
     // storage can be blocked (private mode), the choice still holds for this visit
   }
@@ -72,7 +82,8 @@ export const applyPrefs = ({
   if (theme === "system") {
     delete document.documentElement.dataset.theme;
     try {
-      localStorage.removeItem("theme");
+      if (isDemo()) sessionStorage.setItem(tourKey("theme"), "");
+      else localStorage.removeItem("theme");
     } catch {
       /* ignore */
     }

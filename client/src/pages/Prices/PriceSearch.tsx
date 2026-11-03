@@ -97,10 +97,14 @@ export default function PriceSearch() {
                 <NavLink to="/signup" className="btn btn-primary" viewTransition>
                   Start your shelf
                 </NavLink>
-                <NavLink to="/signin" className="btn btn-ghost" viewTransition>
+                <TakeTourButton />
+                <NavLink
+                  to="/signin"
+                  className="btn btn-ghost upto-720:hidden"
+                  viewTransition
+                >
                   Sign in
                 </NavLink>
-                <TakeTourButton className="tap py-2 font-medium whitespace-nowrap text-ink underline decoration-accent decoration-2 underline-offset-3 hover:decoration-line" />
               </div>
             </section>
           )}

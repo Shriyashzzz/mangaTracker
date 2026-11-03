@@ -89,7 +89,7 @@ export default function ProfileTab({ account }: { account: Account }) {
   };
 
   return (
-    <div className={styles.tabBody}>
+    <div className={styles.tabBody} data-tour="profile">
       <header className={styles.head}>
         <Avatar id={account.avatar} className={styles.headArt} />
         <h2 className={styles.tabTitle}>{account.displayName || account.defaultName}</h2>
@@ -134,7 +134,6 @@ export default function ProfileTab({ account }: { account: Account }) {
       <section
         className={styles.section}
         aria-labelledby="profile-picture"
-        data-tour="profile-picture"
       >
         <h3 id="profile-picture" className={styles.heading}>
           Your picture
@@ -184,7 +183,7 @@ export default function ProfileTab({ account }: { account: Account }) {
           Anyone with the link can see your name, picture, and each series with
           its chapter and rating. Search engines are asked to stay away.
         </p>
-        <label className={styles.row} data-tour="share-toggle">
+        <label className={styles.row}>
           <input
             type="checkbox"
             checked={account.shareEnabled}
@@ -216,7 +215,7 @@ export default function ProfileTab({ account }: { account: Account }) {
         </label>
         {noteFor("share")}
         {account.shareEnabled && account.shareCode && (
-          <div className={styles.shareLink} data-tour="share-link">
+          <div className={styles.shareLink}>
             <span className={styles.shareUrl}>{shareUrl(account.shareCode)}</span>
             <button type="button" className="btn btn-secondary" onClick={copyLink}>
               {copied ? "Copied" : "Copy link"}

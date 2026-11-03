@@ -3,7 +3,7 @@
 // so people can really try things; only a few big moments blur the rest (step.focus).
 // Wandering off is fine: he waits, and offers the way back. If a step's button can't
 // be found he says his line anyway and offers a way on, so nothing can trap anyone.
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useReducer, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useLocation, useNavigate } from "react-router";
 import { hasBottomBar } from "../../lib/bottomBar";
@@ -20,6 +20,8 @@ const SETTLED_AFTER_MS = 900;
 const BUBBLE_GAP = 26;
 const SCREEN_MARGIN = 12;
 const RING_INSET = 3;
+const SWITCH_SETTLES_MS = 200;
+const MIN_SIDE_WIDTH = 280;
 const BOTTOM_BAR = 59;
 
 type Box = { top: number; left: number; width: number; height: number };
@@ -42,6 +44,12 @@ const findTarget = (name: string) =>
     (el) => el.getClientRects().length > 0,
   ) ?? null;
 
+// the part of a box above the phones' bottom bar, which the blur leaves alone
+const visibleBox = (box: Box, floor: number): Box => ({
+  ...box,
+  height: Math.max(0, Math.min(box.top + box.height, floor) - box.top),
+});
+
 // everything but the hole, for blurring and dimming; the hole lets taps through
 const holePath = ({ top, left, width, height }: Box) => {
   const right = left + width;
@@ -54,8 +62,14 @@ export default function Tour() {
   const [box, setBox] = useState<Box | null>(null);
   const [lost, setLost] = useState(false);
   const [settled, setSettled] = useState(false);
+  const [stuckAside, setStuckAside] = useState(false);
+  // where the screen ends for the tour: the top of the phones' bottom bar
+  const [floor, setFloor] = useState(() => innerHeight);
+  // he's placed from the screen's size, so a rotated phone has to place him again
+  const [, onScreenChange] = useReducer((n: number) => n + 1, 0);
   const [bubbleHeight, setBubbleHeight] = useState(180);
   const bubble = useRef<HTMLDivElement>(null);
+  const dock = useRef<HTMLButtonElement>(null);
   const navigate = useNavigate();
   const { pathname } = useLocation();
   const step = TOUR_STEPS[index]!;
@@ -65,6 +79,7 @@ export default function Tour() {
     setBox(null);
     setLost(false);
     setSettled(false);
+    setStuckAside(false);
     setIndex(next);
     try {
       sessionStorage.setItem(STEP_KEY, String(next));
@@ -110,24 +125,30 @@ export default function Tour() {
           el.inert = true;
           heldStill = el;
         }
-        if (!scrolled) {
+        if (step.onTop && Date.now() - startedAt < SETTLED_AFTER_MS) {
+          // room above the section for him and his arrow, kept while the page is
+          // still filling in above it
+          const above = (bubble.current?.offsetHeight ?? 160) + BUBBLE_GAP + SCREEN_MARGIN;
+          const off = el.getBoundingClientRect().top - above;
+          if (Math.abs(off) > 2) window.scrollBy(0, off);
+        } else if (!scrolled && !step.onTop) {
           scrolled = true;
           // a big section starts at the top, leaving Kenji room below it
           const tall = el.offsetHeight > innerHeight * 0.45;
           el.scrollIntoView({ block: tall ? "start" : "center" });
         }
         const r = el.getBoundingClientRect();
-        // a tall target stops at the screen's edge, or the phones' bottom bar
+        // the phones' bottom bar covers the ring the way it covers the page, so a
+        // tall section scrolls under it rather than its ring stopping short
         const bar = [...document.querySelectorAll("nav")].find(
           (nav) =>
             getComputedStyle(nav).position === "fixed" &&
-            nav.getClientRects().length > 0,
+            nav.getClientRects().length > 0 &&
+            !nav.contains(el),
         );
-        const floor =
-          bar && !bar.contains(el)
-            ? bar.getBoundingClientRect().top - SCREEN_MARGIN
-            : innerHeight - RING_INSET;
-        // the ring stays on screen, even around a tab that touches its edges
+        setFloor(Math.round(bar?.getBoundingClientRect().top ?? innerHeight));
+        // the ring is the target's own box, scrolling with it. Only its sides are
+        // kept on screen, for a tab that touches the edges
         const top = Math.round(r.top - HOLE_PADDING);
         const left = Math.round(Math.max(r.left - HOLE_PADDING, RING_INSET));
         const right = Math.min(r.right + HOLE_PADDING, innerWidth - RING_INSET);
@@ -135,7 +156,7 @@ export default function Tour() {
           top,
           left,
           width: Math.round(right - left),
-          height: Math.round(Math.min(r.bottom + HOLE_PADDING, floor) - top),
+          height: Math.round(r.bottom + HOLE_PADDING - top),
         };
         setBox((old) =>
           old &&
@@ -146,7 +167,10 @@ export default function Tour() {
             ? old
             : next,
         );
-      } else if (!found && Date.now() - startedAt > GIVE_UP_AFTER_MS) {
+        setLost(false);
+      } else if (found || Date.now() - startedAt > GIVE_UP_AFTER_MS) {
+        // never there, or gone since, like hiding the only thing on the list. No ring
+        // around nothing, and it comes back if they undo
         setLost(true);
       }
       frame = requestAnimationFrame(follow);
@@ -161,6 +185,7 @@ export default function Tour() {
   // tapping the real thing does its job, and moves the tour on
   useEffect(() => {
     if (!step.tap || !step.target) return;
+    let opening: ReturnType<typeof setTimeout>;
     const onClick = (e: MouseEvent) => {
       const clicked = e.target as Element | null;
       // the real control, not just somewhere near it
@@ -168,39 +193,58 @@ export default function Tour() {
         clicked?.closest(`[data-tour="${step.target}"]`) &&
         clicked.closest("a, button, input, label")
       ) {
-        goTo(index + 1);
+        if (!step.opensNext) {
+          goTo(index + 1);
+          return;
+        }
+        // switched off instead of on: stay here
+        opening = setTimeout(() => {
+          if (findTarget(TOUR_STEPS[index + 1]!.target!)) goTo(index + 1);
+        }, SWITCH_SETTLES_MS);
       }
     };
     document.addEventListener("click", onClick);
-    return () => document.removeEventListener("click", onClick);
+    return () => {
+      clearTimeout(opening);
+      document.removeEventListener("click", onClick);
+    };
   }, [step, index, goTo]);
 
   useEffect(() => {
+    window.addEventListener("resize", onScreenChange);
+    return () => window.removeEventListener("resize", onScreenChange);
+  }, []);
+
+  useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") endDemo();
+      // only from Kenji himself: Escape also closes menus and suggestion lists
+      const onKenji = [bubble.current, dock.current].some((el) =>
+        el?.contains(document.activeElement),
+      );
+      if (e.key === "Escape" && onKenji) {
+        endDemo();
+      }
     };
     document.addEventListener("keydown", onKey);
     return () => document.removeEventListener("keydown", onKey);
   }, []);
 
-  // screen readers and keyboards go to what he's saying, and the real measurement
-  // lets the bubble sit clear of the hole
-  useEffect(() => {
-    if (!bubble.current) return;
-    setBubbleHeight(bubble.current.offsetHeight);
-    bubble.current.focus({ preventScroll: true });
-  }, [index, lost]);
-
   // Next does what the step was about, so what comes after has what it needs: the
   // dates are only there once the red bar is open
   const next = () => {
-    if (step.tap && step.target) findTarget(step.target)?.click();
+    const upcoming = TOUR_STEPS[index + 1]?.target;
+    const alreadyOpen = step.opensNext && upcoming && findTarget(upcoming);
+    if (step.tap && step.target && !alreadyOpen) findTarget(step.target)?.click();
     goTo(index + 1);
   };
 
   const isLast = index === TOUR_STEPS.length - 1;
   const showHole = Boolean(box) && !lost && onPage;
-  const veiled = step.focus && !wentExploring;
+  // on the way to the step's page, or that page still arriving: out of sight, so
+  // his next line never flashes up in the middle of the page they're leaving
+  const waiting =
+    Boolean(step.target) && !lost && (onPage ? !box : !settled);
+  const veiled = step.focus && !wentExploring && !waiting;
   // over or under what he's pointing at, if either has the room. A section too big
   // for that gets him out of the way at the bottom, where it can still be read
   const roomAbove = box ? box.top - BUBBLE_GAP - SCREEN_MARGIN : 0;
@@ -209,14 +253,36 @@ export default function Tour() {
     ? innerHeight - barSpace - (box.top + box.height) - BUBBLE_GAP - SCREEN_MARGIN
     : 0;
   const fits = Math.max(roomAbove, roomBelow) >= bubbleHeight;
-  const inCorner = step.free || wentExploring || (showHole && !fits);
+  // too big to sit beside: he moves out of the way and stays there for the step,
+  // so scrolling doesn't send him back and forth
+  const inCorner = !step.onTop && (stuckAside || (showHole && !fits));
+  if (!step.onTop && showHole && !fits && !stuckAside) setStuckAside(true);
+  // the page is theirs: Kenji shrinks to a bar at the bottom they tap to carry on
+  const docked = (step.free || wentExploring) && !isLast;
   // over or under the hole, whichever side has the room; middle of the screen if
   // there's nothing to point at
   const holeMiddle = box ? box.top + box.height / 2 : 0;
   const below =
+    !step.onTop &&
     roomBelow >= bubbleHeight && (roomAbove < bubbleHeight || holeMiddle < innerHeight / 2);
-  const bubbleTop = inCorner
+  // too big to sit beside: at the bottom, staying put however far they scroll. The
+  // big pages marked onTop have him above the section instead, moving with it
+  // room to the right of the section, for the steps that would rather sit there
+  const sideRoom = box
+    ? // the page's width, without the scrollbar
+      document.documentElement.clientWidth - (box.left + box.width) - BUBBLE_GAP - SCREEN_MARGIN
+    : 0;
+  const beside = Boolean(step.besideIfRoom) && showHole && sideRoom >= MIN_SIDE_WIDTH;
+  const bubbleTop = beside
+    ? box!.top
+    : inCorner
     ? innerHeight - bubbleHeight - SCREEN_MARGIN - (hasBottomBar() ? BOTTOM_BAR : 0)
+    : step.onTop && showHole
+    ? // above the section, scrolling with it. At the very top of the page there
+      // may not be room, so there he stays on screen
+      window.scrollY > 0
+      ? box!.top - bubbleHeight - BUBBLE_GAP
+      : Math.max(SCREEN_MARGIN, box!.top - bubbleHeight - BUBBLE_GAP)
     : !showHole
     ? Math.max(SCREEN_MARGIN, (innerHeight - bubbleHeight) / 2)
     : Math.min(
@@ -226,10 +292,20 @@ export default function Tour() {
         ),
         innerHeight - bubbleHeight - SCREEN_MARGIN,
       );
-  const bubbleWidth = Math.min(340, innerWidth - SCREEN_MARGIN * 2);
+  // in the corner of a wide screen he stays beside the page's column, not over it
+  const bubbleWidth = beside
+    ? Math.min(340, sideRoom)
+    : Math.min(340, innerWidth - SCREEN_MARGIN * 2);
+
+  // the real measurement lets the bubble sit clear of the hole
+  useEffect(() => {
+    if (bubble.current) setBubbleHeight(bubble.current.offsetHeight);
+  }, [index, lost, docked, bubbleWidth]);
+
   const holeCenter = box ? box.left + box.width / 2 : innerWidth / 2;
-  const bubbleLeft = inCorner
-    ? SCREEN_MARGIN
+  // a section too big to sit beside: at the bottom, centered under it
+  const bubbleLeft = beside
+    ? box!.left + box!.width + BUBBLE_GAP
     : !showHole
     ? (innerWidth - bubbleWidth) / 2
     : Math.min(
@@ -242,7 +318,44 @@ export default function Tour() {
   );
 
   // waiting for the page: no veil over a page that's still arriving
-  const waiting = Boolean(step.target) && onPage && !box && !lost;
+
+  // screen readers and keyboards go to what he's saying, once he can be seen. Not
+  // to the bar when they've wandered off: they're busy with the page
+  useEffect(() => {
+    if (step.free) dock.current?.focus({ preventScroll: true });
+    else if (!waiting) bubble.current?.focus({ preventScroll: true });
+  }, [index, lost, waiting, step.free]);
+
+  if (docked) {
+    const line = step.free
+      ? step.say
+      : step.doneOnLeaving && pathname.startsWith("/details/")
+        ? "It's on your shelf! Have a look around."
+        : "Exploring? Good, that's the idea.";
+    return createPortal(
+      <div className="tour" aria-live="polite">
+        <button
+          ref={dock}
+          type="button"
+          className="tour-dock"
+          style={{ bottom: `calc(${barSpace + SCREEN_MARGIN}px + env(safe-area-inset-bottom))` }}
+          onClick={step.free || step.doneOnLeaving ? () => goTo(index + 1) : backToStep}
+        >
+          <span className="tour-dock-face printed" aria-hidden>
+            <Mascot mood="happy" />
+          </span>
+          <span className="tour-dock-words">
+            <span className="tour-dock-say">{line}</span>
+            <span className="tour-dock-go">Back to the tour</span>
+          </span>
+          <svg className="tour-dock-arrow" viewBox="0 0 24 24" aria-hidden>
+            <path d="M5 12h13M13 6l6 6-6 6" />
+          </svg>
+        </button>
+      </div>,
+      document.body,
+    );
+  }
 
   // on <body>, above things like the shelf's add button that live there too
   return createPortal(
@@ -250,31 +363,37 @@ export default function Tour() {
       {veiled && (
         <div
           className="tour-veil"
-          style={showHole ? { clipPath: holePath(box!) } : undefined}
+          style={showHole ? { clipPath: holePath(visibleBox(box!, floor)) } : undefined}
         />
       )}
       {showHole && (
-        <>
+        <div className="tour-stage" style={{ clipPath: `inset(0 0 ${innerHeight - floor}px 0)` }}>
           <div
             className={`tour-ring ${step.tap ? "tour-ring-tap" : ""}`}
             style={box!}
           />
           {/* in a blurred moment, what's only being explained stays put */}
           {step.focus && !step.tap && <div className="tour-shield" style={box!} />}
-          {fits && (
+          {(step.onTop || (fits && !inCorner)) && (
             <svg
-              className={`tour-pointer ${below ? "tour-pointer-below" : ""}`}
-              style={{
-                left: pointerLeft - 16,
-                top: below ? box!.top + box!.height + 2 : box!.top - 26,
-              }}
+              className={`tour-pointer ${
+                beside ? "tour-pointer-left" : below ? "tour-pointer-below" : ""
+              }`}
+              style={
+                beside
+                  ? { left: box!.left + box!.width - 2, top: box!.top + 30 }
+                  : {
+                      left: pointerLeft - 16,
+                      top: below ? box!.top + box!.height + 2 : box!.top - 26,
+                    }
+              }
               viewBox="0 0 32 24"
               aria-hidden
             >
               <path d="M4 3h24L16 21Z" />
             </svg>
           )}
-        </>
+        </div>
       )}
 
       <div
@@ -292,12 +411,11 @@ export default function Tour() {
         </div>
         <div className="tour-words">
           <p className="tour-count">
-            {step.part} · {step.partStep} of {step.partSize}
+            {step.part}
+            {step.partSize > 1 && ` · ${step.partStep} of ${step.partSize}`}
           </p>
           <p className="tour-say">
-            {wentExploring
-              ? "Exploring? Good, that's the idea. I'll be here when you want to carry on."
-              : step.say}
+            {step.say}
           </p>
           <div className="tour-actions">
             {isLast ? (
@@ -313,19 +431,6 @@ export default function Tour() {
                   Leave the tour
                 </button>
               </>
-            ) : wentExploring ? (
-              <>
-                <button
-                  type="button"
-                  className="btn btn-primary btn-sm"
-                  onClick={step.doneOnLeaving ? () => goTo(index + 1) : backToStep}
-                >
-                  Back to the tour
-                </button>
-                <button type="button" className="tour-skip" onClick={() => endDemo()}>
-                  Skip tour
-                </button>
-              </>
             ) : (
               <>
                 <button
@@ -339,7 +444,9 @@ export default function Tour() {
                   <button
                     type="button"
                     className="tour-skip"
-                    onClick={() => goTo(index - 1)}
+                    onClick={() =>
+                      goTo(TOUR_STEPS[index - 1]!.needsLastStep ? index - 2 : index - 1)
+                    }
                   >
                     Back
                   </button>

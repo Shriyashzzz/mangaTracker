@@ -8,6 +8,7 @@
 // never pasted into the SQL).
 import { prisma } from "../config/prisma.js";
 import type { Book, Prisma } from "../../generated/prisma/client.js";
+import { lowestBelievableNew, unlikelyNewTest } from "../prices/retailers.js";
 import type { CatalogBook, Offer } from "../prices/types.js";
 
 export type { Book };
@@ -106,12 +107,41 @@ export async function getLatestOffers(
   return rows.sort((a, b) => a.priceCents - b.priceCents);
 }
 
+const groupBy = <T, K>(items: T[], keyOf: (item: T) => K) => {
+  const groups = new Map<K, T[]>();
+  for (const item of items) {
+    const key = keyOf(item);
+    groups.set(key, [...(groups.get(key) ?? []), item]);
+  }
+  return groups;
+};
+
+// samples saved before a rule changed, that it would have kept out: each is judged
+// against the other copies in its own check, the same way a new check is
+async function getUnbelievableSampleIds(isbn13: string) {
+  const [rows, usual] = await Promise.all([
+    prisma.$queryRaw<(StoredOffer & { id: string })[]>`
+      SELECT id::text AS id, store, format, condition, price_cents AS "priceCents",
+             currency, in_stock AS "inStock", url, fetched_at AS "fetchedAt"
+      FROM price_samples
+      WHERE isbn13 = ${isbn13} AND in_stock
+    `,
+    getNewPriceMedian(isbn13),
+  ]);
+  const checks = groupBy(rows, (row) => new Date(row.fetchedAt).getTime());
+  return [...checks.values()].flatMap((check) => {
+    const unlikely = unlikelyNewTest(check, usual);
+    return check.filter(unlikely).map((row) => row.id);
+  });
+}
+
 // everything we've seen for one volume, worked out from the stored samples
 // every time (they're the only record, so the numbers can't drift from
 // them). Each kind of copy gets its own lowest, highest and median across
 // every in-stock price at every check; mixing them would compare a $5
 // ebook with a $25 collector's copy
 export async function getPriceHistory(isbn13: string): Promise<PriceHistory> {
+  const ignored = await getUnbelievableSampleIds(isbn13);
   const [kinds, checks] = await Promise.all([
     prisma.$queryRaw<KindHistory[]>`
       WITH s AS (
@@ -121,7 +151,7 @@ export async function getPriceHistory(isbn13: string): Promise<PriceHistory> {
                ELSE 'marketplace' END AS kind,
           price_cents AS p, fetched_at AS at, store
         FROM price_samples
-        WHERE isbn13 = ${isbn13} AND in_stock
+        WHERE isbn13 = ${isbn13} AND in_stock AND id::text <> ALL(${ignored}::text[])
       )
       SELECT
         kind,
@@ -140,7 +170,7 @@ export async function getPriceHistory(isbn13: string): Promise<PriceHistory> {
       SELECT COUNT(DISTINCT fetched_at)::int AS "checks",
              MIN(fetched_at) AS "since", MAX(fetched_at) AS "lastSeen"
       FROM price_samples
-      WHERE isbn13 = ${isbn13} AND in_stock
+      WHERE isbn13 = ${isbn13} AND in_stock AND id::text <> ALL(${ignored}::text[])
     `,
   ]);
   const order: PriceKind[] = ["new", "marketplace", "ebook"];
@@ -167,19 +197,35 @@ export async function getKnownPrices(
   isbns: string[],
 ): Promise<Map<string, { priceCents: number; checkedAt: Date }>> {
   if (!isbns.length) return new Map();
-  const rows = await prisma.$queryRaw<
-    { isbn13: string; priceCents: number; checkedAt: Date }[]
-  >`
-    SELECT pc.isbn13, MIN(ps.price_cents)::int AS "priceCents",
-           pc.checked_at AS "checkedAt"
-    FROM price_checks pc
-    JOIN price_samples ps
-      ON ps.isbn13 = pc.isbn13 AND ps.fetched_at = pc.checked_at
-     AND ps.condition = 'new' AND ps.format = 'print'
-    WHERE pc.isbn13 = ANY(${isbns}::text[])
-    GROUP BY pc.isbn13, pc.checked_at
-  `;
-  return new Map(rows.map((r) => [r.isbn13.trim(), r]));
+  const [rows, usual] = await Promise.all([
+    prisma.$queryRaw<(StoredOffer & { isbn13: string; checkedAt: Date })[]>`
+      SELECT pc.isbn13, pc.checked_at AS "checkedAt", ps.store, ps.format, ps.condition,
+             ps.price_cents AS "priceCents", ps.currency, ps.in_stock AS "inStock",
+             ps.url, ps.fetched_at AS "fetchedAt"
+      FROM price_checks pc
+      JOIN price_samples ps
+        ON ps.isbn13 = pc.isbn13 AND ps.fetched_at = pc.checked_at
+      WHERE pc.isbn13 = ANY(${isbns}::text[])
+    `,
+    prisma.$queryRaw<{ isbn13: string; median: number }[]>`
+      SELECT isbn13,
+             ROUND(percentile_cont(0.5) WITHIN GROUP (ORDER BY price_cents))::int AS median
+      FROM price_samples
+      WHERE isbn13 = ANY(${isbns}::text[])
+        AND in_stock AND condition = 'new' AND format = 'print'
+      GROUP BY isbn13
+    `,
+  ]);
+  const usualOf = new Map(usual.map((u) => [u.isbn13.trim(), u.median]));
+  const known = new Map<string, { priceCents: number; checkedAt: Date }>();
+  for (const [isbn, check] of groupBy(rows, (row) => row.isbn13.trim())) {
+    // checks saved before a rule changed still get held to it
+    const priceCents = lowestBelievableNew(check, usualOf.get(isbn));
+    if (priceCents !== null) {
+      known.set(isbn, { priceCents, checkedAt: check[0]!.checkedAt });
+    }
+  }
+  return known;
 }
 
 export type RecentPrice = {
