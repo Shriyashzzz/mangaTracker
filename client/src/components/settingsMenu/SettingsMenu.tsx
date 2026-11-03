@@ -225,9 +225,9 @@ export default function SettingsMenu({ isSignedIn, onLogOut }: Props) {
           {/* where prices come from; stays open, like light/dark */}
           <li
             data-keep-open
-            className="flex items-center justify-between gap-2 px-[0.6rem] py-[0.35rem] text-[0.95rem] text-ink-soft"
+            className="flex items-center gap-2 px-[0.6rem] py-[0.35rem] text-[0.95rem] text-ink-soft"
           >
-            Prices from
+            {" "}
             <CountrySwitch />
           </li>
           <li>
