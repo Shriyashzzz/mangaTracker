@@ -86,17 +86,44 @@ const tidy = (name: string) =>
     .replace(/[\s,:;.\-–—]+$/, "")
     .trim();
 
+// some publishers spell it out: "Sex Criminals: Volume One"
+const NUMBER_WORDS = [
+  "one",
+  "two",
+  "three",
+  "four",
+  "five",
+  "six",
+  "seven",
+  "eight",
+  "nine",
+  "ten",
+  "eleven",
+  "twelve",
+];
+
 // "One Piece, Vol. 1: Romance Dawn (One Piece, #1)" → One Piece, 1
 // "Frieren: Beyond Journey's End, Vol. 3" → Frieren: Beyond Journey's End, 3
-export function seriesFromTitle(title: string): { series: string; volume: number | null } {
+export function seriesFromTitle(title: string): {
+  series: string;
+  volume: number | null;
+} {
   const tagged = title.match(/\(([^()]+?),?\s*#\s*(\d+(?:\.\d+)?)[^()]*\)\s*$/);
   if (tagged) return { series: tidy(tagged[1]!), volume: Number(tagged[2]) };
   const bare = title.replace(/\s*\([^()]*\)\s*$/, "");
   const numbered = bare.match(
-    /^(.*?)(?:[,:]|\s[-–—])?\s+(?:vol(?:ume)?\.?|v\.|book|#)\s*(\d+(?:\.\d+)?)\b/i,
+    new RegExp(
+      `^(.*?)(?:[,:]|\\s[-–—])?\\s+(?:vol(?:ume)?\\.?|v\\.|book|#)\\s*(\\d+(?:\\.\\d+)?|${NUMBER_WORDS.join("|")})\\b`,
+      "i",
+    ),
   );
   if (numbered && numbered[1]!.trim()) {
-    return { series: tidy(numbered[1]!), volume: Number(numbered[2]) };
+    const n = numbered[2]!.toLowerCase();
+    const word = NUMBER_WORDS.indexOf(n);
+    return {
+      series: tidy(numbered[1]!),
+      volume: word >= 0 ? word + 1 : Number(n),
+    };
   }
   return { series: tidy(bare) || title.trim(), volume: null };
 }
@@ -130,7 +157,8 @@ const header = (headers: string[], ...patterns: RegExp[]) => {
 // Goodreads writes ISBNs as ="0123", so a spreadsheet keeps the zeros
 const cell = (row: string[], i: number) =>
   i < 0 ? "" : (row[i] ?? "").trim().replace(/^="?(.*?)"?$/, "$1");
-const yes = (value: string) => /^(1|y|yes|true|x|✓|read|finished|completed?)$/i.test(value);
+const yes = (value: string) =>
+  /^(1|y|yes|true|x|✓|read|finished|completed?)$/i.test(value);
 const count = (value: string) => Number.parseFloat(value) || 0;
 const stars = (value: string) => {
   const n = count(value);
@@ -148,7 +176,8 @@ function goodreadsBook(h: string[], row: string[]): Book | null {
   if (!title) return null;
   const shelf = cell(row, header(h, /^Exclusive Shelf$/)).toLowerCase();
   const shelves = cell(row, header(h, /^Bookshelves$/)).toLowerCase();
-  const read = shelf === "read" || count(cell(row, header(h, /^Read Count$/))) > 0;
+  const read =
+    shelf === "read" || count(cell(row, header(h, /^Read Count$/))) > 0;
   const owned =
     count(cell(row, header(h, /^Owned Copies$/))) > 0 ||
     /(^|[\s,])(own|owned|owned-books|bought|purchased|my-collection|collection)([\s,]|$)/.test(
@@ -172,7 +201,9 @@ function bookCatalogueBook(h: string[], row: string[]): Book | null {
   const read = yes(cell(row, header(h, /^read$/)));
   // it's a catalogue of the books they have, unless a shelf says otherwise
   const wanted = /wish|to.?buy|to.?read|want/i.test(shelf);
-  const fromDetails = seriesFromDetails(cell(row, header(h, /^series_details$/)));
+  const fromDetails = seriesFromDetails(
+    cell(row, header(h, /^series_details$/)),
+  );
   return {
     title,
     ...(fromDetails ?? seriesFromTitle(title)),
@@ -191,14 +222,24 @@ function csvBook(h: string[], row: string[]): Book | null {
   if (!title) return null;
   const seriesColumn = cell(row, header(h, /^series( ?name)?$/i));
   const volumeColumn = Number.parseFloat(
-    cell(row, header(h, /^(vol(ume)?|series ?(number|#|index|no\.?)|number|no\.?|#)$/i)),
+    cell(
+      row,
+      header(h, /^(vol(ume)?|series ?(number|#|index|no\.?)|number|no\.?|#)$/i),
+    ),
   );
   const fromTitle = seriesFromTitle(title);
   const ownedAt = header(h, /own|copies|purchased|bought/i);
-  const owned = ownedAt < 0 ? true : yes(cell(row, ownedAt)) || count(cell(row, ownedAt)) > 0;
-  const readAt = header(h, /^(read|read status|status|exclusive shelf|shelf)$/i);
+  const owned =
+    ownedAt < 0
+      ? true
+      : yes(cell(row, ownedAt)) || count(cell(row, ownedAt)) > 0;
+  const readAt = header(
+    h,
+    /^(read|read status|status|exclusive shelf|shelf)$/i,
+  );
   const read = readAt >= 0 && yes(cell(row, readAt));
-  const reading = readAt >= 0 && /^(currently[- ]?)?reading$/i.test(cell(row, readAt));
+  const reading =
+    readAt >= 0 && /^(currently[- ]?)?reading$/i.test(cell(row, readAt));
   return {
     title,
     series: seriesColumn ? tidy(seriesColumn) : fromTitle.series,
@@ -215,7 +256,11 @@ export function readBooks(rows: string[][], source: BookSource): Book[] {
   const [headers = [], ...body] = rows;
   const h = headers.map((x) => x.trim());
   const toBook =
-    source === "goodreads" ? goodreadsBook : source === "bookcatalogue" ? bookCatalogueBook : csvBook;
+    source === "goodreads"
+      ? goodreadsBook
+      : source === "bookcatalogue"
+        ? bookCatalogueBook
+        : csvBook;
   return body.flatMap((row) => toBook(h, row) ?? []);
 }
 
@@ -233,7 +278,9 @@ export function groupBooks(books: Book[]): BookSeries[] {
   return [...groups].map(([key, list]) => {
     const furthest = (picked: Book[]) => {
       const numbered = picked.flatMap((b) => (b.volume ? [b.volume] : []));
-      return Math.floor(numbered.length ? Math.max(...numbered) : picked.length);
+      return Math.floor(
+        numbered.length ? Math.max(...numbered) : picked.length,
+      );
     };
     const owned = furthest(list.filter((b) => b.owned));
     // on vol. 5 now means 1 to 4 are read, marked or not
@@ -242,7 +289,8 @@ export function groupBooks(books: Book[]): BookSeries[] {
     );
     const read = Math.max(furthest(list.filter((b) => b.read)), ...readingFrom);
     const rated = list.filter((b) => b.rating > 0);
-    const average = rated.reduce((sum, b) => sum + b.rating, 0) / (rated.length || 1);
+    const average =
+      rated.reduce((sum, b) => sum + b.rating, 0) / (rated.length || 1);
     return {
       key,
       title: list[0]!.series,
