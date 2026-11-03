@@ -84,25 +84,6 @@ const PARTS: { name: string; lines: Line[] }[] = [
         tap: true,
       },
       {
-        path: "/details/",
-        go: MANGA,
-        target: "rating",
-        say: "Now rate it. Pick a star, if you like.",
-        tap: true,
-      },
-      {
-        path: "/details/",
-        go: MANGA,
-        target: "notes",
-        say: "Write yourself a note here. Favorite arc, where you left off, anything. It saves by itself.",
-      },
-      {
-        path: "/details/",
-        go: MANGA,
-        free: true,
-        say: "This page is all yours. Look around as long as you like.",
-      },
-      {
         path: MANGA,
         target: "release-toggle",
         opensNext: true,

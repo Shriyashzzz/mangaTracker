@@ -318,7 +318,7 @@ export default function Details() {
               <span className={styles.label}>
                 {mangaRating ? "Your rating. Tap it again to clear" : "Rate it"}
               </span>
-              <span className="inline-block w-fit" data-tour="rating">
+              <span className="inline-block w-fit">
                 <StarRating
                   value={mangaRating}
                   size="lg"
