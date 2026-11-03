@@ -29,7 +29,10 @@ export const searchSeries = (q: string, signal?: AbortSignal) =>
   ).then((d) => d.results);
 
 export const getSeries = (name: string, signal?: AbortSignal) =>
-  getJson<Series>(`/api/prices/series?${new URLSearchParams({ name })}`, signal);
+  getJson<Series>(
+    `/api/prices/series?${new URLSearchParams({ name })}`,
+    signal,
+  );
 
 // every series we know, for the /series page
 export const getSeriesIndex = (signal?: AbortSignal) =>
@@ -71,7 +74,10 @@ export const volumePath = (isbn13: string, title?: string | null) => {
 
 // ---------- formatting ----------
 
-const usd = new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" });
+const usd = new Intl.NumberFormat("en-US", {
+  style: "currency",
+  currency: "USD",
+});
 export const formatCents = (cents: number) => usd.format(cents / 100);
 
 const rtf = new Intl.RelativeTimeFormat("en", { numeric: "auto" });
@@ -93,6 +99,16 @@ export const seriesName = (title: string) =>
     .trim();
 
 export const seriesTitle = seriesName;
+
+// ---------- Canada ----------
+
+// no live Canadian prices yet: each store's own search for the ISBN
+export const canadaStoreLinks = (isbn: string) => [
+  { store: "Amazon.ca", url: `https://www.amazon.ca/s?k=${isbn}` },
+  { store: "Indigo", url: `https://www.indigo.ca/search?q=${isbn}` },
+  { store: "eBay.ca", url: `https://www.ebay.ca/sch/i.html?_nkw=${isbn}` },
+  { store: "Walmart.ca", url: `https://www.walmart.ca/search?q=${isbn}` },
+];
 
 // ---------- covers ----------
 

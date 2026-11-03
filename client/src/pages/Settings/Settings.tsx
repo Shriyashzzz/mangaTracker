@@ -26,7 +26,11 @@ import ReleaseControls from "../NewReleases/ReleaseControls";
 import ProfileTab from "./ProfileTab";
 import { settingsStyles as styles } from "./styles";
 
-const THEME_LABELS = { light: "Light", dark: "Dark", system: "Same as my device" };
+const THEME_LABELS = {
+  light: "Light",
+  dark: "Dark",
+  system: "Same as my device",
+};
 
 const TABS = [
   { id: "profile", label: "Profile" },
@@ -53,10 +57,17 @@ export default function SettingsPage() {
     if (isSignedIn) load();
   }, [isSignedIn, navigate, tab, load]);
 
-  if (!TABS.some((t) => t.id === tab)) return <Navigate to="/settings" replace />;
+  if (!TABS.some((t) => t.id === tab))
+    return <Navigate to="/settings" replace />;
 
   if (!isSignedIn) {
-    return <div className={`skeleton ${styles.page} min-h-96`} aria-busy="true" aria-label="Loading" />;
+    return (
+      <div
+        className={`skeleton ${styles.page} min-h-96`}
+        aria-busy="true"
+        aria-label="Loading"
+      />
+    );
   }
 
   const needsAccount = tab === "profile" || tab === "account";
@@ -85,7 +96,11 @@ export default function SettingsPage() {
                 Couldn't load your account. Refresh to try again.
               </p>
             ) : (
-              <div className="skeleton min-h-80" aria-busy="true" aria-label="Loading" />
+              <div
+                className="skeleton min-h-80"
+                aria-busy="true"
+                aria-label="Loading"
+              />
             )
           ) : (
             <>
@@ -160,7 +175,10 @@ function NewReleasesTab() {
           type="checkbox"
           checked={checksOn}
           onChange={(e) =>
-            savePrefs({ releaseChecks: e.target.checked ? "on" : "off" }, isSignedIn)
+            savePrefs(
+              { releaseChecks: e.target.checked ? "on" : "off" },
+              isSignedIn,
+            )
           }
         />
         Check for new volumes and chapters
@@ -169,7 +187,11 @@ function NewReleasesTab() {
         <>
           <p className={styles.body}>
             What your shelf's New tab lists.{" "}
-            <NavLink to="/new-releases" className={`tap ${styles.link}`} viewTransition>
+            <NavLink
+              to="/new-releases"
+              className={`tap ${styles.link}`}
+              viewTransition
+            >
               How this works
             </NavLink>
           </p>
@@ -177,8 +199,8 @@ function NewReleasesTab() {
         </>
       ) : (
         <p className={styles.body}>
-          Off. Your shelf has no New tab, and manga pages don't show new releases
-          or next chapter dates. Prices still work.
+          Off. Your shelf has no New tab, and manga pages don't show new
+          releases or next chapter dates. Prices still work.
         </p>
       )}
     </div>
@@ -187,9 +209,15 @@ function NewReleasesTab() {
 
 function ShelfSettingsTab() {
   const isSignedIn = useAuth((s) => s.isSignedIn);
-  const [shelfTab, setShelfTab] = useState(() => readLocal("shelfTab") ?? "all");
-  const [shelfSort, setShelfSort] = useState(() => readLocal("shelfSort") ?? "");
-  const [shelfView, setShelfView] = useState(() => readLocal("shelfView") ?? "covers");
+  const [shelfTab, setShelfTab] = useState(
+    () => readLocal("shelfTab") ?? "all",
+  );
+  const [shelfSort, setShelfSort] = useState(
+    () => readLocal("shelfSort") ?? "",
+  );
+  const [shelfView, setShelfView] = useState(
+    () => readLocal("shelfView") ?? "covers",
+  );
   return (
     <div className={styles.tabBody}>
       <h2 className={styles.tabTitle}>Your shelf</h2>
@@ -261,7 +289,12 @@ function ShelfSettingsTab() {
 
 function PricesTab() {
   const isSignedIn = useAuth((s) => s.isSignedIn);
-  const [hideEbooks, setHideEbooks] = useState(() => readLocal("hideEbooks") === "yes");
+  const [hideEbooks, setHideEbooks] = useState(
+    () => readLocal("hideEbooks") === "yes",
+  );
+  const [country, setCountry] = useState(() =>
+    readLocal("country") === "ca" ? "ca" : "us",
+  );
   return (
     <div className={styles.tabBody}>
       <h2 className={styles.tabTitle}>Prices</h2>
@@ -271,11 +304,39 @@ function PricesTab() {
           checked={hideEbooks}
           onChange={(e) => {
             setHideEbooks(e.target.checked);
-            savePrefs({ hideEbooks: e.target.checked ? "yes" : "no" }, isSignedIn);
+            savePrefs(
+              { hideEbooks: e.target.checked ? "yes" : "no" },
+              isSignedIn,
+            );
           }}
         />
         Hide ebooks on volume pages
       </label>
+      <fieldset className={styles.group}>
+        <legend className={styles.legend}>Where you shop</legend>
+        {(
+          [
+            ["us", "United States"],
+            [
+              "ca",
+              "Canada: links to Amazon.ca, Indigo, eBay.ca and Walmart.ca",
+            ],
+          ] as const
+        ).map(([value, label]) => (
+          <label key={value} className={styles.row}>
+            <input
+              type="radio"
+              name="country"
+              checked={country === value}
+              onChange={() => {
+                setCountry(value);
+                savePrefs({ country: value }, isSignedIn);
+              }}
+            />
+            {label}
+          </label>
+        ))}
+      </fieldset>
     </div>
   );
 }
@@ -285,7 +346,10 @@ function AccountTab({ account }: { account: Account }) {
   const saveAccount = useAccount((s) => s.save);
   const navigate = useNavigate();
   const [email, setEmail] = useState(account.recoveryEmail ?? "");
-  const [emailNote, setEmailNote] = useState<{ text: string; failed?: boolean } | null>(null);
+  const [emailNote, setEmailNote] = useState<{
+    text: string;
+    failed?: boolean;
+  } | null>(null);
   const [exportFailed, setExportFailed] = useState(false);
   const [confirming, setConfirming] = useState(false);
   const [password, setPassword] = useState("");
@@ -366,17 +430,17 @@ function AccountTab({ account }: { account: Account }) {
             <button type="submit" className="btn btn-secondary">
               Save email
             </button>
-            <span className={emailNote?.failed ? styles.failed : styles.saved} role="status">
+            <span
+              className={emailNote?.failed ? styles.failed : styles.saved}
+              role="status"
+            >
               {emailNote?.text}
             </span>
           </div>
         </form>
       </section>
 
-      <section
-        className={styles.section}
-        aria-labelledby="set-export"
-      >
+      <section className={styles.section} aria-labelledby="set-export">
         <h3 id="set-export" className={styles.heading}>
           Export my list
         </h3>
@@ -384,7 +448,11 @@ function AccountTab({ account }: { account: Account }) {
           A spreadsheet file of everything on your shelf, notes included.
         </p>
         <div className={styles.actions}>
-          <button type="button" className="btn btn-secondary" onClick={exportList}>
+          <button
+            type="button"
+            className="btn btn-secondary"
+            onClick={exportList}
+          >
             Download my list
           </button>
           {exportFailed && (
@@ -405,7 +473,9 @@ function AccountTab({ account }: { account: Account }) {
         </p>
         {confirming ? (
           <form className={styles.field} onSubmit={confirmDelete}>
-            <label htmlFor="delete-password">Enter your password to confirm</label>
+            <label htmlFor="delete-password">
+              Enter your password to confirm
+            </label>
             <input
               id="delete-password"
               type="password"
@@ -423,7 +493,11 @@ function AccountTab({ account }: { account: Account }) {
               </p>
             )}
             <div className={styles.actions}>
-              <button type="submit" className="btn btn-primary" disabled={deleting || !password}>
+              <button
+                type="submit"
+                className="btn btn-primary"
+                disabled={deleting || !password}
+              >
                 {deleting ? "Deleting…" : "Delete everything"}
               </button>
               <button
@@ -442,7 +516,11 @@ function AccountTab({ account }: { account: Account }) {
           </form>
         ) : (
           <div className={styles.actions}>
-            <button type="button" className="btn btn-ghost" onClick={() => setConfirming(true)}>
+            <button
+              type="button"
+              className="btn btn-ghost"
+              onClick={() => setConfirming(true)}
+            >
               Delete my account
             </button>
           </div>

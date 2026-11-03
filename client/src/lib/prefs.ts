@@ -70,6 +70,7 @@ export const applyPrefs = ({
   shelfSort,
   shelfView,
   releaseChecks,
+  country,
 }: Prefs = {}) => {
   if (isBackground(background)) {
     document.documentElement.dataset.bg = background;
@@ -92,6 +93,7 @@ export const applyPrefs = ({
   if (shelfTab) writeLocal("shelfTab", shelfTab);
   if (shelfSort !== undefined) writeLocal("shelfSort", shelfSort);
   if (shelfView) writeLocal("shelfView", shelfView);
+  if (country) writeLocal("country", country);
   if (releaseChecks && releaseChecks !== readLocal("releaseChecks")) {
     writeLocal("releaseChecks", releaseChecks);
     checksListeners.forEach((listener) => listener());

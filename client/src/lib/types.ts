@@ -119,6 +119,8 @@ export type Prefs = {
   // "off": never look up new volumes and chapters
   releaseChecks?: "on" | "off";
   releases?: ReleaseSettings;
+  // where they buy: Canada gets Canadian store links beside the US prices
+  country?: "us" | "ca";
 };
 export type Background = "sfx" | "ink" | "pages" | "panels";
 export type Theme = "light" | "dark";
