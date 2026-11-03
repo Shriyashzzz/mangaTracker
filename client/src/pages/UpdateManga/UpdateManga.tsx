@@ -6,7 +6,7 @@ import type { Manga, MangaForm } from "../../lib/types";
 import CoverPicker from "../../components/coverPicker/CoverPicker";
 import FormatField from "../../components/formatField/FormatField";
 import { usePrivatePage } from "../../lib/seo";
-import { GENRES } from "../../lib/genres";
+import { GENRES } from "../../lib/content/genres";
 
 const DESC_MAX = 450;
 

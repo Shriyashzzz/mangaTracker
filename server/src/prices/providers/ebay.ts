@@ -3,7 +3,7 @@
 // eBay may need to approve the app for the Buy APIs. Untested live.
 // https://developer.ebay.com/api-docs/buy/browse/resources/item_summary/methods/search
 import config from "../../config/config.js";
-import { ebayAffiliateUrl, ebayCampaignId } from "../affiliates.js";
+import { ebayAffiliateUrl, ebayCampaignId } from "../stores/affiliates.js";
 import type { Offer, Provider } from "../types.js";
 
 const TOKEN_URL = "https://api.ebay.com/identity/v1/oauth2/token";

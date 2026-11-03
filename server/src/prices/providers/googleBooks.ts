@@ -6,7 +6,7 @@
 // Instead we search the volume's title and keep the ebook whose series name
 // and volume number match.
 import config from "../../config/config.js";
-import { sameVolume } from "../match.js";
+import { sameVolume } from "../stores/match.js";
 import type { Provider } from "../types.js";
 
 const URL = "https://www.googleapis.com/books/v1/volumes";

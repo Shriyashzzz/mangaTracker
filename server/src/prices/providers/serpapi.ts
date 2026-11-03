@@ -4,21 +4,16 @@
 // counts against that key's monthly plan, so a key stops at SERPAPI_MONTHLY_LIMIT
 // (default 250, the free plan) for the calendar month and the next takes over.
 // https://serpapi.com/google-shopping-api
-import { JAPANESE_EDITION, listingMatches } from "../match.js";
+import { JAPANESE_EDITION, listingMatches } from "../stores/match.js";
 import {
   dropUnlikelyNew,
   isResaleSite,
   isNotABook,
   plausiblePrice,
-} from "../retailers.js";
+} from "../stores/retailers.js";
 import type { Offer, Provider } from "../types.js";
 import { searchSerpApi, serpApiEnabled } from "./serpapiClient.js";
-
-const USED = /\b(used|pre-?owned|refurbished|second-?hand)\b/i;
-
-// digital storefronts: their "price" is an ebook
-const DIGITAL =
-  /\b(bookwalker|kindle|kobo|comixology|google play|apple books|nook)\b/i;
+import { DIGITAL, USED } from "../offerHelpers.js";
 
 // a single paperback volume sits in a narrow band; listings far outside it
 // are case packs, collector lots or mislabeled sets. Bulk listings can

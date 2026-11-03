@@ -5,9 +5,9 @@ import { body, matchedData, param } from "express-validator";
 import { sendError } from "../middlewares/errorHandler.js";
 import { rejectInvalid } from "../middlewares/validate.js";
 import userQueries, { type AccountPatch } from "../models/userQueries.js";
-import { AVATARS } from "../util/avatars.js";
-import { defaultReaderName, READER_NAMES } from "../util/readerNames.js";
-import { toSharedShelf } from "../util/sharedShelf.js";
+import { AVATARS } from "../util/shelf/avatars.js";
+import { defaultReaderName, READER_NAMES } from "../util/shelf/readerNames.js";
+import { toSharedShelf } from "../util/shelf/sharedShelf.js";
 
 // the name they show as until they pick one, and the ideas to pick from
 const withNames = <T>(userId: number, account: T) => ({

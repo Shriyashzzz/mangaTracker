@@ -4,7 +4,7 @@ import { useRef, useState, type FormEvent } from "react";
 import { apiFetch, errorMessages, signInPath } from "../../lib/api";
 import type { MangaForm } from "../../lib/types";
 import { useAuth } from "../../store/auth";
-import { GENRES } from "../../lib/genres";
+import { GENRES } from "../../lib/content/genres";
 import CoverPicker from "../../components/coverPicker/CoverPicker";
 import type { CoverHit } from "../../lib/anilist";
 import TitleField from "./TitleField";
@@ -275,7 +275,11 @@ export function AddManga() {
               className={styles.textarea}
               id="description"
               name="description"
-              placeholder="Your thoughts on the manga…"
+              placeholder={
+                lightNovel
+                  ? "Your thoughts on the novel…"
+                  : "Your thoughts on the manga…"
+              }
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               maxLength={DESC_MAX}

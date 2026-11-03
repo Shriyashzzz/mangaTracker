@@ -3,7 +3,7 @@
 // spends tokens from your plan. Untested against a live account yet.
 // https://keepa.com/#!discuss/t/product-object/116
 import config from "../../config/config.js";
-import { amazonTag } from "../affiliates.js";
+import { amazonTag } from "../stores/affiliates.js";
 import type { Offer, Provider } from "../types.js";
 
 const URL = "https://api.keepa.com/product";

@@ -15,17 +15,17 @@ import {
   sendToShelf,
   type ImportTotals,
   type MalItem,
-} from "../../lib/malImport";
+} from "../../lib/imports/malImport";
 import { usePrivatePage } from "../../lib/seo";
 import { useAuth } from "../../store/auth";
 import { useShelf } from "../../store/shelf";
-import type { BookSource } from "../../lib/bookImport";
+import type { BookSource } from "../../lib/imports/bookImport";
 import BookImport from "./BookImport";
 import {
   readAniList,
   readKitsu,
   type AccountSource,
-} from "../../lib/accountImport";
+} from "../../lib/imports/accountImport";
 import { importStyles as styles } from "./styles";
 
 const EXPORT_PAGE = "https://myanimelist.net/panel.php?go=export";

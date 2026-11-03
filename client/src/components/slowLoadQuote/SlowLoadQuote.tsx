@@ -4,7 +4,7 @@
 // pinned to the window whatever the skeleton's container is doing.
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
-import { QUOTES } from "../../lib/quotes";
+import { QUOTES } from "../../lib/content/quotes";
 import Mascot from "../mascot/Mascot";
 
 const SHOW_AFTER_MS = 1000;

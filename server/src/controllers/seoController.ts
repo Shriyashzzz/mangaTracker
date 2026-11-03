@@ -5,7 +5,7 @@
 import type { Request, Response } from "express";
 import config from "../config/config.js";
 import priceQueries from "../models/priceQueries.js";
-import { slugify } from "../prices/match.js";
+import { slugify } from "../prices/stores/match.js";
 import { sendError } from "../middlewares/errorHandler.js";
 
 const site = () => config.CLIENT_URL?.replace(/\/+$/, "");

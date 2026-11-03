@@ -1,7 +1,7 @@
 // The last page of a manga volume: a sign-off, a parting line (one quote a
 // day), and the colophon. Inked black with screentone dots.
 import { NavLink } from "react-router";
-import { QUOTES, type Quote } from "../../lib/quotes";
+import { QUOTES, type Quote } from "../../lib/content/quotes";
 
 // one quote per calendar day, the same for everyone, turning over at local
 // midnight. Counting whole days keeps it walking through the list in order

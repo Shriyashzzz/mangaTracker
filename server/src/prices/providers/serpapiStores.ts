@@ -3,31 +3,19 @@
 // it carries our affiliate tracking. Every search here costs one SerpApi search.
 // https://serpapi.com/ebay-search-api
 // https://serpapi.com/amazon-search-api
-import { amazonTag, ebayAffiliateUrl } from "../affiliates.js";
+import { amazonTag, ebayAffiliateUrl } from "../stores/affiliates.js";
 import {
   JAPANESE_EDITION,
   isSingleVolume,
   listingMatches,
   namesOtherVolume,
-} from "../match.js";
-import { plausiblePrice } from "../retailers.js";
+} from "../stores/match.js";
+import { plausiblePrice } from "../stores/retailers.js";
 import type { Offer, Provider } from "../types.js";
 import ebayApi from "./ebay.js";
 import keepa from "./keepa.js";
 import { searchSerpApi, serpApiEnabled } from "./serpapiClient.js";
-
-const toCents = (dollars: number) => Math.round(dollars * 100);
-
-// the cheapest offer for each store + format + condition
-const cheapestOfEach = (offers: Offer[]) => {
-  const best = new Map<string, Offer>();
-  for (const o of offers) {
-    const key = `${o.store}|${o.format}|${o.condition}`;
-    const current = best.get(key);
-    if (!current || o.priceCents < current.priceCents) best.set(key, o);
-  }
-  return [...best.values()];
-};
+import { cheapestOfEach, shippingCents, toCents } from "../offerHelpers.js";
 
 // ---------- eBay ----------
 
@@ -40,13 +28,6 @@ export type EbayResult = {
   shipping?: string | { extracted?: number };
   // a range ({ from, to }) means several variants, so no one price to show
   price?: { extracted?: number; from?: unknown };
-};
-
-const shippingCents = (shipping: EbayResult["shipping"]) => {
-  if (typeof shipping === "object") {
-    return shipping.extracted === undefined ? null : toCents(shipping.extracted);
-  }
-  return /free/i.test(shipping ?? "") ? 0 : null;
 };
 
 // the listing without eBay's tracking, ready for our own
