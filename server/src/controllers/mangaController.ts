@@ -35,8 +35,9 @@ const mangaFields = [
     .trim()
     .notEmpty()
     .withMessage("Manga title cannot be empty luv <3")
-    .isLength({ min: 3, max: 150 })
-    .withMessage("Title should be between 3 to 150 characters long! <3"),
+    // short titles are real ("86", "K"), and imports bring them in
+    .isLength({ max: 150 })
+    .withMessage("Titles can be up to 150 characters long! <3"),
   body("bookmark")
     .optional({ values: "falsy" })
     .isInt({ min: 0, max: 100000 })
@@ -486,6 +487,7 @@ const match = [
         name: found.name,
         bookmark: found.bookmark,
         status: found.status,
+        planned: found.planned,
         volumesOwned: found.volumesOwned,
       },
     );

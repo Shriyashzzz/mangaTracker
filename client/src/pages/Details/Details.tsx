@@ -49,6 +49,8 @@ export default function Details() {
   // under the buttons: a failed save, or the undo for marking it finished
   const [actionNote, setActionNote] = useState("");
   const [canUndoStatus, setCanUndoStatus] = useState(false);
+  // marked finished straight from To read: undo puts it back there
+  const finishedFromPlanned = useRef(false);
   const deleteButton = useRef<HTMLButtonElement>(null);
   const keepButton = useRef<HTMLButtonElement>(null);
   // the Delete button is about to vanish from under the keyboard: put focus
@@ -148,6 +150,14 @@ export default function Details() {
         body: { status: next },
       });
       if (!res.ok) throw new Error(`Failed changing manga status`);
+      if (isUndo && finishedFromPlanned.current) {
+        const back = await apiFetch(`/api/manga/${id}/planned`, {
+          method: "PATCH",
+          body: { planned: true },
+        });
+        if (back.ok) setPlanned(true);
+      }
+      finishedFromPlanned.current = !isUndo && next && wasPlanned;
       if (!isUndo) {
         setActionNote(next ? "Marked as finished." : "Back to reading.");
         setCanUndoStatus(true);

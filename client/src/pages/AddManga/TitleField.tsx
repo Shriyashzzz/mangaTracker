@@ -95,7 +95,6 @@ export default function TitleField({
           endPreview();
         }}
         onKeyDown={onKeyDown}
-        minLength={3}
         maxLength={150}
         autoComplete="off"
         required
