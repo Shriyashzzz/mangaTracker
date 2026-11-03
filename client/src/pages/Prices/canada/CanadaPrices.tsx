@@ -8,6 +8,7 @@ import { canadaStoreLinks, timeAgo } from "../../../lib/prices";
 import type { Offer } from "../../../lib/types";
 import { pricesStyles as styles } from "../styles";
 import CountrySwitch from "./CountrySwitch";
+import OfferList from "../OfferList";
 
 type Answer = {
   links?: { store: string; url: string; affiliate: boolean }[];
@@ -21,25 +22,6 @@ const cad = new Intl.NumberFormat("en-US", {
   style: "currency",
   currency: "CAD",
 });
-const CONDITION: Record<string, string> = {
-  new: "New",
-  used: "Used",
-  marketplace: "Marketplace",
-};
-
-const OfferRow = ({ o }: { o: Offer }) => (
-  <>
-    <span className={styles.offerStore}>
-      {o.store}
-      <span className="font-mono text-[0.85rem] font-normal text-ink-soft">
-        {o.format === "ebook"
-          ? "Ebook"
-          : (CONDITION[o.condition] ?? o.condition)}
-      </span>
-    </span>
-    <span className={styles.offerPrice}>{cad.format(o.priceCents / 100)}</span>
-  </>
-);
 
 export default function CanadaPrices({ isbn }: { isbn: string }) {
   const [answer, setAnswer] = useState<{ isbn: string; data: Answer } | null>(
@@ -85,27 +67,11 @@ export default function CanadaPrices({ isbn }: { isbn: string }) {
           Checking Canadian stores…
         </p>
       ) : offers.length > 0 ? (
-        <ul className={styles.offers}>
-          {offers.map((o) => (
-            <li key={`${o.store}|${o.format}|${o.condition}`}>
-              {o.url ? (
-                <a
-                  className={styles.offerRow}
-                  href={o.url}
-                  target="_blank"
-                  rel={o.affiliate ? "sponsored noreferrer" : "noreferrer"}
-                  aria-label={`${o.store}, ${cad.format(o.priceCents / 100)}. Opens the store in a new tab`}
-                >
-                  <OfferRow o={o} />
-                </a>
-              ) : (
-                <span className={styles.offerRow}>
-                  <OfferRow o={o} />
-                </span>
-              )}
-            </li>
-          ))}
-        </ul>
+        <OfferList
+          key={isbn}
+          offers={offers}
+          formatPrice={(cents) => cad.format(cents / 100)}
+        />
       ) : (
         <p className={styles.note}>
           {data.status === "budget"

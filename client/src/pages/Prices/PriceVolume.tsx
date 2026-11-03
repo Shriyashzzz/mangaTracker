@@ -3,10 +3,7 @@ import CountrySwitch from "./canada/CountrySwitch";
 import { useCountry } from "../../lib/prefs";
 import { useEffect, useState } from "react";
 import { noteStoreClick } from "../../lib/support";
-import {
-  ChevronDownIcon,
-  ChevronRightIcon,
-} from "../../components/icons/Icons";
+import { ChevronDownIcon } from "../../components/icons/Icons";
 import { NavLink, useLocation, useNavigate, useParams } from "react-router";
 import {
   coverSrc,
@@ -22,6 +19,8 @@ import SeriesFacts from "./SeriesFacts";
 import BackToNew from "./BackToNew";
 import VolumeCard, { CoverFallback } from "./VolumeCard";
 import { pricesStyles as styles } from "./styles";
+import OfferList from "./OfferList";
+import { TYPE_LABEL, linkRel } from "./offerLabels";
 import Mascot from "../../components/mascot/Mascot";
 import SlowLoadQuote from "../../components/slowLoadQuote/SlowLoadQuote";
 import { stayInTrip, useFromShelf } from "../../lib/fromShelf";
@@ -29,7 +28,7 @@ import { readLocal } from "../../lib/prefs";
 import { usePageMeta } from "../../lib/seo";
 import { volumeMeta } from "./pageMeta";
 import ShelfAction from "./ShelfAction";
-import type { Offer, VolumePrices } from "../../lib/types";
+import type { VolumePrices } from "../../lib/types";
 
 // the Impact script (index.html) that turns Walmart links into affiliate links
 declare global {
@@ -39,7 +38,6 @@ declare global {
 }
 
 // longer price lists start collapsed, like manga.london's "Show N more"
-const VISIBLE_OFFERS = 5;
 const SIBLINGS_SHOWN = 12;
 
 const shortDate = (d: string) =>
@@ -59,47 +57,19 @@ const dayDate = (d: string) => {
   });
 };
 
-const CONDITION: Record<string, string> = {
-  new: "New",
-  used: "Used",
-  marketplace: "Marketplace",
-};
-
-// awards go to the cheapest copies; type labels say what kind of copy it is
-const AWARDS = {
-  lowest: { label: "Lowest overall", className: styles.awardLowest },
-  newLow: { label: "Cheapest new", className: styles.awardNew },
-  marketLow: { label: "Cheapest marketplace", className: styles.awardMarket },
-};
-const TYPE_LABEL = {
-  newPrint: { label: "New print", className: styles.labelNew },
-  used: { label: "Used", className: styles.labelMarket },
-  marketplace: { label: "Marketplace", className: styles.labelMarket },
-  ebook: { label: "Ebook", className: styles.labelEbook },
-};
 // the history's rows, labelled like the offers' type labels
 const KIND_LABEL = {
   new: TYPE_LABEL.newPrint,
   marketplace: { label: "Used & marketplace", className: styles.labelMarket },
   ebook: TYPE_LABEL.ebook,
 };
-const typeOf = (o: Offer) =>
-  o.format === "ebook"
-    ? TYPE_LABEL.ebook
-    : o.condition === "new"
-      ? TYPE_LABEL.newPrint
-      : o.condition === "used"
-        ? TYPE_LABEL.used
-        : TYPE_LABEL.marketplace;
 
 export default function PriceVolume() {
   // US or Canada: switched right on the page, by anyone
   const country = useCountry();
   // the route always has an :isbn
   const isbn = useParams().isbn!;
-  const [showAll, setShowAll] = useState({ isbn, open: false });
   const [attempt, setAttempt] = useState(0);
-  const offersOpen = showAll.isbn === isbn && showAll.open;
   // which ISBN the data is for, so a stale answer never shows
   const [state, setState] = useState<{
     isbn: string | null;
@@ -197,15 +167,6 @@ export default function PriceVolume() {
   const lowestInHistory = Math.min(
     ...(printKinds.length ? printKinds : kinds).map((k) => k.lowCents),
   );
-  // people come here for a physical copy, so ebooks go under the print ones.
-  // The awards below still use the true cheapest-first order
-  const listedOffers = [
-    ...offers.filter((o) => o.format !== "ebook"),
-    ...offers.filter((o) => o.format === "ebook"),
-  ];
-  const shownOffers = offersOpen
-    ? listedOffers
-    : listedOffers.slice(0, VISIBLE_OFFERS);
   // the next volumes first, then the ones before
   const nearby = [
     ...siblings.filter((v) => volume == null || (v.volume ?? 0) > volume),
@@ -230,29 +191,6 @@ export default function PriceVolume() {
   const best = offers.find(
     (o) => o.condition === "new" && o.format === "print",
   );
-  // the awards go to copies you can buy now. Offers are sorted cheapest
-  // first, so each is the first match. The lowest overall (ebooks included)
-  // always shows what kind of copy it is ("Lowest overall" + "New print"),
-  // which also says it's the cheapest of its kind, so it never doubles up
-  // with "Cheapest new" or "Cheapest marketplace". Ebooks always say so
-  const inStock = offers.filter((o) => o.inStock);
-  const lowest = inStock[0];
-  const newLow = inStock.find(
-    (o) => o.format === "print" && o.condition === "new",
-  );
-  const marketLow = inStock.find(
-    (o) => o.format === "print" && o.condition !== "new",
-  );
-  // one row stands out, and it's the one the headline names
-  const highlighted = newLow ?? lowest;
-  const stampsOf = (o: Offer) =>
-    o === lowest
-      ? [AWARDS.lowest, typeOf(o)]
-      : [
-          ...(o === newLow ? [AWARDS.newLow] : []),
-          ...(o === marketLow ? [AWARDS.marketLow] : []),
-          ...(o.format === "ebook" ? [TYPE_LABEL.ebook] : []),
-        ];
 
   return (
     <div className="fade-in">
@@ -314,7 +252,8 @@ export default function PriceVolume() {
               {seriesLabel}
             </NavLink>
           </p>
-          {best && (
+          {/* US numbers: not shown when they're looking at Canadian prices */}
+          {best && !inCanada && (
             <p className={styles.bestLine}>
               New from <strong>{formatCents(best.priceCents)}</strong> at{" "}
               {best.store}
@@ -350,75 +289,12 @@ export default function PriceVolume() {
               </div>
 
               {offers.length > 0 ? (
-                <ul className={styles.offers} data-tour="offers">
-                  {shownOffers.map((o) => {
-                    const condition = CONDITION[o.condition] ?? o.condition;
-                    const row = (
-                      <>
-                        <span className={styles.offerStore}>
-                          <span className={styles.offerName}>
-                            {o.store}
-                            {stampsOf(o).map(({ label, className }) => (
-                              <span key={label} className={className}>
-                                {label}
-                              </span>
-                            ))}
-                          </span>
-                          <span className={styles.offerTags}>
-                            {condition}
-                            {!o.inStock && " · out of stock"}
-                          </span>
-                        </span>
-                        <span className={styles.offerPrice}>
-                          {formatCents(o.priceCents)}
-                        </span>
-                      </>
-                    );
-                    return (
-                      <li
-                        key={`${o.store}-${o.format}-${o.condition}`}
-                        className={o === highlighted ? styles.lowestOffer : ""}
-                      >
-                        {/* the whole row is the way to the store */}
-                        {o.url ? (
-                          <a
-                            className={styles.offerRow}
-                            href={o.url}
-                            target="_blank"
-                            rel={linkRel(o)}
-                            onClick={noteStoreClick}
-                            onAuxClick={noteStoreClick}
-                            aria-label={`${o.store}, ${formatCents(o.priceCents)}, ${condition}. Opens the store in a new tab`}
-                          >
-                            {row}
-                            <span className={styles.offerGo} aria-hidden>
-                              <span className="upto-720:hidden">
-                                Go to store
-                              </span>
-                              <ChevronRightIcon />
-                            </span>
-                          </a>
-                        ) : (
-                          <span className={styles.offerRow}>{row}</span>
-                        )}
-                      </li>
-                    );
-                  })}
-                  {offers.length > VISIBLE_OFFERS && (
-                    <li className={styles.moreRow}>
-                      <button
-                        type="button"
-                        className={styles.textBtn}
-                        aria-expanded={offersOpen}
-                        onClick={() => setShowAll({ isbn, open: !offersOpen })}
-                      >
-                        {offersOpen
-                          ? "Show fewer"
-                          : `Show ${offers.length - VISIBLE_OFFERS} more`}
-                      </button>
-                    </li>
-                  )}
-                </ul>
+                <OfferList
+                  key={isbn}
+                  offers={offers}
+                  formatPrice={formatCents}
+                  tourTarget="offers"
+                />
               ) : (
                 <p className={styles.note}>
                   {liveSources.length ? (
@@ -482,7 +358,7 @@ export default function PriceVolume() {
             </section>
           )}
 
-          {history && (
+          {history && !inCanada && (
             <details className={styles.historyFold}>
               <summary className={styles.historySummary}>
                 <h2 className={styles.sectionTitle}>Price history</h2>
@@ -586,10 +462,6 @@ export default function PriceVolume() {
     </div>
   );
 }
-
-// affiliate links are marked as paid links, as search engines ask
-const linkRel = (link: { affiliate: boolean }) =>
-  link.affiliate ? "sponsored noreferrer" : "noreferrer";
 
 function VolumeSkeleton() {
   return (
