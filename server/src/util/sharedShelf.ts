@@ -13,6 +13,7 @@ export type SharedSource = {
     image: string | null;
     genre: string | null;
     status: boolean;
+    planned: boolean;
     bookmark: number | null;
     rating: number | null;
     description: string | null;
@@ -33,6 +34,7 @@ export const toSharedShelf = ({
     image: m.image,
     genre: m.genre,
     status: m.status,
+    planned: m.planned,
     bookmark: m.bookmark,
     rating: m.rating,
     // notes only when they've chosen to share them

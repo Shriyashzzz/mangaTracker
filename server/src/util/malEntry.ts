@@ -12,6 +12,8 @@ export type MalEntry = {
   ownedVolumes: number;
   score: number; // out of 10
   comments?: string;
+  // from a plan to read or to-read list: goes on their To read list
+  planned?: boolean;
   // AniList's cover, from a book app import matched by name
   cover?: string;
 };
@@ -34,8 +36,9 @@ export function toMangaInput(entry: MalEntry, listing: MalListing | null) {
     genre: listing?.genre ?? null,
     image: listing?.cover ?? entry.cover ?? null,
     description: entry.comments?.trim().slice(0, MAX_NOTES) || null,
-    status: entry.finished,
-    bookmark: entry.chapters,
+    status: entry.finished && !entry.planned,
+    planned: Boolean(entry.planned),
+    bookmark: entry.planned ? null : entry.chapters,
     // most people never fill in retail, so volumes read is the best guess left
     volumesOwned: entry.ownedVolumes || entry.readVolumes || null,
     rating: Math.round(entry.score / 2) || null,

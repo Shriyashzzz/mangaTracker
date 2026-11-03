@@ -134,6 +134,7 @@ export const getSharedShelf = (shareCode: string) =>
           image: true,
           genre: true,
           status: true,
+          planned: true,
           bookmark: true,
           rating: true,
           description: true,

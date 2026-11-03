@@ -58,6 +58,8 @@ export const detailsStyles = {
   actionNote: "w-full text-[0.9rem] text-ink-soft empty:hidden",
   undo: "ml-1 inline-block py-1 font-medium text-ink underline decoration-accent decoration-2 underline-offset-3",
   // what they own, a quiet aside next to where they are in the story
+  // a To read manga: "Not started yet" with its button beside it
+  startRow: "inline-flex flex-wrap items-center gap-3",
   owned:
     "mt-2 block font-mono text-[0.8rem] whitespace-nowrap text-muted not-italic",
 

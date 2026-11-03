@@ -15,6 +15,7 @@ const source = {
       image: null,
       genre: "Action",
       status: false,
+      planned: false,
       bookmark: 12,
       rating: 5,
       description: "my private thoughts",

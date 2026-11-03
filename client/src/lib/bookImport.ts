@@ -311,6 +311,7 @@ export const toEntry = (
   ...(match?.cover ? { cover: match.cover } : {}),
   title: s.title.slice(0, 300),
   finished: false,
+  ...(s.planned ? { planned: true } : {}),
   chapters: 0,
   readVolumes: s.readVolumes,
   ownedVolumes: s.ownedVolumes,

@@ -83,7 +83,8 @@ export default function Tour() {
     setIndex(next);
     try {
       sessionStorage.setItem(STEP_KEY, String(next));
-      if (TOUR_STEPS[next]?.allTab) sessionStorage.setItem("libraryStatus", "all");
+      if (TOUR_STEPS[next]?.allTab)
+        sessionStorage.setItem("libraryStatus", "all");
     } catch {
       /* it just won't survive a refresh */
     }
@@ -128,9 +129,20 @@ export default function Tour() {
         if (step.onTop && Date.now() - startedAt < SETTLED_AFTER_MS) {
           // room above the section for him and his arrow, kept while the page is
           // still filling in above it
-          const above = (bubble.current?.offsetHeight ?? 160) + BUBBLE_GAP + SCREEN_MARGIN;
+          const above =
+            (bubble.current?.offsetHeight ?? 160) + BUBBLE_GAP + SCREEN_MARGIN;
           const off = el.getBoundingClientRect().top - above;
           if (Math.abs(off) > 2) window.scrollBy(0, off);
+        } else if (
+          !step.onTop &&
+          scrolled &&
+          Date.now() - startedAt < SETTLED_AFTER_MS &&
+          el.getBoundingClientRect().top < SCREEN_MARGIN &&
+          el.offsetHeight < innerHeight / 2
+        ) {
+          // the page moved after we scrolled to it, like the shelf putting back
+          // where they were: bring a small target back into view
+          window.scrollBy(0, el.getBoundingClientRect().top - SCREEN_MARGIN * 4);
         } else if (!scrolled && !step.onTop) {
           scrolled = true;
           // a big section starts at the top, leaving Kenji room below it
@@ -234,7 +246,8 @@ export default function Tour() {
   const next = () => {
     const upcoming = TOUR_STEPS[index + 1]?.target;
     const alreadyOpen = step.opensNext && upcoming && findTarget(upcoming);
-    if (step.tap && step.target && !alreadyOpen) findTarget(step.target)?.click();
+    if (step.tap && step.target && !alreadyOpen)
+      findTarget(step.target)?.click();
     goTo(index + 1);
   };
 
@@ -242,15 +255,18 @@ export default function Tour() {
   const showHole = Boolean(box) && !lost && onPage;
   // on the way to the step's page, or that page still arriving: out of sight, so
   // his next line never flashes up in the middle of the page they're leaving
-  const waiting =
-    Boolean(step.target) && !lost && (onPage ? !box : !settled);
+  const waiting = Boolean(step.target) && !lost && (onPage ? !box : !settled);
   const veiled = step.focus && !wentExploring && !waiting;
   // over or under what he's pointing at, if either has the room. A section too big
   // for that gets him out of the way at the bottom, where it can still be read
   const roomAbove = box ? box.top - BUBBLE_GAP - SCREEN_MARGIN : 0;
   const barSpace = hasBottomBar() ? BOTTOM_BAR : 0;
   const roomBelow = box
-    ? innerHeight - barSpace - (box.top + box.height) - BUBBLE_GAP - SCREEN_MARGIN
+    ? innerHeight -
+      barSpace -
+      (box.top + box.height) -
+      BUBBLE_GAP -
+      SCREEN_MARGIN
     : 0;
   const fits = Math.max(roomAbove, roomBelow) >= bubbleHeight;
   // too big to sit beside: he moves out of the way and stays there for the step,
@@ -264,34 +280,44 @@ export default function Tour() {
   const holeMiddle = box ? box.top + box.height / 2 : 0;
   const below =
     !step.onTop &&
-    roomBelow >= bubbleHeight && (roomAbove < bubbleHeight || holeMiddle < innerHeight / 2);
+    roomBelow >= bubbleHeight &&
+    (roomAbove < bubbleHeight || holeMiddle < innerHeight / 2);
   // too big to sit beside: at the bottom, staying put however far they scroll. The
   // big pages marked onTop have him above the section instead, moving with it
   // room to the right of the section, for the steps that would rather sit there
   const sideRoom = box
     ? // the page's width, without the scrollbar
-      document.documentElement.clientWidth - (box.left + box.width) - BUBBLE_GAP - SCREEN_MARGIN
+      document.documentElement.clientWidth -
+      (box.left + box.width) -
+      BUBBLE_GAP -
+      SCREEN_MARGIN
     : 0;
-  const beside = Boolean(step.besideIfRoom) && showHole && sideRoom >= MIN_SIDE_WIDTH;
+  const beside =
+    Boolean(step.besideIfRoom) && showHole && sideRoom >= MIN_SIDE_WIDTH;
   const bubbleTop = beside
     ? box!.top
     : inCorner
-    ? innerHeight - bubbleHeight - SCREEN_MARGIN - (hasBottomBar() ? BOTTOM_BAR : 0)
-    : step.onTop && showHole
-    ? // above the section, scrolling with it. At the very top of the page there
-      // may not be room, so there he stays on screen
-      window.scrollY > 0
-      ? box!.top - bubbleHeight - BUBBLE_GAP
-      : Math.max(SCREEN_MARGIN, box!.top - bubbleHeight - BUBBLE_GAP)
-    : !showHole
-    ? Math.max(SCREEN_MARGIN, (innerHeight - bubbleHeight) / 2)
-    : Math.min(
-        Math.max(
-          SCREEN_MARGIN,
-          below ? box!.top + box!.height + BUBBLE_GAP : box!.top - bubbleHeight - BUBBLE_GAP,
-        ),
-        innerHeight - bubbleHeight - SCREEN_MARGIN,
-      );
+      ? innerHeight -
+        bubbleHeight -
+        SCREEN_MARGIN -
+        (hasBottomBar() ? BOTTOM_BAR : 0)
+      : step.onTop && showHole
+        ? // above the section, scrolling with it. At the very top of the page there
+          // may not be room, so there he stays on screen
+          window.scrollY > 0
+          ? box!.top - bubbleHeight - BUBBLE_GAP
+          : Math.max(SCREEN_MARGIN, box!.top - bubbleHeight - BUBBLE_GAP)
+        : !showHole
+          ? Math.max(SCREEN_MARGIN, (innerHeight - bubbleHeight) / 2)
+          : Math.min(
+              Math.max(
+                SCREEN_MARGIN,
+                below
+                  ? box!.top + box!.height + BUBBLE_GAP
+                  : box!.top - bubbleHeight - BUBBLE_GAP,
+              ),
+              innerHeight - bubbleHeight - SCREEN_MARGIN,
+            );
   // in the corner of a wide screen he stays beside the page's column, not over it
   const bubbleWidth = beside
     ? Math.min(340, sideRoom)
@@ -307,11 +333,11 @@ export default function Tour() {
   const bubbleLeft = beside
     ? box!.left + box!.width + BUBBLE_GAP
     : !showHole
-    ? (innerWidth - bubbleWidth) / 2
-    : Math.min(
-        Math.max(SCREEN_MARGIN, holeCenter - bubbleWidth / 2),
-        innerWidth - bubbleWidth - SCREEN_MARGIN,
-      );
+      ? (innerWidth - bubbleWidth) / 2
+      : Math.min(
+          Math.max(SCREEN_MARGIN, holeCenter - bubbleWidth / 2),
+          innerWidth - bubbleWidth - SCREEN_MARGIN,
+        );
   const pointerLeft = Math.min(
     Math.max(bubbleLeft + 22, holeCenter),
     bubbleLeft + bubbleWidth - 22,
@@ -338,8 +364,12 @@ export default function Tour() {
           ref={dock}
           type="button"
           className="tour-dock"
-          style={{ bottom: `calc(${barSpace + SCREEN_MARGIN}px + env(safe-area-inset-bottom))` }}
-          onClick={step.free || step.doneOnLeaving ? () => goTo(index + 1) : backToStep}
+          style={{
+            bottom: `calc(${barSpace + SCREEN_MARGIN}px + env(safe-area-inset-bottom))`,
+          }}
+          onClick={
+            step.free || step.doneOnLeaving ? () => goTo(index + 1) : backToStep
+          }
         >
           <span className="tour-dock-face printed" aria-hidden>
             <Mascot mood="happy" />
@@ -363,17 +393,26 @@ export default function Tour() {
       {veiled && (
         <div
           className="tour-veil"
-          style={showHole ? { clipPath: holePath(visibleBox(box!, floor)) } : undefined}
+          style={
+            showHole
+              ? { clipPath: holePath(visibleBox(box!, floor)) }
+              : undefined
+          }
         />
       )}
       {showHole && (
-        <div className="tour-stage" style={{ clipPath: `inset(0 0 ${innerHeight - floor}px 0)` }}>
+        <div
+          className="tour-stage"
+          style={{ clipPath: `inset(0 0 ${innerHeight - floor}px 0)` }}
+        >
           <div
             className={`tour-ring ${step.tap ? "tour-ring-tap" : ""}`}
             style={box!}
           />
           {/* in a blurred moment, what's only being explained stays put */}
-          {step.focus && !step.tap && <div className="tour-shield" style={box!} />}
+          {step.focus && !step.tap && (
+            <div className="tour-shield" style={box!} />
+          )}
           {(step.onTop || (fits && !inCorner)) && (
             <svg
               className={`tour-pointer ${
@@ -415,7 +454,7 @@ export default function Tour() {
             {step.partSize > 1 && ` · ${step.partStep} of ${step.partSize}`}
           </p>
           <p className="tour-say">
-            {step.say}
+            {hasBottomBar() && step.phoneSay ? step.phoneSay : step.say}
           </p>
           <div className="tour-actions">
             {isLast ? (
@@ -427,7 +466,11 @@ export default function Tour() {
                 >
                   Start your shelf
                 </button>
-                <button type="button" className="tour-skip" onClick={() => endDemo()}>
+                <button
+                  type="button"
+                  className="tour-skip"
+                  onClick={() => endDemo()}
+                >
                   Leave the tour
                 </button>
               </>
@@ -445,13 +488,21 @@ export default function Tour() {
                     type="button"
                     className="tour-skip"
                     onClick={() =>
-                      goTo(TOUR_STEPS[index - 1]!.needsLastStep ? index - 2 : index - 1)
+                      goTo(
+                        TOUR_STEPS[index - 1]!.needsLastStep
+                          ? index - 2
+                          : index - 1,
+                      )
                     }
                   >
                     Back
                   </button>
                 )}
-                <button type="button" className="tour-skip" onClick={() => endDemo()}>
+                <button
+                  type="button"
+                  className="tour-skip"
+                  onClick={() => endDemo()}
+                >
                   Skip tour
                 </button>
               </>

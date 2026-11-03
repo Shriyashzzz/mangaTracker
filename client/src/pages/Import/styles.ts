@@ -7,7 +7,8 @@ export const importStyles = {
   title:
     "mt-2 font-brand text-[clamp(2.3rem,6.5vw,3.4rem)] leading-[0.98] font-normal tracking-[0.01em] text-balance uppercase",
 
-  sheet: "flex flex-col gap-6 border-3 border-line bg-card p-[clamp(1.25rem,4vw,2rem)]",
+  sheet:
+    "flex flex-col gap-6 border-3 border-line bg-card p-[clamp(1.25rem,4vw,2rem)]",
   step: "grid grid-cols-[2.2rem_minmax(0,1fr)] gap-x-3",
   stepNumber:
     "grid size-9 -rotate-3 place-items-center bg-ink font-brand text-[1.3rem] leading-none text-paper",
@@ -30,17 +31,23 @@ export const importStyles = {
   fileName: "mt-1 truncate font-mono text-[0.8rem] text-muted",
   lists: "mt-4 border-t-[1.5px] border-line-soft",
   list: "flex min-h-12 cursor-pointer items-center gap-3 border-b border-dashed border-line-soft has-[input:disabled]:cursor-default has-[input:disabled]:opacity-50",
-  listCheck: "size-5 shrink-0 cursor-pointer accent-accent disabled:cursor-default",
+  listCheck:
+    "size-5 shrink-0 cursor-pointer accent-accent disabled:cursor-default",
   listName: "flex-1 font-medium",
   listCount: "font-mono text-[0.9rem] text-ink-soft tabular-nums",
-  // which app the list comes from: two by two on phones, one row on laptops
-  sources: "grid grid-cols-4 gap-2 upto-520:grid-cols-2",
+  // which app the list comes from: two across on phones, three on bigger screens
+  sources: "grid grid-cols-3 gap-2 upto-520:grid-cols-2",
+  usernameRow: "mt-3 flex flex-wrap items-center gap-3",
+  usernameInput:
+    "min-h-11 min-w-0 flex-[1_1_14rem] border-[2.5px] border-line bg-paper px-3 text-[1rem] text-ink outline-none focus-visible:border-accent",
   source:
     "tap min-h-11 border-[2.5px] border-line bg-card px-2 py-2 text-[0.92rem] font-medium leading-tight transition-colors duration-150 hover:bg-accent-wash aria-pressed:bg-ink aria-pressed:text-paper",
-  seriesList: "mt-4 max-h-[min(60vh,32rem)] overflow-y-auto border-t-[1.5px] border-line-soft",
+  seriesList:
+    "mt-4 max-h-[min(60vh,32rem)] overflow-y-auto border-t-[1.5px] border-line-soft",
   seriesText: "flex min-w-0 flex-1 flex-col py-1.5",
   seriesMeta: "text-[0.85rem] text-ink-soft",
-  warning: "border-[1.5px] border-dashed border-accent bg-accent-wash px-3 py-2 text-[0.9rem] leading-[1.45]",
+  warning:
+    "border-[1.5px] border-dashed border-accent bg-accent-wash px-3 py-2 text-[0.9rem] leading-[1.45]",
   note: "mt-3 text-[0.9rem] leading-[1.45] text-ink-soft",
   actions: "mt-5 flex flex-wrap items-center gap-3",
 

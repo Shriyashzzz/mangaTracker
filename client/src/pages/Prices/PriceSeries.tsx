@@ -1,3 +1,4 @@
+import ToReadButton from "../../components/toRead/ToReadButton";
 import { useEffect, useState, type FormEvent } from "react";
 import { NavLink, useParams, useSearchParams } from "react-router";
 import type { Series } from "../../lib/types";
@@ -50,9 +51,7 @@ export default function PriceSeries() {
   }, [key]);
 
   const retry = () => setAttempt((a) => a + 1);
-  usePageMeta(
-    state.key === key && state.data ? seriesMeta(state.data) : null,
-  );
+  usePageMeta(state.key === key && state.data ? seriesMeta(state.data) : null);
 
   if (state.key !== key) {
     return (
@@ -157,10 +156,14 @@ export default function PriceSeries() {
           />
         )}
         <div className={styles.seriesCopy}>
-          <h1 className={styles.volumeTitle}>
-            {info?.name ?? data.name}
-          </h1>
+          <h1 className={styles.volumeTitle}>{info?.name ?? data.name}</h1>
           {info && <SeriesFacts info={info} />}
+          <ToReadButton
+            name={info?.name ?? data.name}
+            altNames={info?.altNames}
+            cover={info?.coverUrl ?? null}
+            genres={info?.genres}
+          />
         </div>
       </header>
 
@@ -217,7 +220,9 @@ export default function PriceSeries() {
                   fullTitle={v.title}
                   seriesCoverUrl={info?.coverUrl}
                   priceCents={v.knownPriceCents}
-                  subtitle={v.knownPriceCents == null ? "Check price" : undefined}
+                  subtitle={
+                    v.knownPriceCents == null ? "Check price" : undefined
+                  }
                 />
               </li>
             ))}

@@ -12,6 +12,7 @@ import type { Background } from "../../lib/types";
 import clsx from "clsx";
 import Avatar from "../avatar/Avatar";
 import { useAccount } from "../../store/account";
+import { hasBottomBar } from "../../lib/bottomBar";
 
 // one row of the menu: a button or link
 const item =
@@ -116,6 +117,8 @@ export default function SettingsMenu({ isSignedIn, onLogOut }: Props) {
         aria-controls="settings-menu"
         aria-label="Menu"
         title="Menu"
+        // on phones the tour points here for importing, which lives in this menu
+        data-tour={hasBottomBar() ? "import-link" : undefined}
         onClick={toggle}
       >
         {isSignedIn ? (
@@ -143,38 +146,38 @@ export default function SettingsMenu({ isSignedIn, onLogOut }: Props) {
           {/* signed in, this lives on the settings page with everything else */}
           {!isSignedIn && (
             <>
-          <li className="pb-[0.15rem]">
-            <p
-              className="px-[0.6rem] pt-[0.4rem] pb-[0.3rem] font-brand text-[1.05rem] leading-none tracking-[0.04em]"
-              id="bg-label"
-            >
-              Background
-            </p>
-            <ul aria-labelledby="bg-label">
-              {BACKGROUNDS.map((b) => (
-                <li key={b.id}>
-                  <button
-                    className={item}
-                    aria-pressed={background === b.id}
-                    onClick={() => pickBackground(b.id)}
-                  >
-                    <span className={clsx(thumb, THUMBS[b.id])} aria-hidden>
-                      {b.id === "sfx" && "ド"}
-                    </span>
-                    {b.label}
-                    {background === b.id && (
-                      <CheckIcon className="ml-auto text-accent" />
-                    )}
-                  </button>
-                </li>
-              ))}
-            </ul>
-          </li>
+              <li className="pb-[0.15rem]">
+                <p
+                  className="px-[0.6rem] pt-[0.4rem] pb-[0.3rem] font-brand text-[1.05rem] leading-none tracking-[0.04em]"
+                  id="bg-label"
+                >
+                  Background
+                </p>
+                <ul aria-labelledby="bg-label">
+                  {BACKGROUNDS.map((b) => (
+                    <li key={b.id}>
+                      <button
+                        className={item}
+                        aria-pressed={background === b.id}
+                        onClick={() => pickBackground(b.id)}
+                      >
+                        <span className={clsx(thumb, THUMBS[b.id])} aria-hidden>
+                          {b.id === "sfx" && "ド"}
+                        </span>
+                        {b.label}
+                        {background === b.id && (
+                          <CheckIcon className="ml-auto text-accent" />
+                        )}
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              </li>
 
-          <li
-            className="mx-[0.6rem] my-[0.35rem] h-0 border-t-[1.5px] border-dashed border-line-soft"
-            aria-hidden
-          />
+              <li
+                className="mx-[0.6rem] my-[0.35rem] h-0 border-t-[1.5px] border-dashed border-line-soft"
+                aria-hidden
+              />
             </>
           )}
 
@@ -191,10 +194,19 @@ export default function SettingsMenu({ isSignedIn, onLogOut }: Props) {
                   Profile and settings
                 </NavLink>
               </li>
-              {/* laptops have this on the shelf */}
+              {/* laptops have these on the shelf */}
               <li className="hidden upto-720:block">
-                <NavLink to="/settings/profile#share" className={item} viewTransition>
+                <NavLink
+                  to="/settings/profile#share"
+                  className={item}
+                  viewTransition
+                >
                   Share my list
+                </NavLink>
+              </li>
+              <li className="hidden upto-720:block">
+                <NavLink to="/import" className={item} viewTransition>
+                  Import your list
                 </NavLink>
               </li>
             </>

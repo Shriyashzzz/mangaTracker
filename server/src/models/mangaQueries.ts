@@ -9,6 +9,7 @@ export type MangaInput = {
   description?: string | null;
   image?: string | null;
   status: boolean;
+  planned?: boolean;
   bookmark?: number | null;
   volumesOwned?: number | null;
   rating?: number | null;
@@ -74,8 +75,16 @@ export async function updateManga(id: number, input: MangaInput) {
   });
 }
 
+// finishing one, or picking it back up, takes it off the To read list
 export const setStatus = (id: number, status: boolean) =>
-  prisma.manga.update({ where: { id }, data: { status } });
+  prisma.manga.update({ where: { id }, data: { status, planned: false } });
+
+// on or off the To read list; starting it puts them at chapter 1
+export const setPlanned = (id: number, planned: boolean) =>
+  prisma.manga.update({
+    where: { id },
+    data: planned ? { planned, status: false } : { planned, bookmark: 1 },
+  });
 
 export const setRating = (id: number, rating: number) =>
   prisma.manga.update({ where: { id }, data: { rating } });
@@ -132,6 +141,7 @@ export default {
   setLatestChapter,
   updateManga,
   setStatus,
+  setPlanned,
   setRating,
   addManyManga,
   setBookmark,
