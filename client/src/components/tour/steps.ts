@@ -127,7 +127,7 @@ const PARTS: { name: string; lines: Line[] }[] = [
       {
         path: "/shelf",
         target: "shelf",
-        say: "Everything that's come out past where you are. Already got it, or don't care? Hide takes it off the list until something newer is out.",
+        say: "You'll see here when a new volume or chapter comes out for a manga on your shelf. Already got it? Hide takes it off the list until something newer is out.",
       },
       {
         path: "/shelf",
@@ -218,11 +218,6 @@ const PARTS: { name: string; lines: Line[] }[] = [
   {
     name: "Last stop",
     lines: [
-      {
-        path: "/updates",
-        target: "updates",
-        say: "One more place. New features land here, under What's new in the footer.",
-      },
       {
         path: "/shelf",
         focus: true,

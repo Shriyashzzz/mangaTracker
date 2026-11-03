@@ -306,7 +306,8 @@ export default function Tour() {
         </div>
         <div className="tour-words">
           <p className="tour-count">
-            {step.part} · {step.partStep} of {step.partSize}
+            {step.part}
+            {step.partSize > 1 && ` · ${step.partStep} of ${step.partSize}`}
           </p>
           <p className="tour-say">
             {wentExploring
