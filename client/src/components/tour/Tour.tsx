@@ -257,9 +257,12 @@ export default function Tour() {
   const holeMiddle = box ? box.top + box.height / 2 : 0;
   const below =
     roomBelow >= bubbleHeight && (roomAbove < bubbleHeight || holeMiddle < innerHeight / 2);
-  // out of the way at the top, where it stays however far they scroll
+  // out of the way: pinned to the top on the big pages that ask for it, otherwise
+  // at the bottom. Either way it stays put however far they scroll
   const bubbleTop = inCorner
-    ? SCREEN_MARGIN
+    ? step.onTop
+      ? SCREEN_MARGIN
+      : innerHeight - bubbleHeight - SCREEN_MARGIN - (hasBottomBar() ? BOTTOM_BAR : 0)
     : !showHole
     ? Math.max(SCREEN_MARGIN, (innerHeight - bubbleHeight) / 2)
     : Math.min(
