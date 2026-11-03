@@ -55,4 +55,5 @@ export const markPeekShown = () => {
 };
 
 // they've answered, by closing it or using the link
-export const stopAsking = () => write({ ...read(), pending: false, done: true });
+export const stopAsking = () =>
+  write({ ...read(), pending: false, done: true });

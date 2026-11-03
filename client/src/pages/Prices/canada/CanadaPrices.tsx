@@ -1,10 +1,12 @@
 // Canadian prices on a volume page, for anyone who picked Canada. Live from the
 // server's sandboxed Canadian check (prices/canada), in Canadian dollars, with
 // the stores' own searches always there as well, and on their own when there's
-// nothing live to show.
+// nothing live to show. The server sends those links, affiliate tags included.
 import { useEffect, useState } from "react";
 import { getJson } from "../../../lib/api";
-import { canadaStoreLinks, timeAgo } from "../../../lib/prices";
+import { readLocal } from "../../../lib/prefs";
+import { timeAgo } from "../../../lib/prices";
+import { noteStoreClick } from "../../../lib/support";
 import type { Offer } from "../../../lib/types";
 import { pricesStyles as styles } from "../styles";
 import CountrySwitch from "./CountrySwitch";
@@ -12,7 +14,7 @@ import OfferList from "../OfferList";
 
 type Answer = {
   links?: { store: string; url: string; affiliate: boolean }[];
-  status: "ok" | "off" | "budget" | "error";
+  status: "ok" | "off" | "budget" | "unknown" | "error";
   offers: Offer[];
   checkedAt: string | null;
 };
@@ -22,6 +24,16 @@ const cad = new Intl.NumberFormat("en-US", {
   style: "currency",
   currency: "CAD",
 });
+
+const WHY_NONE: Record<Answer["status"], string> = {
+  ok: "No Canadian store listed this volume when we checked. Try the stores below.",
+  budget:
+    "We've checked as many Canadian prices as we can this month. The stores below have it.",
+  unknown:
+    "We don't have Canadian prices for this volume yet. Try the stores below.",
+  off: "Canadian prices aren't available right now. Try the stores below.",
+  error: "Canadian prices aren't available right now. Try the stores below.",
+};
 
 export default function CanadaPrices({ isbn }: { isbn: string }) {
   const [answer, setAnswer] = useState<{ isbn: string; data: Answer } | null>(
@@ -44,7 +56,14 @@ export default function CanadaPrices({ isbn }: { isbn: string }) {
   }, [isbn]);
 
   const data = answer?.isbn === isbn ? answer.data : null;
-  const offers = data?.offers ?? [];
+  // only physical copies, if that's what they've asked for, like the US list
+  const hideEbooks = readLocal("hideEbooks") === "yes";
+  const allOffers = data?.offers ?? [];
+  const offers = hideEbooks
+    ? allOffers.filter((o) => o.format !== "ebook")
+    : allOffers;
+  const hiddenEbooks = allOffers.length - offers.length;
+  const links = data?.links ?? [];
 
   return (
     <section className="mb-8" aria-labelledby="ca-prices-title">
@@ -73,42 +92,39 @@ export default function CanadaPrices({ isbn }: { isbn: string }) {
           formatPrice={(cents) => cad.format(cents / 100)}
         />
       ) : (
-        <p className={styles.note}>
-          {data.status === "budget"
-            ? "We've checked as many Canadian prices as we can this month. The stores below have it."
-            : data.status === "ok"
-              ? "No Canadian store listed this volume when we checked. Try the stores below."
-              : "Canadian prices aren't available right now. Try the stores below."}
+        <p className={styles.note}>{WHY_NONE[data.status]}</p>
+      )}
+      {hiddenEbooks > 0 && (
+        <p className={styles.checked}>
+          {hiddenEbooks} ebook {hiddenEbooks === 1 ? "price" : "prices"} hidden.
         </p>
       )}
 
-      <div className={`${styles.otherStores} mt-4`}>
-        <h3 className={styles.otherStoresTitle}>Check this volume at:</h3>
-        <ul className={styles.storeLinks}>
-          {(data?.links?.length ? data.links : canadaStoreLinks(isbn)).map(
-            (s) => (
+      {links.length > 0 && (
+        <div className={`${styles.otherStores} mt-4`}>
+          <h3 className={styles.otherStoresTitle}>Check this volume at:</h3>
+          <ul className={styles.storeLinks}>
+            {links.map((s) => (
               <li key={s.store}>
                 <a
                   href={s.url}
                   target="_blank"
-                  rel={
-                    "affiliate" in s && s.affiliate
-                      ? "sponsored noreferrer"
-                      : "noreferrer"
-                  }
+                  rel={s.affiliate ? "sponsored noreferrer" : "noreferrer"}
+                  onClick={noteStoreClick}
+                  onAuxClick={noteStoreClick}
                   aria-label={`${s.store}. Opens the store in a new tab`}
                 >
                   {s.store}
                 </a>
               </li>
-            ),
-          )}
-        </ul>
-      </div>
-      {data?.links?.some((s) => s.affiliate) && (
+            ))}
+          </ul>
+        </div>
+      )}
+      {links.some((s) => s.affiliate) && (
         <p className={styles.disclosure}>
-          The Amazon.ca link is an affiliate link, which helps keep the site
-          running at no cost to you.
+          Some store links are affiliate links, which help keep the site running
+          at no cost to you.
         </p>
       )}
     </section>

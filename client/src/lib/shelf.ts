@@ -42,7 +42,8 @@ export async function saveSeen(
 export const remainingVolumes = (m: Manga, found: ReleaseStatus) =>
   found.outVolumes.filter(
     (v) =>
-      v.volume > (m.seenVolume ?? 0) && !(m.hiddenVolumes ?? []).includes(v.volume),
+      v.volume > (m.seenVolume ?? 0) &&
+      !(m.hiddenVolumes ?? []).includes(v.volume),
   );
 export const remainingJapanVolumes = (m: Manga, found: ReleaseStatus) =>
   found.outJapanVolumes.filter((v) => v > (m.seenJapanVolume ?? 0));
@@ -64,7 +65,8 @@ export const remainingChapters = (m: Manga, found: ReleaseStatus) => {
 // whether it's still new, after a change to what they've hidden
 export const isStillNew = (kind: SeenKind, m: Manga, found: ReleaseStatus) => {
   if (kind === "volume") {
-    if (found.volumeMode === "all") return remainingVolumes(m, found).length > 0;
+    if (found.volumeMode === "all")
+      return remainingVolumes(m, found).length > 0;
     const next = found.nextVolume;
     return (
       found.volumeListed &&
@@ -81,7 +83,10 @@ export const isStillNew = (kind: SeenKind, m: Manga, found: ReleaseStatus) => {
         : (found.nextChapter ?? 0)) > (m.seenChapter ?? 0)
     );
   }
-  return found.japanListed && (found.latestJapaneseVolume ?? 0) > (m.seenJapanVolume ?? 0);
+  return (
+    found.japanListed &&
+    (found.latestJapaneseVolume ?? 0) > (m.seenJapanVolume ?? 0)
+  );
 };
 
 // set once a whole shelf has had its releases checked

@@ -151,7 +151,11 @@ export class AniListBusy extends Error {
 export async function findManga(
   search: string,
   signal?: AbortSignal,
-): Promise<{ malId: number | null; name: string; cover: string | null } | null> {
+): Promise<{
+  malId: number | null;
+  name: string;
+  cover: string | null;
+} | null> {
   const response = await fetch(ANILIST_URL, {
     method: "POST",
     headers: { "Content-Type": "application/json", Accept: "application/json" },

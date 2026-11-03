@@ -14,6 +14,7 @@ import {
   isbnCoverImageUrl,
 } from "../prices/covers.js";
 import { isCrawler } from "../prices/crawlers.js";
+import { getCanadaPrices } from "../prices/canada/canadaPrices.js";
 import {
   getHighlights,
   getSeries,
@@ -44,12 +45,19 @@ const searchQuery = [
 ];
 
 const seriesName = [
-  query("name").trim().isLength({ min: 2, max: 120 }).withMessage("Which series?"),
+  query("name")
+    .trim()
+    .isLength({ min: 2, max: 120 })
+    .withMessage("Which series?"),
   rejectInvalid,
 ];
 
 // runs an upstream call, turning its failure into a 502 with `message`
-async function upstream<T>(what: string, message: string, run: () => Promise<T>) {
+async function upstream<T>(
+  what: string,
+  message: string,
+  run: () => Promise<T>,
+) {
   try {
     return await run();
   } catch (e) {
@@ -97,11 +105,31 @@ const volume = [
       "Prices couldn't be loaded. Try again in a moment.",
       () =>
         getVolumePrices(matchedData(req).isbn, {
-          refresh: !isCrawler(req.get("user-agent")),
+          // ?stored=1: someone looking at Canadian prices, who won't see these
+          refresh:
+            !isCrawler(req.get("user-agent")) && req.query.stored !== "1",
         }),
     );
     if (!data) throw new NotFoundError("We couldn't find that volume.");
     res.json(data);
+  },
+];
+
+// GET /ca/:isbn  a volume's Canadian prices (sandboxed in prices/canada).
+// Never throws for a store problem: it answers with the store links instead
+const canadaVolume = [
+  ...isbnParam,
+  async (req: Request, res: Response) => {
+    res.json(
+      await upstream(
+        "Canadian price lookup",
+        "Canadian prices couldn't be loaded. Try again in a moment.",
+        () =>
+          getCanadaPrices(matchedData(req).isbn, {
+            refresh: !isCrawler(req.get("user-agent")),
+          }),
+      ),
+    );
   },
 ];
 
@@ -182,6 +210,7 @@ const seriesSummary = [
 ];
 
 export default {
+  canadaVolume,
   search,
   seriesSearch,
   volume,

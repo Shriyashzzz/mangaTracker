@@ -35,7 +35,10 @@ export function apiFetch(
 }
 
 // GET as JSON. Throws with the server's own message so pages can show it
-export async function getJson<T>(path: string, signal?: AbortSignal): Promise<T> {
+export async function getJson<T>(
+  path: string,
+  signal?: AbortSignal,
+): Promise<T> {
   const res = await apiFetch(path, { signal });
   const data = await res.json().catch(() => null);
   if (!res.ok) {
@@ -50,7 +53,11 @@ export async function getJson<T>(path: string, signal?: AbortSignal): Promise<T>
 // the messages in an error response, for showing under a form
 export async function errorMessages(res: Response): Promise<string[]> {
   const data = (await res.json().catch(() => null)) as ApiError | null;
-  return data?.error?.map((e) => e.msg) ?? ["Something went wrong, please try again!"];
+  return (
+    data?.error?.map((e) => e.msg) ?? [
+      "Something went wrong, please try again!",
+    ]
+  );
 }
 
 // where to go after signing in: the page that sent people to sign in, if

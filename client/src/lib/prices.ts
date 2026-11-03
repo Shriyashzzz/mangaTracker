@@ -19,8 +19,17 @@ export const searchVolumes = (q: string, signal?: AbortSignal) =>
     signal,
   ).then((d) => d.results);
 
-export const getVolume = (isbn: string, signal?: AbortSignal) =>
-  getJson<VolumePrices>(`/api/prices/${encodeURIComponent(isbn)}`, signal);
+// storedOnly: what's already saved, without spending a refresh, for someone
+// looking at Canadian prices instead
+export const getVolume = (
+  isbn: string,
+  signal?: AbortSignal,
+  storedOnly = false,
+) =>
+  getJson<VolumePrices>(
+    `/api/prices/${encodeURIComponent(isbn)}${storedOnly ? "?stored=1" : ""}`,
+    signal,
+  );
 
 export const searchSeries = (q: string, signal?: AbortSignal) =>
   getJson<{ results: SeriesHit[] }>(
@@ -99,16 +108,6 @@ export const seriesName = (title: string) =>
     .trim();
 
 export const seriesTitle = seriesName;
-
-// ---------- Canada ----------
-
-// no live Canadian prices yet: each store's own search for the ISBN
-export const canadaStoreLinks = (isbn: string) => [
-  { store: "Amazon.ca", url: `https://www.amazon.ca/s?k=${isbn}` },
-  { store: "Indigo", url: `https://www.indigo.ca/search?q=${isbn}` },
-  { store: "eBay.ca", url: `https://www.ebay.ca/sch/i.html?_nkw=${isbn}` },
-  { store: "Walmart.ca", url: `https://www.walmart.ca/search?q=${isbn}` },
-];
 
 // ---------- covers ----------
 
