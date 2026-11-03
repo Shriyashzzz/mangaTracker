@@ -1,3 +1,5 @@
+import CanadaPrices from "./canada/CanadaPrices";
+import CountrySwitch, { type Country } from "./canada/CountrySwitch";
 import { useEffect, useState } from "react";
 import { noteStoreClick } from "../../lib/support";
 import {
@@ -14,7 +16,6 @@ import {
   seriesPath,
   seriesTitle,
   timeAgo,
-  canadaStoreLinks,
 } from "../../lib/prices";
 import SeriesFacts from "./SeriesFacts";
 import BackToNew from "./BackToNew";
@@ -91,6 +92,10 @@ const typeOf = (o: Offer) =>
         : TYPE_LABEL.marketplace;
 
 export default function PriceVolume() {
+  // US or Canada: switched right on the page, by anyone
+  const [country, setCountry] = useState<Country>(() =>
+    readLocal("country") === "ca" ? "ca" : "us",
+  );
   // the route always has an :isbn
   const isbn = useParams().isbn!;
   const [showAll, setShowAll] = useState({ isbn, open: false });
@@ -179,7 +184,7 @@ export default function PriceVolume() {
   const seriesLabel = series.info?.name ?? series.name;
   // set in settings: they only want physical copies
   const hideEbooks = readLocal("hideEbooks") === "yes";
-  const inCanada = readLocal("country") === "ca";
+  const inCanada = country === "ca";
   const offers = hideEbooks
     ? allOffers.filter((o) => o.format !== "ebook")
     : allOffers;
@@ -327,40 +332,24 @@ export default function PriceVolume() {
         </header>
 
         <div className={styles.volumeBody}>
+          {inCanada && <CanadaPrices isbn={book.isbn13} />}
           <section aria-labelledby="offers-title">
             <div className={styles.sectionHeadRow}>
               <h2 id="offers-title" className={styles.sectionTitle}>
                 {inCanada ? "US prices" : "Prices"}
               </h2>
-              {checkedAt && (
-                <span className={styles.checked}>
-                  checked {timeAgo(checkedAt)}
-                </span>
-              )}
+              <span className="flex items-center gap-3">
+                {checkedAt && (
+                  <span className={styles.checked}>
+                    checked {timeAgo(checkedAt)}
+                  </span>
+                )}
+                <CountrySwitch
+                  country={inCanada ? "ca" : "us"}
+                  onChange={setCountry}
+                />
+              </span>
             </div>
-
-            {/* Canada: no live prices yet, so its stores' own searches first */}
-            {inCanada && (
-              <div className={`${styles.otherStores} mb-5`}>
-                <h3 className={styles.otherStoresTitle}>
-                  In Canada, check this volume at:
-                </h3>
-                <ul className={styles.storeLinks}>
-                  {canadaStoreLinks(book.isbn13).map((s) => (
-                    <li key={s.store}>
-                      <a
-                        href={s.url}
-                        target="_blank"
-                        rel="noreferrer"
-                        aria-label={`${s.store}. Opens the store in a new tab`}
-                      >
-                        {s.store}
-                      </a>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            )}
 
             {offers.length > 0 ? (
               <ul className={styles.offers} data-tour="offers">

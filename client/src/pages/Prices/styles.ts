@@ -32,7 +32,8 @@ export const pricesStyles = {
   halfTitle:
     "pr-12 font-brand text-[clamp(1.6rem,4vw,2.6rem)] leading-[1] font-normal tracking-[0.02em] uppercase",
   halfActions: "mt-auto flex flex-wrap items-center gap-3 pt-2 upto-720:pt-0.5",
-  searchHead: "speed-burst flex flex-col gap-3 border-3 border-line p-[clamp(1.25rem,3vw,2rem)]",
+  searchHead:
+    "speed-burst flex flex-col gap-3 border-3 border-line p-[clamp(1.25rem,3vw,2rem)]",
   title:
     "font-brand text-[clamp(2.4rem,6vw,3.6rem)] leading-[0.95] font-normal tracking-[0.02em] uppercase",
   sub: "text-[1.05rem] text-ink-soft",
@@ -76,7 +77,8 @@ export const pricesStyles = {
   vol: "absolute top-0 left-0 flex items-baseline gap-[0.2rem] bg-ink pt-[0.2rem] pr-[0.85rem] pb-[0.1rem] pl-2 font-brand text-[1.5rem] leading-none tracking-[0.02em] text-paper [clip-path:polygon(0_0,100%_0,calc(100%-8px)_100%,0_100%)] [&_small]:text-[0.75rem] [&_small]:tracking-[0.08em] [&_small]:uppercase",
   cardTitle: "line-clamp-2 text-[0.92rem] leading-[1.3] font-semibold",
   cardMeta: "text-[0.8rem] text-muted",
-  cardPrice: "flex items-baseline gap-[0.4rem] font-mono text-[0.9rem] font-medium",
+  cardPrice:
+    "flex items-baseline gap-[0.4rem] font-mono text-[0.9rem] font-medium",
   cardWas: "text-[0.75rem] font-normal text-muted",
   cardSkeleton: "aspect-2/3",
   // a horizontal shelf of cards, scrolls sideways when it runs long
@@ -109,8 +111,10 @@ export const pricesStyles = {
     "mb-[0.6rem] inline-block bg-[linear-gradient(var(--accent),var(--accent))] bg-size-[1.8em_3px] bg-left-bottom bg-no-repeat pb-[0.2rem] font-brand text-[1.45rem] font-normal tracking-[0.03em] uppercase [.prices-promo_&]:mb-1",
   sectionHead: "mb-3 flex flex-col items-start justify-between gap-4",
   // the heading with something small across from it
-  sectionHeadRow: "mb-3 flex flex-wrap items-baseline justify-between gap-x-4 [&_h2]:mb-0",
-  sectionNote: "-mt-[0.2rem] mb-3 max-w-[48ch] text-[0.95rem] leading-[1.35] text-ink-soft",
+  sectionHeadRow:
+    "mb-3 flex flex-wrap items-baseline justify-between gap-x-4 [&_h2]:mb-0",
+  sectionNote:
+    "-mt-[0.2rem] mb-3 max-w-[48ch] text-[0.95rem] leading-[1.35] text-ink-soft",
   checked: "font-mono text-[0.75rem] text-muted",
   // the price list
   offers:
@@ -135,9 +139,12 @@ export const pricesStyles = {
     "inline-block rotate-1 rounded-[2px] border-[1.5px] border-line px-[0.4rem] pt-[0.1rem] font-brand text-[1rem] leading-[1.15] font-normal tracking-[1px] uppercase shadow-[2px_2px_0_var(--hard-shadow)] bg-award-new text-on-award-new",
   awardMarket:
     "inline-block -rotate-1 rounded-[2px] border-[1.5px] border-line px-[0.4rem] pt-[0.1rem] font-brand text-[1rem] leading-[1.15] font-normal tracking-[1px] uppercase shadow-[2px_2px_0_var(--hard-shadow)] bg-award-market text-stamp-ink",
-  labelNew: "inline-block rounded-[2px] border border-line px-[0.35rem] pt-[0.05rem] font-brand text-[0.88rem] leading-[1.15] font-normal tracking-[1px] text-stamp-ink uppercase bg-stamp-new",
-  labelMarket: "inline-block rounded-[2px] border border-line px-[0.35rem] pt-[0.05rem] font-brand text-[0.88rem] leading-[1.15] font-normal tracking-[1px] text-stamp-ink uppercase bg-stamp-market",
-  labelEbook: "inline-block rounded-[2px] border border-line px-[0.35rem] pt-[0.05rem] font-brand text-[0.88rem] leading-[1.15] font-normal tracking-[1px] text-stamp-ink uppercase bg-stamp-ebook",
+  labelNew:
+    "inline-block rounded-[2px] border border-line px-[0.35rem] pt-[0.05rem] font-brand text-[0.88rem] leading-[1.15] font-normal tracking-[1px] text-stamp-ink uppercase bg-stamp-new",
+  labelMarket:
+    "inline-block rounded-[2px] border border-line px-[0.35rem] pt-[0.05rem] font-brand text-[0.88rem] leading-[1.15] font-normal tracking-[1px] text-stamp-ink uppercase bg-stamp-market",
+  labelEbook:
+    "inline-block rounded-[2px] border border-line px-[0.35rem] pt-[0.05rem] font-brand text-[0.88rem] leading-[1.15] font-normal tracking-[1px] text-stamp-ink uppercase bg-stamp-ebook",
   offerStore: "flex flex-col gap-[0.15rem] font-semibold",
   offerTags: "font-mono text-[0.75rem] font-normal text-ink-soft",
   offerPrice: "font-mono text-[1.05rem] font-medium tabular-nums",
@@ -159,7 +166,8 @@ export const pricesStyles = {
   statStore: "truncate font-mono text-[0.75rem]! leading-[1.35] text-muted",
   storeLinks:
     "flex flex-wrap gap-2 [&_a]:tap [&_a]:inline-block [&_a]:rounded-[2px] [&_a]:border-[1.5px] [&_a]:border-line [&_a]:bg-card [&_a]:px-[0.8rem] [&_a]:py-[0.35rem] [&_a]:text-[0.88rem] [&_a]:font-medium [&_a]:transition-[background-color,color] [&_a]:duration-120 [&_a]:ease-[ease] [&_a]:hover:bg-ink [&_a]:hover:text-paper",
-  disclosure: "mt-3 max-w-[62ch] text-[0.78rem] leading-normal text-muted italic",
+  disclosure:
+    "mt-3 max-w-[62ch] text-[0.78rem] leading-normal text-muted italic",
   amazonDisclosure: "mt-10 text-right text-[0.75rem] text-muted",
   volumeActions: "mt-1 flex flex-wrap items-center gap-[0.85rem]",
   // stores with no price, tucked under the list they belong with
@@ -172,7 +180,8 @@ export const pricesStyles = {
   // the shelf button's pieces join the action row: its state line above,
   // its undo note below
   shelfAction: "contents",
-  shelfState: "-order-1 -mb-[0.35rem] basis-full font-mono text-[0.8rem] text-muted [&_a]:text-ink-soft [&_a]:underline [&_a]:decoration-line-soft [&_a]:underline-offset-3 [&_a]:hover:text-accent",
+  shelfState:
+    "-order-1 -mb-[0.35rem] basis-full font-mono text-[0.8rem] text-muted [&_a]:text-ink-soft [&_a]:underline [&_a]:decoration-line-soft [&_a]:underline-offset-3 [&_a]:hover:text-accent",
   shelfNote: "order-1 basis-full text-[0.88rem] text-ink-soft empty:hidden",
   undoBtn: "font-semibold text-accent underline underline-offset-3",
   // holds the button's place while we check the shelf
@@ -186,17 +195,21 @@ export const pricesStyles = {
   crumbs:
     "mb-5 flex flex-wrap items-center gap-[0.45rem] text-[0.85rem] text-muted [.prices-page_&]:-mb-3 [&_[aria-current]]:text-ink-soft [&_a]:underline-offset-3 [&_a]:hover:text-ink [&_a]:hover:underline",
   tag: "mr-[0.4rem] inline-block rounded-[2px] border border-line-soft px-[0.45rem] py-[0.05rem]",
-  partOf: "text-[0.92rem] text-ink-soft [&_a]:text-ink [&_a]:underline [&_a]:decoration-line-soft [&_a]:underline-offset-3 [&_a]:hover:decoration-current",
+  partOf:
+    "text-[0.92rem] text-ink-soft [&_a]:text-ink [&_a]:underline [&_a]:decoration-line-soft [&_a]:underline-offset-3 [&_a]:hover:decoration-current",
   textBtn: `tap text-[0.85rem] text-ink-soft ${softLink} hover:text-ink hover:decoration-current`,
   facts: "flex flex-col gap-[0.6rem]",
-  factRow: "flex flex-wrap gap-x-5 gap-y-[0.35rem] text-[0.88rem] text-ink-soft [&_strong]:font-semibold [&_strong]:text-ink [&_a]:underline [&_a]:decoration-line-soft [&_a]:underline-offset-3",
+  factRow:
+    "flex flex-wrap gap-x-5 gap-y-[0.35rem] text-[0.88rem] text-ink-soft [&_strong]:font-semibold [&_strong]:text-ink [&_a]:underline [&_a]:decoration-line-soft [&_a]:underline-offset-3",
   genres:
     "flex flex-wrap gap-[0.35rem] [&_li]:rounded-[2px] [&_li]:border-[1.5px] [&_li]:border-line-soft [&_li]:px-2 [&_li]:py-[0.05rem] [&_li]:text-[0.78rem] [&_li]:text-ink-soft",
-  blurb: "max-w-[68ch] text-[0.95rem] leading-[1.6] whitespace-pre-line text-ink-soft",
+  blurb:
+    "max-w-[68ch] text-[0.95rem] leading-[1.6] whitespace-pre-line text-ink-soft",
   clamped: "line-clamp-3",
 
   // ---------- series page ----------
-  seriesHead: "grid grid-cols-[auto_minmax(0,1fr)] items-start gap-[clamp(1.25rem,4vw,2.5rem)]",
+  seriesHead:
+    "grid grid-cols-[auto_minmax(0,1fr)] items-start gap-[clamp(1.25rem,4vw,2.5rem)]",
   seriesCover:
     "aspect-2/3 w-[clamp(110px,16vw,180px)] border-[1.5px] border-line object-cover shadow-[6px_6px_0_var(--hard-shadow)] upto-720:w-24",
   seriesCopy: "flex min-w-0 flex-col gap-[0.9rem]",

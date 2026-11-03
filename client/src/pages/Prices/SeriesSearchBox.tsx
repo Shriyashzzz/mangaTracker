@@ -15,7 +15,6 @@ const DEBOUNCE_MS = 250;
 // ISBN skips straight to that volume
 type Props = { initialQuery?: string; autoFocus: boolean };
 
-
 export default function SeriesSearchBox({
   initialQuery = "",
   autoFocus = false,
@@ -147,7 +146,9 @@ export default function SeriesSearchBox({
             }}
             onFocus={() => setOpen(true)}
             onKeyDown={onKeyDown}
-            placeholder={isMobile ? "Title or ISBN" : "Search a series, or paste an ISBN"}
+            placeholder={
+              isMobile ? "Title or ISBN" : "Search a series, or paste an ISBN"
+            }
             maxLength={100}
             autoComplete="off"
             autoFocus={isMobile || hasBottomBar() ? false : autoFocus}
