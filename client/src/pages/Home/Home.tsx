@@ -378,7 +378,7 @@ function Library() {
           Add your first manga
         </button>
         <NavLink to="/import" className={`${styles.importLink} mx-auto mt-4 block w-fit`} viewTransition>
-          Or import from MyAnimeList
+          Or import your list
         </NavLink>
       </div>
     );
@@ -622,7 +622,7 @@ function Library() {
       className={styles.importLink}
       viewTransition
     >
-      Import from MyAnimeList
+      Import your list
     </NavLink>
   );
   // a series with no saved place can't be called caught up, so it never shows
