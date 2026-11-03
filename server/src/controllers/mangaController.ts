@@ -1,7 +1,7 @@
 // The shelf: list, add, edit, delete, and the small inline updates (status,
 // rating, volumes owned). Every :id route runs requireOwner first, which
 // loads the manga onto res.locals.manga.
-import { response, type Request, type Response } from "express";
+import type { Request, Response } from "express";
 import { body, matchedData, query } from "express-validator";
 import { rejectInvalid } from "../middlewares/validate.js";
 import mangaQueries, { type MangaInput } from "../models/mangaQueries.js";
@@ -26,8 +26,8 @@ import {
   type MalEntry,
 } from "../util/shelf/malEntry.js";
 import type { Manga } from "../../generated/prisma/client.js";
-import session from "express-session";
 import { isOnShelf, titleKey } from "../util/shelf/titleKey.js";
+import { oneAtATime } from "../util/shelf/oneAtATime.js";
 
 // ---------- validation shared by add and edit ----------
 const mangaFields = [
@@ -126,14 +126,17 @@ const add = [
       const listing = await getSeriesInfo(input.name).catch(() => null);
       input.name = canonicalTitle(input.name, listing);
     }
-    if (
-      await onShelfAlready(res, req.session.userId!, input.name, {
-        lightNovel: Boolean(input.lightNovel),
-      })
-    )
-      return;
-    const id = await mangaQueries.addManga(req.session.userId!, input);
-    res.status(201).json({ id });
+    const userId = req.session.userId!;
+    await oneAtATime(userId, async () => {
+      if (
+        await onShelfAlready(res, userId, input.name, {
+          lightNovel: Boolean(input.lightNovel),
+        })
+      )
+        return;
+      const id = await mangaQueries.addManga(userId, input);
+      res.status(201).json({ id });
+    });
   },
 ];
 
@@ -160,25 +163,28 @@ const restore = [
   rejectInvalid,
   async (req: Request, res: Response) => {
     const d = matchedData(req);
-    // they may have added it again since deleting it
-    if (
-      await onShelfAlready(res, req.session.userId!, d.name, {
-        lightNovel: Boolean(d.lightNovel),
-      })
-    )
-      return;
-    const id = await mangaQueries.restoreManga(req.session.userId!, {
-      ...toInput(req),
-      // validation treats a 0 as blank
-      bookmark: d.bookmark ?? (req.body.bookmark === 0 ? 0 : null),
-      rating: d.rating ?? null,
-      seenVolume: d.seenVolume ?? null,
-      seenChapter: d.seenChapter ?? null,
-      seenJapanVolume: d.seenJapanVolume ?? null,
-      hiddenVolumes: d.hiddenVolumes ?? [],
-      latestChapter: d.latestChapter ?? null,
+    const userId = req.session.userId!;
+    await oneAtATime(userId, async () => {
+      // they may have added it again since deleting it
+      if (
+        await onShelfAlready(res, userId, d.name, {
+          lightNovel: Boolean(d.lightNovel),
+        })
+      )
+        return;
+      const id = await mangaQueries.restoreManga(userId, {
+        ...toInput(req),
+        // validation treats a 0 as blank
+        bookmark: d.bookmark ?? (req.body.bookmark === 0 ? 0 : null),
+        rating: d.rating ?? null,
+        seenVolume: d.seenVolume ?? null,
+        seenChapter: d.seenChapter ?? null,
+        seenJapanVolume: d.seenJapanVolume ?? null,
+        hiddenVolumes: d.hiddenVolumes ?? [],
+        latestChapter: d.latestChapter ?? null,
+      });
+      res.status(201).json({ id });
     });
-    res.status(201).json({ id });
   },
 ];
 
@@ -208,48 +214,51 @@ const importList = [
   async (req: Request, res: Response) => {
     const userId = req.session.userId!;
     const entries: MalEntry[] = matchedData(req).entries;
-    const shelf = await mangaQueries.getShelf(userId);
-    // already there: the same name in the same format, or with the same AniList
-    // cover. Light novels imported before the format was kept are saved as
-    // manga, and the cover is what gives them away, so trying again can't add
-    // them twice while the manga of the same name can still come in
-    const onShelf = new Map<string, { lightNovel: boolean; image: string | null }[]>();
-    for (const m of shelf) {
-      const key = titleKey(m.name);
-      onShelf.set(key, [...(onShelf.get(key) ?? []), m]);
-    }
-    // within this import the manga and the light novel of a series both come in
-    const taken = new Set<string>();
+    // AniList first: it's slow, and nothing else of theirs waits for it
     const listings = await getListingsByMalIds(
       entries.flatMap((e) => (e.malId ? [e.malId] : [])),
     );
-
-    const inputs = [];
-    let alreadyThere = 0;
-    let noCover = 0;
-    for (const entry of entries) {
-      const listing = (entry.malId && listings.get(entry.malId)) || null;
-      const names = namesOf(entry, listing);
-      const lightNovel = entryIsLightNovel(entry, listing);
-      const cover = listing?.cover ?? entry.cover ?? null;
-      const keys = names.map((name) => shelfKey(name, lightNovel));
-      const there = names.some((name) =>
-        (onShelf.get(name) ?? []).some(
-          (m) => m.lightNovel === lightNovel || (cover && m.image === cover),
-        ),
-      );
-      if (there || keys.some((key) => taken.has(key))) {
-        alreadyThere++;
-        continue;
+    await oneAtATime(userId, async () => {
+      const shelf = await mangaQueries.getShelf(userId);
+      // already there: the same name in the same format, or with the same AniList
+      // cover. Light novels imported before the format was kept are saved as
+      // manga, and the cover is what gives them away, so trying again can't add
+      // them twice while the manga of the same name can still come in
+      const onShelf = new Map<string, { lightNovel: boolean; image: string | null }[]>();
+      for (const m of shelf) {
+        const key = titleKey(m.name);
+        onShelf.set(key, [...(onShelf.get(key) ?? []), m]);
       }
-      keys.forEach((key) => taken.add(key));
-      const input = toMangaInput(entry, listing);
-      // the shelf's titles stop at 150 characters
-      inputs.push({ ...input, name: input.name.slice(0, 150) });
-      if (!input.image) noCover++;
-    }
-    if (inputs.length) await mangaQueries.addManyManga(userId, inputs);
-    res.json({ added: inputs.length, alreadyThere, noCover });
+      // within this import the manga and the light novel of a series both come in
+      const taken = new Set<string>();
+
+      const inputs = [];
+      let alreadyThere = 0;
+      let noCover = 0;
+      for (const entry of entries) {
+        const listing = (entry.malId && listings.get(entry.malId)) || null;
+        const names = namesOf(entry, listing);
+        const lightNovel = entryIsLightNovel(entry, listing);
+        const cover = listing?.cover ?? entry.cover ?? null;
+        const keys = names.map((name) => shelfKey(name, lightNovel));
+        const there = names.some((name) =>
+          (onShelf.get(name) ?? []).some(
+            (m) => m.lightNovel === lightNovel || (cover && m.image === cover),
+          ),
+        );
+        if (there || keys.some((key) => taken.has(key))) {
+          alreadyThere++;
+          continue;
+        }
+        keys.forEach((key) => taken.add(key));
+        const input = toMangaInput(entry, listing);
+        // the shelf's titles stop at 150 characters
+        inputs.push({ ...input, name: input.name.slice(0, 150) });
+        if (!input.image) noCover++;
+      }
+      if (inputs.length) await mangaQueries.addManyManga(userId, inputs);
+      res.json({ added: inputs.length, alreadyThere, noCover });
+    });
   },
 ];
 
@@ -335,18 +344,21 @@ const update = [
   async (req: Request, res: Response) => {
     const input = toInput(req);
     const { id, lightNovel } = res.locals.manga as Manga;
-    if (
-      await onShelfAlready(res, req.session.userId!, input.name, {
-        exceptId: id,
-        lightNovel: input.lightNovel ?? lightNovel,
-      })
-    )
-      return;
-    await mangaQueries.updateManga(id, input);
-    // what was found for it as a manga (or a novel) doesn't belong to the other
-    if (input.lightNovel !== undefined && input.lightNovel !== lightNovel)
-      await mangaQueries.clearReleaseMarks(id);
-    res.sendStatus(204);
+    const userId = req.session.userId!;
+    await oneAtATime(userId, async () => {
+      if (
+        await onShelfAlready(res, userId, input.name, {
+          exceptId: id,
+          lightNovel: input.lightNovel ?? lightNovel,
+        })
+      )
+        return;
+      await mangaQueries.updateManga(id, input);
+      // what was found for it as a manga (or a novel) doesn't belong to the other
+      if (input.lightNovel !== undefined && input.lightNovel !== lightNovel)
+        await mangaQueries.clearReleaseMarks(id);
+      res.sendStatus(204);
+    });
   },
 ];
 
