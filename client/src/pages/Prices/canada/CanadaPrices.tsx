@@ -14,7 +14,8 @@ type Answer = {
   checkedAt: string | null;
 };
 
-const cad = new Intl.NumberFormat("en-CA", {
+// "CA$15.99": never mistaken for US dollars
+const cad = new Intl.NumberFormat("en-US", {
   style: "currency",
   currency: "CAD",
 });
