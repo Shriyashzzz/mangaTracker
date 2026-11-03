@@ -64,7 +64,16 @@ export async function errorMessages(res: Response): Promise<string[]> {
 // it's one of ours, otherwise the shelf
 export const afterSignIn = (params: URLSearchParams) => {
   const next = params.get("next") ?? "";
-  return next.startsWith("/") && !next.startsWith("//") ? next : "/shelf";
+  if (!next.startsWith("/")) return "/shelf";
+  // read the way the browser will: "/\t/evil.com" and "/\\evil.com" turn
+  // into another site, so only a path that stays on this one is followed
+  try {
+    const url = new URL(next, window.location.origin);
+    if (url.origin !== window.location.origin) return "/shelf";
+    return url.pathname + url.search + url.hash;
+  } catch {
+    return "/shelf";
+  }
 };
 
 // a sign-in link that comes back to `path` afterwards

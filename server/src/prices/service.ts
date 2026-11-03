@@ -127,7 +127,14 @@ export async function getVolumePrices(isbn13: string, { refresh = true } = {}) {
   const book = await getOrCreateBook(isbn13);
   if (!book) return null;
 
-  if (refresh) await refreshIfStale(isbn13, book);
+  const series = await getSeriesWithVolumes(seriesName(book.title));
+  // paid searches only for a volume of a series AniList knows, as the catalog
+  // lists it: anyone can open a page for any ISBN, and made-up or unrelated
+  // ones mustn't spend the month's searches
+  const known =
+    Boolean(series.info) &&
+    series.volumes.some((v) => v.isbn13.trim() === isbn13);
+  if (refresh && known) await refreshIfStale(isbn13, book);
 
   const last = await priceQueries.getLastCheck(isbn13);
   const [stored, history, usual] = await Promise.all([
@@ -137,8 +144,6 @@ export async function getVolumePrices(isbn13: string, { refresh = true } = {}) {
   ]);
   // checks saved before a rule changed still get held to it
   const offers = dropUnlikelyNew(stored, usual);
-
-  const series = await getSeriesWithVolumes(seriesName(book.title));
 
   return {
     series: { name: series.name, slug: series.slug, info: series.info },

@@ -38,8 +38,15 @@ type Waiting = {
   reject: (e: Error) => void;
 };
 
-// isbn -> cover id | null, for answers we're sure of
+// isbn -> cover id | null, for answers we're sure of. Capped, oldest out
+// first, so asking about endless ISBNs can't grow memory without end: the
+// database still has every answer
+const KNOWN_MAX = 20_000;
 const known = new Map<string, CoverId>();
+const remember = (isbn13: string, id: CoverId) => {
+  known.set(isbn13, id);
+  if (known.size > KNOWN_MAX) known.delete(known.keys().next().value!);
+};
 // isbn -> lookup in progress, so a lookup is only made once at a time
 const inFlight = new Map<string, Promise<CoverId>>();
 // lookups waiting for the next batch
@@ -64,7 +71,7 @@ export function editionCoverId(isbn13: string): Promise<CoverId> {
   inFlight.set(isbn13, lookup);
   // a failed lookup is forgotten so it's tried again later
   lookup
-    .then((id) => known.set(isbn13, id))
+    .then((id) => remember(isbn13, id))
     .catch(() => {})
     .finally(() => inFlight.delete(isbn13));
   return lookup;

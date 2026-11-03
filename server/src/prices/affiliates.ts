@@ -26,7 +26,7 @@ export function ebayAffiliateUrl<T extends string | null | undefined>(
   const campid = ebayCampaignId();
   if (!campid || !url) return url;
   const link = new URL(url);
-  if (link.searchParams.has("campid")) return url;
+  // a campid already on it is someone else's: ours replaces it
   link.searchParams.set("mkcid", "1"); // eBay Partner Network
   link.searchParams.set("mkrid", EBAY_US_ROTATION_ID);
   link.searchParams.set("siteid", "0"); // ebay.com

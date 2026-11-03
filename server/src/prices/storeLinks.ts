@@ -77,7 +77,7 @@ export function affiliateOfferUrl(
   isbn13: string,
 ): string | null {
   const { store, url } = offer;
-  if (!isGoogleLink(url)) return url;
+  if (!isGoogleLink(url)) return ourTags(url);
   if (EBAY.test(store) && ebayCampaignId()) return ebayUrl(isbn13, "shopping");
   const newPrint = offer.format === "print" && offer.condition === "new";
   if (!newPrint) return url;
@@ -86,20 +86,64 @@ export function affiliateOfferUrl(
   return url;
 }
 
-// whether a link earns us anything, so the page can mark it rel="sponsored"
-export function isAffiliateUrl(url: string | null): boolean {
-  if (!url) return false;
-  let link: URL;
+// the site itself or one of its subdomains, never a lookalike like notebay.com
+const isSite = (host: string, site: string) =>
+  host === site || host.endsWith(`.${site}`);
+
+const parse = (url: string) => {
   try {
-    link = new URL(url);
+    return new URL(url);
   } catch {
-    return false;
+    return null;
   }
-  const host = link.hostname.replace(/^www\./, "");
-  if (host.endsWith("ebay.com")) return link.searchParams.has("campid");
-  if (host === "amazon.com") return link.searchParams.has("tag");
-  if (host === "bookshop.org") return link.pathname.startsWith("/a/");
-  if (host.endsWith("walmart.com")) return walmartAffiliate();
+};
+
+// a store link with someone else's affiliate tag on it, from a search result
+// or saved before our tag changed, gets ours instead, or none if we have none
+export function ourTags(url: string | null): string | null {
+  const link = url && parse(url);
+  if (!link) return url;
+  const host = link.hostname;
+  if (isSite(host, "amazon.com") && link.searchParams.has("tag")) {
+    const tag = amazonTag();
+    if (link.searchParams.get("tag") === tag) return url;
+    if (tag) link.searchParams.set("tag", tag);
+    else link.searchParams.delete("tag");
+    return link.toString();
+  }
+  if (isSite(host, "ebay.com") && link.searchParams.has("campid")) {
+    if (link.searchParams.get("campid") === ebayCampaignId()) return url;
+    if (ebayCampaignId()) return ebayAffiliateUrl(url);
+    for (const p of [
+      "campid",
+      "mkcid",
+      "mkrid",
+      "siteid",
+      "customid",
+      "toolid",
+      "mkevt",
+    ])
+      link.searchParams.delete(p);
+    return link.toString();
+  }
+  return url;
+}
+
+// whether a link earns us anything, so the page can mark it rel="sponsored":
+// our own tag on the store's own site
+export function isAffiliateUrl(url: string | null): boolean {
+  const link = url && parse(url);
+  if (!link) return false;
+  const host = link.hostname;
+  if (isSite(host, "ebay.com"))
+    return (
+      Boolean(ebayCampaignId()) &&
+      link.searchParams.get("campid") === ebayCampaignId()
+    );
+  if (isSite(host, "amazon.com"))
+    return Boolean(amazonTag()) && link.searchParams.get("tag") === amazonTag();
+  if (isSite(host, "bookshop.org")) return link.pathname.startsWith("/a/");
+  if (isSite(host, "walmart.com")) return walmartAffiliate();
   return false;
 }
 
