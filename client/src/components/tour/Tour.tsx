@@ -61,6 +61,7 @@ export default function Tour() {
   const [box, setBox] = useState<Box | null>(null);
   const [lost, setLost] = useState(false);
   const [settled, setSettled] = useState(false);
+  const [stuckAside, setStuckAside] = useState(false);
   // where the screen ends for the tour: the top of the phones' bottom bar
   const [floor, setFloor] = useState(() => innerHeight);
   // he's placed from the screen's size, so a rotated phone has to place him again
@@ -77,6 +78,7 @@ export default function Tour() {
     setBox(null);
     setLost(false);
     setSettled(false);
+    setStuckAside(false);
     setIndex(next);
     try {
       sessionStorage.setItem(STEP_KEY, String(next));
@@ -244,7 +246,10 @@ export default function Tour() {
     ? innerHeight - barSpace - (box.top + box.height) - BUBBLE_GAP - SCREEN_MARGIN
     : 0;
   const fits = Math.max(roomAbove, roomBelow) >= bubbleHeight;
-  const inCorner = showHole && !fits;
+  // too big to sit beside: he moves out of the way and stays there for the step,
+  // so scrolling doesn't send him back and forth
+  const inCorner = stuckAside || (showHole && !fits);
+  if (showHole && !fits && !stuckAside) setStuckAside(true);
   // the page is theirs: Kenji shrinks to a bar at the bottom they tap to carry on
   const docked = (step.free || wentExploring) && !isLast;
   // over or under the hole, whichever side has the room; middle of the screen if
@@ -252,8 +257,9 @@ export default function Tour() {
   const holeMiddle = box ? box.top + box.height / 2 : 0;
   const below =
     roomBelow >= bubbleHeight && (roomAbove < bubbleHeight || holeMiddle < innerHeight / 2);
+  // out of the way at the top, where it stays however far they scroll
   const bubbleTop = inCorner
-    ? innerHeight - bubbleHeight - SCREEN_MARGIN - (hasBottomBar() ? BOTTOM_BAR : 0)
+    ? SCREEN_MARGIN
     : !showHole
     ? Math.max(SCREEN_MARGIN, (innerHeight - bubbleHeight) / 2)
     : Math.min(
@@ -341,7 +347,7 @@ export default function Tour() {
           />
           {/* in a blurred moment, what's only being explained stays put */}
           {step.focus && !step.tap && <div className="tour-shield" style={box!} />}
-          {fits && (
+          {fits && !inCorner && (
             <svg
               className={`tour-pointer ${below ? "tour-pointer-below" : ""}`}
               style={{
