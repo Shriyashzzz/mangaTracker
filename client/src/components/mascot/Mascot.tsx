@@ -1,4 +1,3 @@
-
 // Kenji, the app's chibi reader: a shonen-style boy in a hoodie with his
 // nose in a manga (an original character, drawn here so it themes with the
 // page). `mood` swaps the face and the little extras.
@@ -52,11 +51,7 @@ export default function Mascot({
         rx="2"
         transform="rotate(-6 70 136)"
       />
-      <path
-        className={S.ink}
-        d="M70 121v31"
-        transform="rotate(-6 70 136)"
-      />
+      <path className={S.ink} d="M70 121v31" transform="rotate(-6 70 136)" />
 
       {/* ears, then the head over them */}
       <circle className={S.skin} cx="29" cy="78" r="7" />
@@ -97,10 +92,7 @@ export default function Mascot({
             className={S.line}
             d="M86 76m-8 0a8 8 0 1 0 8-8a5 5 0 1 0 4 5"
           />
-          <path
-            className={S.mouth}
-            d="M58 100q4-6 8 0t8 0t8 0v6q-12 6-24 0Z"
-          />
+          <path className={S.mouth} d="M58 100q4-6 8 0t8 0t8 0v6q-12 6-24 0Z" />
           <path
             className={S.sweat}
             d="M112 54c4 6 6 10 6 13a6 6 0 0 1-12 0c0-3 2-7 6-13Z"
@@ -119,14 +111,8 @@ export default function Mascot({
           <path className={S.line} d="M46 80q8-10 16 0" />
           <path className={S.line} d="M78 80q8-10 16 0" />
           <path className={S.mouth} d="M56 96h28q-2 14-14 14t-14-14Z" />
-          <path
-            className={S.spark}
-            d="M118 30l3 8 8 3-8 3-3 8-3-8-8-3 8-3Z"
-          />
-          <path
-            className={S.spark}
-            d="M18 48l2 5 5 2-5 2-2 5-2-5-5-2 5-2Z"
-          />
+          <path className={S.spark} d="M118 30l3 8 8 3-8 3-3 8-3-8-8-3 8-3Z" />
+          <path className={S.spark} d="M18 48l2 5 5 2-5 2-2 5-2-5-5-2 5-2Z" />
         </g>
       )}
     </svg>

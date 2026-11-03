@@ -12,7 +12,11 @@ type Props = {
 
 const SIZES = { sm: "size-3.5", md: "size-5", lg: "size-[30px]" };
 
-export default function StarRating({ value = 0, onChange, size = "md" }: Props) {
+export default function StarRating({
+  value = 0,
+  onChange,
+  size = "md",
+}: Props) {
   const [hovered, setHovered] = useState(0);
   const current = value ?? 0;
   const shown = hovered || current;
@@ -30,7 +34,9 @@ export default function StarRating({ value = 0, onChange, size = "md" }: Props) 
 
   // a radio group moves with the arrow keys, as one tab stop
   const moveWithArrows = (e: KeyboardEvent<HTMLButtonElement>, n: number) => {
-    const step = { ArrowRight: 1, ArrowUp: 1, ArrowLeft: -1, ArrowDown: -1 }[e.key];
+    const step = { ArrowRight: 1, ArrowUp: 1, ArrowLeft: -1, ArrowDown: -1 }[
+      e.key
+    ];
     if (!step) return;
     e.preventDefault();
     const next = Math.min(5, Math.max(1, n + step));

@@ -101,7 +101,9 @@ export default function CoverPicker({
         id="cover-label"
       >
         Cover{" "}
-        <span className="text-[0.82rem] font-normal text-muted">(optional)</span>
+        <span className="text-[0.82rem] font-normal text-muted">
+          (optional)
+        </span>
       </span>
 
       {/* the chosen cover, as it'll sit on the shelf. Its height follows the

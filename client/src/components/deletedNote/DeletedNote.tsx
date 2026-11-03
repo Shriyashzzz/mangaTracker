@@ -15,8 +15,10 @@ function useUndoDelete() {
     setRestoring(true);
     setProblem("");
     const result = await undoDelete();
-    if (result === "failed") setProblem("That didn't bring it back. Try again.");
-    if (result === "already-back") setProblem("It's already back on your shelf.");
+    if (result === "failed")
+      setProblem("That didn't bring it back. Try again.");
+    if (result === "already-back")
+      setProblem("It's already back on your shelf.");
     setRestoring(false);
   };
   return { undo, restoring, problem };
@@ -40,7 +42,8 @@ export default function DeletedNote() {
     const wait = () => {
       timer = setTimeout(() => {
         const box = note.current;
-        if (box?.matches(":hover") || box?.querySelector(":focus-visible")) wait();
+        if (box?.matches(":hover") || box?.querySelector(":focus-visible"))
+          wait();
         else setLastDeleted(null);
       }, UNDO_MS);
     };
@@ -58,7 +61,12 @@ export default function DeletedNote() {
           <span className="min-w-0 truncate">
             {problem || `Deleted: ${manga.name}`}
           </span>
-          <button type="button" className={undoButton} disabled={restoring} onClick={undo}>
+          <button
+            type="button"
+            className={undoButton}
+            disabled={restoring}
+            onClick={undo}
+          >
             {restoring ? "Undoing…" : "Undo"}
           </button>
         </div>
@@ -74,11 +82,17 @@ export function EmptyShelfUndo() {
   const { undo, restoring, problem } = useUndoDelete();
   if (!manga) return null;
   return (
-    <p className="mb-5 flex items-center justify-center gap-3 rounded-ink bg-accent-wash px-3 py-2 text-[0.95rem] text-ink" role="status">
-      <span className="min-w-0">
-        {problem || `Deleted: ${manga.name}`}
-      </span>
-      <button type="button" className={undoButton} disabled={restoring} onClick={undo}>
+    <p
+      className="mb-5 flex items-center justify-center gap-3 rounded-ink bg-accent-wash px-3 py-2 text-[0.95rem] text-ink"
+      role="status"
+    >
+      <span className="min-w-0">{problem || `Deleted: ${manga.name}`}</span>
+      <button
+        type="button"
+        className={undoButton}
+        disabled={restoring}
+        onClick={undo}
+      >
         {restoring ? "Undoing…" : "Undo"}
       </button>
     </p>

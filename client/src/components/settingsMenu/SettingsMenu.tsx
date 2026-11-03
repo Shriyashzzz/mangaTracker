@@ -1,18 +1,24 @@
 import { useEffect, useRef, useState } from "react";
 import { NavLink, useLocation } from "react-router";
-import { CheckIcon, SettingsIcon, MoonIcon, SunIcon } from "../icons/Icons";
+import {
+  CheckIcon,
+  SettingsIcon,
+  MoonIcon,
+  SunIcon,
+  TagIcon,
+} from "../icons/Icons";
 import { SUPPORT_URL, stopAsking } from "../../lib/support";
 import {
   BACKGROUNDS,
   currentBackground,
   currentTheme,
   savePrefs,
+  useCountry,
 } from "../../lib/prefs";
 import type { Background } from "../../lib/types";
 import clsx from "clsx";
 import Avatar from "../avatar/Avatar";
 import { useAccount } from "../../store/account";
-import CountrySwitch from "../../pages/Prices/canada/CountrySwitch";
 
 // one row of the menu: a button or link
 const item =
@@ -60,6 +66,7 @@ export default function SettingsMenu({ isSignedIn, onLogOut }: Props) {
   const [openOn, setOpenOn] = useState<string | null>(null);
   const [background, setBackground] = useState(currentBackground);
   const [theme, setTheme] = useState(currentTheme);
+  const country = useCountry();
   const wrapRef = useRef<HTMLDivElement>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
   const { pathname } = useLocation();
@@ -223,12 +230,25 @@ export default function SettingsMenu({ isSignedIn, onLogOut }: Props) {
             </>
           )}
           {/* where prices come from; stays open, like light/dark */}
-          <li
-            data-keep-open
-            className="flex items-center gap-2 px-[0.6rem] py-[0.35rem] text-[0.95rem] text-ink-soft"
-          >
-            {" "}
-            <CountrySwitch />
+          <li>
+            <button
+              type="button"
+              className={item}
+              data-keep-open
+              aria-pressed={country === "ca"}
+              onClick={() =>
+                savePrefs(
+                  { country: country === "ca" ? "us" : "ca" },
+                  isSignedIn,
+                )
+              }
+            >
+              <TagIcon />
+              Canadian prices
+              {country === "ca" && (
+                <CheckIcon className="ml-auto text-accent" />
+              )}
+            </button>
           </li>
           <li>
             <NavLink to="/about" className={item} viewTransition>

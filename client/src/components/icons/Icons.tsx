@@ -50,8 +50,16 @@ export const CheckIcon = (props: IconProps) => (
   </svg>
 );
 
-export const StarIcon = ({ filled, ...props }: IconProps & { filled?: boolean }) => (
-  <svg {...base} fill={filled ? "currentColor" : "none"} strokeWidth={1.6} {...props}>
+export const StarIcon = ({
+  filled,
+  ...props
+}: IconProps & { filled?: boolean }) => (
+  <svg
+    {...base}
+    fill={filled ? "currentColor" : "none"}
+    strokeWidth={1.6}
+    {...props}
+  >
     <path d="m12 2.8 2.85 5.78 6.38.93-4.62 4.5 1.09 6.35L12 17.36l-5.7 3 1.09-6.35-4.62-4.5 6.38-.93Z" />
   </svg>
 );
@@ -102,5 +110,13 @@ export const CoffeeIcon = (props: IconProps) => (
 export const CloseIcon = (props: IconProps) => (
   <svg {...base} {...props}>
     <path d="M6 6l12 12M18 6L6 18" />
+  </svg>
+);
+
+// a price tag, for where prices come from
+export const TagIcon = (props: IconProps) => (
+  <svg {...base} {...props}>
+    <path d="M3 12V4a1 1 0 0 1 1-1h8l9 9-9 9z" />
+    <circle cx="7.5" cy="7.5" r="1.5" />
   </svg>
 );
