@@ -13,6 +13,7 @@ export type Prefs = {
   shelfView?: string;
   // "off": this reader's manga are never looked up for new releases
   releaseChecks?: string;
+  country?: "us" | "ca";
   // what the New tab lists; see util/releaseStatus.ts
   releases?: unknown;
 };

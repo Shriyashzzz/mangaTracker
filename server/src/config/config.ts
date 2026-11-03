@@ -29,6 +29,13 @@ const schema = z.object({
     blankToUndefined,
     z.coerce.number().int().positive().default(250),
   ),
+  // Canadian prices: their own switch ("off" turns them off) and their own
+  // monthly cap of searches, so they can never use up the US ones
+  CANADA_PRICES: z.preprocess(blankToUndefined, z.enum(["on", "off"]).default("on")),
+  CANADA_SEARCH_LIMIT: z.preprocess(
+    blankToUndefined,
+    z.coerce.number().int().nonnegative().default(100),
+  ),
   EBAY_CLIENT_ID: optional,
   EBAY_CLIENT_SECRET: optional,
   WALMART_CONSUMER_ID: optional,

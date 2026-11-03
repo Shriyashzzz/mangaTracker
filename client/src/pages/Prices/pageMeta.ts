@@ -101,7 +101,9 @@ export function seriesMeta({ name, info, volumes }: Series): PageMeta {
   );
 
   return {
-    title: count ? `${label} manga prices, all ${count} volumes` : `${label} manga prices`,
+    title: count
+      ? `${label} manga prices, all ${count} volumes`
+      : `${label} manga prices`,
     description,
     path,
     image: info?.coverUrl,
@@ -112,7 +114,9 @@ export function seriesMeta({ name, info, volumes }: Series): PageMeta {
           "@type": "BookSeries",
           name: label,
           url: absolute(path),
-          ...(info?.description && { description: clip(info.description, 300) }),
+          ...(info?.description && {
+            description: clip(info.description, 300),
+          }),
           ...(info?.coverUrl && { image: info.coverUrl }),
           ...(info?.genres?.length && { genre: info.genres }),
           hasPart: volumes.slice(0, 100).map((v) => ({

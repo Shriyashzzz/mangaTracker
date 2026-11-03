@@ -1,3 +1,5 @@
+import CanadaPrices from "./canada/CanadaPrices";
+import CountrySwitch, { type Country } from "./canada/CountrySwitch";
 import { useEffect, useState } from "react";
 import { noteStoreClick } from "../../lib/support";
 import {
@@ -90,6 +92,10 @@ const typeOf = (o: Offer) =>
         : TYPE_LABEL.marketplace;
 
 export default function PriceVolume() {
+  // US or Canada: switched right on the page, by anyone
+  const [country, setCountry] = useState<Country>(() =>
+    readLocal("country") === "ca" ? "ca" : "us",
+  );
   // the route always has an :isbn
   const isbn = useParams().isbn!;
   const [showAll, setShowAll] = useState({ isbn, open: false });
@@ -114,7 +120,8 @@ export default function PriceVolume() {
   useEffect(() => {
     if (!loadedBook) return;
     const path = volumePath(loadedBook.isbn13, loadedBook.title);
-    if (pathname !== path) navigate(path + search, { replace: true, state: linkState });
+    if (pathname !== path)
+      navigate(path + search, { replace: true, state: linkState });
   }, [loadedBook, pathname, search, navigate, linkState]);
 
   useEffect(() => {
@@ -177,6 +184,7 @@ export default function PriceVolume() {
   const seriesLabel = series.info?.name ?? series.name;
   // set in settings: they only want physical copies
   const hideEbooks = readLocal("hideEbooks") === "yes";
+  const inCanada = country === "ca";
   const offers = hideEbooks
     ? allOffers.filter((o) => o.format !== "ebook")
     : allOffers;
@@ -196,11 +204,15 @@ export default function PriceVolume() {
     ...offers.filter((o) => o.format !== "ebook"),
     ...offers.filter((o) => o.format === "ebook"),
   ];
-  const shownOffers = offersOpen ? listedOffers : listedOffers.slice(0, VISIBLE_OFFERS);
+  const shownOffers = offersOpen
+    ? listedOffers
+    : listedOffers.slice(0, VISIBLE_OFFERS);
   // the next volumes first, then the ones before
   const nearby = [
     ...siblings.filter((v) => volume == null || (v.volume ?? 0) > volume),
-    ...siblings.filter((v) => volume != null && (v.volume ?? 0) < volume).reverse(),
+    ...siblings
+      .filter((v) => volume != null && (v.volume ?? 0) < volume)
+      .reverse(),
   ].slice(0, SIBLINGS_SHOWN);
   // the stores with no row in the price list; the others would just repeat
   const hasOffer = (store: string) =>
@@ -226,8 +238,12 @@ export default function PriceVolume() {
   // with "Cheapest new" or "Cheapest marketplace". Ebooks always say so
   const inStock = offers.filter((o) => o.inStock);
   const lowest = inStock[0];
-  const newLow = inStock.find((o) => o.format === "print" && o.condition === "new");
-  const marketLow = inStock.find((o) => o.format === "print" && o.condition !== "new");
+  const newLow = inStock.find(
+    (o) => o.format === "print" && o.condition === "new",
+  );
+  const marketLow = inStock.find(
+    (o) => o.format === "print" && o.condition !== "new",
+  );
   // one row stands out, and it's the one the headline names
   const highlighted = newLow ?? lowest;
   const stampsOf = (o: Offer) =>
@@ -241,9 +257,7 @@ export default function PriceVolume() {
 
   return (
     <div className="fade-in">
-      {fromShelf && (
-        <BackToNew />
-      )}
+      {fromShelf && <BackToNew />}
       <nav className={styles.crumbs} aria-label="Breadcrumb">
         <NavLink to="/" className="tap" viewTransition>
           Price check
@@ -293,7 +307,11 @@ export default function PriceVolume() {
           </p>
           <p className={styles.partOf}>
             Part of{" "}
-            <NavLink to={seriesPath(series.name)} viewTransition {...stayInTrip(fromShelf)}>
+            <NavLink
+              to={seriesPath(series.name)}
+              viewTransition
+              {...stayInTrip(fromShelf)}
+            >
               {seriesLabel}
             </NavLink>
           </p>
@@ -314,14 +332,23 @@ export default function PriceVolume() {
         </header>
 
         <div className={styles.volumeBody}>
+          {inCanada && <CanadaPrices isbn={book.isbn13} />}
           <section aria-labelledby="offers-title">
             <div className={styles.sectionHeadRow}>
               <h2 id="offers-title" className={styles.sectionTitle}>
-                Prices
+                {inCanada ? "US prices" : "Prices"}
               </h2>
-              {checkedAt && (
-                <span className={styles.checked}>checked {timeAgo(checkedAt)}</span>
-              )}
+              <span className="flex items-center gap-3">
+                {checkedAt && (
+                  <span className={styles.checked}>
+                    checked {timeAgo(checkedAt)}
+                  </span>
+                )}
+                <CountrySwitch
+                  country={inCanada ? "ca" : "us"}
+                  onChange={setCountry}
+                />
+              </span>
             </div>
 
             {offers.length > 0 ? (
@@ -413,7 +440,8 @@ export default function PriceVolume() {
 
             {hiddenEbooks > 0 && (
               <p className={styles.checked}>
-                {hiddenEbooks} ebook {hiddenEbooks === 1 ? "price" : "prices"} hidden.{" "}
+                {hiddenEbooks} ebook {hiddenEbooks === 1 ? "price" : "prices"}{" "}
+                hidden.{" "}
                 <NavLink to="/settings/prices" viewTransition>
                   Change in settings
                 </NavLink>
@@ -513,7 +541,6 @@ export default function PriceVolume() {
               <SeriesFacts info={series.info} />
             </section>
           )}
-
         </div>
       </article>
 

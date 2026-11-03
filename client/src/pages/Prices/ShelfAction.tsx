@@ -45,7 +45,8 @@ export default function ShelfAction({ series, title, volume }: Props) {
       .then((manga) => setMatch({ series, manga }))
       .catch((e) => {
         // can't tell: offer adding, which still works
-        if ((e as Error).name !== "AbortError") setMatch({ series, manga: null });
+        if ((e as Error).name !== "AbortError")
+          setMatch({ series, manga: null });
       });
     return () => controller.abort();
   }, [isSignedIn, series]);

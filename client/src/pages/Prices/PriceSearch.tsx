@@ -86,15 +86,19 @@ export default function PriceSearch() {
               </h2>
               <p className={styles.sub}>
                 <span className="upto-720:hidden">
-                  Save the chapter you're on, rate what you finish, and see which
-                  series have a new volume out.
+                  Save the chapter you're on, rate what you finish, and see
+                  which series have a new volume out.
                 </span>
                 <span className="hidden upto-720:inline">
                   Keep your place and see what's out.
                 </span>
               </p>
               <div className={styles.halfActions}>
-                <NavLink to="/signup" className="btn btn-primary" viewTransition>
+                <NavLink
+                  to="/signup"
+                  className="btn btn-primary"
+                  viewTransition
+                >
                   Start your shelf
                 </NavLink>
                 <TakeTourButton />
@@ -119,7 +123,10 @@ export default function PriceSearch() {
               Find a series, then see what US stores charge for each volume.
             </p>
 
-            <SeriesSearchBox initialQuery={query} autoFocus={!query && !guest} />
+            <SeriesSearchBox
+              initialQuery={query}
+              autoFocus={!query && !guest}
+            />
 
             {!searching && (
               <p className={styles.quick}>
@@ -139,9 +146,7 @@ export default function PriceSearch() {
           </header>
         </div>
 
-        {!searching && (
-          <WhatsNew />
-        )}
+        {!searching && <WhatsNew />}
       </div>
 
       {loading && (
@@ -294,4 +299,3 @@ function Highlights() {
     </>
   );
 }
-

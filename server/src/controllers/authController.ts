@@ -95,6 +95,8 @@ const PREF_VALUES = {
   shelfSort: ["", "rating-dsc", "ch-dsc", "name-asc"],
   shelfView: ["covers", "rows"],
   releaseChecks: ["on", "off"],
+  // where they buy: Canada gets Canadian store links beside the US prices
+  country: ["us", "ca"],
 };
 type StringPref = keyof typeof PREF_VALUES;
 
