@@ -24,6 +24,8 @@ export type SharedShelf = {
     image: string | null;
     genre: string | null;
     status: boolean;
+    // on their To read list
+    planned?: boolean;
     bookmark: number | null;
     rating: number | null;
     notes?: string;
@@ -40,7 +42,8 @@ export async function saveAccount(
   >,
 ) {
   const res = await apiFetch("/api/account", { method: "PATCH", body: patch });
-  if (!res.ok) throw new Error((await errorMessages(res))[0] ?? "That didn't save.");
+  if (!res.ok)
+    throw new Error((await errorMessages(res))[0] ?? "That didn't save.");
   return (await res.json()) as Account;
 }
 
@@ -49,7 +52,8 @@ export async function deleteAccount(password: string) {
     method: "DELETE",
     body: { password },
   });
-  if (!res.ok) throw new Error((await errorMessages(res))[0] ?? "That didn't work.");
+  if (!res.ok)
+    throw new Error((await errorMessages(res))[0] ?? "That didn't work.");
 }
 
 export const getSharedShelf = (code: string, signal?: AbortSignal) =>
@@ -69,7 +73,7 @@ export const shelfToCsv = (manga: Manga[]) =>
     ["Title", "Status", "Chapter", "Volumes owned", "Rating", "Genre", "Notes"],
     ...manga.map((m) => [
       m.name,
-      m.status ? "Finished" : "Reading",
+      m.status ? "Finished" : m.planned ? "To read" : "Reading",
       m.bookmark,
       m.volumesOwned,
       m.rating,

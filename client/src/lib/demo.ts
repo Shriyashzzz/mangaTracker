@@ -413,11 +413,21 @@ export function demoResponse(
       displayName: account.displayName ?? account.defaultName,
       avatar: account.avatar,
       manga: shelf.map(
-        ({ name, image, genre, status, bookmark, rating, description }) => ({
+        ({
           name,
           image,
           genre,
           status,
+          planned,
+          bookmark,
+          rating,
+          description,
+        }) => ({
+          name,
+          image,
+          genre,
+          status,
+          planned,
           bookmark,
           rating,
           ...(account.shareNotes && description ? { notes: description } : {}),

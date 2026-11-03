@@ -12,9 +12,15 @@ import { settingsStyles } from "../Settings/styles";
 const styles = {
   page: "flex flex-col gap-8",
   head: "flex items-center gap-4",
+  tabs: "flex gap-6 border-b-[1.5px] border-line-soft",
+  tab: "tap -mb-[1.5px] border-b-[3px] border-transparent py-2 text-muted hover:text-ink",
+  tabActive:
+    "tap -mb-[1.5px] border-b-[3px] border-accent py-2 font-semibold text-ink",
+  tabCount: "ml-0.5 font-mono text-[0.78rem] font-normal text-muted",
   grid: "grid grid-cols-[repeat(auto-fill,minmax(160px,1fr))] gap-x-6 gap-y-9 upto-520:grid-cols-2 upto-520:gap-x-4 upto-520:gap-y-7",
   card: "flex min-w-0 flex-col gap-2",
-  cover: "relative aspect-2/3 rounded-[2px] border-[1.5px] border-line bg-paper-2 shadow-ink-lg",
+  cover:
+    "relative aspect-2/3 rounded-[2px] border-[1.5px] border-line bg-paper-2 shadow-ink-lg",
   name: "line-clamp-2 font-display text-[1.05rem] leading-[1.25] font-semibold",
   meta: "truncate font-mono text-[0.78rem] text-muted",
   // a card with notes opens them; a plain one is just a card
@@ -34,8 +40,10 @@ const styles = {
   modalBody: "flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto px-5 py-4",
   modalCover: "w-28 shrink-0 rounded-[2px] border-[1.5px] border-line",
   notes: "leading-[1.55] whitespace-pre-line wrap-anywhere",
-  stamp: "absolute top-2.5 right-2 rotate-8 rounded-[3px] border-2 border-accent-hover bg-[color-mix(in_srgb,var(--card)_92%,transparent)] px-2 py-[0.15rem] font-brand text-[1rem] leading-[1.2] tracking-[1.5px] text-accent-hover",
-  missing: "mx-auto my-12 flex max-w-[440px] flex-col items-center gap-3 text-center",
+  stamp:
+    "absolute top-2.5 right-2 rotate-8 rounded-[3px] border-2 border-accent-hover bg-[color-mix(in_srgb,var(--card)_92%,transparent)] px-2 py-[0.15rem] font-brand text-[1rem] leading-[1.2] tracking-[1.5px] text-accent-hover",
+  missing:
+    "mx-auto my-12 flex max-w-[440px] flex-col items-center gap-3 text-center",
 } as const;
 
 type SharedManga = SharedShelf["manga"][number];
@@ -102,7 +110,11 @@ function NotesModal({ m, onClose }: { m: SharedManga; onClose: () => void }) {
         </button>
       </div>
       <div className={styles.modalBody}>
-        <img src={m.image || FALLBACK_COVER} alt="" className={styles.modalCover} />
+        <img
+          src={m.image || FALLBACK_COVER}
+          alt=""
+          className={styles.modalCover}
+        />
         <p className={styles.notes}>{m.notes}</p>
       </div>
       <div className={styles.modalFoot}>
@@ -128,6 +140,8 @@ export default function SharedShelfPage() {
   const shelf = state?.code === code ? state.shelf : null;
   const finished = state?.code === code;
   const [reading, setReading] = useState<SharedManga | null>(null);
+  // their shelf, or the To read list kept apart from it
+  const [view, setView] = useState<"shelf" | "planned">("shelf");
 
   usePageMeta({
     title: shelf ? `${shelf.displayName}'s shelf` : "A shared shelf",
@@ -139,13 +153,20 @@ export default function SharedShelfPage() {
     getSharedShelf(code, controller.signal)
       .then((found) => setState({ code, shelf: found, failed: false }))
       .catch((e: Error) => {
-        if (e.name !== "AbortError") setState({ code, shelf: null, failed: true });
+        if (e.name !== "AbortError")
+          setState({ code, shelf: null, failed: true });
       });
     return () => controller.abort();
   }, [code]);
 
   if (!finished) {
-    return <div className={`skeleton ${styles.page} min-h-96`} aria-busy="true" aria-label="Loading" />;
+    return (
+      <div
+        className={`skeleton ${styles.page} min-h-96`}
+        aria-busy="true"
+        aria-label="Loading"
+      />
+    );
   }
 
   if (!shelf) {
@@ -156,7 +177,8 @@ export default function SharedShelfPage() {
         </span>
         <h1 className={settingsStyles.heading}>This shelf isn't shared</h1>
         <p className={settingsStyles.body}>
-          The link might be wrong, or its owner may have made their list private.
+          The link might be wrong, or its owner may have made their list
+          private.
         </p>
         <NavLink to="/" className="btn btn-secondary" viewTransition>
           Go to Manga Tracker
@@ -165,6 +187,10 @@ export default function SharedShelfPage() {
     );
   }
 
+  const onShelf = shelf.manga.filter((m) => !m.planned);
+  const planned = shelf.manga.filter((m) => m.planned);
+  const shown = view === "planned" && planned.length ? planned : onShelf;
+
   return (
     <article className={`${styles.page} fade-in`}>
       <header className={styles.head}>
@@ -172,16 +198,38 @@ export default function SharedShelfPage() {
         <div>
           <h1 className={settingsStyles.title}>{shelf.displayName}</h1>
           <p className={settingsStyles.body}>
-            {shelf.manga.length} series on the shelf
+            {onShelf.length} series on the shelf
+            {planned.length > 0 && `, ${planned.length} to read`}
           </p>
         </div>
       </header>
 
-      {shelf.manga.length === 0 ? (
+      {planned.length > 0 && (
+        <div className={styles.tabs} role="group" aria-label="Which list">
+          {(
+            [
+              ["shelf", "Shelf", onShelf.length],
+              ["planned", "To read", planned.length],
+            ] as const
+          ).map(([value, label, count]) => (
+            <button
+              key={value}
+              type="button"
+              className={view === value ? styles.tabActive : styles.tab}
+              aria-pressed={view === value}
+              onClick={() => setView(value)}
+            >
+              {label} <span className={styles.tabCount}>{count}</span>
+            </button>
+          ))}
+        </div>
+      )}
+
+      {shown.length === 0 ? (
         <p className={settingsStyles.body}>Nothing on this shelf yet.</p>
       ) : (
         <ul className={styles.grid}>
-          {shelf.manga.map((m, i) => (
+          {shown.map((m, i) => (
             <li key={`${m.name}-${i}`} className={styles.card}>
               {m.notes ? (
                 <button
