@@ -32,6 +32,8 @@ const schema = z.object({
   // Canadian prices: their own switch ("off" turns them off) and their own
   // monthly cap of searches, so they can never use up the US ones
   CANADA_PRICES: z.preprocess(blankToUndefined, z.enum(["on", "off"]).default("on")),
+  // Amazon.ca's Associates tag, separate from the US one
+  CANADA_AMAZON_AFFILIATE: optional,
   CANADA_SEARCH_LIMIT: z.preprocess(
     blankToUndefined,
     z.coerce.number().int().nonnegative().default(100),

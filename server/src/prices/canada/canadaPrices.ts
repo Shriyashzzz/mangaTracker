@@ -23,7 +23,56 @@ export type CanadaPrices = {
   status: "ok" | "off" | "budget";
   offers: Offer[];
   checkedAt: Date | null;
+  // each store's own search for the volume, shown whatever the status
+  links: { store: string; url: string; affiliate: boolean }[];
 };
+
+// Amazon.ca with our Associates tag when there is one
+const amazonCa = (isbn13: string) => {
+  const tag = config.CANADA_AMAZON_AFFILIATE;
+  return `https://www.amazon.ca/s?k=${isbn13}${tag ? `&tag=${encodeURIComponent(tag)}` : ""}`;
+};
+
+const storeLinks = (isbn13: string) => [
+  {
+    store: "Amazon.ca",
+    url: amazonCa(isbn13),
+    affiliate: Boolean(config.CANADA_AMAZON_AFFILIATE),
+  },
+  {
+    store: "Indigo",
+    url: `https://www.indigo.ca/search?q=${isbn13}`,
+    affiliate: false,
+  },
+  {
+    store: "eBay.ca",
+    url: `https://www.ebay.ca/sch/i.html?_nkw=${isbn13}`,
+    affiliate: false,
+  },
+  {
+    store: "Walmart.ca",
+    url: `https://www.walmart.ca/search?q=${isbn13}`,
+    affiliate: false,
+  },
+];
+
+// Amazon.ca's row goes to Amazon.ca itself, with the tag, rather than through Google
+const withLinks = (
+  isbn13: string,
+  result: Omit<CanadaPrices, "links">,
+): CanadaPrices => ({
+  ...result,
+  offers: result.offers.map((o) =>
+    o.store === "Amazon.ca"
+      ? {
+          ...o,
+          url: amazonCa(isbn13),
+          affiliate: Boolean(config.CANADA_AMAZON_AFFILIATE),
+        }
+      : o,
+  ),
+  links: storeLinks(isbn13),
+});
 
 const latest = async (isbn13: string, checkedAt: Date) => {
   const rows = await prisma.caPriceSample.findMany({
@@ -61,12 +110,16 @@ const running = new Map<string, Promise<CanadaPrices>>();
 export function getCanadaPrices(isbn13: string): Promise<CanadaPrices> {
   const already = running.get(isbn13);
   if (already) return already;
-  const check = checkCanadaPrices(isbn13).finally(() => running.delete(isbn13));
+  const check = checkCanadaPrices(isbn13)
+    .then((result) => withLinks(isbn13, result))
+    .finally(() => running.delete(isbn13));
   running.set(isbn13, check);
   return check;
 }
 
-async function checkCanadaPrices(isbn13: string): Promise<CanadaPrices> {
+async function checkCanadaPrices(
+  isbn13: string,
+): Promise<Omit<CanadaPrices, "links">> {
   if (config.CANADA_PRICES === "off" || !serpApiEnabled()) {
     return { status: "off", offers: [], checkedAt: null };
   }

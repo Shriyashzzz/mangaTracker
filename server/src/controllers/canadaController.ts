@@ -13,6 +13,6 @@ export default async function canadaPrices(req: Request, res: Response) {
     res.json(await getCanadaPrices(isbn));
   } catch (e) {
     console.error("Canadian prices failed", e);
-    res.json({ status: "error", offers: [], checkedAt: null });
+    res.json({ status: "error", offers: [], checkedAt: null, links: [] });
   }
 }

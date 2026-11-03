@@ -9,6 +9,7 @@ import type { Offer } from "../../../lib/types";
 import { pricesStyles as styles } from "../styles";
 
 type Answer = {
+  links?: { store: string; url: string; affiliate: boolean }[];
   status: "ok" | "off" | "budget" | "error";
   offers: Offer[];
   checkedAt: string | null;
@@ -72,7 +73,7 @@ export default function CanadaPrices({ isbn }: { isbn: string }) {
               <span className={styles.offerRow}>
                 <span className={styles.offerStore}>
                   {o.url ? (
-                    <a href={o.url} target="_blank" rel="noreferrer">
+                    <a href={o.url} target="_blank" rel={o.affiliate ? "sponsored noreferrer" : "noreferrer"}>
                       {o.store}
                     </a>
                   ) : (
@@ -104,20 +105,32 @@ export default function CanadaPrices({ isbn }: { isbn: string }) {
       <div className={`${styles.otherStores} mt-4`}>
         <h3 className={styles.otherStoresTitle}>Check this volume at:</h3>
         <ul className={styles.storeLinks}>
-          {canadaStoreLinks(isbn).map((s) => (
-            <li key={s.store}>
-              <a
-                href={s.url}
-                target="_blank"
-                rel="noreferrer"
-                aria-label={`${s.store}. Opens the store in a new tab`}
-              >
-                {s.store}
-              </a>
-            </li>
-          ))}
+          {(data?.links?.length ? data.links : canadaStoreLinks(isbn)).map(
+            (s) => (
+              <li key={s.store}>
+                <a
+                  href={s.url}
+                  target="_blank"
+                  rel={
+                    "affiliate" in s && s.affiliate
+                      ? "sponsored noreferrer"
+                      : "noreferrer"
+                  }
+                  aria-label={`${s.store}. Opens the store in a new tab`}
+                >
+                  {s.store}
+                </a>
+              </li>
+            ),
+          )}
         </ul>
       </div>
+      {data?.links?.some((s) => s.affiliate) && (
+        <p className={styles.disclosure}>
+          The Amazon.ca link is an affiliate link, which helps keep the site
+          running at no cost to you.
+        </p>
+      )}
     </section>
   );
 }
