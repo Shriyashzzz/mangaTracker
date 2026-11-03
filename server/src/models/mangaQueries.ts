@@ -76,6 +76,19 @@ export async function updateManga(id: number, input: MangaInput) {
   });
 }
 
+// what release checks saved for it: latest chapter, what's been seen and hidden
+export const clearReleaseMarks = (id: number) =>
+  prisma.manga.update({
+    where: { id },
+    data: {
+      latestChapter: null,
+      seenVolume: null,
+      seenChapter: null,
+      seenJapanVolume: null,
+      hiddenVolumes: [],
+    },
+  });
+
 // finishing one, or picking it back up, takes it off the To read list
 export const setStatus = (id: number, status: boolean) =>
   prisma.manga.update({ where: { id }, data: { status, planned: false } });
@@ -141,6 +154,7 @@ export default {
   restoreManga,
   setLatestChapter,
   updateManga,
+  clearReleaseMarks,
   setStatus,
   setPlanned,
   setRating,

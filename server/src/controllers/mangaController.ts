@@ -19,7 +19,7 @@ import {
 } from "../util/releaseStatus.js";
 import userQueries from "../models/userQueries.js";
 import {
-  isLightNovel,
+  entryIsLightNovel,
   namesOf,
   shelfKey,
   toMangaInput,
@@ -208,9 +208,15 @@ const importList = [
     const userId = req.session.userId!;
     const entries: MalEntry[] = matchedData(req).entries;
     const shelf = await mangaQueries.getShelf(userId);
-    // on the shelf in either format counts: light novels imported before the
-    // format was kept are saved as manga, and trying again mustn't add them twice
-    const onShelf = new Set(shelf.map((m) => titleKey(m.name)));
+    // already there: the same name in the same format, or with the same AniList
+    // cover. Light novels imported before the format was kept are saved as
+    // manga, and the cover is what gives them away, so trying again can't add
+    // them twice while the manga of the same name can still come in
+    const onShelf = new Map<string, { lightNovel: boolean; image: string | null }[]>();
+    for (const m of shelf) {
+      const key = titleKey(m.name);
+      onShelf.set(key, [...(onShelf.get(key) ?? []), m]);
+    }
     // within this import the manga and the light novel of a series both come in
     const taken = new Set<string>();
     const listings = await getListingsByMalIds(
@@ -223,13 +229,15 @@ const importList = [
     for (const entry of entries) {
       const listing = (entry.malId && listings.get(entry.malId)) || null;
       const names = namesOf(entry, listing);
-      const keys = names.map((name) =>
-        shelfKey(name, isLightNovel(entry, listing)),
+      const lightNovel = entryIsLightNovel(entry, listing);
+      const cover = listing?.cover ?? entry.cover ?? null;
+      const keys = names.map((name) => shelfKey(name, lightNovel));
+      const there = names.some((name) =>
+        (onShelf.get(name) ?? []).some(
+          (m) => m.lightNovel === lightNovel || (cover && m.image === cover),
+        ),
       );
-      if (
-        names.some((name) => onShelf.has(name)) ||
-        keys.some((key) => taken.has(key))
-      ) {
+      if (there || keys.some((key) => taken.has(key))) {
         alreadyThere++;
         continue;
       }
@@ -255,14 +263,17 @@ const detail = (_req: Request, res: Response) => {
 // it can be slow, so the details page and the edit form don't wait for it
 const releases = async (req: Request, res: Response) => {
   const manga: Manga = res.locals.manga;
+  // light novels aren't looked up yet: the catalog and MangaUpdates only know
+  // the manga, whose news would be wrong for them
+  if (manga.lightNovel) {
+    return res.json({ releaseData: null, releaseStatus: null, complete: true });
+  }
   // a problem here just means the default list
   const prefs = await userQueries
     .getPrefs(req.session.userId!)
     .catch(() => null);
-  // switched off in settings: no other site gets asked about this manga. Light
-  // novels aren't looked up yet: the catalog and MangaUpdates only know the
-  // manga, whose news would be wrong for them
-  if (prefs?.releaseChecks === "off" || manga.lightNovel) {
+  // switched off in settings: no other site gets asked about this manga
+  if (prefs?.releaseChecks === "off") {
     return res.json({ releaseData: null, releaseStatus: null, complete: true });
   }
   // asked apart: AniList confirms which series this is on MangaDex, and is
@@ -331,6 +342,9 @@ const update = [
     )
       return;
     await mangaQueries.updateManga(id, input);
+    // what was found for it as a manga (or a novel) doesn't belong to the other
+    if (input.lightNovel !== undefined && input.lightNovel !== lightNovel)
+      await mangaQueries.clearReleaseMarks(id);
     res.sendStatus(204);
   },
 ];

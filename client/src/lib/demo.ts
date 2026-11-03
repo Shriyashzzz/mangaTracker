@@ -496,7 +496,15 @@ export function demoResponse(
       return json({ ok: true });
     }
     if (!part && method === "PUT") {
-      if (shelf.some((m) => m.id !== id && sameTitle(m.name, body.name))) {
+      const novel = body.lightNovel ?? manga.lightNovel;
+      if (
+        shelf.some(
+          (m) =>
+            m.id !== id &&
+            sameTitle(m.name, body.name) &&
+            Boolean(m.lightNovel) === Boolean(novel),
+        )
+      ) {
         return TITLE_TAKEN();
       }
       writeShelf(

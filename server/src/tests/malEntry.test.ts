@@ -1,5 +1,5 @@
 import {
-  isLightNovel,
+  entryIsLightNovel,
   namesOf,
   shelfKey,
   toMangaInput,
@@ -112,5 +112,7 @@ test("a light novel stays one: from the import, or from AniList", () => {
 test("the manga and the light novel of a series have different keys", () => {
   const [name] = namesOf(entry({ title: "Overlord" }), null);
   expect(shelfKey(name!, true)).not.toBe(shelfKey(name!, false));
-  expect(isLightNovel(entry(), { ...listing, lightNovel: true })).toBe(true);
+  expect(entryIsLightNovel(entry(), { ...listing, lightNovel: true })).toBe(
+    true,
+  );
 });

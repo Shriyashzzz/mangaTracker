@@ -145,8 +145,6 @@ export function AddManga() {
           onResults={(hits, query) => setFound({ query, hits })}
           onChange={(url, match) => {
             setImage(url);
-            if (match && !formatTouched.current)
-              setLightNovel(match.lightNovel);
             if (match?.genre && !genreTouched.current) {
               setGenre(match.genre);
               setGenreFromAniList(true);

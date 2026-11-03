@@ -41,7 +41,7 @@ export function toMangaInput(entry: MalEntry, listing: MalListing | null) {
     description: entry.comments?.trim().slice(0, MAX_NOTES) || null,
     status: entry.finished && !entry.planned,
     planned: Boolean(entry.planned),
-    lightNovel: isLightNovel(entry, listing),
+    lightNovel: entryIsLightNovel(entry, listing),
     bookmark: entry.planned ? null : entry.chapters,
     // most people never fill in retail, so volumes read is the best guess left
     volumesOwned: entry.ownedVolumes || entry.readVolumes || null,
@@ -50,7 +50,10 @@ export function toMangaInput(entry: MalEntry, listing: MalListing | null) {
 }
 
 // what the import says, or else what AniList says
-export const isLightNovel = (entry: MalEntry, listing: MalListing | null) =>
+export const entryIsLightNovel = (
+  entry: MalEntry,
+  listing: MalListing | null,
+) =>
   entry.lightNovel ?? listing?.lightNovel ?? false;
 
 // every name it could already be on the shelf under

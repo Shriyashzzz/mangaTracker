@@ -136,6 +136,7 @@ export const getSharedShelf = (shareCode: string) =>
           genre: true,
           status: true,
           planned: true,
+          lightNovel: true,
           bookmark: true,
           rating: true,
           description: true,

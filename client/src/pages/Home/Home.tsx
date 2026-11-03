@@ -978,20 +978,25 @@ function Library() {
             <Mascot mood="happy" />
           </span>
           <p className={styles.nothingNewTitle}>
-            {unknownPlace === total
+            {looked.length > 0 && unknownPlace === looked.length
               ? "We don't know where you're up to yet."
               : RELEASE_KINDS[releaseKind].emptyTitle}
           </p>
-          {unknownPlace < total && (
+          {unknownPlace < looked.length && (
             <p className={styles.emptyBody}>
               {RELEASE_KINDS[releaseKind].emptyBody}
             </p>
           )}
           {unknownPlace > 0 && (
             <p className={styles.emptyBody}>
-              {unknownPlace === total
+              {unknownPlace === looked.length
                 ? missingNumber
                 : `${unknownPlace} of your series can't show up here yet. ${missingNumber}`}
+            </p>
+          )}
+          {looked.length < total && (
+            <p className={styles.emptyBody}>
+              Light novels aren't checked for new releases yet.
             </p>
           )}
         </div>
@@ -1062,12 +1067,9 @@ function Library() {
                   }
                   index={i}
                   compact={rowsChosen}
-                  // a light novel's saved one could be left from when it was a manga
                   latestChapter={
-                    currentManga.lightNovel
-                      ? null
-                      : (releases[currentManga.id]?.latestChapter ??
-                        currentManga.latestChapter)
+                    releases[currentManga.id]?.latestChapter ??
+                    currentManga.latestChapter
                   }
                 />
                 {showingNew && (

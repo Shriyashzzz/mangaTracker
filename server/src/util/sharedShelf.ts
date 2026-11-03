@@ -14,6 +14,7 @@ export type SharedSource = {
     genre: string | null;
     status: boolean;
     planned: boolean;
+    lightNovel?: boolean;
     bookmark: number | null;
     rating: number | null;
     description: string | null;
@@ -35,6 +36,7 @@ export const toSharedShelf = ({
     genre: m.genre,
     status: m.status,
     planned: m.planned,
+    ...(m.lightNovel ? { lightNovel: true } : {}),
     bookmark: m.bookmark,
     rating: m.rating,
     // notes only when they've chosen to share them
