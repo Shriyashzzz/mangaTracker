@@ -30,7 +30,10 @@ type Box = { top: number; left: number; width: number; height: number };
 // where the target is: on the page (scrolls with it, so the ring is drawn on the
 // page and the browser moves them together, even mid-scroll on a phone), or
 // pinned to the screen (fixed bars, sticky tabs, the header), which stays put
-type Anchor = Box & { pinned: boolean };
+// Pinned near the bottom, like the phones' floating + button, it's also kept as
+// the distance from the screen's bottom edge: a phone's address bar shrinking
+// mid-scroll moves that edge, and what's placed from it moves with the button
+type Anchor = Box & { pinned: boolean; fromBottom: number | null };
 
 // fixed or sticky somewhere above it, or in the header: it doesn't scroll away
 const isPinned = (el: HTMLElement) => {
@@ -93,6 +96,8 @@ export default function Tour() {
   const [bubbleHeight, setBubbleHeight] = useState(180);
   const bubble = useRef<HTMLDivElement>(null);
   const dock = useRef<HTMLButtonElement>(null);
+  // the screen layer, whose bottom edge is the screen's for fixed things
+  const screen = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
   const { pathname } = useLocation();
   const step = TOUR_STEPS[index]!;
@@ -194,16 +199,23 @@ export default function Tour() {
         const top = Math.round(r.top - HOLE_PADDING);
         const left = Math.round(Math.max(r.left - HOLE_PADDING, RING_INSET));
         const right = Math.min(r.right + HOLE_PADDING, innerWidth - RING_INSET);
+        const screenBottom =
+          screen.current?.getBoundingClientRect().bottom ?? innerHeight;
         const next = {
           top: Math.round(top + dy),
           left: Math.round(left + dx),
           width: Math.round(right - left),
           height: Math.round(r.bottom + HOLE_PADDING - top),
           pinned,
+          fromBottom:
+            pinned && r.top + r.height / 2 > screenBottom / 2
+              ? Math.round(screenBottom - r.bottom - HOLE_PADDING)
+              : null,
         };
         setAnchor((old) =>
           old &&
           old.pinned === next.pinned &&
+          old.fromBottom === next.fromBottom &&
           old.top === next.top &&
           old.left === next.left &&
           old.width === next.width &&
@@ -455,6 +467,17 @@ export default function Tour() {
   // the bubble moves with what he points at, unless he's out of the way in a
   // corner or has nothing to point at
   const bubbleOnPage = onPageLayer && showHole && !inCorner;
+  // the ring, its arrow and Kenji above it, placed from the screen's bottom edge
+  const fromBottom = showHole ? (anchor?.fromBottom ?? null) : null;
+  const ringStyle =
+    fromBottom != null
+      ? {
+          left: box!.left,
+          width: box!.width,
+          height: box!.height,
+          bottom: fromBottom,
+        }
+      : box && onLayer(box);
   const pageWidth = document.documentElement.clientWidth;
   const pageHeight = Math.max(
     document.documentElement.scrollHeight,
@@ -465,25 +488,32 @@ export default function Tour() {
     <>
       <div
         className={`tour-ring ${step.tap ? "tour-ring-tap" : ""}`}
-        style={onLayer(box!)}
+        style={ringStyle!}
       />
       {/* in a blurred moment, what's only being explained stays put */}
       {step.focus && !step.tap && (
-        <div className="tour-shield" style={onLayer(box!)} />
+        <div className="tour-shield" style={ringStyle!} />
       )}
       {(step.onTop || (fits && !inCorner)) && (
         <svg
           className={`tour-pointer ${
             beside ? "tour-pointer-left" : below ? "tour-pointer-below" : ""
           }`}
-          style={onLayer(
-            beside
-              ? { left: box!.left + box!.width - 2, top: box!.top + 30 }
-              : {
+          style={
+            fromBottom != null && !beside && !below
+              ? {
                   left: pointerLeft - 16,
-                  top: below ? box!.top + box!.height + 2 : box!.top - 26,
-                },
-          )}
+                  bottom: fromBottom + box!.height + 2,
+                }
+              : onLayer(
+                  beside
+                    ? { left: box!.left + box!.width - 2, top: box!.top + 30 }
+                    : {
+                        left: pointerLeft - 16,
+                        top: below ? box!.top + box!.height + 2 : box!.top - 26,
+                      },
+                )
+          }
           viewBox="0 0 32 24"
           aria-hidden
         >
@@ -503,7 +533,12 @@ export default function Tour() {
       className={`tour-bubble ${waiting ? "tour-bubble-waiting" : ""}`}
       key={index}
       style={{
-        top: bubbleTop + (bubbleOnPage ? offY : 0),
+        // in the corner, or over a ring placed from the bottom: from the bottom too
+        ...(inCorner
+          ? { bottom: SCREEN_MARGIN + barSpace }
+          : fromBottom != null && !beside && !below && !step.onTop
+            ? { bottom: fromBottom + box!.height + BUBBLE_GAP }
+            : { top: bubbleTop + (bubbleOnPage ? offY : 0) }),
         left: bubbleLeft + (bubbleOnPage ? offX : 0),
         width: bubbleWidth,
       }}
@@ -623,7 +658,7 @@ export default function Tour() {
             </div>
           )}
           {/* on the screen: pinned targets, and Kenji when he's out of the way */}
-          <div className="tour" aria-live="polite">
+          <div ref={screen} className="tour" aria-live="polite">
             {!onPageLayer && veiled && (
               <div
                 className="tour-veil"
