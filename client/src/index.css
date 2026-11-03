@@ -911,6 +911,18 @@
   z-index: 60;
   pointer-events: none;
 }
+/* the tour drawn on the page itself, at page coordinates, so the browser
+   scrolls it with what it points at. Under the phones' bottom bar, which
+   covers it the way it covers the page */
+.tour-page {
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 50;
+  /* never wider or taller than the page: a bubble near an edge mustn't scroll it */
+  overflow: clip;
+  pointer-events: none;
+}
 .tour-veil {
   position: absolute;
   inset: 0;

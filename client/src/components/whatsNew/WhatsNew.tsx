@@ -75,7 +75,7 @@ export default function WhatsNew({ children }: { children?: ReactNode }) {
           <div className="mt-1.5">
             <TakeTourButton
               small
-              className="tap mt-2 inline-block text-[0.82rem] font-medium whitespace-nowrap text-ink-soft underline decoration-line-soft underline-offset-3 hover:text-ink"
+              className="tap mt-2 inline-block text-left text-[0.82rem] font-medium text-ink-soft underline decoration-line-soft underline-offset-3 hover:text-ink"
             />
           </div>
         </div>

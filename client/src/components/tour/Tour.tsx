@@ -27,6 +27,20 @@ const MIN_SIDE_WIDTH = 280;
 const BOTTOM_BAR = 59;
 
 type Box = { top: number; left: number; width: number; height: number };
+// where the target is: on the page (scrolls with it, so the ring is drawn on the
+// page and the browser moves them together, even mid-scroll on a phone), or
+// pinned to the screen (fixed bars, sticky tabs, the header), which stays put
+type Anchor = Box & { pinned: boolean };
+
+// fixed or sticky somewhere above it, or in the header: it doesn't scroll away
+const isPinned = (el: HTMLElement) => {
+  if (el.closest("header")) return true;
+  for (let e: HTMLElement | null = el; e; e = e.parentElement) {
+    const { position } = getComputedStyle(e);
+    if (position === "fixed" || position === "sticky") return true;
+  }
+  return false;
+};
 
 const readStep = () => {
   try {
@@ -52,18 +66,23 @@ const visibleBox = (box: Box, floor: number): Box => ({
   height: Math.max(0, Math.min(box.top + box.height, floor) - box.top),
 });
 
-// everything but the hole, for blurring and dimming; the hole lets taps through
-const holePath = ({ top, left, width, height }: Box) => {
+// everything but the hole, for blurring and dimming; the hole lets taps through.
+// Over the screen, or over the whole page when the hole moves with it
+const holePath = (
+  { top, left, width, height }: Box,
+  areaWidth = innerWidth,
+  areaHeight = innerHeight,
+) => {
   const right = left + width;
   const bottom = top + height;
-  return `path(evenodd, "M0 0H${innerWidth}V${innerHeight}H0Z M${left} ${top}H${right}V${bottom}H${left}Z")`;
+  return `path(evenodd, "M0 0H${areaWidth}V${areaHeight}H0Z M${left} ${top}H${right}V${bottom}H${left}Z")`;
 };
 
 export default function Tour() {
   // their real account, not the practice one the tour signs them into
   const hasShelf = wasSignedInBeforeTour();
   const [index, setIndex] = useState(readStep);
-  const [box, setBox] = useState<Box | null>(null);
+  const [anchor, setAnchor] = useState<Anchor | null>(null);
   const [lost, setLost] = useState(false);
   const [settled, setSettled] = useState(false);
   const [stuckAside, setStuckAside] = useState(false);
@@ -80,7 +99,7 @@ export default function Tour() {
   const onPage = isOnStepPage(step, pathname);
 
   const goTo = useCallback((next: number) => {
-    setBox(null);
+    setAnchor(null);
     setLost(false);
     setSettled(false);
     setStuckAside(false);
@@ -166,19 +185,25 @@ export default function Tour() {
             !nav.contains(el),
         );
         setFloor(Math.round(bar?.getBoundingClientRect().top ?? innerHeight));
-        // the ring is the target's own box, scrolling with it. Only its sides are
-        // kept on screen, for a tab that touches the edges
+        // the ring is the target's own box. Only its sides are kept on screen,
+        // for a tab that touches the edges. On the page it's kept in page
+        // coordinates, which scrolling doesn't change, so nothing redraws mid-scroll
+        const pinned = isPinned(el);
+        const dy = pinned ? 0 : window.scrollY;
+        const dx = pinned ? 0 : window.scrollX;
         const top = Math.round(r.top - HOLE_PADDING);
         const left = Math.round(Math.max(r.left - HOLE_PADDING, RING_INSET));
         const right = Math.min(r.right + HOLE_PADDING, innerWidth - RING_INSET);
         const next = {
-          top,
-          left,
+          top: Math.round(top + dy),
+          left: Math.round(left + dx),
           width: Math.round(right - left),
           height: Math.round(r.bottom + HOLE_PADDING - top),
+          pinned,
         };
-        setBox((old) =>
+        setAnchor((old) =>
           old &&
+          old.pinned === next.pinned &&
           old.top === next.top &&
           old.left === next.left &&
           old.width === next.width &&
@@ -275,10 +300,27 @@ export default function Tour() {
   };
 
   const isLast = index === TOUR_STEPS.length - 1;
+  // drawn on the page: everything placed from the screen gets the scroll added back
+  const onPageLayer = Boolean(anchor && !anchor.pinned);
+  const offY = onPageLayer ? window.scrollY : 0;
+  const offX = onPageLayer ? window.scrollX : 0;
+  // the target where it is on screen right now, for working out where he goes
+  const box: Box | null = anchor && {
+    top: anchor.top - offY,
+    left: anchor.left - offX,
+    width: anchor.width,
+    height: anchor.height,
+  };
+  const onLayer = <T extends { top: number; left: number }>(b: T): T => ({
+    ...b,
+    top: b.top + offY,
+    left: b.left + offX,
+  });
   const showHole = Boolean(box) && !lost && onPage;
   // on the way to the step's page, or that page still arriving: out of sight, so
   // his next line never flashes up in the middle of the page they're leaving
-  const waiting = Boolean(step.target) && !lost && (onPage ? !box : !settled);
+  const waiting =
+    Boolean(step.target) && !lost && (onPage ? !anchor : !settled);
   const veiled = step.focus && !wentExploring && !waiting;
   // over or under what he's pointing at, if either has the room. A section too big
   // for that gets him out of the way at the bottom, where it can still be read
@@ -410,134 +452,178 @@ export default function Tour() {
     );
   }
 
-  // on <body>, above things like the shelf's add button that live there too
-  return createPortal(
-    <div className="tour" aria-live="polite">
-      {veiled && (
-        <div
-          className="tour-veil"
-          style={
-            showHole
-              ? { clipPath: holePath(visibleBox(box!, floor)) }
-              : undefined
-          }
-        />
-      )}
-      {showHole && (
-        <div
-          className="tour-stage"
-          style={{ clipPath: `inset(0 0 ${innerHeight - floor}px 0)` }}
-        >
-          <div
-            className={`tour-ring ${step.tap ? "tour-ring-tap" : ""}`}
-            style={box!}
-          />
-          {/* in a blurred moment, what's only being explained stays put */}
-          {step.focus && !step.tap && (
-            <div className="tour-shield" style={box!} />
-          )}
-          {(step.onTop || (fits && !inCorner)) && (
-            <svg
-              className={`tour-pointer ${
-                beside ? "tour-pointer-left" : below ? "tour-pointer-below" : ""
-              }`}
-              style={
-                beside
-                  ? { left: box!.left + box!.width - 2, top: box!.top + 30 }
-                  : {
-                      left: pointerLeft - 16,
-                      top: below ? box!.top + box!.height + 2 : box!.top - 26,
-                    }
-              }
-              viewBox="0 0 32 24"
-              aria-hidden
-            >
-              <path d="M4 3h24L16 21Z" />
-            </svg>
-          )}
-        </div>
-      )}
+  // the bubble moves with what he points at, unless he's out of the way in a
+  // corner or has nothing to point at
+  const bubbleOnPage = onPageLayer && showHole && !inCorner;
+  const pageWidth = document.documentElement.clientWidth;
+  const pageHeight = Math.max(
+    document.documentElement.scrollHeight,
+    innerHeight,
+  );
 
+  const hole = showHole && (
+    <>
       <div
-        ref={bubble}
-        role="dialog"
-        aria-label="Kenji's tour"
-        data-target={step.target}
-        tabIndex={-1}
-        className={`tour-bubble ${waiting ? "tour-bubble-waiting" : ""}`}
-        key={index}
-        style={{ top: bubbleTop, left: bubbleLeft, width: bubbleWidth }}
-      >
-        <div className="tour-who printed" aria-hidden>
-          <Mascot mood="happy" />
-        </div>
-        <div className="tour-words">
-          <p className="tour-count">
-            {step.part}
-            {step.partSize > 1 && ` · ${step.partStep} of ${step.partSize}`}
-          </p>
-          <p className="tour-say">
-            {hasShelf && step.signedInSay
-              ? step.signedInSay
-              : hasBottomBar() && step.phoneSay
-                ? step.phoneSay
-                : step.say}
-          </p>
-          <div className="tour-actions">
-            {isLast ? (
-              <>
-                <button
-                  type="button"
-                  className="btn btn-primary btn-sm"
-                  onClick={() => endDemo(hasShelf ? "/shelf" : "/signup")}
-                >
-                  {hasShelf ? "Back to my shelf" : "Start your shelf"}
-                </button>
+        className={`tour-ring ${step.tap ? "tour-ring-tap" : ""}`}
+        style={onLayer(box!)}
+      />
+      {/* in a blurred moment, what's only being explained stays put */}
+      {step.focus && !step.tap && (
+        <div className="tour-shield" style={onLayer(box!)} />
+      )}
+      {(step.onTop || (fits && !inCorner)) && (
+        <svg
+          className={`tour-pointer ${
+            beside ? "tour-pointer-left" : below ? "tour-pointer-below" : ""
+          }`}
+          style={onLayer(
+            beside
+              ? { left: box!.left + box!.width - 2, top: box!.top + 30 }
+              : {
+                  left: pointerLeft - 16,
+                  top: below ? box!.top + box!.height + 2 : box!.top - 26,
+                },
+          )}
+          viewBox="0 0 32 24"
+          aria-hidden
+        >
+          <path d="M4 3h24L16 21Z" />
+        </svg>
+      )}
+    </>
+  );
+
+  const kenji = (
+    <div
+      ref={bubble}
+      role="dialog"
+      aria-label="Kenji's tour"
+      data-target={step.target}
+      tabIndex={-1}
+      className={`tour-bubble ${waiting ? "tour-bubble-waiting" : ""}`}
+      key={index}
+      style={{
+        top: bubbleTop + (bubbleOnPage ? offY : 0),
+        left: bubbleLeft + (bubbleOnPage ? offX : 0),
+        width: bubbleWidth,
+      }}
+    >
+      <div className="tour-who printed" aria-hidden>
+        <Mascot mood="happy" />
+      </div>
+      <div className="tour-words">
+        <p className="tour-count">
+          {step.part}
+          {step.partSize > 1 && ` · ${step.partStep} of ${step.partSize}`}
+        </p>
+        <p className="tour-say">
+          {hasShelf && step.signedInSay
+            ? step.signedInSay
+            : hasBottomBar() && step.phoneSay
+              ? step.phoneSay
+              : step.say}
+        </p>
+        <div className="tour-actions">
+          {isLast ? (
+            <>
+              <button
+                type="button"
+                className="btn btn-primary btn-sm"
+                onClick={() => endDemo(hasShelf ? "/shelf" : "/signup")}
+              >
+                {hasShelf ? "Back to my shelf" : "Start your shelf"}
+              </button>
+              <button
+                type="button"
+                className="tour-skip"
+                onClick={() => endDemo()}
+              >
+                Leave the tour
+              </button>
+            </>
+          ) : (
+            <>
+              <button
+                type="button"
+                className="btn btn-primary btn-sm"
+                onClick={next}
+              >
+                Next
+              </button>
+              {index > 0 && (
                 <button
                   type="button"
                   className="tour-skip"
-                  onClick={() => endDemo()}
+                  onClick={() =>
+                    goTo(
+                      TOUR_STEPS[index - 1]!.needsLastStep
+                        ? index - 2
+                        : index - 1,
+                    )
+                  }
                 >
-                  Leave the tour
+                  Back
                 </button>
-              </>
-            ) : (
-              <>
-                <button
-                  type="button"
-                  className="btn btn-primary btn-sm"
-                  onClick={next}
-                >
-                  Next
-                </button>
-                {index > 0 && (
-                  <button
-                    type="button"
-                    className="tour-skip"
-                    onClick={() =>
-                      goTo(
-                        TOUR_STEPS[index - 1]!.needsLastStep
-                          ? index - 2
-                          : index - 1,
-                      )
-                    }
-                  >
-                    Back
-                  </button>
-                )}
-                <button
-                  type="button"
-                  className="tour-skip"
-                  onClick={() => endDemo()}
-                >
-                  Skip tour
-                </button>
-              </>
-            )}
-          </div>
+              )}
+              <button
+                type="button"
+                className="tour-skip"
+                onClick={() => endDemo()}
+              >
+                Skip tour
+              </button>
+            </>
+          )}
         </div>
       </div>
-    </div>,
+    </div>
+  );
+
+  return createPortal(
+    <>
+      {/* on the page: scrolls with it, so it can't lag behind on a phone */}
+      {onPageLayer && (
+        <div
+          className="tour-page"
+          style={{ width: pageWidth, height: pageHeight }}
+        >
+          {veiled && (
+            <div
+              className="tour-veil"
+              style={
+                showHole
+                  ? { clipPath: holePath(onLayer(box!), pageWidth, pageHeight) }
+                  : undefined
+              }
+            />
+          )}
+          {hole}
+          {bubbleOnPage && kenji}
+        </div>
+      )}
+      {/* on the screen: pinned targets, and Kenji when he's out of the way */}
+      <div className="tour" aria-live="polite">
+        {!onPageLayer && veiled && (
+          <div
+            className="tour-veil"
+            style={
+              showHole
+                ? { clipPath: holePath(visibleBox(box!, floor)) }
+                : undefined
+            }
+          />
+        )}
+        {!onPageLayer && showHole && (
+          <div
+            className="tour-stage"
+            style={{ clipPath: `inset(0 0 ${innerHeight - floor}px 0)` }}
+          >
+            {hole}
+          </div>
+        )}
+        {!bubbleOnPage && kenji}
+      </div>
+    </>,
     document.body,
   );
 }
