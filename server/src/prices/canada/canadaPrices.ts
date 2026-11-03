@@ -20,8 +20,10 @@ const FRESH_FOR_MS = 2 * 24 * 60 * 60 * 1000;
 const BUDGET_LABEL = "serpapi-ca";
 
 export type CanadaPrices = {
-  // off: switched off; budget: this month's Canadian searches are used up
-  status: "ok" | "off" | "budget";
+  // off: switched off; budget: this month's Canadian searches are used up;
+  // unknown: a volume we've never seen, so nothing is spent on it;
+  // error: the stores didn't answer
+  status: "ok" | "off" | "budget" | "unknown" | "error";
   offers: Offer[];
   checkedAt: Date | null;
   // each store's own search for the volume, shown whatever the status
@@ -50,7 +52,7 @@ const amazonCa = (isbn13: string) => {
   return `https://www.amazon.ca/s?k=${isbn13}${tag ? `&tag=${encodeURIComponent(tag)}` : ""}`;
 };
 
-const storeLinks = (isbn13: string) => [
+export const canadaStoreLinks = (isbn13: string) => [
   {
     store: "Amazon.ca",
     url: amazonCa(isbn13),
@@ -95,7 +97,7 @@ const withLinks = (
           }
         : o,
   ),
-  links: storeLinks(isbn13),
+  links: canadaStoreLinks(isbn13),
 });
 
 const latest = async (isbn13: string, checkedAt: Date) => {
@@ -116,29 +118,68 @@ const latest = async (isbn13: string, checkedAt: Date) => {
   );
 };
 
-// one search, if this month's Canadian allowance still has one
+// as long as the US price checks wait for a store
+const SEARCH_TIMEOUT_MS = 12_000;
+
+type Searched<T> = { data: T } | "budget" | "failed";
+
+// one search, if this month's Canadian allowance still has one. These come from
+// the same SerpApi keys as US prices; CANADA_SEARCH_LIMIT caps Canada's share
 const search = async <T extends { error?: string }>(
   params: Record<string, string>,
-) => {
+): Promise<Searched<T>> => {
   if (
     !(await priceQueries.claimApiCall(BUDGET_LABEL, config.CANADA_SEARCH_LIMIT))
-  )
-    return null;
-  return searchSerpApi<T>(params, new AbortController().signal);
+  ) {
+    return "budget";
+  }
+  try {
+    return {
+      data: await searchSerpApi<T>(
+        params,
+        AbortSignal.timeout(SEARCH_TIMEOUT_MS),
+      ),
+    };
+  } catch (e) {
+    console.warn("Canadian price search failed:", (e as Error).message);
+    return "failed";
+  }
 };
 
 // a check already running for a volume: anyone else asking waits for it rather
 // than spending the same searches again
 const running = new Map<string, Promise<CanadaPrices>>();
 
-export function getCanadaPrices(isbn13: string): Promise<CanadaPrices> {
+// refresh false: saved prices only, for crawlers, which never spend searches
+export function getCanadaPrices(
+  isbn13: string,
+  { refresh = true } = {},
+): Promise<CanadaPrices> {
+  if (!refresh)
+    return savedOnly(isbn13).then((result) => withLinks(isbn13, result));
   const already = running.get(isbn13);
   if (already) return already;
+  // never throws: whatever happens, they still get the store links
   const check = checkCanadaPrices(isbn13)
+    .catch((e: unknown): Omit<CanadaPrices, "links"> => {
+      console.error("Canadian prices failed:", e);
+      return { status: "error", offers: [], checkedAt: null };
+    })
     .then((result) => withLinks(isbn13, result))
     .finally(() => running.delete(isbn13));
   running.set(isbn13, check);
   return check;
+}
+
+async function savedOnly(isbn13: string): Promise<Omit<CanadaPrices, "links">> {
+  const last = await prisma.caPriceCheck.findUnique({ where: { isbn13 } });
+  return last
+    ? {
+        status: "ok",
+        offers: await latest(isbn13, last.checkedAt),
+        checkedAt: last.checkedAt,
+      }
+    : { status: "ok", offers: [], checkedAt: null };
 }
 
 async function checkCanadaPrices(
@@ -156,42 +197,76 @@ async function checkCanadaPrices(
     };
   }
 
+  // only volumes we already know: a made-up ISBN can't spend anything
   const book = await priceQueries.getBook(isbn13);
-  const title = book?.title ?? "";
+  if (!book) return { status: "unknown", offers: [], checkedAt: null };
+  const title = book.title;
+  const saved = async (): Promise<Omit<CanadaPrices, "links"> | null> =>
+    last
+      ? {
+          status: "ok",
+          offers: await latest(isbn13, last.checkedAt),
+          checkedAt: last.checkedAt,
+        }
+      : null;
+
   const [shopping, ebay] = await Promise.all([
-    title
-      ? search<{ error?: string; shopping_results?: CaShoppingResult[] }>({
-          engine: "google_shopping",
-          q: `${title} manga`,
-          gl: "ca",
-          hl: "en",
-          google_domain: "google.ca",
-          location: "Canada",
-        }).catch(() => null)
-      : null,
+    search<{ error?: string; shopping_results?: CaShoppingResult[] }>({
+      engine: "google_shopping",
+      q: `${title} manga`,
+      gl: "ca",
+      hl: "en",
+      google_domain: "google.ca",
+      location: "Canada",
+    }),
     search<{ error?: string; organic_results?: CaEbayResult[] }>({
       engine: "ebay",
       ebay_domain: "ebay.ca",
       _nkw: isbn13,
       _sop: "15",
       buying_format: "BIN",
-    }).catch(() => null),
+    }),
   ]);
-  // nothing could be asked: the month's Canadian searches are used up
-  if (!shopping && !ebay) {
-    if (last) {
+  // only a check where every store answered is saved: a half one would hide
+  // stores for two days. The last full check stays up meanwhile
+  const answered = [shopping, ebay].filter((r) => typeof r === "object");
+  if (answered.length < 2) {
+    const fallback = await saved();
+    if (fallback) return fallback;
+    if (!answered.length) {
       return {
-        status: "ok",
-        offers: await latest(isbn13, last.checkedAt),
-        checkedAt: last.checkedAt,
+        status: shopping === "failed" || ebay === "failed" ? "error" : "budget",
+        offers: [],
+        checkedAt: null,
       };
     }
-    return { status: "budget", offers: [], checkedAt: null };
+    // nothing saved yet: show what did come back, without keeping it
+    return {
+      status: "ok",
+      offers: believableOffers([
+        ...shoppingOffers(
+          typeof shopping === "object"
+            ? (shopping.data.shopping_results ?? [])
+            : [],
+          title,
+        ),
+        ...ebayCaOffers(
+          typeof ebay === "object" ? (ebay.data.organic_results ?? []) : [],
+          title,
+        ),
+      ]),
+      checkedAt: null,
+    };
   }
 
+  const shoppingData = (
+    shopping as { data: { shopping_results?: CaShoppingResult[] } }
+  ).data;
+  const ebayData = (ebay as { data: { organic_results?: CaEbayResult[] } })
+    .data;
   const offers = believableOffers([
-    ...shoppingOffers(shopping?.shopping_results ?? [], title),
-    ...ebayCaOffers(ebay?.organic_results ?? [], title),
+    ...shoppingOffers(shoppingData.shopping_results ?? [], title),
+    ...ebayCaOffers(ebayData.organic_results ?? [], title),
   ]);
   const at = new Date();
   await prisma.$transaction([

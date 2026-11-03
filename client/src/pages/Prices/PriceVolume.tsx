@@ -95,7 +95,7 @@ export default function PriceVolume() {
 
   useEffect(() => {
     const controller = new AbortController();
-    getVolume(isbn, controller.signal)
+    getVolume(isbn, controller.signal, country === "ca")
       .then((data) => setState({ isbn, data, error: "" }))
       .catch((e) => {
         if ((e as Error).name !== "AbortError") {
@@ -103,7 +103,7 @@ export default function PriceVolume() {
         }
       });
     return () => controller.abort();
-  }, [isbn, attempt]);
+  }, [isbn, attempt, country]);
 
   // Impact (Walmart affiliate) rewrites links once when its script loads,
   // before this page has drawn them, so ask it again once they exist

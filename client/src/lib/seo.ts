@@ -62,7 +62,8 @@ function apply({ title, description, path, image, noindex, jsonLd }: PageMeta) {
 
   const old = document.getElementById("page-jsonld");
   if (jsonLd) {
-    const script = (old as HTMLScriptElement | null) ?? document.createElement("script");
+    const script =
+      (old as HTMLScriptElement | null) ?? document.createElement("script");
     script.id = "page-jsonld";
     script.type = "application/ld+json";
     script.textContent = JSON.stringify(jsonLd);
@@ -84,7 +85,8 @@ export function usePageMeta(meta: PageMeta | null) {
 }
 
 // pages behind a sign-in, or with nothing worth finding in a search
-export const usePrivatePage = (title: string) => usePageMeta({ title, noindex: true });
+export const usePrivatePage = (title: string) =>
+  usePageMeta({ title, noindex: true });
 
 export const breadcrumbs = (items: [name: string, path: string][]) => ({
   "@type": "BreadcrumbList",

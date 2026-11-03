@@ -4,12 +4,17 @@
 export type BarTab = "shelf" | "prices";
 
 const KEY = "barTabs";
-export const TAB_HOME: Record<BarTab, string> = { shelf: "/shelf", prices: "/" };
+export const TAB_HOME: Record<BarTab, string> = {
+  shelf: "/shelf",
+  prices: "/",
+};
 
 // null: a page that belongs to neither, like About
 export const tabOf = (pathname: string): BarTab | null => {
-  if (/^\/(shelf|details|add|update|import)(\/|$)/.test(pathname)) return "shelf";
-  if (pathname === "/" || /^\/(prices|series)(\/|$)/.test(pathname)) return "prices";
+  if (/^\/(shelf|details|add|update|import)(\/|$)/.test(pathname))
+    return "shelf";
+  if (pathname === "/" || /^\/(prices|series)(\/|$)/.test(pathname))
+    return "prices";
   return null;
 };
 

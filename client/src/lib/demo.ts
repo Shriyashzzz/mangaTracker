@@ -116,6 +116,8 @@ export function startDemo(wasSignedIn = false) {
     sessionStorage.clear();
     sessionStorage.setItem(ON_KEY, "on");
     sessionStorage.setItem("libraryStatus", "all");
+    // the tour shows US prices, whatever this browser had picked
+    sessionStorage.setItem("demoLocal:country", "us");
     if (wasSignedIn) sessionStorage.setItem(WAS_SIGNED_IN_KEY, "yes");
   } catch {
     return;

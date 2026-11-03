@@ -3,7 +3,6 @@
 // it's used and how much it can cost us upstream
 import { Router } from "express";
 import prices from "../controllers/pricesController.js";
-import canadaPrices from "../controllers/canadaController.js";
 import { rateLimit } from "../middlewares/rateLimit.js";
 
 const perMinute = (max: number) => rateLimit({ max, windowMs: 60_000 });
@@ -12,7 +11,7 @@ export const pricesRouter = Router();
 
 pricesRouter.get("/search", perMinute(40), prices.search);
 // Canadian prices, sandboxed in prices/canada; before "/:isbn" so it isn't read as one
-pricesRouter.get("/ca/:isbn", perMinute(20), canadaPrices);
+pricesRouter.get("/ca/:isbn", perMinute(20), prices.canadaVolume);
 // typeahead: called as people type, so it gets a bigger allowance
 pricesRouter.get("/series-search", perMinute(120), prices.seriesSearch);
 pricesRouter.get("/highlights", perMinute(60), prices.highlights);
