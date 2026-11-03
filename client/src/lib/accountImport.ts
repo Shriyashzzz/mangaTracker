@@ -34,6 +34,7 @@ const entry = (fields: {
   score: unknown;
   notes?: string | null;
   cover?: string | null;
+  lightNovel?: boolean;
 }): MalItem => {
   const status = AS_MAL[fields.status] ?? "Reading";
   const e: MalEntry = {
@@ -47,6 +48,7 @@ const entry = (fields: {
     score: whole(fields.score, 10),
     ...(fields.notes?.trim() ? { comments: fields.notes.trim() } : {}),
     ...(fields.cover ? { cover: fields.cover } : {}),
+    ...(fields.lightNovel ? { lightNovel: true } : {}),
   };
   return { status, entry: e };
 };
@@ -67,6 +69,7 @@ const ANILIST_LIST = `
           media {
             id
             idMal
+            format
             title { english romaji }
             coverImage { large }
           }
@@ -85,6 +88,7 @@ type AniListEntry = {
   media: {
     id: number;
     idMal: number | null;
+    format?: string | null;
     title: { english: string | null; romaji: string };
     coverImage?: { large?: string };
   };
@@ -140,6 +144,7 @@ export async function readAniList(name: string): Promise<MalItem[]> {
         score: e.score,
         notes: e.notes,
         cover: e.media.coverImage?.large,
+        lightNovel: e.media.format === "NOVEL",
       }),
     );
 }
@@ -193,7 +198,7 @@ export async function readKitsu(name: string): Promise<MalItem[]> {
     `${KITSU}/library-entries?filter[userId]=${userId}&filter[kind]=manga` +
     "&include=manga,manga.mappings" +
     "&fields[libraryEntries]=status,progress,volumesOwned,ratingTwenty,notes,manga" +
-    "&fields[manga]=canonicalTitle,titles,posterImage,mappings" +
+    "&fields[manga]=canonicalTitle,titles,posterImage,subtype,mappings" +
     "&fields[mappings]=externalSite,externalId&page[limit]=100";
   for (let page = 0; next && page < KITSU_MAX_PAGES; page++) {
     const body = await kitsuGet(next);
@@ -225,6 +230,7 @@ export async function readKitsu(name: string): Promise<MalItem[]> {
           score: Math.round((Number(a.ratingTwenty) || 0) / 2),
           notes: a.notes as string | null,
           cover: ((m.posterImage ?? {}) as { large?: string }).large,
+          lightNovel: m.subtype === "novel",
         }),
       );
     }

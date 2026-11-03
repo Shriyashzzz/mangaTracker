@@ -133,8 +133,12 @@ export default function TitleField({
               </span>
               <span className={list.suggestText}>
                 <span className={list.suggestName}>{hit.title}</span>
-                {hit.year && (
-                  <span className={list.suggestMeta}>{hit.year}</span>
+                {(hit.year || hit.lightNovel) && (
+                  <span className={list.suggestMeta}>
+                    {[hit.lightNovel && "Light novel", hit.year]
+                      .filter(Boolean)
+                      .join(" · ")}
+                  </span>
                 )}
               </span>
             </li>

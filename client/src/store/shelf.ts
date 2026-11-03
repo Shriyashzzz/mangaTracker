@@ -119,6 +119,7 @@ export const useShelf = create<ShelfState>()((set, get) => ({
           old &&
           (old.name !== m.name ||
             old.volumesOwned !== m.volumesOwned ||
+            old.lightNovel !== m.lightNovel ||
             old.bookmark !== m.bookmark)
         ) {
           delete stillGood[m.id];

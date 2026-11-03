@@ -126,9 +126,11 @@ export default function MangaCard({
             </p>
             {/* one line for the rest, so every row is the same height */}
             <div className="flex min-h-[1.2rem] min-w-0 items-center gap-3">
-              {genre && (
+              {(genre || currentManga.lightNovel) && (
                 <p className="truncate font-mono text-[0.78rem] text-muted">
-                  {genre}
+                  {[currentManga.lightNovel && "light novel", genre]
+                    .filter(Boolean)
+                    .join(" · ")}
                 </p>
               )}
             </div>
@@ -148,6 +150,7 @@ export default function MangaCard({
                     : currentManga.bookmark
                       ? `ch. ${currentManga.bookmark}`
                       : null,
+                  currentManga.lightNovel && "light novel",
                   genre,
                 ]
                   .filter(Boolean)

@@ -16,6 +16,8 @@ export type MalEntry = {
   planned?: boolean;
   // AniList's cover, from a book app import matched by name
   cover?: string;
+  // the import already knows it's a light novel (AniList, Kitsu, book apps)
+  lightNovel?: boolean;
 };
 
 export type MalListing = {
@@ -23,6 +25,7 @@ export type MalListing = {
   altNames: string[];
   cover: string | null;
   genre: string | null;
+  lightNovel: boolean;
 };
 
 const MAX_TITLE = 150;
@@ -38,6 +41,7 @@ export function toMangaInput(entry: MalEntry, listing: MalListing | null) {
     description: entry.comments?.trim().slice(0, MAX_NOTES) || null,
     status: entry.finished && !entry.planned,
     planned: Boolean(entry.planned),
+    lightNovel: entry.lightNovel ?? listing?.lightNovel ?? false,
     bookmark: entry.planned ? null : entry.chapters,
     // most people never fill in retail, so volumes read is the best guess left
     volumesOwned: entry.ownedVolumes || entry.readVolumes || null,
@@ -46,8 +50,16 @@ export function toMangaInput(entry: MalEntry, listing: MalListing | null) {
 }
 
 // every name it could already be on the shelf under
+// the manga and the light novel of a series are two shelf entries, so the
+// format is part of the key
 export const namesOf = (entry: MalEntry, listing: MalListing | null) =>
   [entry.title, listing?.name, ...(listing?.altNames ?? [])]
     .filter((name): name is string => Boolean(name))
     .map(titleKey)
-    .filter(Boolean);
+    .filter(Boolean)
+    .map((key) =>
+      shelfKey(key, entry.lightNovel ?? listing?.lightNovel ?? false),
+    );
+
+export const shelfKey = (key: string, lightNovel: boolean) =>
+  lightNovel ? `${key} (light novel)` : key;

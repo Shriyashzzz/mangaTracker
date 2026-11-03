@@ -18,6 +18,9 @@ export type MalEntry = {
   // AniList's cover, for a series matched by name: used when there's no
   // MyAnimeList id to look one up by
   cover?: string;
+  // the import already knows it's a light novel. Without it the server asks
+  // AniList, by the MyAnimeList id
+  lightNovel?: boolean;
 };
 
 // the lists on MyAnimeList, in the order it shows them

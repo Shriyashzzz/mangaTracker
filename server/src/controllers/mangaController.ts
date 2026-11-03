@@ -18,7 +18,12 @@ import {
   readReleaseSettings,
 } from "../util/releaseStatus.js";
 import userQueries from "../models/userQueries.js";
-import { namesOf, toMangaInput, type MalEntry } from "../util/malEntry.js";
+import {
+  namesOf,
+  shelfKey,
+  toMangaInput,
+  type MalEntry,
+} from "../util/malEntry.js";
 import type { Manga } from "../../generated/prisma/client.js";
 import session from "express-session";
 import { isOnShelf, titleKey } from "../util/titleKey.js";
@@ -42,6 +47,8 @@ const mangaFields = [
     .toBoolean(),
   // want to read: not started, so no chapter needed
   body("planned").optional().isBoolean().toBoolean(),
+  // a light novel rather than a manga
+  body("lightNovel").optional().isBoolean().toBoolean(),
   // the last volume they own; blank (or 0) means they don't say
   body("volumesOwned")
     .optional({ values: "falsy" })
@@ -69,9 +76,10 @@ const onShelfAlready = async (
   userId: number,
   name: string,
   exceptId?: number,
+  lightNovel = false,
 ) => {
   const shelf = await mangaQueries.getMangaShelfNames(userId);
-  if (!isOnShelf(name, shelf, exceptId)) return false;
+  if (!isOnShelf(name, shelf, exceptId, lightNovel)) return false;
   res.status(409).json({ error: [{ msg: "That's already on your shelf." }] });
   return true;
 };
@@ -85,6 +93,8 @@ const toInput = (req: Request): MangaInput => {
     status: d.planned ? false : d.status,
     // left alone when the form doesn't say, so editing keeps it on the list
     planned: d.planned === undefined ? undefined : Boolean(d.planned),
+    // the same: an edit that doesn't say keeps what it was
+    lightNovel: d.lightNovel === undefined ? undefined : Boolean(d.lightNovel),
     bookmark: d.planned ? null : d.bookmark || null,
     volumesOwned: d.volumesOwned || null,
     genre: d.genre || null,
@@ -108,7 +118,16 @@ const add = [
     // reached the title they typed is fine
     const listing = await getSeriesInfo(input.name).catch(() => null);
     input.name = canonicalTitle(input.name, listing);
-    if (await onShelfAlready(res, req.session.userId!, input.name)) return;
+    if (
+      await onShelfAlready(
+        res,
+        req.session.userId!,
+        input.name,
+        undefined,
+        Boolean(input.lightNovel),
+      )
+    )
+      return;
     const id = await mangaQueries.addManga(req.session.userId!, input);
     res.status(201).json({ id });
   },
@@ -138,7 +157,16 @@ const restore = [
   async (req: Request, res: Response) => {
     const d = matchedData(req);
     // they may have added it again since deleting it
-    if (await onShelfAlready(res, req.session.userId!, d.name)) return;
+    if (
+      await onShelfAlready(
+        res,
+        req.session.userId!,
+        d.name,
+        undefined,
+        Boolean(d.lightNovel),
+      )
+    )
+      return;
     const id = await mangaQueries.restoreManga(req.session.userId!, {
       ...toInput(req),
       // validation treats a 0 as blank
@@ -169,6 +197,7 @@ const importList = [
   body("entries.*.score").isInt({ min: 0, max: 10 }).toInt(),
   body("entries.*.comments").optional().isString(),
   body("entries.*.planned").optional().isBoolean().toBoolean(),
+  body("entries.*.lightNovel").optional().isBoolean().toBoolean(),
   // only AniList's and Kitsu's own image servers, so an import can't point covers
   // anywhere else
   body("entries.*.cover")
@@ -180,7 +209,9 @@ const importList = [
     const userId = req.session.userId!;
     const entries: MalEntry[] = matchedData(req).entries;
     const shelf = await mangaQueries.getShelf(userId);
-    const taken = new Set(shelf.map((m) => titleKey(m.name)));
+    const taken = new Set(
+      shelf.map((m) => shelfKey(titleKey(m.name), m.lightNovel)),
+    );
     const listings = await getListingsByMalIds(
       entries.flatMap((e) => (e.malId ? [e.malId] : [])),
     );
@@ -221,8 +252,10 @@ const releases = async (req: Request, res: Response) => {
   const prefs = await userQueries
     .getPrefs(req.session.userId!)
     .catch(() => null);
-  // switched off in settings: no other site gets asked about this manga
-  if (prefs?.releaseChecks === "off") {
+  // switched off in settings: no other site gets asked about this manga. Light
+  // novels aren't looked up yet: the catalog and MangaUpdates only know the
+  // manga, whose news would be wrong for them
+  if (prefs?.releaseChecks === "off" || manga.lightNovel) {
     return res.json({ releaseData: null, releaseStatus: null, complete: true });
   }
   // asked apart: AniList confirms which series this is on MangaDex, and is
@@ -282,8 +315,17 @@ const update = [
   rejectInvalid,
   async (req: Request, res: Response) => {
     const input = toInput(req);
-    const { id } = res.locals.manga as Manga;
-    if (await onShelfAlready(res, req.session.userId!, input.name, id)) return;
+    const { id, lightNovel } = res.locals.manga as Manga;
+    if (
+      await onShelfAlready(
+        res,
+        req.session.userId!,
+        input.name,
+        id,
+        input.lightNovel ?? lightNovel,
+      )
+    )
+      return;
     await mangaQueries.updateManga(id, input);
     res.sendStatus(204);
   },

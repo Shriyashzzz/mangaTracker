@@ -168,7 +168,9 @@ export default function CoverPicker({
         >
           {shown.map((r) => {
             const selected = value === r.cover;
-            const label = r.year ? `${r.title} (${r.year})` : r.title;
+            const label =
+              (r.year ? `${r.title} (${r.year})` : r.title) +
+              (r.lightNovel ? ", light novel" : "");
             return (
               <button
                 key={r.id}
