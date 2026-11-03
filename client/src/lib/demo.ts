@@ -332,8 +332,14 @@ const readAccount = () => readSaved(ACCOUNT_KEY, STARTING_ACCOUNT);
 
 const sameTitle = (a: unknown, b: unknown) =>
   String(a).trim().toLowerCase() === String(b).trim().toLowerCase();
-const hasTitle = (shelf: Manga[], title: unknown) =>
-  shelf.some((m) => sameTitle(m.name, title));
+// as the server: adding can put the manga and the light novel of a series side
+// by side, an import counts the name in either format
+const hasTitle = (shelf: Manga[], title: unknown, lightNovel?: boolean) =>
+  shelf.some(
+    (m) =>
+      sameTitle(m.name, title) &&
+      (lightNovel === undefined || Boolean(m.lightNovel) === lightNovel),
+  );
 const TITLE_TAKEN = () =>
   json({ error: [{ msg: "That title is already on your shelf" }] }, 409);
 const nextId = (shelf: Manga[]) => Math.max(0, ...shelf.map((m) => m.id)) + 1;
@@ -382,7 +388,8 @@ export function demoResponse(
   }
   if (route === "/api/manga" && method === "GET") return json({ manga: shelf });
   if (route === "/api/manga" && method === "POST") {
-    if (hasTitle(shelf, body.name)) return TITLE_TAKEN();
+    if (hasTitle(shelf, body.name, Boolean(body.lightNovel)))
+      return TITLE_TAKEN();
     const id = nextId(shelf);
     writeShelf([...shelf, { ...practice(id, "", "", ""), ...fromForm(body) }]);
     return json({ id }, 201);

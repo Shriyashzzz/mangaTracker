@@ -1,4 +1,10 @@
-import { namesOf, toMangaInput, type MalEntry } from "../util/malEntry.js";
+import {
+  isLightNovel,
+  namesOf,
+  shelfKey,
+  toMangaInput,
+  type MalEntry,
+} from "../util/malEntry.js";
 
 const entry = (over: Partial<MalEntry> = {}): MalEntry => ({
   malId: 35243,
@@ -103,8 +109,8 @@ test("a light novel stays one: from the import, or from AniList", () => {
   ).toBe(false);
 });
 
-test("the manga and the light novel of a series aren't the same entry", () => {
-  const manga = namesOf(entry({ title: "Overlord" }), null);
-  const novel = namesOf(entry({ title: "Overlord", lightNovel: true }), null);
-  expect(manga.some((name) => novel.includes(name))).toBe(false);
+test("the manga and the light novel of a series have different keys", () => {
+  const [name] = namesOf(entry({ title: "Overlord" }), null);
+  expect(shelfKey(name!, true)).not.toBe(shelfKey(name!, false));
+  expect(isLightNovel(entry(), { ...listing, lightNovel: true })).toBe(true);
 });

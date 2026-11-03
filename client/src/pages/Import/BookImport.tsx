@@ -354,13 +354,12 @@ export default function BookImport({ source }: { source: BookSource }) {
                               ? s.lightNovel
                                 ? "Not on AniList"
                                 : "Not on AniList, so probably not manga"
-                              : s.lightNovel
-                                ? `Light novel · ${s.books} book${s.books === 1 ? "" : "s"}`
-                                : s.planned
+                              : (s.lightNovel ? "Light novel · " : "") +
+                                (s.planned
                                   ? "Only on a to-read list"
                                   : s.ownedVolumes
                                     ? `Own up to vol. ${s.ownedVolumes}`
-                                    : `${s.books} book${s.books === 1 ? "" : "s"}`}
+                                    : `${s.books} book${s.books === 1 ? "" : "s"}`)}
                       </span>
                     </span>
                   </label>

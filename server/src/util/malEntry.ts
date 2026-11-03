@@ -41,7 +41,7 @@ export function toMangaInput(entry: MalEntry, listing: MalListing | null) {
     description: entry.comments?.trim().slice(0, MAX_NOTES) || null,
     status: entry.finished && !entry.planned,
     planned: Boolean(entry.planned),
-    lightNovel: entry.lightNovel ?? listing?.lightNovel ?? false,
+    lightNovel: isLightNovel(entry, listing),
     bookmark: entry.planned ? null : entry.chapters,
     // most people never fill in retail, so volumes read is the best guess left
     volumesOwned: entry.ownedVolumes || entry.readVolumes || null,
@@ -49,17 +49,17 @@ export function toMangaInput(entry: MalEntry, listing: MalListing | null) {
   };
 }
 
+// what the import says, or else what AniList says
+export const isLightNovel = (entry: MalEntry, listing: MalListing | null) =>
+  entry.lightNovel ?? listing?.lightNovel ?? false;
+
 // every name it could already be on the shelf under
-// the manga and the light novel of a series are two shelf entries, so the
-// format is part of the key
 export const namesOf = (entry: MalEntry, listing: MalListing | null) =>
   [entry.title, listing?.name, ...(listing?.altNames ?? [])]
     .filter((name): name is string => Boolean(name))
     .map(titleKey)
-    .filter(Boolean)
-    .map((key) =>
-      shelfKey(key, entry.lightNovel ?? listing?.lightNovel ?? false),
-    );
+    .filter(Boolean);
 
+// the manga and the light novel of a series are two entries
 export const shelfKey = (key: string, lightNovel: boolean) =>
   lightNovel ? `${key} (light novel)` : key;
