@@ -249,7 +249,7 @@ async function hasLightNovel(name: string) {
   return [info.name, ...info.altNames].some((n) => sameSeries(baseName(n), name));
 }
 
-async function seriesVolumes(
+export async function seriesVolumes(
   name: string,
 ): Promise<{ volumes: CatalogBook[]; incomplete: boolean }> {
   const series = seriesOf(name);
@@ -267,26 +267,22 @@ async function seriesVolumes(
     return { volumes: hit.volumes, incomplete: false };
   }
 
-  // two free catalog queries merged: the plain one finds more, the quoted
-  // title one is more precise. Long runners can have 100+ volumes. A light
-  // novel's editions mostly go by the manga's name ("Overlord, Vol. 3"), so
-  // the quoted one is the base name either way
+  // free catalog queries merged: the plain one finds more, the quoted title
+  // one is more precise. Long runners can have 100+ volumes. A light novel's
+  // editions mostly go by the manga's name ("Overlord, Vol. 3"), so the
+  // quoted one is the base name either way. A novel also gets "<name> novel":
+  // "… Light Novel" alone can come back as junk (Solo Leveling's did), yet it
+  // finds some the other misses (two of Spice & Wolf's)
   const novel = isNovelName(name);
   const quoted = `title:"${baseName(name).replace(/"/g, "")}"`;
+  const queries = novel ? [name, `${baseName(name)} novel`, quoted] : [name, quoted];
   // a manga whose series has a novel too: its long books are the novel's
   const [results, hasNovel] = await Promise.all([
-    Promise.allSettled([
-      searchVolumesDetailed(name, {
-        max: 250,
-        timeoutMs: 20000,
-        seriesName: name,
-      }),
-      searchVolumesDetailed(quoted, {
-        max: 250,
-        timeoutMs: 20000,
-        seriesName: name,
-      }),
-    ]),
+    Promise.allSettled(
+      queries.map((q) =>
+        searchVolumesDetailed(q, { max: 250, timeoutMs: 20000, seriesName: name }),
+      ),
+    ),
     novel ? Promise.resolve(true) : hasLightNovel(name),
   ]);
   const base = seriesOf(baseName(name));

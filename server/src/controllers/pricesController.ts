@@ -1,6 +1,8 @@
 // Public price checker endpoints: no account needed. Upstream failures
 // (Open Library, AniList, stores) become 502s with a friendly message, so
 // pages can show "try again" instead of a blank error.
+import { findNovelsFor } from "../prices/novelFinder.js";
+import { baseName } from "../prices/lightNovel.js";
 import type { Request, Response } from "express";
 import { matchedData, param, query } from "express-validator";
 import { NotFoundError, UpstreamError } from "../errors/AppError.js";
@@ -93,6 +95,17 @@ const seriesSearch = [
       () => searchSeries(matchedData(req).q),
     );
     res.json({ results });
+    // after answering: the top few manga with no novel shown get checked for
+    // one AniList doesn't list, so a later search can show it
+    const novels = new Set(
+      results.filter((r) => r.lightNovel).map((r) => baseName(r.name).toLowerCase()),
+    );
+    findNovelsFor(
+      results
+        .filter((r) => !r.lightNovel && !novels.has(r.name.toLowerCase()))
+        .slice(0, 3)
+        .map((r) => r.name),
+    );
   },
 ];
 
