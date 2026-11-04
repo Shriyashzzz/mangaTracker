@@ -322,12 +322,12 @@ export async function getSeriesInfo(name: string): Promise<SeriesInfo | null> {
 const SEARCH_QUERY = `
   query ($search: String) {
     manga: Page(perPage: 20) {
-      media(search: $search, type: MANGA, format: MANGA, sort: SEARCH_MATCH, isAdult: false) {
+      media(search: $search, type: MANGA, format: MANGA, sort: SEARCH_MATCH) {
         ...hit
       }
     }
     novel: Page(perPage: 10) {
-      media(search: $search, type: MANGA, format: NOVEL, sort: SEARCH_MATCH, isAdult: false) {
+      media(search: $search, type: MANGA, format: NOVEL, sort: SEARCH_MATCH) {
         ...hit
       }
     }

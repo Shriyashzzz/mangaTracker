@@ -14,7 +14,7 @@ import { searchVolumesDetailed } from "./sources/catalog.js";
 import { getSeriesInfo } from "./sources/anilist.js";
 import { seriesVolumes } from "./service.js";
 import { baseName, novelName } from "./lightNovel.js";
-import { isNovelBook, seriesName, seriesOf } from "./stores/match.js";
+import { isNovelBook, seriesName, seriesOf, slugify } from "./stores/match.js";
 
 const RECHECK_AFTER_MS = 30 * 24 * 60 * 60 * 1000;
 const GAP_MS = 3000;
@@ -43,6 +43,11 @@ async function check(name: string) {
   if (last && Date.now() - last.checkedAt.getTime() < RECHECK_AFTER_MS) return;
 
   const info = await getSeriesInfo(name).catch(() => null);
+  // no answer and none saved: AniList was busy, not "no other names". Checked
+  // without them, a novel sold under another name would be missed for a month
+  if (!info && !(await prisma.seriesInfo.findUnique({ where: { slug: slugify(name) } }))) {
+    return;
+  }
   const names = [
     ...new Set([name, ...(info?.altNames ?? []).filter((n) => n.length > 3)]),
   ].slice(0, 1 + MAX_OTHER_NAMES);
