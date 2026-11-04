@@ -10,6 +10,7 @@ import DeletedNote from "./components/deletedNote/DeletedNote";
 import SupportPeek from "./components/supportPeek/SupportPeek";
 import ImportPeek from "./components/importPeek/ImportPeek";
 import Tour from "./components/tour/Tour";
+import TourOffer from "./components/tour/TourOffer";
 import { isDemo } from "./lib/demo";
 import { useAuth } from "./store/auth";
 
@@ -50,6 +51,7 @@ export default function App() {
       <DeletedNote />
       {isDemo() ? <Tour /> : <SupportPeek />}
       {!isDemo() && <ImportPeek />}
+      {!isDemo() && <TourOffer />}
       <ScrollRestoration />
     </>
   );

@@ -6,6 +6,7 @@ import { NavLink, useNavigate, useSearchParams } from "react-router";
 import PasswordInput from "../../components/passwordInput/PasswordInput";
 import AuthArt from "../../components/authArt/AuthArt";
 import { apiFetch, afterSignIn, errorMessages } from "../../lib/api";
+import { offerTour } from "../../lib/tourOffer";
 import { usePrivatePage } from "../../lib/seo";
 import { useAuth } from "../../store/auth";
 
@@ -43,6 +44,8 @@ export default function SignUp() {
       });
 
       if (result.ok) {
+        // a new account: Kenji offers the tour on their shelf
+        offerTour();
         signedIn();
         navigater(afterSignIn(params), { viewTransition: true });
       } else {

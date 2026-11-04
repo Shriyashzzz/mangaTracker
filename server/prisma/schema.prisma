@@ -156,6 +156,22 @@ model NovelCheck {
   @@map("novel_checks")
 }
 
+// what an imported book title is on AniList, shared by everyone's imports so
+// each one is faster than the last (util/shelf/sharedMatches.ts). Only real
+// matches, each checked by the server against AniList before it's kept; the
+// title is kept only as a hash. Filled ahead too (scripts/seedImportMatches.ts)
+model ImportMatch {
+  // sha256 of the search as the import asks it: format, exact-only, title
+  key       String   @id @db.Char(64)
+  anilistId Int      @map("anilist_id")
+  malId     Int?     @map("mal_id")
+  name      String   @db.VarChar(300)
+  cover     String?
+  checkedAt DateTime @default(now()) @map("checked_at") @db.Timestamptz(6)
+
+  @@map("import_matches")
+}
+
 // what MangaDex said about a series' releases, kept 6 hours (util/releaseCache.ts)
 model ReleaseDates {
   slug      String   @id @db.VarChar(160)
