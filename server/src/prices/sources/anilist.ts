@@ -7,7 +7,7 @@
 //   memory             an hour per typed search, 6h for trending, the
 //                      server's life for Japanese -> English names
 import { prisma } from "../../config/prisma.js";
-import { slugify } from "../stores/match.js";
+import { seriesOf, slugify } from "../stores/match.js";
 import { Prisma } from "../../../generated/prisma/client.js";
 import type { SeriesHit, SeriesInfo } from "../types.js";
 import type { MalListing } from "../../util/shelf/malEntry.js";
@@ -389,13 +389,19 @@ async function withKnownNovels(items: SeriesHit[]): Promise<SeriesHit[]> {
   const missing = items.filter(
     (i) => !i.lightNovel && !listed.has(slugify(novelName(i.name))),
   );
+  // the novel by the manga's own name, or one the finder found under another
+  // of its names (prices/novelFinder.ts)
+  const found = await priceQueries
+    .getFoundNovels(missing.map((i) => seriesOf(i.name)))
+    .catch(() => new Map<string, { name: string; volumes: number }>());
+  const novelOf = (i: SeriesHit) => found.get(seriesOf(i.name))?.name ?? novelName(i.name);
   const sizes = await priceQueries
-    .getSavedListSizes(missing.map((i) => volumesKey(novelName(i.name))))
+    .getSavedListSizes(missing.map((i) => volumesKey(novelOf(i))))
     .catch(() => new Map<string, { size: number; coverUrl: string | null }>());
   return items.flatMap((i) => {
-    const list = missing.includes(i) ? sizes.get(volumesKey(novelName(i.name))) : undefined;
-    if (!list?.size) return [i];
-    const name = novelName(i.name);
+    const list = missing.includes(i) ? sizes.get(volumesKey(novelOf(i))) : undefined;
+    if (!list?.size || listed.has(slugify(novelOf(i)))) return [i];
+    const name = novelOf(i);
     return [
       i,
       {

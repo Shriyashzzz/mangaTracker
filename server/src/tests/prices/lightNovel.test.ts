@@ -177,3 +177,16 @@ test("a long manhwa marked (comic) is never taken for a novel", () => {
   // and nothing of it goes to the novel's list
   expect(booksFromEditions([{ title: "Solo Leveling, Vol. 5 (comic)", isbn_13: ["9781975344382"], publishers: ["Yen Press"] }], work, "Solo Leveling Light Novel")).toEqual([]);
 });
+
+test("the novel finder counts only this series' novel volumes", async () => {
+  const { novelVolumesOf } = await import("../../prices/novelFinder.js");
+  const titles = [
+    "Solo Leveling Light Novel, Vol. 1",
+    "Solo Leveling Light Novel, Vol. 2",
+    "Solo Leveling, Vol. 3",
+    "Solo Leveling: Ragnarok Light Novel, Vol. 1",
+    "Robinson Crusoe",
+  ];
+  expect(novelVolumesOf(titles, "Solo Leveling")).toBe(2);
+  expect(novelVolumesOf(titles, "Omniscient Reader")).toBe(0);
+});

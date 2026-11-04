@@ -334,6 +334,16 @@ export async function getSavedListSizes(keys: string[]) {
   return new Map(rows.map((r) => [r.key, { size: r.size, coverUrl: r.coverUrl }]));
 }
 
+// novels the background finder found for these manga (prices/novelFinder.ts),
+// by the manga's normalized name
+export async function getFoundNovels(keys: string[]) {
+  if (!keys.length) return new Map<string, { name: string; volumes: number }>();
+  const rows = await prisma.novelCheck.findMany({
+    where: { key: { in: keys }, volumes: { gt: 0 }, name: { not: null } },
+  });
+  return new Map(rows.map((r) => [r.key, { name: r.name!, volumes: r.volumes }]));
+}
+
 export async function isKnownVolume(isbn13: string) {
   const [row] = await prisma.$queryRaw<{ known: boolean }[]>`
     SELECT EXISTS (
@@ -438,6 +448,7 @@ export default {
   getSeriesVolumes,
   getSavedVolume,
   getSavedListSizes,
+  getFoundNovels,
   saveSeriesVolumes,
   getKnownPrices,
   getRecentBestPrices,

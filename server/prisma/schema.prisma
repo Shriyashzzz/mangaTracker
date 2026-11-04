@@ -139,6 +139,23 @@ model SeriesVolumes {
   @@map("series_volumes")
 }
 
+// whether a manga's series has a light novel in the catalog that AniList doesn't
+// list (Solo Leveling's): checked in the background the first time the series
+// comes up in a search, then again after a month (see prices/novelFinder.ts).
+// Keyed like series_volumes, by the normalized series name
+model NovelCheck {
+  key       String   @id @db.VarChar(200)
+  // the novel's series name as the catalog sells it, which can differ from
+  // the manga's ("Omniscient Reader's Viewpoint Light Novel" for Omniscient
+  // Reader); null when there's no novel
+  name      String?  @db.VarChar(200)
+  // how many novel volumes were found; 0 when there's no novel
+  volumes   Int      @default(0)
+  checkedAt DateTime @default(now()) @map("checked_at") @db.Timestamptz(6)
+
+  @@map("novel_checks")
+}
+
 // what MangaDex said about a series' releases, kept 6 hours (util/releaseCache.ts)
 model ReleaseDates {
   slug      String   @id @db.VarChar(160)
