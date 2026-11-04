@@ -916,6 +916,106 @@
   }
 }
 
+/* ---------- a book import going on in the background (ImportPeek.tsx) ----------
+   A small ink-ruled note in Kenji's corner while it runs; Kenji himself (the
+   .support-peek styles above) for the "I'll tell you" and "done" lines */
+.import-badge {
+  position: fixed;
+  left: 12px;
+  bottom: 14px;
+  z-index: 19;
+  display: flex;
+  align-items: center;
+  background: var(--card);
+  border: 2.5px solid var(--line);
+  border-radius: 18px 20px 20px 18px;
+  box-shadow: 0 10px 20px -14px rgba(20, 14, 8, 0.55);
+  animation: support-peek-say 0.26s cubic-bezier(0.3, 1.4, 0.6, 1) both;
+}
+@media (max-width: 720px) {
+  .import-badge {
+    bottom: calc(59px + 10px + env(safe-area-inset-bottom));
+  }
+  body:has(input:focus, textarea:focus, select:focus) .import-badge {
+    display: none;
+  }
+}
+.import-badge-link {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-height: 40px;
+  padding: 0.3rem 0.2rem 0.3rem 0.7rem;
+  color: var(--ink);
+  border-radius: 16px 0 0 16px;
+}
+.import-badge-link:hover .import-badge-text {
+  text-decoration: underline;
+  text-decoration-color: var(--accent);
+  text-decoration-thickness: 2px;
+  text-underline-offset: 3px;
+}
+.import-badge-text {
+  font: 700 0.84rem/1.2 var(--font-letter);
+}
+.import-badge-count {
+  margin-left: 0.4rem;
+  font: 500 0.78rem/1 var(--font-body);
+  font-variant-numeric: tabular-nums;
+  color: var(--ink-soft);
+}
+.import-badge-book {
+  flex: none;
+  width: 22px;
+  height: 22px;
+  fill: none;
+  stroke: var(--line);
+  stroke-width: 1.8;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+}
+/* a page turning over, again and again, while it works */
+.import-badge-page {
+  fill: var(--card);
+  transform-box: view-box;
+  transform-origin: 12px 50%;
+  animation: import-badge-turn 1.6s cubic-bezier(0.45, 0, 0.2, 1) infinite;
+}
+@keyframes import-badge-turn {
+  0%,
+  20% {
+    transform: scaleX(1);
+  }
+  70%,
+  100% {
+    transform: scaleX(-1);
+  }
+}
+.import-badge-close {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  align-self: stretch;
+  color: var(--muted);
+}
+.import-badge-close:hover {
+  color: var(--ink);
+}
+.import-badge-close svg {
+  width: 13px;
+  height: 13px;
+}
+/* Kenji's longer line about carrying on in the background */
+.import-peek .support-peek-line {
+  width: 188px;
+}
+@media (prefers-reduced-motion: reduce) {
+  .import-badge,
+  .import-badge * {
+    animation: none !important;
+  }
+}
+
 /* ---------- Kenji's tour (components/tour/Tour.tsx) ----------
    Everything blurs and dims except a hole around one real button, which still
    takes taps because clip-path removes that part of the veil */

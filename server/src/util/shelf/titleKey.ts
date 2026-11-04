@@ -2,10 +2,18 @@
 // "One  Piece" and "OnePiece" all count as one. Titles with no Latin letters have
 // nothing to slug, so those are compared as written, less any spaces, or every one
 // would look the same.
-import { slugify } from "../../prices/stores/match.js";
+
+// slugify's letters, but the whole name: slugs stop at 80 characters, and two
+// long titles that only differ after that ("…Familia Chronicle Episode Freya" and
+// "…Episode Lyu") would count as one
+const letters = (name: string) =>
+  name
+    .toLowerCase()
+    .normalize("NFKD")
+    .replace(/[^a-z0-9]+/g, "");
 
 export const titleKey = (name: string) =>
-  slugify(name).replaceAll("-", "") || name.replace(/\s+/g, "").toLowerCase();
+  letters(name) || name.replace(/\s+/g, "").toLowerCase();
 
 // the manga and the light novel of a series are two entries: the format is
 // part of the key. Book imports group the same way in client/src/lib/imports

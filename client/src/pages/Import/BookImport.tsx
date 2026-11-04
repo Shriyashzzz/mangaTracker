@@ -1,48 +1,34 @@
 // Importing from a book app: Goodreads, Book Catalogue, or any CSV. The file is
 // read here in the browser, volumes are grouped into series, and each series is
 // looked up on AniList for its cover and to tell manga from everything else.
-import {
-  useEffect,
-  useRef,
-  useState,
-  type ChangeEvent,
-  type DragEvent,
-} from "react";
+import { useEffect, useState, type ChangeEvent, type DragEvent } from "react";
 import { NavLink } from "react-router";
 import Mascot from "../../components/mascot/Mascot";
-import { AniListBusy, findManga } from "../../lib/anilist";
 import {
   groupBooks,
+  mergeSameSeries,
   isBookCatalogue,
   isGoodreads,
   parseCsv,
   readBooks,
-  toEntry,
   type BookSeries,
   type BookSource,
 } from "../../lib/imports/bookImport";
-import { sendToShelf, type ImportTotals } from "../../lib/imports/malImport";
-import { useShelf } from "../../store/shelf";
+import { timeLeft, useBookImport } from "../../store/bookImport";
 import { importStyles as styles } from "./styles";
 
 const MAX_FILE_BYTES = 20 * 1024 * 1024;
-// AniList allows about 30 to 90 lookups a minute
-const LOOKUP_GAP_MS = 900;
 
-const series = (n: number) => `${n} series`;
-const sleep = (ms: number, signal: AbortSignal) =>
-  new Promise<void>((resolve) => {
-    const timer = setTimeout(resolve, ms);
-    signal.addEventListener("abort", () => {
-      clearTimeout(timer);
-      resolve();
-    });
-  });
+const series = (n: number) => `${n.toLocaleString()} series`;
+const books = (n: number) => `${n.toLocaleString()} book${n === 1 ? "" : "s"}`;
 
-type Match =
-  | { malId: number | null; name: string; cover: string | null }
-  | null
-  | "failed";
+// each row is a book; volumes of one series come in as one
+const foundLine = (found: BookSeries[]) => {
+  const rows = found.reduce((sum, s) => sum + s.books, 0);
+  return rows === found.length
+    ? `${books(rows)} found`
+    : `${books(rows)} found, grouped into ${series(found.length)}`;
+};
 
 const HOW: Record<
   BookSource,
@@ -63,6 +49,50 @@ const HOW: Record<
   },
 };
 
+const CONFIRM_FOR_MS = 5000;
+
+// Stop import: a second tap says yes, so a stray one doesn't throw away a long
+// match. Left alone, it goes back to how it was
+function StopButton() {
+  const [asking, setAsking] = useState(false);
+  useEffect(() => {
+    if (!asking) return;
+    const timer = window.setTimeout(() => setAsking(false), CONFIRM_FOR_MS);
+    return () => clearTimeout(timer);
+  }, [asking]);
+  if (!asking) {
+    return (
+      <button
+        type="button"
+        className={styles.stop}
+        onClick={() => setAsking(true)}
+      >
+        Stop import
+      </button>
+    );
+  }
+  return (
+    <span className={styles.stopAsk} role="group" aria-label="Stop the import?">
+      <span>Stop and clear?</span>
+      <button
+        type="button"
+        className={styles.stopYes}
+        onClick={() => useBookImport.getState().stop()}
+      >
+        Yes
+      </button>
+      <button
+        type="button"
+        className={styles.stop}
+        autoFocus
+        onClick={() => setAsking(false)}
+      >
+        Keep going
+      </button>
+    </span>
+  );
+}
+
 const NOT_THAT: Record<BookSource, string> = {
   goodreads:
     "That isn't a Goodreads export. Pick the file you downloaded from Goodreads' export page.",
@@ -72,62 +102,30 @@ const NOT_THAT: Record<BookSource, string> = {
 };
 
 export default function BookImport({ source }: { source: BookSource }) {
-  const [fileName, setFileName] = useState("");
   const [fileError, setFileError] = useState("");
   const [dragging, setDragging] = useState(false);
-  const [found, setFound] = useState<BookSeries[] | null>(null);
-  const [matches, setMatches] = useState<Map<string, Match>>(new Map());
-  const [choices, setChoices] = useState<Map<string, boolean>>(new Map());
-  const [waitingOnAniList, setWaitingOnAniList] = useState(false);
-  const [progress, setProgress] = useState<number | null>(null);
-  const [totals, setTotals] = useState<ImportTotals | null>(null);
-  const [failed, setFailed] = useState(false);
-  const [finished, setFinished] = useState(false);
-  const lookups = useRef<AbortController | null>(null);
+  // the import itself lives in a store, so it carries on while they're away
+  const imported = useBookImport();
+  const ours = imported.source === source;
+  const fileName = ours ? imported.fileName : "";
+  const found = ours ? imported.found : null;
+  const { matches, choices, waitingOnAniList, progress, totals, failed, finished } =
+    imported;
 
-  useEffect(() => () => lookups.current?.abort(), []);
-
-  // one at a time, so AniList isn't flooded; the list fills in as answers arrive
-  const lookUp = async (list: BookSeries[]) => {
-    lookups.current?.abort();
-    const controller = new AbortController();
-    lookups.current = controller;
-    // what they've owned or read first, to-read lists last
-    const order = [...list].sort(
-      (a, b) => Number(a.planned) - Number(b.planned),
-    );
-    for (const s of order) {
-      if (controller.signal.aborted) return;
-      let match: Match = "failed";
-      for (
-        let attempt = 0;
-        attempt < 3 && !controller.signal.aborted;
-        attempt++
-      ) {
-        try {
-          match = await findManga(s.title, controller.signal, s.lightNovel);
-          break;
-        } catch (e) {
-          if (!(e instanceof AniListBusy)) break;
-          setWaitingOnAniList(true);
-          await sleep(e.waitSeconds * 1000, controller.signal);
-          setWaitingOnAniList(false);
-        }
-      }
-      if (controller.signal.aborted) return;
-      setMatches((old) => new Map(old).set(s.key, match));
-      await sleep(LOOKUP_GAP_MS, controller.signal);
-    }
-  };
+  // after a reload, or back from another page: the import they'd started.
+  // One that's finished is done with once they leave, so the next visit can
+  // take another file
+  useEffect(() => {
+    useBookImport.getState().resume(source);
+    return () => {
+      const s = useBookImport.getState();
+      if (s.finished && s.source === source) s.stop();
+    };
+  }, [source]);
 
   const open = async (file: File | undefined) => {
     if (!file) return;
     setFileError("");
-    setFound(null);
-    setMatches(new Map());
-    setChoices(new Map());
-    setFailed(false);
-    setFileName(file.name);
     if (file.size > MAX_FILE_BYTES) {
       setFileError(
         "That file is too big to be a library export. Check you picked the right one.",
@@ -150,8 +148,7 @@ export default function BookImport({ source }: { source: BookSource }) {
         );
         return;
       }
-      setFound(list);
-      void lookUp(list);
+      useBookImport.getState().load(source, file.name, list);
     } catch {
       setFileError("That file couldn't be read. Try exporting it again.");
     }
@@ -175,38 +172,20 @@ export default function BookImport({ source }: { source: BookSource }) {
     const match = matchOf(s);
     return Boolean(match && match !== "failed") && !s.planned;
   };
-  const chosen = (found ?? []).filter(ticked);
+  // rows AniList says are one series, as one
+  const rows = found
+    ? mergeSameSeries(found, (s) => {
+        const match = matches.get(s.key);
+        return match && match !== "failed" ? match.anilistId : null;
+      })
+    : null;
+  const chosen = (rows ?? []).filter(ticked);
   const checked = (found ?? []).filter((s) => matches.has(s.key)).length;
   const lookingUp = Boolean(found) && checked < (found?.length ?? 0);
 
-  const start = async () => {
-    setFailed(false);
-    setProgress(0);
-    try {
-      const done = await sendToShelf(
-        chosen.map((s) => {
-          const match = matchOf(s);
-          return toEntry(s, match && match !== "failed" ? match : undefined);
-        }),
-        (sent, soFar) => {
-          setProgress(sent);
-          setTotals(soFar);
-        },
-      );
-      setTotals(done);
-      setFinished(true);
-      void useShelf.getState().load();
-    } catch (e) {
-      const soFar = (e as { totals?: ImportTotals }).totals;
-      if (soFar) setTotals(soFar);
-      setFailed(true);
-      void useShelf.getState().load();
-    } finally {
-      setProgress(null);
-    }
-  };
+  const start = () => void imported.add(chosen);
 
-  if (finished && totals) {
+  if (ours && finished && totals) {
     return (
       <section className={`${styles.sheet} ${styles.result}`}>
         <span className="printed mascot-spot" aria-hidden>
@@ -297,6 +276,13 @@ export default function BookImport({ source }: { source: BookSource }) {
                 {fileError}
               </p>
             )}
+            {ours && imported.stopped && !found && (
+              <p className={styles.note} role="status">
+                {imported.stopped.added
+                  ? `Stopped after adding ${series(imported.stopped.added)}. Anything already added is skipped if you import again.`
+                  : "Stopped. Nothing was added, and you can import again any time."}
+              </p>
+            )}
           </div>
         </div>
 
@@ -312,16 +298,19 @@ export default function BookImport({ source }: { source: BookSource }) {
         <section className={styles.sheet} aria-labelledby="import-found">
           <div>
             <h2 id="import-found" className={styles.found}>
-              {series(found.length)} found
+              {foundLine(rows!)}
             </h2>
             <p className={styles.fileName}>{fileName}</p>
 
             {lookingUp && (
-              <p className={styles.note} role="status">
-                {waitingOnAniList
-                  ? "AniList asked us to slow down, so we're waiting a moment…"
-                  : `Matching with AniList: ${checked} of ${found.length}…`}
-              </p>
+              <div className={styles.matchingLine}>
+                <p className={styles.note} role="status">
+                  {waitingOnAniList
+                    ? "AniList asked us to slow down, so we're waiting a moment…"
+                    : `Matching with AniList: ${checked} of ${found.length}, ${timeLeft(found.length - checked)}…`}
+                </p>
+                <StopButton />
+              </div>
             )}
 
             <div
@@ -329,7 +318,7 @@ export default function BookImport({ source }: { source: BookSource }) {
               role="group"
               aria-label="Series to add"
             >
-              {found.map((s) => {
+              {rows!.map((s) => {
                 const match = matchOf(s);
                 const name = match && match !== "failed" ? match.name : s.title;
                 return (
@@ -339,9 +328,7 @@ export default function BookImport({ source }: { source: BookSource }) {
                       type="checkbox"
                       checked={ticked(s)}
                       disabled={importing || match === undefined}
-                      onChange={() =>
-                        setChoices((old) => new Map(old).set(s.key, !ticked(s)))
-                      }
+                      onChange={() => imported.choose(s.key, !ticked(s))}
                     />
                     <span className={styles.seriesText}>
                       <span className={styles.listName}>{name}</span>
@@ -379,13 +366,18 @@ export default function BookImport({ source }: { source: BookSource }) {
 
             {importing ? (
               <div className="mt-5" role="status">
-                <p className={styles.progressLine}>
-                  Adding {progress} of {chosen.length}…
-                </p>
+                <div className={styles.matchingLine}>
+                  <p className={styles.progressLine}>
+                    Adding {progress} of {imported.adding}…
+                  </p>
+                  <StopButton />
+                </div>
                 <div className={styles.bar} aria-hidden>
                   <div
                     className={styles.barFill}
-                    style={{ width: `${(progress / chosen.length) * 100}%` }}
+                    style={{
+                      width: `${(progress / Math.max(imported.adding, 1)) * 100}%`,
+                    }}
                   />
                 </div>
               </div>
@@ -405,8 +397,9 @@ export default function BookImport({ source }: { source: BookSource }) {
             {failed && (
               <p className={styles.error} role="alert">
                 That stopped partway
-                {totals?.added ? `, after adding ${series(totals.added)}` : ""}.
-                Try again and anything already added will be skipped.
+                {totals?.added ? `, after adding ${series(totals.added)}` : ""}
+                {failed === "Import failed" ? "" : ` (${failed})`}. Try again
+                and anything already added will be skipped.
               </p>
             )}
           </div>

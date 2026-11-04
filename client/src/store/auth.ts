@@ -7,6 +7,7 @@
 import { create } from "zustand";
 import { apiFetch } from "../lib/api";
 import { useShelf } from "./shelf";
+import { useBookImport } from "./bookImport";
 import { readLocal, syncPrefs, writeLocal } from "../lib/prefs";
 
 // were they signed in last time? Lets the front page wait for the answer rather
@@ -44,6 +45,8 @@ export const useAuth = create<AuthState>()((set) => ({
 
   signedIn: () => {
     useShelf.getState().reset();
+    // someone else's import, if they shared the browser
+    useBookImport.getState().clear();
     set({ isSignedIn: true });
     remember(true);
     syncPrefs();
@@ -53,6 +56,7 @@ export const useAuth = create<AuthState>()((set) => ({
     const res = await apiFetch("/api/auth/logout", { method: "POST" });
     if (res.ok) {
       useShelf.getState().reset();
+      useBookImport.getState().clear();
       set({ isSignedIn: false });
       remember(false);
     }

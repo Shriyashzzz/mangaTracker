@@ -55,7 +55,7 @@ const BY_MAL_ID_QUERY = `
   query ($ids: [Int]) {
     Page(perPage: 50) {
       media(idMal_in: $ids, type: MANGA) {
-        idMal genres synonyms format
+        idMal genres format
         title { english romaji }
         coverImage { large }
       }
@@ -81,7 +81,11 @@ export async function getListingsByMalIds(ids: number[]) {
         if (m.idMal == null) continue;
         listings.set(m.idMal, {
           name: m.title.english ?? m.title.romaji ?? "",
-          altNames: [m.title.romaji ?? "", ...(m.synonyms ?? [])].filter(Boolean),
+          // the romaji title only: what a MyAnimeList list calls it. Not the
+          // synonyms, which are loose ("Naruto" is one of The Seventh
+          // Hokage's, "8" one of another series'), so an import would skip a
+          // series as "already on your shelf" because a different one said so
+          altNames: [m.title.romaji ?? ""].filter(Boolean),
           cover: m.coverImage?.large ?? null,
           genre: m.genres?.[0] ?? null,
           lightNovel: m.format === "NOVEL",

@@ -21,6 +21,7 @@ import { useAuth } from "../../store/auth";
 import { useShelf } from "../../store/shelf";
 import type { BookSource } from "../../lib/imports/bookImport";
 import BookImport from "./BookImport";
+import { savedSource, useBookImport } from "../../store/bookImport";
 import {
   readAniList,
   readKitsu,
@@ -47,7 +48,10 @@ const SOURCES: { id: Source; label: string }[] = [
 
 export function ImportPage() {
   usePrivatePage("Import your list");
-  const [source, setSource] = useState<Source>("mal");
+  // a book import still going (or ready to add) opens on its own app
+  const [source, setSource] = useState<Source>(
+    () => useBookImport.getState().source ?? savedSource() ?? "mal",
+  );
   const [username, setUsername] = useState("");
   const [finding, setFinding] = useState(false);
   const isSignedIn = useAuth((s) => s.isSignedIn);

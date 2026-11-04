@@ -10,3 +10,4 @@ server/generated
 
 # personal notes and the local developer handbook
 *.local.md
+claude_export_data_reference/
