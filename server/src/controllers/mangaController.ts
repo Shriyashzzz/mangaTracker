@@ -29,6 +29,7 @@ import {
 import type { Manga } from "../../generated/prisma/client.js";
 import { isOnShelf, titleKey } from "../util/shelf/titleKey.js";
 import { oneAtATime } from "../util/shelf/oneAtATime.js";
+import { knownMatches, tellMatches } from "../util/shelf/sharedMatches.js";
 
 // ---------- validation shared by add and edit ----------
 const mangaFields = [
@@ -526,6 +527,36 @@ const match = [
   },
 ];
 
+// ---------- the book import's shared matches (util/shelf/sharedMatches.ts) ----------
+
+const MAX_SEARCHES = 500;
+const searchFields = (list: string) => [
+  body(list).isArray({ min: 1, max: MAX_SEARCHES }),
+  body(`${list}.*.name`).isString().trim().isLength({ min: 1, max: 200 }),
+  body(`${list}.*.lightNovel`).isBoolean({ strict: true }),
+  body(`${list}.*.exactOnly`).isBoolean({ strict: true }),
+];
+
+// before matching: which of these titles everyone's imports already know
+const knownImportMatches = [
+  ...searchFields("searches"),
+  rejectInvalid,
+  async (req: Request, res: Response) => {
+    res.json({ matches: await knownMatches(matchedData(req).searches) });
+  },
+];
+
+// after: the matches this import found, checked before anyone else gets them
+const tellImportMatches = [
+  ...searchFields("matches"),
+  body("matches.*.anilistId").isInt({ min: 1 }).toInt(),
+  rejectInvalid,
+  async (req: Request, res: Response) => {
+    await tellMatches(matchedData(req).matches);
+    res.status(202).json({ ok: true });
+  },
+];
+
 export default {
   list,
   add,
@@ -544,4 +575,6 @@ export default {
   setOwned,
   shelfPrices,
   match,
+  knownImportMatches,
+  tellImportMatches,
 };

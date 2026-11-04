@@ -12,6 +12,11 @@ import {
   type BookSource,
 } from "../lib/imports/bookImport";
 import { sendToShelf, type ImportTotals } from "../lib/imports/malImport";
+import {
+  askShared,
+  tellShared,
+  type SharedSearch,
+} from "../lib/imports/sharedMatches";
 import { useShelf } from "./shelf";
 
 export type Match =
@@ -87,7 +92,10 @@ const write = (key: string, value: unknown) => {
 };
 
 // AniList's answer for a name, as found before
-type Remembered = Record<string, { match: Exclude<Match, "failed">; at: number }>;
+type Remembered = Record<
+  string,
+  { match: Exclude<Match, "failed">; at: number }
+>;
 // a shorter name searched for an exact match is its own answer: "Star Wars"
 // exactly isn't AniList's best guess for "Star Wars"
 const searchKey = (name: string, lightNovel: boolean, exactOnly = false) =>
@@ -116,6 +124,59 @@ const remember = (
     at: Date.now(),
   };
   write(MATCHES_KEY, remembered);
+};
+
+// the names matching would search for a series, as it would search them
+const searchesFor = (s: BookSeries): SharedSearch[] => {
+  const own = [...new Set([s.title, ...s.otherNames])];
+  const shorter = searchFallbacks(s.title).filter((n) => !own.includes(n));
+  return [
+    ...own.map((name) => ({
+      name,
+      lightNovel: s.lightNovel,
+      exactOnly: false,
+    })),
+    ...shorter.map((name) => ({
+      name,
+      lightNovel: s.lightNovel,
+      exactOnly: true,
+    })),
+  ];
+};
+
+// what everyone's imports already know about these series, remembered as if
+// found here, so matching skips AniList for them
+async function fillFromShared(list: BookSeries[], signal: AbortSignal) {
+  const searches = list
+    .flatMap(searchesFor)
+    .filter(
+      (q) => !rememberedMatches()[searchKey(q.name, q.lightNovel, q.exactOnly)],
+    );
+  if (!searches.length) return;
+  const answers = await askShared(searches, signal).catch(() => []);
+  const at = Date.now();
+  let learnt = 0;
+  answers.forEach((match, i) => {
+    const q = searches[i]!;
+    if (!match) return;
+    rememberedMatches()[searchKey(q.name, q.lightNovel, q.exactOnly)] = {
+      match,
+      at,
+    };
+    learnt++;
+  });
+  if (learnt) write(MATCHES_KEY, remembered);
+}
+
+// would matching find this series without asking AniList? Read as matchOne
+// reads: name by name, a remembered match, or a "not by that name" to go past
+const isKnown = (s: BookSeries) => {
+  for (const q of searchesFor(s)) {
+    const r = rememberedMatches()[searchKey(q.name, q.lightNovel, q.exactOnly)];
+    if (r?.match) return true;
+    if (!r) return false;
+  }
+  return false;
 };
 
 // ---------- waiting, without a hidden tab slowing it down ----------
@@ -164,6 +225,8 @@ let lookups: AbortController | null = null;
 // are marked "couldn't check" straight away rather than each waiting a minute
 const UNREACHABLE_AFTER = 3;
 const RETRY_AFTER_MS = 60_000;
+// matches told to the server in batches of this many, and when matching ends
+const TELL_EVERY = 25;
 
 // one at a time, at AniList's own pace; the list fills in as answers arrive
 async function lookUp(list: BookSeries[]) {
@@ -176,6 +239,9 @@ async function lookUp(list: BookSeries[]) {
   const found = (key: string, match: Match) =>
     set((s) => ({ matches: new Map(s.matches).set(key, match) }));
   let unreachable = 0;
+  // matches AniList gave this import, told to the server for everyone's next one
+  const toTell: (SharedSearch & { anilistId: number })[] = [];
+  const tell = () => tellShared(toTell.splice(0));
 
   // one search, waiting out AniList's "slow down". A request that never gets an
   // answer is waited out once: it's usually the stricter limit, but could be no
@@ -204,7 +270,11 @@ async function lookUp(list: BookSeries[]) {
   // edition's). Only if AniList knows none of them, shorter forms of the title,
   // and those only count when AniList has something called exactly that, so
   // "Star Wars: Thrawn" can't turn into some Star Wars manga. At most three
-  // searches, and none for a name AniList has answered before
+  // searches, and none for a name AniList has answered before.
+  // In that order, remembered or not: a match remembered (or known from other
+  // imports) for a later name only counts once the names before it are known
+  // not to be on AniList. "Battle Angel Alita - Last Order", also called
+  // "Battle Angel Alita" in the file, is Last Order, not the series before it
   const matchOne = async (s: BookSeries): Promise<Match | undefined> => {
     const own = [...new Set([s.title, ...s.otherNames])];
     const shorter = searchFallbacks(s.title).filter((n) => !own.includes(n));
@@ -214,19 +284,27 @@ async function lookUp(list: BookSeries[]) {
       [own, false],
       [shorter, true],
     ] as const) {
-      // remembered: found before by one of these names
-      const known = names
-        .map((n) => rememberedMatches()[searchKey(n, s.lightNovel, exactOnly)])
-        .find((r) => r && r.match !== null);
-      if (known) return known.match;
       for (const name of names) {
-        if (searches >= 3) break;
+        const known =
+          rememberedMatches()[searchKey(name, s.lightNovel, exactOnly)];
+        if (known?.match) return known.match;
         // answered before: not on AniList by that name
-        if (rememberedMatches()[searchKey(name, s.lightNovel, exactOnly)]) continue;
+        if (known) continue;
+        // out of searches: only what's remembered for the rest
+        if (searches >= 3) continue;
         searches++;
         const answer = await search(name, s, exactOnly);
         if (signal.aborted) return undefined;
         remember(name, s.lightNovel, answer, exactOnly);
+        if (answer && answer !== "failed" && answer.anilistId) {
+          toTell.push({
+            name,
+            lightNovel: s.lightNovel,
+            exactOnly,
+            anilistId: answer.anilistId,
+          });
+          if (toTell.length >= TELL_EVERY) tell();
+        }
         await sleep(aniListGapMs(), signal);
         if (answer === "failed") {
           // couldn't check this one: the next name won't fare better now
@@ -246,23 +324,34 @@ async function lookUp(list: BookSeries[]) {
   const order = [...list]
     .sort((a, b) => Number(a.planned) - Number(b.planned))
     .filter((s) => !get().matches.has(s.key));
-  const again: BookSeries[] = [];
-  for (const s of order) {
-    const match = await matchOne(s);
-    if (match === undefined || signal.aborted) return;
-    if (match === "failed") again.push(s);
-    else found(s.key, match);
+  try {
+    // known from other people's imports: no AniList wait for those
+    await fillFromShared(order, signal);
+    if (signal.aborted) return;
+    // the ones it already knows first, so they're all matched at once and the
+    // time left is only what AniList still has to answer
+    const known = order.filter(isKnown);
+    const again: BookSeries[] = [];
+    for (const s of [...known, ...order.filter((s) => !known.includes(s))]) {
+      const match = await matchOne(s);
+      if (match === undefined || signal.aborted) return;
+      if (match === "failed") again.push(s);
+      else found(s.key, match);
+    }
+    if (again.length) {
+      unreachable = 0;
+      await sleep(RETRY_AFTER_MS, signal);
+    }
+    for (const s of again) {
+      const match = await matchOne(s);
+      if (match === undefined || signal.aborted) return;
+      found(s.key, match);
+    }
+    if (lookups === controller) lookups = null;
+  } finally {
+    // stopped or done: what it found still helps the next import
+    tell();
   }
-  if (again.length) {
-    unreachable = 0;
-    await sleep(RETRY_AFTER_MS, signal);
-  }
-  for (const s of again) {
-    const match = await matchOne(s);
-    if (match === undefined || signal.aborted) return;
-    found(s.key, match);
-  }
-  if (lookups === controller) lookups = null;
 }
 
 // roughly how long matching the rest takes at AniList's pace right now
@@ -272,7 +361,9 @@ export const matchingTimeLeftMs = (remaining: number) =>
 export function timeLeft(remaining: number) {
   const minutes = Math.round(matchingTimeLeftMs(remaining) / 60_000);
   if (minutes < 1) return "less than a minute left";
-  return minutes === 1 ? "about a minute left" : `about ${minutes} minutes left`;
+  return minutes === 1
+    ? "about a minute left"
+    : `about ${minutes} minutes left`;
 }
 
 // the app of the import saved before a reload, so the import page opens on it
@@ -373,7 +464,10 @@ export const useBookImport = create<BookImportState>()((set, get) => ({
       // done with: nothing to pick up next visit
       write(SAVED_KEY, null);
     } catch (e) {
-      const { totals, message } = e as { totals?: ImportTotals; message?: string };
+      const { totals, message } = e as {
+        totals?: ImportTotals;
+        message?: string;
+      };
       set({
         ...(totals ? { totals } : {}),
         failed: message || "Import failed",

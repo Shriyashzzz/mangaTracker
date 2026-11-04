@@ -11,6 +11,17 @@ mangaRouter.get("/", manga.list);
 mangaRouter.post("/", manga.add);
 mangaRouter.post("/restore", manga.restore);
 mangaRouter.post("/import", rateLimit({ max: 60, windowMs: 60_000 }), manga.importList);
+// the book import's matches, shared by everyone's imports
+mangaRouter.post(
+  "/import/matches",
+  rateLimit({ max: 30, windowMs: 60_000 }),
+  manga.knownImportMatches,
+);
+mangaRouter.post(
+  "/import/matches/found",
+  rateLimit({ max: 30, windowMs: 60_000 }),
+  manga.tellImportMatches,
+);
 // these come before "/:id" so their names aren't read as an id
 mangaRouter.get("/prices", manga.shelfPrices);
 mangaRouter.get("/match", manga.match);
