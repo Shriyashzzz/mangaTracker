@@ -1005,6 +1005,37 @@
   width: 13px;
   height: 13px;
 }
+/* Kenji offering a new account the tour (tour/TourOffer.tsx): his line, then
+   the way in and a quieter way out */
+.tour-offer .support-peek-line {
+  width: 188px;
+  padding-right: 0.7rem;
+}
+.tour-offer-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+}
+.support-peek-line .tour-offer-go {
+  display: inline-flex;
+  align-items: center;
+  min-height: 30px;
+  font-size: 0.84rem;
+  font-weight: 600;
+  color: var(--ink);
+  text-decoration: underline;
+  text-decoration-color: var(--accent);
+  text-decoration-thickness: 2px;
+  text-underline-offset: 3px;
+}
+.tour-offer-skip {
+  min-height: 30px;
+  font-size: 0.78rem;
+  color: var(--muted);
+}
+.tour-offer-skip:hover {
+  color: var(--ink);
+}
 /* Kenji's longer line about carrying on in the background */
 .import-peek .support-peek-line {
   width: 188px;
