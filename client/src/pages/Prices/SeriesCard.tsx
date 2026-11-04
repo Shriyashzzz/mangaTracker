@@ -1,5 +1,5 @@
 import { NavLink } from "react-router";
-import { seriesPath } from "../../lib/prices";
+import { coverSrc, hideBrokenCover, novelParts, seriesPath } from "../../lib/prices";
 import { pricesStyles as styles } from "./styles";
 
 // one series: cover, name and a line of facts. Used on the price home
@@ -15,6 +15,8 @@ export type SeriesCardData = {
 };
 
 export default function SeriesCard({ series }: { series: SeriesCardData }) {
+  // "Overlord Light Novel" is shown as Overlord, a light novel
+  const shown = novelParts(series.name);
   return (
     <NavLink
       to={seriesPath(series.name)}
@@ -25,11 +27,19 @@ export default function SeriesCard({ series }: { series: SeriesCardData }) {
         <span className={styles.coverFallback} aria-hidden>
           ?
         </span>
-        {series.coverUrl && <img src={series.coverUrl} alt="" loading="lazy" />}
+        {series.coverUrl && (
+          <img
+            src={coverSrc(series.coverUrl)}
+            alt=""
+            loading="lazy"
+            onError={hideBrokenCover}
+          />
+        )}
       </span>
-      <span className={styles.cardTitle}>{series.name}</span>
+      <span className={styles.cardTitle}>{shown.title}</span>
       <span className={styles.cardMeta}>
         {[
+          shown.lightNovel && "Light novel",
           series.year,
           series.volumes && `${series.volumes} vols`,
           series.score && `Score ${series.score}`,

@@ -422,12 +422,15 @@ function Library() {
     );
   }
 
-  // light novels aren't looked up yet, so their empty answer isn't a failure
-  const looked = mangaData.filter((m) => !m.lightNovel);
+  // what this view of the New tab can say anything about: light novels have
+  // volumes in English, but no chapters or Japanese volumes to follow
+  const looked = mangaData.filter(
+    (m) => releaseKind === "volumes" || !m.lightNovel,
+  );
   const everyCheckFailed =
     allChecked &&
-    looked.length > 0 &&
-    looked.every((m) => releases[m.id] === null);
+    mangaData.length > 0 &&
+    mangaData.every((m) => releases[m.id] === null);
   const tabs = [
     { value: "all", label: "All", count: counts.all },
     { value: "ongoing", label: "Reading", count: counts.ongoing },

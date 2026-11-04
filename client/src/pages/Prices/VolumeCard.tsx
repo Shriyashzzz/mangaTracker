@@ -3,6 +3,7 @@ import {
   coverSrc,
   formatCents,
   hideBrokenCover,
+  novelParts,
   volumePath,
 } from "../../lib/prices";
 import { stayInTrip, useFromShelf } from "../../lib/fromShelf";
@@ -60,6 +61,7 @@ export default function VolumeCard({
   wasCents?: number | null;
 }) {
   const fromShelf = useFromShelf();
+  const shown = novelParts(title);
   return (
     <NavLink
       to={volumePath(isbn13, fullTitle ?? title)}
@@ -84,8 +86,19 @@ export default function VolumeCard({
           </span>
         )}
       </span>
-      <span className={styles.cardTitle}>{title}</span>
-      {subtitle && <span className={styles.cardMeta}>{subtitle}</span>}
+      <span className={styles.cardTitle}>{shown.title}</span>
+      {/* said where it's named in full (deals, recently checked), where manga
+          and novels sit together; a series page's "Vol. 3" is the page's */}
+      {(subtitle || shown.lightNovel) && (
+        <span className={styles.cardMeta}>
+          {[
+            shown.lightNovel && "Light novel",
+            subtitle && novelParts(subtitle).title,
+          ]
+            .filter(Boolean)
+            .join(" · ")}
+        </span>
+      )}
       {priceCents != null && (
         <span className={styles.cardPrice}>
           {formatCents(priceCents)}

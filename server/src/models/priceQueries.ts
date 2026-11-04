@@ -6,8 +6,9 @@
 // window functions and DISTINCT ON, which Prisma can't express, so those are
 // raw SQL ($queryRaw tagged templates: values are always sent as parameters,
 // never pasted into the SQL).
+import { VOLUMES_KEY_VERSION } from "../prices/volumesKey.js";
 import { prisma } from "../config/prisma.js";
-import type { Book, Prisma } from "../../generated/prisma/client.js";
+import { Prisma, type Book } from "../../generated/prisma/client.js";
 import { lowestBelievableNew, unlikelyNewTest } from "../prices/stores/retailers.js";
 import type { CatalogBook, Offer } from "../prices/types.js";
 
@@ -298,9 +299,41 @@ export async function markApiSpent(provider: string, limit: number) {
   `;
 }
 
+// a volume as a series' saved list knows it (the newest list, today's naming
+// first). Open Library's own record for an ISBN can be the Japanese title it
+// can't name ("オーバーロード15 半森妖精の神人 ［上］"), while the series found
+// the English edition inside the work
+export async function getSavedVolume(isbn13: string) {
+  const [row] = await prisma.$queryRaw<{ volume: CatalogBook }[]>`
+    SELECT v AS volume
+    FROM series_volumes sv, jsonb_array_elements(sv.volumes) v
+    -- only lists saved since light novels were told apart (v3): an older one can
+    -- hold a novel's volume under the manga's name
+    WHERE sv.key LIKE ${VOLUMES_KEY_VERSION + "%"}
+      AND sv.volumes @> ${JSON.stringify([{ isbn13 }])}::jsonb
+      AND v->>'isbn13' = ${isbn13}
+    ORDER BY sv.fetched_at DESC
+    LIMIT 1
+  `;
+  return row?.volume ?? null;
+}
+
 // a volume we know is manga, not any ISBN someone typed in: in a series'
 // saved volume list, or priced before (only known volumes get priced, and
 // lists are only saved once someone opens the series). For Canada's searches
+// how many volumes each of these saved lists has, and the first one's cover
+// (missing: never built)
+export async function getSavedListSizes(keys: string[]) {
+  type Size = { size: number; coverUrl: string | null };
+  if (!keys.length) return new Map<string, Size>();
+  const rows = await prisma.$queryRaw<(Size & { key: string })[]>`
+    SELECT key, jsonb_array_length(volumes)::int AS size,
+           volumes->0->>'coverUrl' AS "coverUrl"
+    FROM series_volumes WHERE key IN (${Prisma.join(keys)})
+  `;
+  return new Map(rows.map((r) => [r.key, { size: r.size, coverUrl: r.coverUrl }]));
+}
+
 export async function isKnownVolume(isbn13: string) {
   const [row] = await prisma.$queryRaw<{ known: boolean }[]>`
     SELECT EXISTS (
@@ -403,6 +436,8 @@ export default {
   claimApiCall,
   markApiSpent,
   getSeriesVolumes,
+  getSavedVolume,
+  getSavedListSizes,
   saveSeriesVolumes,
   getKnownPrices,
   getRecentBestPrices,

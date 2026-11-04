@@ -38,9 +38,11 @@ export function AddManga() {
   // the suggestion under the mouse: its cover shows until they move away
   const [preview, setPreview] = useState<CoverHit | null>(null);
   const [genre, setGenre] = useState("");
-  // set by the AniList title they pick, until they choose it themselves
-  const [lightNovel, setLightNovel] = useState(false);
-  const formatTouched = useRef(false);
+  // set by the AniList title they pick, until they choose it themselves. A
+  // light novel's price page says so up front (format=novel)
+  const novelFromPrices = searchParams.get("format") === "novel";
+  const [lightNovel, setLightNovel] = useState(novelFromPrices);
+  const formatTouched = useRef(novelFromPrices);
   const [genreFromAniList, setGenreFromAniList] = useState(false);
   // a genre the user picked by hand is never overwritten by a cover match
   const genreTouched = useRef(false);

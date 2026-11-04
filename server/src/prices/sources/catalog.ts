@@ -3,13 +3,21 @@
 import { openLibraryFetch } from "./openLibrary.js";
 import { englishSeriesName } from "./anilist.js";
 import { coverPath } from "./covers.js";
-import { isSingleVolume, normalize, seriesOf } from "../stores/match.js";
+import { isSingleVolume, normalize, seriesName, seriesOf } from "../stores/match.js";
+import { baseName, isNovelName, novelName } from "../lightNovel.js";
 import type { CatalogBook } from "../types.js";
 
 const SEARCH_URL = "https://openlibrary.org/search.json";
 const FIELDS =
-  "key,title,isbn,cover_i,author_name,publisher,first_publish_year";
+  "key,title,isbn,cover_i,author_name,publisher,first_publish_year,subject,number_of_pages_median";
 const TIMEOUT_MS = 8000;
+
+// the author names in English letters: a Japanese work lists both
+// ("丸山くがね, Kugane Maruyama"), and readers here get the English one
+const englishAuthors = (names: string[] | undefined) => {
+  const english = (names ?? []).filter((n) => !/[\u3000-ヿ㐀-鿿＀-￯]/.test(n));
+  return english.length ? english.join(", ") : null;
+};
 
 // one search hit, with only the fields we ask for
 type Doc = {
@@ -19,6 +27,8 @@ type Doc = {
   author_name?: string[];
   publisher?: string[];
   first_publish_year?: number;
+  subject?: string[];
+  number_of_pages_median?: number;
 };
 
 // a converted title, or null; `degraded` = couldn't be translated right now
@@ -46,12 +56,13 @@ export function toIsbn13(raw: unknown): string | null {
 
 // Open Library sometimes puts the Japanese title alongside the English one,
 // e.g. "Jujutsu Kaisen, Vol. 2 (呪術廻戦 Jujutsu Kaisen #2)". Our readers are
-// in the US, so keep the English part only
-const JAPANESE = /[\u3000-ヿ㐀-鿿＀-￯]/;
+// in the US, so keep the English part only. Korean too: a manhwa's first
+// volume can be filed as "나 혼자만 레벨업 1 (comic)"
+const JAPANESE = /[\u3000-ヿ㐀-鿿＀-￯가-힯ᄀ-ᇿ]/;
 const englishTitle = (title: string) =>
   title
-    .replace(/\s*[(（][^)）]*[\u3000-ヿ㐀-鿿][^)）]*[)）]/g, "")
-    .replace(/[\u3000-ヿ㐀-鿿＀-￯]+/g, " ")
+    .replace(/\s*[(（][^)）]*[\u3000-ヿ㐀-鿿가-힯][^)）]*[)）]/g, "")
+    .replace(/[\u3000-ヿ㐀-鿿＀-￯가-힯ᄀ-ᇿ]+/g, " ")
     .replace(/\s+/g, " ")
     .trim();
 
@@ -62,19 +73,96 @@ const volumeNumber = (title: string) => {
   return m ? Number(m[1]) : null;
 };
 
-// catalog titles often tag the format: "(manga)", "(light novel)". We price
-// manga, so light novels are left out and the manga tag is dropped
+// catalog titles often tag the format: "(manga)", "(light novel)". The manga tag
+// is dropped; a light novel becomes a volume of the novel series, named apart
+// from the manga's (see lightNovel.ts)
 const LIGHT_NOVEL = /\(\s*(light\s*novel|novel|ln)\s*\)|\blight novel\b/i;
+const LIGHT_NOVEL_TAGS = /\(\s*(light\s*novel|novel|ln)\s*\)|\blight novel\b/gi;
+
+// Open Library's titles mostly don't say "(light novel)", but the work does: a
+// subject like "series:オーバーロード (light novel)" or "Light novels", or a
+// novel imprint as publisher (Yen On is Yen Press's novels, Airship Seven
+// Seas'). Without this the manga's page listed the novel's volumes
+// Only subjects that say the book is one ("Light novels", "series:オーバーロード
+// (light novel)"), not ones about them: a manga adaptation can carry
+// "Adaptations of light novels". A work's publishers can mix the manga's and
+// the novel's when Open Library has grouped editions together, so a novel
+// imprint only counts when the manga imprint isn't there too
+const NOVEL_SUBJECT = /^light\s*novels?(\s*[,(]|$)|\(\s*light\s*novel\s*\)\s*$/i;
+const NOVEL_IMPRINT = /^(yen on|j-novel club|airship|cross infinite world)\b/i;
+const MANGA_IMPRINT = /^yen press\b/i;
+export const isNovelEdition = (
+  title: string,
+  subjects: string[] = [],
+  publishers: string[] = [],
+) =>
+  LIGHT_NOVEL.test(title) ||
+  subjects.some((s) => NOVEL_SUBJECT.test(s.trim())) ||
+  (publishers.some((p) => NOVEL_IMPRINT.test(p.trim())) &&
+    !publishers.some((p) => MANGA_IMPRINT.test(p.trim())));
+
+// "Overlord, Vol. 3 (light novel): The Bloody Valkyrie" ->
+// "Overlord Light Novel, Vol. 3"
+// the record says it's a comic: "Solo Leveling, Vol. 5 (comic)", "(manga)", or
+// a subject like "series:나 혼자만 레벨업 (comic)". A manhwa in full colour runs
+// 300+ pages, as long as a novel, so length never makes one of these a novel
+const COMIC_SUBJECT = /\(\s*(comic|manga|manhwa|manhua)\s*\)\s*$/i;
+const saysComic = (title: string, subjects: string[] = []) =>
+  new RegExp(FORMAT_TAG.source, "i").test(title) ||
+  /\(\s*(manhwa|manhua)\s*\)/i.test(title) ||
+  subjects.some((s) => COMIC_SUBJECT.test(s.trim()));
+
+// Open Library mostly writes the number before the volume's own subtitle:
+// "Sword Art Online 9 (light novel): Alicization Beginning". "Vol. 3"
+// anywhere wins; otherwise the number before a ":" or " - ", or at the end.
+// Not handled: series numbered by part ("Ascendance of a Bookworm: Part 1
+// Volume 3"), whose volume numbers start again each part. They read as their
+// own "…: Part 1" series, which no shelf entry is named, so they're left out
+// rather than filed under the wrong number
+export const novelSeriesAndVolume = (raw: string) => {
+  const title = raw
+    .replace(LIGHT_NOVEL_TAGS, " ")
+    .replace(/\s+/g, " ")
+    // "Sword Art Online Progressive 2 - light novel" leaves a dash behind
+    .replace(/[\s,:;\-–—]+$/, "")
+    .trim();
+  const vol = title.match(/^(.*?)[,\s]*\bvol(?:ume)?\.?\s*(\d+)/i);
+  const numbered =
+    vol ?? title.match(/^(.*?\S)\s+0*(\d{1,3})\s*(?::|\s[-–—]\s|\[|$)/);
+  // as written: seriesName would drop the 1 of "Part 1"
+  const series = (numbered ? numbered[1]! : title)
+    .replace(/\(.*?\)/g, " ")
+    .replace(/\s+/g, " ")
+    // a separator, not Re:ZERO's own closing "-"
+    .replace(/(\s+[-–—])?[\s,:;]*$/, "")
+    .trim();
+  return { series, volume: numbered ? Number(numbered[2]) : null };
+};
+
+const asNovelTitle = (title: string) => {
+  const { series, volume } = novelSeriesAndVolume(title);
+  if (!/[a-z]{2}/i.test(series)) return null;
+  return `${novelName(series)}${volume != null ? `, Vol. ${volume}` : ""}`;
+};
 const FORMAT_TAG = /\s*\(\s*(manga|comic|graphic novel)\s*\)/gi;
 
 // a US edition listed only under its Japanese title, like "葬送のフリーレン 12":
 // look up the official English series name and rebuild "Name, Vol. 12"
-async function translateTitle(japaneseTitle: string): Promise<TitleResult> {
-  const number = japaneseTitle.match(/(\d+)\s*$/)?.[1];
-  const series = japaneseTitle.replace(/\s*\d+\s*$/, "").trim();
+// "オーバーロード15 半森妖精の神人 ［上］": the series is what comes before the
+// number, so every volume asks AniList the same short question (asked once)
+// rather than one question per subtitle. A novel is asked as a novel: the
+// manga search can answer with a manga spin-off's name
+async function translateTitle(
+  japaneseTitle: string,
+  novel = false,
+): Promise<TitleResult> {
+  const trailing = japaneseTitle.match(/^(.*?)\s*(\d+)\s*$/);
+  const split = trailing ?? japaneseTitle.match(/^(\D+?)\s*(\d{1,3})(?!\d)/);
+  const number = split?.[2];
+  const series = (split ? split[1]! : japaneseTitle).trim();
   if (!series) return { title: null };
   try {
-    const english = await englishSeriesName(series);
+    const english = await englishSeriesName(series, novel);
     if (!english) return { title: null };
     return {
       title: number ? `${english}, Vol. ${Number(number)}` : english,
@@ -85,13 +173,25 @@ async function translateTitle(japaneseTitle: string): Promise<TitleResult> {
 }
 
 // Japanese stripped out, or translated when nothing English is left
-async function englishOnly(rawTitle: string): Promise<TitleResult> {
-  if (LIGHT_NOVEL.test(rawTitle)) return { title: null };
-  const untagged = rawTitle.replace(FORMAT_TAG, "").trim();
+async function englishOnly(
+  rawTitle: string,
+  novel = LIGHT_NOVEL.test(rawTitle),
+): Promise<TitleResult> {
+  const untagged = rawTitle
+    .replace(novel ? LIGHT_NOVEL_TAGS : FORMAT_TAG, " ")
+    .replace(FORMAT_TAG, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+  const english = await englishPart(untagged, novel);
+  if (!novel || !english.title) return english;
+  return { ...english, title: asNovelTitle(english.title) };
+}
+
+async function englishPart(untagged: string, novel = false): Promise<TitleResult> {
   if (!JAPANESE.test(untagged)) return { title: untagged };
   const stripped = englishTitle(untagged);
   if (/[a-z]{2}/i.test(stripped)) return { title: stripped };
-  return translateTitle(untagged);
+  return translateTitle(untagged, novel);
 }
 
 const toBook = async (
@@ -99,17 +199,22 @@ const toBook = async (
   isbn13: string | undefined,
 ): Promise<{ book: CatalogBook | null; degraded?: boolean }> => {
   if (!isbn13 || !doc.title) return { book: null };
-  const { title, degraded } = await englishOnly(doc.title);
+  const { title, degraded } = await englishOnly(
+    doc.title,
+    isNovelEdition(doc.title, doc.subject, doc.publisher),
+  );
   // no English title even after translating: leave it out
   if (!title) return { book: null, ...(degraded && { degraded }) };
   return {
     book: {
       isbn13,
       title,
-      authors: doc.author_name?.join(", ") ?? null,
+      authors: englishAuthors(doc.author_name),
       publisher: doc.publisher?.[0] ?? null,
       year: doc.first_publish_year ?? null,
       volume: volumeNumber(title),
+      pages: doc.number_of_pages_median ?? null,
+      ...(saysComic(doc.title, doc.subject) ? { comic: true } : {}),
       // the cover of this exact edition, looked up and cached by our server
       // (see covers.ts). The work's cover (doc.cover_i) can belong to another
       // language edition, or to an unrelated book when Open Library has
@@ -167,6 +272,7 @@ type Edition = {
   isbn_10?: string[];
   publishers?: string[];
   languages?: { key?: string }[];
+  number_of_pages?: number;
 };
 
 // several searches can ask about the same work; failures aren't kept
@@ -196,8 +302,8 @@ function fetchEditions(workKey: string, timeoutMs = TIMEOUT_MS) {
 export function isMergedWork(doc: Doc, seriesName: string) {
   const englishEditions = (doc.isbn ?? []).filter((i) => ENGLISH_ISBN.test(i));
   if (!doc.key || !doc.title || englishEditions.length < 2) return false;
-  const title = normalize(doc.title);
-  const wanted = normalize(seriesName);
+  const title = normalize(doc.title.replace(LIGHT_NOVEL_TAGS, " "));
+  const wanted = normalize(baseName(seriesName));
   if (!title) return false;
   const related = wanted.includes(title) || title.includes(wanted);
   return related && (title === wanted || volumeNumber(doc.title) === null);
@@ -226,8 +332,10 @@ export function booksFromEditions(
   doc: Doc,
   seriesName: string,
 ): CatalogBook[] {
-  const wanted = seriesOf(seriesName);
-  const whole = normalize(seriesName);
+  // the novel series takes only the novel editions, named as the novel's
+  const novel = isNovelName(seriesName);
+  const wanted = seriesOf(baseName(seriesName));
+  const whole = normalize(baseName(seriesName));
   const books: CatalogBook[] = [];
   for (const edition of editions) {
     const isbn13 = [...(edition.isbn_13 ?? []), ...(edition.isbn_10 ?? [])]
@@ -238,24 +346,35 @@ export function booksFromEditions(
     if (languages.length && !languages.some((l) => l.key === "/languages/eng")) {
       continue;
     }
-    const full = circledToDigits(
+    const tagged = circledToDigits(
       [edition.title, edition.subtitle].filter(Boolean).join(" "),
     );
-    if (LIGHT_NOVEL.test(full) || !isSingleVolume(full)) continue;
+    const isNovel = isNovelEdition(
+      tagged,
+      doc.subject,
+      edition.publishers ?? doc.publisher,
+    );
+    if (isNovel !== novel || !isSingleVolume(tagged)) continue;
+    const full = tagged.replace(LIGHT_NOVEL_TAGS, " ").replace(/\s+/g, " ").trim();
     // "Kaiju No. 8" alone is the series, not its eighth volume
     if (normalize(full) === whole) continue;
-    const volume = volumeNumber(full);
+    // a novel's "Sword Art Online 9: Alicization Beginning" reads as 9
+    const parsed = novel ? novelSeriesAndVolume(full) : null;
+    const volume = parsed ? parsed.volume : volumeNumber(full);
     if (volume === null) continue;
     // a name ending in a number loses it in seriesOf: "Kaiju No. 8 2"
-    if (seriesOf(full) !== wanted && seriesOf(full) !== whole) continue;
+    const named = parsed ? seriesOf(parsed.series) : seriesOf(full);
+    if (named !== wanted && named !== whole) continue;
     books.push({
       isbn13,
       title: `${seriesName}, Vol. ${volume}`,
-      authors: doc.author_name?.join(", ") ?? null,
+      authors: englishAuthors(doc.author_name),
       publisher: edition.publishers?.[0] ?? doc.publisher?.[0] ?? null,
       year: doc.first_publish_year ?? null,
       volume,
       coverUrl: coverPath(isbn13),
+      pages: edition.number_of_pages ?? null,
+      ...(saysComic(tagged, doc.subject) ? { comic: true } : {}),
     });
   }
   return books;

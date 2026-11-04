@@ -10,6 +10,7 @@ import {
   getSeriesInfo,
 } from "../prices/sources/anilist.js";
 import { findOnShelf, getSeries, getShelfPrices } from "../prices/service.js";
+import { isNovelName, novelName, priceName } from "../prices/lightNovel.js";
 import { canonicalTitle } from "../util/shelf/canonicalTitle.js";
 import { getCachedReleaseDates, withTimeout } from "../util/releases/releaseCache.js";
 import {
@@ -273,11 +274,6 @@ const detail = (_req: Request, res: Response) => {
 // it can be slow, so the details page and the edit form don't wait for it
 const releases = async (req: Request, res: Response) => {
   const manga: Manga = res.locals.manga;
-  // light novels aren't looked up yet: the catalog and MangaUpdates only know
-  // the manga, whose news would be wrong for them
-  if (manga.lightNovel) {
-    return res.json({ releaseData: null, releaseStatus: null, complete: true });
-  }
   // a problem here just means the default list
   const prefs = await userQueries
     .getPrefs(req.session.userId!)
@@ -285,6 +281,32 @@ const releases = async (req: Request, res: Response) => {
   // switched off in settings: no other site gets asked about this manga
   if (prefs?.releaseChecks === "off") {
     return res.json({ releaseData: null, releaseStatus: null, complete: true });
+  }
+  // a light novel's news is its English volumes alone: MangaDex, where the
+  // chapters and Japanese volumes come from, only has the manga
+  if (manga.lightNovel) {
+    // not found is an answer; failing or being slow is worth asking again
+    const series = await withTimeout(
+      getSeries(novelName(manga.name)).catch(() => undefined),
+      SERIES_TIMEOUT_MS,
+      undefined,
+    );
+    if (!series) {
+      return res.json({
+        releaseData: null,
+        releaseStatus: null,
+        complete: series === null,
+      });
+    }
+    return res.json({
+      releaseData: null,
+      releaseStatus: getReleaseStatus(
+        manga,
+        { dates: null, englishVolumes: series.volumes },
+        readReleaseSettings(prefs?.releases),
+      ),
+      complete: true,
+    });
   }
   // asked apart: AniList confirms which series this is on MangaDex, and is
   // usually answered from the database even when the catalog is being slow
@@ -469,16 +491,12 @@ const setOwned = [
   },
 ];
 
-// the cheapest known price for each manga on the shelf, for the cards. Prices
-// are the manga's, so a light novel by the same name gets none
+// the cheapest known price for each manga on the shelf, for the cards. A light
+// novel is priced as the novel, never as the manga of the same name
 const shelfPrices = async (req: Request, res: Response) => {
   const manga = await mangaQueries.getShelf(req.session.userId!);
   res.json(
-    await getShelfPrices(
-      manga
-        .filter((m) => !m.lightNovel)
-        .map((m) => ({ id: m.id, name: m.name })),
-    ),
+    await getShelfPrices(manga.map((m) => ({ id: m.id, name: priceName(m) }))),
   );
 };
 
@@ -487,16 +505,18 @@ const match = [
   query("series").trim().isLength({ min: 2, max: 150 }),
   rejectInvalid,
   async (req: Request, res: Response) => {
-    // the volume pages are the manga's: a light novel by the same name isn't it
-    const manga = (await mangaQueries.getShelf(req.session.userId!)).filter(
-      (m) => !m.lightNovel,
-    );
-    const found = await findOnShelf(manga, matchedData(req).series);
+    // the series asked about is the manga's or, named "… Light Novel", the
+    // novel's: each only finds itself on the shelf
+    const series: string = matchedData(req).series;
+    const manga = (await mangaQueries.getShelf(req.session.userId!))
+      .filter((m) => Boolean(m.lightNovel) === isNovelName(series))
+      .map((m) => ({ ...m, shelfName: m.name, name: priceName(m) }));
+    const found = await findOnShelf(manga, series);
 
     res.json(
       found && {
         id: found.id,
-        name: found.name,
+        name: found.shelfName,
         bookmark: found.bookmark,
         status: found.status,
         planned: found.planned,

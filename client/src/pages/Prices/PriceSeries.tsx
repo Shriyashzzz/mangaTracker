@@ -2,7 +2,7 @@ import ToReadButton from "../../components/toRead/ToReadButton";
 import { useEffect, useState, type FormEvent } from "react";
 import { NavLink, useParams, useSearchParams } from "react-router";
 import type { Series } from "../../lib/types";
-import { coverSrc, getSeries, hideBrokenCover } from "../../lib/prices";
+import { coverSrc, getSeries, hideBrokenCover, novelParts } from "../../lib/prices";
 import { useFromShelf } from "../../lib/fromShelf";
 import BackToNew from "./BackToNew";
 import VolumeCard from "./VolumeCard";
@@ -121,6 +121,8 @@ export default function PriceSeries() {
       ?.scrollIntoView({ behavior: "smooth", block: "start" });
   };
 
+  // a light novel's series is "Overlord Light Novel": shown as Overlord, tagged
+  const named = novelParts(info?.name ?? data.name);
   return (
     <div className={`${styles.page} fade-in`}>
       {fromShelf && <BackToNew />}
@@ -129,7 +131,7 @@ export default function PriceSeries() {
           Price check
         </NavLink>
         <span aria-hidden>/</span>
-        <span aria-current="page">{info?.name ?? data.name}</span>
+        <span aria-current="page">{named.title}</span>
       </nav>
 
       <header className={styles.seriesHead}>
@@ -156,7 +158,12 @@ export default function PriceSeries() {
           />
         )}
         <div className={styles.seriesCopy}>
-          <h1 className={styles.volumeTitle}>{info?.name ?? data.name}</h1>
+          <h1 className={styles.volumeTitle}>{named.title}</h1>
+          {named.lightNovel && (
+            <p className={styles.isbn}>
+              <span className={styles.tag}>Light novel</span>
+            </p>
+          )}
           {info && <SeriesFacts info={info} />}
           <ToReadButton
             name={info?.name ?? data.name}

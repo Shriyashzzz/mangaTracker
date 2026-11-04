@@ -157,6 +157,8 @@ export type SeriesHit = {
   status?: string | null;
   coverUrl: string | null;
   thumbUrl?: string | null;
+  // a light novel, named "… Light Novel" (see novelParts in lib/prices)
+  lightNovel?: boolean;
 };
 
 export type CatalogBook = {

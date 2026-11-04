@@ -151,3 +151,22 @@ export const hideBrokenCover = (e: SyntheticEvent<HTMLImageElement>) => {
     COVER_RETRY_MS * (tries + 1),
   );
 };
+
+// ---------- light novels ----------
+// a light novel's prices are kept apart from the manga of the same name: the
+// price checker calls the novel "Overlord Light Novel" and its volumes
+// "Overlord Light Novel, Vol. 3" (server/src/prices/lightNovel.ts)
+const NOVEL = /\s+light\s+novel(?=,|$)/i;
+
+export const priceName = (manga: { name: string; lightNovel?: boolean }) =>
+  manga.lightNovel && !NOVEL.test(manga.name)
+    ? `${manga.name} Light Novel`
+    : manga.name;
+
+// for showing: "Overlord Light Novel, Vol. 3" is "Overlord, Vol. 3", a light
+// novel; anything else is as it is
+export const novelParts = (title: string) => ({
+  title: title.replace(NOVEL, ""),
+  lightNovel: NOVEL.test(title),
+});
+
