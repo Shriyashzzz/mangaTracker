@@ -92,7 +92,7 @@ export default function Header() {
     <header className="relative z-30 border-b-[3px] border-double border-line bg-paper">
       <div className="px-gutter mx-auto flex h-[62px] max-w-page items-center gap-4">
         <NavLink
-          to={isSignedIn ? "/shelf" : "/prices"}
+          to={isSignedIn ? "/shelf" : "/"}
           viewTransition
           className="tap group mr-auto flex items-center gap-[0.55rem] font-brand text-[1.6rem] leading-none tracking-[1px]"
         >
