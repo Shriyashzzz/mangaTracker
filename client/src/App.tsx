@@ -8,6 +8,7 @@ import Header from "./layouts/header/Header";
 import Footer from "./layouts/Footer/Footer";
 import DeletedNote from "./components/deletedNote/DeletedNote";
 import SupportPeek from "./components/supportPeek/SupportPeek";
+import ImportPeek from "./components/importPeek/ImportPeek";
 import Tour from "./components/tour/Tour";
 import { isDemo } from "./lib/demo";
 import { useAuth } from "./store/auth";
@@ -48,6 +49,7 @@ export default function App() {
       <Footer />
       <DeletedNote />
       {isDemo() ? <Tour /> : <SupportPeek />}
+      {!isDemo() && <ImportPeek />}
       <ScrollRestoration />
     </>
   );

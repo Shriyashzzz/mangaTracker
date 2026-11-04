@@ -13,6 +13,7 @@ import {
   volumePath,
   seriesPath,
   seriesTitle,
+  novelParts,
   timeAgo,
 } from "../../lib/prices";
 import SeriesFacts from "./SeriesFacts";
@@ -151,6 +152,10 @@ export default function PriceVolume() {
     storeLinks,
   } = state.data;
   const seriesLabel = series.info?.name ?? series.name;
+  // a light novel's are named "Overlord Light Novel, Vol. 3": shown as the
+  // series' own name, tagged
+  const shownSeries = novelParts(seriesLabel).title;
+  const shownBook = novelParts(book.title);
   // set in settings: they only want physical copies
   const hideEbooks = readLocal("hideEbooks") === "yes";
   const inCanada = country === "ca";
@@ -206,11 +211,11 @@ export default function PriceVolume() {
           viewTransition
           {...stayInTrip(fromShelf)}
         >
-          {seriesLabel}
+          {shownSeries}
         </NavLink>
         <span aria-hidden>/</span>
         <span aria-current="page">
-          {volume != null ? `Vol. ${volume}` : book.title}
+          {volume != null ? `Vol. ${volume}` : shownBook.title}
         </span>
       </nav>
 
@@ -230,7 +235,7 @@ export default function PriceVolume() {
         </figure>
 
         <header className={styles.volumeHead}>
-          <h1 className={styles.volumeTitle}>{book.title}</h1>
+          <h1 className={styles.volumeTitle}>{shownBook.title}</h1>
           <p className={styles.volumeMeta}>
             {[book.authors, book.publisher, book.year]
               .filter(Boolean)
@@ -239,6 +244,9 @@ export default function PriceVolume() {
           <p className={styles.isbn}>
             {volume != null && (
               <span className={styles.tag}>Vol. {volume}</span>
+            )}
+            {shownBook.lightNovel && (
+              <span className={styles.tag}>Light novel</span>
             )}
             <span className={styles.tag}>ISBN-13 {book.isbn13}</span>
           </p>
@@ -249,7 +257,7 @@ export default function PriceVolume() {
               viewTransition
               {...stayInTrip(fromShelf)}
             >
-              {seriesLabel}
+              {shownSeries}
             </NavLink>
           </p>
           {/* US numbers: not shown when they're looking at Canadian prices */}

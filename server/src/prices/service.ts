@@ -21,6 +21,7 @@ import {
   searchSeries,
 } from "./sources/anilist.js";
 import {
+  isNovelBook,
   isSingleVolume,
   normalize,
   seriesName,
@@ -38,6 +39,8 @@ import {
 } from "./stores/storeLinks.js";
 import { editionCoverId } from "./sources/covers.js";
 import { dropUnlikelyNew } from "./stores/retailers.js";
+import { baseName, isNovelName, novelName } from "./lightNovel.js";
+import { volumesKey } from "./volumesKey.js";
 import type { CatalogBook, Offer, SeriesInfo } from "./types.js";
 
 export { searchSeries };
@@ -116,11 +119,28 @@ async function refreshIfStale(isbn13: string, book: Book) {
   return null;
 }
 
-// the stored book, or the catalog's answer stored for next time
+// the stored book, or the catalog's answer stored for next time. A series
+// list that holds this ISBN has the last word on its name and format: it saw
+// the English edition (where the ISBN's own record can be Japanese) and told
+// the novel from the manga by length. A book stored under the other format is
+// renamed to match
 async function getOrCreateBook(isbn13: string) {
-  const stored = await priceQueries.getBook(isbn13);
+  const [stored, saved] = await Promise.all([
+    priceQueries.getBook(isbn13),
+    priceQueries.getSavedVolume(isbn13).catch(() => null),
+  ]);
+  if (stored && saved && isNovelBook(saved.title) !== isNovelBook(stored.title)) {
+    await priceQueries.upsertBook({ ...stored, title: saved.title });
+    return priceQueries.getBook(isbn13);
+  }
   if (stored) return stored;
-  const found = await lookupIsbn(isbn13);
+  // the catalog being down shouldn't break a page the series list can name
+  const found =
+    saved ??
+    (await lookupIsbn(isbn13).catch((e: Error) => {
+      console.error("ISBN lookup failed:", e.message);
+      return null;
+    }));
   if (!found) return null;
   await priceQueries.upsertBook(found);
   return priceQueries.getBook(isbn13);
@@ -135,8 +155,10 @@ export async function getVolumePrices(isbn13: string, { refresh = true } = {}) {
   // paid searches only for a volume of a series AniList knows, as the catalog
   // lists it: anyone can open a page for any ISBN, and made-up or unrelated
   // ones mustn't spend the month's searches
+  // a light novel AniList doesn't list (Solo Leveling's) still counts when the
+  // catalog lists the volume as one of the novel's
   const known =
-    Boolean(series.info) &&
+    (Boolean(series.info) || isNovelName(series.name)) &&
     series.volumes.some((v) => v.isbn13.trim() === isbn13);
   const checked = refresh && known ? await refreshIfStale(isbn13, book) : null;
 
@@ -202,13 +224,36 @@ const seriesVolumesCache = new Map<
 export const mergeVolumes = (known: CatalogBook[], found: CatalogBook[]) => {
   const byNumber = new Map(known.map((v) => [v.volume, v]));
   for (const v of found) byNumber.set(v.volume, v);
-  return [...byNumber.values()].sort((a, b) => (a.volume ?? 0) - (b.volume ?? 0));
+  return [...byNumber.values()].sort(
+    (a, b) => (a.volume ?? 0) - (b.volume ?? 0),
+  );
 };
+
+
+
+// Open Library often can't say which format a book is: the Shield Hero novels
+// are filed as "Comics & graphic novels", like the manga. Length can: light
+// novels run about 230 to 400 pages, manga volumes about 130 to 200. Only
+// used for a series that has both, so a long manga with no novel (Vinland
+// Saga's 450-page hardcovers) is never touched
+const NOVEL_PAGES = 230;
+const isLong = (v: CatalogBook) => (v.pages ?? 0) >= NOVEL_PAGES && !v.comic;
+
+// a light novel by exactly this name. AniList's search answers almost any
+// name with some novel ("Berserk" -> Berserk: The Flame Dragon Knight), and
+// treating that as Berserk's own would drop its long volumes from the manga
+const sameSeries = (a: string, b: string) => seriesOf(a) === seriesOf(b);
+async function hasLightNovel(name: string) {
+  const info = await getSeriesInfo(novelName(name)).catch(() => null);
+  if (!info) return false;
+  return [info.name, ...info.altNames].some((n) => sameSeries(baseName(n), name));
+}
 
 async function seriesVolumes(
   name: string,
 ): Promise<{ volumes: CatalogBook[]; incomplete: boolean }> {
-  const key = seriesOf(name);
+  const series = seriesOf(name);
+  const key = volumesKey(name);
   // memory first, then the database, which outlives a restart. A database
   // problem just means asking the catalog
   const hit =
@@ -223,15 +268,28 @@ async function seriesVolumes(
   }
 
   // two free catalog queries merged: the plain one finds more, the quoted
-  // title one is more precise. Long runners can have 100+ volumes
-  const results = await Promise.allSettled([
-    searchVolumesDetailed(name, { max: 250, timeoutMs: 20000, seriesName: name }),
-    searchVolumesDetailed(`title:"${name.replace(/"/g, "")}"`, {
-      max: 250,
-      timeoutMs: 20000,
-      seriesName: name,
-    }),
+  // title one is more precise. Long runners can have 100+ volumes. A light
+  // novel's editions mostly go by the manga's name ("Overlord, Vol. 3"), so
+  // the quoted one is the base name either way
+  const novel = isNovelName(name);
+  const quoted = `title:"${baseName(name).replace(/"/g, "")}"`;
+  // a manga whose series has a novel too: its long books are the novel's
+  const [results, hasNovel] = await Promise.all([
+    Promise.allSettled([
+      searchVolumesDetailed(name, {
+        max: 250,
+        timeoutMs: 20000,
+        seriesName: name,
+      }),
+      searchVolumesDetailed(quoted, {
+        max: 250,
+        timeoutMs: 20000,
+        seriesName: name,
+      }),
+    ]),
+    novel ? Promise.resolve(true) : hasLightNovel(name),
   ]);
+  const base = seriesOf(baseName(name));
   const found = results.flatMap((r) =>
     r.status === "fulfilled" ? r.value.books : [],
   );
@@ -245,8 +303,14 @@ async function seriesVolumes(
   );
 
   const byNumber = new Map<number, CatalogBook>();
-  for (const v of found) {
-    if (seriesOf(v.title) !== key || v.volume === null) continue;
+  for (const found1 of found) {
+    let v = found1;
+    // a long book under the manga's name is the novel's
+    const unmarked =
+      seriesOf(v.title) === base && v.volume !== null && isLong(v);
+    if (novel && unmarked) v = { ...v, title: `${name}, Vol. ${v.volume}` };
+    if (!novel && hasNovel && unmarked) continue;
+    if (seriesOf(v.title) !== series || v.volume === null) continue;
     // "Kaiju No. 8" alone is the series, not its eighth volume
     if (normalize(v.title) === normalize(name)) continue;
     // a set is only ever sold as a set, so it can't stand in for one volume
@@ -528,7 +592,9 @@ export async function getHighlights() {
   ]);
   // the same believable price the volume's own page shows, so a fake one can't
   // headline as a deal
-  const known = await priceQueries.getKnownPrices(latest.map((r) => r.isbn13.trim()));
+  const known = await priceQueries.getKnownPrices(
+    latest.map((r) => r.isbn13.trim()),
+  );
   const recent = latest.flatMap((r) => {
     const price = known.get(r.isbn13.trim());
     return price ? [{ ...r, priceCents: price.priceCents }] : [];

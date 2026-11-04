@@ -125,20 +125,45 @@ export type ImportTotals = {
   noCover: number;
 };
 
+// one piece, tried again once after a pause if the connection dropped or the
+// server was busy. Trying again is safe: anything already added is skipped
+async function sendPiece(entries: MalEntry[]): Promise<Response> {
+  for (const pause of [0, 5000]) {
+    if (pause) await new Promise((done) => setTimeout(done, pause));
+    const res = await apiFetch("/api/manga/import", {
+      method: "POST",
+      body: { entries },
+    }).catch(() => null);
+    if (res && (res.ok || (res.status < 500 && res.status !== 429))) return res;
+    if (pause && res) return res;
+  }
+  throw new Error("The connection dropped");
+}
+
 // a piece at a time, so a long list shows progress. Stops at the first failure
-// with the totals so far; trying again skips what's already been added
+// with the totals so far and what went wrong; trying again skips what's
+// already been added
 export async function sendToShelf(
   entries: MalEntry[],
   onProgress: (done: number, totals: ImportTotals) => void,
+  // asked to stop: the piece being sent finishes, the rest aren't sent
+  shouldStop: () => boolean = () => false,
 ) {
   const totals: ImportTotals = { added: 0, alreadyThere: 0, noCover: 0 };
-  for (let i = 0; i < entries.length; i += PIECE) {
+  for (let i = 0; i < entries.length && !shouldStop(); i += PIECE) {
     const piece = entries.slice(i, i + PIECE);
-    const res = await apiFetch("/api/manga/import", {
-      method: "POST",
-      body: { entries: piece },
+    const res = await sendPiece(piece).catch((e: Error) => {
+      throw Object.assign(e, { totals });
     });
-    if (!res.ok) throw Object.assign(new Error("Import failed"), { totals });
+    if (!res.ok) {
+      const data = (await res.json().catch(() => null)) as {
+        error?: { msg?: string }[];
+      } | null;
+      throw Object.assign(
+        new Error(data?.error?.[0]?.msg ?? "Import failed"),
+        { totals },
+      );
+    }
     const answer = (await res.json()) as ImportTotals;
     totals.added += answer.added;
     totals.alreadyThere += answer.alreadyThere;

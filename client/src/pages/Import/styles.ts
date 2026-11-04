@@ -52,6 +52,12 @@ export const importStyles = {
   actions: "mt-5 flex flex-wrap items-center gap-3",
 
   progressLine: "font-medium",
+  // how far it's got, with Stop import beside it (under it on phones)
+  matchingLine:
+    "mt-3 flex flex-wrap items-center justify-between gap-x-4 gap-y-2 [&>p]:mt-0",
+  stop: "btn btn-secondary btn-sm",
+  stopYes: "btn btn-danger btn-sm",
+  stopAsk: "flex flex-wrap items-center gap-2 text-[0.9rem] font-medium",
   bar: "mt-2 h-2.5 overflow-hidden border-[1.5px] border-line bg-paper",
   barFill:
     "h-full bg-accent transition-[width] duration-300 ease-ink motion-reduce:transition-none",

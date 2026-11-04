@@ -6,6 +6,7 @@ import config from "../../config/config.js";
 import { prisma } from "../../config/prisma.js";
 import priceQueries from "../../models/priceQueries.js";
 import { searchSerpApi, serpApiEnabled } from "../providers/serpapiClient.js";
+import { shoppingQuery } from "../stores/match.js";
 import {
   EBAY_CA,
   ebayAffiliateUrl,
@@ -208,7 +209,7 @@ async function checkCanadaPrices(
   const [shopping, ebay] = await Promise.all([
     search<{ error?: string; shopping_results?: CaShoppingResult[] }>({
       engine: "google_shopping",
-      q: `${title} manga`,
+      q: shoppingQuery(title),
       gl: "ca",
       hl: "en",
       google_domain: "google.ca",

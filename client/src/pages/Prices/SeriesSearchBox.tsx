@@ -2,7 +2,14 @@ import { useEffect, useId, useRef, useState, type KeyboardEvent } from "react";
 import type { SeriesHit } from "../../lib/types";
 import { useNavigate } from "react-router";
 import { SearchIcon } from "../../components/icons/Icons";
-import { asIsbn, searchSeries, seriesPath } from "../../lib/prices";
+import {
+  asIsbn,
+  coverSrc,
+  hideBrokenCover,
+  novelParts,
+  searchSeries,
+  seriesPath,
+} from "../../lib/prices";
 import { pricesStyles as styles } from "./styles";
 import { isMobile } from "react-device-detect";
 import { hasBottomBar } from "../../lib/bottomBar";
@@ -179,14 +186,19 @@ export default function SeriesSearchBox({
                 onMouseEnter={() => setActive(i)}
               >
                 <span className={styles.suggestThumb}>
-                  {s.thumbUrl && <img src={s.thumbUrl} alt="" />}
+                  {s.thumbUrl && (
+                    <img src={coverSrc(s.thumbUrl)} alt="" onError={hideBrokenCover} />
+                  )}
                 </span>
                 <span className={styles.suggestText}>
-                  <span className={styles.suggestName}>{s.name}</span>
+                  <span className={styles.suggestName}>
+                    {novelParts(s.name).title}
+                  </span>
                   <span className={styles.suggestMeta}>
                     {[
+                      s.lightNovel && "Light novel",
                       s.year,
-                      s.volumes && `${s.volumes} volumes`,
+                      s.volumes && `${s.volumes} volume${s.volumes === 1 ? "" : "s"}`,
                       s.score && `Score ${s.score}`,
                     ]
                       .filter(Boolean)

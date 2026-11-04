@@ -35,9 +35,36 @@ export const seriesName = (title: string) =>
     .replace(/\s+/g, " ")
     .trim();
 
+// a light novel's volumes are named "Overlord Light Novel, Vol. 3" (see
+// prices/lightNovel.ts); a store lists it as "Overlord, Vol. 3 (light novel)"
+// or plain "Overlord, Vol. 3". So the series is compared by its own name, and
+// the format on its own
+// "Light novel", "(LN)", "LN Vol. 3" or a bare "Novel", but not "Graphic novel"
+export const SAYS_NOVEL = /\blight\s*novels?\b|\bln\b|(?<!graphic\s)\bnovels?\b/gi;
+const SAYS_MANGA = /\b(manga|comics?|graphic novels?)\b/i;
+export const isNovelBook = (bookTitle: string) =>
+  /\blight novel$/i.test(seriesName(bookTitle));
+
+// what a shopping search is asked: "manga" steers it off novels and art books
+// of the same name, so a light novel's own title ("… Light Novel, Vol. 3")
+// goes without it
+export const shoppingQuery = (bookTitle: string) =>
+  isNovelBook(bookTitle) ? bookTitle : `${bookTitle} manga`;
+const seriesWords = (title: string) => seriesOf(title.replace(SAYS_NOVEL, " "));
+// a listing that names the other format: "(manga)" for a novel's volume, or
+// "(light novel)" for a manga's
+const otherFormat = (listingTitle: string, bookTitle: string) => {
+  const saysNovel = (text: string) => new RegExp(SAYS_NOVEL.source, "i").test(text);
+  const novel = saysNovel(listingTitle);
+  if (isNovelBook(bookTitle)) return !novel && SAYS_MANGA.test(listingTitle);
+  // "The Novel's Extra" is a manga: its own name can't count against it
+  return novel && !saysNovel(seriesName(bookTitle));
+};
+
 // exact series match, for clean catalog titles (Google Books)
 export const sameVolume = (a: string, b: string) =>
-  seriesOf(a) === seriesOf(b) &&
+  !otherFormat(a, b) &&
+  seriesWords(a) === seriesWords(b) &&
   (volumeOf(a) === volumeOf(b) || (isNaN(volumeOf(a)) && isNaN(volumeOf(b))));
 
 // box sets, bundles and "vols 1-3" never count as a single volume
@@ -67,7 +94,8 @@ export const namesOtherVolume = (listingTitle: string, bookTitle: string) => {
 // the volume number must match
 export const listingMatches = (listingTitle: string, bookTitle: string) => {
   if (MULTI_VOLUME.test(listingTitle)) return false;
-  const series = seriesOf(bookTitle);
+  if (otherFormat(listingTitle, bookTitle)) return false;
+  const series = seriesWords(bookTitle);
   const words = series.split(" ").filter((w) => w.length > 1);
   const listing = normalize(listingTitle);
   if (!words.every((w) => listing.includes(w))) return false;

@@ -14,7 +14,7 @@ import BuyStrip from "./BuyStrip";
 import ReleaseBar from "./ReleaseBar";
 import ChapterStepper from "./ChapterStepper";
 import { useBuyOptions } from "./useBuyOptions";
-import { formatCents, volumePath } from "../../lib/prices";
+import { formatCents, priceName, volumePath } from "../../lib/prices";
 
 const DIDNT_SAVE = "That didn't save. Try again.";
 
@@ -63,12 +63,10 @@ export default function Details() {
     }
   }, [confirmDelete]);
   const navigate = useNavigate();
-  // prices are for manga: a light novel by the same name would get the manga's
   const loadedId = mangaData?.id;
-  // no release news or prices for light novels yet
-  const lightNovel = Boolean(mangaData?.lightNovel);
+  // a light novel's prices are the novel's, never the manga of the same name
   const buyOptions = useBuyOptions(
-    mangaData?.lightNovel ? null : (mangaData?.name ?? null),
+    mangaData ? priceName(mangaData) : null,
     mangaData?.volumesOwned ?? null,
   );
 
@@ -102,8 +100,8 @@ export default function Details() {
   // can take a few seconds, so the page doesn't wait for it. Nice to have: the
   // panel just doesn't appear if this fails
   useEffect(() => {
-    // once it's loaded: light novels aren't looked up yet
-    if (!checksOn || loadedId == null || lightNovel) return;
+    // once it's loaded
+    if (!checksOn || loadedId == null) return;
     const controller = new AbortController();
     getReleases(Number(id), controller.signal)
       .then((found) => {
@@ -112,7 +110,7 @@ export default function Details() {
       })
       .catch(() => {});
     return () => controller.abort();
-  }, [id, chapterSaves, checksOn, loadedId, lightNovel]);
+  }, [id, chapterSaves, checksOn, loadedId]);
 
   const handleDeleteManga = async () => {
     setBusy(true);
@@ -326,7 +324,9 @@ export default function Details() {
               >
                 {mangaStatus ? "Finished" : planned ? "To read" : "Reading"}
               </li>
-              {lightNovel && <li className={styles.metaGenre}>Light novel</li>}
+              {mangaData.lightNovel && (
+                <li className={styles.metaGenre}>Light novel</li>
+              )}
               {genre && <li className={styles.metaGenre}>{genre}</li>}
             </ul>
           </header>

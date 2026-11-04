@@ -31,7 +31,12 @@ export const pricesStyles = {
     "absolute top-3 right-3 block aspect-square w-16 overflow-hidden rounded-full border-2 border-line bg-card px-1.5 pt-1.5 upto-520:w-11 upto-520:px-1 upto-520:pt-1",
   halfTitle:
     "pr-12 font-brand text-[clamp(1.6rem,4vw,2.6rem)] leading-[1] font-normal tracking-[0.02em] uppercase",
-  halfActions: "mt-auto flex flex-wrap items-center gap-3 pt-2 upto-720:pt-0.5",
+  // one row: all three on wider screens, the two that show on phones
+  halfActions:
+    "half-actions mt-auto flex flex-nowrap items-center gap-2 pt-2 upto-720:gap-2 upto-720:pt-0.5",
+
+  halfButton:
+    "half-button min-w-0 px-[0.75rem] upto-720:h-[38px] upto-720:px-[0.7rem] upto-720:text-[0.875rem]",
   searchHead:
     "speed-burst flex flex-col gap-3 border-3 border-line p-[clamp(1.25rem,3vw,2rem)]",
   title:

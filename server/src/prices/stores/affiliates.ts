@@ -43,7 +43,9 @@ export function ebayAffiliateUrl<T extends string | null | undefined>(
   link.searchParams.set("mkrid", site.rotationId);
   link.searchParams.set("siteid", site.siteId);
   link.searchParams.set("campid", campid);
+  // someone else's label never stays on our link
   if (source) link.searchParams.set("customid", source);
+  else link.searchParams.delete("customid");
   link.searchParams.set("toolid", "10001");
   link.searchParams.set("mkevt", "1"); // a click
   return link.toString() as T;

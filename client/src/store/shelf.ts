@@ -148,13 +148,6 @@ export const useShelf = create<ShelfState>()((set, get) => ({
         if (!next) break;
         const isRetry = next.id in releases;
         if (isRetry) retried.add(next.id);
-        // light novels aren't looked up yet: the server's answer is always none
-        if (next.lightNovel) {
-          incomplete.delete(next.id);
-          set((state) => ({ releases: { ...state.releases, [next.id]: null } }));
-          continue;
-        }
-
         const found = await askAbout(next.id, controller.signal);
         if (controller.signal.aborted) return;
 

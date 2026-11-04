@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { NavLink, useLocation } from "react-router";
 import { signInPath } from "../../lib/api";
 import { findOnShelf, setVolumesOwned } from "../../lib/shelf";
+import { novelParts } from "../../lib/prices";
 import { pricesStyles as styles } from "./styles";
 import type { ShelfMatch } from "../../lib/types";
 import { useAuth } from "../../store/auth";
@@ -75,7 +76,10 @@ export default function ShelfAction({ series, title, volume }: Props) {
 
   const manga = match.manga;
   if (!manga) {
-    const params = new URLSearchParams({ title });
+    // a light novel comes in as one, under its own name
+    const novel = novelParts(title);
+    const params = new URLSearchParams({ title: novel.title });
+    if (novel.lightNovel) params.set("format", "novel");
     if (volume != null) params.set("volumesOwned", String(volume));
     return (
       <NavLink to={`/add?${params}`} className="btn btn-primary" viewTransition>

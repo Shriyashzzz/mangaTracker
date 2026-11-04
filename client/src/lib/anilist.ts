@@ -132,28 +132,209 @@ export async function searchCovers(
 // ---------- matching an imported series ----------
 
 // a light novel only when the book says so: otherwise a novel by the same name
-// would win over the manga
+// would win over the manga. Five results, not one: AniList's top result for
+// "Fairy Tail" can be something else that mentions it (matchFrom picks)
 const MATCH_QUERY = `
   query ($search: String, $novel: Boolean!) {
-    manga: Media(search: $search, type: MANGA, format_not: NOVEL, sort: SEARCH_MATCH) @skip(if: $novel) {
-      idMal
-      title { english romaji }
-      coverImage { extraLarge large }
+    manga: Page(perPage: 5) @skip(if: $novel) {
+      media(search: $search, type: MANGA, format_not: NOVEL, sort: SEARCH_MATCH) {
+        ...match
+      }
     }
-    novel: Media(search: $search, type: MANGA, format: NOVEL, sort: SEARCH_MATCH) @include(if: $novel) {
-      idMal
-      title { english romaji }
-      coverImage { extraLarge large }
+    novel: Page(perPage: 5) @include(if: $novel) {
+      media(search: $search, type: MANGA, format: NOVEL, sort: SEARCH_MATCH) {
+        ...match
+      }
     }
+  }
+  fragment match on Media {
+    id
+    idMal
+    popularity
+    synonyms
+    title { english romaji native }
+    coverImage { extraLarge large }
   }
 `;
 
+export type MatchCandidate = {
+  id: number;
+  idMal: number | null;
+  popularity: number | null;
+  synonyms: string[] | null;
+  title: { english: string | null; romaji: string | null; native: string | null };
+  coverImage?: { extraLarge?: string | null; large?: string | null } | null;
+};
+
+// names compared without case, spacing or punctuation. "×" is "x", "&" is
+// "and", a leading "The" or "A" doesn't count, and long vowels are spelt the
+// way AniList's romaji spells them: "Fushigi Yûgi" is "Fushigi Yuugi"
+const plain = (name: string) =>
+  name
+    .normalize("NFKC")
+    .toLowerCase()
+    .replace(/[ûū]/g, "uu")
+    .replace(/[ôō]/g, "ou")
+    .normalize("NFKD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .normalize("NFKC")
+    .replace(/×/g, "x")
+    .replace(/&/g, " and ")
+    .replace(/^\s*(the|a|an)\s+/, "")
+    .replace(/[^\p{L}\p{N}]+/gu, "");
+
+// a guess is only trusted when one name starts with the other, and they share
+// at least this much: "Crying Freeman: Portrait of a Killer" is Crying Freeman,
+// but "Saga" isn't "New Saga" and "Rave" isn't "Rave!! Betrayal"
+const SHARED_AT_LEAST = 5;
+
+const namesOf = (m: MatchCandidate) =>
+  [m.title.english, m.title.romaji, m.title.native, ...(m.synonyms ?? [])].filter(
+    (n): n is string => Boolean(n),
+  );
+const titlesOf = (m: MatchCandidate) => namesOf(m).map(plain).filter(Boolean);
+
+// "Chunchu: The Genocide Fiend" carries on from "Chunchu" after a colon, so
+// it's that series with its subtitle; "Justice Now!" just carries on, so it's
+// another title that happens to start the same
+const SUBTITLE_MARK = /^[\s]*[:\-–—/(~|]/;
+// or only says what it is: "RWBY: The Official" + "Manga"
+const JUST_THE_FORMAT = /^(the)?(manga|comics?|graphicnovel)$/;
+function subtitleAfter(name: string, wanted: string) {
+  // the original name, read until it has said as much as the search
+  for (let i = 0; i < name.length; i++) {
+    const said = plain(name.slice(0, i + 1));
+    if (said.length >= wanted.length) {
+      const rest = name.slice(i + 1);
+      return (
+        said === wanted &&
+        // "Negima!" goes on as "Negima! Magister Negi Magi"
+        (SUBTITLE_MARK.test(rest) ||
+          /^[!?.]/.test(rest) ||
+          JUST_THE_FORMAT.test(plain(rest)))
+      );
+    }
+  }
+  return false;
+}
+
+const morePopular = (a: MatchCandidate, b: MatchCandidate) =>
+  (b.popularity ?? 0) > (a.popularity ?? 0) ? b : a;
+
+// the one that's called exactly that (any of its titles), the most popular if
+// several are. Failing that, the one whose name the search starts with, or that
+// starts with the search, sharing the most; never anything else AniList offers
+export function matchFrom(
+  search: string,
+  results: MatchCandidate[],
+  exactOnly = false,
+) {
+  const wanted = plain(search);
+  const exact = results.filter((m) => titlesOf(m).includes(wanted));
+  let best = exact.length ? exact.reduce(morePopular) : undefined;
+  if (!best && !exactOnly && wanted.length >= SHARED_AT_LEAST) {
+    let shared = 0;
+    for (const m of results) {
+      for (const name of namesOf(m)) {
+        const t = plain(name);
+        if (t.length < SHARED_AT_LEAST) continue;
+        // the search is that name plus a subtitle, or that name is the search
+        // plus a subtitle
+        const fits =
+          (wanted.startsWith(t) && t !== wanted) ||
+          (t.startsWith(wanted) && subtitleAfter(name, wanted));
+        const length = Math.min(t.length, wanted.length);
+        // as good a fit as the last: the more popular one
+        const better =
+          length > shared ||
+          (length === shared && best && (m.popularity ?? 0) > (best.popularity ?? 0));
+        if (fits && better) {
+          shared = length;
+          best = m;
+        }
+      }
+    }
+  }
+  return best
+    ? {
+        anilistId: best.id,
+        malId: best.idMal,
+        name: best.title.english || best.title.romaji || search,
+        cover: best.coverImage?.extraLarge || best.coverImage?.large || null,
+      }
+    : null;
+}
+
+// AniList's own limit, from the headers on its last answer: how long to leave
+// between lookups so a long import never runs into it
+let limit = { perMinute: 30, remaining: 30, resetAt: 0 };
+export function aniListGapMs() {
+  if (limit.remaining <= 1 && limit.resetAt > Date.now())
+    return limit.resetAt - Date.now() + 500;
+  return Math.ceil(60_000 / Math.max(limit.perMinute, 1)) + 100;
+}
+const readLimit = (headers: Headers) => {
+  const perMinute = Number(headers.get("X-RateLimit-Limit"));
+  const remaining = Number(headers.get("X-RateLimit-Remaining"));
+  const reset = Number(headers.get("X-RateLimit-Reset"));
+  if (perMinute > 0) {
+    limit = {
+      perMinute,
+      remaining: Number.isFinite(remaining) ? remaining : perMinute,
+      resetAt: reset > 0 ? reset * 1000 : 0,
+    };
+  }
+};
+
 export class AniListBusy extends Error {
   waitSeconds: number;
-  constructor(waitSeconds: number) {
+  // no answer came back at all: the stricter limit, or no connection
+  unreachable: boolean;
+  constructor(waitSeconds: number, unreachable = false) {
     super("AniList asked us to slow down");
     this.waitSeconds = waitSeconds;
+    this.unreachable = unreachable;
   }
+}
+
+// Latin accents only, so Japanese keeps its voiced marks
+const withoutAccents = (text: string) =>
+  text.normalize("NFKD").replace(/[\u0300-\u036f]/g, "").normalize("NFKC");
+
+// AniList's top five for a name, manga or light novels. Throws AniListBusy
+// when it asks to slow down (or can't be reached)
+export async function searchManga(
+  search: string,
+  signal?: AbortSignal,
+  novel = false,
+): Promise<MatchCandidate[] | null> {
+  const response = await fetch(ANILIST_URL, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Accept: "application/json" },
+    // AniList's search finds "Fushigi Yugi" but nothing for "Fushigi Yûgi"
+    body: JSON.stringify({
+      query: MATCH_QUERY,
+      variables: { search: withoutAccents(search), novel },
+    }),
+    signal,
+  }).catch((e: unknown) => {
+    if (signal?.aborted) throw e;
+    // AniList's stricter "slow down" (a minute) comes without the header that
+    // lets a browser read it, so it arrives as a failed request: wait it out
+    throw new AniListBusy(60, true);
+  });
+  readLimit(response.headers);
+  if (response.status === 429) {
+    throw new AniListBusy(Number(response.headers.get("Retry-After")) || 30);
+  }
+  if (response.status === 404) return [];
+  // AniList having a moment: worth waiting a little, like a "slow down"
+  if (response.status >= 500) throw new AniListBusy(15);
+  if (!response.ok) throw new Error(`AniList responded ${response.status}`);
+  const { data } = (await response.json()) as {
+    data?: Record<"manga" | "novel", { media: MatchCandidate[] } | null | undefined>;
+  };
+  return (novel ? data?.novel : data?.manga)?.media ?? [];
 }
 
 // the manga (or light novel) a series name most likely is, with its MyAnimeList
@@ -163,40 +344,9 @@ export async function findManga(
   search: string,
   signal?: AbortSignal,
   novel = false,
-): Promise<{
-  malId: number | null;
-  name: string;
-  cover: string | null;
-} | null> {
-  const response = await fetch(ANILIST_URL, {
-    method: "POST",
-    headers: { "Content-Type": "application/json", Accept: "application/json" },
-    body: JSON.stringify({ query: MATCH_QUERY, variables: { search, novel } }),
-    signal,
-  });
-  if (response.status === 429) {
-    throw new AniListBusy(Number(response.headers.get("Retry-After")) || 30);
-  }
-  if (response.status === 404) return null;
-  if (!response.ok) throw new Error(`AniList responded ${response.status}`);
-  const { data } = (await response.json()) as {
-    data?: Record<
-      "manga" | "novel",
-      | {
-          idMal: number | null;
-          title: { english: string | null; romaji: string };
-          coverImage?: { extraLarge?: string; large?: string };
-        }
-      | null
-      | undefined
-    >;
-  };
-  const media = novel ? data?.novel : data?.manga;
-  return media
-    ? {
-        malId: media.idMal,
-        name: media.title.english || media.title.romaji,
-        cover: media.coverImage?.extraLarge || media.coverImage?.large || null,
-      }
-    : null;
+  // only something called exactly that, not AniList's best guess
+  exactOnly = false,
+) {
+  const results = await searchManga(search, signal, novel);
+  return matchFrom(search, results ?? [], exactOnly);
 }

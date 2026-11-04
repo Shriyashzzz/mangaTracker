@@ -5,10 +5,13 @@ import { useAuth } from "../../store/auth";
 export default function TakeTourButton({
   large = false,
   small = false,
+  shortOnPhones = false,
   className,
 }: {
   large?: boolean;
   small?: boolean;
+  // "Try the demo →" on phones, where the full name won't fit beside another
+  shortOnPhones?: boolean;
   className?: string;
 }) {
   // signed in or not, anyone can take it; it remembers which to send them back to
@@ -22,7 +25,14 @@ export default function TakeTourButton({
       }
       onClick={() => startDemo(Boolean(isSignedIn))}
     >
-      Try Interactive Demo →
+      {shortOnPhones ? (
+        <>
+          <span className="upto-720:hidden">Try Interactive Demo →</span>
+          <span className="hidden upto-720:inline">Try the demo →</span>
+        </>
+      ) : (
+        "Try Interactive Demo →"
+      )}
     </button>
   );
 }

@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { NavLink, useLocation } from "react-router";
 import { apiFetch, signInPath } from "../../lib/api";
 import { pickGenre } from "../../lib/anilist";
+import { novelParts } from "../../lib/prices";
 import { useAuth } from "../../store/auth";
 import { useShelf } from "../../store/shelf";
 
@@ -47,8 +48,15 @@ export default function ToReadButton({
     ) : null;
   }
 
-  const names = [name, ...altNames].map(sameName);
-  const onShelf = shelf?.find((m) => names.includes(sameName(m.name)));
+  // a light novel's page names it "… Light Novel": it's the novel, under its
+  // own name, and only the novel counts as already there
+  const novel = novelParts(name);
+  const names = [name, ...altNames].map((n) => sameName(novelParts(n).title));
+  const onShelf = shelf?.find(
+    (m) =>
+      Boolean(m.lightNovel) === novel.lightNovel &&
+      names.includes(sameName(m.name)),
+  );
   if (onShelf) {
     return (
       <p className={line}>
@@ -66,9 +74,10 @@ export default function ToReadButton({
       const res = await apiFetch("/api/manga", {
         method: "POST",
         body: {
-          name: name.slice(0, 150),
+          name: novel.title.slice(0, 150),
           status: false,
           planned: true,
+          ...(novel.lightNovel ? { lightNovel: true } : {}),
           ...(cover ? { image: cover } : {}),
           ...(pickGenre(genres) ? { genre: pickGenre(genres) } : {}),
         },

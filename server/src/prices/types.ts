@@ -36,6 +36,11 @@ export type CatalogBook = {
   year: number | null;
   volume: number | null;
   coverUrl: string;
+  // how long the book is, when the catalog says: a light novel runs about 230
+  // to 400 pages, a manga volume about 130 to 200 (see service.ts)
+  pages?: number | null;
+  // the record says it's a comic ("(comic)", "(manga)"): never a novel
+  comic?: boolean;
 };
 
 // a series as AniList describes it, cached in series_info.info
@@ -63,4 +68,6 @@ export type SeriesHit = {
   status?: string | null;
   coverUrl: string | null;
   thumbUrl?: string | null;
+  // named "… Light Novel" (prices/lightNovel.ts)
+  lightNovel?: boolean;
 };
