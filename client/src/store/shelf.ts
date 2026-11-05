@@ -13,6 +13,7 @@ import {
 } from "../lib/shelf";
 import { releaseChecksOn, writeLocal } from "../lib/prefs";
 import type { Manga, ReleaseStatus } from "../lib/types";
+import { checkOrder, laneOf } from "../lib/releaseOrder";
 
 type ShelfState = {
   manga: Manga[] | null;
@@ -60,13 +61,13 @@ const retried = new Set<number>();
 
 // one title, given up on after a while so one stuck title can't stop the rest.
 // A plain timer: AbortSignal.any doesn't exist before iOS 17.4
-const askAbout = async (id: number, stop: AbortSignal) => {
+const askAbout = async (m: Manga, stop: AbortSignal) => {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), RELEASE_CHECK_TIMEOUT_MS);
   const abort = () => controller.abort();
   stop.addEventListener("abort", abort, { once: true });
   try {
-    return await getReleases(id, controller.signal);
+    return await getReleases(m.id, controller.signal, laneOf(m));
   } catch {
     return null;
   } finally {
@@ -134,7 +135,7 @@ export const useShelf = create<ShelfState>()((set, get) => ({
   },
 
   // one title at a time, since the server has to ask other sites about each one
-  // it hasn't seen lately
+  // it hasn't seen lately, most likely news first (lib/releaseOrder.ts)
   checkReleases: async () => {
     if (run || !releaseChecksOn()) return;
     const controller = new AbortController();
@@ -142,13 +143,14 @@ export const useShelf = create<ShelfState>()((set, get) => ({
     try {
       while (!controller.signal.aborted && releaseChecksOn()) {
         const { manga, releases } = get();
+        const ordered = checkOrder(manga ?? []);
         const next =
-          manga?.find((m) => !(m.id in releases)) ??
-          manga?.find((m) => incomplete.has(m.id) && !retried.has(m.id));
+          ordered.find((m) => !(m.id in releases)) ??
+          ordered.find((m) => incomplete.has(m.id) && !retried.has(m.id));
         if (!next) break;
         const isRetry = next.id in releases;
         if (isRetry) retried.add(next.id);
-        const found = await askAbout(next.id, controller.signal);
+        const found = await askAbout(next, controller.signal);
         if (controller.signal.aborted) return;
 
         if (found?.complete) incomplete.delete(next.id);
@@ -195,7 +197,10 @@ export const useShelf = create<ShelfState>()((set, get) => ({
             release && changed
               ? {
                   ...state.releases,
-                  [id]: { ...release, [flag]: isStillNew(kind, changed, release) },
+                  [id]: {
+                    ...release,
+                    [flag]: isStillNew(kind, changed, release),
+                  },
                 }
               : state.releases,
         };

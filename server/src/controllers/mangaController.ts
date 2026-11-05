@@ -271,10 +271,25 @@ const detail = (_req: Request, res: Response) => {
   res.json({ manga: res.locals.manga });
 };
 
+// a series that can't have news: AniList says it has finished, and they own
+// as many volumes as it has (its count is Japan's, so every English one too).
+// Finished reading isn't enough on its own: that's them, not the series
+export const nothingLeftToCheck = (
+  manga: Pick<Manga, "volumesOwned">,
+  info: { status?: string | null; volumes?: number | null } | null,
+) =>
+  info?.status === "FINISHED" &&
+  Boolean(info.volumes) &&
+  (manga.volumesOwned ?? 0) >= info.volumes!;
+
 // release dates and what's new in English for one manga. Its own route because
-// it can be slow, so the details page and the edit form don't wait for it
+// it can be slow, so the details page and the edit form don't wait for it.
+// The shelf says which lane (?lane=now or later) and skips what has nothing
+// left to check; the details page always asks, in "now"
 const releases = async (req: Request, res: Response) => {
   const manga: Manga = res.locals.manga;
+  const lane = req.query.lane === "later" ? "later" : "now";
+  const fromShelf = req.query.lane === "now" || req.query.lane === "later";
   // a problem here just means the default list
   const prefs = await userQueries
     .getPrefs(req.session.userId!)
@@ -286,6 +301,16 @@ const releases = async (req: Request, res: Response) => {
   // a light novel's news is its English volumes alone: MangaDex, where the
   // chapters and Japanese volumes come from, only has the manga
   if (manga.lightNovel) {
+    if (fromShelf) {
+      const novelInfo = await withTimeout(
+        getSeriesInfo(novelName(manga.name)).catch(() => null),
+        INFO_TIMEOUT_MS,
+        null,
+      );
+      if (nothingLeftToCheck(manga, novelInfo)) {
+        return res.json({ releaseData: null, releaseStatus: null, complete: true });
+      }
+    }
     // not found is an answer; failing or being slow is worth asking again
     const series = await withTimeout(
       getSeries(novelName(manga.name)).catch(() => undefined),
@@ -309,26 +334,30 @@ const releases = async (req: Request, res: Response) => {
       complete: true,
     });
   }
-  // asked apart: AniList confirms which series this is on MangaDex, and is
-  // usually answered from the database even when the catalog is being slow
-  const [info, series] = await Promise.all([
-    withTimeout(
-      getSeriesInfo(manga.name).catch(() => null),
-      INFO_TIMEOUT_MS,
-      null,
-    ),
-    // a catalog failure or a slow one only costs the volume half of the answer;
-    // if it's slow it carries on and is ready for the next check
+  // AniList first: it confirms which series this is on MangaDex, says whether
+  // it has finished, and is usually answered from the database
+  const info = await withTimeout(
+    getSeriesInfo(manga.name).catch(() => null),
+    INFO_TIMEOUT_MS,
+    null,
+  );
+  if (fromShelf && nothingLeftToCheck(manga, info)) {
+    return res.json({ releaseData: null, releaseStatus: null, complete: true });
+  }
+  // a catalog failure or a slow one only costs the volume half of the answer;
+  // if it's slow it carries on and is ready for the next check
+  const [series, dates] = await Promise.all([
     withTimeout(
       getSeries(manga.name).catch(() => null),
       SERIES_TIMEOUT_MS,
       null,
     ),
+    getCachedReleaseDates(
+      manga.name,
+      { anilistId: info?.anilistId, altNames: info?.altNames },
+      lane,
+    ),
   ]);
-  const dates = await getCachedReleaseDates(manga.name, {
-    anilistId: info?.anilistId,
-    altNames: info?.altNames,
-  });
   const releaseData = dates.ok && dates.data ? dates.data : null;
   if (!releaseData && !series) {
     return res.json({
