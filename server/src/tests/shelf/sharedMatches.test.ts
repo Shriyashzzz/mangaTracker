@@ -31,6 +31,7 @@ const CASES: [string, string | null, string, boolean][] = [
   ["Justice", "Justice Now!", "Justice Now!", false],
   ["Soulless", "The Soulless Duchess", "The Soulless Duchess", false],
   ["Darkstalkers", "Darkstalkers/Red Earth: Maleficarum", "Darkstalkers/Red Earth", false],
+  [".hack", ".hack//Legend of the Twilight", ".hack//Tasogare no Udewa Densetsu", false],
   ["Negima!", "Negima! Magister Negi Magi", "Mahou Sensei Negima!", false],
   ["RWBY The Official", "RWBY: The Official Manga", "RWBY: The Official Manga", false],
   ["One Piece", "One Piece Party", "One Piece Party", false],

@@ -7,7 +7,7 @@ import {
   toEntry,
 } from "../../../../client/src/lib/imports/bookImport.js";
 import { matchFrom, type MatchCandidate } from "../../../../client/src/lib/anilist.js";
-import { mergeSameSeries, searchFallbacks } from "../../../../client/src/lib/imports/bookImport.js";
+import { mergeBooks, mergeSameSeries, searchFallbacks } from "../../../../client/src/lib/imports/bookImport.js";
 
 const goodreads = (titles: string[]) =>
   readBooks(
@@ -628,4 +628,19 @@ test("a series named by its subtitle joins the full name in the same file", () =
   expect(seriesOf(["Fairy Tail: Zero, Vol. 1", "Zero, Vol. 2"])).toEqual([["Fairy Tail: Zero", 1], ["Zero", 2]]);
   // without the full name in the file, nothing joins
   expect(seriesOf(["Record of the Last Hero, Vol. 5"])).toEqual([["Record of the Last Hero", 5]]);
+});
+
+test("a subtitle-only name joins only a numbered volume the full series lacks", () => {
+  // a novel of the same name stays apart
+  expect(seriesOf(["Attack on Titan: Before the Fall, Vol. 1", "Attack on Titan: Before the Fall, Vol. 2", "Before the Fall"])).toEqual([["Attack on Titan: Before the Fall", 2], ["Before the Fall", 1]]);
+  // a number left on the name
+  expect(seriesOf(["Junk: Record of the Last Hero 3", "Junk: Record of the Last Hero 4", "Record of the Last Hero 5"])).toEqual([["Junk: Record of the Last Hero", 5]]);
+  // "The" in an edition's name comes off with it
+  expect(seriesOf(["Monster: The Perfect Edition, Vol. 1", "Monster: The Perfect Edition, Vol. 2"])).toEqual([["Monster", 2]]);
+});
+
+test("a subtitle-only name in one file joins the full name in another", () => {
+  const first = goodreads(["Junk: Record of the Last Hero, Vol. 3", "Junk: Record of the Last Hero, Vol. 4"]);
+  const second = goodreads(["Record of the Last Hero, Vol. 5"]);
+  expect(groupBooks(mergeBooks(first, second)).map((s) => [s.title, s.ownedVolumes])).toEqual([["Junk: Record of the Last Hero", 5]]);
 });
