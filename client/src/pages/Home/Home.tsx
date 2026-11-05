@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo, useRef } from "react";
+import ShelfBar from "./ShelfBar";
 import { ownedOf, ownedPhrase } from "../../lib/ownedVolumes";
 import VolumesView from "./VolumesView";
 import { createPortal } from "react-dom";
@@ -9,13 +10,7 @@ import MangaCard, {
 
 import { homeStyles as styles } from "./styles";
 import { NavLink, useNavigate, useSearchParams } from "react-router";
-import {
-  CheckIcon,
-  ChevronDownIcon,
-  PlusIcon,
-  SearchIcon,
-  StarIcon,
-} from "../../components/icons/Icons";
+import { CheckIcon, PlusIcon, StarIcon } from "../../components/icons/Icons";
 import RangePager from "../../components/rangePager/RangePager";
 import Mascot from "../../components/mascot/Mascot";
 import SlowLoadQuote from "../../components/slowLoadQuote/SlowLoadQuote";
@@ -165,7 +160,6 @@ function Library() {
   // the series whose grouped list is open
   const [openRelease, setOpenRelease] = useState<number | null>(null);
   // on small screens, search and sort fold away on the New tab so the news comes first
-  const [toolsOpen, setToolsOpen] = useState(false);
   // set in settings
   const [rowsChosen] = useState(() => readLocal("shelfView") === "rows");
   const hiddenCount = (mangaData ?? []).filter((m) =>
@@ -755,85 +749,22 @@ function Library() {
         </div>
       </div>
 
-      <div className={styles.toolbar}>
-        <div className={styles.tabs} role="group" aria-label="Status">
-          {tabs.map((t) => (
-            <button
-              key={t.value}
-              data-tour={t.value === "new" ? "tab-new" : undefined}
-              className={
-                statusFilter === t.value ? styles.tabActive : styles.tab
-              }
-              aria-pressed={statusFilter === t.value}
-              onClick={() => {
-                setStatusFilter(t.value);
-                writeSession("libraryStatus", t.value);
-                if (wantHidden) navigator("/shelf", { replace: true });
-              }}
-            >
-              {t.label}{" "}
-              {t.count != null && (
-                <span
-                  className={
-                    t.value === "new" && t.count > 0
-                      ? styles.countNew
-                      : styles.count
-                  }
-                >
-                  {/* series with anything new, which the views below each count
-                      their own way, so it can't look like a sum of them */}
-                  {t.value === "new" && t.count > 0
-                    ? `${t.count} series`
-                    : t.count}
-                </span>
-              )}
-              {t.value === "new" && t.count != null && t.count > 0 && (
-                <span className={styles.newStamp} aria-hidden>
-                  {t.count}
-                </span>
-              )}
-            </button>
-          ))}
-        </div>
-
-        <div
-          className={
-            showingNew && !toolsOpen && !query.trim()
-              ? styles.toolsFolded
-              : styles.tools
-          }
-        >
-          <label className={styles.search}>
-            <SearchIcon />
-            <span className="sr-only">Search your shelf</span>
-            <input
-              type="search"
-              placeholder="Find a title or genre"
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-            />
-          </label>
-          <label className={styles.sort}>
-            <span className="upto-520:sr-only">Sort</span>
-            <span className={styles.sortPick}>
-              <select
-                value={sortBy}
-                onChange={(e) => {
-                  setSortBy(e.target.value);
-                  writeSession("librarySort", e.target.value);
-                }}
-              >
-                {SORT_OPTIONS.map((o) => (
-                  <option key={o.value} value={o.value}>
-                    {o.label}
-                  </option>
-                ))}
-              </select>
-              <ChevronDownIcon className={styles.sortArrow} aria-hidden />
-            </span>
-          </label>
-        </div>
-      </div>
+      <ShelfBar
+        views={tabs}
+        current={statusFilter}
+        onPick={(value) => {
+          setStatusFilter(value);
+          writeSession("libraryStatus", value);
+          if (wantHidden) navigator("/shelf", { replace: true });
+        }}
+        query={query}
+        onQuery={setQuery}
+        sortBy={sortBy}
+        onSort={(value) => {
+          setSortBy(value);
+          writeSession("librarySort", value);
+        }}
+      />
 
       {/* pinned to the screen, since "Hide" is usually tapped far down the
           list. In a portal: the page's fade-in would otherwise pin it to the page */}
@@ -908,15 +839,6 @@ function Library() {
               </p>
             )}
             <div className={styles.releaseLinks}>
-              <button
-                type="button"
-                className={styles.searchToggle}
-                aria-expanded={toolsOpen}
-                onClick={() => setToolsOpen(!toolsOpen)}
-              >
-                <SearchIcon />
-                Search
-              </button>
               <NavLink
                 to="/new-releases"
                 className={styles.hiddenToggle}
