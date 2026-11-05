@@ -422,7 +422,7 @@ export default function Details() {
               {confirmDelete ? (
                 <span className={styles.confirm} role="alert">
                   Delete {mangaData.name} from your shelf? Your chapter, rating
-                  and notes go with it, though you'll get a moment to undo.
+                  and notes go with it!
                   <button
                     className={styles.confirmYes}
                     onClick={handleDeleteManga}
