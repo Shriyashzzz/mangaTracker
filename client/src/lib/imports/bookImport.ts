@@ -96,7 +96,10 @@ const tidy = (name: string) =>
     .replace(/\s+/g, " ")
     .replace(/[\s,:;.\-–—]+$/, "")
     // the format said in words: "Spice & Wolf: Manga", "Witch & Wizard: The Manga"
-    .replace(/[\s,:\-–—]+(the )?(manga|manhwa|light[\s-]?novels?|graphic novels?)$/i, "")
+    .replace(
+      /[\s,:\-–—]+(the )?(manga|manhwa|light[\s-]?novels?|graphic novels?)$/i,
+      "",
+    )
     // "English Version Attack on Titan"
     .replace(/^(english|japanese) (version|edition)\s+/i, "")
     // a "Vol" with its number lost: "Fairy Tail, Vol"
@@ -126,7 +129,20 @@ const NUMBER_WORDS = [
   "twelve",
 ];
 // "Vol. II"
-const ROMAN = ["i", "ii", "iii", "iv", "v", "vi", "vii", "viii", "ix", "x", "xi", "xii"];
+const ROMAN = [
+  "i",
+  "ii",
+  "iii",
+  "iv",
+  "v",
+  "vi",
+  "vii",
+  "viii",
+  "ix",
+  "x",
+  "xi",
+  "xii",
+];
 // in English, French (tome), Spanish and Italian (tomo) and German (Band)
 // and French "Gachiakuta T03"
 const VOLUME_WORD = String.raw`(?:vol(?:ume)?\.?|v\.|book|tome|tomo|band|bd\.|t(?=\d)|#)`;
@@ -195,7 +211,12 @@ function oneName(text: string, trailingNumber = true): Parsed {
     (tidy(text).match(TRAILING_NUMBER) ?? text.match(NUMBER_THEN_SUBTITLE));
   if (trailing && tidy(trailing[1]!)) {
     const series = tidy(trailing[1]!);
-    return { series, volume: Number(trailing[2]), names: [series], guessed: true };
+    return {
+      series,
+      volume: Number(trailing[2]),
+      names: [series],
+      guessed: true,
+    };
   }
   const series = tidy(text) || text.trim();
   return { series, volume: null, names: [series] };
@@ -264,7 +285,9 @@ const isName = (name: string) =>
   !LABEL.test(name) &&
   !NOT_A_NAME.test(name) &&
   // a title that's just "Volume 1" leaves "Volume", which names nothing
-  !/^(vol(ume)?|v|book|tome|tomo|band|bd|part|chapter|issue|no|number|t)\.?$/i.test(name) &&
+  !/^(vol(ume)?|v|book|tome|tomo|band|bd|part|chapter|issue|no|number|t)\.?$/i.test(
+    name,
+  ) &&
   !/^[^(]*\)/.test(name);
 
 // Book Catalogue's "Discworld (4)", several joined with "|": the first one counts
@@ -329,8 +352,14 @@ const stars = (value: string) => {
 
 export const isGoodreads = (headers: string[]) =>
   headers.includes("Exclusive Shelf") && headers.includes("Book Id");
+// its own columns: newer versions have series_details and book_uuid, and every
+// version names its authors and shelves its own way. A plain "title" isn't
+// enough: a spreadsheet read as Book Catalogue would count every book as owned
 export const isBookCatalogue = (headers: string[]) =>
-  headers.includes("series_details") || headers.includes("book_uuid");
+  headers.includes("series_details") ||
+  headers.includes("book_uuid") ||
+  (headers.includes("title") &&
+    (headers.includes("author_details") || headers.includes("bookshelf_id")));
 
 function goodreadsBook(h: string[], row: string[]): Book | null {
   const title = cell(row, header(h, /^Title$/));
@@ -373,7 +402,9 @@ function bookCatalogueBook(h: string[], row: string[]): Book | null {
   const notOwned = shelves.some((s) => /don.?t.?own|not.?owned/.test(s));
   const read =
     yes(cell(row, header(h, /^read$/))) ||
-    shelves.some((s) => s === "read" || /(^|-)read$/.test(s) && !/to.?read$/.test(s));
+    shelves.some(
+      (s) => s === "read" || (/(^|-)read$/.test(s) && !/to.?read$/.test(s)),
+    );
   // it's a catalogue of the books they have, unless a shelf says otherwise
   const wanted = /wish|to.?buy|to.?read|want/i.test(shelf);
   const details = cell(row, header(h, /^series_details$/));
@@ -482,7 +513,9 @@ function csvBook(h: string[], row: string[]): Book | null {
           guessed: undefined,
         }
       : fromTitle),
-    ...(Number.isFinite(volumeColumn) ? { volume: volumeColumn, guessed: undefined } : {}),
+    ...(Number.isFinite(volumeColumn)
+      ? { volume: volumeColumn, guessed: undefined }
+      : {}),
     owned,
     read,
     reading,
@@ -500,10 +533,14 @@ function csvBook(h: string[], row: string[]): Book | null {
 // "Mob Psycho 100" is the name, number and all
 function confirmTrailingNumbers(books: Book[]): Book[] {
   // read without the rule: "Zom 100" names Zom 100, which "Zom 100 2" belongs to
-  const whole = books.map((b) => (b.guessed ? seriesFromTitle(b.title, false) : null));
+  const whole = books.map((b) =>
+    b.guessed ? seriesFromTitle(b.title, false) : null,
+  );
   const seen = new Map<string, number>();
   books.forEach((book, i) => {
-    const keys = new Set([...book.names, ...(whole[i]?.names ?? [])].map(seriesKey));
+    const keys = new Set(
+      [...book.names, ...(whole[i]?.names ?? [])].map(seriesKey),
+    );
     for (const key of keys) seen.set(key, (seen.get(key) ?? 0) + 1);
   });
   return books.map(({ guessed, ...book }, i) => {
@@ -547,6 +584,92 @@ export function readBooks(rows: string[][], source: BookSource): Book[] {
   return confirmTrailingNumbers(
     body.flatMap((row) => toBook(h, row) ?? []).map(realNames),
   ).map(realNames);
+}
+
+// ---------- several files in one import ----------
+
+// which app a file came from, by its columns
+export type FileKind = "goodreads" | "bookcatalogue" | "bookshelf" | "csv";
+export const fileKind = (headers: string[]): FileKind =>
+  isGoodreads(headers)
+    ? "goodreads"
+    : isBookCatalogue(headers)
+      ? "bookcatalogue"
+      : isBookshelfApp(headers)
+        ? "bookshelf"
+        : "csv";
+
+const KIND_NAME: Record<FileKind, string> = {
+  goodreads: "a Goodreads export",
+  bookcatalogue: "a Book Catalogue export",
+  bookshelf: "a Bookshelf app export",
+  csv: "a spreadsheet from another app",
+};
+const TAB_FOR: Record<FileKind, string> = {
+  goodreads: "Goodreads",
+  bookcatalogue: "Book Catalogue",
+  bookshelf: "Other app",
+  csv: "Other app",
+};
+
+// why this file can't go in an import from this tab, or null if it can. Each
+// tab reads only its own app's files, as only that tab reads their shelves
+// right. Other app takes the Bookshelf app or any spreadsheet, one kind per
+// import; `importing` is the kind already in this import
+export function wrongFile(
+  name: string,
+  source: BookSource,
+  kind: FileKind,
+  importing: FileKind | null,
+): string | null {
+  const wanted: FileKind | null =
+    source === "goodreads"
+      ? "goodreads"
+      : source === "bookcatalogue"
+        ? "bookcatalogue"
+        : null;
+  if (wanted && kind !== wanted) {
+    return kind === "csv" || kind === "bookshelf"
+      ? source === "goodreads"
+        ? `${name} isn't a Goodreads export. Pick the file you downloaded from Goodreads' export page.`
+        : `${name} isn't a Book Catalogue export. If it's from another app, choose Other app instead.`
+      : `${name} is ${KIND_NAME[kind]}. Add it under ${TAB_FOR[kind]}.`;
+  }
+  if (!wanted && (kind === "goodreads" || kind === "bookcatalogue")) {
+    return `${name} is ${KIND_NAME[kind]}. Add it under ${TAB_FOR[kind]}, which reads its shelves properly.`;
+  }
+  if (importing && kind !== importing) {
+    return `${name} is ${KIND_NAME[kind]}, and this import is ${KIND_NAME[importing]}. Add it in an import of its own.`;
+  }
+  return null;
+}
+
+// a book that's in more than one file counts once: owned or read in either
+// counts, it's only "to read" if every file says so, and the later file's
+// rating wins when it has one. A file's own repeats are left as they are,
+// unless the earlier file has that book too: then they're all that one book
+const bookId = (b: Book) =>
+  `${b.lightNovel ? "ln" : "m"}:${b.title.trim().toLowerCase()}`;
+export function mergeBooks(earlier: Book[], later: Book[]): Book[] {
+  const out = [...earlier];
+  const at = new Map(earlier.map((b, i) => [bookId(b), i]));
+  for (const b of later) {
+    const i = at.get(bookId(b));
+    if (i === undefined) {
+      out.push(b);
+      continue;
+    }
+    const a = out[i]!;
+    out[i] = {
+      ...a,
+      owned: a.owned || b.owned,
+      read: a.read || b.read,
+      reading: a.reading || b.reading,
+      planned: a.planned && b.planned,
+      rating: b.rating || a.rating,
+    };
+  }
+  return out;
 }
 
 // ---------- grouping ----------
@@ -675,7 +798,9 @@ export function mergeSameSeries(
     first.readVolumes = Math.max(first.readVolumes, s.readVolumes);
     first.score = Math.max(first.score, s.score);
     first.planned = first.planned && s.planned;
-    first.otherNames = [...new Set([...first.otherNames, s.title, ...s.otherNames])];
+    first.otherNames = [
+      ...new Set([...first.otherNames, s.title, ...s.otherNames]),
+    ];
   }
   return out;
 }

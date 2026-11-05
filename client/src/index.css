@@ -1005,6 +1005,39 @@
   width: 13px;
   height: 13px;
 }
+/* three dots hopping one after another while AniList makes the import wait
+   (Import/BookImport.tsx WaitingDots). Still dots for reduced motion */
+.waiting-dots {
+  display: inline-flex;
+  gap: 0.08em;
+  margin-left: 0.1em;
+}
+.waiting-dots > [aria-hidden] {
+  display: inline-block;
+  animation: waiting-dot 1.2s var(--ease-ink) infinite;
+}
+.waiting-dots > [aria-hidden]:nth-child(3) {
+  animation-delay: 0.15s;
+}
+.waiting-dots > [aria-hidden]:nth-child(4) {
+  animation-delay: 0.3s;
+}
+@keyframes waiting-dot {
+  0%,
+  45%,
+  100% {
+    transform: translateY(0);
+  }
+  20% {
+    transform: translateY(-0.3em);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .waiting-dots > [aria-hidden] {
+    animation: none;
+  }
+}
+
 /* Kenji offering a new account the tour (tour/TourOffer.tsx): his line, then
    the way in and a quieter way out */
 .tour-offer .support-peek-line {

@@ -329,3 +329,62 @@ test("the shelf's name key doesn't stop at 80 characters", async () => {
   expect(titleKey(freya)).not.toBe(titleKey(lyu));
   expect(titleKey("One-Piece")).toBe(titleKey("one piece"));
 });
+
+// ---------- several files in one import ----------
+// the column headers each app exports (from real exports, 2026-11-03)
+const HEADERS = {
+  goodreads: "Book Id,Title,Author,Author l-f,Additional Authors,ISBN,ISBN13,My Rating,Publisher,Binding,Number of Pages,Year Published,Original Publication Year,Date Read,Date Added,Bookshelves,Bookshelves with positions,Exclusive Shelf,My Review,Spoiler,Private Notes,Read Count,Owned Copies",
+  bookcatalogue: "_id,author_details,title,isbn,publisher,date_published,rating,bookshelf_id,bookshelf,read,series_details,pages,notes,list_price,anthology,location,read_start,read_end,format,signed,loaned_to,anthology_titles,description,genre,language,date_added,last_update_date,book_uuid",
+  bookshelf: "Book Id,ISBN,Bookshelf,Tags,Wishlist,Started Reading On,Ended Reading On,Pages Read,Read,My Rating,Review,Title,Subtitle,Authors,Series,Volume",
+  csv: "title,author,owned",
+};
+const headersOf = (k: keyof typeof HEADERS) => HEADERS[k].split(",");
+
+test("each file is known by its own columns", async () => {
+  const { fileKind } = await import("../../../../client/src/lib/imports/bookImport.js");
+  expect(fileKind(headersOf("goodreads"))).toBe("goodreads");
+  expect(fileKind(headersOf("bookcatalogue"))).toBe("bookcatalogue");
+  expect(fileKind(headersOf("bookshelf"))).toBe("bookshelf");
+  // a plain "title" column isn't Book Catalogue any more
+  expect(fileKind(headersOf("csv"))).toBe("csv");
+  // an older Book Catalogue, before series_details and book_uuid
+  expect(fileKind(["_id", "author_details", "title", "isbn", "bookshelf_id", "bookshelf"])).toBe("bookcatalogue");
+});
+
+test("each tab takes only its own app's files", async () => {
+  const { wrongFile } = await import("../../../../client/src/lib/imports/bookImport.js");
+  const kinds = ["goodreads", "bookcatalogue", "bookshelf", "csv"] as const;
+  const allowed = (source: "goodreads" | "bookcatalogue" | "csv") =>
+    kinds.filter((k) => wrongFile("f.csv", source, k, null) === null);
+  expect(allowed("goodreads")).toEqual(["goodreads"]);
+  expect(allowed("bookcatalogue")).toEqual(["bookcatalogue"]);
+  expect(allowed("csv")).toEqual(["bookshelf", "csv"]);
+  // and says where it goes
+  expect(wrongFile("export.csv", "goodreads", "bookcatalogue", null)).toBe(
+    "export.csv is a Book Catalogue export. Add it under Book Catalogue.",
+  );
+  expect(wrongFile("export.csv", "csv", "goodreads", null)).toMatch(/Goodreads export\. Add it under Goodreads/);
+  expect(wrongFile("shelf.csv", "bookcatalogue", "bookshelf", null)).toMatch(/isn't a Book Catalogue export/);
+  // Other app: one kind per import
+  expect(wrongFile("b.csv", "csv", "csv", "bookshelf")).toMatch(/this import is a Bookshelf app export/);
+  expect(wrongFile("b.csv", "csv", "bookshelf", "bookshelf")).toBeNull();
+});
+
+test("a book in two files counts once, owned or read in either", async () => {
+  const { mergeBooks, groupBooks } = await import("../../../../client/src/lib/imports/bookImport.js");
+  const older = goodreads(["One Piece, Vol. 1", "One Piece, Vol. 2", "Naruto, Vol. 1"]).map((b) =>
+    b.title === "Naruto, Vol. 1" ? { ...b, read: false, planned: true, rating: 4 } : b,
+  );
+  const newer = goodreads(["One Piece, Vol. 2", "One Piece, Vol. 3", "Naruto, Vol. 1"]).map((b) =>
+    b.title === "Naruto, Vol. 1" ? { ...b, read: true, planned: false, rating: 0 } : b,
+  );
+  const merged = mergeBooks(older, newer);
+  expect(merged.map((b) => b.title)).toEqual(["One Piece, Vol. 1", "One Piece, Vol. 2", "Naruto, Vol. 1", "One Piece, Vol. 3"]);
+  const naruto = merged.find((b) => b.title === "Naruto, Vol. 1")!;
+  // read in the newer file, so not "to read"; the older file's rating, as the newer has none
+  expect([naruto.read, naruto.planned, naruto.rating]).toEqual([true, false, 4]);
+  const onePiece = groupBooks(merged).find((s) => s.title === "One Piece")!;
+  expect([onePiece.books, onePiece.ownedVolumes]).toEqual([3, 3]);
+  // the same file twice changes nothing
+  expect(mergeBooks(older, older)).toHaveLength(older.length);
+});

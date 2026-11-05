@@ -6,10 +6,14 @@
 import { create } from "zustand";
 import { AniListBusy, aniListGapMs, findManga } from "../lib/anilist";
 import {
+  groupBooks,
+  mergeBooks,
   searchFallbacks,
   toEntry,
+  type Book,
   type BookSeries,
   type BookSource,
+  type FileKind,
 } from "../lib/imports/bookImport";
 import { sendToShelf, type ImportTotals } from "../lib/imports/malImport";
 import {
@@ -32,7 +36,12 @@ export type Match =
 
 type BookImportState = {
   source: BookSource | null;
-  fileName: string;
+  // every file in this import, in the order they came in
+  fileNames: string[];
+  // which app's files they are: one kind per import
+  kind: FileKind | null;
+  // every book from every file, a book in two files once (mergeBooks)
+  books: Book[];
   found: BookSeries[] | null;
   matches: Map<string, Match>;
   choices: Map<string, boolean>;
@@ -46,12 +55,17 @@ type BookImportState = {
   finished: boolean;
   // stopped partway through adding: what had gone in by then
   stopped: ImportTotals | null;
-  // a new file: anything from the last one is dropped
-  load: (source: BookSource, fileName: string, found: BookSeries[]) => void;
+  // new files: anything from the last import is dropped
+  load: (source: BookSource, kind: FileKind, files: ImportFile[]) => void;
+  // more files of the same app, while it's matching: they join this import,
+  // and what's matched so far stays matched
+  addFiles: (files: ImportFile[]) => void;
   // after a reload: the saved import carries on. On an import page, only that
   // app's import
   resume: (source?: BookSource) => void;
   choose: (key: string, ticked: boolean) => void;
+  // Select all / Clear all: these series, all at once
+  chooseAll: (keys: string[], ticked: boolean) => void;
   add: (chosen: BookSeries[]) => Promise<void>;
   // they pressed Stop import: matching ends now, adding after the piece being
   // sent. The import is dropped; matches found stay remembered
@@ -68,11 +82,17 @@ const MATCHES_KEY = "bookImportMatches.v3";
 const OLD_MATCHES_KEYS = ["bookImportMatches", "bookImportMatches.v2"];
 const MATCH_FRESH_MS = 30 * 24 * 60 * 60 * 1000;
 
+export type ImportFile = { name: string; books: Book[] };
+
 type Saved = {
   source: BookSource;
-  fileName: string;
+  fileNames: string[];
+  kind: FileKind | null;
+  books: Book[];
   found: BookSeries[];
   choices: [string, boolean][];
+  // saved before an import could take more files
+  fileName?: string;
 };
 
 const read = <T>(key: string): T | null => {
@@ -373,7 +393,9 @@ export const savedSource = () => read<Saved>(SAVED_KEY)?.source ?? null;
 
 const empty = {
   source: null,
-  fileName: "",
+  fileNames: [] as string[],
+  kind: null,
+  books: [] as Book[],
   found: null,
   matches: new Map<string, Match>(),
   choices: new Map<string, boolean>(),
@@ -395,7 +417,9 @@ const save = (s: BookImportState) =>
     s.source && s.found
       ? ({
           source: s.source,
-          fileName: s.fileName,
+          fileNames: s.fileNames,
+          kind: s.kind,
+          books: s.books,
           found: s.found,
           choices: [...s.choices],
         } satisfies Saved)
@@ -405,10 +429,40 @@ const save = (s: BookImportState) =>
 export const useBookImport = create<BookImportState>()((set, get) => ({
   ...empty,
 
-  load: (source, fileName, found) => {
+  load: (source, kind, files) => {
     lookups?.abort();
-    set({ ...empty, source, fileName, found });
+    const books = files.reduce<Book[]>(
+      (all, f) => mergeBooks(all, f.books),
+      [],
+    );
+    const found = groupBooks(books);
+    set({
+      ...empty,
+      source,
+      kind,
+      fileNames: files.map((f) => f.name),
+      books,
+      found,
+    });
     save(get());
+    void lookUp(found);
+  },
+
+  addFiles: (files) => {
+    const s = get();
+    // only into one that's still matching or being looked over
+    if (!s.found || !s.books.length || s.progress !== null || s.finished)
+      return;
+    const books = files.reduce((all, f) => mergeBooks(all, f.books), s.books);
+    const found = groupBooks(books);
+    set({
+      fileNames: [...s.fileNames, ...files.map((f) => f.name)],
+      books,
+      found,
+    });
+    save(get());
+    // matching starts over on the new list; anything answered is remembered,
+    // so only the new series wait for AniList
     void lookUp(found);
   },
 
@@ -425,7 +479,9 @@ export const useBookImport = create<BookImportState>()((set, get) => ({
     set({
       ...empty,
       source: saved.source,
-      fileName: saved.fileName,
+      fileNames: saved.fileNames ?? (saved.fileName ? [saved.fileName] : []),
+      kind: saved.kind ?? null,
+      books: saved.books ?? [],
       found: saved.found,
       choices: new Map(saved.choices),
     });
@@ -434,6 +490,15 @@ export const useBookImport = create<BookImportState>()((set, get) => ({
 
   choose: (key, ticked) => {
     set((s) => ({ choices: new Map(s.choices).set(key, ticked) }));
+    save(get());
+  },
+
+  chooseAll: (keys, ticked) => {
+    set((s) => {
+      const choices = new Map(s.choices);
+      for (const key of keys) choices.set(key, ticked);
+      return { choices };
+    });
     save(get());
   },
 

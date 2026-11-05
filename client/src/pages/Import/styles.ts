@@ -29,6 +29,18 @@ export const importStyles = {
   found:
     "font-brand text-[clamp(1.6rem,4.5vw,2.1rem)] leading-[1.05] font-normal tracking-[0.02em] uppercase",
   fileName: "mt-1 truncate font-mono text-[0.8rem] text-muted",
+  // several files: how many, and their names on hover (laptops) or a tap
+  files: "group/files relative mt-1 w-fit max-w-full",
+  filesButton:
+    "tap inline-flex min-h-8 items-center gap-1 font-mono text-[0.8rem] text-muted underline decoration-line-soft decoration-dashed underline-offset-3 hover:text-ink aria-expanded:text-ink",
+  filesChevron:
+    "size-3.5 shrink-0 transition-transform duration-150 group-aria-expanded/button:rotate-180",
+  // below the button with no gap to cross, so moving onto the list keeps it open
+  filesPop: "absolute top-full left-0 z-20 pt-1",
+  filesPanel:
+    "w-max max-w-[min(26rem,calc(100vw-4rem))] rounded-ink border-[2.5px] border-line bg-card px-3 py-2 shadow-[0_14px_30px_-14px_rgba(20,14,8,0.45)] animate-drop motion-reduce:animate-none",
+  filesItem:
+    "border-b border-dashed border-line-soft py-1.5 font-mono text-[0.8rem] leading-[1.35] text-ink-soft [overflow-wrap:anywhere] last:border-b-0",
   lists: "mt-4 border-t-[1.5px] border-line-soft",
   list: "flex min-h-12 cursor-pointer items-center gap-3 border-b border-dashed border-line-soft has-[input:disabled]:cursor-default has-[input:disabled]:opacity-50",
   listCheck:
@@ -42,8 +54,12 @@ export const importStyles = {
     "min-h-11 min-w-0 flex-[1_1_14rem] border-[2.5px] border-line bg-paper px-3 text-[1rem] text-ink outline-none focus-visible:border-accent",
   source:
     "tap min-h-11 border-[2.5px] border-line bg-card px-2 py-2 text-[0.92rem] font-medium leading-tight transition-colors duration-150 hover:bg-accent-wash aria-pressed:bg-ink aria-pressed:text-paper",
+  // Select all / Clear all, above the list's right edge
+  listTools: "mt-3 flex justify-end",
+  selectAll:
+    "tap min-h-9 text-[0.85rem] font-medium text-ink-soft underline decoration-line-soft underline-offset-3 hover:text-ink hover:decoration-current disabled:cursor-default disabled:opacity-50 disabled:no-underline",
   seriesList:
-    "mt-4 max-h-[min(60vh,32rem)] overflow-y-auto border-t-[1.5px] border-line-soft",
+    "mt-1 max-h-[min(60vh,32rem)] overflow-y-auto border-t-[1.5px] border-line-soft",
   seriesText: "flex min-w-0 flex-1 flex-col py-1.5",
   seriesMeta: "text-[0.85rem] text-ink-soft",
   warning:
@@ -56,6 +72,8 @@ export const importStyles = {
   matchingLine:
     "mt-3 flex flex-wrap items-center justify-between gap-x-4 gap-y-2 [&>p]:mt-0",
   stop: "btn btn-secondary btn-sm",
+  // beside Add, as tall as it and quieter
+  cancel: "btn btn-ghost btn-lg",
   stopYes: "btn btn-danger btn-sm",
   stopAsk: "flex flex-wrap items-center gap-2 text-[0.9rem] font-medium",
   bar: "mt-2 h-2.5 overflow-hidden border-[1.5px] border-line bg-paper",
