@@ -68,6 +68,8 @@ export const importStyles = {
   matchingLine:
     "mt-3 flex flex-wrap items-center justify-between gap-x-4 gap-y-2 [&>p]:mt-0",
   stop: "btn btn-secondary btn-sm",
+  // beside Add, as tall as it and quieter
+  cancel: "btn btn-ghost btn-lg",
   stopYes: "btn btn-danger btn-sm",
   stopAsk: "flex flex-wrap items-center gap-2 text-[0.9rem] font-medium",
   bar: "mt-2 h-2.5 overflow-hidden border-[1.5px] border-line bg-paper",

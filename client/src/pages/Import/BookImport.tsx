@@ -137,7 +137,8 @@ const CONFIRM_FOR_MS = 5000;
 
 // Stop import: a second tap says yes, so a stray one doesn't throw away a long
 // match. Left alone, it goes back to how it was
-function StopButton() {
+// Cancel import is the same, once matching's done and nothing has gone in yet
+function StopButton({ cancel = false }: { cancel?: boolean }) {
   const [asking, setAsking] = useState(false);
   useEffect(() => {
     if (!asking) return;
@@ -148,16 +149,23 @@ function StopButton() {
     return (
       <button
         type="button"
-        className={styles.stop}
+        className={cancel ? styles.cancel : styles.stop}
         onClick={() => setAsking(true)}
       >
-        Stop import
+        {cancel ? "Cancel import" : "Stop import"}
       </button>
     );
   }
   return (
-    <span className={styles.stopAsk} role="group" aria-label="Stop the import?">
-      <span>Stop and clear?</span>
+    <span
+      className={styles.stopAsk}
+      role="group"
+      aria-label={cancel ? "Cancel the import?" : "Stop the import?"}
+    >
+      {/* on its own line on phones, so the two answers stay together */}
+      <span className="upto-520:basis-full">
+        {cancel ? "Cancel and clear the list?" : "Stop and clear?"}
+      </span>
       <button
         type="button"
         className={styles.stopYes}
@@ -171,7 +179,7 @@ function StopButton() {
         autoFocus
         onClick={() => setAsking(false)}
       >
-        Keep going
+        {cancel ? "Keep it" : "Keep going"}
       </button>
     </span>
   );
@@ -522,6 +530,8 @@ export default function BookImport({ source }: { source: BookSource }) {
                 >
                   Add {series(chosen.length)} to my shelf
                 </button>
+                {/* while matching, Stop import above does this */}
+                {!lookingUp && <StopButton cancel />}
               </div>
             )}
 
