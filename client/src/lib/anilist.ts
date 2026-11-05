@@ -418,21 +418,17 @@ const withLongVowels = (text: string) =>
     .replace(/[ūû]/g, "uu")
     .replace(/[ŪÛ]/g, "Uu");
 
-// one search, as given
-async function searchOnce(
-  search: string,
+// one request, its "slow down"s and hiccups thrown as AniListBusy. Null when
+// AniList has nothing (404)
+async function askAniList<T>(
+  query: string,
+  variables: Record<string, unknown>,
   signal?: AbortSignal,
-  novel = false,
-): Promise<MatchCandidate[] | null> {
+): Promise<T | null> {
   const response = await fetch(ANILIST_URL, {
     method: "POST",
     headers: { "Content-Type": "application/json", Accept: "application/json" },
-    // accents already off (searchManga): AniList's search finds "Fushigi
-    // Yugi" but nothing for "Fushigi Yûgi"
-    body: JSON.stringify({
-      query: MATCH_QUERY,
-      variables: { search, novel },
-    }),
+    body: JSON.stringify({ query, variables }),
     signal,
   }).catch((e: unknown) => {
     if (signal?.aborted) throw e;
@@ -444,16 +440,24 @@ async function searchOnce(
   if (response.status === 429) {
     throw new AniListBusy(Number(response.headers.get("Retry-After")) || 30);
   }
-  if (response.status === 404) return [];
+  if (response.status === 404) return null;
   // AniList having a moment: worth waiting a little, like a "slow down"
   if (response.status >= 500) throw new AniListBusy(15);
   if (!response.ok) throw new Error(`AniList responded ${response.status}`);
-  const { data } = (await response.json()) as {
-    data?: Record<
-      "manga" | "novel",
-      { media: MatchCandidate[] } | null | undefined
-    >;
-  };
+  return ((await response.json()) as { data?: T }).data ?? null;
+}
+
+// one search, as given
+async function searchOnce(
+  search: string,
+  signal?: AbortSignal,
+  novel = false,
+): Promise<MatchCandidate[] | null> {
+  // accents already off (searchManga): AniList's search finds "Fushigi
+  // Yugi" but nothing for "Fushigi Yûgi"
+  const data = await askAniList<
+    Record<"manga" | "novel", { media: MatchCandidate[] } | null | undefined>
+  >(MATCH_QUERY, { search, novel }, signal);
   return (novel ? data?.novel : data?.manga)?.media ?? [];
 }
 
@@ -465,6 +469,73 @@ export const searchManga = (
   novel = false,
 ): Promise<MatchCandidate[] | null> =>
   searchOnce(withoutAccents(search), signal, novel);
+
+const PICK_QUERY = `
+  query ($search: String) {
+    Page(perPage: 8) {
+      media(search: $search, type: MANGA, sort: SEARCH_MATCH) {
+        id
+        idMal
+        format
+        isAdult
+        title { english romaji }
+        startDate { year }
+        coverImage { large }
+      }
+    }
+  }
+`;
+
+export type SeriesHit = {
+  anilistId: number;
+  malId: number | null;
+  name: string;
+  // AniList's other title, when it isn't the one shown
+  otherName: string | null;
+  year: number | null;
+  format: string | null;
+  // shown as such, not hidden: some people's books are
+  adult: boolean;
+  cover: string | null;
+};
+
+// what AniList has by a name, for someone choosing the series themselves (the
+// book import's Edit). Throws AniListBusy when it asks to slow down
+export async function searchSeries(
+  search: string,
+  signal?: AbortSignal,
+): Promise<SeriesHit[]> {
+  type Media = {
+    id: number;
+    idMal: number | null;
+    format: string | null;
+    isAdult?: boolean | null;
+    title: { english: string | null; romaji: string | null };
+    startDate?: { year: number | null } | null;
+    coverImage?: { large?: string | null } | null;
+  };
+  const data = await askAniList<{ Page?: { media?: Media[] } }>(
+    PICK_QUERY,
+    { search: withoutAccents(search) },
+    signal,
+  );
+  return (data?.Page?.media ?? []).map((m) => {
+    const name = m.title.english || m.title.romaji || "";
+    return {
+      anilistId: m.id,
+      malId: m.idMal,
+      name,
+      otherName:
+        m.title.romaji && plain(m.title.romaji) !== plain(name)
+          ? m.title.romaji
+          : null,
+      year: m.startDate?.year ?? null,
+      format: m.format,
+      adult: Boolean(m.isAdult),
+      cover: m.coverImage?.large ?? null,
+    };
+  });
+}
 
 // the manga (or light novel) a series name most likely is, with its MyAnimeList
 // id so the server can fetch its cover and genre. Null when AniList has nothing

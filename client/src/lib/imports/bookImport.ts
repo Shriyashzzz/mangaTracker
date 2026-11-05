@@ -54,6 +54,9 @@ export type BookSeries = {
   // some of its books are omnibuses that don't say which volumes they hold,
   // so the count is worth a look before adding
   omnibus?: boolean;
+  // a row that is several series AniList says are one (mergeSameSeries):
+  // every one's key, its own first
+  members?: string[];
 };
 
 // ---------- CSV ----------
@@ -950,8 +953,7 @@ export function wrongFile(
 // counts, it's only "to read" if every file says so, and the later file's
 // rating wins when it has one. A file's own repeats are left as they are,
 // unless the earlier file has that book too: then they're all that one book
-const bookId = (b: Book) =>
-  `${formatOf(b)}:${b.title.trim().toLowerCase()}`;
+const bookId = (b: Book) => `${formatOf(b)}:${b.title.trim().toLowerCase()}`;
 export function mergeBooks(earlier: Book[], later: Book[]): Book[] {
   const out = [...earlier];
   const at = new Map(earlier.map((b, i) => [bookId(b), i]));
@@ -1191,6 +1193,50 @@ export function withoutSpinOffs<
   return out;
 }
 
+// what they changed on a series with Edit, before adding: the series they
+// chose themselves (null: not on AniList), and how many volumes they own
+export type EditOf<M> = { match?: M | null; volumes?: number };
+
+// the matches as they've edited them: their choice of series in place of the
+// import's, then the spin-off check over the lot, so a spin-off is judged
+// against what they chose. A series they chose is never a cut match, so the
+// check never undoes it
+export function withEdits<
+  M extends { anilistId?: number; shorter?: true } | null | "failed",
+>(
+  found: BookSeries[],
+  matches: Map<string, M>,
+  edits: Map<string, EditOf<Exclude<M, "failed" | null>>>,
+): Map<string, M | null> {
+  const chosen = new Map<string, M | null>(matches);
+  for (const [key, edit] of edits)
+    if (edit.match !== undefined) chosen.set(key, edit.match as M | null);
+  return withoutSpinOffs(found, chosen);
+}
+
+// the row's edit, from any series in it (they're saved on all of them)
+export const editOf = <E>(s: BookSeries, edits: Map<string, E>) =>
+  (s.members ?? [s.key]).map((k) => edits.get(k)).find(Boolean);
+
+// a row with the volume count they gave it. On the row as listed (after
+// mergeSameSeries), so a series spelt two ways takes their count, not the
+// larger of the two. Volumes owned means it's no longer only on a to-read list
+export function withVolumes(
+  s: BookSeries,
+  edits: Map<string, { volumes?: number }>,
+): BookSeries {
+  const volumes = editOf(s, edits)?.volumes;
+  return volumes === undefined
+    ? s
+    : {
+        ...s,
+        ownedVolumes: volumes,
+        ownedList: null,
+        omnibus: false,
+        planned: s.planned && volumes === 0,
+      };
+}
+
 // rows AniList says are one series (its English and romaji names, "Hunter x
 // Hunter" spelt two ways) come in as one: the furthest volumes of either
 export function mergeSameSeries(
@@ -1204,11 +1250,12 @@ export function mergeSameSeries(
     const key = id ? `${id}:${s.lightNovel}` : null;
     const first = key ? byId.get(key) : undefined;
     if (!first) {
-      const copy = { ...s };
+      const copy = { ...s, members: [s.key] };
       if (key) byId.set(key, copy);
       out.push(copy);
       continue;
     }
+    first.members!.push(s.key);
     first.books += s.books;
     first.ownedVolumes = Math.max(first.ownedVolumes, s.ownedVolumes);
     // both exact: together; either one not: no longer exact
