@@ -101,7 +101,7 @@ export function parseCsv(text: string): string[][] {
 // a special edition is still the same series: "Berserk Deluxe Edition" is Berserk.
 // Words that end real names ("Rave Master") count only before "Edition"
 const EDITION =
-  /[\s,:(\-–—]+((deluxe|omnibus|(the )?complete( collection)?|box ?set|vizbig|full[\s-]colou?r(\s+collection)?|\d-in-\d|\d-in|\d+ ?in ?\d+)( edition)?|(collector'?s|perfect|ultimate|master|revised) edition)\)?$/i;
+  /[\s,:(\-–—]+(the )?((deluxe|omnibus|complete( collection)?|box ?set|vizbig|full[\s-]colou?r(\s+collection)?|\d-in-\d|\d-in|\d+ ?in ?\d+)( edition)?|(collector'?s|perfect|ultimate|master|revised) edition)\)?$/i;
 
 const tidy = (name: string) =>
   name
@@ -372,6 +372,9 @@ function seriesFromColumn(text: string): Parsed | null {
   const names = named?.names ?? [tidy(clean) || clean];
   return { series: names[0]!, volume: null, names };
 }
+
+// a light novel's names are its own: a manga never joins one
+const formatOf = (b: { lightNovel: boolean }) => (b.lightNovel ? "ln" : "m");
 
 // the series name compared: case, accents, spacing and punctuation don't count.
 // Only Latin accents come off, so ネバーランド keeps its marks
@@ -756,7 +759,7 @@ function confirmTrailingNumbers(books: Book[]): Book[] {
     if (book.guessed) return;
     for (const name of book.names) {
       // a light novel's names are its own: a manga never joins one
-      const k = `${book.lightNovel ? "ln" : "m"}:${seriesKey(name)}`;
+      const k = `${formatOf(book)}:${seriesKey(name)}`;
       const at = volumesBy.get(k) ?? { name, volumes: new Set<number>() };
       for (const v of book.holds ?? (book.volume ? [book.volume] : []))
         at.volumes.add(v);
@@ -770,7 +773,7 @@ function confirmTrailingNumbers(books: Book[]): Book[] {
     const k = seriesKey(book.series);
     const v = book.volume;
     if (!k || !v) return null;
-    const format = book.lightNovel ? "ln" : "m";
+    const format = formatOf(book);
     const longer = [...volumesBy].filter(([key]) =>
       key.startsWith(`${format}:${k} `),
     );
@@ -799,46 +802,55 @@ function confirmTrailingNumbers(books: Book[]): Book[] {
   });
 }
 
-// a series named by its subtitle alone joins the full name, when the same file
-// has it: "Record of the Last Hero" is "Junk: Record of the Last Hero", and
+// a series named by its subtitle alone joins the full name in the import:
+// "Record of the Last Hero, Vol. 5" is "Junk: Record of the Last Hero", and
 // "Zero 2: The Beginning of the Coffin" is volume 2 of "Zero: The Beginning
-// of the Coffin". Only a subtitle of a few words, so "Zero" never joins
-// "Fairy Tail: Zero"
+// of the Coffin". Only a numbered volume the full series doesn't have yet, so
+// the novel "Before the Fall" stays apart from Attack on Titan's, and only a
+// subtitle of a few words, so "Zero" never joins "Fairy Tail: Zero"
 function joinSubtitleNames(books: Book[]): Book[] {
-  const formatOf = (b: Book) => (b.lightNovel ? "ln" : "m");
-  const named = new Map<string, string>();
-  const bySubtitle = new Map<string, Map<string, string>>();
+  const at = (b: Book, name: string) => `${formatOf(b)}:${seriesKey(name)}`;
+  // every full name, its volumes, and which full names each subtitle has
+  const volumes = new Map<string, { name: string; held: Set<number> }>();
+  const bySubtitle = new Map<string, Set<string>>();
   for (const b of books)
     for (const name of b.names) {
-      named.set(`${formatOf(b)}:${seriesKey(name)}`, name);
+      const k = at(b, name);
+      const v = volumes.get(k) ?? { name, held: new Set<number>() };
+      for (const n of b.holds ?? (b.volume ? [b.volume] : [])) v.held.add(n);
+      volumes.set(k, v);
       const after = /^[^:]+:\s*(.+)$/.exec(name)?.[1];
-      if (!after) continue;
-      const k = `${formatOf(b)}:${seriesKey(after)}`;
-      const full = bySubtitle.get(k) ?? new Map<string, string>();
-      full.set(seriesKey(name), name);
-      bySubtitle.set(k, full);
+      if (after)
+        bySubtitle.set(
+          at(b, after),
+          (bySubtitle.get(at(b, after)) ?? new Set()).add(k),
+        );
     }
+  const fits = (k: string, volume: number) =>
+    volumes.get(k) && !volumes.get(k)!.held.has(volume)
+      ? volumes.get(k)!.name
+      : null;
   return books.map((book) => {
-    const format = formatOf(book);
+    const others = book.names.filter((n) => n !== book.series);
     const numbered = /^(.+?)\s+(\d{1,3}):\s*(.+)$/.exec(book.series);
     if (numbered && book.volume == null) {
-      const whole = named.get(
-        `${format}:${seriesKey(`${numbered[1]}: ${numbered[3]}`)}`,
-      );
+      const volume = Number(numbered[2]);
+      const whole = fits(at(book, `${numbered[1]}: ${numbered[3]}`), volume);
       if (whole)
-        return {
-          ...book,
-          series: whole,
-          names: [whole],
-          volume: Number(numbered[2]),
-        };
+        return { ...book, series: whole, names: [whole, ...others], volume };
     }
-    const key = seriesKey(book.series);
-    if (book.series.includes(":") || key.split(" ").length < 2) return book;
+    if (book.series.includes(":")) return book;
+    // "Record of the Last Hero 5": a number the file left on the name
+    const tail = /^(.*\D)\s+(\d{1,3})$/.exec(book.series);
+    const name = book.volume == null && tail ? tail[1]!.trim() : book.series;
+    const volume = book.volume ?? (tail ? Number(tail[2]) : null);
+    const key = seriesKey(name);
+    if (!volume || key.split(" ").length < 2) return book;
     if (key.replace(/ /g, "").length < 10) return book;
-    const full = [...(bySubtitle.get(`${format}:${key}`)?.values() ?? [])];
-    return full.length === 1
-      ? { ...book, names: [...new Set([...book.names, full[0]!])] }
+    const full = [...(bySubtitle.get(at(book, name)) ?? [])];
+    const whole = full.length === 1 ? fits(full[0]!, volume) : null;
+    return whole
+      ? { ...book, names: [...new Set([...book.names, whole])], volume }
       : book;
   });
 }
@@ -866,16 +878,14 @@ export function readBooks(rows: string[][], source: BookSource): Book[] {
         : isBookshelfApp(h)
           ? bookshelfAppBook
           : csvBook;
-  return joinSubtitleNames(
-    confirmTrailingNumbers(
-      body
-        .flatMap((row) => toBook(h, row) ?? [])
-        .map(withVolumesInside)
-        .map(realNames),
-    )
-      .map(realNames)
-      .map(renumbered),
-  );
+  return confirmTrailingNumbers(
+    body
+      .flatMap((row) => toBook(h, row) ?? [])
+      .map(withVolumesInside)
+      .map(realNames),
+  )
+    .map(realNames)
+    .map(renumbered);
 }
 
 // ---------- several files in one import ----------
@@ -941,7 +951,7 @@ export function wrongFile(
 // rating wins when it has one. A file's own repeats are left as they are,
 // unless the earlier file has that book too: then they're all that one book
 const bookId = (b: Book) =>
-  `${b.lightNovel ? "ln" : "m"}:${b.title.trim().toLowerCase()}`;
+  `${formatOf(b)}:${b.title.trim().toLowerCase()}`;
 export function mergeBooks(earlier: Book[], later: Book[]): Book[] {
   const out = [...earlier];
   const at = new Map(earlier.map((b, i) => [bookId(b), i]));
@@ -971,7 +981,9 @@ export function mergeBooks(earlier: Book[], later: Book[]): Book[] {
 // Vol. 3" and "メイドインアビス 5 [Made in Abyss 5]" are one series. Volumes
 // owned is the highest volume they bought, or the highest they've read if
 // that's further on. Reading a volume now counts everything before it as read
-export function groupBooks(books: Book[]): BookSeries[] {
+export function groupBooks(everyBook: Book[]): BookSeries[] {
+  // after the files are put together, so a name in one joins another's
+  const books = joinSubtitleNames(everyBook);
   // union-find over the names' keys
   const parent = new Map<string, string>();
   const root = (key: string): string => {
