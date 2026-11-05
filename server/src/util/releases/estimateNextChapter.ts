@@ -1,6 +1,7 @@
 // src/util/estimateNextChapter.ts
 // Estimates the next chapter release for a MangaDex manga.
 import { median } from "../median.js";
+import { politeFetch } from "../politeFetch.js";
 
 const MangaDexBaseUrl = "https://api.mangadex.org";
 const DAY = 24 * 60 * 60 * 1000;
@@ -30,7 +31,7 @@ async function getFeed(
   params: Array<[string, string]>,
 ): Promise<FeedChapter[]> {
   const qs = new URLSearchParams(params);
-  const res = await fetch(`${MangaDexBaseUrl}/manga/${seriesId}/feed?${qs}`, {
+  const res = await politeFetch(`${MangaDexBaseUrl}/manga/${seriesId}/feed?${qs}`, {
     signal: AbortSignal.timeout(10_000),
   });
   if (!res.ok) throw new Error(`MangaDex feed request failed: ${res.status}`);

@@ -6,6 +6,7 @@
 // It also reports chapter progress toward the next volume as a sanity check.
 
 import { median } from "../median.js";
+import { politeFetch } from "../politeFetch.js";
 
 const API = "https://api.mangadex.org";
 const DAY = 24 * 60 * 60 * 1000;
@@ -39,7 +40,7 @@ async function getCovers(seriesId: string): Promise<CoverItem[]> {
   params.append("manga[]", seriesId);
   params.append("limit", "100");
   params.append("order[volume]", "desc");
-  const res = await fetch(`${API}/cover?${params}`, {
+  const res = await politeFetch(`${API}/cover?${params}`, {
     signal: AbortSignal.timeout(10_000),
   });
   if (!res.ok) throw new Error(`MangaDex cover request failed: ${res.status}`);
@@ -55,7 +56,7 @@ async function getChapterProgress(
   try {
     const params = new URLSearchParams();
     params.append("translatedLanguage[]", language);
-    const res = await fetch(`${API}/manga/${seriesId}/aggregate?${params}`, {
+    const res = await politeFetch(`${API}/manga/${seriesId}/aggregate?${params}`, {
       signal: AbortSignal.timeout(10_000),
     });
     if (!res.ok) return { unassigned: null, avgPerVolume: null };
