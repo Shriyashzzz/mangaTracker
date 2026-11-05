@@ -33,15 +33,22 @@ export type Media = {
   id: number;
   idMal: number | null;
   format: string | null;
+  isAdult?: boolean | null;
   synonyms: string[] | null;
   title: { english: string | null; romaji: string | null; native: string | null };
   coverImage: { extraLarge: string | null; large: string | null } | null;
 };
 
-const namesOf = (m: Media) =>
-  [m.title.english, m.title.romaji, m.title.native, ...(m.synonyms ?? [])].filter(
-    (n): n is string => Boolean(n),
-  );
+// its titles and other names; an adult series' other names are left out, as
+// they can be loose ("Ulysses" is one of an adult manga's). As the import
+// reads them (client/src/lib/anilist.ts namesOf)
+export const namesOf = (m: Media) =>
+  [
+    m.title.english,
+    m.title.romaji,
+    m.title.native,
+    ...(m.isAdult ? [] : (m.synonyms ?? [])),
+  ].filter((n): n is string => Boolean(n));
 
 // the match the import would show, from AniList's own answer
 export const matchOf = (m: Media, search: string): SharedMatch => ({
@@ -51,11 +58,15 @@ export const matchOf = (m: Media, search: string): SharedMatch => ({
   cover: m.coverImage?.extraLarge || m.coverImage?.large || null,
 });
 
-// would the import have matched this search to this series? Same format
-// (a novel search only takes novels, a manga search never does) and the rule
+// is this search one of this series' names? Same format (a novel search only
+// takes novels, a manga search never does) and exactly one of its names. A
+// guess the import made by subtitle isn't shared, as it can't be checked:
+// "Attack on Titan: Before the Fall" is "Attack on Titan" plus a subtitle,
+// and so is the other way round, yet they're two series. Those are searched
+// again by each import
 export const fits = (told: Search, m: Media) =>
   (m.format === "NOVEL") === told.lightNovel &&
-  fitsSearch(told.name, namesOf(m), told.exactOnly);
+  fitsSearch(told.name, namesOf(m), true);
 
 // ---------- asked before matching ----------
 
@@ -99,7 +110,7 @@ const MEDIA_BY_IDS = `
   query ($ids: [Int]) {
     Page(perPage: ${IDS_PER_REQUEST}) {
       media(id_in: $ids, type: MANGA) {
-        id idMal format synonyms
+        id idMal format isAdult synonyms
         title { english romaji native }
         coverImage { extraLarge large }
       }

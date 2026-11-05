@@ -63,6 +63,7 @@ export const importStyles = {
     "mt-1 max-h-[min(60vh,32rem)] overflow-y-auto border-t-[1.5px] border-line-soft",
   seriesText: "flex min-w-0 flex-1 flex-col py-1.5",
   seriesMeta: "text-[0.85rem] text-ink-soft",
+  omnibusNote: "text-[0.8rem] text-accent",
   warning:
     "border-[1.5px] border-dashed border-accent bg-accent-wash px-3 py-2 text-[0.9rem] leading-[1.45]",
   note: "mt-3 text-[0.9rem] leading-[1.45] text-ink-soft",
