@@ -227,15 +227,18 @@ const restore = [
   },
 ];
 
-// the shelf's Select: this many series at most in one go
-const MOST_AT_ONCE = 1000;
+// the shelf's Select can pick a whole shelf, so a delete takes this many ids
+// (a small request even then). The undo comes back in pieces of 200
+// (client/src/store/shelf.ts), well under this
+const MOST_DELETED = 10_000;
+const MOST_RESTORED = 1000;
 
 // several of their series deleted at once, all or none. Only their own: an id
 // that isn't theirs is left alone, whoever it belongs to
 const removeMany = [
   body("ids")
-    .isArray({ min: 1, max: MOST_AT_ONCE })
-    .withMessage(`Pick between 1 and ${MOST_AT_ONCE} series.`),
+    .isArray({ min: 1, max: MOST_DELETED })
+    .withMessage(`Pick between 1 and ${MOST_DELETED} series.`),
   body("ids.*").isInt({ min: 1 }).toInt(),
   rejectInvalid,
   async (req: Request, res: Response) => {
@@ -281,8 +284,8 @@ export function notOnShelf(
 // the undo for a Select delete: every series back as it was, in one go
 const restoreMany = [
   body("manga")
-    .isArray({ min: 1, max: MOST_AT_ONCE })
-    .withMessage(`Between 1 and ${MOST_AT_ONCE} series at a time.`),
+    .isArray({ min: 1, max: MOST_RESTORED })
+    .withMessage(`Between 1 and ${MOST_RESTORED} series at a time.`),
   rejectInvalid,
   async (req: Request, res: Response) => {
     const userId = req.session.userId!;
@@ -298,7 +301,7 @@ const restoreMany = [
         inputs,
         await mangaQueries.getMangaShelfNames(userId),
       );
-      if (fresh.length) await mangaQueries.restoreManyManga(userId, fresh);
+      if (fresh.length) await mangaQueries.addManyManga(userId, fresh);
       res.json({
         restored: fresh.length,
         alreadyThere: inputs.length - fresh.length,

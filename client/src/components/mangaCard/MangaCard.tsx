@@ -209,6 +209,7 @@ export default function MangaCard({
   if (select)
     return (
       <label
+        data-tour="card"
         className={`${rootClass} cursor-pointer`}
         style={delay}
         data-picked={select.checked || undefined}

@@ -16,9 +16,10 @@ mangaRouter.post(
   rateLimit({ max: 20, windowMs: 60_000 }),
   manga.removeMany,
 );
+// pieces of 200: room for a big shelf's undo in one go
 mangaRouter.post(
   "/restore-many",
-  rateLimit({ max: 20, windowMs: 60_000 }),
+  rateLimit({ max: 60, windowMs: 60_000 }),
   manga.restoreMany,
 );
 mangaRouter.post("/import", rateLimit({ max: 60, windowMs: 60_000 }), manga.importList);

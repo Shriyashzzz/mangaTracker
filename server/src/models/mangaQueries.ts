@@ -63,6 +63,8 @@ export async function restoreManga(userId: number, input: RestoredManga) {
   return id;
 }
 
+// new ones from an import, or a Select's undo (RestoredManga is a MangaInput
+// with more kept)
 export const addManyManga = (userId: number, inputs: MangaInput[]) =>
   prisma.manga.createMany({
     data: inputs.map((input) => ({ ...input, userId })),
@@ -158,11 +160,6 @@ export const deleteManyManga = async (userId: number, ids: number[]) =>
   (await prisma.manga.deleteMany({ where: { userId, id: { in: ids } } }))
     .count;
 
-export const restoreManyManga = (userId: number, inputs: RestoredManga[]) =>
-  prisma.manga.createMany({
-    data: inputs.map((input) => ({ ...input, userId })),
-  });
-
 export default {
   setNotes,
   getShelf,
@@ -182,5 +179,4 @@ export default {
   setVolumesOwned,
   deleteManga,
   deleteManyManga,
-  restoreManyManga,
 };

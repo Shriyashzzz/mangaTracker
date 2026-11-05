@@ -45,7 +45,10 @@ type ShelfState = {
   lastDeleted: Manga[] | null;
   setLastDeleted: (manga: Manga | Manga[] | null) => void;
   // puts them back as they were, unless they've been added again since
-  undoDelete: () => Promise<"done" | "already-back" | "failed">;
+  // "partial": some came back, the rest couldn't (count in `lostOnUndo`)
+  undoDelete: () => Promise<"done" | "already-back" | "partial" | "failed">;
+  // how many the last undo couldn't bring back (the server turned them away)
+  lostOnUndo: number;
   // on signing in or out: it's someone else's shelf now
   reset: () => void;
 };
@@ -87,7 +90,8 @@ const askAbout = async (m: Manga, stop: AbortSignal) => {
 const RESTORE_PIECE = 200;
 // what the undo needs of a series, and nothing else (ids, dates, prices)
 const restorable = (m: Manga) => ({
-  name: m.name,
+  // within the limits restore checks, which older rows may be past
+  name: m.name.slice(0, 150),
   status: m.status,
   planned: m.planned,
   lightNovel: m.lightNovel,
@@ -95,7 +99,7 @@ const restorable = (m: Manga) => ({
   volumesOwned: m.volumesOwned,
   ownedList: m.ownedList,
   genre: m.genre,
-  description: m.description,
+  description: m.description?.slice(0, 450) ?? null,
   image: m.image,
   rating: m.rating,
   seenVolume: m.seenVolume,
@@ -111,45 +115,75 @@ export const useShelf = create<ShelfState>()((set, get) => ({
   releases: {},
   outcomes: {},
   lastDeleted: null,
+  lostOnUndo: 0,
   setLastDeleted: (manga) =>
     set({ lastDeleted: manga && (Array.isArray(manga) ? manga : [manga]) }),
   undoDelete: async () => {
     const { lastDeleted, load } = get();
     if (!lastDeleted?.length) return "failed";
-    try {
-      if (lastDeleted.length === 1) {
+    set({ lostOnUndo: 0 });
+    if (lastDeleted.length === 1) {
+      try {
         const res = await apiFetch("/api/manga/restore", {
           method: "POST",
-          body: lastDeleted[0],
+          body: restorable(lastDeleted[0]!),
         });
         if (res.status === 409) return "already-back";
         if (!res.ok) throw new Error(res.statusText);
-      } else {
-        // in pieces, each well under the server's request size limit
-        let restored = 0;
-        for (let i = 0; i < lastDeleted.length; i += RESTORE_PIECE) {
-          const res = await apiFetch("/api/manga/restore-many", {
-            method: "POST",
-            body: {
-              manga: lastDeleted.slice(i, i + RESTORE_PIECE).map(restorable),
-            },
-          });
-          if (!res.ok) throw new Error(res.statusText);
-          restored += ((await res.json()) as { restored: number }).restored;
-        }
-        if (!restored) return "already-back";
+      } catch {
+        return "failed";
       }
       await load();
       set({ lastDeleted: null });
       return "done";
+    }
+    // in pieces, each well under the server's request size limit. A piece
+    // that's back comes off the list, so trying again carries on from there
+    let restored = 0;
+    let lost = 0;
+    try {
+      let left = lastDeleted;
+      while (left.length) {
+        const piece = left.slice(0, RESTORE_PIECE);
+        const res = await apiFetch("/api/manga/restore-many", {
+          method: "POST",
+          body: { manga: piece.map(restorable) },
+        });
+        if (!res.ok) throw new Error(res.statusText);
+        const answer = (await res.json()) as {
+          restored: number;
+          invalid: number;
+        };
+        restored += answer.restored;
+        lost += answer.invalid;
+        left = left.slice(RESTORE_PIECE);
+        set({ lastDeleted: left.length ? left : null });
+      }
     } catch {
+      // what did come back shows, and the rest waits for another try
+      if (restored) await load();
       return "failed";
     }
+    await load();
+    set({ lastDeleted: null, lostOnUndo: lost });
+    if (lost) return "partial";
+    return restored ? "done" : "already-back";
   },
 
   removeMany: async (ids) => {
     const gone = new Set(ids);
-    const deleted = get().manga?.filter((m) => gone.has(m.id)) ?? [];
+    // as the server has them now, so the undo puts back what's really there
+    // (a newer chapter, an edit in another tab), not what this page last saw
+    let deleted = get().manga?.filter((m) => gone.has(m.id)) ?? [];
+    try {
+      const res = await apiFetch("/api/manga");
+      if (res.ok) {
+        const { manga } = (await res.json()) as { manga: Manga[] };
+        deleted = manga.filter((m) => gone.has(m.id));
+      }
+    } catch {
+      // the page's copy will have to do
+    }
     try {
       const res = await apiFetch("/api/manga/delete-many", {
         method: "POST",
@@ -159,8 +193,22 @@ export const useShelf = create<ShelfState>()((set, get) => ({
     } catch {
       return false;
     }
-    for (const id of ids) get().remove(id);
-    set({ lastDeleted: deleted.length ? deleted : null });
+    // off the page in one go, not one update per series
+    for (const id of ids) incomplete.delete(id);
+    set((state) => {
+      const releases = { ...state.releases };
+      const outcomes = { ...state.outcomes };
+      for (const id of ids) {
+        delete releases[id];
+        delete outcomes[id];
+      }
+      return {
+        manga: state.manga?.filter((m) => !gone.has(m.id)) ?? null,
+        releases,
+        outcomes,
+        lastDeleted: deleted.length ? deleted : null,
+      };
+    });
     return true;
   },
 

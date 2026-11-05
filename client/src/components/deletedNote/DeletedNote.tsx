@@ -1,9 +1,3 @@
-// what the note says was deleted: its name, or how many
-const deletedLine = (manga: { name: string }[]) =>
-  manga.length === 1
-    ? `Deleted: ${manga[0]!.name}`
-    : `Deleted ${manga.length} series`;
-
 // After deleting a manga, a few seconds to change your mind: a note pinned to the
 // screen. If that was the last one, the empty shelf shows EmptyShelfUndo instead,
 // where it can't be missed and doesn't run out, since nothing else is going on.
@@ -12,6 +6,12 @@ import { createPortal } from "react-dom";
 import { useShelf } from "../../store/shelf";
 
 const UNDO_MS = 8000;
+
+// what the note says was deleted: its name, or how many
+const deletedLine = (manga: { name: string }[]) =>
+  manga.length === 1
+    ? `Deleted: ${manga[0]!.name}`
+    : `Deleted ${manga.length} series`;
 
 function useUndoDelete() {
   const undoDelete = useShelf((s) => s.undoDelete);
@@ -23,6 +23,12 @@ function useUndoDelete() {
     const result = await undoDelete();
     if (result === "failed")
       setProblem("That didn't bring it back. Try again.");
+    if (result === "partial") {
+      const lost = useShelf.getState().lostOnUndo;
+      setProblem(
+        `${lost} of them couldn't come back. The rest are on your shelf.`,
+      );
+    }
     if (result === "already-back")
       setProblem(
         useShelf.getState().lastDeleted?.length === 1
@@ -31,7 +37,7 @@ function useUndoDelete() {
       );
     setRestoring(false);
   };
-  return { undo, restoring, problem };
+  return { undo, restoring, problem, setProblem };
 }
 
 const undoButton =
@@ -42,8 +48,16 @@ export default function DeletedNote() {
   const shelfEmpty = useShelf((s) => s.manga?.length === 0);
   const setLastDeleted = useShelf((s) => s.setLastDeleted);
   const note = useRef<HTMLDivElement>(null);
-  const { undo, restoring, problem } = useUndoDelete();
+  const { undo, restoring, problem, setProblem } = useUndoDelete();
   const showing = manga && !shelfEmpty;
+  // the undo's last word ("3 of them couldn't come back") outstays the undo
+  const after = !manga && problem;
+
+  useEffect(() => {
+    if (!after) return;
+    const timer = setTimeout(() => setProblem(""), UNDO_MS);
+    return () => clearTimeout(timer);
+  }, [after, setProblem]);
 
   // it leaves on its own, but not from under someone reading or tabbing to it
   useEffect(() => {
@@ -63,22 +77,24 @@ export default function DeletedNote() {
 
   return createPortal(
     <div role="status" ref={note}>
-      {showing && (
+      {(showing || after) && (
         <div
           data-over-add-button
           className="fixed inset-x-0 bottom-6 z-15 mx-auto flex w-fit max-w-[min(30rem,calc(100vw-2rem))] animate-drop items-center gap-4 rounded-ink border-[2.5px] border-line bg-card px-4 py-3 text-[0.95rem] text-ink shadow-ink motion-reduce:animate-none upto-720:bottom-[calc(4.5rem+env(safe-area-inset-bottom))]"
         >
-          <span className="min-w-0 truncate">
-            {problem || deletedLine(manga)}
+          <span className="min-w-0">
+            {problem || (manga ? deletedLine(manga) : "")}
           </span>
-          <button
-            type="button"
-            className={undoButton}
-            disabled={restoring}
-            onClick={undo}
-          >
-            {restoring ? "Undoing…" : "Undo"}
-          </button>
+          {showing && (
+            <button
+              type="button"
+              className={undoButton}
+              disabled={restoring}
+              onClick={undo}
+            >
+              {restoring ? "Undoing…" : "Undo"}
+            </button>
+          )}
         </div>
       )}
     </div>,

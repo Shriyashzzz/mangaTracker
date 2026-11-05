@@ -60,6 +60,9 @@ export const homeStyles = {
     "tap ml-auto min-h-9 shrink-0 text-[0.9rem] font-medium text-ink-soft underline decoration-line-soft underline-offset-3 hover:text-ink hover:decoration-current aria-pressed:text-ink aria-pressed:decoration-accent aria-pressed:decoration-2",
   selectBar:
     "fixed inset-x-0 bottom-6 z-15 mx-auto flex w-fit max-w-[calc(100vw-1.5rem)] animate-drop flex-wrap items-center gap-x-4 gap-y-2 upto-520:gap-x-3 upto-520:px-3 [@media(max-width:360px)]:gap-x-2.5 rounded-ink border-[2.5px] border-line bg-card px-4 py-3 text-[0.95rem] text-ink shadow-ink motion-reduce:animate-none upto-720:bottom-[calc(4.5rem+env(safe-area-inset-bottom))]",
+  // over the "Deleted · Undo" note, which takes its place at the bottom
+  selectBarRaised:
+    "bottom-24! upto-720:bottom-[calc(9.5rem+env(safe-area-inset-bottom))]!",
   selectCount: "font-medium tabular-nums",
   selectLink:
     "tap min-h-9 font-medium text-ink-soft underline decoration-line-soft underline-offset-3 hover:text-ink hover:decoration-current",

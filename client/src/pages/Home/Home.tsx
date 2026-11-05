@@ -281,15 +281,19 @@ function Library() {
   useEffect(() => {
     if (!selectOn) return;
     const leave = (e: KeyboardEvent) => {
-      // the confirm dialog's own Escape closes just the dialog
-      if (e.key === "Escape" && !document.querySelector("dialog[open]")) {
-        setSelecting(false);
-        setPicked(new Set());
-      }
+      if (e.key !== "Escape") return;
+      // the confirm dialog's own Escape closes just the dialog, and the
+      // search's clears the search
+      if (document.querySelector("dialog[open]")) return;
+      if ((e.target as Element | null)?.closest("input, textarea, select"))
+        return;
+      stopSelecting();
     };
     window.addEventListener("keydown", leave);
     return () => window.removeEventListener("keydown", leave);
   }, [selectOn]);
+  // the "Deleted · Undo" note sits where the bar does: the bar goes above it
+  const undoShowing = useShelf((s) => Boolean(s.lastDeleted?.length));
   useEffect(() => {
     if (checksOn && (showingNew || rowsChosen) && mangaData?.length)
       checkReleases();
@@ -811,7 +815,8 @@ function Library() {
         onPick={(value) => {
           setStatusFilter(value);
           writeSession("libraryStatus", value);
-          setPicked(new Set());
+          // a new tab starts with Select off, so it never comes back by itself
+          stopSelecting();
           if (wantHidden) navigator("/shelf", { replace: true });
         }}
         query={query}
@@ -857,7 +862,7 @@ function Library() {
       {selectOn &&
         createPortal(
           <div
-            className={styles.selectBar}
+            className={`${styles.selectBar}${undoShowing ? ` ${styles.selectBarRaised}` : ""}`}
             role="region"
             aria-label="Selected series"
             data-over-add-button
