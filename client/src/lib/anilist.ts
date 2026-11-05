@@ -210,8 +210,9 @@ const plainAll = (names: string[]) => names.map(plain).filter(Boolean);
 
 // "Chunchu: The Genocide Fiend" carries on from "Chunchu" after a colon, so
 // it's that series with its subtitle; "Justice Now!" just carries on, so it's
-// another title that happens to start the same
-const SUBTITLE_MARK = /^[\s]*[:\-–—/(~|]/;
+// another title that happens to start the same. A slash joins two names
+// instead: "Darkstalkers/Red Earth" isn't UDON's "Darkstalkers"
+const SUBTITLE_MARK = /^[\s]*[:\-–—(~|]/;
 // or only says what it is: "RWBY: The Official" + "Manga"
 const JUST_THE_FORMAT = /^(the)?(manga|comics?|graphicnovel)$/;
 function subtitleAfter(name: string, wanted: string) {
