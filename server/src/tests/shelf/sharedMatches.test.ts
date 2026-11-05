@@ -84,3 +84,21 @@ test("titles are kept as hashes, one per way the import searches", () => {
   expect(matchKey("One Piece", true, false)).not.toBe(key);
   expect(matchKey("One Piece", false, true)).not.toBe(key);
 });
+
+test("only a series' exact name is shared: a subtitle guess could be another series", () => {
+  const titan = media({ id: 53390, title: { english: "Attack on Titan", romaji: "Shingeki no Kyojin", native: null } });
+  const beforeTheFall = media({ id: 85312, title: { english: "Attack on Titan: Before the Fall", romaji: "Shingeki no Kyojin: Before the Fall", native: null } });
+  const say = (name: string) => ({ name, lightNovel: false, exactOnly: false });
+  expect(fits(say("Attack on Titan"), titan)).toBe(true);
+  expect(fits(say("Shingeki no Kyojin"), titan)).toBe(true);
+  expect(fits(say("Attack on Titan: Before the Fall"), beforeTheFall)).toBe(true);
+  // either way round, one is the other plus a subtitle: never shared
+  expect(fits(say("Attack on Titan"), beforeTheFall)).toBe(false);
+  expect(fits(say("Attack on Titan: Before the Fall"), titan)).toBe(false);
+});
+
+test("an adult series' other names aren't shared: they can be loose", () => {
+  const adult = media({ id: 108410, isAdult: true, synonyms: ["Ulysses"], title: { english: null, romaji: "Sakuramiya Shimai no Netorare Kiroku", native: null } });
+  expect(fits({ name: "Ulysses", lightNovel: false, exactOnly: false }, adult)).toBe(false);
+  expect(fits({ name: "Sakuramiya Shimai no Netorare Kiroku", lightNovel: false, exactOnly: false }, adult)).toBe(true);
+});

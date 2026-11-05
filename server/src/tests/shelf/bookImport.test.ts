@@ -295,10 +295,10 @@ test("exact names: articles, & and AniList's long vowels", () => {
 
 test("edition words and the creator's name come off", () => {
   expect(seriesOf(["Dragon Ball VIZBIG Edition, Vol. 2", "Parasyte Full Color Collection 3", "Parasyte Full Color Collection 4", "Gunsmith Cats Revised Edition, Vol. 1", "Princess Jellyfish 2-in-1 Omnibus, Vol. 9", "Gantz/1", "Gantz/3"])).toEqual([
-    ["Dragon Ball", 2],
+    ["Dragon Ball", 6],
     ["Parasyte", 4],
     ["Gunsmith Cats", 1],
-    ["Princess Jellyfish", 9],
+    ["Princess Jellyfish", 18],
     ["Gantz", 3],
   ]);
   expect(searchFallbacks("Naoki Urasawa's Monster")).toContain("Monster");
@@ -416,4 +416,200 @@ test("an import never sends a volume number the server turns away", async () => 
   const [s] = groupBooks(goodreads(["Blade Runner 3", "Blade Runner 2049"]).map((b) => ({ ...b, owned: true, read: false })));
   const sent = toEntry(s!).ownedList ?? [];
   expect(sent.every((v) => v >= 0 && v <= 999)).toBe(true);
+});
+
+// ---------- a Reddit library's exports (2026-11-05) ----------
+
+import {
+  searchPlan,
+  volumesInside,
+  withoutSpinOffs,
+} from "../../../../client/src/lib/imports/bookImport.js";
+
+const owned = (titles: string[]) =>
+  groupBooks(goodreads(titles)).map((s) => [s.title, s.ownedList, Boolean(s.omnibus)]);
+
+test("an omnibus counts the volumes it holds, from the surest the title says", () => {
+  // listed, also with the "&" an export dropped
+  expect(volumesInside("Bleach (3-in-1 Edition), Vol. 21: Includes vols. 61, 62 & 63", 21)).toEqual({ holds: [61, 62, 63], before: "Bleach (3-in-1 Edition), Vol. 21: " });
+  expect(volumesInside("Skip Beat! (3-in-1 Edition), Vol. 15: Includes vols. 43, 44  45", 15).holds).toEqual([43, 44, 45]);
+  // a list beats the arithmetic: this one really is 3 to 5
+  expect(volumesInside("Skip Beat! (3-in-1 Edition), Vol. 2: Includes vols. 3, 4 & 5", 2).holds).toEqual([3, 4, 5]);
+  // N-in-1 and the omnibus' number
+  expect(volumesInside("Bleach (3-in-1 Edition), Vol. 21", 21).holds).toEqual([61, 62, 63]);
+  expect(volumesInside("Princess Jellyfish 2-in-1 Omnibus, Volume 9", 9).holds).toEqual([17, 18]);
+  // ranges, in a tag, hyphenated, or after a volume word
+  expect(volumesInside("Negima! Magister Negi Magi, Omnibus 1 (Negima! Magister Negi Magi, #1-3)", 1).holds).toEqual([1, 2, 3]);
+  expect(volumesInside("One Piece: East Blue 4-5-6, Vol. 2 (One Piece: Omnibus, #2)", 2).holds).toEqual([4, 5, 6]);
+  expect(volumesInside("Cardcaptor Sakura, Volume 4-6", 4).holds).toEqual([4, 5, 6]);
+  // an omnibus that doesn't say: flagged, its number isn't a volume
+  expect(volumesInside("Vinland Saga Omnibus, Vol. 15", 15)).toEqual({ omnibus: true });
+  expect(volumesInside("Orange: The Complete Collection, Volume 2", 2)).toEqual({ omnibus: true });
+  // one volume stays one
+  expect(volumesInside("One Piece, Vol. 1: Romance Dawn (One Piece, #1)", 1)).toEqual({});
+  expect(volumesInside("Tatsuki Fujimoto Before Chainsaw Man: 17–21", 21)).toEqual({});
+});
+
+test("the series of an omnibus is the series, and its volumes join the single ones", () => {
+  expect(owned(["Bleach, Vol. 1", "Bleach (3-in-1 Edition), Vol. 21: Includes vols. 61, 62 & 63"])).toEqual([["Bleach", [1, 61, 62, 63], false]]);
+  expect(owned(["Kanokon Omnibus 1-2", "Kanokon Omnibus 3-4"])).toEqual([["Kanokon", [1, 2, 3, 4], false]]);
+  expect(owned(["Negima! Volumes 1, 2, and 3 - Bindup - Prop"])).toEqual([["Negima!", [1, 2, 3], false]]);
+  // Orange's complete collections don't say which volumes: no exact list, and flagged
+  expect(owned(["Orange: The Complete Collection, Volume 1", "Orange: The Complete Collection, Volume 2"])).toEqual([["Orange", null, true]]);
+});
+
+test("an export's dropped '&' comes back, so AniList can find it", () => {
+  const [series] = groupBooks(goodreads(["Wolf  Parchment: New Theory Spice  Wolf, Vol. 1 (Manga)"]));
+  expect(series!.title).toBe("Wolf & Parchment: New Theory Spice & Wolf");
+});
+
+test("'No. 1' after a comma is a volume; a name with No. in it stays a name", () => {
+  expect(owned(["Crying Freeman, No. 1: Shades of Death"])).toEqual([["Crying Freeman", [1], false]]);
+  expect(owned(["Kaiju No. 8, Vol. 3"])).toEqual([["Kaiju No. 8", [3], false]]);
+  expect(owned(["No. 6: The Manga, Volume 03"])).toEqual([["No. 6", [3], false]]);
+});
+
+test("Viz's Dragon Ball Z volumes are Dragon Ball's, 16 on", () => {
+  expect(owned(["Dragon Ball, Vol. 3", "Dragon Ball Z, Vol. 1", "Dragon Ball Z, Vol. 5"])).toEqual([["Dragon Ball", [3, 17, 21], false]]);
+});
+
+test("a lone numbered title fills the gap in the one longer series it starts", () => {
+  const dating = (n: number) => `Trapped in a Dating Sim: The World of Otome Games Is Tough for Mobs (Manga) Vol. ${n}`;
+  expect(owned([dating(1), dating(2), dating(3), "Trapped in a Dating Sim 4", dating(5)])).toEqual([
+    ["Trapped in a Dating Sim: The World of Otome Games Is Tough for Mobs", [1, 2, 3, 4, 5], false],
+  ]);
+  // that volume is there already: it isn't that series' (Before the Fall has a vol. 2)
+  expect(owned(["Attack on Titan: Before the Fall, Vol. 1", "Attack on Titan: Before the Fall, Vol. 2", "Attack on Titan: Before the Fall, Vol. 3", "Attack on Titan 2"]).map((r) => r[0])).toEqual(["Attack on Titan: Before the Fall", "Attack on Titan 2"]);
+});
+
+test("the search order: own names, then exact-only shorter forms, a subtitle cut marked", () => {
+  // the name without its number is exact-only: "Star Wars 3" can't become some Star Wars manga
+  expect(searchPlan({ title: "Star Wars 3", otherNames: [] })).toEqual([
+    { name: "Star Wars 3", exactOnly: false },
+    { name: "Star Wars", exactOnly: true },
+  ]);
+  expect(searchPlan({ title: "Dance in the Vampire Bund: Forgotten Tales", otherNames: [] })).toEqual([
+    { name: "Dance in the Vampire Bund: Forgotten Tales", exactOnly: false },
+    { name: "Dance in the Vampire Bund", exactOnly: true, cut: true },
+  ]);
+  // the creator's name in front isn't a subtitle: what it finds is the same series
+  expect(searchPlan({ title: "Naoki Urasawa's Monster", otherNames: [] })).toEqual([
+    { name: "Naoki Urasawa's Monster", exactOnly: false },
+    { name: "Monster", exactOnly: true },
+  ]);
+  // not the manga itself: no shorter form, so it can't become Cardcaptor Sakura
+  expect(searchPlan({ title: "Cardcaptors: Cinemanga", otherNames: [] })).toEqual([
+    { name: "Cardcaptors: Cinemanga", exactOnly: false },
+  ]);
+});
+
+test("matchFrom says when the series it picked is the search cut short", () => {
+  const bund = [candidate(1, "Dance in the Vampire Bund", "Dance in the Vampire Bund", 100)];
+  expect(matchFrom("Dance in the Vampire Bund", bund)?.fit).toBe("exact");
+  expect(matchFrom("Dance in the Vampire Bund: Forgotten Tales", bund)?.fit).toBe("parent");
+  const chunchu = [candidate(2, "Chunchu: The Genocide Fiend", "Chunchu", 10)];
+  expect(matchFrom("Chunchu", chunchu)?.fit).toBe("exact");
+});
+
+test("a typo's double space before 'Vol.' isn't a dropped '&'", () => {
+  expect(groupBooks(goodreads(["Chillin' in Another World with Level 2 Super Cheat Powers  Vol. 8"]))[0]!.title).toBe(
+    "Chillin' in Another World with Level 2 Super Cheat Powers",
+  );
+});
+
+test("a lone numbered manga never joins a light novel's longer name", () => {
+  const novel = (n: number) => `Overlord: The Undead King, Vol. ${n} (light novel)`;
+  const titles = groupBooks(goodreads([novel(1), novel(2), novel(4), "Overlord 3"])).map((s) => [s.title, s.lightNovel]);
+  expect(titles).toContainEqual(["Overlord 3", false]);
+});
+
+test("a spin-off found only by a shorter name stays apart when its volumes clash", () => {
+  const row = (key: string, ownedList: number[]) => ({ key, title: key, otherNames: [], books: ownedList.length, ownedVolumes: Math.max(...ownedList), ownedList, readVolumes: 0, score: 0, planned: false, lightNovel: false });
+  const bund = row("bund", [1, 2, 3, 4]);
+  const tales = row("tales", [1]);
+  const alita = row("alita", [1, 2, 3]);
+  const tears = row("tears", [9]);
+  const matches = new Map([
+    ["bund", { anilistId: 1, malId: 1, name: "Dance in the Vampire Bund", cover: null }],
+    ["tales", { anilistId: 1, malId: 1, name: "Dance in the Vampire Bund", cover: null, shorter: true as const }],
+    ["alita", { anilistId: 2, malId: 2, name: "Battle Angel Alita", cover: null }],
+    // found by a shorter name but no clash: more of the same series
+    ["tears", { anilistId: 2, malId: 2, name: "Battle Angel Alita", cover: null, shorter: true as const }],
+  ]);
+  const seen = withoutSpinOffs([bund, tales, alita, tears], matches);
+  expect(seen.get("tales")).toBeNull();
+  expect(seen.get("bund")?.anilistId).toBe(1);
+  expect(seen.get("tears")?.anilistId).toBe(2);
+});
+
+test("a real title beats another series' other name, and an adult series' other names don't count", () => {
+  // AniList lists "Ulysses" as one of an adult manga's other names
+  const adult = { ...candidate(108410, null, "Sakuramiya Shimai no Netorare Kiroku", 251, ["yurisis", "Ulysses"]), isAdult: true };
+  expect(matchFrom("Ulysses", [adult])).toBeNull();
+  // its own title still counts
+  expect(matchFrom("Sakuramiya Shimai no Netorare Kiroku", [adult])?.anilistId).toBe(108410);
+  // a series called that beats a more popular one that only has it as another name
+  const titled = candidate(1, "Monster", "Monster", 10);
+  const nicknamed = candidate(2, "Monster Musume", "Monster Musume no Iru Nichijou", 900, ["Monster"]);
+  expect(matchFrom("Monster", [nicknamed, titled])?.anilistId).toBe(1);
+  // and other names still find a series nothing is called
+  expect(matchFrom("Monster", [nicknamed])?.anilistId).toBe(2);
+});
+
+test("second review: typos, guessed numbers, duplicate editions, overflowing renumbering", () => {
+  // a double-space typo keeps the name as written too, to search if the "&" one fails
+  const [piece] = groupBooks(goodreads(["One  Piece, Vol. 1"]));
+  expect([piece!.title, ...piece!.otherNames]).toEqual(["One & Piece", "One Piece"]);
+  const [joined] = groupBooks(goodreads(["One  Piece, Vol. 1", "One Piece, Vol. 2", "One Piece, Vol. 3"]));
+  expect(joined!.title).toBe("One Piece");
+  // a number only guessed from the end isn't an omnibus number
+  expect(owned(["Mob Psycho 100 3-in-1"])).toEqual([["Mob Psycho 100", null, false]]);
+  // two editions of vol. 1 are still one volume
+  const [berserk] = groupBooks(goodreads(["Berserk, Vol. 1", "Berserk Deluxe Edition, Vol. 1"]));
+  expect([berserk!.ownedVolumes, berserk!.ownedList]).toEqual([1, [1]]);
+  // DBZ 3-in-1 vol. 9 holds 25-27, past what Viz's numbering maps: left as it is
+  expect(owned(["Dragon Ball Z (3-in-1 Edition), Vol. 9"])).toEqual([["Dragon Ball Z", [25, 26, 27], false]]);
+});
+
+test("two spin-offs found by the same cut clash with each other, while different volumes are one series", () => {
+  const row = (key: string, ownedList: number[]) => ({ key, title: key, otherNames: [], books: ownedList.length, ownedVolumes: Math.max(...ownedList), ownedList, readVolumes: 0, score: 0, planned: false, lightNovel: false });
+  const cutTo = (anilistId: number) => ({ anilistId, malId: null, name: "x", cover: null, shorter: true as const });
+  const seen = withoutSpinOffs(
+    [row("tales", [1]), row("scarlet", [1, 2]), row("reborn", [1]), row("eternal", [3])],
+    new Map([["tales", cutTo(1)], ["scarlet", cutTo(1)], ["reborn", cutTo(2)], ["eternal", cutTo(2)]]),
+  );
+  expect([seen.get("tales"), seen.get("scarlet")]).toEqual([null, null]);
+  expect([seen.get("reborn")?.anilistId, seen.get("eternal")?.anilistId]).toEqual([2, 2]);
+});
+
+import { isNamedFor } from "../../../../client/src/lib/anilist.js";
+
+test("third review: Japanese numbers, other series that start the same, read-only spin-offs, near names", () => {
+  // a number stuck to Japanese text is only a guess: alone, it's the name's
+  expect(owned(["モブサイコ100"])).toEqual([["モブサイコ100", null, false]]);
+  expect(groupBooks(goodreads(["One Piece 航海王37: 湯姆先生", "One Piece 航海王 38"])).map((s) => [s.title, s.ownedList])).toEqual([["One Piece 航海王", [37, 38]]]);
+  // "Dragon Ball Super" just carries on from "Dragon Ball": Dragon Ball 5 isn't its vol. 5
+  expect(groupBooks(goodreads(["Dragon Ball Super, Vol. 1", "Dragon Ball Super, Vol. 2", "Dragon Ball Super, Vol. 6", "Dragon Ball 5"])).map((s) => s.title).sort()).toEqual(["Dragon Ball 5", "Dragon Ball Super"]);
+  // two letters apart, from 12 letters on
+  expect(isNamedFor("Magic Monsters", ["Magical Monsters"])).toBe(true);
+  expect(isNamedFor("Animal Academy: Hakobune Hakusho", ["Animal Academy", "Hakobune Hakusho"])).toBe(true);
+  expect(isNamedFor("Dance in the Vampire Bund: Forgotten Tales", ["Dance in the Vampire Bund", "Dance in the Vampire Bund"])).toBe(false);
+  expect(isNamedFor("Naruto", ["Boruto"])).toBe(false);
+});
+
+test("a spin-off they've only read still clashes with the series", () => {
+  const row = (key: string, ownedList: number[], readVolumes = 0) => ({ key, title: key, otherNames: [], books: 1, ownedVolumes: ownedList.length ? Math.max(...ownedList) : 0, ownedList, readVolumes, score: 0, planned: false, lightNovel: false });
+  const seen = withoutSpinOffs(
+    [row("bund", [1, 2, 3, 4]), row("tales", [], 1)],
+    new Map([
+      ["bund", { anilistId: 1, malId: null, name: "Bund", cover: null }],
+      ["tales", { anilistId: 1, malId: null, name: "Bund", cover: null, shorter: true as const }],
+    ]),
+  );
+  expect(seen.get("tales")).toBeNull();
+});
+
+test("a number in a Goodreads series tag is part of the series' name", () => {
+  expect(owned(["Mob Psycho 100, Vol. 1", "Mob Psycho 100, Vol. 4 (Mob Psycho 100, #4)"])).toEqual([["Mob Psycho 100", [1, 4], false]]);
+  expect(owned(["Eyeshield 21, Vol. 2 (Eyeshield 21, #2)", "Eyeshield 21, Vol. 3 (Eyeshield 21, #3)"])).toEqual([["Eyeshield 21", [2, 3], false]]);
 });

@@ -63,9 +63,12 @@ export function fitsSearch(search: string, names: string[], exactOnly: boolean) 
 
 // a search as the import asks it (store/bookImport.ts searchKey), hashed: the
 // table never holds anyone's book titles
+// v2: only exact names are shared (sharedMatches.ts fits), so rows from
+// before, which may hold a subtitle guess, are never read again
+const MATCH_KEY_VERSION = "v2";
 export const matchKey = (name: string, lightNovel: boolean, exactOnly: boolean) =>
   createHash("sha256")
     .update(
-      `${lightNovel ? "novel" : "manga"}${exactOnly ? "!" : ""}:${name.toLowerCase()}`,
+      `${MATCH_KEY_VERSION}|${lightNovel ? "novel" : "manga"}${exactOnly ? "!" : ""}:${name.toLowerCase()}`,
     )
     .digest("hex");

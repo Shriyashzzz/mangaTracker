@@ -6,6 +6,7 @@ import {
   useEffect,
   useId,
   useRef,
+  useMemo,
   useState,
   type ChangeEvent,
   type DragEvent,
@@ -17,6 +18,7 @@ import {
   fileKind,
   gapsIn,
   mergeSameSeries,
+  withoutSpinOffs,
   parseCsv,
   readBooks,
   wrongFile,
@@ -315,7 +317,19 @@ export default function BookImport({ source }: { source: BookSource }) {
     void open([...e.dataTransfer.files]);
   };
 
-  const matchOf = (s: BookSeries) => matches.get(s.key);
+  // a spin-off AniList doesn't have counts as not found (withoutSpinOffs)
+  const shown = useMemo(
+    () => (found ? withoutSpinOffs(found, matches) : matches),
+    [found, matches],
+  );
+  const matchOf = (s: BookSeries) => shown.get(s.key);
+  // kept apart as a spin-off: the series a shorter name found
+  const keptApartFrom = (s: BookSeries) => {
+    const raw = matches.get(s.key);
+    return raw && raw !== "failed" && shown.get(s.key) === null
+      ? raw.name
+      : null;
+  };
   // ticked unless they've said otherwise: found on AniList and owned or read
   const ticked = (s: BookSeries) => {
     const choice = choices.get(s.key);
@@ -326,7 +340,7 @@ export default function BookImport({ source }: { source: BookSource }) {
   // rows AniList says are one series, as one
   const rows = found
     ? mergeSameSeries(found, (s) => {
-        const match = matches.get(s.key);
+        const match = shown.get(s.key);
         return match && match !== "failed" ? match.anilistId : null;
       })
     : null;
@@ -514,6 +528,7 @@ export default function BookImport({ source }: { source: BookSource }) {
             >
               {rows!.map((s) => {
                 const match = matchOf(s);
+                const apart = keptApartFrom(s);
                 const name = match && match !== "failed" ? match.name : s.title;
                 return (
                   <label key={s.key} className={styles.list}>
@@ -532,9 +547,11 @@ export default function BookImport({ source }: { source: BookSource }) {
                           : match === "failed"
                             ? "Couldn't check AniList"
                             : match === null
-                              ? s.lightNovel
-                                ? "Not on AniList"
-                                : "Not on AniList, so probably not manga"
+                              ? apart
+                                ? `Not on AniList, and not the same as ${apart}`
+                                : s.lightNovel
+                                  ? "Not on AniList"
+                                  : "Not on AniList, so probably not manga"
                               : (s.lightNovel ? "Light novel · " : "") +
                                 (s.planned
                                   ? "Only on a to-read list"
@@ -547,6 +564,13 @@ export default function BookImport({ source }: { source: BookSource }) {
                                       })}`
                                     : `${s.books} book${s.books === 1 ? "" : "s"}`)}
                       </span>
+                      {/* "Vinland Saga Omnibus, Vol. 3" doesn't say which
+                          volumes it holds, so the count is a guess */}
+                      {s.omnibus && match && match !== "failed" && (
+                        <span className={styles.omnibusNote}>
+                          Omnibus editions: check the volume count after adding
+                        </span>
+                      )}
                     </span>
                   </label>
                 );
