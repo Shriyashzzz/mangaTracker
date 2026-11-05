@@ -17,6 +17,8 @@ export const shelfBarStyles = {
   title: "tap group flex min-w-0 items-baseline gap-2 text-left",
   titleWord:
     "truncate font-brand text-[2.3rem] leading-[1.05] tracking-[0.02em] uppercase upto-520:text-[1.6rem]",
+  // the title's count, a step up from the menu's
+  titleCount: "[&>span]:text-[1.05rem] upto-520:[&>span]:text-[0.9rem]",
   count: "font-mono text-[0.85rem] text-muted tabular-nums",
   countNew:
     "rounded-[3px] bg-accent px-1.5 font-mono text-[0.8rem] text-on-accent tabular-nums",
@@ -40,13 +42,15 @@ export const shelfBarStyles = {
 
   sortWrap: "relative shrink-0",
   sortButton:
-    "tap group flex items-center gap-1 text-[0.88rem] text-ink-soft hover:text-ink upto-520:grid upto-520:size-10 upto-520:place-items-center",
+    "tap group relative flex items-center gap-1 text-[0.88rem] text-ink-soft hover:text-ink upto-520:grid upto-520:size-10 upto-520:place-items-center",
   sortWords: "whitespace-nowrap upto-520:hidden",
   sortPicked:
     "font-medium text-ink underline decoration-line-soft underline-offset-3 group-hover:decoration-current",
   sortChevron:
     "size-4 transition-transform duration-150 group-aria-expanded:rotate-180 upto-520:hidden",
   sortIcon: "hidden size-5 upto-520:block",
+  sortDot:
+    "absolute top-1.5 right-1.5 hidden size-2 rounded-full bg-accent upto-520:block",
 
   menu: `${card} left-0 w-60`,
   menuRight: `${card} right-0 w-56`,

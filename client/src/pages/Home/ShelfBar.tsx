@@ -98,7 +98,13 @@ export default function ShelfBar({
   return (
     <div className={styles.bar}>
       <div className={searching ? styles.leadSearching : styles.lead}>
-        <ViewMenu views={views} shown={shown} onPick={onPick} />
+        <ViewMenu
+          views={views}
+          shown={shown}
+          onPick={onPick}
+          // the tour points at New: on New, that's the title
+          tourTarget={current === "new" ? "tab-new" : undefined}
+        />
         {/* the way to New from anywhere else, with what's waiting there */}
         {fresh && current !== "new" && (
           <button
@@ -187,10 +193,12 @@ function ViewMenu({
   views,
   shown,
   onPick,
+  tourTarget,
 }: {
   views: ShelfView[];
   shown: ShelfView;
   onPick: (value: string) => void;
+  tourTarget?: string;
 }) {
   const { open, setOpen, ref } = useMenu();
   return (
@@ -198,13 +206,16 @@ function ViewMenu({
       <button
         type="button"
         className={styles.title}
+        data-tour={tourTarget}
         aria-expanded={open}
         aria-haspopup="true"
         aria-label={`Showing ${shown.label}${shown.count != null ? `, ${shown.count}` : ""}. Change what's shown`}
         onClick={() => setOpen(!open)}
       >
         <span className={styles.titleWord}>{shown.label}</span>
-        <Count view={shown} />
+        <span className={styles.titleCount}>
+          <Count view={shown} />
+        </span>
         <ChevronDownIcon className={styles.chevron} />
       </button>
       {open && (
@@ -257,6 +268,10 @@ function SortMenu({
         </span>
         <ChevronDownIcon className={styles.sortChevron} />
         <SortIcon className={styles.sortIcon} />
+        {/* phones: something other than the default is on */}
+        {picked.value !== SORT_OPTIONS[0]!.value && (
+          <span className={styles.sortDot} aria-hidden />
+        )}
       </button>
       {open && (
         <Menu label="Sort by" alignRight>

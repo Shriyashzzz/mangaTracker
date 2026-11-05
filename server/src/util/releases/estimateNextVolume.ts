@@ -23,7 +23,9 @@ export type VolumeEstimate = {
   note: string;
 };
 
-export type CoverItem = { attributes: { volume: string | null; createdAt: string } };
+export type CoverItem = {
+  attributes: { volume: string | null; createdAt: string };
+};
 
 type AggregateVolume = {
   volume: string;
@@ -41,7 +43,7 @@ async function getCovers(seriesId: string): Promise<CoverItem[]> {
   params.append("limit", "100");
   params.append("order[volume]", "desc");
   const res = await politeFetch(`${API}/cover?${params}`, {
-    signal: AbortSignal.timeout(10_000),
+    timeoutMs: 10_000,
   });
   if (!res.ok) throw new Error(`MangaDex cover request failed: ${res.status}`);
   const json = (await res.json()) as { data?: CoverItem[] };
@@ -56,9 +58,12 @@ async function getChapterProgress(
   try {
     const params = new URLSearchParams();
     params.append("translatedLanguage[]", language);
-    const res = await politeFetch(`${API}/manga/${seriesId}/aggregate?${params}`, {
-      signal: AbortSignal.timeout(10_000),
-    });
+    const res = await politeFetch(
+      `${API}/manga/${seriesId}/aggregate?${params}`,
+      {
+        timeoutMs: 10_000,
+      },
+    );
     if (!res.ok) return { unassigned: null, avgPerVolume: null };
     const json = (await res.json()) as AggregateResponse;
     const vols = json.volumes ?? {};
@@ -152,7 +157,9 @@ export async function estimateNextVolume(
   }
   // Rolling forward would give even a series that ended years ago a date.
   if (missed > MAX_MISSED) {
-    return none("No new volumes for a while; it has likely ended or is on a long break.");
+    return none(
+      "No new volumes for a while; it has likely ended or is on a long break.",
+    );
   }
   if (missed > 0) confidence = "low";
 

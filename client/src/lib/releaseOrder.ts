@@ -15,7 +15,11 @@ type Ranked = Pick<
   "id" | "bookmark" | "latestChapter" | "rating" | "planned" | "status"
 >;
 
+// still reading it: a finished one (often imported at its last chapter) or
+// one on the to-read list isn't waiting on news
 export const isCaughtUp = (m: Ranked) =>
+  !m.status &&
+  !m.planned &&
   m.latestChapter != null &&
   m.bookmark != null &&
   m.latestChapter - m.bookmark <= CAUGHT_UP_WITHIN;

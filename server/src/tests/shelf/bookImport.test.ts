@@ -409,3 +409,11 @@ test("a book app's owned volumes come in exactly, gaps and all", async () => {
   expect(mergeSameSeries([a, b], () => 13)[0]!.ownedList).toEqual([1, 4, 6]);
   expect(mergeSameSeries([a, { ...b, ownedList: null }], () => 13)[0]!.ownedList).toBeNull();
 });
+
+test("an import never sends a volume number the server turns away", async () => {
+  const { groupBooks, toEntry } = await import("../../../../client/src/lib/imports/bookImport.js");
+  // "Blade Runner 2049" read as volume 2049 of a series also owning vol. 3
+  const [s] = groupBooks(goodreads(["Blade Runner 3", "Blade Runner 2049"]).map((b) => ({ ...b, owned: true, read: false })));
+  const sent = toEntry(s!).ownedList ?? [];
+  expect(sent.every((v) => v >= 0 && v <= 999)).toBe(true);
+});

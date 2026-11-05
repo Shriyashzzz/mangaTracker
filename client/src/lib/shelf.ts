@@ -16,7 +16,12 @@ export const getReleases = (
     releaseStatus: ReleaseStatus | null;
     // false if a source didn't answer, so it's worth asking again
     complete: boolean;
+    // what it came to (left out by a server from before outcomes)
+    outcome?: ReleaseOutcome;
   }>(`/api/manga/${id}/releases${lane ? `?lane=${lane}` : ""}`, signal);
+
+// what a check came to: only "failed" means the sites didn't answer
+export type ReleaseOutcome = "news" | "notFound" | "skipped" | "off" | "failed";
 
 // the server gives up on a slow title before this; if even it stops answering,
 // the shelf moves on to the next title rather than waiting forever

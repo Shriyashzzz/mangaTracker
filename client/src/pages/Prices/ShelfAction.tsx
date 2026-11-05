@@ -81,7 +81,8 @@ export default function ShelfAction({ series, title, volume }: Props) {
     const novel = novelParts(title);
     const params = new URLSearchParams({ title: novel.title });
     if (novel.lightNovel) params.set("format", "novel");
-    if (volume != null) params.set("volumesOwned", String(volume));
+    // they own this volume, which says nothing about the ones before it
+    if (volume != null) params.set("ownedVolume", String(volume));
     return (
       <NavLink to={`/add?${params}`} className="btn btn-primary" viewTransition>
         Add series to shelf

@@ -99,3 +99,12 @@ test("skipped only when AniList says the series finished and every volume is own
   expect(nothingLeftToCheck({ volumesOwned: 27 }, { status: "FINISHED", volumes: null })).toBe(false);
   expect(nothingLeftToCheck({ volumesOwned: 27 }, null)).toBe(false);
 });
+
+test("a finished series at its last chapter isn't caught up (it's done, not waiting)", () => {
+  const m = (over: Record<string, unknown>) => ({ id: 1, bookmark: 120, latestChapter: 120, rating: null, planned: false, status: false, ...over });
+  expect(laneOf(m({}))).toBe("now");
+  expect(laneOf(m({ status: true }))).toBe("later");
+  expect(laneOf(m({ planned: true }))).toBe("later");
+  // a 5-star finished one still goes with the 5 stars
+  expect(laneOf(m({ status: true, rating: 5 }))).toBe("now");
+});

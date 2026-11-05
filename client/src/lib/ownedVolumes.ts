@@ -36,6 +36,13 @@ export const ownedOf = (m: Owned): number[] =>
     ? m.ownedList
     : Array.from({ length: m.volumesOwned ?? 0 }, (_, i) => i + 1);
 
+// any at all, and how many, without listing them (a big shelf asks on
+// every keystroke)
+export const ownsAny = (m: Owned) =>
+  Boolean(m.ownedList?.length || m.volumesOwned);
+export const ownedCount = (m: Owned) =>
+  m.ownedList?.length || m.volumesOwned || 0;
+
 export const owns = (m: Owned, volume: number) =>
   m.ownedList?.length
     ? m.ownedList.includes(volume)

@@ -417,8 +417,12 @@ export function demoResponse(
         planned: Boolean(entry.planned),
         lightNovel: Boolean(entry.lightNovel),
         bookmark: entry.chapters || null,
-        // as the server does: volumes read when they haven't said what they own
-        volumesOwned: entry.ownedVolumes || entry.readVolumes || null,
+        // as the server does: volumes read when they haven't said what they
+        // own, or exactly which, when a book app's file says
+        ...ownedVolumes(
+          entry.ownedVolumes || entry.readVolumes || null,
+          entry.ownedList,
+        ),
         rating: entry.score ? Math.ceil(entry.score / 2) : null,
         description: entry.comments || null,
       })),

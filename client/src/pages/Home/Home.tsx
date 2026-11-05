@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo, useRef } from "react";
 import ShelfBar from "./ShelfBar";
-import { ownedOf, ownedPhrase } from "../../lib/ownedVolumes";
+import { ownedPhrase, ownsAny } from "../../lib/ownedVolumes";
 import VolumesView from "./VolumesView";
 import { createPortal } from "react-dom";
 import MangaCard, {
@@ -38,6 +38,9 @@ import TakeTourButton from "../../components/tour/TakeTourButton";
 const SHELF_PAGE_SIZE = 20;
 // shelves this size get a heads-up that their first release check is slow
 const BIG_SHELF = 10;
+// after this many checks with nothing new, the big "Checking" box gives way
+// to one line, so a long shelf doesn't look stuck
+const EARLY_CHECKS = 6;
 // how long the "Hide" note and its undo stay up
 const SEEN_NOTE_MS = 8000;
 
@@ -47,6 +50,7 @@ const RELEASE_KINDS = {
     label: "Volumes",
     note: "English releases only. Japan may be ahead.",
     emptyTitle: "No new volumes. Your wallet lives!",
+    waiting: "No new volumes yet",
     emptyBody: "Nothing new to show for now. Your shelf gets a day off.",
   },
   chapters: {
@@ -54,12 +58,14 @@ const RELEASE_KINDS = {
     // MangaUpdates counts every language and doesn't say which is which
     note: "Mostly English. A chapter may still be on its way in English.",
     emptyTitle: "Nothing new to read. Go touch grass!",
+    waiting: "No new chapters yet",
     emptyBody: "Nothing new to show for now. Check back soon.",
   },
   japan: {
     label: "In Japan",
     note: "Out in Japan, maybe not in English yet.",
     emptyTitle: "Japan has nothing on you. Yet!",
+    waiting: "Nothing new in Japan yet",
     emptyBody: "No volumes in Japan to show for now.",
   },
 } as const;
@@ -127,6 +133,7 @@ function Library() {
   const mangaData = useShelf((s) => s.manga);
   const loadError = useShelf((s) => s.loadFailed);
   const releases = useShelf((s) => s.releases);
+  const outcomes = useShelf((s) => s.outcomes);
   const loadShelf = useShelf((s) => s.load);
   const checkReleases = useShelf((s) => s.checkReleases);
   const recheckReleases = useShelf((s) => s.recheckReleases);
@@ -282,7 +289,7 @@ function Library() {
       finished,
       planned,
       // series they own any volumes of
-      volumes: list.filter((m) => ownedOf(m).length > 0).length,
+      volumes: list.filter((m) => ownsAny(m)).length,
       newVolumes,
       newChapters,
       newInJapan,
@@ -311,8 +318,7 @@ function Library() {
     if (statusFilter === "ongoing")
       list = list.filter((m) => !m.status && !m.planned);
     if (statusFilter === "planned") list = list.filter((m) => m.planned);
-    if (statusFilter === "volumes")
-      list = list.filter((m) => ownedOf(m).length > 0);
+    if (statusFilter === "volumes") list = list.filter((m) => ownsAny(m));
     if (statusFilter === "new") {
       list = list.filter((m) =>
         !m.planned && viewingHidden
@@ -356,22 +362,25 @@ function Library() {
 
   const openHidden = () => navigator("/shelf?view=hidden");
 
-  const changePage = (index: number) => {
+  // the bottom pager takes them up to where the new page starts; the top
+  // one is already there, so the page stays still under it
+  const changePage = (index: number, scrollUp: boolean) => {
     setPage({ key: filterKey, index });
-    document
-      .getElementById("shelf-grid")
-      ?.scrollIntoView({ behavior: "smooth", block: "start" });
+    if (scrollUp)
+      document
+        .getElementById("shelf-grid")
+        ?.scrollIntoView({ behavior: "smooth", block: "start" });
   };
   const shelfPage = visibleManga.slice(
     pageIndex * SHELF_PAGE_SIZE,
     (pageIndex + 1) * SHELF_PAGE_SIZE,
   );
-  const pager = (
+  const pager = (scrollUp: boolean) => (
     <RangePager
       total={visibleManga.length}
       pageSize={SHELF_PAGE_SIZE}
       page={pageIndex}
-      onChange={changePage}
+      onChange={(index) => changePage(index, scrollUp)}
       label="Shelf pages"
       labelFor={(start, end) => `${start + 1}–${end + 1}`}
     />
@@ -430,7 +439,7 @@ function Library() {
   const everyCheckFailed =
     allChecked &&
     mangaData.length > 0 &&
-    mangaData.every((m) => releases[m.id] === null);
+    mangaData.every((m) => outcomes[m.id] === "failed");
   const tabs = [
     { value: "all", label: "All", count: counts.all },
     { value: "ongoing", label: "Reading", count: counts.ongoing },
@@ -709,7 +718,9 @@ function Library() {
     showingNew &&
     !checking &&
     looked.length > 0 &&
-    looked.every((m) => releases[m.id] === null);
+    looked.every((m) => outcomes[m.id] === "failed");
+  // the sites answered, but don't know these: they'll never show up on New
+  const notFound = looked.filter((m) => outcomes[m.id] === "notFound").length;
   const bigFirstCheck = checking && !checkedBefore && total >= BIG_SHELF;
   // the check's progress: something to glance at, never the point of the page
   const progress = (
@@ -881,7 +892,18 @@ function Library() {
         </div>
       )}
 
-      {checking && visibleManga.length === 0 ? (
+      {checking && visibleManga.length === 0 && checked >= EARLY_CHECKS ? (
+        // nothing new yet, a while in: one line, not a box that looks stuck
+        <div className={styles.checkInline}>
+          {progress}
+          <p className={styles.checkText} aria-live="polite">
+            {RELEASE_KINDS[releaseKind].waiting} · {checked} of {total} checked
+            {bigShelfNote && (
+              <span className={styles.checkAside}>{bigShelfNote}</span>
+            )}
+          </p>
+        </div>
+      ) : checking && visibleManga.length === 0 ? (
         <div className={styles.checkCentre}>
           <p className={styles.checkTitle}>Checking for new releases</p>
           {progress}
@@ -906,7 +928,11 @@ function Library() {
           </button>
         </div>
       ) : statusFilter === "volumes" ? (
-        <VolumesView manga={visibleManga} searching={Boolean(query.trim())} />
+        <VolumesView
+          manga={visibleManga}
+          searching={Boolean(query.trim())}
+          resetKey={filterKey}
+        />
       ) : showingNew && visibleManga.length === 0 && !query.trim() ? (
         <div className={styles.nothingNew} data-tour="shelf">
           <span className="printed mascot-spot" aria-hidden>
@@ -934,6 +960,15 @@ function Library() {
               Light novels aren't checked for new releases yet.
             </p>
           )}
+          {!checking && notFound > 0 && (
+            <p className={styles.emptyBody}>
+              {notFound === looked.length
+                ? "None of your series were found on the release sites, so nothing can show up here."
+                : notFound === 1
+                  ? "1 of your series wasn't found on the release sites, so it won't show up here."
+                  : `${notFound} of your series weren't found on the release sites, so they won't show up here.`}
+            </p>
+          )}
         </div>
       ) : visibleManga.length === 0 ? (
         <div className={styles.emptyState}>
@@ -958,7 +993,7 @@ function Library() {
       ) : (
         <>
           {/* phones get the manga first; their pager is the one under the grid */}
-          <div className="upto-520:hidden">{pager}</div>
+          <div className="upto-520:hidden">{pager(false)}</div>
           <div
             id="shelf-grid"
             className={
@@ -1027,7 +1062,7 @@ function Library() {
             ))}
           </div>
           {visibleManga.length > SHELF_PAGE_SIZE && (
-            <div className={styles.pagerBottom}>{pager}</div>
+            <div className={styles.pagerBottom}>{pager(true)}</div>
           )}
         </>
       )}

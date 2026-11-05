@@ -66,10 +66,10 @@ export default function Details() {
   const navigate = useNavigate();
   const loadedId = mangaData?.id;
   // a light novel's prices are the novel's, never the manga of the same name
-  const buyOptions = useBuyOptions(
-    mangaData ? priceName(mangaData) : null,
-    mangaData?.volumesOwned ?? null,
-  );
+  const buyOptions = useBuyOptions(mangaData ? priceName(mangaData) : null, {
+    volumesOwned: mangaData?.volumesOwned ?? null,
+    ownedList: mangaData?.ownedList,
+  });
 
   useEffect(() => {
     async function getManga() {
@@ -364,9 +364,7 @@ export default function Details() {
               </>
             )}
             {ownedPhrase(mangaData) && (
-              <span className={styles.owned}>
-                Own {ownedPhrase(mangaData)}
-              </span>
+              <span className={styles.owned}>Own {ownedPhrase(mangaData)}</span>
             )}
           </p>
 

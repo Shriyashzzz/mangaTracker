@@ -837,7 +837,11 @@ export const toEntry = (
   ownedVolumes: s.ownedVolumes,
   // only with gaps: a run from 1 is what ownedVolumes says already, and keeps
   // counting a volume read further on as theirs, as it always did
-  ...(gapsIn(s.ownedList) ? { ownedList: s.ownedList! } : {}),
+  // cleaned the server's way first: a "2049" guessed from a title would
+  // otherwise turn the whole batch away
+  ...(gapsIn(s.ownedList)
+    ? { ownedList: ownedVolumes(null, s.ownedList).ownedList }
+    : {}),
   score: s.score,
 });
 
