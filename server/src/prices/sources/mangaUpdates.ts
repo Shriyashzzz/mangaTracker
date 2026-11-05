@@ -3,6 +3,7 @@
 // 15 of 201. Also says whether a series has finished.
 // https://api.mangaupdates.com
 import { slugify } from "../stores/match.js";
+import { politeFetch } from "../../util/politeFetch.js";
 
 const BASE = "https://api.mangaupdates.com/v1";
 const TIMEOUT_MS = 6000;
@@ -31,7 +32,7 @@ export function pickHit(hits: Hit[], names: string[]) {
 }
 
 const ask = async <T>(path: string, body?: unknown) => {
-  const res = await fetch(`${BASE}${path}`, {
+  const res = await politeFetch(`${BASE}${path}`, {
     method: body ? "POST" : "GET",
     headers: { "Content-Type": "application/json" },
     ...(body ? { body: JSON.stringify(body) } : {}),

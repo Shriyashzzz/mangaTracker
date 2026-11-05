@@ -3,6 +3,7 @@ import getFormatedDates from "../src/util/releases/volumeDataFormatter.js";
 import type { FormatedDates } from "../src/util/releases/volumeDataFormatter.js";
 import { estimateNextVolume } from "../src/util/releases/estimateNextVolume.js";
 import { volumeStartsFrom } from "../src/util/releases/volumeStarts.js";
+import { politeFetch } from "../src/util/politeFetch.js";
 
 export type MangaReleaseDates<T> = {
   ok: boolean;
@@ -44,7 +45,7 @@ const getMangaDexId = async (
         limit: "25",
       });
       params.append("order[relevance]", "desc");
-      const response = await fetch(`${MANGADEX_BASE_URL}${params}`, {
+      const response = await politeFetch(`${MANGADEX_BASE_URL}${params}`, {
         signal: AbortSignal.timeout(10_000),
       });
 
@@ -81,7 +82,7 @@ async function getCoverData(seriesId: string) {
     params.append("manga[]", `${seriesId}`);
     params.append("limit", "100"); // more data to make accurate estimate
     params.append("order[volume]", "desc"); // long series have more than 100
-    const response = await fetch(`https://api.mangadex.org/cover?${params}`, {
+    const response = await politeFetch(`https://api.mangadex.org/cover?${params}`, {
       signal: AbortSignal.timeout(10_000),
     });
     if (!response.ok) throw new Error(`MangaDex covers: ${response.status}`);
@@ -106,7 +107,7 @@ async function getAllChapthers(seriesId: string) {
       ["includeFuturePublishAt", "0"],
     ]);
 
-    const res = await fetch(
+    const res = await politeFetch(
       `https://api.mangadex.org/manga/${seriesId}/feed?${params.toString()}`,
       { signal: AbortSignal.timeout(10_000) },
     );
@@ -123,7 +124,7 @@ async function getAllChapthers(seriesId: string) {
 // mostly aren't sorted into volumes. Nice to have, so a failure just means none
 async function getVolumeStarts(seriesId: string) {
   try {
-    const res = await fetch(
+    const res = await politeFetch(
       `https://api.mangadex.org/manga/${seriesId}/aggregate`,
       { signal: AbortSignal.timeout(10_000) },
     );
