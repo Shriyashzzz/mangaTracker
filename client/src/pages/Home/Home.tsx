@@ -10,7 +10,12 @@ import MangaCard, {
 
 import { homeStyles as styles } from "./styles";
 import { NavLink, useNavigate, useSearchParams } from "react-router";
-import { CheckIcon, PlusIcon, StarIcon } from "../../components/icons/Icons";
+import {
+  CheckIcon,
+  CloseIcon,
+  PlusIcon,
+  StarIcon,
+} from "../../components/icons/Icons";
 import RangePager from "../../components/rangePager/RangePager";
 import Mascot from "../../components/mascot/Mascot";
 import SlowLoadQuote from "../../components/slowLoadQuote/SlowLoadQuote";
@@ -31,6 +36,7 @@ import {
   type SeenKind,
 } from "../../lib/shelf";
 import ReleaseModal from "./ReleaseModal";
+import DeleteManyModal from "./DeleteManyModal";
 import { EmptyShelfUndo } from "../../components/deletedNote/DeletedNote";
 import ReleaseTip from "../../components/whatsNew/ReleaseTip";
 import TakeTourButton from "../../components/tour/TakeTourButton";
@@ -253,6 +259,37 @@ function Library() {
   // anyone on rows, whose progress needs the latest chapter. After that it carries
   // on even if they leave, and new titles get picked up
   const showingNew = statusFilter === "new";
+
+  // Select: tick cards, then delete them together. Not on New or Volumes, where
+  // a card does something else
+  const [selecting, setSelecting] = useState(false);
+  const [picked, setPicked] = useState<Set<number>>(() => new Set());
+  const [confirmingDelete, setConfirmingDelete] = useState(false);
+  const canSelect =
+    !showingNew && statusFilter !== "volumes" && Boolean(mangaData?.length);
+  const selectOn = selecting && canSelect;
+  const stopSelecting = () => {
+    setSelecting(false);
+    setPicked(new Set());
+  };
+  const togglePicked = (id: number) =>
+    setPicked((now) => {
+      const next = new Set(now);
+      if (!next.delete(id)) next.add(id);
+      return next;
+    });
+  useEffect(() => {
+    if (!selectOn) return;
+    const leave = (e: KeyboardEvent) => {
+      // the confirm dialog's own Escape closes just the dialog
+      if (e.key === "Escape" && !document.querySelector("dialog[open]")) {
+        setSelecting(false);
+        setPicked(new Set());
+      }
+    };
+    window.addEventListener("keydown", leave);
+    return () => window.removeEventListener("keydown", leave);
+  }, [selectOn]);
   useEffect(() => {
     if (checksOn && (showingNew || rowsChosen) && mangaData?.length)
       checkReleases();
@@ -357,6 +394,14 @@ function Library() {
     sortBy,
     query,
   ]);
+
+  // only what this tab and search show counts as ticked: nothing hidden from
+  // view gets deleted
+  const pickedShown = selectOn
+    ? visibleManga.filter((m) => picked.has(m.id))
+    : [];
+  const allPicked =
+    pickedShown.length > 0 && pickedShown.length === visibleManga.length;
 
   const goToAdd = () => navigator("/add", { viewTransition: true });
 
@@ -766,6 +811,7 @@ function Library() {
         onPick={(value) => {
           setStatusFilter(value);
           writeSession("libraryStatus", value);
+          setPicked(new Set());
           if (wantHidden) navigator("/shelf", { replace: true });
         }}
         query={query}
@@ -804,6 +850,75 @@ function Library() {
           )}
         </div>,
         document.body,
+      )}
+
+      {/* Select's bar: what's ticked, and what to do with it. Pinned to the
+          screen like the note above, so it's there however far down they are */}
+      {selectOn &&
+        createPortal(
+          <div
+            className={styles.selectBar}
+            role="region"
+            aria-label="Selected series"
+            data-over-add-button
+          >
+            <span className={styles.selectCount} role="status">
+              {pickedShown.length}
+              <span className="[@media(max-width:360px)]:sr-only">
+                {" "}
+                selected
+              </span>
+            </span>
+            <button
+              type="button"
+              className={styles.selectLink}
+              onClick={() =>
+                setPicked(
+                  allPicked
+                    ? new Set()
+                    : new Set(visibleManga.map((m) => m.id)),
+                )
+              }
+            >
+              {allPicked ? "Clear" : `Select all ${visibleManga.length}`}
+            </button>
+            <button
+              type="button"
+              className={styles.selectDelete}
+              disabled={!pickedShown.length}
+              onClick={() => setConfirmingDelete(true)}
+            >
+              Delete {pickedShown.length || ""}
+              {/* phones: "Delete 2", so the bar stays one line */}
+              <span className="upto-520:sr-only"> series</span>
+            </button>
+            <button
+              type="button"
+              className={styles.selectDone}
+              onClick={stopSelecting}
+              aria-label="Done selecting"
+            >
+              <span className="upto-520:hidden">Done</span>
+              <CloseIcon className="hidden size-5 upto-520:block" />
+            </button>
+          </div>,
+          document.body,
+        )}
+      {confirmingDelete && pickedShown.length > 0 && (
+        <DeleteManyModal
+          manga={pickedShown}
+          onDelete={async () => {
+            const done = await useShelf
+              .getState()
+              .removeMany(pickedShown.map((m) => m.id));
+            if (done) {
+              setConfirmingDelete(false);
+              stopSelecting();
+            }
+            return done;
+          }}
+          onClose={() => setConfirmingDelete(false)}
+        />
       )}
 
       {/* sighted readers see the cards change; this says so to everyone else */}
@@ -992,7 +1107,21 @@ function Library() {
         </div>
       ) : (
         <>
-          {pager(false)}
+          <div className={styles.gridTools}>
+            {pager(false)}
+            {canSelect && (
+              <button
+                type="button"
+                className={styles.selectToggle}
+                aria-pressed={selectOn}
+                onClick={() =>
+                  selectOn ? stopSelecting() : setSelecting(true)
+                }
+              >
+                {selectOn ? "Done selecting" : "Select"}
+              </button>
+            )}
+          </div>
           <div
             id="shelf-grid"
             className={
@@ -1039,6 +1168,14 @@ function Library() {
                   latestChapter={
                     releases[currentManga.id]?.latestChapter ??
                     currentManga.latestChapter
+                  }
+                  select={
+                    selectOn
+                      ? {
+                          checked: picked.has(currentManga.id),
+                          onToggle: () => togglePicked(currentManga.id),
+                        }
+                      : undefined
                   }
                 />
                 {showingNew && (

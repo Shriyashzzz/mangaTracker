@@ -152,6 +152,17 @@ export const setVolumesOwned = (
 export const deleteManga = (id: number) =>
   prisma.manga.delete({ where: { id } });
 
+// only theirs: an id that belongs to someone else matches nothing. All in one
+// statement, so it's all or none. How many went
+export const deleteManyManga = async (userId: number, ids: number[]) =>
+  (await prisma.manga.deleteMany({ where: { userId, id: { in: ids } } }))
+    .count;
+
+export const restoreManyManga = (userId: number, inputs: RestoredManga[]) =>
+  prisma.manga.createMany({
+    data: inputs.map((input) => ({ ...input, userId })),
+  });
+
 export default {
   setNotes,
   getShelf,
@@ -170,4 +181,6 @@ export default {
   setSeen,
   setVolumesOwned,
   deleteManga,
+  deleteManyManga,
+  restoreManyManga,
 };
