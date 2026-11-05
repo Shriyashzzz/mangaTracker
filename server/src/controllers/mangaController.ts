@@ -1,6 +1,10 @@
 // The shelf: list, add, edit, delete, and the small inline updates (status,
 // rating, volumes owned). Every :id route runs requireOwner first, which
 // loads the manga onto res.locals.manga.
+import {
+  mangaOutcome,
+  type ReleaseOutcome,
+} from "../util/releases/releaseOutcome.js";
 import type { Request, Response } from "express";
 import { body, matchedData, query } from "express-validator";
 import { rejectInvalid } from "../middlewares/validate.js";
@@ -317,10 +321,17 @@ const releases = async (req: Request, res: Response) => {
   const prefs = await userQueries
     .getPrefs(req.session.userId!)
     .catch(() => null);
+  // no news to give, and why: only "failed" is worth asking again, and only
+  // it means the sites didn't answer (the shelf says so if every check failed)
+  const nothing = (outcome: Exclude<ReleaseOutcome, "news">) =>
+    res.json({
+      releaseData: null,
+      releaseStatus: null,
+      complete: outcome !== "failed",
+      outcome,
+    });
   // switched off in settings: no other site gets asked about this manga
-  if (prefs?.releaseChecks === "off") {
-    return res.json({ releaseData: null, releaseStatus: null, complete: true });
-  }
+  if (prefs?.releaseChecks === "off") return nothing("off");
   // a light novel's news is its English volumes alone: MangaDex, where the
   // chapters and Japanese volumes come from, only has the manga
   if (manga.lightNovel) {
@@ -342,19 +353,9 @@ const releases = async (req: Request, res: Response) => {
       ),
     ]);
     if (fromShelf && nothingLeftToCheck(manga, novelInfo)) {
-      return res.json({
-        releaseData: null,
-        releaseStatus: null,
-        complete: true,
-      });
+      return nothing("skipped");
     }
-    if (!series) {
-      return res.json({
-        releaseData: null,
-        releaseStatus: null,
-        complete: series === null,
-      });
-    }
+    if (!series) return nothing(series === null ? "notFound" : "failed");
     return res.json({
       releaseData: null,
       releaseStatus: getReleaseStatus(
@@ -363,17 +364,19 @@ const releases = async (req: Request, res: Response) => {
         readReleaseSettings(prefs?.releases),
       ),
       complete: true,
+      outcome: "news",
     });
   }
   // the catalog right away for the details page, which never skips; the shelf
   // waits on AniList first, as a finished series it owns needs neither
+  // null: the catalog doesn't have it; undefined: it failed or was slow
   const startSeries = () =>
     withTimeout(
-      getSeries(manga.name).catch(() => null),
+      getSeries(manga.name).catch(() => undefined),
       SERIES_TIMEOUT_MS,
-      null,
+      undefined,
     );
-  const seriesEarly = fromShelf ? null : startSeries();
+  const seriesEarly = fromShelf ? undefined : startSeries();
   // AniList: it confirms which series this is on MangaDex, says whether it has
   // finished, and is usually answered from the database
   const info = await withTimeout(
@@ -381,9 +384,7 @@ const releases = async (req: Request, res: Response) => {
     INFO_TIMEOUT_MS,
     null,
   );
-  if (fromShelf && nothingLeftToCheck(manga, info)) {
-    return res.json({ releaseData: null, releaseStatus: null, complete: true });
-  }
+  if (fromShelf && nothingLeftToCheck(manga, info)) return nothing("skipped");
   // a catalog failure or a slow one only costs the volume half of the answer;
   // if it's slow it carries on and is ready for the next check
   const [series, dates] = await Promise.all([
@@ -395,13 +396,11 @@ const releases = async (req: Request, res: Response) => {
     ),
   ]);
   const releaseData = dates.ok && dates.data ? dates.data : null;
-  if (!releaseData && !series) {
-    return res.json({
-      releaseData: null,
-      releaseStatus: null,
-      complete: false,
-    });
-  }
+  const { outcome, complete } = mangaOutcome(
+    { ok: dates.ok, hasData: Boolean(releaseData) },
+    series,
+  );
+  if (outcome !== "news") return nothing(outcome);
   const releaseStatus = getReleaseStatus(
     manga,
     { dates: releaseData, englishVolumes: series?.volumes ?? null },
@@ -422,7 +421,8 @@ const releases = async (req: Request, res: Response) => {
     releaseData,
     releaseStatus,
     // a source didn't answer, so it's worth asking again later
-    complete: Boolean(releaseData && series),
+    complete,
+    outcome,
   });
 };
 

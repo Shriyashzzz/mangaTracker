@@ -9,6 +9,7 @@ import {
   LAST_NEW_COUNT_KEY,
   RELEASE_CHECK_TIMEOUT_MS,
   saveSeen,
+  type ReleaseOutcome,
   type SeenKind,
 } from "../lib/shelf";
 import { releaseChecksOn, writeLocal } from "../lib/prefs";
@@ -18,8 +19,11 @@ import { checkOrder, laneOf } from "../lib/releaseOrder";
 type ShelfState = {
   manga: Manga[] | null;
   loadFailed: boolean;
-  // null: we couldn't find out for that title
+  // null: nothing to say for that title (outcomes says why)
   releases: Record<number, ReleaseStatus | null>;
+  // what each title's check came to: "failed" when the sites didn't answer,
+  // so "Couldn't check right now" is only said when that's what happened
+  outcomes: Record<number, ReleaseOutcome>;
   load: () => Promise<void>;
   checkReleases: () => Promise<void>;
   // forget the answers and check every title again
@@ -80,6 +84,7 @@ export const useShelf = create<ShelfState>()((set, get) => ({
   manga: null,
   loadFailed: false,
   releases: {},
+  outcomes: {},
   lastDeleted: null,
   setLastDeleted: (lastDeleted) => set({ lastDeleted }),
   undoDelete: async () => {
@@ -112,8 +117,9 @@ export const useShelf = create<ShelfState>()((set, get) => ({
 
       // an answer depends on the title, what they own and where they've read
       // to, so a title edited since it was checked needs checking again
-      const { manga: before, releases } = get();
+      const { manga: before, releases, outcomes } = get();
       const stillGood = { ...releases };
+      const stillKnown = { ...outcomes };
       for (const m of manga) {
         const old = before?.find((b) => b.id === m.id);
         if (
@@ -124,10 +130,16 @@ export const useShelf = create<ShelfState>()((set, get) => ({
             old.bookmark !== m.bookmark)
         ) {
           delete stillGood[m.id];
+          delete stillKnown[m.id];
           incomplete.delete(m.id);
         }
       }
-      set({ manga, releases: stillGood, loadFailed: false });
+      set({
+        manga,
+        releases: stillGood,
+        outcomes: stillKnown,
+        loadFailed: false,
+      });
     } catch {
       // a failed refresh is only a problem if there's nothing to show
       if (asked === generation && !get().manga) set({ loadFailed: true });
@@ -164,11 +176,22 @@ export const useShelf = create<ShelfState>()((set, get) => ({
         else incomplete.add(next.id);
         // a retry that got nothing shouldn't wipe what the first try found
         if (isRetry && !found?.releaseStatus) continue;
+        // no answer at all (timed out, offline) is a failure too; a server
+        // from before outcomes says only whether it's worth asking again
+        const outcome: ReleaseOutcome = !found
+          ? "failed"
+          : (found.outcome ??
+            (found.releaseStatus
+              ? "news"
+              : found.complete
+                ? "notFound"
+                : "failed"));
         set((state) => ({
           releases: {
             ...state.releases,
             [next.id]: found?.releaseStatus ?? null,
           },
+          outcomes: { ...state.outcomes, [next.id]: outcome },
         }));
       }
     } finally {
@@ -179,7 +202,7 @@ export const useShelf = create<ShelfState>()((set, get) => ({
   recheckReleases: () => {
     incomplete.clear();
     retried.clear();
-    set({ releases: {} });
+    set({ releases: {}, outcomes: {} });
   },
 
   markSeen: async (id, kind, number, hiddenVolumes) => {
@@ -230,9 +253,12 @@ export const useShelf = create<ShelfState>()((set, get) => ({
     set((state) => {
       const releases = { ...state.releases };
       delete releases[id];
+      const outcomes = { ...state.outcomes };
+      delete outcomes[id];
       return {
         manga: state.manga?.filter((m) => m.id !== id) ?? null,
         releases,
+        outcomes,
       };
     });
   },
@@ -244,6 +270,12 @@ export const useShelf = create<ShelfState>()((set, get) => ({
     incomplete.clear();
     retried.clear();
     writeLocal(LAST_NEW_COUNT_KEY, "");
-    set({ manga: null, loadFailed: false, releases: {}, lastDeleted: null });
+    set({
+      manga: null,
+      loadFailed: false,
+      releases: {},
+      outcomes: {},
+      lastDeleted: null,
+    });
   },
 }));

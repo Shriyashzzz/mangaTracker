@@ -133,6 +133,7 @@ function Library() {
   const mangaData = useShelf((s) => s.manga);
   const loadError = useShelf((s) => s.loadFailed);
   const releases = useShelf((s) => s.releases);
+  const outcomes = useShelf((s) => s.outcomes);
   const loadShelf = useShelf((s) => s.load);
   const checkReleases = useShelf((s) => s.checkReleases);
   const recheckReleases = useShelf((s) => s.recheckReleases);
@@ -438,7 +439,7 @@ function Library() {
   const everyCheckFailed =
     allChecked &&
     mangaData.length > 0 &&
-    mangaData.every((m) => releases[m.id] === null);
+    mangaData.every((m) => outcomes[m.id] === "failed");
   const tabs = [
     { value: "all", label: "All", count: counts.all },
     { value: "ongoing", label: "Reading", count: counts.ongoing },
@@ -717,7 +718,9 @@ function Library() {
     showingNew &&
     !checking &&
     looked.length > 0 &&
-    looked.every((m) => releases[m.id] === null);
+    looked.every((m) => outcomes[m.id] === "failed");
+  // the sites answered, but don't know these: they'll never show up on New
+  const notFound = looked.filter((m) => outcomes[m.id] === "notFound").length;
   const bigFirstCheck = checking && !checkedBefore && total >= BIG_SHELF;
   // the check's progress: something to glance at, never the point of the page
   const progress = (
@@ -955,6 +958,15 @@ function Library() {
           {looked.length < total && (
             <p className={styles.emptyBody}>
               Light novels aren't checked for new releases yet.
+            </p>
+          )}
+          {!checking && notFound > 0 && (
+            <p className={styles.emptyBody}>
+              {notFound === looked.length
+                ? "None of your series were found on the release sites, so nothing can show up here."
+                : notFound === 1
+                  ? "1 of your series wasn't found on the release sites, so it won't show up here."
+                  : `${notFound} of your series weren't found on the release sites, so they won't show up here.`}
             </p>
           )}
         </div>

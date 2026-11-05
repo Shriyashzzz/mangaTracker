@@ -147,10 +147,9 @@ async function getReleaseDates(
 ): Promise<MangaReleaseDates<FormatedDates>> {
   try {
     const seriesId = await getMangaDexId(mangaName, match);
-    if (!seriesId)
-      return {
-        ok: false,
-      };
+    // MangaDex answered and doesn't have it: an answer, not a failure (those
+    // throw, and end below as ok: false)
+    if (!seriesId) return { ok: true };
     const coverData = await getCoverData(seriesId);
     const chaptherData = await getAllChapthers(seriesId);
     const [chapterEstimate, volumeEstimate, volumeStarts] = await Promise.all([
