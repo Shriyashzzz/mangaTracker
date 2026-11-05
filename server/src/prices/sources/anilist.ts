@@ -58,7 +58,7 @@ const BY_MAL_ID_QUERY = `
   query ($ids: [Int]) {
     Page(perPage: 50) {
       media(idMal_in: $ids, type: MANGA) {
-        idMal genres format
+        idMal genres format status chapters
         title { english romaji }
         coverImage { large }
       }
@@ -77,7 +77,11 @@ export async function getListingsByMalIds(ids: number[]) {
       if (pause) await new Promise((done) => setTimeout(done, pause));
       const { Page } = await query<{
         Page: {
-          media: (Media & { idMal: number | null; format: string | null })[];
+          media: (Media & {
+            idMal: number | null;
+            format: string | null;
+            chapters: number | null;
+          })[];
         };
       }>(BY_MAL_ID_QUERY, { ids });
       for (const m of Page.media) {
@@ -92,6 +96,11 @@ export async function getListingsByMalIds(ids: number[]) {
           cover: m.coverImage?.large ?? null,
           genre: m.genres?.[0] ?? null,
           lightNovel: m.format === "NOVEL",
+          // AniList counts the chapters once a series has finished, and that
+          // count is its last chapter: asked in the same request, so a fresh
+          // import knows who's caught up before its first release check
+          latestChapter:
+            m.status === "FINISHED" && m.chapters ? m.chapters : null,
         });
       }
       return listings;

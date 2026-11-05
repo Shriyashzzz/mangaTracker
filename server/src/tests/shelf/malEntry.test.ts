@@ -23,6 +23,7 @@ const listing = {
   cover: "https://example.com/c.jpg",
   genre: "Action",
   lightNovel: false,
+  latestChapter: null as number | null,
 };
 
 test("uses AniList's name, cover and genre when it has them", () => {
@@ -115,4 +116,15 @@ test("the manga and the light novel of a series have different keys", () => {
   expect(entryIsLightNovel(entry(), { ...listing, lightNovel: true })).toBe(
     true,
   );
+});
+
+test("a finished series comes in knowing its last chapter, so caught up counts from the first check", async () => {
+  const { isCaughtUp } = await import("../../../../client/src/lib/releaseOrder.js");
+  // Attack on Titan has finished: AniList's 139 is its last chapter
+  const finished = toMangaInput(entry({ title: "Shingeki no Kyojin", chapters: 139 }), { ...listing, latestChapter: 139 });
+  expect(finished.latestChapter).toBe(139);
+  expect(isCaughtUp({ id: 1, rating: null, planned: false, status: false, ...finished })).toBe(true);
+  // still coming out: AniList has no count, so the first check finds it
+  expect(toMangaInput(entry(), { ...listing, latestChapter: null }).latestChapter).toBeNull();
+  expect(toMangaInput(entry(), null).latestChapter).toBeNull();
 });

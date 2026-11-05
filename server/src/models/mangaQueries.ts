@@ -14,6 +14,9 @@ export type MangaInput = {
   bookmark?: number | null;
   volumesOwned?: number | null;
   rating?: number | null;
+  // only imports set it: a finished series' last chapter, from AniList. Release
+  // checks keep it up to date after that
+  latestChapter?: number | null;
 };
 
 // one user's shelf, furthest-read first (the order the JS version used)

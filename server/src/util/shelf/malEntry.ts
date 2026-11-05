@@ -26,6 +26,8 @@ export type MalListing = {
   cover: string | null;
   genre: string | null;
   lightNovel: boolean;
+  // a finished series' last chapter, from AniList; null while it's coming out
+  latestChapter: number | null;
 };
 
 const MAX_TITLE = 150;
@@ -46,6 +48,7 @@ export function toMangaInput(entry: MalEntry, listing: MalListing | null) {
     // most people never fill in retail, so volumes read is the best guess left
     volumesOwned: entry.ownedVolumes || entry.readVolumes || null,
     rating: Math.round(entry.score / 2) || null,
+    latestChapter: listing?.latestChapter ?? null,
   };
 }
 
