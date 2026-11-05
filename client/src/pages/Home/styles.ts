@@ -1,10 +1,6 @@
 // Tailwind classes for the shelf page (Home): the signed-in shelf, its
 // empty states, and the guest landing (a manga page of three panels).
 
-// a status tab; the active one is inked with a marker on the toolbar rule
-const tab =
-  "tap relative py-[0.2rem] text-[1rem] transition-colors duration-150 ease-[ease]";
-
 // one side of the New tab's volumes / chapters switch
 const releaseKind =
   "min-h-11 px-4 font-brand text-[1.15rem] tracking-[1px] whitespace-nowrap transition-colors duration-150 ease-[ease] not-first:border-l-2 not-first:border-line upto-520:flex-1 upto-520:px-2 upto-520:text-[1.05rem]";
@@ -32,38 +28,8 @@ export const homeStyles = {
   // shape over dark covers. Gone while typing, and while a note is in its place
   addButton:
     "fixed right-4 bottom-[calc(6rem+env(safe-area-inset-bottom))] z-15 hidden size-12 place-items-center rounded-full border-2 border-paper bg-accent text-on-accent transition-colors duration-120 ease-[ease] hover:bg-accent-hover upto-720:grid [body:has(input:focus,textarea:focus,select:focus,[data-over-add-button])_&]:hidden! [&_svg]:size-6",
-  // the header scrolls away, this stays pinned so search and filters are
-  // one tap away on a long shelf. It reaches a little past the grid on both
-  // sides so tilted cards never peek out beside it while scrolling
-  toolbar:
-    "sticky top-0 z-5 -mx-3 mb-9 flex flex-wrap items-end justify-between gap-x-8 gap-y-4 border-b-[1.5px] border-line bg-[var(--surface,var(--paper))] px-3 py-[0.9rem] upto-520:mb-5 upto-520:gap-y-1 upto-520:py-[0.55rem] [&+nav]:-mt-4",
-  // on phones: four even columns, with each count under its label
-  tabs: "flex gap-6 upto-520:grid upto-520:w-full upto-520:auto-cols-fr upto-520:grid-flow-col upto-520:gap-0 upto-520:[&_button]:flex upto-520:[&_button]:flex-col upto-520:[&_button]:items-center upto-520:[&_button]:pb-1 upto-520:[&_button]:text-[0.9rem] upto-520:[&_button]:leading-[1.2]",
-  tab: `${tab} text-muted hover:text-ink`,
-  tabActive: `${tab} font-semibold text-ink after:absolute after:inset-x-0 after:-bottom-[calc(0.9rem+2.5px)] after:h-1 after:bg-accent upto-520:after:-bottom-0.5 upto-520:after:h-[3px]`,
-  count: "ml-0.5 font-mono text-[0.78rem] font-normal text-muted",
-  // there's something new: this count has to be seen from any tab
-  countNew:
-    "ml-0.5 rounded-[3px] bg-accent px-[0.35rem] font-mono text-[0.78rem] font-normal text-on-accent upto-520:hidden",
-  // on phones the count sits under each tab's name, where "2 series" is too wide:
-  // New gets a little stamp on its corner instead, like a sticker on a panel
-  newStamp:
-    "pointer-events-none absolute -top-2 left-[calc(50%+0.85rem)] hidden min-w-5 rotate-[8deg] rounded-[3px] border-[1.5px] border-line bg-accent px-1 text-center font-brand text-[0.95rem] leading-[1.15] font-normal tracking-[0.03em] text-on-accent shadow-[0_2px_4px_-1px_rgba(0,0,0,0.35)] upto-520:block",
-  tools: "flex items-center gap-5 upto-520:w-full upto-520:gap-4",
-  toolsFolded: "flex items-center gap-5 upto-720:hidden",
-  searchToggle:
-    "tap hidden items-center gap-1 text-[0.85rem] font-medium text-ink underline decoration-accent decoration-2 underline-offset-3 upto-720:inline-flex [&_svg]:size-4",
   hiddenHeading:
     "font-brand text-[1.3rem] leading-none font-normal tracking-[0.02em] uppercase",
-  // compact until you use it, then it widens; it stays wide while it holds
-  // a query. On small phones it takes the row
-  search:
-    "peer/search flex min-h-11 w-[180px] items-center gap-[0.45rem] border-b-[1.5px] border-dashed border-line-soft py-[0.3rem] text-muted transition-[width,border-color] duration-300 ease-ink focus-within:w-80 focus-within:border-solid focus-within:border-accent has-[input:not(:placeholder-shown)]:w-80 upto-520:w-auto upto-520:min-w-0 upto-520:flex-1 upto-520:focus-within:w-auto upto-520:has-[input:not(:placeholder-shown)]:w-auto [&_input]:min-w-0 [&_input]:flex-1 [&_input]:border-none [&_input]:bg-transparent [&_input]:text-[0.95rem] upto-760:[&_input]:text-[1rem] [&_input]:outline-none [&_input]:placeholder:text-muted [&_svg]:size-4 [&_svg]:shrink-0",
-  // while typing on a phone, sort folds away so search gets the whole row
-  sort: "flex min-h-11 max-w-[260px] shrink-0 items-center gap-[0.4rem] overflow-hidden text-[0.875rem] whitespace-nowrap text-muted transition-[max-width,opacity] duration-300 ease-ink upto-520:peer-focus-within/search:-ml-4 upto-520:peer-focus-within/search:max-w-0 upto-520:peer-focus-within/search:opacity-0 [&_select]:min-h-11 [&_select]:appearance-none [&_select]:[field-sizing:content] [&_select]:cursor-pointer [&_select]:border-none [&_select]:bg-transparent [&_select]:pr-5 [&_select]:text-[0.9rem] upto-760:[&_select]:text-[1rem] [&_select]:font-medium [&_select]:text-ink [&_select]:underline [&_select]:decoration-line-soft [&_select]:underline-offset-4",
-  // the select's own arrow varies by browser, so it's drawn; taps go through it
-  sortPick: "relative inline-flex items-center",
-  sortArrow: "pointer-events-none absolute right-0 size-4 text-ink-soft",
   // the New tab: the shelf's grid on big screens, rows on small ones so more of
   // the news fits on a screen
   newGrid:

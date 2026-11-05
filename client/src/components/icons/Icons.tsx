@@ -107,6 +107,13 @@ export const CoffeeIcon = (props: IconProps) => (
   </svg>
 );
 
+// one arrow up, one down: how the shelf is sorted
+export const SortIcon = (props: IconProps) => (
+  <svg {...base} {...props}>
+    <path d="M7 4v16M3.5 7.5 7 4l3.5 3.5M17 20V4M13.5 16.5 17 20l3.5-3.5" />
+  </svg>
+);
+
 export const CloseIcon = (props: IconProps) => (
   <svg {...base} {...props}>
     <path d="M6 6l12 12M18 6L6 18" />
