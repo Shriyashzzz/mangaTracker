@@ -116,12 +116,15 @@ export const findOnShelf = (series: string, signal?: AbortSignal) =>
     signal,
   );
 
-// sets how many volumes they own (null clears it); returns the saved value
-export async function setVolumesOwned(id: number, volumesOwned: number | null) {
+export type Owned = { volumesOwned: number | null; ownedList: number[] };
+
+// sets what they own: "up to" a volume (null clears it) or the exact list
+// (lib/ownedVolumes.ts); returns what was saved
+export async function setVolumesOwned(id: number, owned: Owned) {
   const res = await apiFetch(`/api/manga/${id}/owned`, {
     method: "PUT",
-    body: { volumesOwned },
+    body: owned,
   });
   if (!res.ok) throw new Error("Couldn't update the shelf");
-  return ((await res.json()) as { volumesOwned: number | null }).volumesOwned;
+  return (await res.json()) as Owned;
 }

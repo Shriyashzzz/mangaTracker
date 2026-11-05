@@ -1,4 +1,6 @@
 import { useState, useEffect, useMemo, useRef } from "react";
+import { ownedOf, ownedPhrase } from "../../lib/ownedVolumes";
+import VolumesView from "./VolumesView";
 import { createPortal } from "react-dom";
 import MangaCard, {
   MangaCardSkeleton,
@@ -285,6 +287,8 @@ function Library() {
       ongoing: list.length - finished - planned,
       finished,
       planned,
+      // series they own any volumes of
+      volumes: list.filter((m) => ownedOf(m).length > 0).length,
       newVolumes,
       newChapters,
       newInJapan,
@@ -313,6 +317,8 @@ function Library() {
     if (statusFilter === "ongoing")
       list = list.filter((m) => !m.status && !m.planned);
     if (statusFilter === "planned") list = list.filter((m) => m.planned);
+    if (statusFilter === "volumes")
+      list = list.filter((m) => ownedOf(m).length > 0);
     if (statusFilter === "new") {
       list = list.filter((m) =>
         !m.planned && viewingHidden
@@ -436,6 +442,8 @@ function Library() {
     { value: "ongoing", label: "Reading", count: counts.ongoing },
     { value: "finished", label: "Finished", count: counts.finished },
     { value: "planned", label: "To read", count: counts.planned },
+    // what they own, volume by volume (VolumesView)
+    { value: "volumes", label: "Volumes", count: counts.volumes },
     // what the last check found until this visit's check says otherwise, so
     // what's new shows without opening the tab. Nothing until they've ever looked
     ...(checksOn
@@ -606,8 +614,8 @@ function Library() {
   const newsFor = (m: Manga): CardNews | undefined => {
     if (!showingNew) return undefined;
     const found = releases[m.id];
-    const volumeYours = m.volumesOwned
-      ? `You own up to vol. ${m.volumesOwned}`
+    const volumeYours = ownedPhrase(m)
+      ? `You own ${ownedPhrase(m)}`
       : found?.currentVolume
         ? `You're on vol. ${found.currentVolume}`
         : undefined;
@@ -975,6 +983,8 @@ function Library() {
             Try again
           </button>
         </div>
+      ) : statusFilter === "volumes" ? (
+        <VolumesView manga={visibleManga} searching={Boolean(query.trim())} />
       ) : showingNew && visibleManga.length === 0 && !query.trim() ? (
         <div className={styles.nothingNew} data-tour="shelf">
           <span className="printed mascot-spot" aria-hidden>

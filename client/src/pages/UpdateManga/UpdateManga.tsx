@@ -7,6 +7,8 @@ import CoverPicker from "../../components/coverPicker/CoverPicker";
 import FormatField from "../../components/formatField/FormatField";
 import { usePrivatePage } from "../../lib/seo";
 import { GENRES } from "../../lib/content/genres";
+import { useVolumePicker } from "../../components/volumePicker/VolumePicker";
+import { parseVolumes } from "../../lib/ownedVolumes";
 
 const DESC_MAX = 450;
 
@@ -23,6 +25,14 @@ export function UpdateManga() {
   const [description, setDescription] = useState("");
   const [error, setError] = useState<{ msg: string }[] | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const volumes = useVolumePicker({ volumesOwned: null });
+  const { reset: resetVolumes } = volumes;
+  // once the manga's here, the picker starts from what it has
+  const loadedId = mangaData?.id;
+  useEffect(() => {
+    if (mangaData) resetVolumes(mangaData);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [loadedId]);
 
   useEffect(() => {
     const getThatManga = async () => {
@@ -58,6 +68,7 @@ export function UpdateManga() {
       status: isFinished,
       lightNovel,
       volumesOwned: String(form.get("volumesOwned") ?? ""),
+      ownedList: parseVolumes(String(form.get("ownedList") ?? "")) ?? [],
     };
     if (!isFinished) formData.bookmark = String(form.get("bookmark") ?? "");
 
@@ -144,7 +155,9 @@ export function UpdateManga() {
               <div className={styles.row}>
                 {!isFinished && (
                   <div className={styles.field}>
-                    <label htmlFor="bookmark" className={styles.label}>Current chapter</label>
+                    <label htmlFor="bookmark" className={styles.label}>
+                      Current chapter
+                    </label>
                     <input
                       className={styles.input}
                       inputMode="numeric"
@@ -157,23 +170,7 @@ export function UpdateManga() {
                     />
                   </div>
                 )}
-                <div className={styles.field}>
-                  <label htmlFor="volumesOwned" className={styles.label}>
-                    Own up to vol.{" "}
-                    <span className={styles.optional}>(optional)</span>
-                  </label>
-                  <input
-                    className={styles.input}
-                    inputMode="numeric"
-                    id="volumesOwned"
-                    name="volumesOwned"
-                    type="number"
-                    min="1"
-                    step="1"
-                    placeholder="e.g. 14"
-                    defaultValue={mangaData.volumesOwned ?? ""}
-                  />
-                </div>
+                {volumes.field}
                 <div className={styles.field}>
                   <label htmlFor="genre" className={styles.label}>
                     Genre <span className={styles.optional}>(optional)</span>
@@ -198,6 +195,7 @@ export function UpdateManga() {
                   </select>
                 </div>
               </div>
+              {volumes.panel}
 
               <FormatField lightNovel={lightNovel} onChange={setLightNovel} />
 
@@ -211,7 +209,12 @@ export function UpdateManga() {
                     checked={!isFinished}
                     onChange={() => setIsFinished(false)}
                   />
-                  <label htmlFor="status-ongoing" className={styles.segmentLabel}>Still reading</label>
+                  <label
+                    htmlFor="status-ongoing"
+                    className={styles.segmentLabel}
+                  >
+                    Still reading
+                  </label>
                   <input
                     type="radio"
                     id="status-finished"
@@ -219,7 +222,12 @@ export function UpdateManga() {
                     checked={isFinished}
                     onChange={() => setIsFinished(true)}
                   />
-                  <label htmlFor="status-finished" className={styles.segmentLabel}>Finished it</label>
+                  <label
+                    htmlFor="status-finished"
+                    className={styles.segmentLabel}
+                  >
+                    Finished it
+                  </label>
                 </div>
               </div>
 

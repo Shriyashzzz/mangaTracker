@@ -21,6 +21,9 @@ export type MalEntry = {
   // the import already knows it's a light novel. Without it the server asks
   // AniList, by the MyAnimeList id
   lightNovel?: boolean;
+  // exactly which volumes they own, when a book app's file says and it isn't
+  // a run from 1 (One Piece 1 and 4)
+  ownedList?: number[];
 };
 
 // the lists on MyAnimeList, in the order it shows them
@@ -159,10 +162,9 @@ export async function sendToShelf(
       const data = (await res.json().catch(() => null)) as {
         error?: { msg?: string }[];
       } | null;
-      throw Object.assign(
-        new Error(data?.error?.[0]?.msg ?? "Import failed"),
-        { totals },
-      );
+      throw Object.assign(new Error(data?.error?.[0]?.msg ?? "Import failed"), {
+        totals,
+      });
     }
     const answer = (await res.json()) as ImportTotals;
     totals.added += answer.added;

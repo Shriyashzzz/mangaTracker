@@ -388,3 +388,24 @@ test("a book in two files counts once, owned or read in either", async () => {
   // the same file twice changes nothing
   expect(mergeBooks(older, older)).toHaveLength(older.length);
 });
+
+test("a book app's owned volumes come in exactly, gaps and all", async () => {
+  const { groupBooks, toEntry, mergeSameSeries } = await import("../../../../client/src/lib/imports/bookImport.js");
+  const owned = (titles: string[]) => goodreads(titles).map((b) => ({ ...b, owned: true, read: false }));
+  const [op] = groupBooks(owned(["One Piece, Vol. 1", "One Piece, Vol. 4"]));
+  expect(op!.ownedList).toEqual([1, 4]);
+  expect(toEntry(op!).ownedList).toEqual([1, 4]);
+  // a run from 1 goes as just its number, as before
+  const [run] = groupBooks(owned(["Naruto, Vol. 1", "Naruto, Vol. 2"]));
+  expect(toEntry(run!).ownedList).toBeUndefined();
+  expect(toEntry(run!).ownedVolumes).toBe(2);
+  // an owned book without a number: the file can't say exactly
+  const [loose] = groupBooks(owned(["Berserk, Vol. 3", "Berserk Deluxe Edition"]));
+  expect(loose!.ownedList).toBeNull();
+  expect(toEntry(loose!).ownedList).toBeUndefined();
+  // two rows AniList says are one series: their volumes together
+  const a = { ...op!, key: "a", ownedList: [1, 4] };
+  const b = { ...op!, key: "b", title: "ONE PIECE", ownedList: [6] };
+  expect(mergeSameSeries([a, b], () => 13)[0]!.ownedList).toEqual([1, 4, 6]);
+  expect(mergeSameSeries([a, { ...b, ownedList: null }], () => 13)[0]!.ownedList).toBeNull();
+});

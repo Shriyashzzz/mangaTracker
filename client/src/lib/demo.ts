@@ -2,6 +2,7 @@
 // every real page works on a practice shelf and nothing reaches the server: no real
 // data can change and no paid price search can run. It lives in this tab and goes
 // when the tour ends.
+import { ownedVolumes } from "./ownedVolumes";
 import type { MalEntry } from "./imports/malImport";
 import type { Manga } from "./types";
 
@@ -354,7 +355,10 @@ const fromForm = (body: Record<string, unknown>) => ({
   planned: Boolean(body.planned),
   lightNovel: Boolean(body.lightNovel),
   bookmark: Number(body.bookmark) || null,
-  volumesOwned: Number(body.volumesOwned) || null,
+  ...ownedVolumes(
+    Number(body.volumesOwned) || null,
+    Array.isArray(body.ownedList) ? (body.ownedList as number[]) : [],
+  ),
 });
 
 // what the app's own server would say, for what the tour can reach. Anything else
@@ -513,9 +517,12 @@ export function demoResponse(
       return json({ ok: true });
     }
     if (part === "owned") {
-      const volumesOwned = body.volumesOwned as number | null;
-      writeShelf(shelf.map((m) => (m.id === id ? { ...m, volumesOwned } : m)));
-      return json({ volumesOwned });
+      const owned = ownedVolumes(
+        (body.volumesOwned as number | null) ?? null,
+        (body.ownedList as number[] | undefined) ?? [],
+      );
+      writeShelf(shelf.map((m) => (m.id === id ? { ...m, ...owned } : m)));
+      return json(owned);
     }
     if (part === "releases") return json(releasesFor(manga));
     if (!part && method === "GET") return json({ manga });

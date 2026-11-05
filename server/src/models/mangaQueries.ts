@@ -13,6 +13,8 @@ export type MangaInput = {
   lightNovel?: boolean;
   bookmark?: number | null;
   volumesOwned?: number | null;
+  // the exact volumes, when not a run from 1 (util/shelf/ownedList.ts)
+  ownedList?: number[];
   rating?: number | null;
   // only imports set it: a finished series' last chapter, from AniList. Release
   // checks keep it up to date after that
@@ -136,14 +138,16 @@ export const setSeen = (
   });
 
 // how many volumes someone owns; null clears it. Returns the new value
-export async function setVolumesOwned(id: number, volumesOwned: number | null) {
-  const manga = await prisma.manga.update({
+// what they own: "up to" a volume, or the exact list (util/shelf/ownedList.ts)
+export const setVolumesOwned = (
+  id: number,
+  owned: { volumesOwned: number | null; ownedList: number[] },
+) =>
+  prisma.manga.update({
     where: { id },
-    data: { volumesOwned },
-    select: { volumesOwned: true },
+    data: owned,
+    select: { volumesOwned: true, ownedList: true },
   });
-  return manga.volumesOwned;
-}
 
 export const deleteManga = (id: number) =>
   prisma.manga.delete({ where: { id } });

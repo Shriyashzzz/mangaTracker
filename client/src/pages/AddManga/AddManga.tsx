@@ -11,6 +11,8 @@ import TitleField from "./TitleField";
 import FormatField from "../../components/formatField/FormatField";
 import { useEffect } from "react";
 import { usePrivatePage } from "../../lib/seo";
+import { useVolumePicker } from "../../components/volumePicker/VolumePicker";
+import { parseVolumes } from "../../lib/ownedVolumes";
 
 const DESC_MAX = 450;
 
@@ -49,6 +51,10 @@ export function AddManga() {
   const [description, setDescription] = useState("");
   const [validationError, setValidationError] = useState<{ msg: string }[]>([]);
   const [submitting, setSubmitting] = useState(false);
+  // from a volume's price page: they own up to that one
+  const volumes = useVolumePicker({
+    volumesOwned: Number(searchParams.get("volumesOwned")) || null,
+  });
   // signed-out visitors go to sign in, then come back here. null means the
   // server hasn't answered yet, so wait rather than bounce a signed-in user
   useEffect(() => {
@@ -80,6 +86,7 @@ export function AddManga() {
       planned: stage === "planned",
       lightNovel,
       volumesOwned: String(form.get("volumesOwned") ?? ""),
+      ownedList: parseVolumes(String(form.get("ownedList") ?? "")) ?? [],
     };
     if (stage === "reading")
       sendReq.bookmark = String(form.get("bookmark") ?? "");
@@ -219,23 +226,7 @@ export function AddManga() {
                 />
               </div>
             )}
-            <div className={styles.field}>
-              <label htmlFor="volumesOwned" className={styles.label}>
-                Own up to vol.{" "}
-                <span className={styles.optional}>(optional)</span>
-              </label>
-              <input
-                className={styles.input}
-                inputMode="numeric"
-                id="volumesOwned"
-                name="volumesOwned"
-                type="number"
-                min="1"
-                step="1"
-                placeholder="e.g. 14"
-                defaultValue={searchParams.get("volumesOwned") ?? ""}
-              />
-            </div>
+            {volumes.field}
             <div className={styles.field}>
               <label htmlFor="genre" className={styles.label}>
                 Genre{" "}
@@ -263,6 +254,7 @@ export function AddManga() {
               </select>
             </div>
           </div>
+          {volumes.panel}
 
           <div className={`${styles.field} ${styles.notesField}`}>
             <div className={styles.labelRow}>

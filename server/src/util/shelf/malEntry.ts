@@ -1,6 +1,7 @@
 // One manga from a MyAnimeList export, as a shelf entry. AniList is asked about
 // it by its MyAnimeList id, which is exact, for the English title, cover and genre.
 import { shelfKey, titleKey } from "./titleKey.js";
+import { ownedVolumes } from "./ownedList.js";
 
 export type MalEntry = {
   malId?: number;
@@ -18,6 +19,8 @@ export type MalEntry = {
   cover?: string;
   // the import already knows it's a light novel (AniList, Kitsu, book apps)
   lightNovel?: boolean;
+  // exactly which volumes they own, when a book app's export says
+  ownedList?: number[];
 };
 
 export type MalListing = {
@@ -46,7 +49,7 @@ export function toMangaInput(entry: MalEntry, listing: MalListing | null) {
     lightNovel: entryIsLightNovel(entry, listing),
     bookmark: entry.planned ? null : entry.chapters,
     // most people never fill in retail, so volumes read is the best guess left
-    volumesOwned: entry.ownedVolumes || entry.readVolumes || null,
+    ...ownedVolumes(entry.ownedVolumes || entry.readVolumes || null, entry.ownedList),
     rating: Math.round(entry.score / 2) || null,
     latestChapter: listing?.latestChapter ?? null,
   };

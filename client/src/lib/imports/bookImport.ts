@@ -2,6 +2,7 @@
 // browser, so the file never leaves their computer. Book apps list every volume
 // as its own book; the shelf has one entry per series, so volumes are grouped by
 // series first. Kept free of the DOM so it can be tested on its own.
+import { ownedVolumes } from "../ownedVolumes";
 import type { MalEntry } from "./malImport";
 
 export type BookSource = "goodreads" | "bookcatalogue" | "csv";
@@ -35,6 +36,10 @@ export type BookSeries = {
   otherNames: string[];
   books: number;
   ownedVolumes: number;
+  // exactly which volumes they own (One Piece 1 and 4): every owned book's
+  // number. [] owns none; null when an owned book has no number, so the
+  // file can't say exactly. Missing on imports saved before it was kept
+  ownedList?: number[] | null;
   readVolumes: number;
   score: number;
   // nothing owned or read yet: only on a to-read list
@@ -738,6 +743,10 @@ export function groupBooks(books: Book[]): BookSeries[] {
       );
     };
     const owned = furthest(list.filter((b) => b.owned));
+    const ownedBooks = list.filter((b) => b.owned);
+    const ownedList = ownedBooks.every((b) => b.volume != null)
+      ? [...new Set(ownedBooks.map((b) => b.volume!))].sort((a, b) => a - b)
+      : null;
     // on vol. 5 now means 1 to 4 are read, marked or not
     const readingFrom = list.flatMap((b) =>
       b.reading && b.volume ? [Math.floor(b.volume) - 1] : [],
@@ -752,6 +761,7 @@ export function groupBooks(books: Book[]): BookSeries[] {
       otherNames: ranked.slice(1).map((r) => r.name),
       books: list.length,
       ownedVolumes: Math.max(0, Math.min(Math.max(owned, read), 999)),
+      ownedList,
       readVolumes: Math.max(0, Math.min(read, 999)),
       score: Math.round(average * 2),
       planned: list.every((b) => b.planned),
@@ -795,6 +805,13 @@ export function mergeSameSeries(
     }
     first.books += s.books;
     first.ownedVolumes = Math.max(first.ownedVolumes, s.ownedVolumes);
+    // both exact: together; either one not: no longer exact
+    first.ownedList =
+      first.ownedList && s.ownedList
+        ? [...new Set([...first.ownedList, ...s.ownedList])].sort(
+            (a, b) => a - b,
+          )
+        : null;
     first.readVolumes = Math.max(first.readVolumes, s.readVolumes);
     first.score = Math.max(first.score, s.score);
     first.planned = first.planned && s.planned;
@@ -818,5 +835,12 @@ export const toEntry = (
   chapters: 0,
   readVolumes: s.readVolumes,
   ownedVolumes: s.ownedVolumes,
+  // only with gaps: a run from 1 is what ownedVolumes says already, and keeps
+  // counting a volume read further on as theirs, as it always did
+  ...(gapsIn(s.ownedList) ? { ownedList: s.ownedList! } : {}),
   score: s.score,
 });
+
+// owned volumes that aren't a run from 1
+export const gapsIn = (list: number[] | null | undefined) =>
+  Boolean(list?.length) && ownedVolumes(null, list).ownedList.length > 0;

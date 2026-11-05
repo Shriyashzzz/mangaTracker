@@ -30,6 +30,16 @@ import type { Manga } from "../../generated/prisma/client.js";
 import { isOnShelf, titleKey } from "../util/shelf/titleKey.js";
 import { oneAtATime } from "../util/shelf/oneAtATime.js";
 import { knownMatches, tellMatches } from "../util/shelf/sharedMatches.js";
+import { ownedVolumes } from "../util/shelf/ownedList.js";
+
+// the exact volumes owned, as numbers like 4 or 10.5
+const ownedListFields = (field: string) => [
+  body(field).optional().isArray({ max: 999 }),
+  body(`${field}.*`)
+    .isFloat({ min: 0, max: 999 })
+    .withMessage("Volume numbers go from 0 to 999")
+    .toFloat(),
+];
 
 // ---------- validation shared by add and edit ----------
 const mangaFields = [
@@ -59,6 +69,8 @@ const mangaFields = [
     .isInt({ min: 0, max: 999 })
     .withMessage("Volumes owned has to be a whole number, like 14")
     .toInt(),
+  // or exactly which: One Piece 1 and 4 (util/shelf/ownedList.ts)
+  ...ownedListFields("ownedList"),
   body("genre").optional({ values: "falsy" }).trim().isLength({ max: 100 }),
   body("description")
     .optional({ values: "falsy" })
@@ -103,7 +115,7 @@ const toInput = (req: Request): MangaInput => {
     // the same: an edit that doesn't say keeps what it was
     lightNovel: d.lightNovel === undefined ? undefined : Boolean(d.lightNovel),
     bookmark: d.planned ? null : d.bookmark || null,
-    volumesOwned: d.volumesOwned || null,
+    ...ownedVolumes(d.volumesOwned, d.ownedList),
     genre: d.genre || null,
     description: d.description || null,
     image: d.image || null,
@@ -202,6 +214,8 @@ const importList = [
   body("entries.*.chapters").isInt({ min: 0, max: 100000 }).toInt(),
   body("entries.*.readVolumes").isInt({ min: 0, max: 999 }).toInt(),
   body("entries.*.ownedVolumes").isInt({ min: 0, max: 999 }).toInt(),
+  // which ones exactly, when a book app's export says (One Piece 1 and 4)
+  ...ownedListFields("entries.*.ownedList"),
   body("entries.*.score").isInt({ min: 0, max: 10 }).toInt(),
   body("entries.*.comments").optional().isString(),
   body("entries.*.planned").optional().isBoolean().toBoolean(),
@@ -275,12 +289,15 @@ const detail = (_req: Request, res: Response) => {
 // as many volumes as it has (its count is Japan's, so every English one too).
 // Finished reading isn't enough on its own: that's them, not the series
 export const nothingLeftToCheck = (
-  manga: Pick<Manga, "volumesOwned">,
+  manga: Pick<Manga, "volumesOwned"> & { ownedList?: number[] },
   info: { status?: string | null; volumes?: number | null } | null,
 ) =>
   info?.status === "FINISHED" &&
   Boolean(info.volumes) &&
-  (manga.volumesOwned ?? 0) >= info.volumes!;
+  // with gaps, as many as it has, not just one numbered as high
+  (manga.ownedList?.length
+    ? manga.ownedList.filter(Number.isInteger).length
+    : (manga.volumesOwned ?? 0)) >= info.volumes!;
 
 // release dates and what's new in English for one manga. Its own route because
 // it can be slow, so the details page and the edit form don't wait for it.
@@ -503,21 +520,23 @@ const setNotes = [
 ];
 
 // "I own Vol. 15", and its undo. Sets the number as given; null clears it
+// "up to" a volume (null clears it), or the exact list
 const setOwned = [
   body("volumesOwned")
     .optional({ values: "null" })
     .isInt({ min: 1, max: 999 })
     .withMessage("That isn't a volume number.")
     .toInt(),
+  ...ownedListFields("ownedList"),
   rejectInvalid,
   async (req: Request, res: Response) => {
-    const value = matchedData(req).volumesOwned ?? null;
-    res.json({
-      volumesOwned: await mangaQueries.setVolumesOwned(
+    const d = matchedData(req);
+    res.json(
+      await mangaQueries.setVolumesOwned(
         res.locals.manga.id,
-        value,
+        ownedVolumes(d.volumesOwned ?? null, d.ownedList),
       ),
-    });
+    );
   },
 ];
 
@@ -551,6 +570,7 @@ const match = [
         status: found.status,
         planned: found.planned,
         volumesOwned: found.volumesOwned,
+        ownedList: found.ownedList,
       },
     );
   },

@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { ownedPhrase } from "../../lib/ownedVolumes";
 import { detailsStyles as styles } from "./styles";
 import { NavLink, useNavigate, useParams, useSearchParams } from "react-router";
 import StarRating from "../../components/starRating/StarRating";
@@ -252,8 +253,8 @@ export default function Details() {
   const genre =
     mangaData.genre && mangaData.genre !== "unlabled" ? mangaData.genre : null;
   // owning and reading aren't the same, so say which it is
-  const volumeYours = mangaData?.volumesOwned
-    ? `you own up to vol. ${mangaData.volumesOwned}`
+  const volumeYours = ownedPhrase(mangaData)
+    ? `you own ${ownedPhrase(mangaData)}`
     : releaseStatus?.currentVolume
       ? `you're on vol. ${releaseStatus.currentVolume}`
       : null;
@@ -362,9 +363,9 @@ export default function Details() {
                 />
               </>
             )}
-            {mangaData.volumesOwned && (
+            {ownedPhrase(mangaData) && (
               <span className={styles.owned}>
-                Own up to vol. {mangaData.volumesOwned}
+                Own {ownedPhrase(mangaData)}
               </span>
             )}
           </p>
