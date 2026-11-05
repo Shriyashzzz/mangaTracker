@@ -38,6 +38,9 @@ import TakeTourButton from "../../components/tour/TakeTourButton";
 const SHELF_PAGE_SIZE = 20;
 // shelves this size get a heads-up that their first release check is slow
 const BIG_SHELF = 10;
+// after this many checks with nothing new, the big "Checking" box gives way
+// to one line, so a long shelf doesn't look stuck
+const EARLY_CHECKS = 6;
 // how long the "Hide" note and its undo stay up
 const SEEN_NOTE_MS = 8000;
 
@@ -47,6 +50,7 @@ const RELEASE_KINDS = {
     label: "Volumes",
     note: "English releases only. Japan may be ahead.",
     emptyTitle: "No new volumes. Your wallet lives!",
+    waiting: "No new volumes yet",
     emptyBody: "Nothing new to show for now. Your shelf gets a day off.",
   },
   chapters: {
@@ -54,12 +58,14 @@ const RELEASE_KINDS = {
     // MangaUpdates counts every language and doesn't say which is which
     note: "Mostly English. A chapter may still be on its way in English.",
     emptyTitle: "Nothing new to read. Go touch grass!",
+    waiting: "No new chapters yet",
     emptyBody: "Nothing new to show for now. Check back soon.",
   },
   japan: {
     label: "In Japan",
     note: "Out in Japan, maybe not in English yet.",
     emptyTitle: "Japan has nothing on you. Yet!",
+    waiting: "Nothing new in Japan yet",
     emptyBody: "No volumes in Japan to show for now.",
   },
 } as const;
@@ -883,7 +889,18 @@ function Library() {
         </div>
       )}
 
-      {checking && visibleManga.length === 0 ? (
+      {checking && visibleManga.length === 0 && checked >= EARLY_CHECKS ? (
+        // nothing new yet, a while in: one line, not a box that looks stuck
+        <div className={styles.checkInline}>
+          {progress}
+          <p className={styles.checkText} aria-live="polite">
+            {RELEASE_KINDS[releaseKind].waiting} · {checked} of {total} checked
+            {bigShelfNote && (
+              <span className={styles.checkAside}>{bigShelfNote}</span>
+            )}
+          </p>
+        </div>
+      ) : checking && visibleManga.length === 0 ? (
         <div className={styles.checkCentre}>
           <p className={styles.checkTitle}>Checking for new releases</p>
           {progress}
