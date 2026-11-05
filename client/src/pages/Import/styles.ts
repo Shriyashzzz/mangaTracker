@@ -65,9 +65,10 @@ export const importStyles = {
   seriesMeta: "text-[0.85rem] text-ink-soft",
   omnibusNote: "text-[0.8rem] text-accent",
   // a row: the tick and its name, with Edit beside them (not inside the
-  // label, where a press would also tick)
+  // label, where a press would also tick). Room at the sides for the focus
+  // ring, which the scrolling list would otherwise cut off
   seriesRow:
-    "flex items-center gap-2 border-b border-dashed border-line-soft has-[input:disabled]:opacity-50",
+    "flex items-center gap-2 border-b border-dashed border-line-soft px-1.5 has-[input:disabled]:opacity-50",
   seriesLabel:
     "flex min-h-12 min-w-0 flex-1 cursor-pointer items-center gap-3 has-[input:disabled]:cursor-default",
   seriesEdit:
