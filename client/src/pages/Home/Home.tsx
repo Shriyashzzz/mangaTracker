@@ -1142,19 +1142,19 @@ function GuestHero() {
           <div className={styles.guestActions}>
             <NavLink
               to="/signup"
-              className="btn btn-primary btn-lg"
+              className="btn btn-primary upto-720: p-3 "
               viewTransition
             >
               Start your shelf
             </NavLink>
-            <TakeTourButton large />
             <NavLink
               to="/signin"
-              className="btn btn-ghost btn-lg upto-720:hidden"
+              className="btn p-3 upto-720:hidden "
               viewTransition
             >
               Sign in
             </NavLink>
+            <TakeTourButton />
           </div>
         </div>
 
