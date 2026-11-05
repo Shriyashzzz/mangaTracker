@@ -1,8 +1,16 @@
 // Importing from a book app: Goodreads, Book Catalogue, or any CSV. The file is
 // read here in the browser, volumes are grouped into series, and each series is
 // looked up on AniList for its cover and to tell manga from everything else.
-import { useEffect, useState, type ChangeEvent, type DragEvent } from "react";
+import {
+  useEffect,
+  useId,
+  useRef,
+  useState,
+  type ChangeEvent,
+  type DragEvent,
+} from "react";
 import { NavLink } from "react-router";
+import { ChevronDownIcon } from "../../components/icons/Icons";
 import Mascot from "../../components/mascot/Mascot";
 import {
   fileKind,
@@ -25,11 +33,57 @@ const MAX_FILE_BYTES = 20 * 1024 * 1024;
 // files in one import
 const MAX_FILES = 5;
 
-// "goodreads.csv", or "2 files: goodreads 2023.csv, goodreads 2026.csv"
-const filesLine = (names: string[]) =>
-  names.length > 1
-    ? `${names.length} files: ${names.join(", ")}`
-    : (names[0] ?? "");
+// one file: its name. Several: how many, and their names on hover on a
+// laptop, or a tap on a phone (which also keeps it open on a laptop)
+function FilesInImport({ names }: { names: string[] }) {
+  const [open, setOpen] = useState(false);
+  const wrap = useRef<HTMLDivElement>(null);
+  const listId = useId();
+  // a tap or click anywhere else, or Escape, closes it
+  useEffect(() => {
+    if (!open) return;
+    const away = (e: PointerEvent) => {
+      if (!wrap.current?.contains(e.target as Node)) setOpen(false);
+    };
+    const escape = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setOpen(false);
+    };
+    document.addEventListener("pointerdown", away);
+    document.addEventListener("keydown", escape);
+    return () => {
+      document.removeEventListener("pointerdown", away);
+      document.removeEventListener("keydown", escape);
+    };
+  }, [open]);
+
+  if (names.length < 2) return <p className={styles.fileName}>{names[0]}</p>;
+  return (
+    <div ref={wrap} className={styles.files}>
+      <button
+        type="button"
+        className={`${styles.filesButton} group/button`}
+        aria-expanded={open}
+        aria-controls={listId}
+        onClick={() => setOpen((o) => !o)}
+      >
+        {names.length} files in this import
+        <ChevronDownIcon className={styles.filesChevron} />
+      </button>
+      <div
+        id={listId}
+        className={`${styles.filesPop} ${open ? "block" : "hidden group-hover/files:block"}`}
+      >
+        <ul className={styles.filesPanel} aria-label="Files in this import">
+          {names.map((name) => (
+            <li key={name} className={styles.filesItem}>
+              {name}
+            </li>
+          ))}
+        </ul>
+      </div>
+    </div>
+  );
+}
 
 const APP_NAME: Record<BookSource, string> = {
   goodreads: "Goodreads",
@@ -360,7 +414,7 @@ export default function BookImport({ source }: { source: BookSource }) {
             <h2 id="import-found" className={styles.found}>
               {foundLine(rows!)}
             </h2>
-            <p className={styles.fileName}>{filesLine(fileNames)}</p>
+            <FilesInImport names={fileNames} />
 
             {lookingUp && (
               <div className={styles.matchingLine}>

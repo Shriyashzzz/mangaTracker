@@ -29,6 +29,18 @@ export const importStyles = {
   found:
     "font-brand text-[clamp(1.6rem,4.5vw,2.1rem)] leading-[1.05] font-normal tracking-[0.02em] uppercase",
   fileName: "mt-1 truncate font-mono text-[0.8rem] text-muted",
+  // several files: how many, and their names on hover (laptops) or a tap
+  files: "group/files relative mt-1 w-fit max-w-full",
+  filesButton:
+    "tap inline-flex min-h-8 items-center gap-1 font-mono text-[0.8rem] text-muted underline decoration-line-soft decoration-dashed underline-offset-3 hover:text-ink aria-expanded:text-ink",
+  filesChevron:
+    "size-3.5 shrink-0 transition-transform duration-150 group-aria-expanded/button:rotate-180",
+  // below the button with no gap to cross, so moving onto the list keeps it open
+  filesPop: "absolute top-full left-0 z-20 pt-1",
+  filesPanel:
+    "w-max max-w-[min(26rem,calc(100vw-4rem))] rounded-ink border-[2.5px] border-line bg-card px-3 py-2 shadow-[0_14px_30px_-14px_rgba(20,14,8,0.45)] animate-drop motion-reduce:animate-none",
+  filesItem:
+    "border-b border-dashed border-line-soft py-1.5 font-mono text-[0.8rem] leading-[1.35] text-ink-soft [overflow-wrap:anywhere] last:border-b-0",
   lists: "mt-4 border-t-[1.5px] border-line-soft",
   list: "flex min-h-12 cursor-pointer items-center gap-3 border-b border-dashed border-line-soft has-[input:disabled]:cursor-default has-[input:disabled]:opacity-50",
   listCheck:
