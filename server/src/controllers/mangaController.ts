@@ -6,9 +6,17 @@ import {
   type ReleaseOutcome,
 } from "../util/releases/releaseOutcome.js";
 import type { Request, Response } from "express";
-import { body, matchedData, query } from "express-validator";
+import {
+  body,
+  matchedData,
+  query,
+  validationResult,
+} from "express-validator";
 import { rejectInvalid } from "../middlewares/validate.js";
-import mangaQueries, { type MangaInput } from "../models/mangaQueries.js";
+import mangaQueries, {
+  type MangaInput,
+  type RestoredManga,
+} from "../models/mangaQueries.js";
 import {
   getListingsByMalIds,
   getSeriesInfo,
@@ -161,9 +169,8 @@ const add = [
   },
 ];
 
-// the undo for deleting: everything it had comes back, exactly as it was, so the
-// name doesn't go through AniList again. It gets a new id
-const restore = [
+// what an undo brings back, checked the same way for one series or many
+const restoreFields = [
   ...mangaFields,
   body("rating").optional({ values: "null" }).isInt({ min: 0, max: 5 }).toInt(),
   body("seenVolume").optional({ values: "null" }).isFloat({ min: 0 }).toFloat(),
@@ -181,6 +188,27 @@ const restore = [
     .optional({ values: "null" })
     .isFloat({ min: 0 })
     .toFloat(),
+];
+
+const restoredInput = (req: Request): RestoredManga => {
+  const d = matchedData(req);
+  return {
+    ...toInput(req),
+    // validation treats a 0 as blank
+    bookmark: d.bookmark ?? (req.body.bookmark === 0 ? 0 : null),
+    rating: d.rating ?? null,
+    seenVolume: d.seenVolume ?? null,
+    seenChapter: d.seenChapter ?? null,
+    seenJapanVolume: d.seenJapanVolume ?? null,
+    hiddenVolumes: d.hiddenVolumes ?? [],
+    latestChapter: d.latestChapter ?? null,
+  };
+};
+
+// the undo for deleting: everything it had comes back, exactly as it was, so the
+// name doesn't go through AniList again. It gets a new id
+const restore = [
+  ...restoreFields,
   rejectInvalid,
   async (req: Request, res: Response) => {
     const d = matchedData(req);
@@ -193,18 +221,91 @@ const restore = [
         })
       )
         return;
-      const id = await mangaQueries.restoreManga(userId, {
-        ...toInput(req),
-        // validation treats a 0 as blank
-        bookmark: d.bookmark ?? (req.body.bookmark === 0 ? 0 : null),
-        rating: d.rating ?? null,
-        seenVolume: d.seenVolume ?? null,
-        seenChapter: d.seenChapter ?? null,
-        seenJapanVolume: d.seenJapanVolume ?? null,
-        hiddenVolumes: d.hiddenVolumes ?? [],
-        latestChapter: d.latestChapter ?? null,
-      });
+      const id = await mangaQueries.restoreManga(userId, restoredInput(req));
       res.status(201).json({ id });
+    });
+  },
+];
+
+// the shelf's Select can pick a whole shelf, so a delete takes this many ids
+// (a small request even then). The undo comes back in pieces of 200
+// (client/src/store/shelf.ts), well under this
+const MOST_DELETED = 10_000;
+const MOST_RESTORED = 1000;
+
+// several of their series deleted at once, all or none. Only their own: an id
+// that isn't theirs is left alone, whoever it belongs to
+const removeMany = [
+  body("ids")
+    .isArray({ min: 1, max: MOST_DELETED })
+    .withMessage(`Pick between 1 and ${MOST_DELETED} series.`),
+  body("ids.*").isInt({ min: 1 }).toInt(),
+  rejectInvalid,
+  async (req: Request, res: Response) => {
+    const ids = [...new Set(matchedData(req).ids as number[])];
+    const manga = await mangaQueries.deleteManyManga(req.session.userId!, ids);
+    // what went, as it was: the undo puts back exactly this
+    res.json({ deleted: manga.length, manga });
+  },
+];
+
+// one series sent to the undo, checked by restore's own rules. Null when it
+// doesn't pass them
+export async function checkRestored(
+  item: unknown,
+): Promise<RestoredManga | null> {
+  const req = {
+    body: item && typeof item === "object" ? item : {},
+  } as Request;
+  for (const chain of restoreFields) await chain.run(req);
+  if (!validationResult(req).isEmpty()) return null;
+  return restoredInput(req);
+}
+
+// the series that can come back: not already on the shelf (added again since),
+// and not twice in the list
+export function notOnShelf(
+  inputs: RestoredManga[],
+  shelf: { id: number; name: string; lightNovel?: boolean }[],
+) {
+  // each title keyed once, not once per series checked
+  const keyOf = (name: string, lightNovel?: boolean) =>
+    shelfKey(titleKey(name), Boolean(lightNovel));
+  const taken = new Set(shelf.map((m) => keyOf(m.name, m.lightNovel)));
+  const fresh: RestoredManga[] = [];
+  for (const input of inputs) {
+    const key = keyOf(input.name, input.lightNovel);
+    if (taken.has(key)) continue;
+    fresh.push(input);
+    taken.add(key);
+  }
+  return fresh;
+}
+
+// the undo for a Select delete: every series back as it was, in one go
+const restoreMany = [
+  body("manga")
+    .isArray({ min: 1, max: MOST_RESTORED })
+    .withMessage(`Between 1 and ${MOST_RESTORED} series at a time.`),
+  rejectInvalid,
+  async (req: Request, res: Response) => {
+    const userId = req.session.userId!;
+    const checked = await Promise.all(
+      (req.body.manga as unknown[]).map(checkRestored),
+    );
+    const inputs = checked.filter((m): m is RestoredManga => m !== null);
+    const invalid = checked.length - inputs.length;
+    await oneAtATime(userId, async () => {
+      const fresh = notOnShelf(
+        inputs,
+        await mangaQueries.getMangaShelfNames(userId),
+      );
+      if (fresh.length) await mangaQueries.addManyManga(userId, fresh);
+      res.json({
+        restored: fresh.length,
+        alreadyThere: inputs.length - fresh.length,
+        invalid,
+      });
     });
   },
 ];
@@ -652,6 +753,8 @@ export default {
   releases,
   update,
   remove,
+  removeMany,
+  restoreMany,
   setStatus,
   setPlanned,
   setRating,

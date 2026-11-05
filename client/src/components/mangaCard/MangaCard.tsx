@@ -25,12 +25,14 @@ type Props = {
   compact?: boolean;
   // how far through the series they are, once we know the latest chapter
   latestChapter?: number | null;
+  // the shelf's Select: the card ticks instead of opening
+  select?: { checked: boolean; onToggle: () => void };
 };
 
 // every card leans a little differently when you hover it: the 1st, 2nd and
-// 3rd of each three tilt their own way
+// 3rd of each three tilt their own way. Ticked in Select, it's ringed in red
 const coverBase =
-  "relative aspect-2/3 rounded-[2px] border-[1.5px] border-line bg-paper-2 transition-[translate,rotate,box-shadow] duration-180 ease-[ease] group-hover:-translate-x-0.5 group-hover:-translate-y-[3px] group-hover:-rotate-1 group-hover:shadow-[6px_7px_0_var(--hard-shadow)] [.group:nth-child(3n+2):hover_&]:rotate-[0.8deg] [.group:nth-child(3n):hover_&]:-rotate-[0.4deg]";
+  "relative aspect-2/3 rounded-[2px] border-[1.5px] border-line bg-paper-2 transition-[translate,rotate,box-shadow] duration-180 ease-[ease] group-hover:-translate-x-0.5 group-hover:-translate-y-[3px] group-hover:-rotate-1 group-hover:shadow-[6px_7px_0_var(--hard-shadow)] [.group:nth-child(3n+2):hover_&]:rotate-[0.8deg] [.group:nth-child(3n):hover_&]:-rotate-[0.4deg] [[data-picked]_&]:outline-3 [[data-picked]_&]:outline-offset-2 [[data-picked]_&]:outline-accent";
 
 export default function MangaCard({
   currentManga,
@@ -41,6 +43,7 @@ export default function MangaCard({
   index = 0,
   compact = false,
   latestChapter,
+  select,
 }: Props) {
   const asColumns = compact && !news;
   // a count that's behind where they are says nothing, so it isn't shown
@@ -52,31 +55,17 @@ export default function MangaCard({
       ? currentManga.genre
       : null;
 
-  return (
-    <NavLink
-      data-tour="card"
-      to={linkTo ?? `/details/${currentManga.id}${detailsSearch}`}
-      className={
-        asColumns
-          ? "group grid animate-card-in grid-cols-[2.75rem_minmax(0,1fr)_auto] gap-x-3 py-1.5"
-          : compact
-            ? "group flex animate-card-in flex-row items-start gap-3 py-1.5"
-            : news
-              ? "group flex animate-card-in flex-col gap-[0.7rem] upto-720:flex-row upto-720:items-center upto-720:gap-3 upto-720:py-1.5"
-              : "group flex animate-card-in flex-col gap-[0.7rem]"
-      }
-      style={{ animationDelay: `${Math.min(index, 12) * 35}ms` }}
-      viewTransition
-      // says where it came from, so the page it opens can lead back
-      state={linkTo ? { fromShelf: true } : undefined}
-      {...(onOpen && {
-        "aria-haspopup": "dialog" as const,
-        onClick: (e) => {
-          e.preventDefault();
-          onOpen();
-        },
-      })}
-    >
+  const rootClass = asColumns
+    ? "group grid animate-card-in grid-cols-[2.75rem_minmax(0,1fr)_auto] gap-x-3 py-1.5"
+    : compact
+      ? "group flex animate-card-in flex-row items-start gap-3 py-1.5"
+      : news
+        ? "group flex animate-card-in flex-col gap-[0.7rem] upto-720:flex-row upto-720:items-center upto-720:gap-3 upto-720:py-1.5"
+        : "group flex animate-card-in flex-col gap-[0.7rem]";
+  const delay = { animationDelay: `${Math.min(index, 12) * 35}ms` };
+
+  const body = (
+    <>
       <div
         className={
           compact
@@ -98,6 +87,17 @@ export default function MangaCard({
             }
           }}
         />
+        {select && (
+          <span className="absolute top-1 left-1 z-1 grid place-items-center rounded-[3px] border-[1.5px] border-line bg-card p-[3px] shadow-ink">
+            <input
+              type="checkbox"
+              className="size-5 cursor-pointer accent-accent"
+              checked={select.checked}
+              onChange={select.onToggle}
+              aria-label={`Select ${currentManga.name}`}
+            />
+          </span>
+        )}
         {/* hanko-style stamp for finished series */}
         {currentManga.status && !compact && (
           <span
@@ -202,6 +202,40 @@ export default function MangaCard({
           </span>
         </span>
       )}
+    </>
+  );
+
+  // a label, so the whole card ticks its box; the box sits on the cover
+  if (select)
+    return (
+      <label
+        data-tour="card"
+        className={`${rootClass} cursor-pointer`}
+        style={delay}
+        data-picked={select.checked || undefined}
+      >
+        {body}
+      </label>
+    );
+
+  return (
+    <NavLink
+      data-tour="card"
+      to={linkTo ?? `/details/${currentManga.id}${detailsSearch}`}
+      className={rootClass}
+      style={delay}
+      viewTransition
+      // says where it came from, so the page it opens can lead back
+      state={linkTo ? { fromShelf: true } : undefined}
+      {...(onOpen && {
+        "aria-haspopup": "dialog" as const,
+        onClick: (e) => {
+          e.preventDefault();
+          onOpen();
+        },
+      })}
+    >
+      {body}
     </NavLink>
   );
 }

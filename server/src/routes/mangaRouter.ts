@@ -10,6 +10,18 @@ mangaRouter.use(requireSignIn);
 mangaRouter.get("/", manga.list);
 mangaRouter.post("/", manga.add);
 mangaRouter.post("/restore", manga.restore);
+// the shelf's Select: delete several, and their undo
+mangaRouter.post(
+  "/delete-many",
+  rateLimit({ max: 20, windowMs: 60_000 }),
+  manga.removeMany,
+);
+// pieces of 200: room for a big shelf's undo in one go
+mangaRouter.post(
+  "/restore-many",
+  rateLimit({ max: 60, windowMs: 60_000 }),
+  manga.restoreMany,
+);
 mangaRouter.post("/import", rateLimit({ max: 60, windowMs: 60_000 }), manga.importList);
 // the book import's matches, shared by everyone's imports
 mangaRouter.post(
