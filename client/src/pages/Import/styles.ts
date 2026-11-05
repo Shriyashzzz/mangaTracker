@@ -64,6 +64,54 @@ export const importStyles = {
   seriesText: "flex min-w-0 flex-1 flex-col py-1.5",
   seriesMeta: "text-[0.85rem] text-ink-soft",
   omnibusNote: "text-[0.8rem] text-accent",
+  // a row: the tick and its name, with Edit beside them (not inside the
+  // label, where a press would also tick)
+  seriesRow:
+    "flex items-center gap-2 border-b border-dashed border-line-soft has-[input:disabled]:opacity-50",
+  seriesLabel:
+    "flex min-h-12 min-w-0 flex-1 cursor-pointer items-center gap-3 has-[input:disabled]:cursor-default",
+  seriesEdit:
+    "tap min-h-11 shrink-0 px-1 text-[0.85rem] font-medium text-ink-soft underline decoration-line-soft underline-offset-3 hover:text-ink hover:decoration-current disabled:cursor-default disabled:no-underline disabled:hover:text-ink-soft",
+  edited: "text-ink",
+
+  // Edit: which AniList series, and how many volumes. A full screen on phones
+  modal:
+    "m-auto max-h-[85dvh] w-[min(32rem,calc(100vw-2rem))] flex-col rounded-ink border-[2.5px] border-line bg-card text-ink shadow-ink-lg open:flex backdrop:bg-[rgba(20,14,8,0.55)] upto-720:h-dvh upto-720:max-h-none upto-720:w-screen upto-720:max-w-none upto-720:rounded-none upto-720:border-0",
+  modalForm: "flex min-h-0 flex-1 flex-col",
+  modalHead:
+    "flex items-start justify-between gap-4 border-b-[1.5px] border-line px-5 pt-4 pb-3",
+  modalTitle:
+    "font-brand text-[1.5rem] leading-[1.1] font-normal tracking-[0.02em] text-balance uppercase [overflow-wrap:anywhere]",
+  modalNow: "mt-1 text-[0.9rem] text-ink-soft",
+  modalClose:
+    "tap shrink-0 py-1 text-[0.9rem] font-medium text-ink-soft underline decoration-line-soft underline-offset-3 hover:text-ink upto-720:hidden",
+  modalBody: "flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto px-5 py-4",
+  modalLabel: "font-display text-[1.05rem] font-medium",
+  modalSearch:
+    "min-h-11 w-full border-[2.5px] border-line bg-paper px-3 text-[1rem] text-ink outline-none focus-visible:border-accent",
+  modalHits: "mb-3 flex flex-col border-t-[1.5px] border-line-soft",
+  modalStatus: "py-3 text-[0.9rem] leading-[1.45] text-ink-soft",
+  // one AniList series to choose; the chosen one inked in
+  modalHit:
+    "tap flex min-h-16 w-full items-center gap-3 border-b border-dashed border-line-soft px-2 py-2 text-left transition-colors duration-120 hover:bg-accent-wash aria-checked:bg-ink aria-checked:text-paper aria-checked:hover:bg-ink",
+  modalCover:
+    "h-14 w-10 shrink-0 border-[1.5px] border-line bg-paper object-cover",
+  modalHitName: "block font-medium leading-[1.25] [overflow-wrap:anywhere]",
+  modalHitOther:
+    "block text-[0.82rem] leading-[1.3] opacity-75 [overflow-wrap:anywhere]",
+  modalHitMeta: "block font-mono text-[0.75rem] tabular-nums opacity-75",
+  modalNone:
+    "tap min-h-12 w-full px-2 py-2 text-left text-[0.9rem] font-medium text-ink-soft transition-colors duration-120 hover:bg-accent-wash hover:text-ink aria-checked:bg-ink aria-checked:text-paper aria-checked:hover:bg-ink aria-checked:hover:text-paper",
+  modalVolumes:
+    "min-h-11 w-28 border-[2.5px] border-line bg-paper px-3 font-mono text-[1rem] text-ink tabular-nums outline-none focus-visible:border-accent aria-invalid:border-accent",
+  modalHint: "text-[0.85rem] leading-[1.45] text-ink-soft",
+  modalFoot:
+    "flex items-center justify-end gap-3 border-t-[1.5px] border-line px-5 py-3",
+  // back to what the import found: away from Save, on the left
+  modalUndo:
+    "tap mr-auto min-h-11 text-[0.9rem] font-medium text-ink-soft underline decoration-line-soft underline-offset-3 hover:text-accent",
+  modalRetry:
+    "tap font-medium text-ink underline decoration-accent decoration-2 underline-offset-3",
   warning:
     "border-[1.5px] border-dashed border-accent bg-accent-wash px-3 py-2 text-[0.9rem] leading-[1.45]",
   note: "mt-3 text-[0.9rem] leading-[1.45] text-ink-soft",
