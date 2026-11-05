@@ -87,7 +87,7 @@ export default function VolumesView({
         {plural(volumes, "volume")} across{" "}
         {plural(manga.length, "series", "series")}
       </p>
-      <div className="upto-520:hidden">{pager(false)}</div>
+      {pager(false)}
       <ul ref={listRef} className={styles.list}>
         {shown.map((m) => (
           <SeriesRow
