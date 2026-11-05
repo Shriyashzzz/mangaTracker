@@ -356,22 +356,25 @@ function Library() {
 
   const openHidden = () => navigator("/shelf?view=hidden");
 
-  const changePage = (index: number) => {
+  // the bottom pager takes them up to where the new page starts; the top
+  // one is already there, so the page stays still under it
+  const changePage = (index: number, scrollUp: boolean) => {
     setPage({ key: filterKey, index });
-    document
-      .getElementById("shelf-grid")
-      ?.scrollIntoView({ behavior: "smooth", block: "start" });
+    if (scrollUp)
+      document
+        .getElementById("shelf-grid")
+        ?.scrollIntoView({ behavior: "smooth", block: "start" });
   };
   const shelfPage = visibleManga.slice(
     pageIndex * SHELF_PAGE_SIZE,
     (pageIndex + 1) * SHELF_PAGE_SIZE,
   );
-  const pager = (
+  const pager = (scrollUp: boolean) => (
     <RangePager
       total={visibleManga.length}
       pageSize={SHELF_PAGE_SIZE}
       page={pageIndex}
-      onChange={changePage}
+      onChange={(index) => changePage(index, scrollUp)}
       label="Shelf pages"
       labelFor={(start, end) => `${start + 1}–${end + 1}`}
     />
@@ -958,7 +961,7 @@ function Library() {
       ) : (
         <>
           {/* phones get the manga first; their pager is the one under the grid */}
-          <div className="upto-520:hidden">{pager}</div>
+          <div className="upto-520:hidden">{pager(false)}</div>
           <div
             id="shelf-grid"
             className={
@@ -1027,7 +1030,7 @@ function Library() {
             ))}
           </div>
           {visibleManga.length > SHELF_PAGE_SIZE && (
-            <div className={styles.pagerBottom}>{pager}</div>
+            <div className={styles.pagerBottom}>{pager(true)}</div>
           )}
         </>
       )}
