@@ -140,13 +140,19 @@ export function useVolumePicker(start: Start): {
     stopPainting();
   };
 
+  // typed: the shelves fit the number, growing or shrinking back (50 then
+  // 30 leaves four shelves, not six)
   const typeUpTo = (text: string) => {
     setUpToText(text);
-    if (!text.trim()) return setOwned([]);
+    if (!text.trim()) {
+      setOwned([]);
+      setShown(FIRST_SHOWN);
+      return;
+    }
     const n = Math.min(999, Math.floor(Number(text)));
     if (!(n >= 1)) return;
     setOwned(ownedOf({ volumesOwned: n }));
-    setShown((s) => Math.max(s, roundUp(n + 1)));
+    setShown(Math.max(FIRST_SHOWN, roundUp(n + 1)));
   };
 
   const spines = Array.from(
@@ -246,6 +252,7 @@ export function useVolumePicker(start: Start): {
               onClick={() => {
                 setOwned([]);
                 setUpToText(null);
+                setShown(FIRST_SHOWN);
               }}
             >
               Clear
