@@ -33,6 +33,18 @@ const MAX_FILE_BYTES = 20 * 1024 * 1024;
 // files in one import
 const MAX_FILES = 5;
 
+// three dots hopping in turn while AniList makes us wait. Read out as "…"
+function WaitingDots() {
+  return (
+    <span className="waiting-dots">
+      <span className="sr-only">…</span>
+      <span aria-hidden>.</span>
+      <span aria-hidden>.</span>
+      <span aria-hidden>.</span>
+    </span>
+  );
+}
+
 // one file: its name. Several: how many, and their names on hover on a
 // laptop, or a tap on a phone (which also keeps it open on a laptop)
 function FilesInImport({ names }: { names: string[] }) {
@@ -419,9 +431,14 @@ export default function BookImport({ source }: { source: BookSource }) {
             {lookingUp && (
               <div className={styles.matchingLine}>
                 <p className={styles.note} role="status">
-                  {waitingOnAniList
-                    ? "AniList asked us to slow down, so we're waiting a moment…"
-                    : `Matching with AniList: ${checked} of ${found.length}, ${timeLeft(found.length - checked)}…`}
+                  {waitingOnAniList ? (
+                    <>
+                      AniList asked us to slow down, so we're waiting a moment
+                      <WaitingDots />
+                    </>
+                  ) : (
+                    `Matching with AniList: ${checked} of ${found.length}, ${timeLeft(found.length - checked)}…`
+                  )}
                 </p>
                 <StopButton />
               </div>
