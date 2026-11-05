@@ -27,6 +27,7 @@
     "moduleDetection": "force",
     "skipLibCheck": true
   },
-  "include": ["src"],
+  // scripts too, so production can run them from dist (node dist/scripts/…)
+  "include": ["src", "scripts"],
   "exclude": ["node_modules", "dist", "src/tests"]
 }
