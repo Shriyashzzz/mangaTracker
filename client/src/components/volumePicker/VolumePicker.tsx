@@ -38,8 +38,14 @@ export function useVolumePicker(start: Start): {
     Math.max(FIRST_SHOWN, roundUp(top + 1)),
   );
   const labelId = useId();
-  // a drag in progress: stand them up, or lay them down
-  const painting = useRef<null | boolean>(null);
+  // a drag in progress, like selecting text: from the spine it started on
+  // to the one under the pointer, standing them up or laying them down.
+  // Dragging back gives the spines it leaves back what they were before
+  const painting = useRef<null | {
+    from: number;
+    up: boolean;
+    before: number[];
+  }>(null);
   // the last spine touched, for shift-click
   const anchor = useRef<number | null>(null);
   // a finger that's just landed: a tap, a sideways drag, or the page
@@ -62,6 +68,23 @@ export function useVolumePicker(start: Start): {
     });
   const between = (a: number, b: number) =>
     Array.from({ length: Math.abs(b - a) + 1 }, (_, i) => Math.min(a, b) + i);
+  // the drag, now over spine `to`: the range set, everything else as it was
+  const paintTo = (to: number) => {
+    const drag = painting.current;
+    if (!drag) return;
+    const next = new Set(drag.before);
+    for (const v of between(drag.from, to)) {
+      if (drag.up) next.add(v);
+      else next.delete(v);
+    }
+    setOwned(sorted(next));
+  };
+  const startPainting = (v: number) => {
+    painting.current = { from: v, up: !owned.includes(v), before: owned };
+    paintTo(v);
+    anchor.current = v;
+    setUpToText(null);
+  };
   const spineAt = (x: number, y: number) => {
     const el = document
       .elementFromPoint(x, y)
@@ -79,13 +102,12 @@ export function useVolumePicker(start: Start): {
     e.preventDefault();
     if (e.shiftKey && anchor.current != null) {
       change(between(anchor.current, v), true);
+      anchor.current = v;
+      setUpToText(null);
     } else {
-      painting.current = !owned.includes(v);
-      change([v], painting.current);
+      startPainting(v);
       e.currentTarget.setPointerCapture(e.pointerId);
     }
-    anchor.current = v;
-    setUpToText(null);
   };
   const onPointerMove = (e: PointerEvent<HTMLDivElement>) => {
     const start = landed.current;
@@ -96,15 +118,12 @@ export function useVolumePicker(start: Start): {
       landed.current = null;
       // up and down is the page scrolling (it takes the pointer itself)
       if (dy >= dx) return;
-      painting.current = !owned.includes(start.v);
-      change([start.v], painting.current);
-      anchor.current = start.v;
-      setUpToText(null);
+      startPainting(start.v);
       e.currentTarget.setPointerCapture(e.pointerId);
     }
-    if (painting.current == null) return;
+    if (!painting.current) return;
     const v = spineAt(e.clientX, e.clientY);
-    if (v != null) change([v], painting.current);
+    if (v != null) paintTo(v);
   };
   const stopPainting = () => {
     painting.current = null;
