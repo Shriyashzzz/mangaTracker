@@ -26,7 +26,7 @@ export default function TakeTourButton({
       type="button"
       className={
         className ??
-        `btn btn-secondary ${large ? "btn-lg" : small ? "btn-sm" : ""}`
+        `btn btn-secondary ${large ? "btn-lg" : small ? "btn-sm" : "upto-720:btn-lg p-3"}`
       }
       onClick={() => {
         // taken: Kenji needn't offer it (lib/tourOffer.ts)
