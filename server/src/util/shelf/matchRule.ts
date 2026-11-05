@@ -23,7 +23,8 @@ export const plain = (name: string) =>
     .replace(/[^\p{L}\p{N}]+/gu, "");
 
 const SHARED_AT_LEAST = 5;
-const SUBTITLE_MARK = /^[\s]*[:\-–—/(~|]/;
+// a slash joins two names, it starts no subtitle (client/src/lib/anilist.ts)
+const SUBTITLE_MARK = /^[\s]*[:\-–—(~|]/;
 const JUST_THE_FORMAT = /^(the)?(manga|comics?|graphicnovel)$/;
 
 // "Chunchu: The Genocide Fiend" carries on from "Chunchu" after a colon, so
