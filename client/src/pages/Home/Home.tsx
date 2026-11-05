@@ -992,8 +992,7 @@ function Library() {
         </div>
       ) : (
         <>
-          {/* phones get the manga first; their pager is the one under the grid */}
-          <div className="upto-520:hidden">{pager(false)}</div>
+          {pager(false)}
           <div
             id="shelf-grid"
             className={
