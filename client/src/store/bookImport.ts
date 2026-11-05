@@ -64,6 +64,8 @@ type BookImportState = {
   // app's import
   resume: (source?: BookSource) => void;
   choose: (key: string, ticked: boolean) => void;
+  // Select all / Clear all: these series, all at once
+  chooseAll: (keys: string[], ticked: boolean) => void;
   add: (chosen: BookSeries[]) => Promise<void>;
   // they pressed Stop import: matching ends now, adding after the piece being
   // sent. The import is dropped; matches found stay remembered
@@ -488,6 +490,15 @@ export const useBookImport = create<BookImportState>()((set, get) => ({
 
   choose: (key, ticked) => {
     set((s) => ({ choices: new Map(s.choices).set(key, ticked) }));
+    save(get());
+  },
+
+  chooseAll: (keys, ticked) => {
+    set((s) => {
+      const choices = new Map(s.choices);
+      for (const key of keys) choices.set(key, ticked);
+      return { choices };
+    });
     save(get());
   },
 

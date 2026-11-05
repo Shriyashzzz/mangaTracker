@@ -305,6 +305,9 @@ export default function BookImport({ source }: { source: BookSource }) {
       })
     : null;
   const chosen = (rows ?? []).filter(ticked);
+  // what Select all can tick: anything matched, as a row's own box can be
+  const tickable = (rows ?? []).filter((s) => matchOf(s) !== undefined);
+  const allTicked = tickable.length > 0 && tickable.every(ticked);
   const checked = (found ?? []).filter((s) => matches.has(s.key)).length;
   const lookingUp = Boolean(found) && checked < (found?.length ?? 0);
 
@@ -452,6 +455,21 @@ export default function BookImport({ source }: { source: BookSource }) {
               </div>
             )}
 
+            <div className={styles.listTools}>
+              <button
+                type="button"
+                className={styles.selectAll}
+                disabled={importing || !tickable.length}
+                onClick={() =>
+                  imported.chooseAll(
+                    tickable.map((s) => s.key),
+                    !allTicked,
+                  )
+                }
+              >
+                {allTicked ? "Clear all" : "Select all"}
+              </button>
+            </div>
             <div
               className={styles.seriesList}
               role="group"

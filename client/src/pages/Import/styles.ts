@@ -54,8 +54,12 @@ export const importStyles = {
     "min-h-11 min-w-0 flex-[1_1_14rem] border-[2.5px] border-line bg-paper px-3 text-[1rem] text-ink outline-none focus-visible:border-accent",
   source:
     "tap min-h-11 border-[2.5px] border-line bg-card px-2 py-2 text-[0.92rem] font-medium leading-tight transition-colors duration-150 hover:bg-accent-wash aria-pressed:bg-ink aria-pressed:text-paper",
+  // Select all / Clear all, above the list's right edge
+  listTools: "mt-3 flex justify-end",
+  selectAll:
+    "tap min-h-9 text-[0.85rem] font-medium text-ink-soft underline decoration-line-soft underline-offset-3 hover:text-ink hover:decoration-current disabled:cursor-default disabled:opacity-50 disabled:no-underline",
   seriesList:
-    "mt-4 max-h-[min(60vh,32rem)] overflow-y-auto border-t-[1.5px] border-line-soft",
+    "mt-1 max-h-[min(60vh,32rem)] overflow-y-auto border-t-[1.5px] border-line-soft",
   seriesText: "flex min-w-0 flex-1 flex-col py-1.5",
   seriesMeta: "text-[0.85rem] text-ink-soft",
   warning:
