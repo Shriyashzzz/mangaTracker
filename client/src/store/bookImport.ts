@@ -102,12 +102,15 @@ const read = <T>(key: string): T | null => {
     return null;
   }
 };
+// false if it couldn't be kept (storage full or blocked)
 const write = (key: string, value: unknown) => {
   try {
     if (value === null) localStorage.removeItem(key);
     else localStorage.setItem(key, JSON.stringify(value));
+    return true;
   } catch {
-    // storage full or blocked: it just won't carry over to the next visit
+    // it just won't carry over to the next visit
+    return false;
   }
 };
 
@@ -411,20 +414,21 @@ const empty = {
 // Stop import was pressed while adding
 let stopAdding = false;
 
-const save = (s: BookImportState) =>
-  write(
-    SAVED_KEY,
-    s.source && s.found
-      ? ({
-          source: s.source,
-          fileNames: s.fileNames,
-          kind: s.kind,
-          books: s.books,
-          found: s.found,
-          choices: [...s.choices],
-        } satisfies Saved)
-      : null,
-  );
+// every file's books too, so a reload can still take more files. A big
+// library can be too much for the browser to keep (about 5MB): then without
+// them, so a reload still has the import, just not room for more files
+const save = (s: BookImportState) => {
+  if (!s.source || !s.found) return write(SAVED_KEY, null);
+  const saved: Saved = {
+    source: s.source,
+    fileNames: s.fileNames,
+    kind: s.kind,
+    books: s.books,
+    found: s.found,
+    choices: [...s.choices],
+  };
+  if (!write(SAVED_KEY, saved)) write(SAVED_KEY, { ...saved, books: [] });
+};
 
 export const useBookImport = create<BookImportState>()((set, get) => ({
   ...empty,

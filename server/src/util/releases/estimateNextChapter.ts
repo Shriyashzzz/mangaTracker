@@ -31,9 +31,12 @@ async function getFeed(
   params: Array<[string, string]>,
 ): Promise<FeedChapter[]> {
   const qs = new URLSearchParams(params);
-  const res = await politeFetch(`${MangaDexBaseUrl}/manga/${seriesId}/feed?${qs}`, {
-    signal: AbortSignal.timeout(10_000),
-  });
+  const res = await politeFetch(
+    `${MangaDexBaseUrl}/manga/${seriesId}/feed?${qs}`,
+    {
+      timeoutMs: 10_000,
+    },
+  );
   if (!res.ok) throw new Error(`MangaDex feed request failed: ${res.status}`);
   const json = (await res.json()) as { data?: FeedChapter[] };
   return json.data ?? [];

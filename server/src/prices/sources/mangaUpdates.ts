@@ -36,7 +36,7 @@ const ask = async <T>(path: string, body?: unknown) => {
     method: body ? "POST" : "GET",
     headers: { "Content-Type": "application/json" },
     ...(body ? { body: JSON.stringify(body) } : {}),
-    signal: AbortSignal.timeout(TIMEOUT_MS),
+    timeoutMs: TIMEOUT_MS,
   });
   if (!res.ok) throw new Error(`MangaUpdates responded ${res.status}`);
   return (await res.json()) as T;

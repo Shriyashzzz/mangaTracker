@@ -76,3 +76,17 @@ test("MangaDex says when to come back as a time, others as seconds", () => {
   expect(at({ "Retry-After": "3" })).toBe(3000);
   expect(at({})).toBeNull();
 });
+
+test("a request's time limit starts when it's sent, not while it waits its turn", async () => {
+  // three at once: the third waits ~600ms in the queue, longer than its 400ms
+  // limit; it still gets its full 400ms once sent
+  global.fetch = (async (_url: string, init?: RequestInit) => {
+    await new Promise((r) => setTimeout(r, 50));
+    if (init?.signal?.aborted) throw new Error("aborted before it was sent");
+    return new Response("{}", { status: 200 });
+  }) as typeof fetch;
+  const all = await Promise.all(
+    [1, 2, 3].map((i) => politeFetch(`https://api.mangadex.org/queue/${i}`, { timeoutMs: 400 })),
+  );
+  expect(all.map((r) => r.status)).toEqual([200, 200, 200]);
+});

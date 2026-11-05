@@ -324,26 +324,30 @@ const releases = async (req: Request, res: Response) => {
   // a light novel's news is its English volumes alone: MangaDex, where the
   // chapters and Japanese volumes come from, only has the manga
   if (manga.lightNovel) {
-    if (fromShelf) {
-      const novelInfo = await withTimeout(
-        getSeriesInfo(novelName(manga.name)).catch(() => null),
-        INFO_TIMEOUT_MS,
-        null,
-      );
-      if (nothingLeftToCheck(manga, novelInfo)) {
-        return res.json({
-          releaseData: null,
-          releaseStatus: null,
-          complete: true,
-        });
-      }
+    // side by side: a novel's check is only its catalog list, so waiting on
+    // AniList first would only make it slower
+    const [novelInfo, series] = await Promise.all([
+      fromShelf
+        ? withTimeout(
+            getSeriesInfo(novelName(manga.name)).catch(() => null),
+            INFO_TIMEOUT_MS,
+            null,
+          )
+        : null,
+      // not found is an answer; failing or being slow is worth asking again
+      withTimeout(
+        getSeries(novelName(manga.name)).catch(() => undefined),
+        SERIES_TIMEOUT_MS,
+        undefined,
+      ),
+    ]);
+    if (fromShelf && nothingLeftToCheck(manga, novelInfo)) {
+      return res.json({
+        releaseData: null,
+        releaseStatus: null,
+        complete: true,
+      });
     }
-    // not found is an answer; failing or being slow is worth asking again
-    const series = await withTimeout(
-      getSeries(novelName(manga.name)).catch(() => undefined),
-      SERIES_TIMEOUT_MS,
-      undefined,
-    );
     if (!series) {
       return res.json({
         releaseData: null,
@@ -361,8 +365,17 @@ const releases = async (req: Request, res: Response) => {
       complete: true,
     });
   }
-  // AniList first: it confirms which series this is on MangaDex, says whether
-  // it has finished, and is usually answered from the database
+  // the catalog right away for the details page, which never skips; the shelf
+  // waits on AniList first, as a finished series it owns needs neither
+  const startSeries = () =>
+    withTimeout(
+      getSeries(manga.name).catch(() => null),
+      SERIES_TIMEOUT_MS,
+      null,
+    );
+  const seriesEarly = fromShelf ? null : startSeries();
+  // AniList: it confirms which series this is on MangaDex, says whether it has
+  // finished, and is usually answered from the database
   const info = await withTimeout(
     getSeriesInfo(manga.name).catch(() => null),
     INFO_TIMEOUT_MS,
@@ -374,11 +387,7 @@ const releases = async (req: Request, res: Response) => {
   // a catalog failure or a slow one only costs the volume half of the answer;
   // if it's slow it carries on and is ready for the next check
   const [series, dates] = await Promise.all([
-    withTimeout(
-      getSeries(manga.name).catch(() => null),
-      SERIES_TIMEOUT_MS,
-      null,
-    ),
+    seriesEarly ?? startSeries(),
     getCachedReleaseDates(
       manga.name,
       { anilistId: info?.anilistId, altNames: info?.altNames },

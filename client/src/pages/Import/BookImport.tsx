@@ -222,6 +222,21 @@ export default function BookImport({ source }: { source: BookSource }) {
   const open = async (picked: File[]) => {
     if (!picked.length) return;
     const joining = Boolean(ours && found);
+    // can't join: say why, rather than taking the files and doing nothing
+    if (joining) {
+      const why =
+        imported.progress !== null
+          ? "Wait until this import has gone on your shelf, then start a new one with that file."
+          : imported.finished
+            ? "This import is done. Start a new one with that file."
+            : !imported.books.length
+              ? "This import was too big for the browser to keep every book, so no more files can join it after a reload. Stop it and import all your files together."
+              : null;
+      if (why) {
+        setFileErrors([why]);
+        return;
+      }
+    }
     const already = joining ? imported.fileNames : [];
     let kind: FileKind | null = joining ? imported.kind : null;
     const errors: string[] = [];
@@ -254,7 +269,16 @@ export default function BookImport({ source }: { source: BookSource }) {
       try {
         const rows = parseCsv(await file.text());
         const headers = (rows[0] ?? []).map((h) => h.trim());
-        const thisKind = fileKind(headers);
+        // on the Book Catalogue tab, an older export with just a lowercase
+        // "title" column (as Book Catalogue writes it) is taken at its word,
+        // as it always was; other tabs still want its own columns
+        const plainKind = fileKind(headers);
+        const thisKind: FileKind =
+          source === "bookcatalogue" &&
+          plainKind === "csv" &&
+          headers.includes("title")
+            ? "bookcatalogue"
+            : plainKind;
         const wrong = wrongFile(file.name, source, thisKind, kind);
         if (wrong) {
           errors.push(wrong);

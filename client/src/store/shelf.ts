@@ -140,10 +140,17 @@ export const useShelf = create<ShelfState>()((set, get) => ({
     if (run || !releaseChecksOn()) return;
     const controller = new AbortController();
     run = controller;
+    // sorted once a run, and again only if the shelf itself changes (a 2000
+    // series shelf shouldn't be re-sorted before every check)
+    let sortedFor: Manga[] | null = null;
+    let ordered: Manga[] = [];
     try {
       while (!controller.signal.aborted && releaseChecksOn()) {
         const { manga, releases } = get();
-        const ordered = checkOrder(manga ?? []);
+        if (manga !== sortedFor) {
+          sortedFor = manga;
+          ordered = checkOrder(manga ?? []);
+        }
         const next =
           ordered.find((m) => !(m.id in releases)) ??
           ordered.find((m) => incomplete.has(m.id) && !retried.has(m.id));

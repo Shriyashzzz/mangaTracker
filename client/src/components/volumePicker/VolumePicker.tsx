@@ -95,11 +95,15 @@ export function useVolumePicker(start: Start): {
   const between = (a: number, b: number) =>
     Array.from({ length: Math.abs(b - a) + 1 }, (_, i) => Math.min(a, b) + i);
   // the drag, now over spine `to`: the range set, everything else as it was
+  // a folded box set is locked until it's opened: a drag or shift-click
+  // across it leaves its volumes alone, so "all yours" stays true
+  const inBox = (v: number) =>
+    folds.some(([first, last]) => v > first * MORE && v <= (last + 1) * MORE);
   const paintTo = (to: number) => {
     const drag = painting.current;
     if (!drag) return;
     const next = new Set(drag.before);
-    for (const v of between(drag.from, to)) {
+    for (const v of between(drag.from, to).filter((x) => !inBox(x))) {
       if (drag.up) next.add(v);
       else next.delete(v);
     }
@@ -117,6 +121,17 @@ export function useVolumePicker(start: Start): {
       ?.closest<HTMLElement>("[data-vol]");
     return el ? Number(el.dataset.vol) : null;
   };
+  // mid-drag, a box set counts as its edge nearest where the drag began, so
+  // a drag onto it still reaches every spine up to it (and never into it)
+  const edgeAt = (x: number, y: number, from: number) => {
+    const box = document
+      .elementFromPoint(x, y)
+      ?.closest<HTMLElement>("[data-box-from]");
+    if (!box) return null;
+    const first = Number(box.dataset.boxFrom);
+    const last = Number(box.dataset.boxTo);
+    return from > last ? last : first;
+  };
 
   const onPointerDown = (e: PointerEvent<HTMLDivElement>) => {
     const v = spineAt(e.clientX, e.clientY);
@@ -127,7 +142,10 @@ export function useVolumePicker(start: Start): {
     }
     e.preventDefault();
     if (e.shiftKey && anchor.current != null) {
-      change(between(anchor.current, v), true);
+      change(
+        between(anchor.current, v).filter((x) => !inBox(x)),
+        true,
+      );
       anchor.current = v;
       setUpToText(null);
     } else {
@@ -148,7 +166,9 @@ export function useVolumePicker(start: Start): {
       e.currentTarget.setPointerCapture(e.pointerId);
     }
     if (!painting.current) return;
-    const v = spineAt(e.clientX, e.clientY);
+    const v =
+      spineAt(e.clientX, e.clientY) ??
+      edgeAt(e.clientX, e.clientY, painting.current.from);
     if (v != null) paintTo(v);
   };
   const stopPainting = () => {
@@ -255,6 +275,8 @@ export function useVolumePicker(start: Start): {
                 key={`box-${first}`}
                 type="button"
                 className={styles.box}
+                data-box-from={from}
+                data-box-to={to}
                 aria-label={`Vols. ${from} to ${to}, all yours. Open to change`}
                 onClick={() => setFolds((all) => all.filter((r) => r !== run))}
               >

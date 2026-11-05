@@ -35,14 +35,26 @@ export function retryAfterMs(res: Response, now = Date.now()): number | null {
   return seconds > 0 ? seconds * 1000 : null;
 }
 
-export async function politeFetch(url: string, init?: RequestInit) {
+// `timeoutMs` is how long the request itself may take: its clock starts when
+// it's sent, not while it waits its turn, so a queue can't eat it (a signal
+// made by the caller would start counting before the wait). A retry gets a
+// fresh one
+export async function politeFetch(
+  url: string,
+  { timeoutMs, ...init }: RequestInit & { timeoutMs?: number } = {},
+) {
   const host = new URL(url).host;
-  await turn(host);
-  const res = await fetch(url, init);
+  const send = async () => {
+    await turn(host);
+    return fetch(url, {
+      ...init,
+      ...(timeoutMs ? { signal: AbortSignal.timeout(timeoutMs) } : {}),
+    });
+  };
+  const res = await send();
   if (res.status !== 429) return res;
   const wait = retryAfterMs(res) ?? 1000;
-  if (wait > MAX_RETRY_WAIT_MS || init?.signal?.aborted) return res;
+  if (wait > MAX_RETRY_WAIT_MS || init.signal?.aborted) return res;
   await sleep(wait);
-  await turn(host);
-  return fetch(url, init);
+  return send();
 }

@@ -46,7 +46,7 @@ const getMangaDexId = async (
       });
       params.append("order[relevance]", "desc");
       const response = await politeFetch(`${MANGADEX_BASE_URL}${params}`, {
-        signal: AbortSignal.timeout(10_000),
+        timeoutMs: 10_000,
       });
 
       if (!response.ok)
@@ -82,9 +82,12 @@ async function getCoverData(seriesId: string) {
     params.append("manga[]", `${seriesId}`);
     params.append("limit", "100"); // more data to make accurate estimate
     params.append("order[volume]", "desc"); // long series have more than 100
-    const response = await politeFetch(`https://api.mangadex.org/cover?${params}`, {
-      signal: AbortSignal.timeout(10_000),
-    });
+    const response = await politeFetch(
+      `https://api.mangadex.org/cover?${params}`,
+      {
+        timeoutMs: 10_000,
+      },
+    );
     if (!response.ok) throw new Error(`MangaDex covers: ${response.status}`);
     const data = await response.json();
     return data;
@@ -109,7 +112,7 @@ async function getAllChapthers(seriesId: string) {
 
     const res = await politeFetch(
       `https://api.mangadex.org/manga/${seriesId}/feed?${params.toString()}`,
-      { signal: AbortSignal.timeout(10_000) },
+      { timeoutMs: 10_000 },
     );
     if (!res.ok) throw new Error(`MangaDex feed: ${res.status}`);
     const data = await res.json();
@@ -126,7 +129,7 @@ async function getVolumeStarts(seriesId: string) {
   try {
     const res = await politeFetch(
       `https://api.mangadex.org/manga/${seriesId}/aggregate`,
-      { signal: AbortSignal.timeout(10_000) },
+      { timeoutMs: 10_000 },
     );
     if (!res.ok) return [];
     const data = await res.json();
