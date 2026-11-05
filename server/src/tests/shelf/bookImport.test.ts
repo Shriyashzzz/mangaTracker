@@ -309,7 +309,8 @@ test("a longer AniList name only fits when the rest is a subtitle", () => {
   expect(matchFrom("Chunchu", [candidate(1, "Chunchu: The Genocide Fiend", "Chunchu", 1)].map((c) => ({ ...c, title: { ...c.title, romaji: "Chunchu: The Genocide Fiend" } })))?.anilistId).toBe(1);
   expect(matchFrom("Justice", [candidate(2, "Justice Now!", "Justice Now!", 1)])).toBeNull();
   expect(matchFrom("Soulless", [candidate(3, "The Soulless Duchess", "The Soulless Duchess", 1)])).toBeNull();
-  expect(matchFrom("Darkstalkers", [candidate(4, "Darkstalkers/Red Earth: Maleficarum", "Darkstalkers/Red Earth", 1)])?.anilistId).toBe(4);
+  // a slash joins two names: UDON's "Darkstalkers" comic is not this manga
+  expect(matchFrom("Darkstalkers", [candidate(4, "Darkstalkers/Red Earth: Maleficarum", "Darkstalkers/Red Earth", 1)])).toBeNull();
 });
 
 test("a search ending in ! carries on, and so does one missing only the word Manga", () => {
@@ -612,4 +613,19 @@ test("a spin-off they've only read still clashes with the series", () => {
 test("a number in a Goodreads series tag is part of the series' name", () => {
   expect(owned(["Mob Psycho 100, Vol. 1", "Mob Psycho 100, Vol. 4 (Mob Psycho 100, #4)"])).toEqual([["Mob Psycho 100", [1, 4], false]]);
   expect(owned(["Eyeshield 21, Vol. 2 (Eyeshield 21, #2)", "Eyeshield 21, Vol. 3 (Eyeshield 21, #3)"])).toEqual([["Eyeshield 21", [2, 3], false]]);
+});
+
+test("a word that ends a real name only counts as an edition before Edition", () => {
+  expect(seriesOf(["Rave Master, Vol. 01", "Rave Master, Vol. 03"])).toEqual([["Rave Master", 3]]);
+  expect(seriesOf(["Berserk Ultimate Edition, Vol. 2", "Berserk, Vol. 4"])).toEqual([["Berserk", 4]]);
+  expect(seriesOf(["Berserk Deluxe, Vol. 2"])).toEqual([["Berserk", 2]]);
+});
+
+test("a series named by its subtitle joins the full name in the same file", () => {
+  expect(seriesOf(["Junk: Record of the Last Hero, Vol. 3", "Junk: Record of the Last Hero, Vol. 4", "Record of the Last Hero, Vol. 5"])).toEqual([["Junk: Record of the Last Hero", 5]]);
+  expect(seriesOf(["Zero: The Beginning of the Coffin, Vol. 1", "Zero 2: The Beginning of the Coffin"])).toEqual([["Zero: The Beginning of the Coffin", 2]]);
+  // a short subtitle stays its own series
+  expect(seriesOf(["Fairy Tail: Zero, Vol. 1", "Zero, Vol. 2"])).toEqual([["Fairy Tail: Zero", 1], ["Zero", 2]]);
+  // without the full name in the file, nothing joins
+  expect(seriesOf(["Record of the Last Hero, Vol. 5"])).toEqual([["Record of the Last Hero", 5]]);
 });

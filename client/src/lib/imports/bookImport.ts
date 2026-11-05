@@ -98,9 +98,10 @@ export function parseCsv(text: string): string[][] {
 
 // ---------- series and volume numbers ----------
 
-// a special edition is still the same series: "Berserk Deluxe Edition" is Berserk
+// a special edition is still the same series: "Berserk Deluxe Edition" is Berserk.
+// Words that end real names ("Rave Master") count only before "Edition"
 const EDITION =
-  /[\s,:(\-–—]+(deluxe|omnibus|collector'?s|perfect|ultimate|master|(the )?complete( collection)?|box ?set|vizbig|revised|full[\s-]colou?r(\s+collection)?|\d-in-\d|\d-in|\d+ ?in ?\d+)( edition)?\)?$/i;
+  /[\s,:(\-–—]+((deluxe|omnibus|(the )?complete( collection)?|box ?set|vizbig|full[\s-]colou?r(\s+collection)?|\d-in-\d|\d-in|\d+ ?in ?\d+)( edition)?|(collector'?s|perfect|ultimate|master|revised) edition)\)?$/i;
 
 const tidy = (name: string) =>
   name
@@ -798,6 +799,50 @@ function confirmTrailingNumbers(books: Book[]): Book[] {
   });
 }
 
+// a series named by its subtitle alone joins the full name, when the same file
+// has it: "Record of the Last Hero" is "Junk: Record of the Last Hero", and
+// "Zero 2: The Beginning of the Coffin" is volume 2 of "Zero: The Beginning
+// of the Coffin". Only a subtitle of a few words, so "Zero" never joins
+// "Fairy Tail: Zero"
+function joinSubtitleNames(books: Book[]): Book[] {
+  const formatOf = (b: Book) => (b.lightNovel ? "ln" : "m");
+  const named = new Map<string, string>();
+  const bySubtitle = new Map<string, Map<string, string>>();
+  for (const b of books)
+    for (const name of b.names) {
+      named.set(`${formatOf(b)}:${seriesKey(name)}`, name);
+      const after = /^[^:]+:\s*(.+)$/.exec(name)?.[1];
+      if (!after) continue;
+      const k = `${formatOf(b)}:${seriesKey(after)}`;
+      const full = bySubtitle.get(k) ?? new Map<string, string>();
+      full.set(seriesKey(name), name);
+      bySubtitle.set(k, full);
+    }
+  return books.map((book) => {
+    const format = formatOf(book);
+    const numbered = /^(.+?)\s+(\d{1,3}):\s*(.+)$/.exec(book.series);
+    if (numbered && book.volume == null) {
+      const whole = named.get(
+        `${format}:${seriesKey(`${numbered[1]}: ${numbered[3]}`)}`,
+      );
+      if (whole)
+        return {
+          ...book,
+          series: whole,
+          names: [whole],
+          volume: Number(numbered[2]),
+        };
+    }
+    const key = seriesKey(book.series);
+    if (book.series.includes(":") || key.split(" ").length < 2) return book;
+    if (key.replace(/ /g, "").length < 10) return book;
+    const full = [...(bySubtitle.get(`${format}:${key}`)?.values() ?? [])];
+    return full.length === 1
+      ? { ...book, names: [...new Set([...book.names, full[0]!])] }
+      : book;
+  });
+}
+
 // only real names are kept, as two books both "named" Manga would join two
 // series. The book's own series stays if nothing else is left
 const realNames = (book: Book): Book => {
@@ -821,14 +866,16 @@ export function readBooks(rows: string[][], source: BookSource): Book[] {
         : isBookshelfApp(h)
           ? bookshelfAppBook
           : csvBook;
-  return confirmTrailingNumbers(
-    body
-      .flatMap((row) => toBook(h, row) ?? [])
-      .map(withVolumesInside)
-      .map(realNames),
-  )
-    .map(realNames)
-    .map(renumbered);
+  return joinSubtitleNames(
+    confirmTrailingNumbers(
+      body
+        .flatMap((row) => toBook(h, row) ?? [])
+        .map(withVolumesInside)
+        .map(realNames),
+    )
+      .map(realNames)
+      .map(renumbered),
+  );
 }
 
 // ---------- several files in one import ----------
