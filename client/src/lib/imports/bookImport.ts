@@ -950,8 +950,7 @@ export function wrongFile(
 // counts, it's only "to read" if every file says so, and the later file's
 // rating wins when it has one. A file's own repeats are left as they are,
 // unless the earlier file has that book too: then they're all that one book
-const bookId = (b: Book) =>
-  `${formatOf(b)}:${b.title.trim().toLowerCase()}`;
+const bookId = (b: Book) => `${formatOf(b)}:${b.title.trim().toLowerCase()}`;
 export function mergeBooks(earlier: Book[], later: Book[]): Book[] {
   const out = [...earlier];
   const at = new Map(earlier.map((b, i) => [bookId(b), i]));
@@ -1189,6 +1188,38 @@ export function withoutSpinOffs<
     }
   }
   return out;
+}
+
+// what they changed on a series with Edit, before adding: the series they
+// chose themselves (null: not on AniList), and how many volumes they own
+export type EditOf<M> = { match?: M | null; volumes?: number };
+
+// the matches as they've edited them: their choice of series over the
+// import's, after the spin-off check so it's never undone
+export function withEdits<
+  M extends { anilistId?: number; shorter?: true } | null | "failed",
+>(
+  found: BookSeries[],
+  matches: Map<string, M>,
+  edits: Map<string, EditOf<Exclude<M, "failed" | null>>>,
+): Map<string, M | null> {
+  const shown = withoutSpinOffs(found, matches);
+  for (const [key, edit] of edits)
+    if (edit.match !== undefined) shown.set(key, edit.match as M | null);
+  return shown;
+}
+
+// a row with the volume count they gave it. On the row as listed (after
+// mergeSameSeries), so a series spelt two ways takes their count, not the
+// larger of the two
+export function withVolumes(
+  s: BookSeries,
+  edits: Map<string, { volumes?: number }>,
+): BookSeries {
+  const volumes = edits.get(s.key)?.volumes;
+  return volumes === undefined
+    ? s
+    : { ...s, ownedVolumes: volumes, ownedList: null, omnibus: false };
 }
 
 // rows AniList says are one series (its English and romaji names, "Hunter x

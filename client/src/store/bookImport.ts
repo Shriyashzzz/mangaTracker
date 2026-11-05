@@ -16,8 +16,9 @@ import {
   groupBooks,
   mergeBooks,
   searchPlan,
-  withoutSpinOffs,
+  withEdits,
   toEntry,
+  type EditOf,
   type Book,
   type BookSeries,
   type BookSource,
@@ -51,6 +52,11 @@ export type Match =
   | null
   | "failed";
 
+// what they changed on a series with Edit, before adding (withEdits in
+// lib/imports/bookImport). Kept in their browser only, never told to the
+// shared matches
+export type Edit = EditOf<Exclude<Match, "failed">>;
+
 type BookImportState = {
   source: BookSource | null;
   // every file in this import, in the order they came in
@@ -62,6 +68,7 @@ type BookImportState = {
   found: BookSeries[] | null;
   matches: Map<string, Match>;
   choices: Map<string, boolean>;
+  edits: Map<string, Edit>;
   waitingOnAniList: boolean;
   // how many have gone to the shelf, while adding
   progress: number | null;
@@ -83,6 +90,9 @@ type BookImportState = {
   choose: (key: string, ticked: boolean) => void;
   // Select all / Clear all: these series, all at once
   chooseAll: (keys: string[], ticked: boolean) => void;
+  // Edit's Save: their series and volume count for this one. Choosing a
+  // series ticks it, choosing none unticks it
+  edit: (key: string, edit: Edit) => void;
   add: (chosen: BookSeries[]) => Promise<void>;
   // they pressed Stop import: matching ends now, adding after the piece being
   // sent. The import is dropped; matches found stay remembered
@@ -114,6 +124,8 @@ type Saved = {
   books: Book[];
   found: BookSeries[];
   choices: [string, boolean][];
+  // missing on imports saved before Edit
+  edits?: [string, Edit][];
   // saved before an import could take more files
   fileName?: string;
 };
@@ -471,6 +483,7 @@ const empty = {
   found: null,
   matches: new Map<string, Match>(),
   choices: new Map<string, boolean>(),
+  edits: new Map<string, Edit>(),
   waitingOnAniList: false,
   progress: null,
   adding: 0,
@@ -495,6 +508,7 @@ const save = (s: BookImportState) => {
     books: s.books,
     found: s.found,
     choices: [...s.choices],
+    edits: [...s.edits],
   };
   if (!write(SAVED_KEY, saved)) write(SAVED_KEY, { ...saved, books: [] });
 };
@@ -557,6 +571,7 @@ export const useBookImport = create<BookImportState>()((set, get) => ({
       books: saved.books ?? [],
       found: saved.found,
       choices: new Map(saved.choices),
+      edits: new Map(saved.edits ?? []),
     });
     void lookUp(saved.found);
   },
@@ -575,6 +590,18 @@ export const useBookImport = create<BookImportState>()((set, get) => ({
     save(get());
   },
 
+  edit: (key, edit) => {
+    set((s) => {
+      const edits = new Map(s.edits).set(key, { ...s.edits.get(key), ...edit });
+      if (edit.match === undefined) return { edits };
+      return {
+        edits,
+        choices: new Map(s.choices).set(key, edit.match !== null),
+      };
+    });
+    save(get());
+  },
+
   add: async (chosen) => {
     // what's ticked now is what goes: matching stops, so the count can't grow
     // mid-add (it picks up again if adding fails)
@@ -582,15 +609,24 @@ export const useBookImport = create<BookImportState>()((set, get) => ({
     lookups = null;
     set({ failed: null, progress: 0, adding: chosen.length, stopped: null });
     stopAdding = false;
-    const { found, matches: all } = get();
+    const { found, matches: all, edits } = get();
     // as the list shows them: a spin-off AniList doesn't have goes in by
-    // its own name, not as the series
-    const matches = found ? withoutSpinOffs(found, all) : all;
+    // its own name, not as the series, and their edits win
+    const matches = found ? withEdits(found, all, edits) : all;
     try {
       const done = await sendToShelf(
         chosen.map((s) => {
           const match = matches.get(s.key);
-          return toEntry(s, match && match !== "failed" ? match : undefined);
+          const edit = edits.get(s.key);
+          // a series they chose goes in by its AniList name, not the file's
+          const named =
+            edit?.match && match && match !== "failed"
+              ? { ...s, title: match.name }
+              : s;
+          return toEntry(
+            named,
+            match && match !== "failed" ? match : undefined,
+          );
         }),
         (sent, soFar) => set({ progress: sent, totals: soFar }),
         () => stopAdding,

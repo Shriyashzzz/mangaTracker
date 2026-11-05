@@ -18,8 +18,9 @@ import {
   fileKind,
   gapsIn,
   mergeSameSeries,
-  withoutSpinOffs,
   parseCsv,
+  withEdits,
+  withVolumes,
   readBooks,
   wrongFile,
   type BookSeries,
@@ -31,6 +32,7 @@ import {
   useBookImport,
   type ImportFile,
 } from "../../store/bookImport";
+import MatchModal from "./MatchModal";
 import { importStyles as styles } from "./styles";
 
 const MAX_FILE_BYTES = 20 * 1024 * 1024;
@@ -200,6 +202,7 @@ export default function BookImport({ source }: { source: BookSource }) {
   const {
     matches,
     choices,
+    edits,
     waitingOnAniList,
     progress,
     totals,
@@ -317,16 +320,22 @@ export default function BookImport({ source }: { source: BookSource }) {
     void open([...e.dataTransfer.files]);
   };
 
-  // a spin-off AniList doesn't have counts as not found (withoutSpinOffs)
+  // a spin-off AniList doesn't have counts as not found (withoutSpinOffs),
+  // and what they chose with Edit wins
   const shown = useMemo(
-    () => (found ? withoutSpinOffs(found, matches) : matches),
-    [found, matches],
+    () => (found ? withEdits(found, matches, edits) : matches),
+    [found, matches, edits],
   );
   const matchOf = (s: BookSeries) => shown.get(s.key);
+  // the row whose Edit is open
+  const [editing, setEditing] = useState<BookSeries | null>(null);
   // kept apart as a spin-off: the series a shorter name found
   const keptApartFrom = (s: BookSeries) => {
     const raw = matches.get(s.key);
-    return raw && raw !== "failed" && shown.get(s.key) === null
+    return raw &&
+      raw !== "failed" &&
+      shown.get(s.key) === null &&
+      edits.get(s.key)?.match === undefined
       ? raw.name
       : null;
   };
@@ -342,7 +351,7 @@ export default function BookImport({ source }: { source: BookSource }) {
     ? mergeSameSeries(found, (s) => {
         const match = shown.get(s.key);
         return match && match !== "failed" ? match.anilistId : null;
-      })
+      }).map((s) => withVolumes(s, edits))
     : null;
   const chosen = (rows ?? []).filter(ticked);
   // what Select all can tick: anything matched, as a row's own box can be
@@ -530,52 +539,85 @@ export default function BookImport({ source }: { source: BookSource }) {
                 const match = matchOf(s);
                 const apart = keptApartFrom(s);
                 const name = match && match !== "failed" ? match.name : s.title;
+                const edited = edits.has(s.key);
                 return (
-                  <label key={s.key} className={styles.list}>
-                    <input
-                      className={styles.listCheck}
-                      type="checkbox"
-                      checked={ticked(s)}
-                      disabled={importing || match === undefined}
-                      onChange={() => imported.choose(s.key, !ticked(s))}
-                    />
-                    <span className={styles.seriesText}>
-                      <span className={styles.listName}>{name}</span>
-                      <span className={styles.seriesMeta}>
-                        {match === undefined
-                          ? "Matching…"
-                          : match === "failed"
-                            ? "Couldn't check AniList"
-                            : match === null
-                              ? apart
-                                ? `Not on AniList, and not the same as ${apart}`
-                                : s.lightNovel
-                                  ? "Not on AniList"
-                                  : "Not on AniList, so probably not manga"
-                              : (s.lightNovel ? "Light novel · " : "") +
-                                (s.planned
-                                  ? "Only on a to-read list"
-                                  : s.ownedVolumes
-                                    ? `Own ${ownedPhrase({
-                                        volumesOwned: s.ownedVolumes,
-                                        ownedList: gapsIn(s.ownedList)
-                                          ? s.ownedList!
-                                          : [],
-                                      })}`
-                                    : `${s.books} book${s.books === 1 ? "" : "s"}`)}
-                      </span>
-                      {/* "Vinland Saga Omnibus, Vol. 3" doesn't say which
-                          volumes it holds, so the count is a guess */}
-                      {s.omnibus && match && match !== "failed" && (
-                        <span className={styles.omnibusNote}>
-                          Omnibus editions: check the volume count after adding
+                  <div key={s.key} className={styles.seriesRow}>
+                    <label className={styles.seriesLabel}>
+                      <input
+                        className={styles.listCheck}
+                        type="checkbox"
+                        checked={ticked(s)}
+                        disabled={importing || match === undefined}
+                        onChange={() => imported.choose(s.key, !ticked(s))}
+                      />
+                      <span className={styles.seriesText}>
+                        <span className={styles.listName}>{name}</span>
+                        <span className={styles.seriesMeta}>
+                          {match === undefined
+                            ? "Matching…"
+                            : match === "failed"
+                              ? "Couldn't check AniList"
+                              : match === null
+                                ? edited && edits.get(s.key)?.match === null
+                                  ? "You said it isn't on AniList"
+                                  : apart
+                                    ? `Not on AniList, and not the same as ${apart}`
+                                    : s.lightNovel
+                                      ? "Not on AniList"
+                                      : "Not on AniList, so probably not manga"
+                                : (s.lightNovel ? "Light novel · " : "") +
+                                  (s.planned
+                                    ? "Only on a to-read list"
+                                    : s.ownedVolumes
+                                      ? `Own ${ownedPhrase({
+                                          volumesOwned: s.ownedVolumes,
+                                          ownedList: gapsIn(s.ownedList)
+                                            ? s.ownedList!
+                                            : [],
+                                        })}`
+                                      : `${s.books} book${s.books === 1 ? "" : "s"}`)}
                         </span>
-                      )}
-                    </span>
-                  </label>
+                        {/* "Vinland Saga Omnibus, Vol. 3" doesn't say which
+                          volumes it holds, so the count is a guess */}
+                        {s.omnibus && match && match !== "failed" && (
+                          <span className={styles.omnibusNote}>
+                            Omnibus editions: check the volume count with Edit
+                          </span>
+                        )}
+                        {edited && (
+                          <span
+                            className={styles.seriesMeta + " " + styles.edited}
+                          >
+                            Edited by you
+                          </span>
+                        )}
+                      </span>
+                    </label>
+                    <button
+                      type="button"
+                      className={styles.seriesEdit}
+                      disabled={importing || match === undefined}
+                      aria-label={`Edit ${name}`}
+                      onClick={() => setEditing(s)}
+                    >
+                      Edit
+                    </button>
+                  </div>
                 );
               })}
             </div>
+
+            {editing && (
+              <MatchModal
+                series={rows!.find((r) => r.key === editing.key) ?? editing}
+                current={(() => {
+                  const m = matchOf(editing);
+                  return m && m !== "failed" ? m : null;
+                })()}
+                onSave={(edit) => imported.edit(editing.key, edit)}
+                onClose={() => setEditing(null)}
+              />
+            )}
 
             <p className={styles.note}>
               1) Volumes are grouped by series, so each manga comes in once.
