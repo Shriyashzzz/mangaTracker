@@ -608,3 +608,8 @@ test("a spin-off they've only read still clashes with the series", () => {
   );
   expect(seen.get("tales")).toBeNull();
 });
+
+test("a number in a Goodreads series tag is part of the series' name", () => {
+  expect(owned(["Mob Psycho 100, Vol. 1", "Mob Psycho 100, Vol. 4 (Mob Psycho 100, #4)"])).toEqual([["Mob Psycho 100", [1, 4], false]]);
+  expect(owned(["Eyeshield 21, Vol. 2 (Eyeshield 21, #2)", "Eyeshield 21, Vol. 3 (Eyeshield 21, #3)"])).toEqual([["Eyeshield 21", [2, 3], false]]);
+});

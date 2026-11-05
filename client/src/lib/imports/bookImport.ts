@@ -322,7 +322,9 @@ export function seriesFromTitle(raw: string, trailingNumber = true): Parsed {
 function parseTitle(title: string, trailingNumber: boolean): Parsed {
   const tagged = title.match(/\(([^()]+?),?\s*#\s*(\d+(?:\.\d+)?)[^()]*\)\s*$/);
   if (tagged) {
-    const named = parseName(tagged[1]!, trailingNumber);
+    // the tag names the series, so a number in it is the name's: "(Mob
+    // Psycho 100, #4)", "(Eyeshield 21, #2)"
+    const named = parseName(tagged[1]!, false);
     return { ...named, volume: Number(tagged[2]), guessed: undefined };
   }
   const bare = title
@@ -1074,15 +1076,19 @@ export function searchPlan(s: {
   return plan;
 }
 
-// the volumes a series' row says it has, owned or read: a spin-off they've
-// only read still clashes
-const ownedOfRow = (s: BookSeries) =>
-  new Set([
-    ...(s.ownedList?.length
-      ? s.ownedList
-      : Array.from({ length: s.ownedVolumes }, (_, i) => i + 1)),
-    ...Array.from({ length: s.readVolumes }, (_, i) => i + 1),
-  ]);
+// the volumes a series' row says it has: those owned, or for a row with none
+// owned, those read (a spin-off they've only read still clashes). Owned ones
+// alone otherwise: "read up to 13" on Last Order's vol. 13 isn't 1 to 13
+const ownedOfRow = (s: BookSeries) => {
+  const owned = s.ownedList?.length
+    ? s.ownedList
+    : Array.from({ length: s.ownedVolumes }, (_, i) => i + 1);
+  return new Set(
+    owned.length
+      ? owned
+      : Array.from({ length: s.readVolumes }, (_, i) => i + 1),
+  );
+};
 
 // a match found only by cutting the title short ("Dance in the Vampire Bund"
 // for "…: Forgotten Tales") whose volumes clash with another row of the same
