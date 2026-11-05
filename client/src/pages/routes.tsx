@@ -40,7 +40,10 @@ export const routes = [
       { path: "/acknowledgements", element: <AcknowledgementsPage /> },
       { path: "/new-releases", element: <NewReleasesPage /> },
       { path: "/settings/:tab?", element: <SettingsPage /> },
-      { path: "/profile", element: <Navigate to="/settings/profile" replace /> },
+      {
+        path: "/profile",
+        element: <Navigate to="/settings/profile" replace />,
+      },
       { path: "/u/:code", element: <SharedShelfPage /> },
       { path: "/signup", element: <SignUp /> },
       { path: "/series", element: <SeriesIndex /> },
