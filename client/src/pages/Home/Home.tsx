@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo, useRef } from "react";
 import ShelfBar from "./ShelfBar";
-import { ownedOf, ownedPhrase } from "../../lib/ownedVolumes";
+import { ownedPhrase, ownsAny } from "../../lib/ownedVolumes";
 import VolumesView from "./VolumesView";
 import { createPortal } from "react-dom";
 import MangaCard, {
@@ -282,7 +282,7 @@ function Library() {
       finished,
       planned,
       // series they own any volumes of
-      volumes: list.filter((m) => ownedOf(m).length > 0).length,
+      volumes: list.filter((m) => ownsAny(m)).length,
       newVolumes,
       newChapters,
       newInJapan,
@@ -311,8 +311,7 @@ function Library() {
     if (statusFilter === "ongoing")
       list = list.filter((m) => !m.status && !m.planned);
     if (statusFilter === "planned") list = list.filter((m) => m.planned);
-    if (statusFilter === "volumes")
-      list = list.filter((m) => ownedOf(m).length > 0);
+    if (statusFilter === "volumes") list = list.filter((m) => ownsAny(m));
     if (statusFilter === "new") {
       list = list.filter((m) =>
         !m.planned && viewingHidden
@@ -909,7 +908,11 @@ function Library() {
           </button>
         </div>
       ) : statusFilter === "volumes" ? (
-        <VolumesView manga={visibleManga} searching={Boolean(query.trim())} />
+        <VolumesView
+          manga={visibleManga}
+          searching={Boolean(query.trim())}
+          resetKey={filterKey}
+        />
       ) : showingNew && visibleManga.length === 0 && !query.trim() ? (
         <div className={styles.nothingNew} data-tour="shelf">
           <span className="printed mascot-spot" aria-hidden>

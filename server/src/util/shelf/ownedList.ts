@@ -20,11 +20,30 @@ export function ownedVolumes(
     ),
   ].sort((a, b) => a - b);
   // no list: "up to" says it all
-  if (!sorted.length) return { volumesOwned: volumesOwned || null, ownedList: [] };
+  if (!sorted.length)
+    return { volumesOwned: volumesOwned || null, ownedList: [] };
   const highest = sorted[sorted.length - 1]!;
   const isRun = sorted.every((v, i) => v === i + 1);
   return {
     volumesOwned: Math.floor(highest) || null,
     ownedList: isRun ? [] : sorted,
   };
+}
+
+// a request that doesn't send a list (a page still open from before lists
+// existed) mustn't wipe one that's saved. Editing: the same "up to" keeps the
+// list, a different one replaces it. "I own vol. N": N joins the list
+export function keepSavedList(
+  saved: { volumesOwned: number | null; ownedList: number[] },
+  asked: { volumesOwned: number | null },
+  kind: "edit" | "add one",
+) {
+  if (!saved.ownedList.length)
+    return ownedVolumes(asked.volumesOwned, undefined);
+  if (kind === "add one" && asked.volumesOwned)
+    return ownedVolumes(null, [...saved.ownedList, asked.volumesOwned]);
+  // just these two: `saved` can be a whole shelf row
+  return asked.volumesOwned === saved.volumesOwned
+    ? { volumesOwned: saved.volumesOwned, ownedList: saved.ownedList }
+    : ownedVolumes(asked.volumesOwned, undefined);
 }

@@ -14,12 +14,22 @@ export const volumePickerStyles = {
   shelf: "flex touch-pan-y flex-wrap items-end gap-y-2 px-0.5 pt-1 select-none",
   slot: "tap group flex h-[86px] w-7 shrink-0 cursor-pointer items-end justify-center border-b-[3px] border-double border-line pb-0.5 focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-accent focus-visible:outline-dashed",
   spineUp:
-    "flex h-[74px] w-[22px] flex-col items-center justify-end border-[1.5px] border-line bg-ink pb-1 text-paper transition-[height] duration-150 ease-ink",
+    "flex h-[74px] w-[22px] flex-col items-center justify-end border-[1.5px] border-line bg-ink pb-1 text-paper transition-[height] duration-150 ease-ink motion-reduce:transition-none",
   spineDown:
-    "flex h-[58px] w-[22px] origin-bottom-left rotate-[4deg] flex-col items-center justify-end border-[1.5px] border-dashed border-line-soft bg-paper pb-1 text-muted transition-[rotate,height] duration-150 ease-ink group-hover:rotate-0 group-hover:text-ink",
-  yours:
-    "mb-auto pt-1.5 font-sans text-[0.55rem] tracking-[0.08em] uppercase opacity-70 [writing-mode:vertical-rl]",
+    "flex h-[58px] w-[22px] origin-bottom-left rotate-[4deg] flex-col items-center justify-end border-[1.5px] border-dashed border-line-soft bg-paper pb-1 text-muted transition-[rotate,height] duration-150 ease-ink group-hover:rotate-0 group-hover:text-ink motion-reduce:transition-none",
   number: "font-brand text-[0.9rem] leading-none tabular-nums",
+  // three digits on a 22px spine
+  numberSmall:
+    "font-brand text-[0.72rem] leading-none tracking-[-0.02em] tabular-nums",
+  // a run of full shelves, folded: a box set across its own row, on the
+  // same shelf line
+  box: "tap group flex h-[86px] basis-full items-end border-b-[3px] border-double border-line px-0.5 pb-0.5 focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-accent focus-visible:outline-dashed",
+  boxSet:
+    "flex h-[74px] w-full items-center justify-between gap-3 border-[1.5px] border-line bg-ink px-4 text-paper shadow-ink transition-transform duration-150 ease-ink group-hover:-translate-y-0.5 motion-reduce:transition-none",
+  boxTitle:
+    "font-brand text-[1.35rem] leading-none tracking-[0.03em] uppercase",
+  boxNote: "text-[0.8rem] text-paper/75",
+  hint: "text-[0.8rem] text-muted",
 
   foot: "flex flex-wrap items-baseline justify-between gap-x-4",
   footActions: "flex gap-4",

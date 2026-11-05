@@ -12,7 +12,10 @@ import {
 import { findOnShelf, getSeries, getShelfPrices } from "../prices/service.js";
 import { isNovelName, novelName, priceName } from "../prices/lightNovel.js";
 import { canonicalTitle } from "../util/shelf/canonicalTitle.js";
-import { getCachedReleaseDates, withTimeout } from "../util/releases/releaseCache.js";
+import {
+  getCachedReleaseDates,
+  withTimeout,
+} from "../util/releases/releaseCache.js";
 import {
   chapterToSave,
   getReleaseStatus,
@@ -30,7 +33,7 @@ import type { Manga } from "../../generated/prisma/client.js";
 import { isOnShelf, titleKey } from "../util/shelf/titleKey.js";
 import { oneAtATime } from "../util/shelf/oneAtATime.js";
 import { knownMatches, tellMatches } from "../util/shelf/sharedMatches.js";
-import { ownedVolumes } from "../util/shelf/ownedList.js";
+import { keepSavedList, ownedVolumes } from "../util/shelf/ownedList.js";
 
 // the exact volumes owned, as numbers like 4 or 10.5
 const ownedListFields = (field: string) => [
@@ -240,7 +243,10 @@ const importList = [
       // cover. Light novels imported before the format was kept are saved as
       // manga, and the cover is what gives them away, so trying again can't add
       // them twice while the manga of the same name can still come in
-      const onShelf = new Map<string, { lightNovel: boolean; image: string | null }[]>();
+      const onShelf = new Map<
+        string,
+        { lightNovel: boolean; image: string | null }[]
+      >();
       for (const m of shelf) {
         const key = titleKey(m.name);
         onShelf.set(key, [...(onShelf.get(key) ?? []), m]);
@@ -325,7 +331,11 @@ const releases = async (req: Request, res: Response) => {
         null,
       );
       if (nothingLeftToCheck(manga, novelInfo)) {
-        return res.json({ releaseData: null, releaseStatus: null, complete: true });
+        return res.json({
+          releaseData: null,
+          releaseStatus: null,
+          complete: true,
+        });
       }
     }
     // not found is an answer; failing or being slow is worth asking again
@@ -413,6 +423,16 @@ const update = [
   async (req: Request, res: Response) => {
     const input = toInput(req);
     const { id, lightNovel } = res.locals.manga as Manga;
+    // sent without a list: the saved one stays unless "up to" changed
+    if (matchedData(req).ownedList === undefined)
+      Object.assign(
+        input,
+        keepSavedList(
+          res.locals.manga as Manga,
+          input as { volumesOwned: number | null },
+          "edit",
+        ),
+      );
     const userId = req.session.userId!;
     await oneAtATime(userId, async () => {
       if (
@@ -449,7 +469,10 @@ const setPlanned = [
   body("planned").isBoolean().toBoolean(),
   rejectInvalid,
   async (req: Request, res: Response) => {
-    await mangaQueries.setPlanned(res.locals.manga.id, matchedData(req).planned);
+    await mangaQueries.setPlanned(
+      res.locals.manga.id,
+      matchedData(req).planned,
+    );
     res.sendStatus(204);
   },
 ];
@@ -531,10 +554,17 @@ const setOwned = [
   rejectInvalid,
   async (req: Request, res: Response) => {
     const d = matchedData(req);
+    const manga = res.locals.manga as Manga;
     res.json(
       await mangaQueries.setVolumesOwned(
-        res.locals.manga.id,
-        ownedVolumes(d.volumesOwned ?? null, d.ownedList),
+        manga.id,
+        d.ownedList === undefined
+          ? keepSavedList(
+              manga,
+              { volumesOwned: d.volumesOwned ?? null },
+              "add one",
+            )
+          : ownedVolumes(d.volumesOwned ?? null, d.ownedList),
       ),
     );
   },

@@ -51,9 +51,13 @@ export function AddManga() {
   const [description, setDescription] = useState("");
   const [validationError, setValidationError] = useState<{ msg: string }[]>([]);
   const [submitting, setSubmitting] = useState(false);
-  // from a volume's price page: they own up to that one
+  // from a volume's price page: they own that one volume (older links said
+  // "up to" it)
+  const fromVolume = Number(searchParams.get("ownedVolume")) || null;
   const volumes = useVolumePicker({
-    volumesOwned: Number(searchParams.get("volumesOwned")) || null,
+    volumesOwned:
+      fromVolume ?? (Number(searchParams.get("volumesOwned")) || null),
+    ownedList: fromVolume ? [fromVolume] : [],
   });
   // signed-out visitors go to sign in, then come back here. null means the
   // server hasn't answered yet, so wait rather than bounce a signed-in user

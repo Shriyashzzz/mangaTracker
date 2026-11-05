@@ -82,3 +82,25 @@ test("a finished series owned with gaps isn't skipped as owned in full", async (
   expect(nothingLeftToCheck({ volumesOwned: 27, ownedList: [1, 27] }, fma)).toBe(false);
   expect(nothingLeftToCheck({ volumesOwned: 27, ownedList: [] }, fma)).toBe(true);
 });
+
+test("a page from before lists existed doesn't wipe one that's saved", async () => {
+  const { keepSavedList } = await import("../../util/shelf/ownedList.js");
+  const saved = { volumesOwned: 4, ownedList: [1, 4] };
+  // editing with the same "up to": the list stays
+  expect(keepSavedList(saved, { volumesOwned: 4 }, "edit")).toEqual(saved);
+  // a different "up to": that's what they mean now
+  expect(keepSavedList(saved, { volumesOwned: 10 }, "edit")).toEqual({ volumesOwned: 10, ownedList: [] });
+  // "I own vol. 6" from an old price page: 6 joins the list
+  expect(keepSavedList(saved, { volumesOwned: 6 }, "add one")).toEqual({ volumesOwned: 6, ownedList: [1, 4, 6] });
+  // clearing still clears
+  expect(keepSavedList(saved, { volumesOwned: null }, "add one")).toEqual({ volumesOwned: null, ownedList: [] });
+  // nothing saved: as before
+  expect(keepSavedList({ volumesOwned: 3, ownedList: [] }, { volumesOwned: 9 }, "add one")).toEqual({ volumesOwned: 9, ownedList: [] });
+});
+
+test("keeping a saved list hands back only the two volume fields", async () => {
+  const { keepSavedList } = await import("../../util/shelf/ownedList.js");
+  // a whole shelf row, as the edit handler has it
+  const row = { id: 7, userId: 1, name: "One Piece", volumesOwned: 6, ownedList: [1, 4, 6] };
+  expect(keepSavedList(row, { volumesOwned: 6 }, "edit")).toEqual({ volumesOwned: 6, ownedList: [1, 4, 6] });
+});

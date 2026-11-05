@@ -18,6 +18,7 @@ import {
 import { ownedOf, ownedVolumes, rangesText } from "../../lib/ownedVolumes";
 import { formStyles } from "../../styles/form";
 import { volumePickerStyles as styles } from "./styles";
+import Spine from "./Spine";
 
 // spines to start with, and how many more each tap adds: whole shelves
 const FIRST_SHOWN = 20;
@@ -27,12 +28,37 @@ const sorted = (set: Set<number>) => [...set].sort((a, b) => a - b);
 
 type Start = { volumesOwned: number | null; ownedList?: number[] };
 
+// whole shelves of ten they own, two or more in a row, as [first, last]
+// shelf: a long run (One Piece 1 to 100) folds into one box set, so the
+// shelves that still matter aren't eleven rows down
+type Run = [number, number];
+function fullRuns(list: number[]): Run[] {
+  const set = new Set(list);
+  const full = (shelf: number) =>
+    Array.from({ length: MORE }, (_, i) => shelf * MORE + i + 1).every((v) =>
+      set.has(v),
+    );
+  const last = list.length ? Math.floor(list[list.length - 1]! / MORE) : -1;
+  const runs: Run[] = [];
+  for (let shelf = 0; shelf <= last; shelf++) {
+    if (!full(shelf)) continue;
+    let end = shelf;
+    while (end + 1 <= last && full(end + 1)) end++;
+    if (end > shelf) runs.push([shelf, end]);
+    shelf = end;
+  }
+  return runs;
+}
+
 export function useVolumePicker(start: Start): {
   field: ReactNode;
   // the edit form's manga arrives after the page: start from it
   reset: (to: Start) => void;
 } {
   const [owned, setOwned] = useState<number[]>(() => ownedOf(start));
+  // box sets: what was already theirs, or typed as "up to". Never mid-drag, so
+  // nothing folds away from under a finger
+  const [folds, setFolds] = useState<Run[]>(() => fullRuns(ownedOf(start)));
   const top = owned[owned.length - 1] ?? 0;
   const [shown, setShown] = useState(() =>
     Math.max(FIRST_SHOWN, roundUp(top + 1)),
@@ -146,18 +172,30 @@ export function useVolumePicker(start: Start): {
     setUpToText(text);
     if (!text.trim()) {
       setOwned([]);
+      setFolds([]);
       setShown(FIRST_SHOWN);
       return;
     }
     const n = Math.min(999, Math.floor(Number(text)));
     if (!(n >= 1)) return;
-    setOwned(ownedOf({ volumesOwned: n }));
+    const list = ownedOf({ volumesOwned: n });
+    setOwned(list);
+    setFolds(fullRuns(list));
     setShown(Math.max(FIRST_SHOWN, roundUp(n + 1)));
   };
 
   const spines = Array.from(
     { length: Math.max(shown, Math.ceil(top)) },
     (_, i) => i + 1,
+  );
+  // Enter or Space on a spine (pointers are the shelf's)
+  const keyToggle = (v: number, yours: boolean) => {
+    change([v], !yours);
+    anchor.current = v;
+  };
+  const shelves = Array.from(
+    { length: Math.ceil(spines.length / MORE) },
+    (_, i) => i,
   );
   // ones like 10.5, which have no spine of their own
   const offShelf = owned.filter(
@@ -206,36 +244,49 @@ export function useVolumePicker(start: Start): {
           if (e.target === e.currentTarget) stopPainting();
         }}
       >
-        {spines.map((v) => {
-          const yours = owned.includes(v);
-          return (
-            <button
-              key={v}
-              type="button"
-              data-vol={v}
-              className={styles.slot}
-              aria-pressed={yours}
-              aria-label={`Vol. ${v}`}
-              // pointers are the shelf's; this is Enter and Space
-              onClick={(e) => {
-                if (e.detail !== 0) return;
-                change([v], !yours);
-                anchor.current = v;
-              }}
-            >
-              <span className={yours ? styles.spineUp : styles.spineDown}>
-                {yours && <span className={styles.yours}>yours</span>}
-                <span className={styles.number}>{v}</span>
-              </span>
-            </button>
-          );
+        {shelves.map((shelf) => {
+          const run = folds.find(([first]) => first === shelf);
+          if (run) {
+            const [first, last] = run;
+            const from = first * MORE + 1;
+            const to = (last + 1) * MORE;
+            return (
+              <button
+                key={`box-${first}`}
+                type="button"
+                className={styles.box}
+                aria-label={`Vols. ${from} to ${to}, all yours. Open to change`}
+                onClick={() => setFolds((all) => all.filter((r) => r !== run))}
+              >
+                <span className={styles.boxSet}>
+                  <span className={styles.boxTitle}>
+                    Vols. {from}–{to}
+                  </span>
+                  <span className={styles.boxNote}>all yours · open</span>
+                </span>
+              </button>
+            );
+          }
+          // inside a box set: drawn by its first shelf
+          if (folds.some(([first, last]) => shelf > first && shelf <= last))
+            return null;
+          return spines
+            .slice(shelf * MORE, (shelf + 1) * MORE)
+            .map((v) => (
+              <Spine
+                key={v}
+                volume={v}
+                yours={owned.includes(v)}
+                onKeyboard={keyToggle}
+              />
+            ));
         })}
       </div>
       <div className={styles.foot}>
         <p className={styles.said} aria-live="polite">
           {owned.length
             ? `${owned.length} owned · ${rangesText(owned)}`
-            : "Tap a spine, or drag across a run of them"}
+            : "None picked yet"}
         </p>
         <span className={styles.footActions}>
           <button
@@ -251,6 +302,7 @@ export function useVolumePicker(start: Start): {
               className={styles.clear}
               onClick={() => {
                 setOwned([]);
+                setFolds([]);
                 setUpToText(null);
                 setShown(FIRST_SHOWN);
               }}
@@ -260,6 +312,15 @@ export function useVolumePicker(start: Start): {
           )}
         </span>
       </div>
+      {/* how, said every time: the gestures aren't otherwise visible */}
+      <p className={styles.hint}>
+        <span className="upto-520:hidden">
+          Tap a spine · drag across a run · shift-click to fill a range
+        </span>
+        <span className="hidden upto-520:inline">
+          Tap a spine, or drag across a run
+        </span>
+      </p>
       {offShelf.length > 0 && (
         <p className={styles.note}>Also: vol. {rangesText(offShelf)}</p>
       )}
@@ -269,6 +330,7 @@ export function useVolumePicker(start: Start): {
   const reset = (to: Start) => {
     const list = ownedOf(to);
     setOwned(list);
+    setFolds(fullRuns(list));
     setUpToText(null);
     anchor.current = null;
     setShown(Math.max(FIRST_SHOWN, roundUp((list[list.length - 1] ?? 0) + 1)));

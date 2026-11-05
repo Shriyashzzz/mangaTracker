@@ -4,6 +4,7 @@
 // (pages/Prices/styles.ts cover, coverFallback, vol)
 export const volumesStyles = {
   summary: "mb-3 font-mono text-[0.85rem] text-muted tabular-nums",
+  pagerBottom: "mt-8",
   list: "border-t-[1.5px] border-line-soft",
   item: "border-b border-dashed border-line-soft",
   row: "tap group flex w-full items-center gap-3 py-2.5 pr-1 text-left hover:bg-accent-wash/40 aria-expanded:bg-accent-wash/40 focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-accent focus-visible:outline-dashed",
