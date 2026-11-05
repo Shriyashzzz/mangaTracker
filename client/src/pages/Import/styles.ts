@@ -26,8 +26,9 @@ export const importStyles = {
 
   error: "mt-3 font-medium text-accent",
 
+  // scroll-mt: Kenji's "Review and add" lands here (#import-found) with room
   found:
-    "font-brand text-[clamp(1.6rem,4.5vw,2.1rem)] leading-[1.05] font-normal tracking-[0.02em] uppercase",
+    "scroll-mt-6 font-brand text-[clamp(1.6rem,4.5vw,2.1rem)] leading-[1.05] font-normal tracking-[0.02em] uppercase",
   fileName: "mt-1 truncate font-mono text-[0.8rem] text-muted",
   // several files: how many, and their names on hover (laptops) or a tap
   files: "group/files relative mt-1 w-fit max-w-full",

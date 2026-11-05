@@ -183,7 +183,8 @@ export default function ImportPeek() {
             <>
               <p>All matched!</p>
               <p className="support-peek-more">Your library's ready to add.</p>
-              <NavLink to="/import" viewTransition onClick={leave}>
+              {/* straight to the list, not the top of the page */}
+              <NavLink to="/import#import-found" viewTransition onClick={leave}>
                 Review and add
               </NavLink>
             </>
