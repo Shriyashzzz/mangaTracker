@@ -243,11 +243,9 @@ const removeMany = [
   rejectInvalid,
   async (req: Request, res: Response) => {
     const ids = [...new Set(matchedData(req).ids as number[])];
-    const deleted = await mangaQueries.deleteManyManga(
-      req.session.userId!,
-      ids,
-    );
-    res.json({ deleted });
+    const manga = await mangaQueries.deleteManyManga(req.session.userId!, ids);
+    // what went, as it was: the undo puts back exactly this
+    res.json({ deleted: manga.length, manga });
   },
 ];
 
@@ -270,13 +268,16 @@ export function notOnShelf(
   inputs: RestoredManga[],
   shelf: { id: number; name: string; lightNovel?: boolean }[],
 ) {
-  const names = [...shelf];
+  // each title keyed once, not once per series checked
+  const keyOf = (name: string, lightNovel?: boolean) =>
+    shelfKey(titleKey(name), Boolean(lightNovel));
+  const taken = new Set(shelf.map((m) => keyOf(m.name, m.lightNovel)));
   const fresh: RestoredManga[] = [];
   for (const input of inputs) {
-    if (isOnShelf(input.name, names, undefined, Boolean(input.lightNovel)))
-      continue;
+    const key = keyOf(input.name, input.lightNovel);
+    if (taken.has(key)) continue;
     fresh.push(input);
-    names.push({ id: -1, name: input.name, lightNovel: input.lightNovel });
+    taken.add(key);
   }
   return fresh;
 }
@@ -289,13 +290,11 @@ const restoreMany = [
   rejectInvalid,
   async (req: Request, res: Response) => {
     const userId = req.session.userId!;
-    const inputs: RestoredManga[] = [];
-    let invalid = 0;
-    for (const item of req.body.manga as unknown[]) {
-      const input = await checkRestored(item);
-      if (input) inputs.push(input);
-      else invalid++;
-    }
+    const checked = await Promise.all(
+      (req.body.manga as unknown[]).map(checkRestored),
+    );
+    const inputs = checked.filter((m): m is RestoredManga => m !== null);
+    const invalid = checked.length - inputs.length;
     await oneAtATime(userId, async () => {
       const fresh = notOnShelf(
         inputs,

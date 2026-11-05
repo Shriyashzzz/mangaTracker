@@ -154,11 +154,17 @@ export const setVolumesOwned = (
 export const deleteManga = (id: number) =>
   prisma.manga.delete({ where: { id } });
 
-// only theirs: an id that belongs to someone else matches nothing. All in one
-// statement, so it's all or none. How many went
-export const deleteManyManga = async (userId: number, ids: number[]) =>
-  (await prisma.manga.deleteMany({ where: { userId, id: { in: ids } } }))
-    .count;
+// only theirs: an id that belongs to someone else matches nothing. Read and
+// deleted in one transaction, so it's all or none, and what comes back is
+// exactly what went (for its undo)
+export const deleteManyManga = async (userId: number, ids: number[]) => {
+  const where = { userId, id: { in: ids } };
+  const [rows] = await prisma.$transaction([
+    prisma.manga.findMany({ where }),
+    prisma.manga.deleteMany({ where }),
+  ]);
+  return rows;
+};
 
 export default {
   setNotes,

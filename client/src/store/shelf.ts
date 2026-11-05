@@ -36,8 +36,8 @@ type ShelfState = {
     number: number | null,
     hiddenVolumes?: number[],
   ) => Promise<boolean>;
-  // it's been deleted: gone at once, not after the next refresh
-  remove: (id: number) => void;
+  // it's been deleted (or they have): gone at once, not after the next refresh
+  remove: (ids: number | number[]) => void;
   // several deleted at once with the shelf's Select, all or none. Says
   // whether it worked; on success their undo is on offer
   removeMany: (ids: number[]) => Promise<boolean>;
@@ -45,10 +45,13 @@ type ShelfState = {
   lastDeleted: Manga[] | null;
   setLastDeleted: (manga: Manga | Manga[] | null) => void;
   // puts them back as they were, unless they've been added again since
-  // "partial": some came back, the rest couldn't (count in `lostOnUndo`)
-  undoDelete: () => Promise<"done" | "already-back" | "partial" | "failed">;
-  // how many the last undo couldn't bring back (the server turned them away)
-  lostOnUndo: number;
+  undoDelete: () => Promise<void>;
+  // an undo is under way: the note doesn't time out from under it
+  undoing: boolean;
+  // how the last undo went, when there's something to say ("3 of them
+  // couldn't come back"). Gone with the next delete
+  undoMessage: string;
+  clearUndoMessage: () => void;
   // on signing in or out: it's someone else's shelf now
   reset: () => void;
 };
@@ -115,27 +118,37 @@ export const useShelf = create<ShelfState>()((set, get) => ({
   releases: {},
   outcomes: {},
   lastDeleted: null,
-  lostOnUndo: 0,
+  undoing: false,
+  undoMessage: "",
+  clearUndoMessage: () => set({ undoMessage: "" }),
   setLastDeleted: (manga) =>
-    set({ lastDeleted: manga && (Array.isArray(manga) ? manga : [manga]) }),
+    set({
+      lastDeleted: manga && (Array.isArray(manga) ? manga : [manga]),
+      ...(manga ? { undoMessage: "" } : {}),
+    }),
   undoDelete: async () => {
     const { lastDeleted, load } = get();
-    if (!lastDeleted?.length) return "failed";
-    set({ lostOnUndo: 0 });
-    if (lastDeleted.length === 1) {
+    if (!lastDeleted?.length || get().undoing) return;
+    const one = lastDeleted.length === 1;
+    set({ undoing: true, undoMessage: "" });
+    const said = (undoMessage: string) => set({ undoing: false, undoMessage });
+    if (one) {
       try {
         const res = await apiFetch("/api/manga/restore", {
           method: "POST",
           body: restorable(lastDeleted[0]!),
         });
-        if (res.status === 409) return "already-back";
+        if (res.status === 409) {
+          set({ lastDeleted: null });
+          return said("It's already back on your shelf.");
+        }
         if (!res.ok) throw new Error(res.statusText);
       } catch {
-        return "failed";
+        return said("That didn't bring it back. Try again.");
       }
       await load();
       set({ lastDeleted: null });
-      return "done";
+      return said("");
     }
     // in pieces, each well under the server's request size limit. A piece
     // that's back comes off the list, so trying again carries on from there
@@ -162,52 +175,36 @@ export const useShelf = create<ShelfState>()((set, get) => ({
     } catch {
       // what did come back shows, and the rest waits for another try
       if (restored) await load();
-      return "failed";
+      return said("That didn't bring them all back. Try again.");
     }
     await load();
-    set({ lastDeleted: null, lostOnUndo: lost });
-    if (lost) return "partial";
-    return restored ? "done" : "already-back";
+    set({ lastDeleted: null });
+    said(
+      lost
+        ? `${lost} of them couldn't come back. The rest are on your shelf.`
+        : restored
+          ? ""
+          : "They're already back on your shelf.",
+    );
   },
 
   removeMany: async (ids) => {
-    const gone = new Set(ids);
-    // as the server has them now, so the undo puts back what's really there
-    // (a newer chapter, an edit in another tab), not what this page last saw
-    let deleted = get().manga?.filter((m) => gone.has(m.id)) ?? [];
-    try {
-      const res = await apiFetch("/api/manga");
-      if (res.ok) {
-        const { manga } = (await res.json()) as { manga: Manga[] };
-        deleted = manga.filter((m) => gone.has(m.id));
-      }
-    } catch {
-      // the page's copy will have to do
-    }
+    let deleted: Manga[];
     try {
       const res = await apiFetch("/api/manga/delete-many", {
         method: "POST",
         body: { ids },
       });
       if (!res.ok) throw new Error(res.statusText);
+      // exactly what went, as the server had it: what the undo puts back
+      deleted = ((await res.json()) as { manga: Manga[] }).manga;
     } catch {
       return false;
     }
-    // off the page in one go, not one update per series
-    for (const id of ids) incomplete.delete(id);
-    set((state) => {
-      const releases = { ...state.releases };
-      const outcomes = { ...state.outcomes };
-      for (const id of ids) {
-        delete releases[id];
-        delete outcomes[id];
-      }
-      return {
-        manga: state.manga?.filter((m) => !gone.has(m.id)) ?? null,
-        releases,
-        outcomes,
-        lastDeleted: deleted.length ? deleted : null,
-      };
+    get().remove(ids);
+    set({
+      lastDeleted: deleted.length ? deleted : null,
+      undoMessage: "",
     });
     return true;
   },
@@ -355,15 +352,19 @@ export const useShelf = create<ShelfState>()((set, get) => ({
     }
   },
 
-  remove: (id) => {
-    incomplete.delete(id);
+  // in one update however many: a Select can take a whole shelf
+  remove: (ids) => {
+    const gone = new Set(Array.isArray(ids) ? ids : [ids]);
+    for (const id of gone) incomplete.delete(id);
     set((state) => {
       const releases = { ...state.releases };
-      delete releases[id];
       const outcomes = { ...state.outcomes };
-      delete outcomes[id];
+      for (const id of gone) {
+        delete releases[id];
+        delete outcomes[id];
+      }
       return {
-        manga: state.manga?.filter((m) => m.id !== id) ?? null,
+        manga: state.manga?.filter((m) => !gone.has(m.id)) ?? null,
         releases,
         outcomes,
       };
@@ -383,6 +384,8 @@ export const useShelf = create<ShelfState>()((set, get) => ({
       releases: {},
       outcomes: {},
       lastDeleted: null,
+      undoing: false,
+      undoMessage: "",
     });
   },
 }));

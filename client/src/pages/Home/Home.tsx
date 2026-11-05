@@ -285,7 +285,12 @@ function Library() {
       // the confirm dialog's own Escape closes just the dialog, and the
       // search's clears the search
       if (document.querySelector("dialog[open]")) return;
-      if ((e.target as Element | null)?.closest("input, textarea, select"))
+      // a ticked card's box still leaves; a text box keeps its Escape
+      if (
+        (e.target as Element | null)?.closest(
+          "input:not([type=checkbox]), textarea, select",
+        )
+      )
         return;
       stopSelecting();
     };

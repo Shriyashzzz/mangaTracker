@@ -71,7 +71,8 @@ export const homeStyles = {
     "tap grid min-h-9 min-w-9 place-items-center font-medium text-ink-soft underline decoration-line-soft underline-offset-3 hover:text-ink hover:decoration-current",
   // "Delete 12 series?"
   confirm:
-    "m-auto w-[min(26rem,calc(100vw-2rem))] rounded-ink border-[2.5px] border-line bg-card p-5 text-ink shadow-ink-lg backdrop:bg-[rgba(20,14,8,0.55)]",
+    "m-auto w-[min(26rem,calc(100vw-2rem))] rounded-ink border-[2.5px] border-line bg-card p-0 text-ink shadow-ink-lg backdrop:bg-[rgba(20,14,8,0.55)]",
+  confirmBox: "p-5",
   confirmTitle:
     "font-brand text-[1.6rem] leading-[1.1] font-normal tracking-[0.02em] uppercase",
   confirmNames:
