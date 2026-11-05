@@ -33,15 +33,22 @@ export type Media = {
   id: number;
   idMal: number | null;
   format: string | null;
+  isAdult?: boolean | null;
   synonyms: string[] | null;
   title: { english: string | null; romaji: string | null; native: string | null };
   coverImage: { extraLarge: string | null; large: string | null } | null;
 };
 
-const namesOf = (m: Media) =>
-  [m.title.english, m.title.romaji, m.title.native, ...(m.synonyms ?? [])].filter(
-    (n): n is string => Boolean(n),
-  );
+// its titles and other names; an adult series' other names are left out, as
+// they can be loose ("Ulysses" is one of an adult manga's). As the import
+// reads them (client/src/lib/anilist.ts namesOf)
+export const namesOf = (m: Media) =>
+  [
+    m.title.english,
+    m.title.romaji,
+    m.title.native,
+    ...(m.isAdult ? [] : (m.synonyms ?? [])),
+  ].filter((n): n is string => Boolean(n));
 
 // the match the import would show, from AniList's own answer
 export const matchOf = (m: Media, search: string): SharedMatch => ({
@@ -103,7 +110,7 @@ const MEDIA_BY_IDS = `
   query ($ids: [Int]) {
     Page(perPage: ${IDS_PER_REQUEST}) {
       media(id_in: $ids, type: MANGA) {
-        id idMal format synonyms
+        id idMal format isAdult synonyms
         title { english romaji native }
         coverImage { extraLarge large }
       }

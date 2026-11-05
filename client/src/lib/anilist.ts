@@ -151,6 +151,7 @@ const MATCH_QUERY = `
     id
     idMal
     popularity
+    isAdult
     synonyms
     title { english romaji native }
     coverImage { extraLarge large }
@@ -161,6 +162,8 @@ export type MatchCandidate = {
   id: number;
   idMal: number | null;
   popularity: number | null;
+  // missing from answers cached before it was asked for
+  isAdult?: boolean | null;
   synonyms: string[] | null;
   title: {
     english: string | null;
@@ -173,7 +176,7 @@ export type MatchCandidate = {
 // names compared without case, spacing or punctuation. "×" is "x", "&" is
 // "and", a leading "The" or "A" doesn't count, and long vowels are spelt the
 // way AniList's romaji spells them: "Fushigi Yûgi" is "Fushigi Yuugi"
-const plain = (name: string) =>
+export const plain = (name: string) =>
   name
     .normalize("NFKC")
     .toLowerCase()
@@ -192,14 +195,18 @@ const plain = (name: string) =>
 // but "Saga" isn't "New Saga" and "Rave" isn't "Rave!! Betrayal"
 const SHARED_AT_LEAST = 5;
 
-const namesOf = (m: MatchCandidate) =>
-  [
-    m.title.english,
-    m.title.romaji,
-    m.title.native,
-    ...(m.synonyms ?? []),
-  ].filter((n): n is string => Boolean(n));
-const titlesOf = (m: MatchCandidate) => namesOf(m).map(plain).filter(Boolean);
+// its titles, then its other names. AniList's other names are added by
+// anyone and can be loose: an adult series' are left out, as "Ulysses" is one
+// of an adult manga's, not Joyce's (server/src/util/shelf/sharedMatches.ts and
+// scripts/seedImportMatches.ts leave them out the same way)
+const ownTitlesOf = (m: MatchCandidate) =>
+  [m.title.english, m.title.romaji, m.title.native].filter((n): n is string =>
+    Boolean(n),
+  );
+const otherNamesOf = (m: MatchCandidate) =>
+  m.isAdult ? [] : (m.synonyms ?? []);
+const namesOf = (m: MatchCandidate) => [...ownTitlesOf(m), ...otherNamesOf(m)];
+const plainAll = (names: string[]) => names.map(plain).filter(Boolean);
 
 // "Chunchu: The Genocide Fiend" carries on from "Chunchu" after a colon, so
 // it's that series with its subtitle; "Justice Now!" just carries on, so it's
@@ -237,7 +244,14 @@ export function matchFrom(
   exactOnly = false,
 ) {
   const wanted = plain(search);
-  const exact = results.filter((m) => titlesOf(m).includes(wanted));
+  // called that by its own title first: another series' other name doesn't
+  // beat it, however popular
+  const byTitle = results.filter((m) =>
+    plainAll(ownTitlesOf(m)).includes(wanted),
+  );
+  const exact = byTitle.length
+    ? byTitle
+    : results.filter((m) => plainAll(otherNamesOf(m)).includes(wanted));
   let best = exact.length ? exact.reduce(morePopular) : undefined;
   // not called exactly that: the series is the search cut short ("Dance in
   // the Vampire Bund" for "…: Forgotten Tales", so maybe a spin-off it isn't)
@@ -277,8 +291,81 @@ export function matchFrom(
         name: best.title.english || best.title.romaji || search,
         cover: best.coverImage?.extraLarge || best.coverImage?.large || null,
         fit,
+        // every name it goes by, for telling a spin-off from the same series
+        // named twice (isNamedFor)
+        names: namesOf(best),
       }
     : null;
+}
+
+// ---------- the same series, named another way ----------
+
+// letters apart, for "Magic Monsters" and "Magical Monsters"
+function editDistance(a: string, b: string) {
+  if (Math.abs(a.length - b.length) > 3) return 99;
+  let row = Array.from({ length: b.length + 1 }, (_, i) => i);
+  for (let i = 1; i <= a.length; i++) {
+    const next = [i];
+    for (let j = 1; j <= b.length; j++) {
+      next[j] = Math.min(
+        row[j]! + 1,
+        next[j - 1]! + 1,
+        row[j - 1]! + (a[i - 1] === b[j - 1] ? 0 : 1),
+      );
+    }
+    row = next;
+  }
+  return row[b.length]!;
+}
+
+// is a book's whole title just this series' name, said another way? Its
+// English and romaji titles together ("Animal Academy: Hakobune Hakusho"), or
+// one of its names but for a couple of letters ("…Magic Monsters" for
+// "…Magical Monsters"). A spin-off's title isn't: "Dance in the Vampire Bund:
+// Forgotten Tales" adds words that aren't any of the series' names
+export function isNamedFor(title: string, names: string[]) {
+  const wanted = plain(title);
+  const all = names.map(plain).filter((n) => n.length >= SHARED_AT_LEAST);
+  if (all.some((n) => n === wanted)) return true;
+  if (
+    wanted.length >= 12 &&
+    all.some((n) => editDistance(n, wanted) <= Math.floor(wanted.length / 20))
+  )
+    return true;
+  return all.some((a) => all.some((b) => a !== b && wanted === a + b));
+}
+
+const NAMES_QUERY = `
+  query ($id: Int) {
+    Media(id: $id) { isAdult synonyms title { english romaji native } }
+  }
+`;
+
+// the names a series goes by, for a match that came without them (from the
+// shared matches or an older import). Throws AniListBusy as searchManga does
+export async function seriesNames(
+  id: number,
+  signal?: AbortSignal,
+): Promise<string[] | null> {
+  const response = await fetch(ANILIST_URL, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Accept: "application/json" },
+    body: JSON.stringify({ query: NAMES_QUERY, variables: { id } }),
+    signal,
+  }).catch((e: unknown) => {
+    if (signal?.aborted) throw e;
+    throw new AniListBusy(60, true);
+  });
+  readLimit(response.headers);
+  if (response.status === 429) {
+    throw new AniListBusy(Number(response.headers.get("Retry-After")) || 30);
+  }
+  if (response.status >= 500) throw new AniListBusy(15);
+  if (!response.ok) return null;
+  const { data } = (await response.json()) as {
+    data?: { Media?: MatchCandidate | null };
+  };
+  return data?.Media ? namesOf(data.Media) : null;
 }
 
 // AniList's own limit, from the headers on its last answer: how long to leave
@@ -338,7 +425,8 @@ async function searchOnce(
   const response = await fetch(ANILIST_URL, {
     method: "POST",
     headers: { "Content-Type": "application/json", Accept: "application/json" },
-    // AniList's search finds "Fushigi Yugi" but nothing for "Fushigi Yûgi"
+    // accents already off (searchManga): AniList's search finds "Fushigi
+    // Yugi" but nothing for "Fushigi Yûgi"
     body: JSON.stringify({
       query: MATCH_QUERY,
       variables: { search, novel },
@@ -369,18 +457,12 @@ async function searchOnce(
 
 // AniList's top five for a name, manga or light novels. Throws AniListBusy
 // when it asks to slow down (or can't be reached)
-export async function searchManga(
+export const searchManga = (
   search: string,
   signal?: AbortSignal,
   novel = false,
-): Promise<MatchCandidate[] | null> {
-  const first = await searchOnce(withoutAccents(search), signal, novel);
-  if (first?.length || !LONG_VOWEL.test(search)) return first;
-  // a second request: at AniList's pace, like any other
-  await new Promise((done) => setTimeout(done, aniListGapMs()));
-  if (signal?.aborted) return first;
-  return searchOnce(withoutAccents(withLongVowels(search)), signal, novel);
-}
+): Promise<MatchCandidate[] | null> =>
+  searchOnce(withoutAccents(search), signal, novel);
 
 // the manga (or light novel) a series name most likely is, with its MyAnimeList
 // id so the server can fetch its cover and genre. Null when AniList has nothing
@@ -391,7 +473,21 @@ export async function findManga(
   novel = false,
   // only something called exactly that, not AniList's best guess
   exactOnly = false,
+  // the wait before a second search; the import passes its own, which a
+  // hidden tab doesn't slow down and Stop cuts short
+  wait: (ms: number) => Promise<void> = (ms) =>
+    new Promise((done) => setTimeout(done, ms)),
 ) {
   const results = await searchManga(search, signal, novel);
-  return matchFrom(search, results ?? [], exactOnly);
+  const found = matchFrom(search, results ?? [], exactOnly);
+  if (found || !LONG_VOWEL.test(search)) return found;
+  // nothing by "Sajo": AniList may spell it "Sajou"
+  await wait(aniListGapMs());
+  if (signal?.aborted) return null;
+  const again = await searchOnce(
+    withoutAccents(withLongVowels(search)),
+    signal,
+    novel,
+  );
+  return matchFrom(search, again ?? [], exactOnly);
 }

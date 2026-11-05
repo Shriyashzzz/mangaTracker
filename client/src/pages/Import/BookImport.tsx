@@ -6,6 +6,7 @@ import {
   useEffect,
   useId,
   useRef,
+  useMemo,
   useState,
   type ChangeEvent,
   type DragEvent,
@@ -317,7 +318,10 @@ export default function BookImport({ source }: { source: BookSource }) {
   };
 
   // a spin-off AniList doesn't have counts as not found (withoutSpinOffs)
-  const shown = found ? withoutSpinOffs(found, matches) : matches;
+  const shown = useMemo(
+    () => (found ? withoutSpinOffs(found, matches) : matches),
+    [found, matches],
+  );
   const matchOf = (s: BookSeries) => shown.get(s.key);
   // kept apart as a spin-off: the series a shorter name found
   const keptApartFrom = (s: BookSeries) => {
@@ -524,6 +528,7 @@ export default function BookImport({ source }: { source: BookSource }) {
             >
               {rows!.map((s) => {
                 const match = matchOf(s);
+                const apart = keptApartFrom(s);
                 const name = match && match !== "failed" ? match.name : s.title;
                 return (
                   <label key={s.key} className={styles.list}>
@@ -542,8 +547,8 @@ export default function BookImport({ source }: { source: BookSource }) {
                           : match === "failed"
                             ? "Couldn't check AniList"
                             : match === null
-                              ? keptApartFrom(s)
-                                ? `Not on AniList, and not the same as ${keptApartFrom(s)}`
+                              ? apart
+                                ? `Not on AniList, and not the same as ${apart}`
                                 : s.lightNovel
                                   ? "Not on AniList"
                                   : "Not on AniList, so probably not manga"

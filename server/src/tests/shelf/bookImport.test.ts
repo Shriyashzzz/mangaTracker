@@ -541,3 +541,43 @@ test("a spin-off found only by a shorter name stays apart when its volumes clash
   expect(seen.get("bund")?.anilistId).toBe(1);
   expect(seen.get("tears")?.anilistId).toBe(2);
 });
+
+test("a real title beats another series' other name, and an adult series' other names don't count", () => {
+  // AniList lists "Ulysses" as one of an adult manga's other names
+  const adult = { ...candidate(108410, null, "Sakuramiya Shimai no Netorare Kiroku", 251, ["yurisis", "Ulysses"]), isAdult: true };
+  expect(matchFrom("Ulysses", [adult])).toBeNull();
+  // its own title still counts
+  expect(matchFrom("Sakuramiya Shimai no Netorare Kiroku", [adult])?.anilistId).toBe(108410);
+  // a series called that beats a more popular one that only has it as another name
+  const titled = candidate(1, "Monster", "Monster", 10);
+  const nicknamed = candidate(2, "Monster Musume", "Monster Musume no Iru Nichijou", 900, ["Monster"]);
+  expect(matchFrom("Monster", [nicknamed, titled])?.anilistId).toBe(1);
+  // and other names still find a series nothing is called
+  expect(matchFrom("Monster", [nicknamed])?.anilistId).toBe(2);
+});
+
+test("second review: typos, guessed numbers, duplicate editions, overflowing renumbering", () => {
+  // a double-space typo keeps the name as written too, to search if the "&" one fails
+  const [piece] = groupBooks(goodreads(["One  Piece, Vol. 1"]));
+  expect([piece!.title, ...piece!.otherNames]).toEqual(["One & Piece", "One Piece"]);
+  const [joined] = groupBooks(goodreads(["One  Piece, Vol. 1", "One Piece, Vol. 2", "One Piece, Vol. 3"]));
+  expect(joined!.title).toBe("One Piece");
+  // a number only guessed from the end isn't an omnibus number
+  expect(owned(["Mob Psycho 100 3-in-1"])).toEqual([["Mob Psycho 100", null, false]]);
+  // two editions of vol. 1 are still one volume
+  const [berserk] = groupBooks(goodreads(["Berserk, Vol. 1", "Berserk Deluxe Edition, Vol. 1"]));
+  expect([berserk!.ownedVolumes, berserk!.ownedList]).toEqual([1, [1]]);
+  // DBZ 3-in-1 vol. 9 holds 25-27, past what Viz's numbering maps: left as it is
+  expect(owned(["Dragon Ball Z (3-in-1 Edition), Vol. 9"])).toEqual([["Dragon Ball Z", [25, 26, 27], false]]);
+});
+
+test("two spin-offs found by the same cut clash with each other, while different volumes are one series", () => {
+  const row = (key: string, ownedList: number[]) => ({ key, title: key, otherNames: [], books: ownedList.length, ownedVolumes: Math.max(...ownedList), ownedList, readVolumes: 0, score: 0, planned: false, lightNovel: false });
+  const cutTo = (anilistId: number) => ({ anilistId, malId: null, name: "x", cover: null, shorter: true as const });
+  const seen = withoutSpinOffs(
+    [row("tales", [1]), row("scarlet", [1, 2]), row("reborn", [1]), row("eternal", [3])],
+    new Map([["tales", cutTo(1)], ["scarlet", cutTo(1)], ["reborn", cutTo(2)], ["eternal", cutTo(2)]]),
+  );
+  expect([seen.get("tales"), seen.get("scarlet")]).toEqual([null, null]);
+  expect([seen.get("reborn")?.anilistId, seen.get("eternal")?.anilistId]).toEqual([2, 2]);
+});

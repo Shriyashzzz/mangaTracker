@@ -96,3 +96,9 @@ test("only a series' exact name is shared: a subtitle guess could be another ser
   expect(fits(say("Attack on Titan"), beforeTheFall)).toBe(false);
   expect(fits(say("Attack on Titan: Before the Fall"), titan)).toBe(false);
 });
+
+test("an adult series' other names aren't shared: they can be loose", () => {
+  const adult = media({ id: 108410, isAdult: true, synonyms: ["Ulysses"], title: { english: null, romaji: "Sakuramiya Shimai no Netorare Kiroku", native: null } });
+  expect(fits({ name: "Ulysses", lightNovel: false, exactOnly: false }, adult)).toBe(false);
+  expect(fits({ name: "Sakuramiya Shimai no Netorare Kiroku", lightNovel: false, exactOnly: false }, adult)).toBe(true);
+});

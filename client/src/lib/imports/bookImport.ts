@@ -226,6 +226,11 @@ const numberOf = (text: string) => {
 // and "Kaiju No. 8" stay names
 const COMMA_NUMBER = /^(.*?),\s+no\.\s*(\d{1,3})\b/i;
 
+// a number right after Chinese or Japanese text: "One Piece 航海王37: 湯姆先生"
+// is One Piece 航海王, vol. 37
+const CJK_NUMBER =
+  /^(.*[\p{Script=Han}\p{Script=Hiragana}\p{Script=Katakana}])\s*0*(\d{1,3})(?=$|[\s:：(（])/u;
+
 // one name with perhaps a volume in it, no brackets
 function oneName(text: string, trailingNumber = true): Parsed {
   const comma = text.match(COMMA_NUMBER);
@@ -242,6 +247,11 @@ function oneName(text: string, trailingNumber = true): Parsed {
   if (japanese && japanese[1]!.trim()) {
     const series = tidy(japanese[1]!);
     return { series, volume: Number(japanese[2]), names: [series] };
+  }
+  const cjk = text.match(CJK_NUMBER);
+  if (cjk && tidy(cjk[1]!)) {
+    const series = tidy(cjk[1]!);
+    return { series, volume: Number(cjk[2]), names: [series] };
   }
   const trailing =
     trailingNumber &&
@@ -296,9 +306,19 @@ const parseName = (text: string, trailingNumber = true): Parsed =>
 // "Frieren: Beyond Journey's End, Vol. 3" → Frieren: Beyond Journey's End, 3
 // "メイドインアビス 5 [Made in Abyss 5]" → Made in Abyss (and メイドインアビス), 5
 export function seriesFromTitle(raw: string, trailingNumber = true): Parsed {
-  // full-width digits and brackets, as Japanese titles often have, made plain.
-  // Some apps drop "&" and leave its two spaces: "Wolf  Parchment"
-  const title = withAmpersands(raw.normalize("NFKC"));
+  // full-width digits and brackets, as Japanese titles often have, made plain
+  const asWritten = raw.normalize("NFKC");
+  // some apps drop "&" and leave its two spaces: "Wolf  Parchment". It could
+  // also be a typo ("One  Piece"), so the name as written stays one of its
+  // names, searched if the "&" one finds nothing
+  const restored = withAmpersands(asWritten);
+  const parsed = parseTitle(restored, trailingNumber);
+  if (restored === asWritten) return parsed;
+  const plain = parseTitle(asWritten, trailingNumber);
+  return { ...parsed, names: [...new Set([...parsed.names, ...plain.names])] };
+}
+
+function parseTitle(title: string, trailingNumber: boolean): Parsed {
   const tagged = title.match(/\(([^()]+?),?\s*#\s*(\d+(?:\.\d+)?)[^()]*\)\s*$/);
   if (tagged) {
     const named = parseName(tagged[1]!, trailingNumber);
@@ -635,7 +655,15 @@ export function volumesInside(
 }
 
 const withVolumesInside = (book: Book): Book => {
-  const { holds, omnibus, before } = volumesInside(book.title, book.volume);
+  // a number only guessed from the end of the title ("Mob Psycho 100 3-in-1")
+  // may be the name's, so it isn't taken as an omnibus' number. Right after
+  // "Omnibus" it is the omnibus': "Negima! Omnibus 9"
+  const guessed =
+    book.guessed && !/\bomnibus,?\s*(?:vol(?:ume)?\.?\s*)?\d/i.test(book.title);
+  const { holds, omnibus, before } = volumesInside(
+    book.title,
+    guessed ? null : book.volume,
+  );
   if (holds) {
     // the name stops where the volumes start, when the name ran into them
     const name = before !== undefined ? tidy(before) : "";
@@ -656,7 +684,28 @@ const withVolumesInside = (book: Book): Book => {
       guessed: undefined,
     };
   }
-  if (omnibus) return { ...book, volume: null, omnibus, guessed: undefined };
+  if (omnibus && !guessed) {
+    // "Negima! Omnibus 9: Magister Negi Magi" is Negima!
+    const at = book.title.search(/\bomnibus\b/i);
+    const name = at > 0 ? tidy(withAmpersands(book.title.slice(0, at))) : "";
+    const cut =
+      name &&
+      name.length < book.series.length &&
+      seriesKey(book.series).startsWith(seriesKey(name));
+    return {
+      ...book,
+      ...(cut
+        ? {
+            series: name,
+            names: [name, ...book.names.filter((n) => n !== book.series)],
+          }
+        : {}),
+      volume: null,
+      omnibus,
+      guessed: undefined,
+    };
+  }
+  if (omnibus) return { ...book, omnibus };
   return book;
 };
 
@@ -668,12 +717,13 @@ const RENUMBERED: Record<
 > = { "dragon ball z": { series: "Dragon Ball", after: 16, upTo: 26 } };
 const renumbered = (book: Book): Book => {
   const to = book.lightNovel ? undefined : RENUMBERED[seriesKey(book.series)];
-  if (!to || !book.volume || book.volume > to.upTo) return book;
+  const held = book.holds ?? (book.volume ? [book.volume] : []);
+  if (!to || !held.length || Math.max(...held) > to.upTo) return book;
   return {
     ...book,
     series: to.series,
     names: [to.series],
-    volume: book.volume + to.after,
+    volume: book.volume! + to.after,
     ...(book.holds ? { holds: book.holds.map((v) => v + to.after) } : {}),
   };
 };
@@ -905,8 +955,10 @@ export function groupBooks(books: Book[]): BookSeries[] {
     const uses = new Map<string, { name: string; count: number }>();
     for (const b of list)
       for (const name of b.names) {
-        const k = seriesKey(name);
-        if (!k) continue;
+        // "Wolf & Parchment" and "Wolf Parchment" are one series, but two
+        // ways to search it
+        const k = seriesKey(name) + (name.includes("&") ? " &" : "");
+        if (!seriesKey(name)) continue;
         const was = uses.get(k);
         uses.set(k, { name: was?.name ?? name, count: (was?.count ?? 0) + 1 });
       }
@@ -946,7 +998,14 @@ export function groupBooks(books: Book[]): BookSeries[] {
       // an omnibus that doesn't say what it holds is at least one volume
       ownedVolumes: Math.max(
         0,
-        Math.min(Math.max(owned, read, ownedBooks.length), 999),
+        Math.min(
+          Math.max(
+            owned,
+            read,
+            ownedBooks.some((b) => b.omnibus) ? ownedBooks.length : 0,
+          ),
+          999,
+        ),
       ),
       ownedList,
       readVolumes: Math.max(0, Math.min(read, 999)),
@@ -1017,30 +1076,44 @@ const ownedOfRow = (s: BookSeries) =>
       : Array.from({ length: s.ownedVolumes }, (_, i) => i + 1),
   );
 
-// a match found only by a shorter name ("Dance in the Vampire Bund: Forgotten
-// Tales" by "Dance in the Vampire Bund") whose volumes clash with a series
-// that found the same AniList entry by its own name is a book AniList doesn't
-// have, not more of that series: its vol. 1 isn't the series' vol. 1. Those
-// count as not on AniList, so they can't fold into the series
+// a match found only by cutting the title short ("Dance in the Vampire Bund"
+// for "…: Forgotten Tales") whose volumes clash with another row of the same
+// AniList series is a book AniList doesn't have, not more of that series:
+// its vol. 1 isn't the series' vol. 1. Two such books clash with each other
+// too (Forgotten Tales and Scarlet Order, both vol. 1), while different
+// volumes ("Last Order: Angel Reborn" vol. 1, "…: Angel Eternal" vol. 3) are
+// one series. Those that clash count as not on AniList, so they can't fold in
 export function withoutSpinOffs<
   M extends { anilistId?: number; shorter?: true } | null | "failed",
 >(found: BookSeries[], matches: Map<string, M>): Map<string, M | null> {
-  const byOwnName = new Map<number, BookSeries[]>();
+  const bySeries = new Map<number, { row: BookSeries; cut: boolean }[]>();
   for (const s of found) {
     const m = matches.get(s.key);
-    if (m && m !== "failed" && m.anilistId && !m.shorter) {
-      byOwnName.set(m.anilistId, [...(byOwnName.get(m.anilistId) ?? []), s]);
+    if (m && m !== "failed" && m.anilistId) {
+      bySeries.set(m.anilistId, [
+        ...(bySeries.get(m.anilistId) ?? []),
+        { row: s, cut: Boolean(m.shorter) },
+      ]);
     }
   }
+  const volumes = new Map<string, Set<number>>();
+  const volumesOf = (s: BookSeries) => {
+    if (!volumes.has(s.key)) volumes.set(s.key, ownedOfRow(s));
+    return volumes.get(s.key)!;
+  };
   const out = new Map<string, M | null>(matches);
-  for (const s of found) {
-    const m = matches.get(s.key);
-    if (!m || m === "failed" || !m.shorter || !m.anilistId) continue;
-    const mine = ownedOfRow(s);
-    const clash = (byOwnName.get(m.anilistId) ?? []).some((other) =>
-      [...ownedOfRow(other)].some((v) => mine.has(v)),
-    );
-    if (clash) out.set(s.key, null);
+  for (const rows of bySeries.values()) {
+    if (rows.length < 2) continue;
+    for (const { row, cut } of rows) {
+      if (!cut) continue;
+      const mine = volumesOf(row);
+      const clash = rows.some(
+        (other) =>
+          other.row !== row &&
+          [...volumesOf(other.row)].some((v) => mine.has(v)),
+      );
+      if (clash) out.set(row.key, null);
+    }
   }
   return out;
 }

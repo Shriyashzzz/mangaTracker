@@ -4,7 +4,14 @@
 // remembered, so a reload or a second try carries on where it stopped rather
 // than asking AniList again.
 import { create } from "zustand";
-import { AniListBusy, aniListGapMs, findManga } from "../lib/anilist";
+import {
+  AniListBusy,
+  aniListGapMs,
+  findManga,
+  isNamedFor,
+  plain,
+  seriesNames,
+} from "../lib/anilist";
 import {
   groupBooks,
   mergeBooks,
@@ -34,6 +41,8 @@ export type Match =
       // how its name fits the search (lib/anilist.ts matchFrom). Missing on
       // matches from before it was kept, and on shared ones, which are exact
       fit?: "exact" | "parent" | "longer";
+      // every name the series goes by (missing on shared matches)
+      names?: string[];
       // the series is the book's title cut short, by a shorter search or by
       // matchFrom: the book could be a spin-off AniList doesn't have
       // (withoutSpinOffs in lib/imports/bookImport)
@@ -138,16 +147,29 @@ type Remembered = Record<
 const searchKey = (name: string, lightNovel: boolean, exactOnly = false) =>
   `${lightNovel ? "novel" : "manga"}${exactOnly ? "!" : ""}:${name.toLowerCase()}`;
 let remembered: Remembered | null = null;
+// what v3 remembered that holds up now: an answer called exactly what was
+// searched. A guess, or one the shared matches gave before only exact names
+// were shared, is asked again
+const carriedOver = (): Remembered => {
+  const old = read<Remembered>("bookImportMatches.v3") ?? {};
+  return Object.fromEntries(
+    Object.entries(old).filter(([key, r]) => {
+      const searched = key.slice(key.indexOf(":") + 1);
+      return r.match && plain(r.match.name) === plain(searched);
+    }),
+  );
+};
+
 const rememberedMatches = () => {
   if (!remembered) {
+    const saved = read<Remembered>(MATCHES_KEY) ?? carriedOver();
     // nothing from older versions is kept around
     OLD_MATCHES_KEYS.forEach((k) => write(k, null));
     const now = Date.now();
     remembered = Object.fromEntries(
-      Object.entries(read<Remembered>(MATCHES_KEY) ?? {}).filter(
-        ([, r]) => now - r.at < MATCH_FRESH_MS,
-      ),
+      Object.entries(saved).filter(([, r]) => now - r.at < MATCH_FRESH_MS),
     );
+    write(MATCHES_KEY, remembered);
   }
   return remembered;
 };
@@ -275,7 +297,13 @@ async function lookUp(list: BookSeries[]) {
     for (let attempt = 0; attempt < 3 && !signal.aborted; attempt++) {
       if (unreachable >= UNREACHABLE_AFTER && attempt > 0) break;
       try {
-        const answer = await findManga(name, signal, s.lightNovel, exactOnly);
+        const answer = await findManga(
+          name,
+          signal,
+          s.lightNovel,
+          exactOnly,
+          (ms) => sleep(ms, signal),
+        );
         unreachable = 0;
         return answer;
       } catch (e) {
@@ -299,16 +327,33 @@ async function lookUp(list: BookSeries[]) {
   // not to be on AniList. "Battle Angel Alita - Last Order", also called
   // "Battle Angel Alita" in the file, is Last Order, not the series before it
   const matchOne = async (s: BookSeries): Promise<Match | undefined> => {
-    const marked = (match: Match, cut?: true): Match =>
-      match && match !== "failed" && (cut || match.fit === "parent")
-        ? { ...match, shorter: true }
-        : match;
+    // found by cutting the title short: a spin-off of that series, unless the
+    // whole title is just the series' name said another way (isNamedFor). A
+    // match without its names (a shared one) has them looked up, once
+    const marked = async (match: Match, cut?: true): Promise<Match> => {
+      if (!match || match === "failed" || !(cut || match.fit === "parent"))
+        return match;
+      let names = match.names;
+      if (!names && match.anilistId) {
+        try {
+          names = (await seriesNames(match.anilistId, signal)) ?? undefined;
+        } catch {
+          // AniList busy: counted as a possible spin-off, which only means
+          // it isn't folded into the series
+        }
+        await sleep(aniListGapMs(), signal);
+      }
+      const ownName = [s.title, ...s.otherNames].some((t) =>
+        isNamedFor(t, names ?? []),
+      );
+      return ownName ? { ...match, names } : { ...match, names, shorter: true };
+    };
     let searches = 0;
     let failed = false;
     for (const { name, exactOnly, cut } of searchPlan(s)) {
       const known =
         rememberedMatches()[searchKey(name, s.lightNovel, exactOnly)];
-      if (known?.match) return marked(known.match, cut);
+      if (known?.match) return await marked(known.match, cut);
       // answered before: not on AniList by that name
       if (known) continue;
       // out of searches: only what's remembered for the rest
@@ -339,7 +384,7 @@ async function lookUp(list: BookSeries[]) {
         failed = true;
         break;
       }
-      if (answer !== null) return marked(answer, cut);
+      if (answer !== null) return await marked(answer, cut);
     }
     return failed ? "failed" : null;
   };
