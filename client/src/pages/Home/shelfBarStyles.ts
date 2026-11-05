@@ -26,6 +26,10 @@ export const shelfBarStyles = {
   newStamp:
     "tap inline-flex shrink-0 -rotate-[4deg] items-baseline gap-1 border-[1.5px] border-line bg-accent px-1.5 pt-[0.2rem] pb-[0.1rem] font-brand text-[1rem] leading-none tracking-[0.04em] text-on-accent uppercase shadow-ink transition-transform duration-150 ease-ink hover:rotate-0",
   newStampCount: "tabular-nums",
+  // on New, the same sticker in plain ink: back to where they were
+  backStamp:
+    "tap inline-flex shrink-0 -rotate-[4deg] items-center gap-0.5 border-[1.5px] border-line bg-card py-[0.15rem] pr-2 pl-1 font-brand text-[1rem] leading-none tracking-[0.04em] text-ink uppercase shadow-ink transition-transform duration-150 ease-ink hover:rotate-0",
+  backArrow: "size-4 shrink-0",
 
   search: `hidden ${search} min-[521px]:flex`,
   searchOpen: `flex ${search}`,

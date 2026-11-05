@@ -8,6 +8,7 @@ import { useEffect, useRef, useState, type ReactNode } from "react";
 import {
   CheckIcon,
   ChevronDownIcon,
+  ChevronLeftIcon,
   CloseIcon,
   SearchIcon,
   SortIcon,
@@ -81,6 +82,11 @@ export default function ShelfBar({
 }) {
   const shown = views.find((v) => v.value === current) ?? views[0]!;
   const fresh = views.find((v) => v.value === "new");
+  // the view they were on before New, for the way back (All if they arrived
+  // on New)
+  const [cameFrom, setCameFrom] = useState(current === "new" ? "all" : current);
+  if (current !== "new" && current !== cameFrom) setCameFrom(current);
+  const back = views.find((v) => v.value === cameFrom) ?? views[0]!;
   // phones: search is behind the magnifier until it's opened or holds a query
   const [searchOpen, setSearchOpen] = useState(false);
   const searching = searchOpen || Boolean(query.trim());
@@ -110,6 +116,18 @@ export default function ShelfBar({
             {fresh.count != null && fresh.count > 0 && (
               <span className={styles.newStampCount}>{fresh.count}</span>
             )}
+          </button>
+        )}
+        {/* on New: back to where they were */}
+        {current === "new" && (
+          <button
+            type="button"
+            className={styles.backStamp}
+            onClick={() => onPick(back.value)}
+            aria-label={`Back to ${back.label}`}
+          >
+            <ChevronLeftIcon className={styles.backArrow} />
+            {back.label}
           </button>
         )}
       </div>
