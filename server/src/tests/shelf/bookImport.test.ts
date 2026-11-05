@@ -581,3 +581,30 @@ test("two spin-offs found by the same cut clash with each other, while different
   expect([seen.get("tales"), seen.get("scarlet")]).toEqual([null, null]);
   expect([seen.get("reborn")?.anilistId, seen.get("eternal")?.anilistId]).toEqual([2, 2]);
 });
+
+import { isNamedFor } from "../../../../client/src/lib/anilist.js";
+
+test("third review: Japanese numbers, other series that start the same, read-only spin-offs, near names", () => {
+  // a number stuck to Japanese text is only a guess: alone, it's the name's
+  expect(owned(["モブサイコ100"])).toEqual([["モブサイコ100", null, false]]);
+  expect(groupBooks(goodreads(["One Piece 航海王37: 湯姆先生", "One Piece 航海王 38"])).map((s) => [s.title, s.ownedList])).toEqual([["One Piece 航海王", [37, 38]]]);
+  // "Dragon Ball Super" just carries on from "Dragon Ball": Dragon Ball 5 isn't its vol. 5
+  expect(groupBooks(goodreads(["Dragon Ball Super, Vol. 1", "Dragon Ball Super, Vol. 2", "Dragon Ball Super, Vol. 6", "Dragon Ball 5"])).map((s) => s.title).sort()).toEqual(["Dragon Ball 5", "Dragon Ball Super"]);
+  // two letters apart, from 12 letters on
+  expect(isNamedFor("Magic Monsters", ["Magical Monsters"])).toBe(true);
+  expect(isNamedFor("Animal Academy: Hakobune Hakusho", ["Animal Academy", "Hakobune Hakusho"])).toBe(true);
+  expect(isNamedFor("Dance in the Vampire Bund: Forgotten Tales", ["Dance in the Vampire Bund", "Dance in the Vampire Bund"])).toBe(false);
+  expect(isNamedFor("Naruto", ["Boruto"])).toBe(false);
+});
+
+test("a spin-off they've only read still clashes with the series", () => {
+  const row = (key: string, ownedList: number[], readVolumes = 0) => ({ key, title: key, otherNames: [], books: 1, ownedVolumes: ownedList.length ? Math.max(...ownedList) : 0, ownedList, readVolumes, score: 0, planned: false, lightNovel: false });
+  const seen = withoutSpinOffs(
+    [row("bund", [1, 2, 3, 4]), row("tales", [], 1)],
+    new Map([
+      ["bund", { anilistId: 1, malId: null, name: "Bund", cover: null }],
+      ["tales", { anilistId: 1, malId: null, name: "Bund", cover: null, shorter: true as const }],
+    ]),
+  );
+  expect(seen.get("tales")).toBeNull();
+});

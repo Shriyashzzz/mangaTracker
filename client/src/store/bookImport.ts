@@ -329,19 +329,40 @@ async function lookUp(list: BookSeries[]) {
   const matchOne = async (s: BookSeries): Promise<Match | undefined> => {
     // found by cutting the title short: a spin-off of that series, unless the
     // whole title is just the series' name said another way (isNamedFor). A
-    // match without its names (a shared one) has them looked up, once
-    const marked = async (match: Match, cut?: true): Promise<Match> => {
+    // match without its names (a shared one) has them looked up and kept
+    const marked = async (
+      match: Match,
+      cut: true | undefined,
+      key: string,
+    ): Promise<Match> => {
       if (!match || match === "failed" || !(cut || match.fit === "parent"))
         return match;
       let names = match.names;
-      if (!names && match.anilistId) {
+      for (
+        let attempt = 0;
+        !names && match.anilistId && attempt < 3;
+        attempt++
+      ) {
         try {
           names = (await seriesNames(match.anilistId, signal)) ?? undefined;
-        } catch {
-          // AniList busy: counted as a possible spin-off, which only means
-          // it isn't folded into the series
+          await sleep(aniListGapMs(), signal);
+          break;
+        } catch (e) {
+          // AniList's "slow down": waited out as it asks, then once more
+          if (!(e instanceof AniListBusy) || signal.aborted) break;
+          await sleep(e.waitSeconds * 1000, signal);
         }
-        await sleep(aniListGapMs(), signal);
+      }
+      if (names && !match.names) {
+        // kept, so the next visit doesn't ask again
+        const known = rememberedMatches()[key];
+        if (known?.match) {
+          rememberedMatches()[key] = {
+            ...known,
+            match: { ...known.match, names },
+          };
+          write(MATCHES_KEY, remembered);
+        }
       }
       const ownName = [s.title, ...s.otherNames].some((t) =>
         isNamedFor(t, names ?? []),
@@ -351,9 +372,9 @@ async function lookUp(list: BookSeries[]) {
     let searches = 0;
     let failed = false;
     for (const { name, exactOnly, cut } of searchPlan(s)) {
-      const known =
-        rememberedMatches()[searchKey(name, s.lightNovel, exactOnly)];
-      if (known?.match) return await marked(known.match, cut);
+      const key = searchKey(name, s.lightNovel, exactOnly);
+      const known = rememberedMatches()[key];
+      if (known?.match) return await marked(known.match, cut, key);
       // answered before: not on AniList by that name
       if (known) continue;
       // out of searches: only what's remembered for the rest
@@ -384,7 +405,7 @@ async function lookUp(list: BookSeries[]) {
         failed = true;
         break;
       }
-      if (answer !== null) return await marked(answer, cut);
+      if (answer !== null) return await marked(answer, cut, key);
     }
     return failed ? "failed" : null;
   };

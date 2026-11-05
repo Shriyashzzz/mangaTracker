@@ -248,11 +248,6 @@ function oneName(text: string, trailingNumber = true): Parsed {
     const series = tidy(japanese[1]!);
     return { series, volume: Number(japanese[2]), names: [series] };
   }
-  const cjk = text.match(CJK_NUMBER);
-  if (cjk && tidy(cjk[1]!)) {
-    const series = tidy(cjk[1]!);
-    return { series, volume: Number(cjk[2]), names: [series] };
-  }
   const trailing =
     trailingNumber &&
     (tidy(text).match(TRAILING_NUMBER) ?? text.match(NUMBER_THEN_SUBTITLE));
@@ -264,6 +259,12 @@ function oneName(text: string, trailingNumber = true): Parsed {
       names: [series],
       guessed: true,
     };
+  }
+  // only a guess too, as the number can be the name's: "モブサイコ100"
+  const cjk = trailingNumber && text.match(CJK_NUMBER);
+  if (cjk && tidy(cjk[1]!)) {
+    const series = tidy(cjk[1]!);
+    return { series, volume: Number(cjk[2]), names: [series], guessed: true };
   }
   const series = tidy(text) || text.trim();
   return { series, volume: null, names: [series] };
@@ -654,6 +655,20 @@ export function volumesInside(
   return OMNIBUS.test(text) ? { omnibus: true } : {};
 }
 
+// the series' name cut where the volumes start, when the name ran into them
+// ("Kanokon Omnibus 1-2" is Kanokon)
+const cutTo = (book: Book, before: string): Partial<Book> => {
+  const name = tidy(withAmpersands(before));
+  return name &&
+    name.length < book.series.length &&
+    seriesKey(book.series).startsWith(seriesKey(name))
+    ? {
+        series: name,
+        names: [name, ...book.names.filter((n) => n !== book.series)],
+      }
+    : {};
+};
+
 const withVolumesInside = (book: Book): Book => {
   // a number only guessed from the end of the title ("Mob Psycho 100 3-in-1")
   // may be the name's, so it isn't taken as an omnibus' number. Right after
@@ -665,20 +680,9 @@ const withVolumesInside = (book: Book): Book => {
     guessed ? null : book.volume,
   );
   if (holds) {
-    // the name stops where the volumes start, when the name ran into them
-    const name = before !== undefined ? tidy(before) : "";
-    const cut =
-      name &&
-      name.length < book.series.length &&
-      seriesKey(book.series).startsWith(seriesKey(name));
     return {
       ...book,
-      ...(cut
-        ? {
-            series: name,
-            names: [name, ...book.names.filter((n) => n !== book.series)],
-          }
-        : {}),
+      ...(before !== undefined ? cutTo(book, before) : {}),
       volume: holds[0]!,
       holds,
       guessed: undefined,
@@ -687,19 +691,9 @@ const withVolumesInside = (book: Book): Book => {
   if (omnibus && !guessed) {
     // "Negima! Omnibus 9: Magister Negi Magi" is Negima!
     const at = book.title.search(/\bomnibus\b/i);
-    const name = at > 0 ? tidy(withAmpersands(book.title.slice(0, at))) : "";
-    const cut =
-      name &&
-      name.length < book.series.length &&
-      seriesKey(book.series).startsWith(seriesKey(name));
     return {
       ...book,
-      ...(cut
-        ? {
-            series: name,
-            names: [name, ...book.names.filter((n) => n !== book.series)],
-          }
-        : {}),
+      ...(at > 0 ? cutTo(book, book.title.slice(0, at)) : {}),
       volume: null,
       omnibus,
       guessed: undefined,
@@ -743,6 +737,17 @@ function confirmTrailingNumbers(books: Book[]): Book[] {
     for (const key of keys) seen.set(key, (seen.get(key) ?? 0) + 1);
   });
   // the volumes each name has, for a number that fills a gap in a longer name
+  // "Trapped in a Dating Sim: The World…" carries on from "Trapped in a
+  // Dating Sim" after a colon or dash; "Dragon Ball Super" just carries on,
+  // so it's another series
+  const subtitled = (longer: string, short: string) => {
+    for (let i = 1; i <= longer.length; i++) {
+      if (seriesKey(longer.slice(0, i)) === seriesKey(short)) {
+        return /^\s*[:\-–—(]/.test(longer.slice(i));
+      }
+    }
+    return false;
+  };
   const volumesBy = new Map<string, { name: string; volumes: Set<number> }>();
   books.forEach((book) => {
     if (book.guessed) return;
@@ -768,6 +773,7 @@ function confirmTrailingNumbers(books: Book[]): Book[] {
     );
     if (longer.length !== 1) return null;
     const { name, volumes } = longer[0]![1];
+    if (!subtitled(name, book.series)) return null;
     // a real run of volumes, with this one missing from the middle
     return volumes.size >= 2 && !volumes.has(v) && v < Math.max(...volumes)
       ? name
@@ -1068,13 +1074,15 @@ export function searchPlan(s: {
   return plan;
 }
 
-// the volumes a series' row says it owns
+// the volumes a series' row says it has, owned or read: a spin-off they've
+// only read still clashes
 const ownedOfRow = (s: BookSeries) =>
-  new Set(
-    s.ownedList?.length
+  new Set([
+    ...(s.ownedList?.length
       ? s.ownedList
-      : Array.from({ length: s.ownedVolumes }, (_, i) => i + 1),
-  );
+      : Array.from({ length: s.ownedVolumes }, (_, i) => i + 1)),
+    ...Array.from({ length: s.readVolumes }, (_, i) => i + 1),
+  ]);
 
 // a match found only by cutting the title short ("Dance in the Vampire Bund"
 // for "…: Forgotten Tales") whose volumes clash with another row of the same

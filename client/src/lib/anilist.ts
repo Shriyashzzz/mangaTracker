@@ -327,10 +327,11 @@ export function isNamedFor(title: string, names: string[]) {
   const wanted = plain(title);
   const all = names.map(plain).filter((n) => n.length >= SHARED_AT_LEAST);
   if (all.some((n) => n === wanted)) return true;
-  if (
-    wanted.length >= 12 &&
-    all.some((n) => editDistance(n, wanted) <= Math.floor(wanted.length / 20))
-  )
+  // two letters apart from 12 letters on ("Magic"/"Magical"), a few more on
+  // long titles
+  const allowed =
+    wanted.length >= 12 ? Math.max(2, Math.floor(wanted.length / 15)) : 0;
+  if (allowed && all.some((n) => editDistance(n, wanted) <= allowed))
     return true;
   return all.some((a) => all.some((b) => a !== b && wanted === a + b));
 }
