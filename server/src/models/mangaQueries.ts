@@ -63,6 +63,8 @@ export async function restoreManga(userId: number, input: RestoredManga) {
   return id;
 }
 
+// new ones from an import, or a Select's undo (RestoredManga is a MangaInput
+// with more kept)
 export const addManyManga = (userId: number, inputs: MangaInput[]) =>
   prisma.manga.createMany({
     data: inputs.map((input) => ({ ...input, userId })),
@@ -152,6 +154,18 @@ export const setVolumesOwned = (
 export const deleteManga = (id: number) =>
   prisma.manga.delete({ where: { id } });
 
+// only theirs: an id that belongs to someone else matches nothing. Read and
+// deleted in one transaction, so it's all or none, and what comes back is
+// exactly what went (for its undo)
+export const deleteManyManga = async (userId: number, ids: number[]) => {
+  const where = { userId, id: { in: ids } };
+  const [rows] = await prisma.$transaction([
+    prisma.manga.findMany({ where }),
+    prisma.manga.deleteMany({ where }),
+  ]);
+  return rows;
+};
+
 export default {
   setNotes,
   getShelf,
@@ -170,4 +184,5 @@ export default {
   setSeen,
   setVolumesOwned,
   deleteManga,
+  deleteManyManga,
 };

@@ -54,6 +54,34 @@ export const homeStyles = {
   seenNote:
     "fixed inset-x-0 bottom-6 z-15 mx-auto flex w-fit max-w-[min(30rem,calc(100vw-2rem))] animate-drop items-center gap-4 rounded-ink border-[2.5px] border-line bg-card px-4 py-3 text-[0.95rem] text-ink shadow-ink motion-reduce:animate-none upto-720:bottom-[calc(4.5rem+env(safe-area-inset-bottom))]",
   seenName: "min-w-0 truncate",
+  // Select: a slim row over the cards, and the bar that acts on what's ticked
+  gridTools: "mb-5 flex min-w-0 items-center gap-4 [&>nav]:my-0 [&>nav]:flex-1",
+  selectToggle:
+    "tap ml-auto min-h-9 shrink-0 text-[0.9rem] font-medium text-ink-soft underline decoration-line-soft underline-offset-3 hover:text-ink hover:decoration-current aria-pressed:text-ink aria-pressed:decoration-accent aria-pressed:decoration-2",
+  selectBar:
+    "fixed inset-x-0 bottom-6 z-15 mx-auto flex w-fit max-w-[calc(100vw-1.5rem)] animate-drop flex-wrap items-center gap-x-4 gap-y-2 upto-520:gap-x-3 upto-520:px-3 [@media(max-width:360px)]:gap-x-2.5 rounded-ink border-[2.5px] border-line bg-card px-4 py-3 text-[0.95rem] text-ink shadow-ink motion-reduce:animate-none upto-720:bottom-[calc(4.5rem+env(safe-area-inset-bottom))]",
+  // over the "Deleted · Undo" note, which takes its place at the bottom
+  selectBarRaised:
+    "bottom-24! upto-720:bottom-[calc(9.5rem+env(safe-area-inset-bottom))]!",
+  selectCount: "font-medium tabular-nums",
+  selectLink:
+    "tap min-h-9 font-medium text-ink-soft underline decoration-line-soft underline-offset-3 hover:text-ink hover:decoration-current",
+  selectDelete: "btn btn-danger btn-sm",
+  selectDone:
+    "tap grid min-h-9 min-w-9 place-items-center font-medium text-ink-soft underline decoration-line-soft underline-offset-3 hover:text-ink hover:decoration-current",
+  // "Delete 12 series?"
+  confirm:
+    "m-auto w-[min(26rem,calc(100vw-2rem))] rounded-ink border-[2.5px] border-line bg-card p-0 text-ink shadow-ink-lg backdrop:bg-[rgba(20,14,8,0.55)]",
+  confirmBox: "p-5",
+  confirmTitle:
+    "font-brand text-[1.6rem] leading-[1.1] font-normal tracking-[0.02em] uppercase",
+  confirmNames:
+    "mt-3 border-y-[1.5px] border-dashed border-line-soft py-2 text-[0.95rem]",
+  confirmName: "truncate py-0.5 font-medium",
+  confirmMore: "py-0.5 text-ink-soft",
+  confirmBody: "mt-3 text-[0.92rem] leading-[1.5] text-ink-soft",
+  confirmError: "mt-3 text-[0.9rem] font-medium text-accent",
+  confirmActions: "mt-5 flex flex-wrap items-center justify-end gap-3",
   seenUndo:
     "tap shrink-0 font-medium text-ink underline decoration-accent decoration-2 underline-offset-3",
   // the New tab's own switch: new volumes or new chapters, one at a time
