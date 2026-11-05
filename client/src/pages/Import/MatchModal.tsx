@@ -2,12 +2,18 @@
 // and how many volumes they own, before it goes on the shelf. A native dialog:
 // it brings its own focus trap, Escape and backdrop.
 import { useEffect, useId, useRef, useState, type FormEvent } from "react";
-import { AniListBusy, searchSeries, type SeriesHit } from "../../lib/anilist";
+import {
+  AniListBusy,
+  aniListGapMs,
+  searchSeries,
+  type SeriesHit,
+} from "../../lib/anilist";
 import { gapsIn, type BookSeries } from "../../lib/imports/bookImport";
-import type { Edit } from "../../store/bookImport";
+import type { Edit, Match } from "../../store/bookImport";
 import { importStyles as styles } from "./styles";
 
-// a search per pause in typing, not per letter: AniList allows about 30 a minute
+// a search per pause in typing, not per letter, and never sooner than AniList's
+// pace allows: the import's own matching shares its 30 or so a minute
 const TYPING_PAUSE_MS = 450;
 
 const FORMATS: Record<string, string> = {
@@ -17,33 +23,46 @@ const FORMATS: Record<string, string> = {
 };
 
 type Props = {
-  // the series as the list shows it, their earlier edits included
+  // the row as the list shows it, their earlier edits included
   series: BookSeries;
-  // its match now: a series, or null for not on AniList
-  current: { anilistId?: number; name: string } | null;
+  // its match now, as the list shows it
+  current: Match | undefined;
+  // they've edited it before, so it can go back to what the import found
+  edited: boolean;
   onSave: (edit: Edit) => void;
+  onUndo: () => void;
   onClose: () => void;
 };
 
 type Found =
+  | { state: "idle" }
   | { state: "searching" }
   | { state: "done"; hits: SeriesHit[] }
-  | { state: "busy" }
+  // AniList asked us to wait: trying again by itself
+  | { state: "waiting"; seconds: number }
+  | { state: "unreachable" }
   | { state: "failed" };
 
 export default function MatchModal({
   series,
   current,
+  edited,
   onSave,
+  onUndo,
   onClose,
 }: Props) {
   const dialog = useRef<HTMLDialogElement>(null);
   const [search, setSearch] = useState(series.title);
   const [found, setFound] = useState<Found>({ state: "searching" });
+  // Search again, after AniList couldn't be reached
+  const [tries, setTries] = useState(0);
   // undefined: unchanged; null: not on AniList
   const [picked, setPicked] = useState<SeriesHit | null | undefined>();
   const [volumes, setVolumes] = useState(String(series.ownedVolumes));
+  // a count typed in counts even when it's the one shown: it fills the gaps
+  const [countTyped, setCountTyped] = useState(false);
   const ids = useId();
+  const matched = current && current !== "failed" ? current : null;
 
   useEffect(() => {
     if (dialog.current && !dialog.current.open) dialog.current.showModal();
@@ -51,30 +70,43 @@ export default function MatchModal({
 
   useEffect(() => {
     const words = search.trim();
-    if (!words) return;
     const controller = new AbortController();
-    const timer = setTimeout(
-      () => {
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const ask = (after: number) => {
+      timer = setTimeout(() => {
         setFound({ state: "searching" });
         searchSeries(words, controller.signal)
           .then((hits) => setFound({ state: "done", hits }))
           .catch((e: unknown) => {
             if (controller.signal.aborted) return;
-            setFound({ state: e instanceof AniListBusy ? "busy" : "failed" });
+            if (e instanceof AniListBusy && e.unreachable)
+              setFound({ state: "unreachable" });
+            else if (e instanceof AniListBusy) {
+              setFound({ state: "waiting", seconds: e.waitSeconds });
+              ask(e.waitSeconds * 1000);
+            } else setFound({ state: "failed" });
           });
-      },
-      // the first search straight away, with the name from their file
-      words === series.title ? 0 : TYPING_PAUSE_MS,
-    );
+      }, after);
+    };
+    // nothing typed: no search (the list shows "idle" for it)
+    if (words)
+      ask(
+        words === series.title && !tries
+          ? 0
+          : Math.max(TYPING_PAUSE_MS, aniListGapMs()),
+      );
     return () => {
       clearTimeout(timer);
       controller.abort();
     };
-  }, [search, series.title]);
+  }, [search, series.title, tries]);
 
+  // results for a name that's since been cleared aren't shown, or pickable
+  const results: Found = search.trim() ? found : { state: "idle" };
   const chosenId =
-    picked === undefined ? current?.anilistId : (picked?.anilistId ?? null);
-  const noneChosen = picked === null || (picked === undefined && !current);
+    picked === undefined ? matched?.anilistId : (picked?.anilistId ?? null);
+  const noneChosen =
+    picked === null || (picked === undefined && current === null);
   const count = Number(volumes);
   const countOk =
     volumes.trim() !== "" &&
@@ -95,7 +127,7 @@ export default function MatchModal({
         cover: picked.cover,
         fit: "exact",
       };
-    if (count !== series.ownedVolumes) edit.volumes = count;
+    if (countTyped) edit.volumes = count;
     if (edit.match !== undefined || edit.volumes !== undefined) onSave(edit);
     dialog.current?.close();
   };
@@ -118,7 +150,11 @@ export default function MatchModal({
               {series.title}
             </h2>
             <p className={styles.modalNow}>
-              {current ? `Matched to ${current.name}` : "Not on AniList"}
+              {matched
+                ? `Matched to ${matched.name}`
+                : current === "failed"
+                  ? "Couldn't check AniList"
+                  : "Not on AniList"}
             </p>
           </div>
           <button
@@ -139,7 +175,11 @@ export default function MatchModal({
             type="search"
             className={styles.modalSearch}
             value={search}
-            onChange={(e) => setSearch(e.target.value)}
+            onChange={(e) => {
+              setSearch(e.target.value);
+              // the last name's results go while this one waits its turn
+              setFound({ state: "searching" });
+            }}
             autoComplete="off"
             enterKeyHint="search"
             onKeyDown={(e) => {
@@ -152,30 +192,45 @@ export default function MatchModal({
             className={styles.modalHits}
             role="radiogroup"
             aria-label="AniList series"
-            aria-busy={found.state === "searching"}
+            aria-busy={results.state === "searching"}
           >
-            {found.state === "searching" && (
+            {results.state === "searching" && (
               <p className={styles.modalStatus}>Searching AniList…</p>
             )}
-            {found.state === "busy" && (
-              <p className={styles.modalStatus} role="alert">
-                AniList is busy matching your other series. Try again in a
-                minute.
+            {results.state === "idle" && (
+              <p className={styles.modalStatus}>
+                Type the series' name to search AniList.
               </p>
             )}
-            {found.state === "failed" && (
-              <p className={styles.modalStatus} role="alert">
-                AniList didn't answer. Check your connection and search again.
+            {results.state === "waiting" && (
+              <p className={styles.modalStatus} role="status">
+                AniList asked us to slow down. Searching again in{" "}
+                {results.seconds} seconds.
               </p>
             )}
-            {found.state === "done" && !found.hits.length && (
+            {(results.state === "unreachable" ||
+              results.state === "failed") && (
+              <p className={styles.modalStatus} role="alert">
+                {results.state === "unreachable"
+                  ? "Couldn't reach AniList. Check your connection, then "
+                  : "AniList didn't answer that search. "}
+                <button
+                  type="button"
+                  className={styles.modalRetry}
+                  onClick={() => setTries((n) => n + 1)}
+                >
+                  search again
+                </button>
+              </p>
+            )}
+            {results.state === "done" && !results.hits.length && (
               <p className={styles.modalStatus}>
                 Nothing on AniList by that name. Try its Japanese name, or a
                 shorter one.
               </p>
             )}
-            {found.state === "done" &&
-              found.hits.map((hit) => (
+            {results.state === "done" &&
+              results.hits.map((hit) => (
                 <button
                   key={hit.anilistId}
                   type="button"
@@ -235,15 +290,18 @@ export default function MatchModal({
             max={999}
             className={styles.modalVolumes}
             value={volumes}
-            onChange={(e) => setVolumes(e.target.value)}
+            onChange={(e) => {
+              setVolumes(e.target.value);
+              setCountTyped(true);
+            }}
             aria-describedby={`${ids}-volumes-hint`}
             aria-invalid={!countOk}
           />
           <p id={`${ids}-volumes-hint`} className={styles.modalHint}>
             {!countOk
               ? "A whole number from 0 to 999."
-              : hadGaps && count !== series.ownedVolumes
-                ? "Counted from vol. 1, so the gaps in the file go."
+              : hadGaps
+                ? "Counted from vol. 1: saving a count fills the gaps in the file."
                 : series.omnibus
                   ? "Omnibuses hold several volumes each: count the volumes, not the books."
                   : "Counted from vol. 1."}
@@ -251,6 +309,18 @@ export default function MatchModal({
         </div>
 
         <div className={styles.modalFoot}>
+          {edited && (
+            <button
+              type="button"
+              className={styles.modalUndo}
+              onClick={() => {
+                onUndo();
+                dialog.current?.close();
+              }}
+            >
+              Undo my edits
+            </button>
+          )}
           <button
             type="button"
             className={styles.cancel}

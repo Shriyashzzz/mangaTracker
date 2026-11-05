@@ -19,6 +19,7 @@ import {
   gapsIn,
   mergeSameSeries,
   parseCsv,
+  editOf,
   withEdits,
   withVolumes,
   readBooks,
@@ -335,13 +336,16 @@ export default function BookImport({ source }: { source: BookSource }) {
     return raw &&
       raw !== "failed" &&
       shown.get(s.key) === null &&
-      edits.get(s.key)?.match === undefined
+      editOf(s, edits)?.match === undefined
       ? raw.name
       : null;
   };
   // ticked unless they've said otherwise: found on AniList and owned or read
   const ticked = (s: BookSeries) => {
-    const choice = choices.get(s.key);
+    // the row's own, or one made on a series that has since joined it
+    const choice = (s.members ?? [s.key])
+      .map((k) => choices.get(k))
+      .find((c) => c !== undefined);
     if (choice !== undefined) return choice;
     const match = matchOf(s);
     return Boolean(match && match !== "failed") && !s.planned;
@@ -539,7 +543,7 @@ export default function BookImport({ source }: { source: BookSource }) {
                 const match = matchOf(s);
                 const apart = keptApartFrom(s);
                 const name = match && match !== "failed" ? match.name : s.title;
-                const edited = edits.has(s.key);
+                const edited = Boolean(editOf(s, edits));
                 return (
                   <div key={s.key} className={styles.seriesRow}>
                     <label className={styles.seriesLabel}>
@@ -548,7 +552,9 @@ export default function BookImport({ source }: { source: BookSource }) {
                         type="checkbox"
                         checked={ticked(s)}
                         disabled={importing || match === undefined}
-                        onChange={() => imported.choose(s.key, !ticked(s))}
+                        onChange={() =>
+                          imported.chooseAll(s.members ?? [s.key], !ticked(s))
+                        }
                       />
                       <span className={styles.seriesText}>
                         <span className={styles.listName}>{name}</span>
@@ -558,7 +564,7 @@ export default function BookImport({ source }: { source: BookSource }) {
                             : match === "failed"
                               ? "Couldn't check AniList"
                               : match === null
-                                ? edited && edits.get(s.key)?.match === null
+                                ? editOf(s, edits)?.match === null
                                   ? "You said it isn't on AniList"
                                   : apart
                                     ? `Not on AniList, and not the same as ${apart}`
@@ -609,12 +615,13 @@ export default function BookImport({ source }: { source: BookSource }) {
 
             {editing && (
               <MatchModal
-                series={rows!.find((r) => r.key === editing.key) ?? editing}
-                current={(() => {
-                  const m = matchOf(editing);
-                  return m && m !== "failed" ? m : null;
-                })()}
-                onSave={(edit) => imported.edit(editing.key, edit)}
+                series={editing}
+                current={matchOf(editing)}
+                edited={Boolean(editOf(editing, edits))}
+                onSave={(edit) =>
+                  imported.edit(editing.members ?? [editing.key], edit)
+                }
+                onUndo={() => imported.unedit(editing.members ?? [editing.key])}
                 onClose={() => setEditing(null)}
               />
             )}

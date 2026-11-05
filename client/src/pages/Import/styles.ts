@@ -107,6 +107,11 @@ export const importStyles = {
   modalHint: "text-[0.85rem] leading-[1.45] text-ink-soft",
   modalFoot:
     "flex items-center justify-end gap-3 border-t-[1.5px] border-line px-5 py-3",
+  // back to what the import found: away from Save, on the left
+  modalUndo:
+    "tap mr-auto min-h-11 text-[0.9rem] font-medium text-ink-soft underline decoration-line-soft underline-offset-3 hover:text-accent",
+  modalRetry:
+    "tap font-medium text-ink underline decoration-accent decoration-2 underline-offset-3",
   warning:
     "border-[1.5px] border-dashed border-accent bg-accent-wash px-3 py-2 text-[0.9rem] leading-[1.45]",
   note: "mt-3 text-[0.9rem] leading-[1.45] text-ink-soft",

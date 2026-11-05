@@ -17,6 +17,7 @@ import {
   mergeBooks,
   searchPlan,
   withEdits,
+  editOf,
   toEntry,
   type EditOf,
   type Book,
@@ -92,7 +93,11 @@ type BookImportState = {
   chooseAll: (keys: string[], ticked: boolean) => void;
   // Edit's Save: their series and volume count for this one. Choosing a
   // series ticks it, choosing none unticks it
-  edit: (key: string, edit: Edit) => void;
+  // on every series in the row (a row can be two spellings AniList says are
+  // one), so none of them comes back with the import's match
+  edit: (keys: string[], edit: Edit) => void;
+  // back to what the import found, tick included
+  unedit: (keys: string[]) => void;
   add: (chosen: BookSeries[]) => Promise<void>;
   // they pressed Stop import: matching ends now, adding after the piece being
   // sent. The import is dropped; matches found stay remembered
@@ -590,14 +595,28 @@ export const useBookImport = create<BookImportState>()((set, get) => ({
     save(get());
   },
 
-  edit: (key, edit) => {
+  edit: (keys, edit) => {
     set((s) => {
-      const edits = new Map(s.edits).set(key, { ...s.edits.get(key), ...edit });
-      if (edit.match === undefined) return { edits };
-      return {
-        edits,
-        choices: new Map(s.choices).set(key, edit.match !== null),
-      };
+      const edits = new Map(s.edits);
+      const choices = new Map(s.choices);
+      for (const key of keys) {
+        edits.set(key, { ...s.edits.get(key), ...edit });
+        if (edit.match !== undefined) choices.set(key, edit.match !== null);
+      }
+      return { edits, choices };
+    });
+    save(get());
+  },
+
+  unedit: (keys) => {
+    set((s) => {
+      const edits = new Map(s.edits);
+      const choices = new Map(s.choices);
+      for (const key of keys) {
+        edits.delete(key);
+        choices.delete(key);
+      }
+      return { edits, choices };
     });
     save(get());
   },
@@ -617,16 +636,10 @@ export const useBookImport = create<BookImportState>()((set, get) => ({
       const done = await sendToShelf(
         chosen.map((s) => {
           const match = matches.get(s.key);
-          const edit = edits.get(s.key);
+          const chose = editOf(s, edits)?.match;
           // a series they chose goes in by its AniList name, not the file's
-          const named =
-            edit?.match && match && match !== "failed"
-              ? { ...s, title: match.name }
-              : s;
-          return toEntry(
-            named,
-            match && match !== "failed" ? match : undefined,
-          );
+          if (chose) return toEntry({ ...s, title: chose.name }, chose);
+          return toEntry(s, match && match !== "failed" ? match : undefined);
         }),
         (sent, soFar) => set({ progress: sent, totals: soFar }),
         () => stopAdding,

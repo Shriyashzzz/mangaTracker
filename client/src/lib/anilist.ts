@@ -418,21 +418,17 @@ const withLongVowels = (text: string) =>
     .replace(/[ūû]/g, "uu")
     .replace(/[ŪÛ]/g, "Uu");
 
-// one search, as given
-async function searchOnce(
-  search: string,
+// one request, its "slow down"s and hiccups thrown as AniListBusy. Null when
+// AniList has nothing (404)
+async function askAniList<T>(
+  query: string,
+  variables: Record<string, unknown>,
   signal?: AbortSignal,
-  novel = false,
-): Promise<MatchCandidate[] | null> {
+): Promise<T | null> {
   const response = await fetch(ANILIST_URL, {
     method: "POST",
     headers: { "Content-Type": "application/json", Accept: "application/json" },
-    // accents already off (searchManga): AniList's search finds "Fushigi
-    // Yugi" but nothing for "Fushigi Yûgi"
-    body: JSON.stringify({
-      query: MATCH_QUERY,
-      variables: { search, novel },
-    }),
+    body: JSON.stringify({ query, variables }),
     signal,
   }).catch((e: unknown) => {
     if (signal?.aborted) throw e;
@@ -444,16 +440,24 @@ async function searchOnce(
   if (response.status === 429) {
     throw new AniListBusy(Number(response.headers.get("Retry-After")) || 30);
   }
-  if (response.status === 404) return [];
+  if (response.status === 404) return null;
   // AniList having a moment: worth waiting a little, like a "slow down"
   if (response.status >= 500) throw new AniListBusy(15);
   if (!response.ok) throw new Error(`AniList responded ${response.status}`);
-  const { data } = (await response.json()) as {
-    data?: Record<
-      "manga" | "novel",
-      { media: MatchCandidate[] } | null | undefined
-    >;
-  };
+  return ((await response.json()) as { data?: T }).data ?? null;
+}
+
+// one search, as given
+async function searchOnce(
+  search: string,
+  signal?: AbortSignal,
+  novel = false,
+): Promise<MatchCandidate[] | null> {
+  // accents already off (searchManga): AniList's search finds "Fushigi
+  // Yugi" but nothing for "Fushigi Yûgi"
+  const data = await askAniList<
+    Record<"manga" | "novel", { media: MatchCandidate[] } | null | undefined>
+  >(MATCH_QUERY, { search, novel }, signal);
   return (novel ? data?.novel : data?.manga)?.media ?? [];
 }
 
@@ -501,23 +505,6 @@ export async function searchSeries(
   search: string,
   signal?: AbortSignal,
 ): Promise<SeriesHit[]> {
-  const response = await fetch(ANILIST_URL, {
-    method: "POST",
-    headers: { "Content-Type": "application/json", Accept: "application/json" },
-    body: JSON.stringify({
-      query: PICK_QUERY,
-      variables: { search: withoutAccents(search) },
-    }),
-    signal,
-  }).catch((e: unknown) => {
-    if (signal?.aborted) throw e;
-    throw new AniListBusy(60, true);
-  });
-  readLimit(response.headers);
-  if (response.status === 429)
-    throw new AniListBusy(Number(response.headers.get("Retry-After")) || 30);
-  if (response.status === 404) return [];
-  if (!response.ok) throw new Error(`AniList responded ${response.status}`);
   type Media = {
     id: number;
     idMal: number | null;
@@ -527,9 +514,11 @@ export async function searchSeries(
     startDate?: { year: number | null } | null;
     coverImage?: { large?: string | null } | null;
   };
-  const { data } = (await response.json()) as {
-    data?: { Page?: { media?: Media[] } };
-  };
+  const data = await askAniList<{ Page?: { media?: Media[] } }>(
+    PICK_QUERY,
+    { search: withoutAccents(search) },
+    signal,
+  );
   return (data?.Page?.media ?? []).map((m) => {
     const name = m.title.english || m.title.romaji || "";
     return {
