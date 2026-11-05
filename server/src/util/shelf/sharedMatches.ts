@@ -51,11 +51,15 @@ export const matchOf = (m: Media, search: string): SharedMatch => ({
   cover: m.coverImage?.extraLarge || m.coverImage?.large || null,
 });
 
-// would the import have matched this search to this series? Same format
-// (a novel search only takes novels, a manga search never does) and the rule
+// is this search one of this series' names? Same format (a novel search only
+// takes novels, a manga search never does) and exactly one of its names. A
+// guess the import made by subtitle isn't shared, as it can't be checked:
+// "Attack on Titan: Before the Fall" is "Attack on Titan" plus a subtitle,
+// and so is the other way round, yet they're two series. Those are searched
+// again by each import
 export const fits = (told: Search, m: Media) =>
   (m.format === "NOVEL") === told.lightNovel &&
-  fitsSearch(told.name, namesOf(m), told.exactOnly);
+  fitsSearch(told.name, namesOf(m), true);
 
 // ---------- asked before matching ----------
 

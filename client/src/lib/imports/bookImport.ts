@@ -17,6 +17,12 @@ export type Book = {
   volume: number | null;
   // only a number at the end of the title said so (readBooks checks it)
   guessed?: boolean;
+  // every volume the book holds, when it's more than one: "Bleach (3-in-1
+  // Edition), Vol. 21" is 61, 62 and 63 (volumesInside)
+  holds?: number[];
+  // an omnibus that doesn't say which volumes it holds ("Vinland Saga
+  // Omnibus, Vol. 3"): its number is the omnibus', not a volume's
+  omnibus?: boolean;
   owned: boolean;
   read: boolean;
   // reading it now: everything before it counts as read
@@ -45,6 +51,9 @@ export type BookSeries = {
   // nothing owned or read yet: only on a to-read list
   planned: boolean;
   lightNovel: boolean;
+  // some of its books are omnibuses that don't say which volumes they hold,
+  // so the count is worth a look before adding
+  omnibus?: boolean;
 };
 
 // ---------- CSV ----------
@@ -91,7 +100,7 @@ export function parseCsv(text: string): string[][] {
 
 // a special edition is still the same series: "Berserk Deluxe Edition" is Berserk
 const EDITION =
-  /[\s,:(\-–—]+(deluxe|omnibus|collector'?s|perfect|ultimate|master|complete|box ?set|vizbig|revised|full[\s-]colou?r(\s+collection)?|\d-in-\d|\d-in|\d+ ?in ?\d+)( edition)?\)?$/i;
+  /[\s,:(\-–—]+(deluxe|omnibus|collector'?s|perfect|ultimate|master|(the )?complete( collection)?|box ?set|vizbig|revised|full[\s-]colou?r(\s+collection)?|\d-in-\d|\d-in|\d+ ?in ?\d+)( edition)?\)?$/i;
 
 const tidy = (name: string) =>
   name
@@ -115,8 +124,22 @@ const tidy = (name: string) =>
     .replace(/[\s,:;.\-–—]+$/, "")
     // "Princess Jellyfish 2-in-1 Omnibus": one edition word, then another
     .replace(EDITION, "")
+    // an edition's own number: "Siúil, a Rún Deluxe Edition II"
+    .replace(
+      /[\s,:(\-–—]+(deluxe|omnibus|collector'?s|perfect|ultimate|master) edition\s+[ivx]+$/i,
+      "",
+    )
     .replace(/[\s,:;.\-–—]+$/, "")
     .trim();
+
+// two spaces between words are where an export dropped an "&": "Wolf  Parchment:
+// New Theory Spice  Wolf" is Wolf & Parchment
+export const withAmpersands = (text: string) =>
+  // not before a volume word: "…Cheat Powers  Vol. 8" is just a typo
+  text.replace(
+    /(\p{L}) {2}(?!(?:vol(?:ume)?s?|book|part|tome|tomo|band|no)\b)(?=\p{L})/giu,
+    "$1 & ",
+  );
 
 // some publishers spell it out: "Sex Criminals: Volume One"
 const NUMBER_WORDS = [
@@ -199,8 +222,17 @@ const numberOf = (text: string) => {
   return Number(n);
 };
 
+// "Crying Freeman, No. 1: Shades of Death". Only after a comma, so "No. 6"
+// and "Kaiju No. 8" stay names
+const COMMA_NUMBER = /^(.*?),\s+no\.\s*(\d{1,3})\b/i;
+
 // one name with perhaps a volume in it, no brackets
 function oneName(text: string, trailingNumber = true): Parsed {
+  const comma = text.match(COMMA_NUMBER);
+  if (comma && tidy(comma[1]!)) {
+    const series = tidy(comma[1]!);
+    return { series, volume: Number(comma[2]), names: [series] };
+  }
   const numbered = text.match(NUMBERED);
   if (numbered && numbered[1]!.trim()) {
     const series = tidy(numbered[1]!);
@@ -264,8 +296,9 @@ const parseName = (text: string, trailingNumber = true): Parsed =>
 // "Frieren: Beyond Journey's End, Vol. 3" → Frieren: Beyond Journey's End, 3
 // "メイドインアビス 5 [Made in Abyss 5]" → Made in Abyss (and メイドインアビス), 5
 export function seriesFromTitle(raw: string, trailingNumber = true): Parsed {
-  // full-width digits and brackets, as Japanese titles often have, made plain
-  const title = raw.normalize("NFKC");
+  // full-width digits and brackets, as Japanese titles often have, made plain.
+  // Some apps drop "&" and leave its two spaces: "Wolf  Parchment"
+  const title = withAmpersands(raw.normalize("NFKC"));
   const tagged = title.match(/\(([^()]+?),?\s*#\s*(\d+(?:\.\d+)?)[^()]*\)\s*$/);
   if (tagged) {
     const named = parseName(tagged[1]!, trailingNumber);
@@ -534,6 +567,117 @@ function csvBook(h: string[], row: string[]): Book | null {
   };
 }
 
+// ---------- books that hold several volumes ----------
+
+const RUN_MAX = 10;
+const run = (from: number, to: number) =>
+  to > from && to - from < RUN_MAX
+    ? Array.from({ length: to - from + 1 }, (_, i) => from + i)
+    : null;
+// a list read off the title, if it counts up and is a few volumes long
+const listed = (text: string) => {
+  const ns = [...text.matchAll(/\d{1,3}/g)].map((m) => Number(m[0]));
+  return ns.length >= 2 &&
+    ns.every((n, i) => i === 0 || n > ns[i - 1]!) &&
+    ns[ns.length - 1]! - ns[0]! < RUN_MAX
+    ? ns
+    : null;
+};
+// "Includes vols. 61, 62 & 63", "Includes Vol. 1 & 2", "Volumes 1, 2, and 3",
+// and with the "&" dropped: "Includes vols. 43, 44  45"
+const SAYS_WHICH =
+  /(?:includes\s+vol(?:ume)?s?\.?|\bvol(?:ume)?s\.?)\s*(\d{1,3}(?:\s*(?:,|&|and)?\s*(?:and\s+)?\d{1,3})+)/i;
+// "(Negima! Magister Negi Magi, #1-3)"
+const TAG_RANGE = /#\s*(\d{1,3})\s*[-–]\s*(\d{1,3})\b/;
+// "One Piece: East Blue 1-2-3"
+const HYPHEN_LIST = /\b(\d{1,3})-(\d{1,3})-(\d{1,3})\b/;
+// "Cardcaptor Sakura, Volume 4-6", "Kanokon Omnibus 1-2", "(Vol. 1-3 Hardcover)"
+const RANGE =
+  /\b(?:vol(?:ume)?s?\.?|omnibus|books?)\s*(\d{1,3})\s*(?:[-–]|to)\s*(\d{1,3})\b/i;
+// "Bleach (3-in-1 Edition), Vol. 21" is 61 to 63
+const N_IN_ONE = /\b([234])\s*-?\s*in\s*-?\s*1\b/i;
+const OMNIBUS = /\bomnibus\b|\bcomplete collection\b|\bbind-?up\b/i;
+
+// which volumes a book holds, from the surest the title says to the least:
+// listed, a range, or N-in-1 with the omnibus' number. An omnibus that says
+// none of these only has the omnibus' own number, which isn't a volume
+export function volumesInside(
+  title: string,
+  volume: number | null,
+): { holds?: number[]; omnibus?: true; before?: string } {
+  const text = withAmpersands(title.normalize("NFKC"));
+  // and what came before it, which may be all the series' name is:
+  // "Kanokon Omnibus 1-2" is Kanokon
+  const found = (m: RegExpMatchArray, holds: number[]) => ({
+    holds,
+    before: text.slice(0, m.index),
+  });
+  const says = text.match(SAYS_WHICH);
+  const fromList = says && listed(says[1]!);
+  if (fromList) return found(says, fromList);
+  const tag = text.match(TAG_RANGE);
+  const fromTag = tag && run(Number(tag[1]), Number(tag[2]));
+  if (fromTag) return { holds: fromTag };
+  const hyphens = text.match(HYPHEN_LIST);
+  const fromHyphens = hyphens && listed(hyphens.slice(1).join(" "));
+  if (fromHyphens) return { holds: fromHyphens };
+  const range = text.match(RANGE);
+  const fromRange = range && run(Number(range[1]), Number(range[2]));
+  if (fromRange) return found(range, fromRange);
+  // Viz's VIZBIG editions are 3-in-1s too
+  const perBook =
+    text.match(N_IN_ONE)?.[1] ?? (/\bvizbig\b/i.test(text) ? "3" : null);
+  if (perBook && volume && Number.isInteger(volume)) {
+    const n = Number(perBook);
+    return { holds: run((volume - 1) * n + 1, volume * n)! };
+  }
+  return OMNIBUS.test(text) ? { omnibus: true } : {};
+}
+
+const withVolumesInside = (book: Book): Book => {
+  const { holds, omnibus, before } = volumesInside(book.title, book.volume);
+  if (holds) {
+    // the name stops where the volumes start, when the name ran into them
+    const name = before !== undefined ? tidy(before) : "";
+    const cut =
+      name &&
+      name.length < book.series.length &&
+      seriesKey(book.series).startsWith(seriesKey(name));
+    return {
+      ...book,
+      ...(cut
+        ? {
+            series: name,
+            names: [name, ...book.names.filter((n) => n !== book.series)],
+          }
+        : {}),
+      volume: holds[0]!,
+      holds,
+      guessed: undefined,
+    };
+  }
+  if (omnibus) return { ...book, volume: null, omnibus, guessed: undefined };
+  return book;
+};
+
+// Viz numbered Dragon Ball Z on from 1, though it carries on from Dragon Ball
+// (DBZ 1 is Dragon Ball 17), and AniList keeps them as one series
+const RENUMBERED: Record<
+  string,
+  { series: string; after: number; upTo: number }
+> = { "dragon ball z": { series: "Dragon Ball", after: 16, upTo: 26 } };
+const renumbered = (book: Book): Book => {
+  const to = book.lightNovel ? undefined : RENUMBERED[seriesKey(book.series)];
+  if (!to || !book.volume || book.volume > to.upTo) return book;
+  return {
+    ...book,
+    series: to.series,
+    names: [to.series],
+    volume: book.volume + to.after,
+    ...(book.holds ? { holds: book.holds.map((v) => v + to.after) } : {}),
+  };
+};
+
 // "xxxHOLiC 19" is volume 19 when another book is xxxHOLiC too. On its own,
 // "Mob Psycho 100" is the name, number and all
 function confirmTrailingNumbers(books: Book[]): Book[] {
@@ -548,10 +692,43 @@ function confirmTrailingNumbers(books: Book[]): Book[] {
     );
     for (const key of keys) seen.set(key, (seen.get(key) ?? 0) + 1);
   });
+  // the volumes each name has, for a number that fills a gap in a longer name
+  const volumesBy = new Map<string, { name: string; volumes: Set<number> }>();
+  books.forEach((book) => {
+    if (book.guessed) return;
+    for (const name of book.names) {
+      // a light novel's names are its own: a manga never joins one
+      const k = `${book.lightNovel ? "ln" : "m"}:${seriesKey(name)}`;
+      const at = volumesBy.get(k) ?? { name, volumes: new Set<number>() };
+      for (const v of book.holds ?? (book.volume ? [book.volume] : []))
+        at.volumes.add(v);
+      volumesBy.set(k, at);
+    }
+  });
+  // "Trapped in a Dating Sim 4", alone, is volume 4 of the one longer series
+  // that starts with its name and has 4 missing: "Trapped in a Dating Sim:
+  // The World of Otome Games Is Tough for Mobs" with 1-3 and 5-7
+  const gapIn = (book: Book) => {
+    const k = seriesKey(book.series);
+    const v = book.volume;
+    if (!k || !v) return null;
+    const format = book.lightNovel ? "ln" : "m";
+    const longer = [...volumesBy].filter(([key]) =>
+      key.startsWith(`${format}:${k} `),
+    );
+    if (longer.length !== 1) return null;
+    const { name, volumes } = longer[0]![1];
+    // a real run of volumes, with this one missing from the middle
+    return volumes.size >= 2 && !volumes.has(v) && v < Math.max(...volumes)
+      ? name
+      : null;
+  };
   return books.map(({ guessed, ...book }, i) => {
     const asWritten = whole[i];
     if (!guessed || !asWritten) return book;
     if (book.names.some((n) => (seen.get(seriesKey(n)) ?? 0) > 1)) return book;
+    const longer = gapIn(book);
+    if (longer) return { ...book, series: longer, names: [longer] };
     // the number stays in the name, and any other name it had goes with it
     const others = book.names.filter((n) => n !== book.series);
     return {
@@ -587,8 +764,13 @@ export function readBooks(rows: string[][], source: BookSource): Book[] {
           ? bookshelfAppBook
           : csvBook;
   return confirmTrailingNumbers(
-    body.flatMap((row) => toBook(h, row) ?? []).map(realNames),
-  ).map(realNames);
+    body
+      .flatMap((row) => toBook(h, row) ?? [])
+      .map(withVolumesInside)
+      .map(realNames),
+  )
+    .map(realNames)
+    .map(renumbered);
 }
 
 // ---------- several files in one import ----------
@@ -736,8 +918,9 @@ export function groupBooks(books: Book[]): BookSeries[] {
     const title = ranked[0]?.name ?? list[0]!.series;
     const lightNovel = list[0]!.lightNovel;
     const key = seriesKey(title);
+    const volumesOf = (b: Book) => b.holds ?? (b.volume ? [b.volume] : []);
     const furthest = (picked: Book[]) => {
-      const numbered = picked.flatMap((b) => (b.volume ? [b.volume] : []));
+      const numbered = picked.flatMap(volumesOf);
       return Math.floor(
         numbered.length ? Math.max(...numbered) : picked.length,
       );
@@ -745,7 +928,7 @@ export function groupBooks(books: Book[]): BookSeries[] {
     const owned = furthest(list.filter((b) => b.owned));
     const ownedBooks = list.filter((b) => b.owned);
     const ownedList = ownedBooks.every((b) => b.volume != null)
-      ? [...new Set(ownedBooks.map((b) => b.volume!))].sort((a, b) => a - b)
+      ? [...new Set(ownedBooks.flatMap(volumesOf))].sort((a, b) => a - b)
       : null;
     // on vol. 5 now means 1 to 4 are read, marked or not
     const readingFrom = list.flatMap((b) =>
@@ -760,12 +943,17 @@ export function groupBooks(books: Book[]): BookSeries[] {
       title,
       otherNames: ranked.slice(1).map((r) => r.name),
       books: list.length,
-      ownedVolumes: Math.max(0, Math.min(Math.max(owned, read), 999)),
+      // an omnibus that doesn't say what it holds is at least one volume
+      ownedVolumes: Math.max(
+        0,
+        Math.min(Math.max(owned, read, ownedBooks.length), 999),
+      ),
       ownedList,
       readVolumes: Math.max(0, Math.min(read, 999)),
       score: Math.round(average * 2),
       planned: list.every((b) => b.planned),
       lightNovel,
+      ...(list.some((b) => b.omnibus) ? { omnibus: true } : {}),
     };
   });
 }
@@ -783,6 +971,78 @@ export function searchFallbacks(name: string): string[] {
     name.replace(/^\p{Lu}[\p{L}.-]+\s+\p{Lu}[\p{L}.-]+['’]s\s+/u, ""),
   ].map((n) => n.trim());
   return [...new Set(out)].filter((n) => n !== name && /\p{L}{2}/u.test(n));
+}
+
+// books that go with a series but aren't its manga: a shorter name would find
+// the series itself ("Cardcaptors: Cinemanga" isn't Cardcaptor Sakura)
+const NOT_THE_MANGA =
+  /\b(cine-?manga|anime comics?|film comics?|ani-?manga|fan ?book|guide ?book|(official|character|visual|complete) guide|character (files|book)|art ?book|artworks?|illustrations|data ?book|ultimania|colou?ring book|sketchbook|calendar|novelization)\b/i;
+
+// what matching searches AniList for, in order: its own names, then shorter
+// forms, which count only when AniList has something called exactly that, so
+// "Star Wars: Thrawn" (or "Star Wars 3") can't turn into some Star Wars manga.
+// A shorter form with a subtitle taken off is a cut: what it finds may be the
+// series this book is a spin-off of (withoutSpinOffs). Taking off a number on
+// the end or the creator's name in front isn't. A book that isn't the manga
+// gets no shorter forms
+export function searchPlan(s: {
+  title: string;
+  otherNames: string[];
+}): { name: string; exactOnly: boolean; cut?: true }[] {
+  const own = [...new Set([s.title, ...s.otherNames])];
+  const plan: { name: string; exactOnly: boolean; cut?: true }[] = own.map(
+    (name) => ({ name, exactOnly: false }),
+  );
+  if (NOT_THE_MANGA.test(s.title)) return plan;
+  const cuts = new Set([
+    s.title.split(/\s*:\s+/)[0]!.trim(),
+    s.title.split(/\s+(?:-{1,2}|[–—])\s+/)[0]!.trim(),
+  ]);
+  for (const name of searchFallbacks(s.title)) {
+    if (own.includes(name)) continue;
+    plan.push({
+      name,
+      exactOnly: true,
+      ...(cuts.has(name) ? { cut: true } : {}),
+    });
+  }
+  return plan;
+}
+
+// the volumes a series' row says it owns
+const ownedOfRow = (s: BookSeries) =>
+  new Set(
+    s.ownedList?.length
+      ? s.ownedList
+      : Array.from({ length: s.ownedVolumes }, (_, i) => i + 1),
+  );
+
+// a match found only by a shorter name ("Dance in the Vampire Bund: Forgotten
+// Tales" by "Dance in the Vampire Bund") whose volumes clash with a series
+// that found the same AniList entry by its own name is a book AniList doesn't
+// have, not more of that series: its vol. 1 isn't the series' vol. 1. Those
+// count as not on AniList, so they can't fold into the series
+export function withoutSpinOffs<
+  M extends { anilistId?: number; shorter?: true } | null | "failed",
+>(found: BookSeries[], matches: Map<string, M>): Map<string, M | null> {
+  const byOwnName = new Map<number, BookSeries[]>();
+  for (const s of found) {
+    const m = matches.get(s.key);
+    if (m && m !== "failed" && m.anilistId && !m.shorter) {
+      byOwnName.set(m.anilistId, [...(byOwnName.get(m.anilistId) ?? []), s]);
+    }
+  }
+  const out = new Map<string, M | null>(matches);
+  for (const s of found) {
+    const m = matches.get(s.key);
+    if (!m || m === "failed" || !m.shorter || !m.anilistId) continue;
+    const mine = ownedOfRow(s);
+    const clash = (byOwnName.get(m.anilistId) ?? []).some((other) =>
+      [...ownedOfRow(other)].some((v) => mine.has(v)),
+    );
+    if (clash) out.set(s.key, null);
+  }
+  return out;
 }
 
 // rows AniList says are one series (its English and romaji names, "Hunter x
@@ -815,6 +1075,7 @@ export function mergeSameSeries(
     first.readVolumes = Math.max(first.readVolumes, s.readVolumes);
     first.score = Math.max(first.score, s.score);
     first.planned = first.planned && s.planned;
+    if (s.omnibus) first.omnibus = true;
     first.otherNames = [
       ...new Set([...first.otherNames, s.title, ...s.otherNames]),
     ];

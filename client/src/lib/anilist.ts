@@ -162,7 +162,11 @@ export type MatchCandidate = {
   idMal: number | null;
   popularity: number | null;
   synonyms: string[] | null;
-  title: { english: string | null; romaji: string | null; native: string | null };
+  title: {
+    english: string | null;
+    romaji: string | null;
+    native: string | null;
+  };
   coverImage?: { extraLarge?: string | null; large?: string | null } | null;
 };
 
@@ -189,9 +193,12 @@ const plain = (name: string) =>
 const SHARED_AT_LEAST = 5;
 
 const namesOf = (m: MatchCandidate) =>
-  [m.title.english, m.title.romaji, m.title.native, ...(m.synonyms ?? [])].filter(
-    (n): n is string => Boolean(n),
-  );
+  [
+    m.title.english,
+    m.title.romaji,
+    m.title.native,
+    ...(m.synonyms ?? []),
+  ].filter((n): n is string => Boolean(n));
 const titlesOf = (m: MatchCandidate) => namesOf(m).map(plain).filter(Boolean);
 
 // "Chunchu: The Genocide Fiend" carries on from "Chunchu" after a colon, so
@@ -232,6 +239,11 @@ export function matchFrom(
   const wanted = plain(search);
   const exact = results.filter((m) => titlesOf(m).includes(wanted));
   let best = exact.length ? exact.reduce(morePopular) : undefined;
+  // not called exactly that: the series is the search cut short ("Dance in
+  // the Vampire Bund" for "…: Forgotten Tales", so maybe a spin-off it isn't)
+  // or the search is the series cut short ("Chunchu" for "Chunchu: The
+  // Genocide Fiend")
+  let fit: "exact" | "parent" | "longer" = "exact";
   if (!best && !exactOnly && wanted.length >= SHARED_AT_LEAST) {
     let shared = 0;
     for (const m of results) {
@@ -247,10 +259,13 @@ export function matchFrom(
         // as good a fit as the last: the more popular one
         const better =
           length > shared ||
-          (length === shared && best && (m.popularity ?? 0) > (best.popularity ?? 0));
+          (length === shared &&
+            best &&
+            (m.popularity ?? 0) > (best.popularity ?? 0));
         if (fits && better) {
           shared = length;
           best = m;
+          fit = wanted.startsWith(t) ? "parent" : "longer";
         }
       }
     }
@@ -261,6 +276,7 @@ export function matchFrom(
         malId: best.idMal,
         name: best.title.english || best.title.romaji || search,
         cover: best.coverImage?.extraLarge || best.coverImage?.large || null,
+        fit,
       }
     : null;
 }
@@ -299,11 +315,22 @@ export class AniListBusy extends Error {
 
 // Latin accents only, so Japanese keeps its voiced marks
 const withoutAccents = (text: string) =>
-  text.normalize("NFKD").replace(/[\u0300-\u036f]/g, "").normalize("NFKC");
+  text
+    .normalize("NFKD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .normalize("NFKC");
+// a long vowel the way AniList's romaji often spells it: "Sajō" is "Sajou".
+// Only a second try, as plenty are spelt without it ("Tokyo", "Ookami")
+const LONG_VOWEL = /[ōôūûŌÔŪÛ]/;
+const withLongVowels = (text: string) =>
+  text
+    .replace(/[ōô]/g, "ou")
+    .replace(/[ŌÔ]/g, "Ou")
+    .replace(/[ūû]/g, "uu")
+    .replace(/[ŪÛ]/g, "Uu");
 
-// AniList's top five for a name, manga or light novels. Throws AniListBusy
-// when it asks to slow down (or can't be reached)
-export async function searchManga(
+// one search, as given
+async function searchOnce(
   search: string,
   signal?: AbortSignal,
   novel = false,
@@ -314,7 +341,7 @@ export async function searchManga(
     // AniList's search finds "Fushigi Yugi" but nothing for "Fushigi Yûgi"
     body: JSON.stringify({
       query: MATCH_QUERY,
-      variables: { search: withoutAccents(search), novel },
+      variables: { search, novel },
     }),
     signal,
   }).catch((e: unknown) => {
@@ -332,9 +359,27 @@ export async function searchManga(
   if (response.status >= 500) throw new AniListBusy(15);
   if (!response.ok) throw new Error(`AniList responded ${response.status}`);
   const { data } = (await response.json()) as {
-    data?: Record<"manga" | "novel", { media: MatchCandidate[] } | null | undefined>;
+    data?: Record<
+      "manga" | "novel",
+      { media: MatchCandidate[] } | null | undefined
+    >;
   };
   return (novel ? data?.novel : data?.manga)?.media ?? [];
+}
+
+// AniList's top five for a name, manga or light novels. Throws AniListBusy
+// when it asks to slow down (or can't be reached)
+export async function searchManga(
+  search: string,
+  signal?: AbortSignal,
+  novel = false,
+): Promise<MatchCandidate[] | null> {
+  const first = await searchOnce(withoutAccents(search), signal, novel);
+  if (first?.length || !LONG_VOWEL.test(search)) return first;
+  // a second request: at AniList's pace, like any other
+  await new Promise((done) => setTimeout(done, aniListGapMs()));
+  if (signal?.aborted) return first;
+  return searchOnce(withoutAccents(withLongVowels(search)), signal, novel);
 }
 
 // the manga (or light novel) a series name most likely is, with its MyAnimeList

@@ -6,6 +6,9 @@
 //   npx tsx scripts/seedImportMatches.ts --db <url>            dry run
 //   npx tsx scripts/seedImportMatches.ts --db <url> --apply    write
 //   --manga 5000 --novels 1000: how many of each (these are the defaults)
+//   --clear: delete every shared match first, imports' too. For after the
+//            keys change (matchRule.ts MATCH_KEY_VERSION): rows from before
+//            are never read again, and may hold a guess that was wrong
 //   --db can be left out: it defaults to DATABASE_URL in server/.env
 //
 // Running it again refreshes what's there. A name two series share goes to the
@@ -21,6 +24,7 @@ const arg = (name: string) => {
 };
 const url = arg("db") ?? process.env.DATABASE_URL;
 const apply = process.argv.includes("--apply");
+const clear = process.argv.includes("--clear");
 const MANGA = Number(arg("manga") ?? 5000);
 const NOVELS = Number(arg("novels") ?? 1000);
 if (!url) {
@@ -104,6 +108,13 @@ async function main() {
     }
   }
 
+  const before = Number(
+    (await db.query("SELECT count(*) FROM import_matches")).rows[0].count,
+  );
+  if (clear) {
+    console.log(`${before} shared matches ${apply ? "deleted" : "would be deleted"} first`);
+    if (apply) await db.query("DELETE FROM import_matches");
+  }
   if (apply) {
     const all = [...rows.entries()];
     for (let i = 0; i < all.length; i += 500) {
