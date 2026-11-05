@@ -481,7 +481,18 @@ export default function BookImport({ source }: { source: BookSource }) {
               </div>
             )}
 
-            <div className={styles.listTools}>
+            <div
+              className={
+                lookingUp
+                  ? styles.listTools + "flex justify-between"
+                  : "flex justify-end !"
+              }
+            >
+              {lookingUp && (
+                <p className={"font-body"}>
+                  Feel free to explore. This takes while
+                </p>
+              )}
               <button
                 type="button"
                 className={styles.selectAll}

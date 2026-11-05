@@ -40,7 +40,10 @@ export const routes = [
       { path: "/acknowledgements", element: <AcknowledgementsPage /> },
       { path: "/new-releases", element: <NewReleasesPage /> },
       { path: "/settings/:tab?", element: <SettingsPage /> },
-      { path: "/profile", element: <Navigate to="/settings/profile" replace /> },
+      {
+        path: "/profile",
+        element: <Navigate to="/settings/profile" replace />,
+      },
       { path: "/u/:code", element: <SharedShelfPage /> },
       { path: "/signup", element: <SignUp /> },
       { path: "/series", element: <SeriesIndex /> },
@@ -48,6 +51,23 @@ export const routes = [
       { path: "/prices/series/:slug", element: <PriceSeries /> },
       // the title part is optional, so ISBN-only links keep working
       { path: "/prices/:isbn/:slug?", element: <PriceVolume /> },
+      // practice pages for trying designs, only while developing (never built)
+      ...(import.meta.env.DEV
+        ? [
+            {
+              path: "/dev/volume-ideas",
+              lazy: async () => ({
+                Component: (await import("./Dev/VolumeIdeas")).default,
+              }),
+            },
+            {
+              path: "/dev/toolbar-ideas",
+              lazy: async () => ({
+                Component: (await import("./Dev/ToolbarIdeas")).default,
+              }),
+            },
+          ]
+        : []),
       // an unknown address keeps the header and footer, so there's a way on
       { path: "*", element: <ErrorPage /> },
     ],
