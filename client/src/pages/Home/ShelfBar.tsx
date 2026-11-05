@@ -87,9 +87,6 @@ export default function ShelfBar({
   const [cameFrom, setCameFrom] = useState(current === "new" ? "all" : current);
   if (current !== "new" && current !== cameFrom) setCameFrom(current);
   const back = views.find((v) => v.value === cameFrom) ?? views[0]!;
-  // New doesn't take the title: it stays on where they were, and the NEW
-  // stamp, in the same place, shows it's on (and takes them back)
-  const onNew = current === "new";
   // phones: search is behind the magnifier until it's opened or holds a query
   const [searchOpen, setSearchOpen] = useState(false);
   const searching = searchOpen || Boolean(query.trim());
@@ -101,48 +98,37 @@ export default function ShelfBar({
   return (
     <div className={styles.bar}>
       <div className={searching ? styles.leadSearching : styles.lead}>
-        <ViewMenu
-          views={views}
-          titled={onNew ? back : shown}
-          current={shown}
-          onPick={onPick}
-        />
-        {/* New, from anywhere: pressed in while it's showing, and a tap then
-            goes back to where they were */}
-        {fresh && (
+        <ViewMenu views={views} shown={shown} onPick={onPick} />
+        {/* the way to New from anywhere else, with what's waiting there */}
+        {fresh && current !== "new" && (
           <button
             type="button"
             data-tour="tab-new"
-            className={onNew ? styles.newStampOn : styles.newStamp}
-            aria-pressed={onNew}
-            onClick={() => onPick(onNew ? back.value : "new")}
+            className={styles.newStamp}
+            onClick={() => onPick("new")}
             aria-label={
-              onNew
-                ? `Showing New. Back to ${back.label}`
-                : fresh.count
-                  ? `New: ${fresh.count} series with something new`
-                  : "New releases"
+              fresh.count
+                ? `New: ${fresh.count} series with something new`
+                : "New releases"
             }
           >
-            {onNew && <CheckIcon className={styles.newStampTick} />}
             New
             {fresh.count != null && fresh.count > 0 && (
               <span className={styles.newStampCount}>{fresh.count}</span>
             )}
           </button>
         )}
-        {onNew && (
-          <span className={styles.onNewNote}>
-            Showing New ·{" "}
-            <button
-              type="button"
-              className={styles.backLink}
-              onClick={() => onPick(back.value)}
-            >
-              <ChevronLeftIcon className={styles.backArrow} />
-              back to {back.label}
-            </button>
-          </span>
+        {/* on New: back to where they were */}
+        {current === "new" && (
+          <button
+            type="button"
+            className={styles.backStamp}
+            onClick={() => onPick(back.value)}
+            aria-label={`Back to ${back.label}`}
+          >
+            <ChevronLeftIcon className={styles.backArrow} />
+            {back.label}
+          </button>
         )}
       </div>
 
@@ -199,14 +185,11 @@ export default function ShelfBar({
 
 function ViewMenu({
   views,
-  titled,
-  current,
+  shown,
   onPick,
 }: {
   views: ShelfView[];
-  // the title: what's shown, or on New, where they came from
-  titled: ShelfView;
-  current: ShelfView;
+  shown: ShelfView;
   onPick: (value: string) => void;
 }) {
   const { open, setOpen, ref } = useMenu();
@@ -217,11 +200,11 @@ function ViewMenu({
         className={styles.title}
         aria-expanded={open}
         aria-haspopup="true"
-        aria-label={`Showing ${current.label}${current.count != null ? `, ${current.count}` : ""}. Change what's shown`}
+        aria-label={`Showing ${shown.label}${shown.count != null ? `, ${shown.count}` : ""}. Change what's shown`}
         onClick={() => setOpen(!open)}
       >
-        <span className={styles.titleWord}>{titled.label}</span>
-        <Count view={titled} />
+        <span className={styles.titleWord}>{shown.label}</span>
+        <Count view={shown} />
         <ChevronDownIcon className={styles.chevron} />
       </button>
       {open && (
@@ -231,7 +214,7 @@ function ViewMenu({
               <button
                 type="button"
                 className={styles.viewOption}
-                aria-current={v.value === current.value}
+                aria-current={v.value === shown.value}
                 onClick={() => {
                   onPick(v.value);
                   setOpen(false);
