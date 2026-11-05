@@ -170,7 +170,6 @@ export function UpdateManga() {
                     />
                   </div>
                 )}
-                {volumes.field}
                 <div className={styles.field}>
                   <label htmlFor="genre" className={styles.label}>
                     Genre <span className={styles.optional}>(optional)</span>
@@ -195,7 +194,7 @@ export function UpdateManga() {
                   </select>
                 </div>
               </div>
-              {volumes.panel}
+              {volumes.field}
 
               <FormatField lightNovel={lightNovel} onChange={setLightNovel} />
 

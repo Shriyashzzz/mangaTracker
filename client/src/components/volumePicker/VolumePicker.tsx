@@ -1,233 +1,252 @@
-// Which volumes they own, on the add and edit forms. Most own a run from the
-// first, so the quick way stays: "Own up to vol. 14". "Pick exact volumes"
-// opens a panel of numbered tickets to tap (One Piece 1 and 4), or a box to
-// type them in ("1-5, 8"). The field sits in the form's row of small fields;
-// the panel needs the full width, so the form places it under that row.
+// Which volumes they own, on the add and edit forms: a little bookcase. Each
+// volume is a spine on a shelf; theirs stand up inked, the rest lean pale.
+// Tap a spine to stand it up or lay it down. Drag across spines to do a run
+// at once ("up to 14" is a drag from 1 to 14): starting on one that's down
+// stands them up, on one that's up lays them down. Shift-click fills
+// everything between the last spine and this one. "Up to vol." types a run.
+// Shelves wrap rather than scroll sideways, so on a phone a sideways drag
+// paints and an up-and-down swipe still scrolls the page.
 // The form reads `volumesOwned` and `ownedList` (comma separated) from its
 // fields, as it reads everything else.
-import { useId, useState, type ReactNode } from "react";
 import {
-  ownedOf,
-  ownedVolumes,
-  parseVolumes,
-  rangesText,
-} from "../../lib/ownedVolumes";
+  useId,
+  useRef,
+  useState,
+  type PointerEvent,
+  type ReactNode,
+} from "react";
+import { ownedOf, ownedVolumes, rangesText } from "../../lib/ownedVolumes";
 import { formStyles } from "../../styles/form";
 import { volumePickerStyles as styles } from "./styles";
 
-// tickets shown to start with, and how many more each tap adds
-const FIRST_SHOWN = 12;
-const MORE = 12;
+// spines to start with, and how many more each tap adds: whole shelves
+const FIRST_SHOWN = 20;
+const MORE = 10;
+const roundUp = (n: number) => Math.ceil(n / MORE) * MORE;
+const sorted = (set: Set<number>) => [...set].sort((a, b) => a - b);
 
-export function useVolumePicker(start: {
-  volumesOwned: number | null;
-  ownedList?: number[];
-}): {
+type Start = { volumesOwned: number | null; ownedList?: number[] };
+
+export function useVolumePicker(start: Start): {
   field: ReactNode;
-  panel: ReactNode;
   // the edit form's manga arrives after the page: start from it
-  reset: (to: { volumesOwned: number | null; ownedList?: number[] }) => void;
+  reset: (to: Start) => void;
 } {
-  const [upTo, setUpTo] = useState(
-    start.volumesOwned ? String(start.volumesOwned) : "",
-  );
-  const [picked, setPicked] = useState<number[]>(start.ownedList ?? []);
-  const [open, setOpen] = useState(false);
-  const [typed, setTyped] = useState<string | null>(null);
-  const [typedBad, setTypedBad] = useState(false);
-  const highest = picked[picked.length - 1] ?? 0;
+  const [owned, setOwned] = useState<number[]>(() => ownedOf(start));
+  const top = owned[owned.length - 1] ?? 0;
   const [shown, setShown] = useState(() =>
-    Math.max(
-      FIRST_SHOWN,
-      Math.ceil((Math.max(highest, Number(upTo) || 0) + 1) / 6) * 6,
-    ),
+    Math.max(FIRST_SHOWN, roundUp(top + 1)),
   );
-  const panelId = useId();
-  const inputId = useId();
-  const exact = picked.length > 0;
+  const labelId = useId();
+  // a drag in progress: stand them up, or lay them down
+  const painting = useRef<null | boolean>(null);
+  // the last spine touched, for shift-click
+  const anchor = useRef<number | null>(null);
+  // a finger that's just landed: a tap, a sideways drag, or the page
+  // scrolling, which the first move tells apart
+  const landed = useRef<{ v: number; x: number; y: number } | null>(null);
 
-  // the run from 1 they said, as tickets, when they start picking
-  const startPicking = () => {
-    if (!exact) {
-      const run = ownedOf({ volumesOwned: Number(upTo) || null });
-      setPicked(run);
-      setShown((s) => Math.max(s, Math.ceil((run.length + 1) / 6) * 6));
-    }
-    setTyped(null);
-    setTypedBad(false);
-    setOpen(true);
-  };
-  // done: a run from 1 goes back to being just its number
-  const finish = () => {
-    const canon = ownedVolumes(null, picked);
-    if (!canon.ownedList.length) {
-      setUpTo(canon.volumesOwned ? String(canon.volumesOwned) : "");
-      setPicked([]);
-    }
-    setOpen(false);
-  };
-  const toggle = (v: number) =>
-    setPicked((list) =>
-      list.includes(v)
-        ? list.filter((x) => x !== v)
-        : [...list, v].sort((a, b) => a - b),
-    );
-  const takeTyped = (text: string) => {
-    const list = parseVolumes(text);
-    setTypedBad(list === null);
-    if (!list) return;
-    setPicked(list);
-    const top = list[list.length - 1] ?? 0;
-    setShown((s) => Math.max(s, Math.ceil((top + 1) / 6) * 6));
+  const saved = ownedVolumes(null, owned);
+  // a run from 1 shows as its number; with gaps the box waits to be typed in
+  const run = !saved.ownedList.length ? saved.volumesOwned : null;
+  const [upToText, setUpToText] = useState<string | null>(null);
+
+  const change = (vols: number[], up: boolean) =>
+    setOwned((list) => {
+      const next = new Set(list);
+      for (const v of vols) {
+        if (up) next.add(v);
+        else next.delete(v);
+      }
+      return sorted(next);
+    });
+  const between = (a: number, b: number) =>
+    Array.from({ length: Math.abs(b - a) + 1 }, (_, i) => Math.min(a, b) + i);
+  const spineAt = (x: number, y: number) => {
+    const el = document
+      .elementFromPoint(x, y)
+      ?.closest<HTMLElement>("[data-vol]");
+    return el ? Number(el.dataset.vol) : null;
   };
 
-  const saved = ownedVolumes(Number(upTo) || null, picked);
-  const tickets = Array.from(
-    { length: Math.max(shown, Math.ceil(highest)) },
+  const onPointerDown = (e: PointerEvent<HTMLDivElement>) => {
+    const v = spineAt(e.clientX, e.clientY);
+    if (v == null || e.button !== 0) return;
+    if (e.pointerType === "touch") {
+      landed.current = { v, x: e.clientX, y: e.clientY };
+      return;
+    }
+    e.preventDefault();
+    if (e.shiftKey && anchor.current != null) {
+      change(between(anchor.current, v), true);
+    } else {
+      painting.current = !owned.includes(v);
+      change([v], painting.current);
+      e.currentTarget.setPointerCapture(e.pointerId);
+    }
+    anchor.current = v;
+    setUpToText(null);
+  };
+  const onPointerMove = (e: PointerEvent<HTMLDivElement>) => {
+    const start = landed.current;
+    if (start) {
+      const dx = Math.abs(e.clientX - start.x);
+      const dy = Math.abs(e.clientY - start.y);
+      if (dx < 6 && dy < 6) return;
+      landed.current = null;
+      // up and down is the page scrolling (it takes the pointer itself)
+      if (dy >= dx) return;
+      painting.current = !owned.includes(start.v);
+      change([start.v], painting.current);
+      anchor.current = start.v;
+      setUpToText(null);
+      e.currentTarget.setPointerCapture(e.pointerId);
+    }
+    if (painting.current == null) return;
+    const v = spineAt(e.clientX, e.clientY);
+    if (v != null) change([v], painting.current);
+  };
+  const stopPainting = () => {
+    painting.current = null;
+    landed.current = null;
+  };
+  // a finger that lifted without moving: a tap
+  const onPointerUp = () => {
+    const tap = landed.current;
+    if (tap) {
+      change([tap.v], !owned.includes(tap.v));
+      anchor.current = tap.v;
+      setUpToText(null);
+    }
+    stopPainting();
+  };
+
+  const typeUpTo = (text: string) => {
+    setUpToText(text);
+    if (!text.trim()) return setOwned([]);
+    const n = Math.min(999, Math.floor(Number(text)));
+    if (!(n >= 1)) return;
+    setOwned(ownedOf({ volumesOwned: n }));
+    setShown((s) => Math.max(s, roundUp(n + 1)));
+  };
+
+  const spines = Array.from(
+    { length: Math.max(shown, Math.ceil(top)) },
     (_, i) => i + 1,
   );
-  // volumes like 10.5 that aren't on a ticket
-  const offTicket = picked.filter(
-    (v) => !Number.isInteger(v) || v > tickets.length,
+  // ones like 10.5, which have no spine of their own
+  const offShelf = owned.filter(
+    (v) => !Number.isInteger(v) || v > spines.length,
   );
 
   const field = (
-    <div className={formStyles.field}>
-      <label htmlFor={inputId} className={formStyles.label}>
-        {exact ? "Volumes you own" : "Own up to vol."}{" "}
-        <span className={formStyles.optional}>(optional)</span>
-      </label>
-      {/* what the form sends, however they said it */}
+    <div className={styles.field}>
+      <div className={styles.head}>
+        <span className={formStyles.label} id={labelId}>
+          Your shelf <span className={formStyles.optional}>(optional)</span>
+        </span>
+        <label className={styles.upTo}>
+          Up to vol.
+          <input
+            className={styles.upToInput}
+            inputMode="numeric"
+            type="number"
+            min="1"
+            max="999"
+            placeholder="–"
+            value={upToText ?? (run ? String(run) : "")}
+            onChange={(e) => typeUpTo(e.target.value)}
+            onBlur={() => setUpToText(null)}
+          />
+        </label>
+      </div>
+      {/* what the form sends */}
       <input
         type="hidden"
         name="volumesOwned"
         value={saved.volumesOwned ?? ""}
       />
       <input type="hidden" name="ownedList" value={saved.ownedList.join(",")} />
-      {exact ? (
-        <output id={inputId} className={styles.picked} aria-live="polite">
-          {rangesText(picked)}
-        </output>
-      ) : (
-        <input
-          className={formStyles.input}
-          inputMode="numeric"
-          id={inputId}
-          type="number"
-          min="1"
-          step="1"
-          placeholder="e.g. 14"
-          value={upTo}
-          onChange={(e) => setUpTo(e.target.value)}
-        />
-      )}
-      <button
-        type="button"
-        className={styles.toggle}
-        aria-expanded={open}
-        aria-controls={panelId}
-        onClick={() => (open ? finish() : startPicking())}
+      <div
+        className={styles.shelf}
+        role="group"
+        aria-labelledby={labelId}
+        onPointerDown={onPointerDown}
+        onPointerMove={onPointerMove}
+        onPointerUp={onPointerUp}
+        onPointerCancel={stopPainting}
+        // only the shelf's own: a finger is held by the spine it landed on
+        // until the shelf takes it, and that spine letting go isn't the end
+        onLostPointerCapture={(e) => {
+          if (e.target === e.currentTarget) stopPainting();
+        }}
       >
-        {open
-          ? "Done picking"
-          : exact
-            ? "Change volumes"
-            : "Pick exact volumes"}
-      </button>
+        {spines.map((v) => {
+          const yours = owned.includes(v);
+          return (
+            <button
+              key={v}
+              type="button"
+              data-vol={v}
+              className={styles.slot}
+              aria-pressed={yours}
+              aria-label={`Vol. ${v}`}
+              // pointers are the shelf's; this is Enter and Space
+              onClick={(e) => {
+                if (e.detail !== 0) return;
+                change([v], !yours);
+                anchor.current = v;
+              }}
+            >
+              <span className={yours ? styles.spineUp : styles.spineDown}>
+                {yours && <span className={styles.yours}>yours</span>}
+                <span className={styles.number}>{v}</span>
+              </span>
+            </button>
+          );
+        })}
+      </div>
+      <div className={styles.foot}>
+        <p className={styles.said} aria-live="polite">
+          {owned.length
+            ? `${owned.length} owned · ${rangesText(owned)}`
+            : "Tap a spine, or drag across a run of them"}
+        </p>
+        <span className={styles.footActions}>
+          <button
+            type="button"
+            className={styles.clear}
+            onClick={() => setShown((n) => n + MORE)}
+          >
+            +{MORE} more
+          </button>
+          {owned.length > 0 && (
+            <button
+              type="button"
+              className={styles.clear}
+              onClick={() => {
+                setOwned([]);
+                setUpToText(null);
+              }}
+            >
+              Clear
+            </button>
+          )}
+        </span>
+      </div>
+      {offShelf.length > 0 && (
+        <p className={styles.note}>Also: vol. {rangesText(offShelf)}</p>
+      )}
     </div>
   );
 
-  const panel = open ? (
-    <div
-      id={panelId}
-      className={styles.panel}
-      role="group"
-      aria-label="Volumes you own"
-    >
-      <div className={styles.panelHead}>
-        <p className={styles.panelTitle}>
-          Tap the volumes you own
-          <span className={styles.count}>
-            {picked.length ? ` · ${picked.length} picked` : " · none yet"}
-          </span>
-        </p>
-        <div className={styles.quick}>
-          <button
-            type="button"
-            className={styles.quickBtn}
-            onClick={() => setPicked(tickets)}
-          >
-            All 1–{tickets.length}
-          </button>
-          <button
-            type="button"
-            className={styles.quickBtn}
-            onClick={() => setPicked([])}
-          >
-            None
-          </button>
-        </div>
-      </div>
-      <div className={styles.tickets}>
-        {tickets.map((v) => (
-          <button
-            key={v}
-            type="button"
-            className={styles.ticket}
-            aria-pressed={picked.includes(v)}
-            aria-label={`Vol. ${v}`}
-            onClick={() => toggle(v)}
-          >
-            {v}
-          </button>
-        ))}
-        <button
-          type="button"
-          className={styles.more}
-          onClick={() => setShown((s) => s + MORE)}
-        >
-          +{MORE} more
-        </button>
-      </div>
-      {offTicket.length > 0 && (
-        <p className={styles.note}>Also: vol. {rangesText(offTicket)}</p>
-      )}
-      <label className={styles.typeRow}>
-        <span className={styles.typeLabel}>Or type them</span>
-        <input
-          className={`${formStyles.input} ${styles.typeInput}`}
-          placeholder="e.g. 1-5, 8, 10.5"
-          value={typed ?? rangesText(picked).replace(/–/g, "-")}
-          aria-invalid={typedBad}
-          onChange={(e) => {
-            setTyped(e.target.value);
-            takeTyped(e.target.value);
-          }}
-          // back to what's picked, which a half-typed range never changed
-          onBlur={() => {
-            setTyped(null);
-            setTypedBad(false);
-          }}
-        />
-      </label>
-      {typedBad && (
-        <p className={styles.bad} role="alert">
-          Use numbers and ranges, like 1-5, 8
-        </p>
-      )}
-    </div>
-  ) : null;
-
-  const reset = (to: { volumesOwned: number | null; ownedList?: number[] }) => {
-    const list = to.ownedList ?? [];
-    setUpTo(to.volumesOwned ? String(to.volumesOwned) : "");
-    setPicked(list);
-    setOpen(false);
-    setTyped(null);
-    setTypedBad(false);
-    const top = list[list.length - 1] ?? to.volumesOwned ?? 0;
-    setShown(Math.max(FIRST_SHOWN, Math.ceil((top + 1) / 6) * 6));
+  const reset = (to: Start) => {
+    const list = ownedOf(to);
+    setOwned(list);
+    setUpToText(null);
+    anchor.current = null;
+    setShown(Math.max(FIRST_SHOWN, roundUp((list[list.length - 1] ?? 0) + 1)));
   };
 
-  return { field, panel, reset };
+  return { field, reset };
 }

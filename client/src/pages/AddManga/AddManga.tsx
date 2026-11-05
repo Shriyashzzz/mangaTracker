@@ -226,7 +226,6 @@ export function AddManga() {
                 />
               </div>
             )}
-            {volumes.field}
             <div className={styles.field}>
               <label htmlFor="genre" className={styles.label}>
                 Genre{" "}
@@ -254,7 +253,7 @@ export function AddManga() {
               </select>
             </div>
           </div>
-          {volumes.panel}
+          {volumes.field}
 
           <div className={`${styles.field} ${styles.notesField}`}>
             <div className={styles.labelRow}>

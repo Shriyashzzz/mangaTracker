@@ -1,30 +1,30 @@
-// The volume picker on the add and edit forms (VolumePicker.tsx). Its tickets
-// are the form's status tickets (styles/form.ts segmentLabel): dashed until
-// picked, inked in once they are
+// The bookcase on the add and edit forms (VolumePicker.tsx). Each volume is a
+// slot holding a spine; slots sit edge to edge and each draws its piece of
+// the shelf underneath, so every wrapped row gets its own shelf line. Theirs
+// stand tall and inked; the rest lean, pale and dashed, like the form's
+// unpicked tickets (styles/form.ts segmentLabel)
 export const volumePickerStyles = {
-  // what's picked, where the number box was
-  picked:
-    "flex h-11 w-full items-center overflow-hidden rounded-[2px] border-[1.5px] border-line bg-paper px-[0.85rem] font-mono text-[0.92rem] text-ink text-ellipsis whitespace-nowrap",
-  toggle:
-    "tap self-start text-[0.84rem] font-medium text-ink-soft underline decoration-line-soft underline-offset-3 hover:text-ink hover:decoration-current",
+  field: "flex min-w-0 flex-col gap-[0.35rem]",
+  head: "flex flex-wrap items-end justify-between gap-x-4 gap-y-1",
+  upTo: "flex items-center gap-2 text-[0.88rem] text-ink-soft",
+  upToInput:
+    "h-9 w-[4.5rem] rounded-[2px] border-[1.5px] border-line bg-paper px-2 text-center font-mono text-ink transition-[box-shadow,background-color] duration-120 placeholder:text-muted focus:bg-card focus:shadow-[3px_3px_0_var(--accent)] focus:outline-none",
 
-  panel:
-    "-mt-1 flex flex-col gap-3 border-[1.5px] border-dashed border-line-soft bg-paper px-4 py-3 animate-drop motion-reduce:animate-none",
-  panelHead: "flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1",
-  panelTitle: "text-[0.9rem] font-semibold",
-  count: "font-normal text-muted",
-  quick: "flex gap-3",
-  quickBtn:
+  // a sideways drag paints spines; an up-and-down swipe scrolls the page
+  shelf: "flex touch-pan-y flex-wrap items-end gap-y-2 px-0.5 pt-1 select-none",
+  slot: "tap group flex h-[86px] w-7 shrink-0 cursor-pointer items-end justify-center border-b-[3px] border-double border-line pb-0.5 focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-accent focus-visible:outline-dashed",
+  spineUp:
+    "flex h-[74px] w-[22px] flex-col items-center justify-end border-[1.5px] border-line bg-ink pb-1 text-paper transition-[height] duration-150 ease-ink",
+  spineDown:
+    "flex h-[58px] w-[22px] origin-bottom-left rotate-[4deg] flex-col items-center justify-end border-[1.5px] border-dashed border-line-soft bg-paper pb-1 text-muted transition-[rotate,height] duration-150 ease-ink group-hover:rotate-0 group-hover:text-ink",
+  yours:
+    "mb-auto pt-1.5 font-sans text-[0.55rem] tracking-[0.08em] uppercase opacity-70 [writing-mode:vertical-rl]",
+  number: "font-brand text-[0.9rem] leading-none tabular-nums",
+
+  foot: "flex flex-wrap items-baseline justify-between gap-x-4",
+  footActions: "flex gap-4",
+  said: "font-mono text-[0.84rem] text-ink-soft",
+  clear:
     "tap text-[0.84rem] font-medium text-ink-soft underline decoration-line-soft underline-offset-3 hover:text-ink hover:decoration-current",
-  // a few rows, then it scrolls: One Piece has 110
-  tickets:
-    "grid max-h-[9.5rem] grid-cols-[repeat(auto-fill,minmax(2.75rem,1fr))] gap-1.5 overflow-y-auto p-0.5",
-  ticket:
-    "tap flex h-10 items-center justify-center rounded-[2px] border-[1.5px] border-dashed border-line-soft font-mono text-[0.9rem] text-muted tabular-nums transition-[color,border-color,background-color] duration-120 ease-[ease] hover:border-line hover:text-ink aria-pressed:border-solid aria-pressed:border-line aria-pressed:bg-ink aria-pressed:text-paper",
-  more: "tap col-span-2 flex h-10 items-center justify-center text-[0.84rem] font-medium text-ink-soft underline decoration-line-soft underline-offset-3 hover:text-ink",
   note: "text-[0.84rem] text-ink-soft",
-  typeRow: "flex flex-wrap items-center gap-x-3 gap-y-1",
-  typeLabel: "text-[0.84rem] text-ink-soft",
-  typeInput: "h-9 max-w-[16rem] flex-1 font-mono text-[0.88rem]",
-  bad: "text-[0.84rem] font-medium text-accent",
 } as const;
