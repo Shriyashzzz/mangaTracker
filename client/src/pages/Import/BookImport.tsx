@@ -1,6 +1,7 @@
 // Importing from a book app: Goodreads, Book Catalogue, or any CSV. The file is
 // read here in the browser, volumes are grouped into series, and each series is
 // looked up on AniList for its cover and to tell manga from everything else.
+import { ownedPhrase } from "../../lib/ownedVolumes";
 import {
   useEffect,
   useId,
@@ -14,6 +15,7 @@ import { ChevronDownIcon } from "../../components/icons/Icons";
 import Mascot from "../../components/mascot/Mascot";
 import {
   fileKind,
+  gapsIn,
   mergeSameSeries,
   parseCsv,
   readBooks,
@@ -502,7 +504,12 @@ export default function BookImport({ source }: { source: BookSource }) {
                                 (s.planned
                                   ? "Only on a to-read list"
                                   : s.ownedVolumes
-                                    ? `Own up to vol. ${s.ownedVolumes}`
+                                    ? `Own ${ownedPhrase({
+                                        volumesOwned: s.ownedVolumes,
+                                        ownedList: gapsIn(s.ownedList)
+                                          ? s.ownedList!
+                                          : [],
+                                      })}`
                                     : `${s.books} book${s.books === 1 ? "" : "s"}`)}
                       </span>
                     </span>

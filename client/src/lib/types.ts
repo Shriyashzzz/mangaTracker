@@ -20,6 +20,8 @@ export type Manga = {
   bookmark: number | null;
   // the last volume they own; null when they don't say
   volumesOwned: number | null;
+  // exactly which, when it isn't a run from 1 (lib/ownedVolumes.ts)
+  ownedList?: number[];
   rating: number | null;
   // the newest release they've hidden
   seenVolume?: number | null;
@@ -93,6 +95,7 @@ export type MangaForm = {
   lightNovel?: boolean;
   bookmark?: string | number;
   volumesOwned?: string | number;
+  ownedList?: number[];
 };
 
 export type ShelfMatch = {
@@ -102,6 +105,7 @@ export type ShelfMatch = {
   status: boolean;
   planned?: boolean;
   volumesOwned: number | null;
+  ownedList?: number[];
 } | null;
 
 // what the New tab lists; see server/src/util/releaseStatus.ts

@@ -51,6 +51,10 @@ model Manga {
   bookmark     Int?
   // the last volume they own ("up to Vol. 14"); null when they don't say
   volumesOwned Int?    @map("volumes_owned") @db.SmallInt
+  // the exact volumes they own, when it isn't a run from 1 (One Piece 1 and 4);
+  // empty means 1 to volumesOwned. volumesOwned is its highest
+  // (util/shelf/ownedList.ts)
+  ownedList    Float[] @default([]) @map("owned_list")
   rating       Int?    @db.SmallInt
   // the newest release they've said "Seen it" to; anything newer shows as new
   seenVolume      Float? @map("seen_volume")

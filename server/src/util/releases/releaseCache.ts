@@ -1,6 +1,7 @@
 // Keeps getReleaseDates polite: one call makes about 8 MangaDex requests and
 // MangaDex allows 5 a second, so a whole shelf goes one title at a time with a
-// pause between each. Answers are kept 6 hours in the database, so a restart
+// pause between each, in two lanes: what someone's likely waiting on first,
+// the rest of a big shelf when nothing else is (laneQueue.ts). Answers are kept 6 hours in the database, so a restart
 // doesn't mean asking again. Failures, and answers found without AniList's id
 // to confirm the series, are only remembered briefly in memory: a wrong match
 // shouldn't be shared with everyone for hours. A stuck lookup is given up on, so
@@ -15,6 +16,7 @@ import type {
 } from "../../../scripts/getReleaseDates.js";
 import { getChapterSource, type ChapterSource } from "../../prices/sources/mangaUpdates.js";
 import type { FormatedDates } from "./volumeDataFormatter.js";
+import { laneQueue, type Lane } from "./laneQueue.js";
 
 type Answer = MangaReleaseDates<FormatedDates>;
 
@@ -24,9 +26,16 @@ const PAUSE_MS = 1000; // between titles
 const LOOKUP_TIMEOUT_MS = 20_000; // the lookup itself
 const WAIT_TIMEOUT_MS = 15_000; // how long a page waits for it
 
+// a big shelf's "later" checks waiting at once, across everyone
+const MAX_LATER = 1000;
+
 const brief = new Map<string, { answer: Answer; at: number }>();
 const running = new Map<string, Promise<Answer>>();
-let queue: Promise<unknown> = Promise.resolve();
+const checks = laneQueue<Answer>({
+  pauseMs: PAUSE_MS,
+  maxLater: MAX_LATER,
+  onFailure: { ok: false },
+});
 
 // the promise's answer, or `fallback` if it takes longer than `ms`
 export function withTimeout<T>(
@@ -105,6 +114,7 @@ const store = async (key: string, data: FormatedDates) => {
 export async function getCachedReleaseDates(
   name: string,
   match: SeriesMatch = {},
+  lane: Lane = "now",
 ): Promise<Answer> {
   const key = (slugify(name) || name.trim().toLowerCase()).slice(0, 160);
 
@@ -116,8 +126,10 @@ export async function getCachedReleaseDates(
   }
 
   let lookup = running.get(key);
+  // already waiting in "later", and now someone's waiting on it
+  if (lookup && lane === "now") checks.promote(key);
   if (!lookup) {
-    lookup = queue.then(async () => {
+    const queued = checks.add(key, lane, async () => {
       const [answer, source] = await Promise.all([
         withTimeout(getReleaseDates(name, match), LOOKUP_TIMEOUT_MS, {
           ok: false,
@@ -130,9 +142,9 @@ export async function getCachedReleaseDates(
       );
       return data ? { ok: true as const, data } : answer;
     });
-    queue = lookup.then(
-      () => new Promise((resolve) => setTimeout(resolve, PAUSE_MS)),
-    );
+    // "later" is full: the shelf asks again on its next visit
+    if (!queued) return { ok: false };
+    lookup = queued;
     running.set(key, lookup);
     lookup
       .then(async (answer) => {

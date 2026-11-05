@@ -4,13 +4,19 @@ import { apiFetch, getJson } from "./api";
 import type { Manga, ReleaseData, ReleaseStatus, ShelfMatch } from "./types";
 
 // release dates and what's new in English for one manga on the shelf
-export const getReleases = (id: number, signal?: AbortSignal) =>
+// the shelf says which lane it waits in (lib/releaseOrder.ts); the details
+// page leaves it out, so it's asked in "now" and never skipped
+export const getReleases = (
+  id: number,
+  signal?: AbortSignal,
+  lane?: "now" | "later",
+) =>
   getJson<{
     releaseData: ReleaseData | null;
     releaseStatus: ReleaseStatus | null;
     // false if a source didn't answer, so it's worth asking again
     complete: boolean;
-  }>(`/api/manga/${id}/releases`, signal);
+  }>(`/api/manga/${id}/releases${lane ? `?lane=${lane}` : ""}`, signal);
 
 // the server gives up on a slow title before this; if even it stops answering,
 // the shelf moves on to the next title rather than waiting forever
@@ -110,12 +116,15 @@ export const findOnShelf = (series: string, signal?: AbortSignal) =>
     signal,
   );
 
-// sets how many volumes they own (null clears it); returns the saved value
-export async function setVolumesOwned(id: number, volumesOwned: number | null) {
+export type Owned = { volumesOwned: number | null; ownedList: number[] };
+
+// sets what they own: "up to" a volume (null clears it) or the exact list
+// (lib/ownedVolumes.ts); returns what was saved
+export async function setVolumesOwned(id: number, owned: Owned) {
   const res = await apiFetch(`/api/manga/${id}/owned`, {
     method: "PUT",
-    body: { volumesOwned },
+    body: owned,
   });
   if (!res.ok) throw new Error("Couldn't update the shelf");
-  return ((await res.json()) as { volumesOwned: number | null }).volumesOwned;
+  return (await res.json()) as Owned;
 }

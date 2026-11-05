@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 import { NavLink, useLocation } from "react-router";
 import { signInPath } from "../../lib/api";
-import { findOnShelf, setVolumesOwned } from "../../lib/shelf";
+import { findOnShelf, setVolumesOwned, type Owned } from "../../lib/shelf";
+import { ownedPhrase, owns, withVolume } from "../../lib/ownedVolumes";
 import { novelParts } from "../../lib/prices";
 import { pricesStyles as styles } from "./styles";
 import type { ShelfMatch } from "../../lib/types";
@@ -32,8 +33,8 @@ export default function ShelfAction({ series, title, volume }: Props) {
   }>({ series: null, manga: null });
   // the last "I own" tap, offered back as Undo for a few seconds
   const [undo, setUndo] = useState<{
-    previous: number | null;
-    volume: number | null;
+    previous: Owned;
+    volume: number;
   } | null>(null);
   const [saving, setSaving] = useState(false);
   const [failed, setFailed] = useState(false);
@@ -88,16 +89,22 @@ export default function ShelfAction({ series, title, volume }: Props) {
     );
   }
 
-  const owned = manga.volumesOwned ?? 0;
-  const setOwned = async (value: number | null, previous?: number | null) => {
+  const ownsThis = volume != null && owns(manga, volume);
+  const before: Owned = {
+    volumesOwned: manga.volumesOwned,
+    ownedList: manga.ownedList ?? [],
+  };
+  // this volume as theirs (just it: One Piece 1 and 4 stays without 2 and 3),
+  // or, from Undo, back to what it was
+  const setOwned = async (next: Owned, tapped?: number) => {
     setSaving(true);
     setFailed(false);
     try {
-      const saved = await setVolumesOwned(manga.id, value);
-      setMatch({ series, manga: { ...manga, volumesOwned: saved } });
+      const saved = await setVolumesOwned(manga.id, next);
+      setMatch({ series, manga: { ...manga, ...saved } });
       clearTimeout(undoTimer.current);
-      if (previous !== undefined) {
-        setUndo({ previous, volume: value });
+      if (tapped !== undefined) {
+        setUndo({ previous: before, volume: tapped });
         undoTimer.current = setTimeout(() => setUndo(null), UNDO_MS);
       } else {
         setUndo(null);
@@ -117,7 +124,7 @@ export default function ShelfAction({ series, title, volume }: Props) {
         : manga.bookmark
           ? `chapter ${manga.bookmark}`
           : null,
-    owned ? `own up to vol. ${owned}` : null,
+    ownedPhrase(manga) ? `own ${ownedPhrase(manga)}` : null,
   ]
     .filter(Boolean)
     .join(" · ");
@@ -128,12 +135,12 @@ export default function ShelfAction({ series, title, volume }: Props) {
         On your shelf ·{" "}
         <NavLink to={`/details/${manga.id}`}>{progress || "open it"}</NavLink>
       </p>
-      {volume != null && owned < volume ? (
+      {volume != null && !ownsThis ? (
         <button
           type="button"
           className="btn btn-primary"
           disabled={saving}
-          onClick={() => setOwned(volume, manga.volumesOwned ?? null)}
+          onClick={() => setOwned(withVolume(manga, volume), volume)}
         >
           {saving ? "Saving…" : `I own Vol. ${volume}`}
         </button>
@@ -151,7 +158,7 @@ export default function ShelfAction({ series, title, volume }: Props) {
           ? "That didn't save. Try again."
           : undo && (
               <>
-                Shelf updated: you own up to vol. {undo.volume}.{" "}
+                Shelf updated: vol. {undo.volume} is yours.{" "}
                 <button
                   type="button"
                   className={styles.undoBtn}
