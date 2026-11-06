@@ -6,12 +6,7 @@ import {
   type ReleaseOutcome,
 } from "../util/releases/releaseOutcome.js";
 import type { Request, Response } from "express";
-import {
-  body,
-  matchedData,
-  query,
-  validationResult,
-} from "express-validator";
+import { body, matchedData, query, validationResult } from "express-validator";
 import { rejectInvalid } from "../middlewares/validate.js";
 import mangaQueries, {
   type MangaInput,
@@ -246,6 +241,63 @@ const removeMany = [
     const manga = await mangaQueries.deleteManyManga(req.session.userId!, ids);
     // what went, as it was: the undo puts back exactly this
     res.json({ deleted: manga.length, manga });
+  },
+];
+
+// the shelf's Select: several to Finished, To read or Reading at once
+const moveMany = [
+  body("ids")
+    .isArray({ min: 1, max: MOST_DELETED })
+    .withMessage(`Pick between 1 and ${MOST_DELETED} series.`),
+  body("ids.*").isInt({ min: 1 }).toInt(),
+  body("to").isIn(["finished", "planned", "reading"]),
+  rejectInvalid,
+  async (req: Request, res: Response) => {
+    const { ids, to } = matchedData(req);
+    const was = await mangaQueries.moveManyManga(
+      req.session.userId!,
+      [...new Set(ids as number[])],
+      to,
+    );
+    // where they were: the undo puts each back there
+    res.json({ moved: was.length, was });
+  },
+];
+
+// that move's undo, sent in pieces: 10,000 places is more than a request holds
+const MOST_PLACED = 2000;
+const placeMany = [
+  body("places")
+    .isArray({ min: 1, max: MOST_PLACED })
+    .withMessage(`Between 1 and ${MOST_PLACED} series.`),
+  body("places.*.id").isInt({ min: 1 }).toInt(),
+  body("places.*.status").isBoolean({ strict: true }),
+  body("places.*.planned").isBoolean({ strict: true }),
+  body("places.*.bookmark")
+    .optional({ values: "null" })
+    .isInt({ min: 0, max: 100000 })
+    .toInt(),
+  rejectInvalid,
+  async (req: Request, res: Response) => {
+    const places = (
+      matchedData(req).places as {
+        id: number;
+        status: boolean;
+        planned: boolean;
+        bookmark?: number | null;
+      }[]
+    ).map((p) => ({
+      id: p.id,
+      status: p.status,
+      // never both, as everywhere else
+      planned: p.planned && !p.status,
+      bookmark: p.bookmark ?? null,
+    }));
+    const placed = await mangaQueries.placeManyManga(
+      req.session.userId!,
+      places,
+    );
+    res.json({ placed });
   },
 ];
 
@@ -755,6 +807,8 @@ export default {
   remove,
   removeMany,
   restoreMany,
+  moveMany,
+  placeMany,
   setStatus,
   setPlanned,
   setRating,

@@ -1,4 +1,4 @@
-// The shelf's Select: delete several series, and the undo that brings them back
+// The shelf's Select: delete or move several series, and the undos
 import request from "supertest";
 import { app } from "../../app.js";
 import { pool } from "../../config/prisma.js";
@@ -23,8 +23,13 @@ const saved = {
   image: "https://s4.anilist.co/file/a.jpg",
 };
 
-test("both need a sign in", async () => {
-  for (const path of ["/api/manga/delete-many", "/api/manga/restore-many"]) {
+test("all need a sign in", async () => {
+  for (const path of [
+    "/api/manga/delete-many",
+    "/api/manga/restore-many",
+    "/api/manga/move-many",
+    "/api/manga/place-many",
+  ]) {
     const res = await request(app).post(path).send({});
     expect(res.status).toBe(401);
   }
