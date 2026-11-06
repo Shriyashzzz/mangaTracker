@@ -717,8 +717,9 @@
 
 /* ---------- the volume shelf (components/volumeShelf/VolumeShelf.tsx) ----------
    Every volume in one row of fixed size: theirs stand tall in ink, the rest are
-   short and pale. Under the pointer they grow to full size like a magnifier;
-   the far ones give up a little width, so the row always fits, ends included */
+   short and pale. Under the pointer they grow to full size like a magnifier,
+   and the books towards each end squeeze up, so the row always fits with
+   nothing faded or cut off */
 .vshelf-box {
   min-width: 0;
 }
@@ -737,15 +738,6 @@
 .vshelf:focus-visible {
   outline: 2px dashed var(--accent);
   outline-offset: 4px;
-}
-.vshelf[data-live] {
-  mask-image: linear-gradient(
-    to right,
-    transparent,
-    #000 10px,
-    #000 calc(100% - 10px),
-    transparent
-  );
 }
 .vshelf-row {
   position: absolute;
