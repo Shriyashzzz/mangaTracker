@@ -5,7 +5,8 @@
 // Buy it. The DOM follows the laptop's reading order, and `order` does the rest.
 
 // a small ink tag under the title (status, genre)
-const tag = "rounded-[2px] border-[1.5px] px-[0.55rem] py-[0.12rem] text-[0.8rem] font-medium";
+const tag =
+  "rounded-[2px] border-[1.5px] px-[0.55rem] py-[0.12rem] text-[0.8rem] font-medium";
 
 // the shape shared by the buy tickets and the "caught up" note
 const ticket =
@@ -27,6 +28,12 @@ export const detailsStyles = {
   stamp:
     "absolute top-3.5 -right-3 rotate-12 rounded-[4px] border-[2.5px] border-accent bg-paper px-[0.6rem] py-[0.15rem] font-brand text-[1.35rem] tracking-[2px] text-accent upto-720:top-1.5 upto-720:-right-2 upto-720:border-2 upto-720:px-[0.3rem] upto-720:py-0 upto-720:text-[0.85rem]",
 
+  // the title, and their volumes on a shelf beside it. Under it when the
+  // column is narrow; on phones, its own row under the cover and title
+  titleRow:
+    "flex items-end justify-between gap-x-8 gap-y-5 upto-980:flex-col upto-980:items-stretch upto-720:contents",
+  shelf:
+    "min-w-0 flex-[0_1_460px] upto-980:w-full upto-980:flex-none upto-720:order-1 upto-720:col-span-full",
   head: "flex min-w-0 flex-col gap-[0.7rem] upto-720:gap-2 upto-720:self-center",
   title:
     "text-[clamp(2.2rem,4.6vw,3.4rem)] leading-[1.02] font-medium tracking-[-0.025em] text-balance wrap-anywhere upto-720:text-[clamp(1.6rem,7vw,2.2rem)]",
@@ -37,7 +44,8 @@ export const detailsStyles = {
   // the phones' two headings: "Your copy" there, and "Buy it" everywhere
   deskTitle:
     "mb-[0.6rem] font-brand text-[1.4rem] leading-none font-normal tracking-[1px] uppercase",
-  yourCopy: "hidden upto-720:order-2 upto-720:col-span-full upto-720:block upto-720:-mb-1.5",
+  yourCopy:
+    "hidden upto-720:order-2 upto-720:col-span-full upto-720:block upto-720:-mb-1.5",
   progress:
     "font-display text-[1.4rem] leading-[1.3] text-ink-soft upto-720:order-3 upto-720:col-span-full upto-720:text-[1.1rem]",
   // "chapter 140", underlined with a wash of spot colour
@@ -45,7 +53,8 @@ export const detailsStyles = {
     "bg-[linear-gradient(to_top,var(--accent-wash)_0_40%,transparent_40%)] text-ink italic",
   // the chapter you're on, stepped right here. Inked like a panel, and big
   // enough for a thumb
-  stepperWrap: "inline-flex flex-wrap items-center gap-x-3 gap-y-1 align-middle",
+  stepperWrap:
+    "inline-flex flex-wrap items-center gap-x-3 gap-y-1 align-middle",
   stepper:
     "inline-flex items-stretch rounded-ink border-[2.5px] border-line bg-card not-italic",
   stepperBtn:
@@ -57,11 +66,8 @@ export const detailsStyles = {
   // a line under the control it's about: a failed save, or an undo
   actionNote: "w-full text-[0.9rem] text-ink-soft empty:hidden",
   undo: "ml-1 inline-block py-1 font-medium text-ink underline decoration-accent decoration-2 underline-offset-3",
-  // what they own, a quiet aside next to where they are in the story
   // a To read manga: "Not started yet" with its button beside it
   startRow: "inline-flex flex-wrap items-center gap-3",
-  owned:
-    "mt-2 block font-mono text-[0.8rem] whitespace-nowrap text-muted not-italic",
 
   // rating, notes and the buttons
   body: "flex min-w-0 flex-col gap-4 upto-720:order-4 upto-720:col-span-full",
@@ -71,7 +77,8 @@ export const detailsStyles = {
     "min-w-0 animate-card-in motion-reduce:animate-none upto-720:order-1 upto-720:col-span-full",
   releaseBar:
     "relative flex min-h-11.5 flex-wrap items-center gap-x-2.5 gap-y-1.5 rounded-ink border-2 border-line bg-accent px-3 py-2 text-on-accent shadow-ink-lg",
-  releaseBarOpens: "cursor-pointer transition-[filter] duration-120 ease-[ease] hover:brightness-105",
+  releaseBarOpens:
+    "cursor-pointer transition-[filter] duration-120 ease-[ease] hover:brightness-105",
   // the hanko-style stamp knocked onto the bar's top edge, kin to "Done"
   releaseStamp:
     "pointer-events-none absolute -top-5 right-2.5 z-1 upto-720:-top-4 rotate-6 rounded-[4px] border-2 border-accent bg-paper px-[0.35rem] font-brand text-[0.92rem] tracking-[1.5px] text-accent",
@@ -82,12 +89,13 @@ export const detailsStyles = {
   releaseOwned: "font-letter text-[0.82rem] leading-tight font-bold",
   releaseBuy:
     "tap ml-auto inline-flex min-h-8 items-center rounded-[3px] border-[1.5px] border-line bg-on-accent px-2.5 text-[0.86rem] font-semibold whitespace-nowrap text-accent transition-colors duration-120 ease-[ease] hover:bg-card focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-on-accent",
-  releaseChevron: "ml-auto size-4 shrink-0 transition-transform duration-200 ease-ink",
+  releaseChevron:
+    "ml-auto size-4 shrink-0 transition-transform duration-200 ease-ink",
   releaseChevronOpen: "rotate-180",
-  releaseDates:
-    "mr-1 border-2 border-t-0 border-line bg-card px-3.5 pt-2 pb-3",
+  releaseDates: "mr-1 border-2 border-t-0 border-line bg-card px-3.5 pt-2 pb-3",
   // "Out now", "Coming up"
-  releaseGroup: "not-first:mt-3 not-first:border-t not-first:border-dashed not-first:border-line-soft not-first:pt-3",
+  releaseGroup:
+    "not-first:mt-3 not-first:border-t not-first:border-dashed not-first:border-line-soft not-first:pt-3",
   releaseGroupTitle: "mb-1 font-mono text-[0.75rem] font-normal text-muted",
   releaseRow: "flex items-baseline justify-between gap-3 py-0.5",
   releaseWhat: "font-semibold whitespace-nowrap",
@@ -127,7 +135,8 @@ export const detailsStyles = {
     "ml-auto inline-flex flex-wrap items-center gap-x-4 text-[0.9rem] text-ink-soft upto-720:ml-0",
   confirmYes:
     "min-h-11 text-[0.9rem] font-semibold text-accent underline underline-offset-3",
-  confirmNo: "min-h-11 text-[0.9rem] text-ink-soft underline underline-offset-3",
+  confirmNo:
+    "min-h-11 text-[0.9rem] text-ink-soft underline underline-offset-3",
 
   errorState:
     "mx-auto my-12 max-w-[440px] text-center [&_h1]:mb-2 [&_h1]:text-[2rem] [&_h1]:font-medium [&_p]:text-ink-soft",
