@@ -1232,7 +1232,8 @@ function Library() {
       {!showingNew && <AddButton onClick={goToAdd} />}
 
       <ReleaseTip
-        enabled={hasManga && !showingNew}
+        // not over the select bar or the undo note, which share its spot
+        enabled={hasManga && !showingNew && !selecting && !undoShowing}
         onCheck={() => {
           setStatusFilter("new");
           writeSession("libraryStatus", "new");
