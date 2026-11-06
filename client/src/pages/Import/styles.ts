@@ -54,7 +54,9 @@ export const importStyles = {
   usernameInput:
     "min-h-11 min-w-0 flex-[1_1_14rem] border-[2.5px] border-line bg-paper px-3 text-[1rem] text-ink outline-none focus-visible:border-accent",
   source:
-    "tap min-h-11 border-[2.5px] border-line bg-card px-2 py-2 text-[0.92rem] font-medium leading-tight transition-colors duration-150 hover:bg-accent-wash aria-pressed:bg-ink aria-pressed:text-paper",
+    "tap min-h-11 border-[2.5px] border-line bg-card px-2 py-2 text-[0.92rem] font-medium leading-tight transition-colors duration-150 hover:bg-accent-wash aria-pressed:bg-ink aria-pressed:text-paper disabled:cursor-not-allowed disabled:opacity-45 disabled:hover:bg-card",
+  // under the apps while an import is running
+  lockNote: "-mt-1 text-[0.85rem] text-ink-soft",
   // Select all / Clear all, above the list's right edge
   listTools: "mt-3 flex justify-end",
   selectAll:
