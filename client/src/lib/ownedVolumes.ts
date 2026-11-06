@@ -43,6 +43,22 @@ export const ownsAny = (m: Owned) =>
 export const ownedCount = (m: Owned) =>
   m.ownedList?.length || m.volumesOwned || 0;
 
+// the furthest volume they own (0 for none)
+export const highestOwned = (m: Owned) => Math.max(0, ...ownedOf(m));
+
+// the volume they need next, of the ones out: the first whole one after the
+// furthest they own. A gap before it doesn't count: someone who owns 2 and 5
+// read 3 and 4 somewhere, so it's 6. Null when they own none, or have the newest
+export function nextToGet(m: Owned, out: number[]): number | null {
+  const highest = highestOwned(m);
+  if (!highest) return null;
+  return (
+    out
+      .filter((v) => v > highest && Number.isInteger(v))
+      .sort((a, b) => a - b)[0] ?? null
+  );
+}
+
 export const owns = (m: Owned, volume: number) =>
   m.ownedList?.length
     ? m.ownedList.includes(volume)

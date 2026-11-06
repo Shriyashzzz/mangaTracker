@@ -2,6 +2,8 @@
 import { ownedVolumes as onServer } from "../../util/shelf/ownedList.js";
 import { toMangaInput } from "../../util/shelf/malEntry.js";
 import {
+  highestOwned,
+  nextToGet,
   ownedOf,
   ownedPhrase,
   ownedVolumes as inBrowser,
@@ -103,4 +105,22 @@ test("keeping a saved list hands back only the two volume fields", async () => {
   // a whole shelf row, as the edit handler has it
   const row = { id: 7, userId: 1, name: "One Piece", volumesOwned: 6, ownedList: [1, 4, 6] };
   expect(keepSavedList(row, { volumesOwned: 6 }, "edit")).toEqual({ volumesOwned: 6, ownedList: [1, 4, 6] });
+});
+
+test("next for you is the one after the furthest they own", () => {
+  const out = [1, 2, 3, 4, 5, 6, 7, 7.5, 8];
+  // only 2: not 1, which they read somewhere
+  expect(nextToGet({ volumesOwned: 2, ownedList: [2] }, out)).toBe(3);
+  // a gap before the furthest doesn't count
+  expect(nextToGet({ volumesOwned: 5, ownedList: [2, 5] }, out)).toBe(6);
+  // a run from 1
+  expect(nextToGet({ volumesOwned: 4, ownedList: [] }, out)).toBe(5);
+  // a half isn't next, and a half owned still moves them on
+  expect(nextToGet({ volumesOwned: 7, ownedList: [] }, out)).toBe(8);
+  expect(nextToGet({ volumesOwned: 6, ownedList: [6.5] }, out)).toBe(7);
+  // none owned, or the newest owned: nothing next
+  expect(nextToGet({ volumesOwned: null, ownedList: [] }, out)).toBeNull();
+  expect(nextToGet({ volumesOwned: 8, ownedList: [] }, out)).toBeNull();
+  expect(highestOwned({ volumesOwned: 5, ownedList: [2, 5] })).toBe(5);
+  expect(highestOwned({ volumesOwned: null, ownedList: [] })).toBe(0);
 });

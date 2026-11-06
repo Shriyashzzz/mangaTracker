@@ -5,7 +5,7 @@
 // big book to tick, and slides to move along. A series short enough to hit
 // with a finger ticks with one tap. On a touch screen, a series whose books
 // would be thinner than a finger shows a page of full-size books instead,
-// starting near the next one they need, with ‹ › to move along: one tap ticks.
+// starting near the one after the furthest they own, with ‹ › to move along: one tap ticks.
 // The shelf never changes size, so nothing around it moves. Looks: index.css,
 // "the volume shelf".
 import {
@@ -180,12 +180,12 @@ export default function VolumeShelf({ total, owned, onToggle, name }: Props) {
   if (paged) {
     const perPage = Math.max(5, Math.floor((width - 2 * NAV) / BOOK));
     const lastStart = Math.max(1, total - perPage + 1);
-    // near the first one they don't have yet, with a couple of theirs before it
-    let firstMissing = 1;
-    while (firstMissing <= total && yours.has(firstMissing)) firstMissing++;
+    // near the one after the furthest they own (what Buy it calls next),
+    // with a couple before it
+    const nextUp = Math.floor(Math.max(0, ...owned)) + 1;
     const from = Math.min(
       lastStart,
-      Math.max(1, pageStart ?? Math.min(firstMissing, total) - 2),
+      Math.max(1, pageStart ?? Math.min(nextUp, total) - 2),
     );
     const to = Math.min(total, from + perPage - 1);
     const page = Array.from({ length: to - from + 1 }, (_, i) => from + i);
