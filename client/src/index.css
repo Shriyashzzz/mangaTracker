@@ -27,7 +27,16 @@
 @custom-variant short-laptop (@media (min-width: 761px) and (max-height: 720px));
 
 /* dark mode follows <html data-theme="dark"> (set from settings), else the OS */
-@custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
+@custom-variant dark {
+  &:where([data-theme="dark"], [data-theme="dark"] *) {
+    @slot;
+  }
+  @media (prefers-color-scheme: dark) {
+    &:where(:root:not([data-theme]) *, :root:not([data-theme])) {
+      @slot;
+    }
+  }
+}
 
 /* ---------- 1. tokens ---------- */
 :root {
@@ -786,7 +795,8 @@
     border-color 0.18s;
 }
 .vshelf-book[data-small] i {
-  font-size: 0.6rem;
+  font-size: 0.7rem;
+  letter-spacing: -0.02em;
 }
 .vshelf-book[data-own] i {
   height: 54px;

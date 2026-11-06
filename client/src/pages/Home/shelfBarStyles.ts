@@ -1,17 +1,25 @@
-// The shelf's bar (ShelfBar.tsx). Pinned under the header as the old tab row
-// was; one line on every screen. The title is the brand lettering; New is a
+// The shelf's bar (ShelfBar.tsx). Pinned under the header; a row of tabs on
+// wider screens (search and sort wrap under it when there's no room), one
+// line with a view menu on phones. The title is the brand lettering; New is a
 // red sticker like the old New stamp; menus are the account menu's ink card
 const card =
   "absolute top-[calc(100%+10px)] z-30 rounded-ink border-[2.5px] border-line bg-card p-1.5 shadow-[0_14px_30px_-14px_rgba(20,14,8,0.45)] animate-drop motion-reduce:animate-none";
-const lead = "flex min-w-0 shrink-0 items-center gap-3 upto-520:gap-2";
+// phones only: wider screens have the tab row instead
+const lead =
+  "flex min-w-0 shrink-0 items-center gap-3 upto-520:gap-2 min-[721px]:hidden";
 const search =
   "min-h-11 min-w-0 flex-1 items-center gap-2 border-b-[1.5px] border-dashed border-line-soft py-1 text-muted transition-[border-color] duration-200 focus-within:border-solid focus-within:border-accent [&_svg]:size-4 [&_svg]:shrink-0 [&_input]:min-w-0 [&_input]:flex-1 [&_input]:border-none [&_input]:bg-transparent [&_input]:text-[0.95rem] [&_input]:text-ink [&_input]:outline-none [&_input]:placeholder:text-muted upto-760:[&_input]:text-[1rem]";
 
 export const shelfBarStyles = {
-  bar: "sticky top-0 z-5 -mx-3 mb-9 flex items-center gap-6 border-b-[1.5px] border-line bg-[var(--surface,var(--paper))] px-3 py-[0.65rem] upto-520:mb-5 upto-520:gap-2 upto-520:py-[0.4rem] [&+nav]:-mt-4",
+  bar: "sticky top-0 z-5 -mx-3 mb-9 flex flex-wrap items-center gap-x-6 gap-y-2 border-b-[1.5px] border-line bg-[var(--surface,var(--paper))] px-3 py-[0.65rem] upto-520:mb-5 upto-520:gap-2 upto-520:py-[0.4rem] [&+nav]:-mt-4",
   lead,
   // phones: while searching, the search takes the title's place
   leadSearching: `${lead} upto-520:hidden`,
+
+  // the views, side by side: the one you're on inked and underlined
+  tabs: "mr-auto hidden min-w-0 flex-wrap items-baseline gap-x-6 gap-y-1 min-[721px]:flex",
+  tab: "tap group flex items-baseline gap-1.5 pt-1 pb-1.5 text-ink-soft shadow-[inset_0_-3px_0_transparent] transition-[color,box-shadow] duration-150 ease-ink hover:text-ink aria-[current=page]:text-ink aria-[current=page]:shadow-[inset_0_-3px_0_var(--accent)]",
+  tabWord: "font-brand text-[1.5rem] leading-none tracking-[0.03em] uppercase",
 
   menuWrap: "relative min-w-0",
   title: "tap group flex min-w-0 items-baseline gap-2 text-left",
@@ -33,8 +41,8 @@ export const shelfBarStyles = {
     "tap inline-flex shrink-0 -rotate-[4deg] items-center gap-0.5 border-[1.5px] border-line bg-card py-[0.15rem] pr-2 pl-1 font-brand text-[1rem] leading-none tracking-[0.04em] text-ink uppercase shadow-ink transition-transform duration-150 ease-ink hover:rotate-0",
   backArrow: "size-4 shrink-0",
 
-  search: `hidden ${search} min-[521px]:flex`,
-  searchOpen: `flex ${search}`,
+  search: `hidden ${search} min-[521px]:flex min-[721px]:min-w-56`,
+  searchOpen: `flex ${search} min-[721px]:min-w-56`,
   searchClose:
     "tap grid size-8 shrink-0 place-items-center text-muted hover:text-ink [&_svg]:size-4",
   magnifier:

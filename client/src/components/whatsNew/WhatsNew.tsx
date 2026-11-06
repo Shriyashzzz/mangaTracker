@@ -1,6 +1,6 @@
 // The "what's new" list, out in the empty margin right of the page so the page
 // itself keeps its full width. Screens without that margin get ReleaseTip
-// instead (same 1340px line), so every screen hears about it exactly one way.
+// instead (same 1500px line: narrower margins left it too cramped), so every screen hears about it exactly one way.
 import type { ReactNode } from "react";
 import { NavLink } from "react-router";
 import { useReleaseChecksOn } from "../../lib/prefs";
@@ -27,7 +27,7 @@ export default function WhatsNew({ children }: { children?: ReactNode }) {
   return (
     // as wide as the margin allows: half the space beside the page's content,
     // less the gap either side
-    <div className="absolute top-0 left-full ml-4 flex w-[min(250px,calc((100vw_-_var(--container-page)_+_2_*_var(--gutter))_/_2_-_28px))] flex-col gap-4 max-[1339px]:hidden">
+    <div className="absolute top-0 left-full ml-4 flex w-[min(250px,calc((100vw_-_var(--container-page)_+_2_*_var(--gutter))_/_2_-_28px))] flex-col gap-4 max-[1499px]:hidden">
       {children}
       <aside
         className="relative border-[2.5px] border-dashed border-line bg-card px-3 py-3"

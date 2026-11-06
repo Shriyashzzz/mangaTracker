@@ -10,6 +10,7 @@ import {
   formatCents,
   getVolume,
   hideBrokenCover,
+  hidePlaceholderCover,
   volumePath,
   seriesPath,
   seriesTitle,
@@ -230,6 +231,7 @@ export default function PriceVolume() {
               src={coverSrc(book.coverUrl)}
               alt={book.title}
               onError={hideBrokenCover}
+              onLoad={hidePlaceholderCover}
             />
           )}
         </figure>

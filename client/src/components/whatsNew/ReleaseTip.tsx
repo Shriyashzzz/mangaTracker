@@ -9,12 +9,15 @@ import { isDemo } from "../../lib/demo";
 import { CHECKED_BEFORE_KEY, openReleasesOnShelf } from "../../lib/shelf";
 import { useAuth } from "../../store/auth";
 import Mascot from "../mascot/Mascot";
+import { hasBottomBar } from "../../lib/bottomBar";
 
 const SEEN_KEY = "releaseTipSeen";
 const SHOW_AFTER_MS = 2500;
+// phones: how far down they've scrolled before it offers
+const SCROLLED = 160;
 const LEAVE_AFTER_MS = 20_000;
 // wider screens have room for the WhatsNew list instead
-const SMALL_SCREEN = "(max-width: 1339px)";
+const SMALL_SCREEN = "(max-width: 1499px)";
 
 type Props = {
   // false while it would be in the way, or already pointless
@@ -35,7 +38,9 @@ export default function ReleaseTip({ enabled, onCheck }: Props) {
     const seen = readLocal(SEEN_KEY);
     if (seen === "yes" || readLocal(CHECKED_BEFORE_KEY)) return;
 
-    const timer = setTimeout(() => {
+    // on phones it waits until they've scrolled a little, so it doesn't sit
+    // on whatever's first on screen (the landing's price search)
+    const show = () => {
       // mid-typing is a bad moment; a later visit can try again
       const active = document.activeElement;
       if (active instanceof HTMLInputElement && active.value) return;
@@ -43,8 +48,26 @@ export default function ReleaseTip({ enabled, onCheck }: Props) {
       if (document.querySelector(".support-peek")) return;
       writeLocal(SEEN_KEY, seen === "once" ? "yes" : "once");
       setOpen(true);
-    }, SHOW_AFTER_MS);
-    return () => clearTimeout(timer);
+    };
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const later = () => {
+      clearTimeout(timer);
+      timer = setTimeout(show, SHOW_AFTER_MS);
+    };
+    if (!hasBottomBar()) {
+      later();
+      return () => clearTimeout(timer);
+    }
+    const onScroll = () => {
+      if (window.scrollY < SCROLLED) return;
+      window.removeEventListener("scroll", onScroll);
+      later();
+    };
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => {
+      clearTimeout(timer);
+      window.removeEventListener("scroll", onScroll);
+    };
   }, [enabled, isSignedIn, checksOn]);
 
   useEffect(() => {

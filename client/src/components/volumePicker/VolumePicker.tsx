@@ -50,7 +50,12 @@ function fullRuns(list: number[]): Run[] {
   return runs;
 }
 
-export function useVolumePicker(start: Start): {
+export function useVolumePicker(
+  start: Start,
+  // how many volumes are out, when known: no spines past it, and the count
+  // says "of 113"
+  out?: number | null,
+): {
   field: ReactNode;
   // the edit form's manga arrives after the page: start from it
   reset: (to: Start) => void;
@@ -204,8 +209,9 @@ export function useVolumePicker(start: Start): {
     setShown(Math.max(FIRST_SHOWN, roundUp(n + 1)));
   };
 
+  const limit = out && out > 0 ? Math.max(out, Math.ceil(top)) : Infinity;
   const spines = Array.from(
-    { length: Math.max(shown, Math.ceil(top)) },
+    { length: Math.min(limit, Math.max(shown, Math.ceil(top))) },
     (_, i) => i + 1,
   );
   // Enter or Space on a spine (pointers are the shelf's)
@@ -307,17 +313,21 @@ export function useVolumePicker(start: Start): {
       <div className={styles.foot}>
         <p className={styles.said} aria-live="polite">
           {owned.length
-            ? `${owned.length} owned · ${rangesText(owned)}`
-            : "None picked yet"}
+            ? `${owned.length} owned${limit < Infinity ? ` of ${limit}` : ""} · ${rangesText(owned)}`
+            : limit < Infinity
+              ? `None picked yet · ${limit} out`
+              : "None picked yet"}
         </p>
         <span className={styles.footActions}>
-          <button
-            type="button"
-            className={styles.clear}
-            onClick={() => setShown((n) => n + MORE)}
-          >
-            +{MORE} more
-          </button>
+          {spines.length < limit && (
+            <button
+              type="button"
+              className={styles.clear}
+              onClick={() => setShown((n) => n + MORE)}
+            >
+              +{Math.min(MORE, limit - spines.length)} more
+            </button>
+          )}
           {owned.length > 0 && (
             <button
               type="button"

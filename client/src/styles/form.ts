@@ -17,7 +17,8 @@ export const formStyles = {
     "mb-4 flex flex-wrap items-end justify-between gap-x-8 gap-y-2 short-laptop:mb-[0.85rem] short-laptop:[&>div]:flex short-laptop:[&>div]:items-baseline short-laptop:[&>div]:gap-5",
   backLink:
     "tap mb-[0.15rem] inline-block text-[0.85rem] text-muted underline-offset-3 hover:text-ink hover:underline short-laptop:mb-0",
-  formTitle: "font-brand font-normal uppercase tracking-[0.02em] text-[clamp(1.9rem,3.4vw,2.3rem)] leading-[1.05] font-medium",
+  formTitle:
+    "font-brand font-normal uppercase tracking-[0.02em] text-[clamp(1.9rem,3.4vw,2.3rem)] leading-[1.05] font-medium",
   formSub:
     "max-w-sm text-[0.95rem] leading-[1.45] text-ink-soft short-laptop:hidden",
 
@@ -52,12 +53,18 @@ export const formStyles = {
   textarea: `${input} h-auto min-h-16 flex-1 resize-y px-[0.85rem] py-[0.7rem] leading-[1.6]`,
   select: `${input} select-chevron cursor-pointer pr-[2.2rem]`,
 
-  // status choice: two radio "tickets". The radios are hidden; each label
-  // after a checked radio is inked in
+  // status choice: radio "tickets". The radios are hidden; each label after
+  // a checked radio is inked in. The others are plain paper with a solid
+  // edge, so they read as choices rather than disabled
   segmented:
     "flex gap-3 [&>input]:pointer-events-none [&>input]:absolute [&>input]:opacity-0",
   segmentLabel:
-    "flex h-10 flex-1 cursor-pointer items-center justify-center rounded-[2px] border-[1.5px] border-dashed border-line-soft text-[0.92rem] font-medium text-muted transition-[color,border-color,background-color] duration-120 ease-[ease] hover:border-line hover:text-ink [input:checked+&]:border-solid [input:checked+&]:border-line [input:checked+&]:bg-ink [input:checked+&]:text-paper [input:focus-visible+&]:outline-2 [input:focus-visible+&]:outline-offset-3 [input:focus-visible+&]:outline-accent [input:focus-visible+&]:outline-dashed",
+    "flex h-11 flex-1 cursor-pointer items-center justify-center rounded-[2px] border-[1.5px] border-line-soft bg-paper text-center text-[0.92rem] leading-tight font-medium text-ink-soft transition-[color,border-color,background-color] duration-120 ease-[ease] hover:border-line hover:text-ink [input:checked+&]:border-line [input:checked+&]:bg-ink [input:checked+&]:text-paper [input:focus-visible+&]:outline-2 [input:focus-visible+&]:outline-offset-3 [input:focus-visible+&]:outline-accent [input:focus-visible+&]:outline-dashed",
+
+  // under the field it's about, in the app's own words
+  fieldError: "text-[0.85rem] font-medium text-accent",
+  invalid:
+    "border-accent shadow-[3px_3px_0_var(--accent-wash)] focus:shadow-[3px_3px_0_var(--accent)]",
 
   errorList:
     "flex flex-col gap-1 border-[1.5px] border-accent bg-accent-wash px-[0.95rem] py-[0.7rem] text-[0.9rem] text-accent",

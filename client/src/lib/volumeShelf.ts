@@ -12,7 +12,7 @@ const SPREAD = 2.6;
 // a finger hits a book this wide without help: one tap ticks it
 export const TAPPABLE = 14;
 // wide enough for its number, and for room between books
-export const NUMBERED = 13;
+export const NUMBERED = 15;
 export const SPACED = 5;
 
 // squeezes books into `room` px, keeping each at least `thinnest` wide

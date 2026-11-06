@@ -131,9 +131,10 @@ export default function PriceSearch() {
               {country === "ca" ? "stores in Canada" : "US stores"} charge for
               each volume.
             </p>
-            <p className="flex flex-wrap items-center gap-2 text-[0.9rem] text-ink-soft">
+            {/* a div: the switch is a group of buttons, which a <p> can't hold */}
+            <div className="flex flex-wrap items-center gap-2 text-[0.9rem] text-ink-soft">
               <CountrySwitch />
-            </p>
+            </div>
 
             <SeriesSearchBox
               initialQuery={query}

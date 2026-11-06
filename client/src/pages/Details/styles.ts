@@ -22,6 +22,9 @@ export const detailsStyles = {
   side: "col-start-1 row-start-1 flex min-w-0 flex-col gap-[1.4rem] upto-720:contents",
   cover:
     "relative aspect-2/3 w-full upto-720:order-first [&_img]:size-full [&_img]:border-[1.5px] [&_img]:border-line [&_img]:bg-paper-2 [&_img]:object-cover [&_img]:shadow-[6px_6px_0_var(--hard-shadow)] upto-720:[&_img]:shadow-ink-lg",
+  // the cover drawn from the name, framed like the image would be
+  drawnCover:
+    "border-[1.5px] border-line shadow-[6px_6px_0_var(--hard-shadow)] upto-720:shadow-ink-lg",
   // the real cover leans a little; its loading skeleton doesn't
   coverTilt: "-rotate-[1.2deg] upto-720:rotate-0",
   // hanko-style "Done" stamp
@@ -32,8 +35,10 @@ export const detailsStyles = {
   // column is narrow; on phones, its own row under the cover and title
   titleRow:
     "flex items-end justify-between gap-x-8 gap-y-5 upto-980:flex-col upto-980:items-stretch upto-720:contents",
-  // halves and specials, which aren't books on the shelf
-  offShelf: "mt-1.5 font-mono text-[0.8rem] text-muted",
+  // under the shelf: "9 of 113", halves and specials, and how it works
+  // until they've tried it
+  shelfCaption:
+    "mt-1.5 flex flex-wrap justify-between gap-x-4 font-mono text-[0.8rem] text-muted",
   shelf:
     "min-w-0 flex-[0_1_460px] upto-980:w-full upto-980:flex-none upto-720:order-1 upto-720:col-span-full",
   head: "flex min-w-0 flex-col gap-[0.7rem] upto-720:gap-2 upto-720:self-center",
@@ -132,7 +137,7 @@ export const detailsStyles = {
   actions:
     "flex flex-wrap items-center gap-[0.85rem] upto-720:[&>.btn-primary]:flex-1 upto-720:[&>.btn-secondary]:flex-1",
   // apart from the everyday actions, so a thumb can't catch it by accident
-  deleteBtn: "ml-auto hover:enabled:text-accent upto-720:ml-0",
+  deleteBtn: "ml-auto hover:enabled:text-accent upto-720:ml-0 upto-720:px-0",
   confirm:
     "ml-auto inline-flex flex-wrap items-center gap-x-4 text-[0.9rem] text-ink-soft upto-720:ml-0",
   confirmYes:

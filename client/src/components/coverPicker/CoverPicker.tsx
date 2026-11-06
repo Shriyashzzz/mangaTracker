@@ -84,6 +84,11 @@ export default function CoverPicker({
     touched.current = true;
     onChange(url, match);
   };
+  // the link box holds a link they pasted, not the address of a cover picked
+  // from AniList (or saved with the manga)
+  const [pasted, setPasted] = useState(
+    () => Boolean(value) && !/anilist\.co|myanimelist|kitsu/i.test(value),
+  );
 
   const hasImage = Boolean(bigCover) && !broken;
 
@@ -184,7 +189,11 @@ export default function CoverPicker({
                   "group/thumb relative block cursor-pointer focus-visible:outline-none",
                   selected && "tick-corner",
                 )}
-                onClick={() => (selected ? pick("") : pick(r.cover, r))}
+                onClick={() => {
+                  setPasted(false);
+                  if (selected) pick("");
+                  else pick(r.cover, r);
+                }}
               >
                 <img
                   src={r.cover}
@@ -209,8 +218,11 @@ export default function CoverPicker({
           type="url"
           name="image"
           placeholder="or paste an image link"
-          value={value}
-          onChange={(e) => pick(e.target.value)}
+          value={pasted ? value : ""}
+          onChange={(e) => {
+            setPasted(Boolean(e.target.value));
+            pick(e.target.value);
+          }}
           className="h-11 w-full rounded-[2px] border-[1.5px] border-line-soft bg-paper px-[0.6rem] text-[0.8rem] upto-760:text-[1rem] transition-[border-color,box-shadow] duration-120 ease-[ease] placeholder:text-muted placeholder:opacity-85 focus:border-line focus:shadow-[3px_3px_0_var(--accent)] focus:outline-none"
         />
       </label>

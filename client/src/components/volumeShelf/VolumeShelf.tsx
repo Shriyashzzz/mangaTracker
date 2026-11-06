@@ -193,7 +193,7 @@ export default function VolumeShelf({ total, owned, onToggle, name }: Props) {
                 data-size={
                   w >= NUMBERED ? "wide" : w >= SPACED ? "mid" : undefined
                 }
-                data-small={w < 17 || undefined}
+                data-small={w < 18 || undefined}
                 data-lit={lit === v || undefined}
                 data-pop={popped === v || undefined}
               >

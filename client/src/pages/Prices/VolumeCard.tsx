@@ -3,6 +3,7 @@ import {
   coverSrc,
   formatCents,
   hideBrokenCover,
+  hidePlaceholderCover,
   novelParts,
   volumePath,
 } from "../../lib/prices";
@@ -31,6 +32,7 @@ export function CoverFallback({
           alt=""
           loading="lazy"
           onError={hideBrokenCover}
+          onLoad={hidePlaceholderCover}
         />
       )}
     </span>
@@ -77,6 +79,7 @@ export default function VolumeCard({
             alt=""
             loading="lazy"
             onError={hideBrokenCover}
+            onLoad={hidePlaceholderCover}
           />
         )}
         {volume != null && (
