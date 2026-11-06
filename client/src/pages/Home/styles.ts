@@ -98,7 +98,7 @@ export const homeStyles = {
   releaseNote: "text-[0.85rem] text-ink-soft",
   releaseAside: "flex flex-1 flex-wrap items-center gap-x-5 gap-y-1",
   // together at the far right of the row
-  // wraps rather than running off a small phone when the counts are long
+  // wraps rather than running off a small phone
   releaseLinks:
     "ml-auto flex flex-wrap items-center justify-end gap-x-5 gap-y-1",
   hiddenToggle:
@@ -136,6 +136,8 @@ export const homeStyles = {
   checkText: "text-[0.85rem] text-ink-soft",
   checkAside: "mt-1 block text-pretty",
   checkInline: "mb-7 flex flex-col gap-1.5",
+  // under the bar: how far the check is, and Hide all on the right
+  checkRow: "flex flex-wrap items-center justify-between gap-x-4 gap-y-1",
   checkCentre:
     "mx-auto flex min-h-[34dvh] max-w-[300px] flex-col items-center justify-center gap-2.5 text-center",
   checkTitle: "font-display text-[1.25rem] text-ink-soft",

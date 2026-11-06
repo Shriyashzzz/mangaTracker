@@ -345,9 +345,18 @@ function Library() {
     };
   }, [mangaData, releases]);
 
-  // nothing left hidden, so there's no list to be on
+  // nothing left hidden, so there's no list to be on. Opened straight onto it,
+  // the check has to finish first to know what's hidden; once it's been shown,
+  // emptying it leaves at once. Otherwise ?view=hidden stays, and the next card
+  // hidden brings the list back holding just that one
+  const sawHidden = useRef(false);
   useEffect(() => {
-    if (wantHidden && allChecked && hiddenCount === 0) {
+    if (viewingHidden) sawHidden.current = true;
+  }, [viewingHidden]);
+  useEffect(() => {
+    if (!wantHidden) sawHidden.current = false;
+    else if (hiddenCount === 0 && (allChecked || sawHidden.current)) {
+      sawHidden.current = false;
       navigator("/shelf", { replace: true });
     }
   }, [wantHidden, allChecked, hiddenCount, navigator]);
@@ -1029,15 +1038,6 @@ function Library() {
               >
                 How this works
               </NavLink>
-              {!viewingHidden && visibleManga.length > 0 && (
-                <button
-                  type="button"
-                  className={styles.hiddenToggle}
-                  onClick={hideAll}
-                >
-                  Hide all {visibleManga.length}
-                </button>
-              )}
               {hiddenCount > 0 && !viewingHidden && (
                 <button
                   type="button"
@@ -1048,28 +1048,52 @@ function Library() {
                 </button>
               )}
               {viewingHidden && (
-                <button
-                  type="button"
-                  className={styles.hiddenToggle}
-                  onClick={unhideAll}
-                >
-                  Unhide all
-                </button>
+                <>
+                  <button
+                    type="button"
+                    className={styles.hiddenToggle}
+                    onClick={unhideAll}
+                  >
+                    Unhide all
+                  </button>
+                  {/* back to what's new, without a stop here on the way back */}
+                  <button
+                    type="button"
+                    className={styles.hiddenToggle}
+                    onClick={() => navigator("/shelf", { replace: true })}
+                  >
+                    Back to new
+                  </button>
+                </>
               )}
             </div>
           </div>
         </div>
       )}
 
-      {/* a thin line above the cards once there are some; with none yet it
-          sits in the middle of the page, where the cards will be */}
-      {checking && visibleManga.length > 0 && (
+      {/* a thin line above the cards once there are some, staying full once
+          the check's done, with Hide all under it. With no cards yet it sits
+          in the middle of the page, where the cards will be */}
+      {showingNew && visibleManga.length > 0 && (
         <div className={styles.checkInline}>
           {progress}
-          <p className={styles.checkText} aria-live="polite">
-            Checking {checked} of {total}
-            {bigShelfNote && ` · ${bigShelfNote}`}
-          </p>
+          <div className={styles.checkRow}>
+            <p className={styles.checkText} aria-live="polite">
+              {checking
+                ? `Checking ${checked} of ${total}`
+                : `All ${total} checked`}
+              {checking && bigShelfNote && ` · ${bigShelfNote}`}
+            </p>
+            {!viewingHidden && (
+              <button
+                type="button"
+                className={styles.hiddenToggle}
+                onClick={hideAll}
+              >
+                Hide all {visibleManga.length}
+              </button>
+            )}
+          </div>
         </div>
       )}
 
