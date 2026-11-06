@@ -537,20 +537,27 @@ function Library() {
     );
   };
 
-  const handleSeen = async (m: Manga) => {
+  // what "Hide" on its card hides up to: everything that's out when the card
+  // lists it all, otherwise the one it shows
+  const newestOf = (m: Manga) => {
     const kind = SEEN_KIND[releaseKind];
     const found = releases[m.id];
     const grouped = isGrouped(m);
-    const newest =
-      kind === "volume"
+    return kind === "volume"
+      ? grouped
+        ? found?.latestVolume
+        : found?.nextVolume
+      : kind === "chapter"
         ? grouped
-          ? found?.latestVolume
-          : found?.nextVolume
-        : kind === "chapter"
-          ? grouped
-            ? found?.latestChapter
-            : found?.nextChapter
-          : found?.latestJapaneseVolume;
+          ? found?.latestChapter
+          : found?.nextChapter
+        : found?.latestJapaneseVolume;
+  };
+
+  const handleSeen = async (m: Manga) => {
+    const kind = SEEN_KIND[releaseKind];
+    const grouped = isGrouped(m);
+    const newest = newestOf(m);
     if (newest == null) return;
     const previous = seenOf(m, kind);
     const previousList = m.hiddenVolumes ?? [];
@@ -631,6 +638,46 @@ function Library() {
         previous: null,
         previousList: [],
         restored: true,
+        others,
+      });
+    } else {
+      setSeenFailed(true);
+    }
+  };
+
+  // every card shown, hidden as its own "Hide" would. The undo puts each back
+  // as it was
+  const hideAll = async () => {
+    const kind = SEEN_KIND[releaseKind];
+    const series = visibleManga.flatMap((m) => {
+      const newest = newestOf(m);
+      return newest == null ? [] : [{ m, newest, grouped: isGrouped(m) }];
+    });
+    if (!series.length) return;
+    const others = series.map(({ m }) => ({
+      id: m.id,
+      previous: seenOf(m, kind),
+      previousList: m.hiddenVolumes ?? [],
+    }));
+    setSeenFailed(false);
+    const saved = await Promise.all(
+      series.map(({ m, newest, grouped }) =>
+        markSeen(
+          m.id,
+          kind,
+          newest,
+          kind === "volume" && grouped ? [] : undefined,
+        ),
+      ),
+    );
+    if (saved.every(Boolean)) {
+      setHidden({
+        id: 0,
+        name:
+          series.length === 1 ? series[0]!.m.name : `${series.length} series`,
+        kind,
+        previous: null,
+        previousList: [],
         others,
       });
     } else {
@@ -982,6 +1029,15 @@ function Library() {
               >
                 How this works
               </NavLink>
+              {!viewingHidden && visibleManga.length > 0 && (
+                <button
+                  type="button"
+                  className={styles.hiddenToggle}
+                  onClick={hideAll}
+                >
+                  Hide all {visibleManga.length}
+                </button>
+              )}
               {hiddenCount > 0 && !viewingHidden && (
                 <button
                   type="button"
