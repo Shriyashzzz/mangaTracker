@@ -21,7 +21,7 @@ const GAP_MS = 2500;
 const MAX_QUEUE = 2000;
 
 export type Search = { name: string; lightNovel: boolean; exactOnly: boolean };
-export type Told = Search & { anilistId: number };
+type Told = Search & { anilistId: number };
 export type SharedMatch = {
   anilistId: number;
   malId: number | null;
@@ -92,9 +92,7 @@ export async function knownMatches(searches: Search[]) {
   });
 }
 
-export async function saveMatches(
-  rows: { search: Search; match: SharedMatch }[],
-) {
+async function saveMatches(rows: { search: Search; match: SharedMatch }[]) {
   for (const { search, match } of rows) {
     const key = matchKey(search.name, search.lightNovel, search.exactOnly);
     const row = { ...match, checkedAt: new Date() };
@@ -124,7 +122,7 @@ const MEDIA_BY_IDS = `
   }
 `;
 
-export async function mediaByIds(ids: number[]): Promise<Media[]> {
+async function mediaByIds(ids: number[]): Promise<Media[]> {
   const res = await fetch("https://graphql.anilist.co", {
     method: "POST",
     headers: { "Content-Type": "application/json", Accept: "application/json" },

@@ -12,11 +12,11 @@ export type RangeMode = "next" | "within" | "all";
 export type ReleaseRange = { mode: RangeMode; within: number };
 export type ReleaseSettings = { volumes: ReleaseRange; chapters: ReleaseRange };
 
-export const MAX_WITHIN = { volumes: 10, chapters: 50 } as const;
+const MAX_WITHIN = { volumes: 10, chapters: 50 } as const;
 
 // a little room for chapters: someone nearly caught up shouldn't drop off the list
 // because a couple came out at once. A volume can be bought however old it is
-export const DEFAULT_RELEASE_SETTINGS: ReleaseSettings = {
+const DEFAULT_RELEASE_SETTINGS: ReleaseSettings = {
   volumes: { mode: "next", within: 3 },
   chapters: { mode: "within", within: 3 },
 };

@@ -2,7 +2,7 @@
 
 export type Format = "print" | "ebook";
 // "marketplace" = a resale site (eBay sellers, Mercari, ...), mostly used
-export type Condition = "new" | "used" | "marketplace";
+type Condition = "new" | "used" | "marketplace";
 
 // one store's price for one volume, as a provider reports it
 export type Offer = {
@@ -16,7 +16,7 @@ export type Offer = {
 };
 
 // what providers get to know about the volume being priced
-export type BookRef = { isbn13: string; title: string };
+type BookRef = { isbn13: string; title: string };
 
 // a price source. Each switches itself on when its keys are in .env
 export interface Provider {

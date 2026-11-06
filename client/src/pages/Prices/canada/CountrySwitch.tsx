@@ -4,8 +4,6 @@ import { savePrefs, useCountry } from "../../../lib/prefs";
 import { useAuth } from "../../../store/auth";
 import { pricesStyles as styles } from "../styles";
 
-export type Country = "us" | "ca";
-
 export default function CountrySwitch() {
   const isSignedIn = useAuth((s) => s.isSignedIn);
   const country = useCountry();

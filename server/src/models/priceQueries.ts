@@ -19,16 +19,16 @@ import type { CatalogBook, Offer } from "../prices/types.js";
 export type { Book };
 
 // a book as the catalog hands it to us, before it's stored
-export type NewBook = Pick<
+type NewBook = Pick<
   Book,
   "isbn13" | "title" | "authors" | "publisher" | "coverUrl" | "year"
 >;
 
-export type StoredOffer = Offer & { fetchedAt: Date };
+type StoredOffer = Offer & { fetchedAt: Date };
 
 // what kind of copy a price is for, in the history: new print, used and
 // marketplace copies together, and ebooks
-export type PriceKind = "new" | "marketplace" | "ebook";
+type PriceKind = "new" | "marketplace" | "ebook";
 
 // one kind's history: every in-stock price ever stored for it
 export type KindHistory = {
@@ -242,7 +242,7 @@ export async function getKnownPrices(
   return known;
 }
 
-export type RecentPrice = {
+type RecentPrice = {
   isbn13: string;
   title: string;
   coverUrl: string | null;

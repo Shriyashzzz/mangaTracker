@@ -37,7 +37,7 @@ export type FormatedDates = {
   seriesFinished?: boolean;
 };
 
-export type MangaDexChapter = {
+type MangaDexChapter = {
   id: string;
   type: "chapter";
   attributes: {
@@ -48,7 +48,7 @@ export type MangaDexChapter = {
   };
 };
 
-export type MangaDexCover = {
+type MangaDexCover = {
   id: string;
   type: "cover_art";
   attributes: {
@@ -59,12 +59,12 @@ export type MangaDexCover = {
   };
 };
 
-export type MangaDexCoverResponse = {
+type MangaDexCoverResponse = {
   result: string;
   data: MangaDexCover[];
 };
 
-export type MangaDexChapterResponse = {
+type MangaDexChapterResponse = {
   result: string;
   response: string;
   data: MangaDexChapter[];

@@ -69,7 +69,7 @@ if (!parsed.success) {
   throw new Error(`Server settings are missing or wrong:\n${problems}`);
 }
 
-export type Config = z.infer<typeof schema>;
+type Config = z.infer<typeof schema>;
 const config: Config = parsed.data;
 export const isProd = config.ENV === "PROD";
 export default config;

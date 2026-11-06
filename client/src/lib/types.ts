@@ -251,7 +251,7 @@ export type VolumePrices = {
   storeLinks: StoreLink[];
 };
 
-export type PriceCard = {
+type PriceCard = {
   isbn13: string;
   title: string;
   volume: number | null;

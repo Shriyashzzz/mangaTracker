@@ -40,8 +40,7 @@ export const seriesName = (title: string) =>
 // or plain "Overlord, Vol. 3". So the series is compared by its own name, and
 // the format on its own
 // "Light novel", "(LN)", "LN Vol. 3" or a bare "Novel", but not "Graphic novel"
-export const SAYS_NOVEL =
-  /\blight\s*novels?\b|\bln\b|(?<!graphic\s)\bnovels?\b/gi;
+const SAYS_NOVEL = /\blight\s*novels?\b|\bln\b|(?<!graphic\s)\bnovels?\b/gi;
 const SAYS_MANGA = /\b(manga|comics?|graphic novels?)\b/i;
 export const isNovelBook = (bookTitle: string) =>
   /\blight novel$/i.test(seriesName(bookTitle));

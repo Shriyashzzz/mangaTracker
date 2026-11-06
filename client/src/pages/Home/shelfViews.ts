@@ -113,7 +113,7 @@ export const writeSession = (key: string, value: string) => {
 // where they were on the shelf when they opened a manga, so coming back puts them
 // there again. Per tab, so an old spot can't turn up days later
 export const SHELF_SPOT_KEY = "shelfSpot";
-export type ShelfSpot = {
+type ShelfSpot = {
   y: number;
   key: string;
   index: number;
@@ -180,7 +180,7 @@ export function shelfCounts(list: Manga[], releases: Releases) {
   };
 }
 
-export type ShelfFilter = {
+type ShelfFilter = {
   // the tab: all, ongoing, finished, planned, volumes or new
   tab: string;
   releaseKind: ReleaseKind;

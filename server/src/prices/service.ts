@@ -459,7 +459,7 @@ async function knownVolumesBySeries() {
   return bySeries;
 }
 
-export type ShelfPrice = {
+type ShelfPrice = {
   fromCents: number;
   isbn13: string;
   title: string;
