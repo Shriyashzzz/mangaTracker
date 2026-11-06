@@ -16,6 +16,7 @@ import {
   isbnCoverImageUrl,
 } from "../prices/sources/covers.js";
 import { isCrawler } from "../prices/crawlers.js";
+import { asSpender, spenderOf } from "../prices/spender.js";
 import { getCanadaPrices } from "../prices/canada/canadaPrices.js";
 import {
   getHighlights,
@@ -116,12 +117,15 @@ const volume = [
     const data = await upstream(
       "price lookup",
       "Prices couldn't be loaded. Try again in a moment.",
+      // any search it spends goes on this visitor's count
       () =>
-        getVolumePrices(matchedData(req).isbn, {
-          // ?stored=1: someone looking at Canadian prices, who won't see these
-          refresh:
-            !isCrawler(req.get("user-agent")) && req.query.stored !== "1",
-        }),
+        asSpender(spenderOf(req), () =>
+          getVolumePrices(matchedData(req).isbn, {
+            // ?stored=1: someone looking at Canadian prices, who won't see these
+            refresh:
+              !isCrawler(req.get("user-agent")) && req.query.stored !== "1",
+          }),
+        ),
     );
     if (!data) throw new NotFoundError("We couldn't find that volume.");
     res.json(data);
@@ -138,9 +142,11 @@ const canadaVolume = [
         "Canadian price lookup",
         "Canadian prices couldn't be loaded. Try again in a moment.",
         () =>
-          getCanadaPrices(matchedData(req).isbn, {
-            refresh: !isCrawler(req.get("user-agent")),
-          }),
+          asSpender(spenderOf(req), () =>
+            getCanadaPrices(matchedData(req).isbn, {
+              refresh: !isCrawler(req.get("user-agent")),
+            }),
+          ),
       ),
     );
   },
