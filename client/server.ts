@@ -260,13 +260,9 @@ app.use("/api", (req, res) => {
     console.error(`API pass-through failed for ${req.originalUrl}:`, e.message);
     if (res.headersSent) res.destroy();
     else
-      res
-        .status(502)
-        .json({
-          error: [
-            { msg: "The server isn't answering. Try again in a moment." },
-          ],
-        });
+      res.status(502).json({
+        error: [{ msg: "The server isn't answering. Try again in a moment." }],
+      });
   });
   req.pipe(upstream);
 });
