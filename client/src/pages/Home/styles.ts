@@ -60,8 +60,14 @@ export const homeStyles = {
   gridTools: "mb-5 flex min-w-0 items-center gap-4 [&>nav]:my-0 [&>nav]:flex-1",
   selectToggle:
     "tap ml-auto min-h-9 shrink-0 text-[0.9rem] font-medium text-ink-soft underline decoration-line-soft underline-offset-3 hover:text-ink hover:decoration-current aria-pressed:text-ink aria-pressed:decoration-accent aria-pressed:decoration-2",
+  // the select bar, with the "Moved… · Undo" note stacked above it
+  selectDock:
+    "fixed inset-x-0 bottom-6 z-15 mx-auto flex w-fit max-w-[calc(100vw-1.5rem)] flex-col items-center gap-2.5 upto-720:bottom-[calc(4.5rem+env(safe-area-inset-bottom))]",
   selectBar:
-    "fixed inset-x-0 bottom-6 z-15 mx-auto flex w-fit max-w-[calc(100vw-1.5rem)] animate-drop flex-wrap items-center gap-x-4 gap-y-2 upto-520:gap-x-3 upto-520:px-3 [@media(max-width:360px)]:gap-x-2.5 rounded-ink border-[2.5px] border-line bg-card px-4 py-3 text-[0.95rem] text-ink shadow-ink motion-reduce:animate-none upto-720:bottom-[calc(4.5rem+env(safe-area-inset-bottom))]",
+    "flex w-full animate-drop flex-wrap items-center gap-x-4 gap-y-2 upto-520:gap-x-3 upto-520:px-3 [@media(max-width:360px)]:gap-x-2.5 rounded-ink border-[2.5px] border-line bg-card px-4 py-3 text-[0.95rem] text-ink shadow-ink motion-reduce:animate-none",
+  // the note in the dock: the seen note's look, without its own spot
+  dockNote:
+    "flex w-fit max-w-full animate-drop items-center gap-4 rounded-ink border-[2.5px] border-line bg-card px-4 py-3 text-[0.95rem] text-ink shadow-ink motion-reduce:animate-none",
   // over the "Deleted · Undo" note, which takes its place at the bottom
   selectBarRaised:
     "bottom-24! upto-720:bottom-[calc(9.5rem+env(safe-area-inset-bottom))]!",

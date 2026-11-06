@@ -507,6 +507,19 @@ function Library() {
     if (!(await useShelf.getState().placeMany(was))) setMoveFailed(true);
   };
   const movedShowing = Boolean(moved || moveFailed);
+  const movedLine = moveFailed ? (
+    "That didn't save. Try again."
+  ) : moved ? (
+    <>
+      <span className={styles.seenName}>
+        Moved {moved.name || `${moved.was.length} series`} to{" "}
+        {MOVE_LABELS[moved.to]}
+      </span>
+      <button type="button" className={styles.seenUndo} onClick={undoMove}>
+        Undo
+      </button>
+    </>
+  ) : null;
 
   const goToAdd = () => navigator("/add", { viewTransition: true });
 
@@ -1010,147 +1023,142 @@ function Library() {
       {selectOn &&
         createPortal(
           <div
-            className={`${styles.selectBar}${undoShowing || movedShowing ? ` ${styles.selectBarRaised}` : ""}`}
-            role="region"
-            aria-label="Selected series"
+            className={`${styles.selectDock}${undoShowing ? ` ${styles.selectBarRaised}` : ""}`}
             data-over-add-button
           >
-            <div className={styles.selectGroup}>
-              <span className={styles.selectCount} role="status">
-                {pickedShown.length}
-                <span className="[@media(max-width:360px)]:sr-only">
-                  {" "}
-                  selected
+            <div role="status" ref={movedNote}>
+              {movedShowing && (
+                <div className={styles.dockNote}>{movedLine}</div>
+              )}
+            </div>
+            <div
+              className={styles.selectBar}
+              role="region"
+              aria-label="Selected series"
+            >
+              <div className={styles.selectGroup}>
+                <span className={styles.selectCount} role="status">
+                  {pickedShown.length}
+                  <span className="[@media(max-width:360px)]:sr-only">
+                    {" "}
+                    selected
+                  </span>
                 </span>
-              </span>
-              {/* only with more than one page: otherwise it's Select all */}
-              {visibleManga.length > SHELF_PAGE_SIZE && (
+                {/* only with more than one page: otherwise it's Select all */}
+                {visibleManga.length > SHELF_PAGE_SIZE && (
+                  <button
+                    type="button"
+                    className={styles.selectLink}
+                    onClick={() =>
+                      setPicked((now) => {
+                        const next = new Set(now);
+                        const page = shelfPage.map((m) => m.id);
+                        const whole = page.every((id) => now.has(id));
+                        for (const id of page)
+                          if (whole) next.delete(id);
+                          else next.add(id);
+                        return next;
+                      })
+                    }
+                  >
+                    {shelfPage.every((m) => picked.has(m.id))
+                      ? "Clear page"
+                      : "Select page"}
+                  </button>
+                )}
                 <button
                   type="button"
                   className={styles.selectLink}
                   onClick={() =>
-                    setPicked((now) => {
-                      const next = new Set(now);
-                      const page = shelfPage.map((m) => m.id);
-                      const whole = page.every((id) => now.has(id));
-                      for (const id of page)
-                        if (whole) next.delete(id);
-                        else next.add(id);
-                      return next;
-                    })
+                    setPicked(
+                      allPicked
+                        ? new Set()
+                        : new Set(visibleManga.map((m) => m.id)),
+                    )
                   }
                 >
-                  {shelfPage.every((m) => picked.has(m.id))
-                    ? "Clear page"
-                    : "Select page"}
+                  {allPicked ? "Clear" : `Select all ${visibleManga.length}`}
                 </button>
-              )}
-              <button
-                type="button"
-                className={styles.selectLink}
-                onClick={() =>
-                  setPicked(
-                    allPicked
-                      ? new Set()
-                      : new Set(visibleManga.map((m) => m.id)),
-                  )
-                }
-              >
-                {allPicked ? "Clear" : `Select all ${visibleManga.length}`}
-              </button>
-            </div>
-            <div className={styles.selectActions}>
-              <div className="relative" ref={moveMenu}>
+              </div>
+              <div className={styles.selectActions}>
+                <div className="relative" ref={moveMenu}>
+                  <button
+                    type="button"
+                    className={styles.selectMove}
+                    disabled={!pickedShown.length || moving}
+                    aria-haspopup="menu"
+                    aria-expanded={moveOpen}
+                    onClick={() => setMoveOpen((open) => !open)}
+                  >
+                    {moving ? "Moving…" : "Move to"}
+                    <ChevronDownIcon className="size-4" />
+                  </button>
+                  {moveOpen && (
+                    <div className={styles.moveMenu} role="menu">
+                      {(
+                        [
+                          ["finished", "Finished"],
+                          ["planned", "To read"],
+                          ["reading", "Reading"],
+                        ] as const
+                      ).map(([to, label]) => (
+                        <button
+                          key={to}
+                          type="button"
+                          role="menuitem"
+                          className={styles.moveItem}
+                          // the tab they're on already is where these are
+                          disabled={
+                            statusFilter === (to === "reading" ? "ongoing" : to)
+                          }
+                          onClick={() => moveTo(to)}
+                        >
+                          {label}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
                 <button
                   type="button"
-                  className={styles.selectMove}
-                  disabled={!pickedShown.length || moving}
-                  aria-haspopup="menu"
-                  aria-expanded={moveOpen}
-                  onClick={() => setMoveOpen((open) => !open)}
+                  className={styles.selectDelete}
+                  disabled={!pickedShown.length}
+                  onClick={() => setConfirmingDelete(true)}
                 >
-                  {moving ? "Moving…" : "Move to"}
-                  <ChevronDownIcon className="size-4" />
-                </button>
-                {moveOpen && (
-                  <div className={styles.moveMenu} role="menu">
-                    {(
-                      [
-                        ["finished", "Finished"],
-                        ["planned", "To read"],
-                        ["reading", "Reading"],
-                      ] as const
-                    ).map(([to, label]) => (
-                      <button
-                        key={to}
-                        type="button"
-                        role="menuitem"
-                        className={styles.moveItem}
-                        // the tab they're on already is where these are
-                        disabled={
-                          statusFilter === (to === "reading" ? "ongoing" : to)
-                        }
-                        onClick={() => moveTo(to)}
-                      >
-                        {label}
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </div>
-              <button
-                type="button"
-                className={styles.selectDelete}
-                disabled={!pickedShown.length}
-                onClick={() => setConfirmingDelete(true)}
-              >
-                {/* one piece, so the button's gap doesn't split it; phones
+                  {/* one piece, so the button's gap doesn't split it; phones
                     show "Delete 2", so the bar stays short */}
-                <span>
-                  Delete {pickedShown.length || ""}
-                  <span className="upto-520:sr-only"> series</span>
-                </span>
-              </button>
-              <button
-                type="button"
-                className={styles.selectDone}
-                onClick={stopSelecting}
-                aria-label="Done selecting"
-              >
-                <span className="upto-520:hidden">Done</span>
-                <CloseIcon className="hidden size-5 upto-520:block" />
-              </button>
+                  <span>
+                    Delete {pickedShown.length || ""}
+                    <span className="upto-520:sr-only"> series</span>
+                  </span>
+                </button>
+                <button
+                  type="button"
+                  className={styles.selectDone}
+                  onClick={stopSelecting}
+                  aria-label="Done selecting"
+                >
+                  <span className="upto-520:hidden">Done</span>
+                  <CloseIcon className="hidden size-5 upto-520:block" />
+                </button>
+              </div>
             </div>
           </div>,
           document.body,
         )}
-      {/* "Moved 12 series to Finished · Undo", where the Deleted note goes */}
-      {createPortal(
-        <div role="status" ref={movedNote}>
-          {movedShowing && (
-            <div className={styles.seenNote} data-over-add-button>
-              {moveFailed ? (
-                "That didn't save. Try again."
-              ) : moved ? (
-                <>
-                  <span className={styles.seenName}>
-                    Moved {moved.name || `${moved.was.length} series`} to{" "}
-                    {MOVE_LABELS[moved.to]}
-                  </span>
-                  <button
-                    type="button"
-                    className={styles.seenUndo}
-                    onClick={undoMove}
-                  >
-                    Undo
-                  </button>
-                </>
-              ) : null}
-            </div>
-          )}
-        </div>,
-        document.body,
-      )}
+      {/* "Moved 12 series to Finished · Undo": above the bar while selecting,
+          where the Deleted note goes otherwise */}
+      {!selectOn &&
+        createPortal(
+          <div role="status" ref={movedNote}>
+            {movedShowing && (
+              <div className={styles.seenNote} data-over-add-button>
+                {movedLine}
+              </div>
+            )}
+          </div>,
+          document.body,
+        )}
       {confirmingDelete && pickedShown.length > 0 && (
         <DeleteManyModal
           manga={pickedShown}
