@@ -32,6 +32,8 @@ export const detailsStyles = {
   // column is narrow; on phones, its own row under the cover and title
   titleRow:
     "flex items-end justify-between gap-x-8 gap-y-5 upto-980:flex-col upto-980:items-stretch upto-720:contents",
+  // halves and specials, which aren't books on the shelf
+  offShelf: "mt-1.5 font-mono text-[0.8rem] text-muted",
   shelf:
     "min-w-0 flex-[0_1_460px] upto-980:w-full upto-980:flex-none upto-720:order-1 upto-720:col-span-full",
   head: "flex min-w-0 flex-col gap-[0.7rem] upto-720:gap-2 upto-720:self-center",

@@ -4,8 +4,8 @@ import {
   aimAt,
   bookAt,
   bookWidths,
-  toggled,
 } from "../../../../client/src/lib/volumeShelf.js";
+import { toggleVolume } from "../../../../client/src/lib/ownedVolumes.js";
 
 const sum = (xs: number[]) => xs.reduce((a, b) => a + b, 0);
 
@@ -78,13 +78,35 @@ describe("the aimed book stays under the pointer", () => {
   });
 });
 
-describe("toggled", () => {
-  it("adds in order and takes away", () => {
-    expect(toggled([1, 2, 5], 3)).toEqual([1, 2, 3, 5]);
-    expect(toggled([1, 2, 5], 2)).toEqual([1, 5]);
+describe("toggleVolume", () => {
+  it("adds in order and takes away, keeping a run from 1 short", () => {
+    expect(toggleVolume({ volumesOwned: 2, ownedList: [] }, 3)).toEqual({
+      volumesOwned: 3,
+      ownedList: [],
+    });
+    expect(toggleVolume({ volumesOwned: 5, ownedList: [] }, 2)).toEqual({
+      volumesOwned: 5,
+      ownedList: [1, 3, 4, 5],
+    });
   });
 
-  it("keeps halves and specials it doesn't show", () => {
-    expect(toggled([0, 1, 10.5], 2)).toEqual([0, 1, 2, 10.5]);
+  it("taking the last one away owns none", () => {
+    expect(toggleVolume({ volumesOwned: 1, ownedList: [] }, 1)).toEqual({
+      volumesOwned: null,
+      ownedList: [],
+    });
+  });
+
+  it("keeps halves and specials the shelf doesn't show", () => {
+    expect(
+      toggleVolume({ volumesOwned: 10, ownedList: [0, 1, 10.5] }, 2),
+    ).toEqual({ volumesOwned: 10, ownedList: [0, 1, 2, 10.5] });
+  });
+});
+
+describe("a shelf narrower than one book", () => {
+  it("never gives a book a negative width", () => {
+    const w = bookWidths(30, 15, 4.5);
+    expect(Math.min(...w)).toBeGreaterThanOrEqual(0);
   });
 });

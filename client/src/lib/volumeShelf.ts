@@ -43,7 +43,7 @@ export function bookWidths(
       base + (BOOK - base) * Math.exp(-(((i + 0.5 - aimed) / SPREAD) ** 2)),
   );
   // squeezed books stay a sliver, and all of them still fit beside a full one
-  const thinnest = Math.min(1, base, (width - BOOK) / (total - 1));
+  const thinnest = Math.max(0, Math.min(1, base, (width - BOOK) / (total - 1)));
   const k = Math.min(total - 1, Math.max(0, Math.floor(aimed)));
   const into = aimed - k;
   const own = grown[k]!;
@@ -76,12 +76,4 @@ export function bookAt(widths: number[], x: number): number | null {
     if (x < edge) return i + 1;
   }
   return null;
-}
-
-// what they own once this volume is ticked or unticked. Halves and specials
-// (10.5, 0) aren't on the shelf, so they're kept as they are
-export function toggled(owned: number[], volume: number): number[] {
-  return owned.includes(volume)
-    ? owned.filter((v) => v !== volume)
-    : [...owned, volume].sort((a, b) => a - b);
 }

@@ -1,6 +1,11 @@
 import { useEffect, useRef, useState } from "react";
-import { ownedOf, ownedPhrase, ownedVolumes } from "../../lib/ownedVolumes";
-import { BOOK, toggled } from "../../lib/volumeShelf";
+import {
+  ownedOf,
+  ownedPhrase,
+  rangesText,
+  toggleVolume,
+} from "../../lib/ownedVolumes";
+import { BOOK } from "../../lib/volumeShelf";
 import { setVolumesOwned, type Owned } from "../../lib/shelf";
 import { detailsStyles as styles } from "./styles";
 import { NavLink, useNavigate, useParams, useSearchParams } from "react-router";
@@ -210,47 +215,55 @@ export default function Details() {
   };
 
   // the shelf by the title: each tick shows at once and saves in the
-  // background. Ticks in quick succession send only where they ended up; a
-  // save that fails puts the shelf back to what was last saved
-  // what the server last said they own, for this manga
-  const ownedSaved = useRef<{ id: number; owned: Owned } | null>(null);
-  const ownedNext = useRef<Owned | null>(null);
-  const ownedSaving = useRef(false);
+  // background, one save at a time per manga. Ticks in quick succession send
+  // only where they ended up. A save that fails is followed by the newer state
+  // if one is waiting (it has the failed tick in it too); only when the last
+  // one fails does the shelf go back to what the server last said
+  const ownedQueues = useRef(
+    new Map<number, { saved: Owned; next: Owned | null; saving: boolean }>(),
+  );
   const saveOwned = async (mangaId: number) => {
-    if (ownedSaving.current) return;
-    ownedSaving.current = true;
-    while (ownedNext.current) {
-      const sending = ownedNext.current;
-      ownedNext.current = null;
+    const queue = ownedQueues.current.get(mangaId);
+    if (!queue || queue.saving) return;
+    queue.saving = true;
+    let failed = false;
+    while (queue.next) {
+      const sending = queue.next;
+      queue.next = null;
       try {
-        const owned = await setVolumesOwned(mangaId, sending);
-        ownedSaved.current = { id: mangaId, owned };
+        queue.saved = await setVolumesOwned(mangaId, sending);
+        failed = false;
       } catch {
-        ownedNext.current = null;
-        const back = ownedSaved.current;
-        if (back?.id === mangaId)
-          setMangaData((m) =>
-            m?.id === mangaId ? { ...m, ...back.owned } : m,
-          );
-        setActionNote(DIDNT_SAVE);
+        failed = true;
       }
     }
-    ownedSaving.current = false;
+    queue.saving = false;
+    if (failed) {
+      setMangaData((m) => (m?.id === mangaId ? { ...m, ...queue.saved } : m));
+      setActionNote(DIDNT_SAVE);
+      setCanUndoStatus(false);
+    } else {
+      // the shelf's cards say what they own too
+      void useShelf.getState().load();
+    }
   };
   const toggleOwned = (volume: number) => {
     if (!mangaData) return;
-    if (ownedSaved.current?.id !== mangaData.id)
-      ownedSaved.current = {
-        id: mangaData.id,
-        owned: {
+    const queues = ownedQueues.current;
+    if (!queues.has(mangaData.id))
+      queues.set(mangaData.id, {
+        saved: {
           volumesOwned: mangaData.volumesOwned ?? null,
           ownedList: mangaData.ownedList ?? [],
         },
-      };
-    const next = ownedVolumes(null, toggled(ownedOf(mangaData), volume));
+        next: null,
+        saving: false,
+      });
+    const next = toggleVolume(mangaData, volume);
     setMangaData({ ...mangaData, ...next });
     setActionNote("");
-    ownedNext.current = next;
+    setCanUndoStatus(false);
+    queues.get(mangaData.id)!.next = next;
     void saveOwned(mangaData.id);
   };
 
@@ -303,6 +316,8 @@ export default function Details() {
   // how many books the shelf holds: the most we know is out, and never fewer
   // than they own. Until that's known, theirs and a few to tick next
   const owned = ownedOf(mangaData);
+  // halves and specials (10.5, vol. 0) aren't books on the shelf: said instead
+  const offShelf = owned.filter((v) => !Number.isInteger(v) || v < 1);
   const highestOwned = Math.floor(Math.max(0, ...owned));
   const knownOut = Math.max(
     releaseStatus?.latestVolume ?? 0,
@@ -406,6 +421,12 @@ export default function Details() {
                 onToggle={toggleOwned}
                 name={mangaData.name}
               />
+              {offShelf.length > 0 && (
+                <p className={styles.offShelf}>
+                  Also own vol{offShelf.length > 1 ? "s" : ""}.{" "}
+                  {rangesText(offShelf)}
+                </p>
+              )}
             </div>
           </div>
 
