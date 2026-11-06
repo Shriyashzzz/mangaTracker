@@ -9,6 +9,7 @@ import {
   serpApiKeys,
   usageLabel,
 } from "./serpapiKeys.js";
+import { currentSpender } from "../spender.js";
 
 const SEARCH_URL = "https://serpapi.com/search.json";
 
@@ -43,5 +44,13 @@ export async function searchSerpApi<T extends { error?: string }>(
     },
   });
   if (!data) throw new SearchesUsedUp("Every SerpApi key is used up for now");
+  // answered, so spent: on the books of whoever it was for. A count that
+  // fails to save mustn't cost them the prices
+  const spender = currentSpender();
+  if (spender) {
+    await priceQueries
+      .recordSearch(spender)
+      .catch((e: Error) => console.error("search count failed:", e.message));
+  }
   return data;
 }
