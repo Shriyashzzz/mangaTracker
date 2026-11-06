@@ -3,19 +3,29 @@ import { randomBytes } from "node:crypto";
 import bcrypt from "bcryptjs";
 import { prisma } from "../config/prisma.js";
 import { Prisma } from "../../generated/prisma/client.js";
+import type { ReleaseSettings } from "../util/releases/releaseStatus.js";
+
+// the values each display preference may take; anything else is ignored when
+// saving (authController's updatePrefs). The Prefs type is made from it
+export const PREF_VALUES = {
+  background: ["sfx", "ink", "pages", "panels"],
+  theme: ["light", "dark", "system"],
+  hideEbooks: ["yes", "no"],
+  shelfTab: ["all", "ongoing", "finished", "new"],
+  shelfSort: ["", "rating-dsc", "ch-dsc", "name-asc"],
+  shelfView: ["covers", "rows"],
+  // "off": this reader's manga are never looked up for new releases
+  releaseChecks: ["on", "off"],
+  // where they buy: Canada gets Canadian store links beside the US prices
+  country: ["us", "ca"],
+} as const;
+export type StringPref = keyof typeof PREF_VALUES;
 
 export type Prefs = {
-  background?: string;
-  theme?: string;
-  hideEbooks?: string;
-  shelfTab?: string;
-  shelfSort?: string;
-  shelfView?: string;
-  // "off": this reader's manga are never looked up for new releases
-  releaseChecks?: string;
-  country?: "us" | "ca";
+  [K in StringPref]?: (typeof PREF_VALUES)[K][number];
+} & {
   // what the New tab lists; see util/releases/releaseStatus.ts
-  releases?: unknown;
+  releases?: ReleaseSettings;
 };
 
 // the account's id when the username and password match, otherwise why not

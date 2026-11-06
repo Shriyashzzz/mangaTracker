@@ -61,7 +61,9 @@ export const SORT_OPTIONS = [
   { value: "rating-dsc", label: "Highest rated" },
   { value: "ch-dsc", label: "Most chapters read" },
   { value: "name-asc", label: "Title, A to Z" },
-];
+] as const;
+// a sort the shelf knows (and the only ones the server saves, PREF_VALUES)
+export type ShelfSort = (typeof SORT_OPTIONS)[number]["value"];
 
 export type SeenKind = "volume" | "chapter" | "japan";
 

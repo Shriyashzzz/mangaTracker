@@ -196,7 +196,11 @@ export async function getVolumePrices(isbn13: string, { refresh = true } = {}) {
       const url = affiliateOfferUrl(o, isbn13);
       return { ...o, url, affiliate: isAffiliateUrl(url) };
     }),
-    history: history.checks ? history : null,
+    // only once there's been a check, when it has a first and last date
+    history:
+      history.checks && history.since && history.lastSeen
+        ? { ...history, since: history.since, lastSeen: history.lastSeen }
+        : null,
     checkedAt: last?.checkedAt ?? null,
     liveSources: enabledProviders().map((p) => p.store),
     storeLinks: storeLinks(isbn13),
@@ -385,9 +389,11 @@ async function getSeriesWithVolumes(name: string) {
       if (!byNumber.has(v.volume)) byNumber.set(v.volume, v);
     }
   }
-  const volumes = [...byNumber.values()].sort(
-    (a, b) => (a.volume ?? 0) - (b.volume ?? 0),
-  );
+  // numbered ones only: pages list and page through volumes by number, so a
+  // numberless book (the catalog's search can return one) has no place there
+  const volumes = [...byNumber.values()]
+    .filter((v): v is CatalogBook & { volume: number } => v.volume != null)
+    .sort((a, b) => a.volume - b.volume);
   // start finding every cover now, in one batch, so they're ready by the
   // time the browser asks for them (failures are retried when it asks)
   volumes.forEach((v) => editionCoverId(v.isbn13).catch(() => {}));
