@@ -105,6 +105,22 @@ type BookImportState = {
   clear: () => void;
 };
 
+// working right now: matching with AniList or adding to the shelf. Waiting
+// for them to review the matches isn't: nothing is running then
+export const bookImportBusy = (s: {
+  source: BookSource | null;
+  found: BookSeries[] | null;
+  matches: Map<string, Match>;
+  progress: number | null;
+  finished: boolean;
+}) =>
+  Boolean(
+    s.source &&
+    s.found &&
+    !s.finished &&
+    (s.progress !== null || s.found.some((f) => !s.matches.has(f.key))),
+  );
+
 // ---------- what's remembered between visits ----------
 
 const SAVED_KEY = "bookImport";

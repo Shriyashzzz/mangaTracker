@@ -21,7 +21,11 @@ import { useAuth } from "../../store/auth";
 import { useShelf } from "../../store/shelf";
 import type { BookSource } from "../../lib/imports/bookImport";
 import BookImport from "./BookImport";
-import { savedSource, useBookImport } from "../../store/bookImport";
+import {
+  bookImportBusy,
+  savedSource,
+  useBookImport,
+} from "../../store/bookImport";
 import {
   readAniList,
   readKitsu,
@@ -65,6 +69,9 @@ export function ImportPage() {
   const [totals, setTotals] = useState<ImportTotals | null>(null);
   const [failed, setFailed] = useState(false);
   const [finished, setFinished] = useState(false);
+  // a book app's import matching or adding, wherever it was started
+  const bookBusy = useBookImport(bookImportBusy);
+  const bookSource = useBookImport((s) => s.source);
 
   useEffect(() => {
     if (isSignedIn === false)
@@ -231,6 +238,9 @@ export function ImportPage() {
   }
 
   const importing = progress !== null;
+  // the app whose import is working: the other apps wait until it's done, so
+  // switching can't drop it halfway
+  const busySource = importing ? source : bookBusy ? bookSource : null;
 
   return (
     <div className={`${styles.page} fade-in`}>
@@ -252,13 +262,20 @@ export function ImportPage() {
             type="button"
             className={styles.source}
             aria-pressed={source === s.id}
-            disabled={importing}
-            onClick={() => pickSource(s.id)}
+            disabled={busySource !== null && s.id !== busySource}
+            aria-describedby={busySource ? "import-lock" : undefined}
+            // the one already open: picking it again would start it over
+            onClick={() => s.id !== source && pickSource(s.id)}
           >
             {s.label}
           </button>
         ))}
       </div>
+      {busySource && (
+        <p id="import-lock" className={styles.lockNote}>
+          Switch apps once this import is done.
+        </p>
+      )}
 
       {isBookSource(source) ? (
         <BookImport key={source} source={source} />
