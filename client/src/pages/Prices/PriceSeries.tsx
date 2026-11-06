@@ -10,7 +10,7 @@ import {
 } from "../../lib/prices";
 import { useFromShelf } from "../../lib/fromShelf";
 import { findOnShelf } from "../../lib/shelf";
-import { owns } from "../../lib/ownedVolumes";
+import { nextToGet, owns } from "../../lib/ownedVolumes";
 import { useAuth } from "../../store/auth";
 import type { ShelfMatch } from "../../lib/types";
 import BackToNew from "./BackToNew";
@@ -126,15 +126,13 @@ export default function PriceSeries() {
   const mine = shelf.name === name ? shelf.manga : null;
   const isTheirs = (n: number) =>
     Boolean(mine) && n >= 1 && Number.isInteger(n) && owns(mine!, n);
-  // the first whole volume out that they don't have, once they own any
-  const next =
-    mine && volumes.some((v) => isTheirs(v.volume))
-      ? volumes
-          .filter((v) => v.volume >= 1 && Number.isInteger(v.volume))
-          .map((v) => v.volume)
-          .sort((a, b) => a - b)
-          .find((n) => !isTheirs(n))
-      : undefined;
+  // the first whole volume out after the furthest they own (as Buy it says)
+  const next = mine
+    ? (nextToGet(
+        mine,
+        volumes.map((v) => v.volume),
+      ) ?? undefined)
+    : undefined;
   const toGet = volumes.filter((v) => !isTheirs(v.volume));
   // "Still to get" shows them all at once, past the ranges
   const toGetShown = Boolean(mine) && toGetOnly;
