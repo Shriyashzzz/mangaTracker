@@ -40,6 +40,8 @@ import {
   remainingVolumes,
   SORT_OPTIONS,
   type SeenKind,
+  countNew,
+  shownNewCount,
 } from "../../lib/shelf";
 import ReleaseModal from "./ReleaseModal";
 import DeleteManyModal from "./DeleteManyModal";
@@ -184,8 +186,19 @@ function Library() {
     // no New tab with release checks off
     return saved === "new" && !checksOn ? "all" : saved;
   });
+  // a link to New that arrived before the account's choice did: shown as All
+  // for now, and New once checks turn on (unless they pick something else)
+  const [newWaiting, setNewWaiting] = useState(false);
   // switched off while on the New tab, or the account's choice just arrived
-  if (!checksOn && statusFilter === "new") setStatusFilter("all");
+  if (!checksOn && statusFilter === "new") {
+    setStatusFilter("all");
+    if (searchParams.get("tab") === "new") setNewWaiting(true);
+  }
+  if (newWaiting && statusFilter !== "all") setNewWaiting(false);
+  if (newWaiting && checksOn) {
+    setNewWaiting(false);
+    setStatusFilter("new");
+  }
   // a link to another view while already on the shelf switches to it
   const urlTab = searchParams.get("tab");
   const [seenUrlTab, setSeenUrlTab] = useState(urlTab);
@@ -199,10 +212,13 @@ function Library() {
   useEffect(() => {
     const word = URL_FROM_TAB[statusFilter];
     if (!word || searchParams.get("tab") === word) return;
+    // showing All only until checks turn on: the link to New stays in the
+    // address meanwhile
+    if (newWaiting) return;
     const next = new URLSearchParams(searchParams);
     next.set("tab", word);
     setSearchParams(next, { replace: true });
-  }, [statusFilter, searchParams, setSearchParams]);
+  }, [statusFilter, searchParams, setSearchParams, newWaiting]);
   const [sortBy, setSortBy] = useState(() => {
     const saved = readSession("librarySort", readLocal("shelfSort") ?? "");
     return SORT_OPTIONS.some((o) => o.value === saved) ? saved : "";
@@ -432,9 +448,7 @@ function Library() {
       newVolumes,
       newChapters,
       newInJapan,
-      new: started.filter(
-        (m) => releases[m.id]?.hasNewVolume || releases[m.id]?.hasNewChapter,
-      ).length,
+      new: countNew(list, releases),
     };
   }, [mangaData, releases]);
 
@@ -556,10 +570,16 @@ function Library() {
   const goToAdd = () => navigator("/add", { viewTransition: true });
 
   // shortcuts, for anyone with a keyboard: / searches the shelf, n adds one.
-  // Not while typing, with a dialog open, or with a modifier held
+  // Not while typing, with a dialog, menu or the tour open, mid-Select, held
+  // down, or with a modifier
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (e.defaultPrevented || e.metaKey || e.ctrlKey || e.altKey) return;
+      if (e.defaultPrevented || e.repeat) return;
+      if (e.metaKey || e.ctrlKey || e.altKey) return;
+      // not while a menu, the tour or Select has their attention
+      if (selectOn) return;
+      if (document.querySelector('[aria-expanded="true"], .tour-bubble'))
+        return;
       const at = e.target as HTMLElement | null;
       if (at?.closest("input, textarea, select, [contenteditable]")) return;
       if (document.querySelector("dialog[open]")) return;
@@ -578,7 +598,7 @@ function Library() {
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [navigator]);
+  }, [navigator, selectOn]);
 
   const openHidden = () => navigator("/shelf?view=hidden");
 
@@ -656,10 +676,6 @@ function Library() {
   const looked = mangaData.filter(
     (m) => releaseKind === "volumes" || !m.lightNovel,
   );
-  const everyCheckFailed =
-    allChecked &&
-    mangaData.length > 0 &&
-    mangaData.every((m) => outcomes[m.id] === "failed");
   const tabs = [
     { value: "all", label: "All", count: counts.all },
     { value: "ongoing", label: "Reading", count: counts.ongoing },
@@ -674,11 +690,7 @@ function Library() {
           {
             value: "new",
             label: "New",
-            count: everyCheckFailed
-              ? null
-              : allChecked
-                ? counts.new
-                : (lastNewCount ?? (checked ? counts.new : null)),
+            count: shownNewCount(mangaData, releases, outcomes, lastNewCount),
           },
         ]
       : []),
