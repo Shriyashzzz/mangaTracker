@@ -32,7 +32,11 @@ export default function BuyStrip({ options, hideNext }: Props) {
       <ul className={styles.buyList}>
         {next && !hideNext && (
           <li>
-            <NavLink className={styles.buyLink} to={volumePath(next.isbn13, next.title)} viewTransition>
+            <NavLink
+              className={styles.buyLink}
+              to={volumePath(next.isbn13, next.title)}
+              viewTransition
+            >
               <span className={styles.buyKind}>Next for you</span>
               <span>Vol. {next.volume}</span>
               <span className={styles.buyPrice}>{price(next)}</span>
@@ -61,8 +65,13 @@ export default function BuyStrip({ options, hideNext }: Props) {
         )}
       </ul>
       {/* a way to look further, not something to buy, so not a ticket */}
-      <NavLink className={styles.buySeries} to={seriesPath(seriesName)} viewTransition>
-        {volumes.length === 1 ? "The series" : `All ${volumes.length} volumes`} →
+      <NavLink
+        className={styles.buySeries}
+        to={seriesPath(seriesName)}
+        viewTransition
+      >
+        {volumes.length === 1 ? "The series" : `All ${volumes.length} volumes`}{" "}
+        →
       </NavLink>
     </section>
   );

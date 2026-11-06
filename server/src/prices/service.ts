@@ -130,7 +130,11 @@ async function getOrCreateBook(isbn13: string) {
     priceQueries.getBook(isbn13),
     priceQueries.getSavedVolume(isbn13).catch(() => null),
   ]);
-  if (stored && saved && isNovelBook(saved.title) !== isNovelBook(stored.title)) {
+  if (
+    stored &&
+    saved &&
+    isNovelBook(saved.title) !== isNovelBook(stored.title)
+  ) {
     await priceQueries.upsertBook({ ...stored, title: saved.title });
     return priceQueries.getBook(isbn13);
   }
@@ -230,8 +234,6 @@ export const mergeVolumes = (known: CatalogBook[], found: CatalogBook[]) => {
   );
 };
 
-
-
 // Open Library often can't say which format a book is: the Shield Hero novels
 // are filed as "Comics & graphic novels", like the manga. Length can: light
 // novels run about 230 to 400 pages, manga volumes about 130 to 200. Only
@@ -247,7 +249,9 @@ const sameSeries = (a: string, b: string) => seriesOf(a) === seriesOf(b);
 async function hasLightNovel(name: string) {
   const info = await getSeriesInfo(novelName(name)).catch(() => null);
   if (!info) return false;
-  return [info.name, ...info.altNames].some((n) => sameSeries(baseName(n), name));
+  return [info.name, ...info.altNames].some((n) =>
+    sameSeries(baseName(n), name),
+  );
 }
 
 export async function seriesVolumes(
@@ -276,12 +280,18 @@ export async function seriesVolumes(
   // finds some the other misses (two of Spice & Wolf's)
   const novel = isNovelName(name);
   const quoted = `title:"${baseName(name).replace(/"/g, "")}"`;
-  const queries = novel ? [name, `${baseName(name)} novel`, quoted] : [name, quoted];
+  const queries = novel
+    ? [name, `${baseName(name)} novel`, quoted]
+    : [name, quoted];
   // a manga whose series has a novel too: its long books are the novel's
   const [results, hasNovel] = await Promise.all([
     Promise.allSettled(
       queries.map((q) =>
-        searchVolumesDetailed(q, { max: 250, timeoutMs: 20000, seriesName: name }),
+        searchVolumesDetailed(q, {
+          max: 250,
+          timeoutMs: 20000,
+          seriesName: name,
+        }),
       ),
     ),
     novel ? Promise.resolve(true) : hasLightNovel(name),

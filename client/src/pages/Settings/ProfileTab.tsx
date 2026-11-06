@@ -4,12 +4,20 @@ import { useEffect, useRef, useState, type FormEvent } from "react";
 import { NavLink, useLocation } from "react-router";
 import Avatar from "../../components/avatar/Avatar";
 import { shareUrl, type Account } from "../../lib/account";
-import { AVATARS, AVATARS_SHOWN_FIRST, DEFAULT_AVATAR } from "../../lib/content/avatars";
+import {
+  AVATARS,
+  AVATARS_SHOWN_FIRST,
+  DEFAULT_AVATAR,
+} from "../../lib/content/avatars";
 import { useAccount } from "../../store/account";
 import { settingsStyles as styles } from "./styles";
 
 // beside the control it's about, so nobody has to scroll to learn if it worked
-type Note = { where: "name" | "picture" | "share"; text: string; failed?: boolean };
+type Note = {
+  where: "name" | "picture" | "share";
+  text: string;
+  failed?: boolean;
+};
 
 export default function ProfileTab({ account }: { account: Account }) {
   const saveAccount = useAccount((s) => s.save);
@@ -22,7 +30,8 @@ export default function ProfileTab({ account }: { account: Account }) {
 
   // from "Share" on the shelf or in the menu
   useEffect(() => {
-    if (hash === "#share") shareSection.current?.scrollIntoView({ block: "start" });
+    if (hash === "#share")
+      shareSection.current?.scrollIntoView({ block: "start" });
   }, [hash]);
 
   const save = async (
@@ -40,7 +49,9 @@ export default function ProfileTab({ account }: { account: Account }) {
   };
   const noteFor = (where: Note["where"]) => (
     <p
-      className={note?.where === where && note.failed ? styles.failed : styles.saved}
+      className={
+        note?.where === where && note.failed ? styles.failed : styles.saved
+      }
       role="status"
     >
       {note?.where === where && note.text}
@@ -92,7 +103,9 @@ export default function ProfileTab({ account }: { account: Account }) {
     <div className={styles.tabBody} data-tour="profile">
       <header className={styles.head}>
         <Avatar id={account.avatar} className={styles.headArt} />
-        <h2 className={styles.tabTitle}>{account.displayName || account.defaultName}</h2>
+        <h2 className={styles.tabTitle}>
+          {account.displayName || account.defaultName}
+        </h2>
       </header>
 
       <section className={styles.section} aria-labelledby="profile-name">
@@ -115,26 +128,29 @@ export default function ProfileTab({ account }: { account: Account }) {
           />
           <p className={styles.body}>
             Shown if you share your list
-            {!account.displayName && `, as ${account.defaultName} for now`}. Your
-            username stays private.
+            {!account.displayName && `, as ${account.defaultName} for now`}.
+            Your username stays private.
           </p>
           <div className={styles.actions}>
             <button type="submit" className="btn btn-secondary">
               Save name
             </button>
-            <button type="button" className="btn btn-ghost" onClick={surpriseMe}>
+            <button
+              type="button"
+              className="btn btn-ghost"
+              onClick={surpriseMe}
+            >
               Surprise me
             </button>
-            {unsavedName && !note && <p className={styles.saved}>Not saved yet.</p>}
+            {unsavedName && !note && (
+              <p className={styles.saved}>Not saved yet.</p>
+            )}
             {noteFor("name")}
           </div>
         </form>
       </section>
 
-      <section
-        className={styles.section}
-        aria-labelledby="profile-picture"
-      >
+      <section className={styles.section} aria-labelledby="profile-picture">
         <h3 id="profile-picture" className={styles.heading}>
           Your picture
         </h3>
@@ -192,7 +208,9 @@ export default function ProfileTab({ account }: { account: Account }) {
               save(
                 "share",
                 { shareEnabled: e.target.checked },
-                e.target.checked ? "Your list is shared." : "Your list is private again.",
+                e.target.checked
+                  ? "Your list is shared."
+                  : "Your list is private again.",
               );
             }}
           />
@@ -208,7 +226,9 @@ export default function ProfileTab({ account }: { account: Account }) {
                 save(
                   "share",
                   { shareNotes: e.target.checked },
-                  e.target.checked ? "Your notes are shared." : "Your notes are private.",
+                  e.target.checked
+                    ? "Your notes are shared."
+                    : "Your notes are private.",
                 )
               }
             />
@@ -218,11 +238,21 @@ export default function ProfileTab({ account }: { account: Account }) {
         {noteFor("share")}
         {account.shareEnabled && account.shareCode && (
           <div className={styles.shareLink}>
-            <span className={styles.shareUrl}>{shareUrl(account.shareCode)}</span>
-            <button type="button" className="btn btn-secondary" onClick={copyLink}>
+            <span className={styles.shareUrl}>
+              {shareUrl(account.shareCode)}
+            </span>
+            <button
+              type="button"
+              className="btn btn-secondary"
+              onClick={copyLink}
+            >
               {copied ? "Copied" : "Copy link"}
             </button>
-            <NavLink to={`/u/${account.shareCode}`} className={`tap ${styles.link}`} viewTransition>
+            <NavLink
+              to={`/u/${account.shareCode}`}
+              className={`tap ${styles.link}`}
+              viewTransition
+            >
               See it
             </NavLink>
           </div>

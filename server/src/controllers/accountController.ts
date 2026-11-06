@@ -65,7 +65,10 @@ const remove = [
   rejectInvalid,
   async (req: Request, res: Response) => {
     const { password } = matchedData(req);
-    const deleted = await userQueries.deleteAccount(req.session.userId!, password);
+    const deleted = await userQueries.deleteAccount(
+      req.session.userId!,
+      password,
+    );
     if (!deleted) return sendError(res, 401, "That password isn't right.");
     req.session.destroy(() => res.sendStatus(204));
   },

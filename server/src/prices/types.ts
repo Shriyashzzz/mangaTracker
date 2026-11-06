@@ -24,7 +24,11 @@ export interface Provider {
   // the store name shown when this provider is live
   store: string;
   enabled(): boolean;
-  fetchOffers(isbn13: string, signal: AbortSignal, book: BookRef): Promise<Offer[]>;
+  fetchOffers(
+    isbn13: string,
+    signal: AbortSignal,
+    book: BookRef,
+  ): Promise<Offer[]>;
 }
 
 // a volume as found in the catalog (Open Library)

@@ -4,7 +4,11 @@
 // counts against that key's monthly plan, so a key stops at SERPAPI_MONTHLY_LIMIT
 // (default 250, the free plan) for the calendar month and the next takes over.
 // https://serpapi.com/google-shopping-api
-import { JAPANESE_EDITION, listingMatches, shoppingQuery } from "../stores/match.js";
+import {
+  JAPANESE_EDITION,
+  listingMatches,
+  shoppingQuery,
+} from "../stores/match.js";
 import {
   dropUnlikelyNew,
   isResaleSite,

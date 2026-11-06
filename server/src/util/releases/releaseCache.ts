@@ -14,7 +14,10 @@ import type {
   MangaReleaseDates,
   SeriesMatch,
 } from "../../../scripts/getReleaseDates.js";
-import { getChapterSource, type ChapterSource } from "../../prices/sources/mangaUpdates.js";
+import {
+  getChapterSource,
+  type ChapterSource,
+} from "../../prices/sources/mangaUpdates.js";
 import type { FormatedDates } from "./volumeDataFormatter.js";
 import { laneQueue, type Lane } from "./laneQueue.js";
 
@@ -62,7 +65,9 @@ export function withChapterSource(
     ...dates,
     ...(source.finished ? { seriesFinished: true } : {}),
   };
-  const current = parseFloat(dates?.chapter?.latestReleased.chapterNumber ?? "");
+  const current = parseFloat(
+    dates?.chapter?.latestReleased.chapterNumber ?? "",
+  );
   const isAhead =
     source.latestChapter != null &&
     (!Number.isFinite(current) || source.latestChapter > current);

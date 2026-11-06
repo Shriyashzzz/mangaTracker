@@ -88,7 +88,8 @@ const LIGHT_NOVEL_TAGS = /\(\s*(light\s*novel|novel|ln)\s*\)|\blight novel\b/gi;
 // "Adaptations of light novels". A work's publishers can mix the manga's and
 // the novel's when Open Library has grouped editions together, so a novel
 // imprint only counts when the manga imprint isn't there too
-const NOVEL_SUBJECT = /^light\s*novels?(\s*[,(]|$)|\(\s*light\s*novel\s*\)\s*$/i;
+const NOVEL_SUBJECT =
+  /^light\s*novels?(\s*[,(]|$)|\(\s*light\s*novel\s*\)\s*$/i;
 const NOVEL_IMPRINT = /^(yen on|j-novel club|airship|cross infinite world)\b/i;
 const MANGA_IMPRINT = /^yen press\b/i;
 export const isNovelEdition = (
@@ -187,7 +188,10 @@ async function englishOnly(
   return { ...english, title: asNovelTitle(english.title) };
 }
 
-async function englishPart(untagged: string, novel = false): Promise<TitleResult> {
+async function englishPart(
+  untagged: string,
+  novel = false,
+): Promise<TitleResult> {
   if (!JAPANESE.test(untagged)) return { title: untagged };
   const stripped = englishTitle(untagged);
   if (/[a-z]{2}/i.test(stripped)) return { title: stripped };
@@ -276,7 +280,10 @@ type Edition = {
 };
 
 // several searches can ask about the same work; failures aren't kept
-const editionsCache = new Map<string, { at: number; found: Promise<Edition[]> }>();
+const editionsCache = new Map<
+  string,
+  { at: number; found: Promise<Edition[]> }
+>();
 
 function fetchEditions(workKey: string, timeoutMs = TIMEOUT_MS) {
   const hit = editionsCache.get(workKey);
@@ -343,7 +350,10 @@ export function booksFromEditions(
       .find((i) => i && ENGLISH_ISBN.test(i));
     if (!isbn13 || !edition.title) continue;
     const languages = edition.languages ?? [];
-    if (languages.length && !languages.some((l) => l.key === "/languages/eng")) {
+    if (
+      languages.length &&
+      !languages.some((l) => l.key === "/languages/eng")
+    ) {
       continue;
     }
     const tagged = circledToDigits(
@@ -355,7 +365,10 @@ export function booksFromEditions(
       edition.publishers ?? doc.publisher,
     );
     if (isNovel !== novel || !isSingleVolume(tagged)) continue;
-    const full = tagged.replace(LIGHT_NOVEL_TAGS, " ").replace(/\s+/g, " ").trim();
+    const full = tagged
+      .replace(LIGHT_NOVEL_TAGS, " ")
+      .replace(/\s+/g, " ")
+      .trim();
     // "Kaiju No. 8" alone is the series, not its eighth volume
     if (normalize(full) === whole) continue;
     // a novel's "Sword Art Online 9: Alicization Beginning" reads as 9
@@ -441,7 +454,11 @@ export async function searchVolumesDetailed(
         degraded = true;
         return;
       }
-      for (const book of booksFromEditions(result.value, toRead[i]!, seriesName)) {
+      for (const book of booksFromEditions(
+        result.value,
+        toRead[i]!,
+        seriesName,
+      )) {
         // the search result for this ISBN may be the work's numberless title
         const same = books.findIndex((b) => b.isbn13 === book.isbn13);
         if (same === -1) books.push(book);

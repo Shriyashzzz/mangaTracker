@@ -40,7 +40,8 @@ export const seriesName = (title: string) =>
 // or plain "Overlord, Vol. 3". So the series is compared by its own name, and
 // the format on its own
 // "Light novel", "(LN)", "LN Vol. 3" or a bare "Novel", but not "Graphic novel"
-export const SAYS_NOVEL = /\blight\s*novels?\b|\bln\b|(?<!graphic\s)\bnovels?\b/gi;
+export const SAYS_NOVEL =
+  /\blight\s*novels?\b|\bln\b|(?<!graphic\s)\bnovels?\b/gi;
 const SAYS_MANGA = /\b(manga|comics?|graphic novels?)\b/i;
 export const isNovelBook = (bookTitle: string) =>
   /\blight novel$/i.test(seriesName(bookTitle));
@@ -54,7 +55,8 @@ const seriesWords = (title: string) => seriesOf(title.replace(SAYS_NOVEL, " "));
 // a listing that names the other format: "(manga)" for a novel's volume, or
 // "(light novel)" for a manga's
 const otherFormat = (listingTitle: string, bookTitle: string) => {
-  const saysNovel = (text: string) => new RegExp(SAYS_NOVEL.source, "i").test(text);
+  const saysNovel = (text: string) =>
+    new RegExp(SAYS_NOVEL.source, "i").test(text);
   const novel = saysNovel(listingTitle);
   if (isNovelBook(bookTitle)) return !novel && SAYS_MANGA.test(listingTitle);
   // "The Novel's Extra" is a manga: its own name can't count against it

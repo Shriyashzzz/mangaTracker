@@ -2,7 +2,12 @@
 // account; the shelf checks again so the change shows straight away.
 import { useEffect, useRef, useState } from "react";
 import { apiFetch } from "../../lib/api";
-import type { Prefs, RangeMode, ReleaseRange, ReleaseSettings } from "../../lib/types";
+import type {
+  Prefs,
+  RangeMode,
+  ReleaseRange,
+  ReleaseSettings,
+} from "../../lib/types";
 import { useShelf } from "../../store/shelf";
 import { newReleasesStyles as styles } from "./styles";
 
@@ -24,8 +29,10 @@ const KINDS = {
     max: 10,
     // finished vol. 22, vol. 30 is the newest in English
     example: ({ mode, within }: ReleaseRange) => {
-      if (mode === "next") return "You've finished vol. 22 and vol. 30 is out. You'd see vol. 23.";
-      if (mode === "all") return "You've finished vol. 22 and vol. 30 is out. You'd see vol. 23–30 as one card.";
+      if (mode === "next")
+        return "You've finished vol. 22 and vol. 30 is out. You'd see vol. 23.";
+      if (mode === "all")
+        return "You've finished vol. 22 and vol. 30 is out. You'd see vol. 23–30 as one card.";
       return within >= 8
         ? `You've finished vol. 22 and vol. 30 is out. That's within ${within}, so you'd see vol. 23.`
         : `You've finished vol. 22 and vol. 30 is out. You're 8 behind, so nothing shows until you're within ${within}.`;
@@ -40,8 +47,10 @@ const KINDS = {
     max: 50,
     // on ch. 247, ch. 250 is the latest
     example: ({ mode, within }: ReleaseRange) => {
-      if (mode === "next") return "You're on ch. 247 and ch. 250 is out. You'd see ch. 248.";
-      if (mode === "all") return "You're on ch. 247 and ch. 250 is out. You'd see ch. 248–250 as one card.";
+      if (mode === "next")
+        return "You're on ch. 247 and ch. 250 is out. You'd see ch. 248.";
+      if (mode === "all")
+        return "You're on ch. 247 and ch. 250 is out. You'd see ch. 248–250 as one card.";
       return within >= 3
         ? `You're on ch. 247 and ch. 250 is out. That's within ${within}, so you'd see ch. 248.`
         : `You're on ch. 247 and ch. 250 is out. You're 3 behind, so nothing shows until you're within ${within}.`;
@@ -52,7 +61,9 @@ const KINDS = {
 export default function ReleaseControls() {
   const recheckReleases = useShelf((s) => s.recheckReleases);
   const [settings, setSettings] = useState<ReleaseSettings | null>(null);
-  const [status, setStatus] = useState<"" | "saving" | "saved" | "failed" | "unloaded">("");
+  const [status, setStatus] = useState<
+    "" | "saving" | "saved" | "failed" | "unloaded"
+  >("");
   const timer = useRef<ReturnType<typeof setTimeout>>(undefined);
 
   useEffect(() => {
@@ -80,7 +91,13 @@ export default function ReleaseControls() {
     );
   }
   if (!settings) {
-    return <div className={`skeleton ${styles.panel} min-h-80`} aria-busy="true" aria-label="Loading" />;
+    return (
+      <div
+        className={`skeleton ${styles.panel} min-h-80`}
+        aria-busy="true"
+        aria-label="Loading"
+      />
+    );
   }
 
   const save = (next: ReleaseSettings) => {
@@ -150,9 +167,13 @@ export default function ReleaseControls() {
           </fieldset>
         );
       })}
-      <p className={status === "failed" ? styles.failed : styles.status} role="status">
+      <p
+        className={status === "failed" ? styles.failed : styles.status}
+        role="status"
+      >
         {status === "saving" && "Saving…"}
-        {status === "saved" && "Saved. Your New tab will use this next time it opens."}
+        {status === "saved" &&
+          "Saved. Your New tab will use this next time it opens."}
         {status === "failed" && "That didn't save. Try again."}
       </p>
     </div>

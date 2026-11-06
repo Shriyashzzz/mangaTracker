@@ -19,10 +19,9 @@ import { fileURLToPath } from "node:url";
 const DIST = fileURLToPath(new URL("./dist/", import.meta.url));
 // where this server reaches the API: the private address on Railway
 // (http://mangatracker.railway.internal:8080), the public one otherwise
-const API_URL = (process.env.API_INTERNAL_URL || process.env.VITE_API_URL)?.replace(
-  /\/+$/,
-  "",
-);
+const API_URL = (
+  process.env.API_INTERNAL_URL || process.env.VITE_API_URL
+)?.replace(/\/+$/, "");
 const PORT = process.env.PORT || 3000;
 // a preview that takes longer than this isn't worth holding the page for
 const API_TIMEOUT_MS = 2500;
@@ -170,7 +169,10 @@ function seriesTags(s: SeriesSummary, origin: string): Tags {
 }
 
 // swaps the default tags in index.html for the page's own
-function render({ title, description, path, image, jsonLd }: Tags, origin: string) {
+function render(
+  { title, description, path, image, jsonLd }: Tags,
+  origin: string,
+) {
   const fullTitle = `${title} | ${SITE_NAME}`;
   const url = origin + path;
   const tags = [
@@ -190,14 +192,16 @@ function render({ title, description, path, image, jsonLd }: Tags, origin: strin
     ).replace(/</g, "\\u003c")}</script>`,
   ].filter(Boolean);
 
-  return template
-    .replace(/<title>[\s\S]*?<\/title>\s*/, "")
-    .replace(/<meta\s+name="description"[\s\S]*?\/>\s*/, "")
-    .replace(/<meta\s+property="og:[^"]+"[\s\S]*?\/>\s*/g, "")
-    .replace(/<meta\s+name="twitter:card"[\s\S]*?\/>\s*/, "")
-    // a function, so a "$'" or "$&" in a title is kept as written rather than
-    // read as a replace pattern
-    .replace("</head>", () => `    ${tags.join("\n    ")}\n  </head>`);
+  return (
+    template
+      .replace(/<title>[\s\S]*?<\/title>\s*/, "")
+      .replace(/<meta\s+name="description"[\s\S]*?\/>\s*/, "")
+      .replace(/<meta\s+property="og:[^"]+"[\s\S]*?\/>\s*/g, "")
+      .replace(/<meta\s+name="twitter:card"[\s\S]*?\/>\s*/, "")
+      // a function, so a "$'" or "$&" in a title is kept as written rather than
+      // read as a replace pattern
+      .replace("</head>", () => `    ${tags.join("\n    ")}\n  </head>`)
+  );
 }
 
 // ---------- asking the API, briefly cached ----------
@@ -258,7 +262,11 @@ app.use("/api", (req, res) => {
     else
       res
         .status(502)
-        .json({ error: [{ msg: "The server isn't answering. Try again in a moment." }] });
+        .json({
+          error: [
+            { msg: "The server isn't answering. Try again in a moment." },
+          ],
+        });
   });
   req.pipe(upstream);
 });
@@ -334,15 +342,18 @@ const sendPage = (res: Response, html: string) =>
 const withTags =
   (load: (req: Request, origin: string) => Promise<Tags | null>) =>
   async (req: Request, res: Response) => {
-  const origin = `${req.protocol}://${req.get("host")}`;
-  try {
-    const tags = API_URL ? await load(req, origin) : null;
-    sendPage(res, tags ? render(tags, origin) : template);
-  } catch (e) {
-    console.error(`preview tags failed for ${req.originalUrl}:`, (e as Error).message);
-    sendPage(res, template);
-  }
-};
+    const origin = `${req.protocol}://${req.get("host")}`;
+    try {
+      const tags = API_URL ? await load(req, origin) : null;
+      sendPage(res, tags ? render(tags, origin) : template);
+    } catch (e) {
+      console.error(
+        `preview tags failed for ${req.originalUrl}:`,
+        (e as Error).message,
+      );
+      sendPage(res, template);
+    }
+  };
 
 app.get(
   "/prices/series/:slug",

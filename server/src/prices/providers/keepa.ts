@@ -47,9 +47,17 @@ const keepa: Provider = {
     const used = current[USED];
 
     const offers: Offer[] = [];
-    const base = { store: this.store, format: "print", currency: "USD", inStock: true, url };
-    if (newCents) offers.push({ ...base, condition: "new", priceCents: newCents });
-    if (used && used > 0) offers.push({ ...base, condition: "used", priceCents: used });
+    const base = {
+      store: this.store,
+      format: "print",
+      currency: "USD",
+      inStock: true,
+      url,
+    };
+    if (newCents)
+      offers.push({ ...base, condition: "new", priceCents: newCents });
+    if (used && used > 0)
+      offers.push({ ...base, condition: "used", priceCents: used });
     return offers;
   },
 };

@@ -45,7 +45,10 @@ async function check(name: string) {
   const info = await getSeriesInfo(name).catch(() => null);
   // no answer and none saved: AniList was busy, not "no other names". Checked
   // without them, a novel sold under another name would be missed for a month
-  if (!info && !(await prisma.seriesInfo.findUnique({ where: { slug: slugify(name) } }))) {
+  if (
+    !info &&
+    !(await prisma.seriesInfo.findUnique({ where: { slug: slugify(name) } }))
+  ) {
     return;
   }
   const names = [

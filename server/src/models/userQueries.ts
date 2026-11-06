@@ -46,7 +46,10 @@ export async function addUser(
     return user.id;
   } catch (e) {
     // P2002 = unique constraint: someone already has that username
-    if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === "P2002") {
+    if (
+      e instanceof Prisma.PrismaClientKnownRequestError &&
+      e.code === "P2002"
+    ) {
       return null;
     }
     throw e;
@@ -63,7 +66,10 @@ export async function getPrefs(userId: number): Promise<Prefs> {
 
 // merges the given keys into what's stored, leaving the rest alone. Done in
 // SQL (jsonb ||) so two tabs saving different keys can't overwrite each other
-export async function updatePrefs(userId: number, patch: Prefs): Promise<Prefs> {
+export async function updatePrefs(
+  userId: number,
+  patch: Prefs,
+): Promise<Prefs> {
   const rows = await prisma.$queryRaw<{ prefs: Prefs }[]>`
     UPDATE users SET prefs = prefs || ${JSON.stringify(patch)}::jsonb
     WHERE id = ${userId}
@@ -101,7 +107,8 @@ export async function updateAccount(id: number, patch: AccountPatch) {
       where: { id },
       select: { shareCode: true },
     });
-    if (!current?.shareCode) data.shareCode = randomBytes(9).toString("base64url");
+    if (!current?.shareCode)
+      data.shareCode = randomBytes(9).toString("base64url");
   }
   return prisma.user.update({ where: { id }, data, select: ACCOUNT_FIELDS });
 }

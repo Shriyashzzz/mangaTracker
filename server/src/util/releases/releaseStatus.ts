@@ -37,12 +37,15 @@ export const readReleaseSettings = (stored: unknown): ReleaseSettings => {
   const { volumes, chapters } = (stored ?? {}) as Partial<ReleaseSettings>;
   return {
     volumes: toRange(volumes, "volumes") ?? DEFAULT_RELEASE_SETTINGS.volumes,
-    chapters: toRange(chapters, "chapters") ?? DEFAULT_RELEASE_SETTINGS.chapters,
+    chapters:
+      toRange(chapters, "chapters") ?? DEFAULT_RELEASE_SETTINGS.chapters,
   };
 };
 
 // for saving: null if any of it isn't valid
-export const validReleaseSettings = (value: unknown): ReleaseSettings | null => {
+export const validReleaseSettings = (
+  value: unknown,
+): ReleaseSettings | null => {
   const { volumes, chapters } = (value ?? {}) as Partial<ReleaseSettings>;
   const parsed = {
     volumes: toRange(volumes, "volumes"),
@@ -104,8 +107,7 @@ type Sources = {
   dates: FormatedDates | null; // MangaDex, for chapters
   // the US catalog; null if it didn't answer
   englishVolumes:
-    | { volume: number | null; isbn13?: string; title?: string }[]
-    | null;
+    { volume: number | null; isbn13?: string; title?: string }[] | null;
 };
 
 // "New" is what's next for this reader: the next volume they can buy, however far
@@ -127,10 +129,15 @@ export function getReleaseStatus(
     .map((v) => v.volume)
     .filter((v): v is number => v != null);
   const latestVolume = numbers.length ? Math.max(...numbers) : null;
-  const chapter = parseFloat(dates?.chapter?.latestReleased.chapterNumber ?? "");
+  const chapter = parseFloat(
+    dates?.chapter?.latestReleased.chapterNumber ?? "",
+  );
   const latestChapter = Number.isFinite(chapter) ? chapter : null;
   const nextChapter =
-    latestChapter != null && bookmark != null && bookmark > 0 && bookmark < latestChapter
+    latestChapter != null &&
+    bookmark != null &&
+    bookmark > 0 &&
+    bookmark < latestChapter
       ? Math.min(Math.floor(bookmark) + 1, latestChapter)
       : null;
   const japanese = (dates?.volume ?? [])
@@ -141,7 +148,8 @@ export function getReleaseStatus(
     volumesOwned || volumeOfChapter(bookmark, dates?.volumeStarts ?? []);
   const nextVolume =
     currentVolume != null
-      ? numbers.filter((v) => v > currentVolume).sort((a, b) => a - b)[0] ?? null
+      ? (numbers.filter((v) => v > currentVolume).sort((a, b) => a - b)[0] ??
+        null)
       : null;
   const nextBook = (englishVolumes ?? []).find((v) => v.volume === nextVolume);
   const nextVolumeBook =
@@ -160,8 +168,9 @@ export function getReleaseStatus(
   const outVolumes =
     currentVolume != null
       ? (englishVolumes ?? [])
-          .filter((v): v is typeof v & { volume: number } =>
-            v.volume != null && v.volume > currentVolume,
+          .filter(
+            (v): v is typeof v & { volume: number } =>
+              v.volume != null && v.volume > currentVolume,
           )
           .sort((a, b) => a.volume - b.volume)
       : [];
@@ -187,7 +196,8 @@ export function getReleaseStatus(
   const hasNewChapter =
     chapterListed &&
     // grouped, hiding only part of the way still leaves the rest to show
-    (chapters.mode === "all" ? latestChapter! : nextChapter!) > (seenChapter ?? 0);
+    (chapters.mode === "all" ? latestChapter! : nextChapter!) >
+      (seenChapter ?? 0);
 
   const pastBoth = Math.max(currentVolume ?? 0, latestVolume ?? 0);
   const outJapanVolumes = [...new Set(japanese)]

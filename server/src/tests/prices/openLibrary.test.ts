@@ -30,10 +30,14 @@ async function load(env: Record<string, string> = {}) {
 }
 
 test("with an email: one at a time, under 3 a second, and it's sent", async () => {
-  const { openLibraryFetch } = await load({ EMAIL_FOR_OPEN_LIB: "me@example.org" });
+  const { openLibraryFetch } = await load({
+    EMAIL_FOR_OPEN_LIB: "me@example.org",
+  });
   const seen = fakeOpenLibrary();
   const answers = await Promise.all(
-    ["a", "b", "c", "d"].map((u) => openLibraryFetch(`https://x.test/${u}`, 1000)),
+    ["a", "b", "c", "d"].map((u) =>
+      openLibraryFetch(`https://x.test/${u}`, 1000),
+    ),
   );
   expect(seen.maxAtOnce).toBe(1);
   seen.starts.slice(1).forEach((start, i) => {
@@ -54,7 +58,9 @@ test("without one: slows to under 1 a second and sends no email", async () => {
 });
 
 test("one failure doesn't stop the requests behind it", async () => {
-  const { openLibraryFetch } = await load({ EMAIL_FOR_OPEN_LIB: "me@example.org" });
+  const { openLibraryFetch } = await load({
+    EMAIL_FOR_OPEN_LIB: "me@example.org",
+  });
   const seen = fakeOpenLibrary();
   const works = globalThis.fetch;
   let first = true;
@@ -73,7 +79,9 @@ test("one failure doesn't stop the requests behind it", async () => {
 });
 
 test("the timeout starts at its turn, not while waiting in line", async () => {
-  const { openLibraryFetch } = await load({ EMAIL_FOR_OPEN_LIB: "me@example.org" });
+  const { openLibraryFetch } = await load({
+    EMAIL_FOR_OPEN_LIB: "me@example.org",
+  });
   fakeOpenLibrary(150);
   // the second waits about 350ms in line, longer than its own 300ms timeout
   let aborted = false;

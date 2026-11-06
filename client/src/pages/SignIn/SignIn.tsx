@@ -47,7 +47,9 @@ export default function SignInPage() {
         setError("Incorrect username or password. Try again.");
       } else {
         // there's no password reset, so never let an outage look like a lost account
-        setError("We couldn't reach your shelf. Your account is fine, try again in a minute.");
+        setError(
+          "We couldn't reach your shelf. Your account is fine, try again in a minute.",
+        );
       }
     } catch {
       setError("Something went wrong. Please try again.");

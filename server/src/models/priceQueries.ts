@@ -10,7 +10,10 @@ import type { Spender } from "../prices/spender.js";
 import { VOLUMES_KEY_VERSION } from "../prices/volumesKey.js";
 import { prisma } from "../config/prisma.js";
 import { Prisma, type Book } from "../../generated/prisma/client.js";
-import { lowestBelievableNew, unlikelyNewTest } from "../prices/stores/retailers.js";
+import {
+  lowestBelievableNew,
+  unlikelyNewTest,
+} from "../prices/stores/retailers.js";
 import type { CatalogBook, Offer } from "../prices/types.js";
 
 export type { Book };
@@ -120,7 +123,10 @@ const groupBy = <T, K>(items: T[], keyOf: (item: T) => K) => {
 
 // samples saved before a rule changed, that it would have kept out: each is judged
 // against the other copies in its own check, the same way a new check is
-async function getUnbelievableSampleIds(isbn13: string, median?: number | null) {
+async function getUnbelievableSampleIds(
+  isbn13: string,
+  median?: number | null,
+) {
   const [rows, usual] = await Promise.all([
     prisma.$queryRaw<(StoredOffer & { id: string })[]>`
       SELECT id::text AS id, store, format, condition, price_cents AS "priceCents",
@@ -188,7 +194,9 @@ export async function getPriceHistory(
 
 // the median of a volume's believable new print prices so far, for judging
 // a new check's prices before they're stored. Null with no history yet
-export async function getNewPriceMedian(isbn13: string): Promise<number | null> {
+export async function getNewPriceMedian(
+  isbn13: string,
+): Promise<number | null> {
   const rows = await prisma.$queryRaw<{ median: number | null }[]>`
     SELECT ROUND(percentile_cont(0.5) WITHIN GROUP (ORDER BY price_cents))::int AS "median"
     FROM price_samples
@@ -352,7 +360,9 @@ export async function getSavedListSizes(keys: string[]) {
            volumes->0->>'coverUrl' AS "coverUrl"
     FROM series_volumes WHERE key IN (${Prisma.join(keys)})
   `;
-  return new Map(rows.map((r) => [r.key, { size: r.size, coverUrl: r.coverUrl }]));
+  return new Map(
+    rows.map((r) => [r.key, { size: r.size, coverUrl: r.coverUrl }]),
+  );
 }
 
 // novels the background finder found for these manga (prices/novelFinder.ts),
@@ -362,7 +372,9 @@ export async function getFoundNovels(keys: string[]) {
   const rows = await prisma.novelCheck.findMany({
     where: { key: { in: keys }, volumes: { gt: 0 }, name: { not: null } },
   });
-  return new Map(rows.map((r) => [r.key, { name: r.name!, volumes: r.volumes }]));
+  return new Map(
+    rows.map((r) => [r.key, { name: r.name!, volumes: r.volumes }]),
+  );
 }
 
 export async function isKnownVolume(isbn13: string) {

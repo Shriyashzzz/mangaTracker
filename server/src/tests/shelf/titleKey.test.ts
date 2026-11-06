@@ -5,12 +5,16 @@ const shelf = [
   { id: 2, name: "葬送のフリーレン" },
 ];
 
-test.each(["One Piece", "one piece", "  ONE PIECE ", "One-Piece", "One  Piece", "OnePiece"])(
-  "%s is already on the shelf",
-  (name) => {
-    expect(isOnShelf(name, shelf)).toBe(true);
-  },
-);
+test.each([
+  "One Piece",
+  "one piece",
+  "  ONE PIECE ",
+  "One-Piece",
+  "One  Piece",
+  "OnePiece",
+])("%s is already on the shelf", (name) => {
+  expect(isOnShelf(name, shelf)).toBe(true);
+});
 
 test("a different title isn't", () => {
   expect(isOnShelf("Berserk", shelf)).toBe(false);

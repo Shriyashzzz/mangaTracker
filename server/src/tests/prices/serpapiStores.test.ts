@@ -110,7 +110,9 @@ test("Amazon splits print from Kindle and skips sets and unavailable books", asy
     ["print", 959],
     ["ebook", 629],
   ]);
-  expect(offers[0]!.url).toBe("https://www.amazon.com/dp/159116978X?tag=test-20");
+  expect(offers[0]!.url).toBe(
+    "https://www.amazon.com/dp/159116978X?tag=test-20",
+  );
   expect(isAffiliateUrl(offers[0]!.url)).toBe(true);
 });
 
@@ -140,6 +142,11 @@ test("a store's Google rows go only once it has a direct row", async () => {
     "Walmart - Seller",
     "Target",
   ]);
-  const withAmazon = [...rows, { store: "Amazon", url: "https://www.amazon.com/dp/1" }];
-  expect(preferDirectRows(withAmazon).map((o) => o.store)).not.toContain("Amazon.com");
+  const withAmazon = [
+    ...rows,
+    { store: "Amazon", url: "https://www.amazon.com/dp/1" },
+  ];
+  expect(preferDirectRows(withAmazon).map((o) => o.store)).not.toContain(
+    "Amazon.com",
+  );
 });

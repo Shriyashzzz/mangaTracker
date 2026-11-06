@@ -13,7 +13,11 @@
 // Everything happens in one transaction; running it twice changes nothing.
 import "dotenv/config";
 import { Client } from "pg";
-import { isNotABook, isResaleSite, unlikelyNewTest } from "../src/prices/stores/retailers.js";
+import {
+  isNotABook,
+  isResaleSite,
+  unlikelyNewTest,
+} from "../src/prices/stores/retailers.js";
 import type { Offer } from "../src/prices/types.js";
 
 const arg = (name: string) => {
@@ -53,7 +57,9 @@ async function main() {
     toDelete.push(...samples.filter((s) => isNotABook(s.store)));
     const books = samples.filter((s) => !isNotABook(s.store));
     // resale sites first, then the price test over what's left as new
-    const resale = books.filter((s) => s.condition === "new" && isResaleSite(s.store));
+    const resale = books.filter(
+      (s) => s.condition === "new" && isResaleSite(s.store),
+    );
     const rest = books.filter((s) => !resale.includes(s));
     toMarketplace.push(...resale);
     toDelete.push(...rest.filter(unlikelyNewTest(rest)));
@@ -63,7 +69,9 @@ async function main() {
     `  ${s.isbn13}  ${s.fetchedAt.toISOString().slice(0, 10)}  $${(s.priceCents / 100).toFixed(2).padStart(6)}  ${s.store}`;
   console.log(`new -> marketplace: ${toMarketplace.length}`);
   toMarketplace.forEach((s) => console.log(show(s)));
-  console.log(`\ndeleted (unbelievable new copy, or not an English print book): ${toDelete.length}`);
+  console.log(
+    `\ndeleted (unbelievable new copy, or not an English print book): ${toDelete.length}`,
+  );
   toDelete.forEach((s) => console.log(show(s)));
 
   if (!apply) {

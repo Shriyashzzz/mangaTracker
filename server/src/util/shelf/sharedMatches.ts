@@ -35,7 +35,11 @@ export type Media = {
   format: string | null;
   isAdult?: boolean | null;
   synonyms: string[] | null;
-  title: { english: string | null; romaji: string | null; native: string | null };
+  title: {
+    english: string | null;
+    romaji: string | null;
+    native: string | null;
+  };
   coverImage: { extraLarge: string | null; large: string | null } | null;
 };
 
@@ -88,7 +92,9 @@ export async function knownMatches(searches: Search[]) {
   });
 }
 
-export async function saveMatches(rows: { search: Search; match: SharedMatch }[]) {
+export async function saveMatches(
+  rows: { search: Search; match: SharedMatch }[],
+) {
   for (const { search, match } of rows) {
     const key = matchKey(search.name, search.lightNovel, search.exactOnly);
     const row = { ...match, checkedAt: new Date() };
@@ -126,7 +132,9 @@ export async function mediaByIds(ids: number[]): Promise<Media[]> {
     signal: AbortSignal.timeout(10000),
   });
   if (!res.ok) throw new Error(`AniList responded ${res.status}`);
-  const { data } = (await res.json()) as { data?: { Page?: { media?: Media[] } } };
+  const { data } = (await res.json()) as {
+    data?: { Page?: { media?: Media[] } };
+  };
   return data?.Page?.media ?? [];
 }
 
@@ -136,7 +144,9 @@ async function checkBatch(batch: Told[]) {
   const byId = new Map(media.map((m) => [m.id, m]));
   const good = batch.flatMap((told) => {
     const m = byId.get(told.anilistId);
-    return m && fits(told, m) ? [{ search: told, match: matchOf(m, told.name) }] : [];
+    return m && fits(told, m)
+      ? [{ search: told, match: matchOf(m, told.name) }]
+      : [];
   });
   await saveMatches(good);
   return good.length;
@@ -150,7 +160,10 @@ async function run() {
       // up to 50 different series a request
       const batch: Told[] = [];
       const ids = new Set<number>();
-      while (queue.length && (ids.size < IDS_PER_REQUEST || ids.has(queue[0]!.anilistId))) {
+      while (
+        queue.length &&
+        (ids.size < IDS_PER_REQUEST || ids.has(queue[0]!.anilistId))
+      ) {
         const t = queue.shift()!;
         ids.add(t.anilistId);
         batch.push(t);
@@ -159,9 +172,13 @@ async function run() {
         await checkBatch(batch);
       } catch (e) {
         // a passing problem: whoever imports the title next tells us again
-        console.error("Checking shared import matches failed:", (e as Error).message);
+        console.error(
+          "Checking shared import matches failed:",
+          (e as Error).message,
+        );
       } finally {
-        for (const t of batch) waiting.delete(matchKey(t.name, t.lightNovel, t.exactOnly));
+        for (const t of batch)
+          waiting.delete(matchKey(t.name, t.lightNovel, t.exactOnly));
       }
       await new Promise((done) => setTimeout(done, GAP_MS));
     }

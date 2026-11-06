@@ -19,7 +19,8 @@ const robots = (apiUrl?: string): Plugin => ({
       "Disallow: /signup",
       "",
     ];
-    if (apiUrl) lines.push(`Sitemap: ${apiUrl.replace(/\/+$/, "")}/sitemap.xml`);
+    if (apiUrl)
+      lines.push(`Sitemap: ${apiUrl.replace(/\/+$/, "")}/sitemap.xml`);
     this.emitFile({
       type: "asset",
       fileName: "robots.txt",
