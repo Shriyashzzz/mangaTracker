@@ -22,9 +22,15 @@
   --grain-opacity: 0.18;
 }
 
+/* pinned behind the page at the height of the screen with the browser's bars
+   hidden (lvh), which never changes. With inset: 0 it grew as a phone's
+   address bar slid away on scroll, and the drawing centred in it slid down
+   with it. 100vh first for browsers without lvh */
 .backdrop {
   position: fixed;
-  inset: 0;
+  inset: 0 0 auto;
+  height: 100vh;
+  height: 100lvh;
   z-index: -1;
   overflow: hidden;
   pointer-events: none;
