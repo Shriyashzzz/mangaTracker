@@ -3,22 +3,17 @@ import App from "../App";
 import ErrorPage from "./Error/Error";
 import Home from "./Home/Home";
 import Details from "./Details/Details";
-import { UpdateManga } from "./UpdateManga/UpdateManga";
-import { AddManga } from "./AddManga/AddManga";
-import { AboutPage } from "./About/About";
-import { ImportPage } from "./Import/Import";
-import { UpdatesPage } from "./Updates/Updates";
-import { AcknowledgementsPage } from "./Acknowledgements/Acknowledgements";
-import NewReleasesPage from "./NewReleases/NewReleases";
-import SettingsPage from "./Settings/Settings";
-import SharedShelfPage from "./SharedShelf/SharedShelf";
 import SignInPage from "./SignIn/SignIn";
 import SignUp from "./SignUp/SignUp";
 import FrontDoor from "./Prices/FrontDoor";
-import PriceVolume from "./Prices/PriceVolume";
-import PriceSeries from "./Prices/PriceSeries";
 import ToPriceHome from "./Prices/ToPriceHome";
-import SeriesIndex from "./Prices/SeriesIndex";
+
+// pages most visits never open load when they're first opened: the router
+// fetches the page's code, then shows it (no loading flash in between). The
+// shelf, details, the front door and signing in are in the first download
+const page =
+  <T,>(load: () => Promise<T>, pick: (module: T) => React.ComponentType) =>
+  async () => ({ Component: pick(await load()) });
 
 export const routes = [
   {
@@ -32,25 +27,97 @@ export const routes = [
       { path: "/shelf", element: <Home /> },
       { path: "/signin", element: <SignInPage /> },
       { path: "/details/:id", element: <Details /> },
-      { path: "/update/:id", element: <UpdateManga /> },
-      { path: "/add", element: <AddManga /> },
-      { path: "/import", element: <ImportPage /> },
-      { path: "/about", element: <AboutPage /> },
-      { path: "/updates", element: <UpdatesPage /> },
-      { path: "/acknowledgements", element: <AcknowledgementsPage /> },
-      { path: "/new-releases", element: <NewReleasesPage /> },
-      { path: "/settings/:tab?", element: <SettingsPage /> },
+      {
+        path: "/update/:id",
+        lazy: page(
+          () => import("./UpdateManga/UpdateManga"),
+          (m) => m.UpdateManga,
+        ),
+      },
+      {
+        path: "/add",
+        lazy: page(
+          () => import("./AddManga/AddManga"),
+          (m) => m.AddManga,
+        ),
+      },
+      {
+        path: "/import",
+        lazy: page(
+          () => import("./Import/Import"),
+          (m) => m.ImportPage,
+        ),
+      },
+      {
+        path: "/about",
+        lazy: page(
+          () => import("./About/About"),
+          (m) => m.AboutPage,
+        ),
+      },
+      {
+        path: "/updates",
+        lazy: page(
+          () => import("./Updates/Updates"),
+          (m) => m.UpdatesPage,
+        ),
+      },
+      {
+        path: "/acknowledgements",
+        lazy: page(
+          () => import("./Acknowledgements/Acknowledgements"),
+          (m) => m.AcknowledgementsPage,
+        ),
+      },
+      {
+        path: "/new-releases",
+        lazy: page(
+          () => import("./NewReleases/NewReleases"),
+          (m) => m.default,
+        ),
+      },
+      {
+        path: "/settings/:tab?",
+        lazy: page(
+          () => import("./Settings/Settings"),
+          (m) => m.default,
+        ),
+      },
       {
         path: "/profile",
         element: <Navigate to="/settings/profile" replace />,
       },
-      { path: "/u/:code", element: <SharedShelfPage /> },
+      {
+        path: "/u/:code",
+        lazy: page(
+          () => import("./SharedShelf/SharedShelf"),
+          (m) => m.default,
+        ),
+      },
       { path: "/signup", element: <SignUp /> },
-      { path: "/series", element: <SeriesIndex /> },
+      {
+        path: "/series",
+        lazy: page(
+          () => import("./Prices/SeriesIndex"),
+          (m) => m.default,
+        ),
+      },
       { path: "/prices", element: <ToPriceHome /> },
-      { path: "/prices/series/:slug", element: <PriceSeries /> },
+      {
+        path: "/prices/series/:slug",
+        lazy: page(
+          () => import("./Prices/PriceSeries"),
+          (m) => m.default,
+        ),
+      },
       // the title part is optional, so ISBN-only links keep working
-      { path: "/prices/:isbn/:slug?", element: <PriceVolume /> },
+      {
+        path: "/prices/:isbn/:slug?",
+        lazy: page(
+          () => import("./Prices/PriceVolume"),
+          (m) => m.default,
+        ),
+      },
       // an unknown address keeps the header and footer, so there's a way on
       { path: "*", element: <ErrorPage /> },
     ],
