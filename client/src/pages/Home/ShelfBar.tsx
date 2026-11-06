@@ -73,6 +73,7 @@ export default function ShelfBar({
   onQuery,
   sortBy,
   onSort,
+  onSelect,
 }: {
   views: ShelfView[];
   current: string;
@@ -81,6 +82,8 @@ export default function ShelfBar({
   onQuery: (q: string) => void;
   sortBy: string;
   onSort: (value: string) => void;
+  // turns on Select; left out where cards can't be selected (New, Volumes)
+  onSelect?: () => void;
 }) {
   const shown = views.find((v) => v.value === current) ?? views[0]!;
   // the view they were on before New, for the way back (All if they arrived
@@ -144,7 +147,7 @@ export default function ShelfBar({
           type="search"
           data-shelf-search
           aria-keyshortcuts="/"
-          placeholder="Find a title or genre"
+          placeholder="Title or genre"
           value={query}
           onChange={(e) => onQuery(e.target.value)}
           onBlur={(e) => {
@@ -157,6 +160,12 @@ export default function ShelfBar({
             }
           }}
         />
+        {/* the shortcut, where a keyboard is likely */}
+        {!query && (
+          <kbd className={styles.searchKey} aria-hidden>
+            /
+          </kbd>
+        )}
         {searching && (
           <button
             type="button"
@@ -187,6 +196,11 @@ export default function ShelfBar({
       )}
       {/* New lists what's out, newest first: sorting says little there */}
       {current !== "new" && <SortMenu sortBy={sortBy} onSort={onSort} />}
+      {onSelect && (
+        <button type="button" className={styles.select} onClick={onSelect}>
+          Select
+        </button>
+      )}
     </div>
   );
 }

@@ -20,7 +20,7 @@ export const formStyles = {
   formTitle:
     "font-brand font-normal uppercase tracking-[0.02em] text-[clamp(1.9rem,3.4vw,2.3rem)] leading-[1.05] font-medium",
   formSub:
-    "max-w-sm text-[0.95rem] leading-[1.45] text-ink-soft short-laptop:hidden",
+    "max-w-sm text-[0.95rem] leading-[1.45] text-balance text-ink-soft short-laptop:hidden",
 
   // one sheet: the cover column beside the details. The title comes first
   // in the markup (it's what you type first, and it drives the cover

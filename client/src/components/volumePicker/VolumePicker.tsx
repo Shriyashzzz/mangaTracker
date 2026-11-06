@@ -52,8 +52,8 @@ function fullRuns(list: number[]): Run[] {
 
 export function useVolumePicker(
   start: Start,
-  // how many volumes are out, when known: no spines past it, and the count
-  // says "of 113"
+  // how many volumes are out, as far as the price list knows: the count
+  // says "of 113". Not a limit: the list can lag behind what's out
   out?: number | null,
 ): {
   field: ReactNode;
@@ -209,11 +209,20 @@ export function useVolumePicker(
     setShown(Math.max(FIRST_SHOWN, roundUp(n + 1)));
   };
 
-  const limit = out && out > 0 ? Math.max(out, Math.ceil(top)) : Infinity;
+  const known = out && out > 0 ? Math.max(out, Math.ceil(top)) : null;
+  // a short series shows just what's out, until they ask for more
+  const [grown, setGrown] = useState(false);
   const spines = Array.from(
-    { length: Math.min(limit, Math.max(shown, Math.ceil(top))) },
+    {
+      length: Math.max(
+        known && !grown ? Math.min(shown, known) : shown,
+        Math.ceil(top),
+      ),
+    },
     (_, i) => i + 1,
   );
+  // whole volumes only, as the "of 113" counts them (10.5 and vol. 0 aren't)
+  const ownedWhole = owned.filter((v) => Number.isInteger(v) && v >= 1).length;
   // Enter or Space on a spine (pointers are the shelf's)
   const keyToggle = (v: number, yours: boolean) => {
     change([v], !yours);
@@ -313,21 +322,22 @@ export function useVolumePicker(
       <div className={styles.foot}>
         <p className={styles.said} aria-live="polite">
           {owned.length
-            ? `${owned.length} owned${limit < Infinity ? ` of ${limit}` : ""} · ${rangesText(owned)}`
-            : limit < Infinity
-              ? `None picked yet · ${limit} out`
+            ? `${ownedWhole} owned${known ? ` of ${known}` : ""} · ${rangesText(owned)}`
+            : known
+              ? `None picked yet · ${known} out`
               : "None picked yet"}
         </p>
         <span className={styles.footActions}>
-          {spines.length < limit && (
-            <button
-              type="button"
-              className={styles.clear}
-              onClick={() => setShown((n) => n + MORE)}
-            >
-              +{Math.min(MORE, limit - spines.length)} more
-            </button>
-          )}
+          <button
+            type="button"
+            className={styles.clear}
+            onClick={() => {
+              setGrown(true);
+              setShown((n) => Math.max(n, spines.length) + MORE);
+            }}
+          >
+            +{MORE} more
+          </button>
           {owned.length > 0 && (
             <button
               type="button"

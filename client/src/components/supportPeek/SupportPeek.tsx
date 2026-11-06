@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useLocation } from "react-router";
 import { CloseIcon } from "../icons/Icons";
+import { claimNote, noteFree } from "../../lib/notes";
 import { Fingers, Head } from "../kenji/Kenji";
 import {
   SUPPORT_URL,
@@ -37,6 +38,9 @@ export default function SupportPeek() {
           "input, textarea, select",
         );
         if (typing || document.querySelector("[data-over-add-button]")) return;
+        // the tour first, and one note a visit
+        if (!noteFree("support")) return;
+        claimNote("support");
         markPeekShown();
         setWay(Math.random() < 0.5 ? "edge" : "side");
       }, SHOW_AFTER_MS);

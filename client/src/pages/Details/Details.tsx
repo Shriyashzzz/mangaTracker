@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type CSSProperties } from "react";
 import {
   ownedOf,
   ownedPhrase,
@@ -19,7 +19,6 @@ import { getReleases } from "../../lib/shelf";
 import VolumeShelf from "../../components/volumeShelf/VolumeShelf";
 import { readLocal, useReleaseChecksOn, writeLocal } from "../../lib/prefs";
 import { useShelf } from "../../store/shelf";
-import { useAuth } from "../../store/auth";
 import NotesField from "./NotesField";
 import BuyStrip from "./BuyStrip";
 import ReleaseBar from "./ReleaseBar";
@@ -29,6 +28,8 @@ import { formatCents, priceName, volumePath } from "../../lib/prices";
 
 const DIDNT_SAVE = "That didn't save. Try again.";
 const SHELF_TRIED_KEY = "volumeShelfTried";
+// the shelf's least width beside the title, so its caption reads in a line or two
+const SHELF_MIN = 208;
 
 export default function Details() {
   usePrivatePage("Manga details");
@@ -38,10 +39,11 @@ export default function Details() {
     null,
   );
   // "signin": the server says it isn't theirs to see; "network": it didn't answer
-  const [loadError, setLoadError] = useState<"signin" | "network" | null>(null);
-  // signed in, a series that won't open is gone (deleted, or not theirs);
-  // signed out, it's the sign in that's missing
-  const signedIn = useAuth((s) => s.isSignedIn);
+  // "signin": the server wants a sign in (none, or it expired); "gone": signed
+  // in, but it's deleted or someone else's; "network": no answer
+  const [loadError, setLoadError] = useState<
+    "signin" | "gone" | "network" | null
+  >(null);
   const [brokenCover, setBrokenCover] = useState<string | null>(null);
   const [loadTry, setLoadTry] = useState(0);
   // a chapter was saved, so what's new for them needs asking again
@@ -90,12 +92,14 @@ export default function Details() {
     async function getManga() {
       try {
         const response = await apiFetch(`/api/manga/${id}`);
-        if (
-          response.status === 401 ||
-          response.status === 403 ||
-          response.status === 404
-        ) {
+        // what the server says, not what this page last thought: a session
+        // that's expired since still needs a sign in
+        if (response.status === 401) {
           setLoadError("signin");
+          return;
+        }
+        if (response.status === 403 || response.status === 404) {
+          setLoadError("gone");
           return;
         }
         if (!response.ok) throw new Error(response.statusText);
@@ -306,7 +310,7 @@ export default function Details() {
     );
   }
 
-  if (loadError && signedIn) {
+  if (loadError === "gone") {
     return (
       <div className={styles.errorState}>
         <h1>This one's not on your shelf.</h1>
@@ -446,16 +450,24 @@ export default function Details() {
             </header>
             <div
               className={styles.shelf}
-              // a short series asks only for the room its books need
-              style={{ maxWidth: shelfTotal * BOOK }}
+              // the room a short series' books need, but never so little
+              // that the caption under them breaks a word to a line
+              style={
+                {
+                  "--shelf-w": `${Math.min(460, Math.max(shelfTotal * BOOK, SHELF_MIN))}px`,
+                } as CSSProperties
+              }
             >
-              <VolumeShelf
-                key={mangaData.id}
-                total={shelfTotal}
-                owned={owned}
-                onToggle={toggleOwned}
-                name={mangaData.name}
-              />
+              {/* the books keep to their own width; the caption gets the room */}
+              <div style={{ maxWidth: shelfTotal * BOOK }}>
+                <VolumeShelf
+                  key={mangaData.id}
+                  total={shelfTotal}
+                  owned={owned}
+                  onToggle={toggleOwned}
+                  name={mangaData.name}
+                />
+              </div>
               {/* what the shelf says, in words: how many of how many, any
                   halves or specials it has no book for, and how it works
                   until they've tried it */}

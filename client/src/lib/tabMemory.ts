@@ -63,6 +63,18 @@ export const leaveTabFor = (
   if (from) write({ ...spots, [from]: { path: fromPath, y: window.scrollY } });
 };
 
+// going to a different page of the tab than the one remembered (the bar's
+// New, or the shelf's All from New): keep their place where they were, but
+// open the new page at its top rather than at the other page's scroll
+export const leaveTabForTop = (
+  tab: BarTab,
+  from: BarTab | null,
+  fromPath: string,
+) => {
+  leaveTabFor(tab, from, fromPath);
+  returningTo = null;
+};
+
 export const forgetSpot = (tab: BarTab) => {
   const spots = read();
   delete spots[tab];

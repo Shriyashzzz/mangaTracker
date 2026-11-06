@@ -8,6 +8,7 @@ import { useEffect, useRef, useState } from "react";
 import { useLocation } from "react-router";
 import { hasBottomBar } from "../../lib/bottomBar";
 import { markTourDone, shouldOfferTour } from "../../lib/tourOffer";
+import { claimNote } from "../../lib/notes";
 import { useAuth } from "../../store/auth";
 import { Fingers, Head } from "../kenji/Kenji";
 import TakeTourButton from "./TakeTourButton";
@@ -33,6 +34,7 @@ export default function TourOffer() {
       // not on top of another note in that corner
       if (document.querySelector("[data-over-add-button], .support-peek"))
         return;
+      claimNote("tour");
       setShown(true);
     }, SHOW_AFTER_MS);
     return () => clearTimeout(timer);

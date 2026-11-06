@@ -5,6 +5,7 @@ import { useEffect, useRef, useState } from "react";
 import { CloseIcon } from "../icons/Icons";
 import { Fingers, Head } from "../kenji/Kenji";
 import { isDemo } from "../../lib/demo";
+import { claimNote, noteFree } from "../../lib/notes";
 import { readLocal, writeLocal } from "../../lib/prefs";
 import {
   VIEW_PEEK_KEY,
@@ -49,6 +50,9 @@ export default function ViewPeek({ series, rows, blocked, onChoose }: Props) {
       if (document.hidden || typing) return;
       if (document.querySelector("[data-over-add-button], .support-peek"))
         return;
+      // the tour first, and one note a visit
+      if (!noteFree("view")) return;
+      claimNote("view");
       save({ lastShownAt: Date.now() });
       setNote("ask");
     }, SHOW_AFTER_MS);

@@ -25,6 +25,8 @@ type Props = {
   // everything AniList found, and for which title
   onResults?: (found: CoverHit[], query: string) => void;
   className?: string;
+  // what's wrong with a pasted link, said under the box
+  error?: string;
 };
 
 type Status = "idle" | "loading" | "done" | "error";
@@ -37,6 +39,7 @@ export default function CoverPicker({
   previewUrl = null,
   onResults,
   className = "",
+  error,
 }: Props) {
   const [results, setResults] = useState<CoverHit[]>([]);
   const [status, setStatus] = useState<Status>("idle");
@@ -84,11 +87,13 @@ export default function CoverPicker({
     touched.current = true;
     onChange(url, match);
   };
-  // the link box holds a link they pasted, not the address of a cover picked
-  // from AniList (or saved with the manga)
-  const [pasted, setPasted] = useState(
-    () => Boolean(value) && !/anilist\.co|myanimelist|kitsu/i.test(value),
-  );
+  // the link box holds a link they pasted (or are typing), never the address
+  // of a cover picked from AniList or saved from a list import. Worked out
+  // from the cover itself, so it follows any change made from outside
+  const pasted =
+    Boolean(value) &&
+    !results.some((r) => r.cover === value) &&
+    !/anilist\.co|myanimelist|kitsu/i.test(value);
 
   const hasImage = Boolean(bigCover) && !broken;
 
@@ -189,11 +194,7 @@ export default function CoverPicker({
                   "group/thumb relative block cursor-pointer focus-visible:outline-none",
                   selected && "tick-corner",
                 )}
-                onClick={() => {
-                  setPasted(false);
-                  if (selected) pick("");
-                  else pick(r.cover, r);
-                }}
+                onClick={() => (selected ? pick("") : pick(r.cover, r))}
               >
                 <img
                   src={r.cover}
@@ -212,20 +213,38 @@ export default function CoverPicker({
         </div>
       )}
 
+      {value && (
+        <button
+          type="button"
+          className="tap self-start text-[0.8rem] text-ink-soft underline decoration-line-soft underline-offset-3 hover:text-ink hover:decoration-current upto-760:col-span-2"
+          onClick={() => pick("")}
+        >
+          No cover
+        </button>
+      )}
+
       <label className="upto-760:col-span-2">
         <span className="sr-only">Cover image link</span>
         <input
           type="url"
+          id="cover-link"
           name="image"
           placeholder="or paste an image link"
           value={pasted ? value : ""}
-          onChange={(e) => {
-            setPasted(Boolean(e.target.value));
-            pick(e.target.value);
-          }}
+          onChange={(e) => pick(e.target.value)}
+          aria-invalid={Boolean(error) || undefined}
+          aria-describedby={error ? "cover-link-error" : undefined}
           className="h-11 w-full rounded-[2px] border-[1.5px] border-line-soft bg-paper px-[0.6rem] text-[0.8rem] upto-760:text-[1rem] transition-[border-color,box-shadow] duration-120 ease-[ease] placeholder:text-muted placeholder:opacity-85 focus:border-line focus:shadow-[3px_3px_0_var(--accent)] focus:outline-none"
         />
       </label>
+      {error && (
+        <p
+          id="cover-link-error"
+          className="text-[0.85rem] font-medium text-accent upto-760:col-span-2"
+        >
+          {error}
+        </p>
+      )}
     </div>
   );
 }

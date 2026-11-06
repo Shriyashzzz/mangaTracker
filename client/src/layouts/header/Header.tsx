@@ -11,11 +11,12 @@ import { useFromShelf } from "../../lib/fromShelf";
 import { probablySignedIn, useAuth } from "../../store/auth";
 import { useShelf } from "../../store/shelf";
 import { readLocal, useReleaseChecksOn } from "../../lib/prefs";
-import { LAST_NEW_COUNT_KEY } from "../../lib/shelf";
+import { LAST_NEW_COUNT_KEY, shownNewCount } from "../../lib/shelf";
 import {
   forgetAllSpots,
   forgetSpot,
   leaveTabFor,
+  leaveTabForTop,
   notePage,
   readSpot,
   scrollBackIfReturning,
@@ -53,17 +54,19 @@ export default function Header() {
   const checksOn = useReleaseChecksOn();
   const manga = useShelf((s) => s.manga);
   const releases = useShelf((s) => s.releases);
-  // what's new, as the shelf counts it: from this visit's checks once there
-  // are any, else what the last full check found
+  const outcomes = useShelf((s) => s.outcomes);
+  // the same count the shelf's New tab shows
   const newCount = useMemo(() => {
-    if (manga && Object.keys(releases).length)
-      return manga.filter(
-        (m) =>
-          !m.planned &&
-          (releases[m.id]?.hasNewVolume || releases[m.id]?.hasNewChapter),
-      ).length;
-    return Number(readLocal(LAST_NEW_COUNT_KEY)) || 0;
-  }, [manga, releases]);
+    const saved = readLocal(LAST_NEW_COUNT_KEY);
+    return (
+      shownNewCount(
+        manga ?? [],
+        releases,
+        outcomes,
+        saved ? Number(saved) : null,
+      ) ?? 0
+    );
+  }, [manga, releases, outcomes]);
   const currentTab = fromShelf ? "shelf" : tabOf(pathname);
   // the home page anyone new sees is both halves of the app, so neither lights up
   const guestHome =
@@ -102,6 +105,17 @@ export default function Header() {
         : (readSpot(tab)?.path ?? TAB_HOME[tab]),
     onClick: () => leaveTabFor(tab, currentTab, here),
   });
+
+  // My shelf in the phones' bar. From New, or back to a shelf last left on
+  // New, it's the shelf itself (All), opened at its top
+  const remembered = barLink("shelf");
+  const toAll = onNew || /[?&]tab=new/.test(remembered.to);
+  const shelfLink = toAll
+    ? {
+        to: "/shelf?tab=all",
+        onClick: () => leaveTabForTop("shelf", currentTab, here),
+      }
+    : remembered;
 
   const handleLogOut = async () => {
     if (await logOut()) {
@@ -168,13 +182,7 @@ export default function Header() {
         aria-label="Main"
       >
         <NavLink
-          {...barLink("shelf")}
-          // from New, or back to a shelf last left on New: the shelf itself
-          to={
-            onNew || /[?&]tab=new/.test(barLink("shelf").to)
-              ? "/shelf?tab=all"
-              : barLink("shelf").to
-          }
+          {...shelfLink}
           className={() => barClass(currentTab === "shelf" && !onNew)}
           viewTransition
         >
@@ -183,7 +191,7 @@ export default function Header() {
         {isSignedIn && checksOn && (
           <NavLink
             to="/shelf?tab=new"
-            onClick={() => leaveTabFor("shelf", currentTab, here)}
+            onClick={() => leaveTabForTop("shelf", currentTab, here)}
             data-tour="tab-new"
             className={() => barClass(onNew)}
             data-on={onNew || undefined}
