@@ -24,7 +24,12 @@ import { volumePath } from "../../lib/prices";
 import type { Manga, ReleaseStatus } from "../../lib/types";
 import { useAuth } from "../../store/auth";
 import { useShelf } from "../../store/shelf";
-import { readLocal, useReleaseChecksOn, writeLocal } from "../../lib/prefs";
+import {
+  readLocal,
+  savePrefs,
+  useReleaseChecksOn,
+  writeLocal,
+} from "../../lib/prefs";
 import {
   CHECKED_BEFORE_KEY,
   isStillNew,
@@ -39,6 +44,7 @@ import ReleaseModal from "./ReleaseModal";
 import DeleteManyModal from "./DeleteManyModal";
 import { EmptyShelfUndo } from "../../components/deletedNote/DeletedNote";
 import ReleaseTip from "../../components/whatsNew/ReleaseTip";
+import ViewPeek from "../../components/viewPeek/ViewPeek";
 import TakeTourButton from "../../components/tour/TakeTourButton";
 
 const SHELF_PAGE_SIZE = 20;
@@ -174,7 +180,10 @@ function Library() {
   const [openRelease, setOpenRelease] = useState<number | null>(null);
   // on small screens, search and sort fold away on the New tab so the news comes first
   // set in settings
-  const [rowsChosen] = useState(() => readLocal("shelfView") === "rows");
+  // Kenji's compact-rows offer (ViewPeek) can change it while they're here
+  const [rowsChosen, setRowsChosen] = useState(
+    () => readLocal("shelfView") === "rows",
+  );
   const hiddenCount = (mangaData ?? []).filter((m) =>
     isHiddenAs(releases[m.id], releaseKind),
   ).length;
@@ -1317,6 +1326,16 @@ function Library() {
         onCheck={() => {
           setStatusFilter("new");
           writeSession("libraryStatus", "new");
+        }}
+      />
+
+      <ViewPeek
+        series={mangaData.length}
+        rows={rowsChosen}
+        blocked={selecting || undoShowing || Boolean(hidden)}
+        onChoose={(view) => {
+          setRowsChosen(view === "rows");
+          savePrefs({ shelfView: view }, true);
         }}
       />
     </div>

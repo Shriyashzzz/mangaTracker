@@ -800,7 +800,8 @@
   font: 400 0.76rem/1.25 var(--font-body);
   color: var(--ink-soft);
 }
-.support-peek-line a {
+.support-peek-line a,
+.view-peek .support-peek-line > button:not(.support-peek-close) {
   display: inline-flex;
   align-items: center;
   min-height: 30px;
@@ -1072,6 +1073,10 @@
 /* Kenji's longer line about carrying on in the background */
 .import-peek .support-peek-line {
   width: 188px;
+}
+/* Kenji asking about compact rows (ViewPeek.tsx) */
+.view-peek .support-peek-line {
+  width: 184px;
 }
 @media (prefers-reduced-motion: reduce) {
   .import-badge,
