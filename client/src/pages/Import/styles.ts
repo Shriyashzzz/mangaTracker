@@ -63,6 +63,10 @@ export const importStyles = {
     "tap min-h-9 text-[0.85rem] font-medium text-ink-soft underline decoration-line-soft underline-offset-3 hover:text-ink hover:decoration-current disabled:cursor-default disabled:opacity-50 disabled:no-underline",
   seriesList:
     "mt-1 max-h-[min(60vh,32rem)] overflow-y-auto border-t-[1.5px] border-line-soft",
+  // a group's heading inside the list, kept in view while its rows scroll
+  groupHead:
+    "sticky top-0 z-1 flex items-baseline gap-2 border-b-[1.5px] border-line-soft bg-card px-1.5 pt-3 pb-1.5 font-mono text-[0.78rem] tracking-[0.06em] text-ink-soft uppercase",
+  groupCount: "tabular-nums text-muted",
   seriesText: "flex min-w-0 flex-1 flex-col py-1.5",
   seriesMeta: "text-[0.85rem] text-ink-soft",
   omnibusNote: "text-[0.8rem] text-accent",

@@ -364,6 +364,105 @@ export default function BookImport({ source }: { source: BookSource }) {
   const checked = (found ?? []).filter((s) => matches.has(s.key)).length;
   const lookingUp = Boolean(found) && checked < (found?.length ?? 0);
 
+  // one row: its tick, its name and what was found, and Edit beside it
+  const seriesRow = (s: BookSeries) => {
+    const match = matchOf(s);
+    const apart = keptApartFrom(s);
+    const name = match && match !== "failed" ? match.name : s.title;
+    const edited = Boolean(editOf(s, edits));
+    return (
+      <div key={s.key} className={styles.seriesRow}>
+        <label className={styles.seriesLabel}>
+          <input
+            className={styles.listCheck}
+            type="checkbox"
+            checked={ticked(s)}
+            disabled={importing || match === undefined}
+            onChange={() =>
+              imported.chooseAll(s.members ?? [s.key], !ticked(s))
+            }
+          />
+          <span className={styles.seriesText}>
+            <span className={styles.listName}>{name}</span>
+            <span className={styles.seriesMeta}>
+              {match === undefined
+                ? "Matching…"
+                : match === "failed"
+                  ? "Couldn't check AniList"
+                  : match === null
+                    ? editOf(s, edits)?.match === null
+                      ? "You said it isn't on AniList"
+                      : apart
+                        ? `Not on AniList, and not the same as ${apart}`
+                        : s.lightNovel
+                          ? "Not on AniList"
+                          : "Not on AniList, so probably not manga"
+                    : (s.lightNovel ? "Light novel · " : "") +
+                      (s.planned
+                        ? "Only on a to-read list"
+                        : s.ownedVolumes
+                          ? `Own ${ownedPhrase({
+                              volumesOwned: s.ownedVolumes,
+                              ownedList: gapsIn(s.ownedList)
+                                ? s.ownedList!
+                                : [],
+                            })}`
+                          : `${s.books} book${s.books === 1 ? "" : "s"}`)}
+            </span>
+            {/* "Vinland Saga Omnibus, Vol. 3" doesn't say which
+              volumes it holds, so the count is a guess */}
+            {s.omnibus && match && match !== "failed" && (
+              <span className={styles.omnibusNote}>
+                Omnibus editions: check the volume count with Edit
+              </span>
+            )}
+            {edited && (
+              <span className={styles.seriesMeta + " " + styles.edited}>
+                Edited by you
+              </span>
+            )}
+          </span>
+        </label>
+        <button
+          type="button"
+          className={styles.seriesEdit}
+          disabled={importing || match === undefined}
+          aria-label={`Edit ${name}`}
+          onClick={() => setEditing(s)}
+        >
+          Edit
+        </button>
+      </div>
+    );
+  };
+  // once matching is done: what needs a look first, then what was found, each
+  // group in the file's order. While it's matching, the file's order, so rows
+  // don't jump about under them
+  const groups = !rows
+    ? []
+    : lookingUp
+      ? [{ id: "all", title: null, rows }]
+      : [
+          {
+            id: "missing",
+            title: "Not on AniList",
+            rows: rows.filter((r) => matchOf(r) === null),
+          },
+          {
+            id: "unchecked",
+            title: "Couldn't check AniList",
+            rows: rows.filter((r) => matchOf(r) === "failed"),
+          },
+          {
+            id: "matched",
+            title: "Found",
+            rows: rows.filter((r) => {
+              const m = matchOf(r);
+              return m != null && m !== "failed";
+            }),
+          },
+        ].filter((g) => g.rows.length);
+
   const start = () => void imported.add(chosen);
 
   if (ours && finished && totals) {
@@ -539,78 +638,26 @@ export default function BookImport({ source }: { source: BookSource }) {
               role="group"
               aria-label="Series to add"
             >
-              {rows!.map((s) => {
-                const match = matchOf(s);
-                const apart = keptApartFrom(s);
-                const name = match && match !== "failed" ? match.name : s.title;
-                const edited = Boolean(editOf(s, edits));
-                return (
-                  <div key={s.key} className={styles.seriesRow}>
-                    <label className={styles.seriesLabel}>
-                      <input
-                        className={styles.listCheck}
-                        type="checkbox"
-                        checked={ticked(s)}
-                        disabled={importing || match === undefined}
-                        onChange={() =>
-                          imported.chooseAll(s.members ?? [s.key], !ticked(s))
-                        }
-                      />
-                      <span className={styles.seriesText}>
-                        <span className={styles.listName}>{name}</span>
-                        <span className={styles.seriesMeta}>
-                          {match === undefined
-                            ? "Matching…"
-                            : match === "failed"
-                              ? "Couldn't check AniList"
-                              : match === null
-                                ? editOf(s, edits)?.match === null
-                                  ? "You said it isn't on AniList"
-                                  : apart
-                                    ? `Not on AniList, and not the same as ${apart}`
-                                    : s.lightNovel
-                                      ? "Not on AniList"
-                                      : "Not on AniList, so probably not manga"
-                                : (s.lightNovel ? "Light novel · " : "") +
-                                  (s.planned
-                                    ? "Only on a to-read list"
-                                    : s.ownedVolumes
-                                      ? `Own ${ownedPhrase({
-                                          volumesOwned: s.ownedVolumes,
-                                          ownedList: gapsIn(s.ownedList)
-                                            ? s.ownedList!
-                                            : [],
-                                        })}`
-                                      : `${s.books} book${s.books === 1 ? "" : "s"}`)}
-                        </span>
-                        {/* "Vinland Saga Omnibus, Vol. 3" doesn't say which
-                          volumes it holds, so the count is a guess */}
-                        {s.omnibus && match && match !== "failed" && (
-                          <span className={styles.omnibusNote}>
-                            Omnibus editions: check the volume count with Edit
-                          </span>
-                        )}
-                        {edited && (
-                          <span
-                            className={styles.seriesMeta + " " + styles.edited}
-                          >
-                            Edited by you
-                          </span>
-                        )}
-                      </span>
-                    </label>
-                    <button
-                      type="button"
-                      className={styles.seriesEdit}
-                      disabled={importing || match === undefined}
-                      aria-label={`Edit ${name}`}
-                      onClick={() => setEditing(s)}
+              {groups.map((g) =>
+                g.title ? (
+                  <div
+                    key={g.id}
+                    role="group"
+                    aria-labelledby={`import-group-${g.id}`}
+                  >
+                    <h3
+                      id={`import-group-${g.id}`}
+                      className={styles.groupHead}
                     >
-                      Edit
-                    </button>
+                      {g.title}{" "}
+                      <span className={styles.groupCount}>{g.rows.length}</span>
+                    </h3>
+                    {g.rows.map(seriesRow)}
                   </div>
-                );
-              })}
+                ) : (
+                  g.rows.map(seriesRow)
+                ),
+              )}
             </div>
 
             {editing && (
