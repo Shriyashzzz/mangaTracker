@@ -4,7 +4,8 @@ export default {
   extensionsToTreatAsEsm: [".ts"],
   setupFiles: ["<rootDir>/src/tests/setup.ts"],
   testMatch: ["**/*.test.ts"],
-  testPathIgnorePatterns: ["/node_modules/", "/dist/"],
+  // *.db.test.ts need a real database: `npm run test:db` (jest.db.config.js)
+  testPathIgnorePatterns: ["/node_modules/", "/dist/", "\\.db\\.test\\.ts$"],
   moduleNameMapper: {
     "^(\\.{1,2}/.*)\\.js$": "$1",
   },

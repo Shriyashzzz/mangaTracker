@@ -15,7 +15,9 @@
     "db:deploy": "prisma migrate deploy",
     "db:baseline": "prisma migrate resolve --applied 0_init",
     "db:studio": "prisma studio",
-    "lint": "eslint ."
+    "lint": "eslint .",
+    "test:db": "NODE_OPTIONS=--experimental-vm-modules jest -c jest.db.config.js",
+    "db:test:setup": "createdb manga_tracker_test; DATABASE_URL=postgresql://$USER@localhost:5432/manga_tracker_test prisma migrate deploy"
   },
   "license": "ISC",
   "dependencies": {
