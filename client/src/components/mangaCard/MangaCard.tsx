@@ -118,11 +118,13 @@ export default function MangaCard({
           <>
             <p className="truncate font-mono text-[0.85rem] font-medium text-ink-soft">
               {/* the right side already says when it's finished */}
-              {currentManga.bookmark
-                ? `ch. ${currentManga.bookmark}`
-                : currentManga.status
-                  ? "no chapter saved"
-                  : "not started"}
+              {currentManga.planned
+                ? "to read"
+                : currentManga.bookmark
+                  ? `ch. ${currentManga.bookmark}`
+                  : currentManga.status
+                    ? "no chapter saved"
+                    : "not started"}
             </p>
             {/* one line for the rest, so every row is the same height */}
             <div className="flex min-h-[1.2rem] min-w-0 items-center gap-3">
@@ -147,9 +149,11 @@ export default function MangaCard({
                 [
                   currentManga.status
                     ? "finished"
-                    : currentManga.bookmark
-                      ? `ch. ${currentManga.bookmark}`
-                      : null,
+                    : currentManga.planned
+                      ? "to read"
+                      : currentManga.bookmark
+                        ? `ch. ${currentManga.bookmark}`
+                        : null,
                   currentManga.lightNovel && "light novel",
                   genre,
                 ]
