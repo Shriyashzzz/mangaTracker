@@ -17,7 +17,7 @@ import SlowLoadQuote from "../../components/slowLoadQuote/SlowLoadQuote";
 import { usePrivatePage } from "../../lib/seo";
 import { getReleases } from "../../lib/shelf";
 import VolumeShelf from "../../components/volumeShelf/VolumeShelf";
-import { readLocal, useReleaseChecksOn, writeLocal } from "../../lib/prefs";
+import { useReleaseChecksOn } from "../../lib/prefs";
 import { useShelf } from "../../store/shelf";
 import NotesField from "./NotesField";
 import BuyStrip from "./BuyStrip";
@@ -27,7 +27,6 @@ import { useBuyOptions } from "./useBuyOptions";
 import { formatCents, priceName, volumePath } from "../../lib/prices";
 
 const DIDNT_SAVE = "That didn't save. Try again.";
-const SHELF_TRIED_KEY = "volumeShelfTried";
 // the shelf's least width beside the title, so its caption reads in a line or two
 const SHELF_MIN = 208;
 
@@ -258,16 +257,8 @@ export default function Details() {
       void useShelf.getState().load();
     }
   };
-  // the shelf says how it works until the first book they tick
-  const [shelfTried, setShelfTried] = useState(
-    () => readLocal(SHELF_TRIED_KEY) === "yes",
-  );
   const toggleOwned = (volume: number) => {
     if (!mangaData) return;
-    if (!shelfTried) {
-      writeLocal(SHELF_TRIED_KEY, "yes");
-      setShelfTried(true);
-    }
     const queues = ownedQueues.current;
     if (!queues.has(mangaData.id))
       queues.set(mangaData.id, {
@@ -468,16 +459,14 @@ export default function Details() {
                   name={mangaData.name}
                 />
               </div>
-              {/* what the shelf says, in words: how many of how many, any
-                  halves or specials it has no book for, and how it works
-                  until they've tried it */}
+              {/* what the shelf says, in words: how many of how many, and
+                  any halves or specials it has no book for */}
               <p className={styles.shelfCaption}>
                 <span>
                   {onShelf} of {shelfTotal}
                   {offShelf.length > 0 &&
                     ` · also vol${offShelf.length > 1 ? "s" : ""}. ${rangesText(offShelf)}`}
                 </span>
-                {!shelfTried && <span>tap a book to mark it yours</span>}
               </p>
             </div>
           </div>
