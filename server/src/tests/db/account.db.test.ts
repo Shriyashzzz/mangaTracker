@@ -3,6 +3,7 @@
 // takes its shelf and its sign-ins with it.
 import request from "supertest";
 import { app } from "../../app.js";
+import userQueries from "../../models/userQueries.js";
 import { closeDb, emptyDb, prisma } from "./testDb.js";
 
 beforeEach(emptyDb);
@@ -10,7 +11,8 @@ afterAll(closeDb);
 
 const PASSWORD = "a good password";
 
-// a browser that keeps its cookie between requests
+// a browser that keeps its cookie between requests, signed up through the
+// route. Sign-ups are limited to 5 an hour, so only the sign-up tests use it
 const signedUp = async (username = "reader") => {
   const agent = request.agent(app);
   const res = await agent
@@ -37,8 +39,19 @@ test("a taken username is turned away", async () => {
   expect(await prisma.user.count()).toBe(1);
 });
 
+// made directly, then signed in through the route (10 every 5 minutes)
+const signedIn = async (username = "reader") => {
+  await userQueries.addUser(username, PASSWORD);
+  const agent = request.agent(app);
+  await agent
+    .post("/api/auth/login")
+    .send({ username, password: PASSWORD })
+    .expect(200);
+  return agent;
+};
+
 test("signing in needs the right password, and signing out ends it", async () => {
-  await signedUp();
+  await userQueries.addUser("reader", PASSWORD);
   const wrong = await request(app)
     .post("/api/auth/login")
     .send({ username: "reader", password: "not it" });
@@ -56,7 +69,7 @@ test("signing in needs the right password, and signing out ends it", async () =>
 });
 
 test("deleting an account needs its password, and takes everything with it", async () => {
-  const agent = await signedUp();
+  const agent = await signedIn();
   await agent
     .post("/api/manga")
     .send({ name: "Spice and Wolf", status: false, lightNovel: true })
@@ -77,5 +90,6 @@ test("deleting an account needs its password, and takes everything with it", asy
   const again = await request(app)
     .post("/api/auth/login")
     .send({ username: "reader", password: PASSWORD });
-  expect(again.status).not.toBe(200);
+  // no such account any more
+  expect(again.status).toBe(404);
 });

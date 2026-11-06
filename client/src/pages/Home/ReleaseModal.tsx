@@ -8,7 +8,7 @@ import {
   remainingJapanVolumes,
   remainingVolumes,
   type SeenKind,
-} from "../../lib/shelf";
+} from "../../lib/releaseMath";
 import type { Manga, ReleaseStatus } from "../../lib/types";
 import { homeStyles as styles } from "./styles";
 

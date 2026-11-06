@@ -201,11 +201,14 @@ export function filterShelf(
   if (tab === "ongoing") list = list.filter((m) => !m.status && !m.planned);
   if (tab === "planned") list = list.filter((m) => m.planned);
   if (tab === "volumes") list = list.filter((m) => ownsAny(m));
+  // nothing's new for one they haven't started (as shelfCounts counts it)
   if (tab === "new") {
-    list = list.filter((m) =>
-      !m.planned && viewingHidden
-        ? isHiddenAs(releases[m.id], releaseKind)
-        : releases[m.id]?.[RELEASE_FLAGS[releaseKind].isNew],
+    list = list.filter(
+      (m) =>
+        !m.planned &&
+        (viewingHidden
+          ? isHiddenAs(releases[m.id], releaseKind)
+          : releases[m.id]?.[RELEASE_FLAGS[releaseKind].isNew]),
     );
   }
 

@@ -24,8 +24,8 @@ import {
   CHECKED_BEFORE_KEY,
   LAST_NEW_COUNT_KEY,
   SORT_OPTIONS,
-  shownNewCount,
 } from "../../lib/shelf";
+import { shownNewCount } from "../../lib/releaseMath";
 import { isDemo } from "../../lib/demo";
 import { fillCovers } from "../../lib/coverFill";
 import { useAuth } from "../../store/auth";

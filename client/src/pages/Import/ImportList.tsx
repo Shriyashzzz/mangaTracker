@@ -115,34 +115,32 @@ export default function ImportList({
   // once matching is done: what needs a look first, then what was found, each
   // group in the file's order. While it's matching, the file's order, so rows
   // don't jump about under them
-  const groups = !rows
-    ? []
-    : lookingUp
-      ? [{ id: "all", title: null, rows }]
-      : [
-          {
-            id: "missing",
-            title: "Not on AniList",
-            rows: rows.filter((r) => matchOf(r) === null),
-          },
-          {
-            id: "unchecked",
-            title: "Couldn't check AniList",
-            rows: rows.filter((r) => matchOf(r) === "failed"),
-          },
-          // found, but an omnibus doesn't say which volumes it holds, so
-          // the count wants a look with Edit
-          {
-            id: "omnibus",
-            title: "Omnibus editions",
-            rows: rows.filter((r) => isFound(r) && r.omnibus),
-          },
-          {
-            id: "matched",
-            title: "Found",
-            rows: rows.filter((r) => isFound(r) && !r.omnibus),
-          },
-        ].filter((g) => g.rows.length);
+  const groups = lookingUp
+    ? [{ id: "all", title: null, rows }]
+    : [
+        {
+          id: "missing",
+          title: "Not on AniList",
+          rows: rows.filter((r) => matchOf(r) === null),
+        },
+        {
+          id: "unchecked",
+          title: "Couldn't check AniList",
+          rows: rows.filter((r) => matchOf(r) === "failed"),
+        },
+        // found, but an omnibus doesn't say which volumes it holds, so
+        // the count wants a look with Edit
+        {
+          id: "omnibus",
+          title: "Omnibus editions",
+          rows: rows.filter((r) => isFound(r) && r.omnibus),
+        },
+        {
+          id: "matched",
+          title: "Found",
+          rows: rows.filter((r) => isFound(r) && !r.omnibus),
+        },
+      ].filter((g) => g.rows.length);
 
   // groups they've closed, for this import only: a new one starts all open
   const [closed, setClosed] = useState<{

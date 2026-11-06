@@ -58,7 +58,7 @@ test("the same series can't go on a shelf twice", async () => {
   const agent = await reader("reader");
   await add(agent, "Spice and Wolf").expect(201);
   const again = await add(agent, "Spice and Wolf");
-  expect(again.status).toBeGreaterThanOrEqual(400);
+  expect(again.status).toBe(409);
   expect(await prisma.manga.count()).toBe(1);
 });
 

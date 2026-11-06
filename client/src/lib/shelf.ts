@@ -4,18 +4,6 @@ import { apiFetch, getJson } from "./api";
 import type { ReleaseData, ReleaseStatus, ShelfMatch } from "./types";
 import type { ReleaseOutcome, SeenKind } from "./releaseMath";
 
-// the pure part lives in releaseMath.ts; here too, for the callers that came first
-export {
-  countNew,
-  isStillNew,
-  remainingChapters,
-  remainingJapanVolumes,
-  remainingVolumes,
-  shownNewCount,
-  type ReleaseOutcome,
-  type SeenKind,
-} from "./releaseMath";
-
 // release dates and what's new in English for one manga on the shelf
 // the shelf says which lane it waits in (lib/releaseOrder.ts); the details
 // page leaves it out, so it's asked in "now" and never skipped

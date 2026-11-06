@@ -111,6 +111,24 @@ test("New shows what's new on this side, and the hidden list what's hidden", () 
   expect(isHiddenAs(releases[1], "volumes")).toBe(false);
 });
 
+test("a series on To read never shows on New, as New's count leaves it out", () => {
+  // Akira (3) is on To read
+  const releases: Releases = {
+    1: found({ hasNewVolume: true, volumeListed: true }),
+    3: found({ hasNewVolume: true, volumeListed: true }),
+  };
+  const ids = filterShelf(shelf, releases, { ...view, tab: "new" }).map(
+    (m) => m.id,
+  );
+  expect(ids).toEqual([1]);
+  expect(shelfCounts(shelf, releases).newVolumes).toBe(ids.length);
+  // nor on the list of what's hidden
+  const hidden: Releases = { 3: found({ volumeListed: true }) };
+  expect(
+    filterShelf(shelf, hidden, { ...view, tab: "new", viewingHidden: true }),
+  ).toEqual([]);
+});
+
 test("the counts on the tabs, and nothing new counts for a series not started", () => {
   const releases: Releases = {
     1: found({ hasNewVolume: true, hasNewChapter: true }),

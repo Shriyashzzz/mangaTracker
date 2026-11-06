@@ -8,7 +8,7 @@
 //   Answers:  what the server sends, once it's JSON, must fit the client's type
 //   Requests: what the client sends must fit the server's type
 import type * as Client from "../../../../client/src/lib/types.js";
-import type { ReleaseOutcome as ClientReleaseOutcome } from "../../../../client/src/lib/shelf.js";
+import type { ReleaseOutcome as ClientReleaseOutcome } from "../../../../client/src/lib/releaseMath.js";
 import type { MalEntry as ClientMalEntry } from "../../../../client/src/lib/imports/malImport.js";
 import type { SharedMatch as ClientSharedMatch } from "../../../../client/src/lib/imports/sharedMatches.js";
 import type {
@@ -29,6 +29,8 @@ import type { MalEntry } from "../../util/shelf/malEntry.js";
 import type { SharedMatch } from "../../util/shelf/sharedMatches.js";
 import type { ShelfMove, ShelfPlace } from "../../models/mangaQueries.js";
 import type { StoreLink } from "../../prices/stores/storeLinks.js";
+import type { Manga } from "../../../generated/prisma/client.js";
+import type { FormatedDates } from "../../util/releases/volumeDataFormatter.js";
 import type { getSeries, VolumePrices } from "../../prices/service.js";
 
 // what JSON.stringify makes of a value: dates become strings
@@ -59,6 +61,10 @@ declare function fits<From, To>(
 ): void;
 
 // answers: server -> client
+// a series on the shelf (and /match's ShelfMatch, made of the same fields)
+fits<Json<Manga>, Client.Manga>();
+// release dates for the details page
+fits<Json<FormatedDates>, Client.ReleaseData>();
 fits<Json<Prices.CatalogBook>, Client.CatalogBook>();
 fits<Json<Prices.SeriesHit>, Client.SeriesHit>();
 fits<Json<Prices.SeriesInfo>, Client.SeriesInfo>();

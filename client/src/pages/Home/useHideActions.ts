@@ -4,7 +4,7 @@
 // its own (useLingeringNote), and focus moves to its Undo, since the card it
 // came from is gone.
 import { useEffect, useState } from "react";
-import { isStillNew, type SeenKind } from "../../lib/shelf";
+import { isStillNew, type SeenKind } from "../../lib/releaseMath";
 import type { Manga } from "../../lib/types";
 import { useShelf } from "../../store/shelf";
 import { useLingeringNote } from "./useLingeringNote";
@@ -112,7 +112,7 @@ export function useHideActions({
   // several at once, then one note for all of them
   const many = async (
     series: { m: Manga; number: number | null; list?: number[] }[],
-    note: { name: string; restored?: boolean },
+    summary: { name: string; restored?: boolean },
   ) => {
     const others = series.map(({ m }) => before(m, kind));
     setFailed(false);
@@ -126,7 +126,7 @@ export function useHideActions({
         previousList: [],
         kind,
         others,
-        ...note,
+        ...summary,
       });
     else setFailed(true);
   };

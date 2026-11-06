@@ -11,5 +11,6 @@ export default {
   ...base,
   testMatch: ["**/*.db.test.ts"],
   testPathIgnorePatterns: ["/node_modules/", "/dist/"],
+  setupFiles: [...base.setupFiles, "<rootDir>/src/tests/db/guard.ts"],
   maxWorkers: 1,
 };

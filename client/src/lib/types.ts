@@ -1,6 +1,7 @@
 // The shapes the API sends back. Mirrors server/src (Prisma models and
 // prices/service.ts); update both sides together.
-// server/src/tests/contract/apiTypes.ts fails the typecheck when they differ.
+// server/src/tests/contract/apiTypes.ts fails the typecheck when one it lists
+// differs; a new shape the server sends should get a line there too.
 import type { ShelfSort } from "./shelf";
 
 // ---------- the shelf ----------
