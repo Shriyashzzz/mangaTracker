@@ -9,11 +9,11 @@
 import { prisma } from "../../config/prisma.js";
 import { Prisma } from "../../../generated/prisma/client.js";
 import { slugify } from "../../prices/stores/match.js";
-import getReleaseDates from "../../../scripts/getReleaseDates.js";
+import getReleaseDates from "./getReleaseDates.js";
 import type {
   MangaReleaseDates,
   SeriesMatch,
-} from "../../../scripts/getReleaseDates.js";
+} from "./getReleaseDates.js";
 import {
   getChapterSource,
   type ChapterSource,
