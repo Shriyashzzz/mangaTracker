@@ -2,59 +2,55 @@
 # For more information see: https://docs.github.com/en/actions/automating-builds-and-tests/building-and-testing-nodejs
 
 name: MangaTracker CI
-run-name : Merging / reviewing the pull request to the main branch ;)
+run-name: Merging / reviewing the pull request to the main branch ;)
 on:
   push:
-    branches: [ "main" ]
-    paths-ignore: "README.md"
+    branches: ["main"]
+    paths-ignore: ["README.md"]
   pull_request:
-    branches: [ "main" ]
-    paths-ignore: "README.md"
+    branches: ["main"]
+    paths-ignore: ["README.md"]
 
 jobs:
   build:
-  
     runs-on: ubuntu-latest
 
     strategy:
       matrix:
-        node-version: [ 22.x, 26.x]
+        node-version: [22.x, 26.x]
         # See supported Node.js release schedule at https://nodejs.org/en/about/releases/
-  
+
     steps:
-    - uses: actions/checkout@v4
-    - name: Use Node.js ${{ matrix.node-version }}
-      uses: actions/setup-node@v4
-      with:
-        node-version: ${{ matrix.node-version }} 
-        cache: 'npm' #caches the dependencies for next runs
-        cache-dependency-path: |  
-         package-lock.json
-         server/package-lock.json
-         client/package-lock.json
-      # setup-node builds a fingerprint from those three files. On the next run, if none of them has changed, it restores npm's saved downloads instead of fetching every package again,
-        
-    - run: npm ci  #clean install root
-      id: root-install
-    - run:  echo "successfully installed dependencies from the root folder"
-      if: success() && steps.root-install.outcome == 'success'
-      
-    - run: npm ci # clean install client
-      id: client-install
-      working-directory: client 
-    - run:  echo "successfully installed dependencies from the client folder"
-      if: success() && steps.client-install.outcome == 'success'
+      - uses: actions/checkout@v4
+      - name: Use Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: "npm" #caches the dependencies for next runs
+          cache-dependency-path: |
+            package-lock.json
+            server/package-lock.json
+            client/package-lock.json
+        # setup-node builds a fingerprint from those three files. On the next run, if none of them has changed, it restores npm's saved downloads instead of fetching every package again,
 
-      
-    - run : npm ci 
-      id: server-install
-      working-directory: server # clean install server
-    - run:  echo "successfully installed dependencies from the server folder"
-      if: success() && steps.server-install.outcome == 'success'
-      
+      - run: npm ci #clean install root
+        id: root-install
+      - run: echo "successfully installed dependencies from the root folder"
+        if: success() && steps.root-install.outcome == 'success'
 
-    - run: npm run format:check && npm run lint && npm run typecheck && npm test && npm run build  # runs the check 
-      id: tests-and-lint
-    - run:  echo "tests passed"
-      if: success() && steps.tests-and-lint.outcome == 'success'
-    
+      - run: npm ci # clean install client
+        id: client-install
+        working-directory: client
+      - run: echo "successfully installed dependencies from the client folder"
+        if: success() && steps.client-install.outcome == 'success'
+
+      - run: npm ci
+        id: server-install
+        working-directory: server # clean install server
+      - run: echo "successfully installed dependencies from the server folder"
+        if: success() && steps.server-install.outcome == 'success'
+
+      - run: npm run format:check && npm run lint && npm run typecheck && npm test && npm run build # runs the check
+        id: tests-and-lint
+      - run: echo "tests passed"
+        if: success() && steps.tests-and-lint.outcome == 'success'
