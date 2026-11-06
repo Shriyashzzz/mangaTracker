@@ -3,8 +3,11 @@
 // thin to read, so they grow under the pointer like a magnifier (lib/volumeShelf):
 // a mouse hovers to look and clicks to tick; a finger taps to look, taps the
 // big book to tick, and slides to move along. A series short enough to hit
-// with a finger ticks with one tap. The shelf never changes size, so nothing
-// around it moves. Looks: index.css, "the volume shelf".
+// with a finger ticks with one tap. On a touch screen, a series whose books
+// would be thinner than a finger shows a page of full-size books instead,
+// starting near the next one they need, with ‹ › to move along: one tap ticks.
+// The shelf never changes size, so nothing around it moves. Looks: index.css,
+// "the volume shelf".
 import {
   useEffect,
   useRef,
@@ -12,7 +15,9 @@ import {
   type KeyboardEvent,
   type PointerEvent,
 } from "react";
+import { ChevronLeftIcon, ChevronRightIcon } from "../icons/Icons";
 import {
+  BOOK,
   NUMBERED,
   SPACED,
   TAPPABLE,
@@ -30,8 +35,20 @@ type Props = {
   name: string;
 };
 
+// room for the ‹ › on a paged shelf
+const NAV = 36;
+
 export default function VolumeShelf({ total, owned, onToggle, name }: Props) {
+  const box = useRef<HTMLDivElement>(null);
   const shelf = useRef<HTMLDivElement>(null);
+  // a finger, not a mouse: thin books get a page of full-size ones instead
+  const [coarse] = useState(
+    () =>
+      typeof window !== "undefined" &&
+      window.matchMedia("(pointer: coarse)").matches,
+  );
+  // the first volume on a paged shelf; null until they move it
+  const [pageStart, setPageStart] = useState<number | null>(null);
   const [width, setWidth] = useState(0);
   // where the pointer is, in resting books from the left; null is resting
   const [aimed, setAimed] = useState<number | null>(null);
@@ -47,7 +64,7 @@ export default function VolumeShelf({ total, owned, onToggle, name }: Props) {
   const frame = useRef(0);
 
   useEffect(() => {
-    const el = shelf.current;
+    const el = box.current;
     if (!el) return;
     const watch = new ResizeObserver(([entry]) =>
       setWidth(entry!.contentRect.width),
@@ -67,6 +84,7 @@ export default function VolumeShelf({ total, owned, onToggle, name }: Props) {
   const widths = width ? bookWidths(total, width, aimed) : [];
   const lit = aimed == null ? null : Math.min(total, Math.floor(aimed) + 1);
   const oneTap = width / total >= TAPPABLE;
+  const paged = coarse && width > 0 && !oneTap;
 
   const xOf = (e: PointerEvent) =>
     e.clientX - (shelf.current?.getBoundingClientRect().left ?? 0);
@@ -159,8 +177,75 @@ export default function VolumeShelf({ total, owned, onToggle, name }: Props) {
     }
   };
 
+  if (paged) {
+    const perPage = Math.max(5, Math.floor((width - 2 * NAV) / BOOK));
+    const lastStart = Math.max(1, total - perPage + 1);
+    // near the first one they don't have yet, with a couple of theirs before it
+    let firstMissing = 1;
+    while (firstMissing <= total && yours.has(firstMissing)) firstMissing++;
+    const from = Math.min(
+      lastStart,
+      Math.max(1, pageStart ?? Math.min(firstMissing, total) - 2),
+    );
+    const to = Math.min(total, from + perPage - 1);
+    const page = Array.from({ length: to - from + 1 }, (_, i) => from + i);
+    return (
+      <div className="vshelf-box" ref={box}>
+        <div
+          className="vshelf vshelf-paged"
+          role="group"
+          aria-label={`Your volumes of ${name}, vols. ${from} to ${to} of ${total}`}
+        >
+          <button
+            type="button"
+            className="vshelf-nav"
+            aria-label="Earlier volumes"
+            disabled={from <= 1}
+            onClick={() => setPageStart(Math.max(1, from - perPage))}
+          >
+            <ChevronLeftIcon />
+          </button>
+          <div className="vshelf-page">
+            {page.map((v) => (
+              <button
+                key={v}
+                type="button"
+                className="vshelf-book"
+                style={{ width: BOOK }}
+                aria-pressed={yours.has(v)}
+                aria-label={`Vol. ${v}`}
+                data-own={yours.has(v) || undefined}
+                data-size="wide"
+                data-small={v >= 100 || undefined}
+                data-pop={popped === v || undefined}
+                onClick={() => {
+                  tick(v);
+                  say(v, !yours.has(v));
+                }}
+              >
+                <i aria-hidden>{v}</i>
+              </button>
+            ))}
+          </div>
+          <button
+            type="button"
+            className="vshelf-nav"
+            aria-label="Later volumes"
+            disabled={to >= total}
+            onClick={() => setPageStart(Math.min(lastStart, from + perPage))}
+          >
+            <ChevronRightIcon />
+          </button>
+        </div>
+        <p className="sr-only" role="status">
+          {said}
+        </p>
+      </div>
+    );
+  }
+
   return (
-    <div className="vshelf-box">
+    <div className="vshelf-box" ref={box}>
       <div
         ref={shelf}
         className="vshelf"
@@ -197,7 +282,9 @@ export default function VolumeShelf({ total, owned, onToggle, name }: Props) {
                 data-lit={lit === v || undefined}
                 data-pop={popped === v || undefined}
               >
-                <i>{v}</i>
+                {/* the group's label and the status line say the volume;
+                    the drawn numbers would read out 1 to 113 */}
+                <i aria-hidden>{v}</i>
               </span>
             );
           })}

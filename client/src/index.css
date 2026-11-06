@@ -724,6 +724,18 @@
   }
 }
 
+/* ---------- drawn covers (components/drawnCover/DrawnCover.tsx) ----------
+   Printed paper in every theme, like the other illustrations, but dimmed a
+   little on the dark table so a shelf of them doesn't glare */
+:root[data-theme="dark"] .drawn-cover {
+  filter: brightness(0.82);
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme]) .drawn-cover {
+    filter: brightness(0.82);
+  }
+}
+
 /* ---------- the volume shelf (components/volumeShelf/VolumeShelf.tsx) ----------
    Every volume in one row of fixed size: theirs stand tall in ink, the rest are
    short and pale. Under the pointer they grow to full size like a magnifier,
@@ -819,6 +831,45 @@
 }
 .vshelf-book[data-lit][data-own] i {
   height: 60px;
+}
+/* a paged shelf (touch, long series): full-size books between ‹ › */
+.vshelf-paged {
+  display: flex;
+  align-items: flex-end;
+  overflow: visible;
+}
+.vshelf-page {
+  display: flex;
+  flex: 1;
+  align-items: flex-end;
+  justify-content: center;
+  height: 66px;
+  padding-bottom: 2px;
+}
+.vshelf-page .vshelf-book {
+  padding: 0 1.5px;
+  border: 0;
+  background: none;
+  cursor: pointer;
+}
+.vshelf-page .vshelf-book:focus-visible {
+  outline: 2px dashed var(--accent);
+  outline-offset: 1px;
+}
+.vshelf-nav {
+  display: grid;
+  width: 36px;
+  height: 66px;
+  flex: none;
+  place-items: center;
+  color: var(--ink);
+}
+.vshelf-nav:disabled {
+  color: var(--line-soft);
+}
+.vshelf-nav svg {
+  width: 18px;
+  height: 18px;
 }
 /* just ticked: it stands up */
 .vshelf-book[data-pop] i {

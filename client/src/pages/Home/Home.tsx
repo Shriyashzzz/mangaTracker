@@ -48,6 +48,8 @@ import DeleteManyModal from "./DeleteManyModal";
 import { EmptyShelfUndo } from "../../components/deletedNote/DeletedNote";
 import ReleaseTip from "../../components/whatsNew/ReleaseTip";
 import ViewPeek from "../../components/viewPeek/ViewPeek";
+import { isDemo } from "../../lib/demo";
+import { fillCovers } from "../../lib/coverFill";
 import TakeTourButton from "../../components/tour/TakeTourButton";
 
 const SHELF_PAGE_SIZE = 20;
@@ -319,6 +321,24 @@ function Library() {
   }, [hidden]);
 
   const hasManga = Boolean(mangaData?.length);
+  // covers for series that came in without one, looked up in the background
+  // once per visit (lib/coverFill.ts); each shows as soon as it's found
+  useEffect(() => {
+    if (!hasManga || isDemo()) return;
+    const controller = new AbortController();
+    void fillCovers(
+      useShelf.getState().manga ?? [],
+      controller.signal,
+      (id, cover) =>
+        useShelf.setState((state) => ({
+          manga:
+            state.manga?.map((m) =>
+              m.id === id ? { ...m, image: cover } : m,
+            ) ?? null,
+        })),
+    );
+    return () => controller.abort();
+  }, [hasManga]);
   // what's new for each manga. Only asked for once the New tab is opened, or for
   // anyone on rows, whose progress needs the latest chapter. After that it carries
   // on even if they leave, and new titles get picked up
