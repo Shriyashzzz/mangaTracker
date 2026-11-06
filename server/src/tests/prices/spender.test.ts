@@ -34,7 +34,9 @@ test("signed in is counted by account, anyone else by visitor", () => {
     userAgent: "Firefox",
   });
   // no browser named, and a very long one kept to the column's size
-  expect(spenderOf(request(undefined, "1.2.3.4"))).toMatchObject({ userAgent: null });
+  expect(spenderOf(request(undefined, "1.2.3.4"))).toMatchObject({
+    userAgent: null,
+  });
   const long = spenderOf(request(undefined, "1.2.3.4", "x".repeat(500)));
   expect("userAgent" in long && long.userAgent?.length).toBe(300);
 });

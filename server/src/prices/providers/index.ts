@@ -8,7 +8,7 @@ import keepa from "./keepa.js";
 import googleBooks from "./googleBooks.js";
 import { amazonSearch, ebaySearch } from "./serpapiStores.js";
 
-export const PROVIDERS: Provider[] = [
+const PROVIDERS: Provider[] = [
   serpapi,
   ebaySearch,
   amazonSearch,

@@ -31,7 +31,10 @@ describe("listingMatches", () => {
 
   test("a padded shop title still matches", () => {
     expect(
-      listingMatches("Jujutsu Kaisen, Vol. 24 (24) Paperback - by Gege Akutami", book),
+      listingMatches(
+        "Jujutsu Kaisen, Vol. 24 (24) Paperback - by Gege Akutami",
+        book,
+      ),
     ).toBe(true);
   });
   test("a different volume does not", () => {

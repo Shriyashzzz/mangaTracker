@@ -32,7 +32,10 @@ export async function searchSerpApi<T extends { error?: string }>(
       priceQueries.claimApiCall(labelOf(key), config.SERPAPI_MONTHLY_LIMIT),
     markSpent: async (key) => {
       console.warn(`SerpApi key ${labelOf(key)} is out of searches this month`);
-      await priceQueries.markApiSpent(labelOf(key), config.SERPAPI_MONTHLY_LIMIT);
+      await priceQueries.markApiSpent(
+        labelOf(key),
+        config.SERPAPI_MONTHLY_LIMIT,
+      );
     },
     search: async (key) => {
       const query = new URLSearchParams({ ...params, api_key: key });

@@ -7,7 +7,11 @@ import {
 } from "../../prices/stores/retailers.js";
 import type { Offer } from "../../prices/types.js";
 
-const offer = (store: string, priceCents: number, extra: Partial<Offer> = {}): Offer => ({
+const offer = (
+  store: string,
+  priceCents: number,
+  extra: Partial<Offer> = {},
+): Offer => ({
   store,
   format: "print",
   condition: "new",
@@ -19,15 +23,23 @@ const offer = (store: string, priceCents: number, extra: Partial<Offer> = {}): O
 });
 
 describe("isRetailer", () => {
-  test.each(["Barnes & Noble", "barnesandnoble.com", "Books A Million", "Books-A-Million", "Target", "kinokuniya.com", "Blackwell's", "Amazon.com"])(
-    "%s is a big store",
-    (store) => expect(isRetailer(store)).toBe(true),
-  );
+  test.each([
+    "Barnes & Noble",
+    "barnesandnoble.com",
+    "Books A Million",
+    "Books-A-Million",
+    "Target",
+    "kinokuniya.com",
+    "Blackwell's",
+    "Amazon.com",
+  ])("%s is a big store", (store) => expect(isRetailer(store)).toBe(true));
 
-  test.each(["Walmart - BooksXpress", "Amazon.com - Seller", "Green Cosmetics OÜ", "Third Eye Comics"])(
-    "%s is not",
-    (store) => expect(isRetailer(store)).toBe(false),
-  );
+  test.each([
+    "Walmart - BooksXpress",
+    "Amazon.com - Seller",
+    "Green Cosmetics OÜ",
+    "Third Eye Comics",
+  ])("%s is not", (store) => expect(isRetailer(store)).toBe(false));
 });
 
 describe("dropUnlikelyNew", () => {
@@ -44,12 +56,19 @@ describe("dropUnlikelyNew", () => {
   });
 
   test("an unknown seller far under the big stores goes", () => {
-    const result = dropUnlikelyNew([offer("Barnes & Noble", 1199), offer("Le Maschere Gioielli", 650)]);
+    const result = dropUnlikelyNew([
+      offer("Barnes & Noble", 1199),
+      offer("Le Maschere Gioielli", 650),
+    ]);
     expect(stores(result)).toEqual(["Barnes & Noble"]);
   });
 
   test("comic shops at normal prices stay", () => {
-    const offers = [offer("Barnes & Noble", 1199), offer("Third Eye Comics", 999), offer("Boswell Books", 1199)];
+    const offers = [
+      offer("Barnes & Noble", 1199),
+      offer("Third Eye Comics", 999),
+      offer("Boswell Books", 1199),
+    ];
     expect(dropUnlikelyNew(offers)).toEqual(offers);
   });
 
@@ -71,7 +90,10 @@ describe("dropUnlikelyNew", () => {
   });
 
   test("cheap used and marketplace copies are never judged", () => {
-    const offers = [offer("eBay", 300, { condition: "marketplace" }), offer("Some Shop", 350, { condition: "used" })];
+    const offers = [
+      offer("eBay", 300, { condition: "marketplace" }),
+      offer("Some Shop", 350, { condition: "used" }),
+    ];
     expect(dropUnlikelyNew(offers)).toEqual(offers);
   });
 });
@@ -83,9 +105,9 @@ describe("overpriced new copies", () => {
     offer(store, cents, { condition: "marketplace" });
 
   test("a fashion site's $42 goes when a big store sells it for $10", () => {
-    expect(stores([offer("Editorialist", 4200), offer("Amazon", 999)])).toEqual([
-      "Amazon",
-    ]);
+    expect(stores([offer("Editorialist", 4200), offer("Amazon", 999)])).toEqual(
+      ["Amazon"],
+    );
   });
 
   test("with no big store, the other copies are the yardstick", () => {
@@ -129,8 +151,12 @@ describe("overpriced new copies", () => {
   });
 
   test("big stores are always believed, and only new copies are judged", () => {
-    expect(stores([offer("Amazon", 26999), offer("Walmart", 999)])).toHaveLength(2);
-    expect(stores([used("eBay", 9000), offer("Amazon", 999)])).toContain("eBay");
+    expect(
+      stores([offer("Amazon", 26999), offer("Walmart", 999)]),
+    ).toHaveLength(2);
+    expect(stores([used("eBay", 9000), offer("Amazon", 999)])).toContain(
+      "eBay",
+    );
   });
 
   test("cheap used copies can't make a real new copy look too dear", () => {
@@ -165,6 +191,8 @@ describe("lowestBelievableNew", () => {
 
   test("nothing believable leaves no price", () => {
     expect(lowestBelievableNew([offer("Green Cosmetics OÜ", 400)])).toBeNull();
-    expect(lowestBelievableNew([offer("ThriftBooks", 300, { condition: "used" })])).toBeNull();
+    expect(
+      lowestBelievableNew([offer("ThriftBooks", 300, { condition: "used" })]),
+    ).toBeNull();
   });
 });

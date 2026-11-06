@@ -3,7 +3,7 @@
 // the login, nor what they own or what they've hidden.
 import { defaultReaderName } from "./readerNames.js";
 
-export type SharedSource = {
+type SharedSource = {
   id: number;
   displayName: string | null;
   avatar: string | null;

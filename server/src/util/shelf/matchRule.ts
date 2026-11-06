@@ -47,7 +47,11 @@ function subtitleAfter(name: string, wanted: string) {
 
 // could the import have picked a series with these names for this search? It's
 // called exactly that, or (not exact-only) one is the other plus a subtitle
-export function fitsSearch(search: string, names: string[], exactOnly: boolean) {
+export function fitsSearch(
+  search: string,
+  names: string[],
+  exactOnly: boolean,
+) {
   const wanted = plain(search);
   if (!wanted) return false;
   if (names.some((n) => plain(n) === wanted)) return true;
@@ -67,7 +71,11 @@ export function fitsSearch(search: string, names: string[], exactOnly: boolean) 
 // v2: only exact names are shared (sharedMatches.ts fits), so rows from
 // before, which may hold a subtitle guess, are never read again
 const MATCH_KEY_VERSION = "v2";
-export const matchKey = (name: string, lightNovel: boolean, exactOnly: boolean) =>
+export const matchKey = (
+  name: string,
+  lightNovel: boolean,
+  exactOnly: boolean,
+) =>
   createHash("sha256")
     .update(
       `${MATCH_KEY_VERSION}|${lightNovel ? "novel" : "manga"}${exactOnly ? "!" : ""}:${name.toLowerCase()}`,

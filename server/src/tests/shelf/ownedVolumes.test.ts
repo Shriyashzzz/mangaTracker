@@ -27,15 +27,25 @@ const CASES: [number | null, number[] | undefined][] = [
 ];
 
 test("server and browser agree on every case", () => {
-  for (const [n, list] of CASES) expect(inBrowser(n, list)).toEqual(onServer(n, list));
+  for (const [n, list] of CASES)
+    expect(inBrowser(n, list)).toEqual(onServer(n, list));
 });
 
 test("the rule: gaps are kept, a run from 1 is its number", () => {
   expect(onServer(14, undefined)).toEqual({ volumesOwned: 14, ownedList: [] });
-  expect(onServer(null, [4, 1])).toEqual({ volumesOwned: 4, ownedList: [1, 4] });
+  expect(onServer(null, [4, 1])).toEqual({
+    volumesOwned: 4,
+    ownedList: [1, 4],
+  });
   expect(onServer(null, [3, 1, 2])).toEqual({ volumesOwned: 3, ownedList: [] });
-  expect(onServer(null, [10.5, 2])).toEqual({ volumesOwned: 10, ownedList: [2, 10.5] });
-  expect(onServer(null, [1000, -1, Number.NaN, 3])).toEqual({ volumesOwned: 3, ownedList: [3] });
+  expect(onServer(null, [10.5, 2])).toEqual({
+    volumesOwned: 10,
+    ownedList: [2, 10.5],
+  });
+  expect(onServer(null, [1000, -1, Number.NaN, 3])).toEqual({
+    volumesOwned: 3,
+    ownedList: [3],
+  });
 });
 
 test("what they own, read either way", () => {
@@ -45,13 +55,25 @@ test("what they own, read either way", () => {
   expect(owns({ volumesOwned: 4, ownedList: [1, 4] }, 2)).toBe(false);
   expect(owns({ volumesOwned: 4, ownedList: [1, 4] }, 4)).toBe(true);
   // the price page's "I own Vol. 6": just that one
-  expect(withVolume({ volumesOwned: 4, ownedList: [1, 4] }, 6)).toEqual({ volumesOwned: 6, ownedList: [1, 4, 6] });
+  expect(withVolume({ volumesOwned: 4, ownedList: [1, 4] }, 6)).toEqual({
+    volumesOwned: 6,
+    ownedList: [1, 4, 6],
+  });
   // the next one after a run stays a run
-  expect(withVolume({ volumesOwned: 3 }, 4)).toEqual({ volumesOwned: 4, ownedList: [] });
+  expect(withVolume({ volumesOwned: 3 }, 4)).toEqual({
+    volumesOwned: 4,
+    ownedList: [],
+  });
   // further on starts a list
-  expect(withVolume({ volumesOwned: 3 }, 9)).toEqual({ volumesOwned: 9, ownedList: [1, 2, 3, 9] });
+  expect(withVolume({ volumesOwned: 3 }, 9)).toEqual({
+    volumesOwned: 9,
+    ownedList: [1, 2, 3, 9],
+  });
   // filling the gap makes it a run again
-  expect(withVolume({ volumesOwned: 3, ownedList: [1, 3] }, 2)).toEqual({ volumesOwned: 3, ownedList: [] });
+  expect(withVolume({ volumesOwned: 3, ownedList: [1, 3] }, 2)).toEqual({
+    volumesOwned: 3,
+    ownedList: [],
+  });
 });
 
 test("written short, typed loosely", () => {
@@ -65,24 +87,49 @@ test("written short, typed loosely", () => {
   expect(parseVolumes("1-a")).toBeNull();
   expect(parseVolumes("5-2")).toBeNull();
   expect(ownedPhrase({ volumesOwned: 14 })).toBe("up to vol. 14");
-  expect(ownedPhrase({ volumesOwned: 4, ownedList: [1, 4] })).toBe("vols. 1, 4");
+  expect(ownedPhrase({ volumesOwned: 4, ownedList: [1, 4] })).toBe(
+    "vols. 1, 4",
+  );
   expect(ownedPhrase({ volumesOwned: 9, ownedList: [9] })).toBe("vol. 9");
   expect(ownedPhrase({ volumesOwned: null })).toBeNull();
   // long lists are cut at a comma
-  expect(ownedPhrase({ volumesOwned: 99, ownedList: [1, 3, 5, 7, 9, 11, 13, 15, 17, 19, 21, 23] })).toBe("vols. 1, 3, 5, 7, 9, 11, 13…");
+  expect(
+    ownedPhrase({
+      volumesOwned: 99,
+      ownedList: [1, 3, 5, 7, 9, 11, 13, 15, 17, 19, 21, 23],
+    }),
+  ).toBe("vols. 1, 3, 5, 7, 9, 11, 13…");
 });
 
 test("an import's exact list comes in, and the up-to number follows it", () => {
-  const entry = { title: "One Piece", finished: false, chapters: 0, readVolumes: 0, ownedVolumes: 4, score: 0 };
-  expect(toMangaInput({ ...entry, ownedList: [1, 4] }, null)).toMatchObject({ volumesOwned: 4, ownedList: [1, 4] });
-  expect(toMangaInput(entry, null)).toMatchObject({ volumesOwned: 4, ownedList: [] });
+  const entry = {
+    title: "One Piece",
+    finished: false,
+    chapters: 0,
+    readVolumes: 0,
+    ownedVolumes: 4,
+    score: 0,
+  };
+  expect(toMangaInput({ ...entry, ownedList: [1, 4] }, null)).toMatchObject({
+    volumesOwned: 4,
+    ownedList: [1, 4],
+  });
+  expect(toMangaInput(entry, null)).toMatchObject({
+    volumesOwned: 4,
+    ownedList: [],
+  });
 });
 
 test("a finished series owned with gaps isn't skipped as owned in full", async () => {
-  const { nothingLeftToCheck } = await import("../../controllers/mangaController.js");
+  const { nothingLeftToCheck } =
+    await import("../../controllers/mangaController.js");
   const fma = { status: "FINISHED", volumes: 27 };
-  expect(nothingLeftToCheck({ volumesOwned: 27, ownedList: [1, 27] }, fma)).toBe(false);
-  expect(nothingLeftToCheck({ volumesOwned: 27, ownedList: [] }, fma)).toBe(true);
+  expect(
+    nothingLeftToCheck({ volumesOwned: 27, ownedList: [1, 27] }, fma),
+  ).toBe(false);
+  expect(nothingLeftToCheck({ volumesOwned: 27, ownedList: [] }, fma)).toBe(
+    true,
+  );
 });
 
 test("a page from before lists existed doesn't wipe one that's saved", async () => {
@@ -91,20 +138,44 @@ test("a page from before lists existed doesn't wipe one that's saved", async () 
   // editing with the same "up to": the list stays
   expect(keepSavedList(saved, { volumesOwned: 4 }, "edit")).toEqual(saved);
   // a different "up to": that's what they mean now
-  expect(keepSavedList(saved, { volumesOwned: 10 }, "edit")).toEqual({ volumesOwned: 10, ownedList: [] });
+  expect(keepSavedList(saved, { volumesOwned: 10 }, "edit")).toEqual({
+    volumesOwned: 10,
+    ownedList: [],
+  });
   // "I own vol. 6" from an old price page: 6 joins the list
-  expect(keepSavedList(saved, { volumesOwned: 6 }, "add one")).toEqual({ volumesOwned: 6, ownedList: [1, 4, 6] });
+  expect(keepSavedList(saved, { volumesOwned: 6 }, "add one")).toEqual({
+    volumesOwned: 6,
+    ownedList: [1, 4, 6],
+  });
   // clearing still clears
-  expect(keepSavedList(saved, { volumesOwned: null }, "add one")).toEqual({ volumesOwned: null, ownedList: [] });
+  expect(keepSavedList(saved, { volumesOwned: null }, "add one")).toEqual({
+    volumesOwned: null,
+    ownedList: [],
+  });
   // nothing saved: as before
-  expect(keepSavedList({ volumesOwned: 3, ownedList: [] }, { volumesOwned: 9 }, "add one")).toEqual({ volumesOwned: 9, ownedList: [] });
+  expect(
+    keepSavedList(
+      { volumesOwned: 3, ownedList: [] },
+      { volumesOwned: 9 },
+      "add one",
+    ),
+  ).toEqual({ volumesOwned: 9, ownedList: [] });
 });
 
 test("keeping a saved list hands back only the two volume fields", async () => {
   const { keepSavedList } = await import("../../util/shelf/ownedList.js");
   // a whole shelf row, as the edit handler has it
-  const row = { id: 7, userId: 1, name: "One Piece", volumesOwned: 6, ownedList: [1, 4, 6] };
-  expect(keepSavedList(row, { volumesOwned: 6 }, "edit")).toEqual({ volumesOwned: 6, ownedList: [1, 4, 6] });
+  const row = {
+    id: 7,
+    userId: 1,
+    name: "One Piece",
+    volumesOwned: 6,
+    ownedList: [1, 4, 6],
+  };
+  expect(keepSavedList(row, { volumesOwned: 6 }, "edit")).toEqual({
+    volumesOwned: 6,
+    ownedList: [1, 4, 6],
+  });
 });
 
 test("next for you is the one after the furthest they own", () => {

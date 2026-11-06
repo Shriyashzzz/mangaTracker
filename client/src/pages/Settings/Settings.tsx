@@ -11,6 +11,7 @@ import {
   type Account,
 } from "../../lib/account";
 import { apiFetch, signInPath } from "../../lib/api";
+import type { ShelfSort } from "../../lib/shelf";
 import {
   BACKGROUNDS,
   currentBackground,
@@ -273,8 +274,10 @@ function ShelfSettingsTab() {
           className={styles.select}
           value={shelfSort}
           onChange={(e) => {
-            setShelfSort(e.target.value);
-            savePrefs({ shelfSort: e.target.value }, isSignedIn);
+            // the options are SORT_OPTIONS, so it's one of them
+            const sort = e.target.value as ShelfSort;
+            setShelfSort(sort);
+            savePrefs({ shelfSort: sort }, isSignedIn);
           }}
         >
           {SORT_OPTIONS.map((option) => (

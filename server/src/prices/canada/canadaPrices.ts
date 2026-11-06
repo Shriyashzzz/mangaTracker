@@ -48,7 +48,7 @@ const amazonCa = (isbn13: string) => {
   return `https://www.amazon.ca/s?k=${isbn13}${tag ? `&tag=${encodeURIComponent(tag)}` : ""}`;
 };
 
-export const canadaStoreLinks = (isbn13: string) => [
+const canadaStoreLinks = (isbn13: string) => [
   {
     store: "Amazon.ca",
     url: amazonCa(isbn13),

@@ -1,4 +1,7 @@
-import { volumeOfChapter, volumeStartsFrom } from "../../util/releases/volumeStarts.js";
+import {
+  volumeOfChapter,
+  volumeStartsFrom,
+} from "../../util/releases/volumeStarts.js";
 
 const chapters = (...numbers: string[]) => ({
   chapters: Object.fromEntries(numbers.map((n) => [n, {}])),

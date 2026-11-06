@@ -9,12 +9,12 @@
 import { prisma } from "../../config/prisma.js";
 import { Prisma } from "../../../generated/prisma/client.js";
 import { slugify } from "../../prices/stores/match.js";
-import getReleaseDates from "../../../scripts/getReleaseDates.js";
-import type {
-  MangaReleaseDates,
-  SeriesMatch,
-} from "../../../scripts/getReleaseDates.js";
-import { getChapterSource, type ChapterSource } from "../../prices/sources/mangaUpdates.js";
+import getReleaseDates from "./getReleaseDates.js";
+import type { MangaReleaseDates, SeriesMatch } from "./getReleaseDates.js";
+import {
+  getChapterSource,
+  type ChapterSource,
+} from "../../prices/sources/mangaUpdates.js";
 import type { FormatedDates } from "./volumeDataFormatter.js";
 import { laneQueue, type Lane } from "./laneQueue.js";
 
@@ -62,7 +62,9 @@ export function withChapterSource(
     ...dates,
     ...(source.finished ? { seriesFinished: true } : {}),
   };
-  const current = parseFloat(dates?.chapter?.latestReleased.chapterNumber ?? "");
+  const current = parseFloat(
+    dates?.chapter?.latestReleased.chapterNumber ?? "",
+  );
   const isAhead =
     source.latestChapter != null &&
     (!Number.isFinite(current) || source.latestChapter > current);

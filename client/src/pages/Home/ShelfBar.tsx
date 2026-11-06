@@ -18,7 +18,7 @@ import {
 import { SORT_OPTIONS } from "../../lib/shelf";
 import { shelfBarStyles as styles } from "./shelfBarStyles";
 
-export type ShelfView = {
+type ShelfView = {
   value: string;
   label: string;
   count: number | null;

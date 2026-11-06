@@ -4,7 +4,11 @@ import type { Request, Response } from "express";
 import { body, matchedData } from "express-validator";
 import { rejectInvalid } from "../middlewares/validate.js";
 import { sendError } from "../middlewares/errorHandler.js";
-import userQueries, { type Prefs } from "../models/userQueries.js";
+import userQueries, {
+  PREF_VALUES,
+  type Prefs,
+  type StringPref,
+} from "../models/userQueries.js";
 import { validReleaseSettings } from "../util/releases/releaseStatus.js";
 
 const credentials = [
@@ -86,20 +90,6 @@ const me = (req: Request, res: Response) => {
   else sendError(res, 401, "Not signed in.");
 };
 
-// the values each display preference may take; anything else is ignored
-const PREF_VALUES = {
-  background: ["sfx", "ink", "pages", "panels"],
-  theme: ["light", "dark", "system"],
-  hideEbooks: ["yes", "no"],
-  shelfTab: ["all", "ongoing", "finished", "new"],
-  shelfSort: ["", "rating-dsc", "ch-dsc", "name-asc"],
-  shelfView: ["covers", "rows"],
-  releaseChecks: ["on", "off"],
-  // where they buy: Canada gets Canadian store links beside the US prices
-  country: ["us", "ca"],
-};
-type StringPref = keyof typeof PREF_VALUES;
-
 const getPrefs = async (req: Request, res: Response) => {
   res.json(await userQueries.getPrefs(req.session.userId!));
 };
@@ -108,7 +98,8 @@ const updatePrefs = async (req: Request, res: Response) => {
   const patch: Prefs = {};
   for (const [key, allowed] of Object.entries(PREF_VALUES)) {
     const value = req.body?.[key];
-    if (allowed.includes(value)) patch[key as StringPref] = value;
+    if ((allowed as readonly unknown[]).includes(value))
+      patch[key as StringPref] = value;
   }
   const releases = validReleaseSettings(req.body?.releases);
   if (releases) patch.releases = releases;

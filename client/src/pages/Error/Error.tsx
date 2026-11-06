@@ -13,8 +13,12 @@ function ErrorPage({ message }: { message?: string }) {
       <span className="printed mascot-spot" aria-hidden>
         <Mascot mood={is404 ? "confused" : "panic"} />
       </span>
-      <span className="-rotate-4 font-brand text-[clamp(6rem,22vw,10rem)] leading-[0.9] tracking-[0.04em] text-accent [-webkit-text-stroke:2px_var(--ink)] [text-shadow:6px_6px_0_var(--ink)]">{is404 ? "404" : "Oops"}</span>
-      <h1 className="text-[clamp(1.8rem,4vw,2.4rem)] font-medium">{is404 ? "This page wandered off" : "Something broke"}</h1>
+      <span className="-rotate-4 font-brand text-[clamp(6rem,22vw,10rem)] leading-[0.9] tracking-[0.04em] text-accent [-webkit-text-stroke:2px_var(--ink)] [text-shadow:6px_6px_0_var(--ink)]">
+        {is404 ? "404" : "Oops"}
+      </span>
+      <h1 className="text-[clamp(1.8rem,4vw,2.4rem)] font-medium">
+        {is404 ? "This page wandered off" : "Something broke"}
+      </h1>
       <p className="mb-4 max-w-md text-ink-soft">
         {message ||
           (is404

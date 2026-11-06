@@ -33,7 +33,9 @@ export default function NotesField({
       });
       // a 400 says what's wrong with the notes; anything else is on our side
       if (!res.ok) {
-        throw new Error(res.status === 400 ? (await errorMessages(res))[0] : "");
+        throw new Error(
+          res.status === 400 ? (await errorMessages(res))[0] : "",
+        );
       }
       savedText.current = notes;
       useShelf.setState((state) => ({
@@ -71,7 +73,9 @@ export default function NotesField({
           Your notes
         </label>
         <span
-          className={status === "failed" ? styles.notesFailed : styles.notesSaved}
+          className={
+            status === "failed" ? styles.notesFailed : styles.notesSaved
+          }
           role="status"
         >
           {status === "saving" && "Saving…"}

@@ -256,7 +256,7 @@ Price checking works without any store keys: series, volumes and covers come fro
 
 ```text
 .
-├── package.json             workspace scripts: dev, build, typecheck, test
+├── package.json             workspace scripts: dev, build, check, lint, format, typecheck, test, test:db
 ├── server/                  the API
 │   ├── prisma/              schema.prisma and SQL migrations
 │   ├── prisma.config.ts     Prisma config, with a guard against destructive commands on remote databases
@@ -458,12 +458,16 @@ Resale sites (eBay, AbeBooks, World of Books and others) are labelled marketplac
 ## Testing and quality
 
 ```bash
-npm run typecheck            # strict TypeScript, server and client
+npm run check                # everything below, in order, stopping at the first problem
+npm run format:check         # Prettier, both apps
+npm run lint                 # ESLint, both apps
+npm run typecheck            # strict TypeScript, server (code and tests) and client
 npm test                     # server test suite (no database needed)
-cd client && npm run lint    # ESLint
+npm run db:test:setup        # once: creates and migrates a local manga_tracker_test database
+npm run test:db              # tests against that database: accounts, the shelf, the paid search budget
 ```
 
-Tests focus on where a mistake shows a wrong price or loses money: title matching, ISBN conversion, listing believability, affiliate links, and the API's validation and auth guards. Tests never read `.env`, so real keys can't leak into them.
+Tests focus on where a mistake shows a wrong price, loses money or loses someone's shelf: title matching, ISBN conversion, listing believability, affiliate links, the monthly search budget, accounts and their deletion, and the API's validation and auth guards. A type-only contract test fails the typecheck when the client's copy of an API shape drifts from the server's. Tests never read `.env`, so real keys can't leak into them, and the database tests refuse any database whose name doesn't end in `_test`.
 
 ---
 

@@ -138,7 +138,7 @@ const tidy = (name: string) =>
 
 // two spaces between words are where an export dropped an "&": "Wolf  Parchment:
 // New Theory Spice  Wolf" is Wolf & Parchment
-export const withAmpersands = (text: string) =>
+const withAmpersands = (text: string) =>
   // not before a volume word: "…Cheat Powers  Vol. 8" is just a typo
   text.replace(
     /(\p{L}) {2}(?!(?:vol(?:ume)?s?|book|part|tome|tomo|band|no)\b)(?=\p{L})/giu,
@@ -310,7 +310,7 @@ const parseName = (text: string, trailingNumber = true): Parsed =>
 // "One Piece, Vol. 1: Romance Dawn (One Piece, #1)" → One Piece, 1
 // "Frieren: Beyond Journey's End, Vol. 3" → Frieren: Beyond Journey's End, 3
 // "メイドインアビス 5 [Made in Abyss 5]" → Made in Abyss (and メイドインアビス), 5
-export function seriesFromTitle(raw: string, trailingNumber = true): Parsed {
+function seriesFromTitle(raw: string, trailingNumber = true): Parsed {
   // full-width digits and brackets, as Japanese titles often have, made plain
   const asWritten = raw.normalize("NFKC");
   // some apps drop "&" and leave its two spaces: "Wolf  Parchment". It could
@@ -356,7 +356,7 @@ const isName = (name: string) =>
   !/^[^(]*\)/.test(name);
 
 // Book Catalogue's "Discworld (4)", several joined with "|": the first one counts
-export function seriesFromDetails(details: string): Parsed | null {
+function seriesFromDetails(details: string): Parsed | null {
   const first = details.split("|")[0]!.normalize("NFKC").trim();
   if (!first || LABEL.test(first)) return null;
   const m = first.match(/^(.*?)\s*\(([^()]*)\)\s*$/);
@@ -418,12 +418,12 @@ const stars = (value: string) => {
   return Math.max(0, Math.min(5, n > 5 ? n / 2 : n));
 };
 
-export const isGoodreads = (headers: string[]) =>
+const isGoodreads = (headers: string[]) =>
   headers.includes("Exclusive Shelf") && headers.includes("Book Id");
 // its own columns: newer versions have series_details and book_uuid, and every
 // version names its authors and shelves its own way. A plain "title" isn't
 // enough: a spreadsheet read as Book Catalogue would count every book as owned
-export const isBookCatalogue = (headers: string[]) =>
+const isBookCatalogue = (headers: string[]) =>
   headers.includes("series_details") ||
   headers.includes("book_uuid") ||
   (headers.includes("title") &&
@@ -499,7 +499,7 @@ function bookCatalogueBook(h: string[], row: string[]): Book | null {
 
 // the Bookshelf app (bookshelf-app.com): a Bookshelf column with the shelf,
 // Wishlist for what they want, and its own Series and Volume
-export const isBookshelfApp = (headers: string[]) =>
+const isBookshelfApp = (headers: string[]) =>
   ["Book Id", "Bookshelf", "Wishlist", "Series", "Volume"].every((c) =>
     headers.includes(c),
   );

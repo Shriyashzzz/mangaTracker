@@ -1,0 +1,12 @@
+# Prettier's defaults (.prettierrc.json is empty on purpose), for both apps.
+# Left alone: what tools write, data, and the hand-laid-out docs
+node_modules
+dist
+coverage
+server/generated
+server/prisma/migrations
+package-lock.json
+*.md
+.impeccable
+book
+claude_export_data_reference

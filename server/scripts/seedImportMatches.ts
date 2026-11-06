@@ -16,7 +16,11 @@
 import "dotenv/config";
 import { Client } from "pg";
 import { matchKey } from "../src/util/shelf/matchRule.js";
-import { matchOf, namesOf, type Media } from "../src/util/shelf/sharedMatches.js";
+import {
+  matchOf,
+  namesOf,
+  type Media,
+} from "../src/util/shelf/sharedMatches.js";
 
 const arg = (name: string) => {
   const i = process.argv.indexOf(`--${name}`);
@@ -57,8 +61,14 @@ async function page(n: number, novel: boolean): Promise<Media[]> {
   for (let attempt = 0; attempt < 5; attempt++) {
     const res = await fetch("https://graphql.anilist.co", {
       method: "POST",
-      headers: { "Content-Type": "application/json", Accept: "application/json" },
-      body: JSON.stringify({ query: PAGE_QUERY, variables: { page: n, novel } }),
+      headers: {
+        "Content-Type": "application/json",
+        Accept: "application/json",
+      },
+      body: JSON.stringify({
+        query: PAGE_QUERY,
+        variables: { page: n, novel },
+      }),
       signal: AbortSignal.timeout(15000),
     }).catch(() => null);
     if (res?.ok) {
@@ -73,7 +83,6 @@ async function page(n: number, novel: boolean): Promise<Media[]> {
   }
   throw new Error(`AniList didn't answer for page ${n}`);
 }
-
 
 async function main() {
   const db = new Client({ connectionString: url });
@@ -107,7 +116,9 @@ async function main() {
         later.push({ m, novel });
       }
       seen += media.length;
-      console.log(`  ${novel ? "novels" : "manga"}: ${seen} series, ${rows.size} names so far`);
+      console.log(
+        `  ${novel ? "novels" : "manga"}: ${seen} series, ${rows.size} names so far`,
+      );
       await sleep(GAP_MS);
     }
   }
@@ -120,7 +131,9 @@ async function main() {
     (await db.query("SELECT count(*) FROM import_matches")).rows[0].count,
   );
   if (clear) {
-    console.log(`${before} shared matches ${apply ? "deleted" : "would be deleted"} first`);
+    console.log(
+      `${before} shared matches ${apply ? "deleted" : "would be deleted"} first`,
+    );
   }
   if (apply) {
     // all or nothing: a failure partway leaves the table as it was, not empty
@@ -131,7 +144,10 @@ async function main() {
       for (let i = 0; i < all.length; i += 500) {
         const part = all.slice(i, i + 500);
         const values = part
-          .map((_, j) => `($${j * 5 + 1}, $${j * 5 + 2}, $${j * 5 + 3}, $${j * 5 + 4}, $${j * 5 + 5}, now())`)
+          .map(
+            (_, j) =>
+              `($${j * 5 + 1}, $${j * 5 + 2}, $${j * 5 + 3}, $${j * 5 + 4}, $${j * 5 + 5}, now())`,
+          )
           .join(", ");
         await db.query(
           `INSERT INTO import_matches (key, anilist_id, mal_id, name, cover, checked_at)
@@ -139,7 +155,13 @@ async function main() {
            ON CONFLICT (key) DO UPDATE SET anilist_id = EXCLUDED.anilist_id,
              mal_id = EXCLUDED.mal_id, name = EXCLUDED.name, cover = EXCLUDED.cover,
              checked_at = EXCLUDED.checked_at`,
-          part.flatMap(([key, r]) => [key, r.anilistId, r.malId, r.name.slice(0, 300), r.cover]),
+          part.flatMap(([key, r]) => [
+            key,
+            r.anilistId,
+            r.malId,
+            r.name.slice(0, 300),
+            r.cover,
+          ]),
         );
       }
       await db.query("COMMIT");

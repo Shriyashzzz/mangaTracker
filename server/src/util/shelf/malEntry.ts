@@ -38,7 +38,9 @@ const MAX_NOTES = 450;
 
 export function toMangaInput(entry: MalEntry, listing: MalListing | null) {
   const name =
-    listing?.name && listing.name.length <= MAX_TITLE ? listing.name : entry.title;
+    listing?.name && listing.name.length <= MAX_TITLE
+      ? listing.name
+      : entry.title;
   return {
     name,
     genre: listing?.genre ?? null,
@@ -49,7 +51,10 @@ export function toMangaInput(entry: MalEntry, listing: MalListing | null) {
     lightNovel: entryIsLightNovel(entry, listing),
     bookmark: entry.planned ? null : entry.chapters,
     // most people never fill in retail, so volumes read is the best guess left
-    ...ownedVolumes(entry.ownedVolumes || entry.readVolumes || null, entry.ownedList),
+    ...ownedVolumes(
+      entry.ownedVolumes || entry.readVolumes || null,
+      entry.ownedList,
+    ),
     rating: Math.round(entry.score / 2) || null,
     latestChapter: listing?.latestChapter ?? null,
   };
@@ -59,8 +64,7 @@ export function toMangaInput(entry: MalEntry, listing: MalListing | null) {
 export const entryIsLightNovel = (
   entry: MalEntry,
   listing: MalListing | null,
-) =>
-  entry.lightNovel ?? listing?.lightNovel ?? false;
+) => entry.lightNovel ?? listing?.lightNovel ?? false;
 
 // every name it could already be on the shelf under
 export const namesOf = (entry: MalEntry, listing: MalListing | null) =>

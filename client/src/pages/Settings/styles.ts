@@ -1,6 +1,7 @@
 // Tailwind classes shared by the settings and profile pages.
 
-const row = "flex min-h-11 cursor-pointer items-center gap-3 [&_input]:size-[18px] [&_input]:shrink-0 [&_input]:accent-[var(--accent)]";
+const row =
+  "flex min-h-11 cursor-pointer items-center gap-3 [&_input]:size-[18px] [&_input]:shrink-0 [&_input]:accent-[var(--accent)]";
 
 export const settingsStyles = {
   page: "mx-auto flex max-w-[960px] flex-col gap-[clamp(1.25rem,3vw,2rem)]",

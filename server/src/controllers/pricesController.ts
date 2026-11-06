@@ -99,7 +99,9 @@ const seriesSearch = [
     // after answering: the top few manga with no novel shown get checked for
     // one AniList doesn't list, so a later search can show it
     const novels = new Set(
-      results.filter((r) => r.lightNovel).map((r) => baseName(r.name).toLowerCase()),
+      results
+        .filter((r) => r.lightNovel)
+        .map((r) => baseName(r.name).toLowerCase()),
     );
     findNovelsFor(
       results

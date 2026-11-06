@@ -53,4 +53,3 @@ export function Fingers({ x }: { x: number }) {
     />
   ));
 }
-

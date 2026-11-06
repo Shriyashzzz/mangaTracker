@@ -59,6 +59,8 @@ export const importStyles = {
   lockNote: "-mt-1 text-[0.85rem] text-ink-soft",
   // Select all / Clear all, above the list's right edge
   listTools: "mt-3 flex justify-end",
+  // while matching: the "feel free to explore" line on the left
+  listToolsMatching: "mt-3 flex items-baseline justify-between gap-3",
   selectAll:
     "tap min-h-9 text-[0.85rem] font-medium text-ink-soft underline decoration-line-soft underline-offset-3 hover:text-ink hover:decoration-current disabled:cursor-default disabled:opacity-50 disabled:no-underline",
   seriesList:

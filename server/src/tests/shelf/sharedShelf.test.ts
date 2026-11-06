@@ -34,7 +34,9 @@ test("a shared list never gives away the login or the email", () => {
 });
 
 test("notes stay private unless they choose to share them", () => {
-  expect(JSON.stringify(toSharedShelf(source))).not.toContain("private thoughts");
+  expect(JSON.stringify(toSharedShelf(source))).not.toContain(
+    "private thoughts",
+  );
   const shared = toSharedShelf({ ...source, shareNotes: true });
   expect(shared.manga[0]).toMatchObject({ notes: "my private thoughts" });
 });
@@ -42,6 +44,8 @@ test("notes stay private unless they choose to share them", () => {
 test("no display name means a fun stand-in that stays the same, never the username", () => {
   const first = toSharedShelf({ ...source, displayName: null }).displayName;
   expect(READER_NAMES).toContain(first);
-  expect(toSharedShelf({ ...source, displayName: null }).displayName).toBe(first);
+  expect(toSharedShelf({ ...source, displayName: null }).displayName).toBe(
+    first,
+  );
   expect(READER_NAMES.every((name) => name.length <= 40)).toBe(true);
 });

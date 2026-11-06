@@ -13,7 +13,10 @@ test("a volume the catalog left out this time stays", () => {
 });
 
 test("the catalog's newest word on a volume wins, and new ones come in order", () => {
-  const merged = mergeVolumes([book(1), book(3)], [book(1, "new-1"), book(2, "new-2")]);
+  const merged = mergeVolumes(
+    [book(1), book(3)],
+    [book(1, "new-1"), book(2, "new-2")],
+  );
   expect(merged.map((v) => v.isbn13)).toEqual(["new-1", "new-2", "old-3"]);
 });
 

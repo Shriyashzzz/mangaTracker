@@ -11,7 +11,7 @@ import { pricesStyles as styles } from "./styles";
 // one series: cover, name and a line of facts. Used on the price home
 // (popular this season, search results) and the /series index
 // the fields a card shows; search hits and index entries both fit
-export type SeriesCardData = {
+type SeriesCardData = {
   name: string;
   coverUrl: string | null;
   year?: number | null;

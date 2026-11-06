@@ -106,10 +106,10 @@ export default function NewReleasesPage() {
           are, and the next chapter once you're within 3 of the latest.
         </p>
         <p>
-          You can change that, for volumes and chapters separately: just the next
-          one, only when you're within a number you choose, or everything that's
-          out. The volume setting covers English and In Japan, each against its
-          own newest volume.
+          You can change that, for volumes and chapters separately: just the
+          next one, only when you're within a number you choose, or everything
+          that's out. The volume setting covers English and In Japan, each
+          against its own newest volume.
         </p>
         {isSignedIn ? (
           <NavLink
@@ -121,7 +121,11 @@ export default function NewReleasesPage() {
           </NavLink>
         ) : (
           isSignedIn === false && (
-            <NavLink to="/signup" className="btn btn-primary self-start" viewTransition>
+            <NavLink
+              to="/signup"
+              className="btn btn-primary self-start"
+              viewTransition
+            >
               Start your shelf
             </NavLink>
           )

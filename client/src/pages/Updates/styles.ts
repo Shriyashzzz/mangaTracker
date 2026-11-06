@@ -20,7 +20,8 @@ export const updatesStyles = {
     "relative grid min-h-[190px] content-center justify-items-center border-r-3 border-line bg-[radial-gradient(var(--dots-strong)_1.3px,transparent_1.6px)] bg-size-[7px_7px] p-6 upto-760:min-h-0 upto-760:border-r-0 upto-760:border-b-3 upto-760:pt-9",
   sfx: "absolute top-2 left-3 -rotate-6 font-brand text-[1.5rem] leading-none tracking-[0.03em] text-accent uppercase [-webkit-text-stroke:1.2px_var(--line)] [paint-order:stroke_fill]",
   sample: "bg-paper px-3 py-2",
-  sampleRelease: "font-brand text-[1.7rem] leading-[1.1] tracking-[1px] text-accent",
+  sampleRelease:
+    "font-brand text-[1.7rem] leading-[1.1] tracking-[1px] text-accent",
   sampleYours: "text-[0.9rem] text-ink-soft",
   panelCopy:
     "flex flex-col items-start justify-center gap-2 p-[clamp(1.25rem,3vw,2rem)] [&_p]:text-[1.05rem] [&_p]:leading-[1.45] [&_p]:text-ink-soft",

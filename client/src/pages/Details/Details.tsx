@@ -1,12 +1,6 @@
 import { useEffect, useRef, useState, type CSSProperties } from "react";
-import {
-  ownedOf,
-  ownedPhrase,
-  rangesText,
-  toggleVolume,
-} from "../../lib/ownedVolumes";
+import { ownedOf, ownedPhrase, rangesText } from "../../lib/ownedVolumes";
 import { BOOK } from "../../lib/volumeShelf";
-import { setVolumesOwned, type Owned } from "../../lib/shelf";
 import { detailsStyles as styles } from "./styles";
 import { NavLink, useNavigate, useParams, useSearchParams } from "react-router";
 import StarRating from "../../components/starRating/StarRating";
@@ -24,6 +18,7 @@ import BuyStrip from "./BuyStrip";
 import ReleaseBar from "./ReleaseBar";
 import ChapterStepper from "./ChapterStepper";
 import { useBuyOptions } from "./useBuyOptions";
+import { useOwnedVolumes } from "./useOwnedVolumes";
 import { formatCents, priceName, volumePath } from "../../lib/prices";
 
 const DIDNT_SAVE = "That didn't save. Try again.";
@@ -37,7 +32,6 @@ export default function Details() {
   const [releaseStatus, setReleaseStatus] = useState<ReleaseStatus | null>(
     null,
   );
-  // "signin": the server says it isn't theirs to see; "network": it didn't answer
   // "signin": the server wants a sign in (none, or it expired); "gone": signed
   // in, but it's deleted or someone else's; "network": no answer
   const [loadError, setLoadError] = useState<
@@ -224,58 +218,19 @@ export default function Details() {
     }
   };
 
-  // the shelf by the title: each tick shows at once and saves in the
-  // background, one save at a time per manga. Ticks in quick succession send
-  // only where they ended up. A save that fails is followed by the newer state
-  // if one is waiting (it has the failed tick in it too); only when the last
-  // one fails does the shelf go back to what the server last said
-  const ownedQueues = useRef(
-    new Map<number, { saved: Owned; next: Owned | null; saving: boolean }>(),
-  );
-  const saveOwned = async (mangaId: number) => {
-    const queue = ownedQueues.current.get(mangaId);
-    if (!queue || queue.saving) return;
-    queue.saving = true;
-    let failed = false;
-    while (queue.next) {
-      const sending = queue.next;
-      queue.next = null;
-      try {
-        queue.saved = await setVolumesOwned(mangaId, sending);
-        failed = false;
-      } catch {
-        failed = true;
-      }
-    }
-    queue.saving = false;
-    if (failed) {
-      setMangaData((m) => (m?.id === mangaId ? { ...m, ...queue.saved } : m));
+  // the volume shelf's ticks, saved one at a time in the background
+  const toggleOwned = useOwnedVolumes({
+    manga: mangaData,
+    setManga: setMangaData,
+    onTick: () => {
+      setActionNote("");
+      setCanUndoStatus(false);
+    },
+    onFailed: () => {
       setActionNote(DIDNT_SAVE);
       setCanUndoStatus(false);
-    } else {
-      // the shelf's cards say what they own too
-      void useShelf.getState().load();
-    }
-  };
-  const toggleOwned = (volume: number) => {
-    if (!mangaData) return;
-    const queues = ownedQueues.current;
-    if (!queues.has(mangaData.id))
-      queues.set(mangaData.id, {
-        saved: {
-          volumesOwned: mangaData.volumesOwned ?? null,
-          ownedList: mangaData.ownedList ?? [],
-        },
-        next: null,
-        saving: false,
-      });
-    const next = toggleVolume(mangaData, volume);
-    setMangaData({ ...mangaData, ...next });
-    setActionNote("");
-    setCanUndoStatus(false);
-    queues.get(mangaData.id)!.next = next;
-    void saveOwned(mangaData.id);
-  };
+    },
+  });
 
   if (loadError === "network") {
     return (

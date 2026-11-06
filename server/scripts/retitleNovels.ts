@@ -53,7 +53,8 @@ async function main() {
         ]);
       }
     }
-    if ((i + 1) % 50 === 0) console.log(`  … ${i + 1} of ${rows.length} checked`);
+    if ((i + 1) % 50 === 0)
+      console.log(`  … ${i + 1} of ${rows.length} checked`);
   }
   console.log(
     `\n${rows.length} books, ${renamed} ${apply ? "renamed" : "to rename"}, ${unanswered} Open Library couldn't answer for (run again later for those)`,

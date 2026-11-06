@@ -14,7 +14,7 @@ export const BACKGROUNDS: { id: Background; label: string }[] = [
   { id: "pages", label: "Stack of pages" },
   { id: "panels", label: "Panels" },
 ];
-export const DEFAULT_BACKGROUND: Background = "sfx";
+const DEFAULT_BACKGROUND: Background = "sfx";
 
 const isBackground = (value: unknown): value is Background =>
   BACKGROUNDS.some((b) => b.id === value);
@@ -63,7 +63,7 @@ const checksListeners = new Set<() => void>();
 const countryListeners = new Set<() => void>();
 
 // puts preferences on the page and remembers them in this browser
-export const applyPrefs = ({
+const applyPrefs = ({
   background,
   theme,
   hideEbooks,
@@ -117,7 +117,7 @@ export const useReleaseChecksOn = () =>
 
 // where they shop: US unless they've picked Canada. Every page showing prices
 // follows it as it changes, from the menu, settings or a price page
-export const currentCountry = (): "us" | "ca" =>
+const currentCountry = (): "us" | "ca" =>
   readLocal("country") === "ca" ? "ca" : "us";
 export const useCountry = () =>
   useSyncExternalStore((listener) => {

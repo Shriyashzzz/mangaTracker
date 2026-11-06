@@ -1,5 +1,8 @@
 // The shapes the API sends back. Mirrors server/src (Prisma models and
 // prices/service.ts); update both sides together.
+// server/src/tests/contract/apiTypes.ts fails the typecheck when one it lists
+// differs; a new shape the server sends should get a line there too.
+import type { ShelfSort } from "./shelf";
 
 // ---------- the shelf ----------
 
@@ -121,7 +124,8 @@ export type Prefs = {
   hideEbooks?: "yes" | "no";
   // what the shelf opens on
   shelfTab?: ShelfTab;
-  shelfSort?: string;
+  // "" is last bookmarked (SORT_OPTIONS in lib/shelf.ts)
+  shelfSort?: ShelfSort;
   // how the shelf lists manga: big covers, or compact rows
   shelfView?: "covers" | "rows";
   // "off": never look up new volumes and chapters
@@ -248,7 +252,7 @@ export type VolumePrices = {
   storeLinks: StoreLink[];
 };
 
-export type PriceCard = {
+type PriceCard = {
   isbn13: string;
   title: string;
   volume: number | null;

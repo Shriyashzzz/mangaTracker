@@ -17,7 +17,8 @@ const XML_ESCAPES: Record<string, string> = {
   '"': "&quot;",
   "'": "&apos;",
 };
-const escapeXml = (text: string) => text.replace(/[&<>"']/g, (c) => XML_ESCAPES[c]!);
+const escapeXml = (text: string) =>
+  text.replace(/[&<>"']/g, (c) => XML_ESCAPES[c]!);
 
 // the same addresses the pages name as their canonical ones
 const seriesPath = (name: string) => `/prices/series/${slugify(name)}`;
@@ -28,7 +29,9 @@ const volumePath = (isbn13: string, title: string) => {
 
 const entry = (path: string, lastmod?: Date | null) =>
   `  <url><loc>${escapeXml(site() + path)}</loc>${
-    lastmod ? `<lastmod>${new Date(lastmod).toISOString().slice(0, 10)}</lastmod>` : ""
+    lastmod
+      ? `<lastmod>${new Date(lastmod).toISOString().slice(0, 10)}</lastmod>`
+      : ""
   }</url>`;
 
 const sitemap = async (_req: Request, res: Response) => {
@@ -44,7 +47,9 @@ const sitemap = async (_req: Request, res: Response) => {
     entry("/acknowledgements"),
     entry("/series"),
     ...series.map((s) => entry(seriesPath(s.name), s.fetchedAt)),
-    ...volumes.map((v) => entry(volumePath(v.isbn13.trim(), v.title), v.updated)),
+    ...volumes.map((v) =>
+      entry(volumePath(v.isbn13.trim(), v.title), v.updated),
+    ),
   ];
   res
     .type("application/xml")

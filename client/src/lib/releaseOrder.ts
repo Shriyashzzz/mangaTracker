@@ -8,7 +8,7 @@
 import type { Manga } from "./types";
 
 // as the New tab counts it: within this many chapters of the latest
-export const CAUGHT_UP_WITHIN = 3;
+const CAUGHT_UP_WITHIN = 3;
 
 type Ranked = Pick<
   Manga,

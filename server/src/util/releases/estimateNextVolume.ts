@@ -23,7 +23,7 @@ export type VolumeEstimate = {
   note: string;
 };
 
-export type CoverItem = {
+type CoverItem = {
   attributes: { volume: string | null; createdAt: string };
 };
 

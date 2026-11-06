@@ -5,4 +5,5 @@
 import { seriesOf } from "./stores/match.js";
 
 export const VOLUMES_KEY_VERSION = "v3:";
-export const volumesKey = (name: string) => VOLUMES_KEY_VERSION + seriesOf(name);
+export const volumesKey = (name: string) =>
+  VOLUMES_KEY_VERSION + seriesOf(name);

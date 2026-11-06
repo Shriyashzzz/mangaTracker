@@ -98,7 +98,9 @@ export default function ReleaseBar({
   const datesId = useId();
   const groups = groupsFrom(data, kind, inJapan);
   const hasDates = groups.length > 0;
-  const headline = <span className={styles.releaseHeadline}>{what} is out!</span>;
+  const headline = (
+    <span className={styles.releaseHeadline}>{what} is out!</span>
+  );
   const yoursLine = yours ? `${yours[0]!.toUpperCase()}${yours.slice(1)}.` : "";
   const owned = (
     <span className={styles.releaseOwned}>
@@ -114,7 +116,8 @@ export default function ReleaseBar({
       <div
         className={`${styles.releaseBar} ${hasDates ? styles.releaseBarOpens : ""}`}
         onClick={(e) => {
-          if (hasDates && !(e.target as HTMLElement).closest("a")) setOpen(!open);
+          if (hasDates && !(e.target as HTMLElement).closest("a"))
+            setOpen(!open);
         }}
       >
         <span className={styles.releaseStamp} aria-hidden>
@@ -142,11 +145,7 @@ export default function ReleaseBar({
         )}
 
         {buy && (
-          <NavLink
-            className={styles.releaseBuy}
-            to={buy.to}
-            viewTransition
-          >
+          <NavLink className={styles.releaseBuy} to={buy.to} viewTransition>
             {buy.label} →
           </NavLink>
         )}

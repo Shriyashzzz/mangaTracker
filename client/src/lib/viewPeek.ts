@@ -7,7 +7,7 @@
 export const VIEW_PEEK_KEY = "viewPeek";
 // fewer than this and the two views look much the same, and a new shelf
 // has the tour to think about first
-export const VIEW_PEEK_MIN_SERIES = 20;
+const VIEW_PEEK_MIN_SERIES = 20;
 export const ASK_AGAIN_AFTER_MS = 2 * 24 * 60 * 60 * 1000;
 // left alone, he ducks away after this
 export const VIEW_PEEK_LEAVE_MS = 12_000;

@@ -79,4 +79,3 @@ export const afterSignIn = (params: URLSearchParams) => {
 // a sign-in link that comes back to `path` afterwards
 export const signInPath = (path: string) =>
   `/signin?${new URLSearchParams({ next: path })}`;
-

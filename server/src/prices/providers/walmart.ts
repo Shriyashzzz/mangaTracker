@@ -40,8 +40,8 @@ const walmart: Provider = {
   enabled: () =>
     Boolean(
       config.WALMART_CONSUMER_ID &&
-        config.WALMART_KEY_VERSION &&
-        config.WALMART_PRIVATE_KEY,
+      config.WALMART_KEY_VERSION &&
+      config.WALMART_PRIVATE_KEY,
     ),
 
   async fetchOffers(isbn13, signal) {

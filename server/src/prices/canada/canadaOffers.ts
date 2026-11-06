@@ -21,7 +21,6 @@ import {
   toCents,
 } from "../offerHelpers.js";
 
-
 export type CaShoppingResult = {
   title?: string;
   source?: string;
