@@ -46,8 +46,9 @@ import type { CatalogBook, Offer, SeriesInfo } from "./types.js";
 export { searchSeries };
 
 // prices are re-fetched at most this often per volume; in between, people
-// see the stored ones. Keeps us well inside every API's rate limits
-const FRESH_FOR_MS = 2 * 24 * 60 * 60 * 1000;
+// see the stored ones. 20 days: volume prices move slowly, every page offers
+// several stores, and the free SerpApi allowance runs out in days at less
+const FRESH_FOR_MS = 20 * 24 * 60 * 60 * 1000;
 const PROVIDER_TIMEOUT_MS = 12000;
 
 const numberOrNull = (n: number) => (Number.isFinite(n) ? n : null);
@@ -89,7 +90,7 @@ async function fetchAllProviders(isbn13: string, book: Book) {
   }
 
   // only record a check if at least one source answered, so an outage
-  // doesn't leave a volume looking "checked, nothing found" for two days
+  // doesn't leave a volume looking "checked, nothing found" for 20 days
   if (providers.length && sources.length) {
     // judged against this volume's own usual new price before storing, so
     // a fake bargain never reaches the history

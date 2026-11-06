@@ -6,6 +6,7 @@
 // window functions and DISTINCT ON, which Prisma can't express, so those are
 // raw SQL ($queryRaw tagged templates: values are always sent as parameters,
 // never pasted into the SQL).
+import type { Spender } from "../prices/spender.js";
 import { VOLUMES_KEY_VERSION } from "../prices/volumesKey.js";
 import { prisma } from "../config/prisma.js";
 import { Prisma, type Book } from "../../generated/prisma/client.js";
@@ -289,6 +290,26 @@ export async function claimApiCall(provider: string, limit: number) {
   return changed === 1;
 }
 
+// one search SerpApi answered, added to whoever it was spent for
+export async function recordSearch(spender: Spender) {
+  if ("userId" in spender) {
+    // updateMany: an account deleted mid-search just matches nothing
+    await prisma.user.updateMany({
+      where: { id: spender.userId },
+      data: { serpapiSearches: { increment: 1 } },
+    });
+    return;
+  }
+  await prisma.$executeRaw`
+    INSERT INTO guest_searches (visitor, month, searches, user_agent)
+    VALUES (${spender.visitor}, date_trunc('month', now())::date, 1, ${spender.userAgent})
+    ON CONFLICT (visitor, month) DO UPDATE
+      SET searches = guest_searches.searches + 1,
+          user_agent = EXCLUDED.user_agent,
+          last_at = now()
+  `;
+}
+
 // the provider says this allowance is gone, whatever our own count thinks
 export async function markApiSpent(provider: string, limit: number) {
   await prisma.$executeRaw`
@@ -445,6 +466,7 @@ export async function getBookTitles() {
 export default {
   claimApiCall,
   markApiSpent,
+  recordSearch,
   getSeriesVolumes,
   getSavedVolume,
   getSavedListSizes,

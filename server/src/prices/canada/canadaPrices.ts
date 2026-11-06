@@ -1,5 +1,5 @@
 // Canadian prices for one volume: checked only when someone with Canada picked
-// opens it, saved in their own tables, and reused for two days. Searches are
+// opens it, saved in their own tables, and reused for 20 days. Searches are
 // capped on their own (CANADA_SEARCH_LIMIT a month), so Canada can never use up
 // the searches US prices depend on. CANADA_PRICES=off turns it all off.
 import config from "../../config/config.js";
@@ -21,7 +21,9 @@ import {
   type CaShoppingResult,
 } from "./canadaOffers.js";
 
-const FRESH_FOR_MS = 2 * 24 * 60 * 60 * 1000;
+// 20 days: volume prices move slowly, every page offers several stores, and
+// the free SerpApi allowance runs out in days at anything shorter
+const FRESH_FOR_MS = 20 * 24 * 60 * 60 * 1000;
 const BUDGET_LABEL = "serpapi-ca";
 
 export type CanadaPrices = {
@@ -224,7 +226,7 @@ async function checkCanadaPrices(
     }),
   ]);
   // only a check where every store answered is saved: a half one would hide
-  // stores for two days. The last full check stays up meanwhile
+  // stores for 20 days. The last full check stays up meanwhile
   const answered = [shopping, ebay].filter((r) => typeof r === "object");
   if (answered.length < 2) {
     const fallback = await saved();

@@ -28,6 +28,11 @@ model User {
   shareEnabled  Boolean @default(false) @map("share_enabled")
   shareNotes    Boolean @default(false) @map("share_notes")
   shareCode     String? @unique @map("share_code") @db.VarChar(16)
+  // series on their shelf, kept right by a database trigger on manga
+  // (migration 20261113000000_search_tracking); never written from code
+  mangaCount      Int @default(0) @map("manga_count")
+  // SerpApi searches their visits have spent (prices/spender.ts)
+  serpapiSearches Int @default(0) @map("serpapi_searches")
   manga    Manga[]
 
   @@map("users")
@@ -186,6 +191,20 @@ model ReleaseDates {
 }
 
 // paid APIs with a monthly allowance: how many calls we've made this month
+// SerpApi searches spent by visitors who aren't signed in, one row per
+// visitor a month. visitor hashes their IP and browser with the server
+// secret; no IP is stored (prices/spender.ts)
+model GuestSearch {
+  visitor   String   @db.Char(16)
+  month     DateTime @db.Date
+  searches  Int      @default(0)
+  userAgent String?  @map("user_agent") @db.VarChar(300)
+  lastAt    DateTime @default(now()) @map("last_at") @db.Timestamptz(6)
+
+  @@id([visitor, month])
+  @@map("guest_searches")
+}
+
 model ApiUsage {
   provider String   @db.VarChar(40)
   month    DateTime @db.Date
