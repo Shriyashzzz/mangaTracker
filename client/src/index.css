@@ -715,6 +715,123 @@
   }
 }
 
+/* ---------- the volume shelf (components/volumeShelf/VolumeShelf.tsx) ----------
+   Every volume in one row of fixed size: theirs stand tall in ink, the rest are
+   short and pale. Under the pointer they grow to full size like a magnifier,
+   and the books towards each end squeeze up, so the row always fits with
+   nothing faded or cut off */
+.vshelf-box {
+  min-width: 0;
+}
+.vshelf {
+  position: relative;
+  height: 68px;
+  overflow: hidden;
+  border-bottom: 3px double var(--line);
+  cursor: pointer;
+  /* a sideways slide is the shelf's; up and down still scrolls the page */
+  touch-action: pan-y;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+.vshelf:focus-visible {
+  outline: 2px dashed var(--accent);
+  outline-offset: 4px;
+}
+.vshelf-row {
+  position: absolute;
+  left: 0;
+  bottom: 2px;
+  display: flex;
+  align-items: flex-end;
+  height: 66px;
+}
+.vshelf-book {
+  flex: none;
+  height: 100%;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding: 0 0.5px;
+  transition: width 0.16s var(--ease-ink);
+}
+/* while the pointer is on it, widths follow at once, so the big book stays put */
+.vshelf[data-live] .vshelf-book {
+  transition: none;
+}
+.vshelf-book[data-size="mid"] {
+  padding: 0 1px;
+}
+.vshelf-book[data-size="wide"] {
+  padding: 0 1.5px;
+}
+.vshelf-book i {
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  width: 100%;
+  height: 30px;
+  padding-bottom: 3px;
+  overflow: hidden;
+  background: var(--line-soft);
+  font: 400 0.72rem/1 var(--font-brand);
+  font-style: normal;
+  font-variant-numeric: tabular-nums;
+  color: transparent;
+  transition:
+    height 0.18s var(--ease-ink),
+    background-color 0.18s,
+    color 0.12s,
+    border-color 0.18s;
+}
+.vshelf-book[data-small] i {
+  font-size: 0.6rem;
+}
+.vshelf-book[data-own] i {
+  height: 54px;
+  background: var(--ink);
+}
+.vshelf-book[data-size="wide"] i {
+  color: var(--paper);
+}
+.vshelf-book[data-size="wide"]:not([data-own]) i {
+  height: 42px;
+  background: var(--paper);
+  border: 1.5px dashed var(--muted);
+  color: var(--muted);
+}
+.vshelf-book[data-lit]:not([data-own]) i {
+  height: 46px;
+  border-style: solid;
+  border-color: var(--ink);
+  color: var(--ink);
+}
+.vshelf-book[data-lit][data-own] i {
+  height: 60px;
+}
+/* just ticked: it stands up */
+.vshelf-book[data-pop] i {
+  animation: vshelf-stand 0.3s var(--ease-ink);
+}
+@keyframes vshelf-stand {
+  0% {
+    height: 30px;
+  }
+  60% {
+    height: 60px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .vshelf-book,
+  .vshelf-book i {
+    transition: none;
+  }
+  .vshelf-book[data-pop] i {
+    animation: none;
+  }
+}
+
 /* ---------- Kenji peeking in to ask for support (SupportPeek.tsx) ----------
    Over the bottom edge of the window, or the phones' bottom bar, or in from the
    left side. The motion is one short scene: fingers, head, then the bubble */
