@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type CSSProperties } from "react";
 import {
   ownedOf,
   ownedPhrase,
@@ -28,6 +28,8 @@ import { formatCents, priceName, volumePath } from "../../lib/prices";
 
 const DIDNT_SAVE = "That didn't save. Try again.";
 const SHELF_TRIED_KEY = "volumeShelfTried";
+// the shelf's least width beside the title, so its caption reads in a line or two
+const SHELF_MIN = 208;
 
 export default function Details() {
   usePrivatePage("Manga details");
@@ -448,16 +450,24 @@ export default function Details() {
             </header>
             <div
               className={styles.shelf}
-              // a short series asks only for the room its books need
-              style={{ maxWidth: shelfTotal * BOOK }}
+              // the room a short series' books need, but never so little
+              // that the caption under them breaks a word to a line
+              style={
+                {
+                  "--shelf-w": `${Math.min(460, Math.max(shelfTotal * BOOK, SHELF_MIN))}px`,
+                } as CSSProperties
+              }
             >
-              <VolumeShelf
-                key={mangaData.id}
-                total={shelfTotal}
-                owned={owned}
-                onToggle={toggleOwned}
-                name={mangaData.name}
-              />
+              {/* the books keep to their own width; the caption gets the room */}
+              <div style={{ maxWidth: shelfTotal * BOOK }}>
+                <VolumeShelf
+                  key={mangaData.id}
+                  total={shelfTotal}
+                  owned={owned}
+                  onToggle={toggleOwned}
+                  name={mangaData.name}
+                />
+              </div>
               {/* what the shelf says, in words: how many of how many, any
                   halves or specials it has no book for, and how it works
                   until they've tried it */}

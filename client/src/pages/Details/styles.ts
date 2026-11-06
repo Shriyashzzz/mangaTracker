@@ -31,16 +31,16 @@ export const detailsStyles = {
   stamp:
     "absolute top-3.5 -right-3 rotate-12 rounded-[4px] border-[2.5px] border-accent bg-paper px-[0.6rem] py-[0.15rem] font-brand text-[1.35rem] tracking-[2px] text-accent upto-720:top-1.5 upto-720:-right-2 upto-720:border-2 upto-720:px-[0.3rem] upto-720:py-0 upto-720:text-[0.85rem]",
 
-  // the title, and their volumes on a shelf beside it. Under it when the
-  // column is narrow; on phones, its own row under the cover and title
+  // the title, and their volumes on a shelf beside it. Under it below 1100px,
+  // where beside it would squeeze the title; on phones, its own row under the cover and title
   titleRow:
-    "flex items-end justify-between gap-x-8 gap-y-5 upto-980:flex-col upto-980:items-stretch upto-720:contents",
+    "flex items-end justify-between gap-x-8 gap-y-5 max-[1099px]:flex-col max-[1099px]:items-stretch upto-720:contents",
   // under the shelf: "9 of 113", halves and specials, and how it works
   // until they've tried it
   shelfCaption:
     "mt-1.5 flex flex-wrap justify-between gap-x-4 font-mono text-[0.8rem] text-muted",
   shelf:
-    "min-w-0 flex-[0_1_460px] upto-980:w-full upto-980:flex-none upto-720:order-1 upto-720:col-span-full",
+    "min-w-0 flex-[0_1_auto] w-[min(100%,var(--shelf-w))] max-[1099px]:w-full upto-720:order-1 upto-720:col-span-full",
   head: "flex min-w-0 flex-col gap-[0.7rem] upto-720:gap-2 upto-720:self-center",
   title:
     "text-[clamp(2.2rem,4.6vw,3.4rem)] leading-[1.02] font-medium tracking-[-0.025em] text-balance wrap-anywhere upto-720:text-[clamp(1.6rem,7vw,2.2rem)]",
