@@ -10,14 +10,16 @@ import { setVolumesOwned, type Owned } from "../../lib/shelf";
 import { detailsStyles as styles } from "./styles";
 import { NavLink, useNavigate, useParams, useSearchParams } from "react-router";
 import StarRating from "../../components/starRating/StarRating";
-import { apiFetch, FALLBACK_COVER } from "../../lib/api";
+import { apiFetch } from "../../lib/api";
+import DrawnCover from "../../components/drawnCover/DrawnCover";
 import type { Manga, ReleaseData, ReleaseStatus } from "../../lib/types";
 import SlowLoadQuote from "../../components/slowLoadQuote/SlowLoadQuote";
 import { usePrivatePage } from "../../lib/seo";
 import { getReleases } from "../../lib/shelf";
 import VolumeShelf from "../../components/volumeShelf/VolumeShelf";
-import { useReleaseChecksOn } from "../../lib/prefs";
+import { readLocal, useReleaseChecksOn, writeLocal } from "../../lib/prefs";
 import { useShelf } from "../../store/shelf";
+import { useAuth } from "../../store/auth";
 import NotesField from "./NotesField";
 import BuyStrip from "./BuyStrip";
 import ReleaseBar from "./ReleaseBar";
@@ -26,6 +28,7 @@ import { useBuyOptions } from "./useBuyOptions";
 import { formatCents, priceName, volumePath } from "../../lib/prices";
 
 const DIDNT_SAVE = "That didn't save. Try again.";
+const SHELF_TRIED_KEY = "volumeShelfTried";
 
 export default function Details() {
   usePrivatePage("Manga details");
@@ -36,6 +39,10 @@ export default function Details() {
   );
   // "signin": the server says it isn't theirs to see; "network": it didn't answer
   const [loadError, setLoadError] = useState<"signin" | "network" | null>(null);
+  // signed in, a series that won't open is gone (deleted, or not theirs);
+  // signed out, it's the sign in that's missing
+  const signedIn = useAuth((s) => s.isSignedIn);
+  const [brokenCover, setBrokenCover] = useState<string | null>(null);
   const [loadTry, setLoadTry] = useState(0);
   // a chapter was saved, so what's new for them needs asking again
   const [chapterSaves, setChapterSaves] = useState(0);
@@ -247,8 +254,16 @@ export default function Details() {
       void useShelf.getState().load();
     }
   };
+  // the shelf says how it works until the first book they tick
+  const [shelfTried, setShelfTried] = useState(
+    () => readLocal(SHELF_TRIED_KEY) === "yes",
+  );
   const toggleOwned = (volume: number) => {
     if (!mangaData) return;
+    if (!shelfTried) {
+      writeLocal(SHELF_TRIED_KEY, "yes");
+      setShelfTried(true);
+    }
     const queues = ownedQueues.current;
     if (!queues.has(mangaData.id))
       queues.set(mangaData.id, {
@@ -291,17 +306,34 @@ export default function Details() {
     );
   }
 
+  if (loadError && signedIn) {
+    return (
+      <div className={styles.errorState}>
+        <h1>This one's not on your shelf.</h1>
+        <p>It might have been deleted, or the link is to someone else's.</p>
+        <div className={styles.errorActions}>
+          <NavLink to="/shelf" className="btn btn-primary" viewTransition>
+            Back to the shelf
+          </NavLink>
+          <NavLink to="/add" className="btn btn-ghost" viewTransition>
+            Add a series
+          </NavLink>
+        </div>
+      </div>
+    );
+  }
+
   if (loadError) {
     return (
       <div className={styles.errorState}>
-        <h1>Couldn't open this one.</h1>
-        <p>It might have been deleted, or you might need to sign in first.</p>
+        <h1>Sign in to see this one.</h1>
+        <p>Your shelf is only yours, so this needs you signed in.</p>
         <div className={styles.errorActions}>
           <NavLink to="/signin" className="btn btn-primary" viewTransition>
             Sign in
           </NavLink>
-          <NavLink to="/shelf" className="btn btn-ghost" viewTransition>
-            Back to the shelf
+          <NavLink to="/" className="btn btn-ghost" viewTransition>
+            Home
           </NavLink>
         </div>
       </div>
@@ -310,7 +342,9 @@ export default function Details() {
 
   if (!mangaData) return <DetailsSkeleton />;
 
-  const cover = mangaData.image || FALLBACK_COVER;
+  // no cover, or one that won't load: the drawn one, with its name on
+  const cover =
+    mangaData.image && brokenCover !== mangaData.image ? mangaData.image : null;
   const genre =
     mangaData.genre && mangaData.genre !== "unlabled" ? mangaData.genre : null;
   // how many books the shelf holds: the most we know is out, and never fewer
@@ -318,6 +352,7 @@ export default function Details() {
   const owned = ownedOf(mangaData);
   // halves and specials (10.5, vol. 0) aren't books on the shelf: said instead
   const offShelf = owned.filter((v) => !Number.isInteger(v) || v < 1);
+  const onShelf = owned.length - offShelf.length;
   const highestOwned = Math.floor(Math.max(0, ...owned));
   const knownOut = Math.max(
     releaseStatus?.latestVolume ?? 0,
@@ -421,12 +456,17 @@ export default function Details() {
                 onToggle={toggleOwned}
                 name={mangaData.name}
               />
-              {offShelf.length > 0 && (
-                <p className={styles.offShelf}>
-                  Also own vol{offShelf.length > 1 ? "s" : ""}.{" "}
-                  {rangesText(offShelf)}
-                </p>
-              )}
+              {/* what the shelf says, in words: how many of how many, any
+                  halves or specials it has no book for, and how it works
+                  until they've tried it */}
+              <p className={styles.shelfCaption}>
+                <span>
+                  {onShelf} of {shelfTotal}
+                  {offShelf.length > 0 &&
+                    ` · also vol${offShelf.length > 1 ? "s" : ""}. ${rangesText(offShelf)}`}
+                </span>
+                {!shelfTried && <span>tap a book to mark it yours</span>}
+              </p>
             </div>
           </div>
 
@@ -562,16 +602,18 @@ export default function Details() {
 
         <div className={styles.side}>
           <figure className={`${styles.cover} ${styles.coverTilt}`}>
-            <img
-              src={cover}
-              alt={mangaData.name}
-              onError={(e) => {
-                // a dead cover link falls back to the default cover once
-                if (e.currentTarget.src !== FALLBACK_COVER) {
-                  e.currentTarget.src = FALLBACK_COVER;
-                }
-              }}
-            />
+            {cover ? (
+              <img
+                src={cover}
+                alt={mangaData.name}
+                onError={() => setBrokenCover(cover)}
+              />
+            ) : (
+              <DrawnCover
+                title={mangaData.name}
+                className={styles.drawnCover}
+              />
+            )}
             {mangaStatus && <span className={styles.stamp}>Done</span>}
           </figure>
 
