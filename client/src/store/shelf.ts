@@ -41,6 +41,11 @@ type ShelfState = {
   // several deleted at once with the shelf's Select, all or none. Says
   // whether it worked; on success their undo is on offer
   removeMany: (ids: number[]) => Promise<boolean>;
+  // Select's Move to: several to Finished, To read or Reading at once. Gives
+  // where each was, for the undo; null if it didn't save
+  moveMany: (ids: number[], to: ShelfMove) => Promise<ShelfPlace[] | null>;
+  // that undo: each back where it was. Says whether it all saved
+  placeMany: (places: ShelfPlace[]) => Promise<boolean>;
   // the last ones deleted (one, or a Select's), while their undo is on offer
   lastDeleted: Manga[] | null;
   setLastDeleted: (manga: Manga | Manga[] | null) => void;
@@ -91,6 +96,11 @@ const askAbout = async (m: Manga, stop: AbortSignal) => {
 
 // a Select's undo sends this many series a request
 const RESTORE_PIECE = 200;
+// the move's undo goes back in pieces this big (the server takes 2000)
+const PLACE_PIECE = 2000;
+
+export type ShelfMove = "finished" | "planned" | "reading";
+export type ShelfPlace = Pick<Manga, "id" | "status" | "planned" | "bookmark">;
 // what the undo needs of a series, and nothing else (ids, dates, prices)
 const restorable = (m: Manga) => ({
   // within the limits restore checks, which older rows may be past
@@ -207,6 +217,66 @@ export const useShelf = create<ShelfState>()((set, get) => ({
       undoMessage: "",
     });
     return true;
+  },
+
+  moveMany: async (ids, to) => {
+    let was: ShelfPlace[];
+    try {
+      const res = await apiFetch("/api/manga/move-many", {
+        method: "POST",
+        body: { ids, to },
+      });
+      if (!res.ok) throw new Error(res.statusText);
+      was = ((await res.json()) as { was: ShelfPlace[] }).was;
+    } catch {
+      return null;
+    }
+    // as the server did it: Reading puts one that hadn't started at chapter 1
+    const moving = new Set(was.map((p) => p.id));
+    set((state) => ({
+      manga:
+        state.manga?.map((m) =>
+          !moving.has(m.id)
+            ? m
+            : to === "finished"
+              ? { ...m, status: true, planned: false }
+              : to === "planned"
+                ? { ...m, planned: true, status: false }
+                : {
+                    ...m,
+                    status: false,
+                    planned: false,
+                    bookmark: m.planned && m.bookmark == null ? 1 : m.bookmark,
+                  },
+        ) ?? null,
+    }));
+    return was;
+  },
+
+  placeMany: async (places) => {
+    let ok = true;
+    for (let i = 0; i < places.length; i += PLACE_PIECE) {
+      const piece = places.slice(i, i + PLACE_PIECE);
+      try {
+        const res = await apiFetch("/api/manga/place-many", {
+          method: "POST",
+          body: { places: piece },
+        });
+        if (!res.ok) throw new Error(res.statusText);
+      } catch {
+        ok = false;
+        continue;
+      }
+      const back = new Map(piece.map((p) => [p.id, p]));
+      set((state) => ({
+        manga:
+          state.manga?.map((m) => {
+            const p = back.get(m.id);
+            return p ? { ...m, ...p } : m;
+          }) ?? null,
+      }));
+    }
+    return ok;
   },
 
   // refreshes in the background: whatever's on screen stays until this answers

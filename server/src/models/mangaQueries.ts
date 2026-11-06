@@ -166,7 +166,83 @@ export const deleteManyManga = async (userId: number, ids: number[]) => {
   return rows;
 };
 
+// the shelf's Select: where each series was, for the undo
+export type ShelfPlace = {
+  id: number;
+  status: boolean;
+  planned: boolean;
+  bookmark: number | null;
+};
+export type ShelfMove = "finished" | "planned" | "reading";
+
+// several moved at once, as their own buttons would: finishing takes it off To
+// read, To read unfinishes it, and Reading takes it off both (one that hadn't
+// started is put at chapter 1). Says where each was
+export const moveManyManga = async (
+  userId: number,
+  ids: number[],
+  to: ShelfMove,
+) => {
+  const where = { userId, id: { in: ids } };
+  const select = { id: true, status: true, planned: true, bookmark: true };
+  const moves =
+    to === "finished"
+      ? [
+          prisma.manga.updateMany({
+            where,
+            data: { status: true, planned: false },
+          }),
+        ]
+      : to === "planned"
+        ? [
+            prisma.manga.updateMany({
+              where,
+              data: { planned: true, status: false },
+            }),
+          ]
+        : [
+            prisma.manga.updateMany({
+              where: { ...where, planned: true, bookmark: null },
+              data: { bookmark: 1 },
+            }),
+            prisma.manga.updateMany({
+              where,
+              data: { status: false, planned: false },
+            }),
+          ];
+  const [rows] = await prisma.$transaction([
+    prisma.manga.findMany({ where, select }),
+    ...moves,
+  ]);
+  return rows as ShelfPlace[];
+};
+
+// the undo: each back where it was. Series that were in the same place go
+// back together, so a whole shelf is a handful of updates
+export const placeManyManga = async (userId: number, places: ShelfPlace[]) => {
+  const groups = new Map<string, ShelfPlace[]>();
+  for (const p of places) {
+    const key = `${p.status}|${p.planned}|${p.bookmark}`;
+    groups.set(key, [...(groups.get(key) ?? []), p]);
+  }
+  const results = await prisma.$transaction(
+    [...groups.values()].map((group) =>
+      prisma.manga.updateMany({
+        where: { userId, id: { in: group.map((p) => p.id) } },
+        data: {
+          status: group[0]!.status,
+          planned: group[0]!.planned,
+          bookmark: group[0]!.bookmark,
+        },
+      }),
+    ),
+  );
+  return results.reduce((sum, r) => sum + r.count, 0);
+};
+
 export default {
+  moveManyManga,
+  placeManyManga,
   setNotes,
   getShelf,
   getMangaShelfNames,
