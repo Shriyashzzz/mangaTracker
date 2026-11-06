@@ -12,6 +12,7 @@ import { homeStyles as styles } from "./styles";
 import { NavLink, useNavigate, useSearchParams } from "react-router";
 import {
   CheckIcon,
+  ChevronDownIcon,
   CloseIcon,
   PlusIcon,
   StarIcon,
@@ -23,7 +24,7 @@ import { usePrivatePage } from "../../lib/seo";
 import { volumePath } from "../../lib/prices";
 import type { Manga, ReleaseStatus } from "../../lib/types";
 import { useAuth } from "../../store/auth";
-import { useShelf } from "../../store/shelf";
+import { useShelf, type ShelfMove, type ShelfPlace } from "../../store/shelf";
 import {
   readLocal,
   savePrefs,
@@ -55,6 +56,12 @@ const BIG_SHELF = 10;
 const EARLY_CHECKS = 6;
 // how long the "Hide" note and its undo stay up
 const SEEN_NOTE_MS = 8000;
+// Select's Move to, as the tabs name them
+const MOVE_LABELS = {
+  finished: "Finished",
+  planned: "To read",
+  reading: "Reading",
+} as const;
 
 // what each side of the New tab's switch shows, and how it says there's nothing
 const RELEASE_KINDS = {
@@ -274,6 +281,16 @@ function Library() {
   const [selecting, setSelecting] = useState(false);
   const [picked, setPicked] = useState<Set<number>>(() => new Set());
   const [confirmingDelete, setConfirmingDelete] = useState(false);
+  // Move to: its menu, and what was moved for the undo
+  const [moveOpen, setMoveOpen] = useState(false);
+  const [moving, setMoving] = useState(false);
+  const [moved, setMoved] = useState<{
+    to: ShelfMove;
+    was: ShelfPlace[];
+    name: string;
+  } | null>(null);
+  const [moveFailed, setMoveFailed] = useState(false);
+  const moveMenu = useRef<HTMLDivElement>(null);
   const canSelect =
     !showingNew && statusFilter !== "volumes" && Boolean(mangaData?.length);
   const selectOn = selecting && canSelect;
@@ -294,6 +311,12 @@ function Library() {
       // the confirm dialog's own Escape closes just the dialog, and the
       // search's clears the search
       if (document.querySelector("dialog[open]")) return;
+      // the Move to menu closes first
+      if (moveOpen) {
+        setMoveOpen(false);
+        moveMenu.current?.querySelector("button")?.focus();
+        return;
+      }
       // a ticked card's box still leaves; a text box keeps its Escape
       if (
         (e.target as Element | null)?.closest(
@@ -305,7 +328,36 @@ function Library() {
     };
     window.addEventListener("keydown", leave);
     return () => window.removeEventListener("keydown", leave);
-  }, [selectOn]);
+  }, [selectOn, moveOpen]);
+  // a tap anywhere else closes the menu
+  useEffect(() => {
+    if (!moveOpen) return;
+    const away = (e: PointerEvent) => {
+      if (!moveMenu.current?.contains(e.target as Node)) setMoveOpen(false);
+    };
+    document.addEventListener("pointerdown", away);
+    return () => document.removeEventListener("pointerdown", away);
+  }, [moveOpen]);
+  // "Moved 12 series to Finished · Undo" leaves on its own, but not from
+  // under someone on it
+  const movedNote = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!moved && !moveFailed) return;
+    let timer: ReturnType<typeof setTimeout>;
+    const wait = () => {
+      timer = setTimeout(() => {
+        const note = movedNote.current;
+        if (note?.matches(":hover") || note?.querySelector(":focus-visible"))
+          wait();
+        else {
+          setMoved(null);
+          setMoveFailed(false);
+        }
+      }, SEEN_NOTE_MS);
+    };
+    wait();
+    return () => clearTimeout(timer);
+  }, [moved, moveFailed]);
   // the "Deleted · Undo" note sits where the bar does: the bar goes above it
   const undoShowing = useShelf((s) => Boolean(s.lastDeleted?.length));
   useEffect(() => {
@@ -429,6 +481,32 @@ function Library() {
     : [];
   const allPicked =
     pickedShown.length > 0 && pickedShown.length === visibleManga.length;
+
+  const moveTo = async (to: ShelfMove) => {
+    setMoveOpen(false);
+    setMoving(true);
+    setMoveFailed(false);
+    const name = pickedShown.length === 1 ? pickedShown[0]!.name : "";
+    const was = await useShelf.getState().moveMany(
+      pickedShown.map((m) => m.id),
+      to,
+    );
+    setMoving(false);
+    if (!was) {
+      setMoveFailed(true);
+      return;
+    }
+    // Select stays on for the next lot
+    setPicked(new Set());
+    setMoved(was.length ? { to, was, name } : null);
+  };
+  const undoMove = async () => {
+    if (!moved) return;
+    const { was } = moved;
+    setMoved(null);
+    if (!(await useShelf.getState().placeMany(was))) setMoveFailed(true);
+  };
+  const movedShowing = Boolean(moved || moveFailed);
 
   const goToAdd = () => navigator("/add", { viewTransition: true });
 
@@ -932,53 +1010,147 @@ function Library() {
       {selectOn &&
         createPortal(
           <div
-            className={`${styles.selectBar}${undoShowing ? ` ${styles.selectBarRaised}` : ""}`}
+            className={`${styles.selectBar}${undoShowing || movedShowing ? ` ${styles.selectBarRaised}` : ""}`}
             role="region"
             aria-label="Selected series"
             data-over-add-button
           >
-            <span className={styles.selectCount} role="status">
-              {pickedShown.length}
-              <span className="[@media(max-width:360px)]:sr-only">
-                {" "}
-                selected
+            <div className={styles.selectGroup}>
+              <span className={styles.selectCount} role="status">
+                {pickedShown.length}
+                <span className="[@media(max-width:360px)]:sr-only">
+                  {" "}
+                  selected
+                </span>
               </span>
-            </span>
-            <button
-              type="button"
-              className={styles.selectLink}
-              onClick={() =>
-                setPicked(
-                  allPicked
-                    ? new Set()
-                    : new Set(visibleManga.map((m) => m.id)),
-                )
-              }
-            >
-              {allPicked ? "Clear" : `Select all ${visibleManga.length}`}
-            </button>
-            <button
-              type="button"
-              className={styles.selectDelete}
-              disabled={!pickedShown.length}
-              onClick={() => setConfirmingDelete(true)}
-            >
-              Delete {pickedShown.length || ""}
-              {/* phones: "Delete 2", so the bar stays one line */}
-              <span className="upto-520:sr-only"> series</span>
-            </button>
-            <button
-              type="button"
-              className={styles.selectDone}
-              onClick={stopSelecting}
-              aria-label="Done selecting"
-            >
-              <span className="upto-520:hidden">Done</span>
-              <CloseIcon className="hidden size-5 upto-520:block" />
-            </button>
+              {/* only with more than one page: otherwise it's Select all */}
+              {visibleManga.length > SHELF_PAGE_SIZE && (
+                <button
+                  type="button"
+                  className={styles.selectLink}
+                  onClick={() =>
+                    setPicked((now) => {
+                      const next = new Set(now);
+                      const page = shelfPage.map((m) => m.id);
+                      const whole = page.every((id) => now.has(id));
+                      for (const id of page)
+                        if (whole) next.delete(id);
+                        else next.add(id);
+                      return next;
+                    })
+                  }
+                >
+                  {shelfPage.every((m) => picked.has(m.id))
+                    ? "Clear page"
+                    : "Select page"}
+                </button>
+              )}
+              <button
+                type="button"
+                className={styles.selectLink}
+                onClick={() =>
+                  setPicked(
+                    allPicked
+                      ? new Set()
+                      : new Set(visibleManga.map((m) => m.id)),
+                  )
+                }
+              >
+                {allPicked ? "Clear" : `Select all ${visibleManga.length}`}
+              </button>
+            </div>
+            <div className={styles.selectActions}>
+              <div className="relative" ref={moveMenu}>
+                <button
+                  type="button"
+                  className={styles.selectMove}
+                  disabled={!pickedShown.length || moving}
+                  aria-haspopup="menu"
+                  aria-expanded={moveOpen}
+                  onClick={() => setMoveOpen((open) => !open)}
+                >
+                  {moving ? "Moving…" : "Move to"}
+                  <ChevronDownIcon className="size-4" />
+                </button>
+                {moveOpen && (
+                  <div className={styles.moveMenu} role="menu">
+                    {(
+                      [
+                        ["finished", "Finished"],
+                        ["planned", "To read"],
+                        ["reading", "Reading"],
+                      ] as const
+                    ).map(([to, label]) => (
+                      <button
+                        key={to}
+                        type="button"
+                        role="menuitem"
+                        className={styles.moveItem}
+                        // the tab they're on already is where these are
+                        disabled={
+                          statusFilter === (to === "reading" ? "ongoing" : to)
+                        }
+                        onClick={() => moveTo(to)}
+                      >
+                        {label}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+              <button
+                type="button"
+                className={styles.selectDelete}
+                disabled={!pickedShown.length}
+                onClick={() => setConfirmingDelete(true)}
+              >
+                {/* one piece, so the button's gap doesn't split it; phones
+                    show "Delete 2", so the bar stays short */}
+                <span>
+                  Delete {pickedShown.length || ""}
+                  <span className="upto-520:sr-only"> series</span>
+                </span>
+              </button>
+              <button
+                type="button"
+                className={styles.selectDone}
+                onClick={stopSelecting}
+                aria-label="Done selecting"
+              >
+                <span className="upto-520:hidden">Done</span>
+                <CloseIcon className="hidden size-5 upto-520:block" />
+              </button>
+            </div>
           </div>,
           document.body,
         )}
+      {/* "Moved 12 series to Finished · Undo", where the Deleted note goes */}
+      {createPortal(
+        <div role="status" ref={movedNote}>
+          {movedShowing && (
+            <div className={styles.seenNote} data-over-add-button>
+              {moveFailed ? (
+                "That didn't save. Try again."
+              ) : moved ? (
+                <>
+                  <span className={styles.seenName}>
+                    Moved {moved.name || `${moved.was.length} series`} to{" "}
+                    {MOVE_LABELS[moved.to]}
+                  </span>
+                  <button
+                    type="button"
+                    className={styles.seenUndo}
+                    onClick={undoMove}
+                  >
+                    Undo
+                  </button>
+                </>
+              ) : null}
+            </div>
+          )}
+        </div>,
+        document.body,
+      )}
       {confirmingDelete && pickedShown.length > 0 && (
         <DeleteManyModal
           manga={pickedShown}
@@ -1332,7 +1504,7 @@ function Library() {
       <ViewPeek
         series={mangaData.length}
         rows={rowsChosen}
-        blocked={selecting || undoShowing || Boolean(hidden)}
+        blocked={selecting || undoShowing || Boolean(hidden) || movedShowing}
         onChoose={(view) => {
           setRowsChosen(view === "rows");
           savePrefs({ shelfView: view }, true);

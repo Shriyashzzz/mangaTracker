@@ -65,6 +65,19 @@ export const homeStyles = {
   // over the "Deleted · Undo" note, which takes its place at the bottom
   selectBarRaised:
     "bottom-24! upto-720:bottom-[calc(9.5rem+env(safe-area-inset-bottom))]!",
+  // count and ticking on one side, what to do on the other: two lines on phones
+  selectGroup:
+    "flex items-center gap-x-4 upto-520:gap-x-3 [@media(max-width:360px)]:gap-x-2.5 upto-520:w-full upto-520:justify-between",
+  // Move to and Delete together, Done at the far end on phones
+  selectActions:
+    "flex items-center gap-x-4 upto-520:w-full upto-520:gap-x-2.5 upto-520:[&>button:last-child]:ml-auto",
+  selectMove:
+    "btn btn-secondary btn-sm inline-flex items-center gap-1 aria-expanded:bg-paper-2",
+  // opens upward: the bar is at the bottom of the screen
+  moveMenu:
+    "absolute bottom-full left-0 mb-2 flex min-w-36 flex-col rounded-ink border-[2.5px] border-line bg-card py-1 shadow-ink",
+  moveItem:
+    "tap px-4 py-2 text-left text-[0.95rem] font-medium text-ink hover:bg-paper-2 focus-visible:bg-paper-2 disabled:text-muted disabled:hover:bg-transparent",
   selectCount: "font-medium tabular-nums",
   selectLink:
     "tap min-h-9 font-medium text-ink-soft underline decoration-line-soft underline-offset-3 hover:text-ink hover:decoration-current",

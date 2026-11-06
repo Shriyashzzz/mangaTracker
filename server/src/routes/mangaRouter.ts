@@ -22,7 +22,22 @@ mangaRouter.post(
   rateLimit({ max: 60, windowMs: 60_000 }),
   manga.restoreMany,
 );
-mangaRouter.post("/import", rateLimit({ max: 60, windowMs: 60_000 }), manga.importList);
+// Select's Move to, and its undo
+mangaRouter.post(
+  "/move-many",
+  rateLimit({ max: 30, windowMs: 60_000 }),
+  manga.moveMany,
+);
+mangaRouter.post(
+  "/place-many",
+  rateLimit({ max: 30, windowMs: 60_000 }),
+  manga.placeMany,
+);
+mangaRouter.post(
+  "/import",
+  rateLimit({ max: 60, windowMs: 60_000 }),
+  manga.importList,
+);
 // the book import's matches, shared by everyone's imports
 mangaRouter.post(
   "/import/matches",
