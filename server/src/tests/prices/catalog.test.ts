@@ -44,17 +44,21 @@ describe("works that merge a whole series", () => {
     expect(isMergedWork(wistoria, name)).toBe(true);
   });
   test("one English edition, or a numbered title, is an ordinary work", () => {
-    expect(isMergedWork({ ...wistoria, isbn: ["9781646515608"] }, name)).toBe(false);
-    expect(
-      isMergedWork({ ...wistoria, title: "Wistoria, Vol. 2" }, name),
-    ).toBe(false);
+    expect(isMergedWork({ ...wistoria, isbn: ["9781646515608"] }, name)).toBe(
+      false,
+    );
+    expect(isMergedWork({ ...wistoria, title: "Wistoria, Vol. 2" }, name)).toBe(
+      false,
+    );
   });
   test("a title ending in a number still counts when it's the series itself", () => {
     const kaiju = { ...wistoria, title: "Kaiju No. 8" };
     expect(isMergedWork(kaiju, "Kaiju No. 8")).toBe(true);
   });
   test("an unrelated book isn't read", () => {
-    expect(isMergedWork({ ...wistoria, title: "Wizard and Glass" }, name)).toBe(false);
+    expect(isMergedWork({ ...wistoria, title: "Wizard and Glass" }, name)).toBe(
+      false,
+    );
   });
 
   test("each edition's own number becomes a volume under the series' name", () => {
@@ -73,7 +77,9 @@ describe("works that merge a whole series", () => {
   });
 
   test("an edition with no number is left out, never guessed", () => {
-    expect(booksFromEditions([edition("", "9781646515608")], wistoria, name)).toEqual([]);
+    expect(
+      booksFromEditions([edition("", "9781646515608")], wistoria, name),
+    ).toEqual([]);
   });
   test("other languages, foreign ISBNs, sets and light novels stay out", () => {
     const books = booksFromEditions(
@@ -91,7 +97,10 @@ describe("works that merge a whole series", () => {
     expect(books).toEqual([]);
   });
   test("another series in the same work stays out", () => {
-    const other = { title: "Wistoria Grim Actor 1", isbn_13: ["9781646515608"] };
+    const other = {
+      title: "Wistoria Grim Actor 1",
+      isbn_13: ["9781646515608"],
+    };
     expect(booksFromEditions([other], wistoria, name)).toEqual([]);
   });
 
@@ -109,12 +118,20 @@ describe("works that merge a whole series", () => {
   });
 
   test("a Japanese title that led elsewhere gets its editions read", () => {
-    const doc = { key: "/works/x", title: "怪獣8号 1", isbn: ["9781974749874"] };
+    const doc = {
+      key: "/works/x",
+      title: "怪獣8号 1",
+      isbn: ["9781974749874"],
+    };
     expect(isUntranslatedWork(doc, null, "Kaiju No. 8")).toBe(true);
     const right = { title: "Kaiju No. 8, Vol. 1" } as never;
     expect(isUntranslatedWork(doc, right, "Kaiju No. 8")).toBe(false);
     expect(
-      isUntranslatedWork({ ...doc, isbn: ["9784088825250"] }, null, "Kaiju No. 8"),
+      isUntranslatedWork(
+        { ...doc, isbn: ["9784088825250"] },
+        null,
+        "Kaiju No. 8",
+      ),
     ).toBe(false);
   });
 });

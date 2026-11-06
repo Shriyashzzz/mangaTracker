@@ -4,7 +4,7 @@ import type { Series, SeriesVolume } from "../../lib/types";
 import { nextToGet } from "../../lib/ownedVolumes";
 
 // a volume we know the number of
-export type NumberedVolume = SeriesVolume & { volume: number };
+type NumberedVolume = SeriesVolume & { volume: number };
 
 // what can be bought of this manga: the red bar and the Buy it box both need it,
 // so it's asked for once here

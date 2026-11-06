@@ -46,7 +46,10 @@ test("a finished series is marked as finished", () => {
 });
 
 test("it works when only one source answers", () => {
-  expect(withChapterSource(mangaDex("15"), null)?.chapter?.latestReleased.chapterNumber).toBe("15");
+  expect(
+    withChapterSource(mangaDex("15"), null)?.chapter?.latestReleased
+      .chapterNumber,
+  ).toBe("15");
   expect(
     withChapterSource(null, { latestChapter: 9, finished: false })?.chapter
       ?.latestReleased.chapterNumber,
@@ -56,8 +59,22 @@ test("it works when only one source answers", () => {
 
 test("a MangaUpdates hit has to be the series, and the manga", () => {
   const hits = [
-    { record: { series_id: 1, title: "Violet Evergarden (Novel)", type: "Novel" }, hit_title: "Violet Evergarden" },
-    { record: { series_id: 2, title: "Tsue to Tsurugi no Wistoria", type: "Manga" }, hit_title: "Wistoria: Wand and Sword" },
+    {
+      record: {
+        series_id: 1,
+        title: "Violet Evergarden (Novel)",
+        type: "Novel",
+      },
+      hit_title: "Violet Evergarden",
+    },
+    {
+      record: {
+        series_id: 2,
+        title: "Tsue to Tsurugi no Wistoria",
+        type: "Manga",
+      },
+      hit_title: "Wistoria: Wand and Sword",
+    },
     { record: { series_id: 3, title: "Solo Leveling", type: "Novel" } },
   ];
   expect(pickHit(hits, ["Violet Evergarden"])).toBeNull();

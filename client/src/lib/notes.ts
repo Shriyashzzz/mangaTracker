@@ -6,7 +6,7 @@ import { shouldOfferTour } from "./tourOffer";
 
 const KEY = "noteThisVisit";
 
-export type NoteName = "tour" | "release" | "view" | "support";
+type NoteName = "tour" | "release" | "view" | "support";
 
 const shownThisVisit = () => {
   try {

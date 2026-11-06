@@ -1,0 +1,16 @@
+// Typechecks the tests as well (the build's tsconfig.json leaves them out,
+// and Jest only strips their types). Nothing is written: `npm run typecheck`
+{
+  "extends": "./tsconfig.json",
+  // the tests also import pure client files (client/src/lib), which import
+  // the client's way: no file extensions, as Vite resolves them
+  "compilerOptions": {
+    "noEmit": true,
+    "rootDir": "..",
+    "module": "esnext",
+    "moduleResolution": "bundler"
+  },
+  // the client's Vite types, for import.meta.env in the client files it reads
+  "include": ["src", "scripts", "../client/src/vite-env.d.ts"],
+  "exclude": ["node_modules", "dist"]
+}

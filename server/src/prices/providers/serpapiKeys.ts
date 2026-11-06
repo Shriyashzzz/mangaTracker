@@ -54,7 +54,9 @@ type Rotation<T> = {
   claim: (key: string) => Promise<boolean>;
   // SerpApi says it's out, whatever our own count thinks
   markSpent: (key: string) => Promise<void>;
-  search: (key: string) => Promise<{ answer: KeyAnswer; data: T; error?: string }>;
+  search: (
+    key: string,
+  ) => Promise<{ answer: KeyAnswer; data: T; error?: string }>;
 };
 
 // the answer from the first key that can give one, or null if none could. Any other
@@ -69,7 +71,8 @@ export async function searchWithKeys<T>({
     if (!(await claim(key))) continue;
     const { answer, data, error } = await search(key);
     if (answer === "ok") return data;
-    if (answer === "error") throw new Error(`SerpApi: ${error ?? "unknown error"}`);
+    if (answer === "error")
+      throw new Error(`SerpApi: ${error ?? "unknown error"}`);
     if (answer === "out-of-searches") await markSpent(key);
   }
   return null;

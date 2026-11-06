@@ -11,7 +11,8 @@ import { useFromShelf } from "../../lib/fromShelf";
 import { probablySignedIn, useAuth } from "../../store/auth";
 import { useShelf } from "../../store/shelf";
 import { readLocal, useReleaseChecksOn } from "../../lib/prefs";
-import { LAST_NEW_COUNT_KEY, shownNewCount } from "../../lib/shelf";
+import { LAST_NEW_COUNT_KEY } from "../../lib/shelf";
+import { shownNewCount } from "../../lib/releaseMath";
 import {
   forgetAllSpots,
   forgetSpot,

@@ -178,7 +178,9 @@ export const pickNamed = <M extends Pick<Media, "title" | "synonyms">>(
     [m.title.english, m.title.romaji, ...(m.synonyms ?? [])].some(
       (n) => n && sameName(n) === sameName(search),
     ),
-  ) ?? media[0] ?? null;
+  ) ??
+  media[0] ??
+  null;
 
 const toInfo = (m: Media): SeriesInfo => ({
   anilistId: m.id,
@@ -300,7 +302,11 @@ export async function getSeriesInfo(name: string): Promise<SeriesInfo | null> {
             format: "MANGA",
           })
         ).Media;
-    const info = found ? (novel ? asNovel(toInfo(found)) : toInfo(found)) : null;
+    const info = found
+      ? novel
+        ? asNovel(toInfo(found))
+        : toInfo(found)
+      : null;
     // Prisma needs DbNull (SQL NULL) rather than a JS null for a Json column
     const value = info ?? Prisma.DbNull;
     await prisma.seriesInfo.upsert({
@@ -352,12 +358,18 @@ const SEARCH_QUERY = `
 // the manga first and its novel right under it ("Overlord", then "Overlord
 // Light Novel"); a novel with no manga here takes its own place in the order.
 // Asked for novels ("overlord light novel"), the other way round
-export function withNovels<T extends { name: string }>(manga: T[], novels: T[]) {
+export function withNovels<T extends { name: string }>(
+  manga: T[],
+  novels: T[],
+) {
   const key = (name: string) =>
-    baseName(name).toLowerCase().replace(/[^a-z0-9]+/g, "");
+    baseName(name)
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "");
   // several novels can share a name: each waits its turn
   const byName = new Map<string, T[]>();
-  for (const n of novels) byName.set(key(n.name), [...(byName.get(key(n.name)) ?? []), n]);
+  for (const n of novels)
+    byName.set(key(n.name), [...(byName.get(key(n.name)) ?? []), n]);
   const placed = new Set<T>();
   const out: T[] = [];
   const longest = Math.max(manga.length, novels.length);
@@ -373,7 +385,8 @@ export function withNovels<T extends { name: string }>(manga: T[], novels: T[]) 
     }
     const n = novels[i];
     // a novel whose manga comes later waits for it
-    const mangaLater = n && manga.slice(i + 1).some((x) => key(x.name) === key(n.name));
+    const mangaLater =
+      n && manga.slice(i + 1).some((x) => key(x.name) === key(n.name));
     if (n && !placed.has(n) && !mangaLater) {
       out.push(n);
       placed.add(n);
@@ -394,7 +407,9 @@ export async function searchSeries(q: string): Promise<SeriesHit[]> {
 // database check only, and asked fresh each time, so a novel found a minute
 // ago shows now
 async function withKnownNovels(items: SeriesHit[]): Promise<SeriesHit[]> {
-  const listed = new Set(items.filter((i) => i.lightNovel).map((i) => slugify(i.name)));
+  const listed = new Set(
+    items.filter((i) => i.lightNovel).map((i) => slugify(i.name)),
+  );
   const missing = items.filter(
     (i) => !i.lightNovel && !listed.has(slugify(novelName(i.name))),
   );
@@ -403,12 +418,15 @@ async function withKnownNovels(items: SeriesHit[]): Promise<SeriesHit[]> {
   const found = await priceQueries
     .getFoundNovels(missing.map((i) => seriesOf(i.name)))
     .catch(() => new Map<string, { name: string; volumes: number }>());
-  const novelOf = (i: SeriesHit) => found.get(seriesOf(i.name))?.name ?? novelName(i.name);
+  const novelOf = (i: SeriesHit) =>
+    found.get(seriesOf(i.name))?.name ?? novelName(i.name);
   const sizes = await priceQueries
     .getSavedListSizes(missing.map((i) => volumesKey(novelOf(i))))
     .catch(() => new Map<string, { size: number; coverUrl: string | null }>());
   return items.flatMap((i) => {
-    const list = missing.includes(i) ? sizes.get(volumesKey(novelOf(i))) : undefined;
+    const list = missing.includes(i)
+      ? sizes.get(volumesKey(novelOf(i)))
+      : undefined;
     if (!list?.size || listed.has(slugify(novelOf(i)))) return [i];
     const name = novelOf(i);
     return [
@@ -450,18 +468,19 @@ async function searchAniList(q: string): Promise<SeriesHit[]> {
       });
   const manga = hits(data.manga.media, false);
   const novels = hits(data.novel.media, true);
-  const items = (novelsFirst ? withNovels(novels, manga) : withNovels(manga, novels))
-    .map(({ m, name, novel }) => ({
-      name,
-      slug: slugify(name),
-      ...(novel ? { lightNovel: true } : {}),
-      year: m.startDate?.year ?? null,
-      score: m.averageScore ?? null,
-      volumes: m.volumes ?? null,
-      status: m.status,
-      coverUrl: m.coverImage?.large ?? m.coverImage?.medium ?? null,
-      thumbUrl: m.coverImage?.medium ?? null,
-    }));
+  const items = (
+    novelsFirst ? withNovels(novels, manga) : withNovels(manga, novels)
+  ).map(({ m, name, novel }) => ({
+    name,
+    slug: slugify(name),
+    ...(novel ? { lightNovel: true } : {}),
+    year: m.startDate?.year ?? null,
+    score: m.averageScore ?? null,
+    volumes: m.volumes ?? null,
+    status: m.status,
+    coverUrl: m.coverImage?.large ?? m.coverImage?.medium ?? null,
+    thumbUrl: m.coverImage?.medium ?? null,
+  }));
 
   searchCache.set(key, { at: Date.now(), items });
   if (searchCache.size > 1000) {

@@ -130,7 +130,11 @@ async function getOrCreateBook(isbn13: string) {
     priceQueries.getBook(isbn13),
     priceQueries.getSavedVolume(isbn13).catch(() => null),
   ]);
-  if (stored && saved && isNovelBook(saved.title) !== isNovelBook(stored.title)) {
+  if (
+    stored &&
+    saved &&
+    isNovelBook(saved.title) !== isNovelBook(stored.title)
+  ) {
     await priceQueries.upsertBook({ ...stored, title: saved.title });
     return priceQueries.getBook(isbn13);
   }
@@ -192,7 +196,11 @@ export async function getVolumePrices(isbn13: string, { refresh = true } = {}) {
       const url = affiliateOfferUrl(o, isbn13);
       return { ...o, url, affiliate: isAffiliateUrl(url) };
     }),
-    history: history.checks ? history : null,
+    // only once there's been a check, when it has a first and last date
+    history:
+      history.checks && history.since && history.lastSeen
+        ? { ...history, since: history.since, lastSeen: history.lastSeen }
+        : null,
     checkedAt: last?.checkedAt ?? null,
     liveSources: enabledProviders().map((p) => p.store),
     storeLinks: storeLinks(isbn13),
@@ -230,8 +238,6 @@ export const mergeVolumes = (known: CatalogBook[], found: CatalogBook[]) => {
   );
 };
 
-
-
 // Open Library often can't say which format a book is: the Shield Hero novels
 // are filed as "Comics & graphic novels", like the manga. Length can: light
 // novels run about 230 to 400 pages, manga volumes about 130 to 200. Only
@@ -247,7 +253,9 @@ const sameSeries = (a: string, b: string) => seriesOf(a) === seriesOf(b);
 async function hasLightNovel(name: string) {
   const info = await getSeriesInfo(novelName(name)).catch(() => null);
   if (!info) return false;
-  return [info.name, ...info.altNames].some((n) => sameSeries(baseName(n), name));
+  return [info.name, ...info.altNames].some((n) =>
+    sameSeries(baseName(n), name),
+  );
 }
 
 export async function seriesVolumes(
@@ -276,12 +284,18 @@ export async function seriesVolumes(
   // finds some the other misses (two of Spice & Wolf's)
   const novel = isNovelName(name);
   const quoted = `title:"${baseName(name).replace(/"/g, "")}"`;
-  const queries = novel ? [name, `${baseName(name)} novel`, quoted] : [name, quoted];
+  const queries = novel
+    ? [name, `${baseName(name)} novel`, quoted]
+    : [name, quoted];
   // a manga whose series has a novel too: its long books are the novel's
   const [results, hasNovel] = await Promise.all([
     Promise.allSettled(
       queries.map((q) =>
-        searchVolumesDetailed(q, { max: 250, timeoutMs: 20000, seriesName: name }),
+        searchVolumesDetailed(q, {
+          max: 250,
+          timeoutMs: 20000,
+          seriesName: name,
+        }),
       ),
     ),
     novel ? Promise.resolve(true) : hasLightNovel(name),
@@ -375,9 +389,11 @@ async function getSeriesWithVolumes(name: string) {
       if (!byNumber.has(v.volume)) byNumber.set(v.volume, v);
     }
   }
-  const volumes = [...byNumber.values()].sort(
-    (a, b) => (a.volume ?? 0) - (b.volume ?? 0),
-  );
+  // numbered ones only: pages list and page through volumes by number, so a
+  // numberless book (the catalog's search can return one) has no place there
+  const volumes = [...byNumber.values()]
+    .filter((v): v is CatalogBook & { volume: number } => v.volume != null)
+    .sort((a, b) => a.volume - b.volume);
   // start finding every cover now, in one batch, so they're ready by the
   // time the browser asks for them (failures are retried when it asks)
   volumes.forEach((v) => editionCoverId(v.isbn13).catch(() => {}));
@@ -443,7 +459,7 @@ async function knownVolumesBySeries() {
   return bySeries;
 }
 
-export type ShelfPrice = {
+type ShelfPrice = {
   fromCents: number;
   isbn13: string;
   title: string;

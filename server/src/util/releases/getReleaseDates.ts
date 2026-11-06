@@ -1,9 +1,9 @@
-import { estimateNextChapter } from "../src/util/releases/estimateNextChapter.js";
-import getFormatedDates from "../src/util/releases/volumeDataFormatter.js";
-import type { FormatedDates } from "../src/util/releases/volumeDataFormatter.js";
-import { estimateNextVolume } from "../src/util/releases/estimateNextVolume.js";
-import { volumeStartsFrom } from "../src/util/releases/volumeStarts.js";
-import { politeFetch } from "../src/util/politeFetch.js";
+import { estimateNextChapter } from "./estimateNextChapter.js";
+import getFormatedDates from "./volumeDataFormatter.js";
+import type { FormatedDates } from "./volumeDataFormatter.js";
+import { estimateNextVolume } from "./estimateNextVolume.js";
+import { volumeStartsFrom } from "./volumeStarts.js";
+import { politeFetch } from "../politeFetch.js";
 
 export type MangaReleaseDates<T> = {
   ok: boolean;

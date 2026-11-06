@@ -9,11 +9,9 @@ import {
 
 test("keys can be listed any of the ways people write them", () => {
   expect(serpApiKeys({ SERPAPI_API_KEY: "a" })).toEqual(["a"]);
-  expect(serpApiKeys({ SERPAPI_API_KEY: "a", SERPAPI_API_KEYS: "b, c ,,a" })).toEqual([
-    "a",
-    "b",
-    "c",
-  ]);
+  expect(
+    serpApiKeys({ SERPAPI_API_KEY: "a", SERPAPI_API_KEYS: "b, c ,,a" }),
+  ).toEqual(["a", "b", "c"]);
   expect(
     serpApiKeys({
       SERPAPI_API_KEY_10: "z",
@@ -38,7 +36,9 @@ test("the main key keeps its count, and no label gives a key away", () => {
 
 test("SerpApi's answers are told apart", () => {
   expect(readAnswer(200)).toBe("ok");
-  expect(readAnswer(429, "Your account has run out of searches.")).toBe("out-of-searches");
+  expect(readAnswer(429, "Your account has run out of searches.")).toBe(
+    "out-of-searches",
+  );
   expect(readAnswer(429, "exceeds the hourly throughput limit")).toBe("skip");
   expect(readAnswer(401, "Invalid API key")).toBe("skip");
   expect(readAnswer(500, "boom")).toBe("error");
@@ -46,7 +46,10 @@ test("SerpApi's answers are told apart", () => {
   expect(readAnswer(200, "something else went wrong")).toBe("error");
 });
 
-const run = (answers: Record<string, KeyAnswer>, allowance: Record<string, boolean> = {}) => {
+const run = (
+  answers: Record<string, KeyAnswer>,
+  allowance: Record<string, boolean> = {},
+) => {
   const searched: string[] = [];
   const spent: string[] = [];
   return {

@@ -463,7 +463,7 @@ async function searchOnce(
 
 // AniList's top five for a name, manga or light novels. Throws AniListBusy
 // when it asks to slow down (or can't be reached)
-export const searchManga = (
+const searchManga = (
   search: string,
   signal?: AbortSignal,
   novel = false,

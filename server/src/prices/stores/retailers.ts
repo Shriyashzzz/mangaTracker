@@ -119,13 +119,17 @@ export function unlikelyNewTest(offers: Offer[], usualCents?: number | null) {
       ? usualCents * MIN_SHARE
       : MIN_UNKNOWN_CENTS;
   const tooDear = (o: Offer) => {
-    if (bigStore.length) return o.priceCents > Math.min(...bigStore) * MAX_TIMES;
+    if (bigStore.length)
+      return o.priceCents > Math.min(...bigStore) * MAX_TIMES;
     // a normal volume's price is fine, however cheap the used copies are
     if (o.priceCents <= MAX_NORMAL_CENTS) return false;
     const others = offers
       .filter((other) => other !== o && other.format === "print")
       .map((other) => other.priceCents);
-    return others.length < MIN_TO_COMPARE || o.priceCents > median(others) * MAX_TIMES;
+    return (
+      others.length < MIN_TO_COMPARE ||
+      o.priceCents > median(others) * MAX_TIMES
+    );
   };
   return (o: Offer) =>
     isNewPrint(o) &&

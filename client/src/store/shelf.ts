@@ -5,13 +5,15 @@ import { create } from "zustand";
 import { apiFetch } from "../lib/api";
 import {
   getReleases,
-  isStillNew,
   LAST_NEW_COUNT_KEY,
   RELEASE_CHECK_TIMEOUT_MS,
   saveSeen,
+} from "../lib/shelf";
+import {
+  isStillNew,
   type ReleaseOutcome,
   type SeenKind,
-} from "../lib/shelf";
+} from "../lib/releaseMath";
 import { releaseChecksOn, writeLocal } from "../lib/prefs";
 import type { Manga, ReleaseStatus } from "../lib/types";
 import { checkOrder, laneOf } from "../lib/releaseOrder";

@@ -8,7 +8,7 @@ export const SUPPORT_URL = "https://ko-fi.com/shriyashzzz";
 
 const KEY = "supportPeek";
 const MAX_SHOWS = 2;
-export const SHOW_AGAIN_AFTER_MS = 90 * 24 * 60 * 60 * 1000;
+const SHOW_AGAIN_AFTER_MS = 90 * 24 * 60 * 60 * 1000;
 
 type PeekState = {
   // a store click is waiting for them to come back

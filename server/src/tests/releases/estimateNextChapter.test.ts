@@ -20,7 +20,13 @@ const feed = (chapters: [chapter: string, publishAt: string][]) => {
 test("chapters uploaded in bulk give no estimate, and don't hang", async () => {
   // a gap of 0 used to loop forever, which froze the whole server
   const same = "2020-01-01T00:00:00Z";
-  feed([["1", same], ["2", same], ["3", same], ["4", same], ["5", same]]);
+  feed([
+    ["1", same],
+    ["2", same],
+    ["3", same],
+    ["4", same],
+    ["5", same],
+  ]);
   const estimate = await estimateNextChapter("series");
   expect(estimate.method).toBe("none");
   expect(estimate.estimatedAt).toBeNull();

@@ -11,11 +11,18 @@
     "install:all": "npm install && cd server && npm install && cd ../client && npm install",
     "typecheck": "cd server && npm run typecheck && cd ../client && npm run typecheck",
     "test": "cd server && npm test",
-    "build": "cd server && npm run build && cd ../client && npm run build"
+    "build": "cd server && npm run build && cd ../client && npm run build",
+    "lint": "cd server && npm run lint && cd ../client && npm run lint",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "check": "npm run format:check && npm run lint && npm run typecheck && npm test && npm run test:db && npm run build",
+    "test:db": "cd server && npm run test:db",
+    "db:test:setup": "cd server && npm run db:test:setup"
   },
   "author": "Shriyash",
   "license": "ISC",
   "devDependencies": {
-    "concurrently": "^10.0.3"
+    "concurrently": "^10.0.3",
+    "prettier": "3.9.10"
   }
 }

@@ -21,7 +21,9 @@ const gaps = () => sent.slice(1).map((s, i) => s.at - sent[i]!.at);
 
 test("MangaDex requests made all at once go out spaced, under 4 a second", async () => {
   await Promise.all(
-    Array.from({ length: 5 }, (_, i) => politeFetch(`https://api.mangadex.org/manga/${i}`)),
+    Array.from({ length: 5 }, (_, i) =>
+      politeFetch(`https://api.mangadex.org/manga/${i}`),
+    ),
   );
   expect(sent).toHaveLength(5);
   // a few ms either way for timers
@@ -47,7 +49,9 @@ test("MangaUpdates goes one a second, and the two sites don't wait on each other
 
 test("other sites aren't held up at all", async () => {
   const start = Date.now();
-  await Promise.all([1, 2, 3].map((i) => politeFetch(`https://openlibrary.org/${i}`)));
+  await Promise.all(
+    [1, 2, 3].map((i) => politeFetch(`https://openlibrary.org/${i}`)),
+  );
   expect(Date.now() - start).toBeLessThan(100);
 });
 
@@ -63,7 +67,9 @@ test("a slow down waits as long as asked, then tries once more", async () => {
 });
 
 test("asked to wait too long: gives up rather than holding the check", async () => {
-  answers = [new Response("", { status: 429, headers: { "Retry-After": "120" } })];
+  answers = [
+    new Response("", { status: 429, headers: { "Retry-After": "120" } }),
+  ];
   const res = await politeFetch("https://api.mangadex.org/manga/slow");
   expect(res.status).toBe(429);
   expect(sent).toHaveLength(1);
@@ -71,7 +77,8 @@ test("asked to wait too long: gives up rather than holding the check", async () 
 
 test("MangaDex says when to come back as a time, others as seconds", () => {
   const now = 1_800_000_000_000;
-  const at = (h: Record<string, string>) => retryAfterMs(new Response("", { headers: h }), now);
+  const at = (h: Record<string, string>) =>
+    retryAfterMs(new Response("", { headers: h }), now);
   expect(at({ "X-RateLimit-Retry-After": String(now / 1000 + 5) })).toBe(5000);
   expect(at({ "Retry-After": "3" })).toBe(3000);
   expect(at({})).toBeNull();
@@ -86,7 +93,9 @@ test("a request's time limit starts when it's sent, not while it waits its turn"
     return new Response("{}", { status: 200 });
   }) as typeof fetch;
   const all = await Promise.all(
-    [1, 2, 3].map((i) => politeFetch(`https://api.mangadex.org/queue/${i}`, { timeoutMs: 400 })),
+    [1, 2, 3].map((i) =>
+      politeFetch(`https://api.mangadex.org/queue/${i}`, { timeoutMs: 400 }),
+    ),
   );
   expect(all.map((r) => r.status)).toEqual([200, 200, 200]);
 });

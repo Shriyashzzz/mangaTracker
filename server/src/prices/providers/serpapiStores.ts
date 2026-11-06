@@ -19,7 +19,7 @@ import { cheapestOfEach, shippingCents, toCents } from "../offerHelpers.js";
 
 // ---------- eBay ----------
 
-export type EbayResult = {
+type EbayResult = {
   title?: string;
   link?: string;
   product_id?: string;
@@ -98,7 +98,7 @@ export const ebaySearch: Provider = {
 
 // ---------- Amazon ----------
 
-export type AmazonResult = {
+type AmazonResult = {
   asin?: string;
   title?: string;
   link_clean?: string;

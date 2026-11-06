@@ -26,7 +26,9 @@ export const shippingCents = (
   shipping: string | { extracted?: number } | undefined,
 ) => {
   if (typeof shipping === "object") {
-    return shipping.extracted === undefined ? null : toCents(shipping.extracted);
+    return shipping.extracted === undefined
+      ? null
+      : toCents(shipping.extracted);
   }
   return /free/i.test(shipping ?? "") ? 0 : null;
 };

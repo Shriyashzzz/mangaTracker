@@ -23,32 +23,68 @@ const to = arg("to") ?? process.env.DATABASE_URL;
 const user = arg("user");
 const apply = process.argv.includes("--apply");
 if (!from || !to) {
-  console.error("usage: --from <source url> --to <target url> [--user name] [--apply]");
+  console.error(
+    "usage: --from <source url> --to <target url> [--user name] [--apply]",
+  );
   process.exit(1);
 }
 
 const hostOf = (url: string) => new URL(url).host;
-const source = new Client({ connectionString: from, options: "-c timezone=UTC" });
+const source = new Client({
+  connectionString: from,
+  options: "-c timezone=UTC",
+});
 const target = new Client({ connectionString: to, options: "-c timezone=UTC" });
 
 // tables in dependency order, with the columns to copy
 const TABLES: [table: string, columns: string[], key: string][] = [
-  ["books", ["isbn13", "title", "authors", "publisher", "cover_url", "year", "updated_at"], "isbn13"],
+  [
+    "books",
+    [
+      "isbn13",
+      "title",
+      "authors",
+      "publisher",
+      "cover_url",
+      "year",
+      "updated_at",
+    ],
+    "isbn13",
+  ],
   ["price_checks", ["isbn13", "checked_at", "sources"], "isbn13"],
-  ["price_samples", ["isbn13", "store", "format", "condition", "price_cents", "currency", "in_stock", "url", "fetched_at"], ""],
+  [
+    "price_samples",
+    [
+      "isbn13",
+      "store",
+      "format",
+      "condition",
+      "price_cents",
+      "currency",
+      "in_stock",
+      "url",
+      "fetched_at",
+    ],
+    "",
+  ],
   ["series_info", ["slug", "info", "fetched_at"], "slug"],
   ["edition_covers", ["isbn13", "cover_id", "checked_at"], "isbn13"],
 ];
 
 async function exists(client: Client, table: string) {
-  const { rows } = await client.query("SELECT to_regclass($1) IS NOT NULL AS ok", [table]);
+  const { rows } = await client.query(
+    "SELECT to_regclass($1) IS NOT NULL AS ok",
+    [table],
+  );
   return rows[0].ok as boolean;
 }
 
 async function main() {
   await source.connect();
   await target.connect();
-  console.log(`${apply ? "COPYING" : "DRY RUN"}: ${hostOf(from!)} -> ${hostOf(to!)}\n`);
+  console.log(
+    `${apply ? "COPYING" : "DRY RUN"}: ${hostOf(from!)} -> ${hostOf(to!)}\n`,
+  );
 
   if (apply) await target.query("BEGIN");
   try {
@@ -57,10 +93,14 @@ async function main() {
         console.log(`${table}: not in source, skipped`);
         continue;
       }
-      const { rows } = await source.query(`SELECT ${columns.join(", ")} FROM ${table}`);
+      const { rows } = await source.query(
+        `SELECT ${columns.join(", ")} FROM ${table}`,
+      );
       let added = 0;
       for (const row of rows) {
-        const values = columns.map((c) => (c === "info" ? JSON.stringify(row[c]) : row[c]));
+        const values = columns.map((c) =>
+          c === "info" ? JSON.stringify(row[c]) : row[c],
+        );
         const marks = columns.map((_, i) => `$${i + 1}`).join(", ");
         // price samples have no natural key: skip one already present
         const sql = key
@@ -72,7 +112,9 @@ async function main() {
                AND store = $2::varchar AND condition = $4::varchar AND fetched_at = $9::timestamptz)`;
         if (apply) added += (await target.query(sql, values)).rowCount ?? 0;
       }
-      console.log(`${table}: ${rows.length} in source${apply ? `, ${added} added` : ""}`);
+      console.log(
+        `${table}: ${rows.length} in source${apply ? `, ${added} added` : ""}`,
+      );
     }
 
     if (user) {
@@ -98,7 +140,17 @@ async function main() {
           for (const m of manga) {
             await target.query(
               "INSERT INTO manga (user_id, name, genre, description, image, status, bookmark, volumes_owned, rating) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)",
-              [made[0].id, m.name, m.genre, m.description, m.image, m.status, m.bookmark, m.volumes_owned, m.rating],
+              [
+                made[0].id,
+                m.name,
+                m.genre,
+                m.description,
+                m.image,
+                m.status,
+                m.bookmark,
+                m.volumes_owned,
+                m.rating,
+              ],
             );
           }
           console.log(`  copied`);

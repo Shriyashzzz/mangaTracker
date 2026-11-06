@@ -14,7 +14,8 @@ export const novelName = (name: string) =>
   isNovelName(name) ? name.trim() : `${name.trim()} ${SUFFIX}`;
 
 // "Overlord Light Novel" -> "Overlord"
-export const baseName = (name: string) => name.trim().replace(ENDS_IN_SUFFIX, "");
+export const baseName = (name: string) =>
+  name.trim().replace(ENDS_IN_SUFFIX, "");
 
 // the name prices know a shelf entry by
 export const priceName = (manga: { name: string; lightNovel?: boolean }) =>

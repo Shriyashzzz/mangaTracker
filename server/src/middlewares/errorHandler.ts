@@ -15,7 +15,8 @@ export function errorHandler(
   _next: NextFunction,
 ) {
   if (err instanceof AppError) {
-    if (err.status >= 500) console.error(`${req.method} ${req.originalUrl}:`, err);
+    if (err.status >= 500)
+      console.error(`${req.method} ${req.originalUrl}:`, err);
     sendError(res, err.status, err.message);
     return;
   }

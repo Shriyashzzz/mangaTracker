@@ -152,7 +152,7 @@ async function lookUpChunk(isbns: string[]): Promise<Map<string, CoverId>> {
   return ids;
 }
 
-export type CoverSize = "M" | "L";
+type CoverSize = "M" | "L";
 
 export const coverImageUrl = (id: number, size: CoverSize = "M") =>
   `https://covers.openlibrary.org/b/id/${id}-${size}.jpg`;
