@@ -24,8 +24,10 @@ export const pricesStyles = {
   homeHit: "inline-block -rotate-2 bg-ink px-[0.12em] text-paper",
   halves:
     "grid grid-cols-2 items-stretch gap-[clamp(1rem,2.5vw,1.5rem)] upto-860:grid-cols-[minmax(0,1fr)] [&>*]:min-w-0",
+  // side by side its height matches the price card; its words and buttons
+  // sit together in the middle rather than a gap opening between them
   trackHalf:
-    "speed-burst relative flex flex-col items-start gap-3 border-3 border-line p-[clamp(1.25rem,3vw,2rem)] upto-720:gap-2 upto-720:py-4",
+    "speed-burst relative flex flex-col items-start gap-3 border-3 border-line p-[clamp(1.25rem,3vw,2rem)] min-[861px]:justify-center upto-720:gap-2 upto-720:py-4",
   // ink on paper in every theme, or his hair disappears into the dark panel
   halfMascot:
     "absolute top-3 right-3 block aspect-square w-16 overflow-hidden rounded-full border-2 border-line bg-card px-1.5 pt-1.5 upto-520:w-11 upto-520:px-1 upto-520:pt-1",
@@ -33,10 +35,10 @@ export const pricesStyles = {
     "pr-12 font-brand text-[clamp(1.6rem,4vw,2.6rem)] leading-[1] font-normal tracking-[0.02em] uppercase",
   // one row: all three on wider screens, the two that show on phones
   halfActions:
-    "half-actions mt-auto flex flex-nowrap items-center gap-2 pt-2 upto-720:gap-2 upto-720:pt-0.5",
+    "half-actions mt-auto flex flex-nowrap items-center gap-2 pt-2 min-[861px]:mt-2 upto-720:gap-2 upto-720:pt-0.5",
 
   halfButton:
-    "half-button min-w-0 px-[0.75rem] upto-720:h-[38px] upto-720:px-[0.7rem] upto-720:text-[0.875rem]",
+    "half-button min-w-0 px-[0.75rem] upto-720:h-11 upto-720:px-[0.7rem] upto-720:text-[0.875rem]",
   searchHead:
     "speed-burst flex flex-col gap-3 border-3 border-line p-[clamp(1.25rem,3vw,2rem)]",
   title:
@@ -61,7 +63,7 @@ export const pricesStyles = {
     "flex h-[50px] w-full min-w-0 items-center gap-[0.6rem] border-[2.5px] border-line bg-paper px-4 text-muted focus-within:border-accent focus-within:shadow-[0_0_0_3px_var(--accent-wash)] [&_input]:min-w-0 [&_input]:flex-1 [&_input]:border-none [&_input]:bg-transparent [&_input]:text-[1.05rem] [&_input]:text-ink [&_input]:outline-none [&_input]:placeholder:text-muted [&_svg]:size-[19px] [&_svg]:shrink-0",
   // "Try: One Piece, Jujutsu Kaisen, ..."
   quick:
-    "flex flex-wrap items-center gap-2 text-[0.85rem] text-muted upto-720:grid upto-720:grid-cols-3 upto-720:[&_span]:col-span-full upto-720:[&_a]:min-h-9 upto-720:[&_a]:place-items-center upto-720:[&_a]:px-1 upto-720:[&_a]:text-center [&_a]:tap [&_a]:rounded-[2px] [&_a]:border-[1.5px] [&_a]:border-line-soft [&_a]:bg-paper [&_a]:px-[0.65rem] [&_a]:py-[0.2rem] [&_a]:text-[0.85rem] [&_a]:text-ink-soft [&_a]:transition-[border-color] [&_a]:duration-120 [&_a]:ease-[ease] [&_a]:hover:border-line [&_a]:hover:text-ink",
+    "flex flex-wrap items-center gap-2 text-[0.85rem] text-muted upto-720:grid upto-720:grid-cols-3 upto-720:[&_span]:col-span-full upto-720:[&_a]:min-h-11 upto-720:[&_a]:place-items-center upto-720:[&_a]:px-1 upto-720:[&_a]:text-center [&_a]:tap [&_a]:rounded-[2px] [&_a]:border-[1.5px] [&_a]:border-line-soft [&_a]:bg-paper [&_a]:px-[0.65rem] [&_a]:py-[0.2rem] [&_a]:text-[0.85rem] [&_a]:text-ink-soft [&_a]:transition-[border-color] [&_a]:duration-120 [&_a]:ease-[ease] [&_a]:hover:border-line [&_a]:hover:text-ink",
   // inside a results section the count sits above the grid, not overlapping
   count: "-mb-4 font-mono text-[0.78rem] text-muted [section>&]:mb-[0.9rem]",
 

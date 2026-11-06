@@ -1,5 +1,10 @@
 import { NavLink } from "react-router";
-import { coverSrc, hideBrokenCover, novelParts, seriesPath } from "../../lib/prices";
+import {
+  coverSrc,
+  hideBrokenCover,
+  novelParts,
+  seriesPath,
+} from "../../lib/prices";
 import { pricesStyles as styles } from "./styles";
 
 // one series: cover, name and a line of facts. Used on the price home
@@ -42,7 +47,8 @@ export default function SeriesCard({ series }: { series: SeriesCardData }) {
           shown.lightNovel && "Light novel",
           series.year,
           series.volumes && `${series.volumes} vols`,
-          series.score && `Score ${series.score}`,
+          // AniList's score, out of 100: not their own stars
+          series.score && `AniList ${series.score}%`,
           series.genre,
         ]
           .filter(Boolean)

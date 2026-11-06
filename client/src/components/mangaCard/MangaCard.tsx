@@ -1,6 +1,7 @@
+import { useState } from "react";
 import { NavLink } from "react-router";
 import StarRating from "../starRating/StarRating";
-import { FALLBACK_COVER } from "../../lib/api";
+import DrawnCover from "../drawnCover/DrawnCover";
 import type { Manga } from "../../lib/types";
 
 // what's come out for it on the New tab
@@ -45,6 +46,8 @@ export default function MangaCard({
   latestChapter,
   select,
 }: Props) {
+  // a cover that wouldn't load, so the drawn one shows instead
+  const [brokenImage, setBrokenImage] = useState<string | null>(null);
   const asColumns = compact && !news;
   // a count that's behind where they are says nothing, so it isn't shown
   const reading = currentManga.bookmark ?? 0;
@@ -75,18 +78,19 @@ export default function MangaCard({
               : `${coverBase} shadow-ink-lg`
         }
       >
-        <img
-          src={currentManga.image || FALLBACK_COVER}
-          alt=""
-          loading="lazy"
-          // out of the flow, or a tall image stretches the cover past its shape
-          className="absolute inset-0 size-full object-cover"
-          onError={(e) => {
-            if (e.currentTarget.src !== FALLBACK_COVER) {
-              e.currentTarget.src = FALLBACK_COVER;
-            }
-          }}
-        />
+        {currentManga.image && brokenImage !== currentManga.image ? (
+          <img
+            src={currentManga.image}
+            alt=""
+            loading="lazy"
+            // out of the flow, or a tall image stretches the cover past its shape
+            className="absolute inset-0 size-full object-cover"
+            onError={() => setBrokenImage(currentManga.image)}
+          />
+        ) : (
+          // no cover, or one that won't load: its name, lettered on
+          <DrawnCover title={currentManga.name} />
+        )}
         {select && (
           <span className="absolute top-1 left-1 z-1 grid place-items-center rounded-[3px] border-[1.5px] border-line bg-card p-[3px] shadow-ink">
             <input

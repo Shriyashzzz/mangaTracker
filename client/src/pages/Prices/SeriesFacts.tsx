@@ -13,7 +13,7 @@ export default function SeriesFacts({ info }: { info: SeriesInfo }) {
       <ul className={styles.factRow}>
         {info.score != null && (
           <li>
-            Score <strong>{info.score}</strong>
+            AniList score <strong>{info.score}%</strong>
           </li>
         )}
         {info.popularityRank != null && (

@@ -38,7 +38,7 @@ export default function Footer() {
             <blockquote className="font-letter text-[0.82rem] leading-[1.3] font-bold tracking-[0.02em] uppercase">
               {quote.text}
             </blockquote>
-            <figcaption className="mt-[0.15rem] text-right font-mono text-[0.75rem] text-ink-soft">
+            <figcaption className="mt-[0.15rem] text-right font-mono text-[0.8rem] text-ink-soft">
               {quote.who},{" "}
               <cite className="text-accent not-italic">{quote.series}</cite>
             </figcaption>
