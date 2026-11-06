@@ -1,0 +1,6 @@
+# Commits git blame should skip: formatting only, nothing that changes what
+# the code does. GitHub reads this file by itself; locally run once:
+#   git config blame.ignoreRevsFile .git-blame-ignore-revs
+
+# style: format both apps with Prettier
+f014e88fd54b7d4b5b2c3265ceaa01cd1186992e
