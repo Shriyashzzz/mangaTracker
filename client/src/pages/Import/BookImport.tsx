@@ -12,7 +12,7 @@ import {
   type DragEvent,
 } from "react";
 import { NavLink } from "react-router";
-import { ChevronDownIcon } from "../../components/icons/Icons";
+import { ChevronDownIcon, InfoIcon } from "../../components/icons/Icons";
 import Mascot from "../../components/mascot/Mascot";
 import {
   fileKind,
@@ -435,6 +435,10 @@ export default function BookImport({ source }: { source: BookSource }) {
       </div>
     );
   };
+  const isFound = (r: BookSeries) => {
+    const m = matchOf(r);
+    return m != null && m !== "failed";
+  };
   // once matching is done: what needs a look first, then what was found, each
   // group in the file's order. While it's matching, the file's order, so rows
   // don't jump about under them
@@ -453,15 +457,50 @@ export default function BookImport({ source }: { source: BookSource }) {
             title: "Couldn't check AniList",
             rows: rows.filter((r) => matchOf(r) === "failed"),
           },
+          // found, but an omnibus doesn't say which volumes it holds, so
+          // the count wants a look with Edit
+          {
+            id: "omnibus",
+            title: "Omnibus editions",
+            rows: rows.filter((r) => isFound(r) && r.omnibus),
+          },
           {
             id: "matched",
             title: "Found",
-            rows: rows.filter((r) => {
-              const m = matchOf(r);
-              return m != null && m !== "failed";
-            }),
+            rows: rows.filter((r) => isFound(r) && !r.omnibus),
           },
         ].filter((g) => g.rows.length);
+
+  // groups they've closed, for this import only: a new one starts all open
+  const [closed, setClosed] = useState<{
+    for: BookSeries[] | null;
+    ids: Set<string>;
+  }>({ for: null, ids: new Set() });
+  const closedIds = closed.for === found ? closed.ids : new Set<string>();
+  // from the latest state, so quick clicks on several headings all count
+  const toggleGroup = (id: string) =>
+    setClosed((was) => {
+      const ids = new Set(was.for === found ? was.ids : []);
+      if (!ids.delete(id)) ids.add(id);
+      return { for: found, ids };
+    });
+  // a row just edited or undone: its group opens if it's closed, so they see
+  // where it went
+  const [followed, setFollowed] = useState<string | null>(null);
+  if (followed) {
+    const into = groups.find((g) =>
+      g.rows.some((r) => (r.members ?? [r.key]).includes(followed)),
+    );
+    setFollowed(null);
+    if (into && closedIds.has(into.id)) {
+      const ids = new Set(closedIds);
+      ids.delete(into.id);
+      setClosed({ for: found, ids });
+    }
+  }
+
+  // the omnibus group's ⓘ: what an omnibus is
+  const [omnibusInfo, setOmnibusInfo] = useState(false);
 
   const start = () => void imported.add(chosen);
 
@@ -649,10 +688,52 @@ export default function BookImport({ source }: { source: BookSource }) {
                       id={`import-group-${g.id}`}
                       className={styles.groupHead}
                     >
-                      {g.title}{" "}
-                      <span className={styles.groupCount}>{g.rows.length}</span>
+                      <button
+                        type="button"
+                        className={styles.groupToggle}
+                        aria-expanded={!closedIds.has(g.id)}
+                        aria-controls={`import-rows-${g.id}`}
+                        onClick={() => toggleGroup(g.id)}
+                      >
+                        {g.title}{" "}
+                        <span className={styles.groupCount}>
+                          {g.rows.length}
+                        </span>
+                      </button>
+                      {g.id === "omnibus" && (
+                        <button
+                          type="button"
+                          className={styles.groupInfo}
+                          aria-label="What's an omnibus?"
+                          aria-expanded={omnibusInfo}
+                          aria-controls="omnibus-info"
+                          onClick={() => setOmnibusInfo(!omnibusInfo)}
+                        >
+                          <InfoIcon aria-hidden />
+                        </button>
+                      )}
+                      {/* the whole row is the toggle's (styles.groupToggle),
+                          so the arrow only shows which way it is */}
+                      <ChevronDownIcon
+                        className={styles.groupArrow}
+                        data-closed={closedIds.has(g.id) || undefined}
+                        aria-hidden
+                      />
                     </h3>
-                    {g.rows.map(seriesRow)}
+                    {g.id === "omnibus" && omnibusInfo && (
+                      <p id="omnibus-info" className={styles.groupInfoText}>
+                        An omnibus is one big book that holds several volumes,
+                        like a 3-in-1. Its listing doesn't always say which
+                        volumes are inside, so check the count with Edit.
+                      </p>
+                    )}
+                    {/* closed only hides them: their ticks still count */}
+                    <div
+                      id={`import-rows-${g.id}`}
+                      hidden={closedIds.has(g.id)}
+                    >
+                      {g.rows.map(seriesRow)}
+                    </div>
                   </div>
                 ) : (
                   g.rows.map(seriesRow)
@@ -665,10 +746,14 @@ export default function BookImport({ source }: { source: BookSource }) {
                 series={editing}
                 current={matchOf(editing)}
                 edited={Boolean(editOf(editing, edits))}
-                onSave={(edit) =>
-                  imported.edit(editing.members ?? [editing.key], edit)
-                }
-                onUndo={() => imported.unedit(editing.members ?? [editing.key])}
+                onSave={(edit) => {
+                  imported.edit(editing.members ?? [editing.key], edit);
+                  setFollowed(editing.key);
+                }}
+                onUndo={() => {
+                  imported.unedit(editing.members ?? [editing.key]);
+                  setFollowed(editing.key);
+                }}
                 onClose={() => setEditing(null)}
               />
             )}

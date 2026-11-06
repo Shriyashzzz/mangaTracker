@@ -65,7 +65,19 @@ export const importStyles = {
     "mt-1 max-h-[min(60vh,32rem)] overflow-y-auto border-t-[1.5px] border-line-soft",
   // a group's heading inside the list, kept in view while its rows scroll
   groupHead:
-    "sticky top-0 z-1 flex items-baseline gap-2 border-b-[1.5px] border-line-soft bg-card px-1.5 pt-3 pb-1.5 font-mono text-[0.78rem] tracking-[0.06em] text-ink-soft uppercase",
+    "sticky top-0 z-1 flex items-center pr-1.5 border-b-[1.5px] border-line-soft bg-card font-mono text-[0.78rem] tracking-[0.06em] text-ink-soft uppercase",
+  // the whole heading opens and closes its group
+  // its hit area stretches over the whole heading row (the ⓘ sits above it)
+  groupToggle:
+    "flex min-h-11 items-center gap-2 pl-1.5 text-left uppercase after:absolute after:inset-0 hover:text-ink",
+  // the omnibus heading's ⓘ, beside the open and close button
+  groupInfo:
+    "relative z-1 grid size-11 shrink-0 place-items-center text-ink-soft hover:text-ink aria-expanded:text-accent [&_svg]:size-4",
+  groupInfoText:
+    "border-b border-dashed border-line-soft px-1.5 py-2 text-[0.85rem] leading-[1.45] normal-case text-ink-soft",
+  // points down while open, right while closed
+  groupArrow:
+    "pointer-events-none ml-auto size-4 shrink-0 transition-transform duration-150 data-closed:-rotate-90 motion-reduce:transition-none",
   groupCount: "tabular-nums text-muted",
   seriesText: "flex min-w-0 flex-1 flex-col py-1.5",
   seriesMeta: "text-[0.85rem] text-ink-soft",
