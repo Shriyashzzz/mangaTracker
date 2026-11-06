@@ -1,5 +1,7 @@
 import { useEffect, useRef, useState } from "react";
-import { ownedPhrase } from "../../lib/ownedVolumes";
+import { ownedOf, ownedPhrase, ownedVolumes } from "../../lib/ownedVolumes";
+import { BOOK, toggled } from "../../lib/volumeShelf";
+import { setVolumesOwned, type Owned } from "../../lib/shelf";
 import { detailsStyles as styles } from "./styles";
 import { NavLink, useNavigate, useParams, useSearchParams } from "react-router";
 import StarRating from "../../components/starRating/StarRating";
@@ -8,6 +10,7 @@ import type { Manga, ReleaseData, ReleaseStatus } from "../../lib/types";
 import SlowLoadQuote from "../../components/slowLoadQuote/SlowLoadQuote";
 import { usePrivatePage } from "../../lib/seo";
 import { getReleases } from "../../lib/shelf";
+import VolumeShelf from "../../components/volumeShelf/VolumeShelf";
 import { useReleaseChecksOn } from "../../lib/prefs";
 import { useShelf } from "../../store/shelf";
 import NotesField from "./NotesField";
@@ -206,6 +209,51 @@ export default function Details() {
     }
   };
 
+  // the shelf by the title: each tick shows at once and saves in the
+  // background. Ticks in quick succession send only where they ended up; a
+  // save that fails puts the shelf back to what was last saved
+  // what the server last said they own, for this manga
+  const ownedSaved = useRef<{ id: number; owned: Owned } | null>(null);
+  const ownedNext = useRef<Owned | null>(null);
+  const ownedSaving = useRef(false);
+  const saveOwned = async (mangaId: number) => {
+    if (ownedSaving.current) return;
+    ownedSaving.current = true;
+    while (ownedNext.current) {
+      const sending = ownedNext.current;
+      ownedNext.current = null;
+      try {
+        const owned = await setVolumesOwned(mangaId, sending);
+        ownedSaved.current = { id: mangaId, owned };
+      } catch {
+        ownedNext.current = null;
+        const back = ownedSaved.current;
+        if (back?.id === mangaId)
+          setMangaData((m) =>
+            m?.id === mangaId ? { ...m, ...back.owned } : m,
+          );
+        setActionNote(DIDNT_SAVE);
+      }
+    }
+    ownedSaving.current = false;
+  };
+  const toggleOwned = (volume: number) => {
+    if (!mangaData) return;
+    if (ownedSaved.current?.id !== mangaData.id)
+      ownedSaved.current = {
+        id: mangaData.id,
+        owned: {
+          volumesOwned: mangaData.volumesOwned ?? null,
+          ownedList: mangaData.ownedList ?? [],
+        },
+      };
+    const next = ownedVolumes(null, toggled(ownedOf(mangaData), volume));
+    setMangaData({ ...mangaData, ...next });
+    setActionNote("");
+    ownedNext.current = next;
+    void saveOwned(mangaData.id);
+  };
+
   if (loadError === "network") {
     return (
       <div className={styles.errorState} role="alert">
@@ -252,6 +300,20 @@ export default function Details() {
   const cover = mangaData.image || FALLBACK_COVER;
   const genre =
     mangaData.genre && mangaData.genre !== "unlabled" ? mangaData.genre : null;
+  // how many books the shelf holds: the most we know is out, and never fewer
+  // than they own. Until that's known, theirs and a few to tick next
+  const owned = ownedOf(mangaData);
+  const highestOwned = Math.floor(Math.max(0, ...owned));
+  const knownOut = Math.max(
+    releaseStatus?.latestVolume ?? 0,
+    buyOptions.latest?.volume ?? 0,
+  );
+  const shelfTotal = Math.min(
+    999,
+    Math.floor(knownOut) > 0
+      ? Math.max(Math.floor(knownOut), highestOwned)
+      : Math.max(highestOwned + 3, 10),
+  );
   // owning and reading aren't the same, so say which it is
   const volumeYours = ownedPhrase(mangaData)
     ? `you own ${ownedPhrase(mangaData)}`
@@ -317,20 +379,35 @@ export default function Details() {
 
       <article className={styles.layout}>
         <div className={styles.main}>
-          <header className={styles.head}>
-            <h1 className={styles.title}>{mangaData.name}</h1>
-            <ul className={styles.meta}>
-              <li
-                className={mangaStatus ? styles.metaDone : styles.metaReading}
-              >
-                {mangaStatus ? "Finished" : planned ? "To read" : "Reading"}
-              </li>
-              {mangaData.lightNovel && (
-                <li className={styles.metaGenre}>Light novel</li>
-              )}
-              {genre && <li className={styles.metaGenre}>{genre}</li>}
-            </ul>
-          </header>
+          <div className={styles.titleRow}>
+            <header className={styles.head}>
+              <h1 className={styles.title}>{mangaData.name}</h1>
+              <ul className={styles.meta}>
+                <li
+                  className={mangaStatus ? styles.metaDone : styles.metaReading}
+                >
+                  {mangaStatus ? "Finished" : planned ? "To read" : "Reading"}
+                </li>
+                {mangaData.lightNovel && (
+                  <li className={styles.metaGenre}>Light novel</li>
+                )}
+                {genre && <li className={styles.metaGenre}>{genre}</li>}
+              </ul>
+            </header>
+            <div
+              className={styles.shelf}
+              // a short series asks only for the room its books need
+              style={{ maxWidth: shelfTotal * BOOK }}
+            >
+              <VolumeShelf
+                key={mangaData.id}
+                total={shelfTotal}
+                owned={owned}
+                onToggle={toggleOwned}
+                name={mangaData.name}
+              />
+            </div>
+          </div>
 
           <h2 className={`${styles.deskTitle} ${styles.yourCopy}`}>
             Your copy
@@ -362,9 +439,6 @@ export default function Details() {
                   }}
                 />
               </>
-            )}
-            {ownedPhrase(mangaData) && (
-              <span className={styles.owned}>Own {ownedPhrase(mangaData)}</span>
             )}
           </p>
 
