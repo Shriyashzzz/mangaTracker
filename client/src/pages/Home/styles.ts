@@ -33,21 +33,23 @@ export const homeStyles = {
   // the New tab: the shelf's grid on big screens, rows on small ones so more of
   // the news fits on a screen
   newGrid:
-    "grid grid-cols-[repeat(auto-fill,minmax(160px,1fr))] gap-x-6 gap-y-9 upto-720:grid-cols-[minmax(0,1fr)] upto-720:gap-0 upto-720:border-t-[1.5px] upto-720:border-line",
+    "grid grid-cols-[repeat(auto-fill,minmax(136px,1fr))] gap-x-5 gap-y-8 upto-720:grid-cols-[minmax(0,1fr)] upto-720:gap-0 upto-720:border-t-[1.5px] upto-720:border-line",
   classContainer:
-    "grid grid-cols-[repeat(auto-fill,minmax(160px,1fr))] gap-x-6 gap-y-9 upto-520:grid-cols-2 upto-520:gap-x-4 upto-520:gap-y-7",
+    "grid grid-cols-[repeat(auto-fill,minmax(136px,1fr))] gap-x-5 gap-y-8 upto-520:grid-cols-2 upto-520:gap-x-4 upto-520:gap-y-7",
   pagerBottom: "mt-10",
   // "Hide" sits under the card rather than in it: the card is one big link
-  cardWithSeen: "flex min-w-0 flex-col items-start [&>a]:w-full [&>a]:flex-1",
+  // (a label in Select, sized the same)
+  cardWithSeen:
+    "flex min-w-0 flex-col items-start [&>:is(a,label)]:w-full [&>:is(a,label)]:flex-1",
   // anyone who chose rows in settings: one manga per row at every size
   rowsGrid: "grid grid-cols-[minmax(0,1fr)] border-t-[1.5px] border-line",
   cardRowAlways:
-    "flex min-w-0 flex-row items-stretch border-b-[1.5px] border-line-soft [&>a]:min-w-0 [&>a]:flex-1",
+    "flex min-w-0 flex-row items-stretch border-b-[1.5px] border-line-soft [&>:is(a,label)]:min-w-0 [&>:is(a,label)]:flex-1",
   seenBtnRow:
     "tap inline-flex min-w-16 shrink-0 items-center justify-center gap-1 px-2 text-[0.85rem] font-medium text-ink-soft underline decoration-line-soft underline-offset-3 transition-colors duration-120 ease-[ease] hover:text-accent hover:decoration-accent [&_svg]:size-3.5",
   // the same card as a row, on the New tab on small screens
   cardAsRow:
-    "flex min-w-0 flex-col items-start [&>a]:w-full [&>a]:flex-1 upto-720:flex-row upto-720:items-stretch upto-720:border-b-[1.5px] upto-720:border-line-soft upto-720:[&>a]:w-auto upto-720:[&>a]:min-w-0",
+    "flex min-w-0 flex-col items-start [&>:is(a,label)]:w-full [&>:is(a,label)]:flex-1 upto-720:flex-row upto-720:items-stretch upto-720:border-b-[1.5px] upto-720:border-line-soft upto-720:[&>:is(a,label)]:w-auto upto-720:[&>:is(a,label)]:min-w-0",
   seenBtn:
     "tap mt-2 inline-flex shrink-0 items-center gap-1 py-1 upto-720:mt-0 upto-720:min-w-16 upto-720:justify-center upto-720:px-2 text-[0.85rem] font-medium text-ink-soft underline decoration-line-soft underline-offset-3 transition-colors duration-120 ease-[ease] hover:text-accent hover:decoration-accent [&_svg]:size-3.5",
   // above the phones' bottom bar
@@ -96,7 +98,9 @@ export const homeStyles = {
   releaseNote: "text-[0.85rem] text-ink-soft",
   releaseAside: "flex flex-1 flex-wrap items-center gap-x-5 gap-y-1",
   // together at the far right of the row
-  releaseLinks: "ml-auto flex items-center gap-x-5",
+  // wraps rather than running off a small phone
+  releaseLinks:
+    "ml-auto flex flex-wrap items-center justify-end gap-x-5 gap-y-1",
   hiddenToggle:
     "tap text-[0.85rem] font-medium text-ink underline decoration-accent decoration-2 underline-offset-3",
   // the grouped list. A full screen on phones
@@ -132,6 +136,8 @@ export const homeStyles = {
   checkText: "text-[0.85rem] text-ink-soft",
   checkAside: "mt-1 block text-pretty",
   checkInline: "mb-7 flex flex-col gap-1.5",
+  // under the bar: how far the check is, and Hide all on the right
+  checkRow: "flex flex-wrap items-center justify-between gap-x-4 gap-y-1",
   checkCentre:
     "mx-auto flex min-h-[34dvh] max-w-[300px] flex-col items-center justify-center gap-2.5 text-center",
   checkTitle: "font-display text-[1.25rem] text-ink-soft",

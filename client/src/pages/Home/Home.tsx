@@ -345,9 +345,18 @@ function Library() {
     };
   }, [mangaData, releases]);
 
-  // nothing left hidden, so there's no list to be on
+  // nothing left hidden, so there's no list to be on. Opened straight onto it,
+  // the check has to finish first to know what's hidden; once it's been shown,
+  // emptying it leaves at once. Otherwise ?view=hidden stays, and the next card
+  // hidden brings the list back holding just that one
+  const sawHidden = useRef(false);
   useEffect(() => {
-    if (wantHidden && allChecked && hiddenCount === 0) {
+    if (viewingHidden) sawHidden.current = true;
+  }, [viewingHidden]);
+  useEffect(() => {
+    if (!wantHidden) sawHidden.current = false;
+    else if (hiddenCount === 0 && (allChecked || sawHidden.current)) {
+      sawHidden.current = false;
       navigator("/shelf", { replace: true });
     }
   }, [wantHidden, allChecked, hiddenCount, navigator]);
@@ -537,20 +546,27 @@ function Library() {
     );
   };
 
-  const handleSeen = async (m: Manga) => {
+  // what "Hide" on its card hides up to: everything that's out when the card
+  // lists it all, otherwise the one it shows
+  const newestOf = (m: Manga) => {
     const kind = SEEN_KIND[releaseKind];
     const found = releases[m.id];
     const grouped = isGrouped(m);
-    const newest =
-      kind === "volume"
+    return kind === "volume"
+      ? grouped
+        ? found?.latestVolume
+        : found?.nextVolume
+      : kind === "chapter"
         ? grouped
-          ? found?.latestVolume
-          : found?.nextVolume
-        : kind === "chapter"
-          ? grouped
-            ? found?.latestChapter
-            : found?.nextChapter
-          : found?.latestJapaneseVolume;
+          ? found?.latestChapter
+          : found?.nextChapter
+        : found?.latestJapaneseVolume;
+  };
+
+  const handleSeen = async (m: Manga) => {
+    const kind = SEEN_KIND[releaseKind];
+    const grouped = isGrouped(m);
+    const newest = newestOf(m);
     if (newest == null) return;
     const previous = seenOf(m, kind);
     const previousList = m.hiddenVolumes ?? [];
@@ -631,6 +647,46 @@ function Library() {
         previous: null,
         previousList: [],
         restored: true,
+        others,
+      });
+    } else {
+      setSeenFailed(true);
+    }
+  };
+
+  // every card shown, hidden as its own "Hide" would. The undo puts each back
+  // as it was
+  const hideAll = async () => {
+    const kind = SEEN_KIND[releaseKind];
+    const series = visibleManga.flatMap((m) => {
+      const newest = newestOf(m);
+      return newest == null ? [] : [{ m, newest, grouped: isGrouped(m) }];
+    });
+    if (!series.length) return;
+    const others = series.map(({ m }) => ({
+      id: m.id,
+      previous: seenOf(m, kind),
+      previousList: m.hiddenVolumes ?? [],
+    }));
+    setSeenFailed(false);
+    const saved = await Promise.all(
+      series.map(({ m, newest, grouped }) =>
+        markSeen(
+          m.id,
+          kind,
+          newest,
+          kind === "volume" && grouped ? [] : undefined,
+        ),
+      ),
+    );
+    if (saved.every(Boolean)) {
+      setHidden({
+        id: 0,
+        name:
+          series.length === 1 ? series[0]!.m.name : `${series.length} series`,
+        kind,
+        previous: null,
+        previousList: [],
         others,
       });
     } else {
@@ -992,28 +1048,52 @@ function Library() {
                 </button>
               )}
               {viewingHidden && (
-                <button
-                  type="button"
-                  className={styles.hiddenToggle}
-                  onClick={unhideAll}
-                >
-                  Unhide all
-                </button>
+                <>
+                  <button
+                    type="button"
+                    className={styles.hiddenToggle}
+                    onClick={unhideAll}
+                  >
+                    Unhide all
+                  </button>
+                  {/* back to what's new, without a stop here on the way back */}
+                  <button
+                    type="button"
+                    className={styles.hiddenToggle}
+                    onClick={() => navigator("/shelf", { replace: true })}
+                  >
+                    Back to new
+                  </button>
+                </>
               )}
             </div>
           </div>
         </div>
       )}
 
-      {/* a thin line above the cards once there are some; with none yet it
-          sits in the middle of the page, where the cards will be */}
-      {checking && visibleManga.length > 0 && (
+      {/* a thin line above the cards once there are some, staying full once
+          the check's done, with Hide all under it. With no cards yet it sits
+          in the middle of the page, where the cards will be */}
+      {showingNew && visibleManga.length > 0 && (
         <div className={styles.checkInline}>
           {progress}
-          <p className={styles.checkText} aria-live="polite">
-            Checking {checked} of {total}
-            {bigShelfNote && ` · ${bigShelfNote}`}
-          </p>
+          <div className={styles.checkRow}>
+            <p className={styles.checkText} aria-live="polite">
+              {checking
+                ? `Checking ${checked} of ${total}`
+                : `All ${total} checked`}
+              {checking && bigShelfNote && ` · ${bigShelfNote}`}
+            </p>
+            {!viewingHidden && (
+              <button
+                type="button"
+                className={styles.hiddenToggle}
+                onClick={hideAll}
+              >
+                Hide all {visibleManga.length}
+              </button>
+            )}
+          </div>
         </div>
       )}
 
@@ -1232,7 +1312,8 @@ function Library() {
       {!showingNew && <AddButton onClick={goToAdd} />}
 
       <ReleaseTip
-        enabled={hasManga && !showingNew}
+        // not over the select bar or the undo note, which share its spot
+        enabled={hasManga && !showingNew && !selecting && !undoShowing}
         onCheck={() => {
           setStatusFilter("new");
           writeSession("libraryStatus", "new");
