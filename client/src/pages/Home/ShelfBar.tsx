@@ -1,8 +1,8 @@
 // The shelf's bar. Wider than a phone, every view is a tab in a row (ALL 12 ·
 // READING 8 · … · NEW 3), so they're all in sight. On phones what you're
 // looking at is the title (READING 431 ⌄), and tapping it lists the others;
-// New keeps a red stamp beside it, so its count shows from every view (and
-// the tour can point at it). Search takes the rest
+// New has its own place in the bottom bar there, with its count (and the
+// tour's target). Search takes the rest
 // of the row and never grows, so nothing moves when you click it; on phones it
 // waits behind a magnifier and takes the title's place while open. Sorting is
 // a menu: "Sorted by last bookmarked" on laptops, a sort button on phones.
@@ -83,7 +83,6 @@ export default function ShelfBar({
   onSort: (value: string) => void;
 }) {
   const shown = views.find((v) => v.value === current) ?? views[0]!;
-  const fresh = views.find((v) => v.value === "new");
   // the view they were on before New, for the way back (All if they arrived
   // on New)
   const [cameFrom, setCameFrom] = useState(current === "new" ? "all" : current);
@@ -123,25 +122,6 @@ export default function ShelfBar({
           // the tour points at New: on New, that's the title
           tourTarget={current === "new" ? "tab-new" : undefined}
         />
-        {/* the way to New from anywhere else, with what's waiting there */}
-        {fresh && current !== "new" && (
-          <button
-            type="button"
-            data-tour="tab-new"
-            className={styles.newStamp}
-            onClick={() => onPick("new")}
-            aria-label={
-              fresh.count
-                ? `New: ${fresh.count} series with something new`
-                : "New releases"
-            }
-          >
-            New
-            {fresh.count != null && fresh.count > 0 && (
-              <span className={styles.newStampCount}>{fresh.count}</span>
-            )}
-          </button>
-        )}
         {/* on New: back to where they were */}
         {current === "new" && (
           <button

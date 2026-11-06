@@ -6,6 +6,7 @@ import {
   asIsbn,
   coverSrc,
   hideBrokenCover,
+  hidePlaceholderCover,
   novelParts,
   searchSeries,
   seriesPath,
@@ -194,6 +195,7 @@ export default function SeriesSearchBox({
                       src={coverSrc(s.thumbUrl)}
                       alt=""
                       onError={hideBrokenCover}
+                      onLoad={hidePlaceholderCover}
                     />
                   )}
                 </span>

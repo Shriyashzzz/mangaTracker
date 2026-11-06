@@ -131,6 +131,15 @@ const COVER_RETRY_MS = 6000;
 
 // onError for cover <img>s: hides a cover that failed to load, revealing the
 // placeholder behind it, and fades it in if a later try works
+// a store's "No image available" picture loads fine, so onError never hears
+// of it. Covers are tall; those placeholders are square or wide, so anything
+// that isn't portrait is hidden and the drawn placeholder behind it shows
+export const hidePlaceholderCover = (e: SyntheticEvent<HTMLImageElement>) => {
+  const img = e.currentTarget;
+  if (img.naturalWidth && img.naturalWidth >= img.naturalHeight * 0.95)
+    img.hidden = true;
+};
+
 export const hideBrokenCover = (e: SyntheticEvent<HTMLImageElement>) => {
   const img = e.currentTarget;
   const tries = Number(img.dataset.tries ?? 0);
@@ -169,4 +178,3 @@ export const novelParts = (title: string) => ({
   title: title.replace(NOVEL, ""),
   lightNovel: NOVEL.test(title),
 });
-

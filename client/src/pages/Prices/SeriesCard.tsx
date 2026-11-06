@@ -2,6 +2,7 @@ import { NavLink } from "react-router";
 import {
   coverSrc,
   hideBrokenCover,
+  hidePlaceholderCover,
   novelParts,
   seriesPath,
 } from "../../lib/prices";
@@ -38,6 +39,7 @@ export default function SeriesCard({ series }: { series: SeriesCardData }) {
             alt=""
             loading="lazy"
             onError={hideBrokenCover}
+            onLoad={hidePlaceholderCover}
           />
         )}
       </span>
