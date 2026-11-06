@@ -92,7 +92,7 @@ export default function SignInPage() {
               <PasswordInput
                 id="password"
                 ref={passRef}
-                placeholder="••••••••"
+                placeholder="Your password"
                 name="password"
                 autoComplete="current-password"
               />

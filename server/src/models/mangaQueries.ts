@@ -113,6 +113,10 @@ export const setRating = (id: number, rating: number) =>
 export const setNotes = (id: number, description: string | null) =>
   prisma.manga.update({ where: { id }, data: { description } });
 
+// a cover found for it after an import (the shelf fills them in)
+export const setImage = (id: number, image: string) =>
+  prisma.manga.update({ where: { id }, data: { image } });
+
 export const setLatestChapter = (id: number, latestChapter: number) =>
   prisma.manga.update({ where: { id }, data: { latestChapter } });
 
@@ -241,6 +245,7 @@ export const placeManyManga = async (userId: number, places: ShelfPlace[]) => {
 };
 
 export default {
+  setImage,
   moveManyManga,
   placeManyManga,
   setNotes,

@@ -23,6 +23,13 @@ const saved = {
   image: "https://s4.anilist.co/file/a.jpg",
 };
 
+test("setting a found cover needs a sign in", async () => {
+  const res = await request(app)
+    .patch("/api/manga/1/image")
+    .send({ image: "https://s4.anilist.co/x.jpg" });
+  expect(res.status).toBe(401);
+});
+
 test("all need a sign in", async () => {
   for (const path of [
     "/api/manga/delete-many",

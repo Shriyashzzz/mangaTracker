@@ -18,6 +18,7 @@ import StatusField, {
 } from "../../components/statusField/StatusField";
 import { useBuyOptions } from "../Details/useBuyOptions";
 import { priceName } from "../../lib/prices";
+import { chapterProblem, coverLinkProblem } from "../../lib/formChecks";
 
 const DESC_MAX = 450;
 
@@ -31,6 +32,7 @@ export function AddManga() {
   const [fieldErrors, setFieldErrors] = useState<{
     title?: string;
     bookmark?: string;
+    image?: string;
   }>({});
   const isFinished = stage === "finished";
   const [searchParams] = useSearchParams();
@@ -98,16 +100,27 @@ export function AddManga() {
     e.preventDefault();
     setValidationError([]);
     const form = new FormData(e.currentTarget);
+    const chapter = String(form.get("bookmark") ?? "");
     const missing = {
-      ...(!title.trim() && { title: "Give it a title." }),
-      ...(stage === "reading" &&
-        !String(form.get("bookmark") ?? "").trim() && {
-          bookmark: "Which chapter are you on? 0 if you haven't started.",
-        }),
+      title: !title.trim() ? "Give it a title." : undefined,
+      bookmark:
+        stage !== "reading"
+          ? undefined
+          : !chapter.trim()
+            ? "Which chapter are you on? 0 if you haven't started."
+            : chapterProblem(chapter),
+      image: coverLinkProblem(image),
     };
     setFieldErrors(missing);
-    if (missing.title || missing.bookmark) {
-      document.getElementById(missing.title ? "name" : "bookmark")?.focus();
+    const first = missing.title
+      ? "name"
+      : missing.bookmark
+        ? "bookmark"
+        : missing.image
+          ? "cover-link"
+          : null;
+    if (first) {
+      document.getElementById(first)?.focus();
       return;
     }
     const sendReq: MangaForm = {
@@ -191,11 +204,13 @@ export function AddManga() {
           className={styles.coverArea}
           title={title}
           value={image}
+          error={fieldErrors.image}
           previewUrl={preview?.cover}
           coverChosen={pickedTitle === title}
           onResults={(hits, query) => setFound({ query, hits })}
           onChange={(url, match) => {
             setImage(url);
+            setFieldErrors((e) => ({ ...e, image: undefined }));
             if (match?.genre && !genreTouched.current) {
               setGenre(match.genre);
               setGenreFromAniList(true);
@@ -211,7 +226,15 @@ export function AddManga() {
               setLightNovel(value);
             }}
           />
-          <StatusField stage={stage} onChange={setStage} required />
+          <StatusField
+            stage={stage}
+            onChange={(next) => {
+              setStage(next);
+              // a chapter it asked for may not be asked for now
+              setFieldErrors((e) => ({ ...e, bookmark: undefined }));
+            }}
+            required
+          />
 
           <div className={styles.row}>
             {stage === "reading" && (

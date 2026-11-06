@@ -23,6 +23,35 @@ export const getReleases = (
 // what a check came to: only "failed" means the sites didn't answer
 export type ReleaseOutcome = "news" | "notFound" | "skipped" | "off" | "failed";
 
+// how many series have something new: a new volume or chapter past where
+// they are, for any they've started
+export const countNew = (
+  manga: Manga[],
+  releases: Record<number, ReleaseStatus | null>,
+) =>
+  manga.filter(
+    (m) =>
+      !m.planned &&
+      (releases[m.id]?.hasNewVolume || releases[m.id]?.hasNewChapter),
+  ).length;
+
+// the count New shows, wherever it shows (the shelf's tab, the phones' bar):
+// this visit's once every series is checked, until then what the last full
+// check found, and nothing at all when every check failed
+export function shownNewCount(
+  manga: Manga[],
+  releases: Record<number, ReleaseStatus | null>,
+  outcomes: Record<number, ReleaseOutcome>,
+  lastNewCount: number | null,
+): number | null {
+  const checked = manga.filter((m) => m.id in releases).length;
+  const allChecked = checked > 0 && checked >= manga.length;
+  if (allChecked && manga.every((m) => outcomes[m.id] === "failed"))
+    return null;
+  const live = countNew(manga, releases);
+  return allChecked ? live : (lastNewCount ?? (checked ? live : null));
+}
+
 // the server gives up on a slow title before this; if even it stops answering,
 // the shelf moves on to the next title rather than waiting forever
 export const RELEASE_CHECK_TIMEOUT_MS = 50_000;

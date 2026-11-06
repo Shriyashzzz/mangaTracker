@@ -59,9 +59,8 @@ export const homeStyles = {
     "fixed inset-x-0 bottom-6 z-15 mx-auto flex w-fit max-w-[min(30rem,calc(100vw-2rem))] animate-drop items-center gap-4 rounded-ink border-[2.5px] border-line bg-card px-4 py-3 text-[0.95rem] text-ink shadow-ink motion-reduce:animate-none upto-720:bottom-[calc(4.5rem+env(safe-area-inset-bottom))]",
   seenName: "min-w-0 truncate",
   // Select: a slim row over the cards, and the bar that acts on what's ticked
-  gridTools: "mb-5 flex min-w-0 items-center gap-4 [&>nav]:my-0 [&>nav]:flex-1",
-  selectToggle:
-    "tap ml-auto min-h-9 shrink-0 text-[0.9rem] font-medium text-ink-soft underline decoration-line-soft underline-offset-3 hover:text-ink hover:decoration-current aria-pressed:text-ink aria-pressed:decoration-accent aria-pressed:decoration-2",
+  gridTools:
+    "mb-5 flex min-w-0 items-center gap-4 empty:hidden [&>nav]:my-0 [&>nav]:flex-1",
   // the select bar, with the "Moved… · Undo" note stacked above it
   selectDock:
     "fixed inset-x-0 bottom-6 z-15 mx-auto flex w-fit max-w-[calc(100vw-1.5rem)] flex-col items-center gap-2.5 upto-720:bottom-[calc(4.5rem+env(safe-area-inset-bottom))]",

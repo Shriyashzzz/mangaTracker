@@ -64,4 +64,11 @@ mangaRouter.patch("/:id/rating", requireOwner, manga.setRating);
 mangaRouter.patch("/:id/bookmark", requireOwner, manga.setBookmark);
 mangaRouter.patch("/:id/seen", requireOwner, manga.setSeen);
 mangaRouter.patch("/:id/notes", requireOwner, manga.setNotes);
+// covers the shelf finds for series that came in without one
+mangaRouter.patch(
+  "/:id/image",
+  rateLimit({ max: 60, windowMs: 60_000 }),
+  requireOwner,
+  manga.setImage,
+);
 mangaRouter.put("/:id/owned", requireOwner, manga.setOwned);

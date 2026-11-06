@@ -50,6 +50,7 @@ export default function VolumeCard({
   subtitle,
   priceCents,
   wasCents,
+  mark,
 }: {
   isbn13: string;
   title: string;
@@ -61,6 +62,9 @@ export default function VolumeCard({
   priceCents?: number | null;
   // the usual price, struck through when this one is a deal
   wasCents?: number | null;
+  // on a series page, for a series on their shelf: one they own, or the
+  // next one they need
+  mark?: "yours" | "next";
 }) {
   const fromShelf = useFromShelf();
   const shown = novelParts(title);
@@ -81,6 +85,13 @@ export default function VolumeCard({
             onError={hideBrokenCover}
             onLoad={hidePlaceholderCover}
           />
+        )}
+        {mark && (
+          <span
+            className={mark === "next" ? styles.markNext : styles.markYours}
+          >
+            {mark === "next" ? "Next" : "Yours"}
+          </span>
         )}
         {volume != null && (
           <span className={styles.vol}>

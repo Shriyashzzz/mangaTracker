@@ -2,8 +2,17 @@ import ToReadButton from "../../components/toRead/ToReadButton";
 import { useEffect, useState, type FormEvent } from "react";
 import { NavLink, useParams, useSearchParams } from "react-router";
 import type { Series } from "../../lib/types";
-import { coverSrc, getSeries, hideBrokenCover, novelParts } from "../../lib/prices";
+import {
+  coverSrc,
+  getSeries,
+  hideBrokenCover,
+  novelParts,
+} from "../../lib/prices";
 import { useFromShelf } from "../../lib/fromShelf";
+import { findOnShelf } from "../../lib/shelf";
+import { owns } from "../../lib/ownedVolumes";
+import { useAuth } from "../../store/auth";
+import type { ShelfMatch } from "../../lib/types";
 import BackToNew from "./BackToNew";
 import VolumeCard from "./VolumeCard";
 import SeriesFacts from "./SeriesFacts";
@@ -35,6 +44,23 @@ export default function PriceSeries() {
   // which block of volumes is showing; resets when the series changes
   const [page, setPage] = useState({ name, index: 0 });
   const pageIndex = page.name === name ? page.index : 0;
+  // the series on their shelf, if it is: which volumes are theirs, and the
+  // next one they need
+  const isSignedIn = useAuth((s) => s.isSignedIn);
+  const [shelf, setShelf] = useState<{ name: string; manga: ShelfMatch }>({
+    name: "",
+    manga: null,
+  });
+  const [toGetOnly, setToGetOnly] = useState(false);
+  useEffect(() => {
+    if (!isSignedIn) return;
+    const controller = new AbortController();
+    findOnShelf(name, controller.signal)
+      .then((manga) => setShelf({ name, manga }))
+      // can't tell: the page is the same as for anyone else
+      .catch(() => {});
+    return () => controller.abort();
+  }, [isSignedIn, name]);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -97,11 +123,28 @@ export default function PriceSeries() {
   );
   const rangeStart = pageIndex * PAGE_SIZE + 1;
   const rangeEnd = rangeStart + PAGE_SIZE - 1;
-  const shown = volumes.filter(
-    (v) =>
-      (v.volume >= rangeStart || (pageIndex === 0 && v.volume < 1)) &&
-      v.volume <= rangeEnd,
-  );
+  const mine = shelf.name === name ? shelf.manga : null;
+  const isTheirs = (n: number) =>
+    Boolean(mine) && n >= 1 && Number.isInteger(n) && owns(mine!, n);
+  // the first whole volume out that they don't have, once they own any
+  const next =
+    mine && volumes.some((v) => isTheirs(v.volume))
+      ? volumes
+          .filter((v) => v.volume >= 1 && Number.isInteger(v.volume))
+          .map((v) => v.volume)
+          .sort((a, b) => a - b)
+          .find((n) => !isTheirs(n))
+      : undefined;
+  const toGet = volumes.filter((v) => !isTheirs(v.volume));
+  // "Still to get" shows them all at once, past the ranges
+  const toGetShown = Boolean(mine) && toGetOnly;
+  const shown = toGetShown
+    ? toGet
+    : volumes.filter(
+        (v) =>
+          (v.volume >= rangeStart || (pageIndex === 0 && v.volume < 1)) &&
+          v.volume <= rangeEnd,
+      );
   // to the block holding that volume, then to the volume itself
   const jumpToVolume = (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -186,15 +229,28 @@ export default function PriceSeries() {
             </span>
           )}
         </div>
-        <RangePager
-          total={lastNumber}
-          pageSize={PAGE_SIZE}
-          page={pageIndex}
-          onChange={changePage}
-          label="Volume ranges"
-          labelFor={(start, end) => `Vol. ${start + 1}–${end + 1}`}
-        />
-        {volumes.length > 0 && shown.length === 0 && (
+        {mine && toGet.length < volumes.length && (
+          <button
+            type="button"
+            className={styles.toGet}
+            aria-pressed={toGetOnly}
+            onClick={() => setToGetOnly((on) => !on)}
+          >
+            Still to get ({toGet.length})
+          </button>
+        )}
+        {!toGetShown && (
+          <RangePager
+            total={lastNumber}
+            pageSize={PAGE_SIZE}
+            page={pageIndex}
+            onChange={changePage}
+            label="Volume ranges"
+            // short, so a phone's row of them isn't cut off mid-word
+            labelFor={(start, end) => `${start + 1}–${end + 1}`}
+          />
+        )}
+        {!toGetShown && volumes.length > 0 && shown.length === 0 && (
           <p className={styles.note}>
             The catalog doesn't have volumes {rangeStart}–
             {Math.min(rangeEnd, lastNumber)} in English yet. Search a volume by
@@ -229,6 +285,13 @@ export default function PriceSeries() {
                   priceCents={v.knownPriceCents}
                   subtitle={
                     v.knownPriceCents == null ? "Check price" : undefined
+                  }
+                  mark={
+                    isTheirs(v.volume)
+                      ? "yours"
+                      : v.volume === next
+                        ? "next"
+                        : undefined
                   }
                 />
               </li>

@@ -6,14 +6,14 @@ import { createPortal } from "react-dom";
 import { NavLink } from "react-router";
 import { readLocal, useReleaseChecksOn, writeLocal } from "../../lib/prefs";
 import { isDemo } from "../../lib/demo";
+import { claimNote, noteFree } from "../../lib/notes";
 import { CHECKED_BEFORE_KEY, openReleasesOnShelf } from "../../lib/shelf";
 import { useAuth } from "../../store/auth";
 import Mascot from "../mascot/Mascot";
-import { hasBottomBar } from "../../lib/bottomBar";
 
 const SEEN_KEY = "releaseTipSeen";
 const SHOW_AFTER_MS = 2500;
-// phones: how far down they've scrolled before it offers
+// how far down they've scrolled before it offers
 const SCROLLED = 160;
 const LEAVE_AFTER_MS = 20_000;
 // wider screens have room for the WhatsNew list instead
@@ -38,14 +38,17 @@ export default function ReleaseTip({ enabled, onCheck }: Props) {
     const seen = readLocal(SEEN_KEY);
     if (seen === "yes" || readLocal(CHECKED_BEFORE_KEY)) return;
 
-    // on phones it waits until they've scrolled a little, so it doesn't sit
-    // on whatever's first on screen (the landing's price search)
+    // it waits until they've scrolled a little, so it doesn't sit on what's
+    // first on screen (the landing's price search, the Popular covers)
     const show = () => {
       // mid-typing is a bad moment; a later visit can try again
       const active = document.activeElement;
       if (active instanceof HTMLInputElement && active.value) return;
       // that corner's taken; a later visit can try again
       if (document.querySelector(".support-peek")) return;
+      // the tour first, and one note a visit
+      if (!noteFree("release")) return;
+      claimNote("release");
       writeLocal(SEEN_KEY, seen === "once" ? "yes" : "once");
       setOpen(true);
     };
@@ -54,10 +57,6 @@ export default function ReleaseTip({ enabled, onCheck }: Props) {
       clearTimeout(timer);
       timer = setTimeout(show, SHOW_AFTER_MS);
     };
-    if (!hasBottomBar()) {
-      later();
-      return () => clearTimeout(timer);
-    }
     const onScroll = () => {
       if (window.scrollY < SCROLLED) return;
       window.removeEventListener("scroll", onScroll);

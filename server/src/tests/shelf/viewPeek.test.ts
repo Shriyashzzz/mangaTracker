@@ -6,15 +6,15 @@ import {
 } from "../../../../client/src/lib/viewPeek.js";
 
 const now = 1_800_000_000_000;
-const shelf = { series: 4, rows: false, now };
+const shelf = { series: 20, rows: false, now };
 
 describe("canAskAboutView", () => {
-  it("asks someone on big covers with 4 series who hasn't been asked", () => {
+  it("asks someone on big covers with 20 series who hasn't been asked", () => {
     expect(canAskAboutView({}, shelf)).toBe(true);
   });
 
-  it("waits for 4 series", () => {
-    expect(canAskAboutView({}, { ...shelf, series: 3 })).toBe(false);
+  it("waits for 20 series", () => {
+    expect(canAskAboutView({}, { ...shelf, series: 19 })).toBe(false);
   });
 
   it("never asks someone already on rows", () => {

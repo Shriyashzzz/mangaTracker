@@ -23,9 +23,9 @@ export const pricesStyles = {
     "font-brand text-[clamp(2.1rem,6.5vw,4.6rem)] leading-[0.98] font-normal tracking-[0.01em] text-balance uppercase",
   homeHit: "inline-block -rotate-2 bg-ink px-[0.12em] text-paper",
   halves:
-    "grid grid-cols-2 items-stretch gap-[clamp(1rem,2.5vw,1.5rem)] upto-860:grid-cols-[minmax(0,1fr)] [&>*]:min-w-0",
-  // side by side its height matches the price card; its words and buttons
-  // sit together in the middle rather than a gap opening between them
+    "grid grid-cols-2 items-start gap-[clamp(1rem,2.5vw,1.5rem)] upto-860:grid-cols-[minmax(0,1fr)] [&>*]:min-w-0",
+  // side by side it keeps its own height (the halves sit at the top), so no
+  // empty half opens up under its words and buttons
   trackHalf:
     "speed-burst relative flex flex-col items-start gap-3 border-3 border-line p-[clamp(1.25rem,3vw,2rem)] min-[861px]:justify-center upto-720:gap-2 upto-720:py-4",
   // ink on paper in every theme, or his hair disappears into the dark panel
@@ -66,6 +66,15 @@ export const pricesStyles = {
     "flex flex-wrap items-center gap-2 text-[0.85rem] text-muted upto-720:grid upto-720:grid-cols-3 upto-720:[&_span]:col-span-full upto-720:[&_a]:min-h-11 upto-720:[&_a]:place-items-center upto-720:[&_a]:px-1 upto-720:[&_a]:text-center [&_a]:tap [&_a]:rounded-[2px] [&_a]:border-[1.5px] [&_a]:border-line-soft [&_a]:bg-paper [&_a]:px-[0.65rem] [&_a]:py-[0.2rem] [&_a]:text-[0.85rem] [&_a]:text-ink-soft [&_a]:transition-[border-color] [&_a]:duration-120 [&_a]:ease-[ease] [&_a]:hover:border-line [&_a]:hover:text-ink",
   // inside a results section the count sits above the grid, not overlapping
   count: "-mb-4 font-mono text-[0.78rem] text-muted [section>&]:mb-[0.9rem]",
+
+  // a series page's stamps for one on their shelf: owned, and the next one
+  markYours:
+    "absolute top-2 right-1.5 z-1 rotate-6 rounded-[3px] border-2 border-line bg-paper px-1.5 font-brand text-[0.85rem] leading-[1.35] tracking-[1px] text-ink uppercase",
+  markNext:
+    "absolute top-2 right-1.5 z-1 rotate-6 rounded-[3px] border-2 border-line bg-accent px-1.5 font-brand text-[0.85rem] leading-[1.35] tracking-[1px] text-on-accent uppercase",
+  // "Still to get": the series page's filter, for one on their shelf
+  toGet:
+    "tap rounded-[2px] border-[1.5px] border-line-soft bg-paper px-2.5 py-1 text-[0.85rem] font-medium text-ink-soft hover:border-line hover:text-ink aria-pressed:border-line aria-pressed:bg-ink aria-pressed:text-paper",
 
   // ---------- cards ----------
   grid: "grid grid-cols-[repeat(auto-fill,minmax(140px,1fr))] gap-x-5 gap-y-7 upto-720:grid-cols-2 upto-720:gap-x-4 upto-720:gap-y-6",

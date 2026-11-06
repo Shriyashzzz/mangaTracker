@@ -687,6 +687,22 @@ const setSeen = [
   },
 ];
 
+// a cover the shelf found for a series that came in without one (an import):
+// only the image, and only an https address
+const setImage = [
+  body("image")
+    .isString()
+    .trim()
+    .isURL({ protocols: ["https"], require_protocol: true })
+    .withMessage("Please provide a valid URL")
+    .isLength({ max: 500 }),
+  rejectInvalid,
+  async (req: Request, res: Response) => {
+    await mangaQueries.setImage(res.locals.manga.id, matchedData(req).image);
+    res.sendStatus(204);
+  },
+];
+
 // typed straight on the details page. Only touches the notes, and empty clears them
 const setNotes = [
   body("description")
@@ -817,6 +833,7 @@ export default {
   setSeen,
   restore,
   setNotes,
+  setImage,
   setOwned,
   shelfPrices,
   match,

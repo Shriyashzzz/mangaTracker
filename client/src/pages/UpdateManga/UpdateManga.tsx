@@ -14,6 +14,7 @@ import StatusField, {
 } from "../../components/statusField/StatusField";
 import { useBuyOptions } from "../Details/useBuyOptions";
 import { priceName } from "../../lib/prices";
+import { chapterProblem, coverLinkProblem } from "../../lib/formChecks";
 
 const DESC_MAX = 450;
 
@@ -29,6 +30,8 @@ export function UpdateManga() {
   const isFinished = stage === "finished";
   // said under the field it's about, rather than by the browser
   const [titleError, setTitleError] = useState("");
+  const [chapterError, setChapterError] = useState<string>();
+  const [imageError, setImageError] = useState<string>();
   const titleInput = useRef<HTMLInputElement>(null);
   const [lightNovel, setLightNovel] = useState(false);
   const [description, setDescription] = useState("");
@@ -79,12 +82,25 @@ export function UpdateManga() {
 
   const handleFormSubmission = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    const form = new FormData(e.currentTarget);
+    const chapterIssue =
+      stage === "reading"
+        ? chapterProblem(String(form.get("bookmark") ?? ""))
+        : undefined;
+    const imageIssue = coverLinkProblem(image);
+    setChapterError(chapterIssue);
+    setImageError(imageIssue);
     if (!title.trim()) {
       setTitleError("Give it a title.");
       titleInput.current?.focus();
       return;
     }
-    const form = new FormData(e.currentTarget);
+    if (chapterIssue || imageIssue) {
+      document
+        .getElementById(chapterIssue ? "bookmark" : "cover-link")
+        ?.focus();
+      return;
+    }
     const formData: MangaForm = {
       name: title,
       image,
@@ -130,7 +146,7 @@ export function UpdateManga() {
             className={styles.backLink}
             viewTransition
           >
-            ← back
+            ← back to the series
           </NavLink>
           <h1 className={styles.formTitle}>Edit details</h1>
           <p className={styles.formSub}>
@@ -190,12 +206,22 @@ export function UpdateManga() {
               className={styles.coverArea}
               title={title}
               value={image}
-              onChange={setImage}
+              error={imageError}
+              onChange={(url) => {
+                setImage(url);
+                setImageError(undefined);
+              }}
             />
 
             <div className={styles.details}>
               <FormatField lightNovel={lightNovel} onChange={setLightNovel} />
-              <StatusField stage={stage} onChange={setStage} />
+              <StatusField
+                stage={stage}
+                onChange={(next) => {
+                  setStage(next);
+                  setChapterError(undefined);
+                }}
+              />
 
               <div className={styles.row}>
                 {stage === "reading" && (
@@ -212,7 +238,17 @@ export function UpdateManga() {
                       name="bookmark"
                       id="bookmark"
                       defaultValue={mangaData.bookmark ?? ""}
+                      aria-invalid={Boolean(chapterError) || undefined}
+                      aria-describedby={
+                        chapterError ? "bookmark-error" : undefined
+                      }
+                      onChange={() => setChapterError(undefined)}
                     />
+                    {chapterError && (
+                      <p id="bookmark-error" className={styles.fieldError}>
+                        {chapterError}
+                      </p>
+                    )}
                   </div>
                 )}
                 <div className={styles.field}>
