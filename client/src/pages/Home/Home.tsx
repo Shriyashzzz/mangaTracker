@@ -1076,6 +1076,8 @@ function Library() {
           setSortBy(value);
           writeSession("librarySort", value);
         }}
+        // while selecting, the select bar's Done (or Escape) is the way out
+        onSelect={canSelect && !selectOn ? () => setSelecting(true) : undefined}
       />
 
       {/* pinned to the screen, since "Hide" is usually tapped far down the
@@ -1475,19 +1477,8 @@ function Library() {
         </div>
       ) : (
         <>
-          <div className={styles.gridTools}>
-            {pager(false)}
-            {/* while selecting, the bar's Done (or Escape) is the way out */}
-            {canSelect && !selectOn && (
-              <button
-                type="button"
-                className={styles.selectToggle}
-                onClick={() => setSelecting(true)}
-              >
-                Select
-              </button>
-            )}
-          </div>
+          {/* Select lives in the shelf bar now; this row is the pager's */}
+          <div className={styles.gridTools}>{pager(false)}</div>
           <div
             id="shelf-grid"
             className={

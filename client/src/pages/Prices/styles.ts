@@ -67,6 +67,15 @@ export const pricesStyles = {
   // inside a results section the count sits above the grid, not overlapping
   count: "-mb-4 font-mono text-[0.78rem] text-muted [section>&]:mb-[0.9rem]",
 
+  // a series page's stamps for one on their shelf: owned, and the next one
+  markYours:
+    "absolute top-2 right-1.5 z-1 rotate-6 rounded-[3px] border-2 border-line bg-paper px-1.5 font-brand text-[0.85rem] leading-[1.35] tracking-[1px] text-ink uppercase",
+  markNext:
+    "absolute top-2 right-1.5 z-1 rotate-6 rounded-[3px] border-2 border-line bg-accent px-1.5 font-brand text-[0.85rem] leading-[1.35] tracking-[1px] text-on-accent uppercase",
+  // "Still to get": the series page's filter, for one on their shelf
+  toGet:
+    "tap rounded-[2px] border-[1.5px] border-line-soft bg-paper px-2.5 py-1 text-[0.85rem] font-medium text-ink-soft hover:border-line hover:text-ink aria-pressed:border-line aria-pressed:bg-ink aria-pressed:text-paper",
+
   // ---------- cards ----------
   grid: "grid grid-cols-[repeat(auto-fill,minmax(140px,1fr))] gap-x-5 gap-y-7 upto-720:grid-cols-2 upto-720:gap-x-4 upto-720:gap-y-6",
   card: "group flex flex-col gap-[0.35rem] focus-visible:outline-none",

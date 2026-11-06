@@ -41,14 +41,17 @@ export const shelfBarStyles = {
     "tap inline-flex shrink-0 -rotate-[4deg] items-center gap-0.5 border-[1.5px] border-line bg-card py-[0.15rem] pr-2 pl-1 font-brand text-[1rem] leading-none tracking-[0.04em] text-ink uppercase shadow-ink transition-transform duration-150 ease-ink hover:rotate-0",
   backArrow: "size-4 shrink-0",
 
-  search: `hidden ${search} min-[521px]:flex min-[721px]:min-w-56`,
-  searchOpen: `flex ${search} min-[721px]:min-w-56`,
+  search: `hidden ${search} min-[521px]:flex min-[721px]:min-w-40`,
+  searchOpen: `flex ${search} min-[721px]:min-w-40`,
   searchClose:
     "tap grid size-8 shrink-0 place-items-center text-muted hover:text-ink [&_svg]:size-4",
   magnifier:
     "tap ml-auto hidden size-10 shrink-0 place-items-center text-ink-soft hover:text-ink upto-520:grid [&_svg]:size-5",
 
   sortWrap: "relative shrink-0",
+  // turns on Select: a quiet text button at the end of the bar
+  select:
+    "tap shrink-0 text-[0.88rem] font-medium text-ink-soft underline decoration-line-soft underline-offset-3 hover:text-ink hover:decoration-current",
   sortButton:
     "tap group relative flex items-center gap-1 text-[0.88rem] text-ink-soft hover:text-ink upto-520:grid upto-520:size-10 upto-520:place-items-center",
   sortWords: "whitespace-nowrap upto-520:hidden",
