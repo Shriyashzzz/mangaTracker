@@ -37,7 +37,12 @@ export default function VolumeShelf({ total, owned, onToggle, name }: Props) {
   const [aimed, setAimed] = useState<number | null>(null);
   // the pointer is on it: widths follow at once, rather than easing
   const [live, setLive] = useState(false);
+  // just ticked: it stands up (cleared on a timer, so reduced motion,
+  // which has no animation to end, doesn't leave it set)
   const [popped, setPopped] = useState<number | null>(null);
+  const popTimer = useRef(0);
+  // said out loud for the keyboard only; a passing mouse says nothing
+  const [said, setSaid] = useState("");
   const press = useRef<{ x: number; slid: boolean; pick: number | null }>(null);
   const frame = useRef(0);
 
@@ -50,7 +55,13 @@ export default function VolumeShelf({ total, owned, onToggle, name }: Props) {
     watch.observe(el);
     return () => watch.disconnect();
   }, []);
-  useEffect(() => () => cancelAnimationFrame(frame.current), []);
+  useEffect(
+    () => () => {
+      cancelAnimationFrame(frame.current);
+      clearTimeout(popTimer.current);
+    },
+    [],
+  );
 
   const yours = new Set(owned);
   const widths = width ? bookWidths(total, width, aimed) : [];
@@ -73,9 +84,15 @@ export default function VolumeShelf({ total, owned, onToggle, name }: Props) {
     setAimed(null);
   };
   const tick = (volume: number) => {
-    if (!yours.has(volume)) setPopped(volume);
+    if (!yours.has(volume)) {
+      setPopped(volume);
+      clearTimeout(popTimer.current);
+      popTimer.current = window.setTimeout(() => setPopped(null), 400);
+    }
     onToggle(volume);
   };
+  const say = (volume: number, theirs: boolean) =>
+    setSaid(`Vol. ${volume}, ${theirs ? "yours" : "not yours yet"}`);
 
   // a tap anywhere else puts the magnifier away
   useEffect(() => {
@@ -134,9 +151,11 @@ export default function VolumeShelf({ total, owned, onToggle, name }: Props) {
       );
       setLive(false);
       setAimed(next - 0.5);
+      say(next, yours.has(next));
     } else if ((e.key === "Enter" || e.key === " ") && lit != null) {
       e.preventDefault();
       tick(lit);
+      say(lit, !yours.has(lit));
     }
   };
 
@@ -157,7 +176,10 @@ export default function VolumeShelf({ total, owned, onToggle, name }: Props) {
           if (e.pointerType === "mouse") rest();
         }}
         onKeyDown={onKeyDown}
-        onBlur={rest}
+        onBlur={() => {
+          rest();
+          setSaid("");
+        }}
       >
         <div className="vshelf-row">
           {widths.map((w, i) => {
@@ -174,7 +196,6 @@ export default function VolumeShelf({ total, owned, onToggle, name }: Props) {
                 data-small={w < 17 || undefined}
                 data-lit={lit === v || undefined}
                 data-pop={popped === v || undefined}
-                onAnimationEnd={() => setPopped(null)}
               >
                 <i>{v}</i>
               </span>
@@ -184,8 +205,7 @@ export default function VolumeShelf({ total, owned, onToggle, name }: Props) {
       </div>
       {/* what the keyboard is on, said out loud */}
       <p className="sr-only" role="status">
-        {lit != null &&
-          `Vol. ${lit}, ${yours.has(lit) ? "yours" : "not yours yet"}`}
+        {said}
       </p>
     </div>
   );

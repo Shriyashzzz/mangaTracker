@@ -54,6 +54,16 @@ export const owns = (m: Owned, volume: number) =>
 export const withVolume = (m: Owned, volume: number) =>
   ownedVolumes(null, [...ownedOf(m), volume]);
 
+// what they own once this volume is ticked or unticked (the details page's
+// shelf). Halves and specials it doesn't show (10.5, 0) are kept as they are
+export const toggleVolume = (m: Owned, volume: number) =>
+  owns(m, volume)
+    ? ownedVolumes(
+        null,
+        ownedOf(m).filter((v) => v !== volume),
+      )
+    : withVolume(m, volume);
+
 // [1, 2, 3, 5, 7, 8] -> "1–3, 5, 7–8"
 export function rangesText(volumes: number[]): string {
   const parts: string[] = [];
