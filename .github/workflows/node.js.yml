@@ -1,0 +1,53 @@
+# This workflow will do a installation of node dependencies, cache/restore them, build the source code and run tests across different versions of node
+# For more information see: https://docs.github.com/en/actions/automating-builds-and-tests/building-and-testing-nodejs
+
+name: Node.js CI
+run-name : Running CI tests at the moment, give me a moment on your ${{github.ref}} branch ;)
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+  
+jobs:
+  build:
+  
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        node-version: [ 22.x, 26.x]
+        # See supported Node.js release schedule at https://nodejs.org/en/about/releases/
+  
+    steps:
+    - uses: actions/checkout@v4
+    - name: Use Node.js ${{ matrix.node-version }}
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ matrix.node-version }} 
+        cache: 'npm' #caches the dependencies for next runs
+        cache-dependencies-path: |  
+         package-lock.json
+         server/package-lock.json
+         client/package-lock.json
+      # setup-node builds a fingerprint from those three files. On the next run, if none of them has changed, it restores npm's saved downloads instead of fetching every package again,
+        
+    - run: npm ci  #clean install root
+    - run:  echo "failed installing dependencies from the root folder"
+      if: failure()
+      
+    - run: npm ci # clean install client
+      working-directory: client 
+    - run:  echo "failed installing dependencies from the client folder"
+      if: failure()
+      
+    - run : npm ci 
+      working-directory: server # clean install server
+    - run:  echo "failed installing dependencies from the server folder"
+      if: failure()
+      
+
+    - run: npm run format:check && npm run lint && npm run typecheck && npm test && npm run build  # runs the check 
+    - run:  echo "tests failed"
+      if: failure()
+    
