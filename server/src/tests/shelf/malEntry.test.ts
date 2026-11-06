@@ -84,7 +84,7 @@ describe("covers from a book app import", () => {
   });
 
   test("a MyAnimeList listing's cover still wins", () => {
-    const listing = { name: "Chainsaw Man", altNames: [], cover: "https://listing/cover.jpg", genre: null };
+    const listing = { name: "Chainsaw Man", altNames: [], cover: "https://listing/cover.jpg", genre: null, lightNovel: false, latestChapter: null };
     expect(toMangaInput(entry, listing).image).toBe("https://listing/cover.jpg");
   });
 });
@@ -123,7 +123,7 @@ test("a finished series comes in knowing its last chapter, so caught up counts f
   // Attack on Titan has finished: AniList's 139 is its last chapter
   const finished = toMangaInput(entry({ title: "Shingeki no Kyojin", chapters: 139 }), { ...listing, latestChapter: 139 });
   expect(finished.latestChapter).toBe(139);
-  expect(isCaughtUp({ id: 1, rating: null, planned: false, status: false, ...finished })).toBe(true);
+  expect(isCaughtUp({ id: 1, ...finished })).toBe(true);
   // still coming out: AniList has no count, so the first check finds it
   expect(toMangaInput(entry(), { ...listing, latestChapter: null }).latestChapter).toBeNull();
   expect(toMangaInput(entry(), null).latestChapter).toBeNull();

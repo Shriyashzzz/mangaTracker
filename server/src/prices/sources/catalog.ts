@@ -3,7 +3,7 @@
 import { openLibraryFetch } from "./openLibrary.js";
 import { englishSeriesName } from "./anilist.js";
 import { coverPath } from "./covers.js";
-import { isSingleVolume, normalize, seriesName, seriesOf } from "../stores/match.js";
+import { isSingleVolume, normalize, seriesOf } from "../stores/match.js";
 import { baseName, isNovelName, novelName } from "../lightNovel.js";
 import type { CatalogBook } from "../types.js";
 
