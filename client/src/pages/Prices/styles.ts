@@ -23,9 +23,9 @@ export const pricesStyles = {
     "font-brand text-[clamp(2.1rem,6.5vw,4.6rem)] leading-[0.98] font-normal tracking-[0.01em] text-balance uppercase",
   homeHit: "inline-block -rotate-2 bg-ink px-[0.12em] text-paper",
   halves:
-    "grid grid-cols-2 items-stretch gap-[clamp(1rem,2.5vw,1.5rem)] upto-860:grid-cols-[minmax(0,1fr)] [&>*]:min-w-0",
-  // side by side its height matches the price card; its words and buttons
-  // sit together in the middle rather than a gap opening between them
+    "grid grid-cols-2 items-start gap-[clamp(1rem,2.5vw,1.5rem)] upto-860:grid-cols-[minmax(0,1fr)] [&>*]:min-w-0",
+  // side by side it keeps its own height (the halves sit at the top), so no
+  // empty half opens up under its words and buttons
   trackHalf:
     "speed-burst relative flex flex-col items-start gap-3 border-3 border-line p-[clamp(1.25rem,3vw,2rem)] min-[861px]:justify-center upto-720:gap-2 upto-720:py-4",
   // ink on paper in every theme, or his hair disappears into the dark panel

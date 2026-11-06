@@ -43,6 +43,8 @@ export const shelfBarStyles = {
 
   search: `hidden ${search} min-[521px]:flex min-[721px]:min-w-40`,
   searchOpen: `flex ${search} min-[721px]:min-w-40`,
+  searchKey:
+    "hidden shrink-0 rounded-[3px] border-[1.5px] border-line-soft px-1.5 font-mono text-[0.75rem] leading-[1.4] text-muted min-[721px]:inline",
   searchClose:
     "tap grid size-8 shrink-0 place-items-center text-muted hover:text-ink [&_svg]:size-4",
   magnifier:

@@ -146,7 +146,7 @@ export function UpdateManga() {
             className={styles.backLink}
             viewTransition
           >
-            ← back
+            ← back to the series
           </NavLink>
           <h1 className={styles.formTitle}>Edit details</h1>
           <p className={styles.formSub}>

@@ -219,6 +219,9 @@ export default function VolumeShelf({ total, owned, onToggle, name }: Props) {
                 data-small={v >= 100 || undefined}
                 data-pop={popped === v || undefined}
                 onClick={() => {
+                  // the page stays where it is: ticking the next one they
+                  // needed mustn't slide the books out from under the finger
+                  setPageStart(from);
                   tick(v);
                   say(v, !yours.has(v));
                 }}

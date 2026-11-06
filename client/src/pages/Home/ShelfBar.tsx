@@ -147,7 +147,7 @@ export default function ShelfBar({
           type="search"
           data-shelf-search
           aria-keyshortcuts="/"
-          placeholder="Find a title or genre"
+          placeholder="Title or genre"
           value={query}
           onChange={(e) => onQuery(e.target.value)}
           onBlur={(e) => {
@@ -160,6 +160,12 @@ export default function ShelfBar({
             }
           }}
         />
+        {/* the shortcut, where a keyboard is likely */}
+        {!query && (
+          <kbd className={styles.searchKey} aria-hidden>
+            /
+          </kbd>
+        )}
         {searching && (
           <button
             type="button"

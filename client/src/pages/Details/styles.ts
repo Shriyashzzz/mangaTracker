@@ -116,7 +116,7 @@ export const detailsStyles = {
     "border-[1.5px] border-line-soft bg-card px-4 pt-[0.7rem] pb-[0.6rem] transition-[border-color] duration-120 ease-[ease] focus-within:border-line",
   notesHead: "flex items-baseline justify-between gap-3",
   notesInput:
-    "block w-full resize-none bg-transparent bg-[repeating-linear-gradient(to_bottom,transparent_0_calc(1.6em-1px),var(--line-soft)_calc(1.6em-1px)_1.6em)] text-[1rem] leading-[1.6em] [background-attachment:local] [field-sizing:content] outline-none placeholder:text-muted min-h-[3.2em]",
+    "block w-full resize-none bg-transparent bg-[repeating-linear-gradient(to_bottom,transparent_0_calc(1.6em-1px),var(--line-soft)_calc(1.6em-1px)_1.6em)] text-[1rem] leading-[1.6em] [background-attachment:local] [field-sizing:content] outline-none placeholder:text-ink-soft min-h-[3.2em]",
   notesSaved: "font-mono text-[0.75rem] text-muted",
   notesFailed: "text-[0.8rem] font-medium text-accent",
 

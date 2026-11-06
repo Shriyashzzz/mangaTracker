@@ -8,7 +8,7 @@ export const volumePickerStyles = {
   head: "flex flex-wrap items-end justify-between gap-x-4 gap-y-1",
   upTo: "flex items-center gap-2 text-[0.88rem] text-ink-soft",
   upToInput:
-    "h-9 w-[4.5rem] rounded-[2px] border-[1.5px] border-line bg-paper px-2 text-center font-mono text-ink transition-[box-shadow,background-color] duration-120 placeholder:text-muted focus:bg-card focus:shadow-[3px_3px_0_var(--accent)] focus:outline-none",
+    "h-11 w-[4.5rem] rounded-[2px] border-[1.5px] border-line bg-paper px-2 text-center font-mono text-ink transition-[box-shadow,background-color] duration-120 placeholder:text-muted focus:bg-card focus:shadow-[3px_3px_0_var(--accent)] focus:outline-none",
 
   // a sideways drag paints spines; an up-and-down swipe scrolls the page
   shelf: "flex touch-pan-y flex-wrap items-end gap-y-2 px-0.5 pt-1 select-none",
