@@ -517,7 +517,7 @@ export default function BookImport({ source }: { source: BookSource }) {
             >
               {lookingUp && (
                 <p className={"font-body"}>
-                  Feel free to explore. This takes while
+                  Feel free to explore. This takes a while.
                 </p>
               )}
               <button
