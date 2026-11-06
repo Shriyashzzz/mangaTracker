@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { getSeries } from "../../lib/prices";
 import type { Series, SeriesVolume } from "../../lib/types";
-import { owns } from "../../lib/ownedVolumes";
+import { nextToGet } from "../../lib/ownedVolumes";
 
 // a volume we know the number of
 export type NumberedVolume = SeriesVolume & { volume: number };
@@ -40,22 +40,15 @@ export function useBuyOptions(
     ? volumes.reduce((a, b) => (b.volume > a.volume ? b : a))
     : null;
   const highest = Number(owned.volumesOwned) || 0;
-  // the first one on sale they don't have: a gap (One Piece 1 and 4 -> vol. 2)
-  // before the one after their furthest
-  const missing = highest
-    ? volumes
-        // whole volumes from 1: a "vol. 0" special or a 10.5 isn't next
-        .filter(
-          (v) =>
-            v.volume >= 1 &&
-            Number.isInteger(v.volume) &&
-            !owns(owned, v.volume),
-        )
-        .reduce<NumberedVolume | null>(
-          (a, b) => (!a || b.volume < a.volume ? b : a),
-          null,
-        )
-    : null;
+  // the first one on sale after the furthest they own (only 2 -> vol. 3)
+  const nextNumber = nextToGet(
+    owned,
+    volumes.map((v) => v.volume),
+  );
+  const missing =
+    nextNumber == null
+      ? null
+      : (volumes.find((v) => v.volume === nextNumber) ?? null);
 
   return {
     loading,
@@ -63,7 +56,7 @@ export function useBuyOptions(
     latest,
     // the one they need next, once we know what they own
     next: missing,
-    // nothing on sale they're missing, gaps included
+    // nothing on sale after the furthest they own
     caughtUp: Boolean(latest && highest > 0 && !missing),
     seriesName: state.data?.info?.name ?? state.data?.name ?? name ?? "",
   };
