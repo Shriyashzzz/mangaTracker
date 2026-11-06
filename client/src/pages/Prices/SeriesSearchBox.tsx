@@ -6,6 +6,7 @@ import {
   asIsbn,
   coverSrc,
   hideBrokenCover,
+  hidePlaceholderCover,
   novelParts,
   searchSeries,
   seriesPath,
@@ -154,7 +155,10 @@ export default function SeriesSearchBox({
             onFocus={() => setOpen(true)}
             onKeyDown={onKeyDown}
             placeholder={
-              isMobile ? "Title or ISBN" : "Search a series, or paste an ISBN"
+              // a narrow box cuts the long one off mid-word
+              isMobile || hasBottomBar()
+                ? "Title or ISBN"
+                : "Search a series, or paste an ISBN"
             }
             maxLength={100}
             autoComplete="off"
@@ -187,7 +191,12 @@ export default function SeriesSearchBox({
               >
                 <span className={styles.suggestThumb}>
                   {s.thumbUrl && (
-                    <img src={coverSrc(s.thumbUrl)} alt="" onError={hideBrokenCover} />
+                    <img
+                      src={coverSrc(s.thumbUrl)}
+                      alt=""
+                      onError={hideBrokenCover}
+                      onLoad={hidePlaceholderCover}
+                    />
                   )}
                 </span>
                 <span className={styles.suggestText}>
@@ -198,8 +207,9 @@ export default function SeriesSearchBox({
                     {[
                       s.lightNovel && "Light novel",
                       s.year,
-                      s.volumes && `${s.volumes} volume${s.volumes === 1 ? "" : "s"}`,
-                      s.score && `Score ${s.score}`,
+                      s.volumes &&
+                        `${s.volumes} volume${s.volumes === 1 ? "" : "s"}`,
+                      s.score && `AniList ${s.score}%`,
                     ]
                       .filter(Boolean)
                       .join(" · ")}

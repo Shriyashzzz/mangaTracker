@@ -8,6 +8,8 @@ const SHOWN = 5;
 
 type Props = {
   value: string;
+  // what's wrong with it, said under the field
+  error?: string;
   onChange: (title: string) => void;
   // what AniList thinks they might mean, for this title
   hits: CoverHit[];
@@ -21,6 +23,7 @@ type Props = {
 // be a manga AniList doesn't know
 export default function TitleField({
   value,
+  error,
   onChange,
   hits,
   onPick,
@@ -70,8 +73,10 @@ export default function TitleField({
   return (
     <div className={styles.titleCombo}>
       <input
-        className={styles.input}
+        className={`${styles.input} ${error ? styles.invalid : ""}`}
         id="name"
+        aria-invalid={Boolean(error) || undefined}
+        aria-describedby={error ? "name-error" : undefined}
         name="name"
         type="text"
         role="combobox"

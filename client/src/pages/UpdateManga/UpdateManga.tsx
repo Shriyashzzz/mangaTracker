@@ -1,6 +1,6 @@
 import { NavLink, useNavigate, useParams } from "react-router";
 import { formStyles as styles } from "../../styles/form";
-import { useState, useEffect, type FormEvent } from "react";
+import { useState, useEffect, useRef, type FormEvent } from "react";
 import { apiFetch, errorMessages } from "../../lib/api";
 import type { Manga, MangaForm } from "../../lib/types";
 import CoverPicker from "../../components/coverPicker/CoverPicker";
@@ -9,6 +9,11 @@ import { usePrivatePage } from "../../lib/seo";
 import { GENRES } from "../../lib/content/genres";
 import { useVolumePicker } from "../../components/volumePicker/VolumePicker";
 import { parseVolumes } from "../../lib/ownedVolumes";
+import StatusField, {
+  type Stage,
+} from "../../components/statusField/StatusField";
+import { useBuyOptions } from "../Details/useBuyOptions";
+import { priceName } from "../../lib/prices";
 
 const DESC_MAX = 450;
 
@@ -20,12 +25,25 @@ export function UpdateManga() {
   const [title, setTitle] = useState("");
   const [image, setImage] = useState("");
   const [genre, setGenre] = useState("");
-  const [isFinished, setIsFinished] = useState(false);
+  const [stage, setStage] = useState<Stage>("reading");
+  const isFinished = stage === "finished";
+  // said under the field it's about, rather than by the browser
+  const [titleError, setTitleError] = useState("");
+  const titleInput = useRef<HTMLInputElement>(null);
   const [lightNovel, setLightNovel] = useState(false);
   const [description, setDescription] = useState("");
   const [error, setError] = useState<{ msg: string }[] | null>(null);
   const [submitting, setSubmitting] = useState(false);
-  const volumes = useVolumePicker({ volumesOwned: null });
+  // how many volumes are out, as the details page knows it, so the picker
+  // stops there and says "of 113"
+  const series = useBuyOptions(mangaData ? priceName(mangaData) : null, {
+    volumesOwned: mangaData?.volumesOwned ?? null,
+    ownedList: mangaData?.ownedList,
+  });
+  const volumes = useVolumePicker(
+    { volumesOwned: null },
+    series.latest?.volume ?? null,
+  );
   const { reset: resetVolumes } = volumes;
   // once the manga's here, the picker starts from what it has
   const loadedId = mangaData?.id;
@@ -42,7 +60,9 @@ export function UpdateManga() {
           throw new Error(`Error fetching data from the server`);
         const { manga } = (await response.json()) as { manga: Manga };
         setMangaData(manga);
-        setIsFinished(manga.status);
+        setStage(
+          manga.planned ? "planned" : manga.status ? "finished" : "reading",
+        );
         setLightNovel(Boolean(manga.lightNovel));
         setDescription(manga.description ?? "");
         setTitle(manga.name);
@@ -59,6 +79,11 @@ export function UpdateManga() {
 
   const handleFormSubmission = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    if (!title.trim()) {
+      setTitleError("Give it a title.");
+      titleInput.current?.focus();
+      return;
+    }
     const form = new FormData(e.currentTarget);
     const formData: MangaForm = {
       name: title,
@@ -66,11 +91,13 @@ export function UpdateManga() {
       genre,
       description,
       status: isFinished,
+      planned: stage === "planned",
       lightNovel,
       volumesOwned: String(form.get("volumesOwned") ?? ""),
       ownedList: parseVolumes(String(form.get("ownedList") ?? "")) ?? [],
     };
-    if (!isFinished) formData.bookmark = String(form.get("bookmark") ?? "");
+    if (stage === "reading")
+      formData.bookmark = String(form.get("bookmark") ?? "");
 
     setSubmitting(true);
     try {
@@ -106,10 +133,10 @@ export function UpdateManga() {
             ← back
           </NavLink>
           <h1 className={styles.formTitle}>Edit details</h1>
+          <p className={styles.formSub}>
+            Fix the title, cover or genre, or update where you're up to.
+          </p>
         </div>
-        <p className={styles.formSub}>
-          Fix the title, cover or genre, or update where you're up to.
-        </p>
       </div>
 
       <div>
@@ -127,21 +154,36 @@ export function UpdateManga() {
             />
           )
         ) : (
-          <form className={styles.sheet} onSubmit={handleFormSubmission}>
+          <form
+            className={styles.sheet}
+            onSubmit={handleFormSubmission}
+            noValidate
+          >
             <div className={`${styles.field} ${styles.titleField}`}>
               <label htmlFor="manganame" className={styles.label}>
                 Title <b>*</b>
               </label>
               <input
-                className={styles.input}
+                ref={titleInput}
+                className={`${styles.input} ${titleError ? styles.invalid : ""}`}
                 value={title}
-                onChange={(e) => setTitle(e.target.value)}
+                onChange={(e) => {
+                  setTitle(e.target.value);
+                  setTitleError("");
+                }}
                 type="text"
                 name="manganame"
                 id="manganame"
                 maxLength={150}
                 required
+                aria-invalid={Boolean(titleError) || undefined}
+                aria-describedby={titleError ? "manganame-error" : undefined}
               />
+              {titleError && (
+                <p id="manganame-error" className={styles.fieldError}>
+                  {titleError}
+                </p>
+              )}
             </div>
 
             <CoverPicker
@@ -152,8 +194,11 @@ export function UpdateManga() {
             />
 
             <div className={styles.details}>
+              <FormatField lightNovel={lightNovel} onChange={setLightNovel} />
+              <StatusField stage={stage} onChange={setStage} />
+
               <div className={styles.row}>
-                {!isFinished && (
+                {stage === "reading" && (
                   <div className={styles.field}>
                     <label htmlFor="bookmark" className={styles.label}>
                       Current chapter
@@ -195,40 +240,6 @@ export function UpdateManga() {
                 </div>
               </div>
               {volumes.field}
-
-              <FormatField lightNovel={lightNovel} onChange={setLightNovel} />
-
-              <div className={styles.field}>
-                <span className={styles.fieldLabel}>Status</span>
-                <div className={styles.segmented}>
-                  <input
-                    type="radio"
-                    id="status-ongoing"
-                    name="status"
-                    checked={!isFinished}
-                    onChange={() => setIsFinished(false)}
-                  />
-                  <label
-                    htmlFor="status-ongoing"
-                    className={styles.segmentLabel}
-                  >
-                    Still reading
-                  </label>
-                  <input
-                    type="radio"
-                    id="status-finished"
-                    name="status"
-                    checked={isFinished}
-                    onChange={() => setIsFinished(true)}
-                  />
-                  <label
-                    htmlFor="status-finished"
-                    className={styles.segmentLabel}
-                  >
-                    Finished it
-                  </label>
-                </div>
-              </div>
 
               <div className={`${styles.field} ${styles.notesField}`}>
                 <div className={styles.labelRow}>

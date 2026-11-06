@@ -198,21 +198,23 @@ export default function ProfileTab({ account }: { account: Account }) {
           />
           Share my list
         </label>
-        <label className={styles.row}>
-          <input
-            type="checkbox"
-            checked={account.shareNotes}
-            disabled={!account.shareEnabled}
-            onChange={(e) =>
-              save(
-                "share",
-                { shareNotes: e.target.checked },
-                e.target.checked ? "Your notes are shared." : "Your notes are private.",
-              )
-            }
-          />
-          Include my notes
-        </label>
+        {/* only once the list is shared: a greyed-out box gave no reason */}
+        {account.shareEnabled && (
+          <label className={styles.row}>
+            <input
+              type="checkbox"
+              checked={account.shareNotes}
+              onChange={(e) =>
+                save(
+                  "share",
+                  { shareNotes: e.target.checked },
+                  e.target.checked ? "Your notes are shared." : "Your notes are private.",
+                )
+              }
+            />
+            Include my notes
+          </label>
+        )}
         {noteFor("share")}
         {account.shareEnabled && account.shareCode && (
           <div className={styles.shareLink}>

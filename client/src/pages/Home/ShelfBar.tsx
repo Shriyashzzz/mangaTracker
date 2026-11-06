@@ -1,6 +1,8 @@
-// The shelf's bar: what you're looking at is its title (READING 431 ⌄), and
-// tapping it lists the others. New keeps a red stamp beside it, so its count
-// shows from every view (and the tour can point at it). Search takes the rest
+// The shelf's bar. Wider than a phone, every view is a tab in a row (ALL 12 ·
+// READING 8 · … · NEW 3), so they're all in sight. On phones what you're
+// looking at is the title (READING 431 ⌄), and tapping it lists the others;
+// New has its own place in the bottom bar there, with its count (and the
+// tour's target). Search takes the rest
 // of the row and never grows, so nothing moves when you click it; on phones it
 // waits behind a magnifier and takes the title's place while open. Sorting is
 // a menu: "Sorted by last bookmarked" on laptops, a sort button on phones.
@@ -81,7 +83,6 @@ export default function ShelfBar({
   onSort: (value: string) => void;
 }) {
   const shown = views.find((v) => v.value === current) ?? views[0]!;
-  const fresh = views.find((v) => v.value === "new");
   // the view they were on before New, for the way back (All if they arrived
   // on New)
   const [cameFrom, setCameFrom] = useState(current === "new" ? "all" : current);
@@ -97,6 +98,22 @@ export default function ShelfBar({
 
   return (
     <div className={styles.bar}>
+      {/* wider than a phone: every view in sight */}
+      <nav className={styles.tabs} aria-label="Your shelf">
+        {views.map((v) => (
+          <button
+            key={v.value}
+            type="button"
+            className={styles.tab}
+            aria-current={v.value === shown.value ? "page" : undefined}
+            data-tour={v.value === "new" ? "tab-new" : undefined}
+            onClick={() => onPick(v.value)}
+          >
+            <span className={styles.tabWord}>{v.label}</span>
+            <Count view={v} />
+          </button>
+        ))}
+      </nav>
       <div className={searching ? styles.leadSearching : styles.lead}>
         <ViewMenu
           views={views}
@@ -105,25 +122,6 @@ export default function ShelfBar({
           // the tour points at New: on New, that's the title
           tourTarget={current === "new" ? "tab-new" : undefined}
         />
-        {/* the way to New from anywhere else, with what's waiting there */}
-        {fresh && current !== "new" && (
-          <button
-            type="button"
-            data-tour="tab-new"
-            className={styles.newStamp}
-            onClick={() => onPick("new")}
-            aria-label={
-              fresh.count
-                ? `New: ${fresh.count} series with something new`
-                : "New releases"
-            }
-          >
-            New
-            {fresh.count != null && fresh.count > 0 && (
-              <span className={styles.newStampCount}>{fresh.count}</span>
-            )}
-          </button>
-        )}
         {/* on New: back to where they were */}
         {current === "new" && (
           <button
@@ -144,6 +142,8 @@ export default function ShelfBar({
         <input
           ref={input}
           type="search"
+          data-shelf-search
+          aria-keyshortcuts="/"
           placeholder="Find a title or genre"
           value={query}
           onChange={(e) => onQuery(e.target.value)}
@@ -178,13 +178,15 @@ export default function ShelfBar({
         <button
           type="button"
           className={styles.magnifier}
+          data-shelf-magnifier
           aria-label="Search your shelf"
           onClick={() => setSearchOpen(true)}
         >
           <SearchIcon />
         </button>
       )}
-      <SortMenu sortBy={sortBy} onSort={onSort} />
+      {/* New lists what's out, newest first: sorting says little there */}
+      {current !== "new" && <SortMenu sortBy={sortBy} onSort={onSort} />}
     </div>
   );
 }

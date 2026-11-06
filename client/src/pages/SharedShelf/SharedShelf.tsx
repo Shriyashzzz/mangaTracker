@@ -5,7 +5,7 @@ import Avatar from "../../components/avatar/Avatar";
 import Mascot from "../../components/mascot/Mascot";
 import StarRating from "../../components/starRating/StarRating";
 import { getSharedShelf, type SharedShelf } from "../../lib/account";
-import { FALLBACK_COVER } from "../../lib/api";
+import DrawnCover from "../../components/drawnCover/DrawnCover";
 import { usePageMeta } from "../../lib/seo";
 import { settingsStyles } from "../Settings/styles";
 
@@ -48,22 +48,26 @@ const styles = {
 
 type SharedManga = SharedShelf["manga"][number];
 
-const Cover = ({ m }: { m: SharedManga }) => (
-  <div className={styles.cover}>
-    <img
-      src={m.image || FALLBACK_COVER}
-      alt=""
-      loading="lazy"
-      className="absolute inset-0 size-full object-cover"
-      onError={(e) => {
-        if (e.currentTarget.src !== FALLBACK_COVER) {
-          e.currentTarget.src = FALLBACK_COVER;
-        }
-      }}
-    />
-    {m.status && <span className={styles.stamp}>Done</span>}
-  </div>
-);
+function Cover({ m }: { m: SharedManga }) {
+  // no cover, or one that won't load: its name, lettered on
+  const [broken, setBroken] = useState(false);
+  return (
+    <div className={styles.cover}>
+      {m.image && !broken ? (
+        <img
+          src={m.image}
+          alt=""
+          loading="lazy"
+          className="absolute inset-0 size-full object-cover"
+          onError={() => setBroken(true)}
+        />
+      ) : (
+        <DrawnCover title={m.name} />
+      )}
+      {m.status && <span className={styles.stamp}>Done</span>}
+    </div>
+  );
+}
 
 const Facts = ({ m }: { m: SharedManga }) => (
   <>
@@ -111,11 +115,7 @@ function NotesModal({ m, onClose }: { m: SharedManga; onClose: () => void }) {
         </button>
       </div>
       <div className={styles.modalBody}>
-        <img
-          src={m.image || FALLBACK_COVER}
-          alt=""
-          className={styles.modalCover}
-        />
+        {m.image && <img src={m.image} alt="" className={styles.modalCover} />}
         <p className={styles.notes}>{m.notes}</p>
       </div>
       <div className={styles.modalFoot}>

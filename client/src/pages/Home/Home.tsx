@@ -56,6 +56,18 @@ const BIG_SHELF = 10;
 const EARLY_CHECKS = 6;
 // how long the "Hide" note and its undo stay up
 const SEEN_NOTE_MS = 8000;
+// the shelf's views as the address names them (/shelf?tab=to-read)
+const URL_FROM_TAB: Record<string, string> = {
+  all: "all",
+  ongoing: "reading",
+  finished: "finished",
+  planned: "to-read",
+  volumes: "volumes",
+  new: "new",
+};
+const TAB_FROM_URL: Record<string, string> = Object.fromEntries(
+  Object.entries(URL_FROM_TAB).map(([tab, word]) => [word, tab]),
+);
 // Select's Move to, as the tabs name them
 const MOVE_LABELS = {
   finished: "Finished",
@@ -160,17 +172,37 @@ function Library() {
   const [query, setQuery] = useState(spot?.query ?? "");
   // in the address, so it's a step of its own: the back gesture leaves the list
   // and returns to New, and coming back from a volume lands on it again
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const wantHidden = searchParams.get("view") === "hidden";
   const checksOn = useReleaseChecksOn();
   const [statusFilter, setStatusFilter] = useState(() => {
     if (wantHidden && checksOn) return "new";
-    const saved = readSession("libraryStatus", readLocal("shelfTab") ?? "all");
+    // a link to a view (/shelf?tab=reading) wins over where they were last
+    const linked = TAB_FROM_URL[searchParams.get("tab") ?? ""];
+    const saved =
+      linked ?? readSession("libraryStatus", readLocal("shelfTab") ?? "all");
     // no New tab with release checks off
     return saved === "new" && !checksOn ? "all" : saved;
   });
   // switched off while on the New tab, or the account's choice just arrived
   if (!checksOn && statusFilter === "new") setStatusFilter("all");
+  // a link to another view while already on the shelf switches to it
+  const urlTab = searchParams.get("tab");
+  const [seenUrlTab, setSeenUrlTab] = useState(urlTab);
+  if (urlTab !== seenUrlTab) {
+    setSeenUrlTab(urlTab);
+    const linked = TAB_FROM_URL[urlTab ?? ""];
+    if (linked && linked !== statusFilter) setStatusFilter(linked);
+  }
+  // the view is in the address too, so it can be bookmarked or shared
+  // (replaced, not pushed: switching views doesn't fill the back button)
+  useEffect(() => {
+    const word = URL_FROM_TAB[statusFilter];
+    if (!word || searchParams.get("tab") === word) return;
+    const next = new URLSearchParams(searchParams);
+    next.set("tab", word);
+    setSearchParams(next, { replace: true });
+  }, [statusFilter, searchParams, setSearchParams]);
   const [sortBy, setSortBy] = useState(() => {
     const saved = readSession("librarySort", readLocal("shelfSort") ?? "");
     return SORT_OPTIONS.some((o) => o.value === saved) ? saved : "";
@@ -522,6 +554,31 @@ function Library() {
   ) : null;
 
   const goToAdd = () => navigator("/add", { viewTransition: true });
+
+  // shortcuts, for anyone with a keyboard: / searches the shelf, n adds one.
+  // Not while typing, with a dialog open, or with a modifier held
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.defaultPrevented || e.metaKey || e.ctrlKey || e.altKey) return;
+      const at = e.target as HTMLElement | null;
+      if (at?.closest("input, textarea, select, [contenteditable]")) return;
+      if (document.querySelector("dialog[open]")) return;
+      if (e.key === "/") {
+        e.preventDefault();
+        const magnifier = document.querySelector<HTMLElement>(
+          "[data-shelf-magnifier]",
+        );
+        if (magnifier?.getClientRects().length) magnifier.click();
+        else
+          document.querySelector<HTMLElement>("[data-shelf-search]")?.focus();
+      } else if (e.key === "n") {
+        e.preventDefault();
+        navigator("/add", { viewTransition: true });
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [navigator]);
 
   const openHidden = () => navigator("/shelf?view=hidden");
 
@@ -1388,16 +1445,14 @@ function Library() {
         <>
           <div className={styles.gridTools}>
             {pager(false)}
-            {canSelect && (
+            {/* while selecting, the bar's Done (or Escape) is the way out */}
+            {canSelect && !selectOn && (
               <button
                 type="button"
                 className={styles.selectToggle}
-                aria-pressed={selectOn}
-                onClick={() =>
-                  selectOn ? stopSelecting() : setSelecting(true)
-                }
+                onClick={() => setSelecting(true)}
               >
-                {selectOn ? "Done selecting" : "Select"}
+                Select
               </button>
             )}
           </div>
@@ -1524,11 +1579,32 @@ function Library() {
 
 // on small screens, adding sits within reach of a thumb. In a portal for the same
 // reason as the note above
+// slides away while they scroll down the shelf, so it doesn't sit over the
+// covers they're reading; back as soon as they scroll up or stop
+const ADD_BACK_AFTER_MS = 700;
 function AddButton({ onClick }: { onClick: () => void }) {
+  const [away, setAway] = useState(false);
+  useEffect(() => {
+    let last = window.scrollY;
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const onScroll = () => {
+      const y = window.scrollY;
+      if (y > last + 4 && y > 120) setAway(true);
+      else if (y < last - 4) setAway(false);
+      last = y;
+      clearTimeout(timer);
+      timer = setTimeout(() => setAway(false), ADD_BACK_AFTER_MS);
+    };
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => {
+      clearTimeout(timer);
+      window.removeEventListener("scroll", onScroll);
+    };
+  }, []);
   return createPortal(
     <button
       type="button"
-      className={styles.addButton}
+      className={`${styles.addButton}${away ? ` ${styles.addButtonAway}` : ""}`}
       aria-label="Add manga"
       data-tour="add"
       onClick={onClick}

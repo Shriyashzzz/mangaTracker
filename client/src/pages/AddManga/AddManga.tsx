@@ -13,6 +13,11 @@ import { useEffect } from "react";
 import { usePrivatePage } from "../../lib/seo";
 import { useVolumePicker } from "../../components/volumePicker/VolumePicker";
 import { parseVolumes } from "../../lib/ownedVolumes";
+import StatusField, {
+  type Stage,
+} from "../../components/statusField/StatusField";
+import { useBuyOptions } from "../Details/useBuyOptions";
+import { priceName } from "../../lib/prices";
 
 const DESC_MAX = 450;
 
@@ -21,9 +26,12 @@ export function AddManga() {
   const navigate = useNavigate();
   const isSignedIn = useAuth((s) => s.isSignedIn);
   // still reading, finished it, or want to read (not started, so no chapter)
-  const [stage, setStage] = useState<"reading" | "finished" | "planned">(
-    "reading",
-  );
+  const [stage, setStage] = useState<Stage>("reading");
+  // said under the field it's about, rather than by the browser
+  const [fieldErrors, setFieldErrors] = useState<{
+    title?: string;
+    bookmark?: string;
+  }>({});
   const isFinished = stage === "finished";
   const [searchParams] = useSearchParams();
   // "Add to my shelf" from the price checker passes the series name along
@@ -54,11 +62,20 @@ export function AddManga() {
   // from a volume's price page: they own that one volume (older links said
   // "up to" it)
   const fromVolume = Number(searchParams.get("ownedVolume")) || null;
-  const volumes = useVolumePicker({
-    volumesOwned:
-      fromVolume ?? (Number(searchParams.get("volumesOwned")) || null),
-    ownedList: fromVolume ? [fromVolume] : [],
-  });
+  // once they've picked a series, how many volumes are out, so the picker
+  // stops there and says "of 113"
+  const series = useBuyOptions(
+    pickedTitle ? priceName({ name: pickedTitle, lightNovel }) : null,
+    { volumesOwned: null },
+  );
+  const volumes = useVolumePicker(
+    {
+      volumesOwned:
+        fromVolume ?? (Number(searchParams.get("volumesOwned")) || null),
+      ownedList: fromVolume ? [fromVolume] : [],
+    },
+    series.latest?.volume ?? null,
+  );
   // signed-out visitors go to sign in, then come back here. null means the
   // server hasn't answered yet, so wait rather than bounce a signed-in user
   useEffect(() => {
@@ -81,6 +98,18 @@ export function AddManga() {
     e.preventDefault();
     setValidationError([]);
     const form = new FormData(e.currentTarget);
+    const missing = {
+      ...(!title.trim() && { title: "Give it a title." }),
+      ...(stage === "reading" &&
+        !String(form.get("bookmark") ?? "").trim() && {
+          bookmark: "Which chapter are you on? 0 if you haven't started.",
+        }),
+    };
+    setFieldErrors(missing);
+    if (missing.title || missing.bookmark) {
+      document.getElementById(missing.title ? "name" : "bookmark")?.focus();
+      return;
+    }
     const sendReq: MangaForm = {
       name: title,
       description,
@@ -128,7 +157,7 @@ export function AddManga() {
         </div>
       </div>
 
-      <form className={styles.sheet} onSubmit={handleFormSubmit}>
+      <form className={styles.sheet} onSubmit={handleFormSubmit} noValidate>
         <div
           className={`${styles.field} ${styles.titleField}`}
           data-tour="add-title"
@@ -138,7 +167,11 @@ export function AddManga() {
           </label>
           <TitleField
             value={title}
-            onChange={setTitle}
+            error={fieldErrors.title}
+            onChange={(next) => {
+              setTitle(next);
+              setFieldErrors((e) => ({ ...e, title: undefined }));
+            }}
             hits={
               found.query === title.trim() && pickedTitle !== title
                 ? found.hits
@@ -147,6 +180,11 @@ export function AddManga() {
             onPick={pickTitle}
             onPreview={setPreview}
           />
+          {fieldErrors.title && (
+            <p id="name-error" className={styles.fieldError}>
+              {fieldErrors.title}
+            </p>
+          )}
         </div>
 
         <CoverPicker
@@ -173,43 +211,7 @@ export function AddManga() {
               setLightNovel(value);
             }}
           />
-          <div className={styles.field}>
-            <span className={styles.fieldLabel}>
-              Status <b>*</b>
-            </span>
-            <div className={styles.segmented}>
-              <input
-                type="radio"
-                id="status-ongoing"
-                name="status"
-                checked={stage === "reading"}
-                onChange={() => setStage("reading")}
-              />
-              <label htmlFor="status-ongoing" className={styles.segmentLabel}>
-                Still reading
-              </label>
-              <input
-                type="radio"
-                id="status-finished"
-                name="status"
-                checked={isFinished}
-                onChange={() => setStage("finished")}
-              />
-              <label htmlFor="status-finished" className={styles.segmentLabel}>
-                Finished it
-              </label>
-              <input
-                type="radio"
-                id="status-planned"
-                name="status"
-                checked={stage === "planned"}
-                onChange={() => setStage("planned")}
-              />
-              <label htmlFor="status-planned" className={styles.segmentLabel}>
-                Want to read
-              </label>
-            </div>
-          </div>
+          <StatusField stage={stage} onChange={setStage} required />
 
           <div className={styles.row}>
             {stage === "reading" && (
@@ -218,7 +220,7 @@ export function AddManga() {
                   Current chapter <b>*</b>
                 </label>
                 <input
-                  className={styles.input}
+                  className={`${styles.input} ${fieldErrors.bookmark ? styles.invalid : ""}`}
                   inputMode="decimal"
                   id="bookmark"
                   name="bookmark"
@@ -227,7 +229,19 @@ export function AddManga() {
                   step="any"
                   placeholder="e.g. 1073"
                   required
+                  aria-invalid={Boolean(fieldErrors.bookmark) || undefined}
+                  aria-describedby={
+                    fieldErrors.bookmark ? "bookmark-error" : undefined
+                  }
+                  onChange={() =>
+                    setFieldErrors((e) => ({ ...e, bookmark: undefined }))
+                  }
                 />
+                {fieldErrors.bookmark && (
+                  <p id="bookmark-error" className={styles.fieldError}>
+                    {fieldErrors.bookmark}
+                  </p>
+                )}
               </div>
             )}
             <div className={styles.field}>

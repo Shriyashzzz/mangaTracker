@@ -1,6 +1,7 @@
 // The masthead: logo, the two halves of the app (My shelf, Prices; a bar along
-// the bottom on phones), and the settings menu. Sits on a newspaper-style double rule.
-import { useEffect } from "react";
+// the bottom on phones, with New between them so what's out is a thumb away),
+// and the settings menu. Sits on a newspaper-style double rule.
+import { useEffect, useMemo } from "react";
 import { NavLink, useLocation, useNavigate } from "react-router";
 import clsx from "clsx";
 // same mark as the favicon: a manga volume in an inked panel
@@ -8,6 +9,9 @@ import logo from "../../assets/logo.svg";
 import SettingsMenu from "../../components/settingsMenu/SettingsMenu";
 import { useFromShelf } from "../../lib/fromShelf";
 import { probablySignedIn, useAuth } from "../../store/auth";
+import { useShelf } from "../../store/shelf";
+import { readLocal, useReleaseChecksOn } from "../../lib/prefs";
+import { LAST_NEW_COUNT_KEY } from "../../lib/shelf";
 import {
   forgetAllSpots,
   forgetSpot,
@@ -26,12 +30,15 @@ const linkClass = (active: boolean) =>
     active ? "squiggle text-ink" : "text-ink-soft",
   );
 
-// one side of the phones' bottom bar: the whole width is the target
+// one part of the phones' bottom bar: the whole width is the target
 const barClass = (active: boolean) =>
   clsx(
-    "grid min-h-14 flex-1 place-items-center font-brand text-[1.2rem] tracking-[1px] uppercase transition-colors duration-150",
+    "group flex min-h-14 flex-1 items-center justify-center gap-1.5 font-brand text-[1.2rem] tracking-[1px] uppercase transition-colors duration-150",
     active ? "bg-accent text-on-accent" : "text-ink-soft",
   );
+// New's count in the bar: red on paper, paper on red once it's the one open
+const barCount =
+  "rounded-[3px] bg-accent px-1.5 font-mono text-[0.78rem] leading-[1.35] tracking-normal text-on-accent tabular-nums group-data-on:bg-on-accent group-data-on:text-accent";
 
 export default function Header() {
   const navigate = useNavigate();
@@ -40,6 +47,23 @@ export default function Header() {
   const fromShelf = useFromShelf();
   const { isSignedIn, logOut } = useAuth();
   const here = pathname + search;
+  // the shelf's New view has its own place in the phones' bar
+  const onNew =
+    pathname === "/shelf" && new URLSearchParams(search).get("tab") === "new";
+  const checksOn = useReleaseChecksOn();
+  const manga = useShelf((s) => s.manga);
+  const releases = useShelf((s) => s.releases);
+  // what's new, as the shelf counts it: from this visit's checks once there
+  // are any, else what the last full check found
+  const newCount = useMemo(() => {
+    if (manga && Object.keys(releases).length)
+      return manga.filter(
+        (m) =>
+          !m.planned &&
+          (releases[m.id]?.hasNewVolume || releases[m.id]?.hasNewChapter),
+      ).length;
+    return Number(readLocal(LAST_NEW_COUNT_KEY)) || 0;
+  }, [manga, releases]);
   const currentTab = fromShelf ? "shelf" : tabOf(pathname);
   // the home page anyone new sees is both halves of the app, so neither lights up
   const guestHome =
@@ -145,11 +169,31 @@ export default function Header() {
       >
         <NavLink
           {...barLink("shelf")}
-          className={() => barClass(currentTab === "shelf")}
+          // from New, or back to a shelf last left on New: the shelf itself
+          to={
+            onNew || /[?&]tab=new/.test(barLink("shelf").to)
+              ? "/shelf?tab=all"
+              : barLink("shelf").to
+          }
+          className={() => barClass(currentTab === "shelf" && !onNew)}
           viewTransition
         >
           My shelf
         </NavLink>
+        {isSignedIn && checksOn && (
+          <NavLink
+            to="/shelf?tab=new"
+            onClick={() => leaveTabFor("shelf", currentTab, here)}
+            data-tour="tab-new"
+            className={() => barClass(onNew)}
+            data-on={onNew || undefined}
+            aria-label={newCount ? `New: ${newCount} series` : "New"}
+            viewTransition
+          >
+            New
+            {newCount > 0 && <span className={barCount}>{newCount}</span>}
+          </NavLink>
+        )}
         <NavLink
           {...barLink("prices")}
           data-tour="tab-prices"

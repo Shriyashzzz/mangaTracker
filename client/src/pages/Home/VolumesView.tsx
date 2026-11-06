@@ -13,6 +13,7 @@ import {
   coverSrc,
   getSeries,
   hideBrokenCover,
+  hidePlaceholderCover,
   priceName,
   volumePath,
 } from "../../lib/prices";
@@ -132,6 +133,7 @@ function SeriesRow({
               alt=""
               loading="lazy"
               onError={hideBrokenCover}
+              onLoad={hidePlaceholderCover}
             />
           )}
         </span>
