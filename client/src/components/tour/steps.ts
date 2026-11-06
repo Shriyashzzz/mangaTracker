@@ -181,7 +181,7 @@ const PARTS: { name: string; lines: Line[] }[] = [
         target: "shelf",
         allTab: true,
         onTop: true,
-        say: "Same shelf, more on one screen. Switch back in settings any time.",
+        say: "Same shelf, more on one screen. Switch to this in settings any time.",
       },
     ],
   },
