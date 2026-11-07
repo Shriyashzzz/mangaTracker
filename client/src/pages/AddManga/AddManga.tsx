@@ -1,15 +1,19 @@
 import { NavLink, useNavigate, useSearchParams } from "react-router";
 import { formStyles as styles } from "../../styles/form";
-import { useRef, useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
+import {
+  ChevronDownIcon,
+  ChevronLeftIcon,
+  LinkIcon,
+} from "../../components/icons/Icons";
 import { apiFetch, errorMessages, signInPath } from "../../lib/api";
 import type { MangaForm } from "../../lib/types";
 import { useAuth } from "../../store/auth";
 import { GENRES } from "../../lib/content/genres";
-import CoverPicker from "../../components/coverPicker/CoverPicker";
 import type { CoverHit } from "../../lib/anilist";
+import { useCoverSearch } from "../../components/coverPicker/useCoverSearch";
 import TitleField from "./TitleField";
 import FormatField from "../../components/formatField/FormatField";
-import { useEffect } from "react";
 import { usePrivatePage } from "../../lib/seo";
 import { useVolumePicker } from "../../components/volumePicker/VolumePicker";
 import { parseVolumes } from "../../lib/ownedVolumes";
@@ -21,13 +25,25 @@ import { priceName } from "../../lib/prices";
 import { chapterProblem, coverLinkProblem } from "../../lib/formChecks";
 
 const DESC_MAX = 450;
+// AniList's matches in the title dropdown
+const MATCHES = 12;
+// whether they left "More about it" open last time
+const MORE_KEY = "addMoreOpen";
 
+// The add page, in two parts on one page: search the title and pick the
+// series (or keep what they typed), then the rest opens under it. Only
+// what's needed to save shows; everything optional is folded into "More
+// about it", which remembers being left open
 export function AddManga() {
   usePrivatePage("Add manga");
   const navigate = useNavigate();
   const isSignedIn = useAuth((s) => s.isSignedIn);
   // still reading, finished it, or want to read (not started, so no chapter)
   const [stage, setStage] = useState<Stage>("reading");
+  // kept here rather than in the box: the box goes when they press Change or
+  // pick another status, and what they typed must survive that. 0 to start,
+  // so a first save goes through
+  const [chapter, setChapter] = useState("0");
   // said under the field it's about, rather than by the browser
   const [fieldErrors, setFieldErrors] = useState<{
     title?: string;
@@ -37,18 +53,17 @@ export function AddManga() {
   const isFinished = stage === "finished";
   const [searchParams] = useSearchParams();
   // "Add to my shelf" from the price checker passes the series name along
-  const [title, setTitle] = useState(() =>
-    (searchParams.get("title") ?? "").slice(0, 150),
-  );
+  const fromPrices = (searchParams.get("title") ?? "").slice(0, 150);
+  const [title, setTitle] = useState(fromPrices);
+  // the series they picked from AniList's matches; null for as typed
+  const [picked, setPicked] = useState<CoverHit | null>(null);
+  // past the search: the rest of the form is open. A title from the price
+  // checker starts there, and its own match is picked once AniList answers
+  const [chosen, setChosen] = useState(Boolean(fromPrices));
   const [image, setImage] = useState("");
-  // AniList's guesses at the title, and whether they've picked one of them
-  const [found, setFound] = useState<{ query: string; hits: CoverHit[] }>({
-    query: "",
-    hits: [],
-  });
-  const [pickedTitle, setPickedTitle] = useState<string | null>(null);
-  // the suggestion under the mouse: its cover shows until they move away
-  const [preview, setPreview] = useState<CoverHit | null>(null);
+  // their own cover link, open only once they ask for it
+  const [ownCover, setOwnCover] = useState(false);
+  const [brokenCover, setBrokenCover] = useState<string | null>(null);
   const [genre, setGenre] = useState("");
   // set by the AniList title they pick, until they choose it themselves. A
   // light novel's price page says so up front (format=novel)
@@ -56,7 +71,7 @@ export function AddManga() {
   const [lightNovel, setLightNovel] = useState(novelFromPrices);
   const formatTouched = useRef(novelFromPrices);
   const [genreFromAniList, setGenreFromAniList] = useState(false);
-  // a genre the user picked by hand is never overwritten by a cover match
+  // a genre the user picked by hand is never overwritten by a match
   const genreTouched = useRef(false);
   const [description, setDescription] = useState("");
   const [validationError, setValidationError] = useState<{ msg: string }[]>([]);
@@ -64,20 +79,60 @@ export function AddManga() {
   // from a volume's price page: they own that one volume (older links said
   // "up to" it)
   const fromVolume = Number(searchParams.get("ownedVolume")) || null;
+  const volumesFromLink =
+    fromVolume ?? (Number(searchParams.get("volumesOwned")) || null);
+  // open when a link brought volumes along, so they see them; else as
+  // they left it
+  const [moreOpen, setMoreOpen] = useState(
+    () => Boolean(volumesFromLink) || localStorage.getItem(MORE_KEY) === "1",
+  );
   // once they've picked a series, how many volumes are out, so the picker
   // stops there and says "of 113"
   const series = useBuyOptions(
-    pickedTitle ? priceName({ name: pickedTitle, lightNovel }) : null,
+    picked ? priceName({ name: picked.title, lightNovel }) : null,
     { volumesOwned: null },
   );
   const volumes = useVolumePicker(
     {
-      volumesOwned:
-        fromVolume ?? (Number(searchParams.get("volumesOwned")) || null),
+      volumesOwned: volumesFromLink,
       ownedList: fromVolume ? [fromVolume] : [],
     },
     series.latest?.volume ?? null,
   );
+
+  // the price checker's title gets its match picked once, unless they've
+  // chosen something themselves first
+  const autoPick = useRef(Boolean(fromPrices));
+  const pickTitle = (hit: CoverHit) => {
+    autoPick.current = false;
+    setTitle(hit.title);
+    setPicked(hit);
+    setChosen(true);
+    setFieldErrors({});
+    // their own link wins over the match's cover
+    if (!ownCover) setImage(hit.cover);
+    if (!formatTouched.current) setLightNovel(hit.lightNovel);
+    // the match's genre, or none: never one left from an earlier match
+    if (!genreTouched.current) {
+      setGenre(hit.genre ?? "");
+      setGenreFromAniList(Boolean(hit.genre));
+    }
+  };
+  // looked up while they search, and for the price checker's title until
+  // its match is picked; not once the rest of the form is open
+  const searching = !chosen || (!picked && title === fromPrices);
+  const search = useCoverSearch(searching ? title : "", {
+    perPage: MATCHES,
+    // the price checker's title: its own match, picked for them
+    onFound: (hits, query) => {
+      if (!autoPick.current || query !== fromPrices.trim()) return;
+      const same = hits.find(
+        (h) => h.title.toLowerCase() === query.toLowerCase(),
+      );
+      if (same) pickTitle(same);
+    },
+  });
+
   // signed-out visitors go to sign in, then come back here. null means the
   // server hasn't answered yet, so wait rather than bounce a signed-in user
   useEffect(() => {
@@ -86,21 +141,36 @@ export function AddManga() {
     }
   }, [isSignedIn, navigate, searchParams]);
 
-  const pickTitle = (hit: CoverHit) => {
-    setTitle(hit.title);
-    setPickedTitle(hit.title);
-    setImage(hit.cover);
-    if (!formatTouched.current) setLightNovel(hit.lightNovel);
-    if (hit.genre && !genreTouched.current) {
-      setGenre(hit.genre);
-      setGenreFromAniList(true);
+  const asTyped = () => {
+    autoPick.current = false;
+    // an earlier match's type doesn't carry over to a title it isn't
+    if (!formatTouched.current) setLightNovel(novelFromPrices);
+    setPicked(null);
+    if (!genreTouched.current) {
+      setGenre("");
+      setGenreFromAniList(false);
     }
+    setChosen(true);
+    setFieldErrors({});
+    if (!ownCover) setImage("");
   };
+  // back to the search, with what they had in the box
+  const change = () => {
+    autoPick.current = false;
+    setChosen(false);
+    setPicked(null);
+    requestAnimationFrame(() => document.getElementById("name")?.focus());
+  };
+  const closeOwnCover = () => {
+    setOwnCover(false);
+    setImage(picked?.cover ?? "");
+    setFieldErrors((e) => ({ ...e, image: undefined }));
+  };
+
   const handleFormSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setValidationError([]);
     const form = new FormData(e.currentTarget);
-    const chapter = String(form.get("bookmark") ?? "");
     const missing = {
       title: !title.trim() ? "Give it a title." : undefined,
       bookmark:
@@ -109,18 +179,22 @@ export function AddManga() {
           : !chapter.trim()
             ? "Which chapter are you on? 0 if you haven't started."
             : chapterProblem(chapter),
-      image: coverLinkProblem(image),
+      image: ownCover ? coverLinkProblem(image) : undefined,
     };
     setFieldErrors(missing);
-    const first = missing.title
-      ? "name"
-      : missing.bookmark
-        ? "bookmark"
-        : missing.image
-          ? "cover-link"
-          : null;
+    if (missing.title) {
+      change();
+      return;
+    }
+    const first = missing.bookmark
+      ? "bookmark"
+      : missing.image
+        ? "cover-link"
+        : null;
     if (first) {
-      document.getElementById(first)?.focus();
+      const field = document.getElementById(first);
+      field?.scrollIntoView({ block: "center" });
+      field?.focus({ preventScroll: true });
       return;
     }
     const sendReq: MangaForm = {
@@ -134,8 +208,7 @@ export function AddManga() {
       volumesOwned: String(form.get("volumesOwned") ?? ""),
       ownedList: parseVolumes(String(form.get("ownedList") ?? "")) ?? [],
     };
-    if (stage === "reading")
-      sendReq.bookmark = String(form.get("bookmark") ?? "");
+    if (stage === "reading") sendReq.bookmark = chapter;
 
     setSubmitting(true);
     try {
@@ -159,193 +232,311 @@ export function AddManga() {
     }
   };
 
+  const genreName = GENRES.find((g) => g.value === genre)?.label;
+  const meta = [
+    lightNovel ? "Light novel" : "Manga",
+    picked?.year,
+    genreName,
+  ].filter(Boolean);
+  const coverShows = Boolean(image) && brokenCover !== image;
+
   return (
-    <div className={`${styles.page} fade-in`}>
-      <div className={styles.pageHead}>
-        <div>
-          <NavLink to="/shelf" className={styles.backLink} viewTransition>
-            ← back to the shelf
+    <div className={`${styles.addPage} fade-in`}>
+      <form
+        className={`${styles.addSheet} ${styles.sheetCaptioned}`}
+        onSubmit={handleFormSubmit}
+        noValidate
+      >
+        {/* the page's title set into the box's top edge, like a manga
+            panel's caption, with the way back in the other corner: one row
+            instead of a header above the form */}
+        <div className={styles.caption}>
+          <h1 className={styles.captionTitle}>New entry</h1>
+          <NavLink
+            to="/shelf"
+            className={styles.captionBack}
+            aria-label="Back to the shelf"
+            viewTransition
+          >
+            <ChevronLeftIcon aria-hidden />
+            Shelf
           </NavLink>
-          <h1 className={styles.formTitle}>New entry</h1>
-        </div>
-      </div>
-
-      <form className={styles.sheet} onSubmit={handleFormSubmit} noValidate>
-        <div
-          className={`${styles.field} ${styles.titleField}`}
-          data-tour="add-title"
-        >
-          <label htmlFor="name" className={styles.label}>
-            Title <b>*</b>
-          </label>
-          <TitleField
-            value={title}
-            error={fieldErrors.title}
-            onChange={(next) => {
-              setTitle(next);
-              setFieldErrors((e) => ({ ...e, title: undefined }));
-            }}
-            hits={
-              found.query === title.trim() && pickedTitle !== title
-                ? found.hits
-                : []
-            }
-            onPick={pickTitle}
-            onPreview={setPreview}
-          />
-          {fieldErrors.title && (
-            <p id="name-error" className={styles.fieldError}>
-              {fieldErrors.title}
-            </p>
-          )}
         </div>
 
-        <CoverPicker
-          className={styles.coverArea}
-          title={title}
-          value={image}
-          error={fieldErrors.image}
-          previewUrl={preview?.cover}
-          coverChosen={pickedTitle === title}
-          onResults={(hits, query) => setFound({ query, hits })}
-          onChange={(url, match) => {
-            setImage(url);
-            setFieldErrors((e) => ({ ...e, image: undefined }));
-            if (match?.genre && !genreTouched.current) {
-              setGenre(match.genre);
-              setGenreFromAniList(true);
-            }
-          }}
-        />
+        {!chosen ? (
+          <div className={styles.field} data-tour="add-title">
+            <label htmlFor="name" className={styles.label}>
+              Title <b>*</b>
+            </label>
+            <TitleField
+              value={title}
+              error={fieldErrors.title}
+              onChange={(next) => {
+                setTitle(next);
+                setFieldErrors((e) => ({ ...e, title: undefined }));
+              }}
+              hits={search.query === title.trim() ? search.hits : []}
+              status={search.status}
+              onPick={pickTitle}
+              onTyped={asTyped}
+            />
+            {fieldErrors.title ? (
+              <p id="name-error" className={styles.fieldError}>
+                {fieldErrors.title}
+              </p>
+            ) : (
+              <p className={styles.hint}>
+                Pick it from the list and the cover, type and genre come with
+                it.
+              </p>
+            )}
+          </div>
+        ) : (
+          <>
+            <div className={styles.picked} data-tour="add-title">
+              {coverShows ? (
+                <span className={styles.pickedCover}>
+                  <img
+                    src={image}
+                    alt=""
+                    onError={() => setBrokenCover(image)}
+                  />
+                </span>
+              ) : (
+                <span className={styles.pickedBlank}>
+                  {image ? "link not loading" : "no cover"}
+                </span>
+              )}
+              <div className="min-w-0">
+                <h2 className={styles.pickedName}>{title}</h2>
+                <p className={styles.pickedMeta}>
+                  {picked ? meta.join(" · ") : "As you typed it"}
+                </p>
+                <div className={styles.pickedActs}>
+                  <button
+                    type="button"
+                    className={styles.textLink}
+                    onClick={change}
+                  >
+                    Change
+                  </button>
+                  {!ownCover && (
+                    <button
+                      type="button"
+                      className={styles.textLink}
+                      onClick={() => {
+                        setOwnCover(true);
+                        setImage("");
+                        requestAnimationFrame(() =>
+                          document.getElementById("cover-link")?.focus(),
+                        );
+                      }}
+                    >
+                      <LinkIcon />
+                      {picked ? "Use my own cover" : "Add a cover image"}
+                    </button>
+                  )}
+                </div>
+              </div>
+            </div>
 
-        <div className={styles.details}>
-          <FormatField
-            lightNovel={lightNovel}
-            onChange={(value) => {
-              formatTouched.current = true;
-              setLightNovel(value);
-            }}
-          />
-          <StatusField
-            stage={stage}
-            onChange={(next) => {
-              setStage(next);
-              // a chapter it asked for may not be asked for now
-              setFieldErrors((e) => ({ ...e, bookmark: undefined }));
-            }}
-            required
-          />
-
-          <div className={styles.row}>
-            {stage === "reading" && (
+            {ownCover && (
               <div className={styles.field}>
-                <label htmlFor="bookmark" className={styles.label}>
-                  Current chapter <b>*</b>
+                <label htmlFor="cover-link" className={styles.label}>
+                  Your own cover{" "}
+                  <span className={styles.optional}>· an image link</span>
                 </label>
-                <input
-                  className={`${styles.input} ${fieldErrors.bookmark ? styles.invalid : ""}`}
-                  inputMode="decimal"
-                  id="bookmark"
-                  name="bookmark"
-                  type="number"
-                  min="0"
-                  step="any"
-                  placeholder="e.g. 1073"
-                  required
-                  aria-invalid={Boolean(fieldErrors.bookmark) || undefined}
-                  aria-describedby={
-                    fieldErrors.bookmark ? "bookmark-error" : undefined
-                  }
-                  onChange={() =>
-                    setFieldErrors((e) => ({ ...e, bookmark: undefined }))
-                  }
-                />
-                {fieldErrors.bookmark && (
-                  <p id="bookmark-error" className={styles.fieldError}>
-                    {fieldErrors.bookmark}
+                <div className={styles.linkRow}>
+                  <input
+                    className={`${styles.input} ${fieldErrors.image ? styles.invalid : ""}`}
+                    type="url"
+                    id="cover-link"
+                    name="image"
+                    placeholder="https://…"
+                    value={image}
+                    onChange={(e) => {
+                      setImage(e.target.value.trim());
+                      setFieldErrors((er) => ({ ...er, image: undefined }));
+                    }}
+                    aria-invalid={Boolean(fieldErrors.image) || undefined}
+                    aria-describedby={
+                      fieldErrors.image ? "cover-link-error" : undefined
+                    }
+                  />
+                  <button
+                    type="button"
+                    className={styles.textLink}
+                    onClick={closeOwnCover}
+                  >
+                    {picked ? "Use theirs" : "Remove link"}
+                  </button>
+                </div>
+                {fieldErrors.image && (
+                  <p id="cover-link-error" className={styles.fieldError}>
+                    {fieldErrors.image}
                   </p>
                 )}
               </div>
             )}
-            <div className={styles.field}>
-              <label htmlFor="genre" className={styles.label}>
-                Genre{" "}
-                <span className={styles.optional}>
-                  {genreFromAniList ? "(from AniList)" : "(optional)"}
-                </span>
-              </label>
-              <select
-                className={styles.select}
-                name="genre"
-                id="genre"
-                value={genre}
-                onChange={(e) => {
-                  genreTouched.current = true;
-                  setGenre(e.target.value);
-                  setGenreFromAniList(false);
-                }}
-              >
-                <option value="">Select a genre</option>
-                {GENRES.map((g) => (
-                  <option key={g.value} value={g.value}>
-                    {g.label}
-                  </option>
-                ))}
-              </select>
-            </div>
-          </div>
-          {volumes.field}
 
-          <div className={`${styles.field} ${styles.notesField}`}>
-            <div className={styles.labelRow}>
-              <label htmlFor="description" className={styles.label}>
-                Notes <span className={styles.optional}>(optional)</span>
-              </label>
-              <span className={styles.counter}>
-                {description.length}/{DESC_MAX}
-              </span>
-            </div>
-            <textarea
-              className={styles.textarea}
-              id="description"
-              name="description"
-              placeholder={
-                lightNovel
-                  ? "Your thoughts on the novel…"
-                  : "Your thoughts on the manga…"
+            {/* the chapter, when it's asked for, beside the choice that
+                asks for it (under it on phones) */}
+            <div
+              className={
+                stage === "reading" ? styles.statusRow : styles.statusAlone
               }
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              maxLength={DESC_MAX}
-            />
-          </div>
-
-          {validationError.length != 0 && (
-            <ul className={styles.errorList} role="alert">
-              {validationError.map((e) => (
-                <li key={e.msg}>{e.msg}</li>
-              ))}
-            </ul>
-          )}
-
-          <div className={styles.btnContainer}>
-            <NavLink
-              to="/shelf"
-              className="btn btn-ghost"
-              viewTransition
-              replace
             >
-              Cancel
-            </NavLink>
-            <button
-              type="submit"
-              className="btn btn-primary"
-              disabled={submitting}
+              <StatusField
+                stage={stage}
+                onChange={(next) => {
+                  setStage(next);
+                  // a chapter it asked for may not be asked for now
+                  setFieldErrors((e) => ({ ...e, bookmark: undefined }));
+                }}
+                required
+              />
+              {stage === "reading" && (
+                <div className={styles.chapterField}>
+                  <label htmlFor="bookmark" className={styles.label}>
+                    Current chapter <b>*</b>
+                  </label>
+                  <input
+                    className={`${styles.input} ${fieldErrors.bookmark ? styles.invalid : ""}`}
+                    inputMode="decimal"
+                    id="bookmark"
+                    name="bookmark"
+                    type="number"
+                    min="0"
+                    step="any"
+                    value={chapter}
+                    placeholder="e.g. 1073"
+                    required
+                    aria-invalid={Boolean(fieldErrors.bookmark) || undefined}
+                    aria-describedby={
+                      fieldErrors.bookmark ? "bookmark-error" : undefined
+                    }
+                    onChange={(e) => {
+                      setChapter(e.target.value);
+                      setFieldErrors((er) => ({ ...er, bookmark: undefined }));
+                    }}
+                  />
+                  {fieldErrors.bookmark && (
+                    <p id="bookmark-error" className={styles.fieldError}>
+                      {fieldErrors.bookmark}
+                    </p>
+                  )}
+                </div>
+              )}
+            </div>
+
+            <details
+              className={styles.more}
+              open={moreOpen}
+              onToggle={(e) => {
+                const open = e.currentTarget.open;
+                setMoreOpen(open);
+                localStorage.setItem(MORE_KEY, open ? "1" : "0");
+              }}
             >
-              {submitting ? "Adding…" : "Put it on the shelf"}
-            </button>
-          </div>
-        </div>
+              <summary className={styles.moreSummary}>
+                <span className={styles.moreTitle}>More about it</span>
+                <span className={styles.moreSub}>
+                  Volumes, notes, type, genre
+                </span>
+                <span className={styles.moreArrow} aria-hidden>
+                  <ChevronDownIcon />
+                </span>
+              </summary>
+              <div className={styles.moreBody}>
+                {volumes.field}
+                <div className={styles.row}>
+                  <FormatField
+                    lightNovel={lightNovel}
+                    onChange={(value) => {
+                      formatTouched.current = true;
+                      setLightNovel(value);
+                    }}
+                  />
+                  <div className={styles.field}>
+                    <label htmlFor="genre" className={styles.label}>
+                      Genre{" "}
+                      {genreFromAniList && (
+                        <span className={styles.optional}>(from AniList)</span>
+                      )}
+                    </label>
+                    <select
+                      className={styles.select}
+                      name="genre"
+                      id="genre"
+                      value={genre}
+                      onChange={(e) => {
+                        genreTouched.current = true;
+                        setGenre(e.target.value);
+                        setGenreFromAniList(false);
+                      }}
+                    >
+                      <option value="">Select a genre</option>
+                      {GENRES.map((g) => (
+                        <option key={g.value} value={g.value}>
+                          {g.label}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+                <div className={styles.field}>
+                  <div className={styles.labelRow}>
+                    <label htmlFor="description" className={styles.label}>
+                      Notes
+                    </label>
+                    <span className={styles.counter}>
+                      {description.length}/{DESC_MAX}
+                    </span>
+                  </div>
+                  <textarea
+                    className={styles.textarea}
+                    id="description"
+                    name="description"
+                    placeholder={
+                      lightNovel
+                        ? "Your thoughts on the novel…"
+                        : "Your thoughts on the manga…"
+                    }
+                    value={description}
+                    onChange={(e) => setDescription(e.target.value)}
+                    maxLength={DESC_MAX}
+                  />
+                </div>
+              </div>
+            </details>
+
+            {validationError.length != 0 && (
+              <ul className={styles.errorList} role="alert">
+                {validationError.map((e) => (
+                  <li key={e.msg}>{e.msg}</li>
+                ))}
+              </ul>
+            )}
+
+            <div className={styles.addActions}>
+              <NavLink
+                to="/shelf"
+                className="btn btn-ghost"
+                viewTransition
+                replace
+              >
+                Cancel
+              </NavLink>
+              <button
+                type="submit"
+                className="btn btn-primary"
+                disabled={submitting}
+              >
+                {submitting ? "Adding…" : "Put it on the shelf"}
+              </button>
+            </div>
+          </>
+        )}
       </form>
     </div>
   );

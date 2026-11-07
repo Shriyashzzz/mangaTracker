@@ -34,6 +34,16 @@ export function apiFetch(
   });
 }
 
+// a failed request, with the server's message and its status (404 and the
+// rest), so callers can tell "not there" from "didn't answer"
+export class HttpError extends Error {
+  readonly status: number;
+  constructor(message: string, status: number) {
+    super(message);
+    this.status = status;
+  }
+}
+
 // GET as JSON. Throws with the server's own message so pages can show it
 export async function getJson<T>(
   path: string,
@@ -42,9 +52,10 @@ export async function getJson<T>(
   const res = await apiFetch(path, { signal });
   const data = await res.json().catch(() => null);
   if (!res.ok) {
-    throw new Error(
+    throw new HttpError(
       (data as ApiError | null)?.error?.[0]?.msg ??
         "Something went wrong. Try again.",
+      res.status,
     );
   }
   return data as T;

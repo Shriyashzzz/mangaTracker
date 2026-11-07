@@ -31,7 +31,11 @@ type Media = {
   averageScore: number | null;
   genres: string[] | null;
   synonyms: string[] | null;
-  title: { english: string | null; romaji: string | null };
+  title: {
+    english: string | null;
+    romaji: string | null;
+    native?: string | null;
+  };
   coverImage: { large: string | null; medium?: string | null } | null;
   description: string | null;
   rankings: { rank: number; type: string; allTime: boolean }[] | null;
@@ -146,7 +150,7 @@ const SERIES_QUERY = `
   query ($search: String, $format: MediaFormat) {
     Media(search: $search, type: MANGA, format: $format, sort: SEARCH_MATCH) {
       id siteUrl status volumes averageScore genres synonyms
-      title { english romaji }
+      title { english romaji native }
       coverImage { large }
       description(asHtml: false)
       rankings { rank type allTime }
@@ -161,7 +165,7 @@ const NOVEL_SERIES_QUERY = `
     Page(perPage: 5) {
       media(search: $search, type: MANGA, format: NOVEL, sort: SEARCH_MATCH) {
         id siteUrl status volumes averageScore genres synonyms
-        title { english romaji }
+        title { english romaji native }
         coverImage { large }
         description(asHtml: false)
         rankings { rank type allTime }
@@ -194,6 +198,9 @@ const toInfo = (m: Media): SeriesInfo => ({
   siteUrl: m.siteUrl,
   status: m.status,
   volumes: m.volumes ?? null,
+  // saved with the rest; rows from before it was asked for get it on a later
+  // visit, a few a minute (see mayAskForNative)
+  nativeName: m.title.native ?? null,
   // other names, e.g. Detective Conan is published in the US as Case Closed
   altNames: [m.title.romaji, ...(m.synonyms ?? [])].filter(
     (n): n is string => !!n && /^[\x20-\x7e’]+$/.test(n),
@@ -260,6 +267,19 @@ export async function listKnownSeries(): Promise<SeriesInfo[]> {
 export const isComplete = (info: unknown) =>
   info == null || Array.isArray((info as Partial<SeriesInfo>).altNames);
 
+// a row saved before the native name was asked for gets it on a later visit,
+// a few a minute: a whole shelf's release check mustn't ask AniList about
+// every series at once (it rate limits, and a failed ask keeps the old row)
+const NATIVE_PER_MINUTE = 20;
+let nativeAsks = { minute: 0, count: 0 };
+export const lacksNativeName = (info: unknown) =>
+  info != null && !("nativeName" in (info as object));
+const mayAskForNative = () => {
+  const minute = Math.floor(Date.now() / 60_000);
+  if (nativeAsks.minute !== minute) nativeAsks = { minute, count: 0 };
+  return nativeAsks.count++ < NATIVE_PER_MINUTE;
+};
+
 // if AniList can't be asked, an old row still works with its names filled in
 export const withAltNames = (info: SeriesInfo): SeriesInfo => ({
   ...info,
@@ -280,7 +300,8 @@ export async function getSeriesInfo(name: string): Promise<SeriesInfo | null> {
     cached &&
     Date.now() - cached.fetchedAt.getTime() < SERIES_FRESH_MS &&
     isComplete(cached.info) &&
-    !wrongFormat
+    !wrongFormat &&
+    !(lacksNativeName(cached.info) && mayAskForNative())
   ) {
     return cached.info as SeriesInfo | null;
   }
@@ -549,8 +570,8 @@ export async function getTrending(): Promise<SeriesHit[]> {
   try {
     const { Page } = await query<{ Page: { media: Media[] } }>(TRENDING_QUERY);
     const items = Page.media
+      // all 30: the home page keeps the ones with English books (service.ts)
       .filter((m) => m.title.english)
-      .slice(0, 12)
       .map((m) => ({
         name: m.title.english!,
         slug: slugify(m.title.english!),

@@ -3,77 +3,89 @@ import { pricesStyles as list } from "../Prices/styles";
 import { formStyles as styles } from "../../styles/form";
 import type { CoverHit } from "../../lib/anilist";
 import { hasBottomBar } from "../../lib/bottomBar";
-
-const SHOWN = 5;
+import { SearchIcon } from "../../components/icons/Icons";
+import {
+  MIN_QUERY,
+  type SearchStatus,
+} from "../../components/coverPicker/useCoverSearch";
 
 type Props = {
   value: string;
   // what's wrong with it, said under the field
   error?: string;
   onChange: (title: string) => void;
-  // what AniList thinks they might mean, for this title
+  // what AniList thinks they might mean, for this title, and how the
+  // lookup is going
   hits: CoverHit[];
+  status: SearchStatus;
   onPick: (hit: CoverHit) => void;
-  // the one under the mouse, to try on without choosing it; null when there's none
-  onPreview: (hit: CoverHit | null) => void;
+  // none of these: the title as they typed it
+  onTyped: () => void;
 };
 
-// The title box: AniList's closest guesses drop down as they type. Picking one
-// uses AniList's name for it; ignoring them keeps what they typed, since it may
-// be a manga AniList doesn't know
+// The add page's title box: AniList's closest guesses drop down as they
+// type, with their covers. Picking one uses AniList's name, cover, type and
+// genre; "as typed" keeps what they wrote, since it may be a manga AniList
+// doesn't know. Enter with nothing highlighted means as typed too
 export default function TitleField({
   value,
   error,
   onChange,
   hits,
+  status,
   onPick,
-  onPreview,
+  onTyped,
 }: Props) {
   const [open, setOpen] = useState(false);
   const [active, setActive] = useState(-1);
-  const [hovered, setHovered] = useState<CoverHit | null>(null);
   const listId = useId();
-  const shown = hits.slice(0, SHOWN);
-  const showing = open && shown.length > 0;
-
-  // back to what they typed. The box only shows the hovered title: what they wrote
-  // stays safe in `value` the whole time
-  const endPreview = () => {
-    setHovered(null);
-    onPreview(null);
-  };
+  const typed = value.trim();
+  const showing = open && typed.length >= MIN_QUERY;
 
   const pick = (hit: CoverHit) => {
     setOpen(false);
     setActive(-1);
-    endPreview();
     onPick(hit);
   };
 
+  // the highlighted option, kept in view as the arrows move through the list
+  const highlight = (i: number) => {
+    setActive(i);
+    document
+      .getElementById(`${listId}-${i}`)
+      ?.scrollIntoView({ block: "nearest" });
+  };
+
   const onKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
-    // typing goes onto what they wrote, not the title being tried on
-    if (e.key !== "Enter") endPreview();
+    // a Japanese (or any composing) keyboard's Enter confirms a word, not
+    // the title
+    if (e.nativeEvent.isComposing || e.keyCode === 229) return;
     if (e.key === "Escape") {
       setOpen(false);
       setActive(-1);
-    }
-    if (!showing) return;
-    if (e.key === "ArrowDown") {
+    } else if (e.key === "Enter") {
+      // never the form's submit: the rest of the form isn't there yet
       e.preventDefault();
-      setActive((a) => (a + 1) % shown.length);
-    } else if (e.key === "ArrowUp") {
+      if (showing && active >= 0) pick(hits[active]!);
+      else if (typed) onTyped();
+    } else if (!open && e.key === "ArrowDown") {
+      // closed with Escape: the arrow opens it again
       e.preventDefault();
-      setActive((a) => (a <= 0 ? shown.length - 1 : a - 1));
-    } else if (e.key === "Enter" && active >= 0) {
+      setOpen(true);
+    } else if (showing && hits.length && e.key === "ArrowDown") {
       e.preventDefault();
-      pick(shown[active]!);
+      highlight((active + 1) % hits.length);
+    } else if (showing && hits.length && e.key === "ArrowUp") {
+      e.preventDefault();
+      highlight(active <= 0 ? hits.length - 1 : active - 1);
     }
   };
 
   return (
     <div className={styles.titleCombo}>
+      <SearchIcon className={styles.titleSearchIcon} aria-hidden />
       <input
-        className={`${styles.input} ${error ? styles.invalid : ""}`}
+        className={`${styles.input} ${styles.titleSearch} ${error ? styles.invalid : ""}`}
         id="name"
         aria-invalid={Boolean(error) || undefined}
         aria-describedby={error ? "name-error" : undefined}
@@ -86,77 +98,83 @@ export default function TitleField({
         aria-activedescendant={
           showing && active >= 0 ? `${listId}-${active}` : undefined
         }
-        placeholder="e.g. Berserk"
-        value={showing && hovered ? hovered.title : value}
+        placeholder="Search a title, e.g. Berserk"
+        value={value}
         onChange={(e) => {
           onChange(e.target.value);
           setOpen(true);
           setActive(-1);
         }}
-        onPaste={endPreview}
-        onFocus={() => setOpen(true)}
-        onBlur={() => {
-          setOpen(false);
-          endPreview();
+        onFocus={(e) => {
+          setOpen(true);
+          // phones: up to the top, so the keyboard leaves room for the list
+          if (hasBottomBar())
+            e.currentTarget.scrollIntoView({ block: "start" });
         }}
+        onBlur={() => setOpen(false)}
         onKeyDown={onKeyDown}
         maxLength={150}
         autoComplete="off"
-        required
+        enterKeyHint="next"
         autoFocus={!hasBottomBar()}
       />
 
       {showing && (
-        <ul
-          id={listId}
-          role="listbox"
-          className={list.suggestions}
-          onMouseLeave={() => {
-            setActive(-1);
-            endPreview();
-          }}
+        // keeps focus in the box, so a click lands before it closes
+        <div
+          className={styles.titleList}
+          onPointerDown={(e) => e.preventDefault()}
         >
-          {shown.map((hit, i) => (
-            <li
-              key={hit.id}
-              id={`${listId}-${i}`}
-              role="option"
-              aria-selected={active === i}
-              className={`${list.suggestion} ${active === i ? list.suggestActive : ""}`}
-              // keeps focus in the box, so the click lands before it closes
-              onPointerDown={(e) => e.preventDefault()}
-              onClick={() => pick(hit)}
-              onMouseEnter={() => {
-                setActive(i);
-                setHovered(hit);
-                onPreview(hit);
-              }}
+          <ul id={listId} role="listbox" aria-label="Matches from AniList">
+            {hits.map((hit, i) => (
+              <li
+                key={hit.id}
+                id={`${listId}-${i}`}
+                role="option"
+                aria-selected={active === i}
+                className={`${list.suggestion} ${styles.titleOption} ${active === i ? list.suggestActive : ""}`}
+                onClick={() => pick(hit)}
+                onMouseEnter={() => setActive(i)}
+              >
+                <span className={list.suggestThumb}>
+                  <img src={hit.cover} alt="" loading="lazy" />
+                </span>
+                <span className={list.suggestText}>
+                  <span className={list.suggestName}>{hit.title}</span>
+                  {(hit.year || hit.lightNovel) && (
+                    <span className={list.suggestMeta}>
+                      {hit.year}
+                      {hit.lightNovel && (
+                        <span className={styles.titleTag}>Light novel</span>
+                      )}
+                    </span>
+                  )}
+                </span>
+              </li>
+            ))}
+          </ul>
+          {!hits.length && (
+            <p className={list.suggestNote} aria-live="polite">
+              {status === "error"
+                ? "Couldn't reach AniList right now."
+                : status === "done"
+                  ? "AniList doesn't know that one."
+                  : "Looking it up…"}
+            </p>
+          )}
+          <div className={styles.titleListFoot}>
+            {hits.length > 0 && (
+              <span className={styles.counter}>{hits.length} from AniList</span>
+            )}
+            <button
+              type="button"
+              className={styles.titleTyped}
+              onClick={onTyped}
             >
-              <span className={list.suggestThumb}>
-                <img src={hit.cover} alt="" />
-              </span>
-              <span className={list.suggestText}>
-                <span className={list.suggestName}>{hit.title}</span>
-                {(hit.year || hit.lightNovel) && (
-                  <span className={list.suggestMeta}>
-                    {[hit.lightNovel && "Light novel", hit.year]
-                      .filter(Boolean)
-                      .join(" · ")}
-                  </span>
-                )}
-              </span>
-            </li>
-          ))}
-          <li
-            className={styles.titleComboNote}
-            onMouseEnter={() => {
-              setActive(-1);
-              endPreview();
-            }}
-          >
-            Not here? Your title works as typed.
-          </li>
-        </ul>
+              Add “{typed}” as typed
+            </button>
+          </div>
+        </div>
       )}
     </div>
   );

@@ -17,10 +17,20 @@ export const volumeOf = (title: string): number =>
       NaN,
   );
 
+// a book holding several volumes, as its publisher numbers it: "Vinland Saga,
+// Book 9" is vols 17 and 18 in one hardcover. Its number is the book's, never
+// a volume's, though a store listing ("Vinland Saga 9") still matches on it
+const BOOK = /,\s*book\s+(\d+)\s*$/i;
+export const bookNumberOf = (title: string) => {
+  const m = title.match(BOOK);
+  return m ? Number(m[1]) : null;
+};
+
 // the normalized series part of a title, for comparing
 export const seriesOf = (title: string) =>
   normalize(
     title
+      .replace(BOOK, "")
       .replace(/\(.*?\)/g, "")
       .replace(/,?\s*\bvol(?:ume)?\.?\s*\d+.*$/i, "")
       .replace(/\s\d+\s*$/, ""),
@@ -29,6 +39,7 @@ export const seriesOf = (title: string) =>
 // "Jujutsu Kaisen, Vol. 24 (Shonen Jump)" -> "Jujutsu Kaisen", case kept
 export const seriesName = (title: string) =>
   title
+    .replace(BOOK, "")
     .replace(/\(.*?\)/g, " ")
     .replace(/,?\s*\bvol(?:ume)?\.?\s*\d+.*$/i, "")
     .replace(/\s+\d+\s*$/, "")
@@ -79,8 +90,10 @@ export const JAPANESE_EDITION =
   /\bjapanese\b|[぀-ヿ一-龯]|japanzon|kanji hunter/i;
 
 // the volume number a listing spells out, undefined when it doesn't
+// "Vol. 9", "#9", or "Book 9" (a book holding several volumes, numbered as
+// its publisher does: see bookNumberOf)
 const statedVolume = (listingTitle: string) =>
-  listingTitle.match(/(?:\bvol(?:ume)?\.?|#)\s*(\d+)/i)?.[1];
+  listingTitle.match(/(?:\bvol(?:ume)?\.?|#|\bbook)\s*(\d+)/i)?.[1];
 
 // for a search by ISBN, where a title can be worded any way at all: only a
 // title saying it's a different volume counts against it

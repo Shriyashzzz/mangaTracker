@@ -17,7 +17,8 @@ const price = (v: SeriesVolume) =>
   v.knownPriceCents != null ? formatCents(v.knownPriceCents) : "check price";
 
 export default function BuyStrip({ options, hideNext }: Props) {
-  const { loading, volumes, latest, next, caughtUp, seriesName } = options;
+  const { loading, volumes, latest, next, caughtUp, finish, seriesName } =
+    options;
 
   if (loading) {
     return <div className={`skeleton ${styles.buySkeleton}`} aria-hidden />;
@@ -62,6 +63,32 @@ export default function BuyStrip({ options, hideNext }: Props) {
               </NavLink>
             </li>
           )
+        )}
+        {finish && (
+          <li>
+            <NavLink
+              className={styles.buyLink}
+              // seriesPath already has its ?name=, so this joins with &
+              to={`${seriesPath(seriesName)}&toget=1`}
+              title="At the last checked prices. A volume gets a price once someone opens its page"
+              viewTransition
+            >
+              <span className={styles.buyKind}>Finish the series</span>
+              <span>
+                {finish.left} vol{finish.left === 1 ? "" : "s"}
+                {finish.priced > 0 && finish.priced < finish.left && (
+                  <span className={styles.buyAside}>
+                    {" "}
+                    · {finish.priced} priced
+                  </span>
+                )}
+              </span>
+              <span className={styles.buyPrice}>
+                {formatCents(finish.cents)}
+                {finish.priced < finish.left && "+"}
+              </span>
+            </NavLink>
+          </li>
         )}
       </ul>
       {/* a way to look further, not something to buy, so not a ticket */}

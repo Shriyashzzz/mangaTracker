@@ -20,6 +20,11 @@ import {
 } from "../../util/releases/releaseStatus.js";
 import userQueries from "../../models/userQueries.js";
 import type { Manga } from "../../../generated/prisma/client.js";
+import { notOutYet } from "../../prices/preorder.js";
+
+// "Vol. 15 is out!" only once it is: a preorder isn't news yet
+const outNow = <V extends { published?: string }>(volumes: V[]) =>
+  volumes.filter((v) => !notOutYet(v.published));
 
 const SERIES_TIMEOUT_MS = 25_000;
 
@@ -90,7 +95,7 @@ export const releases = async (req: Request, res: Response) => {
       releaseData: null,
       releaseStatus: getReleaseStatus(
         manga,
-        { dates: null, englishVolumes: series.volumes },
+        { dates: null, englishVolumes: outNow(series.volumes) },
         readReleaseSettings(prefs?.releases),
       ),
       complete: true,
@@ -133,7 +138,10 @@ export const releases = async (req: Request, res: Response) => {
   if (outcome !== "news") return nothing(outcome);
   const releaseStatus = getReleaseStatus(
     manga,
-    { dates: releaseData, englishVolumes: series?.volumes ?? null },
+    {
+      dates: releaseData,
+      englishVolumes: series ? outNow(series.volumes) : null,
+    },
     readReleaseSettings(prefs?.releases),
   );
   // kept on the manga, so progress can show straight away next time. Failing to

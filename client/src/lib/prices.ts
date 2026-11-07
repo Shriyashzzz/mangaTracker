@@ -1,5 +1,6 @@
 // The price checker's API calls, plus the small formatting and URL helpers
 // its pages share.
+import { isbnFromTyped } from "./barcode";
 import type { SyntheticEvent } from "react";
 import { API_URL, getJson } from "./api";
 import type {
@@ -52,11 +53,9 @@ export const getHighlights = (signal?: AbortSignal) =>
 
 // ---------- addresses ----------
 
-// a pasted ISBN-10/13 (dashes and spaces fine), or null
-export const asIsbn = (text: string) => {
-  const digits = text.replace(/[\s-]/g, "");
-  return /^(97[89]\d{10}|\d{9}[\dXx])$/.test(digits) ? digits : null;
-};
+// a typed or pasted ISBN (13 or 10 characters, dashes and spaces allowed),
+// checked and as its ISBN-13; the same reader the barcode scanner uses
+export const asIsbn = isbnFromTyped;
 
 const slugify = (name: string) =>
   name

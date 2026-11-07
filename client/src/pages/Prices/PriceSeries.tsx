@@ -1,13 +1,16 @@
+import { notOutYet, onSale } from "../../lib/releaseDate";
 import ToReadButton from "../../components/toRead/ToReadButton";
 import { useEffect, useState, type FormEvent } from "react";
 import { NavLink, useParams, useSearchParams } from "react-router";
-import type { Series } from "../../lib/types";
+import type { Series, SeriesVolume } from "../../lib/types";
 import {
   coverSrc,
+  formatCents,
   getSeries,
   hideBrokenCover,
   novelParts,
 } from "../../lib/prices";
+import { finishCost, finishText, stillToGet } from "../../lib/finishCost";
 import { useFromShelf } from "../../lib/fromShelf";
 import { findOnShelf } from "../../lib/shelf";
 import { nextToGet, owns } from "../../lib/ownedVolumes";
@@ -24,6 +27,32 @@ import { usePageMeta } from "../../lib/seo";
 import { seriesMeta } from "./pageMeta";
 
 const PAGE_SIZE = 30;
+
+// "Preorder · out Mar 30, 2027" for a volume not out yet, else nothing
+function preorder(published?: string) {
+  if (!published || !notOutYet(published)) return null;
+  const [y, m, d] = published.split("-").map(Number);
+  const out = new Date(y!, m! - 1, d || 1);
+  return `Preorder · out ${out.toLocaleDateString("en-US", {
+    month: "short",
+    ...(d ? { day: "numeric" } : {}),
+    year: "numeric",
+  })}`;
+}
+
+// the series' volumes as cards: one each, except that the volumes of one book
+// holding several (same ISBN, side by side) share a card. The shelf and its
+// data still count each volume on its own
+function cards(volumes: SeriesVolume[]) {
+  const all: SeriesVolume[][] = [];
+  for (const v of volumes) {
+    const last = all[all.length - 1];
+    if (v.inBook && last?.[0]?.inBook && last[0].isbn13 === v.isbn13)
+      last.push(v);
+    else all.push([v]);
+  }
+  return all;
+}
 
 export default function PriceSeries() {
   const fromShelf = useFromShelf();
@@ -51,7 +80,20 @@ export default function PriceSeries() {
     name: "",
     manga: null,
   });
-  const [toGetOnly, setToGetOnly] = useState(false);
+  // "Not on your shelf" on or off, and which of its pages, for this series
+  // only: another series starts afresh. ?toget=1 (the details page's Buy it
+  // card) opens on it
+  const [filter, setFilter] = useState<{
+    name: string;
+    on: boolean;
+    page: number;
+  } | null>(null);
+  const toGetOnly =
+    filter?.name === name ? filter.on : params.get("toget") === "1";
+  const toGetPageIndex = filter?.name === name ? filter.page : 0;
+  const setToGetOnly = (on: boolean) => setFilter({ name, on, page: 0 });
+  const setToGetPageIndex = (page: number) =>
+    setFilter({ name, on: toGetOnly, page });
   useEffect(() => {
     if (!isSignedIn) return;
     const controller = new AbortController();
@@ -127,17 +169,33 @@ export default function PriceSeries() {
   const isTheirs = (n: number) =>
     Boolean(mine) && n >= 1 && Number.isInteger(n) && owns(mine!, n);
   // the first whole volume out after the furthest they own (as Buy it says)
+  // a preorder isn't next to buy, nor part of what finishing costs
   const next = mine
     ? (nextToGet(
         mine,
-        volumes.map((v) => v.volume),
+        onSale(volumes).map((v) => v.volume),
       ) ?? undefined)
     : undefined;
-  const toGet = volumes.filter((v) => !isTheirs(v.volume));
-  // "Still to get" shows them all at once, past the ranges
+  // a card's mark: theirs when every volume on it is, next when it holds the
+  // next one they need
+  const markOf = (card: SeriesVolume[]) =>
+    card.every((v) => isTheirs(v.volume))
+      ? ("yours" as const)
+      : card.some((v) => v.volume === next)
+        ? ("next" as const)
+        : undefined;
+  const toGet = mine ? stillToGet(volumes, mine) : volumes;
+  // what the rest costs, at stored prices only (lib/finishCost.ts)
+  const finish = mine ? finishCost(onSale(toGet)) : null;
+  // "Not on your shelf" pages through just those, 30 at a time, in place of
+  // the volume ranges, so the controls keep their shape
   const toGetShown = Boolean(mine) && toGetOnly;
+  const toGetPage = Math.min(
+    toGetPageIndex,
+    Math.max(0, Math.ceil(toGet.length / PAGE_SIZE) - 1),
+  );
   const shown = toGetShown
-    ? toGet
+    ? toGet.slice(toGetPage * PAGE_SIZE, (toGetPage + 1) * PAGE_SIZE)
     : volumes.filter(
         (v) =>
           (v.volume >= rangeStart || (pageIndex === 0 && v.volume < 1)) &&
@@ -148,7 +206,16 @@ export default function PriceSeries() {
     e.preventDefault();
     const number = Number(new FormData(e.currentTarget).get("volume"));
     if (!Number.isFinite(number) || number < 1) return;
-    setPage({ name, index: Math.floor((number - 1) / PAGE_SIZE) });
+    // filtered: to its page of "Not on your shelf"; one they own isn't
+    // there, so the filter goes off and it's found in the full list
+    const inToGet = toGetShown
+      ? toGet.findIndex((v) => v.volume === number)
+      : -1;
+    if (inToGet >= 0) setToGetPageIndex(Math.floor(inToGet / PAGE_SIZE));
+    else {
+      if (toGetShown) setToGetOnly(false);
+      setPage({ name, index: Math.floor((number - 1) / PAGE_SIZE) });
+    }
     requestAnimationFrame(() =>
       document
         .getElementById(`vol-${number}`)
@@ -227,17 +294,49 @@ export default function PriceSeries() {
             </span>
           )}
         </div>
-        {mine && toGet.length < volumes.length && (
-          <button
-            type="button"
-            className={styles.toGet}
-            aria-pressed={toGetOnly}
-            onClick={() => setToGetOnly((on) => !on)}
-          >
-            Still to get ({toGet.length})
-          </button>
+        {/* what's left of their series, and what it costs at stored prices */}
+        {(finish || (mine && toGet.length < volumes.length)) && (
+          <div className={styles.toGetRow}>
+            {mine && toGet.length < volumes.length && (
+              <button
+                type="button"
+                className={styles.toGet}
+                aria-pressed={toGetOnly}
+                onClick={() => {
+                  setToGetOnly(!toGetOnly);
+                }}
+              >
+                Not on your shelf ({toGet.length})
+              </button>
+            )}
+            {finish && (
+              <span
+                className={styles.finishCost}
+                title="At the last checked prices. A volume gets a price once someone opens its page"
+              >
+                {finishText(finish, formatCents)}
+              </span>
+            )}
+          </div>
         )}
-        {!toGetShown && (
+        {toGetShown ? (
+          <RangePager
+            total={toGet.length}
+            pageSize={PAGE_SIZE}
+            page={toGetPage}
+            onChange={(index) => {
+              setToGetPageIndex(index);
+              document
+                .getElementById("volumes-title")
+                ?.scrollIntoView({ behavior: "smooth", block: "start" });
+            }}
+            label="Volumes not on your shelf"
+            // by the volume numbers each page holds, gaps and all
+            labelFor={(start, end) =>
+              `${toGet[start]?.volume}–${toGet[end]?.volume}`
+            }
+          />
+        ) : (
           <RangePager
             total={lastNumber}
             pageSize={PAGE_SIZE}
@@ -273,27 +372,60 @@ export default function PriceSeries() {
         )}
         {volumes.length ? (
           <ul className={styles.grid}>
-            {shown.map((v) => (
-              <li key={v.isbn13} id={`vol-${v.volume}`}>
-                <VolumeCard
-                  {...v}
-                  title={`Vol. ${v.volume}`}
-                  fullTitle={v.title}
-                  seriesCoverUrl={info?.coverUrl}
-                  priceCents={v.knownPriceCents}
-                  subtitle={
-                    v.knownPriceCents == null ? "Check price" : undefined
-                  }
-                  mark={
-                    isTheirs(v.volume)
-                      ? "yours"
-                      : v.volume === next
-                        ? "next"
-                        : undefined
-                  }
-                />
-              </li>
-            ))}
+            {cards(shown).map((card) =>
+              card.length === 1 ? (
+                <li key={card[0]!.volume} id={`vol-${card[0]!.volume}`}>
+                  <VolumeCard
+                    {...card[0]!}
+                    title={`Vol. ${card[0]!.volume}`}
+                    fullTitle={card[0]!.title}
+                    seriesCoverUrl={info?.coverUrl}
+                    priceCents={card[0]!.knownPriceCents}
+                    // a book's volume shown alone (the rest on another page,
+                    // or on their shelf) still says it comes in that book
+                    subtitle={
+                      [
+                        card[0]!.inBook &&
+                          `In Book ${card[0]!.inBook.book} (vols ${card[0]!.inBook.from}–${card[0]!.inBook.to})`,
+                        preorder(card[0]!.published) ??
+                          (card[0]!.knownPriceCents == null && "Check price"),
+                      ]
+                        .filter(Boolean)
+                        .join(" · ") || undefined
+                    }
+                    mark={markOf(card)}
+                  />
+                </li>
+              ) : (
+                // one book holding several volumes: one stacked card, one
+                // price page. Each volume keeps its place for Jump to
+                <li key={card[0]!.volume} id={`vol-${card[0]!.volume}`}>
+                  {card.slice(1).map((v) => (
+                    <span key={v.volume} id={`vol-${v.volume}`} />
+                  ))}
+                  <VolumeCard
+                    {...card[0]!}
+                    title={`Book ${card[0]!.inBook!.book}`}
+                    fullTitle={card[0]!.title}
+                    volume={null}
+                    holds={{
+                      from: card[0]!.volume,
+                      to: card[card.length - 1]!.volume,
+                    }}
+                    seriesCoverUrl={info?.coverUrl}
+                    priceCents={card[0]!.knownPriceCents}
+                    subtitle={[
+                      `Vols. ${card.map((v) => v.volume).join(" & ")} in one book`,
+                      preorder(card[0]!.published) ??
+                        (card[0]!.knownPriceCents == null && "Check price"),
+                    ]
+                      .filter(Boolean)
+                      .join(" · ")}
+                    mark={markOf(card)}
+                  />
+                </li>
+              ),
+            )}
           </ul>
         ) : incomplete ? (
           <div className={styles.note} role="alert">
@@ -307,8 +439,8 @@ export default function PriceSeries() {
           </div>
         ) : (
           <p className={styles.note}>
-            We couldn't find English volumes for this series yet. Try searching
-            a volume by name or ISBN.
+            This manga has no English physical volumes released yet. If one is
+            out, try searching it by name or ISBN.
           </p>
         )}
         {incomplete && volumes.length > 0 && (

@@ -130,6 +130,8 @@ export const detailsStyles = {
   buyKind:
     "col-span-full font-mono text-[0.72rem] font-normal tracking-[0.06em] whitespace-nowrap text-muted uppercase upto-720:col-span-1",
   buyPrice: "text-right font-mono font-medium text-accent",
+  // "· 10 priced" beside a count: quieter than the ticket's own words
+  buyAside: "font-normal text-ink-soft",
   // "caught up": the same ticket shape, but nothing to click
   buyNote: `${ticket} flex-col border-dashed border-line-soft text-ink-soft`,
   buySkeleton: "h-[110px] upto-720:order-5 upto-720:col-span-full",

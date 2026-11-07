@@ -2,8 +2,8 @@
 const ANILIST_URL = "https://graphql.anilist.co";
 
 const SEARCH_QUERY = `
-  query ($search: String) {
-    Page(perPage: 6) {
+  query ($search: String, $perPage: Int) {
+    Page(perPage: $perPage) {
       media(search: $search, type: MANGA, sort: SEARCH_MATCH) {
         id
         format
@@ -93,14 +93,20 @@ export function pickGenre(genres: string[] = [], tags: Tag[] = []) {
 }
 
 // returns [{ id, title, year, cover, genre }], throws on network / rate limit errors
+// perPage: the edit form's cover strip shows six; the add page's title
+// dropdown lists twelve
 export async function searchCovers(
   search: string,
   signal?: AbortSignal,
+  perPage = 6,
 ): Promise<CoverHit[]> {
   const response = await fetch(ANILIST_URL, {
     method: "POST",
     headers: { "Content-Type": "application/json", Accept: "application/json" },
-    body: JSON.stringify({ query: SEARCH_QUERY, variables: { search } }),
+    body: JSON.stringify({
+      query: SEARCH_QUERY,
+      variables: { search, perPage },
+    }),
     signal,
   });
   if (!response.ok) throw new Error(`AniList responded ${response.status}`);

@@ -1,6 +1,6 @@
 // The shelf's Volumes tab: what they own, series by series. Each is a compact
 // row ("One Piece · 2 · vols. 1, 4"); opening it shows the series' volumes
-// as covers, theirs inked in and the rest faded as "Still to get", each one a
+// as covers, theirs inked in and the rest faded as "Not on your shelf", each one a
 // link to its prices. The covers come from the price checker's series list,
 // asked only when a row is opened.
 import { useEffect, useRef, useState } from "react";
@@ -205,7 +205,7 @@ function SeriesVolumes({
           {list === undefined
             ? "Finding its volumes…"
             : toGet
-              ? `You own ${owned.length} of ${tiles.length} · ${toGet} still to get`
+              ? `You own ${owned.length} of ${tiles.length} · ${toGet} not on your shelf`
               : `You own all ${plural(owned.length, "volume")} we know of`}
         </p>
         <NavLink
@@ -274,12 +274,12 @@ function VolumeTile({
             Yours
           </>
         ) : (
-          "Still to get"
+          "Not on your shelf"
         )}
       </span>
     </>
   );
-  const name = `Vol. ${tile.volume}, ${tile.yours ? "yours" : "still to get"}`;
+  const name = `Vol. ${tile.volume}, ${tile.yours ? "yours" : "not on your shelf"}`;
   // a volume on sale links to its prices; one we know nothing about is just
   // its number
   return tile.book ? (

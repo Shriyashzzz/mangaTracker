@@ -1,8 +1,12 @@
 import {
+  bookFromListing,
   booksFromEditions,
   isIsbn13,
   isMergedWork,
+  isSelfPublished,
   isUntranslatedWork,
+  volumeRange,
+  withBookDigits,
   toIsbn13,
 } from "../../prices/sources/catalog.js";
 
@@ -17,6 +21,21 @@ describe("toIsbn13", () => {
     expect(toIsbn13("12345")).toBeNull();
     expect(toIsbn13("not an isbn")).toBeNull();
   });
+});
+
+test("a self-published book under a series' name isn't a volume of it", () => {
+  // Open Library's "Vinland Saga Vol. 11": a notebook, not Kodansha's
+  expect(isSelfPublished(["Independently Published"])).toBe(true);
+  expect(isSelfPublished(["CreateSpace Independent Publishing Platform"])).toBe(
+    true,
+  );
+  // a real publisher anywhere among a work's editions keeps it
+  expect(isSelfPublished(["Independently Published", "Kodansha Comics"])).toBe(
+    false,
+  );
+  expect(isSelfPublished(["Seven Seas"])).toBe(false);
+  // nothing known about who published it: kept, as before
+  expect(isSelfPublished([])).toBe(false);
 });
 
 test("isIsbn13", () => {
@@ -133,5 +152,106 @@ describe("works that merge a whole series", () => {
         "Kaiju No. 8",
       ),
     ).toBe(false);
+  });
+});
+
+// Vinland Saga in English: Kodansha's hardcovers hold two volumes each, and
+// Open Library files them under the Japanese title, as answered 2026-11-07
+describe("books holding two volumes", () => {
+  const work = {
+    key: "/works/OL19711472W",
+    title: "ヴィンランド・サガ 17‐18",
+    isbn: ["9781682337592", "9781632364456"],
+    author_name: ["幸村誠", "Makoto Yukimura"],
+    publisher: ["Kodansha Comics"],
+  };
+  const editions = [
+    {
+      title: "Vinland Saga, Book Nine",
+      isbn_13: ["9781682337592"],
+      physical_format: "eBook",
+      languages: [{ key: "/languages/eng" }],
+      publishers: ["Kodansha Comics"],
+    },
+    {
+      title: "Vinland Saga, Book Nine",
+      isbn_13: ["9781632364456"],
+      physical_format: "Hardcover",
+      languages: [{ key: "/languages/eng" }],
+      publishers: ["Kodansha Comics"],
+      number_of_pages: 392,
+    },
+  ];
+
+  test("each volume it holds is listed, with the printed book's ISBN", () => {
+    const books = booksFromEditions(editions, work, "Vinland Saga");
+    expect(books.map((b) => [b.volume, b.isbn13, b.title])).toEqual([
+      [17, "9781632364456", "Vinland Saga, Book 9"],
+      [18, "9781632364456", "Vinland Saga, Book 9"],
+    ]);
+    expect(books[0]!.inBook).toEqual({ book: 9, from: 17, to: 18 });
+  });
+
+  test("another series' books are left out", () => {
+    expect(booksFromEditions(editions, work, "Vagabond")).toEqual([]);
+  });
+
+  test("only a Japanese title's two or three volumes count as one book", () => {
+    expect(volumeRange("ヴィンランド・サガ 17‐18")).toEqual({
+      from: 17,
+      to: 18,
+    });
+    expect(volumeRange("ヴィンランド・サガ 4‐6")).toEqual({ from: 4, to: 6 });
+    // a wider range is a box of separate books
+    expect(volumeRange("ワンピース 1-10")).toBeNull();
+    // an English "1-2" is a set, as before
+    expect(volumeRange("Vinland Saga 1-2")).toBeNull();
+    expect(volumeRange("葬送のフリーレン 12")).toBeNull();
+  });
+
+  test("a book's number in words becomes digits", () => {
+    expect(withBookDigits("Vinland Saga, Book Nine")).toBe(
+      "Vinland Saga, Book 9",
+    );
+    expect(withBookDigits("Vinland Saga, Book Fourteen")).toBe(
+      "Vinland Saga, Book 14",
+    );
+    expect(withBookDigits("Monster, Book Twenty-One")).toBe("Monster, Book 21");
+    // nothing to do
+    expect(withBookDigits("Vinland Saga, Book 3")).toBe("Vinland Saga, Book 3");
+    expect(withBookDigits("The Book Thief")).toBe("The Book Thief");
+  });
+});
+
+// Google Books' listings, held to Open Library's rules (as answered 2026-11-07)
+describe("a book Google Books lists", () => {
+  test("an upcoming English volume, with its release date", async () => {
+    const book = await bookFromListing({
+      isbn13: "9798902096672",
+      title: "I See You, Aizawa-San! Vol. 1",
+      publisher: "Seven Seas",
+      published: "2027-03-30",
+    });
+    expect(book).toMatchObject({
+      title: "I See You, Aizawa-San! Vol. 1",
+      volume: 1,
+      published: "2027-03-30",
+    });
+  });
+  test("other languages' editions and self-published books are left out", async () => {
+    // Kurokawa's French edition
+    expect(
+      await bookFromListing({
+        isbn13: "9791042020248",
+        title: "Vinland Saga - Tome 29",
+      }),
+    ).toBeNull();
+    expect(
+      await bookFromListing({
+        isbn13: "9798648967823",
+        title: "Vinland Saga Vol. 11",
+        publisher: "Independently published",
+      }),
+    ).toBeNull();
   });
 });

@@ -101,6 +101,22 @@ export type MangaForm = {
   ownedList?: number[];
 };
 
+// a scanned barcode's book: GET /api/prices/scan/:isbn
+export type ScannedBook = {
+  isbn13: string;
+  title: string;
+  volume: number;
+  // every volume it holds: one, or several for a book like "Vinland Saga,
+  // Book 9" (vols 17 and 18)
+  volumes: number[];
+  // the price checker's name ("Overlord Light Novel"), for /api/manga/match
+  series: string;
+  // the name a shelf keeps it under
+  shelfName: string;
+  lightNovel: boolean;
+  coverUrl: string | null;
+};
+
 export type ShelfMatch = {
   id: number;
   name: string;
@@ -180,12 +196,20 @@ export type CatalogBook = {
 };
 
 // a volume on a series page; the server only lists numbered ones
+// a book holding several volumes, as its publisher numbers it: Book 9 is
+// vols 17 to 18
+export type InBook = { book: number; from: number; to: number };
+
 export type SeriesVolume = {
   isbn13: string;
   title: string;
   volume: number;
   coverUrl: string;
   knownPriceCents: number | null;
+  // sold inside a book with others: its ISBN is that book's
+  inBook?: InBook;
+  // the publisher's release date ("2027-03-30" or "2014-05"), when known
+  published?: string;
 };
 
 export type Series = {
@@ -236,6 +260,11 @@ export type StoreLink = { store: string; url: string; affiliate: boolean };
 export type VolumePrices = {
   series: { name: string; slug: string; info: SeriesInfo | null };
   volume: number | null;
+  // a book holding several volumes, in place of a volume number
+  inBook: InBook | null;
+  // its release date ("2027-03-30") when it isn't out yet: no prices are
+  // checked, the page offers preorder links
+  preorder: string | null;
   siblings: SeriesVolume[];
   book: {
     isbn13: string;

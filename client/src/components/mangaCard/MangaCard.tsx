@@ -191,7 +191,7 @@ export default function MangaCard({
               "Finished"
             ) : knownTotal != null ? (
               <>
-                <span>
+                <span className="whitespace-nowrap">
                   {reading} of {knownTotal}
                 </span>
                 <span

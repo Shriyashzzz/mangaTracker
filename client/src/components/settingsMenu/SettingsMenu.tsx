@@ -56,14 +56,6 @@ const divider = (
   />
 );
 
-// the same rule, only where the rows above it show: phones
-const phoneDivider = (
-  <li
-    className="mx-[0.6rem] my-[0.35rem] hidden h-0 border-t-[1.5px] border-dashed border-line-soft upto-720:block"
-    aria-hidden
-  />
-);
-
 // the signed-in head of the menu: their picture, name and settings
 const profileRow =
   "flex w-full items-center gap-3 rounded-[3px] px-[0.6rem] py-[0.5rem] transition-colors duration-120 hover:bg-accent-wash focus-visible:bg-accent-wash";
@@ -242,8 +234,7 @@ export default function SettingsMenu({ isSignedIn, onLogOut }: Props) {
                 </NavLink>
               </li>
               {divider}
-              {/* laptops have these on the shelf */}
-              <li className="hidden upto-720:block">
+              <li>
                 <NavLink
                   to="/settings/profile#share"
                   className={item}
@@ -253,6 +244,7 @@ export default function SettingsMenu({ isSignedIn, onLogOut }: Props) {
                   Share my list
                 </NavLink>
               </li>
+              {/* laptops have this one on the shelf */}
               <li className="hidden upto-720:block">
                 <NavLink
                   to="/import"
@@ -265,7 +257,7 @@ export default function SettingsMenu({ isSignedIn, onLogOut }: Props) {
                   Import your list
                 </NavLink>
               </li>
-              {phoneDivider}
+              {divider}
             </>
           )}
 

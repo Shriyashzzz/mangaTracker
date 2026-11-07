@@ -7,7 +7,7 @@ import mangaQueries, {
   type MangaInput,
   type RestoredManga,
 } from "../../models/mangaQueries.js";
-import { isOnShelf } from "../../util/shelf/titleKey.js";
+import { onShelfAs } from "../../util/shelf/titleKey.js";
 import { ownedVolumes } from "../../util/shelf/ownedList.js";
 
 // the exact volumes owned, as numbers like 4 or 10.5
@@ -76,8 +76,13 @@ export const onShelfAlready = async (
   }: { exceptId?: number; lightNovel?: boolean } = {},
 ) => {
   const shelf = await mangaQueries.getMangaShelfNames(userId);
-  if (!isOnShelf(name, shelf, exceptId, lightNovel)) return false;
-  res.status(409).json({ error: [{ msg: "That's already on your shelf." }] });
+  const existing = onShelfAs(name, shelf, exceptId, lightNovel);
+  if (!existing) return false;
+  // which one, so a barcode scan can mark its volume there instead
+  res.status(409).json({
+    error: [{ msg: "That's already on your shelf." }],
+    id: existing.id,
+  });
   return true;
 };
 

@@ -8,10 +8,10 @@
 //   useHideActions.ts    the New tab's Hide, Hide all, Unhide all, with undo
 //   useShelfShortcuts.ts / and n
 //   SelectDock.tsx, NewTabParts.tsx, AddButton.tsx: what those draw
-import { useEffect, useMemo, useState } from "react";
+import { lazy, Suspense, useEffect, useMemo, useState } from "react";
 import { NavLink, useNavigate } from "react-router";
 import MangaCard from "../../components/mangaCard/MangaCard";
-import { CheckIcon } from "../../components/icons/Icons";
+import { BarcodeIcon, CheckIcon } from "../../components/icons/Icons";
 import RangePager from "../../components/rangePager/RangePager";
 import Mascot from "../../components/mascot/Mascot";
 import { EmptyShelfUndo } from "../../components/deletedNote/DeletedNote";
@@ -37,6 +37,9 @@ import DeleteManyModal from "./DeleteManyModal";
 import SelectDock, { MovedNote } from "./SelectDock";
 import { CheckBar, HiddenNote, NothingNew, ReleaseTools } from "./NewTabParts";
 import AddButton from "./AddButton";
+import AddChoice from "../../components/scanSheet/AddChoice";
+// the camera and its barcode library load only when someone scans
+const ScanSheet = lazy(() => import("../../components/scanSheet/ScanSheet"));
 import LibrarySkeleton from "./LibrarySkeleton";
 import GuestHero from "./GuestHero";
 import {
@@ -237,6 +240,8 @@ function Library() {
   useShelfShortcuts(select.selectOn);
 
   const goToAdd = () => navigator("/add", { viewTransition: true });
+  // the phones' round +: type a title or scan barcodes (AddChoice)
+  const [adding, setAdding] = useState<null | "choosing" | "scanning">(null);
 
   // the bottom pager takes them up to where the new page starts; the top
   // one is already there, so the page stays still under it
@@ -373,13 +378,21 @@ function Library() {
           >
             Import your list
           </NavLink>
-          <NavLink
-            to="/settings/profile#share"
-            className="btn btn-ghost"
-            viewTransition
+          {/* the other way to add: a stack of volumes, by their barcodes. Big
+              screens only; on phones the round + offers it */}
+          <button
+            type="button"
+            className="btn btn-secondary"
+            onClick={() => setAdding("scanning")}
+            // its code starts loading on the way to a click
+            onPointerEnter={() =>
+              void import("../../components/scanSheet/ScanSheet")
+            }
+            onFocus={() => void import("../../components/scanSheet/ScanSheet")}
           >
-            Share
-          </NavLink>
+            <BarcodeIcon className="size-5" />
+            Scan a barcode
+          </button>
           <button className="btn btn-primary" data-tour="add" onClick={goToAdd}>
             + Add manga
           </button>
@@ -670,7 +683,20 @@ function Library() {
         />
       )}
 
-      {!showingNew && <AddButton onClick={goToAdd} />}
+      {!showingNew && <AddButton onClick={() => setAdding("choosing")} />}
+      {adding === "choosing" && (
+        <AddChoice
+          onType={goToAdd}
+          onScan={() => setAdding("scanning")}
+          // picking one closes the sheet too; only a plain close clears it
+          onClose={() => setAdding((now) => (now === "choosing" ? null : now))}
+        />
+      )}
+      {adding === "scanning" && (
+        <Suspense fallback={null}>
+          <ScanSheet onClose={() => setAdding(null)} />
+        </Suspense>
+      )}
 
       <ReleaseTip
         // not over the select bar or the undo note, which share its spot

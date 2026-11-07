@@ -40,7 +40,8 @@ export const volumesStyles = {
     "cover-lines absolute inset-0 grid place-items-center font-brand text-[1.8rem] text-muted",
   vol: "absolute top-0 left-0 bg-ink pt-[0.15rem] pr-[0.6rem] pb-[0.05rem] pl-1.5 font-brand text-[1.05rem] leading-none tracking-[0.02em] text-paper [clip-path:polygon(0_0,100%_0,calc(100%-6px)_100%,0_100%)]",
   label: "flex items-center gap-1 text-[0.8rem] font-medium",
-  labelToGet: "text-[0.8rem] text-muted",
+  // can wrap to two lines under a narrow phone cover
+  labelToGet: "text-[0.8rem] leading-tight text-balance text-muted",
   check: "size-3.5 text-accent",
 
   empty:

@@ -31,7 +31,11 @@ import type { ShelfMove, ShelfPlace } from "../../models/mangaQueries.js";
 import type { StoreLink } from "../../prices/stores/storeLinks.js";
 import type { Manga } from "../../../generated/prisma/client.js";
 import type { FormatedDates } from "../../util/releases/volumeDataFormatter.js";
-import type { getSeries, VolumePrices } from "../../prices/service.js";
+import type {
+  getSeries,
+  ScannedBook,
+  VolumePrices,
+} from "../../prices/service.js";
 
 // what JSON.stringify makes of a value: dates become strings
 type Json<T> = T extends Date
@@ -65,6 +69,8 @@ declare function fits<From, To>(
 fits<Json<Manga>, Client.Manga>();
 // release dates for the details page
 fits<Json<FormatedDates>, Client.ReleaseData>();
+// a scanned barcode's book
+fits<Json<ScannedBook>, Client.ScannedBook>();
 fits<Json<Prices.CatalogBook>, Client.CatalogBook>();
 fits<Json<Prices.SeriesHit>, Client.SeriesHit>();
 fits<Json<Prices.SeriesInfo>, Client.SeriesInfo>();

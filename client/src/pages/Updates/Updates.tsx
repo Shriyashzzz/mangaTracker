@@ -9,6 +9,22 @@ import { updatesStyles as styles } from "./styles";
 // the big features only, a line each. Add new ones here when they ship
 const UPDATES = [
   {
+    name: "Scan your volumes",
+    body: "Point your phone at the barcodes on a stack of volumes and they go straight onto your shelf.",
+  },
+  {
+    name: "Finish the series",
+    body: "See what the volumes not on your shelf cost, all together.",
+  },
+  {
+    name: "Track the volumes you own",
+    body: "Mark which volumes are on your shelf, and see what's next to get.",
+  },
+  {
+    name: "Light novels",
+    body: "Add and price light novels alongside your manga.",
+  },
+  {
     name: "A To read list",
     body: "Save what you want to read next, from your shelf or any series' price page, and start it when you're ready.",
   },
@@ -17,24 +33,12 @@ const UPDATES = [
     body: "Bring your list from Goodreads, AniList, Kitsu, Book Catalogue, or any CSV, alongside MyAnimeList.",
   },
   {
-    name: "Take the tour",
-    body: "Kenji walks you through the whole site on a practice shelf. No account needed.",
-  },
-  {
-    name: "Better search results",
-    body: "Greater accuracy and a wider list of live prices.",
-  },
-  {
     name: "Share your list",
     body: "Send friends your list, with your notes if you want.",
   },
   {
-    name: "Choose what shows up in New",
-    body: "Just the next one, within a few, or everything that's out.",
-  },
-  {
-    name: "Next chapter dates",
-    body: "See when the next chapter should land.",
+    name: "Take the tour",
+    body: "Kenji walks you through the whole site on a practice shelf. No account needed.",
   },
 ];
 

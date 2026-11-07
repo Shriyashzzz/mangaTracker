@@ -1,9 +1,11 @@
 // Title matching decides which shop listings count as "this volume".
 // A false match shows a wrong price, so these cases are worth pinning down
 import {
+  bookNumberOf,
   listingMatches,
   sameVolume,
   seriesName,
+  seriesOf,
   slugify,
   volumeOf,
 } from "../../prices/stores/match.js";
@@ -57,5 +59,26 @@ test("sameVolume compares series and number", () => {
 test("slugify makes URL-safe slugs", () => {
   expect(slugify("Frieren: Beyond Journey's End")).toBe(
     "frieren-beyond-journey-s-end",
+  );
+});
+
+// "Vinland Saga, Book 9" holds vols 17 and 18: its number is the book's
+test("a book holding several volumes keeps its series and its own number", () => {
+  expect(bookNumberOf("Vinland Saga, Book 9")).toBe(9);
+  expect(bookNumberOf("Vinland Saga, Vol. 9")).toBeNull();
+  expect(bookNumberOf("The Book Thief 2")).toBeNull();
+  expect(seriesName("Vinland Saga, Book 9")).toBe("Vinland Saga");
+  expect(seriesOf("Vinland Saga, Book 9")).toBe("vinland saga");
+  // a store lists it as "Vinland Saga 9": still matched by that number
+  expect(volumeOf("Vinland Saga, Book 9")).toBe(9);
+  // a shop listing must name it, as for any volume
+  expect(listingMatches("Vinland Saga, Book 9", "Vinland Saga, Book 9")).toBe(
+    true,
+  );
+  expect(listingMatches("Vinland Saga Vol. 9", "Vinland Saga, Book 9")).toBe(
+    true,
+  );
+  expect(listingMatches("Vinland Saga, Book 8", "Vinland Saga, Book 9")).toBe(
+    false,
   );
 });

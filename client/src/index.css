@@ -1537,3 +1537,14 @@ body:has([role="listbox"]) :is(.tour-bubble, .tour-pointer) {
     font-size: 0.7rem;
   }
 }
+
+/* ---------- the barcode scanner (components/scanSheet/ScanSheet.tsx) ----------
+   its red line sweeps the frame while the camera looks */
+@keyframes scan-sweep {
+  from {
+    top: 20%;
+  }
+  to {
+    top: 80%;
+  }
+}
