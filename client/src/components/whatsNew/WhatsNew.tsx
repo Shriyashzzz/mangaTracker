@@ -11,6 +11,10 @@ import TakeTourButton from "../tour/TakeTourButton";
 // the newest big ones only; the rest are on /updates
 const ITEMS = [
   {
+    name: "Preorder upcoming volumes",
+    body: "See what's coming, when, and where to preorder it.",
+  },
+  {
     name: "Scan your volumes",
     body: "Add a whole stack from their barcodes, with your phone.",
   },
