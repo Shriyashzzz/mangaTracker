@@ -75,7 +75,7 @@ export const pricesStyles = {
     "absolute top-2 right-1.5 z-1 rotate-6 rounded-[3px] border-2 border-line bg-accent px-1.5 font-brand text-[0.85rem] leading-[1.35] tracking-[1px] text-on-accent uppercase",
   // "Not on your shelf" and what finishing the series costs, side by side; the
   // total wraps under the button on a narrow phone
-  toGetRow: "flex flex-wrap items-center gap-x-3 gap-y-1.5",
+  toGetRow: "mb-3 flex flex-wrap items-center gap-x-3 gap-y-1.5",
   finishCost: "text-[0.9rem] font-medium text-ink tabular-nums",
   // "Not on your shelf": the series page's filter, for one on their shelf
   toGet:
