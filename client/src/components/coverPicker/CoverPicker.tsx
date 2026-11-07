@@ -99,10 +99,11 @@ export default function CoverPicker({
 
   return (
     // a column beside the form on laptops; on phones a small cover sits
-    // beside the matches, with the label above and the link field below
+    // beside the matches and the link field, which sit at the top of that
+    // column (the last row takes any spare height), with the label above
     <div
       className={clsx(
-        "flex min-w-0 flex-col gap-[0.6rem] upto-760:grid upto-760:grid-cols-[96px_minmax(0,1fr)] upto-760:grid-rows-[auto_auto_1fr_auto] upto-760:gap-x-[0.8rem]",
+        "flex min-w-0 flex-col gap-[0.6rem] upto-760:grid upto-760:grid-cols-[96px_minmax(0,1fr)] upto-760:grid-rows-[auto_auto_auto_1fr] upto-760:gap-x-[0.8rem]",
         className,
       )}
     >
@@ -120,7 +121,7 @@ export default function CoverPicker({
           viewport so the whole add form fits on short laptop screens too */}
       <div
         className={clsx(
-          "mx-auto grid aspect-2/3 h-[clamp(150px,calc(100dvh-470px),258px)] max-w-full place-items-center bg-paper upto-760:col-start-1 upto-760:row-span-2 upto-760:row-start-2 upto-760:h-auto upto-760:w-full",
+          "mx-auto grid aspect-2/3 h-[clamp(150px,calc(100dvh-470px),258px)] max-w-full place-items-center bg-paper upto-760:col-start-1 upto-760:row-span-3 upto-760:row-start-2 upto-760:h-auto upto-760:w-full",
           hasImage
             ? "border-[1.5px] border-line p-0"
             : "border-[1.5px] border-dashed border-line-soft p-4 upto-760:p-2",
@@ -216,14 +217,14 @@ export default function CoverPicker({
       {value && (
         <button
           type="button"
-          className="tap self-start text-[0.8rem] text-ink-soft underline decoration-line-soft underline-offset-3 hover:text-ink hover:decoration-current upto-760:col-span-2"
+          className="tap self-start text-[0.8rem] text-ink-soft underline decoration-line-soft underline-offset-3 hover:text-ink hover:decoration-current upto-760:col-start-2 upto-760:justify-self-start"
           onClick={() => pick("")}
         >
           No cover
         </button>
       )}
 
-      <label className="upto-760:col-span-2">
+      <label className="upto-760:col-start-2 upto-760:row-start-4 upto-760:self-start">
         <span className="sr-only">Cover image link</span>
         <input
           type="url"

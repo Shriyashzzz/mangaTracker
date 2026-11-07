@@ -35,7 +35,7 @@ export const formStyles = {
   captionTitle:
     "bg-[linear-gradient(var(--color-paper)_50%,var(--color-card)_50%)] px-2.5 font-brand text-[clamp(1.6rem,3vw,2rem)] leading-[1.1] font-normal tracking-[0.02em] uppercase",
   captionBack:
-    "tap flex h-9 items-center gap-1 border-[1.5px] border-line bg-card pr-3 pl-2 text-[0.9rem] font-medium text-ink transition-colors duration-150 hover:bg-accent-wash [&_svg]:size-4",
+    "tap flex h-9 items-center gap-1 border-[1.5px] border-line bg-card pr-3 pl-2 text-[0.9rem] font-medium text-ink transition-colors duration-150 hover:bg-[linear-gradient(var(--accent-wash),var(--accent-wash)),linear-gradient(var(--color-card),var(--color-card))] [&_svg]:size-4",
   sheet:
     "grid grid-cols-[172px_minmax(0,1fr)] grid-rows-[auto_1fr] gap-x-9 gap-y-[0.95rem] border-[1.5px] border-line bg-card p-[clamp(1.1rem,2.5vw,1.5rem)] shadow-[6px_6px_0_var(--hard-shadow)] upto-760:grid-cols-[minmax(0,1fr)] upto-760:grid-rows-none upto-760:gap-5",
   coverArea:
