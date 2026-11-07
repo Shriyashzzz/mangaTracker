@@ -11,6 +11,9 @@ export const scanStyles = {
     "grid size-11 shrink-0 place-items-center rounded-full border-[1.5px] border-[rgba(243,238,226,0.5)] bg-[rgba(0,0,0,0.35)] text-[#f3eee2] aria-pressed:bg-[#f3eee2] aria-pressed:text-[#0e0c09] disabled:invisible [&_svg]:size-5",
   camera:
     "relative grid min-h-0 flex-1 place-items-center content-center gap-4 overflow-hidden bg-[radial-gradient(120%_80%_at_50%_40%,#3a332a,#120f0b_70%)] px-4 py-2",
+  // typing instead: the dark panel shrinks to a note, the list gets the room
+  cameraTyping:
+    "relative grid flex-none place-items-center bg-[#120f0b] px-4 py-6",
   video: "absolute inset-0 size-full object-cover",
   // the box the barcode goes in, drawn in ink like a manga panel's border
   frame:
@@ -24,6 +27,7 @@ export const scanStyles = {
   results:
     "grid gap-2 border-t-[3px] border-line bg-card px-4 pt-3 pb-[max(1rem,env(safe-area-inset-bottom))] text-ink",
   list: "grid max-h-44 gap-2 overflow-y-auto",
+  listTall: "grid max-h-[40dvh] gap-2 overflow-y-auto",
   empty: "m-0 text-[0.9rem] text-muted",
   row: "grid animate-card-in grid-cols-[minmax(0,1fr)_auto] items-center gap-2 border-[1.5px] border-dashed border-line-soft bg-paper px-3 py-2 motion-reduce:animate-none",
   rowTitle: "block truncate text-[0.95rem] font-semibold",
@@ -36,6 +40,9 @@ export const scanStyles = {
     "min-h-12 min-w-0 border-2 border-line bg-paper px-3 font-mono text-[1rem] text-ink outline-none placeholder:text-ink-soft focus-visible:border-accent",
   typedError: "col-span-full m-0 text-[0.85rem] text-accent",
   footer: "flex items-center justify-between",
+  // on the dark panel: the camera refused, ask again
+  retry:
+    "tap mx-auto min-h-11 px-1 text-[0.95rem] font-medium text-[#f3eee2] underline decoration-[rgba(243,238,226,0.5)] underline-offset-3 hover:decoration-current",
   count: "font-mono text-[0.8rem] text-muted tabular-nums",
   done: "btn btn-primary min-h-12 w-full",
 };

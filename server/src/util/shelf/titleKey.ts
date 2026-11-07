@@ -20,17 +20,27 @@ export const titleKey = (name: string) =>
 export const shelfKey = (key: string, lightNovel: boolean) =>
   lightNovel ? `${key} (light novel)` : key;
 
-export const isOnShelf = (
+// the shelf entry that already holds this title, if any
+export const onShelfAs = <
+  T extends { id: number; name: string; lightNovel?: boolean },
+>(
   name: string,
-  shelf: { id: number; name: string; lightNovel?: boolean }[],
+  shelf: T[],
   // an edit can keep its own name
   exceptId?: number,
   lightNovel = false,
 ) => {
   const wanted = shelfKey(titleKey(name), lightNovel);
-  return shelf.some(
+  return shelf.find(
     (m) =>
       m.id !== exceptId &&
       shelfKey(titleKey(m.name), Boolean(m.lightNovel)) === wanted,
   );
 };
+
+export const isOnShelf = (
+  name: string,
+  shelf: { id: number; name: string; lightNovel?: boolean }[],
+  exceptId?: number,
+  lightNovel = false,
+) => Boolean(onShelfAs(name, shelf, exceptId, lightNovel));

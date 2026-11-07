@@ -218,8 +218,16 @@ export async function lookupScannedIsbn(isbn13: string) {
   if (!book) return null;
   const volume = numberOrNull(volumeOf(book.title));
   if (volume == null) return null;
-  const series = seriesName(book.title);
-  const lightNovel = isNovelName(series) || isNovelBook(book.title);
+  const named = seriesName(book.title);
+  // the catalog sometimes says so only in brackets ("Overlord, Vol. 3 (light
+  // novel)"), which seriesName drops
+  const lightNovel =
+    isNovelName(named) ||
+    isNovelBook(book.title) ||
+    /\blight novel\b/i.test(book.title);
+  // a novel goes by "Overlord Light Novel", so the shelf match finds the
+  // novel and never the manga of the same name
+  const series = lightNovel ? novelName(baseName(named)) : named;
   return {
     isbn13: book.isbn13,
     title: book.title,

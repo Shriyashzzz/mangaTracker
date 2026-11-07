@@ -19,6 +19,8 @@ export default function AddChoice({
   const dialog = useRef<HTMLDialogElement>(null);
   useEffect(() => {
     if (dialog.current && !dialog.current.open) dialog.current.showModal();
+    // the scanner's code starts loading now, so Scan opens without a wait
+    void import("./ScanSheet");
   }, []);
   // whichever is picked, the sheet goes first
   const pick = (then: () => void) => () => {
@@ -59,6 +61,13 @@ export default function AddChoice({
             Point at the back of a volume, scan a stack in a row
           </small>
         </span>
+      </button>
+      <button
+        type="button"
+        className="tap mx-auto min-h-11 px-2 text-[0.95rem] font-medium text-ink-soft underline decoration-line-soft underline-offset-3 hover:text-ink"
+        onClick={() => dialog.current?.close()}
+      >
+        Cancel
       </button>
     </dialog>
   );

@@ -53,12 +53,20 @@ export default function PriceSeries() {
     name: "",
     manga: null,
   });
-  // ?toget=1 (from the details page's Buy it card) opens on "Not on your shelf"
-  const [toGetOnly, setToGetOnly] = useState(
-    () => new URLSearchParams(window.location.search).get("toget") === "1",
-  );
-  // which page of "Not on your shelf" is showing
-  const [toGetPageIndex, setToGetPageIndex] = useState(0);
+  // "Not on your shelf" on or off, and which of its pages, for this series
+  // only: another series starts afresh. ?toget=1 (the details page's Buy it
+  // card) opens on it
+  const [filter, setFilter] = useState<{
+    name: string;
+    on: boolean;
+    page: number;
+  } | null>(null);
+  const toGetOnly =
+    filter?.name === name ? filter.on : params.get("toget") === "1";
+  const toGetPageIndex = filter?.name === name ? filter.page : 0;
+  const setToGetOnly = (on: boolean) => setFilter({ name, on, page: 0 });
+  const setToGetPageIndex = (page: number) =>
+    setFilter({ name, on: toGetOnly, page });
   useEffect(() => {
     if (!isSignedIn) return;
     const controller = new AbortController();
@@ -259,8 +267,7 @@ export default function PriceSeries() {
                 className={styles.toGet}
                 aria-pressed={toGetOnly}
                 onClick={() => {
-                  setToGetOnly((on) => !on);
-                  setToGetPageIndex(0);
+                  setToGetOnly(!toGetOnly);
                 }}
               >
                 Not on your shelf ({toGet.length})

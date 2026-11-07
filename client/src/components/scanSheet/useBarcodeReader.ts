@@ -37,6 +37,8 @@ export function useBarcodeReader(
   onIsbn: (isbn: string) => void,
   // false while the scanner is closed or typing has replaced the camera
   active: boolean,
+  // bumped to try the camera again after it was refused
+  attempt = 0,
 ) {
   const [state, setState] = useState<CameraState>("starting");
   const [torch, setTorch] = useState<{ can: boolean; on: boolean }>({
@@ -85,11 +87,18 @@ export function useBarcodeReader(
         const formats = (await Native?.getSupportedFormats?.()) ?? [];
         if (Native && formats.includes("ean_13")) {
           const stream = await navigator.mediaDevices.getUserMedia(CAMERA);
-          if (stopped) return stream.getTracks().forEach((t) => t.stop());
+          // closing from here on stops it, even mid-start
+          let timer = 0;
+          stop = () => {
+            clearInterval(timer);
+            stream.getTracks().forEach((t) => t.stop());
+          };
+          if (stopped) return stop();
           show(el, stream);
           await el.play();
+          if (stopped) return stop();
           const detector = new Native({ formats: ["ean_13"] });
-          const timer = window.setInterval(async () => {
+          timer = window.setInterval(async () => {
             if (el.readyState < 2) return;
             try {
               for (const code of await detector.detect(el)) seen(code.rawValue);
@@ -97,10 +106,6 @@ export function useBarcodeReader(
               /* a frame it couldn't read */
             }
           }, LOOK_EVERY_MS);
-          stop = () => {
-            clearInterval(timer);
-            stream.getTracks().forEach((t) => t.stop());
-          };
           torchFrom(stream);
         } else {
           const [
@@ -140,7 +145,7 @@ export function useBarcodeReader(
       stop();
       show(el, null);
     };
-  }, [active, video]);
+  }, [active, video, attempt]);
 
   const toggleTorch = async () => {
     const track = (

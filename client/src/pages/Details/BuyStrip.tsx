@@ -68,7 +68,8 @@ export default function BuyStrip({ options, hideNext }: Props) {
           <li>
             <NavLink
               className={styles.buyLink}
-              to={`${seriesPath(seriesName)}?toget=1`}
+              // seriesPath already has its ?name=, so this joins with &
+              to={`${seriesPath(seriesName)}&toget=1`}
               title="At the last checked prices. A volume gets a price once someone opens its page"
               viewTransition
             >

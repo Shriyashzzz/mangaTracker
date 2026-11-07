@@ -178,6 +178,11 @@ export function AddManga() {
           type="button"
           className="btn btn-secondary self-end"
           onClick={() => setScanning(true)}
+          // its code starts loading on the way to a click
+          onPointerEnter={() =>
+            void import("../../components/scanSheet/ScanSheet")
+          }
+          onFocus={() => void import("../../components/scanSheet/ScanSheet")}
         >
           <BarcodeIcon className="size-5" />
           Scan a barcode

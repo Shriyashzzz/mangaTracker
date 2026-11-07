@@ -42,5 +42,5 @@ export function finishCost(
 export function finishText(cost: FinishCost, money: (cents: number) => string) {
   if (cost.priced === cost.left)
     return `Finish the series: ${money(cost.cents)}`;
-  return `${money(cost.cents)} for ${cost.priced} of ${cost.left} · ${cost.left - cost.priced} not priced yet`;
+  return `Finish the series: ${money(cost.cents)} for ${cost.priced} of ${cost.left} · ${cost.left - cost.priced} not priced yet`;
 }

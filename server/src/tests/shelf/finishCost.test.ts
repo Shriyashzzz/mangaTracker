@@ -41,6 +41,6 @@ test("says it plainly, and never claims a full total it doesn't have", () => {
     "Finish the series: $22.98",
   );
   expect(finishText({ cents: 1099, priced: 1, left: 3 }, money)).toBe(
-    "$10.99 for 1 of 3 · 2 not priced yet",
+    "Finish the series: $10.99 for 1 of 3 · 2 not priced yet",
   );
 });
