@@ -1,14 +1,12 @@
-import { useEffect, useRef, useState } from "react";
-import { searchCovers, type CoverHit } from "../../lib/anilist";
+import { useRef, useState } from "react";
+import type { CoverHit } from "../../lib/anilist";
 import clsx from "clsx";
+import { useCoverSearch } from "./useCoverSearch";
 
 // the other matches, small enough to sit under the cover; a sideways
 // strip on phones
 const grid =
   "grid grid-cols-4 gap-[0.35rem] transition-opacity duration-200 ease-[ease] upto-760:col-start-2 upto-760:row-start-3 upto-760:auto-cols-[58px] upto-760:grid-flow-col upto-760:grid-cols-none upto-760:content-start upto-760:overflow-x-auto upto-760:pb-1 upto-760:[scrollbar-color:var(--line-soft)_transparent] upto-760:[scrollbar-width:thin]";
-
-const MIN_QUERY = 3;
-const DEBOUNCE_MS = 450;
 
 // the cover column of the add / edit forms: shows the chosen cover big,
 // looks the title up on AniList for alternatives, and takes a pasted link.
@@ -29,8 +27,6 @@ type Props = {
   error?: string;
 };
 
-type Status = "idle" | "loading" | "done" | "error";
-
 export default function CoverPicker({
   title,
   value,
@@ -41,45 +37,20 @@ export default function CoverPicker({
   className = "",
   error,
 }: Props) {
-  const [results, setResults] = useState<CoverHit[]>([]);
-  const [status, setStatus] = useState<Status>("idle");
   const [brokenUrl, setBrokenUrl] = useState<string | null>(null);
   // once the user picks or pastes something we stop auto-choosing for them
   const touched = useRef(Boolean(value));
-
-  const query = title.trim();
-  const tooShort = query.length < MIN_QUERY;
-
-  useEffect(() => {
-    if (tooShort) return;
-
-    const controller = new AbortController();
-    const timer = setTimeout(async () => {
-      setStatus("loading");
-      try {
-        const found = await searchCovers(query, controller.signal);
-        setResults(found);
-        setStatus("done");
-        onResults?.(found, query);
-        if (!touched.current && !coverChosen && found.length) {
-          onChange(found[0]!.cover, found[0]!);
-        }
-      } catch (e) {
-        if ((e as Error).name !== "AbortError") setStatus("error");
+  const search = useCoverSearch(title, {
+    onFound: (found, query) => {
+      onResults?.(found, query);
+      if (!touched.current && !coverChosen && found.length) {
+        onChange(found[0]!.cover, found[0]!);
       }
-    }, DEBOUNCE_MS);
-
-    return () => {
-      clearTimeout(timer);
-      controller.abort();
-    };
-    // onChange is a setter from the parent, it doesn't need to retrigger the search
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [query, tooShort]);
-
-  // a cleared title hides old results without another round trip
-  const shownStatus = tooShort ? "idle" : status;
-  const shown = tooShort ? [] : results;
+    },
+  });
+  const shownStatus = search.status;
+  const shown = search.hits;
+  const results = shown;
   const bigCover = previewUrl || value;
   const broken = Boolean(bigCover) && brokenUrl === bigCover;
 

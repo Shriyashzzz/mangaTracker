@@ -5,7 +5,8 @@
 // stands them up, on one that's up lays them down. Shift-click fills
 // everything between the last spine and this one. "Up to vol." types a run.
 // Shelves wrap rather than scroll sideways, so on a phone a sideways drag
-// paints and an up-and-down swipe still scrolls the page.
+// paints and an up-and-down swipe still scrolls the page. Phones get
+// smaller spines, ten to a row.
 // The form reads `volumesOwned` and `ownedList` (comma separated) from its
 // fields, as it reads everything else.
 import {
@@ -24,6 +25,7 @@ import Spine from "./Spine";
 const FIRST_SHOWN = 20;
 const MORE = 10;
 const roundUp = (n: number) => Math.ceil(n / MORE) * MORE;
+
 const sorted = (set: Set<number>) => [...set].sort((a, b) => a - b);
 
 type Start = { volumesOwned: number | null; ownedList?: number[] };
@@ -241,7 +243,11 @@ export function useVolumePicker(
     <div className={styles.field}>
       <div className={styles.head}>
         <span className={formStyles.label} id={labelId}>
-          Your shelf <span className={formStyles.optional}>(optional)</span>
+          Your shelf{" "}
+          {/* phones: the room goes to "Up to vol.", on the same line */}
+          <span className={`${formStyles.optional} upto-480:hidden`}>
+            (optional)
+          </span>
         </span>
         <label className={styles.upTo}>
           Up to vol.
@@ -251,7 +257,7 @@ export function useVolumePicker(
             type="number"
             min="1"
             max="999"
-            placeholder="–"
+            placeholder="e.g. 12"
             value={upToText ?? (run ? String(run) : "")}
             onChange={(e) => typeUpTo(e.target.value)}
             onBlur={() => setUpToText(null)}
@@ -322,10 +328,10 @@ export function useVolumePicker(
       <div className={styles.foot}>
         <p className={styles.said} aria-live="polite">
           {owned.length
-            ? `${ownedWhole} owned${known ? ` of ${known}` : ""} · ${rangesText(owned)}`
+            ? `${ownedWhole}${known ? ` of ${known}` : ""} on your shelf · vol. ${rangesText(owned)}`
             : known
-              ? `None picked yet · ${known} out`
-              : "None picked yet"}
+              ? `None yet · ${known} volumes out`
+              : "None yet"}
         </p>
         <span className={styles.footActions}>
           <button
@@ -336,7 +342,7 @@ export function useVolumePicker(
               setShown((n) => Math.max(n, spines.length) + MORE);
             }}
           >
-            +{MORE} more
+            Show {MORE} more
           </button>
           {owned.length > 0 && (
             <button

@@ -89,6 +89,14 @@ export const ChevronLeftIcon = (props: IconProps) => (
   </svg>
 );
 
+// a chain link: an image link of their own
+export const LinkIcon = (props: IconProps) => (
+  <svg {...base} {...props}>
+    <path d="M10 14a4 4 0 0 0 5.66 0l3-3a4 4 0 0 0-5.66-5.66l-1 1" />
+    <path d="M14 10a4 4 0 0 0-5.66 0l-3 3a4 4 0 0 0 5.66 5.66l1-1" />
+  </svg>
+);
+
 export const ChevronDownIcon = (props: IconProps) => (
   <svg {...base} {...props}>
     <path d="m6 9 6 6 6-6" />
