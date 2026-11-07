@@ -57,6 +57,8 @@ export default function PriceSeries() {
   const [toGetOnly, setToGetOnly] = useState(
     () => new URLSearchParams(window.location.search).get("toget") === "1",
   );
+  // which page of "Not on your shelf" is showing
+  const [toGetPageIndex, setToGetPageIndex] = useState(0);
   useEffect(() => {
     if (!isSignedIn) return;
     const controller = new AbortController();
@@ -141,10 +143,15 @@ export default function PriceSeries() {
   const toGet = mine ? stillToGet(volumes, mine) : volumes;
   // what the rest costs, at stored prices only (lib/finishCost.ts)
   const finish = mine ? finishCost(toGet) : null;
-  // "Not on your shelf" shows them all at once, past the ranges
+  // "Not on your shelf" pages through just those, 30 at a time, in place of
+  // the volume ranges, so the controls keep their shape
   const toGetShown = Boolean(mine) && toGetOnly;
+  const toGetPage = Math.min(
+    toGetPageIndex,
+    Math.max(0, Math.ceil(toGet.length / PAGE_SIZE) - 1),
+  );
   const shown = toGetShown
-    ? toGet
+    ? toGet.slice(toGetPage * PAGE_SIZE, (toGetPage + 1) * PAGE_SIZE)
     : volumes.filter(
         (v) =>
           (v.volume >= rangeStart || (pageIndex === 0 && v.volume < 1)) &&
@@ -155,7 +162,16 @@ export default function PriceSeries() {
     e.preventDefault();
     const number = Number(new FormData(e.currentTarget).get("volume"));
     if (!Number.isFinite(number) || number < 1) return;
-    setPage({ name, index: Math.floor((number - 1) / PAGE_SIZE) });
+    // filtered: to its page of "Not on your shelf"; one they own isn't
+    // there, so the filter goes off and it's found in the full list
+    const inToGet = toGetShown
+      ? toGet.findIndex((v) => v.volume === number)
+      : -1;
+    if (inToGet >= 0) setToGetPageIndex(Math.floor(inToGet / PAGE_SIZE));
+    else {
+      if (toGetShown) setToGetOnly(false);
+      setPage({ name, index: Math.floor((number - 1) / PAGE_SIZE) });
+    }
     requestAnimationFrame(() =>
       document
         .getElementById(`vol-${number}`)
@@ -242,7 +258,10 @@ export default function PriceSeries() {
                 type="button"
                 className={styles.toGet}
                 aria-pressed={toGetOnly}
-                onClick={() => setToGetOnly((on) => !on)}
+                onClick={() => {
+                  setToGetOnly((on) => !on);
+                  setToGetPageIndex(0);
+                }}
               >
                 Not on your shelf ({toGet.length})
               </button>
@@ -257,7 +276,24 @@ export default function PriceSeries() {
             )}
           </div>
         )}
-        {!toGetShown && (
+        {toGetShown ? (
+          <RangePager
+            total={toGet.length}
+            pageSize={PAGE_SIZE}
+            page={toGetPage}
+            onChange={(index) => {
+              setToGetPageIndex(index);
+              document
+                .getElementById("volumes-title")
+                ?.scrollIntoView({ behavior: "smooth", block: "start" });
+            }}
+            label="Volumes not on your shelf"
+            // by the volume numbers each page holds, gaps and all
+            labelFor={(start, end) =>
+              `${toGet[start]?.volume}–${toGet[end]?.volume}`
+            }
+          />
+        ) : (
           <RangePager
             total={lastNumber}
             pageSize={PAGE_SIZE}
