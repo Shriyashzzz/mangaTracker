@@ -2,6 +2,7 @@
 // opens it, saved in their own tables, and reused for 20 days. Searches are
 // capped on their own (CANADA_SEARCH_LIMIT a month), so Canada can never use up
 // the searches US prices depend on. CANADA_PRICES=off turns it all off.
+import { upcomingReleaseOf } from "../service.js";
 import config from "../../config/config.js";
 import { prisma } from "../../config/prisma.js";
 import priceQueries from "../../models/priceQueries.js";
@@ -153,6 +154,15 @@ export function getCanadaPrices(
 ): Promise<CanadaPrices> {
   if (!refresh)
     return savedOnly(isbn13).then((result) => withLinks(isbn13, result));
+  // not out yet: nothing worth a paid search, just the store links
+  return upcomingReleaseOf(isbn13).then((upcoming) =>
+    upcoming
+      ? savedOnly(isbn13).then((result) => withLinks(isbn13, result))
+      : checkNow(isbn13),
+  );
+}
+
+function checkNow(isbn13: string): Promise<CanadaPrices> {
   const already = running.get(isbn13);
   if (already) return already;
   // never throws: whatever happens, they still get the store links

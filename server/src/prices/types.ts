@@ -45,6 +45,12 @@ export type CatalogBook = {
   pages?: number | null;
   // the record says it's a comic ("(comic)", "(manga)"): never a novel
   comic?: boolean;
+  // this volume comes inside a book holding several ("Vinland Saga, Book 9"
+  // is vols 17 and 18): every volume it holds is listed with the book's ISBN
+  inBook?: { book: number; from: number; to: number };
+  // the publisher's release date ("2027-03-30", or just "2014-05"), when the
+  // catalog says: a later one is a preorder
+  published?: string;
 };
 
 // a series as AniList describes it, cached in series_info.info
@@ -60,6 +66,9 @@ export type SeriesInfo = {
   status: string | null;
   volumes: number | null;
   altNames: string[];
+  // its name in its own script ("ヴィンランド・サガ"): Open Library files some
+  // US editions under it. Missing from rows saved before it was asked for
+  nativeName?: string | null;
 };
 
 // a series in search results and the trending row

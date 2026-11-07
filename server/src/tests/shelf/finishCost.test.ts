@@ -41,6 +41,16 @@ test("says it plainly, and never claims a full total it doesn't have", () => {
     "Finish the series: $22.98",
   );
   expect(finishText({ cents: 1099, priced: 1, left: 3 }, money)).toBe(
-    "Finish the series: $10.99 for 1 of 3 · 2 not priced yet",
+    "Finish the series: 1 of 3 priced, $10.99 so far",
   );
+});
+
+test("two volumes in one book are paid for once", () => {
+  // Vinland Saga, Book 9 is vols 17 and 18: one $19.99 book
+  const cost = finishCost([
+    { isbn13: "9781632364456", knownPriceCents: 1999 },
+    { isbn13: "9781632364456", knownPriceCents: 1999 },
+    { isbn13: "9781632366306", knownPriceCents: 2099 },
+  ]);
+  expect(cost).toEqual({ cents: 4098, priced: 3, left: 3 });
 });

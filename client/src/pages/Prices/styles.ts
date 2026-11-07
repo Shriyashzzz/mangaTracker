@@ -95,6 +95,11 @@ export const pricesStyles = {
   seriesFallback: "absolute inset-0 size-full object-cover",
   // the volume number as a tab on the top corner, readable at a glance even
   // when several volumes share the series cover
+  // a book holding several volumes: the cards behind it, fanned like a hand
+  // of playing cards, each a copy of its cover a little further round
+  stack: "relative block",
+  stackBack:
+    "pointer-events-none absolute inset-0 origin-bottom-left overflow-hidden border-[1.5px] border-line bg-paper-2 shadow-ink transition-[rotate,translate] duration-200 ease-ink [&>img]:size-full [&>img]:object-cover [&>img]:opacity-85",
   vol: "absolute top-0 left-0 flex items-baseline gap-[0.2rem] bg-ink pt-[0.2rem] pr-[0.85rem] pb-[0.1rem] pl-2 font-brand text-[1.5rem] leading-none tracking-[0.02em] text-paper [clip-path:polygon(0_0,100%_0,calc(100%-8px)_100%,0_100%)] [&_small]:text-[0.75rem] [&_small]:tracking-[0.08em] [&_small]:uppercase",
   cardTitle: "line-clamp-2 text-[0.92rem] leading-[1.3] font-semibold",
   cardMeta: "text-[0.8rem] text-muted",
@@ -171,6 +176,9 @@ export const pricesStyles = {
   offerPrice: "font-mono text-[1.05rem] font-medium tabular-nums",
   // "Show N more": one centered button across the row
   moreRow: "grid justify-center py-1",
+  // a volume not out yet: when it's out and where to preorder it
+  preorder:
+    "flex flex-col gap-3 border-[1.5px] border-line bg-card px-4 py-4 text-[0.95rem] text-ink-soft shadow-ink [&_b]:font-semibold [&_b]:text-ink",
   note: "border-[1.5px] border-dashed border-line-soft px-4 py-[0.85rem] text-[0.95rem] text-ink-soft [&_.btn]:mt-3 [&_a]:font-medium [&_a]:text-ink [&_a]:underline [&_a]:decoration-accent [&_a]:underline-offset-3",
   // price history: a row per kind of copy (new print, used & marketplace,
   // ebook), its label beside lowest / highest / median; on phones the

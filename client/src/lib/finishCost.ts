@@ -25,22 +25,26 @@ export type FinishCost = {
 };
 
 export function finishCost(
-  toGet: { knownPriceCents: number | null }[],
+  toGet: { knownPriceCents: number | null; isbn13?: string }[],
 ): FinishCost | null {
   const priced = toGet.filter((v) => v.knownPriceCents != null);
   // nothing to add up: no line at all rather than a total of nothing
   if (!priced.length) return null;
+  // two volumes in one book (the same ISBN) are bought, and paid for, once
+  const once = new Map(
+    priced.map((v, i) => [v.isbn13 ?? i, v.knownPriceCents!]),
+  );
   return {
-    cents: priced.reduce((sum, v) => sum + v.knownPriceCents!, 0),
+    cents: [...once.values()].reduce((sum, cents) => sum + cents, 0),
     priced: priced.length,
     left: toGet.length,
   };
 }
 
-// "Finish the series: $214", or with gaps "$180 for 10 of 12 · 2 not priced
-// yet". The price format comes in, so this stays free of the network code
+// "Finish the series: $214", or with gaps "10 of 12 priced: $180 so far", so
+// a partial total never reads as the whole cost. The price format comes in, so this stays free of the network code
 export function finishText(cost: FinishCost, money: (cents: number) => string) {
   if (cost.priced === cost.left)
     return `Finish the series: ${money(cost.cents)}`;
-  return `Finish the series: ${money(cost.cents)} for ${cost.priced} of ${cost.left} · ${cost.left - cost.priced} not priced yet`;
+  return `Finish the series: ${cost.priced} of ${cost.left} priced, ${money(cost.cents)} so far`;
 }

@@ -1,3 +1,4 @@
+import { onSale } from "../../lib/releaseDate";
 import { useEffect, useState } from "react";
 import { getSeries } from "../../lib/prices";
 import type { Series, SeriesVolume } from "../../lib/types";
@@ -37,19 +38,21 @@ export function useBuyOptions(
     : (state.data?.volumes.filter(
         (v): v is NumberedVolume => v.volume != null,
       ) ?? []);
-  const latest = volumes.length
-    ? volumes.reduce((a, b) => (b.volume > a.volume ? b : a))
+  // what's on sale now: a preorder isn't the newest out or next to buy
+  const out = onSale(volumes);
+  const latest = out.length
+    ? out.reduce((a, b) => (b.volume > a.volume ? b : a))
     : null;
   const highest = Number(owned.volumesOwned) || 0;
   // the first one on sale after the furthest they own (only 2 -> vol. 3)
   const nextNumber = nextToGet(
     owned,
-    volumes.map((v) => v.volume),
+    out.map((v) => v.volume),
   );
   const missing =
     nextNumber == null
       ? null
-      : (volumes.find((v) => v.volume === nextNumber) ?? null);
+      : (out.find((v) => v.volume === nextNumber) ?? null);
 
   return {
     loading,
@@ -60,7 +63,7 @@ export function useBuyOptions(
     // nothing on sale after the furthest they own
     caughtUp: Boolean(latest && highest > 0 && !missing),
     // what the rest of the series costs at stored prices, once they own any
-    finish: ownsAny(owned) ? finishCost(stillToGet(volumes, owned)) : null,
+    finish: ownsAny(owned) ? finishCost(stillToGet(out, owned)) : null,
     seriesName: state.data?.info?.name ?? state.data?.name ?? name ?? "",
   };
 }

@@ -27,14 +27,15 @@ const ownedNow = async (id: number): Promise<Owned> => {
   return { volumesOwned: manga.volumesOwned, ownedList: manga.ownedList ?? [] };
 };
 
-// one volume taken back off, whatever else has changed since
-const takeBack = async (id: number, volume: number) => {
+// the volumes one scan put on, taken back off, whatever else has changed
+// since (a book like "Vinland Saga, Book 9" is two)
+const takeBack = async (id: number, volumes: number[]) => {
   const now = await ownedNow(id);
   await setVolumesOwned(
     id,
     ownedVolumes(
       null,
-      ownedOf(now).filter((v) => v !== volume),
+      ownedOf(now).filter((v) => !volumes.includes(v)),
     ),
   );
 };
@@ -46,9 +47,15 @@ async function markOn(
   owned: Owned,
   book: ScannedBook,
 ): Promise<ScanResult> {
-  if (owns(owned, book.volume)) return { kind: "already", book, name };
-  await setVolumesOwned(id, withVolume(owned, book.volume));
-  return { kind: "marked", book, name, undo: () => takeBack(id, book.volume) };
+  // a book holding two volumes may bring one they already had: undo takes
+  // back only what this scan added
+  const added = book.volumes.filter((v) => !owns(owned, v));
+  if (!added.length) return { kind: "already", book, name };
+  await setVolumesOwned(
+    id,
+    added.reduce((all, v) => withVolume(all, v), owned),
+  );
+  return { kind: "marked", book, name, undo: () => takeBack(id, added) };
 }
 
 export async function shelveScan(isbn: string): Promise<ScanResult> {
@@ -80,8 +87,8 @@ export async function shelveScan(isbn: string): Promise<ScanResult> {
         name: book.shelfName,
         status: false,
         lightNovel: book.lightNovel,
-        volumesOwned: book.volume,
-        ownedList: [book.volume],
+        volumesOwned: Math.max(...book.volumes),
+        ownedList: book.volumes,
       },
     });
     // already there under AniList's name for it: the server says which one
@@ -101,8 +108,8 @@ export async function shelveScan(isbn: string): Promise<ScanResult> {
       // later scan's volume keeps it on the shelf
       undo: async () => {
         const now = ownedOf(await ownedNow(id));
-        if (now.some((v) => v !== book.volume))
-          return takeBack(id, book.volume);
+        if (now.some((v) => !book.volumes.includes(v)))
+          return takeBack(id, book.volumes);
         const gone = await apiFetch(`/api/manga/${id}`, { method: "DELETE" });
         if (!gone.ok) throw new Error("Couldn't take it off the shelf");
       },

@@ -66,6 +66,16 @@ const KIND_LABEL = {
   ebook: TYPE_LABEL.ebook,
 };
 
+// "Mar 30, 2027" (or "Mar 2027" when only the month is known)
+const releaseDay = (published: string) => {
+  const [y, m, d] = published.split("-").map(Number);
+  return new Date(y!, (m || 1) - 1, d || 1).toLocaleDateString("en-US", {
+    month: "short",
+    ...(d ? { day: "numeric" } : {}),
+    year: "numeric",
+  });
+};
+
 export default function PriceVolume() {
   // US or Canada: switched right on the page, by anyone
   const country = useCountry();
@@ -145,6 +155,8 @@ export default function PriceVolume() {
     book,
     series,
     volume,
+    inBook,
+    preorder,
     siblings,
     offers: allOffers,
     history: allHistory,
@@ -173,13 +185,17 @@ export default function PriceVolume() {
   const lowestInHistory = Math.min(
     ...(printKinds.length ? printKinds : kinds).map((k) => k.lowCents),
   );
-  // the next volumes first, then the ones before
+  // the next volumes first, then the ones before. A book holding several
+  // counts as its last one
+  const at = volume ?? inBook?.to ?? null;
   const nearby = [
-    ...siblings.filter((v) => volume == null || (v.volume ?? 0) > volume),
-    ...siblings
-      .filter((v) => volume != null && (v.volume ?? 0) < volume)
-      .reverse(),
+    ...siblings.filter((v) => at == null || (v.volume ?? 0) > at),
+    ...siblings.filter((v) => at != null && (v.volume ?? 0) < at).reverse(),
   ].slice(0, SIBLINGS_SHOWN);
+  // a preorder's main button; the other stores are listed under it
+  const amazon = preorder
+    ? storeLinks.find((s) => s.store === "Amazon")
+    : undefined;
   // the stores with no row in the price list; the others would just repeat
   const hasOffer = (store: string) =>
     offers.some((o) => {
@@ -191,7 +207,12 @@ export default function PriceVolume() {
   // and it goes first
   const otherStores = [
     ...storeLinks.filter((s) => s.store === "eBay"),
-    ...storeLinks.filter((s) => s.store !== "eBay" && !hasOffer(s.store)),
+    ...storeLinks.filter(
+      (s) =>
+        s.store !== "eBay" &&
+        !hasOffer(s.store) &&
+        !(amazon && s.store === "Amazon"),
+    ),
   ];
   // the headline price is the cheapest new print copy, what most people buy
   const best = offers.find(
@@ -247,6 +268,11 @@ export default function PriceVolume() {
             {volume != null && (
               <span className={styles.tag}>Vol. {volume}</span>
             )}
+            {inBook && (
+              <span className={styles.tag}>
+                Vols. {inBook.from}–{inBook.to} in one book
+              </span>
+            )}
             {shownBook.lightNovel && (
               <span className={styles.tag}>Light novel</span>
             )}
@@ -298,7 +324,28 @@ export default function PriceVolume() {
                 </span>
               </div>
 
-              {offers.length > 0 ? (
+              {preorder ? (
+                // not out yet: no prices to compare, just where to order it
+                <div className={styles.preorder}>
+                  <p className="m-0">
+                    Not out until <b>{releaseDay(preorder)}</b>. Preorder it now
+                    and it ships on release day; prices show here once it's out.
+                  </p>
+                  {amazon && (
+                    <a
+                      href={amazon.url}
+                      target="_blank"
+                      rel={linkRel(amazon)}
+                      onClick={noteStoreClick}
+                      onAuxClick={noteStoreClick}
+                      className="btn btn-primary self-start"
+                      aria-label="Preorder on Amazon. Opens the store in a new tab"
+                    >
+                      Preorder on Amazon
+                    </a>
+                  )}
+                </div>
+              ) : offers.length > 0 ? (
                 <OfferList
                   key={isbn}
                   offers={offers}
@@ -337,9 +384,11 @@ export default function PriceVolume() {
               {otherStores.length > 0 && (
                 <div className={styles.otherStores}>
                   <h3 id="links-title" className={styles.otherStoresTitle}>
-                    {offers.length > 0
-                      ? "Also worth checking, they could be cheaper:"
-                      : "Check price at:"}
+                    {preorder
+                      ? "Or preorder at:"
+                      : offers.length > 0
+                        ? "Also worth checking, they could be cheaper:"
+                        : "Check price at:"}
                   </h3>
                   <ul className={styles.storeLinks}>
                     {otherStores.map((s) => (
@@ -443,7 +492,7 @@ export default function PriceVolume() {
               viewTransition
               {...stayInTrip(fromShelf)}
             >
-              See all {siblings.length + 1}
+              See them all
             </NavLink>
           </div>
           <ul className={styles.row}>
@@ -451,7 +500,9 @@ export default function PriceVolume() {
               <li key={v.isbn13}>
                 <VolumeCard
                   {...v}
-                  title={`Vol. ${v.volume}`}
+                  title={
+                    v.inBook ? `Book ${v.inBook.book}` : `Vol. ${v.volume}`
+                  }
                   fullTitle={v.title}
                   seriesCoverUrl={series.info?.coverUrl}
                   priceCents={v.knownPriceCents}

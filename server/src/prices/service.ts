@@ -28,6 +28,7 @@ import {
   seriesOf,
   slugify,
   volumeOf,
+  bookNumberOf,
 } from "./stores/match.js";
 import { enabledProviders } from "./providers/index.js";
 import { SearchesUsedUp } from "./providers/serpapiKeys.js";
@@ -41,7 +42,9 @@ import { editionCoverId } from "./sources/covers.js";
 import { dropUnlikelyNew } from "./stores/retailers.js";
 import { baseName, isNovelName, novelName } from "./lightNovel.js";
 import { volumesKey } from "./volumesKey.js";
-import type { CatalogBook, Offer, SeriesInfo } from "./types.js";
+import type { CatalogBook, Offer, SeriesHit, SeriesInfo } from "./types.js";
+import { googleSeriesVolumes } from "./sources/googleBooksCatalog.js";
+import { notOutYet } from "./preorder.js";
 
 export { searchSeries };
 
@@ -52,6 +55,10 @@ const FRESH_FOR_MS = 20 * 24 * 60 * 60 * 1000;
 const PROVIDER_TIMEOUT_MS = 12000;
 
 const numberOrNull = (n: number) => (Number.isFinite(n) ? n : null);
+// the volume a title names: none for a book holding several ("Vinland Saga,
+// Book 9" is vols 17 and 18, never vol 9)
+const titleVolume = (title: string) =>
+  bookNumberOf(title) !== null ? null : numberOrNull(volumeOf(title));
 
 // ---------- one volume ----------
 
@@ -133,7 +140,11 @@ async function getOrCreateBook(isbn13: string) {
   if (
     stored &&
     saved &&
-    isNovelBook(saved.title) !== isNovelBook(stored.title)
+    (isNovelBook(saved.title) !== isNovelBook(stored.title) ||
+      // a book holding several volumes stored before it was known as one
+      // ("Vinland Saga, Vol. 18" for Book 9): searched and scanned by its
+      // book name from now on
+      (saved.inBook && stored.title !== saved.title))
   ) {
     await priceQueries.upsertBook({ ...stored, title: saved.title });
     return priceQueries.getBook(isbn13);
@@ -151,6 +162,19 @@ async function getOrCreateBook(isbn13: string) {
   return priceQueries.getBook(isbn13);
 }
 
+// a volume's release date while it's still to come, as its series page has it
+// (dates found under other names and catalogs included). For the Canada
+// prices, which have only the ISBN: a preorder spends no paid searches there
+// either
+export async function upcomingReleaseOf(isbn13: string) {
+  const book = await priceQueries.getBook(isbn13).catch(() => null);
+  if (!book) return null;
+  const series = await getSeriesWithVolumes(seriesName(book.title)).catch(
+    () => null,
+  );
+  return notOutYet(series?.volumes.find((v) => v.isbn13 === isbn13)?.published);
+}
+
 // `refresh: false` shows what's stored without fetching new prices (crawlers)
 export async function getVolumePrices(isbn13: string, { refresh = true } = {}) {
   const book = await getOrCreateBook(isbn13);
@@ -165,7 +189,12 @@ export async function getVolumePrices(isbn13: string, { refresh = true } = {}) {
   const known =
     (Boolean(series.info) || isNovelName(series.name)) &&
     series.volumes.some((v) => v.isbn13.trim() === isbn13);
-  const checked = refresh && known ? await refreshIfStale(isbn13, book) : null;
+  // not out yet: no paid search, the page offers the preorder links instead
+  const preorder = notOutYet(
+    series.volumes.find((v) => v.isbn13 === book.isbn13)?.published,
+  );
+  const checked =
+    refresh && known && !preorder ? await refreshIfStale(isbn13, book) : null;
 
   const last = checked
     ? checked.unchanged
@@ -179,11 +208,24 @@ export async function getVolumePrices(isbn13: string, { refresh = true } = {}) {
   // checks saved before a rule changed still get held to it
   const offers = dropUnlikelyNew(stored, usual);
 
+  // a book holding several volumes says which, rather than a volume number
+  const inBook =
+    series.volumes.find((v) => v.isbn13 === book.isbn13 && v.inBook)?.inBook ??
+    null;
+  const seen = new Set([book.isbn13]);
   return {
     series: { name: series.name, slug: series.slug, info: series.info },
-    volume: numberOrNull(volumeOf(book.title)),
-    // the rest of the series, for the "from the same series" row
-    siblings: series.volumes.filter((v) => v.isbn13 !== book.isbn13),
+    volume: inBook ? null : titleVolume(book.title),
+    inBook,
+    // its release date, when it isn't out yet
+    preorder,
+    // the rest of the series, for the "from the same series" row: each book
+    // once, though it holds two volumes
+    siblings: series.volumes.filter((v) => {
+      if (seen.has(v.isbn13)) return false;
+      seen.add(v.isbn13);
+      return true;
+    }),
     book: {
       isbn13: book.isbn13,
       title: book.title,
@@ -216,9 +258,17 @@ export async function getVolumePrices(isbn13: string, { refresh = true } = {}) {
 export async function lookupScannedIsbn(isbn13: string) {
   const book = await getOrCreateBook(isbn13);
   if (!book) return null;
-  const volume = numberOrNull(volumeOf(book.title));
-  if (volume == null) return null;
   const named = seriesName(book.title);
+  // a book holding several volumes ("Vinland Saga, Book 9"): the series'
+  // list says which, and every one of them goes on the shelf
+  const inBook =
+    bookNumberOf(book.title) === null
+      ? null
+      : ((await getSeriesWithVolumes(named).catch(() => null))?.volumes.find(
+          (v) => v.isbn13 === book.isbn13 && v.inBook,
+        )?.inBook ?? null);
+  const volume = inBook ? inBook.from : titleVolume(book.title);
+  if (volume == null) return null;
   // the catalog sometimes says so only in brackets ("Overlord, Vol. 3 (light
   // novel)"), which seriesName drops
   const lightNovel =
@@ -232,6 +282,13 @@ export async function lookupScannedIsbn(isbn13: string) {
     isbn13: book.isbn13,
     title: book.title,
     volume,
+    // every volume it holds, when it's one book holding several
+    volumes: inBook
+      ? Array.from(
+          { length: inBook.to - inBook.from + 1 },
+          (_, i) => inBook.from + i,
+        )
+      : [volume],
     // the price checker's name ("Overlord Light Novel"), for /api/manga/match
     series,
     // the name a shelf keeps it under: a novel is the series' own name, marked
@@ -270,11 +327,84 @@ const seriesVolumesCache = new Map<
 // happened to leave out this time is still a real volume
 export const mergeVolumes = (known: CatalogBook[], found: CatalogBook[]) => {
   const byNumber = new Map(known.map((v) => [v.volume, v]));
-  for (const v of found) byNumber.set(v.volume, v);
+  const books = bookIsbns([...known, ...found]);
+  for (const v of found) {
+    // a book holding several volumes listed as if it were one isn't
+    if (!v.inBook && books.has(v.isbn13)) continue;
+    const had = byNumber.get(v.volume);
+    // a volume sold on its own is never swapped for the book holding it
+    if (v.inBook && had && !had.inBook) continue;
+    // a release date already known isn't lost to an answer without one
+    byNumber.set(
+      v.volume,
+      had?.published && !v.published && had.isbn13 === v.isbn13
+        ? { ...v, published: had.published }
+        : v,
+    );
+  }
   return [...byNumber.values()].sort(
     (a, b) => (a.volume ?? 0) - (b.volume ?? 0),
   );
 };
+
+// ---------- one list from several answers ----------
+
+// the ISBNs of books holding several volumes ("Vinland Saga, Book 6")
+const bookIsbns = (volumes: CatalogBook[]) =>
+  new Set(volumes.filter((v) => v.inBook).map((v) => v.isbn13));
+
+// a volume found again, under another name or by another catalog, into the
+// list being built. The first answer for a number stays, except that a volume
+// sold on its own beats a book holding it. A listing whose ISBN is such a book
+// (Google Books calls Vinland Saga's Book 6 "Vinland Saga 6"), or that's
+// already in the list under another number, isn't a volume of its own. A
+// release date the kept one lacks is taken from the same ISBN, or noted
+function addVolume(
+  byNumber: Map<number | null, CatalogBook>,
+  v: CatalogBook,
+  books: Set<string>,
+  datedElsewhere: Map<number | null, string>,
+) {
+  // a series sold as books holding several volumes (Vinland Saga in English)
+  // takes no lone volumes from other answers: Google Books lists its books
+  // as "Vinland Saga 12", under ISBNs Open Library doesn't use
+  if (!v.inBook && books.size > 0) return;
+  if (
+    !v.inBook &&
+    [...byNumber.values()].some(
+      (b) => b.isbn13 === v.isbn13 && b.volume !== v.volume,
+    )
+  )
+    return;
+  const had = byNumber.get(v.volume);
+  if (!had || (had.inBook && !v.inBook)) byNumber.set(v.volume, v);
+  else if (v.published && !had.published) {
+    if (had.isbn13 === v.isbn13)
+      byNumber.set(v.volume, { ...had, published: v.published });
+    else datedElsewhere.set(v.volume, v.published);
+  }
+}
+
+// the catalogs can give an upcoming volume different ISBNs: its date still
+// says it's a preorder. The last few volumes only: an old volume's special
+// edition coming out later must never make the volume itself look unreleased
+function adoptUpcomingDates(
+  byNumber: Map<number | null, CatalogBook>,
+  datedElsewhere: Map<number | null, string>,
+) {
+  const newest = Math.max(0, ...[...byNumber.keys()].map(Number));
+  for (const [n, date] of datedElsewhere) {
+    const had = byNumber.get(n);
+    if (
+      had &&
+      !had.published &&
+      n != null &&
+      n >= newest - 2 &&
+      notOutYet(date)
+    )
+      byNumber.set(n, { ...had, published: date });
+  }
+}
 
 // Open Library often can't say which format a book is: the Shield Hero novels
 // are filed as "Comics & graphic novels", like the manga. Length can: light
@@ -296,11 +426,23 @@ async function hasLightNovel(name: string) {
   );
 }
 
+// searchAs: look the series up by another name and file what's found under
+// `name`: its Japanese one ("ヴィンランド・サガ"), which Open Library files some
+// US editions under. google: ask Google Books instead of Open Library (new and
+// upcoming volumes), kept for days so its 1,000 free lookups a day go far.
+// Each saved apart from the English lookup
+const GOOGLE_VOLUMES_FRESH_MS = 3 * 24 * 60 * 60 * 1000;
 export async function seriesVolumes(
   name: string,
+  { searchAs, google = false }: { searchAs?: string; google?: boolean } = {},
 ): Promise<{ volumes: CatalogBook[]; incomplete: boolean }> {
   const series = seriesOf(name);
-  const key = volumesKey(name);
+  const key = searchAs
+    ? `${volumesKey(name)}:native`
+    : google
+      ? `${volumesKey(name)}:google`
+      : volumesKey(name);
+  const freshFor = google ? GOOGLE_VOLUMES_FRESH_MS : SERIES_VOLUMES_FRESH_MS;
   // memory first, then the database, which outlives a restart. A database
   // problem just means asking the catalog
   const hit =
@@ -309,7 +451,7 @@ export async function seriesVolumes(
       console.error("Couldn't read saved series volumes:", e.message);
       return null;
     }));
-  if (hit && Date.now() - hit.at < SERIES_VOLUMES_FRESH_MS) {
+  if (hit && Date.now() - hit.at < freshFor) {
     seriesVolumesCache.set(key, hit);
     return { volumes: hit.volumes, incomplete: false };
   }
@@ -322,20 +464,29 @@ export async function seriesVolumes(
   // finds some the other misses (two of Spice & Wolf's)
   const novel = isNovelName(name);
   const quoted = `title:"${baseName(name).replace(/"/g, "")}"`;
-  const queries = novel
-    ? [name, `${baseName(name)} novel`, quoted]
-    : [name, quoted];
+  const queries = searchAs
+    ? [searchAs]
+    : novel
+      ? [name, `${baseName(name)} novel`, quoted]
+      : [name, quoted];
   // a manga whose series has a novel too: its long books are the novel's
   const [results, hasNovel] = await Promise.all([
-    Promise.allSettled(
-      queries.map((q) =>
-        searchVolumesDetailed(q, {
-          max: 250,
-          timeoutMs: 20000,
-          seriesName: name,
-        }),
-      ),
-    ),
+    google
+      ? Promise.allSettled([
+          googleSeriesVolumes(name).then((books) => ({
+            books,
+            degraded: false,
+          })),
+        ])
+      : Promise.allSettled(
+          queries.map((q) =>
+            searchVolumesDetailed(q, {
+              max: 250,
+              timeoutMs: 20000,
+              seriesName: name,
+            }),
+          ),
+        ),
     novel ? Promise.resolve(true) : hasLightNovel(name),
   ]);
   const base = seriesOf(baseName(name));
@@ -351,7 +502,10 @@ export async function seriesVolumes(
     console.error("series volume lookup failed:", (r.reason as Error)?.message),
   );
 
-  const byNumber = new Map<number, CatalogBook>();
+  const byNumber = new Map<number | null, CatalogBook>();
+  // dates given a volume under another ISBN than the one kept
+  const datedElsewhere = new Map<number | null, string>();
+  const books = bookIsbns(found);
   for (const found1 of found) {
     let v = found1;
     // a long book under the manga's name is the novel's
@@ -364,14 +518,15 @@ export async function seriesVolumes(
     if (normalize(v.title) === normalize(name)) continue;
     // a set is only ever sold as a set, so it can't stand in for one volume
     if (!isSingleVolume(v.title)) continue;
-    if (!byNumber.has(v.volume)) byNumber.set(v.volume, v);
+    addVolume(byNumber, v, books, datedElsewhere);
   }
+  adoptUpcomingDates(byNumber, datedElsewhere);
   const volumes = mergeVolumes(hit?.volumes ?? [], [...byNumber.values()]);
 
   if (failed.length > 0 || untranslated) {
     // a saved list covers for the outage, and the catalog gets another go soon
     if (hit?.volumes.length) {
-      const at = Date.now() - SERIES_VOLUMES_FRESH_MS + SERIES_VOLUMES_RETRY_MS;
+      const at = Date.now() - freshFor + SERIES_VOLUMES_RETRY_MS;
       seriesVolumesCache.set(key, { at, volumes: hit.volumes });
       return { volumes, incomplete: false };
     }
@@ -391,6 +546,8 @@ export async function seriesVolumes(
   return { volumes, incomplete: false };
 }
 
+const JAPANESE_SCRIPT = /[\u3040-ヿ㐀-鿿]/;
+
 // AniList's official English name plus up to three other English names,
 // skipping any that are the link's own name
 const otherNamesFor = (name: string, info: SeriesInfo | null) => {
@@ -409,24 +566,45 @@ async function getSeriesWithVolumes(name: string) {
   // the other names only need AniList's answer, so they're searched while
   // the main name's catalog search is still running
   const altLookup = infoLookup.then((info) =>
-    Promise.all(otherNamesFor(name, info).map((alt) => seriesVolumes(alt))),
+    Promise.all([
+      ...otherNamesFor(name, info).map((alt) => seriesVolumes(alt)),
+      // its Japanese name too, when it has one in Japanese script (MONSTER's
+      // or PLUTO's would only find unrelated books). Manga only: a novel's
+      // Japanese name is its manga's too
+      ...(info?.nativeName &&
+      JAPANESE_SCRIPT.test(info.nativeName) &&
+      !isNovelName(name)
+        ? [seriesVolumes(name, { searchAs: info.nativeName })]
+        : []),
+    ]),
   );
-  const [info, main, altResults] = await Promise.all([
+  // Google Books, once, under AniList's official English name (it knows
+  // Frieren by its full one): new and upcoming volumes Open Library lacks
+  const googleLookup = infoLookup.then((info) =>
+    seriesVolumes(info?.name || name, { google: true }),
+  );
+  const [info, main, altResults, fromGoogle] = await Promise.all([
     infoLookup,
     seriesVolumes(name),
     altLookup,
+    googleLookup,
   ]);
   // the link's name may be short ("Frieren") while the volumes carry the
   // full English name ("Frieren: Beyond Journey's End"). A series can also be
   // sold under other names (Detective Conan is mostly catalogued as Case
   // Closed). Volumes found under AniList's official English name and its
   // alternatives are merged in by volume number
-  const byNumber = new Map(main.volumes.map((v) => [v.volume, v]));
-  for (const alt of altResults) {
-    for (const v of alt.volumes) {
-      if (!byNumber.has(v.volume)) byNumber.set(v.volume, v);
-    }
+  // with the same rules as within one search (addVolume), Google's last
+  const byNumber = new Map<number | null, CatalogBook>(
+    main.volumes.map((v) => [v.volume, v]),
+  );
+  const datedElsewhere = new Map<number | null, string>();
+  const lists = [...altResults, fromGoogle];
+  const books = bookIsbns([main, ...lists].flatMap((l) => l.volumes));
+  for (const list of lists) {
+    for (const v of list.volumes) addVolume(byNumber, v, books, datedElsewhere);
   }
+  adoptUpcomingDates(byNumber, datedElsewhere);
   // numbered ones only: pages list and page through volumes by number, so a
   // numberless book (the catalog's search can return one) has no place there
   const volumes = [...byNumber.values()]
@@ -453,6 +631,8 @@ async function getSeriesWithVolumes(name: string) {
       volume: v.volume,
       coverUrl: v.coverUrl,
       knownPriceCents: known.get(v.isbn13)?.priceCents ?? null,
+      ...(v.inBook ? { inBook: v.inBook } : {}),
+      ...(v.published ? { published: v.published } : {}),
     })),
   };
 }
@@ -537,7 +717,7 @@ export async function getShelfPrices(
           fromCents: cents,
           isbn13: v.isbn13,
           title: v.title,
-          volume: numberOrNull(volumeOf(v.title)),
+          volume: titleVolume(v.title),
         };
       }
     }
@@ -636,9 +816,57 @@ export async function getSeriesSummary(asked: string) {
 
 // latest deals: volumes now cheaper than their own average, from prices we
 // already have. Recently checked: the latest volumes anyone looked up
+// the popular row: only series we've found English books for. AniList's
+// trending list is full of series read in English only on apps, or not yet
+// translated, whose pages would say there's nothing to price. One not looked
+// up yet is looked up after answering, a few at a time, and joins the row
+// once its books are found
+const TRENDING_SHOWN = 12;
+const TRENDING_CHECKS_PER_VISIT = 6;
+const checkingTrending = new Set<string>();
+// what a background check found, by the name the row asked about (the series
+// may be saved under another): rechecked after a day when it found nothing
+const TRENDING_RECHECK_MS = 24 * 60 * 60 * 1000;
+const trendingFound = new Map<string, { at: number; books: number }>();
+async function withEnglishBooks(hits: SeriesHit[]) {
+  const keyOf = (h: SeriesHit) => volumesKey(h.name);
+  const nativeKeyOf = (h: SeriesHit) => `${volumesKey(h.name)}:native`;
+  const sizes = await priceQueries
+    .getSavedListSizes(hits.flatMap((h) => [keyOf(h), nativeKeyOf(h)]))
+    .catch(() => null);
+  // the database down: the row as AniList has it rather than an empty one
+  if (!sizes) return hits.slice(0, TRENDING_SHOWN);
+  const books = (h: SeriesHit) =>
+    (sizes.get(keyOf(h))?.size ?? 0) +
+    (sizes.get(nativeKeyOf(h))?.size ?? 0) +
+    (trendingFound.get(h.name)?.books ?? 0);
+  const checked = (h: SeriesHit) => {
+    const found = trendingFound.get(h.name);
+    return found
+      ? found.books > 0 || Date.now() - found.at < TRENDING_RECHECK_MS
+      : sizes.has(keyOf(h)) && (sizes.get(keyOf(h))?.size ?? 0) > 0;
+  };
+  const unchecked = hits
+    .filter((h) => !checked(h) && !checkingTrending.has(h.name))
+    .slice(0, TRENDING_CHECKS_PER_VISIT);
+  void (async () => {
+    for (const h of unchecked) {
+      checkingTrending.add(h.name);
+      const series = await getSeries(h.name).catch(() => null);
+      if (series)
+        trendingFound.set(h.name, {
+          at: Date.now(),
+          books: series.volumes.length,
+        });
+      checkingTrending.delete(h.name);
+    }
+  })();
+  return hits.filter((h) => books(h) > 0).slice(0, TRENDING_SHOWN);
+}
+
 export async function getHighlights() {
   const [trending, latest] = await Promise.all([
-    getTrending(),
+    getTrending().then(withEnglishBooks),
     priceQueries.getRecentBestPrices(40),
   ]);
   // the same believable price the volume's own page shows, so a fake one can't
@@ -671,7 +899,7 @@ export async function getHighlights() {
   const toCard = (r: (typeof recent)[number]) => ({
     isbn13: r.isbn13.trim(),
     title: r.title,
-    volume: numberOrNull(volumeOf(r.title)),
+    volume: titleVolume(r.title),
     coverUrl: r.coverUrl,
     seriesCoverUrl: seriesCovers.get(seriesName(r.title)) ?? null,
     priceCents: r.priceCents,

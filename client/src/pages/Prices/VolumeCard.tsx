@@ -51,6 +51,7 @@ export default function VolumeCard({
   priceCents,
   wasCents,
   mark,
+  holds,
 }: {
   isbn13: string;
   title: string;
@@ -65,6 +66,9 @@ export default function VolumeCard({
   // on a series page, for a series on their shelf: one they own, or the
   // next one they need
   mark?: "yours" | "next";
+  // a book holding several volumes (Vinland Saga, Book 5 is vols 9 and 10):
+  // drawn as a fanned stack of that many cards, tagged with its volumes
+  holds?: { from: number; to: number };
 }) {
   const fromShelf = useFromShelf();
   const shown = novelParts(title);
@@ -75,30 +79,55 @@ export default function VolumeCard({
       viewTransition
       {...stayInTrip(fromShelf)}
     >
-      <span className={styles.cover}>
-        <CoverFallback number={volume} seriesCoverUrl={seriesCoverUrl} />
-        {coverUrl && (
-          <img
-            src={coverSrc(coverUrl)}
-            alt=""
-            loading="lazy"
-            onError={hideBrokenCover}
-            onLoad={hidePlaceholderCover}
-          />
-        )}
-        {mark && (
-          <span
-            className={mark === "next" ? styles.markNext : styles.markYours}
-          >
-            {mark === "next" ? "Next" : "Yours"}
-          </span>
-        )}
-        {volume != null && (
-          <span className={styles.vol}>
-            <small>Vol.</small>
-            {volume}
-          </span>
-        )}
+      <span className={holds ? styles.stack : "contents"}>
+        {holds &&
+          Array.from({ length: holds.to - holds.from }, (_, i) => (
+            <span
+              key={i}
+              className={`${styles.stackBack} group-hover:translate-x-1`}
+              style={{
+                rotate: `${5 * (holds.to - holds.from - i)}deg`,
+                translate: `${8 * (holds.to - holds.from - i)}px ${-4 * (holds.to - holds.from - i)}px`,
+              }}
+              aria-hidden
+            >
+              {coverUrl && (
+                <img src={coverSrc(coverUrl)} alt="" loading="lazy" />
+              )}
+            </span>
+          ))}
+        <span className={styles.cover}>
+          <CoverFallback number={volume} seriesCoverUrl={seriesCoverUrl} />
+          {coverUrl && (
+            <img
+              src={coverSrc(coverUrl)}
+              alt=""
+              loading="lazy"
+              onError={hideBrokenCover}
+              onLoad={hidePlaceholderCover}
+            />
+          )}
+          {mark && (
+            <span
+              className={mark === "next" ? styles.markNext : styles.markYours}
+            >
+              {mark === "next" ? "Next" : "Yours"}
+            </span>
+          )}
+          {holds ? (
+            <span className={styles.vol}>
+              <small>Vols.</small>
+              {holds.from}–{holds.to}
+            </span>
+          ) : (
+            volume != null && (
+              <span className={styles.vol}>
+                <small>Vol.</small>
+                {volume}
+              </span>
+            )
+          )}
+        </span>
       </span>
       <span className={styles.cardTitle}>{shown.title}</span>
       {/* said where it's named in full (deals, recently checked), where manga
