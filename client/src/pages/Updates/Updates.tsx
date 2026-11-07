@@ -9,6 +9,18 @@ import { updatesStyles as styles } from "./styles";
 // the big features only, a line each. Add new ones here when they ship
 const UPDATES = [
   {
+    name: "Preorder upcoming volumes",
+    body: "Volumes show up before they're out, with their release date and where to preorder them.",
+  },
+  {
+    name: "More series in English",
+    body: "We now find English volumes that were hard to track down, from brand-new releases to 2-in-1 editions.",
+  },
+  {
+    name: "A quicker way to add",
+    body: "Search a title, pick it, and fill in only what you need. The rest can wait.",
+  },
+  {
     name: "Scan your volumes",
     body: "Point your phone at the barcodes on a stack of volumes and they go straight onto your shelf.",
   },
