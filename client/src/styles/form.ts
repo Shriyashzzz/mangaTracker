@@ -25,6 +25,17 @@ export const formStyles = {
   // one sheet: the cover column beside the details. The title comes first
   // in the markup (it's what you type first, and it drives the cover
   // lookup); on phones it's title, then the cover row, then the rest
+  // the Add page: its title sits in the box's top border (caption), so the
+  // box starts lower and leaves room under the caption. The caption is as
+  // tall as its row and centred on the border, so the title's background is
+  // the page above the line and the box below it: the line just stops
+  sheetCaptioned: "relative mt-5 pt-[clamp(1.9rem,3.5vw,2.3rem)]",
+  caption:
+    "pointer-events-none absolute inset-x-[clamp(0.75rem,2vw,1.25rem)] -top-[1.15rem] flex h-[2.3rem] items-center justify-between gap-4 [&>*]:pointer-events-auto",
+  captionTitle:
+    "bg-[linear-gradient(var(--color-paper)_50%,var(--color-card)_50%)] px-2.5 font-brand text-[clamp(1.6rem,3vw,2rem)] leading-[1.1] font-normal tracking-[0.02em] uppercase",
+  captionBack:
+    "tap flex h-9 items-center gap-1 border-[1.5px] border-line bg-card pr-3 pl-2 text-[0.9rem] font-medium text-ink transition-colors duration-150 hover:bg-accent-wash [&_svg]:size-4",
   sheet:
     "grid grid-cols-[172px_minmax(0,1fr)] grid-rows-[auto_1fr] gap-x-9 gap-y-[0.95rem] border-[1.5px] border-line bg-card p-[clamp(1.1rem,2.5vw,1.5rem)] shadow-[6px_6px_0_var(--hard-shadow)] upto-760:grid-cols-[minmax(0,1fr)] upto-760:grid-rows-none upto-760:gap-5",
   coverArea:

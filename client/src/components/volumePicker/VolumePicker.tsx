@@ -354,15 +354,6 @@ export function useVolumePicker(
           )}
         </span>
       </div>
-      {/* how, said every time: the gestures aren't otherwise visible */}
-      <p className={styles.hint}>
-        <span className="upto-520:hidden">
-          Tap a spine · drag across a run · shift-click to fill a range
-        </span>
-        <span className="hidden upto-520:inline">
-          Tap a spine, or drag across a run
-        </span>
-      </p>
       {offShelf.length > 0 && (
         <p className={styles.note}>Also: vol. {rangesText(offShelf)}</p>
       )}

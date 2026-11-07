@@ -29,7 +29,6 @@ export const volumePickerStyles = {
   boxTitle:
     "font-brand text-[1.35rem] leading-none tracking-[0.03em] uppercase",
   boxNote: "text-[0.8rem] text-paper/75",
-  hint: "text-[0.8rem] text-muted",
 
   foot: "flex flex-wrap items-baseline justify-between gap-x-4",
   footActions: "flex gap-4",

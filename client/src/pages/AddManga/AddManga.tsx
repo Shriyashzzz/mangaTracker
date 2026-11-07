@@ -1,9 +1,7 @@
 import { NavLink, useNavigate, useSearchParams } from "react-router";
 import { formStyles as styles } from "../../styles/form";
-import { lazy, Suspense, useRef, useState, type FormEvent } from "react";
-import { BarcodeIcon } from "../../components/icons/Icons";
-// the camera and its barcode library load only when someone scans
-const ScanSheet = lazy(() => import("../../components/scanSheet/ScanSheet"));
+import { useRef, useState, type FormEvent } from "react";
+import { ChevronLeftIcon } from "../../components/icons/Icons";
 import { apiFetch, errorMessages, signInPath } from "../../lib/api";
 import type { MangaForm } from "../../lib/types";
 import { useAuth } from "../../store/auth";
@@ -27,7 +25,6 @@ const DESC_MAX = 450;
 
 export function AddManga() {
   usePrivatePage("Add manga");
-  const [scanning, setScanning] = useState(false);
   const navigate = useNavigate();
   const isSignedIn = useAuth((s) => s.isSignedIn);
   // still reading, finished it, or want to read (not started, so no chapter)
@@ -165,36 +162,26 @@ export function AddManga() {
 
   return (
     <div className={`${styles.page} fade-in`}>
-      <div className={styles.pageHead}>
-        <div>
-          <NavLink to="/shelf" className={styles.backLink} viewTransition>
-            ← back to the shelf
+      <form
+        className={`${styles.sheet} ${styles.sheetCaptioned}`}
+        onSubmit={handleFormSubmit}
+        noValidate
+      >
+        {/* the page's title set into the box's top edge, like a manga
+            panel's caption, with the way back in the other corner: one row
+            instead of a header above the form */}
+        <div className={styles.caption}>
+          <h1 className={styles.captionTitle}>New entry</h1>
+          <NavLink
+            to="/shelf"
+            className={styles.captionBack}
+            aria-label="Back to the shelf"
+            viewTransition
+          >
+            <ChevronLeftIcon aria-hidden />
+            Shelf
           </NavLink>
-          <h1 className={styles.formTitle}>New entry</h1>
         </div>
-        {/* a stack of volumes on the desk: scan them in, with the webcam or a
-            phone's camera, instead of typing each one */}
-        <button
-          type="button"
-          className="btn btn-secondary self-end"
-          onClick={() => setScanning(true)}
-          // its code starts loading on the way to a click
-          onPointerEnter={() =>
-            void import("../../components/scanSheet/ScanSheet")
-          }
-          onFocus={() => void import("../../components/scanSheet/ScanSheet")}
-        >
-          <BarcodeIcon className="size-5" />
-          Scan a barcode
-        </button>
-      </div>
-      {scanning && (
-        <Suspense fallback={null}>
-          <ScanSheet onClose={() => setScanning(false)} />
-        </Suspense>
-      )}
-
-      <form className={styles.sheet} onSubmit={handleFormSubmit} noValidate>
         <div
           className={`${styles.field} ${styles.titleField}`}
           data-tour="add-title"
