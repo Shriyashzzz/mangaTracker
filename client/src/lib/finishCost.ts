@@ -1,0 +1,46 @@
+// What finishing a series costs: the volumes they don't own yet, added up at
+// the prices already stored (a volume is priced the first time someone opens
+// its page). Never asks for a price, so it never spends a paid search; a
+// volume nobody has opened yet is counted as not priced.
+import { owns } from "./ownedVolumes";
+import type { Manga } from "./types";
+
+// the volumes out that they don't own. A half volume or a vol. 0 special
+// never counts as theirs, so it's always among these (as on the price page)
+export const stillToGet = <T extends { volume: number }>(
+  volumes: T[],
+  owned: Pick<Manga, "volumesOwned"> & { ownedList?: number[] },
+) =>
+  volumes.filter(
+    (v) =>
+      !(v.volume >= 1 && Number.isInteger(v.volume) && owns(owned, v.volume)),
+  );
+
+export type FinishCost = {
+  // the priced ones, added up
+  cents: number;
+  priced: number;
+  // every volume still to get, priced or not
+  left: number;
+};
+
+export function finishCost(
+  toGet: { knownPriceCents: number | null }[],
+): FinishCost | null {
+  if (!toGet.length) return null;
+  const priced = toGet.filter((v) => v.knownPriceCents != null);
+  return {
+    cents: priced.reduce((sum, v) => sum + v.knownPriceCents!, 0),
+    priced: priced.length,
+    left: toGet.length,
+  };
+}
+
+// "Finish the series: $214", or with gaps "$180 for 10 of 12 · 2 not priced
+// yet". The price format comes in, so this stays free of the network code
+export function finishText(cost: FinishCost, money: (cents: number) => string) {
+  if (!cost.priced) return `${cost.left} to get · not priced yet`;
+  if (cost.priced === cost.left)
+    return `Finish the series: ${money(cost.cents)}`;
+  return `${money(cost.cents)} for ${cost.priced} of ${cost.left} · ${cost.left - cost.priced} not priced yet`;
+}

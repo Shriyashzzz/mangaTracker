@@ -4,10 +4,12 @@ import { NavLink, useParams, useSearchParams } from "react-router";
 import type { Series } from "../../lib/types";
 import {
   coverSrc,
+  formatCents,
   getSeries,
   hideBrokenCover,
   novelParts,
 } from "../../lib/prices";
+import { finishCost, finishText, stillToGet } from "../../lib/finishCost";
 import { useFromShelf } from "../../lib/fromShelf";
 import { findOnShelf } from "../../lib/shelf";
 import { nextToGet, owns } from "../../lib/ownedVolumes";
@@ -51,7 +53,10 @@ export default function PriceSeries() {
     name: "",
     manga: null,
   });
-  const [toGetOnly, setToGetOnly] = useState(false);
+  // ?toget=1 (from the details page's Buy it card) opens on what's left
+  const [toGetOnly, setToGetOnly] = useState(
+    () => new URLSearchParams(window.location.search).get("toget") === "1",
+  );
   useEffect(() => {
     if (!isSignedIn) return;
     const controller = new AbortController();
@@ -133,7 +138,9 @@ export default function PriceSeries() {
         volumes.map((v) => v.volume),
       ) ?? undefined)
     : undefined;
-  const toGet = volumes.filter((v) => !isTheirs(v.volume));
+  const toGet = mine ? stillToGet(volumes, mine) : volumes;
+  // what the rest costs, at stored prices only (lib/finishCost.ts)
+  const finish = mine ? finishCost(toGet) : null;
   // "Still to get" shows them all at once, past the ranges
   const toGetShown = Boolean(mine) && toGetOnly;
   const shown = toGetShown
@@ -227,15 +234,28 @@ export default function PriceSeries() {
             </span>
           )}
         </div>
-        {mine && toGet.length < volumes.length && (
-          <button
-            type="button"
-            className={styles.toGet}
-            aria-pressed={toGetOnly}
-            onClick={() => setToGetOnly((on) => !on)}
-          >
-            Still to get ({toGet.length})
-          </button>
+        {/* what's left of their series, and what it costs at stored prices */}
+        {(finish || (mine && toGet.length < volumes.length)) && (
+          <div className={styles.toGetRow}>
+            {mine && toGet.length < volumes.length && (
+              <button
+                type="button"
+                className={styles.toGet}
+                aria-pressed={toGetOnly}
+                onClick={() => setToGetOnly((on) => !on)}
+              >
+                Still to get ({toGet.length})
+              </button>
+            )}
+            {finish && (
+              <span
+                className={styles.finishCost}
+                title="At the last checked prices. A volume gets a price once someone opens its page"
+              >
+                {finishText(finish, formatCents)}
+              </span>
+            )}
+          </div>
         )}
         {!toGetShown && (
           <RangePager
