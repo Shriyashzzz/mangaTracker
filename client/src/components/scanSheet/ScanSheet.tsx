@@ -27,6 +27,12 @@ type Row = {
   undoFailed?: boolean;
 };
 
+// "Vol. 3", or "Vols. 17–18" for a book holding two
+const volumesLabel = (volumes: number[]) =>
+  volumes.length > 1
+    ? `Vols. ${volumes[0]}–${volumes[volumes.length - 1]}`
+    : `Vol. ${volumes[0]}`;
+
 // how long "Already scanned" stays under the frame
 const NOTICE_MS = 1600;
 
@@ -143,7 +149,7 @@ export default function ScanSheet({ onClose }: { onClose: () => void }) {
   return (
     <dialog
       ref={dialog}
-      className={styles.dialog}
+      className={`${styles.dialog} ${showTyping ? "" : styles.dialogCamera}`}
       aria-label="Scan a barcode"
       onClose={close}
     >
@@ -270,7 +276,7 @@ export default function ScanSheet({ onClose }: { onClose: () => void }) {
             </button>
           )}
           <span className={`${styles.count} ml-auto`}>
-            {onShelf} on your shelf
+            {rows.length} scanned · {onShelf} added
           </span>
         </div>
         <button
@@ -308,7 +314,9 @@ function ScanRow({
       </div>
     );
   const title =
-    "book" in result ? `${result.name} · Vol. ${result.book.volume}` : row.isbn;
+    "book" in result
+      ? `${result.name} · ${volumesLabel(result.book.volumes)}`
+      : row.isbn;
   const note = row.undoFailed
     ? "Undo didn't save. Try again"
     : row.undone
@@ -316,7 +324,7 @@ function ScanRow({
       : result.kind === "marked"
         ? "Marked yours"
         : result.kind === "added"
-          ? `Added to your shelf with Vol. ${result.book.volume}`
+          ? `Added to your shelf with ${volumesLabel(result.book.volumes)}`
           : result.kind === "already"
             ? "Already yours"
             : result.kind === "unknown"

@@ -101,7 +101,6 @@ export default function SignUp() {
               <PasswordInput
                 id="password"
                 ref={passRef}
-                placeholder="5 characters or more"
                 name="password"
                 autoComplete="new-password"
                 required

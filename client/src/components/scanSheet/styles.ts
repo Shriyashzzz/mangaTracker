@@ -3,7 +3,7 @@
 export const scanStyles = {
   // the whole screen on phones; a panel on wider screens, sized to a webcam
   dialog:
-    "m-auto h-[min(46rem,92dvh)] w-[min(30rem,calc(100vw-2rem))] max-w-none flex-col overflow-hidden border-[2.5px] border-line bg-[#0e0c09] p-0 text-[#f3eee2] shadow-ink-lg open:flex backdrop:bg-[rgba(20,14,8,0.6)] upto-720:h-dvh upto-720:max-h-none upto-720:w-screen upto-720:border-0",
+    "m-auto w-[min(30rem,calc(100vw-2rem))] max-w-none flex-col overflow-hidden border-[2.5px] border-line bg-[#0e0c09] p-0 text-[#f3eee2] shadow-ink-lg open:flex backdrop:bg-[rgba(20,14,8,0.6)] upto-720:h-dvh upto-720:max-h-none upto-720:w-screen upto-720:border-0",
   top: "flex items-center justify-between px-3 pt-3 pb-1",
   title:
     "font-brand text-[1.4rem] leading-none font-normal tracking-[1px] uppercase",
@@ -11,9 +11,12 @@ export const scanStyles = {
     "grid size-11 shrink-0 place-items-center rounded-full border-[1.5px] border-[rgba(243,238,226,0.5)] bg-[rgba(0,0,0,0.35)] text-[#f3eee2] aria-pressed:bg-[#f3eee2] aria-pressed:text-[#0e0c09] disabled:invisible [&_svg]:size-5",
   camera:
     "relative grid min-h-0 flex-1 place-items-center content-center gap-4 overflow-hidden bg-[radial-gradient(120%_80%_at_50%_40%,#3a332a,#120f0b_70%)] px-4 py-2",
-  // typing instead: the dark panel shrinks to a note, the list gets the room
+  // typing instead: the dark panel shrinks to a note, the list gets the room.
+  // Wider screens: the sheet is camera-sized only while the camera shows,
+  // so typing leaves no empty panel; phones are always the full screen
+  dialogCamera: "h-[min(46rem,92dvh)]",
   cameraTyping:
-    "relative grid flex-none place-items-center bg-[#120f0b] px-4 py-6",
+    "relative grid flex-none place-items-center bg-[#120f0b] px-4 py-6 upto-720:flex-1",
   video: "absolute inset-0 size-full object-cover",
   // the box the barcode goes in, drawn in ink like a manga panel's border
   frame:
