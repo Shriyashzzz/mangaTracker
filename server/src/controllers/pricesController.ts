@@ -25,6 +25,7 @@ import {
   getSeriesSummary,
   getVolumePrices,
   getVolumeSummary,
+  lookupScannedIsbn,
   searchSeries,
 } from "../prices/service.js";
 
@@ -134,6 +135,21 @@ const volume = [
   },
 ];
 
+// GET /scan/:isbn  a scanned barcode: its series and volume, for the shelf.
+// Free sources only, never a price search
+const scan = [
+  ...isbnParam,
+  async (req: Request, res: Response) => {
+    const book = await upstream(
+      "barcode lookup",
+      "The book catalog didn't answer. Try again in a moment.",
+      () => lookupScannedIsbn(matchedData(req).isbn),
+    );
+    if (!book) throw new NotFoundError("We couldn't find that book.");
+    res.json(book);
+  },
+];
+
 // GET /ca/:isbn  a volume's Canadian prices (sandboxed in prices/canada).
 // Never throws for a store problem: it answers with the store links instead
 const canadaVolume = [
@@ -231,6 +247,7 @@ const seriesSummary = [
 ];
 
 export default {
+  scan,
   canadaVolume,
   search,
   seriesSearch,

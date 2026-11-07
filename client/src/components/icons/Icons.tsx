@@ -89,6 +89,14 @@ export const ChevronLeftIcon = (props: IconProps) => (
   </svg>
 );
 
+// a chain link: an image link of their own
+export const LinkIcon = (props: IconProps) => (
+  <svg {...base} {...props}>
+    <path d="M10 14a4 4 0 0 0 5.66 0l3-3a4 4 0 0 0-5.66-5.66l-1 1" />
+    <path d="M14 10a4 4 0 0 0-5.66 0l-3 3a4 4 0 0 0 5.66 5.66l1-1" />
+  </svg>
+);
+
 export const ChevronDownIcon = (props: IconProps) => (
   <svg {...base} {...props}>
     <path d="m6 9 6 6 6-6" />
@@ -152,5 +160,26 @@ export const InfoIcon = (props: IconProps) => (
 export const SignOutIcon = (props: IconProps) => (
   <svg {...base} {...props}>
     <path d="M14 4H6a1 1 0 0 0-1 1v14a1 1 0 0 0 1 1h8M10 12h10M17 9l3 3-3 3" />
+  </svg>
+);
+
+// a barcode in a viewfinder's corners: scanning a book
+export const BarcodeIcon = (props: IconProps) => (
+  <svg {...base} {...props}>
+    <path d="M4 8V5h3M17 5h3v3M20 16v3h-3M7 19H4v-3M8 9v6M11 9v6M14 9v6M16.5 9v6" />
+  </svg>
+);
+
+// a torch, for the camera's light
+export const TorchIcon = (props: IconProps) => (
+  <svg {...base} {...props}>
+    <path d="M8 3h8l-1.5 6h-5zM9.5 9h5l.5 3-2.5 9-2.5-9z" />
+  </svg>
+);
+
+// lines of type: adding a series by its name
+export const TypeIcon = (props: IconProps) => (
+  <svg {...base} {...props}>
+    <path d="M4 7V5h16v2M9 19h6M12 5v14" />
   </svg>
 );

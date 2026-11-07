@@ -48,7 +48,13 @@ export default function SeriesCard({ series }: { series: SeriesCardData }) {
         {[
           shown.lightNovel && "Light novel",
           series.year,
-          series.volumes && `${series.volumes} vols`,
+          // a manga's count is AniList's, which counts Japan's volumes (the
+          // US edition can be fewer, or omnibuses); a novel's is the English
+          // list we keep
+          series.volumes &&
+            (shown.lightNovel
+              ? `${series.volumes} vols`
+              : `${series.volumes} vols in Japan`),
           // AniList's score, out of 100: not their own stars
           series.score && `AniList ${series.score}%`,
           series.genre,

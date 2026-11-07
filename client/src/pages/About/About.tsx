@@ -51,7 +51,7 @@ export function AboutPage() {
 
         <div className={styles.heroCopy}>
           <h1 className={styles.title}>
-            <span className={styles.hit}>keep up</span> with your mangas!
+            <span className={styles.hit}>keep up</span> with your manga!
           </h1>
           <p className={styles.lead}>
             Hi, I'm Shriyash. I tend to start way too many manga at once and

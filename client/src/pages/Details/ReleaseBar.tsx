@@ -79,7 +79,9 @@ const groupsFrom = (
 
   const inJapanToo = kind === "volume" && !inJapan;
   return [
-    { title: inJapanToo ? "Out in Japan" : "Out now", rows: outNow },
+    // the English one is out (the bar's headline); these are further on, in
+    // Japan only, so the heading mustn't read as if the headline's were
+    { title: inJapanToo ? "Further ahead in Japan" : "Out now", rows: outNow },
     { title: inJapanToo ? "Next in Japan" : "Coming up", rows: comingUp },
   ].filter((group) => group.rows.length > 0);
 };

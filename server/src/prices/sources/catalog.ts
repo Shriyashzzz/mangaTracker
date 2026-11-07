@@ -3,7 +3,12 @@
 import { openLibraryFetch } from "./openLibrary.js";
 import { englishSeriesName } from "./anilist.js";
 import { coverPath } from "./covers.js";
-import { isSingleVolume, normalize, seriesOf } from "../stores/match.js";
+import {
+  bookNumberOf,
+  isSingleVolume,
+  normalize,
+  seriesOf,
+} from "../stores/match.js";
 import { baseName, isNovelName, novelName } from "../lightNovel.js";
 import type { CatalogBook } from "../types.js";
 
@@ -157,6 +162,9 @@ async function translateTitle(
   japaneseTitle: string,
   novel = false,
 ): Promise<TitleResult> {
+  // "ヴィンランド・サガ 17‐18" is one book holding two volumes: its editions
+  // say which book (booksFromEditions), so it's never read as volume 18
+  if (volumeRange(japaneseTitle)) return { title: null };
   const trailing = japaneseTitle.match(/^(.*?)\s*(\d+)\s*$/);
   const split = trailing ?? japaneseTitle.match(/^(\D+?)\s*(\d{1,3})(?!\d)/);
   const number = split?.[2];
@@ -198,6 +206,14 @@ async function englishPart(
   return translateTitle(untagged, novel);
 }
 
+// a book only self-publishers ever put out: fan notebooks, colouring books
+// and planners that borrow a series' name ("Vinland Saga Vol. 11" was a
+// notebook), never the manga itself, which a real publisher prints
+const SELF_PUBLISHED = /^(independently published|createspace)/i;
+export const isSelfPublished = (publishers: string[] = []) =>
+  publishers.length > 0 &&
+  publishers.every((p) => SELF_PUBLISHED.test(p.trim()));
+
 const toBook = async (
   doc: Doc,
   isbn13: string | undefined,
@@ -227,6 +243,40 @@ const toBook = async (
     },
   };
 };
+
+// a book another catalog listed (Google Books), held to the same rules as
+// Open Library's: an English edition, not self-published, its title in
+// English, a light novel named as the novel's
+export async function bookFromListing(listing: {
+  isbn13: string;
+  title: string;
+  authors?: string[];
+  publisher?: string | null;
+  year?: number | null;
+  pages?: number | null;
+  published?: string | null;
+}): Promise<CatalogBook | null> {
+  const publishers = listing.publisher ? [listing.publisher] : [];
+  if (!ENGLISH_ISBN.test(listing.isbn13) || isSelfPublished(publishers))
+    return null;
+  const { title } = await englishOnly(
+    listing.title,
+    isNovelEdition(listing.title, [], publishers),
+  );
+  if (!title) return null;
+  return {
+    isbn13: listing.isbn13,
+    title,
+    authors: englishAuthors(listing.authors),
+    publisher: listing.publisher ?? null,
+    year: listing.year ?? null,
+    volume: volumeNumber(title),
+    pages: listing.pages ?? null,
+    ...(saysComic(listing.title) ? { comic: true } : {}),
+    coverUrl: coverPath(listing.isbn13),
+    ...(listing.published ? { published: listing.published } : {}),
+  };
+}
 
 // Open Library is free but uneven: the same query can take half a second or
 // time out. A failed attempt is retried once after a short pause
@@ -259,6 +309,59 @@ async function search(
 
 // ---------- works that hold a whole series ----------
 // Open Library sometimes merges every volume into one work, like "Wistoria" with
+// a Japanese-titled work holding two or three volumes in one English book:
+// "ヴィンランド・サガ 17‐18". A wider range is a box of separate books
+const RANGE = /(\d{1,3})\s*[‐\-–~〜]\s*(\d{1,3})\s*$/;
+export const volumeRange = (title: string) => {
+  if (!JAPANESE.test(title)) return null;
+  const m = title.match(RANGE);
+  if (!m) return null;
+  const from = Number(m[1]);
+  const to = Number(m[2]);
+  return to > from && to - from <= 2 ? { from, to } : null;
+};
+
+// "Vinland Saga, Book Nine" -> "Vinland Saga, Book 9", the way stores and
+// bookNumberOf read it
+const ONES = [
+  "",
+  "one",
+  "two",
+  "three",
+  "four",
+  "five",
+  "six",
+  "seven",
+  "eight",
+  "nine",
+  "ten",
+  "eleven",
+  "twelve",
+  "thirteen",
+  "fourteen",
+  "fifteen",
+  "sixteen",
+  "seventeen",
+  "eighteen",
+  "nineteen",
+];
+const TENS: Record<string, number> = { twenty: 20, thirty: 30, forty: 40 };
+const wordNumber = (word: string) => {
+  const [tens, ones = ""] = word.toLowerCase().split(/[-\s]+/);
+  if (ONES.includes(tens!) && !ones) return ONES.indexOf(tens!) || null;
+  if (TENS[tens!] == null) return null;
+  const unit = ones ? ONES.indexOf(ones) : 0;
+  return unit < 0 || unit > 9 ? null : TENS[tens!]! + unit;
+};
+export const withBookDigits = (title: string) =>
+  title.replace(
+    /,?\s*\bbook\s+([a-z]+(?:[-\s][a-z]+)?)\s*$/i,
+    (whole, word: string) => {
+      const n = wordNumber(word);
+      return n ? `, Book ${n}` : whole;
+    },
+  );
+
 // ten English ISBNs and no volume number. Each edition still says which volume
 // it is ("Wistoria" + "Wand and Sword 1"), so those are read one by one. A volume
 // is only ever numbered from what its own edition says
@@ -271,6 +374,7 @@ const MAX_JAPANESE_WORKS = 24;
 
 type Edition = {
   title?: string;
+  physical_format?: string;
   subtitle?: string;
   isbn_13?: string[];
   isbn_10?: string[];
@@ -344,6 +448,49 @@ export function booksFromEditions(
   const wanted = seriesOf(baseName(seriesName));
   const whole = normalize(baseName(seriesName));
   const books: CatalogBook[] = [];
+  // one book holding a few volumes: each volume listed with the book's ISBN,
+  // the printed edition rather than the ebook
+  const range = !novel && doc.title ? volumeRange(doc.title) : null;
+  if (range) {
+    const english = editions
+      .map((edition) => ({
+        edition,
+        isbn13: [...(edition.isbn_13 ?? []), ...(edition.isbn_10 ?? [])]
+          .map(toIsbn13)
+          .find((i) => i && ENGLISH_ISBN.test(i)),
+        title: withBookDigits((edition.title ?? "").trim()),
+      }))
+      .filter(
+        ({ edition, isbn13, title }) =>
+          isbn13 &&
+          !(edition.languages ?? []).some(
+            (l) => l.key && l.key !== "/languages/eng",
+          ) &&
+          bookNumberOf(title) !== null &&
+          seriesOf(title) === wanted,
+      );
+    const print =
+      english.find(
+        ({ edition }) => !/e-?book/i.test(edition.physical_format ?? ""),
+      ) ?? english[0];
+    if (!print) return books;
+    const book = bookNumberOf(print.title)!;
+    for (let volume = range.from; volume <= range.to; volume++) {
+      books.push({
+        isbn13: print.isbn13!,
+        title: `${seriesName}, Book ${book}`,
+        authors: englishAuthors(doc.author_name),
+        publisher: print.edition.publishers?.[0] ?? doc.publisher?.[0] ?? null,
+        year: doc.first_publish_year ?? null,
+        volume,
+        coverUrl: coverPath(print.isbn13!),
+        pages: print.edition.number_of_pages ?? null,
+        comic: true,
+        inBook: { book, from: range.from, to: range.to },
+      });
+    }
+    return books;
+  }
   for (const edition of editions) {
     const isbn13 = [...(edition.isbn_13 ?? []), ...(edition.isbn_10 ?? [])]
       .map(toIsbn13)
@@ -410,11 +557,16 @@ export async function searchVolumesDetailed(
   } = {},
 ): Promise<{ books: CatalogBook[]; degraded: boolean }> {
   const isbn = toIsbn13(query);
-  const docs = await search(
-    isbn ? `isbn:${isbn}` : query,
-    Math.max(40, max * 2),
-    timeoutMs,
-  );
+  // a series' volumes leave out what only self-publishers printed (and so
+  // never read a notebook's editions). A book looked up by its own ISBN,
+  // like a scanned indie one, is still found
+  const docs = (
+    await search(
+      isbn ? `isbn:${isbn}` : query,
+      Math.max(40, max * 2),
+      timeoutMs,
+    )
+  ).filter((doc) => isbn || !isSelfPublished(doc.publisher));
 
   const candidates = await Promise.all(
     docs.map((doc) =>
@@ -459,8 +611,13 @@ export async function searchVolumesDetailed(
         toRead[i]!,
         seriesName,
       )) {
-        // the search result for this ISBN may be the work's numberless title
-        const same = books.findIndex((b) => b.isbn13 === book.isbn13);
+        // the search result for this ISBN may be the work's numberless title.
+        // A book holding two volumes is listed once for each, same ISBN
+        const same = books.findIndex(
+          (b) =>
+            b.isbn13 === book.isbn13 &&
+            (b.volume === null || b.volume === book.volume),
+        );
         if (same === -1) books.push(book);
         else if (books[same]!.volume === null) books[same] = book;
       }
@@ -482,6 +639,31 @@ export const searchVolumes = async (
 
 export async function lookupIsbn(isbn13: string): Promise<CatalogBook | null> {
   const docs = await search(`isbn:${isbn13}`, 1);
+  const doc = docs[0];
+  if (!doc) return null;
   // the requested ISBN wins even if Open Library lists another edition first
-  return docs[0] ? (await toBook(docs[0], isbn13)).book : null;
+  const { book } = await toBook(doc, isbn13);
+  if (book || !doc.title || !volumeRange(doc.title)) return book;
+  // a book holding a few volumes, filed under the Japanese title: its own
+  // edition record has the English name ("Vinland Saga, Book Nine")
+  const res = await openLibraryFetch(
+    `https://openlibrary.org/isbn/${isbn13}.json`,
+    TIMEOUT_MS,
+  ).catch(() => null);
+  const edition = res?.ok ? ((await res.json()) as Edition) : null;
+  const title = withBookDigits((edition?.title ?? "").trim());
+  if (!title || JAPANESE.test(title) || bookNumberOf(title) === null)
+    return null;
+  return {
+    isbn13,
+    title,
+    authors: englishAuthors(doc.author_name),
+    publisher: edition?.publishers?.[0] ?? doc.publisher?.[0] ?? null,
+    year: doc.first_publish_year ?? null,
+    // the book's number isn't a volume's
+    volume: null,
+    coverUrl: coverPath(isbn13),
+    pages: edition?.number_of_pages ?? null,
+    comic: true,
+  };
 }

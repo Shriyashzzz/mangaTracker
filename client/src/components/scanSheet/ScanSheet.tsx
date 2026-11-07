@@ -1,0 +1,364 @@
+// Scan the barcodes on the back of volumes to put them on the shelf: each one
+// is marked theirs, or its series is added with it (lib/scan.ts). The camera
+// stays open for a whole stack; what each scan came to stacks up below, within
+// thumb reach, each with its undo. No camera, or it's refused: type the ISBN.
+// A native dialog, so focus stays inside and Escape closes it.
+import {
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  type FormEvent,
+} from "react";
+import { useNavigate } from "react-router";
+import { BarcodeIcon, CheckIcon, CloseIcon, TorchIcon } from "../icons/Icons";
+import { isbnFromTyped } from "../../lib/barcode";
+import { shelveScan, type ScanResult } from "../../lib/scan";
+import { useShelf } from "../../store/shelf";
+import { useBarcodeReader } from "./useBarcodeReader";
+import { scanStyles as styles } from "./styles";
+
+// one scanned book: looking it up until result arrives
+type Row = {
+  key: number;
+  isbn: string;
+  result?: ScanResult;
+  undone?: boolean;
+  undoFailed?: boolean;
+};
+
+// "Vol. 3", or "Vols. 17–18" for a book holding two
+const volumesLabel = (volumes: number[]) =>
+  volumes.length > 1
+    ? `Vols. ${volumes[0]}–${volumes[volumes.length - 1]}`
+    : `Vol. ${volumes[0]}`;
+
+// how long "Already scanned" stays under the frame
+const NOTICE_MS = 1600;
+
+const landed = (row: Row) =>
+  !row.undone &&
+  (row.result?.kind === "marked" || row.result?.kind === "added");
+
+export default function ScanSheet({ onClose }: { onClose: () => void }) {
+  const navigate = useNavigate();
+  const dialog = useRef<HTMLDialogElement>(null);
+  const video = useRef<HTMLVideoElement>(null);
+  const isbnField = useRef<HTMLInputElement>(null);
+  const [rows, setRows] = useState<Row[]>([]);
+  const [typing, setTyping] = useState(false);
+  const [typedError, setTypedError] = useState("");
+  const [justRead, setJustRead] = useState(false);
+  const [notice, setNotice] = useState("");
+  const [attempt, setAttempt] = useState(0);
+  // one scan at a time, in order: two volumes of a new series scanned in a
+  // row must find the series the first one added
+  const queue = useRef(Promise.resolve());
+  const handled = useRef(new Set<string>());
+  const changed = useRef(false);
+  const nextKey = useRef(0);
+  const timers = useRef<number[]>([]);
+
+  useEffect(() => {
+    if (dialog.current && !dialog.current.open) dialog.current.showModal();
+    const pending = timers.current;
+    return () => pending.forEach(clearTimeout);
+  }, []);
+
+  const read = useCallback((isbn: string) => {
+    const later = (fn: () => void, ms: number) =>
+      timers.current.push(window.setTimeout(fn, ms));
+    setJustRead(true);
+    later(() => setJustRead(false), 350);
+    try {
+      navigator.vibrate?.(40);
+    } catch {
+      /* no buzz on this device */
+    }
+    // the same book twice in one sitting does nothing new, but says so
+    if (handled.current.has(isbn)) {
+      setNotice("Already scanned");
+      later(() => setNotice(""), NOTICE_MS);
+      return;
+    }
+    handled.current.add(isbn);
+    const key = nextKey.current++;
+    // shown at once, so a slow lookup never looks like a missed scan
+    setRows((now) => [{ key, isbn }, ...now]);
+    queue.current = queue.current.then(async () => {
+      const result = await shelveScan(isbn);
+      if (result.kind === "marked" || result.kind === "added")
+        changed.current = true;
+      // a failure can be scanned again
+      if (result.kind === "failed") handled.current.delete(isbn);
+      setRows((now) => now.map((r) => (r.key === key ? { ...r, result } : r)));
+    });
+  }, []);
+
+  const camera = useBarcodeReader(video, read, !typing, attempt);
+  const showTyping = typing || camera.state === "blocked";
+
+  // typing opens with the box ready
+  useEffect(() => {
+    if (showTyping) isbnField.current?.focus();
+  }, [showTyping]);
+
+  const close = () => {
+    // the shelf's cards say what they own, so it reloads once at the end
+    if (changed.current) void useShelf.getState().load();
+    onClose();
+  };
+
+  const undo = async (row: Row) => {
+    if (row.result?.kind !== "marked" && row.result?.kind !== "added") return;
+    const { book } = row.result;
+    try {
+      await row.result.undo();
+      handled.current.delete(book.isbn13);
+      setRows((now) =>
+        now.map((r) =>
+          r.key === row.key ? { ...r, undone: true, undoFailed: false } : r,
+        ),
+      );
+    } catch {
+      setRows((now) =>
+        now.map((r) => (r.key === row.key ? { ...r, undoFailed: true } : r)),
+      );
+    }
+  };
+
+  const submitTyped = (e: FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    const field = isbnField.current!;
+    const isbn = isbnFromTyped(field.value);
+    if (!isbn) {
+      setTypedError(
+        "That isn't an ISBN. It's the 13 digits under the barcode.",
+      );
+      return;
+    }
+    setTypedError("");
+    field.value = "";
+    // typed on purpose: looked up again even if scanned before
+    handled.current.delete(isbn);
+    read(isbn);
+  };
+
+  const onShelf = rows.filter(landed).length;
+
+  return (
+    <dialog
+      ref={dialog}
+      className={`${styles.dialog} ${showTyping ? "" : styles.dialogCamera}`}
+      aria-label="Scan a barcode"
+      onClose={close}
+    >
+      <div className={styles.top}>
+        <button
+          type="button"
+          className={styles.round}
+          aria-label="Close the scanner"
+          onClick={() => dialog.current?.close()}
+        >
+          <CloseIcon />
+        </button>
+        <h2 className={styles.title}>Scan</h2>
+        <button
+          type="button"
+          className={styles.round}
+          aria-label="Torch"
+          aria-pressed={camera.torch.on}
+          disabled={!camera.torch.can || showTyping}
+          onClick={camera.toggleTorch}
+        >
+          <TorchIcon />
+        </button>
+      </div>
+
+      <div className={showTyping ? styles.cameraTyping : styles.camera}>
+        {!showTyping && (
+          <>
+            <video ref={video} className={styles.video} muted playsInline />
+            <div className={styles.frame} data-read={justRead || undefined}>
+              {/* only once it's really looking */}
+              {camera.state === "live" && <span className={styles.laser} />}
+            </div>
+            <p className={styles.hint} role="status">
+              {camera.state === "starting"
+                ? "Starting the camera…"
+                : notice || "Point at the barcode on the back"}
+              <small className={styles.hintSmall}>
+                It reads on its own. Keep going for a whole stack
+              </small>
+            </p>
+          </>
+        )}
+        {showTyping && (
+          <div className={styles.blocked}>
+            <BarcodeIcon className="mx-auto size-10" />
+            <p className="m-0">
+              {camera.state === "blocked"
+                ? "The camera's off for this site. Allow it in the browser's site settings, or type the 13 digits under the barcode."
+                : "Type the 13 digits under the barcode."}
+            </p>
+            {camera.state === "blocked" && (
+              <button
+                type="button"
+                className={styles.retry}
+                onClick={() => {
+                  setTyping(false);
+                  setAttempt((n) => n + 1);
+                }}
+              >
+                Try the camera again
+              </button>
+            )}
+          </div>
+        )}
+      </div>
+
+      <div className={styles.results}>
+        <div
+          className={showTyping ? styles.listTall : styles.list}
+          aria-live="polite"
+        >
+          {!rows.length && (
+            <p className={styles.empty}>Scanned volumes show up here.</p>
+          )}
+          {rows.map((row) => (
+            <ScanRow
+              key={row.key}
+              row={row}
+              onUndo={() => void undo(row)}
+              onAddByTitle={() => {
+                dialog.current?.close();
+                navigate("/add", { viewTransition: true });
+              }}
+              onRetry={() => read(row.isbn)}
+            />
+          ))}
+        </div>
+
+        {showTyping && (
+          <form className={styles.typed} onSubmit={submitTyped} noValidate>
+            <label htmlFor="scan-isbn" className="sr-only">
+              ISBN
+            </label>
+            <input
+              ref={isbnField}
+              id="scan-isbn"
+              className={styles.input}
+              inputMode="numeric"
+              autoComplete="off"
+              placeholder="978…"
+              aria-invalid={Boolean(typedError) || undefined}
+              aria-describedby={typedError ? "scan-isbn-error" : undefined}
+            />
+            <button type="submit" className="btn btn-secondary min-h-12">
+              Find
+            </button>
+            {typedError && (
+              <p id="scan-isbn-error" className={styles.typedError}>
+                {typedError}
+              </p>
+            )}
+          </form>
+        )}
+
+        <div className={styles.footer}>
+          {camera.state !== "blocked" && (
+            <button
+              type="button"
+              className={styles.link}
+              onClick={() => setTyping((on) => !on)}
+            >
+              {typing ? "Use the camera" : "Type the ISBN"}
+            </button>
+          )}
+          <span className={`${styles.count} ml-auto`}>
+            {rows.length} scanned · {onShelf} added
+          </span>
+        </div>
+        <button
+          type="button"
+          className={styles.done}
+          onClick={() => dialog.current?.close()}
+        >
+          Done
+        </button>
+      </div>
+    </dialog>
+  );
+}
+
+// what one scan came to
+function ScanRow({
+  row,
+  onUndo,
+  onAddByTitle,
+  onRetry,
+}: {
+  row: Row;
+  onUndo: () => void;
+  onAddByTitle: () => void;
+  onRetry: () => void;
+}) {
+  const { result } = row;
+  if (!result)
+    return (
+      <div className={styles.row}>
+        <span className="min-w-0">
+          <b className={styles.rowTitle}>{row.isbn}</b>
+          <small className={styles.rowNote}>Looking it up…</small>
+        </span>
+      </div>
+    );
+  const title =
+    "book" in result
+      ? `${result.name} · ${volumesLabel(result.book.volumes)}`
+      : row.isbn;
+  const note = row.undoFailed
+    ? "Undo didn't save. Try again"
+    : row.undone
+      ? "Undone"
+      : result.kind === "marked"
+        ? "Marked yours"
+        : result.kind === "added"
+          ? `Added to your shelf with ${volumesLabel(result.book.volumes)}`
+          : result.kind === "already"
+            ? "Already yours"
+            : result.kind === "unknown"
+              ? "Couldn't find this one"
+              : "That didn't save";
+  const good = landed(row) && !row.undoFailed;
+  const bad =
+    row.undoFailed || result.kind === "unknown" || result.kind === "failed";
+  return (
+    <div className={styles.row}>
+      <span className="min-w-0">
+        <b className={styles.rowTitle}>{title}</b>
+        <small
+          className={`${styles.rowNote} ${good ? styles.rowGood : bad ? styles.rowBad : ""}`}
+        >
+          {good && <CheckIcon className="size-3.5 shrink-0" />}
+          {note}
+        </small>
+      </span>
+      {landed(row) && (
+        <button type="button" className={styles.link} onClick={onUndo}>
+          Undo
+        </button>
+      )}
+      {result.kind === "unknown" && (
+        <button type="button" className={styles.link} onClick={onAddByTitle}>
+          Add by title
+        </button>
+      )}
+      {result.kind === "failed" && (
+        <button type="button" className={styles.link} onClick={onRetry}>
+          Try again
+        </button>
+      )}
+    </div>
+  );
+}

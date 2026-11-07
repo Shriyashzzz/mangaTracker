@@ -8,14 +8,15 @@ import { openReleasesOnShelf } from "../../lib/shelf";
 import { useAuth } from "../../store/auth";
 import TakeTourButton from "../tour/TakeTourButton";
 
+// the newest big ones only; the rest are on /updates
 const ITEMS = [
   {
-    name: "Import from more places",
-    body: "Goodreads, AniList, Kitsu, Book Catalogue, or any CSV.",
+    name: "Scan your volumes",
+    body: "Add a whole stack from their barcodes, with your phone.",
   },
   {
-    name: "Better search results",
-    body: "Greater accuracy and a wider list of live prices.",
+    name: "Finish the series",
+    body: "What the volumes not on your shelf cost, all together.",
   },
 ];
 
