@@ -53,7 +53,7 @@ export default function PriceSeries() {
     name: "",
     manga: null,
   });
-  // ?toget=1 (from the details page's Buy it card) opens on what's left
+  // ?toget=1 (from the details page's Buy it card) opens on "Not on your shelf"
   const [toGetOnly, setToGetOnly] = useState(
     () => new URLSearchParams(window.location.search).get("toget") === "1",
   );
@@ -141,7 +141,7 @@ export default function PriceSeries() {
   const toGet = mine ? stillToGet(volumes, mine) : volumes;
   // what the rest costs, at stored prices only (lib/finishCost.ts)
   const finish = mine ? finishCost(toGet) : null;
-  // "Still to get" shows them all at once, past the ranges
+  // "Not on your shelf" shows them all at once, past the ranges
   const toGetShown = Boolean(mine) && toGetOnly;
   const shown = toGetShown
     ? toGet
@@ -244,7 +244,7 @@ export default function PriceSeries() {
                 aria-pressed={toGetOnly}
                 onClick={() => setToGetOnly((on) => !on)}
               >
-                Still to get ({toGet.length})
+                Not on your shelf ({toGet.length})
               </button>
             )}
             {finish && (

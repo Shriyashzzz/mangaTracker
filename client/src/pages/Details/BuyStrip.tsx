@@ -83,9 +83,8 @@ export default function BuyStrip({ options, hideNext }: Props) {
                 )}
               </span>
               <span className={styles.buyPrice}>
-                {!finish.priced
-                  ? "check prices"
-                  : `${formatCents(finish.cents)}${finish.priced < finish.left ? "+" : ""}`}
+                {formatCents(finish.cents)}
+                {finish.priced < finish.left && "+"}
               </span>
             </NavLink>
           </li>

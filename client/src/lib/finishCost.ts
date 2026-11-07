@@ -27,8 +27,9 @@ export type FinishCost = {
 export function finishCost(
   toGet: { knownPriceCents: number | null }[],
 ): FinishCost | null {
-  if (!toGet.length) return null;
   const priced = toGet.filter((v) => v.knownPriceCents != null);
+  // nothing to add up: no line at all rather than a total of nothing
+  if (!priced.length) return null;
   return {
     cents: priced.reduce((sum, v) => sum + v.knownPriceCents!, 0),
     priced: priced.length,
@@ -39,7 +40,6 @@ export function finishCost(
 // "Finish the series: $214", or with gaps "$180 for 10 of 12 · 2 not priced
 // yet". The price format comes in, so this stays free of the network code
 export function finishText(cost: FinishCost, money: (cents: number) => string) {
-  if (!cost.priced) return `${cost.left} to get · not priced yet`;
   if (cost.priced === cost.left)
     return `Finish the series: ${money(cost.cents)}`;
   return `${money(cost.cents)} for ${cost.priced} of ${cost.left} · ${cost.left - cost.priced} not priced yet`;

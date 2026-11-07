@@ -22,6 +22,8 @@ test("still to get: what they don't own, and halves always count", () => {
 
 test("adds up the priced ones and counts the rest", () => {
   expect(finishCost([])).toBeNull();
+  // nothing priced yet: no total at all
+  expect(finishCost([vol(3, null), vol(4, null)])).toBeNull();
   expect(finishCost([vol(3, 1099), vol(4, 1199)])).toEqual({
     cents: 2298,
     priced: 2,
@@ -40,8 +42,5 @@ test("says it plainly, and never claims a full total it doesn't have", () => {
   );
   expect(finishText({ cents: 1099, priced: 1, left: 3 }, money)).toBe(
     "$10.99 for 1 of 3 · 2 not priced yet",
-  );
-  expect(finishText({ cents: 0, priced: 0, left: 4 }, money)).toBe(
-    "4 to get · not priced yet",
   );
 });
