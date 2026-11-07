@@ -101,6 +101,19 @@ export type MangaForm = {
   ownedList?: number[];
 };
 
+// a scanned barcode's book: GET /api/prices/scan/:isbn
+export type ScannedBook = {
+  isbn13: string;
+  title: string;
+  volume: number;
+  // the price checker's name ("Overlord Light Novel"), for /api/manga/match
+  series: string;
+  // the name a shelf keeps it under
+  shelfName: string;
+  lightNovel: boolean;
+  coverUrl: string | null;
+};
+
 export type ShelfMatch = {
   id: number;
   name: string;

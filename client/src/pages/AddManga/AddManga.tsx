@@ -1,6 +1,9 @@
 import { NavLink, useNavigate, useSearchParams } from "react-router";
 import { formStyles as styles } from "../../styles/form";
-import { useRef, useState, type FormEvent } from "react";
+import { lazy, Suspense, useRef, useState, type FormEvent } from "react";
+import { BarcodeIcon } from "../../components/icons/Icons";
+// the camera and its barcode library load only when someone scans
+const ScanSheet = lazy(() => import("../../components/scanSheet/ScanSheet"));
 import { apiFetch, errorMessages, signInPath } from "../../lib/api";
 import type { MangaForm } from "../../lib/types";
 import { useAuth } from "../../store/auth";
@@ -24,6 +27,7 @@ const DESC_MAX = 450;
 
 export function AddManga() {
   usePrivatePage("Add manga");
+  const [scanning, setScanning] = useState(false);
   const navigate = useNavigate();
   const isSignedIn = useAuth((s) => s.isSignedIn);
   // still reading, finished it, or want to read (not started, so no chapter)
@@ -168,7 +172,22 @@ export function AddManga() {
           </NavLink>
           <h1 className={styles.formTitle}>New entry</h1>
         </div>
+        {/* a stack of volumes on the desk: scan them in, with the webcam or a
+            phone's camera, instead of typing each one */}
+        <button
+          type="button"
+          className="btn btn-secondary self-end"
+          onClick={() => setScanning(true)}
+        >
+          <BarcodeIcon className="size-5" />
+          Scan a barcode
+        </button>
       </div>
+      {scanning && (
+        <Suspense fallback={null}>
+          <ScanSheet onClose={() => setScanning(false)} />
+        </Suspense>
+      )}
 
       <form className={styles.sheet} onSubmit={handleFormSubmit} noValidate>
         <div

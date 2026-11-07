@@ -207,6 +207,36 @@ export async function getVolumePrices(isbn13: string, { refresh = true } = {}) {
   };
 }
 
+// ---------- a scanned barcode ----------
+
+// which series and volume a scanned ISBN is, for adding it to a shelf. The
+// stored book or the free catalog only: it never asks a store for a price, so
+// a scan never spends a paid search. Null when the catalog doesn't know it or
+// the title carries no volume number
+export async function lookupScannedIsbn(isbn13: string) {
+  const book = await getOrCreateBook(isbn13);
+  if (!book) return null;
+  const volume = numberOrNull(volumeOf(book.title));
+  if (volume == null) return null;
+  const series = seriesName(book.title);
+  const lightNovel = isNovelName(series) || isNovelBook(book.title);
+  return {
+    isbn13: book.isbn13,
+    title: book.title,
+    volume,
+    // the price checker's name ("Overlord Light Novel"), for /api/manga/match
+    series,
+    // the name a shelf keeps it under: a novel is the series' own name, marked
+    shelfName: lightNovel ? baseName(series) : series,
+    lightNovel,
+    coverUrl: book.coverUrl,
+  };
+}
+
+export type ScannedBook = NonNullable<
+  Awaited<ReturnType<typeof lookupScannedIsbn>>
+>;
+
 export type VolumePrices = NonNullable<
   Awaited<ReturnType<typeof getVolumePrices>>
 >;

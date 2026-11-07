@@ -21,6 +21,8 @@ pricesRouter.get("/series", perMinute(40), prices.series);
 pricesRouter.get("/cover/:isbn", perMinute(600), prices.cover);
 // link previews; cheap database reads
 pricesRouter.get("/summary/volume/:isbn", perMinute(300), prices.volumeSummary);
+// a scanned barcode (Open Library at most, never a paid search)
+pricesRouter.get("/scan/:isbn", perMinute(60), prices.scan);
 pricesRouter.get("/summary/series", perMinute(300), prices.seriesSummary);
 // last, so the names above aren't read as an ISBN. The only route that can
 // spend a paid search, so the tightest allowance
