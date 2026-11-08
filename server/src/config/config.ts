@@ -50,6 +50,8 @@ const schema = z.object({
   WALMART_PRIVATE_KEY: optional,
   KEEPA_API_KEY: optional,
   GOOGLE_BOOKS_API_KEY: optional,
+  // Cloudflare Turnstile's secret: live price checks only for people
+  TURNSTILE_SECRET_KEY: optional,
 
   // Open Library allows 3 requests a second instead of 1 with a contact email
   EMAIL_FOR_OPEN_LIB: optional,
