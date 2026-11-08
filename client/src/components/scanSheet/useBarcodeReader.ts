@@ -17,8 +17,16 @@ type DetectorClass = {
   getSupportedFormats?: () => Promise<string[]>;
 };
 
+// the back camera, sharp: asked for nothing, browsers give 640x480, where a
+// barcode's thin bars blur together. HD where the camera has it, and on
+// phones that can, focus that keeps adjusting (ignored where it can't)
 const CAMERA: MediaStreamConstraints = {
-  video: { facingMode: { ideal: "environment" } },
+  video: {
+    facingMode: { ideal: "environment" },
+    width: { ideal: 1920 },
+    height: { ideal: 1080 },
+    advanced: [{ focusMode: "continuous" } as MediaTrackConstraintSet],
+  },
   audio: false,
 };
 // the camera's picture into the <video>, or out of it. Outside the hook: the

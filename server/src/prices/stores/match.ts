@@ -26,6 +26,36 @@ export const bookNumberOf = (title: string) => {
   return m ? Number(m[1]) : null;
 };
 
+// an omnibus holding several volumes, as a catalog titles it, and the
+// volumes it holds. Either it says ("Includes vols. 10, 11 & 12", "Vols.
+// 1-3"), or it lists each volume's own title in brackets: "One Piece, Vol. 1
+// (Romance Dawn / Buggy the Clown / Don't Get Fooled Again)" is omnibus 1 of
+// three volumes each, so vols 1 to 3. null: a single volume. An empty list:
+// an omnibus whose volumes can't be told
+export function omnibusVolumes(title: string): number[] | null {
+  const said = title.match(
+    /\b(?:includes\s+)?vols?\.?\s*(\d+)\s*(?:-|–|to)\s*(\d+)|\bincludes\s+vols?\.?\s*([\d,\s&and]+)/i,
+  );
+  if (said?.[1] && said[2]) {
+    const from = Number(said[1]);
+    const to = Number(said[2]);
+    if (to > from && to - from <= 4)
+      return Array.from({ length: to - from + 1 }, (_, i) => from + i);
+  }
+  if (said?.[3]) {
+    const listed = [...said[3].matchAll(/\d+/g)].map((m) => Number(m[0]));
+    if (listed.length >= 2) return listed;
+  }
+  const titles = title.match(/\(([^()]*\s\/\s[^()]*)\)/);
+  if (titles) {
+    const count = titles[1]!.split(/\s+\/\s+/).filter(Boolean).length;
+    const n = volumeOf(title.replace(titles[0], ""));
+    if (count >= 2 && count <= 4 && Number.isFinite(n) && n >= 1)
+      return Array.from({ length: count }, (_, i) => count * (n - 1) + 1 + i);
+  }
+  return /\bomnibus\b/i.test(title) ? [] : null;
+}
+
 // the normalized series part of a title, for comparing
 export const seriesOf = (title: string) =>
   normalize(
