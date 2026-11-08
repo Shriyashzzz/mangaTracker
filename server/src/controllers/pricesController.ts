@@ -16,6 +16,7 @@ import {
   isbnCoverImageUrl,
 } from "../prices/sources/covers.js";
 import { isCrawler } from "../prices/crawlers.js";
+import { isHuman } from "../prices/human.js";
 import { asSpender, spenderOf } from "../prices/spender.js";
 import { getCanadaPrices } from "../prices/canada/canadaPrices.js";
 import {
@@ -117,6 +118,11 @@ const seriesSearch = [
 const volume = [
   ...isbnParam,
   async (req: Request, res: Response) => {
+    // a live check (paid searches) only for a page that passed Turnstile
+    const live =
+      !isCrawler(req.get("user-agent")) &&
+      req.query.stored !== "1" &&
+      (await isHuman(req.query.human, req.ip));
     const data = await upstream(
       "price lookup",
       "Prices couldn't be loaded. Try again in a moment.",
@@ -125,8 +131,7 @@ const volume = [
         asSpender(spenderOf(req), () =>
           getVolumePrices(matchedData(req).isbn, {
             // ?stored=1: someone looking at Canadian prices, who won't see these
-            refresh:
-              !isCrawler(req.get("user-agent")) && req.query.stored !== "1",
+            refresh: live,
           }),
         ),
     );
@@ -155,6 +160,9 @@ const scan = [
 const canadaVolume = [
   ...isbnParam,
   async (req: Request, res: Response) => {
+    const live =
+      !isCrawler(req.get("user-agent")) &&
+      (await isHuman(req.query.human, req.ip));
     res.json(
       await upstream(
         "Canadian price lookup",
@@ -162,7 +170,7 @@ const canadaVolume = [
         () =>
           asSpender(spenderOf(req), () =>
             getCanadaPrices(matchedData(req).isbn, {
-              refresh: !isCrawler(req.get("user-agent")),
+              refresh: live,
             }),
           ),
       ),
