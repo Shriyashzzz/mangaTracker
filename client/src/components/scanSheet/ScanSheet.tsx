@@ -158,7 +158,15 @@ export default function ScanSheet({ onClose }: { onClose: () => void }) {
     });
   }, []);
 
-  const camera = useBarcodeReader(video, read, !typing, attempt);
+  // a price barcode, not the book's: said for a few seconds, not every frame
+  const otherBarcode = useCallback(() => {
+    setNotice((now) => {
+      if (now) return now;
+      timers.current.push(window.setTimeout(() => setNotice(""), 3500));
+      return "That's the price barcode. Scan the ISBN one, its number starts 978 or 979";
+    });
+  }, []);
+  const camera = useBarcodeReader(video, read, !typing, attempt, otherBarcode);
   const showTyping = typing || camera.state === "blocked";
 
   // typing opens with the box ready

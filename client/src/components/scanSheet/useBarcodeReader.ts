@@ -50,6 +50,9 @@ export function useBarcodeReader(
   active: boolean,
   // bumped to try the camera again after it was refused
   attempt = 0,
+  // a barcode that isn't a book's: older US manga carry a shop's UPC price
+  // barcode beside the ISBN one, and it's often the bigger of the two
+  onOther?: () => void,
 ) {
   const [state, setState] = useState<CameraState>("starting");
   const [torch, setTorch] = useState<{ can: boolean; on: boolean }>({
@@ -58,9 +61,11 @@ export function useBarcodeReader(
   });
   // the latest handler, without restarting the camera when it changes
   const report = useRef(onIsbn);
+  const other = useRef(onOther);
   useEffect(() => {
     report.current = onIsbn;
-  }, [onIsbn]);
+    other.current = onOther;
+  }, [onIsbn, onOther]);
 
   useEffect(() => {
     if (!active) return;
@@ -71,7 +76,10 @@ export function useBarcodeReader(
     const lastSeen = new Map<string, number>();
     const seen = (read: string) => {
       const isbn = isbnFromBarcode(read);
-      if (!isbn) return;
+      if (!isbn) {
+        if (/^\d{8,13}$/.test(read.replace(/\D/g, ""))) other.current?.();
+        return;
+      }
       const now = Date.now();
       const before = lastSeen.get(isbn);
       lastSeen.set(isbn, now);
@@ -108,7 +116,13 @@ export function useBarcodeReader(
           show(el, stream);
           await el.play();
           if (stopped) return stop();
-          const detector = new Native({ formats: ["ean_13"] });
+          // the price barcodes too, only so the scanner can say they're
+          // the wrong one
+          const detector = new Native({
+            formats: ["ean_13", "upc_a", "upc_e", "ean_8"].filter((f) =>
+              formats.includes(f),
+            ),
+          });
           timer = window.setInterval(async () => {
             if (el.readyState < 2) return;
             try {
@@ -128,7 +142,15 @@ export function useBarcodeReader(
           ]);
           if (stopped) return;
           const hints = new Map([
-            [DecodeHintType.POSSIBLE_FORMATS, [BarcodeFormat.EAN_13]],
+            [
+              DecodeHintType.POSSIBLE_FORMATS,
+              [
+                BarcodeFormat.EAN_13,
+                BarcodeFormat.UPC_A,
+                BarcodeFormat.UPC_E,
+                BarcodeFormat.EAN_8,
+              ],
+            ],
           ]);
           zxingRelease = () => BrowserMultiFormatReader.releaseAllStreams();
           const reader = new BrowserMultiFormatReader(hints, {
