@@ -86,8 +86,8 @@ export default function VolumeCard({
               key={i}
               className={`${styles.stackBack} group-hover:translate-x-1`}
               style={{
-                rotate: `${5 * (holds.to - holds.from - i)}deg`,
-                translate: `${8 * (holds.to - holds.from - i)}px ${-4 * (holds.to - holds.from - i)}px`,
+                rotate: `calc(${5 * (holds.to - holds.from - i)}deg * var(--fan) * var(--fan-dir))`,
+                translate: `calc(${8 * (holds.to - holds.from - i)}px * var(--fan) * var(--fan-dir)) calc(${-4 * (holds.to - holds.from - i)}px * var(--fan))`,
               }}
               aria-hidden
             >
