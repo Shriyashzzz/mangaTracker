@@ -13,7 +13,8 @@ import {
 import { useNavigate } from "react-router";
 import { BarcodeIcon, CheckIcon, CloseIcon, TorchIcon } from "../icons/Icons";
 import { isbnFromTyped } from "../../lib/barcode";
-import { shelveScan, type ScanResult } from "../../lib/scan";
+import { editScan, shelveScan, type ScanResult } from "../../lib/scan";
+import ScanEdit from "./ScanEdit";
 import { useShelf } from "../../store/shelf";
 import { useBarcodeReader } from "./useBarcodeReader";
 import { scanStyles as styles } from "./styles";
@@ -73,6 +74,8 @@ export default function ScanSheet({ onClose }: { onClose: () => void }) {
     note: string;
   }>(null);
   const [newest, setNewest] = useState<number | null>(null);
+  // the row being corrected in ScanEdit
+  const [editing, setEditing] = useState<number | null>(null);
   const sound = useRef<AudioContext | null>(null);
   const [attempt, setAttempt] = useState(0);
   // one scan at a time, in order: two volumes of a new series scanned in a
@@ -211,7 +214,11 @@ export default function ScanSheet({ onClose }: { onClose: () => void }) {
       ref={dialog}
       className={`${styles.dialog} ${showTyping ? "" : styles.dialogCamera}`}
       aria-label="Scan a barcode"
-      onClose={close}
+      // its own close only: the Edit dialog inside it closes too, and React
+      // passes that up through the tree
+      onClose={(e) => {
+        if (e.target === e.currentTarget) close();
+      }}
     >
       <div className={styles.top}>
         <button
@@ -307,12 +314,9 @@ export default function ScanSheet({ onClose }: { onClose: () => void }) {
                 dialog.current?.close();
                 navigate("/add", { viewTransition: true });
               }}
-              // what was scanned is already saved: Edit closes the scanner
-              // and opens that series' edit page
-              onEdit={(id) => {
-                dialog.current?.close();
-                navigate(`/update/${id}`, { viewTransition: true });
-              }}
+              // what was scanned is already saved: Edit corrects its series
+              // or volumes in place (ScanEdit)
+              onEdit={() => setEditing(row.key)}
               onRetry={() => read(row.isbn)}
             />
           ))}
@@ -366,6 +370,31 @@ export default function ScanSheet({ onClose }: { onClose: () => void }) {
           Done
         </button>
       </div>
+      {(() => {
+        const row = rows.find((r) => r.key === editing);
+        const result = row?.result;
+        if (!row || !result || !("book" in result)) return null;
+        return (
+          <ScanEdit
+            name={result.name}
+            volumes={result.book.volumes}
+            id={result.id}
+            onClose={() => setEditing(null)}
+            onSave={async (change) => {
+              const next = await editScan(result, change);
+              if (next.kind === "failed") throw new Error("not saved");
+              changed.current = true;
+              setRows((now) =>
+                now.map((r) =>
+                  r.key === row.key
+                    ? { ...r, result: next, undone: false, undoFailed: false }
+                    : r,
+                ),
+              );
+            }}
+          />
+        );
+      })()}
     </dialog>
   );
 }
@@ -383,7 +412,7 @@ function ScanRow({
   isNew: boolean;
   onUndo: () => void;
   onAddByTitle: () => void;
-  onEdit: (id: number) => void;
+  onEdit: () => void;
   onRetry: () => void;
 }) {
   const { result } = row;
@@ -434,11 +463,7 @@ function ScanRow({
           </button>
         )}
         {"id" in result && !row.undone && (
-          <button
-            type="button"
-            className={styles.link}
-            onClick={() => onEdit(result.id)}
-          >
+          <button type="button" className={styles.link} onClick={onEdit}>
             Edit
           </button>
         )}

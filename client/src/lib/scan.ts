@@ -76,6 +76,30 @@ export async function shelveScan(isbn: string): Promise<ScanResult> {
       ? { kind: "unknown", isbn }
       : { kind: "failed", isbn };
   }
+  return shelveBook(book);
+}
+
+// a scan corrected by hand (ScanEdit): what it put on the shelf is taken
+// back, and the series and volumes they chose go on instead
+export async function editScan(
+  scanned: Extract<ScanResult, { book: ScannedBook }>,
+  change: { name: string; volumes: number[] },
+): Promise<ScanResult> {
+  if ("undo" in scanned) await scanned.undo();
+  const { book } = scanned;
+  return shelveBook({
+    ...book,
+    volume: change.volumes[0]!,
+    volumes: change.volumes,
+    shelfName: change.name,
+    // a novel goes by "<name> Light Novel" for the shelf match, as scanned
+    series: book.lightNovel ? `${change.name} Light Novel` : change.name,
+  });
+}
+
+// a book whose series and volumes are known, onto the shelf
+async function shelveBook(book: ScannedBook): Promise<ScanResult> {
+  const isbn = book.isbn13;
   try {
     const onShelf = await findOnShelf(book.series);
     if (onShelf)
