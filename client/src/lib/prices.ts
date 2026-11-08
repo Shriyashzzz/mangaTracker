@@ -1,5 +1,6 @@
 // The price checker's API calls, plus the small formatting and URL helpers
 // its pages share.
+import { humanQuery } from "./turnstile";
 import { isbnFromTyped } from "./barcode";
 import type { SyntheticEvent } from "react";
 import { API_URL, getJson } from "./api";
@@ -22,13 +23,15 @@ export const searchVolumes = (q: string, signal?: AbortSignal) =>
 
 // storedOnly: what's already saved, without spending a refresh, for someone
 // looking at Canadian prices instead
-export const getVolume = (
+// a live check (paid searches) carries a Turnstile token (lib/turnstile.ts);
+// stored prices don't need one
+export const getVolume = async (
   isbn: string,
   signal?: AbortSignal,
   storedOnly = false,
 ) =>
   getJson<VolumePrices>(
-    `/api/prices/${encodeURIComponent(isbn)}${storedOnly ? "?stored=1" : ""}`,
+    `/api/prices/${encodeURIComponent(isbn)}${storedOnly ? "?stored=1" : await humanQuery()}`,
     signal,
   );
 

@@ -2,6 +2,7 @@
 // server's sandboxed Canadian check (prices/canada), in Canadian dollars, with
 // the stores' own searches always there as well, and on their own when there's
 // nothing live to show. The server sends those links, affiliate tags included.
+import { humanQuery } from "../../../lib/turnstile";
 import { useEffect, useState } from "react";
 import { getJson } from "../../../lib/api";
 import { readLocal } from "../../../lib/prefs";
@@ -42,7 +43,11 @@ export default function CanadaPrices({ isbn }: { isbn: string }) {
 
   useEffect(() => {
     const controller = new AbortController();
-    getJson<Answer>(`/api/prices/ca/${isbn}`, controller.signal)
+    // a live check carries a Turnstile token, as the US one does
+    humanQuery()
+      .then((human) =>
+        getJson<Answer>(`/api/prices/ca/${isbn}${human}`, controller.signal),
+      )
       .then((data) => setAnswer({ isbn, data }))
       .catch((e: Error) => {
         if (e.name !== "AbortError") {
