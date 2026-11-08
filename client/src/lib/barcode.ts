@@ -35,3 +35,20 @@ export function isbnFromTyped(typed: string): string | null {
   const first12 = `978${plain.slice(0, 9)}`;
   return first12 + checkDigit(first12);
 }
+
+// "3", "3, 4", "3-4" or "3 & 4": whole volumes 1 to 999, a few at most
+export function volumesFrom(typed: string): number[] | null {
+  const parts = typed.split(/\s*(?:,|&|and)\s*/i).filter(Boolean);
+  const all = new Set<number>();
+  for (const part of parts) {
+    const range = part.match(/^(\d+)\s*[-–]\s*(\d+)$/);
+    const [from, to] = range
+      ? [Number(range[1]), Number(range[2])]
+      : [Number(part), Number(part)];
+    if (!Number.isInteger(from) || !Number.isInteger(to) || from < 1)
+      return null;
+    if (to < from || to > 999 || to - from > 5) return null;
+    for (let v = from; v <= to; v++) all.add(v);
+  }
+  return all.size && all.size <= 6 ? [...all].sort((a, b) => a - b) : null;
+}

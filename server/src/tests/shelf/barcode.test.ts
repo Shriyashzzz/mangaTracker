@@ -3,6 +3,7 @@
 import {
   isbnFromBarcode,
   isbnFromTyped,
+  volumesFrom,
 } from "../../../../client/src/lib/barcode.js";
 
 test("a book's barcode is its ISBN-13", () => {
@@ -30,4 +31,16 @@ test("a typed ISBN, with dashes or the older 10 characters", () => {
   expect(isbnFromTyped("080442957X")).toBe("9780804429573");
   expect(isbnFromTyped("1569319015")).toBeNull();
   expect(isbnFromTyped("one piece")).toBeNull();
+});
+
+test("the volumes a scan is corrected to", () => {
+  expect(volumesFrom("3")).toEqual([3]);
+  expect(volumesFrom("4, 3")).toEqual([3, 4]);
+  expect(volumesFrom("17-18")).toEqual([17, 18]);
+  expect(volumesFrom("1 & 2 and 3")).toEqual([1, 2, 3]);
+  expect(volumesFrom("")).toBeNull();
+  expect(volumesFrom("0")).toBeNull();
+  expect(volumesFrom("three")).toBeNull();
+  // a whole run is a different job than one scanned book
+  expect(volumesFrom("1-40")).toBeNull();
 });
