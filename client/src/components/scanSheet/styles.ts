@@ -27,12 +27,21 @@ export const scanStyles = {
   hintSmall: "mt-1 block text-[0.8rem] text-[#b9b09c]",
   blocked:
     "relative grid max-w-[22rem] gap-2 text-center text-[0.95rem] text-balance text-[#e8e0cc]",
+  // what the last scan came to, big over the camera for a moment
+  flash:
+    "pointer-events-none absolute inset-x-6 top-1/2 z-10 grid -translate-y-1/2 animate-card-in gap-1 border-[2.5px] border-[#0e0c09] bg-[#f3eee2] px-4 py-3 text-center text-[#1d1a16] shadow-[4px_4px_0_#0e0c09] motion-reduce:animate-none",
+  flashGood: "bg-[#e3f1e6]! text-[#1f4a2e]",
+  flashBad: "bg-[#f6e3df]! text-[#7a2b20]",
   results:
     "grid gap-2 border-t-[3px] border-line bg-card px-4 pt-3 pb-[max(1rem,env(safe-area-inset-bottom))] text-ink",
   list: "grid max-h-44 gap-2 overflow-y-auto",
   listTall: "grid max-h-[40dvh] gap-2 overflow-y-auto",
   empty: "m-0 text-[0.9rem] text-muted",
   row: "grid animate-card-in grid-cols-[minmax(0,1fr)_auto] items-center gap-2 border-[1.5px] border-dashed border-line-soft bg-paper px-3 py-2 motion-reduce:animate-none",
+  // the row the last scan made
+  rowNew: "border-solid! border-accent! bg-accent-wash!",
+  // a row's buttons, side by side
+  rowActions: "flex items-center gap-x-3",
   rowTitle: "block truncate text-[0.95rem] font-semibold",
   rowNote: "flex items-center gap-1 text-[0.82rem] text-ink-soft",
   rowGood: "text-[#2f6b45] dark:text-[#7cc293]",
