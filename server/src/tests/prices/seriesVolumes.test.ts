@@ -1,5 +1,5 @@
 import { pool } from "../../config/prisma.js";
-import { mergeVolumes } from "../../prices/service.js";
+import { mergeVolumes, needsGoogleShopping } from "../../prices/service.js";
 import type { CatalogBook } from "../../prices/types.js";
 
 afterAll(() => pool.end());
@@ -58,4 +58,14 @@ test("a known release date isn't lost to an answer without one", () => {
   const dated = { ...book(15, "frieren-15"), published: "2026-12-08" };
   const merged = mergeVolumes([dated], [book(15, "frieren-15")]);
   expect(merged[0]!.published).toBe("2026-12-08");
+});
+
+test("Google Shopping is asked only when no store found a print copy", () => {
+  // eBay or Amazon found the paperback: no paid Google Shopping search
+  expect(needsGoogleShopping([{ format: "print" }, { format: "ebook" }])).toBe(
+    false,
+  );
+  // only Google Play's ebook, or nothing at all: ask it
+  expect(needsGoogleShopping([{ format: "ebook" }])).toBe(true);
+  expect(needsGoogleShopping([])).toBe(true);
 });

@@ -67,28 +67,45 @@ const titleVolume = (title: string) =>
 const inFlight = new Map<string, Promise<unknown>>();
 
 // asks every enabled provider at once; one failing doesn't stop the others
+// Google Shopping (one paid search covering many stores) is asked only when
+// the stores asked directly found no print copy: most checks then spend one
+// paid search fewer. Ebooks don't count, Google Play only has those
+export const GOOGLE_SHOPPING = "serpapi";
+export const needsGoogleShopping = (offers: Pick<Offer, "format">[]) =>
+  !offers.some((o) => o.format === "print");
+
 async function fetchAllProviders(isbn13: string, book: Book) {
-  const providers = enabledProviders();
+  const enabled = enabledProviders();
+  const first = enabled.filter((p) => p.id !== GOOGLE_SHOPPING);
+  const fallback = enabled.filter((p) => p.id === GOOGLE_SHOPPING);
+  const providers = [...first];
   const offers: Offer[] = [];
   const sources: string[] = [];
   let usedUp = false;
 
-  const results = await Promise.allSettled(
-    providers.map((p) =>
-      p.fetchOffers(isbn13, AbortSignal.timeout(PROVIDER_TIMEOUT_MS), book),
-    ),
-  );
-  results.forEach((r, i) => {
-    const provider = providers[i]!;
-    if (r.status === "fulfilled") {
-      sources.push(provider.id);
-      offers.push(...r.value);
-    } else if (r.reason instanceof SearchesUsedUp) {
-      usedUp = true;
-    } else {
-      console.error(`price provider ${provider.id} failed:`, r.reason);
-    }
-  });
+  const ask = async (list: typeof enabled) => {
+    const results = await Promise.allSettled(
+      list.map((p) =>
+        p.fetchOffers(isbn13, AbortSignal.timeout(PROVIDER_TIMEOUT_MS), book),
+      ),
+    );
+    results.forEach((r, i) => {
+      const provider = list[i]!;
+      if (r.status === "fulfilled") {
+        sources.push(provider.id);
+        offers.push(...r.value);
+      } else if (r.reason instanceof SearchesUsedUp) {
+        usedUp = true;
+      } else {
+        console.error(`price provider ${provider.id} failed:`, r.reason);
+      }
+    });
+  };
+  await ask(first);
+  if (fallback.length && needsGoogleShopping(offers)) {
+    providers.push(...fallback);
+    await ask(fallback);
+  }
 
   // with no searches left and no store answering, a new check would hide the
   // stored prices behind whatever's left (ebooks at most), so keep the old one
