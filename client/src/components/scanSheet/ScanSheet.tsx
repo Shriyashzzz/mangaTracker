@@ -33,6 +33,21 @@ const volumesLabel = (volumes: number[]) =>
     ? `Vols. ${volumes[0]}–${volumes[volumes.length - 1]}`
     : `Vol. ${volumes[0]}`;
 
+// a short high beep, as a till's scanner makes, when a book goes on the shelf.
+// Phones only let a page make sound after a tap, so the scanner unlocks it on
+// the first one; until then it's silent
+function beep(ctx: AudioContext | null) {
+  if (!ctx || ctx.state !== "running") return;
+  const tone = ctx.createOscillator();
+  const level = ctx.createGain();
+  tone.frequency.value = 1760;
+  level.gain.setValueAtTime(0.12, ctx.currentTime);
+  level.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.12);
+  tone.connect(level).connect(ctx.destination);
+  tone.start();
+  tone.stop(ctx.currentTime + 0.12);
+}
+
 // how long "Already scanned" stays under the frame
 const NOTICE_MS = 1600;
 
@@ -50,6 +65,15 @@ export default function ScanSheet({ onClose }: { onClose: () => void }) {
   const [typedError, setTypedError] = useState("");
   const [justRead, setJustRead] = useState(false);
   const [notice, setNotice] = useState("");
+  // what the last scan came to, big over the camera for a moment, and which
+  // row it is in the list
+  const [flash, setFlash] = useState<null | {
+    tone: "good" | "same" | "bad";
+    title: string;
+    note: string;
+  }>(null);
+  const [newest, setNewest] = useState<number | null>(null);
+  const sound = useRef<AudioContext | null>(null);
   const [attempt, setAttempt] = useState(0);
   // one scan at a time, in order: two volumes of a new series scanned in a
   // row must find the series the first one added
@@ -58,6 +82,25 @@ export default function ScanSheet({ onClose }: { onClose: () => void }) {
   const changed = useRef(false);
   const nextKey = useRef(0);
   const timers = useRef<number[]>([]);
+
+  // the beep's sound, ready from the tap that opened the scanner, or the next
+  useEffect(() => {
+    const Ctx =
+      window.AudioContext ??
+      (window as unknown as { webkitAudioContext?: typeof AudioContext })
+        .webkitAudioContext;
+    if (!Ctx) return;
+    const ctx = new Ctx();
+    sound.current = ctx;
+    const unlock = () => void ctx.resume().catch(() => {});
+    unlock();
+    window.addEventListener("pointerdown", unlock, { once: true });
+    return () => {
+      window.removeEventListener("pointerdown", unlock);
+      void ctx.close().catch(() => {});
+      sound.current = null;
+    };
+  }, []);
 
   useEffect(() => {
     if (dialog.current && !dialog.current.open) dialog.current.showModal();
@@ -92,6 +135,23 @@ export default function ScanSheet({ onClose }: { onClose: () => void }) {
       // a failure can be scanned again
       if (result.kind === "failed") handled.current.delete(isbn);
       setRows((now) => now.map((r) => (r.key === key ? { ...r, result } : r)));
+      setNewest(key);
+      const name =
+        "book" in result
+          ? `${result.name} · ${volumesLabel(result.book.volumes)}`
+          : result.isbn;
+      setFlash(
+        result.kind === "marked" || result.kind === "added"
+          ? { tone: "good", title: name, note: "On your shelf" }
+          : result.kind === "already"
+            ? { tone: "same", title: name, note: "Already yours" }
+            : result.kind === "unknown"
+              ? { tone: "bad", title: name, note: "Couldn't find this one" }
+              : { tone: "bad", title: name, note: "That didn't save" },
+      );
+      timers.current.push(window.setTimeout(() => setFlash(null), 1800));
+      if (result.kind === "marked" || result.kind === "added")
+        beep(sound.current);
     });
   }, []);
 
@@ -183,6 +243,18 @@ export default function ScanSheet({ onClose }: { onClose: () => void }) {
               {/* only once it's really looking */}
               {camera.state === "live" && <span className={styles.laser} />}
             </div>
+            {flash && (
+              <div
+                className={`${styles.flash} ${flash.tone === "good" ? styles.flashGood : flash.tone === "bad" ? styles.flashBad : ""}`}
+                role="status"
+              >
+                {flash.tone === "good" && (
+                  <CheckIcon className="mx-auto size-7" aria-hidden />
+                )}
+                <b className="block truncate">{flash.title}</b>
+                <span className="text-[0.88rem]">{flash.note}</span>
+              </div>
+            )}
             <p className={styles.hint} role="status">
               {camera.state === "starting"
                 ? "Starting the camera…"
@@ -230,9 +302,16 @@ export default function ScanSheet({ onClose }: { onClose: () => void }) {
               key={row.key}
               row={row}
               onUndo={() => void undo(row)}
+              isNew={row.key === newest}
               onAddByTitle={() => {
                 dialog.current?.close();
                 navigate("/add", { viewTransition: true });
+              }}
+              // what was scanned is already saved: Edit closes the scanner
+              // and opens that series' edit page
+              onEdit={(id) => {
+                dialog.current?.close();
+                navigate(`/update/${id}`, { viewTransition: true });
               }}
               onRetry={() => read(row.isbn)}
             />
@@ -294,13 +373,17 @@ export default function ScanSheet({ onClose }: { onClose: () => void }) {
 // what one scan came to
 function ScanRow({
   row,
+  isNew,
   onUndo,
   onAddByTitle,
+  onEdit,
   onRetry,
 }: {
   row: Row;
+  isNew: boolean;
   onUndo: () => void;
   onAddByTitle: () => void;
+  onEdit: (id: number) => void;
   onRetry: () => void;
 }) {
   const { result } = row;
@@ -334,7 +417,7 @@ function ScanRow({
   const bad =
     row.undoFailed || result.kind === "unknown" || result.kind === "failed";
   return (
-    <div className={styles.row}>
+    <div className={`${styles.row} ${isNew ? styles.rowNew : ""}`}>
       <span className="min-w-0">
         <b className={styles.rowTitle}>{title}</b>
         <small
@@ -344,21 +427,32 @@ function ScanRow({
           {note}
         </small>
       </span>
-      {landed(row) && (
-        <button type="button" className={styles.link} onClick={onUndo}>
-          Undo
-        </button>
-      )}
-      {result.kind === "unknown" && (
-        <button type="button" className={styles.link} onClick={onAddByTitle}>
-          Add by title
-        </button>
-      )}
-      {result.kind === "failed" && (
-        <button type="button" className={styles.link} onClick={onRetry}>
-          Try again
-        </button>
-      )}
+      <span className={styles.rowActions}>
+        {landed(row) && (
+          <button type="button" className={styles.link} onClick={onUndo}>
+            Undo
+          </button>
+        )}
+        {"id" in result && !row.undone && (
+          <button
+            type="button"
+            className={styles.link}
+            onClick={() => onEdit(result.id)}
+          >
+            Edit
+          </button>
+        )}
+        {result.kind === "unknown" && (
+          <button type="button" className={styles.link} onClick={onAddByTitle}>
+            Add by title
+          </button>
+        )}
+        {result.kind === "failed" && (
+          <button type="button" className={styles.link} onClick={onRetry}>
+            Try again
+          </button>
+        )}
+      </span>
     </div>
   );
 }

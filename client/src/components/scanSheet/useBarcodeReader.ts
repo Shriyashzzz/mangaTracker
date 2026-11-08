@@ -35,6 +35,9 @@ const show = (el: HTMLVideoElement, stream: MediaStream | null) => {
   el.srcObject = stream;
 };
 
+// the backup reader's own hold on cameras, once it has been loaded
+let zxingRelease: (() => void) | null = null;
+
 // how often the browser's reader looks at a frame
 const LOOK_EVERY_MS = 200;
 // the same book held in view isn't read again until it's been away this long
@@ -127,6 +130,7 @@ export function useBarcodeReader(
           const hints = new Map([
             [DecodeHintType.POSSIBLE_FORMATS, [BarcodeFormat.EAN_13]],
           ]);
+          zxingRelease = () => BrowserMultiFormatReader.releaseAllStreams();
           const reader = new BrowserMultiFormatReader(hints, {
             delayBetweenScanAttempts: 150,
           });
@@ -151,6 +155,12 @@ export function useBarcodeReader(
     return () => {
       stopped = true;
       stop();
+      // whatever is still on the picture goes too: a phone that keeps the
+      // camera busy after closing hands the next scanner one that never sends
+      // frames (closing with the X, then scanning again, read nothing)
+      const left = el.srcObject as MediaStream | null;
+      left?.getTracks().forEach((t) => t.stop());
+      zxingRelease?.();
       show(el, null);
     };
   }, [active, video, attempt]);

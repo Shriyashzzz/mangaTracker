@@ -15,9 +15,11 @@ export type ScanResult =
       kind: "marked" | "added";
       book: ScannedBook;
       name: string;
+      // the series on their shelf, for its Edit link
+      id: number;
       undo: () => Promise<void>;
     }
-  | { kind: "already"; book: ScannedBook; name: string }
+  | { kind: "already"; book: ScannedBook; name: string; id: number }
   | { kind: "unknown"; isbn: string }
   | { kind: "failed"; isbn: string };
 
@@ -50,12 +52,18 @@ async function markOn(
   // a book holding two volumes may bring one they already had: undo takes
   // back only what this scan added
   const added = book.volumes.filter((v) => !owns(owned, v));
-  if (!added.length) return { kind: "already", book, name };
+  if (!added.length) return { kind: "already", book, name, id };
   await setVolumesOwned(
     id,
     added.reduce((all, v) => withVolume(all, v), owned),
   );
-  return { kind: "marked", book, name, undo: () => takeBack(id, added) };
+  return {
+    kind: "marked",
+    book,
+    name,
+    id,
+    undo: () => takeBack(id, added),
+  };
 }
 
 export async function shelveScan(isbn: string): Promise<ScanResult> {
@@ -103,6 +111,7 @@ export async function shelveScan(isbn: string): Promise<ScanResult> {
     return {
       kind: "added",
       book,
+      id,
       name: book.shelfName,
       // the series goes again only if this is still all they own of it; a
       // later scan's volume keeps it on the shelf
