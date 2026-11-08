@@ -29,6 +29,7 @@ import {
   slugify,
   volumeOf,
   bookNumberOf,
+  omnibusVolumes,
 } from "./stores/match.js";
 import { enabledProviders } from "./providers/index.js";
 import { SearchesUsedUp } from "./providers/serpapiKeys.js";
@@ -267,7 +268,15 @@ export async function lookupScannedIsbn(isbn13: string) {
       : ((await getSeriesWithVolumes(named).catch(() => null))?.volumes.find(
           (v) => v.isbn13 === book.isbn13 && v.inBook,
         )?.inBook ?? null);
-  const volume = inBook ? inBook.from : titleVolume(book.title);
+  // an omnibus ("One Piece, Vol. 1 (Romance Dawn / … )" is vols 1 to 3):
+  // every volume in it, or nothing at all when it can't say which
+  const omnibus = inBook ? null : omnibusVolumes(book.title);
+  if (omnibus && !omnibus.length) return null;
+  const volume = inBook
+    ? inBook.from
+    : omnibus
+      ? omnibus[0]!
+      : titleVolume(book.title);
   if (volume == null) return null;
   // the catalog sometimes says so only in brackets ("Overlord, Vol. 3 (light
   // novel)"), which seriesName drops
@@ -288,7 +297,7 @@ export async function lookupScannedIsbn(isbn13: string) {
           { length: inBook.to - inBook.from + 1 },
           (_, i) => inBook.from + i,
         )
-      : [volume],
+      : (omnibus ?? [volume]),
     // the price checker's name ("Overlord Light Novel"), for /api/manga/match
     series,
     // the name a shelf keeps it under: a novel is the series' own name, marked

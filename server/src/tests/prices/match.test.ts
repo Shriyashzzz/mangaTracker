@@ -2,6 +2,7 @@
 // A false match shows a wrong price, so these cases are worth pinning down
 import {
   bookNumberOf,
+  omnibusVolumes,
   listingMatches,
   sameVolume,
   seriesName,
@@ -81,4 +82,29 @@ test("a book holding several volumes keeps its series and its own number", () =>
   expect(listingMatches("Vinland Saga, Book 8", "Vinland Saga, Book 9")).toBe(
     false,
   );
+});
+
+// an omnibus scanned onto the shelf brings every volume in it
+test("an omnibus's volumes, from how its catalog title reads", () => {
+  // Open Library's VIZ One Piece omnibus 1 (ISBN 9781421536255), 2026-11-07
+  expect(
+    omnibusVolumes(
+      "One Piece, Vol. 1 (Romance Dawn / Buggy the Clown / Don't Get Fooled Again)",
+    ),
+  ).toEqual([1, 2, 3]);
+  // omnibus 2 of three volumes each
+  expect(omnibusVolumes("One Piece, Vol. 2 (A / B / C)")).toEqual([4, 5, 6]);
+  expect(
+    omnibusVolumes(
+      "One Piece (Omnibus Edition), Vol. 4: Includes vols. 10, 11 & 12",
+    ),
+  ).toEqual([10, 11, 12]);
+  expect(omnibusVolumes("Naruto (3-in-1 Edition), Vols. 1-3")).toEqual([
+    1, 2, 3,
+  ]);
+  // can't tell which: nothing rather than a guess
+  expect(omnibusVolumes("Fairy Tail Omnibus 2")).toEqual([]);
+  // single volumes
+  expect(omnibusVolumes("One Piece, Vol. 1")).toBeNull();
+  expect(omnibusVolumes("Jujutsu Kaisen, Vol. 2 (Shonen Jump)")).toBeNull();
 });

@@ -304,6 +304,23 @@ function Library() {
         >
           Or import your list
         </NavLink>
+        {/* a stack of volumes by the hand: the shelf's own Scan button and
+            the phone's + aren't here yet, so it's offered from the start */}
+        <button
+          type="button"
+          className={`${styles.importLink} mx-auto mt-2 block w-fit`}
+          onClick={() => setAdding("scanning")}
+          onPointerEnter={() =>
+            void import("../../components/scanSheet/ScanSheet")
+          }
+        >
+          Or scan their barcodes
+        </button>
+        {adding === "scanning" && (
+          <Suspense fallback={null}>
+            <ScanSheet onClose={() => setAdding(null)} />
+          </Suspense>
+        )}
       </div>
     );
   }
