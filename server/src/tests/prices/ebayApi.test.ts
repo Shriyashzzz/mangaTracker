@@ -842,3 +842,84 @@ test("another book of the same edition isn't one holding this volume", () => {
     ]),
   ).toEqual([]);
 });
+
+// ---------- from the offline review (Nov 2026) ----------
+
+test("a printing, edition, page or book count after a comma isn't another volume", () => {
+  for (const t of [
+    "Naruto, Vol. 24, 2nd Printing",
+    "Spy x Family Vol. 3, 1st Edition",
+    "Dragon Ball, Vol. 2, 1st print",
+    "Berserk Volume 1, 300 pages",
+    "Bleach Vol. 5, 1 Book",
+  ])
+    expect(isSingleVolume(t)).toBe(true);
+  expect(
+    listingMatches("Naruto, Vol. 24, 2nd Printing", "Naruto, Vol. 24"),
+  ).toBe(true);
+  expect(
+    on("Naruto, Vol. 24", ["Naruto, Vol. 24, 2nd Printing"], "isbn"),
+  ).toEqual(["print 1399"]);
+  // a real list still is several
+  expect(isSingleVolume("Death Note Volume 1, 8, 9")).toBe(false);
+});
+
+test("edition pages whose name holds the edition find their own book by title", () => {
+  const de = "Death Note Black Edition, Vol. 3";
+  for (const t of [
+    "Death Note Black Edition Vol 3 Manga",
+    "Death Note Black Edition, Vol. 3 Paperback",
+    "Death Note Black Edition 3 Viz",
+  ])
+    expect(on(de, [t])).toEqual(["print 1399"]);
+  const aot = "Attack on Titan Omnibus 9 (Vol. 25-27)";
+  expect(on(aot, ["Attack on Titan Omnibus 9 Kodansha"])).toEqual([
+    "print 1399",
+  ]);
+  expect(on(aot, ["Attack on Titan Omnibus 9 Vol 25-27 Kodansha"])).toEqual([
+    "print 1399",
+  ]);
+});
+
+test("publishers and formats first, a missing The, and English words aren't foreign", () => {
+  expect(
+    on("Chainsaw Man, Vol. 5", ["Square Enix Manga Chainsaw Man Vol 5"]),
+  ).toEqual(["print 1399"]);
+  expect(on("Chainsaw Man, Vol. 5", ["Paperback Chainsaw Man Vol. 5"])).toEqual(
+    ["print 1399"],
+  );
+  expect(
+    on("Vinland Saga, Vol. 5", ["Vertical Comics Vinland Saga Vol 5"]),
+  ).toEqual(["print 1399"]);
+  expect(
+    on("The Promised Neverland, Vol. 3", ["Promised Neverland Vol 3 Manga"]),
+  ).toEqual(["print 1399"]);
+  expect(
+    on("Frieren, Vol. 3", ["Frieren Vol 3 French Kiss Variant"], "isbn"),
+  ).toEqual(["print 1399"]);
+  expect(
+    on("Frieren, Vol. 3", ["Frieren Vol 3 French Edition"], "isbn"),
+  ).toEqual([]);
+  expect(
+    on("Fullmetal Alchemist (Fullmetal Edition), Vol. 3", [
+      "Fullmetal Alchemist Fullmetal Edition Vol 3",
+    ]),
+  ).toEqual(["print 1399"]);
+});
+
+test("a named edition the page doesn't have, or a Japanese book, isn't kept by title", () => {
+  expect(
+    on("Vagabond, Vol. 1", [
+      "Vagabond Definitive Edition, Vol. 1 by Takehiko Inoue: New",
+    ]),
+  ).toEqual([]);
+  expect(
+    on("Sailor Moon, Vol. 12", [
+      "Sailor Moon New Edition vol.12 Pretty Guardian  Manga Comic Japan Book",
+    ]),
+  ).toEqual([]);
+  // plain edition words don't count
+  expect(
+    on("Naruto, Vol. 20", ["Naruto Vol. 20 English Edition Manga"]),
+  ).toEqual(["print 1399"]);
+});

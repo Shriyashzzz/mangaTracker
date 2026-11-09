@@ -63,16 +63,29 @@ import { SearchesUsedUp } from "./serpapiKeys.js";
 // today's count first (api_usage, a row per day); none left, it throws
 // SearchesUsedUp and the checker keeps the stored prices. The two title
 // searches stop at 80%, leaving the rest for ISBN searches, the ones that
-// matter most. A 429 from eBay marks the day used up whatever our count says
-// eBay's day turns over at midnight Pacific (its rate-limit API says so)
+// matter most. A 429 from eBay is checked against eBay's own count: the
+// day is closed only when its daily allowance is really gone
+// eBay's day turns over at midnight Pacific (its rate-limit API says so).
+// The row's month is that day's too, not the database clock's (in UTC the
+// month turns over hours earlier, which would restart the count mid-day)
 const pacificDay = new Intl.DateTimeFormat("en-CA", {
   timeZone: "America/Los_Angeles",
 });
-export const budgetLabel = () => `ebay:${pacificDay.format(new Date())}`;
+const today = (at = new Date()) => pacificDay.format(at);
+export const budgetLabel = (day = today()) => `ebay:${day}`;
+const monthOf = (day: string) => `${day.slice(0, 7)}-01`;
 const dailyLimit = () => config.EBAY_DAILY_LIMIT;
 const titleLimit = () => Math.floor(config.EBAY_DAILY_LIMIT * 0.8);
-export const ebayCallsLeft = () =>
-  priceQueries.anyCallsLeft([budgetLabel()], dailyLimit());
+export const ebayCallsLeft = () => {
+  const day = today();
+  return priceQueries.anyCallsLeft(
+    [budgetLabel(day)],
+    dailyLimit(),
+    monthOf(day),
+  );
+};
+const markDayUsed = (day: string, calls: number) =>
+  priceQueries.markApiSpent(budgetLabel(day), calls, monthOf(day));
 
 // Every place using these keys (the site, a laptop testing) spends the same
 // allowance, and each counts only its own calls. So now and then (every 15
@@ -83,37 +96,52 @@ const RATE_URL =
 const SYNC_EVERY_MS = 15 * 60_000;
 let syncedAt = 0;
 // the check under way, which every search starting meanwhile waits for
-let syncing: Promise<void> = Promise.resolve();
+let syncing: Promise<boolean> = Promise.resolve(true);
 export const resetEbaySync = () => {
   syncedAt = 0;
 };
 type RateLimits = {
   rateLimits?: {
-    resources?: { name?: string; rates?: { count?: number }[] }[];
+    resources?: {
+      name?: string;
+      rates?: { count?: number; reset?: string; timeWindow?: number }[];
+    }[];
   }[];
 };
-function syncWithEbay(signal: AbortSignal) {
-  if (Date.now() - syncedAt >= SYNC_EVERY_MS) {
+function syncWithEbay(signal: AbortSignal, now = false) {
+  if (now || Date.now() - syncedAt >= SYNC_EVERY_MS) {
     syncedAt = Date.now();
     syncing = readEbayCount(signal);
   }
   return syncing;
 }
-async function readEbayCount(signal: AbortSignal) {
+// eBay's count of the daily window (eBay also has short ones), put on the
+// day that window belongs to: the one ending at its `reset`. A count read
+// just after our midnight but before eBay's window turned over is the old
+// day's, and mustn't close the new one. Whether it could be read
+async function readEbayCount(signal: AbortSignal): Promise<boolean> {
   try {
     const res = await fetch(RATE_URL, {
       headers: { Authorization: `Bearer ${await appToken(signal)}` },
       signal,
     });
-    if (!res.ok) return;
+    if (!res.ok) return false;
     const { rateLimits = [] } = (await res.json()) as RateLimits;
-    const count = rateLimits
+    const daily = rateLimits
       .flatMap((api) => api.resources ?? [])
-      .find((r) => r.name === "buy.browse")?.rates?.[0]?.count;
-    if (typeof count === "number")
-      await priceQueries.markApiSpent(budgetLabel(), count);
+      .find((r) => r.name === "buy.browse")
+      ?.rates?.find((r) => r.timeWindow === 86_400);
+    if (typeof daily?.count !== "number") return false;
+    const resetAt = daily.reset ? Date.parse(daily.reset) : NaN;
+    // the window's own day: half a day before it resets
+    const day = isNaN(resetAt)
+      ? today()
+      : today(new Date(resetAt - 43_200_000));
+    if (day === today()) await markDayUsed(day, daily.count);
+    return true;
   } catch {
     // unreadable: our own count goes on
+    return false;
   }
 }
 
@@ -225,7 +253,10 @@ export function browseOffers(
     if (PICK_ONE.test(bare)) continue;
     // a title search finds the series' merchandise too
     if (by === "title" && NOT_A_BOOK.test(bare)) continue;
-    const omnibus = isOmnibusListing(rest);
+    // on an edition page the edition's word is part of the series' name
+    // ("Death Note Black Edition"), so it's read on the whole title there
+    const omnibus =
+      isOmnibusListing(rest) || (omnibusPage && isOmnibusListing(name));
     // this page's own omnibus: named as one, or found by its ISBN under any
     // name ("One Piece: East Blue 1-2-3") unless it's plainly a box or a lot
     const itself =
@@ -349,14 +380,17 @@ async function browse(
   category?: string,
 ): Promise<ItemSummary[]> {
   await syncWithEbay(signal);
-  const label = budgetLabel();
+  // the token first: a failed one isn't a search, so it takes no call
+  const token = await appToken(signal);
+  const day = today();
   if (
     !(await priceQueries.claimApiCall(
-      label,
+      budgetLabel(day),
       category ? titleLimit() : dailyLimit(),
+      monthOf(day),
     ))
   )
-    throw new SearchesUsedUp(`eBay calls used up for ${label}`);
+    throw new SearchesUsedUp(`eBay calls used up for ${day}`);
   const { id, country } = MARKETS[market];
   const params = new URLSearchParams({
     q,
@@ -370,7 +404,7 @@ async function browse(
   const campaignId = ebayCampaignId();
   const res = await fetch(`${SEARCH_URL}?${params}`, {
     headers: {
-      Authorization: `Bearer ${await appToken(signal)}`,
+      Authorization: `Bearer ${token}`,
       "X-EBAY-C-MARKETPLACE-ID": id,
       // asks eBay to include affiliate links in US results
       ...(campaignId &&
@@ -381,9 +415,12 @@ async function browse(
     signal,
   });
   if (res.status === 429) {
-    // eBay says the day's calls are gone: stop asking until tomorrow
-    await priceQueries.markApiSpent(label, dailyLimit());
-    throw new SearchesUsedUp("eBay answered 429: calls used up for today");
+    // too many calls: eBay's own count says whether it's the day's allowance
+    // (then ours is raised to it) or a short burst (this search just fails).
+    // If it can't be read, the day is closed to be safe
+    if (!(await syncWithEbay(signal, true)))
+      await markDayUsed(day, dailyLimit());
+    throw new SearchesUsedUp("eBay answered 429: too many calls");
   }
   if (!res.ok) throw new Error(`eBay search responded ${res.status}`);
   const { itemSummaries = [] } = (await res.json()) as {

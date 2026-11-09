@@ -139,7 +139,7 @@ export const sameVolume = (a: string, b: string) =>
 
 // box sets, bundles and "vols 1-3" never count as a single volume
 const MULTI_VOLUME =
-  /\b(box(ed)?\s*set|set of|collection|bundle|lots?|omnibus|complete\s+(set|series|run|collection)|full\s+(set|run|series)|all\s+volumes|vol(ume)?s)\b|(?<!\d)\d{1,3}\s*[-–~]\s*(vol(ume)?\.?\s*)?\d{1,3}(?!\d|\s*(st|nd|rd|th)\b)|(?<!\d)\d{1,3}\s*(?:and|&)\s*(vol(ume)?\.?\s*)?\d{1,3}(?!\d)|\bvol(ume)?s?\.?\s*\d{1,3}\s*,\s*&?\s*\d{1,3}(?!\d)/i;
+  /\b(box(ed)?\s*set|set of|collection|bundle|lots?|omnibus|complete\s+(set|series|run|collection)|full\s+(set|run|series)|all\s+volumes|vol(ume)?s)\b|(?<!\d)\d{1,3}\s*[-–~]\s*(vol(ume)?\.?\s*)?\d{1,3}(?!\d|\s*(st|nd|rd|th)\b)|(?<!\d)\d{1,3}\s*(?:and|&)\s*(vol(ume)?\.?\s*)?\d{1,3}(?!\d)|\bvol(ume)?s?\.?\s*\d{1,3}\s*,\s*&?\s*\d{1,3}(?!\d|\s*(st|nd|rd|th|pages?|pgs?|books?|print\w*|ed(ition)?s?)\b)/i;
 export const isSingleVolume = (listingTitle: string) =>
   !MULTI_VOLUME.test(listingTitle);
 
@@ -149,7 +149,7 @@ export const JAPANESE_EDITION =
 // other languages and their imprints, and books sent from Japan. Read on a
 // normalized listing with the series' own words taken out (accents gone)
 export const FOREIGN_EDITION =
-  /\b(espanol|spanish|en espanol|french|francais|italian|italiano|german|deutsch|portugues|portuguese|brasil|chinese|korean|panini|pika|glenat|planeta|norma editorial|carlsen|ivrea|kana|from japan|japan version|original version)\b/;
+  /\b(espanol|spanish|en espanol|french edition|in french|francais|italian|italiano|german|deutsch|portugues|portuguese|brasil|chinese|korean|panini|pika|glenat|planeta|norma editorial|carlsen|ivrea|from japan|japan version|original version|japan (book|comic|manga|edition|import)|(manga|comic) japan)\b/;
 // a different edition of the volume, named in a listing; a title search
 // keeps a listing only when the catalog's title names the same edition.
 // Rebinds ("[Royal Edition]", "leather bound") are a third party's, never
@@ -158,8 +158,18 @@ const EDITIONS =
   /\b(vizbig|omnibus|\d in 1|deluxe|ultimate|collectors?|black edition|cine manga|perfect edition|fullmetal edition|master edition|special edition|limited edition|hardcover edition)\b/g;
 export const REBOUND =
   /\b(royal\s*edition|leather\s*bound|rebound|rebind|re bound)\b/;
-export const editionsOf = (title: string) =>
-  new Set(normalize(title).match(EDITIONS) ?? []);
+// any "<word> edition" too ("Definitive Edition"), except words that don't
+// make it another book
+const ANY_EDITION = /\b([a-z]+) edition\b/g;
+const PLAIN_EDITION =
+  /^(1st|first|2nd|second|english|us|usa|american|paperback|standard|regular|original|print|printing|book|manga|new|this)$/;
+export const editionsOf = (title: string) => {
+  const t = normalize(title);
+  const found = new Set(t.match(EDITIONS) ?? []);
+  for (const [, word] of t.matchAll(ANY_EDITION))
+    if (!PLAIN_EDITION.test(word!)) found.add(`${word} edition`);
+  return found;
+};
 export const otherEdition = (listingTitle: string, bookTitle: string) => {
   const own = editionsOf(bookTitle);
   return [...editionsOf(listingTitle)].some((e) => !own.has(e));
@@ -226,13 +236,17 @@ export const formatFits = (
 // ("Wolf and Parchment: New Theory Spice and Wolf") doesn't pass. A listing
 // opening with the author is still found by the ISBN search
 const LEADING =
-  "((new|brand|sealed|english|eng|manga|used|like|very|good|book|books|lot|viz|media|yen|press|kodansha|tokyopop|seven|seas|dark|horse|the) )*";
+  "((new|brand|sealed|english|eng|manga|used|like|very|good|book|books|lot|viz|media|yen|press|kodansha|tokyopop|seven|seas|dark|horse|square|enix|vertical|comics|denpa|ghost|ship|udon|paperback|hardcover|the) )*";
 const escapeRe = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+// the series as a pattern: a leading "the" may be left out ("Promised
+// Neverland Vol 3" for "The Promised Neverland")
+const seriesPattern = (series: string) =>
+  escapeRe(series).replace(/^the /, "(the )?");
 export const opensWithSeries = (listingTitle: string, bookTitle: string) => {
   const series = seriesWords(bookTitle);
   return (
     !!series &&
-    new RegExp(`^${LEADING}${escapeRe(series)}( |$)`).test(
+    new RegExp(`^${LEADING}${seriesPattern(series)}( |$)`).test(
       normalize(listingTitle),
     )
   );
@@ -242,7 +256,7 @@ export const seriesThenVolume = (listingTitle: string, bookTitle: string) => {
   const series = seriesWords(bookTitle);
   if (isNaN(n) || !series) return false;
   return new RegExp(
-    `^${LEADING}${escapeRe(series)} ((omnibus|vizbig|\\d in 1|manga|comic|comics|light novel|novel|edition|english|eng|graphic|paperback|the) )*(vol(ume)? |v ?|no |book )?0*${n}( |$)`,
+    `^${LEADING}${seriesPattern(series)} ((omnibus|vizbig|\\d in 1|manga|comic|comics|light novel|novel|edition|english|eng|graphic|paperback|the|[a-z]+ edition) )*(vol(ume)? |v ?|no |book )?0*${n}( |$)`,
   ).test(normalize(listingTitle.replace(/#/g, " ")));
 };
 
@@ -384,7 +398,7 @@ const ONE_OF_RUN =
 const CHAIN = /(?<![\d-])\d{1,3}(?:\s*-\s*\d{1,3}){2,}(?![\d-])/g;
 const LISTED = /\bvol(?:ume)?s?\.?\s*(\d{1,3}(?:\s*(?:,|&|and)\s*\d{1,3})+)/gi;
 const SEQUENCE =
-  /(?<![\d-])\d{1,3}(?:\s*[-–]\s*\d{1,3})?(?:\s*(?:,|&|\band\b)\s*\d{1,3}(?:\s*[-–]\s*\d{1,3})?(?![\d-]))+/gi;
+  /(?<![\d-])\d{1,3}(?:\s*[-–]\s*\d{1,3})?(?:\s*(?:,|&|\band\b)\s*\d{1,3}(?:\s*[-–]\s*\d{1,3})?(?![\d-]|\s*(?:st|nd|rd|th|pages?|pgs?|books?|print\w*|ed(?:ition)?s?)\b))+/gi;
 const rangesOf = (listingTitle: string) => {
   const ranges: (readonly [number, number])[] = [];
   let rest = listingTitle.replace(CHAIN, (chain) => {

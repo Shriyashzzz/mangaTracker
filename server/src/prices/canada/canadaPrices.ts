@@ -6,7 +6,11 @@ import { upcomingReleaseOf } from "../service.js";
 import config from "../../config/config.js";
 import { prisma } from "../../config/prisma.js";
 import priceQueries from "../../models/priceQueries.js";
-import { ebayApiEnabled, searchEbay } from "../providers/ebay.js";
+import {
+  ebayApiEnabled,
+  ebayCallsLeft,
+  searchEbay,
+} from "../providers/ebay.js";
 import { searchSerpApi, serpApiEnabled } from "../providers/serpapiClient.js";
 import { shoppingQuery } from "../stores/match.js";
 import {
@@ -218,6 +222,12 @@ async function checkCanadaPrices(
           checkedAt: last.checkedAt,
         }
       : null;
+
+  // a check is saved only when both stores answer, so with eBay's calls used
+  // up for today a paid Google Shopping search would be spent for nothing,
+  // on every view: the saved prices stay until eBay is back
+  if (ebayApiEnabled() && !(await ebayCallsLeft().catch(() => true)))
+    return (await saved()) ?? { status: "budget", offers: [], checkedAt: null };
 
   // eBay.ca from eBay's own free API when it's set up, else through SerpApi
   const ebayCall: Promise<{ offers: Offer[] } | "failed" | "budget"> =

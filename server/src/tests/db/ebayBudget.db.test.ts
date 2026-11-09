@@ -29,6 +29,10 @@ const realFetch = globalThis.fetch;
 let searches: string[] = [];
 // eBay's own count of today's calls, as its rate-limit API gives it
 let ebaysCount: number | null = null;
+// when eBay's daily window resets: by default, the coming midnight Pacific
+let ebaysReset: string | null = null;
+const nextPacificMidnight = () =>
+  new Date(Date.now() + 6 * 60 * 60 * 1000).toISOString();
 const fakeEbay = (status = 200) => {
   searches = [];
   globalThis.fetch = (async (url: string | URL) => {
@@ -45,7 +49,18 @@ const fakeEbay = (status = 200) => {
               rateLimits: [
                 {
                   resources: [
-                    { name: "buy.browse", rates: [{ count: ebaysCount }] },
+                    {
+                      name: "buy.browse",
+                      rates: [
+                        // a short window first, as eBay may list it
+                        { count: 1, timeWindow: 300 },
+                        {
+                          count: ebaysCount,
+                          timeWindow: 86_400,
+                          reset: ebaysReset ?? nextPacificMidnight(),
+                        },
+                      ],
+                    },
                   ],
                 },
               ],
@@ -59,6 +74,7 @@ const fakeEbay = (status = 200) => {
 beforeEach(async () => {
   await clear();
   ebaysCount = null;
+  ebaysReset = null;
   resetEbaySync();
 });
 afterEach(() => {
@@ -118,4 +134,20 @@ test("if eBay's count can't be read, ours goes on alone", async () => {
   fakeEbay();
   await search();
   expect(searches).toHaveLength(3);
+});
+
+test("a count from a daily window that isn't today's is ignored", async () => {
+  // a window resetting a day and a half from now belongs to another day
+  ebaysCount = config.EBAY_DAILY_LIMIT;
+  ebaysReset = new Date(Date.now() + 36 * 60 * 60 * 1000).toISOString();
+  fakeEbay();
+  await search();
+  expect(searches).toHaveLength(3);
+});
+
+test("a 429 with calls left on eBay's daily count fails the search, not the day", async () => {
+  ebaysCount = 100;
+  fakeEbay(429);
+  await expect(search()).rejects.toBeInstanceOf(SearchesUsedUp);
+  expect(await ebayCallsLeft()).toBe(true);
 });
