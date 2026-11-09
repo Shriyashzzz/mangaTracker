@@ -2,7 +2,7 @@
 // the bottom on phones, with New between them so what's out is a thumb away),
 // and the settings menu. Sits on a newspaper-style double rule.
 import { useEffect, useMemo } from "react";
-import { NavLink, useLocation, useNavigate } from "react-router";
+import { Link, NavLink, useLocation, useNavigate } from "react-router";
 import clsx from "clsx";
 // same mark as the favicon: a manga volume in an inked panel
 import logo from "../../assets/logo.svg";
@@ -52,6 +52,8 @@ export default function Header() {
   // the shelf's New view has its own place in the phones' bar
   const onNew =
     pathname === "/shelf" && new URLSearchParams(search).get("tab") === "new";
+  // what NavLink called active for /shelf: the shelf and anything under it
+  const onShelfPage = pathname === "/shelf" || pathname.startsWith("/shelf/");
   const checksOn = useReleaseChecksOn();
   const manga = useShelf((s) => s.manga);
   const releases = useShelf((s) => s.releases);
@@ -148,21 +150,25 @@ export default function Header() {
           className="flex items-center gap-[1.4rem] upto-720:hidden"
           aria-label="Main"
         >
-          <NavLink
+          {/* aria-current from the same test as the look: NavLink's own
+              ignores the query and treats every /prices page as off */}
+          <Link
             to="/shelf"
-            className={({ isActive }) => linkClass(isActive || fromShelf)}
+            className={linkClass(onShelfPage || fromShelf)}
+            aria-current={onShelfPage || fromShelf ? "page" : undefined}
             viewTransition
           >
             My shelf
-          </NavLink>
-          <NavLink
+          </Link>
+          <Link
             to="/"
             data-tour="tab-prices"
-            className={() => linkClass(onPrices)}
+            className={linkClass(onPrices)}
+            aria-current={onPrices ? "page" : undefined}
             viewTransition
           >
             Prices
-          </NavLink>
+          </Link>
           {isSignedIn === false && (
             <NavLink
               to="/signin"
@@ -182,35 +188,38 @@ export default function Header() {
         className="fixed inset-x-0 bottom-0 z-20 hidden border-t-[3px] border-double border-line bg-paper pb-[env(safe-area-inset-bottom)] upto-720:flex [body:has(input:focus,textarea:focus,select:focus)_&]:hidden!"
         aria-label="Main"
       >
-        <NavLink
+        <Link
           {...shelfLink}
-          className={() => barClass(currentTab === "shelf" && !onNew)}
+          className={barClass(currentTab === "shelf" && !onNew)}
+          aria-current={currentTab === "shelf" && !onNew ? "page" : undefined}
           viewTransition
         >
           My shelf
-        </NavLink>
+        </Link>
         {isSignedIn && checksOn && (
-          <NavLink
+          <Link
             to="/shelf?tab=new"
             onClick={() => leaveTabForTop("shelf", currentTab, here)}
             data-tour="tab-new"
-            className={() => barClass(onNew)}
+            className={barClass(onNew)}
+            aria-current={onNew ? "page" : undefined}
             data-on={onNew || undefined}
             aria-label={newCount ? `New: ${newCount} series` : "New"}
             viewTransition
           >
             New
             {newCount > 0 && <span className={barCount}>{newCount}</span>}
-          </NavLink>
+          </Link>
         )}
-        <NavLink
+        <Link
           {...barLink("prices")}
           data-tour="tab-prices"
-          className={() => barClass(onPrices)}
+          className={barClass(onPrices)}
+          aria-current={onPrices ? "page" : undefined}
           viewTransition
         >
           Prices
-        </NavLink>
+        </Link>
         {isSignedIn === false && (
           <NavLink
             to="/signin"
