@@ -1,7 +1,7 @@
 // /api/prices/*  public: anyone can search volumes and compare prices.
 // Each route has its own per-visitor allowance (rateLimit), sized to how
 // it's used and how much it can cost us upstream
-import { Router } from "express";
+import { Router, type RequestHandler } from "express";
 import prices from "../controllers/pricesController.js";
 import { rateLimit } from "../middlewares/rateLimit.js";
 
@@ -24,6 +24,12 @@ pricesRouter.get("/summary/volume/:isbn", perMinute(300), prices.volumeSummary);
 // a scanned barcode (Open Library at most, never a paid search)
 pricesRouter.get("/scan/:isbn", perMinute(60), prices.scan);
 pricesRouter.get("/summary/series", perMinute(300), prices.seriesSummary);
-// last, so the names above aren't read as an ISBN. The only route that can
-// spend a paid search, so the tightest allowance
-pricesRouter.get("/:isbn", perMinute(30), prices.volume);
+// last, so the names above aren't read as an ISBN. A volume page asks twice:
+// its stored prices (?stored=1), then a live check, the only call that can
+// spend a paid search. Each has its own allowance, so the first doesn't use
+// up the second's
+const storedVolume = perMinute(30);
+const liveVolume = perMinute(30);
+const volumeAllowance: RequestHandler = (req, res, next) =>
+  (req.query.stored === "1" ? storedVolume : liveVolume)(req, res, next);
+pricesRouter.get("/:isbn", volumeAllowance, prices.volume);
