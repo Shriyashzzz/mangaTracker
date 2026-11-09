@@ -32,6 +32,7 @@ import {
   omnibusVolumes,
 } from "./stores/match.js";
 import { enabledProviders } from "./providers/index.js";
+import { ebayCallsLeft } from "./providers/ebay.js";
 import { serpApiSearchesLeft } from "./providers/serpapiClient.js";
 import { SearchesUsedUp } from "./providers/serpapiKeys.js";
 import {
@@ -128,16 +129,20 @@ const isPaid = (provider: Pick<Provider, "id">) =>
   provider.id.startsWith("serpapi");
 
 // the enabled providers whose group's last look at this volume is old enough,
-// or never happened. Paid ones only while a search is left this month: without
-// one they'd only fail, and the volume would look due forever
+// or never happened. Paid ones only while a search is left this month, and
+// eBay's own only while today's calls last: without them they'd only fail,
+// and the volume would look due forever
 export async function dueProviders(isbn13: string): Promise<Provider[]> {
-  const [checks, searchesLeft] = await Promise.all([
+  const [checks, searchesLeft, ebayLeft] = await Promise.all([
     priceQueries.getSourceChecks(isbn13),
     serpApiSearchesLeft().catch(() => true),
+    ebayCallsLeft().catch(() => true),
   ]);
   const now = Date.now();
   return enabledProviders().filter((p) => {
     if (isPaid(p) && !searchesLeft) return false;
+    // eBay's own API with today's calls used up: not due until tomorrow
+    if (p.id === "ebay" && !ebayLeft) return false;
     if (failedRecently(isbn13, p)) return false;
     const at = checks.get(groupOf(p));
     return !at || now - at.getTime() >= freshForMs(p);

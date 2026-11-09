@@ -56,6 +56,66 @@ const cleanTitle = (title: string) =>
 const plausibleSetPrice = (cents: number, size: number) =>
   cents >= Math.max(200, size * 300) && cents <= 100_000;
 import { isCollection, type Offer, type Provider } from "../types.js";
+import priceQueries from "../../models/priceQueries.js";
+import { SearchesUsedUp } from "./serpapiKeys.js";
+
+// eBay's Browse API allows so many calls a day. Each search takes one from
+// today's count first (api_usage, a row per day); none left, it throws
+// SearchesUsedUp and the checker keeps the stored prices. The two title
+// searches stop at 80%, leaving the rest for ISBN searches, the ones that
+// matter most. A 429 from eBay marks the day used up whatever our count says
+// eBay's day turns over at midnight Pacific (its rate-limit API says so)
+const pacificDay = new Intl.DateTimeFormat("en-CA", {
+  timeZone: "America/Los_Angeles",
+});
+export const budgetLabel = () => `ebay:${pacificDay.format(new Date())}`;
+const dailyLimit = () => config.EBAY_DAILY_LIMIT;
+const titleLimit = () => Math.floor(config.EBAY_DAILY_LIMIT * 0.8);
+export const ebayCallsLeft = () =>
+  priceQueries.anyCallsLeft([budgetLabel()], dailyLimit());
+
+// Every place using these keys (the site, a laptop testing) spends the same
+// allowance, and each counts only its own calls. So now and then (every 15
+// minutes at most) eBay's own count is read and ours raised to it. Free;
+// if it can't be read, our own count goes on alone
+const RATE_URL =
+  "https://api.ebay.com/developer/analytics/v1_beta/rate_limit/?api_context=buy&api_name=browse";
+const SYNC_EVERY_MS = 15 * 60_000;
+let syncedAt = 0;
+// the check under way, which every search starting meanwhile waits for
+let syncing: Promise<void> = Promise.resolve();
+export const resetEbaySync = () => {
+  syncedAt = 0;
+};
+type RateLimits = {
+  rateLimits?: {
+    resources?: { name?: string; rates?: { count?: number }[] }[];
+  }[];
+};
+function syncWithEbay(signal: AbortSignal) {
+  if (Date.now() - syncedAt >= SYNC_EVERY_MS) {
+    syncedAt = Date.now();
+    syncing = readEbayCount(signal);
+  }
+  return syncing;
+}
+async function readEbayCount(signal: AbortSignal) {
+  try {
+    const res = await fetch(RATE_URL, {
+      headers: { Authorization: `Bearer ${await appToken(signal)}` },
+      signal,
+    });
+    if (!res.ok) return;
+    const { rateLimits = [] } = (await res.json()) as RateLimits;
+    const count = rateLimits
+      .flatMap((api) => api.resources ?? [])
+      .find((r) => r.name === "buy.browse")?.rates?.[0]?.count;
+    if (typeof count === "number")
+      await priceQueries.markApiSpent(budgetLabel(), count);
+  } catch {
+    // unreadable: our own count goes on
+  }
+}
 
 const TOKEN_URL = "https://api.ebay.com/identity/v1/oauth2/token";
 const SEARCH_URL = "https://api.ebay.com/buy/browse/v1/item_summary/search";
@@ -280,13 +340,23 @@ export function titleQueries(bookTitle: string) {
 const BOOKS_CATEGORY = "267";
 
 // one search: fixed-price listings that ship to the market's country,
-// cheapest first
+// cheapest first. A title search (category set) only while today's count is
+// under 80%
 async function browse(
   q: string,
   market: EbayMarket,
   signal: AbortSignal,
   category?: string,
 ): Promise<ItemSummary[]> {
+  await syncWithEbay(signal);
+  const label = budgetLabel();
+  if (
+    !(await priceQueries.claimApiCall(
+      label,
+      category ? titleLimit() : dailyLimit(),
+    ))
+  )
+    throw new SearchesUsedUp(`eBay calls used up for ${label}`);
   const { id, country } = MARKETS[market];
   const params = new URLSearchParams({
     q,
@@ -310,6 +380,11 @@ async function browse(
     },
     signal,
   });
+  if (res.status === 429) {
+    // eBay says the day's calls are gone: stop asking until tomorrow
+    await priceQueries.markApiSpent(label, dailyLimit());
+    throw new SearchesUsedUp("eBay answered 429: calls used up for today");
+  }
   if (!res.ok) throw new Error(`eBay search responded ${res.status}`);
   const { itemSummaries = [] } = (await res.json()) as {
     itemSummaries?: ItemSummary[];
