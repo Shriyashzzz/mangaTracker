@@ -245,7 +245,7 @@ test("a manga copy needn't say manga, unless the series' novels are in the resul
       [
         plain,
         item({
-          title: "One Piece: Ace's Story novel Vol. 1",
+          title: "One Piece, Vol. 12 (light novel)",
           price: usd("8.00"),
         }),
       ],
@@ -636,4 +636,173 @@ test("a season box set of the series is kept, and a manga box set needn't say ma
       "title",
     ),
   ).toEqual(["set 12400"]);
+});
+
+// ---------- from the fresh-data review (Nov 2026, 150 web-sourced volumes) ----------
+
+const on = (
+  book: string,
+  titles: string[],
+  by: "isbn" | "title" = "title",
+  price = "9.99",
+) =>
+  formats(
+    titles.map((t) => item({ title: t, price: usd(price) })),
+    book,
+    by,
+  );
+
+test("another book ending in the series name, or a spin-off, isn't this series", () => {
+  expect(
+    on("Battle Royale, Vol. 1", [
+      "Kenka Bancho Otome: Love's Battle Royale, Vol. 1",
+    ]),
+  ).toEqual([]);
+  expect(
+    on("Spice and Wolf Light Novel, Vol. 1", [
+      "Wolf and Parchment: New Theory Spice and Wolf, Vol. 1 light Novel",
+    ]),
+  ).toEqual([]);
+  expect(
+    on("Fairy Tail, Vol. 1", ["Fairy Tail S Tales From Fairy Tail Vol 1"]),
+  ).toEqual([]);
+  // seller words first are fine
+  expect(
+    on("Battle Royale, Vol. 1", ["NEW Battle Royale Vol. 1 Manga"]),
+  ).toEqual(["print 1399"]);
+});
+
+test("a partial run called complete is a lot, not a box set", () => {
+  expect(
+    on(
+      "The Promised Neverland, Vol. 3",
+      ["The Promised Neverland Manga Set - Complete - Vol 1-5, 8 & 20"],
+      "title",
+      "29.99",
+    ),
+  ).toEqual([]);
+  expect(
+    on(
+      "The Promised Neverland, Vol. 3",
+      [
+        "The Promised Neverland Complete Box Set: Includes volumes 1-20 with premium",
+      ],
+      "title",
+      "133.00",
+    ),
+  ).toEqual(["set 13700"]);
+});
+
+test("comma lists and repeated Vol words are several volumes", () => {
+  for (const t of [
+    "Death Note Volume 1,8,9",
+    "Fairy Tail Vol 1, 2, 3",
+    "Spy X Family Volume 1, & 2",
+    "Overlord, Vol. 1 And Vol. 2 (Light Novel)",
+    "86--EIGHTY-SIX,(light novel) Vol 01 - Vol 13",
+  ])
+    expect(isSingleVolume(t)).toBe(false);
+  // an ordinal isn't a range end
+  expect(
+    isSingleVolume("Fruits Basket, Vol. 23 Volume 23 - 1st Printing"),
+  ).toBe(true);
+});
+
+test("other languages and rebinds are left out", () => {
+  expect(
+    on(
+      "Naruto, Vol. 20",
+      [
+        "NARUTO VOLUME 20 (ESPANOL)",
+        "Naruto Vol. 20 Panini Italian",
+        "Naruto Vol. 20 Manga Original Version From Japan",
+        "Naruto Vol. 20 [Royal Edition]",
+      ],
+      "isbn",
+    ),
+  ).toEqual([]);
+});
+
+test("junk that happens to say novels doesn't make manga copies say manga", () => {
+  expect(
+    on(".hack//Legend of the Twilight, Vol. 3", [
+      ".hack//Legend of the Twilight Vol. 3",
+      "Assorted Anime Manga/Novels Lot",
+    ]),
+  ).toEqual(["print 1399"]);
+});
+
+test("an omnibus page keeps only its own book", () => {
+  const page = "Dragon Ball (3-in-1 Edition), Vol. 1";
+  expect(
+    on(page, [
+      "Dragon Ball (3-in-1 Edition), Vol. 1 & 2 ( 1 2 3 4 5 6 )",
+      "Dragon Ball (VIZBIG Edition), Vol. 1",
+    ]),
+  ).not.toContainEqual(expect.stringMatching(/^print/));
+  expect(on(page, ["Dragon Ball (3-in-1 Edition), Vol. 1 Manga"])).toEqual([
+    "print 1399",
+  ]);
+  expect(
+    on(
+      "Vagabond (VIZBIG Edition), Vol. 11",
+      ["Vagabond VizBig Edition (Vol. 1-12)"],
+      "isbn",
+    ),
+  ).toEqual([]);
+});
+
+test("another edition isn't this volume on a title search", () => {
+  expect(
+    on("Rave Master, Vol. 1", [
+      "Rave Master Volume 1: The Quest Begins (Cine-Manga)",
+      "Rave Master Vol 1 Ultimate Edition",
+    ]),
+  ).toEqual([]);
+});
+
+test("real copies worded loosely are kept", () => {
+  expect(on("Sailor Moon, Vol. 1", ["Sailor Moon 1"])).toEqual(["print 1399"]);
+  expect(on("Hellsing, Vol. 10", ["Hellsing 10 by Hirano"])).toEqual([
+    "print 1399",
+  ]);
+  expect(on("Naruto, Vol. 20", ["Naruto English Manga Vol. 20"])).toEqual([
+    "print 1399",
+  ]);
+  expect(on("Chainsaw Man, Vol. 16", ["CHAINSAW MAN V16"])).toEqual([
+    "print 1399",
+  ]);
+  expect(
+    on(
+      "Fruits Basket, Vol. 23",
+      ["Fruits Basket, Vol. 23 Volume 23 - 1st Printing"],
+      "isbn",
+    ),
+  ).toEqual(["print 1399"]);
+});
+
+test("a Kodansha omnibus page goes by its omnibus number", () => {
+  const page = "Attack on Titan Omnibus 9 (Vol. 25-27)";
+  expect(titleQueries(page).volume).toBe("Attack on Titan Omnibus vol 9");
+  expect(on(page, ["Attack on Titan Omnibus Vol. 9"], "isbn")).toEqual([
+    "print 1399",
+  ]);
+  expect(
+    on(
+      "Death Note Black Edition, Vol. 5",
+      ["Death Note Black Edition Manga 5 V Contains Volumes 9 & 10"],
+      "isbn",
+    ),
+  ).toEqual(["print 1399"]);
+});
+
+test("a box set written with v. counts as books", () => {
+  expect(
+    on(
+      ".hack//Legend of the Twilight, Vol. 2",
+      [".hack//Legend of the Twilight Box Set: v. 1-3"],
+      "title",
+      "40.00",
+    ),
+  ).toEqual(["set 4400"]);
 });

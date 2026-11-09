@@ -139,13 +139,31 @@ export const sameVolume = (a: string, b: string) =>
 
 // box sets, bundles and "vols 1-3" never count as a single volume
 const MULTI_VOLUME =
-  /\b(box(ed)?\s*set|set of|collection|bundle|lots?|omnibus|complete\s+(set|series|run|collection)|full\s+(set|run|series)|all\s+volumes|vol(ume)?s)\b|(?<!\d)\d{1,3}\s*[-–~]\s*\d{1,3}(?!\d)|(?<!\d)\d{1,3}\s*(?:and|&)\s*\d{1,3}(?!\d)/i;
+  /\b(box(ed)?\s*set|set of|collection|bundle|lots?|omnibus|complete\s+(set|series|run|collection)|full\s+(set|run|series)|all\s+volumes|vol(ume)?s)\b|(?<!\d)\d{1,3}\s*[-–~]\s*(vol(ume)?\.?\s*)?\d{1,3}(?!\d|\s*(st|nd|rd|th)\b)|(?<!\d)\d{1,3}\s*(?:and|&)\s*(vol(ume)?\.?\s*)?\d{1,3}(?!\d)|\bvol(ume)?s?\.?\s*\d{1,3}\s*,\s*&?\s*\d{1,3}(?!\d)/i;
 export const isSingleVolume = (listingTitle: string) =>
   !MULTI_VOLUME.test(listingTitle);
 
 // Japanese-language imports show up for popular series
 export const JAPANESE_EDITION =
   /\bjapanese\b|[぀-ヿ一-龯]|japanzon|kanji hunter/i;
+// other languages and their imprints, and books sent from Japan. Read on a
+// normalized listing with the series' own words taken out (accents gone)
+export const FOREIGN_EDITION =
+  /\b(espanol|spanish|en espanol|french|francais|italian|italiano|german|deutsch|portugues|portuguese|brasil|chinese|korean|panini|pika|glenat|planeta|norma editorial|carlsen|ivrea|kana|from japan|japan version|original version)\b/;
+// a different edition of the volume, named in a listing; a title search
+// keeps a listing only when the catalog's title names the same edition.
+// Rebinds ("[Royal Edition]", "leather bound") are a third party's, never
+// the publisher's book
+const EDITIONS =
+  /\b(vizbig|omnibus|\d in 1|deluxe|ultimate|collectors?|black edition|cine manga|perfect edition|fullmetal edition|master edition|special edition|limited edition|hardcover edition)\b/g;
+export const REBOUND =
+  /\b(royal\s*edition|leather\s*bound|rebound|rebind|re bound)\b/;
+export const editionsOf = (title: string) =>
+  new Set(normalize(title).match(EDITIONS) ?? []);
+export const otherEdition = (listingTitle: string, bookTitle: string) => {
+  const own = editionsOf(bookTitle);
+  return [...editionsOf(listingTitle)].some((e) => !own.has(e));
+};
 
 // the volume number a listing spells out, undefined when it doesn't:
 // "Vol. 9", "#9", or "Book 9" (a book holding several volumes, numbered as
@@ -202,13 +220,29 @@ export const formatFits = (
 // the series name right before this volume's number ("Overlord, Vol. 16",
 // "Overlord #16"), so other books sharing a word ("Primordial Overlord: A
 // Cultivation Saga, Volume 16") don't pass
+// The series has to open the listing, after at most a few words sellers put
+// first ("NEW", "Sealed", "English", a publisher), so another book ending in
+// the name ("Kenka Bancho Otome: Love's Battle Royale, Vol. 1") or a spin-off
+// ("Wolf and Parchment: New Theory Spice and Wolf") doesn't pass. A listing
+// opening with the author is still found by the ISBN search
+const LEADING =
+  "((new|brand|sealed|english|eng|manga|used|like|very|good|book|books|lot|viz|media|yen|press|kodansha|tokyopop|seven|seas|dark|horse|the) )*";
+const escapeRe = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+export const opensWithSeries = (listingTitle: string, bookTitle: string) => {
+  const series = seriesWords(bookTitle);
+  return (
+    !!series &&
+    new RegExp(`^${LEADING}${escapeRe(series)}( |$)`).test(
+      normalize(listingTitle),
+    )
+  );
+};
 export const seriesThenVolume = (listingTitle: string, bookTitle: string) => {
   const n = volumeOf(bookTitle);
   const series = seriesWords(bookTitle);
   if (isNaN(n) || !series) return false;
-  const escaped = series.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
   return new RegExp(
-    `(^| )${escaped} ((omnibus|vizbig|\\d in 1|manga|comic|light novel|edition) )*(vol(ume)? |v |no |book )?0*${n}( |$)`,
+    `^${LEADING}${escapeRe(series)} ((omnibus|vizbig|\\d in 1|manga|comic|comics|light novel|novel|edition|english|eng|graphic|paperback|the) )*(vol(ume)? |v ?|no |book )?0*${n}( |$)`,
   ).test(normalize(listingTitle.replace(/#/g, " ")));
 };
 
@@ -217,7 +251,7 @@ export const NOT_A_BOOK =
   /\b(figures?|figurines?|statues?|trading\s*cards?|tcg|foil|union\s*arena|weiss|poster|plush|keychains?|key\s*chain|stickers?|acrylic|stand(ee)?|funko|nendoroid|cosplay|costume|shirt|hoodie|dvd|blu-?ray|vinyl|puzzle|pins?|badge|wall\s*scroll|mug|lamp|games?|toys?|dub(bed)?|sub(bed|titled)?|episodes?|ost|soundtrack|cd|discs?|ccg|tin|charms?|art\s*prints?|model\s*kit|gashapon)\b/i;
 // a set from a title search must say it's books, so "Box Set" means volumes
 const SAYS_BOOKS =
-  /\b(manga|novels?|books?|vol(ume)?s?|paperbacks?|hardcovers?|english)\b/i;
+  /\b(manga|novels?|books?|vol(ume)?s?|paperbacks?|hardcovers?|english)\b|\bv\.?\s*\d/i;
 export const setOfBooks = (listingTitle: string) =>
   SAYS_BOOKS.test(listingTitle) && !NOT_A_BOOK.test(listingTitle);
 
@@ -260,7 +294,8 @@ export const namesSeries = (listingTitle: string, bookTitle: string) => {
 // one book holding several volumes, as a listing names it: an omnibus, a
 // "3-in-1", a VIZBIG edition, or volumes joined in its own name ("One Piece:
 // East Blue 1-2-3"). Not a set of books (a box, a lot, a bundle)
-const OMNIBUS = /\b(omnibus|vizbig|\d\s*-?\s*in\s*-?\s*1)\b/i;
+const OMNIBUS =
+  /\b(omnibus|vizbig|\d\s*-?\s*in\s*-?\s*1|black\s+edition|ultimate\s+edition)\b/i;
 // "1-2-3": three volumes in a row, from 1 up. A longer run ("1-6-7-8-10", a
 // lot) or a code ("C: 0-1-2") isn't one book
 const JOINED = /(?<![\d-])(\d{1,3})-(\d{1,3})-(\d{1,3})(?![\d-])/;
@@ -290,8 +325,17 @@ export const isOmnibusBook = (bookTitle: string) =>
 const SAYS_BOX_SET = /\bbox(ed)?\b|\bcompleted?\b/i;
 const SAYS_LOT =
   /\b(lot|lots|bundle|loose|mixed|assorted|random|singles?|used\s+books)\b/i;
-export const saysBoxSet = (bareListing: string) =>
-  SAYS_BOX_SET.test(bareListing) && !SAYS_LOT.test(bareListing);
+// "Box" says it; "complete" alone only for a whole run from volume 1 (or
+// one naming no range), so "Manga Set - Complete - Vol 1-5, 8 & 20" isn't
+// one. A set's volumes are also one unbroken run: gaps make it a lot
+export const saysBoxSet = (bareListing: string, listingTitle: string) => {
+  if (!SAYS_BOX_SET.test(bareListing) || SAYS_LOT.test(bareListing))
+    return false;
+  const runs = mergedRuns(listingTitle);
+  if (runs.length > 1) return false;
+  if (/\bbox(ed)?\b/i.test(bareListing)) return true;
+  return !runs.length || runs[0]![0] <= 1;
+};
 
 // a set is this series' own, not a sequel's or a spin-off's ("Tokyo Ghoul:re
 // Complete Box Set" on Tokyo Ghoul's page): right after the series name
@@ -303,6 +347,14 @@ export const ownSeriesSet = (listingTitle: string, bookTitle: string) => {
   const listing = ` ${normalize(listingTitle)} `;
   const at = listing.indexOf(` ${series} `);
   if (!series || at < 0) return false;
+  // and it opens the title, as a single copy's must ("The Complete Chi's
+  // Sweet Home Box Set" too)
+  if (
+    !new RegExp(`^${LEADING}((the|complete|completed|official) )*$`).test(
+      `${listing.slice(1, at + 1).trimStart()}`,
+    )
+  )
+    return false;
   const next = listing
     .slice(at + series.length + 2)
     .trim()
@@ -313,7 +365,8 @@ export const ownSeriesSet = (listingTitle: string, bookTitle: string) => {
 // a box set, or a run of volumes sold together, that holds this volume: a
 // range that covers it ("Vols. 1-16", "1 to 16"), or a box or complete set
 // with no range. A mixed lot ("lot of 5") with no range isn't one
-const RANGE = /(?<!\d)(\d+)\s*(?:-|–|~|to|thru)\s*(\d+)(?!\d)/gi;
+const RANGE =
+  /(?<!\d)(\d+)\s*(?:-|–|~|to|thru)\s*(?:vol(?:ume)?\.?\s*)?(\d+)(?!\d|\s*(?:st|nd|rd|th)\b)/gi;
 // with no range, only a complete set surely holds this volume: "Box Set 3:
 // Thriller Bark to New World" doesn't say which volumes it has
 const COMPLETE_SET =
@@ -330,6 +383,8 @@ const ONE_OF_RUN =
 // ("7-8-9", "1-6-7-8-10") is its own numbers; "Vols. 10, 11 & 12" too
 const CHAIN = /(?<![\d-])\d{1,3}(?:\s*-\s*\d{1,3}){2,}(?![\d-])/g;
 const LISTED = /\bvol(?:ume)?s?\.?\s*(\d{1,3}(?:\s*(?:,|&|and)\s*\d{1,3})+)/gi;
+const SEQUENCE =
+  /(?<![\d-])\d{1,3}(?:\s*[-–]\s*\d{1,3})?(?:\s*(?:,|&|\band\b)\s*\d{1,3}(?:\s*[-–]\s*\d{1,3})?(?![\d-]))+/gi;
 const rangesOf = (listingTitle: string) => {
   const ranges: (readonly [number, number])[] = [];
   let rest = listingTitle.replace(CHAIN, (chain) => {
@@ -341,11 +396,56 @@ const rangesOf = (listingTitle: string) => {
       ranges.push([Number(n), Number(n)]);
     return " ";
   });
+  // a list mixing runs and single volumes: "Vol 1-5, 8 & 20"
+  rest = rest.replace(SEQUENCE, (list) => {
+    for (const part of list.split(/\s*(?:,|&|\band\b)\s*/)) {
+      const [a, b] = part.split(/\s*[-–]\s*/).map(Number);
+      if (a === undefined || isNaN(a)) continue;
+      const to = b === undefined || isNaN(b) ? a : b;
+      if (to >= a && to <= 200) ranges.push([a, to]);
+    }
+    return " ";
+  });
   for (const m of rest.matchAll(RANGE)) {
     const [from, to] = [Number(m[1]), Number(m[2])];
     if (from >= 0 && to > from && to <= 200) ranges.push([from, to]);
   }
   return ranges;
+};
+// a listing that can be this omnibus page's own book: the volumes it names
+// fit inside the page's, or (when the page's can't be told) are few enough
+// for one book. "Vagabond VizBig Edition (Vol. 1-12)" isn't VIZBIG 11
+export const fitsOmnibusPage = (listingTitle: string, bookTitle: string) => {
+  const named = rangesOf(listingTitle);
+  if (!named.length) return true;
+  const held = pageVolumes(bookTitle);
+  // the volumes it names are exactly the page's: "Contains Volumes 9 & 10"
+  // for Black Edition 5, not "Vol. 1 & 2" (two books) for a 3-in-1's first
+  if (held?.length) {
+    const runs = mergedRuns(listingTitle);
+    return (
+      runs.length === 1 &&
+      runs[0]![0] === Math.min(...held) &&
+      runs[0]![1] === Math.max(...held)
+    );
+  }
+  // the page's volumes unknown: one short run at most ("Vol. 1 & 2" of a
+  // 3-in-1 is two books)
+  return named.length === 1 && named[0]![1] - named[0]![0] < 4;
+};
+
+// the volumes a listing names as unbroken runs: "Vol. 7-11, Vol. 12-29" is
+// one (7-29); "Vol 1-5, 8 & 20" is three
+const mergedRuns = (listingTitle: string) => {
+  const runs: [number, number][] = [];
+  for (const [from, to] of [...rangesOf(listingTitle)].sort(
+    (a, b) => a[0] - b[0],
+  )) {
+    const last = runs.at(-1);
+    if (last && from <= last[1] + 1) last[1] = Math.max(last[1], to);
+    else runs.push([from, to]);
+  }
+  return runs;
 };
 // how many volumes a set's ranges hold ("Vol. 7-11, Vol. 12-29": 23), 0 when
 // it names none
@@ -353,11 +453,25 @@ export const setSize = (listingTitle: string) =>
   rangesOf(listingTitle).reduce((n, [from, to]) => n + to - from + 1, 0);
 // the volumes a volume page is for: its own number, or an omnibus's volumes.
 // null: an omnibus or "Book N" whose volumes can't be told
+// how many volumes one book of an edition holds: "3-in-1" 3, VIZBIG 3,
+// Black Edition and Ultimate Edition 2
+const perBook = (title: string) => {
+  const n = title.match(/\b(\d)\s*-?\s*in\s*-?\s*1\b/i)?.[1];
+  if (n) return Number(n);
+  if (/\bvizbig\b/i.test(title)) return 3;
+  if (/\b(black|ultimate)\s+edition\b/i.test(title)) return 2;
+  return null;
+};
 const pageVolumes = (bookTitle: string): number[] | null => {
   const held = omnibusVolumes(bookTitle);
-  if (held) return held.length ? held : null;
-  if (bookNumberOf(bookTitle) !== null || isOmnibusBook(bookTitle)) return null;
+  if (held?.length) return held;
+  // "Death Note Black Edition, Vol. 5" holds vols 9 and 10
+  const each = perBook(bookTitle);
   const n = volumeOf(bookTitle);
+  if (each && !isNaN(n))
+    return Array.from({ length: each }, (_, i) => (n - 1) * each + 1 + i);
+  if (held) return null;
+  if (bookNumberOf(bookTitle) !== null || isOmnibusBook(bookTitle)) return null;
   return isNaN(n) ? [] : [n];
 };
 export const setHolds = (listingTitle: string, bookTitle: string) => {

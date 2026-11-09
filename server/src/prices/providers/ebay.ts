@@ -8,11 +8,16 @@ import { cheapestOfEach, toCents } from "../offerHelpers.js";
 import { ebayAffiliateUrl, ebayCampaignId } from "../stores/affiliates.js";
 import {
   JAPANESE_EDITION,
+  FOREIGN_EDITION,
+  REBOUND,
+  fitsOmnibusPage,
+  normalize,
+  otherEdition,
+  editionsOf,
   formatFits,
   isNovelBook,
   saysNovel,
   isSingleVolume,
-  listingMatches,
   namesOtherVolume,
   NOT_A_BOOK,
   PICK_ONE,
@@ -131,11 +136,18 @@ export function browseOffers(
 ): Offer[] {
   const { currency, store } = MARKETS[market];
   const offers: Offer[] = [];
-  // novels among the results: the series has both formats, so a manga's
-  // listing has to say it's manga
-  const bothFormats = items.some((i) => saysNovel(i.title ?? ""));
   // a page for an omnibus: omnibus listings are the book itself
   const omnibusPage = isOmnibusBook(title);
+  // the title as matching reads it: a Kodansha omnibus ("Attack on Titan
+  // Omnibus 9 (Vol. 25-27)") goes by its own number, not the volumes it holds
+  const matchTitle = omnibusPage ? omnibusTitle(title) : title;
+  // a novel of this very volume among the results: the series has both
+  // formats, so a manga's listing has to say it's manga. Junk that happens
+  // to say "novels" ("Assorted Anime Manga/Novels") doesn't count
+  const bothFormats = items.some((i) => {
+    const t = i.title ?? "";
+    return saysNovel(t) && seriesThenVolume(t, matchTitle);
+  });
   for (const item of items) {
     const name = cleanTitle(item.title ?? "");
     // a listing with "calculated" shipping has no shipping price in a search
@@ -147,6 +159,8 @@ export function browseOffers(
     if (!item.price || item.price.currency !== currency) continue;
     if (shippingValue === undefined || !item.itemWebUrl) continue;
     if (JAPANESE_EDITION.test(name) || /\bimport\b/i.test(name)) continue;
+    // another language's edition, or a third party's rebinding
+    if (FOREIGN_EDITION.test(bare) || REBOUND.test(normalize(name))) continue;
     // "choose from list": one of many books, which one unknown
     if (PICK_ONE.test(bare)) continue;
     // a title search finds the series' merchandise too
@@ -156,6 +170,7 @@ export function browseOffers(
     // name ("One Piece: East Blue 1-2-3") unless it's plainly a box or a lot
     const itself =
       omnibusPage &&
+      fitsOmnibusPage(rest, title) &&
       (omnibus ||
         (by === "isbn" && !isSingleVolume(rest) && !severalBooks(rest)));
     // a box set or an omnibus holding this volume among others
@@ -164,8 +179,12 @@ export function browseOffers(
       if (
         by === "title" &&
         !(
-          namesSeries(name, title) &&
-          seriesThenVolume(name, title) &&
+          namesSeries(name, matchTitle) &&
+          seriesThenVolume(name, matchTitle) &&
+          // an edition named on the page has to match; a page that's an
+          // omnibus by its contents ("One Piece, Vol. 1 (Romance Dawn / …)")
+          // names none
+          (editionsOf(title).size === 0 || !otherEdition(name, title)) &&
           formatFits(name, title, bothFormats)
         )
       )
@@ -173,7 +192,7 @@ export function browseOffers(
     } else if (set) {
       if (!setHolds(name, title)) continue;
       // a box set has to say it's one: a lot of loose volumes isn't
-      if (!omnibus && !saysBoxSet(bare)) continue;
+      if (!omnibus && !saysBoxSet(bare, rest)) continue;
       // and of this series, not a sequel sharing its name (an omnibus often
       // has an arc's name after the series': "One Piece: East Blue 1-2-3")
       if (!omnibus && !ownSeriesSet(name, title)) continue;
@@ -188,16 +207,17 @@ export function browseOffers(
       )
         continue;
     } else if (by === "isbn") {
-      if (namesOtherVolume(rest, title)) continue;
+      if (namesOtherVolume(rest, matchTitle)) continue;
     } else if (omnibusPage) {
       // a plain volume's listing isn't the omnibus this page is for
       continue;
     } else if (
       // a single copy from a title search must name this volume's number
       isNaN(volumeOf(title)) ||
+      namesOtherVolume(rest, title) ||
       !(
-        listingMatches(name, title) &&
         seriesThenVolume(name, title) &&
+        !otherEdition(name, title) &&
         formatFits(name, title, bothFormats)
       )
     ) {
@@ -238,7 +258,13 @@ export function browseOffers(
 // what a title search asks for: the series, "light novel" for a novel, and
 // the volume number ("Overlord light novel vol 16"), or "box set" for sets.
 // null when the volume has no number to search by
-export function titleQueries(title: string) {
+// "Attack on Titan Omnibus 9 (Vol. 25-27)" as matched and searched for:
+// "Attack on Titan Omnibus 9"
+export const omnibusTitle = (title: string) =>
+  title.replace(/\s*\((?:vols?|volumes?)\.?\s*[\d\s,&–-]+\)\s*$/i, "");
+
+export function titleQueries(bookTitle: string) {
+  const title = isOmnibusBook(bookTitle) ? omnibusTitle(bookTitle) : bookTitle;
   const series = searchName(title).replace(/\s*light novel$/i, "");
   const kind = isNovelBook(title) ? " light novel" : "";
   const n = volumeOf(title);
