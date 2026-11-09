@@ -218,12 +218,17 @@ function render(
 type Summary<T> = { data: T | null; missing: boolean };
 const cache = new Map<string, { at: number; answer: Summary<unknown> }>();
 
-async function summary<T>(path: string): Promise<Summary<T>> {
+// `ip`: the visitor's, so the API's rate limit is per visitor (a crawler)
+// rather than this one server for everyone
+async function summary<T>(path: string, ip?: string): Promise<Summary<T>> {
   const hit = cache.get(path);
   if (hit && Date.now() - hit.at < CACHE_MS) return hit.answer as Summary<T>;
   const res = await fetch(API_URL + path, {
     // marks us as a crawler, so the API never spends a paid price refresh
-    headers: { "User-Agent": "mangatracker-preview/1.0" },
+    headers: {
+      "User-Agent": "mangatracker-preview/1.0",
+      ...(ip && { "X-Forwarded-For": ip }),
+    },
     signal: AbortSignal.timeout(API_TIMEOUT_MS),
   });
   const answer: Summary<T> = {
@@ -393,6 +398,7 @@ app.get(
       String(req.params.slug).replace(/-/g, " ");
     const { data, missing } = await summary<SeriesSummary>(
       `/api/prices/summary/series?${new URLSearchParams({ name })}`,
+      req.ip,
     );
     if (missing) return "missing";
     return data && seriesTags(data, origin);
@@ -406,6 +412,7 @@ app.get(
     if (!/^[\dXx-]{10,17}$/.test(isbn)) return "missing";
     const { data, missing } = await summary<VolumeSummary>(
       `/api/prices/summary/volume/${encodeURIComponent(isbn)}`,
+      req.ip,
     );
     if (missing) return "missing";
     return data && volumeTags(data, origin);

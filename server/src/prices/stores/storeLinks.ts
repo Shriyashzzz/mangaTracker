@@ -50,8 +50,8 @@ const isGoogleLink = (url: string | null) => {
 // Google Shopping store names for the affiliate stores themselves. Exact
 // names only: "Kinokuniya Bookshop" isn't Bookshop.org, and "eBay - seller"
 // is eBay itself
-const EBAY = /^ebay( - .+)?$/i;
-const AMAZON = /^amazon(\.com)?$/i;
+export const EBAY = /^ebay( - .+)?$/i;
+export const AMAZON = /^amazon(\.com)?$/i;
 const BOOKSHOP = /^bookshop(\.org)?$/i;
 
 // with a row straight from eBay or Amazon, the same store's Google

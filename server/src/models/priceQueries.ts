@@ -14,6 +14,7 @@ import {
   lowestBelievableNew,
   unlikelyNewTest,
 } from "../prices/stores/retailers.js";
+import { AMAZON, EBAY, preferDirectRows } from "../prices/stores/storeLinks.js";
 import type { CatalogBook, Offer } from "../prices/types.js";
 
 export type { Book };
@@ -74,42 +75,121 @@ export async function upsertBook({
 export const getLastCheck = (isbn13: string) =>
   prisma.priceCheck.findUnique({ where: { isbn13 } });
 
-// records one round of fetching: the check itself plus every offer found.
-// The check and its samples get the very same timestamp, which is how
-// getLatestOffers and getKnownPrices find "the offers of the latest check"
+// records one round of fetching. Each source group that answered gets this
+// moment as its last check, and its offers (maybe none) saved with it: those
+// replace that group's prices, while groups not asked keep theirs.
+// price_checks keeps the latest look of any group, for "checked ... ago"
 export async function saveCheck(
   isbn13: string,
   sources: string[],
-  offers: Offer[],
+  groups: Map<string, Offer[]>,
 ) {
   const at = new Date();
   await prisma.$transaction([
-    prisma.priceCheck.upsert({
-      where: { isbn13 },
-      create: { isbn13, sources, checkedAt: at },
-      update: { sources, checkedAt: at },
-    }),
+    // only when a source answered: Google Shopping found not needed isn't a look
+    ...(sources.length
+      ? [
+          prisma.priceCheck.upsert({
+            where: { isbn13 },
+            create: { isbn13, sources, checkedAt: at },
+            update: { sources, checkedAt: at },
+          }),
+        ]
+      : []),
     prisma.priceSample.createMany({
-      data: offers.map((o) => ({ ...o, isbn13, fetchedAt: at })),
+      data: [...groups].flatMap(([source, offers]) =>
+        offers.map((o) => ({ ...o, isbn13, source, fetchedAt: at })),
+      ),
     }),
+    ...[...groups.keys()].map((source) =>
+      prisma.priceSourceCheck.upsert({
+        where: { isbn13_source: { isbn13, source } },
+        create: { isbn13, source, checkedAt: at },
+        update: { checkedAt: at },
+      }),
+    ),
   ]);
 }
 
-// the most recent offer from each store + format + condition since `since`,
-// cheapest first
-export async function getLatestOffers(
-  isbn13: string,
-  since: Date,
-): Promise<StoredOffer[]> {
-  const rows = await prisma.$queryRaw<StoredOffer[]>`
-    SELECT DISTINCT ON (store, format, condition)
-      store, format, condition, price_cents AS "priceCents", currency,
-      in_stock AS "inStock", url, fetched_at AS "fetchedAt"
-    FROM price_samples
-    WHERE isbn13 = ${isbn13} AND fetched_at >= ${since}
-    ORDER BY store, format, condition, fetched_at DESC
+// when each source group last looked at this volume
+export async function getSourceChecks(isbn13: string) {
+  const rows = await prisma.priceSourceCheck.findMany({
+    where: { isbn13 },
+    select: { source: true, checkedAt: true },
+  });
+  return new Map(rows.map((r) => [r.source, r.checkedAt]));
+}
+
+type CurrentRow = StoredOffer & { isbn13: string; source: string };
+
+// the prices of each group's last check, as one list: where Google Shopping
+// and a store's own listing both have a store, the store's own (our affiliate
+// link) wins, and of the rest the most recent copy of each store + format +
+// condition. Cheapest first
+// A store with its own source (eBay, Amazon) that has looked is the word on
+// that store: Google Shopping's older row for it stops showing, even when the
+// store's own source found none
+const currentOf = (
+  rows: CurrentRow[],
+  looked: Set<string> = new Set(),
+): CurrentRow[] => {
+  const latest = new Map<string, CurrentRow>();
+  const ownWord = (row: CurrentRow) =>
+    row.source === "shopping" &&
+    ((looked.has("ebay") && EBAY.test(row.store)) ||
+      (looked.has("amazon") && AMAZON.test(row.store)));
+  for (const row of preferDirectRows(rows)) {
+    if (ownWord(row)) continue;
+    const key = `${row.store}|${row.format}|${row.condition}`;
+    const kept = latest.get(key);
+    if (!kept || new Date(row.fetchedAt) > new Date(kept.fetchedAt))
+      latest.set(key, row);
+  }
+  return [...latest.values()].sort((a, b) => a.priceCents - b.priceCents);
+};
+
+const currentRows = (isbns: string[]) =>
+  prisma.$queryRaw<CurrentRow[]>`
+    SELECT ps.isbn13, ps.source, ps.store, ps.format, ps.condition,
+           ps.price_cents AS "priceCents", ps.currency, ps.in_stock AS "inStock",
+           ps.url, ps.fetched_at AS "fetchedAt"
+    FROM price_source_checks sc
+    JOIN price_samples ps
+      ON ps.isbn13 = sc.isbn13 AND ps.source = sc.source
+     AND ps.fetched_at = sc.checked_at
+    WHERE sc.isbn13 = ANY(${isbns}::text[])
   `;
-  return rows.sort((a, b) => a.priceCents - b.priceCents);
+
+// the groups that have looked at each of these volumes
+const lookedAt = async (isbns: string[]) => {
+  const rows = await prisma.priceSourceCheck.findMany({
+    where: { isbn13: { in: isbns } },
+    select: { isbn13: true, source: true },
+  });
+  const groups = new Map<string, Set<string>>();
+  for (const r of rows) {
+    const isbn = r.isbn13.trim();
+    groups.set(isbn, (groups.get(isbn) ?? new Set()).add(r.source));
+  }
+  return groups;
+};
+
+// a volume's prices now: each source group's from its last check, each
+// saying which group it came from
+export async function getCurrentRows(isbn13: string) {
+  const [rows, looked] = await Promise.all([
+    currentRows([isbn13]),
+    lookedAt([isbn13]),
+  ]);
+  return currentOf(rows, looked.get(isbn13));
+}
+
+// the same, as plain offers for pages
+export async function getCurrentOffers(isbn13: string): Promise<StoredOffer[]> {
+  return (await getCurrentRows(isbn13)).map(
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    ({ isbn13: _isbn, source: _source, ...offer }) => offer,
+  );
 }
 
 const groupBy = <T, K>(items: T[], keyOf: (item: T) => K) => {
@@ -211,16 +291,13 @@ export async function getKnownPrices(
   isbns: string[],
 ): Promise<Map<string, { priceCents: number; checkedAt: Date }>> {
   if (!isbns.length) return new Map();
-  const [rows, usual] = await Promise.all([
-    prisma.$queryRaw<(StoredOffer & { isbn13: string; checkedAt: Date })[]>`
-      SELECT pc.isbn13, pc.checked_at AS "checkedAt", ps.store, ps.format, ps.condition,
-             ps.price_cents AS "priceCents", ps.currency, ps.in_stock AS "inStock",
-             ps.url, ps.fetched_at AS "fetchedAt"
-      FROM price_checks pc
-      JOIN price_samples ps
-        ON ps.isbn13 = pc.isbn13 AND ps.fetched_at = pc.checked_at
-      WHERE pc.isbn13 = ANY(${isbns}::text[])
-    `,
+  const [rows, looked, checks, usual] = await Promise.all([
+    currentRows(isbns),
+    lookedAt(isbns),
+    prisma.priceCheck.findMany({
+      where: { isbn13: { in: isbns } },
+      select: { isbn13: true, checkedAt: true },
+    }),
     prisma.$queryRaw<{ isbn13: string; median: number }[]>`
       SELECT isbn13,
              ROUND(percentile_cont(0.5) WITHIN GROUP (ORDER BY price_cents))::int AS median
@@ -231,13 +308,17 @@ export async function getKnownPrices(
     `,
   ]);
   const usualOf = new Map(usual.map((u) => [u.isbn13.trim(), u.median]));
+  const checkedAt = new Map(checks.map((c) => [c.isbn13.trim(), c.checkedAt]));
   const known = new Map<string, { priceCents: number; checkedAt: Date }>();
-  for (const [isbn, check] of groupBy(rows, (row) => row.isbn13.trim())) {
+  for (const [isbn, group] of groupBy(rows, (row) => row.isbn13.trim())) {
     // checks saved before a rule changed still get held to it
-    const priceCents = lowestBelievableNew(check, usualOf.get(isbn));
-    if (priceCents !== null) {
-      known.set(isbn, { priceCents, checkedAt: check[0]!.checkedAt });
-    }
+    const priceCents = lowestBelievableNew(
+      currentOf(group, looked.get(isbn)),
+      usualOf.get(isbn),
+    );
+    const at = checkedAt.get(isbn);
+    if (priceCents !== null && at)
+      known.set(isbn, { priceCents, checkedAt: at });
   }
   return known;
 }
@@ -254,20 +335,48 @@ type RecentPrice = {
 
 // recently checked volumes with their latest best price and their average,
 // so the price home page can show deals and recent checks for free
-export async function getRecentBestPrices(limit = 40): Promise<RecentPrice[]> {
+// it reads every saved price, and the home page asks on each load: kept a few
+// minutes
+const RECENT_MS = 5 * 60 * 1000;
+const recent = new Map<number, { at: number; rows: Promise<RecentPrice[]> }>();
+export function getRecentBestPrices(limit = 40): Promise<RecentPrice[]> {
+  const hit = recent.get(limit);
+  if (hit && Date.now() - hit.at < RECENT_MS) return hit.rows;
+  const rows = queryRecentBestPrices(limit);
+  recent.set(limit, { at: Date.now(), rows });
+  // a failure isn't kept
+  rows.catch(() => recent.delete(limit));
+  return rows;
+}
+
+async function queryRecentBestPrices(limit: number): Promise<RecentPrice[]> {
   return prisma.$queryRaw<RecentPrice[]>`
+    -- each check's cheapest new print copy, and whether the check went past
+    -- eBay (eBay alone looks again every few days)
     WITH best AS (
-      SELECT isbn13, fetched_at, MIN(price_cents) AS p
+      SELECT isbn13, fetched_at, MIN(price_cents) AS p,
+             bool_or(source IS DISTINCT FROM 'ebay') AS full_check
       FROM price_samples
       WHERE condition = 'new' AND format = 'print'
       GROUP BY isbn13, fetched_at
     ),
+    -- each volume's cheapest new print copy among its prices now (each
+    -- source group's last check), dated by the newest of those checks
     latest AS (
-      SELECT DISTINCT ON (isbn13) isbn13, fetched_at, p
-      FROM best ORDER BY isbn13, fetched_at DESC
+      SELECT ps.isbn13, MAX(ps.fetched_at) AS fetched_at, MIN(ps.price_cents) AS p
+      FROM price_source_checks sc
+      JOIN price_samples ps
+        ON ps.isbn13 = sc.isbn13 AND ps.source = sc.source
+       AND ps.fetched_at = sc.checked_at
+      WHERE ps.condition = 'new' AND ps.format = 'print'
+      GROUP BY ps.isbn13
     ),
+    -- the usual price: from the full checks, or eBay's when it's all there is
     averages AS (
-      SELECT isbn13, AVG(p) AS avg_p, COUNT(*)::int AS n FROM best GROUP BY isbn13
+      SELECT isbn13,
+             COALESCE(AVG(p) FILTER (WHERE full_check), AVG(p)) AS avg_p,
+             COALESCE(NULLIF(COUNT(*) FILTER (WHERE full_check), 0), COUNT(*))::int AS n
+      FROM best GROUP BY isbn13
     )
     SELECT b.isbn13, b.title, b.cover_url AS "coverUrl", l.p::int AS "priceCents",
            l.fetched_at AS "fetchedAt", ROUND(a.avg_p)::int AS "avgCents",
@@ -504,7 +613,9 @@ export default {
   upsertBook,
   getLastCheck,
   saveCheck,
-  getLatestOffers,
+  getSourceChecks,
+  getCurrentRows,
+  getCurrentOffers,
   getPriceHistory,
   getNewPriceMedian,
   getCoverIds,

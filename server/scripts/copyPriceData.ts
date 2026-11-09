@@ -64,9 +64,12 @@ const TABLES: [table: string, columns: string[], key: string][] = [
       "in_stock",
       "url",
       "fetched_at",
+      "source",
     ],
     "",
   ],
+  // each source group's last look: which samples are a volume's prices now
+  ["price_source_checks", ["isbn13", "source", "checked_at"], "isbn13, source"],
   ["series_info", ["slug", "info", "fetched_at"], "slug"],
   ["edition_covers", ["isbn13", "cover_id", "checked_at"], "isbn13"],
 ];
@@ -85,6 +88,25 @@ async function main() {
   console.log(
     `${apply ? "COPYING" : "DRY RUN"}: ${hostOf(from!)} -> ${hostOf(to!)}\n`,
   );
+
+  // prices are read by source group (price_source_checks): both databases
+  // need that migration, or copied prices wouldn't show (or the copy fails)
+  for (const [db, name] of [
+    [source, "source"],
+    [target, "target"],
+  ] as const) {
+    const { rows } = await db.query(
+      `SELECT to_regclass('public.price_source_checks') IS NOT NULL AS ok,
+              EXISTS (SELECT 1 FROM information_schema.columns
+                      WHERE table_name = 'price_samples' AND column_name = 'source') AS col`,
+    );
+    if (!rows[0].ok || !rows[0].col) {
+      console.error(
+        `The ${name} database is missing the price_source_checks migration. Run prisma migrate deploy on it first.`,
+      );
+      process.exit(1);
+    }
+  }
 
   if (apply) await target.query("BEGIN");
   try {
@@ -107,9 +129,10 @@ async function main() {
           ? `INSERT INTO ${table} (${columns.join(", ")}) VALUES (${marks}) ON CONFLICT (${key}) DO NOTHING`
           : `INSERT INTO price_samples (${columns.join(", ")})
              SELECT $1::char(13), $2::varchar, $3::varchar, $4::varchar, $5::int,
-                    $6::char(3), $7::boolean, $8::text, $9::timestamptz
+                    $6::char(3), $7::boolean, $8::text, $9::timestamptz, $10::varchar
              WHERE NOT EXISTS (SELECT 1 FROM price_samples WHERE isbn13 = $1::char(13)
-               AND store = $2::varchar AND condition = $4::varchar AND fetched_at = $9::timestamptz)`;
+               AND store = $2::varchar AND format = $3::varchar AND condition = $4::varchar
+               AND fetched_at = $9::timestamptz AND source IS NOT DISTINCT FROM $10::varchar)`;
         if (apply) added += (await target.query(sql, values)).rowCount ?? 0;
       }
       console.log(
