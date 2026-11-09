@@ -41,16 +41,23 @@ const groupsFrom = (
   data: ReleaseData | null,
   kind: Props["kind"],
   inJapan: boolean,
+  // the headline's volume ("Vol. 41" is out in English)
+  headline: number,
 ): Group[] => {
   const outNow: Row[] = [];
   const comingUp: Row[] = [];
+  // on an English volume the Japan lists are what's further on: never the
+  // headline's own volume or one before it
+  const beyond = (volume: string | undefined) =>
+    inJapan || !Number.isFinite(headline) || Number(volume) > headline;
 
   if (kind === "volume") {
     const newest = newestDatedVolume(data);
-    if (newest) outNow.push(newest);
+    if (newest && beyond(newest.what.replace(/^Vol\. /, "")))
+      outNow.push(newest);
     const next = data?.newVolume;
     const when = formatReleaseDate(next?.releaseDate);
-    if (next?.volume && when) {
+    if (next?.volume && when && beyond(next.volume)) {
       comingUp.push({
         what: `Vol. ${next.volume}`,
         when,
@@ -98,7 +105,13 @@ export default function ReleaseBar({
 }: Props) {
   const [open, setOpen] = useState(false);
   const datesId = useId();
-  const groups = groupsFrom(data, kind, inJapan);
+  const groups = groupsFrom(
+    data,
+    kind,
+    inJapan,
+    // the number, not the "." in "Vol."
+    Number(what.match(/\d+(?:\.\d+)?/)?.[0] ?? NaN),
+  );
   const hasDates = groups.length > 0;
   const headline = (
     <span className={styles.releaseHeadline}>{what} is out!</span>
