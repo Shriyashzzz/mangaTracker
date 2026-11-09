@@ -63,6 +63,22 @@ const FRESH_FOR_MS = 20 * 24 * 60 * 60 * 1000;
 const PROVIDER_TIMEOUT_MS = 12000;
 
 const numberOrNull = (n: number) => (Number.isFinite(n) ? n : null);
+
+// what a volume's page is called: its stored title, unless that has no volume
+// number ("Dragon Ball Z; Thank You", "Hellsing") and its series list knows
+// which volume it is, then "Dragon Ball Z, Vol. 24", so volumes of a series
+// don't share one title. The address keeps the stored title, so it never moves
+export const volumeHeading = (
+  title: string,
+  series: string,
+  listed: { volume?: number | null; inBook?: unknown } | null | undefined,
+) =>
+  bookNumberOf(title) === null &&
+  !Number.isFinite(volumeOf(title)) &&
+  !listed?.inBook &&
+  listed?.volume != null
+    ? `${series}, Vol. ${listed.volume}`
+    : title;
 // the volume a title names: none for a book holding several ("Vinland Saga,
 // Book 9" is vols 17 and 18, never vol 9)
 const titleVolume = (title: string) =>
@@ -398,8 +414,14 @@ export async function getVolumePrices(
     series.volumes.find((v) => v.isbn13 === book.isbn13 && v.inBook)?.inBook ??
     null;
   const seen = new Set([book.isbn13]);
+  const listed = series.volumes.find((v) => v.isbn13.trim() === book.isbn13);
   return {
     refreshable,
+    heading: volumeHeading(
+      book.title,
+      series.info?.name ?? series.name,
+      listed,
+    ),
     series: { name: series.name, slug: series.slug, info: series.info },
     volume: inBook ? null : titleVolume(book.title),
     inBook,
@@ -973,13 +995,17 @@ export async function getVolumeSummary(isbn13: string) {
   const bestNew = inStock.find(
     (o) => o.condition === "new" && o.format === "print",
   );
-  const [series, [coverRow]] = await Promise.all([
+  const [series, saved, [coverRow]] = await Promise.all([
     getSeriesInfo(seriesName(book.title)).catch(() => null),
+    priceQueries.getSavedVolume(isbn13).catch(() => null),
     priceQueries.getCoverIds([isbn13]).catch(() => []),
   ]);
+  const seriesLabel = series?.name ?? seriesName(book.title);
   return {
     isbn13: book.isbn13.trim(),
     title: book.title,
+    // what the page is called (the address stays on the title)
+    heading: volumeHeading(book.title, seriesLabel, saved),
     authors: book.authors,
     publisher: book.publisher,
     year: book.year,
