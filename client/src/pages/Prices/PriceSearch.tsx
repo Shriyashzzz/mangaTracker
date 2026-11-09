@@ -147,6 +147,7 @@ export default function PriceSearch() {
                 {QUICK_PICKS.map(({ name, only }) => (
                   <NavLink
                     key={name}
+                    // short hand-picked names, not AniList's: found by name
                     to={seriesPath(name)}
                     className={only}
                     viewTransition
@@ -269,7 +270,7 @@ function Highlights() {
           <ul className={styles.row}>
             {data.trending.map((s) => (
               <li key={s.slug}>
-                <SeriesCard series={s} />
+                <SeriesCard series={s} canonical />
               </li>
             ))}
           </ul>

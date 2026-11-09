@@ -262,7 +262,10 @@ export default function SeriesIndex() {
               <ul className={styles.grid}>
                 {list.map((s) => (
                   <li key={s.name}>
-                    <SeriesCard series={{ ...s, genre: pickGenre(s.genres) }} />
+                    <SeriesCard
+                      canonical
+                      series={{ ...s, genre: pickGenre(s.genres) }}
+                    />
                   </li>
                 ))}
               </ul>
@@ -276,7 +279,10 @@ export default function SeriesIndex() {
           <ul className={styles.grid}>
             {pageItems.map((s) => (
               <li key={s.name}>
-                <SeriesCard series={{ ...s, genre: pickGenre(s.genres) }} />
+                <SeriesCard
+                  canonical
+                  series={{ ...s, genre: pickGenre(s.genres) }}
+                />
               </li>
             ))}
           </ul>

@@ -4,6 +4,7 @@ import {
   hideBrokenCover,
   hidePlaceholderCover,
   novelParts,
+  seriesCanonicalPath,
   seriesPath,
 } from "../../lib/prices";
 import { pricesStyles as styles } from "./styles";
@@ -20,12 +21,22 @@ type SeriesCardData = {
   genre?: string;
 };
 
-export default function SeriesCard({ series }: { series: SeriesCardData }) {
+// `canonical`: the name is AniList's own (a stored series), so the link can be
+// the clean address search engines know it by, with no ?name=
+export default function SeriesCard({
+  series,
+  canonical = false,
+}: {
+  series: SeriesCardData;
+  canonical?: boolean;
+}) {
   // "Overlord Light Novel" is shown as Overlord, a light novel
   const shown = novelParts(series.name);
   return (
     <NavLink
-      to={seriesPath(series.name)}
+      to={
+        canonical ? seriesCanonicalPath(series.name) : seriesPath(series.name)
+      }
       className={styles.card}
       viewTransition
     >

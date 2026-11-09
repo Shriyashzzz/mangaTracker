@@ -12,6 +12,7 @@ import {
   hideBrokenCover,
   hidePlaceholderCover,
   volumePath,
+  seriesCanonicalPath,
   seriesPath,
   seriesTitle,
   novelParts,
@@ -186,6 +187,11 @@ export default function PriceVolume() {
     liveSources,
     storeLinks,
   } = state.data;
+  // the series page: its clean address when AniList knows the series (the
+  // address search engines know it by), else by name
+  const seriesLink = series.info
+    ? seriesCanonicalPath(series.info.name)
+    : seriesPath(series.name);
   const seriesLabel = series.info?.name ?? series.name;
   // a light novel's are named "Overlord Light Novel, Vol. 3": shown as the
   // series' own name, tagged
@@ -250,7 +256,7 @@ export default function PriceVolume() {
         </NavLink>
         <span aria-hidden>/</span>
         <NavLink
-          to={seriesPath(series.name)}
+          to={seriesLink}
           className="tap"
           viewTransition
           {...stayInTrip(fromShelf)}
@@ -302,11 +308,7 @@ export default function PriceVolume() {
           </p>
           <p className={styles.partOf}>
             Part of{" "}
-            <NavLink
-              to={seriesPath(series.name)}
-              viewTransition
-              {...stayInTrip(fromShelf)}
-            >
+            <NavLink to={seriesLink} viewTransition {...stayInTrip(fromShelf)}>
               {shownSeries}
             </NavLink>
           </p>
@@ -519,7 +521,7 @@ export default function PriceVolume() {
               From the same series
             </h2>
             <NavLink
-              to={seriesPath(series.name)}
+              to={seriesLink}
               className={styles.textBtn}
               viewTransition
               {...stayInTrip(fromShelf)}
