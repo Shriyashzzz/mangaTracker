@@ -14,8 +14,20 @@ import TourOffer from "./components/tour/TourOffer";
 import { isDemo } from "./lib/demo";
 import { useAuth } from "./store/auth";
 
-// one per page load: see ScrollRestoration below
-const FIRST_PAGE_KEY = `first:${Date.now()}`;
+// The page a tab opened on, for ScrollRestoration below: a key of its own,
+// kept in that history entry, so Back to it restores even after a reload of
+// a later page (a new load, but the same entry)
+const FIRST_PAGE_KEY = (() => {
+  const state = (window.history.state ?? {}) as { firstKey?: string };
+  if (state.firstKey) return state.firstKey;
+  const key = `first:${Date.now()}`;
+  window.history.replaceState({ ...state, firstKey: key }, "");
+  return key;
+})();
+
+const firstPageKey = () =>
+  (window.history.state as { firstKey?: string } | null)?.firstKey ??
+  FIRST_PAGE_KEY;
 
 export default function App() {
   const check = useAuth((s) => s.check);
@@ -61,7 +73,7 @@ export default function App() {
           opens at the top, and Back to it still restores where they were */}
       <ScrollRestoration
         getKey={(location) =>
-          location.key === "default" ? FIRST_PAGE_KEY : location.key
+          location.key === "default" ? firstPageKey() : location.key
         }
       />
     </>
