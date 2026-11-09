@@ -11,6 +11,10 @@ import type { Series, VolumePrices } from "../../lib/types";
 // what search engines and link previews see for the price pages
 
 const absolute = (path: string) => new URL(path, location.origin).href;
+// a full address, for search engines and link previews: covers served by
+// the API come through this site in production, so they're relative otherwise
+const absoluteImage = (url?: string | null) =>
+  url ? absolute(coverSrc(url) ?? url) : undefined;
 const dollars = (cents: number) => (cents / 100).toFixed(2);
 
 export function volumeMeta({
@@ -40,17 +44,24 @@ export function volumeMeta({
     ].join(" "),
   );
 
+  // a Product only with prices: Google needs offers (or reviews) for one,
+  // and a volume nobody has priced yet is just a Book (as client/server.ts)
   const product = {
-    "@type": ["Book", "Product"],
+    "@type": prices.length ? ["Book", "Product"] : "Book",
     name: book.title,
     isbn: book.isbn13,
-    gtin13: book.isbn13,
     url: absolute(path),
-    ...(book.coverUrl && { image: coverSrc(book.coverUrl) }),
+    ...(book.coverUrl && { image: absoluteImage(book.coverUrl) }),
     ...(book.authors && { author: { "@type": "Person", name: book.authors } }),
     ...(book.publisher && {
       publisher: { "@type": "Organization", name: book.publisher },
-      brand: { "@type": "Brand", name: book.publisher },
+    }),
+    // Product-only properties, with the Product type
+    ...(prices.length && {
+      gtin13: book.isbn13,
+      ...(book.publisher && {
+        brand: { "@type": "Brand", name: book.publisher },
+      }),
     }),
     ...(book.year && { datePublished: String(book.year) }),
     isPartOf: { "@type": "BookSeries", name: seriesLabel },
@@ -70,7 +81,9 @@ export function volumeMeta({
     title: `${book.title} price comparison`,
     description,
     path,
-    image: book.coverUrl ? coverSrc(book.coverUrl) : series.info?.coverUrl,
+    image: book.coverUrl
+      ? absoluteImage(book.coverUrl)
+      : (series.info?.coverUrl ?? undefined),
     jsonLd: {
       "@context": "https://schema.org",
       "@graph": [
