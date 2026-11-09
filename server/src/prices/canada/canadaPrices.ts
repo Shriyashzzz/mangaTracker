@@ -104,7 +104,7 @@ const latest = async (isbn13: string, checkedAt: Date) => {
     orderBy: { priceCents: "asc" },
   });
   return rows.map(
-    ({ store, format, condition, priceCents, currency, inStock, url }) => ({
+    ({
       store,
       format,
       condition,
@@ -112,6 +112,16 @@ const latest = async (isbn13: string, checkedAt: Date) => {
       currency,
       inStock,
       url,
+      shippingEstimated,
+    }) => ({
+      store,
+      format,
+      condition,
+      priceCents,
+      currency,
+      inStock,
+      url,
+      shippingEstimated,
     }),
   );
 };

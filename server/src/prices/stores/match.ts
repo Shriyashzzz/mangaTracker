@@ -2,8 +2,13 @@
 // decide whether a listing is the same volume we're pricing:
 // same series name and same volume number.
 
+// accents and apostrophes go first, so "Café" is "cafe" and "Cat's" is
+// "cats", however a listing writes them
 export const normalize = (s: string) =>
   s
+    .normalize("NFKD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/['’‘`]/g, "")
     .toLowerCase()
     .replace(/[^a-z0-9 ]+/g, " ")
     .replace(/\s+/g, " ")
@@ -119,11 +124,13 @@ export const isSingleVolume = (listingTitle: string) =>
 export const JAPANESE_EDITION =
   /\bjapanese\b|[぀-ヿ一-龯]|japanzon|kanji hunter/i;
 
-// the volume number a listing spells out, undefined when it doesn't
+// the volume number a listing spells out, undefined when it doesn't:
 // "Vol. 9", "#9", or "Book 9" (a book holding several volumes, numbered as
 // its publisher does: see bookNumberOf)
+// "Vol. 7" wins over "#9" when a title has both ("Musashi #9 Volume 7")
 const statedVolume = (listingTitle: string) =>
-  listingTitle.match(/(?:\bvol(?:ume)?\.?|#|\bbook)\s*(\d+)/i)?.[1];
+  listingTitle.match(/\bvol(?:ume)?\.?\s*(\d+)/i)?.[1] ??
+  listingTitle.match(/(?:#|\bbook)\s*(\d+)/i)?.[1];
 
 // for a search by ISBN, where a title can be worded any way at all: only a
 // title saying it's a different volume counts against it
@@ -154,7 +161,8 @@ export const listingMatches = (listingTitle: string, bookTitle: string) => {
 // manga's must not, and when the other format is around (the series has
 // both, like Overlord) it must say it's manga (or a comic), since a novel's
 // listing doesn't always say so. "Light nov…" cut short still counts
-const CUT_NOVEL = /\blight\s*nov/i;
+// "(Light nov…", or cut before that: "(Lig..." / "(Light" at the very end
+const CUT_NOVEL = /\blight\s*nov|\(\s*lig(h|ht)?\s*(\.{2,}|…)?\s*$/i;
 export const saysNovel = (title: string) =>
   new RegExp(SAYS_NOVEL.source, "i").test(title) || CUT_NOVEL.test(title);
 export const formatFits = (
@@ -189,6 +197,33 @@ const SAYS_BOOKS =
   /\b(manga|novels?|books?|vol(ume)?s?|paperbacks?|hardcovers?|english)\b/i;
 export const setOfBooks = (listingTitle: string) =>
   SAYS_BOOKS.test(listingTitle) && !NOT_A_BOOK.test(listingTitle);
+
+// A listing with the series' own name taken out, for tests that a word in
+// that name would trip: "Is It Wrong to Try to Pick Up Girls in a Dungeon?"
+// isn't a "pick your volume" listing, "No Game No Life" isn't a game, and
+// "Musashi #9 Vol. 7" is volume 7.
+// - withoutSeriesWords: every word of the name, wherever it is (titles get
+//   cut short: "Is It Wrong to Try to Pick Up Girls i..."), for keywords
+// - withoutSeriesName: the name as a whole, so a number in it goes but the
+//   volume's own number stays, for reading volumes
+export const withoutSeriesWords = (listingTitle: string, bookTitle: string) => {
+  const words = new Set(seriesWords(bookTitle).split(" "));
+  return normalize(listingTitle)
+    .split(" ")
+    .filter((w) => !words.has(w))
+    .join(" ");
+};
+export const withoutSeriesName = (listingTitle: string, bookTitle: string) => {
+  const words = seriesWords(bookTitle).split(" ").filter(Boolean);
+  if (!words.length) return listingTitle;
+  const name = new RegExp(
+    words
+      .map((w) => w.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"))
+      .join("[^a-z0-9]+"),
+    "i",
+  );
+  return listingTitle.replace(name, " ");
+};
 
 // the series' words all appear in a listing's title
 export const namesSeries = (listingTitle: string, bookTitle: string) => {

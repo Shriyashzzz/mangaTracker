@@ -23,11 +23,22 @@ import {
   isOmnibusBook,
   isOmnibusListing,
   severalBooks,
+  withoutSeriesName,
+  withoutSeriesWords,
   setSize,
   seriesThenVolume,
   volumeOf,
 } from "../stores/match.js";
 import { plausiblePrice } from "../stores/retailers.js";
+
+// a volume found by its own ISBN can be out of print, and cost what it does
+// now (xxxHOLiC 19 at $91, Parasyte 8 at $298); one matched by title keeps
+// the usual ceiling
+const plausibleByIsbn = (cents: number) => cents >= 200 && cents <= 50_000;
+// eBay works out "calculated" shipping only for one listing at a time, never
+// in a search: such a listing gets what a book usually costs to post (USPS
+// Media Mail) rather than being left out
+const ESTIMATED_SHIPPING = "5.00";
 
 // a box set can cost what many volumes do, but not under $3 a volume: that's
 // one volume's price on a listing naming the whole run
@@ -82,7 +93,10 @@ export type ItemSummary = {
   title?: string;
   conditionId?: string;
   price?: { value: string; currency: string };
-  shippingOptions?: { shippingCost?: { value: string; currency?: string } }[];
+  shippingOptions?: {
+    shippingCostType?: string;
+    shippingCost?: { value: string; currency?: string };
+  }[];
   itemWebUrl?: string;
   itemAffiliateWebUrl?: string;
 };
@@ -119,23 +133,31 @@ export function browseOffers(
   const omnibusPage = isOmnibusBook(title);
   for (const item of items) {
     const name = item.title ?? "";
-    const shippingValue = item.shippingOptions?.[0]?.shippingCost?.value;
+    const shipping = item.shippingOptions?.[0];
+    const shippingValue =
+      shipping?.shippingCost?.value ??
+      (shipping?.shippingCostType === "CALCULATED"
+        ? ESTIMATED_SHIPPING
+        : undefined);
+    // the listing with the series' own name taken out (see match.ts)
+    const bare = withoutSeriesWords(name, title);
+    const rest = withoutSeriesName(name, title);
     if (!item.price || item.price.currency !== currency) continue;
     if (shippingValue === undefined || !item.itemWebUrl) continue;
     if (JAPANESE_EDITION.test(name) || /\bimport\b/i.test(name)) continue;
     // "choose from list": one of many books, which one unknown
-    if (PICK_ONE.test(name)) continue;
+    if (PICK_ONE.test(bare)) continue;
     // a title search finds the series' merchandise too
-    if (by === "title" && NOT_A_BOOK.test(name)) continue;
-    const omnibus = isOmnibusListing(name);
+    if (by === "title" && NOT_A_BOOK.test(bare)) continue;
+    const omnibus = isOmnibusListing(rest);
     // this page's own omnibus: named as one, or found by its ISBN under any
     // name ("One Piece: East Blue 1-2-3") unless it's plainly a box or a lot
     const itself =
       omnibusPage &&
       (omnibus ||
-        (by === "isbn" && !isSingleVolume(name) && !severalBooks(name)));
+        (by === "isbn" && !isSingleVolume(rest) && !severalBooks(rest)));
     // a box set or an omnibus holding this volume among others
-    const set = !itself && (omnibus || !isSingleVolume(name));
+    const set = !itself && (omnibus || !isSingleVolume(rest));
     if (itself) {
       if (
         by === "title" &&
@@ -158,7 +180,7 @@ export function browseOffers(
       )
         continue;
     } else if (by === "isbn") {
-      if (namesOtherVolume(name, title)) continue;
+      if (namesOtherVolume(rest, title)) continue;
     } else if (omnibusPage) {
       // a plain volume's listing isn't the omnibus this page is for
       continue;
@@ -177,8 +199,8 @@ export function browseOffers(
       toCents(Number(item.price.value)) + toCents(Number(shippingValue));
     if (
       set
-        ? !plausibleSetPrice(priceCents, setSize(name))
-        : !plausiblePrice(priceCents)
+        ? !plausibleSetPrice(priceCents, setSize(rest))
+        : !(by === "isbn" ? plausibleByIsbn : plausiblePrice)(priceCents)
     )
       continue;
     offers.push({
@@ -188,6 +210,7 @@ export function browseOffers(
       priceCents,
       currency,
       inStock: true,
+      ...(!shipping?.shippingCost && { shippingEstimated: true }),
       // US links carry eBay US tracking here; Canadian ones get eBay Canada's
       // where they're shown (prices/canada)
       url:

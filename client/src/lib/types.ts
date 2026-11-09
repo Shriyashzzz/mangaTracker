@@ -232,6 +232,9 @@ export type Offer = {
   url: string | null;
   affiliate: boolean;
   fetchedAt: string;
+  // the price holds an estimate for shipping the store calculates only at
+  // checkout (eBay); the row says so
+  shippingEstimated?: boolean;
 };
 // a box set or an omnibus holding the volume among others: listed and
 // stamped, never counted as the volume's own price

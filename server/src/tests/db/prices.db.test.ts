@@ -396,3 +396,34 @@ test("a box set is listed, but never counts as the volume's price", async () => 
   const history = await priceQueries.getPriceHistory(ISBN);
   expect(history.kinds.map((k) => k.lowCents)).toEqual([1300]);
 });
+
+test("an estimated shipping price is saved and read back as estimated", async () => {
+  await priceQueries.saveCheck(
+    ISBN,
+    ["ebay"],
+    new Map([
+      [
+        "ebay",
+        [
+          offer({
+            store: "eBay",
+            priceCents: 1500,
+            shippingEstimated: true,
+            url: "https://www.ebay.com/itm/1",
+          }),
+          offer({
+            store: "eBay",
+            condition: "used",
+            priceCents: 900,
+            url: "https://www.ebay.com/itm/2",
+          }),
+        ],
+      ],
+    ]),
+  );
+  const offers = await priceQueries.getCurrentOffers(ISBN);
+  expect(offers.map((o) => [o.condition, o.shippingEstimated])).toEqual([
+    ["used", false],
+    ["new", true],
+  ]);
+});

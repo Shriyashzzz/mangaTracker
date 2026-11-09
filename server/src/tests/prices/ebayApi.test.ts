@@ -348,3 +348,97 @@ test("an omnibus sold under its own name is the omnibus page's book, and an omni
     ),
   ).toEqual(["omnibus 1399"]);
 });
+
+// ---------- found across the library (Nov 2026) ----------
+
+test("a word in the series' own name doesn't trip a filter", () => {
+  // "Pick" isn't a "pick your volume" listing
+  expect(
+    formats(
+      [
+        item({
+          title: "Is It Wrong to Try to Pick Up Girls i..., Andrew Gaippe",
+        }),
+      ],
+      "Is It Wrong to Try to Pick up Girls in a Dungeon?, Vol. 10",
+      "isbn",
+    ),
+  ).toEqual(["print 1399"]);
+  // "#9" is the name, 7 the volume
+  expect(
+    formats(
+      [item({ title: "Musashi #9 Volume 7 (DC Comics, July 2006) New" })],
+      "Musashi # 9 Vol. 7",
+      "isbn",
+    ),
+  ).toEqual(["print 1399"]);
+});
+
+test("accents, apostrophes and a cut-off format don't decide a match", () => {
+  expect(
+    formats(
+      [
+        item({
+          title: "The Savior's Book Café Story in Another World (Manga) Vol. 5",
+        }),
+      ],
+      "The Savior's Book Cafe Story in Another World Vol. 5",
+      "title",
+    ),
+  ).toEqual(["print 1399"]);
+  const book =
+    "The White Cat's Revenge as Plotted from the Dragon King's Lap, Vol. 1";
+  expect(
+    formats(
+      [
+        item({
+          title:
+            "The White Cats Revenge as Plotted from the Dragon King's Lap Vol 1 Manga",
+        }),
+      ],
+      book,
+      "title",
+    ),
+  ).toEqual(["print 1399"]);
+  expect(
+    formats(
+      [
+        item({
+          title:
+            "The White Cat's Revenge as Plotted from the Dragon King's Lap: Volume 1 (Lig...",
+        }),
+      ],
+      book,
+      "title",
+    ),
+  ).toEqual([]);
+});
+
+test("an out-of-print volume found by its ISBN keeps its price; by title it's too odd", () => {
+  const rare = item({
+    title: "xxxHolic, Vol. 19 - paperback CLAMP",
+    price: usd("91.06"),
+    shippingOptions: [{ shippingCost: { value: "0" } }],
+  });
+  expect(formats([rare], "xxxHOLiC 19", "isbn")).toEqual(["print 9106"]);
+  expect(formats([rare], "xxxHOLiC 19", "title")).toEqual([]);
+});
+
+test("shipping eBay calculates at checkout is estimated, and the offer says so", () => {
+  const [offer] = browseOffers(
+    [
+      item({
+        title: "Blood Sucker Volume 7",
+        price: usd("10.00"),
+        shippingOptions: [{ shippingCostType: "CALCULATED" }],
+      }),
+    ],
+    "Blood Sucker Volume 7",
+    "US",
+    "isbn",
+  );
+  expect(offer).toMatchObject({ priceCents: 1500, shippingEstimated: true });
+  expect(
+    browseOffers([item({})], title, "US")[0]?.shippingEstimated,
+  ).toBeUndefined();
+});
