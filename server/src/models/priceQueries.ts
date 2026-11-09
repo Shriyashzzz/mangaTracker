@@ -566,15 +566,22 @@ export async function saveCoverIds(found: [string, number | null][]) {
 export async function getSitemapEntries() {
   const [volumes, series] = await Promise.all([
     prisma.$queryRaw<{ isbn13: string; title: string; updated: Date }[]>`
-      SELECT b.isbn13, b.title, GREATEST(b.updated_at, pc.checked_at) AS updated
-      FROM books b LEFT JOIN price_checks pc USING (isbn13)
-      -- only volumes we know are manga (see isKnownVolume), not every ISBN
-      -- someone opened a page for
-      WHERE pc.isbn13 IS NOT NULL OR EXISTS (
-        SELECT 1 FROM series_volumes sv
-        WHERE sv.volumes @> jsonb_build_array(
-          jsonb_build_object('isbn13', trim(b.isbn13)))
-      )
+      -- only volumes with prices to show: one without any is near enough the
+      -- same page as every other, so search engines' visits go to the pages
+      -- worth finding. Only known manga volumes get priced, so no made-up
+      -- ISBN gets in. Dated by the newest look that found prices
+      SELECT b.isbn13, b.title, GREATEST(b.updated_at, priced.at) AS updated
+      FROM books b
+      JOIN (
+        SELECT sc.isbn13, MAX(sc.checked_at) AS at
+        FROM price_source_checks sc
+        WHERE EXISTS (
+          SELECT 1 FROM price_samples ps
+          WHERE ps.isbn13 = sc.isbn13 AND ps.source = sc.source
+            AND ps.fetched_at = sc.checked_at
+        )
+        GROUP BY sc.isbn13
+      ) priced USING (isbn13)
       ORDER BY b.isbn13
     `,
     prisma.$queryRaw<{ name: string; fetchedAt: Date }[]>`
