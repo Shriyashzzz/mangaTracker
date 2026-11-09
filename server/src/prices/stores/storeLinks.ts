@@ -126,6 +126,15 @@ export function ourTags(url: string | null): string | null {
     else link.searchParams.delete("tag");
     return link.toString();
   }
+  // a listing saved before the campaign ID was set (or without one) gets it
+  // when shown, so no click goes untracked while it waits for a new check
+  if (
+    isSite(host, "ebay.com") &&
+    !link.searchParams.has("campid") &&
+    ebayCampaignId() &&
+    link.pathname.startsWith("/itm/")
+  )
+    return ebayAffiliateUrl(url, "listing");
   if (isSite(host, "ebay.com") && link.searchParams.has("campid")) {
     if (link.searchParams.get("campid") === ebayCampaignId()) return url;
     if (ebayCampaignId()) return ebayAffiliateUrl(url);
