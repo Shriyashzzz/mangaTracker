@@ -105,16 +105,38 @@ export default function PriceVolume() {
       navigate(path + search, { replace: true, state: linkState });
   }, [loadedBook, pathname, search, navigate, linkState]);
 
+  // which volume is being checked live right now, after its stored prices
+  const [refreshing, setRefreshing] = useState<string | null>(null);
+
+  // the stored prices first, straight away: they need no Turnstile, so the
+  // page (and what search engines see) never waits on it. Then a live check,
+  // only when it would look again; until it answers, the stored ones stay
   useEffect(() => {
     const controller = new AbortController();
-    getVolume(isbn, controller.signal, country === "ca")
-      .then((data) => setState({ isbn, data, error: "" }))
+    getVolume(isbn, controller.signal, true)
+      .then((data) => {
+        setState({ isbn, data, error: "" });
+        // Canadian prices are their own; these US ones are only for show
+        if (country === "ca" || !data.refreshable) return;
+        setRefreshing(isbn);
+        return getVolume(isbn, controller.signal, false)
+          .then((fresh) => setState({ isbn, data: fresh, error: "" }))
+          .catch(() => {
+            // a failed or refused live check leaves the stored prices
+          })
+          .finally(() => {
+            if (!controller.signal.aborted) setRefreshing(null);
+          });
+      })
       .catch((e) => {
         if ((e as Error).name !== "AbortError") {
           setState({ isbn, data: null, error: (e as Error).message });
         }
       });
-    return () => controller.abort();
+    return () => {
+      controller.abort();
+      setRefreshing(null);
+    };
   }, [isbn, attempt, country]);
 
   // Impact (Walmart affiliate) rewrites links once when its script loads,
@@ -315,10 +337,16 @@ export default function PriceVolume() {
                   Prices
                 </h2>
                 <span className="flex items-center gap-3">
-                  {checkedAt && (
-                    <span className={styles.checked}>
-                      checked {timeAgo(checkedAt)}
+                  {refreshing === isbn ? (
+                    <span className={styles.checked} role="status">
+                      checking stores…
                     </span>
+                  ) : (
+                    checkedAt && (
+                      <span className={styles.checked}>
+                        checked {timeAgo(checkedAt)}
+                      </span>
+                    )
                   )}
                   <CountrySwitch />
                 </span>

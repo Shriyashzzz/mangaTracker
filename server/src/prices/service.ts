@@ -229,6 +229,13 @@ export async function getVolumePrices(isbn13: string, { refresh = true } = {}) {
   const last = checked
     ? checked.unchanged
     : await priceQueries.getLastCheck(isbn13);
+  // whether a live check (with Turnstile) would look again: the page shows
+  // these stored prices first and only asks for one when it would
+  const refreshable =
+    known &&
+    !preorder &&
+    enabledProviders().length > 0 &&
+    (!last || Date.now() - last.checkedAt.getTime() >= FRESH_FOR_MS);
   const [stored, usual] = await Promise.all([
     last ? priceQueries.getLatestOffers(isbn13, last.checkedAt) : [],
     priceQueries.getNewPriceMedian(isbn13),
@@ -244,6 +251,7 @@ export async function getVolumePrices(isbn13: string, { refresh = true } = {}) {
     null;
   const seen = new Set([book.isbn13]);
   return {
+    refreshable,
     series: { name: series.name, slug: series.slug, info: series.info },
     volume: inBook ? null : titleVolume(book.title),
     inBook,
