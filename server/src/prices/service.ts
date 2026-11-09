@@ -318,6 +318,9 @@ const EXISTS_LOOKUPS_PER_MIN = 20;
 let existsLookups: number[] = [];
 
 export async function volumeExists(isbn13: string): Promise<boolean> {
+  // stored or listed now counts at once, whatever was remembered before
+  const [stored, saved] = await storedOrSaved(isbn13);
+  if (stored || saved) return true;
   const hit = existsCache.get(isbn13);
   if (hit && Date.now() - hit.at < hit.ttl) {
     if (hit.answer === null) throw new Error("catalog unavailable");
@@ -329,8 +332,6 @@ export async function volumeExists(isbn13: string): Promise<boolean> {
     if (existsCache.size > EXISTS_MAX)
       existsCache.delete(existsCache.keys().next().value!);
   };
-  const [stored, saved] = await storedOrSaved(isbn13);
-  if (stored || saved) return true;
   const now = Date.now();
   existsLookups = existsLookups.filter((t) => now - t < 60_000);
   if (existsLookups.length >= EXISTS_LOOKUPS_PER_MIN)
@@ -387,9 +388,10 @@ export async function getVolumePrices(
   // when its prices were checked: the oldest of the groups still being kept
   // up, so an eBay look every few days doesn't make 20-day-old store prices
   // read as fresh
-  const [last, groupChecks] = await Promise.all([
+  const [last, groupChecks, [coverRow]] = await Promise.all([
     priceQueries.getLastCheck(isbn13),
     priceQueries.getSourceChecks(isbn13),
+    priceQueries.getCoverIds([isbn13]).catch(() => []),
   ]);
   const served = new Set(enabledProviders().map(groupOf));
   const kept = [...groupChecks]
@@ -439,7 +441,9 @@ export async function getVolumePrices(
       title: book.title,
       authors: book.authors,
       publisher: book.publisher,
-      coverUrl: book.coverUrl,
+      // an edition known to have no cover: none, as the preview tags have it,
+      // so the page (and its tags) never point at an image that answers 404
+      coverUrl: coverRow && coverRow.coverId === null ? null : book.coverUrl,
       year: book.year,
     },
     offers: offers.map((o) => {
