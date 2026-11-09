@@ -31,7 +31,7 @@ export const getVolume = async (
   storedOnly = false,
 ) =>
   getJson<VolumePrices>(
-    `/api/prices/${encodeURIComponent(isbn)}${storedOnly ? "?stored=1" : await humanQuery()}`,
+    `/api/prices/${encodeURIComponent(isbn)}${storedOnly ? "?stored=1" : await humanQuery("?", signal)}`,
     signal,
   );
 

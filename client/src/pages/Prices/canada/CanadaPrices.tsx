@@ -44,7 +44,7 @@ export default function CanadaPrices({ isbn }: { isbn: string }) {
   useEffect(() => {
     const controller = new AbortController();
     // a live check carries a Turnstile token, as the US one does
-    humanQuery()
+    humanQuery("?", controller.signal)
       .then((human) =>
         getJson<Answer>(`/api/prices/ca/${isbn}${human}`, controller.signal),
       )
