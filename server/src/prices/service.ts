@@ -818,14 +818,19 @@ export async function getVolumeSummary(isbn13: string) {
   const bestNew = inStock.find(
     (o) => o.condition === "new" && o.format === "print",
   );
-  const series = await getSeriesInfo(seriesName(book.title)).catch(() => null);
+  const [series, [coverRow]] = await Promise.all([
+    getSeriesInfo(seriesName(book.title)).catch(() => null),
+    priceQueries.getCoverIds([isbn13]).catch(() => []),
+  ]);
   return {
     isbn13: book.isbn13.trim(),
     title: book.title,
     authors: book.authors,
     publisher: book.publisher,
     year: book.year,
-    coverUrl: book.coverUrl,
+    // an edition we know has no cover: none, so previews and search engines
+    // get the series' picture instead of an image address that answers 404
+    coverUrl: coverRow && coverRow.coverId === null ? null : book.coverUrl,
     seriesName: series?.name ?? seriesName(book.title),
     seriesCoverUrl: series?.coverUrl ?? null,
     stores: [...new Set(offers.map((o) => o.store))],
