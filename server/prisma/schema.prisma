@@ -97,6 +97,8 @@ model Book {
   updatedAt DateTime      @default(now()) @map("updated_at") @db.Timestamptz(6)
   samples   PriceSample[]
   check     PriceCheck?
+  // each price source group's last look (prices/service.ts)
+  sourceChecks PriceSourceCheck[]
 
   @@map("books")
 }
@@ -114,6 +116,8 @@ model PriceSample {
   inStock    Boolean  @default(true) @map("in_stock")
   url        String?
   fetchedAt  DateTime @default(now()) @map("fetched_at") @db.Timestamptz(6)
+  // the source group that found it: ebay, shopping, amazon, ebooks, walmart
+  source     String?  @db.VarChar(20)
 
   @@index([isbn13, fetchedAt(sort: Desc)], map: "price_samples_isbn_time")
   @@map("price_samples")
@@ -127,6 +131,18 @@ model PriceCheck {
   sources   String[] @default([])
 
   @@map("price_checks")
+}
+
+// each source group's last look at a volume; its prices are the samples it
+// saved at that moment. Each group checks on its own schedule
+model PriceSourceCheck {
+  isbn13    String   @db.Char(13)
+  book      Book     @relation(fields: [isbn13], references: [isbn13], onDelete: Cascade, onUpdate: NoAction)
+  source    String   @db.VarChar(20)
+  checkedAt DateTime @map("checked_at") @db.Timestamptz(6)
+
+  @@id([isbn13, source])
+  @@map("price_source_checks")
 }
 
 // AniList series info, cached a week per series

@@ -44,7 +44,13 @@ import { editionCoverId } from "./sources/covers.js";
 import { dropUnlikelyNew } from "./stores/retailers.js";
 import { baseName, isNovelName, novelName } from "./lightNovel.js";
 import { volumesKey } from "./volumesKey.js";
-import type { CatalogBook, Offer, SeriesHit, SeriesInfo } from "./types.js";
+import type {
+  CatalogBook,
+  Offer,
+  Provider,
+  SeriesHit,
+  SeriesInfo,
+} from "./types.js";
 import { googleSeriesVolumes } from "./sources/googleBooksCatalog.js";
 import { notOutYet } from "./preorder.js";
 
@@ -75,16 +81,61 @@ export const GOOGLE_SHOPPING = "serpapi";
 export const needsGoogleShopping = (offers: Pick<Offer, "format">[]) =>
   !offers.some((o) => o.format === "print");
 
-async function fetchAllProviders(isbn13: string, book: Book) {
-  const enabled = enabledProviders();
-  const first = enabled.filter((p) => p.id !== GOOGLE_SHOPPING);
-  const fallback = enabled.filter((p) => p.id === GOOGLE_SHOPPING);
-  const providers = [...first];
-  const offers: Offer[] = [];
-  const sources: string[] = [];
-  let usedUp = false;
+// ---------- source groups ----------
 
-  const ask = async (list: typeof enabled) => {
+// Each price source belongs to a group, and each group checks a volume on its
+// own schedule: eBay (free with eBay's own API) every few days, the paid
+// searches every few weeks. eBay through SerpApi and eBay's API share a group,
+// so switching between them keeps the prices
+const GROUP_OF: Record<string, string> = {
+  serpapi: "shopping",
+  "serpapi-ebay": "ebay",
+  ebay: "ebay",
+  "serpapi-amazon": "amazon",
+  keepa: "amazon",
+  "google-books": "ebooks",
+  walmart: "walmart",
+};
+export const groupOf = (provider: Pick<Provider, "id">) =>
+  GROUP_OF[provider.id] ?? provider.id;
+
+const DAY_MS = 24 * 60 * 60 * 1000;
+const FRESH_FOR_GROUP_MS: Record<string, number> = { ebay: 3 * DAY_MS };
+export const freshForMs = (group: string) =>
+  FRESH_FOR_GROUP_MS[group] ?? FRESH_FOR_MS;
+
+const isPaid = (provider: Pick<Provider, "id">) =>
+  provider.id.startsWith("serpapi");
+
+// the enabled providers whose group's last look at this volume is old enough,
+// or never happened. Paid ones only while a search is left this month: without
+// one they'd only fail, and the volume would look due forever
+export async function dueProviders(isbn13: string): Promise<Provider[]> {
+  const [checks, searchesLeft] = await Promise.all([
+    priceQueries.getSourceChecks(isbn13),
+    serpApiSearchesLeft().catch(() => true),
+  ]);
+  const now = Date.now();
+  return enabledProviders().filter((p) => {
+    if (isPaid(p) && !searchesLeft) return false;
+    const at = checks.get(groupOf(p));
+    return !at || now - at.getTime() >= freshForMs(groupOf(p));
+  });
+}
+
+// asks the due providers at once; one failing doesn't stop the others.
+// Google Shopping (one paid search covering many stores) is asked only when
+// neither this round nor the prices still current from other groups have a
+// print copy; when it isn't needed it still counts as looked at, so it isn't
+// due again until its time. Each group that answered gets its prices replaced;
+// a group that failed, wasn't due or ran out of searches keeps its own
+async function fetchProviders(isbn13: string, book: Book, due: Provider[]) {
+  const first = due.filter((p) => p.id !== GOOGLE_SHOPPING);
+  const shopping = due.find((p) => p.id === GOOGLE_SHOPPING);
+  const groups = new Map<string, Offer[]>();
+  const sources: string[] = [];
+
+  const ask = async (list: Provider[]) => {
     const results = await Promise.allSettled(
       list.map((p) =>
         p.fetchOffers(isbn13, AbortSignal.timeout(PROVIDER_TIMEOUT_MS), book),
@@ -94,54 +145,50 @@ async function fetchAllProviders(isbn13: string, book: Book) {
       const provider = list[i]!;
       if (r.status === "fulfilled") {
         sources.push(provider.id);
-        offers.push(...r.value);
-      } else if (r.reason instanceof SearchesUsedUp) {
-        usedUp = true;
-      } else {
+        const group = groupOf(provider);
+        groups.set(group, [...(groups.get(group) ?? []), ...r.value]);
+      } else if (!(r.reason instanceof SearchesUsedUp)) {
         console.error(`price provider ${provider.id} failed:`, r.reason);
       }
     });
   };
   await ask(first);
-  if (fallback.length && needsGoogleShopping(offers)) {
-    providers.push(...fallback);
-    await ask(fallback);
-  }
-
-  // with no searches left and no store answering, a new check would hide the
-  // stored prices behind whatever's left (ebooks at most), so keep the old one
-  if (usedUp && !sources.some((id) => id.startsWith("serpapi"))) {
-    console.warn("SerpApi searches used up, showing the stored prices");
-    return;
-  }
-
-  // only record a check if at least one source answered, so an outage
-  // doesn't leave a volume looking "checked, nothing found" for 20 days
-  if (providers.length && sources.length) {
-    // judged against this volume's own usual new price before storing, so
-    // a fake bargain never reaches the history
-    const usual = await priceQueries.getNewPriceMedian(isbn13);
-    await priceQueries.saveCheck(
-      isbn13,
-      sources,
-      dropUnlikelyNew(preferDirectRows(offers), usual),
+  if (shopping) {
+    const fresh = [...groups.values()].flat();
+    // prices still current from groups not asked this round
+    const kept = (await priceQueries.getCurrentRows(isbn13)).filter(
+      (o) => !groups.has(o.source),
     );
+    if (needsGoogleShopping([...fresh, ...kept])) await ask([shopping]);
+    else groups.set(groupOf(shopping), []);
   }
+
+  // only groups that answered are recorded: an outage, or searches running
+  // out, leaves the prices that group last found
+  if (!groups.size) return;
+  // judged against this volume's own usual new price before storing, so a
+  // fake bargain never reaches the history
+  const usual = await priceQueries.getNewPriceMedian(isbn13);
+  const judged = new Map(
+    [...groups].map(([group, offers]) => [
+      group,
+      dropUnlikelyNew(preferDirectRows(offers), usual),
+    ]),
+  );
+  await priceQueries.saveCheck(isbn13, sources, judged);
 }
 
-// the last check, when it's still the latest: no need to read it again
-// old enough (or never checked) for a live check to look again
-const isStale = (last: { checkedAt: Date } | null) =>
-  !last || Date.now() - last.checkedAt.getTime() >= FRESH_FOR_MS;
-
+// a live check: only the providers that are due look again. Answers with the
+// last check when nothing was due, so the caller needn't read it again
 async function refreshIfStale(isbn13: string, book: Book) {
-  const last = await priceQueries.getLastCheck(isbn13);
-  if (!isStale(last) || !enabledProviders().length) return { unchanged: last };
+  const due = await dueProviders(isbn13);
+  if (!due.length)
+    return { unchanged: await priceQueries.getLastCheck(isbn13) };
 
   if (!inFlight.has(isbn13)) {
     inFlight.set(
       isbn13,
-      fetchAllProviders(isbn13, book).finally(() => inFlight.delete(isbn13)),
+      fetchProviders(isbn13, book, due).finally(() => inFlight.delete(isbn13)),
     );
   }
   await inFlight.get(isbn13);
@@ -227,15 +274,6 @@ export async function volumeExists(isbn13: string): Promise<boolean> {
   }
 }
 
-// a live price check would find anything new: a free source is on, or a paid
-// one still has searches this month. Otherwise it only repeats what's stored
-async function canLookAgain() {
-  const providers = enabledProviders();
-  if (providers.some((p) => !p.id.startsWith("serpapi"))) return true;
-  if (!providers.length) return false;
-  return serpApiSearchesLeft().catch(() => true);
-}
-
 // a volume's release date while it's still to come, as its series page has it
 // (dates found under other names and catalogs included). For the Canada
 // prices, which have only the ISBN: a preorder spends no paid searches there
@@ -276,9 +314,9 @@ export async function getVolumePrices(isbn13: string, { refresh = true } = {}) {
   // whether a live check (with Turnstile) would look again: the page shows
   // these stored prices first and only asks for one when it would
   const refreshable =
-    known && !preorder && isStale(last) && (await canLookAgain());
+    known && !preorder && (await dueProviders(isbn13)).length > 0;
   const [stored, usual] = await Promise.all([
-    last ? priceQueries.getLatestOffers(isbn13, last.checkedAt) : [],
+    priceQueries.getCurrentOffers(isbn13),
     priceQueries.getNewPriceMedian(isbn13),
   ]);
   // the median once, not again inside the history
@@ -857,9 +895,8 @@ export async function getSeriesIndex() {
 export async function getVolumeSummary(isbn13: string) {
   const book = await priceQueries.getBook(isbn13);
   if (!book) return null;
-  const last = await priceQueries.getLastCheck(isbn13);
   const [stored, usual] = await Promise.all([
-    last ? priceQueries.getLatestOffers(isbn13, last.checkedAt) : [],
+    priceQueries.getCurrentOffers(isbn13),
     priceQueries.getNewPriceMedian(isbn13),
   ]);
   const offers = dropUnlikelyNew(stored, usual);
