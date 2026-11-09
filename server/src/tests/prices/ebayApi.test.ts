@@ -316,19 +316,39 @@ test("on an omnibus's own page, its listings are the book itself", () => {
   ).toEqual(["print 1399"]);
 });
 
-test("a set of omnibuses is a box set", () => {
+test("a set has to call itself a box set, and a seller's lot isn't one", () => {
+  const book = "Bleach, Vol. 9";
+  const sets = (titles: string[]) =>
+    formats(
+      titles.map((t) => item({ title: t, price: usd("60.00") })),
+      book,
+      "title",
+    );
+  // ranges that hold vol 9, but lots of loose volumes
+  expect(
+    sets([
+      "Bleach Vol. 8-10 & 22 Manga English Tite Kubo Jump 8 9 10 22 Book Lot",
+      "Bleach Manga Volumes 1-14 Complete Set Lot English",
+      "Bleach Manga English Loose (Volume 1-12)",
+      "Bleach Omnibus Set Volume 7-9 Manga",
+      "Bleach Manga Vol 1-12 English",
+    ]),
+  ).toEqual([]);
+  // ones that say what they are
+  expect(sets(["Bleach Box Set 1 Manga Vol 1-21"])).toEqual(["set 6400"]);
+  expect(sets(["Completed Bleach Manga Vol 1-74 English"])).toEqual([]);
   expect(
     formats(
       [
         item({
-          title: "Gantz Omnibus Set Volume 1-3 Manga",
-          price: usd("150.00"),
+          title: "Completed Bleach Manga Vol 1-74 English",
+          price: usd("400.00"),
         }),
       ],
-      "Gantz, Vol. 3",
+      book,
       "title",
     ),
-  ).toEqual(["set 15400"]);
+  ).toEqual(["set 40400"]);
 });
 
 test("an omnibus sold under its own name is the omnibus page's book, and an omnibus elsewhere", () => {
@@ -441,4 +461,50 @@ test("shipping eBay calculates at checkout is estimated, and the offer says so",
   expect(
     browseOffers([item({})], title, "US")[0]?.shippingEstimated,
   ).toBeUndefined();
+});
+
+test("a sequel's box set, a lot read as 1-2-3, or a code isn't kept", () => {
+  expect(
+    formats(
+      [
+        item({
+          title:
+            "Tokyo Ghoul: re Complete Box Set: Includes vols. 1-16 with premium",
+          price: usd("187.21"),
+        }),
+      ],
+      "Tokyo Ghoul, Vol. 1",
+      "title",
+    ),
+  ).toEqual([]);
+  expect(
+    formats(
+      [
+        item({
+          title:
+            "Tokyo Ghoul Complete Box Set: Includes vols. 1-14 with premium",
+          price: usd("124.99"),
+        }),
+      ],
+      "Tokyo Ghoul, Vol. 1",
+      "title",
+    ),
+  ).toEqual(["set 12899"]);
+  expect(
+    formats(
+      [
+        item({
+          title: "Black Cat Manga 8 Volumes 1-6-7-8-10-11-12-15 Kentaro Yabuki",
+          price: usd("59.99"),
+        }),
+        item({
+          title:
+            "SOUL EATER TP VOL 07 (C: 0-1-2) by Ohkubo, Atsushi [Paperback]",
+          price: usd("19.43"),
+        }),
+      ],
+      "Black Cat, Volume 1",
+      "title",
+    ),
+  ).toEqual([]);
 });

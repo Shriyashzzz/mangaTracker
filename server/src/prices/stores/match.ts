@@ -237,17 +237,55 @@ export const namesSeries = (listingTitle: string, bookTitle: string) => {
 // one book holding several volumes, as a listing names it: an omnibus, a
 // "3-in-1", a VIZBIG edition, or volumes joined in its own name ("One Piece:
 // East Blue 1-2-3"). Not a set of books (a box, a lot, a bundle)
-const OMNIBUS =
-  /\b(omnibus|vizbig|\d\s*-?\s*in\s*-?\s*1)\b|(?<!\d)\d{1,3}-\d{1,3}-\d{1,3}(?![\d-])/i;
+const OMNIBUS = /\b(omnibus|vizbig|\d\s*-?\s*in\s*-?\s*1)\b/i;
+// "1-2-3": three volumes in a row, from 1 up. A longer run ("1-6-7-8-10", a
+// lot) or a code ("C: 0-1-2") isn't one book
+const JOINED = /(?<![\d-])(\d{1,3})-(\d{1,3})-(\d{1,3})(?![\d-])/;
+const joinedVolumes = (title: string) => {
+  const m = title.match(JOINED);
+  if (!m) return false;
+  const [a, b, c] = [Number(m[1]), Number(m[2]), Number(m[3])];
+  return a >= 1 && b === a + 1 && c === b + 1;
+};
 const SEVERAL_BOOKS = /\b(box(ed)?\s*set|set|lot|bundle|collection)\b/i;
 export const severalBooks = (listingTitle: string) =>
   SEVERAL_BOOKS.test(listingTitle);
 export const isOmnibusListing = (listingTitle: string) =>
-  OMNIBUS.test(listingTitle) && !SEVERAL_BOOKS.test(listingTitle);
+  (OMNIBUS.test(listingTitle) || joinedVolumes(listingTitle)) &&
+  !SEVERAL_BOOKS.test(listingTitle);
 // a volume page that is itself such a book: its own listings are this book,
 // not a collection holding it
 export const isOmnibusBook = (bookTitle: string) =>
-  omnibusVolumes(bookTitle) !== null || OMNIBUS.test(bookTitle);
+  omnibusVolumes(bookTitle) !== null ||
+  OMNIBUS.test(bookTitle) ||
+  joinedVolumes(bookTitle);
+
+// what a listing must call itself to be shown as a box set, read on top of
+// its range: a seller's lot of whatever volumes they had ("Bleach Vol. 8-10
+// & 22 ... Book Lot") holds a range too, but isn't one. Read with the
+// series' own words taken out (withoutSeriesWords), so a name can't say it
+const SAYS_BOX_SET = /\bbox(ed)?\b|\bcompleted?\b/i;
+const SAYS_LOT =
+  /\b(lot|lots|bundle|loose|mixed|assorted|random|singles?|used\s+books)\b/i;
+export const saysBoxSet = (bareListing: string) =>
+  SAYS_BOX_SET.test(bareListing) && !SAYS_LOT.test(bareListing);
+
+// a set is this series' own, not a sequel's or a spin-off's ("Tokyo Ghoul:re
+// Complete Box Set" on Tokyo Ghoul's page): right after the series name
+// comes a word about the set itself, not more name
+const AFTER_NAME =
+  /^(box(ed)?|complete(d)?|the|manga|comics?|graphic|light|novels?|vols?|volumes?|v|by|english|eng|set|series|collection|deluxe|edition|books?|paperbacks?|hardcovers?|hardback|official|viz|kodansha|yen|\d+)$/;
+export const ownSeriesSet = (listingTitle: string, bookTitle: string) => {
+  const series = seriesWords(bookTitle);
+  const listing = ` ${normalize(listingTitle)} `;
+  const at = listing.indexOf(` ${series} `);
+  if (!series || at < 0) return false;
+  const next = listing
+    .slice(at + series.length + 2)
+    .trim()
+    .split(" ")[0];
+  return !next || AFTER_NAME.test(next);
+};
 
 // a box set, or a run of volumes sold together, that holds this volume: a
 // range that covers it ("Vols. 1-16", "1 to 16"), or a box or complete set

@@ -23,6 +23,8 @@ import {
   isOmnibusBook,
   isOmnibusListing,
   severalBooks,
+  saysBoxSet,
+  ownSeriesSet,
   withoutSeriesName,
   withoutSeriesWords,
   setSize,
@@ -170,6 +172,11 @@ export function browseOffers(
         continue;
     } else if (set) {
       if (!setHolds(name, title)) continue;
+      // a box set has to say it's one: a lot of loose volumes isn't
+      if (!omnibus && !saysBoxSet(bare)) continue;
+      // and of this series, not a sequel sharing its name (an omnibus often
+      // has an arc's name after the series': "One Piece: East Blue 1-2-3")
+      if (!omnibus && !ownSeriesSet(name, title)) continue;
       if (
         by === "title" &&
         !(
