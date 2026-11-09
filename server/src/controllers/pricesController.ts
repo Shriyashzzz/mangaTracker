@@ -131,7 +131,8 @@ const volume = [
       () =>
         asSpender(spenderOf(req), () =>
           getVolumePrices(matchedData(req).isbn, {
-            // ?stored=1: someone looking at Canadian prices, who won't see these
+            // ?stored=1: what's stored, never a refresh. Every volume page asks
+            // this first (and it's all a Canadian viewer gets)
             refresh: live,
           }),
         ),

@@ -15,6 +15,7 @@ import http from "node:http";
 import https from "node:https";
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
+import { isAppPage } from "./pagePaths.ts";
 
 const DIST = fileURLToPath(new URL("./dist/", import.meta.url));
 // where this server reaches the API: the private address on Railway
@@ -120,13 +121,16 @@ function volumeTags(v: VolumeSummary, origin: string): Tags {
     "@type": v.offerCount ? ["Book", "Product"] : "Book",
     name: v.title,
     isbn: v.isbn13,
-    gtin13: v.isbn13,
     url: origin + path,
     ...(image && { image }),
     ...(v.authors && { author: { "@type": "Person", name: v.authors } }),
     ...(v.publisher && {
       publisher: { "@type": "Organization", name: v.publisher },
-      brand: { "@type": "Brand", name: v.publisher },
+    }),
+    // Product-only properties, with the Product type
+    ...(v.offerCount && {
+      gtin13: v.isbn13,
+      ...(v.publisher && { brand: { "@type": "Brand", name: v.publisher } }),
     }),
     ...(v.year && { datePublished: String(v.year) }),
     isPartOf: { "@type": "BookSeries", name: v.seriesName },
@@ -352,11 +356,21 @@ const sendPage = (res: Response, html: string) =>
 // whose volume or series doesn't exist still shows the app (it says so), but
 // with a real 404, so search engines don't index it as a page
 const withTags =
-  (load: (req: Request, origin: string) => Promise<Tags | "missing" | null>) =>
+  (
+    load: (req: Request, origin: string) => Promise<Tags | "missing" | null>,
+    redirectTo = false,
+  ) =>
   async (req: Request, res: Response) => {
     const origin = `${req.protocol}://${req.get("host")}`;
     try {
       const tags = API_URL ? await load(req, origin) : null;
+      // a volume under an old or ISBN-only address: a permanent redirect to
+      // its own, rather than the app swapping the address in the browser
+      if (redirectTo && tags && tags !== "missing" && req.path !== tags.path) {
+        const query = req.originalUrl.slice(req.path.length);
+        res.redirect(301, tags.path + query);
+        return;
+      }
       if (tags === "missing") res.status(404);
       sendPage(
         res,
@@ -395,21 +409,13 @@ app.get(
     );
     if (missing) return "missing";
     return data && volumeTags(data, origin);
-  }),
+  }, true),
 );
-
-// the app's pages (client/src/pages/routes.tsx); the price pages have their
-// own routes above
-const PAGES = [
-  /^\/(shelf|signin|signup|add|import|about|updates|acknowledgements|new-releases|profile|series|prices)?\/?$/,
-  /^\/(details|update|u)\/[^/]+\/?$/,
-  /^\/settings(\/[^/]+)?\/?$/,
-];
 
 // every other address is the single-page app, as `serve -s` did. One that
 // isn't a page shows the app's not-found page, with a real 404
 app.get("/{*path}", (req, res) => {
-  if (!PAGES.some((page) => page.test(req.path))) res.status(404);
+  if (!isAppPage(req.path)) res.status(404);
   sendPage(res, template);
 });
 

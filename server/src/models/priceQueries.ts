@@ -298,6 +298,18 @@ export async function claimApiCall(provider: string, limit: number) {
   return changed === 1;
 }
 
+// whether any of these providers still has searches this month, without
+// claiming one
+export async function anyCallsLeft(providers: string[], limit: number) {
+  if (!providers.length) return false;
+  const used = await prisma.$queryRaw<{ provider: string; calls: number }[]>`
+    SELECT provider, calls FROM api_usage
+    WHERE month = date_trunc('month', now())::date AND provider = ANY(${providers})
+  `;
+  const calls = new Map(used.map((u) => [u.provider, u.calls]));
+  return providers.some((p) => (calls.get(p) ?? 0) < limit);
+}
+
 // one search SerpApi answered, added to whoever it was spent for
 export async function recordSearch(spender: Spender) {
   if ("userId" in spender) {
@@ -477,6 +489,7 @@ export async function getBookTitles() {
 
 export default {
   claimApiCall,
+  anyCallsLeft,
   markApiSpent,
   recordSearch,
   getSeriesVolumes,

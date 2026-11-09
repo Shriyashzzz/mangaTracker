@@ -41,7 +41,12 @@ export default function ToReadButton({
   if (!isSignedIn) {
     return isSignedIn === false ? (
       <p className={line}>
-        <NavLink to={signInPath(pathname)} className={link} viewTransition>
+        <NavLink
+          to={signInPath(pathname)}
+          className={link}
+          rel="nofollow"
+          viewTransition
+        >
           + Add to my to-read
         </NavLink>
       </p>

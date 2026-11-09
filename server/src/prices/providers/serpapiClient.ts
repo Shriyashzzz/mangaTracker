@@ -20,6 +20,11 @@ const labelOf = (key: string) => usageLabel(key, config.SERPAPI_API_KEY);
 
 export const serpApiEnabled = () => KEYS.length > 0;
 
+// a search could still be made this month on some key: when none can, a live
+// price check would only answer what's stored, so the page doesn't ask for one
+export const serpApiSearchesLeft = () =>
+  priceQueries.anyCallsLeft(KEYS.map(labelOf), config.SERPAPI_MONTHLY_LIMIT);
+
 // the response; throws SearchesUsedUp when every key is used up
 export async function searchSerpApi<T extends { error?: string }>(
   params: Record<string, string>,

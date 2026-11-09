@@ -258,6 +258,9 @@ export type PriceHistory = {
 export type StoreLink = { store: string; url: string; affiliate: boolean };
 
 export type VolumePrices = {
+  // a live check would look again (prices old or missing, a volume we know):
+  // the page shows these stored prices first, then asks for one
+  refreshable?: boolean;
   series: { name: string; slug: string; info: SeriesInfo | null };
   volume: number | null;
   // a book holding several volumes, in place of a volume number

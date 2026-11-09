@@ -60,6 +60,8 @@ export default function ShelfAction({ series, title, volume }: Props) {
       <NavLink
         to={signInPath(pathname)}
         className="btn btn-secondary"
+        // a sign-in page per volume is nothing for search engines to follow
+        rel="nofollow"
         viewTransition
       >
         Sign in to track this
