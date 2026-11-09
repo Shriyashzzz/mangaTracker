@@ -239,6 +239,8 @@ async function summary<T>(path: string, ip?: string): Promise<Summary<T>> {
     // 400: not even a valid ISBN or name, so there's no page either
     missing: res.status === 404 || res.status === 400,
   };
+  // a body nobody reads still holds its connection: let it go
+  if (res.status !== 200) await res.body?.cancel().catch(() => {});
   // only answers worth keeping: a failure is asked again next time
   if ([200, 204, 400, 404].includes(res.status)) {
     if (cache.size >= CACHE_MAX) cache.delete(cache.keys().next().value!);
