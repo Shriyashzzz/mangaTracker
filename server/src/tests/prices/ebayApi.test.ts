@@ -806,3 +806,39 @@ test("a box set written with v. counts as books", () => {
     ),
   ).toEqual(["set 4400"]);
 });
+
+test("a set of the page's own edition, and contents cut short, are read right", () => {
+  expect(
+    on(
+      "Death Note Black Edition, Vol. 5",
+      ["Death Note Black Edition Complete English Manga Set Vol 1-6 VIZ"],
+      "isbn",
+      "100.00",
+    ),
+  ).toEqual(["set 10400"]);
+  expect(
+    on(
+      "Fullmetal Alchemist (3-in-1 Edition), Vol. 1",
+      ["Fullmetal Alchemist 3-In-1 Edition, Vol. 1 : Includes Vols. 1, 2"],
+      "isbn",
+    ),
+  ).toEqual(["print 1399"]);
+  // two books' contents aren't one book's
+  expect(
+    on(
+      "Dragon Ball (3-in-1 Edition), Vol. 1",
+      [
+        "Dragon Ball (3-in-1 Edition), Vol. 1: Includes vols. 1, 2 & 3 & Vol 2:  3, 4 & 5",
+      ],
+      "isbn",
+    ),
+  ).not.toContainEqual(expect.stringMatching(/^print/));
+});
+
+test("another book of the same edition isn't one holding this volume", () => {
+  expect(
+    on("Ranma 1/2 (2-in-1 Edition), Vol. 9", [
+      "Ranma 1/2 (2-in-1 Edition), Vol. 5: Includes Volumes 9 & 10",
+    ]),
+  ).toEqual([]);
+});

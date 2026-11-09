@@ -420,8 +420,13 @@ export const fitsOmnibusPage = (listingTitle: string, bookTitle: string) => {
   if (!named.length) return true;
   const held = pageVolumes(bookTitle);
   // the volumes it names are exactly the page's: "Contains Volumes 9 & 10"
-  // for Black Edition 5, not "Vol. 1 & 2" (two books) for a 3-in-1's first
+  // for Black Edition 5, not "Vol. 1 & 2" (two books) for a 3-in-1's first.
+  // Contents a title gives ("Includes Vols. 1, 2", cut short) may be part
   if (held?.length) {
+    if (/\b(includes|contains)\b/i.test(listingTitle))
+      return named.every(
+        ([from, to]) => from >= Math.min(...held) && to <= Math.max(...held),
+      );
     const runs = mergedRuns(listingTitle);
     return (
       runs.length === 1 &&
@@ -477,7 +482,15 @@ const pageVolumes = (bookTitle: string): number[] | null => {
 export const setHolds = (listingTitle: string, bookTitle: string) => {
   if (PICK_ONE.test(listingTitle) || ONE_OF_RUN.test(listingTitle))
     return false;
-  const wanted = pageVolumes(bookTitle);
+  // a set of the page's own edition counts in that edition's numbers: "Death
+  // Note Black Edition Complete Set Vol 1-6" holds Black Edition 5. Not
+  // another single book of it ("2-in-1 Edition, Vol. 5: Includes Volumes 9
+  // & 10" on 2-in-1 Vol. 9's page), which counts in volumes
+  const ownEdition =
+    perBook(bookTitle) !== null &&
+    !isOmnibusListing(listingTitle) &&
+    [...editionsOf(listingTitle)].some((e) => editionsOf(bookTitle).has(e));
+  const wanted = ownEdition ? [volumeOf(bookTitle)] : pageVolumes(bookTitle);
   // ISBN-like runs ("978-1-9753...") aren't ranges: only small numbers count
   const ranges = rangesOf(listingTitle);
   if (ranges.length)
