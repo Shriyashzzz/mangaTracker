@@ -5,7 +5,8 @@
 // big book to tick, and slides to move along. A series short enough to hit
 // with a finger ticks with one tap. On a touch screen, a series whose books
 // would be thinner than a finger shows a page of full-size books instead,
-// starting near the one after the furthest they own, with ‹ › to move along: one tap ticks.
+// starting near the one after the furthest they own, with ‹ › or a sideways
+// swipe to move along: one tap ticks.
 // The shelf never changes size, so nothing around it moves. Looks: index.css,
 // "the volume shelf".
 import {
@@ -62,6 +63,10 @@ export default function VolumeShelf({ total, owned, onToggle, name }: Props) {
   const [said, setSaid] = useState("");
   const press = useRef<{ x: number; slid: boolean; pick: number | null }>(null);
   const frame = useRef(0);
+  // a finger on a paged shelf: a sideways swipe turns the page, and the tap
+  // the swipe ends in mustn't tick a book
+  const swipe = useRef<{ x: number; y: number } | null>(null);
+  const swiped = useRef(false);
 
   useEffect(() => {
     const el = box.current;
@@ -189,19 +194,52 @@ export default function VolumeShelf({ total, owned, onToggle, name }: Props) {
     );
     const to = Math.min(total, from + perPage - 1);
     const page = Array.from({ length: to - from + 1 }, (_, i) => from + i);
+    const turn = (later: boolean) =>
+      setPageStart(
+        later
+          ? Math.min(lastStart, from + perPage)
+          : Math.max(1, from - perPage),
+      );
     return (
       <div className="vshelf-box" ref={box}>
         <div
           className="vshelf vshelf-paged"
           role="group"
           aria-label={`Your volumes of ${name}, vols. ${from} to ${to} of ${total}`}
+          onPointerDown={(e) => {
+            swiped.current = false;
+            swipe.current =
+              e.pointerType === "mouse" ? null : { x: e.clientX, y: e.clientY };
+          }}
+          onPointerMove={(e) => {
+            const start = swipe.current;
+            if (!start) return;
+            const dx = e.clientX - start.x;
+            if (
+              Math.abs(dx) < 40 ||
+              Math.abs(dx) < Math.abs(e.clientY - start.y)
+            )
+              return;
+            // one page a swipe; a finger moving left brings the later ones
+            swipe.current = null;
+            swiped.current = true;
+            turn(dx < 0);
+          }}
+          onPointerUp={() => (swipe.current = null)}
+          onPointerCancel={() => (swipe.current = null)}
+          onClickCapture={(e) => {
+            if (!swiped.current) return;
+            swiped.current = false;
+            e.preventDefault();
+            e.stopPropagation();
+          }}
         >
           <button
             type="button"
             className="vshelf-nav"
             aria-label="Earlier volumes"
             disabled={from <= 1}
-            onClick={() => setPageStart(Math.max(1, from - perPage))}
+            onClick={() => turn(false)}
           >
             <ChevronLeftIcon />
           </button>
@@ -235,7 +273,7 @@ export default function VolumeShelf({ total, owned, onToggle, name }: Props) {
             className="vshelf-nav"
             aria-label="Later volumes"
             disabled={to >= total}
-            onClick={() => setPageStart(Math.min(lastStart, from + perPage))}
+            onClick={() => turn(true)}
           >
             <ChevronRightIcon />
           </button>

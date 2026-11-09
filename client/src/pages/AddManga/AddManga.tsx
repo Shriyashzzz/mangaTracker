@@ -279,6 +279,7 @@ export function AddManga() {
               status={search.status}
               onPick={pickTitle}
               onTyped={asTyped}
+              isAddPage
             />
             {fieldErrors.title ? (
               <p id="name-error" className={styles.fieldError}>

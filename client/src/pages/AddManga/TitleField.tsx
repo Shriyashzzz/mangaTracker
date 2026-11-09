@@ -21,6 +21,8 @@ type Props = {
   onPick: (hit: CoverHit) => void;
   // none of these: the title as they typed it
   onTyped: () => void;
+  // the add page: the box takes the cursor on arrival, on phones too
+  isAddPage: boolean;
 };
 
 // The add page's title box: AniList's closest guesses drop down as they
@@ -35,6 +37,7 @@ export default function TitleField({
   status,
   onPick,
   onTyped,
+  isAddPage,
 }: Props) {
   const [open, setOpen] = useState(false);
   const [active, setActive] = useState(-1);
@@ -116,7 +119,7 @@ export default function TitleField({
         maxLength={150}
         autoComplete="off"
         enterKeyHint="next"
-        autoFocus={!hasBottomBar()}
+        autoFocus={isAddPage}
       />
 
       {showing && (
