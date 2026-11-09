@@ -45,12 +45,13 @@ import { editionCoverId } from "./sources/covers.js";
 import { dropUnlikelyNew, unlikelyNewTest } from "./stores/retailers.js";
 import { baseName, isNovelName, novelName } from "./lightNovel.js";
 import { volumesKey } from "./volumesKey.js";
-import type {
-  CatalogBook,
-  Offer,
-  Provider,
-  SeriesHit,
-  SeriesInfo,
+import {
+  isCollection,
+  type CatalogBook,
+  type Offer,
+  type Provider,
+  type SeriesHit,
+  type SeriesInfo,
 } from "./types.js";
 import { googleSeriesVolumes } from "./sources/googleBooksCatalog.js";
 import { notOutYet } from "./preorder.js";
@@ -1007,8 +1008,8 @@ export async function getVolumeSummary(isbn13: string) {
     priceQueries.getNewPriceMedian(isbn13),
   ]);
   const offers = dropUnlikelyNew(stored, usual);
-  // box sets are listed on the page, but they aren't this volume's price
-  const inStock = offers.filter((o) => o.inStock && o.format !== "set");
+  // box sets and omnibuses are listed on the page, but aren't this volume's price
+  const inStock = offers.filter((o) => o.inStock && !isCollection(o));
   const bestNew = inStock.find(
     (o) => o.condition === "new" && o.format === "print",
   );

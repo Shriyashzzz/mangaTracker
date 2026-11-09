@@ -32,7 +32,7 @@ import { readLocal } from "../../lib/prefs";
 import { usePageMeta } from "../../lib/seo";
 import { volumeMeta } from "./pageMeta";
 import ShelfAction from "./ShelfAction";
-import type { VolumePrices } from "../../lib/types";
+import { isCollection, type VolumePrices } from "../../lib/types";
 
 // the Impact script (index.html) that turns Walmart links into affiliate links
 declare global {
@@ -207,11 +207,11 @@ export default function PriceVolume() {
   const hiddenEbooks = hideEbooks
     ? allOffers.filter((o) => o.format === "ebook").length
     : 0;
-  const boxSets = allOffers.filter((o) => o.format === "set").length;
+  const boxSets = allOffers.filter(isCollection).length;
   const offers = allOffers.filter(
     (o) =>
       !(hideEbooks && o.format === "ebook") &&
-      !(!boxSetsShown && o.format === "set"),
+      !(!boxSetsShown && isCollection(o)),
   );
   const kinds = (allHistory?.kinds ?? []).filter(
     (k) => !hideEbooks || k.kind !== "ebook",

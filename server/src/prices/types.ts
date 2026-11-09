@@ -1,8 +1,11 @@
 // Shapes shared across the price checker.
 
-// "set": a box set or run of volumes holding this one (eBay), shown and
-// labelled but never counted as this volume's price
-export type Format = "print" | "ebook" | "set";
+// "set": a box set or run of volumes holding this one (eBay); "omnibus": one
+// book holding several, this one among them. Both shown and labelled, never
+// counted as this volume's price
+export type Format = "print" | "ebook" | "set" | "omnibus";
+export const isCollection = (offer: { format: string }) =>
+  offer.format === "set" || offer.format === "omnibus";
 // "marketplace" = a resale site (eBay sellers, Mercari, ...), mostly used
 type Condition = "new" | "used" | "marketplace";
 

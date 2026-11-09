@@ -5,7 +5,7 @@
 import { useState } from "react";
 import { ChevronRightIcon } from "../../components/icons/Icons";
 import { noteStoreClick } from "../../lib/support";
-import type { Offer } from "../../lib/types";
+import { isCollection, type Offer } from "../../lib/types";
 import { pricesStyles as styles } from "./styles";
 import { linkRel } from "./offerLabels";
 
@@ -22,15 +22,17 @@ const AWARDS = {
   lowest: { label: "Lowest overall", className: styles.awardLowest },
   newLow: { label: "Cheapest new", className: styles.awardNew },
   marketLow: { label: "Cheapest marketplace", className: styles.awardMarket },
-  // every box set gets it: one holds several volumes, never just this one
+  // every box set and omnibus gets one: it holds several volumes, never
+  // just this one
   boxSet: { label: "Box set", className: styles.awardSet },
+  omnibus: { label: "Omnibus", className: styles.awardSet },
 };
 
 // the cheapest copies you can buy now, which get the stamps; offers come
 // cheapest first, so each is the first match
 const awardsOf = (offers: Offer[]) => {
-  // a box set is listed, but never this volume's cheapest copy
-  const inStock = offers.filter((o) => o.inStock && o.format !== "set");
+  // a box set or omnibus is listed, but never this volume's cheapest copy
+  const inStock = offers.filter((o) => o.inStock && !isCollection(o));
   const lowest = inStock[0];
   const newLow = inStock.find(
     (o) => o.format === "print" && o.condition === "new",
@@ -55,8 +57,8 @@ export default function OfferList({
   // box sets holding this volume, then ebooks. The awards still use the true
   // cheapest-first order
   const listed = [
-    ...offers.filter((o) => o.format !== "ebook" && o.format !== "set"),
-    ...offers.filter((o) => o.format === "set"),
+    ...offers.filter((o) => o.format !== "ebook" && !isCollection(o)),
+    ...offers.filter(isCollection),
     ...offers.filter((o) => o.format === "ebook"),
   ];
   const shown = open ? listed : listed.slice(0, VISIBLE_OFFERS);
@@ -72,6 +74,7 @@ export default function OfferList({
           ...(o === newLow ? [AWARDS.newLow] : []),
           ...(o === marketLow ? [AWARDS.marketLow] : []),
           ...(o.format === "set" ? [AWARDS.boxSet] : []),
+          ...(o.format === "omnibus" ? [AWARDS.omnibus] : []),
         ];
 
   return (

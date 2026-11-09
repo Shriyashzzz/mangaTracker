@@ -253,3 +253,98 @@ test("a manga copy needn't say manga, unless the series' novels are in the resul
     ),
   ).toEqual([]);
 });
+
+// ---------- omnibuses ----------
+
+test("an omnibus holding this volume is an omnibus, not a box set", () => {
+  const listing = item({
+    title: "Attack on Titan Omnibus 12 (Vol. 33-34)",
+    price: usd("10.99"),
+  });
+  expect(formats([listing], "Attack on Titan, Vol. 34", "title")).toEqual([
+    "omnibus 1499",
+  ]);
+  expect(formats([listing], "Attack on Titan, Vol. 33", "isbn")).toEqual([
+    "omnibus 1499",
+  ]);
+  // one that doesn't hold it, or doesn't say which volumes it holds
+  expect(formats([listing], "Attack on Titan, Vol. 12", "title")).toEqual([]);
+  expect(
+    formats(
+      [item({ title: "Fushigi Yugi VIZBIG Edition Vol 6" })],
+      "Fushigi Yugi, Vol. 6",
+      "title",
+    ),
+  ).toEqual([]);
+  // a 3-in-1 is never a single volume
+  expect(
+    formats(
+      [item({ title: "One Piece 3-in-1 Edition Vol 1 (Vols 1-3) Manga" })],
+      "One Piece, Vol. 2",
+      "title",
+    ),
+  ).toEqual(["omnibus 1399"]);
+});
+
+test("on an omnibus's own page, its listings are the book itself", () => {
+  const page =
+    "One Piece, Vol. 1 (Romance Dawn / Buggy the Clown / Don't Get Fooled Again)";
+  expect(
+    formats(
+      [item({ title: "One Piece Omnibus Edition Vol 1 (Vols 1-3) East Blue" })],
+      page,
+      "isbn",
+    ),
+  ).toEqual(["print 1399"]);
+  expect(
+    formats(
+      [item({ title: "One Piece Omnibus Edition Vol 1 (Vols 1-3) Manga" })],
+      page,
+      "title",
+    ),
+  ).toEqual(["print 1399"]);
+  // a plain Vol. 1 from the title search isn't that book
+  expect(
+    formats([item({ title: "One Piece, Vol. 1 Manga" })], page, "title"),
+  ).toEqual([]);
+  expect(
+    formats(
+      [item({ title: "Fushigi Yugi VIZBIG Edition Vol 6" })],
+      "Fushigi yûgi (VIZBIG Edition), Vol. 6",
+      "isbn",
+    ),
+  ).toEqual(["print 1399"]);
+});
+
+test("a set of omnibuses is a box set", () => {
+  expect(
+    formats(
+      [
+        item({
+          title: "Gantz Omnibus Set Volume 1-3 Manga",
+          price: usd("150.00"),
+        }),
+      ],
+      "Gantz, Vol. 3",
+      "title",
+    ),
+  ).toEqual(["set 15400"]);
+});
+
+test("an omnibus sold under its own name is the omnibus page's book, and an omnibus elsewhere", () => {
+  const listing = item({ title: "One Piece: East Blue 1-2-3" });
+  expect(
+    formats(
+      [listing],
+      "One Piece, Vol. 1 (Romance Dawn / Buggy the Clown / Don't Get Fooled Again)",
+      "isbn",
+    ),
+  ).toEqual(["print 1399"]);
+  expect(
+    formats(
+      [item({ title: "One Piece: East Blue 1-2-3 Manga" })],
+      "One Piece, Vol. 2",
+      "title",
+    ),
+  ).toEqual(["omnibus 1399"]);
+});

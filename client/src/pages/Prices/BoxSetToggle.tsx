@@ -1,4 +1,5 @@
-// "Show box sets": under a volume's price list when any box set holds it.
+// "Show box sets and omnibuses": under a volume's price list when any holds
+// it.
 // On unless turned off; the choice is kept in this browser and, signed in,
 // on the account (Settings → Prices has the same switch)
 import { savePrefs, useBoxSetsShown } from "../../lib/prefs";
@@ -21,7 +22,7 @@ export default function BoxSetToggle({ count }: { count: number }) {
           )
         }
       />
-      Show box sets ({count})
+      Show box sets and omnibuses ({count})
     </label>
   );
 }

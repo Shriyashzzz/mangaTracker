@@ -20,6 +20,9 @@ import {
   seriesName,
   setHolds,
   setOfBooks,
+  isOmnibusBook,
+  isOmnibusListing,
+  severalBooks,
   setSize,
   seriesThenVolume,
   volumeOf,
@@ -30,7 +33,7 @@ import { plausiblePrice } from "../stores/retailers.js";
 // one volume's price on a listing naming the whole run
 const plausibleSetPrice = (cents: number, size: number) =>
   cents >= Math.max(200, size * 300) && cents <= 100_000;
-import type { Offer, Provider } from "../types.js";
+import { isCollection, type Offer, type Provider } from "../types.js";
 
 const TOKEN_URL = "https://api.ebay.com/identity/v1/oauth2/token";
 const SEARCH_URL = "https://api.ebay.com/buy/browse/v1/item_summary/search";
@@ -112,6 +115,8 @@ export function browseOffers(
   // novels among the results: the series has both formats, so a manga's
   // listing has to say it's manga
   const bothFormats = items.some((i) => saysNovel(i.title ?? ""));
+  // a page for an omnibus: omnibus listings are the book itself
+  const omnibusPage = isOmnibusBook(title);
   for (const item of items) {
     const name = item.title ?? "";
     const shippingValue = item.shippingOptions?.[0]?.shippingCost?.value;
@@ -122,8 +127,26 @@ export function browseOffers(
     if (PICK_ONE.test(name)) continue;
     // a title search finds the series' merchandise too
     if (by === "title" && NOT_A_BOOK.test(name)) continue;
-    const set = !isSingleVolume(name);
-    if (set) {
+    const omnibus = isOmnibusListing(name);
+    // this page's own omnibus: named as one, or found by its ISBN under any
+    // name ("One Piece: East Blue 1-2-3") unless it's plainly a box or a lot
+    const itself =
+      omnibusPage &&
+      (omnibus ||
+        (by === "isbn" && !isSingleVolume(name) && !severalBooks(name)));
+    // a box set or an omnibus holding this volume among others
+    const set = !itself && (omnibus || !isSingleVolume(name));
+    if (itself) {
+      if (
+        by === "title" &&
+        !(
+          namesSeries(name, title) &&
+          seriesThenVolume(name, title) &&
+          formatFits(name, title, bothFormats)
+        )
+      )
+        continue;
+    } else if (set) {
       if (!setHolds(name, title)) continue;
       if (
         by === "title" &&
@@ -136,6 +159,9 @@ export function browseOffers(
         continue;
     } else if (by === "isbn") {
       if (namesOtherVolume(name, title)) continue;
+    } else if (omnibusPage) {
+      // a plain volume's listing isn't the omnibus this page is for
+      continue;
     } else if (
       // a single copy from a title search must name this volume's number
       isNaN(volumeOf(title)) ||
@@ -157,7 +183,7 @@ export function browseOffers(
       continue;
     offers.push({
       store,
-      format: set ? "set" : "print",
+      format: set ? (omnibus ? "omnibus" : "set") : "print",
       condition: item.conditionId === "1000" ? "new" : "used",
       priceCents,
       currency,
@@ -260,13 +286,11 @@ export async function searchEbay(
     market,
     "title",
   );
-  const singles = isbnOffers.filter((o) => o.format !== "set");
+  const singles = isbnOffers.filter((o) => !isCollection(o));
   return cheapestOfEach([
-    ...(singles.length
-      ? singles
-      : titleOffers.filter((o) => o.format !== "set")),
-    ...isbnOffers.filter((o) => o.format === "set"),
-    ...titleOffers.filter((o) => o.format === "set"),
+    ...(singles.length ? singles : titleOffers.filter((o) => !isCollection(o))),
+    ...isbnOffers.filter(isCollection),
+    ...titleOffers.filter(isCollection),
   ]);
 }
 

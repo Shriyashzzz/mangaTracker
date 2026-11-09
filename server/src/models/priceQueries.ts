@@ -255,8 +255,8 @@ export async function getPriceHistory(
                ELSE 'marketplace' END AS kind,
           price_cents AS p, fetched_at AS at, store
         FROM price_samples
-        -- box sets are another product: not this volume's history
-        WHERE isbn13 = ${isbn13} AND in_stock AND format <> 'set'
+        -- box sets and omnibuses are other products: not this volume's history
+        WHERE isbn13 = ${isbn13} AND in_stock AND format NOT IN ('set', 'omnibus')
           AND id::text <> ALL(${ignored}::text[])
       )
       SELECT

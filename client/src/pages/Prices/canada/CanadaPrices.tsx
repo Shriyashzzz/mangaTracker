@@ -9,7 +9,7 @@ import { readLocal, useBoxSetsShown } from "../../../lib/prefs";
 import BoxSetToggle from "../BoxSetToggle";
 import { timeAgo } from "../../../lib/prices";
 import { noteStoreClick } from "../../../lib/support";
-import type { Offer } from "../../../lib/types";
+import { isCollection, type Offer } from "../../../lib/types";
 import { pricesStyles as styles } from "../styles";
 import CountrySwitch from "./CountrySwitch";
 import OfferList from "../OfferList";
@@ -70,11 +70,11 @@ export default function CanadaPrices({ isbn }: { isbn: string }) {
   const hiddenEbooks = hideEbooks
     ? allOffers.filter((o) => o.format === "ebook").length
     : 0;
-  const boxSets = allOffers.filter((o) => o.format === "set").length;
+  const boxSets = allOffers.filter(isCollection).length;
   const offers = allOffers.filter(
     (o) =>
       !(hideEbooks && o.format === "ebook") &&
-      !(!boxSetsShown && o.format === "set"),
+      !(!boxSetsShown && isCollection(o)),
   );
   const links = data?.links ?? [];
 

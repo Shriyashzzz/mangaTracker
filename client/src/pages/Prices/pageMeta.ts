@@ -6,7 +6,7 @@ import {
   volumePath,
 } from "../../lib/prices";
 import type { PageMeta } from "../../lib/seo";
-import type { Series, VolumePrices } from "../../lib/types";
+import { isCollection, type Series, type VolumePrices } from "../../lib/types";
 
 // what search engines and link previews see for the price pages
 
@@ -28,9 +28,9 @@ export function volumeMeta({
   // what the page is called; the address stays on book.title
   const name = heading ?? book.title;
   const path = volumePath(book.isbn13, book.title);
-  // box sets are listed, but they aren't this volume's price
+  // box sets and omnibuses are listed, but aren't this volume's price
   const prices = offers
-    .filter((o) => o.inStock && o.format !== "set")
+    .filter((o) => o.inStock && !isCollection(o))
     .map((o) => o.priceCents);
   const best = offers.find(
     (o) => o.condition === "new" && o.format === "print" && o.inStock,

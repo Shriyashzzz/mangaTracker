@@ -233,6 +233,10 @@ export type Offer = {
   affiliate: boolean;
   fetchedAt: string;
 };
+// a box set or an omnibus holding the volume among others: listed and
+// stamped, never counted as the volume's own price
+export const isCollection = (offer: { format: string }) =>
+  offer.format === "set" || offer.format === "omnibus";
 
 // one kind of copy's history: every in-stock price we've stored for it.
 // "marketplace" covers used copies too

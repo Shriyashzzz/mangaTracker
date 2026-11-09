@@ -177,7 +177,7 @@ export const seriesThenVolume = (listingTitle: string, bookTitle: string) => {
   if (isNaN(n) || !series) return false;
   const escaped = series.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
   return new RegExp(
-    `(^| )${escaped} (vol(ume)? |v |no |book )?0*${n}( |$)`,
+    `(^| )${escaped} ((omnibus|vizbig|\\d in 1|manga|comic|light novel|edition) )*(vol(ume)? |v |no |book )?0*${n}( |$)`,
   ).test(normalize(listingTitle.replace(/#/g, " ")));
 };
 
@@ -198,6 +198,21 @@ export const namesSeries = (listingTitle: string, bookTitle: string) => {
     .filter((w) => w.length > 1)
     .every((w) => listing.includes(w));
 };
+
+// one book holding several volumes, as a listing names it: an omnibus, a
+// "3-in-1", a VIZBIG edition, or volumes joined in its own name ("One Piece:
+// East Blue 1-2-3"). Not a set of books (a box, a lot, a bundle)
+const OMNIBUS =
+  /\b(omnibus|vizbig|\d\s*-?\s*in\s*-?\s*1)\b|(?<!\d)\d{1,3}-\d{1,3}-\d{1,3}(?![\d-])/i;
+const SEVERAL_BOOKS = /\b(box(ed)?\s*set|set|lot|bundle|collection)\b/i;
+export const severalBooks = (listingTitle: string) =>
+  SEVERAL_BOOKS.test(listingTitle);
+export const isOmnibusListing = (listingTitle: string) =>
+  OMNIBUS.test(listingTitle) && !SEVERAL_BOOKS.test(listingTitle);
+// a volume page that is itself such a book: its own listings are this book,
+// not a collection holding it
+export const isOmnibusBook = (bookTitle: string) =>
+  omnibusVolumes(bookTitle) !== null || OMNIBUS.test(bookTitle);
 
 // a box set, or a run of volumes sold together, that holds this volume: a
 // range that covers it ("Vols. 1-16", "1 to 16"), or a box or complete set

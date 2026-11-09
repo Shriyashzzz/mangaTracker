@@ -327,7 +327,7 @@ function PricesTab() {
             )
           }
         />
-        Show box sets that hold the volume
+        Show box sets and omnibuses that hold the volume
       </label>
       <fieldset className={styles.group}>
         <legend className={styles.legend}>Where you shop</legend>
