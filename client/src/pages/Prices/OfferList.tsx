@@ -22,6 +22,8 @@ const AWARDS = {
   lowest: { label: "Lowest overall", className: styles.awardLowest },
   newLow: { label: "Cheapest new", className: styles.awardNew },
   marketLow: { label: "Cheapest marketplace", className: styles.awardMarket },
+  // when a new copy costs no more, "cheapest" would oversell a used one
+  market: { label: "Marketplace", className: styles.awardMarket },
   // every box set and omnibus gets one: it holds several volumes, never
   // just this one
   boxSet: { label: "Box set", className: styles.awardSet },
@@ -72,7 +74,13 @@ export default function OfferList({
       ? [AWARDS.lowest]
       : [
           ...(o === newLow ? [AWARDS.newLow] : []),
-          ...(o === marketLow ? [AWARDS.marketLow] : []),
+          ...(o === marketLow
+            ? [
+                newLow && newLow.priceCents <= o.priceCents
+                  ? AWARDS.market
+                  : AWARDS.marketLow,
+              ]
+            : []),
           ...(o.format === "set" ? [AWARDS.boxSet] : []),
           ...(o.format === "omnibus" ? [AWARDS.omnibus] : []),
         ];
