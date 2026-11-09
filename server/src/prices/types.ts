@@ -1,6 +1,8 @@
 // Shapes shared across the price checker.
 
-export type Format = "print" | "ebook";
+// "set": a box set or run of volumes holding this one (eBay), shown and
+// labelled but never counted as this volume's price
+export type Format = "print" | "ebook" | "set";
 // "marketplace" = a resale site (eBay sellers, Mercari, ...), mostly used
 type Condition = "new" | "used" | "marketplace";
 

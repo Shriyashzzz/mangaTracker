@@ -111,7 +111,7 @@ export const sameVolume = (a: string, b: string) =>
 
 // box sets, bundles and "vols 1-3" never count as a single volume
 const MULTI_VOLUME =
-  /\b(box(ed)?\s*set|set of|collection|bundle|lot of|omnibus|\d+\s*[-–~]\s*\d+|\d+\s*(?:and|&)\s*\d+|vol(ume)?s\b)/i;
+  /\b(box(ed)?\s*set|set of|collection|bundle|lot|omnibus|\d+\s*[-–~]\s*\d+|\d+\s*(?:and|&)\s*\d+|vol(ume)?s\b)/i;
 export const isSingleVolume = (listingTitle: string) =>
   !MULTI_VOLUME.test(listingTitle);
 
@@ -147,6 +147,82 @@ export const listingMatches = (listingTitle: string, bookTitle: string) => {
   const wanted = volumeOf(bookTitle);
   if (isNaN(wanted)) return true;
   return Number(statedVolume(listingTitle)) === wanted;
+};
+
+// for a search by title (eBay, when the ISBN isn't enough), where the other
+// format turns up easily, so each must say what it is: a light novel's
+// listing that it's a novel, a manga's that it's manga (or a comic). "Light
+// nov…" cut short still counts as a novel
+const CUT_NOVEL = /\blight\s*nov/i;
+export const formatFits = (listingTitle: string, bookTitle: string) => {
+  if (otherFormat(listingTitle, bookTitle)) return false;
+  if (isNovelBook(bookTitle))
+    return (
+      new RegExp(SAYS_NOVEL.source, "i").test(listingTitle) ||
+      CUT_NOVEL.test(listingTitle)
+    );
+  return SAYS_MANGA.test(listingTitle) && !CUT_NOVEL.test(listingTitle);
+};
+
+// the series name right before this volume's number ("Overlord, Vol. 16",
+// "Overlord #16"), so other books sharing a word ("Primordial Overlord: A
+// Cultivation Saga, Volume 16") don't pass
+export const seriesThenVolume = (listingTitle: string, bookTitle: string) => {
+  const n = volumeOf(bookTitle);
+  const series = seriesWords(bookTitle);
+  if (isNaN(n) || !series) return false;
+  const escaped = series.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  return new RegExp(
+    `(^| )${escaped} (vol(ume)? |v |no |book )?0*${n}( |$)`,
+  ).test(normalize(listingTitle.replace(/#/g, " ")));
+};
+
+// merchandise that shares a series' name: figures, cards, posters and such
+export const NOT_A_BOOK =
+  /\b(figures?|figurines?|statues?|trading\s*cards?|cards?|tcg|foil|union\s*arena|weiss|poster|plush|keychains?|key\s*chain|stickers?|acrylic|stand(ee)?|funko|nendoroid|cosplay|costume|shirt|hoodie|dvd|blu-?ray|vinyl|puzzle|pins?|badge|wall\s*scroll|mug|lamp|games?|toys?|anime|dub(bed)?|sub(bed|titled)?|seasons?|episodes?|series\s*\d|ost|soundtrack|cd|discs?|ccg|tin|charms?|prints?|art\s*print|model\s*kit|gashapon)\b/i;
+// a set from a title search must say it's books, so "Box Set" means volumes
+const SAYS_BOOKS =
+  /\b(manga|novels?|books?|vol(ume)?s?|paperbacks?|hardcovers?|english)\b/i;
+export const setOfBooks = (listingTitle: string) =>
+  SAYS_BOOKS.test(listingTitle) && !NOT_A_BOOK.test(listingTitle);
+
+// the series' words all appear in a listing's title
+export const namesSeries = (listingTitle: string, bookTitle: string) => {
+  const listing = normalize(listingTitle);
+  return seriesWords(bookTitle)
+    .split(" ")
+    .filter((w) => w.length > 1)
+    .every((w) => listing.includes(w));
+};
+
+// a box set, or a run of volumes sold together, that holds this volume: a
+// range that covers it ("Vols. 1-16", "1 to 16"), or a box or complete set
+// with no range. A mixed lot ("lot of 5") with no range isn't one
+const RANGE = /(?<!\d)(\d+)\s*(?:-|–|~|to|thru)\s*(\d+)(?!\d)/gi;
+const BOX_SET = /\b(box(ed)?\s*set|complete\s*(set|series|collection))\b/i;
+// a listing that sells one volume of many ("Vol 1-26, pick your volume",
+// "price for 1 volume only"): its range isn't what's for sale
+const PICK_ONE =
+  /\b(pick|choose|select|variations?|you\s*pick|each|individual(ly)?|price\s*for\s*(1|one)|single\s*volumes?|singles)\b/i;
+const rangesOf = (listingTitle: string) =>
+  [...listingTitle.matchAll(RANGE)]
+    .map((m) => [Number(m[1]), Number(m[2])] as const)
+    .filter(([from, to]) => from >= 0 && to > from && to <= 200);
+// how many volumes a set's ranges hold ("Vol. 7-11, Vol. 12-29": 23), 0 when
+// it names none
+export const setSize = (listingTitle: string) =>
+  rangesOf(listingTitle).reduce((n, [from, to]) => n + to - from + 1, 0);
+export const setHolds = (listingTitle: string, bookTitle: string) => {
+  if (PICK_ONE.test(listingTitle)) return false;
+  const wanted = volumeOf(bookTitle);
+  // ISBN-like runs ("978-1-9753...") aren't ranges: only small numbers count
+  const ranges = rangesOf(listingTitle);
+  if (ranges.length)
+    return (
+      !isNaN(wanted) &&
+      ranges.some(([from, to]) => wanted >= from && wanted <= to)
+    );
+  return BOX_SET.test(listingTitle);
 };
 
 // "Frieren: Beyond Journey's End" -> "frieren-beyond-journey-s-end"

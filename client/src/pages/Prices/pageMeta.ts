@@ -28,7 +28,10 @@ export function volumeMeta({
   // what the page is called; the address stays on book.title
   const name = heading ?? book.title;
   const path = volumePath(book.isbn13, book.title);
-  const prices = offers.filter((o) => o.inStock).map((o) => o.priceCents);
+  // box sets are listed, but they aren't this volume's price
+  const prices = offers
+    .filter((o) => o.inStock && o.format !== "set")
+    .map((o) => o.priceCents);
   const best = offers.find(
     (o) => o.condition === "new" && o.format === "print" && o.inStock,
   );

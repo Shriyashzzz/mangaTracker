@@ -1007,7 +1007,8 @@ export async function getVolumeSummary(isbn13: string) {
     priceQueries.getNewPriceMedian(isbn13),
   ]);
   const offers = dropUnlikelyNew(stored, usual);
-  const inStock = offers.filter((o) => o.inStock);
+  // box sets are listed on the page, but they aren't this volume's price
+  const inStock = offers.filter((o) => o.inStock && o.format !== "set");
   const bestNew = inStock.find(
     (o) => o.condition === "new" && o.format === "print",
   );

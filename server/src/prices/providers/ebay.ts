@@ -8,10 +8,26 @@ import { cheapestOfEach, toCents } from "../offerHelpers.js";
 import { ebayAffiliateUrl, ebayCampaignId } from "../stores/affiliates.js";
 import {
   JAPANESE_EDITION,
+  formatFits,
+  isNovelBook,
   isSingleVolume,
+  listingMatches,
   namesOtherVolume,
+  NOT_A_BOOK,
+  namesSeries,
+  seriesName,
+  setHolds,
+  setOfBooks,
+  setSize,
+  seriesThenVolume,
+  volumeOf,
 } from "../stores/match.js";
 import { plausiblePrice } from "../stores/retailers.js";
+
+// a box set can cost what many volumes do, but not under $3 a volume: that's
+// one volume's price on a listing naming the whole run
+const plausibleSetPrice = (cents: number, size: number) =>
+  cents >= Math.max(200, size * 300) && cents <= 100_000;
 import type { Offer, Provider } from "../types.js";
 
 const TOKEN_URL = "https://api.ebay.com/identity/v1/oauth2/token";
@@ -72,15 +88,22 @@ const MARKETS = {
 } as const;
 export type EbayMarket = keyof typeof MARKETS;
 
-// The same rules as eBay through SerpApi: the search is by ISBN, so only what
-// the title says is something else is dropped (sets, other volumes, Japanese
-// editions, imports), plus prices too odd to be one paperback. The price
-// includes shipping; a listing with no shipping price (calculated at checkout,
-// or pickup only) is left out, since its real cost isn't known
+// How a search was made decides how much a title must prove:
+// - "isbn": the ISBN as a keyword, so the listing holds it. Only a title
+//   saying it's something else is dropped (another volume, a Japanese
+//   edition, an import)
+// - "title": the series and volume number, for listings nobody tagged with
+//   the ISBN. The series words and the volume number must be there, and the
+//   format too: a light novel's listing says it's a novel, a manga's doesn't
+// Either way, a box set (or a run of volumes) holding this volume is kept as
+// format "set": shown and labelled, never counted as this volume's price.
+// Prices include shipping; a listing with no shipping price (calculated at
+// checkout, or pickup only) is left out, since its real cost isn't known
 export function browseOffers(
   items: ItemSummary[],
   title: string,
   market: EbayMarket,
+  by: "isbn" | "title" = "isbn",
 ): Offer[] {
   const { currency, store } = MARKETS[market];
   const offers: Offer[] = [];
@@ -89,14 +112,45 @@ export function browseOffers(
     const shippingValue = item.shippingOptions?.[0]?.shippingCost?.value;
     if (!item.price || item.price.currency !== currency) continue;
     if (shippingValue === undefined || !item.itemWebUrl) continue;
-    if (!isSingleVolume(name) || namesOtherVolume(name, title)) continue;
     if (JAPANESE_EDITION.test(name) || /\bimport\b/i.test(name)) continue;
+    // a title search finds the series' merchandise too
+    if (by === "title" && NOT_A_BOOK.test(name)) continue;
+    const set = !isSingleVolume(name);
+    if (set) {
+      if (!setHolds(name, title)) continue;
+      if (
+        by === "title" &&
+        !(
+          namesSeries(name, title) &&
+          formatFits(name, title) &&
+          setOfBooks(name)
+        )
+      )
+        continue;
+    } else if (by === "isbn") {
+      if (namesOtherVolume(name, title)) continue;
+    } else if (
+      // a single copy from a title search must name this volume's number
+      isNaN(volumeOf(title)) ||
+      !(
+        listingMatches(name, title) &&
+        seriesThenVolume(name, title) &&
+        formatFits(name, title)
+      )
+    ) {
+      continue;
+    }
     const priceCents =
       toCents(Number(item.price.value)) + toCents(Number(shippingValue));
-    if (!plausiblePrice(priceCents)) continue;
+    if (
+      set
+        ? !plausibleSetPrice(priceCents, setSize(name))
+        : !plausiblePrice(priceCents)
+    )
+      continue;
     offers.push({
       store,
-      format: "print",
+      format: set ? "set" : "print",
       condition: item.conditionId === "1000" ? "new" : "used",
       priceCents,
       currency,
@@ -113,16 +167,29 @@ export function browseOffers(
   return cheapestOfEach(offers);
 }
 
-// fixed-price listings that ship to the market's country, cheapest first
-export async function searchEbay(
-  isbn13: string,
-  title: string,
+// what a title search asks for: the series, "light novel" for a novel, and
+// the volume number ("Overlord light novel vol 16"), or "box set" for sets.
+// null when the volume has no number to search by
+export function titleQueries(title: string) {
+  const series = seriesName(title).replace(/\s*light novel$/i, "");
+  const kind = isNovelBook(title) ? " light novel" : "";
+  const n = volumeOf(title);
+  return {
+    volume: isNaN(n) ? null : `${series}${kind} vol ${n}`,
+    sets: `${series}${kind} box set`,
+  };
+}
+
+// one search: fixed-price listings that ship to the market's country,
+// cheapest first
+async function browse(
+  q: string,
   market: EbayMarket,
   signal: AbortSignal,
-): Promise<Offer[]> {
+): Promise<ItemSummary[]> {
   const { id, country } = MARKETS[market];
   const params = new URLSearchParams({
-    gtin: isbn13,
+    q,
     filter: `buyingOptions:{FIXED_PRICE},deliveryCountry:${country}${
       market === "US" ? ",itemLocationCountry:US" : ""
     }`,
@@ -146,7 +213,45 @@ export async function searchEbay(
   const { itemSummaries = [] } = (await res.json()) as {
     itemSummaries?: ItemSummary[];
   };
-  return browseOffers(itemSummaries, title, market);
+  return itemSummaries;
+}
+
+// The ISBN as a keyword finds more than eBay's own ISBN (GTIN) filter, which
+// only matches listings tagged with it. Many aren't, so a title search runs
+// alongside: its single copies count only when the ISBN found none, while
+// box sets holding this volume are taken from every search. Free, so three
+// searches at once cost nothing; a failed title search leaves the ISBN's
+export async function searchEbay(
+  isbn13: string,
+  title: string,
+  market: EbayMarket,
+  signal: AbortSignal,
+): Promise<Offer[]> {
+  const queries = titleQueries(title);
+  const [byIsbn, byTitle, sets] = await Promise.allSettled([
+    browse(isbn13, market, signal),
+    queries.volume ? browse(queries.volume, market, signal) : [],
+    browse(queries.sets, market, signal),
+  ]);
+  // the ISBN search is the one that must answer
+  if (byIsbn.status === "rejected") throw byIsbn.reason;
+  const found = (r: PromiseSettledResult<ItemSummary[]>) =>
+    r.status === "fulfilled" ? r.value : [];
+  const isbnOffers = browseOffers(byIsbn.value, title, market, "isbn");
+  const titleOffers = browseOffers(
+    [...found(byTitle), ...found(sets)],
+    title,
+    market,
+    "title",
+  );
+  const singles = isbnOffers.filter((o) => o.format !== "set");
+  return cheapestOfEach([
+    ...(singles.length
+      ? singles
+      : titleOffers.filter((o) => o.format !== "set")),
+    ...isbnOffers.filter((o) => o.format === "set"),
+    ...titleOffers.filter((o) => o.format === "set"),
+  ]);
 }
 
 const ebay: Provider = {

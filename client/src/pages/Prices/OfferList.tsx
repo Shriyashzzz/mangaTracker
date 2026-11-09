@@ -27,7 +27,8 @@ const AWARDS = {
 // the cheapest copies you can buy now, which get the stamps; offers come
 // cheapest first, so each is the first match
 const awardsOf = (offers: Offer[]) => {
-  const inStock = offers.filter((o) => o.inStock);
+  // a box set is listed, but never this volume's cheapest copy
+  const inStock = offers.filter((o) => o.inStock && o.format !== "set");
   const lowest = inStock[0];
   const newLow = inStock.find(
     (o) => o.format === "print" && o.condition === "new",
@@ -48,10 +49,12 @@ export default function OfferList({
   tourTarget?: string;
 }) {
   const [open, setOpen] = useState(false);
-  // people come here for a physical copy, so ebooks go under the print ones.
-  // The awards still use the true cheapest-first order
+  // people come here for a physical copy, so single copies come first, then
+  // box sets holding this volume, then ebooks. The awards still use the true
+  // cheapest-first order
   const listed = [
-    ...offers.filter((o) => o.format !== "ebook"),
+    ...offers.filter((o) => o.format !== "ebook" && o.format !== "set"),
+    ...offers.filter((o) => o.format === "set"),
     ...offers.filter((o) => o.format === "ebook"),
   ];
   const shown = open ? listed : listed.slice(0, VISIBLE_OFFERS);
@@ -71,11 +74,13 @@ export default function OfferList({
   return (
     <ul className={styles.offers} data-tour={tourTarget}>
       {shown.map((o) => {
-        // an ebook is an ebook, not a "new" copy
+        // an ebook is an ebook, not a "new" copy; a box set says so first
         const condition =
           o.format === "ebook"
             ? "Ebook"
-            : (CONDITION[o.condition] ?? o.condition);
+            : o.format === "set"
+              ? `Box set · ${CONDITION[o.condition] ?? o.condition}`
+              : (CONDITION[o.condition] ?? o.condition);
         const row = (
           <>
             <span className={styles.offerStore}>
