@@ -50,6 +50,21 @@ const isGoogleLink = (url: string | null) => {
 // Google Shopping store names for the affiliate stores themselves. Exact
 // names only: "Kinokuniya Bookshop" isn't Bookshop.org, and "eBay - seller"
 // is eBay itself
+// stores Google Shopping names its own way, as the store links name them, so
+// one store is one row ("Barnes and Noble" and "Barnes & Noble" alike)
+const STORE_NAMES: Record<string, string> = {
+  "books a million": "Books-A-Million",
+  "barnes and noble": "Barnes & Noble",
+  "barnes & noble": "Barnes & Noble",
+};
+export const storeName = (store: string) =>
+  STORE_NAMES[
+    store
+      .toLowerCase()
+      .replace(/[^a-z0-9&]+/g, " ")
+      .trim()
+  ] ?? store;
+
 export const EBAY = /^ebay( - .+)?$/i;
 export const AMAZON = /^amazon(\.com)?$/i;
 const BOOKSHOP = /^bookshop(\.org)?$/i;

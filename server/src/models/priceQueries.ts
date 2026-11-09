@@ -14,7 +14,12 @@ import {
   lowestBelievableNew,
   unlikelyNewTest,
 } from "../prices/stores/retailers.js";
-import { AMAZON, EBAY, preferDirectRows } from "../prices/stores/storeLinks.js";
+import {
+  AMAZON,
+  EBAY,
+  preferDirectRows,
+  storeName,
+} from "../prices/stores/storeLinks.js";
 import type { CatalogBook, Offer } from "../prices/types.js";
 
 export type { Book };
@@ -138,11 +143,18 @@ const currentOf = (
     row.source === "shopping" &&
     ((looked.has("ebay") && EBAY.test(row.store)) ||
       (looked.has("amazon") && AMAZON.test(row.store)));
-  for (const row of preferDirectRows(rows)) {
-    if (ownWord(row)) continue;
+  for (const found of preferDirectRows(rows)) {
+    if (ownWord(found)) continue;
+    // one store, one name: Google Shopping's spellings as the store links'
+    const row = { ...found, store: storeName(found.store) };
     const key = `${row.store}|${row.format}|${row.condition}`;
     const kept = latest.get(key);
-    if (!kept || new Date(row.fetchedAt) > new Date(kept.fetchedAt))
+    // the newest copy of each; from the same look, the cheaper one
+    const newer = kept && new Date(row.fetchedAt) > new Date(kept.fetchedAt);
+    const sameLook =
+      kept &&
+      new Date(row.fetchedAt).getTime() === new Date(kept.fetchedAt).getTime();
+    if (!kept || newer || (sameLook && row.priceCents < kept.priceCents))
       latest.set(key, row);
   }
   return [...latest.values()].sort((a, b) => a.priceCents - b.priceCents);

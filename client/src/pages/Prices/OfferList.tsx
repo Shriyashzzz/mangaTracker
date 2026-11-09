@@ -11,19 +11,6 @@ import { linkRel } from "./offerLabels";
 
 const VISIBLE_OFFERS = 5;
 
-// stores Google Shopping names its own way, shown as the store links name them
-const STORE_NAMES: Record<string, string> = {
-  "books a million": "Books-A-Million",
-  "barnes and noble": "Barnes & Noble",
-};
-const storeName = (store: string) =>
-  STORE_NAMES[
-    store
-      .toLowerCase()
-      .replace(/[^a-z0-9&]+/g, " ")
-      .trim()
-  ] ?? store;
-
 const CONDITION: Record<string, string> = {
   new: "New",
   used: "Used",
@@ -93,7 +80,7 @@ export default function OfferList({
           <>
             <span className={styles.offerStore}>
               <span className={styles.offerName}>
-                {storeName(o.store)}
+                {o.store}
                 {stampsOf(o).map(({ label, className }) => (
                   <span key={label} className={className}>
                     {label}
@@ -124,7 +111,7 @@ export default function OfferList({
                 rel={linkRel(o)}
                 onClick={noteStoreClick}
                 onAuxClick={noteStoreClick}
-                aria-label={`${storeName(o.store)}, ${formatPrice(o.priceCents)}, ${condition}. Opens the store in a new tab`}
+                aria-label={`${o.store}, ${formatPrice(o.priceCents)}, ${condition}. Opens the store in a new tab`}
               >
                 {row}
                 <span className={styles.offerGo} aria-hidden>

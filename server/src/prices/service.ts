@@ -39,6 +39,7 @@ import {
   isAffiliateUrl,
   preferDirectRows,
   storeLinks,
+  storeName,
 } from "./stores/storeLinks.js";
 import { editionCoverId } from "./sources/covers.js";
 import { dropUnlikelyNew, unlikelyNewTest } from "./stores/retailers.js";
@@ -232,8 +233,16 @@ export async function fetchProviders(
   // judged against this volume's usual new price and against every price
   // that will be current alongside them (the other groups' too), so an
   // eBay-only check still drops a "new" copy far above the big stores'
+  // stores saved under one name each, as they're shown
   const fresh = [...groups].map(
-    ([group, offers]) => [group, preferDirectRows(offers)] as const,
+    ([group, offers]) =>
+      [
+        group,
+        preferDirectRows(offers).map((o) => ({
+          ...o,
+          store: storeName(o.store),
+        })),
+      ] as const,
   );
   const alongside = [
     ...fresh.flatMap(([, offers]) => offers),

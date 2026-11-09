@@ -345,3 +345,21 @@ test("an out-of-stock print copy doesn't stop Google Shopping looking", async ()
   ]);
   expect(asked).toBe(true);
 });
+
+test("one store spelled two ways is one row, named as the store links name it", async () => {
+  await priceQueries.saveCheck(
+    ISBN,
+    ["serpapi"],
+    new Map([
+      [
+        "shopping",
+        [
+          offer({ store: "Barnes and Noble", priceCents: 1100 }),
+          offer({ store: "Barnes & Noble", priceCents: 1050 }),
+        ],
+      ],
+    ]),
+  );
+  // and of the two copies from the same look, the cheaper
+  expect(await prices()).toEqual(["Barnes & Noble new 1050"]);
+});
