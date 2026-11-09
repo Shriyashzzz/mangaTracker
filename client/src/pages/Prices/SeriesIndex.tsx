@@ -61,10 +61,14 @@ export default function SeriesIndex() {
         );
   }, [all, sort, genre]);
 
+  // each page of the full list is its own page to search engines (its own
+  // address and title), so the series on it get found
+  const pageNumber = Math.max(Math.floor(Number(params.get("page")) || 1), 1);
+  const ofPage = pageNumber > 1 ? ` (page ${pageNumber})` : "";
   usePageMeta({
-    title: genre ? `${genre} manga series` : "All manga series",
+    title: `${genre ? `${genre} manga series` : "All manga series"}${ofPage}`,
     description: `Browse ${all?.length || "every"} manga series and compare what US stores charge for each volume${genre ? `, filtered to ${genre}` : ""}.`,
-    path: "/series",
+    path: pageNumber > 1 ? `/series?page=${pageNumber}` : "/series",
     // a filtered list is the same page; only the full list gets indexed
     noindex: Boolean(genre || params.get("sort")),
     jsonLd: all?.length
@@ -116,6 +120,14 @@ export default function SeriesIndex() {
       pageSize={PAGE_SIZE}
       page={page}
       onChange={(index) => goToPage(index)}
+      // real links, so search engines reach every series, not just page 1's
+      hrefFor={(index) => {
+        const next = new URLSearchParams(params);
+        if (index) next.set("page", String(index + 1));
+        else next.delete("page");
+        const query = next.toString();
+        return query ? `/series?${query}` : "/series";
+      }}
       label="Series pages"
       labelFor={(start, end) =>
         sort === "az"

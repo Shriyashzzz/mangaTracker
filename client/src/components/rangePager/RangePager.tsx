@@ -3,7 +3,7 @@
 // turns a page's first and last item into the chip text. Renders nothing
 // when everything fits on one page. On phones the chips scroll sideways
 // instead of wrapping into a wall.
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, type ReactNode } from "react";
 import clsx from "clsx";
 import { ChevronLeftIcon, ChevronRightIcon } from "../icons/Icons";
 
@@ -15,6 +15,10 @@ type Props = {
   onChange: (page: number) => void;
   labelFor?: (start: number, end: number) => string;
   label?: string;
+  // each page's own address: the chips and arrows become real links (a
+  // search engine can follow them to every page), a plain click still
+  // changes page in place
+  hrefFor?: (page: number) => string;
 };
 
 // shared by the chips and the arrow buttons
@@ -25,6 +29,55 @@ const stepButton = clsx(
   "grid w-[34px] upto-720:w-11 place-items-center p-0 hover:enabled:border-line hover:enabled:text-ink disabled:cursor-default disabled:opacity-40 [&_svg]:size-4",
 );
 
+// one pager control: a link when pages have addresses, else a plain button.
+// A click with a modifier key (new tab) is left to the browser
+function PageControl({
+  to,
+  go,
+  hrefFor,
+  disabled,
+  className,
+  children,
+  ...rest
+}: {
+  to: number;
+  go: (page: number) => void;
+  hrefFor?: (page: number) => string;
+  disabled?: boolean;
+  className: string;
+  children: ReactNode;
+  "aria-label"?: string;
+  "aria-current"?: "page";
+}) {
+  if (hrefFor && !disabled)
+    return (
+      <a
+        href={hrefFor(to)}
+        className={className}
+        onClick={(e) => {
+          if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey || e.button)
+            return;
+          e.preventDefault();
+          go(to);
+        }}
+        {...rest}
+      >
+        {children}
+      </a>
+    );
+  return (
+    <button
+      type="button"
+      className={className}
+      onClick={() => go(to)}
+      disabled={disabled}
+      {...rest}
+    >
+      {children}
+    </button>
+  );
+}
+
 export default function RangePager({
   total,
   pageSize = 30,
@@ -32,6 +85,7 @@ export default function RangePager({
   onChange,
   labelFor = (start, end) => `${start}–${end}`,
   label = "Pages",
+  hrefFor,
 }: Props) {
   const chipsRef = useRef<HTMLUListElement>(null);
   const pages = Math.ceil(total / pageSize);
@@ -57,15 +111,16 @@ export default function RangePager({
       className="mt-1 mb-5 flex min-w-0 items-center gap-2"
       aria-label={label}
     >
-      <button
-        type="button"
+      <PageControl
+        go={go}
+        hrefFor={hrefFor}
+        to={page - 1}
         className={stepButton}
-        onClick={() => go(page - 1)}
         disabled={page === 0}
         aria-label="Previous page"
       >
         <ChevronLeftIcon />
-      </button>
+      </PageControl>
       <ul
         className="flex min-w-0 gap-[0.4rem] overflow-x-auto p-0.5 [scrollbar-color:var(--line-soft)_transparent] [scrollbar-width:thin]"
         ref={chipsRef}
@@ -76,31 +131,33 @@ export default function RangePager({
           const current = p === page;
           return (
             <li key={p}>
-              <button
-                type="button"
+              <PageControl
+                go={go}
+                hrefFor={hrefFor}
+                to={p}
                 className={clsx(
                   pagerButton,
-                  "px-3 hover:border-line hover:text-ink",
+                  "inline-flex items-center px-3 hover:border-line hover:text-ink",
                   current && "border-line bg-ink text-paper hover:text-paper",
                 )}
                 aria-current={current ? "page" : undefined}
-                onClick={() => go(p)}
               >
                 {labelFor(start, end)}
-              </button>
+              </PageControl>
             </li>
           );
         })}
       </ul>
-      <button
-        type="button"
+      <PageControl
+        go={go}
+        hrefFor={hrefFor}
+        to={page + 1}
         className={stepButton}
-        onClick={() => go(page + 1)}
         disabled={page === pages - 1}
         aria-label="Next page"
       >
         <ChevronRightIcon />
-      </button>
+      </PageControl>
     </nav>
   );
 }
