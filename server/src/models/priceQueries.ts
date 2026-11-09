@@ -14,7 +14,12 @@ import {
   lowestBelievableNew,
   unlikelyNewTest,
 } from "../prices/stores/retailers.js";
-import { AMAZON, EBAY, preferDirectRows } from "../prices/stores/storeLinks.js";
+import {
+  AMAZON,
+  EBAY,
+  preferDirectRows,
+  storeName,
+} from "../prices/stores/storeLinks.js";
 import type { CatalogBook, Offer } from "../prices/types.js";
 
 export type { Book };
@@ -138,11 +143,18 @@ const currentOf = (
     row.source === "shopping" &&
     ((looked.has("ebay") && EBAY.test(row.store)) ||
       (looked.has("amazon") && AMAZON.test(row.store)));
-  for (const row of preferDirectRows(rows)) {
-    if (ownWord(row)) continue;
+  for (const found of preferDirectRows(rows)) {
+    if (ownWord(found)) continue;
+    // one store, one name: Google Shopping's spellings as the store links'
+    const row = { ...found, store: storeName(found.store) };
     const key = `${row.store}|${row.format}|${row.condition}`;
     const kept = latest.get(key);
-    if (!kept || new Date(row.fetchedAt) > new Date(kept.fetchedAt))
+    // the newest copy of each; from the same look, the cheaper one
+    const newer = kept && new Date(row.fetchedAt) > new Date(kept.fetchedAt);
+    const sameLook =
+      kept &&
+      new Date(row.fetchedAt).getTime() === new Date(kept.fetchedAt).getTime();
+    if (!kept || newer || (sameLook && row.priceCents < kept.priceCents))
       latest.set(key, row);
   }
   return [...latest.values()].sort((a, b) => a.priceCents - b.priceCents);
@@ -243,7 +255,9 @@ export async function getPriceHistory(
                ELSE 'marketplace' END AS kind,
           price_cents AS p, fetched_at AS at, store
         FROM price_samples
-        WHERE isbn13 = ${isbn13} AND in_stock AND id::text <> ALL(${ignored}::text[])
+        -- box sets and omnibuses are other products: not this volume's history
+        WHERE isbn13 = ${isbn13} AND in_stock AND format NOT IN ('set', 'omnibus')
+          AND id::text <> ALL(${ignored}::text[])
       )
       SELECT
         kind,
@@ -294,9 +308,11 @@ export async function getKnownPrices(
   const [rows, looked, checks, usual] = await Promise.all([
     currentRows(isbns),
     lookedAt(isbns),
-    prisma.priceCheck.findMany({
+    // "checked": the oldest of each volume's source checks, as on its page
+    prisma.priceSourceCheck.groupBy({
+      by: ["isbn13"],
       where: { isbn13: { in: isbns } },
-      select: { isbn13: true, checkedAt: true },
+      _min: { checkedAt: true },
     }),
     prisma.$queryRaw<{ isbn13: string; median: number }[]>`
       SELECT isbn13,
@@ -308,7 +324,11 @@ export async function getKnownPrices(
     `,
   ]);
   const usualOf = new Map(usual.map((u) => [u.isbn13.trim(), u.median]));
-  const checkedAt = new Map(checks.map((c) => [c.isbn13.trim(), c.checkedAt]));
+  const checkedAt = new Map(
+    checks.flatMap((c) =>
+      c._min.checkedAt ? [[c.isbn13.trim(), c._min.checkedAt] as const] : [],
+    ),
+  );
   const known = new Map<string, { priceCents: number; checkedAt: Date }>();
   for (const [isbn, group] of groupBy(rows, (row) => row.isbn13.trim())) {
     // checks saved before a rule changed still get held to it
@@ -361,9 +381,14 @@ async function queryRecentBestPrices(limit: number): Promise<RecentPrice[]> {
       GROUP BY isbn13, fetched_at
     ),
     -- each volume's cheapest new print copy among its prices now (each
-    -- source group's last check), dated by the newest of those checks
+    -- source group's last check)
     latest AS (
-      SELECT ps.isbn13, MAX(ps.fetched_at) AS fetched_at, MIN(ps.price_cents) AS p
+      -- dated by the oldest of its source checks, as its page says "checked",
+      -- so eBay looking again every few days doesn't move it to the top
+      SELECT ps.isbn13,
+             (SELECT MIN(s2.checked_at) FROM price_source_checks s2
+               WHERE s2.isbn13 = ps.isbn13) AS fetched_at,
+             MIN(ps.price_cents) AS p
       FROM price_source_checks sc
       JOIN price_samples ps
         ON ps.isbn13 = sc.isbn13 AND ps.source = sc.source
@@ -396,10 +421,17 @@ async function queryRecentBestPrices(limit: number): Promise<RecentPrice[]> {
 
 // takes one call from this month's allowance; false once it's used up.
 // A single statement, so two requests at once can't both take the last one
-export async function claimApiCall(provider: string, limit: number) {
+// `month` (YYYY-MM-01): the allowance's own month, when it doesn't follow the
+// database's clock (eBay's days run on Pacific time). A limit of 0 allows none
+export async function claimApiCall(
+  provider: string,
+  limit: number,
+  month?: string,
+) {
   const changed = await prisma.$executeRaw`
     INSERT INTO api_usage (provider, month, calls)
-    VALUES (${provider}, date_trunc('month', now())::date, 1)
+    SELECT ${provider}, COALESCE(${month ?? null}::date, date_trunc('month', now())::date), 1
+    WHERE ${limit} > 0
     ON CONFLICT (provider, month) DO UPDATE
       SET calls = api_usage.calls + 1
       WHERE api_usage.calls < ${limit}
@@ -409,11 +441,16 @@ export async function claimApiCall(provider: string, limit: number) {
 
 // whether any of these providers still has searches this month, without
 // claiming one
-export async function anyCallsLeft(providers: string[], limit: number) {
-  if (!providers.length) return false;
+export async function anyCallsLeft(
+  providers: string[],
+  limit: number,
+  month?: string,
+) {
+  if (!providers.length || limit <= 0) return false;
   const used = await prisma.$queryRaw<{ provider: string; calls: number }[]>`
     SELECT provider, calls FROM api_usage
-    WHERE month = date_trunc('month', now())::date AND provider = ANY(${providers})
+    WHERE month = COALESCE(${month ?? null}::date, date_trunc('month', now())::date)
+      AND provider = ANY(${providers})
   `;
   const calls = new Map(used.map((u) => [u.provider, u.calls]));
   return providers.some((p) => (calls.get(p) ?? 0) < limit);
@@ -440,10 +477,14 @@ export async function recordSearch(spender: Spender) {
 }
 
 // the provider says this allowance is gone, whatever our own count thinks
-export async function markApiSpent(provider: string, limit: number) {
+export async function markApiSpent(
+  provider: string,
+  limit: number,
+  month?: string,
+) {
   await prisma.$executeRaw`
     INSERT INTO api_usage (provider, month, calls)
-    VALUES (${provider}, date_trunc('month', now())::date, ${limit})
+    VALUES (${provider}, COALESCE(${month ?? null}::date, date_trunc('month', now())::date), ${limit})
     ON CONFLICT (provider, month) DO UPDATE
       SET calls = GREATEST(api_usage.calls, ${limit})
   `;

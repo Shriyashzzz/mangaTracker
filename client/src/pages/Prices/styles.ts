@@ -147,6 +147,14 @@ export const pricesStyles = {
   sectionNote:
     "-mt-[0.2rem] mb-3 max-w-[48ch] text-[0.95rem] leading-[1.35] text-ink-soft",
   checked: "font-mono text-[0.75rem] text-muted",
+  // "checked … ago" and the US/Canada switch; on phones, where they wrap
+  // under the heading, they spread to either side. The switch stays on the
+  // right even with no "checked" text beside it
+  checkedRow:
+    "flex items-center gap-3 upto-720:w-full upto-720:justify-between [&>:last-child]:ml-auto",
+  // "Show box sets and omnibuses", under the price list
+  boxSetToggle:
+    "mt-2 inline-flex cursor-pointer items-center gap-2 font-mono text-[0.75rem] text-muted [&_input]:accent-accent",
   // the price list
   offers:
     "border-2 border-line bg-card [&>li+li]:border-t [&>li+li]:border-dashed [&>li+li]:border-line-soft",
@@ -161,7 +169,7 @@ export const pricesStyles = {
   offerName: "flex flex-wrap items-center gap-x-2 gap-y-[0.3rem]",
   // stamps. Awards are tilted stickers with an ink shadow in strong colors:
   // red for the lowest overall, green for the cheapest new copy, marigold
-  // for the cheapest marketplace one. Type labels sit flat in the light
+  // for the cheapest marketplace one, indigo for a box set. Type labels sit flat in the light
   // version of the same color, so green always means new, marigold
   // marketplace or used, blue ebook
   awardLowest:
@@ -170,6 +178,8 @@ export const pricesStyles = {
     "inline-block rotate-1 rounded-[2px] border-[1.5px] border-line px-[0.4rem] pt-[0.1rem] font-brand text-[1rem] leading-[1.15] font-normal tracking-[1px] uppercase shadow-[2px_2px_0_var(--hard-shadow)] bg-award-new text-on-award-new",
   awardMarket:
     "inline-block -rotate-1 rounded-[2px] border-[1.5px] border-line px-[0.4rem] pt-[0.1rem] font-brand text-[1rem] leading-[1.15] font-normal tracking-[1px] uppercase shadow-[2px_2px_0_var(--hard-shadow)] bg-award-market text-stamp-ink",
+  awardSet:
+    "inline-block rotate-2 rounded-[2px] border-[1.5px] border-line px-[0.4rem] pt-[0.1rem] font-brand text-[1rem] leading-[1.15] font-normal tracking-[1px] uppercase shadow-[2px_2px_0_var(--hard-shadow)] bg-award-set text-on-award-set",
   labelNew:
     "inline-block rounded-[2px] border border-line px-[0.35rem] pt-[0.05rem] font-brand text-[0.88rem] leading-[1.15] font-normal tracking-[1px] text-stamp-ink uppercase bg-stamp-new",
   labelMarket:

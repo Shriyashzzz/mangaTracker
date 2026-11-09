@@ -45,6 +45,11 @@ const schema = z.object({
   ),
   EBAY_CLIENT_ID: optional,
   EBAY_CLIENT_SECRET: optional,
+  // calls a day to eBay's Browse API (eBay allows about 5,000); kept under it
+  EBAY_DAILY_LIMIT: z.preprocess(
+    blankToUndefined,
+    z.coerce.number().int().nonnegative().default(4500),
+  ),
   WALMART_CONSUMER_ID: optional,
   WALMART_KEY_VERSION: optional,
   WALMART_PRIVATE_KEY: optional,

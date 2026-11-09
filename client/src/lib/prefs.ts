@@ -61,12 +61,14 @@ export const currentTheme = (): Theme => {
 
 const checksListeners = new Set<() => void>();
 const countryListeners = new Set<() => void>();
+const boxSetListeners = new Set<() => void>();
 
 // puts preferences on the page and remembers them in this browser
 const applyPrefs = ({
   background,
   theme,
   hideEbooks,
+  hideBoxSets,
   shelfTab,
   shelfSort,
   shelfView,
@@ -91,6 +93,10 @@ const applyPrefs = ({
     }
   }
   if (hideEbooks) writeLocal("hideEbooks", hideEbooks);
+  if (hideBoxSets && hideBoxSets !== readLocal("hideBoxSets")) {
+    writeLocal("hideBoxSets", hideBoxSets);
+    boxSetListeners.forEach((listener) => listener());
+  }
   if (shelfTab) writeLocal("shelfTab", shelfTab);
   if (shelfSort !== undefined) writeLocal("shelfSort", shelfSort);
   if (shelfView) writeLocal("shelfView", shelfView);
@@ -125,6 +131,15 @@ export const useCountry = () =>
     return () => countryListeners.delete(listener);
   }, currentCountry);
 
+// whether box sets show on volume pages: yes unless they've turned them off.
+// Every page showing prices follows a change at once
+const boxSetsShown = () => readLocal("hideBoxSets") !== "yes";
+export const useBoxSetsShown = () =>
+  useSyncExternalStore((listener) => {
+    boxSetListeners.add(listener);
+    return () => boxSetListeners.delete(listener);
+  }, boxSetsShown);
+
 // applies a change right away, and keeps it on the account when signed in
 export const savePrefs = (patch: Prefs, isSignedIn: boolean | null) => {
   applyPrefs(patch);
@@ -142,8 +157,9 @@ export const syncPrefs = async () => {
     const response = await apiFetch("/api/prefs");
     if (!response.ok) return;
     const stored = (await response.json()) as Prefs;
-    // never chosen means on, whatever someone else chose in this browser
-    applyPrefs({ releaseChecks: "on", ...stored });
+    // never chosen means on (release checks) or shown (box sets), whatever
+    // someone else chose in this browser
+    applyPrefs({ releaseChecks: "on", hideBoxSets: "no", ...stored });
     const missing: Prefs = {};
     if (!stored.background) missing.background = currentBackground();
     const theme = document.documentElement.dataset.theme;

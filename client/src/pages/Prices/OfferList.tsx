@@ -5,24 +5,11 @@
 import { useState } from "react";
 import { ChevronRightIcon } from "../../components/icons/Icons";
 import { noteStoreClick } from "../../lib/support";
-import type { Offer } from "../../lib/types";
+import { isCollection, type Offer } from "../../lib/types";
 import { pricesStyles as styles } from "./styles";
 import { linkRel } from "./offerLabels";
 
 const VISIBLE_OFFERS = 5;
-
-// stores Google Shopping names its own way, shown as the store links name them
-const STORE_NAMES: Record<string, string> = {
-  "books a million": "Books-A-Million",
-  "barnes and noble": "Barnes & Noble",
-};
-const storeName = (store: string) =>
-  STORE_NAMES[
-    store
-      .toLowerCase()
-      .replace(/[^a-z0-9&]+/g, " ")
-      .trim()
-  ] ?? store;
 
 const CONDITION: Record<string, string> = {
   new: "New",
@@ -35,12 +22,19 @@ const AWARDS = {
   lowest: { label: "Lowest overall", className: styles.awardLowest },
   newLow: { label: "Cheapest new", className: styles.awardNew },
   marketLow: { label: "Cheapest marketplace", className: styles.awardMarket },
+  // when a new copy costs no more, "cheapest" would oversell a used one
+  market: { label: "Marketplace", className: styles.awardMarket },
+  // every box set and omnibus gets one: it holds several volumes, never
+  // just this one
+  boxSet: { label: "Box set", className: styles.awardSet },
+  omnibus: { label: "Omnibus", className: styles.awardSet },
 };
 
 // the cheapest copies you can buy now, which get the stamps; offers come
 // cheapest first, so each is the first match
 const awardsOf = (offers: Offer[]) => {
-  const inStock = offers.filter((o) => o.inStock);
+  // a box set or omnibus is listed, but never this volume's cheapest copy
+  const inStock = offers.filter((o) => o.inStock && !isCollection(o));
   const lowest = inStock[0];
   const newLow = inStock.find(
     (o) => o.format === "print" && o.condition === "new",
@@ -61,10 +55,12 @@ export default function OfferList({
   tourTarget?: string;
 }) {
   const [open, setOpen] = useState(false);
-  // people come here for a physical copy, so ebooks go under the print ones.
-  // The awards still use the true cheapest-first order
+  // people come here for a physical copy, so single copies come first, then
+  // box sets holding this volume, then ebooks. The awards still use the true
+  // cheapest-first order
   const listed = [
-    ...offers.filter((o) => o.format !== "ebook"),
+    ...offers.filter((o) => o.format !== "ebook" && !isCollection(o)),
+    ...offers.filter(isCollection),
     ...offers.filter((o) => o.format === "ebook"),
   ];
   const shown = open ? listed : listed.slice(0, VISIBLE_OFFERS);
@@ -78,13 +74,21 @@ export default function OfferList({
       ? [AWARDS.lowest]
       : [
           ...(o === newLow ? [AWARDS.newLow] : []),
-          ...(o === marketLow ? [AWARDS.marketLow] : []),
+          ...(o === marketLow
+            ? [
+                newLow && newLow.priceCents <= o.priceCents
+                  ? AWARDS.market
+                  : AWARDS.marketLow,
+              ]
+            : []),
+          ...(o.format === "set" ? [AWARDS.boxSet] : []),
+          ...(o.format === "omnibus" ? [AWARDS.omnibus] : []),
         ];
 
   return (
     <ul className={styles.offers} data-tour={tourTarget}>
       {shown.map((o) => {
-        // an ebook is an ebook, not a "new" copy
+        // an ebook is an ebook, not a "new" copy (a box set has its stamp)
         const condition =
           o.format === "ebook"
             ? "Ebook"
@@ -93,7 +97,7 @@ export default function OfferList({
           <>
             <span className={styles.offerStore}>
               <span className={styles.offerName}>
-                {storeName(o.store)}
+                {o.store}
                 {stampsOf(o).map(({ label, className }) => (
                   <span key={label} className={className}>
                     {label}
@@ -124,7 +128,7 @@ export default function OfferList({
                 rel={linkRel(o)}
                 onClick={noteStoreClick}
                 onAuxClick={noteStoreClick}
-                aria-label={`${storeName(o.store)}, ${formatPrice(o.priceCents)}, ${condition}. Opens the store in a new tab`}
+                aria-label={`${o.store}, ${formatPrice(o.priceCents)}, ${condition}. Opens the store in a new tab`}
               >
                 {row}
                 <span className={styles.offerGo} aria-hidden>

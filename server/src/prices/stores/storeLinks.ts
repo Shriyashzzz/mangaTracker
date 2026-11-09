@@ -50,6 +50,21 @@ const isGoogleLink = (url: string | null) => {
 // Google Shopping store names for the affiliate stores themselves. Exact
 // names only: "Kinokuniya Bookshop" isn't Bookshop.org, and "eBay - seller"
 // is eBay itself
+// stores Google Shopping names its own way, as the store links name them, so
+// one store is one row ("Barnes and Noble" and "Barnes & Noble" alike)
+const STORE_NAMES: Record<string, string> = {
+  "books a million": "Books-A-Million",
+  "barnes and noble": "Barnes & Noble",
+  "barnes & noble": "Barnes & Noble",
+};
+export const storeName = (store: string) =>
+  STORE_NAMES[
+    store
+      .toLowerCase()
+      .replace(/[^a-z0-9&]+/g, " ")
+      .trim()
+  ] ?? store;
+
 export const EBAY = /^ebay( - .+)?$/i;
 export const AMAZON = /^amazon(\.com)?$/i;
 const BOOKSHOP = /^bookshop(\.org)?$/i;
@@ -111,6 +126,15 @@ export function ourTags(url: string | null): string | null {
     else link.searchParams.delete("tag");
     return link.toString();
   }
+  // a listing saved before the campaign ID was set (or without one) gets it
+  // when shown, so no click goes untracked while it waits for a new check
+  if (
+    isSite(host, "ebay.com") &&
+    !link.searchParams.has("campid") &&
+    ebayCampaignId() &&
+    link.pathname.startsWith("/itm/")
+  )
+    return ebayAffiliateUrl(url, "listing");
   if (isSite(host, "ebay.com") && link.searchParams.has("campid")) {
     if (link.searchParams.get("campid") === ebayCampaignId()) return url;
     if (ebayCampaignId()) return ebayAffiliateUrl(url);

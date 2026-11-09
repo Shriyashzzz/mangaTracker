@@ -11,6 +11,8 @@ export const PREF_VALUES = {
   background: ["sfx", "ink", "pages", "panels"],
   theme: ["light", "dark", "system"],
   hideEbooks: ["yes", "no"],
+  // box sets holding a volume, listed under its single copies; shown unless "yes"
+  hideBoxSets: ["yes", "no"],
   shelfTab: ["all", "ongoing", "finished", "new"],
   shelfSort: ["", "rating-dsc", "ch-dsc", "name-asc"],
   shelfView: ["covers", "rows"],

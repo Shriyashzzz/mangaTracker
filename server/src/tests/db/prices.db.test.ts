@@ -320,3 +320,79 @@ test("an eBay-only check still drops a 'new' copy far above the big stores'", as
   // eBay still looked, and found nothing it believes
   expect((await priceQueries.getSourceChecks(ISBN)).has("ebay")).toBe(true);
 });
+
+test("an out-of-stock print copy doesn't stop Google Shopping looking", async () => {
+  await priceQueries.saveCheck(
+    ISBN,
+    ["walmart"],
+    new Map([
+      [
+        "walmart",
+        [
+          offer({
+            store: "Walmart",
+            inStock: false,
+            url: "https://www.walmart.com/ip/1",
+          }),
+        ],
+      ],
+    ]),
+  );
+  await tick();
+  let asked = false;
+  await fetchProviders(ISBN, await book(), [
+    { ...source("serpapi", []), fetchOffers: async () => ((asked = true), []) },
+  ]);
+  expect(asked).toBe(true);
+});
+
+test("one store spelled two ways is one row, named as the store links name it", async () => {
+  await priceQueries.saveCheck(
+    ISBN,
+    ["serpapi"],
+    new Map([
+      [
+        "shopping",
+        [
+          offer({ store: "Barnes and Noble", priceCents: 1100 }),
+          offer({ store: "Barnes & Noble", priceCents: 1050 }),
+        ],
+      ],
+    ]),
+  );
+  // and of the two copies from the same look, the cheaper
+  expect(await prices()).toEqual(["Barnes & Noble new 1050"]);
+});
+
+test("a box set is listed, but never counts as the volume's price", async () => {
+  await priceQueries.saveCheck(
+    ISBN,
+    ["ebay"],
+    new Map([
+      [
+        "ebay",
+        [
+          offer({
+            store: "eBay",
+            priceCents: 1300,
+            url: "https://www.ebay.com/itm/1",
+          }),
+          // cheaper than the single copy, as a pick-one listing would be
+          offer({
+            store: "eBay",
+            format: "set",
+            priceCents: 900,
+            url: "https://www.ebay.com/itm/2",
+          }),
+        ],
+      ],
+    ]),
+  );
+  expect(await prices()).toEqual(["eBay new 900", "eBay new 1300"]);
+  expect(
+    (await priceQueries.getKnownPrices([ISBN])).get(ISBN)?.priceCents,
+  ).toBe(1300);
+  expect(await priceQueries.getNewPriceMedian(ISBN)).toBe(1300);
+  const history = await priceQueries.getPriceHistory(ISBN);
+  expect(history.kinds.map((k) => k.lowCents)).toEqual([1300]);
+});

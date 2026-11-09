@@ -1,6 +1,7 @@
 import CanadaPrices from "./canada/CanadaPrices";
 import CountrySwitch from "./canada/CountrySwitch";
-import { useCountry } from "../../lib/prefs";
+import { useBoxSetsShown, useCountry } from "../../lib/prefs";
+import BoxSetToggle from "./BoxSetToggle";
 import { useEffect, useState } from "react";
 import { noteStoreClick } from "../../lib/support";
 import { ChevronDownIcon } from "../../components/icons/Icons";
@@ -31,7 +32,7 @@ import { readLocal } from "../../lib/prefs";
 import { usePageMeta } from "../../lib/seo";
 import { volumeMeta } from "./pageMeta";
 import ShelfAction from "./ShelfAction";
-import type { VolumePrices } from "../../lib/types";
+import { isCollection, type VolumePrices } from "../../lib/types";
 
 // the Impact script (index.html) that turns Walmart links into affiliate links
 declare global {
@@ -108,6 +109,8 @@ export default function PriceVolume() {
 
   // which volume is being checked live right now, after its stored prices
   const [refreshing, setRefreshing] = useState<string | null>(null);
+  // box sets holding this volume: listed unless turned off
+  const boxSetsShown = useBoxSetsShown();
 
   // the stored prices first, straight away: they need no Turnstile, so the
   // page (and what search engines see) never waits on it. Then a live check,
@@ -201,10 +204,15 @@ export default function PriceVolume() {
   // set in settings: they only want physical copies
   const hideEbooks = readLocal("hideEbooks") === "yes";
   const inCanada = country === "ca";
-  const offers = hideEbooks
-    ? allOffers.filter((o) => o.format !== "ebook")
-    : allOffers;
-  const hiddenEbooks = allOffers.length - offers.length;
+  const hiddenEbooks = hideEbooks
+    ? allOffers.filter((o) => o.format === "ebook").length
+    : 0;
+  const boxSets = allOffers.filter(isCollection).length;
+  const offers = allOffers.filter(
+    (o) =>
+      !(hideEbooks && o.format === "ebook") &&
+      !(!boxSetsShown && isCollection(o)),
+  );
   const kinds = (allHistory?.kinds ?? []).filter(
     (k) => !hideEbooks || k.kind !== "ebook",
   );
@@ -339,7 +347,7 @@ export default function PriceVolume() {
                 <h2 id="offers-title" className={styles.sectionTitle}>
                   Prices
                 </h2>
-                <span className="flex items-center gap-3">
+                <span className={styles.checkedRow}>
                   {refreshing === isbn ? (
                     <span className={styles.checked} role="status">
                       checking stores…
@@ -405,6 +413,8 @@ export default function PriceVolume() {
                   )}
                 </p>
               )}
+
+              <BoxSetToggle count={boxSets} />
 
               {hiddenEbooks > 0 && (
                 <p className={styles.checked}>

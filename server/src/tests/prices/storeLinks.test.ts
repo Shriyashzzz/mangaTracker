@@ -91,3 +91,13 @@ test("someone else's tag on a store link is swapped for ours, or taken off", asy
     false,
   );
 });
+
+test("an eBay listing saved without the campaign gets it when shown", async () => {
+  const { ourTags } = await load({ EBAY_CAMPAIGN_ID: "5330000000" });
+  const saved =
+    "https://www.ebay.com/itm/127644695751?_skw=9781974761319&hash=item1db8377cc7:g:Rl0AAeSwtElpdh92";
+  const shown = new URL(ourTags(saved)!);
+  expect(shown.searchParams.get("campid")).toBe("5330000000");
+  expect(shown.searchParams.get("mkcid")).toBe("1");
+  expect(shown.pathname).toBe("/itm/127644695751");
+});

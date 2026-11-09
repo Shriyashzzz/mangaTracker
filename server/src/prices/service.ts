@@ -32,6 +32,7 @@ import {
   omnibusVolumes,
 } from "./stores/match.js";
 import { enabledProviders } from "./providers/index.js";
+import { ebayCallsLeft } from "./providers/ebay.js";
 import { serpApiSearchesLeft } from "./providers/serpapiClient.js";
 import { SearchesUsedUp } from "./providers/serpapiKeys.js";
 import {
@@ -39,17 +40,19 @@ import {
   isAffiliateUrl,
   preferDirectRows,
   storeLinks,
+  storeName,
 } from "./stores/storeLinks.js";
 import { editionCoverId } from "./sources/covers.js";
 import { dropUnlikelyNew, unlikelyNewTest } from "./stores/retailers.js";
 import { baseName, isNovelName, novelName } from "./lightNovel.js";
 import { volumesKey } from "./volumesKey.js";
-import type {
-  CatalogBook,
-  Offer,
-  Provider,
-  SeriesHit,
-  SeriesInfo,
+import {
+  isCollection,
+  type CatalogBook,
+  type Offer,
+  type Provider,
+  type SeriesHit,
+  type SeriesInfo,
 } from "./types.js";
 import { googleSeriesVolumes } from "./sources/googleBooksCatalog.js";
 import { notOutYet } from "./preorder.js";
@@ -126,16 +129,20 @@ const isPaid = (provider: Pick<Provider, "id">) =>
   provider.id.startsWith("serpapi");
 
 // the enabled providers whose group's last look at this volume is old enough,
-// or never happened. Paid ones only while a search is left this month: without
-// one they'd only fail, and the volume would look due forever
+// or never happened. Paid ones only while a search is left this month, and
+// eBay's own only while today's calls last: without them they'd only fail,
+// and the volume would look due forever
 export async function dueProviders(isbn13: string): Promise<Provider[]> {
-  const [checks, searchesLeft] = await Promise.all([
+  const [checks, searchesLeft, ebayLeft] = await Promise.all([
     priceQueries.getSourceChecks(isbn13),
     serpApiSearchesLeft().catch(() => true),
+    ebayCallsLeft().catch(() => true),
   ]);
   const now = Date.now();
   return enabledProviders().filter((p) => {
     if (isPaid(p) && !searchesLeft) return false;
+    // eBay's own API with today's calls used up: not due until tomorrow
+    if (p.id === "ebay" && !ebayLeft) return false;
     if (failedRecently(isbn13, p)) return false;
     const at = checks.get(groupOf(p));
     return !at || now - at.getTime() >= freshForMs(p);
@@ -201,10 +208,17 @@ export async function fetchProviders(
   // what's still current from the groups not answering this round
   const current = await priceQueries.getCurrentRows(isbn13);
   const kept = current.filter((o) => !groups.has(o.source));
+  // this volume's usual new price, for judging what's found (read once)
+  const usual = await priceQueries.getNewPriceMedian(isbn13);
   if (shopping) {
+    // only print copies someone could buy and that we'd show count: an
+    // out-of-stock one, or a "new" price we'd drop, doesn't make it not needed
     const fresh = [...groups.values()].flat();
     const others = kept.filter((o) => o.source !== groupOf(shopping));
-    if (needsGoogleShopping([...fresh, ...others])) await ask([shopping]);
+    const buyable = [...fresh, ...others].filter((o) => o.inStock);
+    const unbelievable = unlikelyNewTest(buyable, usual);
+    if (needsGoogleShopping(buyable.filter((o) => !unbelievable(o))))
+      await ask([shopping]);
     else groups.set(groupOf(shopping), []);
   }
   // nothing answered and nothing decided (an outage, searches out): nothing is
@@ -225,9 +239,16 @@ export async function fetchProviders(
   // judged against this volume's usual new price and against every price
   // that will be current alongside them (the other groups' too), so an
   // eBay-only check still drops a "new" copy far above the big stores'
-  const usual = await priceQueries.getNewPriceMedian(isbn13);
+  // stores saved under one name each, as they're shown
   const fresh = [...groups].map(
-    ([group, offers]) => [group, preferDirectRows(offers)] as const,
+    ([group, offers]) =>
+      [
+        group,
+        preferDirectRows(offers).map((o) => ({
+          ...o,
+          store: storeName(o.store),
+        })),
+      ] as const,
   );
   const alongside = [
     ...fresh.flatMap(([, offers]) => offers),
@@ -385,18 +406,15 @@ export async function getVolumePrices(
   );
   if (refresh && known && !preorder) await refreshIfStale(isbn13, book);
 
-  // when its prices were checked: the oldest of the groups still being kept
-  // up, so an eBay look every few days doesn't make 20-day-old store prices
-  // read as fresh
+  // when its prices were checked: the oldest of its source checks (as shelf
+  // and series prices and the home page say), so an eBay look every few days
+  // doesn't make 20-day-old store prices read as fresh
   const [last, groupChecks, [coverRow]] = await Promise.all([
     priceQueries.getLastCheck(isbn13),
     priceQueries.getSourceChecks(isbn13),
     priceQueries.getCoverIds([isbn13]).catch(() => []),
   ]);
-  const served = new Set(enabledProviders().map(groupOf));
-  const kept = [...groupChecks]
-    .filter(([group]) => served.has(group))
-    .map(([, at]) => at.getTime());
+  const kept = [...groupChecks.values()].map((at) => at.getTime());
   const checkedAt = kept.length ? new Date(Math.min(...kept)) : last?.checkedAt;
   // whether a live check (with Turnstile) would look again: the page shows
   // these stored prices first and only asks for one when it would
@@ -995,7 +1013,8 @@ export async function getVolumeSummary(isbn13: string) {
     priceQueries.getNewPriceMedian(isbn13),
   ]);
   const offers = dropUnlikelyNew(stored, usual);
-  const inStock = offers.filter((o) => o.inStock);
+  // box sets and omnibuses are listed on the page, but aren't this volume's price
+  const inStock = offers.filter((o) => o.inStock && !isCollection(o));
   const bestNew = inStock.find(
     (o) => o.condition === "new" && o.format === "print",
   );
