@@ -5,7 +5,8 @@
 import { humanQuery } from "../../../lib/turnstile";
 import { useEffect, useState } from "react";
 import { getJson } from "../../../lib/api";
-import { readLocal } from "../../../lib/prefs";
+import { readLocal, useBoxSetsShown } from "../../../lib/prefs";
+import BoxSetToggle from "../BoxSetToggle";
 import { timeAgo } from "../../../lib/prices";
 import { noteStoreClick } from "../../../lib/support";
 import type { Offer } from "../../../lib/types";
@@ -37,6 +38,8 @@ const WHY_NONE: Record<Answer["status"], string> = {
 };
 
 export default function CanadaPrices({ isbn }: { isbn: string }) {
+  // box sets holding this volume: listed unless turned off
+  const boxSetsShown = useBoxSetsShown();
   const [answer, setAnswer] = useState<{ isbn: string; data: Answer } | null>(
     null,
   );
@@ -64,10 +67,15 @@ export default function CanadaPrices({ isbn }: { isbn: string }) {
   // only physical copies, if that's what they've asked for, like the US list
   const hideEbooks = readLocal("hideEbooks") === "yes";
   const allOffers = data?.offers ?? [];
-  const offers = hideEbooks
-    ? allOffers.filter((o) => o.format !== "ebook")
-    : allOffers;
-  const hiddenEbooks = allOffers.length - offers.length;
+  const hiddenEbooks = hideEbooks
+    ? allOffers.filter((o) => o.format === "ebook").length
+    : 0;
+  const boxSets = allOffers.filter((o) => o.format === "set").length;
+  const offers = allOffers.filter(
+    (o) =>
+      !(hideEbooks && o.format === "ebook") &&
+      !(!boxSetsShown && o.format === "set"),
+  );
   const links = data?.links ?? [];
 
   return (
@@ -99,6 +107,7 @@ export default function CanadaPrices({ isbn }: { isbn: string }) {
       ) : (
         <p className={styles.note}>{WHY_NONE[data.status]}</p>
       )}
+      <BoxSetToggle count={boxSets} />
       {hiddenEbooks > 0 && (
         <p className={styles.checked}>
           {hiddenEbooks} ebook {hiddenEbooks === 1 ? "price" : "prices"} hidden.

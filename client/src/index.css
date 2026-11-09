@@ -68,6 +68,8 @@
   --award-new: #2e6b4c;
   --on-award-new: #fffaf2;
   --award-market: #e0a21b;
+  --award-set: #3d4f9e;
+  --on-award-set: #fffaf2;
 
   color-scheme: light;
 }
@@ -99,6 +101,8 @@
     --award-new: #6fbf8f;
     --on-award-new: #16140f;
     --award-market: #f2b630;
+    --award-set: #9fb0ec;
+    --on-award-set: #16140f;
     color-scheme: dark;
   }
 }
@@ -129,6 +133,8 @@
   --award-new: #6fbf8f;
   --on-award-new: #16140f;
   --award-market: #f2b630;
+  --award-set: #9fb0ec;
+  --on-award-set: #16140f;
   color-scheme: dark;
 }
 
@@ -196,6 +202,8 @@
   --color-award-new: var(--award-new);
   --color-on-award-new: var(--on-award-new);
   --color-award-market: var(--award-market);
+  --color-award-set: var(--award-set);
+  --color-on-award-set: var(--on-award-set);
   --color-dots: var(--dots);
   --color-dots-strong: var(--dots-strong);
   /* the flat ink shadow under panels and buttons */

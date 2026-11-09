@@ -22,6 +22,7 @@ const AWARDS = {
   lowest: { label: "Lowest overall", className: styles.awardLowest },
   newLow: { label: "Cheapest new", className: styles.awardNew },
   marketLow: { label: "Cheapest marketplace", className: styles.awardMarket },
+  setLow: { label: "Cheapest box set", className: styles.awardSet },
 };
 
 // the cheapest copies you can buy now, which get the stamps; offers come
@@ -36,7 +37,8 @@ const awardsOf = (offers: Offer[]) => {
   const marketLow = inStock.find(
     (o) => o.format === "print" && o.condition !== "new",
   );
-  return { lowest, newLow, marketLow };
+  const setLow = offers.find((o) => o.inStock && o.format === "set");
+  return { lowest, newLow, marketLow, setLow };
 };
 
 export default function OfferList({
@@ -58,7 +60,7 @@ export default function OfferList({
     ...offers.filter((o) => o.format === "ebook"),
   ];
   const shown = open ? listed : listed.slice(0, VISIBLE_OFFERS);
-  const { lowest, newLow, marketLow } = awardsOf(offers);
+  const { lowest, newLow, marketLow, setLow } = awardsOf(offers);
   // one row stands out, and it's the one the headline names
   const highlighted = newLow ?? lowest;
   // stamps are awards only: what kind of copy it is is the line under the
@@ -69,6 +71,7 @@ export default function OfferList({
       : [
           ...(o === newLow ? [AWARDS.newLow] : []),
           ...(o === marketLow ? [AWARDS.marketLow] : []),
+          ...(o === setLow ? [AWARDS.setLow] : []),
         ];
 
   return (

@@ -138,6 +138,8 @@ export type Prefs = {
   // "system" follows the device
   theme?: Theme | "system";
   hideEbooks?: "yes" | "no";
+  // box sets on volume pages; shown unless "yes"
+  hideBoxSets?: "yes" | "no";
   // what the shelf opens on
   shelfTab?: ShelfTab;
   // "" is last bookmarked (SORT_OPTIONS in lib/shelf.ts)

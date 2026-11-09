@@ -19,6 +19,7 @@ import {
   useCountry,
   useReleaseChecksOn,
   savePrefs,
+  useBoxSetsShown,
 } from "../../lib/prefs";
 import { usePrivatePage } from "../../lib/seo";
 import type { Background, Manga, ShelfTab } from "../../lib/types";
@@ -297,6 +298,7 @@ function PricesTab() {
     () => readLocal("hideEbooks") === "yes",
   );
   const country = useCountry();
+  const boxSetsShown = useBoxSetsShown();
   return (
     <div className={styles.tabBody}>
       <h2 className={styles.tabTitle}>Prices</h2>
@@ -313,6 +315,19 @@ function PricesTab() {
           }}
         />
         Hide ebooks on volume pages
+      </label>
+      <label className={styles.row}>
+        <input
+          type="checkbox"
+          checked={boxSetsShown}
+          onChange={(e) =>
+            savePrefs(
+              { hideBoxSets: e.target.checked ? "no" : "yes" },
+              isSignedIn,
+            )
+          }
+        />
+        Show box sets that hold the volume
       </label>
       <fieldset className={styles.group}>
         <legend className={styles.legend}>Where you shop</legend>
