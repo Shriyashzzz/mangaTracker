@@ -175,7 +175,8 @@ test("a New card says what's out and where they are, apart", () => {
     nextVolume: 5,
     latestVolume: 7,
   } as Partial<ReleaseStatus>);
-  expect(newsFor(m, behind, "volumes", false).text).toBe("Vol. 5 available");
+  // theirs next, and how far the series has gone
+  expect(newsFor(m, behind, "volumes", false).text).toBe("Vol. 5 next · 7 out");
   const chapter = found({
     nextChapter: 31,
     latestChapter: 31,

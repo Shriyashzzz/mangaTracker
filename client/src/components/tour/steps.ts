@@ -151,7 +151,7 @@ const PARTS: { name: string; lines: Line[] }[] = [
         go: "/prices/9780000000041",
         target: "offers",
         onTop: true,
-        say: "Every store we found, cheapest first. The red bar's Buy button lands here too. These prices are made up for the tour.",
+        say: "Every store we found, cheapest first, with ebooks after the print copies. The red bar's Buy button lands here too. These prices are made up for the tour.",
       },
     ],
   },
