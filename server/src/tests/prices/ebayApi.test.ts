@@ -1,5 +1,6 @@
 // eBay's own API: searched by the ISBN as a keyword, and by title when that
 // finds nothing; box sets holding the volume are kept and labelled
+import { isSingleVolume, listingMatches } from "../../prices/stores/match.js";
 import {
   browseOffers,
   titleQueries,
@@ -434,14 +435,19 @@ test("accents, apostrophes and a cut-off format don't decide a match", () => {
   ).toEqual([]);
 });
 
-test("an out-of-print volume found by its ISBN keeps its price; by title it's too odd", () => {
-  const rare = item({
-    title: "xxxHolic, Vol. 19 - paperback CLAMP",
-    price: usd("91.06"),
-    shippingOptions: [{ shippingCost: { value: "0" } }],
-  });
-  expect(formats([rare], "xxxHOLiC 19", "isbn")).toEqual(["print 9106"]);
-  expect(formats([rare], "xxxHOLiC 19", "title")).toEqual([]);
+test("an out-of-print used copy found by its ISBN keeps its price; a new one or a title match doesn't", () => {
+  const rare = (conditionId: string) =>
+    item({
+      title: "xxxHolic, Vol. 19 - paperback CLAMP",
+      conditionId,
+      price: usd("91.06"),
+      shippingOptions: [{ shippingCost: { value: "0" } }],
+    });
+  expect(formats([rare("3000")], "xxxHOLiC 19", "isbn")).toEqual([
+    "print 9106",
+  ]);
+  expect(formats([rare("1000")], "xxxHOLiC 19", "isbn")).toEqual([]);
+  expect(formats([rare("3000")], "xxxHOLiC 19", "title")).toEqual([]);
 });
 
 test("a listing whose shipping eBay calculates at checkout is left out", () => {
@@ -504,4 +510,130 @@ test("a sequel's box set, a lot read as 1-2-3, or a code isn't kept", () => {
       "title",
     ),
   ).toEqual([]);
+});
+
+// ---------- from the independent review (Nov 2026) ----------
+
+test("a complete set or full run is never a single copy", () => {
+  for (const t of [
+    "Jujutsu Kaisen Manga Complete Set All English",
+    "Jujutsu Kaisen Full Run English",
+  ])
+    expect(
+      browseOffers(
+        [item({ title: t, conditionId: "3000", price: usd("250.00") })],
+        "Jujutsu Kaisen, Vol. 1",
+        "US",
+        "isbn",
+      ).filter((o) => o.format === "print"),
+    ).toEqual([]);
+});
+
+test("titles starting with lot, single-volume wording and book words aren't dropped", () => {
+  expect(isSingleVolume("The Lottery Mage, Vol. 2")).toBe(true);
+  expect(
+    listingMatches("Lotus Land Story, Vol. 2", "Lotus Land Story, Vol. 2"),
+  ).toBe(true);
+  expect(isSingleVolume("Bleach Manga Lot Vol 1-5")).toBe(false);
+  expect(
+    formats(
+      [item({ title: "Naruto, Vol. 12 Manga Single Volume" })],
+      "Naruto, Vol. 12",
+      "isbn",
+    ),
+  ).toEqual(["print 1399"]);
+  expect(
+    formats(
+      [item({ title: "Naruto, Vol. 12 (C: 1-0-0) VIZ" })],
+      "Naruto, Vol. 12",
+      "isbn",
+    ),
+  ).toEqual(["print 1399"]);
+  expect(
+    formats(
+      [item({ title: "Naruto Vol. 12 - 9781421502427" })],
+      "Naruto, Vol. 12",
+      "isbn",
+    ),
+  ).toEqual(["print 1399"]);
+  for (const t of [
+    "Naruto, Vol. 12 Manga First Print",
+    "Naruto, Vol. 12 Manga w/ Promo Card",
+  ])
+    expect(formats([item({ title: t })], "Naruto, Vol. 12", "title")).toEqual([
+      "print 1399",
+    ]);
+});
+
+test("a series whose name ends in a number is searched and matched with it", () => {
+  expect(titleQueries("Kaiju No. 8, Vol. 3").volume).toBe("Kaiju No. 8 vol 3");
+  expect(
+    formats(
+      [item({ title: "Kaiju No. 8, Vol. 3 Manga" })],
+      "Kaiju No. 8, Vol. 3",
+      "title",
+    ),
+  ).toEqual(["print 1399"]);
+  // a plain trailing number is still the volume
+  expect(titleQueries("Blue Lock 4").volume).toBe("Blue Lock vol 4");
+});
+
+test("an omnibus page matches box sets by the volumes it holds", () => {
+  const page = "One Piece, Vol. 10 (Water Seven / Mr. Pound / Franky)";
+  const sets = [
+    item({
+      title: "One Piece Box Set 1: Volumes 1-23 Manga",
+      price: usd("120.00"),
+    }),
+    item({
+      title: "One Piece Box Set 2: Volumes 24-46 Manga",
+      price: usd("130.00"),
+    }),
+  ];
+  expect(formats(sets, page, "title")).toEqual(["set 13400"]);
+});
+
+test("7-8-9 and Vols. 10, 11 & 12 hold all three volumes", () => {
+  const on = (book: string, t: string) =>
+    formats([item({ title: t })], book, "title");
+  expect(
+    on("One Piece, Vol. 9", "One Piece East Blue 7-8-9 Omnibus Manga"),
+  ).toEqual(["omnibus 1399"]);
+  expect(
+    on("Bleach, Vol. 12", "Bleach 3-in-1 Edition Vol. 4 (10-11-12) Manga"),
+  ).toEqual(["omnibus 1399"]);
+  expect(
+    on("Bleach, Vol. 12", "Bleach Omnibus Includes Vols. 10, 11 & 12 Manga"),
+  ).toEqual(["omnibus 1399"]);
+});
+
+test("a season box set of the series is kept, and a manga box set needn't say manga", () => {
+  expect(
+    formats(
+      [
+        item({
+          title: "Attack on Titan Season 1 Part 1 Manga Box Set (Vols 1-17)",
+          price: usd("100.00"),
+        }),
+      ],
+      "Attack on Titan, Vol. 3",
+      "title",
+    ),
+  ).toEqual(["set 10400"]);
+  expect(
+    formats(
+      [
+        item({
+          title: "One Piece Box Set 1: Volumes 1-23",
+          price: usd("120.00"),
+        }),
+        item({
+          title: "One Piece novel Ace's Story Vol. 1",
+          price: usd("9.00"),
+        }),
+      ],
+      "One Piece, Vol. 5",
+      "title",
+    ),
+  ).toEqual(["set 12400"]);
 });

@@ -96,7 +96,30 @@ export const isNovelBook = (bookTitle: string) =>
 // goes without it
 export const shoppingQuery = (bookTitle: string) =>
   isNovelBook(bookTitle) ? bookTitle : `${bookTitle} manga`;
-const seriesWords = (title: string) => seriesOf(title.replace(SAYS_NOVEL, " "));
+// the series as matching compares it. With "Vol. N" in the title, a number
+// before it is part of the name ("Kaiju No. 8, Vol. 3", "Mob Psycho 100,
+// Vol. 2"); only without one is a trailing number the volume ("Blue Lock 4")
+const HAS_VOL = /\bvol(?:ume)?\.?\s*\d/i;
+const seriesWords = (title: string) => {
+  const t = title.replace(SAYS_NOVEL, " ");
+  if (!HAS_VOL.test(t)) return seriesOf(t);
+  return normalize(
+    t
+      .replace(BOOK, "")
+      .replace(/\(.*?\)/g, "")
+      .replace(/,?\s*\bvol(?:ume)?\.?\s*\d+.*$/i, ""),
+  );
+};
+// the same, case kept, for a search ("Kaiju No. 8 vol 3")
+export const searchName = (title: string) =>
+  HAS_VOL.test(title)
+    ? title
+        .replace(BOOK, "")
+        .replace(/\(.*?\)/g, " ")
+        .replace(/,?\s*\bvol(?:ume)?\.?\s*\d+.*$/i, "")
+        .replace(/\s+/g, " ")
+        .trim()
+    : seriesName(title);
 // a listing that names the other format: "(manga)" for a novel's volume, or
 // "(light novel)" for a manga's
 const otherFormat = (listingTitle: string, bookTitle: string) => {
@@ -116,7 +139,7 @@ export const sameVolume = (a: string, b: string) =>
 
 // box sets, bundles and "vols 1-3" never count as a single volume
 const MULTI_VOLUME =
-  /\b(box(ed)?\s*set|set of|collection|bundle|lot|omnibus|\d+\s*[-–~]\s*\d+|\d+\s*(?:and|&)\s*\d+|vol(ume)?s\b)/i;
+  /\b(box(ed)?\s*set|set of|collection|bundle|lots?|omnibus|complete\s+(set|series|run|collection)|full\s+(set|run|series)|all\s+volumes|vol(ume)?s)\b|(?<!\d)\d{1,3}\s*[-–~]\s*\d{1,3}(?!\d)|(?<!\d)\d{1,3}\s*(?:and|&)\s*\d{1,3}(?!\d)/i;
 export const isSingleVolume = (listingTitle: string) =>
   !MULTI_VOLUME.test(listingTitle);
 
@@ -191,7 +214,7 @@ export const seriesThenVolume = (listingTitle: string, bookTitle: string) => {
 
 // merchandise that shares a series' name: figures, cards, posters and such
 export const NOT_A_BOOK =
-  /\b(figures?|figurines?|statues?|trading\s*cards?|cards?|tcg|foil|union\s*arena|weiss|poster|plush|keychains?|key\s*chain|stickers?|acrylic|stand(ee)?|funko|nendoroid|cosplay|costume|shirt|hoodie|dvd|blu-?ray|vinyl|puzzle|pins?|badge|wall\s*scroll|mug|lamp|games?|toys?|anime|dub(bed)?|sub(bed|titled)?|seasons?|episodes?|series\s*\d|ost|soundtrack|cd|discs?|ccg|tin|charms?|prints?|art\s*print|model\s*kit|gashapon)\b/i;
+  /\b(figures?|figurines?|statues?|trading\s*cards?|tcg|foil|union\s*arena|weiss|poster|plush|keychains?|key\s*chain|stickers?|acrylic|stand(ee)?|funko|nendoroid|cosplay|costume|shirt|hoodie|dvd|blu-?ray|vinyl|puzzle|pins?|badge|wall\s*scroll|mug|lamp|games?|toys?|dub(bed)?|sub(bed|titled)?|episodes?|ost|soundtrack|cd|discs?|ccg|tin|charms?|art\s*prints?|model\s*kit|gashapon)\b/i;
 // a set from a title search must say it's books, so "Box Set" means volumes
 const SAYS_BOOKS =
   /\b(manga|novels?|books?|vol(ume)?s?|paperbacks?|hardcovers?|english)\b/i;
@@ -274,7 +297,7 @@ export const saysBoxSet = (bareListing: string) =>
 // Complete Box Set" on Tokyo Ghoul's page): right after the series name
 // comes a word about the set itself, not more name
 const AFTER_NAME =
-  /^(box(ed)?|complete(d)?|the|manga|comics?|graphic|light|novels?|vols?|volumes?|v|by|english|eng|set|series|collection|deluxe|edition|books?|paperbacks?|hardcovers?|hardback|official|viz|kodansha|yen|\d+)$/;
+  /^(box(ed)?|complete(d)?|season|part|the|manga|comics?|graphic|light|novels?|vols?|volumes?|v|by|english|eng|set|series|collection|deluxe|edition|books?|paperbacks?|hardcovers?|hardback|official|viz|kodansha|yen|\d+)$/;
 export const ownSeriesSet = (listingTitle: string, bookTitle: string) => {
   const series = seriesWords(bookTitle);
   const listing = ` ${normalize(listingTitle)} `;
@@ -298,24 +321,55 @@ const COMPLETE_SET =
 // a listing that sells one volume of many ("Vol 1-26, pick your volume",
 // "price for 1 volume only"): its range isn't what's for sale
 export const PICK_ONE =
-  /\b(pick|choose|select|variations?|you\s*pick|each|individual(ly)?|price\s*for\s*(1|one)|single\s*volumes?|singles)\b/i;
-const rangesOf = (listingTitle: string) =>
-  [...listingTitle.matchAll(RANGE)]
-    .map((m) => [Number(m[1]), Number(m[2])] as const)
-    .filter(([from, to]) => from >= 0 && to > from && to <= 200);
+  /\b(pick|choose|select|variations?|you\s*pick|your\s*choice)\b/i;
+// on a listing naming a run, these mean one volume of it is for sale; on a
+// single copy ("Manga Single Volume", "sold each") they mean nothing
+const ONE_OF_RUN =
+  /\b(each|individual(ly)?|price\s*for\s*(1|one)|single\s*volumes?|singles)\b/i;
+// the volumes a listing names, as ranges: "1-16" and "1 to 16"; a chain
+// ("7-8-9", "1-6-7-8-10") is its own numbers; "Vols. 10, 11 & 12" too
+const CHAIN = /(?<![\d-])\d{1,3}(?:\s*-\s*\d{1,3}){2,}(?![\d-])/g;
+const LISTED = /\bvol(?:ume)?s?\.?\s*(\d{1,3}(?:\s*(?:,|&|and)\s*\d{1,3})+)/gi;
+const rangesOf = (listingTitle: string) => {
+  const ranges: (readonly [number, number])[] = [];
+  let rest = listingTitle.replace(CHAIN, (chain) => {
+    for (const n of chain.split("-")) ranges.push([Number(n), Number(n)]);
+    return " ";
+  });
+  rest = rest.replace(LISTED, (_, list: string) => {
+    for (const n of list.match(/\d+/g) ?? [])
+      ranges.push([Number(n), Number(n)]);
+    return " ";
+  });
+  for (const m of rest.matchAll(RANGE)) {
+    const [from, to] = [Number(m[1]), Number(m[2])];
+    if (from >= 0 && to > from && to <= 200) ranges.push([from, to]);
+  }
+  return ranges;
+};
 // how many volumes a set's ranges hold ("Vol. 7-11, Vol. 12-29": 23), 0 when
 // it names none
 export const setSize = (listingTitle: string) =>
   rangesOf(listingTitle).reduce((n, [from, to]) => n + to - from + 1, 0);
+// the volumes a volume page is for: its own number, or an omnibus's volumes.
+// null: an omnibus or "Book N" whose volumes can't be told
+const pageVolumes = (bookTitle: string): number[] | null => {
+  const held = omnibusVolumes(bookTitle);
+  if (held) return held.length ? held : null;
+  if (bookNumberOf(bookTitle) !== null || isOmnibusBook(bookTitle)) return null;
+  const n = volumeOf(bookTitle);
+  return isNaN(n) ? [] : [n];
+};
 export const setHolds = (listingTitle: string, bookTitle: string) => {
-  if (PICK_ONE.test(listingTitle)) return false;
-  const wanted = volumeOf(bookTitle);
+  if (PICK_ONE.test(listingTitle) || ONE_OF_RUN.test(listingTitle))
+    return false;
+  const wanted = pageVolumes(bookTitle);
   // ISBN-like runs ("978-1-9753...") aren't ranges: only small numbers count
   const ranges = rangesOf(listingTitle);
   if (ranges.length)
     return (
-      !isNaN(wanted) &&
-      ranges.some(([from, to]) => wanted >= from && wanted <= to)
+      !!wanted?.length &&
+      wanted.some((v) => ranges.some(([from, to]) => v >= from && v <= to))
     );
   return COMPLETE_SET.test(listingTitle);
 };

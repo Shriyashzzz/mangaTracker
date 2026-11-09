@@ -17,7 +17,7 @@ import {
   NOT_A_BOOK,
   PICK_ONE,
   namesSeries,
-  seriesName,
+  searchName,
   setHolds,
   setOfBooks,
   isOmnibusBook,
@@ -33,10 +33,18 @@ import {
 } from "../stores/match.js";
 import { plausiblePrice } from "../stores/retailers.js";
 
-// a volume found by its own ISBN can be out of print, and cost what it does
-// now (xxxHOLiC 19 at $91, Parasyte 8 at $298); one matched by title keeps
-// the usual ceiling
-const plausibleByIsbn = (cents: number) => cents >= 200 && cents <= 50_000;
+// a used copy found by its own ISBN can be out of print, and cost what it
+// does now (xxxHOLiC 19 at $91, Parasyte 8 at $298). A new one, or one
+// matched by title, keeps the usual ceiling: a "new" copy far above it is a
+// collector's edition or a mistake, not this paperback
+const plausibleUsedByIsbn = (cents: number) => cents >= 200 && cents <= 50_000;
+
+// a distributor's code ("(C: 1-0-0)") and an ISBN written with dashes read
+// like volume numbers: they go before a title is read
+const cleanTitle = (title: string) =>
+  title
+    .replace(/\(\s*c\s*:\s*[\d-]+\s*\)/gi, " ")
+    .replace(/\b97[89][\d-]{10,14}\b/g, " ");
 
 // a box set can cost what many volumes do, but not under $3 a volume: that's
 // one volume's price on a listing naming the whole run
@@ -129,7 +137,7 @@ export function browseOffers(
   // a page for an omnibus: omnibus listings are the book itself
   const omnibusPage = isOmnibusBook(title);
   for (const item of items) {
-    const name = item.title ?? "";
+    const name = cleanTitle(item.title ?? "");
     // a listing with "calculated" shipping has no shipping price in a search
     // (eBay works it out per buyer), so its real cost isn't known: left out
     const shippingValue = item.shippingOptions?.[0]?.shippingCost?.value;
@@ -173,7 +181,8 @@ export function browseOffers(
         by === "title" &&
         !(
           namesSeries(name, title) &&
-          formatFits(name, title, bothFormats) &&
+          // a manga's box set rarely says "manga"; it only mustn't say novel
+          formatFits(name, title, false) &&
           setOfBooks(name)
         )
       )
@@ -196,16 +205,21 @@ export function browseOffers(
     }
     const priceCents =
       toCents(Number(item.price.value)) + toCents(Number(shippingValue));
+    const condition = item.conditionId === "1000" ? "new" : "used";
     if (
       set
         ? !plausibleSetPrice(priceCents, setSize(rest))
-        : !(by === "isbn" ? plausibleByIsbn : plausiblePrice)(priceCents)
+        : !(
+            by === "isbn" && condition === "used"
+              ? plausibleUsedByIsbn
+              : plausiblePrice
+          )(priceCents)
     )
       continue;
     offers.push({
       store,
       format: set ? (omnibus ? "omnibus" : "set") : "print",
-      condition: item.conditionId === "1000" ? "new" : "used",
+      condition,
       priceCents,
       currency,
       inStock: true,
@@ -225,7 +239,7 @@ export function browseOffers(
 // the volume number ("Overlord light novel vol 16"), or "box set" for sets.
 // null when the volume has no number to search by
 export function titleQueries(title: string) {
-  const series = seriesName(title).replace(/\s*light novel$/i, "");
+  const series = searchName(title).replace(/\s*light novel$/i, "");
   const kind = isNovelBook(title) ? " light novel" : "";
   const n = volumeOf(title);
   return {
@@ -279,9 +293,10 @@ async function browse(
 
 // The ISBN as a keyword finds more than eBay's own ISBN (GTIN) filter, which
 // only matches listings tagged with it. Many aren't, so a title search runs
-// alongside: its single copies count only when the ISBN found none, while
-// box sets holding this volume are taken from every search. Free, so three
-// searches at once cost nothing; a failed title search leaves the ISBN's
+// alongside: its single copies fill in a condition (new, used) the ISBN
+// search found none of, while box sets holding this volume are taken from
+// every search. Free, so three searches at once cost nothing; a failed title
+// search leaves the ISBN's
 export async function searchEbay(
   isbn13: string,
   title: string,
@@ -308,8 +323,10 @@ export async function searchEbay(
     "title",
   );
   const singles = isbnOffers.filter((o) => !isCollection(o));
+  const has = new Set(singles.map((o) => o.condition));
   return cheapestOfEach([
-    ...(singles.length ? singles : titleOffers.filter((o) => !isCollection(o))),
+    ...singles,
+    ...titleOffers.filter((o) => !isCollection(o) && !has.has(o.condition)),
     ...isbnOffers.filter(isCollection),
     ...titleOffers.filter(isCollection),
   ]);
