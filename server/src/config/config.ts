@@ -43,6 +43,12 @@ const schema = z.object({
     blankToUndefined,
     z.coerce.number().int().nonnegative().default(100),
   ),
+  // the shelf tools (shelf value, finishing series, the release calendar)
+  // and the deals strip: "off" hides them all (server/src/collector)
+  COLLECTOR_TOOLS: z.preprocess(
+    blankToUndefined,
+    z.enum(["on", "off"]).default("on"),
+  ),
   EBAY_CLIENT_ID: optional,
   EBAY_CLIENT_SECRET: optional,
   // calls a day to eBay's Browse API (eBay allows about 5,000); kept under it

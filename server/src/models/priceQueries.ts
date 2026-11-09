@@ -11,6 +11,7 @@ import { VOLUMES_KEY_VERSION } from "../prices/volumesKey.js";
 import { prisma } from "../config/prisma.js";
 import { Prisma, type Book } from "../../generated/prisma/client.js";
 import {
+  dropUnlikelyNew,
   lowestBelievableNew,
   unlikelyNewTest,
 } from "../prices/stores/retailers.js";
@@ -299,6 +300,60 @@ export async function getNewPriceMedian(
   return rows[0]?.median ?? null;
 }
 
+// each volume's usual new print price (the median of every one saved), the
+// yardstick for a "new" price too far off to believe
+async function newMedians(isbns: string[]) {
+  const rows = await prisma.$queryRaw<{ isbn13: string; median: number }[]>`
+    SELECT isbn13,
+           ROUND(percentile_cont(0.5) WITHIN GROUP (ORDER BY price_cents))::int AS median
+    FROM price_samples
+    WHERE isbn13 = ANY(${isbns}::text[])
+      AND in_stock AND condition = 'new' AND format = 'print'
+    GROUP BY isbn13
+  `;
+  return new Map(rows.map((u) => [u.isbn13.trim(), u.median]));
+}
+
+// the cheapest new and the cheapest used print copy in stock among each
+// volume's prices now, with the store and link: for the shelf tools
+// (collector/). The same believable-price rule as getKnownPrices; database
+// only, never a lookup
+export type CheapestCopy = { cents: number; store: string; url: string | null };
+export async function getCheapestCopies(
+  isbns: string[],
+): Promise<
+  Map<string, { new: CheapestCopy | null; used: CheapestCopy | null }>
+> {
+  const out = new Map<
+    string,
+    { new: CheapestCopy | null; used: CheapestCopy | null }
+  >();
+  if (!isbns.length) return out;
+  const [rows, looked, usual] = await Promise.all([
+    currentRows(isbns),
+    lookedAt(isbns),
+    newMedians(isbns),
+  ]);
+  const cheapest = (offers: CurrentRow[]): CheapestCopy | null => {
+    const best = offers.reduce<CurrentRow | null>(
+      (a, b) => (!a || b.priceCents < a.priceCents ? b : a),
+      null,
+    );
+    return best && { cents: best.priceCents, store: best.store, url: best.url };
+  };
+  for (const [isbn, group] of groupBy(rows, (row) => row.isbn13.trim())) {
+    const copies = dropUnlikelyNew(
+      currentOf(group, looked.get(isbn)),
+      usual.get(isbn),
+    ).filter((o) => o.inStock && o.format === "print");
+    out.set(isbn, {
+      new: cheapest(copies.filter((o) => o.condition === "new")),
+      used: cheapest(copies.filter((o) => o.condition !== "new")),
+    });
+  }
+  return out;
+}
+
 // the cheapest new print price from each volume's latest check, for showing
 // prices on series pages and shelves without fetching anything
 export async function getKnownPrices(
@@ -314,16 +369,9 @@ export async function getKnownPrices(
       where: { isbn13: { in: isbns } },
       _min: { checkedAt: true },
     }),
-    prisma.$queryRaw<{ isbn13: string; median: number }[]>`
-      SELECT isbn13,
-             ROUND(percentile_cont(0.5) WITHIN GROUP (ORDER BY price_cents))::int AS median
-      FROM price_samples
-      WHERE isbn13 = ANY(${isbns}::text[])
-        AND in_stock AND condition = 'new' AND format = 'print'
-      GROUP BY isbn13
-    `,
+    newMedians(isbns),
   ]);
-  const usualOf = new Map(usual.map((u) => [u.isbn13.trim(), u.median]));
+  const usualOf = usual;
   const checkedAt = new Map(
     checks.flatMap((c) =>
       c._min.checkedAt ? [[c.isbn13.trim(), c._min.checkedAt] as const] : [],
@@ -655,6 +703,7 @@ export default {
   getFoundNovels,
   saveSeriesVolumes,
   getKnownPrices,
+  getCheapestCopies,
   getRecentBestPrices,
   getBook,
   isKnownVolume,
