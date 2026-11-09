@@ -1,4 +1,5 @@
 import { notOutYet, onSale } from "../../lib/releaseDate";
+import DealsStrip from "../../components/deals/DealsStrip";
 import ToReadButton from "../../components/toRead/ToReadButton";
 import { useEffect, useState, type FormEvent } from "react";
 import { NavLink, useParams, useSearchParams } from "react-router";
@@ -241,6 +242,7 @@ export default function PriceSeries() {
         <span aria-hidden>/</span>
         <span aria-current="page">{named.title}</span>
       </nav>
+      <DealsStrip />
 
       <header className={styles.seriesHead}>
         {/* the US edition's first volume; AniList's cover is the Japanese one */}

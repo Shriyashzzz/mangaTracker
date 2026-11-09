@@ -18,6 +18,13 @@ import {
   volumePath,
 } from "../../lib/prices";
 import type { Manga, SeriesVolume } from "../../lib/types";
+import {
+  getShelfTools,
+  totalText,
+  type FinishRow,
+  type ShelfTools,
+} from "../../lib/collector";
+import FinishList from "./FinishList";
 import { volumesStyles as styles } from "./volumesStyles";
 
 const plural = (n: number, one: string, many = `${one}s`) =>
@@ -39,6 +46,19 @@ export default function VolumesView({
 }) {
   const [open, setOpen] = useState<number | null>(null);
   const [page, setPage] = useState({ key: resetKey, index: 0 });
+  // what the shelf is worth and what finishing each series costs, from
+  // prices already saved; left out (as before) when it can't be had
+  const [tools, setTools] = useState<ShelfTools | null>(null);
+  useEffect(() => {
+    const controller = new AbortController();
+    getShelfTools(controller.signal)
+      .then(setTools)
+      .catch(() => {
+        // switched off or unreachable: the tab as it always was
+      });
+    return () => controller.abort();
+  }, []);
+  const finishOf = new Map(tools?.finish.map((f) => [f.mangaId, f]));
   const lastPage = Math.max(0, Math.ceil(manga.length / PAGE_SIZE) - 1);
   const pageIndex = page.key === resetKey ? Math.min(page.index, lastPage) : 0;
   const shown = manga.slice(pageIndex * PAGE_SIZE, (pageIndex + 1) * PAGE_SIZE);
@@ -88,12 +108,14 @@ export default function VolumesView({
         {plural(volumes, "volume")} across{" "}
         {plural(manga.length, "series", "series")}
       </p>
+      {tools && !searching && <ShelfTotals tools={tools} />}
       {pager(false)}
       <ul ref={listRef} className={styles.list}>
         {shown.map((m) => (
           <SeriesRow
             key={m.id}
             manga={m}
+            finish={finishOf.get(m.id)}
             open={open === m.id}
             onToggle={() => setOpen((o) => (o === m.id ? null : m.id))}
           />
@@ -106,17 +128,73 @@ export default function VolumesView({
   );
 }
 
+// the whole shelf: what it would fetch used, and what finishing every series
+// comes to. An estimate says so, with how much of it is real prices
+function ShelfTotals({ tools }: { tools: ShelfTools }) {
+  const { value } = tools;
+  const worth = totalText(
+    value.cents,
+    value.priced,
+    value.volumes,
+    value.estimateCents,
+  );
+  const finish = totalText(
+    tools.finishCents,
+    tools.finishPriced,
+    tools.finishMissing,
+    tools.finishEstimateCents,
+  );
+  if (!worth && !finish) return null;
+  return (
+    <dl className={styles.totals}>
+      {worth && (
+        <div className={styles.total}>
+          <dt className={styles.totalLabel}>Worth used</dt>
+          <dd className={styles.totalValue}>{worth}</dd>
+          {value.priced < value.volumes && (
+            <dd className={styles.totalNote}>
+              estimate · {value.priced.toLocaleString()} of{" "}
+              {plural(value.volumes, "volume")} priced
+            </dd>
+          )}
+        </div>
+      )}
+      {finish && (
+        <div className={styles.total}>
+          <dt className={styles.totalLabel}>To finish every series</dt>
+          <dd className={styles.totalValue}>{finish}</dd>
+          <dd className={styles.totalNote}>
+            {plural(tools.finishMissing, "volume")} to go
+            {tools.finishPriced < tools.finishMissing &&
+              ` · ${tools.finishPriced.toLocaleString()} priced`}
+          </dd>
+        </div>
+      )}
+    </dl>
+  );
+}
+
 function SeriesRow({
   manga,
+  finish,
   open,
   onToggle,
 }: {
   manga: Manga;
+  finish?: FinishRow;
   open: boolean;
   onToggle: () => void;
 }) {
   const owned = ownedOf(manga);
   const panelId = `volumes-${manga.id}`;
+  const toFinish =
+    finish &&
+    totalText(
+      finish.cents,
+      finish.priced,
+      finish.missing.length,
+      finish.estimateCents,
+    );
   return (
     <li className={styles.item}>
       <button
@@ -146,12 +224,26 @@ function SeriesRow({
           </span>
           <span className={styles.which}>
             {owned.length === 1 ? "vol." : "vols."} {rangesText(owned)}
+            {finish && (
+              <span className={styles.toGo}>
+                <span className="upto-520:hidden"> · </span>
+                {finish.missing.length} to go
+                {toFinish && ` · ${toFinish}`}
+              </span>
+            )}
           </span>
         </span>
         <span className={styles.count}>{owned.length}</span>
         <ChevronDownIcon className={styles.chevron} />
       </button>
-      {open && <SeriesVolumes id={panelId} manga={manga} owned={owned} />}
+      {open && (
+        <SeriesVolumes
+          id={panelId}
+          manga={manga}
+          owned={owned}
+          finish={finish}
+        />
+      )}
     </li>
   );
 }
@@ -162,10 +254,12 @@ function SeriesVolumes({
   id,
   manga,
   owned,
+  finish,
 }: {
   id: string;
   manga: Manga;
   owned: number[];
+  finish?: FinishRow;
 }) {
   // undefined while asking; null if the list couldn't be had
   const [list, setList] = useState<SeriesVolume[] | null | undefined>();
@@ -231,6 +325,7 @@ function SeriesVolumes({
           </li>
         ))}
       </ul>
+      {finish && <FinishList row={finish} series={series} />}
     </div>
   );
 }

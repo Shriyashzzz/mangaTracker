@@ -69,6 +69,14 @@ export function ReleaseTools({
           >
             How this works
           </NavLink>
+          {/* what's still to come, by month, for the series on the shelf */}
+          <NavLink
+            to="/calendar"
+            className={styles.hiddenToggle}
+            viewTransition
+          >
+            Calendar
+          </NavLink>
           {hiddenCount > 0 && !viewingHidden && (
             <button
               type="button"

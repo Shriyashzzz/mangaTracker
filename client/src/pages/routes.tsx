@@ -10,6 +10,7 @@ import ToPriceHome from "./Prices/ToPriceHome";
 import { AboutPage } from "./About/About";
 import { UpdatesPage } from "./Updates/Updates";
 import { AcknowledgementsPage } from "./Acknowledgements/Acknowledgements";
+import CalendarPage from "./Calendar/Calendar";
 import NewReleasesPage from "./NewReleases/NewReleases";
 import SharedShelfPage from "./SharedShelf/SharedShelf";
 import SeriesIndex from "./Prices/SeriesIndex";
@@ -65,6 +66,7 @@ export const routes = [
       { path: "/updates", element: <UpdatesPage /> },
       { path: "/acknowledgements", element: <AcknowledgementsPage /> },
       { path: "/new-releases", element: <NewReleasesPage /> },
+      { path: "/calendar", element: <CalendarPage /> },
       {
         path: "/settings/:tab?",
         lazy: page(

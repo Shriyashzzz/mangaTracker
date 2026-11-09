@@ -97,6 +97,8 @@ export async function getShelfTools(userId: number): Promise<ShelfTools> {
 export type CalendarEntry = ReturnType<typeof upcoming>[number] & {
   mangaId: number;
   name: string;
+  // the series' cover on the shelf: a volume this far off rarely has its own
+  seriesCover: string | null;
   // they own it already (preordered and marked)
   owned: boolean;
 };
@@ -111,6 +113,7 @@ export async function getCalendar(userId: number) {
         ...u,
         mangaId: s.manga.id,
         name: s.manga.name,
+        seriesCover: s.manga.image ?? null,
         owned: u.volume !== null && mine.has(u.volume),
       }));
     })

@@ -77,6 +77,80 @@ const STARTING_SHELF: Manga[] = [
   }),
 ];
 
+// the shelf tools for the practice shelf: each owned volume worth $6.50
+// used, and the next three after the last owned still to get, at made-up
+// prices from two stores
+const PRACTICE_STORES = ["Books-A-Million", "eBay"];
+function practiceShelfTools(shelf: Manga[]) {
+  const owners = shelf.filter((m) => m.volumesOwned);
+  const finish = owners.map((m) => {
+    const missing = [1, 2, 3].map((i) => {
+      const volume = m.volumesOwned! + i;
+      return {
+        volume,
+        isbn13: `978000000${String(m.id).padStart(2, "0")}${String(volume).padStart(2, "0")}`,
+        title: `${m.name}, Vol. ${volume}`,
+        // the last one isn't priced yet
+        cheapest:
+          i < 3
+            ? { cents: 999 + i * 50, store: PRACTICE_STORES[i % 2]!, url: null }
+            : null,
+      };
+    });
+    const cents = missing.reduce((sum, v) => sum + (v.cheapest?.cents ?? 0), 0);
+    return {
+      mangaId: m.id,
+      name: m.name,
+      missing,
+      cents,
+      priced: 2,
+      estimateCents: cents + 1049,
+    };
+  });
+  const owned = owners.reduce((sum, m) => sum + m.volumesOwned!, 0);
+  return {
+    value: {
+      cents: owned * 650,
+      priced: owned,
+      volumes: owned,
+      estimateCents: owned * 650,
+    },
+    finish,
+    finishCents: finish.reduce((sum, f) => sum + f.cents, 0),
+    finishPriced: finish.length * 2,
+    finishMissing: finish.length * 3,
+    finishEstimateCents: finish.reduce((sum, f) => sum + f.estimateCents, 0),
+  };
+}
+
+// a couple of volumes coming out over the next two months
+function practiceCalendar(shelf: Manga[]) {
+  const owners = shelf.filter((m) => m.volumesOwned).slice(0, 2);
+  return owners.map((m, i) => {
+    const day = new Date();
+    day.setUTCMonth(day.getUTCMonth() + i + 1, 12);
+    const published = day.toISOString().slice(0, 10);
+    const volume = m.volumesOwned! + 4;
+    return {
+      month: published.slice(0, 7),
+      volumes: [
+        {
+          volume,
+          isbn13: `978000009${String(m.id).padStart(2, "0")}${String(volume).padStart(2, "0")}`,
+          title: `${m.name}, Vol. ${volume}`,
+          coverUrl: m.image,
+          published,
+          month: published.slice(0, 7),
+          mangaId: m.id,
+          name: m.name,
+          seriesCover: m.image,
+          owned: false,
+        },
+      ],
+    };
+  });
+}
+
 const readShelf = (): Manga[] => {
   try {
     const saved = sessionStorage.getItem(SHELF_KEY);
@@ -478,6 +552,11 @@ export function demoResponse(
       volumes: manga?.id === 1 ? seriesVolumes(name, manga.image) : [],
     });
   }
+  // the shelf tools, made up from the practice shelf
+  if (route === "/api/collector/shelf") return json(practiceShelfTools(shelf));
+  if (route === "/api/collector/calendar")
+    return json({ months: practiceCalendar(shelf) });
+  if (route === "/api/collector/deals") return json({ deals: [] });
   if (route === "/api/prices/highlights") {
     return json({ trending: [], deals: [], recent: [] });
   }

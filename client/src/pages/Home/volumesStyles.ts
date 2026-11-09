@@ -4,6 +4,18 @@
 // (pages/Prices/styles.ts cover, coverFallback, vol)
 export const volumesStyles = {
   summary: "mb-3 font-mono text-[0.85rem] text-muted tabular-nums",
+  // the shelf's worth and what finishing it costs: two ledger entries under
+  // the count, the amounts in the brand face like the row counts
+  totals:
+    "-mt-1 mb-4 flex flex-wrap gap-x-10 gap-y-3 border-y border-dashed border-line-soft py-3",
+  total: "flex flex-col gap-0.5",
+  totalLabel:
+    "text-[0.78rem] font-semibold tracking-[0.06em] text-ink-soft uppercase",
+  totalValue:
+    "font-brand text-[1.6rem] leading-none tracking-[0.02em] tabular-nums",
+  totalNote: "font-mono text-[0.75rem] text-muted tabular-nums",
+  // "· 3 to go · about $31" after the owned volumes
+  toGo: "text-muted upto-520:block upto-520:truncate",
   pagerBottom: "mt-8",
   list: "border-t-[1.5px] border-line-soft",
   item: "border-b border-dashed border-line-soft",
@@ -43,6 +55,24 @@ export const volumesStyles = {
   // can wrap to two lines under a narrow phone cover
   labelToGet: "text-[0.8rem] leading-tight text-balance text-muted",
   check: "size-3.5 text-accent",
+
+  // under an opened series: what's left to buy and where
+  finish: "mt-6 border-t border-dashed border-line-soft pt-4",
+  finishHeading:
+    "mb-1 flex items-baseline gap-3 font-body text-[0.9rem] font-semibold",
+  finishTotal:
+    "font-brand text-[1.2rem] font-normal tracking-[0.02em] tabular-nums",
+  finishNote: "mb-2 text-[0.8rem] text-muted",
+  finishList:
+    "mb-2 grid grid-cols-[repeat(auto-fill,minmax(240px,1fr))] gap-x-6",
+  finishRow:
+    "flex items-baseline justify-between gap-3 border-b border-dotted border-line-soft py-1.5 text-[0.88rem]",
+  finishVol: "shrink-0 font-medium tabular-nums",
+  finishLink:
+    "tap min-w-0 truncate text-right text-ink-soft underline decoration-line-soft underline-offset-3 hover:text-ink hover:decoration-current focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent focus-visible:outline-dashed",
+  finishPrice: "font-mono font-semibold text-ink tabular-nums",
+  unpriced: "mt-2 text-[0.84rem] text-ink-soft",
+  unpricedVols: "font-mono text-ink",
 
   empty:
     "mx-auto my-6 flex max-w-[460px] flex-col items-center gap-2 border-[1.5px] border-dashed border-line-soft p-8 text-center",

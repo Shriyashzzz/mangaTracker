@@ -15,6 +15,7 @@ import { usePageMeta } from "../../lib/seo";
 import WhatsNew from "../../components/whatsNew/WhatsNew";
 import ReleaseTip from "../../components/whatsNew/ReleaseTip";
 import TakeTourButton from "../../components/tour/TakeTourButton";
+import DealsStrip from "../../components/deals/DealsStrip";
 
 // phones get short names, so three even buttons fit across
 const QUICK_PICKS = [
@@ -78,6 +79,7 @@ export default function PriceSearch() {
           <span className={styles.homeHit}>priced</span>.
         </h1>
       )}
+      {!searching && <DealsStrip />}
       <div className={styles.front}>
         <div className={guest ? styles.halves : undefined}>
           {guest && (
