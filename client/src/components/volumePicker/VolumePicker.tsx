@@ -342,7 +342,11 @@ export function useVolumePicker(
               setShown((n) => Math.max(n, spines.length) + MORE);
             }}
           >
-            Show {MORE} more
+            {/* every volume known to be out is already showing: these are
+                spines past it, not ones that exist for sure */}
+            {known && spines.length >= known
+              ? `Show ${MORE} past vol. ${spines.length}`
+              : `Show ${MORE} more`}
           </button>
           {owned.length > 0 && (
             <button
