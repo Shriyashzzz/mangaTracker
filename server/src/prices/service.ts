@@ -180,6 +180,18 @@ async function getOrCreateBook(isbn13: string) {
   return priceQueries.getBook(isbn13);
 }
 
+// whether a volume page would find its book, the way getOrCreateBook does, but
+// without storing anything: for telling search engines a page is really
+// missing. A catalog that can't be reached throws, so that's never "missing"
+export async function volumeExists(isbn13: string): Promise<boolean> {
+  const [stored, saved] = await Promise.all([
+    priceQueries.getBook(isbn13),
+    priceQueries.getSavedVolume(isbn13).catch(() => null),
+  ]);
+  if (stored || saved) return true;
+  return Boolean(await lookupIsbn(isbn13));
+}
+
 // a volume's release date while it's still to come, as its series page has it
 // (dates found under other names and catalogs included). For the Canada
 // prices, which have only the ISBN: a preorder spends no paid searches there
@@ -806,14 +818,19 @@ export async function getVolumeSummary(isbn13: string) {
   const bestNew = inStock.find(
     (o) => o.condition === "new" && o.format === "print",
   );
-  const series = await getSeriesInfo(seriesName(book.title)).catch(() => null);
+  const [series, [coverRow]] = await Promise.all([
+    getSeriesInfo(seriesName(book.title)).catch(() => null),
+    priceQueries.getCoverIds([isbn13]).catch(() => []),
+  ]);
   return {
     isbn13: book.isbn13.trim(),
     title: book.title,
     authors: book.authors,
     publisher: book.publisher,
     year: book.year,
-    coverUrl: book.coverUrl,
+    // an edition we know has no cover: none, so previews and search engines
+    // get the series' picture instead of an image address that answers 404
+    coverUrl: coverRow && coverRow.coverId === null ? null : book.coverUrl,
     seriesName: series?.name ?? seriesName(book.title),
     seriesCoverUrl: series?.coverUrl ?? null,
     stores: [...new Set(offers.map((o) => o.store))],

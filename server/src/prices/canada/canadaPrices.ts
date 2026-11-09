@@ -6,6 +6,7 @@ import { upcomingReleaseOf } from "../service.js";
 import config from "../../config/config.js";
 import { prisma } from "../../config/prisma.js";
 import priceQueries from "../../models/priceQueries.js";
+import { ebayApiEnabled, searchEbay } from "../providers/ebay.js";
 import { searchSerpApi, serpApiEnabled } from "../providers/serpapiClient.js";
 import { shoppingQuery } from "../stores/match.js";
 import {
@@ -218,6 +219,24 @@ async function checkCanadaPrices(
         }
       : null;
 
+  // eBay.ca from eBay's own free API when it's set up, else through SerpApi
+  const ebayCall: Promise<{ offers: Offer[] } | "failed" | "budget"> =
+    ebayApiEnabled()
+      ? searchEbay(isbn13, title, "CA", AbortSignal.timeout(15_000)).then(
+          (offers) => ({ offers }),
+          () => "failed" as const,
+        )
+      : search<{ error?: string; organic_results?: CaEbayResult[] }>({
+          engine: "ebay",
+          ebay_domain: "ebay.ca",
+          _nkw: isbn13,
+          _sop: "15",
+          buying_format: "BIN",
+        }).then((r) =>
+          typeof r === "object"
+            ? { offers: ebayCaOffers(r.data.organic_results ?? [], title) }
+            : r,
+        );
   const [shopping, ebay] = await Promise.all([
     search<{ error?: string; shopping_results?: CaShoppingResult[] }>({
       engine: "google_shopping",
@@ -227,13 +246,7 @@ async function checkCanadaPrices(
       google_domain: "google.ca",
       location: "Canada",
     }),
-    search<{ error?: string; organic_results?: CaEbayResult[] }>({
-      engine: "ebay",
-      ebay_domain: "ebay.ca",
-      _nkw: isbn13,
-      _sop: "15",
-      buying_format: "BIN",
-    }),
+    ebayCall,
   ]);
   // only a check where every store answered is saved: a half one would hide
   // stores for 20 days. The last full check stays up meanwhile
@@ -258,10 +271,7 @@ async function checkCanadaPrices(
             : [],
           title,
         ),
-        ...ebayCaOffers(
-          typeof ebay === "object" ? (ebay.data.organic_results ?? []) : [],
-          title,
-        ),
+        ...(typeof ebay === "object" ? ebay.offers : []),
       ]),
       checkedAt: null,
     };
@@ -270,11 +280,9 @@ async function checkCanadaPrices(
   const shoppingData = (
     shopping as { data: { shopping_results?: CaShoppingResult[] } }
   ).data;
-  const ebayData = (ebay as { data: { organic_results?: CaEbayResult[] } })
-    .data;
   const offers = believableOffers([
     ...shoppingOffers(shoppingData.shopping_results ?? [], title),
-    ...ebayCaOffers(ebayData.organic_results ?? [], title),
+    ...(ebay as { offers: Offer[] }).offers,
   ]);
   const at = new Date();
   await prisma.$transaction([
