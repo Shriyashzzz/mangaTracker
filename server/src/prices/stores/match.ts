@@ -150,18 +150,22 @@ export const listingMatches = (listingTitle: string, bookTitle: string) => {
 };
 
 // for a search by title (eBay, when the ISBN isn't enough), where the other
-// format turns up easily, so each must say what it is: a light novel's
-// listing that it's a novel, a manga's that it's manga (or a comic). "Light
-// nov…" cut short still counts as a novel
+// format turns up easily. A light novel's listing must say it's a novel. A
+// manga's must not, and when the other format is around (the series has
+// both, like Overlord) it must say it's manga (or a comic), since a novel's
+// listing doesn't always say so. "Light nov…" cut short still counts
 const CUT_NOVEL = /\blight\s*nov/i;
-export const formatFits = (listingTitle: string, bookTitle: string) => {
+export const saysNovel = (title: string) =>
+  new RegExp(SAYS_NOVEL.source, "i").test(title) || CUT_NOVEL.test(title);
+export const formatFits = (
+  listingTitle: string,
+  bookTitle: string,
+  bothFormatsAround = true,
+) => {
   if (otherFormat(listingTitle, bookTitle)) return false;
-  if (isNovelBook(bookTitle))
-    return (
-      new RegExp(SAYS_NOVEL.source, "i").test(listingTitle) ||
-      CUT_NOVEL.test(listingTitle)
-    );
-  return SAYS_MANGA.test(listingTitle) && !CUT_NOVEL.test(listingTitle);
+  if (isNovelBook(bookTitle)) return saysNovel(listingTitle);
+  if (CUT_NOVEL.test(listingTitle)) return false;
+  return !bothFormatsAround || SAYS_MANGA.test(listingTitle);
 };
 
 // the series name right before this volume's number ("Overlord, Vol. 16",
@@ -199,10 +203,13 @@ export const namesSeries = (listingTitle: string, bookTitle: string) => {
 // range that covers it ("Vols. 1-16", "1 to 16"), or a box or complete set
 // with no range. A mixed lot ("lot of 5") with no range isn't one
 const RANGE = /(?<!\d)(\d+)\s*(?:-|–|~|to|thru)\s*(\d+)(?!\d)/gi;
-const BOX_SET = /\b(box(ed)?\s*set|complete\s*(set|series|collection))\b/i;
+// with no range, only a complete set surely holds this volume: "Box Set 3:
+// Thriller Bark to New World" doesn't say which volumes it has
+const COMPLETE_SET =
+  /\bcomplete\b.*\b(box(ed)?\s*set|set|series|collection)\b/i;
 // a listing that sells one volume of many ("Vol 1-26, pick your volume",
 // "price for 1 volume only"): its range isn't what's for sale
-const PICK_ONE =
+export const PICK_ONE =
   /\b(pick|choose|select|variations?|you\s*pick|each|individual(ly)?|price\s*for\s*(1|one)|single\s*volumes?|singles)\b/i;
 const rangesOf = (listingTitle: string) =>
   [...listingTitle.matchAll(RANGE)]
@@ -222,7 +229,7 @@ export const setHolds = (listingTitle: string, bookTitle: string) => {
       !isNaN(wanted) &&
       ranges.some(([from, to]) => wanted >= from && wanted <= to)
     );
-  return BOX_SET.test(listingTitle);
+  return COMPLETE_SET.test(listingTitle);
 };
 
 // "Frieren: Beyond Journey's End" -> "frieren-beyond-journey-s-end"

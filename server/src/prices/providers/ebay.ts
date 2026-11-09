@@ -10,10 +10,12 @@ import {
   JAPANESE_EDITION,
   formatFits,
   isNovelBook,
+  saysNovel,
   isSingleVolume,
   listingMatches,
   namesOtherVolume,
   NOT_A_BOOK,
+  PICK_ONE,
   namesSeries,
   seriesName,
   setHolds,
@@ -107,12 +109,17 @@ export function browseOffers(
 ): Offer[] {
   const { currency, store } = MARKETS[market];
   const offers: Offer[] = [];
+  // novels among the results: the series has both formats, so a manga's
+  // listing has to say it's manga
+  const bothFormats = items.some((i) => saysNovel(i.title ?? ""));
   for (const item of items) {
     const name = item.title ?? "";
     const shippingValue = item.shippingOptions?.[0]?.shippingCost?.value;
     if (!item.price || item.price.currency !== currency) continue;
     if (shippingValue === undefined || !item.itemWebUrl) continue;
     if (JAPANESE_EDITION.test(name) || /\bimport\b/i.test(name)) continue;
+    // "choose from list": one of many books, which one unknown
+    if (PICK_ONE.test(name)) continue;
     // a title search finds the series' merchandise too
     if (by === "title" && NOT_A_BOOK.test(name)) continue;
     const set = !isSingleVolume(name);
@@ -122,7 +129,7 @@ export function browseOffers(
         by === "title" &&
         !(
           namesSeries(name, title) &&
-          formatFits(name, title) &&
+          formatFits(name, title, bothFormats) &&
           setOfBooks(name)
         )
       )
@@ -135,7 +142,7 @@ export function browseOffers(
       !(
         listingMatches(name, title) &&
         seriesThenVolume(name, title) &&
-        formatFits(name, title)
+        formatFits(name, title, bothFormats)
       )
     ) {
       continue;
@@ -180,16 +187,23 @@ export function titleQueries(title: string) {
   };
 }
 
+// eBay's Books & Magazines category. A title search runs only there: sorted
+// by price, a popular series' first 50 results are otherwise all trading
+// cards (One Piece's were)
+const BOOKS_CATEGORY = "267";
+
 // one search: fixed-price listings that ship to the market's country,
 // cheapest first
 async function browse(
   q: string,
   market: EbayMarket,
   signal: AbortSignal,
+  category?: string,
 ): Promise<ItemSummary[]> {
   const { id, country } = MARKETS[market];
   const params = new URLSearchParams({
     q,
+    ...(category && { category_ids: category }),
     filter: `buyingOptions:{FIXED_PRICE},deliveryCountry:${country}${
       market === "US" ? ",itemLocationCountry:US" : ""
     }`,
@@ -230,8 +244,10 @@ export async function searchEbay(
   const queries = titleQueries(title);
   const [byIsbn, byTitle, sets] = await Promise.allSettled([
     browse(isbn13, market, signal),
-    queries.volume ? browse(queries.volume, market, signal) : [],
-    browse(queries.sets, market, signal),
+    queries.volume
+      ? browse(queries.volume, market, signal, BOOKS_CATEGORY)
+      : [],
+    browse(queries.sets, market, signal, BOOKS_CATEGORY),
   ]);
   // the ISBN search is the one that must answer
   if (byIsbn.status === "rejected") throw byIsbn.reason;

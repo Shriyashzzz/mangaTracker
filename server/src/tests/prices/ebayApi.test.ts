@@ -197,3 +197,59 @@ test("a title search asks for the volume, and for box sets", () => {
   // no number: no single-volume search
   expect(titleQueries("Case Closed").volume).toBeNull();
 });
+
+test("a numbered box set naming no range, or a choose-one listing, is left out", () => {
+  expect(
+    formats(
+      [
+        item({
+          title: "One Piece Box Set 3: Thriller Bark to New World - Paperback",
+          price: usd("175.23"),
+        }),
+        item({
+          title:
+            "manga graphic novels English language Viz Shonen choose from list",
+          price: usd("9.97"),
+        }),
+      ],
+      "One Piece, Vol. 8",
+      "isbn",
+    ),
+  ).toEqual([]);
+  // a complete set holds every volume
+  expect(
+    formats(
+      [
+        item({
+          title: "Bleach Complete Box Set English Manga",
+          price: usd("250.00"),
+        }),
+      ],
+      "Bleach, Vol. 8",
+      "isbn",
+    ),
+  ).toEqual(["set 25400"]);
+});
+
+test("a manga copy needn't say manga, unless the series' novels are in the results", () => {
+  const plain = item({
+    title: "One Piece, Vol. 12: The Legend Begins",
+    price: usd("5.44"),
+  });
+  expect(formats([plain], "One Piece, Vol. 12", "title")).toEqual([
+    "print 944",
+  ]);
+  expect(
+    formats(
+      [
+        plain,
+        item({
+          title: "One Piece: Ace's Story novel Vol. 1",
+          price: usd("8.00"),
+        }),
+      ],
+      "One Piece, Vol. 12",
+      "title",
+    ),
+  ).toEqual([]);
+});
