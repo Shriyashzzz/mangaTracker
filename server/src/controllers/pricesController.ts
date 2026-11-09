@@ -120,8 +120,9 @@ const volume = [
   ...isbnParam,
   async (req: Request, res: Response) => {
     // a live check (paid searches) only for a page that passed Turnstile
+    const crawler = isCrawler(req.get("user-agent"));
     const live =
-      !isCrawler(req.get("user-agent")) &&
+      !crawler &&
       req.query.stored !== "1" &&
       (await isHuman(req.query.human, req.ip));
     const data = await upstream(
@@ -134,6 +135,7 @@ const volume = [
             // ?stored=1: what's stored, never a refresh. Every volume page asks
             // this first (and it's all a Canadian viewer gets)
             refresh: live,
+            report: !crawler,
           }),
         ),
     );

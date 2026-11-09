@@ -15,16 +15,28 @@ CREATE TABLE "price_source_checks" (
 ALTER TABLE "price_source_checks" ADD CONSTRAINT "price_source_checks_isbn13_fkey"
     FOREIGN KEY ("isbn13") REFERENCES "books"("isbn13") ON DELETE CASCADE ON UPDATE NO ACTION;
 
--- prices saved before: their group from the store, which is how each source
--- names them (Google Shopping lists other stores too, so near enough; it only
--- decides which group's next check replaces the row)
+-- prices saved before: the group of the source that found them. For each
+-- volume's latest check (the prices showing now) a store's own source counts
+-- only when it ran in that check; anything else came through Google Shopping.
+-- Older prices are only history, sorted by store
+UPDATE "price_samples" ps SET "source" = CASE
+    WHEN ps."store" ILIKE 'ebay%' AND pc."sources" && ARRAY['serpapi-ebay', 'ebay']::text[] THEN 'ebay'
+    WHEN ps."store" ILIKE 'amazon%' AND pc."sources" && ARRAY['serpapi-amazon', 'keepa']::text[] THEN 'amazon'
+    WHEN ps."format" = 'ebook' AND 'google-books' = ANY(pc."sources") THEN 'ebooks'
+    WHEN ps."store" ILIKE 'walmart%' AND pc."sources" && ARRAY['walmart', 'serpapi-walmart']::text[] THEN 'walmart'
+    ELSE 'shopping'
+END
+FROM "price_checks" pc
+WHERE pc."isbn13" = ps."isbn13" AND ps."fetched_at" = pc."checked_at";
+
 UPDATE "price_samples" SET "source" = CASE
     WHEN "store" ILIKE 'ebay%' THEN 'ebay'
     WHEN "store" ILIKE 'amazon%' THEN 'amazon'
     WHEN "format" = 'ebook' THEN 'ebooks'
     WHEN "store" ILIKE 'walmart%' THEN 'walmart'
     ELSE 'shopping'
-END;
+END
+WHERE "source" IS NULL;
 
 -- each volume's latest check becomes the last check of every group in it, so
 -- every page keeps showing exactly the prices it showed
@@ -46,6 +58,8 @@ SELECT pc."isbn13",
            WHEN 'keepa' THEN 'amazon'
            WHEN 'google-books' THEN 'ebooks'
            WHEN 'walmart' THEN 'walmart'
+           -- Walmart through SerpApi, an older source
+           WHEN 'serpapi-walmart' THEN 'walmart'
            ELSE s.id
        END,
        pc."checked_at"

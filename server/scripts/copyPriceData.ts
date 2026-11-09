@@ -89,6 +89,25 @@ async function main() {
     `${apply ? "COPYING" : "DRY RUN"}: ${hostOf(from!)} -> ${hostOf(to!)}\n`,
   );
 
+  // prices are read by source group (price_source_checks): both databases
+  // need that migration, or copied prices wouldn't show (or the copy fails)
+  for (const [db, name] of [
+    [source, "source"],
+    [target, "target"],
+  ] as const) {
+    const { rows } = await db.query(
+      `SELECT to_regclass('public.price_source_checks') IS NOT NULL AS ok,
+              EXISTS (SELECT 1 FROM information_schema.columns
+                      WHERE table_name = 'price_samples' AND column_name = 'source') AS col`,
+    );
+    if (!rows[0].ok || !rows[0].col) {
+      console.error(
+        `The ${name} database is missing the price_source_checks migration. Run prisma migrate deploy on it first.`,
+      );
+      process.exit(1);
+    }
+  }
+
   if (apply) await target.query("BEGIN");
   try {
     for (const [table, columns, key] of TABLES) {

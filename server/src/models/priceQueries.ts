@@ -152,16 +152,10 @@ export async function getCurrentRows(isbn13: string) {
 
 // the same, as plain offers for pages
 export async function getCurrentOffers(isbn13: string): Promise<StoredOffer[]> {
-  return (await getCurrentRows(isbn13)).map((row) => ({
-    store: row.store,
-    format: row.format,
-    condition: row.condition,
-    priceCents: row.priceCents,
-    currency: row.currency,
-    inStock: row.inStock,
-    url: row.url,
-    fetchedAt: row.fetchedAt,
-  }));
+  return (await getCurrentRows(isbn13)).map(
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    ({ isbn13: _isbn, source: _source, ...offer }) => offer,
+  );
 }
 
 const groupBy = <T, K>(items: T[], keyOf: (item: T) => K) => {
@@ -231,7 +225,9 @@ export async function getPriceHistory(
       GROUP BY kind
     `,
     prisma.$queryRaw<Omit<PriceHistory, "kinds">[]>`
-      SELECT COUNT(DISTINCT fetched_at)::int AS "checks",
+      -- full checks only: eBay alone looks again every few days, and those
+      -- in-between looks aren't counted as checks of the stores
+      SELECT COUNT(DISTINCT fetched_at) FILTER (WHERE source IS DISTINCT FROM 'ebay')::int AS "checks",
              MIN(fetched_at) AS "since", MAX(fetched_at) AS "lastSeen"
       FROM price_samples
       WHERE isbn13 = ${isbn13} AND in_stock AND id::text <> ALL(${ignored}::text[])
@@ -305,11 +301,14 @@ type RecentPrice = {
 // so the price home page can show deals and recent checks for free
 export async function getRecentBestPrices(limit = 40): Promise<RecentPrice[]> {
   return prisma.$queryRaw<RecentPrice[]>`
+    -- each check's cheapest new print copy, for the average: full checks
+    -- only, not eBay's in-between looks, whose cheapest is only eBay's
     WITH best AS (
       SELECT isbn13, fetched_at, MIN(price_cents) AS p
       FROM price_samples
       WHERE condition = 'new' AND format = 'print'
       GROUP BY isbn13, fetched_at
+      HAVING bool_or(source IS DISTINCT FROM 'ebay')
     ),
     -- each volume's cheapest new print copy among its prices now (each
     -- source group's last check), dated by the newest of those checks

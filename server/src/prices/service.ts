@@ -41,7 +41,7 @@ import {
   storeLinks,
 } from "./stores/storeLinks.js";
 import { editionCoverId } from "./sources/covers.js";
-import { dropUnlikelyNew } from "./stores/retailers.js";
+import { dropUnlikelyNew, unlikelyNewTest } from "./stores/retailers.js";
 import { baseName, isNovelName, novelName } from "./lightNovel.js";
 import { volumesKey } from "./volumesKey.js";
 import type {
@@ -118,18 +118,43 @@ export async function dueProviders(isbn13: string): Promise<Provider[]> {
   const now = Date.now();
   return enabledProviders().filter((p) => {
     if (isPaid(p) && !searchesLeft) return false;
+    if (failedRecently(isbn13, p)) return false;
     const at = checks.get(groupOf(p));
     return !at || now - at.getTime() >= freshForMs(groupOf(p));
   });
 }
 
+// A provider that failed for a volume (timed out, an error) waits a while
+// before trying it again, so a source that keeps failing for one ISBN can't
+// run (and maybe spend a paid search) on every page view. In memory: a
+// restart only means one more try
+const FAILED_WAIT_MS = DAY_MS;
+const failures = new Map<string, number>();
+const failureKey = (isbn13: string, p: Pick<Provider, "id">) =>
+  `${isbn13}|${p.id}`;
+const failedRecently = (isbn13: string, p: Pick<Provider, "id">) => {
+  const at = failures.get(failureKey(isbn13, p));
+  return at !== undefined && Date.now() - at < FAILED_WAIT_MS;
+};
+const noteFailure = (isbn13: string, p: Pick<Provider, "id">) => {
+  failures.delete(failureKey(isbn13, p));
+  failures.set(failureKey(isbn13, p), Date.now());
+  if (failures.size > 10_000) failures.delete(failures.keys().next().value!);
+};
+
 // asks the due providers at once; one failing doesn't stop the others.
 // Google Shopping (one paid search covering many stores) is asked only when
-// neither this round nor the prices still current from other groups have a
-// print copy; when it isn't needed it still counts as looked at, so it isn't
-// due again until its time. Each group that answered gets its prices replaced;
-// a group that failed, wasn't due or ran out of searches keeps its own
-async function fetchProviders(isbn13: string, book: Book, due: Provider[]) {
+// neither this round nor the other groups' current prices have a print copy
+// (its own old prices don't count: they're what it's due to look at again);
+// when it isn't needed it counts as looked at, so it isn't due again before
+// its time. Only groups that answered get their prices replaced; one that
+// failed, wasn't due or ran out of searches keeps its own. Nothing is saved
+// unless a source really answered
+export async function fetchProviders(
+  isbn13: string,
+  book: Book,
+  due: Provider[],
+) {
   const first = due.filter((p) => p.id !== GOOGLE_SHOPPING);
   const shopping = due.find((p) => p.id === GOOGLE_SHOPPING);
   const groups = new Map<string, Offer[]>();
@@ -148,32 +173,50 @@ async function fetchProviders(isbn13: string, book: Book, due: Provider[]) {
         const group = groupOf(provider);
         groups.set(group, [...(groups.get(group) ?? []), ...r.value]);
       } else if (!(r.reason instanceof SearchesUsedUp)) {
+        noteFailure(isbn13, provider);
         console.error(`price provider ${provider.id} failed:`, r.reason);
       }
     });
   };
   await ask(first);
+
+  // what's still current from the groups not answering this round
+  const current = await priceQueries.getCurrentRows(isbn13);
+  const kept = current.filter((o) => !groups.has(o.source));
   if (shopping) {
     const fresh = [...groups.values()].flat();
-    // prices still current from groups not asked this round
-    const kept = (await priceQueries.getCurrentRows(isbn13)).filter(
-      (o) => !groups.has(o.source),
-    );
-    if (needsGoogleShopping([...fresh, ...kept])) await ask([shopping]);
+    const others = kept.filter((o) => o.source !== groupOf(shopping));
+    if (needsGoogleShopping([...fresh, ...others])) await ask([shopping]);
     else groups.set(groupOf(shopping), []);
   }
+  // nothing answered (an outage, searches out): nothing is recorded, so every
+  // group keeps the prices it last found
+  if (!sources.length) return;
 
-  // only groups that answered are recorded: an outage, or searches running
-  // out, leaves the prices that group last found
-  if (!groups.size) return;
-  // judged against this volume's own usual new price before storing, so a
-  // fake bargain never reaches the history
+  // a group no enabled provider serves any more (its keys were removed, or the
+  // migration sorted an old row into it) is cleared once it's past its time,
+  // so its prices can't stay up for ever
+  const served = new Set(enabledProviders().map(groupOf));
+  const checks = await priceQueries.getSourceChecks(isbn13);
+  for (const [group, at] of checks) {
+    if (!served.has(group) && Date.now() - at.getTime() >= freshForMs(group))
+      groups.set(group, []);
+  }
+
+  // judged against this volume's usual new price and against every price
+  // that will be current alongside them (the other groups' too), so an
+  // eBay-only check still drops a "new" copy far above the big stores'
   const usual = await priceQueries.getNewPriceMedian(isbn13);
+  const fresh = [...groups].map(
+    ([group, offers]) => [group, preferDirectRows(offers)] as const,
+  );
+  const alongside = [
+    ...fresh.flatMap(([, offers]) => offers),
+    ...kept.filter((o) => !groups.has(o.source)),
+  ];
+  const unlikely = unlikelyNewTest(alongside, usual);
   const judged = new Map(
-    [...groups].map(([group, offers]) => [
-      group,
-      dropUnlikelyNew(preferDirectRows(offers), usual),
-    ]),
+    fresh.map(([group, offers]) => [group, offers.filter((o) => !unlikely(o))]),
   );
   await priceQueries.saveCheck(isbn13, sources, judged);
 }
@@ -288,7 +331,12 @@ export async function upcomingReleaseOf(isbn13: string) {
 }
 
 // `refresh: false` shows what's stored without fetching new prices (crawlers)
-export async function getVolumePrices(isbn13: string, { refresh = true } = {}) {
+// `refresh`: a live check may run. `report`: say whether one would (the
+// page's "refreshable"); crawlers never run one, so they're spared asking
+export async function getVolumePrices(
+  isbn13: string,
+  { refresh = true, report = true } = {},
+) {
   const book = await getOrCreateBook(isbn13);
   if (!book) return null;
 
@@ -314,7 +362,7 @@ export async function getVolumePrices(isbn13: string, { refresh = true } = {}) {
   // whether a live check (with Turnstile) would look again: the page shows
   // these stored prices first and only asks for one when it would
   const refreshable =
-    known && !preorder && (await dueProviders(isbn13)).length > 0;
+    report && known && !preorder && (await dueProviders(isbn13)).length > 0;
   const [stored, usual] = await Promise.all([
     priceQueries.getCurrentOffers(isbn13),
     priceQueries.getNewPriceMedian(isbn13),
