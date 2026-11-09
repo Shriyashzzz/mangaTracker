@@ -410,7 +410,8 @@ export default function Details() {
                   key={mangaData.id}
                   total={shelfTotal}
                   owned={owned}
-                  onToggle={toggleOwned}
+                  onToggle={toggleOwned.toggle}
+                  onPaint={toggleOwned.paint}
                   name={mangaData.name}
                 />
               </div>

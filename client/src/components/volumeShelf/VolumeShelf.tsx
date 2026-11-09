@@ -5,8 +5,11 @@
 // big book to tick, and slides to move along. A series short enough to hit
 // with a finger ticks with one tap. On a touch screen, a series whose books
 // would be thinner than a finger shows a page of full-size books instead,
-// starting near the one after the furthest they own, with ‹ › or a sideways
-// swipe to move along: one tap ticks.
+// starting near the one after the furthest they own, with ‹ › to move along:
+// one tap ticks. On either of those a sideways slide ticks every book it
+// passes, as on the add and edit forms (VolumePicker): starting on one that's
+// not theirs ticks, on one that is unticks, and sliding back gives the books
+// it leaves what they were. Up and down still scrolls the page.
 // The shelf never changes size, so nothing around it moves. Looks: index.css,
 // "the volume shelf".
 import {
@@ -32,6 +35,8 @@ type Props = {
   total: number;
   owned: number[];
   onToggle: (volume: number) => void;
+  // a slide across the books: everything they own now
+  onPaint: (owned: number[]) => void;
   // the series, for screen readers
   name: string;
 };
@@ -39,7 +44,13 @@ type Props = {
 // room for the ‹ › on a paged shelf
 const NAV = 36;
 
-export default function VolumeShelf({ total, owned, onToggle, name }: Props) {
+export default function VolumeShelf({
+  total,
+  owned,
+  onToggle,
+  onPaint,
+  name,
+}: Props) {
   const box = useRef<HTMLDivElement>(null);
   const shelf = useRef<HTMLDivElement>(null);
   // a finger, not a mouse: thin books get a page of full-size ones instead
@@ -63,10 +74,17 @@ export default function VolumeShelf({ total, owned, onToggle, name }: Props) {
   const [said, setSaid] = useState("");
   const press = useRef<{ x: number; slid: boolean; pick: number | null }>(null);
   const frame = useRef(0);
-  // a finger on a paged shelf: a sideways swipe turns the page, and the tap
-  // the swipe ends in mustn't tick a book
-  const swipe = useRef<{ x: number; y: number } | null>(null);
-  const swiped = useRef(false);
+  // a finger that's just landed on a book: a tap, a sideways slide, or the
+  // page scrolling, which the first move tells apart
+  const landed = useRef<{ v: number; x: number; y: number } | null>(null);
+  // a slide in progress: from the book it started on to the one under the
+  // pointer, ticking them or unticking them, over what they owned before
+  const painting = useRef<null | {
+    from: number;
+    up: boolean;
+    before: number[];
+    to: number;
+  }>(null);
 
   useEffect(() => {
     const el = box.current;
@@ -117,6 +135,75 @@ export default function VolumeShelf({ total, owned, onToggle, name }: Props) {
   const say = (volume: number, theirs: boolean) =>
     setSaid(`Vol. ${volume}, ${theirs ? "yours" : "not yours yet"}`);
 
+  // sliding to tick, as VolumePicker does: the books carry data-vol
+  const volumeAt = (x: number, y: number) => {
+    const el = document
+      .elementFromPoint(x, y)
+      ?.closest<HTMLElement>("[data-vol]");
+    return el ? Number(el.dataset.vol) : null;
+  };
+  const paintTo = (to: number) => {
+    const slide = painting.current;
+    if (!slide || slide.to === to) return;
+    slide.to = to;
+    const next = new Set(slide.before);
+    for (let v = Math.min(slide.from, to); v <= Math.max(slide.from, to); v++) {
+      if (slide.up) next.add(v);
+      else next.delete(v);
+    }
+    onPaint([...next].sort((a, b) => a - b));
+  };
+  const startPainting = (v: number) => {
+    painting.current = { from: v, up: !yours.has(v), before: owned, to: v };
+    onPaint(
+      yours.has(v)
+        ? owned.filter((x) => x !== v)
+        : [...owned, v].sort((a, b) => a - b),
+    );
+  };
+  const stopPainting = () => {
+    painting.current = null;
+    landed.current = null;
+  };
+  const onPaintDown = (e: PointerEvent<HTMLDivElement>) => {
+    const v = volumeAt(e.clientX, e.clientY);
+    if (v == null || e.button !== 0) return;
+    if (e.pointerType === "touch") {
+      landed.current = { v, x: e.clientX, y: e.clientY };
+      return;
+    }
+    e.preventDefault();
+    startPainting(v);
+    e.currentTarget.setPointerCapture(e.pointerId);
+  };
+  const onPaintMove = (e: PointerEvent<HTMLDivElement>) => {
+    const start = landed.current;
+    if (start) {
+      const dx = Math.abs(e.clientX - start.x);
+      const dy = Math.abs(e.clientY - start.y);
+      if (dx < 6 && dy < 6) return;
+      landed.current = null;
+      // up and down is the page scrolling (it takes the pointer itself)
+      if (dy >= dx) return;
+      startPainting(start.v);
+      e.currentTarget.setPointerCapture(e.pointerId);
+    }
+    if (!painting.current) return;
+    const v = volumeAt(e.clientX, e.clientY);
+    if (v != null) paintTo(v);
+  };
+  // a finger that lifted without moving: a tap
+  const onPaintUp = () => {
+    const tap = landed.current;
+    if (tap) tick(tap.v);
+    stopPainting();
+  };
+  // only the shelf's own: a finger is held by the book it landed on until
+  // the shelf takes it, and that book letting go isn't the end
+  const onPaintLost = (e: PointerEvent<HTMLDivElement>) => {
+    if (e.target === e.currentTarget) stopPainting();
+  };
+
   // a tap anywhere else puts the magnifier away
   useEffect(() => {
     if (aimed == null) return;
@@ -132,10 +219,6 @@ export default function VolumeShelf({ total, owned, onToggle, name }: Props) {
     press.current = { x, slid: false, pick: null };
     if (e.pointerType === "mouse") return;
     e.currentTarget.setPointerCapture(e.pointerId);
-    if (oneTap) {
-      press.current.pick = bookAt(widths, x);
-      return;
-    }
     // a book already big enough to see is ticked; anywhere else, look there
     const under = aimed == null ? null : bookAt(widths, x);
     if (under != null && widths[under - 1]! >= NUMBERED)
@@ -154,7 +237,7 @@ export default function VolumeShelf({ total, owned, onToggle, name }: Props) {
       p.slid = true;
       p.pick = null;
     }
-    if (p.slid && !oneTap) look(x);
+    if (p.slid) look(x);
   };
   const onPointerUp = (e: PointerEvent<HTMLDivElement>) => {
     const p = press.current;
@@ -207,32 +290,15 @@ export default function VolumeShelf({ total, owned, onToggle, name }: Props) {
           role="group"
           aria-label={`Your volumes of ${name}, vols. ${from} to ${to} of ${total}`}
           onPointerDown={(e) => {
-            swiped.current = false;
-            swipe.current =
-              e.pointerType === "mouse" ? null : { x: e.clientX, y: e.clientY };
+            // the page stays where it is: ticking the next one they needed
+            // mustn't slide the books out from under the finger
+            setPageStart(from);
+            onPaintDown(e);
           }}
-          onPointerMove={(e) => {
-            const start = swipe.current;
-            if (!start) return;
-            const dx = e.clientX - start.x;
-            if (
-              Math.abs(dx) < 40 ||
-              Math.abs(dx) < Math.abs(e.clientY - start.y)
-            )
-              return;
-            // one page a swipe; a finger moving left brings the later ones
-            swipe.current = null;
-            swiped.current = true;
-            turn(dx < 0);
-          }}
-          onPointerUp={() => (swipe.current = null)}
-          onPointerCancel={() => (swipe.current = null)}
-          onClickCapture={(e) => {
-            if (!swiped.current) return;
-            swiped.current = false;
-            e.preventDefault();
-            e.stopPropagation();
-          }}
+          onPointerMove={onPaintMove}
+          onPointerUp={onPaintUp}
+          onPointerCancel={stopPainting}
+          onLostPointerCapture={onPaintLost}
         >
           <button
             type="button"
@@ -248,6 +314,7 @@ export default function VolumeShelf({ total, owned, onToggle, name }: Props) {
               <button
                 key={v}
                 type="button"
+                data-vol={v}
                 className="vshelf-book"
                 style={{ width: BOOK }}
                 aria-pressed={yours.has(v)}
@@ -256,9 +323,9 @@ export default function VolumeShelf({ total, owned, onToggle, name }: Props) {
                 data-size="wide"
                 data-small={v >= 100 || undefined}
                 data-pop={popped === v || undefined}
-                onClick={() => {
-                  // the page stays where it is: ticking the next one they
-                  // needed mustn't slide the books out from under the finger
+                // pointers are the shelf's; this is Enter and Space
+                onClick={(e) => {
+                  if (e.detail !== 0) return;
                   setPageStart(from);
                   tick(v);
                   say(v, !yours.has(v));
@@ -294,10 +361,26 @@ export default function VolumeShelf({ total, owned, onToggle, name }: Props) {
         role="group"
         tabIndex={0}
         aria-label={`Your volumes of ${name}. Arrow keys move along, Enter marks one yours`}
-        onPointerDown={onPointerDown}
-        onPointerMove={onPointerMove}
-        onPointerUp={onPointerUp}
-        onPointerCancel={() => (press.current = null)}
+        // a short series under a finger slides to tick; otherwise the
+        // magnifier
+        onPointerDown={(e) =>
+          oneTap && e.pointerType !== "mouse"
+            ? onPaintDown(e)
+            : onPointerDown(e)
+        }
+        onPointerMove={(e) =>
+          oneTap && e.pointerType !== "mouse"
+            ? onPaintMove(e)
+            : onPointerMove(e)
+        }
+        onPointerUp={(e) =>
+          oneTap && e.pointerType !== "mouse" ? onPaintUp() : onPointerUp(e)
+        }
+        onPointerCancel={() => {
+          press.current = null;
+          stopPainting();
+        }}
+        onLostPointerCapture={onPaintLost}
         onPointerLeave={(e) => {
           if (e.pointerType === "mouse") rest();
         }}
@@ -313,6 +396,7 @@ export default function VolumeShelf({ total, owned, onToggle, name }: Props) {
             return (
               <span
                 key={v}
+                data-vol={v}
                 className="vshelf-book"
                 style={{ width: w }}
                 data-own={yours.has(v) || undefined}

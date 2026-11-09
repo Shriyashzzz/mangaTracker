@@ -4,7 +4,7 @@
 // if one is waiting (it has the failed tick in it too); only when the last
 // one fails does the shelf go back to what the server last said.
 import { useRef, type Dispatch, type SetStateAction } from "react";
-import { toggleVolume } from "../../lib/ownedVolumes";
+import { ownedVolumes, toggleVolume } from "../../lib/ownedVolumes";
 import { setVolumesOwned, type Owned } from "../../lib/shelf";
 import type { Manga } from "../../lib/types";
 import { useShelf } from "../../store/shelf";
@@ -51,8 +51,8 @@ export function useOwnedVolumes({
     }
   };
 
-  // ticks one volume, or unticks it
-  return (volume: number) => {
+  // shows what they own at once and queues its save
+  const change = (next: Owned) => {
     if (!manga) return;
     if (!queues.current.has(manga.id))
       queues.current.set(manga.id, {
@@ -63,10 +63,16 @@ export function useOwnedVolumes({
         next: null,
         saving: false,
       });
-    const next = toggleVolume(manga, volume);
     setManga({ ...manga, ...next });
     onTick();
     queues.current.get(manga.id)!.next = next;
     void save(manga.id);
+  };
+
+  return {
+    // ticks one volume, or unticks it
+    toggle: (volume: number) => manga && change(toggleVolume(manga, volume)),
+    // a slide across the shelf: everything they own now
+    paint: (owned: number[]) => change(ownedVolumes(null, owned)),
   };
 }
