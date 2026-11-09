@@ -320,3 +320,28 @@ test("an eBay-only check still drops a 'new' copy far above the big stores'", as
   // eBay still looked, and found nothing it believes
   expect((await priceQueries.getSourceChecks(ISBN)).has("ebay")).toBe(true);
 });
+
+test("an out-of-stock print copy doesn't stop Google Shopping looking", async () => {
+  await priceQueries.saveCheck(
+    ISBN,
+    ["walmart"],
+    new Map([
+      [
+        "walmart",
+        [
+          offer({
+            store: "Walmart",
+            inStock: false,
+            url: "https://www.walmart.com/ip/1",
+          }),
+        ],
+      ],
+    ]),
+  );
+  await tick();
+  let asked = false;
+  await fetchProviders(ISBN, await book(), [
+    { ...source("serpapi", []), fetchOffers: async () => ((asked = true), []) },
+  ]);
+  expect(asked).toBe(true);
+});

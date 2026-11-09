@@ -201,10 +201,17 @@ export async function fetchProviders(
   // what's still current from the groups not answering this round
   const current = await priceQueries.getCurrentRows(isbn13);
   const kept = current.filter((o) => !groups.has(o.source));
+  // this volume's usual new price, for judging what's found (read once)
+  const usual = await priceQueries.getNewPriceMedian(isbn13);
   if (shopping) {
+    // only print copies someone could buy and that we'd show count: an
+    // out-of-stock one, or a "new" price we'd drop, doesn't make it not needed
     const fresh = [...groups.values()].flat();
     const others = kept.filter((o) => o.source !== groupOf(shopping));
-    if (needsGoogleShopping([...fresh, ...others])) await ask([shopping]);
+    const buyable = [...fresh, ...others].filter((o) => o.inStock);
+    const unbelievable = unlikelyNewTest(buyable, usual);
+    if (needsGoogleShopping(buyable.filter((o) => !unbelievable(o))))
+      await ask([shopping]);
     else groups.set(groupOf(shopping), []);
   }
   // nothing answered and nothing decided (an outage, searches out): nothing is
@@ -225,7 +232,6 @@ export async function fetchProviders(
   // judged against this volume's usual new price and against every price
   // that will be current alongside them (the other groups' too), so an
   // eBay-only check still drops a "new" copy far above the big stores'
-  const usual = await priceQueries.getNewPriceMedian(isbn13);
   const fresh = [...groups].map(
     ([group, offers]) => [group, preferDirectRows(offers)] as const,
   );
