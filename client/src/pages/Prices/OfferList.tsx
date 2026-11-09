@@ -7,7 +7,7 @@ import { ChevronRightIcon } from "../../components/icons/Icons";
 import { noteStoreClick } from "../../lib/support";
 import type { Offer } from "../../lib/types";
 import { pricesStyles as styles } from "./styles";
-import { TYPE_LABEL, linkRel } from "./offerLabels";
+import { linkRel } from "./offerLabels";
 
 const VISIBLE_OFFERS = 5;
 
@@ -23,14 +23,6 @@ const AWARDS = {
   newLow: { label: "Cheapest new", className: styles.awardNew },
   marketLow: { label: "Cheapest marketplace", className: styles.awardMarket },
 };
-const typeOf = (o: Offer) =>
-  o.format === "ebook"
-    ? TYPE_LABEL.ebook
-    : o.condition === "new"
-      ? TYPE_LABEL.newPrint
-      : o.condition === "used"
-        ? TYPE_LABEL.used
-        : TYPE_LABEL.marketplace;
 
 // the cheapest copies you can buy now, which get the stamps; offers come
 // cheapest first, so each is the first match
@@ -66,21 +58,24 @@ export default function OfferList({
   const { lowest, newLow, marketLow } = awardsOf(offers);
   // one row stands out, and it's the one the headline names
   const highlighted = newLow ?? lowest;
-  // the lowest overall always shows what kind of copy it is, which also says
-  // it's the cheapest of its kind, so it never doubles up with the others
+  // stamps are awards only: what kind of copy it is is the line under the
+  // store (New, Used, Marketplace, Ebook), so it isn't said twice
   const stampsOf = (o: Offer) =>
     o === lowest
-      ? [AWARDS.lowest, typeOf(o)]
+      ? [AWARDS.lowest]
       : [
           ...(o === newLow ? [AWARDS.newLow] : []),
           ...(o === marketLow ? [AWARDS.marketLow] : []),
-          ...(o.format === "ebook" ? [TYPE_LABEL.ebook] : []),
         ];
 
   return (
     <ul className={styles.offers} data-tour={tourTarget}>
       {shown.map((o) => {
-        const condition = CONDITION[o.condition] ?? o.condition;
+        // an ebook is an ebook, not a "new" copy
+        const condition =
+          o.format === "ebook"
+            ? "Ebook"
+            : (CONDITION[o.condition] ?? o.condition);
         const row = (
           <>
             <span className={styles.offerStore}>
