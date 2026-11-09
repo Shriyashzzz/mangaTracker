@@ -72,6 +72,8 @@ const seriesPath = (name: string) => `/prices/series/${slugify(name)}`;
 type VolumeSummary = {
   isbn13: string;
   title: string;
+  // what the page is called; the address stays on title
+  heading?: string;
   authors: string | null;
   publisher: string | null;
   year: number | null;
@@ -103,7 +105,7 @@ function volumeTags(v: VolumeSummary, origin: string): Tags {
   const path = volumePath(v.isbn13, v.title);
   const description = clip(
     [
-      `Compare US prices for ${v.title}`,
+      `Compare US prices for ${v.heading ?? v.title}`,
       v.stores.length
         ? `at ${v.stores.slice(0, 4).join(", ")} and more.`
         : "across stores.",
@@ -119,7 +121,7 @@ function volumeTags(v: VolumeSummary, origin: string): Tags {
     // a Product only with prices: Google needs offers (or reviews) for one,
     // and a volume nobody has priced yet is just a Book
     "@type": v.offerCount ? ["Book", "Product"] : "Book",
-    name: v.title,
+    name: v.heading ?? v.title,
     isbn: v.isbn13,
     url: origin + path,
     ...(image && { image }),
@@ -145,7 +147,7 @@ function volumeTags(v: VolumeSummary, origin: string): Tags {
     }),
   };
   return {
-    title: `${v.title} price comparison`,
+    title: `${v.heading ?? v.title} price comparison`,
     description,
     path,
     image,

@@ -19,11 +19,14 @@ const dollars = (cents: number) => (cents / 100).toFixed(2);
 
 export function volumeMeta({
   book,
+  heading,
   series,
   offers,
   storeLinks,
 }: VolumePrices): PageMeta {
   const seriesLabel = series.info?.name ?? series.name;
+  // what the page is called; the address stays on book.title
+  const name = heading ?? book.title;
   const path = volumePath(book.isbn13, book.title);
   const prices = offers.filter((o) => o.inStock).map((o) => o.priceCents);
   const best = offers.find(
@@ -33,7 +36,7 @@ export function volumeMeta({
 
   const description = clip(
     [
-      `Compare US prices for ${book.title}`,
+      `Compare US prices for ${name}`,
       stores.length
         ? `at ${stores.slice(0, 4).join(", ")} and more.`
         : "across stores.",
@@ -48,7 +51,7 @@ export function volumeMeta({
   // and a volume nobody has priced yet is just a Book (as client/server.ts)
   const product = {
     "@type": prices.length ? ["Book", "Product"] : "Book",
-    name: book.title,
+    name,
     isbn: book.isbn13,
     url: absolute(path),
     ...(book.coverUrl && { image: absoluteImage(book.coverUrl) }),
@@ -78,7 +81,7 @@ export function volumeMeta({
   };
 
   return {
-    title: `${book.title} price comparison`,
+    title: `${name} price comparison`,
     description,
     path,
     image: book.coverUrl
@@ -91,7 +94,7 @@ export function volumeMeta({
         breadcrumbs([
           ["Price check", "/"],
           [seriesLabel, seriesCanonicalPath(seriesLabel)],
-          [book.title, path],
+          [name, path],
         ]),
       ],
     },

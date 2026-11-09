@@ -261,6 +261,9 @@ export type VolumePrices = {
   // a live check would look again (prices old or missing, a volume we know):
   // the page shows these stored prices first, then asks for one
   refreshable?: boolean;
+  // what the page is called: the title, or "Series, Vol. N" when the title
+  // has no number. The address stays on book.title
+  heading?: string;
   series: { name: string; slug: string; info: SeriesInfo | null };
   volume: number | null;
   // a book holding several volumes, in place of a volume number

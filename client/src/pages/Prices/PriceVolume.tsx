@@ -196,7 +196,8 @@ export default function PriceVolume() {
   // a light novel's are named "Overlord Light Novel, Vol. 3": shown as the
   // series' own name, tagged
   const shownSeries = novelParts(seriesLabel).title;
-  const shownBook = novelParts(book.title);
+  // its heading ("Series, Vol. N" when the stored title has no number)
+  const shownBook = novelParts(state.data.heading ?? book.title);
   // set in settings: they only want physical copies
   const hideEbooks = readLocal("hideEbooks") === "yes";
   const inCanada = country === "ca";
