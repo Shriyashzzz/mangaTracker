@@ -112,7 +112,6 @@ const latest = async (isbn13: string, checkedAt: Date) => {
       currency,
       inStock,
       url,
-      shippingEstimated,
     }) => ({
       store,
       format,
@@ -121,7 +120,6 @@ const latest = async (isbn13: string, checkedAt: Date) => {
       currency,
       inStock,
       url,
-      shippingEstimated,
     }),
   );
 };

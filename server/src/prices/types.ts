@@ -18,9 +18,6 @@ export type Offer = {
   currency: string;
   inStock: boolean;
   url: string | null;
-  // the price holds an estimate for shipping the store calculates only at
-  // checkout (eBay); the page says so
-  shippingEstimated?: boolean;
 };
 
 // what providers get to know about the volume being priced

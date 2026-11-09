@@ -37,10 +37,6 @@ import { plausiblePrice } from "../stores/retailers.js";
 // now (xxxHOLiC 19 at $91, Parasyte 8 at $298); one matched by title keeps
 // the usual ceiling
 const plausibleByIsbn = (cents: number) => cents >= 200 && cents <= 50_000;
-// eBay works out "calculated" shipping only for one listing at a time, never
-// in a search: such a listing gets what a book usually costs to post (USPS
-// Media Mail) rather than being left out
-const ESTIMATED_SHIPPING = "5.00";
 
 // a box set can cost what many volumes do, but not under $3 a volume: that's
 // one volume's price on a listing naming the whole run
@@ -96,7 +92,6 @@ export type ItemSummary = {
   conditionId?: string;
   price?: { value: string; currency: string };
   shippingOptions?: {
-    shippingCostType?: string;
     shippingCost?: { value: string; currency?: string };
   }[];
   itemWebUrl?: string;
@@ -135,12 +130,9 @@ export function browseOffers(
   const omnibusPage = isOmnibusBook(title);
   for (const item of items) {
     const name = item.title ?? "";
-    const shipping = item.shippingOptions?.[0];
-    const shippingValue =
-      shipping?.shippingCost?.value ??
-      (shipping?.shippingCostType === "CALCULATED"
-        ? ESTIMATED_SHIPPING
-        : undefined);
+    // a listing with "calculated" shipping has no shipping price in a search
+    // (eBay works it out per buyer), so its real cost isn't known: left out
+    const shippingValue = item.shippingOptions?.[0]?.shippingCost?.value;
     // the listing with the series' own name taken out (see match.ts)
     const bare = withoutSeriesWords(name, title);
     const rest = withoutSeriesName(name, title);
@@ -217,7 +209,6 @@ export function browseOffers(
       priceCents,
       currency,
       inStock: true,
-      ...(!shipping?.shippingCost && { shippingEstimated: true }),
       // US links carry eBay US tracking here; Canadian ones get eBay Canada's
       // where they're shown (prices/canada)
       url:

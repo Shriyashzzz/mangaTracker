@@ -164,8 +164,7 @@ const currentRows = (isbns: string[]) =>
   prisma.$queryRaw<CurrentRow[]>`
     SELECT ps.isbn13, ps.source, ps.store, ps.format, ps.condition,
            ps.price_cents AS "priceCents", ps.currency, ps.in_stock AS "inStock",
-           ps.url, ps.fetched_at AS "fetchedAt",
-           ps.shipping_estimated AS "shippingEstimated"
+           ps.url, ps.fetched_at AS "fetchedAt"
     FROM price_source_checks sc
     JOIN price_samples ps
       ON ps.isbn13 = sc.isbn13 AND ps.source = sc.source

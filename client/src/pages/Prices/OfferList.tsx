@@ -98,7 +98,6 @@ export default function OfferList({
               </span>
               <span className={styles.offerTags}>
                 {condition}
-                {o.shippingEstimated && " · includes est. shipping"}
                 {!o.inStock && " · out of stock"}
               </span>
             </span>
@@ -121,7 +120,7 @@ export default function OfferList({
                 rel={linkRel(o)}
                 onClick={noteStoreClick}
                 onAuxClick={noteStoreClick}
-                aria-label={`${o.store}, ${formatPrice(o.priceCents)}${o.shippingEstimated ? " including estimated shipping" : ""}, ${condition}. Opens the store in a new tab`}
+                aria-label={`${o.store}, ${formatPrice(o.priceCents)}, ${condition}. Opens the store in a new tab`}
               >
                 {row}
                 <span className={styles.offerGo} aria-hidden>

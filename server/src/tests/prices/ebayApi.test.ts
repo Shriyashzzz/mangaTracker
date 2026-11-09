@@ -444,23 +444,20 @@ test("an out-of-print volume found by its ISBN keeps its price; by title it's to
   expect(formats([rare], "xxxHOLiC 19", "title")).toEqual([]);
 });
 
-test("shipping eBay calculates at checkout is estimated, and the offer says so", () => {
-  const [offer] = browseOffers(
-    [
-      item({
-        title: "Blood Sucker Volume 7",
-        price: usd("10.00"),
-        shippingOptions: [{ shippingCostType: "CALCULATED" }],
-      }),
-    ],
-    "Blood Sucker Volume 7",
-    "US",
-    "isbn",
-  );
-  expect(offer).toMatchObject({ priceCents: 1500, shippingEstimated: true });
+test("a listing whose shipping eBay calculates at checkout is left out", () => {
   expect(
-    browseOffers([item({})], title, "US")[0]?.shippingEstimated,
-  ).toBeUndefined();
+    browseOffers(
+      [
+        item({
+          title: "Blood Sucker Volume 7",
+          shippingOptions: [{ shippingCostType: "CALCULATED" } as never],
+        }),
+      ],
+      "Blood Sucker Volume 7",
+      "US",
+      "isbn",
+    ),
+  ).toEqual([]);
 });
 
 test("a sequel's box set, a lot read as 1-2-3, or a code isn't kept", () => {
