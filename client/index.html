@@ -70,17 +70,25 @@
       impactStat("transformLinks");
       impactStat("trackImpression");
     </script>
+    <!-- the fonts load without holding up the first paint (print, then all):
+         the page draws in its fallback fonts and swaps (display=swap) -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
       href="https://fonts.googleapis.com/css2?family=Bangers&family=Caveat:wght@500&family=Comic+Neue:wght@700&family=Fraunces:ital,opsz,wght@0,9..144,400..700;1,9..144,400..700&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap"
       rel="stylesheet"
+      media="print"
+      onload="this.media='all'"
     />
+    <noscript><link href="https://fonts.googleapis.com/css2?family=Bangers&family=Caveat:wght@500&family=Comic+Neue:wght@700&family=Fraunces:ital,opsz,wght@0,9..144,400..700;1,9..144,400..700&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet" /></noscript>
     <!-- only the two glyphs of the background sound effect -->
     <link
       href="https://fonts.googleapis.com/css2?family=Dela+Gothic+One&text=%E3%83%89%E3%83%B3&display=swap"
       rel="stylesheet"
+      media="print"
+      onload="this.media='all'"
     />
+    <noscript><link href="https://fonts.googleapis.com/css2?family=Dela+Gothic+One&text=%E3%83%89%E3%83%B3&display=swap" rel="stylesheet" /></noscript>
     <script>
       // apply the saved theme and background before first paint so there is no flash
       document.documentElement.dataset.bg = "sfx";
