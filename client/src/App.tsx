@@ -14,6 +14,9 @@ import TourOffer from "./components/tour/TourOffer";
 import { isDemo } from "./lib/demo";
 import { useAuth } from "./store/auth";
 
+// one per page load: see ScrollRestoration below
+const FIRST_PAGE_KEY = `first:${Date.now()}`;
+
 export default function App() {
   const check = useAuth((s) => s.check);
   useEffect(() => {
@@ -52,7 +55,15 @@ export default function App() {
       {isDemo() ? <Tour /> : <SupportPeek />}
       {!isDemo() && <ImportPeek />}
       {!isDemo() && <TourOffer />}
-      <ScrollRestoration />
+      {/* the page this tab opened on (typed, a link from outside, a reload)
+          has the key "default", the same for every page, so it opened at an
+          old page's scroll position. It gets a key of this visit's own: it
+          opens at the top, and Back to it still restores where they were */}
+      <ScrollRestoration
+        getKey={(location) =>
+          location.key === "default" ? FIRST_PAGE_KEY : location.key
+        }
+      />
     </>
   );
 }
