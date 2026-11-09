@@ -306,9 +306,11 @@ export async function getKnownPrices(
   const [rows, looked, checks, usual] = await Promise.all([
     currentRows(isbns),
     lookedAt(isbns),
-    prisma.priceCheck.findMany({
+    // "checked": the oldest of each volume's source checks, as on its page
+    prisma.priceSourceCheck.groupBy({
+      by: ["isbn13"],
       where: { isbn13: { in: isbns } },
-      select: { isbn13: true, checkedAt: true },
+      _min: { checkedAt: true },
     }),
     prisma.$queryRaw<{ isbn13: string; median: number }[]>`
       SELECT isbn13,
@@ -320,7 +322,11 @@ export async function getKnownPrices(
     `,
   ]);
   const usualOf = new Map(usual.map((u) => [u.isbn13.trim(), u.median]));
-  const checkedAt = new Map(checks.map((c) => [c.isbn13.trim(), c.checkedAt]));
+  const checkedAt = new Map(
+    checks.flatMap((c) =>
+      c._min.checkedAt ? [[c.isbn13.trim(), c._min.checkedAt] as const] : [],
+    ),
+  );
   const known = new Map<string, { priceCents: number; checkedAt: Date }>();
   for (const [isbn, group] of groupBy(rows, (row) => row.isbn13.trim())) {
     // checks saved before a rule changed still get held to it
@@ -373,9 +379,14 @@ async function queryRecentBestPrices(limit: number): Promise<RecentPrice[]> {
       GROUP BY isbn13, fetched_at
     ),
     -- each volume's cheapest new print copy among its prices now (each
-    -- source group's last check), dated by the newest of those checks
+    -- source group's last check)
     latest AS (
-      SELECT ps.isbn13, MAX(ps.fetched_at) AS fetched_at, MIN(ps.price_cents) AS p
+      -- dated by the oldest of its source checks, as its page says "checked",
+      -- so eBay looking again every few days doesn't move it to the top
+      SELECT ps.isbn13,
+             (SELECT MIN(s2.checked_at) FROM price_source_checks s2
+               WHERE s2.isbn13 = ps.isbn13) AS fetched_at,
+             MIN(ps.price_cents) AS p
       FROM price_source_checks sc
       JOIN price_samples ps
         ON ps.isbn13 = sc.isbn13 AND ps.source = sc.source

@@ -400,18 +400,15 @@ export async function getVolumePrices(
   );
   if (refresh && known && !preorder) await refreshIfStale(isbn13, book);
 
-  // when its prices were checked: the oldest of the groups still being kept
-  // up, so an eBay look every few days doesn't make 20-day-old store prices
-  // read as fresh
+  // when its prices were checked: the oldest of its source checks (as shelf
+  // and series prices and the home page say), so an eBay look every few days
+  // doesn't make 20-day-old store prices read as fresh
   const [last, groupChecks, [coverRow]] = await Promise.all([
     priceQueries.getLastCheck(isbn13),
     priceQueries.getSourceChecks(isbn13),
     priceQueries.getCoverIds([isbn13]).catch(() => []),
   ]);
-  const served = new Set(enabledProviders().map(groupOf));
-  const kept = [...groupChecks]
-    .filter(([group]) => served.has(group))
-    .map(([, at]) => at.getTime());
+  const kept = [...groupChecks.values()].map((at) => at.getTime());
   const checkedAt = kept.length ? new Date(Math.min(...kept)) : last?.checkedAt;
   // whether a live check (with Turnstile) would look again: the page shows
   // these stored prices first and only asks for one when it would
