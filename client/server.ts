@@ -115,7 +115,9 @@ function volumeTags(v: VolumeSummary, origin: string): Tags {
   const image = apiImage(v.coverUrl, origin) ?? v.seriesCoverUrl;
   const jsonLd = {
     "@context": "https://schema.org",
-    "@type": ["Book", "Product"],
+    // a Product only with prices: Google needs offers (or reviews) for one,
+    // and a volume nobody has priced yet is just a Book
+    "@type": v.offerCount ? ["Book", "Product"] : "Book",
     name: v.title,
     isbn: v.isbn13,
     gtin13: v.isbn13,
