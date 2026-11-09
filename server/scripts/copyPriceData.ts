@@ -131,7 +131,8 @@ async function main() {
              SELECT $1::char(13), $2::varchar, $3::varchar, $4::varchar, $5::int,
                     $6::char(3), $7::boolean, $8::text, $9::timestamptz, $10::varchar
              WHERE NOT EXISTS (SELECT 1 FROM price_samples WHERE isbn13 = $1::char(13)
-               AND store = $2::varchar AND condition = $4::varchar AND fetched_at = $9::timestamptz)`;
+               AND store = $2::varchar AND format = $3::varchar AND condition = $4::varchar
+               AND fetched_at = $9::timestamptz AND source IS NOT DISTINCT FROM $10::varchar)`;
         if (apply) added += (await target.query(sql, values)).rowCount ?? 0;
       }
       console.log(

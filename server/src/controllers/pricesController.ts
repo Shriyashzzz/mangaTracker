@@ -259,10 +259,10 @@ const seriesSummary = [
     const { name } = matchedData(req);
     const data = await getSeriesSummary(name);
     if (data) return res.set("Cache-Control", CACHE_10_MIN).json(data);
-    // the same lookup the series page makes (free catalogs only). A catalog
-    // that's down throws, which is never "missing"
-    if (await getSeries(name)) return res.sendStatus(204);
-    throw new NotFoundError();
+    // nothing stored to describe it: not "missing" either. Finding out would
+    // take the series page's whole catalog lookup, which crawlers sending
+    // made-up names would turn into a flood of Open Library searches
+    return res.sendStatus(204);
   },
 ];
 

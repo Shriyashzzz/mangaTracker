@@ -100,9 +100,11 @@ export const groupOf = (provider: Pick<Provider, "id">) =>
   GROUP_OF[provider.id] ?? provider.id;
 
 const DAY_MS = 24 * 60 * 60 * 1000;
-const FRESH_FOR_GROUP_MS: Record<string, number> = { ebay: 3 * DAY_MS };
-export const freshForMs = (group: string) =>
-  FRESH_FOR_GROUP_MS[group] ?? FRESH_FOR_MS;
+// by provider, not group: eBay's own API is free, so it looks every few days;
+// eBay through SerpApi is a paid search, so it keeps to the 20 days
+const FRESH_FOR_PROVIDER_MS: Record<string, number> = { ebay: 3 * DAY_MS };
+export const freshForMs = (provider: Pick<Provider, "id">) =>
+  FRESH_FOR_PROVIDER_MS[provider.id] ?? FRESH_FOR_MS;
 
 const isPaid = (provider: Pick<Provider, "id">) =>
   provider.id.startsWith("serpapi");
@@ -120,7 +122,7 @@ export async function dueProviders(isbn13: string): Promise<Provider[]> {
     if (isPaid(p) && !searchesLeft) return false;
     if (failedRecently(isbn13, p)) return false;
     const at = checks.get(groupOf(p));
-    return !at || now - at.getTime() >= freshForMs(groupOf(p));
+    return !at || now - at.getTime() >= freshForMs(p);
   });
 }
 
@@ -189,9 +191,10 @@ export async function fetchProviders(
     if (needsGoogleShopping([...fresh, ...others])) await ask([shopping]);
     else groups.set(groupOf(shopping), []);
   }
-  // nothing answered (an outage, searches out): nothing is recorded, so every
-  // group keeps the prices it last found
-  if (!sources.length) return;
+  // nothing answered and nothing decided (an outage, searches out): nothing is
+  // recorded, so every group keeps the prices it last found. Google Shopping
+  // found not needed is still recorded, so it isn't due on every view
+  if (!sources.length && !groups.size) return;
 
   // a group no enabled provider serves any more (its keys were removed, or the
   // migration sorted an old row into it) is cleared once it's past its time,
@@ -199,7 +202,7 @@ export async function fetchProviders(
   const served = new Set(enabledProviders().map(groupOf));
   const checks = await priceQueries.getSourceChecks(isbn13);
   for (const [group, at] of checks) {
-    if (!served.has(group) && Date.now() - at.getTime() >= freshForMs(group))
+    if (!served.has(group) && Date.now() - at.getTime() >= FRESH_FOR_MS)
       groups.set(group, []);
   }
 
@@ -223,20 +226,19 @@ export async function fetchProviders(
 
 // a live check: only the providers that are due look again. Answers with the
 // last check when nothing was due, so the caller needn't read it again
+// What's due is worked out inside the one-at-a-time lock, so two visitors
+// opening the same volume can't both start the same (maybe paid) check
 async function refreshIfStale(isbn13: string, book: Book) {
-  const due = await dueProviders(isbn13);
-  if (!due.length)
-    return { unchanged: await priceQueries.getLastCheck(isbn13) };
-
   if (!inFlight.has(isbn13)) {
     inFlight.set(
       isbn13,
-      fetchProviders(isbn13, book, due).finally(() => inFlight.delete(isbn13)),
+      (async () => {
+        const due = await dueProviders(isbn13);
+        if (due.length) await fetchProviders(isbn13, book, due);
+      })().finally(() => inFlight.delete(isbn13)),
     );
   }
   await inFlight.get(isbn13);
-  // refreshed: the caller reads the new check
-  return null;
 }
 
 // the stored book, or the catalog's answer stored for next time. A series
@@ -293,6 +295,12 @@ const existsCache = new Map<
   { at: number; ttl: number; answer: boolean | null }
 >();
 
+// and at most so many catalog lookups a minute for the whole server: past
+// that the answer is "don't know" (the page stays up), so many different
+// unknown ISBNs can't queue up Open Library for everyone else
+const EXISTS_LOOKUPS_PER_MIN = 20;
+let existsLookups: number[] = [];
+
 export async function volumeExists(isbn13: string): Promise<boolean> {
   const hit = existsCache.get(isbn13);
   if (hit && Date.now() - hit.at < hit.ttl) {
@@ -307,6 +315,11 @@ export async function volumeExists(isbn13: string): Promise<boolean> {
   };
   const [stored, saved] = await storedOrSaved(isbn13);
   if (stored || saved) return true;
+  const now = Date.now();
+  existsLookups = existsLookups.filter((t) => now - t < 60_000);
+  if (existsLookups.length >= EXISTS_LOOKUPS_PER_MIN)
+    throw new Error("too many catalog lookups right now");
+  existsLookups.push(now);
   try {
     const answer = Boolean(await lookupIsbn(isbn13));
     remember(answer, EXISTS_MS);
@@ -353,12 +366,20 @@ export async function getVolumePrices(
   const preorder = notOutYet(
     series.volumes.find((v) => v.isbn13 === book.isbn13)?.published,
   );
-  const checked =
-    refresh && known && !preorder ? await refreshIfStale(isbn13, book) : null;
+  if (refresh && known && !preorder) await refreshIfStale(isbn13, book);
 
-  const last = checked
-    ? checked.unchanged
-    : await priceQueries.getLastCheck(isbn13);
+  // when its prices were checked: the oldest of the groups still being kept
+  // up, so an eBay look every few days doesn't make 20-day-old store prices
+  // read as fresh
+  const [last, groupChecks] = await Promise.all([
+    priceQueries.getLastCheck(isbn13),
+    priceQueries.getSourceChecks(isbn13),
+  ]);
+  const served = new Set(enabledProviders().map(groupOf));
+  const kept = [...groupChecks]
+    .filter(([group]) => served.has(group))
+    .map(([, at]) => at.getTime());
+  const checkedAt = kept.length ? new Date(Math.min(...kept)) : last?.checkedAt;
   // whether a live check (with Turnstile) would look again: the page shows
   // these stored prices first and only asks for one when it would
   const refreshable =
@@ -408,7 +429,7 @@ export async function getVolumePrices(
       history.checks && history.since && history.lastSeen
         ? { ...history, since: history.since, lastSeen: history.lastSeen }
         : null,
-    checkedAt: last?.checkedAt ?? null,
+    checkedAt: checkedAt ?? null,
     liveSources: enabledProviders().map((p) => p.store),
     storeLinks: storeLinks(isbn13),
   };

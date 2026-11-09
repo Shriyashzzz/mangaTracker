@@ -642,7 +642,11 @@ export async function lookupIsbn(isbn13: string): Promise<CatalogBook | null> {
   const doc = docs[0];
   if (!doc) return null;
   // the requested ISBN wins even if Open Library lists another edition first
-  const { book } = await toBook(doc, isbn13);
+  const { book, degraded } = await toBook(doc, isbn13);
+  // a Japanese title that couldn't be translated right now (AniList down):
+  // an outage, never "no such book"
+  if (!book && degraded)
+    throw new Error("catalog degraded: title not translated");
   if (book || !doc.title || !volumeRange(doc.title)) return book;
   // a book holding a few volumes, filed under the Japanese title: its own
   // edition record has the English name ("Vinland Saga, Book Nine")

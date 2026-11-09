@@ -154,15 +154,17 @@ test("shelf and series prices read the prices now, across groups", async () => {
   expect(known?.priceCents).toBe(1250);
 });
 
-test("eBay looks again after 3 days, the paid searches after 20", () => {
+test("eBay's free API looks again after 3 days, every paid search after 20", () => {
   const DAY = 24 * 60 * 60 * 1000;
   expect(groupOf({ id: "ebay" })).toBe("ebay");
   expect(groupOf({ id: "serpapi-ebay" })).toBe("ebay");
   expect(groupOf({ id: "serpapi" })).toBe("shopping");
   expect(groupOf({ id: "serpapi-amazon" })).toBe("amazon");
-  expect(freshForMs("ebay")).toBe(3 * DAY);
-  expect(freshForMs("shopping")).toBe(20 * DAY);
-  expect(freshForMs("amazon")).toBe(20 * DAY);
+  expect(freshForMs({ id: "ebay" })).toBe(3 * DAY);
+  // eBay through SerpApi is a paid search: it keeps to the 20 days
+  expect(freshForMs({ id: "serpapi-ebay" })).toBe(20 * DAY);
+  expect(freshForMs({ id: "serpapi" })).toBe(20 * DAY);
+  expect(freshForMs({ id: "serpapi-amazon" })).toBe(20 * DAY);
 });
 
 // ---------- a live check, with stand-in sources (no network) ----------
@@ -205,7 +207,7 @@ test("Google Shopping's own old prices don't stop it looking again", async () =>
   expect(await prices()).toEqual(["Barnes & Noble new 1050"]);
 });
 
-test("when no source answers, nothing is recorded or cleared", async () => {
+test("when no source answers, prices stay and the check date doesn't move", async () => {
   await priceQueries.saveCheck(
     ISBN,
     ["serpapi", "serpapi-amazon"],
@@ -223,15 +225,68 @@ test("when no source answers, nothing is recorded or cleared", async () => {
       ],
     ]),
   );
-  const before = await priceQueries.getSourceChecks(ISBN);
+  const lastBefore = await priceQueries.getLastCheck(ISBN);
   await tick();
-  // eBay fails; Amazon's print copy means Shopping isn't needed
+  // eBay fails: no source answers, so nothing is saved
   await fetchProviders(ISBN, await book(), [
     source("ebay", new Error("timed out")),
-    source("serpapi", [offer({ store: "Should not run" })]),
   ]);
-  expect(await priceQueries.getSourceChecks(ISBN)).toEqual(before);
+  expect(await priceQueries.getLastCheck(ISBN)).toEqual(lastBefore);
   expect(await prices()).toEqual(["Amazon new 999", "Barnes & Noble new 1099"]);
+});
+
+test("Google Shopping found not needed is marked as looked at, without moving the check date", async () => {
+  await priceQueries.saveCheck(
+    ISBN,
+    ["serpapi-amazon"],
+    new Map([
+      [
+        "amazon",
+        [
+          offer({
+            store: "Amazon",
+            priceCents: 999,
+            url: "https://www.amazon.com/dp/1",
+          }),
+        ],
+      ],
+    ]),
+  );
+  const lastBefore = await priceQueries.getLastCheck(ISBN);
+  await tick();
+  // only Shopping is due, and Amazon has a print copy: it isn't asked
+  let asked = false;
+  await fetchProviders(ISBN, await book(), [
+    { ...source("serpapi", []), fetchOffers: async () => ((asked = true), []) },
+  ]);
+  expect(asked).toBe(false);
+  expect((await priceQueries.getSourceChecks(ISBN)).has("shopping")).toBe(true);
+  expect(await priceQueries.getLastCheck(ISBN)).toEqual(lastBefore);
+  expect(await prices()).toEqual(["Amazon new 999"]);
+});
+
+test("once eBay's own source has looked, Google Shopping's old eBay row stops showing", async () => {
+  await priceQueries.saveCheck(
+    ISBN,
+    ["serpapi"],
+    new Map([
+      [
+        "shopping",
+        [
+          offer({
+            store: "eBay",
+            condition: "used",
+            priceCents: 500,
+            url: "https://www.google.com/shopping/e",
+          }),
+        ],
+      ],
+    ]),
+  );
+  await tick();
+  // eBay's API finds no used copy any more
+  await priceQueries.saveCheck(ISBN, ["ebay"], new Map([["ebay", []]]));
+  expect(await prices()).toEqual([]);
 });
 
 test("an eBay-only check still drops a 'new' copy far above the big stores'", async () => {
