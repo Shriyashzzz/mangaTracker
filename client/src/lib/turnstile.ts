@@ -40,11 +40,12 @@ const load = () =>
     document.head.append(script);
   }));
 
-// a fresh token, one per live check (each can be used once), or null
-export async function humanToken(): Promise<string | null> {
-  if (!SITE_KEY) return null;
+// a fresh token, one per live check (each can be used once), or null.
+// `signal`: the page was left, so stop waiting and take the widget away
+export async function humanToken(signal?: AbortSignal): Promise<string | null> {
+  if (!SITE_KEY || signal?.aborted) return null;
   const turnstile = await load();
-  if (!turnstile) return null;
+  if (!turnstile || signal?.aborted) return null;
   return new Promise((resolve) => {
     const box = document.createElement("div");
     box.style.cssText = "position:fixed;right:12px;bottom:84px;z-index:60";
@@ -67,6 +68,7 @@ export async function humanToken(): Promise<string | null> {
       });
     };
     const timer = setTimeout(() => finish(null), WAIT_MS);
+    signal?.addEventListener("abort", () => finish(null), { once: true });
     id = turnstile.render(box, {
       sitekey: SITE_KEY,
       appearance: "interaction-only",
@@ -78,7 +80,10 @@ export async function humanToken(): Promise<string | null> {
 }
 
 // "?human=<token>" for a live price request, or "" when there's none
-export const humanQuery = async (joiner: "?" | "&" = "?") => {
-  const token = await humanToken();
+export const humanQuery = async (
+  joiner: "?" | "&" = "?",
+  signal?: AbortSignal,
+) => {
+  const token = await humanToken(signal);
   return token ? `${joiner}human=${encodeURIComponent(token)}` : "";
 };
