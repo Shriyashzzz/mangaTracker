@@ -55,7 +55,9 @@ export const pricesStyles = {
   suggestThumb:
     "aspect-2/3 w-[34px] shrink-0 overflow-hidden border border-line-soft bg-paper-2 [&_img]:size-full [&_img]:object-cover",
   suggestText: "flex min-w-0 flex-col",
-  suggestName: "truncate font-semibold",
+  // two lines, so titles that differ only at the end ("Frieren ... ~Prelude~")
+  // can be told apart
+  suggestName: "line-clamp-2 font-semibold",
   suggestMeta: "font-mono text-[0.75rem] text-muted",
   suggestNote: "px-[0.55rem] py-[0.6rem] text-[0.9rem] text-muted",
   // the last row: "See all results"
