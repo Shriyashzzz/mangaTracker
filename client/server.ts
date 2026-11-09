@@ -206,20 +206,32 @@ function render(
 
 // ---------- asking the API, briefly cached ----------
 
-const cache = new Map<string, { at: number; data: unknown }>();
+// `missing`: the API said the page's volume or series doesn't exist (404).
+// Anything else it can't answer, it's treated as there, so a slow or broken
+// API never tells search engines a real page is gone
+type Summary<T> = { data: T | null; missing: boolean };
+const cache = new Map<string, { at: number; answer: Summary<unknown> }>();
 
-async function summary<T>(path: string): Promise<T | null> {
+async function summary<T>(path: string): Promise<Summary<T>> {
   const hit = cache.get(path);
-  if (hit && Date.now() - hit.at < CACHE_MS) return hit.data as T | null;
+  if (hit && Date.now() - hit.at < CACHE_MS) return hit.answer as Summary<T>;
   const res = await fetch(API_URL + path, {
     // marks us as a crawler, so the API never spends a paid price refresh
     headers: { "User-Agent": "mangatracker-preview/1.0" },
     signal: AbortSignal.timeout(API_TIMEOUT_MS),
   });
-  const data = res.ok ? ((await res.json()) as T) : null;
-  if (cache.size >= CACHE_MAX) cache.delete(cache.keys().next().value!);
-  cache.set(path, { at: Date.now(), data });
-  return data;
+  const answer: Summary<T> = {
+    // 204: it exists, with nothing stored to describe it yet
+    data: res.status === 200 ? ((await res.json()) as T) : null,
+    // 400: not even a valid ISBN or name, so there's no page either
+    missing: res.status === 404 || res.status === 400,
+  };
+  // only answers worth keeping: a failure is asked again next time
+  if ([200, 204, 400, 404].includes(res.status)) {
+    if (cache.size >= CACHE_MAX) cache.delete(cache.keys().next().value!);
+    cache.set(path, { at: Date.now(), answer });
+  }
+  return answer;
 }
 
 // ---------- the server ----------
@@ -334,14 +346,20 @@ app.use(express.static(DIST, { index: false, maxAge: 0 }));
 const sendPage = (res: Response, html: string) =>
   res.set("Cache-Control", "no-cache").type("html").send(html);
 
-// the page's own tags when we can get them; the plain app if not
+// the page's own tags when we can get them; the plain app if not. A page
+// whose volume or series doesn't exist still shows the app (it says so), but
+// with a real 404, so search engines don't index it as a page
 const withTags =
-  (load: (req: Request, origin: string) => Promise<Tags | null>) =>
+  (load: (req: Request, origin: string) => Promise<Tags | "missing" | null>) =>
   async (req: Request, res: Response) => {
     const origin = `${req.protocol}://${req.get("host")}`;
     try {
       const tags = API_URL ? await load(req, origin) : null;
-      sendPage(res, tags ? render(tags, origin) : template);
+      if (tags === "missing") res.status(404);
+      sendPage(
+        res,
+        tags && tags !== "missing" ? render(tags, origin) : template,
+      );
     } catch (e) {
       console.error(
         `preview tags failed for ${req.originalUrl}:`,
@@ -357,9 +375,10 @@ app.get(
     const name =
       (typeof req.query.name === "string" && req.query.name) ||
       String(req.params.slug).replace(/-/g, " ");
-    const data = await summary<SeriesSummary>(
+    const { data, missing } = await summary<SeriesSummary>(
       `/api/prices/summary/series?${new URLSearchParams({ name })}`,
     );
+    if (missing) return "missing";
     return data && seriesTags(data, origin);
   }),
 );
@@ -368,16 +387,29 @@ app.get(
   "/prices/:isbn{/:slug}",
   withTags(async (req, origin) => {
     const isbn = String(req.params.isbn);
-    if (!/^[\dXx-]{10,17}$/.test(isbn)) return null;
-    const data = await summary<VolumeSummary>(
+    if (!/^[\dXx-]{10,17}$/.test(isbn)) return "missing";
+    const { data, missing } = await summary<VolumeSummary>(
       `/api/prices/summary/volume/${encodeURIComponent(isbn)}`,
     );
+    if (missing) return "missing";
     return data && volumeTags(data, origin);
   }),
 );
 
-// every other address is the single-page app, as `serve -s` did
-app.get("/{*path}", (_req, res) => sendPage(res, template));
+// the app's pages (client/src/pages/routes.tsx); the price pages have their
+// own routes above
+const PAGES = [
+  /^\/(shelf|signin|signup|add|import|about|updates|acknowledgements|new-releases|profile|series|prices)?\/?$/,
+  /^\/(details|update|u)\/[^/]+\/?$/,
+  /^\/settings(\/[^/]+)?\/?$/,
+];
+
+// every other address is the single-page app, as `serve -s` did. One that
+// isn't a page shows the app's not-found page, with a real 404
+app.get("/{*path}", (req, res) => {
+  if (!PAGES.some((page) => page.test(req.path))) res.status(404);
+  sendPage(res, template);
+});
 
 app.listen(PORT, () => {
   console.log(`site on http://localhost:${PORT}`);

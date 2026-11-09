@@ -28,6 +28,7 @@ import {
   getVolumeSummary,
   lookupScannedIsbn,
   searchSeries,
+  volumeExists,
 } from "../prices/service.js";
 
 // ---------- shared rules ----------
@@ -238,9 +239,13 @@ const cover = [
 const volumeSummary = [
   ...isbnParam,
   async (req: Request, res: Response) => {
-    const data = await getVolumeSummary(matchedData(req).isbn);
-    if (!data) throw new NotFoundError();
-    res.set("Cache-Control", CACHE_10_MIN).json(data);
+    const { isbn } = matchedData(req);
+    const data = await getVolumeSummary(isbn);
+    if (data) return res.set("Cache-Control", CACHE_10_MIN).json(data);
+    // nothing stored yet, but the page would still find it: no tags to give,
+    // yet it isn't missing (204). Only a book no one can find is a 404
+    if (await volumeExists(isbn)) return res.sendStatus(204);
+    throw new NotFoundError();
   },
 ];
 
@@ -248,9 +253,13 @@ const volumeSummary = [
 const seriesSummary = [
   ...seriesName,
   async (req: Request, res: Response) => {
-    const data = await getSeriesSummary(matchedData(req).name);
-    if (!data) throw new NotFoundError();
-    res.set("Cache-Control", CACHE_10_MIN).json(data);
+    const { name } = matchedData(req);
+    const data = await getSeriesSummary(name);
+    if (data) return res.set("Cache-Control", CACHE_10_MIN).json(data);
+    // the same lookup the series page makes (free catalogs only). A catalog
+    // that's down throws, which is never "missing"
+    if (await getSeries(name)) return res.sendStatus(204);
+    throw new NotFoundError();
   },
 ];
 

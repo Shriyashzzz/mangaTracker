@@ -180,6 +180,18 @@ async function getOrCreateBook(isbn13: string) {
   return priceQueries.getBook(isbn13);
 }
 
+// whether a volume page would find its book, the way getOrCreateBook does, but
+// without storing anything: for telling search engines a page is really
+// missing. A catalog that can't be reached throws, so that's never "missing"
+export async function volumeExists(isbn13: string): Promise<boolean> {
+  const [stored, saved] = await Promise.all([
+    priceQueries.getBook(isbn13),
+    priceQueries.getSavedVolume(isbn13).catch(() => null),
+  ]);
+  if (stored || saved) return true;
+  return Boolean(await lookupIsbn(isbn13));
+}
+
 // a volume's release date while it's still to come, as its series page has it
 // (dates found under other names and catalogs included). For the Canada
 // prices, which have only the ISBN: a preorder spends no paid searches there
