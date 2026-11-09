@@ -164,7 +164,7 @@ export const pricesStyles = {
   offerName: "flex flex-wrap items-center gap-x-2 gap-y-[0.3rem]",
   // stamps. Awards are tilted stickers with an ink shadow in strong colors:
   // red for the lowest overall, green for the cheapest new copy, marigold
-  // for the cheapest marketplace one, indigo for the cheapest box set. Type labels sit flat in the light
+  // for the cheapest marketplace one, indigo for a box set. Type labels sit flat in the light
   // version of the same color, so green always means new, marigold
   // marketplace or used, blue ebook
   awardLowest:
