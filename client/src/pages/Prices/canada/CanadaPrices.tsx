@@ -84,7 +84,7 @@ export default function CanadaPrices({ isbn }: { isbn: string }) {
         <h2 id="ca-prices-title" className={styles.sectionTitle}>
           Prices in Canada
         </h2>
-        <span className="flex items-center gap-3">
+        <span className={styles.checkedRow}>
           {data?.checkedAt && (
             <span className={styles.checked}>
               checked {timeAgo(data.checkedAt)}

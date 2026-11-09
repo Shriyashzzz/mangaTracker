@@ -347,7 +347,7 @@ export default function PriceVolume() {
                 <h2 id="offers-title" className={styles.sectionTitle}>
                   Prices
                 </h2>
-                <span className="flex items-center gap-3">
+                <span className={styles.checkedRow}>
                   {refreshing === isbn ? (
                     <span className={styles.checked} role="status">
                       checking stores…

@@ -147,6 +147,10 @@ export const pricesStyles = {
   sectionNote:
     "-mt-[0.2rem] mb-3 max-w-[48ch] text-[0.95rem] leading-[1.35] text-ink-soft",
   checked: "font-mono text-[0.75rem] text-muted",
+  // "checked … ago" and the US/Canada switch; on phones, where they wrap
+  // under the heading, they spread to either side
+  checkedRow:
+    "flex items-center gap-3 upto-720:w-full upto-720:justify-between",
   // "Show box sets", under the price list
   boxSetToggle:
     "mt-2 inline-flex cursor-pointer items-center gap-2 font-mono text-[0.75rem] text-muted [&_input]:accent-accent",
