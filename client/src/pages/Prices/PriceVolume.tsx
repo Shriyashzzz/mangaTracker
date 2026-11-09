@@ -444,8 +444,8 @@ export default function PriceVolume() {
               )}
               {storeLinks.some((s) => s.affiliate) && (
                 <p className={styles.disclosure}>
-                  Some store links are affiliate links which will be used to
-                  keep the server running.
+                  Some store links are affiliate links, which help keep the site
+                  running at no cost to you.
                 </p>
               )}
             </section>
