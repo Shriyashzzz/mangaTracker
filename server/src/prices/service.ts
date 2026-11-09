@@ -32,6 +32,7 @@ import {
   omnibusVolumes,
 } from "./stores/match.js";
 import { enabledProviders } from "./providers/index.js";
+import { serpApiSearchesLeft } from "./providers/serpapiClient.js";
 import { SearchesUsedUp } from "./providers/serpapiKeys.js";
 import {
   affiliateOfferUrl,
@@ -129,10 +130,13 @@ async function fetchAllProviders(isbn13: string, book: Book) {
 }
 
 // the last check, when it's still the latest: no need to read it again
+// old enough (or never checked) for a live check to look again
+const isStale = (last: { checkedAt: Date } | null) =>
+  !last || Date.now() - last.checkedAt.getTime() >= FRESH_FOR_MS;
+
 async function refreshIfStale(isbn13: string, book: Book) {
   const last = await priceQueries.getLastCheck(isbn13);
-  const fresh = last && Date.now() - last.checkedAt.getTime() < FRESH_FOR_MS;
-  if (fresh || !enabledProviders().length) return { unchanged: last };
+  if (!isStale(last) || !enabledProviders().length) return { unchanged: last };
 
   if (!inFlight.has(isbn13)) {
     inFlight.set(
@@ -150,11 +154,15 @@ async function refreshIfStale(isbn13: string, book: Book) {
 // the English edition (where the ISBN's own record can be Japanese) and told
 // the novel from the manga by length. A book stored under the other format is
 // renamed to match
-async function getOrCreateBook(isbn13: string) {
-  const [stored, saved] = await Promise.all([
+// where a volume page finds its book first: stored, or in a series list
+const storedOrSaved = (isbn13: string) =>
+  Promise.all([
     priceQueries.getBook(isbn13),
     priceQueries.getSavedVolume(isbn13).catch(() => null),
   ]);
+
+async function getOrCreateBook(isbn13: string) {
+  const [stored, saved] = await storedOrSaved(isbn13);
   if (
     stored &&
     saved &&
@@ -183,13 +191,49 @@ async function getOrCreateBook(isbn13: string) {
 // whether a volume page would find its book, the way getOrCreateBook does, but
 // without storing anything: for telling search engines a page is really
 // missing. A catalog that can't be reached throws, so that's never "missing"
+//
+// Remembered a day, and a failure a few minutes (as a throw), so crawlers
+// walking unknown ISBNs can't keep Open Library busy: a burst of lookups
+// gets the whole server blocked there, covers included
+const EXISTS_MS = 24 * 60 * 60 * 1000;
+const EXISTS_FAILED_MS = 5 * 60 * 1000;
+const EXISTS_MAX = 5000;
+const existsCache = new Map<
+  string,
+  { at: number; ttl: number; answer: boolean | null }
+>();
+
 export async function volumeExists(isbn13: string): Promise<boolean> {
-  const [stored, saved] = await Promise.all([
-    priceQueries.getBook(isbn13),
-    priceQueries.getSavedVolume(isbn13).catch(() => null),
-  ]);
+  const hit = existsCache.get(isbn13);
+  if (hit && Date.now() - hit.at < hit.ttl) {
+    if (hit.answer === null) throw new Error("catalog unavailable");
+    return hit.answer;
+  }
+  const remember = (answer: boolean | null, ttl: number) => {
+    existsCache.delete(isbn13);
+    existsCache.set(isbn13, { at: Date.now(), ttl, answer });
+    if (existsCache.size > EXISTS_MAX)
+      existsCache.delete(existsCache.keys().next().value!);
+  };
+  const [stored, saved] = await storedOrSaved(isbn13);
   if (stored || saved) return true;
-  return Boolean(await lookupIsbn(isbn13));
+  try {
+    const answer = Boolean(await lookupIsbn(isbn13));
+    remember(answer, EXISTS_MS);
+    return answer;
+  } catch (e) {
+    remember(null, EXISTS_FAILED_MS);
+    throw e;
+  }
+}
+
+// a live price check would find anything new: a free source is on, or a paid
+// one still has searches this month. Otherwise it only repeats what's stored
+async function canLookAgain() {
+  const providers = enabledProviders();
+  if (providers.some((p) => !p.id.startsWith("serpapi"))) return true;
+  if (!providers.length) return false;
+  return serpApiSearchesLeft().catch(() => true);
 }
 
 // a volume's release date while it's still to come, as its series page has it
@@ -232,10 +276,7 @@ export async function getVolumePrices(isbn13: string, { refresh = true } = {}) {
   // whether a live check (with Turnstile) would look again: the page shows
   // these stored prices first and only asks for one when it would
   const refreshable =
-    known &&
-    !preorder &&
-    enabledProviders().length > 0 &&
-    (!last || Date.now() - last.checkedAt.getTime() >= FRESH_FOR_MS);
+    known && !preorder && isStale(last) && (await canLookAgain());
   const [stored, usual] = await Promise.all([
     last ? priceQueries.getLatestOffers(isbn13, last.checkedAt) : [],
     priceQueries.getNewPriceMedian(isbn13),

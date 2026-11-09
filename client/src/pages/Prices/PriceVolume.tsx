@@ -382,7 +382,11 @@ export default function PriceVolume() {
                 />
               ) : (
                 <p className={styles.note}>
-                  {liveSources.length ? (
+                  {refreshing === isbn ? (
+                    // nothing stored yet and the live check still going: not
+                    // "no prices" until it answers
+                    <>Checking stores for prices…</>
+                  ) : liveSources.length ? (
                     <>
                       No live prices for this one right now. It's often still in
                       stock, so{" "}

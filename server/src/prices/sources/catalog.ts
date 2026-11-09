@@ -646,11 +646,14 @@ export async function lookupIsbn(isbn13: string): Promise<CatalogBook | null> {
   if (book || !doc.title || !volumeRange(doc.title)) return book;
   // a book holding a few volumes, filed under the Japanese title: its own
   // edition record has the English name ("Vinland Saga, Book Nine")
+  // unreachable or failing: thrown, never read as "no such book" (a 404 is)
   const res = await openLibraryFetch(
     `https://openlibrary.org/isbn/${isbn13}.json`,
     TIMEOUT_MS,
-  ).catch(() => null);
-  const edition = res?.ok ? ((await res.json()) as Edition) : null;
+  );
+  if (!res.ok && res.status !== 404)
+    throw new Error(`Open Library responded ${res.status}`);
+  const edition = res.ok ? ((await res.json()) as Edition) : null;
   const title = withBookDigits((edition?.title ?? "").trim());
   if (!title || JAPANESE.test(title) || bookNumberOf(title) === null)
     return null;
