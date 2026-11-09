@@ -352,11 +352,21 @@ const sendPage = (res: Response, html: string) =>
 // whose volume or series doesn't exist still shows the app (it says so), but
 // with a real 404, so search engines don't index it as a page
 const withTags =
-  (load: (req: Request, origin: string) => Promise<Tags | "missing" | null>) =>
+  (
+    load: (req: Request, origin: string) => Promise<Tags | "missing" | null>,
+    redirectTo = false,
+  ) =>
   async (req: Request, res: Response) => {
     const origin = `${req.protocol}://${req.get("host")}`;
     try {
       const tags = API_URL ? await load(req, origin) : null;
+      // a volume under an old or ISBN-only address: a permanent redirect to
+      // its own, rather than the app swapping the address in the browser
+      if (redirectTo && tags && tags !== "missing" && req.path !== tags.path) {
+        const query = req.originalUrl.slice(req.path.length);
+        res.redirect(301, tags.path + query);
+        return;
+      }
       if (tags === "missing") res.status(404);
       sendPage(
         res,
@@ -395,7 +405,7 @@ app.get(
     );
     if (missing) return "missing";
     return data && volumeTags(data, origin);
-  }),
+  }, true),
 );
 
 // the app's pages (client/src/pages/routes.tsx); the price pages have their
