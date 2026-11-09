@@ -17,6 +17,11 @@ const robots = (apiUrl?: string): Plugin => ({
       "Disallow: /details/",
       "Disallow: /signin",
       "Disallow: /signup",
+      "Disallow: /import",
+      "Disallow: /settings",
+      "Disallow: /profile",
+      // never /api/: search engines fetch the price data from it to draw
+      // the pages they index
       "",
     ];
     if (apiUrl)

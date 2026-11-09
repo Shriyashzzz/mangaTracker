@@ -69,8 +69,13 @@ const slugify = (name: string) =>
     .slice(0, 80);
 
 // links a series page; the name rides along because slugs lose punctuation
-export const seriesPath = (name: string) =>
-  `/prices/series/${slugify(name)}?${new URLSearchParams({ name })}`;
+// the name goes along so a series we haven't stored yet is still found. Any
+// line break or run of spaces in it (some catalog titles have them) becomes
+// one space, so the link stays one clean address
+export const seriesPath = (name: string) => {
+  const clean = name.replace(/\s+/g, " ").trim();
+  return `/prices/series/${slugify(clean)}?${new URLSearchParams({ name: clean })}`;
+};
 
 // the address a series is known by in search engines and the sitemap: the
 // bare slug of AniList's name, which the server turns back into the series
