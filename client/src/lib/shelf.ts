@@ -34,6 +34,9 @@ export const getSavedReleases = (signal?: AbortSignal) =>
         checkedAt: string;
       }
     >;
+    // their release settings, as a fingerprint: changed on another device,
+    // what this browser kept no longer holds
+    settings?: string;
   }>("/api/manga/releases/saved", signal);
 
 // the server gives up on a slow title before this; if even it stops answering,

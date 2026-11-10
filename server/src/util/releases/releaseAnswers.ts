@@ -23,6 +23,10 @@ type Keyed = Pick<
   | "planned"
 > & { ownedList?: number[] | null };
 
+// their release settings alone, for the browser to tell when they've changed
+export const settingsPrint = (prefs: Prefs) =>
+  JSON.stringify([prefs?.releaseChecks ?? null, prefs?.releases ?? null]);
+
 export const answerKey = (m: Keyed, prefs: Prefs) =>
   JSON.stringify([
     m.name,

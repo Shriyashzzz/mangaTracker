@@ -22,23 +22,51 @@ type Entry = {
   // what the series was then
   k: string;
 };
-type Saved = { v: 1; entries: Record<number, Entry> };
+type Saved = {
+  v: 1;
+  // their release settings when these were checked (from the server's batch):
+  // settings changed on another device make every answer here suspect
+  settings?: string;
+  entries: Record<number, Entry>;
+};
+
+// short, so 2000 series' keys don't fill the browser's storage
+const hash = (text: string) => {
+  let h = 5381;
+  for (let i = 0; i < text.length; i++) h = (h * 33) ^ text.charCodeAt(i);
+  return (h >>> 0).toString(36) + text.length.toString(36);
+};
+
+// what the New tab needs of an answer: the volume titles behind the grouped
+// list only make its links' names, and the links work without them
+const slim = (s: ReleaseStatus | null): ReleaseStatus | null =>
+  s && {
+    ...s,
+    ...(s.outVolumes && {
+      outVolumes: s.outVolumes.map(({ volume, isbn13 }) => ({
+        volume,
+        isbn13,
+      })),
+    }),
+  };
 
 // what the answer depends on: the series, how far they are, and what
 // they've hidden (here or on another device)
 export const seriesKey = (m: Manga) =>
-  JSON.stringify([
-    m.name,
-    m.volumesOwned,
-    m.ownedList ?? null,
-    m.bookmark,
-    m.lightNovel,
-    m.planned ?? null,
-    m.seenVolume ?? null,
-    m.seenChapter ?? null,
-    m.seenJapanVolume ?? null,
-    m.hiddenVolumes ?? null,
-  ]);
+  hash(
+    JSON.stringify([
+      m.name,
+      m.volumesOwned,
+      m.ownedList ?? null,
+      m.bookmark,
+      m.lightNovel,
+      m.planned ?? null,
+      m.seenVolume ?? null,
+      m.seenChapter ?? null,
+      m.seenJapanVolume ?? null,
+      m.hiddenVolumes ?? null,
+    ]),
+  );
 
 const read = (): Saved | null => {
   if (isDemo()) return null;
@@ -52,7 +80,8 @@ const read = (): Saved | null => {
 
 // the answers still good for this shelf, with when each was checked
 export function loadAnswers(manga: Manga[], now = Date.now()) {
-  const entries = read()?.entries ?? {};
+  const saved = read();
+  const entries = saved?.entries ?? {};
   const releases: Record<number, ReleaseStatus | null> = {};
   const outcomes: Record<number, ReleaseOutcome> = {};
   const checkedAt: Record<number, number> = {};
@@ -63,31 +92,43 @@ export function loadAnswers(manga: Manga[], now = Date.now()) {
     outcomes[m.id] = e.o;
     checkedAt[m.id] = e.at;
   }
-  return { releases, outcomes, checkedAt };
+  return { releases, outcomes, checkedAt, settings: saved?.settings ?? null };
 }
 
-// the shelf's answers as they stand; failed ones aren't worth keeping
+// the shelf's answers as they stand. Failed ones aren't worth keeping, nor
+// partial ones (skip: a source didn't answer), which are asked again next visit
 export function saveAnswers(
   manga: Manga[],
   releases: Record<number, ReleaseStatus | null>,
   outcomes: Record<number, ReleaseOutcome>,
   checkedAt: Record<number, number>,
+  skip: Set<number> = new Set(),
+  settings: string | null = null,
 ) {
   if (isDemo()) return;
   const entries: Record<number, Entry> = {};
   for (const m of manga) {
     const o = outcomes[m.id];
-    if (!(m.id in releases) || !o || o === "failed" || !checkedAt[m.id])
+    if (
+      !(m.id in releases) ||
+      !o ||
+      o === "failed" ||
+      !checkedAt[m.id] ||
+      skip.has(m.id)
+    )
       continue;
     entries[m.id] = {
-      s: releases[m.id] ?? null,
+      s: slim(releases[m.id] ?? null),
       o,
       at: checkedAt[m.id]!,
       k: seriesKey(m),
     };
   }
   try {
-    localStorage.setItem(KEY, JSON.stringify({ v: 1, entries }));
+    localStorage.setItem(
+      KEY,
+      JSON.stringify({ v: 1, ...(settings && { settings }), entries }),
+    );
   } catch {
     // full or blocked: the next visit checks as it always did
   }

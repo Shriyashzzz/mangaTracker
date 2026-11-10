@@ -23,6 +23,7 @@ import {
   loadAnswers,
   mergeSaved,
   saveAnswers,
+  seriesKey,
   STALE_MS,
 } from "../lib/releaseCache";
 
@@ -93,6 +94,14 @@ const retried = new Set<number>();
 const stale = new Set<number>();
 // the server's saved answers are asked for once a visit, before the first check
 let savedAsked = false;
+// answers that came from this browser's own store, and the release settings
+// they were found with; the server's batch says what the settings are now
+const fromBrowser = new Set<number>();
+let keptSettings: string | null = null;
+let settingsNow: string | null = null;
+// Check again and signing out start a new round: an answer from the old one,
+// still on its way, is dropped
+let round = 0;
 
 // one title, given up on after a while so one stuck title can't stop the rest.
 // A plain timer: AbortSignal.any doesn't exist before iOS 17.4
@@ -307,20 +316,15 @@ export const useShelf = create<ShelfState>()((set, get) => ({
       const { manga } = (await res.json()) as { manga: Manga[] };
       if (asked !== generation) return;
 
-      // an answer depends on the title, what they own and where they've read
-      // to, so a title edited since it was checked needs checking again
+      // an answer depends on the title, what they own, where they've read to
+      // and what they've hidden (maybe on another device), so a series
+      // changed since it was checked needs checking again
       const { manga: before, releases, outcomes } = get();
       const stillGood = { ...releases };
       const stillKnown = { ...outcomes };
       for (const m of manga) {
         const old = before?.find((b) => b.id === m.id);
-        if (
-          old &&
-          (old.name !== m.name ||
-            old.volumesOwned !== m.volumesOwned ||
-            old.lightNovel !== m.lightNovel ||
-            old.bookmark !== m.bookmark)
-        ) {
+        if (old && seriesKey(old) !== seriesKey(m)) {
           delete stillGood[m.id];
           delete stillKnown[m.id];
           incomplete.delete(m.id);
@@ -330,9 +334,11 @@ export const useShelf = create<ShelfState>()((set, get) => ({
       let checkedAt = get().checkedAt;
       if (!before) {
         const kept = loadAnswers(manga);
+        keptSettings = kept.settings;
         const now = Date.now();
         for (const id of Object.keys(kept.releases).map(Number)) {
           if (id in stillGood) continue;
+          fromBrowser.add(id);
           stillGood[id] = kept.releases[id]!;
           stillKnown[id] = kept.outcomes[id]!;
           if (now - kept.checkedAt[id]! > STALE_MS) stale.add(id);
@@ -367,13 +373,33 @@ export const useShelf = create<ShelfState>()((set, get) => ({
       // shelf checked lately that's all of it
       if (!savedAsked) {
         savedAsked = true;
+        const asked = round;
         const saved = await getSavedReleases(controller.signal).catch(
           () => null,
         );
-        if (controller.signal.aborted) return;
+        if (controller.signal.aborted || asked !== round) return;
         if (saved) {
           const now = Date.now();
+          if (saved.settings) settingsNow = saved.settings;
+          // their settings changed elsewhere: what this browser kept may say
+          // the wrong thing, so it's checked again (the server's own answers
+          // already match the settings as they are)
+          const settingsChanged =
+            keptSettings !== null &&
+            saved.settings !== undefined &&
+            saved.settings !== keptSettings;
           set((state) => {
+            if (settingsChanged) {
+              const releases = { ...state.releases };
+              const outcomes = { ...state.outcomes };
+              for (const id of fromBrowser) {
+                if (id in saved.answers) continue;
+                delete releases[id];
+                delete outcomes[id];
+                stale.delete(id);
+              }
+              state = { ...state, releases, outcomes };
+            }
             const merged = mergeSaved(state, saved.answers, now);
             for (const id of merged.fresh) stale.delete(id);
             return merged.state;
@@ -398,6 +424,10 @@ export const useShelf = create<ShelfState>()((set, get) => ({
         if (isRetry) retried.add(next.id);
         const found = await askAbout(next, controller.signal);
         if (controller.signal.aborted) return;
+        // the series changed while it was being asked about (edited, read on,
+        // hidden): the answer is for how it was, so it's asked again
+        const now = get().manga?.find((m) => m.id === next.id);
+        if (!now || seriesKey(now) !== seriesKey(next)) continue;
         // an old answer stays until a new one actually comes
         if (quiet && (!found || found.outcome === "failed")) continue;
 
@@ -431,6 +461,10 @@ export const useShelf = create<ShelfState>()((set, get) => ({
 
   // everything asked again from the sites, nothing kept used
   recheckReleases: () => {
+    run?.abort();
+    run = null;
+    round++;
+    fromBrowser.clear();
     incomplete.clear();
     retried.clear();
     stale.clear();
@@ -509,6 +543,10 @@ export const useShelf = create<ShelfState>()((set, get) => ({
     retried.clear();
     stale.clear();
     savedAsked = false;
+    round++;
+    fromBrowser.clear();
+    keptSettings = null;
+    settingsNow = null;
     // another account's answers never show here
     clearAnswers();
     writeLocal(LAST_NEW_COUNT_KEY, "");
@@ -538,6 +576,14 @@ useShelf.subscribe((state, prev) => {
   clearTimeout(saveTimer);
   saveTimer = setTimeout(() => {
     const { manga, releases, outcomes, checkedAt } = useShelf.getState();
-    if (manga) saveAnswers(manga, releases, outcomes, checkedAt);
-  }, 1000);
+    if (manga)
+      saveAnswers(
+        manga,
+        releases,
+        outcomes,
+        checkedAt,
+        incomplete,
+        settingsNow ?? keptSettings,
+      );
+  }, 2500);
 });

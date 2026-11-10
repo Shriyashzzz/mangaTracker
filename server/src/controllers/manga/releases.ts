@@ -24,6 +24,7 @@ import { notOutYet } from "../../prices/preorder.js";
 import {
   saveAnswer,
   savedAnswers,
+  settingsPrint,
 } from "../../util/releases/releaseAnswers.js";
 
 // "Vol. 15 is out!" only once it is: a preorder isn't news yet
@@ -199,5 +200,6 @@ export const savedReleases = async (req: Request, res: Response) => {
   res.json({
     answers:
       prefs?.releaseChecks === "off" ? {} : await savedAnswers(shelf, prefs),
+    settings: settingsPrint(prefs),
   });
 };

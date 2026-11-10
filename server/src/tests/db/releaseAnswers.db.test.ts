@@ -121,6 +121,8 @@ test("the route hands back only the reader's own shelf", async () => {
   await saveAnswer(two.manga, null, news);
   const res = await one.agent.get("/api/manga/releases/saved").expect(200);
   expect(Object.keys(res.body.answers)).toEqual([String(one.manga.id)]);
+  // and their settings, so a browser can tell they changed elsewhere
+  expect(typeof res.body.settings).toBe("string");
   expect((await request(app).get("/api/manga/releases/saved")).status).toBe(
     401,
   );

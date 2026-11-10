@@ -180,3 +180,65 @@ test("how long ago, in plain words", () => {
   expect(checkedAgo(NOW - 26 * HOUR, NOW)).toBe("yesterday");
   expect(checkedAgo(NOW - 72 * HOUR, NOW)).toBe("3 days ago");
 });
+
+test("partial answers aren't kept, so the next visit asks again", () => {
+  saveAnswers(
+    [m(1), m(2)],
+    { 1: status(4), 2: status(5) },
+    { 1: "news", 2: "news" },
+    { 1: NOW, 2: NOW },
+    new Set([2]),
+  );
+  expect(Object.keys(loadAnswers([m(1), m(2)], NOW).releases)).toEqual(["1"]);
+});
+
+test("kept answers drop the volume titles but keep what the New tab needs", () => {
+  const full = {
+    hasNewVolume: true,
+    nextVolume: 4,
+    outVolumes: [{ volume: 4, isbn13: "9781111111111", title: "A long title" }],
+  } as unknown as ReleaseStatus;
+  saveAnswers([m(1)], { 1: full }, { 1: "news" }, { 1: NOW });
+  const kept = loadAnswers([m(1)], NOW).releases[1]!;
+  expect(kept.outVolumes).toEqual([{ volume: 4, isbn13: "9781111111111" }]);
+  expect(kept.nextVolume).toBe(4);
+});
+
+test("the release settings they were found with come back with them", () => {
+  saveAnswers(
+    [m(1)],
+    { 1: status(4) },
+    { 1: "news" },
+    { 1: NOW },
+    new Set(),
+    '["on",null]',
+  );
+  expect(loadAnswers([m(1)], NOW).settings).toBe('["on",null]');
+  saveAnswers([m(1)], { 1: status(4) }, { 1: "news" }, { 1: NOW });
+  expect(loadAnswers([m(1)], NOW).settings).toBeNull();
+});
+
+test("a 2000 series shelf fits comfortably in the browser's storage", () => {
+  const shelf = Array.from({ length: 2000 }, (_, i) =>
+    m(i + 1, { name: `A fairly long series name number ${i}` }),
+  );
+  const big = {
+    hasNewVolume: true,
+    nextVolume: 2,
+    outVolumes: Array.from({ length: 40 }, (_, v) => ({
+      volume: v + 2,
+      isbn13: "978111111" + String(v).padStart(4, "0"),
+      title: "x".repeat(80),
+    })),
+    outJapanVolumes: [50, 51],
+  } as unknown as ReleaseStatus;
+  const ids = Object.fromEntries(shelf.map((s) => [s.id, big]));
+  saveAnswers(
+    shelf,
+    ids,
+    Object.fromEntries(shelf.map((s) => [s.id, "news" as const])),
+    Object.fromEntries(shelf.map((s) => [s.id, NOW])),
+  );
+  // every series 40 volumes behind: far more than a real shelf
+  expect(store.get("releaseAnswers")!.length).toBeLessThan(5_000_000);
+});

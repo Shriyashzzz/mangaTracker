@@ -14,57 +14,57 @@ datasource db {
 // ---------- the shelf ----------
 
 model User {
-  id       Int     @id @default(autoincrement())
-  username String  @unique @db.VarChar(40)
-  password String
+  id              Int     @id @default(autoincrement())
+  username        String  @unique @db.VarChar(40)
+  password        String
   // display preferences: { background, theme }
-  prefs    Json    @default("{}")
+  prefs           Json    @default("{}")
   // what others see if they share their list; the username stays private
-  displayName   String? @map("display_name") @db.VarChar(40)
-  avatar        String? @db.VarChar(20)
+  displayName     String? @map("display_name") @db.VarChar(40)
+  avatar          String? @db.VarChar(20)
   // optional, set in settings. Nothing sends to it yet
-  recoveryEmail String? @map("recovery_email") @db.VarChar(254)
+  recoveryEmail   String? @map("recovery_email") @db.VarChar(254)
   // the link is a random code, and stays the same if sharing is switched off and on
-  shareEnabled  Boolean @default(false) @map("share_enabled")
-  shareNotes    Boolean @default(false) @map("share_notes")
-  shareCode     String? @unique @map("share_code") @db.VarChar(16)
+  shareEnabled    Boolean @default(false) @map("share_enabled")
+  shareNotes      Boolean @default(false) @map("share_notes")
+  shareCode       String? @unique @map("share_code") @db.VarChar(16)
   // series on their shelf, kept right by a database trigger on manga
   // (migration 20261113000000_search_tracking); never written from code
-  mangaCount      Int @default(0) @map("manga_count")
+  mangaCount      Int     @default(0) @map("manga_count")
   // SerpApi searches their visits have spent (prices/spender.ts)
-  serpapiSearches Int @default(0) @map("serpapi_searches")
-  manga    Manga[]
+  serpapiSearches Int     @default(0) @map("serpapi_searches")
+  manga           Manga[]
 
   @@map("users")
 }
 
 model Manga {
-  id           Int     @id @default(autoincrement())
-  userId       Int?    @map("user_id")
-  user         User?   @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction)
-  name         String
-  genre        String? @db.VarChar(100)
-  description  String?
-  image        String?
+  id              Int     @id @default(autoincrement())
+  userId          Int?    @map("user_id")
+  user            User?   @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  name            String
+  genre           String? @db.VarChar(100)
+  description     String?
+  image           String?
   // true = finished reading
-  status       Boolean @default(false)
+  status          Boolean @default(false)
   // on their To read list: not started yet. Never true alongside status
-  planned      Boolean @default(false)
+  planned         Boolean @default(false)
   // a light novel rather than a manga: no manga prices or volume news for it
-  lightNovel   Boolean @default(false) @map("light_novel")
+  lightNovel      Boolean @default(false) @map("light_novel")
   // the chapter they're on
-  bookmark     Int?
+  bookmark        Int?
   // the last volume they own ("up to Vol. 14"); null when they don't say
-  volumesOwned Int?    @map("volumes_owned") @db.SmallInt
+  volumesOwned    Int?    @map("volumes_owned") @db.SmallInt
   // the exact volumes they own, when it isn't a run from 1 (One Piece 1 and 4);
   // empty means 1 to volumesOwned. volumesOwned is its highest
   // (util/shelf/ownedList.ts)
-  ownedList    Float[] @default([]) @map("owned_list")
-  rating       Int?    @db.SmallInt
+  ownedList       Float[] @default([]) @map("owned_list")
+  rating          Int?    @db.SmallInt
   // the newest release they've said "Seen it" to; anything newer shows as new
-  seenVolume      Float? @map("seen_volume")
-  seenChapter     Float? @map("seen_chapter")
-  seenJapanVolume Float? @map("seen_japan_volume")
+  seenVolume      Float?  @map("seen_volume")
+  seenChapter     Float?  @map("seen_chapter")
+  seenJapanVolume Float?  @map("seen_japan_volume")
   // volumes hidden one at a time, on top of everything up to seenVolume
   hiddenVolumes   Float[] @default([]) @map("hidden_volumes")
   // the latest chapter last found for this series; updated by each lookup
@@ -92,15 +92,15 @@ model Session {
 // ---------- the price checker ----------
 
 model Book {
-  isbn13    String        @id @db.Char(13)
-  title     String
-  authors   String?
-  publisher String?
-  coverUrl  String?       @map("cover_url")
-  year      Int?          @db.SmallInt
-  updatedAt DateTime      @default(now()) @map("updated_at") @db.Timestamptz(6)
-  samples   PriceSample[]
-  check     PriceCheck?
+  isbn13       String             @id @db.Char(13)
+  title        String
+  authors      String?
+  publisher    String?
+  coverUrl     String?            @map("cover_url")
+  year         Int?               @db.SmallInt
+  updatedAt    DateTime           @default(now()) @map("updated_at") @db.Timestamptz(6)
+  samples      PriceSample[]
+  check        PriceCheck?
   // each price source group's last look (prices/service.ts)
   sourceChecks PriceSourceCheck[]
 
@@ -201,7 +201,6 @@ model ImportMatch {
   @@map("import_matches")
 }
 
-// what MangaDex said about a series' releases, kept 6 hours (util/releaseCache.ts)
 // a manga's last release check, as its answer was sent: the New tab asks for
 // a whole shelf of these at once rather than one site call per series. Kept
 // only while key (what the answer depended on: the series, how far they are,
@@ -216,6 +215,7 @@ model ReleaseAnswer {
   @@map("release_answers")
 }
 
+// what MangaDex said about a series' releases, kept 6 hours (util/releaseCache.ts)
 model ReleaseDates {
   slug      String   @id @db.VarChar(160)
   data      Json
