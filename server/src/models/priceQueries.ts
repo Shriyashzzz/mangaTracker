@@ -11,6 +11,7 @@ import { VOLUMES_KEY_VERSION } from "../prices/volumesKey.js";
 import { prisma } from "../config/prisma.js";
 import { Prisma, type Book } from "../../generated/prisma/client.js";
 import {
+  dropUnlikelyNew,
   lowestBelievableNew,
   unlikelyNewTest,
 } from "../prices/stores/retailers.js";
@@ -299,6 +300,111 @@ export async function getNewPriceMedian(
   return rows[0]?.median ?? null;
 }
 
+// each volume's usual new print price (the median of every one saved), the
+// yardstick for a "new" price too far off to believe
+async function newMedians(isbns: string[]) {
+  const rows = await prisma.$queryRaw<{ isbn13: string; median: number }[]>`
+    SELECT isbn13,
+           ROUND(percentile_cont(0.5) WITHIN GROUP (ORDER BY price_cents))::int AS median
+    FROM price_samples
+    WHERE isbn13 = ANY(${isbns}::text[])
+      AND in_stock AND condition = 'new' AND format = 'print'
+    GROUP BY isbn13
+  `;
+  return new Map(rows.map((u) => [u.isbn13.trim(), u.median]));
+}
+
+// What a volume has gone for: the median of every in-stock print price ever
+// recorded for it, used and new apart, so a price never goes stale (a check
+// that finds nothing doesn't wipe it, and each look adds to it). The last 12
+// months win when there are any: a price from years ago is only the fallback.
+// For the shelf tools (collector/); database only
+export type RecordedPrice = { used: number | null; new: number | null };
+export async function getRecordedMedians(
+  isbns: string[],
+): Promise<Map<string, RecordedPrice>> {
+  if (!isbns.length) return new Map();
+  const rows = await prisma.$queryRaw<
+    (Offer & { isbn13: string; fetchedAt: Date })[]
+  >`
+    SELECT isbn13, store, format, condition, price_cents AS "priceCents",
+           currency, in_stock AS "inStock", url, fetched_at AS "fetchedAt"
+    FROM price_samples
+    WHERE isbn13 = ANY(${isbns}::text[]) AND in_stock AND format = 'print'
+  `;
+  const yearAgo = Date.now() - 365 * 24 * 60 * 60 * 1000;
+  const mid = (cents: number[]) => {
+    if (!cents.length) return null;
+    const sorted = [...cents].sort((a, b) => a - b);
+    const m = Math.floor(sorted.length / 2);
+    return sorted.length % 2
+      ? sorted[m]!
+      : Math.round((sorted[m - 1]! + sorted[m]!) / 2);
+  };
+  const out = new Map<string, RecordedPrice>();
+  for (const [isbn, samples] of groupBy(rows, (r) => r.isbn13.trim())) {
+    // each check's "new" prices held to the believable-price rule first, as
+    // the price pages hold them: one collector's edition or mislabelled row
+    // mustn't move what a volume goes for
+    const usual = mid(
+      samples.filter((s) => s.condition === "new").map((s) => s.priceCents),
+    );
+    const kept = [
+      ...groupBy(samples, (s) => String(s.fetchedAt.getTime())).values(),
+    ].flatMap((check) => dropUnlikelyNew(check, usual));
+    const pick = (cond: (s: (typeof kept)[number]) => boolean) => {
+      const all = kept.filter(cond);
+      const recent = all.filter((s) => s.fetchedAt.getTime() > yearAgo);
+      return mid((recent.length ? recent : all).map((s) => s.priceCents));
+    };
+    out.set(isbn, {
+      used: pick((s) => s.condition !== "new"),
+      new: pick((s) => s.condition === "new"),
+    });
+  }
+  return out;
+}
+
+// the cheapest new and the cheapest used print copy in stock among each
+// volume's prices now, with the store and link: for the shelf tools
+// (collector/). The same believable-price rule as getKnownPrices; database
+// only, never a lookup
+export type CheapestCopy = { cents: number; store: string; url: string | null };
+export async function getCheapestCopies(
+  isbns: string[],
+): Promise<
+  Map<string, { new: CheapestCopy | null; used: CheapestCopy | null }>
+> {
+  const out = new Map<
+    string,
+    { new: CheapestCopy | null; used: CheapestCopy | null }
+  >();
+  if (!isbns.length) return out;
+  const [rows, looked, usual] = await Promise.all([
+    currentRows(isbns),
+    lookedAt(isbns),
+    newMedians(isbns),
+  ]);
+  const cheapest = (offers: CurrentRow[]): CheapestCopy | null => {
+    const best = offers.reduce<CurrentRow | null>(
+      (a, b) => (!a || b.priceCents < a.priceCents ? b : a),
+      null,
+    );
+    return best && { cents: best.priceCents, store: best.store, url: best.url };
+  };
+  for (const [isbn, group] of groupBy(rows, (row) => row.isbn13.trim())) {
+    const copies = dropUnlikelyNew(
+      currentOf(group, looked.get(isbn)),
+      usual.get(isbn),
+    ).filter((o) => o.inStock && o.format === "print");
+    out.set(isbn, {
+      new: cheapest(copies.filter((o) => o.condition === "new")),
+      used: cheapest(copies.filter((o) => o.condition !== "new")),
+    });
+  }
+  return out;
+}
+
 // the cheapest new print price from each volume's latest check, for showing
 // prices on series pages and shelves without fetching anything
 export async function getKnownPrices(
@@ -314,16 +420,9 @@ export async function getKnownPrices(
       where: { isbn13: { in: isbns } },
       _min: { checkedAt: true },
     }),
-    prisma.$queryRaw<{ isbn13: string; median: number }[]>`
-      SELECT isbn13,
-             ROUND(percentile_cont(0.5) WITHIN GROUP (ORDER BY price_cents))::int AS median
-      FROM price_samples
-      WHERE isbn13 = ANY(${isbns}::text[])
-        AND in_stock AND condition = 'new' AND format = 'print'
-      GROUP BY isbn13
-    `,
+    newMedians(isbns),
   ]);
-  const usualOf = new Map(usual.map((u) => [u.isbn13.trim(), u.median]));
+  const usualOf = usual;
   const checkedAt = new Map(
     checks.flatMap((c) =>
       c._min.checkedAt ? [[c.isbn13.trim(), c._min.checkedAt] as const] : [],
@@ -414,6 +513,12 @@ async function queryRecentBestPrices(limit: number): Promise<RecentPrice[]> {
       AND b.title !~ '[぀-ヿ一-鿿]'
       -- numbered volumes only: keeps other books that share a name out
       AND b.title ~* 'vol(ume)?[.]?[[:space:]]*[0-9]'
+      -- not one only the background pricing has looked at (a reader's
+      -- shelf, not a lookup): it shows once someone opens it
+      AND NOT EXISTS (
+        SELECT 1 FROM price_checks pc
+        WHERE pc.isbn13 = l.isbn13 AND 'fill' = ANY(pc.sources)
+      )
     ORDER BY l.fetched_at DESC
     LIMIT ${limit}
   `;
@@ -655,6 +760,8 @@ export default {
   getFoundNovels,
   saveSeriesVolumes,
   getKnownPrices,
+  getCheapestCopies,
+  getRecordedMedians,
   getRecentBestPrices,
   getBook,
   isKnownVolume,

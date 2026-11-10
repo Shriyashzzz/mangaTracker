@@ -3,6 +3,7 @@ import CountrySwitch from "./canada/CountrySwitch";
 import { useBoxSetsShown, useCountry } from "../../lib/prefs";
 import BoxSetToggle from "./BoxSetToggle";
 import { useEffect, useState } from "react";
+import DealsStrip from "../../components/deals/DealsStrip";
 import { noteStoreClick } from "../../lib/support";
 import { ChevronDownIcon } from "../../components/icons/Icons";
 import { NavLink, useLocation, useNavigate, useParams } from "react-router";
@@ -277,6 +278,7 @@ export default function PriceVolume() {
           {volume != null ? `Vol. ${volume}` : shownBook.title}
         </span>
       </nav>
+      <DealsStrip />
 
       <article className={styles.volume}>
         <figure className={styles.volumeCover}>

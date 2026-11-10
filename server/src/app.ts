@@ -14,6 +14,7 @@ import { accountRouter, shareRouter } from "./routes/accountRouter.js";
 import { mangaRouter } from "./routes/mangaRouter.js";
 import { pricesRouter } from "./routes/pricesRouter.js";
 import { seoRouter } from "./routes/seoRouter.js";
+import { collectorRouter } from "./collector/router.js";
 import { errorHandler } from "./middlewares/errorHandler.js";
 
 export const app = express();
@@ -66,6 +67,7 @@ app.use("/api/account", accountRouter);
 app.use("/api/share", shareRouter);
 app.use("/api/manga", mangaRouter);
 app.use("/api/prices", pricesRouter);
+app.use("/api/collector", collectorRouter);
 app.use("/", seoRouter);
 
 app.use((_req, res) => {

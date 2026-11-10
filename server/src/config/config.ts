@@ -43,6 +43,21 @@ const schema = z.object({
     blankToUndefined,
     z.coerce.number().int().nonnegative().default(100),
   ),
+  // the shelf tools (shelf value, finishing series, the release calendar)
+  // and the deals strip: "off" hides them all (server/src/collector)
+  COLLECTOR_TOOLS: z.preprocess(
+    blankToUndefined,
+    z.enum(["on", "off"]).default("on"),
+  ),
+  // background pricing of shelf volumes from eBay's free API
+  // (collector/filler.ts): on in production unless "off"; "on" runs it
+  // anywhere (a laptop shares the eBay keys, so it's off there by default).
+  // PRICE_FILL_DAILY: volumes a day, about 3 eBay calls each
+  PRICE_FILL: z.preprocess(blankToUndefined, z.enum(["on", "off"]).optional()),
+  PRICE_FILL_DAILY: z.preprocess(
+    blankToUndefined,
+    z.coerce.number().int().nonnegative().default(160),
+  ),
   EBAY_CLIENT_ID: optional,
   EBAY_CLIENT_SECRET: optional,
   // calls a day to eBay's Browse API (eBay allows about 5,000); kept under it
