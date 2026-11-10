@@ -36,14 +36,12 @@ const before = (m: Manga, kind: SeenKind): Before => ({
 });
 
 export function useHideActions({
-  manga,
   releases,
   releaseKind,
   viewingHidden,
   shown,
   closeRelease,
 }: {
-  manga: Manga[];
   releases: Releases;
   releaseKind: ReleaseKind;
   // on the list of what they've hidden: Hide is Unhide there
@@ -131,9 +129,10 @@ export function useHideActions({
     else setFailed(true);
   };
 
-  // everything hidden in this view, back on the list at once
+  // everything hidden that the view shows (on a pile's page, that pile),
+  // back on the list at once
   const unhideAll = async () => {
-    const series = manga.filter((m) => isHiddenAs(releases[m.id], releaseKind));
+    const series = shown.filter((m) => isHiddenAs(releases[m.id], releaseKind));
     await many(
       series.map((m) => ({
         m,

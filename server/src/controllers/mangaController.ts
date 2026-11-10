@@ -33,7 +33,7 @@ import {
   knownImportMatches,
   tellImportMatches,
 } from "./manga/import.js";
-import { releases, shelfPrices } from "./manga/releases.js";
+import { releases, savedReleases, shelfPrices } from "./manga/releases.js";
 
 // named, for the tests
 export { nothingLeftToCheck } from "./manga/releases.js";
@@ -44,6 +44,7 @@ export default {
   add,
   detail,
   releases,
+  savedReleases,
   update,
   remove,
   removeMany,

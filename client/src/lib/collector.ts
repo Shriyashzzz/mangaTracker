@@ -112,3 +112,31 @@ export const dayName = (published: string) => {
     timeZone: "UTC",
   });
 };
+
+// "December" (the month alone)
+export const monthOnly = (month: string) => monthName(month).split(" ")[0]!;
+
+// today as the calendar counts it, in the reader's own time zone: "2026-11-10"
+export const todayIso = (now = new Date()) =>
+  `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
+
+// the days a month's page shows, Sunday first: the month's own, padded with
+// the days around it to whole weeks. Each "YYYY-MM-DD", `inMonth` false for
+// the padding
+export function monthDays(month: string) {
+  const [y, m] = month.split("-").map(Number);
+  const first = new Date(Date.UTC(y!, m! - 1, 1));
+  const last = new Date(Date.UTC(y!, m!, 0));
+  const start = new Date(first);
+  start.setUTCDate(1 - first.getUTCDay());
+  const end = new Date(last);
+  end.setUTCDate(last.getUTCDate() + (6 - last.getUTCDay()));
+  const days: { iso: string; day: number; inMonth: boolean }[] = [];
+  for (const d = new Date(start); d <= end; d.setUTCDate(d.getUTCDate() + 1))
+    days.push({
+      iso: d.toISOString().slice(0, 10),
+      day: d.getUTCDate(),
+      inMonth: d.getUTCMonth() === m! - 1,
+    });
+  return days;
+}

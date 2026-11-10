@@ -85,6 +85,11 @@ export type ReleaseStatus = {
   outJapanVolumes: number[];
   latestChapter: number | null;
   latestJapaneseVolume: number | null;
+  // when the newest of each came out, where known (the "Just out" pile);
+  // missing from an answer saved before they were sent
+  latestVolumeDate?: string | null;
+  latestChapterDate?: string | null;
+  latestJapaneseVolumeDate?: string | null;
 };
 
 // what the add / edit forms send
