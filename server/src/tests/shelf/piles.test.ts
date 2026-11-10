@@ -3,6 +3,7 @@
 import {
   behindOf,
   catchUpText,
+  sortPile,
   isPileView,
   pileOf,
   sortIntoPiles,
@@ -195,4 +196,22 @@ test("a few and way behind say how much there is to catch up on", () => {
   expect(catchUpText("way", many, lots, "volumes")).toBe(
     " · 2,100 to catch up",
   );
+});
+
+test("a pile's page sorts by how much there is to catch up on, or title", () => {
+  const m = (id: number, name: string) => ({ id, name }) as Manga;
+  const list = [m(1, "Bleach"), m(2, "Akira"), m(3, "Claymore")];
+  const releases = {
+    1: found({ outVolumes: vols(2, 3) }),
+    2: found({ outVolumes: vols(2, 3, 4, 5, 6, 7, 8) }),
+    3: found({ outVolumes: vols(9) }),
+  };
+  const ids = (sort: Parameters<typeof sortPile>[3]) =>
+    sortPile(list, releases, "volumes", sort).map((x) => x.id);
+  expect(ids("")).toEqual([1, 2, 3]);
+  expect(ids("most")).toEqual([2, 1, 3]);
+  expect(ids("least")).toEqual([3, 1, 2]);
+  expect(ids("az")).toEqual([2, 1, 3]);
+  // the shelf's own list is left as it was
+  expect(list.map((x) => x.id)).toEqual([1, 2, 3]);
 });

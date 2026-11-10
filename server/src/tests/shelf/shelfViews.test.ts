@@ -191,3 +191,17 @@ test("every tab has a word in the address, and back", () => {
   for (const [tab, word] of Object.entries(URL_FROM_TAB))
     expect(TAB_FROM_URL[word]).toBe(tab);
 });
+
+test("a card doesn't say twice where they are: Vol. 5 next already means they're on 4", () => {
+  const m = manga(1, { volumesOwned: 4, bookmark: 30 });
+  const next = (over: Partial<ReleaseStatus>) =>
+    newsFor(m, found(over), "volumes", false);
+  expect(next({ nextVolume: 5, latestVolume: 7, currentVolume: 4 })).toEqual({
+    text: "Vol. 5 next",
+    yours: undefined,
+  });
+  // a gap (they own 4, the next English one is 7) is worth saying
+  expect(next({ nextVolume: 7, latestVolume: 9, currentVolume: 4 }).yours).toBe(
+    "You own up to vol. 4",
+  );
+});

@@ -39,6 +39,10 @@ export const homeStyles = {
   classContainer:
     "grid grid-cols-[repeat(auto-fill,minmax(136px,1fr))] gap-x-5 gap-y-8 upto-520:grid-cols-2 upto-520:gap-x-4 upto-520:gap-y-7",
   pagerBottom: "mt-10",
+  // a pile's page on phones: more of it, rather than the next page
+  showMore:
+    "tap flex w-full flex-col items-center gap-0.5 border-2 border-line bg-card py-3 text-[0.95rem] font-semibold shadow-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent focus-visible:outline-dashed",
+  showMoreCount: "font-mono text-[0.72rem] font-normal text-muted",
   // "Hide" sits under the card rather than in it: the card is one big link
   // (a label in Select, sized the same)
   cardWithSeen:
@@ -112,6 +116,8 @@ export const homeStyles = {
   releaseKinds:
     "flex overflow-hidden rounded-ink border-2 border-line upto-520:w-full",
   releaseKind: `${releaseKind} bg-card text-ink-soft hover:text-ink`,
+  // nothing new of this kind: still there to pick, but it reads as empty
+  releaseKindEmpty: `${releaseKind} bg-card text-muted opacity-70 hover:text-ink hover:opacity-100`,
   releaseKindActive: `${releaseKind} bg-accent text-on-accent`,
   releaseKindCount: "ml-1 font-mono text-[0.78rem] tracking-normal",
   // side info: it should read as a footnote to the switch, not compete with it
@@ -124,6 +130,14 @@ export const homeStyles = {
   releaseLinksRow:
     "-mt-3 mb-5 flex flex-wrap items-center justify-between gap-x-5 gap-y-1",
   releaseLinks: "flex flex-wrap items-center gap-x-5 gap-y-1",
+  // "How New works": a tilted "?" stamp and a quiet label
+  helpLink:
+    "tap group/help inline-flex items-center gap-2 text-[0.84rem] font-medium text-ink-soft hover:text-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent focus-visible:outline-dashed",
+  helpMark:
+    "grid size-6 -rotate-6 place-items-center rounded-full border-[1.5px] border-line bg-accent font-brand text-[0.95rem] leading-none text-on-accent shadow-[1.5px_1.5px_0_var(--hard-shadow)] transition-transform duration-150 ease-ink group-hover/help:rotate-0",
+  // a bulk action, so it doesn't look like the links beside it
+  hideAll:
+    "tap inline-flex items-center border-[1.5px] border-line bg-card px-2.5 py-1 text-[0.82rem] font-semibold text-ink shadow-[2px_2px_0_var(--hard-shadow)] transition-[translate,box-shadow] duration-150 ease-ink hover:-translate-px hover:shadow-[3px_3px_0_var(--hard-shadow)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent focus-visible:outline-dashed",
   hiddenToggle:
     "tap text-[0.85rem] font-medium text-ink underline decoration-accent decoration-2 underline-offset-3",
   // the grouped list. A full screen on phones

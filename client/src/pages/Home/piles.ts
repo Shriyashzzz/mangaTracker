@@ -107,6 +107,31 @@ export function catchUpText(
   return ` · ${total.toLocaleString("en-US")} to catch up`;
 }
 
+// how a pile's own page can be ordered: as the shelf lists it, most or least
+// to catch up on first, or by title
+export const PILE_SORTS = [
+  { value: "", label: "As listed" },
+  { value: "most", label: "Most to catch up" },
+  { value: "least", label: "Least to catch up" },
+  { value: "az", label: "Title, A to Z" },
+] as const;
+export type PileSort = (typeof PILE_SORTS)[number]["value"];
+
+export function sortPile(
+  list: Manga[],
+  releases: Releases,
+  kind: ReleaseKind,
+  sort: PileSort,
+) {
+  if (!sort) return list;
+  if (sort === "az")
+    return [...list].sort((a, b) => a.name.localeCompare(b.name));
+  const behind = (m: Manga) => behindOf(releases[m.id], kind);
+  return [...list].sort((a, b) =>
+    sort === "most" ? behind(b) - behind(a) : behind(a) - behind(b),
+  );
+}
+
 // the list, pile by pile, each keeping the list's order
 export function sortIntoPiles(
   list: Manga[],

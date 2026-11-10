@@ -7,7 +7,10 @@ import { useEffect, useState } from "react";
 import { NavLink, useNavigate } from "react-router";
 import { ChevronDownIcon } from "../../components/icons/Icons";
 import MiniMonth from "../../components/calendar/MiniMonth";
-import ReleaseList from "../../components/calendar/ReleaseList";
+import AddToCalendar from "../../components/calendar/AddToCalendar";
+import ReleaseList, {
+  VolumeCover,
+} from "../../components/calendar/ReleaseList";
 import Mascot from "../../components/mascot/Mascot";
 import { signInPath } from "../../lib/api";
 import {
@@ -21,6 +24,8 @@ import { calendarStyles as styles } from "./styles";
 
 // months shown open; later ones fold, so a big shelf's year stays a page
 const OPEN_MONTHS = 2;
+// covers peeking out of a folded month
+const PEEK = 5;
 // a busy month lists this many, the rest on asking
 const MONTH_LIMIT = 8;
 
@@ -28,7 +33,15 @@ const MONTH_LIMIT = 8;
 function Month({ month }: { month: CalendarMonth }) {
   return (
     <div className={styles.monthBody}>
-      <MiniMonth month={month.month} volumes={month.volumes} />
+      <div className={styles.monthSide}>
+        <MiniMonth month={month.month} volumes={month.volumes} />
+        <AddToCalendar
+          big
+          volumes={month.volumes}
+          label={`Save ${monthName(month.month)}'s release dates to your calendar`}
+          fileName={`Manga releases ${monthName(month.month)}.ics`}
+        />
+      </div>
       <div>
         <ReleaseList volumes={month.volumes} limit={MONTH_LIMIT} />
       </div>
@@ -72,6 +85,19 @@ export default function CalendarPage() {
         English volumes on their way for series on your shelf, by the date the
         publisher gives.
       </p>
+      {/* every dated release into their own calendar, at once */}
+      {months && months.length > 0 && (
+        <div className={styles.addAll}>
+          <AddToCalendar
+            big
+            volumes={months.flatMap((m) => m.volumes)}
+            label="Save every upcoming release date to your calendar"
+            fileName="Upcoming manga releases.ics"
+            text={`Save every date (${months.reduce((n, m) => n + m.volumes.length, 0)})`}
+            hint
+          />
+        </div>
+      )}
 
       {months === undefined && (
         <div className={`skeleton ${styles.loading}`} aria-busy="true">
@@ -111,6 +137,12 @@ export default function CalendarPage() {
               <span className={styles.foldedName}>{monthName(m.month)}</span>
               <span className={styles.foldedCount}>
                 {m.volumes.length} coming
+              </span>
+              {/* a peek at what's in it, without opening it */}
+              <span className={styles.foldedPeek} aria-hidden>
+                {m.volumes.slice(0, PEEK).map((v) => (
+                  <VolumeCover key={v.isbn13} volume={v} />
+                ))}
               </span>
               <ChevronDownIcon className={styles.chevron} />
             </summary>

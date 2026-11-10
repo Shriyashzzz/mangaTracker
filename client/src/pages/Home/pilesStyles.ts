@@ -11,8 +11,9 @@ export const pilesStyles = {
   pileName:
     "font-brand text-[1.35rem] leading-none font-normal tracking-[0.04em] uppercase",
   pileCount: "ml-1 font-mono text-[0.8rem] tracking-normal text-muted",
+  // a bigger target than the word: a full row's height on phones
   seeAll:
-    "tap shrink-0 text-[0.9rem] font-semibold underline decoration-accent decoration-2 underline-offset-4 hover:text-accent focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent focus-visible:outline-dashed",
+    "tap inline-flex min-h-11 shrink-0 items-center px-1 text-[0.9rem] font-semibold underline decoration-accent decoration-2 underline-offset-4 hover:text-accent focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent focus-visible:outline-dashed",
   why: "mt-1 mb-3 text-[0.84rem] text-muted",
   fan: "flex flex-wrap gap-2.5",
   fanCover:
@@ -40,6 +41,11 @@ export const pilesStyles = {
   // stuck under the shelf bar while the pile scrolls by
   chips:
     "sticky z-4 -mx-3 mb-7 flex flex-wrap gap-2 border-b-[1.5px] border-line bg-[var(--surface,var(--paper))] px-3 py-2 upto-520:grid upto-520:grid-cols-2 upto-520:[&>*:first-child]:col-span-2",
+  // the pile's order, at the end of the chip row (its own row on phones)
+  sort: "ml-auto flex items-center gap-2 upto-520:col-span-2 upto-520:ml-0",
+  sortLabel: "font-mono text-[0.72rem] text-muted uppercase",
+  sortSelect:
+    "tap min-h-9 flex-1 border-[1.5px] border-line bg-card px-2 py-1 text-[0.84rem] font-semibold text-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent focus-visible:outline-dashed",
   chip: `${chipBase} bg-card hover:bg-accent-wash disabled:cursor-default disabled:opacity-45 disabled:hover:bg-card`,
   chipOn: `${chipBase} bg-ink text-paper`,
   chipCount: "font-mono text-[0.74rem] opacity-75",

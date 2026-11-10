@@ -300,6 +300,12 @@ export function newsFor(
       next === found?.latestVolume
         ? `Vol. ${next} is out`
         : `Vol. ${next} next`,
-    yours: volumeYours,
+    // "Vol. 6 next" already says they're on 5: said twice, it's clutter
+    yours:
+      next != null &&
+      found?.currentVolume != null &&
+      next === found.currentVolume + 1
+        ? undefined
+        : volumeYours,
   };
 }
