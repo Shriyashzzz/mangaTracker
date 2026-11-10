@@ -159,6 +159,8 @@ export const homeStyles = {
   checkText: "text-[0.85rem] text-ink-soft",
   checkAside: "mt-1 block text-pretty",
   checkInline: "mb-5 flex flex-col gap-1.5",
+  // the New tab's quiet "Checked 2 h ago", under everything
+  checkedFoot: "mt-10 text-center font-mono text-[0.75rem] text-muted",
   // under the bar: how far the check is, and Hide all on the right
   checkCentre:
     "mx-auto flex min-h-[34dvh] max-w-[300px] flex-col items-center justify-center gap-2.5 text-center",
