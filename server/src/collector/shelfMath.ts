@@ -27,12 +27,14 @@ export const ownedSet = (m: Owned) =>
 
 export type Copies = { new: CheapestCopy | null; used: CheapestCopy | null };
 
-// "2027-03" counts from the first of the month, as on the price pages
+// the day a volume comes out. A date given only to the month ("2027-03")
+// counts as the month's last day: until the month is over it may still be
+// coming, so it stays on the calendar rather than "out" on the 1st
 export const releaseDay = (published?: string | null) => {
   if (!published) return null;
   const [y, m, d] = published.split("-").map(Number);
   if (!y || !m) return null;
-  return new Date(Date.UTC(y, m - 1, d || 1));
+  return d ? new Date(Date.UTC(y, m - 1, d)) : new Date(Date.UTC(y, m, 0));
 };
 export const isOut = (v: ListedVolume, now: Date) => {
   const day = releaseDay(v.published);
@@ -57,9 +59,11 @@ export const median = (cents: number[]) => {
 };
 
 // one book can hold several volumes (the same ISBN): it's bought, and worth
-// something, once
-const onceEach = <T extends { isbn13: string }>(items: T[]) => [
-  ...new Map(items.map((i) => [i.isbn13, i])).values(),
+// something, once. A volume we know no book for (no ISBN) is its own
+const onceEach = <T extends { isbn13: string; volume?: number | null }>(
+  items: T[],
+) => [
+  ...new Map(items.map((i) => [i.isbn13 || `volume:${i.volume}`, i])).values(),
 ];
 
 // ---------- what the shelf is worth ----------
@@ -70,6 +74,9 @@ export type ShelfValue = {
   priced: number;
   // owned volumes we know the book of
   volumes: number;
+  // owned volumes of series with no saved list: counted only in the estimate,
+  // at the shelf's usual used price
+  unlisted: number;
   // the priced ones plus an estimate for the rest: each at its series' usual
   // used price, or the shelf's when the series has none yet. Null when nothing
   // is priced to go by
@@ -82,6 +89,7 @@ export type ShelfValue = {
 export function shelfValue(
   series: { owned: Owned; volumes: ListedVolume[] }[],
   copies: Map<string, Copies>,
+  unlisted = 0,
 ): ShelfValue {
   const usedOf = (v: ListedVolume) => copies.get(v.isbn13)?.used?.cents;
   const seen = new Set<string>();
@@ -109,10 +117,12 @@ export function shelfValue(
     const usual = own.length ? median(own) : shelfUsual;
     for (const v of books) estimate += usedOf(v) ?? usual;
   }
+  estimate += unlisted * shelfUsual;
   return {
     cents: prices.reduce((sum, c) => sum + c, 0),
     priced: prices.length,
     volumes: perSeries.flat().length,
+    unlisted,
     estimateCents: prices.length ? estimate : null,
   };
 }
@@ -148,15 +158,32 @@ export function finishSeries(
   fallbackCents = 0,
 ): FinishSeries {
   const mine = ownedSet(owned);
-  const missing = volumes
-    .filter((v) => isMainVolume(v) && !mine.has(v.volume) && isOut(v, now))
-    .sort((a, b) => a.volume! - b.volume!)
-    .map((v) => ({
-      volume: v.volume!,
-      isbn13: v.isbn13,
-      title: v.title,
-      cheapest: copies.get(v.isbn13)?.new ?? null,
-    }));
+  const listed = volumes.filter(isMainVolume);
+  const out = listed.filter((v) => isOut(v, now));
+  // every whole volume up to the newest one out, as the series' panel counts
+  // them: a number the saved list skipped is still out, just not priced (no
+  // ISBN: it's checked on the series page). One known to be coming isn't
+  // and every number below one known to be coming (vol 22 due: 19 to 21
+  // are out even if the list never had them)
+  const coming = listed.filter((v) => !isOut(v, now)).map((v) => v.volume);
+  const newest = Math.max(
+    0,
+    ...out.map((v) => v.volume),
+    ...(coming.length ? [Math.ceil(Math.min(...coming)) - 1] : []),
+  );
+  const byNumber = new Map(listed.map((v) => [v.volume, v]));
+  const missing: MissingVolume[] = [];
+  for (let n = 1; n <= newest; n++) {
+    if (mine.has(n)) continue;
+    const v = byNumber.get(n);
+    if (v && !isOut(v, now)) continue;
+    missing.push({
+      volume: n,
+      isbn13: v?.isbn13 ?? "",
+      title: v?.title ?? "",
+      cheapest: v ? (copies.get(v.isbn13)?.new ?? null) : null,
+    });
+  }
   const priced = onceEach(missing.filter((m) => m.cheapest));
   const cents = priced.reduce((sum, m) => sum + m.cheapest!.cents, 0);
   // the series' usual new price, from any of its volumes priced (owned too)

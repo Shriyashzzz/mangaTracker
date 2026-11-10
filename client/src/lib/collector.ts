@@ -27,6 +27,8 @@ export type ShelfTools = {
     cents: number;
     priced: number;
     volumes: number;
+    // owned volumes of series with no saved list: in the estimate only
+    unlisted: number;
     estimateCents: number | null;
   };
   finish: FinishRow[];

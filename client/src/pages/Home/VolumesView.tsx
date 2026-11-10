@@ -132,10 +132,13 @@ export default function VolumesView({
 // comes to. An estimate says so, with how much of it is real prices
 function ShelfTotals({ tools }: { tools: ShelfTools }) {
   const { value } = tools;
+  // every owned volume, those of series with no list too: a total is exact
+  // only when all of them are priced
+  const ownedVolumes = value.volumes + value.unlisted;
   const worth = totalText(
     value.cents,
     value.priced,
-    value.volumes,
+    ownedVolumes,
     value.estimateCents,
   );
   const finish = totalText(
@@ -151,10 +154,10 @@ function ShelfTotals({ tools }: { tools: ShelfTools }) {
         <div className={styles.total}>
           <dt className={styles.totalLabel}>Worth used</dt>
           <dd className={styles.totalValue}>{worth}</dd>
-          {value.priced < value.volumes && (
+          {value.priced < ownedVolumes && (
             <dd className={styles.totalNote}>
               estimate · {value.priced.toLocaleString()} of{" "}
-              {plural(value.volumes, "volume")} priced
+              {plural(ownedVolumes, "volume")} priced
             </dd>
           )}
         </div>

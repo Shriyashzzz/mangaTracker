@@ -59,6 +59,16 @@ export async function getShelfTools(userId: number): Promise<ShelfTools> {
   const copies = await priceQueries.getCheapestCopies([
     ...new Set(series.flatMap((s) => s.volumes.map((v) => v.isbn13))),
   ]);
+  // owned volumes of series with no saved list: in the estimate only
+  const listedIds = new Set(series.map((s) => s.manga.id));
+  const unlisted = shelf
+    .filter((m) => !listedIds.has(m.id))
+    .reduce(
+      (sum, m) =>
+        sum +
+        [...ownedSet(m)].filter((v) => v >= 1 && Number.isInteger(v)).length,
+      0,
+    );
   const owned = series.map((s) => ({
     owned: { volumesOwned: s.manga.volumesOwned, ownedList: s.manga.ownedList },
     volumes: s.volumes,
@@ -83,7 +93,7 @@ export async function getShelfTools(userId: number): Promise<ShelfTools> {
         : [];
     });
   return {
-    value: shelfValue(owned, copies),
+    value: shelfValue(owned, copies, unlisted),
     finish,
     finishCents: finish.reduce((sum, f) => sum + f.cents, 0),
     finishPriced: finish.reduce((sum, f) => sum + f.priced, 0),

@@ -1,6 +1,8 @@
 // "Sales right now": store-wide deals, kept by hand. Add one when a store runs
 // a sale and give it an end date; it hides itself once that day is over.
-// Links to stores we have an affiliate tag for get it on the way out.
+// Amazon and eBay links get our tag on the way out. Bookshop.org's
+// store-wide pages have no one form to tag: paste its affiliate link as is
+// (bookshop.org/a/130460/... or a link from its affiliate dashboard).
 // Shown on the price pages (never in their search data). Example:
 // {
 //   store: "Books-A-Million",

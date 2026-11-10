@@ -5,6 +5,7 @@
 import { ownedVolumes } from "./ownedVolumes";
 import type { MalEntry } from "./imports/malImport";
 import type { Manga } from "./types";
+import type { CalendarMonth, ShelfTools } from "./collector";
 
 const ON_KEY = "demoTour";
 const SHELF_KEY = "demoShelf";
@@ -81,7 +82,7 @@ const STARTING_SHELF: Manga[] = [
 // used, and the next three after the last owned still to get, at made-up
 // prices from two stores
 const PRACTICE_STORES = ["Books-A-Million", "eBay"];
-function practiceShelfTools(shelf: Manga[]) {
+function practiceShelfTools(shelf: Manga[]): ShelfTools {
   const owners = shelf.filter((m) => m.volumesOwned);
   const finish = owners.map((m) => {
     const missing = [1, 2, 3].map((i) => {
@@ -113,6 +114,7 @@ function practiceShelfTools(shelf: Manga[]) {
       cents: owned * 650,
       priced: owned,
       volumes: owned,
+      unlisted: 0,
       estimateCents: owned * 650,
     },
     finish,
@@ -124,7 +126,7 @@ function practiceShelfTools(shelf: Manga[]) {
 }
 
 // a couple of volumes coming out over the next two months
-function practiceCalendar(shelf: Manga[]) {
+function practiceCalendar(shelf: Manga[]): CalendarMonth[] {
   const owners = shelf.filter((m) => m.volumesOwned).slice(0, 2);
   return owners.map((m, i) => {
     const day = new Date();

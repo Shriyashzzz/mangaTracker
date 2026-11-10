@@ -52,6 +52,7 @@ test("the shelf's value adds the owned volumes' used prices, and estimates the r
     cents: 1200,
     priced: 2,
     volumes: 3,
+    unlisted: 0,
     estimateCents: 1200 + 600,
   });
 });
@@ -140,4 +141,71 @@ test("upcoming: dated volumes still to come within a year, soonest first", () =>
     [9, "2026-12"],
     [10, "2027-03"],
   ]);
+});
+
+test("volumes the saved list skipped are still to go, unpriced", () => {
+  // the list knows vols 1, 2 and 5; 3 and 4 are out too
+  const v = [vol(1), vol(2), vol(5), vol(6, { published: "2027-04-01" })];
+  const f = finishSeries(
+    { volumesOwned: 1, ownedList: [] },
+    v,
+    new Map(),
+    NOW,
+    1000,
+  );
+  expect(f.missing.map((m) => [m.volume, m.isbn13 ? "book" : "none"])).toEqual([
+    [2, "book"],
+    [3, "none"],
+    [4, "none"],
+    [5, "book"],
+  ]);
+  // each counted once in the estimate, even with no book to tell them apart
+  expect(f.estimateCents).toBe(4 * 1000);
+});
+
+test("a date given only to the month is still to come until the month is over", () => {
+  const v = [vol(1), vol(2, { published: "2026-11" })];
+  // November 10th: vol 2 may still be coming
+  expect(
+    finishSeries({ volumesOwned: 1, ownedList: [] }, v, new Map(), NOW).missing,
+  ).toEqual([]);
+  expect(upcoming(v, NOW).map((u) => u.volume)).toEqual([2]);
+  // December: it's out
+  const dec = new Date("2026-12-02T00:00:00Z");
+  expect(
+    finishSeries(
+      { volumesOwned: 1, ownedList: [] },
+      v,
+      new Map(),
+      dec,
+    ).missing.map((m) => m.volume),
+  ).toEqual([2]);
+});
+
+test("owned volumes of series with no saved list are estimated, so a total isn't exact", () => {
+  const v = [vol(1)];
+  const value = shelfValue(
+    [{ owned: { volumesOwned: 1, ownedList: [] }, volumes: v }],
+    priced([[v[0]!, { used: copy(500) }]]),
+    3,
+  );
+  expect(value).toMatchObject({
+    cents: 500,
+    priced: 1,
+    volumes: 1,
+    unlisted: 3,
+    estimateCents: 500 + 3 * 500,
+  });
+});
+
+test("numbers below a volume known to be coming count as out", () => {
+  const v = [vol(1), vol(2), vol(6, { published: "2027-04-01" })];
+  const f = finishSeries(
+    { volumesOwned: 2, ownedList: [] },
+    v,
+    new Map(),
+    NOW,
+    1000,
+  );
+  expect(f.missing.map((m) => m.volume)).toEqual([3, 4, 5]);
 });
