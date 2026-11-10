@@ -31,8 +31,16 @@ let searches: string[] = [];
 let ebaysCount: number | null = null;
 // when eBay's daily window resets: by default, the coming midnight Pacific
 let ebaysReset: string | null = null;
-const nextPacificMidnight = () =>
-  new Date(Date.now() + 6 * 60 * 60 * 1000).toISOString();
+// (the real one, to within 15 minutes: a fixed few hours ahead would land on
+// the next day's window when the tests run late in the Pacific evening)
+const pacificDay = (t: number) =>
+  new Date(t).toLocaleDateString("en-CA", { timeZone: "America/Los_Angeles" });
+const nextPacificMidnight = () => {
+  const today = pacificDay(Date.now());
+  let t = Date.now();
+  while (pacificDay(t) === today) t += 15 * 60_000;
+  return new Date(t).toISOString();
+};
 const fakeEbay = (status = 200) => {
   searches = [];
   globalThis.fetch = (async (url: string | URL) => {
