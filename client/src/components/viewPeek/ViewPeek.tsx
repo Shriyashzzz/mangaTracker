@@ -7,6 +7,7 @@ import { Fingers, Head } from "../kenji/Kenji";
 import { isDemo } from "../../lib/demo";
 import { claimNote, noteFree } from "../../lib/notes";
 import { readLocal, writeLocal } from "../../lib/prefs";
+import { hasBottomBar } from "../../lib/bottomBar";
 import {
   VIEW_PEEK_KEY,
   VIEW_PEEK_LEAVE_MS,
@@ -41,7 +42,8 @@ export default function ViewPeek({ series, rows, blocked, onChoose }: Props) {
 
   // a moment after the shelf has drawn, if it's time to ask
   useEffect(() => {
-    if (note || blocked || isDemo()) return;
+    // never on phones: rows are already theirs there, unless they chose covers
+    if (note || blocked || isDemo() || hasBottomBar()) return;
     const timer = window.setTimeout(() => {
       const state = readViewPeek(readLocal(VIEW_PEEK_KEY));
       if (!canAskAboutView(state, { series, rows, now: Date.now() })) return;
