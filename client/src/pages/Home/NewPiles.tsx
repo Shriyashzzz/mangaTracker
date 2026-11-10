@@ -14,6 +14,35 @@ import { pilesStyles as styles } from "./pilesStyles";
 const JUST_OUT_SHOWN = 5;
 // covers in a pile's fan
 const FAN = 5;
+// on wider screens, enough covers to fill about this much of the row
+const FAN_SHARE = 0.65;
+// a cover and the gap after it, in px (pilesStyles: w-[58px], gap-2.5)
+const COVER_STEP = 68;
+// below this the row keeps FAN covers (phones)
+const WIDE_FROM = 520;
+
+// how many covers the row has room for: FAN on phones, more on laptops
+function useFanSize() {
+  const row = useRef<HTMLDivElement>(null);
+  const [size, setSize] = useState(FAN);
+  useEffect(() => {
+    const el = row.current;
+    if (!el) return;
+    const fit = () => {
+      const width = el.getBoundingClientRect().width;
+      setSize(
+        width < WIDE_FROM
+          ? FAN
+          : Math.max(FAN, Math.floor((width * FAN_SHARE) / COVER_STEP) - 1),
+      );
+    };
+    fit();
+    const watch = new ResizeObserver(fit);
+    watch.observe(el);
+    return () => watch.disconnect();
+  }, []);
+  return { row, size };
+}
 
 // where a cover goes when clicked, as its card would: the next volume's
 // prices, its details page, or the grouped list (onOpen)
@@ -25,18 +54,19 @@ export type CoverLink = {
 };
 
 function Fan({
-  manga,
-  more,
+  manga: all,
   onMore,
   linkFor,
 }: {
   manga: Manga[];
-  more: number;
   onMore: () => void;
   linkFor: (m: Manga) => CoverLink;
 }) {
+  const { row, size } = useFanSize();
+  const manga = all.slice(0, size);
+  const more = all.length - manga.length;
   return (
-    <div className={styles.fan}>
+    <div className={styles.fan} ref={row}>
       {manga.map((m) => {
         const link = linkFor(m);
         return (
@@ -64,6 +94,11 @@ function Fan({
             </span>
             <span className={styles.stamp} aria-hidden>
               {link.stamp}
+            </span>
+            {/* which series, on hover or keyboard focus (its name is in the
+                link's label for screen readers already) */}
+            <span className={styles.caption} aria-hidden>
+              {m.name}
             </span>
           </NavLink>
         );
@@ -117,7 +152,7 @@ export function NewPiles({
         const list = piles[p];
         const { name, why } = PILE_TEXT[kind][p];
         const cards = p === "just-out";
-        const shown = cards ? JUST_OUT_SHOWN : FAN;
+
         return (
           <section
             key={p}
@@ -143,14 +178,11 @@ export function NewPiles({
               {extra(p)}
             </p>
             {cards ? (
-              <div className={gridClass}>{list.slice(0, shown).map(card)}</div>
+              <div className={gridClass}>
+                {list.slice(0, JUST_OUT_SHOWN).map(card)}
+              </div>
             ) : (
-              <Fan
-                manga={list.slice(0, shown)}
-                more={list.length - shown}
-                onMore={() => onOpen(p)}
-                linkFor={linkFor}
-              />
+              <Fan manga={list} onMore={() => onOpen(p)} linkFor={linkFor} />
             )}
           </section>
         );

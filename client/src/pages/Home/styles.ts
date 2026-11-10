@@ -115,7 +115,8 @@ export const homeStyles = {
   releaseKindActive: `${releaseKind} bg-accent text-on-accent`,
   releaseKindCount: "ml-1 font-mono text-[0.78rem] tracking-normal",
   // side info: it should read as a footnote to the switch, not compete with it
-  releaseNote: "text-[0.85rem] text-ink-soft",
+  // quiet, an aside rather than a heading
+  releaseNote: "text-[0.78rem] text-muted",
   releaseAside: "flex flex-1 flex-wrap items-center gap-x-5 gap-y-1",
   // together at the far right of the row
   // wraps rather than running off a small phone
@@ -158,6 +159,8 @@ export const homeStyles = {
   checkText: "text-[0.85rem] text-ink-soft",
   checkAside: "mt-1 block text-pretty",
   checkInline: "mb-5 flex flex-col gap-1.5",
+  // the New tab's quiet "Checked 2 h ago", under everything
+  checkedFoot: "mt-10 text-center font-mono text-[0.75rem] text-muted",
   // under the bar: how far the check is, and Hide all on the right
   checkCentre:
     "mx-auto flex min-h-[34dvh] max-w-[300px] flex-col items-center justify-center gap-2.5 text-center",

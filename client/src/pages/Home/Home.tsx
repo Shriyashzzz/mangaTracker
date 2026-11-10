@@ -203,7 +203,7 @@ function Library() {
   const checked = (mangaData ?? []).filter((m) => m.id in releases).length;
   const checking = showingNew && checked < (mangaData?.length ?? 0);
   const allChecked = checked > 0 && checked >= (mangaData?.length ?? 0);
-  // how old the oldest answer on show is: what the New tab is as of
+  // how old the oldest answer on show is, said quietly under the list
   const oldestCheck = useMemo(
     () =>
       Math.min(
@@ -643,16 +643,14 @@ function Library() {
           where the cards will be */}
       {/* the bar only while answers are missing; an old answer being
           checked again quietly never brings it back */}
-      {showingNew && visibleManga.length > 0 && (
+      {/* only while answers are missing: nothing to say once they're in,
+          and an old answer checked again quietly never brings it back */}
+      {showingNew && checking && visibleManga.length > 0 && (
         <div className={styles.checkInline}>
-          {checking && progress}
+          {progress}
           <p className={styles.checkText} aria-live="polite">
-            {checking
-              ? `Checking ${checked} of ${total}`
-              : Number.isFinite(oldestCheck)
-                ? `Checked ${checkedAgo(oldestCheck)}`
-                : `All ${total} checked`}
-            {checking && bigShelfNote && ` · ${bigShelfNote}`}
+            {`Checking ${checked} of ${total}`}
+            {bigShelfNote && ` · ${bigShelfNote}`}
           </p>
         </div>
       )}
@@ -795,6 +793,11 @@ function Library() {
             <div className={styles.pagerBottom}>{pager(true)}</div>
           )}
         </>
+      )}
+
+      {/* how fresh it all is, at the foot, for whoever wonders */}
+      {showingNew && !checking && Number.isFinite(oldestCheck) && (
+        <p className={styles.checkedFoot}>Checked {checkedAgo(oldestCheck)}</p>
       )}
 
       {showingNew && openManga && releases[openManga.id] && (

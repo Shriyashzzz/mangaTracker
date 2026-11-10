@@ -49,7 +49,8 @@ export const MOVE_LABELS = {
 export const RELEASE_KINDS = {
   volumes: {
     label: "Volumes",
-    note: "English releases only. Japan may be ahead.",
+    // nothing beside the switch: what English means here is plain enough
+    note: "",
     emptyTitle: "No new volumes. Your wallet lives!",
     waiting: "No new volumes yet",
     emptyBody: "Nothing new to show for now. Your shelf gets a day off.",
@@ -57,7 +58,7 @@ export const RELEASE_KINDS = {
   chapters: {
     label: "Chapters",
     // MangaUpdates counts every language and doesn't say which is which
-    note: "Mostly English. A chapter may still be on its way in English.",
+    note: "",
     emptyTitle: "Nothing new to read. Go touch grass!",
     waiting: "No new chapters yet",
     emptyBody: "Nothing new to show for now. Check back soon.",
