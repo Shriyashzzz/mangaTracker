@@ -404,3 +404,55 @@ test("a lookup updates the saved latest chapter only when it found a different o
   // found nothing: keep what we know
   expect(chapterToSave(null, 142)).toBeNull();
 });
+
+test("the newest of each comes with when it came out, for Just out", () => {
+  const status = getReleaseStatus(
+    { volumesOwned: 3, bookmark: 40 },
+    {
+      dates: {
+        chapter: {
+          latestReleased: {
+            chapterNumber: "42",
+            releaseDate: "2026-11-06T10:00:00Z",
+          },
+        },
+        volume: [
+          { volume: "5", releaseDate: "2026-08-01T00:00:00Z" },
+          { volume: "6", releaseDate: "2026-10-30T00:00:00Z" },
+        ],
+      } as FormatedDates,
+      englishVolumes: [
+        { volume: 4, published: "2026-03-10" },
+        { volume: 5, published: "2026-11-04" },
+      ],
+    },
+  );
+  expect(status.latestVolumeDate).toBe("2026-11-04");
+  expect(status.latestChapterDate).toBe("2026-11-06T10:00:00Z");
+  expect(status.latestJapaneseVolumeDate).toBe("2026-10-30T00:00:00Z");
+});
+
+test("no source, no dates", () => {
+  const status = getReleaseStatus(owns(3), volumesOnly(english(4)));
+  expect(status.latestVolumeDate).toBeNull();
+  expect(status.latestChapterDate).toBeNull();
+  expect(status.latestJapaneseVolumeDate).toBeNull();
+});
+
+test("Japan's date is the first cover of its newest volume, whatever the language", () => {
+  const status = getReleaseStatus(
+    { volumesOwned: 9, bookmark: null },
+    {
+      dates: {
+        volume: [
+          { volume: "12", releaseDate: "2026-10-30T00:00:00Z" }, // French
+          { volume: "12", releaseDate: "2026-02-03T00:00:00Z" }, // Japanese
+          { volume: "12", releaseDate: null },
+          { volume: "11", releaseDate: "2025-09-01T00:00:00Z" },
+        ],
+      } as FormatedDates,
+      englishVolumes: [{ volume: 9 }],
+    },
+  );
+  expect(status.latestJapaneseVolumeDate).toBe("2026-02-03T00:00:00Z");
+});

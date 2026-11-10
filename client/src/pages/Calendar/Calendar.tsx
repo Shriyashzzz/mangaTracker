@@ -37,7 +37,7 @@ function Month({ month }: { month: CalendarMonth }) {
 }
 
 export default function CalendarPage() {
-  usePrivatePage("Release calendar");
+  usePrivatePage("Upcoming Releases");
   const isSignedIn = useAuth((s) => s.isSignedIn);
   const navigate = useNavigate();
   // undefined while asking; null when it couldn't be had
@@ -62,7 +62,7 @@ export default function CalendarPage() {
     <article className={`${styles.page} fade-in`}>
       <header className={styles.head}>
         <h1 className={styles.title}>
-          Coming <span className={styles.hit}>out</span>
+          Upcoming <span className={styles.hit}>Releases</span>
         </h1>
         <NavLink to="/shelf?tab=new" className={styles.back} viewTransition>
           Back to New

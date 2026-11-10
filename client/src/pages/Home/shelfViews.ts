@@ -284,11 +284,11 @@ export function newsFor(
   if (kind === "chapters") {
     const nextChapter = found?.nextChapter;
     return {
+      // theirs next; "is out" is news, so only for the newest
       text:
         nextChapter === found?.latestChapter
           ? `Ch. ${nextChapter} is out`
-          : // theirs next, and how far it's gone: not news of an old one
-            `Ch. ${nextChapter} next · ${found?.latestChapter} out`,
+          : `Ch. ${nextChapter} next`,
       yours: m.bookmark ? `You're on ch. ${m.bookmark}` : undefined,
     };
   }
@@ -298,8 +298,7 @@ export function newsFor(
     text:
       next === found?.latestVolume
         ? `Vol. ${next} is out`
-        : // theirs next, and how far it's gone: not news of an old one
-          `Vol. ${next} next · ${found?.latestVolume} out`,
+        : `Vol. ${next} next`,
     yours: volumeYours,
   };
 }

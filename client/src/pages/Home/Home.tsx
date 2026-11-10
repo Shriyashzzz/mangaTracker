@@ -9,7 +9,7 @@
 //   useShelfShortcuts.ts / and n
 //   SelectDock.tsx, NewTabParts.tsx, AddButton.tsx: what those draw
 import { lazy, Suspense, useEffect, useMemo, useState } from "react";
-import { NavLink, useNavigate } from "react-router";
+import { NavLink, useNavigate, useSearchParams } from "react-router";
 import MangaCard from "../../components/mangaCard/MangaCard";
 import { BarcodeIcon, CheckIcon } from "../../components/icons/Icons";
 import RangePager from "../../components/rangePager/RangePager";
@@ -35,8 +35,24 @@ import VolumesView from "./VolumesView";
 import ReleaseModal from "./ReleaseModal";
 import DeleteManyModal from "./DeleteManyModal";
 import SelectDock, { MovedNote } from "./SelectDock";
-import { CheckBar, HiddenNote, NothingNew, ReleaseTools } from "./NewTabParts";
+import {
+  CheckBar,
+  HiddenNote,
+  NothingNew,
+  ReleaseLinks,
+  ReleaseTools,
+} from "./NewTabParts";
 import UpcomingReleases from "./UpcomingReleases";
+import type { Manga } from "../../lib/types";
+import { NewPiles, PileHead, type CoverLink } from "./NewPiles";
+import {
+  isPileView,
+  PILES_FROM,
+  catchUpText,
+  sortIntoPiles,
+  type Pile,
+  type PileView,
+} from "./piles";
 import AddButton from "./AddButton";
 import AddChoice from "../../components/scanSheet/AddChoice";
 // the camera and its barcode library load only when someone scans
@@ -111,10 +127,14 @@ function Library() {
   // showing the last one again leaves nothing here, so it goes back to what's new
   const viewingHidden = tab === "new" && wantHidden && hiddenCount > 0;
   const showingNew = tab === "new";
+  // on a big New tab, one pile's own page (piles.ts), or everything at once
+  const [searchParams, setSearchParams] = useSearchParams();
+  const pileParam = searchParams.get("pile");
+  const pileView = showingNew && isPileView(pileParam) ? pileParam : null;
 
   // the shelf shows one block of manga at a time; any change to the tab,
   // search or sort starts again from the first block
-  const filterKey = `${tab}|${releaseKind}|${viewingHidden}|${sortBy}|${query.trim().toLowerCase()}`;
+  const filterKey = `${tab}|${releaseKind}|${viewingHidden}|${pileView}|${sortBy}|${query.trim().toLowerCase()}`;
   const [page, setPage] = useState({
     key: spot?.key ?? filterKey,
     index: spot?.index ?? 0,
@@ -210,7 +230,7 @@ function Library() {
     writeLocal(LAST_NEW_COUNT_KEY, String(counts.new));
   }, [allChecked, counts.new]);
 
-  const visibleManga = useMemo(
+  const listed = useMemo(
     () =>
       filterShelf(mangaData ?? [], releases, {
         tab,
@@ -221,6 +241,40 @@ function Library() {
       }),
     [mangaData, releases, releaseKind, viewingHidden, tab, sortBy, query],
   );
+  const piles = useMemo(
+    () => sortIntoPiles(showingNew ? listed : [], releases, releaseKind),
+    [showingNew, listed, releases, releaseKind],
+  );
+  const visibleManga =
+    pileView && pileView !== "all" ? piles[pileView] : listed;
+  // a big list of what's new, not searched: sorted into piles instead
+  const showPiles =
+    showingNew && !pileView && !query.trim() && listed.length >= PILES_FROM;
+  // opening a pile is a step of its own, so Back returns to the piles
+  // the pile they came back from, whose See all takes the focus again
+  const [pileLeft, setPileLeft] = useState<Pile | null>(null);
+  const openPile = (view: PileView | null) => {
+    setPileLeft(!view && pileView && pileView !== "all" ? pileView : null);
+    const next = new URLSearchParams(searchParams);
+    if (view) next.set("pile", view);
+    else next.delete("pile");
+    // from the piles, up to the top of the pile's page (the router's own
+    // reset); between piles (the chips) the page stays where it is
+    setSearchParams(next, { preventScrollReset: Boolean(pileView && view) });
+  };
+  // a pile hidden down to nothing: back to the piles
+  const pileEmptied =
+    allChecked &&
+    pileView !== null &&
+    pileView !== "all" &&
+    !query.trim() &&
+    piles[pileView].length === 0;
+  useEffect(() => {
+    if (!pileEmptied) return;
+    const next = new URLSearchParams(searchParams);
+    next.delete("pile");
+    setSearchParams(next, { replace: true });
+  }, [pileEmptied, searchParams, setSearchParams]);
   const shelfPage = visibleManga.slice(
     pageIndex * SHELF_PAGE_SIZE,
     (pageIndex + 1) * SHELF_PAGE_SIZE,
@@ -231,7 +285,6 @@ function Library() {
     shown: visibleManga,
   });
   const hideActions = useHideActions({
-    manga: mangaData ?? [],
     releases,
     releaseKind,
     viewingHidden,
@@ -383,6 +436,101 @@ function Library() {
   const bigShelfNote =
     bigFirstCheck && "The first check on a big shelf can take a few minutes.";
 
+  const pileExtra = (p: Pile) =>
+    catchUpText(p, piles[p], releases, releaseKind);
+  // a card on New opens its details at the part about this kind of release
+  const newDetailsSearch =
+    releaseKind === "japan"
+      ? "?edition=japan"
+      : releaseKind === "chapters"
+        ? "?new=chapter"
+        : undefined;
+  // a pile's cover goes where its card would, stamped with which one
+  const coverLink = (m: Manga): CoverLink => {
+    const found = releases[m.id];
+    return {
+      to: buyLinkFor(m.id) ?? `/details/${m.id}${newDetailsSearch ?? ""}`,
+      onOpen:
+        !viewingHidden && grouped(m.id)
+          ? () => setOpenRelease(m.id)
+          : undefined,
+      stamp:
+        releaseKind === "chapters"
+          ? `Ch. ${found?.nextChapter ?? found?.latestChapter ?? ""}`
+          : releaseKind === "japan"
+            ? `Vol. ${found?.outJapanVolumes[0] ?? found?.latestJapaneseVolume ?? ""}`
+            : `Vol. ${found?.nextVolume ?? found?.latestVolume ?? ""}`,
+    };
+  };
+  // a card as the list draws it, and on New its Hide (or Unhide)
+  const card = (currentManga: Manga, i: number) => (
+    <div
+      key={currentManga.id}
+      className={
+        rowsChosen
+          ? styles.cardRowAlways
+          : showingNew
+            ? styles.cardAsRow
+            : styles.cardWithSeen
+      }
+    >
+      <MangaCard
+        currentManga={currentManga}
+        news={
+          showingNew
+            ? newsFor(
+                currentManga,
+                releases[currentManga.id],
+                releaseKind,
+                viewingHidden,
+              )
+            : undefined
+        }
+        linkTo={buyLinkFor(currentManga.id)}
+        onOpen={
+          showingNew && !viewingHidden && grouped(currentManga.id)
+            ? () => setOpenRelease(currentManga.id)
+            : undefined
+        }
+        detailsSearch={showingNew ? newDetailsSearch : undefined}
+        index={i}
+        compact={rowsChosen}
+        latestChapter={
+          releases[currentManga.id]?.latestChapter ?? currentManga.latestChapter
+        }
+        select={
+          select.selectOn
+            ? {
+                checked: select.picked.has(currentManga.id),
+                onToggle: () => select.toggle(currentManga.id),
+              }
+            : undefined
+        }
+      />
+      {showingNew && (
+        <button
+          type="button"
+          className={rowsChosen ? styles.seenBtnRow : styles.seenBtn}
+          aria-label={`${viewingHidden ? "Unhide" : grouped(currentManga.id) ? "Hide all" : "Hide"}: ${currentManga.name}`}
+          data-seen-id={currentManga.id}
+          onClick={() => hideActions.hide(currentManga)}
+        >
+          {!viewingHidden && <CheckIcon />}
+          {viewingHidden
+            ? "Unhide"
+            : grouped(currentManga.id)
+              ? "Hide all"
+              : "Hide"}
+        </button>
+      )}
+    </div>
+  );
+  const gridClass = rowsChosen
+    ? styles.rowsGrid
+    : showingNew
+      ? styles.newGrid
+      : styles.classContainer;
+
   return (
     <div className={`fade-in ${styles.library}`}>
       <div className={styles.pageHead}>
@@ -424,7 +572,7 @@ function Library() {
           pickTab(value);
           // a new tab starts with Select off, so it never comes back by itself
           select.stop();
-          if (wantHidden) navigator("/shelf", { replace: true });
+          if (wantHidden || pileParam) navigator("/shelf", { replace: true });
         }}
         query={query}
         onQuery={setQuery}
@@ -476,7 +624,21 @@ function Library() {
       </p>
 
       {/* what's coming, folded until asked (not on the hidden list) */}
-      {showingNew && !viewingHidden && <UpcomingReleases />}
+      {/* a thin line at the top once there are cards, staying full once the
+          check's done. With no cards yet it sits in the middle of the page,
+          where the cards will be */}
+      {showingNew && visibleManga.length > 0 && (
+        <div className={styles.checkInline}>
+          {progress}
+          <p className={styles.checkText} aria-live="polite">
+            {checking
+              ? `Checking ${checked} of ${total}`
+              : `All ${total} checked`}
+            {checking && bigShelfNote && ` · ${bigShelfNote}`}
+          </p>
+        </div>
+      )}
+      {showingNew && !viewingHidden && !pileView && <UpcomingReleases />}
       {showingNew && (
         <ReleaseTools
           kind={releaseKind}
@@ -492,36 +654,30 @@ function Library() {
           showCounts={!allFailed}
           viewingHidden={viewingHidden}
           hiddenCount={hiddenCount}
-          onOpenHidden={() => navigator("/shelf?view=hidden")}
-          onUnhideAll={hideActions.unhideAll}
-          onBack={() => navigator("/shelf", { replace: true })}
+        />
+      )}
+      {pileView && (
+        <PileHead
+          kind={releaseKind}
+          view={pileView}
+          piles={piles}
+          onPick={openPile}
+          onBack={() => openPile(null)}
+          viewingHidden={viewingHidden}
+          extra={pileExtra}
         />
       )}
 
-      {/* a thin line above the cards once there are some, staying full once
-          the check's done, with Hide all under it. With no cards yet it sits
-          in the middle of the page, where the cards will be */}
-      {showingNew && visibleManga.length > 0 && (
-        <div className={styles.checkInline}>
-          {progress}
-          <div className={styles.checkRow}>
-            <p className={styles.checkText} aria-live="polite">
-              {checking
-                ? `Checking ${checked} of ${total}`
-                : `All ${total} checked`}
-              {checking && bigShelfNote && ` · ${bigShelfNote}`}
-            </p>
-            {!viewingHidden && (
-              <button
-                type="button"
-                className={styles.hiddenToggle}
-                onClick={hideActions.hideAll}
-              >
-                Hide all {visibleManga.length}
-              </button>
-            )}
-          </div>
-        </div>
+      {showingNew && (
+        <ReleaseLinks
+          viewingHidden={viewingHidden}
+          hiddenCount={hiddenCount}
+          onOpenHidden={() => navigator("/shelf?view=hidden")}
+          onUnhideAll={hideActions.unhideAll}
+          onBack={() => navigator("/shelf", { replace: true })}
+          hideAllCount={visibleManga.length}
+          onHideAll={hideActions.hideAll}
+        />
       )}
 
       {checking && visibleManga.length === 0 && checked >= EARLY_CHECKS ? (
@@ -565,6 +721,18 @@ function Library() {
           searching={Boolean(query.trim())}
           resetKey={filterKey}
         />
+      ) : showPiles ? (
+        <NewPiles
+          kind={releaseKind}
+          piles={piles}
+          card={card}
+          gridClass={gridClass}
+          onOpen={openPile}
+          returnTo={pileLeft}
+          onCardClick={saveSpot}
+          linkFor={coverLink}
+          extra={pileExtra}
+        />
       ) : showingNew && visibleManga.length === 0 && !query.trim() ? (
         <NothingNew
           kind={releaseKind}
@@ -599,87 +767,11 @@ function Library() {
           <div className={styles.gridTools}>{pager(false)}</div>
           <div
             id="shelf-grid"
-            className={
-              rowsChosen
-                ? styles.rowsGrid
-                : showingNew
-                  ? styles.newGrid
-                  : styles.classContainer
-            }
+            className={gridClass}
             onClickCapture={saveSpot}
             data-tour="shelf"
           >
-            {shelfPage.map((currentManga, i) => (
-              <div
-                key={currentManga.id}
-                className={
-                  rowsChosen
-                    ? styles.cardRowAlways
-                    : showingNew
-                      ? styles.cardAsRow
-                      : styles.cardWithSeen
-                }
-              >
-                <MangaCard
-                  currentManga={currentManga}
-                  news={
-                    showingNew
-                      ? newsFor(
-                          currentManga,
-                          releases[currentManga.id],
-                          releaseKind,
-                          viewingHidden,
-                        )
-                      : undefined
-                  }
-                  linkTo={buyLinkFor(currentManga.id)}
-                  onOpen={
-                    showingNew && !viewingHidden && grouped(currentManga.id)
-                      ? () => setOpenRelease(currentManga.id)
-                      : undefined
-                  }
-                  detailsSearch={
-                    !showingNew
-                      ? undefined
-                      : releaseKind === "japan"
-                        ? "?edition=japan"
-                        : releaseKind === "chapters"
-                          ? "?new=chapter"
-                          : undefined
-                  }
-                  index={i}
-                  compact={rowsChosen}
-                  latestChapter={
-                    releases[currentManga.id]?.latestChapter ??
-                    currentManga.latestChapter
-                  }
-                  select={
-                    select.selectOn
-                      ? {
-                          checked: select.picked.has(currentManga.id),
-                          onToggle: () => select.toggle(currentManga.id),
-                        }
-                      : undefined
-                  }
-                />
-                {showingNew && (
-                  <button
-                    type="button"
-                    className={rowsChosen ? styles.seenBtnRow : styles.seenBtn}
-                    aria-label={`${viewingHidden ? "Unhide" : grouped(currentManga.id) ? "Hide all" : "Hide"}: ${currentManga.name}`}
-                    data-seen-id={currentManga.id}
-                    onClick={() => hideActions.hide(currentManga)}
-                  >
-                    {!viewingHidden && <CheckIcon />}
-                    {viewingHidden
-                      ? "Unhide"
-                      : grouped(currentManga.id)
-                        ? "Hide all"
-                        : "Hide"}
-                  </button>
-                )}
-              </div>
-            ))}
+            {shelfPage.map(card)}
           </div>
           {visibleManga.length > SHELF_PAGE_SIZE && (
             <div className={styles.pagerBottom}>{pager(true)}</div>

@@ -119,8 +119,10 @@ export const homeStyles = {
   releaseAside: "flex flex-1 flex-wrap items-center gap-x-5 gap-y-1",
   // together at the far right of the row
   // wraps rather than running off a small phone
-  releaseLinks:
-    "ml-auto flex flex-wrap items-center justify-end gap-x-5 gap-y-1",
+  // How this works and Hidden at the left, Hide all at the right
+  releaseLinksRow:
+    "-mt-3 mb-5 flex flex-wrap items-center justify-between gap-x-5 gap-y-1",
+  releaseLinks: "flex flex-wrap items-center gap-x-5 gap-y-1",
   hiddenToggle:
     "tap text-[0.85rem] font-medium text-ink underline decoration-accent decoration-2 underline-offset-3",
   // the grouped list. A full screen on phones
@@ -155,9 +157,8 @@ export const homeStyles = {
     "h-full bg-ink transition-[width] duration-300 ease-ink motion-reduce:transition-none",
   checkText: "text-[0.85rem] text-ink-soft",
   checkAside: "mt-1 block text-pretty",
-  checkInline: "mb-7 flex flex-col gap-1.5",
+  checkInline: "mb-5 flex flex-col gap-1.5",
   // under the bar: how far the check is, and Hide all on the right
-  checkRow: "flex flex-wrap items-center justify-between gap-x-4 gap-y-1",
   checkCentre:
     "mx-auto flex min-h-[34dvh] max-w-[300px] flex-col items-center justify-center gap-2.5 text-center",
   checkTitle: "font-display text-[1.25rem] text-ink-soft",

@@ -90,6 +90,11 @@ export type ReleaseStatus = {
   outJapanVolumes: number[];
   latestChapter: number | null;
   latestJapaneseVolume: number | null;
+  // when the newest of each came out, where the source says: the New tab's
+  // "Just out" pile
+  latestVolumeDate: string | null;
+  latestChapterDate: string | null;
+  latestJapaneseVolumeDate: string | null;
 };
 
 type Shelved = {
@@ -107,7 +112,14 @@ type Sources = {
   dates: FormatedDates | null; // MangaDex, for chapters
   // the US catalog; null if it didn't answer
   englishVolumes:
-    { volume: number | null; isbn13?: string; title?: string }[] | null;
+    | {
+        volume: number | null;
+        isbn13?: string;
+        title?: string;
+        // "2026-11-17", or "2026-11" when only the month is known
+        published?: string;
+      }[]
+    | null;
 };
 
 // "New" is what's next for this reader: the next volume they can buy, however far
@@ -235,5 +247,20 @@ export function getReleaseStatus(
     nextVolumeBook,
     latestChapter,
     latestJapaneseVolume,
+    latestVolumeDate:
+      (englishVolumes ?? []).find((v) => v.volume === latestVolume)
+        ?.published ?? null,
+    latestChapterDate: dates?.chapter?.latestReleased.releaseDate ?? null,
+    // covers of the volume come in every language, uploaded as they appear:
+    // the first is the nearest to when it came out in Japan
+    latestJapaneseVolumeDate:
+      (dates?.volume ?? [])
+        .filter(
+          (v) =>
+            parseFloat(v.volume ?? "") === latestJapaneseVolume &&
+            Number.isFinite(Date.parse(v.releaseDate ?? "")),
+        )
+        .map((v) => v.releaseDate!)
+        .sort((a, b) => Date.parse(a) - Date.parse(b))[0] ?? null,
   };
 }

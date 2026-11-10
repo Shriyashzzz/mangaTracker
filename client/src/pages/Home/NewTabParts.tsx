@@ -8,8 +8,8 @@ import { RELEASE_KINDS, type ReleaseKind } from "./shelfViews";
 import type { Hidden } from "./useHideActions";
 import { homeStyles as styles } from "./styles";
 
-// the switch between what's new in English, chapters and Japan, and the links
-// beside it: how this works, the hidden list, and leaving it
+// the switch between what's new in English, chapters and Japan, and what
+// the view is about
 export function ReleaseTools({
   kind,
   onKind,
@@ -17,9 +17,6 @@ export function ReleaseTools({
   showCounts,
   viewingHidden,
   hiddenCount,
-  onOpenHidden,
-  onUnhideAll,
-  onBack,
 }: {
   kind: ReleaseKind;
   onKind: (kind: ReleaseKind) => void;
@@ -28,9 +25,6 @@ export function ReleaseTools({
   showCounts: boolean;
   viewingHidden: boolean;
   hiddenCount: number;
-  onOpenHidden: () => void;
-  onUnhideAll: () => void;
-  onBack: () => void;
 }) {
   return (
     <div className={styles.releaseTools}>
@@ -61,44 +55,79 @@ export function ReleaseTools({
         ) : (
           <p className={styles.releaseNote}>{RELEASE_KINDS[kind].note}</p>
         )}
-        <div className={styles.releaseLinks}>
-          <NavLink
-            to="/new-releases"
+      </div>
+    </div>
+  );
+}
+
+// the row above the cards: how this works and the hidden list (or, on it,
+// Unhide all and the way back) at the left, Hide all at the right
+export function ReleaseLinks({
+  viewingHidden,
+  hiddenCount,
+  onOpenHidden,
+  onUnhideAll,
+  onBack,
+  hideAllCount,
+  onHideAll,
+}: {
+  viewingHidden: boolean;
+  hiddenCount: number;
+  onOpenHidden: () => void;
+  onUnhideAll: () => void;
+  onBack: () => void;
+  // how many Hide all would hide; nothing to hide, no button
+  hideAllCount: number;
+  onHideAll: () => void;
+}) {
+  return (
+    <div className={styles.releaseLinksRow}>
+      <div className={styles.releaseLinks}>
+        <NavLink
+          to="/new-releases"
+          className={styles.hiddenToggle}
+          viewTransition
+        >
+          How this works
+        </NavLink>
+        {hiddenCount > 0 && !viewingHidden && (
+          <button
+            type="button"
             className={styles.hiddenToggle}
-            viewTransition
+            onClick={onOpenHidden}
           >
-            How this works
-          </NavLink>
-          {hiddenCount > 0 && !viewingHidden && (
+            Hidden ({hiddenCount})
+          </button>
+        )}
+        {viewingHidden && (
+          <>
             <button
               type="button"
               className={styles.hiddenToggle}
-              onClick={onOpenHidden}
+              onClick={onUnhideAll}
             >
-              Hidden ({hiddenCount})
+              Unhide all
             </button>
-          )}
-          {viewingHidden && (
-            <>
-              <button
-                type="button"
-                className={styles.hiddenToggle}
-                onClick={onUnhideAll}
-              >
-                Unhide all
-              </button>
-              {/* back to what's new, without a stop here on the way back */}
-              <button
-                type="button"
-                className={styles.hiddenToggle}
-                onClick={onBack}
-              >
-                Back to new
-              </button>
-            </>
-          )}
-        </div>
+            {/* back to what's new, without a stop here on the way back */}
+            <button
+              type="button"
+              className={styles.hiddenToggle}
+              onClick={onBack}
+            >
+              Back to new
+            </button>
+          </>
+        )}
       </div>
+      {hideAllCount > 0 && !viewingHidden && (
+        <button
+          type="button"
+          className={styles.hiddenToggle}
+          onClick={onHideAll}
+        >
+          Hide all {hideAllCount}
+        </button>
+      )}
     </div>
   );
 }

@@ -100,7 +100,7 @@ export default function ShelfBar({
   }, [searchOpen]);
 
   return (
-    <div className={styles.bar}>
+    <div className={styles.bar} data-shelf-bar>
       {/* wider than a phone: every view in sight */}
       <nav className={styles.tabs} aria-label="Your shelf">
         {views.map((v) => (
