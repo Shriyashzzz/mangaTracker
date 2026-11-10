@@ -1,26 +1,40 @@
 // /calendar: the volumes still to come for series on the shelf, month by
-// month, from the release dates the catalog lists (Google Books). Each opens
-// its volume page, where it can be preordered. Opened from the New tab.
+// month, from the release dates the catalog lists (Google Books): each month
+// its marked-up page (the New tab panel's, kept going) beside its list. Each
+// volume opens its page, where it can be preordered. Opened from the New tab's
+// "Upcoming Releases".
 import { useEffect, useState } from "react";
 import { NavLink, useNavigate } from "react-router";
-import { CheckIcon } from "../../components/icons/Icons";
+import { ChevronDownIcon } from "../../components/icons/Icons";
+import MiniMonth from "../../components/calendar/MiniMonth";
+import ReleaseList from "../../components/calendar/ReleaseList";
 import Mascot from "../../components/mascot/Mascot";
 import { signInPath } from "../../lib/api";
 import {
-  dayName,
   getCalendar,
   monthName,
   type CalendarMonth,
 } from "../../lib/collector";
-import {
-  coverSrc,
-  hideBrokenCover,
-  hidePlaceholderCover,
-  volumePath,
-} from "../../lib/prices";
 import { usePrivatePage } from "../../lib/seo";
 import { useAuth } from "../../store/auth";
 import { calendarStyles as styles } from "./styles";
+
+// months shown open; later ones fold, so a big shelf's year stays a page
+const OPEN_MONTHS = 2;
+// a busy month lists this many, the rest on asking
+const MONTH_LIMIT = 8;
+
+// a month: its marked-up page beside its list
+function Month({ month }: { month: CalendarMonth }) {
+  return (
+    <div className={styles.monthBody}>
+      <MiniMonth month={month.month} volumes={month.volumes} />
+      <div>
+        <ReleaseList volumes={month.volumes} limit={MONTH_LIMIT} />
+      </div>
+    </div>
+  );
+}
 
 export default function CalendarPage() {
   usePrivatePage("Release calendar");
@@ -81,65 +95,29 @@ export default function CalendarPage() {
           </p>
         </div>
       )}
-      {months?.map((m) => (
-        <section
-          key={m.month}
-          className={styles.month}
-          aria-labelledby={`month-${m.month}`}
-        >
-          <h2 id={`month-${m.month}`} className={styles.monthName}>
-            {monthName(m.month)}
-          </h2>
-          <ul className={styles.list}>
-            {m.volumes.map((v) => (
-              <li key={v.isbn13} className={styles.item}>
-                <NavLink
-                  to={volumePath(v.isbn13, v.title)}
-                  className={styles.row}
-                  viewTransition
-                >
-                  <span className={styles.date}>{dayName(v.published)}</span>
-                  <span className={styles.thumb} aria-hidden>
-                    {/* the series' cover underneath; the volume's own on top,
-                        where it has one (one this far off rarely does: a
-                        placeholder hides itself and the series' shows) */}
-                    {v.seriesCover && (
-                      <img
-                        src={coverSrc(v.seriesCover)}
-                        alt=""
-                        loading="lazy"
-                        onError={hideBrokenCover}
-                      />
-                    )}
-                    {v.coverUrl && (
-                      <img
-                        src={coverSrc(v.coverUrl)}
-                        alt=""
-                        loading="lazy"
-                        className={styles.ownCover}
-                        onError={hideBrokenCover}
-                        onLoad={hidePlaceholderCover}
-                      />
-                    )}
-                  </span>
-                  <span className={styles.text}>
-                    <span className={styles.name}>{v.name}</span>
-                    <span className={styles.vol}>
-                      {v.volume !== null ? `Vol. ${v.volume}` : v.title}
-                    </span>
-                  </span>
-                  {v.owned && (
-                    <span className={styles.owned}>
-                      <CheckIcon className={styles.check} />
-                      On your shelf
-                    </span>
-                  )}
-                </NavLink>
-              </li>
-            ))}
-          </ul>
-        </section>
-      ))}
+      {months?.map((m, i) =>
+        // the next two months open; the ones after folded, with their count
+        i < OPEN_MONTHS ? (
+          <section
+            key={m.month}
+            className={styles.month}
+            aria-label={monthName(m.month)}
+          >
+            <Month month={m} />
+          </section>
+        ) : (
+          <details key={m.month} className={styles.folded}>
+            <summary className={styles.foldedSummary}>
+              <span className={styles.foldedName}>{monthName(m.month)}</span>
+              <span className={styles.foldedCount}>
+                {m.volumes.length} coming
+              </span>
+              <ChevronDownIcon className={styles.chevron} />
+            </summary>
+            <Month month={m} />
+          </details>
+        ),
+      )}
     </article>
   );
 }

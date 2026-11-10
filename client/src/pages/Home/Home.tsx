@@ -36,6 +36,7 @@ import ReleaseModal from "./ReleaseModal";
 import DeleteManyModal from "./DeleteManyModal";
 import SelectDock, { MovedNote } from "./SelectDock";
 import { CheckBar, HiddenNote, NothingNew, ReleaseTools } from "./NewTabParts";
+import UpcomingReleases from "./UpcomingReleases";
 import AddButton from "./AddButton";
 import AddChoice from "../../components/scanSheet/AddChoice";
 // the camera and its barcode library load only when someone scans
@@ -474,6 +475,8 @@ function Library() {
         {mangaData.length ? `${visibleManga.length} shown` : ""}
       </p>
 
+      {/* what's coming, folded until asked (not on the hidden list) */}
+      {showingNew && !viewingHidden && <UpcomingReleases />}
       {showingNew && (
         <ReleaseTools
           kind={releaseKind}
