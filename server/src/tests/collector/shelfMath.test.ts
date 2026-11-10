@@ -19,6 +19,9 @@ const vol = (
   ...extra,
 });
 const copy = (cents: number) => ({ cents, store: "Store", url: null });
+// what volumes have gone for used (getRecordedMedians)
+const usedPrices = (entries: [ListedVolume, number][]) =>
+  new Map(entries.map(([v, cents]) => [v.isbn13, { used: cents, new: null }]));
 const priced = (entries: [ListedVolume, Partial<Copies>][]) =>
   new Map(entries.map(([v, c]) => [v.isbn13, { new: null, used: null, ...c }]));
 
@@ -38,11 +41,11 @@ test("median", () => {
 
 test("the shelf's value adds the owned volumes' used prices, and estimates the rest", () => {
   const v = [1, 2, 3, 4].map((n) => vol(n));
-  const copies = priced([
-    [v[0]!, { used: copy(500) }],
-    [v[1]!, { used: copy(700) }],
+  const copies = usedPrices([
+    [v[0]!, 500],
+    [v[1]!, 700],
     // not owned: never counted
-    [v[3]!, { used: copy(9900) }],
+    [v[3]!, 9900],
   ]);
   const value = shelfValue(
     [{ owned: { volumesOwned: 3, ownedList: [] }, volumes: v }],
@@ -63,7 +66,7 @@ test("a series with no used price is estimated at the shelf's usual; none priced
     vol(1, { isbn13: "9780000009991" }),
     vol(2, { isbn13: "9780000009992" }),
   ];
-  const copies = priced([[a[0]!, { used: copy(400) }]]);
+  const copies = usedPrices([[a[0]!, 400]]);
   const value = shelfValue(
     [
       { owned: { volumesOwned: 1, ownedList: [] }, volumes: a },
@@ -90,7 +93,7 @@ test("one book holding two volumes is worth something once; specials never count
   ];
   const value = shelfValue(
     [{ owned: { volumesOwned: 3, ownedList: [] }, volumes: v }],
-    priced([[v[0]!, { used: copy(900) }]]),
+    usedPrices([[v[0]!, 900]]),
   );
   expect(value).toMatchObject({ cents: 900, volumes: 1 });
 });
@@ -186,7 +189,7 @@ test("owned volumes of series with no saved list are estimated, so a total isn't
   const v = [vol(1)];
   const value = shelfValue(
     [{ owned: { volumesOwned: 1, ownedList: [] }, volumes: v }],
-    priced([[v[0]!, { used: copy(500) }]]),
+    usedPrices([[v[0]!, 500]]),
     3,
   );
   expect(value).toMatchObject({
@@ -208,4 +211,32 @@ test("numbers below a volume known to be coming count as out", () => {
     1000,
   );
   expect(f.missing.map((m) => m.volume)).toEqual([3, 4, 5]);
+});
+
+test("a used price recorded long ago still counts: it never goes stale", () => {
+  const v = [vol(1)];
+  // no copy in stock now, but it has sold used before
+  const recorded = new Map([[v[0]!.isbn13, { used: 450, new: null }]]);
+  expect(
+    shelfValue(
+      [{ owned: { volumesOwned: 1, ownedList: [] }, volumes: v }],
+      recorded,
+    ),
+  ).toMatchObject({ cents: 450, priced: 1 });
+});
+
+test("an unpriced missing volume is estimated at its own recorded price first", () => {
+  const v = [vol(1), vol(2), vol(3)];
+  const copies = priced([[v[1]!, { new: copy(1000) }]]);
+  const recorded = new Map([[v[2]!.isbn13, { used: null, new: 1500 }]]);
+  const f = finishSeries(
+    { volumesOwned: 1, ownedList: [] },
+    v,
+    copies,
+    NOW,
+    0,
+    recorded,
+  );
+  // vol 2 priced now at 10.00; vol 3 at what it has gone for, 15.00
+  expect(f.estimateCents).toBe(1000 + 1500);
 });

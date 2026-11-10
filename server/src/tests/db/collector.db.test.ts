@@ -157,3 +157,11 @@ test("COLLECTOR_TOOLS=off: none of it is there", async () => {
     config.COLLECTOR_TOOLS = was;
   }
 });
+
+test("a recorded price never goes stale: a later check finding nothing keeps it", async () => {
+  const agent = await reader("collector", 1);
+  // eBay looks again and finds no used copy of vol 1 now
+  await priceQueries.saveCheck(ISBN(1), ["ebay"], new Map([["ebay", []]]));
+  const res = await agent.get("/api/collector/shelf").expect(200);
+  expect(res.body.value).toMatchObject({ cents: 600, priced: 1 });
+});

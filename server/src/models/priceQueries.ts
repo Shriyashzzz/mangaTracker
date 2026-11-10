@@ -314,6 +314,46 @@ async function newMedians(isbns: string[]) {
   return new Map(rows.map((u) => [u.isbn13.trim(), u.median]));
 }
 
+// What a volume has gone for: the median of every in-stock print price ever
+// recorded for it, used and new apart, so a price never goes stale (a check
+// that finds nothing doesn't wipe it, and each look adds to it). The last 12
+// months win when there are any: a price from years ago is only the fallback.
+// For the shelf tools (collector/); database only
+export type RecordedPrice = { used: number | null; new: number | null };
+export async function getRecordedMedians(
+  isbns: string[],
+): Promise<Map<string, RecordedPrice>> {
+  if (!isbns.length) return new Map();
+  const rows = await prisma.$queryRaw<
+    {
+      isbn13: string;
+      used_recent: number | null;
+      used_all: number | null;
+      new_recent: number | null;
+      new_all: number | null;
+    }[]
+  >`
+    SELECT isbn13,
+      ROUND(percentile_cont(0.5) WITHIN GROUP (ORDER BY price_cents)
+        FILTER (WHERE condition <> 'new' AND fetched_at > now() - interval '12 months'))::int AS used_recent,
+      ROUND(percentile_cont(0.5) WITHIN GROUP (ORDER BY price_cents)
+        FILTER (WHERE condition <> 'new'))::int AS used_all,
+      ROUND(percentile_cont(0.5) WITHIN GROUP (ORDER BY price_cents)
+        FILTER (WHERE condition = 'new' AND fetched_at > now() - interval '12 months'))::int AS new_recent,
+      ROUND(percentile_cont(0.5) WITHIN GROUP (ORDER BY price_cents)
+        FILTER (WHERE condition = 'new'))::int AS new_all
+    FROM price_samples
+    WHERE isbn13 = ANY(${isbns}::text[]) AND in_stock AND format = 'print'
+    GROUP BY isbn13
+  `;
+  return new Map(
+    rows.map((r) => [
+      r.isbn13.trim(),
+      { used: r.used_recent ?? r.used_all, new: r.new_recent ?? r.new_all },
+    ]),
+  );
+}
+
 // the cheapest new and the cheapest used print copy in stock among each
 // volume's prices now, with the store and link: for the shelf tools
 // (collector/). The same believable-price rule as getKnownPrices; database
@@ -704,6 +744,7 @@ export default {
   saveSeriesVolumes,
   getKnownPrices,
   getCheapestCopies,
+  getRecordedMedians,
   getRecentBestPrices,
   getBook,
   isKnownVolume,

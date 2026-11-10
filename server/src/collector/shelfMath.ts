@@ -2,7 +2,7 @@
 // tested on its own: what a shelf is worth, what finishing each series costs,
 // and what's coming out when. Everything reads prices already saved; nothing
 // here asks a store or a catalog.
-import type { CheapestCopy } from "../models/priceQueries.js";
+import type { CheapestCopy, RecordedPrice } from "../models/priceQueries.js";
 
 // a volume of a series as the saved lists know it
 export type ListedVolume = {
@@ -83,15 +83,16 @@ export type ShelfValue = {
   estimateCents: number | null;
 };
 
-// what the owned volumes would fetch used: each one's cheapest used copy in
-// stock. A volume with no used price isn't guessed at; `priced` says how many
-// went in, so a part total never reads as the whole
+// what the owned volumes would fetch used: each one's recorded used price
+// (the median of every one seen, the last year's first: it never goes stale,
+// see getRecordedMedians). A volume never seen used is estimated; `priced`
+// says how many are real, so a part total never reads as the whole
 export function shelfValue(
   series: { owned: Owned; volumes: ListedVolume[] }[],
-  copies: Map<string, Copies>,
+  recorded: Map<string, Pick<RecordedPrice, "used">>,
   unlisted = 0,
 ): ShelfValue {
-  const usedOf = (v: ListedVolume) => copies.get(v.isbn13)?.used?.cents;
+  const usedOf = (v: ListedVolume) => recorded.get(v.isbn13)?.used ?? undefined;
   const seen = new Set<string>();
   // each series' owned books (a book holding two volumes, once), in order
   const perSeries = series.map(({ owned, volumes }) => {
@@ -156,6 +157,9 @@ export function finishSeries(
   copies: Map<string, Copies>,
   now = new Date(),
   fallbackCents = 0,
+  // each volume's recorded new price: an unpriced one's own beats the
+  // series' usual (see getRecordedMedians)
+  recorded: Map<string, Pick<RecordedPrice, "new">> = new Map(),
 ): FinishSeries {
   const mine = ownedSet(owned);
   const listed = volumes.filter(isMainVolume);
@@ -186,18 +190,27 @@ export function finishSeries(
   }
   const priced = onceEach(missing.filter((m) => m.cheapest));
   const cents = priced.reduce((sum, m) => sum + m.cheapest!.cents, 0);
-  // the series' usual new price, from any of its volumes priced (owned too)
+  // the series' usual new price, from any of its volumes priced (owned too):
+  // what they've gone for, or failing that what they cost now
+  const recordedNew = (isbn: string) => recorded.get(isbn)?.new ?? undefined;
   const seriesNew = volumes.flatMap((v) => {
-    const c = copies.get(v.isbn13)?.new?.cents;
+    const c = recordedNew(v.isbn13) ?? copies.get(v.isbn13)?.new?.cents;
     return c === undefined ? [] : [c];
   });
   const usual = seriesNew.length ? median(seriesNew) : fallbackCents;
-  const unpriced = onceEach(missing.filter((m) => !m.cheapest)).length;
+  // each unpriced one at its own recorded price, else the series' usual
+  const unpriced = onceEach(missing.filter((m) => !m.cheapest)).map(
+    (m) => (m.isbn13 && recordedNew(m.isbn13)) || usual,
+  );
+  const known = unpriced.every((c) => c > 0);
   return {
     missing,
     cents,
     priced: missing.filter((m) => m.cheapest).length,
-    estimateCents: usual || priced.length ? cents + unpriced * usual : null,
+    estimateCents:
+      known || priced.length
+        ? cents + unpriced.reduce((sum, c) => sum + c, 0)
+        : null,
   };
 }
 

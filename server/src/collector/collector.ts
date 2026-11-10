@@ -56,8 +56,12 @@ const tagged = (m: MissingVolume): MissingVolume =>
 export async function getShelfTools(userId: number): Promise<ShelfTools> {
   const shelf = await mangaQueries.getShelf(userId);
   const series = await shelfSeries(shelf);
-  const copies = await priceQueries.getCheapestCopies([
+  const isbns = [
     ...new Set(series.flatMap((s) => s.volumes.map((v) => v.isbn13))),
+  ];
+  const [copies, recorded] = await Promise.all([
+    priceQueries.getCheapestCopies(isbns),
+    priceQueries.getRecordedMedians(isbns),
   ]);
   // owned volumes of series with no saved list: in the estimate only
   const listedIds = new Set(series.map((s) => s.manga.id));
@@ -75,12 +79,19 @@ export async function getShelfTools(userId: number): Promise<ShelfTools> {
   }));
   // the shelf's usual new price, for a series with none of its own priced
   const shelfNew = median(
-    [...copies.values()].flatMap((c) => (c.new ? [c.new.cents] : [])),
+    [...recorded.values()].flatMap((r) => (r.new ? [r.new] : [])),
   );
   const finish = series
     .filter((s) => ownedSet(s.manga).size > 0)
     .flatMap((s) => {
-      const f = finishSeries(s.manga, s.volumes, copies, new Date(), shelfNew);
+      const f = finishSeries(
+        s.manga,
+        s.volumes,
+        copies,
+        new Date(),
+        shelfNew,
+        recorded,
+      );
       return f.missing.length
         ? [
             {
@@ -93,7 +104,7 @@ export async function getShelfTools(userId: number): Promise<ShelfTools> {
         : [];
     });
   return {
-    value: shelfValue(owned, copies, unlisted),
+    value: shelfValue(owned, recorded, unlisted),
     finish,
     finishCents: finish.reduce((sum, f) => sum + f.cents, 0),
     finishPriced: finish.reduce((sum, f) => sum + f.priced, 0),
