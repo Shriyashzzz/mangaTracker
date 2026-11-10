@@ -3,6 +3,7 @@
 // the next release as a marked-up page with its list, and the way to the full
 // calendar. Nothing at all when no volume of the shelf's series is dated
 import { useEffect, useState } from "react";
+import { useReturnSpot } from "../../lib/returnSpot";
 import { NavLink } from "react-router";
 import { ChevronDownIcon } from "../../components/icons/Icons";
 import MiniMonth from "../../components/calendar/MiniMonth";
@@ -33,13 +34,15 @@ export default function UpcomingReleases() {
       });
     return () => controller.abort();
   }, []);
+  // Back from a release's page: the panel open again, and the scroll
+  useReturnSpot(Boolean(months));
 
   const first = months?.[0];
   if (!first?.volumes.length) return null;
   const next = first.volumes[0]!;
   const count = first.volumes.length;
   return (
-    <details className={styles.panel}>
+    <details className={styles.panel} data-keep="upcoming">
       <summary className={styles.summary}>
         <span className={styles.title}>Upcoming Releases</span>
         <span className={styles.peek}>
@@ -78,7 +81,10 @@ export default function UpcomingReleases() {
           </div>
         </div>
         <div>
-          <ReleaseList volumes={first.volumes.slice(0, SHOWN)} />
+          <ReleaseList
+            volumes={first.volumes.slice(0, SHOWN)}
+            keep="upcoming"
+          />
         </div>
       </div>
     </details>

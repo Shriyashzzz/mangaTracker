@@ -37,7 +37,18 @@ const WHY_NONE: Record<Answer["status"], string> = {
   error: "Canadian prices aren't available right now. Try the stores below.",
 };
 
-export default function CanadaPrices({ isbn }: { isbn: string }) {
+// a volume not out yet: a button for each of these (the affiliate stores),
+// the first the main one, as the US page has; the others are links under them
+const PREORDER_STORES = ["Amazon.ca", "eBay.ca"];
+
+export default function CanadaPrices({
+  isbn,
+  preorder,
+}: {
+  isbn: string;
+  // the day it comes out ("Mar 30, 2027"), when it isn't out yet
+  preorder: string | null;
+}) {
   // box sets holding this volume: listed unless turned off
   const boxSetsShown = useBoxSetsShown();
   const [answer, setAnswer] = useState<{ isbn: string; data: Answer } | null>(
@@ -46,8 +57,10 @@ export default function CanadaPrices({ isbn }: { isbn: string }) {
 
   useEffect(() => {
     const controller = new AbortController();
-    // a live check carries a Turnstile token, as the US one does
-    humanQuery("?", controller.signal)
+    // a live check carries a Turnstile token, as the US one does. A preorder
+    // gets no live check (the server only sends its store links), so it
+    // needn't wait for one
+    (preorder ? Promise.resolve("") : humanQuery("?", controller.signal))
       .then((human) =>
         getJson<Answer>(`/api/prices/ca/${isbn}${human}`, controller.signal),
       )
@@ -61,7 +74,7 @@ export default function CanadaPrices({ isbn }: { isbn: string }) {
         }
       });
     return () => controller.abort();
-  }, [isbn]);
+  }, [isbn, preorder]);
 
   const data = answer?.isbn === isbn ? answer.data : null;
   // only physical copies, if that's what they've asked for, like the US list
@@ -76,7 +89,14 @@ export default function CanadaPrices({ isbn }: { isbn: string }) {
       !(hideEbooks && o.format === "ebook") &&
       !(!boxSetsShown && isCollection(o)),
   );
-  const links = data?.links ?? [];
+  const allLinks = data?.links ?? [];
+  // not out yet: no prices to compare, just where to order it
+  const preorderAt = preorder
+    ? PREORDER_STORES.flatMap(
+        (name) => allLinks.find((s) => s.store === name) ?? [],
+      )
+    : [];
+  const links = allLinks.filter((s) => !preorderAt.includes(s));
 
   return (
     <section className="mb-8" aria-labelledby="ca-prices-title">
@@ -94,7 +114,32 @@ export default function CanadaPrices({ isbn }: { isbn: string }) {
         </span>
       </div>
 
-      {!data ? (
+      {preorder ? (
+        <div id="preorder" className={styles.preorder}>
+          <p className="m-0">
+            Not out until <b>{preorder}</b>. Preorder it now and it ships on
+            release day; prices show here once it's out.
+          </p>
+          {preorderAt.length > 0 && (
+            <div className={styles.preorderButtons}>
+              {preorderAt.map((s, i) => (
+                <a
+                  key={s.store}
+                  href={s.url}
+                  target="_blank"
+                  rel={s.affiliate ? "sponsored noreferrer" : "noreferrer"}
+                  onClick={noteStoreClick}
+                  onAuxClick={noteStoreClick}
+                  className={`btn ${i === 0 ? "btn-primary" : "btn-secondary"}`}
+                  aria-label={`Preorder on ${s.store}. Opens the store in a new tab`}
+                >
+                  {i === 0 ? `Preorder on ${s.store}` : s.store}
+                </a>
+              ))}
+            </div>
+          )}
+        </div>
+      ) : !data ? (
         <p className={styles.note} role="status">
           Checking Canadian stores…
         </p>
@@ -116,7 +161,9 @@ export default function CanadaPrices({ isbn }: { isbn: string }) {
 
       {links.length > 0 && (
         <div className={`${styles.otherStores} mt-4`}>
-          <h3 className={styles.otherStoresTitle}>Check this volume at:</h3>
+          <h3 className={styles.otherStoresTitle}>
+            {preorder ? "Or preorder at:" : "Check this volume at:"}
+          </h3>
           <ul className={styles.storeLinks}>
             {links.map((s) => (
               <li key={s.store}>

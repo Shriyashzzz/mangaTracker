@@ -193,7 +193,10 @@ export const pricesStyles = {
   moreRow: "grid justify-center py-1",
   // a volume not out yet: when it's out and where to preorder it
   preorder:
-    "flex flex-col gap-3 border-[1.5px] border-line bg-card px-4 py-4 text-[0.95rem] text-ink-soft shadow-ink [&_b]:font-semibold [&_b]:text-ink",
+    "flex flex-col gap-3 border-[1.5px] border-line bg-card px-4 py-4 text-[0.95rem] text-ink-soft shadow-ink scroll-mt-24 [&_b]:font-semibold [&_b]:text-ink",
+  // Amazon, Bookshop.org and eBay side by side; stacked on phones
+  preorderButtons:
+    "flex flex-wrap gap-3 upto-520:flex-col upto-520:[&>a]:w-full",
   note: "border-[1.5px] border-dashed border-line-soft px-4 py-[0.85rem] text-[0.95rem] text-ink-soft [&_.btn]:mt-3 [&_a]:font-medium [&_a]:text-ink [&_a]:underline [&_a]:decoration-accent [&_a]:underline-offset-3",
   // price history: a row per kind of copy (new print, used & marketplace,
   // ebook), its label beside lowest / highest / median; on phones the

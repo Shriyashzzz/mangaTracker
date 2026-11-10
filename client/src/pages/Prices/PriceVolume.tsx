@@ -45,6 +45,10 @@ declare global {
 // longer price lists start collapsed, like manga.london's "Show N more"
 const SIBLINGS_SHOWN = 12;
 
+// a volume not out yet gets a button for each of these (the affiliate
+// stores), the first the main one; the other stores are links under them
+const PREORDER_STORES = ["Amazon", "Bookshop.org", "eBay"];
+
 const shortDate = (d: string) =>
   new Date(d).toLocaleDateString("en-US", {
     month: "short",
@@ -99,14 +103,14 @@ export default function PriceVolume() {
   // an ISBN-only or outdated link: show the address with the title in it,
   // without loading the page again
   const navigate = useNavigate();
-  const { pathname, search, state: linkState } = useLocation();
+  const { pathname, search, hash, state: linkState } = useLocation();
   const fromShelf = useFromShelf();
   useEffect(() => {
     if (!loadedBook) return;
     const path = volumePath(loadedBook.isbn13, loadedBook.title);
     if (pathname !== path)
-      navigate(path + search, { replace: true, state: linkState });
-  }, [loadedBook, pathname, search, navigate, linkState]);
+      navigate(path + search + hash, { replace: true, state: linkState });
+  }, [loadedBook, pathname, search, hash, navigate, linkState]);
 
   // which volume is being checked live right now, after its stored prices
   const [refreshing, setRefreshing] = useState<string | null>(null);
@@ -150,6 +154,14 @@ export default function PriceVolume() {
   useEffect(() => {
     if (loaded) window.impactStat?.("transformLinks");
   }, [loaded, isbn]);
+
+  // linked from the release calendar (#preorder): once the page has loaded,
+  // straight to where to preorder it
+  // (the US box or the Canadian one, whichever is shown)
+  useEffect(() => {
+    if (loaded && hash === "#preorder")
+      document.getElementById("preorder")?.scrollIntoView({ block: "center" });
+  }, [loaded, hash]);
 
   if (state.isbn !== isbn) return <VolumeSkeleton />;
 
@@ -230,12 +242,18 @@ export default function PriceVolume() {
     ...siblings.filter((v) => at == null || (v.volume ?? 0) > at),
     ...siblings.filter((v) => at != null && (v.volume ?? 0) < at).reverse(),
   ].slice(0, SIBLINGS_SHOWN);
-  // a preorder's main button; the other stores are listed under it
-  const amazon = preorder
-    ? storeLinks.find((s) => s.store === "Amazon")
-    : undefined;
-  // the stores with no row in the price list; the others would just repeat
+  // a preorder's main buttons, in this order; the other stores are listed
+  // under them
+  const preorderAt = preorder
+    ? PREORDER_STORES.flatMap(
+        (name) => storeLinks.find((s) => s.store === name) ?? [],
+      )
+    : [];
+  const isButton = (store: string) => preorderAt.some((s) => s.store === store);
+  // the stores with no row in the price list; the others would just repeat.
+  // A preorder shows no price list, so then every store is listed
   const hasOffer = (store: string) =>
+    !preorder &&
     offers.some((o) => {
       const a = o.store.toLowerCase();
       const b = store.toLowerCase();
@@ -244,12 +262,9 @@ export default function PriceVolume() {
   // eBay stays either way: a row there is one seller, and many more may have it
   // and it goes first
   const otherStores = [
-    ...storeLinks.filter((s) => s.store === "eBay"),
+    ...storeLinks.filter((s) => s.store === "eBay" && !isButton(s.store)),
     ...storeLinks.filter(
-      (s) =>
-        s.store !== "eBay" &&
-        !hasOffer(s.store) &&
-        !(amazon && s.store === "Amazon"),
+      (s) => s.store !== "eBay" && !hasOffer(s.store) && !isButton(s.store),
     ),
   ];
   // the headline price is the cheapest new print copy, what most people buy
@@ -342,7 +357,12 @@ export default function PriceVolume() {
 
         <div className={styles.volumeBody}>
           {/* one country's prices at a time */}
-          {inCanada && <CanadaPrices isbn={book.isbn13} />}
+          {inCanada && (
+            <CanadaPrices
+              isbn={book.isbn13}
+              preorder={preorder ? releaseDay(preorder) : null}
+            />
+          )}
           {!inCanada && (
             <section aria-labelledby="offers-title">
               <div className={styles.sectionHeadRow}>
@@ -367,23 +387,28 @@ export default function PriceVolume() {
 
               {preorder ? (
                 // not out yet: no prices to compare, just where to order it
-                <div className={styles.preorder}>
+                <div id="preorder" className={styles.preorder}>
                   <p className="m-0">
                     Not out until <b>{releaseDay(preorder)}</b>. Preorder it now
                     and it ships on release day; prices show here once it's out.
                   </p>
-                  {amazon && (
-                    <a
-                      href={amazon.url}
-                      target="_blank"
-                      rel={linkRel(amazon)}
-                      onClick={noteStoreClick}
-                      onAuxClick={noteStoreClick}
-                      className="btn btn-primary self-start"
-                      aria-label="Preorder on Amazon. Opens the store in a new tab"
-                    >
-                      Preorder on Amazon
-                    </a>
+                  {preorderAt.length > 0 && (
+                    <div className={styles.preorderButtons}>
+                      {preorderAt.map((s, i) => (
+                        <a
+                          key={s.store}
+                          href={s.url}
+                          target="_blank"
+                          rel={linkRel(s)}
+                          onClick={noteStoreClick}
+                          onAuxClick={noteStoreClick}
+                          className={`btn ${i === 0 ? "btn-primary" : "btn-secondary"}`}
+                          aria-label={`Preorder on ${s.store}. Opens the store in a new tab`}
+                        >
+                          {i === 0 ? `Preorder on ${s.store}` : s.store}
+                        </a>
+                      ))}
+                    </div>
                   )}
                 </div>
               ) : offers.length > 0 ? (
