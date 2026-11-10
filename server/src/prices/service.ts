@@ -290,7 +290,7 @@ const storedOrSaved = (isbn13: string) =>
     priceQueries.getSavedVolume(isbn13).catch(() => null),
   ]);
 
-async function getOrCreateBook(isbn13: string) {
+export async function getOrCreateBook(isbn13: string) {
   const [stored, saved] = await storedOrSaved(isbn13);
   if (
     stored &&
