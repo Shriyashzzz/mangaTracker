@@ -6,7 +6,14 @@ import { useEffect, useRef, useState, type ReactNode } from "react";
 import { NavLink } from "react-router";
 import DrawnCover from "../../components/drawnCover/DrawnCover";
 import type { Manga } from "../../lib/types";
-import { PILE_TEXT, PILES, type Pile, type PileView } from "./piles";
+import {
+  PILE_SORTS,
+  PILE_TEXT,
+  PILES,
+  type Pile,
+  type PileSort,
+  type PileView,
+} from "./piles";
 import type { ReleaseKind } from "./shelfViews";
 import { pilesStyles as styles } from "./pilesStyles";
 
@@ -200,8 +207,12 @@ export function PileHead({
   onBack,
   viewingHidden,
   extra,
+  sort,
+  onSort,
 }: {
   extra: (pile: Pile) => string;
+  sort: PileSort;
+  onSort: (sort: PileSort) => void;
   kind: ReleaseKind;
   view: PileView;
   // on the hidden list, whose piles Back returns to
@@ -270,6 +281,20 @@ export function PileHead({
             {c.label} <span className={styles.chipCount}>{c.count}</span>
           </button>
         ))}
+        <label className={styles.sort}>
+          <span className={styles.sortLabel}>Sort</span>
+          <select
+            value={sort}
+            onChange={(e) => onSort(e.target.value as PileSort)}
+            className={styles.sortSelect}
+          >
+            {PILE_SORTS.map((o) => (
+              <option key={o.value} value={o.value}>
+                {o.label}
+              </option>
+            ))}
+          </select>
+        </label>
       </div>
     </>
   );

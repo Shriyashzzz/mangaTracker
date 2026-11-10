@@ -183,3 +183,11 @@ export const TypeIcon = (props: IconProps) => (
     <path d="M4 7V5h16v2M9 19h6M12 5v14" />
   </svg>
 );
+
+// a calendar page with a plus: adding a release to their own calendar
+export const CalendarPlusIcon = (props: IconProps) => (
+  <svg {...base} {...props}>
+    <rect x="3.5" y="5" width="17" height="15" rx="1.5" />
+    <path d="M3.5 9.5h17M8 3v4M16 3v4M12 12.5v5M9.5 15h5" />
+  </svg>
+);

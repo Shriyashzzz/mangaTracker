@@ -49,6 +49,7 @@ import {
 } from "./NewTabParts";
 import UpcomingReleases from "./UpcomingReleases";
 import type { Manga } from "../../lib/types";
+import { hasBottomBar } from "../../lib/bottomBar";
 import { checkedAgo } from "../../lib/releaseCache";
 import { NewPiles, PileHead, type CoverLink } from "./NewPiles";
 import {
@@ -56,7 +57,9 @@ import {
   PILES_FROM,
   catchUpText,
   sortIntoPiles,
+  sortPile,
   type Pile,
+  type PileSort,
   type PileView,
 } from "./piles";
 import AddButton from "./AddButton";
@@ -136,10 +139,12 @@ function Library() {
   const [searchParams, setSearchParams] = useSearchParams();
   const pileParam = searchParams.get("pile");
   const pileView = showingNew && isPileView(pileParam) ? pileParam : null;
+  // a pile's own page, in the order they pick (kept between piles)
+  const [pileSort, setPileSort] = useState<PileSort>("");
 
   // the shelf shows one block of manga at a time; any change to the tab,
   // search or sort starts again from the first block
-  const filterKey = `${tab}|${releaseKind}|${viewingHidden}|${pileView}|${sortBy}|${query.trim().toLowerCase()}`;
+  const filterKey = `${tab}|${releaseKind}|${viewingHidden}|${pileView}|${pileSort}|${sortBy}|${query.trim().toLowerCase()}`;
   const [page, setPage] = useState({
     key: spot?.key ?? filterKey,
     index: spot?.index ?? 0,
@@ -259,8 +264,14 @@ function Library() {
     () => sortIntoPiles(showingNew ? listed : [], releases, releaseKind),
     [showingNew, listed, releases, releaseKind],
   );
-  const visibleManga =
-    pileView && pileView !== "all" ? piles[pileView] : listed;
+  const visibleManga = pileView
+    ? sortPile(
+        pileView === "all" ? listed : piles[pileView],
+        releases,
+        releaseKind,
+        pileSort,
+      )
+    : listed;
   // a big list of what's new, not searched: sorted into piles instead
   const showPiles =
     showingNew && !pileView && !query.trim() && listed.length >= PILES_FROM;
@@ -289,8 +300,11 @@ function Library() {
     next.delete("pile");
     setSearchParams(next, { replace: true });
   }, [pileEmptied, searchParams, setSearchParams]);
+  // a pile's page on a phone grows by "Show 20 more" instead of turning
+  // pages: one fewer row of controls on a small screen
+  const growing = Boolean(pileView) && hasBottomBar();
   const shelfPage = visibleManga.slice(
-    pageIndex * SHELF_PAGE_SIZE,
+    growing ? 0 : pageIndex * SHELF_PAGE_SIZE,
     (pageIndex + 1) * SHELF_PAGE_SIZE,
   );
 
@@ -681,6 +695,8 @@ function Library() {
           onBack={() => openPile(null)}
           viewingHidden={viewingHidden}
           extra={pileExtra}
+          sort={pileSort}
+          onSort={setPileSort}
         />
       )}
 
@@ -780,7 +796,7 @@ function Library() {
       ) : (
         <>
           {/* Select lives in the shelf bar now; this row is the pager's */}
-          <div className={styles.gridTools}>{pager(false)}</div>
+          <div className={styles.gridTools}>{!growing && pager(false)}</div>
           <div
             id="shelf-grid"
             className={gridClass}
@@ -789,9 +805,29 @@ function Library() {
           >
             {shelfPage.map(card)}
           </div>
-          {visibleManga.length > SHELF_PAGE_SIZE && (
-            <div className={styles.pagerBottom}>{pager(true)}</div>
-          )}
+          {growing
+            ? shelfPage.length < visibleManga.length && (
+                <div className={styles.pagerBottom}>
+                  <button
+                    type="button"
+                    className={styles.showMore}
+                    onClick={() => changePage(pageIndex + 1, false)}
+                  >
+                    Show{" "}
+                    {Math.min(
+                      SHELF_PAGE_SIZE,
+                      visibleManga.length - shelfPage.length,
+                    )}{" "}
+                    more
+                    <span className={styles.showMoreCount}>
+                      {shelfPage.length} of {visibleManga.length}
+                    </span>
+                  </button>
+                </div>
+              )
+            : visibleManga.length > SHELF_PAGE_SIZE && (
+                <div className={styles.pagerBottom}>{pager(true)}</div>
+              )}
         </>
       )}
 
@@ -840,7 +876,9 @@ function Library() {
       <ViewPeek
         series={mangaData.length}
         rows={rowsChosen}
+        // not on New, where it sat over the piles' covers
         blocked={
+          showingNew ||
           select.selecting ||
           undoShowing ||
           Boolean(hideActions.hidden) ||

@@ -37,7 +37,11 @@ export function ReleaseTools({
           <button
             key={k}
             className={
-              kind === k ? styles.releaseKindActive : styles.releaseKind
+              kind === k
+                ? styles.releaseKindActive
+                : showCounts && counts[k] === 0
+                  ? styles.releaseKindEmpty
+                  : styles.releaseKind
             }
             aria-pressed={kind === k}
             onClick={() => onKind(k)}
@@ -86,12 +90,12 @@ export function ReleaseLinks({
   return (
     <div className={styles.releaseLinksRow}>
       <div className={styles.releaseLinks}>
-        <NavLink
-          to="/new-releases"
-          className={styles.hiddenToggle}
-          viewTransition
-        >
-          How this works
+        {/* a little "?" stamp, like the volume stamps, not another link */}
+        <NavLink to="/new-releases" className={styles.helpLink} viewTransition>
+          <span className={styles.helpMark} aria-hidden>
+            ?
+          </span>
+          How New works
         </NavLink>
         {hiddenCount > 0 && !viewingHidden && (
           <button
@@ -123,11 +127,7 @@ export function ReleaseLinks({
         )}
       </div>
       {hideAllCount > 0 && !viewingHidden && (
-        <button
-          type="button"
-          className={styles.hiddenToggle}
-          onClick={onHideAll}
-        >
+        <button type="button" className={styles.hideAll} onClick={onHideAll}>
           Hide all {hideAllCount}
         </button>
       )}

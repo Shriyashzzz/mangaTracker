@@ -6,12 +6,14 @@ import { useEffect, useState } from "react";
 import { NavLink } from "react-router";
 import { ChevronDownIcon } from "../../components/icons/Icons";
 import MiniMonth from "../../components/calendar/MiniMonth";
+import AddToCalendar from "../../components/calendar/AddToCalendar";
 import ReleaseList, {
   VolumeCover,
 } from "../../components/calendar/ReleaseList";
 import {
   dayName,
   getCalendar,
+  monthName,
   monthOnly,
   type CalendarMonth,
 } from "../../lib/collector";
@@ -58,14 +60,25 @@ export default function UpcomingReleases() {
         <ChevronDownIcon className={styles.chevron} />
       </summary>
       <div className={styles.body}>
-        <MiniMonth month={first.month} volumes={first.volumes} />
+        {/* the month, with the way to the full calendar under it */}
+        <div>
+          <MiniMonth month={first.month} volumes={first.volumes} />
+          <div className={styles.monthActions}>
+            <AddToCalendar
+              big
+              volumes={first.volumes}
+              label={`Save ${monthName(first.month)}'s release dates to your calendar`}
+              fileName={`Manga releases ${monthName(first.month)}.ics`}
+              text={`Save ${first.volumes.length > 1 ? `${first.volumes.length} dates` : "the date"}`}
+            />
+            {/* the panel lists SHOWN; the page has the rest and later months */}
+            <NavLink to="/calendar" className={styles.all} viewTransition>
+              Full calendar
+            </NavLink>
+          </div>
+        </div>
         <div>
           <ReleaseList volumes={first.volumes.slice(0, SHOWN)} />
-          <NavLink to="/calendar" className={styles.all} viewTransition>
-            {count > SHOWN
-              ? `See all ${count} and the months after`
-              : "See the full calendar"}
-          </NavLink>
         </div>
       </div>
     </details>
