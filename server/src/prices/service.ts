@@ -179,6 +179,9 @@ export async function fetchProviders(
   isbn13: string,
   book: Book,
   due: Provider[],
+  // a check nobody asked for (collector/filler.ts): marked "fill" in
+  // price_checks, so the home page's "recently checked" leaves it out
+  { background = false }: { background?: boolean } = {},
 ) {
   const first = due.filter((p) => p.id !== GOOGLE_SHOPPING);
   const shopping = due.find((p) => p.id === GOOGLE_SHOPPING);
@@ -258,13 +261,27 @@ export async function fetchProviders(
   const judged = new Map(
     fresh.map(([group, offers]) => [group, offers.filter((o) => !unlikely(o))]),
   );
-  await priceQueries.saveCheck(isbn13, sources, judged);
+  await priceQueries.saveCheck(
+    isbn13,
+    background ? [...sources, "fill"] : sources,
+    judged,
+  );
 }
 
 // a live check: only the providers that are due look again. Answers with the
 // last check when nothing was due, so the caller needn't read it again
 // What's due is worked out inside the one-at-a-time lock, so two visitors
 // opening the same volume can't both start the same (maybe paid) check
+// runs a check of a volume unless one is already under way (a page visit's
+// or another): false when it didn't run. For the background pricing
+export async function checkAlone(isbn13: string, run: () => Promise<unknown>) {
+  if (inFlight.has(isbn13)) return false;
+  const running = run().finally(() => inFlight.delete(isbn13));
+  inFlight.set(isbn13, running);
+  await running;
+  return true;
+}
+
 async function refreshIfStale(isbn13: string, book: Book) {
   if (!inFlight.has(isbn13)) {
     inFlight.set(

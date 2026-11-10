@@ -68,7 +68,7 @@ const clean = async () => {
     where: { key: volumesKey(SERIES) },
   });
   await prisma.book.deleteMany({
-    where: { isbn13: { in: [1, 2, 3].map(ISBN) } },
+    where: { isbn13: { in: [1, 2, 3, 9].map(ISBN) } },
   });
 };
 
@@ -88,6 +88,8 @@ beforeEach(async () => {
     book(1),
     book(2),
     book(3),
+    // a book in the list with no volume number: never priced in the background
+    { ...book(9), title: `${SERIES} Official Guidebook`, volume: null },
   ]);
   // a reader owning vol 2: it goes first
   const userId = await userQueries.addUser("filler", "a good password");
@@ -105,7 +107,8 @@ afterAll(async () => {
   await closeDb();
 });
 
-test("the queue: volumes eBay never looked at, owned ones first", async () => {
+test("the queue: numbered volumes eBay never looked at, owned ones first", async () => {
+  // the guidebook (no volume number) isn't in it
   expect(await fillQueue()).toEqual([ISBN(2), ISBN(1), ISBN(3)]);
 });
 
@@ -154,4 +157,72 @@ test("off: by the switch, without eBay keys, or outside production by default", 
   config.PRICE_FILL = "on";
   expect(await fillOne()).toBe("off");
   expect(searched).toEqual([]);
+});
+
+test("a background check stays out of the home page's recently checked", async () => {
+  // a new copy too, so it would otherwise qualify for the row
+  await fillOne();
+  await priceQueries.saveCheck(
+    ISBN(2),
+    ["ebay", "fill"],
+    new Map([
+      [
+        "ebay",
+        [
+          {
+            store: "eBay",
+            format: "print",
+            condition: "new",
+            priceCents: 999,
+            currency: "USD",
+            inStock: true,
+            url: "https://www.ebay.com/itm/1",
+          },
+        ],
+      ],
+    ]),
+  );
+  const recent = await priceQueries.getRecentBestPrices(200);
+  expect(recent.map((r) => r.isbn13.trim())).not.toContain(ISBN(2));
+  // once someone opens it (a check without the mark), it shows
+  await priceQueries.saveCheck(
+    ISBN(2),
+    ["ebay"],
+    new Map([
+      [
+        "ebay",
+        [
+          {
+            store: "eBay",
+            format: "print",
+            condition: "new",
+            priceCents: 998,
+            currency: "USD",
+            inStock: true,
+            url: "https://www.ebay.com/itm/2",
+          },
+        ],
+      ],
+    ]),
+  );
+});
+
+test("another server pricing the same volume holds it: no second check", async () => {
+  // another server holds the volume's lock for the length of this test
+  let release!: () => void;
+  const held = new Promise<void>((r) => (release = r));
+  const other = prisma.$transaction(
+    async (tx) => {
+      await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${`price-fill:${ISBN(2)}`}))`;
+      await held;
+    },
+    { timeout: 20_000 },
+  );
+  await new Promise((r) => setTimeout(r, 200));
+  expect(await fillOne()).toEqual({ isbn13: ISBN(2) });
+  // it stood aside: nothing searched, nothing saved
+  expect(searched).toEqual([]);
+  expect((await priceQueries.getSourceChecks(ISBN(2))).has("ebay")).toBe(false);
+  release();
+  await other;
 });

@@ -325,33 +325,44 @@ export async function getRecordedMedians(
 ): Promise<Map<string, RecordedPrice>> {
   if (!isbns.length) return new Map();
   const rows = await prisma.$queryRaw<
-    {
-      isbn13: string;
-      used_recent: number | null;
-      used_all: number | null;
-      new_recent: number | null;
-      new_all: number | null;
-    }[]
+    (Offer & { isbn13: string; fetchedAt: Date })[]
   >`
-    SELECT isbn13,
-      ROUND(percentile_cont(0.5) WITHIN GROUP (ORDER BY price_cents)
-        FILTER (WHERE condition <> 'new' AND fetched_at > now() - interval '12 months'))::int AS used_recent,
-      ROUND(percentile_cont(0.5) WITHIN GROUP (ORDER BY price_cents)
-        FILTER (WHERE condition <> 'new'))::int AS used_all,
-      ROUND(percentile_cont(0.5) WITHIN GROUP (ORDER BY price_cents)
-        FILTER (WHERE condition = 'new' AND fetched_at > now() - interval '12 months'))::int AS new_recent,
-      ROUND(percentile_cont(0.5) WITHIN GROUP (ORDER BY price_cents)
-        FILTER (WHERE condition = 'new'))::int AS new_all
+    SELECT isbn13, store, format, condition, price_cents AS "priceCents",
+           currency, in_stock AS "inStock", url, fetched_at AS "fetchedAt"
     FROM price_samples
     WHERE isbn13 = ANY(${isbns}::text[]) AND in_stock AND format = 'print'
-    GROUP BY isbn13
   `;
-  return new Map(
-    rows.map((r) => [
-      r.isbn13.trim(),
-      { used: r.used_recent ?? r.used_all, new: r.new_recent ?? r.new_all },
-    ]),
-  );
+  const yearAgo = Date.now() - 365 * 24 * 60 * 60 * 1000;
+  const mid = (cents: number[]) => {
+    if (!cents.length) return null;
+    const sorted = [...cents].sort((a, b) => a - b);
+    const m = Math.floor(sorted.length / 2);
+    return sorted.length % 2
+      ? sorted[m]!
+      : Math.round((sorted[m - 1]! + sorted[m]!) / 2);
+  };
+  const out = new Map<string, RecordedPrice>();
+  for (const [isbn, samples] of groupBy(rows, (r) => r.isbn13.trim())) {
+    // each check's "new" prices held to the believable-price rule first, as
+    // the price pages hold them: one collector's edition or mislabelled row
+    // mustn't move what a volume goes for
+    const usual = mid(
+      samples.filter((s) => s.condition === "new").map((s) => s.priceCents),
+    );
+    const kept = [
+      ...groupBy(samples, (s) => String(s.fetchedAt.getTime())).values(),
+    ].flatMap((check) => dropUnlikelyNew(check, usual));
+    const pick = (cond: (s: (typeof kept)[number]) => boolean) => {
+      const all = kept.filter(cond);
+      const recent = all.filter((s) => s.fetchedAt.getTime() > yearAgo);
+      return mid((recent.length ? recent : all).map((s) => s.priceCents));
+    };
+    out.set(isbn, {
+      used: pick((s) => s.condition !== "new"),
+      new: pick((s) => s.condition === "new"),
+    });
+  }
+  return out;
 }
 
 // the cheapest new and the cheapest used print copy in stock among each
@@ -502,6 +513,12 @@ async function queryRecentBestPrices(limit: number): Promise<RecentPrice[]> {
       AND b.title !~ '[぀-ヿ一-鿿]'
       -- numbered volumes only: keeps other books that share a name out
       AND b.title ~* 'vol(ume)?[.]?[[:space:]]*[0-9]'
+      -- not one only the background pricing has looked at (a reader's
+      -- shelf, not a lookup): it shows once someone opens it
+      AND NOT EXISTS (
+        SELECT 1 FROM price_checks pc
+        WHERE pc.isbn13 = l.isbn13 AND 'fill' = ANY(pc.sources)
+      )
     ORDER BY l.fetched_at DESC
     LIMIT ${limit}
   `;

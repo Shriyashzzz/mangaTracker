@@ -165,3 +165,19 @@ test("a recorded price never goes stale: a later check finding nothing keeps it"
   const res = await agent.get("/api/collector/shelf").expect(200);
   expect(res.body.value).toMatchObject({ cents: 600, priced: 1 });
 });
+
+test("a recorded new price far off what the volume costs doesn't move its median", async () => {
+  // an old check found a lone $120 "new" copy at a small shop; now $10.99
+  await priceQueries.saveCheck(
+    ISBN(3),
+    ["serpapi"],
+    new Map([["shopping", [offer({ store: "Some Shop", priceCents: 12000 })]]]),
+  );
+  // and it's really saved: the rule, not a missing row, keeps it out
+  expect((await priceQueries.getCurrentRows(ISBN(3))).length).toBe(1);
+  const recorded = await priceQueries.getRecordedMedians([ISBN(2), ISBN(3)]);
+  expect(recorded.get(ISBN(2))?.new).toBe(1099);
+  const three = recorded.get(ISBN(3));
+  // the lone $120 "new" copy is held to the believable-price rule
+  expect(three?.new ?? null).toBeNull();
+});

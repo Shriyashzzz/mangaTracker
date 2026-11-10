@@ -9,7 +9,7 @@ export const volumesStyles = {
   // "How much is my shelf worth?": closed until asked
   worth: "group/worth -mt-1 mb-4 border-y border-dashed border-line-soft",
   worthSummary:
-    "tap flex cursor-pointer list-none items-center justify-between gap-3 py-2.5 pr-1 text-[0.92rem] font-semibold hover:bg-accent-wash/40 focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-accent focus-visible:outline-dashed [&::-webkit-details-marker]:hidden",
+    "tap flex cursor-pointer list-none items-center justify-between gap-3 py-2.5 pr-1 pl-1 text-[0.92rem] font-semibold hover:bg-accent-wash/40 focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-accent focus-visible:outline-dashed [&::-webkit-details-marker]:hidden",
   worthChevron:
     "size-4 shrink-0 text-muted transition-transform duration-150 group-open/worth:rotate-180",
   totals:
