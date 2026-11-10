@@ -70,6 +70,10 @@ model Manga {
   // the latest chapter last found for this series; updated by each lookup
   latestChapter   Float?  @map("latest_chapter")
 
+  // the last release check's answer, so the New tab can open without asking
+  // every other site again (ReleaseAnswer)
+  releaseAnswer ReleaseAnswer?
+
   @@index([userId])
   @@map("manga")
 }
@@ -198,6 +202,20 @@ model ImportMatch {
 }
 
 // what MangaDex said about a series' releases, kept 6 hours (util/releaseCache.ts)
+// a manga's last release check, as its answer was sent: the New tab asks for
+// a whole shelf of these at once rather than one site call per series. Kept
+// only while key (what the answer depended on: the series, how far they are,
+// what they've hidden, their release settings) still matches, and for hours
+model ReleaseAnswer {
+  mangaId   Int      @id @map("manga_id")
+  key       String
+  answer    Json
+  checkedAt DateTime @default(now()) @map("checked_at") @db.Timestamptz(6)
+  manga     Manga    @relation(fields: [mangaId], references: [id], onDelete: Cascade)
+
+  @@map("release_answers")
+}
+
 model ReleaseDates {
   slug      String   @id @db.VarChar(160)
   data      Json

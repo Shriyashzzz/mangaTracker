@@ -5,6 +5,7 @@ import { create } from "zustand";
 import { apiFetch } from "../lib/api";
 import {
   getReleases,
+  getSavedReleases,
   LAST_NEW_COUNT_KEY,
   RELEASE_CHECK_TIMEOUT_MS,
   saveSeen,
@@ -17,6 +18,13 @@ import {
 import { releaseChecksOn, writeLocal } from "../lib/prefs";
 import type { Manga, ReleaseStatus } from "../lib/types";
 import { checkOrder, laneOf } from "../lib/releaseOrder";
+import {
+  clearAnswers,
+  loadAnswers,
+  mergeSaved,
+  saveAnswers,
+  STALE_MS,
+} from "../lib/releaseCache";
 
 type ShelfState = {
   manga: Manga[] | null;
@@ -26,6 +34,8 @@ type ShelfState = {
   // what each title's check came to: "failed" when the sites didn't answer,
   // so "Couldn't check right now" is only said when that's what happened
   outcomes: Record<number, ReleaseOutcome>;
+  // when each answer was checked (kept between visits: lib/releaseCache.ts)
+  checkedAt: Record<number, number>;
   load: () => Promise<void>;
   checkReleases: () => Promise<void>;
   // forget the answers and check every title again
@@ -78,6 +88,11 @@ let generation = 0;
 // saved, so they get one more try after the rest, and again on the next visit
 const incomplete = new Set<number>();
 const retried = new Set<number>();
+// answers from an earlier visit that are getting old: shown, and checked
+// again quietly once everything else is
+const stale = new Set<number>();
+// the server's saved answers are asked for once a visit, before the first check
+let savedAsked = false;
 
 // one title, given up on after a while so one stuck title can't stop the rest.
 // A plain timer: AbortSignal.any doesn't exist before iOS 17.4
@@ -129,6 +144,7 @@ export const useShelf = create<ShelfState>()((set, get) => ({
   loadFailed: false,
   releases: {},
   outcomes: {},
+  checkedAt: {},
   lastDeleted: null,
   undoing: false,
   undoMessage: "",
@@ -310,10 +326,24 @@ export const useShelf = create<ShelfState>()((set, get) => ({
           incomplete.delete(m.id);
         }
       }
+      // the first time this visit: what the last visit found, straight away
+      let checkedAt = get().checkedAt;
+      if (!before) {
+        const kept = loadAnswers(manga);
+        const now = Date.now();
+        for (const id of Object.keys(kept.releases).map(Number)) {
+          if (id in stillGood) continue;
+          stillGood[id] = kept.releases[id]!;
+          stillKnown[id] = kept.outcomes[id]!;
+          if (now - kept.checkedAt[id]! > STALE_MS) stale.add(id);
+        }
+        checkedAt = { ...kept.checkedAt, ...checkedAt };
+      }
       set({
         manga,
         releases: stillGood,
         outcomes: stillKnown,
+        checkedAt,
         loadFailed: false,
       });
     } catch {
@@ -333,6 +363,23 @@ export const useShelf = create<ShelfState>()((set, get) => ({
     let sortedFor: Manga[] | null = null;
     let ordered: Manga[] = [];
     try {
+      // first, every answer the server still stands by, in one request: on a
+      // shelf checked lately that's all of it
+      if (!savedAsked) {
+        savedAsked = true;
+        const saved = await getSavedReleases(controller.signal).catch(
+          () => null,
+        );
+        if (controller.signal.aborted) return;
+        if (saved) {
+          const now = Date.now();
+          set((state) => {
+            const merged = mergeSaved(state, saved.answers, now);
+            for (const id of merged.fresh) stale.delete(id);
+            return merged.state;
+          });
+        }
+      }
       while (!controller.signal.aborted && releaseChecksOn()) {
         const { manga, releases } = get();
         if (manga !== sortedFor) {
@@ -341,12 +388,18 @@ export const useShelf = create<ShelfState>()((set, get) => ({
         }
         const next =
           ordered.find((m) => !(m.id in releases)) ??
-          ordered.find((m) => incomplete.has(m.id) && !retried.has(m.id));
+          ordered.find((m) => incomplete.has(m.id) && !retried.has(m.id)) ??
+          // last, the old answers, checked again quietly: they're on show
+          // already, so nothing on the page waits for these
+          ordered.find((m) => stale.has(m.id));
         if (!next) break;
-        const isRetry = next.id in releases;
+        const quiet = stale.delete(next.id);
+        const isRetry = !quiet && next.id in releases;
         if (isRetry) retried.add(next.id);
         const found = await askAbout(next, controller.signal);
         if (controller.signal.aborted) return;
+        // an old answer stays until a new one actually comes
+        if (quiet && (!found || found.outcome === "failed")) continue;
 
         if (found?.complete) incomplete.delete(next.id);
         else incomplete.add(next.id);
@@ -368,6 +421,7 @@ export const useShelf = create<ShelfState>()((set, get) => ({
             [next.id]: found?.releaseStatus ?? null,
           },
           outcomes: { ...state.outcomes, [next.id]: outcome },
+          checkedAt: { ...state.checkedAt, [next.id]: Date.now() },
         }));
       }
     } finally {
@@ -375,10 +429,14 @@ export const useShelf = create<ShelfState>()((set, get) => ({
     }
   },
 
+  // everything asked again from the sites, nothing kept used
   recheckReleases: () => {
     incomplete.clear();
     retried.clear();
-    set({ releases: {}, outcomes: {} });
+    stale.clear();
+    savedAsked = true;
+    clearAnswers();
+    set({ releases: {}, outcomes: {}, checkedAt: {} });
   },
 
   markSeen: async (id, kind, number, hiddenVolumes) => {
@@ -449,15 +507,37 @@ export const useShelf = create<ShelfState>()((set, get) => ({
     generation++;
     incomplete.clear();
     retried.clear();
+    stale.clear();
+    savedAsked = false;
+    // another account's answers never show here
+    clearAnswers();
     writeLocal(LAST_NEW_COUNT_KEY, "");
     set({
       manga: null,
       loadFailed: false,
       releases: {},
       outcomes: {},
+      checkedAt: {},
       lastDeleted: null,
       undoing: false,
       undoMessage: "",
     });
   },
 }));
+
+// the answers kept for the next visit as they change, a moment after the last
+// change (a check answers one series at a time)
+let saveTimer: ReturnType<typeof setTimeout> | undefined;
+useShelf.subscribe((state, prev) => {
+  if (
+    state.releases === prev.releases &&
+    state.outcomes === prev.outcomes &&
+    state.manga === prev.manga
+  )
+    return;
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(() => {
+    const { manga, releases, outcomes, checkedAt } = useShelf.getState();
+    if (manga) saveAnswers(manga, releases, outcomes, checkedAt);
+  }, 1000);
+});

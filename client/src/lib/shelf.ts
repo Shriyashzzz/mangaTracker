@@ -21,6 +21,21 @@ export const getReleases = (
     outcome?: ReleaseOutcome;
   }>(`/api/manga/${id}/releases${lane ? `?lane=${lane}` : ""}`, signal);
 
+// the shelf's saved answers the server still stands by, all at once: the New
+// tab opens with these and asks one at a time only about the rest
+export const getSavedReleases = (signal?: AbortSignal) =>
+  getJson<{
+    answers: Record<
+      string,
+      {
+        releaseStatus: ReleaseStatus | null;
+        complete: boolean;
+        outcome: ReleaseOutcome;
+        checkedAt: string;
+      }
+    >;
+  }>("/api/manga/releases/saved", signal);
+
 // the server gives up on a slow title before this; if even it stops answering,
 // the shelf moves on to the next title rather than waiting forever
 export const RELEASE_CHECK_TIMEOUT_MS = 50_000;

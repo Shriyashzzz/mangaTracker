@@ -44,6 +44,7 @@ import {
 } from "./NewTabParts";
 import UpcomingReleases from "./UpcomingReleases";
 import type { Manga } from "../../lib/types";
+import { checkedAgo } from "../../lib/releaseCache";
 import { NewPiles, PileHead, type CoverLink } from "./NewPiles";
 import {
   isPileView,
@@ -97,6 +98,7 @@ function Library() {
   const loadError = useShelf((s) => s.loadFailed);
   const releases = useShelf((s) => s.releases);
   const outcomes = useShelf((s) => s.outcomes);
+  const checkedAt = useShelf((s) => s.checkedAt);
   const loadShelf = useShelf((s) => s.load);
   const checkReleases = useShelf((s) => s.checkReleases);
   const recheckReleases = useShelf((s) => s.recheckReleases);
@@ -198,6 +200,15 @@ function Library() {
   const checked = (mangaData ?? []).filter((m) => m.id in releases).length;
   const checking = showingNew && checked < (mangaData?.length ?? 0);
   const allChecked = checked > 0 && checked >= (mangaData?.length ?? 0);
+  // how old the oldest answer on show is: what the New tab is as of
+  const oldestCheck = useMemo(
+    () =>
+      Math.min(
+        ...(mangaData ?? []).map((m) => checkedAt[m.id] ?? Infinity),
+        Infinity,
+      ),
+    [mangaData, checkedAt],
+  );
   const [checkedBefore] = useState(
     () => readLocal(CHECKED_BEFORE_KEY) !== null,
   );
@@ -627,13 +638,17 @@ function Library() {
       {/* a thin line at the top once there are cards, staying full once the
           check's done. With no cards yet it sits in the middle of the page,
           where the cards will be */}
+      {/* the bar only while answers are missing; an old answer being
+          checked again quietly never brings it back */}
       {showingNew && visibleManga.length > 0 && (
         <div className={styles.checkInline}>
-          {progress}
+          {checking && progress}
           <p className={styles.checkText} aria-live="polite">
             {checking
               ? `Checking ${checked} of ${total}`
-              : `All ${total} checked`}
+              : Number.isFinite(oldestCheck)
+                ? `Checked ${checkedAgo(oldestCheck)}`
+                : `All ${total} checked`}
             {checking && bigShelfNote && ` · ${bigShelfNote}`}
           </p>
         </div>

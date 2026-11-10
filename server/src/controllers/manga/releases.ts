@@ -21,6 +21,10 @@ import {
 import userQueries from "../../models/userQueries.js";
 import type { Manga } from "../../../generated/prisma/client.js";
 import { notOutYet } from "../../prices/preorder.js";
+import {
+  saveAnswer,
+  savedAnswers,
+} from "../../util/releases/releaseAnswers.js";
 
 // "Vol. 15 is out!" only once it is: a preorder isn't news yet
 const outNow = <V extends { published?: string }>(volumes: V[]) =>
@@ -56,10 +60,20 @@ export const releases = async (req: Request, res: Response) => {
   const prefs = await userQueries
     .getPrefs(req.session.userId!)
     .catch(() => null);
+  // every answer is kept for the shelf's one-request open (releaseAnswers.ts)
+  const send = (body: {
+    releaseData: unknown;
+    releaseStatus: unknown;
+    complete: boolean;
+    outcome: ReleaseOutcome;
+  }) => {
+    void saveAnswer(manga, prefs, body);
+    return res.json(body);
+  };
   // no news to give, and why: only "failed" is worth asking again, and only
   // it means the sites didn't answer (the shelf says so if every check failed)
   const nothing = (outcome: Exclude<ReleaseOutcome, "news">) =>
-    res.json({
+    send({
       releaseData: null,
       releaseStatus: null,
       complete: outcome !== "failed",
@@ -91,7 +105,7 @@ export const releases = async (req: Request, res: Response) => {
       return nothing("skipped");
     }
     if (!series) return nothing(series === null ? "notFound" : "failed");
-    return res.json({
+    return send({
       releaseData: null,
       releaseStatus: getReleaseStatus(
         manga,
@@ -155,7 +169,7 @@ export const releases = async (req: Request, res: Response) => {
       .setLatestChapter(manga.id, newLatest)
       .catch((e) => console.error("Couldn't save the latest chapter:", e));
   }
-  return res.json({
+  return send({
     releaseData,
     releaseStatus,
     // a source didn't answer, so it's worth asking again later
@@ -171,4 +185,19 @@ export const shelfPrices = async (req: Request, res: Response) => {
   res.json(
     await getShelfPrices(manga.map((m) => ({ id: m.id, name: priceName(m) }))),
   );
+};
+
+// every saved release answer for the shelf still good to use, at once: the
+// New tab shows these straight away and asks one at a time only about the
+// rest (releaseAnswers.ts)
+export const savedReleases = async (req: Request, res: Response) => {
+  const userId = req.session.userId!;
+  const [prefs, shelf] = await Promise.all([
+    userQueries.getPrefs(userId).catch(() => null),
+    mangaQueries.getShelf(userId),
+  ]);
+  res.json({
+    answers:
+      prefs?.releaseChecks === "off" ? {} : await savedAnswers(shelf, prefs),
+  });
 };

@@ -51,6 +51,8 @@ mangaRouter.post(
 );
 // these come before "/:id" so their names aren't read as an id
 mangaRouter.get("/prices", manga.shelfPrices);
+// the shelf's saved release answers, at once (before /:id, which would take it)
+mangaRouter.get("/releases/saved", manga.savedReleases);
 mangaRouter.get("/match", manga.match);
 
 // requireOwner: the manga exists and belongs to whoever is signed in

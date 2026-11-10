@@ -559,6 +559,8 @@ export function demoResponse(
   if (route === "/api/collector/calendar")
     return json({ months: practiceCalendar(shelf) });
   if (route === "/api/collector/deals") return json({ deals: [] });
+  // practice answers come from the shelf itself, never saved
+  if (route === "/api/manga/releases/saved") return json({ answers: {} });
   if (route === "/api/prices/highlights") {
     return json({ trending: [], deals: [], recent: [] });
   }
