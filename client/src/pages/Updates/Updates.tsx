@@ -9,16 +9,20 @@ import { updatesStyles as styles } from "./styles";
 // the big features only, a line each. Add new ones here when they ship
 const UPDATES = [
   {
+    name: "Upcoming Releases",
+    body: "Every volume coming out for your shelf, circled on a calendar. Save the dates to Google, Apple or Outlook, one at a time or a whole month at once.",
+  },
+  {
+    name: "A New tab that keeps up",
+    body: "A big shelf's new volumes sort themselves into Just out, One to get, A few behind and Way behind, and the tab opens straight away.",
+  },
+  {
+    name: "What your shelf is worth",
+    body: "See what your collection is worth from the prices we've recorded, and which volumes are on sale right now.",
+  },
+  {
     name: "Preorder upcoming volumes",
     body: "Volumes show up before they're out, with their release date and where to preorder them.",
-  },
-  {
-    name: "More series in English",
-    body: "We now find English volumes that were hard to track down, from brand-new releases to 2-in-1 editions.",
-  },
-  {
-    name: "A quicker way to add",
-    body: "Search a title, pick it, and fill in only what you need. The rest can wait.",
   },
   {
     name: "Scan your volumes",
@@ -43,14 +47,6 @@ const UPDATES = [
   {
     name: "Import from more places",
     body: "Bring your list from Goodreads, AniList, Kitsu, Book Catalogue, or any CSV, alongside MyAnimeList.",
-  },
-  {
-    name: "Share your list",
-    body: "Send friends your list, with your notes if you want.",
-  },
-  {
-    name: "Take the tour",
-    body: "Kenji walks you through the whole site on a practice shelf. No account needed.",
   },
 ];
 
