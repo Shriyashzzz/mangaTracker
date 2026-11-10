@@ -20,10 +20,10 @@ export const pilesStyles = {
   fanArt:
     "relative block aspect-2/3 overflow-hidden border-[1.5px] border-line bg-paper-2 shadow-[3px_3px_0_var(--hard-shadow)] [&>img]:absolute [&>img]:inset-0 [&>img]:size-full [&>img]:object-cover",
   // the series' name, in a small inked caption box under the cover while
-  // it's hovered or focused (hover only where there's a pointer). One size
-  // for every cover: one line, a long name cut short
+  // it's hovered or focused (hover only where there's a pointer). As wide as
+  // the name, up to a cap: one line, a long name cut short
   caption:
-    "pointer-events-none absolute top-full left-1/2 z-10 mt-2 block w-40 -translate-x-1/2 truncate -translate-y-1 border-[1.5px] border-line bg-card px-2 py-1 text-center text-[0.76rem] leading-[1.35] font-semibold text-ink opacity-0 shadow-[2px_2px_0_var(--hard-shadow)] transition-[opacity,translate] duration-150 ease-ink group-hover/cover:translate-y-0 group-hover/cover:opacity-100 group-focus-visible/cover:translate-y-0 group-focus-visible/cover:opacity-100 motion-reduce:transition-none",
+    "pointer-events-none absolute top-full left-1/2 z-10 mt-2 block w-max max-w-44 -translate-x-1/2 truncate -translate-y-1 border-[1.5px] border-line bg-card px-2 py-1 text-center text-[0.76rem] leading-[1.35] font-semibold text-ink opacity-0 shadow-[2px_2px_0_var(--hard-shadow)] transition-[opacity,translate] duration-150 ease-ink group-hover/cover:translate-y-0 group-hover/cover:opacity-100 group-focus-visible/cover:translate-y-0 group-focus-visible/cover:opacity-100 motion-reduce:transition-none",
   // which volume, stamped across the top of the cover
   stamp:
     "absolute top-0 left-1/2 -translate-x-1/2 -rotate-3 border-[1.5px] border-line bg-accent px-1.5 font-brand text-[0.95rem] leading-[1.2] tracking-[0.03em] upto-520:text-[0.85rem] whitespace-nowrap text-on-accent",
