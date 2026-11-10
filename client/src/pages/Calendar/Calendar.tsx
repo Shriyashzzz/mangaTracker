@@ -4,6 +4,7 @@
 // volume opens its page, where it can be preordered. Opened from the New tab's
 // "Upcoming Releases".
 import { useEffect, useState } from "react";
+import { useReturnSpot } from "../../lib/returnSpot";
 import { NavLink, useNavigate } from "react-router";
 import { ChevronDownIcon } from "../../components/icons/Icons";
 import MiniMonth from "../../components/calendar/MiniMonth";
@@ -43,7 +44,11 @@ function Month({ month }: { month: CalendarMonth }) {
         />
       </div>
       <div>
-        <ReleaseList volumes={month.volumes} limit={MONTH_LIMIT} />
+        <ReleaseList
+          volumes={month.volumes}
+          limit={MONTH_LIMIT}
+          keep={month.month}
+        />
       </div>
     </div>
   );
@@ -70,6 +75,8 @@ export default function CalendarPage() {
       });
     return () => controller.abort();
   }, [isSignedIn, navigate]);
+  // Back from a release's page: the months as they were, and the scroll
+  useReturnSpot(Boolean(months));
 
   return (
     <article className={`${styles.page} fade-in`}>
@@ -132,7 +139,7 @@ export default function CalendarPage() {
             <Month month={m} />
           </section>
         ) : (
-          <details key={m.month} className={styles.folded}>
+          <details key={m.month} className={styles.folded} data-keep={m.month}>
             <summary className={styles.foldedSummary}>
               <span className={styles.foldedName}>{monthName(m.month)}</span>
               <span className={styles.foldedCount}>

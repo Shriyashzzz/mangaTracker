@@ -1,7 +1,8 @@
 // What comes out, soonest first: the date written by hand (once for several
 // on the same day), the cover, the series and volume, and a tick for one
-// already on the shelf. Each opens its volume page. A long month shows its
-// first `limit`, the rest on asking
+// already on the shelf. Each opens its volume page; Add to calendar sits
+// under the date, and Preorder goes straight to the stores on its page. A
+// long month shows its first `limit`, the rest on asking
 import { useState } from "react";
 import { NavLink } from "react-router";
 import { CheckIcon } from "../icons/Icons";
@@ -13,6 +14,7 @@ import {
   volumePath,
 } from "../../lib/prices";
 import AddToCalendar from "./AddToCalendar";
+import { rememberSpot, useWasShowingAll } from "../../lib/returnSpot";
 import { calendarParts as styles } from "./styles";
 
 // the volume's own cover over the series': one this far off rarely has its
@@ -54,50 +56,31 @@ const ROOMY_UP_TO = 3;
 export default function ReleaseList({
   volumes,
   limit,
+  keep,
 }: {
   volumes: CalendarVolume[];
   limit?: number;
+  // which list this is, so Back from a release's page shows it as it was
+  keep?: string;
 }) {
-  const [all, setAll] = useState(false);
+  const [all, setAll] = useState(useWasShowingAll(keep));
   const shown = !limit || all ? volumes : volumes.slice(0, limit);
   const roomy = shown.length <= ROOMY_UP_TO;
   return (
     <>
-      <ul className={styles.list}>
+      <ul
+        className={styles.list}
+        data-keep-all={keep && all ? keep : undefined}
+      >
         {shown.map((v, i) => {
           const sameDay = i > 0 && shown[i - 1]!.published === v.published;
-          const when = dayName(v.published);
           return (
-            <li key={v.isbn13} className={styles.item}>
-              <NavLink
-                to={volumePath(v.isbn13, v.title)}
-                className={roomy ? styles.rowRoomy : styles.row}
-                viewTransition
-                aria-label={`${v.name}${v.volume !== null ? `, volume ${v.volume}` : ""}: out ${when}${v.owned ? ", on your shelf" : ""}`}
-              >
-                <span className={styles.hand}>{sameDay ? "" : when}</span>
-                <VolumeCover volume={v} big={roomy} />
-                <span className={styles.text}>
-                  <span className={roomy ? styles.nameRoomy : styles.name}>
-                    {v.name}
-                  </span>
-                  <span className={styles.vol}>
-                    {v.volume !== null ? `Vol. ${v.volume}` : v.title}
-                  </span>
-                </span>
-                {v.owned && (
-                  <span className={styles.mine}>
-                    <CheckIcon className={styles.check} />
-                    preordered
-                  </span>
-                )}
-              </NavLink>
-              <AddToCalendar
-                volumes={[v]}
-                label={`Add ${v.name}${v.volume !== null ? ` Vol. ${v.volume}` : ""} to calendar`}
-                fileName={`${v.name}${v.volume !== null ? ` Vol ${v.volume}` : ""}.ics`}
-              />
-            </li>
+            <ReleaseRow
+              key={v.isbn13}
+              volume={v}
+              when={sameDay ? "" : dayName(v.published)}
+              roomy={roomy}
+            />
           );
         })}
       </ul>
@@ -112,5 +95,78 @@ export default function ReleaseList({
         </button>
       )}
     </>
+  );
+}
+
+// one release
+function ReleaseRow({
+  volume: v,
+  when,
+  roomy,
+}: {
+  volume: CalendarVolume;
+  // the day, written once for several on the same day
+  when: string;
+  roomy: boolean;
+}) {
+  const named = `${v.name}${v.volume !== null ? ` Vol. ${v.volume}` : ""}`;
+  return (
+    <li className={roomy ? `${styles.item} ${styles.itemRoomy}` : styles.item}>
+      <div className={styles.when}>
+        <span className={styles.hand}>{when}</span>
+        <span className={styles.addSpot}>
+          <AddToCalendar
+            volumes={[v]}
+            label={`Add ${named} to calendar`}
+            fileName={`${v.name}${v.volume !== null ? ` Vol ${v.volume}` : ""}.ics`}
+          />
+        </span>
+      </div>
+      <NavLink
+        to={volumePath(v.isbn13, v.title)}
+        className={roomy ? styles.rowRoomy : styles.row}
+        viewTransition
+        // Back from its page comes back to the list as it was
+        onClick={rememberSpot}
+        aria-label={`${named}: out ${dayName(v.published)}${v.owned ? ", on your shelf" : ""}`}
+      >
+        <VolumeCover volume={v} big={roomy} />
+        <span className={styles.text}>
+          <span className={roomy ? styles.nameRoomy : styles.name}>
+            {v.name}
+          </span>
+          <span className={styles.vol}>
+            {v.volume !== null ? `Vol. ${v.volume}` : v.title}
+          </span>
+        </span>
+        {v.owned && (
+          <span className={styles.mine}>
+            <CheckIcon className={styles.check} />
+            preordered
+          </span>
+        )}
+      </NavLink>
+      {/* one on the shelf already has nothing to preorder */}
+      {v.owned ? (
+        <span />
+      ) : (
+        <div className={styles.preorderBox}>
+          <NavLink
+            // straight to the stores on its price page
+            to={`${volumePath(v.isbn13, v.title)}#preorder`}
+            className={styles.preorder}
+            viewTransition
+            aria-label={`Preorder ${named}`}
+            // Back from there comes back to the list as it was
+            onClick={rememberSpot}
+          >
+            Preorder
+            <span className={styles.preorderArrow} aria-hidden>
+              →
+            </span>
+          </NavLink>
+        </div>
+      )}
+    </li>
   );
 }

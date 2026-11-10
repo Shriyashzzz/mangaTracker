@@ -100,7 +100,7 @@ export default function AddToCalendar({
       >
         <CalendarPlusIcon className={styles.addIcon} />
         <span className={big ? undefined : styles.addWord}>
-          {big ? (text ?? "Save the date") : "Add to calendar"}
+          {big ? (text ?? "Save the date") : "Add"}
         </span>
       </button>
       {open && (
