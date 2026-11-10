@@ -148,32 +148,39 @@ function ShelfTotals({ tools }: { tools: ShelfTools }) {
     tools.finishEstimateCents,
   );
   if (!worth && !finish) return null;
+  // folded until asked: a question to open, not two numbers in the way
   return (
-    <dl className={styles.totals}>
-      {worth && (
-        <div className={styles.total}>
-          <dt className={styles.totalLabel}>Worth used</dt>
-          <dd className={styles.totalValue}>{worth}</dd>
-          {value.priced < ownedVolumes && (
+    <details className={styles.worth}>
+      <summary className={styles.worthSummary}>
+        How much is my shelf worth?
+        <ChevronDownIcon className={styles.worthChevron} />
+      </summary>
+      <dl className={styles.totals}>
+        {worth && (
+          <div className={styles.total}>
+            <dt className={styles.totalLabel}>Worth used</dt>
+            <dd className={styles.totalValue}>{worth}</dd>
+            {value.priced < ownedVolumes && (
+              <dd className={styles.totalNote}>
+                estimate · {value.priced.toLocaleString()} of{" "}
+                {plural(ownedVolumes, "volume")} priced
+              </dd>
+            )}
+          </div>
+        )}
+        {finish && (
+          <div className={styles.total}>
+            <dt className={styles.totalLabel}>To finish every series</dt>
+            <dd className={styles.totalValue}>{finish}</dd>
             <dd className={styles.totalNote}>
-              estimate · {value.priced.toLocaleString()} of{" "}
-              {plural(ownedVolumes, "volume")} priced
+              {plural(tools.finishMissing, "volume")} to go
+              {tools.finishPriced < tools.finishMissing &&
+                ` · ${tools.finishPriced.toLocaleString()} priced`}
             </dd>
-          )}
-        </div>
-      )}
-      {finish && (
-        <div className={styles.total}>
-          <dt className={styles.totalLabel}>To finish every series</dt>
-          <dd className={styles.totalValue}>{finish}</dd>
-          <dd className={styles.totalNote}>
-            {plural(tools.finishMissing, "volume")} to go
-            {tools.finishPriced < tools.finishMissing &&
-              ` · ${tools.finishPriced.toLocaleString()} priced`}
-          </dd>
-        </div>
-      )}
-    </dl>
+          </div>
+        )}
+      </dl>
+    </details>
   );
 }
 

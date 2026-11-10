@@ -6,8 +6,14 @@ export const volumesStyles = {
   summary: "mb-3 font-mono text-[0.85rem] text-muted tabular-nums",
   // the shelf's worth and what finishing it costs: two ledger entries under
   // the count, the amounts in the brand face like the row counts
+  // "How much is my shelf worth?": closed until asked
+  worth: "group/worth -mt-1 mb-4 border-y border-dashed border-line-soft",
+  worthSummary:
+    "tap flex cursor-pointer list-none items-center justify-between gap-3 py-2.5 pr-1 text-[0.92rem] font-semibold hover:bg-accent-wash/40 focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-accent focus-visible:outline-dashed [&::-webkit-details-marker]:hidden",
+  worthChevron:
+    "size-4 shrink-0 text-muted transition-transform duration-150 group-open/worth:rotate-180",
   totals:
-    "-mt-1 mb-4 flex flex-wrap gap-x-10 gap-y-3 border-y border-dashed border-line-soft py-3",
+    "flex flex-wrap gap-x-10 gap-y-3 border-t border-dashed border-line-soft py-3 animate-drop motion-reduce:animate-none",
   total: "flex flex-col gap-0.5",
   totalLabel:
     "text-[0.78rem] font-semibold tracking-[0.06em] text-ink-soft uppercase",
