@@ -5,6 +5,7 @@
 import { isDemo } from "./demo";
 import { useSyncExternalStore } from "react";
 import { apiFetch } from "./api";
+import { hasBottomBar } from "./bottomBar";
 import type { Background, Prefs, Theme } from "./types";
 
 // the page backgrounds, drawn in styles/backdrop.css
@@ -111,6 +112,14 @@ const applyPrefs = ({
 };
 
 // whether to look up new volumes and chapters; on unless they've said otherwise
+// the shelf's layout: what they chose, or else compact rows on phones (more
+// of a big shelf on a small screen) and covers everywhere else
+export const shelfViewNow = (): "rows" | "covers" => {
+  const chosen = readLocal("shelfView");
+  if (chosen === "rows" || chosen === "covers") return chosen;
+  return hasBottomBar() ? "rows" : "covers";
+};
+
 export const releaseChecksOn = () => readLocal("releaseChecks") !== "off";
 
 // for components: the account's choice can arrive after the page has drawn, or

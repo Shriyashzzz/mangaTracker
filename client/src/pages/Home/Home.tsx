@@ -19,7 +19,12 @@ import ReleaseTip from "../../components/whatsNew/ReleaseTip";
 import ViewPeek from "../../components/viewPeek/ViewPeek";
 import { usePrivatePage } from "../../lib/seo";
 import { volumePath } from "../../lib/prices";
-import { readLocal, savePrefs, writeLocal } from "../../lib/prefs";
+import {
+  readLocal,
+  savePrefs,
+  shelfViewNow,
+  writeLocal,
+} from "../../lib/prefs";
 import {
   CHECKED_BEFORE_KEY,
   LAST_NEW_COUNT_KEY,
@@ -120,9 +125,7 @@ function Library() {
   const [openRelease, setOpenRelease] = useState<number | null>(null);
   // set in settings; Kenji's compact-rows offer (ViewPeek) can change it
   // while they're here
-  const [rowsChosen, setRowsChosen] = useState(
-    () => readLocal("shelfView") === "rows",
-  );
+  const [rowsChosen, setRowsChosen] = useState(() => shelfViewNow() === "rows");
   const hiddenCount = (mangaData ?? []).filter((m) =>
     isHiddenAs(releases[m.id], releaseKind),
   ).length;

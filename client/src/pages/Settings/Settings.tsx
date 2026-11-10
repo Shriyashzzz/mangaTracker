@@ -16,6 +16,7 @@ import {
   BACKGROUNDS,
   currentBackground,
   readLocal,
+  shelfViewNow,
   useCountry,
   useReleaseChecksOn,
   savePrefs,
@@ -218,9 +219,7 @@ function ShelfSettingsTab() {
   const [shelfSort, setShelfSort] = useState(
     () => readLocal("shelfSort") ?? "",
   );
-  const [shelfView, setShelfView] = useState(
-    () => readLocal("shelfView") ?? "covers",
-  );
+  const [shelfView, setShelfView] = useState(() => shelfViewNow());
   return (
     <div className={styles.tabBody}>
       <h2 className={styles.tabTitle}>Your shelf</h2>
