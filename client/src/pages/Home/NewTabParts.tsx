@@ -53,7 +53,10 @@ export function ReleaseTools({
         {viewingHidden ? (
           <h2 className={styles.hiddenHeading}>Hidden ({hiddenCount})</h2>
         ) : (
-          <p className={styles.releaseNote}>{RELEASE_KINDS[kind].note}</p>
+          // only In Japan says anything: that these may not be out in English
+          RELEASE_KINDS[kind].note && (
+            <p className={styles.releaseNote}>{RELEASE_KINDS[kind].note}</p>
+          )
         )}
       </div>
     </div>

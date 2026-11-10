@@ -115,7 +115,8 @@ export const homeStyles = {
   releaseKindActive: `${releaseKind} bg-accent text-on-accent`,
   releaseKindCount: "ml-1 font-mono text-[0.78rem] tracking-normal",
   // side info: it should read as a footnote to the switch, not compete with it
-  releaseNote: "text-[0.85rem] text-ink-soft",
+  // quiet, an aside rather than a heading
+  releaseNote: "text-[0.78rem] text-muted",
   releaseAside: "flex flex-1 flex-wrap items-center gap-x-5 gap-y-1",
   // together at the far right of the row
   // wraps rather than running off a small phone
