@@ -94,7 +94,7 @@ export const volumeHeading = (
     : title;
 // the volume a title names: none for a book holding several ("Vinland Saga,
 // Book 9" is vols 17 and 18, never vol 9)
-const titleVolume = (title: string) =>
+export const titleVolume = (title: string) =>
   bookNumberOf(title) !== null ? null : numberOrNull(volumeOf(title));
 
 // ---------- one volume ----------
@@ -491,7 +491,9 @@ export async function getVolumePrices(
       isbn13: book.isbn13,
       title: book.title,
       // saved before englishAuthors: "尾田栄一郎" alone shows none
-      authors: englishAuthors(book.authors?.split(/,\s*/)),
+      authors:
+        englishAuthors(book.authors?.split(/,\s*/)) ??
+        (series.info?.authors?.join(", ") || null),
       // saved before publisherOf: a foreign edition's publisher is fixed here
       publisher: publisherOf(book.isbn13, { work: [book.publisher] }),
       // an edition known to have no cover: none, as the preview tags have it,
@@ -501,7 +503,14 @@ export async function getVolumePrices(
     },
     offers: offers.map((o) => {
       const url = affiliateOfferUrl(o, isbn13);
-      return { ...o, url, affiliate: isAffiliateUrl(url) };
+      // a store readers know by name: the page points out the cheapest of
+      // these when the cheapest overall is a seller nobody has heard of
+      return {
+        ...o,
+        url,
+        affiliate: isAffiliateUrl(url),
+        knownStore: isWellKnown(o.store),
+      };
     }),
     // only once there's been a check, when it has a first and last date
     history:
@@ -605,8 +614,10 @@ export const mergeVolumes = (known: CatalogBook[], found: CatalogBook[]) => {
     // a book holding several volumes listed as if it were one isn't
     if (!v.inBook && books.has(v.isbn13)) continue;
     const had = byNumber.get(v.volume);
-    // a volume sold on its own is never swapped for the book holding it
+    // a volume sold on its own is never swapped for the book holding it,
+    // nor the publisher's edition for a library rebind
     if (v.inBook && had && !had.inBook) continue;
+    if (had && isRebind(v.isbn13) && !isRebind(had.isbn13)) continue;
     // a release date already known isn't lost to an answer without one
     byNumber.set(
       v.volume,
@@ -621,6 +632,19 @@ export const mergeVolumes = (known: CatalogBook[], found: CatalogBook[]) => {
 };
 
 // ---------- one list from several answers ----------
+
+// library rebinds of a publisher's paperback: Turtleback (978-1-417,
+// 978-0-606) and Tandem Library (978-0-613). Same pages in a hard library
+// cover at three times the price, and often another edition's cover image
+// (One Piece 8, 10 and 17 were listed under these). The publisher's own
+// edition of a volume always wins over one
+const REBIND = /^(9781417|9780606|9780613)/;
+export const isRebind = (isbn13: string) => REBIND.test(isbn13.trim());
+// the edition a volume should be listed under: a lone volume over a book
+// holding it, the publisher's over a rebind
+const betterEdition = (had: CatalogBook, v: CatalogBook) =>
+  (had.inBook && !v.inBook) ||
+  (isRebind(had.isbn13) && !isRebind(v.isbn13) && !v.inBook);
 
 // the ISBNs of books holding several volumes ("Vinland Saga, Book 6")
 const bookIsbns = (volumes: CatalogBook[]) =>
@@ -650,7 +674,7 @@ function addVolume(
   )
     return;
   const had = byNumber.get(v.volume);
-  if (!had || (had.inBook && !v.inBook)) byNumber.set(v.volume, v);
+  if (!had || betterEdition(had, v)) byNumber.set(v.volume, v);
   else if (v.published && !had.published) {
     if (had.isbn13 === v.isbn13)
       byNumber.set(v.volume, { ...had, published: v.published });
@@ -923,7 +947,8 @@ export async function getSeries(asked: string) {
 
 // ---------- the shelf ----------
 
-type KnownVolume = { isbn13: string; title: string };
+// `published`: its release date, when a saved list knows it
+type KnownVolume = { isbn13: string; title: string; published?: string | null };
 
 // the volumes we know for each series, grouped by the series' slug.
 // Rebuilt every few minutes; shared by everyone's shelf
@@ -1058,6 +1083,9 @@ export async function getVolumeSummary(isbn13: string) {
   const offers = dropUnlikelyNew(stored, usual);
   // box sets and omnibuses are listed on the page, but aren't this volume's price
   const inStock = offers.filter((o) => o.inStock && !isCollection(o));
+  const newPrint = inStock.filter(
+    (o) => o.condition === "new" && o.format === "print",
+  );
   const bestNew = inStock.find(
     (o) => o.condition === "new" && o.format === "print",
   );
@@ -1073,7 +1101,9 @@ export async function getVolumeSummary(isbn13: string) {
     // what the page is called (the address stays on the title)
     heading: volumeHeading(book.title, seriesLabel, saved),
     // saved before englishAuthors: "尾田栄一郎" alone shows none
-    authors: englishAuthors(book.authors?.split(/,\s*/)),
+    authors:
+      englishAuthors(book.authors?.split(/,\s*/)) ??
+      (series?.authors?.join(", ") || null),
     publisher: publisherOf(book.isbn13, { work: [book.publisher] }),
     year: book.year,
     // an edition we know has no cover: none, so previews and search engines
@@ -1096,9 +1126,12 @@ export async function getVolumeSummary(isbn13: string) {
           .map(shopName),
       ),
     ],
-    lowCents: inStock[0]?.priceCents ?? null,
-    highCents: inStock.at(-1)?.priceCents ?? null,
-    offerCount: inStock.length,
+    // the range search engines get (AggregateOffer): new print copies only,
+    // as the page's "New from" line says. An ebook or a used copy made it
+    // read $6.99 to $69.99 beside "New from $11.77"
+    lowCents: newPrint[0]?.priceCents ?? null,
+    highCents: newPrint.at(-1)?.priceCents ?? null,
+    offerCount: newPrint.length,
     bestNew: bestNew
       ? {
           store: bestNew.store,
@@ -1179,16 +1212,28 @@ export async function getSeriesSummary(asked: string) {
   for (const key of new Set([slugify(info.name), slugify(seriesName(asked))])) {
     bySeries?.get(key)?.forEach((v, isbn) => known.set(isbn, v));
   }
-  const volumes = [...known.values()]
-    .sort(
-      (a, b) =>
-        (titleVolume(a.title) ?? Infinity) -
-          (titleVolume(b.title) ?? Infinity) || a.title.localeCompare(b.title),
-    )
-    .slice(0, SUMMARY_VOLUMES);
+  // one per volume number: the same volume turns up under several ISBNs and
+  // spellings ("ONE PIECE 28", "One Piece, Vol. 28", a library rebind). The
+  // publisher's edition first, then one with a price. A book with no number
+  // (a guidebook) isn't one of the run
+  const candidates = [...known.values()].filter(
+    (v) => titleVolume(v.title) != null,
+  );
   const prices = await priceQueries
-    .getKnownPrices(volumes.map((v) => v.isbn13))
+    .getKnownPrices(candidates.map((v) => v.isbn13.trim()))
     .catch(() => new Map<string, { priceCents: number }>());
+  const rank = (v: KnownVolume) =>
+    (isRebind(v.isbn13) ? 2 : 0) + (prices.has(v.isbn13.trim()) ? 0 : 1);
+  const byNumber = new Map<number, KnownVolume>();
+  for (const v of candidates) {
+    const n = titleVolume(v.title)!;
+    const had = byNumber.get(n);
+    if (!had || rank(v) < rank(had)) byNumber.set(n, v);
+  }
+  const volumes = [...byNumber.entries()]
+    .sort(([a], [b]) => a - b)
+    .map(([, v]) => v)
+    .slice(0, SUMMARY_VOLUMES);
   return {
     name: info.name,
     description: info.description,
@@ -1197,6 +1242,9 @@ export async function getSeriesSummary(asked: string) {
     volumes: volumes.map((v) => ({
       isbn13: v.isbn13.trim(),
       title: v.title,
+      volume: titleVolume(v.title),
+      // a preorder is listed, but not in what the series costs today
+      published: v.published ?? null,
       fromCents: prices.get(v.isbn13.trim())?.priceCents ?? null,
     })),
   };

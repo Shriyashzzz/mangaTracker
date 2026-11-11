@@ -664,8 +664,11 @@ export async function isKnownVolume(isbn13: string) {
 // a series is searched by), so a list built before a restart still counts as
 // known: series pages and the sitemap read it without the catalog
 export async function getSavedVolumeTitles() {
-  return prisma.$queryRaw<{ isbn13: string; title: string }[]>`
-    SELECT DISTINCT v->>'isbn13' AS isbn13, v->>'title' AS title
+  return prisma.$queryRaw<
+    { isbn13: string; title: string; published: string | null }[]
+  >`
+    SELECT DISTINCT ON (v->>'isbn13') v->>'isbn13' AS isbn13,
+           v->>'title' AS title, v->>'published' AS published
     FROM series_volumes sv, jsonb_array_elements(sv.volumes) v
     WHERE sv.key LIKE ${VOLUMES_KEY_VERSION + "%"}
       AND v->>'isbn13' IS NOT NULL AND v->>'title' IS NOT NULL

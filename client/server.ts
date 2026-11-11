@@ -58,6 +58,12 @@ const slugify = (name: string) =>
     .slice(0, 80);
 
 const usd = (cents: number) => `$${(cents / 100).toFixed(2)}`;
+// a total: "$1,560", or with cents when it's exact ("$1,357.35")
+const usdTotal = (cents: number, exact: boolean) =>
+  `$${(cents / 100).toLocaleString("en-US", {
+    minimumFractionDigits: exact ? 2 : 0,
+    maximumFractionDigits: exact ? 2 : 0,
+  })}`;
 // /api/ covers are served through this site, so link previews can fetch them
 const apiImage = (url: string | null, origin: string) =>
   url?.startsWith("/api/") ? origin + url : url;
@@ -113,7 +119,15 @@ type SeriesSummary = {
   description: string | null;
   coverUrl: string | null;
   genres: string[];
-  volumes?: { isbn13: string; title: string; fromCents: number | null }[];
+  // `volume`: its number, so the list reads "One Piece, Vol. 28" whatever
+  // the catalog called the book; missing from an older API
+  volumes?: {
+    isbn13: string;
+    title: string;
+    fromCents: number | null;
+    volume?: number | null;
+    published?: string | null;
+  }[];
 };
 // what the API's /api/share/:code returns, as far as a preview needs it
 // (server/src/util/shelf/sharedShelf.ts)
@@ -137,7 +151,8 @@ type Tags = {
   description: string;
   path: string;
   image: string | null | undefined;
-  jsonLd?: Record<string, unknown>;
+  // one object, or several (the page's own and its breadcrumbs)
+  jsonLd?: Record<string, unknown> | Record<string, unknown>[];
   body?: string;
   noindex?: boolean;
   // a cover is tall: a big preview would crop it to a wide strip
@@ -255,6 +270,33 @@ function volumeBody(v: VolumeSummary, image: string | null | undefined) {
     </main>`;
 }
 
+// what buying every volume new costs, as the series page's box says it: the
+// priced ones plus the rest at their middle price. Said only with at least
+// three priced; "about", to the nearest $10, unless every one is priced
+function seriesCostLine(s: SeriesSummary) {
+  // out now only, as the page counts them: a preorder isn't bought yet
+  const today = new Date().toISOString().slice(0, 10);
+  const volumes = (s.volumes ?? []).filter(
+    (v) => !v.published || v.published.slice(0, 10) <= today,
+  );
+  const priced = volumes.flatMap((v) =>
+    v.fromCents != null ? [v.fromCents] : [],
+  );
+  if (priced.length < 3) return null;
+  const sorted = [...priced].sort((a, b) => a - b);
+  const mid = Math.floor(sorted.length / 2);
+  const usual =
+    sorted.length % 2
+      ? sorted[mid]!
+      : Math.round((sorted[mid - 1]! + sorted[mid]!) / 2);
+  const total =
+    priced.reduce((sum, c) => sum + c, 0) +
+    (volumes.length - priced.length) * usual;
+  const exact = priced.length === volumes.length;
+  const outNow = volumes.length < (s.volumes ?? []).length ? " out now" : "";
+  return `Every ${s.name} volume new: ${exact ? "" : "about "}${usdTotal(exact ? total : Math.round(total / 1000) * 1000, exact)} for all ${volumes.length}${outNow}.`;
+}
+
 function seriesBody(s: SeriesSummary) {
   const volumes = s.volumes ?? [];
   return `<main class="crawl-page">
@@ -265,12 +307,13 @@ function seriesBody(s: SeriesSummary) {
       <h1>${escapeHtml(s.name)} manga prices</h1>
       ${s.coverUrl ? `<img src="${escapeHtml(s.coverUrl)}" alt="${escapeHtml(`${s.name} cover`)}" />` : ""}
       <p>Compare US prices for every ${escapeHtml(s.name)} volume in English.</p>
+      ${seriesCostLine(s) ? `<p>${escapeHtml(seriesCostLine(s))}</p>` : ""}
       ${s.description ? `<p>${escapeHtml(clip(plainText(s.description), 600))}</p>` : ""}
       ${s.genres?.length ? `<p>Genres: ${s.genres.map(escapeHtml).join(", ")}</p>` : ""}
       ${
         volumes.length
           ? `<h2>Volumes</h2>
-      <ul>${volumes.map((v) => `<li><a href="${escapeHtml(volumePath(v.isbn13, v.title))}">${escapeHtml(v.title)}</a>${v.fromCents != null ? ` from ${usd(v.fromCents)}` : ""}</li>`).join("")}</ul>`
+      <ul>${volumes.map((v) => `<li><a href="${escapeHtml(volumePath(v.isbn13, v.title))}">${escapeHtml(v.volume != null ? `${s.name}, Vol. ${v.volume}` : v.title)}</a>${v.fromCents != null ? ` from ${usd(v.fromCents)}` : ""}</li>`).join("")}</ul>`
           : ""
       }
     </main>`;
@@ -290,6 +333,18 @@ const storesLine = (v: VolumeSummary) => {
       : "across stores.";
   return `at ${named.join(", ")}${more ? ` and ${more}` : ""}.`;
 };
+
+// the trail the page shows, for search results: Manga Tracker > Series > ...
+const breadcrumbLd = (origin: string, links: [string, string][]) => ({
+  "@context": "https://schema.org",
+  "@type": "BreadcrumbList",
+  itemListElement: links.map(([path, name], i) => ({
+    "@type": "ListItem",
+    position: i + 1,
+    name,
+    item: origin + path,
+  })),
+});
 
 function volumeTags(v: VolumeSummary, origin: string): Tags {
   const path = volumePath(v.isbn13, v.title);
@@ -342,7 +397,15 @@ function volumeTags(v: VolumeSummary, origin: string): Tags {
     description,
     path,
     image,
-    jsonLd,
+    jsonLd: [
+      jsonLd,
+      breadcrumbLd(origin, [
+        ["/", SITE_NAME],
+        ["/series", "Series"],
+        [seriesPath(v.seriesName), v.seriesName],
+        [path, v.heading ?? v.title],
+      ]),
+    ],
     body: volumeBody(v, image),
   };
 }
@@ -352,19 +415,26 @@ function seriesTags(s: SeriesSummary, origin: string): Tags {
   return {
     title: `${s.name} manga prices`,
     description: clip(
-      `Compare US prices for every ${s.name} volume in English. ${s.description ?? ""}`,
+      `Compare US prices for every ${s.name} volume in English. ${seriesCostLine(s) ?? ""} ${s.description ?? ""}`,
     ),
     path,
     image: s.coverUrl,
-    jsonLd: {
-      "@context": "https://schema.org",
-      "@type": "BookSeries",
-      name: s.name,
-      url: origin + path,
-      ...(s.description && { description: clip(s.description, 300) }),
-      ...(s.coverUrl && { image: s.coverUrl }),
-      ...(s.genres?.length && { genre: s.genres }),
-    },
+    jsonLd: [
+      {
+        "@context": "https://schema.org",
+        "@type": "BookSeries",
+        name: s.name,
+        url: origin + path,
+        ...(s.description && { description: clip(s.description, 300) }),
+        ...(s.coverUrl && { image: s.coverUrl }),
+        ...(s.genres?.length && { genre: s.genres }),
+      },
+      breadcrumbLd(origin, [
+        ["/", SITE_NAME],
+        ["/series", "Series"],
+        [path, s.name],
+      ]),
+    ],
     body: seriesBody(s),
   };
 }
@@ -796,7 +866,20 @@ app.get(
       req.ip,
     );
     if (missing) return "missing";
-    return data && seriesTags(data, origin);
+    if (data) return seriesTags(data, origin);
+    // nothing stored to describe it: a made-up name, or a series nobody has
+    // opened yet. Not indexed, so a made-up one never counts as a page (a
+    // "soft 404"); a real one gets its tags once someone opens it
+    return {
+      title: "Manga prices",
+      description: HOME_DESCRIPTION.replace(/&#39;/g, "'").replace(
+        /&amp;/g,
+        "&",
+      ),
+      path: req.path,
+      image: null,
+      noindex: true,
+    };
   }),
 );
 

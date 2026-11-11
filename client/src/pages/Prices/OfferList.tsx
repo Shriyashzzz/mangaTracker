@@ -7,7 +7,7 @@ import { ChevronRightIcon } from "../../components/icons/Icons";
 import { noteStoreClick } from "../../lib/support";
 import { isCollection, type Offer } from "../../lib/types";
 import { pricesStyles as styles } from "./styles";
-import { linkRel } from "./offerLabels";
+import { awardsOf, linkRel } from "./offerLabels";
 
 const VISIBLE_OFFERS = 5;
 
@@ -21,6 +21,9 @@ const CONDITION: Record<string, string> = {
 const AWARDS = {
   lowest: { label: "Lowest overall", className: styles.awardLowest },
   newLow: { label: "Cheapest new", className: styles.awardNew },
+  // the cheapest new copy at a store people know, when the cheapest new one
+  // is a seller nobody has heard of
+  knownLow: { label: "Cheapest big store", className: styles.awardNew },
   marketLow: { label: "Cheapest marketplace", className: styles.awardMarket },
   // when a new copy costs no more, "cheapest" would oversell a used one
   market: { label: "Marketplace", className: styles.awardMarket },
@@ -28,21 +31,6 @@ const AWARDS = {
   // just this one
   boxSet: { label: "Box set", className: styles.awardSet },
   omnibus: { label: "Omnibus", className: styles.awardSet },
-};
-
-// the cheapest copies you can buy now, which get the stamps; offers come
-// cheapest first, so each is the first match
-const awardsOf = (offers: Offer[]) => {
-  // a box set or omnibus is listed, but never this volume's cheapest copy
-  const inStock = offers.filter((o) => o.inStock && !isCollection(o));
-  const lowest = inStock[0];
-  const newLow = inStock.find(
-    (o) => o.format === "print" && o.condition === "new",
-  );
-  const marketLow = inStock.find(
-    (o) => o.format === "print" && o.condition !== "new",
-  );
-  return { lowest, newLow, marketLow };
 };
 
 export default function OfferList({
@@ -64,7 +52,7 @@ export default function OfferList({
     ...offers.filter((o) => o.format === "ebook"),
   ];
   const shown = open ? listed : listed.slice(0, VISIBLE_OFFERS);
-  const { lowest, newLow, marketLow } = awardsOf(offers);
+  const { lowest, newLow, marketLow, knownLow } = awardsOf(offers);
   // one row stands out, and it's the one the headline names
   const highlighted = newLow ?? lowest;
   // stamps are awards only: what kind of copy it is is the line under the
@@ -74,6 +62,7 @@ export default function OfferList({
       ? [AWARDS.lowest]
       : [
           ...(o === newLow ? [AWARDS.newLow] : []),
+          ...(o === knownLow ? [AWARDS.knownLow] : []),
           ...(o === marketLow
             ? [
                 newLow && newLow.priceCents <= o.priceCents
