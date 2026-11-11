@@ -151,7 +151,8 @@ type Tags = {
   description: string;
   path: string;
   image: string | null | undefined;
-  jsonLd?: Record<string, unknown>;
+  // one object, or several (the page's own and its breadcrumbs)
+  jsonLd?: Record<string, unknown> | Record<string, unknown>[];
   body?: string;
   noindex?: boolean;
   // a cover is tall: a big preview would crop it to a wide strip
@@ -333,6 +334,18 @@ const storesLine = (v: VolumeSummary) => {
   return `at ${named.join(", ")}${more ? ` and ${more}` : ""}.`;
 };
 
+// the trail the page shows, for search results: Manga Tracker > Series > ...
+const breadcrumbLd = (origin: string, links: [string, string][]) => ({
+  "@context": "https://schema.org",
+  "@type": "BreadcrumbList",
+  itemListElement: links.map(([path, name], i) => ({
+    "@type": "ListItem",
+    position: i + 1,
+    name,
+    item: origin + path,
+  })),
+});
+
 function volumeTags(v: VolumeSummary, origin: string): Tags {
   const path = volumePath(v.isbn13, v.title);
   const description = clip(
@@ -384,7 +397,15 @@ function volumeTags(v: VolumeSummary, origin: string): Tags {
     description,
     path,
     image,
-    jsonLd,
+    jsonLd: [
+      jsonLd,
+      breadcrumbLd(origin, [
+        ["/", SITE_NAME],
+        ["/series", "Series"],
+        [seriesPath(v.seriesName), v.seriesName],
+        [path, v.heading ?? v.title],
+      ]),
+    ],
     body: volumeBody(v, image),
   };
 }
@@ -398,15 +419,22 @@ function seriesTags(s: SeriesSummary, origin: string): Tags {
     ),
     path,
     image: s.coverUrl,
-    jsonLd: {
-      "@context": "https://schema.org",
-      "@type": "BookSeries",
-      name: s.name,
-      url: origin + path,
-      ...(s.description && { description: clip(s.description, 300) }),
-      ...(s.coverUrl && { image: s.coverUrl }),
-      ...(s.genres?.length && { genre: s.genres }),
-    },
+    jsonLd: [
+      {
+        "@context": "https://schema.org",
+        "@type": "BookSeries",
+        name: s.name,
+        url: origin + path,
+        ...(s.description && { description: clip(s.description, 300) }),
+        ...(s.coverUrl && { image: s.coverUrl }),
+        ...(s.genres?.length && { genre: s.genres }),
+      },
+      breadcrumbLd(origin, [
+        ["/", SITE_NAME],
+        ["/series", "Series"],
+        [path, s.name],
+      ]),
+    ],
     body: seriesBody(s),
   };
 }
@@ -838,7 +866,20 @@ app.get(
       req.ip,
     );
     if (missing) return "missing";
-    return data && seriesTags(data, origin);
+    if (data) return seriesTags(data, origin);
+    // nothing stored to describe it: a made-up name, or a series nobody has
+    // opened yet. Not indexed, so a made-up one never counts as a page (a
+    // "soft 404"); a real one gets its tags once someone opens it
+    return {
+      title: "Manga prices",
+      description: HOME_DESCRIPTION.replace(/&#39;/g, "'").replace(
+        /&amp;/g,
+        "&",
+      ),
+      path: req.path,
+      image: null,
+      noindex: true,
+    };
   }),
 );
 

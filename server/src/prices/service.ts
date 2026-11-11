@@ -94,7 +94,7 @@ export const volumeHeading = (
     : title;
 // the volume a title names: none for a book holding several ("Vinland Saga,
 // Book 9" is vols 17 and 18, never vol 9)
-const titleVolume = (title: string) =>
+export const titleVolume = (title: string) =>
   bookNumberOf(title) !== null ? null : numberOrNull(volumeOf(title));
 
 // ---------- one volume ----------
@@ -1083,6 +1083,9 @@ export async function getVolumeSummary(isbn13: string) {
   const offers = dropUnlikelyNew(stored, usual);
   // box sets and omnibuses are listed on the page, but aren't this volume's price
   const inStock = offers.filter((o) => o.inStock && !isCollection(o));
+  const newPrint = inStock.filter(
+    (o) => o.condition === "new" && o.format === "print",
+  );
   const bestNew = inStock.find(
     (o) => o.condition === "new" && o.format === "print",
   );
@@ -1123,9 +1126,12 @@ export async function getVolumeSummary(isbn13: string) {
           .map(shopName),
       ),
     ],
-    lowCents: inStock[0]?.priceCents ?? null,
-    highCents: inStock.at(-1)?.priceCents ?? null,
-    offerCount: inStock.length,
+    // the range search engines get (AggregateOffer): new print copies only,
+    // as the page's "New from" line says. An ebook or a used copy made it
+    // read $6.99 to $69.99 beside "New from $11.77"
+    lowCents: newPrint[0]?.priceCents ?? null,
+    highCents: newPrint.at(-1)?.priceCents ?? null,
+    offerCount: newPrint.length,
     bestNew: bestNew
       ? {
           store: bestNew.store,
