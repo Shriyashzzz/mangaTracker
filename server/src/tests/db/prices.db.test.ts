@@ -396,3 +396,27 @@ test("a box set is listed, but never counts as the volume's price", async () => 
   const history = await priceQueries.getPriceHistory(ISBN);
   expect(history.kinds.map((k) => k.lowCents)).toEqual([1300]);
 });
+
+test("with a Books-A-Million price, Google Shopping isn't asked", async () => {
+  let asked = false;
+  const spy = {
+    ...source("serpapi", []),
+    fetchOffers: async () => ((asked = true), []),
+  };
+  const bam = offer({
+    store: "Books-A-Million",
+    priceCents: 959,
+    url: "https://www.jdoqocy.com/click-1",
+  });
+  // found in this same check
+  await fetchProviders(ISBN, await book(), [
+    source("books-a-million", [bam]),
+    spy,
+  ]);
+  expect(asked).toBe(false);
+  // or saved from its last check, with only Google Shopping due now
+  await tick();
+  await fetchProviders(ISBN, await book(), [spy]);
+  expect(asked).toBe(false);
+  expect(await prices()).toEqual(["Books-A-Million new 959"]);
+});
