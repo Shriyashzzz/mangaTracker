@@ -84,7 +84,13 @@ type VolumeSummary = {
   lowCents: number | null;
   highCents: number | null;
   offerCount: number;
-  bestNew: { store: string; priceCents: number } | null;
+  // `known`: the store's name when readers know it (Walmart, eBay), so a
+  // search result never says "at nuclearwaste"
+  bestNew: { store: string; priceCents: number; known?: string | null } | null;
+  // the stores readers know by name, from `stores`
+  knownStores?: string[];
+  // how many stores, a big store's sellers counted as the store
+  storeCount?: number;
   // cheapest first; optional while an older API is still running
   offers?: {
     store: string;
@@ -270,21 +276,33 @@ function seriesBody(s: SeriesSummary) {
     </main>`;
 }
 
+// the stores readers know by name, then how many others: "at Walmart, eBay
+// and 3 more stores." An older API without knownStores names them all
+const storesLine = (v: VolumeSummary) => {
+  const named = (v.knownStores ?? v.stores).slice(0, 4);
+  const total = v.storeCount ?? v.stores.length;
+  const others = total - named.length;
+  const more =
+    others > 0 ? `${others} more store${others === 1 ? "" : "s"}` : "";
+  if (!named.length)
+    return total
+      ? `from ${total} store${total === 1 ? "" : "s"}.`
+      : "across stores.";
+  return `at ${named.join(", ")}${more ? ` and ${more}` : ""}.`;
+};
+
 function volumeTags(v: VolumeSummary, origin: string): Tags {
   const path = volumePath(v.isbn13, v.title);
   const description = clip(
     [
       // the lowest price first: it's what a search result shows
       v.bestNew
-        ? `${v.heading ?? v.title}: new from ${usd(v.bestNew.priceCents)} at ${v.bestNew.store}.`
+        ? `${v.heading ?? v.title}: new from ${usd(v.bestNew.priceCents)}${v.bestNew.known ? ` at ${v.bestNew.known}` : ""}.`
         : "",
       v.bestNew
         ? "Compare US prices"
         : `Compare US prices for ${v.heading ?? v.title}`,
-      // "and more" only when there is more
-      v.stores.length
-        ? `at ${v.stores.slice(0, 4).join(", ")}${v.stores.length > 4 ? " and more" : ""}.`
-        : "across stores.",
+      storesLine(v),
       v.publisher ? `Published by ${v.publisher}.` : "",
     ].join(" "),
   );

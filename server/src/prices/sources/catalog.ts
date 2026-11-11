@@ -20,7 +20,7 @@ const TIMEOUT_MS = 8000;
 
 // the author names in English letters: a Japanese work lists both
 // ("丸山くがね, Kugane Maruyama"), and readers here get the English one
-const englishAuthors = (names: string[] | undefined) => {
+export const englishAuthors = (names: string[] | undefined) => {
   const english = (names ?? []).filter((n) => !/[\u3000-ヿ㐀-鿿＀-￯]/.test(n));
   return english.length ? english.join(", ") : null;
 };
