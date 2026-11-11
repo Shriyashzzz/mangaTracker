@@ -25,6 +25,7 @@ import BackToNew from "./BackToNew";
 import VolumeCard, { CoverFallback } from "./VolumeCard";
 import { pricesStyles as styles } from "./styles";
 import OfferList from "./OfferList";
+import { knownStoreLow } from "./offerLabels";
 import { TYPE_LABEL, linkRel } from "./offerLabels";
 import Mascot from "../../components/mascot/Mascot";
 import SlowLoadQuote from "../../components/slowLoadQuote/SlowLoadQuote";
@@ -271,6 +272,8 @@ export default function PriceVolume() {
   const best = offers.find(
     (o) => o.condition === "new" && o.format === "print",
   );
+  // a seller nobody has heard of: the cheapest at a store people know too
+  const knownBest = knownStoreLow(offers);
 
   return (
     <div className="fade-in">
@@ -343,6 +346,12 @@ export default function PriceVolume() {
             <p className={styles.bestLine}>
               New from <strong>{formatCents(best.priceCents)}</strong> at{" "}
               {best.store}
+              {knownBest && (
+                <>
+                  , or <strong>{formatCents(knownBest.priceCents)}</strong> at{" "}
+                  {knownBest.store}
+                </>
+              )}
             </p>
           )}
           {/* where it's seen before anyone heads off to a store */}

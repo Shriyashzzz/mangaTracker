@@ -237,6 +237,9 @@ export type Offer = {
   url: string | null;
   affiliate: boolean;
   fetchedAt: string;
+  // a store readers know by name (Walmart, eBay, Books-A-Million), not some
+  // Google Shopping seller. Missing from an older API and Canada's prices
+  knownStore?: boolean;
 };
 // a box set or an omnibus holding the volume among others: listed and
 // stamped, never counted as the volume's own price
