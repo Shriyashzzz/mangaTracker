@@ -461,6 +461,7 @@ const linkList = (links: [href: string, label: string][]) =>
 
 const SITE_LINKS: [string, string][] = [
   ["/series", "All manga series"],
+  ["/deals", "Manga deals"],
   ["/about", "About Manga Tracker"],
   ["/updates", "What's new"],
 ];
@@ -510,6 +511,41 @@ function seriesIndexTags(all: SeriesIndexEntry[]): Tags {
       <h1>All series</h1>
       <p>Every manga series on Manga Tracker, A to Z. Each one lists its English volumes with what US stores charge for them.</p>
       ${linkList(sorted.map((s) => [seriesPath(s.name), s.name]))}
+    </main>`,
+  };
+}
+
+// /deals: what the page lists, as links search engines can follow. The title
+// and description are the app's own (pages/Prices/Deals.tsx)
+type Deal = {
+  isbn13: string;
+  title: string;
+  priceCents: number;
+  avgCents: number;
+};
+
+function dealsTags(deals: Deal[]): Tags {
+  return {
+    title: "Manga deals: volumes under their usual price",
+    description:
+      "English manga volumes selling for less than they usually do right now, from the prices Manga Tracker checks across US stores. Biggest discounts first.",
+    path: "/deals",
+    image: null,
+    body: `<main class="crawl-page">
+      ${crumbs([["/", SITE_NAME]])}
+      <h1>Manga deals</h1>
+      <p>Volumes selling for less than they usually do, biggest discount first. Open one to see every store's price.</p>
+      ${
+        deals.length
+          ? `<ul>${deals
+              .map(
+                (d) =>
+                  `<li><a href="${escapeHtml(volumePath(d.isbn13, d.title))}">${escapeHtml(d.title)}</a> ${usd(d.priceCents)}, usually ${usd(d.avgCents)}</li>`,
+              )
+              .join("")}</ul>`
+          : "<p>No deals right now.</p>"
+      }
+      ${linkList(SITE_LINKS.filter(([href]) => href !== "/deals"))}
     </main>`,
   };
 }
@@ -948,6 +984,17 @@ app.get(
       req.ip,
     );
     return Array.isArray(data) ? seriesIndexTags(data) : null;
+  }),
+);
+
+app.get(
+  "/deals",
+  withTags(async (req) => {
+    const { data } = await summary<{ deals: Deal[] }>(
+      "/api/prices/deals",
+      req.ip,
+    );
+    return dealsTags(data?.deals ?? []);
   }),
 );
 

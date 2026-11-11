@@ -1383,6 +1383,41 @@ async function withEnglishBooks(hits: SeriesHit[]) {
   return hits.filter((h) => books(h) > 0).slice(0, TRENDING_SHOWN);
 }
 
+// the /deals page: volumes now well under their usual new price, the same
+// believable price each volume's page shows (a fake one never headlines),
+// each with its series' cover for one without its own
+export async function getDealsPage() {
+  const rows = await priceQueries.getDeals(DEALS_SHOWN * 2);
+  const known = await priceQueries.getKnownPrices(
+    rows.map((r) => r.isbn13.trim()),
+  );
+  const deals = rows
+    .flatMap((r) => {
+      const price = known.get(r.isbn13.trim());
+      return price && price.priceCents < r.avgCents * 0.9
+        ? [{ ...r, priceCents: price.priceCents }]
+        : [];
+    })
+    .sort((a, b) => a.priceCents / a.avgCents - b.priceCents / b.avgCents)
+    .slice(0, DEALS_SHOWN);
+  const names = [...new Set(deals.map((r) => seriesName(r.title)))];
+  const infos = await Promise.all(
+    names.map((name) => getSeriesInfo(name).catch(() => null)),
+  );
+  const covers = new Map(names.map((n, i) => [n, infos[i]?.coverUrl ?? null]));
+  return deals.map((r) => ({
+    isbn13: r.isbn13.trim(),
+    title: r.title,
+    volume: titleVolume(r.title),
+    coverUrl: r.coverUrl,
+    seriesCoverUrl: covers.get(seriesName(r.title)) ?? null,
+    priceCents: r.priceCents,
+    avgCents: r.avgCents,
+    checkedAt: r.fetchedAt,
+  }));
+}
+const DEALS_SHOWN = 48;
+
 export async function getHighlights() {
   const [trending, latest] = await Promise.all([
     getTrending().then(withEnglishBooks),

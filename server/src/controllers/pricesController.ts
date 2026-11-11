@@ -21,6 +21,7 @@ import { isHuman } from "../prices/human.js";
 import { asSpender, spenderOf } from "../prices/spender.js";
 import { getCanadaPrices } from "../prices/canada/canadaPrices.js";
 import {
+  getDealsPage,
   getHighlights,
   getSeries,
   getSeriesIndex,
@@ -204,6 +205,14 @@ const highlights = async (_req: Request, res: Response) => {
   );
 };
 
+// GET /deals  the /deals page: volumes now well under their usual price.
+// Stored prices only, so it never sets off a check
+const deals = async (_req: Request, res: Response) => {
+  res.set("Cache-Control", "public, max-age=300").json({
+    deals: await upstream("deals", "Couldn't load deals.", getDealsPage),
+  });
+};
+
 // GET /series-index  the /series page
 const seriesIndex = async (_req: Request, res: Response) => {
   res.set("Cache-Control", CACHE_10_MIN).json(await getSeriesIndex());
@@ -291,6 +300,7 @@ export default {
   volume,
   series,
   highlights,
+  deals,
   seriesIndex,
   cover,
   volumeSummary,

@@ -53,6 +53,7 @@ const sitemap = async (_req: Request, res: Response) => {
     entry("/updates"),
     entry("/acknowledgements"),
     entry("/series"),
+    entry("/deals"),
     ...withVolumes.map((s) => entry(seriesPath(s.name), s.fetchedAt)),
     ...volumes.map((v) =>
       entry(volumePath(v.isbn13.trim(), v.title), v.updated),

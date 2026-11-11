@@ -7,6 +7,7 @@ import { API_URL, getJson } from "./api";
 import type {
   CatalogBook,
   Highlights,
+  PriceCard,
   Series,
   SeriesHit,
   SeriesIndexEntry,
@@ -53,6 +54,10 @@ export const getSeriesIndex = (signal?: AbortSignal) =>
 
 export const getHighlights = (signal?: AbortSignal) =>
   getJson<Highlights>("/api/prices/highlights", signal);
+
+// the /deals page: volumes now well under their usual price
+export const getDeals = (signal?: AbortSignal) =>
+  getJson<{ deals: PriceCard[] }>("/api/prices/deals", signal);
 
 // ---------- addresses ----------
 

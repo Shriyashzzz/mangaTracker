@@ -527,6 +527,67 @@ async function queryRecentBestPrices(limit: number): Promise<RecentPrice[]> {
   `;
 }
 
+// volumes whose cheapest new print copy now is well under their usual new
+// price (the /deals page): any priced volume, not just recent lookups, as
+// long as its prices were checked lately. Biggest discount first. Cached a
+// few minutes like the recent ones, since the page asks on every load
+const DEALS_MS = 5 * 60 * 1000;
+const DEAL_SHARE = 0.9;
+const DEALS_FRESH_DAYS = 21;
+let deals: { at: number; rows: Promise<RecentPrice[]> } | null = null;
+
+export function getDeals(limit = 60): Promise<RecentPrice[]> {
+  if (deals && Date.now() - deals.at < DEALS_MS) return deals.rows;
+  const rows = queryDeals(limit);
+  deals = { at: Date.now(), rows };
+  rows.catch(() => (deals = null));
+  return rows;
+}
+
+async function queryDeals(limit: number): Promise<RecentPrice[]> {
+  return prisma.$queryRaw<RecentPrice[]>`
+    WITH best AS (
+      SELECT isbn13, fetched_at, MIN(price_cents) AS p,
+             bool_or(source IS NULL OR source NOT IN ('ebay', 'books-a-million')) AS full_check
+      FROM price_samples
+      WHERE condition = 'new' AND format = 'print'
+      GROUP BY isbn13, fetched_at
+    ),
+    latest AS (
+      SELECT ps.isbn13,
+             (SELECT MIN(s2.checked_at) FROM price_source_checks s2
+               WHERE s2.isbn13 = ps.isbn13) AS fetched_at,
+             MIN(ps.price_cents) AS p
+      FROM price_source_checks sc
+      JOIN price_samples ps
+        ON ps.isbn13 = sc.isbn13 AND ps.source = sc.source
+       AND ps.fetched_at = sc.checked_at
+      WHERE ps.condition = 'new' AND ps.format = 'print' AND ps.in_stock
+      GROUP BY ps.isbn13
+    ),
+    averages AS (
+      SELECT isbn13,
+             COALESCE(AVG(p) FILTER (WHERE full_check), AVG(p)) AS avg_p,
+             COALESCE(NULLIF(COUNT(*) FILTER (WHERE full_check), 0), COUNT(*))::int AS n
+      FROM best GROUP BY isbn13
+    )
+    SELECT b.isbn13, b.title, b.cover_url AS "coverUrl", l.p::int AS "priceCents",
+           l.fetched_at AS "fetchedAt", ROUND(a.avg_p)::int AS "avgCents",
+           a.n AS "samples"
+    FROM latest l
+    JOIN averages a USING (isbn13)
+    JOIN books b USING (isbn13)
+    WHERE l.isbn13 ~ '^(9780|9781|9798)'
+      AND b.title !~ '[぀-ヿ一-鿿]'
+      AND b.title ~* 'vol(ume)?[.]?[[:space:]]*[0-9]'
+      AND a.n >= 2
+      AND l.p < a.avg_p * ${DEAL_SHARE}
+      AND l.fetched_at > now() - make_interval(days => ${DEALS_FRESH_DAYS})
+    ORDER BY l.p / a.avg_p ASC
+    LIMIT ${limit}
+  `;
+}
+
 // takes one call from this month's allowance; false once it's used up.
 // A single statement, so two requests at once can't both take the last one
 // `month` (YYYY-MM-01): the allowance's own month, when it doesn't follow the
@@ -830,6 +891,7 @@ export default {
   getCheapestCopies,
   getRecordedMedians,
   getRecentBestPrices,
+  getDeals,
   getBook,
   isKnownVolume,
   upsertBook,

@@ -15,6 +15,7 @@ pricesRouter.get("/ca/:isbn", perMinute(20), prices.canadaVolume);
 // typeahead: called as people type, so it gets a bigger allowance
 pricesRouter.get("/series-search", perMinute(120), prices.seriesSearch);
 pricesRouter.get("/highlights", perMinute(60), prices.highlights);
+pricesRouter.get("/deals", perMinute(60), prices.deals);
 pricesRouter.get("/series-index", perMinute(60), prices.seriesIndex);
 pricesRouter.get("/series", perMinute(40), prices.series);
 // covers: a series page loads 30+ at once

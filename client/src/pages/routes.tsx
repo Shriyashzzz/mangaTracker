@@ -14,6 +14,7 @@ import CalendarPage from "./Calendar/Calendar";
 import NewReleasesPage from "./NewReleases/NewReleases";
 import SharedShelfPage from "./SharedShelf/SharedShelf";
 import SeriesIndex from "./Prices/SeriesIndex";
+import Deals from "./Prices/Deals";
 import PriceSeries from "./Prices/PriceSeries";
 import PriceVolume from "./Prices/PriceVolume";
 
@@ -81,6 +82,7 @@ export const routes = [
       { path: "/u/:code", element: <SharedShelfPage /> },
       { path: "/signup", element: <SignUp /> },
       { path: "/series", element: <SeriesIndex /> },
+      { path: "/deals", element: <Deals /> },
       { path: "/prices", element: <ToPriceHome /> },
       { path: "/prices/series/:slug", element: <PriceSeries /> },
       // the title part is optional, so ISBN-only links keep working
