@@ -17,6 +17,7 @@ import {
   seriesCost,
   stillToGet,
 } from "../../lib/finishCost";
+import BoxSets from "./BoxSets";
 import SeriesCostBox from "./SeriesCostBox";
 import { useFromShelf } from "../../lib/fromShelf";
 import { findOnShelf } from "../../lib/shelf";
@@ -478,6 +479,8 @@ export default function PriceSeries() {
           </p>
         )}
       </section>
+
+      <BoxSets sets={data.boxSets ?? []} links={data.boxSetLinks ?? []} />
     </div>
   );
 }

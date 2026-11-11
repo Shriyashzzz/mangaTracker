@@ -79,6 +79,8 @@ export const pricesStyles = {
   // total wraps under the button on a narrow phone
   toGetRow: "mb-3 flex flex-wrap items-center gap-x-3 gap-y-1.5",
   finishCost: "text-[0.9rem] font-medium text-ink tabular-nums",
+  // a series' box sets, under its volumes
+  boxSets: "mt-10 flex flex-col gap-3",
   // signed out on a volume page: the button and what tracking gets them
   trackPitch: "flex max-w-[34rem] flex-col items-start gap-2",
   trackWhy: "text-[0.85rem] leading-snug text-ink-soft",

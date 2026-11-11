@@ -225,6 +225,19 @@ export type Series = {
   info: SeriesInfo | null;
   incomplete: boolean;
   volumes: SeriesVolume[];
+  // box sets and omnibuses found while pricing its volumes, cheapest first,
+  // and searches for more; missing from an older API
+  boxSets?: BoxSet[];
+  boxSetLinks?: StoreLink[];
+};
+
+export type BoxSet = {
+  store: string;
+  priceCents: number;
+  format: string;
+  condition: string;
+  url: string | null;
+  affiliate: boolean;
 };
 
 export type Offer = {

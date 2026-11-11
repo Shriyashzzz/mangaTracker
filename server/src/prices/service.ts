@@ -44,6 +44,7 @@ import {
   affiliateOfferUrl,
   isAffiliateUrl,
   preferDirectRows,
+  boxSetLinks,
   storeLinks,
   storeName,
 } from "./stores/storeLinks.js";
@@ -920,12 +921,34 @@ async function getSeriesWithVolumes(name: string) {
   const incomplete =
     main.incomplete ||
     (altResults.some((a) => a.incomplete) && volumes.length < 3);
-  const known = await priceQueries.getKnownPrices(volumes.map((v) => v.isbn13));
+  const isbns = volumes.map((v) => v.isbn13);
+  const [known, collections] = await Promise.all([
+    priceQueries.getKnownPrices(isbns),
+    priceQueries.getCollectionOffers(isbns).catch(() => []),
+  ]);
+  // box sets and omnibuses found while pricing its volumes, cheapest first,
+  // each with our affiliate tag where we have one
+  const boxSets = collections
+    .sort((a, b) => a.priceCents - b.priceCents)
+    .slice(0, BOX_SETS_SHOWN)
+    .map((o) => {
+      const url = affiliateOfferUrl(o, o.isbn13.trim());
+      return {
+        store: storeName(o.store.split(/\s[-–—|]\s/)[0]!.trim()),
+        priceCents: o.priceCents,
+        format: o.format,
+        condition: o.condition,
+        url,
+        affiliate: isAffiliateUrl(url),
+      };
+    });
   return {
     name,
     slug: slugify(name),
     info,
     incomplete,
+    boxSets,
+    boxSetLinks: boxSetLinks(info?.name ?? name),
     volumes: volumes.map((v) => ({
       isbn13: v.isbn13,
       title: v.title,
@@ -937,6 +960,8 @@ async function getSeriesWithVolumes(name: string) {
     })),
   };
 }
+
+const BOX_SETS_SHOWN = 4;
 
 export async function getSeries(asked: string) {
   const name = await knownSeriesName(asked);

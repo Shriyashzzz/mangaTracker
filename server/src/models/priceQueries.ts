@@ -675,6 +675,34 @@ export async function getSavedVolumeTitles() {
   `;
 }
 
+// the box sets and omnibuses found while pricing a series' volumes, as their
+// checks left them (current only, in stock), one per listing: what a series
+// page shows under "Box sets"
+export async function getCollectionOffers(isbns: string[]) {
+  if (!isbns.length) return [];
+  return prisma.$queryRaw<
+    {
+      isbn13: string;
+      store: string;
+      priceCents: number;
+      url: string | null;
+      format: string;
+      condition: string;
+    }[]
+  >`
+    SELECT DISTINCT ON (COALESCE(ps.url, ps.store || ps.price_cents))
+           ps.isbn13, ps.store, ps.price_cents AS "priceCents", ps.url,
+           ps.format, ps.condition
+    FROM price_samples ps
+    JOIN price_source_checks sc
+      ON sc.isbn13 = ps.isbn13 AND sc.source = ps.source
+     AND ps.fetched_at = sc.checked_at
+    WHERE ps.isbn13 IN (${Prisma.join(isbns)})
+      AND ps.format IN ('set', 'omnibus') AND ps.in_stock
+    ORDER BY COALESCE(ps.url, ps.store || ps.price_cents), ps.price_cents
+  `;
+}
+
 export async function getSeriesVolumes(key: string) {
   const row = await prisma.seriesVolumes.findUnique({ where: { key } });
   return (
@@ -774,6 +802,7 @@ export default {
   recordSearch,
   getSeriesVolumes,
   getSavedVolumeTitles,
+  getCollectionOffers,
   getSavedVolume,
   getSavedListSizes,
   getFoundNovels,

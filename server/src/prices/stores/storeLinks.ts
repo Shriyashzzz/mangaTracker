@@ -184,6 +184,41 @@ export function isAffiliateUrl(url: string | null): boolean {
   return false;
 }
 
+// searches for a series' box sets at the stores that sell them, with our
+// affiliate tags where we have them: collectors buy whole runs in sets
+export const boxSetLinks = (series: string): StoreLink[] => {
+  const query = `${series} manga box set`;
+  const amazon = new URLSearchParams({ k: query });
+  if (amazonTag()) amazon.set("tag", amazonTag()!);
+  return [
+    {
+      store: "Amazon",
+      url: `https://www.amazon.com/s?${amazon}`,
+      affiliate: Boolean(amazonTag()),
+    },
+    {
+      store: "eBay",
+      url: ebayAffiliateUrl(
+        `https://www.ebay.com/sch/i.html?${new URLSearchParams({ _nkw: query })}`,
+        "box-sets",
+      ),
+      affiliate: Boolean(ebayCampaignId()),
+    },
+    {
+      store: "Books-A-Million",
+      url: bamAffiliateUrl(
+        `https://www.booksamillion.com/search?${new URLSearchParams({ query })}`,
+      ),
+      affiliate: Boolean(cjWebsiteId()),
+    },
+    {
+      store: "Barnes & Noble",
+      url: `https://www.barnesandnoble.com/s/${encodeURIComponent(query)}`,
+      affiliate: false,
+    },
+  ];
+};
+
 export const storeLinks = (isbn13: string): StoreLink[] => [
   { store: "Amazon", url: amazonUrl(isbn13), affiliate: Boolean(amazonTag()) },
   {
