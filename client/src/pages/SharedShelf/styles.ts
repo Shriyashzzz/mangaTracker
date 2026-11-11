@@ -26,6 +26,11 @@ export const shareStyles = {
   sort: "tap px-2 py-1.5 text-ink-soft underline decoration-transparent underline-offset-4 hover:text-ink hover:decoration-line-soft",
   sortOn:
     "tap px-2 py-1.5 font-semibold text-ink underline decoration-accent decoration-2 underline-offset-4",
+  // the order and the layout, side by side
+  controls:
+    "flex flex-wrap items-center gap-x-4 gap-y-1 upto-520:justify-between",
+  views:
+    "flex items-center border-l-[1.5px] border-line-soft pl-3 font-mono text-[0.78rem] text-muted upto-520:border-l-0 upto-520:pl-0",
 
   // one reading status
   section: "group/section",
@@ -39,7 +44,7 @@ export const shareStyles = {
   grid: "mt-6 grid grid-cols-[repeat(auto-fill,minmax(150px,1fr))] gap-x-6 gap-y-9 upto-520:grid-cols-2 upto-520:gap-x-4 upto-520:gap-y-7",
 
   // a series: tap for its sheet
-  card: "group/card relative flex min-w-0 cursor-pointer flex-col gap-2 text-left focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-accent focus-visible:outline-dashed",
+  card: "group/card relative flex w-full min-w-0 cursor-pointer flex-col gap-2 text-left focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-accent focus-visible:outline-dashed",
   cover:
     "relative aspect-2/3 border-[1.5px] border-line bg-paper-2 shadow-ink-lg transition-[translate,box-shadow] duration-200 ease-ink group-hover/card:-translate-y-1",
   stamp:
@@ -51,6 +56,21 @@ export const shareStyles = {
     "line-clamp-2 font-display text-[1.05rem] leading-[1.25] font-semibold group-hover/card:underline group-hover/card:decoration-accent group-hover/card:decoration-2 group-hover/card:underline-offset-3",
   cardMeta: "truncate font-mono text-[0.76rem] text-muted",
   cardVols: "font-mono text-[0.76rem] font-semibold text-ink",
+
+  // compact: a small cover and three short lines, so more fit on a screen
+  rows: "mt-2 grid grid-cols-[repeat(auto-fill,minmax(18rem,1fr))] gap-x-8 upto-520:grid-cols-[minmax(0,1fr)]",
+  row: "border-b-[1.5px] border-line-soft",
+  rowCard:
+    "group/card relative grid w-full min-w-0 cursor-pointer grid-cols-[2.75rem_minmax(0,1fr)] items-center gap-x-3 py-2.5 text-left focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent focus-visible:outline-dashed",
+  rowCover:
+    "relative aspect-2/3 border-[1.5px] border-line bg-paper-2 shadow-ink transition-[translate] duration-200 ease-ink group-hover/card:-translate-y-0.5",
+  rowText: "flex min-w-0 flex-col gap-[0.15rem]",
+  rowName:
+    "truncate font-display text-[1.02rem] leading-[1.25] font-semibold group-hover/card:underline group-hover/card:decoration-accent group-hover/card:decoration-2 group-hover/card:underline-offset-3",
+  rowMore:
+    "flex min-h-[1.2rem] min-w-0 items-center gap-3 font-mono text-[0.76rem] text-muted [&>span]:truncate",
+  rowTapMe:
+    "pointer-events-none absolute right-2 bottom-2 z-[1] -rotate-6 bg-accent px-2 py-0.5 font-brand text-[1rem] leading-[1.3] tracking-[0.06em] text-on-accent shadow-[2px_2px_0_var(--hard-shadow)] animate-drop",
 
   nothing: "py-6 text-ink-soft",
 

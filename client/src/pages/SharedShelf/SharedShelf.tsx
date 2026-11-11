@@ -1,6 +1,6 @@
 // Someone's shelf, opened from the link they shared. Read-only: their name and
 // the shelf in numbers, the series in Reading / Finished / To read (found by
-// name, put in order), and a sheet with the volumes they own when one is
+// name, put in order, as compact rows or covers), and a sheet with the volumes they own when one is
 // tapped (SeriesSheet). Someone without an account gets Kenji on their first
 // three visits (SharePeek) and a way to start their own at the end
 import { useEffect, useMemo, useState } from "react";
@@ -16,6 +16,7 @@ import {
   ShareIcon,
 } from "../../components/icons/Icons";
 import { getSharedShelf, type SharedShelf } from "../../lib/account";
+import { readLocal, writeLocal } from "../../lib/prefs";
 import { countShareVisit, sharePeekFor } from "../../lib/sharePeek";
 import { usePageMeta } from "../../lib/seo";
 import { useAuth } from "../../store/auth";
@@ -50,6 +51,13 @@ const SORTS = {
   },
 } as const;
 type Sort = keyof typeof SORTS;
+
+// compact rows unless this visitor picked covers; kept on their device, apart
+// from how their own shelf is laid out
+type View = "rows" | "covers";
+const VIEWS: Record<View, string> = { rows: "Compact", covers: "Covers" };
+const viewNow = (): View =>
+  readLocal("shareView") === "covers" ? "covers" : "rows";
 
 // on phones only the first list starts open, so the others are a tap away
 // rather than a long scroll
@@ -103,6 +111,58 @@ function SeriesCard({
   );
 }
 
+// the same series as a compact row: what they own comes first
+function SeriesRow({
+  m,
+  pointHere,
+  onOpen,
+}: {
+  m: SharedManga;
+  pointHere: boolean;
+  onOpen: () => void;
+}) {
+  const owned = ownedVolumesOf(m);
+  const more = [
+    !m.status && m.bookmark != null && `ch. ${m.bookmark}`,
+    m.lightNovel && "light novel",
+  ].filter(Boolean);
+  return (
+    <li className={styles.row}>
+      <button
+        type="button"
+        className={styles.rowCard}
+        aria-haspopup="dialog"
+        aria-label={`${m.name}: ${owned.length ? `owns ${plural(owned.length, "volume")}` : "no volumes yet"}. Open`}
+        onClick={onOpen}
+      >
+        <Cover m={m} className={styles.rowCover} />
+        <span className={styles.rowText}>
+          <span className={styles.rowName}>{m.name}</span>
+          <span className={styles.cardMeta}>
+            {owned.length ? (
+              <span className={styles.cardVols}>
+                Vol. {volumeRanges(owned)}
+              </span>
+            ) : (
+              "No volumes yet"
+            )}
+          </span>
+          {/* one line for the rest, so every row is the same height */}
+          <span className={styles.rowMore}>
+            {more.length > 0 && <span>{more.join(" · ")}</span>}
+            {m.rating ? <StarRating value={m.rating} size="sm" /> : null}
+          </span>
+        </span>
+        {pointHere && (
+          <span className={styles.rowTapMe} aria-hidden>
+            Tap me
+          </span>
+        )}
+      </button>
+    </li>
+  );
+}
+
 // copy the link; on phones, the share sheet too
 function ShareButtons() {
   const [copied, setCopied] = useState(false);
@@ -148,6 +208,11 @@ export default function SharedShelfPage() {
   const [open, setOpen] = useState<SharedManga | null>(null);
   const [query, setQuery] = useState("");
   const [sort, setSort] = useState<Sort>("name");
+  const [view, setView] = useState<View>(viewNow);
+  const pickView = (next: View) => {
+    setView(next);
+    writeLocal("shareView", next);
+  };
   const [startOpen] = useState(() => !narrow());
   const signedIn = useAuth((s) => s.isSignedIn);
   // a visitor without an account: which of Kenji's three notes, if any. Asked
@@ -261,18 +326,33 @@ export default function SharedShelfPage() {
               onChange={(e) => setQuery(e.target.value)}
             />
           </label>
-          <div className={styles.sorts} role="group" aria-label="Order">
-            {(Object.keys(SORTS) as Sort[]).map((key) => (
-              <button
-                key={key}
-                type="button"
-                className={sort === key ? styles.sortOn : styles.sort}
-                aria-pressed={sort === key}
-                onClick={() => setSort(key)}
-              >
-                {SORTS[key].label}
-              </button>
-            ))}
+          <div className={styles.controls}>
+            <div className={styles.sorts} role="group" aria-label="Order">
+              {(Object.keys(SORTS) as Sort[]).map((key) => (
+                <button
+                  key={key}
+                  type="button"
+                  className={sort === key ? styles.sortOn : styles.sort}
+                  aria-pressed={sort === key}
+                  onClick={() => setSort(key)}
+                >
+                  {SORTS[key].label}
+                </button>
+              ))}
+            </div>
+            <div className={styles.views} role="group" aria-label="Layout">
+              {(Object.keys(VIEWS) as View[]).map((key) => (
+                <button
+                  key={key}
+                  type="button"
+                  className={view === key ? styles.sortOn : styles.sort}
+                  aria-pressed={view === key}
+                  onClick={() => pickView(key)}
+                >
+                  {VIEWS[key]}
+                </button>
+              ))}
+            </div>
           </div>
         </div>
       )}
@@ -294,15 +374,18 @@ export default function SharedShelfPage() {
               <span className={styles.sectionCount}>{group.manga.length}</span>
               <ChevronDownIcon className={styles.sectionFold} />
             </summary>
-            <ul className={styles.grid}>
-              {group.manga.map((m, j) => (
-                <SeriesCard
-                  key={`${m.name}-${j}`}
-                  m={m}
-                  pointHere={peek === 1 && m === firstCard}
-                  onOpen={() => setOpen(m)}
-                />
-              ))}
+            <ul className={view === "rows" ? styles.rows : styles.grid}>
+              {group.manga.map((m, j) => {
+                const Item = view === "rows" ? SeriesRow : SeriesCard;
+                return (
+                  <Item
+                    key={`${m.name}-${j}`}
+                    m={m}
+                    pointHere={peek === 1 && m === firstCard}
+                    onOpen={() => setOpen(m)}
+                  />
+                );
+              })}
             </ul>
           </details>
         ))
