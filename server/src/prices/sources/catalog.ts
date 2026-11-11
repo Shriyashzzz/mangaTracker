@@ -3,6 +3,7 @@
 import { openLibraryFetch } from "./openLibrary.js";
 import { englishSeriesName } from "./anilist.js";
 import { coverPath } from "./covers.js";
+import { publisherOf } from "../publishers.js";
 import {
   bookNumberOf,
   isSingleVolume,
@@ -230,7 +231,7 @@ const toBook = async (
       isbn13,
       title,
       authors: englishAuthors(doc.author_name),
-      publisher: doc.publisher?.[0] ?? null,
+      publisher: publisherOf(isbn13, { work: doc.publisher }),
       year: doc.first_publish_year ?? null,
       volume: volumeNumber(title),
       pages: doc.number_of_pages_median ?? null,
@@ -268,7 +269,7 @@ export async function bookFromListing(listing: {
     isbn13: listing.isbn13,
     title,
     authors: englishAuthors(listing.authors),
-    publisher: listing.publisher ?? null,
+    publisher: publisherOf(listing.isbn13, { edition: publishers }),
     year: listing.year ?? null,
     volume: volumeNumber(title),
     pages: listing.pages ?? null,
@@ -480,7 +481,10 @@ export function booksFromEditions(
         isbn13: print.isbn13!,
         title: `${seriesName}, Book ${book}`,
         authors: englishAuthors(doc.author_name),
-        publisher: print.edition.publishers?.[0] ?? doc.publisher?.[0] ?? null,
+        publisher: publisherOf(print.isbn13!, {
+          edition: print.edition.publishers,
+          work: doc.publisher,
+        }),
         year: doc.first_publish_year ?? null,
         volume,
         coverUrl: coverPath(print.isbn13!),
@@ -529,7 +533,10 @@ export function booksFromEditions(
       isbn13,
       title: `${seriesName}, Vol. ${volume}`,
       authors: englishAuthors(doc.author_name),
-      publisher: edition.publishers?.[0] ?? doc.publisher?.[0] ?? null,
+      publisher: publisherOf(isbn13, {
+        edition: edition.publishers,
+        work: doc.publisher,
+      }),
       year: doc.first_publish_year ?? null,
       volume,
       coverUrl: coverPath(isbn13),
@@ -665,7 +672,10 @@ export async function lookupIsbn(isbn13: string): Promise<CatalogBook | null> {
     isbn13,
     title,
     authors: englishAuthors(doc.author_name),
-    publisher: edition?.publishers?.[0] ?? doc.publisher?.[0] ?? null,
+    publisher: publisherOf(isbn13, {
+      edition: edition?.publishers,
+      work: doc.publisher,
+    }),
     year: doc.first_publish_year ?? null,
     // the book's number isn't a volume's
     volume: null,

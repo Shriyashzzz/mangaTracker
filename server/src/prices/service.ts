@@ -57,6 +57,7 @@ import {
 } from "./types.js";
 import { googleSeriesVolumes } from "./sources/googleBooksCatalog.js";
 import { notOutYet } from "./preorder.js";
+import { publisherOf } from "./publishers.js";
 
 export { searchSeries };
 
@@ -482,7 +483,8 @@ export async function getVolumePrices(
       isbn13: book.isbn13,
       title: book.title,
       authors: book.authors,
-      publisher: book.publisher,
+      // saved before publisherOf: a foreign edition's publisher is fixed here
+      publisher: publisherOf(book.isbn13, { work: [book.publisher] }),
       // an edition known to have no cover: none, as the preview tags have it,
       // so the page (and its tags) never point at an image that answers 404
       coverUrl: coverRow && coverRow.coverId === null ? null : book.coverUrl,
@@ -1054,7 +1056,7 @@ export async function getVolumeSummary(isbn13: string) {
     // what the page is called (the address stays on the title)
     heading: volumeHeading(book.title, seriesLabel, saved),
     authors: book.authors,
-    publisher: book.publisher,
+    publisher: publisherOf(book.isbn13, { work: [book.publisher] }),
     year: book.year,
     // an edition we know has no cover: none, so previews and search engines
     // get the series' picture instead of an image address that answers 404
