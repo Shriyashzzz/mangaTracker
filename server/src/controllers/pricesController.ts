@@ -237,19 +237,22 @@ const cover = [
             console.error("fallback cover failed:", e.message);
             return null;
           });
-      if (fallback) {
-        res.set("Cache-Control", "public, max-age=604800");
-        res.redirect(302, fallback);
-        return;
-      }
-      if (!id) {
-        // no cover for this edition: the page shows its drawn placeholder
-        res.set("Cache-Control", "public, max-age=86400");
+      if (!id && !fallback) {
+        // no cover for this edition: the page shows its drawn placeholder.
+        // Kept a day only when we know there's none; when we didn't ask (a
+        // crawler, today's lookups used up), never kept, or a cache would
+        // hand the next visitor "no cover" too
+        res.set(
+          "Cache-Control",
+          fallback === null ? "public, max-age=86400" : "no-store",
+        );
         sendError(res, 404, "This edition has no cover.");
         return;
       }
-      res.set("Cache-Control", "public, max-age=604800");
-      res.redirect(302, coverImageUrl(id, size));
+      // the image itself, from this site: no chain of redirects for search
+      // engines to give up on, and the covers count as this site's in image
+      // search. Cloudflare keeps it (a Cache Rule on /api/prices/cover/)
+      await sendImage(res, fallback ?? coverImageUrl(id!, size));
     } catch (e) {
       if (!(e instanceof CoverLookupPaused)) {
         console.error("cover lookup failed:", (e as Error).message);
@@ -263,6 +266,24 @@ const cover = [
     }
   },
 ];
+
+// a cover image passed on as it came, kept 30 days by browsers and
+// Cloudflare. Anything that isn't an image (a host's error page) throws, and
+// the route falls back to sending the browser there itself
+const COVER_FETCH_MS = 10_000;
+async function sendImage(res: Response, url: string) {
+  const upstream = await fetch(url, {
+    signal: AbortSignal.timeout(COVER_FETCH_MS),
+  });
+  const type = upstream.headers.get("content-type") ?? "";
+  if (!upstream.ok || !upstream.body || !type.startsWith("image/"))
+    throw new Error(`cover image answered ${upstream.status} ${type}`);
+  res.set({
+    "Content-Type": type,
+    "Cache-Control": "public, max-age=2592000",
+  });
+  res.end(Buffer.from(await upstream.arrayBuffer()));
+}
 
 // GET /summary/volume/:isbn  for the site's link-preview server; DB only
 const volumeSummary = [

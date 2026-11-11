@@ -183,27 +183,30 @@ export const googleCoverLabel = (day = coverDay()) => `gbcover:${day}`;
 const sharper = (thumbnail: string) =>
   `${thumbnail.replace(/^http:/, "https:").replace(/&edge=curl/, "")}&fife=w400-h600`;
 
-const asking = new Map<string, Promise<string | null>>();
+const asking = new Map<string, Promise<string | null | undefined>>();
 
 // `ask`: false gives only a cover already found (a crawler's request never
-// spends one of the day's lookups)
+// spends one of the day's lookups). The answer: the cover's address, null
+// when Google Books has none, or undefined when we don't know (not asked:
+// a crawler, today's lookups used up, Google down). Only a known answer may
+// be kept by a cache
 export function fallbackCover(
   isbn13: string,
   { ask = true }: { ask?: boolean } = {},
-): Promise<string | null> {
+): Promise<string | null | undefined> {
   const pending = asking.get(isbn13);
   if (pending) return pending;
   const lookup = (async () => {
     const saved = await prisma.editionCover.findUnique({ where: { isbn13 } });
     if (saved?.fallbackUrl) return saved.fallbackUrl;
-    if (!ask) return null;
+    if (!ask) return saved?.fallbackCheckedAt ? null : undefined;
     if (
       saved?.fallbackCheckedAt &&
       Date.now() - saved.fallbackCheckedAt.getTime() < RETRY_NONE_MS
     )
       return null;
     const day = coverDay();
-    // today's share used: no cover for now, asked again another day
+    // today's share used: not known yet, asked again another day
     if (
       !(await priceQueries.claimApiCall(
         googleCoverLabel(day),
@@ -211,7 +214,7 @@ export function fallbackCover(
         `${day.slice(0, 7)}-01`,
       ))
     )
-      return null;
+      return undefined;
     const url = new URL(GOOGLE_URL);
     url.searchParams.set("q", `isbn:${isbn13}`);
     url.searchParams.set("fields", "items(volumeInfo/imageLinks/thumbnail)");
@@ -219,7 +222,7 @@ export function fallbackCover(
       url.searchParams.set("key", config.GOOGLE_BOOKS_API_KEY);
     const res = await fetch(url, { signal: AbortSignal.timeout(8000) });
     // out of quota or down: nothing saved, so it's asked another time
-    if (!res.ok) return null;
+    if (!res.ok) return undefined;
     const body = (await res.json()) as {
       items?: { volumeInfo?: { imageLinks?: { thumbnail?: string } } }[];
     };
