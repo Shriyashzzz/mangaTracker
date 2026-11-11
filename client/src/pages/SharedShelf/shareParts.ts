@@ -8,6 +8,16 @@ export type SharedManga = SharedShelf["manga"][number];
 export const statusOf = (m: SharedManga) =>
   m.status ? "Finished" : m.planned ? "To read" : "Reading";
 
+// each status has its own colour of stamp ink, carried through its section
+// tape, its rows and the spines in its sheet (--tone)
+export const TONES = {
+  Reading: "var(--stamp-market)",
+  Finished: "var(--stamp-new)",
+  "To read": "var(--stamp-ebook)",
+} as const;
+export const toneOf = (m: SharedManga) =>
+  ({ "--tone": TONES[statusOf(m)] }) as React.CSSProperties;
+
 // a shelf from before owned volumes were shared sends none
 const owned = (m: SharedManga) => ({
   volumesOwned: m.volumesOwned ?? null,

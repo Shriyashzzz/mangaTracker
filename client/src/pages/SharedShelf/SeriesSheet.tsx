@@ -1,16 +1,19 @@
 // One series on a shared shelf, opened from its card: the volumes they own as
 // spines on a shelf (a gap stands empty), how far they are, their rating and
-// notes, and the way to its prices. A native dialog brings the focus trap,
-// Escape and the backdrop
+// notes, a way to keep it on their own shelf (AddToShelf), a link to this
+// series on this shelf, and the way to its prices. A native dialog brings the
+// focus trap, Escape and the backdrop
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { NavLink } from "react-router";
-import { CloseIcon } from "../../components/icons/Icons";
+import { CheckIcon, CloseIcon, LinkIcon } from "../../components/icons/Icons";
 import DrawnCover from "../../components/drawnCover/DrawnCover";
 import StarRating from "../../components/starRating/StarRating";
 import { priceName, seriesPath } from "../../lib/prices";
+import AddToShelf from "./AddToShelf";
 import {
   ownedVolumesOf,
   statusOf,
+  toneOf,
   volumeRanges,
   type SharedManga,
 } from "./shareParts";
@@ -71,6 +74,30 @@ export function Cover({
   );
 }
 
+// the page's address already names the series (?series=): that's the link
+function CopySeriesLink() {
+  const [copied, setCopied] = useState(false);
+  const copy = async () => {
+    try {
+      await navigator.clipboard.writeText(window.location.href);
+      setCopied(true);
+      window.setTimeout(() => setCopied(false), 2000);
+    } catch {
+      // no clipboard: the address bar has it
+    }
+  };
+  return (
+    <button
+      type="button"
+      className="btn btn-secondary gap-2 [&_svg]:size-4"
+      onClick={copy}
+    >
+      {copied ? <CheckIcon /> : <LinkIcon />}
+      <span aria-live="polite">{copied ? "Copied" : "Copy link"}</span>
+    </button>
+  );
+}
+
 export default function SeriesSheet({
   m,
   owner,
@@ -91,6 +118,7 @@ export default function SeriesSheet({
     <dialog
       ref={dialog}
       className={styles.sheet}
+      style={toneOf(m)}
       aria-labelledby="series-sheet-title"
       onClose={onClose}
       // the backdrop counts as the dialog itself; its contents are all children
@@ -152,6 +180,7 @@ export default function SeriesSheet({
             )}
           </dl>
         </div>
+        <AddToShelf m={m} />
 
         <section aria-labelledby="series-sheet-volumes">
           <h3 id="series-sheet-volumes" className={styles.label}>
@@ -182,14 +211,12 @@ export default function SeriesSheet({
       <div className={styles.sheetFoot}>
         <NavLink
           to={seriesPath(priceName(m))}
-          className="btn btn-primary"
+          className="btn btn-secondary"
           viewTransition
         >
           See prices
         </NavLink>
-        <button type="button" className="btn btn-secondary" onClick={close}>
-          Close
-        </button>
+        <CopySeriesLink />
       </div>
     </dialog>
   );

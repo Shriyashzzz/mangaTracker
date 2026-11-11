@@ -5,14 +5,28 @@ export const shareStyles = {
   page: "flex flex-col gap-8 upto-520:gap-6",
 
   // who, how much, and the link to pass on
-  head: "flex flex-wrap items-center justify-between gap-x-6 gap-y-4 border-b-[1.5px] border-line pb-6",
+  // name and numbers, the fan beside them, the links under the fan; on
+  // phones the fan comes first, then the name
+  head: "grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-8 gap-y-5 border-b-[1.5px] border-line pb-7 upto-720:grid-cols-[minmax(0,1fr)] upto-720:pb-6",
   who: "flex min-w-0 items-center gap-4",
   art: "w-20 shrink-0 upto-520:w-16",
   name: "font-brand text-[2.4rem] leading-none font-normal tracking-[0.02em] text-balance uppercase upto-520:text-[1.9rem]",
   // the shelf in numbers, as one line of print
   tally:
-    "mt-2 flex flex-wrap gap-x-4 gap-y-1 font-mono text-[0.8rem] text-ink-soft [&_b]:font-semibold [&_b]:text-ink",
-  actions: "flex flex-wrap gap-2.5 upto-520:w-full upto-520:[&>*]:flex-1",
+    "mt-3 flex flex-wrap gap-2 font-mono text-[0.78rem] text-(--stamp-ink) [&_b]:font-brand [&_b]:text-[1.15rem] [&_b]:leading-none [&_b]:font-normal",
+  // the shelf in numbers, as stamps in each status' ink
+  tallyStamp:
+    "inline-flex items-baseline gap-1.5 border-[1.5px] border-line px-2 py-1 shadow-[2px_2px_0_var(--hard-shadow)] odd:-rotate-1 even:rotate-1",
+  actions:
+    "col-start-1 flex flex-wrap gap-2.5 upto-520:w-full upto-520:[&>*]:flex-1",
+  // fanned covers: tilted from the middle, straightened and lifted on hover
+  fan: "relative isolate col-start-2 row-span-2 row-start-1 flex items-end justify-center pr-2 pl-8 before:absolute before:-inset-x-6 before:-inset-y-5 before:-z-1 before:bg-[radial-gradient(color-mix(in_srgb,var(--accent)_45%,transparent)_1.5px,transparent_1.7px)] before:bg-size-[8px_8px] before:[mask-image:radial-gradient(closest-side,black_55%,transparent)] upto-720:col-start-1 upto-720:row-span-1 upto-720:row-start-1 upto-720:justify-start upto-720:pl-5",
+  fanItem:
+    "-ml-8 rotate-(--tilt) transition-[rotate,translate] duration-200 ease-ink first:ml-0 nth-[2]:translate-y-1 nth-[4]:translate-y-1 nth-[odd]:not-first:not-last:-translate-y-1 hover:z-[2] hover:-translate-y-2 hover:rotate-0 focus-within:z-[2] upto-720:-ml-5",
+  fanCard:
+    "block cursor-pointer focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-accent focus-visible:outline-dashed",
+  fanCover:
+    "relative aspect-2/3 w-[6.5rem] border-[1.5px] border-line bg-paper-2 shadow-ink-lg upto-720:w-[4.25rem]",
   action: "btn btn-secondary gap-2 [&_svg]:size-4",
 
   // find and order
@@ -35,9 +49,9 @@ export const shareStyles = {
   // one reading status
   section: "group/section",
   sectionHead:
-    "tap flex cursor-pointer list-none items-baseline gap-3 border-b-[1.5px] border-line-soft pb-2 [&::-webkit-details-marker]:hidden",
+    "tap flex cursor-pointer list-none items-center gap-3 border-b-[1.5px] border-line-soft pb-3 [&::-webkit-details-marker]:hidden",
   sectionName:
-    "font-brand text-[1.5rem] leading-none font-normal tracking-[0.03em] uppercase",
+    "-rotate-1 border-[1.5px] border-line bg-(--tone) px-2.5 pt-1.5 pb-1 font-brand text-[1.45rem] leading-none font-normal tracking-[0.03em] text-(--stamp-ink) uppercase shadow-[2px_2px_0_var(--hard-shadow)]",
   sectionCount: "font-mono text-[0.8rem] text-muted",
   sectionFold:
     "ml-auto size-4 text-muted transition-transform duration-200 ease-ink group-open/section:rotate-180",
@@ -61,7 +75,7 @@ export const shareStyles = {
   rows: "mt-2 grid grid-cols-[repeat(auto-fill,minmax(18rem,1fr))] gap-x-8 upto-520:grid-cols-[minmax(0,1fr)]",
   row: "border-b-[1.5px] border-line-soft",
   rowCard:
-    "group/card relative grid w-full min-w-0 cursor-pointer grid-cols-[2.75rem_minmax(0,1fr)] items-center gap-x-3 py-2.5 text-left focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent focus-visible:outline-dashed",
+    "group/card relative -mx-2 grid w-[calc(100%+1rem)] min-w-0 cursor-pointer grid-cols-[2.75rem_minmax(0,1fr)] items-center gap-x-3 px-2 py-2.5 text-left transition-colors duration-150 hover:bg-[color-mix(in_srgb,var(--tone)_35%,transparent)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent focus-visible:outline-dashed",
   rowCover:
     "relative aspect-2/3 border-[1.5px] border-line bg-paper-2 shadow-ink transition-[translate] duration-200 ease-ink group-hover/card:-translate-y-0.5",
   rowText: "flex min-w-0 flex-col gap-[0.15rem]",
@@ -76,22 +90,22 @@ export const shareStyles = {
 
   // someone without an account, at the end of the shelf
   invite:
-    "flex flex-wrap items-center gap-x-6 gap-y-3 border-2 border-line bg-card px-5 py-4 shadow-ink upto-520:flex-col upto-520:items-start",
+    "flex flex-wrap items-center gap-x-6 gap-y-3 border-2 border-line bg-(--stamp-market) bg-[radial-gradient(var(--dots-strong)_1px,transparent_1.2px)] bg-size-[6px_6px] px-5 py-4 text-(--stamp-ink) shadow-ink-lg upto-520:flex-col upto-520:items-start",
   inviteArt: "w-16 shrink-0",
   inviteText: "flex min-w-0 flex-1 flex-col gap-0.5",
   inviteHead:
     "font-brand text-[1.35rem] leading-tight tracking-[0.02em] uppercase",
-  inviteBody: "max-w-[52ch] text-[0.92rem] text-ink-soft",
+  inviteBody: "max-w-[52ch] text-[0.92rem]",
 
   // the series sheet: from the bottom on phones, the right on laptops
   sheet:
     "fixed m-0 mt-auto ml-auto flex max-h-none w-[min(30rem,100vw)] flex-col border-l-[2.5px] border-line bg-card text-ink shadow-ink-lg backdrop:bg-[rgba(20,14,8,0.55)] open:animate-sheet-in min-[721px]:h-dvh upto-720:max-h-[88dvh] upto-720:w-screen upto-720:max-w-none upto-720:border-t-[2.5px] upto-720:border-l-0 upto-720:open:animate-sheet-up",
   sheetHead:
-    "flex items-start justify-between gap-4 border-b-[1.5px] border-line px-5 pt-5 pb-4",
+    "flex items-start justify-between gap-4 border-b-[1.5px] border-line bg-(--tone) bg-[radial-gradient(var(--dots-strong)_1px,transparent_1.2px)] bg-size-[6px_6px] px-5 pt-5 pb-4 text-(--stamp-ink)",
   sheetTitle:
     "font-brand text-[1.7rem] leading-[1.05] font-normal tracking-[0.02em] text-balance uppercase",
   sheetClose:
-    "tap -mr-2 grid size-10 shrink-0 place-items-center text-ink-soft hover:text-ink [&_svg]:size-4",
+    "tap -mr-2 grid size-10 shrink-0 place-items-center text-(--stamp-ink) hover:bg-[color-mix(in_srgb,var(--card)_40%,transparent)] [&_svg]:size-4",
   sheetBody: "flex min-h-0 flex-1 flex-col gap-6 overflow-y-auto px-5 py-5",
   sheetTop: "flex gap-4",
   sheetCover:
@@ -102,6 +116,10 @@ export const shareStyles = {
     "mb-2 font-brand text-[1.15rem] leading-none tracking-[0.03em] uppercase",
   ranges: "mt-2 font-mono text-[0.8rem] text-ink-soft",
   notes: "leading-[1.55] whitespace-pre-line wrap-anywhere",
+  // keeping it: a button, or where it already is on theirs
+  addLine: "flex flex-wrap items-center gap-x-3 gap-y-1 text-[0.95rem]",
+  addLink:
+    "tap font-medium underline decoration-accent decoration-2 underline-offset-3",
   sheetFoot:
     "flex flex-wrap gap-2.5 border-t-[1.5px] border-line px-5 py-4 upto-520:[&>*]:flex-1",
 
@@ -109,6 +127,6 @@ export const shareStyles = {
   spines:
     "flex flex-wrap items-end gap-x-[3px] gap-y-3 border-b-[3px] border-double border-line pb-[3px]",
   spine:
-    "grid h-16 w-[22px] place-items-end justify-center border-[1.5px] border-line bg-paper-2 pb-1 font-mono text-[0.62rem] font-semibold text-ink shadow-[1px_0_0_var(--line)] [writing-mode:vertical-rl] odd:bg-card",
+    "grid h-16 w-[22px] place-items-end justify-center border-[1.5px] border-line bg-(--tone) pb-1 font-mono text-[0.62rem] font-semibold text-(--stamp-ink) shadow-[1px_0_0_var(--line)] [writing-mode:vertical-rl] odd:bg-[color-mix(in_srgb,var(--tone)_78%,var(--stamp-ink))]",
   gap: "grid h-12 w-[22px] place-items-end justify-center border-[1.5px] border-dashed border-line-soft pb-1 font-mono text-[0.62rem] text-muted [writing-mode:vertical-rl]",
 } as const;

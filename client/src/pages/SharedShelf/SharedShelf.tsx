@@ -1,10 +1,11 @@
 // Someone's shelf, opened from the link they shared. Read-only: their name and
-// the shelf in numbers, the series in Reading / Finished / To read (found by
+// the shelf in numbers with what they have most of fanned out beside, the series in Reading / Finished / To read (found by
 // name, put in order, as compact rows or covers), and a sheet with the volumes they own when one is
-// tapped (SeriesSheet). Someone without an account gets Kenji on their first
+// tapped (SeriesSheet). An open series is in the address (?series=), so a
+// link can open straight to it. Someone without an account gets Kenji on their first
 // three visits (SharePeek) and a way to start their own at the end
 import { useEffect, useMemo, useState } from "react";
-import { NavLink, useParams } from "react-router";
+import { NavLink, useParams, useSearchParams } from "react-router";
 import Avatar from "../../components/avatar/Avatar";
 import Mascot from "../../components/mascot/Mascot";
 import StarRating from "../../components/starRating/StarRating";
@@ -26,6 +27,7 @@ import {
   ownedCountOf,
   ownedVolumesOf,
   statusOf,
+  TONES,
   volumeRanges,
   type SharedManga,
 } from "./shareParts";
@@ -163,6 +165,49 @@ function SeriesRow({
   );
 }
 
+// what they have most of, fanned out like books on a table. Each opens its
+// sheet; most of the shelf in one look before any scrolling
+function CoverFan({
+  manga,
+  onOpen,
+}: {
+  manga: SharedManga[];
+  onOpen: (m: SharedManga) => void;
+}) {
+  const top = [...manga]
+    .sort(
+      (a, b) =>
+        ownedCountOf(b) - ownedCountOf(a) || (b.rating ?? 0) - (a.rating ?? 0),
+    )
+    .slice(0, 5);
+  if (top.length < 2) return null;
+  return (
+    <ul className={styles.fan} aria-label="What they have most of">
+      {top.map((m, i) => (
+        <li
+          key={`${m.name}-${i}`}
+          className={styles.fanItem}
+          style={
+            {
+              "--tilt": `${(i - (top.length - 1) / 2) * 4}deg`,
+            } as React.CSSProperties
+          }
+        >
+          <button
+            type="button"
+            className={styles.fanCard}
+            aria-haspopup="dialog"
+            aria-label={`${m.name}. Open`}
+            onClick={() => onOpen(m)}
+          >
+            <Cover m={m} className={styles.fanCover} />
+          </button>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
 // copy the link; on phones, the share sheet too
 function ShareButtons() {
   const [copied, setCopied] = useState(false);
@@ -205,7 +250,22 @@ export default function SharedShelfPage() {
   } | null>(null);
   const shelf = state?.code === code ? state.shelf : null;
   const finished = state?.code === code;
-  const [open, setOpen] = useState<SharedManga | null>(null);
+  // the open series lives in the address, so its link opens it
+  const [params, setParams] = useSearchParams();
+  const openName = params.get("series")?.toLowerCase();
+  const open =
+    (openName && shelf?.manga.find((m) => m.name.toLowerCase() === openName)) ||
+    null;
+  const setOpen = (m: SharedManga | null) =>
+    setParams(
+      (now) => {
+        const next = new URLSearchParams(now);
+        if (m) next.set("series", m.name);
+        else next.delete("series");
+        return next;
+      },
+      { replace: true, preventScrollReset: true },
+    );
   const [query, setQuery] = useState("");
   const [sort, setSort] = useState<Sort>("name");
   const [view, setView] = useState<View>(viewNow);
@@ -225,7 +285,11 @@ export default function SharedShelfPage() {
   const peek = visit === null ? null : sharePeekFor(visit);
 
   usePageMeta({
-    title: shelf ? `${shelf.displayName}'s shelf` : "A shared shelf",
+    title: shelf
+      ? open
+        ? `${open.name} on ${shelf.displayName}'s shelf`
+        : `${shelf.displayName}'s manga shelf`
+      : "A shared shelf",
     noindex: true,
   });
 
@@ -293,23 +357,36 @@ export default function SharedShelfPage() {
           <div className="min-w-0">
             <h1 className={styles.name}>{shelf.displayName}</h1>
             <p className={styles.tally}>
-              <span>
-                <b>{all.length}</b> series
-              </span>
-              <span>
-                <b>{volumes}</b> {volumes === 1 ? "volume" : "volumes"} owned
-              </span>
-              <span>
-                <b>{count("Finished")}</b> finished
-              </span>
-              {count("To read") > 0 && (
-                <span>
-                  <b>{count("To read")}</b> to read
-                </span>
-              )}
+              {[
+                [all.length, "series", "var(--stamp-market)"],
+                [
+                  volumes,
+                  volumes === 1 ? "volume owned" : "volumes owned",
+                  "var(--accent)",
+                ],
+                [count("Finished"), "finished", "var(--stamp-new)"],
+                [count("To read"), "to read", "var(--stamp-ebook)"],
+              ]
+                .filter(([n, label]) => label !== "to read" || Number(n) > 0)
+                .map(([n, label, ink]) => (
+                  <span
+                    key={label}
+                    className={styles.tallyStamp}
+                    style={{
+                      background: ink as string,
+                      // the red stamp takes the light ink
+                      ...(ink === "var(--accent)" && {
+                        color: "var(--on-accent)",
+                      }),
+                    }}
+                  >
+                    <b>{n}</b> {label}
+                  </span>
+                ))}
             </p>
           </div>
         </div>
+        <CoverFan manga={all} onOpen={setOpen} />
         <ShareButtons />
       </header>
 
@@ -366,6 +443,7 @@ export default function SharedShelfPage() {
           <details
             key={group.name}
             className={styles.section}
+            style={{ "--tone": TONES[group.name] } as React.CSSProperties}
             // searching opens every list with something found
             open={startOpen || i === 0 || Boolean(query.trim())}
           >
