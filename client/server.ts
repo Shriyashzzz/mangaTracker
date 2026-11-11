@@ -92,7 +92,16 @@ type VolumeSummary = {
     format: string;
     priceCents: number;
   }[];
+  // the release date ("2027-03-30" or "2014-05"), page count, the series'
+  // description and the volumes around it; optional like offers
+  published?: string | null;
+  pages?: number | null;
+  seriesDescription?: string | null;
+  prev?: NearbyVolume | null;
+  next?: NearbyVolume | null;
+  nearby?: NearbyVolume[];
 };
+type NearbyVolume = { isbn13: string; title: string; volume: number };
 type SeriesSummary = {
   name: string;
   description: string | null;
@@ -162,14 +171,34 @@ const BODY_STYLE = `<style>
 const crumbs = (links: [string, string][]) =>
   `<nav>${links.map(([href, label]) => `<a href="${escapeHtml(href)}">${escapeHtml(label)}</a>`).join(" › ")}</nav>`;
 
+// "2027-03-30" -> "March 30, 2027"; "2014-05" -> "May 2014"
+const releaseDate = (published: string) => {
+  const [y, m, d] = published.split("-").map(Number);
+  if (!y || !m) return published;
+  const date = new Date(Date.UTC(y, m - 1, d || 1));
+  return date.toLocaleDateString("en-US", {
+    timeZone: "UTC",
+    year: "numeric",
+    month: "long",
+    ...(d ? { day: "numeric" } : {}),
+  });
+};
+
+const volumeLink = (n: NearbyVolume, label = `Vol. ${n.volume}`) =>
+  `<a href="${escapeHtml(volumePath(n.isbn13, n.title))}">${escapeHtml(label)}</a>`;
+
 function volumeBody(v: VolumeSummary, image: string | null | undefined) {
   const name = v.heading ?? v.title;
   const facts = [
     v.authors && ["Author", v.authors],
     v.publisher && ["Publisher", v.publisher],
-    v.year && ["Published", String(v.year)],
+    v.published
+      ? ["Release date", releaseDate(v.published)]
+      : v.year && ["Published", String(v.year)],
+    v.pages && ["Pages", String(v.pages)],
     ["ISBN", v.isbn13],
   ].filter(Boolean) as [string, string][];
+  const nearby = v.nearby ?? [];
   const offers = v.offers ?? [];
   return `<main class="crawl-page">
       ${crumbs([
@@ -192,6 +221,29 @@ function volumeBody(v: VolumeSummary, image: string | null | undefined) {
         <thead><tr><th>Store</th><th>Copy</th><th>Price</th></tr></thead>
         <tbody>${offers.map((o) => `<tr><td>${escapeHtml(o.store)}</td><td>${escapeHtml(offerKind(o))}</td><td>${usd(o.priceCents)}</td></tr>`).join("")}</tbody>
       </table>`
+          : ""
+      }
+      ${
+        v.prev || v.next
+          ? `<p>${[
+              v.prev && `Previous: ${volumeLink(v.prev)}`,
+              v.next && `Next: ${volumeLink(v.next)}`,
+            ]
+              .filter(Boolean)
+              .join(" · ")}</p>`
+          : ""
+      }
+      ${
+        v.seriesDescription
+          ? `<h2>About ${escapeHtml(v.seriesName)}</h2>
+      <p>${escapeHtml(clip(plainText(v.seriesDescription), 400))}</p>`
+          : ""
+      }
+      ${
+        nearby.length
+          ? `<h2>More ${escapeHtml(v.seriesName)} volumes</h2>
+      <ul>${nearby.map((n) => `<li>${volumeLink(n, `${v.seriesName}, Vol. ${n.volume}`)}</li>`).join("")}</ul>
+      <p><a href="${escapeHtml(seriesPath(v.seriesName))}">Every ${escapeHtml(v.seriesName)} volume and its prices</a></p>`
           : ""
       }
     </main>`;
@@ -222,14 +274,17 @@ function volumeTags(v: VolumeSummary, origin: string): Tags {
   const path = volumePath(v.isbn13, v.title);
   const description = clip(
     [
-      `Compare US prices for ${v.heading ?? v.title}`,
+      // the lowest price first: it's what a search result shows
+      v.bestNew
+        ? `${v.heading ?? v.title}: new from ${usd(v.bestNew.priceCents)} at ${v.bestNew.store}.`
+        : "",
+      v.bestNew
+        ? "Compare US prices"
+        : `Compare US prices for ${v.heading ?? v.title}`,
       // "and more" only when there is more
       v.stores.length
         ? `at ${v.stores.slice(0, 4).join(", ")}${v.stores.length > 4 ? " and more" : ""}.`
         : "across stores.",
-      v.bestNew
-        ? `Lowest new price we've found: ${usd(v.bestNew.priceCents)} at ${v.bestNew.store}.`
-        : "",
       v.publisher ? `Published by ${v.publisher}.` : "",
     ].join(" "),
   );
@@ -305,7 +360,7 @@ const HOME_DESCRIPTION =
   /<meta\s+name="description"\s+content="([^"]*)"/.exec(template)?.[1] ?? "";
 
 type Highlights = { trending?: { name: string; slug: string }[] };
-type SeriesIndexEntry = { name: string };
+type SeriesIndexEntry = { name: string; knownVolumes?: number };
 
 const linkList = (links: [href: string, label: string][]) =>
   `<ul>${links.map(([href, label]) => `<li><a href="${escapeHtml(href)}">${escapeHtml(label)}</a></li>`).join("")}</ul>`;
@@ -341,7 +396,10 @@ function homeTags(h: Highlights | null): Tags {
 
 // every series, A to Z, linked: the way in to each one's page
 function seriesIndexTags(all: SeriesIndexEntry[]): Tags {
-  const sorted = [...all].sort((a, b) => a.name.localeCompare(b.name));
+  // only series with volumes to show, as the sitemap has them
+  const sorted = all
+    .filter((s) => s.knownVolumes !== 0)
+    .sort((a, b) => a.name.localeCompare(b.name));
   return {
     // as SeriesIndex.tsx has it
     title: "All manga series",
