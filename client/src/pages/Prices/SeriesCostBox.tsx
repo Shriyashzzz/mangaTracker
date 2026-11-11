@@ -40,11 +40,13 @@ export default function SeriesCostBox({
           new for all {cost.volumes}
           {comingSoon && " out now"}
         </p>
-        <p className={styles.costNote}>
-          {all
-            ? `At the lowest new price we've found for each, about ${formatCents(Math.round(cost.cents / cost.volumes))} a volume.`
-            : `${cost.priced} of ${cost.volumes} priced so far; the rest counted at ${formatCents(cost.usualCents ?? 0)} each.`}
-        </p>
+        {/* only when every volume is priced: an estimate says "About" */}
+        {all && (
+          <p className={styles.costNote}>
+            At the lowest new price we've found for each, about{" "}
+            {formatCents(Math.round(cost.cents / cost.volumes))} a volume.
+          </p>
+        )}
       </div>
       {isSignedIn === false && (
         <NavLink to="/signup" className="btn btn-primary" viewTransition>
