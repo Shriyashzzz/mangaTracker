@@ -7,6 +7,8 @@ import {
 } from "../../lib/prices";
 import type { PageMeta } from "../../lib/seo";
 import { isCollection, type Series, type VolumePrices } from "../../lib/types";
+import { seriesCost } from "../../lib/finishCost";
+import { notOutYet } from "../../lib/releaseDate";
 
 // what search engines and link previews see for the price pages
 
@@ -16,36 +18,60 @@ const absolute = (path: string) => new URL(path, location.origin).href;
 const absoluteImage = (url?: string | null) =>
   url ? absolute(coverSrc(url) ?? url) : undefined;
 const dollars = (cents: number) => (cents / 100).toFixed(2);
+// a seller on a big store ("eBay - pele-onfyah") goes by the store's name
+const shopName = (store: string) => store.split(/\s[-–—|]\s/)[0]!.trim();
+// a total: "$1,560", or with cents when it's exact
+const total = (cents: number, exact: boolean) =>
+  exact
+    ? formatCents(cents)
+    : `$${(Math.round(cents / 1000) * 10).toLocaleString("en-US")}`;
 
 export function volumeMeta({
   book,
   heading,
   series,
   offers,
-  storeLinks,
 }: VolumePrices): PageMeta {
   const seriesLabel = series.info?.name ?? series.name;
   // what the page is called; the address stays on book.title
   const name = heading ?? book.title;
   const path = volumePath(book.isbn13, book.title);
   // box sets and omnibuses are listed, but aren't this volume's price
+  // new print copies only, as the "New from" line (as client/server.ts)
   const prices = offers
-    .filter((o) => o.inStock && !isCollection(o))
+    .filter(
+      (o) =>
+        o.inStock &&
+        !isCollection(o) &&
+        o.format === "print" &&
+        o.condition === "new",
+    )
     .map((o) => o.priceCents);
   const best = offers.find(
     (o) => o.condition === "new" && o.format === "print" && o.inStock,
   );
-  const stores = [...new Set([...offers, ...storeLinks].map((s) => s.store))];
+  // stores readers know by name; the rest counted, never named (a search
+  // result saying "at nuclearwaste" reads as spam)
+  const named = [
+    ...new Set(
+      offers.filter((o) => o.knownStore).map((o) => shopName(o.store)),
+    ),
+  ].slice(0, 4);
+  const storeCount = new Set(offers.map((o) => shopName(o.store))).size;
+  const others = storeCount - named.length;
+  const storesLine = named.length
+    ? `at ${named.join(", ")}${others > 0 ? ` and ${others} more store${others === 1 ? "" : "s"}` : ""}.`
+    : storeCount
+      ? `from ${storeCount} store${storeCount === 1 ? "" : "s"}.`
+      : "across stores.";
 
   const description = clip(
     [
-      `Compare US prices for ${name}`,
-      stores.length
-        ? `at ${stores.slice(0, 4).join(", ")} and more.`
-        : "across stores.",
       best
-        ? `Lowest new price we've found: ${formatCents(best.priceCents)} at ${best.store}.`
+        ? `${name}: new from ${formatCents(best.priceCents)}${best.knownStore ? ` at ${shopName(best.store)}` : ""}.`
         : "",
+      best ? "Compare US prices" : `Compare US prices for ${name}`,
+      storesLine,
       book.publisher ? `Published by ${book.publisher}.` : "",
     ].join(" "),
   );
@@ -110,11 +136,22 @@ export function seriesMeta({ name, info, volumes }: Series): PageMeta {
   const path = seriesCanonicalPath(label);
   const count = volumes.length;
 
+  // what collecting it costs, out now only, as the page's box and the site
+  // server say it
+  const out = volumes.filter(
+    (v) =>
+      v.volume >= 1 && Number.isInteger(v.volume) && !notOutYet(v.published),
+  );
+  const cost = seriesCost(out);
+  const costLine =
+    cost?.estimateCents != null
+      ? `Every ${label} volume new: ${cost.complete ? "" : "about "}${total(cost.estimateCents, cost.complete)} for all ${cost.volumes}${out.length < volumes.length ? " out now" : ""}.`
+      : "";
+
   const description = clip(
     [
-      count
-        ? `Compare US prices for all ${count} ${label} volumes in English, from volume 1 on.`
-        : `Compare US prices for ${label} manga volumes.`,
+      `Compare US prices for every ${label} volume in English.`,
+      costLine,
       info?.description ?? "",
     ].join(" "),
   );

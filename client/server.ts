@@ -413,7 +413,10 @@ function volumeTags(v: VolumeSummary, origin: string): Tags {
 function seriesTags(s: SeriesSummary, origin: string): Tags {
   const path = seriesPath(s.name);
   return {
-    title: `${s.name} manga prices`,
+    // as the app's own title (pages/Prices/pageMeta.ts seriesMeta)
+    title: s.volumes?.length
+      ? `${s.name} manga prices, all ${s.volumes.length} volumes`
+      : `${s.name} manga prices`,
     description: clip(
       `Compare US prices for every ${s.name} volume in English. ${seriesCostLine(s) ?? ""} ${s.description ?? ""}`,
     ),
