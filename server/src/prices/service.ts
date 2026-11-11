@@ -11,7 +11,11 @@
 // Only opening a volume page can spend a paid search, and at most once per
 // volume every FRESH_FOR_MS; everything else reads what's already stored.
 import priceQueries, { type Book } from "../models/priceQueries.js";
-import { lookupIsbn, searchVolumesDetailed } from "./sources/catalog.js";
+import {
+  englishAuthors,
+  lookupIsbn,
+  searchVolumesDetailed,
+} from "./sources/catalog.js";
 import {
   getSeriesInfo,
   getTrending,
@@ -44,7 +48,11 @@ import {
   storeName,
 } from "./stores/storeLinks.js";
 import { editionCoverId } from "./sources/covers.js";
-import { dropUnlikelyNew, unlikelyNewTest } from "./stores/retailers.js";
+import {
+  dropUnlikelyNew,
+  isRetailer,
+  unlikelyNewTest,
+} from "./stores/retailers.js";
 import { baseName, isNovelName, novelName } from "./lightNovel.js";
 import { volumesKey } from "./volumesKey.js";
 import {
@@ -57,6 +65,7 @@ import {
 } from "./types.js";
 import { googleSeriesVolumes } from "./sources/googleBooksCatalog.js";
 import { notOutYet } from "./preorder.js";
+import { publisherOf } from "./publishers.js";
 
 export { searchSeries };
 
@@ -481,8 +490,10 @@ export async function getVolumePrices(
     book: {
       isbn13: book.isbn13,
       title: book.title,
-      authors: book.authors,
-      publisher: book.publisher,
+      // saved before englishAuthors: "尾田栄一郎" alone shows none
+      authors: englishAuthors(book.authors?.split(/,\s*/)),
+      // saved before publisherOf: a foreign edition's publisher is fixed here
+      publisher: publisherOf(book.isbn13, { work: [book.publisher] }),
       // an edition known to have no cover: none, as the preview tags have it,
       // so the page (and its tags) never point at an image that answers 404
       coverUrl: coverRow && coverRow.coverId === null ? null : book.coverUrl,
@@ -922,7 +933,13 @@ let knownVolumes = {
   bySeries: new Map<string, Map<string, KnownVolume>>(),
 };
 
-async function knownVolumesBySeries() {
+// a series just built (seriesFiller.ts): counted on the next ask, not in ten
+// minutes
+export const forgetKnownVolumes = () => {
+  knownVolumes.at = 0;
+};
+
+export async function knownVolumesBySeries() {
   if (Date.now() - knownVolumes.at < KNOWN_VOLUMES_MS) {
     return knownVolumes.bySeries;
   }
@@ -933,6 +950,8 @@ async function knownVolumesBySeries() {
     bySeries.get(key)!.set(v.isbn13, v);
   };
   (await priceQueries.getBookTitles()).forEach(add);
+  // every saved list, so a series built before a restart still has its volumes
+  (await priceQueries.getSavedVolumeTitles().catch(() => [])).forEach(add);
   // full volume lists from series pages people opened recently
   for (const hit of seriesVolumesCache.values()) hit.volumes.forEach(add);
   knownVolumes = { at: Date.now(), bySeries };
@@ -1053,21 +1072,45 @@ export async function getVolumeSummary(isbn13: string) {
     title: book.title,
     // what the page is called (the address stays on the title)
     heading: volumeHeading(book.title, seriesLabel, saved),
-    authors: book.authors,
-    publisher: book.publisher,
+    // saved before englishAuthors: "尾田栄一郎" alone shows none
+    authors: englishAuthors(book.authors?.split(/,\s*/)),
+    publisher: publisherOf(book.isbn13, { work: [book.publisher] }),
     year: book.year,
     // an edition we know has no cover: none, so previews and search engines
     // get the series' picture instead of an image address that answers 404
     coverUrl: coverRow && coverRow.coverId === null ? null : book.coverUrl,
     seriesName: series?.name ?? seriesName(book.title),
     seriesCoverUrl: series?.coverUrl ?? null,
-    stores: [...new Set(offers.map((o) => o.store))],
+    // stores people know first; `knownStores` is just those, for search
+    // results, where "at nuclearwaste" reads as spam
+    stores: [...new Set(offers.map((o) => o.store))].sort(
+      (a, b) => Number(isWellKnown(b)) - Number(isWellKnown(a)),
+    ),
+    // stores, counting a big store's sellers as the store
+    storeCount: new Set(offers.map((o) => shopName(o.store))).size,
+    knownStores: [
+      ...new Set(
+        offers
+          .map((o) => o.store)
+          .filter(isWellKnown)
+          .map(shopName),
+      ),
+    ],
     lowCents: inStock[0]?.priceCents ?? null,
     highCents: inStock.at(-1)?.priceCents ?? null,
     offerCount: inStock.length,
     bestNew: bestNew
-      ? { store: bestNew.store, priceCents: bestNew.priceCents }
+      ? {
+          store: bestNew.store,
+          priceCents: bestNew.priceCents,
+          // the name to show in a search result, when it's one people know
+          known: isWellKnown(bestNew.store) ? shopName(bestNew.store) : null,
+        }
       : null,
+    published: saved?.published ?? null,
+    pages: saved?.pages ?? null,
+    seriesDescription: series?.description ?? null,
+    ...(await nearbyVolumes(isbn13, book.title, seriesLabel)),
     // the stored prices, cheapest first, written into the page for crawlers
     offers: inStock.slice(0, SUMMARY_OFFERS).map((o) => ({
       store: o.store,
@@ -1079,6 +1122,50 @@ export async function getVolumeSummary(isbn13: string) {
 }
 
 const SUMMARY_OFFERS = 12;
+
+// a seller on a big store ("eBay - pele-onfyah") goes by the store's name
+const shopName = (store: string) =>
+  storeName(store.split(/\s[-–—|]\s/)[0]!.trim());
+// a store a reader knows by name: the big ones, eBay and the ebook stores
+const isWellKnown = (store: string) =>
+  isRetailer(shopName(store)) ||
+  /^(ebay|google play( books)?|kobo(\.com)?|bookwalker|kindle)$/i.test(
+    shopName(store),
+  );
+const NEARBY_VOLUMES = 12;
+
+// the volumes around this one in its series, from what's known (memory and
+// database only): the one before and after, and a dozen nearest by number,
+// for the page's links. One volume per number
+async function nearbyVolumes(isbn13: string, title: string, series: string) {
+  const bySeries = await knownVolumesBySeries().catch(() => null);
+  const byNumber = new Map<number, KnownVolume>();
+  for (const key of new Set([slugify(series), slugify(seriesName(title))])) {
+    for (const v of bySeries?.get(key)?.values() ?? []) {
+      const n = titleVolume(v.title);
+      if (n == null) continue;
+      // this volume itself wins its number
+      if (!byNumber.has(n) || v.isbn13.trim() === isbn13) byNumber.set(n, v);
+    }
+  }
+  const list = [...byNumber.entries()]
+    .sort(([a], [b]) => a - b)
+    .map(([volume, v]) => ({
+      isbn13: v.isbn13.trim(),
+      title: v.title,
+      volume,
+    }));
+  const at = list.findIndex((v) => v.isbn13 === isbn13);
+  if (at === -1) return { prev: null, next: null, nearby: [] };
+  const nearby = list
+    .filter((_, i) => i !== at)
+    .map((v, i) => ({ v, d: Math.abs(i + (i >= at ? 1 : 0) - at) }))
+    .sort((a, b) => a.d - b.d)
+    .slice(0, NEARBY_VOLUMES)
+    .map(({ v }) => v)
+    .sort((a, b) => a.volume - b.volume);
+  return { prev: list[at - 1] ?? null, next: list[at + 1] ?? null, nearby };
+}
 const SUMMARY_VOLUMES = 200;
 
 export async function getSeriesSummary(asked: string) {
