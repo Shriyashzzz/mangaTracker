@@ -193,7 +193,7 @@ export default function PriceSeries() {
         : undefined;
   const toGet = mine ? stillToGet(volumes, mine) : volumes;
   // what the rest costs, at stored prices only (lib/finishCost.ts)
-  const finish = mine ? finishCost(onSale(toGet)) : null;
+  const finish = mine ? finishCost(onSale(toGet), onSale(volumes)) : null;
   // not on their shelf: what collecting all of it costs, to help decide.
   // Whole volumes out now only (a vol. 0 extra or a preorder isn't the run)
   const cost = mine

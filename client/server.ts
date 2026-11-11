@@ -271,8 +271,8 @@ function volumeBody(v: VolumeSummary, image: string | null | undefined) {
 }
 
 // what buying every volume new costs, as the series page's box says it: the
-// priced ones plus the rest at their middle price. Said only with at least
-// three priced; "about", to the nearest $10, unless every one is priced
+// priced ones plus the rest at their middle price, with one priced or more;
+// "about", to the nearest $10, unless every one is priced
 function seriesCostLine(s: SeriesSummary) {
   // out now only, as the page counts them: a preorder isn't bought yet
   const today = new Date().toISOString().slice(0, 10);
@@ -282,7 +282,7 @@ function seriesCostLine(s: SeriesSummary) {
   const priced = volumes.flatMap((v) =>
     v.fromCents != null ? [v.fromCents] : [],
   );
-  if (priced.length < 3) return null;
+  if (!priced.length) return null;
   const sorted = [...priced].sort((a, b) => a - b);
   const mid = Math.floor(sorted.length / 2);
   const usual =

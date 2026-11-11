@@ -1,5 +1,6 @@
 import { NavLink } from "react-router";
 import { formatCents, seriesPath, volumePath } from "../../lib/prices";
+import { finishMoney } from "../../lib/finishCost";
 import { detailsStyles as styles } from "./styles";
 import type { SeriesVolume } from "../../lib/types";
 import type { BuyOptions } from "./useBuyOptions";
@@ -76,16 +77,12 @@ export default function BuyStrip({ options, hideNext }: Props) {
               <span className={styles.buyKind}>Finish the series</span>
               <span>
                 {finish.left} vol{finish.left === 1 ? "" : "s"}
-                {finish.priced > 0 && finish.priced < finish.left && (
-                  <span className={styles.buyAside}>
-                    {" "}
-                    · {finish.priced} priced
-                  </span>
+                {finish.priced < finish.left && (
+                  <span className={styles.buyAside}> · estimated</span>
                 )}
               </span>
               <span className={styles.buyPrice}>
-                {formatCents(finish.cents)}
-                {finish.priced < finish.left && "+"}
+                {finishMoney(finish, formatCents)}
               </span>
             </NavLink>
           </li>
