@@ -283,7 +283,9 @@ function seriesCostLine(s: SeriesSummary) {
   const priced = volumes.flatMap((v) =>
     v.fromCents != null ? [v.fromCents] : [],
   );
-  if (!priced.length) return null;
+  // in a search result only once a quarter of it is priced (3 at least):
+  // the page's box shows a thinner estimate, with how many it rests on
+  if (priced.length < Math.max(3, volumes.length / 4)) return null;
   const sorted = [...priced].sort((a, b) => a - b);
   const mid = Math.floor(sorted.length / 2);
   const usual =
@@ -500,7 +502,7 @@ function seriesIndexTags(all: SeriesIndexEntry[]): Tags {
   return {
     // as SeriesIndex.tsx has it
     title: "All manga series",
-    description: `Browse ${all.length || "every"} manga series and compare what US stores charge for each volume.`,
+    description: `Browse ${sorted.length || "every"} manga series and compare what US stores charge for each volume.`,
     path: "/series",
     image: null,
     body: `<main class="crawl-page">

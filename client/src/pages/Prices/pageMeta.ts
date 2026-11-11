@@ -143,8 +143,10 @@ export function seriesMeta({ name, info, volumes }: Series): PageMeta {
       v.volume >= 1 && Number.isInteger(v.volume) && !notOutYet(v.published),
   );
   const cost = seriesCost(out);
+  // in a search result only once a quarter of it is priced (3 at least),
+  // as the site server says it; the page's box shows a thinner estimate
   const costLine =
-    cost?.estimateCents != null
+    cost?.estimateCents != null && cost.priced >= Math.max(3, cost.volumes / 4)
       ? `Every ${label} volume new: ${cost.complete ? "" : "about "}${total(cost.estimateCents, cost.complete)} for all ${cost.volumes}${out.length < volumes.length ? " out now" : ""}.`
       : "";
 

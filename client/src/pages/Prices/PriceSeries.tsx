@@ -127,7 +127,15 @@ export default function PriceSeries() {
   }, [key]);
 
   const retry = () => setAttempt((a) => a + 1);
-  usePageMeta(state.key === key && state.data ? seriesMeta(state.data) : null);
+  usePageMeta(
+    state.key !== key
+      ? null
+      : state.data
+        ? seriesMeta(state.data)
+        : // couldn't open it (made up, or the lookup failed): never indexed,
+          // as the site server already says
+          { title: "Series not found", noindex: true },
+  );
 
   if (state.key !== key) {
     return (
