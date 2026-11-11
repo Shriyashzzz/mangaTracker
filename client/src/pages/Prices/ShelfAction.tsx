@@ -57,15 +57,23 @@ export default function ShelfAction({ series, title, volume }: Props) {
 
   if (isSignedIn === false) {
     return (
-      <NavLink
-        to={signInPath(pathname)}
-        className="btn btn-secondary"
-        // a sign-in page per volume is nothing for search engines to follow
-        rel="nofollow"
-        viewTransition
-      >
-        Sign in to track this
-      </NavLink>
+      // what tracking gets them, said where they decide: only what the app
+      // does today (the New tab, shelf value, what finishing costs)
+      <div className={styles.trackPitch}>
+        <NavLink
+          to={signInPath(pathname)}
+          className="btn btn-primary"
+          // a sign-in page per volume is nothing for search engines to follow
+          rel="nofollow"
+          viewTransition
+        >
+          Track this series, free
+        </NavLink>
+        <p className={styles.trackWhy}>
+          See when the next volume is out, what your shelf is worth and what
+          finishing the series costs.
+        </p>
+      </div>
     );
   }
   // still asking (who's signed in, or what's on the shelf): hold the space
