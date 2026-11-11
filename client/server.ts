@@ -16,6 +16,7 @@ import https from "node:https";
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { isAppPage } from "./pagePaths.ts";
+import { WHY_COLLECTORS } from "./src/lib/whyCollectors.ts";
 
 const DIST = fileURLToPath(new URL("./dist/", import.meta.url));
 // where this server reaches the API: the private address on Railway
@@ -282,7 +283,9 @@ function seriesCostLine(s: SeriesSummary) {
   const priced = volumes.flatMap((v) =>
     v.fromCents != null ? [v.fromCents] : [],
   );
-  if (!priced.length) return null;
+  // in a search result only once a quarter of it is priced (3 at least):
+  // the page's box shows a thinner estimate, with how many it rests on
+  if (priced.length < Math.max(3, volumes.length / 4)) return null;
   const sorted = [...priced].sort((a, b) => a - b);
   const mid = Math.floor(sorted.length / 2);
   const usual =
@@ -413,7 +416,10 @@ function volumeTags(v: VolumeSummary, origin: string): Tags {
 function seriesTags(s: SeriesSummary, origin: string): Tags {
   const path = seriesPath(s.name);
   return {
-    title: `${s.name} manga prices`,
+    // as the app's own title (pages/Prices/pageMeta.ts seriesMeta)
+    title: s.volumes?.length
+      ? `${s.name} manga prices, all ${s.volumes.length} volumes`
+      : `${s.name} manga prices`,
     description: clip(
       `Compare US prices for every ${s.name} volume in English. ${seriesCostLine(s) ?? ""} ${s.description ?? ""}`,
     ),
@@ -477,6 +483,11 @@ function homeTags(h: Highlights | null): Tags {
       ${linkList(trending.map((t) => [`/prices/series/${t.slug}`, t.name]))}`
           : ""
       }
+      <h2>Why collectors use it</h2>
+      ${WHY_COLLECTORS.map(
+        (w) => `<h3>${escapeHtml(w.title)}</h3>
+      <p>${escapeHtml(w.body)} <a href="${escapeHtml(w.link)}">${escapeHtml(w.label)}</a></p>`,
+      ).join("\n      ")}
       ${linkList(SITE_LINKS)}
     </main>`,
   };
@@ -491,7 +502,7 @@ function seriesIndexTags(all: SeriesIndexEntry[]): Tags {
   return {
     // as SeriesIndex.tsx has it
     title: "All manga series",
-    description: `Browse ${all.length || "every"} manga series and compare what US stores charge for each volume.`,
+    description: `Browse ${sorted.length || "every"} manga series and compare what US stores charge for each volume.`,
     path: "/series",
     image: null,
     body: `<main class="crawl-page">

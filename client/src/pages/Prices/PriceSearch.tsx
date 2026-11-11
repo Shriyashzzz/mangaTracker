@@ -16,6 +16,7 @@ import WhatsNew from "../../components/whatsNew/WhatsNew";
 import ReleaseTip from "../../components/whatsNew/ReleaseTip";
 import TakeTourButton from "../../components/tour/TakeTourButton";
 import DealsStrip from "../../components/deals/DealsStrip";
+import WhyCollectors from "./WhyCollectors";
 
 // phones get short names, so three even buttons fit across
 const QUICK_PICKS = [
@@ -228,6 +229,8 @@ export default function PriceSearch() {
       )}
 
       {!searching && <Highlights />}
+      {/* someone new: what it does that a price list doesn't */}
+      {!searching && guest && <WhyCollectors />}
       <ReleaseTip enabled={!searching} />
     </div>
   );

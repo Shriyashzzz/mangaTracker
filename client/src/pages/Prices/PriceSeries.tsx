@@ -17,6 +17,7 @@ import {
   seriesCost,
   stillToGet,
 } from "../../lib/finishCost";
+import BoxSets from "./BoxSets";
 import SeriesCostBox from "./SeriesCostBox";
 import { useFromShelf } from "../../lib/fromShelf";
 import { findOnShelf } from "../../lib/shelf";
@@ -126,7 +127,15 @@ export default function PriceSeries() {
   }, [key]);
 
   const retry = () => setAttempt((a) => a + 1);
-  usePageMeta(state.key === key && state.data ? seriesMeta(state.data) : null);
+  usePageMeta(
+    state.key !== key
+      ? null
+      : state.data
+        ? seriesMeta(state.data)
+        : // couldn't open it (made up, or the lookup failed): never indexed,
+          // as the site server already says
+          { title: "Series not found", noindex: true },
+  );
 
   if (state.key !== key) {
     return (
@@ -478,6 +487,8 @@ export default function PriceSeries() {
           </p>
         )}
       </section>
+
+      <BoxSets sets={data.boxSets ?? []} links={data.boxSetLinks ?? []} />
     </div>
   );
 }
