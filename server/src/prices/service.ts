@@ -503,7 +503,14 @@ export async function getVolumePrices(
     },
     offers: offers.map((o) => {
       const url = affiliateOfferUrl(o, isbn13);
-      return { ...o, url, affiliate: isAffiliateUrl(url) };
+      // a store readers know by name: the page points out the cheapest of
+      // these when the cheapest overall is a seller nobody has heard of
+      return {
+        ...o,
+        url,
+        affiliate: isAffiliateUrl(url),
+        knownStore: isWellKnown(o.store),
+      };
     }),
     // only once there's been a check, when it has a first and last date
     history:
@@ -607,8 +614,10 @@ export const mergeVolumes = (known: CatalogBook[], found: CatalogBook[]) => {
     // a book holding several volumes listed as if it were one isn't
     if (!v.inBook && books.has(v.isbn13)) continue;
     const had = byNumber.get(v.volume);
-    // a volume sold on its own is never swapped for the book holding it
+    // a volume sold on its own is never swapped for the book holding it,
+    // nor the publisher's edition for a library rebind
     if (v.inBook && had && !had.inBook) continue;
+    if (had && isRebind(v.isbn13) && !isRebind(had.isbn13)) continue;
     // a release date already known isn't lost to an answer without one
     byNumber.set(
       v.volume,
@@ -623,6 +632,19 @@ export const mergeVolumes = (known: CatalogBook[], found: CatalogBook[]) => {
 };
 
 // ---------- one list from several answers ----------
+
+// library rebinds of a publisher's paperback: Turtleback (978-1-417,
+// 978-0-606) and Tandem Library (978-0-613). Same pages in a hard library
+// cover at three times the price, and often another edition's cover image
+// (One Piece 8, 10 and 17 were listed under these). The publisher's own
+// edition of a volume always wins over one
+const REBIND = /^(9781417|9780606|9780613)/;
+export const isRebind = (isbn13: string) => REBIND.test(isbn13.trim());
+// the edition a volume should be listed under: a lone volume over a book
+// holding it, the publisher's over a rebind
+const betterEdition = (had: CatalogBook, v: CatalogBook) =>
+  (had.inBook && !v.inBook) ||
+  (isRebind(had.isbn13) && !isRebind(v.isbn13) && !v.inBook);
 
 // the ISBNs of books holding several volumes ("Vinland Saga, Book 6")
 const bookIsbns = (volumes: CatalogBook[]) =>
@@ -652,7 +674,7 @@ function addVolume(
   )
     return;
   const had = byNumber.get(v.volume);
-  if (!had || (had.inBook && !v.inBook)) byNumber.set(v.volume, v);
+  if (!had || betterEdition(had, v)) byNumber.set(v.volume, v);
   else if (v.published && !had.published) {
     if (had.isbn13 === v.isbn13)
       byNumber.set(v.volume, { ...had, published: v.published });
