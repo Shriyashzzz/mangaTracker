@@ -11,7 +11,13 @@ import {
   hideBrokenCover,
   novelParts,
 } from "../../lib/prices";
-import { finishCost, finishText, stillToGet } from "../../lib/finishCost";
+import {
+  finishCost,
+  finishText,
+  seriesCost,
+  stillToGet,
+} from "../../lib/finishCost";
+import SeriesCostBox from "./SeriesCostBox";
 import { useFromShelf } from "../../lib/fromShelf";
 import { findOnShelf } from "../../lib/shelf";
 import { nextToGet, owns } from "../../lib/ownedVolumes";
@@ -188,6 +194,15 @@ export default function PriceSeries() {
   const toGet = mine ? stillToGet(volumes, mine) : volumes;
   // what the rest costs, at stored prices only (lib/finishCost.ts)
   const finish = mine ? finishCost(onSale(toGet)) : null;
+  // not on their shelf: what collecting all of it costs, to help decide.
+  // Whole volumes out now only (a vol. 0 extra or a preorder isn't the run)
+  const cost = mine
+    ? null
+    : seriesCost(
+        onSale(volumes).filter(
+          (v) => v.volume >= 1 && Number.isInteger(v.volume),
+        ),
+      );
   // "Not on your shelf" pages through just those, 30 at a time, in place of
   // the volume ranges, so the controls keep their shape
   const toGetShown = Boolean(mine) && toGetOnly;
@@ -283,6 +298,14 @@ export default function PriceSeries() {
           />
         </div>
       </header>
+
+      {cost && (
+        <SeriesCostBox
+          cost={cost}
+          isSignedIn={isSignedIn}
+          comingSoon={onSale(volumes).length < volumes.length}
+        />
+      )}
 
       <section aria-labelledby="volumes-title">
         <div className={styles.sectionHeadRow}>

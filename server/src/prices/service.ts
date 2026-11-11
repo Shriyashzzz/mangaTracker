@@ -947,7 +947,8 @@ export async function getSeries(asked: string) {
 
 // ---------- the shelf ----------
 
-type KnownVolume = { isbn13: string; title: string };
+// `published`: its release date, when a saved list knows it
+type KnownVolume = { isbn13: string; title: string; published?: string | null };
 
 // the volumes we know for each series, grouped by the series' slug.
 // Rebuilt every few minutes; shared by everyone's shelf
@@ -1205,16 +1206,28 @@ export async function getSeriesSummary(asked: string) {
   for (const key of new Set([slugify(info.name), slugify(seriesName(asked))])) {
     bySeries?.get(key)?.forEach((v, isbn) => known.set(isbn, v));
   }
-  const volumes = [...known.values()]
-    .sort(
-      (a, b) =>
-        (titleVolume(a.title) ?? Infinity) -
-          (titleVolume(b.title) ?? Infinity) || a.title.localeCompare(b.title),
-    )
-    .slice(0, SUMMARY_VOLUMES);
+  // one per volume number: the same volume turns up under several ISBNs and
+  // spellings ("ONE PIECE 28", "One Piece, Vol. 28", a library rebind). The
+  // publisher's edition first, then one with a price. A book with no number
+  // (a guidebook) isn't one of the run
+  const candidates = [...known.values()].filter(
+    (v) => titleVolume(v.title) != null,
+  );
   const prices = await priceQueries
-    .getKnownPrices(volumes.map((v) => v.isbn13))
+    .getKnownPrices(candidates.map((v) => v.isbn13.trim()))
     .catch(() => new Map<string, { priceCents: number }>());
+  const rank = (v: KnownVolume) =>
+    (isRebind(v.isbn13) ? 2 : 0) + (prices.has(v.isbn13.trim()) ? 0 : 1);
+  const byNumber = new Map<number, KnownVolume>();
+  for (const v of candidates) {
+    const n = titleVolume(v.title)!;
+    const had = byNumber.get(n);
+    if (!had || rank(v) < rank(had)) byNumber.set(n, v);
+  }
+  const volumes = [...byNumber.entries()]
+    .sort(([a], [b]) => a - b)
+    .map(([, v]) => v)
+    .slice(0, SUMMARY_VOLUMES);
   return {
     name: info.name,
     description: info.description,
@@ -1223,6 +1236,9 @@ export async function getSeriesSummary(asked: string) {
     volumes: volumes.map((v) => ({
       isbn13: v.isbn13.trim(),
       title: v.title,
+      volume: titleVolume(v.title),
+      // a preorder is listed, but not in what the series costs today
+      published: v.published ?? null,
       fromCents: prices.get(v.isbn13.trim())?.priceCents ?? null,
     })),
   };

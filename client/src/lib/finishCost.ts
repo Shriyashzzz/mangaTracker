@@ -48,3 +48,58 @@ export function finishText(cost: FinishCost, money: (cents: number) => string) {
     return `Finish the series: ${money(cost.cents)}`;
   return `Finish the series: ${cost.priced} of ${cost.left} priced, ${money(cost.cents)} so far`;
 }
+
+export type SeriesCost = {
+  // every volume out (a book holding two counts twice here, once in the money)
+  volumes: number;
+  // the priced ones, added up
+  cents: number;
+  priced: number;
+  // all of them: the priced ones plus the rest at the priced ones' middle
+  // price. Null with too few priced to go by
+  estimateCents: number | null;
+  // the middle price the rest are counted at
+  usualCents: number | null;
+  // every book priced: the total is exact, not an estimate
+  complete: boolean;
+};
+
+// fewer priced than this and the middle price says too little to estimate by
+const MIN_TO_ESTIMATE = 3;
+
+// what buying a whole series new costs, at stored prices: for anyone
+// weighing up a series before buying it. Null with nothing priced
+export function seriesCost(
+  volumes: { knownPriceCents: number | null; isbn13?: string }[],
+): SeriesCost | null {
+  // two volumes in one book are bought, and paid for, once
+  const books = [
+    ...new Map(volumes.map((v, i) => [v.isbn13 || i, v])).values(),
+  ];
+  const priced = books.flatMap((v) =>
+    v.knownPriceCents != null ? [v.knownPriceCents] : [],
+  );
+  if (!priced.length) return null;
+  const cents = priced.reduce((sum, c) => sum + c, 0);
+  const sorted = [...priced].sort((a, b) => a - b);
+  const mid = Math.floor(sorted.length / 2);
+  const usual =
+    sorted.length % 2
+      ? sorted[mid]!
+      : Math.round((sorted[mid - 1]! + sorted[mid]!) / 2);
+  const unpriced = books.length - priced.length;
+  return {
+    volumes: volumes.length,
+    cents,
+    // counted in volumes, like `volumes`, for "8 of 113 priced"
+    priced: volumes.filter((v) => v.knownPriceCents != null).length,
+    estimateCents:
+      unpriced === 0
+        ? cents
+        : priced.length >= MIN_TO_ESTIMATE
+          ? cents + unpriced * usual
+          : null,
+    usualCents: usual,
+    complete: unpriced === 0,
+  };
+}

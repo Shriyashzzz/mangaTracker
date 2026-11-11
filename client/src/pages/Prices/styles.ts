@@ -79,6 +79,19 @@ export const pricesStyles = {
   // total wraps under the button on a narrow phone
   toGetRow: "mb-3 flex flex-wrap items-center gap-x-3 gap-y-1.5",
   finishCost: "text-[0.9rem] font-medium text-ink tabular-nums",
+  // signed out on a volume page: the button and what tracking gets them
+  trackPitch: "flex max-w-[34rem] flex-col items-start gap-2",
+  trackWhy: "text-[0.85rem] leading-snug text-ink-soft",
+  // what collecting the whole series costs: a printed receipt-like slip with
+  // the total in the display face; the button drops under it on a phone
+  costBox:
+    "mb-8 flex flex-wrap items-center justify-between gap-x-8 gap-y-4 border-2 border-line bg-card px-5 py-4 shadow-ink upto-520:px-4",
+  costText: "flex min-w-0 flex-col gap-1",
+  costLabel:
+    "font-brand text-[1.05rem] leading-none font-normal tracking-[0.04em] text-accent uppercase",
+  costTotal:
+    "font-display text-[1.45rem] leading-tight text-ink-soft upto-520:text-[1.25rem] [&_strong]:font-semibold [&_strong]:text-ink [&_strong]:tabular-nums",
+  costNote: "max-w-[60ch] text-[0.85rem] text-ink-soft",
   // "Not on your shelf": the series page's filter, for one on their shelf
   toGet:
     "tap rounded-[2px] border-[1.5px] border-line-soft bg-paper px-2.5 py-1 text-[0.85rem] font-medium text-ink-soft hover:border-line hover:text-ink aria-pressed:border-line aria-pressed:bg-ink aria-pressed:text-paper",
