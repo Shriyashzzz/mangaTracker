@@ -85,13 +85,17 @@ export const volumeHeading = (
   title: string,
   series: string,
   listed: { volume?: number | null; inBook?: unknown } | null | undefined,
-) =>
-  bookNumberOf(title) === null &&
-  !Number.isFinite(volumeOf(title)) &&
-  !listed?.inBook &&
-  listed?.volume != null
-    ? `${series}, Vol. ${listed.volume}`
-    : title;
+) => {
+  if (bookNumberOf(title) !== null || listed?.inBook) return title;
+  const n = volumeOf(title);
+  if (!Number.isFinite(n))
+    return listed?.volume != null ? `${series}, Vol. ${listed.volume}` : title;
+  // just the series and its number ("ONE PIECE 28", "Berserk 12"): said the
+  // one way every page says it, "One Piece, Vol. 28". A title with more in it
+  // (a subtitle, "Deluxe") keeps its own words
+  const bare = title.replace(/[\s,.#]*(vol(ume)?\.?\s*)?\d+(\.\d+)?\s*$/i, "");
+  return normalize(bare) === normalize(series) ? `${series}, Vol. ${n}` : title;
+};
 // the volume a title names: none for a book holding several ("Vinland Saga,
 // Book 9" is vols 17 and 18, never vol 9)
 export const titleVolume = (title: string) =>

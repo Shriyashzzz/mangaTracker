@@ -7,9 +7,11 @@ import {
   fillLabel,
   fillOne,
   fillQueue,
+  popularQueue,
   resetFiller,
   staleQueue,
 } from "../../collector/filler.js";
+import { forgetKnownVolumes } from "../../prices/service.js";
 import priceQueries from "../../models/priceQueries.js";
 import userQueries from "../../models/userQueries.js";
 import { budgetLabel, resetEbaySync } from "../../prices/providers/ebay.js";
@@ -249,4 +251,32 @@ test("then priced volumes whose eBay look is over 3 days old, oldest first", asy
   expect(await staleQueue(now)).toEqual([ISBN(2), ISBN(1)]);
   // and a volume eBay has looked at lately isn't asked again
   expect(await fillQueue(now)).toEqual([]);
+});
+
+test("then the most popular series' unpriced volumes, in order, out now only", async () => {
+  const slug = "zzfiller-test-series";
+  await prisma.seriesInfo.upsert({
+    where: { slug },
+    create: {
+      slug,
+      info: { anilistId: -991, name: SERIES, popularityRank: 0, altNames: [] },
+    },
+    update: {
+      info: { anilistId: -991, name: SERIES, popularityRank: 0, altNames: [] },
+    },
+  });
+  await priceQueries.saveSeriesVolumes(volumesKey(SERIES), [
+    book(2),
+    book(1),
+    // not out yet: not priced
+    { ...book(3), published: "2999-01-01" },
+  ]);
+  forgetKnownVolumes();
+  try {
+    const queue = await popularQueue();
+    const ours = queue.filter((i) => [1, 2, 3].map(ISBN).includes(i));
+    expect(ours).toEqual([ISBN(1), ISBN(2)]);
+  } finally {
+    await prisma.seriesInfo.delete({ where: { slug } });
+  }
 });

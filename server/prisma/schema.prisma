@@ -254,6 +254,10 @@ model EditionCover {
   isbn13    String   @id @db.Char(13)
   coverId   Int?     @map("cover_id")
   checkedAt DateTime @default(now()) @map("checked_at") @db.Timestamptz(6)
+  // Google Books' cover when Open Library has none (covers.ts fallbackCover);
+  // a check time with no url: Google had none either
+  fallbackUrl       String?   @map("fallback_url")
+  fallbackCheckedAt DateTime? @map("fallback_checked_at") @db.Timestamptz(6)
 
   @@map("edition_covers")
 }

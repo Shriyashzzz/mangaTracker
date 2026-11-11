@@ -16,7 +16,9 @@ import {
 import { fillerOn } from "../collector/filler.js";
 import { slugify } from "./stores/match.js";
 
-const EVERY_MS = 4 * 60_000;
+// every 6 minutes: each build asks Google Books once, and its ~1,000 calls a
+// day are shared with visitors and cover lookups
+const EVERY_MS = 6 * 60_000;
 // one that found nothing waits this long before it's tried again
 const RETRY_MS = 7 * 24 * 60 * 60_000;
 
@@ -63,5 +65,5 @@ export function startSeriesFiller() {
   setTimeout(run, 90_000).unref();
   timer = setInterval(run, EVERY_MS);
   timer.unref();
-  console.log("Background series lists on: one every 4 minutes");
+  console.log("Background series lists on: one every 6 minutes");
 }

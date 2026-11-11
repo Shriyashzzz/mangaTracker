@@ -130,6 +130,10 @@ const ENTITIES: Record<string, string> = {
   "&mdash;": "—",
   "&ndash;": "–",
   "&hellip;": "…",
+  "&rsquo;": "’",
+  "&lsquo;": "‘",
+  "&rdquo;": "”",
+  "&ldquo;": "“",
   "&amp;": "&", // last, so "&amp;lt;" becomes "&lt;" and not "<"
 };
 const decodeEntities = (text: string) =>
@@ -137,6 +141,18 @@ const decodeEntities = (text: string) =>
     (out, [entity, char]) => out.replaceAll(entity, char),
     text,
   );
+
+// the story only: AniList adds notes after it ("Note:\n- Winner of the
+// Tsugimanga 2024 Award", "Notes: includes one extra chapter"), which read as
+// junk in a search result or under a series' name
+export const storyOnly = (text: string) =>
+  text.split(/\n\s*notes?\s*:/i)[0]!.trim();
+
+// rows saved before storyOnly: tidied as they're read
+const tidy = (info: SeriesInfo): SeriesInfo =>
+  info.description
+    ? { ...info, description: storyOnly(decodeEntities(info.description)) }
+    : info;
 
 // AniList descriptions carry <br> and <i> tags and source notes
 const plainText = (html: string | null) =>
@@ -212,7 +228,7 @@ const toInfo = (m: Media): SeriesInfo => ({
   popularityRank:
     m.rankings?.find((r) => r.type === "POPULAR" && r.allTime)?.rank ?? null,
   genres: m.genres ?? [],
-  description: plainText(m.description),
+  description: storyOnly(plainText(m.description)),
   coverUrl: m.coverImage?.large ?? null,
   siteUrl: m.siteUrl,
   status: m.status,
@@ -278,7 +294,7 @@ export async function listKnownSeries(): Promise<SeriesInfo[]> {
     WHERE info IS NOT NULL AND info->>'name' IS NOT NULL
     ORDER BY info->>'anilistId', fetched_at DESC
   `;
-  return rows.map((r) => r.info);
+  return rows.map((r) => tidy(r.info));
 }
 
 // series info, cached a week in the database so pages stay fast and we stay
@@ -329,7 +345,7 @@ export async function getSeriesInfo(name: string): Promise<SeriesInfo | null> {
       mayAskForNative()
     )
   ) {
-    return cached.info as SeriesInfo | null;
+    return cached.info ? tidy(cached.info as SeriesInfo) : null;
   }
 
   try {

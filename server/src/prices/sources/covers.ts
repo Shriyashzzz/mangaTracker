@@ -13,6 +13,8 @@
 // https://openlibrary.org/dev/docs/api/books
 // https://openlibrary.org/dev/docs/api/covers
 import { openLibraryFetch } from "./openLibrary.js";
+import config from "../../config/config.js";
+import { prisma } from "../../config/prisma.js";
 import priceQueries from "../../models/priceQueries.js";
 
 const BOOKS_URL = "https://openlibrary.org/api/books";
@@ -161,3 +163,80 @@ export const coverImageUrl = (id: number, size: CoverSize = "M") =>
 // so only a fallback. default=false makes a missing cover a 404, not a blank
 export const isbnCoverImageUrl = (isbn13: string, size: CoverSize = "M") =>
   `https://covers.openlibrary.org/b/isbn/${isbn13}-${size}.jpg?default=false`;
+
+// ---------- Google Books, for editions Open Library has no cover for ----------
+
+// About half of the US volumes we list have no cover on Open Library, and
+// Google Books has most of them. Asked only for those, once per edition (the
+// answer is kept in edition_covers; a "none" is asked again after 30 days),
+// and never more than COVER_LOOKUPS_A_DAY a day, counted in api_usage like
+// the stores' budgets: Google Books allows about 1,000 calls a day for the
+// whole site, and the catalog lookups need most of them.
+const GOOGLE_URL = "https://www.googleapis.com/books/v1/volumes";
+const COVER_LOOKUPS_A_DAY = 300;
+const RETRY_NONE_MS = 30 * 24 * 60 * 60 * 1000;
+const coverDay = () => new Date().toISOString().slice(0, 10);
+export const googleCoverLabel = (day = coverDay()) => `gbcover:${day}`;
+
+// the thumbnail Google gives is 128px wide; its image host serves a sharper
+// one when asked for a size (fife), and only over https
+const sharper = (thumbnail: string) =>
+  `${thumbnail.replace(/^http:/, "https:").replace(/&edge=curl/, "")}&fife=w400-h600`;
+
+const asking = new Map<string, Promise<string | null>>();
+
+// `ask`: false gives only a cover already found (a crawler's request never
+// spends one of the day's lookups)
+export function fallbackCover(
+  isbn13: string,
+  { ask = true }: { ask?: boolean } = {},
+): Promise<string | null> {
+  const pending = asking.get(isbn13);
+  if (pending) return pending;
+  const lookup = (async () => {
+    const saved = await prisma.editionCover.findUnique({ where: { isbn13 } });
+    if (saved?.fallbackUrl) return saved.fallbackUrl;
+    if (!ask) return null;
+    if (
+      saved?.fallbackCheckedAt &&
+      Date.now() - saved.fallbackCheckedAt.getTime() < RETRY_NONE_MS
+    )
+      return null;
+    const day = coverDay();
+    // today's share used: no cover for now, asked again another day
+    if (
+      !(await priceQueries.claimApiCall(
+        googleCoverLabel(day),
+        COVER_LOOKUPS_A_DAY,
+        `${day.slice(0, 7)}-01`,
+      ))
+    )
+      return null;
+    const url = new URL(GOOGLE_URL);
+    url.searchParams.set("q", `isbn:${isbn13}`);
+    url.searchParams.set("fields", "items(volumeInfo/imageLinks/thumbnail)");
+    if (config.GOOGLE_BOOKS_API_KEY)
+      url.searchParams.set("key", config.GOOGLE_BOOKS_API_KEY);
+    const res = await fetch(url, { signal: AbortSignal.timeout(8000) });
+    // out of quota or down: nothing saved, so it's asked another time
+    if (!res.ok) return null;
+    const body = (await res.json()) as {
+      items?: { volumeInfo?: { imageLinks?: { thumbnail?: string } } }[];
+    };
+    const thumbnail = body.items?.[0]?.volumeInfo?.imageLinks?.thumbnail;
+    const found = thumbnail ? sharper(thumbnail) : null;
+    await prisma.editionCover.upsert({
+      where: { isbn13 },
+      create: {
+        isbn13,
+        coverId: null,
+        fallbackUrl: found,
+        fallbackCheckedAt: new Date(),
+      },
+      update: { fallbackUrl: found, fallbackCheckedAt: new Date() },
+    });
+    return found;
+  })();
+  asking.set(isbn13, lookup);
+  return lookup.finally(() => asking.delete(isbn13));
+}

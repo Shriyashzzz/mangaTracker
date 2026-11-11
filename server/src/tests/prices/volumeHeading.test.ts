@@ -12,8 +12,9 @@ test("a title with its number keeps it", () => {
   expect(volumeHeading("Naruto, Vol. 3", "Naruto", { volume: 3 })).toBe(
     "Naruto, Vol. 3",
   );
-  expect(volumeHeading("Berserk 12", "Berserk", { volume: 12 })).toBe(
-    "Berserk 12",
+  // more than the series and a number: its own words stay
+  expect(volumeHeading("Berserk Deluxe Edition 3", "Berserk", null)).toBe(
+    "Berserk Deluxe Edition 3",
   );
 });
 
@@ -28,4 +29,14 @@ test("nothing listed, or a book of several volumes, keeps the title", () => {
       inBook: { label: "Book 9" },
     }),
   ).toBe("Vinland Saga Deluxe");
+});
+
+test("just the series and a number reads as Series, Vol. N", () => {
+  expect(volumeHeading("ONE PIECE 28", "One Piece", { volume: 28 })).toBe(
+    "One Piece, Vol. 28",
+  );
+  expect(volumeHeading("Berserk 12", "Berserk", null)).toBe("Berserk, Vol. 12");
+  expect(volumeHeading("One Piece, Vol. 28", "One Piece", null)).toBe(
+    "One Piece, Vol. 28",
+  );
 });

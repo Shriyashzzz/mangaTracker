@@ -22,31 +22,62 @@ export type FinishCost = {
   priced: number;
   // every volume still to get, priced or not
   left: number;
+  // all of them: the priced ones plus the rest at the series' usual new
+  // price (the middle of every priced volume, owned ones too)
+  estimateCents: number;
 };
 
+type Priced = { knownPriceCents: number | null; isbn13?: string };
+
+// the middle price of some volumes (null when none is priced)
+const usualOf = (volumes: Priced[]) => {
+  const cents = volumes
+    .flatMap((v) => (v.knownPriceCents != null ? [v.knownPriceCents] : []))
+    .sort((a, b) => a - b);
+  if (!cents.length) return null;
+  const mid = Math.floor(cents.length / 2);
+  return cents.length % 2
+    ? cents[mid]!
+    : Math.round((cents[mid - 1]! + cents[mid]!) / 2);
+};
+
+// `series`: every volume of it, for the usual price the unpriced ones are
+// counted at; without it, the priced ones still to get
 export function finishCost(
-  toGet: { knownPriceCents: number | null; isbn13?: string }[],
+  toGet: Priced[],
+  series: Priced[] = toGet,
 ): FinishCost | null {
-  const priced = toGet.filter((v) => v.knownPriceCents != null);
-  // nothing to add up: no line at all rather than a total of nothing
-  if (!priced.length) return null;
+  if (!toGet.length) return null;
+  const usual = usualOf(series) ?? usualOf(toGet);
+  // nothing priced anywhere in the series: no line rather than a guess
+  if (usual == null) return null;
   // two volumes in one book (the same ISBN) are bought, and paid for, once
-  const once = new Map(
-    priced.map((v, i) => [v.isbn13 ?? i, v.knownPriceCents!]),
-  );
+  const books = [...new Map(toGet.map((v, i) => [v.isbn13 || i, v])).values()];
+  const cents = books.reduce((sum, v) => sum + (v.knownPriceCents ?? 0), 0);
+  const unpriced = books.filter((v) => v.knownPriceCents == null).length;
   return {
-    cents: [...once.values()].reduce((sum, cents) => sum + cents, 0),
-    priced: priced.length,
+    cents,
+    priced: toGet.filter((v) => v.knownPriceCents != null).length,
     left: toGet.length,
+    estimateCents: cents + unpriced * usual,
   };
 }
 
-// "Finish the series: $214", or with gaps "10 of 12 priced: $180 so far", so
-// a partial total never reads as the whole cost. The price format comes in, so this stays free of the network code
+// the money to show: exact when every one is priced, otherwise the estimate
+// to the nearest $10 (cents would claim a precision it lacks)
+export const finishMoney = (
+  cost: FinishCost,
+  money: (cents: number) => string,
+) =>
+  cost.priced === cost.left
+    ? money(cost.cents)
+    : `about $${(Math.round(cost.estimateCents / 1000) * 10).toLocaleString("en-US")}`;
+
+// "Finish the series: $214", or with volumes not priced yet "Finish the
+// series: about $250". The price format comes in, so this stays free of the
+// network code
 export function finishText(cost: FinishCost, money: (cents: number) => string) {
-  if (cost.priced === cost.left)
-    return `Finish the series: ${money(cost.cents)}`;
-  return `Finish the series: ${cost.priced} of ${cost.left} priced, ${money(cost.cents)} so far`;
+  return `Finish the series: ${finishMoney(cost, money)}`;
 }
 
 export type SeriesCost = {
@@ -64,8 +95,9 @@ export type SeriesCost = {
   complete: boolean;
 };
 
-// fewer priced than this and the middle price says too little to estimate by
-const MIN_TO_ESTIMATE = 3;
+// one priced is enough to estimate by: an estimate, said as one, beats a
+// total of one volume
+const MIN_TO_ESTIMATE = 1;
 
 // what buying a whole series new costs, at stored prices: for anyone
 // weighing up a series before buying it. Null with nothing priced

@@ -13,6 +13,7 @@ import {
   CoverLookupPaused,
   coverImageUrl,
   editionCoverId,
+  fallbackCover,
   isbnCoverImageUrl,
 } from "../prices/sources/covers.js";
 import { isCrawler } from "../prices/crawlers.js";
@@ -216,6 +217,22 @@ const cover = [
     const size = req.query.size === "L" ? "L" : "M";
     try {
       const id = await editionCoverId(isbn);
+      // none on Open Library: Google Books' cover of this edition, if it has
+      // one (and today's lookups allow)
+      // A crawler gets one already found, never spends a new lookup
+      const fallback = id
+        ? null
+        : await fallbackCover(isbn, {
+            ask: !isCrawler(req.get("user-agent")),
+          }).catch((e: Error) => {
+            console.error("fallback cover failed:", e.message);
+            return null;
+          });
+      if (fallback) {
+        res.set("Cache-Control", "public, max-age=604800");
+        res.redirect(302, fallback);
+        return;
+      }
       if (!id) {
         // no cover for this edition: the page shows its drawn placeholder
         res.set("Cache-Control", "public, max-age=86400");
