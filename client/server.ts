@@ -127,6 +127,8 @@ type Tags = {
   noindex?: boolean;
   // a cover is tall: a big preview would crop it to a wide strip
   smallImage?: boolean;
+  // the title as it is, without " | Manga Tracker" (the home page's own)
+  fullTitle?: boolean;
 };
 
 // ---------- the page body, for crawlers ----------
@@ -221,8 +223,9 @@ function volumeTags(v: VolumeSummary, origin: string): Tags {
   const description = clip(
     [
       `Compare US prices for ${v.heading ?? v.title}`,
+      // "and more" only when there is more
       v.stores.length
-        ? `at ${v.stores.slice(0, 4).join(", ")} and more.`
+        ? `at ${v.stores.slice(0, 4).join(", ")}${v.stores.length > 4 ? " and more" : ""}.`
         : "across stores.",
       v.bestNew
         ? `Lowest new price we've found: ${usd(v.bestNew.priceCents)} at ${v.bestNew.store}.`
@@ -292,6 +295,110 @@ function seriesTags(s: SeriesSummary, origin: string): Tags {
     body: seriesBody(s),
   };
 }
+
+// ---------- the app's own pages ----------
+
+// the home page's title and description, as index.html has them
+const HOME_TITLE =
+  /<title>([\s\S]*?)<\/title>/.exec(template)?.[1]?.trim() ?? SITE_NAME;
+const HOME_DESCRIPTION =
+  /<meta\s+name="description"\s+content="([^"]*)"/.exec(template)?.[1] ?? "";
+
+type Highlights = { trending?: { name: string; slug: string }[] };
+type SeriesIndexEntry = { name: string };
+
+const linkList = (links: [href: string, label: string][]) =>
+  `<ul>${links.map(([href, label]) => `<li><a href="${escapeHtml(href)}">${escapeHtml(label)}</a></li>`).join("")}</ul>`;
+
+const SITE_LINKS: [string, string][] = [
+  ["/series", "All manga series"],
+  ["/about", "About Manga Tracker"],
+  ["/updates", "What's new"],
+];
+
+function homeTags(h: Highlights | null): Tags {
+  const trending = h?.trending ?? [];
+  return {
+    title: HOME_TITLE,
+    fullTitle: true,
+    // index.html's, decoded: render escapes it again
+    description: HOME_DESCRIPTION.replace(/&#39;/g, "'").replace(/&amp;/g, "&"),
+    path: "/",
+    image: null,
+    body: `<main class="crawl-page">
+      <h1>Compare US manga prices</h1>
+      <p>See what US stores charge for every English manga volume, new and used, keep your place in every series you read, and find out when new volumes come out.</p>
+      ${
+        trending.length
+          ? `<h2>Popular series</h2>
+      ${linkList(trending.map((t) => [`/prices/series/${t.slug}`, t.name]))}`
+          : ""
+      }
+      ${linkList(SITE_LINKS)}
+    </main>`,
+  };
+}
+
+// every series, A to Z, linked: the way in to each one's page
+function seriesIndexTags(all: SeriesIndexEntry[]): Tags {
+  const sorted = [...all].sort((a, b) => a.name.localeCompare(b.name));
+  return {
+    // as SeriesIndex.tsx has it
+    title: "All manga series",
+    description: `Browse ${all.length || "every"} manga series and compare what US stores charge for each volume.`,
+    path: "/series",
+    image: null,
+    body: `<main class="crawl-page">
+      ${crumbs([["/", SITE_NAME]])}
+      <h1>All series</h1>
+      <p>Every manga series on Manga Tracker, A to Z. Each one lists its English volumes with what US stores charge for them.</p>
+      ${linkList(sorted.map((s) => [seriesPath(s.name), s.name]))}
+    </main>`,
+  };
+}
+
+// About, What's new and Acknowledgements: their titles and descriptions as
+// the pages set them (usePageMeta), and a line of what each is
+const STATIC_PAGES: Record<
+  string,
+  { title: string; description: string; heading: string }
+> = {
+  "/about": {
+    title: "About",
+    heading: "About Manga Tracker",
+    description:
+      "Why Manga Tracker exists: compare what US stores charge for each manga volume, keep your place in every series, and see which ones have new volumes out.",
+  },
+  "/updates": {
+    title: "What's new",
+    heading: "What's new",
+    description:
+      "New on Manga Tracker: see new English volumes and chapters and next chapter dates. Email alerts are coming soon.",
+  },
+  "/acknowledgements": {
+    title: "Acknowledgements",
+    heading: "Acknowledgements",
+    description:
+      "The services behind Manga Tracker, the fonts it uses and how its affiliate links work.",
+  },
+};
+
+const staticTags = (path: string): Tags | null => {
+  const page = STATIC_PAGES[path];
+  if (!page) return null;
+  return {
+    title: page.title,
+    description: page.description,
+    path,
+    image: null,
+    body: `<main class="crawl-page">
+      ${crumbs([["/", SITE_NAME]])}
+      <h1>${escapeHtml(page.heading)}</h1>
+      <p>${escapeHtml(page.description)}</p>
+      ${linkList(SITE_LINKS.filter(([href]) => href !== path))}
+    </main>`,
+  };
+};
 
 // the volumes someone owns, as the shared page counts them: their exact list
 // when it has gaps, otherwise 1 up to the count
@@ -368,10 +475,20 @@ function shelfTags(
 
 // swaps the default tags in index.html for the page's own
 function render(
-  { title, description, path, image, jsonLd, body, noindex, smallImage }: Tags,
+  {
+    title,
+    description,
+    path,
+    image,
+    jsonLd,
+    body,
+    noindex,
+    smallImage,
+    fullTitle: asIs,
+  }: Tags,
   origin: string,
 ) {
-  const fullTitle = `${title} | ${SITE_NAME}`;
+  const fullTitle = asIs ? title : `${title} | ${SITE_NAME}`;
   const url = origin + path;
   const tags = [
     `<title>${escapeHtml(fullTitle)}</title>`,
@@ -636,6 +753,37 @@ app.get(
       typeof req.query.series === "string" ? req.query.series : undefined;
     return data && shelfTags(data, code, series, origin);
   }),
+);
+
+// the home page and the full series list: their own tags and a body of
+// links. A page of the list (?page=2) or a filter is the plain app, which
+// sets its own canonical
+app.get(
+  "/",
+  withTags(async (req) => {
+    const { data } = await summary<Highlights>(
+      "/api/prices/highlights",
+      req.ip,
+    ).catch(() => ({ data: null }));
+    return homeTags(data);
+  }),
+);
+
+app.get(
+  "/series",
+  withTags(async (req) => {
+    if (Object.keys(req.query).length) return null;
+    const { data } = await summary<SeriesIndexEntry[]>(
+      "/api/prices/series-index",
+      req.ip,
+    );
+    return Array.isArray(data) ? seriesIndexTags(data) : null;
+  }),
+);
+
+app.get(
+  Object.keys(STATIC_PAGES),
+  withTags(async (req) => staticTags(req.path)),
 );
 
 // every other address is the single-page app, as `serve -s` did. One that
