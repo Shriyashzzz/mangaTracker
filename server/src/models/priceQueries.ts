@@ -17,6 +17,7 @@ import {
 } from "../prices/stores/retailers.js";
 import {
   AMAZON,
+  BOOKS_A_MILLION,
   EBAY,
   preferDirectRows,
   storeName,
@@ -132,7 +133,7 @@ type CurrentRow = StoredOffer & { isbn13: string; source: string };
 // and a store's own listing both have a store, the store's own (our affiliate
 // link) wins, and of the rest the most recent copy of each store + format +
 // condition. Cheapest first
-// A store with its own source (eBay, Amazon) that has looked is the word on
+// A store with its own source (eBay, Amazon, Books-A-Million) that has looked is the word on
 // that store: Google Shopping's older row for it stops showing, even when the
 // store's own source found none
 const currentOf = (
@@ -143,7 +144,8 @@ const currentOf = (
   const ownWord = (row: CurrentRow) =>
     row.source === "shopping" &&
     ((looked.has("ebay") && EBAY.test(row.store)) ||
-      (looked.has("amazon") && AMAZON.test(row.store)));
+      (looked.has("amazon") && AMAZON.test(row.store)) ||
+      (looked.has("books-a-million") && BOOKS_A_MILLION.test(row.store)));
   for (const found of preferDirectRows(rows)) {
     if (ownWord(found)) continue;
     // one store, one name: Google Shopping's spellings as the store links'
@@ -471,10 +473,10 @@ export function getRecentBestPrices(limit = 40): Promise<RecentPrice[]> {
 async function queryRecentBestPrices(limit: number): Promise<RecentPrice[]> {
   return prisma.$queryRaw<RecentPrice[]>`
     -- each check's cheapest new print copy, and whether the check went past
-    -- eBay (eBay alone looks again every few days)
+    -- eBay and Books-A-Million (they alone look again every few days)
     WITH best AS (
       SELECT isbn13, fetched_at, MIN(price_cents) AS p,
-             bool_or(source IS DISTINCT FROM 'ebay') AS full_check
+             bool_or(source IS NULL OR source NOT IN ('ebay', 'books-a-million')) AS full_check
       FROM price_samples
       WHERE condition = 'new' AND format = 'print'
       GROUP BY isbn13, fetched_at
@@ -483,7 +485,8 @@ async function queryRecentBestPrices(limit: number): Promise<RecentPrice[]> {
     -- source group's last check)
     latest AS (
       -- dated by the oldest of its source checks, as its page says "checked",
-      -- so eBay looking again every few days doesn't move it to the top
+      -- so eBay or Books-A-Million looking again every few days doesn't move
+      -- it to the top
       SELECT ps.isbn13,
              (SELECT MIN(s2.checked_at) FROM price_source_checks s2
                WHERE s2.isbn13 = ps.isbn13) AS fetched_at,

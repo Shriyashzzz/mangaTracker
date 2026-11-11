@@ -197,7 +197,8 @@ export default function ProfileTab({ account }: { account: Account }) {
         </h3>
         <p className={styles.body}>
           Anyone with the link can see your name, picture, and each series with
-          its chapter and rating. Search engines are asked to stay away.
+          its chapter, rating and the volumes you own. Search engines are asked
+          to stay away.
         </p>
         <label className={styles.row}>
           <input

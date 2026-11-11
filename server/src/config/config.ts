@@ -68,6 +68,18 @@ const schema = z.object({
   WALMART_CONSUMER_ID: optional,
   WALMART_KEY_VERSION: optional,
   WALMART_PRIVATE_KEY: optional,
+  // CJ (Commission Junction): Books-A-Million's catalog prices, searched by
+  // ISBN. The token from developers.cj.com, our CJ company ID, Books-A-
+  // Million's advertiser ID and our website ID (PID, for affiliate links)
+  CJ_API_TOKEN: optional,
+  CJ_COMPANY_ID: optional,
+  CJ_BAM_ID: optional,
+  CJ_WEBSITE_ID: optional,
+  // calls a day to CJ's product search; kept well under what CJ allows
+  CJ_DAILY_LIMIT: z.preprocess(
+    blankToUndefined,
+    z.coerce.number().int().nonnegative().default(2000),
+  ),
   KEEPA_API_KEY: optional,
   GOOGLE_BOOKS_API_KEY: optional,
   // Cloudflare Turnstile's secret: live price checks only for people

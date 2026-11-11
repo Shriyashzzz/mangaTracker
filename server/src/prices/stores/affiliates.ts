@@ -6,12 +6,32 @@
 //                          program. The Impact script in client/index.html
 //                          turns Walmart links into affiliate links in the
 //                          browser; this only says whether that earns
+//   CJ_WEBSITE_ID          our CJ website ID (PID): Books-A-Million links go
+//                          through CJ with it
 import config from "../../config/config.js";
 
 export const amazonTag = () => config.AMAZON_ASSOCIATE_TAG ?? null;
 export const bookshopId = () => config.BOOKSHOP_AFFILIATE_ID ?? null;
 export const ebayCampaignId = () => config.EBAY_CAMPAIGN_ID ?? null;
 export const walmartAffiliate = () => config.WALMART_AFFILIATE === "on";
+export const cjWebsiteId = () => config.CJ_WEBSITE_ID ?? null;
+
+// a Books-A-Million page through CJ's deep link, so the click is ours: CJ
+// sends people on to the page itself. Without a website ID, the page as is
+export const bamAffiliateUrl = (url: string) => {
+  const pid = cjWebsiteId();
+  return pid
+    ? `https://www.anrdoezrs.net/links/${encodeURIComponent(pid)}/type/dlg/${url}`
+    : url;
+};
+// CJ's own click domains (its links come on any of these)
+export const CJ_CLICK_HOSTS = [
+  "anrdoezrs.net",
+  "dpbolvw.net",
+  "jdoqocy.com",
+  "kqzyfj.com",
+  "tkqlhce.com",
+];
 
 // eBay Partner Network click tracking for ebay.com, per
 // https://developer.ebay.com/api-docs/buy/static/ref-epn-link.html

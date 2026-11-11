@@ -31,6 +31,9 @@ export type SharedShelf = {
     bookmark: number | null;
     rating: number | null;
     notes?: string;
+    // the volumes they own, as on their shelf (lib/ownedVolumes.ts)
+    volumesOwned?: number | null;
+    ownedList?: number[];
   }[];
 };
 

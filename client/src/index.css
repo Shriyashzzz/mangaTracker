@@ -66,6 +66,10 @@
   --stamp-market: #f8d46b;
   --stamp-ebook: #cdd6fb;
   --stamp-ink: #1d1a16;
+  /* the shared shelf's invite: yellow paper by day, a dark card edged in it at night */
+  --invite-paper: var(--stamp-market);
+  --invite-ink: var(--stamp-ink);
+  --invite-edge: var(--line);
   --award-new: #2e6b4c;
   --on-award-new: #fffaf2;
   --award-market: #e0a21b;
@@ -99,6 +103,12 @@
     --stamp-market: #e6b84a;
     --stamp-ebook: #9fb0ec;
     --stamp-ink: #16140f;
+    --invite-paper: var(--card);
+    --invite-ink: var(--ink);
+    --invite-edge: var(--stamp-market);
+    --invite-paper: var(--card);
+    --invite-ink: var(--ink);
+    --invite-edge: var(--stamp-market);
     --award-new: #6fbf8f;
     --on-award-new: #16140f;
     --award-market: #f2b630;
@@ -689,6 +699,22 @@
       clip-path: inset(-3rem -3rem -3rem -3rem);
     }
   }
+  /* a shared shelf's series sheet: up from the bottom on phones, in from the
+     right on laptops (pages/SharedShelf) */
+  --animate-sheet-up: sheet-up 0.32s var(--ease-ink) both;
+  --animate-sheet-in: sheet-in 0.32s var(--ease-ink) both;
+  @keyframes sheet-up {
+    from {
+      transform: translateY(40px);
+      opacity: 0;
+    }
+  }
+  @keyframes sheet-in {
+    from {
+      transform: translateX(32px);
+      opacity: 0;
+    }
+  }
   /* the settings menu dropping from the header */
   --animate-drop: drop 0.18s var(--ease-ink);
   @keyframes panel-in {
@@ -989,7 +1015,8 @@
   color: var(--ink-soft);
 }
 .support-peek-line a,
-.view-peek .support-peek-line > button:not(.support-peek-close) {
+.view-peek .support-peek-line > button:not(.support-peek-close),
+.share-peek .support-peek-line button:not(.support-peek-close) {
   display: inline-flex;
   align-items: center;
   min-height: 30px;
@@ -1017,6 +1044,15 @@
 .support-peek-close svg {
   width: 13px;
   height: 13px;
+}
+/* on a shared shelf: a little more to say, and two ways on */
+.share-peek .support-peek-line {
+  width: 212px;
+}
+.share-peek-ways {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 0.9rem;
 }
 /* from the side: half out of the window, with his grin showing */
 .support-peek-side {

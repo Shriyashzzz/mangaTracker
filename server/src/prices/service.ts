@@ -33,6 +33,7 @@ import {
 } from "./stores/match.js";
 import { enabledProviders } from "./providers/index.js";
 import { ebayCallsLeft } from "./providers/ebay.js";
+import { cjCallsLeft } from "./providers/booksAMillion.js";
 import { serpApiSearchesLeft } from "./providers/serpapiClient.js";
 import { SearchesUsedUp } from "./providers/serpapiKeys.js";
 import {
@@ -120,8 +121,12 @@ export const groupOf = (provider: Pick<Provider, "id">) =>
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 // by provider, not group: eBay's own API is free, so it looks every few days;
-// eBay through SerpApi is a paid search, so it keeps to the 20 days
-const FRESH_FOR_PROVIDER_MS: Record<string, number> = { ebay: 3 * DAY_MS };
+// eBay through SerpApi is a paid search, so it keeps to the 20 days.
+// Books-A-Million through CJ is free too: as often as eBay's
+const FRESH_FOR_PROVIDER_MS: Record<string, number> = {
+  ebay: 3 * DAY_MS,
+  "books-a-million": 3 * DAY_MS,
+};
 export const freshForMs = (provider: Pick<Provider, "id">) =>
   FRESH_FOR_PROVIDER_MS[provider.id] ?? FRESH_FOR_MS;
 
@@ -133,16 +138,18 @@ const isPaid = (provider: Pick<Provider, "id">) =>
 // eBay's own only while today's calls last: without them they'd only fail,
 // and the volume would look due forever
 export async function dueProviders(isbn13: string): Promise<Provider[]> {
-  const [checks, searchesLeft, ebayLeft] = await Promise.all([
+  const [checks, searchesLeft, ebayLeft, cjLeft] = await Promise.all([
     priceQueries.getSourceChecks(isbn13),
     serpApiSearchesLeft().catch(() => true),
     ebayCallsLeft().catch(() => true),
+    cjCallsLeft().catch(() => true),
   ]);
   const now = Date.now();
   return enabledProviders().filter((p) => {
     if (isPaid(p) && !searchesLeft) return false;
     // eBay's own API with today's calls used up: not due until tomorrow
     if (p.id === "ebay" && !ebayLeft) return false;
+    if (p.id === "books-a-million" && !cjLeft) return false;
     if (failedRecently(isbn13, p)) return false;
     const at = checks.get(groupOf(p));
     return !at || now - at.getTime() >= freshForMs(p);
@@ -1061,18 +1068,50 @@ export async function getVolumeSummary(isbn13: string) {
     bestNew: bestNew
       ? { store: bestNew.store, priceCents: bestNew.priceCents }
       : null,
+    // the stored prices, cheapest first, written into the page for crawlers
+    offers: inStock.slice(0, SUMMARY_OFFERS).map((o) => ({
+      store: o.store,
+      condition: o.condition,
+      format: o.format,
+      priceCents: o.priceCents,
+    })),
   };
 }
+
+const SUMMARY_OFFERS = 12;
+const SUMMARY_VOLUMES = 200;
 
 export async function getSeriesSummary(asked: string) {
   const name = await knownSeriesName(asked);
   const info = await getSeriesInfo(name).catch(() => null);
   if (!info) return null;
+  // the volumes we know, with the lowest new price we already have: memory
+  // and database only, like the shelf
+  const bySeries = await knownVolumesBySeries().catch(() => null);
+  const known = new Map<string, KnownVolume>();
+  for (const key of new Set([slugify(info.name), slugify(seriesName(asked))])) {
+    bySeries?.get(key)?.forEach((v, isbn) => known.set(isbn, v));
+  }
+  const volumes = [...known.values()]
+    .sort(
+      (a, b) =>
+        (titleVolume(a.title) ?? Infinity) -
+          (titleVolume(b.title) ?? Infinity) || a.title.localeCompare(b.title),
+    )
+    .slice(0, SUMMARY_VOLUMES);
+  const prices = await priceQueries
+    .getKnownPrices(volumes.map((v) => v.isbn13))
+    .catch(() => new Map<string, { priceCents: number }>());
   return {
     name: info.name,
     description: info.description,
     coverUrl: info.coverUrl,
     genres: info.genres,
+    volumes: volumes.map((v) => ({
+      isbn13: v.isbn13.trim(),
+      title: v.title,
+      fromCents: prices.get(v.isbn13.trim())?.priceCents ?? null,
+    })),
   };
 }
 

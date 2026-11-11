@@ -1,6 +1,7 @@
 // What someone with a share link gets to see. Listed field by field, so a new
 // column can't end up public by accident. Never the username, which is half of
-// the login, nor what they own or what they've hidden.
+// the login, nor what they've hidden. The volumes they own are shown (owner's
+// call, 2026-11-11): visitors tap a series to see them
 import { defaultReaderName } from "./readerNames.js";
 
 type SharedSource = {
@@ -18,6 +19,8 @@ type SharedSource = {
     bookmark: number | null;
     rating: number | null;
     description: string | null;
+    volumesOwned?: number | null;
+    ownedList?: number[];
   }[];
 };
 
@@ -39,6 +42,9 @@ export const toSharedShelf = ({
     ...(m.lightNovel ? { lightNovel: true } : {}),
     bookmark: m.bookmark,
     rating: m.rating,
+    // as on their shelf: "up to N", or the exact list when there are gaps
+    volumesOwned: m.volumesOwned ?? null,
+    ...(m.ownedList?.length ? { ownedList: m.ownedList } : {}),
     // notes only when they've chosen to share them
     ...(shareNotes && m.description ? { notes: m.description } : {}),
   })),

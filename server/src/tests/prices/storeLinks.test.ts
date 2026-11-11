@@ -13,6 +13,7 @@ afterEach(() => {
   delete process.env.AMAZON_ASSOCIATE_TAG;
   delete process.env.EBAY_CAMPAIGN_ID;
   delete process.env.BOOKSHOP_AFFILIATE_ID;
+  delete process.env.CJ_WEBSITE_ID;
 });
 
 test("no affiliate settings, no affiliate links", async () => {
@@ -100,4 +101,40 @@ test("an eBay listing saved without the campaign gets it when shown", async () =
   expect(shown.searchParams.get("campid")).toBe("5330000000");
   expect(shown.searchParams.get("mkcid")).toBe("1");
   expect(shown.pathname).toBe("/itm/127644695751");
+});
+
+test("Books-A-Million links go through CJ with our website ID", async () => {
+  const { affiliateOfferUrl, isAffiliateUrl, preferDirectRows, storeLinks } =
+    await load({ CJ_WEBSITE_ID: "101919606" });
+  const search = `https://www.booksamillion.com/search?query=${isbn}`;
+  const expected = `https://www.anrdoezrs.net/links/101919606/type/dlg/${search}`;
+  const link = storeLinks(isbn).find((l) => l.store === "Books-A-Million")!;
+  expect(link).toMatchObject({ url: expected, affiliate: true });
+  expect(isAffiliateUrl(link.url)).toBe(true);
+  // CJ's click link from the product search is ours too; someone else's isn't
+  expect(
+    isAffiliateUrl("https://www.kqzyfj.com/click-101919606-13599892?url=x"),
+  ).toBe(true);
+  expect(
+    isAffiliateUrl("https://www.kqzyfj.com/click-555-13599892?url=x"),
+  ).toBe(false);
+
+  const google = "https://www.google.com/shopping/product/123";
+  const row = { store: "Books-A-Million", url: google, format: "print" };
+  expect(affiliateOfferUrl({ ...row, condition: "new" }, isbn)).toBe(expected);
+  // with its own row from CJ, Google Shopping's for it goes
+  const own = {
+    store: "Books-A-Million",
+    url: "https://www.kqzyfj.com/click-1",
+  };
+  expect(preferDirectRows([row, own])).toEqual([own]);
+});
+
+test("without a CJ website ID, Books-A-Million is a plain search", async () => {
+  const { storeLinks } = await load({});
+  const link = storeLinks(isbn).find((l) => l.store === "Books-A-Million")!;
+  expect(link).toMatchObject({
+    url: `https://www.booksamillion.com/search?query=${isbn}`,
+    affiliate: false,
+  });
 });

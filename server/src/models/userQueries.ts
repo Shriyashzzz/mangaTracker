@@ -159,6 +159,8 @@ export const getSharedShelf = (shareCode: string) =>
           bookmark: true,
           rating: true,
           description: true,
+          volumesOwned: true,
+          ownedList: true,
         },
       },
     },

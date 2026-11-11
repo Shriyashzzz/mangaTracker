@@ -240,6 +240,7 @@ Price checking works without any store keys: series, volumes and covers come fro
 | `EBAY_CLIENT_ID`, `EBAY_CLIENT_SECRET` | no | eBay listings |
 | `WALMART_CONSUMER_ID`, `WALMART_KEY_VERSION`, `WALMART_PRIVATE_KEY` | no | Walmart listings |
 | `KEEPA_API_KEY` | no | Amazon prices |
+| `CJ_API_TOKEN`, `CJ_COMPANY_ID`, `CJ_BAM_ID`, `CJ_WEBSITE_ID`, `CJ_DAILY_LIMIT` | no | Books-A-Million prices and affiliate links, through CJ |
 | `AMAZON_ASSOCIATE_TAG`, `BOOKSHOP_AFFILIATE_ID`, `EBAY_CAMPAIGN_ID`, `WALMART_AFFILIATE` | no | Affiliate links |
 
 ### Site (`client/`)
