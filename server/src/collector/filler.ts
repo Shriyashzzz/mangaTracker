@@ -6,8 +6,10 @@
 // visits). It runs the same check a volume page does (fetchProviders, the
 // free sources only: eBay, and Books-A-Million when set up), marked as a
 // background one so the home page's "recently checked" leaves it out. Once
-// every shelf volume has had a look, it keeps priced volumes fresh: the ones
-// whose free sources looked over 3 days ago, oldest first (staleQueue).
+// every shelf volume has had a look, it prices the most popular series'
+// volumes nobody has opened (popularQueue), then keeps priced volumes fresh:
+// the ones whose free sources looked over 3 days ago, oldest first
+// (staleQueue).
 //
 // Production only unless PRICE_FILL=on: a laptop shares the eBay keys, and
 // testing shouldn't spend the site's calls. PRICE_FILL=off stops it anywhere.
@@ -20,7 +22,12 @@ import {
   checkAlone,
   fetchProviders,
   getOrCreateBook,
+  isRebind,
+  knownVolumesBySeries,
+  titleVolume,
 } from "../prices/service.js";
+import { listKnownSeries } from "../prices/sources/anilist.js";
+import { slugify } from "../prices/stores/match.js";
 import { isOut, ownedSet } from "./shelfMath.js";
 import { shelfSeries } from "./shelfSeries.js";
 
@@ -102,6 +109,48 @@ export async function fillQueue(now = new Date()): Promise<string[]> {
   return all.filter((isbn) => !done.has(isbn));
 }
 
+// Then the most popular series' volumes nobody has priced yet: a collector
+// weighing up One Piece sees "Check price" on most of it otherwise, and its
+// "collect every volume" total is mostly a guess. Most popular first, a
+// series' volumes in order; whole volumes out now, never a library rebind
+const POPULAR_SERIES = 150;
+const POPULAR_BATCH = 500;
+
+export async function popularQueue(now = new Date()): Promise<string[]> {
+  const [series, bySeries] = await Promise.all([
+    listKnownSeries(),
+    knownVolumesBySeries(),
+  ]);
+  const today = now.toISOString().slice(0, 10);
+  const isbns: string[] = [];
+  const top = series
+    .filter((s) => s.popularityRank != null)
+    .sort((a, b) => a.popularityRank! - b.popularityRank!)
+    .slice(0, POPULAR_SERIES);
+  for (const s of top) {
+    const volumes = [...(bySeries.get(slugify(s.name))?.values() ?? [])]
+      .map((v) => ({ ...v, n: titleVolume(v.title) }))
+      .filter(
+        (v) =>
+          v.n != null &&
+          v.n >= 1 &&
+          Number.isInteger(v.n) &&
+          !isRebind(v.isbn13) &&
+          (!v.published || v.published.slice(0, 10) <= today),
+      )
+      .sort((a, b) => a.n! - b.n!);
+    isbns.push(...volumes.map((v) => v.isbn13.trim()));
+  }
+  const all = [...new Set(isbns)];
+  if (!all.length) return [];
+  const looked = await prisma.priceSourceCheck.findMany({
+    where: { isbn13: { in: all }, source: "ebay" },
+    select: { isbn13: true },
+  });
+  const done = new Set(looked.map((r) => r.isbn13.trim()));
+  return all.filter((i) => !done.has(i)).slice(0, POPULAR_BATCH);
+}
+
 // Then keeping prices fresh: a volume already priced whose free sources
 // (eBay, Books-A-Million) last looked over this long ago, oldest first. These
 // are the pages search engines send people to, and a crawler's visit never
@@ -136,11 +185,12 @@ export async function fillOne(
   if (!fillerOn()) return "off";
   if (!(await ebayHeadroom().catch(() => false))) return "budget";
   if (now - queue.at > QUEUE_MS) {
-    const [never, stale] = await Promise.all([
+    const [never, popular, stale] = await Promise.all([
       fillQueue(new Date(now)),
+      popularQueue(new Date(now)).catch(() => []),
       staleQueue(new Date(now)),
     ]);
-    queue = { at: now, isbns: [...new Set([...never, ...stale])] };
+    queue = { at: now, isbns: [...new Set([...never, ...popular, ...stale])] };
   }
   const isbn13 = queue.isbns.find((i) => now - (tried.get(i) ?? 0) > DAY_MS);
   if (!isbn13) return "nothing";
