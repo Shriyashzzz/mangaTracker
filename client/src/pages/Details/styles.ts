@@ -124,6 +124,12 @@ export const detailsStyles = {
   buy: "min-w-0 border-2 border-line bg-card p-3 shadow-ink-lg upto-720:order-5 upto-720:col-span-full upto-720:border-0 upto-720:border-t-[1.5px] upto-720:border-dashed upto-720:border-line-soft upto-720:bg-transparent upto-720:px-0 upto-720:pt-4 upto-720:pb-0 upto-720:shadow-none",
   buyList: "flex flex-col gap-2",
   buyLink: `${ticket} grid min-h-11 grid-cols-[minmax(0,1fr)_auto] border-dashed border-line bg-paper font-semibold transition-[background-color,border-color] duration-120 ease-[ease] hover:border-accent hover:bg-accent-wash focus-visible:border-accent focus-visible:bg-accent-wash upto-720:grid-cols-[minmax(0,1fr)_auto_auto] upto-720:border-solid upto-720:bg-card`,
+  // the one they need next stands out: inked solid in red on a red wash,
+  // with a hard shadow, where the rest are dashed paper
+  buyNext: `${ticket} grid min-h-11 grid-cols-[minmax(0,1fr)_auto] border-[2px] border-solid border-accent bg-accent-wash font-semibold shadow-[3px_3px_0_var(--hard-shadow)] transition-[translate,box-shadow] duration-120 ease-[ease] hover:-translate-y-px hover:shadow-[4px_4px_0_var(--hard-shadow)] focus-visible:-translate-y-px upto-720:grid-cols-[minmax(0,1fr)_auto_auto]`,
+  // its label in red too
+  buyNextKind:
+    "col-span-full font-mono text-[0.72rem] font-medium tracking-[0.06em] whitespace-nowrap text-accent uppercase upto-720:col-span-1",
   // the series link, a plain link with room around it for a thumb
   buySeries:
     "tap mt-2.5 block py-1 text-right text-[0.85rem] font-medium text-ink-soft underline decoration-line-soft underline-offset-3 transition-colors duration-120 ease-[ease] hover:text-accent hover:decoration-accent",
