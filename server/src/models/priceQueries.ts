@@ -672,6 +672,10 @@ export async function getSavedVolumeTitles() {
     FROM series_volumes sv, jsonb_array_elements(sv.volumes) v
     WHERE sv.key LIKE ${VOLUMES_KEY_VERSION + "%"}
       AND v->>'isbn13' IS NOT NULL AND v->>'title' IS NOT NULL
+      -- a 3-in-1 omnibus numbered like a volume isn't one (service.ts
+      -- isOmnibusLength); a light novel may run long
+      AND (COALESCE((v->>'pages')::int, 0) < 500
+           OR v->>'title' ILIKE '%light novel%')
   `;
 }
 
@@ -701,6 +705,20 @@ export async function getCollectionOffers(isbns: string[]) {
       AND ps.format IN ('set', 'omnibus') AND ps.in_stock
     ORDER BY COALESCE(ps.url, ps.store || ps.price_cents), ps.price_cents
   `;
+}
+
+// the ISBNs a saved list shows to be a 3-in-1 omnibus numbered like one
+// volume (500 pages or more, not a light novel): the books table has no
+// page counts, so this is how it knows to leave them out
+export async function getOmnibusIsbns() {
+  const rows = await prisma.$queryRaw<{ isbn13: string }[]>`
+    SELECT DISTINCT v->>'isbn13' AS isbn13
+    FROM series_volumes sv, jsonb_array_elements(sv.volumes) v
+    WHERE COALESCE((v->>'pages')::int, 0) >= 500
+      AND v->>'inBook' IS NULL
+      AND v->>'title' NOT ILIKE '%light novel%'
+  `;
+  return new Set(rows.map((r) => r.isbn13.trim()));
 }
 
 export async function getSeriesVolumes(key: string) {
@@ -803,6 +821,7 @@ export default {
   getSeriesVolumes,
   getSavedVolumeTitles,
   getCollectionOffers,
+  getOmnibusIsbns,
   getSavedVolume,
   getSavedListSizes,
   getFoundNovels,

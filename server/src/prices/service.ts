@@ -714,6 +714,12 @@ function adoptUpcomingDates(
 // used for a series that has both, so a long manga with no novel (Vinland
 // Saga's 450-page hardcovers) is never touched
 const NOVEL_PAGES = 230;
+// a manga "volume" this long is an omnibus holding three: single volumes run
+// about 130 to 250 pages, a 3-in-1 about 580 to 630. Light novels are left
+// alone, some of them run long
+const OMNIBUS_PAGES = 500;
+export const isOmnibusLength = (v: Pick<CatalogBook, "pages" | "inBook">) =>
+  !v.inBook && (v.pages ?? 0) >= OMNIBUS_PAGES;
 const isLong = (v: CatalogBook) => (v.pages ?? 0) >= NOVEL_PAGES && !v.comic;
 
 // a light novel by exactly this name. AniList's search answers almost any
@@ -738,7 +744,6 @@ export async function seriesVolumes(
   name: string,
   { searchAs, google = false }: { searchAs?: string; google?: boolean } = {},
 ): Promise<{ volumes: CatalogBook[]; incomplete: boolean }> {
-  const series = seriesOf(name);
   const key = searchAs
     ? `${volumesKey(name)}:native`
     : google
@@ -757,7 +762,41 @@ export async function seriesVolumes(
     seriesVolumesCache.set(key, hit);
     return { volumes: hit.volumes, incomplete: false };
   }
+  // past its time but there: shown now, looked up again in the background.
+  // A rebuild takes the catalogs 10 to 20 seconds, which a visitor (or a
+  // search engine) shouldn't sit through twice a day per series
+  if (hit?.volumes.length) {
+    if (!rebuilding.has(key)) {
+      rebuilding.set(
+        key,
+        lookUpSeriesVolumes(name, { searchAs, google }, key, hit, freshFor)
+          .catch((e: Error) =>
+            console.error("series volume rebuild failed:", e.message),
+          )
+          .finally(() => rebuilding.delete(key)),
+      );
+    }
+    return {
+      volumes: hit.volumes.filter(
+        (v) => isNovelName(name) || !isOmnibusLength(v),
+      ),
+      incomplete: false,
+    };
+  }
+  return lookUpSeriesVolumes(name, { searchAs, google }, key, hit, freshFor);
+}
 
+// series lists being looked up again in the background, one at a time each
+const rebuilding = new Map<string, Promise<unknown>>();
+
+async function lookUpSeriesVolumes(
+  name: string,
+  { searchAs, google = false }: { searchAs?: string; google?: boolean },
+  key: string,
+  hit: { at: number; volumes: CatalogBook[] } | null,
+  freshFor: number,
+): Promise<{ volumes: CatalogBook[]; incomplete: boolean }> {
+  const series = seriesOf(name);
   // free catalog queries merged: the plain one finds more, the quoted title
   // one is more precise. Long runners can have 100+ volumes. A light novel's
   // editions mostly go by the manga's name ("Overlord, Vol. 3"), so the
@@ -820,10 +859,18 @@ export async function seriesVolumes(
     if (normalize(v.title) === normalize(name)) continue;
     // a set is only ever sold as a set, so it can't stand in for one volume
     if (!isSingleVolume(v.title)) continue;
+    // nor a 3-in-1 omnibus numbered like one ("One Piece, Vol. 5 (It's All
+    // Right!!! / Instinct / Straight Ahead!!!)", 584 pages): its price and
+    // cover aren't the volume's
+    if (!novel && isOmnibusLength(v)) continue;
     addVolume(byNumber, v, books, datedElsewhere);
   }
   adoptUpcomingDates(byNumber, datedElsewhere);
-  const volumes = mergeVolumes(hit?.volumes ?? [], [...byNumber.values()]);
+  const volumes = mergeVolumes(
+    // lists saved before this rule lose theirs too
+    (hit?.volumes ?? []).filter((v) => novel || !isOmnibusLength(v)),
+    [...byNumber.values()],
+  );
 
   if (failed.length > 0 || untranslated) {
     // a saved list covers for the outage, and the catalog gets another go soon
@@ -998,7 +1045,12 @@ export async function knownVolumesBySeries() {
     return knownVolumes.bySeries;
   }
   const bySeries = new Map<string, Map<string, KnownVolume>>();
+  const omnibuses = await priceQueries
+    .getOmnibusIsbns()
+    .catch(() => new Set<string>());
   const add = (v: KnownVolume) => {
+    // a 3-in-1 omnibus numbered like a volume isn't that volume
+    if (omnibuses.has(v.isbn13.trim())) return;
     const key = slugify(seriesName(v.title));
     if (!bySeries.has(key)) bySeries.set(key, new Map());
     bySeries.get(key)!.set(v.isbn13, v);

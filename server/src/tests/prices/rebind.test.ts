@@ -1,6 +1,10 @@
 // A library rebind (Turtleback, Tandem Library) never stands in for the
 // publisher's own paperback of a volume
-import { isRebind, mergeVolumes } from "../../prices/service.js";
+import {
+  isOmnibusLength,
+  isRebind,
+  mergeVolumes,
+} from "../../prices/service.js";
 import type { CatalogBook } from "../../prices/types.js";
 
 const vol = (isbn13: string, volume: number): CatalogBook => ({
@@ -34,4 +38,14 @@ test("a rebind kept before gives way to the paperback", () => {
     [vol("9781421548098", 17)],
   );
   expect(merged.map((v) => v.isbn13)).toEqual(["9781421548098"]);
+});
+
+test("a 3-in-1 omnibus numbered like a volume is told by its length", () => {
+  expect(isOmnibusLength({ pages: 584 })).toBe(true);
+  expect(isOmnibusLength({ pages: 208 })).toBe(false);
+  expect(isOmnibusLength({})).toBe(false);
+  // a book holding two volumes is its own case (inBook), never dropped here
+  expect(
+    isOmnibusLength({ pages: 600, inBook: { book: 9, from: 17, to: 18 } }),
+  ).toBe(false);
 });
