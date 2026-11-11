@@ -1,0 +1,196 @@
+// One series on a shared shelf, opened from its card: the volumes they own as
+// spines on a shelf (a gap stands empty), how far they are, their rating and
+// notes, and the way to its prices. A native dialog brings the focus trap,
+// Escape and the backdrop
+import { useEffect, useRef, useState, type ReactNode } from "react";
+import { NavLink } from "react-router";
+import { CloseIcon } from "../../components/icons/Icons";
+import DrawnCover from "../../components/drawnCover/DrawnCover";
+import StarRating from "../../components/starRating/StarRating";
+import { priceName, seriesPath } from "../../lib/prices";
+import {
+  ownedVolumesOf,
+  statusOf,
+  volumeRanges,
+  type SharedManga,
+} from "./shareParts";
+import { shareStyles as styles } from "./styles";
+
+// every whole volume from 1 to the furthest they own, and any half volume
+// they own ("10.5"): theirs stand, the rest are gaps
+function shelfOf(owned: number[]) {
+  const highest = Math.max(0, ...owned);
+  const all = new Set(owned);
+  for (let v = 1; v <= Math.floor(highest); v++) all.add(v);
+  const mine = new Set(owned);
+  return [...all].sort((a, b) => a - b).map((v) => ({ v, mine: mine.has(v) }));
+}
+
+function Spines({ owned, name }: { owned: number[]; name: string }) {
+  return (
+    <div
+      className={styles.spines}
+      role="img"
+      aria-label={`${name}: owns volumes ${volumeRanges(owned)}`}
+    >
+      {shelfOf(owned).map(({ v, mine }) => (
+        <span key={v} className={mine ? styles.spine : styles.gap}>
+          {v}
+        </span>
+      ))}
+    </div>
+  );
+}
+
+export function Cover({
+  m,
+  className,
+  children,
+}: {
+  m: SharedManga;
+  className: string;
+  children?: ReactNode;
+}) {
+  // no cover, or one that won't load: its name, lettered on
+  const [broken, setBroken] = useState(false);
+  return (
+    <div className={className}>
+      {m.image && !broken ? (
+        <img
+          src={m.image}
+          alt=""
+          loading="lazy"
+          className="absolute inset-0 size-full object-cover"
+          onError={() => setBroken(true)}
+        />
+      ) : (
+        <DrawnCover title={m.name} />
+      )}
+      {children}
+    </div>
+  );
+}
+
+export default function SeriesSheet({
+  m,
+  owner,
+  onClose,
+}: {
+  m: SharedManga;
+  owner: string;
+  onClose: () => void;
+}) {
+  const dialog = useRef<HTMLDialogElement>(null);
+  useEffect(() => {
+    if (dialog.current && !dialog.current.open) dialog.current.showModal();
+  }, []);
+  const owned = ownedVolumesOf(m);
+  const close = () => dialog.current?.close();
+
+  return (
+    <dialog
+      ref={dialog}
+      className={styles.sheet}
+      aria-labelledby="series-sheet-title"
+      onClose={onClose}
+      // the backdrop counts as the dialog itself; its contents are all children
+      onClick={(e) => {
+        if (e.target === dialog.current) close();
+      }}
+    >
+      <div className={styles.sheetHead}>
+        <h2 id="series-sheet-title" className={styles.sheetTitle}>
+          {m.name}
+        </h2>
+        <button
+          type="button"
+          className={styles.sheetClose}
+          aria-label="Close"
+          onClick={close}
+        >
+          <CloseIcon />
+        </button>
+      </div>
+
+      <div className={styles.sheetBody}>
+        <div className={styles.sheetTop}>
+          <Cover m={m} className={styles.sheetCover} />
+          <dl className={styles.facts}>
+            <dt>Status</dt>
+            <dd>{statusOf(m)}</dd>
+            {m.bookmark != null && !m.status && (
+              <>
+                <dt>Up to</dt>
+                <dd>Chapter {m.bookmark}</dd>
+              </>
+            )}
+            <dt>Owns</dt>
+            <dd>
+              {owned.length
+                ? `${owned.length} volume${owned.length === 1 ? "" : "s"}`
+                : "None yet"}
+            </dd>
+            {m.rating ? (
+              <>
+                <dt>Rating</dt>
+                <dd>
+                  <StarRating value={m.rating} size="sm" />
+                </dd>
+              </>
+            ) : null}
+            {m.genre && m.genre !== "unlabled" && (
+              <>
+                <dt>Genre</dt>
+                <dd>{m.genre}</dd>
+              </>
+            )}
+            {m.lightNovel && (
+              <>
+                <dt>Kind</dt>
+                <dd>Light novel</dd>
+              </>
+            )}
+          </dl>
+        </div>
+
+        <section aria-labelledby="series-sheet-volumes">
+          <h3 id="series-sheet-volumes" className={styles.label}>
+            On {owner}'s shelf
+          </h3>
+          {owned.length ? (
+            <>
+              <Spines owned={owned} name={m.name} />
+              <p className={styles.ranges}>Vol. {volumeRanges(owned)}</p>
+            </>
+          ) : (
+            <p className={styles.ranges}>
+              No volumes of this one on the shelf yet.
+            </p>
+          )}
+        </section>
+
+        {m.notes && (
+          <section aria-labelledby="series-sheet-notes">
+            <h3 id="series-sheet-notes" className={styles.label}>
+              Notes
+            </h3>
+            <p className={styles.notes}>{m.notes}</p>
+          </section>
+        )}
+      </div>
+
+      <div className={styles.sheetFoot}>
+        <NavLink
+          to={seriesPath(priceName(m))}
+          className="btn btn-primary"
+          viewTransition
+        >
+          See prices
+        </NavLink>
+        <button type="button" className="btn btn-secondary" onClick={close}>
+          Close
+        </button>
+      </div>
+    </dialog>
+  );
+}

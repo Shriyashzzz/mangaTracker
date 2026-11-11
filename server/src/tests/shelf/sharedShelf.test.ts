@@ -29,8 +29,20 @@ test("a shared list never gives away the login or the email", () => {
   const text = JSON.stringify(toSharedShelf(source));
   expect(text).not.toContain("secret_login");
   expect(text).not.toContain("me@example.com");
-  expect(text).not.toContain("volumesOwned");
   expect(text).not.toContain("seenVolume");
+});
+
+test("the volumes they own are shown, as on their shelf", () => {
+  expect(toSharedShelf(source).manga[0]).toMatchObject({ volumesOwned: 3 });
+  expect(toSharedShelf(source).manga[0]).not.toHaveProperty("ownedList");
+  const gaps = toSharedShelf({
+    ...source,
+    manga: [{ ...source.manga[0]!, volumesOwned: 7, ownedList: [1, 4, 7] }],
+  });
+  expect(gaps.manga[0]).toMatchObject({
+    volumesOwned: 7,
+    ownedList: [1, 4, 7],
+  });
 });
 
 test("notes stay private unless they choose to share them", () => {

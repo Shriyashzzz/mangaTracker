@@ -6,7 +6,7 @@ import { shouldOfferTour } from "./tourOffer";
 
 const KEY = "noteThisVisit";
 
-type NoteName = "tour" | "release" | "view" | "support";
+type NoteName = "tour" | "release" | "view" | "support" | "share";
 
 const shownThisVisit = () => {
   try {
@@ -16,8 +16,10 @@ const shownThisVisit = () => {
   }
 };
 
+// a shared shelf's note is for visitors without an account, who are never
+// offered the tour
 export const noteFree = (name: NoteName) => {
-  if (name !== "tour" && shouldOfferTour()) return false;
+  if (name !== "tour" && name !== "share" && shouldOfferTour()) return false;
   const shown = shownThisVisit();
   return !shown || shown === name;
 };

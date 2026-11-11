@@ -1,133 +1,139 @@
-// Someone's shelf, opened from the link they shared. Read-only.
-import { useEffect, useRef, useState } from "react";
+// Someone's shelf, opened from the link they shared. Read-only: their name and
+// the shelf in numbers, the series in Reading / Finished / To read (found by
+// name, put in order), and a sheet with the volumes they own when one is
+// tapped (SeriesSheet). Someone without an account gets Kenji on their first
+// three visits (SharePeek) and a way to start their own at the end
+import { useEffect, useMemo, useState } from "react";
 import { NavLink, useParams } from "react-router";
 import Avatar from "../../components/avatar/Avatar";
 import Mascot from "../../components/mascot/Mascot";
 import StarRating from "../../components/starRating/StarRating";
+import {
+  CheckIcon,
+  ChevronDownIcon,
+  LinkIcon,
+  SearchIcon,
+  ShareIcon,
+} from "../../components/icons/Icons";
 import { getSharedShelf, type SharedShelf } from "../../lib/account";
-import DrawnCover from "../../components/drawnCover/DrawnCover";
+import { countShareVisit, sharePeekFor } from "../../lib/sharePeek";
 import { usePageMeta } from "../../lib/seo";
+import { useAuth } from "../../store/auth";
 import { settingsStyles } from "../Settings/styles";
+import SeriesSheet, { Cover } from "./SeriesSheet";
+import {
+  ownedCountOf,
+  ownedVolumesOf,
+  statusOf,
+  volumeRanges,
+  type SharedManga,
+} from "./shareParts";
+import SharePeek from "./SharePeek";
+import { shareStyles as styles } from "./styles";
 
-const styles = {
-  page: "flex flex-col gap-8",
-  head: "flex items-center gap-4",
-  tabs: "flex gap-6 border-b-[1.5px] border-line-soft",
-  tab: "tap -mb-[1.5px] border-b-[3px] border-transparent py-2 text-muted hover:text-ink",
-  tabActive:
-    "tap -mb-[1.5px] border-b-[3px] border-accent py-2 font-semibold text-ink",
-  tabCount: "ml-0.5 font-mono text-[0.78rem] font-normal text-muted",
-  grid: "grid grid-cols-[repeat(auto-fill,minmax(160px,1fr))] gap-x-6 gap-y-9 upto-520:grid-cols-2 upto-520:gap-x-4 upto-520:gap-y-7",
-  card: "flex min-w-0 flex-col gap-2",
-  cover:
-    "relative aspect-2/3 rounded-[2px] border-[1.5px] border-line bg-paper-2 shadow-ink-lg",
-  name: "line-clamp-2 font-display text-[1.05rem] leading-[1.25] font-semibold",
-  meta: "truncate font-mono text-[0.78rem] text-muted",
-  // a card with notes opens them; a plain one is just a card
-  open: "group flex min-w-0 cursor-pointer flex-col gap-2 text-left",
-  notesLabel:
-    "font-medium text-[0.85rem] underline decoration-accent decoration-2 underline-offset-3 group-hover:text-accent",
-  modal:
-    "m-auto max-h-[80dvh] w-[min(30rem,calc(100vw-2rem))] flex-col rounded-ink border-[2.5px] border-line bg-card text-ink shadow-ink-lg open:flex backdrop:bg-[rgba(20,14,8,0.55)] upto-720:h-dvh upto-720:max-h-none upto-720:w-screen upto-720:max-w-none upto-720:rounded-none upto-720:border-0",
-  modalHead:
-    "flex items-start justify-between gap-4 border-b-[1.5px] border-line px-5 pt-4 pb-3",
-  modalTitle:
-    "font-brand text-[1.5rem] leading-[1.1] font-normal tracking-[0.02em] text-balance uppercase",
-  // Close is at the bottom on phones, where a thumb can reach it
-  modalClose:
-    "tap shrink-0 py-1 text-[0.9rem] font-medium text-ink-soft underline decoration-line-soft underline-offset-3 hover:text-ink upto-720:hidden",
-  modalFoot: "hidden border-t-[1.5px] border-line p-3 upto-720:block",
-  modalBody: "flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto px-5 py-4",
-  modalCover: "w-28 shrink-0 rounded-[2px] border-[1.5px] border-line",
-  notes: "leading-[1.55] whitespace-pre-line wrap-anywhere",
-  stamp:
-    "absolute top-2.5 right-2 rotate-8 rounded-[3px] border-2 border-accent-hover bg-[color-mix(in_srgb,var(--card)_92%,transparent)] px-2 py-[0.15rem] font-brand text-[1rem] leading-[1.2] tracking-[1.5px] text-accent-hover",
-  missing:
-    "mx-auto my-12 flex max-w-[440px] flex-col items-center gap-3 text-center",
+const SECTIONS = ["Reading", "Finished", "To read"] as const;
+
+const SORTS = {
+  name: {
+    label: "A–Z",
+    order: (a: SharedManga, b: SharedManga) => a.name.localeCompare(b.name),
+  },
+  rating: {
+    label: "Rating",
+    order: (a: SharedManga, b: SharedManga) =>
+      (b.rating ?? 0) - (a.rating ?? 0) || a.name.localeCompare(b.name),
+  },
+  volumes: {
+    label: "Most volumes",
+    order: (a: SharedManga, b: SharedManga) =>
+      ownedCountOf(b) - ownedCountOf(a) || a.name.localeCompare(b.name),
+  },
 } as const;
+type Sort = keyof typeof SORTS;
 
-type SharedManga = SharedShelf["manga"][number];
+// on phones only the first list starts open, so the others are a tap away
+// rather than a long scroll
+const narrow = () =>
+  typeof window !== "undefined" &&
+  window.matchMedia("(max-width: 720px)").matches;
 
-function Cover({ m }: { m: SharedManga }) {
-  // no cover, or one that won't load: its name, lettered on
-  const [broken, setBroken] = useState(false);
+const plural = (n: number, one: string, many = `${one}s`) =>
+  `${n} ${n === 1 ? one : many}`;
+
+function SeriesCard({
+  m,
+  pointHere,
+  onOpen,
+}: {
+  m: SharedManga;
+  pointHere: boolean;
+  onOpen: () => void;
+}) {
+  const owned = ownedVolumesOf(m);
   return (
-    <div className={styles.cover}>
-      {m.image && !broken ? (
-        <img
-          src={m.image}
-          alt=""
-          loading="lazy"
-          className="absolute inset-0 size-full object-cover"
-          onError={() => setBroken(true)}
-        />
-      ) : (
-        <DrawnCover title={m.name} />
-      )}
-      {m.status && <span className={styles.stamp}>Done</span>}
-    </div>
+    <li>
+      <button
+        type="button"
+        className={styles.card}
+        aria-haspopup="dialog"
+        aria-label={`${m.name}: ${owned.length ? `owns ${plural(owned.length, "volume")}` : "no volumes yet"}. Open`}
+        onClick={onOpen}
+      >
+        <Cover m={m} className={styles.cover}>
+          {m.status && <span className={styles.stamp}>Done</span>}
+          {pointHere && (
+            <span className={styles.tapMe} aria-hidden>
+              Tap me
+            </span>
+          )}
+        </Cover>
+        <span className={styles.cardName}>{m.name}</span>
+        <span className={styles.cardMeta}>
+          {owned.length ? (
+            <span className={styles.cardVols}>Vol. {volumeRanges(owned)}</span>
+          ) : (
+            "No volumes yet"
+          )}
+          {!m.status && m.bookmark != null && ` · ch. ${m.bookmark}`}
+          {m.lightNovel && " · novel"}
+        </span>
+        {m.rating ? <StarRating value={m.rating} size="sm" /> : null}
+      </button>
+    </li>
   );
 }
 
-const Facts = ({ m }: { m: SharedManga }) => (
-  <>
-    <p className={styles.name}>{m.name}</p>
-    <p className={styles.meta}>
-      {[
-        m.status ? "finished" : m.bookmark ? `ch. ${m.bookmark}` : null,
-        m.lightNovel && "light novel",
-        m.genre && m.genre !== "unlabled" ? m.genre : null,
-      ]
-        .filter(Boolean)
-        .join(" · ")}
-    </p>
-    {m.rating ? <StarRating value={m.rating} size="sm" /> : null}
-  </>
-);
-
-// a native dialog brings its own focus trap, Escape and backdrop
-function NotesModal({ m, onClose }: { m: SharedManga; onClose: () => void }) {
-  const dialog = useRef<HTMLDialogElement>(null);
-  useEffect(() => {
-    if (dialog.current && !dialog.current.open) dialog.current.showModal();
-  }, []);
+// copy the link; on phones, the share sheet too
+function ShareButtons() {
+  const [copied, setCopied] = useState(false);
+  const url = typeof window !== "undefined" ? window.location.href : "";
+  const canShare = typeof navigator !== "undefined" && "share" in navigator;
+  const copy = async () => {
+    try {
+      await navigator.clipboard.writeText(url);
+      setCopied(true);
+      window.setTimeout(() => setCopied(false), 2000);
+    } catch {
+      // no clipboard (an old browser, or blocked): the address bar has it
+    }
+  };
   return (
-    <dialog
-      ref={dialog}
-      className={styles.modal}
-      aria-labelledby="notes-title"
-      onClose={onClose}
-      // the backdrop counts as the dialog itself; its contents are all children
-      onClick={(e) => {
-        if (e.target === dialog.current) dialog.current.close();
-      }}
-    >
-      <div className={styles.modalHead}>
-        <h2 id="notes-title" className={styles.modalTitle}>
-          {m.name}
-        </h2>
+    <div className={styles.actions}>
+      <button type="button" className={styles.action} onClick={copy}>
+        {copied ? <CheckIcon /> : <LinkIcon />}
+        <span aria-live="polite">{copied ? "Copied" : "Copy link"}</span>
+      </button>
+      {canShare && (
         <button
           type="button"
-          className={styles.modalClose}
-          onClick={() => dialog.current?.close()}
+          className={styles.action}
+          onClick={() => navigator.share({ url }).catch(() => {})}
         >
-          Close
+          <ShareIcon />
+          Share
         </button>
-      </div>
-      <div className={styles.modalBody}>
-        {m.image && <img src={m.image} alt="" className={styles.modalCover} />}
-        <p className={styles.notes}>{m.notes}</p>
-      </div>
-      <div className={styles.modalFoot}>
-        <button
-          type="button"
-          className="btn btn-secondary btn-block"
-          onClick={() => dialog.current?.close()}
-        >
-          Close
-        </button>
-      </div>
-    </dialog>
+      )}
+    </div>
   );
 }
 
@@ -136,13 +142,22 @@ export default function SharedShelfPage() {
   const [state, setState] = useState<{
     code: string;
     shelf: SharedShelf | null;
-    failed: boolean;
   } | null>(null);
   const shelf = state?.code === code ? state.shelf : null;
   const finished = state?.code === code;
-  const [reading, setReading] = useState<SharedManga | null>(null);
-  // their shelf, or the To read list kept apart from it
-  const [view, setView] = useState<"shelf" | "planned">("shelf");
+  const [open, setOpen] = useState<SharedManga | null>(null);
+  const [query, setQuery] = useState("");
+  const [sort, setSort] = useState<Sort>("name");
+  const [startOpen] = useState(() => !narrow());
+  const signedIn = useAuth((s) => s.isSignedIn);
+  // a visitor without an account: which of Kenji's three notes, if any. Asked
+  // once the server has said they're signed out
+  const [visit, setVisit] = useState<number | null>(null);
+  // counted once, when the page has drawn for them (a repeat in the same
+  // session counts as the same visit)
+  if (signedIn === false && finished && shelf && visit === null)
+    setVisit(countShareVisit());
+  const peek = visit === null ? null : sharePeekFor(visit);
 
   usePageMeta({
     title: shelf ? `${shelf.displayName}'s shelf` : "A shared shelf",
@@ -152,13 +167,23 @@ export default function SharedShelfPage() {
   useEffect(() => {
     const controller = new AbortController();
     getSharedShelf(code, controller.signal)
-      .then((found) => setState({ code, shelf: found, failed: false }))
+      .then((found) => setState({ code, shelf: found }))
       .catch((e: Error) => {
-        if (e.name !== "AbortError")
-          setState({ code, shelf: null, failed: true });
+        if (e.name !== "AbortError") setState({ code, shelf: null });
       });
     return () => controller.abort();
   }, [code]);
+
+  const groups = useMemo(() => {
+    const words = query.trim().toLowerCase();
+    const found = (shelf?.manga ?? [])
+      .filter((m) => !words || m.name.toLowerCase().includes(words))
+      .sort(SORTS[sort].order);
+    return SECTIONS.map((name) => ({
+      name,
+      manga: found.filter((m) => statusOf(m) === name),
+    }));
+  }, [shelf, query, sort]);
 
   if (!finished) {
     return (
@@ -172,7 +197,7 @@ export default function SharedShelfPage() {
 
   if (!shelf) {
     return (
-      <div className={`${styles.missing} fade-in`}>
+      <div className="fade-in mx-auto my-12 flex max-w-[440px] flex-col items-center gap-3 text-center">
         <span className="printed mascot-spot" aria-hidden>
           <Mascot mood="confused" />
         </span>
@@ -188,74 +213,130 @@ export default function SharedShelfPage() {
     );
   }
 
-  const onShelf = shelf.manga.filter((m) => !m.planned);
-  const planned = shelf.manga.filter((m) => m.planned);
-  const shown = view === "planned" && planned.length ? planned : onShelf;
+  const all = shelf.manga;
+  const volumes = all.reduce((n, m) => n + ownedCountOf(m), 0);
+  const count = (name: (typeof SECTIONS)[number]) =>
+    all.filter((m) => statusOf(m) === name).length;
+  const shown = groups.filter((g) => g.manga.length);
+  const firstCard = shown[0]?.manga[0];
 
   return (
     <article className={`${styles.page} fade-in`}>
       <header className={styles.head}>
-        <Avatar id={shelf.avatar} className={settingsStyles.headArt} />
-        <div>
-          <h1 className={settingsStyles.title}>{shelf.displayName}</h1>
-          <p className={settingsStyles.body}>
-            {onShelf.length} series on the shelf
-            {planned.length > 0 && `, ${planned.length} to read`}
-          </p>
+        <div className={styles.who}>
+          <Avatar id={shelf.avatar} className={styles.art} />
+          <div className="min-w-0">
+            <h1 className={styles.name}>{shelf.displayName}</h1>
+            <p className={styles.tally}>
+              <span>
+                <b>{all.length}</b> series
+              </span>
+              <span>
+                <b>{volumes}</b> {volumes === 1 ? "volume" : "volumes"} owned
+              </span>
+              <span>
+                <b>{count("Finished")}</b> finished
+              </span>
+              {count("To read") > 0 && (
+                <span>
+                  <b>{count("To read")}</b> to read
+                </span>
+              )}
+            </p>
+          </div>
         </div>
+        <ShareButtons />
       </header>
 
-      {planned.length > 0 && (
-        <div className={styles.tabs} role="group" aria-label="Which list">
-          {(
-            [
-              ["shelf", "Shelf", onShelf.length],
-              ["planned", "To read", planned.length],
-            ] as const
-          ).map(([value, label, count]) => (
-            <button
-              key={value}
-              type="button"
-              className={view === value ? styles.tabActive : styles.tab}
-              aria-pressed={view === value}
-              onClick={() => setView(value)}
-            >
-              {label} <span className={styles.tabCount}>{count}</span>
-            </button>
-          ))}
+      {all.length > 0 && (
+        <div className={styles.tools}>
+          <label className={styles.search}>
+            <SearchIcon />
+            <span className="sr-only">Find a series on this shelf</span>
+            <input
+              type="search"
+              className={styles.searchInput}
+              placeholder={`Find a series in ${plural(all.length, "series", "series")}`}
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+            />
+          </label>
+          <div className={styles.sorts} role="group" aria-label="Order">
+            {(Object.keys(SORTS) as Sort[]).map((key) => (
+              <button
+                key={key}
+                type="button"
+                className={sort === key ? styles.sortOn : styles.sort}
+                aria-pressed={sort === key}
+                onClick={() => setSort(key)}
+              >
+                {SORTS[key].label}
+              </button>
+            ))}
+          </div>
         </div>
       )}
 
-      {shown.length === 0 ? (
-        <p className={settingsStyles.body}>Nothing on this shelf yet.</p>
+      {all.length === 0 ? (
+        <p className={styles.nothing}>Nothing on this shelf yet.</p>
+      ) : shown.length === 0 ? (
+        <p className={styles.nothing}>No series here match “{query.trim()}”.</p>
       ) : (
-        <ul className={styles.grid}>
-          {shown.map((m, i) => (
-            <li key={`${m.name}-${i}`} className={styles.card}>
-              {m.notes ? (
-                <button
-                  type="button"
-                  className={styles.open}
-                  aria-haspopup="dialog"
-                  aria-label={`Read notes on ${m.name}`}
-                  onClick={() => setReading(m)}
-                >
-                  <Cover m={m} />
-                  <Facts m={m} />
-                  <span className={styles.notesLabel}>Read notes</span>
-                </button>
-              ) : (
-                <>
-                  <Cover m={m} />
-                  <Facts m={m} />
-                </>
-              )}
-            </li>
-          ))}
-        </ul>
+        shown.map((group, i) => (
+          <details
+            key={group.name}
+            className={styles.section}
+            // searching opens every list with something found
+            open={startOpen || i === 0 || Boolean(query.trim())}
+          >
+            <summary className={styles.sectionHead}>
+              <h2 className={styles.sectionName}>{group.name}</h2>
+              <span className={styles.sectionCount}>{group.manga.length}</span>
+              <ChevronDownIcon className={styles.sectionFold} />
+            </summary>
+            <ul className={styles.grid}>
+              {group.manga.map((m, j) => (
+                <SeriesCard
+                  key={`${m.name}-${j}`}
+                  m={m}
+                  pointHere={peek === 1 && m === firstCard}
+                  onOpen={() => setOpen(m)}
+                />
+              ))}
+            </ul>
+          </details>
+        ))
       )}
 
-      {reading && <NotesModal m={reading} onClose={() => setReading(null)} />}
+      {signedIn === false && (
+        <aside className={styles.invite} aria-labelledby="share-invite">
+          <span className={`printed ${styles.inviteArt}`} aria-hidden>
+            <Mascot mood="happy" />
+          </span>
+          <div className={styles.inviteText}>
+            <h2 id="share-invite" className={styles.inviteHead}>
+              Make a shelf of your own
+            </h2>
+            <p className={styles.inviteBody}>
+              Keep track of what you own and what you're reading, see what's
+              coming out, find the cheapest copy, and share it like this one.
+              It's free.
+            </p>
+          </div>
+          <NavLink to="/signup" className="btn btn-primary" viewTransition>
+            Start my shelf
+          </NavLink>
+        </aside>
+      )}
+
+      {open && (
+        <SeriesSheet
+          m={open}
+          owner={shelf.displayName}
+          onClose={() => setOpen(null)}
+        />
+      )}
+      {peek && <SharePeek visit={peek} owner={shelf.displayName} />}
     </article>
   );
 }
