@@ -975,8 +975,25 @@ async function getSeriesWithVolumes(name: string) {
   ]);
   // box sets and omnibuses found while pricing its volumes, cheapest first,
   // each with our affiliate tag where we have one
+  // the same set at the same price from the same store, listed more than
+  // once (eBay sellers often post several), shows as one row
+  const seenSets = new Set<string>();
   const boxSets = collections
     .sort((a, b) => a.priceCents - b.priceCents)
+    .filter((o) => {
+      const key = [
+        o.store
+          .split(/\s[-–—|]\s/)[0]!
+          .trim()
+          .toLowerCase(),
+        o.format,
+        o.condition,
+        o.priceCents,
+      ].join("|");
+      if (seenSets.has(key)) return false;
+      seenSets.add(key);
+      return true;
+    })
     .slice(0, BOX_SETS_SHOWN)
     .map((o) => {
       const url = affiliateOfferUrl(o, o.isbn13.trim());
