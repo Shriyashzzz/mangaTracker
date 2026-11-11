@@ -491,7 +491,9 @@ export async function getVolumePrices(
       isbn13: book.isbn13,
       title: book.title,
       // saved before englishAuthors: "尾田栄一郎" alone shows none
-      authors: englishAuthors(book.authors?.split(/,\s*/)),
+      authors:
+        englishAuthors(book.authors?.split(/,\s*/)) ??
+        (series.info?.authors?.join(", ") || null),
       // saved before publisherOf: a foreign edition's publisher is fixed here
       publisher: publisherOf(book.isbn13, { work: [book.publisher] }),
       // an edition known to have no cover: none, as the preview tags have it,
@@ -1073,7 +1075,9 @@ export async function getVolumeSummary(isbn13: string) {
     // what the page is called (the address stays on the title)
     heading: volumeHeading(book.title, seriesLabel, saved),
     // saved before englishAuthors: "尾田栄一郎" alone shows none
-    authors: englishAuthors(book.authors?.split(/,\s*/)),
+    authors:
+      englishAuthors(book.authors?.split(/,\s*/)) ??
+      (series?.authors?.join(", ") || null),
     publisher: publisherOf(book.isbn13, { work: [book.publisher] }),
     year: book.year,
     // an edition we know has no cover: none, so previews and search engines

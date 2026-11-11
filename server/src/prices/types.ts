@@ -74,6 +74,9 @@ export type SeriesInfo = {
   // its name in its own script ("ヴィンランド・サガ"): Open Library files some
   // US editions under it. Missing from rows saved before it was asked for
   nativeName?: string | null;
+  // who wrote and drew it, in English letters ("Eiichiro Oda"), for volumes
+  // whose catalog record only names them in Japanese. Missing from older rows
+  authors?: string[];
 };
 
 // a series in search results and the trending row

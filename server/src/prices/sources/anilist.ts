@@ -40,6 +40,9 @@ type Media = {
   description: string | null;
   rankings: { rank: number; type: string; allTime: boolean }[] | null;
   startDate?: { year: number | null } | null;
+  staff?: {
+    edges: { role: string; node: { name: { full: string | null } } }[];
+  };
 };
 
 async function query<T>(gql: string, variables?: Record<string, unknown>) {
@@ -154,6 +157,7 @@ const SERIES_QUERY = `
       coverImage { large }
       description(asHtml: false)
       rankings { rank type allTime }
+      staff(sort: RELEVANCE, perPage: 8) { edges { role node { name { full } } } }
     }
   }
 `;
@@ -169,6 +173,7 @@ const NOVEL_SERIES_QUERY = `
         coverImage { large }
         description(asHtml: false)
         rankings { rank type allTime }
+        staff(sort: RELEVANCE, perPage: 8) { edges { role node { name { full } } } }
       }
     }
   }
@@ -186,6 +191,20 @@ export const pickNamed = <M extends Pick<Media, "title" | "synonyms">>(
   media[0] ??
   null;
 
+// who wrote and drew it, in English letters ("Eiichiro Oda"): AniList's staff
+// in the story and art roles, never assistants, translators or letterers
+const CREATOR_ROLE =
+  /^(story( & art)?|art|original (story|creator)|illustration)$/i;
+export const creatorsOf = (m: Pick<Media, "staff">) =>
+  [
+    ...new Set(
+      (m.staff?.edges ?? [])
+        .filter((e) => CREATOR_ROLE.test(e.role.trim()))
+        .map((e) => e.node.name.full?.trim() ?? "")
+        .filter((n) => n && /^[\p{Script=Latin}\s.'’-]+$/u.test(n)),
+    ),
+  ].slice(0, 3);
+
 const toInfo = (m: Media): SeriesInfo => ({
   anilistId: m.id,
   name: (m.title.english || m.title.romaji) ?? "",
@@ -201,6 +220,8 @@ const toInfo = (m: Media): SeriesInfo => ({
   // saved with the rest; rows from before it was asked for get it on a later
   // visit, a few a minute (see mayAskForNative)
   nativeName: m.title.native ?? null,
+  // the same, for rows saved before authors were asked for
+  authors: creatorsOf(m),
   // other names, e.g. Detective Conan is published in the US as Case Closed
   altNames: [m.title.romaji, ...(m.synonyms ?? [])].filter(
     (n): n is string => !!n && /^[\x20-\x7e’]+$/.test(n),
@@ -267,13 +288,15 @@ export async function listKnownSeries(): Promise<SeriesInfo[]> {
 export const isComplete = (info: unknown) =>
   info == null || Array.isArray((info as Partial<SeriesInfo>).altNames);
 
-// a row saved before the native name was asked for gets it on a later visit,
-// a few a minute: a whole shelf's release check mustn't ask AniList about
+// a row saved before the native name (or authors) was asked for gets it on a
+// later visit, a few a minute: a whole shelf's release check mustn't ask AniList about
 // every series at once (it rate limits, and a failed ask keeps the old row)
 const NATIVE_PER_MINUTE = 20;
 let nativeAsks = { minute: 0, count: 0 };
 export const lacksNativeName = (info: unknown) =>
   info != null && !("nativeName" in (info as object));
+export const lacksAuthors = (info: unknown) =>
+  info != null && !("authors" in (info as object));
 const mayAskForNative = () => {
   const minute = Math.floor(Date.now() / 60_000);
   if (nativeAsks.minute !== minute) nativeAsks = { minute, count: 0 };
@@ -301,7 +324,10 @@ export async function getSeriesInfo(name: string): Promise<SeriesInfo | null> {
     Date.now() - cached.fetchedAt.getTime() < SERIES_FRESH_MS &&
     isComplete(cached.info) &&
     !wrongFormat &&
-    !(lacksNativeName(cached.info) && mayAskForNative())
+    !(
+      (lacksNativeName(cached.info) || lacksAuthors(cached.info)) &&
+      mayAskForNative()
+    )
   ) {
     return cached.info as SeriesInfo | null;
   }
