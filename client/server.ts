@@ -85,21 +85,118 @@ type VolumeSummary = {
   highCents: number | null;
   offerCount: number;
   bestNew: { store: string; priceCents: number } | null;
+  // cheapest first; optional while an older API is still running
+  offers?: {
+    store: string;
+    condition: string;
+    format: string;
+    priceCents: number;
+  }[];
 };
 type SeriesSummary = {
   name: string;
   description: string | null;
   coverUrl: string | null;
   genres: string[];
+  volumes?: { isbn13: string; title: string; fromCents: number | null }[];
 };
-// the tags one page gets
+// the tags one page gets, and the plain HTML that fills #root until the
+// app starts (crawlers that don't run JavaScript only ever see this)
 type Tags = {
   title: string;
   description: string;
   path: string;
   image: string | null | undefined;
   jsonLd: Record<string, unknown>;
+  body: string;
 };
+
+// ---------- the page body, for crawlers ----------
+
+// AniList descriptions carry <br> and <i>: text only
+const plainText = (text: string) =>
+  text
+    .replace(/<br\s*\/?>/gi, " ")
+    .replace(/<[^>]*>/g, "")
+    .replace(/\s+/g, " ")
+    .trim();
+
+const offerKind = (o: { condition: string; format: string }) =>
+  o.format === "ebook"
+    ? "Ebook"
+    : o.condition.charAt(0).toUpperCase() + o.condition.slice(1);
+
+// plain and readable for the moment before the app replaces it
+const BODY_STYLE = `<style>
+      .crawl-page { max-width: 46rem; margin: 0 auto; padding: 1.5rem 1rem; font-family: "IBM Plex Sans", system-ui, sans-serif; line-height: 1.5; }
+      .crawl-page > * + * { margin-top: 0.75rem; }
+      .crawl-page h2 { margin-top: 1.5rem; clear: both; }
+      .crawl-page img { float: right; width: 8rem; height: auto; margin: 0.25rem 0 1rem 1rem; }
+      .crawl-page dl { display: grid; grid-template-columns: auto 1fr; gap: 0.15rem 1rem; }
+      .crawl-page dt { font-weight: 600; }
+      .crawl-page table { border-collapse: collapse; }
+      .crawl-page td, .crawl-page th { padding: 0.15rem 1rem 0.15rem 0; text-align: left; }
+      .crawl-page a { color: inherit; text-decoration: underline; text-underline-offset: 3px; }
+    </style>`;
+
+const crumbs = (links: [string, string][]) =>
+  `<nav>${links.map(([href, label]) => `<a href="${escapeHtml(href)}">${escapeHtml(label)}</a>`).join(" › ")}</nav>`;
+
+function volumeBody(v: VolumeSummary, image: string | null | undefined) {
+  const name = v.heading ?? v.title;
+  const facts = [
+    v.authors && ["Author", v.authors],
+    v.publisher && ["Publisher", v.publisher],
+    v.year && ["Published", String(v.year)],
+    ["ISBN", v.isbn13],
+  ].filter(Boolean) as [string, string][];
+  const offers = v.offers ?? [];
+  return `<main class="crawl-page">
+      ${crumbs([
+        ["/", SITE_NAME],
+        ["/series", "Series"],
+        [seriesPath(v.seriesName), v.seriesName],
+      ])}
+      <h1>${escapeHtml(name)} price comparison</h1>
+      ${image ? `<img src="${escapeHtml(image)}" alt="${escapeHtml(`${name} cover`)}" />` : ""}
+      <p>${
+        v.bestNew
+          ? `Lowest new price we've found: ${usd(v.bestNew.priceCents)} at ${escapeHtml(v.bestNew.store)}.`
+          : `US prices for ${escapeHtml(name)}, from ${escapeHtml(v.seriesName)}.`
+      }</p>
+      <dl>${facts.map(([k, val]) => `<dt>${k}</dt><dd>${escapeHtml(val)}</dd>`).join("")}</dl>
+      ${
+        offers.length
+          ? `<h2>Prices</h2>
+      <table>
+        <thead><tr><th>Store</th><th>Copy</th><th>Price</th></tr></thead>
+        <tbody>${offers.map((o) => `<tr><td>${escapeHtml(o.store)}</td><td>${escapeHtml(offerKind(o))}</td><td>${usd(o.priceCents)}</td></tr>`).join("")}</tbody>
+      </table>`
+          : ""
+      }
+    </main>`;
+}
+
+function seriesBody(s: SeriesSummary) {
+  const volumes = s.volumes ?? [];
+  return `<main class="crawl-page">
+      ${crumbs([
+        ["/", SITE_NAME],
+        ["/series", "Series"],
+      ])}
+      <h1>${escapeHtml(s.name)} manga prices</h1>
+      ${s.coverUrl ? `<img src="${escapeHtml(s.coverUrl)}" alt="${escapeHtml(`${s.name} cover`)}" />` : ""}
+      <p>Compare US prices for every ${escapeHtml(s.name)} volume in English.</p>
+      ${s.description ? `<p>${escapeHtml(clip(plainText(s.description), 600))}</p>` : ""}
+      ${s.genres?.length ? `<p>Genres: ${s.genres.map(escapeHtml).join(", ")}</p>` : ""}
+      ${
+        volumes.length
+          ? `<h2>Volumes</h2>
+      <ul>${volumes.map((v) => `<li><a href="${escapeHtml(volumePath(v.isbn13, v.title))}">${escapeHtml(v.title)}</a>${v.fromCents != null ? ` from ${usd(v.fromCents)}` : ""}</li>`).join("")}</ul>`
+          : ""
+      }
+    </main>`;
+}
 
 function volumeTags(v: VolumeSummary, origin: string): Tags {
   const path = volumePath(v.isbn13, v.title);
@@ -152,6 +249,7 @@ function volumeTags(v: VolumeSummary, origin: string): Tags {
     path,
     image,
     jsonLd,
+    body: volumeBody(v, image),
   };
 }
 
@@ -173,12 +271,13 @@ function seriesTags(s: SeriesSummary, origin: string): Tags {
       ...(s.coverUrl && { image: s.coverUrl }),
       ...(s.genres?.length && { genre: s.genres }),
     },
+    body: seriesBody(s),
   };
 }
 
 // swaps the default tags in index.html for the page's own
 function render(
-  { title, description, path, image, jsonLd }: Tags,
+  { title, description, path, image, jsonLd, body }: Tags,
   origin: string,
 ) {
   const fullTitle = `${title} | ${SITE_NAME}`;
@@ -198,6 +297,7 @@ function render(
     `<script id="page-jsonld" type="application/ld+json">${JSON.stringify(
       jsonLd,
     ).replace(/</g, "\\u003c")}</script>`,
+    BODY_STYLE,
   ].filter(Boolean);
 
   return (
@@ -209,6 +309,8 @@ function render(
       // a function, so a "$'" or "$&" in a title is kept as written rather than
       // read as a replace pattern
       .replace("</head>", () => `    ${tags.join("\n    ")}\n  </head>`)
+      // createRoot replaces whatever is inside #root when the app starts
+      .replace('<div id="root"></div>', () => `<div id="root">${body}</div>`)
   );
 }
 

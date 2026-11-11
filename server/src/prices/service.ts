@@ -1061,18 +1061,51 @@ export async function getVolumeSummary(isbn13: string) {
     bestNew: bestNew
       ? { store: bestNew.store, priceCents: bestNew.priceCents }
       : null,
+    // the stored prices, cheapest first, written into the page for crawlers
+    offers: inStock.slice(0, SUMMARY_OFFERS).map((o) => ({
+      store: o.store,
+      condition: o.condition,
+      format: o.format,
+      priceCents: o.priceCents,
+    })),
   };
 }
+
+const SUMMARY_OFFERS = 12;
+const SUMMARY_VOLUMES = 200;
 
 export async function getSeriesSummary(asked: string) {
   const name = await knownSeriesName(asked);
   const info = await getSeriesInfo(name).catch(() => null);
   if (!info) return null;
+  // the volumes we know, with the lowest new price we already have: memory
+  // and database only, like the shelf
+  const bySeries = await knownVolumesBySeries().catch(() => null);
+  const known = new Map<string, KnownVolume>();
+  for (const key of new Set([slugify(info.name), slugify(seriesName(asked))])) {
+    bySeries?.get(key)?.forEach((v, isbn) => known.set(isbn, v));
+  }
+  const volumes = [...known.values()]
+    .sort(
+      (a, b) =>
+        (titleVolume(a.title) ?? Infinity) -
+          (titleVolume(b.title) ?? Infinity) ||
+        a.title.localeCompare(b.title),
+    )
+    .slice(0, SUMMARY_VOLUMES);
+  const prices = await priceQueries
+    .getKnownPrices(volumes.map((v) => v.isbn13))
+    .catch(() => new Map<string, { priceCents: number }>());
   return {
     name: info.name,
     description: info.description,
     coverUrl: info.coverUrl,
     genres: info.genres,
+    volumes: volumes.map((v) => ({
+      isbn13: v.isbn13.trim(),
+      title: v.title,
+      fromCents: prices.get(v.isbn13.trim())?.priceCents ?? null,
+    })),
   };
 }
 
