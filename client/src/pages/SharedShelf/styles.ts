@@ -7,26 +7,28 @@ export const shareStyles = {
   // who, how much, and the link to pass on
   // name and numbers, the fan beside them, the links under the fan; on
   // phones the fan comes first, then the name
-  head: "grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-8 gap-y-5 border-b-[1.5px] border-line pb-7 upto-720:grid-cols-[minmax(0,1fr)] upto-720:pb-6",
+  head: "grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-8 gap-y-5 border-b-[1.5px] border-line pb-7 upto-720:grid-cols-[minmax(0,1fr)] upto-720:gap-y-4 upto-720:pb-6",
   who: "flex min-w-0 items-center gap-4",
-  art: "w-20 shrink-0 upto-520:w-16",
+  art: "w-20 shrink-0 upto-520:w-14",
   name: "font-brand text-[2.4rem] leading-none font-normal tracking-[0.02em] text-balance uppercase upto-520:text-[1.9rem]",
   // the shelf in numbers, as one line of print
   tally:
-    "mt-3 flex flex-wrap gap-2 font-mono text-[0.78rem] text-(--stamp-ink) [&_b]:font-brand [&_b]:text-[1.15rem] [&_b]:leading-none [&_b]:font-normal",
-  // the shelf in numbers, as stamps in each status' ink
-  tallyStamp:
-    "inline-flex items-baseline gap-1.5 border-[1.5px] border-line px-2 py-1 shadow-[2px_2px_0_var(--hard-shadow)] odd:-rotate-1 even:rotate-1",
+    "mt-2.5 flex flex-wrap gap-x-4 gap-y-1 font-mono text-[0.8rem] text-ink-soft [&_b]:font-semibold [&_b]:text-ink",
+  // each number with a square of its colour: the status inks the page uses
+  tallyItem:
+    "inline-flex items-center gap-1.5 before:size-2.5 before:border-[1.5px] before:border-line before:bg-(--dot)",
   actions:
     "col-start-1 flex flex-wrap gap-2.5 upto-520:w-full upto-520:[&>*]:flex-1",
+  view: "tap h-9 px-3 text-ink-soft hover:bg-paper-2 hover:text-ink upto-520:h-10",
+  viewOn: "tap h-9 bg-ink px-3 font-semibold text-paper upto-520:h-10",
   // fanned covers: tilted from the middle, straightened and lifted on hover
-  fan: "relative isolate col-start-2 row-span-2 row-start-1 flex items-end justify-center pr-2 pl-8 before:absolute before:-inset-x-6 before:-inset-y-5 before:-z-1 before:bg-[radial-gradient(color-mix(in_srgb,var(--accent)_45%,transparent)_1.5px,transparent_1.7px)] before:bg-size-[8px_8px] before:[mask-image:radial-gradient(closest-side,black_55%,transparent)] upto-720:col-start-1 upto-720:row-span-1 upto-720:row-start-1 upto-720:justify-start upto-720:pl-5",
+  fan: "relative isolate col-start-2 row-span-2 row-start-1 flex items-end justify-center pr-2 pl-8 before:absolute before:-inset-x-6 before:-inset-y-5 before:-z-1 before:bg-[radial-gradient(color-mix(in_srgb,var(--accent)_45%,transparent)_1.5px,transparent_1.7px)] before:bg-size-[8px_8px] before:[mask-image:radial-gradient(closest-side,black_55%,transparent)] upto-720:col-start-1 upto-720:row-span-1 upto-720:row-start-auto upto-720:justify-start upto-720:pl-3 upto-720:before:hidden",
   fanItem:
-    "-ml-8 rotate-(--tilt) transition-[rotate,translate] duration-200 ease-ink first:ml-0 nth-[2]:translate-y-1 nth-[4]:translate-y-1 nth-[odd]:not-first:not-last:-translate-y-1 hover:z-[2] hover:-translate-y-2 hover:rotate-0 focus-within:z-[2] upto-720:-ml-5",
+    "-ml-8 rotate-(--tilt) transition-[rotate,translate] duration-200 ease-ink first:ml-0 nth-[2]:translate-y-1 nth-[4]:translate-y-1 hover:z-[2] hover:-translate-y-2 hover:rotate-0 focus-within:z-[2] upto-720:-ml-2.5 upto-720:rotate-[calc(var(--tilt)/2)]",
   fanCard:
     "block cursor-pointer focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-accent focus-visible:outline-dashed",
   fanCover:
-    "relative aspect-2/3 w-[6.5rem] border-[1.5px] border-line bg-paper-2 shadow-ink-lg upto-720:w-[4.25rem]",
+    "relative aspect-2/3 w-[6.5rem] border-[1.5px] border-line bg-paper-2 shadow-ink-lg upto-720:w-[3.4rem] upto-720:shadow-ink",
   action: "btn btn-secondary gap-2 [&_svg]:size-4",
 
   // find and order
@@ -36,15 +38,19 @@ export const shareStyles = {
     "relative flex min-w-0 flex-1 items-center [&>svg]:pointer-events-none [&>svg]:absolute [&>svg]:left-3 [&>svg]:size-4 [&>svg]:text-muted",
   searchInput:
     "h-11 w-full max-w-[26rem] border-[1.5px] border-line bg-card pr-3 pl-9 text-[0.95rem] placeholder:text-muted focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent focus-visible:outline-dashed upto-520:max-w-none",
-  sorts: "flex items-center gap-1 font-mono text-[0.78rem] text-muted",
+  sorts:
+    "flex items-center gap-1 font-mono text-[0.78rem] text-muted upto-520:hidden",
   sort: "tap px-2 py-1.5 text-ink-soft underline decoration-transparent underline-offset-4 hover:text-ink hover:decoration-line-soft",
   sortOn:
     "tap px-2 py-1.5 font-semibold text-ink underline decoration-accent decoration-2 underline-offset-4",
   // the order and the layout, side by side
   controls:
-    "flex flex-wrap items-center gap-x-4 gap-y-1 upto-520:justify-between",
+    "flex flex-wrap items-center gap-x-4 gap-y-1 upto-520:flex-nowrap upto-520:justify-between",
+  sortMenu: "hidden upto-520:block",
+  sortSelect:
+    "select-chevron h-10 border-[1.5px] border-line bg-card pr-9 pl-3 font-mono text-[0.85rem] text-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent focus-visible:outline-dashed",
   views:
-    "flex items-center border-l-[1.5px] border-line-soft pl-3 font-mono text-[0.78rem] text-muted upto-520:border-l-0 upto-520:pl-0",
+    "flex items-stretch border-[1.5px] border-line font-mono text-[0.78rem]",
 
   // one reading status
   section: "group/section",
@@ -75,12 +81,17 @@ export const shareStyles = {
   rows: "mt-2 grid grid-cols-[repeat(auto-fill,minmax(18rem,1fr))] gap-x-8 upto-520:grid-cols-[minmax(0,1fr)]",
   row: "border-b-[1.5px] border-line-soft",
   rowCard:
-    "group/card relative -mx-2 grid w-[calc(100%+1rem)] min-w-0 cursor-pointer grid-cols-[2.75rem_minmax(0,1fr)] items-center gap-x-3 px-2 py-2.5 text-left transition-colors duration-150 hover:bg-[color-mix(in_srgb,var(--tone)_35%,transparent)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent focus-visible:outline-dashed",
+    "group/card relative -mx-2 grid w-[calc(100%+1rem)] min-w-0 cursor-pointer grid-cols-[3.5rem_minmax(0,1fr)] items-center gap-x-3.5 px-2 py-3 text-left transition-colors duration-150 hover:bg-[color-mix(in_srgb,var(--tone)_35%,transparent)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent focus-visible:outline-dashed upto-520:grid-cols-[3rem_minmax(0,1fr)]",
   rowCover:
     "relative aspect-2/3 border-[1.5px] border-line bg-paper-2 shadow-ink transition-[translate] duration-200 ease-ink group-hover/card:-translate-y-0.5",
-  rowText: "flex min-w-0 flex-col gap-[0.15rem]",
+  rowText: "flex min-w-0 flex-col gap-1",
   rowName:
     "truncate font-display text-[1.02rem] leading-[1.25] font-semibold group-hover/card:underline group-hover/card:decoration-accent group-hover/card:decoration-2 group-hover/card:underline-offset-3",
+  // the volumes they own, as ticks; a gap is an empty one
+  ticks: "flex h-3 max-w-[15rem] gap-[2px]",
+  tick: "max-w-[7px] min-w-[2px] flex-1 rounded-[1px] bg-[color-mix(in_srgb,var(--tone)_70%,var(--ink))]",
+  tickGap:
+    "max-w-[7px] min-w-[2px] flex-1 rounded-[1px] border border-dashed border-muted",
   rowMore:
     "flex min-h-[1.2rem] min-w-0 items-center gap-3 font-mono text-[0.76rem] text-muted [&>span]:truncate",
   rowTapMe:
@@ -90,7 +101,7 @@ export const shareStyles = {
 
   // someone without an account, at the end of the shelf
   invite:
-    "flex flex-wrap items-center gap-x-6 gap-y-3 border-2 border-line bg-(--stamp-market) bg-[radial-gradient(var(--dots-strong)_1px,transparent_1.2px)] bg-size-[6px_6px] px-5 py-4 text-(--stamp-ink) shadow-ink-lg upto-520:flex-col upto-520:items-start",
+    "flex flex-wrap items-center gap-x-6 gap-y-3 border-2 border-(--invite-edge) bg-(--invite-paper) bg-[radial-gradient(var(--dots-strong)_1px,transparent_1.2px)] bg-size-[6px_6px] px-5 py-4 text-(--invite-ink) shadow-ink-lg upto-520:flex-col upto-520:items-start",
   inviteArt: "w-16 shrink-0",
   inviteText: "flex min-w-0 flex-1 flex-col gap-0.5",
   inviteHead:

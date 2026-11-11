@@ -5,7 +5,13 @@
 // link can open straight to it. Someone without an account gets Kenji on their first
 // three visits (SharePeek) and a way to start their own at the end
 import { useEffect, useMemo, useState } from "react";
-import { NavLink, useParams, useSearchParams } from "react-router";
+import {
+  NavLink,
+  useLocation,
+  useNavigate,
+  useParams,
+  useSearchParams,
+} from "react-router";
 import Avatar from "../../components/avatar/Avatar";
 import Mascot from "../../components/mascot/Mascot";
 import StarRating from "../../components/starRating/StarRating";
@@ -26,6 +32,7 @@ import SeriesSheet, { Cover } from "./SeriesSheet";
 import {
   ownedCountOf,
   ownedVolumesOf,
+  shelfOf,
   statusOf,
   TONES,
   volumeRanges,
@@ -149,6 +156,7 @@ function SeriesRow({
               "No volumes yet"
             )}
           </span>
+          <VolumeTicks owned={owned} />
           {/* one line for the rest, so every row is the same height */}
           <span className={styles.rowMore}>
             {more.length > 0 && <span>{more.join(" · ")}</span>}
@@ -162,6 +170,19 @@ function SeriesRow({
         )}
       </button>
     </li>
+  );
+}
+
+// the volumes they own as a strip of ticks, 1 to the furthest: a gap shows
+// as an empty tick, so "1–3, 5, 8–10" can be seen at a glance
+function VolumeTicks({ owned }: { owned: number[] }) {
+  if (!owned.length) return null;
+  return (
+    <span className={styles.ticks} aria-hidden>
+      {shelfOf(owned).map(({ v, mine }) => (
+        <span key={v} className={mine ? styles.tick : styles.tickGap} />
+      ))}
+    </span>
   );
 }
 
@@ -256,7 +277,15 @@ export default function SharedShelfPage() {
   const open =
     (openName && shelf?.manga.find((m) => m.name.toLowerCase() === openName)) ||
     null;
-  const setOpen = (m: SharedManga | null) =>
+  // opening is a step in the history, so Back (or a swipe) closes it again;
+  // closing one that was opened here steps back, rather than adding another
+  const location = useLocation();
+  const navigate = useNavigate();
+  const setOpen = (m: SharedManga | null) => {
+    if (!m && (location.state as { sheet?: boolean } | null)?.sheet) {
+      navigate(-1);
+      return;
+    }
     setParams(
       (now) => {
         const next = new URLSearchParams(now);
@@ -264,8 +293,13 @@ export default function SharedShelfPage() {
         else next.delete("series");
         return next;
       },
-      { replace: true, preventScrollReset: true },
+      {
+        replace: !m,
+        preventScrollReset: true,
+        state: m ? { sheet: true } : null,
+      },
     );
+  };
   const [query, setQuery] = useState("");
   const [sort, setSort] = useState<Sort>("name");
   const [view, setView] = useState<View>(viewNow);
@@ -357,28 +391,24 @@ export default function SharedShelfPage() {
           <div className="min-w-0">
             <h1 className={styles.name}>{shelf.displayName}</h1>
             <p className={styles.tally}>
-              {[
-                [all.length, "series", "var(--stamp-market)"],
+              {(
                 [
-                  volumes,
-                  volumes === 1 ? "volume owned" : "volumes owned",
-                  "var(--accent)",
-                ],
-                [count("Finished"), "finished", "var(--stamp-new)"],
-                [count("To read"), "to read", "var(--stamp-ebook)"],
-              ]
-                .filter(([n, label]) => label !== "to read" || Number(n) > 0)
+                  [all.length, "series", "var(--ink)"],
+                  [
+                    volumes,
+                    volumes === 1 ? "volume owned" : "volumes owned",
+                    "var(--accent)",
+                  ],
+                  [count("Finished"), "finished", TONES.Finished],
+                  [count("To read"), "to read", TONES["To read"]],
+                ] as const
+              )
+                .filter(([n, label]) => label !== "to read" || n > 0)
                 .map(([n, label, ink]) => (
                   <span
                     key={label}
-                    className={styles.tallyStamp}
-                    style={{
-                      background: ink as string,
-                      // the red stamp takes the light ink
-                      ...(ink === "var(--accent)" && {
-                        color: "var(--on-accent)",
-                      }),
-                    }}
+                    className={styles.tallyItem}
+                    style={{ "--dot": ink } as React.CSSProperties}
                   >
                     <b>{n}</b> {label}
                   </span>
@@ -394,11 +424,11 @@ export default function SharedShelfPage() {
         <div className={styles.tools}>
           <label className={styles.search}>
             <SearchIcon />
-            <span className="sr-only">Find a series on this shelf</span>
+            <span className="sr-only">Search {shelf.displayName}'s shelf</span>
             <input
               type="search"
               className={styles.searchInput}
-              placeholder={`Find a series in ${plural(all.length, "series", "series")}`}
+              placeholder={`Search ${shelf.displayName}'s shelf`}
               value={query}
               onChange={(e) => setQuery(e.target.value)}
             />
@@ -417,12 +447,27 @@ export default function SharedShelfPage() {
                 </button>
               ))}
             </div>
+            {/* on phones the order is a menu, so it shares a line with the layout */}
+            <label className={styles.sortMenu}>
+              <span className="sr-only">Order</span>
+              <select
+                className={styles.sortSelect}
+                value={sort}
+                onChange={(e) => setSort(e.target.value as Sort)}
+              >
+                {(Object.keys(SORTS) as Sort[]).map((key) => (
+                  <option key={key} value={key}>
+                    {SORTS[key].label}
+                  </option>
+                ))}
+              </select>
+            </label>
             <div className={styles.views} role="group" aria-label="Layout">
               {(Object.keys(VIEWS) as View[]).map((key) => (
                 <button
                   key={key}
                   type="button"
-                  className={view === key ? styles.sortOn : styles.sort}
+                  className={view === key ? styles.viewOn : styles.view}
                   aria-pressed={view === key}
                   onClick={() => pickView(key)}
                 >

@@ -36,3 +36,13 @@ export function volumeRanges(volumes: number[]) {
   }
   return runs.map(([a, b]) => (a === b ? `${a}` : `${a}–${b}`)).join(", ");
 }
+
+// every whole volume from 1 to the furthest they own, and any half volume
+// they own ("10.5"): theirs stand, the rest are gaps
+export function shelfOf(owned: number[]) {
+  const highest = Math.max(0, ...owned);
+  const all = new Set(owned);
+  for (let v = 1; v <= Math.floor(highest); v++) all.add(v);
+  const mine = new Set(owned);
+  return [...all].sort((a, b) => a - b).map((v) => ({ v, mine: mine.has(v) }));
+}

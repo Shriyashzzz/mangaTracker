@@ -66,6 +66,10 @@
   --stamp-market: #f8d46b;
   --stamp-ebook: #cdd6fb;
   --stamp-ink: #1d1a16;
+  /* the shared shelf's invite: yellow paper by day, a dark card edged in it at night */
+  --invite-paper: var(--stamp-market);
+  --invite-ink: var(--stamp-ink);
+  --invite-edge: var(--line);
   --award-new: #2e6b4c;
   --on-award-new: #fffaf2;
   --award-market: #e0a21b;
@@ -99,6 +103,12 @@
     --stamp-market: #e6b84a;
     --stamp-ebook: #9fb0ec;
     --stamp-ink: #16140f;
+    --invite-paper: var(--card);
+    --invite-ink: var(--ink);
+    --invite-edge: var(--stamp-market);
+    --invite-paper: var(--card);
+    --invite-ink: var(--ink);
+    --invite-edge: var(--stamp-market);
     --award-new: #6fbf8f;
     --on-award-new: #16140f;
     --award-market: #f2b630;

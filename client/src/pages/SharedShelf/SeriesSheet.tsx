@@ -12,22 +12,13 @@ import { priceName, seriesPath } from "../../lib/prices";
 import AddToShelf from "./AddToShelf";
 import {
   ownedVolumesOf,
+  shelfOf,
   statusOf,
   toneOf,
   volumeRanges,
   type SharedManga,
 } from "./shareParts";
 import { shareStyles as styles } from "./styles";
-
-// every whole volume from 1 to the furthest they own, and any half volume
-// they own ("10.5"): theirs stand, the rest are gaps
-function shelfOf(owned: number[]) {
-  const highest = Math.max(0, ...owned);
-  const all = new Set(owned);
-  for (let v = 1; v <= Math.floor(highest); v++) all.add(v);
-  const mine = new Set(owned);
-  return [...all].sort((a, b) => a - b).map((v) => ({ v, mine: mine.has(v) }));
-}
 
 function Spines({ owned, name }: { owned: number[]; name: string }) {
   return (
