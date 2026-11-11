@@ -7,6 +7,7 @@ import config from "../config/config.js";
 import priceQueries from "../models/priceQueries.js";
 import { slugify } from "../prices/stores/match.js";
 import { sendError } from "../middlewares/errorHandler.js";
+import { knownVolumesBySeries } from "../prices/service.js";
 
 const site = () => config.CLIENT_URL?.replace(/\/+$/, "");
 
@@ -39,14 +40,20 @@ const sitemap = async (_req: Request, res: Response) => {
     sendError(res, 503, "CLIENT_URL isn't set");
     return;
   }
-  const { volumes, series } = await priceQueries.getSitemapEntries();
+  const [{ volumes, series }, bySeries] = await Promise.all([
+    priceQueries.getSitemapEntries(),
+    knownVolumesBySeries(),
+  ]);
+  // a series with no volumes known yet is a near-empty page: it joins once
+  // its list is built (by a visit, or prices/seriesFiller.ts)
+  const withVolumes = series.filter((s) => bySeries.get(slugify(s.name))?.size);
   const urls = [
     entry("/"),
     entry("/about"),
     entry("/updates"),
     entry("/acknowledgements"),
     entry("/series"),
-    ...series.map((s) => entry(seriesPath(s.name), s.fetchedAt)),
+    ...withVolumes.map((s) => entry(seriesPath(s.name), s.fetchedAt)),
     ...volumes.map((v) =>
       entry(volumePath(v.isbn13.trim(), v.title), v.updated),
     ),

@@ -660,6 +660,18 @@ export async function isKnownVolume(isbn13: string) {
 }
 
 // a series' last good volume list; see prices/service.ts
+// every volume in the series lists saved under today's naming (one per name
+// a series is searched by), so a list built before a restart still counts as
+// known: series pages and the sitemap read it without the catalog
+export async function getSavedVolumeTitles() {
+  return prisma.$queryRaw<{ isbn13: string; title: string }[]>`
+    SELECT DISTINCT v->>'isbn13' AS isbn13, v->>'title' AS title
+    FROM series_volumes sv, jsonb_array_elements(sv.volumes) v
+    WHERE sv.key LIKE ${VOLUMES_KEY_VERSION + "%"}
+      AND v->>'isbn13' IS NOT NULL AND v->>'title' IS NOT NULL
+  `;
+}
+
 export async function getSeriesVolumes(key: string) {
   const row = await prisma.seriesVolumes.findUnique({ where: { key } });
   return (
@@ -758,6 +770,7 @@ export default {
   markApiSpent,
   recordSearch,
   getSeriesVolumes,
+  getSavedVolumeTitles,
   getSavedVolume,
   getSavedListSizes,
   getFoundNovels,

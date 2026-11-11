@@ -924,7 +924,13 @@ let knownVolumes = {
   bySeries: new Map<string, Map<string, KnownVolume>>(),
 };
 
-async function knownVolumesBySeries() {
+// a series just built (seriesFiller.ts): counted on the next ask, not in ten
+// minutes
+export const forgetKnownVolumes = () => {
+  knownVolumes.at = 0;
+};
+
+export async function knownVolumesBySeries() {
   if (Date.now() - knownVolumes.at < KNOWN_VOLUMES_MS) {
     return knownVolumes.bySeries;
   }
@@ -935,6 +941,8 @@ async function knownVolumesBySeries() {
     bySeries.get(key)!.set(v.isbn13, v);
   };
   (await priceQueries.getBookTitles()).forEach(add);
+  // every saved list, so a series built before a restart still has its volumes
+  (await priceQueries.getSavedVolumeTitles().catch(() => [])).forEach(add);
   // full volume lists from series pages people opened recently
   for (const hit of seriesVolumesCache.values()) hit.volumes.forEach(add);
   knownVolumes = { at: Date.now(), bySeries };
@@ -1070,6 +1078,10 @@ export async function getVolumeSummary(isbn13: string) {
     bestNew: bestNew
       ? { store: bestNew.store, priceCents: bestNew.priceCents }
       : null,
+    published: saved?.published ?? null,
+    pages: saved?.pages ?? null,
+    seriesDescription: series?.description ?? null,
+    ...(await nearbyVolumes(isbn13, book.title, seriesLabel)),
     // the stored prices, cheapest first, written into the page for crawlers
     offers: inStock.slice(0, SUMMARY_OFFERS).map((o) => ({
       store: o.store,
@@ -1081,6 +1093,40 @@ export async function getVolumeSummary(isbn13: string) {
 }
 
 const SUMMARY_OFFERS = 12;
+const NEARBY_VOLUMES = 12;
+
+// the volumes around this one in its series, from what's known (memory and
+// database only): the one before and after, and a dozen nearest by number,
+// for the page's links. One volume per number
+async function nearbyVolumes(isbn13: string, title: string, series: string) {
+  const bySeries = await knownVolumesBySeries().catch(() => null);
+  const byNumber = new Map<number, KnownVolume>();
+  for (const key of new Set([slugify(series), slugify(seriesName(title))])) {
+    for (const v of bySeries?.get(key)?.values() ?? []) {
+      const n = titleVolume(v.title);
+      if (n == null) continue;
+      // this volume itself wins its number
+      if (!byNumber.has(n) || v.isbn13.trim() === isbn13) byNumber.set(n, v);
+    }
+  }
+  const list = [...byNumber.entries()]
+    .sort(([a], [b]) => a - b)
+    .map(([volume, v]) => ({
+      isbn13: v.isbn13.trim(),
+      title: v.title,
+      volume,
+    }));
+  const at = list.findIndex((v) => v.isbn13 === isbn13);
+  if (at === -1) return { prev: null, next: null, nearby: [] };
+  const nearby = list
+    .filter((_, i) => i !== at)
+    .map((v, i) => ({ v, d: Math.abs(i + (i >= at ? 1 : 0) - at) }))
+    .sort((a, b) => a.d - b.d)
+    .slice(0, NEARBY_VOLUMES)
+    .map(({ v }) => v)
+    .sort((a, b) => a.volume - b.volume);
+  return { prev: list[at - 1] ?? null, next: list[at + 1] ?? null, nearby };
+}
 const SUMMARY_VOLUMES = 200;
 
 export async function getSeriesSummary(asked: string) {
