@@ -6,6 +6,7 @@ import ebay from "./ebay.js";
 import walmart from "./walmart.js";
 import keepa from "./keepa.js";
 import googleBooks from "./googleBooks.js";
+import booksAMillion from "./booksAMillion.js";
 import { amazonSearch, ebaySearch } from "./serpapiStores.js";
 
 const PROVIDERS: Provider[] = [
@@ -16,6 +17,7 @@ const PROVIDERS: Provider[] = [
   walmart,
   keepa,
   googleBooks,
+  booksAMillion,
 ];
 
 export const enabledProviders = () => PROVIDERS.filter((p) => p.enabled());

@@ -7,7 +7,10 @@
 // affiliate links.
 import {
   amazonTag,
+  bamAffiliateUrl,
   bookshopId,
+  CJ_CLICK_HOSTS,
+  cjWebsiteId,
   ebayAffiliateUrl,
   ebayCampaignId,
   walmartAffiliate,
@@ -68,13 +71,17 @@ export const storeName = (store: string) =>
 export const EBAY = /^ebay( - .+)?$/i;
 export const AMAZON = /^amazon(\.com)?$/i;
 const BOOKSHOP = /^bookshop(\.org)?$/i;
+export const BOOKS_A_MILLION = /^books[- ]?a[- ]?million(\.com)?$/i;
+
+const bamSearchUrl = (isbn13: string) =>
+  bamAffiliateUrl(`https://www.booksamillion.com/search?query=${isbn13}`);
 
 // with a row straight from eBay or Amazon, the same store's Google
 // Shopping rows only repeat it with a worse link, so they go
 export function preferDirectRows<T extends Pick<Offer, "store" | "url">>(
   offers: T[],
 ): T[] {
-  const direct = [EBAY, AMAZON].filter((store) =>
+  const direct = [EBAY, AMAZON, BOOKS_A_MILLION].filter((store) =>
     offers.some((o) => store.test(o.store) && o.url && !isGoogleLink(o.url)),
   );
   return offers.filter(
@@ -98,6 +105,7 @@ export function affiliateOfferUrl(
   if (!newPrint) return url;
   if (AMAZON.test(store) && amazonTag()) return amazonUrl(isbn13);
   if (BOOKSHOP.test(store) && bookshopId()) return bookshopUrl(isbn13);
+  if (BOOKS_A_MILLION.test(store) && cjWebsiteId()) return bamSearchUrl(isbn13);
   return url;
 }
 
@@ -168,6 +176,11 @@ export function isAffiliateUrl(url: string | null): boolean {
     return Boolean(amazonTag()) && link.searchParams.get("tag") === amazonTag();
   if (isSite(host, "bookshop.org")) return link.pathname.startsWith("/a/");
   if (isSite(host, "walmart.com")) return walmartAffiliate();
+  // a CJ click link carries the website ID it pays
+  if (CJ_CLICK_HOSTS.some((site) => isSite(host, site))) {
+    const pid = cjWebsiteId();
+    return Boolean(pid) && link.pathname.includes(pid!);
+  }
   return false;
 }
 
@@ -191,7 +204,7 @@ export const storeLinks = (isbn13: string): StoreLink[] => [
   { store: "eBay", url: ebayUrl(isbn13), affiliate: Boolean(ebayCampaignId()) },
   {
     store: "Books-A-Million",
-    url: `https://www.booksamillion.com/search?query=${isbn13}`,
-    affiliate: false,
+    url: bamSearchUrl(isbn13),
+    affiliate: Boolean(cjWebsiteId()),
   },
 ];
