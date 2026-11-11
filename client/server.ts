@@ -16,6 +16,7 @@ import https from "node:https";
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { isAppPage } from "./pagePaths.ts";
+import { WHY_COLLECTORS } from "./src/lib/whyCollectors.ts";
 
 const DIST = fileURLToPath(new URL("./dist/", import.meta.url));
 // where this server reaches the API: the private address on Railway
@@ -480,6 +481,11 @@ function homeTags(h: Highlights | null): Tags {
       ${linkList(trending.map((t) => [`/prices/series/${t.slug}`, t.name]))}`
           : ""
       }
+      <h2>Why collectors use it</h2>
+      ${WHY_COLLECTORS.map(
+        (w) => `<h3>${escapeHtml(w.title)}</h3>
+      <p>${escapeHtml(w.body)} <a href="${escapeHtml(w.link)}">${escapeHtml(w.label)}</a></p>`,
+      ).join("\n      ")}
       ${linkList(SITE_LINKS)}
     </main>`,
   };
