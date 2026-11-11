@@ -175,12 +175,21 @@ function SeriesRow({
 
 // the volumes they own as a strip of ticks, 1 to the furthest: a gap shows
 // as an empty tick, so "1–3, 5, 8–10" can be seen at a glance
+// as many ticks as the row has room for; past that, each tick stands for a run
+// of volumes and is a gap if any of them is missing (the ranges say which)
+const MAX_TICKS = 40;
+
 function VolumeTicks({ owned }: { owned: number[] }) {
   if (!owned.length) return null;
+  const shelf = shelfOf(owned);
+  const per = Math.ceil(shelf.length / MAX_TICKS);
+  const ticks = Array.from({ length: Math.ceil(shelf.length / per) }, (_, i) =>
+    shelf.slice(i * per, (i + 1) * per).every((s) => s.mine),
+  );
   return (
     <span className={styles.ticks} aria-hidden>
-      {shelfOf(owned).map(({ v, mine }) => (
-        <span key={v} className={mine ? styles.tick : styles.tickGap} />
+      {ticks.map((mine, i) => (
+        <span key={i} className={mine ? styles.tick : styles.tickGap} />
       ))}
     </span>
   );

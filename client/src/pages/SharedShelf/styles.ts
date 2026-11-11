@@ -88,7 +88,7 @@ export const shareStyles = {
   rowName:
     "truncate font-display text-[1.02rem] leading-[1.25] font-semibold group-hover/card:underline group-hover/card:decoration-accent group-hover/card:decoration-2 group-hover/card:underline-offset-3",
   // the volumes they own, as ticks; a gap is an empty one
-  ticks: "flex h-3 max-w-[15rem] gap-[2px]",
+  ticks: "flex h-3 max-w-[15rem] min-w-0 gap-[2px] overflow-hidden",
   tick: "max-w-[7px] min-w-[2px] flex-1 rounded-[1px] bg-[color-mix(in_srgb,var(--tone)_70%,var(--ink))]",
   tickGap:
     "max-w-[7px] min-w-[2px] flex-1 rounded-[1px] border border-dashed border-muted",
