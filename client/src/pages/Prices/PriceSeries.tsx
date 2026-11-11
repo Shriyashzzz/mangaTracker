@@ -397,6 +397,9 @@ export default function PriceSeries() {
         )}
         {volumes.length ? (
           <ul className={styles.grid}>
+            {/* no series cover behind a volume missing its own: AniList's is
+                the Japanese first volume, and every gap read as the wrong book.
+                The drawn number shows instead */}
             {cards(shown).map((card) =>
               card.length === 1 ? (
                 <li key={card[0]!.volume} id={`vol-${card[0]!.volume}`}>
@@ -404,7 +407,6 @@ export default function PriceSeries() {
                     {...card[0]!}
                     title={`Vol. ${card[0]!.volume}`}
                     fullTitle={card[0]!.title}
-                    seriesCoverUrl={info?.coverUrl}
                     priceCents={card[0]!.knownPriceCents}
                     // a book's volume shown alone (the rest on another page,
                     // or on their shelf) still says it comes in that book
@@ -437,7 +439,6 @@ export default function PriceSeries() {
                       from: card[0]!.volume,
                       to: card[card.length - 1]!.volume,
                     }}
-                    seriesCoverUrl={info?.coverUrl}
                     priceCents={card[0]!.knownPriceCents}
                     subtitle={[
                       `Vols. ${card.map((v) => v.volume).join(" & ")} in one book`,
