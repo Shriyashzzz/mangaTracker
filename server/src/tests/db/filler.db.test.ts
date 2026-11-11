@@ -8,6 +8,7 @@ import {
   fillOne,
   fillQueue,
   resetFiller,
+  staleQueue,
 } from "../../collector/filler.js";
 import priceQueries from "../../models/priceQueries.js";
 import userQueries from "../../models/userQueries.js";
@@ -225,4 +226,27 @@ test("another server pricing the same volume holds it: no second check", async (
   expect((await priceQueries.getSourceChecks(ISBN(2))).has("ebay")).toBe(false);
   release();
   await other;
+});
+
+test("then priced volumes whose eBay look is over 3 days old, oldest first", async () => {
+  const now = new Date();
+  const daysAgo = (d: number) => new Date(now.getTime() - d * 86_400_000);
+  for (const n of [1, 2, 3]) {
+    await prisma.book.upsert({
+      where: { isbn13: ISBN(n) },
+      create: { isbn13: ISBN(n), title: `${SERIES}, Vol. ${n}` },
+      update: {},
+    });
+  }
+  await prisma.priceSourceCheck.createMany({
+    data: [
+      { isbn13: ISBN(1), source: "ebay", checkedAt: daysAgo(4) },
+      { isbn13: ISBN(2), source: "ebay", checkedAt: daysAgo(10) },
+      // looked at yesterday: still fresh
+      { isbn13: ISBN(3), source: "ebay", checkedAt: daysAgo(1) },
+    ],
+  });
+  expect(await staleQueue(now)).toEqual([ISBN(2), ISBN(1)]);
+  // and a volume eBay has looked at lately isn't asked again
+  expect(await fillQueue(now)).toEqual([]);
 });
