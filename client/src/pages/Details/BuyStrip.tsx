@@ -75,10 +75,10 @@ export default function BuyStrip({ options, hideNext }: Props) {
               viewTransition
             >
               <span className={styles.buyKind}>Finish the series</span>
-              <span>
+              <span className={styles.buyCount}>
                 {finish.left} vol{finish.left === 1 ? "" : "s"}
                 {finish.priced < finish.left && (
-                  <span className={styles.buyAside}> · estimated</span>
+                  <em className={styles.buyAside}>(est)</em>
                 )}
               </span>
               <span className={styles.buyPrice}>
