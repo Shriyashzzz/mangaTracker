@@ -378,8 +378,6 @@ export default function SharedShelfPage() {
 
   const all = shelf.manga;
   const volumes = all.reduce((n, m) => n + ownedCountOf(m), 0);
-  const count = (name: (typeof SECTIONS)[number]) =>
-    all.filter((m) => statusOf(m) === name).length;
   const shown = groups.filter((g) => g.manga.length);
   const firstCard = shown[0]?.manga[0];
 
@@ -399,20 +397,16 @@ export default function SharedShelfPage() {
                     volumes === 1 ? "volume owned" : "volumes owned",
                     "var(--accent)",
                   ],
-                  [count("Finished"), "finished", TONES.Finished],
-                  [count("To read"), "to read", TONES["To read"]],
                 ] as const
-              )
-                .filter(([n, label]) => label !== "to read" || n > 0)
-                .map(([n, label, ink]) => (
-                  <span
-                    key={label}
-                    className={styles.tallyItem}
-                    style={{ "--dot": ink } as React.CSSProperties}
-                  >
-                    <b>{n}</b> {label}
-                  </span>
-                ))}
+              ).map(([n, label, ink]) => (
+                <span
+                  key={label}
+                  className={styles.tallyItem}
+                  style={{ "--dot": ink } as React.CSSProperties}
+                >
+                  <b>{n}</b> {label}
+                </span>
+              ))}
             </p>
           </div>
         </div>
