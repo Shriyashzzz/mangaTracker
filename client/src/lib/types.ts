@@ -21,6 +21,10 @@ export type Manga = {
   lightNovel?: boolean;
   // the chapter they're on
   bookmark: number | null;
+  // their place kept by the volume instead of the chapter, and the last
+  // volume read
+  byVolume?: boolean;
+  readVolume?: number | null;
   // the last volume they own; null when they don't say
   volumesOwned: number | null;
   // exactly which, when it isn't a run from 1 (lib/ownedVolumes.ts)

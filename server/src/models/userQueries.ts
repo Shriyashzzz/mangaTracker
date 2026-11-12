@@ -165,6 +165,8 @@ export const getSharedShelf = (shareCode: string) =>
           planned: true,
           lightNovel: true,
           bookmark: true,
+          byVolume: true,
+          readVolume: true,
           rating: true,
           description: true,
           volumesOwned: true,

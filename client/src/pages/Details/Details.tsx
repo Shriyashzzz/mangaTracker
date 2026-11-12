@@ -60,6 +60,8 @@ export default function Details() {
   const [loadTry, setLoadTry] = useState(0);
   // a chapter was saved, so what's new for them needs asking again
   const [chapterSaves, setChapterSaves] = useState(0);
+  // a new volume counter when its number is set from outside it
+  const [volumeSets, setVolumeSets] = useState(0);
   const { id } = useParams();
   // English unless they came from the shelf's In Japan tab
   const [searchParams] = useSearchParams();
@@ -201,6 +203,32 @@ export default function Details() {
     }
   };
 
+  // which way this series keeps their place, or the volume they've read
+  const saveReading = async (change: {
+    byVolume?: boolean;
+    readVolume?: number;
+  }) => {
+    if (!mangaData) return;
+    const was = mangaData;
+    setMangaData({ ...mangaData, ...change });
+    setActionNote("");
+    try {
+      const res = await apiFetch(`/api/manga/${id}/reading`, {
+        method: "PATCH",
+        body: change,
+      });
+      if (!res.ok) throw new Error("Failed saving how it's read");
+      // the counter starts over from what's saved, and its news is asked again
+      setChapterSaves((n) => n + 1);
+      setVolumeSets((n) => n + 1);
+      void useShelf.getState().load();
+    } catch (e) {
+      console.error(e);
+      setMangaData(was);
+      setActionNote(DIDNT_SAVE);
+    }
+  };
+
   // off the To read list and onto Reading, at chapter 1
   const startReading = async () => {
     setPlanned(false);
@@ -213,7 +241,7 @@ export default function Details() {
       if (!res.ok) throw new Error("Failed starting manga");
       setMangaData((m) => (m ? { ...m, planned: false, bookmark: 1 } : m));
       setActionNote(
-        `Started! You're on ${mangaData?.lightNovel ? "volume" : "chapter"} 1.`,
+        mangaData?.byVolume ? "Started!" : "Started! You're on chapter 1.",
       );
     } catch (e) {
       console.error(e);
@@ -585,7 +613,7 @@ export default function Details() {
                   Start reading
                 </button>
               </span>
-            ) : !mangaData.lightNovel &&
+            ) : !mangaData.byVolume &&
               !mangaData.bookmark &&
               owned.length > 0 &&
               !chaptersShown ? (
@@ -601,11 +629,50 @@ export default function Details() {
                 >
                   Track chapters too
                 </button>
+                <button
+                  type="button"
+                  className={styles.chaptersToo}
+                  onClick={() => saveReading({ byVolume: true })}
+                >
+                  Track volumes read
+                </button>
               </span>
+            ) : mangaData.byVolume ? (
+              <>
+                {/* their place by the volume: read is apart from owned */}
+                You've read up to vol.{" "}
+                <ChapterStepper
+                  key={`${mangaData.id}-volume-${volumeSets}`}
+                  mangaId={mangaData.id}
+                  unit="volume"
+                  value={mangaData.readVolume ?? null}
+                  onSaved={(volume) => {
+                    setMangaData({ ...mangaData, readVolume: volume });
+                    setChapterSaves((n) => n + 1);
+                  }}
+                />
+                <span className={styles.trackRow}>
+                  {highestOwned > (mangaData.readVolume ?? 0) && (
+                    <button
+                      type="button"
+                      className={styles.chaptersToo}
+                      onClick={() => saveReading({ readVolume: highestOwned })}
+                    >
+                      Read everything I own
+                    </button>
+                  )}
+                  <button
+                    type="button"
+                    className={styles.chaptersToo}
+                    onClick={() => saveReading({ byVolume: false })}
+                  >
+                    Track chapters instead
+                  </button>
+                </span>
+              </>
             ) : (
               <>
-                {/* a light novel is read by the volume: no chapters to count */}
-                You're on {mangaData.lightNovel ? "volume" : "chapter"}{" "}
+                You're on chapter{" "}
                 <ChapterStepper
                   key={mangaData.id}
                   mangaId={mangaData.id}
@@ -615,6 +682,15 @@ export default function Details() {
                     setChapterSaves((n) => n + 1);
                   }}
                 />
+                <span className={styles.trackRow}>
+                  <button
+                    type="button"
+                    className={styles.chaptersToo}
+                    onClick={() => saveReading({ byVolume: true })}
+                  >
+                    Track volumes instead
+                  </button>
+                </span>
               </>
             )}
           </p>

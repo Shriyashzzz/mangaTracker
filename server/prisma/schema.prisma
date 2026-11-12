@@ -54,6 +54,11 @@ model Manga {
   lightNovel      Boolean @default(false) @map("light_novel")
   // the chapter they're on
   bookmark        Int?
+  // how they keep their place: by the volume (true) or the chapter. Light
+  // novels start by the volume
+  byVolume        Boolean @default(false) @map("by_volume")
+  // the last volume they've read; apart from the ones they own
+  readVolume      Int?    @map("read_volume") @db.SmallInt
   // the last volume they own ("up to Vol. 14"); null when they don't say
   volumesOwned    Int?    @map("volumes_owned") @db.SmallInt
   // the exact volumes they own, when it isn't a run from 1 (One Piece 1 and 4);

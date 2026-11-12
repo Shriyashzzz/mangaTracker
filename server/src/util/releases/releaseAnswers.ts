@@ -16,6 +16,8 @@ type Keyed = Pick<
   | "lightNovel"
   | "volumesOwned"
   | "bookmark"
+  | "byVolume"
+  | "readVolume"
   | "seenVolume"
   | "seenChapter"
   | "seenJapanVolume"
@@ -34,6 +36,8 @@ export const answerKey = (m: Keyed, prefs: Prefs) =>
     m.volumesOwned,
     m.ownedList ?? null,
     m.bookmark,
+    m.byVolume,
+    m.readVolume,
     m.seenVolume,
     m.seenChapter,
     m.seenJapanVolume,

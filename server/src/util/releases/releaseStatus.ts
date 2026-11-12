@@ -100,6 +100,10 @@ export type ReleaseStatus = {
 type Shelved = {
   volumesOwned: number | null;
   bookmark: number | null;
+  // their place kept by the volume: no chapter news, and the volume they've
+  // read stands in for a blank shelf
+  byVolume?: boolean;
+  readVolume?: number | null;
   // the newest they've said "Seen it" to; only something newer counts as new
   seenVolume?: number | null;
   seenChapter?: number | null;
@@ -128,7 +132,9 @@ type Sources = {
 export function getReleaseStatus(
   {
     volumesOwned,
-    bookmark,
+    bookmark: chapter0,
+    byVolume,
+    readVolume,
     seenVolume,
     seenChapter,
     seenJapanVolume,
@@ -137,6 +143,8 @@ export function getReleaseStatus(
   { dates, englishVolumes }: Sources,
   { volumes, chapters }: ReleaseSettings = DEFAULT_RELEASE_SETTINGS,
 ): ReleaseStatus {
+  // read by the volume: the chapter number says nothing
+  const bookmark = byVolume ? null : chapter0;
   const numbers = (englishVolumes ?? [])
     .map((v) => v.volume)
     .filter((v): v is number => v != null);
@@ -157,7 +165,9 @@ export function getReleaseStatus(
     .filter(Number.isFinite);
   const latestJapaneseVolume = japanese.length ? Math.max(...japanese) : null;
   const currentVolume =
-    volumesOwned || volumeOfChapter(bookmark, dates?.volumeStarts ?? []);
+    volumesOwned ||
+    (byVolume ? readVolume || null : null) ||
+    volumeOfChapter(bookmark, dates?.volumeStarts ?? []);
   const nextVolume =
     currentVolume != null
       ? (numbers.filter((v) => v > currentVolume).sort((a, b) => a - b)[0] ??

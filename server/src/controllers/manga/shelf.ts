@@ -137,6 +137,26 @@ export const setBookmark = [
   },
 ];
 
+// their place by the volume: which way this series is tracked, and the last
+// volume read (null clears it). Either can come alone
+export const setReading = [
+  body("byVolume").optional().isBoolean({ strict: true }),
+  body("readVolume")
+    .optional({ values: "null" })
+    .isInt({ min: 0, max: 999 })
+    .withMessage("Volumes go from 0 to 999")
+    .toInt(),
+  rejectInvalid,
+  async (req: Request, res: Response) => {
+    const d = matchedData(req);
+    await mangaQueries.setReading(res.locals.manga.id, {
+      ...(d.byVolume === undefined ? {} : { byVolume: d.byVolume }),
+      ...("readVolume" in req.body ? { readVolume: d.readVolume ?? null } : {}),
+    });
+    res.sendStatus(204);
+  },
+];
+
 // "Hide" on the New tab, and its undo. Null clears it. Volumes can also be hidden
 // one at a time, sent as the whole list; leaving it out keeps the list as it is
 export const setSeen = [

@@ -50,6 +50,25 @@ test("add, list, edit and delete a series", async () => {
   const detail = await agent.get(`/api/manga/${id}`);
   expect(detail.body.manga).toMatchObject({ status: true, bookmark: 12 });
 
+  // their place by the volume: the chapter keeps its own number
+  await agent
+    .patch(`/api/manga/${id}/reading`)
+    .send({ byVolume: true, readVolume: 4 })
+    .expect(204);
+  await agent
+    .patch(`/api/manga/${id}/reading`)
+    .send({ readVolume: 5 })
+    .expect(204);
+  await agent
+    .patch(`/api/manga/${id}/reading`)
+    .send({ readVolume: 1000 })
+    .expect(400);
+  expect((await agent.get(`/api/manga/${id}`)).body.manga).toMatchObject({
+    byVolume: true,
+    readVolume: 5,
+    bookmark: 12,
+  });
+
   expect((await agent.delete(`/api/manga/${id}`)).status).toBeLessThan(300);
   expect((await agent.get(`/api/manga/${id}`)).status).toBe(404);
 });

@@ -13,6 +13,9 @@ export type MangaInput = {
   planned?: boolean;
   lightNovel?: boolean;
   bookmark?: number | null;
+  // their place kept by the volume, and the last volume read
+  byVolume?: boolean;
+  readVolume?: number | null;
   volumesOwned?: number | null;
   // the exact volumes, when not a run from 1 (util/shelf/ownedList.ts)
   ownedList?: number[];
@@ -34,7 +37,13 @@ export const getManga = (id: number): Promise<Manga | null> =>
 
 export async function addManga(userId: number, input: MangaInput) {
   const { id } = await prisma.manga.create({
-    data: { ...input, bookmark: input.bookmark ?? 0, userId },
+    data: {
+      ...input,
+      bookmark: input.bookmark ?? 0,
+      // a light novel is read by the volume unless they say otherwise
+      byVolume: input.byVolume ?? Boolean(input.lightNovel),
+      userId,
+    },
     select: { id: true },
   });
   return id;
@@ -124,6 +133,12 @@ export const setLatestChapter = (id: number, latestChapter: number) =>
 export const setBookmark = (id: number, bookmark: number) =>
   prisma.manga.update({ where: { id }, data: { bookmark } });
 
+// which way they keep their place, and the volume they've read up to
+export const setReading = (
+  id: number,
+  data: { byVolume?: boolean; readVolume?: number | null },
+) => prisma.manga.update({ where: { id }, data });
+
 const SEEN_FIELD = {
   volume: "seenVolume",
   chapter: "seenChapter",
@@ -195,6 +210,7 @@ export async function mergeManga(keep: number, other: number) {
       data: {
         ...owned,
         bookmark: most(a.bookmark, b.bookmark),
+        readVolume: most(a.readVolume, b.readVolume),
         rating: a.rating || b.rating,
         image: a.image || b.image,
         genre: a.genre || b.genre,
@@ -321,6 +337,7 @@ export default {
   setRating,
   addManyManga,
   setBookmark,
+  setReading,
   setSeen,
   setVolumesOwned,
   fillFromBackup,

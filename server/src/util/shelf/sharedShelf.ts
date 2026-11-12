@@ -17,6 +17,8 @@ type SharedSource = {
     planned: boolean;
     lightNovel?: boolean;
     bookmark: number | null;
+    byVolume?: boolean;
+    readVolume?: number | null;
     rating: number | null;
     description: string | null;
     volumesOwned?: number | null;
@@ -41,6 +43,8 @@ export const toSharedShelf = ({
     planned: m.planned,
     ...(m.lightNovel ? { lightNovel: true } : {}),
     bookmark: m.bookmark,
+    // their place kept by the volume
+    ...(m.byVolume ? { byVolume: true, readVolume: m.readVolume ?? null } : {}),
     rating: m.rating,
     // as on their shelf: "up to N", or the exact list when there are gaps
     volumesOwned: m.volumesOwned ?? null,

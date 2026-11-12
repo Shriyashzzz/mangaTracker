@@ -53,17 +53,24 @@ export default function MangaCard({
   const [brokenImage, setBrokenImage] = useState<string | null>(null);
   const asColumns = compact && !news;
   // a count that's behind where they are says nothing, so it isn't shown
-  const reading = currentManga.bookmark ?? 0;
+  // kept by the volume, the chapter number says nothing
+  const reading = currentManga.byVolume ? 0 : (currentManga.bookmark ?? 0);
   const knownTotal =
     latestChapter != null && latestChapter >= reading ? latestChapter : null;
   // a collector of the books, no chapter kept: what they own says where
   // they are ("vols. 1–10"), never "not started"
-  // a light novel is read by the volume, a manga by the chapter
-  const placeWord = currentManga.lightNovel ? "reading vol." : "ch.";
   const owned = ownedOf(currentManga);
   const ownedText = owned.length
     ? `${owned.length === 1 ? "vol." : "vols."} ${rangesText(owned)}`
     : null;
+  // where they are: the volume they've read or the chapter they're on
+  const placeText = currentManga.byVolume
+    ? currentManga.readVolume
+      ? `read vol. ${currentManga.readVolume}`
+      : null
+    : currentManga.bookmark
+      ? `ch. ${currentManga.bookmark}`
+      : null;
   const genre =
     currentManga.genre && currentManga.genre !== "unlabled"
       ? currentManga.genre
@@ -135,8 +142,8 @@ export default function MangaCard({
               {/* the right side already says when it's finished */}
               {currentManga.planned
                 ? "to read"
-                : currentManga.bookmark
-                  ? `${placeWord} ${currentManga.bookmark}`
+                : placeText
+                  ? placeText
                   : ownedText
                     ? ownedText
                     : currentManga.status
@@ -168,9 +175,7 @@ export default function MangaCard({
                     ? "finished"
                     : currentManga.planned
                       ? "to read"
-                      : currentManga.bookmark
-                        ? `${placeWord} ${currentManga.bookmark}`
-                        : ownedText,
+                      : (placeText ?? ownedText),
                   currentManga.lightNovel && "light novel",
                   genre,
                 ]

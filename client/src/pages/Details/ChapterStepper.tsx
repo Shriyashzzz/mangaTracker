@@ -1,4 +1,4 @@
-// Moving your bookmark, right where it's shown: the one thing people do after
+// Moving your place, the chapter or the volume, right where it's shown: the one thing people do after
 // every read, so it's a tap rather than a trip through the edit form. Saves
 // itself a moment after the last tap, so five taps are one request.
 import { useEffect, useRef, useState } from "react";
@@ -7,26 +7,39 @@ import { useShelf } from "../../store/shelf";
 import { detailsStyles as styles } from "./styles";
 
 const SAVE_AFTER_MS = 600;
-const MAX_CHAPTER = 100000;
+// the furthest each goes, and where it's saved
+const UNITS = {
+  chapter: { max: 100000, path: "bookmark", field: "bookmark" },
+  volume: { max: 999, path: "reading", field: "readVolume" },
+} as const;
+type Unit = keyof typeof UNITS;
 
 type Props = {
   mangaId: number;
   value: number | null;
+  // what the number counts; a chapter unless said
+  unit?: Unit;
   // it's been saved, so anything worked out from the old chapter is stale
   onSaved: (chapter: number) => void;
 };
 
 // keepalive: a save sent as they close the tab still arrives
-const saveChapter = async (mangaId: number, bookmark: number) => {
-  const res = await apiFetch(`/api/manga/${mangaId}/bookmark`, {
+const savePlace = async (mangaId: number, unit: Unit, place: number) => {
+  const res = await apiFetch(`/api/manga/${mangaId}/${UNITS[unit].path}`, {
     method: "PATCH",
-    body: { bookmark },
+    body: { [UNITS[unit].field]: place },
     keepalive: true,
   });
-  if (!res.ok) throw new Error("Couldn't save the chapter");
+  if (!res.ok) throw new Error(`Couldn't save the ${unit}`);
 };
 
-export default function ChapterStepper({ mangaId, value, onSaved }: Props) {
+export default function ChapterStepper({
+  mangaId,
+  value,
+  unit = "chapter",
+  onSaved,
+}: Props) {
+  const MAX_CHAPTER = UNITS[unit].max;
   const [draft, setDraft] = useState(String(value ?? 0));
   const [note, setNote] = useState<"saved" | "failed" | null>(null);
   // what the server has, to go back to if a save fails
@@ -38,7 +51,7 @@ export default function ChapterStepper({ mangaId, value, onSaved }: Props) {
   // put the older chapter back
   const queue = useRef<Promise<unknown>>(Promise.resolve());
   const inOrder = (chapter: number) => {
-    const save = queue.current.then(() => saveChapter(mangaId, chapter));
+    const save = queue.current.then(() => savePlace(mangaId, unit, chapter));
     queue.current = save.catch(() => {});
     return save;
   };
@@ -80,12 +93,12 @@ export default function ChapterStepper({ mangaId, value, onSaved }: Props) {
       if (chapter != null && chapter !== saved.current) {
         // and the shelf they're going back to shows it
         queue.current
-          .then(() => saveChapter(mangaId, chapter))
+          .then(() => savePlace(mangaId, unit, chapter))
           .then(() => useShelf.getState().load())
           .catch(() => {});
       }
     },
-    [mangaId],
+    [mangaId, unit],
   );
 
   const current = Number(draft) || 0;
@@ -96,7 +109,7 @@ export default function ChapterStepper({ mangaId, value, onSaved }: Props) {
         <button
           type="button"
           className={styles.stepperBtn}
-          aria-label="One chapter back"
+          aria-label={`One ${unit} back`}
           disabled={current <= 0}
           onClick={() => change(String(current - 1))}
         >
@@ -112,7 +125,7 @@ export default function ChapterStepper({ mangaId, value, onSaved }: Props) {
           min="0"
           max={MAX_CHAPTER}
           step="1"
-          aria-label="Current chapter"
+          aria-label={unit === "volume" ? "Volume read up to" : "Current chapter"}
           value={draft}
           onChange={(e) => change(e.target.value)}
           onBlur={() => {
@@ -122,7 +135,7 @@ export default function ChapterStepper({ mangaId, value, onSaved }: Props) {
         <button
           type="button"
           className={styles.stepperBtn}
-          aria-label="One chapter on"
+          aria-label={`One ${unit} on`}
           data-tour="chapter-up"
           disabled={current >= MAX_CHAPTER}
           onClick={() => change(String(current + 1))}
