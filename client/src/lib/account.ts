@@ -29,6 +29,8 @@ export type SharedShelf = {
     planned?: boolean;
     lightNovel?: boolean;
     bookmark: number | null;
+    // only what they track is sent: the chapter, the volume read, or both
+    readVolume?: number | null;
     rating: number | null;
     notes?: string;
     // the volumes they own, as on their shelf (lib/ownedVolumes.ts)
@@ -80,6 +82,8 @@ export const shelfToCsv = (manga: Manga[]) =>
       "Type",
       "Status",
       "Chapter",
+      "Read volume",
+      "Tracked by",
       "Owned volumes",
       "Rating",
       "Genre",
@@ -90,6 +94,8 @@ export const shelfToCsv = (manga: Manga[]) =>
       m.lightNovel ? "Light novel" : "Manga",
       m.status ? "Finished" : m.planned ? "To read" : "Reading",
       m.bookmark,
+      m.readVolume,
+      m.byVolume ? "Volume" : "Chapter",
       // every one they own, as ranges ("1–5, 8"), so the import reads it back
       // exactly (bookImport isOwnExport)
       rangesText(ownedOf(m)),

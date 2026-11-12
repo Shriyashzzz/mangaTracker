@@ -108,6 +108,8 @@ export type MangaForm = {
   planned?: boolean;
   lightNovel?: boolean;
   bookmark?: string | number;
+  byVolume?: boolean;
+  readVolume?: string | number;
   volumesOwned?: string | number;
   ownedList?: number[];
   // 1 to 5 stars, given on adding it
@@ -162,6 +164,8 @@ export type Prefs = {
   // "off": never look up new volumes and chapters
   releaseChecks?: "on" | "off";
   releases?: ReleaseSettings;
+  // how they keep their place (lib/reading.ts); "series" unless chosen
+  trackBy?: "series" | "chapters" | "volumes" | "both";
   // where they buy: Canada gets Canadian store links beside the US prices
   country?: "us" | "ca";
 };

@@ -140,9 +140,13 @@ export default function SeriesSheet({
             {Boolean(m.bookmark) && !m.status && (
               <>
                 <dt>Up to</dt>
-                <dd>
-                  {m.lightNovel ? "Volume" : "Chapter"} {m.bookmark}
-                </dd>
+                <dd>Chapter {m.bookmark}</dd>
+              </>
+            )}
+            {Boolean(m.readVolume) && !m.status && (
+              <>
+                <dt>Read</dt>
+                <dd>Up to vol. {m.readVolume}</dd>
               </>
             )}
             <dt>Owns</dt>

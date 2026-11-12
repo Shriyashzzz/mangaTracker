@@ -100,9 +100,7 @@ export type ReleaseStatus = {
 type Shelved = {
   volumesOwned: number | null;
   bookmark: number | null;
-  // their place kept by the volume: no chapter news, and the volume they've
-  // read stands in for a blank shelf
-  byVolume?: boolean;
+  // the last volume read: stands in for a blank shelf
   readVolume?: number | null;
   // the newest they've said "Seen it" to; only something newer counts as new
   seenVolume?: number | null;
@@ -110,6 +108,41 @@ type Shelved = {
   seenJapanVolume?: number | null;
   // hidden one at a time
   hiddenVolumes?: number[];
+};
+
+// how a reader keeps their place: each series its own way, every series by
+// chapters or by volumes, or both side by side (prefs.trackBy)
+export type TrackBy = "series" | "chapters" | "volumes" | "both";
+export const readTrackBy = (value: unknown): TrackBy =>
+  value === "chapters" || value === "volumes" || value === "both"
+    ? value
+    : "series";
+export const tracksOf = (byVolume: boolean | undefined, mode: TrackBy) => ({
+  chapters:
+    mode === "chapters" || mode === "both" || (mode === "series" && !byVolume),
+  volumes:
+    mode === "volumes" ||
+    mode === "both" ||
+    (mode === "series" && Boolean(byVolume)),
+});
+// the series as its release check sees it: a number they don't track says
+// nothing, so a volume reader gets no chapter news
+export const placeFor = <
+  M extends {
+    bookmark: number | null;
+    byVolume?: boolean;
+    readVolume?: number | null;
+  },
+>(
+  manga: M,
+  trackBy: unknown,
+): M => {
+  const tracks = tracksOf(manga.byVolume, readTrackBy(trackBy));
+  return {
+    ...manga,
+    bookmark: tracks.chapters ? manga.bookmark : null,
+    readVolume: tracks.volumes ? (manga.readVolume ?? null) : null,
+  };
 };
 
 type Sources = {
@@ -132,8 +165,7 @@ type Sources = {
 export function getReleaseStatus(
   {
     volumesOwned,
-    bookmark: chapter0,
-    byVolume,
+    bookmark,
     readVolume,
     seenVolume,
     seenChapter,
@@ -143,8 +175,6 @@ export function getReleaseStatus(
   { dates, englishVolumes }: Sources,
   { volumes, chapters }: ReleaseSettings = DEFAULT_RELEASE_SETTINGS,
 ): ReleaseStatus {
-  // read by the volume: the chapter number says nothing
-  const bookmark = byVolume ? null : chapter0;
   const numbers = (englishVolumes ?? [])
     .map((v) => v.volume)
     .filter((v): v is number => v != null);
@@ -166,7 +196,7 @@ export function getReleaseStatus(
   const latestJapaneseVolume = japanese.length ? Math.max(...japanese) : null;
   const currentVolume =
     volumesOwned ||
-    (byVolume ? readVolume || null : null) ||
+    readVolume ||
     volumeOfChapter(bookmark, dates?.volumeStarts ?? []);
   const nextVolume =
     currentVolume != null

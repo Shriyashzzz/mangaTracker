@@ -20,6 +20,7 @@ import {
   useCountry,
   useReleaseChecksOn,
   savePrefs,
+  useTrackBy,
   useBoxSetsShown,
 } from "../../lib/prefs";
 import { usePrivatePage } from "../../lib/seo";
@@ -220,6 +221,7 @@ function ShelfSettingsTab() {
     () => readLocal("shelfSort") ?? "",
   );
   const [shelfView, setShelfView] = useState(() => shelfViewNow());
+  const trackBy = useTrackBy();
   return (
     <div className={styles.tabBody}>
       <h2 className={styles.tabTitle}>Your shelf</h2>
@@ -244,6 +246,27 @@ function ShelfSettingsTab() {
                 setShelfView(value);
                 savePrefs({ shelfView: value }, isSignedIn);
               }}
+            />
+            {label}
+          </label>
+        ))}
+      </fieldset>
+      <fieldset className={styles.group}>
+        <legend className={styles.legend}>Keep your place by</legend>
+        {(
+          [
+            ["series", "Chapter or volume, chosen for each series"],
+            ["chapters", "Chapters, for every series"],
+            ["volumes", "Volumes, for every series"],
+            ["both", "Both: the chapter and the volume, side by side"],
+          ] as const
+        ).map(([value, label]) => (
+          <label key={value} className={styles.row}>
+            <input
+              type="radio"
+              name="track-by"
+              checked={trackBy === value}
+              onChange={() => savePrefs({ trackBy: value }, isSignedIn)}
             />
             {label}
           </label>

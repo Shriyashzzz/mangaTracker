@@ -16,6 +16,7 @@ import {
 import {
   chapterToSave,
   getReleaseStatus,
+  placeFor,
   readReleaseSettings,
 } from "../../util/releases/releaseStatus.js";
 import userQueries from "../../models/userQueries.js";
@@ -109,7 +110,7 @@ export const releases = async (req: Request, res: Response) => {
     return send({
       releaseData: null,
       releaseStatus: getReleaseStatus(
-        manga,
+        placeFor(manga, prefs?.trackBy),
         { dates: null, englishVolumes: outNow(series.volumes) },
         readReleaseSettings(prefs?.releases),
       ),
@@ -152,7 +153,7 @@ export const releases = async (req: Request, res: Response) => {
   );
   if (outcome !== "news") return nothing(outcome);
   const releaseStatus = getReleaseStatus(
-    manga,
+    placeFor(manga, prefs?.trackBy),
     {
       dates: releaseData,
       englishVolumes: series ? outNow(series.volumes) : null,

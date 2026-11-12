@@ -26,6 +26,9 @@ export const PREF_VALUES = {
   shelfView: ["covers", "rows"],
   // "off": this reader's manga are never looked up for new releases
   releaseChecks: ["on", "off"],
+  // how they keep their place: each series its own way ("series", the
+  // default), every series by chapters or by volumes, or both side by side
+  trackBy: ["series", "chapters", "volumes", "both"],
   // where they buy: Canada gets Canadian store links beside the US prices
   country: ["us", "ca"],
 } as const;
@@ -155,6 +158,7 @@ export const getSharedShelf = (shareCode: string) =>
       displayName: true,
       avatar: true,
       shareNotes: true,
+      prefs: true,
       manga: {
         orderBy: { name: "asc" },
         select: {

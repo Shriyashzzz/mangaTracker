@@ -47,6 +47,7 @@ export const importList = [
   body("entries.*.planned").optional().isBoolean().toBoolean(),
   body("entries.*.lightNovel").optional().isBoolean().toBoolean(),
   body("entries.*.restore").optional().isBoolean().toBoolean(),
+  body("entries.*.byVolume").optional().isBoolean().toBoolean(),
   body("entries.*.genre").optional().isString().trim().isLength({ max: 100 }),
   body("entries.*.otherNames").optional().isArray({ max: 12 }),
   body("entries.*.otherNames.*").isString().trim().isLength({ max: 300 }),

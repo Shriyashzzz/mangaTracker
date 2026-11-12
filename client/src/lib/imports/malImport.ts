@@ -30,6 +30,8 @@ export type MalEntry = {
   // from Manga Tracker's own export: a series already on the shelf takes
   // what it lacks too (chapter, finished, rating, notes)
   restore?: boolean;
+  // from a backup: the series keeps its place by the volume
+  byVolume?: boolean;
   // a backup's own genre (they may have set it by hand)
   genre?: string;
 };

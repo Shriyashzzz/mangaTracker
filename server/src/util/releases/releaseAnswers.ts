@@ -9,7 +9,11 @@ import type { Manga } from "../../../generated/prisma/client.js";
 // as long as the sources it came from are kept (releaseCache.ts)
 export const ANSWER_FRESH_MS = 6 * 60 * 60 * 1000;
 
-type Prefs = { releaseChecks?: unknown; releases?: unknown } | null;
+type Prefs = {
+  releaseChecks?: unknown;
+  releases?: unknown;
+  trackBy?: unknown;
+} | null;
 type Keyed = Pick<
   Manga,
   | "name"
@@ -27,7 +31,11 @@ type Keyed = Pick<
 
 // their release settings alone, for the browser to tell when they've changed
 export const settingsPrint = (prefs: Prefs) =>
-  JSON.stringify([prefs?.releaseChecks ?? null, prefs?.releases ?? null]);
+  JSON.stringify([
+    prefs?.releaseChecks ?? null,
+    prefs?.releases ?? null,
+    ...(prefs?.trackBy ? [prefs.trackBy] : []),
+  ]);
 
 export const answerKey = (m: Keyed, prefs: Prefs) =>
   JSON.stringify([
@@ -45,6 +53,7 @@ export const answerKey = (m: Keyed, prefs: Prefs) =>
     m.planned,
     prefs?.releaseChecks ?? null,
     prefs?.releases ?? null,
+    prefs?.trackBy ?? null,
   ]);
 
 export type SavedAnswer = {

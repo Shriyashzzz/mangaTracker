@@ -176,6 +176,7 @@ export const fillFromBackup = (
   id: number,
   data: {
     bookmark?: number;
+    readVolume?: number;
     status?: boolean;
     planned?: boolean;
     rating?: number;

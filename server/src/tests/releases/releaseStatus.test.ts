@@ -1,6 +1,7 @@
 import {
   chapterToSave,
   getReleaseStatus,
+  placeFor,
   readReleaseSettings,
   validReleaseSettings,
   type ReleaseSettings,
@@ -458,21 +459,27 @@ test("Japan's date is the first cover of its newest volume, whatever the languag
 });
 
 test("read by the volume: no chapter news, and the volume read stands in for a blank shelf", () => {
-  const byVolume = { volumesOwned: null, bookmark: 10, byVolume: true };
-  // chapter 10 of 50 would be news for someone counting chapters
-  expect(
-    getReleaseStatus(readTo(10), chaptersOnly(chapter("50"))).nextChapter,
-  ).toBe(11);
-  const quiet = getReleaseStatus(byVolume, chaptersOnly(chapter("50")));
-  expect(quiet.nextChapter).toBeNull();
-  expect(quiet.hasNewChapter).toBe(false);
+  const series = { volumesOwned: null, bookmark: 10, readVolume: 2 };
+  const fifty = chaptersOnly(chapter("50"));
   const out = volumesOnly(english(1, 2, 3, 4));
-  expect(getReleaseStatus({ ...byVolume, readVolume: 2 }, out).nextVolume).toBe(
-    3,
-  );
+  // by the chapter: news at 11, and the volume read says nothing
+  const byChapter = placeFor({ ...series, byVolume: false }, undefined);
+  expect(getReleaseStatus(byChapter, fifty).nextChapter).toBe(11);
+  expect(getReleaseStatus(byChapter, out).nextVolume).toBeNull();
+  const byVolume = placeFor({ ...series, byVolume: true }, "series");
+  expect(getReleaseStatus(byVolume, fifty).nextChapter).toBeNull();
+  expect(getReleaseStatus(byVolume, fifty).hasNewChapter).toBe(false);
+  expect(getReleaseStatus(byVolume, out).nextVolume).toBe(3);
   // what they own still comes first: New is about what to buy
   expect(
-    getReleaseStatus({ ...byVolume, readVolume: 2, volumesOwned: 3 }, out)
-      .nextVolume,
+    getReleaseStatus({ ...byVolume, volumesOwned: 3 }, out).nextVolume,
   ).toBe(4);
+  // the account's choice beats the series' own
+  expect(placeFor({ ...series, byVolume: true }, "chapters").bookmark).toBe(10);
+  expect(
+    placeFor({ ...series, byVolume: false }, "volumes").bookmark,
+  ).toBeNull();
+  const both = placeFor({ ...series, byVolume: false }, "both");
+  expect(getReleaseStatus(both, fifty).nextChapter).toBe(11);
+  expect(getReleaseStatus(both, out).nextVolume).toBe(3);
 });

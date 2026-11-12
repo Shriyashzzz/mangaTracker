@@ -547,6 +547,7 @@ function Library() {
         latestChapter={
           releases[currentManga.id]?.latestChapter ?? currentManga.latestChapter
         }
+        latestVolume={releases[currentManga.id]?.latestVolume}
         select={
           select.selectOn
             ? {

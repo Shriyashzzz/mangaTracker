@@ -77,7 +77,9 @@ export const detailsStyles = {
   startRow: "inline-flex flex-wrap items-center gap-3",
   // under the counter: the quiet ways to change what it counts
   trackRow:
-    "mt-1 flex flex-wrap items-center gap-x-4 gap-y-1 not-italic",
+    "mt-1 flex flex-wrap items-center gap-x-4 gap-y-1 not-italic empty:hidden",
+  // one counter to a line, when the chapter and the volume are both kept
+  placeLine: "block [&+&]:mt-2",
   // "Track chapters too": a quiet way to the counter
   chaptersToo:
     "tap font-sans text-[0.9rem] font-medium text-ink-soft underline decoration-line-soft underline-offset-3 hover:text-ink hover:decoration-current",

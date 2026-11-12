@@ -115,6 +115,8 @@ export const formStyles = {
   label,
   fieldLabel: label,
   optional: "text-[0.82rem] font-normal text-muted",
+  // "Count volumes instead": swaps what the place box counts
+  swap: "tap self-start text-[0.85rem] font-medium text-ink-soft underline decoration-line-soft underline-offset-3 hover:text-ink hover:decoration-current",
 
   input,
   textarea: `${input} h-auto min-h-16 flex-1 resize-y px-[0.85rem] py-[0.7rem] leading-[1.6]`,

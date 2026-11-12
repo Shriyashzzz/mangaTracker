@@ -38,6 +38,9 @@ export type Book = {
   exact?: boolean;
   finished?: boolean;
   chapter?: number;
+  // the volume read up to, and whether the series keeps its place by it
+  readTo?: number;
+  byVolume?: boolean;
   notes?: string;
   genre?: string;
 };
@@ -71,6 +74,8 @@ export type BookSeries = {
   restore?: boolean;
   finished?: boolean;
   chapters?: number;
+  readTo?: number;
+  byVolume?: boolean;
   notes?: string;
   genre?: string;
 };
@@ -597,6 +602,14 @@ function ownExportBooks(h: string[], row: string[]): Book[] {
     genre: cell(row, header(h, /^Genre$/)).slice(0, 100) || undefined,
     finished: status === "finished",
     chapter,
+    // backups from before these columns say neither
+    readTo: Math.min(
+      999,
+      Math.max(0, Math.floor(count(cell(row, header(h, /^Read volume$/))))),
+    ),
+    ...(header(h, /^Tracked by$/) >= 0
+      ? { byVolume: /volume/i.test(cell(row, header(h, /^Tracked by$/))) }
+      : {}),
     notes: cell(row, header(h, /^Notes$/)).slice(0, 450) || undefined,
   };
   if (!volumes.length)
@@ -1371,6 +1384,12 @@ export function groupBooks(everyBook: Book[]): BookSeries[] {
       ...(list.find((b) => b.notes)
         ? { notes: list.find((b) => b.notes)!.notes }
         : {}),
+      ...(list.some((b) => b.readTo)
+        ? { readTo: Math.max(...list.map((b) => b.readTo ?? 0)) }
+        : {}),
+      ...(list.some((b) => b.byVolume != null)
+        ? { byVolume: list.some((b) => b.byVolume) }
+        : {}),
     };
   });
 }
@@ -1603,7 +1622,9 @@ export const toEntry = (
   ...(s.notes ? { comments: s.notes } : {}),
   ...(s.restore ? { restore: true } : {}),
   ...(s.restore && s.genre ? { genre: s.genre } : {}),
-  readVolumes: s.readVolumes,
+  // a backup says the volume read itself; it's apart from what they own
+  readVolumes: s.restore ? (s.readTo ?? 0) : s.readVolumes,
+  ...(s.restore && s.byVolume != null ? { byVolume: s.byVolume } : {}),
   ownedVolumes: s.ownedVolumes,
   // only with gaps: a run from 1 is what ownedVolumes says already, and keeps
   // counting a volume read further on as theirs, as it always did

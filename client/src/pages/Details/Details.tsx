@@ -12,7 +12,8 @@ import SlowLoadQuote from "../../components/slowLoadQuote/SlowLoadQuote";
 import { usePrivatePage } from "../../lib/seo";
 import { getReleases } from "../../lib/shelf";
 import VolumeShelf from "../../components/volumeShelf/VolumeShelf";
-import { useReleaseChecksOn } from "../../lib/prefs";
+import { useReleaseChecksOn, useTrackBy } from "../../lib/prefs";
+import { tracksOf } from "../../lib/reading";
 import { useShelf } from "../../store/shelf";
 import TwiceNote from "./TwiceNote";
 import NotesField from "./NotesField";
@@ -60,6 +61,7 @@ export default function Details() {
   const [loadTry, setLoadTry] = useState(0);
   // a chapter was saved, so what's new for them needs asking again
   const [chapterSaves, setChapterSaves] = useState(0);
+  const trackBy = useTrackBy();
   // a new volume counter when its number is set from outside it
   const [volumeSets, setVolumeSets] = useState(0);
   const { id } = useParams();
@@ -241,7 +243,9 @@ export default function Details() {
       if (!res.ok) throw new Error("Failed starting manga");
       setMangaData((m) => (m ? { ...m, planned: false, bookmark: 1 } : m));
       setActionNote(
-        mangaData?.byVolume ? "Started!" : "Started! You're on chapter 1.",
+        mangaData && !tracksOf(mangaData, trackBy).chapters
+          ? "Started!"
+          : "Started! You're on chapter 1.",
       );
     } catch (e) {
       console.error(e);
@@ -349,6 +353,7 @@ export default function Details() {
   // how many books the shelf holds: the most we know is out, and never fewer
   // than they own. Until that's known, theirs and a few to tick next
   const owned = ownedOf(mangaData);
+  const tracks = tracksOf(mangaData, trackBy);
   // halves and specials (10.5, vol. 0) aren't books on the shelf: said instead
   const offShelf = owned.filter((v) => !Number.isInteger(v) || v < 1);
   const onShelf = owned.length - offShelf.length;
@@ -407,9 +412,10 @@ export default function Details() {
           ? releaseStatus.hasNewChapter && {
               what: `Ch. ${releaseStatus.latestChapter}`,
               kind: "chapter" as const,
-              yours: mangaData.bookmark
-                ? `you're on ch. ${mangaData.bookmark}`
-                : null,
+              yours:
+                tracks.chapters && mangaData.bookmark
+                  ? `you're on ch. ${mangaData.bookmark}`
+                  : null,
             }
           : releaseStatus.isNextVolumeOut && {
               what: `Vol. ${releaseStatus.latestVolume}`,
@@ -613,83 +619,93 @@ export default function Details() {
                   Start reading
                 </button>
               </span>
-            ) : !mangaData.byVolume &&
+            ) : trackBy === "series" &&
+              !mangaData.byVolume &&
               !mangaData.bookmark &&
-              owned.length > 0 &&
               !chaptersShown ? (
-              // they keep the books and never saved a chapter: what they own
-              // says where they are, not "chapter 0"
+              // no place saved yet: they pick what to count. What they own
+              // says where a collector is, never "chapter 0"
               <span className={styles.startRow}>
-                You own {owned.length === 1 ? "vol." : "vols."}{" "}
-                {rangesText(owned)}.
+                {owned.length > 0 && (
+                  <>
+                    You own {owned.length === 1 ? "vol." : "vols."}{" "}
+                    {rangesText(owned)}.
+                  </>
+                )}
                 <button
                   type="button"
                   className={styles.chaptersToo}
                   onClick={() => setChaptersShown(true)}
                 >
-                  Track chapters too
+                  Track chapters
                 </button>
                 <button
                   type="button"
                   className={styles.chaptersToo}
                   onClick={() => saveReading({ byVolume: true })}
                 >
-                  Track volumes read
+                  Track volumes
                 </button>
               </span>
-            ) : mangaData.byVolume ? (
+            ) : (
               <>
-                {/* their place by the volume: read is apart from owned */}
-                You've read up to vol.{" "}
-                <ChapterStepper
-                  key={`${mangaData.id}-volume-${volumeSets}`}
-                  mangaId={mangaData.id}
-                  unit="volume"
-                  value={mangaData.readVolume ?? null}
-                  onSaved={(volume) => {
-                    setMangaData({ ...mangaData, readVolume: volume });
-                    setChapterSaves((n) => n + 1);
-                  }}
-                />
+                {tracks.chapters && (
+                  <span className={styles.placeLine}>
+                    You're on chapter{" "}
+                    <ChapterStepper
+                      key={mangaData.id}
+                      mangaId={mangaData.id}
+                      value={mangaData.bookmark}
+                      onSaved={(chapter) => {
+                        setMangaData({ ...mangaData, bookmark: chapter });
+                        setChapterSaves((n) => n + 1);
+                      }}
+                    />
+                  </span>
+                )}
+                {tracks.volumes && (
+                  // their place by the volume: read is apart from owned
+                  <span className={styles.placeLine}>
+                    You've read up to vol.{" "}
+                    <ChapterStepper
+                      key={`${mangaData.id}-volume-${volumeSets}`}
+                      mangaId={mangaData.id}
+                      unit="volume"
+                      value={mangaData.readVolume ?? null}
+                      onSaved={(volume) => {
+                        setMangaData({ ...mangaData, readVolume: volume });
+                        setChapterSaves((n) => n + 1);
+                      }}
+                    />
+                  </span>
+                )}
                 <span className={styles.trackRow}>
-                  {highestOwned > (mangaData.readVolume ?? 0) && (
+                  {tracks.volumes &&
+                    highestOwned > (mangaData.readVolume ?? 0) && (
+                      <button
+                        type="button"
+                        className={styles.chaptersToo}
+                        onClick={() =>
+                          saveReading({ readVolume: highestOwned })
+                        }
+                      >
+                        Read everything I own
+                      </button>
+                    )}
+                  {/* each series its own way: the other one is a tap away */}
+                  {trackBy === "series" && (
                     <button
                       type="button"
                       className={styles.chaptersToo}
-                      onClick={() => saveReading({ readVolume: highestOwned })}
+                      onClick={() =>
+                        saveReading({ byVolume: !mangaData.byVolume })
+                      }
                     >
-                      Read everything I own
+                      {mangaData.byVolume
+                        ? "Track chapters instead"
+                        : "Track volumes instead"}
                     </button>
                   )}
-                  <button
-                    type="button"
-                    className={styles.chaptersToo}
-                    onClick={() => saveReading({ byVolume: false })}
-                  >
-                    Track chapters instead
-                  </button>
-                </span>
-              </>
-            ) : (
-              <>
-                You're on chapter{" "}
-                <ChapterStepper
-                  key={mangaData.id}
-                  mangaId={mangaData.id}
-                  value={mangaData.bookmark}
-                  onSaved={(chapter) => {
-                    setMangaData({ ...mangaData, bookmark: chapter });
-                    setChapterSaves((n) => n + 1);
-                  }}
-                />
-                <span className={styles.trackRow}>
-                  <button
-                    type="button"
-                    className={styles.chaptersToo}
-                    onClick={() => saveReading({ byVolume: true })}
-                  >
-                    Track volumes instead
-                  </button>
                 </span>
               </>
             )}

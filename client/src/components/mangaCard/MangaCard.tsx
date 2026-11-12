@@ -1,3 +1,9 @@
+import {
+  placeText as placeOf,
+  tracksOf,
+  type TrackBy,
+} from "../../lib/reading";
+import { useTrackBy } from "../../lib/prefs";
 import { useState } from "react";
 import { NavLink } from "react-router";
 import StarRating from "../starRating/StarRating";
@@ -29,6 +35,11 @@ type Props = {
   compact?: boolean;
   // how far through the series they are, once we know the latest chapter
   latestChapter?: number | null;
+  // the newest volume out in English, for a volume reader's progress
+  latestVolume?: number | null;
+  // how places show: theirs unless said (a shared shelf says "both": it's
+  // sent only what its owner tracks)
+  trackBy?: TrackBy;
   // the shelf's Select: the card ticks instead of opening
   select?: { checked: boolean; onToggle: () => void };
 };
@@ -47,30 +58,34 @@ export default function MangaCard({
   index = 0,
   compact = false,
   latestChapter,
+  latestVolume,
+  trackBy,
   select,
 }: Props) {
   // a cover that wouldn't load, so the drawn one shows instead
   const [brokenImage, setBrokenImage] = useState<string | null>(null);
   const asColumns = compact && !news;
   // a count that's behind where they are says nothing, so it isn't shown
-  // kept by the volume, the chapter number says nothing
-  const reading = currentManga.byVolume ? 0 : (currentManga.bookmark ?? 0);
-  const knownTotal =
-    latestChapter != null && latestChapter >= reading ? latestChapter : null;
+  const ownTrackBy = useTrackBy();
+  const tracks = tracksOf(currentManga, trackBy ?? ownTrackBy);
+  // the bar on the right: chapters when they count them, else volumes read
+  const byChapter = tracks.chapters && Boolean(currentManga.bookmark);
+  const reading = byChapter
+    ? (currentManga.bookmark ?? 0)
+    : tracks.volumes
+      ? (currentManga.readVolume ?? 0)
+      : 0;
+  const latest = byChapter ? latestChapter : latestVolume;
+  // a count that's behind where they are says nothing, so it isn't shown
+  const knownTotal = latest != null && latest >= reading ? latest : null;
   // a collector of the books, no chapter kept: what they own says where
   // they are ("vols. 1–10"), never "not started"
   const owned = ownedOf(currentManga);
   const ownedText = owned.length
-    ? `${owned.length === 1 ? "vol." : "vols."} ${rangesText(owned)}`
+    ? `own ${owned.length === 1 ? "vol." : "vols."} ${rangesText(owned)}`
     : null;
-  // where they are: the volume they've read or the chapter they're on
-  const placeText = currentManga.byVolume
-    ? currentManga.readVolume
-      ? `read vol. ${currentManga.readVolume}`
-      : null
-    : currentManga.bookmark
-      ? `ch. ${currentManga.bookmark}`
-      : null;
+  // where they are: the chapter they're on, the volume they've read, or both
+  const placeText = placeOf(currentManga, trackBy ?? ownTrackBy);
   const genre =
     currentManga.genre && currentManga.genre !== "unlabled"
       ? currentManga.genre
@@ -211,17 +226,18 @@ export default function MangaCard({
             {/* unrated ones show empty stars, so the column always reads the same */}
             <StarRating value={Number(currentManga.rating) || 0} size="sm" />
           </span>
-          <span className="flex w-28 flex-col justify-center gap-1 pr-2 text-right font-mono text-[0.82rem] text-ink-soft upto-720:w-[5.5rem] upto-720:pr-2">
+          <span className="flex w-28 flex-col justify-center gap-1 pr-2.5 text-right font-mono text-[0.82rem] text-ink-soft upto-720:w-[5.5rem] upto-720:pr-2">
             {currentManga.status ? (
               "Finished"
             ) : !reading && owned.length ? (
               // no chapter kept: how many books, not "0 of 143"
-              <span className="whitespace-nowrap">
+              <span className="whitespace-nowrap ">
                 {owned.length} {owned.length === 1 ? "vol" : "vols"}
               </span>
             ) : knownTotal != null && reading > 0 ? (
               <>
                 <span className="whitespace-nowrap">
+                  {byChapter ? "" : "vol. "}
                   {reading} of {knownTotal}
                 </span>
                 <span

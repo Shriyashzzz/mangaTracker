@@ -29,6 +29,8 @@ export type MalEntry = {
   // from Manga Tracker's own export: a series already on the shelf also
   // takes what it lacks (backupFill)
   restore?: boolean;
+  // from a backup: this series keeps its place by the volume
+  byVolume?: boolean;
   // a backup's own genre, kept over AniList's (it may be hand-set)
   genre?: string;
 };
@@ -41,6 +43,7 @@ export function backupFill(
   entry: MalEntry,
   had: {
     bookmark: number | null;
+    readVolume?: number | null;
     status: boolean;
     planned: boolean;
     rating: number | null;
@@ -53,6 +56,9 @@ export function backupFill(
     // a chapter saved means it's started: off To read
     ...(entry.chapters > (had.bookmark ?? 0)
       ? { bookmark: entry.chapters, ...(had.planned ? { planned: false } : {}) }
+      : {}),
+    ...(entry.readVolumes > (had.readVolume ?? 0)
+      ? { readVolume: entry.readVolumes }
       : {}),
     ...(entry.finished && !had.status ? { status: true, planned: false } : {}),
     ...(rating && !had.rating ? { rating } : {}),
@@ -85,9 +91,13 @@ export function toMangaInput(entry: MalEntry, listing: MalListing | null) {
     planned: Boolean(entry.planned),
     lightNovel: entryIsLightNovel(entry, listing),
     bookmark: entry.planned ? null : entry.chapters,
+    // a light novel is read by the volume unless the backup says otherwise
+    byVolume: entry.byVolume ?? entryIsLightNovel(entry, listing),
+    readVolume: entry.planned ? null : entry.readVolumes || null,
     // most people never fill in retail, so volumes read is the best guess left
     ...ownedVolumes(
-      entry.ownedVolumes || entry.readVolumes || null,
+      // (a backup's read volume is only that: it says what's owned itself)
+      entry.ownedVolumes || (entry.restore ? 0 : entry.readVolumes) || null,
       entry.ownedList,
     ),
     rating: Math.round(entry.score / 2) || null,
