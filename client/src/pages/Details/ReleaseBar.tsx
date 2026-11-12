@@ -28,6 +28,8 @@ export type Row = {
   when: string;
   estimate?: boolean;
   to?: string;
+  // `when` is a price ("Check price", "from $9.99"): it links there too
+  compare?: boolean;
 };
 export type Group = { title: string; rows: Row[] };
 
@@ -212,12 +214,26 @@ export default function ReleaseBar({
                   ) : (
                     <span className={styles.releaseWhat}>{row.what}</span>
                   )}
-                  <span className={styles.releaseWhen}>
-                    {row.when}
-                    {row.estimate && (
-                      <span className={styles.releaseEstimate}>estimated</span>
-                    )}
-                  </span>
+                  {row.to && row.compare ? (
+                    // the price is the way to where its prices are compared
+                    <NavLink
+                      className={`${styles.releaseWhen} ${styles.releaseCompare}`}
+                      to={row.to}
+                      viewTransition
+                      aria-label={`${row.what}: ${row.when}, compare prices`}
+                    >
+                      {row.when} →
+                    </NavLink>
+                  ) : (
+                    <span className={styles.releaseWhen}>
+                      {row.when}
+                      {row.estimate && (
+                        <span className={styles.releaseEstimate}>
+                          estimated
+                        </span>
+                      )}
+                    </span>
+                  )}
                 </p>
               ))}
             </div>

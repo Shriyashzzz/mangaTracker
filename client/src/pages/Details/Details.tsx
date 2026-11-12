@@ -408,10 +408,15 @@ export default function Details() {
   const seriesTo = seriesPath(
     buyOptions.seriesName || (mangaData ? priceName(mangaData) : ""),
   );
-  const barRow = (v: (typeof pastMine)[number], when: string) => ({
+  const barRow = (
+    v: (typeof pastMine)[number],
+    when: string,
+    compare = false,
+  ) => ({
     what: `Vol. ${v.volume}`,
     when,
     to: volumePath(v.isbn13, v.title),
+    compare,
   });
   const barEnglish =
     sellsVolume || outPast.length || comingPast.length
@@ -428,6 +433,7 @@ export default function Details() {
                       v.knownPriceCents != null
                         ? `from ${formatCents(v.knownPriceCents)}`
                         : "Check price",
+                      true,
                     ),
                   ),
                 ...(outPast.length > BAR_ROWS
@@ -436,6 +442,7 @@ export default function Details() {
                         what: `+${outPast.length - BAR_ROWS} more`,
                         when: "See them all",
                         to: `${seriesTo}&toget=1`,
+                        compare: true,
                       },
                     ]
                   : []),
