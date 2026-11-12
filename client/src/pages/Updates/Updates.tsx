@@ -25,10 +25,6 @@ const UPDATES = [
     body: "A series' price page shows its box sets first, with its deluxe and omnibus books listed underneath.",
   },
   {
-    name: "Questions, answered",
-    body: "A short FAQ on how the shelf, prices and imports work, linked at the bottom of every page.",
-  },
-  {
     name: "Upcoming Releases",
     body: "Every volume coming out for your shelf, circled on a calendar. Save the dates to Google, Apple or Outlook, one at a time or a whole month at once.",
   },
