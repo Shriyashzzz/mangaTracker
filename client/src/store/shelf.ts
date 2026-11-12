@@ -137,6 +137,7 @@ const restorable = (m: Manga) => ({
   bookmark: m.bookmark,
   byVolume: m.byVolume,
   readVolume: m.readVolume,
+  edition: m.edition,
   volumesOwned: m.volumesOwned,
   ownedList: m.ownedList,
   genre: m.genre,

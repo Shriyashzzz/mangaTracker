@@ -16,6 +16,8 @@ export type MangaInput = {
   // their place kept by the volume, and the last volume read
   byVolume?: boolean;
   readVolume?: number | null;
+  // the edition they collect; null is single volumes
+  edition?: string | null;
   volumesOwned?: number | null;
   // the exact volumes, when not a run from 1 (util/shelf/ownedList.ts)
   ownedList?: number[];
@@ -151,7 +153,11 @@ export const setBookmark = (id: number, bookmark: number) =>
 // which way they keep their place, and the volume they've read up to
 export const setReading = (
   id: number,
-  data: { byVolume?: boolean; readVolume?: number | null },
+  data: {
+    byVolume?: boolean;
+    readVolume?: number | null;
+    edition?: string | null;
+  },
 ) => prisma.manga.update({ where: { id }, data });
 
 const SEEN_FIELD = {

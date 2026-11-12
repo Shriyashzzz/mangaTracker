@@ -143,6 +143,10 @@ export const setBookmark = [
 // volume read (null clears it). Either can come alone
 export const setReading = [
   body("byVolume").optional().isBoolean({ strict: true }),
+  // the edition they collect, by its line's key; null is single volumes
+  body("edition")
+    .optional({ values: "null" })
+    .matches(/^[a-z0-9]{1,20}$/),
   body("readVolume")
     .optional({ values: "null" })
     .isInt({ min: 0, max: 999 })
@@ -154,6 +158,7 @@ export const setReading = [
     await mangaQueries.setReading(res.locals.manga.id, {
       ...(d.byVolume === undefined ? {} : { byVolume: d.byVolume }),
       ...("readVolume" in req.body ? { readVolume: d.readVolume ?? null } : {}),
+      ...("edition" in req.body ? { edition: d.edition ?? null } : {}),
     });
     res.sendStatus(204);
   },

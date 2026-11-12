@@ -17,6 +17,7 @@ import { tracksOf } from "../../lib/reading";
 import { useShelf } from "../../store/shelf";
 import TwiceNote from "./TwiceNote";
 import YourBooks from "./YourBooks";
+import { useEditions } from "./useEditions";
 import { getBooks } from "../../lib/booksApi";
 import NotesField from "./NotesField";
 import BuyStrip from "./BuyStrip";
@@ -101,6 +102,13 @@ export default function Details() {
   const navigate = useNavigate();
   const loadedId = mangaData?.id;
   // a light novel's prices are the novel's, never the manga of the same name
+  // the series' omnibus and deluxe lines, and the one they collect
+  const editions = useEditions(
+    mangaData && !mangaData.lightNovel ? priceName(mangaData) : null,
+    mangaData?.id ?? null,
+    mangaData?.edition,
+    mangaData ? ownedOf(mangaData) : [],
+  );
   const buyOptions = useBuyOptions(mangaData ? priceName(mangaData) : null, {
     volumesOwned: mangaData?.volumesOwned ?? null,
     ownedList: mangaData?.ownedList,
@@ -213,6 +221,7 @@ export default function Details() {
   const saveReading = async (change: {
     byVolume?: boolean;
     readVolume?: number;
+    edition?: string;
   }) => {
     if (!mangaData) return;
     const was = mangaData;
@@ -838,7 +847,12 @@ export default function Details() {
             {mangaStatus && <span className={styles.stamp}>Done</span>}
           </figure>
 
-          <BuyStrip options={buyOptions} hideNext={hideNextTicket} />
+          <BuyStrip
+            options={buyOptions}
+            hideNext={hideNextTicket}
+            editions={editions}
+            onCollect={(edition) => saveReading({ edition })}
+          />
         </div>
       </article>
     </div>
