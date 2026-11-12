@@ -169,8 +169,9 @@ export const detailsStyles = {
   twiceButton:
     "tap font-semibold text-accent underline decoration-2 underline-offset-3 disabled:opacity-60",
   twiceWhy: "basis-full text-[0.82rem] text-ink-soft",
-  // "Collecting [Deluxe]": which edition the box counts in
-  buyCollect: "mb-2 flex",
+  // "Buy it" with "as Deluxe" across from it: which edition the box counts in
+  buyHead:
+    "mb-[0.6rem] flex flex-wrap items-center justify-between gap-x-2 [&_h2]:mb-0",
   // "vols. 7–9, you have 1 of 3": under the next book's row, the ticket's width
   buyInside: "col-span-full text-[0.85rem] font-normal text-ink-soft italic",
   // books past the last one listed: said quietly, nothing to click

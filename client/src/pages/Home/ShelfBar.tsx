@@ -322,7 +322,7 @@ export function SortMenu<T extends string>({
         className={wordy ? styles.pickButton : styles.sortButton}
         aria-expanded={open}
         aria-haspopup="true"
-        aria-label={`${lead} ${pickedText}. Change`}
+        aria-label={`${wordy ? menuLabel : lead} ${pickedText}. Change`}
         onClick={() => setOpen(!open)}
       >
         <span className={wordy ? styles.pickWords : styles.sortWords}>

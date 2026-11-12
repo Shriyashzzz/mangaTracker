@@ -84,17 +84,17 @@ export default function BuyStrip({
 
   return (
     <section className={styles.buy} aria-labelledby="buy-title">
-      <h2 id="buy-title" className={styles.deskTitle}>
-        Buy it
-      </h2>
-      {/* which edition they buy: only when the series has another */}
-      {editions.lines.length > 0 && (
-        <div className={styles.buyCollect}>
+      {/* the heading, and beside it which edition they buy (only when the
+          series has another): "Buy it as Deluxe" */}
+      <div className={styles.buyHead}>
+        <h2 id="buy-title" className={styles.deskTitle}>
+          Buy it
+        </h2>
+        {editions.lines.length > 0 && (
           <SortMenu
-            lead="Collecting"
-            menuLabel="Collecting"
+            lead="as"
+            menuLabel="Buy it as"
             wordy
-            alignLeft
             sortBy={line?.key ?? "singles"}
             onSort={onCollect}
             options={[
@@ -102,8 +102,8 @@ export default function BuyStrip({
               ...editions.lines.map((l) => ({ value: l.key, label: l.label })),
             ]}
           />
-        </div>
-      )}
+        )}
+      </div>
       {line && plan ? (
         <ul className={styles.buyList}>
           {plan.next && (
