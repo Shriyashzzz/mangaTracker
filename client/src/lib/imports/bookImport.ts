@@ -63,6 +63,9 @@ export type BookSeries = {
   // a row that is several series AniList says are one (mergeSameSeries):
   // every one's key, its own first
   members?: string[];
+  // the books whose volumes the file doesn't say (a box set, a deluxe
+  // edition): named in the preview, so nothing is dropped without a word
+  unsure?: string[];
   // from Manga Tracker's own export: finished, the chapter they're on, notes
   restore?: boolean;
   finished?: boolean;
@@ -115,7 +118,7 @@ export function parseCsv(text: string): string[][] {
 // a special edition is still the same series: "Berserk Deluxe Edition" is Berserk.
 // Words that end real names ("Rave Master") count only before "Edition"
 const EDITION =
-  /[\s,:(\-–—]+(the )?((deluxe|omnibus|complete( collection)?|box ?set|vizbig|full[\s-]colou?r(\s+collection)?|\d-in-\d|\d-in|\d+ ?in ?\d+)( edition)?|(collector'?s|perfect|ultimate|master|revised) edition)\)?$/i;
+  /[\s,:(\-–—]+(the )?((deluxe|omnibus|complete( collection)?|box ?set|vizbig|full[\s-]colou?r(\s+collection)?|\d-in-\d|\d-in|\d+ ?in ?\d+)( edition)?|all-in-one( edition)?|(collector'?s|perfect|ultimate|master|revised|fullmetal) edition)\)?$/i;
 
 const tidy = (name: string) =>
   name
@@ -731,7 +734,7 @@ const N_IN_ONE = /\b([234])\s*-?\s*in\s*-?\s*1\b/i;
 // Slayer Complete Box Set" is far more than vol. 1, so the import asks which
 // instead of guessing. (A deluxe edition stays its own number, as before)
 const OMNIBUS =
-  /\bomnibus\b|\bcomplete collection\b|\bbind-?up\b|\bbox ?set\b/i;
+  /\bomnibus\b|\bcomplete collection\b|\bbind-?up\b|\bbox ?set\b|\ball-in-one\b/i;
 
 // which volumes a book holds, from the surest the title says to the least:
 // listed, a range, or N-in-1 with the omnibus' number. An omnibus that says
@@ -855,7 +858,66 @@ export function editionVolumes(
   return SPECIAL_EDITION.test(title) ? { omnibus: true } : null;
 }
 
+// ---------- box sets ----------
+
+// A box set is a series' name, "Box Set", perhaps its number, perhaps what it
+// holds: "Naruto Box Set 1: Volumes 1-27". The name is the series' (never
+// "One Piece Box Set 2", a series of its own), and its volumes are what the
+// title says, or what the publisher's set of that number holds, or else not
+// known and asked about. "All-in-One" is the whole series in one book
+const BOX_SET =
+  /^(.*?)[\s,:(\-–—]+(?:the\s+)?(?:complete\s+)?(?:manga\s+)?(?:box(?:ed)?\s?set|all-in-one(?:\s+edition)?)\)?(?:[\s,:#]*(?:vol(?:ume)?\.?\s*)?(\d{1,2})\b)?(.*)$/i;
+const SET_RANGE =
+  /\b(?:vol(?:ume)?s?\.?)\s*(\d{1,3})\s*(?:[-–]|to)\s*(\d{1,3})\b/i;
+// the publishers' own sets: [first, last] by set number (0: the one complete
+// set). Only ones whose contents don't change
+const BOX_SETS: Record<string, Record<number, [number, number]>> = {
+  naruto: { 1: [1, 27], 2: [28, 48], 3: [49, 72] },
+  "one piece": { 1: [1, 23], 2: [24, 46], 3: [47, 70], 4: [71, 90] },
+  bleach: { 1: [1, 21], 2: [22, 48], 3: [49, 74] },
+  "demon slayer": { 0: [1, 23] },
+  "demon slayer kimetsu no yaiba": { 0: [1, 23] },
+  "death note": { 0: [1, 12] },
+  "dragon ball": { 0: [1, 16] },
+  "dragon ball z": { 0: [1, 26] },
+  "fullmetal alchemist": { 0: [1, 27] },
+  "tokyo ghoul": { 0: [1, 14] },
+};
+const SET_MAX = 120;
+
+export function boxSetOf(
+  title: string,
+): { series: string; holds: number[] | null } | null {
+  const text = withAmpersands(title.normalize("NFKC"));
+  const m = text.match(BOX_SET);
+  if (!m) return null;
+  const series = tidy(m[1]!);
+  if (!series) return null;
+  const span = (from: number, to: number) =>
+    to >= from && to - from < SET_MAX
+      ? Array.from({ length: to - from + 1 }, (_, i) => from + i)
+      : null;
+  const said = (m[3] ?? "").match(SET_RANGE);
+  const known = BOX_SETS[seriesKey(series)]?.[m[2] ? Number(m[2]) : 0];
+  return {
+    series,
+    holds:
+      (said && span(Number(said[1]), Number(said[2]))) ??
+      (known ? span(known[0], known[1]) : null),
+  };
+}
+
 const withVolumesInside = (book: Book): Book => {
+  const box = boxSetOf(book.title);
+  if (box)
+    return {
+      ...book,
+      series: box.series,
+      names: [box.series],
+      volume: box.holds?.[0] ?? null,
+      ...(box.holds ? { holds: box.holds } : { omnibus: true as const }),
+      guessed: undefined,
+    };
   const edition = editionVolumes(book.series, book.title, book.volume);
   if (edition && "holds" in edition)
     return {
@@ -1246,7 +1308,13 @@ export function groupBooks(everyBook: Book[]): BookSeries[] {
       const numbered = picked.flatMap(volumesOf);
       const whole = numbered.filter((v) => Number.isInteger(v) && v >= 1);
       return Math.floor(
-        whole.length ? Math.max(...whole) : numbered.length ? 0 : picked.length,
+        whole.length
+          ? Math.max(...whole)
+          : numbered.length
+            ? 0
+            : // unnumbered books count one each, but not one that holds
+              // several nobody has said (a box set isn't "vol. 1")
+              picked.filter((b) => !b.omnibus).length,
       );
     };
     const owned = furthest(list.filter((b) => b.owned));
@@ -1274,24 +1342,20 @@ export function groupBooks(everyBook: Book[]): BookSeries[] {
       title,
       otherNames: ranked.slice(1).map((r) => r.name),
       books: list.length,
-      // an omnibus that doesn't say what it holds is at least one volume
-      ownedVolumes: Math.max(
-        0,
-        Math.min(
-          Math.max(
-            owned,
-            read,
-            ownedBooks.some((b) => b.omnibus) ? ownedBooks.length : 0,
-          ),
-          999,
-        ),
-      ),
+      // books that don't say what they hold count for nothing until Edit
+      // says (they were "vol. 1", which a box set of 27 isn't)
+      ownedVolumes: Math.max(0, Math.min(Math.max(owned, read), 999)),
       ownedList,
       readVolumes: Math.max(0, Math.min(read, 999)),
       score: Math.round(average * 2),
       planned: list.every((b) => b.planned),
       lightNovel,
-      ...(list.some((b) => b.omnibus) ? { omnibus: true } : {}),
+      ...(list.some((b) => b.omnibus)
+        ? {
+            omnibus: true,
+            unsure: list.filter((b) => b.omnibus).map((b) => b.title),
+          }
+        : {}),
       // their own export's (ownExportBooks)
       ...(list.some((b) => b.exact) ? { restore: true } : {}),
       ...(list.some((b) => b.finished) ? { finished: true } : {}),
@@ -1489,6 +1553,7 @@ export function mergeSameSeries(
     first.score = Math.max(first.score, s.score);
     first.planned = first.planned && s.planned;
     if (s.omnibus) first.omnibus = true;
+    if (s.unsure) first.unsure = [...(first.unsure ?? []), ...s.unsure];
     first.otherNames = [
       ...new Set([...first.otherNames, s.title, ...s.otherNames]),
     ];

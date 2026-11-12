@@ -1199,11 +1199,13 @@ test("a box set beside numbered volumes keeps their gaps", () => {
       "One Piece, Vol. 2",
       "One Piece, Vol. 3",
       "One Piece, Vol. 104",
-      "One Piece Box Set 1",
+      // a set whose contents aren't known: asked about, and named
+      "One Piece Box Set 9",
     ]),
   );
   expect(op!.ownedList).toEqual([1, 2, 3, 104]);
   expect(op!.omnibus).toBe(true);
+  expect(op!.unsure).toEqual(["One Piece Box Set 9"]);
   expect(toEntry(op!).ownedList).toEqual([1, 2, 3, 104]);
 });
 
@@ -1269,4 +1271,48 @@ test("a backup's names are never joined to another series by a guess", () => {
     "Record of the Last Hero",
   ]);
   expect(toEntry(series[0]!).restore).toBe(true);
+});
+
+test("a box set is its series, holding what it says or what that set is known to hold", () => {
+  const sets = (titles: string[]) =>
+    groupBooks(goodreads(titles)).map((s) => [
+      s.title,
+      s.ownedList?.[0],
+      s.ownedList?.[s.ownedList.length - 1],
+      s.ownedList?.length,
+      Boolean(s.omnibus),
+    ]);
+  expect(
+    sets([
+      "Naruto Box Set 1: Volumes 1-27",
+      "One Piece Box Set 2",
+      "Demon Slayer Complete Box Set",
+      "Death Note (All-in-One Edition)",
+    ]),
+  ).toEqual([
+    ["Naruto", 1, 27, 27, false],
+    ["One Piece", 24, 46, 23, false],
+    ["Demon Slayer", 1, 23, 23, false],
+    ["Death Note", 1, 12, 12, false],
+  ]);
+  // an edition whose books don't map evenly joins its series, and is asked
+  // about rather than counted as vol. 1
+  const [fma] = groupBooks(
+    goodreads([
+      "Fullmetal Alchemist: Fullmetal Edition, Vol. 1",
+      "Fullmetal Alchemist (3-in-1 Edition), Vol. 9",
+    ]),
+  );
+  expect([fma!.title, fma!.ownedList, fma!.unsure]).toEqual([
+    "Fullmetal Alchemist",
+    [25, 26, 27],
+    ["Fullmetal Alchemist: Fullmetal Edition, Vol. 1"],
+  ]);
+  // a set nobody knows the contents of owns no volume yet, not "vol. 1"
+  const [unknown] = groupBooks(goodreads(["Kagurabachi Box Set 1"]));
+  expect([unknown!.title, unknown!.ownedVolumes, unknown!.omnibus]).toEqual([
+    "Kagurabachi",
+    0,
+    true,
+  ]);
 });
