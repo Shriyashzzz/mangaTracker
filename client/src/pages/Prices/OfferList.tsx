@@ -43,13 +43,20 @@ export default function OfferList({
   tourTarget?: string;
 }) {
   const [open, setOpen] = useState(false);
+  // only stores people know by name, when some sellers here are ones nobody
+  // has heard of (a choice, never the default: the cheapest is still shown)
+  const [bigOnly, setBigOnly] = useState(false);
+  const mixed =
+    offers.some((o) => o.knownStore === false) &&
+    offers.some((o) => o.knownStore);
+  const kept = bigOnly && mixed ? offers.filter((o) => o.knownStore) : offers;
   // people come here for a physical copy, so single copies come first, then
   // box sets holding this volume, then ebooks. The awards still use the true
   // cheapest-first order
   const listed = [
-    ...offers.filter((o) => o.format !== "ebook" && !isCollection(o)),
-    ...offers.filter(isCollection),
-    ...offers.filter((o) => o.format === "ebook"),
+    ...kept.filter((o) => o.format !== "ebook" && !isCollection(o)),
+    ...kept.filter(isCollection),
+    ...kept.filter((o) => o.format === "ebook"),
   ];
   const shown = open ? listed : listed.slice(0, VISIBLE_OFFERS);
   const { lowest, newLow, marketLow, knownLow } = awardsOf(offers);
@@ -95,6 +102,7 @@ export default function OfferList({
               </span>
               <span className={styles.offerTags}>
                 {condition}
+                {isCollection(o) && " · holds this and other volumes"}
                 {!o.inStock && " · out of stock"}
               </span>
             </span>
@@ -131,7 +139,7 @@ export default function OfferList({
           </li>
         );
       })}
-      {offers.length > VISIBLE_OFFERS && (
+      {listed.length > VISIBLE_OFFERS && (
         <li className={styles.moreRow}>
           <button
             type="button"
@@ -141,7 +149,19 @@ export default function OfferList({
           >
             {open
               ? "Show fewer"
-              : `Show ${offers.length - VISIBLE_OFFERS} more`}
+              : `Show ${listed.length - VISIBLE_OFFERS} more`}
+          </button>
+        </li>
+      )}
+      {mixed && (
+        <li className={styles.moreRow}>
+          <button
+            type="button"
+            className={styles.textBtn}
+            aria-pressed={bigOnly}
+            onClick={() => setBigOnly(!bigOnly)}
+          >
+            {bigOnly ? "Show every seller" : "Big stores only"}
           </button>
         </li>
       )}

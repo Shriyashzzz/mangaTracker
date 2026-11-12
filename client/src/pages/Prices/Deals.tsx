@@ -106,6 +106,14 @@ export default function Deals() {
           ))}
         </ul>
       )}
+      {/* a short list isn't a broken one: deals come from prices as they're
+          checked, so it grows and changes through the day */}
+      {state.deals && state.deals.length > 0 && state.deals.length < 8 && (
+        <p className={styles.sub}>
+          That's every volume well under its usual price right now. More turn up
+          as prices are checked through the day.
+        </p>
+      )}
     </div>
   );
 }

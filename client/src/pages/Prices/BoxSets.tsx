@@ -9,7 +9,11 @@ import type { BoxSet, StoreLink } from "../../lib/types";
 import { linkRel } from "./offerLabels";
 import { pricesStyles as styles } from "./styles";
 
-const KIND: Record<string, string> = { set: "Box set", omnibus: "Omnibus" };
+const KIND: Record<string, string> = {
+  set: "Box set",
+  // a 3-in-1 and the like: one book holding several volumes, not a box
+  omnibus: "Omnibus, several volumes in one book",
+};
 const CONDITION: Record<string, string> = { new: "New", used: "Used" };
 
 export default function BoxSets({
@@ -23,7 +27,7 @@ export default function BoxSets({
   return (
     <section aria-labelledby="box-sets-title" className={styles.boxSets}>
       <h2 id="box-sets-title" className={styles.sectionTitle}>
-        Box sets
+        Box sets and omnibuses
       </h2>
       {sets.length > 0 && (
         <ul className={styles.offers}>
