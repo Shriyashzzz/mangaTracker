@@ -1,3 +1,6 @@
+import { getJson } from "../../lib/api";
+import { humanQuery } from "../../lib/turnstile";
+import type { BoxSet } from "../../lib/types";
 import { notOutYet, onSale } from "../../lib/releaseDate";
 import DealsStrip from "../../components/deals/DealsStrip";
 import ToReadButton from "../../components/toRead/ToReadButton";
@@ -100,6 +103,32 @@ export default function PriceSeries() {
     on: boolean;
     page: number;
   } | null>(null);
+  // box sets a fresh look at the free sources found (eBay, Books-A-Million):
+  // asked for once the page is up, and only looked for again when the saved
+  // answer is days old. Null back means nothing new
+  const [scanned, setScanned] = useState<{ key: string; sets: BoxSet[] }>({
+    key: "",
+    sets: [],
+  });
+  const loaded = state.key === key && Boolean(state.data);
+  useEffect(() => {
+    if (!loaded) return;
+    const controller = new AbortController();
+    humanQuery("&", controller.signal)
+      .then((human) =>
+        getJson<{ boxSets: BoxSet[] | null }>(
+          `/api/prices/series-sets?${new URLSearchParams({ name })}${human}`,
+          controller.signal,
+        ),
+      )
+      .then(({ boxSets }) => {
+        if (boxSets) setScanned({ key, sets: boxSets });
+      })
+      .catch(() => {});
+    return () => controller.abort();
+    // key already includes name
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [key, loaded]);
   // the series' other editions, once OtherEditions has them
   const [editions, setEditions] = useState<{
     name: string;
@@ -200,8 +229,8 @@ export default function PriceSeries() {
   const mine = shelf.name === name ? shelf.manga : null;
   // what goes beside the title: box sets when one is priced, else an edition
   const editionLines = editions.name === name ? editions.lines : [];
-  const hasSets =
-    shownSets(data.boxSets ?? [], editionLines.length > 0).length > 0;
+  const boxSets = scanned.key === key ? scanned.sets : (data.boxSets ?? []);
+  const hasSets = shownSets(boxSets, editionLines.length > 0).length > 0;
   const headline = headlineLine(editionLines);
   const isTheirs = (n: number) =>
     Boolean(mine) && n >= 1 && Number.isInteger(n) && owns(mine!, n);
@@ -312,7 +341,7 @@ export default function PriceSeries() {
             nothing */}
         {hasSets ? (
           <BoxSets
-            sets={data.boxSets ?? []}
+            sets={boxSets}
             links={data.boxSetLinks ?? []}
             editionsListed={editionLines.length > 0}
           />

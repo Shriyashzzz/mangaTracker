@@ -1,6 +1,7 @@
 // Public price checker endpoints: no account needed. Upstream failures
 // (Open Library, AniList, stores) become 502s with a friendly message, so
 // pages can show "try again" instead of a blank error.
+import { scanBoxSets } from "../prices/boxSetScan.js";
 import { isNovelName } from "../prices/lightNovel.js";
 import priceQueries from "../models/priceQueries.js";
 import type { CatalogBook } from "../prices/types.js";
@@ -233,6 +234,28 @@ const editions = [
   },
 ];
 
+// GET /series-sets?name=&human=  looks for the series' box sets at the free
+// sources (eBay, Books-A-Million) when the saved answer is old, and hands
+// back the series' sets as its page shows them. Only for a page that passed
+// the person check: a crawler never sets a search off. Never a paid search
+const seriesSets = [
+  ...seriesName,
+  async (req: Request, res: Response) => {
+    const name: string = matchedData(req).name;
+    const allowed =
+      !isCrawler(req.get("user-agent")) &&
+      (await isHuman(req.query.human, req.ip));
+    const data = allowed ? await getSeries(name).catch(() => null) : null;
+    const scanned = data
+      ? await scanBoxSets(data.name, data.volumes).catch(() => false)
+      : false;
+    // unchanged: the page keeps what it has
+    if (!scanned) return void res.json({ boxSets: null });
+    const fresh = await getSeries(name).catch(() => null);
+    res.json({ boxSets: fresh?.boxSets ?? null });
+  },
+];
+
 // GET /highlights  the home page rows
 const highlights = async (_req: Request, res: Response) => {
   res.json(
@@ -358,6 +381,7 @@ const seriesSummary = [
 export default {
   scan,
   editions,
+  seriesSets,
   canadaVolume,
   search,
   seriesSearch,

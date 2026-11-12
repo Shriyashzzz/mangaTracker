@@ -10,6 +10,7 @@
 //
 // Only opening a volume page can spend a paid search, and at most once per
 // volume every FRESH_FOR_MS; everything else reads what's already stored.
+import { savedBoxSets } from "./boxSetScan.js";
 import priceQueries, { type Book } from "../models/priceQueries.js";
 import {
   englishAuthors,
@@ -1108,7 +1109,7 @@ async function getSeriesWithVolumes(name: string) {
   // it's whole and has changed
   if (!incomplete) saveFinalList(name, volumes);
   const isbns = volumes.map((v) => v.isbn13);
-  const [known, recorded, collections] = await Promise.all([
+  const [known, recorded, priced, scanned] = await Promise.all([
     priceQueries.getKnownPrices(isbns),
     // what each has usually sold for new: for estimates, when no store has
     // it today (never goes stale: every price ever recorded counts)
@@ -1116,7 +1117,16 @@ async function getSeriesWithVolumes(name: string) {
       .getRecordedMedians(isbns)
       .catch(() => new Map<string, { new: number | null }>()),
     priceQueries.getCollectionOffers(isbns).catch(() => []),
+    // and the sets a scan by the series' name found (boxSetScan.ts)
+    savedBoxSets(name).catch(() => null),
   ]);
+  const collections = [
+    ...priced,
+    ...(scanned?.sets ?? []).map((s) => ({
+      ...s,
+      isbn13: volumes[0]?.isbn13 ?? "",
+    })),
+  ];
   // box sets and omnibuses found while pricing its volumes, cheapest first,
   // each with our affiliate tag where we have one
   // the same set at the same price from the same store, listed more than
