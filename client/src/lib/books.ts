@@ -13,8 +13,33 @@ export type OwnedBook = {
   number: number | null;
   title: string | null;
   volumes: number[];
+  // what they paid for it, in cents, and the day they bought it
+  // ("2026-01-05"; the server sends the day with a time on the end)
+  paidCents?: number | null;
+  boughtOn?: string | null;
 };
 export type NewBook = Omit<OwnedBook, "id">;
+
+// the day alone, however it came
+export const dayOf = (day: string | null | undefined) =>
+  day ? day.slice(0, 10) : null;
+
+// "$12.99" typed in a box, as cents; null for nothing or nonsense
+export const centsOf = (text: string): number | null => {
+  const amount = Number(text.replace(/[$,\s]/g, ""));
+  return text.trim() &&
+    Number.isFinite(amount) &&
+    amount >= 0 &&
+    amount <= 100000
+    ? Math.round(amount * 100)
+    : null;
+};
+
+// what some books cost in all, and how many of them say
+export const spentOn = (books: Pick<OwnedBook, "paidCents">[]) => {
+  const paid = books.flatMap((b) => (b.paidCents != null ? [b.paidCents] : []));
+  return { cents: paid.reduce((sum, c) => sum + c, 0), books: paid.length };
+};
 
 // which edition a book is, from its title and how many volumes it holds
 export const editionOf = (title: string, volumes: number[]): EditionKind =>
@@ -68,19 +93,30 @@ export const bookLabel = (
 };
 
 // a series' books in one cell of the backup, and read back from it:
-// "9781506711980 deluxe 1: 1–3; - single 12: 12"
+// "9781506711980 deluxe 1: 1–3 @49.99 2026-01-05; - single 12: 12". What
+// was paid ("@") and the day bought follow the volumes, when they're known
 export const booksToCell = (books: NewBook[]) =>
   books
-    .map(
-      (b) =>
+    .map((b) =>
+      [
         `${b.isbn13 ?? "-"} ${b.edition} ${b.number ?? "-"}: ${rangesText(b.volumes)}`,
+        b.paidCents != null ? `@${(b.paidCents / 100).toFixed(2)}` : null,
+        dayOf(b.boughtOn),
+      ]
+        .filter(Boolean)
+        .join(" "),
     )
     .join("; ");
 export const booksFromCell = (text: string): NewBook[] =>
   text.split(";").flatMap((part) => {
+    // the price and the day off the end first: the volumes are what's left
+    const day = /\s(\d{4}-\d{2}-\d{2})\s*$/.exec(part);
+    const undated = day ? part.slice(0, day.index) : part;
+    const paid = /\s@(\d+(?:\.\d{1,2})?)\s*$/.exec(undated);
+    const rest = paid ? undated.slice(0, paid.index) : undated;
     const found =
       /^\s*(97[89]\d{10}|-)\s+(single|omnibus|deluxe|boxset)\s+([\d.]+|-):\s*(.+?)\s*$/.exec(
-        part,
+        rest,
       );
     const volumes = found ? parseVolumes(found[4]!) : null;
     if (!found || !volumes?.length) return [];
@@ -91,6 +127,8 @@ export const booksFromCell = (text: string): NewBook[] =>
         number: found[3] === "-" ? null : Number(found[3]),
         title: null,
         volumes,
+        ...(paid ? { paidCents: Math.round(Number(paid[1]) * 100) } : {}),
+        ...(day ? { boughtOn: day[1]! } : {}),
       },
     ];
   });

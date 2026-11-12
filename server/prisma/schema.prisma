@@ -104,6 +104,10 @@ model OwnedBook {
   title   String? @db.VarChar(200)
   // the series' volumes it holds
   volumes Float[] @default([])
+  // what they paid for it, in cents, and the day they bought it: both theirs
+  // to say, for "spent so far"
+  paidCents Int?      @map("paid_cents")
+  boughtOn  DateTime? @map("bought_on") @db.Date
 
   @@index([mangaId])
   @@map("owned_books")

@@ -80,13 +80,27 @@ export const detailsStyles = {
   booksSummary:
     "tap cursor-pointer font-sans text-[0.95rem] font-medium text-ink marker:text-ink-soft",
   booksCount: "ml-1 font-mono text-[0.8rem] text-ink-soft",
+  // "$143.88 paid": what the series has cost them, beside the count
+  booksSpent: "ml-3 font-mono text-[0.8rem] font-normal text-accent",
   booksList: "mt-2 flex flex-col",
+  // a book: its name, then what was paid, the day, and Remove; the three
+  // drop under the name on a phone
   bookRow:
-    "flex flex-wrap items-baseline gap-x-4 gap-y-0.5 border-b border-dashed border-line-soft py-2 text-[0.92rem]",
-  bookName: "min-w-0 flex-1 basis-48 font-medium text-ink",
-  bookIsbn: "font-mono text-[0.78rem] text-ink-soft",
+    "grid grid-cols-[minmax(0,1fr)_auto_auto_4rem] items-center gap-x-3 gap-y-1.5 border-b border-dashed border-line-soft py-2 text-[0.92rem] upto-560:grid-cols-[auto_auto_minmax(0,1fr)]",
+  bookName: "min-w-0 font-medium text-ink upto-560:col-span-full",
+  bookIsbn: "ml-2 font-mono text-[0.74rem] font-normal text-ink-soft",
+  bookPaid:
+    "inline-flex h-9 items-center gap-1 rounded-[2px] border-[1.5px] border-line-soft bg-paper px-2 font-mono text-[0.85rem] text-ink-soft focus-within:border-line",
+  bookPaidInput:
+    "w-[4.2rem] bg-transparent text-ink tabular-nums placeholder:text-muted focus:outline-none",
+  bookDate:
+    "h-9 rounded-[2px] border-[1.5px] border-line-soft bg-paper px-2 font-mono text-[0.8rem] text-ink focus:border-line focus:outline-none",
   bookRemove:
-    "tap text-[0.85rem] font-medium text-ink-soft underline decoration-line-soft underline-offset-3 hover:text-accent hover:decoration-current",
+    "tap justify-self-end text-[0.85rem] font-medium text-ink-soft underline decoration-line-soft underline-offset-3 hover:text-accent hover:decoration-current",
+  bookRemoveGap: "upto-560:hidden",
+  // "Paid the same for the 12 without a price? $[ ] Set them"
+  booksSame:
+    "mt-3 flex flex-wrap items-center gap-x-3 gap-y-2 text-[0.88rem] text-ink-soft",
   booksNote: "mt-2 text-[0.82rem] text-muted",
   // under the counter: the quiet ways to change what it counts
   trackRow:

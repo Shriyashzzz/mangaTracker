@@ -3,6 +3,7 @@
 // routes (/api/collector) and switch (COLLECTOR_TOOLS=off). They read the
 // shelf, the saved series lists and the prices already saved: never a store,
 // a catalog or a paid search.
+import bookQueries from "../models/bookQueries.js";
 import mangaQueries from "../models/mangaQueries.js";
 import priceQueries from "../models/priceQueries.js";
 import { affiliateOfferUrl } from "../prices/stores/storeLinks.js";
@@ -31,14 +32,18 @@ export type FinishRow = {
 
 export type ShelfTools = {
   value: ShelfValue;
+  // what they've said they paid, added up, and for how many books
+  spent: { cents: number; books: number };
   // series they own some of, with volumes out they don't own yet
   finish: FinishRow[];
   // every series' priced missing volumes, added up
   finishCents: number;
   finishPriced: number;
   finishMissing: number;
-  // with the unpriced ones estimated (null: nothing priced to go by)
+  // the series priced enough to say, added up (null: none is)
   finishEstimateCents: number | null;
+  // series left out of that total: too little of them priced yet
+  finishUncosted: number;
 };
 
 // the cheapest copy's link with our affiliate tag, as the price pages give it
@@ -122,13 +127,18 @@ export async function getShelfTools(userId: number): Promise<ShelfTools> {
     });
   return {
     value: shelfValue(owned, recorded, unlisted),
+    spent: await bookQueries
+      .shelfSpent(userId)
+      .catch(() => ({ cents: 0, books: 0 })),
     finish,
     finishCents: finish.reduce((sum, f) => sum + f.cents, 0),
     finishPriced: finish.reduce((sum, f) => sum + f.priced, 0),
     finishMissing: finish.reduce((sum, f) => sum + f.missing.length, 0),
+    // only the series priced enough to say: the rest are counted, not costed
     finishEstimateCents: finish.some((f) => f.estimateCents !== null)
-      ? finish.reduce((sum, f) => sum + (f.estimateCents ?? f.cents), 0)
+      ? finish.reduce((sum, f) => sum + (f.estimateCents ?? 0), 0)
       : null,
+    finishUncosted: finish.filter((f) => f.estimateCents === null).length,
   };
 }
 

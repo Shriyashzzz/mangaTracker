@@ -7,7 +7,7 @@ import { body, matchedData, param } from "express-validator";
 import { rejectInvalid } from "../../middlewares/validate.js";
 import mangaQueries from "../../models/mangaQueries.js";
 import bookQueries from "../../models/bookQueries.js";
-import { bookFields } from "../../util/shelf/ownedBooks.js";
+import { bookFields, purchaseFields } from "../../util/shelf/ownedBooks.js";
 import { getSeriesInfo } from "../../prices/sources/anilist.js";
 import { canonicalTitle } from "../../util/shelf/canonicalTitle.js";
 import type { Manga } from "../../../generated/prisma/client.js";
@@ -184,6 +184,26 @@ export const addBooks = [
     const id = (res.locals.manga as Manga).id;
     await bookQueries.addBooks(id, matchedData(req).books ?? []);
     res.json({ books: await bookQueries.booksOf(id) });
+  },
+];
+
+// what they paid for a book and the day they bought it
+export const setPurchase = [
+  param("bookId").isInt({ min: 1 }).toInt(),
+  ...purchaseFields(),
+  rejectInvalid,
+  async (req: Request, res: Response) => {
+    const d = matchedData(req);
+    const saved = await bookQueries.setPurchase(
+      (res.locals.manga as Manga).id,
+      d.bookId,
+      {
+        ...("paidCents" in req.body ? { paidCents: d.paidCents ?? null } : {}),
+        ...("boughtOn" in req.body ? { boughtOn: d.boughtOn ?? null } : {}),
+      },
+    );
+    if (!saved) return void res.sendStatus(404);
+    res.sendStatus(204);
   },
 ];
 

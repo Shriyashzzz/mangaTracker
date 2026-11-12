@@ -124,6 +124,40 @@ test("owned volumes: a run from 1, or the exact list with gaps", async () => {
     .post(`/api/manga/${id}/books`)
     .send({ books: [{ edition: "paperback", volumes: [1] }] })
     .expect(400);
+  // what was paid and the day bought, on a book: either alone, null clears
+  const bookId = again.body.books[0].id;
+  await agent
+    .patch(`/api/manga/${id}/books/${bookId}`)
+    .send({ paidCents: 4999, boughtOn: "2026-01-05" })
+    .expect(204);
+  await agent
+    .patch(`/api/manga/${id}/books/${bookId}`)
+    .send({ paidCents: -1 })
+    .expect(400);
+  await agent
+    .patch(`/api/manga/${id}/books/${bookId}`)
+    .send({ boughtOn: "last week" })
+    .expect(400);
+  expect(
+    (await agent.get(`/api/manga/${id}/books`)).body.books[0],
+  ).toMatchObject({ paidCents: 4999, boughtOn: "2026-01-05T00:00:00.000Z" });
+  // a book sent again with a price fills in the one that had none
+  await agent
+    .post(`/api/manga/${id}/books`)
+    .send({ books: [{ ...five, paidCents: 999 }] })
+    .expect(200);
+  expect((await agent.get("/api/collector/shelf")).body.spent).toEqual({
+    cents: 5998,
+    books: 2,
+  });
+  await agent
+    .patch(`/api/manga/${id}/books/${bookId}`)
+    .send({ paidCents: null })
+    .expect(204);
+  expect((await agent.get("/api/collector/shelf")).body.spent).toEqual({
+    cents: 999,
+    books: 1,
+  });
   // a book removed takes the volumes only it held
   const left = await agent
     .delete(`/api/manga/${id}/books/${again.body.books[0].id}`)

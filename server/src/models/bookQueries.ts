@@ -10,7 +10,14 @@ export type BookInput = {
   number?: number | null;
   title?: string | null;
   volumes: number[];
+  // what they paid, and the day they bought it ("2026-01-05")
+  paidCents?: number | null;
+  boughtOn?: string | Date | null;
 };
+
+// a day as the database keeps it
+const dayOf = (day: string | Date | null | undefined) =>
+  day == null ? day : new Date(day);
 
 const ownedSet = (m: { volumesOwned: number | null; ownedList: number[] }) =>
   new Set(
@@ -65,18 +72,27 @@ export async function addBooks(mangaId: number, books: BookInput[]) {
     };
     const there = have.find((h) => sameBook(h, tidy));
     if (there) {
-      if (!there.isbn13 && tidy.isbn13)
-        await prisma.ownedBook.update({
-          where: { id: there.id },
-          data: { isbn13: tidy.isbn13, title: there.title ?? tidy.title },
-        });
+      // it takes what it lacked: an ISBN, what was paid, the day bought
+      const gains = {
+        ...(!there.isbn13 && tidy.isbn13
+          ? { isbn13: tidy.isbn13, title: there.title ?? tidy.title }
+          : {}),
+        ...(there.paidCents == null && tidy.paidCents != null
+          ? { paidCents: tidy.paidCents }
+          : {}),
+        ...(there.boughtOn == null && tidy.boughtOn != null
+          ? { boughtOn: dayOf(tidy.boughtOn) }
+          : {}),
+      };
+      if (Object.keys(gains).length)
+        await prisma.ownedBook.update({ where: { id: there.id }, data: gains });
       continue;
     }
     if (!fresh.some((f) => sameBook(f, tidy))) fresh.push(tidy);
   }
   if (fresh.length)
     await prisma.ownedBook.createMany({
-      data: fresh.map((b) => ({ ...b, mangaId })),
+      data: fresh.map((b) => ({ ...b, boughtOn: dayOf(b.boughtOn), mangaId })),
     });
   return fresh.length;
 }
@@ -106,6 +122,32 @@ export const removeBook = (mangaId: number, bookId: number) =>
     });
   });
 
+// what they paid for a book, and when: either alone, null to clear
+export const setPurchase = async (
+  mangaId: number,
+  bookId: number,
+  data: { paidCents?: number | null; boughtOn?: string | null },
+) => {
+  const { count } = await prisma.ownedBook.updateMany({
+    where: { id: bookId, mangaId },
+    data: {
+      ...("paidCents" in data ? { paidCents: data.paidCents } : {}),
+      ...("boughtOn" in data ? { boughtOn: dayOf(data.boughtOn) } : {}),
+    },
+  });
+  return count > 0;
+};
+
+// what a shelf has cost so far: every book with a price paid, added up
+export async function shelfSpent(userId: number) {
+  const { _sum, _count } = await prisma.ownedBook.aggregate({
+    where: { manga: { userId }, paidCents: { not: null } },
+    _sum: { paidCents: true },
+    _count: true,
+  });
+  return { cents: _sum.paidCents ?? 0, books: _count };
+}
+
 // every book on a shelf, for its backup
 export const shelfBooks = (userId: number) =>
   prisma.ownedBook.findMany({
@@ -113,4 +155,11 @@ export const shelfBooks = (userId: number) =>
     orderBy: { id: "asc" },
   });
 
-export default { booksOf, addBooks, removeBook, shelfBooks };
+export default {
+  booksOf,
+  addBooks,
+  removeBook,
+  shelfBooks,
+  setPurchase,
+  shelfSpent,
+};

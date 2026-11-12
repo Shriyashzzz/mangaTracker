@@ -72,6 +72,8 @@ export type RestoredManga = MangaInput & {
     number?: number | null;
     title?: string | null;
     volumes: number[];
+    paidCents?: number | null;
+    boughtOn?: string | null;
   }[];
 };
 
@@ -83,7 +85,16 @@ export async function restoreManga(
     data: {
       ...input,
       userId,
-      ...(books?.length ? { books: { create: books } } : {}),
+      ...(books?.length
+        ? {
+            books: {
+              create: books.map((b) => ({
+                ...b,
+                boughtOn: b.boughtOn ? new Date(b.boughtOn) : null,
+              })),
+            },
+          }
+        : {}),
     },
     select: { id: true },
   });

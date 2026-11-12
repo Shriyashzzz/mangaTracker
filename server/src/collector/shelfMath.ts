@@ -148,11 +148,17 @@ export type FinishSeries = {
   // the priced ones added up (a book holding two missing volumes, once)
   cents: number;
   priced: number;
-  // plus an estimate for the rest: each at the series' usual new price, or
-  // `fallbackCents` (the shelf's) when none of the series is priced. Null
-  // when there's nothing to go by
+  // plus an estimate for the rest: each at the series' usual new price.
+  // Null when too little of the series is priced to say (ENOUGH_PRICED)
   estimateCents: number | null;
 };
+
+// a total is said only when this much of a series has a price: with fewer,
+// a volume or two would stand in for the whole run (the price pages hold to
+// the same share: client/src/lib/finishCost.ts ENOUGH_PRICED)
+export const ENOUGH_PRICED = 0.6;
+const enoughPriced = (priced: number, all: number) =>
+  all > 0 && priced >= all * ENOUGH_PRICED;
 
 // the volumes out now that they don't own, each with its cheapest new copy.
 // Ones not out yet are the calendar's, not missing
@@ -218,12 +224,20 @@ export function finishSeries(
     (m) => (m.isbn13 && recordedNew(m.isbn13)) || usual,
   );
   const known = unpriced.every((c) => c > 0);
+  // of every book out, the ones with a price today or one ever recorded
+  const books = onceEach(out);
+  const enough = enoughPriced(
+    books.filter(
+      (v) => copies.get(v.isbn13)?.new || recordedNew(v.isbn13) !== undefined,
+    ).length,
+    books.length,
+  );
   return {
     missing,
     cents,
     priced: missing.filter((m) => m.cheapest).length,
     estimateCents:
-      known || priced.length
+      enough && (known || priced.length)
         ? cents + unpriced.reduce((sum, c) => sum + c, 0)
         : null,
   };
@@ -277,7 +291,8 @@ export function finishEdition(
     cents,
     priced: priced.length,
     estimateCents:
-      unpriced.every((c) => c > 0) || priced.length
+      enoughPriced(lineNew.length, out.length) &&
+      (unpriced.every((c) => c > 0) || priced.length)
         ? cents + unpriced.reduce((sum, c) => sum + c, 0)
         : null,
   };

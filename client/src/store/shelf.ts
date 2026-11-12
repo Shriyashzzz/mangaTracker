@@ -1,6 +1,7 @@
 // The signed-in shelf and what's new for it. Kept here rather than in the page
 // so coming back to the shelf shows it straight away, with no loading screen,
 // and the release check carries on while they're on other pages.
+import { dayOf } from "../lib/books";
 import { create } from "zustand";
 import { apiFetch } from "../lib/api";
 import {
@@ -150,12 +151,14 @@ const restorable = (m: Manga) => ({
   hiddenVolumes: m.hiddenVolumes,
   latestChapter: m.latestChapter,
   // the books behind its volumes, without their old ids
-  books: m.books?.map(({ isbn13, edition, number, title, volumes }) => ({
-    isbn13,
-    edition,
-    number,
-    title,
-    volumes,
+  books: m.books?.map((b) => ({
+    isbn13: b.isbn13,
+    edition: b.edition,
+    number: b.number,
+    title: b.title,
+    volumes: b.volumes,
+    paidCents: b.paidCents ?? null,
+    boughtOn: dayOf(b.boughtOn),
   })),
 });
 

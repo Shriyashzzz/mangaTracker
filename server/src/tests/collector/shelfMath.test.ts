@@ -162,8 +162,8 @@ test("volumes the saved list skipped are still to go, unpriced", () => {
     [4, "none"],
     [5, "book"],
   ]);
-  // each counted once in the estimate, even with no book to tell them apart
-  expect(f.estimateCents).toBe(4 * 1000);
+  // none of it priced: counted, with no total said
+  expect(f.estimateCents).toBeNull();
 });
 
 test("a date given only to the month is still to come until the month is over", () => {

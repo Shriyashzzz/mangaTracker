@@ -82,4 +82,5 @@ mangaRouter.put("/:id/owned", requireOwner, manga.setOwned);
 // the books behind the owned volumes
 mangaRouter.get("/:id/books", requireOwner, manga.books);
 mangaRouter.post("/:id/books", requireOwner, manga.addBooks);
+mangaRouter.patch("/:id/books/:bookId", requireOwner, manga.setPurchase);
 mangaRouter.delete("/:id/books/:bookId", requireOwner, manga.removeBook);

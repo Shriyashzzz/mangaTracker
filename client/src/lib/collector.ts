@@ -29,6 +29,8 @@ export type FinishRow = {
 };
 
 export type ShelfTools = {
+  // what they've said they paid, added up, and for how many books
+  spent?: { cents: number; books: number };
   value: {
     cents: number;
     priced: number;
@@ -42,6 +44,8 @@ export type ShelfTools = {
   finishPriced: number;
   finishMissing: number;
   finishEstimateCents: number | null;
+  // series left out of that total: too little of them priced yet
+  finishUncosted?: number;
 };
 
 export type CalendarVolume = {
@@ -94,9 +98,10 @@ export function totalText(
 ) {
   if (!count || (!priced && estimateCents === null)) return null;
   if (priced === count) return money(cents);
+  // too little priced to say a total: a few volumes' prices aren't the run's
+  if (estimateCents === null) return null;
   // an estimate in whole dollars: cents would claim a precision it hasn't got
-  const about = estimateCents ?? cents;
-  return `about $${Math.round(about / 100).toLocaleString("en-US")}`;
+  return `about $${Math.round(estimateCents / 100).toLocaleString("en-US")}`;
 }
 
 // "December 2026"

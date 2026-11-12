@@ -3,6 +3,7 @@
 // as covers, theirs inked in and the rest faded as "Not on your shelf", each one a
 // link to its prices. The covers come from the price checker's series list,
 // asked only when a row is opened.
+import { formatCents } from "../../lib/prices";
 import { useEffect, useRef, useState } from "react";
 import RangePager from "../../components/rangePager/RangePager";
 import { NavLink } from "react-router";
@@ -148,7 +149,8 @@ function ShelfTotals({ tools, owned }: { tools: ShelfTools; owned: number }) {
     tools.finishMissing,
     tools.finishEstimateCents,
   );
-  if (!worth && !finish) return null;
+  const spent = tools.spent?.books ? tools.spent : null;
+  if (!worth && !tools.finishMissing && !spent) return null;
   // folded until asked: a question to open, not two numbers in the way
   return (
     <details className={styles.worth}>
@@ -157,6 +159,16 @@ function ShelfTotals({ tools, owned }: { tools: ShelfTools; owned: number }) {
         <ChevronDownIcon className={styles.worthChevron} />
       </summary>
       <dl className={styles.totals}>
+        {/* what they've said they paid, on each series' page ("Your books") */}
+        {spent && (
+          <div className={styles.total}>
+            <dt className={styles.totalLabel}>Spent so far</dt>
+            <dd className={styles.totalValue}>{formatCents(spent.cents)}</dd>
+            <dd className={styles.totalNote}>
+              what you paid for {plural(spent.books, "book")}
+            </dd>
+          </div>
+        )}
         {worth && (
           <div className={styles.total}>
             <dt className={styles.totalLabel}>Worth used</dt>
@@ -169,10 +181,11 @@ function ShelfTotals({ tools, owned }: { tools: ShelfTools; owned: number }) {
             )}
           </div>
         )}
-        {finish && (
+        {tools.finishMissing > 0 && (
           <div className={styles.total}>
             <dt className={styles.totalLabel}>To finish every series</dt>
-            <dd className={styles.totalValue}>{finish}</dd>
+            {/* no money until enough is priced: the count is still true */}
+            <dd className={styles.totalValue}>{finish ?? "no total yet"}</dd>
             <dd className={styles.totalNote}>
               {/* a series collected as its deluxe books counts in books */}
               {plural(
@@ -182,6 +195,11 @@ function ShelfTotals({ tools, owned }: { tools: ShelfTools; owned: number }) {
               to go
               {tools.finishPriced < tools.finishMissing &&
                 ` · ${tools.finishPriced.toLocaleString()} priced`}
+              {/* the total is of the series priced enough to say */}
+              {Boolean(tools.finishUncosted) &&
+                (finish
+                  ? ` · ${plural(tools.finishUncosted!, "series", "series")} not counted yet`
+                  : " · too few priced to add up")}
             </dd>
           </div>
         )}
