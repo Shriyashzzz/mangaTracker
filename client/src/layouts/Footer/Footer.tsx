@@ -20,8 +20,9 @@ export default function Footer() {
 
   return (
     <footer
-      // room for the phones' bottom bar
-      className="screentone mt-auto bg-ink text-paper upto-720:pb-[calc(3.75rem+env(safe-area-inset-bottom))]"
+      // room for the phones' bottom bar. Ink and paper swap in dark mode,
+      // so there it's inked near-black on purpose rather than a cream slab
+      className="screentone mt-auto bg-ink text-paper upto-720:pb-[calc(3.75rem+env(safe-area-inset-bottom))] dark:border-t-[1.5px] dark:border-line dark:bg-[#0b0a07] dark:text-ink"
     >
       {/* one slim strip on laptops, with equal side columns so the quote stays
           on the page's true center. Narrower, the quote gets a row of its own,
