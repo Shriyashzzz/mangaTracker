@@ -10,6 +10,8 @@ export type CardNews = {
   text: string;
   // where they've got to, right under it
   yours?: string;
+  // a backlog step ("Vol. 11 next"), not news: in ink, so red means just out
+  waiting?: boolean;
 };
 
 type Props = {
@@ -175,7 +177,9 @@ export default function MangaCard({
           </p>
         )}
         {news && (
-          <p className="font-brand text-[1.05rem] tracking-[1px] text-accent">
+          <p
+            className={`font-brand text-[1.05rem] tracking-[1px] ${news.waiting ? "text-ink-soft" : "text-accent"}`}
+          >
             {news.text}
           </p>
         )}

@@ -192,6 +192,7 @@ test("a New card says what's out and where they are, apart", () => {
   } as Partial<ReleaseStatus>);
   expect(newsFor(m, newest, "volumes", false)).toEqual({
     text: "Vol. 5 is out",
+    waiting: false,
     yours: "You own up to vol. 4",
   });
   const behind = found({
@@ -206,6 +207,7 @@ test("a New card says what's out and where they are, apart", () => {
   } as Partial<ReleaseStatus>);
   expect(newsFor(m, chapter, "chapters", false)).toEqual({
     text: "Ch. 31 is out",
+    waiting: false,
     yours: "You're on ch. 30",
   });
 });
@@ -221,6 +223,7 @@ test("a card doesn't say twice where they are: Vol. 5 next already means they're
     newsFor(m, found(over), "volumes", false);
   expect(next({ nextVolume: 5, latestVolume: 7, currentVolume: 4 })).toEqual({
     text: "Vol. 5 next",
+    waiting: true,
     yours: undefined,
   });
   // a gap (they own 4, the next English one is 7) is worth saying

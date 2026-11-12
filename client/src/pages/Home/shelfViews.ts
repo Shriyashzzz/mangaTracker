@@ -15,7 +15,7 @@ import type { Manga, ReleaseStatus } from "../../lib/types";
 export type Releases = Record<number, ReleaseStatus | null>;
 // what a New card says (MangaCard's CardNews, written here so this file needs
 // no components: the server's tests load it)
-export type CardNews = { text: string; yours?: string };
+export type CardNews = { text: string; yours?: string; waiting?: boolean };
 
 export const SHELF_PAGE_SIZE = 20;
 // shelves this size get a heads-up that their first release check is slow
@@ -313,6 +313,7 @@ export function newsFor(
         nextChapter === found?.latestChapter
           ? `Ch. ${nextChapter} is out`
           : `Ch. ${nextChapter} next`,
+      waiting: nextChapter !== found?.latestChapter,
       yours: m.bookmark ? `You're on ch. ${m.bookmark}` : undefined,
     };
   }
@@ -323,6 +324,7 @@ export function newsFor(
       next === found?.latestVolume
         ? `Vol. ${next} is out`
         : `Vol. ${next} next`,
+    waiting: next !== found?.latestVolume,
     // "Vol. 6 next" already says they're on 5: said twice, it's clutter
     yours:
       next != null &&
