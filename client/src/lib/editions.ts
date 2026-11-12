@@ -89,3 +89,50 @@ export function guessEdition(
   }
   return best && best.covered * 2 >= owned.length ? best.key : null;
 }
+
+// ---------- asking for an edition by name ----------
+
+// the words a search uses for an edition, and the line they mean
+const ASKED: [RegExp, string][] = [
+  [/\bdeluxe(\s+edition)?\b/i, "deluxe"],
+  [/\bperfect\s+edition\b/i, "perfect"],
+  [/\bcollector'?s\s+edition\b/i, "collectors"],
+  [/\bmaster\s+edition\b/i, "master"],
+  [/\bfullmetal\s+edition\b/i, "fullmetal"],
+  [/\bblack\s+edition\b/i, "black"],
+  [/\bultimate\s+edition\b/i, "ultimate"],
+  [/\bvizbig(\s+edition)?\b/i, "vizbig"],
+  [/\b3\s*-?\s*in\s*-?\s*1(\s+edition)?\b/i, "3in1"],
+  [/\b2\s*-?\s*in\s*-?\s*1(\s+edition)?\b/i, "2in1"],
+  [/\bomnibus(\s+edition)?\b/i, "omnibus"],
+];
+
+// "berserk deluxe" is the series "berserk" and its deluxe line. A search
+// that's only the word ("omnibus") is left as typed
+export function askedEdition(query: string): {
+  series: string;
+  edition: string | null;
+} {
+  for (const [words, edition] of ASKED) {
+    if (!words.test(query)) continue;
+    const series = query.replace(words, " ").replace(/\s+/g, " ").trim();
+    if (series.length >= 2) return { series, edition };
+  }
+  return { series: query, edition: null };
+}
+
+// the line an asked-for edition means: its own, or else one of its kind
+// ("omnibus" finds a series' 3-in-1 books)
+const KIND_OF: Record<string, EditionLine["kind"]> = {
+  deluxe: "deluxe",
+  perfect: "deluxe",
+  collectors: "deluxe",
+  master: "deluxe",
+  fullmetal: "deluxe",
+};
+export const lineFor = (lines: EditionLine[], asked: string | null) =>
+  !asked
+    ? null
+    : (lines.find((l) => l.key === asked) ??
+      lines.find((l) => l.kind === (KIND_OF[asked] ?? "omnibus")) ??
+      null);

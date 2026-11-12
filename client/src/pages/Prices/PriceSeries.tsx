@@ -21,11 +21,12 @@ import BoxSets from "./BoxSets";
 import SeriesCostBox from "./SeriesCostBox";
 import { useFromShelf } from "../../lib/fromShelf";
 import { findOnShelf } from "../../lib/shelf";
-import { nextToGet, owns, rangesText } from "../../lib/ownedVolumes";
+import { nextToGet, owns, rangesText, ownedOf } from "../../lib/ownedVolumes";
 import { useAuth } from "../../store/auth";
 import type { ShelfMatch } from "../../lib/types";
 import BackToNew from "./BackToNew";
 import VolumeCard from "./VolumeCard";
+import OtherEditions from "./OtherEditions";
 import SeriesFacts from "./SeriesFacts";
 import RangePager from "../../components/rangePager/RangePager";
 import { pricesStyles as styles } from "./styles";
@@ -504,6 +505,12 @@ export default function PriceSeries() {
           </p>
         )}
       </section>
+
+      <OtherEditions
+        name={name}
+        asked={params.get("edition")}
+        owned={mine ? ownedOf(mine) : []}
+      />
 
       <BoxSets sets={data.boxSets ?? []} links={data.boxSetLinks ?? []} />
     </div>

@@ -1,3 +1,4 @@
+import { askedEdition } from "../../lib/editions";
 import { useEffect, useId, useRef, useState, type KeyboardEvent } from "react";
 import type { SeriesHit } from "../../lib/types";
 import { useNavigate } from "react-router";
@@ -57,7 +58,8 @@ export default function SeriesSearchBox({
     const controller = new AbortController();
     const timer = setTimeout(() => {
       setFound((f) => ({ ...f, loading: true }));
-      searchSeries(q, controller.signal)
+      // "berserk deluxe": the series is searched, the edition kept for its page
+      searchSeries(askedEdition(q).series, controller.signal)
         .then((items) => setFound({ q, items, loading: false }))
         .catch((e) => {
           if (e.name !== "AbortError") {
@@ -94,13 +96,17 @@ export default function SeriesSearchBox({
     close();
     if (isbn) navigate(`/prices/${isbn}`, { viewTransition: true });
     else if (q.length >= 2)
-      navigate(`/?${new URLSearchParams({ q })}`, {
+      navigate(`/?${new URLSearchParams({ q: askedEdition(q).series })}`, {
         viewTransition: true,
       });
   };
   const pick = (series: SeriesHit) => {
     close();
-    navigate(seriesPath(series.name), { viewTransition: true });
+    // straight to the edition they named, when they named one
+    const { edition } = askedEdition(q);
+    navigate(seriesPath(series.name) + (edition ? `&edition=${edition}` : ""), {
+      viewTransition: true,
+    });
   };
 
   const onKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {

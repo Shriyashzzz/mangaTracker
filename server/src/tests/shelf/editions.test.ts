@@ -139,3 +139,35 @@ test("an edition with nothing priced is estimated from single volumes, per volum
       .estimateCents,
   ).toBeNull();
 });
+
+// ---------- asking for an edition by name ----------
+import { askedEdition, lineFor } from "../../../../client/src/lib/editions.js";
+
+test("a search naming an edition is the series and that edition", () => {
+  expect(askedEdition("berserk deluxe")).toEqual({
+    series: "berserk",
+    edition: "deluxe",
+  });
+  expect(askedEdition("Naruto 3-in-1 edition")).toEqual({
+    series: "Naruto",
+    edition: "3in1",
+  });
+  expect(askedEdition("one piece omnibus")).toMatchObject({
+    series: "one piece",
+    edition: "omnibus",
+  });
+  // names that only look like one are left alone
+  expect(askedEdition("Fullmetal Alchemist").edition).toBeNull();
+  expect(askedEdition("Master Keaton").edition).toBeNull();
+  // the word alone isn't a series
+  expect(askedEdition("omnibus")).toEqual({ series: "omnibus", edition: null });
+});
+
+test("an asked-for edition finds its line, or one of its kind", () => {
+  const lines = [line(3), { ...line(3, 0, "3in1"), label: "3-in-1" }];
+  expect(lineFor(lines, "deluxe")?.key).toBe("deluxe");
+  // "omnibus" means the series' 3-in-1 books when that's what it has
+  expect(lineFor(lines, "omnibus")?.key).toBe("3in1");
+  expect(lineFor(lines, null)).toBeNull();
+  expect(lineFor([line(3)], "omnibus")).toBeNull();
+});

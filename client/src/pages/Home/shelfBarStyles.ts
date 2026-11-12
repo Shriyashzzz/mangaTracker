@@ -59,6 +59,13 @@ export const shelfBarStyles = {
   sortButton:
     "tap group relative flex items-center gap-1 text-[0.88rem] text-ink-soft hover:text-ink upto-520:grid upto-520:size-10 upto-520:place-items-center",
   sortWords: "whitespace-nowrap upto-520:hidden",
+  // the same menu used away from the shelf (SortMenu's `wordy`): its words
+  // stay on phones
+  pickButton:
+    "tap group relative flex min-h-9 items-center gap-1 text-[0.88rem] text-ink-soft hover:text-ink",
+  pickWords: "whitespace-nowrap",
+  pickChevron:
+    "size-4 transition-transform duration-150 group-aria-expanded:rotate-180",
   sortPicked:
     "font-medium text-ink underline decoration-line-soft underline-offset-3 group-hover:decoration-current",
   sortChevron:

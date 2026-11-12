@@ -170,10 +170,7 @@ export const detailsStyles = {
     "tap font-semibold text-accent underline decoration-2 underline-offset-3 disabled:opacity-60",
   twiceWhy: "basis-full text-[0.82rem] text-ink-soft",
   // "Collecting [Deluxe]": which edition the box counts in
-  buyCollect:
-    "mb-2.5 flex items-center justify-between gap-2 font-mono text-[0.72rem] tracking-[0.06em] text-muted uppercase",
-  buyCollectSelect:
-    "tap min-h-9 max-w-[11rem] rounded-[2px] border-[1.5px] border-line bg-paper px-2 font-sans text-[0.88rem] font-medium tracking-normal text-ink normal-case focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent focus-visible:outline-dashed",
+  buyCollect: "mb-2 flex",
   // "vols. 7–9, you have 1 of 3": under the next book's row, the ticket's width
   buyInside: "col-span-full text-[0.85rem] font-normal text-ink-soft italic",
   // books past the last one listed: said quietly, nothing to click
