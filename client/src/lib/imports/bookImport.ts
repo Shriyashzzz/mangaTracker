@@ -39,6 +39,7 @@ export type Book = {
   finished?: boolean;
   chapter?: number;
   notes?: string;
+  genre?: string;
 };
 
 export type BookSeries = {
@@ -71,6 +72,7 @@ export type BookSeries = {
   finished?: boolean;
   chapters?: number;
   notes?: string;
+  genre?: string;
 };
 
 // ---------- CSV ----------
@@ -588,9 +590,11 @@ function ownExportBooks(h: string[], row: string[]): Book[] {
     read: false,
     reading: false,
     rating: stars(cell(row, header(h, /^Rating$/))),
-    planned: false,
+    // on To read with volumes bought already: still To read
+    planned: status === "to read",
     lightNovel,
     exact: true,
+    genre: cell(row, header(h, /^Genre$/)).slice(0, 100) || undefined,
     finished: status === "finished",
     chapter,
     notes: cell(row, header(h, /^Notes$/)).slice(0, 450) || undefined,
@@ -602,7 +606,6 @@ function ownExportBooks(h: string[], row: string[]): Book[] {
         title,
         volume: null,
         owned: false,
-        planned: status === "to read",
       },
     ];
   return volumes.map((v) => ({ ...base, title: `${title} #${v}`, volume: v }));
@@ -1358,6 +1361,9 @@ export function groupBooks(everyBook: Book[]): BookSeries[] {
         : {}),
       // their own export's (ownExportBooks)
       ...(list.some((b) => b.exact) ? { restore: true } : {}),
+      ...(list.find((b) => b.genre)
+        ? { genre: list.find((b) => b.genre)!.genre }
+        : {}),
       ...(list.some((b) => b.finished) ? { finished: true } : {}),
       ...(list.some((b) => b.chapter)
         ? { chapters: Math.max(...list.map((b) => b.chapter ?? 0)) }
@@ -1596,6 +1602,7 @@ export const toEntry = (
   chapters: s.chapters ?? 0,
   ...(s.notes ? { comments: s.notes } : {}),
   ...(s.restore ? { restore: true } : {}),
+  ...(s.restore && s.genre ? { genre: s.genre } : {}),
   readVolumes: s.readVolumes,
   ownedVolumes: s.ownedVolumes,
   // only with gaps: a run from 1 is what ownedVolumes says already, and keeps

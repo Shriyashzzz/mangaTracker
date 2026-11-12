@@ -1243,6 +1243,25 @@ test("Manga Tracker's own export comes back exactly", () => {
     ownedVolumes: 42,
   });
   expect(by["frieren"]!.planned).toBe(true);
+  // bought ahead but not started: still To read, with its volumes; and the
+  // genre they set comes back as it was
+  const ahead = groupBooks(
+    readBooks(
+      parseCsv(
+        [
+          "Title,Type,Status,Chapter,Owned volumes,Rating,Genre,Notes",
+          '"Chainsaw Man","Manga","To read","","1–3","","Isekai",""',
+        ].join("\n"),
+      ),
+      "csv",
+    ),
+  )[0]!;
+  expect(toEntry(ahead)).toMatchObject({
+    planned: true,
+    ownedVolumes: 3,
+    genre: "Isekai",
+    restore: true,
+  });
   expect(by["overlord (light novel)"]!.lightNovel).toBe(true);
   // the older export wrote a run from 1 as its number
   const older = parseCsv(
