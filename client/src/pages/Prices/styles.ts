@@ -96,7 +96,8 @@ export const pricesStyles = {
   boxSets: "mt-10 flex flex-col gap-3",
   // signed out on a volume page: the button and what tracking gets them
   trackPitch: "flex max-w-[34rem] flex-col items-start gap-2",
-  trackWhy: "text-[0.85rem] leading-snug text-ink-soft",
+  // the button says enough on a phone, where the prices need the room
+  trackWhy: "text-[0.85rem] leading-snug text-ink-soft upto-720:hidden",
   // what collecting the whole series costs: a printed receipt-like slip with
   // the total in the display face; the button drops under it on a phone
   costBox:
@@ -161,8 +162,10 @@ export const pricesStyles = {
     "text-[clamp(1.9rem,4vw,2.8rem)] leading-[1.05] font-medium tracking-[-0.02em] text-balance wrap-anywhere upto-720:text-[clamp(1.4rem,6vw,1.9rem)]",
   volumeMeta: "text-ink-soft",
   isbn: "font-mono text-[0.78rem] text-muted",
+  // the headline price: on a phone the price list right under it says the
+  // same with its stamps, so it gives its room to that list instead
   bestLine:
-    "mt-[0.35rem] font-display text-[1.35rem] text-ink-soft upto-720:text-[1.1rem] [&_strong]:font-semibold [&_strong]:text-ink",
+    "mt-[0.35rem] font-display text-[1.35rem] text-ink-soft upto-720:hidden [&_strong]:font-semibold [&_strong]:text-ink",
   volumeBody:
     "col-start-2 row-start-2 flex min-w-0 flex-col gap-6 upto-720:col-span-2 upto-720:col-start-1",
   // Bangers heading with a short inked stroke underneath

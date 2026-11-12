@@ -204,12 +204,13 @@ export default function PriceSeries() {
   // what the rest costs, at stored prices only (lib/finishCost.ts)
   const finish = mine ? finishCost(onSale(toGet), onSale(volumes)) : null;
   // not on their shelf: what collecting all of it costs, to help decide.
-  // Whole volumes out now only (a vol. 0 extra or a preorder isn't the run)
+  // Whole volumes out now only, a vol. 0 prequel included (a .5 extra or a
+  // preorder isn't the run)
   const cost = mine
     ? null
     : seriesCost(
         onSale(volumes).filter(
-          (v) => v.volume >= 1 && Number.isInteger(v.volume),
+          (v) => v.volume >= 0 && Number.isInteger(v.volume),
         ),
       );
   // "Not on your shelf" pages through just those, 30 at a time, in place of

@@ -47,6 +47,8 @@ export const SORT_OPTIONS = [
   { value: "", label: "Last bookmarked" },
   { value: "rating-dsc", label: "Highest rated" },
   { value: "ch-dsc", label: "Most chapters read" },
+  // a collector's biggest runs first
+  { value: "vol-dsc", label: "Most volumes owned" },
   { value: "name-asc", label: "Title, A to Z" },
 ] as const;
 // a sort the shelf knows (and the only ones the server saves, PREF_VALUES)

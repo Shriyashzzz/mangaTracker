@@ -322,8 +322,12 @@ export default function PriceVolume() {
               .join(" · ")}
           </p>
           <p className={styles.isbn}>
+            {/* the title says the number already: on a phone the room
+                goes to the prices, so they show before any scrolling */}
             {volume != null && (
-              <span className={styles.tag}>Vol. {volume}</span>
+              <span className={`${styles.tag} upto-720:hidden`}>
+                Vol. {volume}
+              </span>
             )}
             {inBook && (
               <span className={styles.tag}>

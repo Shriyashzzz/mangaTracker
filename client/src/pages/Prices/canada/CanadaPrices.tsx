@@ -57,22 +57,28 @@ export default function CanadaPrices({
 
   useEffect(() => {
     const controller = new AbortController();
-    // a live check carries a Turnstile token, as the US one does. A preorder
-    // gets no live check (the server only sends its store links), so it
-    // needn't wait for one
-    (preorder ? Promise.resolve("") : humanQuery("?", controller.signal))
-      .then((human) =>
-        getJson<Answer>(`/api/prices/ca/${isbn}${human}`, controller.signal),
-      )
+    const ask = (human: string) =>
+      getJson<Answer>(`/api/prices/ca/${isbn}${human}`, controller.signal);
+    const failed = (e: Error) => {
+      if (e.name !== "AbortError")
+        setAnswer((had) =>
+          // a live check failing after the saved prices showed keeps them
+          had?.isbn === isbn
+            ? had
+            : { isbn, data: { status: "error", offers: [], checkedAt: null } },
+        );
+    };
+    // what's saved shows at once, as the US prices do; then a live check
+    // (with its Turnstile token, which can take a few seconds) replaces it.
+    // A preorder gets no live check, so the first answer is the only one
+    ask("")
       .then((data) => setAnswer({ isbn, data }))
-      .catch((e: Error) => {
-        if (e.name !== "AbortError") {
-          setAnswer({
-            isbn,
-            data: { status: "error", offers: [], checkedAt: null },
-          });
-        }
-      });
+      .catch(failed);
+    if (!preorder)
+      humanQuery("?", controller.signal)
+        .then((human) => (human ? ask(human) : null))
+        .then((data) => data && setAnswer({ isbn, data }))
+        .catch(failed);
     return () => controller.abort();
   }, [isbn, preorder]);
 

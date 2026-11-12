@@ -228,6 +228,13 @@ export function filterShelf(
     case "ch-dsc":
       list.sort((a, b) => (b.bookmark ?? 0) - (a.bookmark ?? 0));
       break;
+    case "vol-dsc": {
+      // the exact list's size when it has gaps, else 1 to "up to"
+      const count = (m: Manga) =>
+        m.ownedList?.length ? m.ownedList.length : (m.volumesOwned ?? 0);
+      list.sort((a, b) => count(b) - count(a));
+      break;
+    }
     case "name-asc":
       list.sort((a, b) => a.name.localeCompare(b.name));
       break;
