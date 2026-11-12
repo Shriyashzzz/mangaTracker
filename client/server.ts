@@ -18,6 +18,7 @@ import { fileURLToPath } from "node:url";
 import { isAppPage } from "./pagePaths.ts";
 import { visitorIp } from "./visitorIp.ts";
 import { WHY_COLLECTORS } from "./src/lib/whyCollectors.ts";
+import { FAQ, FAQ_DESCRIPTION, faqJsonLd } from "./src/lib/content/faq.ts";
 
 const DIST = fileURLToPath(new URL("./dist/", import.meta.url));
 // where this server reaches the API: the private address on Railway
@@ -463,6 +464,7 @@ const linkList = (links: [href: string, label: string][]) =>
 const SITE_LINKS: [string, string][] = [
   ["/series", "All manga series"],
   ["/deals", "Manga deals"],
+  ["/faq", "Questions and answers"],
   ["/about", "About Manga Tracker"],
   ["/updates", "What's new"],
 ];
@@ -593,6 +595,29 @@ const staticTags = (path: string): Tags | null => {
     </main>`,
   };
 };
+
+// the FAQ: every question and answer in the page a crawler reads, and as
+// FAQPage markup (the same list the app's page shows: src/lib/content/faq.ts)
+const faqTags = (): Tags => ({
+  title: "FAQ",
+  description: FAQ_DESCRIPTION,
+  path: "/faq",
+  image: null,
+  jsonLd: faqJsonLd(),
+  body: `<main class="crawl-page">
+      ${crumbs([["/", SITE_NAME]])}
+      <h1>Manga Tracker FAQ</h1>
+      ${FAQ.map(
+        (group) =>
+          `<h2>${escapeHtml(group.name)}</h2>${group.questions
+            .map(
+              ({ q, a }) => `<h3>${escapeHtml(q)}</h3><p>${escapeHtml(a)}</p>`,
+            )
+            .join("")}`,
+      ).join("")}
+      ${linkList(SITE_LINKS.filter(([href]) => href !== "/faq"))}
+    </main>`,
+});
 
 // the volumes someone owns, as the shared page counts them: their exact list
 // when it has gaps, otherwise 1 up to the count
@@ -843,7 +868,7 @@ async function fetchSitemap() {
 const basicSitemap = (origin: string) =>
   `<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-${["/", "/series", "/about", "/updates"].map((path) => `  <url><loc>${origin}${path}</loc></url>`).join("\n")}
+${["/", "/series", "/deals", "/faq", "/about", "/updates"].map((path) => `  <url><loc>${origin}${path}</loc></url>`).join("\n")}
 </urlset>
 `;
 
@@ -1013,6 +1038,11 @@ app.get(
     );
     return dealsTags(data?.deals ?? []);
   }),
+);
+
+app.get(
+  "/faq",
+  withTags(async () => faqTags()),
 );
 
 app.get(

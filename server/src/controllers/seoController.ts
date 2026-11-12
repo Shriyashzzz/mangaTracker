@@ -49,6 +49,7 @@ const sitemap = async (_req: Request, res: Response) => {
   const withVolumes = series.filter((s) => bySeries.get(slugify(s.name))?.size);
   const urls = [
     entry("/"),
+    entry("/faq"),
     entry("/about"),
     entry("/updates"),
     entry("/acknowledgements"),
