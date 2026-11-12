@@ -6,10 +6,7 @@ import { apiFetch } from "../../lib/api";
 import type { Manga } from "../../lib/types";
 import { useShelf } from "../../store/shelf";
 import { detailsStyles as styles } from "./styles";
-
-// names compared as the shelf compares them: case and punctuation aside
-const key = (name: string) =>
-  name.toLowerCase().replace(/[^\p{L}\p{N}]+/gu, "");
+import { titleKey } from "../../lib/titleKey";
 
 export default function TwiceNote({ manga }: { manga: Manga }) {
   const shelf = useShelf((s) => s.manga);
@@ -23,7 +20,7 @@ export default function TwiceNote({ manga }: { manga: Manga }) {
     (m) =>
       m.id !== manga.id &&
       Boolean(m.lightNovel) === Boolean(manga.lightNovel) &&
-      key(m.name) === key(manga.name),
+      titleKey(m.name) === titleKey(manga.name),
   );
   if (!other) return null;
 
