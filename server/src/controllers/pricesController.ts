@@ -1,6 +1,10 @@
 // Public price checker endpoints: no account needed. Upstream failures
 // (Open Library, AniList, stores) become 502s with a friendly message, so
 // pages can show "try again" instead of a blank error.
+import { isNovelName } from "../prices/lightNovel.js";
+import priceQueries from "../models/priceQueries.js";
+import type { CatalogBook } from "../prices/types.js";
+import { editionLinesOf } from "../prices/editionSource.js";
 import { findNovelsFor } from "../prices/novelFinder.js";
 import { baseName } from "../prices/lightNovel.js";
 import type { Request, Response } from "express";
@@ -198,6 +202,37 @@ const series = [
   },
 ];
 
+// GET /editions?name=  the series' omnibus and deluxe lines, book by book,
+// each with its last known price where it has one. Free sources only
+const editions = [
+  ...seriesName,
+  async (req: Request, res: Response) => {
+    const name: string = matchedData(req).name;
+    // a light novel has no omnibus lines of the manga's
+    if (isNovelName(name)) return void res.json({ lines: [] });
+    const data = await getSeries(name).catch(() => null);
+    const lines = await editionLinesOf(
+      data?.name ?? name,
+      (data?.volumes ?? []) as unknown as CatalogBook[],
+    );
+    const known = await priceQueries
+      .getKnownPrices(
+        lines.flatMap((l) => l.books.flatMap((b) => b.isbn13 ?? [])),
+      )
+      .catch(() => new Map<string, { priceCents: number }>());
+    res.set("Cache-Control", "private, max-age=300").json({
+      lines: lines.map((line) => ({
+        ...line,
+        books: line.books.map((b) => ({
+          ...b,
+          knownPriceCents:
+            (b.isbn13 && known.get(b.isbn13)?.priceCents) || null,
+        })),
+      })),
+    });
+  },
+];
+
 // GET /highlights  the home page rows
 const highlights = async (_req: Request, res: Response) => {
   res.json(
@@ -322,6 +357,7 @@ const seriesSummary = [
 
 export default {
   scan,
+  editions,
   canadaVolume,
   search,
   seriesSearch,

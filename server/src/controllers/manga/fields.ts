@@ -45,6 +45,9 @@ export const mangaFields = [
   // their place kept by the volume instead of the chapter, and the last
   // volume read
   body("byVolume").optional().isBoolean().toBoolean(),
+  body("edition")
+    .optional({ values: "falsy" })
+    .matches(/^[a-z0-9]{1,20}$/),
   body("readVolume")
     .optional({ values: "falsy" })
     .isInt({ min: 0, max: 999 })
@@ -160,6 +163,7 @@ export const restoredInput = (req: Request): RestoredManga => {
     bookmark: d.bookmark ?? (req.body.bookmark === 0 ? 0 : null),
     byVolume: Boolean(d.byVolume),
     readVolume: d.readVolume ?? null,
+    edition: d.edition ?? null,
     rating: d.rating ?? null,
     seenVolume: d.seenVolume ?? null,
     seenChapter: d.seenChapter ?? null,

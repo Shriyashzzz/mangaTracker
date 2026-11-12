@@ -23,6 +23,9 @@ export type Manga = {
   lightNovel?: boolean;
   // the chapter they're on
   bookmark: number | null;
+  // the edition they collect: a line's key ("deluxe"), "singles", or not
+  // chosen yet (lib/editions.ts)
+  edition?: string | null;
   // their place kept by the volume instead of the chapter, and the last
   // volume read
   byVolume?: boolean;

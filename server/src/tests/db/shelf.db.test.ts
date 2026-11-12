@@ -145,7 +145,8 @@ test("owned volumes: a run from 1, or the exact list with gaps", async () => {
     .send({ ids: [id] })
     .expect(200);
   expect(gone.body.manga[0].books).toMatchObject([deluxe]);
-  const { id: _old, userId: _user, books: had, ...rest } = gone.body.manga[0];
+  const { books: had, ...whole } = gone.body.manga[0];
+  const rest = { ...whole, id: undefined, userId: undefined };
   await agent
     .post("/api/manga/restore-many")
     .send({ manga: [{ ...rest, books: had.map(() => deluxe) }] })

@@ -18,6 +18,8 @@ pricesRouter.get("/highlights", perMinute(60), prices.highlights);
 pricesRouter.get("/deals", perMinute(60), prices.deals);
 pricesRouter.get("/series-index", perMinute(60), prices.seriesIndex);
 pricesRouter.get("/series", perMinute(40), prices.series);
+// its omnibus and deluxe lines, for a reader collecting one
+pricesRouter.get("/editions", perMinute(40), prices.editions);
 // covers: a series page loads 30+ at once
 pricesRouter.get("/cover/:isbn", perMinute(600), prices.cover);
 // link previews; cheap database reads

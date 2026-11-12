@@ -59,6 +59,9 @@ model Manga {
   byVolume        Boolean @default(false) @map("by_volume")
   // the last volume they've read; apart from the ones they own
   readVolume      Int?    @map("read_volume") @db.SmallInt
+  // the edition they collect ("deluxe", "3in1": prices/editionLines.ts), so
+  // what to buy next is in that edition's books; null is single volumes
+  edition         String? @db.VarChar(20)
   // the last volume they own ("up to Vol. 14"); null when they don't say
   volumesOwned    Int?    @map("volumes_owned") @db.SmallInt
   // the exact volumes they own, when it isn't a run from 1 (One Piece 1 and 4);
