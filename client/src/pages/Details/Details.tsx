@@ -37,6 +37,8 @@ export default function Details() {
   usePrivatePage("Manga details");
   const [mangaData, setMangaData] = useState<Manga | null>(null);
   const [releaseData, setReleaseData] = useState<ReleaseData | null>(null);
+  // a collector of the books who asked for the chapter counter after all
+  const [chaptersShown, setChaptersShown] = useState(false);
   const [releaseStatus, setReleaseStatus] = useState<ReleaseStatus | null>(
     null,
   );
@@ -201,7 +203,9 @@ export default function Details() {
       });
       if (!res.ok) throw new Error("Failed starting manga");
       setMangaData((m) => (m ? { ...m, planned: false, bookmark: 1 } : m));
-      setActionNote("Started! You're on chapter 1.");
+      setActionNote(
+        `Started! You're on ${mangaData?.lightNovel ? "volume" : "chapter"} 1.`,
+      );
     } catch (e) {
       console.error(e);
       setPlanned(true);
@@ -539,9 +543,27 @@ export default function Details() {
                   Start reading
                 </button>
               </span>
+            ) : !mangaData.lightNovel &&
+              !mangaData.bookmark &&
+              owned.length > 0 &&
+              !chaptersShown ? (
+              // they keep the books and never saved a chapter: what they own
+              // says where they are, not "chapter 0"
+              <span className={styles.startRow}>
+                You own {owned.length === 1 ? "vol." : "vols."}{" "}
+                {rangesText(owned)}.
+                <button
+                  type="button"
+                  className={styles.chaptersToo}
+                  onClick={() => setChaptersShown(true)}
+                >
+                  Track chapters too
+                </button>
+              </span>
             ) : (
               <>
-                You're on chapter{" "}
+                {/* a light novel is read by the volume: no chapters to count */}
+                You're on {mangaData.lightNovel ? "volume" : "chapter"}{" "}
                 <ChapterStepper
                   key={mangaData.id}
                   mangaId={mangaData.id}

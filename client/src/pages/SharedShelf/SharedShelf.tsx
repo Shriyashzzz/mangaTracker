@@ -111,7 +111,10 @@ function SeriesCard({
           ) : (
             "No volumes yet"
           )}
-          {!m.status && m.bookmark != null && ` · ch. ${m.bookmark}`}
+          {/* a saved place only: never "ch. 0"; a novel's is a volume */}
+          {!m.status &&
+            Boolean(m.bookmark) &&
+            ` · ${m.lightNovel ? "vol." : "ch."} ${m.bookmark}`}
           {m.lightNovel && " · novel"}
         </span>
         {m.rating ? <StarRating value={m.rating} size="sm" /> : null}
@@ -132,7 +135,9 @@ function SeriesRow({
 }) {
   const owned = ownedVolumesOf(m);
   const more = [
-    !m.status && m.bookmark != null && `ch. ${m.bookmark}`,
+    !m.status &&
+      Boolean(m.bookmark) &&
+      `${m.lightNovel ? "reading vol." : "ch."} ${m.bookmark}`,
     m.lightNovel && "light novel",
   ].filter(Boolean);
   return (

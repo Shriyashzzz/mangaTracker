@@ -58,6 +58,8 @@ export default function MangaCard({
     latestChapter != null && latestChapter >= reading ? latestChapter : null;
   // a collector of the books, no chapter kept: what they own says where
   // they are ("vols. 1–10"), never "not started"
+  // a light novel is read by the volume, a manga by the chapter
+  const placeWord = currentManga.lightNovel ? "reading vol." : "ch.";
   const owned = ownedOf(currentManga);
   const ownedText = owned.length
     ? `${owned.length === 1 ? "vol." : "vols."} ${rangesText(owned)}`
@@ -134,7 +136,7 @@ export default function MangaCard({
               {currentManga.planned
                 ? "to read"
                 : currentManga.bookmark
-                  ? `ch. ${currentManga.bookmark}`
+                  ? `${placeWord} ${currentManga.bookmark}`
                   : ownedText
                     ? ownedText
                     : currentManga.status
@@ -167,7 +169,7 @@ export default function MangaCard({
                     : currentManga.planned
                       ? "to read"
                       : currentManga.bookmark
-                        ? `ch. ${currentManga.bookmark}`
+                        ? `${placeWord} ${currentManga.bookmark}`
                         : ownedText,
                   currentManga.lightNovel && "light novel",
                   genre,
@@ -204,7 +206,7 @@ export default function MangaCard({
             {/* unrated ones show empty stars, so the column always reads the same */}
             <StarRating value={Number(currentManga.rating) || 0} size="sm" />
           </span>
-          <span className="flex w-28 flex-col justify-center gap-1 pr-3 text-right font-mono text-[0.82rem] text-ink-soft upto-720:w-[5.5rem] upto-720:pr-2">
+          <span className="flex w-28 flex-col justify-center gap-1 pr-2 text-right font-mono text-[0.82rem] text-ink-soft upto-720:w-[5.5rem] upto-720:pr-2">
             {currentManga.status ? (
               "Finished"
             ) : !reading && owned.length ? (

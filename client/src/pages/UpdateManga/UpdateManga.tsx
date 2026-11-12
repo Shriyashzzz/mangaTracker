@@ -227,7 +227,7 @@ export function UpdateManga() {
                 {stage === "reading" && (
                   <div className={styles.field}>
                     <label htmlFor="bookmark" className={styles.label}>
-                      Current chapter
+                      {lightNovel ? "Volume you're on" : "Current chapter"}
                     </label>
                     <input
                       className={styles.input}
