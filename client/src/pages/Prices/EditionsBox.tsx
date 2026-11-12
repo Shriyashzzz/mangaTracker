@@ -22,52 +22,67 @@ export default function EditionsBox({
 }) {
   const plan = editionPlan(line, owned);
   const theirs = owned.length > 0 && plan.next;
-  const book = theirs ? plan.next! : line.books[0]!;
-  const label = editionBookLabel(line, book);
-  const inside = line.books.flatMap((b) => b.volumes);
-  const body = (
-    <>
-      <span className={styles.setKindFirst}>
-        {theirs ? "Next for you" : "Starts with"}
-      </span>
-      <span className={styles.setStore}>
-        {label}
-        <span className={styles.setAside}> · {insideText(book)}</span>
-      </span>
-      <span className={styles.setPrice}>
-        {book.knownPriceCents != null
-          ? formatCents(book.knownPriceCents)
-          : book.isbn13
-            ? "check price"
-            : ""}
-      </span>
-    </>
+  // two books: theirs next (or the first), and the one after it
+  const from = line.books.indexOf(
+    line.books.find(
+      (b) => b.number === (theirs ? plan.next! : line.books[0]!).number,
+    )!,
   );
+  const shown = line.books.slice(from, from + 2);
+  const inside = line.books.flatMap((b) => b.volumes);
   return (
     <aside aria-labelledby="editions-box-title" className={styles.setsBox}>
       <h2 id="editions-box-title" className={styles.setsTitle}>
         {/edition/i.test(line.label) ? line.label : `${line.label} edition`}
       </h2>
-      <ul className={styles.setsList}>
-        <li className="upto-980:w-full">
-          {book.isbn13 ? (
-            <NavLink
-              className={styles.editionsBoxTicket}
-              to={volumePath(book.isbn13, book.title ?? label)}
-              viewTransition
-            >
-              {body}
-            </NavLink>
-          ) : (
-            <span className={styles.editionsBoxTicket}>{body}</span>
-          )}
-        </li>
+      <ul className={styles.editionsBoxList}>
+        {shown.map((book, at) => {
+          const label = editionBookLabel(line, book);
+          const first = at === 0;
+          const body = (
+            <>
+              <span className={first ? styles.setKindFirst : styles.setKind}>
+                {first ? (theirs ? "Next for you" : "Starts with") : "Then"}
+              </span>
+              <span className={styles.setStore}>{label}</span>
+              <span className={styles.setPrice}>
+                {book.knownPriceCents != null
+                  ? formatCents(book.knownPriceCents)
+                  : book.isbn13
+                    ? "check price"
+                    : ""}
+              </span>
+              {/* the volumes inside, under the book's name */}
+              <span className={styles.editionsBoxInside}>
+                {insideText(book)}
+              </span>
+            </>
+          );
+          const ticket = first
+            ? styles.editionsBoxTicket
+            : styles.editionsBoxTicketPlain;
+          return (
+            <li key={book.number} className="min-w-0 upto-980:flex-1">
+              {book.isbn13 ? (
+                <NavLink
+                  className={ticket}
+                  to={volumePath(book.isbn13, book.title ?? label)}
+                  viewTransition
+                >
+                  {body}
+                </NavLink>
+              ) : (
+                <span className={ticket}>{body}</span>
+              )}
+            </li>
+          );
+        })}
       </ul>
       <p className={styles.editionsBoxNote}>
         {line.books.length} books hold vols. {Math.min(...inside)}–
         {Math.max(...inside)}.{" "}
         <a href="#editions-title" className={styles.editionsBoxAll}>
-          See them all
+          See all
         </a>
       </p>
     </aside>

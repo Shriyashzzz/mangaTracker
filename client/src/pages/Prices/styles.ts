@@ -342,6 +342,14 @@ export const pricesStyles = {
   // the edition box's one ticket: the row's whole width on a phone
   editionsBoxTicket:
     "grid min-h-11 grid-cols-[minmax(0,1fr)_auto] gap-x-2 rounded-ink border-2 border-accent bg-accent-wash px-3 py-[0.45rem] text-[0.92rem] font-semibold shadow-[3px_3px_0_var(--hard-shadow)] transition-[translate,box-shadow] duration-120 ease-[ease] [a&]:hover:-translate-y-px [a&]:hover:shadow-[4px_4px_0_var(--hard-shadow)]",
+  // its second book: the plain ticket, sharing the row on a phone
+  editionsBoxTicketPlain:
+    "grid min-h-11 grid-cols-[minmax(0,1fr)_auto] gap-x-2 rounded-ink border-[1.5px] border-dashed border-line bg-paper px-3 py-[0.45rem] text-[0.92rem] font-semibold transition-[background-color,border-color] duration-120 ease-[ease] [a&]:hover:border-accent [a&]:hover:bg-accent-wash",
+  // two books: stacked in the box, side by side below a laptop
+  editionsBoxList: "flex flex-col gap-2 upto-980:flex-row upto-520:flex-col",
+  // "vols. 7–9" under a book's name
+  editionsBoxInside:
+    "col-span-full font-mono text-[0.78rem] font-normal text-ink-soft",
   // under the edition's first book: how many there are, and the way down
   editionsBoxNote: "mt-2 text-[0.82rem] leading-snug text-ink-soft",
   editionsBoxAll:
