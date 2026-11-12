@@ -621,21 +621,22 @@ export function demoResponse(
         : part === "reading"
           ? (body as Partial<Manga>)
           : part === "rating"
-          ? { rating: body.rating as number }
-          : part === "notes"
-            ? { description: body.description as string | null }
-            : part === "status"
-              ? { status: body.status as boolean, planned: false }
-              : part === "planned"
-                ? body.planned
-                  ? { planned: true, status: false }
-                  : { planned: false, bookmark: 1 }
-                : part === "seen"
-                  ? {
-                      [body.kind === "chapter" ? "seenChapter" : "seenVolume"]:
-                        body.number as number | null,
-                    }
-                  : {};
+            ? { rating: body.rating as number }
+            : part === "notes"
+              ? { description: body.description as string | null }
+              : part === "status"
+                ? { status: body.status as boolean, planned: false }
+                : part === "planned"
+                  ? body.planned
+                    ? { planned: true, status: false }
+                    : { planned: false, bookmark: 1 }
+                  : part === "seen"
+                    ? {
+                        [body.kind === "chapter"
+                          ? "seenChapter"
+                          : "seenVolume"]: body.number as number | null,
+                      }
+                    : {};
     writeShelf(shelf.map((m) => (m.id === id ? { ...m, ...changes } : m)));
     return json({ ok: true });
   }

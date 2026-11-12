@@ -101,6 +101,10 @@ export const detailsStyles = {
   // "Paid the same for the 12 without a price? $[ ] Set them"
   booksSame:
     "mt-3 flex flex-wrap items-center gap-x-3 gap-y-2 text-[0.88rem] text-ink-soft",
+  // the next five rows of a long list
+  booksMore:
+    "tap mt-1 flex w-full items-baseline justify-between gap-3 py-2 text-left text-[0.85rem] font-medium text-ink underline decoration-line-soft underline-offset-3 hover:decoration-line",
+  booksMoreLeft: "font-mono text-[0.78rem] font-normal text-ink-soft",
   booksNote: "mt-2 text-[0.82rem] text-muted",
   // under the counter: the quiet ways to change what it counts
   trackRow:
