@@ -46,6 +46,13 @@ export default function FinishList({
         To finish it
         {total && <span className={styles.finishTotal}>{total}</span>}
       </h3>
+      {/* too few priced for a total: said, so the missing number isn't a puzzle */}
+      {unpriced.length > 0 && row.estimateCents === null && (
+        <p className={styles.finishNote}>
+          {row.priced} of {row.missing.length} priced: not enough yet for a
+          total. Prices fill in as volumes are checked.
+        </p>
+      )}
       {unpriced.length > 0 && row.estimateCents !== null && (
         <p className={styles.finishNote}>
           {row.priced

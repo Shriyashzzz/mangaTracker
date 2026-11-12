@@ -150,7 +150,7 @@ function ShelfTotals({ tools, owned }: { tools: ShelfTools; owned: number }) {
     tools.finishEstimateCents,
   );
   const spent = tools.spent?.books ? tools.spent : null;
-  if (!worth && !finish && !spent) return null;
+  if (!worth && !tools.finishMissing && !spent) return null;
   // folded until asked: a question to open, not two numbers in the way
   return (
     <details className={styles.worth}>
@@ -181,10 +181,11 @@ function ShelfTotals({ tools, owned }: { tools: ShelfTools; owned: number }) {
             )}
           </div>
         )}
-        {finish && (
+        {tools.finishMissing > 0 && (
           <div className={styles.total}>
             <dt className={styles.totalLabel}>To finish every series</dt>
-            <dd className={styles.totalValue}>{finish}</dd>
+            {/* no money until enough is priced: the count is still true */}
+            <dd className={styles.totalValue}>{finish ?? "no total yet"}</dd>
             <dd className={styles.totalNote}>
               {/* a series collected as its deluxe books counts in books */}
               {plural(
@@ -194,6 +195,11 @@ function ShelfTotals({ tools, owned }: { tools: ShelfTools; owned: number }) {
               to go
               {tools.finishPriced < tools.finishMissing &&
                 ` · ${tools.finishPriced.toLocaleString()} priced`}
+              {/* the total is of the series priced enough to say */}
+              {Boolean(tools.finishUncosted) &&
+                (finish
+                  ? ` · ${plural(tools.finishUncosted!, "series", "series")} not counted yet`
+                  : " · too few priced to add up")}
             </dd>
           </div>
         )}

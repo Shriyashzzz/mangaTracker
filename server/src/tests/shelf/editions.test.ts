@@ -119,10 +119,17 @@ test("finishing an edition counts its books, each once, and estimates the unpric
   expect(f.missing[0]).toMatchObject({ volume: 3, inside: [7, 8, 9] });
   expect(f.cents).toBe(9000);
   expect(f.priced).toBe(2);
-  expect(f.estimateCents).toBe(9000);
+  // two of the four books out are priced: too few to say a total
+  expect(f.estimateCents).toBeNull();
+  // a third one priced is enough (3 of 4)
+  copies.set(deluxe.books[0]!.isbn13!, copy(4500));
+  expect(
+    finishEdition({ volumesOwned: 7, ownedList: [] }, deluxe, copies, 1200)
+      .estimateCents,
+  ).toBe(9000);
 });
 
-test("an edition with nothing priced is estimated from single volumes, per volume inside", () => {
+test("an edition with nothing priced has a count and no total", () => {
   const f = finishEdition(
     { volumesOwned: 3, ownedList: [] },
     line(3),
@@ -131,13 +138,7 @@ test("an edition with nothing priced is estimated from single volumes, per volum
   );
   expect(f.missing).toHaveLength(2);
   expect(f.cents).toBe(0);
-  // two books of three volumes at $10 a volume
-  expect(f.estimateCents).toBe(6000);
-  // nothing to go by at all: no estimate, never $0
-  expect(
-    finishEdition({ volumesOwned: 3, ownedList: [] }, line(3), new Map())
-      .estimateCents,
-  ).toBeNull();
+  expect(f.estimateCents).toBeNull();
 });
 
 // ---------- asking for an edition by name ----------
