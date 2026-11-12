@@ -626,7 +626,11 @@ const RANGE =
   /\b(?:vol(?:ume)?s?\.?|omnibus|books?)\s*(\d{1,3})\s*(?:[-–]|to)\s*(\d{1,3})\b/i;
 // "Bleach (3-in-1 Edition), Vol. 21" is 61 to 63
 const N_IN_ONE = /\b([234])\s*-?\s*in\s*-?\s*1\b/i;
-const OMNIBUS = /\bomnibus\b|\bcomplete collection\b|\bbind-?up\b/i;
+// a box set that doesn't say which volumes it holds is one too: "Demon
+// Slayer Complete Box Set" is far more than vol. 1, so the import asks which
+// instead of guessing. (A deluxe edition stays its own number, as before)
+const OMNIBUS =
+  /\bomnibus\b|\bcomplete collection\b|\bbind-?up\b|\bbox ?set\b/i;
 
 // which volumes a book holds, from the surest the title says to the least:
 // listed, a range, or N-in-1 with the omnibus' number. An omnibus that says

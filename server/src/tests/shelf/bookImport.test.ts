@@ -706,6 +706,10 @@ test("an omnibus counts the volumes it holds, from the surest the title says", (
   expect(volumesInside("Orange: The Complete Collection, Volume 2", 2)).toEqual(
     { omnibus: true },
   );
+  // a box set that doesn't say which: asked, not guessed as vol. 1
+  expect(
+    volumesInside("Demon Slayer Complete Box Set: Includes volumes", 1),
+  ).toEqual({ omnibus: true });
   // one volume stays one
   expect(
     volumesInside("One Piece, Vol. 1: Romance Dawn (One Piece, #1)", 1),
