@@ -16,6 +16,30 @@ export const saveBooks = async (mangaId: number, books: NewBook[]) => {
   }).catch(() => {});
 };
 
+// what they paid for a book, and the day they bought it; null clears
+export const savePurchase = async (
+  mangaId: number,
+  bookId: number,
+  change: { paidCents?: number | null; boughtOn?: string | null },
+) => {
+  const res = await apiFetch(`/api/manga/${mangaId}/books/${bookId}`, {
+    method: "PATCH",
+    body: change,
+  });
+  if (!res.ok) throw new Error("Couldn't save what you paid");
+};
+
+// a volume ticked by hand becomes a book, to hold what was paid for it.
+// The books as they are afterwards
+export const addBooks = async (mangaId: number, books: NewBook[]) => {
+  const res = await apiFetch(`/api/manga/${mangaId}/books`, {
+    method: "POST",
+    body: { books },
+  });
+  if (!res.ok) throw new Error("Couldn't save the book");
+  return ((await res.json()) as { books: OwnedBook[] }).books;
+};
+
 // the book goes, with the volumes only it held; what's owned now comes back
 export const removeBook = async (mangaId: number, bookId: number) => {
   const res = await apiFetch(`/api/manga/${mangaId}/books/${bookId}`, {

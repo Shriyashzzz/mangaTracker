@@ -3,6 +3,7 @@
 // routes (/api/collector) and switch (COLLECTOR_TOOLS=off). They read the
 // shelf, the saved series lists and the prices already saved: never a store,
 // a catalog or a paid search.
+import bookQueries from "../models/bookQueries.js";
 import mangaQueries from "../models/mangaQueries.js";
 import priceQueries from "../models/priceQueries.js";
 import { affiliateOfferUrl } from "../prices/stores/storeLinks.js";
@@ -31,6 +32,8 @@ export type FinishRow = {
 
 export type ShelfTools = {
   value: ShelfValue;
+  // what they've said they paid, added up, and for how many books
+  spent: { cents: number; books: number };
   // series they own some of, with volumes out they don't own yet
   finish: FinishRow[];
   // every series' priced missing volumes, added up
@@ -122,6 +125,9 @@ export async function getShelfTools(userId: number): Promise<ShelfTools> {
     });
   return {
     value: shelfValue(owned, recorded, unlisted),
+    spent: await bookQueries
+      .shelfSpent(userId)
+      .catch(() => ({ cents: 0, books: 0 })),
     finish,
     finishCents: finish.reduce((sum, f) => sum + f.cents, 0),
     finishPriced: finish.reduce((sum, f) => sum + f.priced, 0),

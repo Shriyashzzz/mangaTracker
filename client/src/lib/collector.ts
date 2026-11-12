@@ -29,6 +29,8 @@ export type FinishRow = {
 };
 
 export type ShelfTools = {
+  // what they've said they paid, added up, and for how many books
+  spent?: { cents: number; books: number };
   value: {
     cents: number;
     priced: number;

@@ -1,4 +1,6 @@
 import {
+  centsOf,
+  spentOn,
   bookLabel,
   booksFromCell,
   booksToCell,
@@ -45,4 +47,36 @@ test("a backup's Books cell reads back as written", () => {
   );
   expect(booksFromCell("")).toEqual([]);
   expect(booksFromCell("nonsense; 123 single 1: 1")).toEqual([]);
+});
+
+test("what was paid and the day bought ride along in the backup", () => {
+  const book = {
+    ...newBook("Berserk Deluxe Volume 2", [4, 5, 6], "9781506711997"),
+    title: null,
+    paidCents: 4999,
+    boughtOn: "2026-01-05T00:00:00.000Z",
+  };
+  const cell = booksToCell([book, newBook("One Piece, Vol. 12", [12])]);
+  expect(cell).toBe(
+    "9781506711997 deluxe 2: 4–6 @49.99 2026-01-05; - single 12: 12",
+  );
+  expect(booksFromCell(cell)[0]).toEqual({ ...book, boughtOn: "2026-01-05" });
+  // a price with no day, and a backup from before either was kept
+  expect(booksFromCell("- single 3: 3 @7")[0]).toMatchObject({
+    paidCents: 700,
+  });
+  expect(booksFromCell("- single 3: 3")[0]).not.toHaveProperty("paidCents");
+});
+
+test("a typed price is cents, and nonsense is nothing", () => {
+  expect(centsOf("12.99")).toBe(1299);
+  expect(centsOf("$1,049.5")).toBe(104950);
+  expect(centsOf("0")).toBe(0);
+  expect(centsOf("")).toBeNull();
+  expect(centsOf("ten")).toBeNull();
+  expect(centsOf("-5")).toBeNull();
+  expect(spentOn([{ paidCents: 500 }, { paidCents: null }, {}])).toEqual({
+    cents: 500,
+    books: 1,
+  });
 });

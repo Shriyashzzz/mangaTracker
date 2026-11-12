@@ -766,7 +766,7 @@ export default function Details() {
 
             <YourBooks
               mangaId={mangaData.id}
-              ownedKey={owned.join()}
+              owned={owned}
               onRemoved={(left) => setMangaData({ ...mangaData, ...left })}
             />
 
