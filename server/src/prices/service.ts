@@ -565,6 +565,14 @@ export async function lookupScannedIsbn(isbn13: string) {
   // a novel goes by "Overlord Light Novel", so the shelf match finds the
   // novel and never the manga of the same name
   const series = lightNovel ? novelName(baseName(named)) : named;
+  // the shelf keeps AniList's spelling ("One Piece", not the catalog's "ONE
+  // PIECE"), but only when it's the same name apart from capitals and
+  // punctuation, so a scan never lands under another series
+  const info = await getSeriesInfo(series).catch(() => null);
+  const ownName = lightNovel ? baseName(series) : series;
+  const spelled = info && (lightNovel ? baseName(info.name) : info.name);
+  const shelfName =
+    spelled && normalize(spelled) === normalize(ownName) ? spelled : ownName;
   return {
     isbn13: book.isbn13,
     title: book.title,
@@ -579,7 +587,7 @@ export async function lookupScannedIsbn(isbn13: string) {
     // the price checker's name ("Overlord Light Novel"), for /api/manga/match
     series,
     // the name a shelf keeps it under: a novel is the series' own name, marked
-    shelfName: lightNovel ? baseName(series) : series,
+    shelfName,
     lightNovel,
     coverUrl: book.coverUrl,
   };

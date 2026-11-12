@@ -156,3 +156,23 @@ test("importing a series already there adds its new volumes, never takes any awa
     ownedList: [],
   });
 });
+
+test("stars given when adding a series are saved, and are optional", async () => {
+  const agent = await reader("reader");
+  const rated = await agent
+    .post("/api/manga")
+    .send({ name: "Zzrated", status: true, rating: 4 })
+    .expect(201);
+  expect(
+    await prisma.manga.findUnique({ where: { id: rated.body.id } }),
+  ).toMatchObject({ rating: 4 });
+  // no chapter and no stars: still added
+  await agent
+    .post("/api/manga")
+    .send({ name: "Zzunrated", status: false })
+    .expect(201);
+  await agent
+    .post("/api/manga")
+    .send({ name: "Zzbad", status: true, rating: 9 })
+    .expect(400);
+});

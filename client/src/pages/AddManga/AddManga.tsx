@@ -24,6 +24,7 @@ import { useBuyOptions } from "../Details/useBuyOptions";
 import { priceName } from "../../lib/prices";
 import { chapterProblem, coverLinkProblem } from "../../lib/formChecks";
 import { findOnShelf } from "../../lib/shelf";
+import StarRating from "../../components/starRating/StarRating";
 import type { ShelfMatch } from "../../lib/types";
 
 const DESC_MAX = 450;
@@ -46,6 +47,8 @@ export function AddManga() {
   // pick another status, and what they typed must survive that. 0 to start,
   // so a first save goes through
   const [chapter, setChapter] = useState("0");
+  // stars, if they want to give some now (the details page rates too)
+  const [rating, setRating] = useState(0);
   // said under the field it's about, rather than by the browser
   const [fieldErrors, setFieldErrors] = useState<{
     title?: string;
@@ -192,12 +195,8 @@ export function AddManga() {
     const form = new FormData(e.currentTarget);
     const missing = {
       title: !title.trim() ? "Give it a title." : undefined,
-      bookmark:
-        stage !== "reading"
-          ? undefined
-          : !chapter.trim()
-            ? "Which chapter are you on? 0 if you haven't started."
-            : chapterProblem(chapter),
+      // optional: a collector tracking volumes needn't say a chapter
+      bookmark: stage !== "reading" ? undefined : chapterProblem(chapter),
       image: ownCover ? coverLinkProblem(image) : undefined,
     };
     setFieldErrors(missing);
@@ -228,6 +227,8 @@ export function AddManga() {
       ownedList: parseVolumes(String(form.get("ownedList") ?? "")) ?? [],
     };
     if (stage === "reading") sendReq.bookmark = chapter;
+    // stars only for something they've read some of
+    if (stage !== "planned" && rating) sendReq.rating = rating;
 
     setSubmitting(true);
     try {
@@ -431,7 +432,8 @@ export function AddManga() {
               {stage === "reading" && (
                 <div className={styles.chapterField}>
                   <label htmlFor="bookmark" className={styles.label}>
-                    Current chapter <b>*</b>
+                    Current chapter{" "}
+                    <span className={styles.optional}>(optional)</span>
                   </label>
                   <input
                     className={`${styles.input} ${fieldErrors.bookmark ? styles.invalid : ""}`}
@@ -443,7 +445,6 @@ export function AddManga() {
                     step="any"
                     value={chapter}
                     placeholder="e.g. 1073"
-                    required
                     aria-invalid={Boolean(fieldErrors.bookmark) || undefined}
                     aria-describedby={
                       fieldErrors.bookmark ? "bookmark-error" : undefined
@@ -461,6 +462,24 @@ export function AddManga() {
                 </div>
               )}
             </div>
+
+            {/* stars for something they've read some of; tap again to clear */}
+            {stage !== "planned" && (
+              <div className={styles.field}>
+                <span className={styles.label} id="add-rating">
+                  Your rating{" "}
+                  <span className={styles.optional}>(optional)</span>
+                </span>
+                <span className="inline-block w-fit">
+                  <StarRating
+                    value={rating}
+                    onChange={(stars) =>
+                      setRating(stars === rating ? 0 : stars)
+                    }
+                  />
+                </span>
+              </div>
+            )}
 
             <details
               className={styles.more}

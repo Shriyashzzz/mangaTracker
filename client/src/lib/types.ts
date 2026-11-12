@@ -104,6 +104,8 @@ export type MangaForm = {
   bookmark?: string | number;
   volumesOwned?: string | number;
   ownedList?: number[];
+  // 1 to 5 stars, given on adding it
+  rating?: number;
 };
 
 // a scanned barcode's book: GET /api/prices/scan/:isbn
