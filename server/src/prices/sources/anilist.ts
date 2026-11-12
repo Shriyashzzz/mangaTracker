@@ -45,13 +45,27 @@ type Media = {
   };
 };
 
+// AniList answering 429 means slow down: every lookup waits out its
+// Retry-After (a minute when it doesn't say) instead of asking again at once,
+// which only keeps the block going. Callers already cope with a failed lookup
+const ANILIST_PAUSE_MS = 60_000;
+let anilistPausedUntil = 0;
+
 async function query<T>(gql: string, variables?: Record<string, unknown>) {
+  if (Date.now() < anilistPausedUntil)
+    throw new Error("AniList responded 429 (waiting before asking again)");
   const res = await fetch(URL, {
     method: "POST",
     headers: { "Content-Type": "application/json", Accept: "application/json" },
     body: JSON.stringify({ query: gql, variables }),
     signal: AbortSignal.timeout(8000),
   });
+  if (res.status === 429) {
+    const retryAfter = Number(res.headers.get("Retry-After"));
+    anilistPausedUntil =
+      Date.now() + (retryAfter > 0 ? retryAfter * 1000 : ANILIST_PAUSE_MS);
+    await res.body?.cancel().catch(() => {});
+  }
   if (!res.ok) throw new Error(`AniList responded ${res.status}`);
   const { data, errors } = (await res.json()) as {
     data: T;
