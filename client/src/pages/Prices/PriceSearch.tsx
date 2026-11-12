@@ -284,9 +284,14 @@ function Highlights() {
 
       {data.deals.length > 0 && (
         <section aria-labelledby="deals-title">
-          <h2 id="deals-title" className={styles.sectionTitle}>
-            Latest deals
-          </h2>
+          <div className={styles.sectionHeadRow}>
+            <h2 id="deals-title" className={styles.sectionTitle}>
+              Latest deals
+            </h2>
+            <NavLink to="/deals" className={styles.textBtn} viewTransition>
+              All deals →
+            </NavLink>
+          </div>
           <ul className={styles.row}>
             {data.deals.map((d) => (
               <li key={d.isbn13}>

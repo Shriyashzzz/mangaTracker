@@ -35,11 +35,11 @@ export default function BuyStrip({ options, hideNext }: Props) {
         {next && !hideNext && (
           <li>
             <NavLink
-              className={styles.buyLink}
+              className={styles.buyNext}
               to={volumePath(next.isbn13, next.title)}
               viewTransition
             >
-              <span className={styles.buyKind}>Next for you</span>
+              <span className={styles.buyNextKind}>Next for you</span>
               <span>Vol. {next.volume}</span>
               <span className={styles.buyPrice}>{price(next)}</span>
             </NavLink>
@@ -75,10 +75,10 @@ export default function BuyStrip({ options, hideNext }: Props) {
               viewTransition
             >
               <span className={styles.buyKind}>Finish the series</span>
-              <span>
+              <span className={styles.buyCount}>
                 {finish.left} vol{finish.left === 1 ? "" : "s"}
                 {finish.priced < finish.left && (
-                  <span className={styles.buyAside}> · estimated</span>
+                  <em className={styles.buyAside}>(est)</em>
                 )}
               </span>
               <span className={styles.buyPrice}>

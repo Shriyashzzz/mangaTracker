@@ -23,7 +23,7 @@ export const WHY_COLLECTORS = [
   },
   {
     title: "Your shelf, counted",
-    body: "See what your collection is worth and what finishing each series costs, then share it with a link.",
+    body: "See what your collection is worth and what finishing each series costs.",
     link: "/signup",
     label: "Start your shelf",
   },
