@@ -34,10 +34,12 @@ export default function SlowLoadQuote() {
   const quote = QUOTES[index]!;
 
   return createPortal(
-    // a printed panel floating over the skeleton, in the middle of the window
-    <div className="printed fixed top-1/2 left-1/2 z-40 grid w-[min(460px,calc(100vw-32px))] -translate-1/2 grid-cols-[64px_1fr] items-center gap-[0.9rem] rounded-ink border-[2.5px] border-line bg-card py-[0.9rem] pr-[1.1rem] pl-[0.9rem] shadow-[0_18px_40px_-18px_rgba(20,14,8,0.55)] animate-panel-in motion-reduce:animate-none">
+    // a panel floating over the skeleton, in the middle of the window, in
+    // the page's own theme; only Kenji is printed (ink on paper always, or
+    // his hair disappears into a dark panel)
+    <div className="fixed top-1/2 left-1/2 z-40 grid w-[min(460px,calc(100vw-32px))] -translate-1/2 grid-cols-[64px_1fr] items-center gap-[0.9rem] rounded-ink border-[2.5px] border-line bg-card py-[0.9rem] pr-[1.1rem] pl-[0.9rem] shadow-[0_18px_40px_-18px_rgba(20,14,8,0.55)] animate-panel-in motion-reduce:animate-none">
       <span
-        className="block aspect-square w-16 rounded-full border-2 border-line bg-paper px-[0.35rem] pt-[0.35rem] pb-[0.1rem]"
+        className="printed block aspect-square w-16 rounded-full border-2 border-line bg-paper px-[0.35rem] pt-[0.35rem] pb-[0.1rem]"
         aria-hidden
       >
         <Mascot mood="happy" />
