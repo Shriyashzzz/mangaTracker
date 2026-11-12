@@ -246,6 +246,19 @@ export function PileHead({
     watch.observe(bar);
     return () => watch.disconnect();
   }, []);
+  // see-through where it sits; paper behind it only once it's stuck, so the
+  // covers scrolling under it don't show through the chips
+  const row = useRef<HTMLDivElement>(null);
+  const [stuck, setStuck] = useState(false);
+  useEffect(() => {
+    const check = () => {
+      const el = row.current;
+      if (el) setStuck(el.getBoundingClientRect().top <= below + 1);
+    };
+    check();
+    window.addEventListener("scroll", check, { passive: true });
+    return () => window.removeEventListener("scroll", check);
+  }, [below]);
   const chips: { view: PileView; label: string; count: number }[] = [
     { view: "all", label: "All", count: all },
     // every pile, empty or not, so the chips never move about
@@ -273,7 +286,11 @@ export function PileHead({
           {PILE_TEXT[kind][view].why + extra(view)}
         </p>
       )}
-      <div className={styles.chips} style={{ top: below }}>
+      <div
+        ref={row}
+        className={stuck ? styles.chipsStuck : styles.chips}
+        style={{ top: below }}
+      >
         {/* one row that scrolls sideways on phones, the sort at its end */}
         <div
           ref={chipList}

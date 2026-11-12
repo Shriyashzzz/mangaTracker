@@ -40,6 +40,8 @@ export const pilesStyles = {
   back: "tap shrink-0 text-[0.9rem] font-medium text-ink-soft underline decoration-line-soft underline-offset-3 hover:text-ink hover:decoration-current focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent focus-visible:outline-dashed",
   // stuck under the shelf bar while the pile scrolls by
   chips:
+    "sticky z-4 -mx-3 mt-3 mb-7 flex items-center gap-2 border-b-[1.5px] border-line px-3 py-2 upto-520:mb-4",
+  chipsStuck:
     "sticky z-4 -mx-3 mt-3 mb-7 flex items-center gap-2 border-b-[1.5px] border-line bg-[var(--surface,var(--paper))] px-3 py-2 upto-520:mb-4",
   // wraps on wider screens; one sideways-scrolling row on phones
   chipList:
