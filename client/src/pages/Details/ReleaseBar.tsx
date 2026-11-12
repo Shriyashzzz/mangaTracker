@@ -85,12 +85,37 @@ const groupsFrom = (
   }
 
   const inJapanToo = kind === "volume" && !inJapan;
-  return [
+  const groups = [
     // the English one is out (the bar's headline); these are further on, in
     // Japan only, so the heading mustn't read as if the headline's were
     { title: inJapanToo ? "Further ahead in Japan" : "Out now", rows: outNow },
     { title: inJapanToo ? "Next in Japan" : "Coming up", rows: comingUp },
   ].filter((group) => group.rows.length > 0);
+  // an English volume with nothing further on in Japan (a finished series,
+  // or English has caught up): the bar still opens, and says so, with when
+  // this volume first came out in Japan if we know
+  if (!groups.length && inJapanToo && Number.isFinite(headline)) {
+    const first = (data?.volume ?? [])
+      .filter((v) => Number(v.volume) === headline && v.releaseDate)
+      .map((v) => v.releaseDate!)
+      .sort()[0];
+    const when = formatReleaseDate(first);
+    return [
+      {
+        title: "In Japan",
+        rows: [
+          ...(when ? [{ what: `Vol. ${headline}`, when }] : []),
+          {
+            what: "Further ahead",
+            when: data?.seriesFinished
+              ? "Nothing: the series has ended"
+              : "Nothing newer yet",
+          },
+        ],
+      },
+    ];
+  }
+  return groups;
 };
 
 // "there's a new one": a slim red bar that opens to the dates when clicked

@@ -45,6 +45,8 @@ type ReleaseEstimate = {
 // the release dates MangaDex gave us for a series
 export type ReleaseData = {
   volume?: { volume: string | null; releaseDate: string | null }[];
+  // the series has ended (MangaUpdates): nothing more is coming
+  seriesFinished?: boolean;
   newVolume?: ReleaseEstimate & { volume: string | null };
   chapter?: {
     latestReleased: {
