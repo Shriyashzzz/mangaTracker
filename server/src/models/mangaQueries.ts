@@ -156,6 +156,18 @@ export const setVolumesOwned = (
     select: { volumesOwned: true, ownedList: true },
   });
 
+// a backup read back in (the import's `restore`): what the shelf entry lacks
+export const fillFromBackup = (
+  id: number,
+  data: {
+    bookmark?: number;
+    status?: boolean;
+    planned?: boolean;
+    rating?: number;
+    description?: string;
+  },
+) => prisma.manga.update({ where: { id }, data, select: { id: true } });
+
 // two entries of one series on a shelf become one: `keep` gets everything the
 // other had that it lacks (every volume either owns, the further chapter and
 // "seen" marks, a rating, cover, genre and notes it didn't have), then the
@@ -311,6 +323,7 @@ export default {
   setBookmark,
   setSeen,
   setVolumesOwned,
+  fillFromBackup,
   deleteManga,
   deleteManyManga,
 };

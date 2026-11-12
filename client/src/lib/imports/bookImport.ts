@@ -33,7 +33,9 @@ export type Book = {
   planned: boolean;
   // the title says so: "Overlord, Vol. 1 (light novel)"
   lightNovel: boolean;
-  // only Manga Tracker's own export says these (ownExportBooks)
+  // only Manga Tracker's own export says these (ownExportBooks). `exact`:
+  // its names are the shelf's own, never joined to another by a guess
+  exact?: boolean;
   finished?: boolean;
   chapter?: number;
   notes?: string;
@@ -62,6 +64,7 @@ export type BookSeries = {
   // every one's key, its own first
   members?: string[];
   // from Manga Tracker's own export: finished, the chapter they're on, notes
+  restore?: boolean;
   finished?: boolean;
   chapters?: number;
   notes?: string;
@@ -584,6 +587,7 @@ function ownExportBooks(h: string[], row: string[]): Book[] {
     rating: stars(cell(row, header(h, /^Rating$/))),
     planned: false,
     lightNovel,
+    exact: true,
     finished: status === "finished",
     chapter,
     notes: cell(row, header(h, /^Notes$/)).slice(0, 450) || undefined,
@@ -790,19 +794,29 @@ const EDITIONS: {
   books: number;
   volumes: number;
 }[] = [
+  // Deluxe 14 ends at vol. 41
   {
     series: /^berserk$/,
     edition: /\bdeluxe\b/i,
     perBook: 3,
     books: 14,
-    volumes: 42,
+    volumes: 41,
+  },
+  // the 3-in-1 deluxe hardcovers first, then Kodansha's 2-in-1 books: every
+  // English "Book N" holds two (Book 9 is vols 17 and 18)
+  {
+    series: /^vinland saga$/,
+    edition: /\bdeluxe\b/i,
+    perBook: 3,
+    books: 10,
+    volumes: 29,
   },
   {
     series: /^vinland saga$/,
     edition: /\bbook\b|\bhardcover\b/i,
     perBook: 2,
-    books: 7,
-    volumes: 14,
+    books: 15,
+    volumes: 29,
   },
   {
     series: /^monster$/,
@@ -1015,6 +1029,8 @@ function joinSubtitleNames(books: Book[]): Book[] {
       ? volumes.get(k)!.name
       : null;
   return books.map((book) => {
+    // a backup's names are the shelf's own: never joined by a guess
+    if (book.exact) return book;
     const others = book.names.filter((n) => n !== book.series);
     const numbered = /^(.+?)\s+(\d{1,3}):\s*(.+)$/.exec(book.series);
     if (numbered && book.volume == null) {
@@ -1277,6 +1293,7 @@ export function groupBooks(everyBook: Book[]): BookSeries[] {
       lightNovel,
       ...(list.some((b) => b.omnibus) ? { omnibus: true } : {}),
       // their own export's (ownExportBooks)
+      ...(list.some((b) => b.exact) ? { restore: true } : {}),
       ...(list.some((b) => b.finished) ? { finished: true } : {}),
       ...(list.some((b) => b.chapter)
         ? { chapters: Math.max(...list.map((b) => b.chapter ?? 0)) }
@@ -1491,6 +1508,7 @@ export const toEntry = (
   ...(s.lightNovel ? { lightNovel: true } : {}),
   chapters: s.chapters ?? 0,
   ...(s.notes ? { comments: s.notes } : {}),
+  ...(s.restore ? { restore: true } : {}),
   readVolumes: s.readVolumes,
   ownedVolumes: s.ownedVolumes,
   // only with gaps: a run from 1 is what ownedVolumes says already, and keeps

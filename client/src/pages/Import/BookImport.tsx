@@ -141,7 +141,7 @@ const HOW: Record<
   },
   csv: {
     // the columns bookImport.ts reads (any of these names, any order)
-    step: "Export your library from your app as a CSV file. It needs a Title or ISBN column; Series, Volume (or Number), an Owned or Purchased column, Rating and Format help if your app has them. A box set's volumes are asked for if the title doesn't say. A Manga Tracker export (Settings) comes back exactly.",
+    step: "Export your library from your app as a CSV file. It needs a Title or ISBN column; Series, Volume (or Number), an Owned or Purchased column, Rating and Format help if your app has them. A box set's volumes are asked for if the title doesn't say. A Manga Tracker export (Settings) restores volumes, chapter, status, rating and notes; a series already on your shelf only gets what it lacks.",
   },
 };
 

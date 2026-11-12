@@ -1180,7 +1180,12 @@ test("editions that hold a set number of volumes count them; other special editi
   );
   expect([vinland!.title, vinland!.ownedVolumes]).toEqual(["Vinland Saga", 4]);
   const [deluxe] = groupBooks(goodreads(["Berserk Deluxe Edition, Vol. 14"]));
-  expect(deluxe!.ownedList).toEqual([40, 41, 42]);
+  expect(deluxe!.ownedList).toEqual([40, 41]);
+  // every English Vinland Saga book holds two, past Book 7 too
+  const [later] = groupBooks(goodreads(["Vinland Saga Book 9"]));
+  expect(later!.ownedList).toEqual([17, 18]);
+  const [vDeluxe] = groupBooks(goodreads(["Vinland Saga Deluxe 2"]));
+  expect(vDeluxe!.ownedList).toEqual([4, 5, 6]);
   const [other] = groupBooks(goodreads(["Uzumaki (Deluxe Edition)"]));
   expect(other!.omnibus).toBe(true);
 });
@@ -1248,4 +1253,20 @@ test("Manga Tracker's own export comes back exactly", () => {
   const [op, conan] = groupBooks(readBooks(older, "csv"));
   expect(op!.ownedVolumes).toBe(104);
   expect(conan!.ownedList).toEqual([1, 90]);
+});
+
+test("a backup's names are never joined to another series by a guess", () => {
+  const rows = parseCsv(
+    [
+      "Title,Type,Status,Chapter,Owned volumes,Rating,Genre,Notes",
+      '"Junk: Record of the Last Hero","Manga","Reading","","3–4","","",""',
+      '"Record of the Last Hero","Manga","Reading","","5","","",""',
+    ].join("\n"),
+  );
+  const series = groupBooks(readBooks(rows, "csv"));
+  expect(series.map((s) => s.title).sort()).toEqual([
+    "Junk: Record of the Last Hero",
+    "Record of the Last Hero",
+  ]);
+  expect(toEntry(series[0]!).restore).toBe(true);
 });

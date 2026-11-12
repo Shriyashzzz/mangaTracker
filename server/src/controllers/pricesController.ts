@@ -271,18 +271,25 @@ const cover = [
 // Cloudflare. Anything that isn't an image (a host's error page) throws, and
 // the route falls back to sending the browser there itself
 const COVER_FETCH_MS = 10_000;
+const COVER_TYPES = /^image\/(jpeg|png|webp|gif|avif)\b/i;
+const COVER_MAX_BYTES = 8 * 1024 * 1024;
 async function sendImage(res: Response, url: string) {
   const upstream = await fetch(url, {
     signal: AbortSignal.timeout(COVER_FETCH_MS),
   });
   const type = upstream.headers.get("content-type") ?? "";
-  if (!upstream.ok || !upstream.body || !type.startsWith("image/"))
+  // pictures only, never an SVG (it can carry script, and this is our own
+  // address), and nothing huge
+  if (!upstream.ok || !upstream.body || !COVER_TYPES.test(type))
     throw new Error(`cover image answered ${upstream.status} ${type}`);
+  const image = Buffer.from(await upstream.arrayBuffer());
+  if (image.length > COVER_MAX_BYTES)
+    throw new Error(`cover image is ${image.length} bytes`);
   res.set({
     "Content-Type": type,
     "Cache-Control": "public, max-age=2592000",
   });
-  res.end(Buffer.from(await upstream.arrayBuffer()));
+  res.end(image);
 }
 
 // GET /summary/volume/:isbn  for the site's link-preview server; DB only

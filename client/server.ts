@@ -16,6 +16,7 @@ import https from "node:https";
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { isAppPage } from "./pagePaths.ts";
+import { visitorIp } from "./visitorIp.ts";
 import { WHY_COLLECTORS } from "./src/lib/whyCollectors.ts";
 
 const DIST = fileURLToPath(new URL("./dist/", import.meta.url));
@@ -762,6 +763,22 @@ async function summary<T>(path: string, ip?: string): Promise<Summary<T>> {
 const app = express();
 app.set("trust proxy", 1); // Railway's proxy, for the https:// in URLs
 app.disable("x-powered-by");
+// the visitor's own address, past Cloudflare (visitorIp.ts)
+const ipOf = (req: Request) => visitorIp(req.ip, req.get("cf-connecting-ip"));
+
+// what a browser is told about every page of the site itself. (/api answers
+// carry the API's own headers.) No content policy yet: covers and scripts
+// come from several hosts, and a wrong one blanks the page
+app.use((_req, res, next) => {
+  res.set({
+    "Strict-Transport-Security": "max-age=31536000; includeSubDomains",
+    "X-Content-Type-Options": "nosniff",
+    // nobody else's page can put this site in a frame and trick a click
+    "X-Frame-Options": "SAMEORIGIN",
+    "Referrer-Policy": "strict-origin-when-cross-origin",
+  });
+  next();
+});
 
 // The browser calls /api on this site; each request is streamed to the API
 // and its answer streamed back (live price checks included). The forwarded
@@ -781,7 +798,7 @@ app.use("/api", (req, res) => {
       headers: {
         ...req.headers,
         host: target.host,
-        "x-forwarded-for": req.ip ?? "",
+        "x-forwarded-for": ipOf(req),
         "x-forwarded-proto": req.protocol,
         "x-forwarded-host": req.get("host") ?? "",
       },
@@ -910,7 +927,7 @@ app.get(
       String(req.params.slug).replace(/-/g, " ");
     const { data, missing } = await summary<SeriesSummary>(
       `/api/prices/summary/series?${new URLSearchParams({ name })}`,
-      req.ip,
+      ipOf(req),
     );
     if (missing) return "missing";
     if (data) return seriesTags(data, origin);
@@ -937,7 +954,7 @@ app.get(
     if (!/^[\dXx-]{10,17}$/.test(isbn)) return "missing";
     const { data, missing } = await summary<VolumeSummary>(
       `/api/prices/summary/volume/${encodeURIComponent(isbn)}`,
-      req.ip,
+      ipOf(req),
     );
     if (missing) return "missing";
     return data && volumeTags(data, origin);
@@ -953,7 +970,7 @@ app.get(
     if (!/^[\w-]{4,40}$/.test(code)) return null;
     const { data } = await summary<SharedShelf>(
       `/api/share/${encodeURIComponent(code)}`,
-      req.ip,
+      ipOf(req),
     );
     const series =
       typeof req.query.series === "string" ? req.query.series : undefined;
@@ -969,7 +986,7 @@ app.get(
   withTags(async (req) => {
     const { data } = await summary<Highlights>(
       "/api/prices/highlights",
-      req.ip,
+      ipOf(req),
     ).catch(() => ({ data: null }));
     return homeTags(data);
   }),
@@ -981,7 +998,7 @@ app.get(
     if (Object.keys(req.query).length) return null;
     const { data } = await summary<SeriesIndexEntry[]>(
       "/api/prices/series-index",
-      req.ip,
+      ipOf(req),
     );
     return Array.isArray(data) ? seriesIndexTags(data) : null;
   }),
@@ -992,7 +1009,7 @@ app.get(
   withTags(async (req) => {
     const { data } = await summary<{ deals: Deal[] }>(
       "/api/prices/deals",
-      req.ip,
+      ipOf(req),
     );
     return dealsTags(data?.deals ?? []);
   }),

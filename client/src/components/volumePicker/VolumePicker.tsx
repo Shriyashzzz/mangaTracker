@@ -78,6 +78,9 @@ export function useVolumePicker(
     from: number;
     up: boolean;
     before: number[];
+    // a mouse: which way it drags decides, not the spine it started on (as
+    // on the details page's shelf)
+    byDirection?: boolean;
   }>(null);
   // the last spine touched, for shift-click
   const anchor = useRef<number | null>(null);
@@ -113,14 +116,23 @@ export function useVolumePicker(
     const drag = painting.current;
     if (!drag) return;
     const next = new Set(drag.before);
+    // a mouse dragging on (to later volumes) stands up what it passes,
+    // dragging back lays it down; back on the spine it started on, that one
+    // is as the click left it
+    const up = drag.byDirection && to !== drag.from ? to > drag.from : drag.up;
     for (const v of between(drag.from, to).filter((x) => !inBox(x))) {
-      if (drag.up) next.add(v);
+      if (up) next.add(v);
       else next.delete(v);
     }
     setOwned(sorted(next));
   };
-  const startPainting = (v: number) => {
-    painting.current = { from: v, up: !owned.includes(v), before: owned };
+  const startPainting = (v: number, byDirection = false) => {
+    painting.current = {
+      from: v,
+      up: !owned.includes(v),
+      before: owned,
+      byDirection,
+    };
     paintTo(v);
     anchor.current = v;
     setUpToText(null);
@@ -161,7 +173,7 @@ export function useVolumePicker(
       setUpToText(null);
       typingFrom.current = null;
     } else {
-      startPainting(v);
+      startPainting(v, e.pointerType === "mouse");
       e.currentTarget.setPointerCapture(e.pointerId);
     }
   };

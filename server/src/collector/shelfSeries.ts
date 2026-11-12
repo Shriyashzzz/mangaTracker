@@ -57,13 +57,15 @@ export async function shelfSeries(manga: Manga[]): Promise<ShelfSeries[]> {
   const keysOf = (name: string) => {
     const both = [...new Set([name, official.get(slugify(name)) ?? name])];
     return {
+      // the series page's own list, when it's been built (service.ts finalKey)
+      final: both.map((n) => `${volumesKey(n)}:final`),
       main: both.map((n) => volumesKey(n)),
       google: both.map((n) => `${volumesKey(n)}:google`),
     };
   };
   const allKeys = names.flatMap((n) => {
     const k = keysOf(n);
-    return [...k.main, ...k.google];
+    return [...k.final, ...k.main, ...k.google];
   });
   const rows = await prisma.seriesVolumes.findMany({
     where: { key: { in: [...new Set(allKeys)] } },
@@ -76,7 +78,11 @@ export async function shelfSeries(manga: Manga[]): Promise<ShelfSeries[]> {
     keys.map((k) => lists.get(k)).find((l) => l?.length) ?? [];
   return manga.flatMap((m, i) => {
     const k = keysOf(names[i]!);
-    const volumes = merge(first(k.main), first(k.google));
+    // the page's list as it is; before one exists, the two raw lists merged
+    const final = first(k.final);
+    const volumes = final.length
+      ? final.map(listed)
+      : merge(first(k.main), first(k.google));
     return volumes.length ? [{ manga: m, volumes }] : [];
   });
 }

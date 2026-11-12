@@ -65,7 +65,9 @@ export const mangaFields = [
   body("image")
     .optional({ values: "falsy" })
     .trim()
-    .isURL()
+    // a web address only (never ftp: or the like), of a sane length
+    .isURL({ protocols: ["http", "https"], require_protocol: true })
+    .isLength({ max: 1000 })
     .withMessage("Please provide a valid URL"),
 ];
 

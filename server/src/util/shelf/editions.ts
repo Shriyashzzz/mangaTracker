@@ -12,19 +12,29 @@ const EDITIONS: {
   books: number;
   volumes: number;
 }[] = [
+  // Deluxe 14 ends at vol. 41
   {
     series: "berserk",
     edition: /\bdeluxe\b/i,
     perBook: 3,
     books: 14,
-    volumes: 42,
+    volumes: 41,
+  },
+  // the 3-in-1 deluxe hardcovers first, then Kodansha's 2-in-1 books: every
+  // English "Book N" holds two (Book 9 is vols 17 and 18)
+  {
+    series: "vinland saga",
+    edition: /\bdeluxe\b/i,
+    perBook: 3,
+    books: 10,
+    volumes: 29,
   },
   {
     series: "vinland saga",
     edition: /\bbook\b|\bhardcover\b/i,
     perBook: 2,
-    books: 7,
-    volumes: 14,
+    books: 15,
+    volumes: 29,
   },
   {
     series: "monster",

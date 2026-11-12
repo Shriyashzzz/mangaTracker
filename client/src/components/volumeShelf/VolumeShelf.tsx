@@ -2,7 +2,8 @@
 // on the details page. Tick a book to own it. A long series' books are too
 // thin to read, so they grow under the pointer like a magnifier (lib/volumeShelf):
 // a mouse hovers to look and clicks to tick; a finger taps to look, taps the
-// big book to tick, and slides to move along. A series short enough to hit
+// big book to tick, and slides to move along. A mouse held down and moved
+// owns every book it passes going right, and disowns them going left. A series short enough to hit
 // with a finger ticks with one tap. On a touch screen, a series whose books
 // would be thinner than a finger shows a page of full-size books instead,
 // starting near the one after the furthest they own, with ‹ › to move along:
@@ -84,6 +85,8 @@ export default function VolumeShelf({
     up: boolean;
     before: number[];
     to: number;
+    // a mouse: which way it slides decides, not the book it started on
+    byDirection?: boolean;
   }>(null);
 
   useEffect(() => {
@@ -147,14 +150,25 @@ export default function VolumeShelf({
     if (!slide || slide.to === to) return;
     slide.to = to;
     const next = new Set(slide.before);
+    // a mouse sliding on (to the right) owns what it passes, sliding back
+    // disowns it; back on the book it started on, that one is as the click
+    // left it
+    const up =
+      slide.byDirection && to !== slide.from ? to > slide.from : slide.up;
     for (let v = Math.min(slide.from, to); v <= Math.max(slide.from, to); v++) {
-      if (slide.up) next.add(v);
+      if (up) next.add(v);
       else next.delete(v);
     }
     onPaint([...next].sort((a, b) => a - b));
   };
-  const startPainting = (v: number) => {
-    painting.current = { from: v, up: !yours.has(v), before: owned, to: v };
+  const startPainting = (v: number, byDirection = false) => {
+    painting.current = {
+      from: v,
+      up: !yours.has(v),
+      before: owned,
+      to: v,
+      byDirection,
+    };
     onPaint(
       yours.has(v)
         ? owned.filter((x) => x !== v)
@@ -245,6 +259,33 @@ export default function VolumeShelf({
     if (!p || p.slid) return;
     const volume = e.pointerType === "mouse" ? bookAt(widths, xOf(e)) : p.pick;
     if (volume != null) tick(volume);
+  };
+
+  // a mouse: hovering looks (the magnifier), a click ticks the book under
+  // it, and holding the button down while moving owns every book it passes
+  // going on (right) and disowns every one going back (left). Off the top or bottom of the shelf the
+  // slide carries on by where the pointer is along it
+  const mouseVolume = (e: PointerEvent) =>
+    volumeAt(e.clientX, e.clientY) ?? bookAt(widths, xOf(e));
+  const onMouseDown = (e: PointerEvent<HTMLDivElement>) => {
+    if (e.button !== 0) return;
+    const v = mouseVolume(e);
+    if (v == null) return;
+    // no text selected, no drag started, as the slide goes
+    e.preventDefault();
+    if (!yours.has(v)) {
+      setPopped(v);
+      clearTimeout(popTimer.current);
+      popTimer.current = window.setTimeout(() => setPopped(null), 400);
+    }
+    startPainting(v, true);
+    e.currentTarget.setPointerCapture(e.pointerId);
+  };
+  const onMouseMove = (e: PointerEvent<HTMLDivElement>) => {
+    look(xOf(e));
+    if (!painting.current) return;
+    const v = mouseVolume(e);
+    if (v != null) paintTo(v);
   };
 
   // arrows walk the shelf, Enter or Space ticks
@@ -361,20 +402,29 @@ export default function VolumeShelf({
         role="group"
         tabIndex={0}
         aria-label={`Your volumes of ${name}. Arrow keys move along, Enter marks one yours`}
-        // a short series under a finger slides to tick; otherwise the
-        // magnifier
+        // a mouse clicks or slides to tick, with the magnifier following
+        // it; a short series under a finger slides to tick; a long one
+        // under a finger gets the magnifier
         onPointerDown={(e) =>
-          oneTap && e.pointerType !== "mouse"
-            ? onPaintDown(e)
-            : onPointerDown(e)
+          e.pointerType === "mouse"
+            ? onMouseDown(e)
+            : oneTap
+              ? onPaintDown(e)
+              : onPointerDown(e)
         }
         onPointerMove={(e) =>
-          oneTap && e.pointerType !== "mouse"
-            ? onPaintMove(e)
-            : onPointerMove(e)
+          e.pointerType === "mouse"
+            ? onMouseMove(e)
+            : oneTap
+              ? onPaintMove(e)
+              : onPointerMove(e)
         }
         onPointerUp={(e) =>
-          oneTap && e.pointerType !== "mouse" ? onPaintUp() : onPointerUp(e)
+          e.pointerType === "mouse"
+            ? stopPainting()
+            : oneTap
+              ? onPaintUp()
+              : onPointerUp(e)
         }
         onPointerCancel={() => {
           press.current = null;

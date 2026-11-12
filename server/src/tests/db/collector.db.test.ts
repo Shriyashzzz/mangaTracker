@@ -13,7 +13,11 @@ import { closeDb, emptyDb, prisma } from "./testDb.js";
 
 const SERIES = "Zzcollector Test Series";
 const ISBN = (n: number) => `978199999000${n}`;
-const KEYS = [volumesKey(SERIES), `${volumesKey(SERIES)}:google`];
+const KEYS = [
+  volumesKey(SERIES),
+  `${volumesKey(SERIES)}:google`,
+  `${volumesKey(SERIES)}:final`,
+];
 const book = (n: number, published?: string) => ({
   isbn13: ISBN(n),
   title: `${SERIES}, Vol. ${n}`,
@@ -123,6 +127,33 @@ test("the shelf's worth, and what finishing the series costs", async () => {
   });
   expect(row).toMatchObject({ cents: 1099, priced: 1, estimateCents: 2198 });
   expect(res.body).toMatchObject({ finishCents: 1099, finishMissing: 2 });
+});
+
+test("once the series page's own list is saved, the shelf reads that one", async () => {
+  // the page settled on another edition of vol. 2 and found a vol. 5 the raw
+  // lists never had: the shelf's tools follow it, book for book
+  const other = { ...book(2), isbn13: "9781999990099" };
+  await priceQueries.saveSeriesVolumes(KEYS[2]!, [
+    book(1),
+    other,
+    book(3),
+    book(5),
+  ]);
+  const agent = await reader("collector", 1);
+  const res = await agent.get("/api/collector/shelf").expect(200);
+  const [row] = res.body.finish;
+  expect(
+    row.missing.map((m: { volume: number; isbn13: string }) => [
+      m.volume,
+      m.isbn13,
+    ]),
+  ).toEqual([
+    [2, "9781999990099"],
+    [3, ISBN(3)],
+    // no list has a vol. 4: out, as it's before vol. 5, with no book yet
+    [4, ""],
+    [5, ISBN(5)],
+  ]);
 });
 
 test("the calendar lists the volume still to come", async () => {
