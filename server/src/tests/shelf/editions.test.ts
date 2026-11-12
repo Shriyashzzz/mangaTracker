@@ -92,3 +92,50 @@ test("the edition is guessed from their recorded books, never from ticks alone",
   ).toBeNull();
   expect(guessEdition([], [deluxe(1)], run(1, 3))).toBeNull();
 });
+
+// ---------- the shelf's cost to finish, in an edition's books ----------
+import { finishEdition } from "../../collector/shelfMath.js";
+
+const copy = (cents: number) => ({
+  new: { cents, store: "Shop", url: null } as never,
+  used: null,
+});
+
+test("finishing an edition counts its books, each once, and estimates the unpriced", () => {
+  const deluxe = line(5, 1);
+  const copies = new Map([
+    [deluxe.books[2]!.isbn13!, copy(4000)],
+    [deluxe.books[3]!.isbn13!, copy(5000)],
+  ]);
+  // they own 1-7: books 1 and 2 whole, one volume of book 3
+  const f = finishEdition(
+    { volumesOwned: 7, ownedList: [] },
+    deluxe,
+    copies,
+    1200,
+  );
+  // book 5 isn't listed: not counted as out
+  expect(f.missing.map((m) => m.label)).toEqual(["Deluxe 3", "Deluxe 4"]);
+  expect(f.missing[0]).toMatchObject({ volume: 3, inside: [7, 8, 9] });
+  expect(f.cents).toBe(9000);
+  expect(f.priced).toBe(2);
+  expect(f.estimateCents).toBe(9000);
+});
+
+test("an edition with nothing priced is estimated from single volumes, per volume inside", () => {
+  const f = finishEdition(
+    { volumesOwned: 3, ownedList: [] },
+    line(3),
+    new Map(),
+    1000,
+  );
+  expect(f.missing).toHaveLength(2);
+  expect(f.cents).toBe(0);
+  // two books of three volumes at $10 a volume
+  expect(f.estimateCents).toBe(6000);
+  // nothing to go by at all: no estimate, never $0
+  expect(
+    finishEdition({ volumesOwned: 3, ownedList: [] }, line(3), new Map())
+      .estimateCents,
+  ).toBeNull();
+});

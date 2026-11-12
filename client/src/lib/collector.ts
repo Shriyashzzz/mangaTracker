@@ -11,6 +11,10 @@ export type MissingVolume = {
   isbn13: string;
   title: string;
   cheapest: CheapestCopy | null;
+  // a book of the edition they collect: "Deluxe 3" and the volumes inside;
+  // `volume` is then its number in that edition
+  label?: string;
+  inside?: number[];
 };
 
 export type FinishRow = {
@@ -20,6 +24,8 @@ export type FinishRow = {
   cents: number;
   priced: number;
   estimateCents: number | null;
+  // counted in this edition's books ("Deluxe"), not single volumes
+  edition?: string;
 };
 
 export type ShelfTools = {

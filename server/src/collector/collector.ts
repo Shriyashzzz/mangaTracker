@@ -10,12 +10,13 @@ import {
   median,
   ownedSet,
   finishSeries,
+  finishEdition,
   shelfValue,
   upcoming,
   type MissingVolume,
   type ShelfValue,
 } from "./shelfMath.js";
-import { shelfSeries } from "./shelfSeries.js";
+import { shelfEditionLines, shelfSeries } from "./shelfSeries.js";
 
 export type FinishRow = {
   mangaId: number;
@@ -24,6 +25,8 @@ export type FinishRow = {
   cents: number;
   priced: number;
   estimateCents: number | null;
+  // counted in this edition's books ("Deluxe"), not single volumes
+  edition?: string;
 };
 
 export type ShelfTools = {
@@ -55,9 +58,18 @@ const tagged = (m: MissingVolume): MissingVolume =>
 
 export async function getShelfTools(userId: number): Promise<ShelfTools> {
   const shelf = await mangaQueries.getShelf(userId);
-  const series = await shelfSeries(shelf);
+  const [series, lines] = await Promise.all([
+    shelfSeries(shelf),
+    // the edition each series is collected in, where one is chosen
+    shelfEditionLines(shelf),
+  ]);
   const isbns = [
-    ...new Set(series.flatMap((s) => s.volumes.map((v) => v.isbn13))),
+    ...new Set([
+      ...series.flatMap((s) => s.volumes.map((v) => v.isbn13)),
+      ...[...lines.values()].flatMap((l) =>
+        l.books.flatMap((b) => b.isbn13 ?? []),
+      ),
+    ]),
   ];
   const [copies, recorded] = await Promise.all([
     priceQueries.getCheapestCopies(isbns),
@@ -84,19 +96,24 @@ export async function getShelfTools(userId: number): Promise<ShelfTools> {
   const finish = series
     .filter((s) => ownedSet(s.manga).size > 0)
     .flatMap((s) => {
-      const f = finishSeries(
-        s.manga,
-        s.volumes,
-        copies,
-        new Date(),
-        shelfNew,
-        recorded,
-      );
+      // counted in the books of the edition they collect, when they do
+      const line = lines.get(s.manga.id);
+      const f = line
+        ? finishEdition(s.manga, line, copies, shelfNew, recorded)
+        : finishSeries(
+            s.manga,
+            s.volumes,
+            copies,
+            new Date(),
+            shelfNew,
+            recorded,
+          );
       return f.missing.length
         ? [
             {
               mangaId: s.manga.id,
               name: s.manga.name,
+              ...(line ? { edition: line.label } : {}),
               ...f,
               missing: f.missing.map(tagged),
             },
