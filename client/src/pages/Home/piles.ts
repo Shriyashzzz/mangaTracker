@@ -110,7 +110,7 @@ export function catchUpText(
 // how a pile's own page can be ordered: as the shelf lists it, most or least
 // to catch up on first, or by title
 export const PILE_SORTS = [
-  { value: "", label: "As listed" },
+  { value: "", label: "Shelf order" },
   { value: "most", label: "Most to catch up" },
   { value: "least", label: "Least to catch up" },
   { value: "az", label: "Title, A to Z" },

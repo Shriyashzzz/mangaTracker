@@ -373,6 +373,7 @@ export default function PriceVolume() {
           {inCanada && (
             <CanadaPrices
               isbn={book.isbn13}
+              volume={volume}
               preorder={preorder ? releaseDay(preorder) : null}
             />
           )}
@@ -430,6 +431,7 @@ export default function PriceVolume() {
                   offers={offers}
                   formatPrice={formatCents}
                   tourTarget="offers"
+                  volume={volume}
                 />
               ) : (
                 <p className={styles.note}>
