@@ -37,8 +37,11 @@ export default function OfferList({
   offers,
   formatPrice,
   tourTarget,
+  volume = null,
 }: {
   offers: Offer[];
+  // this page's volume number, for "Includes Vol. 3 and more" on box sets
+  volume?: number | null;
   formatPrice: (cents: number) => string;
   tourTarget?: string;
 }) {
@@ -111,7 +114,10 @@ export default function OfferList({
               </span>
               <span className={styles.offerTags}>
                 {condition}
-                {isCollection(o) && " · holds this and other volumes"}
+                {isCollection(o) &&
+                  (volume != null
+                    ? ` · Includes Vol. ${volume} and more`
+                    : " · Includes this volume and more")}
                 {!o.inStock && " · out of stock"}
               </span>
             </span>

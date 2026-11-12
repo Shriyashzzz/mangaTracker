@@ -43,9 +43,11 @@ const PREORDER_STORES = ["Amazon.ca", "eBay.ca"];
 
 export default function CanadaPrices({
   isbn,
+  volume,
   preorder,
 }: {
   isbn: string;
+  volume: number | null;
   // the day it comes out ("Mar 30, 2027"), when it isn't out yet
   preorder: string | null;
 }) {
@@ -154,6 +156,7 @@ export default function CanadaPrices({
           key={isbn}
           offers={offers}
           formatPrice={(cents) => cad.format(cents / 100)}
+          volume={volume}
         />
       ) : (
         <p className={styles.note}>{WHY_NONE[data.status]}</p>
