@@ -113,7 +113,9 @@ function SeriesCard({
             "No volumes yet"
           )}
           {/* a saved place only: never "ch. 0" */}
-          {!m.status && placeText(m, "both") && ` · ${placeText(m, "both")}`}
+          {!m.status &&
+            placeText(m, "both", true) &&
+            ` · ${placeText(m, "both", true)}`}
           {m.lightNovel && " · novel"}
         </span>
         {m.rating ? <StarRating value={m.rating} size="sm" /> : null}
@@ -134,7 +136,7 @@ function SeriesRow({
 }) {
   const owned = ownedVolumesOf(m);
   const more = [
-    !m.status && placeText(m, "both"),
+    !m.status && placeText(m, "both", true),
     m.lightNovel && "light novel",
   ].filter(Boolean);
   return (

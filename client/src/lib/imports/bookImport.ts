@@ -44,6 +44,8 @@ export type Book = {
   byVolume?: boolean;
   notes?: string;
   genre?: string;
+  // the edition they collect it in ("deluxe"), from a backup
+  collecting?: string;
   // the row's ISBN, when the file has one: kept with the book (lib/books.ts)
   isbn?: string;
   // a backup's own record of the series' books, on its first row
@@ -85,6 +87,7 @@ export type BookSeries = {
   genre?: string;
   // each owned book that says its volumes, with its ISBN and edition
   bookList?: NewBook[];
+  collecting?: string;
 };
 
 // ---------- CSV ----------
@@ -620,6 +623,8 @@ function ownExportBooks(h: string[], row: string[]): Book[] {
     notes: cell(row, header(h, /^Notes$/)).slice(0, 450) || undefined,
   };
   const ownBooks = booksFromCell(cell(row, header(h, /^Books$/)));
+  const collecting = cell(row, header(h, /^Collecting$/)).toLowerCase();
+  if (/^[a-z0-9]{1,20}$/.test(collecting)) Object.assign(base, { collecting });
   if (!volumes.length)
     return [
       {
@@ -1424,6 +1429,9 @@ export function groupBooks(everyBook: Book[]): BookSeries[] {
         ? { notes: list.find((b) => b.notes)!.notes }
         : {}),
       ...bookListOf(ownedBooks, volumesOf),
+      ...(list.find((b) => b.collecting)
+        ? { collecting: list.find((b) => b.collecting)!.collecting }
+        : {}),
       ...(list.some((b) => b.readTo)
         ? { readTo: Math.max(...list.map((b) => b.readTo ?? 0)) }
         : {}),
@@ -1666,6 +1674,7 @@ export const toEntry = (
   // a backup says the volume read itself; it's apart from what they own
   readVolumes: s.restore ? (s.readTo ?? 0) : s.readVolumes,
   ...(s.restore && s.byVolume != null ? { byVolume: s.byVolume } : {}),
+  ...(s.restore && s.collecting ? { edition: s.collecting } : {}),
   // only the books whose volumes go on the shelf: the server keeps no other
   ...(s.bookList?.length ? { books: s.bookList.slice(0, 300) } : {}),
   ownedVolumes: s.ownedVolumes,

@@ -298,6 +298,27 @@ export function finishEdition(
   };
 }
 
+// the line a reader seems to collect, from the books they've recorded: the
+// one of the same kind whose books match theirs, when those cover at least
+// half of what they own. The same rule as the details page's
+// (client/src/lib/editions.ts guessEdition), so the two agree
+export function guessedLine(
+  lines: EditionLine[],
+  books: { edition: string; volumes: number[] }[],
+  ownedCount: number,
+): EditionLine | null {
+  if (!lines.length || !ownedCount) return null;
+  let best: { line: EditionLine; covered: number } | null = null;
+  for (const line of lines) {
+    const sets = new Set(line.books.map((b) => b.volumes.join()));
+    const covered = books
+      .filter((b) => b.edition === line.kind && sets.has(b.volumes.join()))
+      .reduce((sum, b) => sum + b.volumes.length, 0);
+    if (covered > (best?.covered ?? 0)) best = { line, covered };
+  }
+  return best && best.covered * 2 >= ownedCount ? best.line : null;
+}
+
 // ---------- coming out ----------
 
 export type Upcoming = {

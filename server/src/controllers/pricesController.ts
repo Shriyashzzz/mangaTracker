@@ -215,6 +215,8 @@ const editions = [
     const lines = await editionLinesOf(
       data?.name ?? name,
       (data?.volumes ?? []) as unknown as CatalogBook[],
+      // a crawler reads what's saved; only a visitor's page looks one up
+      !isCrawler(req.get("user-agent")),
     );
     const known = await priceQueries
       .getKnownPrices(

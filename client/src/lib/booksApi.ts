@@ -37,7 +37,7 @@ export const addBooks = async (mangaId: number, books: NewBook[]) => {
     body: { books },
   });
   if (!res.ok) throw new Error("Couldn't save the book");
-  return ((await res.json()) as { books: OwnedBook[] }).books;
+  return ((await res.json()) as { books?: OwnedBook[] }).books ?? [];
 };
 
 // the book goes, with the volumes only it held; what's owned now comes back

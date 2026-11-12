@@ -1,9 +1,6 @@
 // The account's own details, and shared lists.
-import { booksToCell, type NewBook } from "./books";
-import { ownedOf, rangesText } from "./ownedVolumes";
 import { apiFetch, errorMessages, getJson } from "./api";
 import { SORT_OPTIONS } from "./shelf";
-import type { Manga } from "./types";
 
 export type Account = {
   username: string;
@@ -69,51 +66,9 @@ export const getSharedShelf = (code: string, signal?: AbortSignal) =>
 
 export const shareUrl = (code: string) => `${window.location.origin}/u/${code}`;
 
-// a spreadsheet treats a cell starting with these as a formula
-const csvCell = (value: unknown) => {
-  const text = String(value ?? "");
-  const safe = /^[=+\-@\t\r]/.test(text) ? `'${text}` : text;
-  return `"${safe.replaceAll('"', '""')}"`;
-};
-
-export const shelfToCsv = (
-  manga: Manga[],
-  // each series' books, by its id (lib/books.ts)
-  books: Record<number, NewBook[]> = {},
-) =>
-  [
-    [
-      "Title",
-      "Type",
-      "Status",
-      "Chapter",
-      "Read volume",
-      "Tracked by",
-      "Owned volumes",
-      "Rating",
-      "Genre",
-      "Notes",
-      "Books",
-    ],
-    ...manga.map((m) => [
-      m.name,
-      m.lightNovel ? "Light novel" : "Manga",
-      m.status ? "Finished" : m.planned ? "To read" : "Reading",
-      m.bookmark,
-      m.readVolume,
-      m.byVolume ? "Volume" : "Chapter",
-      // every one they own, as ranges ("1–5, 8"), so the import reads it back
-      // exactly (bookImport isOwnExport)
-      rangesText(ownedOf(m)),
-      m.rating,
-      m.genre,
-      m.description,
-      // the books behind the volumes, with their ISBNs and editions
-      booksToCell(books[m.id] ?? []),
-    ]),
-  ]
-    .map((row) => row.map(csvCell).join(","))
-    .join("\r\n");
+// the shelf as a backup file: lib/shelfCsv.ts (no network code there, so it
+// can be tested)
+export { shelfToCsv } from "./shelfCsv";
 
 export const SHELF_TABS = [
   { value: "all", label: "All" },

@@ -612,6 +612,8 @@ export function demoResponse(
       return json(owned);
     }
     if (part === "releases") return json(releasesFor(manga));
+    // the practice shelf keeps no books: an empty list, whatever is asked
+    if (part === "books") return json({ books: [] });
     if (!part && method === "GET") return json({ manga });
     const changes: Partial<Manga> =
       part === "bookmark"

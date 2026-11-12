@@ -77,6 +77,8 @@ const inFlight = new Map<string, Promise<EditionLine[]>>();
 export async function editionLinesOf(
   name: string,
   volumes: CatalogBook[],
+  // false: only what's saved, never a search (a crawler's visit)
+  lookUp = true,
 ): Promise<EditionLine[]> {
   const key = editionsKey(name);
   const saved = await priceQueries.getSeriesVolumes(key).catch(() => null);
@@ -85,6 +87,8 @@ export async function editionLinesOf(
   const failed = Boolean(lines?.length && "failed" in lines[0]!);
   if (saved && Date.now() - saved.at < (failed ? RETRY_MS : FRESH_MS))
     return failed ? [] : (lines as EditionLine[]);
+  // old or missing, and not to be looked up: what's saved, however old
+  if (!lookUp) return failed || !lines ? [] : (lines as EditionLine[]);
   const running = inFlight.get(key);
   if (running) return running;
   const numbers = volumes
