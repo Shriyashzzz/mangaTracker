@@ -9,6 +9,7 @@ import FrontDoor from "./Prices/FrontDoor";
 import ToPriceHome from "./Prices/ToPriceHome";
 import { AboutPage } from "./About/About";
 import { UpdatesPage } from "./Updates/Updates";
+import { FaqPage } from "./Faq/Faq";
 import { AcknowledgementsPage } from "./Acknowledgements/Acknowledgements";
 import CalendarPage from "./Calendar/Calendar";
 import NewReleasesPage from "./NewReleases/NewReleases";
@@ -65,6 +66,7 @@ export const routes = [
       },
       { path: "/about", element: <AboutPage /> },
       { path: "/updates", element: <UpdatesPage /> },
+      { path: "/faq", element: <FaqPage /> },
       { path: "/acknowledgements", element: <AcknowledgementsPage /> },
       { path: "/new-releases", element: <NewReleasesPage /> },
       { path: "/calendar", element: <CalendarPage /> },

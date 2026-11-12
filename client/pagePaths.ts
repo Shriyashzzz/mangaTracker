@@ -3,7 +3,7 @@
 // their own routes in server.ts. Case doesn't matter, as in React Router.
 // server/src/tests/site/pagePaths.test.ts fails if a route is missing here
 const PAGES = [
-  /^\/(shelf|signin|signup|add|import|about|updates|acknowledgements|new-releases|calendar|profile|series|prices|deals)?\/?$/i,
+  /^\/(shelf|signin|signup|add|import|about|updates|faq|acknowledgements|new-releases|calendar|profile|series|prices|deals)?\/?$/i,
   /^\/(details|update|u)\/[^/]+\/?$/i,
   /^\/settings(\/[^/]+)?\/?$/i,
 ];

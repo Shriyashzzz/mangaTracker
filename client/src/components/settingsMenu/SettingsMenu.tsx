@@ -290,6 +290,12 @@ export default function SettingsMenu({ isSignedIn, onLogOut }: Props) {
           </li>
           {divider}
           <li>
+            <NavLink to="/faq" className={item} viewTransition>
+              <InfoIcon />
+              FAQ
+            </NavLink>
+          </li>
+          <li>
             <NavLink to="/about" className={item} viewTransition>
               <InfoIcon />
               About
