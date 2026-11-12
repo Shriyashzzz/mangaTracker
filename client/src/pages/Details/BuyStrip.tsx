@@ -24,8 +24,14 @@ const GAPS_SHOWN = 6;
 export default function BuyStrip({ options, hideNext }: Props) {
   const { loading, volumes, latest, next, caughtUp, finish, seriesName, gaps } =
     options;
-  const outCount = onSale(volumes).length;
-  const coming = volumes.length - outCount;
+  // as the shelf counts them: up to the newest one out, listed or not
+  // (Detective Conan: 98, though only 65 have a book listed)
+  const out = onSale(volumes);
+  const outCount = Math.max(
+    out.length,
+    ...out.map((v) => v.volume).filter(Number.isInteger),
+  );
+  const coming = volumes.length - out.length;
 
   if (loading) {
     return <div className={`skeleton ${styles.buySkeleton}`} aria-hidden />;
