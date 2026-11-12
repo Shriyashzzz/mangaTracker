@@ -64,7 +64,10 @@ import {
   type SeriesHit,
   type SeriesInfo,
 } from "./types.js";
-import { googleSeriesVolumes } from "./sources/googleBooksCatalog.js";
+import {
+  googleSeriesVolumes,
+  googleVolume,
+} from "./sources/googleBooksCatalog.js";
 import { notOutYet } from "./preorder.js";
 import { publisherOf } from "./publishers.js";
 
@@ -918,6 +921,51 @@ const otherNamesFor = (name: string, info: SeriesInfo | null) => {
   );
 };
 
+// ---------- volumes the series searches missed ----------
+
+// numbered gaps below the highest known volume, and volumes whose only
+// edition is a library rebind, asked for one at a time (googleVolume). The
+// answers are saved under the series for a week, so a visit doesn't ask
+// again; a series asks about a few at most, and the site a capped number a
+// day, out of Google Books' ~1,000
+const GAPS_PER_SERIES = 5;
+const GAP_LOOKUPS_A_DAY = 150;
+const GAPS_FRESH_MS = 7 * 24 * 60 * 60 * 1000;
+const gapDay = () => new Date().toISOString().slice(0, 10);
+
+async function gapVolumes(
+  name: string,
+  byNumber: Map<number | null, CatalogBook>,
+): Promise<CatalogBook[]> {
+  const key = `${volumesKey(name)}:gaps`;
+  const saved = await priceQueries.getSeriesVolumes(key).catch(() => null);
+  if (saved && Date.now() - saved.at < GAPS_FRESH_MS) return saved.volumes;
+  const numbers = [...byNumber.keys()].filter(
+    (n): n is number => n != null && Number.isInteger(n) && n >= 1,
+  );
+  const highest = Math.max(0, ...numbers);
+  const wanted: number[] = [];
+  for (let n = 1; n <= highest && wanted.length < GAPS_PER_SERIES; n++) {
+    const had = byNumber.get(n);
+    if (!had || isRebind(had.isbn13)) wanted.push(n);
+  }
+  if (!wanted.length) return saved?.volumes ?? [];
+  const found: CatalogBook[] = [];
+  for (const n of wanted) {
+    const day = gapDay();
+    const allowed = await priceQueries
+      .claimApiCall(`gbgap:${day}`, GAP_LOOKUPS_A_DAY, `${day.slice(0, 7)}-01`)
+      .catch(() => false);
+    // the day's share used: what was found so far, asked again another day
+    if (!allowed) return found;
+    const book = await googleVolume(name, n).catch(() => null);
+    if (book && !isRebind(book.isbn13) && !isOmnibusLength(book))
+      found.push({ ...book, title: `${name}, Vol. ${n}` });
+  }
+  await priceQueries.saveSeriesVolumes(key, found).catch(() => {});
+  return found;
+}
+
 async function getSeriesWithVolumes(name: string) {
   const infoLookup = getSeriesInfo(name);
   // the other names only need AniList's answer, so they're searched while
@@ -958,8 +1006,19 @@ async function getSeriesWithVolumes(name: string) {
   const datedElsewhere = new Map<number | null, string>();
   const lists = [...altResults, fromGoogle];
   const books = bookIsbns([main, ...lists].flatMap((l) => l.volumes));
+  // a 3-in-1 omnibus numbered like a volume isn't one, from any list (a
+  // light novel may run long)
+  const single = (v: CatalogBook) => isNovelName(name) || !isOmnibusLength(v);
+  for (const [n, v] of byNumber) if (!single(v)) byNumber.delete(n);
   for (const list of lists) {
-    for (const v of list.volumes) addVolume(byNumber, v, books, datedElsewhere);
+    for (const v of list.volumes)
+      if (single(v)) addVolume(byNumber, v, books, datedElsewhere);
+  }
+  // still a gap, or only a library rebind: those volumes asked for one by one
+  // (saved a week, a few a series, under a daily cap)
+  if (!books.size) {
+    for (const v of await gapVolumes(info?.name || name, byNumber))
+      addVolume(byNumber, v, books, datedElsewhere);
   }
   adoptUpcomingDates(byNumber, datedElsewhere);
   // numbered ones only: pages list and page through volumes by number, so a

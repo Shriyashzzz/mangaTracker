@@ -99,3 +99,49 @@ export async function googleSeriesVolumes(
   }
   return books;
 }
+
+// One volume asked for by number, for a series whose list has a gap there or
+// only a library rebind ("One Piece 8"): the series search's 80 results don't
+// reach every volume of a long runner. Only an English book whose title says
+// this number comes back; the caller decides whether it beats what it has
+export async function googleVolume(
+  name: string,
+  volume: number,
+  timeoutMs = 8000,
+): Promise<CatalogBook | null> {
+  const key = config.GOOGLE_BOOKS_API_KEY;
+  if (!key) return null;
+  if (Date.now() < backOffUntil)
+    throw new Error("Google Books lookups used up for now");
+  const params = new URLSearchParams({
+    q: `${titleWords(baseName(name))} ${volume}`,
+    printType: "books",
+    langRestrict: "en",
+    maxResults: "10",
+    key,
+  });
+  const res = await fetch(`${URL}?${params}`, {
+    signal: AbortSignal.timeout(timeoutMs),
+  });
+  if (res.status === 429) backOffUntil = Date.now() + BACK_OFF_MS;
+  if (!res.ok) throw new Error(`Google Books responded ${res.status}`);
+  const { items = [] } = (await res.json()) as { items?: Item[] };
+  for (const { volumeInfo: info } of items) {
+    const isbn13 = info?.industryIdentifiers?.find(
+      (i) => i.type === "ISBN_13",
+    )?.identifier;
+    if (!info?.title || !isbn13 || (info.language && info.language !== "en"))
+      continue;
+    const book = await bookFromListing({
+      isbn13,
+      title: titleOf(info),
+      authors: info.authors,
+      publisher: info.publisher ?? null,
+      year: Number(info.publishedDate?.slice(0, 4)) || null,
+      pages: info.pageCount ?? null,
+      published: info.publishedDate ?? null,
+    });
+    if (book?.volume === volume) return book;
+  }
+  return null;
+}
