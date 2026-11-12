@@ -2,7 +2,7 @@
 // names them, what each side of the New tab is called, which series a view
 // shows and in what order, the counts on the tabs, and what a New card says.
 // Pure, so server/src/tests/shelf/shelfViews.test.ts can test it.
-import { ownedPhrase, ownsAny } from "../../lib/ownedVolumes";
+import { ownedOf, ownedPhrase, ownsAny } from "../../lib/ownedVolumes";
 import {
   countNew,
   remainingChapters,
@@ -217,7 +217,10 @@ export function filterShelf(
   if (q) {
     list = list.filter(
       (m) =>
-        m.name?.toLowerCase().includes(q) || m.genre?.toLowerCase().includes(q),
+        m.name?.toLowerCase().includes(q) ||
+        m.genre?.toLowerCase().includes(q) ||
+        // "novel" or "light novel" finds the light novels
+        (m.lightNovel && "light novel".includes(q)),
     );
   }
 
@@ -235,6 +238,19 @@ export function filterShelf(
       list.sort((a, b) => count(b) - count(a));
       break;
     }
+    case "gaps-dsc": {
+      // volumes missing below the furthest they own
+      const gaps = (m: Manga) => {
+        const whole = ownedOf(m).filter((v) => Number.isInteger(v) && v >= 1);
+        return whole.length ? Math.max(...whole) - whole.length : 0;
+      };
+      list.sort((a, b) => gaps(b) - gaps(a));
+      break;
+    }
+    case "added-dsc":
+      // ids count up as series are added
+      list.sort((a, b) => b.id - a.id);
+      break;
     case "name-asc":
       list.sort((a, b) => a.name.localeCompare(b.name));
       break;

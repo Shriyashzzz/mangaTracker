@@ -92,6 +92,27 @@ test("the sorts, and last bookmarked keeps the shelf's own order", () => {
   expect(names("ch-dsc")[0]).toBe("Berserk");
   // the most volumes owned first
   expect(names("vol-dsc")[0]).toBe("Vagabond");
+  // the newest added (highest id) first
+  expect(names("added-dsc")[0]).toBe("Vagabond");
+});
+
+test("most gaps first puts the run with the most holes on top", () => {
+  const withGaps = [
+    { ...shelf[0]!, id: 11, name: "Run", volumesOwned: 5, ownedList: [] },
+    { ...shelf[0]!, id: 12, name: "Holes", volumesOwned: 9, ownedList: [1, 9] },
+    {
+      ...shelf[0]!,
+      id: 13,
+      name: "One gap",
+      volumesOwned: 3,
+      ownedList: [1, 3],
+    },
+  ];
+  expect(
+    filterShelf(withGaps, {}, { ...view, sortBy: "gaps-dsc" }).map(
+      (m) => m.name,
+    ),
+  ).toEqual(["Holes", "One gap", "Run"]);
 });
 
 test("New shows what's new on this side, and the hidden list what's hidden", () => {
