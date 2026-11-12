@@ -21,7 +21,7 @@ import BoxSets from "./BoxSets";
 import SeriesCostBox from "./SeriesCostBox";
 import { useFromShelf } from "../../lib/fromShelf";
 import { findOnShelf } from "../../lib/shelf";
-import { nextToGet, owns } from "../../lib/ownedVolumes";
+import { nextToGet, owns, rangesText } from "../../lib/ownedVolumes";
 import { useAuth } from "../../store/auth";
 import type { ShelfMatch } from "../../lib/types";
 import BackToNew from "./BackToNew";
@@ -174,6 +174,13 @@ export default function PriceSeries() {
   const data = state.data;
   const { info, volumes, incomplete } = data;
   const priced = volumes.filter((v) => v.knownPriceCents != null).length;
+  // whole volumes below the newest that no catalog lists yet (they're looked
+  // up a few a day): said, so the list and its cost never pass for complete
+  const listedNumbers = new Set(volumes.map((v) => v.volume));
+  const newestListed = Math.max(0, ...volumes.map((v) => v.volume));
+  const unlisted = Array.from({ length: newestListed }, (_, i) => i + 1).filter(
+    (n) => !listedNumbers.has(n),
+  );
   // ranges go by volume number, so gaps in the catalog don't skew them
   const lastNumber = Math.max(
     info?.volumes ?? 0,
@@ -477,6 +484,15 @@ export default function PriceSeries() {
           <p className={styles.note}>
             This manga has no English physical volumes released yet. If one is
             out, try searching it by name or ISBN.
+          </p>
+        )}
+        {unlisted.length > 0 && (
+          <p className={styles.checked} role="status">
+            Not listed yet: {unlisted.length === 1 ? "vol." : "vols."}{" "}
+            {rangesText(unlisted)}. No book catalog we use has{" "}
+            {unlisted.length === 1 ? "it" : "them"} yet, so{" "}
+            {unlisted.length === 1 ? "it isn't" : "they aren't"} in the cost
+            above.
           </p>
         )}
         {incomplete && volumes.length > 0 && (

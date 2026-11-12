@@ -9,6 +9,7 @@ import {
   type SeriesHit,
 } from "../../lib/anilist";
 import { gapsIn, type BookSeries } from "../../lib/imports/bookImport";
+import { ownedVolumes, parseVolumes, rangesText } from "../../lib/ownedVolumes";
 import type { Edit, Match } from "../../store/bookImport";
 import { importStyles as styles } from "./styles";
 
@@ -58,7 +59,12 @@ export default function MatchModal({
   const [tries, setTries] = useState(0);
   // undefined: unchanged; null: not on AniList
   const [picked, setPicked] = useState<SeriesHit | null | undefined>();
-  const [volumes, setVolumes] = useState(String(series.ownedVolumes));
+  // "14" is 1 to 14; "1-23, 104" is exactly those
+  const [volumes, setVolumes] = useState(
+    gapsIn(series.ownedList)
+      ? rangesText(series.ownedList!)
+      : String(series.ownedVolumes),
+  );
   // a count typed in counts even when it's the one shown: it fills the gaps
   const [countTyped, setCountTyped] = useState(false);
   const ids = useId();
@@ -107,13 +113,10 @@ export default function MatchModal({
     picked === undefined ? matched?.anilistId : (picked?.anilistId ?? null);
   const noneChosen =
     picked === null || (picked === undefined && current === null);
-  const count = Number(volumes);
-  const countOk =
-    volumes.trim() !== "" &&
-    Number.isInteger(count) &&
-    count >= 0 &&
-    count <= 999;
-  const hadGaps = gapsIn(series.ownedList);
+  const typed = volumes.trim();
+  const runTo = /^\d{1,3}$/.test(typed) ? Number(typed) : null;
+  const list = runTo === null ? parseVolumes(typed) : null;
+  const countOk = typed !== "" && (runTo !== null || Boolean(list?.length));
 
   const save = (e: FormEvent) => {
     e.preventDefault();
@@ -127,7 +130,11 @@ export default function MatchModal({
         cover: picked.cover,
         fit: "exact",
       };
-    if (countTyped) edit.volumes = count;
+    if (countTyped) {
+      // a list keeps its gaps; a number is a run from 1
+      edit.volumes = runTo ?? Math.max(0, ...list!.filter(Number.isInteger));
+      edit.list = runTo === null ? ownedVolumes(null, list).ownedList : [];
+    }
     if (edit.match !== undefined || edit.volumes !== undefined) onSave(edit);
     dialog.current?.close();
   };
@@ -284,10 +291,10 @@ export default function MatchModal({
           </label>
           <input
             id={`${ids}-volumes`}
-            type="number"
-            inputMode="numeric"
-            min={0}
-            max={999}
+            type="text"
+            inputMode="text"
+            autoComplete="off"
+            placeholder="14, or 1-5, 8"
             className={styles.modalVolumes}
             value={volumes}
             onChange={(e) => {
@@ -299,12 +306,10 @@ export default function MatchModal({
           />
           <p id={`${ids}-volumes-hint`} className={styles.modalHint}>
             {!countOk
-              ? "A whole number from 0 to 999."
-              : hadGaps
-                ? "Counted from vol. 1: saving a count fills the gaps in the file."
-                : series.omnibus
-                  ? "Omnibuses hold several volumes each: count the volumes, not the books."
-                  : "Counted from vol. 1."}
+              ? "A number (up to that volume) or a list like 1-5, 8."
+              : series.omnibus
+                ? "Omnibuses and box sets hold several volumes each: list the volumes, not the books (1-27, 30)."
+                : "A number is every volume up to it; a list like 1-5, 8 keeps the gaps."}
           </p>
         </div>
 

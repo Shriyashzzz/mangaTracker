@@ -12,8 +12,8 @@ import { pricesStyles as styles } from "./styles";
 
 // one volume: cover, volume tag, title and, when we have one, the best known
 // price. Used by search, series and home sections. Without this edition's
-// cover it shows the series cover from AniList when the page has it, and a
-// drawn volume number when it doesn't
+// cover, vol. 1 shows the series cover from AniList (it's vol. 1's art); any
+// other volume shows its drawn number, never another volume's cover
 // what sits behind a volume's own cover, showing when it's missing
 export function CoverFallback({
   number,
@@ -25,7 +25,7 @@ export function CoverFallback({
   return (
     <span className={styles.coverFallback} aria-hidden>
       {number ?? "?"}
-      {seriesCoverUrl && (
+      {seriesCoverUrl && (number == null || number <= 1) && (
         <img
           className={styles.seriesFallback}
           src={seriesCoverUrl}

@@ -3,6 +3,7 @@ import { NavLink } from "react-router";
 import StarRating from "../starRating/StarRating";
 import DrawnCover from "../drawnCover/DrawnCover";
 import type { Manga } from "../../lib/types";
+import { ownedOf, rangesText } from "../../lib/ownedVolumes";
 
 // what's come out for it on the New tab
 export type CardNews = {
@@ -53,6 +54,12 @@ export default function MangaCard({
   const reading = currentManga.bookmark ?? 0;
   const knownTotal =
     latestChapter != null && latestChapter >= reading ? latestChapter : null;
+  // a collector of the books, no chapter kept: what they own says where
+  // they are ("vols. 1–10"), never "not started"
+  const owned = ownedOf(currentManga);
+  const ownedText = owned.length
+    ? `${owned.length === 1 ? "vol." : "vols."} ${rangesText(owned)}`
+    : null;
   const genre =
     currentManga.genre && currentManga.genre !== "unlabled"
       ? currentManga.genre
@@ -126,9 +133,11 @@ export default function MangaCard({
                 ? "to read"
                 : currentManga.bookmark
                   ? `ch. ${currentManga.bookmark}`
-                  : currentManga.status
-                    ? "no chapter saved"
-                    : "not started"}
+                  : ownedText
+                    ? ownedText
+                    : currentManga.status
+                      ? "no chapter saved"
+                      : "not started"}
             </p>
             {/* one line for the rest, so every row is the same height */}
             <div className="flex min-h-[1.2rem] min-w-0 items-center gap-3">
@@ -157,7 +166,7 @@ export default function MangaCard({
                       ? "to read"
                       : currentManga.bookmark
                         ? `ch. ${currentManga.bookmark}`
-                        : null,
+                        : ownedText,
                   currentManga.lightNovel && "light novel",
                   genre,
                 ]
@@ -189,7 +198,12 @@ export default function MangaCard({
           <span className="flex w-32 flex-col justify-center gap-1 text-right font-mono text-[0.82rem] text-ink-soft upto-720:w-[5.5rem]">
             {currentManga.status ? (
               "Finished"
-            ) : knownTotal != null ? (
+            ) : !reading && owned.length ? (
+              // no chapter kept: how many books, not "0 of 143"
+              <span className="whitespace-nowrap">
+                {owned.length} {owned.length === 1 ? "vol" : "vols"}
+              </span>
+            ) : knownTotal != null && reading > 0 ? (
               <>
                 <span className="whitespace-nowrap">
                   {reading} of {knownTotal}

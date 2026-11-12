@@ -10,6 +10,7 @@ import { pricesStyles as styles } from "./styles";
 import { awardsOf, linkRel } from "./offerLabels";
 
 const VISIBLE_OFFERS = 5;
+const FROM_JAPAN = /japan|tokyo|osaka|kyoto|nippon|\bjp\b/i;
 
 const CONDITION: Record<string, string> = {
   new: "New",
@@ -119,6 +120,10 @@ export default function OfferList({
                     ? ` · Vol. ${volume} + more`
                     : " · This vol. + more")}
                 {!o.inStock && " · out of stock"}
+                {/* "japan-market", "wabi-sabi-tokyo": often the Japanese
+                    printing, listed under the English ISBN */}
+                {FROM_JAPAN.test(o.store) &&
+                  " · seller in Japan, may be the Japanese edition"}
               </span>
             </span>
             <span className={styles.offerPrice}>

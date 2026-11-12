@@ -19,6 +19,7 @@ import {
   seriesTitle,
   novelParts,
   timeAgo,
+  olderThanDays,
 } from "../../lib/prices";
 import SeriesFacts from "./SeriesFacts";
 import BackToNew from "./BackToNew";
@@ -274,6 +275,19 @@ export default function PriceVolume() {
   );
   // a seller nobody has heard of: the cheapest at a store people know too
   const knownBest = knownStoreLow(offers);
+  // the series' usual new price, from its other volumes: a headline well
+  // above it says so (a store's odd price, not what the book costs)
+  const others = siblings
+    .filter((v) => v.isbn13 !== book.isbn13 && v.knownPriceCents != null)
+    .map((v) => v.knownPriceCents!)
+    .sort((a, b) => a - b);
+  const usual =
+    others.length >= 3 ? others[Math.floor(others.length / 2)]! : null;
+  const aboveUsual =
+    best && usual != null && best.priceCents >= usual * 1.4 ? usual : null;
+  // an old check, said beside the price it's about
+  const stale =
+    checkedAt && olderThanDays(checkedAt, 3) ? timeAgo(checkedAt) : null;
 
   return (
     <div className="fade-in">
@@ -355,6 +369,15 @@ export default function PriceVolume() {
                   , or <strong>{formatCents(knownBest.priceCents)}</strong> at{" "}
                   {knownBest.store}
                 </>
+              )}
+              {aboveUsual != null && (
+                <span className={styles.bestAside}>
+                  {" "}
+                  · most volumes are about {formatCents(aboveUsual)}
+                </span>
+              )}
+              {stale && (
+                <span className={styles.bestAside}> · checked {stale}</span>
               )}
             </p>
           )}

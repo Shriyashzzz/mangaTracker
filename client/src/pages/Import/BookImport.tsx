@@ -22,6 +22,8 @@ import {
   withVolumes,
   readBooks,
   wrongFile,
+  bookFromScan,
+  isbnOnlyRows,
   type BookSeries,
   type BookSource,
   type FileKind,
@@ -32,6 +34,10 @@ import {
   type ImportFile,
 } from "../../store/bookImport";
 import ImportList from "./ImportList";
+import { getJson } from "../../lib/api";
+
+// ISBN-only rows looked up in one file, at most (the scan allows 60 a minute)
+const MAX_ISBN_LOOKUPS = 50;
 import { importStyles as styles } from "./styles";
 
 const MAX_FILE_BYTES = 20 * 1024 * 1024;
@@ -135,7 +141,7 @@ const HOW: Record<
   },
   csv: {
     // the columns bookImport.ts reads (any of these names, any order)
-    step: "Export your library from your app as a CSV file. It needs a Title column; Series, Volume (or Number), an Owned or Purchased column, Rating and Format help if your app has them. A box set's volumes are asked for if the title doesn't say.",
+    step: "Export your library from your app as a CSV file. It needs a Title or ISBN column; Series, Volume (or Number), an Owned or Purchased column, Rating and Format help if your app has them. A box set's volumes are asked for if the title doesn't say. A Manga Tracker export (Settings) comes back exactly.",
   },
 };
 
@@ -245,6 +251,7 @@ export default function BookImport({ source }: { source: BookSource }) {
     const already = joining ? imported.fileNames : [];
     let kind: FileKind | null = joining ? imported.kind : null;
     const errors: string[] = [];
+    let unknownIsbns = 0;
     const files: ImportFile[] = [];
     // oldest first, so the newest export has the last word on ratings
     const inOrder = [...picked].sort((a, b) => a.lastModified - b.lastModified);
@@ -290,6 +297,16 @@ export default function BookImport({ source }: { source: BookSource }) {
           continue;
         }
         const books = readBooks(rows, source);
+        // rows with only an ISBN are looked up, as a scanned barcode is
+        // (a few at a time, under the scan's own limit)
+        const isbns = isbnOnlyRows(rows).slice(0, MAX_ISBN_LOOKUPS);
+        for (const isbn of isbns) {
+          const scan = await getJson<Parameters<typeof bookFromScan>[0]>(
+            `/api/prices/scan/${isbn}`,
+          ).catch(() => null);
+          if (scan) books.push(bookFromScan(scan));
+          else unknownIsbns++;
+        }
         if (!books.length) {
           errors.push(
             source === "csv" && thisKind === "csv"
@@ -304,6 +321,10 @@ export default function BookImport({ source }: { source: BookSource }) {
         errors.push(`${file.name} couldn't be read. Try exporting it again.`);
       }
     }
+    if (unknownIsbns)
+      errors.push(
+        `${unknownIsbns} ${unknownIsbns === 1 ? "row has" : "rows have"} only an ISBN the book catalog doesn't know. Add ${unknownIsbns === 1 ? "it" : "them"} by title.`,
+      );
     setFileErrors(errors);
     if (!files.length) return;
     if (joining) useBookImport.getState().addFiles(files);
@@ -549,10 +570,11 @@ export default function BookImport({ source }: { source: BookSource }) {
               1) Volumes are grouped by series, so each manga comes in once.
               Ticked: what AniList knows as manga, that you've bought or read.{" "}
               <br />
-              2) Volumes owned is the furthest volume you bought, or read if
-              that's further. <br />
-              3) Chapters start blank, and anything already on your shelf gets
-              skipped.{" "}
+              2) Volumes owned are the ones you bought, gaps and all. A box set
+              or omnibus that doesn't say which volumes it holds is marked to
+              check. <br />
+              3) A series already on your shelf gets the new volumes added.
+              Prices paid and dates bought aren't kept.{" "}
             </p>
 
             {importing ? (

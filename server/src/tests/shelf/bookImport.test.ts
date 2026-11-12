@@ -607,12 +607,14 @@ test("a book app's owned volumes come in exactly, gaps and all", async () => {
   const [run] = groupBooks(owned(["Naruto, Vol. 1", "Naruto, Vol. 2"]));
   expect(toEntry(run!).ownedList).toBeUndefined();
   expect(toEntry(run!).ownedVolumes).toBe(2);
-  // an owned book without a number: the file can't say exactly
+  // an owned book without a number keeps the numbered ones exact, and the
+  // row is asked about (omnibus)
   const [loose] = groupBooks(
     owned(["Berserk, Vol. 3", "Berserk Deluxe Edition"]),
   );
-  expect(loose!.ownedList).toBeNull();
-  expect(toEntry(loose!).ownedList).toBeUndefined();
+  expect(loose!.ownedList).toEqual([3]);
+  expect(loose!.omnibus).toBe(true);
+  expect(toEntry(loose!).ownedList).toEqual([3]);
   // two rows AniList says are one series: their volumes together
   const a = { ...op!, key: "a", ownedList: [1, 4] };
   const b = { ...op!, key: "b", title: "ONE PIECE", ownedList: [6] };
@@ -958,11 +960,11 @@ test("second review: typos, guessed numbers, duplicate editions, overflowing ren
   expect(owned(["Mob Psycho 100 3-in-1"])).toEqual([
     ["Mob Psycho 100", null, false],
   ]);
-  // two editions of vol. 1 are still one volume
+  // a deluxe book holds three: vol. 1 and Deluxe 1 are 1 to 3
   const [berserk] = groupBooks(
     goodreads(["Berserk, Vol. 1", "Berserk Deluxe Edition, Vol. 1"]),
   );
-  expect([berserk!.ownedVolumes, berserk!.ownedList]).toEqual([1, [1]]);
+  expect([berserk!.ownedVolumes, berserk!.ownedList]).toEqual([3, [1, 2, 3]]);
   // DBZ 3-in-1 vol. 9 holds 25-27, past what Viz's numbering maps: left as it is
   expect(owned(["Dragon Ball Z (3-in-1 Edition), Vol. 9"])).toEqual([
     ["Dragon Ball Z", [25, 26, 27], false],
@@ -1104,7 +1106,7 @@ test("a word that ends a real name only counts as an edition before Edition", ()
   expect(
     seriesOf(["Berserk Ultimate Edition, Vol. 2", "Berserk, Vol. 4"]),
   ).toEqual([["Berserk", 4]]);
-  expect(seriesOf(["Berserk Deluxe, Vol. 2"])).toEqual([["Berserk", 2]]);
+  expect(seriesOf(["Berserk Deluxe, Vol. 2"])).toEqual([["Berserk", 6]]);
 });
 
 test("a series named by its subtitle joins the full name in the same file", () => {
@@ -1158,7 +1160,7 @@ test("a subtitle-only name joins only a numbered volume the full series lacks", 
       "Monster: The Perfect Edition, Vol. 1",
       "Monster: The Perfect Edition, Vol. 2",
     ]),
-  ).toEqual([["Monster", 2]]);
+  ).toEqual([["Monster", 4]]);
 });
 
 test("a subtitle-only name in one file joins the full name in another", () => {
@@ -1170,4 +1172,80 @@ test("a subtitle-only name in one file joins the full name in another", () => {
   expect(
     groupBooks(mergeBooks(first, second)).map((s) => [s.title, s.ownedVolumes]),
   ).toEqual([["Junk: Record of the Last Hero", 5]]);
+});
+
+test("editions that hold a set number of volumes count them; other special editions are asked about", () => {
+  const [vinland] = groupBooks(
+    goodreads(["Vinland Saga Book 1", "Vinland Saga Book 2"]),
+  );
+  expect([vinland!.title, vinland!.ownedVolumes]).toEqual(["Vinland Saga", 4]);
+  const [deluxe] = groupBooks(goodreads(["Berserk Deluxe Edition, Vol. 14"]));
+  expect(deluxe!.ownedList).toEqual([40, 41, 42]);
+  const [other] = groupBooks(goodreads(["Uzumaki (Deluxe Edition)"]));
+  expect(other!.omnibus).toBe(true);
+});
+
+test("a box set beside numbered volumes keeps their gaps", () => {
+  const owned = (titles: string[]) =>
+    goodreads(titles).map((b) => ({ ...b, owned: true, read: false }));
+  const [op] = groupBooks(
+    owned([
+      "One Piece, Vol. 1",
+      "One Piece, Vol. 2",
+      "One Piece, Vol. 3",
+      "One Piece, Vol. 104",
+      "One Piece Box Set 1",
+    ]),
+  );
+  expect(op!.ownedList).toEqual([1, 2, 3, 104]);
+  expect(op!.omnibus).toBe(true);
+  expect(toEntry(op!).ownedList).toEqual([1, 2, 3, 104]);
+});
+
+test("vol. 0 and a half volume are owned, not a run up to them", () => {
+  const owned = (titles: string[]) =>
+    goodreads(titles).map((b) => ({ ...b, owned: true, read: false }));
+  const [jjk] = groupBooks(owned(["Jujutsu Kaisen 0", "Jujutsu Kaisen 1"]));
+  expect(jjk!.ownedList).toEqual([0, 1]);
+  expect(toEntry(jjk!).ownedList).toEqual([0, 1]);
+  const [half] = groupBooks(owned(["Naruto, Vol. 10.5"]));
+  expect([half!.ownedVolumes, half!.ownedList]).toEqual([0, [10.5]]);
+});
+
+test("Manga Tracker's own export comes back exactly", () => {
+  const rows = parseCsv(
+    [
+      "Title,Type,Status,Chapter,Owned volumes,Rating,Genre,Notes",
+      '"One Piece","Manga","Reading","1100","1–3, 104","4","Action","box set too"',
+      '"Berserk","Manga","Finished","","1–42","5","",""',
+      '"Frieren","Manga","To read","","","","",""',
+      '"Overlord","Light novel","Reading","","1–5","","",""',
+    ].join("\n"),
+  );
+  const series = groupBooks(readBooks(rows, "csv"));
+  const by = Object.fromEntries(series.map((s) => [s.key, s]));
+  expect(by["one piece"]!.ownedList).toEqual([1, 2, 3, 104]);
+  expect(toEntry(by["one piece"]!)).toMatchObject({
+    chapters: 1100,
+    ownedList: [1, 2, 3, 104],
+    comments: "box set too",
+    finished: false,
+  });
+  expect(toEntry(by["berserk"]!)).toMatchObject({
+    finished: true,
+    ownedVolumes: 42,
+  });
+  expect(by["frieren"]!.planned).toBe(true);
+  expect(by["overlord (light novel)"]!.lightNovel).toBe(true);
+  // the older export wrote a run from 1 as its number
+  const older = parseCsv(
+    [
+      "Title,Type,Status,Chapter,Volumes owned,Rating,Genre,Notes",
+      '"One Piece","Manga","Reading","0","104","","",""',
+      '"Conan","Manga","Reading","0","1, 90","","",""',
+    ].join("\n"),
+  );
+  const [op, conan] = groupBooks(readBooks(older, "csv"));
+  expect(op!.ownedVolumes).toBe(104);
+  expect(conan!.ownedList).toEqual([1, 90]);
 });

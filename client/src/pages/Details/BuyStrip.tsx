@@ -1,6 +1,7 @@
 import { NavLink } from "react-router";
 import { formatCents, seriesPath, volumePath } from "../../lib/prices";
 import { finishMoney } from "../../lib/finishCost";
+import { onSale } from "../../lib/releaseDate";
 import { detailsStyles as styles } from "./styles";
 import type { SeriesVolume } from "../../lib/types";
 import type { BuyOptions } from "./useBuyOptions";
@@ -23,6 +24,8 @@ const GAPS_SHOWN = 6;
 export default function BuyStrip({ options, hideNext }: Props) {
   const { loading, volumes, latest, next, caughtUp, finish, seriesName, gaps } =
     options;
+  const outCount = onSale(volumes).length;
+  const coming = volumes.length - outCount;
 
   if (loading) {
     return <div className={`skeleton ${styles.buySkeleton}`} aria-hidden />;
@@ -128,7 +131,10 @@ export default function BuyStrip({ options, hideNext }: Props) {
         to={seriesPath(seriesName)}
         viewTransition
       >
-        {volumes.length === 1 ? "The series" : `All ${volumes.length} volumes`}{" "}
+        {/* out now, as the shelf's "of 15" counts them; preorders apart */}
+        {outCount <= 1 && !coming
+          ? "The series"
+          : `All ${outCount} volumes${coming ? ` + ${coming} coming` : ""}`}{" "}
         →
       </NavLink>
     </section>

@@ -2,13 +2,17 @@
 // what AniList found and Edit, grouped once matching is done (what needs a look
 // first: not on AniList, couldn't check, omnibus editions, then found). Each
 // group opens and closes; a row moved by Edit opens the group it lands in.
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { useShelf } from "../../store/shelf";
 import { ChevronDownIcon, InfoIcon } from "../../components/icons/Icons";
 import { ownedPhrase } from "../../lib/ownedVolumes";
 import { editOf, gapsIn, type BookSeries } from "../../lib/imports/bookImport";
 import { useBookImport, type Match } from "../../store/bookImport";
 import MatchModal from "./MatchModal";
 import { importStyles as styles } from "./styles";
+
+const shelfKey = (name: string) =>
+  name.toLowerCase().replace(/[^\p{L}\p{N}]+/gu, "");
 
 export default function ImportList({
   found,
@@ -36,6 +40,21 @@ export default function ImportList({
   const { edits } = imported;
   // the row whose Edit is open
   const [editing, setEditing] = useState<BookSeries | null>(null);
+  // what's on their shelf already: those rows add volumes to it (names
+  // compared as the shelf compares them, case and punctuation aside)
+  const shelf = useShelf((st) => st.manga);
+  useEffect(() => {
+    if (!shelf) void useShelf.getState().load();
+  }, [shelf]);
+  const onShelf = useMemo(
+    () =>
+      new Set(
+        (shelf ?? []).map(
+          (m) => `${shelfKey(m.name)}:${Boolean(m.lightNovel)}`,
+        ),
+      ),
+    [shelf],
+  );
 
   // one row: its tick, its name and what was found, and Edit beside it
   const seriesRow = (s: BookSeries) => {
@@ -89,6 +108,13 @@ export default function ImportList({
                 Omnibus editions: check the volume count with Edit
               </span>
             )}
+            {match &&
+              match !== "failed" &&
+              onShelf.has(`${shelfKey(name)}:${s.lightNovel}`) && (
+                <span className={styles.seriesMeta}>
+                  Already on your shelf: new volumes are added to it
+                </span>
+              )}
             {edited && (
               <span className={styles.seriesMeta + " " + styles.edited}>
                 Edited by you

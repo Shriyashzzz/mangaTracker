@@ -92,6 +92,9 @@ export function AddManga() {
     return () => controller.abort();
   }, [chosen, title, isSignedIn]);
   const formatTouched = useRef(novelFromPrices);
+  // "978-1-4215-3444-2" typed as a title
+  const digits = title.replace(/[\s-]/g, "");
+  const typedIsbn = /^(97[89]\d{10}|\d{9}[\dXx])$/.test(digits) ? digits : null;
   const [genreFromAniList, setGenreFromAniList] = useState(false);
   // a genre the user picked by hand is never overwritten by a match
   const genreTouched = useRef(false);
@@ -304,6 +307,17 @@ export function AddManga() {
             {fieldErrors.title ? (
               <p id="name-error" className={styles.fieldError}>
                 {fieldErrors.title}
+              </p>
+            ) : typedIsbn ? (
+              // a barcode's number, not a name: the scanner knows what it is
+              <p className={styles.alreadyNote} role="status">
+                That's an ISBN.{" "}
+                <NavLink
+                  to={`/shelf?scan=${typedIsbn}`}
+                  className={styles.textLink}
+                >
+                  Add the book it belongs to
+                </NavLink>
               </p>
             ) : (
               <p className={styles.hint}>

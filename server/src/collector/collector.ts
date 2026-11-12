@@ -138,7 +138,13 @@ export async function getCalendar(userId: number) {
         owned: u.volume !== null && mine.has(u.volume),
       }));
     })
-    .sort((a, b) => a.published.localeCompare(b.published));
+    .sort((a, b) => a.published.localeCompare(b.published))
+    // one series on the shelf twice lists its volumes once (owned in either)
+    .filter((e, i, all) => {
+      const first = all.findIndex((o) => o.isbn13 === e.isbn13);
+      if (first !== i) all[first]!.owned ||= e.owned;
+      return first === i;
+    });
   const months = new Map<string, CalendarEntry[]>();
   for (const e of entries)
     months.set(e.month, [...(months.get(e.month) ?? []), e]);

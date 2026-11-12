@@ -56,7 +56,14 @@ const landed = (row: Row) =>
   !row.undone &&
   (row.result?.kind === "marked" || row.result?.kind === "added");
 
-export default function ScanSheet({ onClose }: { onClose: () => void }) {
+export default function ScanSheet({
+  onClose,
+  isbn: firstIsbn,
+}: {
+  onClose: () => void;
+  // typed into the add form's title box: looked up as soon as it opens
+  isbn?: string;
+}) {
   const navigate = useNavigate();
   const dialog = useRef<HTMLDialogElement>(null);
   const video = useRef<HTMLVideoElement>(null);
@@ -157,6 +164,12 @@ export default function ScanSheet({ onClose }: { onClose: () => void }) {
         beep(sound.current);
     });
   }, []);
+
+  useEffect(() => {
+    if (!firstIsbn) return;
+    const soon = window.setTimeout(() => read(firstIsbn));
+    return () => clearTimeout(soon);
+  }, [firstIsbn, read]);
 
   // a price barcode, not the book's: said for a few seconds, not every frame
   const otherBarcode = useCallback(() => {

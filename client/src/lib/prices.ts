@@ -102,6 +102,10 @@ const usd = new Intl.NumberFormat("en-US", {
 export const formatCents = (cents: number) => usd.format(cents / 100);
 
 const rtf = new Intl.RelativeTimeFormat("en", { numeric: "auto" });
+// a check older than this many days
+export const olderThanDays = (date: string, days: number) =>
+  Date.now() - Date.parse(date) > days * 86_400_000;
+
 export function timeAgo(date: string | Date) {
   const minutes = Math.round((new Date(date).getTime() - Date.now()) / 60000);
   if (Math.abs(minutes) < 60) return rtf.format(minutes, "minute");
