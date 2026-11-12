@@ -16,10 +16,20 @@ type Props = {
   data: ReleaseData | null;
   // a volume that's for sale in English; there's nowhere to send a chapter
   buy: { to: string; label: string } | null;
+  // an English volume's bar opens to English releases only, each a way to
+  // its prices, and the series' price page. Japan's dates are the Japan
+  // edition's own bar, never mixed in here
+  english?: { groups: Group[]; all: { to: string; label: string } } | null;
 };
 
-type Row = { what: string; when: string; estimate?: boolean };
-type Group = { title: string; rows: Row[] };
+// `to`: the volume's price page
+export type Row = {
+  what: string;
+  when: string;
+  estimate?: boolean;
+  to?: string;
+};
+export type Group = { title: string; rows: Row[] };
 
 // the newest volume we have a date for
 const newestDatedVolume = (data: ReleaseData | null): Row | null => {
@@ -91,30 +101,6 @@ const groupsFrom = (
     { title: inJapanToo ? "Further ahead in Japan" : "Out now", rows: outNow },
     { title: inJapanToo ? "Next in Japan" : "Coming up", rows: comingUp },
   ].filter((group) => group.rows.length > 0);
-  // an English volume with nothing further on in Japan (a finished series,
-  // or English has caught up): the bar still opens, and says so, with when
-  // this volume first came out in Japan if we know
-  if (!groups.length && inJapanToo && Number.isFinite(headline)) {
-    const first = (data?.volume ?? [])
-      .filter((v) => Number(v.volume) === headline && v.releaseDate)
-      .map((v) => v.releaseDate!)
-      .sort()[0];
-    const when = formatReleaseDate(first);
-    return [
-      {
-        title: "In Japan",
-        rows: [
-          ...(when ? [{ what: `Vol. ${headline}`, when }] : []),
-          {
-            what: "Further ahead",
-            when: data?.seriesFinished
-              ? "Nothing: the series has ended"
-              : "Nothing newer yet",
-          },
-        ],
-      },
-    ];
-  }
   return groups;
 };
 
@@ -127,17 +113,23 @@ export default function ReleaseBar({
   yours,
   data,
   buy,
+  english,
 }: Props) {
   const [open, setOpen] = useState(false);
   const datesId = useId();
-  const groups = groupsFrom(
-    data,
-    kind,
-    inJapan,
-    // the number, not the "." in "Vol."
-    Number(what.match(/\d+(?:\.\d+)?/)?.[0] ?? NaN),
-  );
-  const hasDates = groups.length > 0;
+  // the number, not the "." in "Vol."
+  const headlineNumber = Number(what.match(/\d+(?:\.\d+)?/)?.[0] ?? NaN);
+  const groups = english
+    ? [
+        ...english.groups,
+        // the chapters too, when we know them: never Japan's volumes
+        ...groupsFrom(data, "chapter", false, NaN).map((g) => ({
+          ...g,
+          title: g.title === "Out now" ? "Latest chapter" : "Next chapter",
+        })),
+      ]
+    : groupsFrom(data, kind, inJapan, headlineNumber);
+  const hasDates = groups.length > 0 || Boolean(english);
   const headline = (
     <span className={styles.releaseHeadline}>{what} is out!</span>
   );
@@ -209,7 +201,17 @@ export default function ReleaseBar({
               <h3 className={styles.releaseGroupTitle}>{group.title}</h3>
               {group.rows.map((row) => (
                 <p key={row.what} className={styles.releaseRow}>
-                  <span className={styles.releaseWhat}>{row.what}</span>
+                  {row.to ? (
+                    <NavLink
+                      className={`${styles.releaseWhat} ${styles.releaseLink}`}
+                      to={row.to}
+                      viewTransition
+                    >
+                      {row.what}
+                    </NavLink>
+                  ) : (
+                    <span className={styles.releaseWhat}>{row.what}</span>
+                  )}
                   <span className={styles.releaseWhen}>
                     {row.when}
                     {row.estimate && (
@@ -220,6 +222,15 @@ export default function ReleaseBar({
               ))}
             </div>
           ))}
+          {english && (
+            <NavLink
+              className={styles.releaseAll}
+              to={english.all.to}
+              viewTransition
+            >
+              {english.all.label} →
+            </NavLink>
+          )}
         </div>
       )}
     </section>

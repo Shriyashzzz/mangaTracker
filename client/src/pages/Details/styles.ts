@@ -106,6 +106,12 @@ export const detailsStyles = {
   releaseGroupTitle: "mb-1 font-mono text-[0.75rem] font-normal text-muted",
   releaseRow: "flex items-baseline justify-between gap-3 py-0.5",
   releaseWhat: "font-semibold whitespace-nowrap",
+  // a volume's name as the way to its prices
+  releaseLink:
+    "tap underline decoration-accent decoration-2 underline-offset-3 hover:text-accent",
+  // every volume and its prices, under the list
+  releaseAll:
+    "tap mt-2 inline-block text-[0.9rem] font-medium underline decoration-line-soft underline-offset-3 hover:decoration-current",
   releaseWhen: "text-right text-[0.92rem] text-ink-soft",
   releaseEstimate: "ml-1.5 font-mono text-[0.75rem] text-muted",
   label: "mb-[0.3rem] block font-mono text-[0.75rem] text-muted",

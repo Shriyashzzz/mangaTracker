@@ -21,7 +21,13 @@ import ReleaseBar from "./ReleaseBar";
 import ChapterStepper from "./ChapterStepper";
 import { useBuyOptions } from "./useBuyOptions";
 import { useOwnedVolumes } from "./useOwnedVolumes";
-import { formatCents, priceName, volumePath } from "../../lib/prices";
+import {
+  formatCents,
+  priceName,
+  seriesPath,
+  volumePath,
+} from "../../lib/prices";
+import { formatReleaseDate } from "../../lib/releaseDates";
 
 const DIDNT_SAVE = "That didn't save. Try again.";
 // the shelf's least width beside the title, so its caption reads in a line or two
@@ -379,6 +385,72 @@ export default function Details() {
               : `Buy for ${price}`;
           })(),
         };
+  // what the bar opens to on an English volume: English releases only, each
+  // a way to its prices. What's out past the furthest they own (a few, then
+  // the rest behind one link), and what's coming with its date
+  const BAR_ROWS = 6;
+  // "2026-12-22" is that day wherever they are (read at noon, so no time
+  // zone moves it to the 21st); a month alone is "Mar 2027"
+  const preorderDay = (published?: string | null) => {
+    if (!published) return "";
+    if (/^\d{4}-\d{2}-\d{2}$/.test(published))
+      return formatReleaseDate(`${published}T12:00:00`) ?? published;
+    const [y, m] = published.split("-").map(Number);
+    return y && m
+      ? `${new Date(y, m - 1, 1).toLocaleString("en-US", { month: "short" })} ${y}`
+      : published;
+  };
+  const pastMine = buyOptions.volumes
+    .filter((v) => Number.isInteger(v.volume) && v.volume > highestOwned)
+    .sort((a, b) => a.volume - b.volume);
+  const outPast = onSale(pastMine);
+  const comingPast = pastMine.filter((v) => !outPast.includes(v));
+  const seriesTo = seriesPath(
+    buyOptions.seriesName || (mangaData ? priceName(mangaData) : ""),
+  );
+  const barRow = (v: (typeof pastMine)[number], when: string) => ({
+    what: `Vol. ${v.volume}`,
+    when,
+    to: volumePath(v.isbn13, v.title),
+  });
+  const barEnglish =
+    sellsVolume || outPast.length || comingPast.length
+      ? {
+          groups: [
+            {
+              title: "Out in English",
+              rows: [
+                ...outPast
+                  .slice(0, BAR_ROWS)
+                  .map((v) =>
+                    barRow(
+                      v,
+                      v.knownPriceCents != null
+                        ? `from ${formatCents(v.knownPriceCents)}`
+                        : "Check price",
+                    ),
+                  ),
+                ...(outPast.length > BAR_ROWS
+                  ? [
+                      {
+                        what: `+${outPast.length - BAR_ROWS} more`,
+                        when: "See them all",
+                        to: `${seriesTo}&toget=1`,
+                      },
+                    ]
+                  : []),
+              ],
+            },
+            {
+              title: "Preorder in English",
+              rows: comingPast
+                .slice(0, BAR_ROWS)
+                .map((v) => barRow(v, preorderDay(v.published))),
+            },
+          ].filter((g) => g.rows.length > 0),
+          all: { to: seriesTo, label: "Every volume and its prices" },
+        }
+      : null;
   // no need to sell it twice, unless it's the only ticket there is
   const hideNextTicket = Boolean(
     barBuy &&
@@ -486,6 +558,9 @@ export default function Details() {
               yours={release.yours || null}
               data={releaseData}
               buy={barBuy}
+              english={
+                release.kind === "volume" && !inJapan ? barEnglish : null
+              }
             />
           )}
 
