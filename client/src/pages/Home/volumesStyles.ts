@@ -79,7 +79,6 @@ export const volumesStyles = {
     "tap min-w-0 truncate text-right text-ink-soft underline decoration-line-soft underline-offset-3 hover:text-ink hover:decoration-current focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent focus-visible:outline-dashed",
   finishPrice: "font-mono font-semibold text-ink tabular-nums",
   unpriced: "mt-2 text-[0.84rem] text-ink-soft",
-  unpricedVols: "font-mono text-ink",
 
   empty:
     "mx-auto my-6 flex max-w-[460px] flex-col items-center gap-2 border-[1.5px] border-dashed border-line-soft p-8 text-center",
