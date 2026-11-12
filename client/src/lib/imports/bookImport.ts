@@ -2,7 +2,7 @@
 // browser, so the file never leaves their computer. Book apps list every volume
 // as its own book; the shelf has one entry per series, so volumes are grouped by
 // series first. Kept free of the DOM so it can be tested on its own.
-import { ownedVolumes } from "../ownedVolumes";
+import { ownedVolumes, parseVolumes } from "../ownedVolumes";
 import type { MalEntry } from "./malImport";
 
 export type BookSource = "goodreads" | "bookcatalogue" | "csv";
@@ -33,6 +33,10 @@ export type Book = {
   planned: boolean;
   // the title says so: "Overlord, Vol. 1 (light novel)"
   lightNovel: boolean;
+  // only Manga Tracker's own export says these (ownExportBooks)
+  finished?: boolean;
+  chapter?: number;
+  notes?: string;
 };
 
 export type BookSeries = {
@@ -57,6 +61,10 @@ export type BookSeries = {
   // a row that is several series AniList says are one (mergeSameSeries):
   // every one's key, its own first
   members?: string[];
+  // from Manga Tracker's own export: finished, the chapter they're on, notes
+  finished?: boolean;
+  chapters?: number;
+  notes?: string;
 };
 
 // ---------- CSV ----------
@@ -544,6 +552,56 @@ function bookshelfAppBook(h: string[], row: string[]): Book | null {
   };
 }
 
+// Manga Tracker's own export (Settings, shelfToCsv): one row a series. Read
+// back exactly, so an export is a backup: each owned volume becomes a book,
+// with the series' status, chapter and notes. "Owned volumes" always lists
+// them ("1–5, 8"); the older "Volumes owned" wrote a run from 1 as its number
+export const isOwnExport = (headers: string[]) =>
+  ["Title", "Type", "Status", "Chapter"].every((c) => headers.includes(c)) &&
+  (headers.includes("Owned volumes") || headers.includes("Volumes owned"));
+
+function ownExportBooks(h: string[], row: string[]): Book[] {
+  const title = tidyName(cell(row, header(h, /^Title$/)));
+  if (!title) return [];
+  const exact = header(h, /^Owned volumes$/);
+  const text = cell(row, exact >= 0 ? exact : header(h, /^Volumes owned$/));
+  const bare = /^\d{1,3}$/.test(text) && exact < 0;
+  const volumes = bare
+    ? Array.from({ length: Number(text) }, (_, i) => i + 1)
+    : (parseVolumes(text) ?? []);
+  const status = cell(row, header(h, /^Status$/)).toLowerCase();
+  const chapter = Math.max(
+    0,
+    Math.floor(count(cell(row, header(h, /^Chapter$/)))),
+  );
+  const lightNovel = /novel/i.test(cell(row, header(h, /^Type$/)));
+  const base = {
+    series: title,
+    names: [title],
+    owned: true,
+    read: false,
+    reading: false,
+    rating: stars(cell(row, header(h, /^Rating$/))),
+    planned: false,
+    lightNovel,
+    finished: status === "finished",
+    chapter,
+    notes: cell(row, header(h, /^Notes$/)).slice(0, 450) || undefined,
+  };
+  if (!volumes.length)
+    return [
+      {
+        ...base,
+        title,
+        volume: null,
+        owned: false,
+        planned: status === "to read",
+      },
+    ];
+  return volumes.map((v) => ({ ...base, title: `${title} #${v}`, volume: v }));
+}
+const tidyName = (name: string) => name.replace(/\s+/g, " ").trim();
+
 // any other app: whichever columns look right. No owned column means it's a
 // list of books they have
 function csvBook(h: string[], row: string[]): Book | null {
@@ -596,6 +654,45 @@ function csvBook(h: string[], row: string[]): Book | null {
     ),
   };
 }
+
+// rows with an ISBN and no title (a scanner app's list): the ISBNs, to be
+// looked up as a barcode is (bookFromScan). Any app's file
+export function isbnOnlyRows(rows: string[][]): string[] {
+  const [headers = [], ...body] = rows;
+  const h = headers.map((x) => x.trim());
+  const titleAt = header(h, /^(title|book ?title|name)$/i, /title/i);
+  const isbnAt = header(h, /^isbn ?(13)?$/i, /isbn/i);
+  if (isbnAt < 0) return [];
+  return [
+    ...new Set(
+      body.flatMap((row) => {
+        if (titleAt >= 0 && cell(row, titleAt)) return [];
+        const isbn = cell(row, isbnAt).replace(/[^0-9Xx]/g, "");
+        return /^(97[89]\d{10}|\d{9}[\dXx])$/.test(isbn) ? [isbn] : [];
+      }),
+    ),
+  ];
+}
+
+// a looked-up ISBN as a book of the file: owned, with every volume it holds
+export const bookFromScan = (scan: {
+  shelfName: string;
+  volume: number;
+  volumes: number[];
+  lightNovel: boolean;
+}): Book => ({
+  title: `${scan.shelfName} #${scan.volume}`,
+  series: scan.shelfName,
+  names: [scan.shelfName],
+  volume: scan.volume,
+  ...(scan.volumes.length > 1 ? { holds: scan.volumes } : {}),
+  owned: true,
+  read: false,
+  reading: false,
+  rating: 0,
+  planned: false,
+  lightNovel: scan.lightNovel,
+});
 
 // ---------- books that hold several volumes ----------
 
@@ -682,7 +779,79 @@ const cutTo = (book: Book, before: string): Partial<Book> => {
     : {};
 };
 
+// editions whose books each hold a fixed number of the series' volumes, with
+// nothing in the title saying which: "Berserk Deluxe Edition, Vol. 2" is 4 to
+// 6. Any other deluxe, perfect or collector's edition is asked about, like an
+// omnibus, as its number isn't a volume's
+const EDITIONS: {
+  series: RegExp;
+  edition: RegExp;
+  perBook: number;
+  books: number;
+  volumes: number;
+}[] = [
+  {
+    series: /^berserk$/,
+    edition: /\bdeluxe\b/i,
+    perBook: 3,
+    books: 14,
+    volumes: 42,
+  },
+  {
+    series: /^vinland saga$/,
+    edition: /\bbook\b|\bhardcover\b/i,
+    perBook: 2,
+    books: 7,
+    volumes: 14,
+  },
+  {
+    series: /^monster$/,
+    edition: /\bperfect edition\b/i,
+    perBook: 2,
+    books: 9,
+    volumes: 18,
+  },
+  {
+    series: /^fruits basket$/,
+    edition: /\bcollector'?s edition\b/i,
+    perBook: 2,
+    books: 12,
+    volumes: 23,
+  },
+];
+const SPECIAL_EDITION =
+  /\b(deluxe|perfect edition|collector'?s edition|fullmetal edition|master edition)\b/i;
+
+export function editionVolumes(
+  series: string,
+  title: string,
+  volume: number | null,
+): { holds: number[] } | { omnibus: true } | null {
+  const key = seriesKey(series);
+  const known = EDITIONS.find(
+    (e) => e.series.test(key) && e.edition.test(title),
+  );
+  if (known && volume && Number.isInteger(volume) && volume <= known.books) {
+    const from = (volume - 1) * known.perBook + 1;
+    const to = Math.min(volume * known.perBook, known.volumes);
+    return {
+      holds: Array.from({ length: to - from + 1 }, (_, i) => from + i),
+    };
+  }
+  return SPECIAL_EDITION.test(title) ? { omnibus: true } : null;
+}
+
 const withVolumesInside = (book: Book): Book => {
+  const edition = editionVolumes(book.series, book.title, book.volume);
+  if (edition && "holds" in edition)
+    return {
+      ...book,
+      volume: edition.holds[0]!,
+      holds: edition.holds,
+      guessed: undefined,
+    };
+  if (edition)
+    return { ...book, volume: null, omnibus: true, guessed: undefined };
   // a number only guessed from the end of the title ("Mob Psycho 100 3-in-1")
   // may be the name's, so it isn't taken as an omnibus' number. Right after
   // "Omnibus" it is the omnibus': "Negima! Omnibus 9"
@@ -724,7 +893,7 @@ const RENUMBERED: Record<
 > = { "dragon ball z": { series: "Dragon Ball", after: 16, upTo: 26 } };
 const renumbered = (book: Book): Book => {
   const to = book.lightNovel ? undefined : RENUMBERED[seriesKey(book.series)];
-  const held = book.holds ?? (book.volume ? [book.volume] : []);
+  const held = book.holds ?? (book.volume != null ? [book.volume] : []);
   if (!to || !held.length || Math.max(...held) > to.upTo) return book;
   return {
     ...book,
@@ -768,7 +937,7 @@ function confirmTrailingNumbers(books: Book[]): Book[] {
       // a light novel's names are its own: a manga never joins one
       const k = `${formatOf(book)}:${seriesKey(name)}`;
       const at = volumesBy.get(k) ?? { name, volumes: new Set<number>() };
-      for (const v of book.holds ?? (book.volume ? [book.volume] : []))
+      for (const v of book.holds ?? (book.volume != null ? [book.volume] : []))
         at.volumes.add(v);
       volumesBy.set(k, at);
     }
@@ -824,7 +993,8 @@ function joinSubtitleNames(books: Book[]): Book[] {
     for (const name of b.names) {
       const k = at(b, name);
       const v = volumes.get(k) ?? { name, held: new Set<number>() };
-      for (const n of b.holds ?? (b.volume ? [b.volume] : [])) v.held.add(n);
+      for (const n of b.holds ?? (b.volume != null ? [b.volume] : []))
+        v.held.add(n);
       volumes.set(k, v);
       const after = /^[^:]+:\s*(.+)$/.exec(name)?.[1];
       if (after)
@@ -877,6 +1047,9 @@ const realNames = (book: Book): Book => {
 export function readBooks(rows: string[][], source: BookSource): Book[] {
   const [headers = [], ...body] = rows;
   const h = headers.map((x) => x.trim());
+  // their own backup: read as written, nothing guessed
+  if (source === "csv" && isOwnExport(h))
+    return body.flatMap((row) => ownExportBooks(h, row));
   const toBook =
     source === "goodreads"
       ? goodreadsBook
@@ -1043,21 +1216,31 @@ export function groupBooks(everyBook: Book[]): BookSeries[] {
     const title = ranked[0]?.name ?? list[0]!.series;
     const lightNovel = list[0]!.lightNovel;
     const key = seriesKey(title);
-    const volumesOf = (b: Book) => b.holds ?? (b.volume ? [b.volume] : []);
+    const volumesOf = (b: Book) =>
+      b.holds ?? (b.volume != null ? [b.volume] : []);
+    // the furthest whole volume; a 10.5 or a vol. 0 is owned, not a run
     const furthest = (picked: Book[]) => {
       const numbered = picked.flatMap(volumesOf);
+      const whole = numbered.filter((v) => Number.isInteger(v) && v >= 1);
       return Math.floor(
-        numbered.length ? Math.max(...numbered) : picked.length,
+        whole.length ? Math.max(...whole) : numbered.length ? 0 : picked.length,
       );
     };
     const owned = furthest(list.filter((b) => b.owned));
     const ownedBooks = list.filter((b) => b.owned);
-    const ownedList = ownedBooks.every((b) => b.volume != null)
-      ? [...new Set(ownedBooks.flatMap(volumesOf))].sort((a, b) => a - b)
-      : null;
+    // the numbered ones exactly, gaps and all, even beside a box set that
+    // doesn't say what it holds (that one is asked about: omnibus). Null only
+    // when no owned book has a number
+    const numberedOwned = ownedBooks.filter((b) => b.volume != null);
+    const ownedList =
+      numberedOwned.length || !ownedBooks.length
+        ? [...new Set(numberedOwned.flatMap(volumesOf))].sort((a, b) => a - b)
+        : null;
     // on vol. 5 now means 1 to 4 are read, marked or not
     const readingFrom = list.flatMap((b) =>
-      b.reading && b.volume ? [Math.floor(b.volume) - 1] : [],
+      b.reading && b.volume != null
+        ? [Math.max(0, Math.floor(b.volume) - 1)]
+        : [],
     );
     const read = Math.max(furthest(list.filter((b) => b.read)), ...readingFrom);
     const rated = list.filter((b) => b.rating > 0);
@@ -1086,6 +1269,14 @@ export function groupBooks(everyBook: Book[]): BookSeries[] {
       planned: list.every((b) => b.planned),
       lightNovel,
       ...(list.some((b) => b.omnibus) ? { omnibus: true } : {}),
+      // their own export's (ownExportBooks)
+      ...(list.some((b) => b.finished) ? { finished: true } : {}),
+      ...(list.some((b) => b.chapter)
+        ? { chapters: Math.max(...list.map((b) => b.chapter ?? 0)) }
+        : {}),
+      ...(list.find((b) => b.notes)
+        ? { notes: list.find((b) => b.notes)!.notes }
+        : {}),
     };
   });
 }
@@ -1199,7 +1390,8 @@ export function withoutSpinOffs<
 
 // what they changed on a series with Edit, before adding: the series they
 // chose themselves (null: not on AniList), and how many volumes they own
-export type EditOf<M> = { match?: M | null; volumes?: number };
+// `list`: exactly which, when they typed some with gaps ("1-23, 104")
+export type EditOf<M> = { match?: M | null; volumes?: number; list?: number[] };
 
 // the matches as they've edited them: their choice of series in place of the
 // import's, then the spin-off check over the lot, so a spin-off is judged
@@ -1227,18 +1419,18 @@ export const editOf = <E>(s: BookSeries, edits: Map<string, E>) =>
 // larger of the two. Volumes owned means it's no longer only on a to-read list
 export function withVolumes(
   s: BookSeries,
-  edits: Map<string, { volumes?: number }>,
+  edits: Map<string, { volumes?: number; list?: number[] }>,
 ): BookSeries {
-  const volumes = editOf(s, edits)?.volumes;
-  return volumes === undefined
-    ? s
-    : {
-        ...s,
-        ownedVolumes: volumes,
-        ownedList: null,
-        omnibus: false,
-        planned: s.planned && volumes === 0,
-      };
+  const edit = editOf(s, edits);
+  if (edit?.volumes === undefined) return s;
+  const list = edit.list?.length ? edit.list : null;
+  return {
+    ...s,
+    ownedVolumes: edit.volumes,
+    ownedList: list,
+    omnibus: false,
+    planned: s.planned && edit.volumes === 0 && !list,
+  };
 }
 
 // rows AniList says are one series (its English and romaji names, "Hunter x
@@ -1287,10 +1479,11 @@ export const toEntry = (
   ...(match?.malId ? { malId: match.malId } : {}),
   ...(match?.cover ? { cover: match.cover } : {}),
   title: s.title.slice(0, 300),
-  finished: false,
+  finished: Boolean(s.finished),
   ...(s.planned ? { planned: true } : {}),
   ...(s.lightNovel ? { lightNovel: true } : {}),
-  chapters: 0,
+  chapters: s.chapters ?? 0,
+  ...(s.notes ? { comments: s.notes } : {}),
   readVolumes: s.readVolumes,
   ownedVolumes: s.ownedVolumes,
   // only with gaps: a run from 1 is what ownedVolumes says already, and keeps

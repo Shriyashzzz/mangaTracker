@@ -70,6 +70,7 @@ import {
 } from "./sources/googleBooksCatalog.js";
 import { notOutYet } from "./preorder.js";
 import { publisherOf } from "./publishers.js";
+import { editionVolumes, withoutEdition } from "../util/shelf/editions.js";
 
 export { searchSeries };
 
@@ -540,7 +541,14 @@ export async function getVolumePrices(
 export async function lookupScannedIsbn(isbn13: string) {
   const book = await getOrCreateBook(isbn13);
   if (!book) return null;
-  const named = seriesName(book.title);
+  // "Berserk Deluxe Edition, Vol. 2" is Berserk, and vols 4 to 6
+  const fullName = seriesName(book.title);
+  const named = withoutEdition(fullName);
+  const inEdition = editionVolumes(
+    fullName,
+    book.title,
+    titleVolume(book.title),
+  );
   // a book holding several volumes ("Vinland Saga, Book 9"): the series'
   // list says which, and every one of them goes on the shelf
   const inBook =
@@ -551,7 +559,7 @@ export async function lookupScannedIsbn(isbn13: string) {
         )?.inBook ?? null);
   // an omnibus ("One Piece, Vol. 1 (Romance Dawn / … )" is vols 1 to 3):
   // every volume in it, or nothing at all when it can't say which
-  const omnibus = inBook ? null : omnibusVolumes(book.title);
+  const omnibus = inBook ? null : (inEdition ?? omnibusVolumes(book.title));
   if (omnibus && !omnibus.length) return null;
   const volume = inBook
     ? inBook.from

@@ -1,5 +1,5 @@
 // The account's own details, and shared lists.
-import { rangesText } from "./ownedVolumes";
+import { ownedOf, rangesText } from "./ownedVolumes";
 import { apiFetch, errorMessages, getJson } from "./api";
 import { SORT_OPTIONS } from "./shelf";
 import type { Manga } from "./types";
@@ -80,7 +80,7 @@ export const shelfToCsv = (manga: Manga[]) =>
       "Type",
       "Status",
       "Chapter",
-      "Volumes owned",
+      "Owned volumes",
       "Rating",
       "Genre",
       "Notes",
@@ -90,8 +90,9 @@ export const shelfToCsv = (manga: Manga[]) =>
       m.lightNovel ? "Light novel" : "Manga",
       m.status ? "Finished" : m.planned ? "To read" : "Reading",
       m.bookmark,
-      // "1, 4" when they own some with gaps, otherwise the furthest, as ever
-      m.ownedList?.length ? rangesText(m.ownedList) : m.volumesOwned,
+      // every one they own, as ranges ("1–5, 8"), so the import reads it back
+      // exactly (bookImport isOwnExport)
+      rangesText(ownedOf(m)),
       m.rating,
       m.genre,
       m.description,

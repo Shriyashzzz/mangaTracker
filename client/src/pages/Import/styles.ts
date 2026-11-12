@@ -64,7 +64,7 @@ export const importStyles = {
   selectAll:
     "tap min-h-9 text-[0.85rem] font-medium text-ink-soft underline decoration-line-soft underline-offset-3 hover:text-ink hover:decoration-current disabled:cursor-default disabled:opacity-50 disabled:no-underline",
   seriesList:
-    "mt-1 max-h-[min(60vh,32rem)] overflow-y-auto border-t-[1.5px] border-line-soft",
+    "mt-1 max-h-[min(60vh,32rem)] overflow-y-auto border-t-[1.5px] border-line-soft upto-720:max-h-none upto-720:overflow-visible",
   // a group's heading inside the list, kept in view while its rows scroll
   groupHead:
     "sticky top-0 z-1 flex items-center pr-1.5 border-b-[1.5px] border-line-soft bg-card font-mono text-[0.78rem] tracking-[0.06em] text-ink-soft uppercase",
@@ -124,7 +124,7 @@ export const importStyles = {
   modalNone:
     "tap min-h-12 w-full px-2 py-2 text-left text-[0.9rem] font-medium text-ink-soft transition-colors duration-120 hover:bg-accent-wash hover:text-ink aria-checked:bg-ink aria-checked:text-paper aria-checked:hover:bg-ink aria-checked:hover:text-paper",
   modalVolumes:
-    "min-h-11 w-28 border-[2.5px] border-line bg-paper px-3 font-mono text-[1rem] text-ink tabular-nums outline-none focus-visible:border-accent aria-invalid:border-accent",
+    "min-h-11 w-full max-w-60 border-[2.5px] border-line bg-paper px-3 font-mono text-[1rem] text-ink tabular-nums outline-none focus-visible:border-accent aria-invalid:border-accent",
   modalHint: "text-[0.85rem] leading-[1.45] text-ink-soft",
   modalFoot:
     "flex items-center justify-end gap-3 border-t-[1.5px] border-line px-5 py-3",
