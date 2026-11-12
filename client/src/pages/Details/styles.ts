@@ -138,7 +138,7 @@ export const detailsStyles = {
     "tap font-semibold underline decoration-line-soft underline-offset-3 hover:text-accent hover:decoration-accent",
   // the same series twice on the shelf: said above the page, with the fix
   twiceNote:
-    "mb-4 flex flex-wrap items-center gap-x-3 gap-y-1 border-l-[3px] border-accent bg-accent-wash px-3 py-2 text-[0.92rem] text-ink",
+    "mb-4 flex flex-wrap items-center gap-x-3 gap-y-1 rounded-ink border-2 border-line bg-accent-wash px-3 py-2 shadow-ink text-[0.92rem] text-ink",
   twiceButton:
     "tap font-semibold text-accent underline decoration-2 underline-offset-3 disabled:opacity-60",
   twiceWhy: "basis-full text-[0.82rem] text-ink-soft",

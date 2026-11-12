@@ -360,20 +360,25 @@ export default function Details() {
     !inJapan &&
     !(chapterNews && !mangaStatus) &&
     !buyOptions.caughtUp;
+  // the newest is Buy it's own ticket already: the bar doesn't sell it twice
   const toBuy = sellsVolume ? (buyOptions.next ?? buyOptions.latest) : null;
-  const barBuy = toBuy && {
-    to: volumePath(toBuy.isbn13, toBuy.title),
-    label: (() => {
-      const other = toBuy.volume !== releaseStatus?.latestVolume;
-      if (toBuy.knownPriceCents == null) {
-        return other ? `Check vol. ${toBuy.volume}` : "Check price";
-      }
-      const price = formatCents(toBuy.knownPriceCents);
-      return other
-        ? `Buy vol. ${toBuy.volume} for ${price}`
-        : `Buy for ${price}`;
-    })(),
-  };
+  const barSells = toBuy && toBuy.isbn13 !== buyOptions.latest?.isbn13;
+  const barBuy =
+    !barSells || !toBuy
+      ? null
+      : {
+          to: volumePath(toBuy.isbn13, toBuy.title),
+          label: (() => {
+            const other = toBuy.volume !== releaseStatus?.latestVolume;
+            if (toBuy.knownPriceCents == null) {
+              return other ? `Check vol. ${toBuy.volume}` : "Check price";
+            }
+            const price = formatCents(toBuy.knownPriceCents);
+            return other
+              ? `Buy vol. ${toBuy.volume} for ${price}`
+              : `Buy for ${price}`;
+          })(),
+        };
   // no need to sell it twice, unless it's the only ticket there is
   const hideNextTicket = Boolean(
     barBuy &&
