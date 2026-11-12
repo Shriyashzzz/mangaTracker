@@ -16,6 +16,7 @@ import {
 } from "./piles";
 import type { ReleaseKind } from "./shelfViews";
 import { pilesStyles as styles } from "./pilesStyles";
+import { SortMenu } from "./ShelfBar";
 
 // cards shown from "Just out" before its See all
 const JUST_OUT_SHOWN = 5;
@@ -225,6 +226,15 @@ export function PileHead({
   // the button that opened this is gone, so the heading takes the focus
   const title = useRef<HTMLHeadingElement>(null);
   useEffect(() => title.current?.focus({ preventScroll: true }), [view]);
+  // phones: the chip row scrolls sideways, so the open pile's chip is brought
+  // into sight (only the row moves, never the page)
+  const chipList = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const list = chipList.current;
+    const on = list?.querySelector<HTMLElement>("[aria-pressed=true]");
+    if (!list || !on || list.scrollWidth <= list.clientWidth) return;
+    list.scrollLeft = on.offsetLeft - (list.clientWidth - on.offsetWidth) / 2;
+  }, [view]);
   // the chips stick under the shelf's own sticky bar, however tall it is
   const [below, setBelow] = useState(0);
   useEffect(() => {
@@ -257,44 +267,38 @@ export function PileHead({
           {viewingHidden ? "Back to Hidden" : "Back to New"}
         </button>
       </div>
-      <p className={styles.headWhy}>
-        {view === "all"
-          ? "Everything new, in one list"
-          : PILE_TEXT[kind][view].why + extra(view)}
-      </p>
-      <div
-        className={styles.chips}
-        style={{ top: below }}
-        role="group"
-        aria-label="Piles"
-      >
-        {chips.map((c) => (
-          <button
-            key={c.view}
-            type="button"
-            className={c.view === view ? styles.chipOn : styles.chip}
-            aria-pressed={c.view === view}
-            // nothing in it: there, so the row holds still, but no use
-            disabled={c.count === 0 && c.view !== view}
-            onClick={() => onPick(c.view)}
-          >
-            {c.label} <span className={styles.chipCount}>{c.count}</span>
-          </button>
-        ))}
-        <label className={styles.sort}>
-          <span className={styles.sortLabel}>Sort</span>
-          <select
-            value={sort}
-            onChange={(e) => onSort(e.target.value as PileSort)}
-            className={styles.sortSelect}
-          >
-            {PILE_SORTS.map((o) => (
-              <option key={o.value} value={o.value}>
-                {o.label}
-              </option>
-            ))}
-          </select>
-        </label>
+      {/* "Everything new" says it already; a pile says what it holds */}
+      {view !== "all" && (
+        <p className={styles.headWhy}>
+          {PILE_TEXT[kind][view].why + extra(view)}
+        </p>
+      )}
+      <div className={styles.chips} style={{ top: below }}>
+        {/* one row that scrolls sideways on phones, the sort at its end */}
+        <div
+          ref={chipList}
+          className={styles.chipList}
+          role="group"
+          aria-label="Piles"
+        >
+          {chips.map((c) => (
+            <button
+              key={c.view}
+              type="button"
+              className={c.view === view ? styles.chipOn : styles.chip}
+              aria-pressed={c.view === view}
+              // nothing in it: there, so the row holds still, but no use
+              disabled={c.count === 0 && c.view !== view}
+              onClick={() => onPick(c.view)}
+            >
+              {c.label} <span className={styles.chipCount}>{c.count}</span>
+            </button>
+          ))}
+        </div>
+        {/* the same menu as the shelf's other tabs */}
+        <div className={styles.sort}>
+          <SortMenu sortBy={sort} onSort={onSort} options={PILE_SORTS} />
+        </div>
       </div>
     </>
   );

@@ -1,6 +1,6 @@
 // The New tab's piles (NewPiles.tsx): each pile under an inked rule with its
 // name in the brand face, a fan of covers with hard shadows, and on a pile's
-// own page the chips between them (two by two on phones, so the row fills)
+// own page the chips between them (one sideways-scrolling row on phones)
 const chipBase =
   "tap inline-flex items-center justify-center gap-1.5 border-[1.5px] border-line px-3 py-1.5 text-[0.84rem] font-semibold transition-colors duration-150 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent focus-visible:outline-dashed";
 
@@ -36,16 +36,16 @@ export const pilesStyles = {
   headTop: "flex items-baseline justify-between gap-4",
   headTitle:
     "min-w-0 truncate outline-none font-brand text-[clamp(1.7rem,5vw,2.2rem)] leading-[1.1] font-normal tracking-[0.03em] uppercase",
-  headWhy: "mt-1 mb-3 truncate text-[0.84rem] text-muted",
+  headWhy: "mt-1 truncate text-[0.84rem] text-muted",
   back: "tap shrink-0 text-[0.9rem] font-medium text-ink-soft underline decoration-line-soft underline-offset-3 hover:text-ink hover:decoration-current focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent focus-visible:outline-dashed",
   // stuck under the shelf bar while the pile scrolls by
   chips:
-    "sticky z-4 -mx-3 mb-7 flex flex-wrap gap-2 border-b-[1.5px] border-line bg-[var(--surface,var(--paper))] px-3 py-2 upto-520:grid upto-520:grid-cols-2 upto-520:[&>*:first-child]:col-span-2",
-  // the pile's order, at the end of the chip row (its own row on phones)
-  sort: "ml-auto flex items-center gap-2 upto-520:col-span-2 upto-520:ml-0",
-  sortLabel: "font-mono text-[0.72rem] text-muted uppercase",
-  sortSelect:
-    "tap min-h-9 flex-1 border-[1.5px] border-line bg-card px-2 py-1 text-[0.84rem] font-semibold text-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent focus-visible:outline-dashed",
+    "sticky z-4 -mx-3 mt-3 mb-7 flex items-center gap-2 border-b-[1.5px] border-line bg-[var(--surface,var(--paper))] px-3 py-2 upto-520:mb-4",
+  // wraps on wider screens; one sideways-scrolling row on phones
+  chipList:
+    "relative flex min-w-0 flex-1 flex-wrap gap-2 upto-520:flex-nowrap upto-520:overflow-x-auto upto-520:[scrollbar-width:none] upto-520:[&>*]:shrink-0",
+  // the pile's order, at the end of the chip row
+  sort: "ml-auto flex shrink-0 items-center",
   chip: `${chipBase} bg-card hover:bg-accent-wash disabled:cursor-default disabled:opacity-45 disabled:hover:bg-card`,
   chipOn: `${chipBase} bg-ink text-paper`,
   chipCount: "font-mono text-[0.74rem] opacity-75",

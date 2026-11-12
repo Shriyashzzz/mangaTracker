@@ -275,20 +275,23 @@ const LAYOUTS = [
   { value: "rows", label: "Compact rows" },
 ] as const;
 
-function SortMenu({
+// the shelf's sort menu, and the New tab piles' too (their own options, no
+// "Show as")
+export function SortMenu<T extends string>({
   sortBy,
   onSort,
+  options = SORT_OPTIONS as unknown as readonly { value: T; label: string }[],
   layout,
   onLayout,
 }: {
-  sortBy: string;
-  onSort: (value: string) => void;
-  layout: "covers" | "rows";
-  onLayout: (layout: "covers" | "rows") => void;
+  sortBy: T;
+  onSort: (value: T) => void;
+  options?: readonly { value: T; label: string }[];
+  layout?: "covers" | "rows";
+  onLayout?: (layout: "covers" | "rows") => void;
 }) {
   const { open, setOpen, ref } = useMenu();
-  const picked =
-    SORT_OPTIONS.find((o) => o.value === sortBy) ?? SORT_OPTIONS[0]!;
+  const picked = options.find((o) => o.value === sortBy) ?? options[0]!;
   return (
     <div ref={ref} className={styles.sortWrap}>
       <button
@@ -306,13 +309,13 @@ function SortMenu({
         <ChevronDownIcon className={styles.sortChevron} />
         <SortIcon className={styles.sortIcon} />
         {/* phones: something other than the default is on */}
-        {picked.value !== SORT_OPTIONS[0]!.value && (
+        {picked.value !== options[0]!.value && (
           <span className={styles.sortDot} aria-hidden />
         )}
       </button>
       {open && (
         <Menu label="Sort by" alignRight>
-          {SORT_OPTIONS.map((o) => (
+          {options.map((o) => (
             <li key={o.value}>
               <button
                 type="button"
@@ -332,25 +335,29 @@ function SortMenu({
           ))}
           {/* how the shelf lists them, right where it's sorted, not only in
               Settings */}
-          <li className={styles.menuHead} aria-hidden>
-            Show as
-          </li>
-          {LAYOUTS.map((l) => (
-            <li key={l.value}>
-              <button
-                type="button"
-                className={styles.sortOption}
-                aria-current={l.value === layout}
-                onClick={() => {
-                  onLayout(l.value);
-                  setOpen(false);
-                }}
-              >
-                {l.label}
-                {l.value === layout && <CheckIcon className={styles.tick} />}
-              </button>
+          {layout && onLayout && (
+            <li className={styles.menuHead} aria-hidden>
+              Show as
             </li>
-          ))}
+          )}
+          {layout &&
+            onLayout &&
+            LAYOUTS.map((l) => (
+              <li key={l.value}>
+                <button
+                  type="button"
+                  className={styles.sortOption}
+                  aria-current={l.value === layout}
+                  onClick={() => {
+                    onLayout(l.value);
+                    setOpen(false);
+                  }}
+                >
+                  {l.label}
+                  {l.value === layout && <CheckIcon className={styles.tick} />}
+                </button>
+              </li>
+            ))}
         </Menu>
       )}
     </div>
