@@ -140,7 +140,7 @@ export function seriesMeta({ name, info, volumes }: Series): PageMeta {
   // server say it
   const out = volumes.filter(
     (v) =>
-      v.volume >= 1 && Number.isInteger(v.volume) && !notOutYet(v.published),
+      v.volume >= 0 && Number.isInteger(v.volume) && !notOutYet(v.published),
   );
   const cost = seriesCost(out);
   // in a search result only once a quarter of it is priced (3 at least),
