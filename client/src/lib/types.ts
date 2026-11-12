@@ -6,6 +6,8 @@ import type { ShelfSort } from "./shelf";
 
 // ---------- the shelf ----------
 
+import type { OwnedBook } from "./books";
+
 export type Manga = {
   id: number;
   userId: number | null;
@@ -21,6 +23,10 @@ export type Manga = {
   lightNovel?: boolean;
   // the chapter they're on
   bookmark: number | null;
+  // their place kept by the volume instead of the chapter, and the last
+  // volume read
+  byVolume?: boolean;
+  readVolume?: number | null;
   // the last volume they own; null when they don't say
   volumesOwned: number | null;
   // exactly which, when it isn't a run from 1 (lib/ownedVolumes.ts)
@@ -34,6 +40,8 @@ export type Manga = {
   hiddenVolumes?: number[];
   // the latest chapter last found for this series
   latestChapter?: number | null;
+  // its books, on a series just deleted: the undo puts them back
+  books?: OwnedBook[];
 };
 
 // when the next chapter or volume is due. Dates are ISO, null if there isn't one
@@ -104,6 +112,8 @@ export type MangaForm = {
   planned?: boolean;
   lightNovel?: boolean;
   bookmark?: string | number;
+  byVolume?: boolean;
+  readVolume?: string | number;
   volumesOwned?: string | number;
   ownedList?: number[];
   // 1 to 5 stars, given on adding it
@@ -158,6 +168,8 @@ export type Prefs = {
   // "off": never look up new volumes and chapters
   releaseChecks?: "on" | "off";
   releases?: ReleaseSettings;
+  // how they keep their place (lib/reading.ts); "series" unless chosen
+  trackBy?: "series" | "chapters" | "volumes" | "both";
   // where they buy: Canada gets Canadian store links beside the US prices
   country?: "us" | "ca";
 };

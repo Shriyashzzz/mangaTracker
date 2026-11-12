@@ -380,7 +380,7 @@ function VolumeTile({
             Yours
           </>
         ) : (
-          "Not on your shelf"
+          "Not Owned"
         )}
       </span>
     </>

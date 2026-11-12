@@ -3,12 +3,15 @@
 // the login, nor what they've hidden. The volumes they own are shown (owner's
 // call, 2026-11-11): visitors tap a series to see them
 import { defaultReaderName } from "./readerNames.js";
+import { readTrackBy, tracksOf } from "../releases/releaseStatus.js";
 
 type SharedSource = {
   id: number;
   displayName: string | null;
   avatar: string | null;
   shareNotes: boolean;
+  // theirs: trackBy says which place each series shows
+  prefs?: unknown;
   manga: {
     name: string;
     image: string | null;
@@ -17,6 +20,8 @@ type SharedSource = {
     planned: boolean;
     lightNovel?: boolean;
     bookmark: number | null;
+    byVolume?: boolean;
+    readVolume?: number | null;
     rating: number | null;
     description: string | null;
     volumesOwned?: number | null;
@@ -24,11 +29,27 @@ type SharedSource = {
   }[];
 };
 
+const sharedPlace = (
+  m: {
+    bookmark: number | null;
+    byVolume?: boolean;
+    readVolume?: number | null;
+  },
+  trackBy: unknown,
+) => {
+  const tracks = tracksOf(m.byVolume, readTrackBy(trackBy));
+  return {
+    bookmark: tracks.chapters ? m.bookmark : null,
+    ...(tracks.volumes ? { readVolume: m.readVolume ?? null } : {}),
+  };
+};
+
 export const toSharedShelf = ({
   id,
   displayName,
   avatar,
   shareNotes,
+  prefs,
   manga,
 }: SharedSource) => ({
   displayName: displayName || defaultReaderName(id),
@@ -40,7 +61,8 @@ export const toSharedShelf = ({
     status: m.status,
     planned: m.planned,
     ...(m.lightNovel ? { lightNovel: true } : {}),
-    bookmark: m.bookmark,
+    // their place as they keep it: the chapter, the volume read, or both
+    ...sharedPlace(m, (prefs as { trackBy?: unknown } | null)?.trackBy),
     rating: m.rating,
     // as on their shelf: "up to N", or the exact list when there are gaps
     volumesOwned: m.volumesOwned ?? null,

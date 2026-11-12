@@ -24,6 +24,9 @@ import { useBuyOptions } from "../Details/useBuyOptions";
 import { priceName } from "../../lib/prices";
 import { chapterProblem, coverLinkProblem } from "../../lib/formChecks";
 import { findOnShelf } from "../../lib/shelf";
+import PlaceField from "../../components/placeField/PlaceField";
+import { tracksOf } from "../../lib/reading";
+import { useTrackBy } from "../../lib/prefs";
 import StarRating from "../../components/starRating/StarRating";
 import type { ShelfMatch } from "../../lib/types";
 
@@ -47,6 +50,10 @@ export function AddManga() {
   // pick another status, and what they typed must survive that. 0 to start,
   // so a first save goes through
   const [chapter, setChapter] = useState("0");
+  const [readVolume, setReadVolume] = useState("");
+  // by the volume or the chapter: a light novel by the volume until they say
+  const [byVolumeChoice, setByVolumeChoice] = useState<boolean | null>(null);
+  const trackBy = useTrackBy();
   // stars, if they want to give some now (the details page rates too)
   const [rating, setRating] = useState(0);
   // said under the field it's about, rather than by the browser
@@ -92,6 +99,8 @@ export function AddManga() {
     return () => controller.abort();
   }, [chosen, title, isSignedIn]);
   const formatTouched = useRef(novelFromPrices);
+  const byVolume = byVolumeChoice ?? lightNovel;
+  const tracks = tracksOf({ byVolume }, trackBy);
   // "978-1-4215-3444-2" typed as a title
   const digits = title.replace(/[\s-]/g, "");
   const typedIsbn = /^(97[89]\d{10}|\d{9}[\dXx])$/.test(digits) ? digits : null;
@@ -199,7 +208,10 @@ export function AddManga() {
     const missing = {
       title: !title.trim() ? "Give it a title." : undefined,
       // optional: a collector tracking volumes needn't say a chapter
-      bookmark: stage !== "reading" ? undefined : chapterProblem(chapter),
+      bookmark:
+        stage === "reading" && tracks.chapters
+          ? chapterProblem(chapter)
+          : undefined,
       image: ownCover ? coverLinkProblem(image) : undefined,
     };
     setFieldErrors(missing);
@@ -229,7 +241,9 @@ export function AddManga() {
       volumesOwned: String(form.get("volumesOwned") ?? ""),
       ownedList: parseVolumes(String(form.get("ownedList") ?? "")) ?? [],
     };
-    if (stage === "reading") sendReq.bookmark = chapter;
+    sendReq.byVolume = byVolume;
+    if (stage === "reading" && tracks.chapters) sendReq.bookmark = chapter;
+    if (stage === "reading" && tracks.volumes) sendReq.readVolume = readVolume;
     // stars only for something they've read some of
     if (stage !== "planned" && rating) sendReq.rating = rating;
 
@@ -444,36 +458,21 @@ export function AddManga() {
                 required
               />
               {stage === "reading" && (
-                <div className={styles.chapterField}>
-                  <label htmlFor="bookmark" className={styles.label}>
-                    {lightNovel ? "Volume you're on" : "Current chapter"}{" "}
-                    <span className={styles.optional}>(optional)</span>
-                  </label>
-                  <input
-                    className={`${styles.input} ${fieldErrors.bookmark ? styles.invalid : ""}`}
-                    inputMode="decimal"
-                    id="bookmark"
-                    name="bookmark"
-                    type="number"
-                    min="0"
-                    step="any"
-                    value={chapter}
-                    placeholder="e.g. 1073"
-                    aria-invalid={Boolean(fieldErrors.bookmark) || undefined}
-                    aria-describedby={
-                      fieldErrors.bookmark ? "bookmark-error" : undefined
-                    }
-                    onChange={(e) => {
-                      setChapter(e.target.value);
-                      setFieldErrors((er) => ({ ...er, bookmark: undefined }));
-                    }}
-                  />
-                  {fieldErrors.bookmark && (
-                    <p id="bookmark-error" className={styles.fieldError}>
-                      {fieldErrors.bookmark}
-                    </p>
-                  )}
-                </div>
+                <PlaceField
+                  mode={trackBy}
+                  byVolume={byVolume}
+                  onByVolume={setByVolumeChoice}
+                  chapter={chapter}
+                  onChapter={(next) => {
+                    setChapter(next);
+                    setFieldErrors((er) => ({ ...er, bookmark: undefined }));
+                  }}
+                  volume={readVolume}
+                  onVolume={setReadVolume}
+                  chapterError={fieldErrors.bookmark}
+                  optional
+                  classes={{ ...styles, field: styles.chapterField }}
+                />
               )}
             </div>
 

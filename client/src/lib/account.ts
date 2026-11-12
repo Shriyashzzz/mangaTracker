@@ -1,4 +1,5 @@
 // The account's own details, and shared lists.
+import { booksToCell, type NewBook } from "./books";
 import { ownedOf, rangesText } from "./ownedVolumes";
 import { apiFetch, errorMessages, getJson } from "./api";
 import { SORT_OPTIONS } from "./shelf";
@@ -29,6 +30,8 @@ export type SharedShelf = {
     planned?: boolean;
     lightNovel?: boolean;
     bookmark: number | null;
+    // only what they track is sent: the chapter, the volume read, or both
+    readVolume?: number | null;
     rating: number | null;
     notes?: string;
     // the volumes they own, as on their shelf (lib/ownedVolumes.ts)
@@ -73,29 +76,40 @@ const csvCell = (value: unknown) => {
   return `"${safe.replaceAll('"', '""')}"`;
 };
 
-export const shelfToCsv = (manga: Manga[]) =>
+export const shelfToCsv = (
+  manga: Manga[],
+  // each series' books, by its id (lib/books.ts)
+  books: Record<number, NewBook[]> = {},
+) =>
   [
     [
       "Title",
       "Type",
       "Status",
       "Chapter",
+      "Read volume",
+      "Tracked by",
       "Owned volumes",
       "Rating",
       "Genre",
       "Notes",
+      "Books",
     ],
     ...manga.map((m) => [
       m.name,
       m.lightNovel ? "Light novel" : "Manga",
       m.status ? "Finished" : m.planned ? "To read" : "Reading",
       m.bookmark,
+      m.readVolume,
+      m.byVolume ? "Volume" : "Chapter",
       // every one they own, as ranges ("1–5, 8"), so the import reads it back
       // exactly (bookImport isOwnExport)
       rangesText(ownedOf(m)),
       m.rating,
       m.genre,
       m.description,
+      // the books behind the volumes, with their ISBNs and editions
+      booksToCell(books[m.id] ?? []),
     ]),
   ]
     .map((row) => row.map(csvCell).join(","))

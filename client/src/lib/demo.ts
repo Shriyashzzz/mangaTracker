@@ -616,7 +616,9 @@ export function demoResponse(
     const changes: Partial<Manga> =
       part === "bookmark"
         ? { bookmark: body.bookmark as number }
-        : part === "rating"
+        : part === "reading"
+          ? (body as Partial<Manga>)
+          : part === "rating"
           ? { rating: body.rating as number }
           : part === "notes"
             ? { description: body.description as string | null }

@@ -3,9 +3,11 @@
 // notes, volumes owned). Every :id route runs requireOwner first, which loads
 // the manga onto res.locals.manga.
 import type { Request, Response } from "express";
-import { body, matchedData } from "express-validator";
+import { body, matchedData, param } from "express-validator";
 import { rejectInvalid } from "../../middlewares/validate.js";
 import mangaQueries from "../../models/mangaQueries.js";
+import bookQueries from "../../models/bookQueries.js";
+import { bookFields } from "../../util/shelf/ownedBooks.js";
 import { getSeriesInfo } from "../../prices/sources/anilist.js";
 import { canonicalTitle } from "../../util/shelf/canonicalTitle.js";
 import type { Manga } from "../../../generated/prisma/client.js";
@@ -134,6 +136,63 @@ export const setBookmark = [
       matchedData(req).bookmark,
     );
     res.sendStatus(204);
+  },
+];
+
+// their place by the volume: which way this series is tracked, and the last
+// volume read (null clears it). Either can come alone
+export const setReading = [
+  body("byVolume").optional().isBoolean({ strict: true }),
+  body("readVolume")
+    .optional({ values: "null" })
+    .isInt({ min: 0, max: 999 })
+    .withMessage("Volumes go from 0 to 999")
+    .toInt(),
+  rejectInvalid,
+  async (req: Request, res: Response) => {
+    const d = matchedData(req);
+    await mangaQueries.setReading(res.locals.manga.id, {
+      ...(d.byVolume === undefined ? {} : { byVolume: d.byVolume }),
+      ...("readVolume" in req.body ? { readVolume: d.readVolume ?? null } : {}),
+    });
+    res.sendStatus(204);
+  },
+];
+
+// ---------- the books behind the owned volumes (models/bookQueries.ts) ----------
+
+// every book on their shelf at once, for the backup
+export const allBooks = async (req: Request, res: Response) => {
+  res.json({ books: await bookQueries.shelfBooks(req.session.userId!) });
+};
+
+export const books = async (_req: Request, res: Response) => {
+  res.json({ books: await bookQueries.booksOf(res.locals.manga.id) });
+};
+
+// a scanned book, recorded on its series. Only one whose volumes are owned
+// there is kept, so the volumes are marked first
+export const addBooks = [
+  ...bookFields("books", 50),
+  rejectInvalid,
+  async (req: Request, res: Response) => {
+    const id = (res.locals.manga as Manga).id;
+    await bookQueries.addBooks(id, matchedData(req).books ?? []);
+    res.json({ books: await bookQueries.booksOf(id) });
+  },
+];
+
+// a book they no longer have: it goes, with the volumes only it held
+export const removeBook = [
+  param("bookId").isInt({ min: 1 }).toInt(),
+  rejectInvalid,
+  async (req: Request, res: Response) => {
+    const owned = await bookQueries.removeBook(
+      (res.locals.manga as Manga).id,
+      matchedData(req).bookId,
+    );
+    if (!owned) return void res.sendStatus(404);
+    res.json(owned);
   },
 ];
 

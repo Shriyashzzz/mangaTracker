@@ -4,6 +4,7 @@
 // tapped (SeriesSheet). An open series is in the address (?series=), so a
 // link can open straight to it. Someone without an account gets Kenji on their first
 // three visits (SharePeek) and a way to start their own at the end
+import { placeText } from "../../lib/reading";
 import { useEffect, useMemo, useState } from "react";
 import {
   NavLink,
@@ -111,10 +112,8 @@ function SeriesCard({
           ) : (
             "No volumes yet"
           )}
-          {/* a saved place only: never "ch. 0"; a novel's is a volume */}
-          {!m.status &&
-            Boolean(m.bookmark) &&
-            ` · ${m.lightNovel ? "vol." : "ch."} ${m.bookmark}`}
+          {/* a saved place only: never "ch. 0" */}
+          {!m.status && placeText(m, "both") && ` · ${placeText(m, "both")}`}
           {m.lightNovel && " · novel"}
         </span>
         {m.rating ? <StarRating value={m.rating} size="sm" /> : null}
@@ -135,9 +134,7 @@ function SeriesRow({
 }) {
   const owned = ownedVolumesOf(m);
   const more = [
-    !m.status &&
-      Boolean(m.bookmark) &&
-      `${m.lightNovel ? "reading vol." : "ch."} ${m.bookmark}`,
+    !m.status && placeText(m, "both"),
     m.lightNovel && "light novel",
   ].filter(Boolean);
   return (

@@ -1,3 +1,6 @@
+import PlaceField from "../../components/placeField/PlaceField";
+import { tracksOf } from "../../lib/reading";
+import { useTrackBy } from "../../lib/prefs";
 import { NavLink, useNavigate, useParams } from "react-router";
 import { formStyles as styles } from "../../styles/form";
 import { useState, useEffect, useRef, type FormEvent } from "react";
@@ -34,6 +37,11 @@ export function UpdateManga() {
   const [imageError, setImageError] = useState<string>();
   const titleInput = useRef<HTMLInputElement>(null);
   const [lightNovel, setLightNovel] = useState(false);
+  const [chapter, setChapter] = useState("");
+  const [readVolume, setReadVolume] = useState("");
+  const [byVolume, setByVolume] = useState(false);
+  const trackBy = useTrackBy();
+  const tracks = tracksOf({ byVolume }, trackBy);
   const [description, setDescription] = useState("");
   const [error, setError] = useState<{ msg: string }[] | null>(null);
   const [submitting, setSubmitting] = useState(false);
@@ -67,6 +75,9 @@ export function UpdateManga() {
           manga.planned ? "planned" : manga.status ? "finished" : "reading",
         );
         setLightNovel(Boolean(manga.lightNovel));
+        setChapter(String(manga.bookmark ?? ""));
+        setReadVolume(String(manga.readVolume ?? ""));
+        setByVolume(Boolean(manga.byVolume));
         setDescription(manga.description ?? "");
         setTitle(manga.name);
         setImage(manga.image ?? "");
@@ -84,8 +95,8 @@ export function UpdateManga() {
     e.preventDefault();
     const form = new FormData(e.currentTarget);
     const chapterIssue =
-      stage === "reading"
-        ? chapterProblem(String(form.get("bookmark") ?? ""))
+      stage === "reading" && tracks.chapters
+        ? chapterProblem(chapter)
         : undefined;
     const imageIssue = coverLinkProblem(image);
     setChapterError(chapterIssue);
@@ -112,8 +123,9 @@ export function UpdateManga() {
       volumesOwned: String(form.get("volumesOwned") ?? ""),
       ownedList: parseVolumes(String(form.get("ownedList") ?? "")) ?? [],
     };
-    if (stage === "reading")
-      formData.bookmark = String(form.get("bookmark") ?? "");
+    formData.byVolume = byVolume;
+    if (stage === "reading" && tracks.chapters) formData.bookmark = chapter;
+    if (stage === "reading" && tracks.volumes) formData.readVolume = readVolume;
 
     setSubmitting(true);
     try {
@@ -225,31 +237,20 @@ export function UpdateManga() {
 
               <div className={styles.row}>
                 {stage === "reading" && (
-                  <div className={styles.field}>
-                    <label htmlFor="bookmark" className={styles.label}>
-                      {lightNovel ? "Volume you're on" : "Current chapter"}
-                    </label>
-                    <input
-                      className={styles.input}
-                      inputMode="numeric"
-                      type="number"
-                      min="0"
-                      step="1"
-                      name="bookmark"
-                      id="bookmark"
-                      defaultValue={mangaData.bookmark ?? ""}
-                      aria-invalid={Boolean(chapterError) || undefined}
-                      aria-describedby={
-                        chapterError ? "bookmark-error" : undefined
-                      }
-                      onChange={() => setChapterError(undefined)}
-                    />
-                    {chapterError && (
-                      <p id="bookmark-error" className={styles.fieldError}>
-                        {chapterError}
-                      </p>
-                    )}
-                  </div>
+                  <PlaceField
+                    mode={trackBy}
+                    byVolume={byVolume}
+                    onByVolume={setByVolume}
+                    chapter={chapter}
+                    onChapter={(next) => {
+                      setChapter(next);
+                      setChapterError(undefined);
+                    }}
+                    volume={readVolume}
+                    onVolume={setReadVolume}
+                    chapterError={chapterError}
+                    classes={styles}
+                  />
                 )}
                 <div className={styles.field}>
                   <label htmlFor="genre" className={styles.label}>

@@ -4,6 +4,7 @@
 // paint so there's no flash.
 import { isDemo } from "./demo";
 import { useSyncExternalStore } from "react";
+import { readTrackBy } from "./reading";
 import { apiFetch } from "./api";
 import { hasBottomBar } from "./bottomBar";
 import type { Background, Prefs, Theme } from "./types";
@@ -63,6 +64,7 @@ export const currentTheme = (): Theme => {
 const checksListeners = new Set<() => void>();
 const countryListeners = new Set<() => void>();
 const boxSetListeners = new Set<() => void>();
+const trackListeners = new Set<() => void>();
 
 // puts preferences on the page and remembers them in this browser
 const applyPrefs = ({
@@ -75,7 +77,12 @@ const applyPrefs = ({
   shelfView,
   releaseChecks,
   country,
+  trackBy,
 }: Prefs = {}) => {
+  if (trackBy && trackBy !== readLocal("trackBy")) {
+    writeLocal("trackBy", trackBy);
+    trackListeners.forEach((listener) => listener());
+  }
   if (isBackground(background)) {
     document.documentElement.dataset.bg = background;
     writeLocal("bg", background);
@@ -149,6 +156,15 @@ export const useBoxSetsShown = () =>
     return () => boxSetListeners.delete(listener);
   }, boxSetsShown);
 
+// how they keep their place: each series its own way unless they've chosen
+// one way for all. Every page showing a place follows a change at once
+export const trackByNow = () => readTrackBy(readLocal("trackBy"));
+export const useTrackBy = () =>
+  useSyncExternalStore((listener) => {
+    trackListeners.add(listener);
+    return () => trackListeners.delete(listener);
+  }, trackByNow);
+
 // applies a change right away, and keeps it on the account when signed in
 export const savePrefs = (patch: Prefs, isSignedIn: boolean | null) => {
   applyPrefs(patch);
@@ -168,7 +184,12 @@ export const syncPrefs = async () => {
     const stored = (await response.json()) as Prefs;
     // never chosen means on (release checks) or shown (box sets), whatever
     // someone else chose in this browser
-    applyPrefs({ releaseChecks: "on", hideBoxSets: "no", ...stored });
+    applyPrefs({
+      releaseChecks: "on",
+      hideBoxSets: "no",
+      trackBy: "series",
+      ...stored,
+    });
     const missing: Prefs = {};
     if (!stored.background) missing.background = currentBackground();
     const theme = document.documentElement.dataset.theme;

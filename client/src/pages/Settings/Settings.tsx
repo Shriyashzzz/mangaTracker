@@ -1,6 +1,7 @@
 // Everything about the account in one place, a tab at a time: tabs down the left
 // on laptops, across the top on phones. Each tab has its own address, so the back
 // gesture steps between them.
+import type { OwnedBook } from "../../lib/books";
 import { useEffect, useState, type FormEvent } from "react";
 import { Navigate, NavLink, useNavigate, useParams } from "react-router";
 import {
@@ -10,7 +11,7 @@ import {
   SORT_OPTIONS,
   type Account,
 } from "../../lib/account";
-import { apiFetch, signInPath } from "../../lib/api";
+import { apiFetch, getJson, signInPath } from "../../lib/api";
 import type { ShelfSort } from "../../lib/shelf";
 import {
   BACKGROUNDS,
@@ -20,6 +21,7 @@ import {
   useCountry,
   useReleaseChecksOn,
   savePrefs,
+  useTrackBy,
   useBoxSetsShown,
 } from "../../lib/prefs";
 import { usePrivatePage } from "../../lib/seo";
@@ -220,6 +222,7 @@ function ShelfSettingsTab() {
     () => readLocal("shelfSort") ?? "",
   );
   const [shelfView, setShelfView] = useState(() => shelfViewNow());
+  const trackBy = useTrackBy();
   return (
     <div className={styles.tabBody}>
       <h2 className={styles.tabTitle}>Your shelf</h2>
@@ -244,6 +247,27 @@ function ShelfSettingsTab() {
                 setShelfView(value);
                 savePrefs({ shelfView: value }, isSignedIn);
               }}
+            />
+            {label}
+          </label>
+        ))}
+      </fieldset>
+      <fieldset className={styles.group}>
+        <legend className={styles.legend}>Track your reading by</legend>
+        {(
+          [
+            ["series", "Chapter or volume. You pick on each series"],
+            ["chapters", "Chapters only"],
+            ["volumes", "Volumes only"],
+            ["both", "Chapters and volumes together"],
+          ] as const
+        ).map(([value, label]) => (
+          <label key={value} className={styles.row}>
+            <input
+              type="radio"
+              name="track-by"
+              checked={trackBy === value}
+              onChange={() => savePrefs({ trackBy: value }, isSignedIn)}
             />
             {label}
           </label>
@@ -386,8 +410,16 @@ function AccountTab({ account }: { account: Account }) {
       const res = await apiFetch("/api/manga");
       if (!res.ok) throw new Error(res.statusText);
       const { manga } = (await res.json()) as { manga: Manga[] };
+      // without them the backup is still whole in every other way
+      const { books } = await getJson<{
+        books: (OwnedBook & { mangaId: number })[];
+      }>("/api/manga/books").catch(() => ({ books: [] }));
+      const bySeries: Record<number, OwnedBook[]> = {};
+      for (const book of books) (bySeries[book.mangaId] ??= []).push(book);
       const url = URL.createObjectURL(
-        new Blob([shelfToCsv(manga)], { type: "text/csv;charset=utf-8" }),
+        new Blob([shelfToCsv(manga, bySeries)], {
+          type: "text/csv;charset=utf-8",
+        }),
       );
       const link = document.createElement("a");
       link.href = url;

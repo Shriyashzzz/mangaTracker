@@ -9,6 +9,7 @@ import mangaQueries, {
 } from "../../models/mangaQueries.js";
 import { onShelfAs } from "../../util/shelf/titleKey.js";
 import { ownedVolumes } from "../../util/shelf/ownedList.js";
+import { bookFields } from "../../util/shelf/ownedBooks.js";
 
 // the exact volumes owned, as numbers like 4 or 10.5
 export const ownedListFields = (field: string) => [
@@ -41,6 +42,14 @@ export const mangaFields = [
   body("planned").optional().isBoolean().toBoolean(),
   // a light novel rather than a manga
   body("lightNovel").optional().isBoolean().toBoolean(),
+  // their place kept by the volume instead of the chapter, and the last
+  // volume read
+  body("byVolume").optional().isBoolean().toBoolean(),
+  body("readVolume")
+    .optional({ values: "falsy" })
+    .isInt({ min: 0, max: 999 })
+    .withMessage("The volume you've read has to be a whole number, like 12")
+    .toInt(),
   // the last volume they own; blank (or 0) means they don't say
   body("volumesOwned")
     .optional({ values: "falsy" })
@@ -107,6 +116,9 @@ export const toInput = (req: Request): MangaInput => {
     // the same: an edit that doesn't say keeps what it was
     lightNovel: d.lightNovel === undefined ? undefined : Boolean(d.lightNovel),
     bookmark: d.planned ? null : d.bookmark || null,
+    // left alone when the form doesn't say
+    ...(d.byVolume === undefined ? {} : { byVolume: Boolean(d.byVolume) }),
+    ...(d.readVolume === undefined ? {} : { readVolume: d.readVolume || null }),
     ...ownedVolumes(d.volumesOwned, d.ownedList),
     genre: d.genre || null,
     description: d.description || null,
@@ -136,6 +148,8 @@ export const restoreFields = [
     .optional({ values: "null" })
     .isFloat({ min: 0 })
     .toFloat(),
+  // the books it had
+  ...bookFields("books", 300),
 ];
 
 export const restoredInput = (req: Request): RestoredManga => {
@@ -144,11 +158,14 @@ export const restoredInput = (req: Request): RestoredManga => {
     ...toInput(req),
     // validation treats a 0 as blank
     bookmark: d.bookmark ?? (req.body.bookmark === 0 ? 0 : null),
+    byVolume: Boolean(d.byVolume),
+    readVolume: d.readVolume ?? null,
     rating: d.rating ?? null,
     seenVolume: d.seenVolume ?? null,
     seenChapter: d.seenChapter ?? null,
     seenJapanVolume: d.seenJapanVolume ?? null,
     hiddenVolumes: d.hiddenVolumes ?? [],
     latestChapter: d.latestChapter ?? null,
+    ...(d.books?.length ? { books: d.books } : {}),
   };
 };

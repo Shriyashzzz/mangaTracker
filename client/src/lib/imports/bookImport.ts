@@ -2,6 +2,7 @@
 // browser, so the file never leaves their computer. Book apps list every volume
 // as its own book; the shelf has one entry per series, so volumes are grouped by
 // series first. Kept free of the DOM so it can be tested on its own.
+import { booksFromCell, newBook, type NewBook } from "../books";
 import { ownedVolumes, parseVolumes } from "../ownedVolumes";
 import type { MalEntry } from "./malImport";
 
@@ -38,8 +39,15 @@ export type Book = {
   exact?: boolean;
   finished?: boolean;
   chapter?: number;
+  // the volume read up to, and whether the series keeps its place by it
+  readTo?: number;
+  byVolume?: boolean;
   notes?: string;
   genre?: string;
+  // the row's ISBN, when the file has one: kept with the book (lib/books.ts)
+  isbn?: string;
+  // a backup's own record of the series' books, on its first row
+  ownBooks?: NewBook[];
 };
 
 export type BookSeries = {
@@ -71,8 +79,12 @@ export type BookSeries = {
   restore?: boolean;
   finished?: boolean;
   chapters?: number;
+  readTo?: number;
+  byVolume?: boolean;
   notes?: string;
   genre?: string;
+  // each owned book that says its volumes, with its ISBN and edition
+  bookList?: NewBook[];
 };
 
 // ---------- CSV ----------
@@ -597,8 +609,17 @@ function ownExportBooks(h: string[], row: string[]): Book[] {
     genre: cell(row, header(h, /^Genre$/)).slice(0, 100) || undefined,
     finished: status === "finished",
     chapter,
+    // backups from before these columns say neither
+    readTo: Math.min(
+      999,
+      Math.max(0, Math.floor(count(cell(row, header(h, /^Read volume$/))))),
+    ),
+    ...(header(h, /^Tracked by$/) >= 0
+      ? { byVolume: /volume/i.test(cell(row, header(h, /^Tracked by$/))) }
+      : {}),
     notes: cell(row, header(h, /^Notes$/)).slice(0, 450) || undefined,
   };
+  const ownBooks = booksFromCell(cell(row, header(h, /^Books$/)));
   if (!volumes.length)
     return [
       {
@@ -608,8 +629,30 @@ function ownExportBooks(h: string[], row: string[]): Book[] {
         owned: false,
       },
     ];
-  return volumes.map((v) => ({ ...base, title: `${title} #${v}`, volume: v }));
+  return volumes.map((v, i) => ({
+    ...base,
+    title: `${title} #${v}`,
+    volume: v,
+    ...(i === 0 && ownBooks.length ? { ownBooks } : {}),
+  }));
 }
+
+// a series' books as the import sends them: a backup's own record, or else
+// every owned book that says its volumes, whatever edition it is. A file with
+// no ISBNs and only singles has nothing a tick doesn't say, so sends none
+const bookListOf = (
+  owned: Book[],
+  volumesOf: (b: Book) => number[],
+): { bookList?: NewBook[] } => {
+  const own = owned.flatMap((b) => b.ownBooks ?? []);
+  if (own.length) return { bookList: own };
+  const list = owned
+    .filter((b) => !b.omnibus && volumesOf(b).length)
+    .map((b) => newBook(b.title, volumesOf(b), b.isbn));
+  return list.some((b) => b.isbn13 || b.edition !== "single")
+    ? { bookList: list }
+    : {};
+};
 const tidyName = (name: string) => name.replace(/\s+/g, " ").trim();
 
 // any other app: whichever columns look right. No owned column means it's a
@@ -686,6 +729,7 @@ export function isbnOnlyRows(rows: string[][]): string[] {
 
 // a looked-up ISBN as a book of the file: owned, with every volume it holds
 export const bookFromScan = (scan: {
+  isbn13?: string;
   shelfName: string;
   volume: number;
   volumes: number[];
@@ -702,6 +746,7 @@ export const bookFromScan = (scan: {
   rating: 0,
   planned: false,
   lightNovel: scan.lightNovel,
+  ...(scan.isbn13 ? { isbn: scan.isbn13 } : {}),
 });
 
 // ---------- books that hold several volumes ----------
@@ -1146,9 +1191,16 @@ export function readBooks(rows: string[][], source: BookSource): Book[] {
         : isBookshelfApp(h)
           ? bookshelfAppBook
           : csvBook;
+  // any column of ISBNs: each row's goes with its book
+  const isbnAt = header(h, /^isbn ?13$/i, /^isbn$/i, /isbn/i);
+  const withIsbn = (row: string[], book: Book | null): Book[] => {
+    if (!book) return [];
+    const isbn = isbnAt < 0 ? "" : cell(row, isbnAt).replace(/[^0-9]/g, "");
+    return [/^97[89]\d{10}$/.test(isbn) ? { ...book, isbn } : book];
+  };
   return confirmTrailingNumbers(
     body
-      .flatMap((row) => toBook(h, row) ?? [])
+      .flatMap((row) => withIsbn(row, toBook(h, row)))
       .map(withVolumesInside)
       .map(realNames),
   )
@@ -1371,6 +1423,13 @@ export function groupBooks(everyBook: Book[]): BookSeries[] {
       ...(list.find((b) => b.notes)
         ? { notes: list.find((b) => b.notes)!.notes }
         : {}),
+      ...bookListOf(ownedBooks, volumesOf),
+      ...(list.some((b) => b.readTo)
+        ? { readTo: Math.max(...list.map((b) => b.readTo ?? 0)) }
+        : {}),
+      ...(list.some((b) => b.byVolume != null)
+        ? { byVolume: list.some((b) => b.byVolume) }
+        : {}),
     };
   });
 }
@@ -1555,6 +1614,7 @@ export function mergeSameSeries(
             (a, b) => a - b,
           )
         : null;
+    if (s.bookList) first.bookList = [...(first.bookList ?? []), ...s.bookList];
     first.readVolumes = Math.max(first.readVolumes, s.readVolumes);
     first.score = Math.max(first.score, s.score);
     first.planned = first.planned && s.planned;
@@ -1603,7 +1663,11 @@ export const toEntry = (
   ...(s.notes ? { comments: s.notes } : {}),
   ...(s.restore ? { restore: true } : {}),
   ...(s.restore && s.genre ? { genre: s.genre } : {}),
-  readVolumes: s.readVolumes,
+  // a backup says the volume read itself; it's apart from what they own
+  readVolumes: s.restore ? (s.readTo ?? 0) : s.readVolumes,
+  ...(s.restore && s.byVolume != null ? { byVolume: s.byVolume } : {}),
+  // only the books whose volumes go on the shelf: the server keeps no other
+  ...(s.bookList?.length ? { books: s.bookList.slice(0, 300) } : {}),
   ownedVolumes: s.ownedVolumes,
   // only with gaps: a run from 1 is what ownedVolumes says already, and keeps
   // counting a volume read further on as theirs, as it always did

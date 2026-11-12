@@ -50,6 +50,25 @@ test("add, list, edit and delete a series", async () => {
   const detail = await agent.get(`/api/manga/${id}`);
   expect(detail.body.manga).toMatchObject({ status: true, bookmark: 12 });
 
+  // their place by the volume: the chapter keeps its own number
+  await agent
+    .patch(`/api/manga/${id}/reading`)
+    .send({ byVolume: true, readVolume: 4 })
+    .expect(204);
+  await agent
+    .patch(`/api/manga/${id}/reading`)
+    .send({ readVolume: 5 })
+    .expect(204);
+  await agent
+    .patch(`/api/manga/${id}/reading`)
+    .send({ readVolume: 1000 })
+    .expect(400);
+  expect((await agent.get(`/api/manga/${id}`)).body.manga).toMatchObject({
+    byVolume: true,
+    readVolume: 5,
+    bookmark: 12,
+  });
+
   expect((await agent.delete(`/api/manga/${id}`)).status).toBeLessThan(300);
   expect((await agent.get(`/api/manga/${id}`)).status).toBe(404);
 });
@@ -78,6 +97,62 @@ test("owned volumes: a run from 1, or the exact list with gaps", async () => {
     .expect(200);
   saved = await prisma.manga.findUnique({ where: { id } });
   expect(saved).toMatchObject({ volumesOwned: 5, ownedList: [2, 5] });
+
+  // the books behind them: kept only while their volumes are owned
+  const deluxe = { edition: "deluxe", number: 1, volumes: [1, 2, 3] };
+  const five = { isbn13: "9781421500058", edition: "single", volumes: [5] };
+  await agent
+    .put(`/api/manga/${id}/owned`)
+    .send({ volumesOwned: 5, ownedList: [1, 2, 3, 5] })
+    .expect(200);
+  const booked = await agent
+    .post(`/api/manga/${id}/books`)
+    .send({ books: [deluxe, five, { edition: "single", volumes: [9] }] })
+    .expect(200);
+  // vol. 9 isn't owned, so its book isn't kept
+  expect(booked.body.books).toMatchObject([deluxe, five]);
+  // the same books again add nothing; an ISBN fills in where there was none
+  const again = await agent
+    .post(`/api/manga/${id}/books`)
+    .send({ books: [{ ...deluxe, isbn13: "9781506711980" }, five] })
+    .expect(200);
+  expect(again.body.books).toMatchObject([
+    { ...deluxe, isbn13: "9781506711980" },
+    five,
+  ]);
+  await agent
+    .post(`/api/manga/${id}/books`)
+    .send({ books: [{ edition: "paperback", volumes: [1] }] })
+    .expect(400);
+  // a book removed takes the volumes only it held
+  const left = await agent
+    .delete(`/api/manga/${id}/books/${again.body.books[0].id}`)
+    .expect(200);
+  expect(left.body).toMatchObject({ volumesOwned: 5, ownedList: [5] });
+  // unticking a volume by hand drops the book that held it
+  await agent.put(`/api/manga/${id}/owned`).send({ ownedList: [] }).expect(200);
+  expect((await agent.get(`/api/manga/${id}/books`)).body.books).toEqual([]);
+  expect((await agent.get("/api/manga/books")).body.books).toEqual([]);
+
+  // deleted with its books, and the undo brings both back
+  await agent
+    .put(`/api/manga/${id}/owned`)
+    .send({ volumesOwned: 3, ownedList: [1, 2, 3] })
+    .expect(200);
+  await agent.post(`/api/manga/${id}/books`).send({ books: [deluxe] });
+  const gone = await agent
+    .post("/api/manga/delete-many")
+    .send({ ids: [id] })
+    .expect(200);
+  expect(gone.body.manga[0].books).toMatchObject([deluxe]);
+  const { id: _old, userId: _user, books: had, ...rest } = gone.body.manga[0];
+  await agent
+    .post("/api/manga/restore-many")
+    .send({ manga: [{ ...rest, books: had.map(() => deluxe) }] })
+    .expect(200);
+  expect((await agent.get("/api/manga/books")).body.books).toMatchObject([
+    deluxe,
+  ]);
 });
 
 // 403, not 404: the details page says "not on your shelf" for both
