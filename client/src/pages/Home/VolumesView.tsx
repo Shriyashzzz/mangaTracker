@@ -108,7 +108,7 @@ export default function VolumesView({
         {plural(volumes, "volume")} across{" "}
         {plural(manga.length, "series", "series")}
       </p>
-      {tools && !searching && <ShelfTotals tools={tools} />}
+      {tools && !searching && <ShelfTotals tools={tools} owned={volumes} />}
       {pager(false)}
       <ul ref={listRef} className={styles.list}>
         {shown.map((m) => (
@@ -130,11 +130,12 @@ export default function VolumesView({
 
 // the whole shelf: what it would fetch used, and what finishing every series
 // comes to. An estimate says so, with how much of it is real prices
-function ShelfTotals({ tools }: { tools: ShelfTools }) {
+function ShelfTotals({ tools, owned }: { tools: ShelfTools; owned: number }) {
   const { value } = tools;
-  // every owned volume, those of series with no list too: a total is exact
-  // only when all of them are priced
-  const ownedVolumes = value.volumes + value.unlisted;
+  // every owned volume, as the line above counts them (the server's count
+  // leaves out specials and volumes no list has yet): a total is exact only
+  // when all of them are priced
+  const ownedVolumes = Math.max(owned, value.volumes + value.unlisted);
   const worth = totalText(
     value.cents,
     value.priced,

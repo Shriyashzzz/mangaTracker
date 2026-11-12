@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, type CSSProperties } from "react";
 import { ownedOf, ownedPhrase, rangesText } from "../../lib/ownedVolumes";
 import { BOOK } from "../../lib/volumeShelf";
 import { detailsStyles as styles } from "./styles";
+import { onSale } from "../../lib/releaseDate";
 import { NavLink, useNavigate, useParams, useSearchParams } from "react-router";
 import StarRating from "../../components/starRating/StarRating";
 import { apiFetch } from "../../lib/api";
@@ -305,9 +306,17 @@ export default function Details() {
   const offShelf = owned.filter((v) => !Number.isInteger(v) || v < 1);
   const onShelf = owned.length - offShelf.length;
   const highestOwned = Math.floor(Math.max(0, ...owned));
+  // as the shelf's finish math counts it: a volume known to be coming means
+  // every one before it is out, listed or not (vol. 17 due: 16 is out)
+  const comingFirst = Math.min(
+    ...buyOptions.volumes
+      .filter((v) => !onSale([v]).length && Number.isInteger(v.volume))
+      .map((v) => v.volume),
+  );
   const knownOut = Math.max(
     releaseStatus?.latestVolume ?? 0,
     buyOptions.latest?.volume ?? 0,
+    Number.isFinite(comingFirst) ? comingFirst - 1 : 0,
   );
   const shelfTotal = Math.min(
     999,
