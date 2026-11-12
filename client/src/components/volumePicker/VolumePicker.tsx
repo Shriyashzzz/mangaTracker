@@ -293,6 +293,12 @@ export function useVolumePicker(
           />
         </label>
       </div>
+      {/* what the spines are, said once: a new reader took them for
+          decoration */}
+      <p className={styles.note} id={`${labelId}-how`}>
+        Each spine is a volume. Tap the ones you own, or hold and slide to mark
+        several; "Up to vol." fills in a run from vol. 1.
+      </p>
       {/* what the form sends */}
       <input
         type="hidden"
@@ -304,6 +310,7 @@ export function useVolumePicker(
         className={styles.shelf}
         role="group"
         aria-labelledby={labelId}
+        aria-describedby={`${labelId}-how`}
         onPointerDown={onPointerDown}
         onPointerMove={onPointerMove}
         onPointerUp={onPointerUp}
