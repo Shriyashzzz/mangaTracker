@@ -1252,7 +1252,14 @@ export async function getSeriesIndex() {
     genres: info.genres ?? [],
     status: info.status,
     volumes: info.volumes,
-    knownVolumes: bySeries.get(slugify(info.name))?.size ?? 0,
+    // one per volume number: the same volume is known under several ISBNs
+    // (a rebind, a UK printing, another catalog's spelling), and counting
+    // those said Naruto has 96 volumes
+    knownVolumes: new Set(
+      [...(bySeries.get(slugify(info.name))?.values() ?? [])]
+        .map((v) => titleVolume(v.title))
+        .filter((n) => n != null && Number.isInteger(n) && n >= 1),
+    ).size,
   }));
 }
 
