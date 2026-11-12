@@ -296,6 +296,12 @@ export default function PriceSeries() {
             genres={info?.genres}
           />
         </div>
+        {/* a whole run in one buy, up beside the title */}
+        <BoxSets
+          sets={data.boxSets ?? []}
+          links={data.boxSetLinks ?? []}
+          editionsListed={editionsFor === name}
+        />
       </header>
 
       {cost && (
@@ -472,14 +478,6 @@ export default function PriceSeries() {
           </p>
         )}
       </section>
-
-      {/* a whole run in one buy comes first; then the same story in bigger
-          books */}
-      <BoxSets
-        sets={data.boxSets ?? []}
-        links={data.boxSetLinks ?? []}
-        editionsListed={editionsFor === name}
-      />
 
       <OtherEditions
         name={name}

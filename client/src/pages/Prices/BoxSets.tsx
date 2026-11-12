@@ -1,8 +1,10 @@
-// A series' box sets: the ones found while pricing its volumes (cheapest
-// first, each a link to the listing) and searches for more at the stores
-// that sell them. Collectors often buy a whole run as a set; every link
-// carries our affiliate tag where we have one
-import { ChevronRightIcon } from "../../components/icons/Icons";
+// A series' box sets, beside its title: the ones found while pricing its
+// volumes (cheapest first, each a link to the listing) and searches for more
+// at the stores that sell them. Collectors often buy a whole run as a set.
+// On a laptop it's an inked box at the right of the heading; on a phone, a
+// row of tickets to swipe under it. Saved prices only: showing them never
+// asks a store or spends a search. Every link carries our affiliate tag
+// where we have one
 import { formatCents } from "../../lib/prices";
 import { noteStoreClick } from "../../lib/support";
 import type { BoxSet, StoreLink } from "../../lib/types";
@@ -12,9 +14,11 @@ import { pricesStyles as styles } from "./styles";
 const KIND: Record<string, string> = {
   set: "Box set",
   // a 3-in-1 and the like: one book holding several volumes, not a box
-  omnibus: "Omnibus, several volumes in one book",
+  omnibus: "Omnibus",
 };
-const CONDITION: Record<string, string> = { new: "New", used: "Used" };
+const CONDITION: Record<string, string> = { new: "new", used: "used" };
+// shown at once in the box; the rest are a tap away
+const FIRST_SHOWN = 2;
 
 export default function BoxSets({
   sets: found,
@@ -30,60 +34,51 @@ export default function BoxSets({
   const sets = editionsListed
     ? found.filter((s) => s.format !== "omnibus")
     : found;
-  const hasOmnibus = sets.some((s) => s.format === "omnibus");
   if (!sets.length && !links.length) return null;
-  return (
-    <section aria-labelledby="box-sets-title" className={styles.boxSets}>
-      <h2 id="box-sets-title" className={styles.sectionTitle}>
-        {hasOmnibus ? "Box sets and omnibuses" : "Box sets"}
-      </h2>
-      {sets.length > 0 && (
-        <ul className={styles.offers}>
-          {sets.map((s) => {
-            const row = (
-              <>
-                <span className={styles.offerStore}>
-                  <span className={styles.offerName}>{s.store}</span>
-                  <span className={styles.offerTags}>
-                    {KIND[s.format] ?? "Set"} ·{" "}
-                    {CONDITION[s.condition] ?? "Marketplace"}
-                  </span>
-                </span>
-                <span className={styles.offerPrice}>
-                  {formatCents(s.priceCents)}
-                </span>
-              </>
-            );
-            return (
-              <li key={`${s.store}-${s.priceCents}-${s.url}`}>
-                {s.url ? (
-                  <a
-                    className={styles.offerRow}
-                    href={s.url}
-                    target="_blank"
-                    rel={linkRel(s)}
-                    onClick={noteStoreClick}
-                    onAuxClick={noteStoreClick}
-                    aria-label={`${KIND[s.format] ?? "Set"} at ${s.store}, ${formatCents(s.priceCents)}. Opens the store in a new tab`}
-                  >
-                    {row}
-                    <span className={styles.offerGo} aria-hidden>
-                      <span className="upto-720:hidden">Go to store</span>
-                      <ChevronRightIcon />
-                    </span>
-                  </a>
-                ) : (
-                  <span className={styles.offerRow}>{row}</span>
-                )}
-              </li>
-            );
-          })}
-        </ul>
-      )}
-      <h3 className={styles.otherStoresTitle}>
-        {sets.length ? "More box sets at:" : "Find its box sets at:"}
-      </h3>
-      <ul className={styles.storeLinks}>
+  const hasOmnibus = sets.some((s) => s.format === "omnibus");
+  const affiliate = [...sets, ...links].some((l) => l.affiliate);
+
+  const ticket = (s: BoxSet, first: boolean, where?: string) => {
+    const kind = KIND[s.format] ?? "Set";
+    const condition = CONDITION[s.condition] ?? "marketplace";
+    const body = (
+      <>
+        <span className={first ? styles.setKindFirst : styles.setKind}>
+          {first ? "Cheapest found" : `${kind} · ${condition}`}
+        </span>
+        <span className={styles.setStore}>
+          {s.store}
+          {first && <span className={styles.setAside}> · {condition}</span>}
+        </span>
+        <span className={styles.setPrice}>{formatCents(s.priceCents)}</span>
+      </>
+    );
+    return (
+      <li key={`${s.store}-${s.priceCents}-${s.url}`} className={where}>
+        {s.url ? (
+          <a
+            className={first ? styles.setTicketFirst : styles.setTicket}
+            href={s.url}
+            target="_blank"
+            rel={linkRel(s)}
+            onClick={noteStoreClick}
+            onAuxClick={noteStoreClick}
+            aria-label={`${kind}, ${condition}, at ${s.store}: ${formatCents(s.priceCents)}. Opens the store in a new tab`}
+          >
+            {body}
+          </a>
+        ) : (
+          <span className={first ? styles.setTicketFirst : styles.setTicket}>
+            {body}
+          </span>
+        )}
+      </li>
+    );
+  };
+
+  const stores = (
+    <>
+      <ul className={styles.setStores}>
         {links.map((l) => (
           <li key={l.store}>
             <a
@@ -99,12 +94,55 @@ export default function BoxSets({
           </li>
         ))}
       </ul>
-      {[...sets, ...links].some((l) => l.affiliate) && (
-        <p className={styles.disclosure}>
+      {affiliate && (
+        <p className={styles.setDisclosure}>
           Some store links are affiliate links, which help keep the site running
           at no cost to you.
         </p>
       )}
-    </section>
+    </>
+  );
+
+  return (
+    <aside aria-labelledby="box-sets-title" className={styles.setsBox}>
+      <h2 id="box-sets-title" className={styles.setsTitle}>
+        {hasOmnibus ? "Box sets & omnibuses" : "Box sets"}
+      </h2>
+      {sets.length > 0 ? (
+        <>
+          {/* the first two in the box; on a phone, all of them in one row */}
+          <ul className={styles.setsList}>
+            {sets.map((s, i) =>
+              ticket(
+                s,
+                i === 0,
+                i >= FIRST_SHOWN ? styles.setLater : undefined,
+              ),
+            )}
+          </ul>
+          <details className={styles.setsMore}>
+            <summary className={styles.setsMoreSummary}>
+              {sets.length > FIRST_SHOWN && (
+                <span className={styles.setsMoreCount}>
+                  {sets.length - FIRST_SHOWN} more, and{" "}
+                </span>
+              )}
+              other stores
+            </summary>
+            {sets.length > FIRST_SHOWN && (
+              <ul className={styles.setsRest}>
+                {sets.slice(FIRST_SHOWN).map((s) => ticket(s, false))}
+              </ul>
+            )}
+            {stores}
+          </details>
+        </>
+      ) : (
+        <>
+          <p className={styles.setsNone}>None priced yet. Look for one at:</p>
+          {stores}
+        </>
+      )}
+    </aside>
   );
 }
