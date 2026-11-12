@@ -1108,8 +1108,13 @@ async function getSeriesWithVolumes(name: string) {
   // it's whole and has changed
   if (!incomplete) saveFinalList(name, volumes);
   const isbns = volumes.map((v) => v.isbn13);
-  const [known, collections] = await Promise.all([
+  const [known, recorded, collections] = await Promise.all([
     priceQueries.getKnownPrices(isbns),
+    // what each has usually sold for new: for estimates, when no store has
+    // it today (never goes stale: every price ever recorded counts)
+    priceQueries
+      .getRecordedMedians(isbns)
+      .catch(() => new Map<string, { new: number | null }>()),
     priceQueries.getCollectionOffers(isbns).catch(() => []),
   ]);
   // box sets and omnibuses found while pricing its volumes, cheapest first,
@@ -1158,6 +1163,7 @@ async function getSeriesWithVolumes(name: string) {
       volume: v.volume,
       coverUrl: v.coverUrl,
       knownPriceCents: known.get(v.isbn13)?.priceCents ?? null,
+      recordedCents: recorded.get(v.isbn13)?.new ?? null,
       ...(v.inBook ? { inBook: v.inBook } : {}),
       ...(v.published ? { published: v.published } : {}),
     })),

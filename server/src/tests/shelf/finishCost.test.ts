@@ -32,6 +32,7 @@ test("adds up the priced ones and estimates the rest", () => {
     priced: 2,
     left: 2,
     estimateCents: 2298,
+    enough: true,
   });
   // one priced: the other counted at its price
   expect(finishCost([vol(3, 1099), vol(4, null)])).toEqual({
@@ -39,6 +40,8 @@ test("adds up the priced ones and estimates the rest", () => {
     priced: 1,
     left: 2,
     estimateCents: 2198,
+    // half the series priced: not enough to say a total
+    enough: false,
   });
   // none of what's left priced, but owned ones are: estimated from those
   expect(
@@ -48,10 +51,16 @@ test("adds up the priced ones and estimates the rest", () => {
 
 test("says it plainly: exact when all are priced, about otherwise", () => {
   expect(
-    finishText({ cents: 2298, priced: 2, left: 2, estimateCents: 2298 }, money),
+    finishText(
+      { cents: 2298, priced: 2, left: 2, estimateCents: 2298, enough: true },
+      money,
+    ),
   ).toBe("Finish the series: $22.98");
   expect(
-    finishText({ cents: 1099, priced: 1, left: 3, estimateCents: 3297 }, money),
+    finishText(
+      { cents: 1099, priced: 1, left: 3, estimateCents: 3297, enough: true },
+      money,
+    ),
   ).toBe("Finish the series: about $30");
 });
 
@@ -67,6 +76,7 @@ test("two volumes in one book are paid for once", () => {
     priced: 3,
     left: 3,
     estimateCents: 4098,
+    enough: true,
   });
 });
 
@@ -83,5 +93,31 @@ test("collecting a whole series: exact, or estimated from what's priced", () => 
     priced: 1,
     complete: false,
     estimateCents: 3000,
+  });
+});
+
+test("a total is said only with most of the series priced, and an old price still counts", () => {
+  const series = [1, 2, 3, 4, 5].map((n) => vol(n, n <= 2 ? 1000 : null));
+  // 2 of 5 priced: a count, no money
+  const few = finishCost(series.slice(2), series)!;
+  expect(few.enough).toBe(false);
+  expect(finishText(few, money)).toBe("Finish the series: check prices");
+  // 3 of 5 is 60%
+  const more = finishCost(series.slice(3), [
+    ...series.slice(0, 2),
+    vol(3, 1000),
+    ...series.slice(3),
+  ])!;
+  expect(more.enough).toBe(true);
+  // no store has it today, but it has sold for $12 before: still priced
+  const recorded = [1, 2, 3].map((n) => ({
+    volume: n,
+    knownPriceCents: null,
+    recordedCents: 1200,
+  }));
+  expect(finishCost(recorded.slice(1), recorded)).toMatchObject({
+    cents: 2400,
+    priced: 2,
+    enough: true,
   });
 });

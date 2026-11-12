@@ -1,7 +1,7 @@
 import { notOutYet, onSale } from "../../lib/releaseDate";
 import DealsStrip from "../../components/deals/DealsStrip";
 import ToReadButton from "../../components/toRead/ToReadButton";
-import { useEffect, useState, type FormEvent } from "react";
+import { useEffect, useState } from "react";
 import { NavLink, useParams, useSearchParams } from "react-router";
 import type { Series, SeriesVolume } from "../../lib/types";
 import {
@@ -97,6 +97,8 @@ export default function PriceSeries() {
     on: boolean;
     page: number;
   } | null>(null);
+  // the series whose other editions the page lists (OtherEditions says)
+  const [editionsFor, setEditionsFor] = useState("");
   const toGetOnly =
     filter?.name === name ? filter.on : params.get("toget") === "1";
   const toGetPageIndex = filter?.name === name ? filter.page : 0;
@@ -235,27 +237,6 @@ export default function PriceSeries() {
           (v.volume >= rangeStart || (pageIndex === 0 && v.volume < 1)) &&
           v.volume <= rangeEnd,
       );
-  // to the block holding that volume, then to the volume itself
-  const jumpToVolume = (e: FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    const number = Number(new FormData(e.currentTarget).get("volume"));
-    if (!Number.isFinite(number) || number < 1) return;
-    // filtered: to its page of "Not on your shelf"; one they own isn't
-    // there, so the filter goes off and it's found in the full list
-    const inToGet = toGetShown
-      ? toGet.findIndex((v) => v.volume === number)
-      : -1;
-    if (inToGet >= 0) setToGetPageIndex(Math.floor(inToGet / PAGE_SIZE));
-    else {
-      if (toGetShown) setToGetOnly(false);
-      setPage({ name, index: Math.floor((number - 1) / PAGE_SIZE) });
-    }
-    requestAnimationFrame(() =>
-      document
-        .getElementById(`vol-${number}`)
-        ?.scrollIntoView({ behavior: "smooth", block: "center" }),
-    );
-  };
   const changePage = (index: number) => {
     setPage({ name, index });
     document
@@ -352,7 +333,9 @@ export default function PriceSeries() {
                 Not on your shelf ({toGet.length})
               </button>
             )}
-            {finish && (
+            {/* only once most of the series is priced: a few volumes'
+                prices aren't the run's */}
+            {finish?.enough && (
               <span
                 className={styles.finishCost}
                 title="At the last checked prices. A volume gets a price once someone opens its page"
@@ -397,22 +380,6 @@ export default function PriceSeries() {
             name or ISBN to price it.
           </p>
         )}
-        {volumes.length > 12 && (
-          <form className={styles.jump} onSubmit={jumpToVolume}>
-            <label htmlFor="jump-volume">Jump to volume</label>
-            <input
-              id="jump-volume"
-              name="volume"
-              type="number"
-              inputMode="numeric"
-              min={1}
-              max={lastNumber}
-            />
-            <button type="submit" className="btn btn-secondary">
-              Go
-            </button>
-          </form>
-        )}
         {volumes.length ? (
           <ul className={styles.grid}>
             {/* no series cover behind a volume missing its own: AniList's is
@@ -443,7 +410,7 @@ export default function PriceSeries() {
                 </li>
               ) : (
                 // one book holding several volumes: one stacked card, one
-                // price page. Each volume keeps its place for Jump to
+                // price page. Each volume keeps its place for a link to
                 <li key={card[0]!.volume} id={`vol-${card[0]!.volume}`}>
                   {card.slice(1).map((v) => (
                     <span key={v.volume} id={`vol-${v.volume}`} />
@@ -506,13 +473,20 @@ export default function PriceSeries() {
         )}
       </section>
 
+      {/* a whole run in one buy comes first; then the same story in bigger
+          books */}
+      <BoxSets
+        sets={data.boxSets ?? []}
+        links={data.boxSetLinks ?? []}
+        editionsListed={editionsFor === name}
+      />
+
       <OtherEditions
         name={name}
         asked={params.get("edition")}
         owned={mine ? ownedOf(mine) : []}
+        onFound={(found) => setEditionsFor(found ? name : "")}
       />
-
-      <BoxSets sets={data.boxSets ?? []} links={data.boxSetLinks ?? []} />
     </div>
   );
 }

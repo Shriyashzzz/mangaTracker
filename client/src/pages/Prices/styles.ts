@@ -101,7 +101,7 @@ export const pricesStyles = {
     "tap inline-flex min-h-9 items-center gap-2 rounded-[2px] border-[1.5px] border-line-soft bg-paper px-3 text-[0.88rem] font-medium text-ink-soft transition-[color,border-color,background-color] duration-120 ease-[ease] hover:border-line hover:text-ink aria-pressed:border-line aria-pressed:bg-ink aria-pressed:text-paper",
   editionTabCount: "font-mono text-[0.72rem] opacity-70",
   editionList:
-    "grid grid-cols-[repeat(auto-fill,minmax(17rem,1fr))] gap-x-8 border-t-[1.5px] border-line",
+    "mb-4 grid grid-cols-[repeat(auto-fill,minmax(17rem,1fr))] gap-x-8 border-t-[1.5px] border-line",
   editionRow:
     "grid grid-cols-[minmax(0,1fr)_auto] items-baseline gap-x-3 border-b border-dashed border-line-soft py-2.5",
   editionName: "font-semibold text-ink",
@@ -287,7 +287,6 @@ export const pricesStyles = {
   siblings: "mt-10 border-t-[1.5px] border-dashed border-line-soft pt-6",
 
   // ---------- shared by series and volume pages ----------
-  jump: "mb-4 flex flex-wrap items-center gap-2 text-[0.9rem] font-medium [&_input]:h-11 [&_input]:w-20 [&_input]:rounded-[2px] [&_input]:border-2 [&_input]:border-line [&_input]:bg-card [&_input]:px-2 [&_input]:text-[1rem]",
   backToNew:
     "tap mb-3 inline-flex items-center gap-1 font-medium underline decoration-accent decoration-2 underline-offset-3 [&_svg]:size-4",
   crumbs:

@@ -17,17 +17,25 @@ const KIND: Record<string, string> = {
 const CONDITION: Record<string, string> = { new: "New", used: "Used" };
 
 export default function BoxSets({
-  sets,
+  sets: found,
   links,
+  editionsListed,
 }: {
   sets: BoxSet[];
   links: StoreLink[];
+  // the page lists the series' omnibus and deluxe books itself ("Other
+  // editions"): a stray omnibus listing here would only say it twice
+  editionsListed: boolean;
 }) {
+  const sets = editionsListed
+    ? found.filter((s) => s.format !== "omnibus")
+    : found;
+  const hasOmnibus = sets.some((s) => s.format === "omnibus");
   if (!sets.length && !links.length) return null;
   return (
     <section aria-labelledby="box-sets-title" className={styles.boxSets}>
       <h2 id="box-sets-title" className={styles.sectionTitle}>
-        Box sets and omnibuses
+        {hasOmnibus ? "Box sets and omnibuses" : "Box sets"}
       </h2>
       {sets.length > 0 && (
         <ul className={styles.offers}>
