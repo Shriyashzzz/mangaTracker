@@ -156,3 +156,79 @@ test("importing a series already there adds its new volumes, never takes any awa
     ownedList: [],
   });
 });
+
+test("stars given when adding a series are saved, and are optional", async () => {
+  const agent = await reader("reader");
+  const rated = await agent
+    .post("/api/manga")
+    .send({ name: "Zzrated", status: true, rating: 4 })
+    .expect(201);
+  expect(
+    await prisma.manga.findUnique({ where: { id: rated.body.id } }),
+  ).toMatchObject({ rating: 4 });
+  // no chapter and no stars: still added
+  await agent
+    .post("/api/manga")
+    .send({ name: "Zzunrated", status: false })
+    .expect(201);
+  await agent
+    .post("/api/manga")
+    .send({ name: "Zzbad", status: true, rating: 9 })
+    .expect(400);
+});
+
+test("a series on the shelf twice merges into one, keeping everything either had", async () => {
+  const agent = await reader("reader");
+  const a = await prisma.manga.create({
+    data: {
+      userId: (await prisma.user.findFirst())!.id,
+      name: "Zztwice",
+      volumesOwned: 5,
+      bookmark: 40,
+      description: "first",
+    },
+  });
+  const b = await prisma.manga.create({
+    data: {
+      userId: a.userId,
+      name: "Zztwice",
+      volumesOwned: 8,
+      ownedList: [7, 8],
+      bookmark: 55,
+      rating: 4,
+      description: "second",
+    },
+  });
+  await agent
+    .post(`/api/manga/${a.id}/merge`)
+    .send({ otherId: b.id })
+    .expect(204);
+  expect(await prisma.manga.count()).toBe(1);
+  // 1-5 and 7-8: the gap at 6 stays a gap
+  expect(await prisma.manga.findUnique({ where: { id: a.id } })).toMatchObject({
+    volumesOwned: 8,
+    ownedList: [1, 2, 3, 4, 5, 7, 8],
+    bookmark: 55,
+    rating: 4,
+    description: "first\nsecond",
+  });
+});
+
+test("merging only works with a series on your own shelf", async () => {
+  const mine = await reader("reader");
+  // another reader's series, made directly: no second sign-in needed
+  const someone = await userQueries.addUser("someone", "a good password");
+  const { id: myId } = (await add(mine, "Zzmine")).body;
+  const { id: theirId } = await prisma.manga.create({
+    data: { userId: someone!, name: "Zztheirs" },
+  });
+  await mine
+    .post(`/api/manga/${myId}/merge`)
+    .send({ otherId: theirId })
+    .expect(404);
+  await mine
+    .post(`/api/manga/${myId}/merge`)
+    .send({ otherId: myId })
+    .expect(404);
+  expect(await prisma.manga.count()).toBe(2);
+});

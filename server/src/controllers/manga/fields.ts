@@ -50,6 +50,13 @@ export const mangaFields = [
   // or exactly which: One Piece 1 and 4 (util/shelf/ownedList.ts)
   ...ownedListFields("ownedList"),
   body("genre").optional({ values: "falsy" }).trim().isLength({ max: 100 }),
+  // stars given on adding it; editing doesn't send them (the details page
+  // rates on its own), so it's left alone there
+  body("rating")
+    .optional({ values: "null" })
+    .isInt({ min: 0, max: 5 })
+    .withMessage("0 to 5 stars")
+    .toInt(),
   body("description")
     .optional({ values: "falsy" })
     .trim()
@@ -102,6 +109,7 @@ export const toInput = (req: Request): MangaInput => {
     genre: d.genre || null,
     description: d.description || null,
     image: d.image || null,
+    ...(d.rating ? { rating: d.rating } : {}),
   };
 };
 

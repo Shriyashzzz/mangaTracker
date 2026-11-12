@@ -3,6 +3,7 @@
 import type { Request, Response } from "express";
 import { body, matchedData, validationResult } from "express-validator";
 import { rejectInvalid } from "../../middlewares/validate.js";
+import { sendError } from "../../middlewares/errorHandler.js";
 import mangaQueries, { type RestoredManga } from "../../models/mangaQueries.js";
 import { shelfKey } from "../../util/shelf/malEntry.js";
 import { titleKey } from "../../util/shelf/titleKey.js";
@@ -170,5 +171,24 @@ export const restoreMany = [
         invalid,
       });
     });
+  },
+];
+
+// POST /:id/merge {otherId}: the same series on the shelf twice becomes one
+// (mangaQueries.mergeManga). Both theirs: the other is checked here, the first
+// by requireOwner
+export const merge = [
+  body("otherId").isInt({ min: 1 }).toInt(),
+  rejectInvalid,
+  async (req: Request, res: Response) => {
+    const otherId: number = matchedData(req).otherId;
+    const keep = res.locals.manga.id as number;
+    const other = await mangaQueries.getManga(otherId);
+    if (!other || other.userId !== req.session.userId || otherId === keep) {
+      sendError(res, 404, "That one isn't on your shelf.");
+      return;
+    }
+    await mangaQueries.mergeManga(keep, otherId);
+    res.sendStatus(204);
   },
 ];

@@ -134,7 +134,8 @@ const HOW: Record<
     step: "In Book Catalogue, open the menu and export your books to a CSV file. Go to Admin & Prefs or Settings, depending on your version. Then drop the file.",
   },
   csv: {
-    step: "Export your library from your app as a CSV file.",
+    // the columns bookImport.ts reads (any of these names, any order)
+    step: "Export your library from your app as a CSV file. It needs a Title column; Series, Volume (or Number), an Owned or Purchased column, Rating and Format help if your app has them. A box set's volumes are asked for if the title doesn't say.",
   },
 };
 

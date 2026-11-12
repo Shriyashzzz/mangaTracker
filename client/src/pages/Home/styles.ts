@@ -48,7 +48,10 @@ export const homeStyles = {
   cardWithSeen:
     "flex min-w-0 flex-col items-start [&>:is(a,label)]:w-full [&>:is(a,label)]:flex-1",
   // anyone who chose rows in settings: one manga per row at every size
-  rowsGrid: "grid grid-cols-[minmax(0,1fr)] border-t-[1.5px] border-line",
+  // on paper: the page's background art shows around the list, never behind
+  // the words of a row
+  rowsGrid:
+    "grid grid-cols-[minmax(0,1fr)] border-t-[1.5px] border-line bg-paper",
   cardRowAlways:
     "flex min-w-0 flex-row items-stretch border-b-[1.5px] border-line-soft [&>:is(a,label)]:min-w-0 [&>:is(a,label)]:flex-1",
   seenBtnRow:
