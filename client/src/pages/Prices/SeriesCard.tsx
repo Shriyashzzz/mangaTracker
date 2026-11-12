@@ -64,8 +64,8 @@ export default function SeriesCard({
           // list we keep
           series.volumes &&
             (shown.lightNovel
-              ? `${series.volumes} vols`
-              : `${series.volumes} vols in Japan`),
+              ? `${series.volumes} vol${series.volumes === 1 ? "" : "s"}`
+              : `${series.volumes} vol${series.volumes === 1 ? "" : "s"} in Japan`),
           // AniList's score, out of 100: not their own stars
           series.score && `AniList ${series.score}%`,
           series.genre,

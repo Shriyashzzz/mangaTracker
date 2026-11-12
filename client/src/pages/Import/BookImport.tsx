@@ -448,7 +448,9 @@ export default function BookImport({ source }: { source: BookSource }) {
                 </span>
                 <span className={`${styles.dropHint} block`}>
                   {found
-                    ? `Another ${APP_NAME[source]} export joins this one, matched as it goes`
+                    ? source === "csv"
+                      ? "Another export from the same app joins this one, matched as it goes"
+                      : `Another ${APP_NAME[source]} export joins this one, matched as it goes`
                     : "Or drop it here, or several. They end in .csv"}
                 </span>
               </span>
