@@ -662,7 +662,10 @@ export const mergeVolumes = (known: CatalogBook[], found: CatalogBook[]) => {
 // cover at three times the price, and often another edition's cover image
 // (One Piece 8, 10 and 17 were listed under these). The publisher's own
 // edition of a volume always wins over one
-const REBIND = /^(9781417|9780606|9780613)/;
+// Gollancz's UK printing (978-0-575, Detective Conan 3, 6, 8 and 9) is the
+// same: the US publisher's own wins when a catalog has it, and it counts as
+// a volume to look up again (gapVolumes)
+const REBIND = /^(9781417|9780606|9780613|9780575)/;
 export const isRebind = (isbn13: string) => REBIND.test(isbn13.trim());
 // the edition a volume should be listed under: a lone volume over a book
 // holding it, the publisher's over a rebind
@@ -932,13 +935,13 @@ const otherNamesFor = (name: string, info: SeriesInfo | null) => {
 // ---------- volumes the series searches missed ----------
 
 // numbered gaps below the highest known volume, and volumes whose only
-// edition is a library rebind, asked for one at a time (googleVolume). The
-// answers are saved under the series for a week, so a visit doesn't ask
-// again; a series asks about a few at most, and the site a capped number a
-// day, out of Google Books' ~1,000
-const GAPS_PER_SERIES = 5;
+// edition is a library rebind, asked for one at a time (googleVolume). A
+// series asks about a few a day, in turn, and what's found is saved and kept,
+// so its gaps close over the days; the site asks a capped number a day, out
+// of Google Books' ~1,000
+const GAPS_PER_SERIES = 8;
 const GAP_LOOKUPS_A_DAY = 150;
-const GAPS_FRESH_MS = 7 * 24 * 60 * 60 * 1000;
+const GAPS_ASKED_MS = 24 * 60 * 60 * 1000;
 const gapDay = () => new Date().toISOString().slice(0, 10);
 
 async function gapVolumes(
@@ -947,25 +950,36 @@ async function gapVolumes(
 ): Promise<CatalogBook[]> {
   const key = `${volumesKey(name)}:gaps`;
   const saved = await priceQueries.getSeriesVolumes(key).catch(() => null);
-  if (saved && Date.now() - saved.at < GAPS_FRESH_MS) return saved.volumes;
+  const had = saved?.volumes ?? [];
+  // asked at most once a day; what was found is kept and added to
+  if (saved && Date.now() - saved.at < GAPS_ASKED_MS) return had;
   const numbers = [...byNumber.keys()].filter(
     (n): n is number => n != null && Number.isInteger(n) && n >= 1,
   );
   const highest = Math.max(0, ...numbers);
-  const wanted: number[] = [];
-  for (let n = 1; n <= highest && wanted.length < GAPS_PER_SERIES; n++) {
-    const had = byNumber.get(n);
-    if (!had || isRebind(had.isbn13)) wanted.push(n);
+  const known = new Set(had.map((b) => titleVolume(b.title)));
+  const gaps: number[] = [];
+  for (let n = 1; n <= highest; n++) {
+    const was = byNumber.get(n);
+    if ((!was || isRebind(was.isbn13)) && !known.has(n)) gaps.push(n);
   }
-  if (!wanted.length) return saved?.volumes ?? [];
-  const found: CatalogBook[] = [];
+  if (!gaps.length) return had;
+  // a few a day, in turn, so a long series with many gaps (Detective Conan)
+  // is worked through over the days rather than asking the same ones again
+  const day = gapDay();
+  const turn = Math.floor(Date.parse(day) / 86_400_000);
+  const start = (turn * GAPS_PER_SERIES) % gaps.length;
+  const wanted = [...gaps.slice(start), ...gaps.slice(0, start)].slice(
+    0,
+    GAPS_PER_SERIES,
+  );
+  const found: CatalogBook[] = [...had];
   for (const n of wanted) {
-    const day = gapDay();
     const allowed = await priceQueries
       .claimApiCall(`gbgap:${day}`, GAP_LOOKUPS_A_DAY, `${day.slice(0, 7)}-01`)
       .catch(() => false);
     // the day's share used: what was found so far, asked again another day
-    if (!allowed) return found;
+    if (!allowed) break;
     const book = await googleVolume(name, n).catch(() => null);
     if (book && !isRebind(book.isbn13) && !isOmnibusLength(book))
       found.push({ ...book, title: `${name}, Vol. ${n}` });
