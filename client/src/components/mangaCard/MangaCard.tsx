@@ -189,8 +189,13 @@ export default function MangaCard({
           </p>
         )}
         {/* the New tab's cards all match: only what's out and where they are */}
-        {!news && !compact && Number(currentManga.rating) > 0 && (
-          <StarRating value={Number(currentManga.rating)} size="sm" />
+        {/* a fixed slot, rated or not, so a row of covers lines up */}
+        {!news && !compact && (
+          <span className="block min-h-4">
+            {Number(currentManga.rating) > 0 && (
+              <StarRating value={Number(currentManga.rating)} size="sm" />
+            )}
+          </span>
         )}
       </div>
       {asColumns && (

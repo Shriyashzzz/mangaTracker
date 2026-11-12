@@ -113,7 +113,7 @@ export const pricesStyles = {
     "tap rounded-[2px] border-[1.5px] border-line-soft bg-paper px-2.5 py-1 text-[0.85rem] font-medium text-ink-soft hover:border-line hover:text-ink aria-pressed:border-line aria-pressed:bg-ink aria-pressed:text-paper",
 
   // ---------- cards ----------
-  grid: "grid grid-cols-[repeat(auto-fill,minmax(140px,1fr))] gap-x-5 gap-y-7 upto-720:grid-cols-2 upto-720:gap-x-4 upto-720:gap-y-6",
+  grid: "grid grid-cols-[repeat(auto-fill,minmax(140px,1fr))] gap-x-5 gap-y-7 upto-720:grid-cols-3 upto-720:gap-x-3 upto-720:gap-y-5",
   card: "group flex flex-col gap-[0.35rem] focus-visible:outline-none",
   // covers lean as if pulled off the shelf, each a little differently. The
   // image sits over a drawn placeholder (coverFallback)
