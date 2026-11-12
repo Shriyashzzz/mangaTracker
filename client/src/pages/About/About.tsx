@@ -45,7 +45,10 @@ export function AboutPage() {
       {/* opening panel: who made this and why */}
       <header className={styles.hero}>
         <div className={styles.heroArt}>
-          <Mascot mood="happy" />
+          {/* Kenji keeps his printed colours in dark mode too */}
+          <span className={`${styles.heroMascot} printed`}>
+            <Mascot mood="happy" />
+          </span>
           <p className={styles.heroBubble}>Yo! Welcome to the shelf.</p>
         </div>
 

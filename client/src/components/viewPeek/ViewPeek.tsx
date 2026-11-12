@@ -88,7 +88,9 @@ export default function ViewPeek({ series, rows, blocked, onChoose }: Props) {
   // been answered, asks again another day)
   if (blocked && note) setNote(null);
 
-  if (!note) return null;
+  // they switched to rows some other way (the sort menu, Settings): asked
+  // and answered
+  if (!note || (note === "ask" && rows)) return null;
 
   const close = () => {
     save({ done: true });
