@@ -130,14 +130,23 @@ export const detailsStyles = {
   // its label in red too
   buyNextKind:
     "col-span-full font-mono text-[0.72rem] font-medium tracking-[0.06em] whitespace-nowrap text-accent uppercase upto-720:col-span-1",
+  // "Missing: Vol. 6, Vol. 7": the gaps before the furthest they own, each a
+  // link, on a quiet dashed ticket under Next
+  buyGaps: `${ticket} flex-col border-dashed border-line-soft`,
+  buyGapList: "flex flex-wrap gap-x-3 gap-y-1",
+  buyGap:
+    "tap font-semibold underline decoration-line-soft underline-offset-3 hover:text-accent hover:decoration-accent",
   // the series link, a plain link with room around it for a thumb
   buySeries:
     "tap mt-2.5 block py-1 text-right text-[0.85rem] font-medium text-ink-soft underline decoration-line-soft underline-offset-3 transition-colors duration-120 ease-[ease] hover:text-accent hover:decoration-accent",
   buyKind:
     "col-span-full font-mono text-[0.72rem] font-normal tracking-[0.06em] whitespace-nowrap text-muted uppercase upto-720:col-span-1",
   buyPrice: "text-right font-mono font-medium text-accent",
-  // "2 vols (est)": one row, never wrapping under itself
-  buyCount: "flex items-baseline gap-1 whitespace-nowrap",
+  // "2 vols (est)": one row when there's room; on a long series in the narrow
+  // box ("113 vols" beside "about $1,340") the "(est)" drops under, never
+  // over the price
+  buyCount:
+    "flex min-w-0 flex-wrap items-baseline gap-x-1 [&>*]:whitespace-nowrap",
   // "(est)" beside a count: quieter than the ticket's own words
   buyAside: "font-normal text-ink-soft italic",
   // "caught up": the same ticket shape, but nothing to click

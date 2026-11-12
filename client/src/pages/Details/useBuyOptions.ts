@@ -2,7 +2,7 @@ import { onSale } from "../../lib/releaseDate";
 import { useEffect, useState } from "react";
 import { getSeries } from "../../lib/prices";
 import type { Series, SeriesVolume } from "../../lib/types";
-import { nextToGet, ownsAny } from "../../lib/ownedVolumes";
+import { nextToGet, owns, ownsAny } from "../../lib/ownedVolumes";
 import { finishCost, stillToGet } from "../../lib/finishCost";
 
 // a volume we know the number of
@@ -54,10 +54,24 @@ export function useBuyOptions(
       ? null
       : (out.find((v) => v.volume === nextNumber) ?? null);
 
+  // the gaps before the furthest they own: "Next for you" goes past them (a
+  // gap was read some other way, as a rule), but a collector filling a run
+  // wants to see them. Whole volumes out now, in order
+  const gaps = out
+    .filter(
+      (v) =>
+        Number.isInteger(v.volume) &&
+        v.volume >= 1 &&
+        v.volume < highest &&
+        !owns(owned, v.volume),
+    )
+    .sort((a, b) => a.volume - b.volume);
+
   return {
     loading,
     volumes,
     latest,
+    gaps,
     // the one they need next, once we know what they own
     next: missing,
     // nothing on sale after the furthest they own
