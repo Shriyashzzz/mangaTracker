@@ -23,6 +23,8 @@ import StatusField, {
 import { useBuyOptions } from "../Details/useBuyOptions";
 import { priceName } from "../../lib/prices";
 import { chapterProblem, coverLinkProblem } from "../../lib/formChecks";
+import { findOnShelf } from "../../lib/shelf";
+import type { ShelfMatch } from "../../lib/types";
 
 const DESC_MAX = 450;
 // AniList's matches in the title dropdown
@@ -69,6 +71,23 @@ export function AddManga() {
   // light novel's price page says so up front (format=novel)
   const novelFromPrices = searchParams.get("format") === "novel";
   const [lightNovel, setLightNovel] = useState(novelFromPrices);
+  // the series already on their shelf under this title, found once it's
+  // chosen: said before they fill the rest in, with the way to it (the
+  // server still refuses a second copy on saving)
+  const [already, setAlready] = useState<{
+    title: string;
+    match: NonNullable<ShelfMatch>;
+  } | null>(null);
+  useEffect(() => {
+    const name = title.trim();
+    if (!chosen || !name || !isSignedIn) return;
+    const controller = new AbortController();
+    findOnShelf(name, controller.signal)
+      .then((match) => setAlready(match ? { title, match } : null))
+      // can't tell: no note, and saving still says so
+      .catch(() => {});
+    return () => controller.abort();
+  }, [chosen, title, isSignedIn]);
   const formatTouched = useRef(novelFromPrices);
   const [genreFromAniList, setGenreFromAniList] = useState(false);
   // a genre the user picked by hand is never overwritten by a match
@@ -340,6 +359,19 @@ export function AddManga() {
                 </div>
               </div>
             </div>
+
+            {already?.title === title && (
+              <p className={styles.alreadyNote} role="status">
+                Already on your shelf as <b>{already.match.name}</b>.{" "}
+                <NavLink
+                  to={`/details/${already.match.id}`}
+                  className={styles.textLink}
+                  viewTransition
+                >
+                  Open it
+                </NavLink>
+              </p>
+            )}
 
             {ownCover && (
               <div className={styles.field}>
