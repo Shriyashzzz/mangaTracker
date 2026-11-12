@@ -1561,13 +1561,35 @@ export function mergeSameSeries(
   return out;
 }
 
+const otherNamesOf = (
+  s: BookSeries,
+  match?: { name?: string; names?: string[] },
+) => {
+  const names = [
+    ...new Set([s.title, ...s.otherNames, ...(match?.names ?? [])]),
+  ]
+    .filter((n) => n && n !== (match?.name || s.title))
+    .map((n) => n.slice(0, 300))
+    .slice(0, 12);
+  return names.length ? { otherNames: names } : {};
+};
+
 export const toEntry = (
   s: BookSeries,
-  match?: { malId: number | null; cover: string | null },
+  match?: {
+    malId: number | null;
+    cover: string | null;
+    name?: string;
+    names?: string[];
+  },
 ): MalEntry => ({
   ...(match?.malId ? { malId: match.malId } : {}),
   ...(match?.cover ? { cover: match.cover } : {}),
-  title: s.title.slice(0, 300),
+  // the series' own name, as the preview shows it ("Detective Conan" for a
+  // file's "Case Closed"), and every other name it goes by, so one already
+  // on the shelf under any of them is found and never added twice
+  title: (match?.name || s.title).slice(0, 300),
+  ...otherNamesOf(s, match),
   finished: Boolean(s.finished),
   ...(s.planned ? { planned: true } : {}),
   ...(s.lightNovel ? { lightNovel: true } : {}),

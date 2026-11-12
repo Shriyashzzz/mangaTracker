@@ -24,6 +24,9 @@ export type MalEntry = {
   // exactly which volumes they own, when a book app's file says and it isn't
   // a run from 1 (One Piece 1 and 4)
   ownedList?: number[];
+  // other names the series goes by (the file's own, AniList's): one on the
+  // shelf under any of them is the same series
+  otherNames?: string[];
   // from Manga Tracker's own export: a series already on the shelf takes
   // what it lacks too (chapter, finished, rating, notes)
   restore?: boolean;

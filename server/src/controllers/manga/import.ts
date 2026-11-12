@@ -47,6 +47,8 @@ export const importList = [
   body("entries.*.planned").optional().isBoolean().toBoolean(),
   body("entries.*.lightNovel").optional().isBoolean().toBoolean(),
   body("entries.*.restore").optional().isBoolean().toBoolean(),
+  body("entries.*.otherNames").optional().isArray({ max: 12 }),
+  body("entries.*.otherNames.*").isString().trim().isLength({ max: 300 }),
   // only AniList's and Kitsu's own image servers, so an import can't point covers
   // anywhere else
   body("entries.*.cover")

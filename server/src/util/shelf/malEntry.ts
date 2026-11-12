@@ -24,6 +24,8 @@ export type MalEntry = {
   lightNovel?: boolean;
   // exactly which volumes they own, when a book app's export says
   ownedList?: number[];
+  // other names it goes by: on the shelf under any of them, it's there
+  otherNames?: string[];
   // from Manga Tracker's own export: a series already on the shelf also
   // takes what it lacks (backupFill)
   restore?: boolean;
@@ -99,7 +101,12 @@ export const entryIsLightNovel = (
 
 // every name it could already be on the shelf under
 export const namesOf = (entry: MalEntry, listing: MalListing | null) =>
-  [entry.title, listing?.name, ...(listing?.altNames ?? [])]
+  [
+    entry.title,
+    ...(entry.otherNames ?? []),
+    listing?.name,
+    ...(listing?.altNames ?? []),
+  ]
     .filter((name): name is string => Boolean(name))
     .map(titleKey)
     .filter(Boolean);
