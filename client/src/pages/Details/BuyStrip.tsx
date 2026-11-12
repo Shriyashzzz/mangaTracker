@@ -6,6 +6,7 @@ import { detailsStyles as styles } from "./styles";
 import type { SeriesVolume } from "../../lib/types";
 import type { BuyOptions } from "./useBuyOptions";
 import type { Editions } from "./useEditions";
+import { SortMenu } from "../Home/ShelfBar";
 import {
   editionBookLabel,
   insideText,
@@ -88,21 +89,20 @@ export default function BuyStrip({
       </h2>
       {/* which edition they buy: only when the series has another */}
       {editions.lines.length > 0 && (
-        <label className={styles.buyCollect}>
-          <span>Collecting</span>
-          <select
-            className={styles.buyCollectSelect}
-            value={line?.key ?? "singles"}
-            onChange={(e) => onCollect(e.target.value)}
-          >
-            <option value="singles">Single volumes</option>
-            {editions.lines.map((l) => (
-              <option key={l.key} value={l.key}>
-                {l.label}
-              </option>
-            ))}
-          </select>
-        </label>
+        <div className={styles.buyCollect}>
+          <SortMenu
+            lead="Collecting"
+            menuLabel="Collecting"
+            wordy
+            alignLeft
+            sortBy={line?.key ?? "singles"}
+            onSort={onCollect}
+            options={[
+              { value: "singles", label: "Single volumes" },
+              ...editions.lines.map((l) => ({ value: l.key, label: l.label })),
+            ]}
+          />
+        </div>
       )}
       {line && plan ? (
         <ul className={styles.buyList}>

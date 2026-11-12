@@ -283,14 +283,28 @@ const LAYOUTS = [
 ] as const;
 
 // the shelf's sort menu, and the New tab piles' too (their own options, no
-// "Show as")
+// "Show as"). The app's one dropdown: anywhere something is picked from a
+// short list uses it, with its own `lead` words ("Collecting") and `wordy`,
+// which keeps the words on phones where the shelf's shrinks to an icon
 export function SortMenu<T extends string>({
   sortBy,
   onSort,
   options = SORT_OPTIONS as unknown as readonly { value: T; label: string }[],
   layout,
   onLayout,
+  lead = "Sorted by",
+  menuLabel = "Sort by",
+  wordy = false,
+  alignLeft = false,
 }: {
+  // the list opens from the button's left edge: for one that sits at the
+  // left of its box, where opening from the right would run off the screen
+  alignLeft?: boolean;
+  // the words before the choice, and what the open list is called
+  lead?: string;
+  menuLabel?: string;
+  // always spelled out: never the phone's sort icon
+  wordy?: boolean;
   sortBy: T;
   onSort: (value: T) => void;
   options?: readonly { value: T; label: string }[];
@@ -299,29 +313,32 @@ export function SortMenu<T extends string>({
 }) {
   const { open, setOpen, ref } = useMenu();
   const picked = options.find((o) => o.value === sortBy) ?? options[0]!;
+  // a name keeps its capital ("Deluxe"); a sort reads on from "Sorted by"
+  const pickedText = wordy ? picked.label : lowerFirst(picked.label);
   return (
     <div ref={ref} className={styles.sortWrap}>
       <button
         type="button"
-        className={styles.sortButton}
+        className={wordy ? styles.pickButton : styles.sortButton}
         aria-expanded={open}
         aria-haspopup="true"
-        aria-label={`Sorted by ${lowerFirst(picked.label)}. Change`}
+        aria-label={`${lead} ${pickedText}. Change`}
         onClick={() => setOpen(!open)}
       >
-        <span className={styles.sortWords}>
-          Sorted by{" "}
-          <span className={styles.sortPicked}>{lowerFirst(picked.label)}</span>
+        <span className={wordy ? styles.pickWords : styles.sortWords}>
+          {lead} <span className={styles.sortPicked}>{pickedText}</span>
         </span>
-        <ChevronDownIcon className={styles.sortChevron} />
-        <SortIcon className={styles.sortIcon} />
+        <ChevronDownIcon
+          className={wordy ? styles.pickChevron : styles.sortChevron}
+        />
+        {!wordy && <SortIcon className={styles.sortIcon} />}
         {/* phones: something other than the default is on */}
-        {picked.value !== options[0]!.value && (
+        {!wordy && picked.value !== options[0]!.value && (
           <span className={styles.sortDot} aria-hidden />
         )}
       </button>
       {open && (
-        <Menu label="Sort by" alignRight>
+        <Menu label={menuLabel} alignRight={!alignLeft}>
           {options.map((o) => (
             <li key={o.value}>
               <button

@@ -94,6 +94,22 @@ export const pricesStyles = {
     "tap mt-auto pt-1 text-[0.9rem] font-medium underline decoration-accent decoration-2 underline-offset-3",
   // a series' box sets, under its volumes
   boxSets: "mt-10 flex flex-col gap-3",
+  // "Other editions": the deluxe and omnibus books, a row each
+  editions: "mt-10 scroll-mt-24",
+  editionTabs: "mb-3 flex flex-wrap gap-2",
+  editionTab:
+    "tap inline-flex min-h-9 items-center gap-2 rounded-[2px] border-[1.5px] border-line-soft bg-paper px-3 text-[0.88rem] font-medium text-ink-soft transition-[color,border-color,background-color] duration-120 ease-[ease] hover:border-line hover:text-ink aria-pressed:border-line aria-pressed:bg-ink aria-pressed:text-paper",
+  editionTabCount: "font-mono text-[0.72rem] opacity-70",
+  editionList:
+    "grid grid-cols-[repeat(auto-fill,minmax(17rem,1fr))] gap-x-8 border-t-[1.5px] border-line",
+  editionRow:
+    "grid grid-cols-[minmax(0,1fr)_auto] items-baseline gap-x-3 border-b border-dashed border-line-soft py-2.5",
+  editionName: "font-semibold text-ink",
+  editionPrice:
+    "tap row-span-2 self-center text-right font-mono text-[0.85rem] font-medium text-accent underline decoration-transparent underline-offset-3 hover:decoration-current",
+  editionInside: "col-start-1 font-mono text-[0.78rem] text-ink-soft",
+  editionUnlisted:
+    "row-span-2 self-center text-right font-mono text-[0.78rem] text-muted",
   // signed out on a volume page: the button and what tracking gets them
   trackPitch: "flex max-w-[34rem] flex-col items-start gap-2",
   // the button says enough on a phone, where the prices need the room
