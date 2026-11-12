@@ -24,7 +24,10 @@ const credentials = [
     .notEmpty()
     .withMessage("Alright, don't forget your secret code. Spill the beans now!")
     .isLength({ min: 5 })
-    .withMessage("Password has to be at least 5 characters long!"),
+    .withMessage("Password has to be at least 5 characters long!")
+    // hashing only reads the first 72 bytes: no reason to take a novel
+    .isLength({ max: 200 })
+    .withMessage("That password is too long. Keep it under 200 characters."),
 ];
 
 // a fresh session id on every sign in, so an old cookie can't be reused
