@@ -9,6 +9,8 @@ export const aboutStyles = {
   hero: "grid grid-cols-[minmax(0,0.8fr)_minmax(0,1.2fr)] items-center gap-[clamp(1.5rem,5vw,3.5rem)] border-3 border-line bg-card bg-[linear-gradient(to_right,transparent_30%,var(--card)_44%),radial-gradient(circle_at_22%_55%,var(--card)_0_18%,transparent_46%),repeating-conic-gradient(from_0deg_at_22%_55%,var(--line-soft)_0deg_0.8deg,transparent_0.8deg_7deg)] p-[clamp(1.25rem,3vw,2rem)] upto-760:grid-cols-[minmax(0,1fr)] upto-760:bg-[linear-gradient(to_bottom,transparent_26%,var(--card)_36%),radial-gradient(circle_at_50%_22%,var(--card)_0_16%,transparent_40%),repeating-conic-gradient(from_0deg_at_50%_22%,var(--line-soft)_0deg_0.8deg,transparent_0.8deg_7deg)]",
   heroArt:
     "relative max-w-[260px] justify-self-center pt-10 upto-760:max-w-[170px]",
+  heroMascot:
+    "block aspect-square rounded-full border-[2.5px] border-line bg-card px-4 pt-4 pb-1",
   heroBubble:
     "absolute -top-2 left-[52%] w-max max-w-52 rounded-[50%] border-[2.5px] border-line bg-paper px-[0.9rem] py-[0.55rem] text-center font-letter text-[0.85rem] leading-[1.25] font-bold uppercase upto-860:left-[38%] upto-860:max-w-40 upto-860:text-[0.78rem] upto-760:left-[60%]",
   heroCopy: "flex flex-col gap-4",

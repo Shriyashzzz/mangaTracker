@@ -7,8 +7,7 @@ import { pickGenre } from "../../lib/anilist";
 import { novelParts } from "../../lib/prices";
 import { useAuth } from "../../store/auth";
 import { useShelf } from "../../store/shelf";
-
-const sameName = (a: string) => a.toLowerCase().replace(/[^\p{L}\p{N}]+/gu, "");
+import { titleKey as sameName } from "../../lib/titleKey";
 
 type Props = {
   name: string;

@@ -199,19 +199,26 @@ export default function ShelfBar({
           <SearchIcon />
         </button>
       )}
-      {/* New lists what's out, newest first: sorting says little there */}
-      {current !== "new" && (
-        <SortMenu
-          sortBy={sortBy}
-          onSort={onSort}
-          layout={layout}
-          onLayout={onLayout}
-        />
-      )}
-      {onSelect && (
-        <button type="button" className={styles.select} onClick={onSelect}>
-          Select
-        </button>
+      {/* sort and Select together: a row of their own under the tabs, so a
+          long tab row never pushes one of them down alone (on phones they
+          stay beside the title) */}
+      {(current !== "new" || onSelect) && (
+        <div className={styles.tools}>
+          {/* New lists what's out, newest first: sorting says little there */}
+          {current !== "new" && (
+            <SortMenu
+              sortBy={sortBy}
+              onSort={onSort}
+              layout={layout}
+              onLayout={onLayout}
+            />
+          )}
+          {onSelect && (
+            <button type="button" className={styles.select} onClick={onSelect}>
+              Select
+            </button>
+          )}
+        </div>
       )}
     </div>
   );

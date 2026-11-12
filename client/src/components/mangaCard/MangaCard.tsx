@@ -10,6 +10,8 @@ export type CardNews = {
   text: string;
   // where they've got to, right under it
   yours?: string;
+  // a backlog step ("Vol. 11 next"), not news: in ink, so red means just out
+  waiting?: boolean;
 };
 
 type Props = {
@@ -175,7 +177,9 @@ export default function MangaCard({
           </p>
         )}
         {news && (
-          <p className="font-brand text-[1.05rem] tracking-[1px] text-accent">
+          <p
+            className={`font-brand text-[1.05rem] tracking-[1px] ${news.waiting ? "text-ink-soft" : "text-accent"}`}
+          >
             {news.text}
           </p>
         )}
@@ -185,17 +189,22 @@ export default function MangaCard({
           </p>
         )}
         {/* the New tab's cards all match: only what's out and where they are */}
-        {!news && !compact && Number(currentManga.rating) > 0 && (
-          <StarRating value={Number(currentManga.rating)} size="sm" />
+        {/* a fixed slot, rated or not, so a row of covers lines up */}
+        {!news && !compact && (
+          <span className="block min-h-4">
+            {Number(currentManga.rating) > 0 && (
+              <StarRating value={Number(currentManga.rating)} size="sm" />
+            )}
+          </span>
         )}
       </div>
       {asColumns && (
-        <span className="flex items-center gap-20">
+        <span className="flex items-center gap-12 upto-720:gap-6">
           <span className="flex items-center upto-720:hidden">
             {/* unrated ones show empty stars, so the column always reads the same */}
             <StarRating value={Number(currentManga.rating) || 0} size="sm" />
           </span>
-          <span className="flex w-32 flex-col justify-center gap-1 text-right font-mono text-[0.82rem] text-ink-soft upto-720:w-[5.5rem]">
+          <span className="flex w-28 flex-col justify-center gap-1 pr-3 text-right font-mono text-[0.82rem] text-ink-soft upto-720:w-[5.5rem] upto-720:pr-2">
             {currentManga.status ? (
               "Finished"
             ) : !reading && owned.length ? (

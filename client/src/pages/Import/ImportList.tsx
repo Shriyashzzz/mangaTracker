@@ -10,9 +10,7 @@ import { editOf, gapsIn, type BookSeries } from "../../lib/imports/bookImport";
 import { useBookImport, type Match } from "../../store/bookImport";
 import MatchModal from "./MatchModal";
 import { importStyles as styles } from "./styles";
-
-const shelfKey = (name: string) =>
-  name.toLowerCase().replace(/[^\p{L}\p{N}]+/gu, "");
+import { shelfKey } from "../../lib/titleKey";
 
 export default function ImportList({
   found,
@@ -49,9 +47,7 @@ export default function ImportList({
   const onShelf = useMemo(
     () =>
       new Set(
-        (shelf ?? []).map(
-          (m) => `${shelfKey(m.name)}:${Boolean(m.lightNovel)}`,
-        ),
+        (shelf ?? []).map((m) => shelfKey(m.name, Boolean(m.lightNovel))),
       ),
     [shelf],
   );
@@ -110,7 +106,7 @@ export default function ImportList({
             )}
             {match &&
               match !== "failed" &&
-              onShelf.has(`${shelfKey(name)}:${s.lightNovel}`) && (
+              onShelf.has(shelfKey(name, s.lightNovel)) && (
                 <span className={styles.seriesMeta}>
                   Already on your shelf: new volumes are added to it
                 </span>

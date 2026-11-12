@@ -51,6 +51,8 @@ export const shelfBarStyles = {
     "tap ml-auto hidden size-10 shrink-0 place-items-center text-ink-soft hover:text-ink upto-520:grid [&_svg]:size-5",
 
   sortWrap: "relative shrink-0",
+  tools:
+    "flex basis-full flex-row-reverse items-center justify-start gap-6 upto-520:contents",
   // turns on Select: a quiet text button at the end of the bar
   select:
     "tap shrink-0 text-[0.88rem] font-medium text-ink-soft underline decoration-line-soft underline-offset-3 hover:text-ink hover:decoration-current",

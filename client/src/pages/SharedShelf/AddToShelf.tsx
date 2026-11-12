@@ -9,8 +9,7 @@ import { useAuth } from "../../store/auth";
 import { useShelf } from "../../store/shelf";
 import type { SharedManga } from "./shareParts";
 import { shareStyles as styles } from "./styles";
-
-const sameName = (a: string) => a.toLowerCase().replace(/[^\p{L}\p{N}]+/gu, "");
+import { titleKey as sameName } from "../../lib/titleKey";
 
 export default function AddToShelf({ m }: { m: SharedManga }) {
   const { pathname, search } = useLocation();

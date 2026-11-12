@@ -92,6 +92,27 @@ test("the sorts, and last bookmarked keeps the shelf's own order", () => {
   expect(names("ch-dsc")[0]).toBe("Berserk");
   // the most volumes owned first
   expect(names("vol-dsc")[0]).toBe("Vagabond");
+  // the newest added (highest id) first
+  expect(names("added-dsc")[0]).toBe("Vagabond");
+});
+
+test("most gaps first puts the run with the most holes on top", () => {
+  const withGaps = [
+    { ...shelf[0]!, id: 11, name: "Run", volumesOwned: 5, ownedList: [] },
+    { ...shelf[0]!, id: 12, name: "Holes", volumesOwned: 9, ownedList: [1, 9] },
+    {
+      ...shelf[0]!,
+      id: 13,
+      name: "One gap",
+      volumesOwned: 3,
+      ownedList: [1, 3],
+    },
+  ];
+  expect(
+    filterShelf(withGaps, {}, { ...view, sortBy: "gaps-dsc" }).map(
+      (m) => m.name,
+    ),
+  ).toEqual(["Holes", "One gap", "Run"]);
 });
 
 test("New shows what's new on this side, and the hidden list what's hidden", () => {
@@ -171,6 +192,7 @@ test("a New card says what's out and where they are, apart", () => {
   } as Partial<ReleaseStatus>);
   expect(newsFor(m, newest, "volumes", false)).toEqual({
     text: "Vol. 5 is out",
+    waiting: false,
     yours: "You own up to vol. 4",
   });
   const behind = found({
@@ -185,6 +207,7 @@ test("a New card says what's out and where they are, apart", () => {
   } as Partial<ReleaseStatus>);
   expect(newsFor(m, chapter, "chapters", false)).toEqual({
     text: "Ch. 31 is out",
+    waiting: false,
     yours: "You're on ch. 30",
   });
 });
@@ -200,6 +223,7 @@ test("a card doesn't say twice where they are: Vol. 5 next already means they're
     newsFor(m, found(over), "volumes", false);
   expect(next({ nextVolume: 5, latestVolume: 7, currentVolume: 4 })).toEqual({
     text: "Vol. 5 next",
+    waiting: true,
     yours: undefined,
   });
   // a gap (they own 4, the next English one is 7) is worth saying

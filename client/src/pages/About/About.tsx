@@ -43,9 +43,12 @@ export function AboutPage() {
   return (
     <article className={`${styles.page} fade-in`}>
       {/* opening panel: who made this and why */}
-      <header className={`${styles.hero} printed`}>
+      <header className={styles.hero}>
         <div className={styles.heroArt}>
-          <Mascot mood="happy" />
+          {/* Kenji keeps his printed colours in dark mode too */}
+          <span className={`${styles.heroMascot} printed`}>
+            <Mascot mood="happy" />
+          </span>
           <p className={styles.heroBubble}>Yo! Welcome to the shelf.</p>
         </div>
 
@@ -95,7 +98,7 @@ export function AboutPage() {
         <h2 id="does-title" className={styles.sectionTitle}>
           What it can do
         </h2>
-        <div className={`${styles.does} printed`}>
+        <div className={styles.does}>
           <section className={styles.doesPanel} aria-labelledby="does-shelf">
             <div
               className={`${styles.doesArt} ${styles.doesLines}`}
