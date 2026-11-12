@@ -89,6 +89,9 @@ export function useVolumePicker(
   // a run from 1 shows as its number; with gaps the box waits to be typed in
   const run = !saved.ownedList.length ? saved.volumesOwned : null;
   const [upToText, setUpToText] = useState<string | null>(null);
+  // what they owned when they started typing: each keystroke works from it,
+  // so clearing the box to type a new number never loses anything
+  const typingFrom = useRef<number[] | null>(null);
 
   const change = (vols: number[], up: boolean) =>
     setOwned((list) => {
@@ -121,6 +124,7 @@ export function useVolumePicker(
     paintTo(v);
     anchor.current = v;
     setUpToText(null);
+    typingFrom.current = null;
   };
   const spineAt = (x: number, y: number) => {
     const el = document
@@ -155,6 +159,7 @@ export function useVolumePicker(
       );
       anchor.current = v;
       setUpToText(null);
+      typingFrom.current = null;
     } else {
       startPainting(v);
       e.currentTarget.setPointerCapture(e.pointerId);
@@ -189,26 +194,35 @@ export function useVolumePicker(
       change([tap.v], !owned.includes(tap.v));
       anchor.current = tap.v;
       setUpToText(null);
+      typingFrom.current = null;
     }
     stopPainting();
   };
 
-  // typed: the shelves fit the number, growing or shrinking back (50 then
-  // 30 leaves four shelves, not six)
+  // typed: 1 to N stand up, and every volume they owned above N stays (own
+  // 1-5 and 8, type 6: 1-6 and 8, never losing the 8). Fewer is done by
+  // laying spines down. An empty box changes nothing. The shelves fit the
+  // number, growing or shrinking back (50 then 30 leaves four, not six)
   const typeUpTo = (text: string) => {
+    typingFrom.current ??= owned;
+    const before = typingFrom.current;
     setUpToText(text);
     if (!text.trim()) {
-      setOwned([]);
-      setFolds([]);
-      setShown(FIRST_SHOWN);
+      setOwned(before);
+      setFolds(fullRuns(before));
       return;
     }
     const n = Math.min(999, Math.floor(Number(text)));
     if (!(n >= 1)) return;
-    const list = ownedOf({ volumesOwned: n });
+    const list = [
+      ...new Set([
+        ...ownedOf({ volumesOwned: n }),
+        ...before.filter((v) => v > n),
+      ]),
+    ].sort((a, b) => a - b);
     setOwned(list);
     setFolds(fullRuns(list));
-    setShown(Math.max(FIRST_SHOWN, roundUp(n + 1)));
+    setShown(Math.max(FIRST_SHOWN, roundUp(Math.max(n, ...list) + 1)));
   };
 
   const known = out && out > 0 ? Math.max(out, Math.ceil(top)) : null;
@@ -260,7 +274,10 @@ export function useVolumePicker(
             placeholder="e.g. 12"
             value={upToText ?? (run ? String(run) : "")}
             onChange={(e) => typeUpTo(e.target.value)}
-            onBlur={() => setUpToText(null)}
+            onBlur={() => {
+              setUpToText(null);
+              typingFrom.current = null;
+            }}
           />
         </label>
       </div>
@@ -356,6 +373,7 @@ export function useVolumePicker(
                 setOwned([]);
                 setFolds([]);
                 setUpToText(null);
+                typingFrom.current = null;
                 setShown(FIRST_SHOWN);
               }}
             >
@@ -375,6 +393,7 @@ export function useVolumePicker(
     setOwned(list);
     setFolds(fullRuns(list));
     setUpToText(null);
+    typingFrom.current = null;
     anchor.current = null;
     setShown(Math.max(FIRST_SHOWN, roundUp((list[list.length - 1] ?? 0) + 1)));
   };
