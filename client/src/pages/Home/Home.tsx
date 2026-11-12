@@ -322,8 +322,25 @@ function Library() {
   useShelfShortcuts(select.selectOn);
 
   const goToAdd = () => navigator("/add", { viewTransition: true });
+  // /shelf?scan=978…: an ISBN typed into the add form, looked up here
+  const [scanIsbn] = useState(() => {
+    const isbn = searchParams.get("scan");
+    return isbn && /^(97[89]\d{10}|\d{9}[\dXx])$/.test(isbn) ? isbn : undefined;
+  });
   // the phones' round +: type a title or scan barcodes (AddChoice)
-  const [adding, setAdding] = useState<null | "choosing" | "scanning">(null);
+  const [adding, setAdding] = useState<null | "choosing" | "scanning">(() =>
+    scanIsbn ? "scanning" : null,
+  );
+  useEffect(() => {
+    if (!scanIsbn) return;
+    setSearchParams(
+      (p) => {
+        p.delete("scan");
+        return p;
+      },
+      { replace: true },
+    );
+  }, [scanIsbn, setSearchParams]);
 
   // the bottom pager takes them up to where the new page starts; the top
   // one is already there, so the page stays still under it
@@ -400,7 +417,7 @@ function Library() {
         </button>
         {adding === "scanning" && (
           <Suspense fallback={null}>
-            <ScanSheet onClose={() => setAdding(null)} />
+            <ScanSheet onClose={() => setAdding(null)} isbn={scanIsbn} />
           </Suspense>
         )}
       </div>
@@ -868,7 +885,7 @@ function Library() {
       )}
       {adding === "scanning" && (
         <Suspense fallback={null}>
-          <ScanSheet onClose={() => setAdding(null)} />
+          <ScanSheet onClose={() => setAdding(null)} isbn={scanIsbn} />
         </Suspense>
       )}
 

@@ -894,7 +894,14 @@ const RENUMBERED: Record<
 const renumbered = (book: Book): Book => {
   const to = book.lightNovel ? undefined : RENUMBERED[seriesKey(book.series)];
   const held = book.holds ?? (book.volume != null ? [book.volume] : []);
-  if (!to || !held.length || Math.max(...held) > to.upTo) return book;
+  // whole volumes only: a "10.5" special isn't one of Dragon Ball's
+  if (
+    !to ||
+    !held.length ||
+    Math.max(...held) > to.upTo ||
+    !held.every(Number.isInteger)
+  )
+    return book;
   return {
     ...book,
     series: to.series,

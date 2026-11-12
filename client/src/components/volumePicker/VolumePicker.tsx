@@ -362,7 +362,7 @@ export function useVolumePicker(
             {/* every volume known to be out is already showing: these are
                 spines past it, not ones that exist for sure */}
             {known && spines.length >= known
-              ? `Show ${MORE} past vol. ${spines.length}`
+              ? `Show vols. ${spines.length + 1}–${spines.length + MORE}`
               : `Show ${MORE} more`}
           </button>
           {owned.length > 0 && (
@@ -384,6 +384,14 @@ export function useVolumePicker(
       </div>
       {offShelf.length > 0 && (
         <p className={styles.note}>Also: vol. {rangesText(offShelf)}</p>
+      )}
+      {/* past what's out (Look Back is one book): said, not stopped, as the
+          count can lag behind a new volume */}
+      {out != null && out > 0 && top > out && (
+        <p className={styles.note} role="status">
+          Only {out} {out === 1 ? "volume is" : "volumes are"} out as far as we
+          know. Check vol. {Math.ceil(top)} is right.
+        </p>
       )}
     </div>
   );
