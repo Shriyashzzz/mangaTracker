@@ -609,6 +609,11 @@ function Library() {
           setSortBy(value);
           writeSession("librarySort", value);
         }}
+        layout={rowsChosen ? "rows" : "covers"}
+        onLayout={(view) => {
+          setRowsChosen(view === "rows");
+          savePrefs({ shelfView: view }, true);
+        }}
         // while selecting, the select bar's Done (or Escape) is the way out
         onSelect={
           !showingNew && tab !== "volumes" && !select.selectOn

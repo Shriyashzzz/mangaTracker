@@ -73,6 +73,8 @@ export default function ShelfBar({
   onQuery,
   sortBy,
   onSort,
+  layout,
+  onLayout,
   onSelect,
 }: {
   views: ShelfView[];
@@ -82,6 +84,9 @@ export default function ShelfBar({
   onQuery: (q: string) => void;
   sortBy: string;
   onSort: (value: string) => void;
+  // covers or compact rows, picked in the sort menu (also in Settings)
+  layout: "covers" | "rows";
+  onLayout: (layout: "covers" | "rows") => void;
   // turns on Select; left out where cards can't be selected (New, Volumes)
   onSelect?: () => void;
 }) {
@@ -195,7 +200,14 @@ export default function ShelfBar({
         </button>
       )}
       {/* New lists what's out, newest first: sorting says little there */}
-      {current !== "new" && <SortMenu sortBy={sortBy} onSort={onSort} />}
+      {current !== "new" && (
+        <SortMenu
+          sortBy={sortBy}
+          onSort={onSort}
+          layout={layout}
+          onLayout={onLayout}
+        />
+      )}
       {onSelect && (
         <button type="button" className={styles.select} onClick={onSelect}>
           Select
@@ -258,12 +270,21 @@ function ViewMenu({
   );
 }
 
+const LAYOUTS = [
+  { value: "covers", label: "Covers" },
+  { value: "rows", label: "Compact rows" },
+] as const;
+
 function SortMenu({
   sortBy,
   onSort,
+  layout,
+  onLayout,
 }: {
   sortBy: string;
   onSort: (value: string) => void;
+  layout: "covers" | "rows";
+  onLayout: (layout: "covers" | "rows") => void;
 }) {
   const { open, setOpen, ref } = useMenu();
   const picked =
@@ -306,6 +327,27 @@ function SortMenu({
                 {o.value === picked.value && (
                   <CheckIcon className={styles.tick} />
                 )}
+              </button>
+            </li>
+          ))}
+          {/* how the shelf lists them, right where it's sorted, not only in
+              Settings */}
+          <li className={styles.menuHead} aria-hidden>
+            Show as
+          </li>
+          {LAYOUTS.map((l) => (
+            <li key={l.value}>
+              <button
+                type="button"
+                className={styles.sortOption}
+                aria-current={l.value === layout}
+                onClick={() => {
+                  onLayout(l.value);
+                  setOpen(false);
+                }}
+              >
+                {l.label}
+                {l.value === layout && <CheckIcon className={styles.tick} />}
               </button>
             </li>
           ))}

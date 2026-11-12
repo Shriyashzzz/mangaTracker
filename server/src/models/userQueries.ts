@@ -14,7 +14,7 @@ export const PREF_VALUES = {
   // box sets holding a volume, listed under its single copies; shown unless "yes"
   hideBoxSets: ["yes", "no"],
   shelfTab: ["all", "ongoing", "finished", "new"],
-  shelfSort: ["", "rating-dsc", "ch-dsc", "name-asc"],
+  shelfSort: ["", "rating-dsc", "ch-dsc", "vol-dsc", "name-asc"],
   shelfView: ["covers", "rows"],
   // "off": this reader's manga are never looked up for new releases
   releaseChecks: ["on", "off"],

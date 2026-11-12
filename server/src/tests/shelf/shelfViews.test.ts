@@ -90,6 +90,8 @@ test("the sorts, and last bookmarked keeps the shelf's own order", () => {
   ]);
   expect(names("rating-dsc").slice(0, 2)).toEqual(["Berserk", "Monster"]);
   expect(names("ch-dsc")[0]).toBe("Berserk");
+  // the most volumes owned first
+  expect(names("vol-dsc")[0]).toBe("Vagabond");
 });
 
 test("New shows what's new on this side, and the hidden list what's hidden", () => {
