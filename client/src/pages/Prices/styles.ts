@@ -166,6 +166,8 @@ export const pricesStyles = {
   // same with its stamps, so it gives its room to that list instead
   bestLine:
     "mt-[0.35rem] font-display text-[1.35rem] text-ink-soft upto-720:hidden [&_strong]:font-semibold [&_strong]:text-ink",
+  // "most volumes are about $11.99", "checked 17 days ago": quieter than the price
+  bestAside: "font-sans text-[0.95rem] text-muted",
   volumeBody:
     "col-start-2 row-start-2 flex min-w-0 flex-col gap-6 upto-720:col-span-2 upto-720:col-start-1",
   // Bangers heading with a short inked stroke underneath
