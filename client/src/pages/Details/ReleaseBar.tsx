@@ -16,10 +16,22 @@ type Props = {
   data: ReleaseData | null;
   // a volume that's for sale in English; there's nowhere to send a chapter
   buy: { to: string; label: string } | null;
+  // an English volume's bar opens to English releases only, each a way to
+  // its prices. Japan's dates are the Japan
+  // edition's own bar, never mixed in here
+  english?: { groups: Group[] } | null;
 };
 
-type Row = { what: string; when: string; estimate?: boolean };
-type Group = { title: string; rows: Row[] };
+// `to`: the volume's price page
+export type Row = {
+  what: string;
+  when: string;
+  estimate?: boolean;
+  to?: string;
+  // `when` is a price ("Check price", "from $9.99"): it links there too
+  compare?: boolean;
+};
+export type Group = { title: string; rows: Row[] };
 
 // the newest volume we have a date for
 const newestDatedVolume = (data: ReleaseData | null): Row | null => {
@@ -85,12 +97,13 @@ const groupsFrom = (
   }
 
   const inJapanToo = kind === "volume" && !inJapan;
-  return [
+  const groups = [
     // the English one is out (the bar's headline); these are further on, in
     // Japan only, so the heading mustn't read as if the headline's were
     { title: inJapanToo ? "Further ahead in Japan" : "Out now", rows: outNow },
     { title: inJapanToo ? "Next in Japan" : "Coming up", rows: comingUp },
   ].filter((group) => group.rows.length > 0);
+  return groups;
 };
 
 // "there's a new one": a slim red bar that opens to the dates when clicked
@@ -102,17 +115,23 @@ export default function ReleaseBar({
   yours,
   data,
   buy,
+  english,
 }: Props) {
   const [open, setOpen] = useState(false);
   const datesId = useId();
-  const groups = groupsFrom(
-    data,
-    kind,
-    inJapan,
-    // the number, not the "." in "Vol."
-    Number(what.match(/\d+(?:\.\d+)?/)?.[0] ?? NaN),
-  );
-  const hasDates = groups.length > 0;
+  // the number, not the "." in "Vol."
+  const headlineNumber = Number(what.match(/\d+(?:\.\d+)?/)?.[0] ?? NaN);
+  const groups = english
+    ? [
+        ...english.groups,
+        // the chapters too, when we know them: never Japan's volumes
+        ...groupsFrom(data, "chapter", false, NaN).map((g) => ({
+          ...g,
+          title: g.title === "Out now" ? "Latest chapter" : "Next chapter",
+        })),
+      ]
+    : groupsFrom(data, kind, inJapan, headlineNumber);
+  const hasDates = groups.length > 0 || Boolean(english);
   const headline = (
     <span className={styles.releaseHeadline}>{what} is out!</span>
   );
@@ -184,13 +203,37 @@ export default function ReleaseBar({
               <h3 className={styles.releaseGroupTitle}>{group.title}</h3>
               {group.rows.map((row) => (
                 <p key={row.what} className={styles.releaseRow}>
-                  <span className={styles.releaseWhat}>{row.what}</span>
-                  <span className={styles.releaseWhen}>
-                    {row.when}
-                    {row.estimate && (
-                      <span className={styles.releaseEstimate}>estimated</span>
-                    )}
-                  </span>
+                  {row.to ? (
+                    <NavLink
+                      className={`${styles.releaseWhat} ${styles.releaseLink}`}
+                      to={row.to}
+                      viewTransition
+                    >
+                      {row.what}
+                    </NavLink>
+                  ) : (
+                    <span className={styles.releaseWhat}>{row.what}</span>
+                  )}
+                  {row.to && row.compare ? (
+                    // the price is the way to where its prices are compared
+                    <NavLink
+                      className={`${styles.releaseWhen} ${styles.releaseCompare}`}
+                      to={row.to}
+                      viewTransition
+                      aria-label={`${row.what}: ${row.when}, compare prices`}
+                    >
+                      {row.when} →
+                    </NavLink>
+                  ) : (
+                    <span className={styles.releaseWhen}>
+                      {row.when}
+                      {row.estimate && (
+                        <span className={styles.releaseEstimate}>
+                          estimated
+                        </span>
+                      )}
+                    </span>
+                  )}
                 </p>
               ))}
             </div>

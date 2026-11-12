@@ -1075,9 +1075,26 @@ async function getSeriesWithVolumes(name: string) {
   adoptUpcomingDates(byNumber, datedElsewhere);
   // numbered ones only: pages list and page through volumes by number, so a
   // numberless book (the catalog's search can return one) has no place there
-  const volumes = [...byNumber.values()]
+  // a finished manga has as many volumes as AniList counts: a "vol. 35" past
+  // Attack on Titan's 34 is an art book or a box set a catalog numbered on
+  // (it was listed at $249.99). Only a stray one or two: a longer run past
+  // the count means the English edition is numbered its own way (or AniList
+  // is behind), and stays. Books holding several volumes keep their own
+  // numbering, and a novel's English count can differ
+  const numbered = [...byNumber.values()]
     .filter((v): v is CatalogBook & { volume: number } => v.volume != null)
     .sort((a, b) => a.volume - b.volume);
+  const last =
+    info?.status === "FINISHED" && info.volumes && !isNovelName(name)
+      ? info.volumes
+      : null;
+  const past = numbered.filter(
+    (v) => last != null && !v.inBook && v.volume > last,
+  );
+  const volumes =
+    past.length && past.length <= 2
+      ? numbered.filter((v) => !past.includes(v))
+      : numbered;
   // start finding every cover now, in one batch, so they're ready by the
   // time the browser asks for them (failures are retried when it asks)
   volumes.forEach((v) => editionCoverId(v.isbn13).catch(() => {}));
