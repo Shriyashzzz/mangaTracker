@@ -19,7 +19,7 @@ export const tracksOf = (m: { byVolume?: boolean }, mode: TrackBy) => ({
     (mode === "series" && Boolean(m.byVolume)),
 });
 
-// where they are, as a card says it: "ch. 40", "read vol. 5", or both
+// where they are, as a card says it: "ch. 40", "vol. 5", or both
 export const placeText = (
   m: {
     byVolume?: boolean;
@@ -31,7 +31,7 @@ export const placeText = (
   const tracks = tracksOf(m, mode);
   const parts = [
     tracks.chapters && m.bookmark ? `ch. ${m.bookmark}` : null,
-    tracks.volumes && m.readVolume ? `read vol. ${m.readVolume}` : null,
+    tracks.volumes && m.readVolume ? `vol. ${m.readVolume}` : null,
   ].filter(Boolean);
   return parts.length ? parts.join(" · ") : null;
 };
