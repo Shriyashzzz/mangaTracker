@@ -174,7 +174,12 @@ function ShelfTotals({ tools, owned }: { tools: ShelfTools; owned: number }) {
             <dt className={styles.totalLabel}>To finish every series</dt>
             <dd className={styles.totalValue}>{finish}</dd>
             <dd className={styles.totalNote}>
-              {plural(tools.finishMissing, "volume")} to go
+              {/* a series collected as its deluxe books counts in books */}
+              {plural(
+                tools.finishMissing,
+                tools.finish.some((f) => f.edition) ? "book" : "volume",
+              )}{" "}
+              to go
               {tools.finishPriced < tools.finishMissing &&
                 ` · ${tools.finishPriced.toLocaleString()} priced`}
             </dd>
@@ -238,7 +243,10 @@ function SeriesRow({
             {finish && (
               <span className={styles.toGo}>
                 <span className="upto-520:hidden"> · </span>
-                {finish.missing.length} to go
+                {finish.missing.length}
+                {finish.edition &&
+                  ` ${finish.edition} book${finish.missing.length === 1 ? "" : "s"}`}{" "}
+                to go
                 {toFinish && ` · ${toFinish}`}
               </span>
             )}

@@ -10,6 +10,7 @@ import { slugify } from "../prices/stores/match.js";
 import type { CatalogBook, SeriesInfo } from "../prices/types.js";
 import { volumesKey } from "../prices/volumesKey.js";
 import type { ListedVolume } from "./shelfMath.js";
+import type { EditionLine } from "../prices/editionLines.js";
 
 export type ShelfSeries = {
   manga: Manga;
@@ -40,20 +41,57 @@ function merge(main: CatalogBook[], google: CatalogBook[]): ListedVolume[] {
   return [...byNumber.values()];
 }
 
-export async function shelfSeries(manga: Manga[]): Promise<ShelfSeries[]> {
-  if (!manga.length) return [];
-  const names = manga.map((m) => priceName(m));
-  // AniList's official name for each, where it's been looked up
+// AniList's official name for each, where it's been looked up
+async function officialNames(names: string[]) {
   const infos = await prisma.seriesInfo.findMany({
     where: { slug: { in: [...new Set(names.map(slugify))] } },
     select: { slug: true, info: true },
   });
-  const official = new Map(
+  return new Map(
     infos.flatMap((r) => {
       const name = (r.info as SeriesInfo | null)?.name;
       return name ? [[r.slug, name] as const] : [];
     }),
   );
+}
+
+// the edition line each manga collects (manga.edition), by manga id: the
+// saved lines only (prices/editionSource.ts saves them when the series' page
+// is opened), so a series with none saved counts in single volumes
+export async function shelfEditionLines(
+  manga: Manga[],
+): Promise<Map<number, EditionLine>> {
+  const collecting = manga.filter(
+    (m) => m.edition && m.edition !== "singles" && !m.lightNovel,
+  );
+  if (!collecting.length) return new Map();
+  const names = collecting.map((m) => priceName(m));
+  const official = await officialNames(names);
+  const keysOf = (name: string) =>
+    [...new Set([official.get(slugify(name)) ?? name, name])].map(
+      (n) => `${volumesKey(n)}:editions`,
+    );
+  const rows = await prisma.seriesVolumes.findMany({
+    where: { key: { in: [...new Set(names.flatMap(keysOf))] } },
+    select: { key: true, volumes: true },
+  });
+  const saved = new Map(
+    rows.map((r) => [r.key, r.volumes as unknown as EditionLine[]]),
+  );
+  return new Map(
+    collecting.flatMap((m, i) => {
+      const line = keysOf(names[i]!)
+        .flatMap((k) => saved.get(k) ?? [])
+        .find((l) => l.key === m.edition && Array.isArray(l.books));
+      return line ? [[m.id, line] as const] : [];
+    }),
+  );
+}
+
+export async function shelfSeries(manga: Manga[]): Promise<ShelfSeries[]> {
+  if (!manga.length) return [];
+  const names = manga.map((m) => priceName(m));
+  const official = await officialNames(names);
   const keysOf = (name: string) => {
     const both = [...new Set([name, official.get(slugify(name)) ?? name])];
     return {

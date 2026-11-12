@@ -441,7 +441,9 @@ export default function Details() {
     release &&
     !inJapan &&
     !(chapterNews && !mangaStatus) &&
-    !buyOptions.caughtUp;
+    !buyOptions.caughtUp &&
+    // collecting an edition: the single volume is news, not theirs to buy
+    !editions.line;
   // the newest is Buy it's own ticket already: the bar doesn't sell it twice
   const toBuy = sellsVolume ? (buyOptions.next ?? buyOptions.latest) : null;
   const barSells = toBuy && toBuy.isbn13 !== buyOptions.latest?.isbn13;

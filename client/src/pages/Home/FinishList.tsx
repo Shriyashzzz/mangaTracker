@@ -57,7 +57,16 @@ export default function FinishList({
         <ul className={styles.finishList}>
           {shown.map((m) => (
             <li key={`${m.volume}-${m.isbn13}`} className={styles.finishRow}>
-              <span className={styles.finishVol}>Vol. {m.volume}</span>
+              <span
+                className={styles.finishVol}
+                title={
+                  m.inside
+                    ? `${m.inside.length === 1 ? "vol." : "vols."} ${rangesText(m.inside)}`
+                    : undefined
+                }
+              >
+                {m.label ?? `Vol. ${m.volume}`}
+              </span>
               <Where volume={m} />
             </li>
           ))}
@@ -76,7 +85,7 @@ export default function FinishList({
       {unpriced.length > 0 && (
         <p className={styles.unpriced}>
           <span className={styles.unpricedVols}>
-            {unpriced.length === 1 ? "Vol." : "Vols."}{" "}
+            {row.edition ?? (unpriced.length === 1 ? "Vol." : "Vols.")}{" "}
             {rangesText(unpriced.map((m) => m.volume))}
           </span>{" "}
           · no price yet.{" "}
@@ -120,7 +129,7 @@ function Where({ volume }: { volume: MissingVolume }) {
       className={styles.finishLink}
       onClick={noteStoreClick}
       onAuxClick={noteStoreClick}
-      aria-label={`Volume ${volume.volume}: ${money(cheapest.cents)} new at ${cheapest.store}. Opens the store in a new tab`}
+      aria-label={`${volume.label ?? `Volume ${volume.volume}`}: ${money(cheapest.cents)} new at ${cheapest.store}. Opens the store in a new tab`}
     >
       {label}
     </a>

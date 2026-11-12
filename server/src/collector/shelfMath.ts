@@ -3,6 +3,7 @@
 // and what's coming out when. Everything reads prices already saved; nothing
 // here asks a store or a catalog.
 import type { CheapestCopy, RecordedPrice } from "../models/priceQueries.js";
+import type { EditionLine } from "../prices/editionLines.js";
 
 // a volume of a series as the saved lists know it
 export type ListedVolume = {
@@ -136,6 +137,10 @@ export type MissingVolume = {
   title: string;
   // the cheapest new copy in stock, where we know one
   cheapest: CheapestCopy | null;
+  // a book of the edition they collect: "Deluxe 3", and the volumes inside.
+  // `volume` is then the book's number in that edition
+  label?: string;
+  inside?: number[];
 };
 
 export type FinishSeries = {
@@ -219,6 +224,60 @@ export function finishSeries(
     priced: missing.filter((m) => m.cheapest).length,
     estimateCents:
       known || priced.length
+        ? cents + unpriced.reduce((sum, c) => sum + c, 0)
+        : null,
+  };
+}
+
+// the same for someone collecting an edition (prices/editionLines.ts): the
+// books of that line they don't have all of, each once. A book past the last
+// one the catalog lists isn't counted: it may not be out. One with no price
+// is estimated at the line's usual price, or `fallbackCents` (a single
+// volume's) for each volume it holds
+export function finishEdition(
+  owned: Owned,
+  line: EditionLine,
+  copies: Map<string, Copies>,
+  fallbackCents = 0,
+  recorded: Map<string, Pick<RecordedPrice, "new">> = new Map(),
+): FinishSeries {
+  const mine = ownedSet(owned);
+  const lastListed = line.books.reduce((at, b, i) => (b.listed ? i : at), -1);
+  const out = line.books.slice(0, lastListed + 1);
+  const newOf = (isbn: string | null) =>
+    isbn ? (copies.get(isbn)?.new ?? null) : null;
+  const missing: MissingVolume[] = out
+    .filter((b) => !b.volumes.every((v) => mine.has(v)))
+    .map((b) => ({
+      volume: b.number,
+      isbn13: b.isbn13 ?? "",
+      title: b.title ?? `${line.label} ${b.number}`,
+      cheapest: newOf(b.isbn13),
+      label: `${line.label} ${b.number}`,
+      inside: b.volumes,
+    }));
+  const priced = missing.filter((m) => m.cheapest);
+  const cents = priced.reduce((sum, m) => sum + m.cheapest!.cents, 0);
+  const lineNew = out.flatMap((b) => {
+    const c =
+      (b.isbn13 && recorded.get(b.isbn13)?.new) || newOf(b.isbn13)?.cents;
+    return c ? [c] : [];
+  });
+  const usual = lineNew.length ? median(lineNew) : 0;
+  const unpriced = missing
+    .filter((m) => !m.cheapest)
+    .map(
+      (m) =>
+        (m.isbn13 && recorded.get(m.isbn13)?.new) ||
+        usual ||
+        fallbackCents * (m.inside?.length ?? 1),
+    );
+  return {
+    missing,
+    cents,
+    priced: priced.length,
+    estimateCents:
+      unpriced.every((c) => c > 0) || priced.length
         ? cents + unpriced.reduce((sum, c) => sum + c, 0)
         : null,
   };
