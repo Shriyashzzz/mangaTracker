@@ -17,7 +17,10 @@ import {
   seriesCost,
   stillToGet,
 } from "../../lib/finishCost";
-import BoxSets from "./BoxSets";
+import BoxSets, { BoxSetSearch } from "./BoxSets";
+import { shownSets } from "./boxSetRules";
+import EditionsBox from "./EditionsBox";
+import { headlineLine, type EditionLine } from "../../lib/editions";
 import SeriesCostBox from "./SeriesCostBox";
 import { useFromShelf } from "../../lib/fromShelf";
 import { findOnShelf } from "../../lib/shelf";
@@ -97,8 +100,11 @@ export default function PriceSeries() {
     on: boolean;
     page: number;
   } | null>(null);
-  // the series whose other editions the page lists (OtherEditions says)
-  const [editionsFor, setEditionsFor] = useState("");
+  // the series' other editions, once OtherEditions has them
+  const [editions, setEditions] = useState<{
+    name: string;
+    lines: EditionLine[];
+  }>({ name: "", lines: [] });
   const toGetOnly =
     filter?.name === name ? filter.on : params.get("toget") === "1";
   const toGetPageIndex = filter?.name === name ? filter.page : 0;
@@ -192,6 +198,11 @@ export default function PriceSeries() {
   const rangeStart = pageIndex * PAGE_SIZE + 1;
   const rangeEnd = rangeStart + PAGE_SIZE - 1;
   const mine = shelf.name === name ? shelf.manga : null;
+  // what goes beside the title: box sets when one is priced, else an edition
+  const editionLines = editions.name === name ? editions.lines : [];
+  const hasSets =
+    shownSets(data.boxSets ?? [], editionLines.length > 0).length > 0;
+  const headline = headlineLine(editionLines);
   const isTheirs = (n: number) =>
     Boolean(mine) && n >= 1 && Number.isInteger(n) && owns(mine!, n);
   // the first whole volume out after the furthest they own (as Buy it says)
@@ -296,12 +307,20 @@ export default function PriceSeries() {
             genres={info?.genres}
           />
         </div>
-        {/* a whole run in one buy, up beside the title */}
-        <BoxSets
-          sets={data.boxSets ?? []}
-          links={data.boxSetLinks ?? []}
-          editionsListed={editionsFor === name}
-        />
+        {/* beside the title: a whole run in one buy when a box set is
+            priced, else the series' deluxe (or omnibus) edition; neither,
+            nothing */}
+        {hasSets ? (
+          <BoxSets
+            sets={data.boxSets ?? []}
+            links={data.boxSetLinks ?? []}
+            editionsListed={editionLines.length > 0}
+          />
+        ) : (
+          headline && (
+            <EditionsBox line={headline} owned={mine ? ownedOf(mine) : []} />
+          )
+        )}
       </header>
 
       {cost && (
@@ -483,8 +502,10 @@ export default function PriceSeries() {
         name={name}
         asked={params.get("edition")}
         owned={mine ? ownedOf(mine) : []}
-        onFound={(found) => setEditionsFor(found ? name : "")}
+        onLines={(lines) => setEditions({ name, lines })}
       />
+      {/* no set priced: where to look for one */}
+      {!hasSets && <BoxSetSearch links={data.boxSetLinks ?? []} />}
     </div>
   );
 }

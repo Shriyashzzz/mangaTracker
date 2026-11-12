@@ -5,11 +5,11 @@
 import { humanQuery } from "../../../lib/turnstile";
 import { useEffect, useState } from "react";
 import { getJson } from "../../../lib/api";
-import { readLocal, useBoxSetsShown } from "../../../lib/prefs";
-import BoxSetToggle from "../BoxSetToggle";
+import { readLocal } from "../../../lib/prefs";
+import BoxSetNote from "../BoxSetNote";
 import { timeAgo } from "../../../lib/prices";
 import { noteStoreClick } from "../../../lib/support";
-import { isCollection, type Offer } from "../../../lib/types";
+import type { Offer } from "../../../lib/types";
 import { pricesStyles as styles } from "../styles";
 import CountrySwitch from "./CountrySwitch";
 import OfferList from "../OfferList";
@@ -45,14 +45,15 @@ export default function CanadaPrices({
   isbn,
   volume,
   preorder,
+  seriesLink,
 }: {
+  // the series' price page, where its box sets are
+  seriesLink: string;
   isbn: string;
   volume: number | null;
   // the day it comes out ("Mar 30, 2027"), when it isn't out yet
   preorder: string | null;
 }) {
-  // box sets holding this volume: listed unless turned off
-  const boxSetsShown = useBoxSetsShown();
   const [answer, setAnswer] = useState<{ isbn: string; data: Answer } | null>(
     null,
   );
@@ -91,11 +92,9 @@ export default function CanadaPrices({
   const hiddenEbooks = hideEbooks
     ? allOffers.filter((o) => o.format === "ebook").length
     : 0;
-  const boxSets = allOffers.filter(isCollection).length;
+  // a box set is another buy: off this list (BoxSetNote points to them)
   const offers = allOffers.filter(
-    (o) =>
-      !(hideEbooks && o.format === "ebook") &&
-      !(!boxSetsShown && isCollection(o)),
+    (o) => !(hideEbooks && o.format === "ebook") && o.format !== "set",
   );
   const allLinks = data?.links ?? [];
   // not out yet: no prices to compare, just where to order it
@@ -161,7 +160,7 @@ export default function CanadaPrices({
       ) : (
         <p className={styles.note}>{WHY_NONE[data.status]}</p>
       )}
-      <BoxSetToggle count={boxSets} />
+      <BoxSetNote offers={allOffers} to={seriesLink} />
       {hiddenEbooks > 0 && (
         <p className={styles.checked}>
           {hiddenEbooks} ebook {hiddenEbooks === 1 ? "price" : "prices"} hidden.

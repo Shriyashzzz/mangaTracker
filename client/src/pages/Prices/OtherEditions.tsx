@@ -22,14 +22,14 @@ type Props = {
   asked: string | null;
   // the volumes they own, when the series is on their shelf
   owned: number[];
-  // whether the series has any, once that's known
-  onFound: (found: boolean) => void;
+  // the series' lines, once they're known: the page's heading shows one
+  onLines: (lines: EditionLine[]) => void;
 };
 
 // a page of books: four rows of three on a laptop
 const PAGE_SIZE = 12;
 
-export default function OtherEditions({ name, asked, owned, onFound }: Props) {
+export default function OtherEditions({ name, asked, owned, onLines }: Props) {
   const [state, setState] = useState<{ name: string; lines: EditionLine[] }>({
     name: "",
     lines: [],
@@ -51,11 +51,11 @@ export default function OtherEditions({ name, asked, owned, onFound }: Props) {
     )
       .then(({ lines }) => {
         setState({ name, lines: lines ?? [] });
-        onFound(Boolean(lines?.length));
+        onLines(lines ?? []);
       })
-      .catch(() => onFound(false));
+      .catch(() => onLines([]));
     return () => controller.abort();
-    // onFound is the page's own setter
+    // onLines is the page's own setter
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [name]);
 

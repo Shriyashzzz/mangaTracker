@@ -63,7 +63,6 @@ export const currentTheme = (): Theme => {
 
 const checksListeners = new Set<() => void>();
 const countryListeners = new Set<() => void>();
-const boxSetListeners = new Set<() => void>();
 const trackListeners = new Set<() => void>();
 
 // puts preferences on the page and remembers them in this browser
@@ -71,7 +70,6 @@ const applyPrefs = ({
   background,
   theme,
   hideEbooks,
-  hideBoxSets,
   shelfTab,
   shelfSort,
   shelfView,
@@ -101,10 +99,6 @@ const applyPrefs = ({
     }
   }
   if (hideEbooks) writeLocal("hideEbooks", hideEbooks);
-  if (hideBoxSets && hideBoxSets !== readLocal("hideBoxSets")) {
-    writeLocal("hideBoxSets", hideBoxSets);
-    boxSetListeners.forEach((listener) => listener());
-  }
   if (shelfTab) writeLocal("shelfTab", shelfTab);
   if (shelfSort !== undefined) writeLocal("shelfSort", shelfSort);
   if (shelfView) writeLocal("shelfView", shelfView);
@@ -147,15 +141,6 @@ export const useCountry = () =>
     return () => countryListeners.delete(listener);
   }, currentCountry);
 
-// whether box sets show on volume pages: yes unless they've turned them off.
-// Every page showing prices follows a change at once
-const boxSetsShown = () => readLocal("hideBoxSets") !== "yes";
-export const useBoxSetsShown = () =>
-  useSyncExternalStore((listener) => {
-    boxSetListeners.add(listener);
-    return () => boxSetListeners.delete(listener);
-  }, boxSetsShown);
-
 // how they keep their place: each series its own way unless they've chosen
 // one way for all. Every page showing a place follows a change at once
 export const trackByNow = () => readTrackBy(readLocal("trackBy"));
@@ -186,7 +171,6 @@ export const syncPrefs = async () => {
     // someone else chose in this browser
     applyPrefs({
       releaseChecks: "on",
-      hideBoxSets: "no",
       trackBy: "series",
       ...stored,
     });

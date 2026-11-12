@@ -201,9 +201,10 @@ export const pricesStyles = {
   // right even with no "checked" text beside it
   checkedRow:
     "flex items-center gap-3 upto-720:w-full upto-720:justify-between [&>:last-child]:ml-auto",
-  // "Show box sets and omnibuses", under the price list
-  boxSetToggle:
-    "mt-2 inline-flex cursor-pointer items-center gap-2 font-mono text-[0.75rem] text-muted [&_input]:accent-accent",
+  // "Also in a box set, from $133.90 →", under the price list
+  boxSetNote: "mt-2 text-[0.88rem] text-ink-soft",
+  boxSetNoteLink:
+    "tap font-mono font-medium text-accent underline decoration-transparent underline-offset-3 hover:decoration-current",
   // the price list
   offers:
     "border-2 border-line bg-card [&>li+li]:border-t [&>li+li]:border-dashed [&>li+li]:border-line-soft",
@@ -338,7 +339,18 @@ export const pricesStyles = {
   setsRest: "mt-2 flex flex-col gap-2 upto-980:hidden",
   setStores:
     "mt-2 flex flex-wrap gap-1.5 upto-980:grid upto-980:grid-cols-4 upto-560:grid-cols-2 [&_a]:tap [&_a]:inline-block upto-980:[&_a]:block upto-980:[&_a]:text-center [&_a]:rounded-[2px] [&_a]:border-[1.5px] [&_a]:border-line [&_a]:bg-paper [&_a]:px-[0.6rem] [&_a]:py-[0.25rem] [&_a]:text-[0.82rem] [&_a]:font-medium [&_a]:transition-[background-color,color] [&_a]:duration-120 [&_a]:ease-[ease] [&_a]:hover:bg-ink [&_a]:hover:text-paper",
-  setsNone: "text-[0.88rem] text-ink-soft",
+  // the edition box's one ticket: the row's whole width on a phone
+  editionsBoxTicket:
+    "grid min-h-11 grid-cols-[minmax(0,1fr)_auto] gap-x-2 rounded-ink border-2 border-accent bg-accent-wash px-3 py-[0.45rem] text-[0.92rem] font-semibold shadow-[3px_3px_0_var(--hard-shadow)] transition-[translate,box-shadow] duration-120 ease-[ease] [a&]:hover:-translate-y-px [a&]:hover:shadow-[4px_4px_0_var(--hard-shadow)]",
+  // under the edition's first book: how many there are, and the way down
+  editionsBoxNote: "mt-2 text-[0.82rem] leading-snug text-ink-soft",
+  editionsBoxAll:
+    "tap font-medium text-ink underline decoration-line-soft underline-offset-3 hover:text-accent hover:decoration-accent",
+  // "Looking for a box set? Try [stores]": a quiet row at the foot of the page
+  setSearch: "mt-10",
+  setSearchTitle: "mb-2 font-body text-[0.92rem] font-normal text-ink-soft",
+  setSearchStores:
+    "flex flex-wrap gap-2 [&_a]:tap [&_a]:inline-block [&_a]:rounded-[2px] [&_a]:border-[1.5px] [&_a]:border-line [&_a]:bg-card [&_a]:px-[0.8rem] [&_a]:py-[0.35rem] [&_a]:text-[0.88rem] [&_a]:font-medium [&_a]:transition-[background-color,color] [&_a]:duration-120 [&_a]:ease-[ease] [&_a]:hover:bg-ink [&_a]:hover:text-paper",
   setDisclosure: "mt-2 text-[0.72rem] leading-snug text-muted italic",
   seriesCover:
     "aspect-2/3 w-[clamp(110px,16vw,180px)] border-[1.5px] border-line object-cover shadow-[6px_6px_0_var(--hard-shadow)] upto-720:w-24",
