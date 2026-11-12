@@ -81,14 +81,14 @@ export const pricesStyles = {
   finishCost: "text-[0.9rem] font-medium text-ink tabular-nums",
   // the home page's four panels for someone new: laid out like a page of
   // manga panels, gutters and all; four across, two on a tablet, one on a
-  // phone. A panel's number sits in its corner like a page number
+  // phone
   why: "mt-12 flex flex-col gap-3",
   whyPanels:
-    "grid grid-cols-4 gap-3 [counter-reset:panel] max-[1000px]:grid-cols-2 upto-520:grid-cols-1",
+    "grid grid-cols-4 gap-3 max-[1000px]:grid-cols-2 upto-520:grid-cols-1",
   whyPanel:
-    "relative flex flex-col gap-2 border-3 border-line bg-card px-5 pt-5 pb-4 [counter-increment:panel] after:absolute after:top-2 after:right-3 after:font-mono after:text-[0.75rem] after:text-muted after:content-[counter(panel,decimal-leading-zero)] odd:rotate-[-0.4deg] even:rotate-[0.4deg] upto-520:rotate-0",
+    "relative flex flex-col gap-2 border-3 border-line bg-card px-5 pt-5 pb-4 odd:rotate-[-0.4deg] even:rotate-[0.4deg] upto-520:rotate-0",
   whyTitle:
-    "pr-6 font-brand text-[1.35rem] leading-[1.05] font-normal tracking-[0.03em] uppercase",
+    "font-brand text-[1.35rem] leading-[1.05] font-normal tracking-[0.03em] uppercase",
   whyBody: "text-[0.92rem] leading-snug text-ink-soft",
   whyLink:
     "tap mt-auto pt-1 text-[0.9rem] font-medium underline decoration-accent decoration-2 underline-offset-3",
