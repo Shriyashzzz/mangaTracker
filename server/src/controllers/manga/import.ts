@@ -50,6 +50,9 @@ export const importList = [
   body("entries.*.lightNovel").optional().isBoolean().toBoolean(),
   body("entries.*.restore").optional().isBoolean().toBoolean(),
   body("entries.*.byVolume").optional().isBoolean().toBoolean(),
+  body("entries.*.edition")
+    .optional()
+    .matches(/^[a-z0-9]{1,20}$/),
   ...bookFields("entries.*.books", 300),
   body("entries.*.genre").optional().isString().trim().isLength({ max: 100 }),
   body("entries.*.otherNames").optional().isArray({ max: 12 }),
@@ -200,6 +203,8 @@ export const match = [
         id: found.id,
         name: found.shelfName,
         bookmark: found.bookmark,
+        byVolume: found.byVolume,
+        readVolume: found.readVolume,
         status: found.status,
         planned: found.planned,
         volumesOwned: found.volumesOwned,

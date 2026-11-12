@@ -7,6 +7,8 @@ import { novelParts } from "../../lib/prices";
 import { pricesStyles as styles } from "./styles";
 import type { ShelfMatch } from "../../lib/types";
 import { useAuth } from "../../store/auth";
+import { tracksOf } from "../../lib/reading";
+import { trackByNow } from "../../lib/prefs";
 
 const UNDO_MS = 6000;
 
@@ -127,14 +129,23 @@ export default function ShelfAction({ series, title, volume }: Props) {
     }
   };
 
+  const tracks = tracksOf(manga, trackByNow());
   const progress = [
     manga.status
       ? "finished"
       : manga.planned
         ? "on your To read list"
-        : manga.bookmark
-          ? `chapter ${manga.bookmark}`
-          : null,
+        : // their place as they keep it: the chapter, the volume read, or both
+          [
+            tracks.chapters && manga.bookmark
+              ? `chapter ${manga.bookmark}`
+              : null,
+            tracks.volumes && manga.readVolume
+              ? `read vol. ${manga.readVolume}`
+              : null,
+          ]
+            .filter(Boolean)
+            .join(" · ") || null,
     ownedPhrase(manga) ? `own ${ownedPhrase(manga)}` : null,
   ]
     .filter(Boolean)

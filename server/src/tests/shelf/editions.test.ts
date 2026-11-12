@@ -172,3 +172,24 @@ test("an asked-for edition finds its line, or one of its kind", () => {
   expect(lineFor(lines, null)).toBeNull();
   expect(lineFor([line(3)], "omnibus")).toBeNull();
 });
+
+// the shelf tools guess as the details page does
+import { guessedLine } from "../../collector/shelfMath.js";
+
+test("the server's guess at the edition matches the page's", () => {
+  const lines = [line(14), { ...line(14, 0, "3in1"), label: "3-in-1" }];
+  const deluxe = (n: number) => ({
+    edition: "deluxe",
+    volumes: [n * 3 - 2, n * 3 - 1, n * 3],
+  });
+  const cases: [ReturnType<typeof deluxe>[], number[]][] = [
+    [[deluxe(1), deluxe(2)], run(1, 6)],
+    [[], run(1, 6)],
+    [[deluxe(1)], run(1, 30)],
+  ];
+  for (const [books, owned] of cases)
+    expect(guessedLine(lines, books, owned.length)?.key ?? null).toBe(
+      guessEdition(lines, books as never, owned),
+    );
+  expect(guessedLine(lines, [deluxe(1), deluxe(2)], 6)?.key).toBe("deluxe");
+});

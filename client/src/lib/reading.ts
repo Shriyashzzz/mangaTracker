@@ -27,11 +27,16 @@ export const placeText = (
     readVolume?: number | null;
   },
   mode: TrackBy,
+  // "read vol. 5": where the volumes owned sit beside it as "Vol. 1–7" (a
+  // shared shelf), a bare "vol. 5" would read as one more of those
+  saysRead = false,
 ) => {
   const tracks = tracksOf(m, mode);
   const parts = [
     tracks.chapters && m.bookmark ? `ch. ${m.bookmark}` : null,
-    tracks.volumes && m.readVolume ? `vol. ${m.readVolume}` : null,
+    tracks.volumes && m.readVolume
+      ? `${saysRead ? "read " : ""}vol. ${m.readVolume}`
+      : null,
   ].filter(Boolean);
   return parts.length ? parts.join(" · ") : null;
 };

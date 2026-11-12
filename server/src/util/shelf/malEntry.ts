@@ -30,6 +30,8 @@ export type MalEntry = {
   // from Manga Tracker's own export: a series already on the shelf also
   // takes what it lacks (backupFill)
   restore?: boolean;
+  // from a backup: the edition they collect it in ("deluxe")
+  edition?: string;
   // the books behind the owned volumes (models/bookQueries.ts)
   books?: BookInput[];
   // from a backup: this series keeps its place by the volume
@@ -97,6 +99,7 @@ export function toMangaInput(entry: MalEntry, listing: MalListing | null) {
     // a light novel is read by the volume unless the backup says otherwise
     byVolume: entry.byVolume ?? entryIsLightNovel(entry, listing),
     readVolume: entry.planned ? null : entry.readVolumes || null,
+    ...(entry.restore && entry.edition ? { edition: entry.edition } : {}),
     // most people never fill in retail, so volumes read is the best guess left
     ...ownedVolumes(
       // (a backup's read volume is only that: it says what's owned itself)

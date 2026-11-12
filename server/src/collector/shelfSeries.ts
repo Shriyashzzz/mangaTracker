@@ -9,7 +9,7 @@ import { priceName } from "../prices/lightNovel.js";
 import { slugify } from "../prices/stores/match.js";
 import type { CatalogBook, SeriesInfo } from "../prices/types.js";
 import { volumesKey } from "../prices/volumesKey.js";
-import type { ListedVolume } from "./shelfMath.js";
+import { guessedLine, type ListedVolume } from "./shelfMath.js";
 import type { EditionLine } from "../prices/editionLines.js";
 
 export type ShelfSeries = {
@@ -55,15 +55,28 @@ async function officialNames(names: string[]) {
   );
 }
 
-// the edition line each manga collects (manga.edition), by manga id: the
-// saved lines only (prices/editionSource.ts saves them when the series' page
-// is opened), so a series with none saved counts in single volumes
+// the edition line each manga is collected in, by manga id: the one they
+// picked (manga.edition), or with none picked, the one their recorded books
+// point to. The saved lines only (prices/editionSource.ts saves them when
+// the series' page is opened), so a series with none saved counts in single
+// volumes
 export async function shelfEditionLines(
   manga: Manga[],
 ): Promise<Map<number, EditionLine>> {
-  const collecting = manga.filter(
-    (m) => m.edition && m.edition !== "singles" && !m.lightNovel,
-  );
+  const open = manga.filter((m) => !m.lightNovel && m.edition !== "singles");
+  if (!open.length) return new Map();
+  // the books that could point to an edition: only for the undecided
+  const undecided = open.filter((m) => !m.edition).map((m) => m.id);
+  const recorded = undecided.length
+    ? await prisma.ownedBook.findMany({
+        where: { mangaId: { in: undecided }, edition: { not: "single" } },
+        select: { mangaId: true, edition: true, volumes: true },
+      })
+    : [];
+  const booksOf = new Map<number, typeof recorded>();
+  for (const b of recorded)
+    booksOf.set(b.mangaId, [...(booksOf.get(b.mangaId) ?? []), b]);
+  const collecting = open.filter((m) => m.edition || booksOf.has(m.id));
   if (!collecting.length) return new Map();
   const names = collecting.map((m) => priceName(m));
   const official = await officialNames(names);
@@ -80,9 +93,16 @@ export async function shelfEditionLines(
   );
   return new Map(
     collecting.flatMap((m, i) => {
-      const line = keysOf(names[i]!)
+      const lines = keysOf(names[i]!)
         .flatMap((k) => saved.get(k) ?? [])
-        .find((l) => l.key === m.edition && Array.isArray(l.books));
+        .filter((l) => Array.isArray(l.books));
+      const line = m.edition
+        ? lines.find((l) => l.key === m.edition)
+        : guessedLine(
+            lines,
+            booksOf.get(m.id) ?? [],
+            m.ownedList.length || (m.volumesOwned ?? 0),
+          );
       return line ? [[m.id, line] as const] : [];
     }),
   );

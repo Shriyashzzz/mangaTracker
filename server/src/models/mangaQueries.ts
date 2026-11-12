@@ -244,6 +244,9 @@ export async function mergeManga(keep: number, other: number) {
         ...owned,
         bookmark: most(a.bookmark, b.bookmark),
         readVolume: most(a.readVolume, b.readVolume),
+        // the edition collected, and tracking by the volume, from either
+        edition: a.edition ?? b.edition,
+        byVolume: a.byVolume || b.byVolume,
         rating: a.rating || b.rating,
         image: a.image || b.image,
         genre: a.genre || b.genre,
