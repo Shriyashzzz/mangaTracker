@@ -462,10 +462,14 @@ function Library() {
   const total = mangaData.length;
   // a series with no saved place can't be called caught up, so it never shows
   // here. An empty tab has to say so, or it reads as "nothing's out"
+  // Only those they're reading: a finished or to-read series isn't waiting
+  // on a place
   const unknownPlace = looked.filter((m) =>
-    releaseKind === "chapters"
-      ? !m.bookmark
-      : !m.volumesOwned && !releases[m.id]?.currentVolume,
+    m.status || m.planned
+      ? false
+      : releaseKind === "chapters"
+        ? !m.bookmark
+        : !m.volumesOwned && !releases[m.id]?.currentVolume,
   ).length;
   // every title failed, so "nothing new" would be a false comfort. A few failing
   // goes unsaid: the rest still stand, and they get tried again on the next visit
