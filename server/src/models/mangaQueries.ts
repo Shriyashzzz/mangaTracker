@@ -226,6 +226,11 @@ export async function mergeManga(keep: number, other: number) {
         latestChapter: most(a.latestChapter, b.latestChapter),
       },
     });
+    // its books come along
+    await tx.ownedBook.updateMany({
+      where: { mangaId: other },
+      data: { mangaId: keep },
+    });
     await tx.manga.delete({ where: { id: other } });
   });
 }

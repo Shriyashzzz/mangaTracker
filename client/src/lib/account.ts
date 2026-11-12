@@ -1,4 +1,5 @@
 // The account's own details, and shared lists.
+import { booksToCell, type NewBook } from "./books";
 import { ownedOf, rangesText } from "./ownedVolumes";
 import { apiFetch, errorMessages, getJson } from "./api";
 import { SORT_OPTIONS } from "./shelf";
@@ -75,7 +76,11 @@ const csvCell = (value: unknown) => {
   return `"${safe.replaceAll('"', '""')}"`;
 };
 
-export const shelfToCsv = (manga: Manga[]) =>
+export const shelfToCsv = (
+  manga: Manga[],
+  // each series' books, by its id (lib/books.ts)
+  books: Record<number, NewBook[]> = {},
+) =>
   [
     [
       "Title",
@@ -88,6 +93,7 @@ export const shelfToCsv = (manga: Manga[]) =>
       "Rating",
       "Genre",
       "Notes",
+      "Books",
     ],
     ...manga.map((m) => [
       m.name,
@@ -102,6 +108,8 @@ export const shelfToCsv = (manga: Manga[]) =>
       m.rating,
       m.genre,
       m.description,
+      // the books behind the volumes, with their ISBNs and editions
+      booksToCell(books[m.id] ?? []),
     ]),
   ]
     .map((row) => row.map(csvCell).join(","))

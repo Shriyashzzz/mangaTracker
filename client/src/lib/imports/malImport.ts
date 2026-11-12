@@ -1,6 +1,7 @@
 // Reading a MyAnimeList export in the browser, so the file itself never leaves
 // their computer. It arrives as .xml.gz from the export page, as .xml if they've
 // opened it, and as .zip if they've zipped it up.
+import type { NewBook } from "../books";
 import { gunzipSync, strFromU8, unzipSync } from "fflate";
 import { apiFetch } from "../api";
 
@@ -30,6 +31,8 @@ export type MalEntry = {
   // from Manga Tracker's own export: a series already on the shelf takes
   // what it lacks too (chapter, finished, rating, notes)
   restore?: boolean;
+  // the books behind the owned volumes, with ISBNs and editions
+  books?: NewBook[];
   // from a backup: the series keeps its place by the volume
   byVolume?: boolean;
   // a backup's own genre (they may have set it by hand)

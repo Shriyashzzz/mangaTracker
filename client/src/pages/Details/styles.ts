@@ -75,6 +75,19 @@ export const detailsStyles = {
   undo: "ml-1 inline-block py-1 font-medium text-ink underline decoration-accent decoration-2 underline-offset-3",
   // a To read manga: "Not started yet" with its button beside it
   startRow: "inline-flex flex-wrap items-center gap-3",
+  // "Your books": the physical books behind the owned volumes, folded away
+  books: "border-t border-line-soft pt-3 not-italic",
+  booksSummary:
+    "tap cursor-pointer font-sans text-[0.95rem] font-medium text-ink marker:text-ink-soft",
+  booksCount: "ml-1 font-mono text-[0.8rem] text-ink-soft",
+  booksList: "mt-2 flex flex-col",
+  bookRow:
+    "flex flex-wrap items-baseline gap-x-4 gap-y-0.5 border-b border-dashed border-line-soft py-2 text-[0.92rem]",
+  bookName: "min-w-0 flex-1 basis-48 font-medium text-ink",
+  bookIsbn: "font-mono text-[0.78rem] text-ink-soft",
+  bookRemove:
+    "tap text-[0.85rem] font-medium text-ink-soft underline decoration-line-soft underline-offset-3 hover:text-accent hover:decoration-current",
+  booksNote: "mt-2 text-[0.82rem] text-muted",
   // under the counter: the quiet ways to change what it counts
   trackRow:
     "mt-1 flex flex-wrap items-center gap-x-4 gap-y-1 not-italic empty:hidden",

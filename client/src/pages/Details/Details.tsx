@@ -16,6 +16,7 @@ import { useReleaseChecksOn, useTrackBy } from "../../lib/prefs";
 import { tracksOf } from "../../lib/reading";
 import { useShelf } from "../../store/shelf";
 import TwiceNote from "./TwiceNote";
+import YourBooks from "./YourBooks";
 import NotesField from "./NotesField";
 import BuyStrip from "./BuyStrip";
 import ReleaseBar from "./ReleaseBar";
@@ -747,6 +748,12 @@ export default function Details() {
               key={mangaData.id}
               id={mangaData.id}
               initial={mangaData.description}
+            />
+
+            <YourBooks
+              mangaId={mangaData.id}
+              ownedKey={owned.join()}
+              onRemoved={(left) => setMangaData({ ...mangaData, ...left })}
             />
 
             <div className={styles.actions}>

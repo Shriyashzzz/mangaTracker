@@ -7,6 +7,8 @@ import { apiFetch, getJson, HttpError } from "./api";
 import { ownedOf, ownedVolumes, owns, withVolume } from "./ownedVolumes";
 import { findOnShelf, setVolumesOwned, type Owned } from "./shelf";
 import type { Manga, ScannedBook } from "./types";
+import { newBook } from "./books";
+import { saveBooks } from "./booksApi";
 
 // name: the series as their shelf names it ("One Piece", where the catalog
 // may say "ONE PIECE")
@@ -42,6 +44,11 @@ const takeBack = async (id: number, volumes: number[]) => {
   );
 };
 
+// the scanned book itself, kept with its ISBN and edition (lib/books.ts). An
+// undo needs no word here: a book whose volumes are no longer owned is dropped
+const recordBook = (id: number, book: ScannedBook) =>
+  saveBooks(id, [newBook(book.title, book.volumes, book.isbn13)]);
+
 // this volume, marked theirs on a series already on the shelf
 async function markOn(
   id: number,
@@ -52,11 +59,16 @@ async function markOn(
   // a book holding two volumes may bring one they already had: undo takes
   // back only what this scan added
   const added = book.volumes.filter((v) => !owns(owned, v));
-  if (!added.length) return { kind: "already", book, name, id };
+  // the volumes may be ticked by hand already: the book itself is still news
+  if (!added.length) {
+    await recordBook(id, book);
+    return { kind: "already", book, name, id };
+  }
   await setVolumesOwned(
     id,
     added.reduce((all, v) => withVolume(all, v), owned),
   );
+  await recordBook(id, book);
   return {
     kind: "marked",
     book,
@@ -132,6 +144,7 @@ async function shelveBook(book: ScannedBook): Promise<ScanResult> {
     }
     if (!res.ok) return { kind: "failed", isbn };
     const { id } = (await res.json()) as { id: number };
+    await recordBook(id, book);
     return {
       kind: "added",
       book,

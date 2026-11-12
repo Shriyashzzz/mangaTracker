@@ -226,12 +226,12 @@ export default function MangaCard({
             {/* unrated ones show empty stars, so the column always reads the same */}
             <StarRating value={Number(currentManga.rating) || 0} size="sm" />
           </span>
-          <span className="flex w-28 flex-col justify-center gap-1 pr-2.5 text-right font-mono text-[0.82rem] text-ink-soft upto-720:w-[5.5rem] upto-720:pr-2">
+          <span className="flex w-36 shrink-0 flex-col justify-center gap-1 pr-2.5 text-right font-mono text-[0.82rem] text-ink-soft upto-720:w-[7.5rem] upto-720:text-[0.75rem] upto-720:pr-2">
             {currentManga.status ? (
               "Finished"
             ) : !reading && owned.length ? (
               // no chapter kept: how many books, not "0 of 143"
-              <span className="whitespace-nowrap ">
+              <span className="whitespace-nowrap pr-2.5">
                 {owned.length} {owned.length === 1 ? "vol" : "vols"}
               </span>
             ) : knownTotal != null && reading > 0 ? (

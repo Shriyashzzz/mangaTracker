@@ -78,9 +78,32 @@ model Manga {
   // the last release check's answer, so the New tab can open without asking
   // every other site again (ReleaseAnswer)
   releaseAnswer ReleaseAnswer?
+  // the books behind the volumes they own (OwnedBook)
+  books         OwnedBook[]
 
   @@index([userId])
   @@map("manga")
+}
+
+// One book they own of a series: "Berserk Deluxe 2" holds vols 4 to 6. Written
+// by a barcode scan or an import, which know the ISBN; a volume ticked by hand
+// has no book. Every book's volumes are owned on its manga: one that isn't any
+// more is dropped the next time the books are read (models/bookQueries.ts)
+model OwnedBook {
+  id      Int     @id @default(autoincrement())
+  mangaId Int     @map("manga_id")
+  manga   Manga   @relation(fields: [mangaId], references: [id], onDelete: Cascade)
+  isbn13  String? @db.VarChar(13)
+  // single, omnibus, deluxe or boxset (util/shelf/ownedBooks.ts)
+  edition String  @default("single") @db.VarChar(12)
+  // its number in that edition: Deluxe 2
+  number  Float?
+  title   String? @db.VarChar(200)
+  // the series' volumes it holds
+  volumes Float[] @default([])
+
+  @@index([mangaId])
+  @@map("owned_books")
 }
 
 // express-session's store (connect-pg-simple). Kept in the schema so

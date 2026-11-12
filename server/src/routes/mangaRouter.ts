@@ -53,6 +53,8 @@ mangaRouter.post(
 mangaRouter.get("/prices", manga.shelfPrices);
 // the shelf's saved release answers, at once (before /:id, which would take it)
 mangaRouter.get("/releases/saved", manga.savedReleases);
+// every book behind the shelf's owned volumes, for the backup
+mangaRouter.get("/books", manga.allBooks);
 mangaRouter.get("/match", manga.match);
 
 // requireOwner: the manga exists and belongs to whoever is signed in
@@ -77,3 +79,7 @@ mangaRouter.patch(
   manga.setImage,
 );
 mangaRouter.put("/:id/owned", requireOwner, manga.setOwned);
+// the books behind the owned volumes
+mangaRouter.get("/:id/books", requireOwner, manga.books);
+mangaRouter.post("/:id/books", requireOwner, manga.addBooks);
+mangaRouter.delete("/:id/books/:bookId", requireOwner, manga.removeBook);

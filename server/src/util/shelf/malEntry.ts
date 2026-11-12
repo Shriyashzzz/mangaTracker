@@ -2,6 +2,7 @@
 // it by its MyAnimeList id, which is exact, for the English title, cover and genre.
 import { shelfKey, titleKey } from "./titleKey.js";
 import { ownedVolumes } from "./ownedList.js";
+import type { BookInput } from "../../models/bookQueries.js";
 
 const MAX_TITLE = 150;
 const MAX_NOTES = 450;
@@ -29,6 +30,8 @@ export type MalEntry = {
   // from Manga Tracker's own export: a series already on the shelf also
   // takes what it lacks (backupFill)
   restore?: boolean;
+  // the books behind the owned volumes (models/bookQueries.ts)
+  books?: BookInput[];
   // from a backup: this series keeps its place by the volume
   byVolume?: boolean;
   // a backup's own genre, kept over AniList's (it may be hand-set)

@@ -19,6 +19,8 @@ import { titleKey } from "../../util/shelf/titleKey.js";
 import { oneAtATime } from "../../util/shelf/oneAtATime.js";
 import { knownMatches, tellMatches } from "../../util/shelf/sharedMatches.js";
 import { ownedListFields } from "./fields.js";
+import { bookFields } from "../../util/shelf/ownedBooks.js";
+import bookQueries, { type BookInput } from "../../models/bookQueries.js";
 import { ownedVolumes } from "../../util/shelf/ownedList.js";
 
 // every volume a series says it owns: the exact list, or 1 to "up to"
@@ -48,6 +50,7 @@ export const importList = [
   body("entries.*.lightNovel").optional().isBoolean().toBoolean(),
   body("entries.*.restore").optional().isBoolean().toBoolean(),
   body("entries.*.byVolume").optional().isBoolean().toBoolean(),
+  ...bookFields("entries.*.books", 300),
   body("entries.*.genre").optional().isString().trim().isLength({ max: 100 }),
   body("entries.*.otherNames").optional().isArray({ max: 12 }),
   body("entries.*.otherNames.*").isString().trim().isLength({ max: 300 }),
@@ -93,6 +96,13 @@ export const importList = [
         number,
         NonNullable<ReturnType<typeof backupFill>>
       >();
+      // each series' books, saved once its volumes are (bookQueries.addBooks)
+      const books = new Map<number, BookInput[]>();
+      const newBooks: {
+        name: string;
+        lightNovel: boolean;
+        books: BookInput[];
+      }[] = [];
       for (const entry of entries) {
         const listing = (entry.malId && listings.get(entry.malId)) || null;
         const names = namesOf(entry, listing);
@@ -121,6 +131,7 @@ export const importList = [
             const all = [...new Set([...before, ...incoming])];
             if (all.length > before.length)
               merges.set(existing.id, ownedVolumes(null, all));
+            if (entry.books?.length) books.set(existing.id, entry.books);
             const fill = entry.restore ? backupFill(entry, existing) : null;
             if (fill) fills.set(existing.id, fill);
           }
@@ -130,13 +141,36 @@ export const importList = [
         const input = toMangaInput(entry, listing);
         // the shelf's titles stop at 150 characters
         inputs.push({ ...input, name: input.name.slice(0, 150) });
+        if (entry.books?.length)
+          newBooks.push({
+            name: input.name.slice(0, 150),
+            lightNovel: Boolean(input.lightNovel),
+            books: entry.books,
+          });
         if (!input.image) noCover++;
       }
       if (inputs.length) await mangaQueries.addManyManga(userId, inputs);
+      // the new ones have ids now: their books go by name
+      if (newBooks.length) {
+        const now = await mangaQueries.getMangaShelfNames(userId);
+        for (const fresh of newBooks) {
+          const made = now.find(
+            (m) =>
+              m.name === fresh.name &&
+              Boolean(m.lightNovel) === fresh.lightNovel,
+          );
+          if (made) books.set(made.id, fresh.books);
+        }
+      }
       for (const [id, owned] of merges)
         await mangaQueries.setVolumesOwned(id, owned);
       for (const [id, fill] of fills)
         await mangaQueries.fillFromBackup(id, fill);
+      // after the volumes: a book is kept only where its volumes are owned
+      for (const [id, list] of books) {
+        await bookQueries.addBooks(id, list);
+        await bookQueries.booksOf(id);
+      }
       res.json({
         added: inputs.length,
         alreadyThere,
