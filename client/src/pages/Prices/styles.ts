@@ -337,7 +337,7 @@ export const pricesStyles = {
   setsMoreCount: "upto-980:hidden",
   setsRest: "mt-2 flex flex-col gap-2 upto-980:hidden",
   setStores:
-    "mt-2 flex flex-wrap gap-1.5 [&_a]:tap [&_a]:inline-block [&_a]:rounded-[2px] [&_a]:border-[1.5px] [&_a]:border-line [&_a]:bg-paper [&_a]:px-[0.6rem] [&_a]:py-[0.25rem] [&_a]:text-[0.82rem] [&_a]:font-medium [&_a]:transition-[background-color,color] [&_a]:duration-120 [&_a]:ease-[ease] [&_a]:hover:bg-ink [&_a]:hover:text-paper",
+    "mt-2 flex flex-wrap gap-1.5 upto-980:grid upto-980:grid-cols-4 upto-560:grid-cols-2 [&_a]:tap [&_a]:inline-block upto-980:[&_a]:block upto-980:[&_a]:text-center [&_a]:rounded-[2px] [&_a]:border-[1.5px] [&_a]:border-line [&_a]:bg-paper [&_a]:px-[0.6rem] [&_a]:py-[0.25rem] [&_a]:text-[0.82rem] [&_a]:font-medium [&_a]:transition-[background-color,color] [&_a]:duration-120 [&_a]:ease-[ease] [&_a]:hover:bg-ink [&_a]:hover:text-paper",
   setsNone: "text-[0.88rem] text-ink-soft",
   setDisclosure: "mt-2 text-[0.72rem] leading-snug text-muted italic",
   seriesCover:
