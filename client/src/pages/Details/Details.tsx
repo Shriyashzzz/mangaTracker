@@ -39,6 +39,15 @@ export default function Details() {
   const [releaseData, setReleaseData] = useState<ReleaseData | null>(null);
   // a collector of the books who asked for the chapter counter after all
   const [chaptersShown, setChaptersShown] = useState(false);
+  // the shelf as it was before the last slide across it, while Undo is offered
+  const slide = useRef<{ before: number[] } | null>(null);
+  const slideEnds = useRef(0);
+  const [undoSlide, setUndoSlide] = useState<number[] | null>(null);
+  useEffect(() => {
+    if (!undoSlide) return;
+    const gone = window.setTimeout(() => setUndoSlide(null), 12_000);
+    return () => clearTimeout(gone);
+  }, [undoSlide]);
   const [releaseStatus, setReleaseStatus] = useState<ReleaseStatus | null>(
     null,
   );
@@ -316,6 +325,22 @@ export default function Details() {
   const offShelf = owned.filter((v) => !Number.isInteger(v) || v < 1);
   const onShelf = owned.length - offShelf.length;
   const highestOwned = Math.floor(Math.max(0, ...owned));
+  // one slide is many paints close together: what they owned before the
+  // first is what Undo gives back
+  const paintWithUndo = (next: number[]) => {
+    // the slide lasts until the paints stop coming for a moment
+    slide.current ??= { before: owned };
+    clearTimeout(slideEnds.current);
+    slideEnds.current = window.setTimeout(() => {
+      slide.current = null;
+    }, 1200);
+    toggleOwned.paint(next);
+    const { before } = slide.current;
+    const changed =
+      next.filter((v) => !before.includes(v)).length +
+      before.filter((v) => !next.includes(v)).length;
+    setUndoSlide(changed > 1 ? before : null);
+  };
   // as the shelf's finish math counts it: a volume known to be coming means
   // every one before it is out, listed or not (vol. 17 due: 16 is out)
   const comingFirst = Math.min(
@@ -509,8 +534,11 @@ export default function Details() {
                   key={mangaData.id}
                   total={shelfTotal}
                   owned={owned}
-                  onToggle={toggleOwned.toggle}
-                  onPaint={toggleOwned.paint}
+                  onToggle={(v) => {
+                    setUndoSlide(null);
+                    toggleOwned.toggle(v);
+                  }}
+                  onPaint={paintWithUndo}
                   name={mangaData.name}
                 />
               </div>
@@ -522,6 +550,20 @@ export default function Details() {
                   {offShelf.length > 0 &&
                     ` · also vol${offShelf.length > 1 ? "s" : ""}. ${rangesText(offShelf)}`}
                 </span>
+                {/* a slide that changed several at once (a swipe meant to
+                    scroll, on a phone) can be taken back */}
+                {undoSlide && (
+                  <button
+                    type="button"
+                    className={styles.chaptersToo}
+                    onClick={() => {
+                      toggleOwned.paint(undoSlide);
+                      setUndoSlide(null);
+                    }}
+                  >
+                    Undo that slide
+                  </button>
+                )}
               </p>
             </div>
           </div>
