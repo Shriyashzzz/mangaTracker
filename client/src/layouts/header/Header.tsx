@@ -76,13 +76,14 @@ export default function Header() {
     pathname === "/" &&
     !search &&
     (isSignedIn === false || (isSignedIn === null && !probablySignedIn()));
-  // the price checker lives at "/", under /prices and at /series
+  // the price checker lives at "/", under /prices, at /series and /deals
   const onPrices =
     !fromShelf &&
     !guestHome &&
     (pathname === "/" ||
       pathname.startsWith("/prices") ||
-      pathname.startsWith("/series"));
+      pathname.startsWith("/series") ||
+      pathname.startsWith("/deals"));
 
   // the page each tab is on, as they move around. A guest's shelf pages only
   // lead to signing in, so those aren't worth going back to

@@ -13,7 +13,7 @@ export const TAB_HOME: Record<BarTab, string> = {
 export const tabOf = (pathname: string): BarTab | null => {
   if (/^\/(shelf|details|add|update|import)(\/|$)/.test(pathname))
     return "shelf";
-  if (pathname === "/" || /^\/(prices|series)(\/|$)/.test(pathname))
+  if (pathname === "/" || /^\/(prices|series|deals)(\/|$)/.test(pathname))
     return "prices";
   return null;
 };
