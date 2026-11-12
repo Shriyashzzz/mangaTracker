@@ -1,6 +1,6 @@
 // Where they are in a series, on the add and edit forms: the chapter, the
 // volume they've read up to, or both, as their settings say. With each series
-// choosing its own way, a link under the box swaps what it counts.
+// choosing its own way, a small switch beside the label says what the box counts.
 import { tracksOf, type TrackBy } from "../../lib/reading";
 
 type Props = {
@@ -21,7 +21,9 @@ type Props = {
     fieldError: string;
     optional?: string;
     invalid?: string;
-    swap: string;
+    unitRow: string;
+    unitSwitch: string;
+    unitLabel: string;
   };
 };
 
@@ -41,15 +43,69 @@ export default function PlaceField({
   const note = optional && (
     <span className={classes.optional}> (optional)</span>
   );
-  const swap = mode === "series" && (
-    <button
-      type="button"
-      className={classes.swap}
-      onClick={() => onByVolume(!byVolume)}
-    >
-      {byVolume ? "Count chapters instead" : "Count volumes instead"}
-    </button>
-  );
+  // each series its own way: one box, and a small switch for what it counts
+  if (mode === "series") {
+    const id = byVolume ? "readVolume" : "bookmark";
+    return (
+      <div className={classes.field}>
+        <div className={classes.unitRow}>
+          <label htmlFor={id} className={classes.label}>
+            You're on
+          </label>
+          <span
+            className={classes.unitSwitch}
+            role="radiogroup"
+            aria-label="Track this series by"
+          >
+            <input
+              type="radio"
+              id="place-chapter"
+              name="placeUnit"
+              checked={!byVolume}
+              onChange={() => onByVolume(false)}
+            />
+            <label htmlFor="place-chapter" className={classes.unitLabel}>
+              Chapter
+            </label>
+            <input
+              type="radio"
+              id="place-volume"
+              name="placeUnit"
+              checked={byVolume}
+              onChange={() => onByVolume(true)}
+            />
+            <label htmlFor="place-volume" className={classes.unitLabel}>
+              Volume
+            </label>
+          </span>
+        </div>
+        <input
+          className={`${classes.input} ${!byVolume && chapterError ? (classes.invalid ?? "") : ""}`}
+          inputMode="numeric"
+          id={id}
+          name={id}
+          type="number"
+          min="0"
+          max={byVolume ? "999" : undefined}
+          step="1"
+          value={byVolume ? volume : chapter}
+          placeholder={byVolume ? "e.g. 12" : "e.g. 1073"}
+          aria-invalid={(!byVolume && Boolean(chapterError)) || undefined}
+          aria-describedby={
+            !byVolume && chapterError ? "bookmark-error" : undefined
+          }
+          onChange={(e) =>
+            byVolume ? onVolume(e.target.value) : onChapter(e.target.value)
+          }
+        />
+        {!byVolume && chapterError && (
+          <p id="bookmark-error" className={classes.fieldError}>
+            {chapterError}
+          </p>
+        )}
+      </div>
+    );
+  }
   return (
     <>
       {tracks.chapters && (
@@ -76,13 +132,12 @@ export default function PlaceField({
               {chapterError}
             </p>
           )}
-          {swap}
         </div>
       )}
       {tracks.volumes && (
         <div className={classes.field}>
           <label htmlFor="readVolume" className={classes.label}>
-            Volume you've read up to{note}
+            Current volume{note}
           </label>
           <input
             className={classes.input}
@@ -97,7 +152,6 @@ export default function PlaceField({
             placeholder="e.g. 12"
             onChange={(e) => onVolume(e.target.value)}
           />
-          {swap}
         </div>
       )}
     </>

@@ -6,6 +6,8 @@ import type { ShelfSort } from "./shelf";
 
 // ---------- the shelf ----------
 
+import type { OwnedBook } from "./books";
+
 export type Manga = {
   id: number;
   userId: number | null;
@@ -38,6 +40,8 @@ export type Manga = {
   hiddenVolumes?: number[];
   // the latest chapter last found for this series
   latestChapter?: number | null;
+  // its books, on a series just deleted: the undo puts them back
+  books?: OwnedBook[];
 };
 
 // when the next chapter or volume is due. Dates are ISO, null if there isn't one

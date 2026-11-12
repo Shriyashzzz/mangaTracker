@@ -148,6 +148,14 @@ const restorable = (m: Manga) => ({
   seenJapanVolume: m.seenJapanVolume,
   hiddenVolumes: m.hiddenVolumes,
   latestChapter: m.latestChapter,
+  // the books behind its volumes, without their old ids
+  books: m.books?.map(({ isbn13, edition, number, title, volumes }) => ({
+    isbn13,
+    edition,
+    number,
+    title,
+    volumes,
+  })),
 });
 
 export const useShelf = create<ShelfState>()((set, get) => ({

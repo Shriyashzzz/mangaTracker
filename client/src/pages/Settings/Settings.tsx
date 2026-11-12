@@ -253,13 +253,13 @@ function ShelfSettingsTab() {
         ))}
       </fieldset>
       <fieldset className={styles.group}>
-        <legend className={styles.legend}>Keep your place by</legend>
+        <legend className={styles.legend}>Track your reading by</legend>
         {(
           [
-            ["series", "Chapter or volume, chosen for each series"],
-            ["chapters", "Chapters, for every series"],
-            ["volumes", "Volumes, for every series"],
-            ["both", "Both: the chapter and the volume, side by side"],
+            ["series", "Chapter or volume. You pick on each series"],
+            ["chapters", "Chapters only"],
+            ["volumes", "Volumes only"],
+            ["both", "Chapters and volumes together"],
           ] as const
         ).map(([value, label]) => (
           <label key={value} className={styles.row}>

@@ -97,7 +97,7 @@ export const formStyles = {
   moreBody: "flex flex-col gap-5 px-3.5 pt-4 pb-5",
   chapterField: "flex min-w-0 flex-col gap-[0.35rem]",
   statusRow:
-    "grid grid-cols-[minmax(0,1fr)_12rem] items-start gap-5 upto-760:grid-cols-1",
+    "grid grid-cols-[minmax(0,1fr)_15rem] items-end gap-5 upto-760:grid-cols-1",
   statusAlone: "grid",
   addActions:
     "flex items-center justify-end gap-4 upto-480:flex-col-reverse upto-480:items-stretch",
@@ -109,14 +109,20 @@ export const formStyles = {
   counter: "font-mono text-[0.75rem] text-muted",
   // chapter, volumes and genre side by side; stacked on small phones so
   // long genres fit
-  row: "grid auto-cols-[minmax(0,1fr)] grid-flow-col gap-5 upto-480:grid-flow-row",
+  row: "grid auto-cols-[minmax(0,1fr)] grid-flow-col items-end gap-5 upto-480:grid-flow-row",
 
   field: "flex min-w-0 flex-col gap-[0.35rem]",
   label,
   fieldLabel: label,
   optional: "text-[0.82rem] font-normal text-muted",
-  // "Count volumes instead": swaps what the place box counts
-  swap: "tap self-start text-[0.85rem] font-medium text-ink-soft underline decoration-line-soft underline-offset-3 hover:text-ink hover:decoration-current",
+  // "You're on [Chapter|Volume]": the label with a small switch for what the
+  // box counts. The radios are hidden; the checked one's label is inked in,
+  // as the status tickets are
+  unitRow: "flex flex-wrap items-center justify-between gap-x-3 gap-y-1",
+  unitSwitch:
+    "inline-flex overflow-hidden rounded-[2px] border-[1.5px] border-line [&>input]:pointer-events-none [&>input]:absolute [&>input]:opacity-0",
+  unitLabel:
+    "flex h-8 cursor-pointer items-center px-3 text-[0.82rem] font-medium text-ink-soft transition-[color,background-color] duration-120 ease-[ease] hover:text-ink [input:checked+&]:bg-ink [input:checked+&]:text-paper [input:focus-visible+&]:outline-2 [input:focus-visible+&]:-outline-offset-2 [input:focus-visible+&]:outline-accent [input:focus-visible+&]:outline-dashed",
 
   input,
   textarea: `${input} h-auto min-h-16 flex-1 resize-y px-[0.85rem] py-[0.7rem] leading-[1.6]`,

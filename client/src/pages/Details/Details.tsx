@@ -17,6 +17,7 @@ import { tracksOf } from "../../lib/reading";
 import { useShelf } from "../../store/shelf";
 import TwiceNote from "./TwiceNote";
 import YourBooks from "./YourBooks";
+import { getBooks } from "../../lib/booksApi";
 import NotesField from "./NotesField";
 import BuyStrip from "./BuyStrip";
 import ReleaseBar from "./ReleaseBar";
@@ -159,10 +160,12 @@ export default function Details() {
       const latest = current.ok
         ? ((await current.json()) as { manga?: Manga }).manga
         : null;
+      // and its books, which go with it
+      const books = await getBooks(Number(id)).catch(() => []);
       const res = await apiFetch(`/api/manga/${id}`, { method: "DELETE" });
       if (!res.ok) throw new Error(`Failed deleting manga`);
       useShelf.getState().remove(Number(id));
-      useShelf.getState().setLastDeleted(latest ?? mangaData);
+      useShelf.getState().setLastDeleted({ ...(latest ?? mangaData!), books });
       navigate("/shelf", { viewTransition: true });
     } catch (e) {
       console.error(e);

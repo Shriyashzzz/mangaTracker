@@ -63,11 +63,26 @@ export type RestoredManga = MangaInput & {
   seenJapanVolume: number | null;
   hiddenVolumes: number[];
   latestChapter: number | null;
+  // the books behind its volumes, as they were (models/bookQueries.ts)
+  books?: {
+    isbn13?: string | null;
+    edition: string;
+    number?: number | null;
+    title?: string | null;
+    volumes: number[];
+  }[];
 };
 
-export async function restoreManga(userId: number, input: RestoredManga) {
+export async function restoreManga(
+  userId: number,
+  { books, ...input }: RestoredManga,
+) {
   const { id } = await prisma.manga.create({
-    data: { ...input, userId },
+    data: {
+      ...input,
+      userId,
+      ...(books?.length ? { books: { create: books } } : {}),
+    },
     select: { id: true },
   });
   return id;
@@ -244,7 +259,8 @@ export const deleteManga = (id: number) =>
 export const deleteManyManga = async (userId: number, ids: number[]) => {
   const where = { userId, id: { in: ids } };
   const [rows] = await prisma.$transaction([
-    prisma.manga.findMany({ where }),
+    // with their books: the undo puts those back too
+    prisma.manga.findMany({ where, include: { books: true } }),
     prisma.manga.deleteMany({ where }),
   ]);
   return rows;

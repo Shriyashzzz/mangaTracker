@@ -133,6 +133,26 @@ test("owned volumes: a run from 1, or the exact list with gaps", async () => {
   await agent.put(`/api/manga/${id}/owned`).send({ ownedList: [] }).expect(200);
   expect((await agent.get(`/api/manga/${id}/books`)).body.books).toEqual([]);
   expect((await agent.get("/api/manga/books")).body.books).toEqual([]);
+
+  // deleted with its books, and the undo brings both back
+  await agent
+    .put(`/api/manga/${id}/owned`)
+    .send({ volumesOwned: 3, ownedList: [1, 2, 3] })
+    .expect(200);
+  await agent.post(`/api/manga/${id}/books`).send({ books: [deluxe] });
+  const gone = await agent
+    .post("/api/manga/delete-many")
+    .send({ ids: [id] })
+    .expect(200);
+  expect(gone.body.manga[0].books).toMatchObject([deluxe]);
+  const { id: _old, userId: _user, books: had, ...rest } = gone.body.manga[0];
+  await agent
+    .post("/api/manga/restore-many")
+    .send({ manga: [{ ...rest, books: had.map(() => deluxe) }] })
+    .expect(200);
+  expect((await agent.get("/api/manga/books")).body.books).toMatchObject([
+    deluxe,
+  ]);
 });
 
 // 403, not 404: the details page says "not on your shelf" for both

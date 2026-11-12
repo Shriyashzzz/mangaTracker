@@ -164,7 +164,11 @@ export const restoreMany = [
         inputs,
         await mangaQueries.getMangaShelfNames(userId),
       );
-      if (fresh.length) await mangaQueries.addManyManga(userId, fresh);
+      // one with books goes in on its own: they're made along with it
+      const plain = fresh.filter((m) => !m.books?.length);
+      if (plain.length) await mangaQueries.addManyManga(userId, plain);
+      for (const withBooks of fresh.filter((m) => m.books?.length))
+        await mangaQueries.restoreManga(userId, withBooks);
       res.json({
         restored: fresh.length,
         alreadyThere: inputs.length - fresh.length,

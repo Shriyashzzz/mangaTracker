@@ -9,6 +9,7 @@ import mangaQueries, {
 } from "../../models/mangaQueries.js";
 import { onShelfAs } from "../../util/shelf/titleKey.js";
 import { ownedVolumes } from "../../util/shelf/ownedList.js";
+import { bookFields } from "../../util/shelf/ownedBooks.js";
 
 // the exact volumes owned, as numbers like 4 or 10.5
 export const ownedListFields = (field: string) => [
@@ -147,6 +148,8 @@ export const restoreFields = [
     .optional({ values: "null" })
     .isFloat({ min: 0 })
     .toFloat(),
+  // the books it had
+  ...bookFields("books", 300),
 ];
 
 export const restoredInput = (req: Request): RestoredManga => {
@@ -163,5 +166,6 @@ export const restoredInput = (req: Request): RestoredManga => {
     seenJapanVolume: d.seenJapanVolume ?? null,
     hiddenVolumes: d.hiddenVolumes ?? [],
     latestChapter: d.latestChapter ?? null,
+    ...(d.books?.length ? { books: d.books } : {}),
   };
 };
