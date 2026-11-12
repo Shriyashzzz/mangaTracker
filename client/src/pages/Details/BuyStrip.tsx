@@ -260,7 +260,7 @@ export default function BuyStrip({
                   <span>
                     {finish.left} vol{finish.left === 1 ? "" : "s"}
                   </span>
-                  {finish.priced < finish.left && (
+                  {finish.enough && finish.priced < finish.left && (
                     <em className={styles.buyAside}>(est)</em>
                   )}
                 </span>

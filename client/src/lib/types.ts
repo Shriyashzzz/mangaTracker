@@ -160,8 +160,6 @@ export type Prefs = {
   // "system" follows the device
   theme?: Theme | "system";
   hideEbooks?: "yes" | "no";
-  // box sets on volume pages; shown unless "yes"
-  hideBoxSets?: "yes" | "no";
   // what the shelf opens on
   shelfTab?: ShelfTab;
   // "" is last bookmarked (SORT_OPTIONS in lib/shelf.ts)
@@ -232,6 +230,9 @@ export type SeriesVolume = {
   volume: number;
   coverUrl: string;
   knownPriceCents: number | null;
+  // what it has usually sold for new, from every price recorded: for
+  // estimates, when no store has it right now (lib/finishCost.ts)
+  recordedCents?: number | null;
   // sold inside a book with others: its ISBN is that book's
   inBook?: InBook;
   // the publisher's release date ("2027-03-30" or "2014-05"), when known

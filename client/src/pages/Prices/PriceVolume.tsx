@@ -1,7 +1,7 @@
 import CanadaPrices from "./canada/CanadaPrices";
 import CountrySwitch from "./canada/CountrySwitch";
-import { useBoxSetsShown, useCountry } from "../../lib/prefs";
-import BoxSetToggle from "./BoxSetToggle";
+import { useCountry } from "../../lib/prefs";
+import BoxSetNote from "./BoxSetNote";
 import { useEffect, useState } from "react";
 import DealsStrip from "../../components/deals/DealsStrip";
 import { noteStoreClick } from "../../lib/support";
@@ -35,7 +35,7 @@ import { readLocal } from "../../lib/prefs";
 import { usePageMeta } from "../../lib/seo";
 import { volumeMeta } from "./pageMeta";
 import ShelfAction from "./ShelfAction";
-import { isCollection, type VolumePrices } from "../../lib/types";
+import { type VolumePrices } from "../../lib/types";
 
 // the Impact script (index.html) that turns Walmart links into affiliate links
 declare global {
@@ -117,7 +117,6 @@ export default function PriceVolume() {
   // which volume is being checked live right now, after its stored prices
   const [refreshing, setRefreshing] = useState<string | null>(null);
   // box sets holding this volume: listed unless turned off
-  const boxSetsShown = useBoxSetsShown();
 
   // the stored prices first, straight away: they need no Turnstile, so the
   // page (and what search engines see) never waits on it. Then a live check,
@@ -222,11 +221,11 @@ export default function PriceVolume() {
   const hiddenEbooks = hideEbooks
     ? allOffers.filter((o) => o.format === "ebook").length
     : 0;
-  const boxSets = allOffers.filter(isCollection).length;
+  // a box set is another buy: off this list, one line under it points to
+  // the series page, which has them (an omnibus holding this volume stays:
+  // it's another way to buy this very volume)
   const offers = allOffers.filter(
-    (o) =>
-      !(hideEbooks && o.format === "ebook") &&
-      !(!boxSetsShown && isCollection(o)),
+    (o) => !(hideEbooks && o.format === "ebook") && o.format !== "set",
   );
   const kinds = (allHistory?.kinds ?? []).filter(
     (k) => !hideEbooks || k.kind !== "ebook",
@@ -398,6 +397,7 @@ export default function PriceVolume() {
               isbn={book.isbn13}
               volume={volume}
               preorder={preorder ? releaseDay(preorder) : null}
+              seriesLink={seriesLink}
             />
           )}
           {!inCanada && (
@@ -479,7 +479,7 @@ export default function PriceVolume() {
                 </p>
               )}
 
-              <BoxSetToggle count={boxSets} />
+              <BoxSetNote offers={allOffers} to={seriesLink} />
 
               {hiddenEbooks > 0 && (
                 <p className={styles.checked}>

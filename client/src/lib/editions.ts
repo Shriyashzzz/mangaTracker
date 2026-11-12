@@ -136,3 +136,7 @@ export const lineFor = (lines: EditionLine[], asked: string | null) =>
     : (lines.find((l) => l.key === asked) ??
       lines.find((l) => l.kind === (KIND_OF[asked] ?? "omnibus")) ??
       null);
+
+// the line worth the spot: a deluxe one before an omnibus
+export const headlineLine = (lines: EditionLine[]) =>
+  lines.find((l) => l.kind === "deluxe") ?? lines[0] ?? null;

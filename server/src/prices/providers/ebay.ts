@@ -470,6 +470,29 @@ export async function searchEbay(
   ]);
 }
 
+// a series' box sets, looked for by its name alone: one search ("Naruto box
+// set"), read against a few of its volumes (first, middle, last) so a set
+// holding any part of the run is found, by the same rules a volume's own
+// check uses. Counts as one title search against the day's allowance
+export async function searchEbaySets(
+  volumeTitles: string[],
+  signal: AbortSignal,
+): Promise<Offer[]> {
+  if (!volumeTitles.length) return [];
+  const items = await browse(
+    titleQueries(volumeTitles[0]!).sets,
+    "US",
+    signal,
+    BOOKS_CATEGORY,
+  );
+  const byListing = new Map<string, Offer>();
+  for (const title of volumeTitles)
+    for (const offer of browseOffers(items, title, "US", "title"))
+      if (offer.format === "set")
+        byListing.set(offer.url ?? `${offer.priceCents}`, offer);
+  return [...byListing.values()];
+}
+
 const ebay: Provider = {
   id: "ebay",
   store: "eBay",

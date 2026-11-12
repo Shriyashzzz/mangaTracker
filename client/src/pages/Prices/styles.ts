@@ -101,7 +101,7 @@ export const pricesStyles = {
     "tap inline-flex min-h-9 items-center gap-2 rounded-[2px] border-[1.5px] border-line-soft bg-paper px-3 text-[0.88rem] font-medium text-ink-soft transition-[color,border-color,background-color] duration-120 ease-[ease] hover:border-line hover:text-ink aria-pressed:border-line aria-pressed:bg-ink aria-pressed:text-paper",
   editionTabCount: "font-mono text-[0.72rem] opacity-70",
   editionList:
-    "grid grid-cols-[repeat(auto-fill,minmax(17rem,1fr))] gap-x-8 border-t-[1.5px] border-line",
+    "mb-4 grid grid-cols-[repeat(auto-fill,minmax(17rem,1fr))] gap-x-8 border-t-[1.5px] border-line",
   editionRow:
     "grid grid-cols-[minmax(0,1fr)_auto] items-baseline gap-x-3 border-b border-dashed border-line-soft py-2.5",
   editionName: "font-semibold text-ink",
@@ -201,9 +201,10 @@ export const pricesStyles = {
   // right even with no "checked" text beside it
   checkedRow:
     "flex items-center gap-3 upto-720:w-full upto-720:justify-between [&>:last-child]:ml-auto",
-  // "Show box sets and omnibuses", under the price list
-  boxSetToggle:
-    "mt-2 inline-flex cursor-pointer items-center gap-2 font-mono text-[0.75rem] text-muted [&_input]:accent-accent",
+  // "Also in a box set, from $133.90 →", under the price list
+  boxSetNote: "mt-2 text-[0.88rem] text-ink-soft",
+  boxSetNoteLink:
+    "tap font-mono font-medium text-accent underline decoration-transparent underline-offset-3 hover:decoration-current",
   // the price list
   offers:
     "border-2 border-line bg-card [&>li+li]:border-t [&>li+li]:border-dashed [&>li+li]:border-line-soft",
@@ -287,7 +288,6 @@ export const pricesStyles = {
   siblings: "mt-10 border-t-[1.5px] border-dashed border-line-soft pt-6",
 
   // ---------- shared by series and volume pages ----------
-  jump: "mb-4 flex flex-wrap items-center gap-2 text-[0.9rem] font-medium [&_input]:h-11 [&_input]:w-20 [&_input]:rounded-[2px] [&_input]:border-2 [&_input]:border-line [&_input]:bg-card [&_input]:px-2 [&_input]:text-[1rem]",
   backToNew:
     "tap mb-3 inline-flex items-center gap-1 font-medium underline decoration-accent decoration-2 underline-offset-3 [&_svg]:size-4",
   crumbs:
@@ -306,8 +306,60 @@ export const pricesStyles = {
   clamped: "line-clamp-3",
 
   // ---------- series page ----------
+  // cover, words, and (when the series has any) its box sets at the right;
+  // under the two on anything narrower than a laptop
   seriesHead:
-    "grid grid-cols-[auto_minmax(0,1fr)] items-start gap-[clamp(1.25rem,4vw,2.5rem)]",
+    "grid grid-cols-[auto_minmax(0,1fr)_auto] items-start gap-[clamp(1.25rem,4vw,2.5rem)] upto-980:grid-cols-[auto_minmax(0,1fr)]",
+  // box sets: an inked box like the shelf's "Buy it"; a plain row of tickets
+  // to swipe on narrower screens
+  setsBox:
+    "w-[15.5rem] min-w-0 border-2 border-line bg-card p-3 shadow-ink-lg upto-980:col-span-full upto-980:w-auto upto-980:border-0 upto-980:border-t-[1.5px] upto-980:border-dashed upto-980:border-line-soft upto-980:bg-transparent upto-980:px-0 upto-980:pt-4 upto-980:pb-0 upto-980:shadow-none",
+  setsTitle:
+    "mb-[0.6rem] font-brand text-[1.4rem] leading-none font-normal tracking-[1px] uppercase",
+  setsList:
+    "flex flex-col gap-2 upto-980:flex-row upto-980:overflow-x-auto upto-980:pb-1 upto-980:[scrollbar-width:none]",
+  // past the first two: in the row on a phone, behind "more" in the box
+  setLater: "hidden upto-980:block",
+  setTicket:
+    "grid min-h-11 grid-cols-[minmax(0,1fr)_auto] gap-x-2 rounded-ink border-[1.5px] border-dashed border-line bg-paper px-3 py-[0.45rem] text-[0.92rem] font-semibold transition-[background-color,border-color] duration-120 ease-[ease] [a&]:hover:border-accent [a&]:hover:bg-accent-wash upto-980:w-[11rem] upto-980:shrink-0",
+  setTicketFirst:
+    "grid min-h-11 grid-cols-[minmax(0,1fr)_auto] gap-x-2 rounded-ink border-2 border-accent bg-accent-wash px-3 py-[0.45rem] text-[0.92rem] font-semibold shadow-[3px_3px_0_var(--hard-shadow)] transition-[translate,box-shadow] duration-120 ease-[ease] [a&]:hover:-translate-y-px [a&]:hover:shadow-[4px_4px_0_var(--hard-shadow)] upto-980:w-[11rem] upto-980:shrink-0",
+  setKind:
+    "col-span-full font-mono text-[0.72rem] font-normal tracking-[0.06em] whitespace-nowrap text-muted uppercase",
+  setKindFirst:
+    "col-span-full font-mono text-[0.72rem] font-medium tracking-[0.06em] whitespace-nowrap text-accent uppercase",
+  setStore: "min-w-0 truncate",
+  setAside: "font-normal text-ink-soft",
+  setPrice: "text-right font-mono font-medium text-accent",
+  setsMore: "mt-2",
+  setsMoreSummary:
+    "tap cursor-pointer py-1 text-right text-[0.85rem] font-medium text-ink-soft underline decoration-line-soft underline-offset-3 marker:content-none hover:text-accent hover:decoration-accent [&::-webkit-details-marker]:hidden upto-980:text-left",
+  // the count is of what the box holds back: a phone's row shows them all
+  setsMoreCount: "upto-980:hidden",
+  setsRest: "mt-2 flex flex-col gap-2 upto-980:hidden",
+  setStores:
+    "mt-2 flex flex-wrap gap-1.5 upto-980:grid upto-980:grid-cols-4 upto-560:grid-cols-2 [&_a]:tap [&_a]:inline-block upto-980:[&_a]:block upto-980:[&_a]:text-center [&_a]:rounded-[2px] [&_a]:border-[1.5px] [&_a]:border-line [&_a]:bg-paper [&_a]:px-[0.6rem] [&_a]:py-[0.25rem] [&_a]:text-[0.82rem] [&_a]:font-medium [&_a]:transition-[background-color,color] [&_a]:duration-120 [&_a]:ease-[ease] [&_a]:hover:bg-ink [&_a]:hover:text-paper",
+  // the edition box's one ticket: the row's whole width on a phone
+  editionsBoxTicket:
+    "grid min-h-11 grid-cols-[minmax(0,1fr)_auto] gap-x-2 rounded-ink border-2 border-accent bg-accent-wash px-3 py-[0.45rem] text-[0.92rem] font-semibold shadow-[3px_3px_0_var(--hard-shadow)] transition-[translate,box-shadow] duration-120 ease-[ease] [a&]:hover:-translate-y-px [a&]:hover:shadow-[4px_4px_0_var(--hard-shadow)]",
+  // its second book: the plain ticket, sharing the row on a phone
+  editionsBoxTicketPlain:
+    "grid min-h-11 grid-cols-[minmax(0,1fr)_auto] gap-x-2 rounded-ink border-[1.5px] border-dashed border-line bg-paper px-3 py-[0.45rem] text-[0.92rem] font-semibold transition-[background-color,border-color] duration-120 ease-[ease] [a&]:hover:border-accent [a&]:hover:bg-accent-wash",
+  // two books: stacked in the box, side by side below a laptop
+  editionsBoxList: "flex flex-col gap-2 upto-980:flex-row upto-520:flex-col",
+  // "vols. 7–9" under a book's name
+  editionsBoxInside:
+    "col-span-full font-mono text-[0.78rem] font-normal text-ink-soft",
+  // under the edition's first book: how many there are, and the way down
+  editionsBoxNote: "mt-2 text-[0.82rem] leading-snug text-ink-soft",
+  editionsBoxAll:
+    "tap font-medium text-ink underline decoration-line-soft underline-offset-3 hover:text-accent hover:decoration-accent",
+  // "Looking for a box set? Try [stores]": a quiet row at the foot of the page
+  setSearch: "mt-10",
+  setSearchTitle: "mb-2 font-body text-[0.92rem] font-normal text-ink-soft",
+  setSearchStores:
+    "flex flex-wrap gap-2 [&_a]:tap [&_a]:inline-block [&_a]:rounded-[2px] [&_a]:border-[1.5px] [&_a]:border-line [&_a]:bg-card [&_a]:px-[0.8rem] [&_a]:py-[0.35rem] [&_a]:text-[0.88rem] [&_a]:font-medium [&_a]:transition-[background-color,color] [&_a]:duration-120 [&_a]:ease-[ease] [&_a]:hover:bg-ink [&_a]:hover:text-paper",
+  setDisclosure: "mt-2 text-[0.72rem] leading-snug text-muted italic",
   seriesCover:
     "aspect-2/3 w-[clamp(110px,16vw,180px)] border-[1.5px] border-line object-cover shadow-[6px_6px_0_var(--hard-shadow)] upto-720:w-24",
   seriesCopy: "flex min-w-0 flex-col gap-[0.9rem]",

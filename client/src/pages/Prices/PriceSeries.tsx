@@ -1,7 +1,10 @@
+import { getJson } from "../../lib/api";
+import { humanQuery } from "../../lib/turnstile";
+import type { BoxSet } from "../../lib/types";
 import { notOutYet, onSale } from "../../lib/releaseDate";
 import DealsStrip from "../../components/deals/DealsStrip";
 import ToReadButton from "../../components/toRead/ToReadButton";
-import { useEffect, useState, type FormEvent } from "react";
+import { useEffect, useState } from "react";
 import { NavLink, useParams, useSearchParams } from "react-router";
 import type { Series, SeriesVolume } from "../../lib/types";
 import {
@@ -17,7 +20,10 @@ import {
   seriesCost,
   stillToGet,
 } from "../../lib/finishCost";
-import BoxSets from "./BoxSets";
+import BoxSets, { BoxSetSearch } from "./BoxSets";
+import { shownSets } from "./boxSetRules";
+import EditionsBox from "./EditionsBox";
+import { headlineLine, type EditionLine } from "../../lib/editions";
 import SeriesCostBox from "./SeriesCostBox";
 import { useFromShelf } from "../../lib/fromShelf";
 import { findOnShelf } from "../../lib/shelf";
@@ -97,6 +103,37 @@ export default function PriceSeries() {
     on: boolean;
     page: number;
   } | null>(null);
+  // box sets a fresh look at the free sources found (eBay, Books-A-Million):
+  // asked for once the page is up, and only looked for again when the saved
+  // answer is days old. Null back means nothing new
+  const [scanned, setScanned] = useState<{ key: string; sets: BoxSet[] }>({
+    key: "",
+    sets: [],
+  });
+  const loaded = state.key === key && Boolean(state.data);
+  useEffect(() => {
+    if (!loaded) return;
+    const controller = new AbortController();
+    humanQuery("&", controller.signal)
+      .then((human) =>
+        getJson<{ boxSets: BoxSet[] | null }>(
+          `/api/prices/series-sets?${new URLSearchParams({ name })}${human}`,
+          controller.signal,
+        ),
+      )
+      .then(({ boxSets }) => {
+        if (boxSets) setScanned({ key, sets: boxSets });
+      })
+      .catch(() => {});
+    return () => controller.abort();
+    // key already includes name
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [key, loaded]);
+  // the series' other editions, once OtherEditions has them
+  const [editions, setEditions] = useState<{
+    name: string;
+    lines: EditionLine[];
+  }>({ name: "", lines: [] });
   const toGetOnly =
     filter?.name === name ? filter.on : params.get("toget") === "1";
   const toGetPageIndex = filter?.name === name ? filter.page : 0;
@@ -190,6 +227,11 @@ export default function PriceSeries() {
   const rangeStart = pageIndex * PAGE_SIZE + 1;
   const rangeEnd = rangeStart + PAGE_SIZE - 1;
   const mine = shelf.name === name ? shelf.manga : null;
+  // what goes beside the title: box sets when one is priced, else an edition
+  const editionLines = editions.name === name ? editions.lines : [];
+  const boxSets = scanned.key === key ? scanned.sets : (data.boxSets ?? []);
+  const hasSets = shownSets(boxSets, editionLines.length > 0).length > 0;
+  const headline = headlineLine(editionLines);
   const isTheirs = (n: number) =>
     Boolean(mine) && n >= 1 && Number.isInteger(n) && owns(mine!, n);
   // the first whole volume out after the furthest they own (as Buy it says)
@@ -235,27 +277,6 @@ export default function PriceSeries() {
           (v.volume >= rangeStart || (pageIndex === 0 && v.volume < 1)) &&
           v.volume <= rangeEnd,
       );
-  // to the block holding that volume, then to the volume itself
-  const jumpToVolume = (e: FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    const number = Number(new FormData(e.currentTarget).get("volume"));
-    if (!Number.isFinite(number) || number < 1) return;
-    // filtered: to its page of "Not on your shelf"; one they own isn't
-    // there, so the filter goes off and it's found in the full list
-    const inToGet = toGetShown
-      ? toGet.findIndex((v) => v.volume === number)
-      : -1;
-    if (inToGet >= 0) setToGetPageIndex(Math.floor(inToGet / PAGE_SIZE));
-    else {
-      if (toGetShown) setToGetOnly(false);
-      setPage({ name, index: Math.floor((number - 1) / PAGE_SIZE) });
-    }
-    requestAnimationFrame(() =>
-      document
-        .getElementById(`vol-${number}`)
-        ?.scrollIntoView({ behavior: "smooth", block: "center" }),
-    );
-  };
   const changePage = (index: number) => {
     setPage({ name, index });
     document
@@ -315,6 +336,20 @@ export default function PriceSeries() {
             genres={info?.genres}
           />
         </div>
+        {/* beside the title: a whole run in one buy when a box set is
+            priced, else the series' deluxe (or omnibus) edition; neither,
+            nothing */}
+        {hasSets ? (
+          <BoxSets
+            sets={boxSets}
+            links={data.boxSetLinks ?? []}
+            editionsListed={editionLines.length > 0}
+          />
+        ) : (
+          headline && (
+            <EditionsBox line={headline} owned={mine ? ownedOf(mine) : []} />
+          )
+        )}
       </header>
 
       {cost && (
@@ -352,7 +387,9 @@ export default function PriceSeries() {
                 Not on your shelf ({toGet.length})
               </button>
             )}
-            {finish && (
+            {/* only once most of the series is priced: a few volumes'
+                prices aren't the run's */}
+            {finish?.enough && (
               <span
                 className={styles.finishCost}
                 title="At the last checked prices. A volume gets a price once someone opens its page"
@@ -397,22 +434,6 @@ export default function PriceSeries() {
             name or ISBN to price it.
           </p>
         )}
-        {volumes.length > 12 && (
-          <form className={styles.jump} onSubmit={jumpToVolume}>
-            <label htmlFor="jump-volume">Jump to volume</label>
-            <input
-              id="jump-volume"
-              name="volume"
-              type="number"
-              inputMode="numeric"
-              min={1}
-              max={lastNumber}
-            />
-            <button type="submit" className="btn btn-secondary">
-              Go
-            </button>
-          </form>
-        )}
         {volumes.length ? (
           <ul className={styles.grid}>
             {/* no series cover behind a volume missing its own: AniList's is
@@ -443,7 +464,7 @@ export default function PriceSeries() {
                 </li>
               ) : (
                 // one book holding several volumes: one stacked card, one
-                // price page. Each volume keeps its place for Jump to
+                // price page. Each volume keeps its place for a link to
                 <li key={card[0]!.volume} id={`vol-${card[0]!.volume}`}>
                   {card.slice(1).map((v) => (
                     <span key={v.volume} id={`vol-${v.volume}`} />
@@ -510,9 +531,10 @@ export default function PriceSeries() {
         name={name}
         asked={params.get("edition")}
         owned={mine ? ownedOf(mine) : []}
+        onLines={(lines) => setEditions({ name, lines })}
       />
-
-      <BoxSets sets={data.boxSets ?? []} links={data.boxSetLinks ?? []} />
+      {/* no set priced: where to look for one */}
+      {!hasSets && <BoxSetSearch links={data.boxSetLinks ?? []} />}
     </div>
   );
 }
