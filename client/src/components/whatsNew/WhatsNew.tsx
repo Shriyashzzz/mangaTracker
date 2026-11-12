@@ -11,16 +11,16 @@ import TakeTourButton from "../tour/TakeTourButton";
 // the newest big ones only; the rest are on /updates
 const ITEMS = [
   {
-    name: "Upcoming Releases",
-    body: "What's coming for your shelf, and the dates saved to your calendar.",
+    name: "Read by volume",
+    body: "Keep your place by chapter, by volume, or both.",
   },
   {
-    name: "A New tab that keeps up",
-    body: "New volumes sorted by how far behind you are, open straight away.",
+    name: "Deluxe and omnibus editions",
+    body: "Pick the edition you collect and see the next book to buy.",
   },
   {
-    name: "What your shelf is worth",
-    body: "Your collection's value, and what's on sale right now.",
+    name: "What you've spent",
+    body: "Note what each book cost and see the total for your shelf.",
   },
 ];
 

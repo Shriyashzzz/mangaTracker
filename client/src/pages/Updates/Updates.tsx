@@ -9,6 +9,26 @@ import { updatesStyles as styles } from "./styles";
 // the big features only, a line each. Add new ones here when they ship
 const UPDATES = [
   {
+    name: "Read by volume",
+    body: "Keep your place by chapter, by volume, or both. Switch it for one series on its page, or for your whole shelf in Settings.",
+  },
+  {
+    name: "Deluxe and omnibus editions",
+    body: "Tell a series which edition you collect, and the next book to buy and the cost to finish follow that edition instead of single volumes.",
+  },
+  {
+    name: "What you've spent",
+    body: "Note what you paid for each book and the day you bought it, and see what you've spent on a series and on your whole shelf. Only you can see it.",
+  },
+  {
+    name: "Box sets up front",
+    body: "A series' price page shows its box sets first, with its deluxe and omnibus books listed underneath.",
+  },
+  {
+    name: "Questions, answered",
+    body: "A short FAQ on how the shelf, prices and imports work, linked at the bottom of every page.",
+  },
+  {
     name: "Upcoming Releases",
     body: "Every volume coming out for your shelf, circled on a calendar. Save the dates to Google, Apple or Outlook, one at a time or a whole month at once.",
   },
