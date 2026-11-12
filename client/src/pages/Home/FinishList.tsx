@@ -1,8 +1,7 @@
 // Under an opened series on the Volumes tab: what finishing it comes to, the
-// missing volumes we know a price for (cheapest new copy, and where), and the
-// rest in one line, with the series' page to check them on. Prices are the
-// ones already saved: a volume is priced once someone opens its page.
-import { useState } from "react";
+// first couple of missing volumes we know a price for (cheapest new copy, and
+// where), and the series' page for the rest. Prices are the ones already
+// saved: a volume is priced once someone opens its page.
 import { NavLink } from "react-router";
 import {
   money,
@@ -15,8 +14,8 @@ import { seriesPath, volumePath } from "../../lib/prices";
 import { noteStoreClick } from "../../lib/support";
 import { volumesStyles as styles } from "./volumesStyles";
 
-// a long list of priced gaps starts folded
-const FIRST_SHOWN = 8;
+// the next ones to buy; the series page has them all
+const FIRST_SHOWN = 2;
 
 // our affiliate tags, as the price pages mark them: paid links
 const isAffiliate = (url: string) =>
@@ -30,10 +29,12 @@ export default function FinishList({
   // the series as the price pages know it (a light novel's own name)
   series: string;
 }) {
-  const [all, setAll] = useState(false);
   const priced = row.missing.filter((m) => m.cheapest);
   const unpriced = row.missing.filter((m) => !m.cheapest);
-  const shown = all ? priced : priced.slice(0, FIRST_SHOWN);
+  const shown = priced.slice(0, FIRST_SHOWN);
+  const rest = row.missing.length - shown.length;
+  // a deluxe or omnibus line is counted in books
+  const unit = row.edition ? "book" : "volume";
   const total = totalText(
     row.cents,
     row.priced,
@@ -60,51 +61,40 @@ export default function FinishList({
             : "None priced yet: an estimate from the usual price."}
         </p>
       )}
-      {shown.length > 0 && (
-        <ul className={styles.finishList}>
-          {shown.map((m) => (
-            <li key={`${m.volume}-${m.isbn13}`} className={styles.finishRow}>
-              <span
-                className={styles.finishVol}
-                title={
-                  m.inside
-                    ? `${m.inside.length === 1 ? "vol." : "vols."} ${rangesText(m.inside)}`
-                    : undefined
-                }
-              >
-                {m.label ?? `Vol. ${m.volume}`}
-              </span>
-              <Where volume={m} />
-            </li>
-          ))}
-        </ul>
-      )}
-      {priced.length > FIRST_SHOWN && (
-        <button
-          type="button"
-          className={styles.edit}
-          aria-expanded={all}
-          onClick={() => setAll(!all)}
-        >
-          {all ? "Show fewer" : `Show all ${priced.length} priced`}
-        </button>
-      )}
-      {unpriced.length > 0 && (
-        <p className={styles.unpriced}>
-          <span className={styles.unpricedVols}>
-            {row.edition ?? (unpriced.length === 1 ? "Vol." : "Vols.")}{" "}
-            {rangesText(unpriced.map((m) => m.volume))}
-          </span>{" "}
-          · no price yet.{" "}
-          <NavLink
-            to={seriesPath(series)}
-            className={styles.edit}
-            viewTransition
-          >
-            Check them on the series page
-          </NavLink>
-        </p>
-      )}
+      <ul className={styles.finishList}>
+        {shown.map((m) => (
+          <li key={`${m.volume}-${m.isbn13}`} className={styles.finishRow}>
+            <span
+              className={styles.finishVol}
+              title={
+                m.inside
+                  ? `${m.inside.length === 1 ? "vol." : "vols."} ${rangesText(m.inside)}`
+                  : undefined
+              }
+            >
+              {m.label ?? `Vol. ${m.volume}`}
+            </span>
+            <Where volume={m} />
+          </li>
+        ))}
+        {/* the rest, as the list's last row: the series page has every one */}
+        {rest > 0 && (
+          <li className={`${styles.finishRow} ${styles.finishRestRow}`}>
+            <span className={styles.finishRest}>
+              {shown.length > 0 ? `${rest} more` : rest} {unit}
+              {rest === 1 ? "" : "s"}
+            </span>
+            <NavLink
+              to={seriesPath(series)}
+              className={styles.finishMore}
+              aria-label={`Check the series page for ${shown.length > 0 ? "the other " : ""}${rest} ${unit}${rest === 1 ? "" : "s"}`}
+              viewTransition
+            >
+              Check the series page
+            </NavLink>
+          </li>
+        )}
+      </ul>
     </div>
   );
 }

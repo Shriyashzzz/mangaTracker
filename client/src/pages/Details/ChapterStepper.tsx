@@ -125,7 +125,9 @@ export default function ChapterStepper({
           min="0"
           max={MAX_CHAPTER}
           step="1"
-          aria-label={unit === "volume" ? "Volume read up to" : "Current chapter"}
+          aria-label={
+            unit === "volume" ? "Volume read up to" : "Current chapter"
+          }
           value={draft}
           onChange={(e) => change(e.target.value)}
           onBlur={() => {

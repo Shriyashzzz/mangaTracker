@@ -42,6 +42,8 @@ const looseBook = (volume: number): NewBook => ({
   title: null,
   volumes: [volume],
 });
+// how many rows show at first, and how many each press adds
+const STEP = 5;
 const moneyText = (cents: number | null | undefined) =>
   cents == null ? "" : (cents / 100).toFixed(2);
 
@@ -52,6 +54,7 @@ export default function YourBooks({ mangaId, owned, onRemoved }: Props) {
   const [drafts, setDrafts] = useState<Record<string, string>>({});
   const [same, setSame] = useState("");
   const [busy, setBusy] = useState(false);
+  const [shown, setShown] = useState(STEP);
   const ownedKey = owned.join();
 
   useEffect(() => {
@@ -165,7 +168,7 @@ export default function YourBooks({ mangaId, owned, onRemoved }: Props) {
         )}
       </summary>
       <ul className={styles.booksList}>
-        {rows.map((row) => {
+        {rows.slice(0, shown).map((row) => {
           const name = nameOf(row);
           return (
             <li key={row.key} className={styles.bookRow}>
@@ -220,6 +223,18 @@ export default function YourBooks({ mangaId, owned, onRemoved }: Props) {
           );
         })}
       </ul>
+      {rows.length > shown && (
+        <button
+          type="button"
+          className={styles.booksMore}
+          onClick={() => setShown((n) => n + STEP)}
+        >
+          Show {Math.min(STEP, rows.length - shown)} more
+          <span className={styles.booksMoreLeft}>
+            {shown} of {rows.length}
+          </span>
+        </button>
+      )}
       {unpriced.length > 1 && (
         <form
           className={styles.booksSame}
