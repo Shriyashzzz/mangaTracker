@@ -31,6 +31,9 @@ test("the import's edition table and the scanner's agree", async () => {
   for (const [series, title, n] of [
     ["Berserk", "Berserk Deluxe Edition, Vol. 3", 3],
     ["Vinland Saga", "Vinland Saga Book 7", 7],
+    ["Vinland Saga", "Vinland Saga Book 9", 9],
+    ["Vinland Saga", "Vinland Saga Deluxe 2", 2],
+    ["Berserk", "Berserk Deluxe Edition, Vol. 14", 14],
     ["Monster", "Monster: The Perfect Edition, Vol. 9", 9],
     ["Fruits Basket", "Fruits Basket Collector's Edition, Vol. 12", 12],
   ] as const) {

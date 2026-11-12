@@ -12,6 +12,7 @@ import {
   namesOf,
   shelfKey,
   toMangaInput,
+  backupFill,
   type MalEntry,
 } from "../../util/shelf/malEntry.js";
 import { titleKey } from "../../util/shelf/titleKey.js";
@@ -45,6 +46,7 @@ export const importList = [
   body("entries.*.comments").optional().isString(),
   body("entries.*.planned").optional().isBoolean().toBoolean(),
   body("entries.*.lightNovel").optional().isBoolean().toBoolean(),
+  body("entries.*.restore").optional().isBoolean().toBoolean(),
   // only AniList's and Kitsu's own image servers, so an import can't point covers
   // anywhere else
   body("entries.*.cover")
@@ -82,6 +84,11 @@ export const importList = [
         number,
         { volumesOwned: number | null; ownedList: number[] }
       >();
+      // a backup's chapter, status, rating and notes, where the shelf lacks them
+      const fills = new Map<
+        number,
+        NonNullable<ReturnType<typeof backupFill>>
+      >();
       for (const entry of entries) {
         const listing = (entry.malId && listings.get(entry.malId)) || null;
         const names = namesOf(entry, listing);
@@ -110,6 +117,8 @@ export const importList = [
             const all = [...new Set([...before, ...incoming])];
             if (all.length > before.length)
               merges.set(existing.id, ownedVolumes(null, all));
+            const fill = entry.restore ? backupFill(entry, existing) : null;
+            if (fill) fills.set(existing.id, fill);
           }
           continue;
         }
@@ -122,11 +131,13 @@ export const importList = [
       if (inputs.length) await mangaQueries.addManyManga(userId, inputs);
       for (const [id, owned] of merges)
         await mangaQueries.setVolumesOwned(id, owned);
+      for (const [id, fill] of fills)
+        await mangaQueries.fillFromBackup(id, fill);
       res.json({
         added: inputs.length,
         alreadyThere,
         // of those already there, how many got volumes they didn't have
-        volumesAdded: merges.size,
+        volumesAdded: new Set([...merges.keys(), ...fills.keys()]).size,
         noCover,
       });
     });

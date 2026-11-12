@@ -3,6 +3,9 @@
 import { shelfKey, titleKey } from "./titleKey.js";
 import { ownedVolumes } from "./ownedList.js";
 
+const MAX_TITLE = 150;
+const MAX_NOTES = 450;
+
 export type MalEntry = {
   malId?: number;
   title: string;
@@ -21,7 +24,38 @@ export type MalEntry = {
   lightNovel?: boolean;
   // exactly which volumes they own, when a book app's export says
   ownedList?: number[];
+  // from Manga Tracker's own export: a series already on the shelf also
+  // takes what it lacks (backupFill)
+  restore?: boolean;
 };
+
+// what a backup gives a series already on the shelf: only what the shelf
+// lacks or is behind on, so an old backup never undoes newer reading. The
+// further chapter, finished if the backup says so, a rating and notes where
+// there are none
+export function backupFill(
+  entry: MalEntry,
+  had: {
+    bookmark: number | null;
+    status: boolean;
+    planned: boolean;
+    rating: number | null;
+    description: string | null;
+  },
+) {
+  const rating = Math.round(entry.score / 2) || null;
+  const notes = entry.comments?.trim().slice(0, MAX_NOTES) || null;
+  const fill = {
+    // a chapter saved means it's started: off To read
+    ...(entry.chapters > (had.bookmark ?? 0)
+      ? { bookmark: entry.chapters, ...(had.planned ? { planned: false } : {}) }
+      : {}),
+    ...(entry.finished && !had.status ? { status: true, planned: false } : {}),
+    ...(rating && !had.rating ? { rating } : {}),
+    ...(notes && !had.description?.trim() ? { description: notes } : {}),
+  };
+  return Object.keys(fill).length ? fill : null;
+}
 
 export type MalListing = {
   name: string;
@@ -32,9 +66,6 @@ export type MalListing = {
   // a finished series' last chapter, from AniList; null while it's coming out
   latestChapter: number | null;
 };
-
-const MAX_TITLE = 150;
-const MAX_NOTES = 450;
 
 export function toMangaInput(entry: MalEntry, listing: MalListing | null) {
   const name =
