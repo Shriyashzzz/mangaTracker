@@ -107,3 +107,52 @@ test("manga_count follows every add and delete", async () => {
   await agent.delete(`/api/manga/${first}`);
   expect(await countOf("reader")).toBe(2);
 });
+
+test("importing a series already there adds its new volumes, never takes any away", async () => {
+  const agent = await reader("reader");
+  const { id } = (
+    await agent
+      .post("/api/manga")
+      .send({ name: "Zzmerge Series", status: false })
+      .expect(201)
+  ).body;
+  await agent
+    .put(`/api/manga/${id}/owned`)
+    .send({ volumesOwned: 8, ownedList: [1, 2, 3, 4, 5, 8] })
+    .expect(200);
+  const entry = {
+    title: "Zzmerge Series",
+    finished: false,
+    chapters: 0,
+    readVolumes: 0,
+    ownedVolumes: 7,
+    ownedList: [6, 7],
+    score: 0,
+  };
+  const first = await agent
+    .post("/api/manga/import")
+    .send({ entries: [entry] })
+    .expect(200);
+  expect(first.body).toMatchObject({
+    added: 0,
+    alreadyThere: 1,
+    volumesAdded: 1,
+  });
+  // 1-5, 8 and the imported 6-7: a run from 1 to 8
+  expect(await prisma.manga.findUnique({ where: { id } })).toMatchObject({
+    volumesOwned: 8,
+    ownedList: [],
+  });
+  expect(await prisma.manga.count()).toBe(1);
+
+  // the same file again: nothing new, nothing changed
+  const again = await agent
+    .post("/api/manga/import")
+    .send({ entries: [{ ...entry, ownedVolumes: 3, ownedList: [] }] })
+    .expect(200);
+  expect(again.body.volumesAdded).toBe(0);
+  expect(await prisma.manga.findUnique({ where: { id } })).toMatchObject({
+    volumesOwned: 8,
+    ownedList: [],
+  });
+});

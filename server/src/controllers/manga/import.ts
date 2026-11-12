@@ -18,6 +18,13 @@ import { titleKey } from "../../util/shelf/titleKey.js";
 import { oneAtATime } from "../../util/shelf/oneAtATime.js";
 import { knownMatches, tellMatches } from "../../util/shelf/sharedMatches.js";
 import { ownedListFields } from "./fields.js";
+import { ownedVolumes } from "../../util/shelf/ownedList.js";
+
+// every volume a series says it owns: the exact list, or 1 to "up to"
+const ownedSetOf = (volumesOwned: number | null, list: number[]) =>
+  list.length
+    ? list
+    : Array.from({ length: volumesOwned ?? 0 }, (_, i) => i + 1);
 
 // a piece of a MyAnimeList export. The page sends one piece at a time so a long
 // list can show progress and stop safely: anything already here is skipped, so
@@ -58,10 +65,7 @@ export const importList = [
       // cover. Light novels imported before the format was kept are saved as
       // manga, and the cover is what gives them away, so trying again can't add
       // them twice while the manga of the same name can still come in
-      const onShelf = new Map<
-        string,
-        { lightNovel: boolean; image: string | null }[]
-      >();
+      const onShelf = new Map<string, typeof shelf>();
       for (const m of shelf) {
         const key = titleKey(m.name);
         onShelf.set(key, [...(onShelf.get(key) ?? []), m]);
@@ -72,19 +76,41 @@ export const importList = [
       const inputs = [];
       let alreadyThere = 0;
       let noCover = 0;
+      // already there, but the import owns volumes the shelf doesn't: those
+      // are added (never taken away), so a new purchase can be imported
+      const merges = new Map<
+        number,
+        { volumesOwned: number | null; ownedList: number[] }
+      >();
       for (const entry of entries) {
         const listing = (entry.malId && listings.get(entry.malId)) || null;
         const names = namesOf(entry, listing);
         const lightNovel = entryIsLightNovel(entry, listing);
         const cover = listing?.cover ?? entry.cover ?? null;
         const keys = names.map((name) => shelfKey(name, lightNovel));
-        const there = names.some((name) =>
-          (onShelf.get(name) ?? []).some(
-            (m) => m.lightNovel === lightNovel || (cover && m.image === cover),
-          ),
-        );
-        if (there || keys.some((key) => taken.has(key))) {
+        const existing = names
+          .flatMap((name) => onShelf.get(name) ?? [])
+          .find(
+            (m) =>
+              Boolean(m.lightNovel) === lightNovel ||
+              (cover && m.image === cover),
+          );
+        if (existing || keys.some((key) => taken.has(key))) {
           alreadyThere++;
+          if (existing) {
+            const had = merges.get(existing.id) ?? {
+              volumesOwned: existing.volumesOwned,
+              ownedList: existing.ownedList,
+            };
+            const before = ownedSetOf(had.volumesOwned, had.ownedList);
+            const incoming = ownedSetOf(
+              entry.ownedVolumes || null,
+              entry.ownedList ?? [],
+            );
+            const all = [...new Set([...before, ...incoming])];
+            if (all.length > before.length)
+              merges.set(existing.id, ownedVolumes(null, all));
+          }
           continue;
         }
         keys.forEach((key) => taken.add(key));
@@ -94,7 +120,15 @@ export const importList = [
         if (!input.image) noCover++;
       }
       if (inputs.length) await mangaQueries.addManyManga(userId, inputs);
-      res.json({ added: inputs.length, alreadyThere, noCover });
+      for (const [id, owned] of merges)
+        await mangaQueries.setVolumesOwned(id, owned);
+      res.json({
+        added: inputs.length,
+        alreadyThere,
+        // of those already there, how many got volumes they didn't have
+        volumesAdded: merges.size,
+        noCover,
+      });
     });
   },
 ];
