@@ -136,6 +136,12 @@ export const detailsStyles = {
   buyGapList: "flex flex-wrap gap-x-3 gap-y-1",
   buyGap:
     "tap font-semibold underline decoration-line-soft underline-offset-3 hover:text-accent hover:decoration-accent",
+  // the same series twice on the shelf: said above the page, with the fix
+  twiceNote:
+    "mb-4 flex flex-wrap items-center gap-x-3 gap-y-1 border-l-[3px] border-accent bg-accent-wash px-3 py-2 text-[0.92rem] text-ink",
+  twiceButton:
+    "tap font-semibold text-accent underline decoration-2 underline-offset-3 disabled:opacity-60",
+  twiceWhy: "basis-full text-[0.82rem] text-ink-soft",
   // the series link, a plain link with room around it for a thumb
   buySeries:
     "tap mt-2.5 block py-1 text-right text-[0.85rem] font-medium text-ink-soft underline decoration-line-soft underline-offset-3 transition-colors duration-120 ease-[ease] hover:text-accent hover:decoration-accent",

@@ -1,6 +1,7 @@
 // The shelf: the manga each user tracks.
 import { prisma } from "../config/prisma.js";
 import type { Manga } from "../../generated/prisma/client.js";
+import { ownedVolumes } from "../util/shelf/ownedList.js";
 
 // the fields a user can set when adding or editing a manga
 export type MangaInput = {
@@ -155,6 +156,51 @@ export const setVolumesOwned = (
     select: { volumesOwned: true, ownedList: true },
   });
 
+// two entries of one series on a shelf become one: `keep` gets everything the
+// other had that it lacks (every volume either owns, the further chapter and
+// "seen" marks, a rating, cover, genre and notes it didn't have), then the
+// other goes. One transaction, so it's both or neither
+export async function mergeManga(keep: number, other: number) {
+  return prisma.$transaction(async (tx) => {
+    const [a, b] = await Promise.all([
+      tx.manga.findUniqueOrThrow({ where: { id: keep } }),
+      tx.manga.findUniqueOrThrow({ where: { id: other } }),
+    ]);
+    const setOf = (m: typeof a) =>
+      m.ownedList.length
+        ? m.ownedList
+        : Array.from({ length: m.volumesOwned ?? 0 }, (_, i) => i + 1);
+    const owned = ownedVolumes(null, [...setOf(a), ...setOf(b)]);
+    const most = (x: number | null, y: number | null) =>
+      x == null ? y : y == null ? x : Math.max(x, y);
+    const notes = [a.description, b.description]
+      .map((d) => d?.trim())
+      .filter((d, i, all): d is string => Boolean(d) && all.indexOf(d) === i)
+      .join("\n")
+      .slice(0, 450);
+    await tx.manga.update({
+      where: { id: keep },
+      data: {
+        ...owned,
+        bookmark: most(a.bookmark, b.bookmark),
+        rating: a.rating || b.rating,
+        image: a.image || b.image,
+        genre: a.genre || b.genre,
+        description: notes || null,
+        // finished in either is finished; on To read only if both were
+        status: a.status || b.status,
+        planned: a.planned && b.planned && !(a.status || b.status),
+        seenVolume: most(a.seenVolume, b.seenVolume),
+        seenChapter: most(a.seenChapter, b.seenChapter),
+        seenJapanVolume: most(a.seenJapanVolume, b.seenJapanVolume),
+        hiddenVolumes: [...new Set([...a.hiddenVolumes, ...b.hiddenVolumes])],
+        latestChapter: most(a.latestChapter, b.latestChapter),
+      },
+    });
+    await tx.manga.delete({ where: { id: other } });
+  });
+}
+
 export const deleteManga = (id: number) =>
   prisma.manga.delete({ where: { id } });
 
@@ -253,6 +299,7 @@ export default {
   getMangaShelfNames,
   getManga,
   addManga,
+  mergeManga,
   restoreManga,
   setLatestChapter,
   updateManga,

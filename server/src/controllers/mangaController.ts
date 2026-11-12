@@ -26,6 +26,7 @@ import {
   moveMany,
   placeMany,
   restore,
+  merge,
 } from "./manga/many.js";
 import {
   importList,
@@ -51,6 +52,7 @@ export default {
   restoreMany,
   moveMany,
   placeMany,
+  merge,
   setStatus,
   setPlanned,
   setRating,

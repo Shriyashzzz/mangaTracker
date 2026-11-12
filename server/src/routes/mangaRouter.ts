@@ -60,6 +60,8 @@ mangaRouter.get("/:id", requireOwner, manga.detail);
 mangaRouter.get("/:id/releases", requireOwner, manga.releases);
 mangaRouter.put("/:id", requireOwner, manga.update);
 mangaRouter.delete("/:id", requireOwner, manga.remove);
+// the same series on the shelf twice: this one takes the other's place
+mangaRouter.post("/:id/merge", requireOwner, manga.merge);
 mangaRouter.patch("/:id/status", requireOwner, manga.setStatus);
 mangaRouter.patch("/:id/planned", requireOwner, manga.setPlanned);
 mangaRouter.patch("/:id/rating", requireOwner, manga.setRating);

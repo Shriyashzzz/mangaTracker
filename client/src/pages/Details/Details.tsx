@@ -13,6 +13,7 @@ import { getReleases } from "../../lib/shelf";
 import VolumeShelf from "../../components/volumeShelf/VolumeShelf";
 import { useReleaseChecksOn } from "../../lib/prefs";
 import { useShelf } from "../../store/shelf";
+import TwiceNote from "./TwiceNote";
 import NotesField from "./NotesField";
 import BuyStrip from "./BuyStrip";
 import ReleaseBar from "./ReleaseBar";
@@ -376,6 +377,8 @@ export default function Details() {
       <NavLink to="/shelf" className={styles.backLink} viewTransition>
         ← back to the shelf
       </NavLink>
+
+      <TwiceNote manga={mangaData} />
 
       <article className={styles.layout}>
         <div className={styles.main}>
