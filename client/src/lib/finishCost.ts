@@ -5,16 +5,34 @@
 import { owns } from "./ownedVolumes";
 import type { Manga } from "./types";
 
-// the volumes out that they don't own. A half volume or a vol. 0 special
-// never counts as theirs, so it's always among these (as on the price page)
+// the volumes out that they don't own. A half volume or a vol. 0 is theirs
+// only when their list names it ("up to vol. 14" says nothing of a 0)
 export const stillToGet = <T extends { volume: number }>(
   volumes: T[],
   owned: Pick<Manga, "volumesOwned"> & { ownedList?: number[] },
-) =>
-  volumes.filter(
-    (v) =>
-      !(v.volume >= 1 && Number.isInteger(v.volume) && owns(owned, v.volume)),
+) => volumes.filter((v) => !owns(owned, v.volume));
+
+// those, and the whole volumes below the newest that no catalog lists yet
+// and they don't own: out all the same, just with no book to price. So "to
+// finish" counts what the shelf's own tools count (server finishSeries)
+export function leftToGet<
+  T extends { volume: number; isbn13: string; knownPriceCents: number | null },
+>(
+  out: T[],
+  owned: Pick<Manga, "volumesOwned"> & { ownedList?: number[] },
+): (T | { volume: number; isbn13: string; knownPriceCents: null })[] {
+  const listed = new Set(out.map((v) => v.volume));
+  const newest = Math.max(
+    0,
+    ...out.map((v) => v.volume).filter(Number.isInteger),
   );
+  const unlisted = Array.from({ length: newest }, (_, i) => i + 1)
+    .filter((n) => !listed.has(n) && !owns(owned, n))
+    .map((n) => ({ volume: n, isbn13: "", knownPriceCents: null }));
+  return [...stillToGet(out, owned), ...unlisted].sort(
+    (a, b) => a.volume - b.volume,
+  );
+}
 
 export type FinishCost = {
   // the priced ones, added up

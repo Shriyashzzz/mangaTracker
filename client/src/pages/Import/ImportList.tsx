@@ -101,7 +101,10 @@ export default function ImportList({
               volumes it holds, so the count is a guess */}
             {s.omnibus && match && match !== "failed" && (
               <span className={styles.omnibusNote}>
-                Omnibus editions: check the volume count with Edit
+                {/* which books, so nothing is left out without a word */}
+                {s.unsure?.length
+                  ? `Not counted yet: ${s.unsure.slice(0, 3).join("; ")}${s.unsure.length > 3 ? ` and ${s.unsure.length - 3} more` : ""}. The file doesn't say which volumes ${s.unsure.length === 1 ? "it holds" : "they hold"}: add them with Edit`
+                  : "Omnibus editions: check the volume count with Edit"}
               </span>
             )}
             {match &&

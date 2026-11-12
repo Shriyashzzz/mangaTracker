@@ -155,6 +155,42 @@ test("importing a series already there adds its new volumes, never takes any awa
     volumesOwned: 8,
     ownedList: [],
   });
+
+  // under another of its names (the file says "Case Closed", the shelf
+  // "Detective Conan"): found, not added twice
+  await agent
+    .post("/api/manga")
+    .send({ name: "Zzdetective Conan", status: false })
+    .expect(201);
+  // the file calls it by its other name; the import says both
+  const other = await agent
+    .post("/api/manga/import")
+    .send({
+      entries: [
+        {
+          title: "Zzcase Closed",
+          otherNames: ["Zzdetective Conan"],
+          finished: false,
+          chapters: 0,
+          readVolumes: 0,
+          ownedVolumes: 3,
+          score: 0,
+        },
+      ],
+    })
+    .expect(200);
+  expect(other.body).toMatchObject({
+    added: 0,
+    alreadyThere: 1,
+    volumesAdded: 1,
+  });
+  const names = await agent.get("/api/manga").expect(200);
+  const allNames = names.body.manga ?? names.body;
+  expect(
+    allNames
+      .map((m: { name: string }) => m.name)
+      .filter((n: string) => /Zzdetective|Zzcase/.test(n)),
+  ).toEqual(["Zzdetective Conan"]);
 });
 
 test("stars given when adding a series are saved, and are optional", async () => {

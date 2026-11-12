@@ -188,6 +188,16 @@ export function finishSeries(
       cheapest: v ? (copies.get(v.isbn13)?.new ?? null) : null,
     });
   }
+  // a vol. 0 the list has (Jujutsu Kaisen 0) is part of the run too, unless
+  // their list names it: the price pages count it the same way
+  const zero = volumes.find((v) => v.volume === 0);
+  if (zero && isOut(zero, now) && !mine.has(0))
+    missing.unshift({
+      volume: 0,
+      isbn13: zero.isbn13,
+      title: zero.title,
+      cheapest: copies.get(zero.isbn13)?.new ?? null,
+    });
   const priced = onceEach(missing.filter((m) => m.cheapest));
   const cents = priced.reduce((sum, m) => sum + m.cheapest!.cents, 0);
   // the series' usual new price, from any of its volumes priced (owned too):

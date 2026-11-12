@@ -24,9 +24,13 @@ export type MalEntry = {
   lightNovel?: boolean;
   // exactly which volumes they own, when a book app's export says
   ownedList?: number[];
+  // other names it goes by: on the shelf under any of them, it's there
+  otherNames?: string[];
   // from Manga Tracker's own export: a series already on the shelf also
   // takes what it lacks (backupFill)
   restore?: boolean;
+  // a backup's own genre, kept over AniList's (it may be hand-set)
+  genre?: string;
 };
 
 // what a backup gives a series already on the shelf: only what the shelf
@@ -74,7 +78,7 @@ export function toMangaInput(entry: MalEntry, listing: MalListing | null) {
       : entry.title;
   return {
     name,
-    genre: listing?.genre ?? null,
+    genre: (entry.restore && entry.genre?.trim()) || listing?.genre || null,
     image: listing?.cover ?? entry.cover ?? null,
     description: entry.comments?.trim().slice(0, MAX_NOTES) || null,
     status: entry.finished && !entry.planned,
@@ -99,7 +103,12 @@ export const entryIsLightNovel = (
 
 // every name it could already be on the shelf under
 export const namesOf = (entry: MalEntry, listing: MalListing | null) =>
-  [entry.title, listing?.name, ...(listing?.altNames ?? [])]
+  [
+    entry.title,
+    ...(entry.otherNames ?? []),
+    listing?.name,
+    ...(listing?.altNames ?? []),
+  ]
     .filter((name): name is string => Boolean(name))
     .map(titleKey)
     .filter(Boolean);

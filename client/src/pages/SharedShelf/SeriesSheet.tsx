@@ -137,10 +137,12 @@ export default function SeriesSheet({
           <dl className={styles.facts}>
             <dt>Status</dt>
             <dd>{statusOf(m)}</dd>
-            {m.bookmark != null && !m.status && (
+            {Boolean(m.bookmark) && !m.status && (
               <>
                 <dt>Up to</dt>
-                <dd>Chapter {m.bookmark}</dd>
+                <dd>
+                  {m.lightNovel ? "Volume" : "Chapter"} {m.bookmark}
+                </dd>
               </>
             )}
             <dt>Owns</dt>

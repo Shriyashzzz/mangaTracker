@@ -75,6 +75,9 @@ export const detailsStyles = {
   undo: "ml-1 inline-block py-1 font-medium text-ink underline decoration-accent decoration-2 underline-offset-3",
   // a To read manga: "Not started yet" with its button beside it
   startRow: "inline-flex flex-wrap items-center gap-3",
+  // "Track chapters too": a quiet way to the counter
+  chaptersToo:
+    "tap font-sans text-[0.9rem] font-medium text-ink-soft underline decoration-line-soft underline-offset-3 hover:text-ink hover:decoration-current",
 
   // rating, notes and the buttons
   body: "flex min-w-0 flex-col gap-4 upto-720:order-4 upto-720:col-span-full",

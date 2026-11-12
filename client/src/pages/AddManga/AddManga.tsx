@@ -446,7 +446,7 @@ export function AddManga() {
               {stage === "reading" && (
                 <div className={styles.chapterField}>
                   <label htmlFor="bookmark" className={styles.label}>
-                    Current chapter{" "}
+                    {lightNovel ? "Volume you're on" : "Current chapter"}{" "}
                     <span className={styles.optional}>(optional)</span>
                   </label>
                   <input
