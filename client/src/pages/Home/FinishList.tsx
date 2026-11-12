@@ -33,6 +33,8 @@ export default function FinishList({
   const unpriced = row.missing.filter((m) => !m.cheapest);
   const shown = priced.slice(0, FIRST_SHOWN);
   const rest = row.missing.length - shown.length;
+  // a deluxe or omnibus line is counted in books
+  const unit = row.edition ? "book" : "volume";
   const total = totalText(
     row.cents,
     row.priced,
@@ -59,37 +61,40 @@ export default function FinishList({
             : "None priced yet: an estimate from the usual price."}
         </p>
       )}
-      {shown.length > 0 && (
-        <ul className={styles.finishList}>
-          {shown.map((m) => (
-            <li key={`${m.volume}-${m.isbn13}`} className={styles.finishRow}>
-              <span
-                className={styles.finishVol}
-                title={
-                  m.inside
-                    ? `${m.inside.length === 1 ? "vol." : "vols."} ${rangesText(m.inside)}`
-                    : undefined
-                }
-              >
-                {m.label ?? `Vol. ${m.volume}`}
-              </span>
-              <Where volume={m} />
-            </li>
-          ))}
-        </ul>
-      )}
-      {rest > 0 && (
-        <p className={styles.unpriced}>
-          {shown.length > 0 ? `${rest} more not on your shelf. ` : ""}
-          <NavLink
-            to={seriesPath(series)}
-            className={styles.edit}
-            viewTransition
-          >
-            Check them on the series page
-          </NavLink>
-        </p>
-      )}
+      <ul className={styles.finishList}>
+        {shown.map((m) => (
+          <li key={`${m.volume}-${m.isbn13}`} className={styles.finishRow}>
+            <span
+              className={styles.finishVol}
+              title={
+                m.inside
+                  ? `${m.inside.length === 1 ? "vol." : "vols."} ${rangesText(m.inside)}`
+                  : undefined
+              }
+            >
+              {m.label ?? `Vol. ${m.volume}`}
+            </span>
+            <Where volume={m} />
+          </li>
+        ))}
+        {/* the rest, as the list's last row: the series page has every one */}
+        {rest > 0 && (
+          <li className={`${styles.finishRow} ${styles.finishRestRow}`}>
+            <span className={styles.finishRest}>
+              {shown.length > 0 ? `${rest} more` : rest} {unit}
+              {rest === 1 ? "" : "s"}
+            </span>
+            <NavLink
+              to={seriesPath(series)}
+              className={styles.finishMore}
+              aria-label={`Check the series page for ${shown.length > 0 ? "the other " : ""}${rest} ${unit}${rest === 1 ? "" : "s"}`}
+              viewTransition
+            >
+              Check the series page
+            </NavLink>
+          </li>
+        )}
+      </ul>
     </div>
   );
 }

@@ -71,14 +71,19 @@ export const volumesStyles = {
     "font-brand text-[1.2rem] font-normal tracking-[0.02em] tabular-nums",
   finishNote: "mb-2 text-[0.8rem] text-muted",
   finishList:
-    "mb-2 grid grid-cols-[repeat(auto-fill,minmax(240px,1fr))] gap-x-6",
+    "mb-2 grid grid-cols-[repeat(auto-fill,minmax(280px,1fr))] gap-x-6",
   finishRow:
     "flex items-baseline justify-between gap-3 border-b border-dotted border-line-soft py-1.5 text-[0.88rem]",
   finishVol: "shrink-0 font-medium tabular-nums",
   finishLink:
     "tap min-w-0 truncate text-right text-ink-soft underline decoration-line-soft underline-offset-3 hover:text-ink hover:decoration-current focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent focus-visible:outline-dashed",
   finishPrice: "font-mono font-semibold text-ink tabular-nums",
-  unpriced: "mt-2 text-[0.84rem] text-ink-soft",
+  // the last row: how many more, and the page that has them
+  // side by side once the list has columns; a phone keeps them at the edges
+  finishRestRow: "min-[640px]:justify-start",
+  finishRest: "min-w-0 truncate text-ink-soft tabular-nums",
+  finishMore:
+    "tap shrink-0 text-right font-medium whitespace-nowrap text-ink underline decoration-accent decoration-2 underline-offset-3 hover:decoration-line focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent focus-visible:outline-dashed",
 
   empty:
     "mx-auto my-6 flex max-w-[460px] flex-col items-center gap-2 border-[1.5px] border-dashed border-line-soft p-8 text-center",
