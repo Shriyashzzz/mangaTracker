@@ -217,11 +217,15 @@ export function ImportPage() {
           <h1 className={styles.resultTitle} role="status">
             {totals.added
               ? `${series(totals.added)} added!`
-              : "All already there!"}
+              : totals.volumesAdded
+                ? "Volumes added!"
+                : "All already there!"}
           </h1>
           <p className={styles.resultBody}>
             {totals.alreadyThere > 0 &&
-              `${series(totals.alreadyThere)} already on your shelf, so we left them alone. `}
+              (totals.volumesAdded
+                ? `${series(totals.alreadyThere)} already on your shelf; ${series(totals.volumesAdded)} got the new volumes from your file, nothing else changed. `
+                : `${series(totals.alreadyThere)} already on your shelf, so we left them alone. `)}
             {totals.noCover > 0 &&
               `${series(totals.noCover)} came in without a cover. You can add one with Edit details.`}
           </p>

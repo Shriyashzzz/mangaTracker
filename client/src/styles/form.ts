@@ -65,6 +65,9 @@ export const formStyles = {
   titleTyped:
     "tap ml-auto min-h-11 text-right text-[0.88rem] font-medium text-ink-soft underline decoration-line-soft underline-offset-3 hover:text-ink hover:decoration-current",
   hint: "text-[0.88rem] text-muted",
+  // the title is on their shelf already: said plainly, with the way to it
+  alreadyNote:
+    "border-l-[3px] border-accent bg-accent-wash px-3 py-2 text-[0.92rem] text-ink",
   // the series once chosen: its cover, name and what's known, with the ways
   // to change it
   picked:

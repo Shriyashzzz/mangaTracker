@@ -371,11 +371,15 @@ export default function BookImport({ source }: { source: BookSource }) {
         <h2 className={styles.resultTitle} role="status">
           {totals.added
             ? `${series(totals.added)} added!`
-            : "All already there!"}
+            : totals.volumesAdded
+              ? "Volumes added!"
+              : "All already there!"}
         </h2>
         <p className={styles.resultBody}>
           {totals.alreadyThere > 0 &&
-            `${series(totals.alreadyThere)} already on your shelf, so we left them alone. `}
+            (totals.volumesAdded
+              ? `${series(totals.alreadyThere)} already on your shelf; ${series(totals.volumesAdded)} got the new volumes from your file, nothing else changed. `
+              : `${series(totals.alreadyThere)} already on your shelf, so we left them alone. `)}
           {totals.noCover > 0 &&
             `${series(totals.noCover)} came in without a cover. You can add one with Edit details.`}
         </p>
@@ -448,7 +452,9 @@ export default function BookImport({ source }: { source: BookSource }) {
                 </span>
                 <span className={`${styles.dropHint} block`}>
                   {found
-                    ? `Another ${APP_NAME[source]} export joins this one, matched as it goes`
+                    ? source === "csv"
+                      ? "Another export from the same app joins this one, matched as it goes"
+                      : `Another ${APP_NAME[source]} export joins this one, matched as it goes`
                     : "Or drop it here, or several. They end in .csv"}
                 </span>
               </span>

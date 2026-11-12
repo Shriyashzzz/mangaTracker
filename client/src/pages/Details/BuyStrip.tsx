@@ -17,8 +17,11 @@ type Props = {
 const price = (v: SeriesVolume) =>
   v.knownPriceCents != null ? formatCents(v.knownPriceCents) : "check price";
 
+// gaps listed by name; past this, the series page's "Not on your shelf"
+const GAPS_SHOWN = 6;
+
 export default function BuyStrip({ options, hideNext }: Props) {
-  const { loading, volumes, latest, next, caughtUp, finish, seriesName } =
+  const { loading, volumes, latest, next, caughtUp, finish, seriesName, gaps } =
     options;
 
   if (loading) {
@@ -43,6 +46,35 @@ export default function BuyStrip({ options, hideNext }: Props) {
               <span>Vol. {next.volume}</span>
               <span className={styles.buyPrice}>{price(next)}</span>
             </NavLink>
+          </li>
+        )}
+        {/* the gaps behind them: Next goes past these, a collector filling
+            the run wants each one */}
+        {gaps.length > 0 && (
+          <li className={styles.buyGaps}>
+            <span className={styles.buyKind}>Missing</span>
+            <span className={styles.buyGapList}>
+              {gaps.slice(0, GAPS_SHOWN).map((g) => (
+                <NavLink
+                  key={g.isbn13}
+                  to={volumePath(g.isbn13, g.title)}
+                  className={styles.buyGap}
+                  viewTransition
+                >
+                  Vol. {g.volume}
+                </NavLink>
+              ))}
+              {gaps.length > GAPS_SHOWN && (
+                <NavLink
+                  // seriesPath already has its ?name=, so this joins with &
+                  to={`${seriesPath(seriesName)}&toget=1`}
+                  className={styles.buyGap}
+                  viewTransition
+                >
+                  +{gaps.length - GAPS_SHOWN} more
+                </NavLink>
+              )}
+            </span>
           </li>
         )}
         {caughtUp ? (
@@ -76,7 +108,9 @@ export default function BuyStrip({ options, hideNext }: Props) {
             >
               <span className={styles.buyKind}>Finish the series</span>
               <span className={styles.buyCount}>
-                {finish.left} vol{finish.left === 1 ? "" : "s"}
+                <span>
+                  {finish.left} vol{finish.left === 1 ? "" : "s"}
+                </span>
                 {finish.priced < finish.left && (
                   <em className={styles.buyAside}>(est)</em>
                 )}

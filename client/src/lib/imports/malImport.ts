@@ -125,6 +125,9 @@ export async function readMalExport(file: File): Promise<MalItem[]> {
 export type ImportTotals = {
   added: number;
   alreadyThere: number;
+  // of those already there, how many got volumes they didn't have (the
+  // server adds them, never takes any away); missing from an older server
+  volumesAdded?: number;
   noCover: number;
 };
 
@@ -152,7 +155,12 @@ export async function sendToShelf(
   // asked to stop: the piece being sent finishes, the rest aren't sent
   shouldStop: () => boolean = () => false,
 ) {
-  const totals: ImportTotals = { added: 0, alreadyThere: 0, noCover: 0 };
+  const totals: ImportTotals = {
+    added: 0,
+    alreadyThere: 0,
+    volumesAdded: 0,
+    noCover: 0,
+  };
   for (let i = 0; i < entries.length && !shouldStop(); i += PIECE) {
     const piece = entries.slice(i, i + PIECE);
     const res = await sendPiece(piece).catch((e: Error) => {
@@ -169,6 +177,8 @@ export async function sendToShelf(
     const answer = (await res.json()) as ImportTotals;
     totals.added += answer.added;
     totals.alreadyThere += answer.alreadyThere;
+    totals.volumesAdded =
+      (totals.volumesAdded ?? 0) + (answer.volumesAdded ?? 0);
     totals.noCover += answer.noCover;
     onProgress(i + piece.length, { ...totals });
   }
