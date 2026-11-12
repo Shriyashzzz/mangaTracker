@@ -455,7 +455,6 @@ export default function Details() {
                 .map((v) => barRow(v, preorderDay(v.published))),
             },
           ].filter((g) => g.rows.length > 0),
-          all: { to: seriesTo, label: "Every volume and its prices" },
         }
       : null;
   // no need to sell it twice, unless it's the only ticket there is

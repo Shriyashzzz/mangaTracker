@@ -112,9 +112,6 @@ export const detailsStyles = {
   // "Check price →" on the right: the same kind of link as the volume's name
   releaseCompare:
     "tap font-medium text-ink underline decoration-accent decoration-2 underline-offset-3 hover:text-accent",
-  // every volume and its prices, under the list
-  releaseAll:
-    "tap mt-2 inline-block text-[0.9rem] font-medium underline decoration-line-soft underline-offset-3 hover:decoration-current",
   releaseWhen: "text-right text-[0.92rem] text-ink-soft",
   releaseEstimate: "ml-1.5 font-mono text-[0.75rem] text-muted",
   label: "mb-[0.3rem] block font-mono text-[0.75rem] text-muted",

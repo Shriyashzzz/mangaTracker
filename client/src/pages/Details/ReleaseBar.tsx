@@ -17,9 +17,9 @@ type Props = {
   // a volume that's for sale in English; there's nowhere to send a chapter
   buy: { to: string; label: string } | null;
   // an English volume's bar opens to English releases only, each a way to
-  // its prices, and the series' price page. Japan's dates are the Japan
+  // its prices. Japan's dates are the Japan
   // edition's own bar, never mixed in here
-  english?: { groups: Group[]; all: { to: string; label: string } } | null;
+  english?: { groups: Group[] } | null;
 };
 
 // `to`: the volume's price page
@@ -238,15 +238,6 @@ export default function ReleaseBar({
               ))}
             </div>
           ))}
-          {english && (
-            <NavLink
-              className={styles.releaseAll}
-              to={english.all.to}
-              viewTransition
-            >
-              {english.all.label} →
-            </NavLink>
-          )}
         </div>
       )}
     </section>
