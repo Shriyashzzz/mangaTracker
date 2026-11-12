@@ -740,6 +740,20 @@ export async function getSavedVolumeTitles() {
   `;
 }
 
+// every series' final list (service.ts finalKey), volume by volume, with the
+// key it's saved under
+export async function getFinalVolumeTitles() {
+  return prisma.$queryRaw<
+    { key: string; isbn13: string; title: string; published: string | null }[]
+  >`
+    SELECT sv.key, v->>'isbn13' AS isbn13, v->>'title' AS title,
+           v->>'published' AS published
+    FROM series_volumes sv, jsonb_array_elements(sv.volumes) v
+    WHERE sv.key LIKE ${VOLUMES_KEY_VERSION + "%:final"}
+      AND v->>'isbn13' IS NOT NULL AND v->>'title' IS NOT NULL
+  `;
+}
+
 // the box sets and omnibuses found while pricing a series' volumes, as their
 // checks left them (current only, in stock), one per listing: what a series
 // page shows under "Box sets"
@@ -881,6 +895,7 @@ export default {
   recordSearch,
   getSeriesVolumes,
   getSavedVolumeTitles,
+  getFinalVolumeTitles,
   getCollectionOffers,
   getOmnibusIsbns,
   getSavedVolume,

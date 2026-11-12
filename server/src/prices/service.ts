@@ -55,7 +55,7 @@ import {
   unlikelyNewTest,
 } from "./stores/retailers.js";
 import { baseName, isNovelName, novelName } from "./lightNovel.js";
-import { volumesKey } from "./volumesKey.js";
+import { VOLUMES_KEY_VERSION, volumesKey } from "./volumesKey.js";
 import {
   isCollection,
   type CatalogBook,
@@ -988,6 +988,36 @@ async function gapVolumes(
   return found;
 }
 
+// ---------- one list for the whole site ----------
+
+// The series page's list is the careful one: every catalog's answer merged,
+// the publisher's edition over a rebind or UK printing, gaps filled, no
+// 3-in-1 standing in for a volume. It's saved as it's built, and the shelf
+// tools (collector/shelfSeries.ts), the index, sitemap, fillers and link
+// previews (knownVolumesBySeries) all read that one list, so they can't
+// disagree with the page about which book is vol. 8. A series whose page
+// hasn't been built since this was added falls back to the raw lists
+export const FINAL = ":final";
+export const finalKey = (name: string) => volumesKey(name) + FINAL;
+const FINAL_RESAVE_MS = 24 * 60 * 60 * 1000;
+const finalSaved = new Map<string, { sign: string; at: number }>();
+function saveFinalList(name: string, volumes: CatalogBook[]) {
+  if (!volumes.length) return;
+  const key = finalKey(name);
+  const sign = volumes
+    .map((v) => `${v.volume}:${v.isbn13.trim()}:${v.published ?? ""}`)
+    .join("|");
+  const was = finalSaved.get(key);
+  if (was?.sign === sign && Date.now() - was.at < FINAL_RESAVE_MS) return;
+  finalSaved.set(key, { sign, at: Date.now() });
+  if (finalSaved.size > 5000)
+    finalSaved.delete(finalSaved.keys().next().value!);
+  priceQueries
+    .saveSeriesVolumes(key, volumes)
+    .then(forgetKnownVolumes)
+    .catch(() => finalSaved.delete(key));
+}
+
 async function getSeriesWithVolumes(name: string) {
   const infoLookup = getSeriesInfo(name);
   // the other names only need AniList's answer, so they're searched while
@@ -1057,6 +1087,9 @@ async function getSeriesWithVolumes(name: string) {
   const incomplete =
     main.incomplete ||
     (altResults.some((a) => a.incomplete) && volumes.length < 3);
+  // the list every other part of the site reads (finalKey): saved whenever
+  // it's whole and has changed
+  if (!incomplete) saveFinalList(name, volumes);
   const isbns = volumes.map((v) => v.isbn13);
   const [known, collections] = await Promise.all([
     priceQueries.getKnownPrices(isbns),
@@ -1154,12 +1187,30 @@ export async function knownVolumesBySeries() {
   const omnibuses = await priceQueries
     .getOmnibusIsbns()
     .catch(() => new Set<string>());
+  const put = (key: string, v: KnownVolume) => {
+    if (!bySeries.has(key)) bySeries.set(key, new Map());
+    bySeries.get(key)!.set(v.isbn13, v);
+  };
+  // a series whose final list is saved is exactly that list (finalKey):
+  // under the series' own name and the name each title carries ("Case
+  // Closed, Vol. 3" in Detective Conan's)
+  const settled = new Set<string>();
+  for (const { key, ...v } of await priceQueries
+    .getFinalVolumeTitles()
+    .catch(() => [])) {
+    const own = slugify(key.slice(VOLUMES_KEY_VERSION.length, -FINAL.length));
+    for (const slug of new Set([own, slugify(seriesName(v.title))])) {
+      settled.add(slug);
+      put(slug, v);
+    }
+  }
   const add = (v: KnownVolume) => {
     // a 3-in-1 omnibus numbered like a volume isn't that volume
     if (omnibuses.has(v.isbn13.trim())) return;
     const key = slugify(seriesName(v.title));
-    if (!bySeries.has(key)) bySeries.set(key, new Map());
-    bySeries.get(key)!.set(v.isbn13, v);
+    // the other lists' editions of a settled series aren't its volumes
+    if (settled.has(key)) return;
+    put(key, v);
   };
   (await priceQueries.getBookTitles()).forEach(add);
   // every saved list, so a series built before a restart still has its volumes
@@ -1375,6 +1426,10 @@ async function nearbyVolumes(isbn13: string, title: string, series: string) {
       if (!byNumber.has(n) || v.isbn13.trim() === isbn13) byNumber.set(n, v);
     }
   }
+  // this page's own book holds its number, even an edition the series' list
+  // passed over (a rebind someone opened)
+  const own = titleVolume(title);
+  if (own != null) byNumber.set(own, { isbn13, title });
   const list = [...byNumber.entries()]
     .sort(([a], [b]) => a - b)
     .map(([volume, v]) => ({
