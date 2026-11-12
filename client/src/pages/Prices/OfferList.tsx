@@ -49,7 +49,16 @@ export default function OfferList({
   const mixed =
     offers.some((o) => o.knownStore === false) &&
     offers.some((o) => o.knownStore);
-  const kept = bigOnly && mixed ? offers.filter((o) => o.knownStore) : offers;
+  // new copies only, when there are used or marketplace ones too
+  const [newOnly, setNewOnly] = useState(false);
+  const usedToo =
+    offers.some((o) => o.condition === "new") &&
+    offers.some((o) => o.condition !== "new" && o.format !== "ebook");
+  const kept = offers.filter(
+    (o) =>
+      !(bigOnly && mixed && !o.knownStore) &&
+      !(newOnly && usedToo && o.condition !== "new" && o.format !== "ebook"),
+  );
   // people come here for a physical copy, so single copies come first, then
   // box sets holding this volume, then ebooks. The awards still use the true
   // cheapest-first order
@@ -153,16 +162,28 @@ export default function OfferList({
           </button>
         </li>
       )}
-      {mixed && (
-        <li className={styles.moreRow}>
-          <button
-            type="button"
-            className={styles.textBtn}
-            aria-pressed={bigOnly}
-            onClick={() => setBigOnly(!bigOnly)}
-          >
-            {bigOnly ? "Show every seller" : "Big stores only"}
-          </button>
+      {(mixed || usedToo) && (
+        <li className={styles.filterRow}>
+          {mixed && (
+            <button
+              type="button"
+              className={styles.textBtn}
+              aria-pressed={bigOnly}
+              onClick={() => setBigOnly(!bigOnly)}
+            >
+              {bigOnly ? "Show every seller" : "Big stores only"}
+            </button>
+          )}
+          {usedToo && (
+            <button
+              type="button"
+              className={styles.textBtn}
+              aria-pressed={newOnly}
+              onClick={() => setNewOnly(!newOnly)}
+            >
+              {newOnly ? "Show used too" : "New only"}
+            </button>
+          )}
         </li>
       )}
     </ul>

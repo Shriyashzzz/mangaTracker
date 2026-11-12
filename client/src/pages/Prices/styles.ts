@@ -222,6 +222,8 @@ export const pricesStyles = {
   offerPrice: "font-mono text-[1.05rem] font-medium tabular-nums",
   // "Show N more": one centered button across the row
   moreRow: "grid justify-center py-1",
+  // the price list's filters: big stores only, new only
+  filterRow: "flex flex-wrap justify-center gap-x-6 gap-y-1 py-1",
   // a volume not out yet: when it's out and where to preorder it
   preorder:
     "flex flex-col gap-3 border-[1.5px] border-line bg-card px-4 py-4 text-[0.95rem] text-ink-soft shadow-ink scroll-mt-24 [&_b]:font-semibold [&_b]:text-ink",
