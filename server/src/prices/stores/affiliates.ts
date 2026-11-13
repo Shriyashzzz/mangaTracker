@@ -24,6 +24,17 @@ export const bamAffiliateUrl = (url: string) => {
     ? `https://www.anrdoezrs.net/links/${encodeURIComponent(pid)}/type/dlg/${url}`
     : url;
 };
+// Better World Books, through impact.com. The setting is our tracking link
+// for the program, in full: https://betterworldbooks.pxf.io/c/<account>/<ad>/<campaign>
+// (a short "vanity" link from the dashboard redirects to it). Impact sends
+// people on to the page named in `u`. Without the setting, the page as is
+export const betterWorldBooksLink = () =>
+  config.BETTER_WORLD_BOOKS_LINK?.replace(/[/?]+$/, "") ?? null;
+export const bwbAffiliateUrl = (url: string) => {
+  const link = betterWorldBooksLink();
+  return link ? `${link}?u=${encodeURIComponent(url)}` : url;
+};
+
 // CJ's own click domains (its links come on any of these)
 export const CJ_CLICK_HOSTS = [
   "anrdoezrs.net",

@@ -14,6 +14,49 @@ afterEach(() => {
   delete process.env.EBAY_CAMPAIGN_ID;
   delete process.env.BOOKSHOP_AFFILIATE_ID;
   delete process.env.CJ_WEBSITE_ID;
+  delete process.env.BETTER_WORLD_BOOKS_LINK;
+});
+
+test("Better World Books goes through our Impact link, to the book's own page", async () => {
+  const ours = "https://betterworldbooks.pxf.io/c/111/222/333";
+  const { affiliateOfferUrl, isAffiliateUrl, storeLinks } = await load({
+    BETTER_WORLD_BOOKS_LINK: ours,
+  });
+  const page = `https://www.betterworldbooks.com/search/results?q=${isbn}`;
+  const expected = `${ours}?u=${encodeURIComponent(page)}`;
+  const link = storeLinks(isbn).find((l) => l.store === "Better World Books")!;
+  expect(link).toEqual({
+    store: "Better World Books",
+    url: expected,
+    affiliate: true,
+  });
+  expect(isAffiliateUrl(link.url)).toBe(true);
+  // someone else's Impact link isn't ours
+  expect(
+    isAffiliateUrl("https://betterworldbooks.pxf.io/c/999/222/333?u=x"),
+  ).toBe(false);
+
+  // a Google Shopping row for it goes there too, new or used: its page for
+  // an ISBN lists every copy
+  const google = "https://www.google.com/shopping/product/123";
+  const offer = { store: "Better World Books", url: google, format: "print" };
+  expect(affiliateOfferUrl({ ...offer, condition: "used" }, isbn)).toBe(
+    expected,
+  );
+  // an ebook has its own ISBN
+  expect(
+    affiliateOfferUrl({ ...offer, format: "ebook", condition: "new" }, isbn),
+  ).toBe(google);
+});
+
+test("without the setting, Better World Books is a plain link", async () => {
+  const { isAffiliateUrl, storeLinks } = await load({});
+  const link = storeLinks(isbn).find((l) => l.store === "Better World Books")!;
+  expect(link.url).toBe(
+    `https://www.betterworldbooks.com/search/results?q=${isbn}`,
+  );
+  expect(link.affiliate).toBe(false);
+  expect(isAffiliateUrl(link.url)).toBe(false);
 });
 
 test("no affiliate settings, no affiliate links", async () => {

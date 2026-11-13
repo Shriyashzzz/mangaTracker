@@ -8,7 +8,9 @@
 import {
   amazonTag,
   bamAffiliateUrl,
+  betterWorldBooksLink,
   bookshopId,
+  bwbAffiliateUrl,
   CJ_CLICK_HOSTS,
   cjWebsiteId,
   ebayAffiliateUrl,
@@ -72,6 +74,7 @@ export const EBAY = /^ebay( - .+)?$/i;
 export const AMAZON = /^amazon(\.com)?$/i;
 const BOOKSHOP = /^bookshop(\.org)?$/i;
 export const BOOKS_A_MILLION = /^books[- ]?a[- ]?million(\.com)?$/i;
+const BETTER_WORLD_BOOKS = /^better ?world ?books(\.com)?$/i;
 
 const bamSearchUrl = (isbn13: string) =>
   bamAffiliateUrl(`https://www.booksamillion.com/search?query=${isbn13}`);
@@ -101,6 +104,14 @@ export function affiliateOfferUrl(
   const { store, url } = offer;
   if (!isGoogleLink(url)) return ourTags(url);
   if (EBAY.test(store) && ebayCampaignId()) return ebayUrl(isbn13, "shopping");
+  // its page for an ISBN lists every copy, new and used, so any print copy's
+  // row can go there
+  if (
+    BETTER_WORLD_BOOKS.test(store) &&
+    betterWorldBooksLink() &&
+    offer.format === "print"
+  )
+    return bwbSearchUrl(isbn13);
   const newPrint = offer.format === "print" && offer.condition === "new";
   if (!newPrint) return url;
   if (AMAZON.test(store) && amazonTag()) return amazonUrl(isbn13);
@@ -108,6 +119,13 @@ export function affiliateOfferUrl(
   if (BOOKS_A_MILLION.test(store) && cjWebsiteId()) return bamSearchUrl(isbn13);
   return url;
 }
+
+// Better World Books' own search for an ISBN, through our Impact link when
+// there is one
+const bwbSearchUrl = (isbn13: string) =>
+  bwbAffiliateUrl(
+    `https://www.betterworldbooks.com/search/results?${new URLSearchParams({ q: isbn13 })}`,
+  );
 
 // the site itself or one of its subdomains, never a lookalike like notebay.com
 const isSite = (host: string, site: string) =>
@@ -176,6 +194,9 @@ export function isAffiliateUrl(url: string | null): boolean {
     return Boolean(amazonTag()) && link.searchParams.get("tag") === amazonTag();
   if (isSite(host, "bookshop.org")) return link.pathname.startsWith("/a/");
   if (isSite(host, "walmart.com")) return walmartAffiliate();
+  // our own Impact link for Better World Books, whatever page it goes on to
+  const bwb = betterWorldBooksLink();
+  if (bwb && url!.startsWith(`${bwb}?`)) return true;
   // a CJ click link carries the website ID it pays
   if (CJ_CLICK_HOSTS.some((site) => isSite(host, site))) {
     const pid = cjWebsiteId();
@@ -241,5 +262,11 @@ export const storeLinks = (isbn13: string): StoreLink[] => [
     store: "Books-A-Million",
     url: bamSearchUrl(isbn13),
     affiliate: Boolean(cjWebsiteId()),
+  },
+  // new and used copies: often the cheapest way to an older volume
+  {
+    store: "Better World Books",
+    url: bwbSearchUrl(isbn13),
+    affiliate: Boolean(betterWorldBooksLink()),
   },
 ];
