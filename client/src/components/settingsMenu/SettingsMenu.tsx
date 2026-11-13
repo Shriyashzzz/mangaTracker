@@ -296,12 +296,6 @@ export default function SettingsMenu({ isSignedIn, onLogOut }: Props) {
             </NavLink>
           </li>
           <li>
-            <NavLink to="/about" className={item} viewTransition>
-              <InfoIcon />
-              About
-            </NavLink>
-          </li>
-          <li>
             <a
               href={SUPPORT_URL}
               target="_blank"
