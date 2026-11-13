@@ -43,7 +43,7 @@ const seasonSubject = (stop: AnimeStop) =>
 
 // the answer itself, said big
 export function startText(stop: AnimeStop) {
-  if (stop.coversAll) return "You've seen the whole story";
+  if (stop.coversAll) return "That's the whole story";
   if (stop.nextChapter !== null) return `Start at chapter ${stop.nextChapter}`;
   if (stop.nextVolume !== null) return `Start with volume ${stop.nextVolume}`;
   if (stop.endVolume !== null) return `Start with volume ${stop.endVolume}`;
@@ -152,33 +152,36 @@ export function tableRow(stop: AnimeStop) {
 // the season most people have just finished: the last one listed
 export const latestStop = (stops: AnimeStop[]) => stops[stops.length - 1];
 
-// for someone who has watched everything out so far. Two short lines, what
-// to do first:
-//   lead:   "Start the manga at chapter 116. Buy volume 24."
-//   detail: "Season 3 part 1 is the latest, and it ends at chapter 115."
+// The answer for the latest season, since that's the one most people have
+// just finished. It's said about the anime, never about the reader: someone
+// arriving from a search hasn't told us what they've watched. Two short
+// lines, what to do first:
+//   lead:   "After Season 3, start the manga at chapter 116. Buy volume 24."
+//   detail: "Season 3 is the latest, and it ends at chapter 115."
 export function latestAnswer(stop: AnimeStop) {
+  const isTheAnime = stop.label === "The anime";
   // "Season 3 is the latest, and it ends at…", or just "The anime ends at…"
-  const subject =
-    stop.label === "The anime"
-      ? "The anime"
-      : `${seasonSubject(stop)} is the latest, and it`;
+  const subject = isTheAnime
+    ? "The anime"
+    : `${seasonSubject(stop)} is the latest, and it`;
   if (stop.coversAll)
     return {
-      lead: "You've seen the whole story.",
-      detail: `${subject} covers the manga to its final chapter, ${stop.endChapter}.`,
+      lead: "The anime covers the whole manga.",
+      detail: `${subject} ends at the manga's final chapter, ${stop.endChapter}.`,
     };
+  const after = `${afterLabel(stop)},`;
   const volume = buyVolume(stop);
   if (stop.nextChapter !== null) {
     const buy = volume === null ? "" : ` Buy volume ${volume}.`;
     const how = stop.endsMidChapter ? "stops partway through" : "ends at";
     return {
-      lead: `Start the manga at chapter ${stop.nextChapter}.${buy}`,
+      lead: `${after} start the manga at chapter ${stop.nextChapter}.${buy}`,
       detail: `${subject} ${how} chapter ${stop.endChapter}.`,
     };
   }
   if (volume !== null)
     return {
-      lead: `Start the manga at volume ${volume}.`,
+      lead: `${after} start the manga at volume ${volume}.`,
       detail: `${subject} ends in volume ${stop.endVolume ?? volume}.`,
     };
   return { lead: "", detail: "" };
