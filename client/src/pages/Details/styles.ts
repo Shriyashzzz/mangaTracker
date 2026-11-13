@@ -90,11 +90,11 @@ export const detailsStyles = {
   bookName: "min-w-0 font-medium text-ink upto-560:col-span-full",
   bookIsbn: "ml-2 font-mono text-[0.74rem] font-normal text-ink-soft",
   bookPaid:
-    "inline-flex h-9 items-center gap-1 rounded-[2px] border-[1.5px] border-line-soft bg-paper px-2 font-mono text-[0.85rem] text-ink-soft focus-within:border-line",
+    "inline-flex h-9 items-center gap-1 rounded-[2px] border-[1.5px] border-line-soft bg-paper px-2 font-mono text-[0.85rem] text-ink-soft focus-within:border-line has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-accent has-[:focus-visible]:outline-dashed",
   bookPaidInput:
     "w-[4.2rem] bg-transparent text-ink tabular-nums placeholder:text-muted focus:outline-none",
   bookDate:
-    "h-9 rounded-[2px] border-[1.5px] border-line-soft bg-paper px-2 font-mono text-[0.8rem] text-ink focus:border-line focus:outline-none",
+    "h-9 rounded-[2px] border-[1.5px] border-line-soft bg-paper px-2 font-mono text-[0.8rem] text-ink focus:border-line focus:outline-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent focus-visible:outline-dashed",
   bookRemove:
     "tap justify-self-end text-[0.85rem] font-medium text-ink-soft underline decoration-line-soft underline-offset-3 hover:text-accent hover:decoration-current",
   bookRemoveGap: "upto-560:hidden",
@@ -174,7 +174,7 @@ export const detailsStyles = {
   buyNext: `${ticket} grid min-h-11 grid-cols-[minmax(0,1fr)_auto] border-[2px] border-solid border-accent bg-accent-wash font-semibold shadow-[3px_3px_0_var(--hard-shadow)] transition-[translate,box-shadow] duration-120 ease-[ease] hover:-translate-y-px hover:shadow-[4px_4px_0_var(--hard-shadow)] focus-visible:-translate-y-px upto-720:grid-cols-[minmax(0,1fr)_auto_auto]`,
   // its label in red too
   buyNextKind:
-    "col-span-full font-mono text-[0.72rem] font-medium tracking-[0.06em] whitespace-nowrap text-accent uppercase upto-720:col-span-1",
+    "col-span-full font-mono text-[0.72rem] font-medium tracking-[0.06em] whitespace-nowrap text-accent-ink uppercase upto-720:col-span-1",
   // "Missing: Vol. 6, Vol. 7": the gaps before the furthest they own, each a
   // link, on a quiet dashed ticket under Next
   buyGaps: `${ticket} flex-col border-dashed border-line-soft`,
@@ -199,7 +199,7 @@ export const detailsStyles = {
     "tap mt-2.5 block py-1 text-right text-[0.85rem] font-medium text-ink-soft underline decoration-line-soft underline-offset-3 transition-colors duration-120 ease-[ease] hover:text-accent hover:decoration-accent",
   buyKind:
     "col-span-full font-mono text-[0.72rem] font-normal tracking-[0.06em] whitespace-nowrap text-muted uppercase upto-720:col-span-1",
-  buyPrice: "text-right font-mono font-medium text-accent",
+  buyPrice: "text-right font-mono font-medium text-accent-ink",
   // "2 vols (est)": one row when there's room; on a long series in the narrow
   // box ("113 vols" beside "about $1,340") the "(est)" drops under, never
   // over the price

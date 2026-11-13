@@ -327,10 +327,10 @@ export const pricesStyles = {
   setKind:
     "col-span-full font-mono text-[0.72rem] font-normal tracking-[0.06em] whitespace-nowrap text-muted uppercase",
   setKindFirst:
-    "col-span-full font-mono text-[0.72rem] font-medium tracking-[0.06em] whitespace-nowrap text-accent uppercase",
+    "col-span-full font-mono text-[0.72rem] font-medium tracking-[0.06em] whitespace-nowrap text-accent-ink uppercase",
   setStore: "min-w-0 truncate",
   setAside: "font-normal text-ink-soft",
-  setPrice: "text-right font-mono font-medium text-accent",
+  setPrice: "text-right font-mono font-medium text-accent-ink",
   setsMore: "mt-2",
   setsMoreSummary:
     "tap cursor-pointer py-1 text-right text-[0.85rem] font-medium text-ink-soft underline decoration-line-soft underline-offset-3 marker:content-none hover:text-accent hover:decoration-accent [&::-webkit-details-marker]:hidden upto-980:text-left",
