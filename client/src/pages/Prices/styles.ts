@@ -67,9 +67,16 @@ export const pricesStyles = {
   // "Try: One Piece, Jujutsu Kaisen, ..."
   quick:
     "flex flex-wrap items-center gap-2 text-[0.85rem] text-muted upto-720:grid upto-720:grid-cols-3 upto-720:[&_span]:col-span-full upto-720:[&_a]:min-h-11 upto-720:[&_a]:place-items-center upto-720:[&_a]:px-1 upto-720:[&_a]:text-center [&_a]:tap [&_a]:rounded-[2px] [&_a]:border-[1.5px] [&_a]:border-line-soft [&_a]:bg-paper [&_a]:px-[0.65rem] [&_a]:py-[0.2rem] [&_a]:text-[0.85rem] [&_a]:text-ink-soft [&_a]:transition-[border-color] [&_a]:duration-120 [&_a]:ease-[ease] [&_a]:hover:border-line [&_a]:hover:text-ink",
-  // under the quick picks: the way in for someone who watched the anime
-  fromAnime:
-    "text-[0.88rem] text-ink-soft [&_a]:tap [&_a]:text-ink [&_a]:underline [&_a]:decoration-line-soft [&_a]:underline-offset-3 [&_a]:hover:decoration-current",
+  // the way in for someone coming from the anime: a caption strip under the
+  // two panels, inked in like a manga caption box, the question on a tilted
+  // accent label. The whole strip is the link
+  animeDoor:
+    "tap group mt-[clamp(1rem,2.5vw,1.5rem)] flex flex-wrap items-center gap-x-6 gap-y-2.5 border-3 border-line bg-ink px-[clamp(1.25rem,3vw,2rem)] py-4 text-paper shadow-ink transition-[translate] duration-150 ease-ink hover:-translate-px focus-visible:outline-2 focus-visible:outline-offset-3 focus-visible:outline-accent focus-visible:outline-dashed motion-reduce:transition-none",
+  animeDoorTitle:
+    "-rotate-2 bg-accent px-[0.35em] pt-[0.12em] pb-[0.05em] font-brand text-[clamp(1.3rem,2.6vw,1.75rem)] leading-none tracking-[0.03em] whitespace-nowrap text-on-accent uppercase",
+  animeDoorText: "min-w-0 flex-1 basis-[15rem] text-[1.02rem] leading-snug",
+  animeDoorGo:
+    "font-semibold whitespace-nowrap underline decoration-accent decoration-2 underline-offset-4 group-hover:decoration-current",
   // inside a results section the count sits above the grid, not overlapping
   count: "-mb-4 font-mono text-[0.78rem] text-muted [section>&]:mb-[0.9rem]",
 
