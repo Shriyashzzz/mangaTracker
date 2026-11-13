@@ -27,6 +27,15 @@ export type AnimeStop = {
   coversAll: boolean;
 };
 
+// "chapter 181", "volume 21" and "final chapter, 431" stay on one line: a
+// number alone at the start of a line reads as a mistake. For text shown on the page (a
+// no-break space); descriptions and markup keep plain spaces
+export const keepNumbers = (text: string) =>
+  text.replace(
+    /\b(chapter|volume|vol\.|season|part)(,?) (?=\d)/gi,
+    "$1$2\u00a0",
+  );
+
 // ---------- one season ----------
 
 // a panel's title: "After Season 2", "After the anime", "After the original

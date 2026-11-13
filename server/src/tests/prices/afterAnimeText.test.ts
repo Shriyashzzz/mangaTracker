@@ -7,6 +7,7 @@ import {
   answerText,
   buyVolume,
   endText,
+  keepNumbers,
   latestAnswer,
   latestAnswerText,
   pageHeading,
@@ -226,4 +227,18 @@ test("what a show's page says about itself", () => {
   expect(
     showMeta({ ...show, name: "The Promised Neverland" }, false, "x")!.title,
   ).toBe("Where does the Promised Neverland anime leave off in the manga?");
+});
+
+test("a number stays on the line of the word it belongs to", () => {
+  const kept = keepNumbers(
+    "After Season 3, start at chapter 181. Buy volume 21.",
+  );
+  // no-break spaces, in the three places a line could split
+  expect(kept).toBe(
+    "After Season\u00a03, start at chapter\u00a0181. Buy volume\u00a021.",
+  );
+  expect(keepNumbers("its final chapter, 431.")).toBe(
+    "its final chapter,\u00a0431.",
+  );
+  expect(keepNumbers("No numbers here")).toBe("No numbers here");
 });

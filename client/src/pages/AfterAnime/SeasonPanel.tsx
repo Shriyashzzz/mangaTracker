@@ -7,6 +7,7 @@ import {
   afterLabel,
   buyVolume,
   endText,
+  keepNumbers,
   seasonAnchor,
   startText,
   volumeAfter,
@@ -66,11 +67,13 @@ export default function SeasonPanel({
       <div className={styles.seasonWords}>
         {/* one heading, on two lines: the season, then the answer */}
         <h2 className={styles.seasonHeading}>
-          <span className={styles.seasonTitle}>{afterLabel(stop)}</span>
+          <span className={styles.seasonTitle}>
+            {keepNumbers(afterLabel(stop))}
+          </span>
           <span className="sr-only">: </span>
-          <span className={styles.start}>{startText(stop)}</span>
+          <span className={styles.start}>{keepNumbers(startText(stop))}</span>
         </h2>
-        {where && <p className={styles.end}>{where}</p>}
+        {where && <p className={styles.end}>{keepNumbers(where)}</p>}
         {stop.note && <p className={styles.note}>Worth knowing: {stop.note}</p>}
         {stop.corrected && (
           <span className={styles.corrected}>Corrected by a reader</span>
@@ -85,7 +88,7 @@ export default function SeasonPanel({
           <ul className={styles.buyList}>
             <BuyRow
               volume={toBuy!}
-              why={whyThisVolume(stop)}
+              why={keepNumbers(whyThisVolume(stop))}
               book={book}
               offer={offers[book.isbn13.trim()]}
             />
