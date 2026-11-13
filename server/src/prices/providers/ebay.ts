@@ -216,6 +216,106 @@ export type EbayMarket = keyof typeof MARKETS;
 // format "set": shown and labelled, never counted as this volume's price.
 // Prices include shipping; a listing with no shipping price (calculated at
 // checkout, or pickup only) is left out, since its real cost isn't known
+// what a search was for, as its listings are judged
+type Asked = {
+  // the volume's title, as its page has it
+  title: string;
+  // the title as matching reads it: a Kodansha omnibus ("Attack on Titan
+  // Omnibus 9 (Vol. 25-27)") goes by its own number, not the volumes it holds
+  matchTitle: string;
+  by: "isbn" | "title";
+  // a page for an omnibus: omnibus listings are the book itself
+  omnibusPage: boolean;
+  // a novel of this very volume is among the results: the series has both
+  // formats, so a manga's listing has to say it's manga
+  bothFormats: boolean;
+};
+
+// a listing as it's read: its tidied title, and the title with the series'
+// own name taken out two ways (see match.ts)
+type Listing = { name: string; bare: string; rest: string };
+
+// a listing that can't be an offer for this book, whatever it holds: another
+// language's edition, an import, a third party's rebinding, one of many books
+// to pick from, or (from a title search) the series' merchandise
+function isNotThisBook({ name, bare }: Listing, by: Asked["by"]) {
+  if (JAPANESE_EDITION.test(name) || /\bimport\b/i.test(name)) return true;
+  if (FOREIGN_EDITION.test(bare) || REBOUND.test(normalize(name))) return true;
+  // "choose from list": one of many books, which one unknown
+  if (PICK_ONE.test(bare)) return true;
+  return by === "title" && NOT_A_BOOK.test(bare);
+}
+
+// the page's own omnibus. Found by its ISBN it needs no more proof; from a
+// title search it has to name the series, this number, the page's edition
+// when it names one, and the right format
+function ownOmnibusFits({ name }: Listing, asked: Asked) {
+  if (asked.by !== "title") return true;
+  // a page that's an omnibus by its contents ("One Piece, Vol. 1 (Romance
+  // Dawn / …)") names no edition
+  const editionMatches =
+    editionsOf(asked.title).size === 0 || !otherEdition(name, asked.title);
+  return (
+    namesSeries(name, asked.matchTitle) &&
+    seriesThenVolume(name, asked.matchTitle) &&
+    editionMatches &&
+    formatFits(name, asked.title, asked.bothFormats)
+  );
+}
+
+// a box set, or an omnibus, holding this volume among others
+function setFits(
+  { name, bare, rest }: Listing,
+  isOmnibus: boolean,
+  asked: Asked,
+) {
+  const { title } = asked;
+  if (!setHolds(name, title)) return false;
+  // a box set has to say it's one: a lot of loose volumes isn't
+  if (!isOmnibus && !saysBoxSet(bare, rest)) return false;
+  // and of this series, not a sequel sharing its name (an omnibus often has
+  // an arc's name after the series': "One Piece: East Blue 1-2-3")
+  if (!isOmnibus && !ownSeriesSet(name, title)) return false;
+  if (asked.by !== "title") return true;
+  // a manga's box set rarely says "manga"; it only mustn't say novel
+  return (
+    namesSeries(name, title) &&
+    formatFits(name, title, false) &&
+    setOfBooks(name)
+  );
+}
+
+// one copy of this volume
+function singleFits({ name, rest }: Listing, asked: Asked) {
+  const { title } = asked;
+  // found by the ISBN: only a title naming another volume is dropped
+  if (asked.by === "isbn") return !namesOtherVolume(rest, asked.matchTitle);
+  // a plain volume's listing isn't the omnibus this page is for
+  if (asked.omnibusPage) return false;
+  // a single copy from a title search must name this volume's number
+  if (isNaN(volumeOf(title))) return false;
+  if (namesOtherVolume(rest, title)) return false;
+  return (
+    seriesThenVolume(name, title) &&
+    !otherEdition(name, title) &&
+    formatFits(name, title, asked.bothFormats)
+  );
+}
+
+// a price a copy like this could really go for
+function priceIsPlausible(
+  priceCents: number,
+  condition: "new" | "used",
+  isSet: boolean,
+  rest: string,
+  by: Asked["by"],
+) {
+  if (isSet) return plausibleSetPrice(priceCents, setSize(rest));
+  if (by === "isbn" && condition === "used")
+    return plausibleUsedByIsbn(priceCents);
+  return plausiblePrice(priceCents);
+}
+
 export function browseOffers(
   items: ItemSummary[],
   title: string,
@@ -223,124 +323,77 @@ export function browseOffers(
   by: "isbn" | "title" = "isbn",
 ): Offer[] {
   const { currency, store } = MARKETS[market];
-  const offers: Offer[] = [];
-  // a page for an omnibus: omnibus listings are the book itself
   const omnibusPage = isOmnibusBook(title);
-  // the title as matching reads it: a Kodansha omnibus ("Attack on Titan
-  // Omnibus 9 (Vol. 25-27)") goes by its own number, not the volumes it holds
   const matchTitle = omnibusPage ? omnibusTitle(title) : title;
-  // a novel of this very volume among the results: the series has both
-  // formats, so a manga's listing has to say it's manga. Junk that happens
-  // to say "novels" ("Assorted Anime Manga/Novels") doesn't count
-  const bothFormats = items.some((i) => {
-    const t = i.title ?? "";
-    return saysNovel(t) && seriesThenVolume(t, matchTitle);
+  // junk that happens to say "novels" ("Assorted Anime Manga/Novels")
+  // doesn't count: the listing has to be of this series and volume
+  const bothFormats = items.some((item) => {
+    const itemTitle = item.title ?? "";
+    return saysNovel(itemTitle) && seriesThenVolume(itemTitle, matchTitle);
   });
+  const asked: Asked = { title, matchTitle, by, omnibusPage, bothFormats };
+
+  const offers: Offer[] = [];
   for (const item of items) {
     const name = cleanTitle(item.title ?? "");
+    const listing: Listing = {
+      name,
+      bare: withoutSeriesWords(name, title),
+      rest: withoutSeriesName(name, title),
+    };
+    const { rest } = listing;
     // a listing with "calculated" shipping has no shipping price in a search
     // (eBay works it out per buyer), so its real cost isn't known: left out
     const shippingValue = item.shippingOptions?.[0]?.shippingCost?.value;
-    // the listing with the series' own name taken out (see match.ts)
-    const bare = withoutSeriesWords(name, title);
-    const rest = withoutSeriesName(name, title);
     if (!item.price || item.price.currency !== currency) continue;
     if (shippingValue === undefined || !item.itemWebUrl) continue;
-    if (JAPANESE_EDITION.test(name) || /\bimport\b/i.test(name)) continue;
-    // another language's edition, or a third party's rebinding
-    if (FOREIGN_EDITION.test(bare) || REBOUND.test(normalize(name))) continue;
-    // "choose from list": one of many books, which one unknown
-    if (PICK_ONE.test(bare)) continue;
-    // a title search finds the series' merchandise too
-    if (by === "title" && NOT_A_BOOK.test(bare)) continue;
-    // on an edition page the edition's word is part of the series' name
-    // ("Death Note Black Edition"), so it's read on the whole title there
-    const omnibus =
+    if (isNotThisBook(listing, by)) continue;
+
+    // which of three things it is. On an edition page the edition's word is
+    // part of the series' name ("Death Note Black Edition"), so it's read on
+    // the whole title there
+    const isOmnibus =
       isOmnibusListing(rest) || (omnibusPage && isOmnibusListing(name));
     // this page's own omnibus: named as one, or found by its ISBN under any
     // name ("One Piece: East Blue 1-2-3") unless it's plainly a box or a lot
-    const itself =
+    const foundByIsbnAsOneBook =
+      by === "isbn" && !isSingleVolume(rest) && !severalBooks(rest);
+    const isThePagesOmnibus =
       omnibusPage &&
       fitsOmnibusPage(rest, title) &&
-      (omnibus ||
-        (by === "isbn" && !isSingleVolume(rest) && !severalBooks(rest)));
+      (isOmnibus || foundByIsbnAsOneBook);
     // a box set or an omnibus holding this volume among others
-    const set = !itself && (omnibus || !isSingleVolume(rest));
-    if (itself) {
-      if (
-        by === "title" &&
-        !(
-          namesSeries(name, matchTitle) &&
-          seriesThenVolume(name, matchTitle) &&
-          // an edition named on the page has to match; a page that's an
-          // omnibus by its contents ("One Piece, Vol. 1 (Romance Dawn / …)")
-          // names none
-          (editionsOf(title).size === 0 || !otherEdition(name, title)) &&
-          formatFits(name, title, bothFormats)
-        )
-      )
-        continue;
-    } else if (set) {
-      if (!setHolds(name, title)) continue;
-      // a box set has to say it's one: a lot of loose volumes isn't
-      if (!omnibus && !saysBoxSet(bare, rest)) continue;
-      // and of this series, not a sequel sharing its name (an omnibus often
-      // has an arc's name after the series': "One Piece: East Blue 1-2-3")
-      if (!omnibus && !ownSeriesSet(name, title)) continue;
-      if (
-        by === "title" &&
-        !(
-          namesSeries(name, title) &&
-          // a manga's box set rarely says "manga"; it only mustn't say novel
-          formatFits(name, title, false) &&
-          setOfBooks(name)
-        )
-      )
-        continue;
-    } else if (by === "isbn") {
-      if (namesOtherVolume(rest, matchTitle)) continue;
-    } else if (omnibusPage) {
-      // a plain volume's listing isn't the omnibus this page is for
-      continue;
-    } else if (
-      // a single copy from a title search must name this volume's number
-      isNaN(volumeOf(title)) ||
-      namesOtherVolume(rest, title) ||
-      !(
-        seriesThenVolume(name, title) &&
-        !otherEdition(name, title) &&
-        formatFits(name, title, bothFormats)
-      )
-    ) {
-      continue;
-    }
+    const isSet = !isThePagesOmnibus && (isOmnibus || !isSingleVolume(rest));
+
+    let fits: boolean;
+    if (isThePagesOmnibus) fits = ownOmnibusFits(listing, asked);
+    else if (isSet) fits = setFits(listing, isOmnibus, asked);
+    else fits = singleFits(listing, asked);
+    if (!fits) continue;
+
+    // prices include shipping
     const priceCents =
       toCents(Number(item.price.value)) + toCents(Number(shippingValue));
     const condition = item.conditionId === "1000" ? "new" : "used";
-    if (
-      set
-        ? !plausibleSetPrice(priceCents, setSize(rest))
-        : !(
-            by === "isbn" && condition === "used"
-              ? plausibleUsedByIsbn
-              : plausiblePrice
-          )(priceCents)
-    )
-      continue;
+    if (!priceIsPlausible(priceCents, condition, isSet, rest, by)) continue;
+
+    let format: Offer["format"] = "print";
+    if (isSet) format = isOmnibus ? "omnibus" : "set";
+    // US links carry eBay US tracking here; Canadian ones get eBay Canada's
+    // where they're shown (prices/canada)
+    const url =
+      market === "US"
+        ? (item.itemAffiliateWebUrl ??
+          ebayAffiliateUrl(item.itemWebUrl, "listing"))
+        : item.itemWebUrl;
     offers.push({
       store,
-      format: set ? (omnibus ? "omnibus" : "set") : "print",
+      format,
       condition,
       priceCents,
       currency,
       inStock: true,
-      // US links carry eBay US tracking here; Canadian ones get eBay Canada's
-      // where they're shown (prices/canada)
-      url:
-        market === "US"
-          ? (item.itemAffiliateWebUrl ??
-            ebayAffiliateUrl(item.itemWebUrl, "listing"))
-          : item.itemWebUrl,
+      url,
     });
   }
   return cheapestOfEach(offers);

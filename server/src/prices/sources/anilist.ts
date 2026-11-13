@@ -339,74 +339,78 @@ export const withAltNames = (info: SeriesInfo): SeriesInfo => ({
   altNames: info.altNames ?? [],
 });
 
+type SavedInfo = { info: unknown; fetchedAt: Date } | null;
+
+// whether a saved answer can be used as it is. Not when it's old or
+// incomplete, nor when it's a novel's row saved before novels were looked up
+// as novels (it holds the manga's answer). A row missing its Japanese name or
+// its authors is asked for again too, a few a minute (mayAskForNative)
+function savedAnswerStands(saved: SavedInfo, name: string) {
+  if (!saved) return false;
+  const isFresh = Date.now() - saved.fetchedAt.getTime() < SERIES_FRESH_MS;
+  if (!isFresh || !isComplete(saved.info)) return false;
+  const holdsTheMangasAnswer =
+    isNovelName(name) &&
+    saved.info != null &&
+    !isNovelName((saved.info as SeriesInfo).name ?? "");
+  if (holdsTheMangasAnswer) return false;
+  const lacksSomething =
+    lacksNativeName(saved.info) || lacksAuthors(saved.info);
+  // only counted against the minute's allowance when it would be used
+  if (lacksSomething && mayAskForNative()) return false;
+  return true;
+}
+
+// AniList's answer for a series: a manga by its name, a light novel by its
+// base name among the novels found. Null when it knows none
+async function askAniList(name: string): Promise<SeriesInfo | null> {
+  if (isNovelName(name)) {
+    const answer = await query<{ Page: { media: Media[] } }>(
+      NOVEL_SERIES_QUERY,
+      { search: baseName(name) },
+    );
+    const found = pickNamed(baseName(name), answer.Page.media);
+    return found ? asNovel(toInfo(found)) : null;
+  }
+  const answer = await query<{ Media: Media | null }>(SERIES_QUERY, {
+    search: name,
+    format: "MANGA",
+  });
+  return answer.Media ? toInfo(answer.Media) : null;
+}
+
+// keeps an answer, "there's none" included
+function saveInfo(slug: string, info: SeriesInfo | null) {
+  // Prisma needs DbNull (SQL NULL) rather than a JS null for a Json column
+  const value = info ?? Prisma.DbNull;
+  return prisma.seriesInfo.upsert({
+    where: { slug },
+    create: { slug, info: value, fetchedAt: new Date() },
+    update: { info: value, fetchedAt: new Date() },
+  });
+}
+
 export async function getSeriesInfo(name: string): Promise<SeriesInfo | null> {
   const slug = slugify(name);
   if (!slug) return null;
-  const cached = await prisma.seriesInfo.findUnique({ where: { slug } });
-  // a novel's row saved before novels were looked up as novels holds the
-  // manga's answer: asked again
-  const wrongFormat =
-    isNovelName(name) &&
-    cached?.info != null &&
-    !isNovelName((cached.info as SeriesInfo).name ?? "");
-  if (
-    cached &&
-    Date.now() - cached.fetchedAt.getTime() < SERIES_FRESH_MS &&
-    isComplete(cached.info) &&
-    !wrongFormat &&
-    !(
-      (lacksNativeName(cached.info) || lacksAuthors(cached.info)) &&
-      mayAskForNative()
-    )
-  ) {
-    return cached.info ? tidy(cached.info as SeriesInfo) : null;
-  }
+  const saved = await prisma.seriesInfo.findUnique({ where: { slug } });
+  if (saved && savedAnswerStands(saved, name))
+    return saved.info ? tidy(saved.info as SeriesInfo) : null;
 
   try {
-    const novel = isNovelName(name);
-    const found = novel
-      ? pickNamed(
-          baseName(name),
-          (
-            await query<{ Page: { media: Media[] } }>(NOVEL_SERIES_QUERY, {
-              search: baseName(name),
-            })
-          ).Page.media,
-        )
-      : (
-          await query<{ Media: Media | null }>(SERIES_QUERY, {
-            search: name,
-            format: "MANGA",
-          })
-        ).Media;
-    const info = found
-      ? novel
-        ? asNovel(toInfo(found))
-        : toInfo(found)
-      : null;
-    // Prisma needs DbNull (SQL NULL) rather than a JS null for a Json column
-    const value = info ?? Prisma.DbNull;
-    await prisma.seriesInfo.upsert({
-      where: { slug },
-      create: { slug, info: value, fetchedAt: new Date() },
-      update: { info: value, fetchedAt: new Date() },
-    });
+    const info = await askAniList(name);
+    await saveInfo(slug, info);
     return info;
   } catch (e) {
     // no match at all is an answer, kept like any other
-    if (/responded 404/.test((e as Error).message)) {
-      await prisma.seriesInfo
-        .upsert({
-          where: { slug },
-          create: { slug, info: Prisma.DbNull, fetchedAt: new Date() },
-          update: { info: Prisma.DbNull, fetchedAt: new Date() },
-        })
-        .catch(() => {});
+    const noMatch = /responded 404/.test((e as Error).message);
+    if (noMatch) {
+      await saveInfo(slug, null).catch(() => {});
       return null;
     }
     // a stale answer beats none if AniList is down or rate limiting us
     console.error("AniList series lookup failed:", (e as Error).message);
-    return cached?.info ? withAltNames(cached.info as SeriesInfo) : null;
+    return saved?.info ? withAltNames(saved.info as SeriesInfo) : null;
   }
 }
 
