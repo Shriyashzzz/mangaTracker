@@ -29,7 +29,6 @@ export default function AddToCalendar({
   fileName,
   big = false,
   text,
-  hint = false,
 }: {
   volumes: CalendarVolume[];
   // what the button says to screen readers ("Add Dandadan Vol. 22 to calendar")
@@ -39,8 +38,6 @@ export default function AddToCalendar({
   big?: boolean;
   // what that button says ("Save all 6 dates"); a row's says Add to calendar
   text?: string;
-  // the word on how each calendar takes the file (once a page is enough)
-  hint?: boolean;
 }) {
   const [open, setOpen] = useState(false);
   const box = useRef<HTMLDivElement>(null);
@@ -81,8 +78,7 @@ export default function AddToCalendar({
     setOpen(false);
   };
 
-  // the button with its menu
-  const button = (
+  return (
     <div className={styles.addBox} ref={box}>
       <button
         type="button"
@@ -119,9 +115,6 @@ export default function AddToCalendar({
               onClick={saveFile}
             >
               Google Calendar
-              <span className={styles.addHint}>
-                saves a file, then choose it on Google's import page
-              </span>
             </a>
           )}
           <button type="button" className={styles.addItem} onClick={saveFile}>
@@ -130,16 +123,6 @@ export default function AddToCalendar({
           </button>
         </div>
       )}
-    </div>
-  );
-  if (!hint) return button;
-  // once a page: a word on which calendars it works with, beside the button
-  return (
-    <div className={styles.addAllBox}>
-      {button}
-      <span className={styles.addHint}>
-        Works with Apple Calendar, Outlook and Google Calendar.
-      </span>
     </div>
   );
 }
