@@ -43,11 +43,11 @@ export async function lookupScannedIsbn(isbn13: string) {
   // every volume in it, or nothing at all when it can't say which
   const omnibus = inBook ? null : (inEdition ?? omnibusVolumes(book.title));
   if (omnibus && !omnibus.length) return null;
-  const volume = inBook
-    ? inBook.from
-    : omnibus
-      ? omnibus[0]!
-      : titleVolume(book.title);
+  // the first volume it holds: as its series' list says, as its title
+  // says, or the one volume its title names
+  let volume = titleVolume(book.title);
+  if (inBook) volume = inBook.from;
+  else if (omnibus) volume = omnibus[0]!;
   if (volume == null) return null;
   // the catalog sometimes says so only in brackets ("Overlord, Vol. 3 (light
   // novel)"), which seriesName drops

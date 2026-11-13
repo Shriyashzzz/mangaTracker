@@ -456,14 +456,11 @@ export function readBooks(rows: string[][], source: BookSource): Book[] {
   // their own backup: read as written, nothing guessed
   if (source === "csv" && isOwnExport(h))
     return body.flatMap((row) => ownExportBooks(h, row));
-  const toBook =
-    source === "goodreads"
-      ? goodreadsBook
-      : source === "bookcatalogue"
-        ? bookCatalogueBook
-        : isBookshelfApp(h)
-          ? bookshelfAppBook
-          : csvBook;
+  // how a row is read: by the app the file came from
+  let toBook = csvBook;
+  if (source === "goodreads") toBook = goodreadsBook;
+  else if (source === "bookcatalogue") toBook = bookCatalogueBook;
+  else if (isBookshelfApp(h)) toBook = bookshelfAppBook;
   // any column of ISBNs: each row's goes with its book
   const isbnAt = header(h, /^isbn ?13$/i, /^isbn$/i, /isbn/i);
   const withIsbn = (row: string[], book: Book | null): Book[] => {

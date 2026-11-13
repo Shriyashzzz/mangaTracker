@@ -13,6 +13,14 @@ export const books = (n: number) =>
   `${n.toLocaleString()} book${n === 1 ? "" : "s"}`;
 
 // each row is a book; volumes of one series come in as one
+// the last screen's headline: new series, or only new volumes, or nothing
+// new
+export function doneTitle(totals: { added: number; volumesAdded?: number }) {
+  if (totals.added) return `${series(totals.added)} added!`;
+  if (totals.volumesAdded) return "Volumes added!";
+  return "All already there!";
+}
+
 export function foundLine(found: BookSeries[]) {
   let rows = 0;
   for (const s of found) rows += s.books;

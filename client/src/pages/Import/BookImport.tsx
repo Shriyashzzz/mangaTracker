@@ -33,7 +33,7 @@ import {
 import ImportList from "./ImportList";
 import { getJson } from "../../lib/api";
 import { FilesInImport, StopButton, WaitingDots } from "./BookImportParts";
-import { APP_NAME, foundLine, HOW, series } from "./bookImportText";
+import { APP_NAME, doneTitle, foundLine, HOW, series } from "./bookImportText";
 
 // ISBN-only rows looked up in one file, at most (the scan allows 60 a minute)
 const MAX_ISBN_LOOKUPS = 50;
@@ -81,14 +81,15 @@ export default function BookImport({ source }: { source: BookSource }) {
     const joining = Boolean(ours && found);
     // can't join: say why, rather than taking the files and doing nothing
     if (joining) {
-      const why =
-        imported.progress !== null
-          ? "Wait until this import has gone on your shelf, then start a new one with that file."
-          : imported.finished
-            ? "This import is done. Start a new one with that file."
-            : !imported.books.length
-              ? "This import was too big for the browser to keep every book, so no more files can join it after a reload. Stop it and import all your files together."
-              : null;
+      let why: string | null = null;
+      if (imported.progress !== null)
+        why =
+          "Wait until this import has gone on your shelf, then start a new one with that file.";
+      else if (imported.finished)
+        why = "This import is done. Start a new one with that file.";
+      else if (!imported.books.length)
+        why =
+          "This import was too big for the browser to keep every book, so no more files can join it after a reload. Stop it and import all your files together.";
       if (why) {
         setFileErrors([why]);
         return;
@@ -237,11 +238,7 @@ export default function BookImport({ source }: { source: BookSource }) {
           <Mascot mood="happy" />
         </span>
         <h2 className={styles.resultTitle} role="status">
-          {totals.added
-            ? `${series(totals.added)} added!`
-            : totals.volumesAdded
-              ? "Volumes added!"
-              : "All already there!"}
+          {doneTitle(totals)}
         </h2>
         <p className={styles.resultBody}>
           {totals.alreadyThere > 0 &&

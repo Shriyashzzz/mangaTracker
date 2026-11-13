@@ -63,10 +63,6 @@ const sum = (numbers: number[]) => {
   return total;
 };
 
-// a whole-numbered volume from 1, as the shelf counts them
-const isMainVolume = (volume: number) =>
-  volume >= 1 && Number.isInteger(volume);
-
 export async function getShelfTools(userId: number): Promise<ShelfTools> {
   const shelf = await mangaQueries.getShelf(userId);
   const [series, lines] = await Promise.all([
@@ -91,7 +87,7 @@ export async function getShelfTools(userId: number): Promise<ShelfTools> {
   let unlisted = 0;
   for (const manga of shelf) {
     if (listedIds.has(manga.id)) continue;
-    unlisted += [...ownedSet(manga)].filter(isMainVolume).length;
+    unlisted += ownedSet(manga).size;
   }
   const ownedBySeries = series.map((s) => ({
     owned: { volumesOwned: s.manga.volumesOwned, ownedList: s.manga.ownedList },

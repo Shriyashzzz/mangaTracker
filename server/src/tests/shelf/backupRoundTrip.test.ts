@@ -98,3 +98,64 @@ test("a backup read back keeps the volume read, the books and the edition", () =
   expect(onePiece).not.toHaveProperty("edition");
   expect(onePiece.byVolume).toBe(false);
 });
+
+// the export guards a cell a spreadsheet would read as a formula with an
+// apostrophe; reading the backup has to take it off again, or the cell comes
+// back changed
+test("a title, a note or a book starting with = + - or @ comes back as it was", () => {
+  const shelf = [
+    manga(1, {
+      name: "+Anima",
+      description: "- starts with a dash",
+      volumesOwned: 2,
+    }),
+    manga(2, { name: "@Full Moon", description: "=not a formula" }),
+    manga(3, { name: "Plain", description: "'=kept with its apostrophe" }),
+  ];
+  const csv = shelfToCsv(shelf, {
+    // no ISBN on the first book: its cell starts with a dash
+    1: [
+      {
+        isbn13: null,
+        edition: "single",
+        number: 1,
+        title: null,
+        volumes: [1],
+        paidCents: 999,
+        boughtOn: "2026-02-03T00:00:00.000Z",
+      },
+      {
+        isbn13: null,
+        edition: "single",
+        number: 2,
+        title: null,
+        volumes: [2],
+        paidCents: 1099,
+      },
+    ],
+  });
+  const entries = groupBooks(readBooks(parseCsv(csv), "csv")).map((s) =>
+    toEntry(s),
+  );
+  expect(entries.map((e) => e.title).sort()).toEqual(
+    ["+Anima", "@Full Moon", "Plain"].sort(),
+  );
+  const anima = entries.find((e) => e.title === "+Anima")!;
+  expect(anima.comments).toBe("- starts with a dash");
+  expect(anima.books).toMatchObject([
+    {
+      edition: "single",
+      number: 1,
+      volumes: [1],
+      paidCents: 999,
+      boughtOn: "2026-02-03",
+    },
+    { edition: "single", number: 2, volumes: [2], paidCents: 1099 },
+  ]);
+  expect(entries.find((e) => e.title === "@Full Moon")!.comments).toBe(
+    "=not a formula",
+  );
+  expect(entries.find((e) => e.title === "Plain")!.comments).toBe(
+    "'=kept with its apostrophe",
+  );
+});

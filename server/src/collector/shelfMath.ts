@@ -87,8 +87,10 @@ export type ShelfValue = {
   priced: number;
   // owned volumes we know the book of
   volumes: number;
-  // owned volumes of series with no saved list: counted only in the estimate,
-  // at the shelf's usual used price
+  // owned volumes we know no book for: every one of a series with no saved
+  // list, and any a series' list doesn't have (a special, a number no
+  // catalog lists yet). Counted only in the estimate, at the shelf's usual
+  // used price, so the estimate covers everything they own
   unlisted: number;
   // the priced ones plus an estimate for the rest: each at its series' usual
   // used price, or the shelf's when the series has none yet. Null when nothing
@@ -120,17 +122,23 @@ export function shelfValue(
   // each series' owned books, in order. A book holding two volumes (one
   // ISBN) is counted once, across the whole shelf
   const counted = new Set<string>();
+  // owned volumes their series' list has no book for
+  let notInALists = 0;
   const booksBySeries = series.map(({ owned, volumes }) => {
     const mine = ownedSet(owned);
     const books: ListedVolume[] = [];
+    const ownedAndListed = new Set<number>();
     for (const v of volumes) {
       if (!isMainVolume(v) || !mine.has(v.volume)) continue;
+      ownedAndListed.add(v.volume);
       if (counted.has(v.isbn13)) continue;
       counted.add(v.isbn13);
       books.push(v);
     }
+    notInALists += mine.size - ownedAndListed.size;
     return books;
   });
+  const withoutABook = unlisted + notInALists;
   const allBooks = booksBySeries.flat();
 
   const prices = knownPrices(allBooks);
@@ -144,13 +152,13 @@ export function shelfValue(
     const seriesUsual = seriesPrices.length ? median(seriesPrices) : shelfUsual;
     for (const book of books) estimate += usedPrice(book) ?? seriesUsual;
   }
-  estimate += unlisted * shelfUsual;
+  estimate += withoutABook * shelfUsual;
 
   return {
     cents: sum(prices),
     priced: prices.length,
     volumes: allBooks.length,
-    unlisted,
+    unlisted: withoutABook,
     estimateCents: prices.length ? estimate : null,
   };
 }

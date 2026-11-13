@@ -72,12 +72,11 @@ export function behindOf(
   return Math.max(1, found.outVolumes.length);
 }
 
-const dateOf = (found: ReleaseStatus, kind: ReleaseKind) =>
-  kind === "volumes"
-    ? found.latestVolumeDate
-    : kind === "chapters"
-      ? found.latestChapterDate
-      : found.latestJapaneseVolumeDate;
+function dateOf(found: ReleaseStatus, kind: ReleaseKind) {
+  if (kind === "volumes") return found.latestVolumeDate;
+  if (kind === "chapters") return found.latestChapterDate;
+  return found.latestJapaneseVolumeDate;
+}
 
 export function pileOf(
   found: ReleaseStatus | null | undefined,

@@ -12,6 +12,16 @@ import {
 import { formatCents, volumePath } from "../../lib/prices";
 import { pricesStyles as styles } from "./styles";
 
+// a book's price: the one we know, a nudge to check it, or nothing when the
+// catalog has no ISBN to check it by
+function priceText(book: {
+  knownPriceCents?: number | null;
+  isbn13: string | null;
+}) {
+  if (book.knownPriceCents != null) return formatCents(book.knownPriceCents);
+  return book.isbn13 ? "check price" : "";
+}
+
 export default function EditionsBox({
   line,
   owned,
@@ -45,13 +55,7 @@ export default function EditionsBox({
                 {first ? (theirs ? "Next for you" : "Starts with") : "Then"}
               </span>
               <span className={styles.setStore}>{label}</span>
-              <span className={styles.setPrice}>
-                {book.knownPriceCents != null
-                  ? formatCents(book.knownPriceCents)
-                  : book.isbn13
-                    ? "check price"
-                    : ""}
-              </span>
+              <span className={styles.setPrice}>{priceText(book)}</span>
               {/* the volumes inside, under the book's name */}
               <span className={styles.editionsBoxInside}>
                 {insideText(book)}
