@@ -164,7 +164,7 @@ export type Prefs = {
   hideEbooks?: "yes" | "no";
   // what the shelf opens on
   shelfTab?: ShelfTab;
-  // "" is last bookmarked (SORT_OPTIONS in lib/shelf.ts)
+  // "" is last updated (SORT_OPTIONS in lib/shelf.ts)
   shelfSort?: ShelfSort;
   // how the shelf lists manga: big covers, or compact rows
   shelfView?: "covers" | "rows";

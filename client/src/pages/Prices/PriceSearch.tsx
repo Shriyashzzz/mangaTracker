@@ -145,32 +145,39 @@ export default function PriceSearch() {
             />
 
             {!searching && (
-              <>
-                <p className={styles.quick}>
-                  <span>Try</span>
-                  {QUICK_PICKS.map(({ name, only }) => (
-                    <NavLink
-                      key={name}
-                      // short hand-picked names, not AniList's: found by name
-                      to={seriesPath(name)}
-                      className={only}
-                      viewTransition
-                    >
-                      {name}
-                    </NavLink>
-                  ))}
-                </p>
-                {/* for someone coming from the anime */}
-                <p className={styles.fromAnime}>
-                  Watched the anime?{" "}
-                  <NavLink to="/after-the-anime" viewTransition>
-                    See where to start the manga
+              <p className={styles.quick}>
+                <span>Try</span>
+                {QUICK_PICKS.map(({ name, only }) => (
+                  <NavLink
+                    key={name}
+                    // short hand-picked names, not AniList's: found by name
+                    to={seriesPath(name)}
+                    className={only}
+                    viewTransition
+                  >
+                    {name}
                   </NavLink>
-                </p>
-              </>
+                ))}
+              </p>
             )}
           </header>
         </div>
+
+        {/* a third way in, for someone coming from the anime: one bold
+            caption strip under the two panels, all of it a link */}
+        {!searching && (
+          <NavLink
+            to="/after-the-anime"
+            className={styles.animeDoor}
+            viewTransition
+          >
+            <span className={styles.animeDoorTitle}>Finished the anime?</span>
+            <span className={styles.animeDoorText}>
+              Find the chapter and volume of the manga to start from.
+            </span>
+            <span className={styles.animeDoorGo}>Find where to start →</span>
+          </NavLink>
+        )}
 
         {!searching && <WhatsNew />}
       </div>

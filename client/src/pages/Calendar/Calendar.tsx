@@ -100,7 +100,6 @@ export default function CalendarPage() {
             label="Save every upcoming release date to your calendar"
             fileName="Upcoming manga releases.ics"
             text={`Save every date (${months.reduce((n, m) => n + m.volumes.length, 0)})`}
-            hint
           />
         </div>
       )}

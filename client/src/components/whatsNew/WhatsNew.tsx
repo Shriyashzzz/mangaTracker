@@ -1,18 +1,16 @@
 // The "what's new" list, out in the empty margin right of the page so the page
-// itself keeps its full width. Screens without that margin get ReleaseTip
-// instead (same 1500px line: narrower margins left it too cramped), so every screen hears about it exactly one way.
+// itself keeps its full width: the newest feature on top with a way to try
+// it, then the tour, then the last few by name. Only on screens with that
+// margin (1500px and wider); narrower ones get ReleaseTip.
 import type { ReactNode } from "react";
 import { NavLink } from "react-router";
-import { useReleaseChecksOn } from "../../lib/prefs";
-import { openReleasesOnShelf } from "../../lib/shelf";
-import { useAuth } from "../../store/auth";
 import TakeTourButton from "../tour/TakeTourButton";
 
 // the newest big ones only; the rest are on /updates
 const ITEMS = [
   {
-    name: "After the anime",
-    body: "See which chapter and volume to start at after a season.",
+    name: "Read by volume",
+    body: "Keep your place by chapter, by volume, or both.",
   },
   {
     name: "Deluxe and omnibus editions",
@@ -26,9 +24,6 @@ const ITEMS = [
 
 // children sit above the list, in the same margin column
 export default function WhatsNew({ children }: { children?: ReactNode }) {
-  const isSignedIn = useAuth((s) => s.isSignedIn);
-  const checksOn = useReleaseChecksOn();
-
   return (
     // as wide as the margin allows: half the space beside the page's content,
     // less the gap either side
@@ -52,23 +47,19 @@ export default function WhatsNew({ children }: { children?: ReactNode }) {
         </h2>
 
         <h3 className="mt-2 font-display text-[0.98rem] leading-[1.15] font-medium">
-          New English volumes
+          After the anime
         </h3>
         <p className="mt-1 text-[0.82rem] leading-[1.35] text-ink-soft">
-          See which series on your shelf have a new volume or chapter out in
-          English.
+          Finished a season? See which chapter and volume of the manga to start
+          from.
         </p>
-        {/* a guest's way in is the box above; two sign-ups would be one too many */}
-        {isSignedIn && checksOn && (
-          <NavLink
-            to="/shelf"
-            className="tap mt-1 inline-block py-1 text-[0.82rem] font-medium whitespace-nowrap text-ink underline decoration-accent decoration-2 underline-offset-3 hover:decoration-line"
-            onClick={openReleasesOnShelf}
-            viewTransition
-          >
-            Check shelf →
-          </NavLink>
-        )}
+        <NavLink
+          to="/after-the-anime"
+          className="tap mt-1 inline-block py-1 text-[0.82rem] font-medium whitespace-nowrap text-ink underline decoration-accent decoration-2 underline-offset-3 hover:decoration-line"
+          viewTransition
+        >
+          Try it →
+        </NavLink>
 
         {/* just the names in a slim margin; wider ones have room to explain */}
         {/* anyone can try the whole site on a practice shelf, signed in or not */}

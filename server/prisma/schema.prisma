@@ -77,6 +77,11 @@ model Manga {
   hiddenVolumes   Float[] @default([]) @map("hidden_volumes")
   // the latest chapter last found for this series; updated by each lookup
   latestChapter   Float?  @map("latest_chapter")
+  // when the reader last changed it (their place, what they own, a rating,
+  // notes, where it sits on the shelf): the shelf's "Last updated" order. Set
+  // by hand in models/mangaQueries.ts, so a release check or a hidden card
+  // doesn't move a series up
+  updatedAt       DateTime @default(now()) @map("updated_at") @db.Timestamptz(6)
 
   // the last release check's answer, so the New tab can open without asking
   // every other site again (ReleaseAnswer)

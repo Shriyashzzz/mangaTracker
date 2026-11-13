@@ -5,7 +5,7 @@
 // tour's target). Search takes the rest
 // of the row and never grows, so nothing moves when you click it; on phones it
 // waits behind a magnifier and takes the title's place while open. Sorting is
-// a menu: "Sorted by last bookmarked" on laptops, a sort button on phones.
+// a menu: "Sorted by last updated" on laptops, a sort button on phones.
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import {
   CheckIcon,

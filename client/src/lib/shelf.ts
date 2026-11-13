@@ -44,7 +44,8 @@ export const getSavedReleases = (signal?: AbortSignal) =>
 export const RELEASE_CHECK_TIMEOUT_MS = 50_000;
 
 export const SORT_OPTIONS = [
-  { value: "", label: "Last bookmarked" },
+  // the order the server sends: the series they changed last, first
+  { value: "", label: "Last updated" },
   { value: "rating-dsc", label: "Highest rated" },
   { value: "ch-dsc", label: "Most chapters read" },
   // a collector's biggest runs first

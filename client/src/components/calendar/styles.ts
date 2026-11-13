@@ -65,7 +65,6 @@ export const calendarParts = {
   addAll:
     "tap inline-flex items-center gap-2 border-2 border-line bg-card px-3.5 py-2 text-[0.88rem] font-semibold whitespace-nowrap shadow-ink transition-[translate] duration-150 ease-ink hover:-translate-px focus-visible:outline-2 focus-visible:outline-offset-3 focus-visible:outline-accent focus-visible:outline-dashed aria-expanded:bg-accent-wash",
   addWord: "",
-  addAllBox: "flex flex-wrap items-center gap-x-4 gap-y-1.5",
   addIcon: "size-4 shrink-0",
   addMenu:
     "absolute top-full left-0 z-20 mt-1 flex w-60 upto-520:w-56 flex-col border-2 border-line bg-card text-left shadow-ink animate-drop motion-reduce:animate-none",
