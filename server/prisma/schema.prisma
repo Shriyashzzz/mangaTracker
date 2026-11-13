@@ -324,3 +324,50 @@ model CaPriceSample {
   @@index([isbn13, fetchedAt(sort: Desc)])
   @@map("ca_price_samples")
 }
+
+// ---------- after the anime (see src/prices/afterAnime) ----------
+
+// what MangaUpdates says about where a series' anime starts and ends, as it
+// wrote it; read into seasons each time it's asked for (animeLines.ts), so a
+// better reader needs no refetch. A series it doesn't know, or that has no
+// anime, is kept too, with both lines null. Keyed like series_info
+model AnimeStops {
+  slug        String   @id @db.VarChar(80)
+  // the series' own name, for the list of every show
+  name        String   @db.VarChar(300)
+  startLine   String?  @map("start_line")
+  endLine     String?  @map("end_line")
+  // the manga's latest chapter and whether it's finished, to tell when the
+  // anime has adapted all of it
+  lastChapter Int?     @map("last_chapter")
+  completed   Boolean  @default(false)
+  // its page on MangaUpdates, for the credit
+  sourceUrl   String?  @map("source_url")
+  fetchedAt   DateTime @default(now()) @map("fetched_at") @db.Timestamptz(6)
+
+  @@map("anime_stops")
+}
+
+// a reader's correction to where a season ends. Shown only once accepted
+// (status), and then it replaces what MangaUpdates says for that season
+model AnimeFix {
+  id        Int       @id @default(autoincrement())
+  slug      String    @db.VarChar(80)
+  name      String    @db.VarChar(300)
+  // the season it's about, as the page names it: "Season 2"
+  label     String    @db.VarChar(60)
+  // the last chapter the season adapts, and the volume to start from
+  chapter   Float?
+  volume    Int?
+  // where they read it, and anything they want to add
+  source    String    @db.VarChar(500)
+  note      String?   @db.VarChar(500)
+  // "pending", "accepted" or "rejected"
+  status    String    @default("pending") @db.VarChar(10)
+  createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  decidedAt DateTime? @map("decided_at") @db.Timestamptz(6)
+
+  @@index([slug, status])
+  @@index([status, createdAt])
+  @@map("anime_fixes")
+}

@@ -48,7 +48,11 @@ test("a season that ends with its volume carries on in the next one", () => {
     "Vol 1, Chap 1 (S1) / Vol 12, Chap 95 (S2)",
     "Vol 11, Chap 94 (S1) / Vol 17, Chap 149 (S2)",
   );
-  expect(first).toMatchObject({ endVolume: 11, nextChapter: 95, nextVolume: 12 });
+  expect(first).toMatchObject({
+    endVolume: 11,
+    nextChapter: 95,
+    nextVolume: 12,
+  });
 });
 
 test("what's said after a season is kept as its note", () => {
@@ -90,7 +94,10 @@ test("a bracket that's a remark is a note, not a season's name", () => {
 
 test("chapters alone, volumes alone, and a missing comma are all read", () => {
   expect(
-    readAnimeStops("Chap 0 (S1) / Chap 46 (S2)", "Chap 45 (S1) / Chap 110 (S2)"),
+    readAnimeStops(
+      "Chap 0 (S1) / Chap 46 (S2)",
+      "Chap 45 (S1) / Chap 110 (S2)",
+    ),
   ).toMatchObject([
     { label: "Season 1", endVolume: null, endChapter: 45, nextChapter: 46 },
     { label: "Season 2", endVolume: null, endChapter: 110, nextChapter: 111 },
