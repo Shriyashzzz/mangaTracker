@@ -370,8 +370,7 @@ export const pricesStyles = {
   // two inked tabs, the pressed one filled
   segmented:
     "inline-flex overflow-hidden rounded-ink border-2 border-line [&_button]:min-h-11 [&_button]:bg-card [&_button]:px-4 [&_button]:text-[0.92rem] [&_button]:font-medium [&_button]:text-ink-soft [&_button]:transition-[background-color,color] [&_button]:duration-120 [&_button]:ease-[ease] [&_button]:hover:text-ink [&_button+button]:border-l-2 [&_button+button]:border-line [&_button[aria-pressed=true]]:bg-ink [&_button[aria-pressed=true]]:text-paper",
-  genrePick:
-    "flex items-center gap-2 text-[0.875rem] text-muted [&_select]:min-h-11 [&_select]:rounded-ink [&_select]:border-[1.5px] [&_select]:border-line [&_select]:bg-card [&_select]:px-[0.6rem] [&_select]:text-[16px] [&_select]:text-ink",
+  genrePick: "flex items-center gap-2 text-[0.875rem] text-muted [&>div]:w-48",
   // A to Z: a jump bar, then one block per letter
   letterBar:
     "flex flex-wrap gap-1 [&_a]:grid [&_a]:h-[34px] [&_a]:min-w-[34px] upto-720:[&_a]:h-11 upto-720:[&_a]:min-w-11 [&_a]:place-items-center [&_a]:rounded-[2px] [&_a]:border-[1.5px] [&_a]:border-line-soft [&_a]:font-brand [&_a]:text-[1.1rem] [&_a]:text-ink-soft [&_a]:transition-[border-color,color] [&_a]:duration-120 [&_a]:ease-[ease] [&_a]:hover:border-line [&_a]:hover:text-accent",

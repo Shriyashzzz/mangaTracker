@@ -4,6 +4,7 @@
 // tapped (SeriesSheet). An open series is in the address (?series=), so a
 // link can open straight to it. Someone without an account gets Kenji on their first
 // three visits (SharePeek) and a way to start their own at the end
+import { SortMenu } from "../Home/ShelfBar";
 import { useEffect, useMemo, useState } from "react";
 import {
   NavLink,
@@ -216,20 +217,18 @@ export default function SharedShelfPage() {
               ))}
             </div>
             {/* on phones the order is a menu, so it shares a line with the layout */}
-            <label className={styles.sortMenu}>
-              <span className="sr-only">Order</span>
-              <select
-                className={styles.sortSelect}
-                value={sort}
-                onChange={(e) => setSort(e.target.value as Sort)}
-              >
-                {(Object.keys(SORTS) as Sort[]).map((key) => (
-                  <option key={key} value={key}>
-                    {SORTS[key].label}
-                  </option>
-                ))}
-              </select>
-            </label>
+            <div className={styles.sortMenu}>
+              <SortMenu
+                box
+                menuLabel="Order"
+                options={(Object.keys(SORTS) as Sort[]).map((key) => ({
+                  value: key,
+                  label: SORTS[key].label,
+                }))}
+                sortBy={sort}
+                onSort={setSort}
+              />
+            </div>
             <div className={styles.views} role="group" aria-label="Layout">
               {(Object.keys(VIEWS) as View[]).map((key) => (
                 <button

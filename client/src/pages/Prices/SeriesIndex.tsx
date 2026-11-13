@@ -1,3 +1,4 @@
+import { SortMenu } from "../Home/ShelfBar";
 import type { SeriesIndexEntry } from "../../lib/types";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { NavLink, useSearchParams } from "react-router";
@@ -188,20 +189,20 @@ export default function SeriesIndex() {
             ))}
           </div>
           {genres.length > 0 && (
-            <label className={styles.genrePick}>
-              <span>Genre</span>
-              <select
-                value={genre}
-                onChange={(e) => setChoice("genre", e.target.value)}
-              >
-                <option value="">All genres</option>
-                {genres.map((g) => (
-                  <option key={g} value={g}>
-                    {g}
-                  </option>
-                ))}
-              </select>
-            </label>
+            <div className={styles.genrePick}>
+              <label htmlFor="index-genre">Genre</label>
+              <SortMenu
+                box
+                id="index-genre"
+                menuLabel="Genre"
+                options={[
+                  { value: "", label: "All genres" },
+                  ...genres.map((g) => ({ value: g, label: g })),
+                ]}
+                sortBy={genre}
+                onSort={(value) => setChoice("genre", value)}
+              />
+            </div>
           )}
         </div>
       </header>

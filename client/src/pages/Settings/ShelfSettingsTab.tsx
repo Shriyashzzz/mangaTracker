@@ -1,5 +1,6 @@
 // Settings, Your shelf: covers or rows, how reading is tracked (by chapter,
 // by volume, or both), and the tab and order the shelf opens on.
+import { SortMenu } from "../Home/ShelfBar";
 import { useState } from "react";
 import { SHELF_TABS, SORT_OPTIONS } from "../../lib/account";
 import type { ShelfSort } from "../../lib/shelf";
@@ -75,41 +76,35 @@ export function ShelfSettingsTab() {
       </fieldset>
       <div className={styles.field}>
         <label htmlFor="shelf-tab">Opens on</label>
-        <select
-          id="shelf-tab"
-          className={styles.select}
-          value={shelfTab}
-          onChange={(e) => {
-            setShelfTab(e.target.value);
-            savePrefs({ shelfTab: e.target.value as ShelfTab }, isSignedIn);
-          }}
-        >
-          {SHELF_TABS.map((option) => (
-            <option key={option.value} value={option.value}>
-              {option.label}
-            </option>
-          ))}
-        </select>
+        <div className={styles.pick}>
+          <SortMenu
+            box
+            id="shelf-tab"
+            menuLabel="Opens on"
+            options={SHELF_TABS}
+            sortBy={shelfTab as ShelfTab}
+            onSort={(tab) => {
+              setShelfTab(tab);
+              savePrefs({ shelfTab: tab }, isSignedIn);
+            }}
+          />
+        </div>
       </div>
       <div className={styles.field}>
         <label htmlFor="shelf-sort">Sorted by</label>
-        <select
-          id="shelf-sort"
-          className={styles.select}
-          value={shelfSort}
-          onChange={(e) => {
-            // the options are SORT_OPTIONS, so it's one of them
-            const sort = e.target.value as ShelfSort;
-            setShelfSort(sort);
-            savePrefs({ shelfSort: sort }, isSignedIn);
-          }}
-        >
-          {SORT_OPTIONS.map((option) => (
-            <option key={option.value} value={option.value}>
-              {option.label}
-            </option>
-          ))}
-        </select>
+        <div className={styles.pick}>
+          <SortMenu
+            box
+            id="shelf-sort"
+            menuLabel="Sorted by"
+            options={SORT_OPTIONS}
+            sortBy={shelfSort as ShelfSort}
+            onSort={(sort) => {
+              setShelfSort(sort);
+              savePrefs({ shelfSort: sort }, isSignedIn);
+            }}
+          />
+        </div>
       </div>
     </div>
   );

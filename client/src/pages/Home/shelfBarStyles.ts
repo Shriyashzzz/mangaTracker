@@ -75,6 +75,16 @@ export const shelfBarStyles = {
     "absolute top-1.5 right-1.5 hidden size-2 rounded-full bg-accent upto-520:block",
 
   menu: `${card} left-0 w-60`,
+  // under a boxed pick: as wide as its box at least, and a long list (the
+  // genres) scrolls inside it instead of running off the screen
+  menuBox: `${card} left-0 max-h-[min(20rem,60dvh)] w-full min-w-52 overflow-y-auto overscroll-contain`,
+  // a pick drawn as a form's box, where a native select used to be
+  boxWrap: "relative w-full",
+  boxButton:
+    "tap group flex h-11 w-full cursor-pointer items-center justify-between gap-2 rounded-[2px] border-2 border-line bg-card px-3 text-left text-[1rem] text-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent focus-visible:outline-dashed aria-expanded:border-accent",
+  boxWords: "min-w-0 truncate",
+  boxChevron:
+    "size-4 shrink-0 text-ink-soft transition-transform duration-150 group-aria-expanded:rotate-180",
   menuRight: `${card} right-0 w-56`,
   menuHead:
     "px-2.5 pt-1 pb-1.5 font-brand text-[0.95rem] tracking-[0.04em] text-ink-soft uppercase",
