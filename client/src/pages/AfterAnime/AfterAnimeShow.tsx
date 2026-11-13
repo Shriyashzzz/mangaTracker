@@ -35,6 +35,10 @@ import SeasonPanel from "./SeasonPanel";
 import SeasonTable from "./SeasonTable";
 import { afterAnimeStyles as styles } from "./styles";
 
+// a long show gets every season at a glance in a table above the panels;
+// on a short one the table would only repeat the panels right under it
+const TABLE_FROM_SEASONS = 4;
+
 // the seasons of one series. `asked` names the series an answer is for, so
 // another series' answer is never shown
 function useAfterAnime(name: string) {
@@ -194,7 +198,7 @@ export default function AfterAnimeShow() {
 
       {show && show.stops.length > 0 && (
         <>
-          {show.stops.length > 1 && (
+          {show.stops.length >= TABLE_FROM_SEASONS && (
             <SeasonTable
               stops={newestFirst}
               seriesName={show.name}

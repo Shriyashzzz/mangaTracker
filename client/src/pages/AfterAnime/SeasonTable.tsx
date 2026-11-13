@@ -1,6 +1,6 @@
 // Every season of a show at a glance: "If you watched", "Start reading at",
-// "Volume". Each volume opens its own price page; for a show with several
-// seasons (one season's panel says it all by itself).
+// "Volume". Each volume opens its own price page. Only for a long show (the
+// page decides): on a short one the panels say it all.
 import type { ReactNode } from "react";
 import { NavLink } from "react-router";
 import {
