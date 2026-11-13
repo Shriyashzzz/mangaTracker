@@ -3,15 +3,10 @@
 // hand as a row of its own. Each row takes what they paid and the day they
 // bought it; a hand-ticked volume becomes a book the moment it's given one.
 // Folded away, with what they've spent on the series beside its name.
+//
+// The rows are worked out in yourBooksRows.ts; one row is drawn by BookRow.
 import { useEffect, useState } from "react";
-import {
-  bookLabel,
-  centsOf,
-  dayOf,
-  spentOn,
-  type NewBook,
-  type OwnedBook,
-} from "../../lib/books";
+import { centsOf, spentOn, type OwnedBook } from "../../lib/books";
 import {
   addBooks,
   getBooks,
@@ -19,7 +14,9 @@ import {
   savePurchase,
 } from "../../lib/booksApi";
 import { formatCents } from "../../lib/prices";
+import BookRow, { type Purchase } from "./BookRow";
 import { detailsStyles as styles } from "./styles";
+import { looseBook, rowsOf, type BookRow as Row } from "./yourBooksRows";
 
 type Props = {
   mangaId: number;
@@ -32,31 +29,24 @@ type Props = {
   }) => void;
 };
 
-// a row: a recorded book, or a volume ticked by hand that has none yet
-type Row = { key: string; book: OwnedBook | null; volume: number | null };
-
-const looseBook = (volume: number): NewBook => ({
-  isbn13: null,
-  edition: "single",
-  number: volume,
-  title: null,
-  volumes: [volume],
-});
 // how many rows show at first, and how many each press adds
 const STEP = 5;
-const moneyText = (cents: number | null | undefined) =>
-  cents == null ? "" : (cents / 100).toFixed(2);
+// the most books the server takes in one request
+const MOST_AT_ONCE = 50;
+const DEFAULT_NOTE =
+  "What you paid is only yours to see. Removing a book takes its volumes off your shelf too.";
 
 export default function YourBooks({ mangaId, owned, onRemoved }: Props) {
   const [books, setBooks] = useState<OwnedBook[]>([]);
+  // a failure, said under the list
   const [note, setNote] = useState("");
-  // what's typed in a price box, until it's saved
-  const [drafts, setDrafts] = useState<Record<string, string>>({});
-  const [same, setSame] = useState("");
-  const [busy, setBusy] = useState(false);
+  // the "paid the same" box
+  const [samePrice, setSamePrice] = useState("");
+  const [settingSame, setSettingSame] = useState(false);
   const [shown, setShown] = useState(STEP);
-  const ownedKey = owned.join();
 
+  // the books are asked for again whenever the owned volumes change
+  const ownedKey = owned.join();
   useEffect(() => {
     const controller = new AbortController();
     getBooks(mangaId, controller.signal)
@@ -67,86 +57,63 @@ export default function YourBooks({ mangaId, owned, onRemoved }: Props) {
 
   if (!owned.length) return null;
 
-  const held = new Set(books.flatMap((b) => b.volumes));
-  const rows: Row[] = [
-    ...books.map((book) => ({ key: `b${book.id}`, book, volume: null })),
-    ...owned
-      .filter((v) => !held.has(v))
-      .map((volume) => ({ key: `v${volume}`, book: null, volume })),
-  ].sort(
-    (a, b) =>
-      (a.book ? Math.min(...a.book.volumes) : a.volume!) -
-      (b.book ? Math.min(...b.book.volumes) : b.volume!),
-  );
-  const nameOf = (row: Row) =>
-    row.book ? bookLabel(row.book) : `Vol. ${row.volume}`;
+  const rows = rowsOf(books, owned);
   const spent = spentOn(books);
-  const unpriced = rows.filter((r) => r.book?.paidCents == null);
-
+  const unpriced = rows.filter((row) => row.book?.paidCents == null);
   const failed = () => setNote("That didn't save. Try again.");
+
   // what they paid or the day they bought it, on a book or a loose volume
-  const save = async (
-    row: Row,
-    change: { paidCents?: number | null; boughtOn?: string | null },
-  ) => {
+  const save = async (row: Row, change: Purchase) => {
     setNote("");
     try {
       if (row.book) {
-        await savePurchase(mangaId, row.book.id, change);
+        const bookId = row.book.id;
+        await savePurchase(mangaId, bookId, change);
         setBooks((list) =>
-          list.map((b) => (b.id === row.book!.id ? { ...b, ...change } : b)),
+          list.map((book) =>
+            book.id === bookId ? { ...book, ...change } : book,
+          ),
         );
-      } else {
-        // nothing to keep on a volume with no book: only a value makes one
-        if (change.paidCents == null && !change.boughtOn) return;
-        setBooks(
-          await addBooks(mangaId, [{ ...looseBook(row.volume!), ...change }]),
-        );
+        return;
       }
+      // a hand-ticked volume has no book to keep it on: only a value makes one
+      const hasValue = change.paidCents != null || Boolean(change.boughtOn);
+      if (!hasValue) return;
+      const made = { ...looseBook(row.volume!), ...change };
+      setBooks(await addBooks(mangaId, [made]));
     } catch {
       failed();
     }
-  };
-  // the box as it was left: read from the box itself, so a quick tab away
-  // never saves a letter behind
-  const savePrice = (row: Row, text: string) => {
-    setDrafts((d) => {
-      const rest = { ...d };
-      delete rest[row.key];
-      return rest;
-    });
-    const cents = text.trim() ? centsOf(text) : null;
-    // nonsense typed: the box goes back to what's saved
-    if (text.trim() && cents === null) return;
-    if (cents === (row.book?.paidCents ?? null)) return;
-    void save(row, { paidCents: cents });
   };
 
   // one price for every row that has none: a run bought at the same price
-  const applySame = async () => {
-    const cents = centsOf(same);
+  const setSamePriceOnAll = async () => {
+    const cents = centsOf(samePrice);
     if (cents === null || !unpriced.length) return;
-    setBusy(true);
+    setSettingSame(true);
     setNote("");
     try {
-      for (const row of unpriced.filter((r) => r.book))
-        await savePurchase(mangaId, row.book!.id, { paidCents: cents });
-      const loose = unpriced
-        .filter((r) => !r.book)
-        .map((r) => ({ ...looseBook(r.volume!), paidCents: cents }));
-      // 50 at a time, as the server takes them
-      for (let i = 0; i < loose.length; i += 50)
-        await addBooks(mangaId, loose.slice(i, i + 50));
+      for (const row of unpriced) {
+        if (row.book)
+          await savePurchase(mangaId, row.book.id, { paidCents: cents });
+      }
+      const newBooks = unpriced
+        .filter((row) => !row.book)
+        .map((row) => ({ ...looseBook(row.volume!), paidCents: cents }));
+      for (let start = 0; start < newBooks.length; start += MOST_AT_ONCE)
+        await addBooks(mangaId, newBooks.slice(start, start + MOST_AT_ONCE));
       setBooks(await getBooks(mangaId));
-      setSame("");
+      setSamePrice("");
     } catch {
       failed();
     } finally {
-      setBusy(false);
+      setSettingSame(false);
     }
   };
 
-  const remove = async (book: OwnedBook) => {
+  const remove = async (row: Row) => {
+    const book = row.book;
+    if (!book) return;
     setNote("");
     try {
       onRemoved(await removeBook(mangaId, book.id));
@@ -156,6 +123,7 @@ export default function YourBooks({ mangaId, owned, onRemoved }: Props) {
     }
   };
 
+  const hidden = rows.length - shown;
   return (
     <details className={styles.books}>
       <summary className={styles.booksSummary}>
@@ -168,68 +136,17 @@ export default function YourBooks({ mangaId, owned, onRemoved }: Props) {
         )}
       </summary>
       <ul className={styles.booksList}>
-        {rows.slice(0, shown).map((row) => {
-          const name = nameOf(row);
-          return (
-            <li key={row.key} className={styles.bookRow}>
-              <span className={styles.bookName}>
-                {name}
-                {row.book?.isbn13 && (
-                  <span className={styles.bookIsbn}>
-                    ISBN {row.book.isbn13}
-                  </span>
-                )}
-              </span>
-              <span className={styles.bookPaid}>
-                <span aria-hidden>$</span>
-                <input
-                  className={styles.bookPaidInput}
-                  inputMode="decimal"
-                  placeholder="paid"
-                  aria-label={`What you paid for ${name}`}
-                  value={drafts[row.key] ?? moneyText(row.book?.paidCents)}
-                  onChange={(e) =>
-                    setDrafts((d) => ({ ...d, [row.key]: e.target.value }))
-                  }
-                  onBlur={(e) => savePrice(row, e.currentTarget.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") e.currentTarget.blur();
-                  }}
-                />
-              </span>
-              <input
-                type="date"
-                className={styles.bookDate}
-                aria-label={`The day you bought ${name}`}
-                value={dayOf(row.book?.boughtOn) ?? ""}
-                max="2099-12-31"
-                onChange={(e) =>
-                  save(row, { boughtOn: e.target.value || null })
-                }
-              />
-              {row.book ? (
-                <button
-                  type="button"
-                  className={styles.bookRemove}
-                  aria-label={`Remove ${name} and its volumes`}
-                  onClick={() => remove(row.book!)}
-                >
-                  Remove
-                </button>
-              ) : (
-                <span className={styles.bookRemoveGap} aria-hidden />
-              )}
-            </li>
-          );
-        })}
+        {rows.slice(0, shown).map((row) => (
+          <BookRow key={row.key} row={row} onSave={save} onRemove={remove} />
+        ))}
       </ul>
-      {rows.length > shown && (
+      {hidden > 0 && (
         <button
           type="button"
           className={styles.booksMore}
-          onClick={() => setShown((n) => n + STEP)}
+          onClick={() => setShown(shown + STEP)}
         >
-          Show {Math.min(STEP, rows.length - shown)} more
+          Show {Math.min(STEP, hidden)} more
           <span className={styles.booksMoreLeft}>
             {shown} of {rows.length}
           </span>
@@ -240,7 +157,7 @@ export default function YourBooks({ mangaId, owned, onRemoved }: Props) {
           className={styles.booksSame}
           onSubmit={(e) => {
             e.preventDefault();
-            void applySame();
+            void setSamePriceOnAll();
           }}
         >
           <label htmlFor="books-same">
@@ -253,22 +170,21 @@ export default function YourBooks({ mangaId, owned, onRemoved }: Props) {
               className={styles.bookPaidInput}
               inputMode="decimal"
               placeholder="each"
-              value={same}
-              onChange={(e) => setSame(e.target.value)}
+              value={samePrice}
+              onChange={(e) => setSamePrice(e.target.value)}
             />
           </span>
           <button
             type="submit"
             className="btn btn-secondary btn-sm"
-            disabled={busy || centsOf(same) === null}
+            disabled={settingSame || centsOf(samePrice) === null}
           >
             Set them
           </button>
         </form>
       )}
       <p className={styles.booksNote} role="status">
-        {note ||
-          "What you paid is only yours to see. Removing a book takes its volumes off your shelf too."}
+        {note || DEFAULT_NOTE}
       </p>
     </details>
   );

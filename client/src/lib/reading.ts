@@ -8,16 +8,15 @@ export const readTrackBy = (value: unknown): TrackBy =>
     ? value
     : "series";
 
-export const tracksOf = (m: { byVolume?: boolean }, mode: TrackBy) => ({
-  chapters:
-    mode === "chapters" ||
-    mode === "both" ||
-    (mode === "series" && !m.byVolume),
-  volumes:
-    mode === "volumes" ||
-    mode === "both" ||
-    (mode === "series" && Boolean(m.byVolume)),
-});
+// which counters a series shows. One setting for every series wins; left on
+// "series", each series follows its own switch
+export const tracksOf = (m: { byVolume?: boolean }, mode: TrackBy) => {
+  if (mode === "both") return { chapters: true, volumes: true };
+  if (mode === "chapters") return { chapters: true, volumes: false };
+  if (mode === "volumes") return { chapters: false, volumes: true };
+  const byVolume = Boolean(m.byVolume);
+  return { chapters: !byVolume, volumes: byVolume };
+};
 
 // where they are, as a card says it: "ch. 40", "vol. 5", or both
 export const placeText = (
@@ -32,11 +31,11 @@ export const placeText = (
   saysRead = false,
 ) => {
   const tracks = tracksOf(m, mode);
-  const parts = [
-    tracks.chapters && m.bookmark ? `ch. ${m.bookmark}` : null,
-    tracks.volumes && m.readVolume
-      ? `${saysRead ? "read " : ""}vol. ${m.readVolume}`
-      : null,
-  ].filter(Boolean);
+  const parts: string[] = [];
+  if (tracks.chapters && m.bookmark) parts.push(`ch. ${m.bookmark}`);
+  if (tracks.volumes && m.readVolume) {
+    const volume = `vol. ${m.readVolume}`;
+    parts.push(saysRead ? `read ${volume}` : volume);
+  }
   return parts.length ? parts.join(" · ") : null;
 };
