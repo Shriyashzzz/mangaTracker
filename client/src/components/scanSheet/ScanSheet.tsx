@@ -56,6 +56,20 @@ const landed = (row: Row) =>
   !row.undone &&
   (row.result?.kind === "marked" || row.result?.kind === "added");
 
+// what a scan came to, said big over the camera for a moment: its colour
+// and its words
+function flashFor(kind: ScanResult["kind"]): {
+  tone: "good" | "same" | "bad";
+  note: string;
+} {
+  if (kind === "marked" || kind === "added")
+    return { tone: "good", note: "On your shelf" };
+  if (kind === "already") return { tone: "same", note: "Already yours" };
+  if (kind === "unknown")
+    return { tone: "bad", note: "Couldn't find this one" };
+  return { tone: "bad", note: "That didn't save" };
+}
+
 export default function ScanSheet({
   onClose,
   isbn: firstIsbn,
@@ -150,15 +164,7 @@ export default function ScanSheet({
         "book" in result
           ? `${result.name} · ${volumesLabel(result.book.volumes)}`
           : result.isbn;
-      setFlash(
-        result.kind === "marked" || result.kind === "added"
-          ? { tone: "good", title: name, note: "On your shelf" }
-          : result.kind === "already"
-            ? { tone: "same", title: name, note: "Already yours" }
-            : result.kind === "unknown"
-              ? { tone: "bad", title: name, note: "Couldn't find this one" }
-              : { tone: "bad", title: name, note: "That didn't save" },
-      );
+      setFlash({ title: name, ...flashFor(result.kind) });
       timers.current.push(window.setTimeout(() => setFlash(null), 1800));
       if (result.kind === "marked" || result.kind === "added")
         beep(sound.current);
@@ -450,19 +456,15 @@ function ScanRow({
     "book" in result
       ? `${result.name} · ${volumesLabel(result.book.volumes)}`
       : row.isbn;
-  const note = row.undoFailed
-    ? "Undo didn't save. Try again"
-    : row.undone
-      ? "Undone"
-      : result.kind === "marked"
-        ? "Marked yours"
-        : result.kind === "added"
-          ? `Added to your shelf with ${volumesLabel(result.book.volumes)}`
-          : result.kind === "already"
-            ? "Already yours"
-            : result.kind === "unknown"
-              ? "Couldn't find this one"
-              : "That didn't save";
+  // what happened to this scan, in words: an undo first, then how it went
+  let note = "That didn't save";
+  if (row.undoFailed) note = "Undo didn't save. Try again";
+  else if (row.undone) note = "Undone";
+  else if (result.kind === "marked") note = "Marked yours";
+  else if (result.kind === "added")
+    note = `Added to your shelf with ${volumesLabel(result.book.volumes)}`;
+  else if (result.kind === "already") note = "Already yours";
+  else if (result.kind === "unknown") note = "Couldn't find this one";
   const good = landed(row) && !row.undoFailed;
   const bad =
     row.undoFailed || result.kind === "unknown" || result.kind === "failed";
