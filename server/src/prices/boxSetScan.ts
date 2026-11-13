@@ -32,82 +32,101 @@ export async function savedBoxSets(name: string) {
   return row && { at: row.at, sets: row.volumes as unknown as ScannedSet[] };
 }
 
+type NumberedTitle = Pick<CatalogBook, "volume" | "title">;
+
 // the volumes a search is read against: the first, the middle and the last,
 // so a set holding any third of the run is recognised
-export const sampleTitles = (
-  volumes: Pick<CatalogBook, "volume" | "title">[],
-) => {
+export const sampleTitles = (volumes: NumberedTitle[]) => {
   const numbered = volumes
     .filter(
       (v) => v.volume != null && Number.isInteger(v.volume) && v.volume >= 1,
     )
     .sort((a, b) => a.volume! - b.volume!);
   if (!numbered.length) return [];
-  const picks = [
-    numbered[0]!,
-    numbered[Math.floor((numbered.length - 1) / 2)]!,
-    numbered.at(-1)!,
-  ];
-  return [...new Set(picks.map((v) => v.title))];
+  const first = numbered[0]!;
+  const middle = numbered[Math.floor((numbered.length - 1) / 2)]!;
+  const last = numbered.at(-1)!;
+  // a short series gives the same volume twice: each title once
+  return [...new Set([first.title, middle.title, last.title])];
 };
 
+// when each series was last tried, so a scan that failed isn't retried at once
 const triedAt = new Map<string, number>();
+const MOST_REMEMBERED = 5000;
+// scans running now, so two visitors on one page share one scan
 const inFlight = new Map<string, Promise<boolean>>();
 
+const isEbay = (set: ScannedSet) => /^ebay/i.test(set.store);
+const isBam = (set: ScannedSet) => /books-a-million/i.test(set.store);
+
+// asks both sources and saves what they found. Whether anything was saved:
+// both sources failing saves nothing, so the old answer stays
+async function runScan(
+  name: string,
+  titles: string[],
+  savedSets: ScannedSet[],
+): Promise<boolean> {
+  const signal = AbortSignal.timeout(TIMEOUT_MS);
+  // a light novel is filed by its series' name, without the words
+  const bamName = name.replace(/\s*light novel$/i, "");
+  const [ebay, bam] = await Promise.allSettled([
+    ebayApiEnabled()
+      ? searchEbaySets(titles, signal)
+      : Promise.reject(new Error("eBay isn't set up")),
+    searchBamSets(bamName, isNovelName(name), signal),
+  ]);
+  const ebayFailed = ebay.status === "rejected";
+  const bamFailed = bam.status === "rejected";
+  if (ebayFailed && bamFailed) return false;
+
+  const offers = [
+    ...(ebayFailed ? [] : ebay.value),
+    ...(bamFailed ? [] : bam.value),
+  ];
+  const found: ScannedSet[] = offers
+    .filter((offer) => offer.inStock && offer.format === "set")
+    .map((offer) => ({
+      store: offer.store,
+      priceCents: offer.priceCents,
+      url: offer.url,
+      condition: offer.condition,
+      format: "set" as const,
+    }));
+  // a source that failed keeps what it said last time
+  const kept = savedSets.filter(
+    (set) => (ebayFailed && isEbay(set)) || (bamFailed && isBam(set)),
+  );
+  // the series' lists are typed as catalog books; this one holds sets
+  const toSave = [...found, ...kept] as unknown as CatalogBook[];
+  await priceQueries.saveSeriesVolumes(setsKey(name), toSave);
+  return true;
+}
+
 // looks again when the saved answer is old (or there is none). Whether a new
-// answer was saved. Both sources failing saves nothing: the old answer stays,
-// and it's tried again in an hour
+// answer was saved. A scan that couldn't run is tried again in an hour
 export async function scanBoxSets(
   name: string,
-  volumes: Pick<CatalogBook, "volume" | "title">[],
+  volumes: NumberedTitle[],
 ): Promise<boolean> {
   const key = setsKey(name);
+  const now = Date.now();
+
   const saved = await savedBoxSets(name);
-  if (saved && Date.now() - saved.at < FRESH_MS) return false;
-  if (Date.now() - (triedAt.get(key) ?? 0) < RETRY_MS) return false;
+  const stillFresh = saved ? now - saved.at < FRESH_MS : false;
+  if (stillFresh) return false;
+  const triedLately = now - (triedAt.get(key) ?? 0) < RETRY_MS;
+  if (triedLately) return false;
   const running = inFlight.get(key);
   if (running) return running;
   const titles = sampleTitles(volumes);
   if (!titles.length) return false;
-  triedAt.set(key, Date.now());
-  if (triedAt.size > 5000) triedAt.delete(triedAt.keys().next().value!);
-  const scan = (async () => {
-    const signal = AbortSignal.timeout(TIMEOUT_MS);
-    const [ebay, bam] = await Promise.allSettled([
-      ebayApiEnabled()
-        ? searchEbaySets(titles, signal)
-        : Promise.reject(new Error("eBay isn't set up")),
-      searchBamSets(
-        name.replace(/\s*light novel$/i, ""),
-        isNovelName(name),
-        signal,
-      ),
-    ]);
-    if (ebay.status === "rejected" && bam.status === "rejected") return false;
-    const found = [ebay, bam].flatMap((r) =>
-      r.status === "fulfilled" ? r.value : [],
-    );
-    const sets: ScannedSet[] = found
-      .filter((o) => o.inStock && o.format === "set")
-      .map((o) => ({
-        store: o.store,
-        priceCents: o.priceCents,
-        url: o.url,
-        condition: o.condition,
-        format: "set" as const,
-      }));
-    // a source that failed keeps what it said last time
-    const kept = (saved?.sets ?? []).filter(
-      (s) =>
-        (ebay.status === "rejected" && /^ebay/i.test(s.store)) ||
-        (bam.status === "rejected" && /books-a-million/i.test(s.store)),
-    );
-    await priceQueries.saveSeriesVolumes(key, [
-      ...sets,
-      ...kept,
-    ] as unknown as CatalogBook[]);
-    return true;
-  })()
+
+  triedAt.set(key, now);
+  // oldest out first, so the map can't grow without end
+  if (triedAt.size > MOST_REMEMBERED)
+    triedAt.delete(triedAt.keys().next().value!);
+
+  const scan = runScan(name, titles, saved?.sets ?? [])
     .catch(() => false)
     .finally(() => inFlight.delete(key));
   inFlight.set(key, scan);
