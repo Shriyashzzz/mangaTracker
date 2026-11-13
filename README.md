@@ -242,6 +242,7 @@ Price checking works without any store keys: series, volumes and covers come fro
 | `KEEPA_API_KEY` | no | Amazon prices |
 | `CJ_API_TOKEN`, `CJ_COMPANY_ID`, `CJ_BAM_ID`, `CJ_WEBSITE_ID`, `CJ_DAILY_LIMIT` | no | Books-A-Million prices and affiliate links, through CJ |
 | `AMAZON_ASSOCIATE_TAG`, `BOOKSHOP_AFFILIATE_ID`, `EBAY_CAMPAIGN_ID`, `WALMART_AFFILIATE` | no | Affiliate links |
+| `ADMIN_USERNAME` | no | The one account that may review readers' fixes at `/after-the-anime/review` |
 
 ### Site (`client/`)
 

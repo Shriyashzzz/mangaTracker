@@ -6,6 +6,7 @@
 //   seriesPageRules.ts   cards, subtitles, pages of the list (pure)
 //   SeriesPageParts.tsx  one card of the list, loading and not-found
 //   BoxSets, EditionsBox, OtherEditions, SeriesCostBox, SeriesFacts
+//   AfterAnime/AfterAnimeBar    the way to where the anime leaves off
 import { useState } from "react";
 import { NavLink, useParams, useSearchParams } from "react-router";
 import DealsStrip from "../../components/deals/DealsStrip";
@@ -29,6 +30,7 @@ import {
 import { onSale } from "../../lib/releaseDate";
 import { usePageMeta } from "../../lib/seo";
 import { useAuth } from "../../store/auth";
+import AfterAnimeBar from "../AfterAnime/AfterAnimeBar";
 import BackToNew from "./BackToNew";
 import BoxSets, { BoxSetSearch } from "./BoxSets";
 import { shownSets } from "./boxSetRules";
@@ -229,6 +231,9 @@ export default function PriceSeries() {
           )
         )}
       </header>
+
+      {/* for someone coming from the anime, before what collecting costs */}
+      {info && <AfterAnimeBar seriesName={info.name} />}
 
       {cost && (
         <SeriesCostBox

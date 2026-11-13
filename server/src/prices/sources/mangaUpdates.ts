@@ -1,6 +1,7 @@
 // MangaUpdates: free, no key. A second opinion on chapter counts, because MangaDex
 // loses chapters when a series gets officially licensed: it had Solo Leveling at
-// 15 of 201. Also says whether a series has finished.
+// 15 of 201. Also says whether a series has finished, and where its anime
+// leaves off (afterAnime/).
 // https://api.mangaupdates.com
 import { slugify } from "../stores/match.js";
 import { politeFetch } from "../../util/politeFetch.js";
@@ -42,19 +43,59 @@ const ask = async <T>(path: string, body?: unknown) => {
   return (await res.json()) as T;
 };
 
+// what a series' own record says, as much of it as the site uses
+type SeriesRecord = {
+  latest_chapter?: number;
+  completed?: boolean;
+  url?: string;
+  anime?: { start?: string | null; end?: string | null } | null;
+};
+
+// where the series' anime starts and ends, as MangaUpdates wrote it; both
+// null when it has no anime or nobody has filled it in
+export type AnimeLines = {
+  startLine: string | null;
+  endLine: string | null;
+  lastChapter: number | null;
+  completed: boolean;
+  sourceUrl: string | null;
+};
+
+const animeLinesOf = (series: SeriesRecord): AnimeLines => ({
+  startLine: series.anime?.start?.trim() || null,
+  endLine: series.anime?.end?.trim() || null,
+  lastChapter: series.latest_chapter || null,
+  completed: Boolean(series.completed),
+  sourceUrl: series.url ?? null,
+});
+
+// the series' record under one of its real names; null when MangaUpdates has
+// none. Throws when it can't be asked
+async function findSeries(names: string[]): Promise<SeriesRecord | null> {
+  const { results } = await ask<{ results: Hit[] }>("/series/search", {
+    search: names[0],
+    perpage: 8,
+  });
+  const hit = pickHit(results, names);
+  if (!hit) return null;
+  return ask<SeriesRecord>(`/series/${hit.record.series_id}`);
+}
+
+// called with every record this file fetches, so the anime's lines are kept
+// (afterAnime/animeSource.ts) without asking MangaUpdates a second time
+type AnimeListener = (names: string[], lines: AnimeLines) => void;
+let animeListener: AnimeListener | null = null;
+export const onAnimeLines = (listener: AnimeListener) => {
+  animeListener = listener;
+};
+
 export async function getChapterSource(
   names: string[],
 ): Promise<ChapterSource | null> {
   try {
-    const { results } = await ask<{ results: Hit[] }>("/series/search", {
-      search: names[0],
-      perpage: 8,
-    });
-    const hit = pickHit(results, names);
-    if (!hit) return null;
-    const series = await ask<{ latest_chapter?: number; completed?: boolean }>(
-      `/series/${hit.record.series_id}`,
-    );
+    const series = await findSeries(names);
+    if (!series) return null;
+    animeListener?.(names, animeLinesOf(series));
     return {
       latestChapter: series.latest_chapter || null,
       finished: Boolean(series.completed),
@@ -63,4 +104,14 @@ export async function getChapterSource(
     console.error("MangaUpdates lookup failed:", (e as Error).message);
     return null;
   }
+}
+
+// the anime's lines for a series: null when MangaUpdates doesn't know the
+// series at all. Throws when it can't be asked, so an outage isn't saved as
+// "no anime"
+export async function getAnimeLines(
+  names: string[],
+): Promise<AnimeLines | null> {
+  const series = await findSeries(names);
+  return series ? animeLinesOf(series) : null;
 }

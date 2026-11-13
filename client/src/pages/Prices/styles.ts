@@ -67,6 +67,9 @@ export const pricesStyles = {
   // "Try: One Piece, Jujutsu Kaisen, ..."
   quick:
     "flex flex-wrap items-center gap-2 text-[0.85rem] text-muted upto-720:grid upto-720:grid-cols-3 upto-720:[&_span]:col-span-full upto-720:[&_a]:min-h-11 upto-720:[&_a]:place-items-center upto-720:[&_a]:px-1 upto-720:[&_a]:text-center [&_a]:tap [&_a]:rounded-[2px] [&_a]:border-[1.5px] [&_a]:border-line-soft [&_a]:bg-paper [&_a]:px-[0.65rem] [&_a]:py-[0.2rem] [&_a]:text-[0.85rem] [&_a]:text-ink-soft [&_a]:transition-[border-color] [&_a]:duration-120 [&_a]:ease-[ease] [&_a]:hover:border-line [&_a]:hover:text-ink",
+  // under the quick picks: the way in for someone who watched the anime
+  fromAnime:
+    "text-[0.88rem] text-ink-soft [&_a]:tap [&_a]:text-ink [&_a]:underline [&_a]:decoration-line-soft [&_a]:underline-offset-3 [&_a]:hover:decoration-current",
   // inside a results section the count sits above the grid, not overlapping
   count: "-mb-4 font-mono text-[0.78rem] text-muted [section>&]:mb-[0.9rem]",
 

@@ -145,20 +145,29 @@ export default function PriceSearch() {
             />
 
             {!searching && (
-              <p className={styles.quick}>
-                <span>Try</span>
-                {QUICK_PICKS.map(({ name, only }) => (
-                  <NavLink
-                    key={name}
-                    // short hand-picked names, not AniList's: found by name
-                    to={seriesPath(name)}
-                    className={only}
-                    viewTransition
-                  >
-                    {name}
+              <>
+                <p className={styles.quick}>
+                  <span>Try</span>
+                  {QUICK_PICKS.map(({ name, only }) => (
+                    <NavLink
+                      key={name}
+                      // short hand-picked names, not AniList's: found by name
+                      to={seriesPath(name)}
+                      className={only}
+                      viewTransition
+                    >
+                      {name}
+                    </NavLink>
+                  ))}
+                </p>
+                {/* for someone coming from the anime */}
+                <p className={styles.fromAnime}>
+                  Watched the anime?{" "}
+                  <NavLink to="/after-the-anime" viewTransition>
+                    See where to start the manga
                   </NavLink>
-                ))}
-              </p>
+                </p>
+              </>
             )}
           </header>
         </div>

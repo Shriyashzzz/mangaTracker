@@ -11,8 +11,8 @@ import TakeTourButton from "../tour/TakeTourButton";
 // the newest big ones only; the rest are on /updates
 const ITEMS = [
   {
-    name: "Read by volume",
-    body: "Keep your place by chapter, by volume, or both.",
+    name: "After the anime",
+    body: "See which chapter and volume to start at after a season.",
   },
   {
     name: "Deluxe and omnibus editions",

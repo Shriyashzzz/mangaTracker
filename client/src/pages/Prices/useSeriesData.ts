@@ -24,6 +24,8 @@ export function useSeriesLoad(name: string) {
   const key = `${name}|${attempt}`;
 
   useEffect(() => {
+    // no series named yet (a page still finding out which): nothing to ask
+    if (!name) return;
     const controller = new AbortController();
     getSeries(name, controller.signal)
       .then((data) => setState({ key, data, error: "" }))

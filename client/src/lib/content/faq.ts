@@ -60,6 +60,23 @@ export const FAQ: FaqGroup[] = [
     ],
   },
   {
+    name: "After the anime",
+    questions: [
+      {
+        q: "I watched the anime. Where do I start the manga?",
+        a: "Look the show up on the After the anime page. For each season it gives the chapter to start at and the volume that chapter is in, with that volume's price.",
+      },
+      {
+        q: "Where does that information come from?",
+        a: "From MangaUpdates, where readers record the chapter each season ends on. Volume numbers are the Japanese release's, which the English one nearly always matches.",
+      },
+      {
+        q: "What if a season's answer is wrong or missing?",
+        a: "Use Suggest a fix under that season and add a link to where you read it. It shows on the page once it has been checked.",
+      },
+    ],
+  },
+  {
     name: "Prices",
     questions: [
       {

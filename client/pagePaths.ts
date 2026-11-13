@@ -6,6 +6,9 @@ const PAGES = [
   /^\/(shelf|signin|signup|add|import|about|updates|faq|acknowledgements|new-releases|calendar|profile|series|prices|deals)?\/?$/i,
   /^\/(details|update|u)\/[^/]+\/?$/i,
   /^\/settings(\/[^/]+)?\/?$/i,
+  // the list of shows, and the owner's review page (a show's own page has
+  // its route in server.ts)
+  /^\/after-the-anime(\/review)?\/?$/i,
 ];
 
 export const isAppPage = (path: string) =>

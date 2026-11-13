@@ -1,3 +1,4 @@
+import WatchedAnime from "../AfterAnime/WatchedAnime";
 import { SortMenu } from "../Home/ShelfBar";
 import { NavLink, useNavigate, useSearchParams } from "react-router";
 import { formStyles as styles } from "../../styles/form";
@@ -476,6 +477,19 @@ export function AddManga() {
                 />
               )}
             </div>
+
+            {/* someone coming from the anime: a season fills in their place */}
+            {stage === "reading" && chosen && !lightNovel && (
+              <WatchedAnime
+                seriesName={title.trim()}
+                onPick={(place) => {
+                  if (place.chapter !== null) setChapter(String(place.chapter));
+                  if (place.volume !== null)
+                    setReadVolume(String(place.volume));
+                  setFieldErrors((e) => ({ ...e, bookmark: undefined }));
+                }}
+              />
+            )}
 
             {/* stars for something they've read some of; tap again to clear */}
             {stage !== "planned" && (

@@ -19,6 +19,20 @@ import { isAppPage } from "./pagePaths.ts";
 import { visitorIp } from "./visitorIp.ts";
 import { WHY_COLLECTORS } from "./src/lib/whyCollectors.ts";
 import { FAQ, FAQ_DESCRIPTION, faqJsonLd } from "./src/lib/content/faq.ts";
+import {
+  answerSentence,
+  INDEX_META,
+  latestAnswerText,
+  latestStop,
+  pageHeading,
+  seasonHeading,
+  showMeta,
+  showQuestion,
+  showQuestions,
+  tableRow,
+  withoutThe,
+  type AnimeStop,
+} from "./src/lib/afterAnimeText.ts";
 
 const DIST = fileURLToPath(new URL("./dist/", import.meta.url));
 // where this server reaches the API: the private address on Railway
@@ -464,6 +478,7 @@ const linkList = (links: [href: string, label: string][]) =>
 const SITE_LINKS: [string, string][] = [
   ["/series", "All manga series"],
   ["/deals", "Manga deals"],
+  ["/after-the-anime", "Where does the anime leave off?"],
   ["/faq", "Questions and answers"],
   ["/about", "About Manga Tracker"],
   ["/updates", "What's new"],
@@ -549,6 +564,94 @@ function dealsTags(deals: Deal[]): Tags {
           : "<p>No deals right now.</p>"
       }
       ${linkList(SITE_LINKS.filter(([href]) => href !== "/deals"))}
+    </main>`,
+  };
+}
+
+// what /api/after-anime sends, as much of it as these pages use
+type AfterAnimeShow = { name: string; slug: string };
+type AfterAnime = {
+  name: string;
+  slug: string;
+  coverUrl: string | null;
+  stops: AnimeStop[];
+};
+
+// /after-the-anime: every show with an answer, linked. The title and
+// description are the app's own (src/lib/afterAnimeText.ts)
+const afterAnimeShowPath = (name: string) =>
+  `/after-the-anime/${slugify(name)}`;
+
+function afterAnimeIndexTags(shows: AfterAnimeShow[]): Tags {
+  return {
+    title: INDEX_META.title,
+    description: INDEX_META.description,
+    path: "/after-the-anime",
+    image: null,
+    body: `<main class="crawl-page">
+      ${crumbs([["/", SITE_NAME]])}
+      <h1>Where does the anime leave off?</h1>
+      <p>Finished a season? Look the show up to see which chapter of the manga to start at, which volume that's in, and what it costs.</p>
+      ${linkList(shows.map((show) => [afterAnimeShowPath(show.name), show.name]))}
+      ${linkList(SITE_LINKS.filter(([href]) => href !== "/after-the-anime"))}
+    </main>`,
+  };
+}
+
+// one show: each season's answer in words, as the page says it. A show with
+// no answer isn't indexed (showMeta)
+function afterAnimeTags(
+  show: AfterAnime,
+  others: AfterAnimeShow[],
+  origin: string,
+): Tags {
+  // never null for a show that loaded
+  const meta = showMeta(show, false, origin)!;
+  const latest = latestStop(show.stops);
+  // newest first, as the page has them
+  const rows = [...show.stops].reverse().map((stop) => {
+    const row = tableRow(stop);
+    return `<tr><th scope="row">${escapeHtml(row.watched)}</th><td>${escapeHtml(row.start)}</td><td>${escapeHtml(row.volume)}</td></tr>`;
+  });
+  const seasons = [...show.stops]
+    .reverse()
+    .map(
+      (stop) =>
+        `<h2>${escapeHtml(seasonHeading(stop))}</h2><p>${escapeHtml(answerSentence(stop))}</p>`,
+    );
+  const questions = showQuestions(show).map(
+    ({ q, a, list }) =>
+      `<h3>${escapeHtml(q)}</h3><p>${escapeHtml(a)}</p>${
+        list?.length
+          ? `<ul>${list.map((line) => `<li>${escapeHtml(line)}</li>`).join("")}</ul>`
+          : ""
+      }`,
+  );
+  const more = others.filter((other) => other.slug !== show.slug).slice(0, 12);
+  return {
+    title: meta.title,
+    description: meta.description ?? INDEX_META.description,
+    path: meta.path!,
+    image: show.coverUrl,
+    smallImage: true,
+    noindex: meta.noindex,
+    jsonLd: meta.jsonLd,
+    body: `<main class="crawl-page">
+      ${crumbs([
+        ["/", SITE_NAME],
+        ["/after-the-anime", "After the anime"],
+      ])}
+      <h1>${escapeHtml(pageHeading(show.name, show.stops.length > 0))}</h1>
+      ${
+        latest
+          ? `<p>${escapeHtml(latestAnswerText(latest))}</p>
+      <table><thead><tr><th>You watched</th><th>Start at chapter</th><th>Buy volume</th></tr></thead><tbody>${rows.join("")}</tbody></table>
+      ${seasons.join("")}
+      <h2>Questions</h2>${questions.join("")}`
+          : "<p>No answer yet.</p>"
+      }
+      <p><a href="${escapeHtml(seriesPath(show.name))}">See all ${escapeHtml(show.name)} volumes and prices</a></p>
+      ${more.length ? `<h2>More shows</h2>${linkList(more.map((other) => [afterAnimeShowPath(other.name), `Where does the ${withoutThe(other.name)} anime leave off?`]))}` : ""}
     </main>`,
   };
 }
@@ -955,7 +1058,21 @@ app.get(
       ipOf(req),
     );
     if (missing) return "missing";
-    if (data) return seriesTags(data, origin);
+    if (data) {
+      const tags = seriesTags(data, origin);
+      // a series whose anime we can answer for links to that page
+      const anime = await summary<AfterAnime>(
+        `/api/after-anime?${new URLSearchParams({ name: data.name })}`,
+        ipOf(req),
+      ).catch(() => ({ data: null }));
+      if (anime.data?.stops.length && tags.body)
+        tags.body = tags.body.replace(
+          "</main>",
+          () =>
+            `<p><a href="${escapeHtml(afterAnimeShowPath(data.name))}">${escapeHtml(showQuestion(data.name))}</a></p></main>`,
+        );
+      return tags;
+    }
     // nothing stored to describe it: a made-up name, or a series nobody has
     // opened yet. Not indexed, so a made-up one never counts as a page (a
     // "soft 404"); a real one gets its tags once someone opens it
@@ -1037,6 +1154,44 @@ app.get(
       ipOf(req),
     );
     return dealsTags(data?.deals ?? []);
+  }),
+);
+
+app.get(
+  "/after-the-anime",
+  withTags(async (req) => {
+    const { data } = await summary<AfterAnimeShow[]>(
+      "/api/after-anime/index",
+      ipOf(req),
+    );
+    return afterAnimeIndexTags(Array.isArray(data) ? data : []);
+  }),
+);
+
+app.get(
+  "/after-the-anime/:slug",
+  withTags(async (req, origin) => {
+    // the owner's review page is the plain app
+    if (req.params.slug === "review") return null;
+    const name =
+      (typeof req.query.name === "string" && req.query.name) ||
+      String(req.params.slug).replace(/-/g, " ");
+    const { data, missing } = await summary<AfterAnime>(
+      `/api/after-anime?${new URLSearchParams({ name })}`,
+      ipOf(req),
+    );
+    if (missing) return "missing";
+    if (!data) return null;
+    // the other shows, for the links at its foot; the page is whole without
+    const others = await summary<AfterAnimeShow[]>(
+      "/api/after-anime/index",
+      ipOf(req),
+    ).catch(() => ({ data: null }));
+    return afterAnimeTags(
+      data,
+      Array.isArray(others.data) ? others.data : [],
+      origin,
+    );
   }),
 );
 

@@ -176,8 +176,11 @@ export async function getRecordedMedians(
 // (collector/). The same believable-price rule as getKnownPrices; database
 // only, never a lookup
 export type CheapestCopy = { cents: number; store: string; url: string | null };
+// `fromStore`: only copies at stores it says yes to (a buy button names a
+// store readers know); every store when it's left out
 export async function getCheapestCopies(
   isbns: string[],
+  fromStore: (store: string) => boolean = () => true,
 ): Promise<
   Map<string, { new: CheapestCopy | null; used: CheapestCopy | null }>
 > {
@@ -202,7 +205,7 @@ export async function getCheapestCopies(
     const copies = dropUnlikelyNew(
       currentOf(group, looked.get(isbn)),
       usual.get(isbn),
-    ).filter((o) => o.inStock && o.format === "print");
+    ).filter((o) => o.inStock && o.format === "print" && fromStore(o.store));
     out.set(isbn, {
       new: cheapest(copies.filter((o) => o.condition === "new")),
       used: cheapest(copies.filter((o) => o.condition !== "new")),
