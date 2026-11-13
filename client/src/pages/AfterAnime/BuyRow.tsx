@@ -78,6 +78,9 @@ export default function BuyRow({
         {!offer && used && (
           <p className={styles.buyPrice}>
             <strong>{formatCents(used.cents)}</strong> used at {used.store}
+            <span className={styles.buyChecked}>
+              Price checked {timeAgo(used.checkedAt)}
+            </span>
           </p>
         )}
         <div className={styles.buyActions}>

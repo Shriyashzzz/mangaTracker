@@ -2,6 +2,7 @@
 // the prices already stored (a volume is priced the first time someone opens
 // its page). Never asks for a price, so it never spends a paid search; a
 // volume nobody has opened yet is counted as not priced.
+import { ENOUGH_PRICED } from "./enoughPriced";
 import { owns } from "./ownedVolumes";
 import type { Manga } from "./types";
 
@@ -47,11 +48,6 @@ type FinishCost = {
   // volumes' prices would stand in for the whole run
   enough: boolean;
 };
-
-// most of a series priced before its total is said. The same share as the
-// server's (server/src/collector/shelfMath.ts ENOUGH_PRICED): change both
-// together
-export const ENOUGH_PRICED = 0.6;
 
 type Priced = {
   knownPriceCents: number | null;
@@ -160,6 +156,9 @@ export type SeriesCost = {
   usualCents: number | null;
   // every book priced: the total is exact, not an estimate
   complete: boolean;
+  // most of it priced (ENOUGH_PRICED): the estimate is worth saying. With
+  // fewer, three prices would be passed off as the cost of thirty
+  enough: boolean;
 };
 
 // the used copies found for a series, added up: how many of its volumes
@@ -182,9 +181,9 @@ export function usedCopies(
 }
 
 // what buying a whole series new costs, at stored prices: for anyone
-// weighing up a series before buying it. Null with nothing priced. One priced
-// volume is enough to estimate by: an estimate, said as one, beats a total of
-// one volume
+// weighing up a series before buying it. Null with nothing priced. The
+// estimate is worked out from any priced volume, but only said when most of
+// the series is priced (`enough`), like "Finish the series"
 export function seriesCost(
   volumes: { knownPriceCents: number | null; isbn13?: string }[],
 ): SeriesCost | null {
@@ -205,5 +204,6 @@ export function seriesCost(
     estimateCents: cents + unpricedBooks * usual,
     usualCents: usual,
     complete: unpricedBooks === 0,
+    enough: prices.length >= books.length * ENOUGH_PRICED,
   };
 }

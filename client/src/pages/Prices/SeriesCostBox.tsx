@@ -23,8 +23,26 @@ export default function SeriesCostBox({
   comingSoon: boolean;
 }) {
   const all = cost.complete;
-  // too few priced to say what the lot costs: nothing rather than a guess
-  if (cost.estimateCents == null) return null;
+  // too few priced to say what the lot costs: how many are priced so far,
+  // never a guess (the FAQ promises the same)
+  const sayTotal = cost.estimateCents != null && cost.enough;
+  if (!sayTotal && !used) return null;
+  if (cost.estimateCents == null || !sayTotal)
+    return (
+      <aside className={styles.costBox} aria-labelledby="series-cost-title">
+        <div className={styles.costText}>
+          <h2 id="series-cost-title" className={styles.costLabel}>
+            Collect every volume
+          </h2>
+          <p className={styles.costNote}>
+            New prices found for {cost.priced} of {cost.volumes} so far. A total
+            shows once most have one.
+          </p>
+          {used && <UsedLine used={used} volumes={cost.volumes} />}
+        </div>
+        {isSignedIn === false && <TrackButton />}
+      </aside>
+    );
   // an estimate to the nearest $10: cents would claim a precision it lacks
   const total = all
     ? cost.estimateCents
@@ -60,20 +78,32 @@ export default function SeriesCostBox({
         )}
         {/* second-hand: only the copies really on sale, never a guess for
             the rest */}
-        {used && (
-          <p className={styles.costNote}>
-            {used.volumes >= cost.volumes
-              ? `All ${cost.volumes} are on sale used`
-              : `Used copies found for ${used.volumes} of ${cost.volumes}`}
-            : <strong>{formatCents(used.cents)}</strong> together.
-          </p>
-        )}
+        {used && <UsedLine used={used} volumes={cost.volumes} />}
       </div>
-      {isSignedIn === false && (
-        <NavLink to="/signup" className="btn btn-primary" viewTransition>
-          Track what you own
-        </NavLink>
-      )}
+      {isSignedIn === false && <TrackButton />}
     </aside>
   );
 }
+
+function UsedLine({
+  used,
+  volumes,
+}: {
+  used: { volumes: number; cents: number };
+  volumes: number;
+}) {
+  return (
+    <p className={styles.costNote}>
+      {used.volumes >= volumes
+        ? `All ${volumes} are on sale used`
+        : `Used copies found for ${used.volumes} of ${volumes}`}
+      : <strong>{formatCents(used.cents)}</strong> together.
+    </p>
+  );
+}
+
+const TrackButton = () => (
+  <NavLink to="/signup" className="btn btn-primary" viewTransition>
+    Track what you own
+  </NavLink>
+);

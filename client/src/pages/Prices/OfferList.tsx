@@ -77,9 +77,15 @@ export default function OfferList({
   const highlighted = newLow ?? lowest;
   // stamps are awards only: what kind of copy it is is the line under the
   // store (New, Used, Marketplace, Ebook), so it isn't said twice
+  // "lowest" of one price is no award: it needs another copy to beat
+  const copiesToCompare = offers.filter(
+    (o) => o.inStock && !isCollection(o),
+  ).length;
   const stampsOf = (o: Offer) =>
     o === lowest
-      ? [AWARDS.lowest]
+      ? copiesToCompare > 1
+        ? [AWARDS.lowest]
+        : []
       : [
           ...(o === newLow ? [AWARDS.newLow] : []),
           ...(o === knownLow ? [AWARDS.knownLow] : []),

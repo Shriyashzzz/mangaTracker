@@ -89,12 +89,24 @@ test("collecting a whole series: exact, or estimated from what's priced", () => 
     complete: true,
     estimateCents: 2200,
   });
-  // one of three priced: the other two at its price
+  // one of three priced: the other two at its price, but that's too few
+  // of the series to say the total out loud
   expect(seriesCost([vol(1, 1000), vol(2, null), vol(3, null)])).toMatchObject({
     priced: 1,
     complete: false,
     estimateCents: 3000,
+    enough: false,
   });
+  // most of it priced (3 of 5): the estimate is said
+  expect(
+    seriesCost([
+      vol(1, 1000),
+      vol(2, 1000),
+      vol(3, 1000),
+      vol(4, null),
+      vol(5, null),
+    ]),
+  ).toMatchObject({ priced: 3, estimateCents: 5000, enough: true });
 });
 
 test("a total is said only with most of the series priced, and an old price still counts", () => {

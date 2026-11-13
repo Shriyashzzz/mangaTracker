@@ -321,19 +321,20 @@ export const pricesStyles = {
   seriesHead:
     "grid grid-cols-[auto_minmax(0,1fr)_auto] items-start gap-[clamp(1.25rem,4vw,2.5rem)] upto-980:grid-cols-[auto_minmax(0,1fr)]",
   // box sets: an inked box like the shelf's "Buy it"; a plain row of tickets
-  // to swipe on narrower screens
+  // to swipe on a tablet; on a phone they stack, each the screen's width, so
+  // no store name or price is cut off at the edge
   setsBox:
     "w-[15.5rem] min-w-0 border-2 border-line bg-card p-3 shadow-ink-lg upto-980:col-span-full upto-980:w-auto upto-980:border-0 upto-980:border-t-[1.5px] upto-980:border-dashed upto-980:border-line-soft upto-980:bg-transparent upto-980:px-0 upto-980:pt-4 upto-980:pb-0 upto-980:shadow-none",
   setsTitle:
     "mb-[0.6rem] font-brand text-[1.4rem] leading-none font-normal tracking-[1px] uppercase",
   setsList:
-    "flex flex-col gap-2 upto-980:flex-row upto-980:overflow-x-auto upto-980:pb-1 upto-980:[scrollbar-width:none]",
+    "flex flex-col gap-2 upto-980:flex-row upto-980:overflow-x-auto upto-980:pb-1 upto-980:[scrollbar-width:none] upto-560:flex-col upto-560:overflow-visible",
   // past the first two: in the row on a phone, behind "more" in the box
   setLater: "hidden upto-980:block",
   setTicket:
-    "grid min-h-11 grid-cols-[minmax(0,1fr)_auto] gap-x-2 rounded-ink border-[1.5px] border-dashed border-line bg-paper px-3 py-[0.45rem] text-[0.92rem] font-semibold transition-[background-color,border-color] duration-120 ease-[ease] [a&]:hover:border-accent [a&]:hover:bg-accent-wash upto-980:w-[11rem] upto-980:shrink-0",
+    "grid min-h-11 grid-cols-[minmax(0,1fr)_auto] gap-x-2 rounded-ink border-[1.5px] border-dashed border-line bg-paper px-3 py-[0.45rem] text-[0.92rem] font-semibold transition-[background-color,border-color] duration-120 ease-[ease] [a&]:hover:border-accent [a&]:hover:bg-accent-wash upto-980:w-[11rem] upto-980:shrink-0 upto-560:w-auto",
   setTicketFirst:
-    "grid min-h-11 grid-cols-[minmax(0,1fr)_auto] gap-x-2 rounded-ink border-2 border-accent bg-accent-wash px-3 py-[0.45rem] text-[0.92rem] font-semibold shadow-[3px_3px_0_var(--hard-shadow)] transition-[translate,box-shadow] duration-120 ease-[ease] [a&]:hover:-translate-y-px [a&]:hover:shadow-[4px_4px_0_var(--hard-shadow)] upto-980:w-[11rem] upto-980:shrink-0",
+    "grid min-h-11 grid-cols-[minmax(0,1fr)_auto] gap-x-2 rounded-ink border-2 border-accent bg-accent-wash px-3 py-[0.45rem] text-[0.92rem] font-semibold shadow-[3px_3px_0_var(--hard-shadow)] transition-[translate,box-shadow] duration-120 ease-[ease] [a&]:hover:-translate-y-px [a&]:hover:shadow-[4px_4px_0_var(--hard-shadow)] upto-980:w-[11rem] upto-980:shrink-0 upto-560:w-auto",
   setKind:
     "col-span-full font-mono text-[0.72rem] font-normal tracking-[0.06em] whitespace-nowrap text-muted uppercase",
   setKindFirst:

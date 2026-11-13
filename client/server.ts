@@ -17,6 +17,7 @@ import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { isAppPage } from "./pagePaths.ts";
 import { visitorIp } from "./visitorIp.ts";
+import { ENOUGH_PRICED } from "./src/lib/enoughPriced.ts";
 import { WHY_COLLECTORS } from "./src/lib/whyCollectors.ts";
 import { FAQ, FAQ_DESCRIPTION, faqJsonLd } from "./src/lib/content/faq.ts";
 import {
@@ -299,9 +300,9 @@ function seriesCostLine(s: SeriesSummary) {
   const priced = volumes.flatMap((v) =>
     v.fromCents != null ? [v.fromCents] : [],
   );
-  // in a search result only once a quarter of it is priced (3 at least):
-  // the page's box shows a thinner estimate, with how many it rests on
-  if (priced.length < Math.max(3, volumes.length / 4)) return null;
+  // only once most of it is priced, like the page's own box
+  // (ENOUGH_PRICED in src/lib/finishCost.ts)
+  if (priced.length < volumes.length * ENOUGH_PRICED) return null;
   const sorted = [...priced].sort((a, b) => a - b);
   const mid = Math.floor(sorted.length / 2);
   const usual =
