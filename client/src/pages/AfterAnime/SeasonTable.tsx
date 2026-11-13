@@ -32,11 +32,16 @@ export default function SeasonTable({ stops }: { stops: AnimeStop[] }) {
                 <th scope="row">{row.watched}</th>
                 <td>{row.start || "Not known"}</td>
                 <td>
-                  {/* down to the season's panel, where its buy button is */}
-                  {row.buy ? (
-                    <a href={`#${seasonAnchor(stop)}`}>{row.buy}</a>
+                  {/* down to the season's panel, where its buy button is.
+                      With no volume on record the panel still leads to the
+                      series' volumes; a season that covers the whole manga
+                      has nothing to buy next */}
+                  {stop.coversAll ? (
+                    <span className="sr-only">Nothing to buy next</span>
                   ) : (
-                    <span className="sr-only">Nothing to buy</span>
+                    <a href={`#${seasonAnchor(stop)}`}>
+                      {row.buy || "See volumes"}
+                    </a>
                   )}
                 </td>
               </tr>

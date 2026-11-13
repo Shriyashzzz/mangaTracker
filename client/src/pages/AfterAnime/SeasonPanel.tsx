@@ -41,6 +41,8 @@ export default function SeasonPanel({
   // the list is in and has none of them: not out in English, or numbered
   // another way
   const noneListed = volumes !== null && wanted.length > 0 && !found.length;
+  const volumeUnknown =
+    wanted.length === 0 && !stop.coversAll && stop.nextChapter !== null;
   const where = endText(stop);
   const whyTwo = twoVolumesNote(stop);
 
@@ -99,6 +101,24 @@ export default function SeasonPanel({
               </NavLink>
             </p>
           )}
+        </div>
+      )}
+
+      {/* a chapter to start at but no volume on record (a series first
+          published by the chapter, like Solo Leveling): the way to its
+          volumes all the same */}
+      {volumeUnknown && (
+        <div className={styles.volumes}>
+          <p className={styles.volumesNote}>
+            We don't have which volume chapter {stop.nextChapter} is in yet.
+          </p>
+          <NavLink
+            to={seriesCanonicalPath(seriesName)}
+            className="btn btn-primary w-fit"
+            viewTransition
+          >
+            See every volume and price
+          </NavLink>
         </div>
       )}
 
