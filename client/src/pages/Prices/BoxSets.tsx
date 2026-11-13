@@ -5,7 +5,7 @@
 // row of tickets to swipe under it. Saved prices only: showing them never
 // asks a store or spends a search. Every link carries our affiliate tag
 // where we have one
-import { formatCents } from "../../lib/prices";
+import { formatCents, shopName } from "../../lib/prices";
 import { noteStoreClick } from "../../lib/support";
 import type { BoxSet, StoreLink } from "../../lib/types";
 import { linkRel } from "./offerLabels";
@@ -80,7 +80,7 @@ export default function BoxSets({
         <span className={first ? styles.setKindFirst : styles.setKind}>
           {first ? `Cheapest · ${condition}` : `${kind} · ${condition}`}
         </span>
-        <span className={styles.setStore}>{s.store}</span>
+        <span className={styles.setStore}>{shopName(s.store)}</span>
         <span className={styles.setPrice}>{formatCents(s.priceCents)}</span>
       </>
     );
@@ -94,7 +94,7 @@ export default function BoxSets({
             rel={linkRel(s)}
             onClick={noteStoreClick}
             onAuxClick={noteStoreClick}
-            aria-label={`${kind}, ${condition}, at ${s.store}: ${formatCents(s.priceCents)}. Opens the store in a new tab`}
+            aria-label={`${kind}, ${condition}, at ${shopName(s.store)}: ${formatCents(s.priceCents)}. Opens the store in a new tab`}
           >
             {body}
           </a>

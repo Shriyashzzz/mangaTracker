@@ -4,6 +4,7 @@
 // differs.
 import { useState } from "react";
 import { ChevronRightIcon } from "../../components/icons/Icons";
+import { shopName } from "../../lib/prices";
 import { noteStoreClick } from "../../lib/support";
 import { isCollection, type Offer } from "../../lib/types";
 import { pricesStyles as styles } from "./styles";
@@ -112,7 +113,7 @@ export default function OfferList({
           <>
             <span className={styles.offerStore}>
               <span className={styles.offerName}>
-                {o.store}
+                {shopName(o.store)}
                 {stampsOf(o).map(({ label, className }) => (
                   <span key={label} className={className}>
                     {label}
@@ -151,7 +152,7 @@ export default function OfferList({
                 rel={linkRel(o)}
                 onClick={noteStoreClick}
                 onAuxClick={noteStoreClick}
-                aria-label={`${o.store}, ${formatPrice(o.priceCents)}, ${condition}. Opens the store in a new tab`}
+                aria-label={`${shopName(o.store)}, ${formatPrice(o.priceCents)}, ${condition}. Opens the store in a new tab`}
               >
                 {row}
                 <span className={styles.offerGo} aria-hidden>

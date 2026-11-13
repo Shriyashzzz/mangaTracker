@@ -27,6 +27,7 @@ import {
   novelParts,
   timeAgo,
   olderThanDays,
+  shopName,
 } from "../../lib/prices";
 import SeriesFacts from "./SeriesFacts";
 import BackToNew from "./BackToNew";
@@ -250,11 +251,11 @@ export default function PriceVolume() {
           {best && !inCanada && (
             <p className={styles.bestLine}>
               New from <strong>{formatCents(best.priceCents)}</strong> at{" "}
-              {best.store}
+              {shopName(best.store)}
               {knownBest && (
                 <>
                   , or <strong>{formatCents(knownBest.priceCents)}</strong> at{" "}
-                  {knownBest.store}
+                  {shopName(knownBest.store)}
                 </>
               )}
               {secondHandIsCheaper && cheapestSecondHand && (

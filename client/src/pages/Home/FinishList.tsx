@@ -10,7 +10,7 @@ import {
   type MissingVolume,
 } from "../../lib/collector";
 import { rangesText } from "../../lib/ownedVolumes";
-import { seriesPath, volumePath } from "../../lib/prices";
+import { seriesPath, volumePath, shopName } from "../../lib/prices";
 import { noteStoreClick } from "../../lib/support";
 import { volumesStyles as styles } from "./volumesStyles";
 
@@ -104,7 +104,7 @@ function Where({ volume }: { volume: MissingVolume }) {
   const label = (
     <>
       <span className={styles.finishPrice}>{money(cheapest.cents)}</span> at{" "}
-      {cheapest.store}
+      {shopName(cheapest.store)}
     </>
   );
   // no store link saved: its own page has the prices
@@ -126,7 +126,7 @@ function Where({ volume }: { volume: MissingVolume }) {
       className={styles.finishLink}
       onClick={noteStoreClick}
       onAuxClick={noteStoreClick}
-      aria-label={`${volume.label ?? `Volume ${volume.volume}`}: ${money(cheapest.cents)} new at ${cheapest.store}. Opens the store in a new tab`}
+      aria-label={`${volume.label ?? `Volume ${volume.volume}`}: ${money(cheapest.cents)} new at ${shopName(cheapest.store)}. Opens the store in a new tab`}
     >
       {label}
     </a>
