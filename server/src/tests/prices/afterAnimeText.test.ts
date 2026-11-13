@@ -2,10 +2,13 @@
 // over what the server's reader makes of real MangaUpdates lines
 import {
   afterLabel,
+  answerSentence,
   placeAfter,
+  showJsonLd,
+  showQuestions,
   endText,
   startText,
-  startTextWithVolume,
+  tableRow,
   twoVolumesNote,
   volumesToGet,
   type AnimeStop,
@@ -87,15 +90,50 @@ test("where a watcher is in the manga, for their shelf", () => {
   expect(placeAfter(half!)).toEqual({ chapter: 22, volume: 4 });
 });
 
-test("the one-line answer says the volume too", () => {
-  // the next season says which volume
-  expect(startTextWithVolume(first)).toBe("Start at chapter 64, in volume 8");
-  // it doesn't: the anime's last volume, or the one after
-  expect(startTextWithVolume(third)).toBe(
-    "Start at chapter 181, in volume 21 or 22",
+test("the answer in plain sentences, and as a table row", () => {
+  expect(answerSentence(first)).toBe(
+    "Season 1 ends at chapter 63, in volume 8. To carry on with the story, start the manga at chapter 64, in volume 8.",
   );
-  const [chaptersOnly] = shown("Chap 0 (S1)", "Chap 45 (S1)");
-  expect(startTextWithVolume(chaptersOnly!)).toBe("Start at chapter 46");
-  const all = { ...first, coversAll: true };
-  expect(startTextWithVolume(all)).toBe("Nothing left to read");
+  expect(answerSentence(third)).toBe(
+    "Season 3 stops partway through chapter 181, in volume 21. To carry on with the story, start the manga at chapter 181, in volume 21 or 22.",
+  );
+  expect(tableRow(third)).toEqual({
+    season: "Season 3",
+    ends: "Chapter 181",
+    start: "Chapter 181",
+    volume: "21 or 22",
+  });
+  const all = { ...first, endChapter: 271, coversAll: true };
+  expect(answerSentence(all)).toBe(
+    "Season 1 adapts the manga to its end, chapter 271, in volume 8. There's nothing left to read after it.",
+  );
+  expect(tableRow(all)).toMatchObject({ start: "Nothing left", volume: "" });
+});
+
+test("a show's questions are the ones it can answer", () => {
+  const show = {
+    name: "Jujutsu Kaisen",
+    slug: "jujutsu-kaisen",
+    coverUrl: null,
+    stops: [first, second, third],
+  };
+  const questions = showQuestions(show);
+  expect(questions.map((question) => question.q)).toEqual([
+    "Where does the Jujutsu Kaisen anime leave off in the manga?",
+    "What chapter does the Jujutsu Kaisen anime end on?",
+    "Which Jujutsu Kaisen volume do I buy after the anime?",
+    "Does the Jujutsu Kaisen anime cover the whole manga?",
+  ]);
+  expect(questions[2]!.a).toBe(
+    "After Season 3, the story carries on at chapter 181, which is in volume 21 or 22.",
+  );
+  expect(questions[3]!.a).toMatch(/^No\. /);
+  // the page's markup: its questions, and where it sits in the site
+  const markup = showJsonLd(show, "https://example.com");
+  expect(markup["@graph"][0]!.mainEntity).toHaveLength(4);
+  expect(JSON.stringify(markup["@graph"][1])).toContain(
+    "https://example.com/after-the-anime/jujutsu-kaisen",
+  );
+  // nothing to ask about a show with no seasons
+  expect(showQuestions({ ...show, stops: [] })).toEqual([]);
 });

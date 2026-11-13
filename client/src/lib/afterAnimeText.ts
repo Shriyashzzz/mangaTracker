@@ -39,20 +39,6 @@ export function startText(stop: AnimeStop) {
   return "We're not sure yet";
 }
 
-// the answer in one line, volume and all, for where there's no room for the
-// volumes' cards: "Start at chapter 150, in volume 17 or 18". The next
-// chapter's volume when it's known; otherwise the anime's last volume or the
-// one after (see volumesToGet)
-export function startTextWithVolume(stop: AnimeStop) {
-  const start = startText(stop);
-  // only a chapter needs its volume said: the other answers name one already
-  if (stop.coversAll || stop.nextChapter === null) return start;
-  if (stop.nextVolume !== null) return `${start}, in volume ${stop.nextVolume}`;
-  if (stop.endVolume !== null)
-    return `${start}, in volume ${stop.endVolume} or ${stop.endVolume + 1}`;
-  return start;
-}
-
 const inVolume = (volume: number | null) =>
   volume === null ? "" : `, in volume ${volume}`;
 
@@ -149,28 +135,121 @@ export const INDEX_META = {
   path: "/after-the-anime",
 };
 
+// "the Promised Neverland anime", never "the The Promised Neverland anime"
+export const withoutThe = (name: string) => name.replace(/^the\s+/i, "");
+const theAnime = (name: string) => `the ${withoutThe(name)} anime`;
+
 // the question the page answers, as people type it
 export const showQuestion = (name: string) =>
-  `Where does the ${name} anime leave off in the manga?`;
+  `Where does ${theAnime(name)} leave off in the manga?`;
+
+// the season most people have just finished: the last one listed
+export const latestStop = (stops: AnimeStop[]) => stops[stops.length - 1];
+
+// a panel's heading, with the words people search: "After Season 2: start
+// at chapter 138"
+export const seasonHeading = (stop: AnimeStop) =>
+  `${afterLabel(stop)}: ${startText(stop).toLowerCase()}`;
 
 // one season in a sentence or two: "After Season 2: start at chapter 138.
 // Season 2 ends at chapter 137, in volume 16."
 export const seasonSentence = (stop: AnimeStop) =>
-  `${afterLabel(stop)}: ${startText(stop).toLowerCase()}. ${endText(stop)}`.trim();
+  `${seasonHeading(stop)}. ${endText(stop)}`.trim();
 
-// schema.org's FAQPage for a show: its one question, answered season by
-// season. The site's server writes the same (client/server.ts)
-export const showJsonLd = (show: ShowForMeta) => ({
-  "@context": "https://schema.org",
-  "@type": "FAQPage",
-  mainEntity: [
+// where on the page a season's panel is, for the table's links
+export const seasonAnchor = (stop: AnimeStop) =>
+  `after-${stop.label.toLowerCase().replace(/[^a-z0-9]+/g, "-")}`;
+
+// the volume the next chapter is in, as a few words: "16", "17 or 18", ""
+function volumeWords(stop: AnimeStop) {
+  if (stop.coversAll) return "";
+  if (stop.nextVolume !== null) return String(stop.nextVolume);
+  if (stop.endVolume !== null)
+    return `${stop.endVolume} or ${stop.endVolume + 1}`;
+  return "";
+}
+
+// the whole answer for one season in plain sentences, said first on the
+// page and to search engines: "Season 2 ends at chapter 137, in volume 16.
+// To carry on with the story, start the manga at chapter 138, in volume 16."
+export function answerSentence(stop: AnimeStop) {
+  const where = endText(stop);
+  if (stop.coversAll) return `${where} There's nothing left to read after it.`;
+  if (stop.nextChapter === null) return where;
+  const volume = volumeWords(stop);
+  const inWhich = volume ? `, in volume ${volume}` : "";
+  return `${where} To carry on with the story, start the manga at chapter ${stop.nextChapter}${inWhich}.`.trim();
+}
+
+// a season as a row of the page's table
+export function tableRow(stop: AnimeStop) {
+  let ends = "";
+  if (stop.endChapter !== null) ends = `Chapter ${stop.endChapter}`;
+  else if (stop.endVolume !== null) ends = `Volume ${stop.endVolume}`;
+  let start = "";
+  if (stop.coversAll) start = "Nothing left";
+  else if (stop.nextChapter !== null) start = `Chapter ${stop.nextChapter}`;
+  return {
+    season: stop.label,
+    ends,
+    start,
+    volume: volumeWords(stop),
+  };
+}
+
+// the questions a show's page answers, as people type them, for its FAQ
+// markup. Only the ones this show has an answer to
+export function showQuestions(show: ShowForMeta) {
+  const latest = latestStop(show.stops);
+  if (!latest) return [];
+  const questions = [
+    { q: showQuestion(show.name), a: answerSentence(latest) },
     {
-      "@type": "Question",
-      name: showQuestion(show.name),
-      acceptedAnswer: {
-        "@type": "Answer",
-        text: show.stops.map(seasonSentence).join(" "),
-      },
+      q: `What chapter does ${theAnime(show.name)} end on?`,
+      a: show.stops.map(endText).filter(Boolean).join(" "),
+    },
+  ];
+  const volume = volumeWords(latest);
+  if (volume && latest.nextChapter !== null)
+    questions.push({
+      q: `Which ${show.name} volume do I buy after the anime?`,
+      a: `After ${latest.label === "The anime" ? "the anime" : latest.label}, the story carries on at chapter ${latest.nextChapter}, which is in volume ${volume}.`,
+    });
+  if (latest.endChapter !== null)
+    questions.push({
+      q: `Does ${theAnime(show.name)} cover the whole manga?`,
+      a: latest.coversAll
+        ? `Yes. ${endText(latest)}`
+        : `No. ${endText(latest)} The manga carries on from there.`,
+    });
+  return questions.filter((question) => question.a);
+}
+
+// schema.org markup for a show: its questions and answers, and where the
+// page sits in the site. `origin`: the site's own address. The site's server
+// writes the same (client/server.ts)
+export const showJsonLd = (show: ShowForMeta, origin: string) => ({
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "FAQPage",
+      mainEntity: showQuestions(show).map(({ q, a }) => ({
+        "@type": "Question",
+        name: q,
+        acceptedAnswer: { "@type": "Answer", text: a },
+      })),
+    },
+    {
+      "@type": "BreadcrumbList",
+      itemListElement: [
+        ["After the anime", "/after-the-anime"],
+        [show.name, `/after-the-anime/${show.slug}`],
+      ].map(([name, path], at) => ({
+        "@type": "ListItem",
+        position: at + 1,
+        name,
+        item: origin + path,
+      })),
     },
   ],
 });
@@ -180,21 +259,20 @@ export const showJsonLd = (show: ShowForMeta) => ({
 export function showMeta(
   show: ShowForMeta | null,
   failed: boolean,
+  origin: string,
 ): ShowMeta | null {
   if (failed) return { title: "After the anime", noindex: true };
   if (!show) return null;
   const title = showQuestion(show.name);
   const path = `/after-the-anime/${show.slug}`;
   if (!show.stops.length) return { title, path, noindex: true };
-  // the latest season is the one most people have just finished
-  const latest = show.stops[show.stops.length - 1]!;
-  const answer = startTextWithVolume(latest).toLowerCase();
-  const season = latest.label === "The anime" ? "the anime" : latest.label;
+  const latest = latestStop(show.stops)!;
   return {
     title,
-    description: `After ${season} of ${show.name}, ${answer}. Every season's last chapter, the volume to buy next, and its cheapest price.`,
+    // the answer itself, so it can be read off the search result
+    description: `${answerSentence(latest)} Every season's last chapter, the volume to buy next and its price.`,
     path,
     image: show.coverUrl,
-    jsonLd: showJsonLd(show),
+    jsonLd: showJsonLd(show, origin),
   };
 }

@@ -9,15 +9,29 @@ import Mascot from "../../components/mascot/Mascot";
 import {
   AFTER_ANIME_PATH,
   getAfterAnime,
+  getBuyOffers,
   type AfterAnime,
+  type BuyOffer,
 } from "../../lib/afterAnime";
+import {
+  answerSentence,
+  latestStop,
+  showQuestions,
+  volumesToGet,
+  withoutThe,
+} from "../../lib/afterAnimeText";
 import { HttpError } from "../../lib/api";
-import { seriesCanonicalPath, timeAgo } from "../../lib/prices";
+import { formatCents, seriesCanonicalPath, timeAgo } from "../../lib/prices";
+import type { SeriesVolume } from "../../lib/types";
+import { linkRel } from "../Prices/offerLabels";
 import { usePageMeta } from "../../lib/seo";
 import { pricesStyles as priceStyles } from "../Prices/styles";
 import { useSeriesLoad } from "../Prices/useSeriesData";
 import FixForm from "./FixForm";
+import MoreShows from "./MoreShows";
+import { bookFor } from "./bookFor";
 import SeasonPanel from "./SeasonPanel";
+import SeasonTable from "./SeasonTable";
 import { afterAnimeStyles as styles } from "./styles";
 
 // the seasons of one series. `asked` names the series an answer is for, so
@@ -54,6 +68,36 @@ function useAfterAnime(name: string) {
   };
 }
 
+// each wanted volume's saved buy link, once the series' volumes are in.
+// Nothing while they load, and nothing if it can't be asked: the buttons
+// then open the volume's own page
+function useBuyOffers(show: AfterAnime | null, volumes: SeriesVolume[] | null) {
+  const isbns =
+    show && volumes
+      ? show.stops
+          .flatMap(volumesToGet)
+          .map((want) => bookFor(volumes, want.volume)?.isbn13.trim())
+          .filter((isbn): isbn is string => Boolean(isbn))
+      : [];
+  // one string, so the effect runs again only when the volumes change
+  const wanted = [...new Set(isbns)].sort().join(",");
+  const [found, setFound] = useState<{
+    wanted: string;
+    offers: Record<string, BuyOffer>;
+  }>({ wanted: "", offers: {} });
+  useEffect(() => {
+    if (!wanted) return;
+    const controller = new AbortController();
+    getBuyOffers(wanted.split(","), controller.signal)
+      .then((offers) => setFound({ wanted, offers }))
+      .catch(() => {
+        // no buy links: every button opens its volume's page
+      });
+    return () => controller.abort();
+  }, [wanted]);
+  return found.wanted === wanted ? found.offers : {};
+}
+
 export default function AfterAnimeShow() {
   // the route always has a :slug
   const slug = useParams().slug!;
@@ -65,9 +109,19 @@ export default function AfterAnimeShow() {
   const series = useSeriesLoad(show?.name ?? "");
   const volumes = show && !series.loading ? (series.data?.volumes ?? []) : null;
 
-  usePageMeta(showMeta(show, problem !== ""));
+  const offers = useBuyOffers(show, volumes);
+
+  usePageMeta(showMeta(show, problem !== "", location.origin));
 
   const name = show?.name ?? asked;
+  // the season most people have just finished comes first
+  const latest = show ? latestStop(show.stops) : undefined;
+  const newestFirst = show ? [...show.stops].reverse() : [];
+  // the whole run in one buy, when a box set is priced (cheapest first)
+  const boxSet = series.data?.boxSets?.[0];
+  const anAffiliateLink =
+    Object.values(offers).some((offer) => offer.affiliate) ||
+    Boolean(boxSet?.affiliate);
   return (
     <div className={`${styles.page} fade-in`}>
       <nav className={priceStyles.crumbs} aria-label="Breadcrumb">
@@ -80,15 +134,11 @@ export default function AfterAnimeShow() {
 
       <header className={styles.head}>
         <h1 className={styles.title}>
-          Where does the <span className={styles.named}>{name}</span> anime
-          leave off?
+          Where does the{" "}
+          <span className={styles.named}>{withoutThe(name)}</span> anime leave
+          off?
         </h1>
-        {show && show.stops.length > 0 && (
-          <p className={styles.sub}>
-            Find the last season you watched. It says which chapter of the manga
-            to start at, and which volume that's in.
-          </p>
-        )}
+        {latest && <p className={styles.lead}>{answerSentence(latest)}</p>}
       </header>
 
       {loading && (
@@ -134,7 +184,7 @@ export default function AfterAnimeShow() {
               className={styles.link}
               viewTransition
             >
-              Every volume of {show.name} and its price
+              Compare prices for every {show.name} volume
             </NavLink>
           </div>
           <FixForm seriesName={show.name} season={null} open />
@@ -143,29 +193,56 @@ export default function AfterAnimeShow() {
 
       {show && show.stops.length > 0 && (
         <>
+          {show.stops.length > 1 && <SeasonTable stops={newestFirst} />}
           <div className={styles.seasons}>
-            {show.stops.map((stop) => (
+            {newestFirst.map((stop) => (
               <SeasonPanel
                 key={stop.label}
                 stop={stop}
                 seriesName={show.name}
-                seriesCoverUrl={show.coverUrl}
                 volumes={volumes}
+                offers={offers}
               />
             ))}
           </div>
+          {boxSet?.url && (
+            <p className={styles.boxSet}>
+              Want the whole run in one go? There's a {show.name} box set from{" "}
+              <strong>{formatCents(boxSet.priceCents)}</strong> at{" "}
+              <a href={boxSet.url} target="_blank" rel={linkRel(boxSet)}>
+                {boxSet.store}
+              </a>
+              .
+            </p>
+          )}
           <div className={styles.more}>
             <NavLink
               to={seriesCanonicalPath(show.name)}
-              className="btn btn-primary"
+              className="btn"
               viewTransition
             >
-              Every volume and its price
+              Compare every volume's price
             </NavLink>
             <NavLink to={AFTER_ANIME_PATH} className="btn" viewTransition>
               Look up another show
             </NavLink>
           </div>
+          {/* the same questions and answers the page's markup gives search
+              engines (showJsonLd) */}
+          <section aria-labelledby="questions-title">
+            <h2 id="questions-title" className={priceStyles.sectionTitle}>
+              Questions
+            </h2>
+            <dl className={styles.questions}>
+              {showQuestions(show).map(({ q, a }) => (
+                <div key={q}>
+                  <dt className={styles.question}>{q}</dt>
+                  <dd className={styles.answer}>{a}</dd>
+                </div>
+              ))}
+            </dl>
+          </section>
+          <MoreShows notThis={show.slug} />
           <p className={styles.credit}>
             {show.sourceUrl ? (
               <>
@@ -180,6 +257,8 @@ export default function AfterAnimeShow() {
             )}
             Volume numbers are the Japanese release's, which the English one
             nearly always matches.
+            {anAffiliateLink &&
+              " Some store links are affiliate links, which help keep the site running at no cost to you."}
           </p>
         </>
       )}

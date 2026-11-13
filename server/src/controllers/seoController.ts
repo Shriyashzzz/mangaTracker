@@ -61,7 +61,7 @@ const sitemap = async (_req: Request, res: Response) => {
     entry("/after-the-anime"),
     ...animeShows
       .filter((show) => show.seasons > 0)
-      .map((show) => entry(`/after-the-anime/${show.slug}`)),
+      .map((show) => entry(`/after-the-anime/${show.slug}`, show.checkedAt)),
     ...withVolumes.map((s) => entry(seriesPath(s.name), s.fetchedAt)),
     ...volumes.map((v) =>
       entry(volumePath(v.isbn13.trim(), v.title), v.updated),

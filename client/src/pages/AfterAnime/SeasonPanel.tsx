@@ -1,10 +1,12 @@
 // One season of an "after the anime" page: what to start at, where the
-// season stops, and the volumes to get with their prices. The words are
+// season stops, and the volumes to buy to carry on (BuyRow). The words are
 // lib/afterAnimeText.ts; the volumes come from the series' own list.
 import { NavLink } from "react-router";
+import type { BuyOffer } from "../../lib/afterAnime";
 import {
   afterLabel,
   endText,
+  seasonAnchor,
   startText,
   twoVolumesNote,
   volumesToGet,
@@ -12,28 +14,23 @@ import {
 } from "../../lib/afterAnimeText";
 import { seriesCanonicalPath } from "../../lib/prices";
 import type { SeriesVolume } from "../../lib/types";
-import VolumeCard from "../Prices/VolumeCard";
+import { bookFor } from "./bookFor";
+import BuyRow from "./BuyRow";
 import FixForm from "./FixForm";
 import { afterAnimeStyles as styles } from "./styles";
-
-// the book for a volume number: one sold on its own, with a price when
-// there's a choice
-function bookFor(volumes: SeriesVolume[], number: number) {
-  const matches = volumes.filter((v) => v.volume === number && !v.inBook);
-  return matches.find((v) => v.knownPriceCents !== null) ?? matches[0] ?? null;
-}
 
 export default function SeasonPanel({
   stop,
   seriesName,
-  seriesCoverUrl,
   // the series' English volumes; null while they load
   volumes,
+  // each volume's saved buy link, by ISBN
+  offers,
 }: {
   stop: AnimeStop;
   seriesName: string;
-  seriesCoverUrl: string | null;
   volumes: SeriesVolume[] | null;
+  offers: Record<string, BuyOffer>;
 }) {
   const wanted = volumesToGet(stop);
   const books = wanted.map((want) => ({
@@ -48,10 +45,14 @@ export default function SeasonPanel({
   const whyTwo = twoVolumesNote(stop);
 
   return (
-    <section className={styles.season}>
+    <section className={styles.season} id={seasonAnchor(stop)}>
       <div className={styles.seasonWords}>
-        <h2 className={styles.seasonTitle}>{afterLabel(stop)}</h2>
-        <p className={styles.start}>{startText(stop)}</p>
+        {/* one heading, on two lines: the season, then the answer */}
+        <h2 className={styles.seasonHeading}>
+          <span className={styles.seasonTitle}>{afterLabel(stop)}</span>
+          <span className="sr-only">: </span>
+          <span className={styles.start}>{startText(stop)}</span>
+        </h2>
         {where && <p className={styles.end}>{where}</p>}
         {stop.note && <p className={styles.note}>Worth knowing: {stop.note}</p>}
         {stop.corrected && (
@@ -62,30 +63,21 @@ export default function SeasonPanel({
       {wanted.length > 0 && (
         <div className={styles.volumes}>
           {volumes === null && (
-            <div className={styles.volumeRow} aria-busy="true">
-              {wanted.map((want) => (
-                <div
-                  key={want.volume}
-                  className={`skeleton ${styles.volumeSkeleton}`}
-                />
-              ))}
-            </div>
+            <div
+              className={`skeleton ${styles.buySkeleton}`}
+              aria-busy="true"
+            />
           )}
           {found.length > 0 && (
-            <ul className={styles.volumeRow}>
+            <ul className={styles.buyList}>
               {found.map(({ volume, why, book }) => (
-                <li key={volume}>
-                  <VolumeCard
-                    isbn13={book!.isbn13}
-                    title={`Vol. ${volume}`}
-                    fullTitle={book!.title}
-                    volume={volume}
-                    coverUrl={book!.coverUrl}
-                    seriesCoverUrl={seriesCoverUrl}
-                    subtitle={why}
-                    priceCents={book!.knownPriceCents}
-                  />
-                </li>
+                <BuyRow
+                  key={volume}
+                  volume={volume}
+                  why={why}
+                  book={book!}
+                  offer={offers[book!.isbn13.trim()]}
+                />
               ))}
             </ul>
           )}

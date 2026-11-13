@@ -61,6 +61,23 @@ export const afterAnimePath = (name: string) =>
 export const afterAnimeCanonicalPath = (name: string) =>
   `${AFTER_ANIME_PATH}/${slugify(name)}`;
 
+// a volume's cheapest saved new copy at a store readers know, and the
+// store's link (ours, where we have an affiliate tag). The server's BuyOffer
+export type BuyOffer = {
+  cents: number;
+  store: string;
+  url: string;
+  affiliate: boolean;
+  checkedAt: string;
+};
+
+// by ISBN; a volume with no saved price isn't in it. Saved prices only
+export const getBuyOffers = (isbns: string[], signal?: AbortSignal) =>
+  getJson<Record<string, BuyOffer>>(
+    `/api/after-anime/buy?${new URLSearchParams({ isbns: isbns.join(",") })}`,
+    signal,
+  );
+
 // ---------- the owner's review of readers' fixes ----------
 
 // a reader's correction, as it's kept (the server's anime_fixes row)

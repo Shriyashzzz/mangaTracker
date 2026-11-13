@@ -17,6 +17,7 @@ import {
   fixesToReview,
   suggestFix,
 } from "../prices/afterAnime/fixStore.js";
+import { buyOffers } from "../prices/afterAnime/buyBox.js";
 import { isCrawler } from "../prices/crawlers.js";
 
 const CACHE_10_MIN = "public, max-age=600";
@@ -37,6 +38,29 @@ const show = [
     const data = await getAfterAnime(matchedData(req).name, mayAsk);
     if (!data) throw new NotFoundError("We couldn't find that series.");
     res.json(data);
+  },
+];
+
+// GET /buy?isbns=a,b  each volume's cheapest saved new copy and its store's
+// link, for a season's buy button
+const buy = [
+  query("isbns")
+    .customSanitizer((typed: unknown) =>
+      String(typed ?? "")
+        .split(",")
+        .map((isbn) => isbn.trim()),
+    )
+    .custom(
+      (isbns: string[]) =>
+        isbns.length >= 1 &&
+        isbns.length <= 30 &&
+        isbns.every((isbn) => /^97[89]\d{10}$/.test(isbn)),
+    )
+    .withMessage("Which volumes?"),
+  rejectInvalid,
+  async (req: Request, res: Response) => {
+    const { isbns } = matchedData(req) as { isbns: string[] };
+    res.json(await buyOffers(isbns));
   },
 ];
 
@@ -141,4 +165,4 @@ const decide = [
   },
 ];
 
-export default { show, index, suggest, review, decide };
+export default { show, index, buy, suggest, review, decide };

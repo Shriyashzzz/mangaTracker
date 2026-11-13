@@ -10,6 +10,7 @@ export const afterAnimeRouter = Router();
 
 afterAnimeRouter.get("/", perMinute(40), afterAnime.show);
 afterAnimeRouter.get("/index", perMinute(60), afterAnime.index);
+afterAnimeRouter.get("/buy", perMinute(60), afterAnime.buy);
 afterAnimeRouter.post(
   "/fix",
   rateLimit({ max: 5, windowMs: 10 * 60_000 }),

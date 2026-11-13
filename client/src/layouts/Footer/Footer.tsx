@@ -50,17 +50,6 @@ export default function Footer() {
             quote room */}
         <div className="flex flex-col items-end gap-y-[0.3rem] justify-self-end font-mono text-[0.75rem] whitespace-nowrap upto-760:contents">
           <p className="flex gap-[0.6rem] opacity-80 upto-760:col-start-2 upto-760:row-start-1 upto-760:gap-[0.45rem] upto-760:justify-self-end">
-            {/* laptops only: a phone's row has room for three (there it's
-                under the price search) */}
-            <NavLink
-              to="/after-the-anime"
-              className={`${footerLink} upto-760:hidden`}
-            >
-              After the anime
-            </NavLink>
-            <span aria-hidden className="upto-760:hidden">
-              ·
-            </span>
             <NavLink to="/updates" className={footerLink}>
               What's new
             </NavLink>

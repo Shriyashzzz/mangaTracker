@@ -81,7 +81,13 @@ export async function getAfterAnimeIndex() {
   const [rows, known] = await Promise.all([
     prisma.animeStops.findMany({
       where: { OR: [{ endLine: { not: null } }, { slug: { in: [...fixed] } }] },
-      select: { slug: true, name: true, startLine: true, endLine: true },
+      select: {
+        slug: true,
+        name: true,
+        startLine: true,
+        endLine: true,
+        fetchedAt: true,
+      },
     }),
     listKnownSeries(),
   ]);
@@ -98,6 +104,8 @@ export async function getAfterAnimeIndex() {
       coverUrl: info.coverUrl,
       popularityRank: info.popularityRank,
       seasons,
+      // when MangaUpdates was last asked, for the sitemap
+      checkedAt: row.fetchedAt,
     });
   }
   const last = Number.MAX_SAFE_INTEGER;
