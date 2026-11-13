@@ -10,6 +10,7 @@ import {
   listKnownSeries,
 } from "../sources/anilist.js";
 import { slugify } from "../stores/match.js";
+import type { SeriesInfo } from "../types.js";
 import { withFixes, type ShownStop } from "./animeFixes.js";
 import { readAnimeStops } from "./animeLines.js";
 import { animeLinesFor } from "./animeSource.js";
@@ -28,11 +29,22 @@ function coversAll(
   return stop.endChapter >= manga.lastChapter;
 }
 
+// the series as it's saved, without asking AniList; null when it isn't
+async function savedSeriesInfo(name: string) {
+  const saved = await prisma.seriesInfo.findUnique({
+    where: { slug: slugify(name) },
+  });
+  const info = saved?.info as SeriesInfo | null | undefined;
+  return info?.name ? info : null;
+}
+
 // null when we don't know the series at all. `mayAsk` false reads the
 // database only (a crawler mustn't start lookups)
 export async function getAfterAnime(asked: string, mayAsk: boolean) {
   const name = await knownSeriesName(asked);
-  const info = await getSeriesInfo(name);
+  // a crawler sending made-up names mustn't turn into AniList lookups: for
+  // it, only a series we've already seen
+  const info = mayAsk ? await getSeriesInfo(name) : await savedSeriesInfo(name);
   if (!info) return null;
   const slug = slugify(info.name);
   // MangaUpdates would be asked about the manga, and a novel's volumes and

@@ -19,6 +19,12 @@ import { isAppPage } from "./pagePaths.ts";
 import { visitorIp } from "./visitorIp.ts";
 import { WHY_COLLECTORS } from "./src/lib/whyCollectors.ts";
 import { FAQ, FAQ_DESCRIPTION, faqJsonLd } from "./src/lib/content/faq.ts";
+import {
+  INDEX_META,
+  seasonSentence,
+  showMeta,
+  type AnimeStop,
+} from "./src/lib/afterAnimeText.ts";
 
 const DIST = fileURLToPath(new URL("./dist/", import.meta.url));
 // where this server reaches the API: the private address on Railway
@@ -464,6 +470,7 @@ const linkList = (links: [href: string, label: string][]) =>
 const SITE_LINKS: [string, string][] = [
   ["/series", "All manga series"],
   ["/deals", "Manga deals"],
+  ["/after-the-anime", "Where does the anime leave off?"],
   ["/faq", "Questions and answers"],
   ["/about", "About Manga Tracker"],
   ["/updates", "What's new"],
@@ -549,6 +556,67 @@ function dealsTags(deals: Deal[]): Tags {
           : "<p>No deals right now.</p>"
       }
       ${linkList(SITE_LINKS.filter(([href]) => href !== "/deals"))}
+    </main>`,
+  };
+}
+
+// what /api/after-anime sends, as much of it as these pages use
+type AfterAnimeShow = { name: string; slug: string };
+type AfterAnime = {
+  name: string;
+  slug: string;
+  coverUrl: string | null;
+  stops: AnimeStop[];
+};
+
+// /after-the-anime: every show with an answer, linked. The title and
+// description are the app's own (src/lib/afterAnimeText.ts)
+const afterAnimeShowPath = (name: string) =>
+  `/after-the-anime/${slugify(name)}`;
+
+function afterAnimeIndexTags(shows: AfterAnimeShow[]): Tags {
+  return {
+    title: INDEX_META.title!,
+    description: INDEX_META.description!,
+    path: "/after-the-anime",
+    image: null,
+    body: `<main class="crawl-page">
+      ${crumbs([["/", SITE_NAME]])}
+      <h1>Where does the anime leave off?</h1>
+      <p>Finished a season? Look the show up to see which chapter of the manga to start at, which volume that's in, and what it costs.</p>
+      ${linkList(shows.map((show) => [afterAnimeShowPath(show.name), show.name]))}
+      ${linkList(SITE_LINKS.filter(([href]) => href !== "/after-the-anime"))}
+    </main>`,
+  };
+}
+
+// one show: each season's answer in words, as the page says it. A show with
+// no answer isn't indexed (showMeta)
+function afterAnimeTags(show: AfterAnime): Tags {
+  // never null for a show that loaded
+  const meta = showMeta(show, false)!;
+  return {
+    title: meta.title!,
+    description: meta.description ?? INDEX_META.description!,
+    path: meta.path!,
+    image: show.coverUrl,
+    smallImage: true,
+    noindex: meta.noindex,
+    jsonLd: meta.jsonLd,
+    body: `<main class="crawl-page">
+      ${crumbs([
+        ["/", SITE_NAME],
+        ["/after-the-anime", "After the anime"],
+      ])}
+      <h1>${escapeHtml(meta.title)}</h1>
+      ${
+        show.stops.length
+          ? `<ul>${show.stops
+              .map((stop) => `<li>${escapeHtml(seasonSentence(stop))}</li>`)
+              .join("")}</ul>`
+          : "<p>No answer yet.</p>"
+      }
+      <p><a href="${escapeHtml(seriesPath(show.name))}">Every volume of ${escapeHtml(show.name)} and its price</a></p>
     </main>`,
   };
 }
@@ -1037,6 +1105,34 @@ app.get(
       ipOf(req),
     );
     return dealsTags(data?.deals ?? []);
+  }),
+);
+
+app.get(
+  "/after-the-anime",
+  withTags(async (req) => {
+    const { data } = await summary<AfterAnimeShow[]>(
+      "/api/after-anime/index",
+      ipOf(req),
+    );
+    return afterAnimeIndexTags(Array.isArray(data) ? data : []);
+  }),
+);
+
+app.get(
+  "/after-the-anime/:slug",
+  withTags(async (req) => {
+    // the owner's review page is the plain app
+    if (req.params.slug === "review") return null;
+    const name =
+      (typeof req.query.name === "string" && req.query.name) ||
+      String(req.params.slug).replace(/-/g, " ");
+    const { data, missing } = await summary<AfterAnime>(
+      `/api/after-anime?${new URLSearchParams({ name })}`,
+      ipOf(req),
+    );
+    if (missing) return "missing";
+    return data ? afterAnimeTags(data) : null;
   }),
 );
 

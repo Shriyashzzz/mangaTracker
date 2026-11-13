@@ -8,6 +8,7 @@ import priceQueries from "../models/priceQueries.js";
 import { slugify } from "../prices/stores/match.js";
 import { sendError } from "../middlewares/errorHandler.js";
 import { knownVolumesBySeries } from "../prices/service.js";
+import { getAfterAnimeIndex } from "../prices/afterAnime/afterAnime.js";
 
 const site = () => config.CLIENT_URL?.replace(/\/+$/, "");
 
@@ -40,9 +41,11 @@ const sitemap = async (_req: Request, res: Response) => {
     sendError(res, 503, "CLIENT_URL isn't set");
     return;
   }
-  const [{ volumes, series }, bySeries] = await Promise.all([
+  const [{ volumes, series }, bySeries, animeShows] = await Promise.all([
     priceQueries.getSitemapEntries(),
     knownVolumesBySeries(),
+    // only shows with an answer: one without is a near-empty page
+    getAfterAnimeIndex().catch(() => []),
   ]);
   // a series with no volumes known yet is a near-empty page: it joins once
   // its list is built (by a visit, or prices/seriesFiller.ts)
@@ -55,6 +58,10 @@ const sitemap = async (_req: Request, res: Response) => {
     entry("/acknowledgements"),
     entry("/series"),
     entry("/deals"),
+    entry("/after-the-anime"),
+    ...animeShows
+      .filter((show) => show.seasons > 0)
+      .map((show) => entry(`/after-the-anime/${show.slug}`)),
     ...withVolumes.map((s) => entry(seriesPath(s.name), s.fetchedAt)),
     ...volumes.map((v) =>
       entry(volumePath(v.isbn13.trim(), v.title), v.updated),

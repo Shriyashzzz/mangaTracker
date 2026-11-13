@@ -1,5 +1,6 @@
 // /after-the-anime  Look a show up by name, or pick one from the series we
 // already have an answer for (most popular first).
+import { INDEX_META } from "../../lib/afterAnimeText";
 import { useEffect, useState } from "react";
 import SlowLoadQuote from "../../components/slowLoadQuote/SlowLoadQuote";
 import {
@@ -12,7 +13,6 @@ import { usePageMeta } from "../../lib/seo";
 import SeriesCard from "../Prices/SeriesCard";
 import SeriesSearchBox from "../Prices/SeriesSearchBox";
 import { pricesStyles as priceStyles } from "../Prices/styles";
-import { INDEX_META } from "./afterAnimeMeta";
 import { afterAnimeStyles as styles } from "./styles";
 
 const seasonsText = (count: number) =>

@@ -1,6 +1,8 @@
-// The words for one season on an "after the anime" page: what to start at,
-// where the season stops, which volumes to get. Pure rules with no fetching,
-// so the server's tests can run them (tests/prices/afterAnimeText.test.ts).
+// The words of the "after the anime" pages: for one season, what to start
+// at, where it stops and which volumes to get; for a page, its title and
+// description. Pure rules with no imports at all, so the server's tests
+// (tests/prices/afterAnimeText.test.ts) and the site's server
+// (client/server.ts) can both use them.
 
 // one season (or film, or OVA) and where it leaves the manga. The server's
 // SentStop
@@ -104,4 +106,81 @@ export function placeAfter(stop: AnimeStop) {
   const startsIn = stop.nextVolume ?? stop.endVolume;
   const volume = startsIn === null ? null : Math.max(0, startsIn - 1);
   return { chapter, volume };
+}
+
+// ---------- what a page says about itself (title, description) ----------
+
+// a show, as much of it as its title and description need
+type ShowForMeta = {
+  name: string;
+  slug: string;
+  coverUrl: string | null;
+  stops: AnimeStop[];
+};
+
+// fits the app's PageMeta (lib/seo.ts)
+type ShowMeta = {
+  title: string;
+  description?: string;
+  path?: string;
+  image?: string | null;
+  noindex?: boolean;
+  jsonLd?: Record<string, unknown>;
+};
+
+export const INDEX_META = {
+  title: "Where does the anime leave off in the manga?",
+  description:
+    "Finished a season? Look up the anime and see which manga chapter and volume to start from, with the cheapest price for that volume.",
+  path: "/after-the-anime",
+};
+
+// the question the page answers, as people type it
+export const showQuestion = (name: string) =>
+  `Where does the ${name} anime leave off in the manga?`;
+
+// one season in a sentence or two: "After Season 2: start at chapter 138.
+// Season 2 ends at chapter 137, in volume 16."
+export const seasonSentence = (stop: AnimeStop) =>
+  `${afterLabel(stop)}: ${startText(stop).toLowerCase()}. ${endText(stop)}`.trim();
+
+// schema.org's FAQPage for a show: its one question, answered season by
+// season. The site's server writes the same (client/server.ts)
+export const showJsonLd = (show: ShowForMeta) => ({
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  mainEntity: [
+    {
+      "@type": "Question",
+      name: showQuestion(show.name),
+      acceptedAnswer: {
+        "@type": "Answer",
+        text: show.stops.map(seasonSentence).join(" "),
+      },
+    },
+  ],
+});
+
+// a show's page; null while it loads. A page with no answer isn't one to
+// find in a search
+export function showMeta(
+  show: ShowForMeta | null,
+  failed: boolean,
+): ShowMeta | null {
+  if (failed) return { title: "After the anime", noindex: true };
+  if (!show) return null;
+  const title = showQuestion(show.name);
+  const path = `/after-the-anime/${show.slug}`;
+  if (!show.stops.length) return { title, path, noindex: true };
+  // the latest season is the one most people have just finished
+  const latest = show.stops[show.stops.length - 1]!;
+  const answer = startText(latest).toLowerCase();
+  const season = latest.label === "The anime" ? "the anime" : latest.label;
+  return {
+    title,
+    description: `After ${season} of ${show.name}, ${answer}. Every season's last chapter, the volume to buy next, and its cheapest price.`,
+    path,
+    image: show.coverUrl,
+    jsonLd: showJsonLd(show),
+  };
 }

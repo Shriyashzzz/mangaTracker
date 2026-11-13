@@ -2,6 +2,7 @@
 // season: the chapter to start at and the volumes to get, with prices. The
 // seasons come from /api/after-anime; the volumes and prices from the same
 // series list the price page uses.
+import { showMeta } from "../../lib/afterAnimeText";
 import { useEffect, useState } from "react";
 import { NavLink, useParams, useSearchParams } from "react-router";
 import Mascot from "../../components/mascot/Mascot";
@@ -15,7 +16,6 @@ import { seriesCanonicalPath, timeAgo } from "../../lib/prices";
 import { usePageMeta } from "../../lib/seo";
 import { pricesStyles as priceStyles } from "../Prices/styles";
 import { useSeriesLoad } from "../Prices/useSeriesData";
-import { showMeta } from "./afterAnimeMeta";
 import FixForm from "./FixForm";
 import SeasonPanel from "./SeasonPanel";
 import { afterAnimeStyles as styles } from "./styles";

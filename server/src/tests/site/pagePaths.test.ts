@@ -12,8 +12,12 @@ const routes = [
   ...readFileSync(routesFile, "utf8").matchAll(/path:\s*"([^"]+)"/g),
 ]
   .map((m) => m[1]!)
-  // the not-found page, and the price pages, which have their own routes
-  .filter((p) => p !== "*" && !/^\/prices\/./.test(p));
+  // the not-found page, and the pages with their own routes in server.ts:
+  // the price pages, and a show's "after the anime" page
+  .filter(
+    (p) =>
+      p !== "*" && !/^\/prices\/./.test(p) && p !== "/after-the-anime/:slug",
+  );
 
 // "/settings/:tab?" -> "/settings" and "/settings/x"
 const examples = (path: string) => {

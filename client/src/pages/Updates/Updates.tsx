@@ -9,6 +9,10 @@ import { updatesStyles as styles } from "./styles";
 // the big features only, a line each. Add new ones here when they ship
 const UPDATES = [
   {
+    name: "After the anime",
+    body: "Finished a season? Look up the show and see which chapter of the manga to start at, which volume that's in, and what it costs.",
+  },
+  {
     name: "Read by volume",
     body: "Keep your place by chapter, by volume, or both. Switch it for one series on its page, or for your whole shelf in Settings.",
   },
