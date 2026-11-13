@@ -74,16 +74,13 @@ export default function BoxSets({
 
   const ticket = (s: BoxSet, first: boolean, where?: string) => {
     const kind = KIND[s.format] ?? "Set";
-    const condition = CONDITION[s.condition] ?? "marketplace";
+    const condition = CONDITION[s.condition] ?? "resold";
     const body = (
       <>
         <span className={first ? styles.setKindFirst : styles.setKind}>
-          {first ? "Cheapest found" : `${kind} · ${condition}`}
+          {first ? `Cheapest · ${condition}` : `${kind} · ${condition}`}
         </span>
-        <span className={styles.setStore}>
-          {s.store}
-          {first && <span className={styles.setAside}> · {condition}</span>}
-        </span>
+        <span className={styles.setStore}>{s.store}</span>
         <span className={styles.setPrice}>{formatCents(s.priceCents)}</span>
       </>
     );

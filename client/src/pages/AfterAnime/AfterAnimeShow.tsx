@@ -6,6 +6,7 @@
 // price page uses.
 import {
   buyVolume,
+  keepNumbers,
   latestAnswer,
   latestStop,
   pageHeading,
@@ -158,8 +159,18 @@ export default function AfterAnimeShow() {
         </h1>
         {latest && (
           <>
-            <p className={styles.lead}>{latestAnswer(latest).lead}</p>
-            <p className={styles.sub}>{latestAnswer(latest).detail}</p>
+            {/* the question on its own line, the answer under it */}
+            <p className={styles.lead}>
+              <span className={styles.leadAsked}>
+                {latestAnswer(latest).asked}
+              </span>{" "}
+              <span className="block">
+                {keepNumbers(latestAnswer(latest).lead)}
+              </span>
+            </p>
+            <p className={styles.sub}>
+              {keepNumbers(latestAnswer(latest).detail)}
+            </p>
           </>
         )}
       </header>
@@ -271,12 +282,12 @@ export default function AfterAnimeShow() {
                       <span className={faqStyles.mark} aria-hidden />
                     </summary>
                     <div className={faqStyles.answer}>
-                      <p>{a}</p>
+                      <p>{keepNumbers(a)}</p>
                       {/* a long show's earlier seasons, a line each */}
                       {list && list.length > 0 && (
                         <ul className={styles.answerList}>
                           {list.map((line) => (
-                            <li key={line}>{line}</li>
+                            <li key={line}>{keepNumbers(line)}</li>
                           ))}
                         </ul>
                       )}

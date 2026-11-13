@@ -207,10 +207,10 @@ export function HiddenNote({
 // how many series the release sites don't know, and so can never list
 function notFoundLine(notFound: number, looked: number) {
   if (notFound === looked)
-    return "None of your series were found on the release sites, so nothing can show up here.";
+    return "We couldn't find release news for any of your series.";
   if (notFound === 1)
-    return "1 of your series wasn't found on the release sites, so it won't show up here.";
-  return `${notFound} of your series weren't found on the release sites, so they won't show up here.`;
+    return "We couldn't find release news for 1 of your series.";
+  return `We couldn't find release news for ${notFound} of your series.`;
 }
 
 // nothing new on this side of the switch, and why some series can't show up

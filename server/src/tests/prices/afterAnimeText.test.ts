@@ -7,6 +7,7 @@ import {
   answerText,
   buyVolume,
   endText,
+  keepNumbers,
   latestAnswer,
   latestAnswerText,
   pageHeading,
@@ -97,23 +98,26 @@ test("a volume without a chapter starts at that volume", () => {
 });
 
 test("an anime that adapts all of it has nothing left to read", () => {
-  expect(startText(finished)).toBe("You've seen the whole story");
+  expect(startText(finished)).toBe("That's the whole story");
   expect(endText(finished)).toBe(
     "Season 1 covers the manga to its final chapter, 271.",
   );
   expect(latestAnswer(finished)).toEqual({
+    asked: "Finished the anime?",
     lead: "You've seen the whole story.",
     detail:
-      "Season 1 is the latest, and it covers the manga to its final chapter, 271.",
+      "Season 1 is the latest, and it ends at the manga's final chapter, 271.",
   });
 });
 
 test("the page's opening answer says what to do, then where the anime stops", () => {
   expect(latestAnswer(second)).toEqual({
+    asked: "Finished the anime?",
     lead: "Start the manga at chapter 138. Buy volume 16.",
     detail: "Season 2 is the latest, and it ends at chapter 137.",
   });
   expect(latestAnswer(third)).toEqual({
+    asked: "Finished the anime?",
     lead: "Start the manga at chapter 181. Buy volume 21.",
     detail: "Season 3 is the latest, and it stops partway through chapter 181.",
   });
@@ -122,7 +126,7 @@ test("the page's opening answer says what to do, then where the anime stops", ()
     "Start the manga at chapter 46.",
   );
   expect(latestAnswerText(second)).toBe(
-    "Start the manga at chapter 138. Buy volume 16. Season 2 is the latest, and it ends at chapter 137.",
+    "Finished the anime? Start the manga at chapter 138. Buy volume 16. Season 2 is the latest, and it ends at chapter 137.",
   );
 });
 
@@ -207,7 +211,7 @@ test("what a show's page says about itself", () => {
     "Where does the Jujutsu Kaisen anime leave off in the manga?",
   );
   expect(meta.description).toMatch(
-    /^Start the manga at chapter 181\. Buy volume 21\./,
+    /^Finished the anime\? Start the manga at chapter 181\. Buy volume 21\./,
   );
   // the page's markup: its questions, and where it sits in the site
   const markup = showJsonLd(show, "https://example.com");
@@ -223,4 +227,18 @@ test("what a show's page says about itself", () => {
   expect(
     showMeta({ ...show, name: "The Promised Neverland" }, false, "x")!.title,
   ).toBe("Where does the Promised Neverland anime leave off in the manga?");
+});
+
+test("a number stays on the line of the word it belongs to", () => {
+  const kept = keepNumbers(
+    "After Season 3, start at chapter 181. Buy volume 21.",
+  );
+  // no-break spaces, in the three places a line could split
+  expect(kept).toBe(
+    "After Season\u00a03, start at chapter\u00a0181. Buy volume\u00a021.",
+  );
+  expect(keepNumbers("its final chapter, 431.")).toBe(
+    "its final chapter,\u00a0431.",
+  );
+  expect(keepNumbers("No numbers here")).toBe("No numbers here");
 });

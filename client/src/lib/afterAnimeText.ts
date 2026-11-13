@@ -27,6 +27,15 @@ export type AnimeStop = {
   coversAll: boolean;
 };
 
+// "chapter 181", "volume 21" and "final chapter, 431" stay on one line: a
+// number alone at the start of a line reads as a mistake. For text shown on the page (a
+// no-break space); descriptions and markup keep plain spaces
+export const keepNumbers = (text: string) =>
+  text.replace(
+    /\b(chapter|volume|vol\.|season|part)(,?) (?=\d)/gi,
+    "$1$2\u00a0",
+  );
+
 // ---------- one season ----------
 
 // a panel's title: "After Season 2", "After the anime", "After the original
@@ -43,7 +52,7 @@ const seasonSubject = (stop: AnimeStop) =>
 
 // the answer itself, said big
 export function startText(stop: AnimeStop) {
-  if (stop.coversAll) return "You've seen the whole story";
+  if (stop.coversAll) return "That's the whole story";
   if (stop.nextChapter !== null) return `Start at chapter ${stop.nextChapter}`;
   if (stop.nextVolume !== null) return `Start with volume ${stop.nextVolume}`;
   if (stop.endVolume !== null) return `Start with volume ${stop.endVolume}`;
@@ -152,11 +161,14 @@ export function tableRow(stop: AnimeStop) {
 // the season most people have just finished: the last one listed
 export const latestStop = (stops: AnimeStop[]) => stops[stops.length - 1];
 
-// for someone who has watched everything out so far. Two short lines, what
-// to do first:
+// The page's opening answer, for the latest season: the one most people
+// have just finished. It opens with a question, because someone arriving
+// from a search hasn't told us what they've watched. Three short lines:
+//   asked:  "Finished the anime?"
 //   lead:   "Start the manga at chapter 116. Buy volume 24."
-//   detail: "Season 3 part 1 is the latest, and it ends at chapter 115."
+//   detail: "Season 3 is the latest, and it ends at chapter 115."
 export function latestAnswer(stop: AnimeStop) {
+  const asked = "Finished the anime?";
   // "Season 3 is the latest, and it ends at…", or just "The anime ends at…"
   const subject =
     stop.label === "The anime"
@@ -164,30 +176,33 @@ export function latestAnswer(stop: AnimeStop) {
       : `${seasonSubject(stop)} is the latest, and it`;
   if (stop.coversAll)
     return {
+      asked,
       lead: "You've seen the whole story.",
-      detail: `${subject} covers the manga to its final chapter, ${stop.endChapter}.`,
+      detail: `${subject} ends at the manga's final chapter, ${stop.endChapter}.`,
     };
   const volume = buyVolume(stop);
   if (stop.nextChapter !== null) {
     const buy = volume === null ? "" : ` Buy volume ${volume}.`;
     const how = stop.endsMidChapter ? "stops partway through" : "ends at";
     return {
+      asked,
       lead: `Start the manga at chapter ${stop.nextChapter}.${buy}`,
       detail: `${subject} ${how} chapter ${stop.endChapter}.`,
     };
   }
   if (volume !== null)
     return {
+      asked,
       lead: `Start the manga at volume ${volume}.`,
       detail: `${subject} ends in volume ${stop.endVolume ?? volume}.`,
     };
-  return { lead: "", detail: "" };
+  return { asked: "", lead: "", detail: "" };
 }
 
 // the same answer as one piece of text, for a description or FAQ markup
 export function latestAnswerText(stop: AnimeStop) {
-  const { lead, detail } = latestAnswer(stop);
-  return `${lead} ${detail}`.trim();
+  const { asked, lead, detail } = latestAnswer(stop);
+  return `${asked} ${lead} ${detail}`.trim();
 }
 
 // ---------- what a page says about itself (heading, title, description) ----------

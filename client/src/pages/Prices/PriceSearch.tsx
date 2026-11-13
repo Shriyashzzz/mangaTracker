@@ -318,7 +318,7 @@ function Highlights() {
       {data.recent.length > 0 && (
         <section aria-labelledby="recent-title">
           <h2 id="recent-title" className={styles.sectionTitle}>
-            Recently checked
+            Prices just checked
           </h2>
           <ul className={styles.row}>
             {data.recent.map((r) => (

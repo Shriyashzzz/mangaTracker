@@ -290,7 +290,7 @@ export function AddManga() {
             panel's caption, with the way back in the other corner: one row
             instead of a header above the form */}
         <div className={styles.caption}>
-          <h1 className={styles.captionTitle}>New entry</h1>
+          <h1 className={styles.captionTitle}>Add a manga</h1>
           <NavLink
             to="/shelf"
             className={styles.captionBack}
@@ -337,8 +337,7 @@ export function AddManga() {
               </p>
             ) : (
               <p className={styles.hint}>
-                Pick it from the list and the cover, type and genre come with
-                it.
+                Choose a match and we fill in the cover, type and genre.
               </p>
             )}
           </div>

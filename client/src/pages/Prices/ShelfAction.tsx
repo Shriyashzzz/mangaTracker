@@ -71,10 +71,7 @@ export default function ShelfAction({ series, title, volume }: Props) {
         >
           Track this series, free
         </NavLink>
-        <p className={styles.trackWhy}>
-          See when the next volume is out, what your shelf is worth and what
-          finishing the series costs.
-        </p>
+        <p className={styles.trackWhy}>See when the next volume is out.</p>
       </div>
     );
   }

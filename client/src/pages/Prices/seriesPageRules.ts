@@ -40,12 +40,12 @@ export function cardsOf(volumes: SeriesVolume[]) {
   return cards;
 }
 
-// the last words under a card: its preorder date, or "Check price" when we
-// have no price for it yet
+// the last words under a card: its preorder date, or "See price" when we
+// have no price for it yet (opening it looks its prices up)
 function priceNote(volume: SeriesVolume) {
   return (
     preorderText(volume.published) ??
-    (volume.knownPriceCents == null && "Check price")
+    (volume.knownPriceCents == null && "See price")
   );
 }
 

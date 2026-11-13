@@ -100,8 +100,7 @@ export function AccountTab({ account }: { account: Account }) {
             onChange={(e) => setEmail(e.target.value)}
           />
           <p className={styles.body}>
-            For getting back into your account. Password resets aren't ready
-            yet, so saving one here can't recover your account for now.
+            Not used yet. When password resets arrive, they'll be sent here.
           </p>
           <div className={styles.actions}>
             <button type="submit" className="btn btn-secondary">

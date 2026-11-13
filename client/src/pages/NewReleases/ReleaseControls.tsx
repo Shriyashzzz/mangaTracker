@@ -22,7 +22,7 @@ const SAVE_AFTER_MS = 400;
 const KINDS = {
   volumes: {
     title: "Volumes",
-    note: "English and In Japan.",
+    note: "Covers English and Japanese volumes.",
     one: "volume",
     many: "volumes",
     newest: "newest",
@@ -142,10 +142,10 @@ export default function ReleaseControls() {
           <fieldset key={kind} className={styles.group}>
             <legend className={styles.legend}>{copy.title}</legend>
             <p className={styles.groupNote}>{copy.note}</p>
-            {option("next", "Just the next one for me")}
+            {option("next", "The next one I need")}
             {option(
               "within",
-              `Only when I'm within ${range.within} ${unit} of the ${copy.newest}`,
+              `Only when I'm ${range.within} ${unit} or fewer behind`,
             )}
             <div className={styles.sliderRow}>
               <input
@@ -162,7 +162,7 @@ export default function ReleaseControls() {
                 {range.within}
               </span>
             </div>
-            {option("all", "Everything that's out")}
+            {option("all", "Everything I don't have")}
             <p className={styles.example}>{copy.example(range)}</p>
           </fieldset>
         );

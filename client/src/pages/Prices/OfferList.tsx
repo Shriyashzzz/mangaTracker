@@ -15,7 +15,7 @@ const FROM_JAPAN = /japan|tokyo|osaka|kyoto|nippon|\bjp\b/i;
 const CONDITION: Record<string, string> = {
   new: "New",
   used: "Used",
-  marketplace: "Marketplace",
+  marketplace: "Resold",
 };
 
 // awards go to the cheapest copies; type labels say what kind of copy it is
@@ -25,9 +25,9 @@ const AWARDS = {
   // the cheapest new copy at a store people know, when the cheapest new one
   // is a seller nobody has heard of
   knownLow: { label: "Cheapest big store", className: styles.awardNew },
-  marketLow: { label: "Cheapest marketplace", className: styles.awardMarket },
+  marketLow: { label: "Cheapest resold", className: styles.awardMarket },
   // when a new copy costs no more, "cheapest" would oversell a used one
-  market: { label: "Marketplace", className: styles.awardMarket },
+  market: { label: "Resold", className: styles.awardMarket },
   // every box set and omnibus gets one: it holds several volumes, never
   // just this one
   boxSet: { label: "Box set", className: styles.awardSet },

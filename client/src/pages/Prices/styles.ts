@@ -332,7 +332,6 @@ export const pricesStyles = {
   setKindFirst:
     "col-span-full font-mono text-[0.72rem] font-medium tracking-[0.06em] whitespace-nowrap text-accent-ink uppercase",
   setStore: "min-w-0 truncate",
-  setAside: "font-normal text-ink-soft",
   setPrice: "text-right font-mono font-medium text-accent-ink",
   setsMore: "mt-2",
   setsMoreSummary:
