@@ -78,7 +78,7 @@ test("search looks at the title and genre, any case", () => {
   expect(ids("nothing like it")).toEqual([]);
 });
 
-test("the sorts, and last bookmarked keeps the shelf's own order", () => {
+test("the sorts, and last updated keeps the shelf's own order", () => {
   const names = (sortBy: string) =>
     filterShelf(shelf, {}, { ...view, sortBy }).map((m) => m.name);
   expect(names("")).toEqual(["Berserk", "Monster", "Akira", "Vagabond"]);

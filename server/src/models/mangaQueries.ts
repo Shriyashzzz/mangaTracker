@@ -27,12 +27,18 @@ export type MangaInput = {
   latestChapter?: number | null;
 };
 
-// one user's shelf, furthest-read first (the order the JS version used)
+// one user's shelf, the series they changed last first ("Last updated", the
+// shelf's own order); ones never changed since they were added, newest first
 export const getShelf = (userId: number): Promise<Manga[]> =>
   prisma.manga.findMany({
     where: { userId },
-    orderBy: { bookmark: { sort: "desc", nulls: "first" } },
+    orderBy: [{ updatedAt: "desc" }, { id: "desc" }],
   });
+
+// goes in the data of every change the reader makes to a series, so it moves
+// to the top of "Last updated". Left out of what the site does on its own (a
+// release check, a cover filled in) and of hiding a card on the New tab
+const changedNow = () => ({ updatedAt: new Date() });
 
 export const getManga = (id: number): Promise<Manga | null> =>
   prisma.manga.findUnique({ where: { id } });
@@ -117,6 +123,7 @@ export async function updateManga(id: number, input: MangaInput) {
       ...rest,
       ...(bookmark ? { bookmark } : {}),
       ...(genre ? { genre } : {}),
+      ...changedNow(),
     },
   });
 }
@@ -136,20 +143,29 @@ export const clearReleaseMarks = (id: number) =>
 
 // finishing one, or picking it back up, takes it off the To read list
 export const setStatus = (id: number, status: boolean) =>
-  prisma.manga.update({ where: { id }, data: { status, planned: false } });
+  prisma.manga.update({
+    where: { id },
+    data: { status, planned: false, ...changedNow() },
+  });
 
 // on or off the To read list; starting it puts them at chapter 1
 export const setPlanned = (id: number, planned: boolean) =>
   prisma.manga.update({
     where: { id },
-    data: planned ? { planned, status: false } : { planned, bookmark: 1 },
+    data: {
+      ...(planned ? { planned, status: false } : { planned, bookmark: 1 }),
+      ...changedNow(),
+    },
   });
 
 export const setRating = (id: number, rating: number) =>
-  prisma.manga.update({ where: { id }, data: { rating } });
+  prisma.manga.update({ where: { id }, data: { rating, ...changedNow() } });
 
 export const setNotes = (id: number, description: string | null) =>
-  prisma.manga.update({ where: { id }, data: { description } });
+  prisma.manga.update({
+    where: { id },
+    data: { description, ...changedNow() },
+  });
 
 // a cover found for it after an import (the shelf fills them in)
 export const setImage = (id: number, image: string) =>
@@ -159,7 +175,7 @@ export const setLatestChapter = (id: number, latestChapter: number) =>
   prisma.manga.update({ where: { id }, data: { latestChapter } });
 
 export const setBookmark = (id: number, bookmark: number) =>
-  prisma.manga.update({ where: { id }, data: { bookmark } });
+  prisma.manga.update({ where: { id }, data: { bookmark, ...changedNow() } });
 
 // which way they keep their place, and the volume they've read up to
 export const setReading = (
@@ -169,7 +185,7 @@ export const setReading = (
     readVolume?: number | null;
     edition?: string | null;
   },
-) => prisma.manga.update({ where: { id }, data });
+) => prisma.manga.update({ where: { id }, data: { ...data, ...changedNow() } });
 
 const SEEN_FIELD = {
   volume: "seenVolume",
@@ -199,7 +215,7 @@ export const setVolumesOwned = (
 ) =>
   prisma.manga.update({
     where: { id },
-    data: owned,
+    data: { ...owned, ...changedNow() },
     select: { volumesOwned: true, ownedList: true },
   });
 
@@ -214,7 +230,12 @@ export const fillFromBackup = (
     rating?: number;
     description?: string;
   },
-) => prisma.manga.update({ where: { id }, data, select: { id: true } });
+) =>
+  prisma.manga.update({
+    where: { id },
+    data: { ...data, ...changedNow() },
+    select: { id: true },
+  });
 
 // two entries of one series on a shelf become one: `keep` gets everything the
 // other had that it lacks (every volume either owns, the further chapter and
@@ -310,14 +331,14 @@ export const moveManyManga = async (
       ? [
           prisma.manga.updateMany({
             where,
-            data: { status: true, planned: false },
+            data: { status: true, planned: false, ...changedNow() },
           }),
         ]
       : to === "planned"
         ? [
             prisma.manga.updateMany({
               where,
-              data: { planned: true, status: false },
+              data: { planned: true, status: false, ...changedNow() },
             }),
           ]
         : [
@@ -327,7 +348,7 @@ export const moveManyManga = async (
             }),
             prisma.manga.updateMany({
               where,
-              data: { status: false, planned: false },
+              data: { status: false, planned: false, ...changedNow() },
             }),
           ];
   const [rows] = await prisma.$transaction([
