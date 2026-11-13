@@ -1,4 +1,5 @@
 import {
+  reachesTheEnd,
   readAnimeStops,
   seasonName,
 } from "../../prices/afterAnime/animeLines.js";
@@ -153,4 +154,47 @@ test("short season names are written out", () => {
   expect(seasonName("S1P2 + OVA")).toBe("Season 1 part 2 + OVA");
   expect(seasonName("S2P1 EP4")).toBe("Season 2 part 1 episode 4");
   expect(seasonName("Reze Movie")).toBe("Reze Movie");
+});
+
+test("only the furthest season of a finished manga can be its end", () => {
+  // Bleach, as MangaUpdates has it: 74 volumes, and a latest chapter (250)
+  // that's far short of the real one
+  const bleach = readAnimeStops(
+    "Vol 1, Chap 1 (Bleach) / Vol 55, Chap 480 (TYBW P1) / Vol 72, Chap 661 (TYBW P4)",
+    "Vol 54, Chap 479 (Bleach) / Vol 61, Chap 542 (TYBW P1) / Vol 74, Chap 686 (TYBW P4)",
+  );
+  const manga = { finished: true, volumes: 74, lastChapter: 250 };
+  expect(bleach.map((stop) => reachesTheEnd(stop, bleach, manga))).toEqual([
+    false,
+    false,
+    true,
+  ]);
+  expect(bleach.map((stop) => stop.label)).toEqual([
+    "Bleach",
+    "TYBW part 1",
+    "TYBW part 4",
+  ]);
+});
+
+test("a wrong latest chapter doesn't end a manga early", () => {
+  // Vampire Knight: 19 volumes, the anime stops in volume 10, and the
+  // latest chapter on record is 1
+  const stops = readAnimeStops(
+    "Vol 1, Chap 1 (S1) / Vol 5, Chap 23 (S2)",
+    "Vol 5, Chap 22 (S1) / Vol 10, Chap 46 (S2)",
+  );
+  const manga = { finished: true, volumes: 19, lastChapter: 1 };
+  expect(stops.some((stop) => reachesTheEnd(stop, stops, manga))).toBe(false);
+});
+
+test("stopping at the last chapter, or a few past it, is the end", () => {
+  const stops = readAnimeStops("Chap 1 (S1)", "Chap 73 (S1) / Chap 184 (S2)");
+  const manga = { finished: true, volumes: null, lastChapter: 180 };
+  expect(stops.map((stop) => reachesTheEnd(stop, stops, manga))).toEqual([
+    false,
+    true,
+  ]);
+  // still running: never the end
+  const running = { ...manga, finished: false };
+  expect(stops.some((stop) => reachesTheEnd(stop, stops, running))).toBe(false);
 });

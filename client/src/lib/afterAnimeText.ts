@@ -46,7 +46,7 @@ const inVolume = (volume: number | null) =>
 export function endText(stop: AnimeStop) {
   const season = stop.label === "The anime" ? "The anime" : stop.label;
   if (stop.coversAll)
-    return `${season} adapts the manga through its last chapter, ${stop.endChapter}.`;
+    return `${season} adapts the manga to its end, chapter ${stop.endChapter}${inVolume(stop.endVolume)}.`;
   if (stop.endChapter === null) {
     if (stop.endVolume !== null)
       return `${season} ends in volume ${stop.endVolume}.`;

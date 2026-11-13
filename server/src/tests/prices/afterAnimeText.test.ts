@@ -69,7 +69,7 @@ test("an anime that adapts all of it has nothing left to read", () => {
   const all = { ...first, endChapter: 271, coversAll: true };
   expect(startText(all)).toBe("Nothing left to read");
   expect(endText(all)).toBe(
-    "Season 1 adapts the manga through its last chapter, 271.",
+    "Season 1 adapts the manga to its end, chapter 271, in volume 8.",
   );
   expect(volumesToGet(all)).toEqual([]);
 });

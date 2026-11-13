@@ -65,12 +65,14 @@ function piecesOf(line: string | null | undefined): Piece[] {
   return pieces;
 }
 
-// "S2" as "Season 2", "S1P2" as "Season 1 part 2", "EP4" as "episode 4";
-// anything else ("Reze Movie", "1996") as it's written
+// "S2" as "Season 2", "S1P2" as "Season 1 part 2", "TYBW P1" as "TYBW part
+// 1", "EP4" as "episode 4"; anything else ("Reze Movie", "1996") as it's
+// written
 export function seasonName(short: string) {
   return short
     .replace(/\bS(\d+)P(\d+)\b/g, "Season $1 part $2")
     .replace(/\bS(\d+)\b/g, "Season $1")
+    .replace(/\bP(\d+)\b/g, "part $1")
     .replace(/\bEP\s*(\d+)/g, "episode $1")
     .replace(/\s+/g, " ")
     .trim();
@@ -121,4 +123,42 @@ export function readAnimeStops(
     });
   }
   return stops;
+}
+
+// what's known of the manga itself, for telling when an anime has adapted
+// all of it
+export type MangaEnd = {
+  // AniList says it's finished, and how many volumes it ran to
+  finished: boolean;
+  volumes: number | null;
+  // MangaUpdates' latest chapter. Often wrong (Bleach's says 250 of 686), so
+  // it only counts when it agrees with where the anime stops
+  lastChapter: number | null;
+};
+
+// the anime's chapter may run a few past the manga's count (an epilogue, a
+// chapter numbered apart) and still be its end
+const CHAPTERS_OF_SLACK = 5;
+
+// whether this stop is the end of the manga, so there's nothing to carry on
+// with. Only ever the furthest stop of a finished manga, and only when it
+// reaches the final volume, or stops right at the last chapter. When in
+// doubt it says no, and the page gives the next chapter as usual
+export function reachesTheEnd(
+  stop: AnimeStop,
+  everyStop: AnimeStop[],
+  manga: MangaEnd,
+) {
+  if (!manga.finished || stop.endsMidChapter) return false;
+  const furthest = Math.max(...everyStop.map((each) => each.endChapter ?? 0));
+  if (stop.endChapter === null || stop.endChapter < furthest) return false;
+  const inFinalVolume =
+    manga.volumes !== null &&
+    stop.endVolume !== null &&
+    stop.endVolume >= manga.volumes;
+  const atLastChapter =
+    manga.lastChapter !== null &&
+    stop.endChapter >= manga.lastChapter &&
+    stop.endChapter <= manga.lastChapter + CHAPTERS_OF_SLACK;
+  return inFinalVolume || atLastChapter;
 }

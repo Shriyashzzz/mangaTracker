@@ -12,22 +12,16 @@ import {
 import { slugify } from "../stores/match.js";
 import type { SeriesInfo } from "../types.js";
 import { withFixes, type ShownStop } from "./animeFixes.js";
-import { readAnimeStops } from "./animeLines.js";
+import { reachesTheEnd, readAnimeStops, type MangaEnd } from "./animeLines.js";
 import { animeLinesFor } from "./animeSource.js";
 import { acceptedFixes, slugsWithFixes } from "./fixStore.js";
 
-// a season as it's sent: `coversAll` when the manga is finished and the
-// season adapts its last chapter, so there's nothing left to read
+// a season as it's sent: `coversAll` when it adapts the manga to its end, so
+// there's nothing left to read (reachesTheEnd)
 export type SentStop = ShownStop & { coversAll: boolean };
 
-function coversAll(
-  stop: ShownStop,
-  manga: { completed: boolean; lastChapter: number | null } | null,
-) {
-  if (!manga?.completed || !manga.lastChapter) return false;
-  if (stop.endChapter === null || stop.endsMidChapter) return false;
-  return stop.endChapter >= manga.lastChapter;
-}
+const sameName = (a: string, b: string) =>
+  a.trim().toLowerCase() === b.trim().toLowerCase();
 
 // the series as it's saved, without asking AniList; null when it isn't
 async function savedSeriesInfo(name: string) {
@@ -54,17 +48,24 @@ export async function getAfterAnime(asked: string, mayAsk: boolean) {
     novel ? null : animeLinesFor(info, mayAsk),
     acceptedFixes(slug),
   ]);
-  const stops = withFixes(
-    readAnimeStops(saved?.startLine, saved?.endLine),
-    fixes,
+  // MangaUpdates names a first series after the manga ("Bleach", beside
+  // "TYBW part 1"): that one is simply the anime
+  const read = readAnimeStops(saved?.startLine, saved?.endLine).map((stop) =>
+    sameName(stop.label, info.name) ? { ...stop, label: "The anime" } : stop,
   );
+  const stops = withFixes(read, fixes);
+  const manga: MangaEnd = {
+    finished: info.status === "FINISHED",
+    volumes: info.volumes,
+    lastChapter: saved?.lastChapter ?? null,
+  };
   return {
     name: info.name,
     slug,
     coverUrl: info.coverUrl,
     stops: stops.map((stop): SentStop => ({
       ...stop,
-      coversAll: coversAll(stop, saved),
+      coversAll: reachesTheEnd(stop, stops, manga),
     })),
     // MangaUpdates' page for the series, for the credit; null when the
     // answer isn't theirs
