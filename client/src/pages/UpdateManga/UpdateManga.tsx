@@ -5,19 +5,23 @@ import { NavLink, useNavigate, useParams } from "react-router";
 import { formStyles as styles } from "../../styles/form";
 import { useState, useEffect, useRef, type FormEvent } from "react";
 import { apiFetch, errorMessages } from "../../lib/api";
-import type { Manga, MangaForm } from "../../lib/types";
+import type { Manga } from "../../lib/types";
 import CoverPicker from "../../components/coverPicker/CoverPicker";
 import FormatField from "../../components/formatField/FormatField";
 import { usePrivatePage } from "../../lib/seo";
 import { GENRES } from "../../lib/content/genres";
 import { useVolumePicker } from "../../components/volumePicker/VolumePicker";
-import { parseVolumes } from "../../lib/ownedVolumes";
 import StatusField, {
   type Stage,
 } from "../../components/statusField/StatusField";
 import { useBuyOptions } from "../Details/useBuyOptions";
 import { priceName } from "../../lib/prices";
-import { chapterProblem, coverLinkProblem } from "../../lib/formChecks";
+import {
+  firstProblemField,
+  problemsIn,
+  requestFor,
+  type SeriesFormValues,
+} from "../../lib/seriesFormRules";
 
 const DESC_MAX = 450;
 
@@ -30,7 +34,6 @@ export function UpdateManga() {
   const [image, setImage] = useState("");
   const [genre, setGenre] = useState("");
   const [stage, setStage] = useState<Stage>("reading");
-  const isFinished = stage === "finished";
   // said under the field it's about, rather than by the browser
   const [titleError, setTitleError] = useState("");
   const [chapterError, setChapterError] = useState<string>();
@@ -94,38 +97,37 @@ export function UpdateManga() {
   const handleFormSubmission = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const form = new FormData(e.currentTarget);
-    const chapterIssue =
-      stage === "reading" && tracks.chapters
-        ? chapterProblem(chapter)
-        : undefined;
-    const imageIssue = coverLinkProblem(image);
-    setChapterError(chapterIssue);
-    setImageError(imageIssue);
-    if (!title.trim()) {
-      setTitleError("Give it a title.");
+    const values: SeriesFormValues = {
+      title,
+      stage,
+      chapter,
+      readVolume,
+      tracks,
+      byVolume,
+      // the edit form doesn't rate: the stars are on the series' page
+      rating: 0,
+      image,
+      ownCover: true,
+      genre,
+      description,
+      lightNovel,
+      volumesOwned: String(form.get("volumesOwned") ?? ""),
+      ownedList: String(form.get("ownedList") ?? ""),
+    };
+    const problems = problemsIn(values);
+    setChapterError(problems.bookmark);
+    setImageError(problems.image);
+    if (problems.title) {
+      setTitleError(problems.title);
       titleInput.current?.focus();
       return;
     }
-    if (chapterIssue || imageIssue) {
-      document
-        .getElementById(chapterIssue ? "bookmark" : "cover-link")
-        ?.focus();
+    const fieldId = firstProblemField(problems);
+    if (fieldId) {
+      document.getElementById(fieldId)?.focus();
       return;
     }
-    const formData: MangaForm = {
-      name: title,
-      image,
-      genre,
-      description,
-      status: isFinished,
-      planned: stage === "planned",
-      lightNovel,
-      volumesOwned: String(form.get("volumesOwned") ?? ""),
-      ownedList: parseVolumes(String(form.get("ownedList") ?? "")) ?? [],
-    };
-    formData.byVolume = byVolume;
-    if (stage === "reading" && tracks.chapters) formData.bookmark = chapter;
-    if (stage === "reading" && tracks.volumes) formData.readVolume = readVolume;
+    const formData = requestFor(values);
 
     setSubmitting(true);
     try {

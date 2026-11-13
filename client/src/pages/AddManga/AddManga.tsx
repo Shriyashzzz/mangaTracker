@@ -16,8 +16,8 @@ import {
   firstProblemField,
   problemsIn,
   requestFor,
-  type AddFormValues,
-} from "./addFormRules";
+  type SeriesFormValues,
+} from "../../lib/seriesFormRules";
 import FormatField from "../../components/formatField/FormatField";
 import { usePrivatePage } from "../../lib/seo";
 import { useVolumePicker } from "../../components/volumePicker/VolumePicker";
@@ -214,7 +214,7 @@ export function AddManga() {
     e.preventDefault();
     setValidationError([]);
     const form = new FormData(e.currentTarget);
-    const values: AddFormValues = {
+    const values: SeriesFormValues = {
       title,
       stage,
       chapter,

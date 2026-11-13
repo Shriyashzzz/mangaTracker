@@ -1,13 +1,14 @@
-// What the add form works out before it saves: which fields have a problem,
-// which of them to take the reader to, and the request sent to the server.
-// Pure: no requests and no state.
-import { chapterProblem, coverLinkProblem } from "../../lib/formChecks";
-import { parseVolumes } from "../../lib/ownedVolumes";
-import type { MangaForm } from "../../lib/types";
-import type { Stage } from "../../components/statusField/StatusField";
+// What the add form and the edit form work out before they save: which
+// fields have a problem, which of them to take the reader to, and the request
+// sent to the server. One set of rules for both forms. Pure: no requests and
+// no state.
+import { chapterProblem, coverLinkProblem } from "./formChecks";
+import { parseVolumes } from "./ownedVolumes";
+import type { MangaForm } from "./types";
+import type { Stage } from "../components/statusField/StatusField";
 
 // what the form holds when Save is pressed
-export type AddFormValues = {
+export type SeriesFormValues = {
   title: string;
   // still reading, finished it, or want to read (not started)
   stage: Stage;
@@ -16,9 +17,11 @@ export type AddFormValues = {
   // which counters this series shows (lib/reading.ts tracksOf)
   tracks: { chapters: boolean; volumes: boolean };
   byVolume: boolean;
+  // stars given on the add form; 0 for none (the edit form doesn't rate)
   rating: number;
   image: string;
-  // they typed their own cover link
+  // the cover is a link they typed, so it's checked. Always so on the edit
+  // form; on the add form only once they open "Add a cover image"
   ownCover: boolean;
   genre: string;
   description: string;
@@ -36,7 +39,7 @@ export type FieldProblems = {
 
 // what's wrong with each field, said under it. A chapter is only asked of
 // someone reading by the chapter: a collector tracking volumes needn't say one
-export function problemsIn(form: AddFormValues): FieldProblems {
+export function problemsIn(form: SeriesFormValues): FieldProblems {
   const asksChapter = form.stage === "reading" && form.tracks.chapters;
   return {
     title: !form.title.trim() ? "Give it a title." : undefined,
@@ -54,7 +57,7 @@ export function firstProblemField(problems: FieldProblems) {
 }
 
 // the series as the server takes it
-export function requestFor(form: AddFormValues): MangaForm {
+export function requestFor(form: SeriesFormValues): MangaForm {
   const isReading = form.stage === "reading";
   const request: MangaForm = {
     name: form.title,
