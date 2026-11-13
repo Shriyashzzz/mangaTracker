@@ -56,8 +56,13 @@ export default function UpcomingReleases() {
             </span>
           ))}
           <span className={styles.next}>
-            Next: {dayName(next.published)} · {count} in{" "}
-            {monthOnly(first.month)}
+            Next: {dayName(next.published)}
+            {/* a phone's row has room for the day only; the month's count is
+                inside, once it's opened */}
+            <span className={styles.nextCount}>
+              {" "}
+              · {count} in {monthOnly(first.month)}
+            </span>
           </span>
         </span>
         <ChevronDownIcon className={styles.chevron} />

@@ -10,7 +10,8 @@ export const upcomingStyles = {
     "relative -rotate-2 font-brand text-[1.9rem] leading-[0.9] font-normal tracking-[0.03em] uppercase [-webkit-text-stroke:1px_var(--hard-shadow)] upto-520:text-[1.2rem]",
   peek: "relative flex min-w-0 items-center gap-1.5",
   peekCover: "inline-block upto-520:hidden [&>span]:w-7",
-  next: "ml-1.5 truncate text-[0.84rem] font-semibold",
+  next: "ml-1.5 truncate text-[0.84rem] font-semibold upto-520:ml-0 upto-520:text-[0.8rem]",
+  nextCount: "upto-520:hidden",
   chevron:
     "relative size-5 shrink-0 transition-transform duration-200 ease-ink group-open/up:rotate-180",
   body: "grid grid-cols-[280px_minmax(0,1fr)] items-start gap-6 border-[3px] border-t-0 border-line bg-card p-4 animate-drop motion-reduce:animate-none upto-760:flex upto-760:flex-col-reverse upto-760:items-stretch upto-760:gap-4",
