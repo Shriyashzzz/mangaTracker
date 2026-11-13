@@ -276,3 +276,21 @@ test("the latest season is the one furthest into the manga, not the last listed"
   expect(latestStop(volumesOnly)?.label).toBe("Season 2");
   expect(latestStop([])).toBeUndefined();
 });
+
+test('a season named by a plain word gets its "the"', () => {
+  const stops = shown(
+    "",
+    "Vol 5, Chap 46 (S1) / Vol 16, Chap 160 (Movie) / Vol 6, Chap 52 (Reze Movie) / Vol 7, Chap 60 (OVA)",
+  );
+  const [season, movie, named, ova] = stops;
+  // never "Movie is the latest"
+  expect(latestAnswer(movie!).detail).toBe(
+    "The movie is the latest, and it ends at chapter 160.",
+  );
+  expect(afterLabel(movie!)).toBe("After the movie");
+  expect(tableRow(movie!).watched).toBe("The movie");
+  expect(afterLabel(ova!)).toBe("After the OVA");
+  // a name is left as it is
+  expect(afterLabel(named!)).toBe("After Reze Movie");
+  expect(afterLabel(season!)).toBe("After Season 1");
+});

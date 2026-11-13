@@ -40,15 +40,28 @@ export const keepNumbers = (text: string) =>
 
 // a panel's title: "After Season 2", "After the anime", "After the original
 // series", or "After Reze Movie"
-export function afterLabel(stop: AnimeStop) {
-  if (stop.label === "The anime") return "After the anime";
-  if (stop.label === "Original series") return "After the original series";
-  return `After ${stop.label}`;
+// A label that's a plain word, not a name: "Movie", "OVA", "Original
+// series". In a sentence it needs "the" ("The movie is the latest", never
+// "Movie is the latest"); a name ("Season 2", "Reze Movie") doesn't.
+// Lower case, but for initials: "the movie", "the OVA"
+function plainWord(label: string) {
+  if (!/^(movie|film|ova|ona|specials?|original series)$/i.test(label))
+    return null;
+  return /^(ova|ona)$/i.test(label) ? label.toUpperCase() : label.toLowerCase();
 }
 
-// the season as the subject of a sentence: "Season 2", "The anime"
-const seasonSubject = (stop: AnimeStop) =>
-  stop.label === "Original series" ? "The original series" : stop.label;
+export function afterLabel(stop: AnimeStop) {
+  if (stop.label === "The anime") return "After the anime";
+  const word = plainWord(stop.label);
+  return word ? `After the ${word}` : `After ${stop.label}`;
+}
+
+// the season as the subject of a sentence: "Season 2", "The anime", "The
+// movie"
+function seasonSubject(stop: AnimeStop) {
+  const word = plainWord(stop.label);
+  return word ? `The ${word}` : stop.label;
+}
 
 // the answer itself, said big
 export function startText(stop: AnimeStop) {
