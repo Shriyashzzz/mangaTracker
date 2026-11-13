@@ -7,22 +7,25 @@ import {
   LinkIcon,
 } from "../../components/icons/Icons";
 import { apiFetch, errorMessages, signInPath } from "../../lib/api";
-import type { MangaForm } from "../../lib/types";
 import { useAuth } from "../../store/auth";
 import { GENRES } from "../../lib/content/genres";
 import type { CoverHit } from "../../lib/anilist";
 import { useCoverSearch } from "../../components/coverPicker/useCoverSearch";
 import TitleField from "./TitleField";
+import {
+  firstProblemField,
+  problemsIn,
+  requestFor,
+  type AddFormValues,
+} from "./addFormRules";
 import FormatField from "../../components/formatField/FormatField";
 import { usePrivatePage } from "../../lib/seo";
 import { useVolumePicker } from "../../components/volumePicker/VolumePicker";
-import { parseVolumes } from "../../lib/ownedVolumes";
 import StatusField, {
   type Stage,
 } from "../../components/statusField/StatusField";
 import { useBuyOptions } from "../Details/useBuyOptions";
 import { priceName } from "../../lib/prices";
-import { chapterProblem, coverLinkProblem } from "../../lib/formChecks";
 import { findOnShelf } from "../../lib/shelf";
 import PlaceField from "../../components/placeField/PlaceField";
 import { tracksOf } from "../../lib/reading";
@@ -35,6 +38,29 @@ const DESC_MAX = 450;
 const MATCHES = 12;
 // whether they left "More about it" open last time
 const MORE_KEY = "addMoreOpen";
+
+// the series already on their shelf under this title, found once the title
+// is chosen: said before they fill the rest in, with the way to it (the
+// server still refuses a second copy on saving). Null when it isn't there,
+// or we couldn't tell
+function useAlreadyOnShelf(title: string, chosen: boolean) {
+  const isSignedIn = useAuth((s) => s.isSignedIn);
+  const [already, setAlready] = useState<{
+    title: string;
+    match: NonNullable<ShelfMatch>;
+  } | null>(null);
+  useEffect(() => {
+    const name = title.trim();
+    if (!chosen || !name || !isSignedIn) return;
+    const controller = new AbortController();
+    findOnShelf(name, controller.signal)
+      .then((match) => setAlready(match ? { title, match } : null))
+      // can't tell: no note, and saving still says so
+      .catch(() => {});
+    return () => controller.abort();
+  }, [chosen, title, isSignedIn]);
+  return already;
+}
 
 // The add page, in two parts on one page: search the title and pick the
 // series (or keep what they typed), then the rest opens under it. Only
@@ -62,7 +88,6 @@ export function AddManga() {
     bookmark?: string;
     image?: string;
   }>({});
-  const isFinished = stage === "finished";
   const [searchParams] = useSearchParams();
   // "Add to my shelf" from the price checker passes the series name along
   const fromPrices = (searchParams.get("title") ?? "").slice(0, 150);
@@ -81,23 +106,7 @@ export function AddManga() {
   // light novel's price page says so up front (format=novel)
   const novelFromPrices = searchParams.get("format") === "novel";
   const [lightNovel, setLightNovel] = useState(novelFromPrices);
-  // the series already on their shelf under this title, found once it's
-  // chosen: said before they fill the rest in, with the way to it (the
-  // server still refuses a second copy on saving)
-  const [already, setAlready] = useState<{
-    title: string;
-    match: NonNullable<ShelfMatch>;
-  } | null>(null);
-  useEffect(() => {
-    const name = title.trim();
-    if (!chosen || !name || !isSignedIn) return;
-    const controller = new AbortController();
-    findOnShelf(name, controller.signal)
-      .then((match) => setAlready(match ? { title, match } : null))
-      // can't tell: no note, and saving still says so
-      .catch(() => {});
-    return () => controller.abort();
-  }, [chosen, title, isSignedIn]);
+  const already = useAlreadyOnShelf(title, chosen);
   const formatTouched = useRef(novelFromPrices);
   const byVolume = byVolumeChoice ?? lightNovel;
   const tracks = tracksOf({ byVolume }, trackBy);
@@ -205,47 +214,37 @@ export function AddManga() {
     e.preventDefault();
     setValidationError([]);
     const form = new FormData(e.currentTarget);
-    const missing = {
-      title: !title.trim() ? "Give it a title." : undefined,
-      // optional: a collector tracking volumes needn't say a chapter
-      bookmark:
-        stage === "reading" && tracks.chapters
-          ? chapterProblem(chapter)
-          : undefined,
-      image: ownCover ? coverLinkProblem(image) : undefined,
+    const values: AddFormValues = {
+      title,
+      stage,
+      chapter,
+      readVolume,
+      tracks,
+      byVolume,
+      rating,
+      image,
+      ownCover,
+      genre,
+      description,
+      lightNovel,
+      volumesOwned: String(form.get("volumesOwned") ?? ""),
+      ownedList: String(form.get("ownedList") ?? ""),
     };
-    setFieldErrors(missing);
-    if (missing.title) {
+    const problems = problemsIn(values);
+    setFieldErrors(problems);
+    // no title: back to the search
+    if (problems.title) {
       change();
       return;
     }
-    const first = missing.bookmark
-      ? "bookmark"
-      : missing.image
-        ? "cover-link"
-        : null;
-    if (first) {
-      const field = document.getElementById(first);
+    const fieldId = firstProblemField(problems);
+    if (fieldId) {
+      const field = document.getElementById(fieldId);
       field?.scrollIntoView({ block: "center" });
       field?.focus({ preventScroll: true });
       return;
     }
-    const sendReq: MangaForm = {
-      name: title,
-      description,
-      image,
-      genre,
-      status: isFinished,
-      planned: stage === "planned",
-      lightNovel,
-      volumesOwned: String(form.get("volumesOwned") ?? ""),
-      ownedList: parseVolumes(String(form.get("ownedList") ?? "")) ?? [],
-    };
-    sendReq.byVolume = byVolume;
-    if (stage === "reading" && tracks.chapters) sendReq.bookmark = chapter;
-    if (stage === "reading" && tracks.volumes) sendReq.readVolume = readVolume;
-    // stars only for something they've read some of
-    if (stage !== "planned" && rating) sendReq.rating = rating;
+    const sendReq = requestFor(values);
 
     setSubmitting(true);
     try {
