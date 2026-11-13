@@ -1,3 +1,4 @@
+import { SortMenu } from "../Home/ShelfBar";
 import PlaceField from "../../components/placeField/PlaceField";
 import { tracksOf } from "../../lib/reading";
 import { useTrackBy } from "../../lib/prefs";
@@ -151,6 +152,14 @@ export function UpdateManga() {
     }
   };
 
+  // a genre AniList gave that isn't in our list still shows
+  const genreIsOurs = !genre || GENRES.some((g) => g.value === genre);
+  const genreOptions = [
+    { value: "", label: "Select a genre" },
+    ...(genreIsOurs ? [] : [{ value: genre, label: genre }]),
+    ...GENRES,
+  ];
+
   return (
     <div className={`${styles.page} fade-in`}>
       <div className={styles.pageHead}>
@@ -258,24 +267,16 @@ export function UpdateManga() {
                   <label htmlFor="genre" className={styles.label}>
                     Genre <span className={styles.optional}>(optional)</span>
                   </label>
-                  <select
-                    className={styles.select}
-                    name="genre"
-                    id="genre"
-                    value={genre}
-                    onChange={(e) => setGenre(e.target.value)}
-                  >
-                    <option value="">Select a genre</option>
-                    {/* a genre AniList gave that isn't in our list still shows */}
-                    {genre && !GENRES.some((g) => g.value === genre) && (
-                      <option value={genre}>{genre}</option>
-                    )}
-                    {GENRES.map((g) => (
-                      <option key={g.value} value={g.value}>
-                        {g.label}
-                      </option>
-                    ))}
-                  </select>
+                  <div className={styles.pick}>
+                    <SortMenu
+                      box
+                      id="genre"
+                      menuLabel="Genre"
+                      options={genreOptions}
+                      sortBy={genre}
+                      onSort={setGenre}
+                    />
+                  </div>
                 </div>
               </div>
               {volumes.field}

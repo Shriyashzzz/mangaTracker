@@ -296,7 +296,15 @@ export function SortMenu<T extends string>({
   menuLabel = "Sort by",
   wordy = false,
   alignLeft = false,
+  box = false,
+  id,
 }: {
+  // drawn as a form's box, as wide as what it's in: where a form or a
+  // settings page picks from a list. The list opens under it and scrolls
+  // when it's long
+  box?: boolean;
+  // for a <label htmlFor>, so pressing the label opens it
+  id?: string;
   // the list opens from the button's left edge: for one that sits at the
   // left of its box, where opening from the right would run off the screen
   alignLeft?: boolean;
@@ -315,6 +323,44 @@ export function SortMenu<T extends string>({
   const picked = options.find((o) => o.value === sortBy) ?? options[0]!;
   // a name keeps its capital ("Deluxe"); a sort reads on from "Sorted by"
   const pickedText = wordy ? picked.label : lowerFirst(picked.label);
+  const optionRows = options.map((o) => (
+    <li key={o.value}>
+      <button
+        type="button"
+        className={styles.sortOption}
+        aria-current={o.value === picked.value}
+        onClick={() => {
+          onSort(o.value);
+          setOpen(false);
+        }}
+      >
+        {o.label}
+        {o.value === picked.value && <CheckIcon className={styles.tick} />}
+      </button>
+    </li>
+  ));
+  if (box)
+    return (
+      <div ref={ref} className={styles.boxWrap}>
+        <button
+          type="button"
+          id={id}
+          className={styles.boxButton}
+          aria-expanded={open}
+          aria-haspopup="true"
+          aria-label={`${menuLabel}: ${picked.label}. Change`}
+          onClick={() => setOpen(!open)}
+        >
+          <span className={styles.boxWords}>{picked.label}</span>
+          <ChevronDownIcon className={styles.boxChevron} />
+        </button>
+        {open && (
+          <ul className={styles.menuBox} aria-label={menuLabel}>
+            {optionRows}
+          </ul>
+        )}
+      </div>
+    );
   return (
     <div ref={ref} className={styles.sortWrap}>
       <button
@@ -339,24 +385,7 @@ export function SortMenu<T extends string>({
       </button>
       {open && (
         <Menu label={menuLabel} alignRight={!alignLeft}>
-          {options.map((o) => (
-            <li key={o.value}>
-              <button
-                type="button"
-                className={styles.sortOption}
-                aria-current={o.value === picked.value}
-                onClick={() => {
-                  onSort(o.value);
-                  setOpen(false);
-                }}
-              >
-                {o.label}
-                {o.value === picked.value && (
-                  <CheckIcon className={styles.tick} />
-                )}
-              </button>
-            </li>
-          ))}
+          {optionRows}
           {/* how the shelf lists them, right where it's sorted, not only in
               Settings */}
           {layout && onLayout && (

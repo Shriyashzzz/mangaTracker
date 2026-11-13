@@ -12,7 +12,7 @@ import { volumesKey } from "../prices/volumesKey.js";
 import { guessedLine, type ListedVolume } from "./shelfMath.js";
 import type { EditionLine } from "../prices/editionLines.js";
 
-export type ShelfSeries = {
+type ShelfSeries = {
   manga: Manga;
   volumes: ListedVolume[];
 };

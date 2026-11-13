@@ -6,7 +6,7 @@
 import { useEffect, useRef, useState, type RefObject } from "react";
 import { isbnFromBarcode } from "../../lib/barcode";
 
-export type CameraState = "starting" | "live" | "blocked";
+type CameraState = "starting" | "live" | "blocked";
 
 // the browser's own reader: not in TypeScript's DOM types yet
 type Detector = {

@@ -42,7 +42,7 @@ const load = () =>
 
 // a fresh token, one per live check (each can be used once), or null.
 // `signal`: the page was left, so stop waiting and take the widget away
-export async function humanToken(signal?: AbortSignal): Promise<string | null> {
+async function humanToken(signal?: AbortSignal): Promise<string | null> {
   if (!SITE_KEY || signal?.aborted) return null;
   const turnstile = await load();
   if (!turnstile || signal?.aborted) return null;

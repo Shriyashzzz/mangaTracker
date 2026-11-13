@@ -26,7 +26,7 @@ const tried = new Map<string, number>();
 
 // the series with no volumes known, most popular first; ones tried lately
 // wait their turn
-export async function nextSeries(now = Date.now()): Promise<string | null> {
+async function nextSeries(now = Date.now()): Promise<string | null> {
   const [series, bySeries] = await Promise.all([
     listKnownSeries(),
     knownVolumesBySeries(),
@@ -42,7 +42,7 @@ export async function nextSeries(now = Date.now()): Promise<string | null> {
   return missing[0]?.name ?? null;
 }
 
-export async function fillSeries(now = Date.now()) {
+async function fillSeries(now = Date.now()) {
   const name = await nextSeries(now);
   if (!name) return null;
   tried.set(name, now);
@@ -50,8 +50,6 @@ export async function fillSeries(now = Date.now()) {
   forgetKnownVolumes();
   return { name, volumes: series?.volumes.length ?? 0 };
 }
-
-export const resetSeriesFiller = () => tried.clear();
 
 let timer: ReturnType<typeof setInterval> | null = null;
 

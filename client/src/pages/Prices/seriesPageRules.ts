@@ -10,7 +10,7 @@ export const PAGE_SIZE = 30;
 
 // "Preorder · out Mar 30, 2027" for a volume not out yet, else nothing. A
 // date given only to the month says the month
-export function preorderText(published?: string) {
+function preorderText(published?: string) {
   if (!published || !notOutYet(published)) return null;
   const [year, month, day] = published.split("-").map(Number);
   const out = new Date(year!, month! - 1, day || 1);

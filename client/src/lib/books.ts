@@ -3,7 +3,7 @@
 // barcode scan or an import writes them; a volume ticked by hand has none.
 import { parseVolumes, rangesText } from "./ownedVolumes";
 
-export type EditionKind = "single" | "omnibus" | "deluxe" | "boxset";
+type EditionKind = "single" | "omnibus" | "deluxe" | "boxset";
 
 export type OwnedBook = {
   id: number;
@@ -42,7 +42,7 @@ export const spentOn = (books: Pick<OwnedBook, "paidCents">[]) => {
 };
 
 // which edition a book is, from its title and how many volumes it holds
-export const editionOf = (title: string, volumes: number[]): EditionKind =>
+const editionOf = (title: string, volumes: number[]): EditionKind =>
   /\bbox(ed)?[\s-]?set\b|\bcomplete (collection|set|series)\b/i.test(title)
     ? "boxset"
     : /\bdeluxe\b|\b(perfect|collector'?s|master|ultimate|fullmetal) edition\b|\bkanzenban\b/i.test(

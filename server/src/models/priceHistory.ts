@@ -5,6 +5,7 @@ import { prisma } from "../config/prisma.js";
 import {
   dropUnlikelyNew,
   lowestBelievableNew,
+  unlikelyNewTest,
 } from "../prices/stores/retailers.js";
 import type { Offer } from "../prices/types.js";
 import {
@@ -12,12 +13,34 @@ import {
   type KindHistory,
   type PriceHistory,
   type CurrentRow,
+  type StoredOffer,
   currentOf,
   currentRows,
   lookedAt,
   groupBy,
-  getUnbelievableSampleIds,
 } from "./priceBooks.js";
+
+// samples saved before a rule changed, that it would have kept out: each is judged
+// against the other copies in its own check, the same way a new check is
+async function getUnbelievableSampleIds(
+  isbn13: string,
+  median?: number | null,
+) {
+  const [rows, usual] = await Promise.all([
+    prisma.$queryRaw<(StoredOffer & { id: string })[]>`
+      SELECT id::text AS id, store, format, condition, price_cents AS "priceCents",
+             currency, in_stock AS "inStock", url, fetched_at AS "fetchedAt"
+      FROM price_samples
+      WHERE isbn13 = ${isbn13} AND in_stock
+    `,
+    median !== undefined ? median : getNewPriceMedian(isbn13),
+  ]);
+  const checks = groupBy(rows, (row) => new Date(row.fetchedAt).getTime());
+  return [...checks.values()].flatMap((check) => {
+    const unlikely = unlikelyNewTest(check, usual);
+    return check.filter(unlikely).map((row) => row.id);
+  });
+}
 
 // everything we've seen for one volume, worked out from the stored samples
 // every time (they're the only record, so the numbers can't drift from

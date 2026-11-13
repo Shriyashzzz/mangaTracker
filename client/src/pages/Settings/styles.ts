@@ -28,8 +28,8 @@ export const settingsStyles = {
   field: "flex flex-col gap-1.5 [&_label]:font-semibold",
   input:
     "h-11 w-full max-w-[26rem] rounded-[2px] border-2 border-line bg-card px-3 text-[1rem] placeholder:text-ink-soft focus:border-accent focus:outline-none aria-invalid:border-accent",
-  select:
-    "h-11 w-full max-w-[26rem] cursor-pointer rounded-[2px] border-2 border-line bg-card px-2 text-[1rem] focus:border-accent focus:outline-none",
+  // where a list is picked from (the shelf's SortMenu, boxed)
+  pick: "w-full max-w-[26rem]",
   actions: "flex flex-wrap items-center gap-x-4 gap-y-2",
   saved: "text-[0.9rem] font-medium text-ink-soft",
   failed: "text-[0.9rem] font-medium text-accent",

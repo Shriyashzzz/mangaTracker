@@ -24,7 +24,7 @@ export type Deal = {
   ends: string;
 };
 
-export const DEALS: Deal[] = [];
+const DEALS: Deal[] = [];
 
 // the deals still running: through the whole of their last day, wherever in
 // the US someone is (until 8am UTC the next day)

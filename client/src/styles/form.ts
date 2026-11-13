@@ -126,7 +126,8 @@ export const formStyles = {
 
   input,
   textarea: `${input} h-auto min-h-16 flex-1 resize-y px-[0.85rem] py-[0.7rem] leading-[1.6]`,
-  select: `${input} select-chevron cursor-pointer pr-[2.2rem]`,
+  // where a list is picked from (the shelf's SortMenu, boxed)
+  pick: "w-full",
 
   // status choice: radio "tickets". The radios are hidden; each label after
   // a checked radio is inked in. The others are plain paper with a solid

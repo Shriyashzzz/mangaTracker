@@ -1,3 +1,4 @@
+import { SortMenu } from "../Home/ShelfBar";
 import { NavLink, useNavigate, useSearchParams } from "react-router";
 import { formStyles as styles } from "../../styles/form";
 import { useEffect, useRef, useState, type FormEvent } from "react";
@@ -34,6 +35,7 @@ import StarRating from "../../components/starRating/StarRating";
 import type { ShelfMatch } from "../../lib/types";
 
 const DESC_MAX = 450;
+const GENRE_OPTIONS = [{ value: "", label: "Select a genre" }, ...GENRES];
 // AniList's matches in the title dropdown
 const MATCHES = 12;
 // whether they left "More about it" open last time
@@ -528,24 +530,20 @@ export function AddManga() {
                         <span className={styles.optional}>(from AniList)</span>
                       )}
                     </label>
-                    <select
-                      className={styles.select}
-                      name="genre"
-                      id="genre"
-                      value={genre}
-                      onChange={(e) => {
-                        genreTouched.current = true;
-                        setGenre(e.target.value);
-                        setGenreFromAniList(false);
-                      }}
-                    >
-                      <option value="">Select a genre</option>
-                      {GENRES.map((g) => (
-                        <option key={g.value} value={g.value}>
-                          {g.label}
-                        </option>
-                      ))}
-                    </select>
+                    <div className={styles.pick}>
+                      <SortMenu
+                        box
+                        id="genre"
+                        menuLabel="Genre"
+                        options={GENRE_OPTIONS}
+                        sortBy={genre}
+                        onSort={(value) => {
+                          genreTouched.current = true;
+                          setGenre(value);
+                          setGenreFromAniList(false);
+                        }}
+                      />
+                    </div>
                   </div>
                 </div>
                 <div className={styles.field}>

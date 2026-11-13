@@ -7,7 +7,7 @@ import { readLocal, writeLocal } from "./prefs";
 const VISITS_KEY = "shareVisits";
 const DONE_KEY = "sharePeekDone";
 const COUNTED_KEY = "shareVisitCounted";
-export const SHARE_PEEK_VISITS = 3;
+const SHARE_PEEK_VISITS = 3;
 
 const countedThisSession = () => {
   try {
@@ -30,7 +30,7 @@ export function countShareVisit(): number {
   return before + 1;
 }
 
-export const sharePeekDone = () => readLocal(DONE_KEY) === "yes";
+const sharePeekDone = () => readLocal(DONE_KEY) === "yes";
 export const settleSharePeek = () => writeLocal(DONE_KEY, "yes");
 
 // which note this visit gets, if any

@@ -19,10 +19,9 @@ const RETRY_MS = 60 * 60 * 1000;
 const TIMEOUT_MS = 12_000;
 const setsKey = (name: string) => volumesKey(name) + ":boxsets";
 
-export type ScannedSet = Pick<
-  Offer,
-  "store" | "priceCents" | "url" | "condition"
-> & { format: "set" };
+type ScannedSet = Pick<Offer, "store" | "priceCents" | "url" | "condition"> & {
+  format: "set";
+};
 
 // what the last scan found, and when
 export async function savedBoxSets(name: string) {

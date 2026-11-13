@@ -29,7 +29,7 @@ type Item = {
 };
 
 // "Frieren: Beyond Journey's End" -> "intitle:Frieren intitle:Beyond …"
-export const titleWords = (name: string) =>
+const titleWords = (name: string) =>
   name
     .normalize("NFKD")
     .replace(/[^\p{L}\p{N}\s]+/gu, " ")

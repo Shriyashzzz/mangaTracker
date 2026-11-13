@@ -20,11 +20,10 @@ export const calendarParts = {
     "relative grid aspect-square place-items-center font-mono text-[0.8rem] text-line-soft",
   today:
     "font-semibold text-ink underline decoration-accent decoration-2 underline-offset-3",
-  // a release day: the number bold, circled, with a tag for the volume
+  // a release day: the number bold and circled
   release: "font-semibold text-ink",
   circle:
     "pointer-events-none absolute -inset-0.5 size-[calc(100%+4px)] text-accent",
-  tag: "absolute -top-2 -right-2 bg-accent px-1 font-brand text-[0.72rem] leading-[1.25] font-normal not-italic text-on-accent",
 
   // the list beside it
   list: "border-t-[1.5px] border-line",

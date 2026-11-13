@@ -203,7 +203,7 @@ const MARKETS = {
   US: { id: "EBAY_US", currency: "USD", store: "eBay", country: "US" },
   CA: { id: "EBAY_CA", currency: "CAD", store: "eBay.ca", country: "CA" },
 } as const;
-export type EbayMarket = keyof typeof MARKETS;
+type EbayMarket = keyof typeof MARKETS;
 
 // How a search was made decides how much a title must prove:
 // - "isbn": the ISBN as a keyword, so the listing holds it. Only a title
@@ -404,7 +404,7 @@ export function browseOffers(
 // null when the volume has no number to search by
 // "Attack on Titan Omnibus 9 (Vol. 25-27)" as matched and searched for:
 // "Attack on Titan Omnibus 9"
-export const omnibusTitle = (title: string) =>
+const omnibusTitle = (title: string) =>
   title.replace(/\s*\((?:vols?|volumes?)\.?\s*[\d\s,&–-]+\)\s*$/i, "");
 
 export function titleQueries(bookTitle: string) {

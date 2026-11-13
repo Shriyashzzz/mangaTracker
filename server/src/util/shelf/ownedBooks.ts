@@ -2,7 +2,7 @@
 // POST, an import's entries).
 import { body } from "express-validator";
 
-export const EDITION_KINDS = ["single", "omnibus", "deluxe", "boxset"] as const;
+const EDITION_KINDS = ["single", "omnibus", "deluxe", "boxset"] as const;
 
 // what they paid (cents, up to $100,000) and the day they bought it
 // ("2026-01-05"); null clears either

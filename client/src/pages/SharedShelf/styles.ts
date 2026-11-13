@@ -46,9 +46,7 @@ export const shareStyles = {
   // the order and the layout, side by side
   controls:
     "flex flex-wrap items-center gap-x-4 gap-y-1 upto-520:flex-nowrap upto-520:justify-between",
-  sortMenu: "hidden upto-520:block",
-  sortSelect:
-    "select-chevron h-10 border-[1.5px] border-line bg-card pr-9 pl-3 font-mono text-[0.85rem] text-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent focus-visible:outline-dashed",
+  sortMenu: "hidden w-40 upto-520:block",
   views:
     "flex items-stretch border-[1.5px] border-line font-mono text-[0.78rem]",
 
