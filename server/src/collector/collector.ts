@@ -13,6 +13,7 @@ import {
   finishSeries,
   finishEdition,
   shelfValue,
+  sum,
   upcoming,
   type MissingVolume,
   type ShelfValue,
@@ -56,12 +57,6 @@ function tagged(missing: MissingVolume): MissingVolume {
   );
   return { ...missing, cheapest: { ...cheapest, url } };
 }
-
-const sum = (numbers: number[]) => {
-  let total = 0;
-  for (const n of numbers) total += n;
-  return total;
-};
 
 export async function getShelfTools(userId: number): Promise<ShelfTools> {
   const shelf = await mangaQueries.getShelf(userId);

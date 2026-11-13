@@ -67,7 +67,7 @@ const onceEach = <T extends { isbn13: string; volume?: number | null }>(
   ...new Map(items.map((i) => [i.isbn13 || `volume:${i.volume}`, i])).values(),
 ];
 
-const sum = (numbers: number[]) => {
+export const sum = (numbers: number[]) => {
   let total = 0;
   for (const n of numbers) total += n;
   return total;
