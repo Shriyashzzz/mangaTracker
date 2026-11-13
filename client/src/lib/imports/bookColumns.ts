@@ -113,6 +113,11 @@ export function bookCatalogueBook(h: string[], row: string[]): Book | null {
     rating: stars(cell(row, header(h, /^rating$/))),
     planned: wanted && !read,
     lightNovel: titleSaysLightNovel(title, details),
+    // the day they finished it, or else the day they added it. Not its
+    // "last_update_date": one sync stamps nearly every book with the same day
+    changedOn:
+      importDate(cell(row, header(h, /^read_end$/))) ??
+      importDate(cell(row, header(h, /^date_added$/))),
   };
 }
 
@@ -160,6 +165,10 @@ export function bookshelfAppBook(h: string[], row: string[]): Book | null {
       series,
       cell(row, header(h, /^Format$/)),
     ),
+    // the day they finished it, or else the day they added it
+    changedOn:
+      importDate(cell(row, header(h, /^Ended Reading On$/))) ??
+      importDate(cell(row, header(h, /^Date added$/i))),
   };
 }
 

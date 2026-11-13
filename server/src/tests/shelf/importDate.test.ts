@@ -27,6 +27,10 @@ test("each source's own form of a date is read", () => {
   );
   // Goodreads
   expect(importDate("2023/05/12", NOW)).toBe("2023-05-12T00:00:00.000Z");
+  // Book Catalogue: a day and a time with no zone, taken as UTC
+  expect(importDate("2023-03-15 00:38:24", NOW)).toBe(
+    "2023-03-15T00:38:24.000Z",
+  );
 });
 
 test("anything that isn't a believable day in the past is left out", () => {
