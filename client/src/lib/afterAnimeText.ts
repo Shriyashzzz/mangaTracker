@@ -209,16 +209,29 @@ function endsAtChapter(stop: AnimeStop) {
   return `${season} ends at chapter ${stop.endChapter}.`;
 }
 
-// the questions a show's page answers, as people type them, for its FAQ
-// markup. Only the ones this show has an answer to
-export function showQuestions(show: ShowForMeta) {
+// a question and its answer. `list`: more of the answer as short lines, one
+// a season, so a long show's answer isn't one run-on paragraph
+export type ShowQuestion = { q: string; a: string; list?: string[] };
+
+// an answer as one piece of text, for markup that takes no lists
+export const answerText = ({ a, list }: ShowQuestion) =>
+  list?.length ? `${a} Earlier: ${list.join("; ")}.` : a;
+
+// the questions a show's page answers, as people type them. Only the ones
+// this show has an answer to
+export function showQuestions(show: ShowForMeta): ShowQuestion[] {
   const latest = latestStop(show.stops);
   if (!latest) return [];
-  const questions = [
+  const questions: ShowQuestion[] = [
     { q: showQuestion(show.name), a: answerSentence(latest) },
     {
       q: `What chapter does ${theAnime(show.name)} end on?`,
-      a: show.stops.map(endsAtChapter).filter(Boolean).join(" "),
+      // the latest season in a sentence, the ones before it as a short list
+      a: endsAtChapter(latest),
+      list: show.stops
+        .filter((stop) => stop !== latest && stop.endChapter !== null)
+        .reverse()
+        .map((stop) => `${stop.label}, chapter ${stop.endChapter}`),
     },
   ];
   const volume = volumeWords(latest);
@@ -245,10 +258,10 @@ export const showJsonLd = (show: ShowForMeta, origin: string) => ({
   "@graph": [
     {
       "@type": "FAQPage",
-      mainEntity: showQuestions(show).map(({ q, a }) => ({
+      mainEntity: showQuestions(show).map((question) => ({
         "@type": "Question",
-        name: q,
-        acceptedAnswer: { "@type": "Answer", text: a },
+        name: question.q,
+        acceptedAnswer: { "@type": "Answer", text: answerText(question) },
       })),
     },
     {

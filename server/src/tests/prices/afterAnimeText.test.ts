@@ -3,6 +3,7 @@
 import {
   afterLabel,
   answerSentence,
+  answerText,
   placeAfter,
   showJsonLd,
   showQuestions,
@@ -125,8 +126,13 @@ test("a show's questions are the ones it can answer", () => {
     "Which Jujutsu Kaisen volume do I buy after the anime?",
     "Does the Jujutsu Kaisen anime cover the whole manga?",
   ]);
-  expect(questions[1]!.a).toBe(
-    "Season 1 ends at chapter 63. Season 2 ends at chapter 137. Season 3 stops partway through chapter 181.",
+  // the latest season in a sentence, the earlier ones as short lines
+  expect(questions[1]).toMatchObject({
+    a: "Season 3 stops partway through chapter 181.",
+    list: ["Season 2, chapter 137", "Season 1, chapter 63"],
+  });
+  expect(answerText(questions[1]!)).toBe(
+    "Season 3 stops partway through chapter 181. Earlier: Season 2, chapter 137; Season 1, chapter 63.",
   );
   expect(questions[2]!.a).toBe(
     "After Season 3, the story carries on at chapter 181, which is in volume 21 or 22.",

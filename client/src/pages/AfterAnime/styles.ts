@@ -102,6 +102,9 @@ export const afterAnimeStyles = {
   reviewActions: "mt-1 flex flex-wrap items-center gap-3",
   reviewDecided: "text-[0.9rem] text-muted",
 
+  // an answer's short lines, one a season
+  answerList: "mt-2 flex list-none flex-col gap-1 tabular-nums",
+
   // ---------- under the seasons ----------
   // the whole run in one buy, when a box set is priced
   boxSet:

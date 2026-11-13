@@ -236,13 +236,23 @@ export default function AfterAnimeShow() {
             </h2>
             {/* rows that open, as on the FAQ page */}
             <div className={faqStyles.list}>
-              {showQuestions(show).map(({ q, a }) => (
+              {showQuestions(show).map(({ q, a, list }) => (
                 <details key={q} className={faqStyles.item}>
                   <summary className={faqStyles.question}>
                     {q}
                     <span className={faqStyles.mark} aria-hidden />
                   </summary>
-                  <p className={faqStyles.answer}>{a}</p>
+                  <div className={faqStyles.answer}>
+                    <p>{a}</p>
+                    {/* a long show's earlier seasons, a line each */}
+                    {list && list.length > 0 && (
+                      <ul className={styles.answerList}>
+                        {list.map((line) => (
+                          <li key={line}>{line}</li>
+                        ))}
+                      </ul>
+                    )}
+                  </div>
                 </details>
               ))}
             </div>

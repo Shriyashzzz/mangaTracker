@@ -618,7 +618,12 @@ function afterAnimeTags(
         `<h2>${escapeHtml(seasonHeading(stop))}</h2><p>${escapeHtml(answerSentence(stop))}</p>`,
     );
   const questions = showQuestions(show).map(
-    ({ q, a }) => `<h3>${escapeHtml(q)}</h3><p>${escapeHtml(a)}</p>`,
+    ({ q, a, list }) =>
+      `<h3>${escapeHtml(q)}</h3><p>${escapeHtml(a)}</p>${
+        list?.length
+          ? `<ul>${list.map((line) => `<li>${escapeHtml(line)}</li>`).join("")}</ul>`
+          : ""
+      }`,
   );
   const more = others.filter((other) => other.slug !== show.slug).slice(0, 12);
   return {
