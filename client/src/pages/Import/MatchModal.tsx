@@ -117,6 +117,18 @@ export default function MatchModal({
   const runTo = /^\d{1,3}$/.test(typed) ? Number(typed) : null;
   const list = runTo === null ? parseVolumes(typed) : null;
   const countOk = typed !== "" && (runTo !== null || Boolean(list?.length));
+  // under the title: what AniList said about this series
+  let matchLine = "Not on AniList";
+  if (matched) matchLine = `Matched to ${matched.name}`;
+  else if (current === "failed") matchLine = "Couldn't check AniList";
+  // under the volumes box: what's wrong with it, or how to fill it in
+  let volumesHint =
+    "A number is every volume up to it; a list like 1-5, 8 keeps the gaps.";
+  if (!countOk)
+    volumesHint = "A number (up to that volume) or a list like 1-5, 8.";
+  else if (series.omnibus)
+    volumesHint =
+      "Omnibuses and box sets hold several volumes each: list the volumes, not the books (1-27, 30).";
 
   const save = (e: FormEvent) => {
     e.preventDefault();
@@ -156,13 +168,7 @@ export default function MatchModal({
             <h2 id={`${ids}-title`} className={styles.modalTitle}>
               {series.title}
             </h2>
-            <p className={styles.modalNow}>
-              {matched
-                ? `Matched to ${matched.name}`
-                : current === "failed"
-                  ? "Couldn't check AniList"
-                  : "Not on AniList"}
-            </p>
+            <p className={styles.modalNow}>{matchLine}</p>
           </div>
           <button
             type="button"
@@ -305,11 +311,7 @@ export default function MatchModal({
             aria-invalid={!countOk}
           />
           <p id={`${ids}-volumes-hint`} className={styles.modalHint}>
-            {!countOk
-              ? "A number (up to that volume) or a list like 1-5, 8."
-              : series.omnibus
-                ? "Omnibuses and box sets hold several volumes each: list the volumes, not the books (1-27, 30)."
-                : "A number is every volume up to it; a list like 1-5, 8 keeps the gaps."}
+            {volumesHint}
           </p>
         </div>
 

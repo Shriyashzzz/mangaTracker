@@ -331,17 +331,16 @@ function SeriesVolumes({
     yours: owned.includes(volume),
   }));
   const toGet = tiles.filter((t) => !t.yours).length;
+  // the line above the tiles: still loading, what's missing, or all of it
+  let summary = `You own all ${plural(owned.length, "volume")} we know of`;
+  if (list === undefined) summary = "Finding its volumes…";
+  else if (toGet)
+    summary = `You own ${owned.length} of ${tiles.length} · ${toGet} not on your shelf`;
 
   return (
     <div id={id} className={styles.panel}>
       <div className={styles.panelHead}>
-        <p className={styles.panelSummary}>
-          {list === undefined
-            ? "Finding its volumes…"
-            : toGet
-              ? `You own ${owned.length} of ${tiles.length} · ${toGet} not on your shelf`
-              : `You own all ${plural(owned.length, "volume")} we know of`}
-        </p>
+        <p className={styles.panelSummary}>{summary}</p>
         <NavLink
           to={`/update/${manga.id}`}
           className={styles.edit}

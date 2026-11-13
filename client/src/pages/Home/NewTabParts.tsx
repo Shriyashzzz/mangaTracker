@@ -26,6 +26,12 @@ export function ReleaseTools({
   viewingHidden: boolean;
   hiddenCount: number;
 }) {
+  // the one showing is filled in; one with nothing new is faded
+  const kindClass = (k: ReleaseKind) => {
+    if (kind === k) return styles.releaseKindActive;
+    const nothingNew = showCounts && counts[k] === 0;
+    return nothingNew ? styles.releaseKindEmpty : styles.releaseKind;
+  };
   return (
     <div className={styles.releaseTools}>
       <div
@@ -36,13 +42,7 @@ export function ReleaseTools({
         {(Object.keys(RELEASE_KINDS) as ReleaseKind[]).map((k) => (
           <button
             key={k}
-            className={
-              kind === k
-                ? styles.releaseKindActive
-                : showCounts && counts[k] === 0
-                  ? styles.releaseKindEmpty
-                  : styles.releaseKind
-            }
+            className={kindClass(k)}
             aria-pressed={kind === k}
             onClick={() => onKind(k)}
           >
@@ -204,6 +204,15 @@ export function HiddenNote({
   );
 }
 
+// how many series the release sites don't know, and so can never list
+function notFoundLine(notFound: number, looked: number) {
+  if (notFound === looked)
+    return "None of your series were found on the release sites, so nothing can show up here.";
+  if (notFound === 1)
+    return "1 of your series wasn't found on the release sites, so it won't show up here.";
+  return `${notFound} of your series weren't found on the release sites, so they won't show up here.`;
+}
+
 // nothing new on this side of the switch, and why some series can't show up
 export function NothingNew({
   kind,
@@ -253,13 +262,7 @@ export function NothingNew({
         </p>
       )}
       {!checking && notFound > 0 && (
-        <p className={styles.emptyBody}>
-          {notFound === looked
-            ? "None of your series were found on the release sites, so nothing can show up here."
-            : notFound === 1
-              ? "1 of your series wasn't found on the release sites, so it won't show up here."
-              : `${notFound} of your series weren't found on the release sites, so they won't show up here.`}
-        </p>
+        <p className={styles.emptyBody}>{notFoundLine(notFound, looked)}</p>
       )}
     </div>
   );

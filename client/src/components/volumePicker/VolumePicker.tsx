@@ -251,6 +251,12 @@ export function useVolumePicker(
   );
   // whole volumes only, as the "of 113" counts them (10.5 and vol. 0 aren't)
   const ownedWhole = owned.filter((v) => Number.isInteger(v) && v >= 1).length;
+  // the line under the picker: what's ticked, in words
+  let said = "None yet";
+  if (owned.length) {
+    const ofKnown = known ? ` of ${known}` : "";
+    said = `${ownedWhole}${ofKnown} on your shelf · vol. ${rangesText(owned)}`;
+  } else if (known) said = `None yet · ${known} volumes out`;
   // Enter or Space on a spine (pointers are the shelf's)
   const keyToggle = (v: number, yours: boolean) => {
     change([v], !yours);
@@ -363,11 +369,7 @@ export function useVolumePicker(
       </div>
       <div className={styles.foot}>
         <p className={styles.said} aria-live="polite">
-          {owned.length
-            ? `${ownedWhole}${known ? ` of ${known}` : ""} on your shelf · vol. ${rangesText(owned)}`
-            : known
-              ? `None yet · ${known} volumes out`
-              : "None yet"}
+          {said}
         </p>
         <span className={styles.footActions}>
           <button

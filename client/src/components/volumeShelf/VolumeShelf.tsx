@@ -405,27 +405,21 @@ export default function VolumeShelf({
         // a mouse clicks or slides to tick, with the magnifier following
         // it; a short series under a finger slides to tick; a long one
         // under a finger gets the magnifier
-        onPointerDown={(e) =>
-          e.pointerType === "mouse"
-            ? onMouseDown(e)
-            : oneTap
-              ? onPaintDown(e)
-              : onPointerDown(e)
-        }
-        onPointerMove={(e) =>
-          e.pointerType === "mouse"
-            ? onMouseMove(e)
-            : oneTap
-              ? onPaintMove(e)
-              : onPointerMove(e)
-        }
-        onPointerUp={(e) =>
-          e.pointerType === "mouse"
-            ? stopPainting()
-            : oneTap
-              ? onPaintUp()
-              : onPointerUp(e)
-        }
+        onPointerDown={(e) => {
+          if (e.pointerType === "mouse") onMouseDown(e);
+          else if (oneTap) onPaintDown(e);
+          else onPointerDown(e);
+        }}
+        onPointerMove={(e) => {
+          if (e.pointerType === "mouse") onMouseMove(e);
+          else if (oneTap) onPaintMove(e);
+          else onPointerMove(e);
+        }}
+        onPointerUp={(e) => {
+          if (e.pointerType === "mouse") stopPainting();
+          else if (oneTap) onPaintUp();
+          else onPointerUp(e);
+        }}
         onPointerCancel={() => {
           press.current = null;
           stopPainting();

@@ -33,25 +33,25 @@ const bookPath = (book: EditionBook, label: string, seriesName: string) =>
   book.isbn13
     ? volumePath(book.isbn13, book.title ?? label)
     : seriesPath(seriesName);
-const bookPrice = (book: EditionBook) =>
-  book.knownPriceCents != null
-    ? formatCents(book.knownPriceCents)
-    : book.isbn13
-      ? "check price"
-      : "find it";
+// what a book's ticket says where its price goes: the price we know, a
+// nudge to check it, or (the catalog has no ISBN for it) to look for it
+function bookPrice(book: EditionBook) {
+  if (book.knownPriceCents != null) return formatCents(book.knownPriceCents);
+  return book.isbn13 ? "check price" : "find it";
+}
 
 // what the rest of an edition costs: the stored prices, stretched over the
 // books that have none yet
-const editionMoney = (plan: EditionPlan) =>
-  !plan.pricedCount
-    ? "check prices"
-    : plan.pricedCount === plan.left.length
-      ? formatCents(plan.pricedCents)
-      : `about ${formatCents(
-          Math.round(
-            ((plan.pricedCents / plan.pricedCount) * plan.left.length) / 100,
-          ) * 100,
-        )}`;
+function editionMoney(plan: EditionPlan) {
+  if (!plan.pricedCount) return "check prices";
+  const everyBookPriced = plan.pricedCount === plan.left.length;
+  if (everyBookPriced) return formatCents(plan.pricedCents);
+  // the priced books' average, for every book left, to the nearest dollar
+  const averageCents = plan.pricedCents / plan.pricedCount;
+  const estimateCents =
+    Math.round((averageCents * plan.left.length) / 100) * 100;
+  return `about ${formatCents(estimateCents)}`;
+}
 
 const price = (v: SeriesVolume) =>
   v.knownPriceCents != null ? formatCents(v.knownPriceCents) : "check price";

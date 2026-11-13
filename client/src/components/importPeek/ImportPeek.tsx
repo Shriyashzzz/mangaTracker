@@ -24,16 +24,13 @@ type Note = "canLeave" | "away" | "matched" | "added";
 const series = (n: number) => `${n} series`;
 
 // where the import is up to
-const phaseOf = (s: ReturnType<typeof useBookImport.getState>): Phase | null =>
-  !s.found
-    ? null
-    : s.finished
-      ? "added"
-      : s.progress !== null
-        ? "adding"
-        : s.found.some((x) => !s.matches.has(x.key))
-          ? "matching"
-          : "matched";
+function phaseOf(s: ReturnType<typeof useBookImport.getState>): Phase | null {
+  if (!s.found) return null;
+  if (s.finished) return "added";
+  if (s.progress !== null) return "adding";
+  const stillMatching = s.found.some((x) => !s.matches.has(x.key));
+  return stillMatching ? "matching" : "matched";
+}
 
 // an open book with a page turning over its spine
 function BookIcon() {
