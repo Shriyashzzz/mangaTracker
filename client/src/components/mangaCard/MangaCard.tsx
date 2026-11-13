@@ -10,7 +10,15 @@ import { NavLink } from "react-router";
 import StarRating from "../starRating/StarRating";
 import DrawnCover from "../drawnCover/DrawnCover";
 import type { Manga } from "../../lib/types";
-import { ownedOf, rangesText } from "../../lib/ownedVolumes";
+import { ownedOf } from "../../lib/ownedVolumes";
+import {
+  coverLine,
+  genreOf,
+  ownedTextOf,
+  progressOf,
+  rowKindLine,
+  rowPlaceLine,
+} from "./cardText";
 
 // what's come out for it on the New tab
 export type CardNews = {
@@ -50,6 +58,38 @@ type Props = {
 const coverBase =
   "relative aspect-2/3 rounded-[2px] border-[1.5px] border-line bg-paper-2 transition-[translate,rotate,box-shadow] duration-180 ease-[ease] group-hover:-translate-x-0.5 group-hover:-translate-y-[3px] group-hover:-rotate-1 group-hover:shadow-[6px_7px_0_var(--hard-shadow)] [.group:nth-child(3n+2):hover_&]:rotate-[0.8deg] [.group:nth-child(3n):hover_&]:-rotate-[0.4deg] [[data-picked]_&]:outline-3 [[data-picked]_&]:outline-offset-2 [[data-picked]_&]:outline-accent";
 
+// A card is drawn one of three ways:
+//   small   a row with a little cover at every screen size (chosen in Settings)
+//   news    a New tab card: a cover on laptops, a row on phones
+//   cover   the usual card: a cover with its name under it
+type Shape = "small" | "news" | "cover";
+
+const COVER_CLASS: Record<Shape, string> = {
+  small: `${coverBase} w-11 shrink-0 shadow-ink`,
+  news: `${coverBase} shadow-ink-lg upto-720:w-11 upto-720:shrink-0 upto-720:shadow-ink`,
+  cover: `${coverBase} shadow-ink-lg`,
+};
+// how wide the cover is drawn, so a row asks for a small picture
+const COVER_SIZES: Record<Shape, string> = {
+  small: "44px",
+  news: "(max-width: 720px) 44px, 160px",
+  cover: "160px",
+};
+const TITLE_CLAMP: Record<Shape, string> = {
+  small: "line-clamp-1",
+  news: "line-clamp-2 min-h-[2.5em] upto-720:min-h-0 upto-720:line-clamp-1",
+  cover: "line-clamp-2",
+};
+const ROOT_CLASS: Record<Shape, string> = {
+  small: "group flex animate-card-in flex-row items-start gap-3 py-1.5",
+  news: "group flex animate-card-in flex-col gap-[0.7rem] upto-720:flex-row upto-720:items-center upto-720:gap-3 upto-720:py-1.5",
+  cover: "group flex animate-card-in flex-col gap-[0.7rem]",
+};
+// a shelf row (small, and not news) lines up in three columns: cover, text,
+// and the stars with the progress bar
+const ROW_COLUMNS_CLASS =
+  "group grid animate-card-in grid-cols-[2.75rem_minmax(0,1fr)_auto] gap-x-3 py-1.5";
+
 export default function MangaCard({
   currentManga,
   news,
@@ -65,65 +105,42 @@ export default function MangaCard({
 }: Props) {
   // a cover that wouldn't load, so the drawn one shows instead
   const [brokenImage, setBrokenImage] = useState<string | null>(null);
+  let shape: Shape = "cover";
+  if (compact) shape = "small";
+  else if (news) shape = "news";
   const asColumns = compact && !news;
-  // a count that's behind where they are says nothing, so it isn't shown
-  const ownTrackBy = useTrackBy();
-  const tracks = tracksOf(currentManga, trackBy ?? ownTrackBy);
-  // the bar on the right: chapters when they count them, else volumes read
-  const byChapter = tracks.chapters && Boolean(currentManga.bookmark);
-  const reading = byChapter
-    ? (currentManga.bookmark ?? 0)
-    : tracks.volumes
-      ? (currentManga.readVolume ?? 0)
-      : 0;
-  const latest = byChapter ? latestChapter : latestVolume;
-  // a count that's behind where they are says nothing, so it isn't shown
-  const knownTotal = latest != null && latest >= reading ? latest : null;
-  // a collector of the books, no chapter kept: what they own says where
-  // they are ("vols. 1–10"), never "not started"
-  const owned = ownedOf(currentManga);
-  const ownedText = owned.length
-    ? `own ${owned.length === 1 ? "vol." : "vols."} ${rangesText(owned)}`
-    : null;
-  // where they are: the chapter they're on, the volume they've read, or both
-  const placeText = placeOf(currentManga, trackBy ?? ownTrackBy);
-  const genre =
-    currentManga.genre && currentManga.genre !== "unlabled"
-      ? currentManga.genre
-      : null;
 
-  const rootClass = asColumns
-    ? "group grid animate-card-in grid-cols-[2.75rem_minmax(0,1fr)_auto] gap-x-3 py-1.5"
-    : compact
-      ? "group flex animate-card-in flex-row items-start gap-3 py-1.5"
-      : news
-        ? "group flex animate-card-in flex-col gap-[0.7rem] upto-720:flex-row upto-720:items-center upto-720:gap-3 upto-720:py-1.5"
-        : "group flex animate-card-in flex-col gap-[0.7rem]";
+  const ownTrackBy = useTrackBy();
+  const trackingBy = trackBy ?? ownTrackBy;
+  const { byChapter, reading, knownTotal } = progressOf(
+    currentManga,
+    tracksOf(currentManga, trackingBy),
+    latestChapter,
+    latestVolume,
+  );
+  const owned = ownedOf(currentManga);
+  const ownedText = ownedTextOf(owned);
+  // where they are: the chapter they're on, the volume they've read, or both
+  const placeText = placeOf(currentManga, trackingBy);
+  const genre = genreOf(currentManga);
+  const kindLine = rowKindLine(currentManga);
+  const hasCover =
+    Boolean(currentManga.image) && brokenImage !== currentManga.image;
+
+  const rootClass = asColumns ? ROW_COLUMNS_CLASS : ROOT_CLASS[shape];
+  let newsGenreHidden = "";
+  if (news) newsGenreHidden = compact ? " hidden" : " upto-720:hidden";
   const delay = { animationDelay: `${Math.min(index, 12) * 35}ms` };
 
   const body = (
     <>
-      <div
-        className={
-          compact
-            ? `${coverBase} w-11 shrink-0 shadow-ink`
-            : news
-              ? `${coverBase} shadow-ink-lg upto-720:w-11 upto-720:shrink-0 upto-720:shadow-ink`
-              : `${coverBase} shadow-ink-lg`
-        }
-      >
-        {currentManga.image && brokenImage !== currentManga.image ? (
+      <div className={COVER_CLASS[shape]}>
+        {hasCover ? (
           <img
-            src={currentManga.image}
+            src={currentManga.image ?? undefined}
             // a row's thumbnail asks for a small picture, a card for a full one
             srcSet={coverSet(currentManga.image)}
-            sizes={
-              compact
-                ? "44px"
-                : news
-                  ? "(max-width: 720px) 44px, 160px"
-                  : "160px"
-            }
+            sizes={COVER_SIZES[shape]}
             alt=""
             loading="lazy"
             // out of the flow, or a tall image stretches the cover past its shape
@@ -156,56 +173,32 @@ export default function MangaCard({
       </div>
       <div className="flex min-w-0 flex-col gap-[0.15rem]">
         <p
-          className={`${compact ? "line-clamp-1" : news ? "line-clamp-2 min-h-[2.5em] upto-720:min-h-0 upto-720:line-clamp-1" : "line-clamp-2"}  font-display text-[1.05rem] leading-[1.25] font-semibold decoration-accent underline-offset-3 group-hover:underline`}
+          className={`${TITLE_CLAMP[shape]}  font-display text-[1.05rem] leading-[1.25] font-semibold decoration-accent underline-offset-3 group-hover:underline`}
         >
           {currentManga.name}
         </p>
         {/* a row gives the chapter its own line: it's what they came to see */}
-        {compact && !news ? (
+        {asColumns ? (
           <>
             <p className="truncate font-mono text-[0.85rem] font-medium text-ink-soft">
               {/* the right side already says when it's finished */}
-              {currentManga.planned
-                ? "to read"
-                : placeText
-                  ? placeText
-                  : ownedText
-                    ? ownedText
-                    : currentManga.status
-                      ? "no chapter saved"
-                      : "not started"}
+              {rowPlaceLine(currentManga, placeText, ownedText)}
             </p>
             {/* one line for the rest, so every row is the same height */}
             <div className="flex min-h-[1.2rem] min-w-0 items-center gap-3">
-              {(genre || currentManga.lightNovel) && (
+              {kindLine && (
                 <p className="truncate font-mono text-[0.78rem] text-muted">
-                  {[currentManga.lightNovel && "light novel", genre]
-                    .filter(Boolean)
-                    .join(" · ")}
+                  {kindLine}
                 </p>
               )}
             </div>
           </>
         ) : (
           <p
-            className={`min-h-[1.5em] truncate font-mono text-[0.78rem] text-muted${
-              news ? (compact ? " hidden" : " upto-720:hidden") : ""
-            }`}
+            // on the New tab the genre makes way for the news on a small card
+            className={`min-h-[1.5em] truncate font-mono text-[0.78rem] text-muted${newsGenreHidden}`}
           >
-            {news
-              ? genre
-              : // a blank or zero chapter says nothing worth showing
-                [
-                  currentManga.status
-                    ? "finished"
-                    : currentManga.planned
-                      ? "to read"
-                      : (placeText ?? ownedText),
-                  currentManga.lightNovel && "light novel",
-                  genre,
-                ]
-                  .filter(Boolean)
-                  .join(" · ")}
+            {news ? genre : coverLine(currentManga, placeText, ownedText)}
           </p>
         )}
         {news && (
@@ -237,32 +230,13 @@ export default function MangaCard({
             <StarRating value={Number(currentManga.rating) || 0} size="sm" />
           </span>
           <span className="flex w-36 shrink-0 flex-col justify-center gap-1 pr-2.5 text-right font-mono text-[0.82rem] text-ink-soft upto-720:w-[7.5rem] upto-720:text-[0.75rem] upto-720:pr-2">
-            {currentManga.status ? (
-              "Finished"
-            ) : !reading && owned.length ? (
-              // no chapter kept: how many books, not "0 of 143"
-              <span className="whitespace-nowrap pr-2.5">
-                {owned.length} {owned.length === 1 ? "vol" : "vols"}
-              </span>
-            ) : knownTotal != null && reading > 0 ? (
-              <>
-                <span className="whitespace-nowrap">
-                  {byChapter ? "" : "vol. "}
-                  {reading} of {knownTotal}
-                </span>
-                <span
-                  className="block h-1.5 overflow-hidden rounded-full border border-line bg-card"
-                  aria-hidden
-                >
-                  <span
-                    className="block h-full bg-accent"
-                    style={{
-                      width: `${knownTotal ? Math.min((reading / knownTotal) * 100, 100) : 0}%`,
-                    }}
-                  />
-                </span>
-              </>
-            ) : null}
+            <RowProgress
+              finished={currentManga.status}
+              ownedCount={owned.length}
+              byChapter={byChapter}
+              reading={reading}
+              knownTotal={knownTotal}
+            />
           </span>
         </span>
       )}
@@ -301,6 +275,50 @@ export default function MangaCard({
     >
       {body}
     </NavLink>
+  );
+}
+
+// the right side of a shelf row: "Finished", how many books a collector has,
+// or how far through they are with a bar under it
+function RowProgress({
+  finished,
+  ownedCount,
+  byChapter,
+  reading,
+  knownTotal,
+}: {
+  finished: boolean;
+  ownedCount: number;
+  byChapter: boolean;
+  reading: number;
+  knownTotal: number | null;
+}) {
+  if (finished) return "Finished";
+  // no chapter kept: how many books, not "0 of 143"
+  if (!reading && ownedCount)
+    return (
+      <span className="whitespace-nowrap pr-2.5">
+        {ownedCount} {ownedCount === 1 ? "vol" : "vols"}
+      </span>
+    );
+  if (knownTotal == null || reading <= 0) return null;
+  const percent = knownTotal ? Math.min((reading / knownTotal) * 100, 100) : 0;
+  return (
+    <>
+      <span className="whitespace-nowrap">
+        {byChapter ? "" : "vol. "}
+        {reading} of {knownTotal}
+      </span>
+      <span
+        className="block h-1.5 overflow-hidden rounded-full border border-line bg-card"
+        aria-hidden
+      >
+        <span
+          className="block h-full bg-accent"
+          style={{ width: `${percent}%` }}
+        />
+      </span>
+    </>
   );
 }
 

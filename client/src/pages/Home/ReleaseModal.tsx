@@ -50,28 +50,24 @@ export default function ReleaseModal({
   const volumes = remainingVolumes(manga, found);
   const chapters = remainingChapters(manga, found);
   const japan = remainingJapanVolumes(manga, found);
-  const left =
-    kind === "volume"
-      ? volumes.length
-      : kind === "chapter"
-        ? chapters.length
-        : japan.length;
-  const hasHidden =
-    kind === "volume"
-      ? volumes.length < found.outVolumes.length
-      : kind === "chapter"
-        ? manga.seenChapter != null
-        : manga.seenJapanVolume != null;
-  const heading =
-    kind === "chapter"
-      ? left === 1
-        ? "chapter"
-        : "chapters"
-      : kind === "japan"
-        ? "in Japan"
-        : left === 1
-          ? "volume"
-          : "volumes";
+  // for the kind of release on show: how many are left, the word for them in
+  // the title, and whether some were hidden (so they can be brought back)
+  let left: number;
+  let heading: string;
+  let hasHidden: boolean;
+  if (kind === "volume") {
+    left = volumes.length;
+    heading = left === 1 ? "volume" : "volumes";
+    hasHidden = volumes.length < found.outVolumes.length;
+  } else if (kind === "chapter") {
+    left = chapters.length;
+    heading = left === 1 ? "chapter" : "chapters";
+    hasHidden = manga.seenChapter != null;
+  } else {
+    left = japan.length;
+    heading = "in Japan";
+    hasHidden = manga.seenJapanVolume != null;
+  }
 
   return (
     <dialog

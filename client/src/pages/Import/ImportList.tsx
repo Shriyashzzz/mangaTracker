@@ -5,8 +5,8 @@
 import { useEffect, useMemo, useState } from "react";
 import { useShelf } from "../../store/shelf";
 import { ChevronDownIcon, InfoIcon } from "../../components/icons/Icons";
-import { ownedPhrase } from "../../lib/ownedVolumes";
-import { editOf, gapsIn, type BookSeries } from "../../lib/imports/bookImport";
+import { editOf, type BookSeries } from "../../lib/imports/bookImport";
+import { matchLine, omnibusNote } from "./importRowText";
 import { useBookImport, type Match } from "../../store/bookImport";
 import MatchModal from "./MatchModal";
 import { importStyles as styles } from "./styles";
@@ -57,7 +57,10 @@ export default function ImportList({
     const match = matchOf(s);
     const apart = keptApartFrom(s);
     const name = match && match !== "failed" ? match.name : s.title;
-    const edited = Boolean(editOf(s, edits));
+    const edit = editOf(s, edits);
+    const edited = Boolean(edit);
+    // they said so themselves, with Edit
+    const saidNotOnAniList = edit?.match === null;
     return (
       <div key={s.key} className={styles.seriesRow}>
         <label className={styles.seriesLabel}>
@@ -73,39 +76,10 @@ export default function ImportList({
           <span className={styles.seriesText}>
             <span className={styles.listName}>{name}</span>
             <span className={styles.seriesMeta}>
-              {match === undefined
-                ? "Matching…"
-                : match === "failed"
-                  ? "Couldn't check AniList"
-                  : match === null
-                    ? editOf(s, edits)?.match === null
-                      ? "You said it isn't on AniList"
-                      : apart
-                        ? `Not on AniList, and not the same as ${apart}`
-                        : s.lightNovel
-                          ? "Not on AniList"
-                          : "Not on AniList, so probably not manga"
-                    : (s.lightNovel ? "Light novel · " : "") +
-                      (s.planned
-                        ? "Only on a to-read list"
-                        : s.ownedVolumes
-                          ? `Own ${ownedPhrase({
-                              volumesOwned: s.ownedVolumes,
-                              ownedList: gapsIn(s.ownedList)
-                                ? s.ownedList!
-                                : [],
-                            })}`
-                          : `${s.books} book${s.books === 1 ? "" : "s"}`)}
+              {matchLine(s, match, apart, saidNotOnAniList)}
             </span>
-            {/* "Vinland Saga Omnibus, Vol. 3" doesn't say which
-              volumes it holds, so the count is a guess */}
             {s.omnibus && match && match !== "failed" && (
-              <span className={styles.omnibusNote}>
-                {/* which books, so nothing is left out without a word */}
-                {s.unsure?.length
-                  ? `Not counted yet: ${s.unsure.slice(0, 3).join("; ")}${s.unsure.length > 3 ? ` and ${s.unsure.length - 3} more` : ""}. The file doesn't say which volumes ${s.unsure.length === 1 ? "it holds" : "they hold"}: add them with Edit`
-                  : "Omnibus editions: check the volume count with Edit"}
-              </span>
+              <span className={styles.omnibusNote}>{omnibusNote(s)}</span>
             )}
             {match &&
               match !== "failed" &&

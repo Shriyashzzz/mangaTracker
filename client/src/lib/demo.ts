@@ -345,6 +345,32 @@ const sampleOffer = (
   fetchedAt: days(-1),
 });
 
+// what a save changes on a practice series: `part` is the end of the
+// address ("/api/manga/3/rating" is "rating"), `body` what was sent with it
+function changesFor(
+  part: string | undefined,
+  body: Record<string, unknown>,
+): Partial<Manga> {
+  if (part === "bookmark") return { bookmark: body.bookmark as number };
+  if (part === "reading") return body as Partial<Manga>;
+  if (part === "rating") return { rating: body.rating as number };
+  if (part === "notes")
+    return { description: body.description as string | null };
+  if (part === "status")
+    return { status: body.status as boolean, planned: false };
+  if (part === "planned") {
+    // onto the To read list, or off it and reading from chapter 1
+    return body.planned
+      ? { planned: true, status: false }
+      : { planned: false, bookmark: 1 };
+  }
+  if (part === "seen") {
+    const field = body.kind === "chapter" ? "seenChapter" : "seenVolume";
+    return { [field]: body.number as number | null };
+  }
+  return {};
+}
+
 function volumePage(isbn: string, shelf: Manga[]) {
   // One Piece, wherever it is on the shelf and even if they've deleted it
   const manga = shelf.find((m) => m.id === 1) ?? STARTING_SHELF[0]!;
@@ -615,28 +641,7 @@ export function demoResponse(
     // the practice shelf keeps no books: an empty list, whatever is asked
     if (part === "books") return json({ books: [] });
     if (!part && method === "GET") return json({ manga });
-    const changes: Partial<Manga> =
-      part === "bookmark"
-        ? { bookmark: body.bookmark as number }
-        : part === "reading"
-          ? (body as Partial<Manga>)
-          : part === "rating"
-            ? { rating: body.rating as number }
-            : part === "notes"
-              ? { description: body.description as string | null }
-              : part === "status"
-                ? { status: body.status as boolean, planned: false }
-                : part === "planned"
-                  ? body.planned
-                    ? { planned: true, status: false }
-                    : { planned: false, bookmark: 1 }
-                  : part === "seen"
-                    ? {
-                        [body.kind === "chapter"
-                          ? "seenChapter"
-                          : "seenVolume"]: body.number as number | null,
-                      }
-                    : {};
+    const changes = changesFor(part, body);
     writeShelf(shelf.map((m) => (m.id === id ? { ...m, ...changes } : m)));
     return json({ ok: true });
   }
