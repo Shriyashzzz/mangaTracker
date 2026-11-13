@@ -205,13 +205,17 @@ export default function BookImport({ source }: { source: BookSource }) {
       ? raw.name
       : null;
   };
-  // ticked unless they've said otherwise: found on AniList and owned or read
+  // ticked unless they've said otherwise: found on AniList and owned or read,
+  // or from their own backup
   const ticked = (s: BookSeries) => {
     // the row's own, or one made on a series that has since joined it
     const choice = (s.members ?? [s.key])
       .map((k) => choices.get(k))
       .find((c) => c !== undefined);
     if (choice !== undefined) return choice;
+    // a backup's series were all on their own shelf: every one goes back,
+    // the ones AniList doesn't know and the ones on To read too
+    if (s.restore) return true;
     const match = matchOf(s);
     return Boolean(match && match !== "failed") && !s.planned;
   };
