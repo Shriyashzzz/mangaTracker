@@ -176,7 +176,7 @@ const GOOGLE_URL = "https://www.googleapis.com/books/v1/volumes";
 const COVER_LOOKUPS_A_DAY = 300;
 const RETRY_NONE_MS = 30 * 24 * 60 * 60 * 1000;
 const coverDay = () => new Date().toISOString().slice(0, 10);
-export const googleCoverLabel = (day = coverDay()) => `gbcover:${day}`;
+const googleCoverLabel = (day = coverDay()) => `gbcover:${day}`;
 
 // the thumbnail Google gives is 128px wide; its image host serves a sharper
 // one when asked for a size (fife), and only over https

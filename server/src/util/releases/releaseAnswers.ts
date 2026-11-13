@@ -37,7 +37,7 @@ export const settingsPrint = (prefs: Prefs) =>
     ...(prefs?.trackBy ? [prefs.trackBy] : []),
   ]);
 
-export const answerKey = (m: Keyed, prefs: Prefs) =>
+const answerKey = (m: Keyed, prefs: Prefs) =>
   JSON.stringify([
     m.name,
     m.lightNovel,
@@ -56,7 +56,7 @@ export const answerKey = (m: Keyed, prefs: Prefs) =>
     prefs?.trackBy ?? null,
   ]);
 
-export type SavedAnswer = {
+type SavedAnswer = {
   releaseStatus: unknown;
   complete: boolean;
   outcome: string;

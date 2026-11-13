@@ -206,7 +206,7 @@ const BOX_SETS: Record<string, Record<number, [number, number]>> = {
 };
 const SET_MAX = 120;
 
-export function boxSetOf(
+function boxSetOf(
   title: string,
 ): { series: string; holds: number[] | null } | null {
   const text = withAmpersands(title.normalize("NFKC"));

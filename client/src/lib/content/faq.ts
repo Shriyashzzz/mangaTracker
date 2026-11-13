@@ -3,7 +3,7 @@
 // words into the page a search engine reads and into its FAQ markup. Plain
 // text only: no links or markup in an answer. Keep each true to the app.
 
-export type FaqGroup = {
+type FaqGroup = {
   name: string;
   questions: { q: string; a: string }[];
 };
@@ -104,7 +104,7 @@ export const FAQ: FaqGroup[] = [
 ];
 
 // every question in one list, for the page's markup
-export const FAQ_QUESTIONS = FAQ.flatMap((group) => group.questions);
+const FAQ_QUESTIONS = FAQ.flatMap((group) => group.questions);
 
 // schema.org's FAQPage, the same wherever it's written
 export const faqJsonLd = () => ({

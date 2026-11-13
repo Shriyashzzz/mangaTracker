@@ -242,15 +242,6 @@ const escapeRe = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 // Neverland Vol 3" for "The Promised Neverland")
 const seriesPattern = (series: string) =>
   escapeRe(series).replace(/^the /, "(the )?");
-export const opensWithSeries = (listingTitle: string, bookTitle: string) => {
-  const series = seriesWords(bookTitle);
-  return (
-    !!series &&
-    new RegExp(`^${LEADING}${seriesPattern(series)}( |$)`).test(
-      normalize(listingTitle),
-    )
-  );
-};
 export const seriesThenVolume = (listingTitle: string, bookTitle: string) => {
   const n = volumeOf(bookTitle);
   const series = seriesWords(bookTitle);

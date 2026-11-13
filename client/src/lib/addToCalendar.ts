@@ -16,7 +16,7 @@ const day = (iso: string) =>
   });
 
 // where a volume's page is, as a full address
-export type PageFor = (v: CalendarVolume) => string;
+type PageFor = (v: CalendarVolume) => string;
 
 export const hasDay = (v: Pick<CalendarVolume, "published">) =>
   /^\d{4}-\d{2}-\d{2}$/.test(v.published);

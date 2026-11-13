@@ -40,7 +40,7 @@ const inFlight = new Map<string, Promise<unknown>>();
 // Google Shopping (one paid search covering many stores) is asked only when
 // the stores asked directly found no print copy: most checks then spend one
 // paid search fewer. Ebooks don't count, Google Play only has those
-export const GOOGLE_SHOPPING = "serpapi";
+const GOOGLE_SHOPPING = "serpapi";
 export const needsGoogleShopping = (offers: Pick<Offer, "format">[]) =>
   !offers.some((o) => o.format === "print");
 
@@ -80,7 +80,7 @@ const isPaid = (provider: Pick<Provider, "id">) =>
 // or never happened. Paid ones only while a search is left this month, and
 // eBay's own only while today's calls last: without them they'd only fail,
 // and the volume would look due forever
-export async function dueProviders(isbn13: string): Promise<Provider[]> {
+async function dueProviders(isbn13: string): Promise<Provider[]> {
   const [checks, searchesLeft, ebayLeft, cjLeft] = await Promise.all([
     priceQueries.getSourceChecks(isbn13),
     serpApiSearchesLeft().catch(() => true),

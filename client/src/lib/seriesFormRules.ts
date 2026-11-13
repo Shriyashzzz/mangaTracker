@@ -31,7 +31,7 @@ export type SeriesFormValues = {
   ownedList: string;
 };
 
-export type FieldProblems = {
+type FieldProblems = {
   title?: string;
   bookmark?: string;
   image?: string;

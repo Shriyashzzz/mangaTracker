@@ -177,7 +177,7 @@ export type MissingVolume = {
   inside?: number[];
 };
 
-export type FinishSeries = {
+type FinishSeries = {
   missing: MissingVolume[];
   // the priced ones added up (a book holding two missing volumes, once)
   cents: number;

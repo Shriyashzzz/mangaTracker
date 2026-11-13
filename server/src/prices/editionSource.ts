@@ -56,7 +56,7 @@ async function searchEditions(name: string): Promise<EditionDoc[]> {
 
 // the books a series' own list already knows hold several volumes, as
 // records the builder reads: "Vinland Saga #17-18"
-export const docsFromVolumes = (name: string, volumes: CatalogBook[]) => {
+const docsFromVolumes = (name: string, volumes: CatalogBook[]) => {
   const seen = new Set<string>();
   return volumes.flatMap((v): EditionDoc[] => {
     if (!v.inBook || seen.has(v.isbn13)) return [];

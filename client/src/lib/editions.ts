@@ -28,7 +28,7 @@ export const insideText = (book: EditionBook) =>
   `${book.volumes.length === 1 ? "vol." : "vols."} ${rangesText(book.volumes)}`;
 
 // a book of the line beside what they own of it
-export type PlannedBook = EditionBook & {
+type PlannedBook = EditionBook & {
   // how many of its volumes they own already, in any edition
   have: number;
 };

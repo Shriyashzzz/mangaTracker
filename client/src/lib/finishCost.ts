@@ -34,7 +34,7 @@ export function leftToGet<
   );
 }
 
-export type FinishCost = {
+type FinishCost = {
   // the priced ones, added up
   cents: number;
   priced: number;
