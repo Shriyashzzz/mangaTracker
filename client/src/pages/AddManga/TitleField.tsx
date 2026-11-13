@@ -29,6 +29,13 @@ type Props = {
 // type, with their covers. Picking one uses AniList's name, cover, type and
 // genre; "as typed" keeps what they wrote, since it may be a manga AniList
 // doesn't know. Enter with nothing highlighted means as typed too
+// under an empty list of matches: why it's empty. While the search is still
+// running it says so instead
+const NO_HITS_NOTE: Partial<Record<string, string>> = {
+  error: "Couldn't reach AniList right now.",
+  done: "AniList doesn't know that one.",
+};
+
 export default function TitleField({
   value,
   error,
@@ -158,11 +165,7 @@ export default function TitleField({
           </ul>
           {!hits.length && (
             <p className={list.suggestNote} aria-live="polite">
-              {status === "error"
-                ? "Couldn't reach AniList right now."
-                : status === "done"
-                  ? "AniList doesn't know that one."
-                  : "Looking it up…"}
+              {NO_HITS_NOTE[status] ?? "Looking it up…"}
             </p>
           )}
           <div className={styles.titleListFoot}>

@@ -156,6 +156,11 @@ export default function PriceVolume() {
     book.isbn13,
     best?.priceCents,
   );
+  // above the other stores' links: what they're for
+  let otherStoresTitle = "Check price at:";
+  if (preorder) otherStoresTitle = "Or preorder at:";
+  else if (offers.length > 0)
+    otherStoresTitle = "Also worth checking, they could be cheaper:";
   // an old check, said beside the price it's about
   const stale =
     checkedAt && olderThanDays(checkedAt, 3) ? timeAgo(checkedAt) : null;
@@ -366,11 +371,7 @@ export default function PriceVolume() {
               {otherStores.length > 0 && (
                 <div className={styles.otherStores}>
                   <h3 id="links-title" className={styles.otherStoresTitle}>
-                    {preorder
-                      ? "Or preorder at:"
-                      : offers.length > 0
-                        ? "Also worth checking, they could be cheaper:"
-                        : "Check price at:"}
+                    {otherStoresTitle}
                   </h3>
                   <ul className={styles.storeLinks}>
                     {otherStores.map((s) => (

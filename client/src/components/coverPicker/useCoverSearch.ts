@@ -55,13 +55,12 @@ export function useCoverSearch(
 
   // worked out from which title the answer is for: until the box's own
   // title is answered, it's still looking
-  const status: SearchStatus = tooShort
-    ? "idle"
-    : results.query === query
-      ? "done"
-      : failed === query
-        ? "error"
-        : "loading";
+  // nothing to search yet, an answer for this very query, a failure for
+  // it, or still waiting
+  let status: SearchStatus = "loading";
+  if (tooShort) status = "idle";
+  else if (results.query === query) status = "done";
+  else if (failed === query) status = "error";
   return {
     status,
     // the last answer's hits, which may be for an older title (the cover

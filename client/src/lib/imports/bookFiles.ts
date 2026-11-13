@@ -8,14 +8,12 @@ import { isGoodreads, isBookCatalogue, isBookshelfApp } from "./bookColumns";
 
 // which app a file came from, by its columns
 export type FileKind = "goodreads" | "bookcatalogue" | "bookshelf" | "csv";
-export const fileKind = (headers: string[]): FileKind =>
-  isGoodreads(headers)
-    ? "goodreads"
-    : isBookCatalogue(headers)
-      ? "bookcatalogue"
-      : isBookshelfApp(headers)
-        ? "bookshelf"
-        : "csv";
+export function fileKind(headers: string[]): FileKind {
+  if (isGoodreads(headers)) return "goodreads";
+  if (isBookCatalogue(headers)) return "bookcatalogue";
+  if (isBookshelfApp(headers)) return "bookshelf";
+  return "csv";
+}
 
 const KIND_NAME: Record<FileKind, string> = {
   goodreads: "a Goodreads export",
@@ -40,12 +38,10 @@ export function wrongFile(
   kind: FileKind,
   importing: FileKind | null,
 ): string | null {
-  const wanted: FileKind | null =
-    source === "goodreads"
-      ? "goodreads"
-      : source === "bookcatalogue"
-        ? "bookcatalogue"
-        : null;
+  // the app's own tab takes only that app's file; the CSV tab takes any
+  let wanted: FileKind | null = null;
+  if (source === "goodreads") wanted = "goodreads";
+  else if (source === "bookcatalogue") wanted = "bookcatalogue";
   if (wanted && kind !== wanted) {
     return kind === "csv" || kind === "bookshelf"
       ? source === "goodreads"
