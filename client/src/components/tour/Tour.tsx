@@ -3,6 +3,13 @@
 // so people can really try things; only a few big moments blur the rest (step.focus).
 // Wandering off is fine: he waits, and offers the way back. If a step's button can't
 // be found he says his line anyway and offers a way on, so nothing can trap anyone.
+import {
+  BUBBLE_GAP,
+  bubbleLeftFor,
+  bubbleTopFor,
+  SCREEN_MARGIN,
+  type Box,
+} from "./tourPlace";
 import { useCallback, useEffect, useReducer, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useLocation, useNavigate } from "react-router";
@@ -17,8 +24,6 @@ const GIVE_UP_AFTER_MS = 2500;
 // long enough for the step's own page to have arrived; off it after this, they've
 // gone exploring
 const SETTLED_AFTER_MS = 900;
-const BUBBLE_GAP = 26;
-const SCREEN_MARGIN = 12;
 const RING_INSET = 3;
 const SWITCH_SETTLES_MS = 200;
 // once the page has settled, so it doesn't open over a page still arriving
@@ -26,7 +31,6 @@ const MENU_OPENS_AFTER_MS = 400;
 const MIN_SIDE_WIDTH = 280;
 const BOTTOM_BAR = 59;
 
-type Box = { top: number; left: number; width: number; height: number };
 // where the target is: on the page (scrolls with it, so the ring is drawn on the
 // page and the browser moves them together, even mid-scroll on a phone), or
 // pinned to the screen (fixed bars, sticky tabs, the header), which stays put
@@ -371,30 +375,18 @@ export default function Tour() {
     : 0;
   const beside =
     Boolean(step.besideIfRoom) && showHole && sideRoom >= MIN_SIDE_WIDTH;
-  const bubbleTop = beside
-    ? box!.top
-    : inCorner
-      ? innerHeight -
-        bubbleHeight -
-        SCREEN_MARGIN -
-        (hasBottomBar() ? BOTTOM_BAR : 0)
-      : step.onTop && showHole
-        ? // above the section, scrolling with it. At the very top of the page there
-          // may not be room, so there he stays on screen
-          window.scrollY > 0
-          ? box!.top - bubbleHeight - BUBBLE_GAP
-          : Math.max(SCREEN_MARGIN, box!.top - bubbleHeight - BUBBLE_GAP)
-        : !showHole
-          ? Math.max(SCREEN_MARGIN, (innerHeight - bubbleHeight) / 2)
-          : Math.min(
-              Math.max(
-                SCREEN_MARGIN,
-                below
-                  ? box!.top + box!.height + BUBBLE_GAP
-                  : box!.top - bubbleHeight - BUBBLE_GAP,
-              ),
-              innerHeight - bubbleHeight - SCREEN_MARGIN,
-            );
+  const bubbleTop = bubbleTopFor({
+    beside,
+    inCorner,
+    onTop: Boolean(step.onTop),
+    showHole,
+    below,
+    box,
+    bubbleHeight,
+    viewHeight: innerHeight,
+    barSpace,
+    scrolled: window.scrollY > 0,
+  });
   // in the corner of a wide screen he stays beside the page's column, not over it
   const bubbleWidth = beside
     ? Math.min(340, sideRoom)
@@ -407,14 +399,14 @@ export default function Tour() {
 
   const holeCenter = box ? box.left + box.width / 2 : innerWidth / 2;
   // a section too big to sit beside: at the bottom, centered under it
-  const bubbleLeft = beside
-    ? box!.left + box!.width + BUBBLE_GAP
-    : !showHole
-      ? (innerWidth - bubbleWidth) / 2
-      : Math.min(
-          Math.max(SCREEN_MARGIN, holeCenter - bubbleWidth / 2),
-          innerWidth - bubbleWidth - SCREEN_MARGIN,
-        );
+  const bubbleLeft = bubbleLeftFor({
+    beside,
+    showHole,
+    box,
+    holeCenter,
+    bubbleWidth,
+    viewWidth: innerWidth,
+  });
   const pointerLeft = Math.min(
     Math.max(bubbleLeft + 22, holeCenter),
     bubbleLeft + bubbleWidth - 22,
@@ -430,11 +422,12 @@ export default function Tour() {
   }, [index, lost, waiting, step.free]);
 
   if (docked) {
-    const line = step.free
-      ? step.say
-      : step.doneOnLeaving && pathname.startsWith("/details/")
-        ? "It's on your shelf! Have a look around."
-        : "Exploring? Good, that's the idea.";
+    // what the bar says: the step's own words on a free step, else a word
+    // about where they've wandered off to
+    let line = "Exploring? Good, that's the idea.";
+    if (step.free) line = step.say;
+    else if (step.doneOnLeaving && pathname.startsWith("/details/"))
+      line = "It's on your shelf! Have a look around.";
     return createPortal(
       <div className="tour" aria-live="polite">
         <button
@@ -469,6 +462,22 @@ export default function Tour() {
   const bubbleOnPage = onPageLayer && showHole && !inCorner;
   // the ring, its arrow and Kenji above it, placed from the screen's bottom edge
   const fromBottom = showHole ? (anchor?.fromBottom ?? null) : null;
+  // his words: for someone with a shelf, or on a phone, when the step has
+  // its own way of saying it for them
+  let say = step.say;
+  if (hasShelf && step.signedInSay) say = step.signedInSay;
+  else if (hasBottomBar() && step.phoneSay) say = step.phoneSay;
+
+  // placed from the bottom when he's in the corner, or over a ring that is
+  // itself placed from the bottom; from the top otherwise
+  const overARingFromTheBottom =
+    fromBottom != null && !beside && !below && !step.onTop;
+  let vertical: { top: number } | { bottom: number } = {
+    top: bubbleTop + (bubbleOnPage ? offY : 0),
+  };
+  if (inCorner) vertical = { bottom: SCREEN_MARGIN + barSpace };
+  else if (overARingFromTheBottom)
+    vertical = { bottom: fromBottom + box!.height + BUBBLE_GAP };
   const ringStyle =
     fromBottom != null
       ? {
@@ -533,12 +542,7 @@ export default function Tour() {
       className={`tour-bubble ${waiting ? "tour-bubble-waiting" : ""}`}
       key={index}
       style={{
-        // in the corner, or over a ring placed from the bottom: from the bottom too
-        ...(inCorner
-          ? { bottom: SCREEN_MARGIN + barSpace }
-          : fromBottom != null && !beside && !below && !step.onTop
-            ? { bottom: fromBottom + box!.height + BUBBLE_GAP }
-            : { top: bubbleTop + (bubbleOnPage ? offY : 0) }),
+        ...vertical,
         left: bubbleLeft + (bubbleOnPage ? offX : 0),
         width: bubbleWidth,
       }}
@@ -551,13 +555,7 @@ export default function Tour() {
           {step.part}
           {step.partSize > 1 && ` · ${step.partStep} of ${step.partSize}`}
         </p>
-        <p className="tour-say">
-          {hasShelf && step.signedInSay
-            ? step.signedInSay
-            : hasBottomBar() && step.phoneSay
-              ? step.phoneSay
-              : step.say}
-        </p>
+        <p className="tour-say">{say}</p>
         <div className="tour-actions">
           {isLast ? (
             <>
