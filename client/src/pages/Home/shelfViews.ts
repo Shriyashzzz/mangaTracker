@@ -129,12 +129,11 @@ export const readSpot = (): ShelfSpot | null => {
 };
 
 // what they last hid of this kind
-export const seenOf = (m: Manga, kind: SeenKind) =>
-  (kind === "volume"
-    ? m.seenVolume
-    : kind === "chapter"
-      ? m.seenChapter
-      : m.seenJapanVolume) ?? null;
+export function seenOf(m: Manga, kind: SeenKind) {
+  if (kind === "volume") return m.seenVolume ?? null;
+  if (kind === "chapter") return m.seenChapter ?? null;
+  return m.seenJapanVolume ?? null;
+}
 
 // this series, in this view, lists everything that's out as one entry
 export const isGrouped = (
@@ -149,15 +148,11 @@ export const newestOf = (
   kind: ReleaseKind,
 ) => {
   const grouped = isGrouped(found, kind);
-  return kind === "volumes"
-    ? grouped
-      ? found?.latestVolume
-      : found?.nextVolume
-    : kind === "chapters"
-      ? grouped
-        ? found?.latestChapter
-        : found?.nextChapter
-      : found?.latestJapaneseVolume;
+  if (kind === "volumes")
+    return grouped ? found?.latestVolume : found?.nextVolume;
+  if (kind === "chapters")
+    return grouped ? found?.latestChapter : found?.nextChapter;
+  return found?.latestJapaneseVolume;
 };
 
 // the counts on the tabs and on the New tab's switch
@@ -266,11 +261,12 @@ export function newsFor(
   kind: ReleaseKind,
   viewingHidden: boolean,
 ): CardNews {
-  const volumeYours = ownedPhrase(m)
-    ? `You own ${ownedPhrase(m)}`
-    : found?.currentVolume
-      ? `You're on vol. ${found.currentVolume}`
-      : undefined;
+  // where they are by the volume: what they own, else what they've read
+  const owns = ownedPhrase(m);
+  let volumeYours: string | undefined;
+  if (owns) volumeYours = `You own ${owns}`;
+  else if (found?.currentVolume)
+    volumeYours = `You're on vol. ${found.currentVolume}`;
   if (found && isGrouped(found, kind)) {
     // what's hidden is everything, when looking at what's hidden
     const out = (left: number[], all: number[]) =>
