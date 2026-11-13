@@ -235,7 +235,14 @@ type ShowMeta = {
   image?: string | null;
   noindex?: boolean;
   jsonLd?: Record<string, unknown>;
+  // the title as it is, without " | Manga Tracker" after it
+  fullTitle?: boolean;
 };
+
+// about what a search result shows of a description before cutting it
+const DESCRIPTION_FITS = 160;
+// said after the answer, when there's room for it
+const WHAT_ELSE = "Every season's last chapter and the volume to buy next.";
 
 export const INDEX_META = {
   title: "Where does the anime leave off in the manga?",
@@ -364,11 +371,16 @@ export function showMeta(
   const title = showQuestion(show.name);
   const path = `/after-the-anime/${show.slug}`;
   if (!show.stops.length) return { title, path, noindex: true };
-  const latest = latestStop(show.stops)!;
+  // the answer itself, so it can be read off the search result; what else
+  // the page has only when both fit
+  const answer = latestAnswerText(latestStop(show.stops)!);
+  const withMore = `${answer} ${WHAT_ELSE}`;
   return {
     title,
-    // the answer itself, so it can be read off the search result
-    description: `${latestAnswerText(latest)} Every season's last chapter, the volume to buy next and its price.`,
+    // the question is the whole title: with the site's name after it, a
+    // search result cuts the question short
+    fullTitle: true,
+    description: withMore.length <= DESCRIPTION_FITS ? withMore : answer,
     path,
     image: show.coverUrl,
     jsonLd: showJsonLd(show, origin),

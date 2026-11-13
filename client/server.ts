@@ -631,6 +631,7 @@ function afterAnimeTags(
   const more = others.filter((other) => other.slug !== show.slug).slice(0, 12);
   return {
     title: meta.title,
+    fullTitle: meta.fullTitle,
     description: meta.description ?? INDEX_META.description,
     path: meta.path!,
     image: show.coverUrl,

@@ -4,6 +4,9 @@
 //   usedFiller.ts      Better World Books' used price, once per shelf volume
 //   newPriceFiller.ts  Books-A-Million's new price, a few hundred a day
 //
+// and animeFiller.ts (anime answers from MangaUpdates) uses the switch, the
+// memory and the timer.
+//
 // Here: the switch that turns them on, which volumes they look at, which of
 // those a store has never been asked about, the memory of what was tried
 // lately, and the timer that runs a job.

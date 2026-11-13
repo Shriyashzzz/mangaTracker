@@ -214,6 +214,23 @@ test("what a show's page says about itself", () => {
   expect(meta.description).toMatch(
     /^Finished the anime\? Start the manga at chapter 181\. Buy volume 21\./,
   );
+  // the question is the whole title, and the description fits a search
+  // result: what else the page has is said only when there's room
+  expect(meta.fullTitle).toBe(true);
+  expect(meta.description!.length).toBeLessThanOrEqual(160);
+  const long = showMeta(
+    {
+      ...show,
+      stops: show.stops.map((stop) => ({
+        ...stop,
+        label: "Thousand-Year Blood War the Calamity part four",
+      })),
+    },
+    false,
+    "x",
+  )!;
+  expect(long.description).not.toContain("Every season");
+  expect(long.description).toMatch(/^Finished the anime\?/);
   // the page's markup: its questions, and where it sits in the site
   const markup = showJsonLd(show, "https://example.com");
   expect(markup["@graph"][0]!.mainEntity).toHaveLength(4);
