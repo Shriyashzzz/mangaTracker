@@ -106,6 +106,20 @@ export const routes = [
       { path: "/signup", element: <SignUp /> },
       { path: "/series", element: <SeriesIndex /> },
       { path: "/deals", element: <Deals /> },
+      {
+        path: "/after-the-anime",
+        lazy: page(
+          () => import("./AfterAnime/AfterAnimeIndex"),
+          (m) => m.default,
+        ),
+      },
+      {
+        path: "/after-the-anime/:slug",
+        lazy: page(
+          () => import("./AfterAnime/AfterAnimeShow"),
+          (m) => m.default,
+        ),
+      },
       { path: "/prices", element: <ToPriceHome /> },
       { path: "/prices/series/:slug", element: <PriceSeries /> },
       // the title part is optional, so ISBN-only links keep working

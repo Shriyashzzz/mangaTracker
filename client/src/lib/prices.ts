@@ -65,7 +65,7 @@ export const getDeals = (signal?: AbortSignal) =>
 // checked and as its ISBN-13; the same reader the barcode scanner uses
 export const asIsbn = isbnFromTyped;
 
-const slugify = (name: string) =>
+export const slugify = (name: string) =>
   name
     .toLowerCase()
     .normalize("NFKD")

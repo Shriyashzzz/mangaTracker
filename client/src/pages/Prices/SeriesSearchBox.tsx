@@ -22,11 +22,21 @@ const DEBOUNCE_MS = 250;
 // search box with a dropdown of matching series. Picking one opens its
 // series page; the last row ("See all") opens the full results. A pasted
 // ISBN skips straight to that volume
-type Props = { initialQuery?: string; autoFocus: boolean };
+type Props = {
+  initialQuery?: string;
+  autoFocus: boolean;
+  // where a picked series goes, when it isn't its price page (the "after
+  // the anime" search). With it there's no page of all results: Search
+  // opens the first match
+  goTo?: (seriesName: string) => string;
+  placeholder?: string;
+};
 
 export default function SeriesSearchBox({
   initialQuery = "",
   autoFocus = false,
+  goTo,
+  placeholder,
 }: Props) {
   const navigate = useNavigate();
   const listId = useId();
@@ -51,7 +61,8 @@ export default function SeriesSearchBox({
 
   const q = text.trim();
   const isbn = asIsbn(q);
-  const wantsSuggestions = open && q.length >= 2 && !isbn;
+  // an ISBN goes to its volume's prices; the other search has no use for one
+  const wantsSuggestions = open && q.length >= 2 && (!isbn || Boolean(goTo));
 
   useEffect(() => {
     if (!wantsSuggestions) return;
@@ -85,14 +96,20 @@ export default function SeriesSearchBox({
 
   const fresh = found.q === q;
   const shown = fresh ? found.items.slice(0, SHOWN) : [];
-  // the rows you can move through: each series, then "See all"
-  const rowCount = shown.length + 1;
+  // the rows you can move through: each series, then "See all" (when
+  // there's a page of all results)
+  const rowCount = shown.length + (goTo ? 0 : 1);
 
   const close = () => {
     setOpen(false);
     setActive(-1);
   };
   const seeAll = () => {
+    if (goTo) {
+      // no results page of its own: the first match, once there is one
+      if (shown[0]) pick(shown[0]);
+      return;
+    }
     close();
     if (isbn) navigate(`/prices/${isbn}`, { viewTransition: true });
     else if (q.length >= 2)
@@ -102,6 +119,10 @@ export default function SeriesSearchBox({
   };
   const pick = (series: SeriesHit) => {
     close();
+    if (goTo) {
+      navigate(goTo(series.name), { viewTransition: true });
+      return;
+    }
     // straight to the edition they named, when they named one
     const { edition } = askedEdition(q);
     navigate(seriesPath(series.name) + (edition ? `&edition=${edition}` : ""), {
@@ -128,6 +149,11 @@ export default function SeriesSearchBox({
   };
 
   const optionId = (i: number) => `${listId}-${i}`;
+  // a narrow box cuts the long one off mid-word
+  const ownPlaceholder =
+    isMobile || hasBottomBar()
+      ? "Title or ISBN"
+      : "Search a series, or paste an ISBN";
 
   return (
     <form
@@ -142,7 +168,9 @@ export default function SeriesSearchBox({
       <div className={styles.comboWrap}>
         <label className={styles.searchBox}>
           <SearchIcon />
-          <span className="sr-only">Series name or ISBN</span>
+          <span className="sr-only">
+            {goTo ? "Anime or manga name" : "Series name or ISBN"}
+          </span>
           <input
             type="search"
             role="combobox"
@@ -160,12 +188,7 @@ export default function SeriesSearchBox({
             }}
             onFocus={() => setOpen(true)}
             onKeyDown={onKeyDown}
-            placeholder={
-              // a narrow box cuts the long one off mid-word
-              isMobile || hasBottomBar()
-                ? "Title or ISBN"
-                : "Search a series, or paste an ISBN"
-            }
+            placeholder={placeholder ?? ownPlaceholder}
             maxLength={100}
             autoComplete="off"
             autoFocus={isMobile || hasBottomBar() ? false : autoFocus}
@@ -223,17 +246,19 @@ export default function SeriesSearchBox({
                 </span>
               </li>
             ))}
-            <li
-              id={optionId(shown.length)}
-              role="option"
-              aria-selected={active === shown.length}
-              className={`${styles.seeAll} ${active === shown.length ? styles.suggestActive : ""}`}
-              onPointerDown={(e) => e.preventDefault()}
-              onClick={seeAll}
-              onMouseEnter={() => setActive(shown.length)}
-            >
-              See all results for “{q}”
-            </li>
+            {!goTo && (
+              <li
+                id={optionId(shown.length)}
+                role="option"
+                aria-selected={active === shown.length}
+                className={`${styles.seeAll} ${active === shown.length ? styles.suggestActive : ""}`}
+                onPointerDown={(e) => e.preventDefault()}
+                onClick={seeAll}
+                onMouseEnter={() => setActive(shown.length)}
+              >
+                See all results for “{q}”
+              </li>
+            )}
           </ul>
         )}
       </div>

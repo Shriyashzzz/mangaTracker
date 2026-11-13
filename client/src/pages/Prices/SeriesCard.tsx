@@ -26,20 +26,20 @@ type SeriesCardData = {
 export default function SeriesCard({
   series,
   canonical = false,
+  to,
 }: {
   series: SeriesCardData;
   canonical?: boolean;
+  // where the card goes, when it isn't the series' price page
+  to?: string;
 }) {
+  const pricePage = canonical
+    ? seriesCanonicalPath(series.name)
+    : seriesPath(series.name);
   // "Overlord Light Novel" is shown as Overlord, a light novel
   const shown = novelParts(series.name);
   return (
-    <NavLink
-      to={
-        canonical ? seriesCanonicalPath(series.name) : seriesPath(series.name)
-      }
-      className={styles.card}
-      viewTransition
-    >
+    <NavLink to={to ?? pricePage} className={styles.card} viewTransition>
       <span className={styles.cover}>
         <span className={styles.coverFallback} aria-hidden>
           ?
