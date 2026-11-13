@@ -93,9 +93,7 @@ test("a volume without a chapter starts at that volume", () => {
   const [only] = shown("Vol 1, Chap 1", "Vol 18 (1996) Different throughout");
   expect(startText(only!)).toBe("Start with volume 18");
   expect(endText(only!)).toBe("1996 ends in volume 18.");
-  expect(latestAnswer(only!).lead).toBe(
-    "After 1996, start the manga at volume 18.",
-  );
+  expect(latestAnswer(only!).lead).toBe("Start the manga at volume 18.");
 });
 
 test("an anime that adapts all of it has nothing left to read", () => {
@@ -104,7 +102,8 @@ test("an anime that adapts all of it has nothing left to read", () => {
     "Season 1 covers the manga to its final chapter, 271.",
   );
   expect(latestAnswer(finished)).toEqual({
-    lead: "The anime covers the whole manga.",
+    asked: "Finished the anime?",
+    lead: "You've seen the whole story.",
     detail:
       "Season 1 is the latest, and it ends at the manga's final chapter, 271.",
   });
@@ -112,19 +111,21 @@ test("an anime that adapts all of it has nothing left to read", () => {
 
 test("the page's opening answer says what to do, then where the anime stops", () => {
   expect(latestAnswer(second)).toEqual({
-    lead: "After Season 2, start the manga at chapter 138. Buy volume 16.",
+    asked: "Finished the anime?",
+    lead: "Start the manga at chapter 138. Buy volume 16.",
     detail: "Season 2 is the latest, and it ends at chapter 137.",
   });
   expect(latestAnswer(third)).toEqual({
-    lead: "After Season 3, start the manga at chapter 181. Buy volume 21.",
+    asked: "Finished the anime?",
+    lead: "Start the manga at chapter 181. Buy volume 21.",
     detail: "Season 3 is the latest, and it stops partway through chapter 181.",
   });
   const [chaptersOnly] = shown("Chap 0 (S1)", "Chap 45 (S1)");
   expect(latestAnswer(chaptersOnly!).lead).toBe(
-    "After Season 1, start the manga at chapter 46.",
+    "Start the manga at chapter 46.",
   );
   expect(latestAnswerText(second)).toBe(
-    "After Season 2, start the manga at chapter 138. Buy volume 16. Season 2 is the latest, and it ends at chapter 137.",
+    "Finished the anime? Start the manga at chapter 138. Buy volume 16. Season 2 is the latest, and it ends at chapter 137.",
   );
 });
 
@@ -209,7 +210,7 @@ test("what a show's page says about itself", () => {
     "Where does the Jujutsu Kaisen anime leave off in the manga?",
   );
   expect(meta.description).toMatch(
-    /^After Season 3, start the manga at chapter 181\. Buy volume 21\./,
+    /^Finished the anime\? Start the manga at chapter 181\. Buy volume 21\./,
   );
   // the page's markup: its questions, and where it sits in the site
   const markup = showJsonLd(show, "https://example.com");

@@ -158,7 +158,13 @@ export default function AfterAnimeShow() {
         </h1>
         {latest && (
           <>
-            <p className={styles.lead}>{latestAnswer(latest).lead}</p>
+            {/* the question on its own line, the answer under it */}
+            <p className={styles.lead}>
+              <span className={styles.leadAsked}>
+                {latestAnswer(latest).asked}
+              </span>{" "}
+              <span className="block">{latestAnswer(latest).lead}</span>
+            </p>
             <p className={styles.sub}>{latestAnswer(latest).detail}</p>
           </>
         )}

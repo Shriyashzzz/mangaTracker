@@ -152,45 +152,48 @@ export function tableRow(stop: AnimeStop) {
 // the season most people have just finished: the last one listed
 export const latestStop = (stops: AnimeStop[]) => stops[stops.length - 1];
 
-// The answer for the latest season, since that's the one most people have
-// just finished. It's said about the anime, never about the reader: someone
-// arriving from a search hasn't told us what they've watched. Two short
-// lines, what to do first:
-//   lead:   "After Season 3, start the manga at chapter 116. Buy volume 24."
+// The page's opening answer, for the latest season: the one most people
+// have just finished. It opens with a question, because someone arriving
+// from a search hasn't told us what they've watched. Three short lines:
+//   asked:  "Finished the anime?"
+//   lead:   "Start the manga at chapter 116. Buy volume 24."
 //   detail: "Season 3 is the latest, and it ends at chapter 115."
 export function latestAnswer(stop: AnimeStop) {
-  const isTheAnime = stop.label === "The anime";
+  const asked = "Finished the anime?";
   // "Season 3 is the latest, and it ends at…", or just "The anime ends at…"
-  const subject = isTheAnime
-    ? "The anime"
-    : `${seasonSubject(stop)} is the latest, and it`;
+  const subject =
+    stop.label === "The anime"
+      ? "The anime"
+      : `${seasonSubject(stop)} is the latest, and it`;
   if (stop.coversAll)
     return {
-      lead: "The anime covers the whole manga.",
+      asked,
+      lead: "You've seen the whole story.",
       detail: `${subject} ends at the manga's final chapter, ${stop.endChapter}.`,
     };
-  const after = `${afterLabel(stop)},`;
   const volume = buyVolume(stop);
   if (stop.nextChapter !== null) {
     const buy = volume === null ? "" : ` Buy volume ${volume}.`;
     const how = stop.endsMidChapter ? "stops partway through" : "ends at";
     return {
-      lead: `${after} start the manga at chapter ${stop.nextChapter}.${buy}`,
+      asked,
+      lead: `Start the manga at chapter ${stop.nextChapter}.${buy}`,
       detail: `${subject} ${how} chapter ${stop.endChapter}.`,
     };
   }
   if (volume !== null)
     return {
-      lead: `${after} start the manga at volume ${volume}.`,
+      asked,
+      lead: `Start the manga at volume ${volume}.`,
       detail: `${subject} ends in volume ${stop.endVolume ?? volume}.`,
     };
-  return { lead: "", detail: "" };
+  return { asked: "", lead: "", detail: "" };
 }
 
 // the same answer as one piece of text, for a description or FAQ markup
 export function latestAnswerText(stop: AnimeStop) {
-  const { lead, detail } = latestAnswer(stop);
-  return `${lead} ${detail}`.trim();
+  const { asked, lead, detail } = latestAnswer(stop);
+  return `${asked} ${lead} ${detail}`.trim();
 }
 
 // ---------- what a page says about itself (heading, title, description) ----------

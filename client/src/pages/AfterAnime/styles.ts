@@ -13,9 +13,11 @@ export const afterAnimeStyles = {
   named: "bg-ink box-decoration-clone px-[0.14em] text-paper",
   sub: "max-w-[62ch] text-[1.05rem] text-ink-soft",
 
-  // the answer for the latest season, said before anything else: what to
-  // do, big; where the anime stops is the quieter line under it (sub)
+  // the answer for the latest season, said before anything else: a
+  // question, then what to do on its own line, big; where the anime stops is
+  // the quieter line under them (sub)
   lead: "max-w-[34ch] font-display text-[clamp(1.4rem,3.2vw,1.9rem)] leading-[1.2] font-semibold text-balance text-ink",
+  leadAsked: "block font-normal text-ink-soft",
 
   // ---------- every season at a glance ----------
   // a long season name wraps; the chapter and the volume never do
