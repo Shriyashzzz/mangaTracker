@@ -53,20 +53,6 @@ export function startTextWithVolume(stop: AnimeStop) {
   return start;
 }
 
-// the series page's one short line: "After the anime (Season 2): start at
-// chapter 138, vol. 16." Only what's certain: the chapter, and the volume
-// only when the next season says which one it is (never "16 or 17"). Null
-// when there's no next chapter to give
-export function shortLine(stop: AnimeStop) {
-  if (stop.coversAll || stop.nextChapter === null) return null;
-  const season = stop.label === "The anime" ? "" : ` (${stop.label})`;
-  const volume = stop.nextVolume === null ? "" : `, vol. ${stop.nextVolume}`;
-  return {
-    lead: `After the anime${season}:`,
-    answer: `start at chapter ${stop.nextChapter}${volume}`,
-  };
-}
-
 const inVolume = (volume: number | null) =>
   volume === null ? "" : `, in volume ${volume}`;
 

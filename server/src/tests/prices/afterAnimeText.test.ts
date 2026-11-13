@@ -3,7 +3,6 @@
 import {
   afterLabel,
   placeAfter,
-  shortLine,
   endText,
   startText,
   startTextWithVolume,
@@ -99,23 +98,4 @@ test("the one-line answer says the volume too", () => {
   expect(startTextWithVolume(chaptersOnly!)).toBe("Start at chapter 46");
   const all = { ...first, coversAll: true };
   expect(startTextWithVolume(all)).toBe("Nothing left to read");
-});
-
-test("the series page's line says only what's certain", () => {
-  // the next season says which volume: it's said
-  expect(shortLine(first)).toEqual({
-    lead: "After the anime (Season 1):",
-    answer: "start at chapter 64, vol. 8",
-  });
-  // it doesn't: the chapter alone, never "21 or 22"
-  expect(shortLine(third)).toEqual({
-    lead: "After the anime (Season 3):",
-    answer: "start at chapter 181",
-  });
-  const [only] = shown("Vol 1, Chap 1", "Vol 4, Chap 17");
-  expect(shortLine(only!)?.lead).toBe("After the anime:");
-  // nothing to carry on with, or no chapter known: no line
-  expect(shortLine({ ...first, coversAll: true })).toBeNull();
-  const [volumeOnly] = shown("Vol 1, Chap 1", "Vol 18 (1996)");
-  expect(shortLine(volumeOnly!)).toBeNull();
 });

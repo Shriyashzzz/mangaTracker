@@ -1,7 +1,7 @@
-// One short line on a series' price page for someone coming from the anime:
-// "After the anime (Season 2): start at chapter 138, vol. 16." It links to
-// the series' "after the anime" page, where every season is. Only what's
-// certain is said (shortLine); nothing at all for a series with no answer.
+// One line on a series' price page for someone coming from the anime: "Not
+// sure where the anime leaves off? Find your chapter." It gives no numbers,
+// only the way to the series' "after the anime" page, where every season is.
+// Nothing at all for a series with no answer.
 import { useEffect, useState } from "react";
 import { NavLink } from "react-router";
 import {
@@ -9,7 +9,6 @@ import {
   getAfterAnime,
   type AfterAnime,
 } from "../../lib/afterAnime";
-import { shortLine } from "../../lib/afterAnimeText";
 import { pricesStyles as priceStyles } from "../Prices/styles";
 
 export default function AfterAnimeLine({ seriesName }: { seriesName: string }) {
@@ -29,17 +28,13 @@ export default function AfterAnimeLine({ seriesName }: { seriesName: string }) {
   }, [seriesName]);
 
   const show = found?.asked === seriesName ? found.show : null;
-  // the latest season is the one most people have just finished
-  const latest = show?.stops[show.stops.length - 1];
-  const line = latest ? shortLine(latest) : null;
-  if (!show || !line) return null;
+  if (!show?.stops.length) return null;
   return (
     <p className={priceStyles.partOf}>
-      {line.lead}{" "}
+      Not sure where the anime leaves off?{" "}
       <NavLink to={afterAnimeCanonicalPath(show.name)} viewTransition>
-        {line.answer}
+        Find your chapter
       </NavLink>
-      .
     </p>
   );
 }
