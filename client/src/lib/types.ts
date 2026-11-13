@@ -256,6 +256,8 @@ export type Series = {
   // and searches for more; missing from an older API
   boxSets?: BoxSet[];
   boxSetLinks?: StoreLink[];
+  // "after the anime" has a page for this series
+  hasAnimeAnswer?: boolean;
 };
 
 export type BoxSet = {

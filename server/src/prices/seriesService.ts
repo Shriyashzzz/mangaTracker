@@ -2,6 +2,7 @@
 // saved, and read back for the series page. Part of the price service
 // (service.ts lists the parts).
 import { titleVolume } from "./volumeNames.js";
+import { hasAnimeAnswer } from "./afterAnime/afterAnime.js";
 import { savedBoxSets } from "./boxSetScan.js";
 import priceQueries from "../models/priceQueries.js";
 import { searchVolumesDetailed } from "./sources/catalog.js";
@@ -641,23 +642,26 @@ export async function getSeriesWithVolumes(name: string) {
   if (!incomplete) saveFinalList(name, volumes);
 
   const isbns = volumes.map((v) => v.isbn13);
-  const [known, cheapest, recorded, pricedSets, scanned] = await Promise.all([
-    priceQueries.getKnownPrices(isbns),
-    // each volume's cheapest used copy in stock now, for what collecting it
-    // second-hand costs (Better World Books' and eBay's, mostly)
-    priceQueries
-      .getCheapestCopies(isbns)
-      .catch(() => new Map<string, { used: { cents: number } | null }>()),
-    // what each has usually sold for new: for estimates, when no store has
-    // it today (never goes stale: every price ever recorded counts)
-    priceQueries
-      .getRecordedMedians(isbns)
-      .catch(() => new Map<string, { new: number | null }>()),
-    // box sets and omnibuses found while pricing its volumes
-    priceQueries.getCollectionOffers(isbns).catch(() => []),
-    // and the sets a scan by the series' name found (boxSetScan.ts)
-    savedBoxSets(name).catch(() => null),
-  ]);
+  const [known, cheapest, recorded, pricedSets, scanned, animeAnswer] =
+    await Promise.all([
+      priceQueries.getKnownPrices(isbns),
+      // each volume's cheapest used copy in stock now, for what collecting it
+      // second-hand costs (Better World Books' and eBay's, mostly)
+      priceQueries
+        .getCheapestCopies(isbns)
+        .catch(() => new Map<string, { used: { cents: number } | null }>()),
+      // what each has usually sold for new: for estimates, when no store has
+      // it today (never goes stale: every price ever recorded counts)
+      priceQueries
+        .getRecordedMedians(isbns)
+        .catch(() => new Map<string, { new: number | null }>()),
+      // box sets and omnibuses found while pricing its volumes
+      priceQueries.getCollectionOffers(isbns).catch(() => []),
+      // and the sets a scan by the series' name found (boxSetScan.ts)
+      savedBoxSets(name).catch(() => null),
+      // whether "after the anime" has a page for it (afterAnime.ts)
+      info ? hasAnimeAnswer(info.name).catch(() => false) : false,
+    ]);
   // a scanned set has no book of its own: it borrows the first volume's ISBN
   const scannedSets = (scanned?.sets ?? []).map((set) => ({
     ...set,
@@ -671,6 +675,7 @@ export async function getSeriesWithVolumes(name: string) {
     incomplete,
     boxSets: boxSetRows([...pricedSets, ...scannedSets]),
     boxSetLinks: boxSetLinks(info?.name ?? name),
+    hasAnimeAnswer: animeAnswer,
     volumes: volumes.map((v) => ({
       isbn13: v.isbn13,
       title: v.title,

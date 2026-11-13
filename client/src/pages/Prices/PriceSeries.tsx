@@ -242,7 +242,7 @@ export default function PriceSeries() {
       </header>
 
       {/* for someone coming from the anime, before what collecting costs */}
-      {info && <AfterAnimeBar seriesName={info.name} />}
+      {info && data.hasAnimeAnswer && <AfterAnimeBar seriesName={info.name} />}
 
       {cost && (
         <SeriesCostBox
