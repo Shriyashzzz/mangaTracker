@@ -173,8 +173,8 @@ test("only the furthest season of a finished manga can be its end", () => {
   ]);
   expect(bleach.map((stop) => stop.label)).toEqual([
     "Bleach",
-    "TYBW part 1",
-    "TYBW part 4",
+    "Thousand-Year Blood War part 1",
+    "Thousand-Year Blood War part 4",
   ]);
 });
 

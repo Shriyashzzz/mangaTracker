@@ -49,9 +49,14 @@ export async function getAfterAnime(asked: string, mayAsk: boolean) {
     acceptedFixes(slug),
   ]);
   // MangaUpdates names a first series after the manga ("Bleach", beside
-  // "TYBW part 1"): that one is simply the anime
-  const read = readAnimeStops(saved?.startLine, saved?.endLine).map((stop) =>
-    sameName(stop.label, info.name) ? { ...stop, label: "The anime" } : stop,
+  // "Thousand-Year Blood War part 1"). Beside later ones that's the original
+  // series; on its own it's simply the anime
+  const lines = readAnimeStops(saved?.startLine, saved?.endLine);
+  const namedAfterManga = lines.length > 1 ? "Original series" : "The anime";
+  const read = lines.map((stop) =>
+    sameName(stop.label, info.name)
+      ? { ...stop, label: namedAfterManga }
+      : stop,
   );
   const stops = withFixes(read, fixes);
   const manga: MangaEnd = {

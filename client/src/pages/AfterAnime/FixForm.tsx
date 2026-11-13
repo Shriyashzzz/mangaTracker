@@ -31,7 +31,7 @@ export default function FixForm({
   const submit = async (e: FormEvent) => {
     e.preventDefault();
     if (chapter.trim() === "" && volume.trim() === "") {
-      setProblem("Add the last chapter, the volume to start from, or both.");
+      setProblem("Add the last chapter or the volume to buy.");
       return;
     }
     setState("sending");
@@ -46,6 +46,9 @@ export default function FixForm({
     setProblem(wrong);
     setState(wrong ? "typing" : "sent");
   };
+
+  let sendLabel = season ? "Send the fix" : "Send it";
+  if (state === "sending") sendLabel = "Sending…";
 
   return (
     <details className={styles.fix} open={open}>
@@ -73,7 +76,9 @@ export default function FixForm({
             </label>
           )}
           <label className={styles.fixField}>
-            <span className={styles.fixLabel}>Last chapter it covers</span>
+            <span className={styles.fixLabel}>
+              Last chapter the anime covers
+            </span>
             <input
               className={styles.fixInput}
               inputMode="decimal"
@@ -83,7 +88,7 @@ export default function FixForm({
             />
           </label>
           <label className={styles.fixField}>
-            <span className={styles.fixLabel}>Volume to start from</span>
+            <span className={styles.fixLabel}>Volume to buy next</span>
             <input
               className={styles.fixInput}
               inputMode="numeric"
@@ -93,10 +98,7 @@ export default function FixForm({
             />
           </label>
           <label className={`${styles.fixField} ${styles.fixWide}`}>
-            <span className={styles.fixLabel}>
-              Where did you read it?{" "}
-              <span className={styles.fixHint}>A link we can check</span>
-            </span>
+            <span className={styles.fixLabel}>Link to your source</span>
             <input
               className={styles.fixInput}
               type="url"
@@ -124,7 +126,7 @@ export default function FixForm({
               className="btn btn-primary"
               disabled={state === "sending"}
             >
-              {state === "sending" ? "Sending…" : "Send the fix"}
+              {sendLabel}
             </button>
             {problem && (
               <p

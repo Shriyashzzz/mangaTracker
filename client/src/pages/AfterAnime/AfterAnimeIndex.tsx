@@ -15,9 +15,6 @@ import SeriesSearchBox from "../Prices/SeriesSearchBox";
 import { pricesStyles as priceStyles } from "../Prices/styles";
 import { afterAnimeStyles as styles } from "./styles";
 
-const seasonsText = (count: number) =>
-  count === 1 ? "1 season" : `${count} seasons`;
-
 export default function AfterAnimeIndex() {
   // null while loading; an empty list when it couldn't load (the search
   // still works without it)
@@ -39,8 +36,7 @@ export default function AfterAnimeIndex() {
       <header className={priceStyles.searchHead}>
         <h1 className={priceStyles.title}>Where does the anime leave off?</h1>
         <p className={priceStyles.sub}>
-          Finished a season? Look the show up to see which chapter of the manga
-          to start at, which volume that's in, and what it costs.
+          Finished a season? Find the chapter and volume to read next.
         </p>
         <SeriesSearchBox
           autoFocus
@@ -63,17 +59,13 @@ export default function AfterAnimeIndex() {
       {shows && shows.length > 0 && (
         <section aria-labelledby="shows-title">
           <h2 id="shows-title" className={priceStyles.sectionTitle}>
-            Shows we can answer
+            Pick a show
           </h2>
           <ul className={priceStyles.grid}>
             {shows.map((show) => (
               <li key={show.slug}>
                 <SeriesCard
-                  series={{
-                    name: show.name,
-                    coverUrl: show.coverUrl,
-                    genre: show.seasons ? seasonsText(show.seasons) : undefined,
-                  }}
+                  series={{ name: show.name, coverUrl: show.coverUrl }}
                   to={afterAnimeCanonicalPath(show.name)}
                 />
               </li>

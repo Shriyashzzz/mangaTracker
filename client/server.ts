@@ -24,6 +24,7 @@ import {
   INDEX_META,
   latestAnswerText,
   latestStop,
+  pageHeading,
   seasonHeading,
   showMeta,
   showQuestion,
@@ -640,16 +641,16 @@ function afterAnimeTags(
         ["/", SITE_NAME],
         ["/after-the-anime", "After the anime"],
       ])}
-      <h1>${escapeHtml(meta.title)}</h1>
+      <h1>${escapeHtml(pageHeading(show.name, show.stops.length > 0))}</h1>
       ${
         latest
           ? `<p>${escapeHtml(latestAnswerText(latest))}</p>
-      <table><thead><tr><th>If you watched</th><th>Start reading at</th><th>Volume</th></tr></thead><tbody>${rows.join("")}</tbody></table>
+      <table><thead><tr><th>You watched</th><th>Start at chapter</th><th>Buy volume</th></tr></thead><tbody>${rows.join("")}</tbody></table>
       ${seasons.join("")}
       <h2>Questions</h2>${questions.join("")}`
           : "<p>No answer yet.</p>"
       }
-      <p><a href="${escapeHtml(seriesPath(show.name))}">Compare prices for every ${escapeHtml(show.name)} volume</a></p>
+      <p><a href="${escapeHtml(seriesPath(show.name))}">See all ${escapeHtml(show.name)} volumes and prices</a></p>
       ${more.length ? `<h2>More shows</h2>${linkList(more.map((other) => [afterAnimeShowPath(other.name), `Where does the ${withoutThe(other.name)} anime leave off?`]))}` : ""}
     </main>`,
   };

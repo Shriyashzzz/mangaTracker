@@ -1,12 +1,11 @@
-// Every season of a show at a glance: "If you watched", "Start reading at",
-// "Volume". Each volume opens its own price page. Only for a long show (the
-// page decides): on a short one the panels say it all.
-import type { ReactNode } from "react";
+// Every season of a long show at a glance: "You watched", "Start at
+// chapter", "Buy volume". The volume opens its own price page. Only for a
+// long show (the page decides): on a short one the panels say it all.
 import { NavLink } from "react-router";
 import {
+  buyVolume,
   seasonAnchor,
   tableRow,
-  volumesToGet,
   type AnimeStop,
 } from "../../lib/afterAnimeText";
 import { seriesCanonicalPath, volumePath } from "../../lib/prices";
@@ -14,10 +13,11 @@ import type { SeriesVolume } from "../../lib/types";
 import { bookFor } from "./bookFor";
 import { afterAnimeStyles as styles } from "./styles";
 
-// a season's Volume cell. One volume, or two ("34 or 35"), each a link to
-// its price page. "All 42" and "See volumes" go to the series' page, where
-// every volume is. A volume not in the English list yet (or while the list
-// loads) points down to the season's panel, which says so
+// a season's "Buy volume" cell: the volume, as a link to its price page. A
+// season with nothing to buy next gets a dash. One with no volume on record
+// goes to the series' page, where every volume is. A volume not in the
+// English list (or while the list loads) points to the season's panel, which
+// says so
 function VolumeCell({
   stop,
   seriesName,
@@ -27,35 +27,25 @@ function VolumeCell({
   seriesName: string;
   volumes: SeriesVolume[] | null;
 }) {
-  const wanted = volumesToGet(stop);
-  if (!wanted.length)
+  if (stop.coversAll) return <span aria-label="Nothing to buy next">—</span>;
+  const volume = buyVolume(stop);
+  if (volume === null)
     return (
       <NavLink to={seriesCanonicalPath(seriesName)} viewTransition>
-        {tableRow(stop).volume || "See volumes"}
+        See volumes
       </NavLink>
     );
-  const links: ReactNode[] = [];
-  for (const { volume } of wanted) {
-    const book = volumes ? bookFor(volumes, volume) : null;
-    if (links.length) links.push(" or ");
-    links.push(
-      book ? (
-        <NavLink
-          key={volume}
-          to={volumePath(book.isbn13, book.title)}
-          aria-label={`Volume ${volume} prices`}
-          viewTransition
-        >
-          {volume}
-        </NavLink>
-      ) : (
-        <a key={volume} href={`#${seasonAnchor(stop)}`}>
-          {volume}
-        </a>
-      ),
-    );
-  }
-  return <>{links}</>;
+  const book = volumes ? bookFor(volumes, volume) : null;
+  if (!book) return <a href={`#${seasonAnchor(stop)}`}>{volume}</a>;
+  return (
+    <NavLink
+      to={volumePath(book.isbn13, book.title)}
+      aria-label={`Volume ${volume} prices`}
+      viewTransition
+    >
+      {volume}
+    </NavLink>
+  );
 }
 
 export default function SeasonTable({
@@ -72,14 +62,14 @@ export default function SeasonTable({
     <div className={styles.tableWrap}>
       <table className={styles.table}>
         <caption className="sr-only">
-          Which chapter to start reading at and which volume it's in, by the
-          last season you watched
+          The chapter to start at and the volume to buy, by the last season you
+          watched
         </caption>
         <thead>
           <tr>
-            <th scope="col">If you watched</th>
-            <th scope="col">Start reading at</th>
-            <th scope="col">Volume</th>
+            <th scope="col">You watched</th>
+            <th scope="col">Start at chapter</th>
+            <th scope="col">Buy volume</th>
           </tr>
         </thead>
         <tbody>

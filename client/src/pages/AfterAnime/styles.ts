@@ -6,17 +6,16 @@
 export const afterAnimeStyles = {
   page: "prices-page flex flex-col gap-8",
   head: "flex flex-col gap-3",
+  // two lines: the series' name inked in, then what the page is for
   title:
-    "max-w-[22ch] font-brand text-[clamp(2rem,5.4vw,3.4rem)] leading-[1.02] font-normal tracking-[0.02em] text-balance uppercase",
-  // the series' name inked in, on however many lines it takes
+    "flex max-w-[24ch] flex-col items-start gap-[0.14em] font-brand text-[clamp(2rem,5.4vw,3.4rem)] leading-[1.02] font-normal tracking-[0.02em] text-balance uppercase",
+  // the name, on however many lines it takes
   named: "bg-ink box-decoration-clone px-[0.14em] text-paper",
   sub: "max-w-[62ch] text-[1.05rem] text-ink-soft",
 
-  // the answer for the latest season, said before anything else: the
-  // question, then what to do on its own line, big; where the anime stops is
-  // the quieter line under them (sub)
-  lead: "max-w-[40ch] font-display text-[clamp(1.35rem,3vw,1.75rem)] leading-[1.25] font-semibold text-balance text-ink",
-  leadAsked: "block font-normal text-ink-soft",
+  // the answer for the latest season, said before anything else: what to
+  // do, big; where the anime stops is the quieter line under it (sub)
+  lead: "max-w-[34ch] font-display text-[clamp(1.4rem,3.2vw,1.9rem)] leading-[1.2] font-semibold text-balance text-ink",
 
   // ---------- every season at a glance ----------
   // a long season name wraps; the chapter and the volume never do
@@ -113,6 +112,6 @@ export const afterAnimeStyles = {
   boxSet:
     "max-w-[62ch] text-[1rem] text-ink-soft [&_a]:font-medium [&_a]:text-ink [&_a]:underline [&_a]:decoration-accent [&_a]:decoration-2 [&_a]:underline-offset-3 [&_strong]:font-mono [&_strong]:font-semibold [&_strong]:text-ink",
   credit:
-    "max-w-[70ch] text-[0.85rem] text-muted [&_a]:underline [&_a]:underline-offset-3",
+    "flex max-w-[70ch] list-none flex-col gap-1 text-[0.85rem] text-muted [&_a]:underline [&_a]:underline-offset-3",
   more: "flex flex-wrap items-center gap-3",
 } as const;

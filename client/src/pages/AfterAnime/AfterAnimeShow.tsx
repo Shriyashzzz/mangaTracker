@@ -1,8 +1,17 @@
-// /after-the-anime/:slug  "Where does the X anime leave off?" One panel per
-// season: the chapter to start at and the volumes to get, with prices. The
-// seasons come from /api/after-anime; the volumes and prices from the same
-// series list the price page uses.
-import { showMeta } from "../../lib/afterAnimeText";
+// /after-the-anime/:slug  Where to start a series' manga after its anime.
+// Top to bottom: the answer for the latest season, a table of every season
+// (long shows only), a panel per season with the one volume to buy, and the
+// questions the page hasn't answered yet. The seasons come from
+// /api/after-anime; the volumes and prices from the same series list the
+// price page uses.
+import {
+  buyVolume,
+  latestAnswer,
+  latestStop,
+  pageHeading,
+  showMeta,
+  showQuestions,
+} from "../../lib/afterAnimeText";
 import { useEffect, useState } from "react";
 import { NavLink, useParams, useSearchParams } from "react-router";
 import Mascot from "../../components/mascot/Mascot";
@@ -13,13 +22,6 @@ import {
   type AfterAnime,
   type BuyOffer,
 } from "../../lib/afterAnime";
-import {
-  latestAnswer,
-  latestStop,
-  showQuestions,
-  volumesToGet,
-  withoutThe,
-} from "../../lib/afterAnimeText";
 import { HttpError } from "../../lib/api";
 import { formatCents, seriesCanonicalPath, timeAgo } from "../../lib/prices";
 import type { SeriesVolume } from "../../lib/types";
@@ -31,7 +33,7 @@ import { useSeriesLoad } from "../Prices/useSeriesData";
 import FixForm from "./FixForm";
 import MoreShows from "./MoreShows";
 import { bookFor } from "./bookFor";
-import SeasonPanel from "./SeasonPanel";
+import SeasonPanel, { ALL_VOLUMES } from "./SeasonPanel";
 import SeasonTable from "./SeasonTable";
 import { afterAnimeStyles as styles } from "./styles";
 
@@ -80,8 +82,9 @@ function useBuyOffers(show: AfterAnime | null, volumes: SeriesVolume[] | null) {
   const isbns =
     show && volumes
       ? show.stops
-          .flatMap(volumesToGet)
-          .map((want) => bookFor(volumes, want.volume)?.isbn13.trim())
+          .map(buyVolume)
+          .filter((volume): volume is number => volume !== null)
+          .map((volume) => bookFor(volumes, volume)?.isbn13.trim())
           .filter((isbn): isbn is string => Boolean(isbn))
       : [];
   // one string, so the effect runs again only when the volumes change
@@ -122,8 +125,15 @@ export default function AfterAnimeShow() {
   // the season most people have just finished comes first
   const latest = show ? latestStop(show.stops) : undefined;
   const newestFirst = show ? [...show.stops].reverse() : [];
-  // the whole run in one buy, when a box set is priced (cheapest first)
-  const boxSet = series.data?.boxSets?.[0];
+  // several volumes in one buy, when a store has a box set priced (cheapest
+  // first). Not eBay's: a single volume listed there as a "set" gave Bleach a
+  // box set for $15
+  const boxSet = series.data?.boxSets?.find((set) => !/ebay/i.test(set.store));
+  // the questions the page hasn't already answered above
+  const questions = show
+    ? showQuestions(show).filter((question) => question.shown)
+    : [];
+  const hasAnswer = !show || show.stops.length > 0;
   const anAffiliateLink =
     Object.values(offers).some((offer) => offer.affiliate) ||
     Boolean(boxSet?.affiliate);
@@ -138,20 +148,17 @@ export default function AfterAnimeShow() {
       </nav>
 
       <header className={styles.head}>
-        <h1 className={styles.title}>
-          Where does the{" "}
-          <span className={styles.named}>{withoutThe(name)}</span> anime leave
-          off?
+        {/* the series inked in, then what the page is for; read out as
+            one line (pageHeading) */}
+        <h1 className={styles.title} aria-label={pageHeading(name, hasAnswer)}>
+          <span className={styles.named}>{name}</span>
+          <span>
+            {hasAnswer ? "Where to start the manga" : "No answer yet"}
+          </span>
         </h1>
         {latest && (
           <>
-            {/* the question on its own line, the answer under it */}
-            <p className={styles.lead}>
-              <span className={styles.leadAsked}>
-                {latestAnswer(latest).asked}
-              </span>{" "}
-              <span className="block">{latestAnswer(latest).lead}</span>
-            </p>
+            <p className={styles.lead}>{latestAnswer(latest).lead}</p>
             <p className={styles.sub}>{latestAnswer(latest).detail}</p>
           </>
         )}
@@ -190,17 +197,15 @@ export default function AfterAnimeShow() {
       {show && show.stops.length === 0 && (
         <section className={styles.season}>
           <div className={styles.seasonWords}>
-            <h2 className={styles.seasonTitle}>No answer yet</h2>
             <p className={styles.end}>
-              Either {show.name} has no anime, or nobody has written down where
-              it stops. If you know, tell us and it goes up once it's checked.
+              We have nothing for {show.name} yet. It may not have an anime.
             </p>
             <NavLink
               to={seriesCanonicalPath(show.name)}
               className={styles.link}
               viewTransition
             >
-              Compare prices for every {show.name} volume
+              {ALL_VOLUMES}
             </NavLink>
           </div>
           <FixForm seriesName={show.name} season={null} open />
@@ -224,12 +229,13 @@ export default function AfterAnimeShow() {
                 seriesName={show.name}
                 volumes={volumes}
                 offers={offers}
+                saidAbove={stop === latest}
               />
             ))}
           </div>
           {boxSet?.url && (
             <p className={styles.boxSet}>
-              Want the whole run in one go? There's a {show.name} box set from{" "}
+              Buying several? A {show.name} box set starts at{" "}
               <strong>{formatCents(boxSet.priceCents)}</strong> at{" "}
               <a href={boxSet.url} target="_blank" rel={linkRel(boxSet)}>
                 {boxSet.store}
@@ -243,59 +249,69 @@ export default function AfterAnimeShow() {
               className="btn"
               viewTransition
             >
-              Compare every volume's price
+              {ALL_VOLUMES}
             </NavLink>
             <NavLink to={AFTER_ANIME_PATH} className="btn" viewTransition>
               Look up another show
             </NavLink>
           </div>
-          {/* the same questions and answers the page's markup gives search
-              engines (showJsonLd) */}
-          <section aria-labelledby="questions-title">
-            <h2 id="questions-title" className={priceStyles.sectionTitle}>
-              Questions
-            </h2>
-            {/* rows that open, as on the FAQ page */}
-            <div className={faqStyles.list}>
-              {showQuestions(show).map(({ q, a, list }) => (
-                <details key={q} className={faqStyles.item}>
-                  <summary className={faqStyles.question}>
-                    {q}
-                    <span className={faqStyles.mark} aria-hidden />
-                  </summary>
-                  <div className={faqStyles.answer}>
-                    <p>{a}</p>
-                    {/* a long show's earlier seasons, a line each */}
-                    {list && list.length > 0 && (
-                      <ul className={styles.answerList}>
-                        {list.map((line) => (
-                          <li key={line}>{line}</li>
-                        ))}
-                      </ul>
-                    )}
-                  </div>
-                </details>
-              ))}
-            </div>
-          </section>
+          {/* only what the page hasn't said above; the rest of the questions
+              are in its markup for search engines (showJsonLd) */}
+          {questions.length > 0 && (
+            <section aria-labelledby="questions-title">
+              <h2 id="questions-title" className={priceStyles.sectionTitle}>
+                Questions
+              </h2>
+              {/* rows that open, as on the FAQ page */}
+              <div className={faqStyles.list}>
+                {questions.map(({ q, shown, a, list }) => (
+                  <details key={q} className={faqStyles.item}>
+                    <summary className={faqStyles.question}>
+                      {shown}
+                      <span className={faqStyles.mark} aria-hidden />
+                    </summary>
+                    <div className={faqStyles.answer}>
+                      <p>{a}</p>
+                      {/* a long show's earlier seasons, a line each */}
+                      {list && list.length > 0 && (
+                        <ul className={styles.answerList}>
+                          {list.map((line) => (
+                            <li key={line}>{line}</li>
+                          ))}
+                        </ul>
+                      )}
+                    </div>
+                  </details>
+                ))}
+              </div>
+            </section>
+          )}
           <MoreShows notThis={show.slug} />
-          <p className={styles.credit}>
-            {show.sourceUrl ? (
-              <>
-                Where each season ends comes from{" "}
-                <a href={show.sourceUrl} target="_blank" rel="noreferrer">
-                  MangaUpdates
-                </a>
-                {show.checkedAt && `, checked ${timeAgo(show.checkedAt)}`}.{" "}
-              </>
-            ) : (
-              "Where each season ends was sent in by a reader and checked. "
+          <ul className={styles.credit}>
+            <li>
+              {show.sourceUrl ? (
+                <>
+                  Source:{" "}
+                  <a href={show.sourceUrl} target="_blank" rel="noreferrer">
+                    MangaUpdates
+                  </a>
+                  {show.checkedAt && `, checked ${timeAgo(show.checkedAt)}`}.
+                </>
+              ) : (
+                "Source: sent in by a reader, and checked."
+              )}
+            </li>
+            <li>
+              Volume numbers follow the Japanese edition. English volumes almost
+              always match.
+            </li>
+            {anAffiliateLink && (
+              <li>
+                Some store links are affiliate links. They cost you nothing and
+                help keep the site running.
+              </li>
             )}
-            Volume numbers are the Japanese release's, which the English one
-            nearly always matches.
-            {anAffiliateLink &&
-              " Some store links are affiliate links, which help keep the site running at no cost to you."}
-          </p>
+          </ul>
         </>
       )}
     </div>

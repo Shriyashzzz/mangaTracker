@@ -75,6 +75,8 @@ export function seasonName(short: string) {
       .replace(/\bS(\d+)\b/g, "Season $1")
       .replace(/\bP(\d+)\b/g, "part $1")
       .replace(/\bEP\s*(\d+)/g, "episode $1")
+      // a short name only fans read: Bleach's last arc
+      .replace(/\bTYBW\b/g, "Thousand-Year Blood War")
       .replace(/\s+/g, " ")
       // a season with extras tacked on is that season: "Season 8 + More OVA"
       .replace(/^(Season \d+(?: part \d+)?)\s*\+.*$/, "$1")
