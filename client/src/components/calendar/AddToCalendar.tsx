@@ -1,7 +1,8 @@
-// "Add to calendar": a small menu with the reader's choice of calendar.
-// Google opens with the event filled in; everything else (Apple Calendar,
-// Outlook, most phone calendars) takes the .ics file. For one release, or
-// for all of them on the calendar page
+// "Add to calendar": a small menu with the reader's choice of calendar, for
+// one release or for all of them on the calendar page.
+//   Google, one release:   opens with the event filled in
+//   Google, several:       saves the .ics file and opens Google's import page
+//   Apple, Outlook, others: the .ics file, which they open themselves
 import { useEffect, useId, useRef, useState } from "react";
 import { CalendarPlusIcon } from "../icons/Icons";
 import {
@@ -12,6 +13,11 @@ import {
 import type { CalendarVolume } from "../../lib/collector";
 import { volumePath } from "../../lib/prices";
 import { calendarParts as styles } from "./styles";
+
+// where Google Calendar takes an .ics file: its link only adds one event at
+// a time, so several dates go in through here
+const GOOGLE_IMPORT_PAGE =
+  "https://calendar.google.com/calendar/u/0/r/settings/export";
 
 // the volume's own page, in full, for the event's link
 const pageFor = (v: CalendarVolume) =>
@@ -65,29 +71,18 @@ export default function AddToCalendar({
   if (!dated.length)
     return big ? null : <span className={styles.tbc}>date TBC</span>;
 
-  // several at once: Google's link takes one event, so it's the file alone,
-  // straight away, with a word on how each calendar takes it
-  if (!one)
-    return (
-      <div className={styles.addAllBox}>
-        <button
-          type="button"
-          className={styles.addAll}
-          aria-label={label}
-          onClick={() => downloadIcs(dated, fileName, pageFor)}
-        >
-          <CalendarPlusIcon className={styles.addIcon} />
-          {text ?? `Save all ${dated.length} dates`}
-        </button>
-        {hint && (
-          <span className={styles.addHint}>
-            Works with Apple Calendar, Outlook and Google Calendar.
-          </span>
-        )}
-      </div>
-    );
+  // what the button itself says
+  let word = "Add";
+  if (big)
+    word = text ?? (one ? "Save the date" : `Save all ${dated.length} dates`);
 
-  return (
+  const saveFile = () => {
+    downloadIcs(dated, fileName, pageFor);
+    setOpen(false);
+  };
+
+  // the button with its menu
+  const button = (
     <div className={styles.addBox} ref={box}>
       <button
         type="button"
@@ -98,34 +93,53 @@ export default function AddToCalendar({
         onClick={() => setOpen(!open)}
       >
         <CalendarPlusIcon className={styles.addIcon} />
-        <span className={big ? undefined : styles.addWord}>
-          {big ? (text ?? "Save the date") : "Add"}
-        </span>
+        <span className={big ? undefined : styles.addWord}>{word}</span>
       </button>
       {open && (
         <div id={menuId} className={styles.addMenu}>
-          <a
-            href={googleCalendarLink(one, pageFor)}
-            target="_blank"
-            rel="noopener noreferrer"
-            className={styles.addItem}
-            onClick={() => setOpen(false)}
-          >
-            Google Calendar
-          </a>
-          <button
-            type="button"
-            className={styles.addItem}
-            onClick={() => {
-              downloadIcs(dated, fileName, pageFor);
-              setOpen(false);
-            }}
-          >
+          {one ? (
+            // one release: Google opens with the event filled in
+            <a
+              href={googleCalendarLink(one, pageFor)}
+              target="_blank"
+              rel="noopener noreferrer"
+              className={styles.addItem}
+              onClick={() => setOpen(false)}
+            >
+              Google Calendar
+            </a>
+          ) : (
+            // several: Google's link takes one event, so the file is saved
+            // and its import page opens, where the file is chosen
+            <a
+              href={GOOGLE_IMPORT_PAGE}
+              target="_blank"
+              rel="noopener noreferrer"
+              className={styles.addItem}
+              onClick={saveFile}
+            >
+              Google Calendar
+              <span className={styles.addHint}>
+                saves a file, then choose it on Google's import page
+              </span>
+            </a>
+          )}
+          <button type="button" className={styles.addItem} onClick={saveFile}>
             Apple, Outlook and others
             <span className={styles.addHint}>.ics file</span>
           </button>
         </div>
       )}
+    </div>
+  );
+  if (!hint) return button;
+  // once a page: a word on which calendars it works with, beside the button
+  return (
+    <div className={styles.addAllBox}>
+      {button}
+      <span className={styles.addHint}>
+        Works with Apple Calendar, Outlook and Google Calendar.
+      </span>
     </div>
   );
 }
