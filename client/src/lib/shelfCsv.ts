@@ -34,6 +34,7 @@ export const shelfToCsv = (
       "Notes",
       "Books",
       "Collecting",
+      "Updated",
     ],
     ...manga.map((m) => [
       m.name,
@@ -52,6 +53,8 @@ export const shelfToCsv = (
       booksToCell(books[m.id] ?? []),
       // the edition they buy it in ("deluxe"), when they've said
       m.edition ?? "",
+      // when they last changed it, so a restore keeps "Last updated"
+      m.updatedAt ?? "",
     ]),
   ]
     .map((row) => row.map(csvCell).join(","))

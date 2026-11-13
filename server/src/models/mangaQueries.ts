@@ -25,6 +25,9 @@ export type MangaInput = {
   // only imports set it: a finished series' last chapter, from AniList. Release
   // checks keep it up to date after that
   latestChapter?: number | null;
+  // only imports set it: when it was last changed where it came from. Left
+  // out, a new series gets now
+  updatedAt?: Date;
 };
 
 // one user's shelf, the series they changed last first ("Last updated", the

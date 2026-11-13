@@ -1,6 +1,7 @@
 // Each app's export, read into books: which columns it has and what they
 // mean (Goodreads, Book Catalogue, Bookshelf, Manga Tracker's own backup, or
 // any CSV). Part of the book import (bookImport.ts lists the parts).
+import { importDate } from "./importDate";
 import { booksFromCell, newBook, type NewBook } from "../books";
 import { parseVolumes } from "../ownedVolumes";
 import { type Book } from "./bookTypes";
@@ -64,6 +65,10 @@ export function goodreadsBook(h: string[], row: string[]): Book | null {
     rating: stars(cell(row, header(h, /^My Rating$/))),
     planned: shelf === "to-read" && !owned && !read,
     lightNovel: titleSaysLightNovel(title),
+    // the day they read it, or else the day they added it
+    changedOn:
+      importDate(cell(row, header(h, /^Date Read$/))) ??
+      importDate(cell(row, header(h, /^Date Added$/))),
   };
 }
 
@@ -214,6 +219,8 @@ export function ownExportBooks(h: string[], row: string[]): Book[] {
       ? { byVolume: /volume/i.test(ownCell(row, header(h, /^Tracked by$/))) }
       : {}),
     notes: ownCell(row, header(h, /^Notes$/)).slice(0, 450) || undefined,
+    // backups from before this column have none
+    changedOn: importDate(ownCell(row, header(h, /^Updated$/))),
   };
   const ownBooks = booksFromCell(ownCell(row, header(h, /^Books$/)));
   const collecting = ownCell(row, header(h, /^Collecting$/)).toLowerCase();

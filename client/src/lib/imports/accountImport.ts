@@ -1,6 +1,7 @@
 // Importing a public list straight from AniList or Kitsu by username: no file,
 // just their own public APIs, asked from the browser. Both come out the same
 // shape as a MyAnimeList export, so the rest of the import is shared.
+import { importDate } from "./importDate";
 import type { MalEntry, MalItem } from "./malImport";
 import { ImportFileError } from "./malImport";
 
@@ -35,6 +36,8 @@ const entry = (fields: {
   notes?: string | null;
   cover?: string | null;
   lightNovel?: boolean;
+  // when they last changed it there, as the site gives it
+  updatedAt?: unknown;
 }): MalItem => {
   const status = AS_MAL[fields.status] ?? "Reading";
   const e: MalEntry = {
@@ -52,6 +55,9 @@ const entry = (fields: {
       : {}),
     ...(fields.cover ? { cover: fields.cover } : {}),
     ...(fields.lightNovel ? { lightNovel: true } : {}),
+    ...(importDate(fields.updatedAt)
+      ? { updatedAt: importDate(fields.updatedAt) }
+      : {}),
   };
   return { status, entry: e };
 };
@@ -69,6 +75,7 @@ const ANILIST_LIST = `
           progress
           progressVolumes
           notes
+          updatedAt
           media {
             id
             idMal
@@ -88,6 +95,8 @@ type AniListEntry = {
   progress: number;
   progressVolumes: number;
   notes: string | null;
+  // seconds since 1970; 0 when AniList has none
+  updatedAt?: number;
   media: {
     id: number;
     idMal: number | null;
@@ -148,6 +157,7 @@ export async function readAniList(name: string): Promise<MalItem[]> {
         notes: e.notes,
         cover: e.media.coverImage?.large,
         lightNovel: e.media.format === "NOVEL",
+        updatedAt: e.updatedAt,
       }),
     );
 }
@@ -200,7 +210,7 @@ export async function readKitsu(name: string): Promise<MalItem[]> {
   let next: string | undefined =
     `${KITSU}/library-entries?filter[userId]=${userId}&filter[kind]=manga` +
     "&include=manga,manga.mappings" +
-    "&fields[libraryEntries]=status,progress,volumesOwned,ratingTwenty,notes,manga" +
+    "&fields[libraryEntries]=status,progress,volumesOwned,ratingTwenty,notes,updatedAt,manga" +
     "&fields[manga]=canonicalTitle,titles,posterImage,subtype,mappings" +
     "&fields[mappings]=externalSite,externalId&page[limit]=100";
   for (let page = 0; next && page < KITSU_MAX_PAGES; page++) {
@@ -234,6 +244,7 @@ export async function readKitsu(name: string): Promise<MalItem[]> {
           notes: a.notes as string | null,
           cover: ((m.posterImage ?? {}) as { large?: string }).large,
           lightNovel: m.subtype === "novel",
+          updatedAt: a.updatedAt,
         }),
       );
     }

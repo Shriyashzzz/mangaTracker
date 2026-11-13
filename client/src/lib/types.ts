@@ -35,6 +35,9 @@ export type Manga = {
   // exactly which, when it isn't a run from 1 (lib/ownedVolumes.ts)
   ownedList?: number[];
   rating: number | null;
+  // when they last changed it: the shelf's "Last updated" order. ISO text;
+  // missing on a shelf loaded before the server sent it
+  updatedAt?: string;
   // the newest release they've hidden
   seenVolume?: number | null;
   seenChapter?: number | null;
