@@ -63,16 +63,43 @@ type Priced = {
 };
 // a volume's price for the estimate: today's, else what it has gone for
 const priceOf = (v: Priced) => v.knownPriceCents ?? v.recordedCents ?? null;
+const hasPrice = (v: Priced) => priceOf(v) != null;
 
-// the middle price of some volumes (null when none is priced)
-const usualOf = (volumes: Priced[]) => {
-  const cents = volumes.flatMap((v) => priceOf(v) ?? []).sort((a, b) => a - b);
-  if (!cents.length) return null;
-  const mid = Math.floor(cents.length / 2);
-  return cents.length % 2
-    ? cents[mid]!
-    : Math.round((cents[mid - 1]! + cents[mid]!) / 2);
+const sum = (numbers: number[]) => {
+  let total = 0;
+  for (const n of numbers) total += n;
+  return total;
 };
+
+// the middle of some prices (null when there are none)
+function median(prices: number[]) {
+  if (!prices.length) return null;
+  const sorted = [...prices].sort((a, b) => a - b);
+  const middle = Math.floor(sorted.length / 2);
+  const isOdd = sorted.length % 2 === 1;
+  return isOdd
+    ? sorted[middle]!
+    : Math.round((sorted[middle - 1]! + sorted[middle]!) / 2);
+}
+
+// each book once: two volumes in one book (the same ISBN) are bought, and
+// paid for, once. A volume with no ISBN is its own book. Where two share an
+// ISBN the later one is kept, in the first one's place
+function oneOfEachBook<T extends { isbn13?: string }>(volumes: T[]) {
+  const byBook = new Map<string | number, T>();
+  volumes.forEach((v, index) => byBook.set(v.isbn13 || index, v));
+  return [...byBook.values()];
+}
+
+// the prices we have, for some volumes
+function pricesOf(volumes: Priced[]) {
+  const prices: number[] = [];
+  for (const v of volumes) {
+    const cents = priceOf(v);
+    if (cents != null) prices.push(cents);
+  }
+  return prices;
+}
 
 // `series`: every volume of it, for the usual price the unpriced ones are
 // counted at; without it, the priced ones still to get
@@ -81,37 +108,37 @@ export function finishCost(
   series: Priced[] = toGet,
 ): FinishCost | null {
   if (!toGet.length) return null;
-  const usual = usualOf(series) ?? usualOf(toGet);
+  const usual = median(pricesOf(series)) ?? median(pricesOf(toGet));
   // nothing priced anywhere in the series: no line rather than a guess
   if (usual == null) return null;
-  // two volumes in one book (the same ISBN) are bought, and paid for, once
-  const books = [...new Map(toGet.map((v, i) => [v.isbn13 || i, v])).values()];
-  const cents = books.reduce((sum, v) => sum + (priceOf(v) ?? 0), 0);
-  const unpriced = books.filter((v) => priceOf(v) == null).length;
-  // of the whole series, each book once
-  const all = [...new Map(series.map((v, i) => [v.isbn13 || i, v])).values()];
+
+  const booksToGet = oneOfEachBook(toGet);
+  const cents = sum(pricesOf(booksToGet));
+  const unpricedBooks = booksToGet.filter((v) => !hasPrice(v)).length;
+
+  // of the whole series, each book once: is enough of it priced to say?
+  const allBooks = oneOfEachBook(series);
+  const pricedBooks = allBooks.filter(hasPrice).length;
   return {
     cents,
-    priced: toGet.filter((v) => priceOf(v) != null).length,
+    priced: toGet.filter(hasPrice).length,
     left: toGet.length,
-    estimateCents: cents + unpriced * usual,
-    enough:
-      all.filter((v) => priceOf(v) != null).length >=
-      all.length * ENOUGH_PRICED,
+    estimateCents: cents + unpricedBooks * usual,
+    enough: pricedBooks >= allBooks.length * ENOUGH_PRICED,
   };
 }
 
 // the money to show: exact when every one is priced, otherwise the estimate
-// to the nearest $10 (cents would claim a precision it lacks)
-export const finishMoney = (
+// to the nearest ten dollars (cents would claim a precision it lacks)
+export function finishMoney(
   cost: FinishCost,
   money: (cents: number) => string,
-) =>
-  !cost.enough
-    ? "check prices"
-    : cost.priced === cost.left
-      ? money(cost.cents)
-      : `about $${(Math.round(cost.estimateCents / 1000) * 10).toLocaleString("en-US")}`;
+) {
+  if (!cost.enough) return "check prices";
+  if (cost.priced === cost.left) return money(cost.cents);
+  const nearestTen = Math.round(cost.estimateCents / 1000) * 10;
+  return "about $" + nearestTen.toLocaleString("en-US");
+}
 
 // "Finish the series: $214", or with volumes not priced yet "Finish the
 // series: about $250". The price format comes in, so this stays free of the
@@ -135,43 +162,29 @@ export type SeriesCost = {
   complete: boolean;
 };
 
-// one priced is enough to estimate by: an estimate, said as one, beats a
-// total of one volume
-const MIN_TO_ESTIMATE = 1;
-
 // what buying a whole series new costs, at stored prices: for anyone
-// weighing up a series before buying it. Null with nothing priced
+// weighing up a series before buying it. Null with nothing priced. One priced
+// volume is enough to estimate by: an estimate, said as one, beats a total of
+// one volume
 export function seriesCost(
   volumes: { knownPriceCents: number | null; isbn13?: string }[],
 ): SeriesCost | null {
-  // two volumes in one book are bought, and paid for, once
-  const books = [
-    ...new Map(volumes.map((v, i) => [v.isbn13 || i, v])).values(),
-  ];
-  const priced = books.flatMap((v) =>
-    v.knownPriceCents != null ? [v.knownPriceCents] : [],
-  );
-  if (!priced.length) return null;
-  const cents = priced.reduce((sum, c) => sum + c, 0);
-  const sorted = [...priced].sort((a, b) => a - b);
-  const mid = Math.floor(sorted.length / 2);
-  const usual =
-    sorted.length % 2
-      ? sorted[mid]!
-      : Math.round((sorted[mid - 1]! + sorted[mid]!) / 2);
-  const unpriced = books.length - priced.length;
+  const books = oneOfEachBook(volumes);
+  const prices: number[] = [];
+  for (const book of books)
+    if (book.knownPriceCents != null) prices.push(book.knownPriceCents);
+  const usual = median(prices);
+  if (usual === null) return null;
+
+  const cents = sum(prices);
+  const unpricedBooks = books.length - prices.length;
   return {
     volumes: volumes.length,
     cents,
     // counted in volumes, like `volumes`, for "8 of 113 priced"
     priced: volumes.filter((v) => v.knownPriceCents != null).length,
-    estimateCents:
-      unpriced === 0
-        ? cents
-        : priced.length >= MIN_TO_ESTIMATE
-          ? cents + unpriced * usual
-          : null,
+    estimateCents: cents + unpricedBooks * usual,
     usualCents: usual,
-    complete: unpriced === 0,
+    complete: unpricedBooks === 0,
   };
 }
