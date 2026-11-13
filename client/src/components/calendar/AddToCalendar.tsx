@@ -81,8 +81,7 @@ export default function AddToCalendar({
         </button>
         {hint && (
           <span className={styles.addHint}>
-            Works with Apple Calendar and Outlook. In Google Calendar, import
-            the file from Settings.
+            Works with Apple Calendar, Outlook and Google Calendar.
           </span>
         )}
       </div>

@@ -303,7 +303,7 @@ export function useVolumePicker(
           decoration */}
       <p className={styles.note} id={`${labelId}-how`}>
         Each spine is a volume. Tap the ones you own, or hold and slide to mark
-        several; "Up to vol." fills in a run from vol. 1.
+        several.
       </p>
       {/* what the form sends */}
       <input
