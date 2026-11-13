@@ -54,6 +54,11 @@ export const afterAnimeStyles = {
   fixProblem: "text-[0.9rem] text-accent-ink",
   fixThanks: "text-[0.95rem] text-ink-soft",
 
+  // ---------- the add form's "watched the anime?" row ----------
+  watched: "flex flex-wrap items-center gap-2 text-[0.88rem] text-ink-soft",
+  watchedPick:
+    "tap min-h-9 rounded-[2px] border-[1.5px] border-line-soft bg-paper px-[0.65rem] text-[0.85rem] font-medium text-ink-soft transition-[color,border-color,background-color] duration-120 ease-[ease] hover:border-line hover:text-ink focus-visible:outline-2 focus-visible:outline-offset-3 focus-visible:outline-accent focus-visible:outline-dashed aria-pressed:border-line aria-pressed:bg-ink aria-pressed:text-paper",
+
   // ---------- under the seasons ----------
   credit:
     "max-w-[70ch] text-[0.85rem] text-muted [&_a]:underline [&_a]:underline-offset-3",

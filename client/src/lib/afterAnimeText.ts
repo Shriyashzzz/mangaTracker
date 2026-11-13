@@ -88,3 +88,20 @@ export function twoVolumesNote(stop: AnimeStop) {
       : `Chapter ${stop.nextChapter}`;
   return `${chapter} is in volume ${stop.endVolume} or ${stop.endVolume + 1}: it depends on whether the anime ended partway through a volume.`;
 }
+
+// where someone who watched the season is in the manga, for their shelf: the
+// last chapter it covered, and the last volume it covered all of. Null for
+// what the season doesn't say
+export function placeAfter(stop: AnimeStop) {
+  let chapter: number | null = null;
+  if (stop.endChapter !== null)
+    // a chapter it stopped partway through isn't read yet
+    chapter = stop.endsMidChapter
+      ? Math.max(0, Math.floor(stop.endChapter) - 1)
+      : Math.floor(stop.endChapter);
+  // the volume to start in is known: every one before it is done. When only
+  // the last volume is, it may be half covered, so that one isn't counted
+  const startsIn = stop.nextVolume ?? stop.endVolume;
+  const volume = startsIn === null ? null : Math.max(0, startsIn - 1);
+  return { chapter, volume };
+}

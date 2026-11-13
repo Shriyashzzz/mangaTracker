@@ -2,6 +2,7 @@
 // over what the server's reader makes of real MangaUpdates lines
 import {
   afterLabel,
+  placeAfter,
   endText,
   startText,
   twoVolumesNote,
@@ -71,4 +72,16 @@ test("an anime that adapts all of it has nothing left to read", () => {
     "Season 1 adapts the manga through its last chapter, 271.",
   );
   expect(volumesToGet(all)).toEqual([]);
+});
+
+test("where a watcher is in the manga, for their shelf", () => {
+  // season 1 ends at chapter 63 and season 2 starts in volume 8: seven
+  // volumes are done
+  expect(placeAfter(first)).toEqual({ chapter: 63, volume: 7 });
+  // stopped partway through 181, in volume 21: neither is finished
+  expect(placeAfter(third)).toEqual({ chapter: 180, volume: 20 });
+  const [chaptersOnly] = shown("Chap 0 (S1)", "Chap 45 (S1)");
+  expect(placeAfter(chaptersOnly!)).toEqual({ chapter: 45, volume: null });
+  const [half] = shown("Vol 1, Chap 0 (S1)", "Vol 5, Chap 22.5 (S1)");
+  expect(placeAfter(half!)).toEqual({ chapter: 22, volume: 4 });
 });
