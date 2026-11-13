@@ -14,7 +14,7 @@ import {
   type BuyOffer,
 } from "../../lib/afterAnime";
 import {
-  answerSentence,
+  latestAnswer,
   latestStop,
   showQuestions,
   volumesToGet,
@@ -143,7 +143,18 @@ export default function AfterAnimeShow() {
           <span className={styles.named}>{withoutThe(name)}</span> anime leave
           off?
         </h1>
-        {latest && <p className={styles.lead}>{answerSentence(latest)}</p>}
+        {latest && (
+          <>
+            {/* the question on its own line, the answer under it */}
+            <p className={styles.lead}>
+              <span className={styles.leadAsked}>
+                {latestAnswer(latest).asked}
+              </span>{" "}
+              <span className="block">{latestAnswer(latest).lead}</span>
+            </p>
+            <p className={styles.sub}>{latestAnswer(latest).detail}</p>
+          </>
+        )}
       </header>
 
       {loading && (

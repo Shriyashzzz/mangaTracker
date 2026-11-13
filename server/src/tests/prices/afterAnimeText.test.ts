@@ -8,6 +8,8 @@ import {
   showJsonLd,
   showQuestions,
   endText,
+  latestAnswer,
+  latestAnswerText,
   startText,
   tableRow,
   twoVolumesNote,
@@ -149,4 +151,27 @@ test("a show's questions are the ones it can answer", () => {
   );
   // nothing to ask about a show with no seasons
   expect(showQuestions({ ...show, stops: [] })).toEqual([]);
+});
+
+test("the page's opening answer is three short pieces", () => {
+  expect(latestAnswer(second)).toEqual({
+    asked: "Caught up on the anime?",
+    lead: "Start the manga at chapter 138, volume 16.",
+    detail: "Season 2 is the latest, and it ends at chapter 137.",
+  });
+  expect(latestAnswer(third)).toMatchObject({
+    lead: "Start the manga at chapter 181, volume 21 or 22.",
+    detail: "Season 3 is the latest, and it stops partway through chapter 181.",
+  });
+  const [only] = shown("Vol 1, Chap 1", "Vol 4, Chap 17");
+  expect(latestAnswer(only!).detail).toBe("The anime ends at chapter 17.");
+  const all = { ...first, endChapter: 271, coversAll: true };
+  expect(latestAnswer(all)).toMatchObject({
+    lead: "You've seen the whole story.",
+    detail:
+      "Season 1 is the latest, and it covers the manga to its final chapter, 271.",
+  });
+  expect(latestAnswerText(second)).toBe(
+    "Caught up on the anime? Start the manga at chapter 138, volume 16. Season 2 is the latest, and it ends at chapter 137.",
+  );
 });

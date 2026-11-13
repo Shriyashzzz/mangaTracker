@@ -174,8 +174,8 @@ function volumeWords(stop: AnimeStop) {
   return "";
 }
 
-// the whole answer for one season in plain sentences, said first on the
-// page and to search engines: "Season 2 ends at chapter 137, in volume 16.
+// one season's answer in plain sentences, for the copy of the page search
+// engines read: "Season 2 ends at chapter 137, in volume 16.
 // To carry on with the story, start the manga at chapter 138, in volume 16."
 export function answerSentence(stop: AnimeStop) {
   const where = endText(stop);
@@ -185,6 +185,49 @@ export function answerSentence(stop: AnimeStop) {
   const volume = volumeWords(stop);
   const inWhich = volume ? `, in volume ${volume}` : "";
   return `${where} To carry on with the story, start the manga at chapter ${stop.nextChapter}${inWhich}.`.trim();
+}
+
+// the page's opening answer, for someone who has watched everything out so
+// far. Three short pieces, each on its own line:
+//   asked:  "Caught up on the anime?"
+//   lead:   "Start the manga at chapter 116, volume 24 or 25."
+//   detail: "Season 3 part 1 is the latest, and it ends at chapter 115."
+export function latestAnswer(stop: AnimeStop) {
+  const asked = "Caught up on the anime?";
+  // "Season 3 is the latest, and it ends at…", or just "The anime ends at…"
+  const subject =
+    stop.label === "The anime"
+      ? "The anime"
+      : `${stop.label} is the latest, and it`;
+  if (stop.coversAll)
+    return {
+      asked,
+      lead: "You've seen the whole story.",
+      detail: `${subject} covers the manga to its final chapter, ${stop.endChapter}.`,
+    };
+  if (stop.nextChapter !== null) {
+    const volume = volumeWords(stop);
+    const inWhich = volume ? `, volume ${volume}` : "";
+    const how = stop.endsMidChapter ? "stops partway through" : "ends at";
+    return {
+      asked,
+      lead: `Start the manga at chapter ${stop.nextChapter}${inWhich}.`,
+      detail: `${subject} ${how} chapter ${stop.endChapter}.`,
+    };
+  }
+  if (stop.endVolume !== null)
+    return {
+      asked,
+      lead: `Pick up the manga around volume ${stop.endVolume}.`,
+      detail: `${subject} ends in volume ${stop.endVolume}.`,
+    };
+  return { asked: "", lead: "", detail: "" };
+}
+
+// the same answer as one piece of text, for a description or FAQ markup
+export function latestAnswerText(stop: AnimeStop) {
+  const { asked, lead, detail } = latestAnswer(stop);
+  return `${asked} ${lead} ${detail}`.trim();
 }
 
 // a season as a row of the page's table: "If you watched", "Start reading
@@ -226,7 +269,7 @@ export function showQuestions(show: ShowForMeta): ShowQuestion[] {
   const latest = latestStop(show.stops);
   if (!latest) return [];
   const questions: ShowQuestion[] = [
-    { q: showQuestion(show.name), a: answerSentence(latest) },
+    { q: showQuestion(show.name), a: latestAnswerText(latest) },
     {
       q: `What chapter does ${theAnime(show.name)} end on?`,
       // the latest season in a sentence, the ones before it as a short list
@@ -298,7 +341,7 @@ export function showMeta(
   return {
     title,
     // the answer itself, so it can be read off the search result
-    description: `${answerSentence(latest)} Every season's last chapter, the volume to buy next and its price.`,
+    description: `${latestAnswerText(latest)} Every season's last chapter, the volume to buy next and its price.`,
     path,
     image: show.coverUrl,
     jsonLd: showJsonLd(show, origin),

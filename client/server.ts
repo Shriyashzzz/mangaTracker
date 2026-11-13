@@ -22,6 +22,7 @@ import { FAQ, FAQ_DESCRIPTION, faqJsonLd } from "./src/lib/content/faq.ts";
 import {
   answerSentence,
   INDEX_META,
+  latestAnswerText,
   latestStop,
   seasonHeading,
   showMeta,
@@ -642,7 +643,7 @@ function afterAnimeTags(
       <h1>${escapeHtml(meta.title)}</h1>
       ${
         latest
-          ? `<p>${escapeHtml(answerSentence(latest))}</p>
+          ? `<p>${escapeHtml(latestAnswerText(latest))}</p>
       <table><thead><tr><th>If you watched</th><th>Start reading at</th><th>Volume</th></tr></thead><tbody>${rows.join("")}</tbody></table>
       ${seasons.join("")}
       <h2>Questions</h2>${questions.join("")}`
