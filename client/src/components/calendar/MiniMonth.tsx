@@ -1,6 +1,6 @@
-// A small month page with the release days circled in red marker and a tag
-// for the volume (or "×3" when several come out that day). Decorative: the
-// list beside it says the same in words, so screen readers get that instead
+// A small month page with the release days circled in red marker.
+// Decorative: the list beside it says the same in words, so screen readers
+// get that instead
 import {
   monthDays,
   monthName,
@@ -55,20 +55,15 @@ export default function MiniMonth({
                 {d.day}
               </span>
               {out.length > 0 && (
-                <>
-                  <svg viewBox="0 0 40 40" className={styles.circle}>
-                    <path
-                      d="M20 4c9 0 16 6 16 15s-7 17-17 17S3 29 4 19 11 5 22 5"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="2.4"
-                      strokeLinecap="round"
-                    />
-                  </svg>
-                  <i className={styles.tag}>
-                    {out.length > 1 ? `×${out.length}` : (out[0]!.volume ?? "")}
-                  </i>
-                </>
+                <svg viewBox="0 0 40 40" className={styles.circle}>
+                  <path
+                    d="M20 4c9 0 16 6 16 15s-7 17-17 17S3 29 4 19 11 5 22 5"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2.4"
+                    strokeLinecap="round"
+                  />
+                </svg>
               )}
             </span>
           );
