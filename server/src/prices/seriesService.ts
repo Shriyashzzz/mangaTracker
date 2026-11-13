@@ -179,15 +179,19 @@ async function hasLightNovel(name: string) {
 // upcoming volumes), kept for days so its 1,000 free lookups a day go far.
 // Each saved apart from the English lookup
 const GOOGLE_VOLUMES_FRESH_MS = 3 * 24 * 60 * 60 * 1000;
+type SavedList = { at: number; volumes: CatalogBook[] };
+
+// where a lookup's answer is saved: each kind of lookup apart
+function listKey(name: string, searchAs: string | undefined, google: boolean) {
+  if (searchAs) return `${volumesKey(name)}:native`;
+  if (google) return `${volumesKey(name)}:google`;
+  return volumesKey(name);
+}
 export async function seriesVolumes(
   name: string,
   { searchAs, google = false }: { searchAs?: string; google?: boolean } = {},
 ): Promise<{ volumes: CatalogBook[]; incomplete: boolean }> {
-  const key = searchAs
-    ? `${volumesKey(name)}:native`
-    : google
-      ? `${volumesKey(name)}:google`
-      : volumesKey(name);
+  const key = listKey(name, searchAs, google);
   const freshFor = google ? GOOGLE_VOLUMES_FRESH_MS : SERIES_VOLUMES_FRESH_MS;
   // memory first, then the database, which outlives a restart. A database
   // problem just means asking the catalog
@@ -228,71 +232,82 @@ export async function seriesVolumes(
 // series lists being looked up again in the background, one at a time each
 const rebuilding = new Map<string, Promise<unknown>>();
 
-async function lookUpSeriesVolumes(
-  name: string,
-  { searchAs, google = false }: { searchAs?: string; google?: boolean },
-  key: string,
-  hit: { at: number; volumes: CatalogBook[] } | null,
-  freshFor: number,
-): Promise<{ volumes: CatalogBook[]; incomplete: boolean }> {
-  const series = seriesOf(name);
-  // free catalog queries merged: the plain one finds more, the quoted title
-  // one is more precise. Long runners can have 100+ volumes. A light novel's
-  // editions mostly go by the manga's name ("Overlord, Vol. 3"), so the
-  // quoted one is the base name either way. A novel also gets "<name> novel":
-  // "… Light Novel" alone can come back as junk (Solo Leveling's did), yet it
-  // finds some the other misses (two of Spice & Wolf's)
-  const novel = isNovelName(name);
-  const quoted = `title:"${baseName(name).replace(/"/g, "")}"`;
-  const queries = searchAs
-    ? [searchAs]
-    : novel
-      ? [name, `${baseName(name)} novel`, quoted]
-      : [name, quoted];
-  // a manga whose series has a novel too: its long books are the novel's
-  const [results, hasNovel] = await Promise.all([
-    google
-      ? Promise.allSettled([
-          googleSeriesVolumes(name).then((books) => ({
-            books,
-            degraded: false,
-          })),
-        ])
-      : Promise.allSettled(
-          queries.map((q) =>
-            searchVolumesDetailed(q, {
-              max: 250,
-              timeoutMs: 20000,
-              seriesName: name,
-            }),
-          ),
-        ),
-    novel ? Promise.resolve(true) : hasLightNovel(name),
-  ]);
-  const base = seriesOf(baseName(name));
-  const found = results.flatMap((r) =>
-    r.status === "fulfilled" ? r.value.books : [],
-  );
-  const failed = results.filter((r) => r.status === "rejected");
+// what to search Open Library for. The plain name finds more, the quoted
+// title is more precise; the answers are merged. A light novel's editions
+// mostly go by the manga's name ("Overlord, Vol. 3"), so the quoted one is
+// the base name either way. A novel also gets "<name> novel": "… Light Novel"
+// alone can come back as junk (Solo Leveling's did), yet it finds some the
+// other misses (two of Spice & Wolf's)
+function catalogQueries(name: string, searchAs: string | undefined) {
+  if (searchAs) return [searchAs];
+  const quotedTitle = `title:"${baseName(name).replace(/"/g, "")}"`;
+  if (isNovelName(name)) return [name, `${baseName(name)} novel`, quotedTitle];
+  return [name, quotedTitle];
+}
+
+// asks Google Books, or Open Library with each query, and gathers the books.
+// Long runners can have 100+ volumes
+async function askCatalog(name: string, queries: string[], google: boolean) {
+  const searches = google
+    ? [
+        googleSeriesVolumes(name).then((books) => ({
+          books,
+          degraded: false,
+        })),
+      ]
+    : queries.map((query) =>
+        searchVolumesDetailed(query, {
+          max: 250,
+          timeoutMs: 20000,
+          seriesName: name,
+        }),
+      );
+  const results = await Promise.allSettled(searches);
+
+  const books: CatalogBook[] = [];
+  let anyFailed = false;
   // a title this lookup couldn't translate right now
-  const untranslated = results.some(
-    (r) => r.status === "fulfilled" && r.value.degraded,
-  );
-  failed.forEach((r) =>
-    console.error("series volume lookup failed:", (r.reason as Error)?.message),
-  );
+  let untranslated = false;
+  for (const result of results) {
+    if (result.status === "rejected") {
+      anyFailed = true;
+      console.error(
+        "series volume lookup failed:",
+        (result.reason as Error)?.message,
+      );
+      continue;
+    }
+    books.push(...result.value.books);
+    if (result.value.degraded) untranslated = true;
+  }
+  return { books, anyFailed, untranslated };
+}
+
+// the books that are single volumes of this series, one for each number
+function volumesOfSeries(
+  found: CatalogBook[],
+  name: string,
+  // the manga's series has a light novel too
+  hasNovel: boolean,
+) {
+  const isNovel = isNovelName(name);
+  const series = seriesOf(name);
+  const baseSeries = seriesOf(baseName(name));
 
   const byNumber = new Map<number | null, CatalogBook>();
   // dates given a volume under another ISBN than the one kept
   const datedElsewhere = new Map<number | null, string>();
   const books = bookIsbns(found);
-  for (const found1 of found) {
-    let v = found1;
-    // a long book under the manga's name is the novel's
-    const unmarked =
-      seriesOf(v.title) === base && v.volume !== null && isLong(v);
-    if (novel && unmarked) v = { ...v, title: `${name}, Vol. ${v.volume}` };
-    if (!novel && hasNovel && unmarked) continue;
+  for (const book of found) {
+    let v = book;
+    // a long book under the manga's name is the novel's: a novel's list
+    // takes it under its own name, a manga's list leaves it out
+    const isUnmarkedNovel =
+      seriesOf(v.title) === baseSeries && v.volume !== null && isLong(v);
+    if (isNovel && isUnmarkedNovel)
+      v = { ...v, title: `${name}, Vol. ${v.volume}` };
+    if (!isNovel && hasNovel && isUnmarkedNovel) continue;
+
     if (seriesOf(v.title) !== series || v.volume === null) continue;
     // "Kaiju No. 8" alone is the series, not its eighth volume
     if (normalize(v.title) === normalize(name)) continue;
@@ -301,33 +316,57 @@ async function lookUpSeriesVolumes(
     // nor a 3-in-1 omnibus numbered like one ("One Piece, Vol. 5 (It's All
     // Right!!! / Instinct / Straight Ahead!!!)", 584 pages): its price and
     // cover aren't the volume's
-    if (!novel && isOmnibusLength(v)) continue;
+    if (!isNovel && isOmnibusLength(v)) continue;
     addVolume(byNumber, v, books, datedElsewhere);
   }
   adoptUpcomingDates(byNumber, datedElsewhere);
+  return [...byNumber.values()];
+}
+
+// asks a catalog for a series' volumes, merges the answer into the saved
+// list, and saves it. When the catalog fails, a saved list covers for it and
+// the catalog gets another go soon; with nothing saved, the list is marked
+// incomplete
+async function lookUpSeriesVolumes(
+  name: string,
+  { searchAs, google = false }: { searchAs?: string; google?: boolean },
+  key: string,
+  saved: SavedList | null,
+  freshFor: number,
+): Promise<{ volumes: CatalogBook[]; incomplete: boolean }> {
+  const isNovel = isNovelName(name);
+  const [answer, hasNovel] = await Promise.all([
+    askCatalog(name, catalogQueries(name, searchAs), google),
+    // a manga whose series has a novel too: its long books are the novel's
+    isNovel ? Promise.resolve(true) : hasLightNovel(name),
+  ]);
+  // lists saved before the omnibus rule lose theirs too
+  const savedVolumes = (saved?.volumes ?? []).filter(
+    (v) => isNovel || !isOmnibusLength(v),
+  );
   const volumes = mergeVolumes(
-    // lists saved before this rule lose theirs too
-    (hit?.volumes ?? []).filter((v) => novel || !isOmnibusLength(v)),
-    [...byNumber.values()],
+    savedVolumes,
+    volumesOfSeries(answer.books, name, hasNovel),
   );
 
-  if (failed.length > 0 || untranslated) {
-    // a saved list covers for the outage, and the catalog gets another go soon
-    if (hit?.volumes.length) {
-      const at = Date.now() - freshFor + SERIES_VOLUMES_RETRY_MS;
-      seriesVolumesCache.set(key, { at, volumes: hit.volumes });
-      return { volumes, incomplete: false };
-    }
-    return { volumes, incomplete: true };
+  const catalogHadTrouble = answer.anyFailed || answer.untranslated;
+  if (catalogHadTrouble) {
+    if (!saved?.volumes.length) return { volumes, incomplete: true };
+    // kept as it was, and timed to go stale again after the retry wait
+    const at = Date.now() - freshFor + SERIES_VOLUMES_RETRY_MS;
+    seriesVolumesCache.set(key, { at, volumes: saved.volumes });
+    return { volumes, incomplete: false };
   }
+
   seriesVolumesCache.set(key, { at: Date.now(), volumes });
-  // an empty answer counts too: every other name a series goes by would
+  // an empty answer is saved too: every other name a series goes by would
   // otherwise be asked about again after each restart
   await priceQueries
     .saveSeriesVolumes(key, volumes)
     .catch((e: Error) =>
       console.error("Couldn't save series volumes:", e.message),
     );
+  // oldest out first, so the cache can't grow without end
   if (seriesVolumesCache.size > 500) {
     seriesVolumesCache.delete(seriesVolumesCache.keys().next().value!);
   }
