@@ -1,8 +1,7 @@
 import { createBrowserRouter, Navigate } from "react-router";
 import App from "../App";
 import ErrorPage from "./Error/Error";
-import Home from "./Home/Home";
-import Details from "./Details/Details";
+import { probablySignedIn } from "../store/auth";
 import SignInPage from "./SignIn/SignIn";
 import SignUp from "./SignUp/SignUp";
 import FrontDoor from "./Prices/FrontDoor";
@@ -11,23 +10,27 @@ import { AboutPage } from "./About/About";
 import { UpdatesPage } from "./Updates/Updates";
 import { FaqPage } from "./Faq/Faq";
 import { AcknowledgementsPage } from "./Acknowledgements/Acknowledgements";
-import CalendarPage from "./Calendar/Calendar";
-import NewReleasesPage from "./NewReleases/NewReleases";
 import SharedShelfPage from "./SharedShelf/SharedShelf";
 import SeriesIndex from "./Prices/SeriesIndex";
 import Deals from "./Prices/Deals";
 import PriceSeries from "./Prices/PriceSeries";
 import PriceVolume from "./Prices/PriceVolume";
 
-// The signed-in tools (Add, Edit, Import, Settings) load when first opened:
-// the router fetches the page's code, then shows it, so moving around the app
-// has no loading flash. Opened straight from the address bar, HydrateFallback
-// holds the page meanwhile. Pages people arrive on from outside (search,
-// shared links: prices, series, shared shelves, about) are in the first
-// download, so they show at once.
+// The signed-in pages (the shelf, a series, the calendar, Add, Edit, Import,
+// Settings) load when first opened: the router fetches the page's code, then
+// shows it, so moving around the app has no loading flash. Opened straight
+// from the address bar, HydrateFallback holds the page meanwhile. Pages people
+// arrive on from outside (search, shared links: prices, series, shared
+// shelves, about) are in the first download, so they show at once, and aren't
+// made to carry the shelf's code.
 const page =
   <T,>(load: () => Promise<T>, pick: (module: T) => React.ComponentType) =>
   async () => ({ Component: pick(await load()) });
+
+const loadShelf = () => import("./Home/Home");
+// someone signed in came for their shelf: its code is asked for at once,
+// beside the first download, not after it
+if (probablySignedIn()) void loadShelf();
 
 export const routes = [
   {
@@ -40,9 +43,15 @@ export const routes = [
       // the price checker is the front door, except that someone signed in
       // arrives on their shelf
       { index: true, element: <FrontDoor /> },
-      { path: "/shelf", element: <Home /> },
+      { path: "/shelf", lazy: page(loadShelf, (m) => m.default) },
       { path: "/signin", element: <SignInPage /> },
-      { path: "/details/:id", element: <Details /> },
+      {
+        path: "/details/:id",
+        lazy: page(
+          () => import("./Details/Details"),
+          (m) => m.default,
+        ),
+      },
       {
         path: "/update/:id",
         lazy: page(
@@ -68,8 +77,20 @@ export const routes = [
       { path: "/updates", element: <UpdatesPage /> },
       { path: "/faq", element: <FaqPage /> },
       { path: "/acknowledgements", element: <AcknowledgementsPage /> },
-      { path: "/new-releases", element: <NewReleasesPage /> },
-      { path: "/calendar", element: <CalendarPage /> },
+      {
+        path: "/new-releases",
+        lazy: page(
+          () => import("./NewReleases/NewReleases"),
+          (m) => m.default,
+        ),
+      },
+      {
+        path: "/calendar",
+        lazy: page(
+          () => import("./Calendar/Calendar"),
+          (m) => m.default,
+        ),
+      },
       {
         path: "/settings/:tab?",
         lazy: page(
