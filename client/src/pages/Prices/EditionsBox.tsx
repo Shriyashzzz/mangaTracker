@@ -2,6 +2,10 @@
 // omnibus) edition, the other way to own the run in fewer, bigger books. The
 // next book for someone who has some of the series, the first for anyone
 // else, and a way down to the whole list ("Other editions").
+//
+// Only books that can be opened: one the catalog has no ISBN for has no
+// price and no page, so it isn't offered. When the book to lead with is one
+// of those, there's no box at all (the list below still names every book).
 import { NavLink } from "react-router";
 import {
   editionBookLabel,
@@ -12,15 +16,11 @@ import {
 import { formatCents, volumePath } from "../../lib/prices";
 import { pricesStyles as styles } from "./styles";
 
-// a book's price: the one we know, a nudge to check it, or nothing when the
-// catalog has no ISBN to check it by
-function priceText(book: {
-  knownPriceCents?: number | null;
-  isbn13: string | null;
-}) {
-  if (book.knownPriceCents != null) return formatCents(book.knownPriceCents);
-  return book.isbn13 ? "check price" : "";
-}
+// a book's price: the one we know, or a nudge to check it
+const priceText = (book: { knownPriceCents?: number | null }) =>
+  book.knownPriceCents != null
+    ? formatCents(book.knownPriceCents)
+    : "check price";
 
 export default function EditionsBox({
   line,
@@ -38,7 +38,11 @@ export default function EditionsBox({
       (b) => b.number === (theirs ? plan.next! : line.books[0]!).number,
     )!,
   );
-  const shown = line.books.slice(from, from + 2);
+  const lead = line.books[from];
+  if (!lead?.isbn13) return null;
+  // the one after it too, when that can be opened
+  const after = line.books[from + 1];
+  const shown = after?.isbn13 ? [lead, after] : [lead];
   const inside = line.books.flatMap((b) => b.volumes);
   return (
     <aside aria-labelledby="editions-box-title" className={styles.setsBox}>
@@ -67,17 +71,13 @@ export default function EditionsBox({
             : styles.editionsBoxTicketPlain;
           return (
             <li key={book.number} className="min-w-0 upto-980:flex-1">
-              {book.isbn13 ? (
-                <NavLink
-                  className={ticket}
-                  to={volumePath(book.isbn13, book.title ?? label)}
-                  viewTransition
-                >
-                  {body}
-                </NavLink>
-              ) : (
-                <span className={ticket}>{body}</span>
-              )}
+              <NavLink
+                className={ticket}
+                to={volumePath(book.isbn13!, book.title ?? label)}
+                viewTransition
+              >
+                {body}
+              </NavLink>
             </li>
           );
         })}

@@ -80,6 +80,12 @@ const schema = z.object({
     blankToUndefined,
     z.coerce.number().int().nonnegative().default(2000),
   ),
+  // Books-A-Million's own background share of that (collector/
+  // newPriceFiller.ts): volumes a day, one lookup each
+  BAM_FILL_DAILY: z.preprocess(
+    blankToUndefined,
+    z.coerce.number().int().nonnegative().default(400),
+  ),
   KEEPA_API_KEY: optional,
   GOOGLE_BOOKS_API_KEY: optional,
   // Cloudflare Turnstile's secret: live price checks only for people

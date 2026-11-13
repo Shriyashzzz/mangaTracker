@@ -162,6 +162,25 @@ export type SeriesCost = {
   complete: boolean;
 };
 
+// the used copies found for a series, added up: how many of its volumes
+// have one, and what those cost together. No estimate for the rest: a volume
+// with no used copy on sale can't be bought used, so there's no total to
+// guess at. Null when none has one
+export function usedCopies(
+  volumes: { usedCents?: number | null; isbn13?: string }[],
+) {
+  const prices: number[] = [];
+  // a book holding two volumes is one copy to buy
+  for (const book of oneOfEachBook(volumes))
+    if (book.usedCents != null) prices.push(book.usedCents);
+  if (!prices.length) return null;
+  return {
+    // counted in volumes, like the box's own "all 30"
+    volumes: volumes.filter((volume) => volume.usedCents != null).length,
+    cents: sum(prices),
+  };
+}
+
 // what buying a whole series new costs, at stored prices: for anyone
 // weighing up a series before buying it. Null with nothing priced. One priced
 // volume is enough to estimate by: an estimate, said as one, beats a total of

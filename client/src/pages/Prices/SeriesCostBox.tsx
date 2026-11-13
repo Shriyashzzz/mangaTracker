@@ -1,5 +1,6 @@
 // What collecting a whole series costs new, at the prices already stored: the
-// question a collector asks before starting one. Shown to everyone; someone
+// question a collector asks before starting one. Under it, what the used
+// copies on sale now come to, for however many volumes have one. Shown to everyone; someone
 // with it on their shelf gets "Finish the series" beside the volumes instead,
 // so this is for deciding. Never asks for a price (lib/finishCost.ts)
 import { NavLink } from "react-router";
@@ -9,10 +10,14 @@ import { pricesStyles as styles } from "./styles";
 
 export default function SeriesCostBox({
   cost,
+  used,
   isSignedIn,
   comingSoon,
 }: {
   cost: SeriesCost;
+  // the used copies found for the same volumes: how many, and what they
+  // cost together; null when none has one
+  used: { volumes: number; cents: number } | null;
   isSignedIn: boolean | null;
   // volumes listed but not out yet: "all 9 out now" beside a title saying 12
   comingSoon: boolean;
@@ -51,6 +56,16 @@ export default function SeriesCostBox({
         {!all && (
           <p className={styles.costNote}>
             An estimate, from the volumes we have prices for.
+          </p>
+        )}
+        {/* second-hand: only the copies really on sale, never a guess for
+            the rest */}
+        {used && (
+          <p className={styles.costNote}>
+            {used.volumes >= cost.volumes
+              ? `All ${cost.volumes} are on sale used`
+              : `Used copies found for ${used.volumes} of ${cost.volumes}`}
+            : <strong>{formatCents(used.cents)}</strong> together.
           </p>
         )}
       </div>

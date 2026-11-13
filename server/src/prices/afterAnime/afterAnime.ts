@@ -79,6 +79,21 @@ export async function getAfterAnime(asked: string, mayAsk: boolean) {
   };
 }
 
+// whether a series has an answer, for its price page's "Watched the anime?"
+// bar. Sent with the page, so the bar is there from the start and never
+// pushes the page down by arriving late. From the database only, so the
+// page never waits on MangaUpdates: a series nobody has asked about yet is
+// looked up in the background, and has its bar from the next visit
+export async function hasAnimeAnswer(name: string) {
+  const saved = await getAfterAnime(name, false);
+  const neverAsked = saved?.checkedAt == null;
+  if (neverAsked)
+    getAfterAnime(name, true).catch((e: Error) =>
+      console.error("anime answer lookup failed:", e.message),
+    );
+  return Boolean(saved?.stops.length);
+}
+
 // every series with an answer, for the list of shows and the sitemap: the
 // most popular first. Database only
 export async function getAfterAnimeIndex() {
