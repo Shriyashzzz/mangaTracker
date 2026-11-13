@@ -1,7 +1,7 @@
 // One short line on a series' price page for someone coming from the anime:
-// "Watched Season 2? Start at chapter 150, vol. 17 or 18." It links to the
-// series' "after the anime" page, where every season is. Nothing at all for
-// a series with no answer.
+// "After the anime (Season 2): start at chapter 138, vol. 16." It links to
+// the series' "after the anime" page, where every season is. Only what's
+// certain is said (shortLine); nothing at all for a series with no answer.
 import { useEffect, useState } from "react";
 import { NavLink } from "react-router";
 import {
@@ -31,13 +31,13 @@ export default function AfterAnimeLine({ seriesName }: { seriesName: string }) {
   const show = found?.asked === seriesName ? found.show : null;
   // the latest season is the one most people have just finished
   const latest = show?.stops[show.stops.length - 1];
-  if (!show || !latest) return null;
-  const { watched, answer } = shortLine(latest);
+  const line = latest ? shortLine(latest) : null;
+  if (!show || !line) return null;
   return (
     <p className={priceStyles.partOf}>
-      {watched}{" "}
+      {line.lead}{" "}
       <NavLink to={afterAnimeCanonicalPath(show.name)} viewTransition>
-        {answer}
+        {line.answer}
       </NavLink>
       .
     </p>
