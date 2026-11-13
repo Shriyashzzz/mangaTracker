@@ -3,6 +3,7 @@
 import {
   afterLabel,
   placeAfter,
+  shortLine,
   endText,
   startText,
   startTextWithVolume,
@@ -98,4 +99,14 @@ test("the one-line answer says the volume too", () => {
   expect(startTextWithVolume(chaptersOnly!)).toBe("Start at chapter 46");
   const all = { ...first, coversAll: true };
   expect(startTextWithVolume(all)).toBe("Nothing left to read");
+});
+
+test("the series page's line is short", () => {
+  expect(shortLine(third)).toEqual({
+    watched: "Watched Season 3?",
+    answer: "Start at chapter 181, vol. 21 or 22",
+  });
+  expect(shortLine(first).answer).toBe("Start at chapter 64, vol. 8");
+  const [only] = shown("Vol 1, Chap 1", "Vol 4, Chap 17");
+  expect(shortLine(only!).watched).toBe("Watched the anime?");
 });

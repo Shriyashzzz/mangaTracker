@@ -1,7 +1,7 @@
-// One line on a series' price page for someone coming from the anime:
-// "Watched the anime? After Season 2, start at chapter 150, in volume 17 or
-// 18." It links to the series' "after the anime" page, where every season
-// is. Nothing at all for a series with no answer.
+// One short line on a series' price page for someone coming from the anime:
+// "Watched Season 2? Start at chapter 150, vol. 17 or 18." It links to the
+// series' "after the anime" page, where every season is. Nothing at all for
+// a series with no answer.
 import { useEffect, useState } from "react";
 import { NavLink } from "react-router";
 import {
@@ -9,7 +9,7 @@ import {
   getAfterAnime,
   type AfterAnime,
 } from "../../lib/afterAnime";
-import { afterLabel, startTextWithVolume } from "../../lib/afterAnimeText";
+import { shortLine } from "../../lib/afterAnimeText";
 import { pricesStyles as priceStyles } from "../Prices/styles";
 
 export default function AfterAnimeLine({ seriesName }: { seriesName: string }) {
@@ -32,12 +32,12 @@ export default function AfterAnimeLine({ seriesName }: { seriesName: string }) {
   // the latest season is the one most people have just finished
   const latest = show?.stops[show.stops.length - 1];
   if (!show || !latest) return null;
-  const answer = startTextWithVolume(latest);
+  const { watched, answer } = shortLine(latest);
   return (
     <p className={priceStyles.partOf}>
-      Watched the anime? {afterLabel(latest)},{" "}
+      {watched}{" "}
       <NavLink to={afterAnimeCanonicalPath(show.name)} viewTransition>
-        {answer.charAt(0).toLowerCase() + answer.slice(1)}
+        {answer}
       </NavLink>
       .
     </p>

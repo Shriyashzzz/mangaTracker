@@ -53,6 +53,17 @@ export function startTextWithVolume(stop: AnimeStop) {
   return start;
 }
 
+// the series page's one short line: "Watched Season 2? Start at chapter 150,
+// vol. 17 or 18."
+export function shortLine(stop: AnimeStop) {
+  const watched =
+    stop.label === "The anime"
+      ? "Watched the anime?"
+      : `Watched ${stop.label}?`;
+  const answer = startTextWithVolume(stop).replace(", in volume ", ", vol. ");
+  return { watched, answer };
+}
+
 const inVolume = (volume: number | null) =>
   volume === null ? "" : `, in volume ${volume}`;
 
