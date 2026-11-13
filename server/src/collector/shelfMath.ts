@@ -67,6 +67,18 @@ const onceEach = <T extends { isbn13: string; volume?: number | null }>(
   ...new Map(items.map((i) => [i.isbn13 || `volume:${i.volume}`, i])).values(),
 ];
 
+const sum = (numbers: number[]) => {
+  let total = 0;
+  for (const n of numbers) total += n;
+  return total;
+};
+
+// the place of the last item that passes the test, or -1
+const lastIndexWhere = <T>(list: T[], passes: (item: T) => boolean) => {
+  for (let i = list.length - 1; i >= 0; i--) if (passes(list[i]!)) return i;
+  return -1;
+};
+
 // ---------- what the shelf is worth ----------
 
 export type ShelfValue = {
@@ -93,37 +105,51 @@ export function shelfValue(
   recorded: Map<string, Pick<RecordedPrice, "used">>,
   unlisted = 0,
 ): ShelfValue {
-  const usedOf = (v: ListedVolume) => recorded.get(v.isbn13)?.used ?? undefined;
-  const seen = new Set<string>();
-  // each series' owned books (a book holding two volumes, once), in order
-  const perSeries = series.map(({ owned, volumes }) => {
+  const usedPrice = (book: ListedVolume) =>
+    recorded.get(book.isbn13)?.used ?? undefined;
+  // the used prices we have, for some books
+  const knownPrices = (books: ListedVolume[]) => {
+    const prices: number[] = [];
+    for (const book of books) {
+      const cents = usedPrice(book);
+      if (cents !== undefined) prices.push(cents);
+    }
+    return prices;
+  };
+
+  // each series' owned books, in order. A book holding two volumes (one
+  // ISBN) is counted once, across the whole shelf
+  const counted = new Set<string>();
+  const booksBySeries = series.map(({ owned, volumes }) => {
     const mine = ownedSet(owned);
-    return volumes.filter((v) => {
-      if (!isMainVolume(v) || !mine.has(v.volume) || seen.has(v.isbn13))
-        return false;
-      seen.add(v.isbn13);
-      return true;
-    });
+    const books: ListedVolume[] = [];
+    for (const v of volumes) {
+      if (!isMainVolume(v) || !mine.has(v.volume)) continue;
+      if (counted.has(v.isbn13)) continue;
+      counted.add(v.isbn13);
+      books.push(v);
+    }
+    return books;
   });
-  const prices = perSeries.flat().flatMap((v) => {
-    const cents = usedOf(v);
-    return cents === undefined ? [] : [cents];
-  });
+  const allBooks = booksBySeries.flat();
+
+  const prices = knownPrices(allBooks);
   const shelfUsual = median(prices);
+
+  // the estimate: a priced book at its price, an unpriced one at its series'
+  // usual price, or the shelf's when the series has no price at all
   let estimate = 0;
-  for (const books of perSeries) {
-    const own = books.flatMap((v) => {
-      const cents = usedOf(v);
-      return cents === undefined ? [] : [cents];
-    });
-    const usual = own.length ? median(own) : shelfUsual;
-    for (const v of books) estimate += usedOf(v) ?? usual;
+  for (const books of booksBySeries) {
+    const seriesPrices = knownPrices(books);
+    const seriesUsual = seriesPrices.length ? median(seriesPrices) : shelfUsual;
+    for (const book of books) estimate += usedPrice(book) ?? seriesUsual;
   }
   estimate += unlisted * shelfUsual;
+
   return {
-    cents: prices.reduce((sum, c) => sum + c, 0),
+    cents: sum(prices),
     priced: prices.length,
-    volumes: perSeries.flat().length,
+    volumes: allBooks.length,
     unlisted,
     estimateCents: prices.length ? estimate : null,
   };
@@ -160,7 +186,91 @@ export const ENOUGH_PRICED = 0.6;
 const enoughPriced = (priced: number, all: number) =>
   all > 0 && priced >= all * ENOUGH_PRICED;
 
+type NewPrices = Map<string, Pick<RecordedPrice, "new">>;
+
+// the newest whole volume that's out. A number the saved list skipped still
+// counts when a later one is out. And every number below one known to be
+// coming is out too (vol. 22 due: 19 to 21 are out even if the list never
+// had them)
+function newestVolumeOut(
+  listed: (ListedVolume & { volume: number })[],
+  now: Date,
+) {
+  let newest = 0;
+  let firstComing: number | null = null;
+  for (const v of listed) {
+    if (isOut(v, now)) newest = Math.max(newest, v.volume);
+    else if (firstComing === null || v.volume < firstComing)
+      firstComing = v.volume;
+  }
+  if (firstComing !== null)
+    newest = Math.max(newest, Math.ceil(firstComing) - 1);
+  return newest;
+}
+
 // the volumes out now that they don't own, each with its cheapest new copy.
+// One the list never had is still missing, just with no book to price (no
+// ISBN: it's checked on the series page)
+function missingVolumes(
+  mine: Set<number>,
+  volumes: ListedVolume[],
+  copies: Map<string, Copies>,
+  now: Date,
+) {
+  const listed = volumes.filter(isMainVolume);
+  const byNumber = new Map(listed.map((v) => [v.volume, v]));
+  const cheapestNew = (isbn13: string) => copies.get(isbn13)?.new ?? null;
+
+  const missing: MissingVolume[] = [];
+  // a vol. 0 the list has (Jujutsu Kaisen 0) is part of the run too, unless
+  // their list names it: the price pages count it the same way
+  const zero = volumes.find((v) => v.volume === 0);
+  if (zero && isOut(zero, now) && !mine.has(0))
+    missing.push({
+      volume: 0,
+      isbn13: zero.isbn13,
+      title: zero.title,
+      cheapest: cheapestNew(zero.isbn13),
+    });
+
+  const newest = newestVolumeOut(listed, now);
+  for (let number = 1; number <= newest; number++) {
+    if (mine.has(number)) continue;
+    const listedVolume = byNumber.get(number);
+    // known to be coming, not out: the calendar's, not missing
+    if (listedVolume && !isOut(listedVolume, now)) continue;
+    missing.push({
+      volume: number,
+      isbn13: listedVolume?.isbn13 ?? "",
+      title: listedVolume?.title ?? "",
+      cheapest: listedVolume ? cheapestNew(listedVolume.isbn13) : null,
+    });
+  }
+  return missing;
+}
+
+// what finishing comes to, from the missing books and a price for each
+// unpriced one. No estimate when too little is priced to say (`enough`), or
+// when an unpriced book has nothing at all to go by
+function finishTotal(
+  missing: MissingVolume[],
+  // one book once, where two missing volumes share an ISBN
+  pricedBooks: MissingVolume[],
+  unpricedGuesses: number[],
+  enough: boolean,
+): FinishSeries {
+  const cents = sum(pricedBooks.map((m) => m.cheapest!.cents));
+  const everyGuessIsAPrice = unpricedGuesses.every((guess) => guess > 0);
+  const canEstimate = enough && (everyGuessIsAPrice || pricedBooks.length > 0);
+  return {
+    missing,
+    cents,
+    priced: missing.filter((m) => m.cheapest).length,
+    estimateCents: canEstimate ? cents + sum(unpricedGuesses) : null,
+  };
+}
+
+// the volumes out now that they don't own, and what buying them comes to.
 // Ones not out yet are the calendar's, not missing
 export function finishSeries(
   owned: Owned,
@@ -170,77 +280,42 @@ export function finishSeries(
   fallbackCents = 0,
   // each volume's recorded new price: an unpriced one's own beats the
   // series' usual (see getRecordedMedians)
-  recorded: Map<string, Pick<RecordedPrice, "new">> = new Map(),
+  recorded: NewPrices = new Map(),
 ): FinishSeries {
-  const mine = ownedSet(owned);
-  const listed = volumes.filter(isMainVolume);
-  const out = listed.filter((v) => isOut(v, now));
-  // every whole volume up to the newest one out, as the series' panel counts
-  // them: a number the saved list skipped is still out, just not priced (no
-  // ISBN: it's checked on the series page). One known to be coming isn't
-  // and every number below one known to be coming (vol 22 due: 19 to 21
-  // are out even if the list never had them)
-  const coming = listed.filter((v) => !isOut(v, now)).map((v) => v.volume);
-  const newest = Math.max(
-    0,
-    ...out.map((v) => v.volume),
-    ...(coming.length ? [Math.ceil(Math.min(...coming)) - 1] : []),
-  );
-  const byNumber = new Map(listed.map((v) => [v.volume, v]));
-  const missing: MissingVolume[] = [];
-  for (let n = 1; n <= newest; n++) {
-    if (mine.has(n)) continue;
-    const v = byNumber.get(n);
-    if (v && !isOut(v, now)) continue;
-    missing.push({
-      volume: n,
-      isbn13: v?.isbn13 ?? "",
-      title: v?.title ?? "",
-      cheapest: v ? (copies.get(v.isbn13)?.new ?? null) : null,
-    });
-  }
-  // a vol. 0 the list has (Jujutsu Kaisen 0) is part of the run too, unless
-  // their list names it: the price pages count it the same way
-  const zero = volumes.find((v) => v.volume === 0);
-  if (zero && isOut(zero, now) && !mine.has(0))
-    missing.unshift({
-      volume: 0,
-      isbn13: zero.isbn13,
-      title: zero.title,
-      cheapest: copies.get(zero.isbn13)?.new ?? null,
-    });
-  const priced = onceEach(missing.filter((m) => m.cheapest));
-  const cents = priced.reduce((sum, m) => sum + m.cheapest!.cents, 0);
+  const missing = missingVolumes(ownedSet(owned), volumes, copies, now);
+  const recordedNew = (isbn13: string) =>
+    recorded.get(isbn13)?.new ?? undefined;
+  const newToday = (isbn13: string) => copies.get(isbn13)?.new;
+
   // the series' usual new price, from any of its volumes priced (owned too):
   // what they've gone for, or failing that what they cost now
-  const recordedNew = (isbn: string) => recorded.get(isbn)?.new ?? undefined;
-  const seriesNew = volumes.flatMap((v) => {
-    const c = recordedNew(v.isbn13) ?? copies.get(v.isbn13)?.new?.cents;
-    return c === undefined ? [] : [c];
-  });
-  const usual = seriesNew.length ? median(seriesNew) : fallbackCents;
+  const seriesPrices: number[] = [];
+  for (const v of volumes) {
+    const cents = recordedNew(v.isbn13) ?? newToday(v.isbn13)?.cents;
+    if (cents !== undefined) seriesPrices.push(cents);
+  }
+  const usual = seriesPrices.length ? median(seriesPrices) : fallbackCents;
+
   // each unpriced one at its own recorded price, else the series' usual
-  const unpriced = onceEach(missing.filter((m) => !m.cheapest)).map(
+  const unpricedBooks = onceEach(missing.filter((m) => !m.cheapest));
+  const unpricedGuesses = unpricedBooks.map(
     (m) => (m.isbn13 && recordedNew(m.isbn13)) || usual,
   );
-  const known = unpriced.every((c) => c > 0);
+
   // of every book out, the ones with a price today or one ever recorded
-  const books = onceEach(out);
-  const enough = enoughPriced(
-    books.filter(
-      (v) => copies.get(v.isbn13)?.new || recordedNew(v.isbn13) !== undefined,
-    ).length,
-    books.length,
+  const booksOut = onceEach(
+    volumes.filter(isMainVolume).filter((v) => isOut(v, now)),
   );
-  return {
+  const booksWithAPrice = booksOut.filter(
+    (v) => newToday(v.isbn13) || recordedNew(v.isbn13) !== undefined,
+  );
+
+  return finishTotal(
     missing,
-    cents,
-    priced: missing.filter((m) => m.cheapest).length,
-    estimateCents:
-      enough && (known || priced.length)
-        ? cents + unpriced.reduce((sum, c) => sum + c, 0)
-        : null,
-  };
+    onceEach(missing.filter((m) => m.cheapest)),
+    unpricedGuesses,
+    enoughPriced(booksWithAPrice.length, booksOut.length),
+  );
 }
 
 // the same for someone collecting an edition (prices/editionLines.ts): the
@@ -253,70 +328,95 @@ export function finishEdition(
   line: EditionLine,
   copies: Map<string, Copies>,
   fallbackCents = 0,
-  recorded: Map<string, Pick<RecordedPrice, "new">> = new Map(),
+  recorded: NewPrices = new Map(),
 ): FinishSeries {
   const mine = ownedSet(owned);
-  const lastListed = line.books.reduce((at, b, i) => (b.listed ? i : at), -1);
-  const out = line.books.slice(0, lastListed + 1);
-  const newOf = (isbn: string | null) =>
-    isbn ? (copies.get(isbn)?.new ?? null) : null;
-  const missing: MissingVolume[] = out
-    .filter((b) => !b.volumes.every((v) => mine.has(v)))
-    .map((b) => ({
-      volume: b.number,
-      isbn13: b.isbn13 ?? "",
-      title: b.title ?? `${line.label} ${b.number}`,
-      cheapest: newOf(b.isbn13),
-      label: `${line.label} ${b.number}`,
-      inside: b.volumes,
-    }));
-  const priced = missing.filter((m) => m.cheapest);
-  const cents = priced.reduce((sum, m) => sum + m.cheapest!.cents, 0);
-  const lineNew = out.flatMap((b) => {
-    const c =
-      (b.isbn13 && recorded.get(b.isbn13)?.new) || newOf(b.isbn13)?.cents;
-    return c ? [c] : [];
-  });
-  const usual = lineNew.length ? median(lineNew) : 0;
-  const unpriced = missing
+  const lastListed = lastIndexWhere(line.books, (book) => book.listed);
+  const booksOut = line.books.slice(0, lastListed + 1);
+  const newToday = (isbn13: string | null) =>
+    isbn13 ? (copies.get(isbn13)?.new ?? null) : null;
+  const recordedNew = (isbn13: string | null) =>
+    isbn13 ? recorded.get(isbn13)?.new : undefined;
+
+  const missing: MissingVolume[] = [];
+  for (const book of booksOut) {
+    const ownsAllOfIt = book.volumes.every((v) => mine.has(v));
+    if (ownsAllOfIt) continue;
+    const label = `${line.label} ${book.number}`;
+    missing.push({
+      volume: book.number,
+      isbn13: book.isbn13 ?? "",
+      title: book.title ?? label,
+      cheapest: newToday(book.isbn13),
+      label,
+      inside: book.volumes,
+    });
+  }
+
+  // the line's usual price, from any of its books priced (owned too)
+  const linePrices: number[] = [];
+  for (const book of booksOut) {
+    const cents = recordedNew(book.isbn13) || newToday(book.isbn13)?.cents;
+    if (cents) linePrices.push(cents);
+  }
+  const usual = linePrices.length ? median(linePrices) : 0;
+
+  // each unpriced book at its own recorded price, else the line's usual,
+  // else a single volume's price for each volume inside
+  const unpricedGuesses = missing
     .filter((m) => !m.cheapest)
     .map(
       (m) =>
-        (m.isbn13 && recorded.get(m.isbn13)?.new) ||
+        recordedNew(m.isbn13 || null) ||
         usual ||
         fallbackCents * (m.inside?.length ?? 1),
     );
-  return {
+
+  return finishTotal(
     missing,
-    cents,
-    priced: priced.length,
-    estimateCents:
-      enoughPriced(lineNew.length, out.length) &&
-      (unpriced.every((c) => c > 0) || priced.length)
-        ? cents + unpriced.reduce((sum, c) => sum + c, 0)
-        : null,
-  };
+    missing.filter((m) => m.cheapest),
+    unpricedGuesses,
+    enoughPriced(linePrices.length, booksOut.length),
+  );
+}
+
+type RecordedBook = { edition: string; volumes: number[] };
+
+// how many of their volumes sit in books that are this line's own: a recorded
+// "Deluxe" book holding 4–6 matches a deluxe line with a book holding 4–6. A
+// deluxe book never points to an omnibus line of the same size
+function volumesInLine(line: EditionLine, recorded: RecordedBook[]) {
+  const lineBooks = new Set(line.books.map((book) => book.volumes.join()));
+  let volumes = 0;
+  for (const book of recorded) {
+    const sameKind = book.edition === line.kind;
+    if (sameKind && lineBooks.has(book.volumes.join()))
+      volumes += book.volumes.length;
+  }
+  return volumes;
 }
 
 // the line a reader seems to collect, from the books they've recorded: the
-// one of the same kind whose books match theirs, when those cover at least
-// half of what they own. The same rule as the details page's
-// (client/src/lib/editions.ts guessEdition), so the two agree
+// one whose books match theirs, when those cover at least half of what they
+// own. The same rule as the details page's (client/src/lib/editions.ts
+// guessEdition and its volumesInLine), so the two agree
 export function guessedLine(
   lines: EditionLine[],
-  books: { edition: string; volumes: number[] }[],
+  books: RecordedBook[],
   ownedCount: number,
 ): EditionLine | null {
   if (!lines.length || !ownedCount) return null;
-  let best: { line: EditionLine; covered: number } | null = null;
+  let best: EditionLine | null = null;
+  let bestVolumes = 0;
   for (const line of lines) {
-    const sets = new Set(line.books.map((b) => b.volumes.join()));
-    const covered = books
-      .filter((b) => b.edition === line.kind && sets.has(b.volumes.join()))
-      .reduce((sum, b) => sum + b.volumes.length, 0);
-    if (covered > (best?.covered ?? 0)) best = { line, covered };
+    const volumes = volumesInLine(line, books);
+    if (volumes > bestVolumes) {
+      best = line;
+      bestVolumes = volumes;
+    }
   }
-  return best && best.covered * 2 >= ownedCount ? best.line : null;
+  const atLeastHalf = bestVolumes * 2 >= ownedCount;
+  return atLeastHalf ? best : null;
 }
 
 // ---------- coming out ----------
@@ -341,24 +441,21 @@ export function upcoming(
 ): Upcoming[] {
   const until = new Date(now);
   until.setUTCMonth(until.getUTCMonth() + months);
-  return onceEach(
-    volumes.flatMap((v) => {
-      const day = releaseDay(v.published);
-      return day && day > now && day <= until
-        ? [
-            {
-              volume: v.volume,
-              isbn13: v.isbn13,
-              title: v.title,
-              coverUrl: v.coverUrl ?? null,
-              published: v.published!,
-              month: v.published!.slice(0, 7),
-            },
-          ]
-        : [];
-    }),
-  ).sort(
-    (a, b) =>
-      releaseDay(a.published)!.getTime() - releaseDay(b.published)!.getTime(),
-  );
+
+  const coming: Upcoming[] = [];
+  for (const v of volumes) {
+    const day = releaseDay(v.published);
+    const inWindow = day !== null && day > now && day <= until;
+    if (!inWindow) continue;
+    coming.push({
+      volume: v.volume,
+      isbn13: v.isbn13,
+      title: v.title,
+      coverUrl: v.coverUrl ?? null,
+      published: v.published!,
+      month: v.published!.slice(0, 7),
+    });
+  }
+  const dayOf = (u: Upcoming) => releaseDay(u.published)!.getTime();
+  return onceEach(coming).sort((a, b) => dayOf(a) - dayOf(b));
 }
