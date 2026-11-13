@@ -69,13 +69,17 @@ function piecesOf(line: string | null | undefined): Piece[] {
 // 1", "EP4" as "episode 4"; anything else ("Reze Movie", "1996") as it's
 // written
 export function seasonName(short: string) {
-  return short
-    .replace(/\bS(\d+)P(\d+)\b/g, "Season $1 part $2")
-    .replace(/\bS(\d+)\b/g, "Season $1")
-    .replace(/\bP(\d+)\b/g, "part $1")
-    .replace(/\bEP\s*(\d+)/g, "episode $1")
-    .replace(/\s+/g, " ")
-    .trim();
+  return (
+    short
+      .replace(/\bS(\d+)P(\d+)\b/g, "Season $1 part $2")
+      .replace(/\bS(\d+)\b/g, "Season $1")
+      .replace(/\bP(\d+)\b/g, "part $1")
+      .replace(/\bEP\s*(\d+)/g, "episode $1")
+      .replace(/\s+/g, " ")
+      // a season with extras tacked on is that season: "Season 8 + More OVA"
+      .replace(/^(Season \d+(?: part \d+)?)\s*\+.*$/, "$1")
+      .trim()
+  );
 }
 
 // the bracket is the season's name when it's short and isn't a remark

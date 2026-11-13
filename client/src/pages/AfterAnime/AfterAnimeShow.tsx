@@ -25,6 +25,7 @@ import { formatCents, seriesCanonicalPath, timeAgo } from "../../lib/prices";
 import type { SeriesVolume } from "../../lib/types";
 import { linkRel } from "../Prices/offerLabels";
 import { usePageMeta } from "../../lib/seo";
+import { faqStyles } from "../Faq/styles";
 import { pricesStyles as priceStyles } from "../Prices/styles";
 import { useSeriesLoad } from "../Prices/useSeriesData";
 import FixForm from "./FixForm";
@@ -233,14 +234,18 @@ export default function AfterAnimeShow() {
             <h2 id="questions-title" className={priceStyles.sectionTitle}>
               Questions
             </h2>
-            <dl className={styles.questions}>
+            {/* rows that open, as on the FAQ page */}
+            <div className={faqStyles.list}>
               {showQuestions(show).map(({ q, a }) => (
-                <div key={q}>
-                  <dt className={styles.question}>{q}</dt>
-                  <dd className={styles.answer}>{a}</dd>
-                </div>
+                <details key={q} className={faqStyles.item}>
+                  <summary className={faqStyles.question}>
+                    {q}
+                    <span className={faqStyles.mark} aria-hidden />
+                  </summary>
+                  <p className={faqStyles.answer}>{a}</p>
+                </details>
               ))}
-            </dl>
+            </div>
           </section>
           <MoreShows notThis={show.slug} />
           <p className={styles.credit}>

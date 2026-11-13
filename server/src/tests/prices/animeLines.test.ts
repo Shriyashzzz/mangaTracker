@@ -151,7 +151,9 @@ test("nothing to read gives no stops", () => {
 
 test("short season names are written out", () => {
   expect(seasonName("S2")).toBe("Season 2");
-  expect(seasonName("S1P2 + OVA")).toBe("Season 1 part 2 + OVA");
+  expect(seasonName("S1P2 + OVA")).toBe("Season 1 part 2");
+  expect(seasonName("S8 + More OVA")).toBe("Season 8");
+  expect(seasonName("OVA 10 + Movie 3")).toBe("OVA 10 + Movie 3");
   expect(seasonName("S2P1 EP4")).toBe("Season 2 part 1 episode 4");
   expect(seasonName("Reze Movie")).toBe("Reze Movie");
 });

@@ -122,6 +122,23 @@ export default function SeasonPanel({
         </div>
       )}
 
+      {/* the anime told all of it: nothing to carry on with, but the manga
+          is still there to own */}
+      {stop.coversAll && (
+        <div className={styles.volumes}>
+          <p className={styles.volumesNote}>
+            Want it on your shelf? The whole manga is out.
+          </p>
+          <NavLink
+            to={seriesCanonicalPath(seriesName)}
+            className="btn btn-primary w-fit"
+            viewTransition
+          >
+            See every volume and price
+          </NavLink>
+        </div>
+      )}
+
       <FixForm seriesName={seriesName} season={stop.label} />
     </section>
   );

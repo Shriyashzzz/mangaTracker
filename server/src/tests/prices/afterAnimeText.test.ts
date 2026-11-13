@@ -71,9 +71,9 @@ test("a volume without a chapter says about where to pick up", () => {
 
 test("an anime that adapts all of it has nothing left to read", () => {
   const all = { ...first, endChapter: 271, coversAll: true };
-  expect(startText(all)).toBe("Nothing left to read");
+  expect(startText(all)).toBe("You've seen the whole story");
   expect(endText(all)).toBe(
-    "Season 1 adapts the manga to its end, chapter 271, in volume 8.",
+    "Season 1 covers the manga right to its final chapter (271, volume 8). There's nothing new to read after it.",
   );
   expect(volumesToGet(all)).toEqual([]);
 });
@@ -100,16 +100,14 @@ test("the answer in plain sentences, and as a table row", () => {
   expect(tableRow(third)).toEqual({
     watched: "Season 3",
     start: "Chapter 181",
-    buy: "Volume 21 or 22",
+    volume: "21 or 22",
   });
-  expect(tableRow(first).buy).toBe("Volume 8");
+  expect(tableRow(first).volume).toBe("8");
   const all = { ...first, endChapter: 271, coversAll: true };
-  expect(answerSentence(all)).toBe(
-    "Season 1 adapts the manga to its end, chapter 271, in volume 8. There's nothing left to read after it.",
-  );
+  expect(answerSentence(all)).toBe(endText(all));
   expect(tableRow(all)).toMatchObject({
-    start: "Nothing left to read",
-    buy: "",
+    start: "You've seen it all",
+    volume: "",
   });
 });
 
@@ -127,6 +125,9 @@ test("a show's questions are the ones it can answer", () => {
     "Which Jujutsu Kaisen volume do I buy after the anime?",
     "Does the Jujutsu Kaisen anime cover the whole manga?",
   ]);
+  expect(questions[1]!.a).toBe(
+    "Season 1 ends at chapter 63. Season 2 ends at chapter 137. Season 3 stops partway through chapter 181.",
+  );
   expect(questions[2]!.a).toBe(
     "After Season 3, the story carries on at chapter 181, which is in volume 21 or 22.",
   );

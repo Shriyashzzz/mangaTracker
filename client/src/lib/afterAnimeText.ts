@@ -32,7 +32,7 @@ export function afterLabel(stop: AnimeStop) {
 
 // the answer itself, said big
 export function startText(stop: AnimeStop) {
-  if (stop.coversAll) return "Nothing left to read";
+  if (stop.coversAll) return "You've seen the whole story";
   if (stop.nextChapter !== null) return `Start at chapter ${stop.nextChapter}`;
   if (stop.nextVolume !== null) return `Start with volume ${stop.nextVolume}`;
   if (stop.endVolume !== null) return `Pick up around volume ${stop.endVolume}`;
@@ -45,8 +45,10 @@ const inVolume = (volume: number | null) =>
 // where the season stops, as one sentence
 export function endText(stop: AnimeStop) {
   const season = stop.label === "The anime" ? "The anime" : stop.label;
-  if (stop.coversAll)
-    return `${season} adapts the manga to its end, chapter ${stop.endChapter}${inVolume(stop.endVolume)}.`;
+  if (stop.coversAll) {
+    const volume = stop.endVolume === null ? "" : `, volume ${stop.endVolume}`;
+    return `${season} covers the manga right to its final chapter (${stop.endChapter}${volume}). There's nothing new to read after it.`;
+  }
   if (stop.endChapter === null) {
     if (stop.endVolume !== null)
       return `${season} ends in volume ${stop.endVolume}.`;
@@ -174,26 +176,38 @@ function volumeWords(stop: AnimeStop) {
 // To carry on with the story, start the manga at chapter 138, in volume 16."
 export function answerSentence(stop: AnimeStop) {
   const where = endText(stop);
-  if (stop.coversAll) return `${where} There's nothing left to read after it.`;
+  // the end's own sentence already says there's nothing after it
+  if (stop.coversAll) return where;
   if (stop.nextChapter === null) return where;
   const volume = volumeWords(stop);
   const inWhich = volume ? `, in volume ${volume}` : "";
   return `${where} To carry on with the story, start the manga at chapter ${stop.nextChapter}${inWhich}.`.trim();
 }
 
-// a season as a row of the page's table, whose three headings are the
-// reader's own questions: "If you watched", "Start reading at", "Buy".
-// An empty string is something the season doesn't say
+// a season as a row of the page's table: "If you watched", "Start reading
+// at", "Volume". An empty string is something the season doesn't say
 export function tableRow(stop: AnimeStop) {
   const volume = volumeWords(stop);
   let start = "";
-  if (stop.coversAll) start = "Nothing left to read";
+  if (stop.coversAll) start = "You've seen it all";
   else if (stop.nextChapter !== null) start = `Chapter ${stop.nextChapter}`;
   return {
     watched: stop.label,
     start,
-    buy: volume ? `Volume ${volume}` : "",
+    volume,
   };
+}
+
+// "Season 2 ends at chapter 137." for the list of every season's last
+// chapter; "" for a season with no chapter on record
+function endsAtChapter(stop: AnimeStop) {
+  if (stop.endChapter === null) return "";
+  const season = stop.label === "The anime" ? "The anime" : stop.label;
+  if (stop.endsMidChapter)
+    return `${season} stops partway through chapter ${stop.endChapter}.`;
+  if (stop.coversAll)
+    return `${season} ends at chapter ${stop.endChapter}, the manga's last.`;
+  return `${season} ends at chapter ${stop.endChapter}.`;
 }
 
 // the questions a show's page answers, as people type them, for its FAQ
@@ -205,7 +219,7 @@ export function showQuestions(show: ShowForMeta) {
     { q: showQuestion(show.name), a: answerSentence(latest) },
     {
       q: `What chapter does ${theAnime(show.name)} end on?`,
-      a: show.stops.map(endText).filter(Boolean).join(" "),
+      a: show.stops.map(endsAtChapter).filter(Boolean).join(" "),
     },
   ];
   const volume = volumeWords(latest);

@@ -1,5 +1,5 @@
-// Every season of a show at a glance, under the reader's own questions: "If
-// you watched", "Start reading at", "Buy". The volume links to the season's
+// Every season of a show at a glance: "If you watched", "Start reading at",
+// "Volume". The volume links to the season's
 // panel further down, where its buy button is. For a show with several
 // seasons; one season's panel says it all by itself.
 import {
@@ -14,14 +14,14 @@ export default function SeasonTable({ stops }: { stops: AnimeStop[] }) {
     <div className={styles.tableWrap}>
       <table className={styles.table}>
         <caption className="sr-only">
-          Which chapter to start reading at and which volume to buy, by the last
-          season you watched
+          Which chapter to start reading at and which volume it's in, by the
+          last season you watched
         </caption>
         <thead>
           <tr>
             <th scope="col">If you watched</th>
             <th scope="col">Start reading at</th>
-            <th scope="col">Buy</th>
+            <th scope="col">Volume</th>
           </tr>
         </thead>
         <tbody>
@@ -40,7 +40,7 @@ export default function SeasonTable({ stops }: { stops: AnimeStop[] }) {
                     <span className="sr-only">Nothing to buy next</span>
                   ) : (
                     <a href={`#${seasonAnchor(stop)}`}>
-                      {row.buy || "See volumes"}
+                      {row.volume || "See volumes"}
                     </a>
                   )}
                 </td>
