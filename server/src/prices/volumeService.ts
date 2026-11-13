@@ -348,6 +348,33 @@ export async function upcomingReleaseOf(isbn13: string) {
   return notOutYet(series?.volumes.find((v) => v.isbn13 === isbn13)?.published);
 }
 
+// when a volume's prices were checked: the oldest of its source checks (as
+// shelf and series prices and the home page say), so an eBay look every few
+// days doesn't make 20-day-old store prices read as fresh. Before sources
+// were timed apart, the last check of any kind
+async function pricesCheckedAt(isbn13: string) {
+  const [lastCheck, sourceChecks] = await Promise.all([
+    priceQueries.getLastCheck(isbn13),
+    priceQueries.getSourceChecks(isbn13),
+  ]);
+  const times = [...sourceChecks.values()].map((at) => at.getTime());
+  return times.length ? new Date(Math.min(...times)) : lastCheck?.checkedAt;
+}
+
+// the rest of a series' books, each once: a book holding two volumes is
+// listed under both numbers
+function otherBooksOf<T extends { isbn13: string }>(
+  volumes: T[],
+  thisIsbn: string,
+) {
+  const seen = new Set([thisIsbn]);
+  return volumes.filter((v) => {
+    if (seen.has(v.isbn13)) return false;
+    seen.add(v.isbn13);
+    return true;
+  });
+}
+
 // `refresh: false` shows what's stored without fetching new prices (crawlers)
 // `refresh`: a live check may run. `report`: say whether one would (the
 // page's "refreshable"); crawlers never run one, so they're spared asking
@@ -373,16 +400,10 @@ export async function getVolumePrices(
   );
   if (refresh && known && !preorder) await refreshIfStale(isbn13, book);
 
-  // when its prices were checked: the oldest of its source checks (as shelf
-  // and series prices and the home page say), so an eBay look every few days
-  // doesn't make 20-day-old store prices read as fresh
-  const [last, groupChecks, [coverRow]] = await Promise.all([
-    priceQueries.getLastCheck(isbn13),
-    priceQueries.getSourceChecks(isbn13),
+  const [checkedAt, [coverRow]] = await Promise.all([
+    pricesCheckedAt(isbn13),
     priceQueries.getCoverIds([isbn13]).catch(() => []),
   ]);
-  const kept = [...groupChecks.values()].map((at) => at.getTime());
-  const checkedAt = kept.length ? new Date(Math.min(...kept)) : last?.checkedAt;
   // whether a live check (with Turnstile) would look again: the page shows
   // these stored prices first and only asks for one when it would
   const refreshable =
@@ -400,7 +421,6 @@ export async function getVolumePrices(
   const inBook =
     series.volumes.find((v) => v.isbn13 === book.isbn13 && v.inBook)?.inBook ??
     null;
-  const seen = new Set([book.isbn13]);
   const listed = series.volumes.find((v) => v.isbn13.trim() === book.isbn13);
   return {
     refreshable,
@@ -416,11 +436,7 @@ export async function getVolumePrices(
     preorder,
     // the rest of the series, for the "from the same series" row: each book
     // once, though it holds two volumes
-    siblings: series.volumes.filter((v) => {
-      if (seen.has(v.isbn13)) return false;
-      seen.add(v.isbn13);
-      return true;
-    }),
+    siblings: otherBooksOf(series.volumes, book.isbn13),
     book: {
       isbn13: book.isbn13,
       title: book.title,
