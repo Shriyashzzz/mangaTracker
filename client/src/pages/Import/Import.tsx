@@ -1,3 +1,8 @@
+// The import page: pick where the list comes from, then follow its steps.
+// MyAnimeList (a file), AniList and Kitsu (a username) are imported here,
+// with their state and steps in useListImport.ts and the last screen in
+// ImportDone.tsx. A book app's file (Goodreads, Book Catalogue, a CSV) is
+// BookImport.tsx.
 import {
   useEffect,
   useState,
@@ -6,19 +11,10 @@ import {
   type FormEvent,
 } from "react";
 import { NavLink, useNavigate } from "react-router";
-import Mascot from "../../components/mascot/Mascot";
 import { signInPath } from "../../lib/api";
-import {
-  ImportFileError,
-  MAL_LISTS,
-  readMalExport,
-  sendToShelf,
-  type ImportTotals,
-  type MalItem,
-} from "../../lib/imports/malImport";
+import { MAL_LISTS } from "../../lib/imports/malImport";
 import { usePrivatePage } from "../../lib/seo";
 import { useAuth } from "../../store/auth";
-import { useShelf } from "../../store/shelf";
 import type { BookSource } from "../../lib/imports/bookImport";
 import BookImport from "./BookImport";
 import {
@@ -26,11 +22,9 @@ import {
   savedSource,
   useBookImport,
 } from "../../store/bookImport";
-import {
-  readAniList,
-  readKitsu,
-  type AccountSource,
-} from "../../lib/imports/accountImport";
+import type { AccountSource } from "../../lib/imports/accountImport";
+import ImportDone from "./ImportDone";
+import { useListImport } from "./useListImport";
 import { importStyles as styles } from "./styles";
 
 const EXPORT_PAGE = "https://myanimelist.net/panel.php?go=export";
@@ -57,18 +51,25 @@ export function ImportPage() {
     () => useBookImport.getState().source ?? savedSource() ?? "mal",
   );
   const [username, setUsername] = useState("");
-  const [finding, setFinding] = useState(false);
   const isSignedIn = useAuth((s) => s.isSignedIn);
   const navigate = useNavigate();
-  const [fileName, setFileName] = useState("");
-  const [items, setItems] = useState<MalItem[] | null>(null);
-  const [fileError, setFileError] = useState("");
   const [dragging, setDragging] = useState(false);
-  const [unticked, setUnticked] = useState<Set<string>>(new Set());
-  const [progress, setProgress] = useState<number | null>(null);
-  const [totals, setTotals] = useState<ImportTotals | null>(null);
-  const [failed, setFailed] = useState(false);
-  const [finished, setFinished] = useState(false);
+  // the MyAnimeList, AniList and Kitsu import (a book app's is BookImport)
+  const list = useListImport();
+  const {
+    fileName,
+    items,
+    fileError,
+    finding,
+    unticked,
+    progress,
+    totals,
+    failed,
+    chosen,
+    countOf,
+    toggle,
+    start,
+  } = list;
   // a book app's import matching or adding, wherever it was started
   const bookBusy = useBookImport(bookImportBusy);
   const bookSource = useBookImport((s) => s.source);
@@ -81,88 +82,18 @@ export function ImportPage() {
   // a fresh start for each place a list can come from
   const pickSource = (next: Source) => {
     setSource(next);
-    setItems(null);
-    setFileError("");
-    setFileName("");
-    setFailed(false);
-  };
-
-  const showFound = (found: MalItem[], empty: string) => {
-    if (!found.length) {
-      setFileError(empty);
-      return;
-    }
-    setItems(found);
-    setUnticked(
-      new Set(
-        MAL_LISTS.filter((list) => !list.importByDefault).map((l) => l.status),
-      ),
-    );
+    list.reset();
   };
 
   // AniList or Kitsu: their public list, by username
-  const findList = async (e: FormEvent) => {
+  const findList = (e: FormEvent) => {
     e.preventDefault();
-    const name = username.trim();
-    if (!name || source === "mal" || isBookSource(source)) return;
-    setFileError("");
-    setItems(null);
-    setFailed(false);
-    setFinding(true);
-    try {
-      const found = await (source === "anilist"
-        ? readAniList(name)
-        : readKitsu(name));
-      setFileName(`${name} on ${source === "anilist" ? "AniList" : "Kitsu"}`);
-      showFound(found, "That list has no manga on it yet.");
-    } catch (err) {
-      setFileError(
-        err instanceof ImportFileError
-          ? err.message
-          : "That list couldn't be reached. Check your connection and try again.",
-      );
-    } finally {
-      setFinding(false);
-    }
-  };
-
-  const countOf = (status: string) =>
-    (items ?? []).filter((item) => item.status === status).length;
-  const chosen = (items ?? []).filter((item) => !unticked.has(item.status));
-
-  const open = async (file: File | undefined) => {
-    if (!file) return;
-    setFileError("");
-    setItems(null);
-    setFailed(false);
-    setFileName(file.name);
-    try {
-      const found = await readMalExport(file);
-      if (!found.length) {
-        setFileError(
-          "That list is empty. Add some manga on MyAnimeList, then export it again.",
-        );
-        return;
-      }
-      setItems(found);
-      setUnticked(
-        new Set(
-          MAL_LISTS.filter((list) => !list.importByDefault).map(
-            (l) => l.status,
-          ),
-        ),
-      );
-    } catch (e) {
-      setFileError(
-        e instanceof ImportFileError
-          ? e.message
-          : "That file couldn't be read. Try downloading it again.",
-      );
-    }
+    if (source === "anilist" || source === "kitsu")
+      void list.findList(source, username);
   };
 
   const onPick = (e: ChangeEvent<HTMLInputElement>) => {
-    void open(e.target.files?.[0]);
+    void list.openFile(e.target.files?.[0]);
     // so picking the same file again still counts as a change
     e.target.value = "";
   };
@@ -170,81 +101,19 @@ export function ImportPage() {
   const onDrop = (e: DragEvent) => {
     e.preventDefault();
     setDragging(false);
-    void open(e.dataTransfer.files[0]);
-  };
-
-  const toggle = (status: string) => {
-    const next = new Set(unticked);
-    if (next.has(status)) next.delete(status);
-    else next.add(status);
-    setUnticked(next);
-  };
-
-  const start = async () => {
-    setFailed(false);
-    setProgress(0);
-    try {
-      const done = await sendToShelf(
-        chosen.map((item) => item.entry),
-        (sent, soFar) => {
-          setProgress(sent);
-          setTotals(soFar);
-        },
-      );
-      setTotals(done);
-      setFinished(true);
-      // the shelf picks up what's new when they go back to it
-      void useShelf.getState().load();
-    } catch (e) {
-      const soFar = (e as { totals?: ImportTotals }).totals;
-      if (soFar) setTotals(soFar);
-      setFailed(true);
-      void useShelf.getState().load();
-    } finally {
-      setProgress(null);
-    }
+    void list.openFile(e.dataTransfer.files[0]);
   };
 
   if (!isSignedIn) return null;
 
-  if (finished && totals) {
-    return (
-      <div className={`${styles.page} fade-in`}>
-        <section className={`${styles.sheet} ${styles.result}`}>
-          <span className="printed mascot-spot" aria-hidden>
-            <Mascot mood="happy" />
-          </span>
-          <h1 className={styles.resultTitle} role="status">
-            {totals.added
-              ? `${series(totals.added)} added!`
-              : totals.volumesAdded
-                ? "Volumes added!"
-                : "All already there!"}
-          </h1>
-          <p className={styles.resultBody}>
-            {totals.alreadyThere > 0 &&
-              (totals.volumesAdded
-                ? `${series(totals.alreadyThere)} already on your shelf; ${series(totals.volumesAdded)} got the new volumes from your file, nothing else changed. `
-                : `${series(totals.alreadyThere)} already on your shelf, so we left them alone. `)}
-            {totals.noCover > 0 &&
-              `${series(totals.noCover)} came in without a cover. You can add one with Edit details.`}
-          </p>
-          <NavLink
-            to="/shelf"
-            className="btn btn-primary btn-lg mt-2"
-            viewTransition
-          >
-            Go to my shelf
-          </NavLink>
-        </section>
-      </div>
-    );
-  }
+  if (list.finished && totals) return <ImportDone totals={totals} />;
 
   const importing = progress !== null;
   // the app whose import is working: the other apps wait until it's done, so
   // switching can't drop it halfway
-  const busySource = importing ? source : bookBusy ? bookSource : null;
+  let busySource: Source | null = null;
+  if (importing) busySource = source;
+  else if (bookBusy) busySource = bookSource;
 
   return (
     <div className={`${styles.page} fade-in`}>
