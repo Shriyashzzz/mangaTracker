@@ -242,6 +242,7 @@ export default function AfterAnimeShow() {
                 volumes={volumes}
                 offers={offers}
                 saidAbove={stop === latest}
+                seriesCoverUrl={show.coverUrl}
               />
             ))}
           </div>

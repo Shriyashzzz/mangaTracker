@@ -16,6 +16,7 @@ import {
 } from "../../lib/prices";
 import type { SeriesVolume } from "../../lib/types";
 import { linkRel } from "../Prices/offerLabels";
+import { CoverFallback } from "../Prices/VolumeCard";
 import { afterAnimeStyles as styles } from "./styles";
 
 export default function BuyRow({
@@ -24,6 +25,7 @@ export default function BuyRow({
   book,
   offer,
   used,
+  seriesCoverUrl,
 }: {
   volume: number;
   // "Chapter 95 is in this one"
@@ -34,6 +36,8 @@ export default function BuyRow({
   offer: BuyOffer | null;
   // and its cheapest used one (Better World Books', most often)
   used: UsedOffer | null;
+  // stands in, washed out, when this volume has no cover of its own
+  seriesCoverUrl: string | null;
 }) {
   // where the button goes: the new copy, or else the used one
   const main = offer ?? used;
@@ -52,7 +56,7 @@ export default function BuyRow({
         tabIndex={-1}
         viewTransition
       >
-        <span className={styles.buyCoverNumber}>{volume}</span>
+        <CoverFallback number={volume} seriesCoverUrl={seriesCoverUrl} />
         {book.coverUrl && (
           <img
             src={coverSrc(book.coverUrl)}

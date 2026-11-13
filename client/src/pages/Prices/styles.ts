@@ -150,6 +150,14 @@ export const pricesStyles = {
   // the series cover standing in for a missing volume cover; the drawn
   // number shows again if it fails too
   seriesFallback: "absolute inset-0 size-full object-cover",
+  // the same picture standing in for a later volume, under a paper veil
+  // that washes it out, so it reads as a stand-in beside real covers. The
+  // veil goes when the picture fails, leaving the drawn number clear
+  seriesStandIn: "absolute inset-0 size-full object-cover saturate-50",
+  standInVeil: "absolute inset-0 bg-paper/55 [img[hidden]+&]:hidden",
+  // its number on a paper plate, where the card has no corner tab for it
+  standInNumber:
+    "absolute top-1/2 left-1/2 -translate-1/2 -rotate-3 border-2 border-line bg-paper px-[0.4em] pt-[0.12em] pb-[0.02em] text-[0.8em] leading-none text-ink shadow-ink",
   // the volume number as a tab on the top corner, readable at a glance even
   // when several volumes share the series cover
   // a book holding several volumes: the cards behind it, fanned like a hand

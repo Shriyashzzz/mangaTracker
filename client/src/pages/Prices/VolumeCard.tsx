@@ -11,30 +11,56 @@ import { stayInTrip, useFromShelf } from "../../lib/fromShelf";
 import { pricesStyles as styles } from "./styles";
 
 // one volume: cover, volume tag, title and, when we have one, the best known
-// price. Used by search, series and home sections. Without this edition's
-// cover, vol. 1 shows the series cover from AniList (it's vol. 1's art); any
-// other volume shows its drawn number, never another volume's cover
-// what sits behind a volume's own cover, showing when it's missing
+// price. Used by search, series and home sections.
+
+// What sits behind a volume's own cover, showing when it's missing: the
+// series' cover from AniList, standing in. For vol. 1 that picture is its
+// own art, so it's shown as it is. For any other volume it's a stand-in:
+// washed out, with the volume's number over it, so it's never taken for
+// that volume's real cover. With no series cover either, the drawn number.
+//
+// `numbered`: the card already carries the number on its corner tab
+// (VolumeCard), so it isn't stamped a second time
 export function CoverFallback({
   number,
   seriesCoverUrl,
+  numbered = false,
 }: {
   number?: number | null;
   seriesCoverUrl?: string | null;
+  numbered?: boolean;
 }) {
+  const isItsOwnArt = number == null || number <= 1;
+  if (!seriesCoverUrl || isItsOwnArt)
+    return (
+      <span className={styles.coverFallback} aria-hidden>
+        {number ?? "?"}
+        {seriesCoverUrl && (
+          <img
+            className={styles.seriesFallback}
+            src={seriesCoverUrl}
+            alt=""
+            loading="lazy"
+            onError={hideBrokenCover}
+            onLoad={hidePlaceholderCover}
+          />
+        )}
+      </span>
+    );
   return (
     <span className={styles.coverFallback} aria-hidden>
-      {number ?? "?"}
-      {seriesCoverUrl && (number == null || number <= 1) && (
-        <img
-          className={styles.seriesFallback}
-          src={seriesCoverUrl}
-          alt=""
-          loading="lazy"
-          onError={hideBrokenCover}
-          onLoad={hidePlaceholderCover}
-        />
-      )}
+      {/* under the picture: shows if the series cover fails to load too */}
+      {number}
+      <img
+        className={styles.seriesStandIn}
+        src={seriesCoverUrl}
+        alt=""
+        loading="lazy"
+        onError={hideBrokenCover}
+        onLoad={hidePlaceholderCover}
+      />
+      <span className={styles.standInVeil} />
+      {!numbered && <span className={styles.standInNumber}>{number}</span>}
     </span>
   );
 }
@@ -97,7 +123,11 @@ export default function VolumeCard({
             </span>
           ))}
         <span className={styles.cover}>
-          <CoverFallback number={volume} seriesCoverUrl={seriesCoverUrl} />
+          <CoverFallback
+            number={volume}
+            seriesCoverUrl={seriesCoverUrl}
+            numbered={volume != null}
+          />
           {coverUrl && (
             <img
               src={coverSrc(coverUrl)}

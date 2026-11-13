@@ -339,6 +339,7 @@ export default function PriceSeries() {
                 key={card[0]!.volume}
                 card={card}
                 mark={markOf(card, mine, next)}
+                seriesCoverUrl={info?.coverUrl ?? null}
               />
             ))}
           </ul>
