@@ -117,14 +117,15 @@ export const readTrackBy = (value: unknown): TrackBy =>
   value === "chapters" || value === "volumes" || value === "both"
     ? value
     : "series";
-export const tracksOf = (byVolume: boolean | undefined, mode: TrackBy) => ({
-  chapters:
-    mode === "chapters" || mode === "both" || (mode === "series" && !byVolume),
-  volumes:
-    mode === "volumes" ||
-    mode === "both" ||
-    (mode === "series" && Boolean(byVolume)),
-});
+// which counters a series shows. One setting for every series wins; left on
+// "series", each series follows its own switch. The same rule as the pages'
+// (client/src/lib/reading.ts tracksOf): change both together
+export const tracksOf = (byVolume: boolean | undefined, mode: TrackBy) => {
+  if (mode === "both") return { chapters: true, volumes: true };
+  if (mode === "chapters") return { chapters: true, volumes: false };
+  if (mode === "volumes") return { chapters: false, volumes: true };
+  return { chapters: !byVolume, volumes: Boolean(byVolume) };
+};
 // the series as its release check sees it: a number they don't track says
 // nothing, so a volume reader gets no chapter news
 export const placeFor = <
