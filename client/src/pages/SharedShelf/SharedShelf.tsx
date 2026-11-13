@@ -4,7 +4,6 @@
 // tapped (SeriesSheet). An open series is in the address (?series=), so a
 // link can open straight to it. Someone without an account gets Kenji on their first
 // three visits (SharePeek) and a way to start their own at the end
-import { placeText } from "../../lib/reading";
 import { useEffect, useMemo, useState } from "react";
 import {
   NavLink,
@@ -15,266 +14,28 @@ import {
 } from "react-router";
 import Avatar from "../../components/avatar/Avatar";
 import Mascot from "../../components/mascot/Mascot";
-import StarRating from "../../components/starRating/StarRating";
-import {
-  CheckIcon,
-  ChevronDownIcon,
-  LinkIcon,
-  SearchIcon,
-  ShareIcon,
-} from "../../components/icons/Icons";
+import { ChevronDownIcon, SearchIcon } from "../../components/icons/Icons";
 import { getSharedShelf, type SharedShelf } from "../../lib/account";
-import { readLocal, writeLocal } from "../../lib/prefs";
+import { writeLocal } from "../../lib/prefs";
 import { countShareVisit, sharePeekFor } from "../../lib/sharePeek";
 import { usePageMeta } from "../../lib/seo";
 import { useAuth } from "../../store/auth";
 import { settingsStyles } from "../Settings/styles";
-import SeriesSheet, { Cover } from "./SeriesSheet";
-import {
-  ownedCountOf,
-  ownedVolumesOf,
-  shelfOf,
-  statusOf,
-  TONES,
-  volumeRanges,
-  type SharedManga,
-} from "./shareParts";
+import SeriesSheet from "./SeriesSheet";
+import { ownedCountOf, statusOf, TONES, type SharedManga } from "./shareParts";
 import SharePeek from "./SharePeek";
 import { shareStyles as styles } from "./styles";
-
-const SECTIONS = ["Reading", "Finished", "To read"] as const;
-
-const SORTS = {
-  name: {
-    label: "A–Z",
-    order: (a: SharedManga, b: SharedManga) => a.name.localeCompare(b.name),
-  },
-  rating: {
-    label: "Rating",
-    order: (a: SharedManga, b: SharedManga) =>
-      (b.rating ?? 0) - (a.rating ?? 0) || a.name.localeCompare(b.name),
-  },
-  volumes: {
-    label: "Most volumes",
-    order: (a: SharedManga, b: SharedManga) =>
-      ownedCountOf(b) - ownedCountOf(a) || a.name.localeCompare(b.name),
-  },
-} as const;
-type Sort = keyof typeof SORTS;
-
-// compact rows unless this visitor picked covers; kept on their device, apart
-// from how their own shelf is laid out
-type View = "rows" | "covers";
-const VIEWS: Record<View, string> = { rows: "Compact", covers: "Covers" };
-const viewNow = (): View =>
-  readLocal("shareView") === "covers" ? "covers" : "rows";
-
-// on phones only the first list starts open, so the others are a tap away
-// rather than a long scroll
-const narrow = () =>
-  typeof window !== "undefined" &&
-  window.matchMedia("(max-width: 720px)").matches;
-
-const plural = (n: number, one: string, many = `${one}s`) =>
-  `${n} ${n === 1 ? one : many}`;
-
-function SeriesCard({
-  m,
-  pointHere,
-  onOpen,
-}: {
-  m: SharedManga;
-  pointHere: boolean;
-  onOpen: () => void;
-}) {
-  const owned = ownedVolumesOf(m);
-  return (
-    <li>
-      <button
-        type="button"
-        className={styles.card}
-        aria-haspopup="dialog"
-        aria-label={`${m.name}: ${owned.length ? `owns ${plural(owned.length, "volume")}` : "no volumes yet"}. Open`}
-        onClick={onOpen}
-      >
-        <Cover m={m} className={styles.cover}>
-          {m.status && <span className={styles.stamp}>Done</span>}
-          {pointHere && (
-            <span className={styles.tapMe} aria-hidden>
-              Tap me
-            </span>
-          )}
-        </Cover>
-        <span className={styles.cardName}>{m.name}</span>
-        <span className={styles.cardMeta}>
-          {owned.length ? (
-            <span className={styles.cardVols}>Vol. {volumeRanges(owned)}</span>
-          ) : (
-            "No volumes yet"
-          )}
-          {/* a saved place only: never "ch. 0" */}
-          {!m.status &&
-            placeText(m, "both", true) &&
-            ` · ${placeText(m, "both", true)}`}
-          {m.lightNovel && " · novel"}
-        </span>
-        {m.rating ? <StarRating value={m.rating} size="sm" /> : null}
-      </button>
-    </li>
-  );
-}
-
-// the same series as a compact row: what they own comes first
-function SeriesRow({
-  m,
-  pointHere,
-  onOpen,
-}: {
-  m: SharedManga;
-  pointHere: boolean;
-  onOpen: () => void;
-}) {
-  const owned = ownedVolumesOf(m);
-  const more = [
-    !m.status && placeText(m, "both", true),
-    m.lightNovel && "light novel",
-  ].filter(Boolean);
-  return (
-    <li className={styles.row}>
-      <button
-        type="button"
-        className={styles.rowCard}
-        aria-haspopup="dialog"
-        aria-label={`${m.name}: ${owned.length ? `owns ${plural(owned.length, "volume")}` : "no volumes yet"}. Open`}
-        onClick={onOpen}
-      >
-        <Cover m={m} className={styles.rowCover} />
-        <span className={styles.rowText}>
-          <span className={styles.rowName}>{m.name}</span>
-          <span className={styles.cardMeta}>
-            {owned.length ? (
-              <span className={styles.cardVols}>
-                Vol. {volumeRanges(owned)}
-              </span>
-            ) : (
-              "No volumes yet"
-            )}
-          </span>
-          <VolumeTicks owned={owned} />
-          {/* one line for the rest, so every row is the same height */}
-          <span className={styles.rowMore}>
-            {more.length > 0 && <span>{more.join(" · ")}</span>}
-            {m.rating ? <StarRating value={m.rating} size="sm" /> : null}
-          </span>
-        </span>
-        {pointHere && (
-          <span className={styles.rowTapMe} aria-hidden>
-            Tap me
-          </span>
-        )}
-      </button>
-    </li>
-  );
-}
-
-// the volumes they own as a strip of ticks, 1 to the furthest: a gap shows
-// as an empty tick, so "1–3, 5, 8–10" can be seen at a glance
-// as many ticks as the row has room for; past that, each tick stands for a run
-// of volumes and is a gap if any of them is missing (the ranges say which)
-const MAX_TICKS = 40;
-
-function VolumeTicks({ owned }: { owned: number[] }) {
-  if (!owned.length) return null;
-  const shelf = shelfOf(owned);
-  const per = Math.ceil(shelf.length / MAX_TICKS);
-  const ticks = Array.from({ length: Math.ceil(shelf.length / per) }, (_, i) =>
-    shelf.slice(i * per, (i + 1) * per).every((s) => s.mine),
-  );
-  return (
-    <span className={styles.ticks} aria-hidden>
-      {ticks.map((mine, i) => (
-        <span key={i} className={mine ? styles.tick : styles.tickGap} />
-      ))}
-    </span>
-  );
-}
-
-// what they have most of, fanned out like books on a table. Each opens its
-// sheet; most of the shelf in one look before any scrolling
-function CoverFan({
-  manga,
-  onOpen,
-}: {
-  manga: SharedManga[];
-  onOpen: (m: SharedManga) => void;
-}) {
-  const top = [...manga]
-    .sort(
-      (a, b) =>
-        ownedCountOf(b) - ownedCountOf(a) || (b.rating ?? 0) - (a.rating ?? 0),
-    )
-    .slice(0, 5);
-  if (top.length < 2) return null;
-  return (
-    <ul className={styles.fan} aria-label="What they have most of">
-      {top.map((m, i) => (
-        <li
-          key={`${m.name}-${i}`}
-          className={styles.fanItem}
-          style={
-            {
-              "--tilt": `${(i - (top.length - 1) / 2) * 4}deg`,
-            } as React.CSSProperties
-          }
-        >
-          <button
-            type="button"
-            className={styles.fanCard}
-            aria-haspopup="dialog"
-            aria-label={`${m.name}. Open`}
-            onClick={() => onOpen(m)}
-          >
-            <Cover m={m} className={styles.fanCover} />
-          </button>
-        </li>
-      ))}
-    </ul>
-  );
-}
-
-// copy the link; on phones, the share sheet too
-function ShareButtons() {
-  const [copied, setCopied] = useState(false);
-  const url = typeof window !== "undefined" ? window.location.href : "";
-  const canShare = typeof navigator !== "undefined" && "share" in navigator;
-  const copy = async () => {
-    try {
-      await navigator.clipboard.writeText(url);
-      setCopied(true);
-      window.setTimeout(() => setCopied(false), 2000);
-    } catch {
-      // no clipboard (an old browser, or blocked): the address bar has it
-    }
-  };
-  return (
-    <div className={styles.actions}>
-      <button type="button" className={styles.action} onClick={copy}>
-        {copied ? <CheckIcon /> : <LinkIcon />}
-        <span aria-live="polite">{copied ? "Copied" : "Copy link"}</span>
-      </button>
-      {canShare && (
-        <button
-          type="button"
-          className={styles.action}
-          onClick={() => navigator.share({ url }).catch(() => {})}
-        >
-          <ShareIcon />
-          Share
-        </button>
-      )}
-    </div>
-  );
-}
+import {
+  SECTIONS,
+  SORTS,
+  type Sort,
+  type View,
+  VIEWS,
+  viewNow,
+  narrow,
+} from "./sharedShelfView";
+import { SeriesCard, SeriesRow } from "./SharedSeries";
+import { CoverFan, ShareButtons } from "./SharedShelfHead";
 
 export default function SharedShelfPage() {
   const code = useParams().code!;
