@@ -107,7 +107,7 @@ test("the answer in plain sentences, and as a table row", () => {
   expect(answerSentence(all)).toBe(endText(all));
   expect(tableRow(all)).toMatchObject({
     start: "You've seen it all",
-    volume: "",
+    volume: "All 8",
   });
 });
 

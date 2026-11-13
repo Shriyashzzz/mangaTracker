@@ -187,15 +187,14 @@ export function answerSentence(stop: AnimeStop) {
 // a season as a row of the page's table: "If you watched", "Start reading
 // at", "Volume". An empty string is something the season doesn't say
 export function tableRow(stop: AnimeStop) {
-  const volume = volumeWords(stop);
   let start = "";
   if (stop.coversAll) start = "You've seen it all";
   else if (stop.nextChapter !== null) start = `Chapter ${stop.nextChapter}`;
-  return {
-    watched: stop.label,
-    start,
-    volume,
-  };
+  // nothing to carry on with, so the volumes are the whole run: "All 42"
+  let volume = volumeWords(stop);
+  if (stop.coversAll)
+    volume = stop.endVolume === null ? "All of them" : `All ${stop.endVolume}`;
+  return { watched: stop.label, start, volume };
 }
 
 // "Season 2 ends at chapter 137." for the list of every season's last
