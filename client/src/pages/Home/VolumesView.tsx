@@ -96,8 +96,8 @@ export default function VolumesView({
         </p>
         <p className={styles.emptyBody}>
           {searching
-            ? "None of the series you own volumes of fit that."
-            : "Say which volumes you own when you add a series, or from its Edit details."}
+            ? "Nothing you own matches that search."
+            : "Open a series and tick the volumes you own."}
         </p>
       </div>
     );
@@ -193,7 +193,7 @@ function ShelfTotals({ tools, owned }: { tools: ShelfTools; owned: number }) {
                 tools.finishMissing,
                 tools.finish.some((f) => f.edition) ? "book" : "volume",
               )}{" "}
-              to go
+              not on your shelf
               {tools.finishPriced < tools.finishMissing &&
                 ` · ${tools.finishPriced.toLocaleString()} priced`}
               {/* the total is of the series priced enough to say */}
@@ -267,7 +267,7 @@ function SeriesRow({
                 {finish.missing.length}
                 {finish.edition &&
                   ` ${finish.edition} book${finish.missing.length === 1 ? "" : "s"}`}{" "}
-                to go
+                not on your shelf
                 {toFinish && ` · ${toFinish}`}
               </span>
             )}

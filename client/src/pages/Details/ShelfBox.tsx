@@ -93,9 +93,9 @@ export default function ShelfBox({
           or specials it has no book for */}
       <p className={styles.shelfCaption}>
         <span>
-          {onShelf} of {total}
+          You own {onShelf} of {total} volumes
           {offShelf.length > 0 &&
-            ` · also vol${offShelf.length > 1 ? "s" : ""}. ${rangesText(offShelf)}`}
+            `, plus vol${offShelf.length > 1 ? "s" : ""}. ${rangesText(offShelf)}`}
         </span>
         {undoTo && (
           <button

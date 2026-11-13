@@ -50,7 +50,7 @@ export default function WatchedAnime({
       role="group"
       aria-label="Watched the anime?"
     >
-      <span>Watched the anime?</span>
+      <span>Watched the anime? Tap your last season:</span>
       {seasons.map((stop) => (
         <button
           key={stop.label}

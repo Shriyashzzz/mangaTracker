@@ -11,7 +11,7 @@ import type { Background, Prefs, Theme } from "./types";
 
 // the page backgrounds, drawn in styles/backdrop.css
 export const BACKGROUNDS: { id: Background; label: string }[] = [
-  { id: "sfx", label: "Sound effect" },
+  { id: "sfx", label: "Comic lettering" },
   { id: "ink", label: "Ink brush" },
   { id: "pages", label: "Stack of pages" },
   { id: "panels", label: "Panels" },

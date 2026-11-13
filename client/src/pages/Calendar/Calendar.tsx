@@ -89,8 +89,7 @@ export default function CalendarPage() {
         </NavLink>
       </header>
       <p className={styles.lead}>
-        English volumes on their way for series on your shelf, by the date the
-        publisher gives.
+        Upcoming English volumes for the series on your shelf.
       </p>
       {/* every dated release into their own calendar, at once */}
       {months && months.length > 0 && (

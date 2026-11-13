@@ -57,7 +57,7 @@ export function ShelfSettingsTab() {
         <legend className={styles.legend}>Track your reading by</legend>
         {(
           [
-            ["series", "Chapter or volume. You pick on each series"],
+            ["series", "Let me choose for each series"],
             ["chapters", "Chapters only"],
             ["volumes", "Volumes only"],
             ["both", "Chapters and volumes together"],
@@ -75,12 +75,12 @@ export function ShelfSettingsTab() {
         ))}
       </fieldset>
       <div className={styles.field}>
-        <label htmlFor="shelf-tab">Opens on</label>
+        <label htmlFor="shelf-tab">First tab to open</label>
         <div className={styles.pick}>
           <SortMenu
             box
             id="shelf-tab"
-            menuLabel="Opens on"
+            menuLabel="First tab to open"
             options={SHELF_TABS}
             sortBy={shelfTab as ShelfTab}
             onSort={(tab) => {

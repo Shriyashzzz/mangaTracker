@@ -58,7 +58,7 @@ export default function FinishList({
         <p className={styles.finishNote}>
           {row.priced
             ? `${row.priced} of ${row.missing.length} priced; the rest at the series' usual price.`
-            : "None priced yet: an estimate from the usual price."}
+            : "An estimate. No prices checked yet."}
         </p>
       )}
       <ul className={styles.finishList}>

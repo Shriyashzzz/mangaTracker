@@ -89,14 +89,14 @@ export default function ReadingPlace({
             className={styles.chaptersToo}
             onClick={() => setChaptersShown(true)}
           >
-            Track chapters
+            Keep my place by chapter
           </button>
           <button
             type="button"
             className={styles.chaptersToo}
             onClick={() => onChange({ byVolume: true })}
           >
-            Track volumes
+            Keep my place by volume
           </button>
         </span>
       </p>

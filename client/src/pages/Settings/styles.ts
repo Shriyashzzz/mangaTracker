@@ -22,6 +22,9 @@ export const settingsStyles = {
   heading:
     "font-brand text-[clamp(1.5rem,4vw,1.9rem)] leading-[1.05] font-normal tracking-[0.02em] uppercase",
   body: "max-w-[60ch] leading-[1.5] text-ink-soft",
+  // a few short lines where a sentence would run on
+  plainList:
+    "flex max-w-[60ch] list-disc flex-col gap-0.5 pl-5 leading-[1.5] text-ink-soft",
   group: "flex flex-col gap-1 border-0 p-0",
   legend: "mb-1 font-semibold",
   row,

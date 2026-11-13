@@ -30,9 +30,7 @@ export default function RatingField({ mangaId, initial }: Props) {
 
   return (
     <div className={styles.rating}>
-      <span className={styles.label}>
-        {rating ? "Your rating. Tap it again to clear" : "Rate it"}
-      </span>
+      <span className={styles.label}>{rating ? "Your rating" : "Rate it"}</span>
       <span className="inline-block w-fit">
         <StarRating value={rating} size="lg" onChange={save} />
       </span>

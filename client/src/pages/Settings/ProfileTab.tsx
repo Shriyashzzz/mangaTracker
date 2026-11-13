@@ -127,8 +127,9 @@ export default function ProfileTab({ account }: { account: Account }) {
             }}
           />
           <p className={styles.body}>
-            Shown if you share your list
-            {!account.displayName && `, as ${account.defaultName} for now`}.
+            People with your link see this name.
+            {!account.displayName &&
+              ` Leave it empty to stay ${account.defaultName}.`}{" "}
             Your username stays private.
           </p>
           <div className={styles.actions}>
@@ -195,11 +196,13 @@ export default function ProfileTab({ account }: { account: Account }) {
         <h3 id="profile-share" className={styles.heading}>
           Share your list
         </h3>
-        <p className={styles.body}>
-          Anyone with the link can see your name, picture, and each series with
-          its chapter, rating and the volumes you own. Search engines are asked
-          to stay away.
-        </p>
+        <p className={styles.body}>Anyone with the link can see:</p>
+        <ul className={styles.plainList}>
+          <li>Your name and picture</li>
+          <li>Each series, with your chapter and rating</li>
+          <li>The volumes you own</li>
+        </ul>
+        <p className={styles.body}>Search engines are asked to stay away.</p>
         <label className={styles.row}>
           <input
             type="checkbox"
@@ -254,7 +257,7 @@ export default function ProfileTab({ account }: { account: Account }) {
               className={`tap ${styles.link}`}
               viewTransition
             >
-              See it
+              Preview
             </NavLink>
           </div>
         )}
