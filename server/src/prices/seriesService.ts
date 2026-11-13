@@ -27,7 +27,13 @@ import {
   googleVolume,
 } from "./sources/googleBooksCatalog.js";
 import { notOutYet } from "./preorder.js";
-import { forgetKnownVolumes } from "./shelfService.js";
+import {
+  finalKey,
+  forgetKnownVolumes,
+  seriesVolumesCache,
+} from "./seriesCache.js";
+
+export { FINAL, finalKey } from "./seriesCache.js";
 
 // ---------- series ----------
 
@@ -35,10 +41,6 @@ const SERIES_VOLUMES_FRESH_MS = 12 * 60 * 60 * 1000;
 // with a saved list to show, the catalog being down can wait this long before
 // anyone sits through asking it again
 const SERIES_VOLUMES_RETRY_MS = 10 * 60 * 1000;
-export const seriesVolumesCache = new Map<
-  string,
-  { at: number; volumes: CatalogBook[] }
->();
 
 // every numbered volume of a series from the free catalog, one ISBN per
 // volume number, cached half a day. Never spends a paid price search.
@@ -453,8 +455,6 @@ async function gapVolumes(
 // previews (knownVolumesBySeries) all read that one list, so they can't
 // disagree with the page about which book is vol. 8. A series whose page
 // hasn't been built since this was added falls back to the raw lists
-export const FINAL = ":final";
-export const finalKey = (name: string) => volumesKey(name) + FINAL;
 const FINAL_RESAVE_MS = 24 * 60 * 60 * 1000;
 const finalSaved = new Map<string, { sign: string; at: number }>();
 function saveFinalList(name: string, volumes: CatalogBook[]) {

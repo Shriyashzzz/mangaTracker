@@ -6,30 +6,20 @@ import priceQueries from "../models/priceQueries.js";
 import { knownSeriesName, knownSeriesNames } from "./sources/anilist.js";
 import { seriesName, slugify } from "./stores/match.js";
 import { VOLUMES_KEY_VERSION } from "./volumesKey.js";
-import { seriesVolumesCache, FINAL } from "./seriesService.js";
+import {
+  FINAL,
+  knownVolumes,
+  seriesVolumesCache,
+  type KnownVolume,
+} from "./seriesCache.js";
+
+export { forgetKnownVolumes, type KnownVolume } from "./seriesCache.js";
 
 // ---------- the shelf ----------
 
-// `published`: its release date, when a saved list knows it
-export type KnownVolume = {
-  isbn13: string;
-  title: string;
-  published?: string | null;
-};
-
-// the volumes we know for each series, grouped by the series' slug.
-// Rebuilt every few minutes; shared by everyone's shelf
+// how long the grouped volumes (seriesCache.ts knownVolumes) are kept before
+// they're built again
 const KNOWN_VOLUMES_MS = 10 * 60 * 1000;
-let knownVolumes = {
-  at: 0,
-  bySeries: new Map<string, Map<string, KnownVolume>>(),
-};
-
-// a series just built (seriesFiller.ts): counted on the next ask, not in ten
-// minutes
-export const forgetKnownVolumes = () => {
-  knownVolumes.at = 0;
-};
 
 export async function knownVolumesBySeries() {
   if (Date.now() - knownVolumes.at < KNOWN_VOLUMES_MS) {
@@ -69,7 +59,8 @@ export async function knownVolumesBySeries() {
   (await priceQueries.getSavedVolumeTitles().catch(() => [])).forEach(add);
   // full volume lists from series pages people opened recently
   for (const hit of seriesVolumesCache.values()) hit.volumes.forEach(add);
-  knownVolumes = { at: Date.now(), bySeries };
+  knownVolumes.at = Date.now();
+  knownVolumes.bySeries = bySeries;
   return bySeries;
 }
 

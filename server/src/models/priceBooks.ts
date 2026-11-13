@@ -3,7 +3,6 @@
 // (priceQueries.ts lists the parts).
 import { prisma } from "../config/prisma.js";
 import { type Book } from "../../generated/prisma/client.js";
-import { unlikelyNewTest } from "../prices/stores/retailers.js";
 import {
   AMAZON,
   BOOKS_A_MILLION,
@@ -12,7 +11,6 @@ import {
   storeName,
 } from "../prices/stores/storeLinks.js";
 import type { Offer } from "../prices/types.js";
-import { getNewPriceMedian } from "./priceHistory.js";
 
 export type { Book };
 
@@ -22,7 +20,7 @@ type NewBook = Pick<
   "isbn13" | "title" | "authors" | "publisher" | "coverUrl" | "year"
 >;
 
-type StoredOffer = Offer & { fetchedAt: Date };
+export type StoredOffer = Offer & { fetchedAt: Date };
 
 // what kind of copy a price is for, in the history: new print, used and
 // marketplace copies together, and ebooks
@@ -205,25 +203,3 @@ export const groupBy = <T, K>(items: T[], keyOf: (item: T) => K) => {
   }
   return groups;
 };
-
-// samples saved before a rule changed, that it would have kept out: each is judged
-// against the other copies in its own check, the same way a new check is
-export async function getUnbelievableSampleIds(
-  isbn13: string,
-  median?: number | null,
-) {
-  const [rows, usual] = await Promise.all([
-    prisma.$queryRaw<(StoredOffer & { id: string })[]>`
-      SELECT id::text AS id, store, format, condition, price_cents AS "priceCents",
-             currency, in_stock AS "inStock", url, fetched_at AS "fetchedAt"
-      FROM price_samples
-      WHERE isbn13 = ${isbn13} AND in_stock
-    `,
-    median !== undefined ? median : getNewPriceMedian(isbn13),
-  ]);
-  const checks = groupBy(rows, (row) => new Date(row.fetchedAt).getTime());
-  return [...checks.values()].flatMap((check) => {
-    const unlikely = unlikelyNewTest(check, usual);
-    return check.filter(unlikely).map((row) => row.id);
-  });
-}
