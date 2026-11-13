@@ -99,6 +99,21 @@ function chapterAfter(piece: Piece) {
   return Math.floor(piece.chapter) + 1;
 }
 
+// a piece MangaUpdates gives no name
+const UNNAMED = "The anime";
+
+// Two pieces with no name ("Vol 8, Chap 63 / Vol 16, Chap 137") can't both
+// be "The anime": the page keys its panels, its links and a reader's fix by
+// the name. They become "Part 1", "Part 2" in the order given
+function numberUnnamed(stops: AnimeStop[]): AnimeStop[] {
+  const unnamed = stops.filter((stop) => stop.label === UNNAMED);
+  if (unnamed.length < 2) return stops;
+  let part = 0;
+  return stops.map((stop) =>
+    stop.label === UNNAMED ? { ...stop, label: `Part ${++part}` } : stop,
+  );
+}
+
 export function readAnimeStops(
   startLine: string | null | undefined,
   endLine: string | null | undefined,
@@ -119,7 +134,7 @@ export function readAnimeStops(
     const remark = named ? "" : piece.inBrackets;
     const note = [remark, piece.rest].filter(Boolean).join(". ");
     stops.push({
-      label: named ? seasonName(piece.inBrackets) : "The anime",
+      label: named ? seasonName(piece.inBrackets) : UNNAMED,
       endVolume: piece.volume,
       endChapter: piece.chapter,
       endsMidChapter: piece.page !== null,
@@ -128,7 +143,7 @@ export function readAnimeStops(
       note: note.replace(/\s+/g, " ").trim(),
     });
   }
-  return stops;
+  return numberUnnamed(stops);
 }
 
 // what's known of the manga itself, for telling when an anime has adapted

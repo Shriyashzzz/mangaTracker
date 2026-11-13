@@ -72,7 +72,7 @@ export type BuyOffer = {
 };
 
 // a used copy: the cheaper way in, under the new one or by itself
-export type UsedOffer = Omit<BuyOffer, "checkedAt">;
+export type UsedOffer = BuyOffer;
 
 // a volume's ways to a store. The server's VolumeOffers
 export type VolumeOffers = { new: BuyOffer | null; used: UsedOffer | null };

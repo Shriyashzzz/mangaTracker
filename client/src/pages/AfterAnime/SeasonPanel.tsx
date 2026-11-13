@@ -34,12 +34,14 @@ export default function SeasonPanel({
   // the page's opening answer is about this season: its sentence on where
   // the season stops isn't said a second time here
   saidAbove,
+  seriesCoverUrl,
 }: {
   stop: AnimeStop;
   seriesName: string;
   volumes: SeriesVolume[] | null;
   offers: Record<string, VolumeOffers>;
   saidAbove: boolean;
+  seriesCoverUrl: string | null;
 }) {
   const toBuy = buyVolume(stop);
   const book = toBuy !== null && volumes ? bookFor(volumes, toBuy) : null;
@@ -92,6 +94,7 @@ export default function SeasonPanel({
               book={book}
               offer={offers[book.isbn13.trim()]?.new ?? null}
               used={offers[book.isbn13.trim()]?.used ?? null}
+              seriesCoverUrl={seriesCoverUrl}
             />
           </ul>
         )}

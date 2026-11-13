@@ -189,7 +189,7 @@ type FinishSeries = {
 
 // a total is said only when this much of a series has a price: with fewer,
 // a volume or two would stand in for the whole run (the price pages hold to
-// the same share: client/src/lib/finishCost.ts ENOUGH_PRICED)
+// the same share: client/src/lib/enoughPriced.ts)
 export const ENOUGH_PRICED = 0.6;
 const enoughPriced = (priced: number, all: number) =>
   all > 0 && priced >= all * ENOUGH_PRICED;

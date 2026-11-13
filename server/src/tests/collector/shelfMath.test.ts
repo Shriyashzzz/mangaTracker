@@ -18,7 +18,12 @@ const vol = (
   title: `Series, Vol. ${volume}`,
   ...extra,
 });
-const copy = (cents: number) => ({ cents, store: "Store", url: null });
+const copy = (cents: number) => ({
+  cents,
+  store: "Store",
+  url: null,
+  checkedAt: new Date("2026-11-01"),
+});
 // what volumes have gone for used (getRecordedMedians)
 const usedPrices = (entries: [ListedVolume, number][]) =>
   new Map(entries.map(([v, cents]) => [v.isbn13, { used: cents, new: null }]));

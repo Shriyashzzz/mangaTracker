@@ -50,11 +50,10 @@ export const afterAnimeStyles = {
   // ---------- a volume to buy ----------
   buyList: "flex flex-col gap-4",
   buy: "grid grid-cols-[4.5rem_minmax(0,1fr)] items-start gap-x-4",
-  // the cover over its drawn number, which shows when there's no cover
+  // the cover over what shows when there's none (Prices' CoverFallback, its
+  // number sized down for this small cover)
   buyCover:
-    "relative block aspect-2/3 overflow-hidden border-[1.5px] border-line bg-paper-2 shadow-ink [&>img]:relative [&>img]:size-full [&>img]:object-cover",
-  buyCoverNumber:
-    "cover-lines absolute inset-0 grid place-items-center font-brand text-[1.6rem] text-muted",
+    "[&>span]:text-[1.6rem] relative block aspect-2/3 overflow-hidden border-[1.5px] border-line bg-paper-2 shadow-ink [&>img]:relative [&>img]:size-full [&>img]:object-cover",
   buyWords: "flex min-w-0 flex-col items-start gap-[0.2rem]",
   buyTitle: "text-[1.08rem] leading-tight font-semibold",
   buyWhy: "text-[0.88rem] text-ink-soft",

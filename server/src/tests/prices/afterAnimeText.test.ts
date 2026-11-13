@@ -10,6 +10,7 @@ import {
   keepNumbers,
   latestAnswer,
   latestAnswerText,
+  latestStop,
   pageHeading,
   placeAfter,
   showJsonLd,
@@ -241,4 +242,20 @@ test("a number stays on the line of the word it belongs to", () => {
     "its final chapter,\u00a0431.",
   );
   expect(keepNumbers("No numbers here")).toBe("No numbers here");
+});
+
+test("the latest season is the one furthest into the manga, not the last listed", () => {
+  // a film listed after the newest season, as MangaUpdates sometimes has it
+  const stops = shown(
+    "",
+    "Vol 5, Chap 38 (S1) / Vol 12, Chap 97 (S2) / Vol 6, Chap 52 (Movie)",
+  );
+  expect(latestStop(stops)?.label).toBe("Season 2");
+  // in the usual order it's the last one
+  const inOrder = shown("", "Vol 5, Chap 38 (S1) / Vol 12, Chap 97 (S2)");
+  expect(latestStop(inOrder)?.label).toBe("Season 2");
+  // with no chapters to go by, the last one listed
+  const volumesOnly = shown("", "Vol 5 (S1) / Vol 12 (S2)");
+  expect(latestStop(volumesOnly)?.label).toBe("Season 2");
+  expect(latestStop([])).toBeUndefined();
 });

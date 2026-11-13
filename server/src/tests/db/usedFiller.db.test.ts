@@ -44,6 +44,7 @@ const fakeImpact = () => {
         Items: isbns
           .filter((isbn) => stocked.has(isbn))
           .map((Gtin) => ({
+            CampaignName: "Better World Books",
             Gtin,
             CurrentPrice: "4.00",
             Currency: "USD",

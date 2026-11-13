@@ -242,12 +242,13 @@ export default function AfterAnimeShow() {
                 volumes={volumes}
                 offers={offers}
                 saidAbove={stop === latest}
+                seriesCoverUrl={show.coverUrl}
               />
             ))}
           </div>
           {boxSet?.url && (
             <p className={styles.boxSet}>
-              Buying several? A {show.name} box set starts at{" "}
+              Buying several? A {show.name} box set is{" "}
               <strong>{formatCents(boxSet.priceCents)}</strong> at{" "}
               <a href={boxSet.url} target="_blank" rel={linkRel(boxSet)}>
                 {boxSet.store}

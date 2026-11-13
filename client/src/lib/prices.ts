@@ -101,6 +101,13 @@ const usd = new Intl.NumberFormat("en-US", {
 });
 export const formatCents = (cents: number) => usd.format(cents / 100);
 
+// A store's name as it's shown: a seller on a big store goes by the store's
+// name ("eBay - secretariat0515" is "eBay"). A stranger's username says
+// nothing to a reader and looks like a glitch; the link still goes to that
+// seller's listing. The server's twin is shopName in
+// server/src/prices/volumeNames.ts
+export const shopName = (store: string) => store.split(/\s[-–—|]\s/)[0]!.trim();
+
 const rtf = new Intl.RelativeTimeFormat("en", { numeric: "auto" });
 // a check older than this many days
 export const olderThanDays = (date: string, days: number) =>

@@ -283,6 +283,8 @@ export async function mergeManga(keep: number, other: number) {
         seenJapanVolume: most(a.seenJapanVolume, b.seenJapanVolume),
         hiddenVolumes: [...new Set([...a.hiddenVolumes, ...b.hiddenVolumes])],
         latestChapter: most(a.latestChapter, b.latestChapter),
+        // the reader merged them: that's a change of theirs
+        ...changedNow(),
       },
     });
     // its books come along

@@ -175,7 +175,13 @@ export async function getRecordedMedians(
 // volume's prices now, with the store and link: for the shelf tools
 // (collector/). The same believable-price rule as getKnownPrices; database
 // only, never a lookup
-export type CheapestCopy = { cents: number; store: string; url: string | null };
+export type CheapestCopy = {
+  cents: number;
+  store: string;
+  url: string | null;
+  // when its own store was last asked: the date to show beside this price
+  checkedAt: Date;
+};
 // `fromStore`: only copies at stores it says yes to (a buy button names a
 // store readers know); every store when it's left out
 export async function getCheapestCopies(
@@ -199,7 +205,14 @@ export async function getCheapestCopies(
       (a, b) => (!a || b.priceCents < a.priceCents ? b : a),
       null,
     );
-    return best && { cents: best.priceCents, store: best.store, url: best.url };
+    return (
+      best && {
+        cents: best.priceCents,
+        store: best.store,
+        url: best.url,
+        checkedAt: new Date(best.fetchedAt),
+      }
+    );
   };
   for (const [isbn, group] of groupBy(rows, (row) => row.isbn13.trim())) {
     const copies = dropUnlikelyNew(

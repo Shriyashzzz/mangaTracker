@@ -133,7 +133,14 @@ export async function fetchProviders(
   due: Provider[],
   // a check nobody asked for (collector/filler.ts): marked "fill" in
   // price_checks, so the home page's "recently checked" leaves it out
-  { background = false }: { background?: boolean } = {},
+  {
+    background = false,
+    // Leave every store that isn't asked exactly as it is. For scripts run
+    // from a laptop: the tidy-up below clears a store's old prices when no
+    // provider "serves it any more", and a laptop missing production's keys
+    // would see every such store that way
+    onlyThese = false,
+  }: { background?: boolean; onlyThese?: boolean } = {},
 ) {
   const first = due.filter((p) => p.id !== GOOGLE_SHOPPING);
   const shopping = due.find((p) => p.id === GOOGLE_SHOPPING);
@@ -187,8 +194,9 @@ export async function fetchProviders(
   const served = new Set(enabledProviders().map(groupOf));
   const checks = await priceQueries.getSourceChecks(isbn13);
   for (const [group, at] of checks) {
-    if (!served.has(group) && Date.now() - at.getTime() >= FRESH_FOR_MS)
-      groups.set(group, []);
+    const abandoned =
+      !served.has(group) && Date.now() - at.getTime() >= FRESH_FOR_MS;
+    if (abandoned && !onlyThese) groups.set(group, []);
   }
 
   // judged against this volume's usual new price and against every price

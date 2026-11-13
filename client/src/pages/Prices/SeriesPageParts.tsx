@@ -7,15 +7,17 @@ import { bookSubtitle, oneVolumeSubtitle, type Card } from "./seriesPageRules";
 import { pricesStyles as styles } from "./styles";
 import VolumeCard from "./VolumeCard";
 
-// one card of the list. No series cover stands in for a volume missing its
-// own: AniList's is the Japanese first volume, and every gap read as the
-// wrong book. The drawn number shows instead
+// one card of the list. A volume missing its own cover shows the series'
+// cover washed out behind its number tab (VolumeCard's CoverFallback): a
+// stand-in, plainly not that volume's own art
 export function SeriesVolumeCard({
   card,
   mark,
+  seriesCoverUrl,
 }: {
   card: Card;
   mark: "yours" | "next" | undefined;
+  seriesCoverUrl: string | null;
 }) {
   const first = card[0]!;
   if (card.length === 1)
@@ -28,6 +30,7 @@ export function SeriesVolumeCard({
           priceCents={first.knownPriceCents}
           subtitle={oneVolumeSubtitle(first)}
           mark={mark}
+          seriesCoverUrl={seriesCoverUrl}
         />
       </li>
     );

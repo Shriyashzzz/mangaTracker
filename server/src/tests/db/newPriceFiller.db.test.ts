@@ -7,6 +7,7 @@ import {
   fillNewPrices,
   newFillLabel,
   newPriceQueue,
+  resetNewPriceFiller,
 } from "../../collector/newPriceFiller.js";
 import priceQueries from "../../models/priceQueries.js";
 import userQueries from "../../models/userQueries.js";
@@ -78,6 +79,7 @@ beforeEach(async () => {
   await emptyDb();
   await clean();
   forgetKnownVolumes();
+  resetNewPriceFiller();
   Object.assign(config, {
     PRICE_FILL: "on",
     COLLECTOR_TOOLS: "on",
@@ -142,6 +144,25 @@ test("the day's share stops it", async () => {
   const [row] = await prisma.$queryRaw<{ calls: number }[]>`
     SELECT calls FROM api_usage WHERE provider = ${newFillLabel()}`;
   expect(row?.calls).toBe(2);
+});
+
+test("when Books-A-Million can't be asked, the same volumes aren't asked again all day", async () => {
+  // CJ is down: every lookup fails, so nothing is saved for any volume
+  globalThis.fetch = (async (url: string | URL) => {
+    lookups.push(String(url));
+    return new Response("down", { status: 503 });
+  }) as typeof fetch;
+  expect(await fillNewPrices()).toEqual({ asked: 3 });
+  expect(lookups).toHaveLength(3);
+  // five minutes later they're still waiting, but have had today's try
+  const later = new Date(Date.now() + 5 * 60_000);
+  expect(await newPriceQueue(later)).toHaveLength(3);
+  expect(await fillNewPrices(later)).toEqual({ asked: 0 });
+  expect(lookups).toHaveLength(3);
+  // and tomorrow they get another
+  fakeCj();
+  const tomorrow = new Date(Date.now() + 25 * 60 * 60_000);
+  expect(await fillNewPrices(tomorrow)).toEqual({ asked: 3 });
 });
 
 test("off: by the switch, without CJ's keys, or outside production by default", async () => {
