@@ -435,153 +435,197 @@ function saveFinalList(name: string, volumes: CatalogBook[]) {
     .catch(() => finalSaved.delete(key));
 }
 
-export async function getSeriesWithVolumes(name: string) {
+type VolumeList = Awaited<ReturnType<typeof seriesVolumes>>;
+type NumberedBook = CatalogBook & { volume: number };
+
+// every catalog asked about a series, side by side: the name as given, its
+// other names, its Japanese name, and Google Books
+async function askEveryCatalog(name: string) {
   const infoLookup = getSeriesInfo(name);
   // the other names only need AniList's answer, so they're searched while
   // the main name's catalog search is still running
-  const altLookup = infoLookup.then((info) =>
-    Promise.all([
-      ...otherNamesFor(name, info).map((alt) => seriesVolumes(alt)),
-      // its Japanese name too, when it has one in Japanese script (MONSTER's
-      // or PLUTO's would only find unrelated books). Manga only: a novel's
-      // Japanese name is its manga's too
-      ...(info?.nativeName &&
-      JAPANESE_SCRIPT.test(info.nativeName) &&
-      !isNovelName(name)
-        ? [seriesVolumes(name, { searchAs: info.nativeName })]
-        : []),
-    ]),
-  );
+  const otherNamesLookup = infoLookup.then((info) => {
+    const lookups = otherNamesFor(name, info).map((other) =>
+      seriesVolumes(other),
+    );
+    // its Japanese name too, when it has one in Japanese script (MONSTER's
+    // or PLUTO's would only find unrelated books). Manga only: a novel's
+    // Japanese name is its manga's too
+    const japaneseName = info?.nativeName;
+    const searchJapanese =
+      japaneseName && JAPANESE_SCRIPT.test(japaneseName) && !isNovelName(name);
+    if (searchJapanese)
+      lookups.push(seriesVolumes(name, { searchAs: japaneseName }));
+    return Promise.all(lookups);
+  });
   // Google Books, once, under AniList's official English name (it knows
   // Frieren by its full one): new and upcoming volumes Open Library lacks
   const googleLookup = infoLookup.then((info) =>
     seriesVolumes(info?.name || name, { google: true }),
   );
-  const [info, main, altResults, fromGoogle] = await Promise.all([
+  const [info, main, underOtherNames, fromGoogle] = await Promise.all([
     infoLookup,
     seriesVolumes(name),
-    altLookup,
+    otherNamesLookup,
     googleLookup,
   ]);
-  // the link's name may be short ("Frieren") while the volumes carry the
-  // full English name ("Frieren: Beyond Journey's End"). A series can also be
-  // sold under other names (Detective Conan is mostly catalogued as Case
-  // Closed). Volumes found under AniList's official English name and its
-  // alternatives are merged in by volume number
-  // with the same rules as within one search (addVolume), Google's last
+  return { info, main, underOtherNames, fromGoogle };
+}
+
+// the catalogs' answers as one list, one book for each volume number.
+// The link's name may be short ("Frieren") while the volumes carry the full
+// English name ("Frieren: Beyond Journey's End"), and a series can be sold
+// under other names (Detective Conan is mostly catalogued as Case Closed).
+// So volumes found under the other names are merged in by volume number,
+// with the same rules as within one search (addVolume), Google's last
+async function mergeIntoOneList(
+  name: string,
+  info: SeriesInfo | null,
+  main: VolumeList,
+  others: VolumeList[],
+): Promise<NumberedBook[]> {
   const byNumber = new Map<number | null, CatalogBook>(
     main.volumes.map((v) => [v.volume, v]),
   );
   const datedElsewhere = new Map<number | null, string>();
-  const lists = [...altResults, fromGoogle];
-  const books = bookIsbns([main, ...lists].flatMap((l) => l.volumes));
+  const everyVolume = [main, ...others].flatMap((list) => list.volumes);
+  const books = bookIsbns(everyVolume);
+
   // a 3-in-1 omnibus numbered like a volume isn't one, from any list (a
   // light novel may run long)
-  const single = (v: CatalogBook) => isNovelName(name) || !isOmnibusLength(v);
-  for (const [n, v] of byNumber) if (!single(v)) byNumber.delete(n);
-  for (const list of lists) {
+  const isOneVolume = (v: CatalogBook) =>
+    isNovelName(name) || !isOmnibusLength(v);
+  for (const [number, v] of byNumber)
+    if (!isOneVolume(v)) byNumber.delete(number);
+  for (const list of others) {
     for (const v of list.volumes)
-      if (single(v)) addVolume(byNumber, v, books, datedElsewhere);
+      if (isOneVolume(v)) addVolume(byNumber, v, books, datedElsewhere);
   }
+
   // still a gap, or only a library rebind: those volumes asked for one by one
   // (saved a week, a few a series, under a daily cap)
   if (!books.size) {
-    for (const v of await gapVolumes(info?.name || name, byNumber))
-      addVolume(byNumber, v, books, datedElsewhere);
+    const found = await gapVolumes(info?.name || name, byNumber);
+    for (const v of found) addVolume(byNumber, v, books, datedElsewhere);
   }
   adoptUpcomingDates(byNumber, datedElsewhere);
+
   // numbered ones only: pages list and page through volumes by number, so a
   // numberless book (the catalog's search can return one) has no place there
-  // a finished manga has as many volumes as AniList counts: a "vol. 35" past
-  // Attack on Titan's 34 is an art book or a box set a catalog numbered on
-  // (it was listed at $249.99). Only a stray one or two: a longer run past
-  // the count means the English edition is numbered its own way (or AniList
-  // is behind), and stays. Books holding several volumes keep their own
-  // numbering, and a novel's English count can differ
-  const numbered = [...byNumber.values()]
-    .filter((v): v is CatalogBook & { volume: number } => v.volume != null)
+  return [...byNumber.values()]
+    .filter((v): v is NumberedBook => v.volume != null)
     .sort((a, b) => a.volume - b.volume);
-  const last =
-    info?.status === "FINISHED" && info.volumes && !isNovelName(name)
-      ? info.volumes
-      : null;
-  const past = numbered.filter(
-    (v) => last != null && !v.inBook && v.volume > last,
-  );
-  const volumes =
-    past.length && past.length <= 2
-      ? numbered.filter((v) => !past.includes(v))
-      : numbered;
+}
+
+// a finished manga has as many volumes as AniList counts: a "vol. 35" past
+// Attack on Titan's 34 is an art book or a box set a catalog numbered on (it
+// was listed at $249.99). Only a stray one or two are dropped: a longer run
+// past the count means the English edition is numbered its own way (or
+// AniList is behind), and stays. Books holding several volumes keep their
+// own numbering, and a novel's English count can differ
+function withoutStraysPastTheEnd(
+  numbered: NumberedBook[],
+  info: SeriesInfo | null,
+  name: string,
+) {
+  const isFinishedManga = info?.status === "FINISHED" && !isNovelName(name);
+  const lastVolume = isFinishedManga && info.volumes ? info.volumes : null;
+  if (lastVolume === null) return numbered;
+  const pastTheEnd = numbered.filter((v) => !v.inBook && v.volume > lastVolume);
+  const areStrays = pastTheEnd.length >= 1 && pastTheEnd.length <= 2;
+  return areStrays ? numbered.filter((v) => !pastTheEnd.includes(v)) : numbered;
+}
+
+const BOX_SETS_SHOWN = 4;
+// a seller on a big store ("eBay - pele-onfyah") counts as the store
+const storeOfSeller = (store: string) => store.split(/\s[-–—|]\s/)[0]!.trim();
+
+type CollectionOffer = Awaited<
+  ReturnType<typeof priceQueries.getCollectionOffers>
+>[number];
+
+// a series' box sets and omnibuses, cheapest first, each with our affiliate
+// tag where we have one. The same set at the same price from the same store,
+// listed more than once (eBay sellers often post several), shows as one row
+function boxSetRows(offers: CollectionOffer[]) {
+  const cheapestFirst = [...offers].sort((a, b) => a.priceCents - b.priceCents);
+  const seen = new Set<string>();
+  const oneOfEach = cheapestFirst.filter((offer) => {
+    const key = [
+      storeOfSeller(offer.store).toLowerCase(),
+      offer.format,
+      offer.condition,
+      offer.priceCents,
+    ].join("|");
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+  return oneOfEach.slice(0, BOX_SETS_SHOWN).map((offer) => {
+    const url = affiliateOfferUrl(offer, offer.isbn13.trim());
+    return {
+      store: storeName(storeOfSeller(offer.store)),
+      priceCents: offer.priceCents,
+      format: offer.format,
+      condition: offer.condition,
+      url,
+      affiliate: isAffiliateUrl(url),
+    };
+  });
+}
+
+// a series' page: its details, its volumes with the prices we know, and its
+// box sets. Asks the catalogs (askEveryCatalog), merges their answers into
+// one list (mergeIntoOneList), saves that list for the rest of the site, then
+// adds stored prices
+export async function getSeriesWithVolumes(name: string) {
+  const { info, main, underOtherNames, fromGoogle } =
+    await askEveryCatalog(name);
+  const numbered = await mergeIntoOneList(name, info, main, [
+    ...underOtherNames,
+    fromGoogle,
+  ]);
+  const volumes = withoutStraysPastTheEnd(numbered, info, name);
+
   // start finding every cover now, in one batch, so they're ready by the
   // time the browser asks for them (failures are retried when it asks)
   volumes.forEach((v) => editionCoverId(v.isbn13).catch(() => {}));
+
   // the main name's problems always count. An other name's only count when
   // they left the page nearly empty: a slow obscure alias shouldn't flag a
   // series that already has its volumes
+  const anOtherNameFailed = underOtherNames.some((list) => list.incomplete);
   const incomplete =
-    main.incomplete ||
-    (altResults.some((a) => a.incomplete) && volumes.length < 3);
+    main.incomplete || (anOtherNameFailed && volumes.length < 3);
   // the list every other part of the site reads (finalKey): saved whenever
   // it's whole and has changed
   if (!incomplete) saveFinalList(name, volumes);
+
   const isbns = volumes.map((v) => v.isbn13);
-  const [known, recorded, priced, scanned] = await Promise.all([
+  const [known, recorded, pricedSets, scanned] = await Promise.all([
     priceQueries.getKnownPrices(isbns),
     // what each has usually sold for new: for estimates, when no store has
     // it today (never goes stale: every price ever recorded counts)
     priceQueries
       .getRecordedMedians(isbns)
       .catch(() => new Map<string, { new: number | null }>()),
+    // box sets and omnibuses found while pricing its volumes
     priceQueries.getCollectionOffers(isbns).catch(() => []),
     // and the sets a scan by the series' name found (boxSetScan.ts)
     savedBoxSets(name).catch(() => null),
   ]);
-  const collections = [
-    ...priced,
-    ...(scanned?.sets ?? []).map((s) => ({
-      ...s,
-      isbn13: volumes[0]?.isbn13 ?? "",
-    })),
-  ];
-  // box sets and omnibuses found while pricing its volumes, cheapest first,
-  // each with our affiliate tag where we have one
-  // the same set at the same price from the same store, listed more than
-  // once (eBay sellers often post several), shows as one row
-  const seenSets = new Set<string>();
-  const boxSets = collections
-    .sort((a, b) => a.priceCents - b.priceCents)
-    .filter((o) => {
-      const key = [
-        o.store
-          .split(/\s[-–—|]\s/)[0]!
-          .trim()
-          .toLowerCase(),
-        o.format,
-        o.condition,
-        o.priceCents,
-      ].join("|");
-      if (seenSets.has(key)) return false;
-      seenSets.add(key);
-      return true;
-    })
-    .slice(0, BOX_SETS_SHOWN)
-    .map((o) => {
-      const url = affiliateOfferUrl(o, o.isbn13.trim());
-      return {
-        store: storeName(o.store.split(/\s[-–—|]\s/)[0]!.trim()),
-        priceCents: o.priceCents,
-        format: o.format,
-        condition: o.condition,
-        url,
-        affiliate: isAffiliateUrl(url),
-      };
-    });
+  // a scanned set has no book of its own: it borrows the first volume's ISBN
+  const scannedSets = (scanned?.sets ?? []).map((set) => ({
+    ...set,
+    isbn13: volumes[0]?.isbn13 ?? "",
+  }));
+
   return {
     name,
     slug: slugify(name),
     info,
     incomplete,
-    boxSets,
+    boxSets: boxSetRows([...pricedSets, ...scannedSets]),
     boxSetLinks: boxSetLinks(info?.name ?? name),
     volumes: volumes.map((v) => ({
       isbn13: v.isbn13,
@@ -595,8 +639,6 @@ export async function getSeriesWithVolumes(name: string) {
     })),
   };
 }
-
-const BOX_SETS_SHOWN = 4;
 
 export async function getSeries(asked: string) {
   const name = await knownSeriesName(asked);
