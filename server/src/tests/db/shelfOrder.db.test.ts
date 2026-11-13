@@ -50,3 +50,35 @@ test("the shelf comes back with the series changed last, first", async () => {
   await mangaQueries.setSeen(third, "chapter", 99);
   expect(await order()).toEqual([second, first, third]);
 });
+
+test("an import brings each series' own date, and the shelf's order with it", async () => {
+  const agent = await reader("importer");
+  const entry = (title: string, updatedAt?: string) => ({
+    title,
+    finished: false,
+    chapters: 1,
+    readVolumes: 0,
+    ownedVolumes: 0,
+    score: 0,
+    lightNovel: true,
+    ...(updatedAt ? { updatedAt } : {}),
+  });
+  await agent
+    .post("/api/manga/import")
+    .send({
+      entries: [
+        entry("Changed long ago", "2019-04-01T00:00:00.000Z"),
+        entry("Changed last year", "2025-06-01T00:00:00.000Z"),
+        // no date, and one in the future: both get the time of the import
+        entry("No date"),
+        entry("From the future", "2031-01-01T00:00:00.000Z"),
+      ],
+    })
+    .expect(200);
+  const names = (await agent.get("/api/manga")).body.manga.map(
+    (m: { name: string }) => m.name,
+  ) as string[];
+  // the two with no usable date are the newest; then by their own dates
+  expect(names.slice(2)).toEqual(["Changed last year", "Changed long ago"]);
+  expect(names.slice(0, 2).sort()).toEqual(["From the future", "No date"]);
+});

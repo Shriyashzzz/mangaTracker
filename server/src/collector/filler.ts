@@ -74,11 +74,11 @@ export const resetFiller = () => {
   queue = { at: 0, isbns: [] };
 };
 
-// every numbered volume out on any shelf that eBay's API has never looked
-// at: owned ones first (they make up what shelves are worth), then the ones
-// still to get. Only whole-numbered volumes, the ones shelf totals count:
-// never a guidebook or anything else a list holds. Database only
-export async function fillQueue(now = new Date()): Promise<string[]> {
+// every numbered volume out on any shelf, by ISBN: the ones readers own
+// (they make up what shelves are worth), and the ones still to get. Only
+// whole-numbered volumes, the ones shelf totals count: never a guidebook or
+// anything else a list holds. Database only. Shared with usedFiller.ts
+export async function shelfVolumes(now = new Date()) {
   const manga = await prisma.manga.findMany({
     where: { userId: { not: null } },
   });
@@ -99,6 +99,13 @@ export async function fillQueue(now = new Date()): Promise<string[]> {
       (mine.has(v.volume) ? owned : missing).push(v.isbn13);
     }
   }
+  return { owned, missing };
+}
+
+// the shelf volumes eBay's API has never looked at: owned ones first, then
+// the ones still to get
+export async function fillQueue(now = new Date()): Promise<string[]> {
+  const { owned, missing } = await shelfVolumes(now);
   const all = [...new Set([...owned, ...missing])];
   if (!all.length) return [];
   const looked = await prisma.priceSourceCheck.findMany({

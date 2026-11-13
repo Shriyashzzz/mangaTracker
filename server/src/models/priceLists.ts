@@ -23,10 +23,11 @@ export function getRecentBestPrices(limit = 40): Promise<RecentPrice[]> {
 async function queryRecentBestPrices(limit: number): Promise<RecentPrice[]> {
   return prisma.$queryRaw<RecentPrice[]>`
     -- each check's cheapest new print copy, and whether the check went past
-    -- eBay and Books-A-Million (they alone look again every few days)
+    -- the free sources (eBay, Books-A-Million, Better World Books: they alone
+    -- look again every few days)
     WITH best AS (
       SELECT isbn13, fetched_at, MIN(price_cents) AS p,
-             bool_or(source IS NULL OR source NOT IN ('ebay', 'books-a-million')) AS full_check
+             bool_or(source IS NULL OR source NOT IN ('ebay', 'books-a-million', 'better-world-books')) AS full_check
       FROM price_samples
       WHERE condition = 'new' AND format = 'print'
       GROUP BY isbn13, fetched_at
@@ -98,7 +99,7 @@ async function queryDeals(limit: number): Promise<RecentPrice[]> {
   return prisma.$queryRaw<RecentPrice[]>`
     WITH best AS (
       SELECT isbn13, fetched_at, MIN(price_cents) AS p,
-             bool_or(source IS NULL OR source NOT IN ('ebay', 'books-a-million')) AS full_check
+             bool_or(source IS NULL OR source NOT IN ('ebay', 'books-a-million', 'better-world-books')) AS full_check
       FROM price_samples
       WHERE condition = 'new' AND format = 'print'
       GROUP BY isbn13, fetched_at

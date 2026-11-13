@@ -47,6 +47,9 @@ export type Book = {
   isbn?: string;
   // a backup's own record of the series' books, on its first row
   ownBooks?: NewBook[];
+  // when the file says it was last changed (read, or added): ISO text
+  // (importDate.ts)
+  changedOn?: string;
 };
 
 export type BookSeries = {
@@ -85,4 +88,6 @@ export type BookSeries = {
   // each owned book that says its volumes, with its ISBN and edition
   bookList?: NewBook[];
   collecting?: string;
+  // the latest date any of its books was changed, for "Last updated"
+  updatedAt?: string;
 };

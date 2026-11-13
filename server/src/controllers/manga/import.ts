@@ -49,6 +49,8 @@ export const importList = [
   body("entries.*.planned").optional().isBoolean().toBoolean(),
   body("entries.*.lightNovel").optional().isBoolean().toBoolean(),
   body("entries.*.restore").optional().isBoolean().toBoolean(),
+  // when it was last changed where it came from (checked again in malEntry.ts)
+  body("entries.*.updatedAt").optional().isISO8601(),
   body("entries.*.byVolume").optional().isBoolean().toBoolean(),
   body("entries.*.edition")
     .optional()

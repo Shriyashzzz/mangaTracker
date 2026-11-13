@@ -5,6 +5,7 @@ import { prisma } from "../config/prisma.js";
 import { type Book } from "../../generated/prisma/client.js";
 import {
   AMAZON,
+  BETTER_WORLD_BOOKS,
   BOOKS_A_MILLION,
   EBAY,
   preferDirectRows,
@@ -121,7 +122,7 @@ export type CurrentRow = StoredOffer & { isbn13: string; source: string };
 // and a store's own listing both have a store, the store's own (our affiliate
 // link) wins, and of the rest the most recent copy of each store + format +
 // condition. Cheapest first
-// A store with its own source (eBay, Amazon, Books-A-Million) that has looked is the word on
+// A store with its own source (eBay, Amazon, Books-A-Million, Better World Books) that has looked is the word on
 // that store: Google Shopping's older row for it stops showing, even when the
 // store's own source found none
 export const currentOf = (
@@ -133,7 +134,8 @@ export const currentOf = (
     row.source === "shopping" &&
     ((looked.has("ebay") && EBAY.test(row.store)) ||
       (looked.has("amazon") && AMAZON.test(row.store)) ||
-      (looked.has("books-a-million") && BOOKS_A_MILLION.test(row.store)));
+      (looked.has("books-a-million") && BOOKS_A_MILLION.test(row.store)) ||
+      (looked.has("better-world-books") && BETTER_WORLD_BOOKS.test(row.store)));
   for (const found of preferDirectRows(rows)) {
     if (ownWord(found)) continue;
     // one store, one name: Google Shopping's spellings as the store links'

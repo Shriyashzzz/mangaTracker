@@ -2,12 +2,14 @@
 import { app } from "./app.js";
 import config from "./config/config.js";
 import { startFiller } from "./collector/filler.js";
+import { startUsedFiller } from "./collector/usedFiller.js";
 import { startSeriesFiller } from "./prices/seriesFiller.js";
 
 app.listen(config.PORT, () => {
   console.log(`API running on http://localhost:${config.PORT}`);
   // background pricing of shelf volumes (production unless PRICE_FILL=on)
   startFiller();
+  startUsedFiller();
   // background volume lists for series nobody has opened yet (same switch)
   startSeriesFiller();
 });

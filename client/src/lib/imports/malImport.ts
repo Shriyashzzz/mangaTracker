@@ -33,6 +33,9 @@ export type MalEntry = {
   restore?: boolean;
   // from a backup: the edition they collect it in ("deluxe")
   edition?: string;
+  // when they last changed it where it came from (imports/importDate.ts), so
+  // the shelf's "Last updated" order comes along. ISO text
+  updatedAt?: string;
   // the books behind the owned volumes, with ISBNs and editions
   books?: NewBook[];
   // from a backup: the series keeps its place by the volume

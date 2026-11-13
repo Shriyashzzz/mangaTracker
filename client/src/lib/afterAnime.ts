@@ -71,9 +71,15 @@ export type BuyOffer = {
   checkedAt: string;
 };
 
+// a used copy: the cheaper way in, under the new one or by itself
+export type UsedOffer = Omit<BuyOffer, "checkedAt">;
+
+// a volume's ways to a store. The server's VolumeOffers
+export type VolumeOffers = { new: BuyOffer | null; used: UsedOffer | null };
+
 // by ISBN; a volume with no saved price isn't in it. Saved prices only
 export const getBuyOffers = (isbns: string[], signal?: AbortSignal) =>
-  getJson<Record<string, BuyOffer>>(
+  getJson<Record<string, VolumeOffers>>(
     `/api/after-anime/buy?${new URLSearchParams({ isbns: isbns.join(",") })}`,
     signal,
   );

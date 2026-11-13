@@ -1,6 +1,7 @@
 // Books grouped into series, one shelf entry each: what's owned and read,
 // the names to search AniList by, and the entry sent to the server. Part of
 // the book import (bookImport.ts lists the parts).
+import { latestDate } from "./importDate";
 import { ownedVolumes } from "../ownedVolumes";
 import type { MalEntry } from "./malImport";
 import { type Book, type BookSeries } from "./bookTypes";
@@ -137,6 +138,10 @@ export function groupBooks(everyBook: Book[]): BookSeries[] {
         : {}),
       ...(list.find((b) => b.notes)
         ? { notes: list.find((b) => b.notes)!.notes }
+        : {}),
+      // the latest any of its books was changed, where the file says
+      ...(latestDate(list.map((b) => b.changedOn))
+        ? { updatedAt: latestDate(list.map((b) => b.changedOn)) }
         : {}),
       ...bookListOf(ownedBooks, volumesOf),
       ...(list.find((b) => b.collecting)
@@ -385,6 +390,7 @@ export const toEntry = (
   readVolumes: s.restore ? (s.readTo ?? 0) : s.readVolumes,
   ...(s.restore && s.byVolume != null ? { byVolume: s.byVolume } : {}),
   ...(s.restore && s.collecting ? { edition: s.collecting } : {}),
+  ...(s.updatedAt ? { updatedAt: s.updatedAt } : {}),
   // only the books whose volumes go on the shelf: the server keeps no other
   ...(s.bookList?.length ? { books: s.bookList.slice(0, 300) } : {}),
   ownedVolumes: s.ownedVolumes,

@@ -8,11 +8,14 @@
 import {
   amazonTag,
   bamAffiliateUrl,
+  betterWorldBooksLink,
   bookshopId,
+  bwbAffiliateUrl,
   CJ_CLICK_HOSTS,
   cjWebsiteId,
   ebayAffiliateUrl,
   ebayCampaignId,
+  impactKeysSet,
   walmartAffiliate,
 } from "./affiliates.js";
 import type { Offer } from "../types.js";
@@ -72,6 +75,7 @@ export const EBAY = /^ebay( - .+)?$/i;
 export const AMAZON = /^amazon(\.com)?$/i;
 const BOOKSHOP = /^bookshop(\.org)?$/i;
 export const BOOKS_A_MILLION = /^books[- ]?a[- ]?million(\.com)?$/i;
+export const BETTER_WORLD_BOOKS = /^better ?world ?books(\.com)?$/i;
 
 const bamSearchUrl = (isbn13: string) =>
   bamAffiliateUrl(`https://www.booksamillion.com/search?query=${isbn13}`);
@@ -101,6 +105,14 @@ export function affiliateOfferUrl(
   const { store, url } = offer;
   if (!isGoogleLink(url)) return ourTags(url);
   if (EBAY.test(store) && ebayCampaignId()) return ebayUrl(isbn13, "shopping");
+  // its page for an ISBN lists every copy, new and used, so any print copy's
+  // row can go there
+  if (
+    BETTER_WORLD_BOOKS.test(store) &&
+    betterWorldBooksLink() &&
+    offer.format === "print"
+  )
+    return bwbSearchUrl(isbn13);
   const newPrint = offer.format === "print" && offer.condition === "new";
   if (!newPrint) return url;
   if (AMAZON.test(store) && amazonTag()) return amazonUrl(isbn13);
@@ -108,6 +120,13 @@ export function affiliateOfferUrl(
   if (BOOKS_A_MILLION.test(store) && cjWebsiteId()) return bamSearchUrl(isbn13);
   return url;
 }
+
+// Better World Books' own search for an ISBN, through our Impact link when
+// there is one
+const bwbSearchUrl = (isbn13: string) =>
+  bwbAffiliateUrl(
+    `https://www.betterworldbooks.com/search/results?${new URLSearchParams({ q: isbn13 })}`,
+  );
 
 // the site itself or one of its subdomains, never a lookalike like notebay.com
 const isSite = (host: string, site: string) =>
@@ -176,12 +195,39 @@ export function isAffiliateUrl(url: string | null): boolean {
     return Boolean(amazonTag()) && link.searchParams.get("tag") === amazonTag();
   if (isSite(host, "bookshop.org")) return link.pathname.startsWith("/a/");
   if (isSite(host, "walmart.com")) return walmartAffiliate();
+  // an Impact link for Better World Books that pays our account: our own
+  // tracking link, or one from Impact's feed (providers/betterWorldBooks.ts),
+  // which carries the same account with another ad's number
+  if (isOurImpactLink(link)) return true;
   // a CJ click link carries the website ID it pays
   if (CJ_CLICK_HOSTS.some((site) => isSite(host, site))) {
     const pid = cjWebsiteId();
     return Boolean(pid) && link.pathname.includes(pid!);
   }
   return false;
+}
+
+// "/c/<account>/<ad>/<campaign>": whose link it is comes first
+const impactAccountOf = (link: URL) => /^\/c\/(\d+)\//.exec(link.pathname)?.[1];
+
+function isOurImpactLink(link: URL) {
+  const ours = betterWorldBooksLink();
+  if (ours) {
+    const mine = parse(ours);
+    return Boolean(
+      mine &&
+      link.hostname === mine.hostname &&
+      impactAccountOf(link) !== undefined &&
+      impactAccountOf(link) === impactAccountOf(mine),
+    );
+  }
+  // no link setting to compare with: a link the feed gave us, fetched with
+  // our own account's keys, is ours
+  return (
+    impactKeysSet() &&
+    isSite(link.hostname, "betterworldbooks.pxf.io") &&
+    impactAccountOf(link) !== undefined
+  );
 }
 
 // searches for a series' box sets at the stores that sell them, with our
@@ -241,5 +287,11 @@ export const storeLinks = (isbn13: string): StoreLink[] => [
     store: "Books-A-Million",
     url: bamSearchUrl(isbn13),
     affiliate: Boolean(cjWebsiteId()),
+  },
+  // new and used copies: often the cheapest way to an older volume
+  {
+    store: "Better World Books",
+    url: bwbSearchUrl(isbn13),
+    affiliate: Boolean(betterWorldBooksLink()),
   },
 ];

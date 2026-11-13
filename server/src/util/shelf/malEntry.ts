@@ -38,6 +38,9 @@ export type MalEntry = {
   byVolume?: boolean;
   // a backup's own genre, kept over AniList's (it may be hand-set)
   genre?: string;
+  // when they last changed it where it came from, as ISO text: the shelf's
+  // "Last updated" order comes along with the import
+  updatedAt?: string;
 };
 
 // what a backup gives a series already on the shelf: only what the shelf
@@ -108,7 +111,22 @@ export function toMangaInput(entry: MalEntry, listing: MalListing | null) {
     ),
     rating: Math.round(entry.score / 2) || null,
     latestChapter: listing?.latestChapter ?? null,
+    ...(changedOn(entry.updatedAt)
+      ? { updatedAt: changedOn(entry.updatedAt) }
+      : {}),
   };
+}
+
+// an import's "last changed" as a date, or undefined for one that isn't a
+// day in the past: the series then gets the time of the import. (The page
+// checks it too, imports/importDate.ts; this is the server's own check)
+export function changedOn(text: string | undefined, now = Date.now()) {
+  if (!text) return undefined;
+  const time = Date.parse(text);
+  const aDayAhead = now + 24 * 60 * 60 * 1000;
+  if (!Number.isFinite(time) || time < Date.UTC(1995, 0, 1) || time > aDayAhead)
+    return undefined;
+  return new Date(time);
 }
 
 // what the import says, or else what AniList says

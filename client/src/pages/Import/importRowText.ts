@@ -25,6 +25,8 @@ function notOnAniList(
   saidByThem: boolean,
 ) {
   if (saidByThem) return "You said it isn't on AniList";
+  // their own backup: it was on their shelf, so it goes back all the same
+  if (s.restore) return "Not on AniList. Kept, as it's from your backup";
   if (apart) return `Not on AniList, and not the same as ${apart}`;
   return s.lightNovel
     ? "Not on AniList"
