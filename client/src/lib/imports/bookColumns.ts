@@ -166,47 +166,57 @@ export const isOwnExport = (headers: string[]) =>
   ["Title", "Type", "Status", "Chapter"].every((c) => headers.includes(c)) &&
   (headers.includes("Owned volumes") || headers.includes("Volumes owned"));
 
+// a cell of our own backup. The export puts an apostrophe before a cell a
+// spreadsheet would read as a formula ("+Anima", a note starting with a
+// dash, a book with no ISBN); it comes off here, so the cell is as it was
+// (lib/shelfCsv.ts csvCell)
+const ownCell = (row: string[], i: number) => {
+  if (i < 0) return "";
+  const text = (row[i] ?? "").trim();
+  return /^'+[=+\-@\t\r]/.test(text) ? text.slice(1) : text;
+};
+
 export function ownExportBooks(h: string[], row: string[]): Book[] {
-  const title = tidyName(cell(row, header(h, /^Title$/)));
+  const title = tidyName(ownCell(row, header(h, /^Title$/)));
   if (!title) return [];
   const exact = header(h, /^Owned volumes$/);
-  const text = cell(row, exact >= 0 ? exact : header(h, /^Volumes owned$/));
+  const text = ownCell(row, exact >= 0 ? exact : header(h, /^Volumes owned$/));
   const bare = /^\d{1,3}$/.test(text) && exact < 0;
   const volumes = bare
     ? Array.from({ length: Number(text) }, (_, i) => i + 1)
     : (parseVolumes(text) ?? []);
-  const status = cell(row, header(h, /^Status$/)).toLowerCase();
+  const status = ownCell(row, header(h, /^Status$/)).toLowerCase();
   const chapter = Math.max(
     0,
-    Math.floor(count(cell(row, header(h, /^Chapter$/)))),
+    Math.floor(count(ownCell(row, header(h, /^Chapter$/)))),
   );
-  const lightNovel = /novel/i.test(cell(row, header(h, /^Type$/)));
+  const lightNovel = /novel/i.test(ownCell(row, header(h, /^Type$/)));
   const base = {
     series: title,
     names: [title],
     owned: true,
     read: false,
     reading: false,
-    rating: stars(cell(row, header(h, /^Rating$/))),
+    rating: stars(ownCell(row, header(h, /^Rating$/))),
     // on To read with volumes bought already: still To read
     planned: status === "to read",
     lightNovel,
     exact: true,
-    genre: cell(row, header(h, /^Genre$/)).slice(0, 100) || undefined,
+    genre: ownCell(row, header(h, /^Genre$/)).slice(0, 100) || undefined,
     finished: status === "finished",
     chapter,
     // backups from before these columns say neither
     readTo: Math.min(
       999,
-      Math.max(0, Math.floor(count(cell(row, header(h, /^Read volume$/))))),
+      Math.max(0, Math.floor(count(ownCell(row, header(h, /^Read volume$/))))),
     ),
     ...(header(h, /^Tracked by$/) >= 0
-      ? { byVolume: /volume/i.test(cell(row, header(h, /^Tracked by$/))) }
+      ? { byVolume: /volume/i.test(ownCell(row, header(h, /^Tracked by$/))) }
       : {}),
-    notes: cell(row, header(h, /^Notes$/)).slice(0, 450) || undefined,
+    notes: ownCell(row, header(h, /^Notes$/)).slice(0, 450) || undefined,
   };
-  const ownBooks = booksFromCell(cell(row, header(h, /^Books$/)));
-  const collecting = cell(row, header(h, /^Collecting$/)).toLowerCase();
+  const ownBooks = booksFromCell(ownCell(row, header(h, /^Books$/)));
+  const collecting = ownCell(row, header(h, /^Collecting$/)).toLowerCase();
   if (/^[a-z0-9]{1,20}$/.test(collecting)) Object.assign(base, { collecting });
   if (!volumes.length)
     return [

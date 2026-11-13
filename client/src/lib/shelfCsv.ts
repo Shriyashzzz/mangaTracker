@@ -5,10 +5,13 @@ import { booksToCell, type NewBook } from "./books";
 import { ownedOf, rangesText } from "./ownedVolumes";
 import type { Manga } from "./types";
 
-// a spreadsheet treats a cell starting with these as a formula
+// a spreadsheet treats a cell starting with = + - or @ as a formula, so such
+// a cell gets an apostrophe in front. Reading the backup takes it off again
+// (imports/bookColumns.ts ownCell). A cell that already starts with an
+// apostrophe before one of those gets one more, so nothing is lost either way
 const csvCell = (value: unknown) => {
   const text = String(value ?? "");
-  const safe = /^[=+\-@\t\r]/.test(text) ? `'${text}` : text;
+  const safe = /^'*[=+\-@\t\r]/.test(text) ? `'${text}` : text;
   return `"${safe.replaceAll('"', '""')}"`;
 };
 
