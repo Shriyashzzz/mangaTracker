@@ -3,6 +3,7 @@
 // already on the shelf. Each opens its volume page; Add to calendar sits
 // under the date, and Preorder goes straight to the stores on its page. A
 // long month shows its first `limit`, the rest on asking
+import { coverSet } from "../../lib/coverSizes";
 import { useState } from "react";
 import { NavLink } from "react-router";
 import { CheckIcon } from "../icons/Icons";
@@ -31,6 +32,8 @@ export function VolumeCover({
       {volume.seriesCover && (
         <img
           src={coverSrc(volume.seriesCover)}
+          srcSet={coverSet(volume.seriesCover)}
+          sizes="54px"
           alt=""
           loading="lazy"
           onError={hideBrokenCover}

@@ -1,3 +1,4 @@
+import { coverSet } from "../../lib/coverSizes";
 import {
   placeText as placeOf,
   tracksOf,
@@ -114,6 +115,15 @@ export default function MangaCard({
         {currentManga.image && brokenImage !== currentManga.image ? (
           <img
             src={currentManga.image}
+            // a row's thumbnail asks for a small picture, a card for a full one
+            srcSet={coverSet(currentManga.image)}
+            sizes={
+              compact
+                ? "44px"
+                : news
+                  ? "(max-width: 720px) 44px, 160px"
+                  : "160px"
+            }
             alt=""
             loading="lazy"
             // out of the flow, or a tall image stretches the cover past its shape

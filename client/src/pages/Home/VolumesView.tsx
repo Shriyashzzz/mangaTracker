@@ -3,6 +3,7 @@
 // as covers, theirs inked in and the rest faded as "Not on your shelf", each one a
 // link to its prices. The covers come from the price checker's series list,
 // asked only when a row is opened.
+import { coverSet } from "../../lib/coverSizes";
 import { formatCents } from "../../lib/prices";
 import { useEffect, useRef, useState } from "react";
 import RangePager from "../../components/rangePager/RangePager";
@@ -242,6 +243,8 @@ function SeriesRow({
           {manga.image && (
             <img
               src={manga.image}
+              srcSet={coverSet(manga.image)}
+              sizes="36px"
               alt=""
               loading="lazy"
               onError={hideBrokenCover}

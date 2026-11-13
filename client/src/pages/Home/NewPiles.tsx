@@ -2,6 +2,7 @@
 // out" shows its cards, Hide and all; the others a fan of covers and a count,
 // each opening its own page. And that page's head: which pile, the chips to
 // the others, and the way back
+import { coverSet } from "../../lib/coverSizes";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { NavLink } from "react-router";
 import DrawnCover from "../../components/drawnCover/DrawnCover";
@@ -95,7 +96,13 @@ function Fan({
           >
             <span className={styles.fanArt} aria-hidden>
               {m.image ? (
-                <img src={m.image} alt="" loading="lazy" />
+                <img
+                  src={m.image}
+                  srcSet={coverSet(m.image)}
+                  sizes="56px"
+                  alt=""
+                  loading="lazy"
+                />
               ) : (
                 <DrawnCover title={m.name} />
               )}
