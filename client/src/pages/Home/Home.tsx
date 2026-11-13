@@ -8,28 +8,21 @@
 //   useHideActions.ts    the New tab's Hide, Hide all, Unhide all, with undo
 //   useShelfShortcuts.ts / and n
 //   useAddFlow.ts        the + button's choice, and the scanner sheet
+//   useReleaseProgress.ts  the New tab's check: asked for, and how far along
+//   usePileView.ts       which pile of the New tab is open (?pile=)
 //   newTabLinks.ts       where a card on New leads (pure)
 //   ShelfCard.tsx        one series' card, with Hide on the New tab
 //   ShelfStates.tsx      empty, unreachable, no matches, still checking
 //   SelectDock.tsx, NewTabParts.tsx, AddButton.tsx: what those draw
 import { lazy, Suspense, useEffect, useMemo, useState } from "react";
-import { NavLink, useNavigate, useSearchParams } from "react-router";
+import { NavLink, useNavigate } from "react-router";
 import { BarcodeIcon } from "../../components/icons/Icons";
 import RangePager from "../../components/rangePager/RangePager";
 import ReleaseTip from "../../components/whatsNew/ReleaseTip";
 import ViewPeek from "../../components/viewPeek/ViewPeek";
 import { usePrivatePage } from "../../lib/seo";
-import {
-  readLocal,
-  savePrefs,
-  shelfViewNow,
-  writeLocal,
-} from "../../lib/prefs";
-import {
-  CHECKED_BEFORE_KEY,
-  LAST_NEW_COUNT_KEY,
-  SORT_OPTIONS,
-} from "../../lib/shelf";
+import { readLocal, savePrefs, shelfViewNow } from "../../lib/prefs";
+import { SORT_OPTIONS } from "../../lib/shelf";
 import { shownNewCount } from "../../lib/releaseMath";
 import { isDemo } from "../../lib/demo";
 import { fillCovers } from "../../lib/coverFill";
@@ -53,14 +46,11 @@ import { hasBottomBar } from "../../lib/bottomBar";
 import { checkedAgo } from "../../lib/releaseCache";
 import { NewPiles, PileHead, type CoverLink } from "./NewPiles";
 import {
-  isPileView,
   PILES_FROM,
   catchUpText,
   sortIntoPiles,
   sortPile,
   type Pile,
-  type PileSort,
-  type PileView,
 } from "./piles";
 import AddButton from "./AddButton";
 import AddChoice from "../../components/scanSheet/AddChoice";
@@ -88,6 +78,8 @@ import { useShelfTab } from "./useShelfTab";
 import { useSelectMode } from "./useSelectMode";
 import { useHideActions } from "./useHideActions";
 import { useShelfShortcuts } from "./useShelfShortcuts";
+import { usePileView } from "./usePileView";
+import { useReleaseProgress } from "./useReleaseProgress";
 import { useAddFlow } from "./useAddFlow";
 import { buyLinkFor, detailsSearchFor, stampFor } from "./newTabLinks";
 import ShelfCard from "./ShelfCard";
@@ -115,9 +107,7 @@ function Library() {
   const loadError = useShelf((s) => s.loadFailed);
   const releases = useShelf((s) => s.releases);
   const outcomes = useShelf((s) => s.outcomes);
-  const checkedAt = useShelf((s) => s.checkedAt);
   const loadShelf = useShelf((s) => s.load);
-  const checkReleases = useShelf((s) => s.checkReleases);
   const recheckReleases = useShelf((s) => s.recheckReleases);
   // the "Deleted · Undo" note sits where the bar does: the bar goes above it
   const undoShowing = useShelf((s) => Boolean(s.lastDeleted?.length));
@@ -144,12 +134,16 @@ function Library() {
   // showing the last one again leaves nothing here, so it goes back to what's new
   const viewingHidden = tab === "new" && wantHidden && hiddenCount > 0;
   const showingNew = tab === "new";
-  // on a big New tab, one pile's own page (piles.ts), or everything at once
-  const [searchParams, setSearchParams] = useSearchParams();
-  const pileParam = searchParams.get("pile");
-  const pileView = showingNew && isPileView(pileParam) ? pileParam : null;
-  // a pile's own page, in the order they pick (kept between piles)
-  const [pileSort, setPileSort] = useState<PileSort>("");
+  // on a big New tab, one pile's own page, or everything at once
+  const {
+    pileParam,
+    pileView,
+    pileSort,
+    setPileSort,
+    pileLeft,
+    openPile,
+    closePile,
+  } = usePileView(showingNew);
 
   // the shelf shows one block of manga at a time; any change to the tab,
   // search or sort starts again from the first block
@@ -207,37 +201,26 @@ function Library() {
     return () => controller.abort();
   }, [hasManga]);
 
-  // what's new for each manga. Only asked for once the New tab is opened, or for
-  // anyone on rows, whose progress needs the latest chapter. After that it carries
-  // on even if they leave, and new titles get picked up
-  useEffect(() => {
-    if (checksOn && (showingNew || rowsChosen) && mangaData?.length)
-      checkReleases();
-  }, [mangaData, releases, showingNew, rowsChosen, checksOn, checkReleases]);
-  const checked = (mangaData ?? []).filter((m) => m.id in releases).length;
-  const checking = showingNew && checked < (mangaData?.length ?? 0);
-  const allChecked = checked > 0 && checked >= (mangaData?.length ?? 0);
-  // how old the oldest answer on show is, said quietly under the list
-  const oldestCheck = useMemo(
-    () =>
-      Math.min(
-        ...(mangaData ?? []).map((m) => checkedAt[m.id] ?? Infinity),
-        Infinity,
-      ),
-    [mangaData, checkedAt],
-  );
-  const [checkedBefore] = useState(
-    () => readLocal(CHECKED_BEFORE_KEY) !== null,
-  );
-  const [lastNewCount] = useState(() => {
-    const saved = readLocal(LAST_NEW_COUNT_KEY);
-    return saved ? Number(saved) : null;
-  });
-
   const counts = useMemo(
     () => shelfCounts(mangaData ?? [], releases),
     [mangaData, releases],
   );
+  // the New tab's release check: how far along it is, and what the last
+  // full one found
+  const {
+    checked,
+    checking,
+    allChecked,
+    oldestCheck,
+    checkedBefore,
+    lastNewCount,
+  } = useReleaseProgress({
+    manga: mangaData,
+    showingNew,
+    rowsChosen,
+    checksOn,
+    newCount: counts.new,
+  });
 
   // nothing left hidden, so there's no list to be on. Opened straight onto it,
   // the check has to finish first to know what's hidden; once it's been shown,
@@ -251,12 +234,6 @@ function Library() {
   useEffect(() => {
     if (leaveHidden) navigator("/shelf", { replace: true });
   }, [leaveHidden, navigator]);
-
-  useEffect(() => {
-    if (!allChecked) return;
-    writeLocal(CHECKED_BEFORE_KEY, "yes");
-    writeLocal(LAST_NEW_COUNT_KEY, String(counts.new));
-  }, [allChecked, counts.new]);
 
   const listed = useMemo(
     () =>
@@ -284,18 +261,6 @@ function Library() {
   // a big list of what's new, not searched: sorted into piles instead
   const showPiles =
     showingNew && !pileView && !query.trim() && listed.length >= PILES_FROM;
-  // opening a pile is a step of its own, so Back returns to the piles
-  // the pile they came back from, whose See all takes the focus again
-  const [pileLeft, setPileLeft] = useState<Pile | null>(null);
-  const openPile = (view: PileView | null) => {
-    setPileLeft(!view && pileView && pileView !== "all" ? pileView : null);
-    const next = new URLSearchParams(searchParams);
-    if (view) next.set("pile", view);
-    else next.delete("pile");
-    // from the piles, up to the top of the pile's page (the router's own
-    // reset); between piles (the chips) the page stays where it is
-    setSearchParams(next, { preventScrollReset: Boolean(pileView && view) });
-  };
   // a pile hidden down to nothing: back to the piles
   const pileEmptied =
     allChecked &&
@@ -304,11 +269,10 @@ function Library() {
     !query.trim() &&
     piles[pileView].length === 0;
   useEffect(() => {
-    if (!pileEmptied) return;
-    const next = new URLSearchParams(searchParams);
-    next.delete("pile");
-    setSearchParams(next, { replace: true });
-  }, [pileEmptied, searchParams, setSearchParams]);
+    if (pileEmptied) closePile();
+    // only when the pile empties: closePile is made anew on every render
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pileEmptied]);
   // a pile's page on a phone grows by "Show 20 more" instead of turning
   // pages: one fewer row of controls on a small screen
   const growing = Boolean(pileView) && hasBottomBar();
