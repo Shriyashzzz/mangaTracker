@@ -438,113 +438,157 @@ export function isUntranslatedWork(
 const circledToDigits = (text: string) =>
   text.replace(/[①-⑳]/g, (c) => ` ${c.charCodeAt(0) - 0x2460 + 1}`);
 
+// an edition's English ISBN-13, from either of its ISBN lists
+const englishIsbnOf = (edition: Edition) =>
+  [...(edition.isbn_13 ?? []), ...(edition.isbn_10 ?? [])]
+    .map(toIsbn13)
+    .find((isbn) => isbn && ENGLISH_ISBN.test(isbn));
+
+// one book holding a few volumes ("Vinland Saga, Book 9", vols. 17 and 18):
+// each volume is listed with the book's ISBN. The printed edition is taken
+// rather than the ebook
+function volumesOfOneBook(
+  editions: Edition[],
+  doc: Doc,
+  seriesName: string,
+  range: { from: number; to: number },
+): CatalogBook[] {
+  const wanted = seriesOf(baseName(seriesName));
+  const english = editions
+    .map((edition) => ({
+      edition,
+      isbn13: englishIsbnOf(edition),
+      title: withBookDigits((edition.title ?? "").trim()),
+    }))
+    .filter(({ edition, isbn13, title }) => {
+      const inAnotherLanguage = (edition.languages ?? []).some(
+        (l) => l.key && l.key !== "/languages/eng",
+      );
+      return (
+        isbn13 &&
+        !inAnotherLanguage &&
+        bookNumberOf(title) !== null &&
+        seriesOf(title) === wanted
+      );
+    });
+  const isEbook = (edition: Edition) =>
+    /e-?book/i.test(edition.physical_format ?? "");
+  const print = english.find(({ edition }) => !isEbook(edition)) ?? english[0];
+  if (!print) return [];
+
+  const isbn13 = print.isbn13!;
+  const book = bookNumberOf(print.title)!;
+  const books: CatalogBook[] = [];
+  for (let volume = range.from; volume <= range.to; volume++) {
+    books.push({
+      isbn13,
+      title: `${seriesName}, Book ${book}`,
+      authors: englishAuthors(doc.author_name),
+      publisher: publisherOf(isbn13, {
+        edition: print.edition.publishers,
+        work: doc.publisher,
+      }),
+      year: doc.first_publish_year ?? null,
+      volume,
+      coverUrl: coverPath(isbn13),
+      pages: print.edition.number_of_pages ?? null,
+      comic: true,
+      inBook: { book, from: range.from, to: range.to },
+    });
+  }
+  return books;
+}
+
+// one edition as a volume of the series, or null when it isn't one: not in
+// English, the other format (a novel when the manga is asked for), a set, or
+// naming another series
+function volumeFromEdition(
+  edition: Edition,
+  doc: Doc,
+  seriesName: string,
+): CatalogBook | null {
+  const isbn13 = englishIsbnOf(edition);
+  if (!isbn13 || !edition.title) return null;
+  const languages = edition.languages ?? [];
+  const saysAnotherLanguage =
+    languages.length > 0 && !languages.some((l) => l.key === "/languages/eng");
+  if (saysAnotherLanguage) return null;
+
+  // the novel series takes only the novel editions, named as the novel's
+  const wantsNovel = isNovelName(seriesName);
+  const tagged = circledToDigits(
+    [edition.title, edition.subtitle].filter(Boolean).join(" "),
+  );
+  const isNovel = isNovelEdition(
+    tagged,
+    doc.subject,
+    edition.publishers ?? doc.publisher,
+  );
+  if (isNovel !== wantsNovel || !isSingleVolume(tagged)) return null;
+
+  const full = tagged
+    .replace(LIGHT_NOVEL_TAGS, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+  const seriesWhole = normalize(baseName(seriesName));
+  // "Kaiju No. 8" alone is the series, not its eighth volume
+  if (normalize(full) === seriesWhole) return null;
+  // a novel's "Sword Art Online 9: Alicization Beginning" reads as 9
+  const parsed = wantsNovel ? novelSeriesAndVolume(full) : null;
+  const volume = parsed ? parsed.volume : volumeNumber(full);
+  if (volume === null) return null;
+  // a name ending in a number loses it in seriesOf: "Kaiju No. 8 2"
+  const named = parsed ? seriesOf(parsed.series) : seriesOf(full);
+  const wanted = seriesOf(baseName(seriesName));
+  if (named !== wanted && named !== seriesWhole) return null;
+
+  return {
+    isbn13,
+    title: `${seriesName}, Vol. ${volume}`,
+    authors: englishAuthors(doc.author_name),
+    publisher: publisherOf(isbn13, {
+      edition: edition.publishers,
+      work: doc.publisher,
+    }),
+    year: doc.first_publish_year ?? null,
+    volume,
+    coverUrl: coverPath(isbn13),
+    pages: edition.number_of_pages ?? null,
+    ...(saysComic(tagged, doc.subject) ? { comic: true } : {}),
+  };
+}
+
 // the volumes one merged work's editions name, filed under the series' own name
 export function booksFromEditions(
   editions: Edition[],
   doc: Doc,
   seriesName: string,
 ): CatalogBook[] {
-  // the novel series takes only the novel editions, named as the novel's
-  const novel = isNovelName(seriesName);
-  const wanted = seriesOf(baseName(seriesName));
-  const whole = normalize(baseName(seriesName));
+  // a work that is one book of several volumes (never for a novel series)
+  const range =
+    !isNovelName(seriesName) && doc.title ? volumeRange(doc.title) : null;
+  if (range) return volumesOfOneBook(editions, doc, seriesName, range);
+
   const books: CatalogBook[] = [];
-  // one book holding a few volumes: each volume listed with the book's ISBN,
-  // the printed edition rather than the ebook
-  const range = !novel && doc.title ? volumeRange(doc.title) : null;
-  if (range) {
-    const english = editions
-      .map((edition) => ({
-        edition,
-        isbn13: [...(edition.isbn_13 ?? []), ...(edition.isbn_10 ?? [])]
-          .map(toIsbn13)
-          .find((i) => i && ENGLISH_ISBN.test(i)),
-        title: withBookDigits((edition.title ?? "").trim()),
-      }))
-      .filter(
-        ({ edition, isbn13, title }) =>
-          isbn13 &&
-          !(edition.languages ?? []).some(
-            (l) => l.key && l.key !== "/languages/eng",
-          ) &&
-          bookNumberOf(title) !== null &&
-          seriesOf(title) === wanted,
-      );
-    const print =
-      english.find(
-        ({ edition }) => !/e-?book/i.test(edition.physical_format ?? ""),
-      ) ?? english[0];
-    if (!print) return books;
-    const book = bookNumberOf(print.title)!;
-    for (let volume = range.from; volume <= range.to; volume++) {
-      books.push({
-        isbn13: print.isbn13!,
-        title: `${seriesName}, Book ${book}`,
-        authors: englishAuthors(doc.author_name),
-        publisher: publisherOf(print.isbn13!, {
-          edition: print.edition.publishers,
-          work: doc.publisher,
-        }),
-        year: doc.first_publish_year ?? null,
-        volume,
-        coverUrl: coverPath(print.isbn13!),
-        pages: print.edition.number_of_pages ?? null,
-        comic: true,
-        inBook: { book, from: range.from, to: range.to },
-      });
-    }
-    return books;
-  }
   for (const edition of editions) {
-    const isbn13 = [...(edition.isbn_13 ?? []), ...(edition.isbn_10 ?? [])]
-      .map(toIsbn13)
-      .find((i) => i && ENGLISH_ISBN.test(i));
-    if (!isbn13 || !edition.title) continue;
-    const languages = edition.languages ?? [];
-    if (
-      languages.length &&
-      !languages.some((l) => l.key === "/languages/eng")
-    ) {
-      continue;
-    }
-    const tagged = circledToDigits(
-      [edition.title, edition.subtitle].filter(Boolean).join(" "),
-    );
-    const isNovel = isNovelEdition(
-      tagged,
-      doc.subject,
-      edition.publishers ?? doc.publisher,
-    );
-    if (isNovel !== novel || !isSingleVolume(tagged)) continue;
-    const full = tagged
-      .replace(LIGHT_NOVEL_TAGS, " ")
-      .replace(/\s+/g, " ")
-      .trim();
-    // "Kaiju No. 8" alone is the series, not its eighth volume
-    if (normalize(full) === whole) continue;
-    // a novel's "Sword Art Online 9: Alicization Beginning" reads as 9
-    const parsed = novel ? novelSeriesAndVolume(full) : null;
-    const volume = parsed ? parsed.volume : volumeNumber(full);
-    if (volume === null) continue;
-    // a name ending in a number loses it in seriesOf: "Kaiju No. 8 2"
-    const named = parsed ? seriesOf(parsed.series) : seriesOf(full);
-    if (named !== wanted && named !== whole) continue;
-    books.push({
-      isbn13,
-      title: `${seriesName}, Vol. ${volume}`,
-      authors: englishAuthors(doc.author_name),
-      publisher: publisherOf(isbn13, {
-        edition: edition.publishers,
-        work: doc.publisher,
-      }),
-      year: doc.first_publish_year ?? null,
-      volume,
-      coverUrl: coverPath(isbn13),
-      pages: edition.number_of_pages ?? null,
-      ...(saysComic(tagged, doc.subject) ? { comic: true } : {}),
-    });
+    const book = volumeFromEdition(edition, doc, seriesName);
+    if (book) books.push(book);
   }
   return books;
+}
+
+// adds a volume read from a work's editions to the search's books. The
+// search may already hold this ISBN as the work's numberless title: the
+// numbered one takes its place. A book holding two volumes is listed once
+// for each volume, under the same ISBN
+function addEditionBook(books: CatalogBook[], book: CatalogBook) {
+  const same = books.findIndex(
+    (b) =>
+      b.isbn13 === book.isbn13 &&
+      (b.volume === null || b.volume === book.volume),
+  );
+  if (same === -1) books.push(book);
+  else if (books[same]!.volume === null) books[same] = book;
 }
 
 // title / author / series search, or a pasted ISBN. Numbered volumes first,
@@ -594,16 +638,17 @@ export async function searchVolumesDetailed(
   }
 
   if (seriesName) {
-    const toRead = [
-      ...docs
-        .filter((doc) => isMergedWork(doc, seriesName))
-        .slice(0, MAX_MERGED_WORKS),
-      ...docs
-        .filter((doc, i) =>
-          isUntranslatedWork(doc, candidates[i]!.book, seriesName),
-        )
-        .slice(0, MAX_JAPANESE_WORKS),
-    ];
+    // works worth opening for their editions: ones that merge several
+    // volumes under the series' name, and ones listed under a Japanese title
+    const merged = docs
+      .filter((doc) => isMergedWork(doc, seriesName))
+      .slice(0, MAX_MERGED_WORKS);
+    const untranslated = docs
+      .filter((doc, i) =>
+        isUntranslatedWork(doc, candidates[i]!.book, seriesName),
+      )
+      .slice(0, MAX_JAPANESE_WORKS);
+    const toRead = [...merged, ...untranslated];
     const editions = await Promise.allSettled(
       toRead.map((doc) => fetchEditions(doc.key!, timeoutMs)),
     );
@@ -613,21 +658,8 @@ export async function searchVolumesDetailed(
         degraded = true;
         return;
       }
-      for (const book of booksFromEditions(
-        result.value,
-        toRead[i]!,
-        seriesName,
-      )) {
-        // the search result for this ISBN may be the work's numberless title.
-        // A book holding two volumes is listed once for each, same ISBN
-        const same = books.findIndex(
-          (b) =>
-            b.isbn13 === book.isbn13 &&
-            (b.volume === null || b.volume === book.volume),
-        );
-        if (same === -1) books.push(book);
-        else if (books[same]!.volume === null) books[same] = book;
-      }
+      const found = booksFromEditions(result.value, toRead[i]!, seriesName);
+      for (const book of found) addEditionBook(books, book);
     });
   }
 
