@@ -7,18 +7,18 @@
 //   useSelectMode.ts     Select: move or delete several, with undo
 //   useHideActions.ts    the New tab's Hide, Hide all, Unhide all, with undo
 //   useShelfShortcuts.ts / and n
+//   useAddFlow.ts        the + button's choice, and the scanner sheet
+//   newTabLinks.ts       where a card on New leads (pure)
+//   ShelfCard.tsx        one series' card, with Hide on the New tab
+//   ShelfStates.tsx      empty, unreachable, no matches, still checking
 //   SelectDock.tsx, NewTabParts.tsx, AddButton.tsx: what those draw
 import { lazy, Suspense, useEffect, useMemo, useState } from "react";
 import { NavLink, useNavigate, useSearchParams } from "react-router";
-import MangaCard from "../../components/mangaCard/MangaCard";
-import { BarcodeIcon, CheckIcon } from "../../components/icons/Icons";
+import { BarcodeIcon } from "../../components/icons/Icons";
 import RangePager from "../../components/rangePager/RangePager";
-import Mascot from "../../components/mascot/Mascot";
-import { EmptyShelfUndo } from "../../components/deletedNote/DeletedNote";
 import ReleaseTip from "../../components/whatsNew/ReleaseTip";
 import ViewPeek from "../../components/viewPeek/ViewPeek";
 import { usePrivatePage } from "../../lib/seo";
-import { volumePath } from "../../lib/prices";
 import {
   readLocal,
   savePrefs,
@@ -74,7 +74,6 @@ import {
   filterShelf,
   isGrouped,
   isHiddenAs,
-  newsFor,
   readSession,
   readSpot,
   RELEASE_KINDS,
@@ -89,6 +88,16 @@ import { useShelfTab } from "./useShelfTab";
 import { useSelectMode } from "./useSelectMode";
 import { useHideActions } from "./useHideActions";
 import { useShelfShortcuts } from "./useShelfShortcuts";
+import { useAddFlow } from "./useAddFlow";
+import { buyLinkFor, detailsSearchFor, stampFor } from "./newTabLinks";
+import ShelfCard from "./ShelfCard";
+import {
+  ChecksFailed,
+  CheckingWithNothingYet,
+  EmptyShelf,
+  NoMatches,
+  ShelfUnreachable,
+} from "./ShelfStates";
 import { homeStyles as styles } from "./styles";
 
 export default function Home() {
@@ -322,25 +331,13 @@ function Library() {
   useShelfShortcuts(select.selectOn);
 
   const goToAdd = () => navigator("/add", { viewTransition: true });
-  // /shelf?scan=978…: an ISBN typed into the add form, looked up here
-  const [scanIsbn] = useState(() => {
-    const isbn = searchParams.get("scan");
-    return isbn && /^(97[89]\d{10}|\d{9}[\dXx])$/.test(isbn) ? isbn : undefined;
-  });
-  // the phones' round +: type a title or scan barcodes (AddChoice)
-  const [adding, setAdding] = useState<null | "choosing" | "scanning">(() =>
-    scanIsbn ? "scanning" : null,
+  const addFlow = useAddFlow();
+  const loadScanner = () => void import("../../components/scanSheet/ScanSheet");
+  const scanSheet = addFlow.adding === "scanning" && (
+    <Suspense fallback={null}>
+      <ScanSheet onClose={addFlow.close} isbn={addFlow.scanIsbn} />
+    </Suspense>
   );
-  useEffect(() => {
-    if (!scanIsbn) return;
-    setSearchParams(
-      (p) => {
-        p.delete("scan");
-        return p;
-      },
-      { replace: true },
-    );
-  }, [scanIsbn, setSearchParams]);
 
   // the bottom pager takes them up to where the new page starts; the top
   // one is already there, so the page stays still under it
@@ -362,67 +359,20 @@ function Library() {
     />
   );
 
-  if (loadError) {
-    return (
-      <div className={styles.emptyState}>
-        <span className="printed mascot-spot" aria-hidden>
-          <Mascot mood="panic" />
-        </span>
-        <p className={styles.emptyTitle}>Couldn't reach your shelf.</p>
-        <p className={styles.emptyBody}>
-          The server didn't answer. Give it a minute, then try again.
-        </p>
-        <button type="button" className="btn btn-primary" onClick={loadShelf}>
-          Try again
-        </button>
-      </div>
-    );
-  }
+  if (loadError) return <ShelfUnreachable onRetry={loadShelf} />;
 
   if (mangaData === null) return <LibrarySkeleton />;
 
-  if (mangaData.length === 0) {
+  if (mangaData.length === 0)
     return (
-      <div className={`${styles.emptyState} fade-in`}>
-        <span className="printed mascot-spot" aria-hidden>
-          <Mascot mood="happy" />
-        </span>
-        <p className={styles.emptyTitle}>Nothing on the shelf yet.</p>
-        <EmptyShelfUndo />
-        <p className={styles.emptyBody}>
-          Add whatever you're reading right now, and the chapter you're on.
-          That's all it takes.
-        </p>
-        <button className="btn btn-primary btn-lg" onClick={goToAdd}>
-          Add your first manga
-        </button>
-        <NavLink
-          to="/import"
-          className={`${styles.importLink} mx-auto mt-4 block w-fit`}
-          viewTransition
-        >
-          Or import your list
-        </NavLink>
-        {/* a stack of volumes by the hand: the shelf's own Scan button and
-            the phone's + aren't here yet, so it's offered from the start */}
-        <button
-          type="button"
-          className={`${styles.importLink} mx-auto mt-2 block w-fit`}
-          onClick={() => setAdding("scanning")}
-          onPointerEnter={() =>
-            void import("../../components/scanSheet/ScanSheet")
-          }
-        >
-          Or scan their barcodes
-        </button>
-        {adding === "scanning" && (
-          <Suspense fallback={null}>
-            <ScanSheet onClose={() => setAdding(null)} isbn={scanIsbn} />
-          </Suspense>
-        )}
-      </div>
+      <EmptyShelf
+        onAdd={goToAdd}
+        onScan={addFlow.scan}
+        onScanHover={loadScanner}
+      >
+        {scanSheet}
+      </EmptyShelf>
     );
-  }
 
   // what this view of the New tab can say anything about: light novels have
   // volumes in English, but no chapters or Japanese volumes to follow
@@ -448,15 +398,6 @@ function Library() {
         ]
       : []),
   ];
-  const grouped = (id: number) => isGrouped(releases[id], releaseKind);
-  // the next volume leads straight to its prices; there's nothing to do with it
-  // but buy it. No catalog entry to go on: the details page, as usual
-  const buyLinkFor = (id: number) => {
-    const book = releases[id]?.nextVolumeBook;
-    return showingNew && releaseKind === "volumes" && book && !grouped(id)
-      ? volumePath(book.isbn13, book.title)
-      : undefined;
-  };
   const openManga = mangaData.find((m) => m.id === openRelease);
 
   const total = mangaData.length;
@@ -487,99 +428,138 @@ function Library() {
 
   const pileExtra = (p: Pile) =>
     catchUpText(p, piles[p], releases, releaseKind);
-  // a card on New opens its details at the part about this kind of release
-  const newDetailsSearch =
-    releaseKind === "japan"
-      ? "?edition=japan"
-      : releaseKind === "chapters"
-        ? "?new=chapter"
-        : undefined;
   // a pile's cover goes where its card would, stamped with which one
   const coverLink = (m: Manga): CoverLink => {
     const found = releases[m.id];
+    const detailsTo = `/details/${m.id}${detailsSearchFor(releaseKind) ?? ""}`;
+    const opensList = !viewingHidden && isGrouped(found, releaseKind);
     return {
-      to: buyLinkFor(m.id) ?? `/details/${m.id}${newDetailsSearch ?? ""}`,
-      onOpen:
-        !viewingHidden && grouped(m.id)
-          ? () => setOpenRelease(m.id)
-          : undefined,
-      stamp:
-        releaseKind === "chapters"
-          ? `Ch. ${found?.nextChapter ?? found?.latestChapter ?? ""}`
-          : releaseKind === "japan"
-            ? `Vol. ${found?.outJapanVolumes[0] ?? found?.latestJapaneseVolume ?? ""}`
-            : `Vol. ${found?.nextVolume ?? found?.latestVolume ?? ""}`,
+      to: buyLinkFor(found, releaseKind) ?? detailsTo,
+      onOpen: opensList ? () => setOpenRelease(m.id) : undefined,
+      stamp: stampFor(found, releaseKind),
     };
   };
-  // a card as the list draws it, and on New its Hide (or Unhide)
-  const card = (currentManga: Manga, i: number) => (
-    <div
-      key={currentManga.id}
-      className={
-        rowsChosen
-          ? styles.cardRowAlways
-          : showingNew
-            ? styles.cardAsRow
-            : styles.cardWithSeen
+  const card = (manga: Manga, index: number) => (
+    <ShelfCard
+      key={manga.id}
+      manga={manga}
+      index={index}
+      found={releases[manga.id]}
+      rows={rowsChosen}
+      showingNew={showingNew}
+      releaseKind={releaseKind}
+      viewingHidden={viewingHidden}
+      select={
+        select.selectOn
+          ? {
+              checked: select.picked.has(manga.id),
+              onToggle: () => select.toggle(manga.id),
+            }
+          : undefined
       }
-    >
-      <MangaCard
-        currentManga={currentManga}
-        news={
-          showingNew
-            ? newsFor(
-                currentManga,
-                releases[currentManga.id],
-                releaseKind,
-                viewingHidden,
-              )
-            : undefined
-        }
-        linkTo={buyLinkFor(currentManga.id)}
-        onOpen={
-          showingNew && !viewingHidden && grouped(currentManga.id)
-            ? () => setOpenRelease(currentManga.id)
-            : undefined
-        }
-        detailsSearch={showingNew ? newDetailsSearch : undefined}
-        index={i}
-        compact={rowsChosen}
-        latestChapter={
-          releases[currentManga.id]?.latestChapter ?? currentManga.latestChapter
-        }
-        latestVolume={releases[currentManga.id]?.latestVolume}
-        select={
-          select.selectOn
-            ? {
-                checked: select.picked.has(currentManga.id),
-                onToggle: () => select.toggle(currentManga.id),
-              }
-            : undefined
-        }
-      />
-      {showingNew && (
-        <button
-          type="button"
-          className={rowsChosen ? styles.seenBtnRow : styles.seenBtn}
-          aria-label={`${viewingHidden ? "Unhide" : grouped(currentManga.id) ? "Hide all" : "Hide"}: ${currentManga.name}`}
-          data-seen-id={currentManga.id}
-          onClick={() => hideActions.hide(currentManga)}
-        >
-          {!viewingHidden && <CheckIcon />}
-          {viewingHidden
-            ? "Unhide"
-            : grouped(currentManga.id)
-              ? "Hide all"
-              : "Hide"}
-        </button>
-      )}
-    </div>
+      onOpenReleases={() => setOpenRelease(manga.id)}
+      onHide={() => hideActions.hide(manga)}
+    />
   );
-  const gridClass = rowsChosen
-    ? styles.rowsGrid
-    : showingNew
-      ? styles.newGrid
-      : styles.classContainer;
+  let gridClass: string = styles.classContainer;
+  if (rowsChosen) gridClass = styles.rowsGrid;
+  else if (showingNew) gridClass = styles.newGrid;
+
+  // the shelf's body: the first of these that applies
+  const body = () => {
+    const nothingShown = visibleManga.length === 0;
+    if (checking && nothingShown)
+      return (
+        <CheckingWithNothingYet
+          early={checked < EARLY_CHECKS}
+          waitingText={RELEASE_KINDS[releaseKind].waiting}
+          checked={checked}
+          total={total}
+          bar={progress}
+          aside={bigShelfNote}
+        />
+      );
+    if (allFailed) return <ChecksFailed onRetry={recheckReleases} />;
+    if (tab === "volumes")
+      return (
+        <VolumesView
+          manga={visibleManga}
+          searching={Boolean(query.trim())}
+          resetKey={filterKey}
+        />
+      );
+    if (showPiles)
+      return (
+        <NewPiles
+          kind={releaseKind}
+          piles={piles}
+          card={card}
+          gridClass={gridClass}
+          onOpen={openPile}
+          returnTo={pileLeft}
+          onCardClick={saveSpot}
+          linkFor={coverLink}
+          extra={pileExtra}
+        />
+      );
+    if (showingNew && nothingShown && !query.trim())
+      return (
+        <NothingNew
+          kind={releaseKind}
+          looked={looked.length}
+          total={total}
+          unknownPlace={unknownPlace}
+          notFound={notFound}
+          checking={checking}
+        />
+      );
+    if (nothingShown)
+      return (
+        <NoMatches
+          onShowAll={() => {
+            setQuery("");
+            pickTab("all");
+          }}
+        />
+      );
+    return (
+      <>
+        {/* Select lives in the shelf bar now; this row is the pager's */}
+        <div className={styles.gridTools}>{!growing && pager(false)}</div>
+        <div
+          id="shelf-grid"
+          className={gridClass}
+          onClickCapture={saveSpot}
+          data-tour="shelf"
+        >
+          {shelfPage.map(card)}
+        </div>
+        {growing
+          ? shelfPage.length < visibleManga.length && (
+              <div className={styles.pagerBottom}>
+                <button
+                  type="button"
+                  className={styles.showMore}
+                  onClick={() => changePage(pageIndex + 1, false)}
+                >
+                  Show{" "}
+                  {Math.min(
+                    SHELF_PAGE_SIZE,
+                    visibleManga.length - shelfPage.length,
+                  )}{" "}
+                  more
+                  <span className={styles.showMoreCount}>
+                    {shelfPage.length} of {visibleManga.length}
+                  </span>
+                </button>
+              </div>
+            )
+          : visibleManga.length > SHELF_PAGE_SIZE && (
+              <div className={styles.pagerBottom}>{pager(true)}</div>
+            )}
+      </>
+    );
+  };
 
   return (
     <div className={`fade-in ${styles.library}`}>
@@ -599,12 +579,10 @@ function Library() {
           <button
             type="button"
             className="btn btn-secondary"
-            onClick={() => setAdding("scanning")}
+            onClick={addFlow.scan}
             // its code starts loading on the way to a click
-            onPointerEnter={() =>
-              void import("../../components/scanSheet/ScanSheet")
-            }
-            onFocus={() => void import("../../components/scanSheet/ScanSheet")}
+            onPointerEnter={loadScanner}
+            onFocus={loadScanner}
           >
             <BarcodeIcon className="size-5" />
             Scan a barcode
@@ -739,124 +717,7 @@ function Library() {
         />
       )}
 
-      {checking && visibleManga.length === 0 && checked >= EARLY_CHECKS ? (
-        // nothing new yet, a while in: one line, not a box that looks stuck
-        <div className={styles.checkInline}>
-          {progress}
-          <p className={styles.checkText} aria-live="polite">
-            {RELEASE_KINDS[releaseKind].waiting} · {checked} of {total} checked
-            {bigShelfNote && (
-              <span className={styles.checkAside}>{bigShelfNote}</span>
-            )}
-          </p>
-        </div>
-      ) : checking && visibleManga.length === 0 ? (
-        <div className={styles.checkCentre}>
-          <p className={styles.checkTitle}>Checking for new releases</p>
-          {progress}
-          <p className={styles.checkText} aria-live="polite">
-            {checked} of {total}
-            {bigShelfNote && (
-              <span className={styles.checkAside}>{bigShelfNote}</span>
-            )}
-          </p>
-        </div>
-      ) : allFailed ? (
-        <div className={styles.emptyState}>
-          <span className="printed mascot-spot" aria-hidden>
-            <Mascot mood="panic" />
-          </span>
-          <p className={styles.emptyTitle}>Couldn't check right now.</p>
-          <p className={styles.emptyBody}>
-            The sites we ask for releases didn't answer. Give it a minute.
-          </p>
-          <button className="btn btn-secondary" onClick={recheckReleases}>
-            Try again
-          </button>
-        </div>
-      ) : tab === "volumes" ? (
-        <VolumesView
-          manga={visibleManga}
-          searching={Boolean(query.trim())}
-          resetKey={filterKey}
-        />
-      ) : showPiles ? (
-        <NewPiles
-          kind={releaseKind}
-          piles={piles}
-          card={card}
-          gridClass={gridClass}
-          onOpen={openPile}
-          returnTo={pileLeft}
-          onCardClick={saveSpot}
-          linkFor={coverLink}
-          extra={pileExtra}
-        />
-      ) : showingNew && visibleManga.length === 0 && !query.trim() ? (
-        <NothingNew
-          kind={releaseKind}
-          looked={looked.length}
-          total={total}
-          unknownPlace={unknownPlace}
-          notFound={notFound}
-          checking={checking}
-        />
-      ) : visibleManga.length === 0 ? (
-        <div className={styles.emptyState}>
-          <span className="printed mascot-spot" aria-hidden>
-            <Mascot mood="confused" />
-          </span>
-          <p className={styles.emptyTitle}>No matches.</p>
-          <p className={styles.emptyBody}>
-            Nothing on your shelf fits that. Try another word or tab.
-          </p>
-          <button
-            className="btn btn-secondary"
-            onClick={() => {
-              setQuery("");
-              pickTab("all");
-            }}
-          >
-            Show everything
-          </button>
-        </div>
-      ) : (
-        <>
-          {/* Select lives in the shelf bar now; this row is the pager's */}
-          <div className={styles.gridTools}>{!growing && pager(false)}</div>
-          <div
-            id="shelf-grid"
-            className={gridClass}
-            onClickCapture={saveSpot}
-            data-tour="shelf"
-          >
-            {shelfPage.map(card)}
-          </div>
-          {growing
-            ? shelfPage.length < visibleManga.length && (
-                <div className={styles.pagerBottom}>
-                  <button
-                    type="button"
-                    className={styles.showMore}
-                    onClick={() => changePage(pageIndex + 1, false)}
-                  >
-                    Show{" "}
-                    {Math.min(
-                      SHELF_PAGE_SIZE,
-                      visibleManga.length - shelfPage.length,
-                    )}{" "}
-                    more
-                    <span className={styles.showMoreCount}>
-                      {shelfPage.length} of {visibleManga.length}
-                    </span>
-                  </button>
-                </div>
-              )
-            : visibleManga.length > SHELF_PAGE_SIZE && (
-                <div className={styles.pagerBottom}>{pager(true)}</div>
-              )}
-        </>
-      )}
+      {body()}
 
       {/* how fresh it all is, at the foot, for whoever wonders */}
       {showingNew && !checking && Number.isFinite(oldestCheck) && (
@@ -879,20 +740,15 @@ function Library() {
         />
       )}
 
-      {!showingNew && <AddButton onClick={() => setAdding("choosing")} />}
-      {adding === "choosing" && (
+      {!showingNew && <AddButton onClick={addFlow.choose} />}
+      {addFlow.adding === "choosing" && (
         <AddChoice
           onType={goToAdd}
-          onScan={() => setAdding("scanning")}
-          // picking one closes the sheet too; only a plain close clears it
-          onClose={() => setAdding((now) => (now === "choosing" ? null : now))}
+          onScan={addFlow.scan}
+          onClose={addFlow.closeChoice}
         />
       )}
-      {adding === "scanning" && (
-        <Suspense fallback={null}>
-          <ScanSheet onClose={() => setAdding(null)} isbn={scanIsbn} />
-        </Suspense>
-      )}
+      {scanSheet}
 
       <ReleaseTip
         // not over the select bar or the undo note, which share its spot

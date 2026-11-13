@@ -48,7 +48,9 @@ export type FinishCost = {
   enough: boolean;
 };
 
-// most of a series priced before its total is said
+// most of a series priced before its total is said. The same share as the
+// server's (server/src/collector/shelfMath.ts ENOUGH_PRICED): change both
+// together
 export const ENOUGH_PRICED = 0.6;
 
 type Priced = {

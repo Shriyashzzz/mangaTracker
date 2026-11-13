@@ -103,7 +103,9 @@ function volumesInLine(line: EditionLine, recorded: RecordedBook[]) {
 }
 
 // the line they seem to collect, from the books they've recorded: the one
-// whose books match theirs, when those cover at least half of what they own
+// whose books match theirs, when those cover at least half of what they own.
+// The same rule as the server's (server/src/collector/shelfMath.ts
+// guessedLine): change both together
 export function guessEdition(
   lines: EditionLine[],
   books: RecordedBook[],
