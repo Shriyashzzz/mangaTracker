@@ -52,6 +52,8 @@
   /* a muted brick red, used as manga spot colour: actions and small details */
   --accent: #b14a3c;
   --accent-hover: #963d31;
+  /* accent for small text: dark enough to read on paper and on the wash */
+  --accent-ink: #963d31;
   --accent-wash: rgba(177, 74, 60, 0.09);
   --on-accent: #fffaf2;
   --ok: #2e6b4c;
@@ -91,6 +93,8 @@
     --line-soft: #3a3429;
     --accent: #d27a66;
     --accent-hover: #e08f7c;
+    /* accent for small text: dark enough to read on paper and on the wash */
+    --accent-ink: #d27a66;
     --accent-wash: rgba(210, 122, 102, 0.11);
     --on-accent: #16140f;
     --ok: #6fbf8f;
@@ -129,6 +133,8 @@
   --line-soft: #3a3429;
   --accent: #d27a66;
   --accent-hover: #e08f7c;
+  /* accent for small text: dark enough to read on paper and on the wash */
+  --accent-ink: #d27a66;
   --accent-wash: rgba(210, 122, 102, 0.11);
   --on-accent: #16140f;
   --ok: #6fbf8f;
@@ -163,6 +169,8 @@
   --line-soft: #d6ccb7;
   --accent: #b14a3c;
   --accent-hover: #963d31;
+  /* accent for small text: dark enough to read on paper and on the wash */
+  --accent-ink: #963d31;
   --accent-wash: rgba(177, 74, 60, 0.09);
   --on-accent: #fffaf2;
   --star: #d99a00;
@@ -201,6 +209,7 @@
   --color-line-soft: var(--line-soft);
   --color-accent: var(--accent);
   --color-accent-hover: var(--accent-hover);
+  --color-accent-ink: var(--accent-ink);
   --color-accent-wash: var(--accent-wash);
   --color-on-accent: var(--on-accent);
   --color-ok: var(--ok);

@@ -43,10 +43,10 @@ export default function FinishList({
   );
   return (
     <div className={styles.finish}>
-      <h3 className={styles.finishHeading}>
+      <h2 className={styles.finishHeading}>
         To finish it
         {total && <span className={styles.finishTotal}>{total}</span>}
-      </h3>
+      </h2>
       {/* too few priced for a total: said, so the missing number isn't a puzzle */}
       {unpriced.length > 0 && row.estimateCents === null && (
         <p className={styles.finishNote}>
