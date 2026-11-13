@@ -1,5 +1,5 @@
-// One line on a series' price page for someone coming from the anime: "Not
-// sure where the anime leaves off? Find your chapter." It gives no numbers,
+// One line on a series' price page for someone coming from the anime:
+// "Watched the anime? See where to start the manga." It gives no numbers,
 // only the way to the series' "after the anime" page, where every season is.
 // Nothing at all for a series with no answer.
 import { useEffect, useState } from "react";
@@ -31,9 +31,9 @@ export default function AfterAnimeLine({ seriesName }: { seriesName: string }) {
   if (!show?.stops.length) return null;
   return (
     <p className={priceStyles.partOf}>
-      Not sure where the anime leaves off?{" "}
+      Watched the anime?{" "}
       <NavLink to={afterAnimeCanonicalPath(show.name)} viewTransition>
-        Find your chapter
+        See where to start the manga
       </NavLink>
     </p>
   );
