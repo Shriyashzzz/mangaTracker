@@ -158,8 +158,20 @@ export function tableRow(stop: AnimeStop) {
 
 // ---------- the page's opening answer ----------
 
-// the season most people have just finished: the last one listed
-export const latestStop = (stops: AnimeStop[]) => stops[stops.length - 1];
+// The season most people have just finished: the one that gets furthest
+// into the manga. Usually that's the last one listed, but not always: a film
+// can be listed after the newest season, and a season a reader's fix added
+// goes on the end. With no chapter to go by, the last one listed
+export function latestStop(stops: AnimeStop[]) {
+  let latest = stops[stops.length - 1];
+  for (const stop of stops) {
+    const isFurther =
+      stop.endChapter !== null &&
+      (latest?.endChapter == null || stop.endChapter > latest.endChapter);
+    if (isFurther) latest = stop;
+  }
+  return latest;
+}
 
 // The page's opening answer, for the latest season: the one most people
 // have just finished. It opens with a question, because someone arriving

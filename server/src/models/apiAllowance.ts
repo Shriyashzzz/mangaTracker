@@ -4,6 +4,11 @@
 import type { Spender } from "../prices/spender.js";
 import { prisma } from "../config/prisma.js";
 
+// the month a day's count is filed under, as its first day ("2026-11-01").
+// Every daily count (eBay's, CJ's, the background jobs' shares) uses this
+// one, so their rows always match
+export const monthOf = (day: string) => `${day.slice(0, 7)}-01`;
+
 // takes one call from this month's allowance; false once it's used up.
 // A single statement, so two requests at once can't both take the last one
 // `month` (YYYY-MM-01): the allowance's own month, when it doesn't follow the

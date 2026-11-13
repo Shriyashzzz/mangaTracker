@@ -7,6 +7,7 @@
 // prices stay. https://developers.cj.com/graphql/reference/Product%20Search
 import config from "../../config/config.js";
 import priceQueries from "../../models/priceQueries.js";
+import { monthOf } from "../../models/apiAllowance.js";
 import type { Offer, Provider } from "../types.js";
 import { normalize } from "../stores/match.js";
 import { SearchesUsedUp } from "./serpapiKeys.js";
@@ -14,9 +15,9 @@ import { SearchesUsedUp } from "./serpapiKeys.js";
 const URL = "https://ads.api.cj.com/query";
 
 // the day in UTC: CJ doesn't say when its day turns over
-const today = () => new Date().toISOString().slice(0, 10);
+export const cjDay = () => new Date().toISOString().slice(0, 10);
+const today = cjDay;
 export const cjBudgetLabel = (day = today()) => `cj:${day}`;
-const monthOf = (day: string) => `${day.slice(0, 7)}-01`;
 export const cjCallsLeft = () =>
   priceQueries.anyCallsLeft(
     [cjBudgetLabel()],

@@ -57,6 +57,7 @@ const plausibleSetPrice = (cents: number, size: number) =>
   cents >= Math.max(200, size * 300) && cents <= 100_000;
 import { isCollection, type Offer, type Provider } from "../types.js";
 import priceQueries from "../../models/priceQueries.js";
+import { monthOf } from "../../models/apiAllowance.js";
 import { SearchesUsedUp } from "./serpapiKeys.js";
 
 // eBay's Browse API allows so many calls a day. Each search takes one from
@@ -71,9 +72,9 @@ import { SearchesUsedUp } from "./serpapiKeys.js";
 const pacificDay = new Intl.DateTimeFormat("en-CA", {
   timeZone: "America/Los_Angeles",
 });
-const today = (at = new Date()) => pacificDay.format(at);
+export const ebayDay = (at = new Date()) => pacificDay.format(at);
+const today = ebayDay;
 export const budgetLabel = (day = today()) => `ebay:${day}`;
-const monthOf = (day: string) => `${day.slice(0, 7)}-01`;
 const dailyLimit = () => config.EBAY_DAILY_LIMIT;
 const titleLimit = () => Math.floor(config.EBAY_DAILY_LIMIT * 0.8);
 export const ebayCallsLeft = () => {

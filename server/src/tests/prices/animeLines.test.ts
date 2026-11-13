@@ -200,3 +200,18 @@ test("stopping at the last chapter, or a few past it, is the end", () => {
   const running = { ...manga, finished: false };
   expect(stops.some((stop) => reachesTheEnd(stop, stops, running))).toBe(false);
 });
+
+test("two pieces with no name don't share one", () => {
+  const stops = readAnimeStops(
+    "Vol 1, Chap 1 / Vol 9, Chap 64",
+    "Vol 8, Chap 63 / Vol 16, Chap 137",
+  );
+  // the page keys its panels, its links and a reader's fix by the name
+  expect(stops.map((stop) => [stop.label, stop.endChapter])).toEqual([
+    ["Part 1", 63],
+    ["Part 2", 137],
+  ]);
+  // a named one beside a single unnamed one changes nothing
+  const mixed = readAnimeStops(null, "Vol 8, Chap 63 / Vol 16, Chap 137 (S2)");
+  expect(mixed.map((stop) => stop.label)).toEqual(["The anime", "Season 2"]);
+});

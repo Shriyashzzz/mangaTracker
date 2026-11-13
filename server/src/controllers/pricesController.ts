@@ -22,6 +22,7 @@ import {
   isbnCoverImageUrl,
 } from "../prices/sources/covers.js";
 import { isCrawler } from "../prices/crawlers.js";
+import { learnAnimeAnswer } from "../prices/afterAnime/afterAnime.js";
 import { isHuman } from "../prices/human.js";
 import { asSpender, spenderOf } from "../prices/spender.js";
 import { getCanadaPrices } from "../prices/canada/canadaPrices.js";
@@ -200,6 +201,9 @@ const series = [
     );
     if (!data) throw new NotFoundError("We couldn't find that series.");
     res.json(data);
+    // for the page's "Watched the anime?" bar next time (afterAnime.ts)
+    if (data.info && !isCrawler(req.get("user-agent")))
+      learnAnimeAnswer(data.info.name);
   },
 ];
 

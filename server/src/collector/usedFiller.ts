@@ -10,57 +10,51 @@
 //
 // The rule: a volume gets one look, the first time it's on any shelf, owned
 // ones first. Whatever came back is saved, "they don't have it" included, so
-// it's never asked again from here. Only someone opening the volume's own
-// page looks again (prices/volumeService.ts, every 3 days at most).
+// it's never asked again from here. Looking again is the eBay job's work
+// (filler.ts asks Better World Books whenever it refreshes a volume) and the
+// volume's own page's (prices/volumeService.ts, every 3 days at most).
 //
-// Production only unless PRICE_FILL=on, like filler.ts.
-import config from "../config/config.js";
-import { prisma } from "../config/prisma.js";
+// What it shares with the other two jobs is in fillShared.ts.
 import priceQueries from "../models/priceQueries.js";
 import betterWorldBooks, {
   bwbOffers,
 } from "../prices/providers/betterWorldBooks.js";
 import { checkAlone, getOrCreateBook } from "../prices/service.js";
 import type { Offer } from "../prices/types.js";
-import { shelfVolumes } from "./filler.js";
+import {
+  fillSwitchOn,
+  neverLooked,
+  shelfVolumes,
+  startEvery,
+} from "./fillShared.js";
 
 // Better World Books' group in price_source_checks
 const SOURCE = "better-world-books";
 const EVERY_MS = 5 * 60_000;
-// volumes a run: four requests of 50. A 2,000-volume shelf is done in under
-// an hour, at about 50 requests an hour of the 3,000 allowed
+// volumes a run (bwbOffers asks 50 to a request). A 2,000-volume shelf is
+// done in under an hour, at about 50 requests an hour of the 3,000 allowed
 const A_RUN = 200;
-const A_REQUEST = 50;
 const REQUEST_TIMEOUT_MS = 30_000;
 
-export const usedFillerOn = () =>
-  config.COLLECTOR_TOOLS !== "off" &&
-  config.PRICE_FILL !== "off" &&
-  (config.PRICE_FILL === "on" || config.ENV === "PROD") &&
-  betterWorldBooks.enabled();
+export const usedFillerOn = () => fillSwitchOn() && betterWorldBooks.enabled();
 
 // the shelf volumes Better World Books has never been asked about: owned
 // ones first, then the ones still to get. Database only
 export async function usedQueue(now = new Date()): Promise<string[]> {
   const { owned, missing } = await shelfVolumes(now);
-  const all = [...new Set([...owned, ...missing])];
-  if (!all.length) return [];
-  const looked = await prisma.priceSourceCheck.findMany({
-    where: { isbn13: { in: all }, source: SOURCE },
-    select: { isbn13: true },
-  });
-  const done = new Set(looked.map((row) => row.isbn13.trim()));
-  return all.filter((isbn) => !done.has(isbn));
+  return neverLooked([...owned, ...missing], SOURCE);
 }
 
 // saves one volume's answer the way a background check does ("fill": the
 // home page's "recently checked" leaves it out). An empty answer is saved
-// too: that's what stops it being asked again
+// too: that's what stops it being asked again. Saved directly, not through
+// fetchProviders: that asks one volume at a time, and this has the answers
+// for 200 already. A used copy needs none of its checks on new prices
 async function saveLook(isbn13: string, offers: Map<string, Offer>) {
   // a volume a page visit is pricing right now is left to that visit
   await checkAlone(isbn13, async () => {
     // prices hang off the book's own row; a shelf volume's is made from its
-    // series' saved list, without asking any catalog
+    // series' saved list
     const book = await getOrCreateBook(isbn13);
     if (!book) return;
     const theirs = offers.get(isbn13);
@@ -72,25 +66,22 @@ async function saveLook(isbn13: string, offers: Map<string, Offer>) {
   });
 }
 
-// one run: up to A_RUN waiting volumes, A_REQUEST to a request. Says how
-// many it asked about and how many Better World Books had, for the logs and
-// the tests
+// one run: up to A_RUN waiting volumes. Says how many it asked about and
+// how many Better World Books had, for the logs and the tests. A run that
+// fails saves nothing, so the same volumes wait for the next one: an outage
+// costs a request every five minutes, never a wrong "they don't have it"
 export async function fillUsedOnce(
   now = new Date(),
 ): Promise<"off" | { asked: number; found: number }> {
   if (!usedFillerOn()) return "off";
   const waiting = (await usedQueue(now)).slice(0, A_RUN);
-  let found = 0;
-  for (let at = 0; at < waiting.length; at += A_REQUEST) {
-    const batch = waiting.slice(at, at + A_REQUEST);
-    const offers = await bwbOffers(
-      batch,
-      AbortSignal.timeout(REQUEST_TIMEOUT_MS),
-    );
-    found += offers.size;
-    for (const isbn13 of batch) await saveLook(isbn13, offers);
-  }
-  return { asked: waiting.length, found };
+  if (!waiting.length) return { asked: 0, found: 0 };
+  const offers = await bwbOffers(
+    waiting,
+    AbortSignal.timeout(REQUEST_TIMEOUT_MS),
+  );
+  for (const isbn13 of waiting) await saveLook(isbn13, offers);
+  return { asked: waiting.length, found: offers.size };
 }
 
 let timer: ReturnType<typeof setInterval> | null = null;
@@ -98,19 +89,16 @@ let timer: ReturnType<typeof setInterval> | null = null;
 // started by server.ts, never by the tests
 export function startUsedFiller() {
   if (timer || !usedFillerOn()) return;
-  const run = () =>
-    fillUsedOnce()
-      .then((result) => {
-        if (result !== "off" && result.asked)
-          console.log(
-            `Used prices: asked Better World Books about ${result.asked} shelf volumes, it had ${result.found}`,
-          );
-      })
-      .catch((e: Error) =>
-        console.error("Used price filling failed:", e.message),
+  const run = async () => {
+    const result = await fillUsedOnce();
+    if (result !== "off" && result.asked)
+      console.log(
+        `Used prices: asked Better World Books about ${result.asked} shelf volumes, it had ${result.found}`,
       );
-  setTimeout(run, 90_000).unref();
-  timer = setInterval(run, EVERY_MS);
-  timer.unref();
+  };
+  timer = startEvery("Used price filling", run, {
+    everyMs: EVERY_MS,
+    firstAfterMs: 90_000,
+  });
   console.log("Used prices on: Better World Books, once per shelf volume");
 }

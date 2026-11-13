@@ -54,7 +54,7 @@ async function main() {
   console.log(
     `${apply ? "ASKING EBAY" : "DRY RUN"}: ${waiting.length} volumes with an eBay set or omnibus row saved before ${before.toISOString().slice(0, 10)}\n`,
   );
-  if (!ebay.enabled()) throw new Error("eBay's keys aren't set");
+  if (apply && !ebay.enabled()) throw new Error("eBay's keys aren't set");
 
   let asked = 0;
   for (const { isbn13, title } of waiting) {
@@ -72,7 +72,12 @@ async function main() {
     }
     const book = await getOrCreateBook(isbn);
     if (!book) continue;
-    await fetchProviders(isbn, book, [ebay], { background: true });
+    // onlyThese: this machine may lack production's other keys, and their
+    // stores' prices must stay as they are
+    await fetchProviders(isbn, book, [ebay], {
+      background: true,
+      onlyThese: true,
+    });
     asked++;
     console.log(`${title} (${isbn}): ${was}  ->  ${await ebayRows(isbn)}`);
   }
