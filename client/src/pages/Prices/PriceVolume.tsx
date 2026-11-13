@@ -1,8 +1,15 @@
+// A volume's price page: the book, the cheapest price and every store's
+// offer, where to preorder it when it isn't out, its price history, and the
+// volumes around it in its series. Its parts:
+//   useVolumeLoad.ts      stored prices first, then a live check
+//   volumePageRules.ts    what shows, which stores get a link (pure)
+//   VolumePageStates.tsx  loading and not-found
+//   OfferList, ShelfAction, BoxSetNote, canada/ (the Canadian prices)
 import CanadaPrices from "./canada/CanadaPrices";
 import CountrySwitch from "./canada/CountrySwitch";
 import { useCountry } from "../../lib/prefs";
 import BoxSetNote from "./BoxSetNote";
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import DealsStrip from "../../components/deals/DealsStrip";
 import { noteStoreClick } from "../../lib/support";
 import { ChevronDownIcon } from "../../components/icons/Icons";
@@ -10,7 +17,6 @@ import { NavLink, useLocation, useNavigate, useParams } from "react-router";
 import {
   coverSrc,
   formatCents,
-  getVolume,
   hideBrokenCover,
   hidePlaceholderCover,
   volumePath,
@@ -28,14 +34,23 @@ import { pricesStyles as styles } from "./styles";
 import OfferList from "./OfferList";
 import { knownStoreLow } from "./offerLabels";
 import { TYPE_LABEL, linkRel } from "./offerLabels";
-import Mascot from "../../components/mascot/Mascot";
-import SlowLoadQuote from "../../components/slowLoadQuote/SlowLoadQuote";
 import { stayInTrip, useFromShelf } from "../../lib/fromShelf";
 import { readLocal } from "../../lib/prefs";
 import { usePageMeta } from "../../lib/seo";
 import { volumeMeta } from "./pageMeta";
 import ShelfAction from "./ShelfAction";
-import { type VolumePrices } from "../../lib/types";
+import { useVolumeLoad } from "./useVolumeLoad";
+import { VolumeNotOpened, VolumeSkeleton } from "./VolumePageStates";
+import {
+  dayDate,
+  nearbyVolumes,
+  releaseDay,
+  shortDate,
+  shownHistory,
+  shownOffers,
+  storeLinksToShow,
+  usualWhenWellBelow,
+} from "./volumePageRules";
 
 // the Impact script (index.html) that turns Walmart links into affiliate links
 declare global {
@@ -44,30 +59,6 @@ declare global {
   }
 }
 
-// longer price lists start collapsed, like manga.london's "Show N more"
-const SIBLINGS_SHOWN = 12;
-
-// a volume not out yet gets a button for each of these (the affiliate
-// stores), the first the main one; the other stores are links under them
-const PREORDER_STORES = ["Amazon", "Bookshop.org", "eBay"];
-
-const shortDate = (d: string) =>
-  new Date(d).toLocaleDateString("en-US", {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-  });
-
-// "Oct 26", with the year only when it isn't this one
-const dayDate = (d: string) => {
-  const date = new Date(d);
-  return date.toLocaleDateString("en-US", {
-    month: "short",
-    day: "numeric",
-    ...(date.getFullYear() !== new Date().getFullYear() && { year: "numeric" }),
-  });
-};
-
 // the history's rows, labelled like the offers' type labels
 const KIND_LABEL = {
   new: TYPE_LABEL.newPrint,
@@ -75,32 +66,14 @@ const KIND_LABEL = {
   ebook: TYPE_LABEL.ebook,
 };
 
-// "Mar 30, 2027" (or "Mar 2027" when only the month is known)
-const releaseDay = (published: string) => {
-  const [y, m, d] = published.split("-").map(Number);
-  return new Date(y!, (m || 1) - 1, d || 1).toLocaleDateString("en-US", {
-    month: "short",
-    ...(d ? { day: "numeric" } : {}),
-    year: "numeric",
-  });
-};
-
 export default function PriceVolume() {
   // US or Canada: switched right on the page, by anyone
   const country = useCountry();
   // the route always has an :isbn
   const isbn = useParams().isbn!;
-  const [attempt, setAttempt] = useState(0);
-  // which ISBN the data is for, so a stale answer never shows
-  const [state, setState] = useState<{
-    isbn: string | null;
-    data: VolumePrices | null;
-    error: string;
-  }>({ isbn: null, data: null, error: "" });
-  const loadedBook = state.isbn === isbn ? state.data?.book : null;
-  usePageMeta(
-    state.isbn === isbn && state.data ? volumeMeta(state.data) : null,
-  );
+  const page = useVolumeLoad(isbn, country);
+  const loadedBook = page.data?.book ?? null;
+  usePageMeta(page.data ? volumeMeta(page.data) : null);
 
   // an ISBN-only or outdated link: show the address with the title in it,
   // without loading the page again
@@ -114,44 +87,9 @@ export default function PriceVolume() {
       navigate(path + search + hash, { replace: true, state: linkState });
   }, [loadedBook, pathname, search, hash, navigate, linkState]);
 
-  // which volume is being checked live right now, after its stored prices
-  const [refreshing, setRefreshing] = useState<string | null>(null);
-  // box sets holding this volume: listed unless turned off
-
-  // the stored prices first, straight away: they need no Turnstile, so the
-  // page (and what search engines see) never waits on it. Then a live check,
-  // only when it would look again; until it answers, the stored ones stay
-  useEffect(() => {
-    const controller = new AbortController();
-    getVolume(isbn, controller.signal, true)
-      .then((data) => {
-        setState({ isbn, data, error: "" });
-        // Canadian prices are their own; these US ones are only for show
-        if (country === "ca" || !data.refreshable) return;
-        setRefreshing(isbn);
-        return getVolume(isbn, controller.signal, false)
-          .then((fresh) => setState({ isbn, data: fresh, error: "" }))
-          .catch(() => {
-            // a failed or refused live check leaves the stored prices
-          })
-          .finally(() => {
-            if (!controller.signal.aborted) setRefreshing(null);
-          });
-      })
-      .catch((e) => {
-        if ((e as Error).name !== "AbortError") {
-          setState({ isbn, data: null, error: (e as Error).message });
-        }
-      });
-    return () => {
-      controller.abort();
-      setRefreshing(null);
-    };
-  }, [isbn, attempt, country]);
-
   // Impact (Walmart affiliate) rewrites links once when its script loads,
   // before this page has drawn them, so ask it again once they exist
-  const loaded = state.isbn === isbn && Boolean(state.data);
+  const loaded = Boolean(page.data);
   useEffect(() => {
     if (loaded) window.impactStat?.("transformLinks");
   }, [loaded, isbn]);
@@ -164,32 +102,8 @@ export default function PriceVolume() {
       document.getElementById("preorder")?.scrollIntoView({ block: "center" });
   }, [loaded, hash]);
 
-  if (state.isbn !== isbn) return <VolumeSkeleton />;
-
-  if (state.error || !state.data) {
-    return (
-      <div className={styles.empty} role="alert">
-        <span className="printed mascot-spot" aria-hidden>
-          <Mascot mood="panic" />
-        </span>
-        <p className={styles.emptyTitle}>Couldn't open this volume.</p>
-        <p>Check your connection and try again in a moment.</p>
-        <button
-          type="button"
-          className="btn btn-primary"
-          onClick={() => {
-            setState({ isbn: null, data: null, error: "" });
-            setAttempt((n) => n + 1);
-          }}
-        >
-          Try again
-        </button>
-        <NavLink to="/" className="btn btn-secondary" viewTransition>
-          Back to price check
-        </NavLink>
-      </div>
-    );
-  }
+  if (page.loading) return <VolumeSkeleton />;
+  if (page.error || !page.data) return <VolumeNotOpened onRetry={page.retry} />;
 
   const {
     book,
@@ -203,7 +117,7 @@ export default function PriceVolume() {
     checkedAt,
     liveSources,
     storeLinks,
-  } = state.data;
+  } = page.data;
   // the series page: its clean address when AniList knows the series (the
   // address search engines know it by), else by name
   const seriesLink = series.info
@@ -214,76 +128,34 @@ export default function PriceVolume() {
   // series' own name, tagged
   const shownSeries = novelParts(seriesLabel).title;
   // its heading ("Series, Vol. N" when the stored title has no number)
-  const shownBook = novelParts(state.data.heading ?? book.title);
+  const shownBook = novelParts(page.data.heading ?? book.title);
   // set in settings: they only want physical copies
   const hideEbooks = readLocal("hideEbooks") === "yes";
   const inCanada = country === "ca";
-  const hiddenEbooks = hideEbooks
-    ? allOffers.filter((o) => o.format === "ebook").length
-    : 0;
-  // a box set is another buy: off this list, one line under it points to
-  // the series page, which has them (an omnibus holding this volume stays:
-  // it's another way to buy this very volume)
-  const offers = allOffers.filter(
-    (o) => !(hideEbooks && o.format === "ebook") && o.format !== "set",
+  const { shown: offers, hiddenEbooks } = shownOffers(allOffers, hideEbooks);
+  const { history, lowestCents: lowestInHistory } = shownHistory(
+    allHistory,
+    hideEbooks,
   );
-  const kinds = (allHistory?.kinds ?? []).filter(
-    (k) => !hideEbooks || k.kind !== "ebook",
+  const nearby = nearbyVolumes(siblings, volume, inBook);
+  // a preorder's main buttons, and the other stores listed under them
+  const { buttons: preorderAt, others: otherStores } = storeLinksToShow(
+    storeLinks,
+    offers,
+    Boolean(preorder),
   );
-  const history = allHistory && kinds.length ? { ...allHistory, kinds } : null;
-  // the summary is for a physical copy, like the rest of the page
-  const printKinds = kinds.filter((k) => k.kind !== "ebook");
-  const lowestInHistory = Math.min(
-    ...(printKinds.length ? printKinds : kinds).map((k) => k.lowCents),
-  );
-  // the next volumes first, then the ones before. A book holding several
-  // counts as its last one
-  const at = volume ?? inBook?.to ?? null;
-  const nearby = [
-    ...siblings.filter((v) => at == null || (v.volume ?? 0) > at),
-    ...siblings.filter((v) => at != null && (v.volume ?? 0) < at).reverse(),
-  ].slice(0, SIBLINGS_SHOWN);
-  // a preorder's main buttons, in this order; the other stores are listed
-  // under them
-  const preorderAt = preorder
-    ? PREORDER_STORES.flatMap(
-        (name) => storeLinks.find((s) => s.store === name) ?? [],
-      )
-    : [];
-  const isButton = (store: string) => preorderAt.some((s) => s.store === store);
-  // the stores with no row in the price list; the others would just repeat.
-  // A preorder shows no price list, so then every store is listed
-  const hasOffer = (store: string) =>
-    !preorder &&
-    offers.some((o) => {
-      const a = o.store.toLowerCase();
-      const b = store.toLowerCase();
-      return a.includes(b) || b.includes(a);
-    });
-  // eBay stays either way: a row there is one seller, and many more may have it
-  // and it goes first
-  const otherStores = [
-    ...storeLinks.filter((s) => s.store === "eBay" && !isButton(s.store)),
-    ...storeLinks.filter(
-      (s) => s.store !== "eBay" && !hasOffer(s.store) && !isButton(s.store),
-    ),
-  ];
   // the headline price is the cheapest new print copy, what most people buy
   const best = offers.find(
     (o) => o.condition === "new" && o.format === "print",
   );
   // a seller nobody has heard of: the cheapest at a store people know too
   const knownBest = knownStoreLow(offers);
-  // the series' usual new price, from its other volumes: a headline well
-  // above it says so (a store's odd price, not what the book costs)
-  const others = siblings
-    .filter((v) => v.isbn13 !== book.isbn13 && v.knownPriceCents != null)
-    .map((v) => v.knownPriceCents!)
-    .sort((a, b) => a - b);
-  const usual =
-    others.length >= 3 ? others[Math.floor(others.length / 2)]! : null;
-  const aboveUsual =
-    best && usual != null && best.priceCents >= usual * 1.4 ? usual : null;
+  // the series' usual new price, when the headline is well above it
+  const aboveUsual = usualWhenWellBelow(
+    siblings,
+    book.isbn13,
+    best?.priceCents,
+  );
   // an old check, said beside the price it's about
   const stale =
     checkedAt && olderThanDays(checkedAt, 3) ? timeAgo(checkedAt) : null;
@@ -407,7 +279,7 @@ export default function PriceVolume() {
                   Prices
                 </h2>
                 <span className={styles.checkedRow}>
-                  {refreshing === isbn ? (
+                  {page.refreshing ? (
                     <span className={styles.checked} role="status">
                       checking stores…
                     </span>
@@ -458,7 +330,7 @@ export default function PriceVolume() {
                 />
               ) : (
                 <p className={styles.note}>
-                  {refreshing === isbn ? (
+                  {page.refreshing ? (
                     // nothing stored yet and the live check still going: not
                     // "no prices" until it answers
                     <>Checking stores for prices…</>
@@ -630,24 +502,6 @@ export default function PriceVolume() {
           As an Amazon Associate I earn from qualifying purchases.
         </p>
       )}
-    </div>
-  );
-}
-
-function VolumeSkeleton() {
-  return (
-    <div className={styles.volume} aria-busy="true" aria-label="Loading">
-      <SlowLoadQuote />
-      <div
-        className={`skeleton ${styles.volumeCover} ${styles.coverSkeleton}`}
-      />
-      <div className={styles.volumeHead}>
-        <div className="skeleton" style={{ width: "70%", height: 44 }} />
-        <div className="skeleton" style={{ width: "40%", height: 20 }} />
-      </div>
-      <div className={styles.volumeBody}>
-        <div className="skeleton" style={{ width: "100%", height: 160 }} />
-      </div>
     </div>
   );
 }
