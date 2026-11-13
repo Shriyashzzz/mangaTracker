@@ -4,8 +4,7 @@
 // free; this only spends spare daily calls (PRICE_FILL_DAILY volumes, and
 // only while eBay's day is under EBAY_SHARE used, leaving the rest to page
 // visits). It runs the same check a volume page does (fetchProviders, the
-// free sources only: eBay, Books-A-Million when set up, and Better World
-// Books once per volume), marked as a
+// free sources only: eBay, and Books-A-Million when set up), marked as a
 // background one so the home page's "recently checked" leaves it out. Once
 // every shelf volume has had a look, it prices the most popular series'
 // volumes nobody has opened (popularQueue), then keeps priced volumes fresh:
@@ -19,7 +18,6 @@ import { prisma } from "../config/prisma.js";
 import priceQueries from "../models/priceQueries.js";
 import ebay, { ebayApiEnabled } from "../prices/providers/ebay.js";
 import booksAMillion from "../prices/providers/booksAMillion.js";
-import betterWorldBooks from "../prices/providers/betterWorldBooks.js";
 import {
   checkAlone,
   fetchProviders,
@@ -32,9 +30,6 @@ import { listKnownSeries } from "../prices/sources/anilist.js";
 import { slugify } from "../prices/stores/match.js";
 import { isOut, ownedSet } from "./shelfMath.js";
 import { shelfSeries } from "./shelfSeries.js";
-
-// Better World Books' group in price_source_checks
-const BWB = "better-world-books";
 
 const EVERY_MS = 5 * 60_000;
 const DAY_MS = 24 * 60 * 60_000;
@@ -79,11 +74,11 @@ export const resetFiller = () => {
   queue = { at: 0, isbns: [] };
 };
 
-// every numbered volume out on any shelf that eBay's API has never looked
-// at: owned ones first (they make up what shelves are worth), then the ones
-// still to get. Only whole-numbered volumes, the ones shelf totals count:
-// never a guidebook or anything else a list holds. Database only
-export async function fillQueue(now = new Date()): Promise<string[]> {
+// every numbered volume out on any shelf, by ISBN: the ones readers own
+// (they make up what shelves are worth), and the ones still to get. Only
+// whole-numbered volumes, the ones shelf totals count: never a guidebook or
+// anything else a list holds. Database only. Shared with usedFiller.ts
+export async function shelfVolumes(now = new Date()) {
   const manga = await prisma.manga.findMany({
     where: { userId: { not: null } },
   });
@@ -104,24 +99,21 @@ export async function fillQueue(now = new Date()): Promise<string[]> {
       (mine.has(v.volume) ? owned : missing).push(v.isbn13);
     }
   }
+  return { owned, missing };
+}
+
+// the shelf volumes eBay's API has never looked at: owned ones first, then
+// the ones still to get
+export async function fillQueue(now = new Date()): Promise<string[]> {
+  const { owned, missing } = await shelfVolumes(now);
   const all = [...new Set([...owned, ...missing])];
   if (!all.length) return [];
   const looked = await prisma.priceSourceCheck.findMany({
-    where: { isbn13: { in: all }, source: { in: ["ebay", BWB] } },
-    select: { isbn13: true, source: true },
+    where: { isbn13: { in: all }, source: "ebay" },
+    select: { isbn13: true },
   });
-  const by = (source: string) =>
-    new Set(
-      looked.filter((r) => r.source === source).map((r) => r.isbn13.trim()),
-    );
-  const ebayLooked = by("ebay");
-  const bwbLooked = by(BWB);
-  // Better World Books looks at each shelf volume once (see fillOne): one it
-  // hasn't seen is still waiting, even when eBay has
-  const wantsBwb = betterWorldBooks.enabled();
-  return all.filter(
-    (isbn) => !ebayLooked.has(isbn) || (wantsBwb && !bwbLooked.has(isbn)),
-  );
+  const done = new Set(looked.map((r) => r.isbn13.trim()));
+  return all.filter((isbn) => !done.has(isbn));
 }
 
 // Then the most popular series' volumes nobody has priced yet: a collector
@@ -186,17 +178,9 @@ export async function staleQueue(now = new Date()): Promise<string[]> {
   return rows.map((r) => r.isbn13.trim());
 }
 
-// the free sources a background check asks. eBay's API and Books-A-Million
-// (when its keys are set; it keeps to its own daily count) whenever eBay's
-// look is old. Better World Books once only per volume: a used price for
-// what a shelf is worth, kept from then on. It's looked at again only when
-// someone opens the volume's page
-function providersFor(looks: { ebayIsFresh: boolean; bwbHasLooked: boolean }) {
-  const asked = [];
-  if (!looks.ebayIsFresh) asked.push(ebay, booksAMillion);
-  if (!looks.bwbHasLooked) asked.push(betterWorldBooks);
-  return asked.filter((p) => p.enabled());
-}
+// the free sources a background check asks: eBay's API, and Books-A-Million
+// when its keys are set (it keeps to its own daily count)
+const freeProviders = () => [ebay, booksAMillion].filter((p) => p.enabled());
 
 class ShareUsed extends Error {}
 
@@ -229,20 +213,11 @@ export async function fillOne(
           const [lock] = await tx.$queryRaw<{ got: boolean }[]>`
             SELECT pg_try_advisory_xact_lock(hashtext(${`price-fill:${isbn13}`})) AS got`;
           if (!lock?.got) return;
-          const [looked, bwbLooked] = await Promise.all([
-            tx.priceSourceCheck.findFirst({
-              where: { isbn13, source: "ebay" },
-            }),
-            tx.priceSourceCheck.findFirst({ where: { isbn13, source: BWB } }),
-          ]);
-          const asked = providersFor({
-            ebayIsFresh: Boolean(
-              looked && now - looked.checkedAt.getTime() < STALE_MS,
-            ),
-            bwbHasLooked: Boolean(bwbLooked),
+          const looked = await tx.priceSourceCheck.findFirst({
+            where: { isbn13, source: "ebay" },
           });
           // looked at since the queue was built (or lately enough): skipped
-          if (!asked.length) return;
+          if (looked && now - looked.checkedAt.getTime() < STALE_MS) return;
           // today's share of volumes, taken before looking
           const day = today();
           const claimed = await priceQueries.claimApiCall(
@@ -253,7 +228,9 @@ export async function fillOne(
           if (!claimed) throw new ShareUsed();
           const book = await getOrCreateBook(isbn13);
           if (book)
-            await fetchProviders(isbn13, book, asked, { background: true });
+            await fetchProviders(isbn13, book, freeProviders(), {
+              background: true,
+            });
         },
         // the lock lasts the check: eBay's three searches, a few seconds
         { timeout: 60_000, maxWait: 10_000 },
