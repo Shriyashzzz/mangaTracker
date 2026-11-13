@@ -1,7 +1,7 @@
 // One line on a series' price page for someone coming from the anime:
-// "Watched the anime? After Season 3, start at chapter 181." It links to the
-// series' "after the anime" page, where every season is. Nothing at all for
-// a series with no answer.
+// "Watched the anime? After Season 2, start at chapter 150, in volume 17 or
+// 18." It links to the series' "after the anime" page, where every season
+// is. Nothing at all for a series with no answer.
 import { useEffect, useState } from "react";
 import { NavLink } from "react-router";
 import {
@@ -9,7 +9,7 @@ import {
   getAfterAnime,
   type AfterAnime,
 } from "../../lib/afterAnime";
-import { afterLabel, startText } from "../../lib/afterAnimeText";
+import { afterLabel, startTextWithVolume } from "../../lib/afterAnimeText";
 import { pricesStyles as priceStyles } from "../Prices/styles";
 
 export default function AfterAnimeLine({ seriesName }: { seriesName: string }) {
@@ -32,7 +32,7 @@ export default function AfterAnimeLine({ seriesName }: { seriesName: string }) {
   // the latest season is the one most people have just finished
   const latest = show?.stops[show.stops.length - 1];
   if (!show || !latest) return null;
-  const answer = startText(latest);
+  const answer = startTextWithVolume(latest);
   return (
     <p className={priceStyles.partOf}>
       Watched the anime? {afterLabel(latest)},{" "}

@@ -39,6 +39,20 @@ export function startText(stop: AnimeStop) {
   return "We're not sure yet";
 }
 
+// the answer in one line, volume and all, for where there's no room for the
+// volumes' cards: "Start at chapter 150, in volume 17 or 18". The next
+// chapter's volume when it's known; otherwise the anime's last volume or the
+// one after (see volumesToGet)
+export function startTextWithVolume(stop: AnimeStop) {
+  const start = startText(stop);
+  // only a chapter needs its volume said: the other answers name one already
+  if (stop.coversAll || stop.nextChapter === null) return start;
+  if (stop.nextVolume !== null) return `${start}, in volume ${stop.nextVolume}`;
+  if (stop.endVolume !== null)
+    return `${start}, in volume ${stop.endVolume} or ${stop.endVolume + 1}`;
+  return start;
+}
+
 const inVolume = (volume: number | null) =>
   volume === null ? "" : `, in volume ${volume}`;
 
@@ -174,7 +188,7 @@ export function showMeta(
   if (!show.stops.length) return { title, path, noindex: true };
   // the latest season is the one most people have just finished
   const latest = show.stops[show.stops.length - 1]!;
-  const answer = startText(latest).toLowerCase();
+  const answer = startTextWithVolume(latest).toLowerCase();
   const season = latest.label === "The anime" ? "the anime" : latest.label;
   return {
     title,

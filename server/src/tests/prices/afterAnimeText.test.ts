@@ -5,6 +5,7 @@ import {
   placeAfter,
   endText,
   startText,
+  startTextWithVolume,
   twoVolumesNote,
   volumesToGet,
   type AnimeStop,
@@ -84,4 +85,17 @@ test("where a watcher is in the manga, for their shelf", () => {
   expect(placeAfter(chaptersOnly!)).toEqual({ chapter: 45, volume: null });
   const [half] = shown("Vol 1, Chap 0 (S1)", "Vol 5, Chap 22.5 (S1)");
   expect(placeAfter(half!)).toEqual({ chapter: 22, volume: 4 });
+});
+
+test("the one-line answer says the volume too", () => {
+  // the next season says which volume
+  expect(startTextWithVolume(first)).toBe("Start at chapter 64, in volume 8");
+  // it doesn't: the anime's last volume, or the one after
+  expect(startTextWithVolume(third)).toBe(
+    "Start at chapter 181, in volume 21 or 22",
+  );
+  const [chaptersOnly] = shown("Chap 0 (S1)", "Chap 45 (S1)");
+  expect(startTextWithVolume(chaptersOnly!)).toBe("Start at chapter 46");
+  const all = { ...first, coversAll: true };
+  expect(startTextWithVolume(all)).toBe("Nothing left to read");
 });
