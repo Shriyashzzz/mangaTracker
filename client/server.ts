@@ -609,7 +609,7 @@ function afterAnimeTags(
   // newest first, as the page has them
   const rows = [...show.stops].reverse().map((stop) => {
     const row = tableRow(stop);
-    return `<tr><th scope="row">${escapeHtml(row.season)}</th><td>${escapeHtml(row.ends)}</td><td>${escapeHtml(row.start)}</td><td>${escapeHtml(row.volume)}</td></tr>`;
+    return `<tr><th scope="row">${escapeHtml(row.watched)}</th><td>${escapeHtml(row.start)}</td><td>${escapeHtml(row.buy)}</td></tr>`;
   });
   const seasons = [...show.stops]
     .reverse()
@@ -638,7 +638,7 @@ function afterAnimeTags(
       ${
         latest
           ? `<p>${escapeHtml(answerSentence(latest))}</p>
-      <table><thead><tr><th>Watched</th><th>Anime ends</th><th>Start at</th><th>Volume</th></tr></thead><tbody>${rows.join("")}</tbody></table>
+      <table><thead><tr><th>If you watched</th><th>Start reading at</th><th>Buy</th></tr></thead><tbody>${rows.join("")}</tbody></table>
       ${seasons.join("")}
       <h2>Questions</h2>${questions.join("")}`
           : "<p>No answer yet.</p>"

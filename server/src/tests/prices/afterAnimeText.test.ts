@@ -98,16 +98,19 @@ test("the answer in plain sentences, and as a table row", () => {
     "Season 3 stops partway through chapter 181, in volume 21. To carry on with the story, start the manga at chapter 181, in volume 21 or 22.",
   );
   expect(tableRow(third)).toEqual({
-    season: "Season 3",
-    ends: "Chapter 181",
+    watched: "Season 3",
     start: "Chapter 181",
-    volume: "21 or 22",
+    buy: "Volume 21 or 22",
   });
+  expect(tableRow(first).buy).toBe("Volume 8");
   const all = { ...first, endChapter: 271, coversAll: true };
   expect(answerSentence(all)).toBe(
     "Season 1 adapts the manga to its end, chapter 271, in volume 8. There's nothing left to read after it.",
   );
-  expect(tableRow(all)).toMatchObject({ start: "Nothing left", volume: "" });
+  expect(tableRow(all)).toMatchObject({
+    start: "Nothing left to read",
+    buy: "",
+  });
 });
 
 test("a show's questions are the ones it can answer", () => {

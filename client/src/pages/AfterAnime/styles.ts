@@ -16,9 +16,10 @@ export const afterAnimeStyles = {
   lead: "max-w-[60ch] font-display text-[clamp(1.15rem,2.3vw,1.4rem)] leading-[1.35] text-ink",
 
   // ---------- every season at a glance ----------
+  // a long season name wraps; the chapter and the volume never do
   tableWrap: "overflow-x-auto border-2 border-line bg-card shadow-ink",
   table:
-    "w-full border-collapse text-left text-[0.95rem] tabular-nums [&_a]:underline [&_a]:decoration-accent [&_a]:decoration-2 [&_a]:underline-offset-3 [&_tbody_th]:font-semibold [&_tbody_tr]:border-t [&_tbody_tr]:border-dashed [&_tbody_tr]:border-line-soft [&_td]:px-4 [&_td]:py-2.5 [&_th]:px-4 [&_th]:py-2.5 [&_thead_th]:bg-paper-2 [&_thead_th]:text-[0.8rem] [&_thead_th]:font-medium [&_thead_th]:text-ink-soft [&_td]:whitespace-nowrap [&_tbody_th]:whitespace-nowrap upto-520:text-[0.8rem] upto-520:[&_td]:px-2 upto-520:[&_th]:px-2",
+    "w-full border-collapse text-left text-[0.95rem] tabular-nums [&_a]:underline [&_a]:decoration-accent [&_a]:decoration-2 [&_a]:underline-offset-3 [&_tbody_th]:font-semibold [&_tbody_tr]:border-t [&_tbody_tr]:border-dashed [&_tbody_tr]:border-line-soft [&_td]:px-4 [&_td]:py-2.5 [&_th]:px-4 [&_th]:py-2.5 [&_thead_th]:bg-paper-2 [&_thead_th]:text-[0.8rem] [&_thead_th]:font-medium [&_thead_th]:text-ink-soft [&_td]:whitespace-nowrap upto-520:text-[0.8rem] upto-520:[&_td]:px-2 upto-520:[&_th]:px-2",
 
   // ---------- one season ----------
   seasons: "flex flex-col gap-6",

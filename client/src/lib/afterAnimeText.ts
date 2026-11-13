@@ -181,19 +181,18 @@ export function answerSentence(stop: AnimeStop) {
   return `${where} To carry on with the story, start the manga at chapter ${stop.nextChapter}${inWhich}.`.trim();
 }
 
-// a season as a row of the page's table
+// a season as a row of the page's table, whose three headings are the
+// reader's own questions: "If you watched", "Start reading at", "Buy".
+// An empty string is something the season doesn't say
 export function tableRow(stop: AnimeStop) {
-  let ends = "";
-  if (stop.endChapter !== null) ends = `Chapter ${stop.endChapter}`;
-  else if (stop.endVolume !== null) ends = `Volume ${stop.endVolume}`;
+  const volume = volumeWords(stop);
   let start = "";
-  if (stop.coversAll) start = "Nothing left";
+  if (stop.coversAll) start = "Nothing left to read";
   else if (stop.nextChapter !== null) start = `Chapter ${stop.nextChapter}`;
   return {
-    season: stop.label,
-    ends,
+    watched: stop.label,
     start,
-    volume: volumeWords(stop),
+    buy: volume ? `Volume ${volume}` : "",
   };
 }
 
