@@ -1,108 +1,85 @@
-import { useEffect, useRef, useState, type CSSProperties } from "react";
-import { ownedOf, ownedPhrase, rangesText } from "../../lib/ownedVolumes";
-import { BOOK } from "../../lib/volumeShelf";
-import { detailsStyles as styles } from "./styles";
-import { onSale } from "../../lib/releaseDate";
+// A series on their shelf: its little volume shelf, where they are in it,
+// what's newly out, their rating and notes, the books they own, and what to
+// buy next. This file loads the series and saves changes to it; each part of
+// the page is its own file:
+//   ShelfBox        the little shelf of ticked volumes
+//   ReadingPlace    the chapter and volume counters
+//   ReleaseBar      the red "it's out" bar (its rules: releaseNews.ts)
+//   RatingField, NotesField, YourBooks
+//   SeriesActions   Edit, Mark as finished, Delete
+//   BuyStrip        the cover's side: what to buy next
+import { useEffect, useRef, useState } from "react";
 import { NavLink, useNavigate, useParams, useSearchParams } from "react-router";
-import StarRating from "../../components/starRating/StarRating";
-import { apiFetch } from "../../lib/api";
 import DrawnCover from "../../components/drawnCover/DrawnCover";
-import type { Manga, ReleaseData, ReleaseStatus } from "../../lib/types";
-import SlowLoadQuote from "../../components/slowLoadQuote/SlowLoadQuote";
+import { apiFetch } from "../../lib/api";
+import { getBooks } from "../../lib/booksApi";
+import { ownedOf } from "../../lib/ownedVolumes";
+import { useReleaseChecksOn, useTrackBy } from "../../lib/prefs";
+import { priceName } from "../../lib/prices";
+import { tracksOf } from "../../lib/reading";
 import { usePrivatePage } from "../../lib/seo";
 import { getReleases } from "../../lib/shelf";
-import VolumeShelf from "../../components/volumeShelf/VolumeShelf";
-import { useReleaseChecksOn, useTrackBy } from "../../lib/prefs";
-import { tracksOf } from "../../lib/reading";
+import type { Manga, ReleaseData, ReleaseStatus } from "../../lib/types";
 import { useShelf } from "../../store/shelf";
-import TwiceNote from "./TwiceNote";
-import YourBooks from "./YourBooks";
-import { useEditions } from "./useEditions";
-import { getBooks } from "../../lib/booksApi";
-import NotesField from "./NotesField";
 import BuyStrip from "./BuyStrip";
+import { DetailsSkeleton, LoadFailed, type LoadError } from "./DetailsStates";
+import NotesField from "./NotesField";
+import RatingField from "./RatingField";
+import ReadingPlace, { type ReadingChange } from "./ReadingPlace";
 import ReleaseBar from "./ReleaseBar";
-import ChapterStepper from "./ChapterStepper";
+import { releaseNews, shelfSize } from "./releaseNews";
+import SeriesActions from "./SeriesActions";
+import ShelfBox from "./ShelfBox";
+import { detailsStyles as styles } from "./styles";
+import TwiceNote from "./TwiceNote";
 import { useBuyOptions } from "./useBuyOptions";
+import { useEditions } from "./useEditions";
 import { useOwnedVolumes } from "./useOwnedVolumes";
-import {
-  formatCents,
-  priceName,
-  seriesPath,
-  volumePath,
-} from "../../lib/prices";
-import { formatReleaseDate } from "../../lib/releaseDates";
+import YourBooks from "./YourBooks";
 
 const DIDNT_SAVE = "That didn't save. Try again.";
-// the shelf's least width beside the title, so its caption reads in a line or two
-const SHELF_MIN = 208;
 
 export default function Details() {
   usePrivatePage("Manga details");
+  const { id } = useParams();
+  const navigate = useNavigate();
+  const trackBy = useTrackBy();
+  const checksOn = useReleaseChecksOn();
+  const [searchParams] = useSearchParams();
+  // English unless they came from the shelf's In Japan tab
+  const inJapan = searchParams.get("edition") === "japan";
+  // or the Chapters side of it, which is about the chapter rather than a volume
+  const chapterNews = searchParams.get("new") === "chapter";
+
+  // ---------- what's loaded ----------
   const [mangaData, setMangaData] = useState<Manga | null>(null);
+  const [loadError, setLoadError] = useState<LoadError | null>(null);
+  const [loadTry, setLoadTry] = useState(0);
   const [releaseData, setReleaseData] = useState<ReleaseData | null>(null);
-  // a collector of the books who asked for the chapter counter after all
-  const [chaptersShown, setChaptersShown] = useState(false);
-  // the shelf as it was before the last slide across it, while Undo is offered
-  const slide = useRef<{ before: number[] } | null>(null);
-  const slideEnds = useRef(0);
-  const [undoSlide, setUndoSlide] = useState<number[] | null>(null);
-  useEffect(() => {
-    if (!undoSlide) return;
-    const gone = window.setTimeout(() => setUndoSlide(null), 12_000);
-    return () => clearTimeout(gone);
-  }, [undoSlide]);
   const [releaseStatus, setReleaseStatus] = useState<ReleaseStatus | null>(
     null,
   );
-  // "signin": the server wants a sign in (none, or it expired); "gone": signed
-  // in, but it's deleted or someone else's; "network": no answer
-  const [loadError, setLoadError] = useState<
-    "signin" | "gone" | "network" | null
-  >(null);
   const [brokenCover, setBrokenCover] = useState<string | null>(null);
-  const [loadTry, setLoadTry] = useState(0);
+
+  // ---------- what they can change here ----------
+  // finished, and on the To read list (not started, so no release news yet).
+  // Kept apart from mangaData so a tap shows before the server answers
+  const [mangaStatus, setMangaStatus] = useState(false);
+  const [planned, setPlanned] = useState(false);
   // a chapter was saved, so what's new for them needs asking again
   const [chapterSaves, setChapterSaves] = useState(0);
-  const trackBy = useTrackBy();
   // a new volume counter when its number is set from outside it
   const [volumeSets, setVolumeSets] = useState(0);
-  const { id } = useParams();
-  // English unless they came from the shelf's In Japan tab
-  const [searchParams] = useSearchParams();
-  const inJapan = searchParams.get("edition") === "japan";
-  const checksOn = useReleaseChecksOn();
-  // or the Chapters side of it, which is about the chapter rather than a volume
-  const chapterNews = searchParams.get("new") === "chapter";
-  const [mangaStatus, setMangaStatus] = useState(false);
-  // on their To read list: not started, so no chapter or release news yet
-  const [planned, setPlanned] = useState(false);
-  const [mangaRating, setMangaRating] = useState(0);
-  const [confirmDelete, setConfirmDelete] = useState(false);
-  const [busy, setBusy] = useState(false);
-  const [ratingFailed, setRatingFailed] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   // under the buttons: a failed save, or the undo for marking it finished
   const [actionNote, setActionNote] = useState("");
   const [canUndoStatus, setCanUndoStatus] = useState(false);
   // marked finished straight from To read: undo puts it back there
   const finishedFromPlanned = useRef(false);
-  const deleteButton = useRef<HTMLButtonElement>(null);
-  const keepButton = useRef<HTMLButtonElement>(null);
-  // the Delete button is about to vanish from under the keyboard: put focus
-  // on the safe answer, and back again when they keep it
-  const askedDelete = useRef(false);
-  useEffect(() => {
-    if (confirmDelete) {
-      askedDelete.current = true;
-      keepButton.current?.focus();
-    } else if (askedDelete.current) {
-      deleteButton.current?.focus();
-    }
-  }, [confirmDelete]);
-  const navigate = useNavigate();
+
   const loadedId = mangaData?.id;
-  // a light novel's prices are the novel's, never the manga of the same name
-  // the series' omnibus and deluxe lines, and the one they collect
+  // the series' omnibus and deluxe lines, and the one they collect. A light
+  // novel's prices are the novel's, never the manga of the same name
   const editions = useEditions(
     mangaData && !mangaData.lightNovel ? priceName(mangaData) : null,
     mangaData?.id ?? null,
@@ -114,6 +91,7 @@ export default function Details() {
     ownedList: mangaData?.ownedList,
   });
 
+  // ---------- loading ----------
   useEffect(() => {
     async function getManga() {
       try {
@@ -133,7 +111,6 @@ export default function Details() {
         const thisManga = (data as { manga?: Manga }).manga;
         if (!thisManga) throw new Error("Not found");
         setMangaData(thisManga);
-        setMangaRating(thisManga.rating ?? 0);
         setMangaStatus(thisManga.status);
         setPlanned(Boolean(thisManga.planned));
       } catch {
@@ -158,8 +135,9 @@ export default function Details() {
     return () => controller.abort();
   }, [id, chapterSaves, checksOn, loadedId]);
 
+  // ---------- saving ----------
   const handleDeleteManga = async () => {
-    setBusy(true);
+    setDeleting(true);
     setActionNote("");
     try {
       // what's on the server right now for the undo: notes, chapter and rating
@@ -178,7 +156,7 @@ export default function Details() {
     } catch (e) {
       console.error(e);
       setActionNote("That didn't delete. Try again.");
-      setBusy(false);
+      setDeleting(false);
     }
   };
 
@@ -218,11 +196,7 @@ export default function Details() {
   };
 
   // which way this series keeps their place, or the volume they've read
-  const saveReading = async (change: {
-    byVolume?: boolean;
-    readVolume?: number;
-    edition?: string;
-  }) => {
+  const saveReading = async (change: ReadingChange) => {
     if (!mangaData) return;
     const was = mangaData;
     setMangaData({ ...mangaData, ...change });
@@ -267,25 +241,8 @@ export default function Details() {
     }
   };
 
-  const handleRatingChange = async (newRating: number) => {
-    const previous = mangaRating;
-    setMangaRating(newRating);
-    setRatingFailed(false);
-    try {
-      const response = await apiFetch(`/api/manga/${id}/rating`, {
-        method: "PATCH",
-        body: { rating: newRating },
-      });
-      if (!response.ok) throw new Error(response.statusText);
-    } catch (e) {
-      console.error(`failed changing manga rating, ${(e as Error).message}`);
-      setMangaRating(previous);
-      setRatingFailed(true);
-    }
-  };
-
   // the volume shelf's ticks, saved one at a time in the background
-  const toggleOwned = useOwnedVolumes({
+  const ownedVolumes = useOwnedVolumes({
     manga: mangaData,
     setManga: setMangaData,
     onTick: () => {
@@ -298,64 +255,16 @@ export default function Details() {
     },
   });
 
-  if (loadError === "network") {
+  if (loadError)
     return (
-      <div className={styles.errorState} role="alert">
-        <h1>Couldn't reach the shelf.</h1>
-        <p>The server didn't answer. Check your connection and try again.</p>
-        <div className={styles.errorActions}>
-          <button
-            type="button"
-            className="btn btn-primary"
-            onClick={() => {
-              setLoadError(null);
-              setLoadTry(loadTry + 1);
-            }}
-          >
-            Try again
-          </button>
-          <NavLink to="/shelf" className="btn btn-ghost" viewTransition>
-            Back to the shelf
-          </NavLink>
-        </div>
-      </div>
+      <LoadFailed
+        error={loadError}
+        onRetry={() => {
+          setLoadError(null);
+          setLoadTry(loadTry + 1);
+        }}
+      />
     );
-  }
-
-  if (loadError === "gone") {
-    return (
-      <div className={styles.errorState}>
-        <h1>This one's not on your shelf.</h1>
-        <p>It might have been deleted, or the link is to someone else's.</p>
-        <div className={styles.errorActions}>
-          <NavLink to="/shelf" className="btn btn-primary" viewTransition>
-            Back to the shelf
-          </NavLink>
-          <NavLink to="/add" className="btn btn-ghost" viewTransition>
-            Add a series
-          </NavLink>
-        </div>
-      </div>
-    );
-  }
-
-  if (loadError) {
-    return (
-      <div className={styles.errorState}>
-        <h1>Sign in to see this one.</h1>
-        <p>Your shelf is only yours, so this needs you signed in.</p>
-        <div className={styles.errorActions}>
-          <NavLink to="/signin" className="btn btn-primary" viewTransition>
-            Sign in
-          </NavLink>
-          <NavLink to="/" className="btn btn-ghost" viewTransition>
-            Home
-          </NavLink>
-        </div>
-      </div>
-    );
-  }
-
   if (!mangaData) return <DetailsSkeleton />;
 
   // no cover, or one that won't load: the drawn one, with its name on
@@ -363,184 +272,26 @@ export default function Details() {
     mangaData.image && brokenCover !== mangaData.image ? mangaData.image : null;
   const genre =
     mangaData.genre && mangaData.genre !== "unlabled" ? mangaData.genre : null;
-  // how many books the shelf holds: the most we know is out, and never fewer
-  // than they own. Until that's known, theirs and a few to tick next
   const owned = ownedOf(mangaData);
-  const tracks = tracksOf(mangaData, trackBy);
-  // halves and specials (10.5, vol. 0) aren't books on the shelf: said instead
-  const offShelf = owned.filter((v) => !Number.isInteger(v) || v < 1);
-  const onShelf = owned.length - offShelf.length;
   const highestOwned = Math.floor(Math.max(0, ...owned));
-  // one slide is many paints close together: what they owned before the
-  // first is what Undo gives back
-  const paintWithUndo = (next: number[]) => {
-    // the slide lasts until the paints stop coming for a moment
-    slide.current ??= { before: owned };
-    clearTimeout(slideEnds.current);
-    slideEnds.current = window.setTimeout(() => {
-      slide.current = null;
-    }, 1200);
-    toggleOwned.paint(next);
-    const { before } = slide.current;
-    const changed =
-      next.filter((v) => !before.includes(v)).length +
-      before.filter((v) => !next.includes(v)).length;
-    setUndoSlide(changed > 1 ? before : null);
-  };
-  // as the shelf's finish math counts it: a volume known to be coming means
-  // every one before it is out, listed or not (vol. 17 due: 16 is out)
-  const comingFirst = Math.min(
-    ...buyOptions.volumes
-      .filter((v) => !onSale([v]).length && Number.isInteger(v.volume))
-      .map((v) => v.volume),
-  );
-  const knownOut = Math.max(
-    releaseStatus?.latestVolume ?? 0,
-    buyOptions.latest?.volume ?? 0,
-    Number.isFinite(comingFirst) ? comingFirst - 1 : 0,
-  );
-  const shelfTotal = Math.min(
-    999,
-    Math.floor(knownOut) > 0
-      ? Math.max(Math.floor(knownOut), highestOwned)
-      : Math.max(highestOwned + 3, 10),
-  );
-  // owning and reading aren't the same, so say which it is
-  const volumeYours = ownedPhrase(mangaData)
-    ? `you own ${ownedPhrase(mangaData)}`
-    : releaseStatus?.currentVolume
-      ? `you're on vol. ${releaseStatus.currentVolume}`
-      : null;
-  // the red bar: only what's next for them, and what they came here about
-  const release =
-    !releaseStatus || !checksOn || planned
-      ? null
-      : inJapan
-        ? releaseStatus.hasNewJapaneseVolume && {
-            what: `Vol. ${releaseStatus.latestJapaneseVolume}`,
-            kind: "volume" as const,
-            yours: volumeYours,
-          }
-        : chapterNews && !mangaStatus
-          ? releaseStatus.hasNewChapter && {
-              what: `Ch. ${releaseStatus.latestChapter}`,
-              kind: "chapter" as const,
-              yours:
-                tracks.chapters && mangaData.bookmark
-                  ? `you're on ch. ${mangaData.bookmark}`
-                  : null,
-            }
-          : releaseStatus.isNextVolumeOut && {
-              what: `Vol. ${releaseStatus.latestVolume}`,
-              kind: "volume" as const,
-              yours: volumeYours,
-            };
-  // an English volume release can be bought from the bar: the one they need next,
-  // named if that's not the one in the headline
-  const sellsVolume =
-    release &&
-    !inJapan &&
-    !(chapterNews && !mangaStatus) &&
-    !buyOptions.caughtUp &&
-    // collecting an edition: the single volume is news, not theirs to buy
-    !editions.line;
-  // the newest is Buy it's own ticket already: the bar doesn't sell it twice
-  const toBuy = sellsVolume ? (buyOptions.next ?? buyOptions.latest) : null;
-  const barSells = toBuy && toBuy.isbn13 !== buyOptions.latest?.isbn13;
-  const barBuy =
-    !barSells || !toBuy
-      ? null
-      : {
-          to: volumePath(toBuy.isbn13, toBuy.title),
-          label: (() => {
-            const other = toBuy.volume !== releaseStatus?.latestVolume;
-            if (toBuy.knownPriceCents == null) {
-              return other ? `Check vol. ${toBuy.volume}` : "Check price";
-            }
-            const price = formatCents(toBuy.knownPriceCents);
-            return other
-              ? `Buy vol. ${toBuy.volume} for ${price}`
-              : `Buy for ${price}`;
-          })(),
-        };
-  // what the bar opens to on an English volume: English releases only, each
-  // a way to its prices. What's out past the furthest they own (a few, then
-  // the rest behind one link), and what's coming with its date
-  const BAR_ROWS = 6;
-  // "2026-12-22" is that day wherever they are (read at noon, so no time
-  // zone moves it to the 21st); a month alone is "Mar 2027"
-  const preorderDay = (published?: string | null) => {
-    if (!published) return "";
-    if (/^\d{4}-\d{2}-\d{2}$/.test(published))
-      return formatReleaseDate(`${published}T12:00:00`) ?? published;
-    const [y, m] = published.split("-").map(Number);
-    return y && m
-      ? `${new Date(y, m - 1, 1).toLocaleString("en-US", { month: "short" })} ${y}`
-      : published;
-  };
-  const pastMine = buyOptions.volumes
-    .filter((v) => Number.isInteger(v.volume) && v.volume > highestOwned)
-    .sort((a, b) => a.volume - b.volume);
-  const outPast = onSale(pastMine);
-  const comingPast = pastMine.filter((v) => !outPast.includes(v));
-  const seriesTo = seriesPath(
-    buyOptions.seriesName || (mangaData ? priceName(mangaData) : ""),
-  );
-  const barRow = (
-    v: (typeof pastMine)[number],
-    when: string,
-    compare = false,
-  ) => ({
-    what: `Vol. ${v.volume}`,
-    when,
-    to: volumePath(v.isbn13, v.title),
-    compare,
+  const shelfTotal = shelfSize(highestOwned, releaseStatus, buyOptions);
+  const { release, barBuy, barEnglish, hideNextTicket } = releaseNews({
+    manga: mangaData,
+    releaseStatus,
+    buyOptions,
+    collectsEdition: Boolean(editions.line),
+    checksOn,
+    planned,
+    finished: mangaStatus,
+    inJapan,
+    chapterNews,
+    tracksChapters: tracksOf(mangaData, trackBy).chapters,
+    highestOwned,
   });
-  const barEnglish =
-    sellsVolume || outPast.length || comingPast.length
-      ? {
-          groups: [
-            {
-              title: "Out in English",
-              rows: [
-                ...outPast
-                  .slice(0, BAR_ROWS)
-                  .map((v) =>
-                    barRow(
-                      v,
-                      v.knownPriceCents != null
-                        ? `from ${formatCents(v.knownPriceCents)}`
-                        : "Check price",
-                      true,
-                    ),
-                  ),
-                ...(outPast.length > BAR_ROWS
-                  ? [
-                      {
-                        what: `+${outPast.length - BAR_ROWS} more`,
-                        when: "See them all",
-                        to: `${seriesTo}&toget=1`,
-                        compare: true,
-                      },
-                    ]
-                  : []),
-              ],
-            },
-            {
-              title: "Preorder in English",
-              rows: comingPast
-                .slice(0, BAR_ROWS)
-                .map((v) => barRow(v, preorderDay(v.published))),
-            },
-          ].filter((g) => g.rows.length > 0),
-        }
-      : null;
-  // no need to sell it twice, unless it's the only ticket there is
-  const hideNextTicket = Boolean(
-    barBuy &&
-    buyOptions.next &&
-    buyOptions.next.isbn13 !== buyOptions.latest?.isbn13,
-  );
+
+  let statusWord = "Reading";
+  if (mangaStatus) statusWord = "Finished";
+  else if (planned) statusWord = "To read";
 
   return (
     <div className="fade-in">
@@ -559,7 +310,7 @@ export default function Details() {
                 <li
                   className={mangaStatus ? styles.metaDone : styles.metaReading}
                 >
-                  {mangaStatus ? "Finished" : planned ? "To read" : "Reading"}
+                  {statusWord}
                 </li>
                 {mangaData.lightNovel && (
                   <li className={styles.metaGenre}>Light novel</li>
@@ -567,164 +318,33 @@ export default function Details() {
                 {genre && <li className={styles.metaGenre}>{genre}</li>}
               </ul>
             </header>
-            <div
-              className={styles.shelf}
-              // the room a short series' books need, but never so little
-              // that the caption under them breaks a word to a line
-              style={
-                {
-                  "--shelf-w": `${Math.min(460, Math.max(shelfTotal * BOOK, SHELF_MIN))}px`,
-                } as CSSProperties
-              }
-            >
-              {/* the books keep to their own width; the caption gets the room */}
-              <div style={{ maxWidth: shelfTotal * BOOK }}>
-                <VolumeShelf
-                  key={mangaData.id}
-                  total={shelfTotal}
-                  owned={owned}
-                  onToggle={(v) => {
-                    setUndoSlide(null);
-                    toggleOwned.toggle(v);
-                  }}
-                  onPaint={paintWithUndo}
-                  name={mangaData.name}
-                />
-              </div>
-              {/* what the shelf says, in words: how many of how many, and
-                  any halves or specials it has no book for */}
-              <p className={styles.shelfCaption}>
-                <span>
-                  {onShelf} of {shelfTotal}
-                  {offShelf.length > 0 &&
-                    ` · also vol${offShelf.length > 1 ? "s" : ""}. ${rangesText(offShelf)}`}
-                </span>
-                {/* a slide that changed several at once (a swipe meant to
-                    scroll, on a phone) can be taken back */}
-                {undoSlide && (
-                  <button
-                    type="button"
-                    className={styles.chaptersToo}
-                    onClick={() => {
-                      toggleOwned.paint(undoSlide);
-                      setUndoSlide(null);
-                    }}
-                  >
-                    Undo that slide
-                  </button>
-                )}
-              </p>
-            </div>
+            <ShelfBox
+              mangaId={mangaData.id}
+              name={mangaData.name}
+              owned={owned}
+              total={shelfTotal}
+              ownedVolumes={ownedVolumes}
+            />
           </div>
 
           <h2 className={`${styles.deskTitle} ${styles.yourCopy}`}>
             Your copy
           </h2>
-          <p className={styles.progress}>
-            {mangaStatus ? (
-              <>Read all the way through.</>
-            ) : planned ? (
-              <span className={styles.startRow}>
-                Not started yet.
-                <button
-                  type="button"
-                  className="btn btn-primary btn-sm"
-                  onClick={startReading}
-                >
-                  Start reading
-                </button>
-              </span>
-            ) : trackBy === "series" &&
-              !mangaData.byVolume &&
-              !mangaData.bookmark &&
-              !chaptersShown ? (
-              // no place saved yet: they pick what to count. What they own
-              // says where a collector is, never "chapter 0"
-              <span className={styles.startRow}>
-                {owned.length > 0 && (
-                  <>
-                    You own {owned.length === 1 ? "vol." : "vols."}{" "}
-                    {rangesText(owned)}.
-                  </>
-                )}
-                <button
-                  type="button"
-                  className={styles.chaptersToo}
-                  onClick={() => setChaptersShown(true)}
-                >
-                  Track chapters
-                </button>
-                <button
-                  type="button"
-                  className={styles.chaptersToo}
-                  onClick={() => saveReading({ byVolume: true })}
-                >
-                  Track volumes
-                </button>
-              </span>
-            ) : (
-              <>
-                {tracks.chapters && (
-                  <span className={styles.placeLine}>
-                    You're on chapter{" "}
-                    <ChapterStepper
-                      key={mangaData.id}
-                      mangaId={mangaData.id}
-                      value={mangaData.bookmark}
-                      onSaved={(chapter) => {
-                        setMangaData({ ...mangaData, bookmark: chapter });
-                        setChapterSaves((n) => n + 1);
-                      }}
-                    />
-                  </span>
-                )}
-                {tracks.volumes && (
-                  // their place by the volume: read is apart from owned
-                  <span className={styles.placeLine}>
-                    You've read up to vol.{" "}
-                    <ChapterStepper
-                      key={`${mangaData.id}-volume-${volumeSets}`}
-                      mangaId={mangaData.id}
-                      unit="volume"
-                      value={mangaData.readVolume ?? null}
-                      onSaved={(volume) => {
-                        setMangaData({ ...mangaData, readVolume: volume });
-                        setChapterSaves((n) => n + 1);
-                      }}
-                    />
-                  </span>
-                )}
-                <span className={styles.trackRow}>
-                  {tracks.volumes &&
-                    highestOwned > (mangaData.readVolume ?? 0) && (
-                      <button
-                        type="button"
-                        className={styles.chaptersToo}
-                        onClick={() =>
-                          saveReading({ readVolume: highestOwned })
-                        }
-                      >
-                        Read everything I own
-                      </button>
-                    )}
-                  {/* each series its own way: the other one is a tap away */}
-                  {trackBy === "series" && (
-                    <button
-                      type="button"
-                      className={styles.chaptersToo}
-                      onClick={() =>
-                        saveReading({ byVolume: !mangaData.byVolume })
-                      }
-                    >
-                      {mangaData.byVolume
-                        ? "Track chapters instead"
-                        : "Track volumes instead"}
-                    </button>
-                  )}
-                </span>
-              </>
-            )}
-          </p>
+          <ReadingPlace
+            manga={mangaData}
+            finished={mangaStatus}
+            planned={planned}
+            trackBy={trackBy}
+            owned={owned}
+            highestOwned={highestOwned}
+            volumeSets={volumeSets}
+            onStart={startReading}
+            onChange={saveReading}
+            onPlaceSaved={(place) => {
+              setMangaData({ ...mangaData, ...place });
+              setChapterSaves((n) => n + 1);
+            }}
+          />
 
           {release && (
             <ReleaseBar
@@ -732,7 +352,7 @@ export default function Details() {
               what={release.what}
               kind={release.kind}
               inJapan={inJapan}
-              yours={release.yours || null}
+              yours={release.yours}
               data={releaseData}
               buy={barBuy}
               english={
@@ -742,21 +362,12 @@ export default function Details() {
           )}
 
           <div className={styles.body}>
-            <div className={styles.rating}>
-              <span className={styles.label}>
-                {mangaRating ? "Your rating. Tap it again to clear" : "Rate it"}
-              </span>
-              <span className="inline-block w-fit">
-                <StarRating
-                  value={mangaRating}
-                  size="lg"
-                  onChange={handleRatingChange}
-                />
-              </span>
-              <p className={styles.saveFailed} role="status">
-                {ratingFailed && DIDNT_SAVE}
-              </p>
-            </div>
+            <RatingField
+              // starts over from the saved rating when the series changes
+              key={`rating-${mangaData.id}`}
+              mangaId={mangaData.id}
+              initial={mangaData.rating ?? 0}
+            />
 
             <NotesField
               key={mangaData.id}
@@ -770,65 +381,19 @@ export default function Details() {
               onRemoved={(left) => setMangaData({ ...mangaData, ...left })}
             />
 
-            <div className={styles.actions}>
-              <button
-                className="btn btn-secondary"
-                onClick={() =>
-                  navigate(`/update/${mangaData.id}`, { viewTransition: true })
-                }
-              >
-                Edit details
-              </button>
-              <button
-                className="btn btn-secondary"
-                onClick={() => handleStatusChange()}
-              >
-                {mangaStatus ? "Mark as reading" : "Mark as finished"}
-              </button>
-
-              {confirmDelete ? (
-                <span className={styles.confirm} role="alert">
-                  Delete {mangaData.name} from your shelf? Your chapter, rating
-                  and notes go with it!
-                  <button
-                    className={styles.confirmYes}
-                    onClick={handleDeleteManga}
-                    disabled={busy}
-                  >
-                    {busy ? "deleting…" : "yes, delete it"}
-                  </button>
-                  <button
-                    className={styles.confirmNo}
-                    ref={keepButton}
-                    onClick={() => setConfirmDelete(false)}
-                    disabled={busy}
-                  >
-                    keep it
-                  </button>
-                </span>
-              ) : (
-                <button
-                  ref={deleteButton}
-                  className={`btn btn-ghost ${styles.deleteBtn}`}
-                  onClick={() => setConfirmDelete(true)}
-                >
-                  Delete
-                </button>
-              )}
-
-              <p className={styles.actionNote} role="status">
-                {actionNote}
-                {canUndoStatus && (
-                  <button
-                    type="button"
-                    className={styles.undo}
-                    onClick={() => handleStatusChange(true)}
-                  >
-                    Undo
-                  </button>
-                )}
-              </p>
-            </div>
+            <SeriesActions
+              name={mangaData.name}
+              finished={mangaStatus}
+              deleting={deleting}
+              note={actionNote}
+              canUndo={canUndoStatus}
+              onEdit={() =>
+                navigate(`/update/${mangaData.id}`, { viewTransition: true })
+              }
+              onToggleFinished={() => handleStatusChange()}
+              onUndoFinished={() => handleStatusChange(true)}
+              onDelete={handleDeleteManga}
+            />
           </div>
         </div>
 
@@ -857,26 +422,6 @@ export default function Details() {
           />
         </div>
       </article>
-    </div>
-  );
-}
-
-function DetailsSkeleton() {
-  return (
-    <div className={styles.layout} aria-busy="true" aria-label="Loading">
-      <SlowLoadQuote />
-      <div className={styles.main}>
-        <div className={styles.head}>
-          <div className="skeleton" style={{ width: "60%", height: 44 }} />
-          <div className="skeleton" style={{ width: 160, height: 24 }} />
-        </div>
-        <div className={styles.body}>
-          <div className="skeleton" style={{ width: "100%", height: 110 }} />
-        </div>
-      </div>
-      <div className={styles.side}>
-        <div className={`skeleton ${styles.cover}`} />
-      </div>
     </div>
   );
 }

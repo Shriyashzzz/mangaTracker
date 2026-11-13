@@ -33,61 +33,96 @@ export type PlannedBook = EditionBook & {
   have: number;
 };
 
+// the place of the last item that passes the test, or -1
+const lastIndexWhere = <T>(list: T[], passes: (item: T) => boolean) => {
+  for (let i = list.length - 1; i >= 0; i--) if (passes(list[i]!)) return i;
+  return -1;
+};
+
 // what's left of a line for someone who owns these volumes
 export function editionPlan(line: EditionLine, owned: number[]) {
-  const has = new Set(owned);
-  const books: PlannedBook[] = line.books.map((b) => ({
-    ...b,
-    have: b.volumes.filter((v) => has.has(v)).length,
+  const ownedVolumes = new Set(owned);
+  const books: PlannedBook[] = line.books.map((book) => ({
+    ...book,
+    have: book.volumes.filter((v) => ownedVolumes.has(v)).length,
   }));
-  const whole = (b: PlannedBook) => b.have === b.volumes.length;
-  // the books the catalog lists end here: past it is worked out, and may not
-  // be out yet
-  const lastListed = books.reduce((at, b, i) => (b.listed ? i : at), -1);
+  // they own every volume inside it
+  const isOwned = (book: PlannedBook) => book.have === book.volumes.length;
+
+  // "out": the books up to the last one the catalog lists. Past that a book
+  // is only worked out from the line, and may not be published yet
+  const lastListed = lastIndexWhere(books, (book) => book.listed);
   const out = books.slice(0, lastListed + 1);
-  // the furthest book they have all of: a book they own one volume of (a
-  // single bought before switching) is still theirs to buy next
-  const furthest = out.reduce((at, b, i) => (whole(b) ? i : at), -1);
-  const next = out.slice(furthest + 1).find((b) => !whole(b)) ?? null;
-  // behind that: books they lack, or own only some volumes of
-  const gaps = out.slice(0, furthest + 1).filter((b) => !whole(b));
-  const left = out.filter((b) => !whole(b));
-  const priced = left.filter((b) => b.knownPriceCents != null);
+  const later = books.length - out.length;
+
+  // the furthest book they have all of. A book they own one volume of (a
+  // single bought before switching) is still theirs to buy
+  const furthestOwned = lastIndexWhere(out, isOwned);
+  const upToFurthest = out.slice(0, furthestOwned + 1);
+  const pastFurthest = out.slice(furthestOwned + 1);
+
+  const next = pastFurthest.find((book) => !isOwned(book)) ?? null;
+  // behind the furthest: books they lack, or own only some volumes of
+  const gaps = upToFurthest.filter((book) => !isOwned(book));
+  const left = out.filter((book) => !isOwned(book));
+
+  // at the last checked prices, for the ones that have one
+  const priced = left.filter((book) => book.knownPriceCents != null);
+  let pricedCents = 0;
+  for (const book of priced) pricedCents += book.knownPriceCents ?? 0;
+
   return {
     next,
     gaps,
     left,
-    ownedBooks: out.filter(whole).length,
+    ownedBooks: out.filter(isOwned).length,
     outBooks: out.length,
     // books past the last listed one: to come, or not in the catalog yet
-    later: books.length - out.length,
-    // at the last checked prices, for the ones that have one
-    pricedCents: priced.reduce((sum, b) => sum + (b.knownPriceCents ?? 0), 0),
+    later,
+    pricedCents,
     pricedCount: priced.length,
     caughtUp: out.length > 0 && left.length === 0,
   };
 }
 export type EditionPlan = ReturnType<typeof editionPlan>;
 
+type RecordedBook = Pick<OwnedBook, "edition" | "volumes">;
+
+// how many of their volumes sit in books that are this line's own: a recorded
+// "Deluxe" book holding 4–6 matches a deluxe line with a book holding 4–6. A
+// deluxe book never points to an omnibus line of the same size
+function volumesInLine(line: EditionLine, recorded: RecordedBook[]) {
+  const lineBooks = new Set(line.books.map((book) => book.volumes.join()));
+  let volumes = 0;
+  for (const book of recorded) {
+    const sameKind = book.edition === line.kind;
+    if (sameKind && lineBooks.has(book.volumes.join()))
+      volumes += book.volumes.length;
+  }
+  return volumes;
+}
+
 // the line they seem to collect, from the books they've recorded: the one
 // whose books match theirs, when those cover at least half of what they own
 export function guessEdition(
   lines: EditionLine[],
-  books: Pick<OwnedBook, "edition" | "volumes">[],
+  books: RecordedBook[],
   owned: number[],
 ): string | null {
   if (!lines.length || !owned.length) return null;
-  const mine = books.filter((b) => b.edition !== "single");
-  let best: { key: string; covered: number } | null = null;
+  const recorded = books.filter((book) => book.edition !== "single");
+
+  let bestKey: string | null = null;
+  let bestVolumes = 0;
   for (const line of lines) {
-    const sets = new Set(line.books.map((b) => b.volumes.join()));
-    const covered = mine
-      // a deluxe book points to a deluxe line, never an omnibus of the same size
-      .filter((b) => b.edition === line.kind && sets.has(b.volumes.join()))
-      .reduce((sum, b) => sum + b.volumes.length, 0);
-    if (covered > (best?.covered ?? 0)) best = { key: line.key, covered };
+    const volumes = volumesInLine(line, recorded);
+    if (volumes > bestVolumes) {
+      bestKey = line.key;
+      bestVolumes = volumes;
+    }
   }
-  return best && best.covered * 2 >= owned.length ? best.key : null;
+  const atLeastHalf = bestVolumes * 2 >= owned.length;
+  return atLeastHalf ? bestKey : null;
 }
 
 // ---------- asking for an edition by name ----------
@@ -130,12 +165,13 @@ const KIND_OF: Record<string, EditionLine["kind"]> = {
   master: "deluxe",
   fullmetal: "deluxe",
 };
-export const lineFor = (lines: EditionLine[], asked: string | null) =>
-  !asked
-    ? null
-    : (lines.find((l) => l.key === asked) ??
-      lines.find((l) => l.kind === (KIND_OF[asked] ?? "omnibus")) ??
-      null);
+export function lineFor(lines: EditionLine[], asked: string | null) {
+  if (!asked) return null;
+  const itsOwn = lines.find((line) => line.key === asked);
+  if (itsOwn) return itsOwn;
+  const kind = KIND_OF[asked] ?? "omnibus";
+  return lines.find((line) => line.kind === kind) ?? null;
+}
 
 // the line worth the spot: a deluxe one before an omnibus
 export const headlineLine = (lines: EditionLine[]) =>

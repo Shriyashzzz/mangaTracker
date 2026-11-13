@@ -169,130 +169,193 @@ const usualSize = (sizes: number[]) => {
   return [...counts].sort((a, b) => b[1] - a[1] || b[0] - a[0])[0]?.[0] ?? null;
 };
 
+// a catalog record read as a book of a line
 type Found = {
-  number: number | null;
+  // its number in the line
+  number: number;
+  // the volumes inside, when the title or the hand-kept table says
   volumes: number[] | null;
   isbn13: string;
   title: string;
   pages: number | null;
 };
+type LineKind = (typeof LINES)[number];
 
-// the lines a series has, from its catalog records. `total`: the last volume
-// out as a single, where known; no book holds a volume past it
-export function buildEditionLines(
+// a publisher's own book of this series, not a bundle or a reprint
+function isPublishersBook(doc: EditionDoc, name: string) {
+  const title = doc.title.trim();
+  if (!TRADE_ISBN.test(doc.isbn13)) return false;
+  if (!isOf(title, name)) return false;
+  if (NOT_ONE_BOOK.test(title)) return false;
+  const publishers = doc.publishers ?? [];
+  const allSelfPublished =
+    publishers.length > 0 &&
+    publishers.every((p) => SELF_PUBLISHED.test(p.trim()));
+  return !allSelfPublished;
+}
+
+// the volumes a title states: "Omnibus 1 (Vol. 1-3)", or a bare "#1-3" at
+// its end. Null when it says none, or more than one book could hold
+function statedVolumes(title: string): number[] | null {
+  const stated = omnibusVolumes(title);
+  if (stated?.length && stated.length <= MOST_IN_ONE_BOOK) return stated;
+  const bare = title.match(BARE_RANGE);
+  if (!bare) return null;
+  const from = Number(bare[1]);
+  const to = Number(bare[2]);
+  const isARun = to > from && to - from < MOST_IN_ONE_BOOK;
+  return isARun ? run(from, to) : null;
+}
+
+// the line a title belongs to: the one it names, or, naming none, the
+// 2-in-1 or 3-in-1 line when it holds two or three volumes
+function lineOfTitle(title: string, volumes: number[] | null) {
+  const named = LINES.find((line) => line.words.test(title));
+  if (named) return named;
+  if (volumes && volumes.length <= 3)
+    return LINES.find((line) => line.key === `${volumes.length}in1`);
+  return undefined;
+}
+
+// one catalog record as a book of a line, or null when it isn't one
+function readDoc(
+  doc: EditionDoc,
   name: string,
-  docs: EditionDoc[],
-  total: number | null,
-): EditionLine[] {
-  const byLine = new Map<string, Found[]>();
-  for (const doc of docs) {
-    const title = doc.title.trim();
-    if (!TRADE_ISBN.test(doc.isbn13) || !isOf(title, name)) continue;
-    if (NOT_ONE_BOOK.test(title)) continue;
-    if (
-      doc.publishers?.length &&
-      doc.publishers.every((p) => SELF_PUBLISHED.test(p.trim()))
-    )
-      continue;
-    const stated = omnibusVolumes(title);
-    const bare = title.match(BARE_RANGE);
-    const range =
-      stated?.length && stated.length <= MOST_IN_ONE_BOOK
-        ? stated
-        : bare &&
-            Number(bare[2]) > Number(bare[1]) &&
-            Number(bare[2]) - Number(bare[1]) < MOST_IN_ONE_BOOK
-          ? run(Number(bare[1]), Number(bare[2]))
-          : null;
-    const line =
-      LINES.find((l) => l.words.test(title)) ??
-      // no line named: a book holding two or three is that size's line
-      (range && range.length <= 3
-        ? LINES.find((l) => l.key === `${range.length}in1`)
-        : undefined);
-    if (!line) continue;
-    const number =
-      numberOf(title, Boolean(range)) ??
-      // a bare range says its place: 4-6 is the second book of threes
-      (range ? Math.ceil(range.at(-1)! / range.length) : null);
-    if (number == null) continue;
-    const table = range ? null : editionVolumes(name, title, number);
-    const list = byLine.get(line.key) ?? [];
-    list.push({
+): { line: LineKind; found: Found } | null {
+  if (!isPublishersBook(doc, name)) return null;
+  const title = doc.title.trim();
+  const stated = statedVolumes(title);
+  const line = lineOfTitle(title, stated);
+  if (!line) return null;
+
+  let number = numberOf(title, Boolean(stated));
+  // a bare range says its place: 4-6 is the second book of threes
+  if (number === null && stated)
+    number = Math.ceil(stated.at(-1)! / stated.length);
+  if (number === null) return null;
+
+  // the title's own word first, then the hand-kept table of uneven editions
+  const volumes = stated ?? editionVolumes(name, title, number);
+  const found = {
+    number,
+    volumes,
+    isbn13: doc.isbn13,
+    title,
+    pages: doc.pages ?? null,
+  };
+  return { line, found };
+}
+
+// one record for each number: the one that says its volumes, else the first
+// by ISBN
+function oneForEachNumber(found: Found[]) {
+  const byNumber = new Map<number, Found>();
+  const inIsbnOrder = [...found].sort((a, b) =>
+    a.isbn13.localeCompare(b.isbn13),
+  );
+  for (const record of inIsbnOrder) {
+    const had = byNumber.get(record.number);
+    const saysMore = had && !had.volumes && record.volumes;
+    if (!had || saysMore) byNumber.set(record.number, record);
+  }
+  return byNumber;
+}
+
+// how many volumes a book of this line usually holds, or null when nothing
+// says: what most of its books state, else the line's own size ("3-in-1"),
+// else three for an omnibus as long as three volumes
+function sizeOfLine(line: LineKind, records: Found[]) {
+  const statedSizes = records
+    .filter((record) => record.volumes)
+    .map((record) => record.volumes!.length);
+  const usual = usualSize(statedSizes);
+  if (usual) return usual;
+  if (line.perBook) return line.perBook;
+  const isLong = records.some(
+    (record) => (record.pages ?? 0) >= THREE_VOLUME_PAGES,
+  );
+  return line.kind === "omnibus" && isLong ? 3 : null;
+}
+
+// the volumes of a book that doesn't say its own, worked out from the books
+// either side of it, or from the line's size
+function workedOutVolumes(
+  number: number,
+  // the last volume of the book before it; null when that isn't known
+  endOfPrevious: number | null,
+  // the first volume of the book after it; null when that isn't known
+  startOfNext: number | null,
+  size: number | null,
+): number[] | null {
+  const gap =
+    endOfPrevious !== null && startOfNext !== null
+      ? startOfNext - endOfPrevious - 1
+      : 0;
+  // between its neighbours, when they say where they end and start
+  if (gap >= 1)
+    return gap <= MOST_IN_ONE_BOOK
+      ? run(endOfPrevious! + 1, startOfNext! - 1)
+      : null;
+  if (!size) return null;
+  // straight after the book before it
+  if (endOfPrevious !== null)
+    return run(endOfPrevious + 1, endOfPrevious + size);
+  // by its place in the line: book 2 of threes holds 4 to 6
+  return run((number - 1) * size + 1, number * size);
+}
+
+// a line's books in order, from the records found for it. A book the catalog
+// doesn't list is still worked out, so the line has no holes
+function booksOfLine(line: LineKind, found: Found[], total: number | null) {
+  const byNumber = oneForEachNumber(found);
+  const size = sizeOfLine(line, [...byNumber.values()]);
+  const lastFound = Math.max(...byNumber.keys());
+  // through the last book found, then on to the series' end when the line's
+  // size is known: an unlisted book is still the next one to look for
+  const lastOfSeries = size && total ? Math.ceil(total / size) : 0;
+  const lastNumber = Math.min(Math.max(lastFound, lastOfSeries), MOST_BOOKS);
+
+  const books: EditionBook[] = [];
+  for (let number = 1; number <= lastNumber; number++) {
+    const record = byNumber.get(number);
+    const previous = books.at(-1);
+    const endOfPrevious = previous?.volumes.at(-1) ?? (number === 1 ? 0 : null);
+    const startOfNext = byNumber.get(number + 1)?.volumes?.[0] ?? null;
+    const volumes =
+      record?.volumes ??
+      workedOutVolumes(number, endOfPrevious, startOfNext, size);
+    if (!volumes) continue;
+    // no book holds a volume past the series' last
+    const withinSeries = total ? volumes.filter((v) => v <= total) : volumes;
+    if (!withinSeries.length) continue;
+    books.push({
       number,
-      volumes: range ?? table,
-      isbn13: doc.isbn13,
-      title,
-      pages: doc.pages ?? null,
+      volumes: withinSeries,
+      isbn13: record?.isbn13 ?? null,
+      title: record?.title ?? null,
+      listed: Boolean(record),
     });
-    byLine.set(line.key, list);
   }
+  return books;
+}
 
-  const lines: EditionLine[] = [];
-  for (const [key, found] of byLine) {
-    const line = LINES.find((l) => l.key === key)!;
-    // one record a number: the one that says its volumes, else the first
-    const byNumber = new Map<number, Found>();
-    for (const f of found.sort((a, b) => a.isbn13.localeCompare(b.isbn13))) {
-      const had = byNumber.get(f.number!);
-      if (!had || (!had.volumes && f.volumes)) byNumber.set(f.number!, f);
-    }
-    const known = [...byNumber.values()].filter((f) => f.volumes);
-    const size =
-      usualSize(known.map((f) => f.volumes!.length)) ??
-      line.perBook ??
-      // an omnibus as long as three volumes holds three
-      (line.kind === "omnibus" &&
-      [...byNumber.values()].some((f) => (f.pages ?? 0) >= THREE_VOLUME_PAGES)
-        ? 3
-        : null);
-    const last = Math.max(...byNumber.keys());
-    // through the last book found, then on to the series' end when the line's
-    // size is known: an unlisted book is still the next one to look for
-    const upTo = size && total ? Math.max(last, Math.ceil(total / size)) : last;
-    const books: EditionBook[] = [];
-    for (let n = 1; n <= Math.min(upTo, MOST_BOOKS); n++) {
-      const f = byNumber.get(n);
-      let volumes = f?.volumes ?? null;
-      if (!volumes) {
-        // between its neighbours, when they say where they end and start
-        const before = books.at(-1)?.volumes.at(-1) ?? (n === 1 ? 0 : null);
-        const after = byNumber.get(n + 1)?.volumes?.[0] ?? null;
-        if (before != null && after != null && after - before - 1 >= 1)
-          volumes =
-            after - before - 1 <= MOST_IN_ONE_BOOK
-              ? run(before + 1, after - 1)
-              : null;
-        else if (size && before != null)
-          volumes = run(before + 1, before + size);
-        else if (size) volumes = run((n - 1) * size + 1, n * size);
-      }
-      if (!volumes) continue;
-      const kept = total ? volumes.filter((v) => v <= total) : volumes;
-      if (!kept.length) continue;
-      books.push({
-        number: n,
-        volumes: kept,
-        isbn13: f?.isbn13 ?? null,
-        title: f?.title ?? null,
-        listed: Boolean(f),
-      });
-    }
-    // worth offering only when the catalog really has some of it
-    if (books.filter((b) => b.listed).length >= 1 && books.length >= 2)
-      lines.push({ key, kind: line.kind, label: line.label, books });
-  }
+const listedCount = (line: EditionLine) =>
+  line.books.filter((book) => book.listed).length;
 
-  // "Omnibus Edition" and "3-in-1 Edition" are one line under two names:
-  // the same books, so the one with more ISBNs stays and takes the other's
-  const listedCount = (l: EditionLine) =>
-    l.books.filter((b) => b.listed).length;
+// "Omnibus Edition" and "3-in-1 Edition" are one line under two names: the
+// same books. The one with more ISBNs stays, and takes any book the other
+// has an ISBN for
+function mergeSameLines(lines: EditionLine[]) {
   const kept: EditionLine[] = [];
-  for (const line of lines.sort((a, b) => listedCount(b) - listedCount(a))) {
+  const mostListedFirst = [...lines].sort(
+    (a, b) => listedCount(b) - listedCount(a),
+  );
+  for (const line of mostListedFirst) {
+    const firstBook = line.books[0]!.volumes.join();
     const same = kept.find(
-      (k) =>
-        k.kind === line.kind &&
-        k.books[0]!.volumes.join() === line.books[0]!.volumes.join(),
+      (other) =>
+        other.kind === line.kind &&
+        other.books[0]!.volumes.join() === firstBook,
     );
     if (!same) {
       kept.push(line);
@@ -306,4 +369,32 @@ export function buildEditionLines(
     same.books.sort((a, b) => a.number - b.number);
   }
   return kept;
+}
+
+// the lines a series has, from its catalog records. `total`: the last volume
+// out as a single, where known; no book holds a volume past it
+export function buildEditionLines(
+  name: string,
+  docs: EditionDoc[],
+  total: number | null,
+): EditionLine[] {
+  // every record that's a book of a line, grouped by line
+  const foundByLine = new Map<LineKind, Found[]>();
+  for (const doc of docs) {
+    const read = readDoc(doc, name);
+    if (!read) continue;
+    const list = foundByLine.get(read.line) ?? [];
+    list.push(read.found);
+    foundByLine.set(read.line, list);
+  }
+
+  const lines: EditionLine[] = [];
+  for (const [line, found] of foundByLine) {
+    const books = booksOfLine(line, found, total);
+    // worth offering only when the catalog really has some of it
+    const hasAListedBook = books.some((book) => book.listed);
+    if (hasAListedBook && books.length >= 2)
+      lines.push({ key: line.key, kind: line.kind, label: line.label, books });
+  }
+  return mergeSameLines(lines);
 }
