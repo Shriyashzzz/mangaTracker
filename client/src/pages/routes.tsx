@@ -114,6 +114,14 @@ export const routes = [
         ),
       },
       {
+        // for the site's owner; anyone else gets the not-found page
+        path: "/after-the-anime/review",
+        lazy: page(
+          () => import("./AfterAnime/ReviewFixes"),
+          (m) => m.default,
+        ),
+      },
+      {
         path: "/after-the-anime/:slug",
         lazy: page(
           () => import("./AfterAnime/AfterAnimeShow"),

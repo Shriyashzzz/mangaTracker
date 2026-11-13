@@ -59,6 +59,17 @@ export const afterAnimeStyles = {
   watchedPick:
     "tap min-h-9 rounded-[2px] border-[1.5px] border-line-soft bg-paper px-[0.65rem] text-[0.85rem] font-medium text-ink-soft transition-[color,border-color,background-color] duration-120 ease-[ease] hover:border-line hover:text-ink focus-visible:outline-2 focus-visible:outline-offset-3 focus-visible:outline-accent focus-visible:outline-dashed aria-pressed:border-line aria-pressed:bg-ink aria-pressed:text-paper",
 
+  // ---------- the owner's review page ----------
+  reviewList: "flex flex-col gap-4",
+  reviewItem:
+    "flex flex-col gap-2 border-[1.5px] border-line bg-card p-4 shadow-ink",
+  reviewName: "text-[1.05rem] font-semibold",
+  reviewFacts:
+    "text-[0.95rem] text-ink-soft [&_b]:font-semibold [&_b]:text-ink",
+  reviewSource: "text-[0.9rem] wrap-anywhere underline underline-offset-3",
+  reviewActions: "mt-1 flex flex-wrap items-center gap-3",
+  reviewDecided: "text-[0.9rem] text-muted",
+
   // ---------- under the seasons ----------
   credit:
     "max-w-[70ch] text-[0.85rem] text-muted [&_a]:underline [&_a]:underline-offset-3",

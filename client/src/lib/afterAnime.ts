@@ -60,3 +60,37 @@ export const afterAnimePath = (name: string) =>
 // for a series we know: the clean address search engines know it by
 export const afterAnimeCanonicalPath = (name: string) =>
   `${AFTER_ANIME_PATH}/${slugify(name)}`;
+
+// ---------- the owner's review of readers' fixes ----------
+
+// a reader's correction, as it's kept (the server's anime_fixes row)
+export type ReaderFix = {
+  id: number;
+  slug: string;
+  name: string;
+  label: string;
+  chapter: number | null;
+  volume: number | null;
+  source: string;
+  note: string | null;
+  status: "pending" | "accepted" | "rejected";
+  createdAt: string;
+  decidedAt: string | null;
+};
+
+// what's waiting and what was decided lately. Fails with a 404 for anyone
+// who isn't the site's owner
+export const getFixesToReview = (signal?: AbortSignal) =>
+  getJson<{ waiting: ReaderFix[]; decided: ReaderFix[] }>(
+    "/api/after-anime/fixes",
+    signal,
+  );
+
+// accepts or rejects one; false when it didn't go through
+export async function decideFix(id: number, accept: boolean) {
+  const res = await apiFetch(`/api/after-anime/fixes/${id}`, {
+    method: "POST",
+    body: { accept },
+  });
+  return res.ok;
+}

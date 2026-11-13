@@ -14,7 +14,7 @@ test("with no fixes, every season is as MangaUpdates says", () => {
 
 test("a fix replaces the season it names, whatever its capitals", () => {
   const shown = withFixes(stops, [
-    { label: "season 2", chapter: 139, volume: 16, note: null },
+    { label: "season 2", chapter: 139, volume: 16 },
   ]);
   expect(shown).toHaveLength(2);
   expect(shown[0]!.corrected).toBe(false);
@@ -31,21 +31,20 @@ test("a fix replaces the season it names, whatever its capitals", () => {
 
 test("a fix that only names the volume keeps the chapter", () => {
   const [, second] = withFixes(stops, [
-    { label: "Season 2", chapter: null, volume: 17, note: "Per the publisher" },
+    { label: "Season 2", chapter: null, volume: 17 },
   ]);
   expect(second).toMatchObject({
     endChapter: 137,
     endVolume: 16,
     nextChapter: 138,
     nextVolume: 17,
-    note: "Per the publisher",
   });
 });
 
 test("a fix for a season the line doesn't have adds it", () => {
   const shown = withFixes(
     [],
-    [{ label: "Season 1", chapter: 24.5, volume: 4, note: null }],
+    [{ label: "Season 1", chapter: 24.5, volume: 4 }],
   );
   expect(shown).toEqual([
     {
@@ -63,8 +62,8 @@ test("a fix for a season the line doesn't have adds it", () => {
 
 test("the newest fix for a season wins", () => {
   const [first] = withFixes(stops, [
-    { label: "Season 1", chapter: 60, volume: null, note: null },
-    { label: "Season 1", chapter: 62, volume: 8, note: null },
+    { label: "Season 1", chapter: 60, volume: null },
+    { label: "Season 1", chapter: 62, volume: 8 },
   ]);
   expect(first).toMatchObject({ endChapter: 62, nextVolume: 8 });
 });

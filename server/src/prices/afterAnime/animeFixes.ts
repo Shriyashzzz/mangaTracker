@@ -11,7 +11,6 @@ export type AcceptedFix = {
   chapter: number | null;
   // the volume to start from
   volume: number | null;
-  note: string | null;
 };
 
 // a season as the page shows it: `corrected` when a reader's fix is in it
@@ -36,7 +35,9 @@ function corrected(stop: AnimeStop | null, fix: AcceptedFix): ShownStop {
       ? Math.floor(fix.chapter!) + 1
       : (stop?.nextChapter ?? null),
     nextVolume: fix.volume ?? nextVolumeBefore,
-    note: fix.note?.trim() || stop?.note || "",
+    // what MangaUpdates remarks on stays; a reader's own note is for whoever
+    // reviews the fix, and isn't published
+    note: stop?.note ?? "",
     corrected: true,
   };
 }

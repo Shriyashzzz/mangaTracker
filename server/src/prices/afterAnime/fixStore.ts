@@ -32,7 +32,7 @@ export async function acceptedFixes(slug: string): Promise<AcceptedFix[]> {
   return prisma.animeFix.findMany({
     where: { slug, status: "accepted" },
     orderBy: { decidedAt: "asc" },
-    select: { label: true, chapter: true, volume: true, note: true },
+    select: { label: true, chapter: true, volume: true },
   });
 }
 
