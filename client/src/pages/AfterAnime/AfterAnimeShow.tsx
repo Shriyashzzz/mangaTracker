@@ -21,7 +21,7 @@ import {
   getAfterAnime,
   getBuyOffers,
   type AfterAnime,
-  type BuyOffer,
+  type VolumeOffers,
 } from "../../lib/afterAnime";
 import { HttpError } from "../../lib/api";
 import { formatCents, seriesCanonicalPath, timeAgo } from "../../lib/prices";
@@ -92,7 +92,7 @@ function useBuyOffers(show: AfterAnime | null, volumes: SeriesVolume[] | null) {
   const wanted = [...new Set(isbns)].sort().join(",");
   const [found, setFound] = useState<{
     wanted: string;
-    offers: Record<string, BuyOffer>;
+    offers: Record<string, VolumeOffers>;
   }>({ wanted: "", offers: {} });
   useEffect(() => {
     if (!wanted) return;
@@ -136,8 +136,9 @@ export default function AfterAnimeShow() {
     : [];
   const hasAnswer = !show || show.stops.length > 0;
   const anAffiliateLink =
-    Object.values(offers).some((offer) => offer.affiliate) ||
-    Boolean(boxSet?.affiliate);
+    Object.values(offers).some(
+      (offer) => offer.new?.affiliate || offer.used?.affiliate,
+    ) || Boolean(boxSet?.affiliate);
   return (
     <div className={`${styles.page} fade-in`}>
       <nav className={priceStyles.crumbs} aria-label="Breadcrumb">

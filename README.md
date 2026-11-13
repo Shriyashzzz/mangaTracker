@@ -242,6 +242,7 @@ Price checking works without any store keys: series, volumes and covers come fro
 | `KEEPA_API_KEY` | no | Amazon prices |
 | `CJ_API_TOKEN`, `CJ_COMPANY_ID`, `CJ_BAM_ID`, `CJ_WEBSITE_ID`, `CJ_DAILY_LIMIT` | no | Books-A-Million prices and affiliate links, through CJ |
 | `AMAZON_ASSOCIATE_TAG`, `BOOKSHOP_AFFILIATE_ID`, `EBAY_CAMPAIGN_ID`, `WALMART_AFFILIATE` | no | Affiliate links |
+| `IMPACT_ACCOUNT_SID`, `IMPACT_AUTH_TOKEN` | no | impact.com's partner API (a token with the Catalogs scope): Better World Books' used prices by ISBN. Free |
 | `BETTER_WORLD_BOOKS_LINK` | no | Your impact.com tracking link for Better World Books, in full (`https://betterworldbooks.pxf.io/c/<account>/<ad>/<campaign>`). Store links to it then earn |
 | `ADMIN_USERNAME` | no | The one account that may review readers' fixes at `/after-the-anime/review` |
 

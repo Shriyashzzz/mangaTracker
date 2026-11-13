@@ -99,6 +99,10 @@ const schema = z.object({
   // our impact.com tracking link for Better World Books, in full:
   // https://betterworldbooks.pxf.io/c/<account>/<ad>/<campaign>
   BETTER_WORLD_BOOKS_LINK: optional,
+  // impact.com's partner API, for Better World Books' prices: the account's
+  // SID and an access token with the Catalogs scope
+  IMPACT_ACCOUNT_SID: optional,
+  IMPACT_AUTH_TOKEN: optional,
 });
 
 const parsed = schema.safeParse(process.env);

@@ -15,6 +15,8 @@ afterEach(() => {
   delete process.env.BOOKSHOP_AFFILIATE_ID;
   delete process.env.CJ_WEBSITE_ID;
   delete process.env.BETTER_WORLD_BOOKS_LINK;
+  delete process.env.IMPACT_ACCOUNT_SID;
+  delete process.env.IMPACT_AUTH_TOKEN;
 });
 
 test("Better World Books goes through our Impact link, to the book's own page", async () => {
@@ -31,6 +33,10 @@ test("Better World Books goes through our Impact link, to the book's own page", 
     affiliate: true,
   });
   expect(isAffiliateUrl(link.url)).toBe(true);
+  // the feed's links carry our account with another ad's number: still ours
+  expect(
+    isAffiliateUrl("https://betterworldbooks.pxf.io/c/111/777/333?prodsku=1"),
+  ).toBe(true);
   // someone else's Impact link isn't ours
   expect(
     isAffiliateUrl("https://betterworldbooks.pxf.io/c/999/222/333?u=x"),
@@ -47,6 +53,24 @@ test("Better World Books goes through our Impact link, to the book's own page", 
   expect(
     affiliateOfferUrl({ ...offer, format: "ebook", condition: "new" }, isbn),
   ).toBe(google);
+});
+
+test("a link from Impact's own feed is ours when its keys are set", async () => {
+  const feedLink =
+    "https://betterworldbooks.pxf.io/c/1/2/3?prodsku=9781974709939&u=x";
+  const withKeys = await load({
+    IMPACT_ACCOUNT_SID: "IRtest",
+    IMPACT_AUTH_TOKEN: "token",
+  });
+  expect(withKeys.isAffiliateUrl(feedLink)).toBe(true);
+  // a lookalike host isn't
+  expect(
+    withKeys.isAffiliateUrl("https://notbetterworldbooks.pxf.io.evil.com/c/1"),
+  ).toBe(false);
+  delete process.env.IMPACT_ACCOUNT_SID;
+  delete process.env.IMPACT_AUTH_TOKEN;
+  const without = await load({});
+  expect(without.isAffiliateUrl(feedLink)).toBe(false);
 });
 
 test("without the setting, Better World Books is a plain link", async () => {

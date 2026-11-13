@@ -62,6 +62,9 @@ export const afterAnimeStyles = {
     "text-[0.98rem] text-ink [&_strong]:font-mono [&_strong]:font-semibold",
   buyChecked: "block text-[0.82rem] text-muted",
   buyActions: "mt-1.5 flex flex-wrap items-center gap-x-4 gap-y-2",
+  // "Or used from $5.96 at Better World Books", under the buttons
+  buyUsed:
+    "mt-1 text-[0.88rem] text-ink-soft [&_a]:font-medium [&_a]:text-ink [&_a]:underline [&_a]:decoration-accent [&_a]:decoration-2 [&_a]:underline-offset-3",
   buySkeleton: "h-28",
   link: "tap w-fit text-[0.92rem] font-medium underline decoration-accent decoration-2 underline-offset-3",
 

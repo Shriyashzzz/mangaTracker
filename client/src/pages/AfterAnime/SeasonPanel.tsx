@@ -2,7 +2,7 @@
 // volume to buy to carry on (BuyRow). The words are lib/afterAnimeText.ts;
 // the volume's book comes from the series' own list.
 import { NavLink } from "react-router";
-import type { BuyOffer } from "../../lib/afterAnime";
+import type { VolumeOffers } from "../../lib/afterAnime";
 import {
   afterLabel,
   buyVolume,
@@ -38,7 +38,7 @@ export default function SeasonPanel({
   stop: AnimeStop;
   seriesName: string;
   volumes: SeriesVolume[] | null;
-  offers: Record<string, BuyOffer>;
+  offers: Record<string, VolumeOffers>;
   saidAbove: boolean;
 }) {
   const toBuy = buyVolume(stop);
@@ -90,7 +90,8 @@ export default function SeasonPanel({
               volume={toBuy!}
               why={keepNumbers(whyThisVolume(stop))}
               book={book}
-              offer={offers[book.isbn13.trim()]}
+              offer={offers[book.isbn13.trim()]?.new ?? null}
+              used={offers[book.isbn13.trim()]?.used ?? null}
             />
           </ul>
         )}

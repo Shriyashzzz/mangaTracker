@@ -30,6 +30,9 @@ export const bamAffiliateUrl = (url: string) => {
 // people on to the page named in `u`. Without the setting, the page as is
 export const betterWorldBooksLink = () =>
   config.BETTER_WORLD_BOOKS_LINK?.replace(/[/?]+$/, "") ?? null;
+// impact.com's partner API is set up: links it hands us carry our tracking
+export const impactKeysSet = () =>
+  Boolean(config.IMPACT_ACCOUNT_SID && config.IMPACT_AUTH_TOKEN);
 export const bwbAffiliateUrl = (url: string) => {
   const link = betterWorldBooksLink();
   return link ? `${link}?u=${encodeURIComponent(url)}` : url;

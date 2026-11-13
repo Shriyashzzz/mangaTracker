@@ -65,10 +65,12 @@ export const groupOf = (provider: Pick<Provider, "id">) =>
 const DAY_MS = 24 * 60 * 60 * 1000;
 // by provider, not group: eBay's own API is free, so it looks every few days;
 // eBay through SerpApi is a paid search, so it keeps to the 20 days.
-// Books-A-Million through CJ is free too: as often as eBay's
+// Books-A-Million through CJ and Better World Books through Impact are free
+// too: as often as eBay's
 const FRESH_FOR_PROVIDER_MS: Record<string, number> = {
   ebay: 3 * DAY_MS,
   "books-a-million": 3 * DAY_MS,
+  "better-world-books": 3 * DAY_MS,
 };
 export const freshForMs = (provider: Pick<Provider, "id">) =>
   FRESH_FOR_PROVIDER_MS[provider.id] ?? FRESH_FOR_MS;

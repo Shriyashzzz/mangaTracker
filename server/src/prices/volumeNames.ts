@@ -35,9 +35,11 @@ export const titleVolume = (title: string) =>
 // a seller on a big store ("eBay - pele-onfyah") goes by the store's name
 export const shopName = (store: string) =>
   storeName(store.split(/\s[-–—|]\s/)[0]!.trim());
-// a store a reader knows by name: the big ones, eBay and the ebook stores
+// a store a reader knows by name: the big ones, eBay, Better World Books (a
+// used-book shop, so not one of the retailers new prices are judged by) and
+// the ebook stores
 export const isWellKnown = (store: string) =>
   isRetailer(shopName(store)) ||
-  /^(ebay|google play( books)?|kobo(\.com)?|bookwalker|kindle)$/i.test(
+  /^(ebay|better world books|google play( books)?|kobo(\.com)?|bookwalker|kindle)$/i.test(
     shopName(store),
   );
