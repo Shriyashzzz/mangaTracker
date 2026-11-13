@@ -6,6 +6,7 @@ import {
   finishText,
   seriesCost,
   stillToGet,
+  usedCopies,
 } from "../../../../client/src/lib/finishCost.js";
 
 const money = (cents: number) => `$${(cents / 100).toFixed(2)}`;
@@ -120,4 +121,27 @@ test("a total is said only with most of the series priced, and an old price stil
     priced: 2,
     enough: true,
   });
+});
+
+test("used copies: only the ones on sale are added up, never a guess for the rest", () => {
+  const volumes = [
+    { isbn13: "1", usedCents: 596 },
+    { isbn13: "2", usedCents: null },
+    { isbn13: "3", usedCents: 724 },
+    { isbn13: "4" },
+  ];
+  expect(usedCopies(volumes)).toEqual({ volumes: 2, cents: 1320 });
+  // none on sale used: nothing to say
+  expect(usedCopies([{ isbn13: "1", usedCents: null }])).toBeNull();
+  expect(usedCopies([])).toBeNull();
+});
+
+test("used copies: a book holding two volumes is bought once", () => {
+  // vols. 9 and 10 are one book: both count as found, the price once
+  const volumes = [
+    { isbn13: "book-5", usedCents: 900 },
+    { isbn13: "book-5", usedCents: 900 },
+    { isbn13: "single", usedCents: 500 },
+  ];
+  expect(usedCopies(volumes)).toEqual({ volumes: 3, cents: 1400 });
 });

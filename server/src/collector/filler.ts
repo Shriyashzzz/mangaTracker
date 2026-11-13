@@ -123,7 +123,9 @@ export async function fillQueue(now = new Date()): Promise<string[]> {
 const POPULAR_SERIES = 150;
 const POPULAR_BATCH = 500;
 
-export async function popularQueue(now = new Date()): Promise<string[]> {
+// the most popular series' volumes, a series' in order: whole volumes out
+// now, never a library rebind. Shared with newPriceFiller.ts
+export async function popularVolumes(now = new Date()): Promise<string[]> {
   const [series, bySeries] = await Promise.all([
     listKnownSeries(),
     knownVolumesBySeries(),
@@ -148,7 +150,12 @@ export async function popularQueue(now = new Date()): Promise<string[]> {
       .sort((a, b) => a.n! - b.n!);
     isbns.push(...volumes.map((v) => v.isbn13.trim()));
   }
-  const all = [...new Set(isbns)];
+  return [...new Set(isbns)];
+}
+
+// the ones of those eBay has never looked at
+export async function popularQueue(now = new Date()): Promise<string[]> {
+  const all = await popularVolumes(now);
   if (!all.length) return [];
   const looked = await prisma.priceSourceCheck.findMany({
     where: { isbn13: { in: all }, source: "ebay" },

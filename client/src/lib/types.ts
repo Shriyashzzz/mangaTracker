@@ -238,6 +238,8 @@ export type SeriesVolume = {
   // what it has usually sold for new, from every price recorded: for
   // estimates, when no store has it right now (lib/finishCost.ts)
   recordedCents?: number | null;
+  // its cheapest used copy in stock now, when one is known
+  usedCents?: number | null;
   // sold inside a book with others: its ISBN is that book's
   inBook?: InBook;
   // the publisher's release date ("2027-03-30" or "2014-05"), when known

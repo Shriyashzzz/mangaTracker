@@ -18,6 +18,7 @@ import {
   finishText,
   seriesCost,
   stillToGet,
+  usedCopies,
 } from "../../lib/finishCost";
 import { useFromShelf } from "../../lib/fromShelf";
 import { nextToGet, ownedOf, rangesText } from "../../lib/ownedVolumes";
@@ -149,6 +150,14 @@ export default function PriceSeries() {
           (v) => v.volume >= 0 && Number.isInteger(v.volume),
         ),
       );
+  // and the used copies found for those same volumes, added up
+  const used = cost
+    ? usedCopies(
+        onSale(volumes).filter(
+          (v) => v.volume >= 0 && Number.isInteger(v.volume),
+        ),
+      )
+    : null;
   // "Not on your shelf" pages through just those, 30 at a time, in place of
   // the volume ranges, so the controls keep their shape
   const toGetShown = Boolean(mine) && toGetOnly;
@@ -238,6 +247,7 @@ export default function PriceSeries() {
       {cost && (
         <SeriesCostBox
           cost={cost}
+          used={used}
           isSignedIn={isSignedIn}
           comingSoon={onSale(volumes).length < volumes.length}
         />

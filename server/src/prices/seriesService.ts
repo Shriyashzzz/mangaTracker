@@ -641,8 +641,13 @@ export async function getSeriesWithVolumes(name: string) {
   if (!incomplete) saveFinalList(name, volumes);
 
   const isbns = volumes.map((v) => v.isbn13);
-  const [known, recorded, pricedSets, scanned] = await Promise.all([
+  const [known, cheapest, recorded, pricedSets, scanned] = await Promise.all([
     priceQueries.getKnownPrices(isbns),
+    // each volume's cheapest used copy in stock now, for what collecting it
+    // second-hand costs (Better World Books' and eBay's, mostly)
+    priceQueries
+      .getCheapestCopies(isbns)
+      .catch(() => new Map<string, { used: { cents: number } | null }>()),
     // what each has usually sold for new: for estimates, when no store has
     // it today (never goes stale: every price ever recorded counts)
     priceQueries
@@ -673,6 +678,7 @@ export async function getSeriesWithVolumes(name: string) {
       coverUrl: v.coverUrl,
       knownPriceCents: known.get(v.isbn13)?.priceCents ?? null,
       recordedCents: recorded.get(v.isbn13)?.new ?? null,
+      usedCents: cheapest.get(v.isbn13)?.used?.cents ?? null,
       ...(v.inBook ? { inBook: v.inBook } : {}),
       ...(v.published ? { published: v.published } : {}),
     })),
