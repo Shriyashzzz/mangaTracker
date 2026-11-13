@@ -5,6 +5,7 @@
 //   volumePageRules.ts    what shows, which stores get a link (pure)
 //   VolumePageStates.tsx  loading and not-found
 //   OfferList, ShelfAction, BoxSetNote, canada/ (the Canadian prices)
+import { isCollection } from "../../lib/types";
 import CanadaPrices from "./canada/CanadaPrices";
 import CountrySwitch from "./canada/CountrySwitch";
 import { useCountry } from "../../lib/prefs";
@@ -148,6 +149,16 @@ export default function PriceVolume() {
   const best = offers.find(
     (o) => o.condition === "new" && o.format === "print",
   );
+  // a used or resold copy that's cheaper than any new one: said beside the
+  // headline, so it agrees with the list's "Lowest overall" (offers come
+  // cheapest first)
+  const cheapestSecondHand = offers.find(
+    (o) => o.format === "print" && o.condition !== "new" && !isCollection(o),
+  );
+  const secondHandIsCheaper =
+    best && cheapestSecondHand
+      ? cheapestSecondHand.priceCents < best.priceCents
+      : false;
   // a seller nobody has heard of: the cheapest at a store people know too
   const knownBest = knownStoreLow(offers);
   // the series' usual new price, when the headline is well above it
@@ -160,7 +171,7 @@ export default function PriceVolume() {
   let otherStoresTitle = "Check price at:";
   if (preorder) otherStoresTitle = "Or preorder at:";
   else if (offers.length > 0)
-    otherStoresTitle = "Also worth checking, they could be cheaper:";
+    otherStoresTitle = "No price from these stores yet. Search them yourself:";
   // an old check, said beside the price it's about
   const stale =
     checkedAt && olderThanDays(checkedAt, 3) ? timeAgo(checkedAt) : null;
@@ -245,6 +256,16 @@ export default function PriceVolume() {
                   , or <strong>{formatCents(knownBest.priceCents)}</strong> at{" "}
                   {knownBest.store}
                 </>
+              )}
+              {secondHandIsCheaper && cheapestSecondHand && (
+                <span className={styles.bestAside}>
+                  {" "}
+                  ·{" "}
+                  {cheapestSecondHand.condition === "used"
+                    ? "used"
+                    : "resold"}{" "}
+                  from {formatCents(cheapestSecondHand.priceCents)}
+                </span>
               )}
               {aboveUsual != null && (
                 <span className={styles.bestAside}>

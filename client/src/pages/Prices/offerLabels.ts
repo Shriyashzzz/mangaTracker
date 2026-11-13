@@ -6,7 +6,7 @@ import { pricesStyles as styles } from "./styles";
 export const TYPE_LABEL = {
   newPrint: { label: "New print", className: styles.labelNew },
   used: { label: "Used", className: styles.labelMarket },
-  marketplace: { label: "Marketplace", className: styles.labelMarket },
+  marketplace: { label: "Resold", className: styles.labelMarket },
   ebook: { label: "Ebook", className: styles.labelEbook },
 };
 

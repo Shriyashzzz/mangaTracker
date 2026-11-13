@@ -250,11 +250,20 @@ export default function PriceSeries() {
           </h2>
           {volumes.length > 0 && (
             <span className={styles.checked}>
-              {volumes.length} in English
-              {priced < volumes.length && " · Prices load when you open one"}
+              {volumes.length} {volumes.length === 1 ? "volume" : "volumes"} in
+              English
+              {priced < volumes.length && " · Tap one to see its price"}
             </span>
           )}
         </div>
+        {/* said before the covers, so a gap in the numbers isn't a puzzle */}
+        {unlisted.length > 0 && (
+          <p className={styles.sectionNote} role="status">
+            {unlisted.length === 1 ? "Vol." : "Vols."} {rangesText(unlisted)}{" "}
+            {unlisted.length === 1 ? "is" : "are"} missing from our list. The
+            cost above leaves {unlisted.length === 1 ? "it" : "them"} out.
+          </p>
+        )}
         {/* what's left of their series, and what it costs at stored prices */}
         {(finish || (mine && toGet.length < volumes.length)) && (
           <div className={styles.toGetRow}>
@@ -337,15 +346,6 @@ export default function PriceSeries() {
           <p className={styles.note}>
             This manga has no English physical volumes released yet. If one is
             out, try searching it by name or ISBN.
-          </p>
-        )}
-        {unlisted.length > 0 && (
-          <p className={styles.checked} role="status">
-            Not listed yet: {unlisted.length === 1 ? "vol." : "vols."}{" "}
-            {rangesText(unlisted)}. No book catalog we use has{" "}
-            {unlisted.length === 1 ? "it" : "them"} yet, so{" "}
-            {unlisted.length === 1 ? "it isn't" : "they aren't"} in the cost
-            above.
           </p>
         )}
         {incomplete && volumes.length > 0 && (

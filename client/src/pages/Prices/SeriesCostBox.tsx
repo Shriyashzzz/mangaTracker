@@ -47,6 +47,12 @@ export default function SeriesCostBox({
             {formatCents(Math.round(cost.cents / cost.volumes))} a volume.
           </p>
         )}
+        {/* an estimate, on a page where most covers have no price yet */}
+        {!all && (
+          <p className={styles.costNote}>
+            An estimate, from the volumes we have prices for.
+          </p>
+        )}
       </div>
       {isSignedIn === false && (
         <NavLink to="/signup" className="btn btn-primary" viewTransition>
