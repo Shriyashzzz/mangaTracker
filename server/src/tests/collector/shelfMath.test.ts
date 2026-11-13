@@ -60,6 +60,33 @@ test("the shelf's value adds the owned volumes' used prices, and estimates the r
   });
 });
 
+test("an owned volume its series' list has no book for is still in the estimate", () => {
+  // they own 1 to 4 and a 4.5 special; the list only has 1 to 3
+  const v = [1, 2, 3].map((n) => vol(n));
+  const copies = usedPrices([
+    [v[0]!, 500],
+    [v[1]!, 700],
+  ]);
+  const value = shelfValue(
+    [
+      {
+        owned: { volumesOwned: 4.5, ownedList: [1, 2, 3, 4, 4.5] },
+        volumes: v,
+      },
+    ],
+    copies,
+  );
+  expect(value).toEqual({
+    cents: 1200,
+    priced: 2,
+    // three with a book, two the list doesn't have
+    volumes: 3,
+    unlisted: 2,
+    // the unpriced book and the two without one, each at the usual 600
+    estimateCents: 1200 + 600 + 2 * 600,
+  });
+});
+
 test("a series with no used price is estimated at the shelf's usual; none priced, no estimate", () => {
   const a = [vol(1)];
   const b = [
