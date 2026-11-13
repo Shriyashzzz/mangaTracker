@@ -24,9 +24,12 @@ export type AnimeStop = {
   coversAll: boolean;
 };
 
-// "After Season 2", "After the anime"
+// a panel's title: "After Season 2 of the anime", "After the anime", or
+// "After Reze Movie" for anything that isn't a numbered season
 export function afterLabel(stop: AnimeStop) {
   if (stop.label === "The anime") return "After the anime";
+  if (stop.label.startsWith("Season "))
+    return `After ${stop.label} of the anime`;
   return `After ${stop.label}`;
 }
 

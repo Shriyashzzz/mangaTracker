@@ -194,7 +194,13 @@ export default function AfterAnimeShow() {
 
       {show && show.stops.length > 0 && (
         <>
-          {show.stops.length > 1 && <SeasonTable stops={newestFirst} />}
+          {show.stops.length > 1 && (
+            <SeasonTable
+              stops={newestFirst}
+              seriesName={show.name}
+              volumes={volumes}
+            />
+          )}
           <div className={styles.seasons}>
             {newestFirst.map((stop) => (
               <SeasonPanel

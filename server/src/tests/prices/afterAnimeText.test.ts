@@ -29,7 +29,10 @@ const [first, second, third] = shown(
 ) as [AnimeStop, AnimeStop, AnimeStop];
 
 test("a season with a known next volume names that one volume", () => {
-  expect(afterLabel(first)).toBe("After Season 1");
+  expect(afterLabel(first)).toBe("After Season 1 of the anime");
+  expect(afterLabel({ ...first, label: "Reze Movie" })).toBe(
+    "After Reze Movie",
+  );
   expect(startText(first)).toBe("Start at chapter 64");
   expect(endText(first)).toBe("Season 1 ends at chapter 63, in volume 8.");
   expect(volumesToGet(first)).toEqual([
