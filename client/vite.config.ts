@@ -21,6 +21,9 @@ const robots = (apiUrl?: string): Plugin => ({
       "Disallow: /settings",
       "Disallow: /profile",
       "Disallow: /calendar",
+      // the site owner's two review pages
+      "Disallow: /reviews/",
+      "Disallow: /after-the-anime/review",
       // never /api/: search engines fetch the price data from it to draw
       // the pages they index
       "",

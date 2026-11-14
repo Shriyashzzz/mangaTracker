@@ -3,6 +3,7 @@
 // (service.ts lists the parts).
 import { titleVolume } from "./volumeNames.js";
 import { hasAnimeAnswer } from "./afterAnime/afterAnime.js";
+import { seriesReviews } from "../reviews/reviews.js";
 import { savedBoxSets } from "./boxSetScan.js";
 import priceQueries from "../models/priceQueries.js";
 import { searchVolumesDetailed } from "./sources/catalog.js";
@@ -642,7 +643,7 @@ export async function getSeriesWithVolumes(name: string) {
   if (!incomplete) saveFinalList(name, volumes);
 
   const isbns = volumes.map((v) => v.isbn13);
-  const [known, cheapest, recorded, pricedSets, scanned, animeAnswer] =
+  const [known, cheapest, recorded, pricedSets, scanned, animeAnswer, reviews] =
     await Promise.all([
       priceQueries.getKnownPrices(isbns),
       // each volume's cheapest used copy in stock now, for what collecting it
@@ -661,7 +662,13 @@ export async function getSeriesWithVolumes(name: string) {
       savedBoxSets(name).catch(() => null),
       // whether "after the anime" has a page for it (afterAnime.ts)
       info ? hasAnimeAnswer(info.name).catch(() => false) : false,
+      // readers' ratings of its volumes, sent with the page so the line by
+      // the title and the scores on the covers never arrive late
+      seriesReviews(slugify(info?.name ?? name)).catch(() => null),
     ]);
+  const ratingOf = new Map(
+    (reviews?.volumes ?? []).map((rated) => [rated.isbn13, rated.average]),
+  );
   // a scanned set has no book of its own: it borrows the first volume's ISBN
   const scannedSets = (scanned?.sets ?? []).map((set) => ({
     ...set,
@@ -676,6 +683,10 @@ export async function getSeriesWithVolumes(name: string) {
     boxSets: boxSetRows([...pricedSets, ...scannedSets]),
     boxSetLinks: boxSetLinks(info?.name ?? name),
     hasAnimeAnswer: animeAnswer,
+    // every rating of the series' volumes, added up; null with none
+    reviews: reviews?.count
+      ? { count: reviews.count, average: reviews.average }
+      : null,
     volumes: volumes.map((v) => ({
       isbn13: v.isbn13,
       title: v.title,
@@ -684,6 +695,8 @@ export async function getSeriesWithVolumes(name: string) {
       knownPriceCents: known.get(v.isbn13)?.priceCents ?? null,
       recordedCents: recorded.get(v.isbn13)?.new ?? null,
       usedCents: cheapest.get(v.isbn13)?.used?.cents ?? null,
+      // readers' average for this volume, when any have rated it
+      rating: ratingOf.get(v.isbn13.trim()) ?? null,
       ...(v.inBook ? { inBook: v.inBook } : {}),
       ...(v.published ? { published: v.published } : {}),
     })),

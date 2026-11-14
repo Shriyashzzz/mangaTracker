@@ -1,3 +1,5 @@
+import { StarIcon } from "../../components/icons/Icons";
+import { scoreText } from "./reviews/reviewText";
 import { NavLink } from "react-router";
 import {
   coverSrc,
@@ -78,6 +80,7 @@ export default function VolumeCard({
   wasCents,
   mark,
   holds,
+  rating,
 }: {
   isbn13: string;
   title: string;
@@ -95,6 +98,9 @@ export default function VolumeCard({
   // a book holding several volumes (Vinland Saga, Book 5 is vols 9 and 10):
   // drawn as a fanned stack of that many cards, tagged with its volumes
   holds?: { from: number; to: number };
+  // readers' average rating of it, on a series page: a small score on the
+  // cover's corner, which is how reviews get found from the grid
+  rating?: number | null;
 }) {
   const fromShelf = useFromShelf();
   const shown = novelParts(title);
@@ -142,6 +148,15 @@ export default function VolumeCard({
               className={mark === "next" ? styles.markNext : styles.markYours}
             >
               {mark === "next" ? "Next" : "Yours"}
+            </span>
+          )}
+          {rating != null && (
+            <span
+              className={styles.coverRating}
+              aria-label={`Readers rate it ${scoreText(rating)} out of 5`}
+            >
+              <StarIcon filled aria-hidden />
+              {scoreText(rating)}
             </span>
           )}
           {holds ? (

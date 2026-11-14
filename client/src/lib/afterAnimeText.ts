@@ -40,15 +40,28 @@ export const keepNumbers = (text: string) =>
 
 // a panel's title: "After Season 2", "After the anime", "After the original
 // series", or "After Reze Movie"
-export function afterLabel(stop: AnimeStop) {
-  if (stop.label === "The anime") return "After the anime";
-  if (stop.label === "Original series") return "After the original series";
-  return `After ${stop.label}`;
+// A label that's a plain word, not a name: "Movie", "OVA", "Original
+// series". In a sentence it needs "the" ("The movie is the latest", never
+// "Movie is the latest"); a name ("Season 2", "Reze Movie") doesn't.
+// Lower case, but for initials: "the movie", "the OVA"
+function plainWord(label: string) {
+  if (!/^(movie|film|ova|ona|specials?|original series)$/i.test(label))
+    return null;
+  return /^(ova|ona)$/i.test(label) ? label.toUpperCase() : label.toLowerCase();
 }
 
-// the season as the subject of a sentence: "Season 2", "The anime"
-const seasonSubject = (stop: AnimeStop) =>
-  stop.label === "Original series" ? "The original series" : stop.label;
+export function afterLabel(stop: AnimeStop) {
+  if (stop.label === "The anime") return "After the anime";
+  const word = plainWord(stop.label);
+  return word ? `After the ${word}` : `After ${stop.label}`;
+}
+
+// the season as the subject of a sentence: "Season 2", "The anime", "The
+// movie"
+function seasonSubject(stop: AnimeStop) {
+  const word = plainWord(stop.label);
+  return word ? `The ${word}` : stop.label;
+}
 
 // the answer itself, said big
 export function startText(stop: AnimeStop) {
@@ -235,7 +248,14 @@ type ShowMeta = {
   image?: string | null;
   noindex?: boolean;
   jsonLd?: Record<string, unknown>;
+  // the title as it is, without " | Manga Tracker" after it
+  fullTitle?: boolean;
 };
+
+// about what a search result shows of a description before cutting it
+const DESCRIPTION_FITS = 160;
+// said after the answer, when there's room for it
+const WHAT_ELSE = "Every season's last chapter and the volume to buy next.";
 
 export const INDEX_META = {
   title: "Where does the anime leave off in the manga?",
@@ -364,11 +384,16 @@ export function showMeta(
   const title = showQuestion(show.name);
   const path = `/after-the-anime/${show.slug}`;
   if (!show.stops.length) return { title, path, noindex: true };
-  const latest = latestStop(show.stops)!;
+  // the answer itself, so it can be read off the search result; what else
+  // the page has only when both fit
+  const answer = latestAnswerText(latestStop(show.stops)!);
+  const withMore = `${answer} ${WHAT_ELSE}`;
   return {
     title,
-    // the answer itself, so it can be read off the search result
-    description: `${latestAnswerText(latest)} Every season's last chapter, the volume to buy next and its price.`,
+    // the question is the whole title: with the site's name after it, a
+    // search result cuts the question short
+    fullTitle: true,
+    description: withMore.length <= DESCRIPTION_FITS ? withMore : answer,
     path,
     image: show.coverUrl,
     jsonLd: showJsonLd(show, origin),

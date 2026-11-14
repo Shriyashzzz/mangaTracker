@@ -9,6 +9,8 @@ const PAGES = [
   // the list of shows, and the owner's review page (a show's own page has
   // its route in server.ts)
   /^\/after-the-anime(\/review)?\/?$/i,
+  // the owner's list of reported reviews
+  /^\/reviews\/reported\/?$/i,
 ];
 
 export const isAppPage = (path: string) =>

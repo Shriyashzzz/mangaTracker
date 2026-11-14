@@ -1,3 +1,5 @@
+import { ratingMarkup } from "../../lib/reviewMarkup";
+import type { VolumeReviews } from "../../lib/reviews";
 import { breadcrumbs, clip } from "../../lib/seo";
 import {
   coverSrc,
@@ -26,12 +28,11 @@ const total = (cents: number, exact: boolean) =>
     ? formatCents(cents)
     : `$${(Math.round(cents / 1000) * 10).toLocaleString("en-US")}`;
 
-export function volumeMeta({
-  book,
-  heading,
-  series,
-  offers,
-}: VolumePrices): PageMeta {
+export function volumeMeta(
+  { book, heading, series, offers }: VolumePrices,
+  // readers' reviews of it, once they've loaded
+  reviews: VolumeReviews | null = null,
+): PageMeta {
   const seriesLabel = series.info?.name ?? series.name;
   // what the page is called; the address stays on book.title
   const name = heading ?? book.title;
@@ -107,6 +108,11 @@ export function volumeMeta({
         offerCount: prices.length,
       },
     }),
+    // readers' rating, and their reviews that aren't spoilers
+    ...ratingMarkup(
+      reviews,
+      (reviews?.reviews ?? []).filter((review) => !review.spoiler),
+    ),
   };
 
   return {

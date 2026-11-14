@@ -1,13 +1,11 @@
 // /api/after-anime/*  "Where does the anime leave off?" Public to read and
 // to suggest a correction; reviewing the corrections is for the site's owner
 // (ADMIN_USERNAME).
-import type { NextFunction, Request, Response } from "express";
+import type { Request, Response } from "express";
 import { body, matchedData, param, query } from "express-validator";
-import config from "../config/config.js";
 import { AppError, NotFoundError } from "../errors/AppError.js";
-import { sendError } from "../middlewares/errorHandler.js";
+import { requireOwnerOfSite } from "../middlewares/ownerOfSite.js";
 import { rejectInvalid } from "../middlewares/validate.js";
-import userQueries from "../models/userQueries.js";
 import {
   getAfterAnime,
   getAfterAnimeIndex,
@@ -126,22 +124,6 @@ const suggest = [
     res.status(201).json({ ok: true });
   },
 ];
-
-// only the site's owner: the account named in ADMIN_USERNAME. Anyone else
-// is told there's nothing here
-async function requireOwnerOfSite(
-  req: Request,
-  res: Response,
-  next: NextFunction,
-) {
-  const userId = req.session.userId;
-  const account = userId ? await userQueries.getAccount(userId) : null;
-  const isOwner =
-    Boolean(config.ADMIN_USERNAME) &&
-    account?.username === config.ADMIN_USERNAME;
-  if (!isOwner) return void sendError(res, 404, "Not found");
-  next();
-}
 
 // GET /fixes  what's waiting and what was decided lately
 const review = [

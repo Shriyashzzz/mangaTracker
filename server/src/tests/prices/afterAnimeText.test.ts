@@ -214,6 +214,23 @@ test("what a show's page says about itself", () => {
   expect(meta.description).toMatch(
     /^Finished the anime\? Start the manga at chapter 181\. Buy volume 21\./,
   );
+  // the question is the whole title, and the description fits a search
+  // result: what else the page has is said only when there's room
+  expect(meta.fullTitle).toBe(true);
+  expect(meta.description!.length).toBeLessThanOrEqual(160);
+  const long = showMeta(
+    {
+      ...show,
+      stops: show.stops.map((stop) => ({
+        ...stop,
+        label: "Thousand-Year Blood War the Calamity part four",
+      })),
+    },
+    false,
+    "x",
+  )!;
+  expect(long.description).not.toContain("Every season");
+  expect(long.description).toMatch(/^Finished the anime\?/);
   // the page's markup: its questions, and where it sits in the site
   const markup = showJsonLd(show, "https://example.com");
   expect(markup["@graph"][0]!.mainEntity).toHaveLength(4);
@@ -258,4 +275,22 @@ test("the latest season is the one furthest into the manga, not the last listed"
   const volumesOnly = shown("", "Vol 5 (S1) / Vol 12 (S2)");
   expect(latestStop(volumesOnly)?.label).toBe("Season 2");
   expect(latestStop([])).toBeUndefined();
+});
+
+test('a season named by a plain word gets its "the"', () => {
+  const stops = shown(
+    "",
+    "Vol 5, Chap 46 (S1) / Vol 16, Chap 160 (Movie) / Vol 6, Chap 52 (Reze Movie) / Vol 7, Chap 60 (OVA)",
+  );
+  const [season, movie, named, ova] = stops;
+  // never "Movie is the latest"
+  expect(latestAnswer(movie!).detail).toBe(
+    "The movie is the latest, and it ends at chapter 160.",
+  );
+  expect(afterLabel(movie!)).toBe("After the movie");
+  expect(tableRow(movie!).watched).toBe("The movie");
+  expect(afterLabel(ova!)).toBe("After the OVA");
+  // a name is left as it is
+  expect(afterLabel(named!)).toBe("After Reze Movie");
+  expect(afterLabel(season!)).toBe("After Season 1");
 });

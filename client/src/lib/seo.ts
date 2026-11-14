@@ -18,6 +18,9 @@ export type PageMeta = {
   image?: string | null;
   noindex?: boolean;
   jsonLd?: Record<string, unknown>;
+  // the title as it is, without " | Manga Tracker" after it (as the site
+  // server's Tags.fullTitle)
+  fullTitle?: boolean;
 };
 
 const headTag = (tag: string, key: string, value: string) => {
@@ -40,8 +43,17 @@ export const clip = (text: string | null | undefined, max = 155) => {
   return `${flat.slice(0, max - 1).replace(/\s+\S*$/, "")}…`;
 };
 
-function apply({ title, description, path, image, noindex, jsonLd }: PageMeta) {
-  const fullTitle = title ? `${title} | ${SITE_NAME}` : DEFAULT_TITLE;
+function apply({
+  title,
+  description,
+  path,
+  image,
+  noindex,
+  jsonLd,
+  fullTitle: asIs,
+}: PageMeta) {
+  const withSiteName = asIs ? title : `${title} | ${SITE_NAME}`;
+  const fullTitle = title ? withSiteName! : DEFAULT_TITLE;
   const desc = description || DEFAULT_DESCRIPTION;
   const url = new URL(path ?? location.pathname, location.origin).href;
 

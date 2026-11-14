@@ -1,6 +1,7 @@
 // The pages that aren't one volume or one series: the series index, link
 // previews and crawler summaries, the deals page and the price home. Reads
 // only what's stored. Part of the price service (service.ts lists the parts).
+import { publicReviews } from "../reviews/reviews.js";
 import {
   volumeHeading,
   titleVolume,
@@ -124,6 +125,8 @@ export async function getVolumeSummary(isbn13: string) {
       : null,
     published: saved?.published ?? null,
     pages: saved?.pages ?? null,
+    // readers' rating, and the reviews anyone may be shown (never a spoiler)
+    reviews: await publicReviews(book.isbn13.trim()).catch(() => null),
     seriesDescription: series?.description ?? null,
     ...(await nearbyVolumes(isbn13, book.title, seriesLabel)),
     // the stored prices, cheapest first, written into the page for crawlers

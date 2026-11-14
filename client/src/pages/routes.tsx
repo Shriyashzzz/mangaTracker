@@ -115,6 +115,14 @@ export const routes = [
       },
       {
         // for the site's owner; anyone else gets the not-found page
+        path: "/reviews/reported",
+        lazy: page(
+          () => import("./Prices/reviews/ReportedReviews"),
+          (m) => m.default,
+        ),
+      },
+      {
+        // for the site's owner; anyone else gets the not-found page
         path: "/after-the-anime/review",
         lazy: page(
           () => import("./AfterAnime/ReviewFixes"),

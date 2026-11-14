@@ -40,6 +40,8 @@ import { stayInTrip, useFromShelf } from "../../lib/fromShelf";
 import { readLocal } from "../../lib/prefs";
 import { usePageMeta } from "../../lib/seo";
 import { volumeMeta } from "./pageMeta";
+import { useVolumeReviews } from "./reviews/useVolumeReviews";
+import VolumeReviews from "./reviews/VolumeReviews";
 import ShelfAction from "./ShelfAction";
 import { useVolumeLoad } from "./useVolumeLoad";
 import { VolumeNotOpened, VolumeSkeleton } from "./VolumePageStates";
@@ -75,7 +77,9 @@ export default function PriceVolume() {
   const isbn = useParams().isbn!;
   const page = useVolumeLoad(isbn, country);
   const loadedBook = page.data?.book ?? null;
-  usePageMeta(page.data ? volumeMeta(page.data) : null);
+  // readers' reviews of it: the section below, and the rating in the tags
+  const reviews = useVolumeReviews(loadedBook?.isbn13 ?? null);
+  usePageMeta(page.data ? volumeMeta(page.data, reviews.data) : null);
 
   // an ISBN-only or outdated link: show the address with the title in it,
   // without loading the page again
@@ -484,6 +488,15 @@ export default function PriceVolume() {
           )}
         </div>
       </article>
+
+      {reviews.data && (
+        <VolumeReviews
+          isbn13={book.isbn13}
+          volumeLabel={volume != null ? `vol. ${volume}` : "this book"}
+          data={reviews.data}
+          reload={reviews.reload}
+        />
+      )}
 
       {nearby.length > 0 && (
         <section className={styles.siblings} aria-labelledby="siblings-title">
