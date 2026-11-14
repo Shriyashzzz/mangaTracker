@@ -84,7 +84,7 @@ function Fan({
             key={m.id}
             to={link.to}
             className={styles.fanCover}
-            aria-label={`${m.name}: ${link.stamp}${link.behind ? `, ${link.behind} behind` : ""}`}
+            aria-label={`${m.name}${link.stamp ? `: ${link.stamp}` : ""}${link.behind ? `, ${link.behind} behind` : ""}`}
             viewTransition
             onClick={
               link.onOpen
@@ -108,13 +108,14 @@ function Fan({
                 <DrawnCover title={m.name} />
               )}
             </span>
-            <span className={styles.stamp} aria-hidden>
-              {link.stamp}
-            </span>
+            {link.stamp && (
+              <span className={styles.stamp} aria-hidden>
+                {link.stamp}
+              </span>
+            )}
             {link.behind && (
               <span className={styles.behind} aria-hidden>
-                {link.behind}
-                <span className="upto-520:hidden"> behind</span>
+                {link.behind} behind
               </span>
             )}
             {/* which series, on hover or keyboard focus (its name is in the
@@ -229,13 +230,19 @@ export function PileHead({
   const title = useRef<HTMLHeadingElement>(null);
   useEffect(() => title.current?.focus({ preventScroll: true }), [view]);
   // phones: the chip row scrolls sideways, so the open pile's chip is brought
-  // into sight (only the row moves, never the page)
+  // into sight, moving the row no further than that needs (only the row
+  // moves, never the page). It starts at "All", with the next chip cut off
+  // at the right edge to show there's more
   const chipList = useRef<HTMLDivElement>(null);
   useEffect(() => {
     const list = chipList.current;
     const on = list?.querySelector<HTMLElement>("[aria-pressed=true]");
     if (!list || !on || list.scrollWidth <= list.clientWidth) return;
-    list.scrollLeft = on.offsetLeft - (list.clientWidth - on.offsetWidth) / 2;
+    const left = on.offsetLeft;
+    const right = left + on.offsetWidth;
+    if (left < list.scrollLeft) list.scrollLeft = left;
+    else if (right > list.scrollLeft + list.clientWidth)
+      list.scrollLeft = right - list.clientWidth;
   }, [view]);
   // the chips stick under the shelf's own sticky bar, however tall it is
   const [below, setBelow] = useState(0);

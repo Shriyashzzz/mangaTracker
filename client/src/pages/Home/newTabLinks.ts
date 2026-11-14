@@ -1,6 +1,7 @@
 // Where a card on the New tab leads, and what its cover is stamped with.
 // Worked out from what the release check found for the series; pure, no state.
 import { volumePath } from "../../lib/prices";
+import { knowsNextVolume } from "../../lib/releaseMath";
 import type { ReleaseStatus } from "../../lib/types";
 import type { ReleaseKind } from "./shelfViews";
 
@@ -29,5 +30,7 @@ export function stampFor(found: Found, kind: ReleaseKind) {
     return `Ch. ${found?.nextChapter ?? found?.latestChapter ?? ""}`;
   if (kind === "japan")
     return `Vol. ${found?.outJapanVolumes[0] ?? found?.latestJapaneseVolume ?? ""}`;
+  // no stamp when we can't say which volume is next (a hole in the catalog)
+  if (found && !knowsNextVolume(found)) return "";
   return `Vol. ${found?.nextVolume ?? found?.latestVolume ?? ""}`;
 }

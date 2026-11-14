@@ -4,8 +4,9 @@
 // and backdrop. On phones it's a sheet at the bottom, as tall as its list.
 import { useEffect, useRef } from "react";
 import { NavLink } from "react-router";
+import KeepRanges from "../../components/keepRanges/KeepRanges";
 import { volumePath } from "../../lib/prices";
-import { remainingVolumes } from "../../lib/releaseMath";
+import { volumesToGet } from "../../lib/releaseMath";
 import type { Manga, ReleaseStatus } from "../../lib/types";
 import { homeStyles as styles } from "./styles";
 
@@ -19,21 +20,35 @@ type Props = {
 
 export default function ReleaseModal({ manga, found, yours, onClose }: Props) {
   const dialog = useRef<HTMLDialogElement>(null);
+  const rows = useRef<HTMLUListElement>(null);
+  // where this series' list was scrolled to when they left for a volume's
+  // prices, so Back puts them at the same row (pricing 65 volumes meant
+  // scrolling down again each time). Forgotten when the list is closed
+  const spotKey = `releaseListSpot:${manga.id}`;
 
   useEffect(() => {
     // no closing on the way out: leaving the page takes it with it, and a close
     // here would come back as a close event and shut the next one
     if (dialog.current && !dialog.current.open) dialog.current.showModal();
-  }, []);
+    const spot = Number(sessionStorage.getItem(spotKey));
+    if (rows.current && Number.isFinite(spot)) rows.current.scrollTop = spot;
+  }, [spotKey]);
+  const keepSpot = () =>
+    sessionStorage.setItem(spotKey, String(rows.current?.scrollTop ?? 0));
+  const close = () => {
+    sessionStorage.removeItem(spotKey);
+    onClose();
+  };
 
-  const volumes = remainingVolumes(manga, found);
+  // every volume past theirs: the count the card gave
+  const volumes = volumesToGet(found);
 
   return (
     <dialog
       ref={dialog}
       className={styles.modal}
       aria-labelledby="release-title"
-      onClose={onClose}
+      onClose={close}
       // the backdrop counts as the dialog itself; its contents are all children
       onClick={(e) => {
         if (e.target === dialog.current) dialog.current.close();
@@ -53,22 +68,28 @@ export default function ReleaseModal({ manga, found, yours, onClose }: Props) {
         </button>
       </div>
 
-      <ul className={styles.modalRows}>
+      <ul className={styles.modalRows} ref={rows}>
         {/* first in the list: above the rows on a laptop, and at the foot
             on a phone, where the rows stack up from it */}
-        {yours && <li className={styles.modalYours}>{yours}</li>}
+        {yours && (
+          <li className={styles.modalYours}>
+            <KeepRanges text={yours} />
+          </li>
+        )}
         {volumes.map((v) => (
           <li key={v.volume} className={styles.modalRow}>
             {v.isbn13 ? (
               <NavLink
                 to={volumePath(v.isbn13, v.title ?? "")}
                 className={styles.modalRowLink}
+                onClick={keepSpot}
                 viewTransition
               >
                 Vol. {v.volume}
                 <span className={styles.modalRowGo}>See prices</span>
               </NavLink>
             ) : (
+              // out, but we have no book on file for it to price
               <span className={styles.modalName}>Vol. {v.volume}</span>
             )}
           </li>

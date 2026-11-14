@@ -9,8 +9,12 @@
 export const BOOK = 22;
 // how many neighbours grow with it
 const SPREAD = 2.6;
-// a finger hits a book this wide without help: one tap ticks it
+// a mouse hits a book this wide without help: one click ticks it
 export const TAPPABLE = 14;
+// a finger needs it wider. Thinner than this on a touch screen and the
+// shelf shows a page of full-size books instead (it was 14 for both, which
+// left a 22-volume series on a phone as one strip of 14px books)
+export const FINGER_TAPPABLE = 20;
 // wide enough for its number, and for room between books
 export const NUMBERED = 15;
 export const SPACED = 5;

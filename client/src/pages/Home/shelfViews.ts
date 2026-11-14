@@ -3,7 +3,11 @@
 // shows and in what order, the counts on the tabs, and what a New card says.
 // Pure, so server/src/tests/shelf/shelfViews.test.ts can test it.
 import { ownedOf, ownedPhrase, ownsAny } from "../../lib/ownedVolumes";
-import { countNew, type SeenKind } from "../../lib/releaseMath";
+import {
+  countNew,
+  knowsNextVolume,
+  type SeenKind,
+} from "../../lib/releaseMath";
 import type { Manga, ReleaseStatus } from "../../lib/types";
 // (piles.ts takes only types from this file, so the two don't go in a circle)
 import { behindOf, volumesBehind } from "./piles";
@@ -12,6 +16,7 @@ export type Releases = Record<number, ReleaseStatus | null>;
 // what a New card says (MangaCard's CardNews, written here so this file needs
 // no components: the server's tests load it)
 export type CardNews = {
+  // what's next ("Vol. 13 next"); empty when we can't say which is next
   text: string;
   yours?: string;
   // "2 volumes behind", when they are: the card says it under the text,
@@ -55,7 +60,7 @@ export const RELEASE_KINDS = {
     note: "",
     emptyTitle: "No new volumes. Your wallet lives!",
     waiting: "No new volumes yet",
-    emptyBody: "Nothing new to show for now. Your shelf gets a day off.",
+    emptyBody: "Your shelf gets a day off.",
   },
   chapters: {
     label: "Chapters",
@@ -63,7 +68,7 @@ export const RELEASE_KINDS = {
     note: "",
     emptyTitle: "Nothing new to read. Go touch grass!",
     waiting: "No new chapters yet",
-    emptyBody: "Nothing new to show for now. Check back soon.",
+    emptyBody: "Check back soon.",
   },
   japan: {
     label: "In Japan",
@@ -254,9 +259,8 @@ export function filterShelf(
   return list;
 }
 
-// what a card on the New tab says: what's out, and where they are, so the two
-// numbers can't be mixed up
-// What a card says is always the same: what's next for them ("Vol. 13
+// What a card on the New tab says, and where they are, apart, so the two
+// numbers can't be mixed up. What it says is always the same: what's next for them ("Vol. 13
 // next"), whether it came out last week or years ago. When they're behind
 // (piles.ts volumesBehind), the card is given the words for it: "2 volumes
 // behind". (It used to say "Vol. 15 is out" for the newest volume, which
@@ -296,6 +300,10 @@ export function newsFor(
       yours: m.bookmark ? `You're on ch. ${m.bookmark}` : undefined,
     };
   }
+  // the catalog has a hole where their next volume should be: only how far
+  // behind they are, which it does know
+  if (found && !knowsNextVolume(found))
+    return { text: "", behind: behindWords(found, kind), yours: volumeYours };
   const next = found?.nextVolume;
   return {
     text: `Vol. ${next} next`,

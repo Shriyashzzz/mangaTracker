@@ -297,7 +297,9 @@ describe("each reader chooses what the New tab lists", () => {
   test.each([
     [20, false, false],
     [22, true, false],
-    [23, true, true],
+    // Japan's isn't next until they've caught up with English, however
+    // near they are
+    [23, true, false],
     [25, false, true],
   ])(
     "within 3, owning vol. %i: English %s, Japan %s",

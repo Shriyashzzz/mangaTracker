@@ -10,6 +10,7 @@ import {
   URL_FROM_TAB,
   type Releases,
 } from "../../../../client/src/pages/Home/shelfViews.js";
+import { volumesToGet } from "../../../../client/src/lib/releaseMath.js";
 import type { Manga, ReleaseStatus } from "../../../../client/src/lib/types.js";
 
 const manga = (id: number, over: Partial<Manga> = {}) =>
@@ -230,7 +231,7 @@ test("every card says where they are, under what's next", () => {
   const m = manga(1, { volumesOwned: 4, bookmark: 30 });
   const next = (over: Partial<ReleaseStatus>) =>
     newsFor(m, found(over), "volumes");
-  expect(next({ nextVolume: 5, latestVolume: 7, currentVolume: 4 })).toEqual({
+  expect(next({ nextVolume: 5, latestVolume: 5, currentVolume: 4 })).toEqual({
     text: "Vol. 5 next",
     behind: undefined,
     yours: "You own up to vol. 4",
@@ -271,4 +272,38 @@ test("the badge counts news, not the backlog the tab also lists", () => {
   const counts = shelfCounts(list, releases);
   expect(counts.newVolumes).toBe(2);
   expect(counts.new).toBe(2);
+});
+
+test("behind is the newest volume's number less theirs, holes in the catalog or not", () => {
+  // they own vol. 1 of 33, and the catalog has books for only three of them
+  const holed = found({
+    hasNewVolume: true,
+    currentVolume: 1,
+    latestVolume: 33,
+    nextVolume: 10,
+    outVolumes: [
+      { volume: 10, isbn13: "9780000000010" },
+      { volume: 11, isbn13: "9780000000011" },
+      { volume: 33, isbn13: "9780000000033" },
+    ],
+  } as Partial<ReleaseStatus>);
+  // and the card doesn't name a next volume: vol. 10 isn't next for
+  // someone who owns vol. 1
+  expect(newsFor(manga(1), holed, "volumes")).toMatchObject({
+    text: "",
+    behind: "32 volumes behind",
+  });
+  // unless the catalog's next book is the newest volume: a new release
+  const newRelease = found({
+    currentVolume: 30,
+    latestVolume: 33,
+    nextVolume: 33,
+  } as Partial<ReleaseStatus>);
+  expect(newsFor(manga(1), newRelease, "volumes").text).toBe("Vol. 33 next");
+  // the list a card opens has a row for every one of them, with its book
+  // where there is one
+  const list = volumesToGet(holed);
+  expect(list).toHaveLength(32);
+  expect(list[0]).toEqual({ volume: 2 });
+  expect(list.find((v) => v.volume === 10)?.isbn13).toBe("9780000000010");
 });

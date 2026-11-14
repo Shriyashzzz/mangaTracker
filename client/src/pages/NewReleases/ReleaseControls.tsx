@@ -19,6 +19,19 @@ const DEFAULTS: ReleaseSettings = {
   chapters: { mode: "within", within: 3 },
 };
 
+// What's saved, as one of the two choices on offer. Settings saved before
+// November 2026 can hold a third ("all": everything as one card), which
+// the server now reads as every series ("next"); so does this, or neither
+// choice would show as picked
+const asOffered = (saved: ReleaseSettings | undefined): ReleaseSettings => {
+  const range = (kind: keyof ReleaseSettings): ReleaseRange => {
+    const one = saved?.[kind];
+    if (!one) return DEFAULTS[kind];
+    return { ...one, mode: one.mode === "within" ? "within" : "next" };
+  };
+  return { volumes: range("volumes"), chapters: range("chapters") };
+};
+
 // a slider moves through lots of values on its way; only the last is worth saving
 const SAVE_AFTER_MS = 400;
 
@@ -27,7 +40,7 @@ const SAVE_AFTER_MS = 400;
 const KINDS = {
   volumes: {
     title: "Volumes",
-    note: "Covers English and Japanese volumes.",
+    note: "English volumes.",
     one: "volume",
     many: "volumes",
     newest: "newest",
@@ -35,12 +48,12 @@ const KINDS = {
     max: 10,
     // finished vol. 22, vol. 30 is the newest in English
     example: ({ mode, within }: ReleaseRange) => {
-      const start = "You've finished vol. 22 and vol. 30 is out.";
+      const start = "You own up to vol. 22 and vol. 30 is out.";
       if (mode === "next") return `${start} New shows vol. 23.`;
       if (within >= 8) return `${start} New shows vol. 23.`;
       if (within === 1)
-        return `${start} New waits. Finish vol. 29 and it shows vol. 30.`;
-      return `${start} That's 8 behind, so New waits. Finish vol. ${30 - within} and it shows vol. ${31 - within}.`;
+        return `${start} New waits. Get vol. 29 and it shows vol. 30.`;
+      return `${start} That's 8 behind, so New waits. Get vol. ${30 - within} and it shows vol. ${31 - within}.`;
     },
   },
   chapters: {
@@ -77,7 +90,7 @@ export default function ReleaseControls() {
       .then(async (res) => {
         if (!res.ok) throw new Error(res.statusText);
         const { releases } = (await res.json()) as Prefs;
-        setSettings(releases ?? DEFAULTS);
+        setSettings(asOffered(releases));
       })
       .catch((e: Error) => {
         if (e.name !== "AbortError") setStatus("unloaded");
@@ -158,29 +171,24 @@ export default function ReleaseControls() {
             <p className={styles.groupNote}>{copy.note}</p>
             {option("next", "Every series")}
             {option("within", "Only series I'm nearly caught up on")}
-            <div className={styles.sliderRow}>
-              <input
-                type="range"
-                className={styles.slider}
-                min={1}
-                max={copy.max}
-                value={range.within}
-                disabled={range.mode !== "within"}
-                aria-label={`How many ${copy.many} behind the ${copy.newest}`}
-                aria-valuetext={howClose}
-                onChange={(e) => change({ within: Number(e.target.value) })}
-              />
-              <span
-                className={
-                  range.mode === "within"
-                    ? styles.sliderValue
-                    : styles.sliderValueOff
-                }
-                aria-hidden
-              >
-                {howClose}
-              </span>
-            </div>
+            {/* how nearly: only with the choice it belongs to */}
+            {range.mode === "within" && (
+              <div className={styles.sliderRow}>
+                <input
+                  type="range"
+                  className={styles.slider}
+                  min={1}
+                  max={copy.max}
+                  value={range.within}
+                  aria-label={`How many ${copy.many} behind the ${copy.newest}`}
+                  aria-valuetext={howClose}
+                  onChange={(e) => change({ within: Number(e.target.value) })}
+                />
+                <span className={styles.sliderValue} aria-hidden>
+                  {howClose}
+                </span>
+              </div>
+            )}
             <p className={styles.example}>{copy.example(range)}</p>
           </fieldset>
         );

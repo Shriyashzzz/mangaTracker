@@ -28,11 +28,11 @@ export const pilesStyles = {
   // which volume, stamped across the top of the cover
   stamp:
     "absolute top-0 left-1/2 -translate-x-1/2 -rotate-3 border-[1.5px] border-line bg-accent px-1.5 font-brand text-[0.95rem] leading-[1.2] tracking-[0.03em] upto-520:text-[0.85rem] whitespace-nowrap text-on-accent",
-  // how far behind, at the foot of the cover: small and grey, under the
-  // red stamp that names the volume. Just the number on a phone's narrower
-  // covers
+  // how far behind: small and grey. On a laptop it's stamped at the foot of
+  // the cover; on a phone's narrower covers it's a line under the cover,
+  // where a bare number on the art read as a volume number
   behind:
-    "absolute bottom-1 left-1/2 -translate-x-1/2 border border-line-soft bg-card px-1 font-mono text-[0.6rem] leading-[1.5] whitespace-nowrap text-ink-soft",
+    "absolute bottom-1 left-1/2 -translate-x-1/2 border border-line-soft bg-card px-1 font-mono text-[0.6rem] leading-[1.5] whitespace-nowrap text-ink-soft upto-520:static upto-520:-mx-1.5 upto-520:mt-1 upto-520:block upto-520:translate-x-0 upto-520:border-0 upto-520:bg-transparent upto-520:px-0 upto-520:text-center upto-520:font-sans upto-520:text-[0.64rem] upto-520:leading-[1.2]",
   fanMore:
     "mt-3 grid aspect-2/3 w-[58px] cursor-pointer place-items-center font-brand text-[1.25rem] text-ink-soft hover:text-accent upto-520:w-[48px]",
 
@@ -48,7 +48,9 @@ export const pilesStyles = {
     "sticky z-4 -mx-3 mt-3 mb-7 flex items-center gap-2 border-b-[1.5px] border-line px-3 py-2 upto-520:mb-4",
   chipsStuck:
     "sticky z-4 -mx-3 mt-3 mb-7 flex items-center gap-2 border-b-[1.5px] border-line bg-[var(--surface,var(--paper))] px-3 py-2 upto-520:mb-4",
-  // wraps on wider screens; one sideways-scrolling row on phones
+  // wraps on wider screens; one sideways-scrolling row on phones (a chip
+  // cut off at an edge is the sign there's more; a fade there hid the open
+  // pile's own chip when the row was scrolled to its end)
   chipList:
     "relative flex min-w-0 flex-1 flex-wrap gap-2 upto-520:flex-nowrap upto-520:overflow-x-auto upto-520:[scrollbar-width:none] upto-520:[&>*]:shrink-0",
   // the pile's order, at the end of the chip row

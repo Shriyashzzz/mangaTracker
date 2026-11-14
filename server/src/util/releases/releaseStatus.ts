@@ -259,11 +259,10 @@ export function getReleaseStatus(
     currentVolume != null &&
     latestJapaneseVolume != null &&
     latestJapaneseVolume > pastBoth &&
-    // it's next in line once they've reached the end of what's in English;
-    // before that, only for a reader who's within their few of it
-    (caughtUpWithEnglish ||
-      (volumes.mode === "within" &&
-        latestJapaneseVolume - currentVolume <= volumes.within));
+    // it's next in line once they've reached the end of what's in English,
+    // whatever their setting. (A reader on "nearly caught up" used to get
+    // it early, so a stricter setting listed more series under In Japan)
+    caughtUpWithEnglish;
 
   return {
     hasNewVolume,

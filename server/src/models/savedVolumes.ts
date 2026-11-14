@@ -80,10 +80,12 @@ export async function getSavedVolumeTitles() {
     FROM series_volumes sv, jsonb_array_elements(sv.volumes) v
     WHERE sv.key LIKE ${VOLUMES_KEY_VERSION + "%"}
       AND v->>'isbn13' IS NOT NULL AND v->>'title' IS NOT NULL
-      -- a 3-in-1 omnibus numbered like a volume isn't one (service.ts
-      -- isOmnibusLength); a light novel may run long
+      -- a 3-in-1 omnibus numbered like a volume isn't one, by its length or
+      -- its own title (seriesService.ts isOmnibus); a light novel may run long
       AND (COALESCE((v->>'pages')::int, 0) < 500
            OR v->>'title' ILIKE '%light novel%')
+      AND v->>'title' !~* '[2-5] ?-?in-? ?1'
+      AND v->>'title' !~* '[2-5] in 1' 
   `;
 }
 

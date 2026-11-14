@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { NavLink, useLocation } from "react-router";
+import KeepRanges from "../../components/keepRanges/KeepRanges";
 import { signInPath } from "../../lib/api";
 import { findOnShelf, setVolumesOwned, type Owned } from "../../lib/shelf";
 import { ownedPhrase, owns, withVolume } from "../../lib/ownedVolumes";
@@ -152,7 +153,9 @@ export default function ShelfAction({ series, title, volume }: Props) {
     <div className={styles.shelfAction}>
       <p className={styles.shelfState}>
         On your shelf ·{" "}
-        <NavLink to={`/details/${manga.id}`}>{progress || "open it"}</NavLink>
+        <NavLink to={`/details/${manga.id}`}>
+          {progress ? <KeepRanges text={progress} /> : "open it"}
+        </NavLink>
       </p>
       {volume != null && !ownsThis ? (
         <button

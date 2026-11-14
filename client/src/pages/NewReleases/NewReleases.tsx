@@ -44,7 +44,18 @@ const QUESTIONS = [
   },
   {
     ask: "Far behind?",
-    answer: "The same. New shows your next volume however far back it is.",
+    answer:
+      "The same: New shows your next volume. You can set it to wait until you're nearly caught up.",
+  },
+  {
+    // the In Japan list only starts for a series once English runs out
+    ask: "Caught up with English?",
+    answer: (
+      <>
+        New has an <b>In Japan</b> list too: volumes out in Japan that may not
+        be in English yet.
+      </>
+    ),
   },
   {
     ask: "Already seen it?",
@@ -65,7 +76,7 @@ const QUESTIONS = [
 // the settings' own names (ReleaseControls.tsx), each with what it would
 // show the same reader. Someone signed in gets the real controls instead
 const CHOICES = [
-  { name: "Every series", note: "How it starts.", shows: "Vol. 23." },
+  { name: "Every series", note: "The default.", shows: "Vol. 23." },
   {
     name: "Only series I'm nearly caught up on",
     note: "You pick how close.",
@@ -77,7 +88,7 @@ export default function NewReleasesPage() {
   usePageMeta({
     title: "How the New tab works",
     description:
-      "The New tab shows the next volume for every manga on your shelf. You own vol. 14, vol. 15 comes out, New tells you. How to change what it lists.",
+      "The New tab shows the next volume for the manga on your shelf. You own vol. 14, vol. 15 comes out, New tells you. How to change what it lists.",
     path: "/new-releases",
   });
   const isSignedIn = useAuth((s) => s.isSignedIn);
@@ -95,7 +106,7 @@ export default function NewReleasesPage() {
       </header>
 
       <p className={styles.lead}>
-        New shows the next volume for every manga on your shelf.
+        New shows the next volume for the manga on your shelf.
       </p>
 
       {/* the idea, happening: three panels read left to right */}
@@ -226,15 +237,12 @@ export default function NewReleasesPage() {
           <>
             <p>
               With a shelf of your own, you choose what New lists, in its
-              settings. Say you've finished vol. 22, and vol. 30 is out:
+              settings. Say you own up to vol. 22, and vol. 30 is out:
             </p>
             <ul role="list" className={styles.choices}>
               {CHOICES.map((choice) => (
                 <li key={choice.name} className={styles.choice}>
-                  <span className={styles.choiceName}>
-                    <span className={styles.radio} aria-hidden />
-                    {choice.name}
-                  </span>
+                  <span className={styles.choiceName}>{choice.name}</span>
                   {choice.note && (
                     <span className={styles.choiceNote}>{choice.note}</span>
                   )}

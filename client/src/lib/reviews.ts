@@ -95,25 +95,6 @@ export async function flagReview(id: number, kind: "spoiler" | "report") {
   return Boolean(res?.ok);
 }
 
-// a series' ratings added up, and each rated volume's own
-export type SeriesReviews = {
-  count: number;
-  average: number | null;
-  volumes: {
-    isbn13: string;
-    volume: number | null;
-    count: number;
-    average: number | null;
-    written: number;
-  }[];
-};
-
-export const getSeriesReviews = (name: string, signal?: AbortSignal) =>
-  getJson<SeriesReviews>(
-    `/api/reviews/series?${new URLSearchParams({ name })}`,
-    signal,
-  );
-
 // For a series on the viewer's shelf: the volumes they could rate next
 // (the ones they've read first, latest first), and the reviews they've
 // written of it, latest volume first. The server's shelfReviews

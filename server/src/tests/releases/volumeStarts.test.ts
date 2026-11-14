@@ -45,3 +45,20 @@ test("no chapter, or one before everything, has no volume", () => {
   expect(volumeOfChapter(0, starts)).toBeNull();
   expect(volumeOfChapter(2, starts)).toBeNull();
 });
+
+test("a chapter in a hole in the list isn't placed in the volume before the hole", () => {
+  // vol. 1 starts at ch. 1, then nothing is known until vol. 15
+  const holed = [
+    { volume: 1, firstChapter: 1 },
+    { volume: 15, firstChapter: 138 },
+  ];
+  expect(volumeOfChapter(60, holed)).toBeNull();
+  // still in vol. 1 for sure
+  expect(volumeOfChapter(5, holed)).toBe(1);
+  // and with the next volume's start known, a long volume is still placed
+  const whole = [
+    { volume: 1, firstChapter: 1 },
+    { volume: 2, firstChapter: 30 },
+  ];
+  expect(volumeOfChapter(25, whole)).toBe(1);
+});

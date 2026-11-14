@@ -60,8 +60,3 @@ export async function seriesScores(now = Date.now()) {
 // one series' score; null until enough readers have rated it
 export const seriesScore = async (seriesSlug: string) =>
   (await seriesScores()).get(seriesSlug) ?? null;
-
-// for tests: the next question is answered afresh
-export const forgetSeriesScores = () => {
-  kept = null;
-};

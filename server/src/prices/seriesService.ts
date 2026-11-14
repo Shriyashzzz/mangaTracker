@@ -164,6 +164,13 @@ const NOVEL_PAGES = 230;
 const OMNIBUS_PAGES = 500;
 export const isOmnibusLength = (v: Pick<CatalogBook, "pages" | "inBook">) =>
   !v.inBook && (v.pages ?? 0) >= OMNIBUS_PAGES;
+// Or it says so itself: "Hunter x Hunter (3-in-1 Edition), Vol. 2" has no
+// page count on file, and was listed as volume 2. Only "2-in-1" and
+// "3-in-1": those are always single volumes collected again, where a
+// series can come out as an "omnibus" and nothing else
+const SAYS_SEVERAL_IN_ONE = /\b[2-5]\s*-?\s*in\s*-?\s*1\b/i;
+export const isOmnibus = (v: Pick<CatalogBook, "pages" | "inBook" | "title">) =>
+  isOmnibusLength(v) || SAYS_SEVERAL_IN_ONE.test(v.title);
 const isLong = (v: CatalogBook) => (v.pages ?? 0) >= NOVEL_PAGES && !v.comic;
 
 // a light novel by exactly this name. AniList's search answers almost any
@@ -225,9 +232,7 @@ export async function seriesVolumes(
       );
     }
     return {
-      volumes: hit.volumes.filter(
-        (v) => isNovelName(name) || !isOmnibusLength(v),
-      ),
+      volumes: hit.volumes.filter((v) => isNovelName(name) || !isOmnibus(v)),
       incomplete: false,
     };
   }
@@ -321,7 +326,7 @@ function volumesOfSeries(
     // nor a 3-in-1 omnibus numbered like one ("One Piece, Vol. 5 (It's All
     // Right!!! / Instinct / Straight Ahead!!!)", 584 pages): its price and
     // cover aren't the volume's
-    if (!isNovel && isOmnibusLength(v)) continue;
+    if (!isNovel && isOmnibus(v)) continue;
     addVolume(byNumber, v, books, datedElsewhere);
   }
   adoptUpcomingDates(byNumber, datedElsewhere);
@@ -347,7 +352,7 @@ async function lookUpSeriesVolumes(
   ]);
   // lists saved before the omnibus rule lose theirs too
   const savedVolumes = (saved?.volumes ?? []).filter(
-    (v) => isNovel || !isOmnibusLength(v),
+    (v) => isNovel || !isOmnibus(v),
   );
   const volumes = mergeVolumes(
     savedVolumes,
@@ -442,7 +447,7 @@ async function gapVolumes(
     // the day's share used: what was found so far, asked again another day
     if (!allowed) break;
     const book = await googleVolume(name, n).catch(() => null);
-    if (book && !isRebind(book.isbn13) && !isOmnibusLength(book))
+    if (book && !isRebind(book.isbn13) && !isOmnibus(book))
       found.push({ ...book, title: `${name}, Vol. ${n}` });
   }
   await priceQueries.saveSeriesVolumes(key, found).catch(() => {});
@@ -535,8 +540,7 @@ async function mergeIntoOneList(
 
   // a 3-in-1 omnibus numbered like a volume isn't one, from any list (a
   // light novel may run long)
-  const isOneVolume = (v: CatalogBook) =>
-    isNovelName(name) || !isOmnibusLength(v);
+  const isOneVolume = (v: CatalogBook) => isNovelName(name) || !isOmnibus(v);
   for (const [number, v] of byNumber)
     if (!isOneVolume(v)) byNumber.delete(number);
   for (const list of others) {

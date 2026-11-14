@@ -53,17 +53,17 @@ function useMenu() {
 const lowerFirst = (text: string) =>
   text.charAt(0).toLowerCase() + text.slice(1);
 
-// New's count is red wherever it shows: something's waiting there
-const Count = ({ view }: { view: ShelfView }) =>
-  view.count == null ? null : (
-    <span
-      className={
-        view.value === "new" && view.count > 0 ? styles.countNew : styles.count
-      }
-    >
-      {view.count}
-    </span>
-  );
+// A tab's count is how many are in it. New's is different: how many series
+// have news, in red, and nothing at all when there's none (a grey 0 over a
+// list of series they're behind on read as "nothing here")
+const Count = ({ view }: { view: ShelfView }) => {
+  if (view.count == null) return null;
+  if (view.value !== "new")
+    return <span className={styles.count}>{view.count}</span>;
+  return view.count > 0 ? (
+    <span className={styles.countNew}>{view.count}</span>
+  ) : null;
+};
 
 export default function ShelfBar({
   views,
@@ -244,7 +244,7 @@ function ViewMenu({
         data-tour={tourTarget}
         aria-expanded={open}
         aria-haspopup="true"
-        aria-label={`Showing ${shown.label}${shown.count != null ? `, ${shown.count}` : ""}. Change what's shown`}
+        aria-label={`Showing ${shown.label}${shown.count ? `, ${shown.count}` : ""}. Change what's shown`}
         onClick={() => setOpen(!open)}
       >
         <span className={styles.titleWord}>{shown.label}</span>

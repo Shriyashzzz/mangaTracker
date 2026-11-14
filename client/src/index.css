@@ -179,6 +179,9 @@
   --dots: rgba(29, 26, 22, 0.09);
   --dots-strong: rgba(29, 26, 22, 0.28);
   color: var(--ink);
+  /* its radios, sliders and scrollbars too: in the dark theme an unpicked
+     radio was drawn as a dark dot, which looked picked */
+  color-scheme: light;
 }
 
 /* ---------- 2. Tailwind theme ---------- */
@@ -1525,8 +1528,14 @@ body:has([role="listbox"]) :is(.tour-bubble, .tour-pointer) {
   align-items: center;
   gap: 0.35rem 0.85rem;
 }
+.tour-actions .btn {
+  min-height: 44px;
+}
+/* thumb-sized, and with room between them: "Back" sat right beside "Skip
+   tour" at 32px tall */
 .tour-skip {
-  min-height: 32px;
+  min-height: 44px;
+  padding-inline: 0.35rem;
   font-size: 0.85rem;
   color: var(--ink-soft);
   text-decoration: underline;

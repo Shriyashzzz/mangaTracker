@@ -36,20 +36,27 @@ const MOST_CHAPTERS_IN_A_VOLUME = 15;
 // The volume a chapter is in. A little past the last known start counts as
 // that volume (the newest chapters aren't in a book yet). Far past it we
 // can't say: MangaDex's list stops early for a licensed series (Frieren's
-// ends at vol. 1), and chapter 60 isn't in volume 1
+// ends at vol. 1), and chapter 60 isn't in volume 1. The same goes for a
+// hole in the list (vol. 1, then nothing until vol. 15): a chapter far
+// past vol. 1's start is in one of the volumes we have no start for
 export function volumeOfChapter(
   chapter: number | null,
   starts: VolumeStart[],
 ): number | null {
   if (!chapter || chapter <= 0) return null;
   let found: VolumeStart | null = null;
+  let after: VolumeStart | null = null;
   for (const start of starts) {
-    if (start.firstChapter > chapter) break;
+    if (start.firstChapter > chapter) {
+      after = start;
+      break;
+    }
     found = start;
   }
   if (!found) return null;
-  const isLastKnown = found === starts[starts.length - 1];
+  // the volume right after it has a known start, so the chapter is in it
+  const nextIsKnown = after?.volume === found.volume + 1;
   const isFarPast =
-    isLastKnown && chapter - found.firstChapter > MOST_CHAPTERS_IN_A_VOLUME;
+    !nextIsKnown && chapter - found.firstChapter > MOST_CHAPTERS_IN_A_VOLUME;
   return isFarPast ? null : found.volume;
 }

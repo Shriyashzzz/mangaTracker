@@ -13,7 +13,7 @@ const PARTS = [
   },
   {
     name: "Volumes, Chapters, In Japan",
-    body: "Three lists. The number is how many series have news. In Japan is volumes out there that aren't in English yet.",
+    body: "Three lists. The number is how many series are in each. In Japan is volumes out there that aren't in English yet.",
   },
   {
     name: "A series with news",

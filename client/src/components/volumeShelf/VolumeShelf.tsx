@@ -25,6 +25,7 @@ import {
   BOOK,
   NUMBERED,
   SPACED,
+  FINGER_TAPPABLE,
   TAPPABLE,
   aimAt,
   bookAt,
@@ -109,7 +110,7 @@ export default function VolumeShelf({
   const yours = new Set(owned);
   const widths = width ? bookWidths(total, width, aimed) : [];
   const lit = aimed == null ? null : Math.min(total, Math.floor(aimed) + 1);
-  const oneTap = width / total >= TAPPABLE;
+  const oneTap = width / total >= (coarse ? FINGER_TAPPABLE : TAPPABLE);
   const paged = coarse && width > 0 && !oneTap;
 
   const xOf = (e: PointerEvent) =>

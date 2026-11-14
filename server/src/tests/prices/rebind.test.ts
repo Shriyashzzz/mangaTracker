@@ -1,6 +1,7 @@
 // A library rebind (Turtleback, Tandem Library) never stands in for the
 // publisher's own paperback of a volume
 import {
+  isOmnibus,
   isOmnibusLength,
   isRebind,
   mergeVolumes,
@@ -48,4 +49,18 @@ test("a 3-in-1 omnibus numbered like a volume is told by its length", () => {
   expect(
     isOmnibusLength({ pages: 600, inBook: { book: 9, from: 17, to: 18 } }),
   ).toBe(false);
+});
+
+test("a book that calls itself 3-in-1 isn't a single volume, page count or not", () => {
+  expect(isOmnibus({ title: "Hunter x Hunter (3-in-1 Edition), Vol. 2" })).toBe(
+    true,
+  );
+  expect(isOmnibus({ title: "Ranma 1/2 (2-in-1 Edition), Vol. 5" })).toBe(true);
+  expect(isOmnibus({ title: "Hunter x Hunter, Vol. 10", pages: 200 })).toBe(
+    false,
+  );
+  // a series can come out as an "omnibus" and nothing else: left alone
+  expect(isOmnibus({ title: "Planetes Omnibus Volume 1" })).toBe(false);
+  // and a "1" beside "in" isn't it
+  expect(isOmnibus({ title: "All You Need Is Kill, Vol. 1" })).toBe(false);
 });

@@ -127,7 +127,6 @@ export function useHideActions({
             {
               m,
               number: newest,
-              list: undefined,
             },
           ];
     });

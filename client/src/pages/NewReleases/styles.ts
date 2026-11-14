@@ -58,11 +58,11 @@ export const newReleasesStyles = {
   choices: "flex flex-col gap-2",
   choice:
     "flex flex-col gap-0.5 border-[1.5px] border-line-soft bg-card px-3.5 py-2.5",
-  choiceName: "flex items-center gap-2.5 font-medium text-ink",
-  radio: "size-[15px] flex-none rounded-full border-2 border-line bg-paper",
-  choiceNote: "pl-[1.6rem] text-[0.88rem] text-muted",
+  // (no radio drawn beside the name: these are examples, not controls)
+  choiceName: "font-medium text-ink",
+  choiceNote: "text-[0.88rem] text-muted",
   choiceShows:
-    "pl-[1.6rem] text-[0.92rem] text-ink-soft [&_b]:font-semibold [&_b]:text-ink",
+    "text-[0.92rem] text-ink-soft [&_b]:font-semibold [&_b]:text-ink",
 
   // "More about New": folded, for anyone who wants the rest
   more: "border-t-[1.5px] border-line pt-3",
@@ -141,10 +141,9 @@ export const newReleasesStyles = {
   sliderRow:
     "ml-[30px] flex items-center gap-x-3 pb-1 upto-520:flex-col upto-520:items-stretch",
   slider:
-    "h-11 min-w-0 flex-1 cursor-pointer accent-[var(--accent)] disabled:cursor-not-allowed disabled:opacity-40",
+    // (not flex-1 on a phone: stacked in a column it shrank to 16px tall)
+    "h-11 min-w-0 flex-1 cursor-pointer accent-[var(--accent)] disabled:cursor-not-allowed disabled:opacity-40 upto-520:flex-none",
   sliderValue: "w-44 shrink-0 text-[0.92rem] font-medium upto-520:w-auto",
-  sliderValueOff:
-    "w-44 shrink-0 text-[0.92rem] font-medium text-ink-soft opacity-60 upto-520:w-auto",
   example: "mt-1 rounded-ink bg-accent-wash px-3 py-2 text-[0.92rem] text-ink",
   status: "min-h-6 text-[0.9rem] font-medium text-ink-soft",
   failed: "min-h-6 text-[0.9rem] font-medium text-accent",

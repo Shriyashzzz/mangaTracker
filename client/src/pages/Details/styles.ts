@@ -196,7 +196,7 @@ export const detailsStyles = {
   // taller: a thumb-sized landing area here would reach down over the
   // stars under it
   rateTicketLinks:
-    "flex flex-wrap gap-x-3.5 [&>*]:min-h-7 [&>*]:text-ink-soft [&>*]:underline [&>*]:decoration-line-soft [&>*]:underline-offset-3 [&>*]:hover:text-ink [&>*]:hover:decoration-current",
+    "flex flex-wrap gap-x-3.5 [&>*]:tap [&>*]:min-h-7 [&>*]:text-ink-soft [&>*]:underline [&>*]:decoration-line-soft [&>*]:underline-offset-3 [&>*]:hover:text-ink [&>*]:hover:decoration-current",
   // "How was vol. 9?", after they finish a volume: a box like the notes box
   // under it (same border and paper), so it sits in the page instead of on
   // top of it. One row on a laptop: the words, then the stars. Two short

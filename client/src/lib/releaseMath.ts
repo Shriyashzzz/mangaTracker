@@ -1,5 +1,5 @@
 // The New tab's arithmetic, with no network: how many series have
-// news, how far behind a series is, the volumes a behind card lists, and
+// news, how far behind a series is, and
 // whether something is still new after a change. lib/shelf.ts
 // re-exports all of it, so callers can import from either. Pure, so the
 // server's tests can load it.
@@ -8,8 +8,10 @@ import type { Manga, ReleaseStatus } from "./types";
 // what a check came to: only "failed" means the sites didn't answer
 export type ReleaseOutcome = "news" | "notFound" | "skipped" | "off" | "failed";
 
-// how many are out past where they are (at least the one that put it on
-// New): volumes, chapters, or volumes in Japan
+// How many are out past where they are (at least the one that put it on
+// New): volumes, chapters, or volumes in Japan. For volumes it's the newest
+// one's number less theirs, not how many books we have: the catalog has
+// holes (Hunter x Hunter with seven volumes missing said "25 behind" for 32)
 export function behindOf(
   found: ReleaseStatus | null | undefined,
   kind: "volumes" | "chapters" | "japan",
@@ -20,7 +22,37 @@ export function behindOf(
     return found.latestChapter != null && found.nextChapter != null
       ? Math.max(1, Math.floor(found.latestChapter) - found.nextChapter + 1)
       : 1;
+  const { latestVolume, currentVolume } = found;
+  if (latestVolume != null && currentVolume != null)
+    return Math.max(1, Math.floor(latestVolume) - Math.floor(currentVolume));
   return Math.max(1, found.outVolumes.length);
+}
+
+// Do we know which volume is next for them? Yes when the catalog's next
+// book is the one right after theirs, or is the newest volume (a new
+// release). No when the catalog has a hole there: Hunter x Hunter's books
+// start again at vol. 10, and "Vol. 10 next" to someone who owns vol. 1 is
+// wrong. Then a card only says how far behind they are
+export function knowsNextVolume(found: ReleaseStatus | null | undefined) {
+  if (!found || found.nextVolume == null) return false;
+  if (found.currentVolume == null) return true;
+  return (
+    found.nextVolume === Math.floor(found.currentVolume) + 1 ||
+    found.nextVolume === found.latestVolume
+  );
+}
+
+// Every volume past theirs up to the newest, each with its book when the
+// catalog has one: the list a card that's behind opens. A number with no
+// book still gets a row, so the list is as long as the card says
+export function volumesToGet(found: ReleaseStatus) {
+  const { latestVolume, currentVolume, outVolumes } = found;
+  if (latestVolume == null || currentVolume == null) return outVolumes;
+  const books = new Map(outVolumes.map((v) => [v.volume, v]));
+  const list: ReleaseStatus["outVolumes"] = [];
+  for (let n = Math.floor(currentVolume) + 1; n <= latestVolume; n++)
+    list.push(books.get(n) ?? { volume: n });
+  return list;
 }
 
 // Is it news: the one thing out is the newest, so they're caught up but
@@ -58,15 +90,6 @@ export function shownNewCount(
 }
 
 export type SeenKind = "volume" | "chapter" | "japan";
-
-// the volumes that are out and aren't theirs, less any they've hidden: the
-// list a card that's behind opens
-export const remainingVolumes = (m: Manga, found: ReleaseStatus) =>
-  found.outVolumes.filter(
-    (v) =>
-      v.volume > (m.seenVolume ?? 0) &&
-      !(m.hiddenVolumes ?? []).includes(v.volume),
-  );
 
 // whether it's still new, after a change to what they've hidden
 export const isStillNew = (kind: SeenKind, m: Manga, found: ReleaseStatus) => {

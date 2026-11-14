@@ -7,6 +7,7 @@ import {
 import { useTrackBy } from "../../lib/prefs";
 import { useState } from "react";
 import { NavLink } from "react-router";
+import KeepRanges from "../keepRanges/KeepRanges";
 import StarRating from "../starRating/StarRating";
 import DrawnCover from "../drawnCover/DrawnCover";
 import type { Manga } from "../../lib/types";
@@ -221,7 +222,10 @@ export default function MangaCard({
                 follows on the same line */}
             {news.behind && (
               <span className="block text-[0.92rem] upto-720:inline upto-720:text-[1.05rem]">
-                <span className="hidden upto-720:inline"> · </span>
+                {/* (alone when we can't say which volume is next) */}
+                {news.text && (
+                  <span className="hidden upto-720:inline"> · </span>
+                )}
                 {news.behind}
               </span>
             )}
@@ -229,7 +233,7 @@ export default function MangaCard({
         )}
         {news && (
           <p className="min-h-[1.3em] text-[0.82rem] leading-[1.3] text-ink-soft">
-            {news.yours}
+            {news.yours && <KeepRanges text={news.yours} />}
           </p>
         )}
         {/* the New tab's cards all match: only what's out and where they are */}

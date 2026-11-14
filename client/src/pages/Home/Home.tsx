@@ -36,6 +36,7 @@ import SelectDock, { MovedNote } from "./SelectDock";
 import {
   CheckBar,
   HiddenNote,
+  HeldBack,
   NothingNew,
   ReleaseLinks,
   ReleaseTools,
@@ -120,23 +121,14 @@ function Library() {
     const saved = readSession("librarySort", readLocal("shelfSort") ?? "");
     return SORT_OPTIONS.some((o) => o.value === saved) ? saved : "";
   });
-  const [releaseKind, setReleaseKind] = useState<ReleaseKind>(() => {
-    const saved = readSession("libraryReleaseKind", "volumes");
-    return saved in RELEASE_KINDS ? (saved as ReleaseKind) : "volumes";
-  });
-  // the series whose list of volumes to get is open
-  const [openRelease, setOpenRelease] = useState<number | null>(null);
-  // set in settings; Kenji's compact-rows offer (ViewPeek) can change it
-  // while they're here
-  const [rowsChosen, setRowsChosen] = useState(() => shelfViewNow() === "rows");
-  const hiddenCount = (mangaData ?? []).filter((m) =>
-    isHiddenAs(releases[m.id], releaseKind),
-  ).length;
-  // showing the last one again leaves nothing here, so it goes back to what's new
-  const viewingHidden = tab === "new" && wantHidden && hiddenCount > 0;
   const showingNew = tab === "new";
-  // on a big New tab, one pile's own page, or everything at once
+  // on a big New tab, one pile's own page, or everything at once; and which
+  // side of New is showing (Volumes, Chapters or In Japan)
   const {
+    side: releaseKind,
+    setSide: pickKind,
+    openList,
+    setOpenList,
     pileParam,
     pileView,
     pileSort,
@@ -145,6 +137,14 @@ function Library() {
     openPile,
     closePile,
   } = usePileView(showingNew);
+  // set in settings; Kenji's compact-rows offer (ViewPeek) can change it
+  // while they're here
+  const [rowsChosen, setRowsChosen] = useState(() => shelfViewNow() === "rows");
+  const hiddenCount = (mangaData ?? []).filter((m) =>
+    isHiddenAs(releases[m.id], releaseKind),
+  ).length;
+  // showing the last one again leaves nothing here, so it goes back to what's new
+  const viewingHidden = tab === "new" && wantHidden && hiddenCount > 0;
 
   // the shelf shows one block of manga at a time; any change to the tab,
   // search or sort starts again from the first block
@@ -362,7 +362,7 @@ function Library() {
         ]
       : []),
   ];
-  const openManga = mangaData.find((m) => m.id === openRelease);
+  const openManga = mangaData.find((m) => m.id === openList);
 
   const total = mangaData.length;
   // a series with no saved place can't be called caught up, so it never shows
@@ -375,6 +375,24 @@ function Library() {
     return !m.volumesOwned && !releases[m.id]?.currentVolume;
   };
   const unknownPlace = looked.filter(hasNoPlace).length;
+  // series with something out that their setting keeps off this list
+  // ("only series I'm nearly caught up on"): said when the list is empty
+  // when this side of the switch is empty: a side that isn't, to offer
+  const sides: { kind: ReleaseKind; count: number }[] = [
+    { kind: "volumes", count: counts.newVolumes },
+    { kind: "chapters", count: counts.newChapters },
+    { kind: "japan", count: counts.newInJapan },
+  ];
+  const elsewhere = sides.find((s) => s.kind !== releaseKind && s.count > 0);
+  const heldBack = looked.filter((m) => {
+    const found = releases[m.id];
+    if (!found || m.planned) return false;
+    if (releaseKind === "volumes")
+      return !found.volumeListed && found.nextVolume != null;
+    if (releaseKind === "chapters")
+      return !found.chapterListed && found.nextChapter != null && !m.status;
+    return false;
+  }).length;
   // every title failed, so "nothing new" would be a false comfort. A few failing
   // goes unsaid: the rest still stand, and they get tried again on the next visit
   const allFailed =
@@ -398,10 +416,12 @@ function Library() {
     const found = releases[m.id];
     const detailsTo = `/details/${m.id}${detailsSearchFor(releaseKind) ?? ""}`;
     const opensList = !viewingHidden && opensAList(found, releaseKind);
-    const behind = volumesBehind(found, releaseKind);
+    // Japan being ahead isn't them being behind: no "3 behind" there
+    const behind =
+      releaseKind === "japan" ? 0 : volumesBehind(found, releaseKind);
     return {
       to: buyLinkFor(found, releaseKind) ?? detailsTo,
-      onOpen: opensList ? () => setOpenRelease(m.id) : undefined,
+      onOpen: opensList ? () => setOpenList(m.id) : undefined,
       stamp: stampFor(found, releaseKind),
       behind: behind > 0 ? behind : undefined,
     };
@@ -424,7 +444,7 @@ function Library() {
             }
           : undefined
       }
-      onOpenReleases={() => setOpenRelease(manga.id)}
+      onOpenReleases={() => setOpenList(manga.id)}
       onHide={() => hideActions.hide(manga)}
     />
   );
@@ -476,6 +496,9 @@ function Library() {
           unknownPlace={unknownPlace}
           notFound={notFound}
           checking={checking}
+          heldBack={heldBack}
+          elsewhere={elsewhere}
+          onKind={pickKind}
         />
       );
     if (nothingShown)
@@ -646,10 +669,7 @@ function Library() {
       {showingNew && (
         <ReleaseTools
           kind={releaseKind}
-          onKind={(kind) => {
-            setReleaseKind(kind);
-            writeSession("libraryReleaseKind", kind);
-          }}
+          onKind={pickKind}
           counts={{
             volumes: counts.newVolumes,
             chapters: counts.newChapters,
@@ -688,6 +708,17 @@ function Library() {
 
       {body()}
 
+      {/* a list their setting has shortened says so, under it */}
+      {showingNew &&
+        !viewingHidden &&
+        !pileView &&
+        heldBack > 0 &&
+        visibleManga.length > 0 && (
+          <div className="mt-6 text-center">
+            <HeldBack count={heldBack} />
+          </div>
+        )}
+
       {/* how fresh it all is, at the foot, for whoever wonders */}
       {showingNew && !checking && Number.isFinite(oldestCheck) && (
         <p className={styles.checkedFoot}>Checked {checkedAgo(oldestCheck)}</p>
@@ -698,7 +729,7 @@ function Library() {
           manga={openManga}
           found={releases[openManga.id]!}
           yours={newsFor(openManga, releases[openManga.id], releaseKind).yours}
-          onClose={() => setOpenRelease(null)}
+          onClose={() => setOpenList(null)}
         />
       )}
 
