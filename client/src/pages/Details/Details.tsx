@@ -9,6 +9,7 @@
 //   RateVolume, YourReviews, ReviewDialog   their reviews of its volumes
 //   SeriesActions   Edit, Mark as finished, Delete
 //   BuyStrip        the cover's side: what to buy next
+import Cover from "../../components/cover/Cover";
 import type { ShelfVolume } from "../../lib/reviews";
 import { useEffect, useRef, useState } from "react";
 import { NavLink, useNavigate, useParams, useSearchParams } from "react-router";
@@ -449,10 +450,12 @@ export default function Details() {
         <div className={styles.side}>
           <figure className={`${styles.cover} ${styles.coverTilt}`}>
             {cover ? (
-              <img
-                src={cover}
+              <Cover
+                url={cover}
+                sizes="(max-width: 720px) 110px, 240px"
                 alt={mangaData.name}
-                onError={() => setBrokenCover(cover)}
+                eager
+                onFail={() => setBrokenCover(cover)}
               />
             ) : (
               <DrawnCover

@@ -183,6 +183,42 @@ const googleCoverLabel = (day = coverDay()) => `gbcover:${day}`;
 const sharper = (thumbnail: string) =>
   `${thumbnail.replace(/^http:/, "https:").replace(/&edge=curl/, "")}&fife=w400-h600`;
 
+// A saved Google cover at another width. Its image host makes any width
+// (up to its own scan's), and a different width is only a different
+// address: it costs none of the day's lookups
+export const googleCoverAt = (url: string, width: number) => {
+  const sized = `fife=w${width}-h${Math.round(width * 1.5)}`;
+  return /[?&]fife=[^&]*/.test(url)
+    ? url.replace(/([?&])fife=[^&]*/, `$1${sized}`)
+    : `${url}&${sized}`;
+};
+
+// ---------- AniList, for a series' cover ----------
+
+// A series cover on AniList's image host, which keeps each one at up to
+// three widths under one file name. Only an address of exactly this shape
+// is ever fetched for the series-cover route, so it can't be used to make
+// this server fetch anything else
+const ANILIST_COVER =
+  /^(https:\/\/s4\.anilist\.co\/file\/anilistcdn\/media\/manga\/cover\/)(small|medium|large)(\/[\w.-]+)$/;
+// AniList's medium is 230px wide
+const ANILIST_MEDIUM = 230;
+
+// The AniList pictures to resize from, for a cover wanted at `width`, best
+// first: its medium when that's wide enough, else its large; then the size
+// saved on the shelf entry, which is known to exist. (An older cover has no
+// large at all: "The History of the West Wing" answered 404 for it, and the
+// page showed an empty frame.) Empty for any address that isn't an AniList
+// cover
+export function anilistSources(url: string, width: number): string[] {
+  const found = url.match(ANILIST_COVER);
+  if (!found) return [];
+  const [, base, saved, file] = found;
+  const wanted = width <= ANILIST_MEDIUM ? "medium" : "large";
+  const sizes = wanted === saved ? [saved] : [wanted, saved];
+  return sizes.map((size) => `${base}${size}${file}`);
+}
+
 const asking = new Map<string, Promise<string | null | undefined>>();
 
 // `ask`: false gives only a cover already found (a crawler's request never

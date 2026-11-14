@@ -3,6 +3,7 @@
 // Only this file can spend a paid search, and at most once per volume every
 // FRESH_FOR_MS. Part of the price service (service.ts lists the parts).
 import { volumeHeading, titleVolume, isWellKnown } from "./volumeNames.js";
+import { hasNoCover } from "../models/coversAndSitemap.js";
 import priceQueries, { type Book } from "../models/priceQueries.js";
 import { englishAuthors, lookupIsbn } from "./sources/catalog.js";
 import { isNovelBook, seriesName } from "./stores/match.js";
@@ -458,7 +459,7 @@ export async function getVolumePrices(
       publisher: publisherOf(book.isbn13, { work: [book.publisher] }),
       // an edition known to have no cover: none, as the preview tags have it,
       // so the page (and its tags) never point at an image that answers 404
-      coverUrl: coverRow && coverRow.coverId === null ? null : book.coverUrl,
+      coverUrl: hasNoCover(coverRow) ? null : book.coverUrl,
       year: book.year,
     },
     offers: offers.map((o) => {

@@ -16,11 +16,19 @@ import { sendError } from "../middlewares/errorHandler.js";
 import { searchVolumes, toIsbn13 } from "../prices/sources/catalog.js";
 import {
   CoverLookupPaused,
+  anilistSources,
   coverImageUrl,
   editionCoverId,
   fallbackCover,
+  googleCoverAt,
   isbnCoverImageUrl,
 } from "../prices/sources/covers.js";
+import {
+  COVER_WIDTHS,
+  allowedWidth,
+  resizeCover,
+  type CoverWidth,
+} from "../prices/sources/coverResizer.js";
 import { isCrawler } from "../prices/crawlers.js";
 import { learnAnimeAnswer } from "../prices/afterAnime/afterAnime.js";
 import { isHuman } from "../prices/human.js";
@@ -282,12 +290,18 @@ const seriesIndex = async (_req: Request, res: Response) => {
   res.set("Cache-Control", CACHE_10_MIN).json(await getSeriesIndex());
 };
 
-// GET /cover/:isbn?size=M|L  redirects to the edition's cover image
+// GET /cover/:isbn?w=330  the edition's cover image. With a width (one of
+// sources/coverResizer.ts COVER_WIDTHS, or the next one up): resized to it
+// and sent as WebP, from the largest picture the source has. With none: the
+// source's own medium picture as it came, as before widths (link previews
+// and old pages still ask that way).
+// The page offers the browser several widths and it picks by the slot and
+// the screen (client lib/coverSizes.ts)
 const cover = [
   ...isbnParam,
   async (req: Request, res: Response) => {
     const { isbn } = matchedData(req);
-    const size = req.query.size === "L" ? "L" : "M";
+    const width = allowedWidth(req.query.w);
     try {
       const id = await editionCoverId(isbn);
       // none on Open Library: Google Books' cover of this edition, if it has
@@ -316,7 +330,7 @@ const cover = [
       // the image itself, from this site: no chain of redirects for search
       // engines to give up on, and the covers count as this site's in image
       // search. Cloudflare keeps it (a Cache Rule on /api/prices/cover/)
-      await sendImage(res, fallback ?? coverImageUrl(id!, size));
+      await sendImage(res, coverSource(id, fallback, width), width);
     } catch (e) {
       if (!(e instanceof CoverLookupPaused)) {
         console.error("cover lookup failed:", (e as Error).message);
@@ -326,18 +340,65 @@ const cover = [
       // per visitor rather than per server, so it's fine as a stopgap.
       // Never cached, so the next visit gets the by-ID image again
       res.set("Cache-Control", "no-store");
-      res.redirect(302, isbnCoverImageUrl(isbn, size));
+      res.redirect(302, isbnCoverImageUrl(isbn, width ? "L" : "M"));
     }
   },
 ];
 
-// a cover image passed on as it came, kept 30 days by browsers and
-// Cloudflare. Anything that isn't an image (a host's error page) throws, and
-// the route falls back to sending the browser there itself
+// Where an edition's cover is fetched from. To be resized: the largest the
+// source has (Open Library's large; Google's at the widest we make). With
+// no width asked: what it always was, Open Library's medium or the Google
+// cover as saved
+const WIDEST = COVER_WIDTHS.at(-1)!;
+function coverSource(
+  id: number | null,
+  google: string | null | undefined,
+  width: CoverWidth | null,
+) {
+  if (google) return width ? googleCoverAt(google, WIDEST) : google;
+  return coverImageUrl(id!, width ? "L" : "M");
+}
+
+// GET /cover/series?u=<an AniList cover's address>&w=170  a series' cover,
+// resized. Only AniList's own cover addresses are fetched (covers.ts
+// anilistSources); anything else is a 400
+const seriesCover = async (req: Request, res: Response) => {
+  const width = allowedWidth(req.query.w);
+  const sources =
+    width && typeof req.query.u === "string"
+      ? anilistSources(req.query.u, width)
+      : [];
+  if (!width || !sources.length) {
+    sendError(res, 400, "That isn't a cover we can resize.");
+    return;
+  }
+  // the best picture first; if AniList doesn't have that one, the next
+  for (const source of sources) {
+    try {
+      await sendImage(res, source, width);
+      return;
+    } catch (e) {
+      console.error("series cover failed:", (e as Error).message);
+    }
+  }
+  // none could be fetched from here: the saved picture itself, as the page
+  // would have asked AniList for it before
+  res.set("Cache-Control", "no-store");
+  res.redirect(302, sources.at(-1)!);
+};
+
+// A cover image passed on, kept 30 days by browsers and Cloudflare: as it
+// came, or (with a width) resized to it as WebP. Anything that isn't an
+// image (a host's error page) throws, and the route falls back to sending
+// the browser there itself
 const COVER_FETCH_MS = 10_000;
 const COVER_TYPES = /^image\/(jpeg|png|webp|gif|avif)\b/i;
 const COVER_MAX_BYTES = 8 * 1024 * 1024;
-async function sendImage(res: Response, url: string) {
+async function sendImage(
+  res: Response,
+  url: string,
+  width: CoverWidth | null = null,
+) {
   const upstream = await fetch(url, {
     signal: AbortSignal.timeout(COVER_FETCH_MS),
   });
@@ -349,11 +410,18 @@ async function sendImage(res: Response, url: string) {
   const image = Buffer.from(await upstream.arrayBuffer());
   if (image.length > COVER_MAX_BYTES)
     throw new Error(`cover image is ${image.length} bytes`);
+  // a picture that can't be resized still goes out, as it came
+  const resized = width
+    ? await resizeCover(image, width).catch((e: Error) => {
+        console.error("cover resize failed:", e.message);
+        return null;
+      })
+    : null;
   res.set({
-    "Content-Type": type,
+    "Content-Type": resized ? "image/webp" : type,
     "Cache-Control": "public, max-age=2592000",
   });
-  res.end(image);
+  res.end(resized ?? image);
 }
 
 // GET /summary/volume/:isbn  for the site's link-preview server; DB only
@@ -397,6 +465,7 @@ export default {
   deals,
   seriesIndex,
   cover,
+  seriesCover,
   volumeSummary,
   seriesSummary,
 };

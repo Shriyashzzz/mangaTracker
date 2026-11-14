@@ -420,3 +420,31 @@ test("with a Books-A-Million price, Google Shopping isn't asked", async () => {
   expect(asked).toBe(false);
   expect(await prices()).toEqual(["Books-A-Million new 959"]);
 });
+
+test("a cover only Google Books has still counts as a cover", async () => {
+  const { hasNoCover, getCoverIds } =
+    await import("../../models/coversAndSitemap.js");
+  // Open Library has none for either; Google Books has one for the first
+  // (a volume that isn't out yet is often only there)
+  // (this file keeps its rows between runs: start from none of these two)
+  const isbns = ["9780000000141", "9780000000142"];
+  await prisma.editionCover.deleteMany({ where: { isbn13: { in: isbns } } });
+  await prisma.editionCover.createMany({
+    data: [
+      {
+        isbn13: "9780000000141",
+        coverId: null,
+        fallbackUrl: "https://books.google.com/books/content?id=x",
+        fallbackCheckedAt: new Date(),
+      },
+      { isbn13: "9780000000142", coverId: null, fallbackCheckedAt: new Date() },
+    ],
+  });
+  const rows = await getCoverIds(isbns);
+  const row = (isbn13: string) => rows.find((r) => r.isbn13.trim() === isbn13);
+  expect(hasNoCover(row("9780000000141"))).toBe(false);
+  expect(hasNoCover(row("9780000000142"))).toBe(true);
+  // never looked up: not known to have none
+  expect(hasNoCover(undefined)).toBe(false);
+  await prisma.editionCover.deleteMany({ where: { isbn13: { in: isbns } } });
+});

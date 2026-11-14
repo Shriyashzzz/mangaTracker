@@ -3,17 +3,12 @@
 // already on the shelf. Each opens its volume page; Add to calendar sits
 // under the date, and Preorder goes straight to the stores on its page. A
 // long month shows its first `limit`, the rest on asking
-import { coverSet } from "../../lib/coverSizes";
+import Cover from "../cover/Cover";
 import { useState } from "react";
 import { NavLink } from "react-router";
 import { CheckIcon } from "../icons/Icons";
 import { dayName, type CalendarVolume } from "../../lib/collector";
-import {
-  coverSrc,
-  hideBrokenCover,
-  hidePlaceholderCover,
-  volumePath,
-} from "../../lib/prices";
+import { volumePath } from "../../lib/prices";
 import AddToCalendar from "./AddToCalendar";
 import { rememberSpot, useWasShowingAll } from "../../lib/returnSpot";
 import { calendarParts as styles } from "./styles";
@@ -27,27 +22,13 @@ export function VolumeCover({
   volume: CalendarVolume;
   big?: boolean;
 }) {
+  // how wide it's drawn: 36px in a list, 56px in the roomy one
+  const slot = big ? "56px" : "36px";
   return (
     <span className={big ? styles.coverRoomy : styles.cover} aria-hidden>
-      {volume.seriesCover && (
-        <img
-          src={coverSrc(volume.seriesCover)}
-          srcSet={coverSet(volume.seriesCover)}
-          sizes="54px"
-          alt=""
-          loading="lazy"
-          onError={hideBrokenCover}
-        />
-      )}
-      {volume.coverUrl && (
-        <img
-          src={coverSrc(volume.coverUrl)}
-          alt=""
-          loading="lazy"
-          onError={hideBrokenCover}
-          onLoad={hidePlaceholderCover}
-        />
-      )}
+      {/* the series' cover underneath, the volume's own on top if it has one */}
+      <Cover url={volume.seriesCover} sizes={slot} />
+      <Cover url={volume.coverUrl} sizes={slot} />
     </span>
   );
 }

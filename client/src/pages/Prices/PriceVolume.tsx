@@ -5,6 +5,7 @@
 //   volumePageRules.ts    what shows, which stores get a link (pure)
 //   VolumePageStates.tsx  loading and not-found
 //   OfferList, ShelfAction, BoxSetNote, canada/ (the Canadian prices)
+import Cover from "../../components/cover/Cover";
 import { isCollection } from "../../lib/types";
 import CanadaPrices from "./canada/CanadaPrices";
 import CountrySwitch from "./canada/CountrySwitch";
@@ -16,10 +17,7 @@ import { noteStoreClick } from "../../lib/support";
 import { ChevronDownIcon } from "../../components/icons/Icons";
 import { NavLink, useLocation, useNavigate, useParams } from "react-router";
 import {
-  coverSrc,
   formatCents,
-  hideBrokenCover,
-  hidePlaceholderCover,
   volumePath,
   seriesCanonicalPath,
   seriesPath,
@@ -210,14 +208,13 @@ export default function PriceVolume() {
             number={volume}
             seriesCoverUrl={series.info?.coverUrl}
           />
-          {book.coverUrl && (
-            <img
-              src={coverSrc(book.coverUrl)}
-              alt={book.title}
-              onError={hideBrokenCover}
-              onLoad={hidePlaceholderCover}
-            />
-          )}
+          {/* the page's own cover: the widest it's drawn anywhere */}
+          <Cover
+            url={book.coverUrl}
+            sizes="(max-width: 720px) 102px, 238px"
+            alt={book.title}
+            eager
+          />
         </figure>
 
         <header className={styles.volumeHead}>

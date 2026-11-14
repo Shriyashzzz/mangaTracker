@@ -2,16 +2,9 @@ import { askedEdition } from "../../lib/editions";
 import { useEffect, useId, useRef, useState, type KeyboardEvent } from "react";
 import type { SeriesHit } from "../../lib/types";
 import { useNavigate } from "react-router";
+import Cover from "../../components/cover/Cover";
 import { SearchIcon } from "../../components/icons/Icons";
-import {
-  asIsbn,
-  coverSrc,
-  hideBrokenCover,
-  hidePlaceholderCover,
-  novelParts,
-  searchSeries,
-  seriesPath,
-} from "../../lib/prices";
+import { asIsbn, novelParts, searchSeries, seriesPath } from "../../lib/prices";
 import { pricesStyles as styles } from "./styles";
 import { isMobile } from "react-device-detect";
 import { hasBottomBar } from "../../lib/bottomBar";
@@ -219,14 +212,7 @@ export default function SeriesSearchBox({
                 onMouseEnter={() => setActive(i)}
               >
                 <span className={styles.suggestThumb}>
-                  {s.thumbUrl && (
-                    <img
-                      src={coverSrc(s.thumbUrl)}
-                      alt=""
-                      onError={hideBrokenCover}
-                      onLoad={hidePlaceholderCover}
-                    />
-                  )}
+                  <Cover url={s.thumbUrl} sizes="34px" />
                 </span>
                 <span className={styles.suggestText}>
                   <span className={styles.suggestName}>

@@ -7,6 +7,7 @@
 //   SeriesPageParts.tsx  one card of the list, loading and not-found
 //   BoxSets, EditionsBox, OtherEditions, SeriesCostBox, SeriesFacts
 //   AfterAnime/AfterAnimeBar    the way to where the anime leaves off
+import Cover from "../../components/cover/Cover";
 import { SeriesScoreBadge } from "./SeriesScore";
 import { useState } from "react";
 import { NavLink, useParams, useSearchParams } from "react-router";
@@ -23,12 +24,7 @@ import {
 } from "../../lib/finishCost";
 import { useFromShelf } from "../../lib/fromShelf";
 import { nextToGet, ownedOf, rangesText } from "../../lib/ownedVolumes";
-import {
-  coverSrc,
-  formatCents,
-  hideBrokenCover,
-  novelParts,
-} from "../../lib/prices";
+import { formatCents, novelParts } from "../../lib/prices";
 import { onSale } from "../../lib/releaseDate";
 import { usePageMeta } from "../../lib/seo";
 import { useAuth } from "../../store/auth";
@@ -192,24 +188,14 @@ export default function PriceSeries() {
         {/* the US edition's first volume; AniList's cover is the Japanese one */}
         {(volumes[0]?.coverUrl || info?.coverUrl) && (
           <span className={styles.seriesCoverBox}>
-            <img
+            {/* if the volume's own cover won't load: AniList's, then
+                nothing rather than a broken image */}
+            <Cover
               className={styles.seriesCover}
-              src={
-                volumes[0]?.coverUrl
-                  ? coverSrc(volumes[0].coverUrl)
-                  : (info?.coverUrl ?? undefined)
-              }
-              alt=""
-              onError={(e) => {
-                // no US cover on file: fall back to AniList's, and if that
-                // fails too (or there isn't one), show nothing rather than a
-                // broken image
-                if (info?.coverUrl && e.currentTarget.src !== info.coverUrl) {
-                  e.currentTarget.src = info.coverUrl;
-                } else {
-                  hideBrokenCover(e);
-                }
-              }}
+              url={volumes[0]?.coverUrl ?? info?.coverUrl}
+              fallbackUrl={volumes[0]?.coverUrl ? info?.coverUrl : null}
+              sizes="(max-width: 720px) 94px, 178px"
+              eager
             />
             {/* readers' score for the series, hung on the cover's corner */}
             <SeriesScoreBadge score={data.readerScore ?? null} />

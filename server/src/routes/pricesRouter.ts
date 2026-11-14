@@ -23,6 +23,8 @@ pricesRouter.get("/series-sets", perMinute(20), prices.seriesSets);
 // its omnibus and deluxe lines, for a reader collecting one
 pricesRouter.get("/editions", perMinute(40), prices.editions);
 // covers: a series page loads 30+ at once
+// (before /cover/:isbn, or "series" would be read as an ISBN)
+pricesRouter.get("/cover/series", perMinute(600), prices.seriesCover);
 pricesRouter.get("/cover/:isbn", perMinute(600), prices.cover);
 // link previews; cheap database reads
 pricesRouter.get("/summary/volume/:isbn", perMinute(300), prices.volumeSummary);

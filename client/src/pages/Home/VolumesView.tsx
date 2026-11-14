@@ -3,7 +3,7 @@
 // as covers, theirs inked in and the rest faded as "Not on your shelf", each one a
 // link to its prices. The covers come from the price checker's series list,
 // asked only when a row is opened.
-import { coverSet } from "../../lib/coverSizes";
+import Cover from "../../components/cover/Cover";
 import { formatCents } from "../../lib/prices";
 import { useEffect, useRef, useState } from "react";
 import RangePager from "../../components/rangePager/RangePager";
@@ -11,14 +11,7 @@ import { NavLink } from "react-router";
 import { CheckIcon, ChevronDownIcon } from "../../components/icons/Icons";
 import Mascot from "../../components/mascot/Mascot";
 import { ownedCount, ownedOf, rangesText } from "../../lib/ownedVolumes";
-import {
-  coverSrc,
-  getSeries,
-  hideBrokenCover,
-  hidePlaceholderCover,
-  priceName,
-  volumePath,
-} from "../../lib/prices";
+import { getSeries, priceName, volumePath } from "../../lib/prices";
 import type { Manga, SeriesVolume } from "../../lib/types";
 import {
   getShelfTools,
@@ -35,6 +28,9 @@ const plural = (n: number, one: string, many = `${one}s`) =>
 
 // series a page, as the shelf's
 const PAGE_SIZE = 20;
+
+// how wide a volume's tile is drawn, for its Cover to pick a size by
+const TILE_COVER = "70px";
 
 export default function VolumesView({
   manga,
@@ -241,17 +237,7 @@ function SeriesRow({
         onClick={onToggle}
       >
         <span className={styles.thumb} aria-hidden>
-          {manga.image && (
-            <img
-              src={manga.image}
-              srcSet={coverSet(manga.image)}
-              sizes="36px"
-              alt=""
-              loading="lazy"
-              onError={hideBrokenCover}
-              onLoad={hidePlaceholderCover}
-            />
-          )}
+          <Cover url={manga.image} sizes="36px" />
         </span>
         <span className={styles.rowText}>
           <span className={styles.name}>
@@ -400,15 +386,7 @@ function VolumeTile({
           numbered
           small
         />
-        {tile.book?.coverUrl ? (
-          <img
-            src={coverSrc(tile.book.coverUrl)}
-            alt=""
-            loading="lazy"
-            onError={hideBrokenCover}
-            onLoad={hidePlaceholderCover}
-          />
-        ) : null}
+        <Cover url={tile.book?.coverUrl} sizes={TILE_COVER} />
         {!tile.yours && hasPicture && (
           <span className={styles.veil} aria-hidden />
         )}

@@ -166,7 +166,11 @@ export const hidePlaceholderCover = (e: SyntheticEvent<HTMLImageElement>) => {
 export const hideBrokenCover = (e: SyntheticEvent<HTMLImageElement>) => {
   const img = e.currentTarget;
   const tries = Number(img.dataset.tries ?? 0);
-  if (tries >= COVER_RETRIES || !img.src.includes("/api/prices/cover/")) {
+  // the address that failed: one of its sizes, when it was offered several
+  const failed = img.currentSrc || img.src;
+  // (only a volume's own cover is tried again: a series cover that fails
+  // isn't Open Library being busy, and waiting left an empty frame)
+  if (tries >= COVER_RETRIES || !/\/api\/prices\/cover\/\d{13}/.test(failed)) {
     img.hidden = true;
     return;
   }
@@ -176,8 +180,11 @@ export const hideBrokenCover = (e: SyntheticEvent<HTMLImageElement>) => {
   img.addEventListener("load", () => (img.style.opacity = ""), { once: true });
   setTimeout(
     () => {
-      const url = new URL(img.src);
+      const url = new URL(failed);
       url.searchParams.set("try", String(tries + 1));
+      // asked for again at the size that failed, and only that one
+      img.removeAttribute("srcset");
+      img.removeAttribute("sizes");
       img.src = url.href;
     },
     COVER_RETRY_MS * (tries + 1),

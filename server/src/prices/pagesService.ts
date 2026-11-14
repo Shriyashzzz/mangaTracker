@@ -8,6 +8,7 @@ import {
   shopName,
   isWellKnown,
 } from "./volumeNames.js";
+import { hasNoCover } from "../models/coversAndSitemap.js";
 import priceQueries from "../models/priceQueries.js";
 import { englishAuthors } from "./sources/catalog.js";
 import {
@@ -91,7 +92,7 @@ export async function getVolumeSummary(isbn13: string) {
     year: book.year,
     // an edition we know has no cover: none, so previews and search engines
     // get the series' picture instead of an image address that answers 404
-    coverUrl: coverRow && coverRow.coverId === null ? null : book.coverUrl,
+    coverUrl: hasNoCover(coverRow) ? null : book.coverUrl,
     seriesName: series?.name ?? seriesName(book.title),
     seriesCoverUrl: series?.coverUrl ?? null,
     // stores people know first; `knownStores` is just those, for search

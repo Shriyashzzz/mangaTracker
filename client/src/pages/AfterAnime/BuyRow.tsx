@@ -4,16 +4,10 @@
 // stores" opens the volume's own page; without one, the button opens that
 // page, where its prices are looked up. A cheaper used copy is offered under
 // a new one; with no new copy priced, the used one is the button.
+import Cover from "../../components/cover/Cover";
 import { NavLink } from "react-router";
 import type { BuyOffer, UsedOffer } from "../../lib/afterAnime";
-import {
-  coverSrc,
-  formatCents,
-  hideBrokenCover,
-  hidePlaceholderCover,
-  timeAgo,
-  volumePath,
-} from "../../lib/prices";
+import { formatCents, timeAgo, volumePath } from "../../lib/prices";
 import type { SeriesVolume } from "../../lib/types";
 import { linkRel } from "../Prices/offerLabels";
 import { CoverFallback } from "../Prices/VolumeCard";
@@ -57,15 +51,7 @@ export default function BuyRow({
         viewTransition
       >
         <CoverFallback number={volume} seriesCoverUrl={seriesCoverUrl} />
-        {book.coverUrl && (
-          <img
-            src={coverSrc(book.coverUrl)}
-            alt=""
-            loading="lazy"
-            onError={hideBrokenCover}
-            onLoad={hidePlaceholderCover}
-          />
-        )}
+        <Cover url={book.coverUrl} sizes="80px" />
       </NavLink>
       <div className={styles.buyWords}>
         <h3 className={styles.buyTitle}>Volume {volume}</h3>

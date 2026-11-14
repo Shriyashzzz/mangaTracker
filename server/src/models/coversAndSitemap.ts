@@ -14,8 +14,18 @@ export const getCoverIds = (isbns: string[]) =>
         { checkedAt: { gt: new Date(Date.now() - MONTH_MS) } },
       ],
     },
-    select: { isbn13: true, coverId: true },
+    // (fallbackUrl: the cover Google Books has when Open Library has none)
+    select: { isbn13: true, coverId: true, fallbackUrl: true },
   });
+
+// Is this an edition we know has no cover? Its row says Open Library has
+// none, and Google Books (the cover route's second place to look,
+// sources/covers.ts fallbackCover) hasn't given one either. A book not out
+// yet is often on Google only: asking about Open Library alone hid Wistoria
+// vol. 14's cover on its own page while Upcoming Releases showed it
+export const hasNoCover = (
+  row: { coverId: number | null; fallbackUrl: string | null } | undefined,
+) => Boolean(row) && row!.coverId === null && !row!.fallbackUrl;
 
 export async function saveCoverIds(found: [string, number | null][]) {
   const checkedAt = new Date();

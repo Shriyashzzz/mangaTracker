@@ -10,6 +10,11 @@ import {
   URL_FROM_TAB,
   type Releases,
 } from "../../../../client/src/pages/Home/shelfViews.js";
+import {
+  COVER_WIDTHS,
+  coverChoices,
+  forSlowConnection,
+} from "../../../../client/src/lib/coverSizes.js";
 import { volumesToGet } from "../../../../client/src/lib/releaseMath.js";
 import type { Manga, ReleaseStatus } from "../../../../client/src/lib/types.js";
 
@@ -306,4 +311,33 @@ test("behind is the newest volume's number less theirs, holes in the catalog or 
   expect(list).toHaveLength(32);
   expect(list[0]).toEqual({ volume: 2 });
   expect(list.find((v) => v.volume === 10)?.isbn13).toBe("9780000000010");
+});
+
+test("a cover is offered at every width the server makes", () => {
+  // a volume's own cover, from our route
+  expect(coverChoices("/api/prices/cover/9781974754939")).toEqual(
+    COVER_WIDTHS.map((width) => ({
+      url: `/api/prices/cover/9781974754939?w=${width}`,
+      width,
+    })),
+  );
+  // a series' cover on AniList goes through our series-cover route
+  const anilist =
+    "https://s4.anilist.co/file/anilistcdn/media/manga/cover/medium/bx1.jpg";
+  expect(coverChoices(anilist)[0]).toEqual({
+    url: `/api/prices/cover/series?u=${encodeURIComponent(anilist)}&w=120`,
+    width: 120,
+  });
+  expect(coverChoices(anilist)).toHaveLength(COVER_WIDTHS.length);
+  // anywhere else: as it is
+  expect(coverChoices("https://example.com/a.jpg")).toEqual([
+    { url: "https://example.com/a.jpg", width: 0 },
+  ]);
+  // a slow connection is offered only the two narrowest
+  expect(forSlowConnection(coverChoices(anilist)).map((c) => c.width)).toEqual([
+    120, 220,
+  ]);
+  expect(
+    forSlowConnection(coverChoices("https://example.com/a.jpg")),
+  ).toHaveLength(1);
 });

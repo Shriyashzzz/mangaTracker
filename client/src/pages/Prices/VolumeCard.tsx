@@ -1,19 +1,18 @@
 import { StarIcon } from "../../components/icons/Icons";
 import { scoreText } from "./reviews/reviewText";
 import { NavLink } from "react-router";
-import {
-  coverSrc,
-  formatCents,
-  hideBrokenCover,
-  hidePlaceholderCover,
-  novelParts,
-  volumePath,
-} from "../../lib/prices";
+import Cover from "../../components/cover/Cover";
+import { formatCents, novelParts, volumePath } from "../../lib/prices";
 import { stayInTrip, useFromShelf } from "../../lib/fromShelf";
 import { pricesStyles as styles } from "./styles";
 
 // one volume: cover, volume tag, title and, when we have one, the best known
 // price. Used by search, series and home sections.
+
+// how wide a card's cover is drawn (110 to 130px on a phone, up to about
+// 160px on a laptop), and a small tile's, for the Cover to pick a size by
+const CARD_COVER = "(max-width: 720px) 130px, 160px";
+const TILE_COVER = "60px";
 
 // What sits behind a volume's own cover, showing when it's missing: the
 // series' cover from AniList, standing in. For vol. 1 that picture is its
@@ -42,29 +41,21 @@ export function CoverFallback({
     return (
       <span className={drawn} aria-hidden>
         {number ?? "?"}
-        {seriesCoverUrl && (
-          <img
-            className={styles.seriesFallback}
-            src={seriesCoverUrl}
-            alt=""
-            loading="lazy"
-            onError={hideBrokenCover}
-            onLoad={hidePlaceholderCover}
-          />
-        )}
+        <Cover
+          url={seriesCoverUrl}
+          sizes={small ? TILE_COVER : CARD_COVER}
+          className={styles.seriesFallback}
+        />
       </span>
     );
   return (
     <span className={drawn} aria-hidden>
       {/* under the picture: shows if the series cover fails to load too */}
       {number}
-      <img
+      <Cover
+        url={seriesCoverUrl}
+        sizes={small ? TILE_COVER : CARD_COVER}
         className={small ? styles.seriesStandInSmall : styles.seriesStandIn}
-        src={seriesCoverUrl}
-        alt=""
-        loading="lazy"
-        onError={hideBrokenCover}
-        onLoad={hidePlaceholderCover}
       />
       <span className={small ? styles.standInVeilSmall : styles.standInVeil} />
       {!numbered && <span className={styles.standInNumber}>{number}</span>}
@@ -128,9 +119,7 @@ export default function VolumeCard({
               }}
               aria-hidden
             >
-              {coverUrl && (
-                <img src={coverSrc(coverUrl)} alt="" loading="lazy" />
-              )}
+              <Cover url={coverUrl} sizes={CARD_COVER} />
             </span>
           ))}
         <span className={styles.cover}>
@@ -139,15 +128,7 @@ export default function VolumeCard({
             seriesCoverUrl={seriesCoverUrl}
             numbered={volume != null}
           />
-          {coverUrl && (
-            <img
-              src={coverSrc(coverUrl)}
-              alt=""
-              loading="lazy"
-              onError={hideBrokenCover}
-              onLoad={hidePlaceholderCover}
-            />
-          )}
+          <Cover url={coverUrl} sizes={CARD_COVER} />
           {mark && (
             <span
               className={mark === "next" ? styles.markNext : styles.markYours}

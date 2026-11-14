@@ -1,4 +1,3 @@
-import { coverSet } from "../../lib/coverSizes";
 import {
   placeText as placeOf,
   tracksOf,
@@ -7,6 +6,7 @@ import {
 import { useTrackBy } from "../../lib/prefs";
 import { useState } from "react";
 import { NavLink } from "react-router";
+import Cover from "../cover/Cover";
 import KeepRanges from "../keepRanges/KeepRanges";
 import StarRating from "../starRating/StarRating";
 import DrawnCover from "../drawnCover/DrawnCover";
@@ -138,16 +138,14 @@ export default function MangaCard({
     <>
       <div className={COVER_CLASS[shape]}>
         {hasCover ? (
-          <img
-            src={currentManga.image ?? undefined}
-            // a row's thumbnail asks for a small picture, a card for a full one
-            srcSet={coverSet(currentManga.image)}
+          // a row's thumbnail asks for a small picture, a card for a full
+          // one. Out of the flow, or a tall image stretches the cover past
+          // its shape
+          <Cover
+            url={currentManga.image}
             sizes={COVER_SIZES[shape]}
-            alt=""
-            loading="lazy"
-            // out of the flow, or a tall image stretches the cover past its shape
             className="absolute inset-0 size-full object-cover"
-            onError={() => setBrokenImage(currentManga.image)}
+            onFail={() => setBrokenImage(currentManga.image)}
           />
         ) : (
           // no cover, or one that won't load: its name, lettered on

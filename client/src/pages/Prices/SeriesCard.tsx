@@ -1,12 +1,6 @@
 import { NavLink } from "react-router";
-import {
-  coverSrc,
-  hideBrokenCover,
-  hidePlaceholderCover,
-  novelParts,
-  seriesCanonicalPath,
-  seriesPath,
-} from "../../lib/prices";
+import Cover from "../../components/cover/Cover";
+import { novelParts, seriesCanonicalPath, seriesPath } from "../../lib/prices";
 import { SeriesScoreBadge } from "./SeriesScore";
 import { useSeriesScore } from "./useSeriesScore";
 import { pricesStyles as styles } from "./styles";
@@ -51,15 +45,10 @@ export default function SeriesCard({
           <span className={styles.coverFallback} aria-hidden>
             ?
           </span>
-          {series.coverUrl && (
-            <img
-              src={coverSrc(series.coverUrl)}
-              alt=""
-              loading="lazy"
-              onError={hideBrokenCover}
-              onLoad={hidePlaceholderCover}
-            />
-          )}
+          <Cover
+            url={series.coverUrl}
+            sizes="(max-width: 720px) 110px, 156px"
+          />
         </span>
         <SeriesScoreBadge score={score} />
       </span>
