@@ -7,6 +7,8 @@
 //   SeriesPageParts.tsx  one card of the list, loading and not-found
 //   BoxSets, EditionsBox, OtherEditions, SeriesCostBox, SeriesFacts
 //   AfterAnime/AfterAnimeBar    the way to where the anime leaves off
+import { StarIcon } from "../../components/icons/Icons";
+import { scoreText } from "./reviews/reviewText";
 import { useState } from "react";
 import { NavLink, useParams, useSearchParams } from "react-router";
 import DealsStrip from "../../components/deals/DealsStrip";
@@ -218,6 +220,14 @@ export default function PriceSeries() {
             </p>
           )}
           {info && <SeriesFacts info={info} />}
+          {data.reviews?.average != null && (
+            <p className={styles.seriesRating}>
+              <StarIcon filled aria-hidden />
+              <b>{scoreText(data.reviews.average)}</b> from {data.reviews.count}{" "}
+              reader rating
+              {data.reviews.count === 1 ? "" : "s"}
+            </p>
+          )}
           <ToReadButton
             name={info?.name ?? data.name}
             altNames={info?.altNames}

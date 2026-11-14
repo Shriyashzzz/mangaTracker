@@ -155,6 +155,14 @@ export const detailsStyles = {
   releaseEstimate: "ml-1.5 font-mono text-[0.75rem] text-muted",
   label: "mb-[0.3rem] block font-mono text-[0.75rem] text-muted",
   rating: "border-t-[1.5px] border-line pt-4 upto-720:border-t-0 upto-720:pt-0",
+  // "You've read vol. 8. How was it?": one question, its stars beside it
+  rateVolume:
+    "flex flex-wrap items-center justify-between gap-x-6 gap-y-2 border-2 border-line bg-card px-[1.1rem] py-[0.9rem] shadow-ink-lg",
+  rateWords: "min-w-0",
+  rateTitle: "font-display text-[1.15rem] leading-[1.2] font-semibold",
+  rateNote: "text-[0.84rem] text-muted",
+  rateLinks:
+    "flex flex-wrap gap-x-4 text-[0.84rem] [&>*]:tap [&>*]:text-ink-soft [&>*]:underline [&>*]:decoration-line-soft [&>*]:underline-offset-3 [&>*]:hover:text-ink",
   // notes written on a ruled slip; the rule is drawn on the paragraph so
   // every line of text sits on one
   notes:

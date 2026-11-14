@@ -169,6 +169,12 @@ export const pricesStyles = {
   stackBack:
     "pointer-events-none absolute inset-0 origin-bottom-left upto-520:origin-bottom-right overflow-hidden border-[1.5px] border-line bg-paper-2 shadow-ink transition-[rotate,translate] duration-200 ease-ink [&>img]:size-full [&>img]:object-cover [&>img]:opacity-85",
   vol: "absolute top-0 left-0 flex items-baseline gap-[0.2rem] bg-ink pt-[0.2rem] pr-[0.85rem] pb-[0.1rem] pl-2 font-brand text-[1.5rem] leading-none tracking-[0.02em] text-paper [clip-path:polygon(0_0,100%_0,calc(100%-8px)_100%,0_100%)] [&_small]:text-[0.75rem] [&_small]:tracking-[0.08em] [&_small]:uppercase",
+  // readers' score on a cover's lower corner: a small paper label
+  coverRating:
+    "absolute right-1.5 bottom-1.5 z-1 flex items-center gap-[0.2rem] border-[1.5px] border-line bg-card px-[0.35rem] pt-[0.2rem] pb-[0.14rem] font-mono text-[0.76rem] leading-none font-medium text-ink shadow-[2px_2px_0_var(--hard-shadow)] tabular-nums [&_svg]:size-3 [&_svg]:stroke-line [&_svg]:text-star",
+  // the same for the whole series, as a line under its facts
+  seriesRating:
+    "flex items-center gap-[0.35rem] text-[0.95rem] text-ink-soft [&_b]:font-semibold [&_b]:text-ink [&_svg]:size-4 [&_svg]:stroke-line [&_svg]:text-star",
   cardTitle: "line-clamp-2 text-[0.92rem] leading-[1.3] font-semibold",
   cardMeta: "text-[0.8rem] text-muted",
   cardPrice:

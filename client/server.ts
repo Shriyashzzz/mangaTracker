@@ -18,6 +18,7 @@ import { fileURLToPath } from "node:url";
 import { isAppPage } from "./pagePaths.ts";
 import { visitorIp } from "./visitorIp.ts";
 import { ENOUGH_PRICED } from "./src/lib/enoughPriced.ts";
+import { ratingMarkup, type MarkedReview } from "./src/lib/reviewMarkup.ts";
 import { WHY_COLLECTORS } from "./src/lib/whyCollectors.ts";
 import { FAQ, FAQ_DESCRIPTION, faqJsonLd } from "./src/lib/content/faq.ts";
 import {
@@ -126,6 +127,13 @@ type VolumeSummary = {
   // description and the volumes around it; optional like offers
   published?: string | null;
   pages?: number | null;
+  // readers' rating, and their reviews that aren't spoilers; missing from
+  // an older API
+  reviews?: {
+    count: number;
+    average: number | null;
+    shown: MarkedReview[];
+  } | null;
   seriesDescription?: string | null;
   prev?: NearbyVolume | null;
   next?: NearbyVolume | null;
@@ -226,6 +234,26 @@ const releaseDate = (published: string) => {
 const volumeLink = (n: NearbyVolume, label = `Vol. ${n.volume}`) =>
   `<a href="${escapeHtml(volumePath(n.isbn13, n.title))}">${escapeHtml(label)}</a>`;
 
+// readers' rating and reviews, as the page's "What readers say"; nothing
+// for a volume nobody has rated
+function readersSay(v: VolumeSummary) {
+  const reviews = v.reviews;
+  if (!reviews?.count || reviews.average === null) return "";
+  const readers = `${reviews.count} reader${reviews.count === 1 ? "" : "s"}`;
+  return `<h2>What readers say</h2>
+      <p>Rated ${reviews.average} out of 5 by ${readers} who own or have read it.</p>
+      ${
+        reviews.shown.length
+          ? `<ul>${reviews.shown
+              .map(
+                (review) =>
+                  `<li>${review.rating} out of 5, ${escapeHtml(review.by)}: ${escapeHtml(review.text)}</li>`,
+              )
+              .join("")}</ul>`
+          : ""
+      }`;
+}
+
 function volumeBody(v: VolumeSummary, image: string | null | undefined) {
   const name = v.heading ?? v.title;
   const facts = [
@@ -262,6 +290,7 @@ function volumeBody(v: VolumeSummary, image: string | null | undefined) {
       </table>`
           : ""
       }
+      ${readersSay(v)}
       ${
         v.prev || v.next
           ? `<p>${[
@@ -411,6 +440,8 @@ function volumeTags(v: VolumeSummary, origin: string): Tags {
         offerCount: v.offerCount,
       },
     }),
+    // readers' rating and reviews (as the app's own tags)
+    ...ratingMarkup(v.reviews, v.reviews?.shown),
   };
   return {
     title: `${v.heading ?? v.title} price comparison`,

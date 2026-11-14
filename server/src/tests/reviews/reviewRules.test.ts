@@ -4,6 +4,7 @@
 import {
   hasLink,
   hasRead,
+  ratingSpread,
   ratingSummary,
   readersSaySpoiler,
   reportedEnough,
@@ -71,4 +72,9 @@ test("ratings are counted, and averaged to one decimal place", () => {
   expect(ratingSummary([])).toEqual({ count: 0, average: null });
   expect(ratingSummary([5])).toEqual({ count: 1, average: 5 });
   expect(ratingSummary([5, 4, 4])).toEqual({ count: 3, average: 4.3 });
+});
+
+test("the spread: how many gave each rating, from 1 star to 5", () => {
+  expect(ratingSpread([])).toEqual([0, 0, 0, 0, 0]);
+  expect(ratingSpread([5, 5, 4, 2, 5])).toEqual([0, 1, 0, 1, 3]);
 });

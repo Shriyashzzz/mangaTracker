@@ -13,6 +13,7 @@ import { defaultReaderName } from "../util/shelf/readerNames.js";
 import {
   hasLink,
   hasRead,
+  ratingSpread,
   ratingSummary,
   readersSaySpoiler,
   reportedEnough,
@@ -83,6 +84,8 @@ export async function volumeReviews(isbn13: string, viewerId: number | null) {
   return {
     // every shown rating counts; the list is the ones with words
     ...ratingSummary(shown.map((review) => review.rating)),
+    // how many gave 1 star, 2 … 5, for the page's bars
+    spread: ratingSpread(shown.map((review) => review.rating)),
     reviews: shown
       .filter((review) => review.body)
       .map((review) => sent(review, viewerId)),
@@ -142,6 +145,57 @@ export async function flagReview(id: number, userId: number, kind: FlagKind) {
   if (kind === "report" && reportedEnough(flags)) await store.hideReview(id);
 }
 
+// A volume's rating and the reviews anyone may be shown, for what search
+// engines read (the volume's summary) and the page's own markup. Never a
+// spoiler: a search result would show it to someone who hasn't read it
+export async function publicReviews(isbn13: string) {
+  const stored = await store.reviewsOfVolume(isbn13, null);
+  const withWords = stored
+    .filter((review) => review.body)
+    .map((review) => sent(review, null))
+    .filter((review) => !review.spoiler);
+  return {
+    ...ratingSummary(stored.map((review) => review.rating)),
+    shown: withWords.slice(0, 10).map(({ rating, text, by, writtenAt }) => ({
+      rating,
+      text,
+      by,
+      writtenAt,
+    })),
+  };
+}
+
+// For a series on a reader's shelf: the latest volumes they've read and
+// haven't rated, newest first (the details page asks about the first, and
+// offers the next once that's rated). Empty for a series that isn't theirs
+export async function volumesToRate(userId: number, mangaId: number) {
+  const manga = await prisma.manga.findFirst({
+    where: { id: mangaId, userId },
+  });
+  if (!manga) return [];
+  const [series] = await shelfSeries([manga]);
+  const read = (series?.volumes ?? []).filter(
+    (volume) =>
+      volume.isbn13 &&
+      volume.volume !== null &&
+      Number.isInteger(volume.volume) &&
+      volume.volume >= 1 &&
+      hasRead(manga, volume.volume),
+  );
+  const rated = await store.ratedBy(
+    userId,
+    read.map((volume) => volume.isbn13!.trim()),
+  );
+  return read
+    .filter((volume) => !rated.has(volume.isbn13!.trim()))
+    .sort((one, other) => other.volume! - one.volume!)
+    .slice(0, 3)
+    .map((volume) => ({
+      isbn13: volume.isbn13!.trim(),
+      volume: volume.volume!,
+    }));
+}
+
 // a series' ratings added up, and each reviewed volume's own, by number
 export async function seriesReviews(seriesSlug: string) {
   const ratings = await store.ratingsOfSeries(seriesSlug);
@@ -168,9 +222,18 @@ export async function seriesReviews(seriesSlug: string) {
 
 export async function reviewsToCheck() {
   const reported = await store.reportedReviews();
+  // each volume's own name, to say what a review is of
+  const books = await prisma.book.findMany({
+    where: { isbn13: { in: reported.map((review) => review.isbn13) } },
+    select: { isbn13: true, title: true },
+  });
+  const titleOf = new Map(
+    books.map((book) => [book.isbn13.trim(), book.title]),
+  );
   return reported.map((review) => ({
     id: review.id,
     isbn13: review.isbn13.trim(),
+    title: titleOf.get(review.isbn13.trim()) ?? null,
     rating: review.rating,
     text: review.body,
     by: review.user.displayName || defaultReaderName(review.user.id),

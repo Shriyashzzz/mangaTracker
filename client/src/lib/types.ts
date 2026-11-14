@@ -240,6 +240,8 @@ export type SeriesVolume = {
   recordedCents?: number | null;
   // its cheapest used copy in stock now, when one is known
   usedCents?: number | null;
+  // readers' average rating of it (1 to 5), when any have rated it
+  rating?: number | null;
   // sold inside a book with others: its ISBN is that book's
   inBook?: InBook;
   // the publisher's release date ("2027-03-30" or "2014-05"), when known
@@ -258,6 +260,8 @@ export type Series = {
   boxSetLinks?: StoreLink[];
   // "after the anime" has a page for this series
   hasAnimeAnswer?: boolean;
+  // readers' ratings of its volumes, added up; null with none
+  reviews?: { count: number; average: number | null } | null;
 };
 
 export type BoxSet = {

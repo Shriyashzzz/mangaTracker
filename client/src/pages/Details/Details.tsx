@@ -5,7 +5,7 @@
 //   ShelfBox        the little shelf of ticked volumes
 //   ReadingPlace    the chapter and volume counters
 //   ReleaseBar      the red "it's out" bar (its rules: releaseNews.ts)
-//   RatingField, NotesField, YourBooks
+//   RatingField, NotesField, YourBooks, RateVolume
 //   SeriesActions   Edit, Mark as finished, Delete
 //   BuyStrip        the cover's side: what to buy next
 import { useEffect, useRef, useState } from "react";
@@ -24,6 +24,7 @@ import { useShelf } from "../../store/shelf";
 import BuyStrip from "./BuyStrip";
 import { DetailsSkeleton, LoadFailed, type LoadError } from "./DetailsStates";
 import NotesField from "./NotesField";
+import RateVolume from "./RateVolume";
 import RatingField from "./RatingField";
 import ReadingPlace, { type ReadingChange } from "./ReadingPlace";
 import ReleaseBar from "./ReleaseBar";
@@ -379,6 +380,12 @@ export default function Details() {
               mangaId={mangaData.id}
               owned={owned}
               onRemoved={(left) => setMangaData({ ...mangaData, ...left })}
+            />
+
+            <RateVolume
+              // asks again when what they own or have read changes
+              key={`rate-${mangaData.id}-${owned.length}-${mangaData.readVolume ?? 0}-${mangaStatus}`}
+              mangaId={mangaData.id}
             />
 
             <SeriesActions

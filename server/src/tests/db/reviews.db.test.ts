@@ -7,7 +7,11 @@
 import request from "supertest";
 import { app } from "../../app.js";
 import { slugify } from "../../prices/stores/match.js";
-import { writeReview } from "../../reviews/reviews.js";
+import {
+  publicReviews,
+  volumesToRate,
+  writeReview,
+} from "../../reviews/reviews.js";
 import { closeDb, emptyDb, prisma } from "./testDb.js";
 import {
   cleanReviewSeries,
@@ -169,6 +173,40 @@ test("a series adds up its volumes' ratings", async () => {
     { isbn13: ISBN(1), volume: 1, count: 2, average: 4.5, written: 1 },
     { isbn13: ISBN(2), volume: 2, count: 1, average: 2, written: 1 },
   ]);
+});
+
+test("the page gets how the ratings spread, and search engines never get a spoiler", async () => {
+  await writeReview(await member("first", { owned: [1] }), ISBN(1), good);
+  await writeReview(await member("second", { owned: [1] }), ISBN(1), {
+    rating: 5,
+    text: "The twist on the last page is that he dies.",
+    spoiler: true,
+  });
+  const page = (await read(null, 1)).body;
+  expect(page.spread).toEqual([0, 0, 0, 1, 1]);
+  // both are sent to the page (it inks the spoiler out)
+  expect(page.reviews).toHaveLength(2);
+  const open = await publicReviews(ISBN(1));
+  expect(open).toMatchObject({ count: 2, average: 4.5 });
+  expect(open.shown.map((review) => review.text)).toEqual([good.text]);
+});
+
+test("a series on your shelf asks about the latest volume read and not yet rated", async () => {
+  const id = await member("reader", { owned: [1, 2, 3] });
+  const manga = await prisma.manga.findFirstOrThrow({ where: { userId: id } });
+  const ask = async () =>
+    (await volumesToRate(id, manga.id)).map((volume) => volume.volume);
+  expect(await ask()).toEqual([3, 2, 1]);
+  await writeReview(id, ISBN(3), good);
+  expect(await ask()).toEqual([2, 1]);
+  // someone else's series is nobody's to ask about
+  const other = await member("other", { owned: [1] });
+  expect(await volumesToRate(other, manga.id)).toEqual([]);
+  // and it needs a sign-in over the route
+  await request(app)
+    .get("/api/reviews/to-rate")
+    .query({ manga: manga.id })
+    .expect(401);
 });
 
 test("deleting an account takes its reviews with it", async () => {

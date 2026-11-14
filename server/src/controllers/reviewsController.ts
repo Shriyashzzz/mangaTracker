@@ -18,6 +18,7 @@ import {
   reviewsToCheck,
   seriesReviews,
   volumeReviews,
+  volumesToRate,
   writeReview,
 } from "../reviews/reviews.js";
 
@@ -107,6 +108,20 @@ const ofSeries = [
   },
 ];
 
+// GET /to-rate?manga=  for a series on your shelf: the latest volumes
+// you've read and haven't rated
+const toRate = [
+  requireSignIn,
+  query("manga").isInt({ min: 1 }).toInt(),
+  rejectInvalid,
+  async (req: Request, res: Response) => {
+    const { manga } = matchedData(req);
+    res
+      .set("Cache-Control", "private, no-store")
+      .json(await volumesToRate(req.session.userId!, manga));
+  },
+];
+
 // GET /reported  for the site's owner: every review with a report
 const reported = [
   requireOwnerOfSite,
@@ -128,4 +143,13 @@ const decide = [
   },
 ];
 
-export default { ofVolume, write, remove, flag, ofSeries, reported, decide };
+export default {
+  ofVolume,
+  write,
+  remove,
+  flag,
+  ofSeries,
+  toRate,
+  reported,
+  decide,
+};

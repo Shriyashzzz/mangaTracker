@@ -58,6 +58,16 @@ export const readersSaySpoiler = (spoilerFlags: number) =>
 // reported often enough to be hidden until the site's owner has looked
 export const reportedEnough = (reports: number) => reports >= REPORTS_TO_HIDE;
 
+// how many gave each rating, from 1 star to 5: [0, 1, 1, 3, 7]
+export function ratingSpread(ratings: number[]) {
+  const spread = [0, 0, 0, 0, 0];
+  for (const rating of ratings) {
+    const at = rating - 1;
+    if (at >= 0 && at < spread.length) spread[at] = spread[at]! + 1;
+  }
+  return spread;
+}
+
 // ratings added up: how many, and their average to one decimal place; null
 // with none
 export function ratingSummary(ratings: number[]) {
