@@ -42,7 +42,7 @@ export default function UpcomingReleases() {
   const next = first.volumes[0]!;
   const count = first.volumes.length;
   return (
-    <details className={styles.panel} data-keep="upcoming">
+    <details className={styles.panel} data-keep="upcoming" data-tour="upcoming">
       <summary className={styles.summary}>
         <span className={styles.title}>Upcoming Releases</span>
         <span className={styles.peek}>

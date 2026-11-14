@@ -11,7 +11,11 @@ import { NavLink, useLocation } from "react-router";
 import StarRating from "../../../components/starRating/StarRating";
 import { signInPath } from "../../../lib/api";
 import { timeAgo } from "../../../lib/prices";
-import { deleteReview, type VolumeReviews as Data } from "../../../lib/reviews";
+import {
+  deleteReview,
+  saveReview,
+  type VolumeReviews as Data,
+} from "../../../lib/reviews";
 import { pricesStyles } from "../styles";
 import ReviewForm from "./ReviewForm";
 import ReviewItem from "./ReviewItem";
@@ -19,8 +23,9 @@ import ReviewScore from "./ReviewScore";
 import { writtenText } from "./reviewText";
 import { reviewStyles as styles } from "./reviewStyles";
 
-// how many reviews show before "Show more"
+// how many reviews show at first, and how many each "Show more" adds
 const FIRST = 5;
+const STEP = 10;
 // the section's heading, and the #link other pages use to land on it
 const TITLE_ID = "reviews-title";
 
@@ -50,7 +55,8 @@ export default function VolumeReviews({
   useEffect(() => {
     if (cameForReviews) section.current?.scrollIntoView({ block: "start" });
   }, [cameForReviews]);
-  const [showAll, setShowAll] = useState(false);
+  // how many of the other readers' reviews are on the page
+  const [most, setMost] = useState(FIRST);
   // they asked to write and can't yet: says why, in place of the form
   const [turnedAway, setTurnedAway] = useState(false);
   const [deleteFailed, setDeleteFailed] = useState(false);
@@ -59,7 +65,8 @@ export default function VolumeReviews({
   const hasRead = mayWrite === "yes";
   // their own is on top, in its own box
   const others = data.reviews.filter((review) => !review.yours);
-  const shown = showAll ? others : others.slice(0, FIRST);
+  const shown = others.slice(0, most);
+  const left = others.length - shown.length;
 
   const startWriting = async () => {
     // they may have marked it owned or read since the page opened
@@ -101,7 +108,7 @@ export default function VolumeReviews({
 
       {canOpenForm && (
         <ReviewForm
-          isbn13={isbn13}
+          save={(draft) => saveReview(isbn13, draft)}
           current={yours}
           onSaved={afterSaving}
           onCancel={() => setWriting(false)}
@@ -166,8 +173,11 @@ export default function VolumeReviews({
         </div>
       )}
 
-      {data.count === 0 || data.average === null ? (
-        !writing && (
+      {/* nothing to read from other readers: no words, and no score (a
+          score needs enough ratings; the server sends none before that) */}
+      {others.length === 0 && data.average === null ? (
+        !writing &&
+        !yours && (
           <div className={styles.empty}>
             <p>
               <b>No reviews yet.</b>
@@ -185,12 +195,14 @@ export default function VolumeReviews({
           </div>
         )
       ) : (
-        <div className={styles.box}>
-          <ReviewScore
-            average={data.average}
-            count={data.count}
-            spread={data.spread}
-          />
+        <div className={data.average === null ? styles.boxNoScore : styles.box}>
+          {data.average !== null && (
+            <ReviewScore
+              average={data.average}
+              count={data.count}
+              spread={data.spread}
+            />
+          )}
           <div className={styles.list}>
             {others.length === 0 ? (
               <p className={`${styles.said} py-4`}>
@@ -208,13 +220,13 @@ export default function VolumeReviews({
                 ))}
               </ul>
             )}
-            {others.length > shown.length && (
+            {left > 0 && (
               <button
                 type="button"
                 className={styles.more}
-                onClick={() => setShowAll(true)}
+                onClick={() => setMost(most + STEP)}
               >
-                Show {others.length - shown.length} more
+                Show {Math.min(STEP, left)} more
               </button>
             )}
           </div>

@@ -121,8 +121,8 @@ export default function CalendarPage() {
           </span>
           <p className={styles.emptyTitle}>Nothing dated yet.</p>
           <p className={styles.emptyBody}>
-            Dates show up once a publisher lists a coming volume. Opening a
-            series' price page brings its list up to date.
+            Dates show up here once a publisher lists a coming volume for a
+            series on your shelf.
           </p>
         </div>
       )}

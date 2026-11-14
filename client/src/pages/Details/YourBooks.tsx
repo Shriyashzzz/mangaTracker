@@ -33,8 +33,9 @@ type Props = {
 const STEP = 5;
 // the most books the server takes in one request
 const MOST_AT_ONCE = 50;
-const DEFAULT_NOTE =
-  "What you paid is only yours to see. Removing a book takes its volumes off your shelf too.";
+const PRIVATE_NOTE = "What you paid is only yours to see.";
+// said only when there's a book to remove
+const REMOVE_NOTE = " Removing a book takes its volumes off your shelf too.";
 
 export default function YourBooks({ mangaId, owned, onRemoved }: Props) {
   const [books, setBooks] = useState<OwnedBook[]>([]);
@@ -58,6 +59,8 @@ export default function YourBooks({ mangaId, owned, onRemoved }: Props) {
   if (!owned.length) return null;
 
   const rows = rowsOf(books, owned);
+  // a recorded book can be removed here; a hand-ticked volume can't
+  const canRemove = rows.some((row) => row.book);
   const spent = spentOn(books);
   const unpriced = rows.filter((row) => row.book?.paidCents == null);
   const failed = () => setNote("That didn't save. Try again.");
@@ -137,7 +140,13 @@ export default function YourBooks({ mangaId, owned, onRemoved }: Props) {
       </summary>
       <ul className={styles.booksList}>
         {rows.slice(0, shown).map((row) => (
-          <BookRow key={row.key} row={row} onSave={save} onRemove={remove} />
+          <BookRow
+            key={row.key}
+            row={row}
+            onSave={save}
+            onRemove={remove}
+            removeColumn={canRemove}
+          />
         ))}
       </ul>
       {hidden > 0 && (
@@ -146,7 +155,9 @@ export default function YourBooks({ mangaId, owned, onRemoved }: Props) {
           className={styles.booksMore}
           onClick={() => setShown(shown + STEP)}
         >
-          Show {Math.min(STEP, hidden)} more
+          <span className={styles.booksMoreWords}>
+            Show {Math.min(STEP, hidden)} more
+          </span>
           <span className={styles.booksMoreLeft}>
             {shown} of {rows.length}
           </span>
@@ -163,7 +174,7 @@ export default function YourBooks({ mangaId, owned, onRemoved }: Props) {
           <label htmlFor="books-same">
             Paid the same for the {unpriced.length} without a price?
           </label>
-          <span className={styles.bookPaid}>
+          <label className={styles.bookPaid}>
             <span aria-hidden>$</span>
             <input
               id="books-same"
@@ -173,10 +184,10 @@ export default function YourBooks({ mangaId, owned, onRemoved }: Props) {
               value={samePrice}
               onChange={(e) => setSamePrice(e.target.value)}
             />
-          </span>
+          </label>
           <button
             type="submit"
-            className="btn btn-secondary btn-sm"
+            className="btn btn-secondary btn-sm tap"
             disabled={settingSame || centsOf(samePrice) === null}
           >
             Set them
@@ -184,7 +195,7 @@ export default function YourBooks({ mangaId, owned, onRemoved }: Props) {
         </form>
       )}
       <p className={styles.booksNote} role="status">
-        {note || DEFAULT_NOTE}
+        {note || `${PRIVATE_NOTE}${canRemove ? REMOVE_NOTE : ""}`}
       </p>
     </details>
   );

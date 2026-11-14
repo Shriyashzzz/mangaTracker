@@ -26,8 +26,9 @@ import { useShelf } from "../../store/shelf";
 import BuyStrip from "./BuyStrip";
 import { DetailsSkeleton, LoadFailed, type LoadError } from "./DetailsStates";
 import NotesField from "./NotesField";
-import RateVolume from "./RateVolume";
+import RateVolume, { RateVolumeCard } from "./RateVolume";
 import ReviewDialog from "./ReviewDialog";
+import { useRateVolume } from "./useRateVolume";
 import { useShelfReviews } from "./useShelfReviews";
 import YourReviews from "./YourReviews";
 import RatingField from "./RatingField";
@@ -83,9 +84,14 @@ export default function Details() {
   // ---------- their reviews of its volumes ----------
   // asked for again when what they own or have read changes
   const ownedSoFar = mangaData ? ownedOf(mangaData).length : 0;
-  const reviews = useShelfReviews(
+  const place = `${ownedSoFar}-${mangaData?.readVolume ?? 0}-${mangaStatus}`;
+  const reviews = useShelfReviews(Number(id), place);
+  // the volume the page asks them to rate, and whether out loud or quietly
+  const volumeRating = useRateVolume(
+    `${id}:${place}`,
     Number(id),
-    `${ownedSoFar}-${mangaData?.readVolume ?? 0}-${mangaStatus}`,
+    reviews,
+    reviews.reload,
   );
   // the volume whose review box is open
   const [reviewing, setReviewing] = useState<ShelfVolume | null>(null);
@@ -338,14 +344,12 @@ export default function Details() {
               mangaId={mangaData.id}
               name={mangaData.name}
               owned={owned}
-              total={shelfTotal}
+              total={shelfTotal.size}
+              totalKnown={shelfTotal.isKnown}
               ownedVolumes={ownedVolumes}
             />
           </div>
 
-          <h2 className={`${styles.deskTitle} ${styles.yourCopy}`}>
-            Your copy
-          </h2>
           <ReadingPlace
             manga={mangaData}
             finished={mangaStatus}
@@ -378,7 +382,8 @@ export default function Details() {
           )}
 
           <div className={styles.body}>
-            {/* the series' rating and the latest volume's, side by side */}
+            {/* the series' rating, and a volume's beside it unless the
+                banner under them is asking about one just finished */}
             <div className={styles.ratings}>
               <RatingField
                 // starts over from the saved rating when the series changes
@@ -386,14 +391,30 @@ export default function Details() {
                 mangaId={mangaData.id}
                 initial={mangaData.rating ?? 0}
               />
-              <RateVolume
-                key={`rate-${mangaData.id}`}
-                toRate={reviews.toRate}
-                written={reviews.written}
-                onRated={reviews.reload}
-                onWrite={setReviewing}
-              />
+              {/* not for a series still on To read: nothing's been read */}
+              {volumeRating.asked && !planned && (
+                // closed, not gone, while the banner asks: it gives way
+                // smoothly, and is there to take the focus when the banner
+                // is closed
+                <div
+                  className={
+                    volumeRating.inBanner
+                      ? styles.rateSmallClosed
+                      : styles.rateSmall
+                  }
+                  inert={volumeRating.inBanner}
+                  data-volume-stars
+                >
+                  <div className={styles.rateSmallClip}>
+                    <RateVolume volume={volumeRating} onWrite={setReviewing} />
+                  </div>
+                </div>
+              )}
             </div>
+
+            {volumeRating.inBanner && !planned && (
+              <RateVolumeCard volume={volumeRating} onWrite={setReviewing} />
+            )}
 
             <NotesField
               key={mangaData.id}
@@ -454,10 +475,11 @@ export default function Details() {
       {reviewing && (
         <ReviewDialog
           // a fresh box for each volume
-          key={reviewing.isbn13}
+          key={reviewing.volume}
+          mangaId={mangaData.id}
           volume={reviewing}
           current={
-            reviews.written.find((one) => one.isbn13 === reviewing.isbn13)
+            reviews.written.find((one) => one.volume === reviewing.volume)
               ?.review ?? null
           }
           onChanged={reviews.reload}

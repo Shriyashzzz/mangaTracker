@@ -2,7 +2,7 @@ import { useRef, useState, type FormEvent } from "react";
 import { isMobile } from "react-device-detect";
 import { hasBottomBar } from "../../lib/bottomBar";
 import { authStyles as styles } from "../../styles/auth";
-import { NavLink, useNavigate, useSearchParams } from "react-router";
+import { Navigate, NavLink, useNavigate, useSearchParams } from "react-router";
 import PasswordInput from "../../components/passwordInput/PasswordInput";
 import AuthArt from "../../components/authArt/AuthArt";
 import { apiFetch, afterSignIn, errorMessages } from "../../lib/api";
@@ -18,6 +18,9 @@ export default function SignUp() {
   const passRef = useRef<HTMLInputElement>(null);
   const signedIn = useAuth((s) => s.signedIn);
   const [loading, setLoading] = useState(false);
+  // already signed in when they got here: this page has nothing for them
+  const isSignedIn = useAuth((s) => s.isSignedIn);
+  const [justJoined, setJustJoined] = useState(false);
   const [errors, setErrors] = useState<{ msg: string }[]>([]);
   // the server's messages name the field they're about
   const hasError = (about: RegExp) => errors.some((e) => about.test(e.msg));
@@ -35,6 +38,19 @@ export default function SignUp() {
       setErrors([{ msg: "Username and password are required." }]);
       return;
     }
+    // The server's own rules (authController.ts), checked here first: a
+    // slip of the finger shouldn't use up one of the hour's sign-ups
+    const slips = [
+      !/^[a-z0-9]+$/i.test(username) &&
+        "Usernames are letters and numbers only",
+      (username.length < 4 || username.length > 40) &&
+        "Usernames need 4 to 40 letters or numbers.",
+      password.length < 5 && "Password has to be at least 5 characters long!",
+    ].filter((slip): slip is string => Boolean(slip));
+    if (slips.length) {
+      setErrors(slips.map((msg) => ({ msg })));
+      return;
+    }
 
     setLoading(true);
     try {
@@ -46,6 +62,7 @@ export default function SignUp() {
       if (result.ok) {
         // a new account: Kenji offers the tour on their shelf
         offerTour();
+        setJustJoined(true);
         signedIn();
         navigater(afterSignIn(params), { viewTransition: true });
       } else {
@@ -58,6 +75,8 @@ export default function SignUp() {
       setLoading(false);
     }
   };
+
+  if (isSignedIn && !justJoined) return <Navigate to="/shelf" replace />;
 
   return (
     <div className={styles.container}>

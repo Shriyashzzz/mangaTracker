@@ -100,7 +100,7 @@ export default function ProfileTab({ account }: { account: Account }) {
   };
 
   return (
-    <div className={styles.tabBody} data-tour="profile">
+    <div className={styles.tabBody}>
       <header className={styles.head}>
         <Avatar id={account.avatar} className={styles.headArt} />
         <h2 className={styles.tabTitle}>

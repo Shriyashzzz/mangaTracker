@@ -175,8 +175,8 @@ export default function PriceVolume() {
   // above the other stores' links: what they're for
   let otherStoresTitle = "Check price at:";
   if (preorder) otherStoresTitle = "Or preorder at:";
-  else if (offers.length > 0)
-    otherStoresTitle = "No price from these stores yet. Search them yourself:";
+  // (eBay is among them even with a price above: that row is one seller)
+  else if (offers.length > 0) otherStoresTitle = "More places to look:";
   // an old check, said beside the price it's about
   const stale =
     checkedAt && olderThanDays(checkedAt, 3) ? timeAgo(checkedAt) : null;

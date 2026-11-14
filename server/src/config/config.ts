@@ -86,6 +86,13 @@ const schema = z.object({
     blankToUndefined,
     z.coerce.number().int().nonnegative().default(400),
   ),
+  // "How was vol. 9?" on a series' page comes out at most once in this many
+  // days per reader (reviews/reviews.ts askAboutFinishedVolume); 0 asks
+  // every time a volume is finished
+  RATE_ASK_EVERY_DAYS: z.preprocess(
+    blankToUndefined,
+    z.coerce.number().int().nonnegative().default(30),
+  ),
   KEEPA_API_KEY: optional,
   GOOGLE_BOOKS_API_KEY: optional,
   // Cloudflare Turnstile's secret: live price checks only for people

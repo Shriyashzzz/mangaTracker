@@ -26,13 +26,17 @@ test("a volume starting before the one ahead of it is dropped", () => {
   expect(starts.map((s) => s.volume)).toEqual([1, 2, 4]);
 });
 
-test("unassigned chapters are ignored, and past the end is the last volume", () => {
+test("unassigned chapters are ignored, and a little past the end is the last volume", () => {
   const starts = volumeStartsFrom({
     none: chapters("99"),
     "1": chapters("1"),
     "2": chapters("10"),
   });
-  expect(volumeOfChapter(500, starts)).toBe(2);
+  // the newest chapters, not in a book yet
+  expect(volumeOfChapter(18, starts)).toBe(2);
+  // far past where the list stops, we can't say: it isn't volume 2
+  expect(volumeOfChapter(60, starts)).toBeNull();
+  expect(volumeOfChapter(500, starts)).toBeNull();
 });
 
 test("no chapter, or one before everything, has no volume", () => {

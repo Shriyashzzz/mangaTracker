@@ -58,8 +58,20 @@ const readStep = () => {
   }
 };
 
-const isOnStepPage = (step: TourStep, pathname: string) =>
-  step.exact ? pathname === step.path : pathname.startsWith(step.path);
+// Are they where this step is? Exactly there: another series' page, or
+// another of the shelf's tabs, is somewhere else, and Kenji waits in his
+// corner until they come back (a step about Frieren mustn't carry on over
+// One Piece's page)
+const isOnStepPage = (step: TourStep, pathname: string, search: string) => {
+  if (step.tab) {
+    const tab = new URLSearchParams(search).get("tab") ?? "all";
+    return pathname === "/shelf" && tab === step.tab;
+  }
+  return step.exact ? pathname === step.path : pathname.startsWith(step.path);
+};
+// the address that takes them to a step's page
+const pageOf = (step: TourStep) =>
+  step.tab ? `/shelf?tab=${step.tab}` : (step.go ?? step.path);
 
 // the first one on screen: the shelf has one add button for phones, one for laptops
 const findTarget = (name: string) =>
@@ -103,9 +115,9 @@ export default function Tour() {
   // the screen layer, whose bottom edge is the screen's for fixed things
   const screen = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
-  const { pathname } = useLocation();
+  const { pathname, search } = useLocation();
   const step = TOUR_STEPS[index]!;
-  const onPage = isOnStepPage(step, pathname);
+  const onPage = isOnStepPage(step, pathname, search);
 
   const goTo = useCallback((next: number) => {
     setAnchor(null);
@@ -115,7 +127,7 @@ export default function Tour() {
     setIndex(next);
     try {
       sessionStorage.setItem(STEP_KEY, String(next));
-      if (TOUR_STEPS[next]?.allTab)
+      if (TOUR_STEPS[next]?.tab === "all")
         sessionStorage.setItem("libraryStatus", "all");
     } catch {
       /* it just won't survive a refresh */
@@ -124,7 +136,7 @@ export default function Tour() {
 
   const wentExploring = !onPage && settled;
   const backToStep = useCallback(
-    () => navigate(step.go ?? step.path, { viewTransition: true }),
+    () => navigate(pageOf(step), { viewTransition: true }),
     [navigate, step],
   );
 
@@ -133,7 +145,8 @@ export default function Tour() {
   // link that's already on its way isn't followed twice
   useEffect(() => {
     const leads = setTimeout(() => {
-      if (!isOnStepPage(step, window.location.pathname)) backToStep();
+      const { pathname: path, search: query } = window.location;
+      if (!isOnStepPage(step, path, query)) backToStep();
     }, 250);
     const settles = setTimeout(() => setSettled(true), SETTLED_AFTER_MS);
     return () => {
@@ -552,8 +565,9 @@ export default function Tour() {
       </div>
       <div className="tour-words">
         <p className="tour-count">
-          {step.part}
-          {step.partSize > 1 && ` · ${step.partStep} of ${step.partSize}`}
+          {/* counted across the whole tour: "1 of 5" for the first part
+              read as five steps in all, and there are more */}
+          {step.part} · {index + 1} of {TOUR_STEPS.length}
         </p>
         <p className="tour-say">{say}</p>
         <div className="tour-actions">
@@ -605,6 +619,16 @@ export default function Tour() {
               >
                 Skip tour
               </button>
+              {/* seen enough to want one: no need to sit through the rest */}
+              {!hasShelf && index > 0 && (
+                <button
+                  type="button"
+                  className="tour-skip"
+                  onClick={() => endDemo("/signup")}
+                >
+                  Start your shelf
+                </button>
+              )}
             </>
           )}
         </div>

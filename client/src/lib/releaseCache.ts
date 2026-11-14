@@ -37,8 +37,8 @@ const hash = (text: string) => {
   return (h >>> 0).toString(36) + text.length.toString(36);
 };
 
-// what the New tab needs of an answer: the volume titles behind the grouped
-// list only make its links' names, and the links work without them
+// what the New tab needs of an answer: the volume titles behind the list of
+// volumes to get only make its links' names, and the links work without them
 const slim = (s: ReleaseStatus | null): ReleaseStatus | null =>
   s && {
     ...s,

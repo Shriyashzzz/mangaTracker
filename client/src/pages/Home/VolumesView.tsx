@@ -26,6 +26,7 @@ import {
   type FinishRow,
   type ShelfTools,
 } from "../../lib/collector";
+import { CoverFallback } from "../Prices/VolumeCard";
 import FinishList from "./FinishList";
 import { volumesStyles as styles } from "./volumesStyles";
 
@@ -360,7 +361,12 @@ function SeriesVolumes({
           : tiles
         ).map((t: Tile) => (
           <li key={t.volume}>
-            <VolumeTile tile={t} fallbackCover={manga.image} />
+            <VolumeTile
+              tile={t}
+              // not while the list is on its way: the real covers are about
+              // to arrive, and a stand-in would flash before them
+              fallbackCover={list === undefined ? null : manga.image}
+            />
           </li>
         ))}
       </ul>
@@ -374,27 +380,36 @@ function VolumeTile({
   fallbackCover,
 }: {
   tile: Tile;
+  // the series' cover, to stand in for a volume with none of its own
   fallbackCover: string | null;
 }) {
+  // A cover of its own, or vol. 1 showing the series' as it is: a picture
+  // at full strength, which a volume not on the shelf fades. A stand-in is
+  // washed out already
+  const hasPicture = Boolean(
+    tile.book?.coverUrl || (fallbackCover && tile.volume <= 1),
+  );
   const inner = (
     <>
       <span className={tile.yours ? styles.cover : styles.coverToGet}>
-        <span className={styles.coverNumber} aria-hidden>
-          {tile.volume}
-        </span>
+        {/* behind the volume's own cover: the series' cover standing in,
+            washed out, as on the price pages */}
+        <CoverFallback
+          number={tile.volume}
+          seriesCoverUrl={fallbackCover}
+          numbered
+          small
+        />
         {tile.book?.coverUrl ? (
           <img
             src={coverSrc(tile.book.coverUrl)}
             alt=""
             loading="lazy"
-            onError={(e) => {
-              if (fallbackCover && e.currentTarget.src !== fallbackCover) {
-                e.currentTarget.src = fallbackCover;
-              } else hideBrokenCover(e);
-            }}
+            onError={hideBrokenCover}
+            onLoad={hidePlaceholderCover}
           />
         ) : null}
-        {!tile.yours && tile.book?.coverUrl && (
+        {!tile.yours && hasPicture && (
           <span className={styles.veil} aria-hidden />
         )}
         <span className={styles.vol} aria-hidden>

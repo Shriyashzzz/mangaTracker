@@ -127,7 +127,7 @@ export default function BuyStrip({
           )}
           {plan.gaps.length > 0 && (
             <li className={styles.buyGaps}>
-              <span className={styles.buyKind}>Missing</span>
+              <span className={styles.buyKind}>Not on your shelf</span>
               <span className={styles.buyGapList}>
                 {plan.gaps.slice(0, GAPS_SHOWN).map((g) => (
                   <NavLink
@@ -201,7 +201,7 @@ export default function BuyStrip({
             the run wants each one */}
           {gaps.length > 0 && (
             <li className={styles.buyGaps}>
-              <span className={styles.buyKind}>Missing</span>
+              <span className={styles.buyKind}>Not on your shelf</span>
               <span className={styles.buyGapList}>
                 {gaps.slice(0, GAPS_SHOWN).map((g) => (
                   <NavLink

@@ -30,7 +30,7 @@ export default function YourReviews({
       </summary>
       <ul className={styles.booksList}>
         {rows.map((one) => (
-          <li key={one.isbn13} className={styles.reviewRow}>
+          <li key={one.volume} className={styles.reviewRow}>
             <span className={styles.reviewVolume}>Vol. {one.volume}</span>
             <StarRating value={one.review.rating} size="sm" />
             <button
@@ -44,7 +44,7 @@ export default function YourReviews({
             {one.review.text ? (
               <p className={styles.reviewWords}>{one.review.text}</p>
             ) : (
-              <p className={styles.reviewNoWords}>A rating, no words yet.</p>
+              <p className={styles.reviewNoWords}>No written review yet.</p>
             )}
             {one.review.hidden && (
               <p className={styles.reviewNoWords}>

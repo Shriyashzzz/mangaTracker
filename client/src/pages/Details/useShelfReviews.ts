@@ -4,7 +4,12 @@
 import { useCallback, useEffect, useState } from "react";
 import { getShelfReviews, type ShelfReviews } from "../../lib/reviews";
 
-const NONE: ShelfReviews = { toRate: [], written: [] };
+const NONE: ShelfReviews = {
+  latest: null,
+  toRate: [],
+  written: [],
+  justFinished: null,
+};
 
 // the two lists, really there: an answer that isn't them is no answer
 const isShelfReviews = (data: ShelfReviews | null): data is ShelfReviews =>

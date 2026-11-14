@@ -10,11 +10,22 @@ const perMinute = (max: number) => rateLimit({ max, windowMs: 60_000 });
 export const reviewsRouter = Router();
 
 reviewsRouter.get("/volume/:isbn", perMinute(60), reviews.ofVolume);
-reviewsRouter.put("/volume/:isbn", perMinute(10), reviews.write);
-reviewsRouter.delete("/volume/:isbn", perMinute(10), reviews.remove);
+// A rating is one tap on a star, and another to change or take it back, so
+// these get room for someone tapping through their volumes. Words are held
+// to a few volumes an hour per reader (reviews/reviewRules.ts)
+reviewsRouter.put("/volume/:isbn", perMinute(60), reviews.write);
+reviewsRouter.delete("/volume/:isbn", perMinute(60), reviews.remove);
 reviewsRouter.get("/series", perMinute(60), reviews.ofSeries);
+reviewsRouter.get("/series-scores", perMinute(120), reviews.seriesScores);
 // asked by every series page someone opens, so it gets more room
 reviewsRouter.get("/shelf", perMinute(120), reviews.onShelf);
+// one tap on a star, like the two above
+reviewsRouter.put("/shelf/:manga/:volume", perMinute(60), reviews.writeOnShelf);
+reviewsRouter.delete(
+  "/shelf/:manga/:volume",
+  perMinute(60),
+  reviews.removeOnShelf,
+);
 reviewsRouter.get("/reported", perMinute(60), reviews.reported);
 reviewsRouter.post("/:id/flag", perMinute(20), reviews.flag);
 reviewsRouter.post("/:id/decide", perMinute(60), reviews.decide);

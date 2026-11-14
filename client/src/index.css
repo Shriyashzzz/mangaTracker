@@ -58,7 +58,7 @@
   --on-accent: #fffaf2;
   --ok: #2e6b4c;
   --star: #d99a00;
-  --star-off: #8f8570;
+  --star-off: #7f7562;
   --hard-shadow: #1d1a16;
   --dots: rgba(29, 26, 22, 0.09);
   --dots-strong: rgba(29, 26, 22, 0.28);
@@ -174,7 +174,7 @@
   --accent-wash: rgba(177, 74, 60, 0.09);
   --on-accent: #fffaf2;
   --star: #d99a00;
-  --star-off: #8f8570;
+  --star-off: #7f7562;
   --hard-shadow: #1d1a16;
   --dots: rgba(29, 26, 22, 0.09);
   --dots-strong: rgba(29, 26, 22, 0.28);
@@ -185,6 +185,8 @@
 /* static: always written to :root, since CSS modules read these too */
 @theme static {
   --font-body: "IBM Plex Sans", system-ui, -apple-system, sans-serif;
+  /* font-sans is the site's own sans too, never the device's */
+  --font-sans: var(--font-body);
   --font-display: "Fraunces", Georgia, "Times New Roman", serif;
   --font-mono: "IBM Plex Mono", ui-monospace, Menlo, monospace;
   /* Bangers: the shouty manga display voice (logo, labels, badges) */
@@ -362,6 +364,8 @@
     border-radius: var(--radius);
     background: var(--card);
     color: var(--ink);
+    /* its own face, wherever it sits: a button inside a serif line stays sans */
+    font-family: var(--font-body);
     font-size: 0.95rem;
     font-weight: 500;
     white-space: nowrap;
@@ -1512,6 +1516,8 @@ body:has([role="listbox"]) :is(.tour-bubble, .tour-pointer) {
   margin: 0.15rem 0 0.55rem;
   font: 700 0.95rem/1.3 var(--font-letter);
   color: var(--ink);
+  /* a line break written into a step's words (steps.ts) is kept */
+  white-space: pre-line;
 }
 .tour-actions {
   display: flex;

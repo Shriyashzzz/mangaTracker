@@ -53,10 +53,8 @@ export const volumesStyles = {
   // solid (so the drawn number behind it only shows if it fails) under a
   // paper-coloured veil, which follows the theme
   coverToGet:
-    "relative block aspect-2/3 overflow-hidden border-[1.5px] border-dashed border-line-soft bg-paper-2 transition-transform duration-200 ease-ink group-hover:-translate-y-0.5 group-focus-visible:outline-2 group-focus-visible:outline-offset-3 group-focus-visible:outline-accent group-focus-visible:outline-dashed [&>img]:relative [&>img]:size-full [&>img]:object-cover [&>img]:grayscale",
+    "relative block aspect-2/3 overflow-hidden border-[1.5px] border-dashed border-line-soft bg-paper-2 transition-transform duration-200 ease-ink group-hover:-translate-y-0.5 group-focus-visible:outline-2 group-focus-visible:outline-offset-3 group-focus-visible:outline-accent group-focus-visible:outline-dashed [&>img]:relative [&>img]:size-full [&>img]:object-cover [&_img]:grayscale",
   veil: "absolute inset-0 bg-paper/60 transition-opacity duration-200 group-hover:opacity-40",
-  coverNumber:
-    "cover-lines absolute inset-0 grid place-items-center font-brand text-[1.8rem] text-muted",
   vol: "absolute top-0 left-0 bg-ink pt-[0.15rem] pr-[0.6rem] pb-[0.05rem] pl-1.5 font-brand text-[1.05rem] leading-none tracking-[0.02em] text-paper [clip-path:polygon(0_0,100%_0,calc(100%-6px)_100%,0_100%)]",
   label: "flex items-center gap-1 text-[0.8rem] font-medium",
   // can wrap to two lines under a narrow phone cover

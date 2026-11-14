@@ -13,6 +13,8 @@ export const reviewStyles = {
 
   // the score beside the reviews; stacked on a phone
   box: "grid grid-cols-[13.5rem_minmax(0,1fr)] border-2 border-line bg-card shadow-ink-lg upto-720:grid-cols-1",
+  // the same box with no score beside the reviews: too few ratings yet
+  boxNoScore: "border-2 border-line bg-card shadow-ink-lg",
   score:
     "border-r-[1.5px] border-dashed border-line p-5 upto-720:grid upto-720:grid-cols-[auto_minmax(0,1fr)] upto-720:items-center upto-720:gap-x-5 upto-720:border-r-0 upto-720:border-b-[1.5px] upto-720:p-4",
   scoreNumber:

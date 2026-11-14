@@ -36,43 +36,43 @@ type Line = {
   onTop?: boolean;
   // on a wide enough screen, beside the section's right edge instead
   besideIfRoom?: boolean;
-  // open the shelf on All, rather than the tab they last had
-  allTab?: boolean;
+  // a step on the shelf: which of its tabs it's on. The shelf opens on that
+  // tab for it, and any other tab counts as having wandered off
+  tab?: "all" | "new";
 };
 
-// One Piece: the practice manga with a new volume, so the red bar steps always use it
+// the practice manga (lib/demo.ts): the one with a new volume, so the steps
+// on a series' page are about it and only it
 const MANGA = "/details/1";
+// its newest volume's price page; the ISBN is demo.ts isbnOf(NEW_VOLUME)
+const PRICE_PAGE = "/prices/9780000000015";
 
-// Grouped the way the site is, so the tour goes through one place at a time instead
-// of jumping around. Kenji's bubble shows the part and how far along it they are.
+// Eleven steps: the shelf, one series, the New tab, a price. Grouped the way
+// the site is, so the tour goes through one place at a time instead of
+// jumping around. Settings isn't on it: nobody needs settings explained
+// before they have a shelf.
 const PARTS: { name: string; lines: Line[] }[] = [
   {
     name: "My shelf",
     lines: [
       {
         path: "/shelf",
+        tab: "all",
         target: "shelf",
         focus: true,
         onTop: true,
-        say: "Hi, I'm Kenji! This is a practice shelf, so try anything you want. I'll show you around.",
+        say: "Hi, I'm Kenji! This is a practice shelf, so wander off and explore any part of it during the tour.",
       },
       {
         path: "/shelf",
         target: "add",
-        allTab: true,
-        say: "Started something new? This adds it to your shelf.",
-        tap: true,
-      },
-      {
-        path: "/add",
-        target: "add-title",
-        say: "Type a title and pick the match. The cover and genre fill in for you.",
-        doneOnLeaving: true,
+        tab: "all",
+        say: "Started something new? This adds it. Type a title and pick the match.",
       },
       {
         path: "/shelf",
         target: "import-link",
-        allTab: true,
+        tab: "all",
         say: "Keeping a list on MyAnimeList, Goodreads or another app? This brings it over in one go.",
         phoneSay:
           "Keeping a list on MyAnimeList, Goodreads or another app? Import your list lives here in the menu, and brings it over in one go.",
@@ -81,52 +81,53 @@ const PARTS: { name: string; lines: Line[] }[] = [
       {
         path: "/shelf",
         target: "card",
-        allTab: true,
+        tab: "all",
         say: "Every manga has its own page. Let's open this one.",
         tap: true,
       },
     ],
   },
   {
-    name: "My shelf: a manga",
+    name: "A manga",
     lines: [
       {
-        path: "/details/",
-        go: MANGA,
+        path: MANGA,
+        exact: true,
         target: "chapter-up",
         say: "Finished a chapter? One tap here saves your place.",
         tap: true,
       },
       {
         path: MANGA,
-        target: "release-toggle",
-        opensNext: true,
-        focus: true,
-        say: "Psst! This red bar means something new is out, past where you are. It opens to show the dates.",
-        tap: true,
+        exact: true,
+        target: "spines",
+        // the second half is the point of naming Edit: our list can be a
+        // volume short, and the edit page takes any volume number
+        say: 'Each book is a volume. Tap one to mark it yours. Own one that isn\'t shown? Add it in "Edit details" below.',
       },
       {
         path: MANGA,
-        target: "release-dates",
-        needsLastStep: true,
-        say: "Here's what's out and when the next one should land. Volumes show volume dates, chapters show chapter dates.",
+        exact: true,
+        target: "release-toggle",
+        focus: true,
+        say: "Psst! This red bar means something new is out, past where you are. Open it for the dates.",
       },
     ],
   },
   {
-    name: "My shelf: New tab",
+    name: "New",
     lines: [
       {
         path: "/shelf",
-        target: "tab-new",
-        focus: true,
-        say: "Now my favorite. The New tab checks your whole shelf for you.",
-        tap: true,
+        tab: "new",
+        target: "shelf",
+        say: "The New tab checks your whole shelf for new volumes and chapters. Already got one? Hide takes it off the list until something newer is out.",
       },
       {
         path: "/shelf",
-        target: "shelf",
-        say: "You'll see here when a new volume or chapter comes out for a manga on your shelf. Already got it? Hide takes it off the list until something newer is out.",
+        tab: "new",
+        target: "upcoming",
+        say: "Upcoming Releases is what's on its way for your shelf, and when. Open it for the month's dates, and to save them to your calendar.",
       },
     ],
   },
@@ -134,54 +135,12 @@ const PARTS: { name: string; lines: Line[] }[] = [
     name: "Prices",
     lines: [
       {
-        path: "/",
-        target: "tab-prices",
-        say: "Now the other tab. Prices shows what a volume costs across stores, even if it isn't on your shelf.",
-        tap: true,
-      },
-      {
-        path: "/",
-        exact: true,
-        target: "price-search",
-        lookOnly: true,
-        say: "After the tour, search any series here and compare its volumes. Typing is off for now.",
-      },
-      {
-        path: "/prices/",
-        go: "/prices/9780000000041",
+        // (the page's address goes on to name the volume: anything under
+        // this one book's counts)
+        path: PRICE_PAGE,
         target: "offers",
         onTop: true,
-        say: "Every store we found, cheapest first, with ebooks after the print copies. The red bar's Buy button lands here too. These prices are made up for the tour.",
-      },
-    ],
-  },
-  {
-    name: "Settings",
-    lines: [
-      {
-        path: "/settings/profile",
-        target: "profile",
-        onTop: true,
-        besideIfRoom: true,
-        say: "Your profile: pick a picture and a name, and share your list with friends if you like. Sharing stays off until you turn it on.",
-      },
-      {
-        path: "/settings/prices",
-        target: "hide-ebooks",
-        say: "Only buy print? This hides ebooks from the price lists.",
-      },
-      {
-        path: "/settings/shelf",
-        target: "view-rows",
-        say: "Big covers not your thing? Compact rows fit more manga on a screen.",
-        tap: true,
-      },
-      {
-        path: "/shelf",
-        target: "shelf",
-        allTab: true,
-        onTop: true,
-        say: "Same shelf, more on one screen. Switch to this in settings any time.",
+        say: "Prices shows what a volume costs across stores, cheapest first, even if it isn't on your shelf. These prices are made up for the tour.",
       },
     ],
   },
@@ -190,25 +149,17 @@ const PARTS: { name: string; lines: Line[] }[] = [
     lines: [
       {
         path: "/shelf",
+        tab: "all",
         focus: true,
-        say: "That's everything! You've seen the whole shelf. Ready for one of your own?",
+        say: "That's everything! Ready for a shelf of your own?",
         signedInSay: "That's everything! Your own shelf is waiting for you.",
       },
     ],
   },
 ];
 
-export type TourStep = Line & {
-  part: string;
-  partStep: number;
-  partSize: number;
-};
+export type TourStep = Line & { part: string };
 
 export const TOUR_STEPS: TourStep[] = PARTS.flatMap(({ name, lines }) =>
-  lines.map((line, i) => ({
-    ...line,
-    part: name,
-    partStep: i + 1,
-    partSize: lines.length,
-  })),
+  lines.map((line) => ({ ...line, part: name })),
 );

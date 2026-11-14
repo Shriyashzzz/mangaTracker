@@ -13,7 +13,7 @@ export function PricesTab() {
   return (
     <div className={styles.tabBody}>
       <h2 className={styles.tabTitle}>Prices</h2>
-      <label className={styles.row} data-tour="hide-ebooks">
+      <label className={styles.row}>
         <input
           type="checkbox"
           checked={hideEbooks}

@@ -3,7 +3,7 @@
 // each opening its own page. And that page's head: which pile, the chips to
 // the others, and the way back
 import { coverSet } from "../../lib/coverSizes";
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { useEffect, useRef, useState } from "react";
 import { NavLink } from "react-router";
 import DrawnCover from "../../components/drawnCover/DrawnCover";
 import type { Manga } from "../../lib/types";
@@ -19,8 +19,6 @@ import type { ReleaseKind } from "./shelfViews";
 import { pilesStyles as styles } from "./pilesStyles";
 import { SortMenu } from "./ShelfBar";
 
-// cards shown from "Just out" before its See all
-const JUST_OUT_SHOWN = 5;
 // covers in a pile's fan
 const FAN = 5;
 // on wider screens, enough covers to fill about this much of the row
@@ -54,12 +52,15 @@ function useFanSize() {
 }
 
 // where a cover goes when clicked, as its card would: the next volume's
-// prices, its details page, or the grouped list (onOpen)
+// prices, its details page, or the list of volumes to get (onOpen)
 export type CoverLink = {
   to: string;
   onOpen?: () => void;
   // which one it's about: "Vol. 5", "Ch. 120"
   stamp: string;
+  // how many volumes behind they are, when they are (piles.ts
+  // volumesBehind): a small grey stamp at the foot of the cover ("3 behind")
+  behind?: number;
 };
 
 function Fan({
@@ -83,7 +84,7 @@ function Fan({
             key={m.id}
             to={link.to}
             className={styles.fanCover}
-            aria-label={`${m.name}: ${link.stamp}`}
+            aria-label={`${m.name}: ${link.stamp}${link.behind ? `, ${link.behind} behind` : ""}`}
             viewTransition
             onClick={
               link.onOpen
@@ -110,6 +111,12 @@ function Fan({
             <span className={styles.stamp} aria-hidden>
               {link.stamp}
             </span>
+            {link.behind && (
+              <span className={styles.behind} aria-hidden>
+                {link.behind}
+                <span className="upto-520:hidden"> behind</span>
+              </span>
+            )}
             {/* which series, on hover or keyboard focus (its name is in the
                 link's label for screen readers already) */}
             <span className={styles.caption} aria-hidden>
@@ -136,8 +143,6 @@ function Fan({
 export function NewPiles({
   kind,
   piles,
-  card,
-  gridClass,
   onOpen,
   returnTo,
   onCardClick,
@@ -153,9 +158,6 @@ export function NewPiles({
   returnTo: Pile | null;
   // remembers the spot before a card opens its page
   onCardClick: () => void;
-  // a card as the list draws it, Hide button and all
-  card: (m: Manga, index: number) => ReactNode;
-  gridClass: string;
   onOpen: (pile: Pile) => void;
 }) {
   useEffect(() => {
@@ -166,7 +168,6 @@ export function NewPiles({
       {PILES.filter((p) => piles[p].length > 0).map((p) => {
         const list = piles[p];
         const { name, why } = PILE_TEXT[kind][p];
-        const cards = p === "just-out";
 
         return (
           <section
@@ -192,13 +193,7 @@ export function NewPiles({
               {why}
               {extra(p)}
             </p>
-            {cards ? (
-              <div className={gridClass}>
-                {list.slice(0, JUST_OUT_SHOWN).map(card)}
-              </div>
-            ) : (
-              <Fan manga={list} onMore={() => onOpen(p)} linkFor={linkFor} />
-            )}
+            <Fan manga={list} onMore={() => onOpen(p)} linkFor={linkFor} />
           </section>
         );
       })}

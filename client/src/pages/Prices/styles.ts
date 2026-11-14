@@ -81,10 +81,14 @@ export const pricesStyles = {
   count: "-mb-4 font-mono text-[0.78rem] text-muted [section>&]:mb-[0.9rem]",
 
   // a series page's stamps for one on their shelf: owned, and the next one
+  // "Yours" and "Next" on a cover: top right, across from the number tab.
+  // On a phone's narrow covers that corner is the tab's ("Vol. 12" reaches
+  // it), so they sit on the lower left instead, above the line the
+  // readers' score badge is on
   markYours:
-    "absolute top-2 right-1.5 z-1 rotate-6 rounded-[3px] border-2 border-line bg-paper px-1.5 font-brand text-[0.85rem] leading-[1.35] tracking-[1px] text-ink uppercase",
+    "absolute top-2 right-1.5 z-1 rotate-6 rounded-[3px] border-2 border-line bg-paper px-1.5 font-brand text-[0.85rem] leading-[1.35] tracking-[1px] text-ink uppercase upto-720:top-auto upto-720:right-auto upto-720:bottom-8 upto-720:left-1.5 upto-720:-rotate-3",
   markNext:
-    "absolute top-2 right-1.5 z-1 rotate-6 rounded-[3px] border-2 border-line bg-accent px-1.5 font-brand text-[0.85rem] leading-[1.35] tracking-[1px] text-on-accent uppercase",
+    "absolute top-2 right-1.5 z-1 rotate-6 rounded-[3px] border-2 border-line bg-accent px-1.5 font-brand text-[0.85rem] leading-[1.35] tracking-[1px] text-on-accent uppercase upto-720:top-auto upto-720:right-auto upto-720:bottom-8 upto-720:left-1.5 upto-720:-rotate-3",
   // "Not on your shelf" and what finishing the series costs, side by side; the
   // total wraps under the button on a narrow phone
   toGetRow: "mb-3 flex flex-wrap items-center gap-x-3 gap-y-1.5",
@@ -147,6 +151,9 @@ export const pricesStyles = {
     "relative block aspect-2/3 overflow-hidden border-[1.5px] border-line bg-paper-2 shadow-ink-lg transition-[translate,rotate,box-shadow] duration-200 ease-ink group-hover:-translate-x-0.5 group-hover:-translate-y-[3px] group-hover:-rotate-1 group-hover:shadow-[6px_7px_0_var(--hard-shadow)] group-focus-visible:outline-2 group-focus-visible:outline-offset-3 group-focus-visible:outline-accent group-focus-visible:outline-dashed [li:nth-child(3n+2)>.group:hover_&]:rotate-[0.8deg] [&>img]:relative [&>img]:size-full [&>img]:object-cover [&>img]:transition-opacity [&>img]:duration-350 [&>img]:ease-ink",
   coverFallback:
     "cover-lines absolute inset-0 grid place-items-center font-brand text-[3rem] text-muted upto-720:text-[2rem]",
+  // the same, for a small tile (the shelf's Volumes tab)
+  coverFallbackSmall:
+    "cover-lines absolute inset-0 grid place-items-center font-brand text-[1.8rem] text-muted",
   // the series cover standing in for a missing volume cover; the drawn
   // number shows again if it fails too
   seriesFallback: "absolute inset-0 size-full object-cover",
@@ -155,6 +162,11 @@ export const pricesStyles = {
   // veil goes when the picture fails, leaving the drawn number clear
   seriesStandIn: "absolute inset-0 size-full object-cover saturate-50",
   standInVeil: "absolute inset-0 bg-paper/55 [img[hidden]+&]:hidden",
+  // On the shelf's small tiles a stand-in sits among the reader's own
+  // covers under a "Yours" label, so it's washed out further: nearly
+  // colourless under a heavier veil, plainly not that volume's cover
+  seriesStandInSmall: "absolute inset-0 size-full object-cover saturate-[0.15]",
+  standInVeilSmall: "absolute inset-0 bg-paper/75 [img[hidden]+&]:hidden",
   // its number on a paper plate, where the card has no corner tab for it
   standInNumber:
     "absolute top-1/2 left-1/2 -translate-1/2 -rotate-3 border-2 border-line bg-paper px-[0.4em] pt-[0.12em] pb-[0.02em] text-[0.8em] leading-none text-ink shadow-ink",
@@ -172,9 +184,12 @@ export const pricesStyles = {
   // readers' score on a cover's lower corner: a small paper label
   coverRating:
     "absolute right-1.5 bottom-1.5 z-1 flex items-center gap-[0.2rem] border-[1.5px] border-line bg-card px-[0.35rem] pt-[0.2rem] pb-[0.14rem] font-mono text-[0.76rem] leading-none font-medium text-ink shadow-[2px_2px_0_var(--hard-shadow)] tabular-nums [&_svg]:size-3 [&_svg]:stroke-line [&_svg]:text-star",
-  // the same for the whole series, as a line under its facts
-  seriesRating:
-    "flex items-center gap-[0.35rem] text-[0.95rem] text-ink-soft [&_b]:font-semibold [&_b]:text-ink [&_svg]:size-4 [&_svg]:stroke-line [&_svg]:text-star",
+  // the whole series' score: the same badge hung on the corner of its
+  // cover, over the cover's right edge. It sits in the box around the cover
+  // (scoredCover), above it, because the cover itself clips
+  scoredCover: "relative block",
+  seriesScore:
+    "absolute -right-1.5 bottom-2 z-2 flex items-center gap-[0.2rem] border-[1.5px] border-line bg-card px-[0.35rem] pt-[0.2rem] pb-[0.14rem] font-mono text-[0.76rem] leading-none font-medium text-ink shadow-[2px_2px_0_var(--hard-shadow)] tabular-nums [&_svg]:size-3 [&_svg]:stroke-line [&_svg]:text-star",
   cardTitle: "line-clamp-2 text-[0.92rem] leading-[1.3] font-semibold",
   cardMeta: "text-[0.8rem] text-muted",
   cardPrice:
@@ -386,6 +401,8 @@ export const pricesStyles = {
   setDisclosure: "mt-2 text-[0.72rem] leading-snug text-muted italic",
   seriesCover:
     "aspect-2/3 w-[clamp(110px,16vw,180px)] border-[1.5px] border-line object-cover shadow-[6px_6px_0_var(--hard-shadow)] upto-720:w-24",
+  // around the series' cover, for the readers' score badge on its corner
+  seriesCoverBox: "relative block shrink-0 self-start",
   seriesCopy: "flex min-w-0 flex-col gap-[0.9rem]",
 
   // ---------- series index ----------

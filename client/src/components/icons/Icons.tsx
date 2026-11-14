@@ -128,6 +128,16 @@ export const CloseIcon = (props: IconProps) => (
   </svg>
 );
 
+// a cross drawn with a brush: two strokes, each fat where the brush lands
+// and thin where it lifts.
+// Filled, not stroked, so the taper holds at any size
+export const InkCrossIcon = (props: IconProps) => (
+  <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" {...props}>
+    <path d="M3.1 5.7C3.7 3.7 5.7 3.2 7.2 4.6L20.7 18.3c.6.9-.4 1.9-1.3 1.4L4 8.1C3.1 7.5 2.8 6.6 3.1 5.7Z" />
+    <path d="M21 4.1c-.9-1.4-2.8-1.3-3.9 0L3.5 18.8c-.6.9.4 1.9 1.3 1.3L20.5 7.1c.9-.8 1.1-2 .5-3Z" />
+  </svg>
+);
+
 // a price tag, for where prices come from
 export const TagIcon = (props: IconProps) => (
   <svg {...base} {...props}>

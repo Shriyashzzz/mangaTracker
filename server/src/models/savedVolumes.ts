@@ -4,6 +4,7 @@ import { VOLUMES_KEY_VERSION } from "../prices/volumesKey.js";
 import { prisma } from "../config/prisma.js";
 import { Prisma } from "../../generated/prisma/client.js";
 import type { CatalogBook } from "../prices/types.js";
+import { withoutReprintDates } from "../prices/preorder.js";
 
 // a volume as a series' saved list knows it (the newest list, today's naming
 // first). Open Library's own record for an ISBN can be the Japanese title it
@@ -147,14 +148,14 @@ export async function getSeriesVolumes(key: string) {
   return (
     row && {
       at: row.fetchedAt.getTime(),
-      volumes: row.volumes as unknown as CatalogBook[],
+      volumes: withoutReprintDates(row.volumes as unknown as CatalogBook[]),
     }
   );
 }
 
 export async function saveSeriesVolumes(key: string, volumes: CatalogBook[]) {
   const data = {
-    volumes: volumes as unknown as Prisma.InputJsonValue,
+    volumes: withoutReprintDates(volumes) as unknown as Prisma.InputJsonValue,
     fetchedAt: new Date(),
   };
   await prisma.seriesVolumes.upsert({

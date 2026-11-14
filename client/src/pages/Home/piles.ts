@@ -1,11 +1,16 @@
-// The New tab's piles: a big list of what's new, sorted by what to do about
-// it. "Just out" is the one newest release that came out lately, the rest by
-// how far behind they are. Each pile has its own page (?pile=way), as does
-// the whole list (?pile=all). The hidden list sorts the same way
+// The New tab's piles: a big list of what's new, sorted by how far behind
+// the reader is: one, a few, or a lot. Each pile has its own page
+// (?pile=way), as does the whole list (?pile=all). The hidden list sorts
+// the same way
+import { behindOf } from "../../lib/releaseMath";
 import type { Manga, ReleaseStatus } from "../../lib/types";
 import type { ReleaseKind, Releases } from "./shelfViews";
 
-export const PILES = ["just-out", "one", "few", "way"] as const;
+// how many are out past where they are: lib/releaseMath.ts has it, as the
+// badge's count needs it too
+export { behindOf };
+
+export const PILES = ["one", "few", "way"] as const;
 export type Pile = (typeof PILES)[number];
 // what ?pile= can ask for: a pile, or everything in one list
 export type PileView = Pile | "all";
@@ -20,76 +25,43 @@ export const PILE_TEXT: Record<
   Record<Pile, { name: string; why: string }>
 > = {
   volumes: {
-    "just-out": {
-      name: "Just out",
-      why: "The next volume came out in the last month",
-    },
-    one: { name: "One to get", why: "The next volume is the newest" },
-    few: { name: "A few behind", why: "2 to 5 volumes" },
-    way: { name: "Way behind", why: "6 or more" },
+    one: { name: "Next for you", why: "The next volume is the newest" },
+    few: { name: "A few behind", why: "You're 2 to 5 volumes behind" },
+    way: { name: "Way behind", why: "You're 6 or more volumes behind" },
   },
   chapters: {
-    "just-out": {
-      name: "Just out",
-      why: "The next chapter came out in the last week",
-    },
     one: { name: "One to read", why: "The next chapter is the newest" },
-    few: { name: "A few to read", why: "2 to 10 chapters" },
-    way: { name: "Way behind", why: "More than 10" },
+    few: { name: "A few to read", why: "You're 2 to 10 chapters behind" },
+    way: { name: "Way behind", why: "You're 11 or more chapters behind" },
   },
   japan: {
-    "just-out": {
-      name: "Just out in Japan",
-      why: "Came out there in the last month",
-    },
     one: { name: "One ahead", why: "Japan has one more" },
-    few: { name: "A few ahead", why: "2 to 5 volumes" },
-    way: { name: "Way ahead", why: "6 or more" },
+    few: { name: "A few ahead", why: "Japan is 2 to 5 volumes ahead" },
+    way: { name: "Way ahead", why: "Japan is 6 or more volumes ahead" },
   },
 };
 
 // "a few" goes up to this many; chapters come faster than volumes
 const FEW: Record<ReleaseKind, number> = { volumes: 5, chapters: 10, japan: 5 };
-// how lately "just out" means
-const FRESH_DAYS: Record<ReleaseKind, number> = {
-  volumes: 31,
-  chapters: 7,
-  japan: 31,
-};
-const DAY = 24 * 60 * 60 * 1000;
 
-// how many are out past where they are (at least the one that put it here)
-export function behindOf(
+// How many behind they are, as every card, stamp and pile says it: every
+// volume that's out and isn't theirs, the newest included. Owning vol. 28
+// with 29 and 30 out is 2 behind. One behind is just the newest having come
+// out: that's news ("Next for you"), so nothing calls it behind
+export const volumesBehind = (
   found: ReleaseStatus | null | undefined,
   kind: ReleaseKind,
-) {
-  if (!found) return 1;
-  if (kind === "japan") return Math.max(1, found.outJapanVolumes.length);
-  if (kind === "chapters")
-    return found.latestChapter != null && found.nextChapter != null
-      ? Math.max(1, Math.floor(found.latestChapter) - found.nextChapter + 1)
-      : 1;
-  return Math.max(1, found.outVolumes.length);
-}
-
-function dateOf(found: ReleaseStatus, kind: ReleaseKind) {
-  if (kind === "volumes") return found.latestVolumeDate;
-  if (kind === "chapters") return found.latestChapterDate;
-  return found.latestJapaneseVolumeDate;
-}
+) => {
+  const behind = behindOf(found, kind);
+  return behind > 1 ? behind : 0;
+};
 
 export function pileOf(
   found: ReleaseStatus | null | undefined,
   kind: ReleaseKind,
-  now = Date.now(),
 ): Pile {
   const behind = behindOf(found, kind);
-  if (behind <= 1) {
-    // "2026-11" counts from the 1st; no date, and it can't be called fresh
-    const out = found ? Date.parse(dateOf(found, kind) ?? "") : NaN;
-    const age = now - out;
-    return age >= -DAY && age <= FRESH_DAYS[kind] * DAY ? "just-out" : "one";
-  }
+  if (behind <= 1) return "one";
   return behind <= FEW[kind] ? "few" : "way";
 }
 
@@ -136,14 +108,12 @@ export function sortIntoPiles(
   list: Manga[],
   releases: Releases,
   kind: ReleaseKind,
-  now = Date.now(),
 ) {
   const piles: Record<Pile, Manga[]> = {
-    "just-out": [],
     one: [],
     few: [],
     way: [],
   };
-  for (const m of list) piles[pileOf(releases[m.id], kind, now)].push(m);
+  for (const m of list) piles[pileOf(releases[m.id], kind)].push(m);
   return piles;
 }

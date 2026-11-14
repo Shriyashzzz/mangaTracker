@@ -192,12 +192,7 @@ export default function ReleaseBar({
       </div>
 
       {hasDates && (
-        <div
-          id={datesId}
-          className={styles.releaseDates}
-          data-tour="release-dates"
-          hidden={!open}
-        >
+        <div id={datesId} className={styles.releaseDates} hidden={!open}>
           {groups.map((group) => (
             <div key={group.title} className={styles.releaseGroup}>
               <h3 className={styles.releaseGroupTitle}>{group.title}</h3>

@@ -34,7 +34,7 @@ const UPDATES = [
   },
   {
     name: "A New tab that keeps up",
-    body: "A big shelf's new volumes sort themselves into Just out, One to get, A few behind and Way behind, and the tab opens straight away.",
+    body: "A big shelf's new volumes sort themselves into Next for you, A few behind and Way behind, and the tab opens straight away.",
   },
   {
     name: "What your shelf is worth",
@@ -96,7 +96,7 @@ export function UpdatesPage() {
         <div className={styles.panelArt} aria-hidden>
           <span className={styles.sfx}>New!</span>
           <div className={styles.sample}>
-            <p className={styles.sampleRelease}>Vol. 25 is out</p>
+            <p className={styles.sampleRelease}>Vol. 25 next</p>
             <p className={styles.sampleYours}>You own up to vol. 24</p>
           </div>
         </div>

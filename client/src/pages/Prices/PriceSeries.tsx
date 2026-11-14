@@ -7,8 +7,7 @@
 //   SeriesPageParts.tsx  one card of the list, loading and not-found
 //   BoxSets, EditionsBox, OtherEditions, SeriesCostBox, SeriesFacts
 //   AfterAnime/AfterAnimeBar    the way to where the anime leaves off
-import { StarIcon } from "../../components/icons/Icons";
-import { scoreText } from "./reviews/reviewText";
+import { SeriesScoreBadge } from "./SeriesScore";
 import { useState } from "react";
 import { NavLink, useParams, useSearchParams } from "react-router";
 import DealsStrip from "../../components/deals/DealsStrip";
@@ -192,25 +191,29 @@ export default function PriceSeries() {
       <header className={styles.seriesHead}>
         {/* the US edition's first volume; AniList's cover is the Japanese one */}
         {(volumes[0]?.coverUrl || info?.coverUrl) && (
-          <img
-            className={styles.seriesCover}
-            src={
-              volumes[0]?.coverUrl
-                ? coverSrc(volumes[0].coverUrl)
-                : (info?.coverUrl ?? undefined)
-            }
-            alt=""
-            onError={(e) => {
-              // no US cover on file: fall back to AniList's, and if that
-              // fails too (or there isn't one), show nothing rather than a
-              // broken image
-              if (info?.coverUrl && e.currentTarget.src !== info.coverUrl) {
-                e.currentTarget.src = info.coverUrl;
-              } else {
-                hideBrokenCover(e);
+          <span className={styles.seriesCoverBox}>
+            <img
+              className={styles.seriesCover}
+              src={
+                volumes[0]?.coverUrl
+                  ? coverSrc(volumes[0].coverUrl)
+                  : (info?.coverUrl ?? undefined)
               }
-            }}
-          />
+              alt=""
+              onError={(e) => {
+                // no US cover on file: fall back to AniList's, and if that
+                // fails too (or there isn't one), show nothing rather than a
+                // broken image
+                if (info?.coverUrl && e.currentTarget.src !== info.coverUrl) {
+                  e.currentTarget.src = info.coverUrl;
+                } else {
+                  hideBrokenCover(e);
+                }
+              }}
+            />
+            {/* readers' score for the series, hung on the cover's corner */}
+            <SeriesScoreBadge score={data.readerScore ?? null} />
+          </span>
         )}
         <div className={styles.seriesCopy}>
           <h1 className={styles.volumeTitle}>{named.title}</h1>
@@ -220,14 +223,6 @@ export default function PriceSeries() {
             </p>
           )}
           {info && <SeriesFacts info={info} />}
-          {data.reviews?.average != null && (
-            <p className={styles.seriesRating}>
-              <StarIcon filled aria-hidden />
-              <b>{scoreText(data.reviews.average)}</b> from {data.reviews.count}{" "}
-              reader rating
-              {data.reviews.count === 1 ? "" : "s"}
-            </p>
-          )}
           <ToReadButton
             name={info?.name ?? data.name}
             altNames={info?.altNames}

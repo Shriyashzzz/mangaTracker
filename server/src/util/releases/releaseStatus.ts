@@ -5,19 +5,25 @@
 import type { FormatedDates } from "./volumeDataFormatter.js";
 import { volumeOfChapter } from "./volumeStarts.js";
 
-// what the New tab lists, set by each reader. "next": just the next one, however
-// far behind. "within": the next one, once they're within that many of the newest.
-// "all": everything that's out, however far behind, as one entry per series
-export type RangeMode = "next" | "within" | "all";
+// which series the New tab lists, set by each reader. "next": every series,
+// with the next one for it, however far behind. "within": only once they're
+// within that many of the newest
+export type RangeMode = "next" | "within";
 export type ReleaseRange = { mode: RangeMode; within: number };
 export type ReleaseSettings = { volumes: ReleaseRange; chapters: ReleaseRange };
 
 const MAX_WITHIN = { volumes: 10, chapters: 50 } as const;
 
-// a little room for chapters: someone nearly caught up shouldn't drop off the list
-// because a couple came out at once. A volume can be bought however old it is
+// What New lists for a reader who hasn't chosen. Volumes: the next one
+// they need, however far behind; the tab sorts a long list into piles by
+// how far behind they are (client Home/piles.ts). Chapters: only once
+// they're within a few of the latest, since a chapter backlog is long and
+// nobody buys one. (Volumes were "within 3" for a day in November 2026; it
+// left the "Way behind" pile empty for everyone who hadn't chosen.)
 const DEFAULT_RELEASE_SETTINGS: ReleaseSettings = {
-  volumes: { mode: "next", within: 3 },
+  // (within 1: where the slider starts if they switch to "only series I'm
+  // nearly caught up on", which is new releases only)
+  volumes: { mode: "next", within: 1 },
   chapters: { mode: "within", within: 3 },
 };
 
@@ -26,10 +32,14 @@ const toRange = (
   kind: keyof ReleaseSettings,
 ): ReleaseRange | null => {
   const { mode, within } = (value ?? {}) as Partial<ReleaseRange>;
-  if (mode !== "next" && mode !== "within" && mode !== "all") return null;
+  // "all" (everything that's out as one entry) was a third choice until
+  // November 2026. A card that's behind opens the list of what's out on
+  // every setting now, so anyone who saved it sees the same series as "next"
+  const asked = (mode as string) === "all" ? "next" : mode;
+  if (asked !== "next" && asked !== "within") return null;
   if (!Number.isInteger(within)) return null;
   if (within! < 1 || within! > MAX_WITHIN[kind]) return null;
-  return { mode, within: within! };
+  return { mode: asked, within: within! };
 };
 
 // what's stored, or the defaults for anything missing or malformed
@@ -67,9 +77,6 @@ export type ReleaseStatus = {
   hasNewVolume: boolean;
   hasNewChapter: boolean;
   hasNewJapaneseVolume: boolean;
-  // how their settings ask for each to be listed
-  volumeMode: RangeMode;
-  chapterMode: RangeMode;
   // on the New tab but for "Hide": listed and not new means they've hidden it
   volumeListed: boolean;
   chapterListed: boolean;
@@ -84,17 +91,13 @@ export type ReleaseStatus = {
   // the next English volume after where they are, and its price page
   nextVolume: number | null;
   nextVolumeBook: { isbn13: string; title: string } | null;
-  // every English volume past where they are, for the grouped entry
+  // every English volume past where they are: how far behind they are, and
+  // the list a card opens
   outVolumes: { volume: number; isbn13?: string; title?: string }[];
   // the same for what's only out in Japan
   outJapanVolumes: number[];
   latestChapter: number | null;
   latestJapaneseVolume: number | null;
-  // when the newest of each came out, where the source says: the New tab's
-  // "Just out" pile
-  latestVolumeDate: string | null;
-  latestChapterDate: string | null;
-  latestJapaneseVolumeDate: string | null;
 };
 
 type Shelved = {
@@ -160,9 +163,10 @@ type Sources = {
     | null;
 };
 
-// "New" is what's next for this reader: the next volume they can buy, however far
-// behind the newest that is, and the next chapter once they've nearly caught up. A blank shelf number can't say they've caught
-// up, so it doesn't count (a blank volume falls back on the chapter they're on)
+// "New" is what's next for this reader, as their settings ask: by default
+// the next volume and the next chapter once they've nearly caught up. A
+// blank shelf number can't say they've caught up, so it doesn't count (a
+// blank volume falls back on the chapter they're on)
 export function getReleaseStatus(
   {
     volumesOwned,
@@ -234,10 +238,7 @@ export function getReleaseStatus(
     nextVolume != null &&
     (volumes.mode !== "within" ||
       (latestVolume ?? 0) - (currentVolume ?? 0) <= volumes.within);
-  const hasNewVolume =
-    volumes.mode === "all"
-      ? outVolumes.some((v) => !isHidden(v.volume))
-      : volumeListed && !isHidden(nextVolume);
+  const hasNewVolume = volumeListed && !isHidden(nextVolume);
 
   const chapterListed =
     // a finished series has nothing new to come
@@ -246,11 +247,7 @@ export function getReleaseStatus(
     latestChapter != null &&
     (chapters.mode !== "within" ||
       latestChapter - (bookmark ?? 0) <= chapters.within);
-  const hasNewChapter =
-    chapterListed &&
-    // grouped, hiding only part of the way still leaves the rest to show
-    (chapters.mode === "all" ? latestChapter! : nextChapter!) >
-      (seenChapter ?? 0);
+  const hasNewChapter = chapterListed && nextChapter! > (seenChapter ?? 0);
 
   const pastBoth = Math.max(currentVolume ?? 0, latestVolume ?? 0);
   const outJapanVolumes = [...new Set(japanese)]
@@ -262,19 +259,17 @@ export function getReleaseStatus(
     currentVolume != null &&
     latestJapaneseVolume != null &&
     latestJapaneseVolume > pastBoth &&
-    (volumes.mode === "next"
-      ? // it's next in line only once they've reached the end of what's in English
-        caughtUpWithEnglish
-      : volumes.mode === "all" ||
-        latestJapaneseVolume - currentVolume <= volumes.within);
+    // it's next in line once they've reached the end of what's in English;
+    // before that, only for a reader who's within their few of it
+    (caughtUpWithEnglish ||
+      (volumes.mode === "within" &&
+        latestJapaneseVolume - currentVolume <= volumes.within));
 
   return {
     hasNewVolume,
     hasNewChapter,
     hasNewJapaneseVolume:
       japanListed && latestJapaneseVolume! > (seenJapanVolume ?? 0),
-    volumeMode: volumes.mode,
-    chapterMode: chapters.mode,
     volumeListed,
     chapterListed,
     japanListed,
@@ -288,20 +283,5 @@ export function getReleaseStatus(
     nextVolumeBook,
     latestChapter,
     latestJapaneseVolume,
-    latestVolumeDate:
-      (englishVolumes ?? []).find((v) => v.volume === latestVolume)
-        ?.published ?? null,
-    latestChapterDate: dates?.chapter?.latestReleased.releaseDate ?? null,
-    // covers of the volume come in every language, uploaded as they appear:
-    // the first is the nearest to when it came out in Japan
-    latestJapaneseVolumeDate:
-      (dates?.volume ?? [])
-        .filter(
-          (v) =>
-            parseFloat(v.volume ?? "") === latestJapaneseVolume &&
-            Number.isFinite(Date.parse(v.releaseDate ?? "")),
-        )
-        .map((v) => v.releaseDate!)
-        .sort((a, b) => Date.parse(a) - Date.parse(b))[0] ?? null,
   };
 }

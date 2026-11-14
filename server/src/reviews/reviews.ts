@@ -2,9 +2,13 @@
 // reviews with whether this reader may write one, writing and flagging, and
 // a series' ratings added up. The rules are reviewRules.ts; the database is
 // reviewStore.ts.
+import type { Manga } from "../../generated/prisma/client.js";
+import config from "../config/config.js";
 import { prisma } from "../config/prisma.js";
+import { ownedSet } from "../collector/shelfMath.js";
 import { shelfSeries } from "../collector/shelfSeries.js";
 import { AppError, NotFoundError } from "../errors/AppError.js";
+import mangaQueries from "../models/mangaQueries.js";
 import { priceName } from "../prices/lightNovel.js";
 import { knownSeriesName } from "../prices/sources/anilist.js";
 import { seriesName, slugify } from "../prices/stores/match.js";
@@ -17,6 +21,9 @@ import {
   ratingSummary,
   readersSaySpoiler,
   reportedEnough,
+  finishedLately,
+  latestVolume,
+  mayAskAgain,
   REVIEWS_AN_HOUR,
   tidyWords,
   type FlagKind,
@@ -96,11 +103,20 @@ export async function volumeReviews(isbn13: string, viewerId: number | null) {
 
 export type NewReview = { rating: number; text: string; spoiler: boolean };
 
-// writes a reader's review of a volume, or writes over the one they have
-export async function writeReview(
+// the series a shelf entry's reviews belong to: as the price pages name it
+// (AniList's own name for it, where the shelf has it under another), so a
+// series' page finds them
+const seriesSlugOf = async (manga: Manga) =>
+  slugify(await knownSeriesName(priceName(manga)));
+
+// A review's words as they'll be kept. Refused with a link in them, or when
+// this reader has written about too many volumes this hour (`existingId`:
+// the review being changed, which doesn't count). Stars alone are never
+// held back: they can be given to every volume
+async function wordsToKeep(
   userId: number,
-  isbn13: string,
-  { rating, text, spoiler }: NewReview,
+  text: string,
+  existingId: number | null,
 ) {
   const body = tidyWords(text);
   if (hasLink(body))
@@ -108,26 +124,86 @@ export async function writeReview(
       "Reviews can't have links. Take it out and try again.",
       400,
     );
+  const wroteTooMany =
+    body !== "" &&
+    (await store.writtenLately(userId, existingId)) >= REVIEWS_AN_HOUR;
+  if (wroteTooMany)
+    throw new AppError("That's a lot of reviews. Try again in an hour.", 429);
+  return body;
+}
+
+const NOT_READ = "Mark this volume as owned or read on your shelf first.";
+
+// writes a reader's review of a book, or writes over the one they have.
+// From the book's own price page
+export async function writeReview(
+  userId: number,
+  isbn13: string,
+  { rating, text, spoiler }: NewReview,
+) {
+  const existing = await store.ownReview(userId, isbn13);
+  const body = await wordsToKeep(userId, text, existing?.id ?? null);
   const place = await shelfPlaceOf(userId, isbn13);
   if (!place || !hasRead(place.manga, place.volume))
-    throw new AppError(
-      "Mark this volume as owned or read on your shelf first.",
-      403,
-    );
-  if ((await store.writtenLately(userId, isbn13)) >= REVIEWS_AN_HOUR)
-    throw new AppError("That's a lot of reviews. Try again in an hour.", 429);
+    throw new AppError(NOT_READ, 403);
   const saved = await store.saveReview({
     userId,
     isbn13,
-    // the series as the price pages name it (AniList's own name for it,
-    // where the shelf has it under another), so a series' page finds them
-    seriesSlug: slugify(await knownSeriesName(priceName(place.manga))),
+    seriesSlug: await seriesSlugOf(place.manga),
     volume: place.volume,
     rating,
     body,
     spoiler: spoiler && body !== "",
   });
   return sent(saved, userId);
+}
+
+// Writes a reader's review of a volume of a series on their shelf, by its
+// number: from the series' page, where a volume is its number. Of the
+// book, when we have one for that volume; otherwise it's kept by series
+// and number until a book turns up (attachNoBookReviews)
+export async function writeShelfReview(
+  userId: number,
+  mangaId: number,
+  volume: number,
+  { rating, text, spoiler }: NewReview,
+) {
+  const manga = await prisma.manga.findFirst({
+    where: { id: mangaId, userId },
+  });
+  if (!manga) throw new NotFoundError("That series isn't on your shelf.");
+  const { theirs, reviewOf, seriesSlug } = await theirVolumes(userId, manga);
+  const asked = theirs.find((one) => one.volume === volume);
+  if (!asked) throw new AppError(NOT_READ, 403);
+  const existing = reviewOf.get(volume);
+  const body = await wordsToKeep(userId, text, existing?.id ?? null);
+  const words = { rating, body, spoiler: spoiler && body !== "" };
+  const saved = asked.isbn13
+    ? await store.saveReview({
+        userId,
+        isbn13: asked.isbn13,
+        seriesSlug,
+        volume,
+        ...words,
+      })
+    : await store.saveNoBookReview({ userId, seriesSlug, volume, ...words });
+  return sent(saved, userId);
+}
+
+// takes their review of that volume away; nothing happens with none
+export async function deleteShelfReview(
+  userId: number,
+  mangaId: number,
+  volume: number,
+) {
+  const manga = await prisma.manga.findFirst({
+    where: { id: mangaId, userId },
+  });
+  if (!manga) return;
+  const { theirs, seriesSlug } = await theirVolumes(userId, manga);
+  const isbn13 = theirs.find((one) => one.volume === volume)?.isbn13;
+  if (isbn13) await store.deleteOwnReview(userId, isbn13);
+  await store.deleteNoBookReview(userId, seriesSlug, volume);
 }
 
 export const deleteReview = (userId: number, isbn13: string) =>
@@ -165,57 +241,154 @@ export async function publicReviews(isbn13: string) {
   };
 }
 
+// the most volumes a series is counted up to, from the volume they're on
+const MOST_VOLUMES = 999;
+
+// The volumes of a series on their shelf that they own or have read: each
+// with its book's ISBN (null when we have no book for that volume), their
+// review of each one they've reviewed, by volume number, and the series'
+// slug. A volume is a whole number from 1
+async function theirVolumes(userId: number, manga: Manga) {
+  const [[series], seriesSlug] = await Promise.all([
+    shelfSeries([manga]),
+    seriesSlugOf(manga),
+  ]);
+  const isWhole = (volume: number | null): volume is number =>
+    volume !== null && Number.isInteger(volume) && volume >= 1;
+  // the book we have for each volume
+  const bookOf = new Map<number, string>();
+  for (const listed of series?.volumes ?? [])
+    if (listed.isbn13 && isWhole(listed.volume))
+      bookOf.set(listed.volume, listed.isbn13.trim());
+  // books turned up since a review was written without one: it's theirs now
+  await attachNoBookReviews(seriesSlug, bookOf);
+
+  // every volume it could be: the ones we list, the ones they own, and
+  // the ones up to where they've read
+  const readUpTo = Math.min(manga.readVolume ?? 0, MOST_VOLUMES);
+  const numbers = new Set<number>([
+    ...bookOf.keys(),
+    ...[...ownedSet(manga)].filter(isWhole),
+    ...Array.from({ length: readUpTo }, (_, at) => at + 1),
+  ]);
+  const theirs = [...numbers]
+    .filter((volume) => hasRead(manga, volume))
+    .map((volume) => ({ volume, isbn13: bookOf.get(volume) ?? null }));
+
+  const stored = await store.reviewsOfSeriesBy(
+    userId,
+    seriesSlug,
+    theirs.flatMap((one) => (one.isbn13 ? [one.isbn13] : [])),
+  );
+  const volumeOf = new Map(
+    [...bookOf].map(([volume, isbn13]) => [isbn13, volume]),
+  );
+  const reviewOf = new Map<number, (typeof stored)[number]>();
+  for (const review of stored) {
+    const volume = review.isbn13
+      ? volumeOf.get(review.isbn13.trim())
+      : review.volume;
+    // the one of the book comes first when they somehow have both
+    if (volume != null && (review.isbn13 || !reviewOf.has(volume)))
+      reviewOf.set(volume, review);
+  }
+  return { theirs, reviewOf, seriesSlug };
+}
+
+// A book has turned up for volumes that readers reviewed without one: those
+// reviews become that book's, so they show on its price page. `bookOf`:
+// the book we have for each volume of the series. Asked for where a
+// series' books are known: its price page, and a reader's page for it
+export async function attachNoBookReviews(
+  seriesSlug: string,
+  bookOf: Map<number, string>,
+) {
+  for (const volume of await store.volumesWithoutABook(seriesSlug)) {
+    const isbn13 = bookOf.get(volume);
+    if (isbn13) await store.attachBook(seriesSlug, volume, isbn13);
+  }
+}
+
+// They've just finished a volume (their read volume went up, or they
+// marked the series finished). Its page asks out loud what they thought,
+// "How was vol. 9?", but only when all of this holds:
+//   - they haven't rated it
+//   - they haven't been asked in the last RATE_ASK_EVERY_DAYS, about any
+//     series: it's meant to come once in a blue moon
+// A finish that doesn't get the question doesn't use up their turn. True
+// when the page will ask
+export async function askAboutFinishedVolume(
+  userId: number,
+  mangaId: number,
+  now = new Date(),
+  everyDays = config.RATE_ASK_EVERY_DAYS,
+) {
+  const [manga, reader] = await Promise.all([
+    prisma.manga.findFirst({ where: { id: mangaId, userId } }),
+    prisma.user.findUnique({
+      where: { id: userId },
+      select: { rateAskedAt: true },
+    }),
+  ]);
+  if (!manga || !reader) return false;
+  if (!mayAskAgain(reader.rateAskedAt, everyDays, now)) return false;
+  const { theirs, reviewOf } = await theirVolumes(userId, manga);
+  const { latest, isTheOneRead } = latestVolume(manga, theirs);
+  if (!latest || !isTheOneRead || reviewOf.has(latest.volume)) return false;
+  await mangaQueries.startAskingAboutVolume(mangaId, userId, now);
+  return true;
+}
+
 // For a series on a reader's shelf (its details page): the volumes they
 // could rate next, and the reviews they've written of it.
+//   latest   the last volume they've read (or, for someone who only keeps
+//            what they own, the last they own), rated or not: the one the
+//            page's stars are about (reviewRules.ts latestVolume)
 //   toRate   read or owned and not yet rated. The ones they've read up to
 //            come first, latest first (that's the one fresh in mind); then
 //            ones they own past that. A few, since the page asks one at a time
 //   written  theirs, latest volume first, each with its volume's number
-// Both empty for a series that isn't theirs
-export async function shelfReviews(userId: number, mangaId: number) {
+//   justFinished  `latest`, while the page is asking about it out loud:
+//            askAboutFinishedVolume started that in the last few days, and
+//            it still isn't rated. Else null
+// Empty for a series that isn't theirs
+export async function shelfReviews(
+  userId: number,
+  mangaId: number,
+  now = new Date(),
+) {
   const manga = await prisma.manga.findFirst({
     where: { id: mangaId, userId },
   });
-  if (!manga) return { toRate: [], written: [] };
-  const [series] = await shelfSeries([manga]);
-  const theirs = (series?.volumes ?? [])
-    .filter(
-      (volume) =>
-        volume.isbn13 &&
-        volume.volume !== null &&
-        Number.isInteger(volume.volume) &&
-        volume.volume >= 1 &&
-        hasRead(manga, volume.volume),
-    )
-    .map((volume) => ({
-      isbn13: volume.isbn13!.trim(),
-      volume: volume.volume!,
-    }));
-  const stored = await store.reviewsBy(
-    userId,
-    theirs.map((volume) => volume.isbn13),
-  );
-  const reviewOf = new Map(
-    stored.map((review) => [review.isbn13.trim(), review]),
-  );
+  if (!manga)
+    return { latest: null, toRate: [], written: [], justFinished: null };
+  const { theirs, reviewOf } = await theirVolumes(userId, manga);
   const latestFirst = (one: { volume: number }, other: { volume: number }) =>
     other.volume - one.volume;
 
   const readUpTo = manga.status ? Infinity : (manga.readVolume ?? 0);
-  const unrated = theirs.filter((volume) => !reviewOf.has(volume.isbn13));
+  const unrated = theirs.filter((volume) => !reviewOf.has(volume.volume));
   const toRate = [
     ...unrated.filter((volume) => volume.volume <= readUpTo).sort(latestFirst),
     ...unrated.filter((volume) => volume.volume > readUpTo).sort(latestFirst),
-  ].slice(0, 3);
+  ].slice(0, 10);
 
   const written = theirs
-    .filter((volume) => reviewOf.has(volume.isbn13))
+    .filter((volume) => reviewOf.has(volume.volume))
     .sort(latestFirst)
     .map((volume) => ({
       ...volume,
-      review: sent(reviewOf.get(volume.isbn13)!, userId),
+      review: sent(reviewOf.get(volume.volume)!, userId),
     }));
-  return { toRate, written };
+  const { latest, isTheOneRead } = latestVolume(manga, theirs);
+  // asked about out loud: it's the volume they finished, that was lately,
+  // and they haven't rated it
+  const isAsked =
+    latest !== null &&
+    isTheOneRead &&
+    finishedLately(manga.readVolumeAt, now) &&
+    !reviewOf.has(latest.volume);
+  return { latest, toRate, written, justFinished: isAsked ? latest : null };
 }
 
 // a series' ratings added up, and each reviewed volume's own, by number
@@ -246,7 +419,13 @@ export async function reviewsToCheck() {
   const reported = await store.reportedReviews();
   // each volume's own name, to say what a review is of
   const books = await prisma.book.findMany({
-    where: { isbn13: { in: reported.map((review) => review.isbn13) } },
+    where: {
+      isbn13: {
+        in: reported.flatMap((review) =>
+          review.isbn13 ? [review.isbn13] : [],
+        ),
+      },
+    },
     select: { isbn13: true, title: true },
   });
   const titleOf = new Map(
@@ -254,8 +433,9 @@ export async function reviewsToCheck() {
   );
   return reported.map((review) => ({
     id: review.id,
-    isbn13: review.isbn13.trim(),
-    title: titleOf.get(review.isbn13.trim()) ?? null,
+    // null for a volume we have no book for
+    isbn13: review.isbn13?.trim() ?? null,
+    title: review.isbn13 ? (titleOf.get(review.isbn13.trim()) ?? null) : null,
     rating: review.rating,
     text: review.body,
     by: review.user.displayName || defaultReaderName(review.user.id),

@@ -2,18 +2,25 @@
 // a tick for spoilers. Also how they change one they've written.
 import { useState } from "react";
 import StarRating from "../../../components/starRating/StarRating";
-import { MOST_WORDS, saveReview, type Review } from "../../../lib/reviews";
+import {
+  MOST_WORDS,
+  type Review,
+  type ReviewDraft,
+  type SaveResult,
+} from "../../../lib/reviews";
 import { reviewStyles as styles } from "./reviewStyles";
 
 export default function ReviewForm({
-  isbn13,
+  save,
   // the review being changed; null for a new one
   current,
   onSaved,
   onCancel,
   framed = true,
 }: {
-  isbn13: string;
+  // sends it: a book's price page and a series' page each have their own
+  // way (lib/reviews.ts saveReview, saveShelfReview)
+  save: (draft: ReviewDraft) => Promise<SaveResult>;
   current: Review | null;
   onSaved: () => void;
   onCancel: () => void;
@@ -33,7 +40,7 @@ export default function ReviewForm({
     if (tooLong) return setProblem(`Keep it under ${MOST_WORDS} characters.`);
     setSaving(true);
     setProblem("");
-    const result = await saveReview(isbn13, { rating, text, spoiler });
+    const result = await save({ rating, text, spoiler });
     setSaving(false);
     if ("problem" in result) setProblem(result.problem);
     else onSaved();

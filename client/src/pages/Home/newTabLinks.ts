@@ -2,7 +2,7 @@
 // Worked out from what the release check found for the series; pure, no state.
 import { volumePath } from "../../lib/prices";
 import type { ReleaseStatus } from "../../lib/types";
-import { isGrouped, type ReleaseKind } from "./shelfViews";
+import type { ReleaseKind } from "./shelfViews";
 
 type Found = ReleaseStatus | null | undefined;
 
@@ -15,10 +15,11 @@ export function detailsSearchFor(kind: ReleaseKind) {
 
 // the next English volume leads straight to its prices: there's nothing to do
 // with it but buy it. Undefined (so the details page, as usual) when there's
-// no catalog entry to go on, or the series has several out at once
+// no catalog entry to go on. (A card that opens the list of what's out does
+// that first: MangaCard's onOpen comes before its link)
 export function buyLinkFor(found: Found, kind: ReleaseKind) {
   const book = found?.nextVolumeBook;
-  if (kind !== "volumes" || !book || isGrouped(found, kind)) return undefined;
+  if (kind !== "volumes" || !book) return undefined;
   return volumePath(book.isbn13, book.title);
 }
 

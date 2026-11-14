@@ -22,7 +22,7 @@ import ReleaseTip from "../../components/whatsNew/ReleaseTip";
 import ViewPeek from "../../components/viewPeek/ViewPeek";
 import { usePrivatePage } from "../../lib/seo";
 import { readLocal, savePrefs, shelfViewNow } from "../../lib/prefs";
-import { SORT_OPTIONS } from "../../lib/shelf";
+import { SORT_OPTIONS, type ShelfSort } from "../../lib/shelf";
 import { shownNewCount } from "../../lib/releaseMath";
 import { isDemo } from "../../lib/demo";
 import { fillCovers } from "../../lib/coverFill";
@@ -49,6 +49,7 @@ import {
   PILES_FROM,
   catchUpText,
   sortIntoPiles,
+  volumesBehind,
   sortPile,
   type Pile,
 } from "./piles";
@@ -62,12 +63,12 @@ import {
   BIG_SHELF,
   EARLY_CHECKS,
   filterShelf,
-  isGrouped,
+  newsFor,
+  opensAList,
   isHiddenAs,
   readSession,
   readSpot,
   RELEASE_KINDS,
-  SEEN_KIND,
   SHELF_PAGE_SIZE,
   SHELF_SPOT_KEY,
   shelfCounts,
@@ -123,7 +124,7 @@ function Library() {
     const saved = readSession("libraryReleaseKind", "volumes");
     return saved in RELEASE_KINDS ? (saved as ReleaseKind) : "volumes";
   });
-  // the series whose grouped list is open
+  // the series whose list of volumes to get is open
   const [openRelease, setOpenRelease] = useState<number | null>(null);
   // set in settings; Kenji's compact-rows offer (ViewPeek) can change it
   // while they're here
@@ -290,7 +291,6 @@ function Library() {
     releaseKind,
     viewingHidden,
     shown: visibleManga,
-    closeRelease: () => setOpenRelease(null),
   });
   useShelfShortcuts(select.selectOn);
 
@@ -390,16 +390,20 @@ function Library() {
     bigFirstCheck && "The first check on a big shelf can take a few minutes.";
 
   const pileExtra = (p: Pile) =>
-    catchUpText(p, piles[p], releases, releaseKind);
+    // while the check is still going the totals are only what's been found
+    catchUpText(p, piles[p], releases, releaseKind) +
+    (checking && (p === "few" || p === "way") ? " so far" : "");
   // a pile's cover goes where its card would, stamped with which one
   const coverLink = (m: Manga): CoverLink => {
     const found = releases[m.id];
     const detailsTo = `/details/${m.id}${detailsSearchFor(releaseKind) ?? ""}`;
-    const opensList = !viewingHidden && isGrouped(found, releaseKind);
+    const opensList = !viewingHidden && opensAList(found, releaseKind);
+    const behind = volumesBehind(found, releaseKind);
     return {
       to: buyLinkFor(found, releaseKind) ?? detailsTo,
       onOpen: opensList ? () => setOpenRelease(m.id) : undefined,
       stamp: stampFor(found, releaseKind),
+      behind: behind > 0 ? behind : undefined,
     };
   };
   const card = (manga: Manga, index: number) => (
@@ -456,8 +460,6 @@ function Library() {
         <NewPiles
           kind={releaseKind}
           piles={piles}
-          card={card}
-          gridClass={gridClass}
           onOpen={openPile}
           returnTo={pileLeft}
           onCardClick={saveSpot}
@@ -479,6 +481,7 @@ function Library() {
     if (nothingShown)
       return (
         <NoMatches
+          emptyTab={query.trim() ? null : tab}
           onShowAll={() => {
             setQuery("");
             pickTab("all");
@@ -571,6 +574,9 @@ function Library() {
         onSort={(value) => {
           setSortBy(value);
           writeSession("librarySort", value);
+          // kept on their account, like the layout beside it: the shelf
+          // opens this way on their other devices too
+          savePrefs({ shelfSort: value as ShelfSort }, true);
         }}
         layout={rowsChosen ? "rows" : "covers"}
         onLayout={(view) => {
@@ -691,14 +697,7 @@ function Library() {
         <ReleaseModal
           manga={openManga}
           found={releases[openManga.id]!}
-          kind={SEEN_KIND[releaseKind]}
-          onHide={(number, list) =>
-            hideActions.hideFromList(openManga, number, list)
-          }
-          onHideAll={() => {
-            setOpenRelease(null);
-            hideActions.hide(openManga);
-          }}
+          yours={newsFor(openManga, releases[openManga.id], releaseKind).yours}
           onClose={() => setOpenRelease(null)}
         />
       )}

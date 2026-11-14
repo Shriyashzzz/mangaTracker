@@ -22,20 +22,25 @@ import { pricesStyles as styles } from "./styles";
 // that volume's real cover. With no series cover either, the drawn number.
 //
 // `numbered`: the card already carries the number on its corner tab
-// (VolumeCard), so it isn't stamped a second time
+// (VolumeCard), so it isn't stamped a second time.
+// `small`: for a small tile (the shelf's Volumes tab), the drawn number is
+// drawn smaller
 export function CoverFallback({
   number,
   seriesCoverUrl,
   numbered = false,
+  small = false,
 }: {
   number?: number | null;
   seriesCoverUrl?: string | null;
   numbered?: boolean;
+  small?: boolean;
 }) {
   const isItsOwnArt = number == null || number <= 1;
+  const drawn = small ? styles.coverFallbackSmall : styles.coverFallback;
   if (!seriesCoverUrl || isItsOwnArt)
     return (
-      <span className={styles.coverFallback} aria-hidden>
+      <span className={drawn} aria-hidden>
         {number ?? "?"}
         {seriesCoverUrl && (
           <img
@@ -50,18 +55,18 @@ export function CoverFallback({
       </span>
     );
   return (
-    <span className={styles.coverFallback} aria-hidden>
+    <span className={drawn} aria-hidden>
       {/* under the picture: shows if the series cover fails to load too */}
       {number}
       <img
-        className={styles.seriesStandIn}
+        className={small ? styles.seriesStandInSmall : styles.seriesStandIn}
         src={seriesCoverUrl}
         alt=""
         loading="lazy"
         onError={hideBrokenCover}
         onLoad={hidePlaceholderCover}
       />
-      <span className={styles.standInVeil} />
+      <span className={small ? styles.standInVeilSmall : styles.standInVeil} />
       {!numbered && <span className={styles.standInNumber}>{number}</span>}
     </span>
   );

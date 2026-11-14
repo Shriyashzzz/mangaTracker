@@ -3,17 +3,25 @@
 // on a volume's price page), and the way to delete it. A native dialog: it
 // brings its own focus trap, Escape and backdrop.
 import { useEffect, useRef, useState } from "react";
-import { deleteReview, type Review, type ShelfVolume } from "../../lib/reviews";
+import {
+  deleteShelfReview,
+  saveShelfReview,
+  type Review,
+  type ShelfVolume,
+} from "../../lib/reviews";
 import ReviewForm from "../Prices/reviews/ReviewForm";
 import { detailsStyles as styles } from "./styles";
 
 export default function ReviewDialog({
+  mangaId,
   volume,
   // their review of it so far; null when they haven't rated it
   current,
   onChanged,
   onClose,
 }: {
+  // the series on their shelf, and which volume of it
+  mangaId: number;
   volume: ShelfVolume;
   current: Review | null;
   // saved or deleted: the page asks for its lists again
@@ -24,7 +32,12 @@ export default function ReviewDialog({
   const [deleteFailed, setDeleteFailed] = useState(false);
 
   useEffect(() => {
-    if (dialog.current && !dialog.current.open) dialog.current.showModal();
+    const box = dialog.current;
+    if (!box || box.open) return;
+    box.showModal();
+    // a dialog puts the focus on its first control, which is star 1
+    // whatever the rating: start on the star that's theirs
+    box.querySelector<HTMLElement>('[role="radio"][tabindex="0"]')?.focus();
   }, []);
 
   const close = () => dialog.current?.close();
@@ -34,7 +47,8 @@ export default function ReviewDialog({
   };
   const remove = async () => {
     setDeleteFailed(false);
-    if (!(await deleteReview(volume.isbn13))) return setDeleteFailed(true);
+    if (!(await deleteShelfReview(mangaId, volume.volume)))
+      return setDeleteFailed(true);
     await onChanged();
     close();
   };
@@ -56,11 +70,12 @@ export default function ReviewDialog({
           Your review of vol. {volume.volume}
         </h2>
         <p className={styles.reviewDialogNote}>
-          For readers deciding whether to buy it. It shows on the volume's price
-          page.
+          For readers deciding whether to buy it.
+          {/* only true of a volume we have a book, and so a page, for */}
+          {volume.isbn13 && " It shows on the volume's price page."}
         </p>
         <ReviewForm
-          isbn13={volume.isbn13}
+          save={(draft) => saveShelfReview(mangaId, volume.volume, draft)}
           current={current}
           onSaved={afterSaving}
           onCancel={close}

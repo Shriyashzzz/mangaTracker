@@ -21,8 +21,10 @@ const MOST_BOOKS = 999;
 // how many volumes a list in the bar shows before "+3 more"
 const BAR_ROWS = 6;
 
-// how many books the shelf holds: the most we know is out, and never fewer
-// than they own. Until that's known, theirs and a few to tick next
+// How many books the shelf holds: the most we know is out, and never fewer
+// than they own. Until that's known (the answer is on its way, or we've
+// never heard of the series) it's theirs and a few to tick next, and
+// `isKnown` is false: a number to draw with, not one to tell them
 export function shelfSize(
   highestOwned: number,
   releaseStatus: ReleaseStatus | null,
@@ -41,11 +43,11 @@ export function shelfSize(
       coming.length ? firstComing - 1 : 0,
     ),
   );
-  const size =
-    knownOut > 0
-      ? Math.max(knownOut, highestOwned)
-      : Math.max(highestOwned + 3, 10);
-  return Math.min(MOST_BOOKS, size);
+  const isKnown = knownOut > 0;
+  const size = isKnown
+    ? Math.max(knownOut, highestOwned)
+    : Math.max(highestOwned + 3, 10);
+  return { size: Math.min(MOST_BOOKS, size), isKnown };
 }
 
 // "2026-12-22" is that day wherever they are (read at noon, so no time zone

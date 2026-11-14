@@ -1,4 +1,4 @@
-// "Your copy": where they are in a series. One of four things shows:
+// Where they are in a series. One of four things shows:
 //   finished          "Read all the way through."
 //   on To read        "Not started yet." and a Start reading button
 //   no place saved    a choice between tracking chapters and tracking volumes
@@ -61,7 +61,7 @@ export default function ReadingPlace({
           Not started yet.
           <button
             type="button"
-            className="btn btn-primary btn-sm"
+            className="btn btn-primary btn-sm tap"
             onClick={onStart}
           >
             Start reading
@@ -77,27 +77,32 @@ export default function ReadingPlace({
   if (nothingSaved && !chaptersShown)
     return (
       <p className={styles.progress}>
-        <span className={styles.startRow}>
-          {owned.length > 0 && (
-            <>
-              You own {owned.length === 1 ? "vol." : "vols."}{" "}
-              {rangesText(owned)}.
-            </>
-          )}
-          <button
-            type="button"
-            className={styles.chaptersToo}
-            onClick={() => setChaptersShown(true)}
-          >
-            Keep my place by chapter
-          </button>
-          <button
-            type="button"
-            className={styles.chaptersToo}
-            onClick={() => onChange({ byVolume: true })}
-          >
-            Keep my place by volume
-          </button>
+        {owned.length > 0 && (
+          <span className={styles.placeLine}>
+            You own {owned.length === 1 ? "vol." : "vols."} {rangesText(owned)}.
+          </span>
+        )}
+        {/* on its own line: one question, two buttons */}
+        <span className={styles.pickPlace}>
+          Keep my place by
+          {/* together: on a narrow phone both go to the next line, never
+              one alone */}
+          <span className={styles.pickButtons}>
+            <button
+              type="button"
+              className="btn btn-secondary btn-sm tap"
+              onClick={() => setChaptersShown(true)}
+            >
+              Chapter
+            </button>
+            <button
+              type="button"
+              className="btn btn-secondary btn-sm tap"
+              onClick={() => onChange({ byVolume: true })}
+            >
+              Volume
+            </button>
+          </span>
         </span>
       </p>
     );
@@ -132,15 +137,6 @@ export default function ReadingPlace({
         </span>
       )}
       <span className={styles.trackRow}>
-        {ownsPastWhatTheyveRead && (
-          <button
-            type="button"
-            className={styles.chaptersToo}
-            onClick={() => onChange({ readVolume: highestOwned })}
-          >
-            Read everything I own
-          </button>
-        )}
         {/* each series its own way: the other one is a tap away */}
         {trackBy === "series" && (
           <button
@@ -151,6 +147,15 @@ export default function ReadingPlace({
             {manga.byVolume
               ? "Track chapters instead"
               : "Track volumes instead"}
+          </button>
+        )}
+        {ownsPastWhatTheyveRead && (
+          <button
+            type="button"
+            className={styles.chaptersToo}
+            onClick={() => onChange({ readVolume: highestOwned })}
+          >
+            Read everything I own
           </button>
         )}
       </span>

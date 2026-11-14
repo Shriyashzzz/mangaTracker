@@ -6,6 +6,7 @@
 import { prisma } from "../config/prisma.js";
 import type { Manga } from "../../generated/prisma/client.js";
 import { priceName } from "../prices/lightNovel.js";
+import { withoutReprintDates } from "../prices/preorder.js";
 import { slugify } from "../prices/stores/match.js";
 import type { CatalogBook, SeriesInfo } from "../prices/types.js";
 import { volumesKey } from "../prices/volumesKey.js";
@@ -130,7 +131,10 @@ export async function shelfSeries(manga: Manga[]): Promise<ShelfSeries[]> {
     select: { key: true, volumes: true },
   });
   const lists = new Map(
-    rows.map((r) => [r.key, r.volumes as unknown as CatalogBook[]]),
+    rows.map((r) => [
+      r.key,
+      withoutReprintDates(r.volumes as unknown as CatalogBook[]),
+    ]),
   );
   const first = (keys: string[]) =>
     keys.map((k) => lists.get(k)).find((l) => l?.length) ?? [];

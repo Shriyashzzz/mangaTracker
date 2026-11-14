@@ -28,6 +28,11 @@ export const pilesStyles = {
   // which volume, stamped across the top of the cover
   stamp:
     "absolute top-0 left-1/2 -translate-x-1/2 -rotate-3 border-[1.5px] border-line bg-accent px-1.5 font-brand text-[0.95rem] leading-[1.2] tracking-[0.03em] upto-520:text-[0.85rem] whitespace-nowrap text-on-accent",
+  // how far behind, at the foot of the cover: small and grey, under the
+  // red stamp that names the volume. Just the number on a phone's narrower
+  // covers
+  behind:
+    "absolute bottom-1 left-1/2 -translate-x-1/2 border border-line-soft bg-card px-1 font-mono text-[0.6rem] leading-[1.5] whitespace-nowrap text-ink-soft",
   fanMore:
     "mt-3 grid aspect-2/3 w-[58px] cursor-pointer place-items-center font-brand text-[1.25rem] text-ink-soft hover:text-accent upto-520:w-[48px]",
 

@@ -143,9 +143,9 @@ export const homeStyles = {
     "tap inline-flex items-center border-[1.5px] border-line bg-card px-2.5 py-1 text-[0.82rem] font-semibold text-ink shadow-[2px_2px_0_var(--hard-shadow)] transition-[translate,box-shadow] duration-150 ease-ink hover:-translate-px hover:shadow-[3px_3px_0_var(--hard-shadow)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent focus-visible:outline-dashed",
   hiddenToggle:
     "tap text-[0.85rem] font-medium text-ink underline decoration-accent decoration-2 underline-offset-3",
-  // the grouped list. A full screen on phones
+  // the list of volumes to get. A sheet at the bottom on phones
   modal:
-    "m-auto max-h-[80dvh] w-[min(30rem,calc(100vw-2rem))] flex-col rounded-ink border-[2.5px] border-line bg-card text-ink shadow-ink-lg open:flex backdrop:bg-[rgba(20,14,8,0.55)] upto-720:h-dvh upto-720:max-h-none upto-720:w-screen upto-720:max-w-none upto-720:rounded-none upto-720:border-0",
+    "m-auto max-h-[80dvh] w-[min(30rem,calc(100vw-2rem))] flex-col rounded-ink border-[2.5px] border-line bg-card text-ink shadow-ink-lg open:flex backdrop:bg-[rgba(20,14,8,0.55)] upto-720:mt-auto upto-720:mb-0 upto-720:max-h-[85dvh] upto-720:w-screen upto-720:max-w-none upto-720:rounded-b-none upto-720:border-x-0 upto-720:border-b-0",
   modalHead:
     "flex items-start justify-between gap-4 border-b-[1.5px] border-line px-5 pt-4 pb-3",
   modalTitle:
@@ -154,21 +154,24 @@ export const homeStyles = {
   modalClose:
     "tap shrink-0 py-1 text-[0.9rem] font-medium text-ink-soft underline decoration-line-soft underline-offset-3 hover:text-ink upto-720:hidden",
   modalFoot: "hidden border-t-[1.5px] border-line p-3 upto-720:block",
-  modalActions:
-    "flex flex-wrap items-center justify-between gap-x-4 gap-y-2 border-b-[1.5px] border-dashed border-line-soft px-5 py-3",
-  modalAll: "btn btn-secondary",
-  modalBack:
-    "tap text-[0.9rem] font-medium text-ink-soft underline decoration-line-soft underline-offset-3 hover:text-ink",
-  modalError: "px-5 pt-3 text-[0.9rem] font-medium text-accent",
-  modalRows: "min-h-0 flex-1 overflow-y-auto px-5 pb-3",
+  // where they are, in line with the rows: over them on a laptop, under
+  // them on a phone (what they have, then what's next, going up)
+  modalYours:
+    "shrink-0 pt-3 text-[0.9rem] text-ink-soft upto-720:border-t upto-720:border-line-soft upto-720:py-3",
+  // On phones the rows stack up from the bottom, the first one lowest, so
+  // the next volume is under a thumb and the rest go up from it in order
+  modalRows:
+    "min-h-0 flex-1 overflow-y-auto px-5 pb-3 upto-720:flex upto-720:flex-col-reverse upto-720:pb-0",
+  // (stacked from the bottom, the dashed line between two rows is the top
+  // of the lower one)
   modalRow:
-    "flex min-h-12 items-center justify-between gap-4 border-b border-dashed border-line-soft last:border-b-0",
+    "flex min-h-12 shrink-0 items-center justify-between gap-4 border-b border-dashed border-line-soft last:border-b-0 upto-720:border-t upto-720:border-b-0 upto-720:last:border-t-0",
   modalName: "font-medium",
-  modalLink:
-    "tap font-medium underline decoration-accent decoration-2 underline-offset-3",
-  modalHide:
-    "tap shrink-0 text-[0.9rem] font-medium text-ink-soft underline decoration-line-soft underline-offset-3 hover:text-accent",
-  modalMore: "py-3 text-[0.85rem] text-ink-soft",
+  // a row that is one link, edge to edge: the volume, and where it leads
+  modalRowLink:
+    "tap group/row flex min-h-12 flex-1 items-center justify-between gap-4 font-medium",
+  modalRowGo:
+    "text-[0.85rem] font-normal text-ink-soft underline decoration-line-soft underline-offset-3 group-hover/row:text-accent group-hover/row:decoration-accent",
   // the check's progress, a thin ink line with a small label
   checkBar: "h-[3px] w-full overflow-hidden rounded-full bg-line-soft",
   checkBarFill:

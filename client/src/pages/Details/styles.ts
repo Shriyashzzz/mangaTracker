@@ -39,6 +39,8 @@ export const detailsStyles = {
   // until they've tried it
   shelfCaption:
     "mt-1.5 flex flex-wrap justify-between gap-x-4 font-mono text-[0.8rem] text-muted",
+  // "Tap a book to mark it yours.", until they have
+  shelfHint: "basis-full text-muted",
   shelf:
     "min-w-0 flex-[0_1_auto] w-[min(100%,var(--shelf-w))] max-[1099px]:w-full upto-720:order-1 upto-720:col-span-full",
   head: "flex min-w-0 flex-col gap-[0.7rem] upto-720:gap-2 upto-720:self-center",
@@ -48,11 +50,9 @@ export const detailsStyles = {
   metaGenre: `${tag} border-line-soft text-ink-soft`,
   metaReading: `${tag} border-accent text-accent`,
   metaDone: `${tag} border-ok text-ok`,
-  // the phones' two headings: "Your copy" there, and "Buy it" everywhere
+  // the "Buy it" heading
   deskTitle:
     "mb-[0.6rem] font-brand text-[1.4rem] leading-none font-normal tracking-[1px] uppercase",
-  yourCopy:
-    "hidden upto-720:order-2 upto-720:col-span-full upto-720:block upto-720:-mb-1.5",
   progress:
     "font-display text-[1.4rem] leading-[1.3] text-ink-soft upto-720:order-3 upto-720:col-span-full upto-720:text-[1.1rem]",
   // "chapter 140", underlined with a wash of spot colour
@@ -61,18 +61,22 @@ export const detailsStyles = {
   // the chapter you're on, stepped right here. Inked like a panel, and big
   // enough for a thumb
   stepperWrap:
-    "inline-flex flex-wrap items-center gap-x-3 gap-y-1 align-middle",
+    "relative inline-flex flex-wrap items-center gap-x-3 gap-y-1 align-middle",
   stepper:
     "inline-flex items-stretch rounded-ink border-[2.5px] border-line bg-card not-italic",
   stepperBtn:
     "grid size-11 place-items-center text-ink transition-colors duration-120 ease-[ease] hover:enabled:bg-accent-wash hover:enabled:text-accent disabled:cursor-default disabled:opacity-40 [&_svg]:size-4 [&_svg]:fill-none [&_svg]:stroke-current [&_svg]:stroke-[2.5] [&_svg]:[stroke-linecap:round]",
   stepperInput:
-    "min-w-14 border-x-[2.5px] border-line bg-transparent text-center font-brand text-[1.5rem] leading-none tracking-[0.02em] text-ink tabular-nums [appearance:textfield] focus:bg-accent-wash focus:outline-none [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none",
-  saveDone: "font-mono text-[0.8rem] text-ink-soft not-italic empty:hidden",
+    "min-w-14 border-x-[2.5px] border-line bg-transparent text-center font-brand text-[1.5rem] leading-none tracking-[0.02em] text-ink tabular-nums [appearance:textfield] focus:bg-accent-wash focus:outline-none focus-visible:outline-2 focus-visible:-outline-offset-4 focus-visible:outline-accent focus-visible:outline-dashed [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none",
+  // "Saved", beside the counter (under its right end on a phone). Out of
+  // the flow: taking up room, it pushed the counter onto a new line the
+  // moment it appeared, out from under the thumb that pressed it
+  saveDone:
+    "absolute top-1/2 left-full ml-3 -translate-y-1/2 font-mono text-[0.8rem] leading-none whitespace-nowrap text-ink-soft not-italic empty:hidden upto-720:top-full upto-720:right-0 upto-720:left-auto upto-720:mt-[2px] upto-720:ml-0 upto-720:translate-y-0 upto-720:text-[0.7rem]",
   saveFailed: "text-[0.9rem] font-medium text-accent not-italic empty:hidden",
   // a line under the control it's about: a failed save, or an undo
   actionNote: "w-full text-[0.9rem] text-ink-soft empty:hidden",
-  undo: "ml-1 inline-block py-1 font-medium text-ink underline decoration-accent decoration-2 underline-offset-3",
+  undo: "tap ml-1 inline-block py-1 font-medium text-ink underline decoration-accent decoration-2 underline-offset-3",
   // a To read manga: "Not started yet" with its button beside it
   startRow: "inline-flex flex-wrap items-center gap-3",
   // "Your books": the physical books behind the owned volumes, folded away
@@ -90,27 +94,41 @@ export const detailsStyles = {
   bookName: "min-w-0 font-medium text-ink upto-560:col-span-full",
   bookIsbn: "ml-2 font-mono text-[0.74rem] font-normal text-ink-soft",
   bookPaid:
-    "inline-flex h-9 items-center gap-1 rounded-[2px] border-[1.5px] border-line-soft bg-paper px-2 font-mono text-[0.85rem] text-ink-soft focus-within:border-line has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-accent has-[:focus-visible]:outline-dashed",
+    "inline-flex h-9 items-center gap-1 rounded-[2px] border-[1.5px] border-line-soft bg-paper px-2 font-mono text-[0.85rem] upto-720:h-11 text-ink-soft focus-within:border-line has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-accent has-[:focus-visible]:outline-dashed",
   bookPaidInput:
-    "w-[4.2rem] bg-transparent text-ink tabular-nums placeholder:text-muted focus:outline-none",
+    "h-full w-[4.2rem] cursor-text bg-transparent text-ink tabular-nums placeholder:text-muted focus:outline-none",
   bookDate:
-    "h-9 rounded-[2px] border-[1.5px] border-line-soft bg-paper px-2 font-mono text-[0.8rem] text-ink focus:border-line focus:outline-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent focus-visible:outline-dashed",
+    "h-9 rounded-[2px] border-[1.5px] border-line-soft bg-paper px-2 font-mono text-[0.8rem] text-ink upto-720:h-11 focus:border-line focus:outline-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent focus-visible:outline-dashed",
   bookRemove:
     "tap justify-self-end text-[0.85rem] font-medium text-ink-soft underline decoration-line-soft underline-offset-3 hover:text-accent hover:decoration-current",
   bookRemoveGap: "upto-560:hidden",
+  // the same row when nothing in the list can be removed: no column kept
+  // empty for a button
+  bookRowPlain:
+    "grid grid-cols-[minmax(0,1fr)_auto_auto] items-center gap-x-3 gap-y-1.5 border-b border-dashed border-line-soft py-2 text-[0.92rem] upto-560:grid-cols-[auto_minmax(0,1fr)]",
   // "Paid the same for the 12 without a price? $[ ] Set them"
   booksSame:
     "mt-3 flex flex-wrap items-center gap-x-3 gap-y-2 text-[0.88rem] text-ink-soft",
   // the next five rows of a long list
   booksMore:
-    "tap mt-1 flex w-full items-baseline justify-between gap-3 py-2 text-left text-[0.85rem] font-medium text-ink underline decoration-line-soft underline-offset-3 hover:decoration-line",
+    "group/more tap mt-1 flex w-full items-baseline justify-between gap-3 py-2 text-left text-[0.85rem] font-medium text-ink",
+  // only the words are a link; the count beside them isn't underlined
+  booksMoreWords:
+    "underline decoration-line-soft underline-offset-3 group-hover/more:decoration-line",
   booksMoreLeft: "font-mono text-[0.78rem] font-normal text-ink-soft",
   booksNote: "mt-2 text-[0.82rem] text-muted",
-  // under the counter: the quiet ways to change what it counts
+  // under the counter: the quiet ways to change what it counts. When they
+  // wrap onto two lines (a very narrow phone) the lines are far enough
+  // apart that one link's thumb-sized landing area doesn't cover the other
   trackRow:
-    "mt-1 flex flex-wrap items-center gap-x-4 gap-y-1 not-italic empty:hidden",
+    "mt-3.5 flex flex-wrap items-center gap-x-4 gap-y-6 not-italic empty:hidden upto-720:mt-5",
   // one counter to a line, when the chapter and the volume are both kept
   placeLine: "block [&+&]:mt-2",
+  // "Keep my place by [Chapter] [Volume]": under what they own, for a
+  // series with no place saved. Small plain words, then the two buttons
+  pickPlace:
+    "mt-2 flex min-h-12 flex-wrap items-center gap-x-2.5 gap-y-2 font-sans text-[0.92rem] text-ink-soft not-italic first:mt-0",
+  pickButtons: "inline-flex gap-2.5",
   // "Track chapters too": a quiet way to the counter
   chaptersToo:
     "tap font-sans text-[0.9rem] font-medium text-ink-soft underline decoration-line-soft underline-offset-3 hover:text-ink hover:decoration-current",
@@ -159,6 +177,59 @@ export const detailsStyles = {
   ratings:
     "grid grid-cols-[auto_minmax(0,1fr)] gap-x-[clamp(1.5rem,5vw,3.5rem)] gap-y-3 border-t-[1.5px] border-line pt-4 upto-720:grid-cols-1 upto-720:border-t-0 upto-720:pt-0",
   rating: "min-w-0",
+  // The volume's rating beside the series': a ticket like the ones in "Buy
+  // it" (dashed, on card paper), its number on an inked stub like a cover's
+  // number tab, and smaller stars than the series'. One is a rating of the
+  // series; this is a slip about one book
+  rateTicket:
+    "flex w-fit max-w-full items-stretch self-end border-[1.5px] border-dashed border-line bg-card upto-720:w-full",
+  rateStub:
+    "flex min-w-[3.4rem] flex-none flex-col items-center justify-center bg-ink px-2.5 pt-1 pb-0.5 font-brand text-[1.5rem] leading-none tracking-[0.02em] text-paper [&_small]:text-[0.7rem] [&_small]:tracking-[0.08em] [&_small]:uppercase",
+  // two short rows: a line of words, then the stars. The same height
+  // rated or not, so nothing below moves
+  rateTicketBody:
+    "flex min-w-0 flex-1 flex-col items-start py-1 pr-3.5 pl-1.5 [&>p]:pl-3",
+  rateTicketTop:
+    "flex min-h-7 w-full flex-wrap items-center gap-x-3.5 pl-3 text-[0.84rem]",
+  rateTicketLabel: "font-mono text-[0.75rem] text-muted",
+  // The ways on, in that line. Each is as tall as the line (28px) and no
+  // taller: a thumb-sized landing area here would reach down over the
+  // stars under it
+  rateTicketLinks:
+    "flex flex-wrap gap-x-3.5 [&>*]:min-h-7 [&>*]:text-ink-soft [&>*]:underline [&>*]:decoration-line-soft [&>*]:underline-offset-3 [&>*]:hover:text-ink [&>*]:hover:decoration-current",
+  // "How was vol. 9?", after they finish a volume: a box like the notes box
+  // under it (same border and paper), so it sits in the page instead of on
+  // top of it. One row on a laptop: the words, then the stars. Two short
+  // rows on a phone, the same height rated or not so nothing moves
+  rateCard:
+    "relative flex flex-wrap items-center justify-between gap-x-6 gap-y-1 border-[1.5px] border-line-soft bg-card py-[0.45rem] pr-11 pl-4 upto-720:gap-y-3 upto-720:py-[0.6rem]",
+  // the banner's way in: it opens downward over a third of a second, so
+  // the page below slides instead of jumping
+  rateCardIn:
+    "grid grid-rows-[1fr] transition-[grid-template-rows] duration-300 ease-ink motion-reduce:transition-none starting:grid-rows-[0fr]",
+  rateCardClip: "min-h-0 overflow-hidden",
+  // The small volume rating gives way to the banner the same way, closing
+  // as the banner opens, so on a phone (where one sits under the other)
+  // the page below stays where it is. Closed, it takes no room: not even
+  // the gap the phone's stacked ratings keep between them
+  // (its clip keeps a little room around the stars, for their focus ring)
+  rateSmallClip: "-m-1 min-h-0 overflow-hidden p-1",
+  rateSmall:
+    "grid min-w-0 grid-rows-[1fr] transition-[grid-template-rows,margin] duration-300 ease-ink motion-reduce:transition-none",
+  rateSmallClosed:
+    "grid min-w-0 grid-rows-[0fr] transition-[grid-template-rows,margin] duration-300 ease-ink motion-reduce:transition-none upto-720:-mt-3",
+  // the question, then why (or, once rated, the way to add words) beside
+  // it on the same line where there's room
+  rateWords: "flex min-h-6 min-w-0 flex-wrap items-baseline gap-x-3 gap-y-0.5",
+  // the cross: bare brush strokes tucked into the panel's top-right corner,
+  // no box or ring around them. The ::before makes it a thumb wide without
+  // drawing it bigger; the panel keeps room on the right so the stars never
+  // sit under it
+  rateClose:
+    "absolute top-1 right-1 grid size-7 place-items-center text-ink transition-[color,transform] duration-150 ease-ink before:absolute before:-inset-2 before:content-[''] hover:text-accent active:scale-90 focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-accent focus-visible:outline-dashed",
+  rateTitle: "font-display text-[1.05rem] leading-[1.25] font-semibold",
+  // why to rate: said on a laptop, where there's a line for it
+  rateNote: "text-[0.84rem] text-muted upto-720:hidden",
   // under a volume's stars once it's rated: the quiet ways on
   rateLinks:
     "flex flex-wrap gap-x-4 text-[0.84rem] [&>*]:tap [&>*]:text-ink-soft [&>*]:underline [&>*]:decoration-line-soft [&>*]:underline-offset-3 [&>*]:hover:text-ink [&>*]:hover:decoration-current",
@@ -204,9 +275,11 @@ export const detailsStyles = {
   // "Missing: Vol. 6, Vol. 7": the gaps before the furthest they own, each a
   // link, on a quiet dashed ticket under Next
   buyGaps: `${ticket} flex-col border-dashed border-line-soft`,
-  buyGapList: "flex flex-wrap gap-x-3 gap-y-1",
+  // each link is as tall as its row (a thumb's height on a phone), so on
+  // two rows one never lands on the other
+  buyGapList: "flex flex-wrap gap-x-3",
   buyGap:
-    "tap font-semibold underline decoration-line-soft underline-offset-3 hover:text-accent hover:decoration-accent",
+    "inline-flex min-h-8 items-center font-semibold underline decoration-line-soft underline-offset-3 hover:text-accent hover:decoration-accent upto-720:min-h-11",
   // the same series twice on the shelf: said above the page, with the fix
   twiceNote:
     "mb-4 flex flex-wrap items-center gap-x-3 gap-y-1 rounded-ink border-2 border-line bg-accent-wash px-3 py-2 shadow-ink text-[0.92rem] text-ink",
@@ -223,8 +296,10 @@ export const detailsStyles = {
   // the series link, a plain link with room around it for a thumb
   buySeries:
     "tap mt-2.5 block py-1 text-right text-[0.85rem] font-medium text-ink-soft underline decoration-line-soft underline-offset-3 transition-colors duration-120 ease-[ease] hover:text-accent hover:decoration-accent",
+  // (on the narrowest phones "Finish the series" takes two lines, so the
+  // count beside it isn't printed over it)
   buyKind:
-    "col-span-full font-mono text-[0.72rem] font-normal tracking-[0.06em] whitespace-nowrap text-muted uppercase upto-720:col-span-1",
+    "col-span-full font-mono text-[0.72rem] font-normal tracking-[0.06em] whitespace-nowrap text-muted uppercase upto-720:col-span-1 max-[359px]:whitespace-normal",
   buyPrice: "text-right font-mono font-medium text-accent-ink",
   // "2 vols (est)": one row when there's room; on a long series in the narrow
   // box ("113 vols" beside "about $1,340") the "(est)" drops under, never

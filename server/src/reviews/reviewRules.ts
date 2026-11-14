@@ -11,9 +11,20 @@ export const MOST_WORDS = 500;
 export const SPOILER_FLAGS = 2;
 // this many reports hide a review until the site's owner has looked
 export const REPORTS_TO_HIDE = 3;
-// a reader can review this many different volumes in an hour (changing one
-// they've written is always allowed)
+// a reader can write words about this many different volumes in an hour.
+// Changing one they've written is always allowed, and so is a rating with
+// no words, however many
 export const REVIEWS_AN_HOUR = 6;
+
+// a series' page asks about a volume for this many days after they finish
+// it; then the question steps back to the small stars
+export const ASK_FOR_DAYS = 3;
+const DAY_MS = 24 * 60 * 60 * 1000;
+// Did they finish a volume lately enough to be asked about it? `finishedAt`
+// is the series' readVolumeAt: null when they never have, or closed it
+export const finishedLately = (finishedAt: Date | null, now = new Date()) =>
+  finishedAt !== null &&
+  now.getTime() - finishedAt.getTime() < ASK_FOR_DAYS * DAY_MS;
 
 export type FlagKind = "spoiler" | "report";
 
@@ -35,6 +46,44 @@ export function hasRead(place: ShelfPlace, volume: number) {
   if (place.status) return true;
   if (place.readVolume !== null && place.readVolume >= volume) return true;
   return ownedSet(place).has(volume);
+}
+
+// Out loud is rare: at most once in `everyDays` per reader, across all
+// their series. `lastAskedAt` is the account's rateAskedAt
+export const mayAskAgain = (
+  lastAskedAt: Date | null,
+  everyDays: number,
+  now = new Date(),
+) =>
+  lastAskedAt === null ||
+  now.getTime() - lastAskedAt.getTime() >= everyDays * DAY_MS;
+
+// Which volume a series' page puts its stars on: the last one they've read.
+// `theirs` are the volumes of the series we have a book for that they own
+// or have read.
+//   finished the series        the last volume we know
+//   keeps the volume they're on   that volume. When we have no book for it
+//                              (it's past the end of our list, or in a gap)
+//                              the nearest one below that we do have, and
+//                              `isTheOneRead` is false: there's nothing to
+//                              ask about the volume they just finished
+//   only ticks what they own   the last one they own
+export function latestVolume<V extends { volume: number }>(
+  place: { status: boolean; readVolume: number | null },
+  theirs: V[],
+): { latest: V | null; isTheOneRead: boolean } {
+  const last = (volumes: V[]) =>
+    volumes.reduce<V | null>(
+      (best, one) => (best && best.volume >= one.volume ? best : one),
+      null,
+    );
+  const readVolume = place.readVolume ?? 0;
+  if (place.status || readVolume < 1) {
+    const latest = last(theirs);
+    return { latest, isTheOneRead: latest !== null };
+  }
+  const latest = last(theirs.filter((one) => one.volume <= readVolume));
+  return { latest, isTheOneRead: latest?.volume === readVolume };
 }
 
 // a web address, a "www." or a bare "something.com/…": the usual shapes of
@@ -68,10 +117,16 @@ export function ratingSpread(ratings: number[]) {
   return spread;
 }
 
-// ratings added up: how many, and their average to one decimal place; null
-// with none
-export function ratingSummary(ratings: number[]) {
-  if (!ratings.length) return { count: 0, average: null };
+// a score is only shown once this many readers have rated: one or two
+// ratings say more about those readers than about the book
+export const ENOUGH_RATINGS = 5;
+
+// Ratings added up: how many, and their average to one decimal place. The
+// average is null until there are enough of them (ENOUGH_RATINGS), so no
+// page, cover or search engine gets a score from a handful
+export function ratingSummary(ratings: number[], enough = ENOUGH_RATINGS) {
+  if (ratings.length < Math.max(enough, 1))
+    return { count: ratings.length, average: null };
   const total = ratings.reduce((sum, rating) => sum + rating, 0);
   return {
     count: ratings.length,

@@ -1,5 +1,6 @@
 import type { SeriesInfo } from "../../lib/types";
 import { useState } from "react";
+import { novelParts } from "../../lib/prices";
 import { pricesStyles as styles } from "./styles";
 
 // AniList's take on a series: score, popularity, genres and the blurb,
@@ -23,7 +24,10 @@ export default function SeriesFacts({ info }: { info: SeriesInfo }) {
         )}
         {info.volumes != null && (
           <li>
+            {/* a manga's count is AniList's, which counts Japan's volumes:
+                said, so it doesn't argue with the English count beside it */}
             <strong>{info.volumes}</strong> volumes
+            {novelParts(info.name).lightNovel ? "" : " in Japan"}
             {info.status === "FINISHED" ? ", finished" : ""}
           </li>
         )}

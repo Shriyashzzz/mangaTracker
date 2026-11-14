@@ -1,40 +1,24 @@
-// Everything that's out for one series, when a reader has asked to see it all.
-// A native dialog: it brings its own focus trap, Escape and backdrop.
-import { useEffect, useRef, useState } from "react";
+// The volumes that are out for one series and aren't the reader's yet: what
+// a New card opens when they're more than one behind. Each row leads to
+// that book's prices. A native dialog: it brings its own focus trap, Escape
+// and backdrop. On phones it's a sheet at the bottom, as tall as its list.
+import { useEffect, useRef } from "react";
 import { NavLink } from "react-router";
 import { volumePath } from "../../lib/prices";
-import {
-  remainingChapters,
-  remainingJapanVolumes,
-  remainingVolumes,
-  type SeenKind,
-} from "../../lib/releaseMath";
+import { remainingVolumes } from "../../lib/releaseMath";
 import type { Manga, ReleaseStatus } from "../../lib/types";
 import { homeStyles as styles } from "./styles";
-
-// someone can be hundreds of chapters behind, and "Hide all" covers the rest
-const MOST_ROWS = 60;
 
 type Props = {
   manga: Manga;
   found: ReleaseStatus;
-  kind: SeenKind;
-  // hides up to this number, and/or sets the list of single hidden volumes
-  onHide: (number: number | null, hiddenVolumes?: number[]) => Promise<boolean>;
-  onHideAll: () => void;
+  // where they are: "You own up to vol. 8"
+  yours?: string;
   onClose: () => void;
 };
 
-export default function ReleaseModal({
-  manga,
-  found,
-  kind,
-  onHide,
-  onHideAll,
-  onClose,
-}: Props) {
+export default function ReleaseModal({ manga, found, yours, onClose }: Props) {
   const dialog = useRef<HTMLDialogElement>(null);
-  const [failed, setFailed] = useState(false);
 
   useEffect(() => {
     // no closing on the way out: leaving the page takes it with it, and a close
@@ -42,32 +26,7 @@ export default function ReleaseModal({
     if (dialog.current && !dialog.current.open) dialog.current.showModal();
   }, []);
 
-  const hide = async (number: number | null, hiddenVolumes?: number[]) => {
-    setFailed(false);
-    if (!(await onHide(number, hiddenVolumes))) setFailed(true);
-  };
-
   const volumes = remainingVolumes(manga, found);
-  const chapters = remainingChapters(manga, found);
-  const japan = remainingJapanVolumes(manga, found);
-  // for the kind of release on show: how many are left, the word for them in
-  // the title, and whether some were hidden (so they can be brought back)
-  let left: number;
-  let heading: string;
-  let hasHidden: boolean;
-  if (kind === "volume") {
-    left = volumes.length;
-    heading = left === 1 ? "volume" : "volumes";
-    hasHidden = volumes.length < found.outVolumes.length;
-  } else if (kind === "chapter") {
-    left = chapters.length;
-    heading = left === 1 ? "chapter" : "chapters";
-    hasHidden = manga.seenChapter != null;
-  } else {
-    left = japan.length;
-    heading = "in Japan";
-    hasHidden = manga.seenJapanVolume != null;
-  }
 
   return (
     <dialog
@@ -82,7 +41,8 @@ export default function ReleaseModal({
     >
       <div className={styles.modalHead}>
         <h2 id="release-title" className={styles.modalTitle}>
-          {manga.name}: {left} {heading}
+          {manga.name}: {volumes.length}{" "}
+          {volumes.length === 1 ? "volume" : "volumes"} behind
         </h2>
         <button
           type="button"
@@ -93,94 +53,26 @@ export default function ReleaseModal({
         </button>
       </div>
 
-      <div className={styles.modalActions}>
-        <button type="button" className={styles.modalAll} onClick={onHideAll}>
-          Hide all
-        </button>
-        {hasHidden && (
-          <button
-            type="button"
-            className={styles.modalBack}
-            onClick={() => hide(null, kind === "volume" ? [] : undefined)}
-          >
-            Bring back hidden
-          </button>
-        )}
-      </div>
-
-      {failed && (
-        <p className={styles.modalError} role="alert">
-          That didn't save. Try again.
-        </p>
-      )}
-
       <ul className={styles.modalRows}>
-        {kind === "volume" &&
-          volumes.map((v) => (
-            <li key={v.volume} className={styles.modalRow}>
-              {v.isbn13 ? (
-                <NavLink
-                  to={volumePath(v.isbn13, v.title ?? "")}
-                  className={styles.modalLink}
-                  viewTransition
-                >
-                  Vol. {v.volume}
-                </NavLink>
-              ) : (
-                <span className={styles.modalName}>Vol. {v.volume}</span>
-              )}
-              <button
-                type="button"
-                className={styles.modalHide}
-                aria-label={`Hide vol. ${v.volume}`}
-                onClick={() =>
-                  hide(manga.seenVolume ?? null, [
-                    ...(manga.hiddenVolumes ?? []),
-                    v.volume,
-                  ])
-                }
+        {/* first in the list: above the rows on a laptop, and at the foot
+            on a phone, where the rows stack up from it */}
+        {yours && <li className={styles.modalYours}>{yours}</li>}
+        {volumes.map((v) => (
+          <li key={v.volume} className={styles.modalRow}>
+            {v.isbn13 ? (
+              <NavLink
+                to={volumePath(v.isbn13, v.title ?? "")}
+                className={styles.modalRowLink}
+                viewTransition
               >
-                Hide
-              </button>
-            </li>
-          ))}
-
-        {kind === "chapter" &&
-          chapters.slice(0, MOST_ROWS).map((n) => (
-            <li key={n} className={styles.modalRow}>
-              <span className={styles.modalName}>Ch. {n}</span>
-              <button
-                type="button"
-                className={styles.modalHide}
-                aria-label={`Hide up to ch. ${n}`}
-                onClick={() => hide(n)}
-              >
-                Hide up to here
-              </button>
-            </li>
-          ))}
-
-        {kind === "japan" &&
-          japan.map((n) => (
-            <li key={n} className={styles.modalRow}>
-              <span className={styles.modalName}>Vol. {n}</span>
-              <button
-                type="button"
-                className={styles.modalHide}
-                aria-label={`Hide up to vol. ${n}`}
-                onClick={() => hide(n)}
-              >
-                Hide up to here
-              </button>
-            </li>
-          ))}
-
-        {kind === "chapter" && chapters.length > MOST_ROWS && (
-          <li className={styles.modalMore}>
-            And {chapters.length - MOST_ROWS} more, up to ch.{" "}
-            {found.latestChapter}.
+                Vol. {v.volume}
+                <span className={styles.modalRowGo}>See prices</span>
+              </NavLink>
+            ) : (
+              <span className={styles.modalName}>Vol. {v.volume}</span>
+            )}
           </li>
-        )}
+        ))}
       </ul>
 
       <div className={styles.modalFoot}>

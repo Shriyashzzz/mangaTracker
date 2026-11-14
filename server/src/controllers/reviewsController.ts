@@ -14,13 +14,16 @@ import { MOST_WORDS } from "../reviews/reviewRules.js";
 import {
   decideReview,
   deleteReview,
+  deleteShelfReview,
   flagReview,
   reviewsToCheck,
   seriesReviews,
   shelfReviews,
   volumeReviews,
   writeReview,
+  writeShelfReview,
 } from "../reviews/reviews.js";
+import { seriesScores } from "../reviews/seriesScore.js";
 
 // :isbn may be ISBN-10 or -13 with dashes; handlers always get an ISBN-13
 const isbnParam = param("isbn")
@@ -43,9 +46,8 @@ const ofVolume = [
 ];
 
 // PUT /volume/:isbn  { rating, text, spoiler }  your review of it
-const write = [
-  requireSignIn,
-  isbnParam,
+// a review as it's sent: stars, and optionally words and a spoiler tick
+const reviewBody = [
   body("rating")
     .isInt({ min: 1, max: 5 })
     .withMessage("Pick a rating from 1 to 5.")
@@ -56,6 +58,12 @@ const write = [
     .isLength({ max: MOST_WORDS })
     .withMessage(`Keep it under ${MOST_WORDS} characters.`),
   body("spoiler").default(false).isBoolean().toBoolean(),
+];
+
+const write = [
+  requireSignIn,
+  isbnParam,
+  ...reviewBody,
   rejectInvalid,
   async (req: Request, res: Response) => {
     const { isbn, rating, text, spoiler } = matchedData(req);
@@ -108,8 +116,54 @@ const ofSeries = [
   },
 ];
 
+// GET /series-scores  every series readers have rated enough to have a
+// score, by slug: { "one-piece": 4.6 }. For the badges on series covers
+const seriesScoresNow = async (_req: Request, res: Response) => {
+  res
+    .set("Cache-Control", "public, max-age=300")
+    .json(Object.fromEntries(await seriesScores()));
+};
+
 // GET /shelf?manga=  for a series on your shelf: the volumes you could rate
 // next, and the reviews you've written of it
+// a volume of a series on their shelf, by the series' id and the volume's
+// number: /shelf/:manga/:volume
+const shelfVolume = [
+  param("manga").isInt({ min: 1 }).toInt(),
+  param("volume").isInt({ min: 1, max: 999 }).toInt(),
+];
+
+// PUT /shelf/:manga/:volume  their review of that volume, written from the
+// series' page. Works for a volume we have no book for
+const writeOnShelf = [
+  requireSignIn,
+  ...shelfVolume,
+  ...reviewBody,
+  rejectInvalid,
+  async (req: Request, res: Response) => {
+    const { manga, volume, rating, text, spoiler } = matchedData(req);
+    res.json(
+      await writeShelfReview(req.session.userId!, manga, volume, {
+        rating,
+        text,
+        spoiler,
+      }),
+    );
+  },
+];
+
+// DELETE /shelf/:manga/:volume
+const removeOnShelf = [
+  requireSignIn,
+  ...shelfVolume,
+  rejectInvalid,
+  async (req: Request, res: Response) => {
+    const { manga, volume } = matchedData(req);
+    await deleteShelfReview(req.session.userId!, manga, volume);
+    res.status(204).end();
+  },
+];
+
 const onShelf = [
   requireSignIn,
   query("manga").isInt({ min: 1 }).toInt(),
@@ -149,7 +203,10 @@ export default {
   remove,
   flag,
   ofSeries,
+  seriesScores: seriesScoresNow,
   onShelf,
+  writeOnShelf,
+  removeOnShelf,
   reported,
   decide,
 };

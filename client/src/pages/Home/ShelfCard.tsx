@@ -4,7 +4,7 @@ import { CheckIcon } from "../../components/icons/Icons";
 import MangaCard from "../../components/mangaCard/MangaCard";
 import type { Manga, ReleaseStatus } from "../../lib/types";
 import { buyLinkFor, detailsSearchFor } from "./newTabLinks";
-import { isGrouped, newsFor, type ReleaseKind } from "./shelfViews";
+import { newsFor, opensAList, type ReleaseKind } from "./shelfViews";
 import { homeStyles as styles } from "./styles";
 
 type Props = {
@@ -39,28 +39,21 @@ export default function ShelfCard({
   onOpenReleases,
   onHide,
 }: Props) {
-  // several releases out at once: the card opens their list, and Hide hides
-  // them all
-  const grouped = isGrouped(found, releaseKind);
-  const opensList = showingNew && !viewingHidden && grouped;
+  // more than one volume out past theirs: the card opens their list
+  const opensList =
+    showingNew && !viewingHidden && opensAList(found, releaseKind);
 
   let wrapperClass: string = styles.cardWithSeen;
   if (rows) wrapperClass = styles.cardRowAlways;
   else if (showingNew) wrapperClass = styles.cardAsRow;
 
-  let hideLabel = "Hide";
-  if (viewingHidden) hideLabel = "Unhide";
-  else if (grouped) hideLabel = "Hide all";
+  const hideLabel = viewingHidden ? "Unhide" : "Hide";
 
   return (
     <div className={wrapperClass}>
       <MangaCard
         currentManga={manga}
-        news={
-          showingNew
-            ? newsFor(manga, found, releaseKind, viewingHidden)
-            : undefined
-        }
+        news={showingNew ? newsFor(manga, found, releaseKind) : undefined}
         linkTo={showingNew ? buyLinkFor(found, releaseKind) : undefined}
         onOpen={opensList ? onOpenReleases : undefined}
         detailsSearch={showingNew ? detailsSearchFor(releaseKind) : undefined}

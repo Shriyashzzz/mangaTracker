@@ -5,6 +5,7 @@
 // renamed, they read on, hide something, or change their release settings
 import { prisma } from "../../config/prisma.js";
 import type { Manga } from "../../../generated/prisma/client.js";
+import { readReleaseSettings } from "./releaseStatus.js";
 
 // as long as the sources it came from are kept (releaseCache.ts)
 export const ANSWER_FRESH_MS = 6 * 60 * 60 * 1000;
@@ -29,11 +30,17 @@ type Keyed = Pick<
   | "planned"
 > & { ownedList?: number[] | null };
 
+// What the New tab lists for them, as an answer was worked out with: their
+// own choice, or the defaults for a reader who hasn't made one. The
+// defaults count: when they change, every answer saved under the old ones
+// is out of date
+const listedAs = (prefs: Prefs) => readReleaseSettings(prefs?.releases);
+
 // their release settings alone, for the browser to tell when they've changed
 export const settingsPrint = (prefs: Prefs) =>
   JSON.stringify([
     prefs?.releaseChecks ?? null,
-    prefs?.releases ?? null,
+    listedAs(prefs),
     ...(prefs?.trackBy ? [prefs.trackBy] : []),
   ]);
 
@@ -52,7 +59,7 @@ const answerKey = (m: Keyed, prefs: Prefs) =>
     m.hiddenVolumes,
     m.planned,
     prefs?.releaseChecks ?? null,
-    prefs?.releases ?? null,
+    listedAs(prefs),
     prefs?.trackBy ?? null,
   ]);
 

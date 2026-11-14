@@ -92,11 +92,33 @@ export function EmptyShelf({
   );
 }
 
-export function NoMatches({ onShowAll }: { onShowAll: () => void }) {
+// what an empty tab says when nothing was searched for: it isn't a failed
+// search, there's just nothing in it yet
+const EMPTY_TAB: Record<string, string> = {
+  ongoing: "Nothing you're reading yet.",
+  finished: "Nothing finished yet.",
+  planned: "Nothing on To read yet.",
+};
+
+export function NoMatches({
+  onShowAll,
+  emptyTab = null,
+}: {
+  onShowAll: () => void;
+  // the tab that's empty with no search typed; null when a search found
+  // nothing
+  emptyTab?: string | null;
+}) {
+  const nothingYet = emptyTab ? EMPTY_TAB[emptyTab] : undefined;
   return (
-    <ShelfMessage mood="confused" title="No matches.">
+    <ShelfMessage
+      mood={nothingYet ? "happy" : "confused"}
+      title={nothingYet ?? "No matches."}
+    >
       <p className={styles.emptyBody}>
-        Nothing on your shelf fits that. Try another word or tab.
+        {nothingYet
+          ? "Series show up here as you mark them."
+          : "Nothing on your shelf fits that. Try another word or tab."}
       </p>
       <button className="btn btn-secondary" onClick={onShowAll}>
         Show everything

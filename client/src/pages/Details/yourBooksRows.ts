@@ -1,5 +1,6 @@
 // The rows of "Your books": one for each book a scan or an import recorded,
 // and one for each owned volume that no recorded book holds (ticked by hand).
+// Latest volume first: the newest book is the one they've come to price.
 import { bookLabel, type NewBook, type OwnedBook } from "../../lib/books";
 
 export type BookRow = {
@@ -11,9 +12,10 @@ export type BookRow = {
   volume: number | null;
 };
 
-// the first volume a row holds: what the list is sorted by
-const firstVolume = (row: BookRow) =>
-  row.book ? Math.min(...row.book.volumes) : row.volume!;
+// the last volume a row holds: what the list is sorted by, so "Deluxe 2
+// (vols. 4–6)" sits between vol. 7 and vol. 3
+const lastVolume = (row: BookRow) =>
+  row.book ? Math.max(...row.book.volumes) : row.volume!;
 
 export function rowsOf(books: OwnedBook[], owned: number[]): BookRow[] {
   const inABook = new Set(books.flatMap((book) => book.volumes));
@@ -24,7 +26,7 @@ export function rowsOf(books: OwnedBook[], owned: number[]): BookRow[] {
     rows.push({ key: `b${book.id}`, book, volume: null });
   for (const volume of looseVolumes)
     rows.push({ key: `v${volume}`, book: null, volume });
-  return rows.sort((a, b) => firstVolume(a) - firstVolume(b));
+  return rows.sort((a, b) => lastVolume(b) - lastVolume(a));
 }
 
 // "Deluxe 2 (vols. 4–6)", or "Vol. 7" for a volume ticked by hand

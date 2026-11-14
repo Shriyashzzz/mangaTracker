@@ -78,9 +78,6 @@ export type ReleaseStatus = {
   // out in Japan past what they own and what's in English; a blank on the shelf
   // counts as owning nothing
   hasNewJapaneseVolume: boolean;
-  // how their settings ask for each to be listed
-  volumeMode: RangeMode;
-  chapterMode: RangeMode;
   // on the New tab but for "Hide": listed and not new means they've hidden it
   volumeListed: boolean;
   chapterListed: boolean;
@@ -95,17 +92,13 @@ export type ReleaseStatus = {
   // the next English volume after where they are, and its price page
   nextVolume: number | null;
   nextVolumeBook?: { isbn13: string; title: string } | null;
-  // every English volume past where they are, for the grouped entry
+  // every English volume past where they are: how far behind they are, and
+  // the list a card opens
   outVolumes: { volume: number; isbn13?: string; title?: string }[];
   // the same for what's only out in Japan
   outJapanVolumes: number[];
   latestChapter: number | null;
   latestJapaneseVolume: number | null;
-  // when the newest of each came out, where known (the "Just out" pile);
-  // missing from an answer saved before they were sent
-  latestVolumeDate?: string | null;
-  latestChapterDate?: string | null;
-  latestJapaneseVolumeDate?: string | null;
 };
 
 // what the add / edit forms send
@@ -155,7 +148,7 @@ export type ShelfMatch = {
 } | null;
 
 // what the New tab lists; see server/src/util/releaseStatus.ts
-export type RangeMode = "next" | "within" | "all";
+export type RangeMode = "next" | "within";
 export type ReleaseRange = { mode: RangeMode; within: number };
 export type ReleaseSettings = { volumes: ReleaseRange; chapters: ReleaseRange };
 
@@ -260,8 +253,9 @@ export type Series = {
   boxSetLinks?: StoreLink[];
   // "after the anime" has a page for this series
   hasAnimeAnswer?: boolean;
-  // readers' ratings of its volumes, added up; null with none
-  reviews?: { count: number; average: number | null } | null;
+  // readers' average for the series itself, for the badge on its cover;
+  // null until enough have rated it
+  readerScore?: number | null;
 };
 
 export type BoxSet = {

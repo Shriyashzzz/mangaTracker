@@ -1,5 +1,8 @@
-// What the New tab lists, set separately for volumes and chapters. Saved on the
-// account; the shelf checks again so the change shows straight away.
+// Which series show on the New tab, set separately for volumes and
+// chapters: every series, or only the ones the reader is nearly caught up
+// on (a slider says how nearly; its first stop is "new releases only").
+// Saved on the account; the shelf checks again so the change shows straight
+// away.
 import { useEffect, useRef, useState } from "react";
 import { apiFetch } from "../../lib/api";
 import type {
@@ -12,13 +15,15 @@ import { useShelf } from "../../store/shelf";
 import { newReleasesStyles as styles } from "./styles";
 
 const DEFAULTS: ReleaseSettings = {
-  volumes: { mode: "next", within: 3 },
+  volumes: { mode: "next", within: 1 },
   chapters: { mode: "within", within: 3 },
 };
 
 // a slider moves through lots of values on its way; only the last is worth saving
 const SAVE_AFTER_MS = 400;
 
+// The words for each kind. `closest` is what the slider's first stop is
+// called: a series shows only when its newest one is the one they need
 const KINDS = {
   volumes: {
     title: "Volumes",
@@ -26,16 +31,16 @@ const KINDS = {
     one: "volume",
     many: "volumes",
     newest: "newest",
+    closest: "New releases only",
     max: 10,
     // finished vol. 22, vol. 30 is the newest in English
     example: ({ mode, within }: ReleaseRange) => {
-      if (mode === "next")
-        return "You've finished vol. 22 and vol. 30 is out. You'd see vol. 23.";
-      if (mode === "all")
-        return "You've finished vol. 22 and vol. 30 is out. You'd see vol. 23–30 as one card.";
-      return within >= 8
-        ? `You've finished vol. 22 and vol. 30 is out. That's within ${within}, so you'd see vol. 23.`
-        : `You've finished vol. 22 and vol. 30 is out. You're 8 behind, so nothing shows until you're within ${within}.`;
+      const start = "You've finished vol. 22 and vol. 30 is out.";
+      if (mode === "next") return `${start} New shows vol. 23.`;
+      if (within >= 8) return `${start} New shows vol. 23.`;
+      if (within === 1)
+        return `${start} New waits. Finish vol. 29 and it shows vol. 30.`;
+      return `${start} That's 8 behind, so New waits. Finish vol. ${30 - within} and it shows vol. ${31 - within}.`;
     },
   },
   chapters: {
@@ -44,16 +49,16 @@ const KINDS = {
     one: "chapter",
     many: "chapters",
     newest: "latest",
+    closest: "New chapters only",
     max: 50,
     // on ch. 247, ch. 250 is the latest
     example: ({ mode, within }: ReleaseRange) => {
-      if (mode === "next")
-        return "You're on ch. 247 and ch. 250 is out. You'd see ch. 248.";
-      if (mode === "all")
-        return "You're on ch. 247 and ch. 250 is out. You'd see ch. 248–250 as one card.";
-      return within >= 3
-        ? `You're on ch. 247 and ch. 250 is out. That's within ${within}, so you'd see ch. 248.`
-        : `You're on ch. 247 and ch. 250 is out. You're 3 behind, so nothing shows until you're within ${within}.`;
+      const start = "You're on ch. 247 and ch. 250 is out.";
+      if (mode === "next") return `${start} New shows ch. 248.`;
+      if (within >= 3) return `${start} New shows ch. 248.`;
+      if (within === 1)
+        return `${start} New waits. Read ch. 249 and it shows ch. 250.`;
+      return `${start} That's 3 behind, so New waits. Read ch. ${250 - within} and it shows ch. ${251 - within}.`;
     },
   },
 } as const;
@@ -132,21 +137,27 @@ export default function ReleaseControls() {
               type="radio"
               name={`${kind}-mode`}
               checked={range.mode === mode}
-              onChange={() => change({ mode })}
+              // choosing "nearly caught up" starts the slider at its
+              // first stop, new releases only, whatever it was left on
+              onChange={() =>
+                change(mode === "within" ? { mode, within: 1 } : { mode })
+              }
             />
             {label}
           </label>
         );
-        const unit = range.within === 1 ? copy.one : copy.many;
+        // what the slider is set to, in words: its first stop is the
+        // newest one only
+        const howClose =
+          range.within === 1
+            ? copy.closest
+            : `Up to ${range.within} ${copy.many} behind`;
         return (
           <fieldset key={kind} className={styles.group}>
             <legend className={styles.legend}>{copy.title}</legend>
             <p className={styles.groupNote}>{copy.note}</p>
-            {option("next", "The next one I need")}
-            {option(
-              "within",
-              `Only when I'm ${range.within} ${unit} or fewer behind`,
-            )}
+            {option("next", "Every series")}
+            {option("within", "Only series I'm nearly caught up on")}
             <div className={styles.sliderRow}>
               <input
                 type="range"
@@ -156,13 +167,20 @@ export default function ReleaseControls() {
                 value={range.within}
                 disabled={range.mode !== "within"}
                 aria-label={`How many ${copy.many} behind the ${copy.newest}`}
+                aria-valuetext={howClose}
                 onChange={(e) => change({ within: Number(e.target.value) })}
               />
-              <span className={styles.sliderValue} aria-hidden>
-                {range.within}
+              <span
+                className={
+                  range.mode === "within"
+                    ? styles.sliderValue
+                    : styles.sliderValueOff
+                }
+                aria-hidden
+              >
+                {howClose}
               </span>
             </div>
-            {option("all", "Everything I don't have")}
             <p className={styles.example}>{copy.example(range)}</p>
           </fieldset>
         );

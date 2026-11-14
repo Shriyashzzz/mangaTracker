@@ -7,6 +7,8 @@ import {
   seriesCanonicalPath,
   seriesPath,
 } from "../../lib/prices";
+import { SeriesScoreBadge } from "./SeriesScore";
+import { useSeriesScore } from "./useSeriesScore";
 import { pricesStyles as styles } from "./styles";
 
 // one series: cover, name and a line of facts. Used on the price home
@@ -26,10 +28,13 @@ type SeriesCardData = {
 export default function SeriesCard({
   series,
   canonical = false,
+  scored = false,
   to,
 }: {
   series: SeriesCardData;
   canonical?: boolean;
+  // on the price pages: readers' score for the series, on its cover
+  scored?: boolean;
   // where the card goes, when it isn't the series' price page
   to?: string;
 }) {
@@ -38,21 +43,25 @@ export default function SeriesCard({
     : seriesPath(series.name);
   // "Overlord Light Novel" is shown as Overlord, a light novel
   const shown = novelParts(series.name);
+  const score = useSeriesScore(series.name, scored);
   return (
     <NavLink to={to ?? pricePage} className={styles.card} viewTransition>
-      <span className={styles.cover}>
-        <span className={styles.coverFallback} aria-hidden>
-          ?
+      <span className={styles.scoredCover}>
+        <span className={styles.cover}>
+          <span className={styles.coverFallback} aria-hidden>
+            ?
+          </span>
+          {series.coverUrl && (
+            <img
+              src={coverSrc(series.coverUrl)}
+              alt=""
+              loading="lazy"
+              onError={hideBrokenCover}
+              onLoad={hidePlaceholderCover}
+            />
+          )}
         </span>
-        {series.coverUrl && (
-          <img
-            src={coverSrc(series.coverUrl)}
-            alt=""
-            loading="lazy"
-            onError={hideBrokenCover}
-            onLoad={hidePlaceholderCover}
-          />
-        )}
+        <SeriesScoreBadge score={score} />
       </span>
       <span className={styles.cardTitle}>{shown.title}</span>
       <span className={styles.cardMeta}>

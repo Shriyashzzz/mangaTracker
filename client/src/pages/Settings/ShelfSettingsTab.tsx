@@ -35,11 +35,7 @@ export function ShelfSettingsTab() {
             ["rows", "Compact rows, so more fit on a screen"],
           ] as const
         ).map(([value, label]) => (
-          <label
-            key={value}
-            className={styles.row}
-            data-tour={value === "rows" ? "view-rows" : undefined}
-          >
+          <label key={value} className={styles.row}>
             <input
               type="radio"
               name="shelf-view"

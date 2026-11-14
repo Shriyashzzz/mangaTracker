@@ -163,7 +163,6 @@ export default function Header() {
           </Link>
           <Link
             to="/"
-            data-tour="tab-prices"
             className={linkClass(onPrices)}
             aria-current={onPrices ? "page" : undefined}
             viewTransition
@@ -214,7 +213,6 @@ export default function Header() {
         )}
         <Link
           {...barLink("prices")}
-          data-tour="tab-prices"
           className={barClass(onPrices)}
           aria-current={onPrices ? "page" : undefined}
           viewTransition

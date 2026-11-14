@@ -78,7 +78,15 @@ test("an answer stops counting once what it depended on changes", async () => {
     expect((await savedAnswers([m], null))[m.id]).toBeUndefined();
   // and when their release settings change
   expect(
-    (await savedAnswers([manga], { releases: { volumes: "all" } }))[manga.id],
+    (
+      await savedAnswers([manga], {
+        // they asked to hear only of series they're nearly caught up on
+        releases: {
+          volumes: { mode: "within", within: 2 },
+          chapters: { mode: "within", within: 3 },
+        },
+      })
+    )[manga.id],
   ).toBeUndefined();
   // unchanged, it still counts
   expect((await savedAnswers([manga], null))[manga.id]).toBeDefined();

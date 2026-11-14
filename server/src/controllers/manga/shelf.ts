@@ -11,6 +11,7 @@ import { bookFields, purchaseFields } from "../../util/shelf/ownedBooks.js";
 import { getSeriesInfo } from "../../prices/sources/anilist.js";
 import { canonicalTitle } from "../../util/shelf/canonicalTitle.js";
 import type { Manga } from "../../../generated/prisma/client.js";
+import { askAboutFinishedVolume } from "../../reviews/reviews.js";
 import { oneAtATime } from "../../util/shelf/oneAtATime.js";
 import { keepSavedList, ownedVolumes } from "../../util/shelf/ownedList.js";
 import {
@@ -97,7 +98,11 @@ export const setStatus = [
   body("status").isBoolean().toBoolean(),
   rejectInvalid,
   async (req: Request, res: Response) => {
-    await mangaQueries.setStatus(res.locals.manga.id, matchedData(req).status);
+    const { status } = matchedData(req);
+    await mangaQueries.setStatus(res.locals.manga.id, status);
+    // finishing the series is finishing its last volume
+    if (status)
+      await askAboutFinishedVolume(req.session.userId!, res.locals.manga.id);
     res.sendStatus(204);
   },
 ];
@@ -155,14 +160,25 @@ export const setReading = [
   rejectInvalid,
   async (req: Request, res: Response) => {
     const d = matchedData(req);
-    await mangaQueries.setReading(res.locals.manga.id, {
+    const manga = res.locals.manga;
+    await mangaQueries.setReading(manga, {
       ...(d.byVolume === undefined ? {} : { byVolume: d.byVolume }),
       ...("readVolume" in req.body ? { readVolume: d.readVolume ?? null } : {}),
       ...("edition" in req.body ? { edition: d.edition ?? null } : {}),
     });
+    // further than they'd read before: they've just finished a volume
+    if ((d.readVolume ?? 0) > (manga.readVolume ?? 0))
+      await askAboutFinishedVolume(req.session.userId!, manga.id);
     res.sendStatus(204);
   },
 ];
+
+// the cross on "You finished vol. 8. What did you think?": not asked again
+// until they finish another volume
+export const forgetFinishedVolume = async (_req: Request, res: Response) => {
+  await mangaQueries.forgetFinishedVolume(res.locals.manga.id);
+  res.sendStatus(204);
+};
 
 // ---------- the books behind the owned volumes (models/bookQueries.ts) ----------
 

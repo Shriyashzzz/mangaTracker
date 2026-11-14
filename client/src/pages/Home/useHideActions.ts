@@ -4,12 +4,11 @@
 // its own (useLingeringNote), and focus moves to its Undo, since the card it
 // came from is gone.
 import { useEffect, useState } from "react";
-import { isStillNew, type SeenKind } from "../../lib/releaseMath";
+import type { SeenKind } from "../../lib/releaseMath";
 import type { Manga } from "../../lib/types";
 import { useShelf } from "../../store/shelf";
 import { useLingeringNote } from "./useLingeringNote";
 import {
-  isGrouped,
   isHiddenAs,
   newestOf,
   SEEN_KIND,
@@ -40,7 +39,6 @@ export function useHideActions({
   releaseKind,
   viewingHidden,
   shown,
-  closeRelease,
 }: {
   releases: Releases;
   releaseKind: ReleaseKind;
@@ -48,8 +46,6 @@ export function useHideActions({
   viewingHidden: boolean;
   // what the view shows right now (Hide all hides these)
   shown: Manga[];
-  // closes the grouped list (ReleaseModal) when its last entry is hidden
-  closeRelease: () => void;
 }) {
   const markSeen = useShelf((s) => s.markSeen);
   const [hidden, setHidden] = useState<Hidden | null>(null);
@@ -65,7 +61,6 @@ export function useHideActions({
 
   const hide = async (m: Manga) => {
     const found = releases[m.id];
-    const grouped = isGrouped(found, releaseKind);
     const newest = newestOf(found, releaseKind);
     if (newest == null) return;
     const was = before(m, kind);
@@ -76,35 +71,12 @@ export function useHideActions({
       m.id,
       kind,
       restored ? null : newest,
-      kind === "volume" && (restored || grouped) ? [] : undefined,
+      // (single volumes could be hidden from a list once: bringing a
+      // series back clears those too)
+      kind === "volume" && restored ? [] : undefined,
     );
     if (saved) setHidden({ ...was, name: m.name, kind, restored });
     else setFailed(true);
-  };
-
-  // from the grouped list: part of it hidden. The last of it closes the list and
-  // offers the undo, as hiding the whole card does
-  const hideFromList = async (
-    m: Manga,
-    number: number | null,
-    list?: number[],
-  ) => {
-    const was = before(m, kind);
-    const found = releases[m.id];
-    const saved = await markSeen(m.id, kind, number, list);
-    if (!saved) return false;
-    const changed: Manga = {
-      ...m,
-      ...(kind === "volume" ? { seenVolume: number } : {}),
-      ...(kind === "chapter" ? { seenChapter: number } : {}),
-      ...(kind === "japan" ? { seenJapanVolume: number } : {}),
-      ...(list ? { hiddenVolumes: list } : {}),
-    };
-    if (found && !isStillNew(kind, changed, found)) {
-      closeRelease();
-      setHidden({ ...was, name: m.name, kind });
-    }
-    return true;
   };
 
   // several at once, then one note for all of them
@@ -155,10 +127,7 @@ export function useHideActions({
             {
               m,
               number: newest,
-              list:
-                kind === "volume" && isGrouped(found, releaseKind)
-                  ? []
-                  : undefined,
+              list: undefined,
             },
           ];
     });
@@ -201,7 +170,6 @@ export function useHideActions({
     failed,
     note,
     hide,
-    hideFromList,
     hideAll,
     unhideAll,
     undo,

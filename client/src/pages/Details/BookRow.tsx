@@ -11,9 +11,17 @@ type Props = {
   row: Row;
   onSave: (row: Row, change: Purchase) => void;
   onRemove: (row: Row) => void;
+  // some row in the list can be removed, so every row keeps a column for
+  // the button and they line up
+  removeColumn: boolean;
 };
 
-export default function BookRow({ row, onSave, onRemove }: Props) {
+export default function BookRow({
+  row,
+  onSave,
+  onRemove,
+  removeColumn,
+}: Props) {
   // what's typed in the price box, until it's saved; null: showing the saved one
   const [draft, setDraft] = useState<string | null>(null);
   const name = rowName(row);
@@ -32,14 +40,14 @@ export default function BookRow({ row, onSave, onRemove }: Props) {
   };
 
   return (
-    <li className={styles.bookRow}>
+    <li className={removeColumn ? styles.bookRow : styles.bookRowPlain}>
       <span className={styles.bookName}>
         {name}
         {row.book?.isbn13 && (
           <span className={styles.bookIsbn}>ISBN {row.book.isbn13}</span>
         )}
       </span>
-      <span className={styles.bookPaid}>
+      <label className={styles.bookPaid}>
         <span aria-hidden>$</span>
         <input
           className={styles.bookPaidInput}
@@ -53,7 +61,7 @@ export default function BookRow({ row, onSave, onRemove }: Props) {
             if (e.key === "Enter") e.currentTarget.blur();
           }}
         />
-      </span>
+      </label>
       <input
         type="date"
         className={styles.bookDate}
@@ -74,7 +82,7 @@ export default function BookRow({ row, onSave, onRemove }: Props) {
       ) : (
         // a hand-ticked volume is removed on the volume picker; this keeps
         // the columns lined up
-        <span className={styles.bookRemoveGap} aria-hidden />
+        removeColumn && <span className={styles.bookRemoveGap} aria-hidden />
       )}
     </li>
   );

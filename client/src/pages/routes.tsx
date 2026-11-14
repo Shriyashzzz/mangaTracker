@@ -45,6 +45,8 @@ export const routes = [
       { index: true, element: <FrontDoor /> },
       { path: "/shelf", lazy: page(loadShelf, (m) => m.default) },
       { path: "/signin", element: <SignInPage /> },
+      // the address people guess
+      { path: "/login", element: <Navigate to="/signin" replace /> },
       {
         path: "/details/:id",
         lazy: page(

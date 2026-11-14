@@ -26,7 +26,8 @@ export function rowPlaceLine(
   if (manga.planned) return "to read";
   if (placeText) return placeText;
   if (ownedText) return ownedText;
-  return manga.status ? "no chapter saved" : "not started";
+  // finished with no place kept: they read it, which is all there is to say
+  return manga.status ? "read to the end" : "not started";
 }
 
 // a cover card's one line: where they are, then what it is. A blank or zero

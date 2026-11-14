@@ -303,7 +303,7 @@ export function AddManga() {
         </div>
 
         {!chosen ? (
-          <div className={styles.field} data-tour="add-title">
+          <div className={styles.field}>
             <label htmlFor="name" className={styles.label}>
               Title <b>*</b>
             </label>
@@ -343,7 +343,7 @@ export function AddManga() {
           </div>
         ) : (
           <>
-            <div className={styles.picked} data-tour="add-title">
+            <div className={styles.picked}>
               {coverShows ? (
                 <span className={styles.pickedCover}>
                   <img

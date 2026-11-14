@@ -123,7 +123,7 @@ export default function PriceSearch() {
             </section>
           )}
 
-          <header className={styles.searchHead} data-tour="price-search">
+          <header className={styles.searchHead}>
             {guest ? (
               <h2 className={styles.halfTitle}>Find what it costs</h2>
             ) : (
@@ -237,7 +237,7 @@ export default function PriceSearch() {
           <ul className={styles.grid}>
             {result.items.map((s) => (
               <li key={s.slug}>
-                <SeriesCard series={s} />
+                <SeriesCard series={s} scored />
               </li>
             ))}
           </ul>
@@ -291,7 +291,7 @@ function Highlights() {
           <ul className={styles.row}>
             {data.trending.map((s) => (
               <li key={s.slug}>
-                <SeriesCard series={s} canonical />
+                <SeriesCard series={s} canonical scored />
               </li>
             ))}
           </ul>

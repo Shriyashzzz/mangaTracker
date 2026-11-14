@@ -23,6 +23,12 @@ export const isDemo = () => {
   }
 };
 
+// the practice manga's newest volume: the one that's "out" on the red bar
+// and the New tab, and whose price page the tour opens
+// (tour/steps.ts PRICE_PAGE)
+export const NEW_VOLUME = 15;
+const PRACTICE_SLUG = "frieren-beyond-journey-s-end";
+
 const practice = (
   id: number,
   name: string,
@@ -46,21 +52,25 @@ const practice = (
 });
 
 const STARTING_SHELF: Manga[] = [
-  practice(1, "One Piece", "Action", "bx30013-BeslEMqiPhlk.jpg", {
-    bookmark: 1100,
-    volumesOwned: 40,
-  }),
+  // The practice manga (id 1): the one with a new volume out, which the
+  // tour's steps on a series' page use. Its numbers are the real series'
+  // as of late 2026 (15 volumes in English), so nothing here misleads; and
+  // it's short enough that its shelf of books can be tried on a phone
   practice(
-    2,
+    1,
     "Frieren: Beyond Journey's End",
     "Adventure",
     "bx118586-CXKgWikBFQgS.jpg",
     {
-      bookmark: 90,
-      volumesOwned: 9,
+      bookmark: 140,
+      volumesOwned: NEW_VOLUME - 1,
       rating: 5,
     },
   ),
+  // a chapter reader: no volumes, so nothing is said about how many are out
+  practice(2, "One Piece", "Action", "bx30013-BeslEMqiPhlk.jpg", {
+    bookmark: 1100,
+  }),
   practice(3, "Chainsaw Man", "Action", "bx105778-euxXZEIfDY2u.png", {
     bookmark: 120,
   }),
@@ -250,7 +260,7 @@ const json = (body: unknown, status = 200) =>
 
 const days = (n: number) => new Date(Date.now() + n * 86_400_000).toISOString();
 
-// One Piece has a new volume out, Chainsaw Man a new chapter, and the rest are
+// The practice manga has a new volume out, Chainsaw Man a new chapter, and the rest are
 // caught up, so the red bar and the New tab have something real to show
 function releasesFor(m: Manga) {
   const volumeOut = m.id === 1 && (m.seenVolume ?? 0) < NEW_VOLUME;
@@ -284,8 +294,6 @@ function releasesFor(m: Manga) {
       hasNewVolume: volumeOut,
       hasNewChapter: chapterOut,
       hasNewJapaneseVolume: false,
-      volumeMode: "next",
-      chapterMode: "within",
       volumeListed: m.id === 1,
       chapterListed: m.id === 3,
       japanListed: false,
@@ -314,7 +322,6 @@ function releasesFor(m: Manga) {
   };
 }
 
-const NEW_VOLUME = 41;
 const isbnOf = (volume: number) =>
   `978000000${String(volume).padStart(4, "0")}`;
 
@@ -372,10 +379,11 @@ function changesFor(
 }
 
 function volumePage(isbn: string, shelf: Manga[]) {
-  // One Piece, wherever it is on the shelf and even if they've deleted it
+  // the practice manga, wherever it is on the shelf and even if they've
+  // deleted it
   const manga = shelf.find((m) => m.id === 1) ?? STARTING_SHELF[0]!;
   const volume = Number(isbn.slice(-4)) || NEW_VOLUME;
-  const series = { name: manga.name, slug: "one-piece", info: null };
+  const series = { name: manga.name, slug: PRACTICE_SLUG, info: null };
   return {
     series,
     volume,
@@ -383,7 +391,7 @@ function volumePage(isbn: string, shelf: Manga[]) {
     book: {
       isbn13: isbn,
       title: `${manga.name}, Vol. ${volume}`,
-      authors: "Eiichiro Oda",
+      authors: "Kanehito Yamada, Tsukasa Abe",
       publisher: "VIZ Media",
       coverUrl: manga.image,
       year: 2024,
@@ -601,7 +609,7 @@ export function demoResponse(
   if (found) {
     const id = Number(found[1]);
     let manga = shelf.find((m) => m.id === id);
-    // the red bar steps need One Piece, so deleting it can't strand the tour
+    // the red bar steps need the practice manga, so deleting it can't strand the tour
     if (!manga && id === 1 && method === "GET") {
       manga = STARTING_SHELF[0]!;
       writeShelf([manga, ...shelf]);

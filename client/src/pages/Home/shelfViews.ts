@@ -3,19 +3,21 @@
 // shows and in what order, the counts on the tabs, and what a New card says.
 // Pure, so server/src/tests/shelf/shelfViews.test.ts can test it.
 import { ownedOf, ownedPhrase, ownsAny } from "../../lib/ownedVolumes";
-import {
-  countNew,
-  remainingChapters,
-  remainingJapanVolumes,
-  remainingVolumes,
-  type SeenKind,
-} from "../../lib/releaseMath";
+import { countNew, type SeenKind } from "../../lib/releaseMath";
 import type { Manga, ReleaseStatus } from "../../lib/types";
+// (piles.ts takes only types from this file, so the two don't go in a circle)
+import { behindOf, volumesBehind } from "./piles";
 
 export type Releases = Record<number, ReleaseStatus | null>;
 // what a New card says (MangaCard's CardNews, written here so this file needs
 // no components: the server's tests load it)
-export type CardNews = { text: string; yours?: string; waiting?: boolean };
+export type CardNews = {
+  text: string;
+  yours?: string;
+  // "2 volumes behind", when they are: the card says it under the text,
+  // and goes grey
+  behind?: string;
+};
 
 export const SHELF_PAGE_SIZE = 20;
 // shelves this size get a heads-up that their first release check is slow
@@ -135,23 +137,22 @@ export function seenOf(m: Manga, kind: SeenKind) {
   return m.seenJapanVolume ?? null;
 }
 
-// this series, in this view, lists everything that's out as one entry
-export const isGrouped = (
+// Does its card open the list of what's out (the popup)? A volumes card
+// with more than one out past theirs, so "A few behind" and "Way behind":
+// each row leads to that book's prices. One volume out goes straight to
+// its prices. Never chapters or Japan: a list of numbers leads nowhere
+export const opensAList = (
   found: ReleaseStatus | null | undefined,
   kind: ReleaseKind,
-) => (kind === "chapters" ? found?.chapterMode : found?.volumeMode) === "all";
+) => kind === "volumes" && behindOf(found, kind) > 1;
 
-// what "Hide" on its card hides up to: everything that's out when the card
-// lists it all, otherwise the one it shows
+// what "Hide" on its card hides up to: the one it shows
 export const newestOf = (
   found: ReleaseStatus | null | undefined,
   kind: ReleaseKind,
 ) => {
-  const grouped = isGrouped(found, kind);
-  if (kind === "volumes")
-    return grouped ? found?.latestVolume : found?.nextVolume;
-  if (kind === "chapters")
-    return grouped ? found?.latestChapter : found?.nextChapter;
+  if (kind === "volumes") return found?.nextVolume;
+  if (kind === "chapters") return found?.nextChapter;
   return found?.latestJapaneseVolume;
 };
 
@@ -255,11 +256,25 @@ export function filterShelf(
 
 // what a card on the New tab says: what's out, and where they are, so the two
 // numbers can't be mixed up
+// What a card says is always the same: what's next for them ("Vol. 13
+// next"), whether it came out last week or years ago. When they're behind
+// (piles.ts volumesBehind), the card is given the words for it: "2 volumes
+// behind". (It used to say "Vol. 15 is out" for the newest volume, which
+// read as news about a book that might be old.)
+function behindWords(
+  found: ReleaseStatus | null | undefined,
+  kind: ReleaseKind,
+) {
+  const behind = volumesBehind(found, kind);
+  if (!behind) return undefined;
+  const unit = kind === "chapters" ? "chapter" : "volume";
+  return `${behind} ${unit}${behind === 1 ? "" : "s"} behind`;
+}
+
 export function newsFor(
   m: Manga,
   found: ReleaseStatus | null | undefined,
   kind: ReleaseKind,
-  viewingHidden: boolean,
 ): CardNews {
   // where they are by the volume: what they own, else what they've read
   const owns = ownedPhrase(m);
@@ -267,34 +282,6 @@ export function newsFor(
   if (owns) volumeYours = `You own ${owns}`;
   else if (found?.currentVolume)
     volumeYours = `You're on vol. ${found.currentVolume}`;
-  if (found && isGrouped(found, kind)) {
-    // what's hidden is everything, when looking at what's hidden
-    const out = (left: number[], all: number[]) =>
-      viewingHidden || !left.length ? all : left;
-    const range = (prefix: string, numbers: number[]) =>
-      numbers.length > 1
-        ? `${prefix} ${numbers[0]}–${numbers.at(-1)}`
-        : `${prefix} ${numbers[0]}`;
-    if (kind === "japan") {
-      const shown = out(remainingJapanVolumes(m, found), found.outJapanVolumes);
-      return { text: `${range("Vol.", shown)} in Japan`, yours: volumeYours };
-    }
-    if (kind === "chapters") {
-      const left = remainingChapters(m, found);
-      return {
-        text:
-          viewingHidden || !left.length
-            ? `Ch. ${found.nextChapter}–${found.latestChapter} available`
-            : `${range("Ch.", [left[0]!, left.at(-1)!])} available`,
-        yours: m.bookmark ? `You're on ch. ${m.bookmark}` : undefined,
-      };
-    }
-    const shown = out(
-      remainingVolumes(m, found).map((v) => v.volume),
-      found.outVolumes.map((v) => v.volume),
-    );
-    return { text: `${range("Vol.", shown)} available`, yours: volumeYours };
-  }
   if (kind === "japan") {
     return {
       text: `Vol. ${found?.latestJapaneseVolume} in Japan`,
@@ -304,29 +291,16 @@ export function newsFor(
   if (kind === "chapters") {
     const nextChapter = found?.nextChapter;
     return {
-      // theirs next; "is out" is news, so only for the newest
-      text:
-        nextChapter === found?.latestChapter
-          ? `Ch. ${nextChapter} is out`
-          : `Ch. ${nextChapter} next`,
-      waiting: nextChapter !== found?.latestChapter,
+      text: `Ch. ${nextChapter} next`,
+      behind: behindWords(found, kind),
       yours: m.bookmark ? `You're on ch. ${m.bookmark}` : undefined,
     };
   }
-  // "is out" is news, so it's only for the newest
   const next = found?.nextVolume;
   return {
-    text:
-      next === found?.latestVolume
-        ? `Vol. ${next} is out`
-        : `Vol. ${next} next`,
-    waiting: next !== found?.latestVolume,
-    // "Vol. 6 next" already says they're on 5: said twice, it's clutter
-    yours:
-      next != null &&
-      found?.currentVolume != null &&
-      next === found.currentVolume + 1
-        ? undefined
-        : volumeYours,
+    text: `Vol. ${next} next`,
+    behind: behindWords(found, kind),
+    // always, so every card answers "where am I?" the same way
+    yours: volumeYours,
   };
 }

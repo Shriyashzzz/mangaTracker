@@ -42,19 +42,40 @@ export const getVolumeReviews = (isbn13: string, signal?: AbortSignal) =>
 
 export type ReviewDraft = { rating: number; text: string; spoiler: boolean };
 
-// writes the viewer's review of a volume, or writes over it. The saved
-// review, or the server's reason it wasn't
-export async function saveReview(
-  isbn13: string,
+// the saved review, or the server's reason it wasn't
+export type SaveResult = { review: Review } | { problem: string };
+
+async function putReview(
+  path: string,
   draft: ReviewDraft,
-): Promise<{ review: Review } | { problem: string }> {
-  const res = await apiFetch(`/api/reviews/volume/${isbn13}`, {
-    method: "PUT",
-    body: draft,
-  }).catch(() => null);
+): Promise<SaveResult> {
+  const res = await apiFetch(path, { method: "PUT", body: draft }).catch(
+    () => null,
+  );
   if (!res) return { problem: "That didn't save. Check your connection." };
   if (!res.ok) return { problem: (await errorMessages(res))[0]! };
   return { review: (await res.json()) as Review };
+}
+
+// writes the viewer's review of a book, or writes over it: from the book's
+// own price page
+export const saveReview = (isbn13: string, draft: ReviewDraft) =>
+  putReview(`/api/reviews/volume/${isbn13}`, draft);
+
+// The same from a series' page on their shelf, where a volume is its
+// number: works for a volume we have no book for too
+export const saveShelfReview = (
+  mangaId: number,
+  volume: number,
+  draft: ReviewDraft,
+) => putReview(`/api/reviews/shelf/${mangaId}/${volume}`, draft);
+
+// takes it away; false when it didn't go through
+export async function deleteShelfReview(mangaId: number, volume: number) {
+  const res = await apiFetch(`/api/reviews/shelf/${mangaId}/${volume}`, {
+    method: "DELETE",
+  }).catch(() => null);
+  return Boolean(res?.ok);
 }
 
 // takes the viewer's review away; false when it didn't go through
@@ -96,17 +117,39 @@ export const getSeriesReviews = (name: string, signal?: AbortSignal) =>
 // For a series on the viewer's shelf: the volumes they could rate next
 // (the ones they've read first, latest first), and the reviews they've
 // written of it, latest volume first. The server's shelfReviews
-export type ShelfVolume = { isbn13: string; volume: number };
+// a volume of a series on their shelf. `isbn13` is null for one we have no
+// book for: it's known by its number
+export type ShelfVolume = { isbn13: string | null; volume: number };
 export type WrittenReview = ShelfVolume & { review: Review };
-export type ShelfReviews = { toRate: ShelfVolume[]; written: WrittenReview[] };
+export type ShelfReviews = {
+  // the last volume they've read (or own), rated or not: the one the
+  // page's stars are about
+  latest: ShelfVolume | null;
+  // read or owned and not rated yet, the latest first
+  toRate: ShelfVolume[];
+  written: WrittenReview[];
+  // the volume they finished in the last few days and haven't rated: the
+  // page asks about it out loud. Null otherwise
+  justFinished: ShelfVolume | null;
+};
 export const getShelfReviews = (mangaId: number, signal?: AbortSignal) =>
   getJson<ShelfReviews>(`/api/reviews/shelf?manga=${mangaId}`, signal);
+
+// the cross on "You finished vol. 8. What did you think?": not asked again
+// until they finish another volume. False when it didn't go through
+export async function closeFinishedVolume(mangaId: number) {
+  const res = await apiFetch(`/api/manga/${mangaId}/finished-volume`, {
+    method: "DELETE",
+  }).catch(() => null);
+  return Boolean(res?.ok);
+}
 
 // ---------- the site owner's list ----------
 
 export type ReportedReview = {
   id: number;
-  isbn13: string;
+  // null for a volume we have no book, and so no page, for
+  isbn13: string | null;
   // the volume's name, when the book is on file
   title: string | null;
   rating: number;

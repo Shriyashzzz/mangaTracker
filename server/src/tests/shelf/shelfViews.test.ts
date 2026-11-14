@@ -4,6 +4,7 @@ import {
   isHiddenAs,
   newestOf,
   newsFor,
+  opensAList,
   shelfCounts,
   TAB_FROM_URL,
   URL_FROM_TAB,
@@ -33,8 +34,6 @@ const found = (over: Partial<ReleaseStatus> = {}) =>
     volumeListed: false,
     chapterListed: false,
     japanListed: false,
-    volumeMode: "next",
-    chapterMode: "next",
     outVolumes: [],
     outJapanVolumes: [],
     ...over,
@@ -170,46 +169,56 @@ test("the counts on the tabs, and nothing new counts for a series not started", 
   });
 });
 
-test("Hide hides up to the one the card shows, or everything when it lists it all", () => {
+test("Hide hides up to the one the card shows", () => {
   const one = found({
     nextVolume: 5,
     latestVolume: 7,
-  } as Partial<ReleaseStatus>);
-  const all = found({
-    nextVolume: 5,
-    latestVolume: 7,
-    volumeMode: "all",
+    nextChapter: 31,
+    latestChapter: 34,
   } as Partial<ReleaseStatus>);
   expect(newestOf(one, "volumes")).toBe(5);
-  expect(newestOf(all, "volumes")).toBe(7);
+  expect(newestOf(one, "chapters")).toBe(31);
 });
 
-test("a New card says what's out and where they are, apart", () => {
+test("a New card says what's next and where they are, apart", () => {
   const m = manga(1, { volumesOwned: 4, bookmark: 30 });
   const newest = found({
     nextVolume: 5,
     latestVolume: 5,
   } as Partial<ReleaseStatus>);
-  expect(newsFor(m, newest, "volumes", false)).toEqual({
-    text: "Vol. 5 is out",
-    waiting: false,
+  expect(newsFor(m, newest, "volumes")).toEqual({
+    // the same words whether it's the newest or not: "is out" read as news
+    text: "Vol. 5 next",
+    behind: undefined,
     yours: "You own up to vol. 4",
   });
   const behind = found({
     nextVolume: 5,
     latestVolume: 7,
+    outVolumes: [{ volume: 5 }, { volume: 6 }, { volume: 7 }],
   } as Partial<ReleaseStatus>);
-  // theirs next, and how far the series has gone
-  expect(newsFor(m, behind, "volumes", false).text).toBe("Vol. 5 next");
+  // theirs next, and how far behind they are: every volume that's out
+  // and isn't theirs (5, 6 and 7)
+  expect(newsFor(m, behind, "volumes")).toMatchObject({
+    text: "Vol. 5 next",
+    behind: "3 volumes behind",
+  });
   const chapter = found({
     nextChapter: 31,
     latestChapter: 31,
   } as Partial<ReleaseStatus>);
-  expect(newsFor(m, chapter, "chapters", false)).toEqual({
-    text: "Ch. 31 is out",
-    waiting: false,
+  expect(newsFor(m, chapter, "chapters")).toEqual({
+    text: "Ch. 31 next",
+    behind: undefined,
     yours: "You're on ch. 30",
   });
+  const chaptersBehind = found({
+    nextChapter: 31,
+    latestChapter: 34,
+  } as Partial<ReleaseStatus>);
+  expect(newsFor(m, chaptersBehind, "chapters").behind).toBe(
+    "4 chapters behind",
+  );
 });
 
 test("every tab has a word in the address, and back", () => {
@@ -217,17 +226,49 @@ test("every tab has a word in the address, and back", () => {
     expect(TAB_FROM_URL[word]).toBe(tab);
 });
 
-test("a card doesn't say twice where they are: Vol. 5 next already means they're on 4", () => {
+test("every card says where they are, under what's next", () => {
   const m = manga(1, { volumesOwned: 4, bookmark: 30 });
   const next = (over: Partial<ReleaseStatus>) =>
-    newsFor(m, found(over), "volumes", false);
+    newsFor(m, found(over), "volumes");
   expect(next({ nextVolume: 5, latestVolume: 7, currentVolume: 4 })).toEqual({
     text: "Vol. 5 next",
-    waiting: true,
-    yours: undefined,
+    behind: undefined,
+    yours: "You own up to vol. 4",
   });
-  // a gap (they own 4, the next English one is 7) is worth saying
+  // and across a gap (they own 4, the next English one is 7)
   expect(next({ nextVolume: 7, latestVolume: 9, currentVolume: 4 }).yours).toBe(
     "You own up to vol. 4",
   );
+});
+
+test("a volumes card opens the list only when more than one is out", () => {
+  const out = (...volumes: number[]) =>
+    found({
+      outVolumes: volumes.map((volume) => ({ volume })),
+    } as Partial<ReleaseStatus>);
+  // several out past theirs: the list, each row leading to its prices
+  expect(opensAList(out(5, 6, 7), "volumes")).toBe(true);
+  // caught up, so only the newest is out: straight to its prices
+  expect(opensAList(out(5), "volumes")).toBe(false);
+  // not for chapters: a list of chapter numbers leads nowhere
+  expect(
+    opensAList(found({ nextChapter: 31, latestChapter: 34 }), "chapters"),
+  ).toBe(false);
+});
+
+test("the badge counts news, not the backlog the tab also lists", () => {
+  const out = (...volumes: number[]) =>
+    volumes.map((volume) => ({ volume })) as ReleaseStatus["outVolumes"];
+  const list = [manga(1), manga(2), manga(4)];
+  const releases: Releases = {
+    // caught up but for the newest: news
+    1: found({ hasNewVolume: true, outVolumes: out(5) }),
+    // three out past theirs: listed, not counted
+    2: found({ hasNewVolume: true, outVolumes: out(5, 6, 7) }),
+    // one chapter out past theirs: news
+    4: found({ hasNewChapter: true, nextChapter: 31, latestChapter: 31 }),
+  };
+  const counts = shelfCounts(list, releases);
+  expect(counts.newVolumes).toBe(2);
+  expect(counts.new).toBe(2);
 });

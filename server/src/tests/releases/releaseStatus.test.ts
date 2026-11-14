@@ -31,9 +31,39 @@ const chaptersOnly = (dates: FormatedDates | null) => ({
   englishVolumes: [],
 });
 
-test("the new volume is the next one they can buy, however far behind", () => {
+// a reader who asked for every next volume, however far behind
+const EVERY_NEXT: ReleaseSettings = {
+  volumes: { mode: "next", within: 3 },
+  chapters: { mode: "within", within: 3 },
+};
+
+// a reader who asked to hear of a volume only once they're nearly caught up
+const WITHIN_3: ReleaseSettings = {
+  volumes: { mode: "within", within: 3 },
+  chapters: { mode: "within", within: 3 },
+};
+
+test("asked for, a volume is listed only once they're within a few of the newest", () => {
+  const out = volumesOnly(english(13, 14, 15, 16, 17, 18, 19, 20));
+  // seven behind: not listed
+  expect(getReleaseStatus(owns(13), out, WITHIN_3).hasNewVolume).toBe(false);
+  // the next one is still known, for the series' own page
+  expect(getReleaseStatus(owns(13), out, WITHIN_3).nextVolume).toBe(14);
+  // three behind or fewer: listed
+  expect(getReleaseStatus(owns(17), out, WITHIN_3).hasNewVolume).toBe(true);
+  expect(getReleaseStatus(owns(19), out, WITHIN_3).hasNewVolume).toBe(true);
+  expect(getReleaseStatus(owns(20), out, WITHIN_3).hasNewVolume).toBe(false);
+});
+
+test("by default the next volume is listed, however far behind", () => {
+  const out = volumesOnly(english(13, 14, 15, 16, 17, 18, 19, 20));
+  expect(getReleaseStatus(owns(13), out).hasNewVolume).toBe(true);
+  expect(getReleaseStatus(owns(13), out).nextVolume).toBe(14);
+});
+
+test("asked for, the new volume is the next one they can buy, however far behind", () => {
   const out = volumesOnly(english(13, 14, 15, 20));
-  const on13 = getReleaseStatus(owns(13), out);
+  const on13 = getReleaseStatus(owns(13), out, EVERY_NEXT);
   expect(on13.hasNewVolume).toBe(true);
   expect(on13.nextVolume).toBe(14);
   // the catalog can have gaps
@@ -297,43 +327,33 @@ describe("each reader chooses what the New tab lists", () => {
     ).toBe(true);
   });
 
-  test("everything: lists all that's out, in Japan too", () => {
-    const status = getReleaseStatus(
-      owns(20),
-      out,
-      settings({ mode: "all", within: 3 }),
-    );
-    expect(status.hasNewVolume).toBe(true);
+  test("every volume past theirs is known, for the list a card opens", () => {
+    const status = getReleaseStatus(owns(20), out);
     expect(status.outVolumes.map((v) => v.volume)).toEqual([
       21, 22, 23, 24, 25,
     ]);
-    expect(status.hasNewJapaneseVolume).toBe(true);
-    expect(status.outJapanVolumes).toEqual([26]);
+    // Japan's isn't next until they've caught up with English
+    expect(status.hasNewJapaneseVolume).toBe(false);
+    expect(getReleaseStatus(owns(25), out).outJapanVolumes).toEqual([26]);
   });
 
-  test("everything: hiding some leaves the rest, hiding all hides the entry", () => {
-    const all = settings({ mode: "all", within: 3 });
-    const some = getReleaseStatus(
-      { ...owns(20), hiddenVolumes: [21, 23] },
+  test("a hidden next volume takes the series off the list", () => {
+    const next = settings({ mode: "next", within: 3 });
+    const hidden = getReleaseStatus(
+      { ...owns(20), hiddenVolumes: [21] },
       out,
-      all,
+      next,
     );
-    expect(some.hasNewVolume).toBe(true);
-    const every = getReleaseStatus(
-      { ...owns(20), hiddenVolumes: [21, 22, 23, 24, 25] },
-      out,
-      all,
-    );
-    expect(every.hasNewVolume).toBe(false);
-    expect(every.volumeListed).toBe(true);
+    expect(hidden.hasNewVolume).toBe(false);
+    expect(hidden.volumeListed).toBe(true);
     expect(
-      getReleaseStatus({ ...owns(20), seenVolume: 25 }, out, all).hasNewVolume,
+      getReleaseStatus({ ...owns(20), seenVolume: 21 }, out, next).hasNewVolume,
     ).toBe(false);
   });
 
   test("chapters have their own setting", () => {
     const far = chaptersOnly(chapter("142"));
-    const withChapters = (mode: "next" | "within" | "all") =>
+    const withChapters = (mode: "next" | "within") =>
       settings({ mode: "next", within: 3 }, { mode, within: 5 });
     expect(
       getReleaseStatus(readTo(33), far, withChapters("within")).hasNewChapter,
@@ -344,26 +364,19 @@ describe("each reader chooses what the New tab lists", () => {
     const next = getReleaseStatus(readTo(33), far, withChapters("next"));
     expect(next.hasNewChapter).toBe(true);
     expect(next.nextChapter).toBe(34);
-    // hiding part of the way through a group leaves the rest showing
+    // hidden up to the next one, it's off the list
     expect(
       getReleaseStatus(
-        { ...readTo(33), seenChapter: 100 },
+        { ...readTo(33), seenChapter: 34 },
         far,
-        withChapters("all"),
-      ).hasNewChapter,
-    ).toBe(true);
-    expect(
-      getReleaseStatus(
-        { ...readTo(33), seenChapter: 142 },
-        far,
-        withChapters("all"),
+        withChapters("next"),
       ).hasNewChapter,
     ).toBe(false);
   });
 
   test("anyone who hasn't chosen keeps the defaults", () => {
     const defaults = readReleaseSettings(undefined);
-    expect(defaults.volumes.mode).toBe("next");
+    expect(defaults.volumes).toEqual({ mode: "next", within: 1 });
     expect(defaults.chapters).toEqual({ mode: "within", within: 3 });
     expect(
       readReleaseSettings({ volumes: { mode: "nope", within: 2 } }).volumes
@@ -374,9 +387,20 @@ describe("each reader chooses what the New tab lists", () => {
   test("only sensible settings can be saved", () => {
     const good = {
       volumes: { mode: "within", within: 10 },
-      chapters: { mode: "all", within: 50 },
+      chapters: { mode: "next", within: 50 },
     };
     expect(validReleaseSettings(good)).toEqual(good);
+    // "everything as one card" isn't offered any more: saved or sent, it
+    // reads as every series' next one
+    expect(
+      readReleaseSettings({
+        volumes: { mode: "all", within: 3 },
+        chapters: { mode: "all", within: 3 },
+      }),
+    ).toEqual({
+      volumes: { mode: "next", within: 3 },
+      chapters: { mode: "next", within: 3 },
+    });
     expect(
       validReleaseSettings({
         ...good,
@@ -404,58 +428,6 @@ test("a lookup updates the saved latest chapter only when it found a different o
   expect(chapterToSave(142, 142)).toBeNull();
   // found nothing: keep what we know
   expect(chapterToSave(null, 142)).toBeNull();
-});
-
-test("the newest of each comes with when it came out, for Just out", () => {
-  const status = getReleaseStatus(
-    { volumesOwned: 3, bookmark: 40 },
-    {
-      dates: {
-        chapter: {
-          latestReleased: {
-            chapterNumber: "42",
-            releaseDate: "2026-11-06T10:00:00Z",
-          },
-        },
-        volume: [
-          { volume: "5", releaseDate: "2026-08-01T00:00:00Z" },
-          { volume: "6", releaseDate: "2026-10-30T00:00:00Z" },
-        ],
-      } as FormatedDates,
-      englishVolumes: [
-        { volume: 4, published: "2026-03-10" },
-        { volume: 5, published: "2026-11-04" },
-      ],
-    },
-  );
-  expect(status.latestVolumeDate).toBe("2026-11-04");
-  expect(status.latestChapterDate).toBe("2026-11-06T10:00:00Z");
-  expect(status.latestJapaneseVolumeDate).toBe("2026-10-30T00:00:00Z");
-});
-
-test("no source, no dates", () => {
-  const status = getReleaseStatus(owns(3), volumesOnly(english(4)));
-  expect(status.latestVolumeDate).toBeNull();
-  expect(status.latestChapterDate).toBeNull();
-  expect(status.latestJapaneseVolumeDate).toBeNull();
-});
-
-test("Japan's date is the first cover of its newest volume, whatever the language", () => {
-  const status = getReleaseStatus(
-    { volumesOwned: 9, bookmark: null },
-    {
-      dates: {
-        volume: [
-          { volume: "12", releaseDate: "2026-10-30T00:00:00Z" }, // French
-          { volume: "12", releaseDate: "2026-02-03T00:00:00Z" }, // Japanese
-          { volume: "12", releaseDate: null },
-          { volume: "11", releaseDate: "2025-09-01T00:00:00Z" },
-        ],
-      } as FormatedDates,
-      englishVolumes: [{ volume: 9 }],
-    },
-  );
-  expect(status.latestJapaneseVolumeDate).toBe("2026-02-03T00:00:00Z");
 });
 
 test("read by the volume: no chapter news, and the volume read stands in for a blank shelf", () => {

@@ -25,8 +25,9 @@ export type CardNews = {
   text: string;
   // where they've got to, right under it
   yours?: string;
-  // a backlog step ("Vol. 11 next"), not news: in ink, so red means just out
-  waiting?: boolean;
+  // "2 volumes behind", when they are: said under it, and the card goes
+  // grey (a step through a backlog, not the newest volume)
+  behind?: string;
 };
 
 type Props = {
@@ -191,6 +192,13 @@ export default function MangaCard({
                   {kindLine}
                 </p>
               )}
+              {/* a phone has no room for the stars' own column (below), so
+                  a rating they've given sits here */}
+              {Number(currentManga.rating) > 0 && (
+                <span className="hidden flex-none upto-720:flex">
+                  <StarRating value={Number(currentManga.rating)} size="sm" />
+                </span>
+              )}
             </div>
           </>
         ) : (
@@ -202,10 +210,21 @@ export default function MangaCard({
           </p>
         )}
         {news && (
+          // red when it's the newest volume; grey when it's a step through
+          // a backlog, with how far behind they are under it
           <p
-            className={`font-brand text-[1.05rem] tracking-[1px] ${news.waiting ? "text-ink-soft" : "text-accent"}`}
+            className={`font-brand text-[1.05rem] tracking-[1px] ${news.behind ? "text-ink-soft" : "text-accent"}`}
           >
             {news.text}
+            {/* on a cover card it has a line of its own (the card is
+                narrow, and the words broke in two); on a phone's row it
+                follows on the same line */}
+            {news.behind && (
+              <span className="block text-[0.92rem] upto-720:inline upto-720:text-[1.05rem]">
+                <span className="hidden upto-720:inline"> · </span>
+                {news.behind}
+              </span>
+            )}
           </p>
         )}
         {news && (

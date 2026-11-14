@@ -67,7 +67,7 @@ export default function StarRating({
       className="inline-flex items-center gap-0.5"
       role="radiogroup"
       aria-label="Rating"
-      onMouseLeave={() => setHovered(0)}
+      onPointerLeave={() => setHovered(0)}
     >
       {[1, 2, 3, 4, 5].map((n) => (
         <button
@@ -79,10 +79,18 @@ export default function StarRating({
           tabIndex={n === (current || 1) ? 0 : -1}
           onKeyDown={(e) => moveWithArrows(e, n)}
           className="grid min-h-11 min-w-11 place-items-center rounded-md transition-transform duration-150 ease-ink hover:scale-115 active:scale-92"
-          onMouseEnter={() => setHovered(n)}
-          onFocus={() => setHovered(n)}
-          onBlur={() => setHovered(0)}
-          onClick={() => onChange(n === current ? 0 : n)}
+          // Only a mouse previews a rating. A star filled on keyboard focus
+          // would look like one already given; and a finger has no hover
+          // to end, so the preview would stay on after the tap and hide
+          // what was really saved
+          onPointerEnter={(e) => {
+            if (e.pointerType === "mouse") setHovered(n);
+          }}
+          onClick={() => {
+            // what shows after a click is the rating itself
+            setHovered(0);
+            onChange(n === current ? 0 : n);
+          }}
         >
           {star(n)}
         </button>

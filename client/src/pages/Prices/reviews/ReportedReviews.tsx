@@ -95,13 +95,15 @@ export default function ReportedReviews() {
               >
                 Remove
               </button>
-              <NavLink
-                to={`/prices/${review.isbn13}#reviews-title`}
-                className={styles.link}
-                viewTransition
-              >
-                Open the volume
-              </NavLink>
+              {review.isbn13 && (
+                <NavLink
+                  to={`/prices/${review.isbn13}#reviews-title`}
+                  className={styles.link}
+                  viewTransition
+                >
+                  Open the volume
+                </NavLink>
+              )}
             </div>
             {failed === review.id && (
               <p className={styles.problem} role="alert">

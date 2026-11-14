@@ -144,11 +144,19 @@ export const clearReleaseMarks = (id: number) =>
     },
   });
 
-// finishing one, or picking it back up, takes it off the To read list
+// finishing one, or picking it back up, takes it off the To read list.
+// Picking it back up (the undo of "Mark as finished" too) ends any question
+// about the volume they'd finished: it was asked about the series' last
+// volume, which they haven't read after all
 export const setStatus = (id: number, status: boolean) =>
   prisma.manga.update({
     where: { id },
-    data: { status, planned: false, ...changedNow() },
+    data: {
+      status,
+      planned: false,
+      ...(status ? {} : { readVolumeAt: null }),
+      ...changedNow(),
+    },
   });
 
 // on or off the To read list; starting it puts them at chapter 1
@@ -180,15 +188,40 @@ export const setLatestChapter = (id: number, latestChapter: number) =>
 export const setBookmark = (id: number, bookmark: number) =>
   prisma.manga.update({ where: { id }, data: { bookmark, ...changedNow() } });
 
-// which way they keep their place, and the volume they've read up to
+// which way they keep their place, and the volume they've read up to.
+// `manga` is the series as it stands: going back a volume ends any question
+// about the one they'd finished
 export const setReading = (
-  id: number,
+  manga: { id: number; readVolume: number | null },
   data: {
     byVolume?: boolean;
     readVolume?: number | null;
     edition?: string | null;
   },
-) => prisma.manga.update({ where: { id }, data: { ...data, ...changedNow() } });
+) => {
+  const before = manga.readVolume ?? 0;
+  const after = data.readVolume === undefined ? before : (data.readVolume ?? 0);
+  return prisma.manga.update({
+    where: { id: manga.id },
+    data: {
+      ...data,
+      ...(after < before ? { readVolumeAt: null } : {}),
+      ...changedNow(),
+    },
+  });
+};
+
+// they closed the question about the volume they just finished
+export const forgetFinishedVolume = (id: number) =>
+  prisma.manga.update({ where: { id }, data: { readVolumeAt: null } });
+
+// the page starts asking about the volume they've just finished, and the
+// account remembers it was asked (it's asked rarely)
+export const startAskingAboutVolume = (id: number, userId: number, now: Date) =>
+  prisma.$transaction([
+    prisma.manga.update({ where: { id }, data: { readVolumeAt: now } }),
+    prisma.user.update({ where: { id: userId }, data: { rateAskedAt: now } }),
+  ]);
 
 const SEEN_FIELD = {
   volume: "seenVolume",
@@ -406,6 +439,8 @@ export default {
   addManyManga,
   setBookmark,
   setReading,
+  forgetFinishedVolume,
+  startAskingAboutVolume,
   setSeen,
   setVolumesOwned,
   fillFromBackup,
