@@ -3,6 +3,10 @@
 import { useCallback, useEffect, useState } from "react";
 import { getVolumeReviews, type VolumeReviews } from "../../../lib/reviews";
 
+// the reviews, really there: an answer that isn't them is no answer
+const isVolumeReviews = (data: VolumeReviews | null): data is VolumeReviews =>
+  Array.isArray(data?.reviews) && Array.isArray(data?.spread);
+
 export function useVolumeReviews(isbn13: string | null) {
   // the answer with the volume it's for, so another volume's is never shown
   const [loaded, setLoaded] = useState<{
@@ -15,13 +19,16 @@ export function useVolumeReviews(isbn13: string | null) {
   const reload = useCallback(async () => {
     if (!isbn13) return;
     const data = await getVolumeReviews(isbn13).catch(() => null);
-    if (data) setLoaded({ isbn13, data });
+    if (isVolumeReviews(data)) setLoaded({ isbn13, data });
   }, [isbn13]);
   useEffect(() => {
     if (!isbn13) return;
     const controller = new AbortController();
     getVolumeReviews(isbn13, controller.signal)
-      .then((data) => setLoaded({ isbn13, data }))
+      .then((data) => {
+        // only an answer of the right shape is kept
+        if (isVolumeReviews(data)) setLoaded({ isbn13, data });
+      })
       .catch(() => {});
     return () => controller.abort();
   }, [isbn13]);

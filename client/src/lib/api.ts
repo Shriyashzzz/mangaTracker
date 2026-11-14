@@ -50,7 +50,14 @@ export async function getJson<T>(
   signal?: AbortSignal,
 ): Promise<T> {
   const res = await apiFetch(path, { signal });
-  const data = await res.json().catch(() => null);
+  const data = await res.json().catch((e: Error) => {
+    // Cancelled while the answer was still arriving (a page left, or the
+    // effect that asked ran again): that's a cancelled request, said as
+    // one. Passing it on as "null" handed callers an empty answer with a
+    // 200, and a page that trusted it broke
+    if (signal?.aborted) throw e;
+    return null;
+  });
   if (!res.ok) {
     throw new HttpError(
       (data as ApiError | null)?.error?.[0]?.msg ??

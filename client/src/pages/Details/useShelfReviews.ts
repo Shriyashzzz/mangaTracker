@@ -6,6 +6,10 @@ import { getShelfReviews, type ShelfReviews } from "../../lib/reviews";
 
 const NONE: ShelfReviews = { toRate: [], written: [] };
 
+// the two lists, really there: an answer that isn't them is no answer
+const isShelfReviews = (data: ShelfReviews | null): data is ShelfReviews =>
+  Array.isArray(data?.toRate) && Array.isArray(data?.written);
+
 export function useShelfReviews(mangaId: number, changes: string) {
   // the answer with the series it's for, so another series' is never shown
   const [loaded, setLoaded] = useState<{
@@ -16,12 +20,15 @@ export function useShelfReviews(mangaId: number, changes: string) {
   // an extra: when it can't be loaded the page is whole without it
   const reload = useCallback(async () => {
     const data = await getShelfReviews(mangaId).catch(() => null);
-    if (data) setLoaded({ mangaId, data });
+    if (isShelfReviews(data)) setLoaded({ mangaId, data });
   }, [mangaId]);
   useEffect(() => {
     const controller = new AbortController();
     getShelfReviews(mangaId, controller.signal)
-      .then((data) => setLoaded({ mangaId, data }))
+      .then((data) => {
+        // only an answer of the right shape is kept
+        if (isShelfReviews(data)) setLoaded({ mangaId, data });
+      })
       .catch(() => {});
     return () => controller.abort();
   }, [mangaId, changes]);
