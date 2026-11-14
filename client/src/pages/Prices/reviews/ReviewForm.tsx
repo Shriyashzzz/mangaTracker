@@ -11,11 +11,15 @@ export default function ReviewForm({
   current,
   onSaved,
   onCancel,
+  framed = true,
 }: {
   isbn13: string;
   current: Review | null;
   onSaved: () => void;
   onCancel: () => void;
+  // its own inked box, on a volume's page; false inside a dialog, which is
+  // the box
+  framed?: boolean;
 }) {
   const [rating, setRating] = useState(current?.rating ?? 0);
   const [text, setText] = useState(current?.text ?? "");
@@ -37,7 +41,7 @@ export default function ReviewForm({
 
   return (
     <form
-      className={styles.form}
+      className={framed ? styles.form : undefined}
       onSubmit={(e) => {
         e.preventDefault();
         post();

@@ -154,15 +154,33 @@ export const detailsStyles = {
   releaseWhen: "text-right text-[0.92rem] text-ink-soft",
   releaseEstimate: "ml-1.5 font-mono text-[0.75rem] text-muted",
   label: "mb-[0.3rem] block font-mono text-[0.75rem] text-muted",
-  rating: "border-t-[1.5px] border-line pt-4 upto-720:border-t-0 upto-720:pt-0",
-  // "You've read vol. 8. How was it?": one question, its stars beside it
-  rateVolume:
-    "flex flex-wrap items-center justify-between gap-x-6 gap-y-2 border-2 border-line bg-card px-[1.1rem] py-[0.9rem] shadow-ink-lg",
-  rateWords: "min-w-0",
-  rateTitle: "font-display text-[1.15rem] leading-[1.2] font-semibold",
-  rateNote: "text-[0.84rem] text-muted",
+  // the series' rating and, beside it, the latest volume's: two of a
+  // kind, a label over five stars. Stacked on a phone
+  ratings:
+    "grid grid-cols-[auto_minmax(0,1fr)] gap-x-[clamp(1.5rem,5vw,3.5rem)] gap-y-3 border-t-[1.5px] border-line pt-4 upto-720:grid-cols-1 upto-720:border-t-0 upto-720:pt-0",
+  rating: "min-w-0",
+  // under a volume's stars once it's rated: the quiet ways on
   rateLinks:
-    "flex flex-wrap gap-x-4 text-[0.84rem] [&>*]:tap [&>*]:text-ink-soft [&>*]:underline [&>*]:decoration-line-soft [&>*]:underline-offset-3 [&>*]:hover:text-ink",
+    "flex flex-wrap gap-x-4 text-[0.84rem] [&>*]:tap [&>*]:text-ink-soft [&>*]:underline [&>*]:decoration-line-soft [&>*]:underline-offset-3 [&>*]:hover:text-ink [&>*]:hover:decoration-current",
+  // "Your reviews": a row for each volume they've rated, in the same list
+  // as "Your books"
+  reviewRow:
+    "grid grid-cols-[4.25rem_auto_minmax(0,1fr)] items-center gap-x-3 gap-y-1 border-b border-dashed border-line-soft py-[0.6rem] text-[0.92rem]",
+  reviewVolume: "font-medium text-ink",
+  reviewEdit:
+    "tap justify-self-end text-[0.85rem] font-medium text-ink underline decoration-line-soft underline-offset-3 hover:decoration-line",
+  reviewWords:
+    "col-span-full line-clamp-3 max-w-[62ch] text-ink-soft [overflow-wrap:anywhere]",
+  reviewNoWords: "col-span-full text-[0.84rem] text-muted",
+  // the box a review is written in, over the page
+  reviewDialog:
+    "m-auto w-[min(32rem,calc(100vw-2rem))] rounded-ink border-[2.5px] border-line bg-card p-0 text-ink shadow-ink-lg backdrop:bg-[rgba(20,14,8,0.55)]",
+  reviewDialogBox: "p-5 upto-520:p-4",
+  reviewDialogTitle:
+    "font-brand text-[1.6rem] leading-[1.1] font-normal tracking-[0.02em] uppercase",
+  reviewDialogNote: "mt-1 mb-4 text-[0.88rem] text-ink-soft",
+  reviewDialogDelete:
+    "mt-1 border-t border-dashed border-line-soft pt-3 text-[0.85rem] text-muted [&_button]:tap [&_button]:text-ink-soft [&_button]:underline [&_button]:decoration-line-soft [&_button]:underline-offset-3 [&_button]:hover:text-accent-ink",
   // notes written on a ruled slip; the rule is drawn on the paragraph so
   // every line of text sits on one
   notes:

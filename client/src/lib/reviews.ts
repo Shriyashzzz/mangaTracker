@@ -93,11 +93,14 @@ export const getSeriesReviews = (name: string, signal?: AbortSignal) =>
     signal,
   );
 
-// for a series on the viewer's shelf: the latest volumes they've read and
-// haven't rated, newest first
-export type VolumeToRate = { isbn13: string; volume: number };
-export const getVolumesToRate = (mangaId: number, signal?: AbortSignal) =>
-  getJson<VolumeToRate[]>(`/api/reviews/to-rate?manga=${mangaId}`, signal);
+// For a series on the viewer's shelf: the volumes they could rate next
+// (the ones they've read first, latest first), and the reviews they've
+// written of it, latest volume first. The server's shelfReviews
+export type ShelfVolume = { isbn13: string; volume: number };
+export type WrittenReview = ShelfVolume & { review: Review };
+export type ShelfReviews = { toRate: ShelfVolume[]; written: WrittenReview[] };
+export const getShelfReviews = (mangaId: number, signal?: AbortSignal) =>
+  getJson<ShelfReviews>(`/api/reviews/shelf?manga=${mangaId}`, signal);
 
 // ---------- the site owner's list ----------
 

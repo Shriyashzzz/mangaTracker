@@ -1,93 +1,95 @@
-// "You've read vol. 8. How was it?" on a series' page: one tap on a star
-// rates the latest volume they've read and haven't rated, for the next
-// buyer to see on that volume's price page (Prices/reviews/). One volume at
-// a time, never a list of chores: once it's rated, the one before is
-// offered. Nothing shows for a series with nothing to rate.
-import { useEffect, useState } from "react";
-import { NavLink } from "react-router";
+// "Rate vol. 9", beside the series' own rating and drawn the same way: a
+// label and five stars. One tap rates the latest volume they've read and
+// haven't rated, for the next buyer to see on that volume's price page
+// (Prices/reviews/). One volume at a time, never a list of chores: once
+// it's rated, "Add a few words" opens the review box and "Rate vol. 8"
+// moves on. Nothing shows for a series with nothing to rate.
+import { useState } from "react";
 import StarRating from "../../components/starRating/StarRating";
 import {
-  getVolumesToRate,
   saveReview,
-  type VolumeToRate,
+  type ShelfVolume,
+  type WrittenReview,
 } from "../../lib/reviews";
 import { detailsStyles as styles } from "./styles";
 
-export default function RateVolume({ mangaId }: { mangaId: number }) {
-  // the volumes they could rate, newest first, and which one is asked about
-  const [waiting, setWaiting] = useState<VolumeToRate[]>([]);
-  const [at, setAt] = useState(0);
-  // the rating they just gave the one asked about
-  const [given, setGiven] = useState(0);
+export default function RateVolume({
+  toRate,
+  written,
+  onRated,
+  onWrite,
+}: {
+  // the volumes they could rate, the one to ask about first
+  toRate: ShelfVolume[];
+  // their reviews of this series, to show the rating just given
+  written: WrittenReview[];
+  // a rating was saved: the page asks for the lists again
+  onRated: () => Promise<void>;
+  // "Add a few words": the page opens the review box for this volume
+  onWrite: (volume: ShelfVolume) => void;
+}) {
+  // The volume just rated stays in place until they move on. Without this
+  // the question would jump to the next volume the moment the rating saved,
+  // and "Add a few words" would be gone before they could reach it
+  const [rated, setRated] = useState<ShelfVolume | null>(null);
+  // the stars they tapped, shown at once while it saves
+  const [tapped, setTapped] = useState(0);
   const [problem, setProblem] = useState("");
 
-  useEffect(() => {
-    const controller = new AbortController();
-    getVolumesToRate(mangaId, controller.signal)
-      .then(setWaiting)
-      .catch(() => {
-        // an extra: the page is whole without it
-      });
-    return () => controller.abort();
-  }, [mangaId]);
-
-  const asked = waiting[at];
+  const asked = rated ?? toRate[0];
   if (!asked) return null;
-  const next = waiting[at + 1];
+  const saved = written.find((one) => one.isbn13 === asked.isbn13);
+  const rating = saved?.review.rating ?? tapped;
+  const next = toRate.find((volume) => volume.isbn13 !== asked.isbn13);
 
   const rate = async (stars: number) => {
     // a second tap on the same star would clear it: a rating stays
     if (!stars) return;
-    const before = given;
-    setGiven(stars);
+    setTapped(stars);
+    setRated(asked);
     setProblem("");
     const result = await saveReview(asked.isbn13, {
       rating: stars,
-      text: "",
-      spoiler: false,
+      // their words, if they've written some, are kept
+      text: saved?.review.text ?? "",
+      spoiler: saved?.review.spoiler ?? false,
     });
     if ("problem" in result) {
-      setGiven(before);
+      setTapped(0);
+      setRated(null);
       setProblem(result.problem);
-    }
+    } else await onRated();
   };
-  const askAboutNext = () => {
-    setAt(at + 1);
-    setGiven(0);
+  const moveOn = () => {
+    setRated(null);
+    setTapped(0);
   };
 
   return (
-    <div className={styles.rateVolume}>
-      <div className={styles.rateWords}>
-        <h2 className={styles.rateTitle}>
-          {given
-            ? `Vol. ${asked.volume}: saved`
-            : `You've read vol. ${asked.volume}. How was it?`}
-        </h2>
-        {given ? (
-          <p className={styles.rateLinks}>
-            <NavLink
-              to={`/prices/${asked.isbn13}#reviews-title`}
-              viewTransition
-            >
-              Add a few words
-            </NavLink>
-            {next && (
-              <button type="button" onClick={askAboutNext}>
-                Rate vol. {next.volume} too
-              </button>
-            )}
-          </p>
-        ) : (
-          <p className={styles.rateNote}>
-            Your rating helps the next reader decide.
-          </p>
-        )}
-        <p className={styles.saveFailed} role="status">
-          {problem}
+    <div className={styles.rating}>
+      <span className={styles.label}>
+        {rating
+          ? `Your rating of vol. ${asked.volume}`
+          : `Rate vol. ${asked.volume}`}
+      </span>
+      <span className="inline-block w-fit">
+        <StarRating value={rating} size="lg" onChange={rate} />
+      </span>
+      {rating > 0 && (
+        <p className={styles.rateLinks}>
+          <button type="button" onClick={() => onWrite(asked)}>
+            {saved?.review.text ? "Edit your review" : "Add a few words"}
+          </button>
+          {next && (
+            <button type="button" onClick={moveOn}>
+              Rate vol. {next.volume}
+            </button>
+          )}
         </p>
-      </div>
-      <StarRating value={given} size="lg" onChange={rate} />
+      )}
+      <p className={styles.saveFailed} role="status">
+        {problem}
+      </p>
     </div>
   );
 }

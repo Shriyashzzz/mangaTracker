@@ -17,8 +17,8 @@ import {
   flagReview,
   reviewsToCheck,
   seriesReviews,
+  shelfReviews,
   volumeReviews,
-  volumesToRate,
   writeReview,
 } from "../reviews/reviews.js";
 
@@ -108,9 +108,9 @@ const ofSeries = [
   },
 ];
 
-// GET /to-rate?manga=  for a series on your shelf: the latest volumes
-// you've read and haven't rated
-const toRate = [
+// GET /shelf?manga=  for a series on your shelf: the volumes you could rate
+// next, and the reviews you've written of it
+const onShelf = [
   requireSignIn,
   query("manga").isInt({ min: 1 }).toInt(),
   rejectInvalid,
@@ -118,7 +118,7 @@ const toRate = [
     const { manga } = matchedData(req);
     res
       .set("Cache-Control", "private, no-store")
-      .json(await volumesToRate(req.session.userId!, manga));
+      .json(await shelfReviews(req.session.userId!, manga));
   },
 ];
 
@@ -149,7 +149,7 @@ export default {
   remove,
   flag,
   ofSeries,
-  toRate,
+  onShelf,
   reported,
   decide,
 };

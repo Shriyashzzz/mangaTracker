@@ -165,35 +165,57 @@ export async function publicReviews(isbn13: string) {
   };
 }
 
-// For a series on a reader's shelf: the latest volumes they've read and
-// haven't rated, newest first (the details page asks about the first, and
-// offers the next once that's rated). Empty for a series that isn't theirs
-export async function volumesToRate(userId: number, mangaId: number) {
+// For a series on a reader's shelf (its details page): the volumes they
+// could rate next, and the reviews they've written of it.
+//   toRate   read or owned and not yet rated. The ones they've read up to
+//            come first, latest first (that's the one fresh in mind); then
+//            ones they own past that. A few, since the page asks one at a time
+//   written  theirs, latest volume first, each with its volume's number
+// Both empty for a series that isn't theirs
+export async function shelfReviews(userId: number, mangaId: number) {
   const manga = await prisma.manga.findFirst({
     where: { id: mangaId, userId },
   });
-  if (!manga) return [];
+  if (!manga) return { toRate: [], written: [] };
   const [series] = await shelfSeries([manga]);
-  const read = (series?.volumes ?? []).filter(
-    (volume) =>
-      volume.isbn13 &&
-      volume.volume !== null &&
-      Number.isInteger(volume.volume) &&
-      volume.volume >= 1 &&
-      hasRead(manga, volume.volume),
-  );
-  const rated = await store.ratedBy(
-    userId,
-    read.map((volume) => volume.isbn13!.trim()),
-  );
-  return read
-    .filter((volume) => !rated.has(volume.isbn13!.trim()))
-    .sort((one, other) => other.volume! - one.volume!)
-    .slice(0, 3)
+  const theirs = (series?.volumes ?? [])
+    .filter(
+      (volume) =>
+        volume.isbn13 &&
+        volume.volume !== null &&
+        Number.isInteger(volume.volume) &&
+        volume.volume >= 1 &&
+        hasRead(manga, volume.volume),
+    )
     .map((volume) => ({
       isbn13: volume.isbn13!.trim(),
       volume: volume.volume!,
     }));
+  const stored = await store.reviewsBy(
+    userId,
+    theirs.map((volume) => volume.isbn13),
+  );
+  const reviewOf = new Map(
+    stored.map((review) => [review.isbn13.trim(), review]),
+  );
+  const latestFirst = (one: { volume: number }, other: { volume: number }) =>
+    other.volume - one.volume;
+
+  const readUpTo = manga.status ? Infinity : (manga.readVolume ?? 0);
+  const unrated = theirs.filter((volume) => !reviewOf.has(volume.isbn13));
+  const toRate = [
+    ...unrated.filter((volume) => volume.volume <= readUpTo).sort(latestFirst),
+    ...unrated.filter((volume) => volume.volume > readUpTo).sort(latestFirst),
+  ].slice(0, 3);
+
+  const written = theirs
+    .filter((volume) => reviewOf.has(volume.isbn13))
+    .sort(latestFirst)
+    .map((volume) => ({
+      ...volume,
+      review: sent(reviewOf.get(volume.isbn13)!, userId),
+    }));
+  return { toRate, written };
 }
 
 // a series' ratings added up, and each reviewed volume's own, by number

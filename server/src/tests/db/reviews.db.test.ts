@@ -9,7 +9,7 @@ import { app } from "../../app.js";
 import { slugify } from "../../prices/stores/match.js";
 import {
   publicReviews,
-  volumesToRate,
+  shelfReviews,
   writeReview,
 } from "../../reviews/reviews.js";
 import { closeDb, emptyDb, prisma } from "./testDb.js";
@@ -191,20 +191,37 @@ test("the page gets how the ratings spread, and search engines never get a spoil
   expect(open.shown.map((review) => review.text)).toEqual([good.text]);
 });
 
-test("a series on your shelf asks about the latest volume read and not yet rated", async () => {
-  const id = await member("reader", { owned: [1, 2, 3] });
+test("a series on your shelf: what to rate next, and what you've written", async () => {
+  // owns vols. 1 to 5, has read up to vol. 2
+  const id = await member("reader", { owned: [1, 2, 3, 4, 5], readVolume: 2 });
   const manga = await prisma.manga.findFirstOrThrow({ where: { userId: id } });
-  const ask = async () =>
-    (await volumesToRate(id, manga.id)).map((volume) => volume.volume);
-  expect(await ask()).toEqual([3, 2, 1]);
-  await writeReview(id, ISBN(3), good);
-  expect(await ask()).toEqual([2, 1]);
+  const numbers = (volumes: { volume: number }[]) =>
+    volumes.map((volume) => volume.volume);
+  // the ones read come first, latest first; then the ones owned past that
+  let shelf = await shelfReviews(id, manga.id);
+  expect(numbers(shelf.toRate)).toEqual([2, 1, 5]);
+  expect(shelf.written).toEqual([]);
+
+  await writeReview(id, ISBN(2), good);
+  await writeReview(id, ISBN(5), { rating: 3, text: "", spoiler: false });
+  shelf = await shelfReviews(id, manga.id);
+  expect(numbers(shelf.toRate)).toEqual([1, 4, 3]);
+  // theirs, latest volume first, each as the page shows a review
+  expect(numbers(shelf.written)).toEqual([5, 2]);
+  expect(shelf.written[1]).toMatchObject({
+    isbn13: ISBN(2),
+    review: { rating: 4, text: good.text, yours: true },
+  });
+
   // someone else's series is nobody's to ask about
   const other = await member("other", { owned: [1] });
-  expect(await volumesToRate(other, manga.id)).toEqual([]);
+  expect(await shelfReviews(other, manga.id)).toEqual({
+    toRate: [],
+    written: [],
+  });
   // and it needs a sign-in over the route
   await request(app)
-    .get("/api/reviews/to-rate")
+    .get("/api/reviews/shelf")
     .query({ manga: manga.id })
     .expect(401);
 });

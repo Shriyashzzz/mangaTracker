@@ -46,14 +46,12 @@ export const writtenLately = (
     },
   });
 
-// of these volumes, the ones a reader has already rated
-export async function ratedBy(userId: number, isbns: string[]) {
-  const rows = await prisma.volumeReview.findMany({
+// a reader's own reviews of these volumes, hidden ones included
+export const reviewsBy = (userId: number, isbns: string[]) =>
+  prisma.volumeReview.findMany({
     where: { userId, isbn13: { in: isbns } },
-    select: { isbn13: true },
+    include: WITH_WRITER,
   });
-  return new Set(rows.map((row) => row.isbn13.trim()));
-}
 
 export type ReviewToSave = {
   userId: number;

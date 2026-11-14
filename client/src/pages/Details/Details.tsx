@@ -5,9 +5,11 @@
 //   ShelfBox        the little shelf of ticked volumes
 //   ReadingPlace    the chapter and volume counters
 //   ReleaseBar      the red "it's out" bar (its rules: releaseNews.ts)
-//   RatingField, NotesField, YourBooks, RateVolume
+//   RatingField, NotesField, YourBooks
+//   RateVolume, YourReviews, ReviewDialog   their reviews of its volumes
 //   SeriesActions   Edit, Mark as finished, Delete
 //   BuyStrip        the cover's side: what to buy next
+import type { ShelfVolume } from "../../lib/reviews";
 import { useEffect, useRef, useState } from "react";
 import { NavLink, useNavigate, useParams, useSearchParams } from "react-router";
 import DrawnCover from "../../components/drawnCover/DrawnCover";
@@ -25,6 +27,9 @@ import BuyStrip from "./BuyStrip";
 import { DetailsSkeleton, LoadFailed, type LoadError } from "./DetailsStates";
 import NotesField from "./NotesField";
 import RateVolume from "./RateVolume";
+import ReviewDialog from "./ReviewDialog";
+import { useShelfReviews } from "./useShelfReviews";
+import YourReviews from "./YourReviews";
 import RatingField from "./RatingField";
 import ReadingPlace, { type ReadingChange } from "./ReadingPlace";
 import ReleaseBar from "./ReleaseBar";
@@ -74,6 +79,16 @@ export default function Details() {
   const [deleting, setDeleting] = useState(false);
   // under the buttons: a failed save, or the undo for marking it finished
   const [actionNote, setActionNote] = useState("");
+
+  // ---------- their reviews of its volumes ----------
+  // asked for again when what they own or have read changes
+  const ownedSoFar = mangaData ? ownedOf(mangaData).length : 0;
+  const reviews = useShelfReviews(
+    Number(id),
+    `${ownedSoFar}-${mangaData?.readVolume ?? 0}-${mangaStatus}`,
+  );
+  // the volume whose review box is open
+  const [reviewing, setReviewing] = useState<ShelfVolume | null>(null);
   const [canUndoStatus, setCanUndoStatus] = useState(false);
   // marked finished straight from To read: undo puts it back there
   const finishedFromPlanned = useRef(false);
@@ -363,12 +378,22 @@ export default function Details() {
           )}
 
           <div className={styles.body}>
-            <RatingField
-              // starts over from the saved rating when the series changes
-              key={`rating-${mangaData.id}`}
-              mangaId={mangaData.id}
-              initial={mangaData.rating ?? 0}
-            />
+            {/* the series' rating and the latest volume's, side by side */}
+            <div className={styles.ratings}>
+              <RatingField
+                // starts over from the saved rating when the series changes
+                key={`rating-${mangaData.id}`}
+                mangaId={mangaData.id}
+                initial={mangaData.rating ?? 0}
+              />
+              <RateVolume
+                key={`rate-${mangaData.id}`}
+                toRate={reviews.toRate}
+                written={reviews.written}
+                onRated={reviews.reload}
+                onWrite={setReviewing}
+              />
+            </div>
 
             <NotesField
               key={mangaData.id}
@@ -382,11 +407,7 @@ export default function Details() {
               onRemoved={(left) => setMangaData({ ...mangaData, ...left })}
             />
 
-            <RateVolume
-              // asks again when what they own or have read changes
-              key={`rate-${mangaData.id}-${owned.length}-${mangaData.readVolume ?? 0}-${mangaStatus}`}
-              mangaId={mangaData.id}
-            />
+            <YourReviews written={reviews.written} onEdit={setReviewing} />
 
             <SeriesActions
               name={mangaData.name}
@@ -429,6 +450,20 @@ export default function Details() {
           />
         </div>
       </article>
+
+      {reviewing && (
+        <ReviewDialog
+          // a fresh box for each volume
+          key={reviewing.isbn13}
+          volume={reviewing}
+          current={
+            reviews.written.find((one) => one.isbn13 === reviewing.isbn13)
+              ?.review ?? null
+          }
+          onChanged={reviews.reload}
+          onClose={() => setReviewing(null)}
+        />
+      )}
     </div>
   );
 }
