@@ -144,7 +144,16 @@ export const newReleasesStyles = {
     // (not flex-1 on a phone: stacked in a column it shrank to 16px tall)
     "h-11 min-w-0 flex-1 cursor-pointer accent-[var(--accent)] disabled:cursor-not-allowed disabled:opacity-40 upto-520:flex-none",
   sliderValue: "w-44 shrink-0 text-[0.92rem] font-medium upto-520:w-auto",
-  example: "mt-1 rounded-ink bg-accent-wash px-3 py-2 text-[0.92rem] text-ink",
+  // the example under a choice: "If vol. 30 is the newest:", then a row
+  // per case lined up in columns, what you have → what New does
+  example:
+    "mt-1 flex flex-col gap-1.5 rounded-ink bg-accent-wash px-3 py-2.5 text-[0.92rem] text-ink",
+  exampleNewest: "text-ink-soft",
+  exampleRows:
+    "grid grid-cols-[max-content_auto_minmax(0,1fr)] items-center gap-x-2 gap-y-1",
+  exampleRow: "contents",
+  exampleArrow: "size-4 text-ink-soft",
+  exampleThen: "font-medium whitespace-nowrap",
   status: "min-h-6 text-[0.9rem] font-medium text-ink-soft",
   failed: "min-h-6 text-[0.9rem] font-medium text-accent",
 } as const;

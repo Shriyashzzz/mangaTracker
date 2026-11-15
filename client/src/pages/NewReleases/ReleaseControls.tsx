@@ -11,6 +11,7 @@ import type {
   ReleaseRange,
   ReleaseSettings,
 } from "../../lib/types";
+import { ArrowRightIcon } from "../../components/icons/Icons";
 import { useShelf } from "../../store/shelf";
 import { newReleasesStyles as styles } from "./styles";
 
@@ -35,6 +36,48 @@ const asOffered = (saved: ReleaseSettings | undefined): ReleaseSettings => {
 // a slider moves through lots of values on its way; only the last is worth saving
 const SAVE_AFTER_MS = 400;
 
+// The example under each choice: the newest one out, then each case on a
+// line of its own, what you have on the left and what New does on the right.
+// Worked out for wherever the slider is set (at 9 volumes: own up to vol.
+// 21, New shows vol. 22; own less, New waits)
+type Example = {
+  newest: string;
+  rows: [string, string][];
+  // a line under the rows, saying the rule they show
+  after?: string;
+};
+
+function atTheEdge({
+  latest,
+  within,
+  word,
+  you,
+  less,
+}: {
+  latest: number;
+  within: number;
+  word: "vol." | "ch.";
+  you: "Own up to" | "On";
+  // the case further behind: "Own less", "Further back"
+  less: string;
+}): Example {
+  const at = latest - within;
+  return {
+    newest: newestLine(word, latest),
+    rows: [
+      [`${you} ${word} ${at}`, `New shows ${word} ${at + 1}`],
+      [less, "New waits"],
+    ],
+  };
+}
+
+// "If vol. 30 is a new release:", "If ch. 250 is the latest released
+// chapter:"
+const newestLine = (word: "vol." | "ch.", latest: number) =>
+  word === "vol."
+    ? `If vol. ${latest} is a new release:`
+    : `If ch. ${latest} is the latest released chapter:`;
+
 // The words for each kind. `closest` is what the slider's first stop is
 // called: a series shows only when its newest one is the one they need
 const KINDS = {
@@ -46,15 +89,26 @@ const KINDS = {
     newest: "newest",
     closest: "New releases only",
     max: 10,
-    // finished vol. 22, vol. 30 is the newest in English
-    example: ({ mode, within }: ReleaseRange) => {
-      const start = "You own up to vol. 22 and vol. 30 is out.";
-      if (mode === "next") return `${start} New shows vol. 23.`;
-      if (within >= 8) return `${start} New shows vol. 23.`;
-      if (within === 1)
-        return `${start} New waits. Get vol. 29 and it shows vol. 30.`;
-      return `${start} That's 8 behind, so New waits. Get vol. ${30 - within} and it shows vol. ${31 - within}.`;
-    },
+    // vol. 30 is the newest in English; the example moves with the slider
+    example: ({ mode, within }: ReleaseRange): Example =>
+      mode === "next"
+        ? {
+            newest: newestLine("vol.", 30),
+            // close or far behind, the next one shows
+            rows: [
+              ["Own up to vol. 29", "New shows vol. 30"],
+              ["Own up to vol. 5", "New shows vol. 6"],
+            ],
+            after:
+              "And so on: wherever you are, if your next volume is out, New shows it.",
+          }
+        : atTheEdge({
+            latest: 30,
+            within,
+            word: "vol.",
+            you: "Own up to",
+            less: "Own less",
+          }),
   },
   chapters: {
     title: "Chapters",
@@ -64,15 +118,25 @@ const KINDS = {
     newest: "latest",
     closest: "New chapters only",
     max: 50,
-    // on ch. 247, ch. 250 is the latest
-    example: ({ mode, within }: ReleaseRange) => {
-      const start = "You're on ch. 247 and ch. 250 is out.";
-      if (mode === "next") return `${start} New shows ch. 248.`;
-      if (within >= 3) return `${start} New shows ch. 248.`;
-      if (within === 1)
-        return `${start} New waits. Read ch. 249 and it shows ch. 250.`;
-      return `${start} That's 3 behind, so New waits. Read ch. ${250 - within} and it shows ch. ${251 - within}.`;
-    },
+    // ch. 250 is the latest; the example moves with the slider
+    example: ({ mode, within }: ReleaseRange): Example =>
+      mode === "next"
+        ? {
+            newest: newestLine("ch.", 250),
+            rows: [
+              ["On ch. 249", "New shows ch. 250"],
+              ["On ch. 12", "New shows ch. 13"],
+            ],
+            after:
+              "And so on: wherever you are, if your next chapter is out, New shows it.",
+          }
+        : atTheEdge({
+            latest: 250,
+            within,
+            word: "ch.",
+            you: "On",
+            less: "Further back",
+          }),
   },
 } as const;
 
@@ -189,7 +253,7 @@ export default function ReleaseControls() {
                 </span>
               </div>
             )}
-            <p className={styles.example}>{copy.example(range)}</p>
+            <ExampleBox example={copy.example(range)} />
           </fieldset>
         );
       })}
@@ -202,6 +266,26 @@ export default function ReleaseControls() {
           "Saved. Your New tab will use this next time it opens."}
         {status === "failed" && "That didn't save. Try again."}
       </p>
+    </div>
+  );
+}
+
+// the example as it's drawn: the newest one, then a row per case with an
+// arrow between what you have and what New does
+function ExampleBox({ example }: { example: Example }) {
+  return (
+    <div className={styles.example}>
+      <p className={styles.exampleNewest}>{example.newest}</p>
+      <dl className={styles.exampleRows}>
+        {example.rows.map(([when, then]) => (
+          <div key={when} className={styles.exampleRow}>
+            <dt>{when}</dt>
+            <ArrowRightIcon className={styles.exampleArrow} />
+            <dd className={styles.exampleThen}>{then}</dd>
+          </div>
+        ))}
+      </dl>
+      {example.after && <p className={styles.exampleNewest}>{example.after}</p>}
     </div>
   );
 }
