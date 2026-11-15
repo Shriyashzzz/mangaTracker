@@ -14,10 +14,12 @@ export function SeriesVolumeCard({
   card,
   mark,
   seriesCoverUrl,
+  seriesName,
 }: {
   card: Card;
   mark: "yours" | "next" | undefined;
   seriesCoverUrl: string | null;
+  seriesName: string;
 }) {
   const first = card[0]!;
   if (card.length === 1)
@@ -31,6 +33,7 @@ export function SeriesVolumeCard({
           subtitle={oneVolumeSubtitle(first)}
           mark={mark}
           seriesCoverUrl={seriesCoverUrl}
+          seriesName={seriesName}
         />
       </li>
     );

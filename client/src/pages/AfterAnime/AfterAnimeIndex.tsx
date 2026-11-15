@@ -1,7 +1,9 @@
 // /after-the-anime  Look a show up by name, or pick one from the series we
-// already have an answer for (most popular first).
+// already have an answer for (most popular first), 20 to a page.
 import { INDEX_META } from "../../lib/afterAnimeText";
 import { useEffect, useState } from "react";
+import RangePager from "../../components/rangePager/RangePager";
+import { useUrlPages } from "../../components/rangePager/useUrlPages";
 import SlowLoadQuote from "../../components/slowLoadQuote/SlowLoadQuote";
 import {
   afterAnimeCanonicalPath,
@@ -30,6 +32,7 @@ export default function AfterAnimeIndex() {
   }, []);
 
   usePageMeta(INDEX_META);
+  const { pageItems, pager } = useUrlPages(shows ?? [], "shows-title");
 
   return (
     <div className={`${styles.page} fade-in`}>
@@ -58,11 +61,14 @@ export default function AfterAnimeIndex() {
 
       {shows && shows.length > 0 && (
         <section aria-labelledby="shows-title">
-          <h2 id="shows-title" className={priceStyles.sectionTitle}>
+          <h2
+            id="shows-title"
+            className={`${priceStyles.sectionTitle} scroll-mt-4`}
+          >
             Pick a show
           </h2>
           <ul className={priceStyles.grid}>
-            {shows.map((show) => (
+            {pageItems.map((show) => (
               <li key={show.slug}>
                 <SeriesCard
                   series={{ name: show.name, coverUrl: show.coverUrl }}
@@ -71,6 +77,7 @@ export default function AfterAnimeIndex() {
               </li>
             ))}
           </ul>
+          <RangePager {...pager} label="Show pages" />
         </section>
       )}
     </div>

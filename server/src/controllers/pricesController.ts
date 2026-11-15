@@ -29,9 +29,11 @@ import {
 import {
   COVER_WIDTHS,
   allowedWidth,
+  isCoverShaped,
   resizeCover,
   type CoverWidth,
 } from "../prices/sources/coverResizer.js";
+import { englishCoverIsbn } from "../prices/sources/englishCover.js";
 import { isCrawler } from "../prices/crawlers.js";
 import { learnAnimeAnswer } from "../prices/afterAnime/afterAnime.js";
 import { isHuman } from "../prices/human.js";
@@ -362,33 +364,87 @@ function coverSource(
   return coverImageUrl(id!, width ? "L" : "M");
 }
 
-// GET /cover/series?u=<an AniList cover's address>&w=170  a series' cover,
-// resized. Only AniList's own cover addresses are fetched (covers.ts
-// anilistSources); anything else is a 400
+// GET /cover/series?name=<the series>&u=<its AniList cover>&w=170  a series'
+// cover, resized. In this order, the first one that can be had:
+//
+//   1. the English one: its first US volume's cover, where the series'
+//      volumes are saved (sources/englishCover.ts)
+//   2. the Japanese one: AniList's cover, `u`. Only AniList's own cover
+//      addresses are fetched (covers.ts anilistSources)
+//
+// `first=japan` swaps the two (New's In Japan side is about the Japanese
+// edition). Either `name` or `u` may be left out; with neither, a 400.
+// Nothing to show at all is a 404, and the page draws its own cover
+const SERIES_NAME_MAX = 200;
+// a Japanese cover sent because the English one isn't known yet is kept a
+// day, not 30: the English one takes its place once the volumes are saved
+const KEPT_A_DAY = "public, max-age=86400";
 const seriesCover = async (req: Request, res: Response) => {
   const width = allowedWidth(req.query.w);
-  const sources =
-    width && typeof req.query.u === "string"
-      ? anilistSources(req.query.u, width)
-      : [];
-  if (!width || !sources.length) {
+  const { u, name, first } = req.query;
+  const japanese =
+    width && typeof u === "string" ? anilistSources(u, width) : [];
+  const named = typeof name === "string" && name.length <= SERIES_NAME_MAX;
+  if (!width || (!japanese.length && !named)) {
     sendError(res, 400, "That isn't a cover we can resize.");
     return;
   }
-  // the best picture first; if AniList doesn't have that one, the next
-  for (const source of sources) {
+  const english = named
+    ? await englishCoverSource(name, width).catch((e: Error) => {
+        console.error("english cover lookup failed:", e.message);
+        return null;
+      })
+    : null;
+  // the Japanese cover is only a stand-in when the English one was wanted
+  // first and isn't there
+  const standsIn = named && first !== "japan" && !english;
+  const englishTry: CoverTry[] = english
+    ? [{ url: english, mustBeCoverShaped: true }]
+    : [];
+  const japaneseTries: CoverTry[] = japanese.map((url) => ({
+    url,
+    kept: standsIn ? KEPT_A_DAY : undefined,
+  }));
+  const tries =
+    first === "japan"
+      ? [...japaneseTries, ...englishTry]
+      : [...englishTry, ...japaneseTries];
+
+  for (const { url, kept, mustBeCoverShaped } of tries) {
     try {
-      await sendImage(res, source, width);
-      return;
+      const sent = await sendImage(res, url, width, {
+        kept,
+        mustBeCoverShaped,
+      });
+      if (sent) return;
     } catch (e) {
       console.error("series cover failed:", (e as Error).message);
     }
   }
   // none could be fetched from here: the saved picture itself, as the page
   // would have asked AniList for it before
-  res.set("Cache-Control", "no-store");
-  res.redirect(302, sources.at(-1)!);
+  if (japanese.length) {
+    res.set("Cache-Control", "no-store");
+    res.redirect(302, japanese.at(-1)!);
+    return;
+  }
+  // no cover known for it: said again for an hour, then looked at afresh
+  res.set("Cache-Control", "public, max-age=3600");
+  sendError(res, 404, "No cover for this series.");
 };
+// one picture to try: where it is, how long it may be kept (30 days unless
+// said), and whether to pass over a store's "no image" picture
+type CoverTry = { url: string; kept?: string; mustBeCoverShaped?: boolean };
+
+// Where the series' English cover is, or null when we don't have one.
+// Only what's already found: Google Books is never asked from here
+async function englishCoverSource(name: string, width: CoverWidth) {
+  const isbn = await englishCoverIsbn(name);
+  if (!isbn) return null;
+  const id = await editionCoverId(isbn);
+  const google = id ? null : await fallbackCover(isbn, { ask: false });
+  return id || google ? coverSource(id, google, width) : null;
+}
 
 // GET /cover/shelf/:code  the picture a shared shelf's link shows when it's
 // pasted somewhere (util/shelf/shelfCard.ts): its favourites, or what its
@@ -460,12 +516,19 @@ async function fetchImage(url: string) {
 }
 const coverBytes = async (url: string) => (await fetchImage(url)).image;
 
+// False (and nothing sent) when the picture was passed over for not being
+// cover shaped
 async function sendImage(
   res: Response,
   url: string,
   width: CoverWidth | null = null,
+  {
+    kept = "public, max-age=2592000",
+    mustBeCoverShaped = false,
+  }: { kept?: string; mustBeCoverShaped?: boolean } = {},
 ) {
   const { image, type } = await fetchImage(url);
+  if (mustBeCoverShaped && !(await isCoverShaped(image))) return false;
   // a picture that can't be resized still goes out, as it came
   const resized = width
     ? await resizeCover(image, width).catch((e: Error) => {
@@ -475,9 +538,10 @@ async function sendImage(
     : null;
   res.set({
     "Content-Type": resized ? "image/webp" : type,
-    "Cache-Control": "public, max-age=2592000",
+    "Cache-Control": kept,
   });
   res.end(resized ?? image);
+  return true;
 }
 
 // GET /summary/volume/:isbn  for the site's link-preview server; DB only

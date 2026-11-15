@@ -53,7 +53,7 @@ export const pricesStyles = {
   suggestion: `${suggestionRow} px-[0.55rem] py-[0.45rem]`,
   suggestActive: "bg-paper-2",
   suggestThumb:
-    "aspect-2/3 w-[34px] shrink-0 overflow-hidden border border-line-soft bg-paper-2 [&_img]:size-full [&_img]:object-cover",
+    "relative aspect-2/3 w-[34px] shrink-0 overflow-hidden border border-line-soft bg-paper-2 [&_img]:size-full [&_img]:object-cover",
   suggestText: "flex min-w-0 flex-col",
   // two lines, so titles that differ only at the end ("Frieren ... ~Prelude~")
   // can be told apart

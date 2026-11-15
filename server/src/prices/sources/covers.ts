@@ -40,12 +40,15 @@ type Waiting = {
   reject: (e: Error) => void;
 };
 
-// isbn -> cover id | null, for answers we're sure of. Capped, oldest out
-// first, so asking about endless ISBNs can't grow memory without end: the
-// database still has every answer
+// isbn -> cover id, for covers found. Capped, oldest out first, so asking
+// about endless ISBNs can't grow memory without end: the database still has
+// every answer. "Has none" isn't kept here: the database says how long that
+// answer holds (getCoverIds), and a server that runs for weeks must still
+// ask Open Library again when it's time
 const KNOWN_MAX = 20_000;
 const known = new Map<string, CoverId>();
 const remember = (isbn13: string, id: CoverId) => {
+  if (id === null) return;
   known.set(isbn13, id);
   if (known.size > KNOWN_MAX) known.delete(known.keys().next().value!);
 };

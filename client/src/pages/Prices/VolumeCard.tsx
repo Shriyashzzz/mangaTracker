@@ -15,7 +15,8 @@ const CARD_COVER = "(max-width: 720px) 130px, 160px";
 const TILE_COVER = "60px";
 
 // What sits behind a volume's own cover, showing when it's missing: the
-// series' cover from AniList, standing in. For vol. 1 that picture is its
+// series' cover, standing in (the English one where we know it, found by
+// `seriesName`; see components/cover/SeriesPicture.tsx for the order). For vol. 1 that picture is its
 // own art, so it's shown as it is. For any other volume it's a stand-in:
 // washed out, with the volume's number over it, so it's never taken for
 // that volume's real cover. With no series cover either, the drawn number.
@@ -27,11 +28,13 @@ const TILE_COVER = "60px";
 export function CoverFallback({
   number,
   seriesCoverUrl,
+  seriesName,
   numbered = false,
   small = false,
 }: {
   number?: number | null;
   seriesCoverUrl?: string | null;
+  seriesName?: string;
   numbered?: boolean;
   small?: boolean;
 }) {
@@ -43,6 +46,7 @@ export function CoverFallback({
         {number ?? "?"}
         <Cover
           url={seriesCoverUrl}
+          series={seriesName}
           sizes={small ? TILE_COVER : CARD_COVER}
           className={styles.seriesFallback}
         />
@@ -54,6 +58,7 @@ export function CoverFallback({
       {number}
       <Cover
         url={seriesCoverUrl}
+        series={seriesName}
         sizes={small ? TILE_COVER : CARD_COVER}
         className={small ? styles.seriesStandInSmall : styles.seriesStandIn}
       />
@@ -71,6 +76,7 @@ export default function VolumeCard({
   volume,
   coverUrl,
   seriesCoverUrl,
+  seriesName,
   subtitle,
   priceCents,
   wasCents,
@@ -84,6 +90,8 @@ export default function VolumeCard({
   volume?: number | null;
   coverUrl?: string | null;
   seriesCoverUrl?: string | null;
+  // the series it belongs to, for the stand-in to be its English cover
+  seriesName?: string;
   subtitle?: string;
   priceCents?: number | null;
   // the usual price, struck through when this one is a deal
@@ -126,6 +134,7 @@ export default function VolumeCard({
           <CoverFallback
             number={volume}
             seriesCoverUrl={seriesCoverUrl}
+            seriesName={seriesName}
             numbered={volume != null}
           />
           <Cover url={coverUrl} sizes={CARD_COVER} />

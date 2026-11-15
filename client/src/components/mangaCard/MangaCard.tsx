@@ -4,12 +4,10 @@ import {
   type TrackBy,
 } from "../../lib/reading";
 import { useTrackBy } from "../../lib/prefs";
-import { useState } from "react";
 import { NavLink } from "react-router";
-import Cover from "../cover/Cover";
+import SeriesPicture from "../cover/SeriesPicture";
 import KeepRanges from "../keepRanges/KeepRanges";
 import StarRating from "../starRating/StarRating";
-import DrawnCover from "../drawnCover/DrawnCover";
 import type { Manga } from "../../lib/types";
 import { ownedOf } from "../../lib/ownedVolumes";
 import {
@@ -36,6 +34,9 @@ type Props = {
   news?: CardNews;
   // added to the card's link, e.g. to open the details in the Japan view
   detailsSearch?: string;
+  // New's In Japan side: the Japanese cover, since that edition is what
+  // the card is about
+  japanFirst?: boolean;
   // somewhere else for the card to lead instead of its details page
   linkTo?: string;
   // opens something in place, rather than following the link
@@ -95,6 +96,7 @@ const ROW_COLUMNS_CLASS =
 export default function MangaCard({
   currentManga,
   news,
+  japanFirst,
   detailsSearch = "",
   linkTo,
   onOpen,
@@ -106,7 +108,6 @@ export default function MangaCard({
   select,
 }: Props) {
   // a cover that wouldn't load, so the drawn one shows instead
-  const [brokenImage, setBrokenImage] = useState<string | null>(null);
   let shape: Shape = "cover";
   if (compact) shape = "small";
   else if (news) shape = "news";
@@ -126,8 +127,6 @@ export default function MangaCard({
   const placeText = placeOf(currentManga, trackingBy);
   const genre = genreOf(currentManga);
   const kindLine = rowKindLine(currentManga);
-  const hasCover =
-    Boolean(currentManga.image) && brokenImage !== currentManga.image;
 
   const rootClass = asColumns ? ROW_COLUMNS_CLASS : ROOT_CLASS[shape];
   let newsGenreHidden = "";
@@ -137,20 +136,15 @@ export default function MangaCard({
   const body = (
     <>
       <div className={COVER_CLASS[shape]}>
-        {hasCover ? (
-          // a row's thumbnail asks for a small picture, a card for a full
-          // one. Out of the flow, or a tall image stretches the cover past
-          // its shape
-          <Cover
-            url={currentManga.image}
-            sizes={COVER_SIZES[shape]}
-            className="absolute inset-0 size-full object-cover"
-            onFail={() => setBrokenImage(currentManga.image)}
-          />
-        ) : (
-          // no cover, or one that won't load: its name, lettered on
-          <DrawnCover title={currentManga.name} />
-        )}
+        {/* a row's thumbnail asks for a small picture, a card for a full
+            one */}
+        <SeriesPicture
+          name={currentManga.name}
+          lightNovel={currentManga.lightNovel}
+          url={currentManga.image}
+          sizes={COVER_SIZES[shape]}
+          japanFirst={japanFirst}
+        />
         {select && (
           <span className="absolute top-1 left-1 z-1 grid place-items-center rounded-[3px] border-[1.5px] border-line bg-card p-[3px] shadow-ink">
             <input

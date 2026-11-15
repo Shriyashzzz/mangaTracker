@@ -14,7 +14,6 @@ import {
   reportedEnough,
   tidyWords,
 } from "../../reviews/reviewRules.js";
-import { scoresFrom } from "../../reviews/seriesScore.js";
 
 const place = (over: object = {}) => ({
   status: false,
@@ -134,42 +133,4 @@ test("out loud is rare: once in so many days", () => {
   expect(mayAskAgain(daysAgo(30), 30, now)).toBe(true);
   // 0 days: every time
   expect(mayAskAgain(daysAgo(0), 0, now)).toBe(true);
-});
-
-test("a series' public score: one rating a reader, and only with enough of them", () => {
-  const entry = (userId: number, name: string, rating: number | null) => ({
-    userId,
-    name,
-    lightNovel: false,
-    rating,
-  });
-  const scores = scoresFrom([
-    // five readers, the name typed five ways that make the same address
-    entry(1, "One Piece", 5),
-    entry(2, "one piece", 4),
-    entry(3, "ONE PIECE", 5),
-    entry(4, "One-Piece", 4),
-    entry(5, "One Piece!", 3),
-    // the same reader twice counts once, by the higher rating
-    entry(5, "One Piece", 5),
-    // four readers: not a score yet
-    entry(1, "Naruto", 5),
-    entry(2, "Naruto", 5),
-    entry(3, "Naruto", 5),
-    entry(4, "Naruto", 5),
-    // unrated entries don't count toward the five
-    entry(5, "Naruto", null),
-    entry(6, "Naruto", 0),
-  ]);
-  expect([...scores]).toEqual([["one-piece", 4.6]]);
-  // a light novel is its own series, apart from the manga of the same name
-  const novels = scoresFrom(
-    [1, 2, 3, 4, 5].map((userId) => ({
-      userId,
-      name: "Overlord",
-      lightNovel: true,
-      rating: 4,
-    })),
-  );
-  expect([...novels]).toEqual([["overlord-light-novel", 4]]);
 });

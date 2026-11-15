@@ -95,6 +95,7 @@ export default function SeasonPanel({
               offer={offers[book.isbn13.trim()]?.new ?? null}
               used={offers[book.isbn13.trim()]?.used ?? null}
               seriesCoverUrl={seriesCoverUrl}
+              seriesName={seriesName}
             />
           </ul>
         )}

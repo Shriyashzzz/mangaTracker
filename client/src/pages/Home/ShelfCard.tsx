@@ -56,6 +56,7 @@ export default function ShelfCard({
         news={showingNew ? newsFor(manga, found, releaseKind) : undefined}
         linkTo={showingNew ? buyLinkFor(found, releaseKind) : undefined}
         onOpen={opensList ? onOpenReleases : undefined}
+        japanFirst={showingNew && releaseKind === "japan"}
         detailsSearch={showingNew ? detailsSearchFor(releaseKind) : undefined}
         index={index}
         compact={rows}

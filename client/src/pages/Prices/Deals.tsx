@@ -1,10 +1,12 @@
 // /deals: volumes whose cheapest new copy now is well under their usual new
 // price, biggest discount first. Stored prices only (server: getDealsPage),
 // so it never sets off a check; each card goes to the volume's page, where
-// every store's price is
+// every store's price is. 20 to a page (useUrlPages)
 import { useEffect, useState } from "react";
 import { NavLink } from "react-router";
 import Mascot from "../../components/mascot/Mascot";
+import RangePager from "../../components/rangePager/RangePager";
+import { useUrlPages } from "../../components/rangePager/useUrlPages";
 import SlowLoadQuote from "../../components/slowLoadQuote/SlowLoadQuote";
 import { getDeals } from "../../lib/prices";
 import { usePageMeta } from "../../lib/seo";
@@ -30,6 +32,8 @@ export default function Deals() {
       });
     return () => controller.abort();
   }, []);
+
+  const { pageItems, pager } = useUrlPages(state.deals ?? [], "deals-list");
 
   usePageMeta({
     // as the site server's (client/server.ts dealsTags)
@@ -93,18 +97,22 @@ export default function Deals() {
       )}
 
       {state.deals && state.deals.length > 0 && (
-        <ul className={styles.grid}>
-          {state.deals.map((d) => (
-            <li key={d.isbn13}>
-              <VolumeCard
-                {...d}
-                priceCents={d.priceCents}
-                wasCents={d.avgCents}
-                subtitle={`${percentOff(d)}% under its usual price`}
-              />
-            </li>
-          ))}
-        </ul>
+        <>
+          <div id="deals-list" className="scroll-mt-4" />
+          <ul className={styles.grid}>
+            {pageItems.map((d) => (
+              <li key={d.isbn13}>
+                <VolumeCard
+                  {...d}
+                  priceCents={d.priceCents}
+                  wasCents={d.avgCents}
+                  subtitle={`${percentOff(d)}% under its usual price`}
+                />
+              </li>
+            ))}
+          </ul>
+          <RangePager {...pager} label="Deal pages" />
+        </>
       )}
       {/* a short list isn't a broken one: deals come from prices as they're
           checked, so it grows and changes through the day */}

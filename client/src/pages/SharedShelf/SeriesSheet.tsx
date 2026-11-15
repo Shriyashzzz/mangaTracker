@@ -5,9 +5,8 @@
 // focus trap, Escape and the backdrop
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { NavLink } from "react-router";
-import Cover from "../../components/cover/Cover";
+import SeriesPicture from "../../components/cover/SeriesPicture";
 import { CheckIcon, CloseIcon, LinkIcon } from "../../components/icons/Icons";
-import DrawnCover from "../../components/drawnCover/DrawnCover";
 import StarRating from "../../components/starRating/StarRating";
 import { priceName, seriesPath } from "../../lib/prices";
 import AddToShelf from "./AddToShelf";
@@ -53,20 +52,14 @@ export function SeriesCover({
   sizes: string;
   children?: ReactNode;
 }) {
-  // no cover, or one that won't load: its name, lettered on
-  const [broken, setBroken] = useState(false);
   return (
     <div className={className}>
-      {m.image && !broken ? (
-        <Cover
-          url={m.image}
-          sizes={sizes}
-          className="absolute inset-0 size-full object-cover"
-          onFail={() => setBroken(true)}
-        />
-      ) : (
-        <DrawnCover title={m.name} />
-      )}
+      <SeriesPicture
+        name={m.name}
+        lightNovel={m.lightNovel}
+        url={m.image}
+        sizes={sizes}
+      />
       {children}
     </div>
   );

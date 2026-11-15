@@ -253,9 +253,6 @@ export type Series = {
   boxSetLinks?: StoreLink[];
   // "after the anime" has a page for this series
   hasAnimeAnswer?: boolean;
-  // readers' average for the series itself, for the badge on its cover;
-  // null until enough have rated it
-  readerScore?: number | null;
 };
 
 export type BoxSet = {

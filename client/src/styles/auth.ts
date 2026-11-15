@@ -1,6 +1,9 @@
 // Tailwind classes for the sign in / sign up spread, shared by SignIn,
 // SignUp, AuthArt and PasswordInput. One place to restyle both pages.
-// Phones (upto-720) stack the art above the form as a short strip.
+// Phones (upto-720) stack the art above the form as a short strip. On a
+// short phone screen (an iPhone SE, 667px tall) the art goes under the form
+// instead: above it, it pushed the form's button below the bottom bar, and
+// the form looked like it had none.
 
 export const authStyles = {
   // the page: centers the spread
@@ -10,7 +13,7 @@ export const authStyles = {
     "grid w-full max-w-[860px] grid-cols-[minmax(0,0.95fr)_minmax(0,1fr)] gap-3 border-[1.5px] border-line-soft bg-card p-3 upto-720:max-w-[460px] upto-720:grid-cols-[minmax(0,1fr)] upto-720:gap-[9px] upto-720:p-[9px]",
 
   // ---------- art panel ----------
-  art: "relative flex min-h-[420px] flex-col overflow-hidden border-3 border-line bg-paper upto-720:min-h-0",
+  art: "relative flex min-h-[420px] flex-col overflow-hidden border-3 border-line bg-paper upto-720:min-h-0 upto-720:[@media(max-height:700px)]:order-last",
   // focus lines radiating from the chapter number
   speed:
     "focus-lines grid flex-1 place-items-center upto-720:absolute upto-720:inset-0 upto-720:[place-items:start_center] upto-720:pt-[74px]",

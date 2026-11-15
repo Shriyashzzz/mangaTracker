@@ -37,3 +37,12 @@ export async function resizeCover(image: Buffer, width: CoverWidth) {
     .webp({ quality: QUALITY })
     .toBuffer();
 }
+
+// Whether the picture is shaped like a cover: taller than wide. A store's
+// "No image available" picture is square or wide, and loads fine, so its
+// shape is the only way to tell (the page does the same for a volume's own
+// cover: client lib/prices.ts hidePlaceholderCover)
+export async function isCoverShaped(image: Buffer) {
+  const { width, height } = await sharp(image).metadata();
+  return Boolean(width && height && width < height * 0.95);
+}

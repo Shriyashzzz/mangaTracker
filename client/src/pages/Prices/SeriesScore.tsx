@@ -1,25 +1,21 @@
-// A series' score from readers: a small "★ 4.6" badge hanging on the corner
-// of its cover, over the cover's edge. It's the average of the stars readers
-// gave the series on their shelves, and only exists once enough of them
-// have (the server sends nothing before that): see the server's
-// reviews/seriesScore.ts.
+// A series' score: a small "★ 4.6" badge hanging on the corner of its
+// cover, over the cover's edge. The score is AniList's (a series' `score`,
+// out of 100), said in stars out of 5 because that's how readers think of
+// a rating: 91% is 4.6.
 //
 // The badge's parent is the box around the cover (styles.scoredCover), not
-// the cover, which clips. A card in a list finds its score with
-// useSeriesScore.ts.
+// the cover, which clips.
 import { StarIcon } from "../../components/icons/Icons";
-import { scoreText } from "./reviews/reviewText";
+import { starsOf } from "./reviews/reviewText";
 import { pricesStyles as styles } from "./styles";
 
-export function SeriesScoreBadge({ score }: { score: number | null }) {
-  if (score === null) return null;
+export function SeriesScoreBadge({ percent }: { percent?: number | null }) {
+  if (!percent) return null;
+  const said = `Rated ${starsOf(percent)} out of 5 on AniList`;
   return (
-    <span
-      className={styles.seriesScore}
-      aria-label={`Readers rate it ${scoreText(score)} out of 5`}
-    >
+    <span className={styles.seriesScore} aria-label={said} title={said}>
       <StarIcon filled aria-hidden />
-      {scoreText(score)}
+      {starsOf(percent)}
     </span>
   );
 }

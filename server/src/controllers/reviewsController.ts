@@ -23,7 +23,6 @@ import {
   writeReview,
   writeShelfReview,
 } from "../reviews/reviews.js";
-import { seriesScores } from "../reviews/seriesScore.js";
 
 // :isbn may be ISBN-10 or -13 with dashes; handlers always get an ISBN-13
 const isbnParam = param("isbn")
@@ -116,14 +115,6 @@ const ofSeries = [
   },
 ];
 
-// GET /series-scores  every series readers have rated enough to have a
-// score, by slug: { "one-piece": 4.6 }. For the badges on series covers
-const seriesScoresNow = async (_req: Request, res: Response) => {
-  res
-    .set("Cache-Control", "public, max-age=300")
-    .json(Object.fromEntries(await seriesScores()));
-};
-
 // GET /shelf?manga=  for a series on your shelf: the volumes you could rate
 // next, and the reviews you've written of it
 // a volume of a series on their shelf, by the series' id and the volume's
@@ -203,7 +194,6 @@ export default {
   remove,
   flag,
   ofSeries,
-  seriesScores: seriesScoresNow,
   onShelf,
   writeOnShelf,
   removeOnShelf,

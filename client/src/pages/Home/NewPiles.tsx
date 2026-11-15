@@ -2,11 +2,10 @@
 // out" shows its cards, Hide and all; the others a fan of covers and a count,
 // each opening its own page. And that page's head: which pile, the chips to
 // the others, and the way back
-import Cover from "../../components/cover/Cover";
+import SeriesPicture from "../../components/cover/SeriesPicture";
 import CoverCaption from "../../components/coverCaption/CoverCaption";
 import { useEffect, useRef, useState } from "react";
 import { NavLink } from "react-router";
-import DrawnCover from "../../components/drawnCover/DrawnCover";
 import type { Manga } from "../../lib/types";
 import {
   PILE_SORTS,
@@ -68,10 +67,13 @@ function Fan({
   manga: all,
   onMore,
   linkFor,
+  japanFirst,
 }: {
   manga: Manga[];
   onMore: () => void;
   linkFor: (m: Manga) => CoverLink;
+  // In Japan: the Japanese covers, since those are the volumes it's about
+  japanFirst: boolean;
 }) {
   const { row, size } = useFanSize();
   const manga = all.slice(0, size);
@@ -97,11 +99,13 @@ function Fan({
             }
           >
             <span className={styles.fanArt} aria-hidden>
-              {m.image ? (
-                <Cover url={m.image} sizes="56px" />
-              ) : (
-                <DrawnCover title={m.name} />
-              )}
+              <SeriesPicture
+                name={m.name}
+                lightNovel={m.lightNovel}
+                url={m.image}
+                sizes="56px"
+                japanFirst={japanFirst}
+              />
             </span>
             {link.stamp && (
               <span className={styles.stamp} aria-hidden>
@@ -187,7 +191,12 @@ export function NewPiles({
               {why}
               {extra(p)}
             </p>
-            <Fan manga={list} onMore={() => onOpen(p)} linkFor={linkFor} />
+            <Fan
+              manga={list}
+              onMore={() => onOpen(p)}
+              linkFor={linkFor}
+              japanFirst={kind === "japan"}
+            />
           </section>
         );
       })}

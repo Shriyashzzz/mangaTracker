@@ -2,16 +2,29 @@
 // the price queries (priceQueries.ts lists the parts).
 import { prisma } from "../config/prisma.js";
 
-const MONTH_MS = 30 * 24 * 60 * 60 * 1000;
+const DAY_MS = 24 * 60 * 60 * 1000;
+// When Open Library is asked again about an edition it had no cover for.
+// One with no cover at all comes first: it shows a drawn stand-in. One
+// showing Google Books' cover (often small, 300px wide) waits longer
+export const NO_COVER_RECHECK_MS = 20 * DAY_MS;
+export const LOW_RES_RECHECK_MS = 30 * DAY_MS;
 
-// known edition covers; a "has none" answer only counts for a month
+// known edition covers; a "has none" answer counts for NO_COVER_RECHECK_MS,
+// or for LOW_RES_RECHECK_MS while Google's cover stands in
 export const getCoverIds = (isbns: string[]) =>
   prisma.editionCover.findMany({
     where: {
       isbn13: { in: isbns },
       OR: [
         { coverId: { not: null } },
-        { checkedAt: { gt: new Date(Date.now() - MONTH_MS) } },
+        {
+          fallbackUrl: null,
+          checkedAt: { gt: new Date(Date.now() - NO_COVER_RECHECK_MS) },
+        },
+        {
+          fallbackUrl: { not: null },
+          checkedAt: { gt: new Date(Date.now() - LOW_RES_RECHECK_MS) },
+        },
       ],
     },
     // (fallbackUrl: the cover Google Books has when Open Library has none)

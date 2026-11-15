@@ -16,7 +16,6 @@ reviewsRouter.get("/volume/:isbn", perMinute(60), reviews.ofVolume);
 reviewsRouter.put("/volume/:isbn", perMinute(60), reviews.write);
 reviewsRouter.delete("/volume/:isbn", perMinute(60), reviews.remove);
 reviewsRouter.get("/series", perMinute(60), reviews.ofSeries);
-reviewsRouter.get("/series-scores", perMinute(120), reviews.seriesScores);
 // asked by every series page someone opens, so it gets more room
 reviewsRouter.get("/shelf", perMinute(120), reviews.onShelf);
 // one tap on a star, like the two above

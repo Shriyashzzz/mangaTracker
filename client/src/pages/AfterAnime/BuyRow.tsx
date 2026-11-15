@@ -20,6 +20,7 @@ export default function BuyRow({
   offer,
   used,
   seriesCoverUrl,
+  seriesName,
 }: {
   volume: number;
   // "Chapter 95 is in this one"
@@ -32,6 +33,7 @@ export default function BuyRow({
   used: UsedOffer | null;
   // stands in, washed out, when this volume has no cover of its own
   seriesCoverUrl: string | null;
+  seriesName: string;
 }) {
   // where the button goes: the new copy, or else the used one
   const main = offer ?? used;
@@ -50,7 +52,11 @@ export default function BuyRow({
         tabIndex={-1}
         viewTransition
       >
-        <CoverFallback number={volume} seriesCoverUrl={seriesCoverUrl} />
+        <CoverFallback
+          number={volume}
+          seriesCoverUrl={seriesCoverUrl}
+          seriesName={seriesName}
+        />
         <Cover url={book.coverUrl} sizes="80px" />
       </NavLink>
       <div className={styles.buyWords}>

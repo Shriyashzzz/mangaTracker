@@ -237,7 +237,7 @@ export default function PriceSearch() {
           <ul className={styles.grid}>
             {result.items.map((s) => (
               <li key={s.slug}>
-                <SeriesCard series={s} scored />
+                <SeriesCard series={s} />
               </li>
             ))}
           </ul>
@@ -291,7 +291,7 @@ function Highlights() {
           <ul className={styles.row}>
             {data.trending.map((s) => (
               <li key={s.slug}>
-                <SeriesCard series={s} canonical scored />
+                <SeriesCard series={s} canonical />
               </li>
             ))}
           </ul>

@@ -4,7 +4,6 @@
 import { titleVolume } from "./volumeNames.js";
 import { hasAnimeAnswer } from "./afterAnime/afterAnime.js";
 import { attachNoBookReviews, seriesReviews } from "../reviews/reviews.js";
-import { seriesScore } from "../reviews/seriesScore.js";
 import { savedBoxSets } from "./boxSetScan.js";
 import priceQueries from "../models/priceQueries.js";
 import { searchVolumesDetailed } from "./sources/catalog.js";
@@ -660,39 +659,29 @@ export async function getSeriesWithVolumes(name: string) {
       ),
     ),
   ).catch(() => {});
-  const [
-    known,
-    cheapest,
-    recorded,
-    pricedSets,
-    scanned,
-    animeAnswer,
-    reviews,
-    readerScore,
-  ] = await Promise.all([
-    priceQueries.getKnownPrices(isbns),
-    // each volume's cheapest used copy in stock now, for what collecting it
-    // second-hand costs (Better World Books' and eBay's, mostly)
-    priceQueries
-      .getCheapestCopies(isbns)
-      .catch(() => new Map<string, { used: { cents: number } | null }>()),
-    // what each has usually sold for new: for estimates, when no store has
-    // it today (never goes stale: every price ever recorded counts)
-    priceQueries
-      .getRecordedMedians(isbns)
-      .catch(() => new Map<string, { new: number | null }>()),
-    // box sets and omnibuses found while pricing its volumes
-    priceQueries.getCollectionOffers(isbns).catch(() => []),
-    // and the sets a scan by the series' name found (boxSetScan.ts)
-    savedBoxSets(name).catch(() => null),
-    // whether "after the anime" has a page for it (afterAnime.ts)
-    info ? hasAnimeAnswer(info.name).catch(() => false) : false,
-    // readers' ratings of its volumes, sent with the page so the scores
-    // on the covers never arrive late
-    seriesReviews(slugify(info?.name ?? name)).catch(() => null),
-    // and of the series itself, for the badge on its cover
-    seriesScore(slugify(info?.name ?? name)).catch(() => null),
-  ]);
+  const [known, cheapest, recorded, pricedSets, scanned, animeAnswer, reviews] =
+    await Promise.all([
+      priceQueries.getKnownPrices(isbns),
+      // each volume's cheapest used copy in stock now, for what collecting it
+      // second-hand costs (Better World Books' and eBay's, mostly)
+      priceQueries
+        .getCheapestCopies(isbns)
+        .catch(() => new Map<string, { used: { cents: number } | null }>()),
+      // what each has usually sold for new: for estimates, when no store has
+      // it today (never goes stale: every price ever recorded counts)
+      priceQueries
+        .getRecordedMedians(isbns)
+        .catch(() => new Map<string, { new: number | null }>()),
+      // box sets and omnibuses found while pricing its volumes
+      priceQueries.getCollectionOffers(isbns).catch(() => []),
+      // and the sets a scan by the series' name found (boxSetScan.ts)
+      savedBoxSets(name).catch(() => null),
+      // whether "after the anime" has a page for it (afterAnime.ts)
+      info ? hasAnimeAnswer(info.name).catch(() => false) : false,
+      // readers' ratings of its volumes, sent with the page so the scores
+      // on the covers never arrive late
+      seriesReviews(slugify(info?.name ?? name)).catch(() => null),
+    ]);
   const ratingOf = new Map(
     (reviews?.volumes ?? []).map((rated) => [rated.isbn13, rated.average]),
   );
@@ -710,9 +699,6 @@ export async function getSeriesWithVolumes(name: string) {
     boxSets: boxSetRows([...pricedSets, ...scannedSets]),
     boxSetLinks: boxSetLinks(info?.name ?? name),
     hasAnimeAnswer: animeAnswer,
-    // readers' average for the series itself; null until enough have
-    // rated it (reviews/seriesScore.ts)
-    readerScore,
     volumes: volumes.map((v) => ({
       isbn13: v.isbn13,
       title: v.title,

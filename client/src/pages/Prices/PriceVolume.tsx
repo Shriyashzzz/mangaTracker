@@ -207,6 +207,7 @@ export default function PriceVolume() {
           <CoverFallback
             number={volume}
             seriesCoverUrl={series.info?.coverUrl}
+            seriesName={seriesLabel}
           />
           {/* the page's own cover: the widest it's drawn anywhere */}
           <Cover
@@ -520,6 +521,7 @@ export default function PriceVolume() {
                   }
                   fullTitle={v.title}
                   seriesCoverUrl={series.info?.coverUrl}
+                  seriesName={seriesLabel}
                   priceCents={v.knownPriceCents}
                 />
               </li>

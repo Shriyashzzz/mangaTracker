@@ -14,6 +14,7 @@
 import {
   coverChoices,
   forSlowConnection,
+  isOwnPick,
   isVolumeCover,
 } from "../../lib/coverSizes";
 import {
@@ -44,6 +45,12 @@ type Props = {
   // another cover to show if this one fails (a series' AniList cover, when
   // the first volume's own won't load), before the stand-in
   fallbackUrl?: string | null;
+  // it's this series' cover: the English one is shown where we know it
+  // (lib/coverSizes.ts). Prefer SeriesPicture, which also draws a cover
+  // when there's none
+  series?: string;
+  // New's In Japan side: the Japanese cover first, then the English one
+  japanFirst?: boolean;
   // called when there's no picture to show after all, for a page that draws
   // something else in its place (the shelf letters the series' name)
   onFail?: () => void;
@@ -56,10 +63,19 @@ export default function Cover({
   className,
   eager = false,
   fallbackUrl,
+  series,
+  japanFirst,
   onFail,
 }: Props) {
-  if (!url) return null;
-  const all = coverChoices(url);
+  const all = coverChoices(
+    url,
+    series ? { name: series, japanFirst } : undefined,
+  );
+  if (!all.length) return null;
+  // a catalog's cover we can't resize (MyAnimeList's, Kitsu's): shown as it
+  // is if the series has no English one
+  const asGiven = series && url && !isOwnPick(url) ? url : null;
+  const fallback = fallbackUrl ?? (all[0]!.url === url ? null : asGiven);
   const choices = isSlow() ? forSlowConnection(all) : all;
   const hasSizes = choices.length > 1;
   return (
@@ -78,11 +94,11 @@ export default function Cover({
       decoding="async"
       onError={(e) => {
         const img = e.currentTarget;
-        if (fallbackUrl && img.dataset.fellBack !== "yes") {
+        if (fallback && img.dataset.fellBack !== "yes") {
           img.dataset.fellBack = "yes";
           img.removeAttribute("srcset");
           img.removeAttribute("sizes");
-          img.src = fallbackUrl;
+          img.src = coverSrc(fallback)!;
           return;
         }
         // tries again a couple of times, then hides it
@@ -90,7 +106,7 @@ export default function Cover({
         if (img.hidden) onFail?.();
       }}
       onLoad={(e) => {
-        if (!isVolumeCover(url)) return;
+        if (!url || !isVolumeCover(url)) return;
         hidePlaceholderCover(e);
         if (e.currentTarget.hidden) onFail?.();
       }}

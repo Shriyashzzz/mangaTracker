@@ -197,8 +197,8 @@ export default function PriceSeries() {
               sizes="(max-width: 720px) 94px, 178px"
               eager
             />
-            {/* readers' score for the series, hung on the cover's corner */}
-            <SeriesScoreBadge score={data.readerScore ?? null} />
+            {/* AniList's score as stars, hung on the cover's corner */}
+            <SeriesScoreBadge percent={info?.score} />
           </span>
         )}
         <div className={styles.seriesCopy}>
@@ -331,6 +331,7 @@ export default function PriceSeries() {
                 card={card}
                 mark={markOf(card, mine, next)}
                 seriesCoverUrl={info?.coverUrl ?? null}
+                seriesName={info?.name ?? data.name}
               />
             ))}
           </ul>

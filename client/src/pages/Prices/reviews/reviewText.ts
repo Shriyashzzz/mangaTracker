@@ -13,6 +13,10 @@ export const whoRated = (count: number) =>
 export const scoreText = (average: number) =>
   Number.isInteger(average) ? String(average) : average.toFixed(1);
 
+// AniList's score for a series, out of 100, as stars out of 5: 91 is "4.6"
+export const starsOf = (percent: number) =>
+  scoreText(Math.round(percent / 2) / 10);
+
 // a bar's share of the widest bar's room, as a percentage
 export function barWidth(amount: number, spread: number[]) {
   const most = Math.max(...spread, 1);

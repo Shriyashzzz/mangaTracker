@@ -27,7 +27,7 @@ export function VolumeCover({
   return (
     <span className={big ? styles.coverRoomy : styles.cover} aria-hidden>
       {/* the series' cover underneath, the volume's own on top if it has one */}
-      <Cover url={volume.seriesCover} sizes={slot} />
+      <Cover url={volume.seriesCover} series={volume.name} sizes={slot} />
       <Cover url={volume.coverUrl} sizes={slot} />
     </span>
   );

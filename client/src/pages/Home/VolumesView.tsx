@@ -4,6 +4,7 @@
 // link to its prices. The covers come from the price checker's series list,
 // asked only when a row is opened.
 import Cover from "../../components/cover/Cover";
+import SeriesPicture from "../../components/cover/SeriesPicture";
 import { formatCents } from "../../lib/prices";
 import { useEffect, useRef, useState } from "react";
 import RangePager from "../../components/rangePager/RangePager";
@@ -237,7 +238,12 @@ function SeriesRow({
         onClick={onToggle}
       >
         <span className={styles.thumb} aria-hidden>
-          <Cover url={manga.image} sizes="36px" />
+          <SeriesPicture
+            name={manga.name}
+            lightNovel={manga.lightNovel}
+            url={manga.image}
+            sizes="36px"
+          />
         </span>
         <span className={styles.rowText}>
           <span className={styles.name}>
@@ -352,6 +358,7 @@ function SeriesVolumes({
               // not while the list is on its way: the real covers are about
               // to arrive, and a stand-in would flash before them
               fallbackCover={list === undefined ? null : manga.image}
+              seriesName={priceName(manga)}
             />
           </li>
         ))}
@@ -364,10 +371,12 @@ function SeriesVolumes({
 function VolumeTile({
   tile,
   fallbackCover,
+  seriesName,
 }: {
   tile: Tile;
   // the series' cover, to stand in for a volume with none of its own
   fallbackCover: string | null;
+  seriesName: string;
 }) {
   // A cover of its own, or vol. 1 showing the series' as it is: a picture
   // at full strength, which a volume not on the shelf fades. A stand-in is
@@ -383,6 +392,7 @@ function VolumeTile({
         <CoverFallback
           number={tile.volume}
           seriesCoverUrl={fallbackCover}
+          seriesName={seriesName}
           numbered
           small
         />

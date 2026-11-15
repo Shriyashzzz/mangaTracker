@@ -9,11 +9,10 @@
 //   RateVolume, YourReviews, ReviewDialog   their reviews of its volumes
 //   SeriesActions   Edit, Mark as finished, Delete
 //   BuyStrip        the cover's side: what to buy next
-import Cover from "../../components/cover/Cover";
+import SeriesPicture from "../../components/cover/SeriesPicture";
 import type { ShelfVolume } from "../../lib/reviews";
 import { useEffect, useRef, useState } from "react";
 import { NavLink, useNavigate, useParams, useSearchParams } from "react-router";
-import DrawnCover from "../../components/drawnCover/DrawnCover";
 import { apiFetch } from "../../lib/api";
 import { getBooks } from "../../lib/booksApi";
 import { ownedOf } from "../../lib/ownedVolumes";
@@ -67,7 +66,6 @@ export default function Details() {
   const [releaseStatus, setReleaseStatus] = useState<ReleaseStatus | null>(
     null,
   );
-  const [brokenCover, setBrokenCover] = useState<string | null>(null);
 
   // ---------- what they can change here ----------
   // finished, and on the To read list (not started, so no release news yet).
@@ -290,9 +288,6 @@ export default function Details() {
     );
   if (!mangaData) return <DetailsSkeleton />;
 
-  // no cover, or one that won't load: the drawn one, with its name on
-  const cover =
-    mangaData.image && brokenCover !== mangaData.image ? mangaData.image : null;
   const genre =
     mangaData.genre && mangaData.genre !== "unlabled" ? mangaData.genre : null;
   const owned = ownedOf(mangaData);
@@ -449,20 +444,16 @@ export default function Details() {
 
         <div className={styles.side}>
           <figure className={`${styles.cover} ${styles.coverTilt}`}>
-            {cover ? (
-              <Cover
-                url={cover}
-                sizes="(max-width: 720px) 110px, 240px"
-                alt={mangaData.name}
-                eager
-                onFail={() => setBrokenCover(cover)}
-              />
-            ) : (
-              <DrawnCover
-                title={mangaData.name}
-                className={styles.drawnCover}
-              />
-            )}
+            <SeriesPicture
+              name={mangaData.name}
+              lightNovel={mangaData.lightNovel}
+              url={mangaData.image}
+              sizes="(max-width: 720px) 110px, 240px"
+              alt={mangaData.name}
+              eager
+              japanFirst={inJapan}
+              drawnClassName={styles.drawnCover}
+            />
             {mangaStatus && <span className={styles.stamp}>Done</span>}
           </figure>
 

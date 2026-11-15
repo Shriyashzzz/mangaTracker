@@ -1,6 +1,7 @@
 import type { SeriesInfo } from "../../lib/types";
 import { useState } from "react";
 import { novelParts } from "../../lib/prices";
+import { starsOf } from "./reviews/reviewText";
 import { pricesStyles as styles } from "./styles";
 
 // AniList's take on a series: score, popularity, genres and the blurb,
@@ -14,7 +15,7 @@ export default function SeriesFacts({ info }: { info: SeriesInfo }) {
       <ul className={styles.factRow}>
         {info.score != null && (
           <li>
-            Rated <strong>{info.score}%</strong> on AniList
+            Rated <strong>★ {starsOf(info.score)}</strong> on AniList
           </li>
         )}
         {info.popularityRank != null && (

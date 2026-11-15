@@ -265,8 +265,11 @@ export default function SeriesIndex() {
                   <li key={s.name}>
                     <SeriesCard
                       canonical
-                      scored
-                      series={{ ...s, genre: pickGenre(s.genres) }}
+                      series={{
+                        ...s,
+                        genre: pickGenre(s.genres),
+                        englishVolumes: s.knownVolumes,
+                      }}
                     />
                   </li>
                 ))}
@@ -283,8 +286,11 @@ export default function SeriesIndex() {
               <li key={s.name}>
                 <SeriesCard
                   canonical
-                  scored
-                  series={{ ...s, genre: pickGenre(s.genres) }}
+                  series={{
+                    ...s,
+                    genre: pickGenre(s.genres),
+                    englishVolumes: s.knownVolumes,
+                  }}
                 />
               </li>
             ))}

@@ -2,9 +2,10 @@ import { askedEdition } from "../../lib/editions";
 import { useEffect, useId, useRef, useState, type KeyboardEvent } from "react";
 import type { SeriesHit } from "../../lib/types";
 import { useNavigate } from "react-router";
-import Cover from "../../components/cover/Cover";
+import SeriesPicture from "../../components/cover/SeriesPicture";
 import { SearchIcon } from "../../components/icons/Icons";
 import { asIsbn, novelParts, searchSeries, seriesPath } from "../../lib/prices";
+import { starsOf } from "./reviews/reviewText";
 import { pricesStyles as styles } from "./styles";
 import { isMobile } from "react-device-detect";
 import { hasBottomBar } from "../../lib/bottomBar";
@@ -212,7 +213,7 @@ export default function SeriesSearchBox({
                 onMouseEnter={() => setActive(i)}
               >
                 <span className={styles.suggestThumb}>
-                  <Cover url={s.thumbUrl} sizes="34px" />
+                  <SeriesPicture name={s.name} url={s.thumbUrl} sizes="34px" />
                 </span>
                 <span className={styles.suggestText}>
                   <span className={styles.suggestName}>
@@ -224,7 +225,7 @@ export default function SeriesSearchBox({
                       s.year,
                       s.volumes &&
                         `${s.volumes} volume${s.volumes === 1 ? "" : "s"}`,
-                      s.score && `AniList ${s.score}%`,
+                      s.score && `★ ${starsOf(s.score)} on AniList`,
                     ]
                       .filter(Boolean)
                       .join(" · ")}
