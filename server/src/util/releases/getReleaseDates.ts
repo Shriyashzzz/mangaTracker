@@ -3,6 +3,7 @@ import getFormatedDates from "./volumeDataFormatter.js";
 import type { FormatedDates } from "./volumeDataFormatter.js";
 import { estimateNextVolume } from "./estimateNextVolume.js";
 import { volumeStartsFrom } from "./volumeStarts.js";
+import { wikipediaVolumeStarts } from "./wikipediaVolumeStarts.js";
 import { politeFetch } from "../politeFetch.js";
 
 export type MangaReleaseDates<T> = {
@@ -140,6 +141,19 @@ async function getVolumeStarts(seriesId: string) {
   }
 }
 
+// Where each volume starts: MangaDex's list, or Wikipedia's chapter list
+// when that knows more volumes (wikipediaVolumeStarts.ts). Whichever covers
+// more, never a mix: two lists can number a series' chapters differently
+async function volumeStartsFor(seriesId: string, name: string) {
+  const [fromMangaDex, fromWikipedia] = await Promise.all([
+    getVolumeStarts(seriesId),
+    wikipediaVolumeStarts(name),
+  ]);
+  return fromWikipedia.length > fromMangaDex.length
+    ? fromWikipedia
+    : fromMangaDex;
+}
+
 //main function to orchestrate small fucntions
 async function getReleaseDates(
   mangaName: string,
@@ -155,7 +169,7 @@ async function getReleaseDates(
     const [chapterEstimate, volumeEstimate, volumeStarts] = await Promise.all([
       estimateNextChapter(seriesId),
       estimateNextVolume(seriesId, "en", 8, coverData.data),
-      getVolumeStarts(seriesId),
+      volumeStartsFor(seriesId, mangaName),
     ]);
     const formatedDates = getFormatedDates(
       chaptherData,

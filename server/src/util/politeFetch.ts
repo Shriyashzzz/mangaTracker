@@ -8,6 +8,8 @@ const GAP_MS: Record<string, number> = {
   // under 4 a second
   "api.mangadex.org": 300,
   "api.mangaupdates.com": 1100,
+  // a backup source, asked rarely: one at a time, a second apart
+  "en.wikipedia.org": 1000,
 };
 // asked to wait longer than this: give up on it, the check tries again later
 const MAX_RETRY_WAIT_MS = 30_000;
