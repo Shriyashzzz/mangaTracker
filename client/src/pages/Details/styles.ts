@@ -68,6 +68,9 @@ export const detailsStyles = {
     "grid size-11 place-items-center text-ink transition-colors duration-120 ease-[ease] hover:enabled:bg-accent-wash hover:enabled:text-accent disabled:cursor-default disabled:opacity-40 [&_svg]:size-4 [&_svg]:fill-none [&_svg]:stroke-current [&_svg]:stroke-[2.5] [&_svg]:[stroke-linecap:round]",
   stepperInput:
     "min-w-14 border-x-[2.5px] border-line bg-transparent text-center font-brand text-[1.5rem] leading-none tracking-[0.02em] text-ink tabular-nums [appearance:textfield] focus:bg-accent-wash focus:outline-none focus-visible:outline-2 focus-visible:-outline-offset-4 focus-visible:outline-accent focus-visible:outline-dashed [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none",
+  // "(vol. 5)" beside the chapter, "(ch. 38)" beside the volume: quieter
+  // than the number, and only when the chapter list says
+  stepperAside: "font-mono text-[0.85rem] text-ink-soft not-italic",
   // "Saved", beside the counter (under its right end on a phone). Out of
   // the flow: taking up room, it pushed the counter onto a new line the
   // moment it appeared, out from under the thumb that pressed it

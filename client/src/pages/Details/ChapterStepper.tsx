@@ -21,6 +21,9 @@ type Props = {
   unit?: Unit;
   // it's been saved, so anything worked out from the old chapter is stale
   onSaved: (chapter: number) => void;
+  // said beside the number as it changes, when there's something to say:
+  // "(vol. 5)" beside a chapter, "(ch. 38)" beside a volume
+  aside?: (place: number) => string | null;
 };
 
 // keepalive: a save sent as they close the tab still arrives
@@ -38,6 +41,7 @@ export default function ChapterStepper({
   value,
   unit = "chapter",
   onSaved,
+  aside,
 }: Props) {
   const MAX_CHAPTER = UNITS[unit].max;
   const [draft, setDraft] = useState(String(value ?? 0));
@@ -147,6 +151,9 @@ export default function ChapterStepper({
           </svg>
         </button>
       </span>
+      {aside?.(current) && (
+        <span className={styles.stepperAside}>{aside(current)}</span>
+      )}
       <span
         className={note === "failed" ? styles.saveFailed : styles.saveDone}
         role="status"

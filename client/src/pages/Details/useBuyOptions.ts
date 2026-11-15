@@ -14,6 +14,9 @@ export function useBuyOptions(
   name: string | null,
   // what they own: "up to" a volume, or the exact list with gaps
   owned: { volumesOwned: number | null; ownedList?: number[] },
+  // with none owned: the volume their next chapter is in, when known (a
+  // reader who finished the anime at chapter 38 wants the book with 39)
+  readingFrom: number | null = null,
 ) {
   // which name the data is for, so a stale answer never shows
   const [state, setState] = useState<{
@@ -44,11 +47,15 @@ export function useBuyOptions(
     ? out.reduce((a, b) => (b.volume > a.volume ? b : a))
     : null;
   const highest = Number(owned.volumesOwned) || 0;
-  // the first one on sale after the furthest they own (only 2 -> vol. 3)
-  const nextNumber = nextToGet(
-    owned,
-    out.map((v) => v.volume),
-  );
+  // the first one on sale after the furthest they own (only 2 -> vol. 3);
+  // owning none, the one their next chapter is in, or the first after it
+  const onSaleNumbers = out.map((v) => v.volume);
+  const nextNumber =
+    highest === 0 && readingFrom
+      ? (onSaleNumbers
+          .filter((v) => Number.isInteger(v) && v >= readingFrom)
+          .sort((a, b) => a - b)[0] ?? null)
+      : nextToGet(owned, onSaleNumbers);
   const missing =
     nextNumber == null
       ? null

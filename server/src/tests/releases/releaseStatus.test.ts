@@ -185,6 +185,15 @@ describe("the panel's next volume", () => {
     expect(status(12, null, 14).nextVolume).toBe(14);
   });
 
+  test("the volume their next chapter is in, for a reader who owns none", () => {
+    // on chapter 9, the last of vol. 1: chapter 10 starts vol. 2
+    expect(status(null, 9, 3).nextChapterVolume).toBe(2);
+    // on chapter 12: chapter 13 is still in vol. 2
+    expect(status(null, 12, 3).nextChapterVolume).toBe(2);
+    // no chapter saved: nothing to go by
+    expect(status(null, null, 3).nextChapterVolume).toBeNull();
+  });
+
   test("works out where they are from their chapter", () => {
     const fromChapter = status(null, 12, 3);
     expect(fromChapter.currentVolume).toBe(2);

@@ -59,6 +59,8 @@ type ReleaseEstimate = {
 // the release dates MangaDex gave us for a series
 export type ReleaseData = {
   volume?: { volume: string | null; releaseDate: string | null }[];
+  // where each volume starts, by chapter (lib/chapterVolumes.ts)
+  volumeStarts?: { volume: number; firstChapter: number }[];
   // the series has ended (MangaUpdates): nothing more is coming
   seriesFinished?: boolean;
   newVolume?: ReleaseEstimate & { volume: string | null };
@@ -89,6 +91,8 @@ export type ReleaseStatus = {
   latestVolume: number | null;
   // the chapter after theirs, up to the latest
   nextChapter: number | null;
+  // the volume that chapter is in, when known (server releaseStatus.ts)
+  nextChapterVolume?: number | null;
   // the next English volume after where they are, and its price page
   nextVolume: number | null;
   nextVolumeBook?: { isbn13: string; title: string } | null;

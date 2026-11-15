@@ -107,10 +107,14 @@ export default function Details() {
     mangaData?.edition,
     mangaData ? ownedOf(mangaData) : [],
   );
-  const buyOptions = useBuyOptions(mangaData ? priceName(mangaData) : null, {
-    volumesOwned: mangaData?.volumesOwned ?? null,
-    ownedList: mangaData?.ownedList,
-  });
+  const buyOptions = useBuyOptions(
+    mangaData ? priceName(mangaData) : null,
+    {
+      volumesOwned: mangaData?.volumesOwned ?? null,
+      ownedList: mangaData?.ownedList,
+    },
+    releaseStatus?.nextChapterVolume ?? null,
+  );
 
   // ---------- loading ----------
   useEffect(() => {
@@ -354,6 +358,7 @@ export default function Details() {
             owned={owned}
             highestOwned={highestOwned}
             volumeSets={volumeSets}
+            volumeStarts={releaseData?.volumeStarts}
             onStart={startReading}
             onChange={saveReading}
             onPlaceSaved={(place) => {

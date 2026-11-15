@@ -88,6 +88,10 @@ export type ReleaseStatus = {
   latestVolume: number | null;
   // the chapter after theirs, up to the latest
   nextChapter: number | null;
+  // the volume that chapter is in, when the chapter list says: what a reader
+  // who owns no volumes would buy to keep reading (chapter 39 of Chainsaw
+  // Man is in vol. 5). Null when we can't tell
+  nextChapterVolume: number | null;
   // the next English volume after where they are, and its price page
   nextVolume: number | null;
   nextVolumeBook: { isbn13: string; title: string } | null;
@@ -276,6 +280,9 @@ export function getReleaseStatus(
     outJapanVolumes,
     isNextVolumeOut,
     currentVolume,
+    nextChapterVolume: bookmark
+      ? volumeOfChapter(Math.floor(bookmark) + 1, dates?.volumeStarts ?? [])
+      : null,
     latestVolume,
     nextChapter,
     nextVolume,
