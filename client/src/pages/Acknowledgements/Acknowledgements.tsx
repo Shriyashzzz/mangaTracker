@@ -1,6 +1,8 @@
 // Credits for the services behind the site. MangaDex and MangaUpdates require a
-// credit, Open Library asks for a link, and Amazon and eBay require the
-// affiliate wording below. Add a service here when the site starts using it.
+// credit, Open Library asks for a link, Wikipedia's text is shared on the
+// condition it's credited, and Amazon and eBay require the affiliate wording
+// below word for word. Add a service here when the site starts using it, and
+// its affiliate line when its links start earning.
 import { usePageMeta } from "../../lib/seo";
 import { acknowledgementsStyles as styles } from "./styles";
 
@@ -8,7 +10,7 @@ const DATA = [
   {
     name: "MangaDex",
     url: "https://mangadex.org",
-    body: "Chapter and volume data behind the next release dates.",
+    body: "Chapter and volume data behind the next release dates, and which chapters are in which volume.",
   },
   {
     name: "MangaUpdates",
@@ -16,9 +18,19 @@ const DATA = [
     body: "Chapter counts, and whether a series has finished.",
   },
   {
+    name: "Wikipedia",
+    url: "https://www.wikipedia.org",
+    body: "Which chapters are in which volume, from its chapter lists, where MangaDex doesn't say.",
+  },
+  {
     name: "AniList",
     url: "https://anilist.co",
     body: "Series details, scores, genres and what's trending.",
+  },
+  {
+    name: "Kitsu",
+    url: "https://kitsu.app",
+    body: "Importing a list from a Kitsu account.",
   },
   {
     name: "Open Library",
@@ -28,15 +40,85 @@ const DATA = [
   {
     name: "Google Books",
     url: "https://books.google.com",
-    body: "Ebook prices.",
+    body: "New and upcoming volumes, their release dates, covers Open Library doesn't have, and ebook prices.",
   },
 ];
+
+// where the prices come from
+const PRICES = [
+  {
+    name: "eBay",
+    url: "https://www.ebay.com",
+    body: "New and used prices, through eBay's own API.",
+  },
+  {
+    name: "Books-A-Million",
+    url: "https://www.booksamillion.com",
+    body: "Prices and box sets.",
+  },
+  {
+    name: "Better World Books",
+    url: "https://www.betterworldbooks.com",
+    body: "Used prices, through Impact.",
+  },
+];
+
+// the open-source code doing the heavy lifting
+const TOOLS = [
+  {
+    name: "ZXing",
+    url: "https://github.com/zxing-js/library",
+    body: "Reading barcodes with your camera.",
+  },
+  {
+    name: "sharp",
+    url: "https://sharp.pixelplumbing.com",
+    body: "Resizing covers so pages load fast.",
+  },
+];
+
+type Credit = { name: string; url: string; body: string };
+
+// one titled list of credits
+function CreditList({
+  id,
+  title,
+  credits,
+}: {
+  id: string;
+  title: string;
+  credits: Credit[];
+}) {
+  return (
+    <section aria-labelledby={id}>
+      <h2 id={id} className={styles.sectionTitle}>
+        {title}
+      </h2>
+      {/* role: Safari stops announcing a list once its bullets are styled away */}
+      <ul role="list" className={styles.items}>
+        {credits.map((credit) => (
+          <li key={credit.name} className={styles.item}>
+            <a
+              href={credit.url}
+              target="_blank"
+              rel="noreferrer"
+              className={styles.itemName}
+            >
+              {credit.name}
+            </a>
+            <p className={styles.itemBody}>{credit.body}</p>
+          </li>
+        ))}
+      </ul>
+    </section>
+  );
+}
 
 export function AcknowledgementsPage() {
   usePageMeta({
     title: "Acknowledgements",
     description:
-      "The services behind Manga Tracker, the fonts it uses and how its affiliate links work.",
+      "The services and tools behind Manga Tracker, where its prices come from, the fonts it uses and how its affiliate links work.",
     path: "/acknowledgements",
   });
 
@@ -45,31 +127,13 @@ export function AcknowledgementsPage() {
       <header>
         <h1 className={styles.title}>Acknowledgements</h1>
         <p className={styles.lead}>
-          Manga Tracker is built on the work of these services. Thank you.
+          Manga Tracker is built on the work of these services and tools. Thank
+          you.
         </p>
       </header>
 
-      <section aria-labelledby="ack-data">
-        <h2 id="ack-data" className={styles.sectionTitle}>
-          Manga and book data
-        </h2>
-        {/* role: Safari stops announcing a list once its bullets are styled away */}
-        <ul role="list" className={styles.items}>
-          {DATA.map((source) => (
-            <li key={source.name} className={styles.item}>
-              <a
-                href={source.url}
-                target="_blank"
-                rel="noreferrer"
-                className={styles.itemName}
-              >
-                {source.name}
-              </a>
-              <p className={styles.itemBody}>{source.body}</p>
-            </li>
-          ))}
-        </ul>
-      </section>
+      <CreditList id="ack-data" title="Manga and book data" credits={DATA} />
+      <CreditList id="ack-prices" title="Prices" credits={PRICES} />
 
       <section aria-labelledby="ack-fonts">
         <h2 id="ack-fonts" className={styles.sectionTitle}>
@@ -95,8 +159,8 @@ export function AcknowledgementsPage() {
           Affiliate links
         </h2>
         <p className={styles.body}>
-          Some store links are affiliate links which will be used to keep the
-          server running.
+          Some store links are affiliate links: buying through one pays the site
+          a small commission, at no extra cost to you.
         </p>
         <p className={styles.body}>
           As an Amazon Associate I earn from qualifying purchases.
@@ -106,9 +170,12 @@ export function AcknowledgementsPage() {
           purchases.
         </p>
         <p className={styles.body}>
-          I also earn from qualifying purchases through Bookshop.org links.
+          I also earn from qualifying purchases through Bookshop.org links,
+          Books-A-Million links and Better World Books links (through Impact).
         </p>
       </section>
+
+      <CreditList id="ack-tools" title="Open-source tools" credits={TOOLS} />
 
       <section aria-labelledby="ack-ownership">
         <h2 id="ack-ownership" className={styles.sectionTitle}>

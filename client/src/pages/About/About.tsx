@@ -57,20 +57,19 @@ export function AboutPage() {
             <span className={styles.hit}>keep up</span> with your manga!
           </h1>
           <p className={styles.lead}>
-            Hi, I'm Shriyash. I tend to start way too many manga at once and
-            drop them the moment I lose my place.{" "}
+            Hi, I'm Shriyash. I start way too many manga at once and drop them
+            the moment I lose my place.{" "}
             <NavLink to="/shelf" viewTransition>
               Shelf
             </NavLink>{" "}
-            fixes that by saving your exact chapter in seconds.
+            fixes that: it remembers the last chapter you read, in one tap.
           </p>
           <p className={styles.lead}>
-            As a broke college student who loves physical manga, I feel for
-            y'all fellow broke students.{" "}
+            I'm also a broke college student who loves physical manga.{" "}
             <NavLink to="/" viewTransition>
               Price check
             </NavLink>{" "}
-            searches US stores so you never overpay for a volume.
+            compares US and Canadian stores, so you never overpay for a volume.
           </p>
         </div>
       </header>
@@ -155,8 +154,9 @@ export function AboutPage() {
         </h2>
         <p className={styles.contactBody}>
           Found a bug, want a feature or just want to say hi? Send me an email.
-          Manga Tracker is free, and if it's saved you money, you can buy me a
-          coffee.
+        </p>
+        <p className={styles.contactBody}>
+          Made by a collector, for collectors. A coffee keeps it free.
         </p>
         <div className={styles.contactButtons}>
           <a href={`mailto:${CONTACT_EMAIL}`} className="btn btn-secondary">

@@ -711,7 +711,7 @@ const STATIC_PAGES: Record<
     title: "Acknowledgements",
     heading: "Acknowledgements",
     description:
-      "The services behind Manga Tracker, the fonts it uses and how its affiliate links work.",
+      "The services and tools behind Manga Tracker, where its prices come from, the fonts it uses and how its affiliate links work.",
   },
 };
 
