@@ -49,7 +49,7 @@ export default function AddChoice({
         <span>
           <b className="block font-semibold">Type a title</b>
           <small className="text-ink-soft">
-            Search by name, add the chapter you're on
+            Search by name, add the chapter you've read up to
           </small>
         </span>
       </button>

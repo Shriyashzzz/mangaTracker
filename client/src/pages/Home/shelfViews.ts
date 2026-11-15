@@ -287,9 +287,9 @@ export function newsFor(
   const byChapter = readsByChapterOnly(m);
   let volumeYours: string | undefined;
   if (owns) volumeYours = `You own ${owns}`;
-  else if (byChapter) volumeYours = `You're on ch. ${m.bookmark}`;
+  else if (byChapter) volumeYours = `Read up to ch. ${m.bookmark}`;
   else if (found?.currentVolume)
-    volumeYours = `You're on vol. ${found.currentVolume}`;
+    volumeYours = `Read up to vol. ${found.currentVolume}`;
   if (kind === "japan") {
     return {
       text: `Vol. ${found?.latestJapaneseVolume} in Japan`,
@@ -301,7 +301,7 @@ export function newsFor(
     return {
       text: `Ch. ${nextChapter} next`,
       behind: behindWords(found, kind),
-      yours: m.bookmark ? `You're on ch. ${m.bookmark}` : undefined,
+      yours: m.bookmark ? `Read up to ch. ${m.bookmark}` : undefined,
     };
   }
   // the catalog has a hole where their next volume should be: only how far
@@ -310,7 +310,7 @@ export function newsFor(
     return { text: "", behind: behindWords(found, kind), yours: volumeYours };
   const next = found?.nextVolume;
   // a chapter reader is told which chapters that book holds, under their
-  // own: "You're on ch. 38 · vol. 5 has ch. 35–43"
+  // own: "Read up to ch. 38 · vol. 5 has ch. 35–43"
   const range = byChapter && next != null ? found?.nextVolumeChapters : null;
   if (range && volumeYours)
     volumeYours = `${volumeYours} · vol. ${next} has ${chaptersText(range)}`;

@@ -2,8 +2,7 @@ import { onSale } from "../../lib/releaseDate";
 import { useEffect, useState } from "react";
 import { getSeries } from "../../lib/prices";
 import type { Series, SeriesVolume } from "../../lib/types";
-import { nextToGet, owns, ownsAny } from "../../lib/ownedVolumes";
-import { finishCost, leftToGet } from "../../lib/finishCost";
+import { nextToGet, owns } from "../../lib/ownedVolumes";
 
 // a volume we know the number of
 type NumberedVolume = SeriesVolume & { volume: number };
@@ -83,8 +82,6 @@ export function useBuyOptions(
     next: missing,
     // nothing on sale after the furthest they own
     caughtUp: Boolean(latest && highest > 0 && !missing),
-    // what the rest of the series costs at stored prices, once they own any
-    finish: ownsAny(owned) ? finishCost(leftToGet(out, owned), out) : null,
     seriesName: state.data?.info?.name ?? state.data?.name ?? name ?? "",
   };
 }

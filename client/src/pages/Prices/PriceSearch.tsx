@@ -93,7 +93,7 @@ export default function PriceSearch() {
               </h2>
               <p className={styles.sub}>
                 <span className="upto-720:hidden">
-                  Save the chapter you're on, rate what you finish, and see
+                  Save the last chapter you read, rate what you finish, and see
                   which series have a new volume out.
                 </span>
                 <span className="hidden upto-720:inline">

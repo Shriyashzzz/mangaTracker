@@ -50,7 +50,7 @@ export default function PlaceField({
       <div className={classes.field}>
         <div className={classes.unitRow}>
           <label htmlFor={id} className={classes.label}>
-            You're on
+            Read up to
           </label>
           <span
             className={classes.unitSwitch}

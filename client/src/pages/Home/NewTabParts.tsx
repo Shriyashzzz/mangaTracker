@@ -302,7 +302,7 @@ export function NothingNew({
 }) {
   const missingNumber =
     kind === "chapters"
-      ? "Add the chapter you're on and we'll tell you when the next one's out."
+      ? "Add the last chapter you read and we'll tell you when the next one's out."
       : "Add the volumes you own and we'll tell you when the next one's out.";
   // a chapter saved isn't "nothing told": say what's missing instead
   const allByChapter = looked > 0 && chapterOnly === looked;

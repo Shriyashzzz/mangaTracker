@@ -47,7 +47,7 @@ export default function GuestHero() {
             <span className={`${styles.sfx} ${styles.sfxA}`} aria-hidden>
               Bookmarked!
             </span>
-            <p className={styles.caption}>Save the chapter you're on</p>
+            <p className={styles.caption}>Save the last chapter you read</p>
           </li>
 
           <li className={styles.panel}>

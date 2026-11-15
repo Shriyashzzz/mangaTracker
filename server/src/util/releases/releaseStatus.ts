@@ -229,7 +229,7 @@ export function getReleaseStatus(
       : null;
   const nextBook = (englishVolumes ?? []).find((v) => v.volume === nextVolume);
   // for that reader, the chapters in it, so a card can say why that one:
-  // "Vol. 5 · ch. 34–42" beside "You're on ch. 38"
+  // "Vol. 5 · ch. 34–42" beside "Read up to ch. 38"
   const nextVolumeChapters =
     byChapterOnly && nextVolume != null ? chaptersIn(nextVolume, starts) : null;
   const nextVolumeBook =

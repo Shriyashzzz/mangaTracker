@@ -216,7 +216,7 @@ test("a New card says what's next and where they are, apart", () => {
   expect(newsFor(m, chapter, "chapters")).toEqual({
     text: "Ch. 31 next",
     behind: undefined,
-    yours: "You're on ch. 30",
+    yours: "Read up to ch. 30",
   });
   const chaptersBehind = found({
     nextChapter: 31,

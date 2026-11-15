@@ -114,7 +114,7 @@ export default function ReadingPlace({
     <p className={styles.progress}>
       {tracks.chapters && (
         <span className={styles.placeLine}>
-          You're on chapter{" "}
+          You've read up to ch.{" "}
           <ChapterStepper
             key={manga.id}
             mangaId={manga.id}

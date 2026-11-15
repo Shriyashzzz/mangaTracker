@@ -1,6 +1,6 @@
 // How a volume and a chapter are said together, for someone reading by the
 // chapter with no books, so it's plain why that book is next: the buy box's
-// "Vol. 5" over "ch. 34–42", the New card's "You're on ch. 38 · vol. 5 has
+// "Vol. 5" over "ch. 34–42", the New card's "Read up to ch. 38 · vol. 5 has
 // ch. 34–42" (the newest volume, whose end isn't known yet: "ch. 213 on").
 // Pure, so the server's tests can load it.
 

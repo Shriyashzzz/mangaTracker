@@ -11,7 +11,7 @@ type Props = {
   // which kind of release the headline is about, so the dates match it
   kind: "volume" | "chapter";
   inJapan: boolean;
-  // where they've got to: "you own up to vol. 24" or "you're on ch. 203"
+  // where they've got to: "you own up to vol. 24" or "read up to ch. 203"
   yours: string | null;
   data: ReleaseData | null;
   // a volume that's for sale in English; there's nowhere to send a chapter

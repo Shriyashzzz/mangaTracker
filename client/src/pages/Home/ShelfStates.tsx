@@ -64,8 +64,8 @@ export function EmptyShelf({
     <ShelfMessage mood="happy" title="Nothing on the shelf yet." fadeIn>
       <EmptyShelfUndo />
       <p className={styles.emptyBody}>
-        Add whatever you're reading right now, and the chapter you're on. That's
-        all it takes.
+        Add whatever you're reading right now, and the last chapter you read.
+        That's all it takes.
       </p>
       <button className="btn btn-primary btn-lg" onClick={onAdd}>
         Add your first manga

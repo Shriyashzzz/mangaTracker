@@ -115,7 +115,7 @@ export const formStyles = {
   label,
   fieldLabel: label,
   optional: "text-[0.82rem] font-normal text-muted",
-  // "You're on [Chapter|Volume]": the label with a small switch for what the
+  // "Read up to [Chapter|Volume]": the label with a small switch for what the
   // box counts. The radios are hidden; the checked one's label is inked in,
   // as the status tickets are
   unitRow: "flex flex-wrap items-center justify-between gap-x-3 gap-y-1",

@@ -68,7 +68,7 @@ const QUESTIONS = [
   {
     ask: "Don't see a series?",
     answer:
-      "Add it to your shelf first. Then mark the volumes you own, or the chapter you're on.",
+      "Add it to your shelf first. Then mark the volumes you own, or the chapter you've read up to.",
   },
 ];
 

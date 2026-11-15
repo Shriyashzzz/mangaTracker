@@ -1,7 +1,6 @@
 import { NavLink } from "react-router";
 import { chaptersText, type ChapterRange } from "../../lib/chapterWords";
 import { formatCents, seriesPath, volumePath } from "../../lib/prices";
-import { finishMoney } from "../../lib/finishCost";
 import { onSale } from "../../lib/releaseDate";
 import { detailsStyles as styles } from "./styles";
 import type { SeriesVolume } from "../../lib/types";
@@ -12,11 +11,10 @@ import {
   editionBookLabel,
   insideText,
   type EditionBook,
-  type EditionPlan,
 } from "../../lib/editions";
 
 // where to buy more of this manga: the next volume they need, the newest in the
-// US, and the whole series' prices. Stays out of the way when the series can't be
+// US, and a link to the whole series (saying how many aren't on the shelf). Stays out of the way when the series can't be
 // found under the name on the shelf
 type Props = {
   options: BuyOptions;
@@ -44,19 +42,6 @@ function bookPrice(book: EditionBook) {
   return book.isbn13 ? "check price" : "find it";
 }
 
-// what the rest of an edition costs: the stored prices, stretched over the
-// books that have none yet
-function editionMoney(plan: EditionPlan) {
-  if (!plan.pricedCount) return "check prices";
-  const everyBookPriced = plan.pricedCount === plan.left.length;
-  if (everyBookPriced) return formatCents(plan.pricedCents);
-  // the priced books' average, for every book left, to the nearest dollar
-  const averageCents = plan.pricedCents / plan.pricedCount;
-  const estimateCents =
-    Math.round((averageCents * plan.left.length) / 100) * 100;
-  return `about ${formatCents(estimateCents)}`;
-}
-
 const price = (v: SeriesVolume) =>
   v.knownPriceCents != null ? formatCents(v.knownPriceCents) : "check price";
 
@@ -71,7 +56,7 @@ export default function BuyStrip({
   nextChapters = null,
 }: Props) {
   const { line, plan } = editions;
-  const { loading, volumes, latest, next, caughtUp, finish, seriesName, gaps } =
+  const { loading, volumes, latest, next, caughtUp, seriesName, gaps } =
     options;
   // as the shelf counts them: up to the newest one out, listed or not
   // (Detective Conan: 98, though only 65 have a book listed)
@@ -159,28 +144,6 @@ export default function BuyStrip({
               You have all {plan.outBooks} {line.label} books listed
             </li>
           )}
-          {plan.left.length > 0 && (
-            <li>
-              <NavLink
-                className={styles.buyLink}
-                to={bookPath(plan.left[0]!, line.label, seriesName)}
-                title="At the last checked prices. A book gets a price once someone opens its page"
-                viewTransition
-              >
-                <span className={styles.buyKind}>Finish the series</span>
-                <span className={styles.buyCount}>
-                  <span>
-                    {plan.left.length} book{plan.left.length === 1 ? "" : "s"}
-                  </span>
-                  {plan.pricedCount > 0 &&
-                    plan.pricedCount < plan.left.length && (
-                      <em className={styles.buyAside}>(est)</em>
-                    )}
-                </span>
-                <span className={styles.buyPrice}>{editionMoney(plan)}</span>
-              </NavLink>
-            </li>
-          )}
           {plan.later > 0 && (
             <li className={styles.buyLater}>
               {plan.later} more to come, or not listed yet.
@@ -259,33 +222,11 @@ export default function BuyStrip({
               </li>
             )
           )}
-          {finish && (
-            <li>
-              <NavLink
-                className={styles.buyLink}
-                // seriesPath already has its ?name=, so this joins with &
-                to={`${seriesPath(seriesName)}&toget=1`}
-                title="At the last checked prices. A volume gets a price once someone opens its page"
-                viewTransition
-              >
-                <span className={styles.buyKind}>Finish the series</span>
-                <span className={styles.buyCount}>
-                  <span>
-                    {finish.left} vol{finish.left === 1 ? "" : "s"}
-                  </span>
-                  {finish.enough && finish.priced < finish.left && (
-                    <em className={styles.buyAside}>(est)</em>
-                  )}
-                </span>
-                <span className={styles.buyPrice}>
-                  {finishMoney(finish, formatCents)}
-                </span>
-              </NavLink>
-            </li>
-          )}
         </ul>
       )}
-      {/* a way to look further, not something to buy, so not a ticket */}
+      {/* a way to look further, not something to buy, so not a ticket.
+          (A "Finish the series" ticket that went to the same page is gone:
+          the Not on your shelf ticket and the shelf above say the rest) */}
       <NavLink
         className={styles.buySeries}
         to={seriesPath(seriesName)}

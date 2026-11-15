@@ -35,7 +35,7 @@ export const FAQ: FaqGroup[] = [
       },
       {
         q: "Can I track volumes instead of chapters?",
-        a: "Yes. On any series you can switch between tracking the chapter you're on and the volume you've read up to. In Settings you can pick chapters only, volumes only, or both for your whole shelf.",
+        a: "Yes. On any series you can switch between tracking the chapter or the volume you've read up to. In Settings you can pick chapters only, volumes only, or both for your whole shelf.",
       },
       {
         q: "I collect the deluxe or omnibus edition. Will it tell me to buy single volumes?",

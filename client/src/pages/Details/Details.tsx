@@ -258,7 +258,7 @@ export default function Details() {
       setActionNote(
         mangaData && !tracksOf(mangaData, trackBy).chapters
           ? "Started!"
-          : "Started! You're on chapter 1.",
+          : "Started! Ch. 1 marked as read.",
       );
     } catch (e) {
       console.error(e);
@@ -399,24 +399,29 @@ export default function Details() {
                 initial={mangaData.rating ?? 0}
               />
               {/* not for a series still on To read: nothing's been read */}
-              {volumeRating.asked && !planned && (
-                // closed, not gone, while the banner asks: it gives way
-                // smoothly, and is there to take the focus when the banner
-                // is closed
-                <div
-                  className={
-                    volumeRating.inBanner
-                      ? styles.rateSmallClosed
-                      : styles.rateSmall
-                  }
-                  inert={volumeRating.inBanner}
-                  data-volume-stars
-                >
-                  <div className={styles.rateSmallClip}>
-                    <RateVolume volume={volumeRating} onWrite={setReviewing} />
+              {volumeRating.asked &&
+                !planned &&
+                (volumeRating.inBanner || volumeRating.showTicket) && (
+                  // closed, not gone, while the banner asks: it gives way
+                  // smoothly, and is there to take the focus when the banner
+                  // is closed
+                  <div
+                    className={
+                      volumeRating.inBanner
+                        ? styles.rateSmallClosed
+                        : styles.rateSmall
+                    }
+                    inert={volumeRating.inBanner}
+                    data-volume-stars
+                  >
+                    <div className={styles.rateSmallClip}>
+                      <RateVolume
+                        volume={volumeRating}
+                        onWrite={setReviewing}
+                      />
+                    </div>
                   </div>
-                </div>
-              )}
+                )}
             </div>
 
             {volumeRating.inBanner && !planned && (

@@ -60,7 +60,7 @@ export const detailsStyles = {
   // "chapter 140", underlined with a wash of spot colour
   chapter:
     "bg-[linear-gradient(to_top,var(--accent-wash)_0_40%,transparent_40%)] text-ink italic",
-  // the chapter you're on, stepped right here. Inked like a panel, and big
+  // the chapter they've read up to, stepped right here. Inked like a panel, and big
   // enough for a thumb
   stepperWrap:
     "relative inline-flex flex-wrap items-center gap-x-3 gap-y-1 align-middle",
@@ -125,7 +125,7 @@ export const detailsStyles = {
   trackRow:
     "mt-3.5 flex flex-wrap items-center gap-x-4 gap-y-6 not-italic empty:hidden upto-720:mt-5",
   // one counter to a line, when the chapter and the volume are both kept
-  // "You're on chapter" and its counter, with room between them, side by
+  // "You've read up to ch." and its counter, with room between them, side by
   // side or (on a narrow screen) one above the other
   placeLine: "flex flex-wrap items-center gap-x-3 gap-y-2 [&+&]:mt-2",
   // "Keep my place by [Chapter] [Volume]": under what they own, for a
@@ -186,7 +186,10 @@ export const detailsStyles = {
   // number tab, and smaller stars than the series'. One is a rating of the
   // series; this is a slip about one book
   rateTicket:
-    "flex w-fit max-w-full items-stretch self-end border-[1.5px] border-dashed border-line bg-card upto-720:w-full",
+    "relative flex w-fit max-w-full items-stretch self-end border-[1.5px] border-dashed border-line bg-card upto-720:w-full",
+  // its cross, in the top corner, with a thumb-sized landing area
+  rateTicketClose:
+    "absolute top-0.5 right-0.5 grid size-7 place-items-center text-ink-soft transition-[color,transform] duration-150 ease-ink before:absolute before:-inset-2 before:content-[''] hover:text-accent active:scale-90 focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-accent focus-visible:outline-dashed",
   rateStub:
     "flex min-w-[3.4rem] flex-none flex-col items-center justify-center bg-ink px-2.5 pt-1 pb-0.5 font-brand text-[1.5rem] leading-none tracking-[0.02em] text-paper [&_small]:text-[0.7rem] [&_small]:tracking-[0.08em] [&_small]:uppercase",
   // two short rows: a line of words, then the stars. The same height
@@ -300,18 +303,13 @@ export const detailsStyles = {
   // the series link, a plain link with room around it for a thumb
   buySeries:
     "tap mt-2.5 block py-1 text-right text-[0.85rem] font-medium text-ink-soft underline decoration-line-soft underline-offset-3 transition-colors duration-120 ease-[ease] hover:text-accent hover:decoration-accent",
-  // (on the narrowest phones "Finish the series" takes two lines, so the
-  // count beside it isn't printed over it)
+  // (on the narrowest phones a long label takes two lines rather than
+  // running into what's beside it)
   buyKind:
     "col-span-full font-mono text-[0.72rem] font-normal tracking-[0.06em] whitespace-nowrap text-muted uppercase upto-720:col-span-1 max-[359px]:whitespace-normal",
   buyPrice: "text-right font-mono font-medium text-accent-ink",
   // "ch. 35–43" under "Vol. 5" in Next for you, for a chapter reader
   buyChapters: "block font-mono text-[0.78rem] font-normal text-ink-soft",
-  // "2 vols (est)": one row when there's room; on a long series in the narrow
-  // box ("113 vols" beside "about $1,340") the "(est)" drops under, never
-  // over the price
-  buyCount:
-    "flex min-w-0 flex-wrap items-baseline gap-x-1 [&>*]:whitespace-nowrap",
   // "(est)" beside a count: quieter than the ticket's own words
   buyAside: "font-normal text-ink-soft italic",
   // "caught up": the same ticket shape, but nothing to click

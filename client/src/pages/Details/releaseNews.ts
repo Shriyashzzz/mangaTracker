@@ -103,9 +103,9 @@ function releaseOf(asked: Asked): Release | null {
   let volumeYours: string | null = null;
   if (owns) volumeYours = `you own ${owns}`;
   else if (readsByChapterOnly(manga))
-    volumeYours = `you're on ch. ${manga.bookmark}`;
+    volumeYours = `read up to ch. ${manga.bookmark}`;
   else if (releaseStatus.currentVolume)
-    volumeYours = `you're on vol. ${releaseStatus.currentVolume}`;
+    volumeYours = `read up to vol. ${releaseStatus.currentVolume}`;
 
   if (inJapan) {
     if (!releaseStatus.hasNewJapaneseVolume) return null;
@@ -122,7 +122,7 @@ function releaseOf(asked: Asked): Release | null {
     return {
       what: `Ch. ${releaseStatus.latestChapter}`,
       kind: "chapter",
-      yours: onChapter ? `you're on ch. ${manga.bookmark}` : null,
+      yours: onChapter ? `read up to ch. ${manga.bookmark}` : null,
     };
   }
   if (!releaseStatus.isNextVolumeOut) return null;

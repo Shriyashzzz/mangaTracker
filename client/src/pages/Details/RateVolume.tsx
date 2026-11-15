@@ -7,10 +7,9 @@
 //   RateVolume       any other time: a ticket beside the series' own
 //                    rating, with the volume's number on an inked stub and
 //                    smaller stars, so the two ratings can't be taken for
-//                    each other. Always about the last volume they've read,
-//                    rated or not; "Rate vol. 8" on it moves to the one
-//                    before, for the visit: one volume at a time, never a
-//                    list of chores
+//                    each other. About the last volume they've read, and
+//                    only until it's rated; its cross hides it until they
+//                    read on. Older volumes are rated from "Your reviews"
 // Either way one tap saves, a second tap on the same star takes it back, and
 // "Add a few words" opens the review box. When the volume they've read is
 // one we have no book for, the stars are on the nearest one below that we
@@ -27,39 +26,26 @@ type Props = {
   onWrite: (volume: ShelfVolume) => void;
 };
 
-// under a volume's stars once it's rated: the quiet ways on. The banner is
-// about the one volume just finished, so it never offers the next
+// under a volume's stars once it's rated: words go with a rating
 function WaysOn({
   volume,
   onWrite,
-  offersNext = false,
   className = styles.rateLinks,
-}: Props & { offersNext?: boolean; className?: string }) {
-  const { asked, rating, hasWords, next, moveOn } = volume;
-  if (!asked) return null;
+}: Props & { className?: string }) {
+  const { asked, rating, hasWords } = volume;
+  if (!asked || rating === 0) return null;
   return (
     <p className={className}>
-      {/* words go with a rating: offered once there is one */}
-      {rating > 0 && (
-        <button type="button" onClick={() => onWrite(asked)}>
-          {hasWords ? "Edit your review" : "Add a few words"}
-        </button>
-      )}
-      {offersNext && next && (
-        <button type="button" onClick={moveOn}>
-          {/* under an unrated "Rate vol. 9", a second "Rate vol." needs
-              telling apart */}
-          Rate vol. {next.volume}
-          {rating > 0 ? "" : " instead"}
-        </button>
-      )}
+      <button type="button" onClick={() => onWrite(asked)}>
+        {hasWords ? "Edit your review" : "Add a few words"}
+      </button>
     </p>
   );
 }
 
 export default function RateVolume({ volume, onWrite }: Props) {
-  const { asked, rating, problem, rate } = volume;
-  if (!asked) return null;
+  const { asked, rating, problem, rate, showTicket, hideTicket } = volume;
+  if (!asked || !showTicket) return null;
   return (
     // a ticket, like the ones in "Buy it": the volume's number on an inked
     // stub, then its stars. Not a second row of the series' stars
@@ -83,20 +69,26 @@ export default function RateVolume({ volume, onWrite }: Props) {
           {!rating && (
             <span className={styles.rateTicketLabel}>How was it?</span>
           )}
-          {(rating > 0 || volume.next) && (
-            <WaysOn
-              volume={volume}
-              onWrite={onWrite}
-              offersNext
-              className={styles.rateTicketLinks}
-            />
-          )}
+          <WaysOn
+            volume={volume}
+            onWrite={onWrite}
+            className={styles.rateTicketLinks}
+          />
         </div>
         <StarRating value={rating} size="md" onChange={rate} />
         <p className={styles.saveFailed} role="status">
           {problem}
         </p>
       </div>
+      {/* hides it until they read on to a later volume */}
+      <button
+        type="button"
+        className={styles.rateTicketClose}
+        aria-label={`Don't ask about vol. ${asked.volume}`}
+        onClick={hideTicket}
+      >
+        <InkCrossIcon className="size-[0.9rem]" />
+      </button>
     </div>
   );
 }
