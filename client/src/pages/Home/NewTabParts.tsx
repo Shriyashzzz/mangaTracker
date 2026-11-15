@@ -234,6 +234,22 @@ function notFoundLine(notFound: number, looked: number) {
   return `We couldn't find release news for ${notFound} of your series.`;
 }
 
+// Under an empty Volumes or In Japan list: the series that can't show up
+// there, and what would let them. One saved by chapter only isn't "unknown":
+// we can't tell which volume its chapter is in
+function placeMissingLine(
+  unknownPlace: number,
+  chapterOnly: number,
+  looked: number,
+  missingNumber: string,
+) {
+  if (unknownPlace === 0) return null;
+  if (chapterOnly === looked)
+    return `We can't tell which volume your chapter is in. ${missingNumber}`;
+  if (unknownPlace === looked) return missingNumber;
+  return `${unknownPlace} of your series can't show up here yet. ${missingNumber}`;
+}
+
 // "75 series are further behind than your setting shows", with the way to
 // change it: under an empty list, and at the foot of a short one
 export function HeldBack({ count }: { count: number }) {
@@ -259,6 +275,7 @@ export function NothingNew({
   looked,
   total,
   unknownPlace,
+  chapterOnly,
   notFound,
   checking,
   heldBack,
@@ -271,6 +288,9 @@ export function NothingNew({
   total: number;
   // with no saved place, so never "caught up" and never listed
   unknownPlace: number;
+  // of those, ones with a chapter saved but no volume we can tell from it
+  // (Volumes and In Japan only)
+  chapterOnly: number;
   // the release sites don't know them
   notFound: number;
   checking: boolean;
@@ -284,6 +304,14 @@ export function NothingNew({
     kind === "chapters"
       ? "Add the chapter you're on and we'll tell you when the next one's out."
       : "Add the volumes you own and we'll tell you when the next one's out.";
+  // a chapter saved isn't "nothing told": say what's missing instead
+  const allByChapter = looked > 0 && chapterOnly === looked;
+  const placeLine = placeMissingLine(
+    unknownPlace,
+    chapterOnly,
+    looked,
+    missingNumber,
+  );
   return (
     <div className={styles.nothingNew} data-tour="shelf">
       <span className="printed mascot-spot" aria-hidden>
@@ -300,21 +328,17 @@ export function NothingNew({
       )}
       {heldBack === 0 && (
         <p className={styles.nothingNewTitle}>
-          {looked > 0 && unknownPlace === looked
-            ? "We don't know where you're up to yet."
-            : RELEASE_KINDS[kind].emptyTitle}
+          {allByChapter
+            ? "We know your chapter, not your volume."
+            : looked > 0 && unknownPlace === looked
+              ? "We don't know where you're up to yet."
+              : RELEASE_KINDS[kind].emptyTitle}
         </p>
       )}
       {heldBack === 0 && unknownPlace < looked && (
         <p className={styles.emptyBody}>{RELEASE_KINDS[kind].emptyBody}</p>
       )}
-      {unknownPlace > 0 && (
-        <p className={styles.emptyBody}>
-          {unknownPlace === looked
-            ? missingNumber
-            : `${unknownPlace} of your series can't show up here yet. ${missingNumber}`}
-        </p>
-      )}
+      {placeLine && <p className={styles.emptyBody}>{placeLine}</p>}
       {/* nothing here, but there is on another side of the switch */}
       {elsewhere && (
         <button

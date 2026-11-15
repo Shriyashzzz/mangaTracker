@@ -1,7 +1,7 @@
 // The signed-in shelf and what's new for it. Kept here rather than in the page
 // so coming back to the shelf shows it straight away, with no loading screen,
 // and the release check carries on while they're on other pages.
-import { dayOf } from "../lib/books";
+import { restorable, restorePieces } from "../lib/restorePieces";
 import { create } from "zustand";
 import { apiFetch } from "../lib/api";
 import {
@@ -121,47 +121,11 @@ const askAbout = async (m: Manga, stop: AbortSignal) => {
   }
 };
 
-// a Select's undo sends this many series a request
-const RESTORE_PIECE = 200;
 // the move's undo goes back in pieces this big (the server takes 2000)
 const PLACE_PIECE = 2000;
 
 export type ShelfMove = "finished" | "planned" | "reading";
 export type ShelfPlace = Pick<Manga, "id" | "status" | "planned" | "bookmark">;
-// what the undo needs of a series, and nothing else (ids, dates, prices)
-const restorable = (m: Manga) => ({
-  // within the limits restore checks, which older rows may be past
-  name: m.name.slice(0, 150),
-  status: m.status,
-  planned: m.planned,
-  lightNovel: m.lightNovel,
-  bookmark: m.bookmark,
-  byVolume: m.byVolume,
-  readVolume: m.readVolume,
-  edition: m.edition,
-  volumesOwned: m.volumesOwned,
-  ownedList: m.ownedList,
-  genre: m.genre,
-  description: m.description?.slice(0, 450) ?? null,
-  image: m.image,
-  rating: m.rating,
-  seenVolume: m.seenVolume,
-  seenChapter: m.seenChapter,
-  seenJapanVolume: m.seenJapanVolume,
-  hiddenVolumes: m.hiddenVolumes,
-  latestChapter: m.latestChapter,
-  // the books behind its volumes, without their old ids
-  books: m.books?.map((b) => ({
-    isbn13: b.isbn13,
-    edition: b.edition,
-    number: b.number,
-    title: b.title,
-    volumes: b.volumes,
-    paidCents: b.paidCents ?? null,
-    boughtOn: dayOf(b.boughtOn),
-  })),
-});
-
 export const useShelf = create<ShelfState>()((set, get) => ({
   manga: null,
   loadFailed: false,
@@ -207,8 +171,7 @@ export const useShelf = create<ShelfState>()((set, get) => ({
     let lost = 0;
     try {
       let left = lastDeleted;
-      while (left.length) {
-        const piece = left.slice(0, RESTORE_PIECE);
+      for (const piece of restorePieces(lastDeleted)) {
         const res = await apiFetch("/api/manga/restore-many", {
           method: "POST",
           body: { manga: piece.map(restorable) },
@@ -220,7 +183,7 @@ export const useShelf = create<ShelfState>()((set, get) => ({
         };
         restored += answer.restored;
         lost += answer.invalid;
-        left = left.slice(RESTORE_PIECE);
+        left = left.slice(piece.length);
         set({ lastDeleted: left.length ? left : null });
       }
     } catch {

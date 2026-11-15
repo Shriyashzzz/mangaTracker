@@ -375,6 +375,12 @@ function Library() {
     return !m.volumesOwned && !releases[m.id]?.currentVolume;
   };
   const unknownPlace = looked.filter(hasNoPlace).length;
+  // of those, ones with a chapter saved: we know where they are, just not
+  // which volume that chapter is in (Frieren's chapter list stops at vol. 1)
+  const chapterOnly =
+    releaseKind === "chapters"
+      ? 0
+      : looked.filter((m) => hasNoPlace(m) && m.bookmark).length;
   // series with something out that their setting keeps off this list
   // ("only series I'm nearly caught up on"): said when the list is empty
   // when this side of the switch is empty: a side that isn't, to offer
@@ -494,6 +500,7 @@ function Library() {
           looked={looked.length}
           total={total}
           unknownPlace={unknownPlace}
+          chapterOnly={chapterOnly}
           notFound={notFound}
           checking={checking}
           heldBack={heldBack}
