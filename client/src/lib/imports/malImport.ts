@@ -25,6 +25,8 @@ export type MalEntry = {
   // exactly which volumes they own, when a book app's file says and it isn't
   // a run from 1 (One Piece 1 and 4)
   ownedList?: number[];
+  // a book app's file: ownedVolumes is its own answer (server malEntry.ts)
+  ownedFromFile?: boolean;
   // other names the series goes by (the file's own, AniList's): one on the
   // shelf under any of them is the same series
   otherNames?: string[];

@@ -156,3 +156,13 @@ test("a finished series comes in knowing its last chapter, so caught up counts f
   ).toBeNull();
   expect(toMangaInput(entry(), null).latestChapter).toBeNull();
 });
+
+test("a book app's file says what's owned: none owned stays none", () => {
+  // MyAnimeList: retail volumes are rarely filled in, so volumes read stand in
+  expect(toMangaInput(entry({ readVolumes: 6 }), null).volumesOwned).toBe(6);
+  // a book file worked it out itself ("Owned: no" on every read book)
+  expect(
+    toMangaInput(entry({ readVolumes: 6, ownedFromFile: true }), null)
+      .volumesOwned,
+  ).toBeNull();
+});

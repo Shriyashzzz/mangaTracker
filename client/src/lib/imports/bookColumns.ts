@@ -342,6 +342,7 @@ export function csvBook(h: string[], row: string[]): Book | null {
 // A column named for several volumes ("Owned volumes", "Volumes owned",
 // "Volumes", or "Owned" with a number in it) may also give a plain count: "12" is vols. 1 to 12.
 // Anything else is the row's one book, as csvBook reads it
+const TO_READ = /^(to[- ]read|plan(ned)? to read|want to read|wishlist)$/i;
 const BOX_SET_WORDS = /\bbox(ed)?\s?set\b|\ball-in-one\b/i;
 const VOLUMES_COLUMN = /^((owned|my) )?vol(ume)?s( owned)?$/i;
 // a column called just "Owned" is yes or no on most files; a number in it
@@ -422,8 +423,17 @@ export function csvBooks(h: string[], row: string[]): Book[] {
     planned: false,
     guessed: undefined,
   };
-  // none owned ("0", or left blank): the series, with nothing owned
-  if (said.kind === "none") return [{ ...series, volume: null, owned: false }];
+  // none owned ("0", or left blank): the series, with nothing owned. With no
+  // status saying otherwise it's one they mean to read
+  if (said.kind === "none")
+    return [
+      {
+        ...series,
+        volume: null,
+        owned: false,
+        planned: !status || TO_READ.test(status),
+      },
+    ];
   // something we can't read: asked about in the preview, never "vol. 1"
   if (said.kind === "unreadable")
     return [{ ...series, volume: null, owned: true, omnibus: true }];

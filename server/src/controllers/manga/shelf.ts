@@ -15,6 +15,7 @@ import { askAboutFinishedVolume } from "../../reviews/reviews.js";
 import { oneAtATime } from "../../util/shelf/oneAtATime.js";
 import { keepSavedList, ownedVolumes } from "../../util/shelf/ownedList.js";
 import {
+  chapterMessage,
   ownedListFields,
   mangaFields,
   onShelfAlready,
@@ -132,7 +133,7 @@ export const setRating = [
 export const setBookmark = [
   body("bookmark")
     .isInt({ min: 0, max: 100000 })
-    .withMessage("Bookmark has to be a number luv!")
+    .withMessage(chapterMessage)
     .toInt(),
   rejectInvalid,
   async (req: Request, res: Response) => {

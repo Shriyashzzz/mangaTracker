@@ -291,6 +291,8 @@ export const seriesKey = (name: string) =>
     .toLowerCase()
     // "Hunter × Hunter"
     .replace(/×/g, "x")
+    // "+Anima" isn't "Anima"
+    .replace(/\+/g, " plus ")
     .normalize("NFKD")
     .replace(/[̀-ͯ]/g, "")
     .normalize("NFKC")

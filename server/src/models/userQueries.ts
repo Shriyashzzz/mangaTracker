@@ -44,14 +44,29 @@ export type Prefs = {
 };
 
 // the account's id when the username and password match, otherwise why not
+// The account a sign-in names: exactly that username, or else the one
+// account whose username differs only in capitals ("ZzEdge" for "zzedge").
+// Two such accounts from before sign-ups were checked that way: neither is
+// guessed at, only the exact one signs in
+async function accountNamed(username: string) {
+  const exact = await prisma.user.findUnique({
+    where: { username },
+    select: { id: true, password: true },
+  });
+  if (exact) return exact;
+  const alike = await prisma.user.findMany({
+    where: { username: { equals: username, mode: "insensitive" } },
+    select: { id: true, password: true },
+    take: 2,
+  });
+  return alike.length === 1 ? alike[0]! : null;
+}
+
 export async function checkCredentials(
   username: string,
   password: string,
 ): Promise<{ userId: number } | { status: 401 | 404 }> {
-  const user = await prisma.user.findUnique({
-    where: { username },
-    select: { id: true, password: true },
-  });
+  const user = await accountNamed(username);
   if (!user) return { status: 404 };
   if (!(await bcrypt.compare(password, user.password))) return { status: 401 };
   return { userId: user.id };
@@ -62,6 +77,13 @@ export async function addUser(
   username: string,
   password: string,
 ): Promise<number | null> {
+  // a name that differs only in capitals from one taken is taken too, so
+  // signing in with either case finds one account
+  const alike = await prisma.user.findFirst({
+    where: { username: { equals: username, mode: "insensitive" } },
+    select: { id: true },
+  });
+  if (alike) return null;
   const hashed = await bcrypt.hash(password, 12);
   try {
     const user = await prisma.user.create({

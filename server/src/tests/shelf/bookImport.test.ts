@@ -1443,10 +1443,10 @@ test("volume cells written other ways, and ones it can't read", () => {
   expect(of("Bleach").ownedVolumes).toBe(74);
   expect(of("Gantz").ownedVolumes).toBe(12);
   expect(of("Dorohedoro").ownedList).toEqual([1, 2, 3, 4, 5, 7]);
-  // 0 or blank: none owned, and not a to-read entry
+  // 0 or blank, with no status: none owned, and one they mean to read
   for (const name of ["Berserk", "Blank Series"]) {
     expect(of(name).ownedVolumes).toBe(0);
-    expect(of(name).planned).toBe(false);
+    expect(of(name).planned).toBe(true);
   }
   // can't read it: asked about in the preview, never "vol. 1"
   expect(of("Golden Kamuy").ownedVolumes).toBe(0);
@@ -1491,4 +1491,11 @@ test("a series named only in emoji comes back from a backup", () => {
   );
   const groups = groupBooks(books);
   expect(groups.map((g) => [g.title, g.ownedVolumes])).toEqual([["🔥🔥", 3]]);
+});
+
+test("none owned but Reading stays Reading", () => {
+  const [berserk] = seriesSheet("Title,Owned volumes,Status", [
+    "Berserk,0,Reading",
+  ]);
+  expect([berserk!.ownedVolumes, berserk!.planned]).toEqual([0, false]);
 });

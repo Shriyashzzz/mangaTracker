@@ -13,7 +13,7 @@ import { priceName } from "../prices/lightNovel.js";
 import { knownSeriesName } from "../prices/sources/anilist.js";
 import { seriesName, slugify } from "../prices/stores/match.js";
 import { titleVolume } from "../prices/volumeNames.js";
-import { defaultReaderName } from "../util/shelf/readerNames.js";
+import { readerName } from "../util/shelf/readerNames.js";
 import {
   hasLink,
   hasRead,
@@ -41,7 +41,7 @@ const sent = (review: StoredReview, viewerId: number | null) => ({
   spoiler: review.spoiler || readersSaySpoiler(review._count.flags),
   // the name others see: their display name, or the stand-in a shared
   // shelf gives them
-  by: review.user.displayName || defaultReaderName(review.user.id),
+  by: readerName(review.user),
   avatar: review.user.avatar,
   writtenAt: review.createdAt,
   edited: review.updatedAt.getTime() - review.createdAt.getTime() > 60_000,
@@ -438,7 +438,7 @@ export async function reviewsToCheck() {
     title: review.isbn13 ? (titleOf.get(review.isbn13.trim()) ?? null) : null,
     rating: review.rating,
     text: review.body,
-    by: review.user.displayName || defaultReaderName(review.user.id),
+    by: readerName(review.user),
     writtenAt: review.createdAt,
     reports: review._count.flags,
     hidden: review.status !== "shown",

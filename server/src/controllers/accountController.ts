@@ -1,6 +1,7 @@
 // The account's own details: profile, optional recovery email, list sharing and
 // deleting it all. Plus the public view of a shared list.
 import type { Request, Response } from "express";
+import { withoutDirectionMarks } from "../util/directionMarks.js";
 import { body, matchedData, param } from "express-validator";
 import { sendError } from "../middlewares/errorHandler.js";
 import { rejectInvalid } from "../middlewares/validate.js";
@@ -65,6 +66,9 @@ const update = [
   body("displayName")
     .optional({ values: "null" })
     .isString()
+    // the invisible characters that turn text around ("right-to-left
+    // override" and its kin): kept, they showed a name backwards to others
+    .customSanitizer(withoutDirectionMarks)
     .trim()
     .isLength({ max: 40 })
     .withMessage("Keep your name to 40 characters."),

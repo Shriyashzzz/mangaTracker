@@ -2,7 +2,7 @@
 // column can't end up public by accident. Never the username, which is half of
 // the login, nor what they've hidden. The volumes they own are shown (owner's
 // call, 2026-11-11): visitors tap a series to see them
-import { defaultReaderName } from "./readerNames.js";
+import { readerName } from "./readerNames.js";
 import type { VolumeFacts } from "./sharedVolumes.js";
 import { topOf } from "./shareTop.js";
 import { readTrackBy, tracksOf } from "../releases/releaseStatus.js";
@@ -64,7 +64,7 @@ export const toSharedShelf = ({
   manga,
   facts,
 }: SharedSource) => ({
-  displayName: displayName || defaultReaderName(id),
+  displayName: readerName({ id, displayName }),
   avatar,
   // the series they've put at the top, by name, in their order
   top: topOf(

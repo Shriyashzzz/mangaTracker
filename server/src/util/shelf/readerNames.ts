@@ -1,3 +1,4 @@
+import { withoutDirectionMarks } from "../directionMarks.js";
 // Names for anyone who hasn't picked their own. Each account always gets the same
 // one until they do, and the profile page offers them all through "Surprise me".
 export const READER_NAMES = [
@@ -35,3 +36,9 @@ export const READER_NAMES = [
 
 export const defaultReaderName = (userId: number) =>
   READER_NAMES[userId % READER_NAMES.length]!;
+
+// the name others see for a reader: theirs, cleaned of characters that
+// would turn it around (directionMarks.ts), or else the one picked for them
+export const readerName = (user: { id: number; displayName: string | null }) =>
+  withoutDirectionMarks(user.displayName ?? "").trim() ||
+  defaultReaderName(user.id);

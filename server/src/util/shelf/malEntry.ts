@@ -25,6 +25,10 @@ export type MalEntry = {
   lightNovel?: boolean;
   // exactly which volumes they own, when a book app's export says
   ownedList?: number[];
+  // a book app's file: ownedVolumes is its own answer, worked out in the
+  // browser (a book read counts unless the file says it isn't owned), so a
+  // 0 there is none, not "use the volumes read"
+  ownedFromFile?: boolean;
   // other names it goes by: on the shelf under any of them, it's there
   otherNames?: string[];
   // from Manga Tracker's own export: a series already on the shelf also
@@ -103,10 +107,13 @@ export function toMangaInput(entry: MalEntry, listing: MalListing | null) {
     byVolume: entry.byVolume ?? entryIsLightNovel(entry, listing),
     readVolume: entry.planned ? null : entry.readVolumes || null,
     ...(entry.restore && entry.edition ? { edition: entry.edition } : {}),
-    // most people never fill in retail, so volumes read is the best guess left
+    // most people never fill in retail, so volumes read is the best guess
+    // left. Not for a backup (its read volume is only that) or a book app's
+    // file (ownedFromFile): those say what's owned themselves
     ...ownedVolumes(
-      // (a backup's read volume is only that: it says what's owned itself)
-      entry.ownedVolumes || (entry.restore ? 0 : entry.readVolumes) || null,
+      entry.ownedVolumes ||
+        (entry.restore || entry.ownedFromFile ? 0 : entry.readVolumes) ||
+        null,
       entry.ownedList,
     ),
     rating: Math.round(entry.score / 2) || null,

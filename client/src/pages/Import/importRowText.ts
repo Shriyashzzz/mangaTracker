@@ -13,6 +13,11 @@ function whatTheyHave(s: BookSeries) {
     const ownedList = gapsIn(s.ownedList) ? s.ownedList! : [];
     return `Own ${ownedPhrase({ volumesOwned: s.ownedVolumes, ownedList })}`;
   }
+  // the file says exactly which they own, and that's none
+  if (s.ownedList?.length === 0)
+    return s.readVolumes
+      ? `Read up to vol. ${s.readVolumes}`
+      : "No volumes owned";
   return `${s.books} book${s.books === 1 ? "" : "s"}`;
 }
 

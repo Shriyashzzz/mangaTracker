@@ -20,6 +20,15 @@ export const ownedListFields = (field: string) => [
     .toFloat(),
 ];
 
+// Chapters are saved as whole numbers. A half chapter ("10.5") gets told so,
+// with the whole one to use; anything else just that it isn't a number
+export const chapterMessage = (value: unknown) => {
+  const text = String(value ?? "").trim();
+  return /^\d+\.\d+$/.test(text)
+    ? `Chapters are whole numbers. Try ${Math.floor(Number(text))}.`
+    : "Chapter has to be a number.";
+};
+
 // ---------- validation shared by add and edit ----------
 export const mangaFields = [
   body("name")
@@ -32,7 +41,7 @@ export const mangaFields = [
   body("bookmark")
     .optional({ values: "falsy" })
     .isInt({ min: 0, max: 100000 })
-    .withMessage("Bookmark has to be a number luv!")
+    .withMessage(chapterMessage)
     .toInt(),
   body("status")
     .isBoolean()

@@ -13,6 +13,7 @@ test("the browser's title key is the server's", () => {
     "86—EIGHTY-SIX",
     "Spy x Family",
     "Hunter × Hunter",
+    "+Anima",
     "🔥🔥",
   ]) {
     expect(browser.titleKey(name)).toBe(titleKey(name));
@@ -22,4 +23,8 @@ test("the browser's title key is the server's", () => {
 
 test("Hunter × Hunter and Hunter x Hunter are one series", () => {
   expect(titleKey("Hunter × Hunter")).toBe(titleKey("Hunter x Hunter"));
+});
+
+test("+Anima and Anima are two series", () => {
+  expect(titleKey("+Anima")).not.toBe(titleKey("Anima"));
 });

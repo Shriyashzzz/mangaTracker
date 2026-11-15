@@ -407,6 +407,7 @@ export const toEntry = (
   // only the books whose volumes go on the shelf: the server keeps no other
   ...(s.bookList?.length ? { books: s.bookList.slice(0, 300) } : {}),
   ownedVolumes: s.ownedVolumes,
+  ownedFromFile: true,
   // only with gaps: a run from 1 is what ownedVolumes says already, and keeps
   // counting a volume read further on as theirs, as it always did
   // cleaned the server's way first: a "2049" guessed from a title would

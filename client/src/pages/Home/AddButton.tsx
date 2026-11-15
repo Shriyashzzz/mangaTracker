@@ -4,28 +4,24 @@ import { PlusIcon } from "../../components/icons/Icons";
 import { homeStyles as styles } from "./styles";
 
 // The round + on small screens, within reach of a thumb. It slides away while
-// they scroll down the shelf, so it doesn't sit over the covers they're
-// reading, and is back as soon as they scroll up or stop. In a portal: the
-// page's fade-in would otherwise pin it to the page, not the screen
-const ADD_BACK_AFTER_MS = 700;
+// they scroll down the shelf and stays away, so it doesn't sit over the
+// covers and labels they're reading (coming back when they stopped left it
+// over a card's line). It's back as soon as they scroll up, or near the top.
+// In a portal: the page's fade-in would otherwise pin it to the page, not
+// the screen
+const NEAR_THE_TOP = 120;
 export default function AddButton({ onClick }: { onClick: () => void }) {
   const [away, setAway] = useState(false);
   useEffect(() => {
     let last = window.scrollY;
-    let timer: ReturnType<typeof setTimeout> | undefined;
     const onScroll = () => {
       const y = window.scrollY;
-      if (y > last + 4 && y > 120) setAway(true);
-      else if (y < last - 4) setAway(false);
+      if (y > last + 4 && y > NEAR_THE_TOP) setAway(true);
+      else if (y < last - 4 || y <= NEAR_THE_TOP) setAway(false);
       last = y;
-      clearTimeout(timer);
-      timer = setTimeout(() => setAway(false), ADD_BACK_AFTER_MS);
     };
     window.addEventListener("scroll", onScroll, { passive: true });
-    return () => {
-      clearTimeout(timer);
-      window.removeEventListener("scroll", onScroll);
-    };
+    return () => window.removeEventListener("scroll", onScroll);
   }, []);
   return createPortal(
     <button
