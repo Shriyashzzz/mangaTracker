@@ -295,7 +295,10 @@ export const seriesKey = (name: string) =>
     .replace(/[̀-ͯ]/g, "")
     .normalize("NFKC")
     .replace(/[^\p{L}\p{N}]+/gu, " ")
-    .trim();
+    .trim() ||
+  // a name of only symbols or emoji ("🔥🔥") is its own key, as written,
+  // or it would have none and be left out
+  name.replace(/\s+/g, "").toLowerCase();
 
 // publishers tag the novel editions, so the manga of the same name stays apart
 const LIGHT_NOVEL = /\blight[\s-]?novels?\b|\(\s*(ln|novel)\s*\)/i;

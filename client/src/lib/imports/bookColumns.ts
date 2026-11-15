@@ -269,10 +269,20 @@ export const bookListOf = (
 };
 const tidyName = (name: string) => name.replace(/\s+/g, " ").trim();
 
+// the column holding each row's name: a title, or on a list of series, the
+// series ("Series", "Manga") when there's no title column
+const TITLE_COLUMN = [
+  /^(title|book ?title|name)$/i,
+  /title/i,
+  /^(series( ?name)?|manga|manga title)$/i,
+];
+
+const NOT_OWNED = /^(0|no|n|false|not owned|don'?t own|wishlist|wanted)$/i;
+
 // any other app: whichever columns look right. No owned column means it's a
 // list of books they have
 export function csvBook(h: string[], row: string[]): Book | null {
-  const title = cell(row, header(h, /^(title|book ?title|name)$/i, /title/i));
+  const title = cell(row, header(h, ...TITLE_COLUMN));
   if (!title) return null;
   const seriesColumn = cell(row, header(h, /^series( ?name)?$/i));
   const volumeColumn = Number.parseFloat(
@@ -283,11 +293,14 @@ export function csvBook(h: string[], row: string[]): Book | null {
   );
   const fromTitle = seriesFromTitle(title);
   const fromColumn = seriesFromColumn(seriesColumn);
-  const ownedAt = header(h, /own|copies|purchased|bought/i);
+  const ownedAt = header(h, /own|copies|purchased|bought|^qty$|quantity/i);
   const owned =
     ownedAt < 0
       ? true
       : yes(cell(row, ownedAt)) || count(cell(row, ownedAt)) > 0;
+  // said in so many words: not theirs (a blank cell says nothing)
+  const notOwned =
+    ownedAt >= 0 && NOT_OWNED.test(cell(row, ownedAt)) ? true : undefined;
   const readAt = header(
     h,
     /^(read|read status|status|exclusive shelf|shelf)$/i,
@@ -310,6 +323,7 @@ export function csvBook(h: string[], row: string[]): Book | null {
       ? { volume: volumeColumn, guessed: undefined }
       : {}),
     owned,
+    ...(notOwned ? { notOwned } : {}),
     read,
     reading,
     rating: stars(cell(row, header(h, /^(my )?(rating|score|stars)$/i))),
@@ -326,49 +340,107 @@ export function csvBook(h: string[], row: string[]): Book | null {
 // "1-5, 7-12", in its volumes column, read as one book per volume it holds,
 // and a Status of Finished marks the series finished.
 // A column named for several volumes ("Owned volumes", "Volumes owned",
-// "Volumes") may also give a plain count: "12" is vols. 1 to 12. Anything
-// else is the row's one book, as csvBook reads it
+// "Volumes", or "Owned" with a number in it) may also give a plain count: "12" is vols. 1 to 12.
+// Anything else is the row's one book, as csvBook reads it
 const BOX_SET_WORDS = /\bbox(ed)?\s?set\b|\ball-in-one\b/i;
 const VOLUMES_COLUMN = /^((owned|my) )?vol(ume)?s( owned)?$/i;
+// a column called just "Owned" is yes or no on most files; a number in it
+// ("12", "1-12") is how many they own
+const OWNED_COLUMN = /^owned$/i;
 const VOLUME_COLUMN = /^(vol(ume)?|number|no\.?|#)$/i;
+
+// What a volumes cell says, in the ways people write it: "1-107", "1-5,
+// 7-12", "v1-v37", "1~74", "1 to 12", "12 vols". `several`: the column is
+// for a series' volumes, so a plain number is a count and 0 or blank is none
+type VolumesCell =
+  | { kind: "volumes"; volumes: number[] }
+  | { kind: "none" }
+  | { kind: "one"; volume: number | null }
+  | { kind: "unreadable" };
+export function readVolumesCell(text: string, several: boolean): VolumesCell {
+  const plain = text
+    .trim()
+    // "v12", "vol. 12", "#12": the number
+    .replace(/(?:\bvol(?:ume)?s?\.?|\bv|#)\s*(?=\d)/gi, "")
+    // "1~74", "1 to 74": a range
+    .replace(/\s*(?:~|\bto\b|\bthru\b|\bthrough\b)\s*/gi, "-")
+    // "12 vols", "12 books": the count
+    .replace(/\s*\b(?:vols?\.?|volumes?|books?)$/i, "")
+    // "1-5 & 7", "1-5 and 7": a list
+    .replace(/\s*(?:&|\band\b)\s*/gi, ", ")
+    .trim();
+  if (!plain) return several ? { kind: "none" } : { kind: "one", volume: null };
+  if (/^\d{1,3}$/.test(plain)) {
+    const n = Number(plain);
+    if (!several) return { kind: "one", volume: n };
+    if (n === 0) return { kind: "none" };
+    return {
+      kind: "volumes",
+      volumes: Array.from({ length: n }, (_, i) => i + 1),
+    };
+  }
+  const volumes = /[-–,]/.test(plain) ? parseVolumes(plain) : null;
+  return volumes?.length
+    ? { kind: "volumes", volumes }
+    : { kind: "unreadable" };
+}
+
 export function csvBooks(h: string[], row: string[]): Book[] {
   const book = csvBook(h, row);
   if (!book) return [];
-  const severalAt = header(h, VOLUMES_COLUMN);
-  const text = cell(row, severalAt >= 0 ? severalAt : header(h, VOLUME_COLUMN));
-  const isCount = severalAt >= 0 && /^\d{1,3}$/.test(text);
-  const volumes = isCount
-    ? Array.from({ length: Number(text) }, (_, i) => i + 1)
-    : /[-–,]/.test(text)
-      ? parseVolumes(text)
-      : null;
-  if (!volumes?.length) return [book];
+  const ownedAt = header(h, OWNED_COLUMN);
+  const volumesAt = header(h, VOLUMES_COLUMN);
+  let severalAt = volumesAt;
+  if (severalAt < 0 && /\d/.test(cell(row, ownedAt))) severalAt = ownedAt;
+  const several = severalAt >= 0;
+  const said = readVolumesCell(
+    cell(row, several ? severalAt : header(h, VOLUME_COLUMN)),
+    several,
+  );
+  if (said.kind === "one")
+    return [
+      book.volume == null && said.volume != null
+        ? { ...book, volume: said.volume, guessed: undefined }
+        : book,
+    ];
   // the title names the whole series, so a number at its end is part of the
   // name ("Kaiju No. 8", "Mob Psycho 100"), not a volume. A Series column,
   // when there is one, has named it already
   const hasSeriesColumn = Boolean(cell(row, header(h, /^series( ?name)?$/i)));
   const named = hasSeriesColumn ? {} : seriesFromTitle(book.title, false);
+  // a row for a whole series that says Finished: the series is finished,
+  // not only these books read. "Reading" is about the series too: it isn't
+  // "read up to the last volume owned"
+  const status = cell(row, header(h, /^(status|read status|state)$/i));
+  const finished = /^(finished|completed?|done)$/i.test(status);
+  const series = {
+    ...book,
+    ...named,
+    ...(finished ? { finished: true } : {}),
+    reading: false,
+    // they have it, or have said how many they have: not a to-read entry
+    planned: false,
+    guessed: undefined,
+  };
+  // none owned ("0", or left blank): the series, with nothing owned
+  if (said.kind === "none") return [{ ...series, volume: null, owned: false }];
+  // something we can't read: asked about in the preview, never "vol. 1"
+  if (said.kind === "unreadable")
+    return [{ ...series, volume: null, owned: true, omnibus: true }];
   // each book keeps the row's title, edition words and all ("Berserk
   // Deluxe Edition #3"), so a deluxe or omnibus run is still read as one.
   // A box set's row lists the volumes inside it ("Akira 35th Anniversary Box
   // Set", 1-6): those are the series' own volumes
-  const isBoxSet = BOX_SET_WORDS.test(book.title);
-  const base = isBoxSet
+  const base = BOX_SET_WORDS.test(book.title)
     ? hasSeriesColumn
       ? book.series
       : seriesFromTitle(book.title, false).series
     : book.title;
-  // a row for a whole series that says Finished: the series is finished,
-  // not only these books read
-  const status = cell(row, header(h, /^(status|read status|state)$/i));
-  const finished = /^(finished|completed?|done)$/i.test(status);
-  return volumes.map((volume) => ({
-    ...book,
-    ...named,
-    ...(finished ? { finished: true } : {}),
+  return said.volumes.map((volume) => ({
+    ...series,
+    owned: true,
     title: `${base} #${volume}`,
     volume,
-    guessed: undefined,
   }));
 }
 
@@ -377,7 +449,7 @@ export function csvBooks(h: string[], row: string[]): Book[] {
 export function isbnOnlyRows(rows: string[][]): string[] {
   const [headers = [], ...body] = rows;
   const h = headers.map((x) => x.trim());
-  const titleAt = header(h, /^(title|book ?title|name)$/i, /title/i);
+  const titleAt = header(h, ...TITLE_COLUMN);
   const isbnAt = header(h, /^isbn ?(13)?$/i, /isbn/i);
   if (isbnAt < 0) return [];
   return [

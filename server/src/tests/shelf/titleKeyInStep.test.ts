@@ -12,8 +12,14 @@ test("the browser's title key is the server's", () => {
     "葬送のフリーレン",
     "86—EIGHTY-SIX",
     "Spy x Family",
+    "Hunter × Hunter",
+    "🔥🔥",
   ]) {
     expect(browser.titleKey(name)).toBe(titleKey(name));
     expect(browser.shelfKey(name, true)).toBe(shelfKey(titleKey(name), true));
   }
+});
+
+test("Hunter × Hunter and Hunter x Hunter are one series", () => {
+  expect(titleKey("Hunter × Hunter")).toBe(titleKey("Hunter x Hunter"));
 });

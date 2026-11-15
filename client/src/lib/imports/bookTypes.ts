@@ -22,6 +22,10 @@ export type Book = {
   // Omnibus, Vol. 3"): its number is the omnibus', not a volume's
   omnibus?: boolean;
   owned: boolean;
+  // the file says plainly they don't own it ("Owned: no"): a book read
+  // isn't then counted as owned. Goodreads never says so: its Owned Copies
+  // is left at 0 by most readers, even for books they have
+  notOwned?: boolean;
   read: boolean;
   // reading it now: everything before it counts as read
   reading: boolean;

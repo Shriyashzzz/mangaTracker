@@ -740,7 +740,10 @@ function Library() {
         />
       )}
 
-      {!showingNew && <AddButton onClick={addFlow.choose} />}
+      {/* not on New, nor on Volumes, where it sat over each row's count */}
+      {!showingNew && tab !== "volumes" && (
+        <AddButton onClick={addFlow.choose} />
+      )}
       {addFlow.adding === "choosing" && (
         <AddChoice
           onType={goToAdd}

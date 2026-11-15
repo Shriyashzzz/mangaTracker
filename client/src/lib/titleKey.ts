@@ -5,6 +5,8 @@
 const letters = (name: string) =>
   name
     .toLowerCase()
+    // "Hunter × Hunter" is "Hunter x Hunter", not "HunterHunter"
+    .replace(/×/g, "x")
     .normalize("NFKD")
     .replace(/[^a-z0-9]+/g, "");
 

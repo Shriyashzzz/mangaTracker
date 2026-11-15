@@ -1427,3 +1427,68 @@ test("a row per series that says Finished comes in finished", () => {
   const books = seriesSheet("Title,Volume,Status", ["Monster,3,Finished"]);
   expect(books[0]!.finished).toBeUndefined();
 });
+
+test("volume cells written other ways, and ones it can't read", () => {
+  const groups = seriesSheet("Title,Volumes owned", [
+    "Vagabond,v1-v37",
+    "Bleach,1~74",
+    "Gantz,12 vols",
+    'Dorohedoro,"1-5 & 7"',
+    "Berserk,0",
+    "Blank Series,",
+    "Golden Kamuy,All",
+  ]);
+  const of = (name: string) => groups.find((g) => g.title === name)!;
+  expect(of("Vagabond").ownedVolumes).toBe(37);
+  expect(of("Bleach").ownedVolumes).toBe(74);
+  expect(of("Gantz").ownedVolumes).toBe(12);
+  expect(of("Dorohedoro").ownedList).toEqual([1, 2, 3, 4, 5, 7]);
+  // 0 or blank: none owned, and not a to-read entry
+  for (const name of ["Berserk", "Blank Series"]) {
+    expect(of(name).ownedVolumes).toBe(0);
+    expect(of(name).planned).toBe(false);
+  }
+  // can't read it: asked about in the preview, never "vol. 1"
+  expect(of("Golden Kamuy").ownedVolumes).toBe(0);
+  expect(of("Golden Kamuy").unsure).toEqual(["Golden Kamuy"]);
+});
+
+test("a number under a column called Owned is how many they own", () => {
+  const groups = seriesSheet("Manga,Owned,Read", [
+    "One Piece,12,5",
+    "Berserk,0,0",
+  ]);
+  expect(ownedOf(groups, "One Piece")).toHaveLength(12);
+  expect(ownedOf(groups, "Berserk")).toEqual([]);
+});
+
+test("a row per series that says Reading isn't read up to its last volume", () => {
+  const [onePiece] = seriesSheet("Title,Owned volumes,Status", [
+    "One Piece,1-107,Reading",
+  ]);
+  expect(onePiece!.ownedVolumes).toBe(107);
+  expect(onePiece!.readVolumes).toBe(0);
+});
+
+test("a book the file says isn't owned isn't owned, read or not", () => {
+  const groups = seriesSheet("Title,Owned,Status", [
+    "Akira Vol. 5,no,read",
+    "Akira Vol. 6,no,read",
+    "Dandadan Vol. 1,yes,",
+    "Dandadan Vol. 9,no,read",
+  ]);
+  const of = (name: string) => groups.find((g) => g.title === name)!;
+  expect([of("Akira").ownedVolumes, of("Akira").readVolumes]).toEqual([0, 6]);
+  expect([of("Dandadan").ownedVolumes, of("Dandadan").readVolumes]).toEqual([
+    1, 9,
+  ]);
+});
+
+test("a series named only in emoji comes back from a backup", () => {
+  const books = readBooks(
+    parseCsv('Title,Type,Status,Owned volumes\n"🔥🔥",Manga,Reading,1-3'),
+    "csv",
+  );
+  const groups = groupBooks(books);
+  expect(groups.map((g) => [g.title, g.ownedVolumes])).toEqual([["🔥🔥", 3]]);
+});

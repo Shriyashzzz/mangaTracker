@@ -98,13 +98,20 @@ export function groupBooks(everyBook: Book[]): BookSeries[] {
       numberedOwned.length || !ownedBooks.length
         ? [...new Set(numberedOwned.flatMap(volumesOf))].sort((a, b) => a - b)
         : null;
-    // on vol. 5 now means 1 to 4 are read, marked or not
-    const readingFrom = list.flatMap((b) =>
-      b.reading && b.volume != null
-        ? [Math.max(0, Math.floor(b.volume) - 1)]
-        : [],
-    );
-    const read = Math.max(furthest(list.filter((b) => b.read)), ...readingFrom);
+    // how far they've read: on vol. 5 now means 1 to 4 are read, marked or not
+    const readUpTo = (picked: Book[]) =>
+      Math.max(
+        furthest(picked.filter((b) => b.read)),
+        ...picked.flatMap((b) =>
+          b.reading && b.volume != null
+            ? [Math.max(0, Math.floor(b.volume) - 1)]
+            : [],
+        ),
+      );
+    const read = readUpTo(list);
+    // a book read counts as owned too (Goodreads files rarely say what's
+    // owned), unless the file says plainly it isn't theirs
+    const readAndMaybeOwned = readUpTo(list.filter((b) => !b.notOwned));
     const rated = list.filter((b) => b.rating > 0);
     const average =
       rated.reduce((sum, b) => sum + b.rating, 0) / (rated.length || 1);
@@ -115,7 +122,10 @@ export function groupBooks(everyBook: Book[]): BookSeries[] {
       books: list.length,
       // books that don't say what they hold count for nothing until Edit
       // says (they were "vol. 1", which a box set of 27 isn't)
-      ownedVolumes: Math.max(0, Math.min(Math.max(owned, read), 999)),
+      ownedVolumes: Math.max(
+        0,
+        Math.min(Math.max(owned, readAndMaybeOwned), 999),
+      ),
       ownedList,
       readVolumes: Math.max(0, Math.min(read, 999)),
       score: Math.round(average * 2),
