@@ -322,6 +322,56 @@ export function csvBook(h: string[], row: string[]): Book | null {
   };
 }
 
+// A row that stands for a whole series: "One Piece" with "1-107", or
+// "1-5, 7-12", in its volumes column, read as one book per volume it holds,
+// and a Status of Finished marks the series finished.
+// A column named for several volumes ("Owned volumes", "Volumes owned",
+// "Volumes") may also give a plain count: "12" is vols. 1 to 12. Anything
+// else is the row's one book, as csvBook reads it
+const BOX_SET_WORDS = /\bbox(ed)?\s?set\b|\ball-in-one\b/i;
+const VOLUMES_COLUMN = /^((owned|my) )?vol(ume)?s( owned)?$/i;
+const VOLUME_COLUMN = /^(vol(ume)?|number|no\.?|#)$/i;
+export function csvBooks(h: string[], row: string[]): Book[] {
+  const book = csvBook(h, row);
+  if (!book) return [];
+  const severalAt = header(h, VOLUMES_COLUMN);
+  const text = cell(row, severalAt >= 0 ? severalAt : header(h, VOLUME_COLUMN));
+  const isCount = severalAt >= 0 && /^\d{1,3}$/.test(text);
+  const volumes = isCount
+    ? Array.from({ length: Number(text) }, (_, i) => i + 1)
+    : /[-–,]/.test(text)
+      ? parseVolumes(text)
+      : null;
+  if (!volumes?.length) return [book];
+  // the title names the whole series, so a number at its end is part of the
+  // name ("Kaiju No. 8", "Mob Psycho 100"), not a volume. A Series column,
+  // when there is one, has named it already
+  const hasSeriesColumn = Boolean(cell(row, header(h, /^series( ?name)?$/i)));
+  const named = hasSeriesColumn ? {} : seriesFromTitle(book.title, false);
+  // each book keeps the row's title, edition words and all ("Berserk
+  // Deluxe Edition #3"), so a deluxe or omnibus run is still read as one.
+  // A box set's row lists the volumes inside it ("Akira 35th Anniversary Box
+  // Set", 1-6): those are the series' own volumes
+  const isBoxSet = BOX_SET_WORDS.test(book.title);
+  const base = isBoxSet
+    ? hasSeriesColumn
+      ? book.series
+      : seriesFromTitle(book.title, false).series
+    : book.title;
+  // a row for a whole series that says Finished: the series is finished,
+  // not only these books read
+  const status = cell(row, header(h, /^(status|read status|state)$/i));
+  const finished = /^(finished|completed?|done)$/i.test(status);
+  return volumes.map((volume) => ({
+    ...book,
+    ...named,
+    ...(finished ? { finished: true } : {}),
+    title: `${base} #${volume}`,
+    volume,
+    guessed: undefined,
+  }));
+}
+
 // rows with an ISBN and no title (a scanner app's list): the ISBNs, to be
 // looked up as a barcode is (bookFromScan). Any app's file
 export function isbnOnlyRows(rows: string[][]): string[] {

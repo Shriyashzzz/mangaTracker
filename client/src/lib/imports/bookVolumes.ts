@@ -20,6 +20,7 @@ import {
   isOwnExport,
   ownExportBooks,
   csvBook,
+  csvBooks,
 } from "./bookColumns";
 
 // ---------- books that hold several volumes ----------
@@ -107,17 +108,26 @@ const cutTo = (book: Book, before: string): Partial<Book> => {
     : {};
 };
 
-// editions whose books each hold a fixed number of the series' volumes, with
+// editions whose books hold the series' volumes in a known way, with
 // nothing in the title saying which: "Berserk Deluxe Edition, Vol. 2" is 4 to
 // 6. Any other deluxe, perfect or collector's edition is asked about, like an
-// omnibus, as its number isn't a volume's
-const EDITIONS: {
+// omnibus, as its number isn't a volume's.
+//
+// `perBook`: each book holds that many, the last perhaps fewer. Without it the
+// books split the run evenly (evenRange): some editions regroup the chapters,
+// not whole volumes (Fullmetal Edition puts 27 volumes in 18 books), and the
+// publishers don't say which volume each book starts at. Owning every book is
+// then owning every volume, which is what matters most; a few books alone
+// count as about the right volumes. Add an edition only from the publisher's
+// own book and volume counts
+type Edition = {
   series: RegExp;
   edition: RegExp;
-  perBook: number;
+  perBook?: number;
   books: number;
   volumes: number;
-}[] = [
+};
+const EDITIONS: Edition[] = [
   // Deluxe 14 ends at vol. 41
   {
     series: /^berserk$/,
@@ -156,9 +166,80 @@ const EDITIONS: {
     books: 12,
     volumes: 23,
   },
+  // VIZ: 11 books of 2; its 12th is 21st Century Boys, a series of its own
+  {
+    series: /^20th century boys$/,
+    edition: /\bperfect edition\b/i,
+    perBook: 2,
+    books: 11,
+    volumes: 22,
+  },
+  // VIZ, 2018 to 2022: 18 books for the 27 volumes, regrouped by chapter
+  {
+    series: /^fullmetal alchemist$/,
+    edition: /\bfullmetal edition\b/i,
+    books: 18,
+    volumes: 27,
+  },
+  // Vertical: 6 books for the 10 volumes
+  {
+    series: /^blame$/,
+    edition: /\bmaster edition\b/i,
+    books: 6,
+    volumes: 10,
+  },
+  // Vertical: 8 books for the 15 volumes
+  {
+    series: /^knights of sidonia$/,
+    edition: /\bmaster edition\b/i,
+    books: 8,
+    volumes: 15,
+  },
+  // Dark Horse: 3 books for the 10 volumes
+  {
+    series: /^hellsing$/,
+    edition: /\bdeluxe\b/i,
+    books: 3,
+    volumes: 10,
+  },
+  // Kodansha: 6 books for the 9 volumes
+  {
+    series: /^battle angel alita$/,
+    edition: /\bdeluxe\b/i,
+    books: 6,
+    volumes: 9,
+  },
+  // Kodansha's Eternal Edition: 10 books for the 12 volumes
+  {
+    series: /^sailor moon$|^pretty guardian sailor moon$/,
+    edition: /\beternal edition\b/i,
+    books: 10,
+    volumes: 12,
+  },
 ];
+
+// book `n` of an edition: the volumes it holds
+function editionRange(edition: Edition, n: number): [number, number] {
+  if (edition.perBook) {
+    const from = (n - 1) * edition.perBook + 1;
+    return [from, Math.min(n * edition.perBook, edition.volumes)];
+  }
+  return evenRange(n, edition.books, edition.volumes);
+}
+
+// book `n` of `books` holding `volumes` between them, split evenly: 27 in 18
+// is 1, 2 to 3, 4, 5 to 6, ... so every volume is in exactly one book
+export function evenRange(
+  n: number,
+  books: number,
+  volumes: number,
+): [number, number] {
+  const from = Math.floor(((n - 1) * volumes) / books) + 1;
+  const to = Math.floor((n * volumes) / books);
+  return [from, Math.max(from, to)];
+}
 const SPECIAL_EDITION =
-  /\b(deluxe|perfect edition|collector'?s edition|fullmetal edition|master edition)\b/i;
+  /\b(deluxe|perfect edition|collector'?s edition|fullmetal edition|master edition|eternal edition)\b/i;
 
 export function editionVolumes(
   series: string,
@@ -170,8 +251,7 @@ export function editionVolumes(
     (e) => e.series.test(key) && e.edition.test(title),
   );
   if (known && volume && Number.isInteger(volume) && volume <= known.books) {
-    const from = (volume - 1) * known.perBook + 1;
-    const to = Math.min(volume * known.perBook, known.volumes);
+    const [from, to] = editionRange(known, volume);
     return {
       holds: Array.from({ length: to - from + 1 }, (_, i) => from + i),
     };
@@ -203,6 +283,8 @@ const BOX_SETS: Record<string, Record<number, [number, number]>> = {
   "dragon ball z": { 0: [1, 26] },
   "fullmetal alchemist": { 0: [1, 27] },
   "tokyo ghoul": { 0: [1, 14] },
+  // the 35th anniversary set: the six Kodansha volumes
+  akira: { 0: [1, 6] },
 };
 const SET_MAX = 120;
 
@@ -468,11 +550,15 @@ export function readBooks(rows: string[][], source: BookSource): Book[] {
     const isbn = isbnAt < 0 ? "" : cell(row, isbnAt).replace(/[^0-9]/g, "");
     return [/^97[89]\d{10}$/.test(isbn) ? { ...book, isbn } : book];
   };
+  // a row of any other app's file can be a whole series ("1-107"): its
+  // books, and the ISBN only when it's one book
+  const booksOf = (row: string[]): Book[] => {
+    if (toBook !== csvBook) return withIsbn(row, toBook(h, row));
+    const books = csvBooks(h, row);
+    return books.length === 1 ? withIsbn(row, books[0]!) : books;
+  };
   return confirmTrailingNumbers(
-    body
-      .flatMap((row) => withIsbn(row, toBook(h, row)))
-      .map(withVolumesInside)
-      .map(realNames),
+    body.flatMap(booksOf).map(withVolumesInside).map(realNames),
   )
     .map(realNames)
     .map(renumbered);

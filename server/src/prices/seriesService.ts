@@ -384,13 +384,33 @@ async function lookUpSeriesVolumes(
 
 const JAPANESE_SCRIPT = /[\u3040-ヿ㐀-鿿]/;
 
+// Is this other name a sequel sold in English as a series of its own: the
+// name plus a short tag ("Dragon Ball Z", "Dragonball GT")? AniList lists
+// Dragon Ball Z among Dragon Ball's names (Japan publishes them as one run),
+// but in English Dragon Ball Z starts again at vol. 1, so its vols. 17 to 26
+// filled Dragon Ball's list as if they were Dragon Ball's
+const SEQUEL_TAG = /^[a-z0-9]{1,3}$/;
+export function isSequelName(name: string, other: string) {
+  const words = seriesOf(other).split(" ");
+  const tag = words.pop() ?? "";
+  // spaces don't count: "Dragonball Z" is Dragon Ball's too. The tag is a
+  // word of its own, so "Haikyuu" isn't "Haikyu" plus "u"
+  const squeezed = (text: string) => text.replace(/\s+/g, "");
+  return (
+    words.length > 0 &&
+    SEQUEL_TAG.test(tag) &&
+    squeezed(words.join(" ")) === squeezed(seriesOf(name))
+  );
+}
+
 // AniList's official English name plus up to three other English names,
-// skipping any that are the link's own name
+// skipping any that are the link's own name, or a sequel's (isSequelName)
 const otherNamesFor = (name: string, info: SeriesInfo | null) => {
   const seen = new Set([seriesOf(name)]);
   return [info?.name, ...(info?.altNames ?? []).slice(0, 3)].filter(
     (alt): alt is string => {
       if (!alt || seen.has(seriesOf(alt))) return false;
+      if (isSequelName(info?.name || name, alt)) return false;
       seen.add(seriesOf(alt));
       return true;
     },

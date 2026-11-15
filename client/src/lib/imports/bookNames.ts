@@ -4,10 +4,11 @@
 
 // ---------- series and volume numbers ----------
 
-// a special edition is still the same series: "Berserk Deluxe Edition" is Berserk.
+// a special edition is still the same series: "Berserk Deluxe Edition" is Berserk,
+// "Akira 35th Anniversary Box Set" is Akira.
 // Words that end real names ("Rave Master") count only before "Edition"
 const EDITION =
-  /[\s,:(\-–—]+(the )?((deluxe|omnibus|complete( collection)?|box ?set|vizbig|full[\s-]colou?r(\s+collection)?|\d-in-\d|\d-in|\d+ ?in ?\d+)( edition)?|all-in-one( edition)?|(collector'?s|perfect|ultimate|master|revised|fullmetal) edition)\)?$/i;
+  /[\s,:(\-–—]+(the )?((deluxe|omnibus|complete( collection)?|box ?set|vizbig|full[\s-]colou?r(\s+collection)?|\d-in-\d|\d-in|\d+ ?in ?\d+)( edition)?|all-in-one( edition)?|(collector'?s|perfect|ultimate|master|revised|fullmetal|eternal) edition|\d+(st|nd|rd|th) anniversary( edition)?)\)?$/i;
 
 export const tidy = (name: string) =>
   name

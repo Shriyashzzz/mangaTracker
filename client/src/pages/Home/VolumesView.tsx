@@ -130,6 +130,30 @@ export default function VolumesView({
 
 // the whole shelf: what it would fetch used, and what finishing every series
 // comes to. An estimate says so, with how much of it is real prices
+// said under a total that isn't of every volume yet: prices for the rest
+// are found in the background (server collector/filler.ts, usedFiller.ts)
+const FILL_IN = "the rest fill in over a few days";
+
+// under "To finish every series": how many to get, how many are priced,
+// any series left out of the total, and that the rest is on its way.
+// "133 volumes not on your shelf · 5 priced so far · the rest fill in over a
+// few days"
+function finishNote(tools: ShelfTools, hasTotal: boolean) {
+  // a series collected as its deluxe books counts in books
+  const unit = tools.finish.some((f) => f.edition) ? "book" : "volume";
+  const allPriced = tools.finishPriced >= tools.finishMissing;
+  const parts = [`${plural(tools.finishMissing, unit)} not on your shelf`];
+  if (!allPriced)
+    parts.push(`${tools.finishPriced.toLocaleString()} priced so far`);
+  // the total is of the series priced enough to say
+  if (tools.finishUncosted && hasTotal)
+    parts.push(
+      `${plural(tools.finishUncosted, "series", "series")} not counted yet`,
+    );
+  if (!allPriced) parts.push(FILL_IN);
+  return parts.join(" · ");
+}
+
 function ShelfTotals({ tools, owned }: { tools: ShelfTools; owned: number }) {
   const { value } = tools;
   // every owned volume, as the line above counts them (the server's count
@@ -173,9 +197,11 @@ function ShelfTotals({ tools, owned }: { tools: ShelfTools; owned: number }) {
             <dt className={styles.totalLabel}>Worth used</dt>
             <dd className={styles.totalValue}>{worth}</dd>
             {value.priced < ownedVolumes && (
+              // the total is of every volume, worked out from the ones
+              // priced; the background jobs price the rest over a few days
               <dd className={styles.totalNote}>
-                estimate · {value.priced.toLocaleString()} of{" "}
-                {plural(ownedVolumes, "volume")} priced
+                for all {ownedVolumes.toLocaleString()} · from{" "}
+                {value.priced.toLocaleString()} priced so far · {FILL_IN}
               </dd>
             )}
           </div>
@@ -186,19 +212,7 @@ function ShelfTotals({ tools, owned }: { tools: ShelfTools; owned: number }) {
             {/* no money until enough is priced: the count is still true */}
             <dd className={styles.totalValue}>{finish ?? "no total yet"}</dd>
             <dd className={styles.totalNote}>
-              {/* a series collected as its deluxe books counts in books */}
-              {plural(
-                tools.finishMissing,
-                tools.finish.some((f) => f.edition) ? "book" : "volume",
-              )}{" "}
-              not on your shelf
-              {tools.finishPriced < tools.finishMissing &&
-                ` · ${tools.finishPriced.toLocaleString()} priced`}
-              {/* the total is of the series priced enough to say */}
-              {Boolean(tools.finishUncosted) &&
-                (finish
-                  ? ` · ${plural(tools.finishUncosted!, "series", "series")} not counted yet`
-                  : " · too few priced to add up")}
+              {finishNote(tools, Boolean(finish))}
             </dd>
           </div>
         )}

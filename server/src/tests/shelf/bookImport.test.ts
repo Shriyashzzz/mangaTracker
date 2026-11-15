@@ -434,6 +434,13 @@ test("edition words and the creator's name come off", () => {
     ["Gantz", 3],
   ]);
   expect(searchFallbacks("Naoki Urasawa's Monster")).toContain("Monster");
+  // a name kept exactly as typed (a backup's) is still searched without its
+  // edition words
+  expect(searchFallbacks("Berserk Deluxe Edition")).toContain("Berserk");
+  expect(searchFallbacks("Vagabond (VIZBIG Edition)")).toContain("Vagabond");
+  expect(searchFallbacks("Naruto 3-in-1 Edition")).toContain("Naruto");
+  expect(searchFallbacks("Akira 35th Anniversary Box Set")).toContain("Akira");
+  expect(searchFallbacks("Blame! Master Edition")).toContain("Blame!");
   expect(
     searchFallbacks("Sorcerer Hunters -- 100% Authentic Format"),
   ).toContain("Sorcerer Hunters");
@@ -1314,8 +1321,8 @@ test("a box set is its series, holding what it says or what that set is known to
     ["Demon Slayer", 1, 23, 23, false],
     ["Death Note", 1, 12, 12, false],
   ]);
-  // an edition whose books don't map evenly joins its series, and is asked
-  // about rather than counted as vol. 1
+  // a known edition that regroups the volumes counts as its share of them
+  // (Fullmetal Edition: 27 volumes in 18 books, so book 1 is vol. 1)
   const [fma] = groupBooks(
     goodreads([
       "Fullmetal Alchemist: Fullmetal Edition, Vol. 1",
@@ -1324,8 +1331,18 @@ test("a box set is its series, holding what it says or what that set is known to
   );
   expect([fma!.title, fma!.ownedList, fma!.unsure]).toEqual([
     "Fullmetal Alchemist",
-    [25, 26, 27],
-    ["Fullmetal Alchemist: Fullmetal Edition, Vol. 1"],
+    [1, 25, 26, 27],
+    undefined,
+  ]);
+  // an edition nobody has listed joins its series, and is asked about
+  // rather than counted as vol. 1
+  const [trigun] = groupBooks(
+    goodreads(["Trigun Deluxe Edition, Vol. 1", "Trigun, Vol. 2"]),
+  );
+  expect([trigun!.title, trigun!.ownedList, trigun!.unsure]).toEqual([
+    "Trigun",
+    [2],
+    ["Trigun Deluxe Edition, Vol. 1"],
   ]);
   // a set nobody knows the contents of owns no volume yet, not "vol. 1"
   const [unknown] = groupBooks(goodreads(["Kagurabachi Box Set 1"]));
@@ -1334,4 +1351,79 @@ test("a box set is its series, holding what it says or what that set is known to
     0,
     true,
   ]);
+});
+
+// ---------- a spreadsheet with one row per series ----------
+
+const seriesSheet = (header: string, rows: string[]) =>
+  groupBooks(readBooks(parseCsv([header, ...rows].join("\n")), "csv"));
+const ownedOf = (groups: ReturnType<typeof groupBooks>, name: string) =>
+  groups.find((g) => g.title === name)?.ownedList;
+
+test("a row per series: its volumes column can be a range or a list", () => {
+  const groups = seriesSheet("Title,Owned volumes,Status,Rating", [
+    "One Piece,1-107,Reading,5",
+    'Vinland Saga,"1-5, 7-12",Finished,5',
+    "Dandadan,3,Reading,4",
+    // a number ending the name is part of it, not a volume
+    "Kaiju No. 8,1-12,Reading,3",
+    "Mob Psycho 100,1-16,Finished,4",
+  ]);
+  expect(ownedOf(groups, "Kaiju No. 8")).toHaveLength(12);
+  expect(ownedOf(groups, "Mob Psycho 100")).toHaveLength(16);
+  expect(ownedOf(groups, "One Piece")).toEqual(
+    Array.from({ length: 107 }, (_, i) => i + 1),
+  );
+  // the gap stays a gap
+  expect(ownedOf(groups, "Vinland Saga")).toEqual([
+    1, 2, 3, 4, 5, 7, 8, 9, 10, 11, 12,
+  ]);
+  // a plain number under "Owned volumes" is how many: vols. 1 to 3
+  expect(ownedOf(groups, "Dandadan")).toEqual([1, 2, 3]);
+});
+
+test("a single Volume column still means that one volume", () => {
+  const groups = seriesSheet("Title,Volume", [
+    "Chainsaw Man,4",
+    "Chainsaw Man,9",
+    // a range there is a run too
+    "Blue Period,1-3",
+  ]);
+  expect(ownedOf(groups, "Chainsaw Man")).toEqual([4, 9]);
+  expect(ownedOf(groups, "Blue Period")).toEqual([1, 2, 3]);
+});
+
+test("special editions say which volumes each book holds", () => {
+  const groups = seriesSheet("Title,Owned volumes", [
+    // 11 books of 2
+    "20th Century Boys Perfect Edition,1-11",
+    // 27 volumes in 18 books, split evenly
+    "Fullmetal Alchemist Fullmetal Edition,1-18",
+    "Blame! Master Edition,1-2",
+    // a box set's row lists the volumes inside it
+    "Akira 35th Anniversary Box Set,1-6",
+  ]);
+  const owned = (name: string) => ownedOf(groups, name);
+  expect(owned("20th Century Boys")).toHaveLength(22);
+  expect(owned("Fullmetal Alchemist")).toEqual(
+    Array.from({ length: 27 }, (_, i) => i + 1),
+  );
+  // the first two of six books: about a third of the 10 volumes
+  expect(owned("Blame!")).toEqual([1, 2, 3]);
+  expect(owned("Akira")).toEqual([1, 2, 3, 4, 5, 6]);
+  for (const g of groups) expect(g.unsure ?? []).toEqual([]);
+});
+
+test("a row per series that says Finished comes in finished", () => {
+  const groups = seriesSheet("Title,Owned volumes,Status", [
+    "Monster,1-18,Finished",
+    "One Piece,1-107,Reading",
+  ]);
+  const finished = (name: string) =>
+    Boolean(groups.find((g) => g.title === name)?.finished);
+  expect(finished("Monster")).toBe(true);
+  expect(finished("One Piece")).toBe(false);
+  // a row for one book says that book is read, not the series finished
+  const books = seriesSheet("Title,Volume,Status", ["Monster,3,Finished"]);
+  expect(books[0]!.finished).toBeUndefined();
 });

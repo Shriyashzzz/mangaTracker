@@ -5,7 +5,7 @@ import { latestDate } from "./importDate";
 import { ownedVolumes } from "../ownedVolumes";
 import type { MalEntry } from "./malImport";
 import { type Book, type BookSeries } from "./bookTypes";
-import { LATIN, seriesKey } from "./bookNames";
+import { LATIN, seriesKey, tidy } from "./bookNames";
 import { bookListOf } from "./bookColumns";
 import { joinSubtitleNames } from "./bookVolumes";
 
@@ -168,6 +168,9 @@ export function searchFallbacks(name: string): string[] {
     name.split(/\s+(?:-{1,2}|[–—])\s+/)[0]!,
     // the creator's name in front: "Naoki Urasawa's Monster"
     name.replace(/^\p{Lu}[\p{L}.-]+\s+\p{Lu}[\p{L}.-]+['’]s\s+/u, ""),
+    // an edition's words at the end, for a name kept exactly as typed (a
+    // backup's): "Berserk Deluxe Edition" is found as Berserk
+    tidy(name),
   ].map((n) => n.trim());
   return [...new Set(out)].filter((n) => n !== name && /\p{L}{2}/u.test(n));
 }

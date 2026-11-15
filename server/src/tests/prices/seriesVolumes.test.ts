@@ -1,3 +1,4 @@
+import { isSequelName } from "../../prices/seriesService.js";
 import { pool } from "../../config/prisma.js";
 import { mergeVolumes, needsGoogleShopping } from "../../prices/service.js";
 import type { CatalogBook } from "../../prices/types.js";
@@ -68,4 +69,17 @@ test("Google Shopping is asked only when no store found a print copy", () => {
   // only Google Play's ebook, or nothing at all: ask it
   expect(needsGoogleShopping([{ format: "ebook" }])).toBe(true);
   expect(needsGoogleShopping([])).toBe(true);
+});
+
+test("a sequel sold as its own series isn't one of the series' other names", () => {
+  // Dragon Ball Z starts again at vol. 1 in English: its vol. 17 isn't
+  // Dragon Ball's
+  expect(isSequelName("Dragon Ball", "Dragon Ball Z")).toBe(true);
+  expect(isSequelName("Dragon Ball", "Dragonball Z")).toBe(true);
+  expect(isSequelName("Dragon Ball", "Dragon Ball GT")).toBe(true);
+  // the same series spelled another way, or a longer English name
+  expect(isSequelName("Haikyu!!", "Haikyuu!!")).toBe(false);
+  expect(isSequelName("Dragon Ball", "Dragonball")).toBe(false);
+  expect(isSequelName("Frieren", "Frieren: Beyond Journey's End")).toBe(false);
+  expect(isSequelName("Kimetsu no Yaiba", "Demon Slayer")).toBe(false);
 });
