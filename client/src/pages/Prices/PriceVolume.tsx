@@ -30,6 +30,7 @@ import {
 import SeriesFacts from "./SeriesFacts";
 import BackToNew from "./BackToNew";
 import VolumeCard, { CoverFallback } from "./VolumeCard";
+import PriceAges from "./PriceAges";
 import { pricesStyles as styles } from "./styles";
 import OfferList from "./OfferList";
 import { knownStoreLow } from "./offerLabels";
@@ -175,9 +176,9 @@ export default function PriceVolume() {
   if (preorder) otherStoresTitle = "Or preorder at:";
   // (eBay is among them even with a price above: that row is one seller)
   else if (offers.length > 0) otherStoresTitle = "More places to look:";
-  // an old check, said beside the price it's about
+  // an old price, said beside it: that price's own age, not the page's
   const stale =
-    checkedAt && olderThanDays(checkedAt, 3) ? timeAgo(checkedAt) : null;
+    best && olderThanDays(best.fetchedAt, 3) ? timeAgo(best.fetchedAt) : null;
 
   return (
     <div className="fade-in">
@@ -313,11 +314,7 @@ export default function PriceVolume() {
                       checking stores…
                     </span>
                   ) : (
-                    checkedAt && (
-                      <span className={styles.checked}>
-                        checked {timeAgo(checkedAt)}
-                      </span>
-                    )
+                    <PriceAges offers={offers} checkedAt={checkedAt} />
                   )}
                   <CountrySwitch />
                 </span>

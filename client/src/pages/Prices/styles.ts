@@ -235,6 +235,17 @@ export const pricesStyles = {
   sectionNote:
     "-mt-[0.2rem] mb-3 max-w-[48ch] text-[0.95rem] leading-[1.35] text-ink-soft",
   checked: "text-[0.8rem] text-muted",
+  // the same words, opening how old each store's price is (PriceAges.tsx)
+  ages: "relative",
+  agesToggle:
+    "cursor-pointer list-none text-[0.8rem] text-muted underline decoration-dotted decoration-1 underline-offset-[3px] transition-colors duration-120 hover:text-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent [&::-webkit-details-marker]:hidden [[open]>&]:text-ink",
+  agesBox:
+    "absolute top-[calc(100%+0.45rem)] right-0 z-20 w-max min-w-[13.5rem] max-w-[min(18rem,calc(100vw-2rem))] border-[1.5px] border-line bg-card px-3.5 pt-2.5 pb-3 shadow-ink upto-720:right-auto upto-720:left-0",
+  agesTitle:
+    "mb-1.5 font-letter text-[0.72rem] font-bold tracking-[0.05em] text-muted uppercase",
+  agesList: "flex flex-col gap-1",
+  agesRow: "flex items-baseline justify-between gap-6 text-[0.86rem] text-ink",
+  agesWhen: "font-mono text-[0.76rem] whitespace-nowrap text-muted",
   // "checked … ago" and the US/Canada switch; on phones, where they wrap
   // under the heading, they spread to either side. The switch stays on the
   // right even with no "checked" text beside it
