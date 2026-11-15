@@ -3,6 +3,7 @@
 // shows and in what order, the counts on the tabs, and what a New card says.
 // Pure, so server/src/tests/shelf/shelfViews.test.ts can test it.
 import { ownedOf, ownedPhrase, ownsAny } from "../../lib/ownedVolumes";
+import { chaptersText, readsByChapterOnly } from "../../lib/chapterWords";
 import {
   countNew,
   knowsNextVolume,
@@ -282,8 +283,11 @@ export function newsFor(
 ): CardNews {
   // where they are by the volume: what they own, else what they've read
   const owns = ownedPhrase(m);
+  // reading by the chapter with no books: their place is a chapter
+  const byChapter = readsByChapterOnly(m);
   let volumeYours: string | undefined;
   if (owns) volumeYours = `You own ${owns}`;
+  else if (byChapter) volumeYours = `You're on ch. ${m.bookmark}`;
   else if (found?.currentVolume)
     volumeYours = `You're on vol. ${found.currentVolume}`;
   if (kind === "japan") {
@@ -305,6 +309,11 @@ export function newsFor(
   if (found && !knowsNextVolume(found))
     return { text: "", behind: behindWords(found, kind), yours: volumeYours };
   const next = found?.nextVolume;
+  // a chapter reader is told which chapters that book holds, under their
+  // own: "You're on ch. 38 · vol. 5 has ch. 35–43"
+  const range = byChapter && next != null ? found?.nextVolumeChapters : null;
+  if (range && volumeYours)
+    volumeYours = `${volumeYours} · vol. ${next} has ${chaptersText(range)}`;
   return {
     text: `Vol. ${next} next`,
     behind: behindWords(found, kind),

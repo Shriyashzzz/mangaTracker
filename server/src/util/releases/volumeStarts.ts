@@ -60,3 +60,23 @@ export function volumeOfChapter(
     !nextIsKnown && chapter - found.firstChapter > MOST_CHAPTERS_IN_A_VOLUME;
   return isFarPast ? null : found.volume;
 }
+
+// The chapters in a volume, by where it starts and where the next one does:
+// vol. 5 starting at 34, vol. 6 at 43, is 34 to 42. "to" is null when the
+// next volume's start isn't known (the newest volume); null when this one's
+// isn't either
+export function chaptersIn(
+  volume: number,
+  starts: VolumeStart[],
+): { from: number; to: number | null } | null {
+  const here = starts.find((s) => s.volume === volume);
+  if (!here) return null;
+  const next = starts.find((s) => s.volume === volume + 1);
+  return {
+    from: here.firstChapter,
+    to:
+      next && next.firstChapter > here.firstChapter
+        ? next.firstChapter - 1
+        : null,
+  };
+}

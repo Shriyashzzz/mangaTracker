@@ -111,9 +111,18 @@ test("half chapters count, and the next one never passes the latest", () => {
   expect(status.nextChapter).toBe(250.5);
 });
 
-test("a finished series has no new chapters", () => {
+test("a finished series still shows the next chapter to a reader behind", () => {
   const dates = { ...chapter("201"), seriesFinished: true } as FormatedDates;
-  expect(getReleaseStatus(readTo(200), chaptersOnly(dates)).hasNewChapter).toBe(
+  // (set to every series, as "Every series" saves it: the default only
+  // lists those within 3)
+  const everySeries: ReleaseSettings = {
+    volumes: { mode: "next", within: 1 },
+    chapters: { mode: "next", within: 3 },
+  };
+  const behind = getReleaseStatus(readTo(38), chaptersOnly(dates), everySeries);
+  expect([behind.chapterListed, behind.nextChapter]).toEqual([true, 39]);
+  // caught up with a finished series: nothing to show
+  expect(getReleaseStatus(readTo(201), chaptersOnly(dates)).chapterListed).toBe(
     false,
   );
 });
@@ -195,10 +204,42 @@ describe("the panel's next volume", () => {
   });
 
   test("works out where they are from their chapter", () => {
+    // on chapter 12, in vol. 2 (10 to 18): vol. 2 is the book they need, so
+    // vol. 1 is done
     const fromChapter = status(null, 12, 3);
-    expect(fromChapter.currentVolume).toBe(2);
-    expect(fromChapter.isNextVolumeOut).toBe(true);
-    expect(status(null, 12, 4).isNextVolumeOut).toBe(false);
+    expect(fromChapter.currentVolume).toBe(1);
+    expect(fromChapter.nextChapterVolume).toBe(2);
+    expect(status(null, 12, 2).isNextVolumeOut).toBe(true);
+    // on the last chapter of vol. 1: the next one is vol. 2's first
+    expect(status(null, 9, 3).currentVolume).toBe(1);
+    // the chapters in the volume they need, beside their chapter: the
+    // newest known volume has no end yet
+    expect(status(null, 20, 3).nextVolumeChapters).toEqual({
+      from: 19,
+      to: null,
+    });
+  });
+
+  test("the chapters in the volume they need", () => {
+    const withAll = getReleaseStatus(
+      { volumesOwned: null, bookmark: 12 },
+      {
+        dates: { volumeStarts: starts } as FormatedDates,
+        englishVolumes: english(1, 2, 3),
+      },
+    );
+    expect(withAll.nextVolume).toBe(2);
+    expect(withAll.nextVolumeChapters).toEqual({ from: 10, to: 18 });
+    // someone with books: their next book, no range
+    expect(status(1, 12, 3).nextVolumeChapters).toBeNull();
+  });
+
+  test("a chapter the list can't place gives no volume, no range", () => {
+    // far past vol. 3's start, with nothing known after it
+    const unplaced = status(null, 60, 5);
+    expect(unplaced.currentVolume).toBeNull();
+    expect(unplaced.nextVolume).toBeNull();
+    expect(unplaced.nextVolumeChapters).toBeNull();
   });
 
   test("what they own wins over their chapter", () => {

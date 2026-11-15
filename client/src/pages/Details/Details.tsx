@@ -19,6 +19,7 @@ import { ownedOf } from "../../lib/ownedVolumes";
 import { useReleaseChecksOn, useTrackBy } from "../../lib/prefs";
 import { priceName } from "../../lib/prices";
 import { tracksOf } from "../../lib/reading";
+import { placeOnShelf } from "../../lib/chapterVolumes";
 import { usePrivatePage } from "../../lib/seo";
 import { getReleases } from "../../lib/shelf";
 import type { Manga, ReleaseData, ReleaseStatus } from "../../lib/types";
@@ -297,6 +298,11 @@ export default function Details() {
   const owned = ownedOf(mangaData);
   const highestOwned = Math.floor(Math.max(0, ...owned));
   const shelfTotal = shelfSize(highestOwned, releaseStatus, buyOptions);
+  const shelfPlace = placeOnShelf(
+    mangaData,
+    tracksOf(mangaData, trackBy),
+    releaseData?.volumeStarts ?? [],
+  );
   const { release, barBuy, barEnglish, hideNextTicket } = releaseNews({
     manga: mangaData,
     releaseStatus,
@@ -347,6 +353,7 @@ export default function Details() {
               total={shelfTotal.size}
               totalKnown={shelfTotal.isKnown}
               ownedVolumes={ownedVolumes}
+              place={shelfPlace}
             />
           </div>
 
@@ -358,7 +365,6 @@ export default function Details() {
             owned={owned}
             highestOwned={highestOwned}
             volumeSets={volumeSets}
-            volumeStarts={releaseData?.volumeStarts}
             onStart={startReading}
             onChange={saveReading}
             onPlaceSaved={(place) => {
@@ -466,6 +472,13 @@ export default function Details() {
             options={buyOptions}
             hideNext={hideNextTicket}
             editions={editions}
+            // only when the book offered is the one their next chapter is in
+            nextChapters={
+              buyOptions.next &&
+              buyOptions.next.volume === releaseStatus?.nextVolume
+                ? releaseStatus?.nextVolumeChapters
+                : null
+            }
             onCollect={(edition) => saveReading({ edition })}
           />
         </div>

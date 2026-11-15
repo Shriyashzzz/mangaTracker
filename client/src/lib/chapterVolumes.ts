@@ -1,5 +1,5 @@
-// Which volume a chapter is in, and the other way round, for the "(vol. 5)"
-// beside the chapter on a series' page. From MangaDex's list of where each
+// Which volume a chapter is in, for the red mark on a series' volume shelf
+// ("reading vol. 12"). From MangaDex's list of where each
 // volume starts, which the server sends with a series' release data
 // (server util/releases/volumeStarts.ts).
 //
@@ -28,13 +28,17 @@ export function volumeHolding(
   return null;
 }
 
-// the last chapter in this volume, or null when the list can't say
-export function lastChapterOf(
-  volume: number,
+// Where they are, as the volume shelf on a series' page marks it: the
+// volume they've read up to, for someone keeping their place by the volume;
+// else the volume their chapter is in, when the list is sure of it
+export function placeOnShelf(
+  manga: { bookmark: number | null; readVolume?: number | null },
+  tracks: { chapters: boolean; volumes: boolean },
   starts: VolumeStart[],
-): number | null {
-  const here = starts.find((s) => s.volume === volume);
-  const next = starts.find((s) => s.volume === volume + 1);
-  if (!here || !next || next.firstChapter <= here.firstChapter) return null;
-  return Math.ceil(next.firstChapter) - 1;
+): { volume: number; kind: "reading" | "read up to" } | null {
+  if (tracks.volumes && manga.readVolume)
+    return { volume: manga.readVolume, kind: "read up to" };
+  if (!tracks.chapters || !manga.bookmark) return null;
+  const volume = volumeHolding(manga.bookmark, starts);
+  return volume ? { volume, kind: "reading" } : null;
 }

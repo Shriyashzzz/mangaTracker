@@ -44,8 +44,16 @@ export const settingsPrint = (prefs: Prefs) =>
     ...(prefs?.trackBy ? [prefs.trackBy] : []),
   ]);
 
+// Bumped when the rules that work out an answer change, so answers saved
+// under the old ones aren't handed back after a deploy (they'd last up to
+// six hours). v2: a chapter reader with no books counts from the volume
+// their next chapter is in; a finished series shows the next chapter to a
+// reader behind
+const ANSWER_RULES = "v2";
+
 const answerKey = (m: Keyed, prefs: Prefs) =>
   JSON.stringify([
+    ANSWER_RULES,
     m.name,
     m.lightNovel,
     m.volumesOwned,

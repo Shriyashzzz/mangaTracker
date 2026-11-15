@@ -372,7 +372,8 @@ function Library() {
   const hasNoPlace = (m: Manga) => {
     if (m.status || m.planned) return false;
     if (releaseKind === "chapters") return !m.bookmark;
-    return !m.volumesOwned && !releases[m.id]?.currentVolume;
+    // (0 is a place: on a chapter in vol. 1, no volume is finished yet)
+    return !m.volumesOwned && releases[m.id]?.currentVolume == null;
   };
   const unknownPlace = looked.filter(hasNoPlace).length;
   // of those, ones with a chapter saved: we know where they are, just not

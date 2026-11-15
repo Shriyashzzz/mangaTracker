@@ -8,7 +8,8 @@
 //   volume's number and its first chapter ("*5." or "Numbered list|start=5")
 //
 // Kept a week (series_volumes, key "wiki-starts:<name>"), as volumes come
-// out a few times a year. Nice to have: any failure is just no list.
+// out a few times a year, and never waited on (below). Nice to have: any
+// failure is just no list.
 // https://www.mediawiki.org/wiki/API:Search, https://www.mediawiki.org/wiki/API:Parsing_wikitext
 import { prisma } from "../../config/prisma.js";
 import { politeFetch } from "../politeFetch.js";
@@ -107,24 +108,42 @@ async function lookUp(name: string): Promise<VolumeStart[]> {
 
 // ---------- kept a week ----------
 
+// Never waited on: a release check takes what's saved (even past its week)
+// and goes on, and a missing or old list is looked up in the background for
+// the next check. Waiting held every check in Wikipedia's one-a-second
+// queue, and a check that ran out of time showed nothing new at all
+const lookingUp = new Map<string, Promise<void>>();
+
 export async function wikipediaVolumeStarts(
   name: string,
 ): Promise<VolumeStart[]> {
   const key = `wiki-starts:${name.toLowerCase().trim()}`;
   try {
     const saved = await prisma.seriesVolumes.findUnique({ where: { key } });
-    if (saved && Date.now() - saved.fetchedAt.getTime() < KEEP_MS)
-      return saved.volumes as unknown as VolumeStart[];
-    const starts = await lookUp(name);
-    const data = { volumes: starts, fetchedAt: new Date() };
-    await prisma.seriesVolumes.upsert({
-      where: { key },
-      create: { key, ...data },
-      update: data,
-    });
-    return starts;
+    const fresh = saved && Date.now() - saved.fetchedAt.getTime() < KEEP_MS;
+    if (!fresh) lookUpLater(key, name);
+    return (saved?.volumes as unknown as VolumeStart[] | undefined) ?? [];
   } catch (e) {
     console.error("wikipedia volume starts failed:", (e as Error).message);
     return [];
   }
+}
+
+// one background look-up a series at a time, saved when it's done
+function lookUpLater(key: string, name: string) {
+  if (lookingUp.has(key)) return;
+  const job = lookUp(name)
+    .then(async (starts) => {
+      const data = { volumes: starts, fetchedAt: new Date() };
+      await prisma.seriesVolumes.upsert({
+        where: { key },
+        create: { key, ...data },
+        update: data,
+      });
+    })
+    .catch((e: Error) =>
+      console.error("wikipedia volume starts failed:", e.message),
+    )
+    .finally(() => lookingUp.delete(key));
+  lookingUp.set(key, job);
 }

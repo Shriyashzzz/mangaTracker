@@ -37,8 +37,10 @@ export const detailsStyles = {
     "flex items-end justify-between gap-x-8 gap-y-5 max-[1099px]:flex-col max-[1099px]:items-stretch upto-720:contents",
   // under the shelf: "9 of 113", halves and specials, and how it works
   // until they've tried it
+  // "· reading vol. 12" in the caption, in the shelf marker's red
+  shelfPlace: "text-accent",
   shelfCaption:
-    "mt-1.5 flex flex-wrap justify-between gap-x-4 font-mono text-[0.8rem] text-muted",
+    "mt-1.5 flex flex-wrap justify-center gap-x-4 text-center font-mono text-[0.8rem] text-muted",
   // "Tap a book to mark it yours.", until they have
   shelfHint: "basis-full text-muted",
   shelf:
@@ -68,9 +70,6 @@ export const detailsStyles = {
     "grid size-11 place-items-center text-ink transition-colors duration-120 ease-[ease] hover:enabled:bg-accent-wash hover:enabled:text-accent disabled:cursor-default disabled:opacity-40 [&_svg]:size-4 [&_svg]:fill-none [&_svg]:stroke-current [&_svg]:stroke-[2.5] [&_svg]:[stroke-linecap:round]",
   stepperInput:
     "min-w-14 border-x-[2.5px] border-line bg-transparent text-center font-brand text-[1.5rem] leading-none tracking-[0.02em] text-ink tabular-nums [appearance:textfield] focus:bg-accent-wash focus:outline-none focus-visible:outline-2 focus-visible:-outline-offset-4 focus-visible:outline-accent focus-visible:outline-dashed [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none",
-  // "(vol. 5)" beside the chapter, "(ch. 38)" beside the volume: quieter
-  // than the number, and only when the chapter list says
-  stepperAside: "font-mono text-[0.85rem] text-ink-soft not-italic",
   // "Saved", beside the counter (under its right end on a phone). Out of
   // the flow: taking up room, it pushed the counter onto a new line the
   // moment it appeared, out from under the thumb that pressed it
@@ -126,7 +125,9 @@ export const detailsStyles = {
   trackRow:
     "mt-3.5 flex flex-wrap items-center gap-x-4 gap-y-6 not-italic empty:hidden upto-720:mt-5",
   // one counter to a line, when the chapter and the volume are both kept
-  placeLine: "block [&+&]:mt-2",
+  // "You're on chapter" and its counter, with room between them, side by
+  // side or (on a narrow screen) one above the other
+  placeLine: "flex flex-wrap items-center gap-x-3 gap-y-2 [&+&]:mt-2",
   // "Keep my place by [Chapter] [Volume]": under what they own, for a
   // series with no place saved. Small plain words, then the two buttons
   pickPlace:
@@ -304,6 +305,8 @@ export const detailsStyles = {
   buyKind:
     "col-span-full font-mono text-[0.72rem] font-normal tracking-[0.06em] whitespace-nowrap text-muted uppercase upto-720:col-span-1 max-[359px]:whitespace-normal",
   buyPrice: "text-right font-mono font-medium text-accent-ink",
+  // "ch. 35–43" under "Vol. 5" in Next for you, for a chapter reader
+  buyChapters: "block font-mono text-[0.78rem] font-normal text-ink-soft",
   // "2 vols (est)": one row when there's room; on a long series in the narrow
   // box ("113 vols" beside "about $1,340") the "(est)" drops under, never
   // over the price

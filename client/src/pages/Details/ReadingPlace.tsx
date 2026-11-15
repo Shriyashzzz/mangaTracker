@@ -8,8 +8,6 @@ import { useState } from "react";
 import { rangesText } from "../../lib/ownedVolumes";
 import { tracksOf, type TrackBy } from "../../lib/reading";
 import type { Manga } from "../../lib/types";
-import type { VolumeStart } from "../../lib/chapterVolumes";
-import { lastChapterOf, volumeHolding } from "../../lib/chapterVolumes";
 import ChapterStepper from "./ChapterStepper";
 import { detailsStyles as styles } from "./styles";
 
@@ -36,9 +34,6 @@ type Props = {
   onChange: (change: ReadingChange) => void;
   // a counter saved a new chapter or volume
   onPlaceSaved: (place: { bookmark?: number; readVolume?: number }) => void;
-  // where each volume starts, by chapter, when the release data says: for
-  // "(vol. 5)" beside the chapter (lib/chapterVolumes.ts)
-  volumeStarts?: VolumeStart[];
 };
 
 export default function ReadingPlace({
@@ -49,7 +44,6 @@ export default function ReadingPlace({
   owned,
   highestOwned,
   volumeSets,
-  volumeStarts = [],
   onStart,
   onChange,
   onPlaceSaved,
@@ -126,10 +120,6 @@ export default function ReadingPlace({
             mangaId={manga.id}
             value={manga.bookmark}
             onSaved={(chapter) => onPlaceSaved({ bookmark: chapter })}
-            aside={(chapter) => {
-              const volume = volumeHolding(chapter, volumeStarts);
-              return volume ? `(vol. ${volume})` : null;
-            }}
           />
         </span>
       )}
@@ -143,10 +133,6 @@ export default function ReadingPlace({
             unit="volume"
             value={manga.readVolume ?? null}
             onSaved={(volume) => onPlaceSaved({ readVolume: volume })}
-            aside={(volume) => {
-              const chapter = lastChapterOf(volume, volumeStarts);
-              return chapter ? `(ch. ${chapter})` : null;
-            }}
           />
         </span>
       )}

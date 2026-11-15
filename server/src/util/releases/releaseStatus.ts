@@ -3,7 +3,7 @@
 // so English volumes come from our US book catalog. Its covers still tell us
 // how far Japan has got, for anyone who wants to know.
 import type { FormatedDates } from "./volumeDataFormatter.js";
-import { volumeOfChapter } from "./volumeStarts.js";
+import { chaptersIn, volumeOfChapter } from "./volumeStarts.js";
 
 // which series the New tab lists, set by each reader. "next": every series,
 // with the next one for it, however far behind. "within": only once they're
@@ -92,6 +92,10 @@ export type ReleaseStatus = {
   // who owns no volumes would buy to keep reading (chapter 39 of Chainsaw
   // Man is in vol. 5). Null when we can't tell
   nextChapterVolume: number | null;
+  // the chapters in the next volume, for someone reading by the chapter with
+  // no books: from where it starts to just before the next one ("to" null
+  // when the next one's start isn't known: the newest volume)
+  nextVolumeChapters: { from: number; to: number | null } | null;
   // the next English volume after where they are, and its price page
   nextVolume: number | null;
   nextVolumeBook: { isbn13: string; title: string } | null;
@@ -203,16 +207,31 @@ export function getReleaseStatus(
     .map((v) => parseFloat(v.volume ?? ""))
     .filter(Number.isFinite);
   const latestJapaneseVolume = japanese.length ? Math.max(...japanese) : null;
+  const starts = dates?.volumeStarts ?? [];
+  // someone reading by the chapter with no books and no volume read: the
+  // volume their next chapter is in is the one they need, so they count as
+  // having finished the one before it (on chapter 38, in vol. 5: vol. 4 done,
+  // vol. 5 next). Without that, the volume their chapter is in
+  const byChapterOnly = !volumesOwned && !readVolume && Boolean(bookmark);
+  const holdsNextChapter = byChapterOnly
+    ? volumeOfChapter(Math.floor(bookmark!) + 1, starts)
+    : null;
   const currentVolume =
     volumesOwned ||
     readVolume ||
-    volumeOfChapter(bookmark, dates?.volumeStarts ?? []);
+    (holdsNextChapter != null
+      ? holdsNextChapter - 1
+      : volumeOfChapter(bookmark, starts));
   const nextVolume =
     currentVolume != null
       ? (numbers.filter((v) => v > currentVolume).sort((a, b) => a - b)[0] ??
         null)
       : null;
   const nextBook = (englishVolumes ?? []).find((v) => v.volume === nextVolume);
+  // for that reader, the chapters in it, so a card can say why that one:
+  // "Vol. 5 · ch. 34–42" beside "You're on ch. 38"
+  const nextVolumeChapters =
+    byChapterOnly && nextVolume != null ? chaptersIn(nextVolume, starts) : null;
   const nextVolumeBook =
     nextVolume != null && nextBook?.isbn13
       ? { isbn13: nextBook.isbn13, title: nextBook.title ?? "" }
@@ -244,9 +263,11 @@ export function getReleaseStatus(
       (latestVolume ?? 0) - (currentVolume ?? 0) <= volumes.within);
   const hasNewVolume = volumeListed && !isHidden(nextVolume);
 
+  // a finished series too: nothing more is coming, but a reader behind
+  // still has their next chapter to read (Chainsaw Man ended at 232; on 38,
+  // ch. 39 is next), as the Volumes side lists its next volume. Caught up,
+  // there's no next chapter, so nothing shows
   const chapterListed =
-    // a finished series has nothing new to come
-    !dates?.seriesFinished &&
     nextChapter != null &&
     latestChapter != null &&
     (chapters.mode !== "within" ||
@@ -281,8 +302,9 @@ export function getReleaseStatus(
     isNextVolumeOut,
     currentVolume,
     nextChapterVolume: bookmark
-      ? volumeOfChapter(Math.floor(bookmark) + 1, dates?.volumeStarts ?? [])
+      ? volumeOfChapter(Math.floor(bookmark) + 1, starts)
       : null,
+    nextVolumeChapters,
     latestVolume,
     nextChapter,
     nextVolume,

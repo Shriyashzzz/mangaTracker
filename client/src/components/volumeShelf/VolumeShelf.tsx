@@ -41,6 +41,9 @@ type Props = {
   onPaint: (owned: number[]) => void;
   // the series, for screen readers
   name: string;
+  // the volume they're in (or have read up to): drawn in red, the rest as
+  // usual. Null when we can't tell
+  here?: number | null;
 };
 
 // room for the ‹ › on a paged shelf
@@ -52,6 +55,7 @@ export default function VolumeShelf({
   onToggle,
   onPaint,
   name,
+  here = null,
 }: Props) {
   const box = useRef<HTMLDivElement>(null);
   const shelf = useRef<HTMLDivElement>(null);
@@ -310,12 +314,13 @@ export default function VolumeShelf({
   if (paged) {
     const perPage = Math.max(5, Math.floor((width - 2 * NAV) / BOOK));
     const lastStart = Math.max(1, total - perPage + 1);
-    // near the one after the furthest they own (what Buy it calls next),
-    // with a couple before it
+    // near the volume they're in, when it's marked; else near the one after
+    // the furthest they own (what Buy it calls next); a couple before it
     const nextUp = Math.floor(Math.max(0, ...owned)) + 1;
+    const opensAt = here ?? nextUp;
     const from = Math.min(
       lastStart,
-      Math.max(1, pageStart ?? Math.min(nextUp, total) - 2),
+      Math.max(1, pageStart ?? Math.min(opensAt, total) - 2),
     );
     const to = Math.min(total, from + perPage - 1);
     const page = Array.from({ length: to - from + 1 }, (_, i) => from + i);
@@ -362,6 +367,7 @@ export default function VolumeShelf({
                 aria-pressed={yours.has(v)}
                 aria-label={`Vol. ${v}`}
                 data-own={yours.has(v) || undefined}
+                data-here={here === v || undefined}
                 data-size="wide"
                 data-small={v >= 100 || undefined}
                 data-pop={popped === v || undefined}
@@ -445,6 +451,7 @@ export default function VolumeShelf({
                 className="vshelf-book"
                 style={{ width: w }}
                 data-own={yours.has(v) || undefined}
+                data-here={here === v || undefined}
                 data-size={
                   w >= NUMBERED ? "wide" : w >= SPACED ? "mid" : undefined
                 }

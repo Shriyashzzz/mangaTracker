@@ -93,6 +93,9 @@ export type ReleaseStatus = {
   nextChapter: number | null;
   // the volume that chapter is in, when known (server releaseStatus.ts)
   nextChapterVolume?: number | null;
+  // for someone reading by the chapter with no books: the chapters in the
+  // next volume ("to" null for the newest, whose end isn't known yet)
+  nextVolumeChapters?: { from: number; to: number | null } | null;
   // the next English volume after where they are, and its price page
   nextVolume: number | null;
   nextVolumeBook?: { isbn13: string; title: string } | null;

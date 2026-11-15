@@ -1,4 +1,5 @@
 import { NavLink } from "react-router";
+import { chaptersText, type ChapterRange } from "../../lib/chapterWords";
 import { formatCents, seriesPath, volumePath } from "../../lib/prices";
 import { finishMoney } from "../../lib/finishCost";
 import { onSale } from "../../lib/releaseDate";
@@ -25,6 +26,9 @@ type Props = {
   editions: Editions;
   // "singles" or a line's key
   onCollect: (key: string) => void;
+  // for someone reading by the chapter with no books: the chapters in the
+  // book "Next for you" offers, said beside it ("Vol. 5 · ch. 34–42")
+  nextChapters?: ChapterRange | null;
 };
 
 // an edition's book: its own price page when the catalog has its ISBN, else
@@ -64,6 +68,7 @@ export default function BuyStrip({
   hideNext,
   editions,
   onCollect,
+  nextChapters = null,
 }: Props) {
   const { line, plan } = editions;
   const { loading, volumes, latest, next, caughtUp, finish, seriesName, gaps } =
@@ -192,7 +197,15 @@ export default function BuyStrip({
                 viewTransition
               >
                 <span className={styles.buyNextKind}>Next for you</span>
-                <span>Vol. {next.volume}</span>
+                <span>
+                  Vol. {next.volume}
+                  {/* a chapter reader: the chapters in it, under it */}
+                  {nextChapters && (
+                    <span className={styles.buyChapters}>
+                      {chaptersText(nextChapters)}
+                    </span>
+                  )}
+                </span>
                 <span className={styles.buyPrice}>{price(next)}</span>
               </NavLink>
             </li>

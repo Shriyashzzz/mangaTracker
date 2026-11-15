@@ -2,6 +2,7 @@
 // how many books the little shelf draws, the red "it's out" bar, what the bar
 // offers to buy, and the list it opens to. No requests are made here.
 import { onSale } from "../../lib/releaseDate";
+import { readsByChapterOnly } from "../../lib/chapterWords";
 import { formatReleaseDate } from "../../lib/releaseDates";
 import {
   formatCents,
@@ -101,6 +102,8 @@ function releaseOf(asked: Asked): Release | null {
   const owns = ownedPhrase(manga);
   let volumeYours: string | null = null;
   if (owns) volumeYours = `you own ${owns}`;
+  else if (readsByChapterOnly(manga))
+    volumeYours = `you're on ch. ${manga.bookmark}`;
   else if (releaseStatus.currentVolume)
     volumeYours = `you're on vol. ${releaseStatus.currentVolume}`;
 

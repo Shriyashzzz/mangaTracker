@@ -1,7 +1,7 @@
-// "(vol. 5)" beside a chapter and "(ch. 43)" beside a volume, on a series'
-// page (client lib/chapterVolumes.ts): only what the volume list is sure of
+// the red mark on a series' volume shelf (client lib/chapterVolumes.ts):
+// only what the volume list is sure of
 import {
-  lastChapterOf,
+  placeOnShelf,
   volumeHolding,
 } from "../../../../client/src/lib/chapterVolumes.js";
 
@@ -24,10 +24,20 @@ test("a chapter is placed only between two known starts", () => {
   expect(volumeHolding(5, [])).toBeNull();
 });
 
-test("a volume's last chapter needs the next volume's start", () => {
-  expect(lastChapterOf(1, starts)).toBe(8);
-  expect(lastChapterOf(2, starts)).toBe(17);
-  // vol. 4 isn't known, nor anything after vol. 10
-  expect(lastChapterOf(3, starts)).toBeNull();
-  expect(lastChapterOf(10, starts)).toBeNull();
+test("the shelf marks the volume read up to, else the one their chapter is in", () => {
+  const chapters = { chapters: true, volumes: false };
+  const volumes = { chapters: false, volumes: true };
+  expect(
+    placeOnShelf({ bookmark: 9, readVolume: null }, chapters, starts),
+  ).toEqual({ volume: 2, kind: "reading" });
+  expect(placeOnShelf({ bookmark: 0, readVolume: 3 }, volumes, starts)).toEqual(
+    {
+      volume: 3,
+      kind: "read up to",
+    },
+  );
+  // a chapter the list can't place: no mark
+  expect(
+    placeOnShelf({ bookmark: 30, readVolume: null }, chapters, starts),
+  ).toBeNull();
 });

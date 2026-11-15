@@ -888,6 +888,20 @@
 .vshelf-book[data-lit][data-own] i {
   height: 60px;
 }
+/* the volume they're in, or have read up to (the caption says which). Led
+   by .vshelf-box so it wins over the rules for a book that isn't theirs,
+   on the full-size page of books too */
+.vshelf-box .vshelf-book[data-here] i {
+  height: 50px;
+  background: var(--accent);
+  border: 1.5px solid var(--accent);
+  color: var(--on-accent);
+  outline: 2px solid var(--ink);
+  outline-offset: 1px;
+}
+.vshelf-box .vshelf-book[data-here][data-own] i {
+  height: 54px;
+}
 /* a paged shelf (touch, long series): full-size books between ‹ › */
 .vshelf-paged {
   display: flex;

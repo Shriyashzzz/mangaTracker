@@ -32,6 +32,9 @@ type Props = {
   totalKnown: boolean;
   // ticks a volume, or sets the whole list, and saves it
   ownedVolumes: ReturnType<typeof useOwnedVolumes>;
+  // where they are, marked on the shelf and said in the caption: the volume
+  // their chapter is in ("reading"), or the one they've read up to
+  place?: { volume: number; kind: "reading" | "read up to" } | null;
 };
 
 export default function ShelfBox({
@@ -41,6 +44,7 @@ export default function ShelfBox({
   total,
   totalKnown,
   ownedVolumes,
+  place = null,
 }: Props) {
   // "Tap a book to mark it yours": said until they've done it once on this
   // device. Nothing else on the page says the books can be pressed
@@ -106,12 +110,20 @@ export default function ShelfBox({
           }}
           onPaint={paint}
           name={name}
+          here={place?.volume ?? null}
         />
       </div>
       {/* what the shelf says, in words: how many of how many, and any halves
           or specials it has no book for */}
       <p className={styles.shelfCaption}>
         <span>
+          {/* where they are first, in the marker's red: "Read up to vol. 2" */}
+          {place && (
+            <span className={styles.shelfPlace}>
+              {place.kind === "reading" ? "Reading" : "Read up to"} vol.{" "}
+              {place.volume} ·{" "}
+            </span>
+          )}
           You own {onShelf}
           {totalKnown
             ? ` of ${total} volumes`
