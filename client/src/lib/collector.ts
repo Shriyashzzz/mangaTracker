@@ -2,7 +2,7 @@
 // each series, the release calendar, and the stores' sales. All read prices
 // already saved, so none of them ever sets off a price check.
 import { getJson } from "./api";
-import { formatCents } from "./prices";
+import { formatCents, wholeMoney } from "./prices";
 
 export type CheapestCopy = { cents: number; store: string; url: string | null };
 
@@ -84,9 +84,7 @@ export const getDeals = (signal?: AbortSignal) =>
 
 // a dollar amount, without the cents once it's big enough not to need them
 export const money = (cents: number) =>
-  cents >= 100_000
-    ? `$${Math.round(cents / 100).toLocaleString("en-US")}`
-    : formatCents(cents);
+  cents >= 100_000 ? wholeMoney(cents) : formatCents(cents);
 
 // what a total says: the real one when everything's priced, else "about" the
 // estimate, and nothing when there's nothing to go by
@@ -101,7 +99,7 @@ export function totalText(
   // too little priced to say a total: a few volumes' prices aren't the run's
   if (estimateCents === null) return null;
   // an estimate in whole dollars: cents would claim a precision it hasn't got
-  return `about $${Math.round(estimateCents / 100).toLocaleString("en-US")}`;
+  return `about ${wholeMoney(estimateCents)}`;
 }
 
 // "December 2026"

@@ -4,6 +4,8 @@ import { breadcrumbs, clip } from "../../lib/seo";
 import {
   coverSrc,
   formatCents,
+  formatUsd,
+  wholeMoney,
   seriesCanonicalPath,
   volumePath,
 } from "../../lib/prices";
@@ -24,9 +26,7 @@ const dollars = (cents: number) => (cents / 100).toFixed(2);
 const shopName = (store: string) => store.split(/\s[-–—|]\s/)[0]!.trim();
 // a total: "$1,560", or with cents when it's exact
 const total = (cents: number, exact: boolean) =>
-  exact
-    ? formatCents(cents)
-    : `$${(Math.round(cents / 1000) * 10).toLocaleString("en-US")}`;
+  exact ? formatCents(cents) : wholeMoney(Math.round(cents / 1000) * 1000);
 
 export function volumeMeta(
   { book, heading, series, offers }: VolumePrices,
@@ -69,7 +69,7 @@ export function volumeMeta(
   const description = clip(
     [
       best
-        ? `${name}: new from ${formatCents(best.priceCents)}${best.knownStore ? ` at ${shopName(best.store)}` : ""}.`
+        ? `${name}: new from ${formatUsd(best.priceCents)}${best.knownStore ? ` at ${shopName(best.store)}` : ""}.`
         : "",
       best ? "Compare US prices" : `Compare US prices for ${name}`,
       storesLine,

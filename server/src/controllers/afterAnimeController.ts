@@ -1,6 +1,7 @@
 // /api/after-anime/*  "Where does the anime leave off?" Public to read and
 // to suggest a correction; reviewing the corrections is for the site's owner
 // (ADMIN_USERNAME).
+import { countryOf } from "../models/priceQueries.js";
 import type { Request, Response } from "express";
 import { body, matchedData, param, query } from "express-validator";
 import { AppError, NotFoundError } from "../errors/AppError.js";
@@ -58,7 +59,7 @@ const buy = [
   rejectInvalid,
   async (req: Request, res: Response) => {
     const { isbns } = matchedData(req) as { isbns: string[] };
-    res.json(await buyOffers(isbns));
+    res.json(await buyOffers(isbns, countryOf(req.query.country)));
   },
 ];
 

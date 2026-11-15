@@ -8,6 +8,7 @@
 import Cover from "../../components/cover/Cover";
 import { isCollection } from "../../lib/types";
 import CanadaPrices from "./canada/CanadaPrices";
+import { useCanadaPrices } from "./canada/useCanadaPrices";
 import CountrySwitch from "./canada/CountrySwitch";
 import { useCountry } from "../../lib/prefs";
 import BoxSetNote from "./BoxSetNote";
@@ -76,6 +77,12 @@ export default function PriceVolume() {
   const isbn = useParams().isbn!;
   const page = useVolumeLoad(isbn, country);
   const loadedBook = page.data?.book ?? null;
+  // with Canada picked, the Canadian prices: the price box, the headline and
+  // the history all show these, never the US ones
+  const canada = useCanadaPrices(
+    country === "ca" ? (loadedBook?.isbn13 ?? null) : null,
+    Boolean(page.data?.preorder),
+  );
   // readers' reviews of it: the section below, and the rating in the tags
   const reviews = useVolumeReviews(loadedBook?.isbn13 ?? null);
   usePageMeta(page.data ? volumeMeta(page.data, reviews.data) : null);
@@ -138,8 +145,12 @@ export default function PriceVolume() {
   const hideEbooks = readLocal("hideEbooks") === "yes";
   const inCanada = country === "ca";
   const { shown: offers, hiddenEbooks } = shownOffers(allOffers, hideEbooks);
+  // what the headline and the history are about: the country's own prices
+  const { shown: countryOffers } = inCanada
+    ? shownOffers(canada?.offers ?? [], hideEbooks)
+    : { shown: offers };
   const { history, lowestCents: lowestInHistory } = shownHistory(
-    allHistory,
+    inCanada ? (canada?.history ?? null) : allHistory,
     hideEbooks,
   );
   const nearby = nearbyVolumes(siblings, volume, inBook);
@@ -150,13 +161,13 @@ export default function PriceVolume() {
     Boolean(preorder),
   );
   // the headline price is the cheapest new print copy, what most people buy
-  const best = offers.find(
+  const best = countryOffers.find(
     (o) => o.condition === "new" && o.format === "print",
   );
   // a used or resold copy that's cheaper than any new one: said beside the
   // headline, so it agrees with the list's "Lowest overall" (offers come
   // cheapest first)
-  const cheapestSecondHand = offers.find(
+  const cheapestSecondHand = countryOffers.find(
     (o) => o.format === "print" && o.condition !== "new" && !isCollection(o),
   );
   const secondHandIsCheaper =
@@ -164,7 +175,7 @@ export default function PriceVolume() {
       ? cheapestSecondHand.priceCents < best.priceCents
       : false;
   // a seller nobody has heard of: the cheapest at a store people know too
-  const knownBest = knownStoreLow(offers);
+  const knownBest = knownStoreLow(countryOffers);
   // the series' usual new price, when the headline is well above it
   const aboveUsual = usualWhenWellBelow(
     siblings,
@@ -250,8 +261,8 @@ export default function PriceVolume() {
               {shownSeries}
             </NavLink>
           </p>
-          {/* US numbers: not shown when they're looking at Canadian prices */}
-          {best && !inCanada && (
+          {/* the country's own numbers: Canadian ones with Canada picked */}
+          {best && (
             <p className={styles.bestLine}>
               New from <strong>{formatCents(best.priceCents)}</strong> at{" "}
               {shopName(best.store)}
@@ -297,6 +308,7 @@ export default function PriceVolume() {
           {inCanada && (
             <CanadaPrices
               isbn={book.isbn13}
+              data={canada}
               volume={volume}
               preorder={preorder ? releaseDay(preorder) : null}
               seriesLink={seriesLink}
@@ -421,7 +433,7 @@ export default function PriceVolume() {
             </section>
           )}
 
-          {history && !inCanada && (
+          {history && (
             <details className={styles.historyFold}>
               <summary className={styles.historySummary}>
                 <h2 className={styles.sectionTitle}>Price history</h2>

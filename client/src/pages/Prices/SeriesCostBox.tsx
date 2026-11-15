@@ -4,7 +4,7 @@
 // with it on their shelf gets "Finish the series" beside the volumes instead,
 // so this is for deciding. Never asks for a price (lib/finishCost.ts)
 import { NavLink } from "react-router";
-import { formatCents } from "../../lib/prices";
+import { formatCents, wholeMoney } from "../../lib/prices";
 import type { SeriesCost } from "../../lib/finishCost";
 import { pricesStyles as styles } from "./styles";
 
@@ -55,12 +55,8 @@ export default function SeriesCostBox({
         </h2>
         <p className={styles.costTotal}>
           {all ? "" : "About "}
-          <strong>
-            {all
-              ? formatCents(total)
-              : `$${(total / 100).toLocaleString("en-US")}`}
-          </strong>{" "}
-          new for all {cost.volumes}
+          <strong>{all ? formatCents(total) : wholeMoney(total)}</strong> new
+          for all {cost.volumes}
           {comingSoon && " out now"}
         </p>
         {/* only when every volume is priced: an estimate says "About" */}

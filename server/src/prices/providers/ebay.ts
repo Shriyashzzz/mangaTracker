@@ -487,8 +487,9 @@ async function browse(
 // only matches listings tagged with it. Many aren't, so a title search runs
 // alongside: its single copies fill in a condition (new, used) the ISBN
 // search found none of, while box sets holding this volume are taken from
-// every search. Free, so three searches at once cost nothing; a failed title
-// search leaves the ISBN's
+// both. Two searches: box sets aren't looked for here any more, the series'
+// own scan finds those (boxSetScan.ts), so each volume costs a third fewer
+// of the day's calls. A failed title search leaves the ISBN's
 export async function searchEbay(
   isbn13: string,
   title: string,
@@ -496,24 +497,18 @@ export async function searchEbay(
   signal: AbortSignal,
 ): Promise<Offer[]> {
   const queries = titleQueries(title);
-  const [byIsbn, byTitle, sets] = await Promise.allSettled([
+  const [byIsbn, byTitle] = await Promise.allSettled([
     browse(isbn13, market, signal),
     queries.volume
       ? browse(queries.volume, market, signal, BOOKS_CATEGORY)
       : [],
-    browse(queries.sets, market, signal, BOOKS_CATEGORY),
   ]);
   // the ISBN search is the one that must answer
   if (byIsbn.status === "rejected") throw byIsbn.reason;
   const found = (r: PromiseSettledResult<ItemSummary[]>) =>
     r.status === "fulfilled" ? r.value : [];
   const isbnOffers = browseOffers(byIsbn.value, title, market, "isbn");
-  const titleOffers = browseOffers(
-    [...found(byTitle), ...found(sets)],
-    title,
-    market,
-    "title",
-  );
+  const titleOffers = browseOffers(found(byTitle), title, market, "title");
   const singles = isbnOffers.filter((o) => !isCollection(o));
   const has = new Set(singles.map((o) => o.condition));
   return cheapestOfEach([
@@ -527,21 +522,24 @@ export async function searchEbay(
 // a series' box sets, looked for by its name alone: one search ("Naruto box
 // set"), read against a few of its volumes (first, middle, last) so a set
 // holding any part of the run is found, by the same rules a volume's own
-// check uses. Counts as one title search against the day's allowance
+// check uses. Counts as one title search against the day's allowance. In
+// Canada, eBay.ca's sets, in Canadian dollars, with eBay Canada's links
+// added where they're shown (canadaOfferLink)
 export async function searchEbaySets(
   volumeTitles: string[],
   signal: AbortSignal,
+  market: EbayMarket = "US",
 ): Promise<Offer[]> {
   if (!volumeTitles.length) return [];
   const items = await browse(
     titleQueries(volumeTitles[0]!).sets,
-    "US",
+    market,
     signal,
     BOOKS_CATEGORY,
   );
   const byListing = new Map<string, Offer>();
   for (const title of volumeTitles)
-    for (const offer of browseOffers(items, title, "US", "title"))
+    for (const offer of browseOffers(items, title, market, "title"))
       if (offer.format === "set")
         byListing.set(offer.url ?? `${offer.priceCents}`, offer);
   return [...byListing.values()];

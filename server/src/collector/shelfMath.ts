@@ -98,6 +98,17 @@ export type ShelfValue = {
   estimateCents: number | null;
 };
 
+// Enough of a shelf priced to say what the rest is worth: a tenth of it, and
+// never fewer than 3. With less, one price would be passed off as what 200
+// volumes fetch (a shelf whose prices are only starting, in Canada say). In
+// both countries, so the rule is one rule. shelfValue still works the
+// estimate out; the shelf tools only show it once this says so
+// (collector.ts)
+const WORTH_PRICED_SHARE = 0.1;
+const WORTH_PRICED_LEAST = 3;
+export const enoughToEstimate = (priced: number, all: number) =>
+  priced >= Math.max(WORTH_PRICED_LEAST, Math.ceil(all * WORTH_PRICED_SHARE));
+
 // what the owned volumes would fetch used: each one's recorded used price
 // (the median of every one seen, the last year's first: it never goes stale,
 // see getRecordedMedians). A volume never seen used is estimated; `priced`

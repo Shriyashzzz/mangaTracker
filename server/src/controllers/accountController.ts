@@ -5,7 +5,10 @@ import { withoutDirectionMarks } from "../util/directionMarks.js";
 import { body, matchedData, param } from "express-validator";
 import { sendError } from "../middlewares/errorHandler.js";
 import { rejectInvalid } from "../middlewares/validate.js";
-import priceQueries from "../models/priceQueries.js";
+import priceQueries, {
+  countryOf,
+  type Country,
+} from "../models/priceQueries.js";
 import userQueries, { type AccountPatch } from "../models/userQueries.js";
 import { AVATARS } from "../util/shelf/avatars.js";
 import { defaultReaderName, READER_NAMES } from "../util/shelf/readerNames.js";
@@ -29,7 +32,7 @@ const withNames = <T>(userId: number, account: T) => ({
 type SharedManga = NonNullable<
   Awaited<ReturnType<typeof userQueries.getSharedShelf>>
 >["manga"][number];
-async function factsFor(manga: SharedManga[]) {
+async function factsFor(manga: SharedManga[], country: Country) {
   const listed = await shelfSeries(manga.filter((m) => !m.edition)).catch(
     () => [],
   );
@@ -49,7 +52,10 @@ async function factsFor(manga: SharedManga[]) {
   // each next volume's best known price, from what's on file
   const nexts = facts.flatMap((f) => f?.next ?? []);
   const prices = await priceQueries
-    .getKnownPrices(nexts.map((next) => next.isbn13))
+    .getKnownPrices(
+      nexts.map((next) => next.isbn13),
+      country,
+    )
     .catch(() => new Map<string, { priceCents: number }>());
   for (const next of nexts)
     next.fromCents = prices.get(next.isbn13)?.priceCents ?? null;
@@ -126,7 +132,10 @@ const shared = [
     const user = await userQueries.getSharedShelf(matchedData(req).code);
     if (!user) return sendError(res, 404, "This shelf isn't shared.");
     res.json({
-      ...toSharedShelf({ ...user, facts: await factsFor(user.manga) }),
+      ...toSharedShelf({
+        ...user,
+        facts: await factsFor(user.manga, countryOf(req.query.country)),
+      }),
       // the owner looking at their own shared shelf, who is shown the way
       // to its settings. (Not cached anywhere: it differs by viewer)
       yours: req.session.userId === user.id,

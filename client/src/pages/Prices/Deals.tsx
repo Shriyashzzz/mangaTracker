@@ -9,6 +9,7 @@ import RangePager from "../../components/rangePager/RangePager";
 import { useUrlPages } from "../../components/rangePager/useUrlPages";
 import SlowLoadQuote from "../../components/slowLoadQuote/SlowLoadQuote";
 import { getDeals } from "../../lib/prices";
+import { inCanada } from "../../lib/country";
 import { usePageMeta } from "../../lib/seo";
 import type { PriceCard } from "../../lib/types";
 import VolumeCard from "./VolumeCard";
@@ -18,12 +19,16 @@ const percentOff = (d: PriceCard) =>
   Math.round(100 - (100 * d.priceCents) / (d.avgCents ?? d.priceCents));
 
 export default function Deals() {
+  // deals are worked out from US prices only, for now: someone shopping in
+  // Canada is told so rather than shown US prices
+  const canada = inCanada();
   const [state, setState] = useState<{
     deals: PriceCard[] | null;
     error: boolean;
   }>({ deals: null, error: false });
 
   useEffect(() => {
+    if (canada) return;
     const controller = new AbortController();
     getDeals(controller.signal)
       .then((r) => setState({ deals: r.deals, error: false }))
@@ -31,7 +36,7 @@ export default function Deals() {
         if (e.name !== "AbortError") setState({ deals: null, error: true });
       });
     return () => controller.abort();
-  }, []);
+  }, [canada]);
 
   const { pageItems, pager } = useUrlPages(state.deals ?? [], "deals-list");
 
@@ -60,7 +65,22 @@ export default function Deals() {
         </p>
       </header>
 
-      {state.deals === null && !state.error && (
+      {canada && (
+        <div className={styles.empty}>
+          <span className="printed mascot-spot" aria-hidden>
+            <Mascot mood="confused" />
+          </span>
+          <p className={styles.emptyTitle}>Deals are US-only for now.</p>
+          <p>
+            Open any volume to see its prices in Canada.{" "}
+            <NavLink to="/series" viewTransition>
+              Browse every series
+            </NavLink>
+          </p>
+        </div>
+      )}
+
+      {!canada && state.deals === null && !state.error && (
         <div aria-busy="true" aria-label="Loading">
           <SlowLoadQuote />
           <div className={styles.grid}>

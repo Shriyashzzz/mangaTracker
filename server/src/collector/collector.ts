@@ -6,13 +6,15 @@
 import bookQueries from "../models/bookQueries.js";
 import mangaQueries from "../models/mangaQueries.js";
 import priceQueries from "../models/priceQueries.js";
-import { affiliateOfferUrl } from "../prices/stores/storeLinks.js";
+import { linkFor } from "../prices/canada/canadaLinks.js";
+import type { Country } from "../models/priceQueries.js";
 import {
   median,
   ownedSet,
   finishSeries,
   finishEdition,
   shelfValue,
+  enoughToEstimate,
   sum,
   upcoming,
   type MissingVolume,
@@ -48,17 +50,31 @@ export type ShelfTools = {
 };
 
 // the cheapest copy's link with our affiliate tag, as the price pages give it
-function tagged(missing: MissingVolume): MissingVolume {
+function tagged(missing: MissingVolume, country: Country): MissingVolume {
   const cheapest = missing.cheapest;
   if (!cheapest) return missing;
-  const url = affiliateOfferUrl(
+  const { url } = linkFor(
+    country,
     { ...cheapest, format: "print", condition: "new" },
     missing.isbn13,
   );
   return { ...missing, cheapest: { ...cheapest, url } };
 }
 
-export async function getShelfTools(userId: number): Promise<ShelfTools> {
+// in the country they shop in: Canadian prices for Canada, never US ones
+// the shelf's worth as the page shows it: the estimate only once enough of
+// the shelf is priced to say (enoughToEstimate), else just what's priced
+function withEnoughPriced(value: ShelfValue): ShelfValue {
+  const all = value.volumes + value.unlisted;
+  return enoughToEstimate(value.priced, all)
+    ? value
+    : { ...value, estimateCents: null };
+}
+
+export async function getShelfTools(
+  userId: number,
+  country: Country = "us",
+): Promise<ShelfTools> {
   const shelf = await mangaQueries.getShelf(userId);
   const [series, lines] = await Promise.all([
     // each series with its saved list of volumes
@@ -73,8 +89,8 @@ export async function getShelfTools(userId: number): Promise<ShelfTools> {
   for (const line of lines.values())
     for (const book of line.books) if (book.isbn13) isbns.add(book.isbn13);
   const [copies, recorded] = await Promise.all([
-    priceQueries.getCheapestCopies([...isbns]),
-    priceQueries.getRecordedMedians([...isbns]),
+    priceQueries.getCheapestCopies([...isbns], undefined, country),
+    priceQueries.getRecordedMedians([...isbns], country),
   ]);
 
   // owned volumes of series with no saved list: in the estimate only
@@ -117,7 +133,7 @@ export async function getShelfTools(userId: number): Promise<ShelfTools> {
       name: s.manga.name,
       ...(line ? { edition: line.label } : {}),
       ...left,
-      missing: left.missing.map(tagged),
+      missing: left.missing.map((m) => tagged(m, country)),
     });
   }
 
@@ -128,7 +144,7 @@ export async function getShelfTools(userId: number): Promise<ShelfTools> {
     .shelfSpent(userId)
     .catch(() => ({ cents: 0, books: 0 }));
   return {
-    value: shelfValue(ownedBySeries, recorded, unlisted),
+    value: withEnoughPriced(shelfValue(ownedBySeries, recorded, unlisted)),
     spent,
     finish,
     finishCents: sum(finish.map((row) => row.cents)),

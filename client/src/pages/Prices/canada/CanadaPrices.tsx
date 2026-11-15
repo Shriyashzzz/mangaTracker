@@ -1,31 +1,19 @@
-// Canadian prices on a volume page, for anyone who picked Canada. Live from the
-// server's sandboxed Canadian check (prices/canada), in Canadian dollars, with
-// the stores' own searches always there as well, and on their own when there's
-// nothing live to show. The server sends those links, affiliate tags included.
-import { humanQuery } from "../../../lib/turnstile";
-import { useEffect, useState } from "react";
-import { getJson } from "../../../lib/api";
+// Canadian prices on a volume page, for anyone who picked Canada. From the
+// server's Canadian check (prices/canada), in Canadian dollars, with the
+// stores' own searches always there as well, and on their own when there's
+// nothing live to show. The server sends those links, affiliate tags
+// included. The page loads the answer (useCanadaPrices), since its headline
+// and price history read it too
 import { readLocal } from "../../../lib/prefs";
 import BoxSetNote from "../BoxSetNote";
-import { timeAgo } from "../../../lib/prices";
+import { formatCents, timeAgo } from "../../../lib/prices";
 import { noteStoreClick } from "../../../lib/support";
-import type { Offer } from "../../../lib/types";
 import { pricesStyles as styles } from "../styles";
 import CountrySwitch from "./CountrySwitch";
 import OfferList from "../OfferList";
+import type { CanadaAnswer } from "./useCanadaPrices";
 
-type Answer = {
-  links?: { store: string; url: string; affiliate: boolean }[];
-  status: "ok" | "off" | "budget" | "unknown" | "error";
-  offers: Offer[];
-  checkedAt: string | null;
-};
-
-// "CA$15.99": never mistaken for US dollars
-const cad = new Intl.NumberFormat("en-US", {
-  style: "currency",
-  currency: "CAD",
-});
+type Answer = CanadaAnswer;
 
 const WHY_NONE: Record<Answer["status"], string> = {
   ok: "No Canadian store listed this volume when we checked. Try the stores below.",
@@ -43,6 +31,7 @@ const PREORDER_STORES = ["Amazon.ca", "eBay.ca"];
 
 export default function CanadaPrices({
   isbn,
+  data,
   volume,
   preorder,
   seriesLink,
@@ -50,42 +39,12 @@ export default function CanadaPrices({
   // the series' price page, where its box sets are
   seriesLink: string;
   isbn: string;
+  // the Canadian answer, null while it's on its way
+  data: Answer | null;
   volume: number | null;
   // the day it comes out ("Mar 30, 2027"), when it isn't out yet
   preorder: string | null;
 }) {
-  const [answer, setAnswer] = useState<{ isbn: string; data: Answer } | null>(
-    null,
-  );
-
-  useEffect(() => {
-    const controller = new AbortController();
-    const ask = (human: string) =>
-      getJson<Answer>(`/api/prices/ca/${isbn}${human}`, controller.signal);
-    const failed = (e: Error) => {
-      if (e.name !== "AbortError")
-        setAnswer((had) =>
-          // a live check failing after the saved prices showed keeps them
-          had?.isbn === isbn
-            ? had
-            : { isbn, data: { status: "error", offers: [], checkedAt: null } },
-        );
-    };
-    // what's saved shows at once, as the US prices do; then a live check
-    // (with its Turnstile token, which can take a few seconds) replaces it.
-    // A preorder gets no live check, so the first answer is the only one
-    ask("")
-      .then((data) => setAnswer({ isbn, data }))
-      .catch(failed);
-    if (!preorder)
-      humanQuery("?", controller.signal)
-        .then((human) => (human ? ask(human) : null))
-        .then((data) => data && setAnswer({ isbn, data }))
-        .catch(failed);
-    return () => controller.abort();
-  }, [isbn, preorder]);
-
-  const data = answer?.isbn === isbn ? answer.data : null;
   // only physical copies, if that's what they've asked for, like the US list
   const hideEbooks = readLocal("hideEbooks") === "yes";
   const allOffers = data?.offers ?? [];
@@ -154,7 +113,7 @@ export default function CanadaPrices({
         <OfferList
           key={isbn}
           offers={offers}
-          formatPrice={(cents) => cad.format(cents / 100)}
+          formatPrice={formatCents}
           volume={volume}
         />
       ) : (
@@ -170,7 +129,11 @@ export default function CanadaPrices({
       {links.length > 0 && (
         <div className={`${styles.otherStores} mt-4`}>
           <h3 className={styles.otherStoresTitle}>
-            {preorder ? "Or preorder at:" : "Check this volume at:"}
+            {preorder
+              ? "Or preorder at:"
+              : offers.length > 0
+                ? "More places to look:"
+                : "Check price at:"}
           </h3>
           <ul className={styles.storeLinks}>
             {links.map((s) => (

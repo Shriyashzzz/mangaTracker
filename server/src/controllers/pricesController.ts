@@ -3,7 +3,7 @@
 // pages can show "try again" instead of a blank error.
 import { scanBoxSets } from "../prices/boxSetScan.js";
 import { isNovelName } from "../prices/lightNovel.js";
-import priceQueries from "../models/priceQueries.js";
+import priceQueries, { countryOf } from "../models/priceQueries.js";
 import type { CatalogBook } from "../prices/types.js";
 import { editionLinesOf } from "../prices/editionSource.js";
 import { findNovelsFor } from "../prices/novelFinder.js";
@@ -157,6 +157,8 @@ const volume = [
             // this first (and it's all a Canadian viewer gets)
             refresh: live,
             report: !crawler,
+            // the rest of the series' prices, in their country
+            country: countryOf(req.query.country),
           }),
         ),
     );
@@ -210,7 +212,7 @@ const series = [
     const data = await upstream(
       "series lookup",
       "That series couldn't be loaded. Try again in a moment.",
-      () => getSeries(matchedData(req).name),
+      () => getSeries(matchedData(req).name, countryOf(req.query.country)),
     );
     if (!data) throw new NotFoundError("We couldn't find that series.");
     res.json(data);
@@ -235,9 +237,11 @@ const editions = [
       // a crawler reads what's saved; only a visitor's page looks one up
       !isCrawler(req.get("user-agent")),
     );
+    // in the country they shop in, like every other price
     const known = await priceQueries
       .getKnownPrices(
         lines.flatMap((l) => l.books.flatMap((b) => b.isbn13 ?? [])),
+        countryOf(req.query.country),
       )
       .catch(() => new Map<string, { priceCents: number }>());
     res.set("Cache-Control", "private, max-age=300").json({
@@ -261,16 +265,20 @@ const seriesSets = [
   ...seriesName,
   async (req: Request, res: Response) => {
     const name: string = matchedData(req).name;
+    // Canada's sets are eBay.ca's, in Canadian dollars
+    const country = countryOf(req.query.country);
     const allowed =
       !isCrawler(req.get("user-agent")) &&
       (await isHuman(req.query.human, req.ip));
-    const data = allowed ? await getSeries(name).catch(() => null) : null;
+    const data = allowed
+      ? await getSeries(name, country).catch(() => null)
+      : null;
     const scanned = data
-      ? await scanBoxSets(data.name, data.volumes).catch(() => false)
+      ? await scanBoxSets(data.name, data.volumes, country).catch(() => false)
       : false;
     // unchanged: the page keeps what it has
     if (!scanned) return void res.json({ boxSets: null });
-    const fresh = await getSeries(name).catch(() => null);
+    const fresh = await getSeries(name, country).catch(() => null);
     res.json({ boxSets: fresh?.boxSets ?? null });
   },
 ];

@@ -32,10 +32,7 @@ export function PricesTab() {
         {(
           [
             ["us", "United States"],
-            [
-              "ca",
-              "Canada: links to Amazon.ca, Indigo, eBay.ca and Walmart.ca",
-            ],
+            ["ca", "Canada: every price in Canadian dollars"],
           ] as const
         ).map(([value, label]) => (
           <label key={value} className={styles.row}>

@@ -12,6 +12,7 @@ import ImportPeek from "./components/importPeek/ImportPeek";
 import Tour from "./components/tour/Tour";
 import TourOffer from "./components/tour/TourOffer";
 import { isDemo } from "./lib/demo";
+import { useCountry } from "./lib/prefs";
 import { useAuth } from "./store/auth";
 
 // The page a tab opened on, for ScrollRestoration below: a key of its own,
@@ -31,6 +32,7 @@ const firstPageKey = () =>
 
 export default function App() {
   const check = useAuth((s) => s.check);
+  const country = useCountry();
   useEffect(() => {
     check();
   }, [check]);
@@ -60,7 +62,9 @@ export default function App() {
       <Backdrop />
       <Header />
       <main id="main" ref={main} tabIndex={-1} className="outline-none">
-        <Outlet />
+        {/* a new country means new prices: the page is drawn again and asks
+            for them in that country (lib/country.ts) */}
+        <Outlet key={country} />
       </main>
       <Footer />
       <DeletedNote />

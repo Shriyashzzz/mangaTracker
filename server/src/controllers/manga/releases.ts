@@ -1,5 +1,6 @@
 // What's newly out for a series on the shelf (the New tab and the details
 // page), and the shelf's cheapest known prices.
+import { countryOf } from "../../models/priceQueries.js";
 import {
   mangaOutcome,
   type ReleaseOutcome,
@@ -185,7 +186,10 @@ export const releases = async (req: Request, res: Response) => {
 export const shelfPrices = async (req: Request, res: Response) => {
   const manga = await mangaQueries.getShelf(req.session.userId!);
   res.json(
-    await getShelfPrices(manga.map((m) => ({ id: m.id, name: priceName(m) }))),
+    await getShelfPrices(
+      manga.map((m) => ({ id: m.id, name: priceName(m) })),
+      countryOf(req.query.country),
+    ),
   );
 };
 

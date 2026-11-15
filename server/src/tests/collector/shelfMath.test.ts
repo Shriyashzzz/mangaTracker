@@ -4,6 +4,7 @@ import {
   median,
   ownedSet,
   shelfValue,
+  enoughToEstimate,
   upcoming,
   type Copies,
   type ListedVolume,
@@ -271,4 +272,14 @@ test("an unpriced missing volume is estimated at its own recorded price first", 
   );
   // vol 2 priced now at 10.00; vol 3 at what it has gone for, 15.00
   expect(f.estimateCents).toBe(1000 + 1500);
+});
+
+// a shelf only says what it's worth once enough of it is priced: one price
+// mustn't stand for 200 volumes (a Canadian shelf whose prices are starting)
+test("an estimate needs 3 priced volumes and a tenth of the shelf", () => {
+  expect(enoughToEstimate(1, 213)).toBe(false);
+  expect(enoughToEstimate(3, 213)).toBe(false);
+  expect(enoughToEstimate(22, 213)).toBe(true);
+  expect(enoughToEstimate(2, 5)).toBe(false);
+  expect(enoughToEstimate(3, 5)).toBe(true);
 });

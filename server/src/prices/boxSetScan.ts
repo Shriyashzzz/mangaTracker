@@ -12,21 +12,25 @@ import { ebayApiEnabled, searchEbaySets } from "./providers/ebay.js";
 import { isNovelName } from "./lightNovel.js";
 import { volumesKey } from "./volumesKey.js";
 import type { CatalogBook, Offer } from "./types.js";
+import type { Country } from "../models/priceQueries.js";
 
 const FRESH_MS = 3 * 24 * 60 * 60 * 1000;
 // after a scan that couldn't run (a source down, the day's calls used up)
 const RETRY_MS = 60 * 60 * 1000;
 const TIMEOUT_MS = 12_000;
-const setsKey = (name: string) => volumesKey(name) + ":boxsets";
+// Canada's sets are eBay.ca's (Books-A-Million doesn't sell there), kept
+// under their own key, in Canadian dollars
+const setsKey = (name: string, country: Country = "us") =>
+  volumesKey(name) + (country === "ca" ? ":boxsets:ca" : ":boxsets");
 
 type ScannedSet = Pick<Offer, "store" | "priceCents" | "url" | "condition"> & {
   format: "set";
 };
 
 // what the last scan found, and when
-export async function savedBoxSets(name: string) {
+export async function savedBoxSets(name: string, country: Country = "us") {
   const row = await priceQueries
-    .getSeriesVolumes(setsKey(name))
+    .getSeriesVolumes(setsKey(name, country))
     .catch(() => null);
   return row && { at: row.at, sets: row.volumes as unknown as ScannedSet[] };
 }
@@ -64,15 +68,18 @@ async function runScan(
   name: string,
   titles: string[],
   savedSets: ScannedSet[],
+  country: Country,
 ): Promise<boolean> {
   const signal = AbortSignal.timeout(TIMEOUT_MS);
   // a light novel is filed by its series' name, without the words
   const bamName = name.replace(/\s*light novel$/i, "");
   const [ebay, bam] = await Promise.allSettled([
     ebayApiEnabled()
-      ? searchEbaySets(titles, signal)
+      ? searchEbaySets(titles, signal, country === "ca" ? "CA" : "US")
       : Promise.reject(new Error("eBay isn't set up")),
-    searchBamSets(bamName, isNovelName(name), signal),
+    country === "ca"
+      ? Promise.resolve([])
+      : searchBamSets(bamName, isNovelName(name), signal),
   ]);
   const ebayFailed = ebay.status === "rejected";
   const bamFailed = bam.status === "rejected";
@@ -97,8 +104,20 @@ async function runScan(
   );
   // the series' lists are typed as catalog books; this one holds sets
   const toSave = [...found, ...kept] as unknown as CatalogBook[];
-  await priceQueries.saveSeriesVolumes(setsKey(name), toSave);
+  await priceQueries.saveSeriesVolumes(setsKey(name, country), toSave);
   return true;
+}
+
+// a series whose box sets have never been looked for gets one look, in the
+// background: opening any of its volumes is enough (volume checks no longer
+// look for sets themselves). Never waited for
+export async function scanIfNeverScanned(
+  name: string,
+  volumes: NumberedTitle[],
+  country: Country = "us",
+) {
+  if (await savedBoxSets(name, country).catch(() => null)) return;
+  scanBoxSets(name, volumes, country).catch(() => false);
 }
 
 // looks again when the saved answer is old (or there is none). Whether a new
@@ -106,11 +125,12 @@ async function runScan(
 export async function scanBoxSets(
   name: string,
   volumes: NumberedTitle[],
+  country: Country = "us",
 ): Promise<boolean> {
-  const key = setsKey(name);
+  const key = setsKey(name, country);
   const now = Date.now();
 
-  const saved = await savedBoxSets(name);
+  const saved = await savedBoxSets(name, country);
   const stillFresh = saved ? now - saved.at < FRESH_MS : false;
   if (stillFresh) return false;
   const triedLately = now - (triedAt.get(key) ?? 0) < RETRY_MS;
@@ -125,7 +145,7 @@ export async function scanBoxSets(
   if (triedAt.size > MOST_REMEMBERED)
     triedAt.delete(triedAt.keys().next().value!);
 
-  const scan = runScan(name, titles, saved?.sets ?? [])
+  const scan = runScan(name, titles, saved?.sets ?? [], country)
     .catch(() => false)
     .finally(() => inFlight.delete(key));
   inFlight.set(key, scan);

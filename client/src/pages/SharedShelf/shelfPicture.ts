@@ -186,6 +186,11 @@ function drawWords(ctx: CanvasRenderingContext2D, picture: ShelfPicture) {
   ctx.fillText("MANGA TRACKER", WIDTH / 2, 1210);
   ctx.font = '400 34px "IBM Plex Mono"';
   ctx.fillText("mangatracker.xyz", WIDTH / 2, 1265);
+  // the site's tagline, quieter, at the foot
+  ctx.globalAlpha = 0.7;
+  ctx.font = '400 28px "IBM Plex Sans"';
+  ctx.fillText("Read it. Track it. Buy it cheaper.", WIDTH / 2, 1312);
+  ctx.globalAlpha = 1;
 }
 
 // The picture, as a PNG file. Null where the browser can't make one
@@ -201,6 +206,7 @@ export async function drawShelfPicture(
   await Promise.all([
     document.fonts.load("150px Bangers"),
     document.fonts.load('500 40px "IBM Plex Mono"'),
+    document.fonts.load('400 28px "IBM Plex Sans"'),
   ]).catch(() => {});
   const covers = (
     await Promise.all(picture.covers.slice(0, MOST_COVERS).map(loadCover))

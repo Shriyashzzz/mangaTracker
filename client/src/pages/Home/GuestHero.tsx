@@ -32,7 +32,7 @@ export default function GuestHero() {
             >
               Sign in
             </NavLink>
-            <TakeTourButton />
+            <TakeTourButton>Try the demo first →</TakeTourButton>
           </div>
         </div>
 

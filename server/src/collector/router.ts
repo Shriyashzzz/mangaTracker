@@ -1,5 +1,6 @@
 // /api/collector/*: the shelf tools (collector.ts) and the stores' sales.
 // COLLECTOR_TOOLS=off answers 404 to all of them, as if they didn't exist
+import { countryOf } from "../models/priceQueries.js";
 import { Router, type RequestHandler } from "express";
 import config from "../config/config.js";
 import { requireSignIn } from "../middlewares/auth.js";
@@ -34,7 +35,9 @@ collectorRouter.get(
   perMinute(30),
   async (req, res, next) => {
     try {
-      res.json(await getShelfTools(req.session.userId!));
+      res.json(
+        await getShelfTools(req.session.userId!, countryOf(req.query.country)),
+      );
     } catch (e) {
       next(e);
     }

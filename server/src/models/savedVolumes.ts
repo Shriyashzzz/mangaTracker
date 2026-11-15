@@ -4,6 +4,7 @@ import { VOLUMES_KEY_VERSION } from "../prices/volumesKey.js";
 import { prisma } from "../config/prisma.js";
 import { Prisma } from "../../generated/prisma/client.js";
 import type { CatalogBook } from "../prices/types.js";
+import { tablesOf, type Country } from "./priceTables.js";
 import { withoutReprintDates } from "../prices/preorder.js";
 
 // a volume as a series' saved list knows it (the newest list, today's naming
@@ -106,8 +107,12 @@ export async function getFinalVolumeTitles() {
 // the box sets and omnibuses found while pricing a series' volumes, as their
 // checks left them (current only, in stock), one per listing: what a series
 // page shows under "Box sets"
-export async function getCollectionOffers(isbns: string[]) {
+export async function getCollectionOffers(
+  isbns: string[],
+  country: Country = "us",
+) {
   if (!isbns.length) return [];
+  const { samples, checks } = tablesOf(country);
   return prisma.$queryRaw<
     {
       isbn13: string;
@@ -121,8 +126,8 @@ export async function getCollectionOffers(isbns: string[]) {
     SELECT DISTINCT ON (COALESCE(ps.url, ps.store || ps.price_cents))
            ps.isbn13, ps.store, ps.price_cents AS "priceCents", ps.url,
            ps.format, ps.condition
-    FROM price_samples ps
-    JOIN price_source_checks sc
+    FROM ${samples} ps
+    JOIN ${checks} sc
       ON sc.isbn13 = ps.isbn13 AND sc.source = ps.source
      AND ps.fetched_at = sc.checked_at
     WHERE ps.isbn13 IN (${Prisma.join(isbns)})

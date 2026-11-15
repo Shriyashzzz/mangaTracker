@@ -5,7 +5,8 @@ import { titleVolume } from "./volumeNames.js";
 import { hasAnimeAnswer } from "./afterAnime/afterAnime.js";
 import { attachNoBookReviews, seriesReviews } from "../reviews/reviews.js";
 import { savedBoxSets } from "./boxSetScan.js";
-import priceQueries from "../models/priceQueries.js";
+import priceQueries, { type Country } from "../models/priceQueries.js";
+import { canadaBoxSetLinks, canadaOfferLink } from "./canada/canadaLinks.js";
 import { searchVolumesDetailed } from "./sources/catalog.js";
 import { getSeriesInfo, knownSeriesName } from "./sources/anilist.js";
 import {
@@ -611,8 +612,9 @@ type CollectionOffer = Awaited<
 
 // a series' box sets and omnibuses, cheapest first, each with our affiliate
 // tag where we have one. The same set at the same price from the same store,
-// listed more than once (eBay sellers often post several), shows as one row
-function boxSetRows(offers: CollectionOffer[]) {
+// listed more than once (eBay sellers often post several), shows as one row.
+// Canadian ones link the Canadian way (canadaLinks.ts)
+function boxSetRows(offers: CollectionOffer[], country: Country) {
   const cheapestFirst = [...offers].sort((a, b) => a.priceCents - b.priceCents);
   const seen = new Set<string>();
   const oneOfEach = cheapestFirst.filter((offer) => {
@@ -627,14 +629,19 @@ function boxSetRows(offers: CollectionOffer[]) {
     return true;
   });
   return oneOfEach.slice(0, BOX_SETS_SHOWN).map((offer) => {
-    const url = affiliateOfferUrl(offer, offer.isbn13.trim());
+    const link =
+      country === "ca"
+        ? canadaOfferLink(offer, offer.isbn13.trim())
+        : (() => {
+            const url = affiliateOfferUrl(offer, offer.isbn13.trim());
+            return { url, affiliate: isAffiliateUrl(url) };
+          })();
     return {
       store: storeName(storeOfSeller(offer.store)),
       priceCents: offer.priceCents,
       format: offer.format,
       condition: offer.condition,
-      url,
-      affiliate: isAffiliateUrl(url),
+      ...link,
     };
   });
 }
@@ -642,8 +649,12 @@ function boxSetRows(offers: CollectionOffer[]) {
 // a series' page: its details, its volumes with the prices we know, and its
 // box sets. Asks the catalogs (askEveryCatalog), merges their answers into
 // one list (mergeIntoOneList), saves that list for the rest of the site, then
-// adds stored prices
-export async function getSeriesWithVolumes(name: string) {
+// adds stored prices: the US ones, or Canada's when that's the country asked
+// for (never a mix: a Canadian sees Canadian prices or none)
+export async function getSeriesWithVolumes(
+  name: string,
+  country: Country = "us",
+) {
   const { info, main, underOtherNames, fromGoogle } =
     await askEveryCatalog(name);
   const numbered = await mergeIntoOneList(name, info, main, [
@@ -681,21 +692,21 @@ export async function getSeriesWithVolumes(name: string) {
   ).catch(() => {});
   const [known, cheapest, recorded, pricedSets, scanned, animeAnswer, reviews] =
     await Promise.all([
-      priceQueries.getKnownPrices(isbns),
+      priceQueries.getKnownPrices(isbns, country),
       // each volume's cheapest used copy in stock now, for what collecting it
       // second-hand costs (Better World Books' and eBay's, mostly)
       priceQueries
-        .getCheapestCopies(isbns)
+        .getCheapestCopies(isbns, undefined, country)
         .catch(() => new Map<string, { used: { cents: number } | null }>()),
       // what each has usually sold for new: for estimates, when no store has
       // it today (never goes stale: every price ever recorded counts)
       priceQueries
-        .getRecordedMedians(isbns)
+        .getRecordedMedians(isbns, country)
         .catch(() => new Map<string, { new: number | null }>()),
       // box sets and omnibuses found while pricing its volumes
-      priceQueries.getCollectionOffers(isbns).catch(() => []),
+      priceQueries.getCollectionOffers(isbns, country).catch(() => []),
       // and the sets a scan by the series' name found (boxSetScan.ts)
-      savedBoxSets(name).catch(() => null),
+      savedBoxSets(name, country).catch(() => null),
       // whether "after the anime" has a page for it (afterAnime.ts)
       info ? hasAnimeAnswer(info.name).catch(() => false) : false,
       // readers' ratings of its volumes, sent with the page so the scores
@@ -716,8 +727,15 @@ export async function getSeriesWithVolumes(name: string) {
     slug: slugify(name),
     info,
     incomplete,
-    boxSets: boxSetRows([...pricedSets, ...scannedSets]),
-    boxSetLinks: boxSetLinks(info?.name ?? name),
+    // which country's prices these are, so a page can't show them as the other's
+    country,
+    boxSets: boxSetRows([...pricedSets, ...scannedSets], country),
+    // whether the series' box sets have ever been looked for, by name
+    boxSetsScanned: Boolean(scanned),
+    boxSetLinks:
+      country === "ca"
+        ? canadaBoxSetLinks(info?.name ?? name)
+        : boxSetLinks(info?.name ?? name),
     hasAnimeAnswer: animeAnswer,
     volumes: volumes.map((v) => ({
       isbn13: v.isbn13,
@@ -735,9 +753,9 @@ export async function getSeriesWithVolumes(name: string) {
   };
 }
 
-export async function getSeries(asked: string) {
+export async function getSeries(asked: string, country: Country = "us") {
   const name = await knownSeriesName(asked);
-  const series = await getSeriesWithVolumes(name);
+  const series = await getSeriesWithVolumes(name, country);
   if (!series.info && !series.volumes.length) {
     // nothing at all because the catalog was down isn't "not found"
     if (series.incomplete) throw new Error("catalog unavailable");

@@ -2,6 +2,7 @@
 // server knows who's signed in. VITE_API_URL is the API's address
 // (http://localhost:8080 in development). It's empty in production, where
 // /api on the site itself is passed on to the API (see client/server.ts)
+import { withCountry } from "./country";
 import { demoResponse, isDemo } from "./demo";
 import type { ApiError } from "./types";
 
@@ -49,7 +50,8 @@ export async function getJson<T>(
   path: string,
   signal?: AbortSignal,
 ): Promise<T> {
-  const res = await apiFetch(path, { signal });
+  // prices come in the country they shop in (lib/country.ts)
+  const res = await apiFetch(withCountry(path), { signal });
   const data = await res.json().catch((e: Error) => {
     // Cancelled while the answer was still arriving (a page left, or the
     // effect that asked ran again): that's a cancelled request, said as

@@ -14,7 +14,7 @@ export const FAQ: FaqGroup[] = [
     questions: [
       {
         q: "What is Manga Tracker?",
-        a: "A free site for manga readers and collectors. Compare what US stores charge for each volume, keep track of what you own and where you're up to, and see when new volumes come out.",
+        a: "A free site for manga readers and collectors. Compare what US and Canadian stores charge for each volume, keep track of what you own and how far you've read, and see when new volumes come out.",
       },
       {
         q: "Is it free?",

@@ -1,3 +1,4 @@
+import { inCanada } from "../../lib/country";
 import CountrySwitch from "./canada/CountrySwitch";
 import { useCountry } from "../../lib/prefs";
 import { useEffect, useState } from "react";
@@ -109,9 +110,10 @@ export default function PriceSearch() {
                   Start your shelf
                 </NavLink>
                 <TakeTourButton
-                  shortOnPhones
                   className={`btn btn-secondary ${styles.halfButton}`}
-                />
+                >
+                  Try the demo first →
+                </TakeTourButton>
                 <NavLink
                   to="/signin"
                   className={`btn btn-ghost ${styles.halfButton} upto-720:hidden`}
@@ -266,6 +268,10 @@ function Highlights() {
     return () => controller.abort();
   }, []);
 
+  // these rows are US prices: someone shopping in Canada is told deals are
+  // US-only for now, and isn't shown US prices that read like Canadian ones
+  const canada = inCanada();
+
   if (!data) {
     return (
       <div className={styles.grid} aria-busy="true" aria-label="Loading">
@@ -298,7 +304,16 @@ function Highlights() {
         </section>
       )}
 
-      {data.deals.length > 0 && (
+      {canada && data.deals.length > 0 && (
+        <section aria-labelledby="deals-title">
+          <h2 id="deals-title" className={styles.sectionTitle}>
+            Latest deals
+          </h2>
+          <p className={styles.sub}>Deals are US-only for now.</p>
+        </section>
+      )}
+
+      {!canada && data.deals.length > 0 && (
         <section aria-labelledby="deals-title">
           <div className={styles.sectionHeadRow}>
             <h2 id="deals-title" className={styles.sectionTitle}>
@@ -322,7 +337,7 @@ function Highlights() {
         </section>
       )}
 
-      {data.recent.length > 0 && (
+      {!canada && data.recent.length > 0 && (
         <section aria-labelledby="recent-title">
           <h2 id="recent-title" className={styles.sectionTitle}>
             Prices just checked

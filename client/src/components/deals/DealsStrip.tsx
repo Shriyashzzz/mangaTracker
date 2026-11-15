@@ -1,6 +1,7 @@
 // "Sales right now": store-wide sales (server/src/collector/deals.ts, kept by
 // hand), on the price pages. Nothing at all when there's no sale on. Closing
 // it hides the sales showing then; a new one brings it back.
+import { inCanada } from "../../lib/country";
 import { useEffect, useState } from "react";
 import { CloseIcon } from "../icons/Icons";
 import { dayName, getDeals, type Deal } from "../../lib/collector";
@@ -39,7 +40,8 @@ export default function DealsStrip() {
     };
   }, []);
 
-  if (!deals.length || hidden === setId(deals)) return null;
+  // US stores' sales: never shown to someone shopping in Canada
+  if (!deals.length || hidden === setId(deals) || inCanada()) return null;
 
   const copy = (code: string) => {
     navigator.clipboard

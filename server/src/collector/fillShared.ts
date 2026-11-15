@@ -11,6 +11,7 @@
 // those a store has never been asked about, the memory of what was tried
 // lately, and the timer that runs a job.
 import config from "../config/config.js";
+import { tablesOf, type Country } from "../models/priceTables.js";
 import { prisma } from "../config/prisma.js";
 import {
   isRebind,
@@ -96,14 +97,19 @@ export async function popularVolumes(now = new Date()): Promise<string[]> {
 }
 
 // of these volumes, the ones a store has never been asked about, in the
-// order given. `source` is the store's group in price_source_checks
-export async function neverLooked(isbns: string[], source: string) {
+// order given. `source` is the store's group in price_source_checks (or,
+// for Canada, ca_price_source_checks)
+export async function neverLooked(
+  isbns: string[],
+  source: string,
+  country: Country = "us",
+) {
   const all = [...new Set(isbns)];
   if (!all.length) return [];
-  const looked = await prisma.priceSourceCheck.findMany({
-    where: { isbn13: { in: all }, source },
-    select: { isbn13: true },
-  });
+  const looked = await prisma.$queryRaw<{ isbn13: string }[]>`
+    SELECT isbn13 FROM ${tablesOf(country).checks}
+    WHERE isbn13 = ANY(${all}::text[]) AND source = ${source}
+  `;
   const done = new Set(looked.map((row) => row.isbn13.trim()));
   return all.filter((isbn) => !done.has(isbn));
 }

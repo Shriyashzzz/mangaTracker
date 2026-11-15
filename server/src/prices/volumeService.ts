@@ -4,7 +4,10 @@
 // FRESH_FOR_MS. Part of the price service (service.ts lists the parts).
 import { volumeHeading, titleVolume, isWellKnown } from "./volumeNames.js";
 import { hasNoCover } from "../models/coversAndSitemap.js";
-import priceQueries, { type Book } from "../models/priceQueries.js";
+import priceQueries, {
+  type Book,
+  type Country,
+} from "../models/priceQueries.js";
 import { englishAuthors, lookupIsbn } from "./sources/catalog.js";
 import { isNovelBook, seriesName } from "./stores/match.js";
 import { enabledProviders } from "./providers/index.js";
@@ -25,6 +28,7 @@ import { type Offer, type Provider } from "./types.js";
 import { notOutYet } from "./preorder.js";
 import { publisherOf } from "./publishers.js";
 import { getSeriesWithVolumes } from "./seriesService.js";
+import { scanIfNeverScanned } from "./boxSetScan.js";
 
 // prices are re-fetched at most this often per volume; in between, people
 // see the stored ones. 20 days: volume prices move slowly, every page offers
@@ -389,14 +393,21 @@ function otherBooksOf<T extends { isbn13: string }>(
 // `refresh: false` shows what's stored without fetching new prices (crawlers)
 // `refresh`: a live check may run. `report`: say whether one would (the
 // page's "refreshable"); crawlers never run one, so they're spared asking
+// `country`: the prices of the rest of the series (the "same series" row) in
+// the country they shop in. This volume's own offers are always the US ones;
+// a Canadian's are /ca/:isbn (prices/canada)
 export async function getVolumePrices(
   isbn13: string,
-  { refresh = true, report = true } = {},
+  {
+    refresh = true,
+    report = true,
+    country = "us" as Country,
+  }: { refresh?: boolean; report?: boolean; country?: Country } = {},
 ) {
   const book = await getOrCreateBook(isbn13);
   if (!book) return null;
 
-  const series = await getSeriesWithVolumes(seriesName(book.title));
+  const series = await getSeriesWithVolumes(seriesName(book.title), country);
   // paid searches only for a volume of a series AniList knows, as the catalog
   // lists it: anyone can open a page for any ISBN, and made-up or unrelated
   // ones mustn't spend the month's searches
@@ -409,7 +420,11 @@ export async function getVolumePrices(
   const preorder = notOutYet(
     series.volumes.find((v) => v.isbn13 === book.isbn13)?.published,
   );
-  if (refresh && known && !preorder) await refreshIfStale(isbn13, book);
+  if (refresh && known && !preorder) {
+    // its series' box sets, if nobody has looked for them yet
+    void scanIfNeverScanned(series.name, series.volumes);
+    await refreshIfStale(isbn13, book);
+  }
 
   const [checkedAt, [coverRow]] = await Promise.all([
     pricesCheckedAt(isbn13),

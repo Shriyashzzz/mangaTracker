@@ -12,6 +12,7 @@ import {
   storeName,
 } from "../prices/stores/storeLinks.js";
 import type { Offer } from "../prices/types.js";
+import { tablesOf, type Country } from "./priceTables.js";
 
 export type { Book };
 
@@ -74,13 +75,16 @@ export const getLastCheck = (isbn13: string) =>
 // records one round of fetching. Each source group that answered gets this
 // moment as its last check, and its offers (maybe none) saved with it: those
 // replace that group's prices, while groups not asked keep theirs.
-// price_checks keeps the latest look of any group, for "checked ... ago"
+// price_checks keeps the latest look of any group, for "checked ... ago".
+// Canadian checks go to the Canadian tables (priceTables.ts), the same way
 export async function saveCheck(
   isbn13: string,
   sources: string[],
   groups: Map<string, Offer[]>,
+  country: Country = "us",
 ) {
   const at = new Date();
+  if (country === "ca") return saveCanadaCheck(isbn13, sources, groups, at);
   await prisma.$transaction([
     // only when a source answered: Google Shopping found not needed isn't a look
     ...(sources.length
@@ -107,12 +111,58 @@ export async function saveCheck(
   ]);
 }
 
+// a Canadian check, saved like saveCheck saves a US one
+async function saveCanadaCheck(
+  isbn13: string,
+  sources: string[],
+  groups: Map<string, Offer[]>,
+  at: Date,
+) {
+  await prisma.$transaction([
+    ...(sources.length
+      ? [
+          prisma.caPriceCheck.upsert({
+            where: { isbn13 },
+            create: { isbn13, sources, checkedAt: at },
+            update: { sources, checkedAt: at },
+          }),
+        ]
+      : []),
+    prisma.caPriceSample.createMany({
+      data: [...groups].flatMap(([source, offers]) =>
+        offers.map(
+          ({ store, format, condition, priceCents, inStock, url }) => ({
+            isbn13,
+            store,
+            format,
+            condition,
+            priceCents,
+            currency: "CAD",
+            inStock,
+            url,
+            source,
+            fetchedAt: at,
+          }),
+        ),
+      ),
+    }),
+    ...[...groups.keys()].map((source) =>
+      prisma.caPriceSourceCheck.upsert({
+        where: { isbn13_source: { isbn13, source } },
+        create: { isbn13, source, checkedAt: at },
+        update: { checkedAt: at },
+      }),
+    ),
+  ]);
+}
+
 // when each source group last looked at this volume
-export async function getSourceChecks(isbn13: string) {
-  const rows = await prisma.priceSourceCheck.findMany({
-    where: { isbn13 },
-    select: { source: true, checkedAt: true },
-  });
+export async function getSourceChecks(isbn13: string, country: Country = "us") {
+  const { checks } = tablesOf(country);
+  const rows = await prisma.$queryRaw<{ source: string; checkedAt: Date }[]>`
+    SELECT source, checked_at AS "checkedAt" FROM ${checks}
+    WHERE isbn13 = ${isbn13}
+  `;
   return new Map(rows.map((r) => [r.source, r.checkedAt]));
 }
 
@@ -153,24 +203,24 @@ export const currentOf = (
   return [...latest.values()].sort((a, b) => a.priceCents - b.priceCents);
 };
 
-export const currentRows = (isbns: string[]) =>
+export const currentRows = (isbns: string[], country: Country = "us") =>
   prisma.$queryRaw<CurrentRow[]>`
     SELECT ps.isbn13, ps.source, ps.store, ps.format, ps.condition,
            ps.price_cents AS "priceCents", ps.currency, ps.in_stock AS "inStock",
            ps.url, ps.fetched_at AS "fetchedAt"
-    FROM price_source_checks sc
-    JOIN price_samples ps
+    FROM ${tablesOf(country).checks} sc
+    JOIN ${tablesOf(country).samples} ps
       ON ps.isbn13 = sc.isbn13 AND ps.source = sc.source
      AND ps.fetched_at = sc.checked_at
     WHERE sc.isbn13 = ANY(${isbns}::text[])
   `;
 
 // the groups that have looked at each of these volumes
-export const lookedAt = async (isbns: string[]) => {
-  const rows = await prisma.priceSourceCheck.findMany({
-    where: { isbn13: { in: isbns } },
-    select: { isbn13: true, source: true },
-  });
+export const lookedAt = async (isbns: string[], country: Country = "us") => {
+  const rows = await prisma.$queryRaw<{ isbn13: string; source: string }[]>`
+    SELECT isbn13, source FROM ${tablesOf(country).checks}
+    WHERE isbn13 = ANY(${isbns}::text[])
+  `;
   const groups = new Map<string, Set<string>>();
   for (const r of rows) {
     const isbn = r.isbn13.trim();
@@ -181,17 +231,20 @@ export const lookedAt = async (isbns: string[]) => {
 
 // a volume's prices now: each source group's from its last check, each
 // saying which group it came from
-export async function getCurrentRows(isbn13: string) {
+export async function getCurrentRows(isbn13: string, country: Country = "us") {
   const [rows, looked] = await Promise.all([
-    currentRows([isbn13]),
-    lookedAt([isbn13]),
+    currentRows([isbn13], country),
+    lookedAt([isbn13], country),
   ]);
   return currentOf(rows, looked.get(isbn13));
 }
 
 // the same, as plain offers for pages
-export async function getCurrentOffers(isbn13: string): Promise<StoredOffer[]> {
-  return (await getCurrentRows(isbn13)).map(
+export async function getCurrentOffers(
+  isbn13: string,
+  country: Country = "us",
+): Promise<StoredOffer[]> {
+  return (await getCurrentRows(isbn13, country)).map(
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     ({ isbn13: _isbn, source: _source, ...offer }) => offer,
   );

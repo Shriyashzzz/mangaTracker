@@ -337,9 +337,22 @@ model CaPriceSample {
   inStock    Boolean  @default(true) @map("in_stock")
   url        String?
   fetchedAt  DateTime @default(now()) @map("fetched_at") @db.Timestamptz(6)
+  // the source group that found it: ebay (eBay.ca's API) or shopping
+  source     String?  @db.VarChar(20)
 
   @@index([isbn13, fetchedAt(sort: Desc)])
   @@map("ca_price_samples")
+}
+
+// each Canadian source group's last look at a volume, as price_source_checks
+// is for the US
+model CaPriceSourceCheck {
+  isbn13    String   @db.Char(13)
+  source    String   @db.VarChar(20)
+  checkedAt DateTime @map("checked_at") @db.Timestamptz(6)
+
+  @@id([isbn13, source])
+  @@map("ca_price_source_checks")
 }
 
 // ---------- after the anime (see src/prices/afterAnime) ----------

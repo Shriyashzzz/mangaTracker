@@ -6,6 +6,7 @@ import { aboutStyles as styles } from "./styles";
 import { usePageMeta } from "../../lib/seo";
 import { CoffeeIcon } from "../../components/icons/Icons";
 import { SUPPORT_URL, stopAsking } from "../../lib/support";
+import { useAuth } from "../../store/auth";
 
 const CONTACT_EMAIL = "ghimireshriyash@gmail.com";
 
@@ -34,10 +35,11 @@ const STRIP = [
 ];
 
 export function AboutPage() {
+  const isSignedIn = useAuth((s) => s.isSignedIn);
   usePageMeta({
     title: "About",
     description:
-      "Why Manga Tracker exists: compare what US stores charge for each manga volume, keep your place in every series, and see which ones have new volumes out.",
+      "Why Manga Tracker exists: compare what US and Canadian stores charge for each manga volume, keep your place in every series, and see which ones have new volumes out.",
     path: "/about",
   });
   return (
@@ -49,12 +51,12 @@ export function AboutPage() {
           <span className={`${styles.heroMascot} printed`}>
             <Mascot mood="happy" />
           </span>
-          <p className={styles.heroBubble}>Yo! Welcome to the shelf.</p>
+          <p className={styles.heroBubble}>Psst. Vol. 23 dropped.</p>
         </div>
 
         <div className={styles.heroCopy}>
           <h1 className={styles.title}>
-            <span className={styles.hit}>keep up</span> with your manga!
+            <span className={styles.hit}>never lose</span> your place again.
           </h1>
           <p className={styles.lead}>
             Hi, I'm Shriyash. I start way too many manga at once and drop them
@@ -69,7 +71,8 @@ export function AboutPage() {
             <NavLink to="/" viewTransition>
               Price check
             </NavLink>{" "}
-            compares US and Canadian stores, so you never overpay for a volume.
+            lets you know if it's a deal before you hit buy, across US and
+            Canadian stores.
           </p>
         </div>
       </header>
@@ -113,7 +116,8 @@ export function AboutPage() {
                 Your shelf
               </h3>
               <p>
-                Save your chapter, rate what you finish, track what you own.
+                Save the last chapter you read, rate what you finish, track what
+                you own.
               </p>
               <NavLink to="/shelf" className={styles.doesLink} viewTransition>
                 Open my shelf →
@@ -131,7 +135,8 @@ export function AboutPage() {
                 Price check
               </h3>
               <p>
-                See what US stores charge for any volume, and its price history.
+                See what US and Canadian stores charge for any volume, and its
+                price history.
               </p>
               <NavLink to="/" className={styles.doesLink} viewTransition>
                 Check a price →
@@ -142,10 +147,11 @@ export function AboutPage() {
       </section>
 
       <div className={styles.cta}>
+        {/* the real thing, or a practice shelf with no account first */}
         <NavLink to="/shelf" className="btn btn-primary btn-lg" viewTransition>
-          Okay, let me try it
+          {isSignedIn ? "Open your shelf" : "Start your shelf"}
         </NavLink>
-        <TakeTourButton large />
+        <TakeTourButton large>Try the demo first →</TakeTourButton>
       </div>
 
       <section className={styles.contact} aria-labelledby="contact-title">

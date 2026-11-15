@@ -101,11 +101,13 @@ const search = () =>
     AbortSignal.timeout(5000),
   );
 
+// two searches a volume: its ISBN and its title. Box sets are the series
+// scan's to find (boxSetScan.ts), not every volume's
 test("each search takes one call from today's count", async () => {
   fakeEbay();
   await search();
-  expect(searches).toHaveLength(3);
-  expect(await used()).toBe(3);
+  expect(searches).toHaveLength(2);
+  expect(await used()).toBe(2);
 });
 
 test("with today's calls used up, eBay isn't asked at all", async () => {
@@ -141,7 +143,7 @@ test("eBay's own count of today's calls raises ours (other places use the same k
 test("if eBay's count can't be read, ours goes on alone", async () => {
   fakeEbay();
   await search();
-  expect(searches).toHaveLength(3);
+  expect(searches).toHaveLength(2);
 });
 
 test("a count from a daily window that isn't today's is ignored", async () => {
@@ -150,7 +152,7 @@ test("a count from a daily window that isn't today's is ignored", async () => {
   ebaysReset = new Date(Date.now() + 36 * 60 * 60 * 1000).toISOString();
   fakeEbay();
   await search();
-  expect(searches).toHaveLength(3);
+  expect(searches).toHaveLength(2);
 });
 
 test("a 429 with calls left on eBay's daily count fails the search, not the day", async () => {

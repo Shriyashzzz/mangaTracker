@@ -699,7 +699,7 @@ const STATIC_PAGES: Record<
     title: "About",
     heading: "About Manga Tracker",
     description:
-      "Why Manga Tracker exists: compare what US stores charge for each manga volume, keep your place in every series, and see which ones have new volumes out.",
+      "Why Manga Tracker exists: compare what US and Canadian stores charge for each manga volume, keep your place in every series, and see which ones have new volumes out.",
   },
   "/updates": {
     title: "What's new",

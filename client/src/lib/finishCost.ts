@@ -3,6 +3,7 @@
 // its page). Never asks for a price, so it never spends a paid search; a
 // volume nobody has opened yet is counted as not priced.
 import { ENOUGH_PRICED } from "./enoughPriced";
+import { wholeMoney } from "./country";
 import { owns } from "./ownedVolumes";
 import type { Manga } from "./types";
 
@@ -133,7 +134,7 @@ export function finishMoney(
   if (!cost.enough) return "check prices";
   if (cost.priced === cost.left) return money(cost.cents);
   const nearestTen = Math.round(cost.estimateCents / 1000) * 10;
-  return "about $" + nearestTen.toLocaleString("en-US");
+  return "about " + wholeMoney(nearestTen * 100);
 }
 
 // "Finish the series: $214", or with volumes not priced yet "Finish the

@@ -40,6 +40,6 @@ export const shopName = (store: string) =>
 // the ebook stores
 export const isWellKnown = (store: string) =>
   isRetailer(shopName(store)) ||
-  /^(ebay|better world books|google play( books)?|kobo(\.com)?|bookwalker|kindle)$/i.test(
+  /^(ebay(\.ca)?|better world books|google play( books)?|kobo(\.com)?|bookwalker|kindle)$/i.test(
     shopName(store),
   );

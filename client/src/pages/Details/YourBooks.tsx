@@ -13,7 +13,7 @@ import {
   removeBook,
   savePurchase,
 } from "../../lib/booksApi";
-import { formatCents } from "../../lib/prices";
+import { formatPaid } from "../../lib/prices";
 import BookRow, { type Purchase } from "./BookRow";
 import { detailsStyles as styles } from "./styles";
 import { looseBook, rowsOf, type BookRow as Row } from "./yourBooksRows";
@@ -133,7 +133,7 @@ export default function YourBooks({ mangaId, owned, onRemoved }: Props) {
         Your books <span className={styles.booksCount}>{rows.length}</span>
         {spent.books > 0 && (
           <span className={styles.booksSpent}>
-            {formatCents(spent.cents)} paid
+            {formatPaid(spent.cents)} paid
             {spent.books < rows.length && ` for ${spent.books}`}
           </span>
         )}

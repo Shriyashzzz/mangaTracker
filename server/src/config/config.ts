@@ -52,11 +52,17 @@ const schema = z.object({
   // background pricing of shelf volumes from eBay's free API
   // (collector/filler.ts): on in production unless "off"; "on" runs it
   // anywhere (a laptop shares the eBay keys, so it's off there by default).
-  // PRICE_FILL_DAILY: volumes a day, about 3 eBay calls each
+  // PRICE_FILL_DAILY: volumes a day, about 2 eBay calls each
   PRICE_FILL: z.preprocess(blankToUndefined, z.enum(["on", "off"]).optional()),
   PRICE_FILL_DAILY: z.preprocess(
     blankToUndefined,
-    z.coerce.number().int().nonnegative().default(160),
+    z.coerce.number().int().nonnegative().default(200),
+  ),
+  // the same job's Canadian share: volumes a day looked at on eBay.ca, about
+  // 2 eBay calls each (collector/filler.ts fillCanadaOne)
+  CANADA_FILL_DAILY: z.preprocess(
+    blankToUndefined,
+    z.coerce.number().int().nonnegative().default(50),
   ),
   EBAY_CLIENT_ID: optional,
   EBAY_CLIENT_SECRET: optional,

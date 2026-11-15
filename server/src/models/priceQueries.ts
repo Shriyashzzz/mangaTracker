@@ -21,6 +21,7 @@ export * from "./priceLists.js";
 export * from "./apiAllowance.js";
 export * from "./savedVolumes.js";
 export * from "./coversAndSitemap.js";
+export * from "./priceTables.js";
 
 import {
   getBook,

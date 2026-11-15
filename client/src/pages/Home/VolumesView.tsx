@@ -5,7 +5,7 @@
 // asked only when a row is opened.
 import Cover from "../../components/cover/Cover";
 import SeriesPicture from "../../components/cover/SeriesPicture";
-import { formatCents } from "../../lib/prices";
+import { formatPaid } from "../../lib/prices";
 import { useEffect, useRef, useState } from "react";
 import RangePager from "../../components/rangePager/RangePager";
 import { NavLink } from "react-router";
@@ -173,7 +173,7 @@ function ShelfTotals({ tools, owned }: { tools: ShelfTools; owned: number }) {
     tools.finishEstimateCents,
   );
   const spent = tools.spent?.books ? tools.spent : null;
-  if (!worth && !tools.finishMissing && !spent) return null;
+  if (!ownedVolumes && !tools.finishMissing && !spent) return null;
   // folded until asked: a question to open, not two numbers in the way
   return (
     <details className={styles.worth}>
@@ -186,21 +186,28 @@ function ShelfTotals({ tools, owned }: { tools: ShelfTools; owned: number }) {
         {spent && (
           <div className={styles.total}>
             <dt className={styles.totalLabel}>Spent so far</dt>
-            <dd className={styles.totalValue}>{formatCents(spent.cents)}</dd>
+            <dd className={styles.totalValue}>{formatPaid(spent.cents)}</dd>
             <dd className={styles.totalNote}>
               what you paid for {plural(spent.books, "book")}
             </dd>
           </div>
         )}
-        {worth && (
+        {ownedVolumes > 0 && (
           <div className={styles.total}>
             <dt className={styles.totalLabel}>Worth used</dt>
-            <dd className={styles.totalValue}>{worth}</dd>
-            {value.priced < ownedVolumes && (
+            {/* no money until enough is priced (the server's
+                enoughToEstimate), as "To finish" below */}
+            <dd className={styles.totalValue}>{worth ?? "no total yet"}</dd>
+            {worth && value.priced < ownedVolumes && (
               // the total is of every volume, worked out from the ones
               // priced; the background jobs price the rest over a few days
               <dd className={styles.totalNote}>
                 for all {ownedVolumes.toLocaleString()} · from{" "}
+                {value.priced.toLocaleString()} priced so far · {FILL_IN}
+              </dd>
+            )}
+            {!worth && (
+              <dd className={styles.totalNote}>
                 {value.priced.toLocaleString()} priced so far · {FILL_IN}
               </dd>
             )}

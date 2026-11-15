@@ -1,5 +1,6 @@
 // The price checker's API calls, plus the small formatting and URL helpers
 // its pages share.
+import { inCanada } from "./country";
 import { humanQuery } from "./turnstile";
 import { isbnFromTyped } from "./barcode";
 import type { SyntheticEvent } from "react";
@@ -99,7 +100,23 @@ const usd = new Intl.NumberFormat("en-US", {
   style: "currency",
   currency: "USD",
 });
-export const formatCents = (cents: number) => usd.format(cents / 100);
+// "CA$15.99": never mistaken for US dollars
+const cad = new Intl.NumberFormat("en-US", {
+  style: "currency",
+  currency: "CAD",
+});
+// A price the server sent for the country they shop in: "$9.99", or
+// "CA$13.99" with Canada picked (the server sent Canadian prices then; see
+// lib/country.ts)
+export const formatCents = (cents: number) =>
+  (inCanada() ? cad : usd).format(cents / 100);
+// What they said they paid for their own books: their own number, in
+// whatever dollars they paid in, so never relabelled as US or Canadian
+export const formatPaid = (cents: number) => usd.format(cents / 100);
+// A US price whatever they picked: the US volume page's own numbers and the
+// tags search engines read, which are always the US ones
+export const formatUsd = (cents: number) => usd.format(cents / 100);
+export { wholeMoney } from "./country";
 
 // A store's name as it's shown: a seller on a big store goes by the store's
 // name ("eBay - secretariat0515" is "eBay"). A stranger's username says

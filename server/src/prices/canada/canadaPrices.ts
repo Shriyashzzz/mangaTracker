@@ -1,10 +1,19 @@
-// Canadian prices for one volume: checked only when someone with Canada picked
-// opens it, saved in their own tables, and reused for 20 days. Searches are
-// capped on their own (CANADA_SEARCH_LIMIT a month), so Canada can never use up
-// the searches US prices depend on. CANADA_PRICES=off turns it all off.
-import { upcomingReleaseOf } from "../service.js";
+// Canadian prices for one volume, saved in their own tables (priceTables.ts)
+// and, like US prices, by source group, each on its own schedule:
+//   ebay      eBay.ca, from eBay's own free API (or a SerpApi search without
+//             it): looks again after 3 days, and the background job keeps
+//             it fresh (collector/filler.ts)
+//   shopping  Google Shopping in Canada (Amazon.ca, Indigo and the rest), a
+//             paid SerpApi search: looks again after 20 days, and only when
+//             someone with Canada picked opens the volume
+// A group that answers replaces only its own prices, so an eBay.ca refresh
+// keeps Amazon.ca's. Paid searches are capped on their own
+// (CANADA_SEARCH_LIMIT a month), so Canada can never use up the searches US
+// prices depend on. CANADA_PRICES=off turns it all off.
+import { getSeriesWithVolumes, upcomingReleaseOf } from "../service.js";
+import { scanIfNeverScanned } from "../boxSetScan.js";
+import { seriesName } from "../stores/match.js";
 import config from "../../config/config.js";
-import { prisma } from "../../config/prisma.js";
 import priceQueries from "../../models/priceQueries.js";
 import {
   ebayApiEnabled,
@@ -13,12 +22,11 @@ import {
 } from "../providers/ebay.js";
 import { searchSerpApi, serpApiEnabled } from "../providers/serpapiClient.js";
 import { shoppingQuery } from "../stores/match.js";
-import {
-  EBAY_CA,
-  ebayAffiliateUrl,
-  ebayCampaignId,
-} from "../stores/affiliates.js";
+import { dropUnlikelyNew } from "../stores/retailers.js";
+import { isWellKnown } from "../volumeNames.js";
+import { canadaOfferLink, canadaStoreLinks } from "./canadaLinks.js";
 import type { Offer } from "../types.js";
+import type { PriceHistory } from "../../models/priceQueries.js";
 import {
   believableOffers,
   ebayCaOffers,
@@ -27,98 +35,61 @@ import {
   type CaShoppingResult,
 } from "./canadaOffers.js";
 
-// 20 days: volume prices move slowly, every page offers several stores, and
-// the free SerpApi allowance runs out in days at anything shorter
-const FRESH_FOR_MS = 20 * 24 * 60 * 60 * 1000;
+const DAY_MS = 24 * 60 * 60 * 1000;
 const BUDGET_LABEL = "serpapi-ca";
+
+type Group = "ebay" | "shopping";
+const GROUPS: Group[] = ["ebay", "shopping"];
+
+// how long a group's look lasts. eBay's own API is free, so it looks every
+// few days; through SerpApi, and Google Shopping always, it's a paid search:
+// 20 days, or the free allowance runs out in days
+const freshFor = (group: Group) =>
+  group === "ebay" && ebayApiEnabled() ? 3 * DAY_MS : 20 * DAY_MS;
 
 export type CanadaPrices = {
   // off: switched off; budget: this month's Canadian searches are used up;
   // unknown: a volume we've never seen, so nothing is spent on it;
   // error: the stores didn't answer
   status: "ok" | "off" | "budget" | "unknown" | "error";
-  offers: Offer[];
+  offers: (Offer & { affiliate?: boolean; knownStore?: boolean })[];
+  // the oldest of its groups' looks, as the US prices say "checked"
   checkedAt: Date | null;
+  // every Canadian price seen for it, like the US page's history
+  history: PriceHistory | null;
+  // its usual new price in Canada: "most volumes are about"
+  usualCents: number | null;
   // each store's own search for the volume, shown whatever the status
   links: { store: string; url: string; affiliate: boolean }[];
 };
 
-// eBay Partner Network for ebay.ca: the same campaign as the US links, with
-// eBay Canada's own codes
-const ebayCa = (url: string, source: string) =>
-  ebayAffiliateUrl(url, source, EBAY_CA);
-
-// Amazon.ca with our Associates tag when there is one
-const amazonCa = (isbn13: string) => {
-  const tag = config.CANADA_AMAZON_AFFILIATE;
-  return `https://www.amazon.ca/s?k=${isbn13}${tag ? `&tag=${encodeURIComponent(tag)}` : ""}`;
-};
-
-const canadaStoreLinks = (isbn13: string) => [
-  {
-    store: "Amazon.ca",
-    url: amazonCa(isbn13),
-    affiliate: Boolean(config.CANADA_AMAZON_AFFILIATE),
-  },
-  {
-    store: "Indigo",
-    url: `https://www.indigo.ca/search?q=${isbn13}`,
-    affiliate: false,
-  },
-  {
-    store: "eBay.ca",
-    url: ebayCa(`https://www.ebay.ca/sch/i.html?_nkw=${isbn13}`, "ca-search"),
-    affiliate: Boolean(ebayCampaignId()),
-  },
-  {
-    store: "Walmart.ca",
-    url: `https://www.walmart.ca/search?q=${isbn13}`,
-    affiliate: false,
-  },
-];
-
-// Amazon.ca's row goes to Amazon.ca itself, with the tag, rather than through
-// Google; eBay.ca's rows get eBay Canada's tracking
-const withLinks = (
+// a volume's Canadian prices now: each group's from its last look, held to
+// the believable-price rule, with their links, its history and when
+async function saved(
   isbn13: string,
-  result: Omit<CanadaPrices, "links">,
-): CanadaPrices => ({
-  ...result,
-  offers: result.offers.map((o) =>
-    o.store === "Amazon.ca"
-      ? {
-          ...o,
-          url: amazonCa(isbn13),
-          affiliate: Boolean(config.CANADA_AMAZON_AFFILIATE),
-        }
-      : o.store === "eBay.ca" && o.url
-        ? {
-            ...o,
-            url: ebayCa(o.url, "ca-listing"),
-            affiliate: Boolean(ebayCampaignId()),
-          }
-        : o,
-  ),
-  links: canadaStoreLinks(isbn13),
-});
-
-const latest = async (isbn13: string, checkedAt: Date) => {
-  const rows = await prisma.caPriceSample.findMany({
-    where: { isbn13, fetchedAt: checkedAt },
-    orderBy: { priceCents: "asc" },
-  });
-  return rows.map(
-    ({ store, format, condition, priceCents, currency, inStock, url }) => ({
-      store,
-      format,
-      condition,
-      priceCents,
-      currency,
-      inStock,
-      url,
-    }),
-  );
-};
+  status: CanadaPrices["status"] = "ok",
+): Promise<CanadaPrices> {
+  const [current, usual, checks] = await Promise.all([
+    priceQueries.getCurrentOffers(isbn13, "ca"),
+    priceQueries.getNewPriceMedian(isbn13, "ca"),
+    priceQueries.getSourceChecks(isbn13, "ca"),
+  ]);
+  const history = await priceQueries.getPriceHistory(isbn13, usual, "ca");
+  const times = [...checks.values()].map((at) => at.getTime());
+  return {
+    status,
+    offers: dropUnlikelyNew(current, usual).map((o) => ({
+      ...o,
+      ...canadaOfferLink(o, isbn13),
+      knownStore: isWellKnown(o.store),
+    })),
+    checkedAt: times.length ? new Date(Math.min(...times)) : null,
+    history:
+      history.checks && history.since && history.lastSeen ? history : null,
+    usualCents: usual,
+    links: canadaStoreLinks(isbn13),
+  };
+}
 
 // as long as the US price checks wait for a store
 const SEARCH_TIMEOUT_MS = 12_000;
@@ -148,162 +119,166 @@ const search = async <T extends { error?: string }>(
   }
 };
 
-// a check already running for a volume: anyone else asking waits for it rather
-// than spending the same searches again
-const running = new Map<string, Promise<CanadaPrices>>();
+type Asked = { offers: Offer[] } | "budget" | "failed";
 
-// refresh false: saved prices only, for crawlers, which never spend searches
-export function getCanadaPrices(
+// eBay.ca: eBay's own free API when it's set up (box sets aren't looked for
+// here: the series' scan finds those), else through SerpApi
+async function askEbay(
   isbn13: string,
-  { refresh = true } = {},
-): Promise<CanadaPrices> {
-  if (!refresh)
-    return savedOnly(isbn13).then((result) => withLinks(isbn13, result));
-  // not out yet: nothing worth a paid search, just the store links
-  return upcomingReleaseOf(isbn13).then((upcoming) =>
-    upcoming
-      ? savedOnly(isbn13).then((result) => withLinks(isbn13, result))
-      : checkNow(isbn13),
-  );
+  title: string,
+  background: boolean,
+): Promise<Asked> {
+  // the background never spends a paid search
+  if (background && !ebayApiEnabled()) return "budget";
+  if (ebayApiEnabled()) {
+    if (!(await ebayCallsLeft().catch(() => true))) return "budget";
+    return searchEbay(isbn13, title, "CA", AbortSignal.timeout(15_000)).then(
+      (offers) => ({ offers }),
+      () => "failed" as const,
+    );
+  }
+  const r = await search<{ error?: string; organic_results?: CaEbayResult[] }>({
+    engine: "ebay",
+    ebay_domain: "ebay.ca",
+    _nkw: isbn13,
+    _sop: "15",
+    buying_format: "BIN",
+  });
+  return typeof r === "object"
+    ? { offers: ebayCaOffers(r.data.organic_results ?? [], title) }
+    : r;
 }
 
-function checkNow(isbn13: string): Promise<CanadaPrices> {
-  const already = running.get(isbn13);
+async function askShopping(title: string): Promise<Asked> {
+  const r = await search<{
+    error?: string;
+    shopping_results?: CaShoppingResult[];
+  }>({
+    engine: "google_shopping",
+    q: shoppingQuery(title),
+    gl: "ca",
+    hl: "en",
+    google_domain: "google.ca",
+    location: "Canada",
+  });
+  return typeof r === "object"
+    ? { offers: shoppingOffers(r.data.shopping_results ?? [], title) }
+    : r;
+}
+
+// which groups can look now: due by their schedule, and able to (Google
+// Shopping needs SerpApi; eBay.ca needs eBay's API or SerpApi)
+async function dueGroups(isbn13: string, wanted: Group[]) {
+  const checks = await priceQueries.getSourceChecks(isbn13, "ca");
+  const now = Date.now();
+  return wanted.filter((group) => {
+    if (group === "shopping" && !serpApiEnabled()) return false;
+    if (group === "ebay" && !ebayApiEnabled() && !serpApiEnabled())
+      return false;
+    const at = checks.get(group);
+    return !at || now - at.getTime() >= freshFor(group);
+  });
+}
+
+// a check already running for a volume: anyone else asking waits for it rather
+// than spending the same searches again
+const running = new Map<string, Promise<CanadaPrices["status"]>>();
+
+// Looks again with the groups that are due (of `wanted`), saves each that
+// answered, and says how it went. Only volumes we know are manga can spend
+// anything: a made-up ISBN, or any book someone opened a page for, can't
+export function checkCanada(
+  isbn13: string,
+  wanted: Group[] = GROUPS,
+  { background = false } = {},
+): Promise<CanadaPrices["status"]> {
+  const key = `${isbn13}|${wanted.join(",")}`;
+  const already = running.get(key);
   if (already) return already;
-  // never throws: whatever happens, they still get the store links
-  const check = checkCanadaPrices(isbn13)
-    .catch((e: unknown): Omit<CanadaPrices, "links"> => {
+  const check = runCheck(isbn13, wanted, background)
+    .catch((e: unknown): CanadaPrices["status"] => {
       console.error("Canadian prices failed:", e);
-      return { status: "error", offers: [], checkedAt: null };
+      return "error";
     })
-    .then((result) => withLinks(isbn13, result))
-    .finally(() => running.delete(isbn13));
-  running.set(isbn13, check);
+    .finally(() => running.delete(key));
+  running.set(key, check);
   return check;
 }
 
-async function savedOnly(isbn13: string): Promise<Omit<CanadaPrices, "links">> {
-  const last = await prisma.caPriceCheck.findUnique({ where: { isbn13 } });
-  return last
-    ? {
-        status: "ok",
-        offers: await latest(isbn13, last.checkedAt),
-        checkedAt: last.checkedAt,
-      }
-    : { status: "ok", offers: [], checkedAt: null };
+async function runCheck(
+  isbn13: string,
+  wanted: Group[],
+  background: boolean,
+): Promise<CanadaPrices["status"]> {
+  if (config.CANADA_PRICES === "off") return "off";
+  const due = await dueGroups(isbn13, wanted);
+  if (!due.length) return "ok";
+  const book = await priceQueries.getBook(isbn13);
+  if (!book || !(await priceQueries.isKnownVolume(isbn13))) return "unknown";
+
+  const answers = await Promise.all(
+    due.map((group) =>
+      group === "ebay"
+        ? askEbay(isbn13, book.title, background)
+        : askShopping(book.title),
+    ),
+  );
+  const fresh = new Map<string, Offer[]>();
+  answers.forEach((answer, i) => {
+    if (typeof answer === "object") fresh.set(due[i]!, answer.offers);
+  });
+  if (!fresh.size) return answers.includes("failed") ? "error" : "budget";
+
+  // judged with the other groups' current prices, as a US check is: an
+  // eBay.ca-only look still drops a "new" copy far above Amazon.ca's
+  const [current, usual] = await Promise.all([
+    priceQueries.getCurrentRows(isbn13, "ca"),
+    priceQueries.getNewPriceMedian(isbn13, "ca"),
+  ]);
+  const kept = current.filter((o) => !fresh.has(o.source));
+  const judged = new Map<string, Offer[]>();
+  for (const [group, offers] of fresh) {
+    const believed = new Set(believableOffers([...offers, ...kept], usual));
+    judged.set(
+      group,
+      offers.filter((o) => believed.has(o)),
+    );
+  }
+  const sources = [...judged.keys()].map((group) =>
+    group === "ebay" ? "ebay.ca" : "google.ca",
+  );
+  await priceQueries.saveCheck(
+    isbn13,
+    background ? [...sources, "fill"] : sources,
+    judged,
+    "ca",
+  );
+  return "ok";
 }
 
-async function checkCanadaPrices(
+async function scanCanadaSetsOnce(isbn13: string) {
+  const book = await priceQueries.getBook(isbn13).catch(() => null);
+  if (!book) return;
+  const series = await getSeriesWithVolumes(seriesName(book.title)).catch(
+    () => null,
+  );
+  if (series?.volumes.length)
+    await scanIfNeverScanned(series.name, series.volumes, "ca");
+}
+
+// What a Canadian volume page shows. refresh false: saved prices only, for
+// crawlers, which never spend searches. Not out yet: nothing worth a paid
+// search, just the store links
+export async function getCanadaPrices(
   isbn13: string,
-): Promise<Omit<CanadaPrices, "links">> {
-  if (config.CANADA_PRICES === "off" || !serpApiEnabled()) {
-    return { status: "off", offers: [], checkedAt: null };
-  }
-  const last = await prisma.caPriceCheck.findUnique({ where: { isbn13 } });
-  if (last && Date.now() - last.checkedAt.getTime() < FRESH_FOR_MS) {
-    return {
-      status: "ok",
-      offers: await latest(isbn13, last.checkedAt),
-      checkedAt: last.checkedAt,
-    };
-  }
-
-  // only volumes we already know are manga: a made-up ISBN, or any book
-  // someone opened a page for, can't spend anything
-  const book = await priceQueries.getBook(isbn13);
-  if (!book || !(await priceQueries.isKnownVolume(isbn13)))
-    return { status: "unknown", offers: [], checkedAt: null };
-  const title = book.title;
-  const saved = async (): Promise<Omit<CanadaPrices, "links"> | null> =>
-    last
-      ? {
-          status: "ok",
-          offers: await latest(isbn13, last.checkedAt),
-          checkedAt: last.checkedAt,
-        }
-      : null;
-
-  // a check is saved only when both stores answer, so with eBay's calls used
-  // up for today a paid Google Shopping search would be spent for nothing,
-  // on every view: the saved prices stay until eBay is back
-  if (ebayApiEnabled() && !(await ebayCallsLeft().catch(() => true)))
-    return (await saved()) ?? { status: "budget", offers: [], checkedAt: null };
-
-  // eBay.ca from eBay's own free API when it's set up, else through SerpApi
-  const ebayCall: Promise<{ offers: Offer[] } | "failed" | "budget"> =
-    ebayApiEnabled()
-      ? searchEbay(isbn13, title, "CA", AbortSignal.timeout(15_000)).then(
-          (offers) => ({ offers }),
-          () => "failed" as const,
-        )
-      : search<{ error?: string; organic_results?: CaEbayResult[] }>({
-          engine: "ebay",
-          ebay_domain: "ebay.ca",
-          _nkw: isbn13,
-          _sop: "15",
-          buying_format: "BIN",
-        }).then((r) =>
-          typeof r === "object"
-            ? { offers: ebayCaOffers(r.data.organic_results ?? [], title) }
-            : r,
-        );
-  const [shopping, ebay] = await Promise.all([
-    search<{ error?: string; shopping_results?: CaShoppingResult[] }>({
-      engine: "google_shopping",
-      q: shoppingQuery(title),
-      gl: "ca",
-      hl: "en",
-      google_domain: "google.ca",
-      location: "Canada",
-    }),
-    ebayCall,
-  ]);
-  // only a check where every store answered is saved: a half one would hide
-  // stores for 20 days. The last full check stays up meanwhile
-  const answered = [shopping, ebay].filter((r) => typeof r === "object");
-  if (answered.length < 2) {
-    const fallback = await saved();
-    if (fallback) return fallback;
-    if (!answered.length) {
-      return {
-        status: shopping === "failed" || ebay === "failed" ? "error" : "budget",
-        offers: [],
-        checkedAt: null,
-      };
-    }
-    // nothing saved yet: show what did come back, without keeping it
-    return {
-      status: "ok",
-      offers: believableOffers([
-        ...shoppingOffers(
-          typeof shopping === "object"
-            ? (shopping.data.shopping_results ?? [])
-            : [],
-          title,
-        ),
-        ...(typeof ebay === "object" ? ebay.offers : []),
-      ]),
-      checkedAt: null,
-    };
-  }
-
-  const shoppingData = (
-    shopping as { data: { shopping_results?: CaShoppingResult[] } }
-  ).data;
-  const offers = believableOffers([
-    ...shoppingOffers(shoppingData.shopping_results ?? [], title),
-    ...(ebay as { offers: Offer[] }).offers,
-  ]);
-  const at = new Date();
-  await prisma.$transaction([
-    prisma.caPriceCheck.upsert({
-      where: { isbn13 },
-      create: { isbn13, checkedAt: at, sources: ["google.ca", "ebay.ca"] },
-      update: { checkedAt: at },
-    }),
-    prisma.caPriceSample.createMany({
-      data: offers.map((o) => ({ ...o, isbn13, fetchedAt: at })),
-    }),
-  ]);
-  return { status: "ok", offers, checkedAt: at };
+  { refresh = true } = {},
+): Promise<CanadaPrices> {
+  if (!refresh || (await upcomingReleaseOf(isbn13))) return saved(isbn13);
+  // its series' eBay.ca box sets, if nobody has looked for them yet
+  void scanCanadaSetsOnce(isbn13);
+  const status = await checkCanada(isbn13);
+  const now = await saved(isbn13);
+  // what's saved is shown whatever the check said; the status only explains
+  // an empty list
+  return now.offers.length || status === "ok" ? now : { ...now, status };
 }

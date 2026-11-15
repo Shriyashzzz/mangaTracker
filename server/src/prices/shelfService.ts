@@ -2,7 +2,7 @@
 // the cheapest known price for each manga. Reads only what's stored. Part of
 // the price service (service.ts lists the parts).
 import { titleVolume } from "./volumeNames.js";
-import priceQueries from "../models/priceQueries.js";
+import priceQueries, { type Country } from "../models/priceQueries.js";
 import { knownSeriesName, knownSeriesNames } from "./sources/anilist.js";
 import { seriesName, slugify } from "./stores/match.js";
 import { VOLUMES_KEY_VERSION } from "./volumesKey.js";
@@ -75,6 +75,7 @@ type ShelfPrice = {
 // and memory only: a whole shelf never sets off catalog or store lookups
 export async function getShelfPrices(
   manga: { id: number; name: string }[],
+  country: Country = "us",
 ): Promise<Record<number, ShelfPrice>> {
   const [bySeries, names] = await Promise.all([
     knownVolumesBySeries(),
@@ -93,7 +94,10 @@ export async function getShelfPrices(
   }
 
   const isbns = [...matches.values()].flat().map((v) => v.isbn13);
-  const prices = await priceQueries.getKnownPrices([...new Set(isbns)]);
+  const prices = await priceQueries.getKnownPrices(
+    [...new Set(isbns)],
+    country,
+  );
   const result: Record<number, ShelfPrice> = {};
   for (const [id, volumes] of matches) {
     let best: ShelfPrice | null = null;
