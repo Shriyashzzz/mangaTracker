@@ -1,5 +1,5 @@
-// Where each volume starts, by chapter, from Wikipedia's "List of … chapters"
-// page. A backup for MangaDex's list (volumeStarts.ts), which is thin for
+// Where each volume starts, by chapter, from Wikipedia: a series' "List of
+// … chapters" page, or the volume table in its own article. A backup for MangaDex's list (volumeStarts.ts), which is thin for
 // many licensed series: uploads taken down at a publisher's request take
 // their volume numbers with them (Jujutsu Kaisen's stops at vol. 4, Vinland
 // Saga's at vol. 1). Wikipedia lists every volume with its chapters.
@@ -68,38 +68,41 @@ const wikiGet = async (params: Record<string, string>) => {
   return res.json();
 };
 
-// "List of Frieren chapters" for "Frieren: Beyond Journey's End": the
-// search's first chapter list whose name shares the series' first word
-async function chapterListTitle(name: string): Promise<string | null> {
+// The pages that may list its volumes, best first: its "List of … chapters"
+// page, a "List of … volumes" page, then the series' own article (shorter
+// series keep the table there: Mob Psycho 100, Kagurabachi). Only pages whose
+// name shares the series' first word ("Frieren" for "Frieren: Beyond
+// Journey's End"), and never a list of episodes or characters
+async function candidatePages(name: string): Promise<string[]> {
   const data = await wikiGet({
     action: "query",
     list: "search",
     srsearch: `List of ${name} chapters`,
-    srlimit: "5",
+    srlimit: "6",
   });
   const firstWord = name.toLowerCase().split(/[^\p{L}\p{N}]+/u)[0] ?? "";
-  const titles: string[] = (data.query?.search ?? []).map(
-    (hit: { title: string }) => hit.title,
-  );
-  return (
-    titles.find(
-      (title) =>
-        /^List of .+ chapters/i.test(title) &&
-        title.toLowerCase().includes(firstWord),
-    ) ?? null
-  );
+  const titles: string[] = (data.query?.search ?? [])
+    .map((hit: { title: string }) => hit.title)
+    .filter((title: string) => title.toLowerCase().includes(firstWord));
+  const chapters = titles.filter((t) => /^List of .+ chapters/i.test(t));
+  const volumes = titles.filter((t) => /^List of .+ volumes/i.test(t));
+  const article = titles.filter((t) => !/^List of /i.test(t)).slice(0, 1);
+  return [...chapters.slice(0, 1), ...volumes.slice(0, 1), ...article];
 }
 
+// the first page that has the volumes; at most three asked
 async function lookUp(name: string): Promise<VolumeStart[]> {
-  const title = await chapterListTitle(name);
-  if (!title) return [];
-  const data = await wikiGet({
-    action: "parse",
-    prop: "wikitext",
-    redirects: "1",
-    page: title,
-  });
-  return volumeStartsFromWikitext(data.parse?.wikitext?.["*"] ?? "");
+  for (const page of await candidatePages(name)) {
+    const data = await wikiGet({
+      action: "parse",
+      prop: "wikitext",
+      redirects: "1",
+      page,
+    });
+    const starts = volumeStartsFromWikitext(data.parse?.wikitext?.["*"] ?? "");
+    if (starts.length) return starts;
+  }
+  return [];
 }
 
 // ---------- kept a week ----------
