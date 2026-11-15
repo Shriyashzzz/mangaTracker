@@ -5,11 +5,14 @@
 // focus trap, Escape and the backdrop
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { NavLink } from "react-router";
+import Cover from "../../components/cover/Cover";
 import { CheckIcon, CloseIcon, LinkIcon } from "../../components/icons/Icons";
 import DrawnCover from "../../components/drawnCover/DrawnCover";
 import StarRating from "../../components/starRating/StarRating";
 import { priceName, seriesPath } from "../../lib/prices";
 import AddToShelf from "./AddToShelf";
+import Synopsis from "./Synopsis";
+import TopPick from "./TopPick";
 import {
   ownedVolumesOf,
   shelfOf,
@@ -36,13 +39,18 @@ function Spines({ owned, name }: { owned: number[]; name: string }) {
   );
 }
 
-export function Cover({
+// A series' cover in a frame of the page's own (`className`), with whatever
+// is stamped over it (`children`). `sizes`: how wide it's drawn, for the
+// picture to be fetched at that size (components/cover/Cover.tsx)
+export function SeriesCover({
   m,
   className,
+  sizes,
   children,
 }: {
   m: SharedManga;
   className: string;
+  sizes: string;
   children?: ReactNode;
 }) {
   // no cover, or one that won't load: its name, lettered on
@@ -50,12 +58,11 @@ export function Cover({
   return (
     <div className={className}>
       {m.image && !broken ? (
-        <img
-          src={m.image}
-          alt=""
-          loading="lazy"
+        <Cover
+          url={m.image}
+          sizes={sizes}
           className="absolute inset-0 size-full object-cover"
-          onError={() => setBroken(true)}
+          onFail={() => setBroken(true)}
         />
       ) : (
         <DrawnCover title={m.name} />
@@ -92,10 +99,18 @@ function CopySeriesLink() {
 export default function SeriesSheet({
   m,
   owner,
+  topPick,
+  pick,
   onClose,
 }: {
   m: SharedManga;
   owner: string;
+  // for the owner on their own shelf: the series at the top now, and what
+  // to do when they change it
+  topPick?: { top: string[]; onChange: (top: string[]) => void };
+  // for a visitor without an account who's comparing shelves: whether
+  // they've marked this one as theirs too, and what marks it
+  pick?: { picked: boolean; onToggle: () => void };
   onClose: () => void;
 }) {
   const dialog = useRef<HTMLDialogElement>(null);
@@ -133,7 +148,7 @@ export default function SeriesSheet({
 
       <div className={styles.sheetBody}>
         <div className={styles.sheetTop}>
-          <Cover m={m} className={styles.sheetCover} />
+          <SeriesCover m={m} className={styles.sheetCover} sizes="96px" />
           <dl className={styles.facts}>
             <dt>Status</dt>
             <dd>{statusOf(m)}</dd>
@@ -157,7 +172,8 @@ export default function SeriesSheet({
             </dd>
             {m.rating ? (
               <>
-                <dt>Rating</dt>
+                {/* whose: not a score from the site */}
+                <dt>Their rating</dt>
                 <dd>
                   <StarRating value={m.rating} size="sm" />
                 </dd>
@@ -177,7 +193,31 @@ export default function SeriesSheet({
             )}
           </dl>
         </div>
-        <AddToShelf m={m} />
+        <Synopsis m={m} />
+        {topPick ? <TopPick m={m} {...topPick} /> : <AddToShelf m={m} />}
+        {pick && (
+          <p className={styles.addLine}>
+            <button
+              type="button"
+              className={pick.picked ? "btn btn-primary" : "btn btn-secondary"}
+              aria-pressed={pick.picked}
+              onClick={pick.onToggle}
+            >
+              {pick.picked ? "Yours too" : "I have this"}
+            </button>
+          </p>
+        )}
+
+        {/* what they wrote about it, before the volumes: it's the part a
+            visitor reads */}
+        {m.notes && (
+          <section aria-labelledby="series-sheet-notes">
+            <h3 id="series-sheet-notes" className={styles.label}>
+              Notes
+            </h3>
+            <p className={styles.notes}>{m.notes}</p>
+          </section>
+        )}
 
         <section aria-labelledby="series-sheet-volumes">
           <h3 id="series-sheet-volumes" className={styles.label}>
@@ -194,15 +234,6 @@ export default function SeriesSheet({
             </p>
           )}
         </section>
-
-        {m.notes && (
-          <section aria-labelledby="series-sheet-notes">
-            <h3 id="series-sheet-notes" className={styles.label}>
-              Notes
-            </h3>
-            <p className={styles.notes}>{m.notes}</p>
-          </section>
-        )}
       </div>
 
       <div className={styles.sheetFoot}>

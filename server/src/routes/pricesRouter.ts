@@ -25,6 +25,9 @@ pricesRouter.get("/editions", perMinute(40), prices.editions);
 // covers: a series page loads 30+ at once
 // (before /cover/:isbn, or "series" would be read as an ISBN)
 pricesRouter.get("/cover/series", perMinute(600), prices.seriesCover);
+// a shared shelf's link-preview picture. Under /cover/ so Cloudflare keeps
+// it like the covers
+pricesRouter.get("/cover/shelf/:code", perMinute(60), prices.shelfCardImage);
 pricesRouter.get("/cover/:isbn", perMinute(600), prices.cover);
 // link previews; cheap database reads
 pricesRouter.get("/summary/volume/:isbn", perMinute(300), prices.volumeSummary);

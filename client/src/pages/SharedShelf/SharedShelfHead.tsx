@@ -1,8 +1,11 @@
 // The top of a shared shelf: the covers its owner has most of, fanned out,
 // and the buttons that copy or share the link.
 import { useState } from "react";
+import CoverCaption, {
+  COVER_WITH_CAPTION,
+} from "../../components/coverCaption/CoverCaption";
 import { CheckIcon, LinkIcon, ShareIcon } from "../../components/icons/Icons";
-import { Cover } from "./SeriesSheet";
+import { SeriesCover } from "./SeriesSheet";
 import { ownedCountOf, type SharedManga } from "./shareParts";
 import { shareStyles as styles } from "./styles";
 
@@ -15,7 +18,9 @@ export function CoverFan({
   manga: SharedManga[];
   onOpen: (m: SharedManga) => void;
 }) {
-  const top = [...manga]
+  // only series with a cover: one without was a blank slab among the rest
+  const top = manga
+    .filter((m) => m.image)
     .sort(
       (a, b) =>
         ownedCountOf(b) - ownedCountOf(a) || (b.rating ?? 0) - (a.rating ?? 0),
@@ -36,12 +41,17 @@ export function CoverFan({
         >
           <button
             type="button"
-            className={styles.fanCard}
+            className={`${styles.fanCard} ${COVER_WITH_CAPTION}`}
             aria-haspopup="dialog"
             aria-label={`${m.name}. Open`}
             onClick={() => onOpen(m)}
           >
-            <Cover m={m} className={styles.fanCover} />
+            <SeriesCover
+              m={m}
+              className={styles.fanCover}
+              sizes="(max-width: 720px) 54px, 104px"
+            />
+            <CoverCaption name={m.name} />
           </button>
         </li>
       ))}
@@ -49,8 +59,10 @@ export function CoverFan({
   );
 }
 
-// copy the link; on phones, the share sheet too
-export function ShareButtons() {
+// copy the link; on phones, the share sheet too. `besideCovers`: on a phone
+// they stack beside the fanned covers; with no covers there, they sit in a
+// row of their own
+export function ShareButtons({ besideCovers }: { besideCovers: boolean }) {
   const [copied, setCopied] = useState(false);
   const url = typeof window !== "undefined" ? window.location.href : "";
   const canShare = typeof navigator !== "undefined" && "share" in navigator;
@@ -64,7 +76,7 @@ export function ShareButtons() {
     }
   };
   return (
-    <div className={styles.actions}>
+    <div className={besideCovers ? styles.actions : styles.actionsRow}>
       <button type="button" className={styles.action} onClick={copy}>
         {copied ? <CheckIcon /> : <LinkIcon />}
         <span aria-live="polite">{copied ? "Copied" : "Copy link"}</span>

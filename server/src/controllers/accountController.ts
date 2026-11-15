@@ -4,10 +4,14 @@ import type { Request, Response } from "express";
 import { body, matchedData, param } from "express-validator";
 import { sendError } from "../middlewares/errorHandler.js";
 import { rejectInvalid } from "../middlewares/validate.js";
+import priceQueries from "../models/priceQueries.js";
 import userQueries, { type AccountPatch } from "../models/userQueries.js";
 import { AVATARS } from "../util/shelf/avatars.js";
 import { defaultReaderName, READER_NAMES } from "../util/shelf/readerNames.js";
+import { shelfSeries } from "../collector/shelfSeries.js";
+import { ownedVolumes } from "../util/shelf/ownedList.js";
 import { toSharedShelf } from "../util/shelf/sharedShelf.js";
+import { volumeFacts } from "../util/shelf/sharedVolumes.js";
 
 // the name they show as until they pick one, and the ideas to pick from
 const withNames = <T>(userId: number, account: T) => ({
@@ -15,6 +19,41 @@ const withNames = <T>(userId: number, account: T) => ({
   defaultName: defaultReaderName(userId),
   nameIdeas: READER_NAMES,
 });
+
+// What the catalog adds about each shared series' volumes, in the shelf's
+// order. A series they're collecting in another edition (deluxe, 3-in-1) is
+// left out: its numbers aren't single volumes'. Each next volume comes with
+// its best known price. A database problem only costs these extras, never
+// the shelf
+type SharedManga = NonNullable<
+  Awaited<ReturnType<typeof userQueries.getSharedShelf>>
+>["manga"][number];
+async function factsFor(manga: SharedManga[]) {
+  const listed = await shelfSeries(manga.filter((m) => !m.edition)).catch(
+    () => [],
+  );
+  const volumesOf = new Map(listed.map((s) => [s.manga, s.volumes]));
+  const facts = manga.map((m) => {
+    const volumes = volumesOf.get(m);
+    if (!volumes) return undefined;
+    const { volumesOwned, ownedList } = ownedVolumes(
+      m.volumesOwned,
+      m.ownedList,
+    );
+    const owned = ownedList.length
+      ? ownedList
+      : Array.from({ length: volumesOwned ?? 0 }, (_, i) => i + 1);
+    return volumeFacts(owned, volumes);
+  });
+  // each next volume's best known price, from what's on file
+  const nexts = facts.flatMap((f) => f?.next ?? []);
+  const prices = await priceQueries
+    .getKnownPrices(nexts.map((next) => next.isbn13))
+    .catch(() => new Map<string, { priceCents: number }>());
+  for (const next of nexts)
+    next.fromCents = prices.get(next.isbn13)?.priceCents ?? null;
+  return facts;
+}
 
 const get = async (req: Request, res: Response) => {
   const account = await userQueries.getAccount(req.session.userId!);
@@ -39,6 +78,8 @@ const update = [
     .withMessage("That doesn't look like an email address."),
   body("shareEnabled").optional().isBoolean({ strict: true }),
   body("shareNotes").optional().isBoolean({ strict: true }),
+  body("shareRatings").optional().isBoolean({ strict: true }),
+  body("shareProgress").optional().isBoolean({ strict: true }),
   rejectInvalid,
   async (req: Request, res: Response) => {
     const data = matchedData(req, { includeOptionals: false }) as AccountPatch;
@@ -80,7 +121,12 @@ const shared = [
   async (req: Request, res: Response) => {
     const user = await userQueries.getSharedShelf(matchedData(req).code);
     if (!user) return sendError(res, 404, "This shelf isn't shared.");
-    res.json(toSharedShelf(user));
+    res.json({
+      ...toSharedShelf({ ...user, facts: await factsFor(user.manga) }),
+      // the owner looking at their own shared shelf, who is shown the way
+      // to its settings. (Not cached anywhere: it differs by viewer)
+      yours: req.session.userId === user.id,
+    });
   },
 ];
 

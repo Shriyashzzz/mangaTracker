@@ -814,17 +814,25 @@ function shelfTags(
       [
         `${plural(shelf.manga.length, "series", "series")}, ${plural(volumes, "volume")} owned.`,
         top.length ? `With ${top.map((m) => m.name).join(", ")}.` : "",
-        "Track your own on Manga Tracker, free.",
       ]
         .filter(Boolean)
         .join(" "),
-      // previews show about two lines; the invite at the end is worth them
+      // previews show about two lines: all of it is about their shelf
       200,
     ),
     path,
-    image: apiImage(top.find((m) => m.image)?.image ?? null, origin),
+    // a wide picture of their covers fanned out, made by the API
+    // (server util/shelf/shelfCard.ts) from AniList's covers. With none of
+    // those on the shelf: one cover, small, as before
+    ...(shelf.manga.some((m) => m.image?.includes("/anilistcdn/"))
+      ? {
+          image: `${origin}/api/prices/cover/shelf/${encodeURIComponent(code)}`,
+        }
+      : {
+          image: apiImage(top.find((m) => m.image)?.image ?? null, origin),
+          smallImage: true,
+        }),
     noindex: true,
-    smallImage: true,
   };
 }
 

@@ -67,6 +67,8 @@
   --stamp-new: #bfe6c8;
   --stamp-market: #f8d46b;
   --stamp-ebook: #cdd6fb;
+  /* the shared shelf's "To get" */
+  --stamp-get: #f2c9bf;
   --stamp-ink: #1d1a16;
   /* the shared shelf's invite: yellow paper by day, a dark card edged in it at night */
   --invite-paper: var(--stamp-market);
@@ -106,6 +108,7 @@
     --stamp-new: #86c99a;
     --stamp-market: #e6b84a;
     --stamp-ebook: #9fb0ec;
+    --stamp-get: #e59a8b;
     --stamp-ink: #16140f;
     --invite-paper: var(--card);
     --invite-ink: var(--ink);
@@ -146,6 +149,7 @@
   --stamp-new: #86c99a;
   --stamp-market: #e6b84a;
   --stamp-ebook: #9fb0ec;
+  --stamp-get: #e59a8b;
   --stamp-ink: #16140f;
   --award-new: #6fbf8f;
   --on-award-new: #16140f;
@@ -1031,8 +1035,7 @@
   color: var(--ink-soft);
 }
 .support-peek-line a,
-.view-peek .support-peek-line > button:not(.support-peek-close),
-.share-peek .support-peek-line button:not(.support-peek-close) {
+.view-peek .support-peek-line > button:not(.support-peek-close) {
   display: inline-flex;
   align-items: center;
   min-height: 30px;
@@ -1060,15 +1063,6 @@
 .support-peek-close svg {
   width: 13px;
   height: 13px;
-}
-/* on a shared shelf: a little more to say, and two ways on */
-.share-peek .support-peek-line {
-  width: 212px;
-}
-.share-peek-ways {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0 0.9rem;
 }
 /* from the side: half out of the window, with his grin showing */
 .support-peek-side {

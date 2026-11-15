@@ -3,6 +3,7 @@
 // each opening its own page. And that page's head: which pile, the chips to
 // the others, and the way back
 import Cover from "../../components/cover/Cover";
+import CoverCaption from "../../components/coverCaption/CoverCaption";
 import { useEffect, useRef, useState } from "react";
 import { NavLink } from "react-router";
 import DrawnCover from "../../components/drawnCover/DrawnCover";
@@ -114,9 +115,7 @@ function Fan({
             )}
             {/* which series, on hover or keyboard focus (its name is in the
                 link's label for screen readers already) */}
-            <span className={styles.caption} aria-hidden>
-              {m.name}
-            </span>
+            <CoverCaption name={m.name} />
           </NavLink>
         );
       })}

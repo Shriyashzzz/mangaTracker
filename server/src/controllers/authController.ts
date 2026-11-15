@@ -10,6 +10,7 @@ import userQueries, {
   type StringPref,
 } from "../models/userQueries.js";
 import { validReleaseSettings } from "../util/releases/releaseStatus.js";
+import { validShareTop } from "../util/shelf/shareTop.js";
 
 const credentials = [
   body("username")
@@ -106,6 +107,8 @@ const updatePrefs = async (req: Request, res: Response) => {
   }
   const releases = validReleaseSettings(req.body?.releases);
   if (releases) patch.releases = releases;
+  const shareTop = validShareTop(req.body?.shareTop);
+  if (shareTop) patch.shareTop = shareTop;
   if (Object.keys(patch).length === 0) {
     res.status(400).json({ error: [{ msg: "Nothing to save" }] });
     return;

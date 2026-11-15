@@ -1,9 +1,13 @@
-// How a visitor looks at a shared shelf: its three sections, the orders it
-// can be put in, and compact rows or covers (kept on their device).
+// How a visitor looks at a shared shelf: its tabs (the three reading
+// statuses, and what to get next), the orders it can be put in, and compact
+// rows or covers (kept on their device).
 import { readLocal } from "../../lib/prefs";
 import { ownedCountOf, type SharedManga } from "./shareParts";
 
 export const SECTIONS = ["Reading", "Finished", "To read"] as const;
+// the tabs: each status, then the next volume to get for each series
+export const TABS = [...SECTIONS, "To get"] as const;
+export type Tab = (typeof TABS)[number];
 
 export const SORTS = {
   name: {
@@ -32,12 +36,6 @@ export const VIEWS: Record<View, string> = {
 };
 export const viewNow = (): View =>
   readLocal("shareView") === "covers" ? "covers" : "rows";
-
-// on phones only the first list starts open, so the others are a tap away
-// rather than a long scroll
-export const narrow = () =>
-  typeof window !== "undefined" &&
-  window.matchMedia("(max-width: 720px)").matches;
 
 export const plural = (n: number, one: string, many = `${one}s`) =>
   `${n} ${n === 1 ? one : many}`;

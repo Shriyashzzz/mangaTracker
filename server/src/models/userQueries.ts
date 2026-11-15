@@ -39,6 +39,8 @@ export type Prefs = {
 } & {
   // what the New tab lists; see util/releases/releaseStatus.ts
   releases?: ReleaseSettings;
+  // the series at the top of their shared shelf; see util/shelf/shareTop.ts
+  shareTop?: string[];
 };
 
 // the account's id when the username and password match, otherwise why not
@@ -108,6 +110,8 @@ const ACCOUNT_FIELDS = {
   recoveryEmail: true,
   shareEnabled: true,
   shareNotes: true,
+  shareRatings: true,
+  shareProgress: true,
   shareCode: true,
 } as const;
 
@@ -120,6 +124,8 @@ export type AccountPatch = Partial<{
   recoveryEmail: string | null;
   shareEnabled: boolean;
   shareNotes: boolean;
+  shareRatings: boolean;
+  shareProgress: boolean;
 }>;
 
 // the first time sharing goes on, it gets its link
@@ -158,6 +164,8 @@ export const getSharedShelf = (shareCode: string) =>
       displayName: true,
       avatar: true,
       shareNotes: true,
+      shareRatings: true,
+      shareProgress: true,
       prefs: true,
       manga: {
         orderBy: { name: "asc" },
@@ -175,6 +183,9 @@ export const getSharedShelf = (shareCode: string) =>
           description: true,
           volumesOwned: true,
           ownedList: true,
+          // (not shared: only to leave another edition's numbers out of
+          // the "next volume")
+          edition: true,
         },
       },
     },

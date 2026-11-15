@@ -76,6 +76,12 @@ export default function Header() {
     pathname === "/" &&
     !search &&
     (isSignedIn === false || (isSignedIn === null && !probablySignedIn()));
+  // A visitor without an account on someone's shared shelf gets no bottom
+  // bar: "My shelf" there means nothing to them, and the page is its
+  // owner's. The top bar's menu still has the way in
+  const onSomeonesShelf =
+    pathname.startsWith("/u/") &&
+    (isSignedIn === false || (isSignedIn === null && !probablySignedIn()));
   // the price checker lives at "/", under /prices, at /series and /deals
   const onPrices =
     !fromShelf &&
@@ -184,51 +190,53 @@ export default function Header() {
       </div>
 
       {/* out of the way while the keyboard is up */}
-      <nav
-        className="fixed inset-x-0 bottom-0 z-20 hidden border-t-[3px] border-double border-line bg-paper pb-[env(safe-area-inset-bottom)] upto-720:flex [body:has(input:focus,textarea:focus,select:focus)_&]:hidden!"
-        aria-label="Main"
-      >
-        <Link
-          {...shelfLink}
-          className={barClass(currentTab === "shelf" && !onNew)}
-          aria-current={currentTab === "shelf" && !onNew ? "page" : undefined}
-          viewTransition
+      {!onSomeonesShelf && (
+        <nav
+          className="fixed inset-x-0 bottom-0 z-20 hidden border-t-[3px] border-double border-line bg-paper pb-[env(safe-area-inset-bottom)] upto-720:flex [body:has(input:focus,textarea:focus,select:focus)_&]:hidden!"
+          aria-label="Main"
         >
-          My shelf
-        </Link>
-        {isSignedIn && checksOn && (
           <Link
-            to="/shelf?tab=new"
-            onClick={() => leaveTabForTop("shelf", currentTab, here)}
-            data-tour="tab-new"
-            className={barClass(onNew)}
-            aria-current={onNew ? "page" : undefined}
-            data-on={onNew || undefined}
-            aria-label={newCount ? `New: ${newCount} series` : "New"}
+            {...shelfLink}
+            className={barClass(currentTab === "shelf" && !onNew)}
+            aria-current={currentTab === "shelf" && !onNew ? "page" : undefined}
             viewTransition
           >
-            New
-            {newCount > 0 && <span className={barCount}>{newCount}</span>}
+            My shelf
           </Link>
-        )}
-        <Link
-          {...barLink("prices")}
-          className={barClass(onPrices)}
-          aria-current={onPrices ? "page" : undefined}
-          viewTransition
-        >
-          Prices
-        </Link>
-        {isSignedIn === false && (
-          <NavLink
-            to="/signin"
-            className={({ isActive }) => barClass(isActive)}
+          {isSignedIn && checksOn && (
+            <Link
+              to="/shelf?tab=new"
+              onClick={() => leaveTabForTop("shelf", currentTab, here)}
+              data-tour="tab-new"
+              className={barClass(onNew)}
+              aria-current={onNew ? "page" : undefined}
+              data-on={onNew || undefined}
+              aria-label={newCount ? `New: ${newCount} series` : "New"}
+              viewTransition
+            >
+              New
+              {newCount > 0 && <span className={barCount}>{newCount}</span>}
+            </Link>
+          )}
+          <Link
+            {...barLink("prices")}
+            className={barClass(onPrices)}
+            aria-current={onPrices ? "page" : undefined}
             viewTransition
           >
-            Sign in
-          </NavLink>
-        )}
-      </nav>
+            Prices
+          </Link>
+          {isSignedIn === false && (
+            <NavLink
+              to="/signin"
+              className={({ isActive }) => barClass(isActive)}
+              viewTransition
+            >
+              Sign in
+            </NavLink>
+          )}
+        </nav>
+      )}
     </header>
   );
 }

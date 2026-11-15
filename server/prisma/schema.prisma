@@ -27,6 +27,10 @@ model User {
   // the link is a random code, and stays the same if sharing is switched off and on
   shareEnabled    Boolean @default(false) @map("share_enabled")
   shareNotes      Boolean @default(false) @map("share_notes")
+  // on a shared shelf: their star ratings, and how far they've read. Shown
+  // unless they switch them off
+  shareRatings    Boolean @default(true) @map("share_ratings")
+  shareProgress   Boolean @default(true) @map("share_progress")
   shareCode       String? @unique @map("share_code") @db.VarChar(16)
   // series on their shelf, kept right by a database trigger on manga
   // (migration 20261113000000_search_tracking); never written from code

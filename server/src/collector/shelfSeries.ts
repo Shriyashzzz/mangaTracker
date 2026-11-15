@@ -13,10 +13,12 @@ import { volumesKey } from "../prices/volumesKey.js";
 import { guessedLine, type ListedVolume } from "./shelfMath.js";
 import type { EditionLine } from "../prices/editionLines.js";
 
-type ShelfSeries = {
-  manga: Manga;
+type ShelfSeries<T> = {
+  manga: T;
   volumes: ListedVolume[];
 };
+// all it reads of a shelf entry: what the prices call the series
+type Named = Pick<Manga, "name" | "lightNovel">;
 
 const listed = (b: CatalogBook): ListedVolume => ({
   volume: b.volume,
@@ -109,7 +111,9 @@ export async function shelfEditionLines(
   );
 }
 
-export async function shelfSeries(manga: Manga[]): Promise<ShelfSeries[]> {
+export async function shelfSeries<T extends Named>(
+  manga: T[],
+): Promise<ShelfSeries<T>[]> {
   if (!manga.length) return [];
   const names = manga.map((m) => priceName(m));
   const official = await officialNames(names);

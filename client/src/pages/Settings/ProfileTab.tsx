@@ -239,6 +239,42 @@ export default function ProfileTab({ account }: { account: Account }) {
             Include my notes
           </label>
         )}
+        {account.shareEnabled && (
+          <label className={styles.row}>
+            <input
+              type="checkbox"
+              checked={account.shareRatings}
+              onChange={(e) =>
+                save(
+                  "share",
+                  { shareRatings: e.target.checked },
+                  e.target.checked
+                    ? "Your ratings are shared."
+                    : "Your ratings are private.",
+                )
+              }
+            />
+            Show my star ratings
+          </label>
+        )}
+        {account.shareEnabled && (
+          <label className={styles.row}>
+            <input
+              type="checkbox"
+              checked={account.shareProgress}
+              onChange={(e) =>
+                save(
+                  "share",
+                  { shareProgress: e.target.checked },
+                  e.target.checked
+                    ? "How far you've read is shared."
+                    : "How far you've read is private.",
+                )
+              }
+            />
+            Show how far I've read
+          </label>
+        )}
         {noteFor("share")}
         {account.shareEnabled && account.shareCode && (
           <div className={styles.shareLink}>

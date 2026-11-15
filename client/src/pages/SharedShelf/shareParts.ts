@@ -14,6 +14,7 @@ export const TONES = {
   Reading: "var(--stamp-market)",
   Finished: "var(--stamp-new)",
   "To read": "var(--stamp-ebook)",
+  "To get": "var(--stamp-get)",
 } as const;
 export const toneOf = (m: SharedManga) =>
   ({ "--tone": TONES[statusOf(m)] }) as React.CSSProperties;

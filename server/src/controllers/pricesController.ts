@@ -12,6 +12,9 @@ import type { Request, Response } from "express";
 import { matchedData, param, query } from "express-validator";
 import { NotFoundError, UpstreamError } from "../errors/AppError.js";
 import { rejectInvalid } from "../middlewares/validate.js";
+import userQueries from "../models/userQueries.js";
+import { MOST_COVERS, shelfCard } from "../util/shelf/shelfCard.js";
+import { topOf } from "../util/shelf/shareTop.js";
 import { sendError } from "../middlewares/errorHandler.js";
 import { searchVolumes, toIsbn13 } from "../prices/sources/catalog.js";
 import {
@@ -387,6 +390,52 @@ const seriesCover = async (req: Request, res: Response) => {
   res.redirect(302, sources.at(-1)!);
 };
 
+// GET /cover/shelf/:code  the picture a shared shelf's link shows when it's
+// pasted somewhere (util/shelf/shelfCard.ts): its favourites, or what its
+// owner has most of, fanned out. Kept a day: the shelf changes. 404 when
+// the shelf isn't shared, or has no cover to show
+const SHELF_CARD_KEPT = "public, max-age=86400";
+const shelfCardImage = [
+  param("code").matches(/^[\w-]{4,16}$/),
+  rejectInvalid,
+  async (req: Request, res: Response) => {
+    const shelf = await userQueries.getSharedShelf(matchedData(req).code);
+    const manga = shelf?.manga ?? [];
+    // the ones they put at the top, in their order; then five stars (only
+    // if they share their ratings: the picture mustn't give them away);
+    // then the most volumes owned
+    const top = topOf(
+      shelf?.prefs,
+      manga.map((m) => m.name),
+    );
+    const showsRatings = shelf?.shareRatings !== false;
+    const placeIn = (name: string) =>
+      top.includes(name) ? top.indexOf(name) : top.length;
+    const picked = [...manga]
+      .sort(
+        (a, b) =>
+          placeIn(a.name) - placeIn(b.name) ||
+          (showsRatings
+            ? Number(b.rating === 5) - Number(a.rating === 5)
+            : 0) ||
+          (b.volumesOwned ?? 0) - (a.volumesOwned ?? 0),
+      )
+      // AniList's own covers only, at their medium size (covers.ts)
+      .flatMap((m) => anilistSources(m.image ?? "", 220).slice(-1))
+      .slice(0, MOST_COVERS);
+    const covers = (
+      await Promise.all(picked.map((url) => coverBytes(url).catch(() => null)))
+    ).filter((cover) => cover !== null);
+    const card = await shelfCard(covers).catch(() => null);
+    if (!card) {
+      sendError(res, 404, "No picture for this shelf.");
+      return;
+    }
+    res.set({ "Content-Type": "image/jpeg", "Cache-Control": SHELF_CARD_KEPT });
+    res.end(card);
+  },
+];
+
 // A cover image passed on, kept 30 days by browsers and Cloudflare: as it
 // came, or (with a width) resized to it as WebP. Anything that isn't an
 // image (a host's error page) throws, and the route falls back to sending
@@ -394,11 +443,8 @@ const seriesCover = async (req: Request, res: Response) => {
 const COVER_FETCH_MS = 10_000;
 const COVER_TYPES = /^image\/(jpeg|png|webp|gif|avif)\b/i;
 const COVER_MAX_BYTES = 8 * 1024 * 1024;
-async function sendImage(
-  res: Response,
-  url: string,
-  width: CoverWidth | null = null,
-) {
+// a picture fetched from its host: its bytes and what kind it is
+async function fetchImage(url: string) {
   const upstream = await fetch(url, {
     signal: AbortSignal.timeout(COVER_FETCH_MS),
   });
@@ -410,6 +456,16 @@ async function sendImage(
   const image = Buffer.from(await upstream.arrayBuffer());
   if (image.length > COVER_MAX_BYTES)
     throw new Error(`cover image is ${image.length} bytes`);
+  return { image, type };
+}
+const coverBytes = async (url: string) => (await fetchImage(url)).image;
+
+async function sendImage(
+  res: Response,
+  url: string,
+  width: CoverWidth | null = null,
+) {
+  const { image, type } = await fetchImage(url);
   // a picture that can't be resized still goes out, as it came
   const resized = width
     ? await resizeCover(image, width).catch((e: Error) => {
@@ -466,6 +522,7 @@ export default {
   seriesIndex,
   cover,
   seriesCover,
+  shelfCardImage,
   volumeSummary,
   seriesSummary,
 };

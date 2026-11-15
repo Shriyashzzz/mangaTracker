@@ -1,4 +1,5 @@
 import { useRef, useState, type FormEvent } from "react";
+import { addPicksToShelf } from "../../lib/sharePicks";
 import { isMobile } from "react-device-detect";
 import { hasBottomBar } from "../../lib/bottomBar";
 import { authStyles as styles } from "../../styles/auth";
@@ -63,6 +64,9 @@ export default function SignUp() {
         // a new account: Kenji offers the tour on their shelf
         offerTour();
         setJustJoined(true);
+        // series they marked "I have this" on someone's shared shelf are
+        // the start of their own (lib/sharePicks.ts)
+        await addPicksToShelf();
         signedIn();
         navigater(afterSignIn(params), { viewTransition: true });
       } else {

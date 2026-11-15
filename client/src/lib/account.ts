@@ -9,6 +9,9 @@ export type Account = {
   recoveryEmail: string | null;
   shareEnabled: boolean;
   shareNotes: boolean;
+  // on their shared shelf: their star ratings, and how far they've read
+  shareRatings: boolean;
+  shareProgress: boolean;
   shareCode: string | null;
   // what they show as until they pick a name, and ideas for one
   defaultName: string;
@@ -16,6 +19,10 @@ export type Account = {
 };
 
 export type SharedShelf = {
+  // the viewer is its owner
+  yours?: boolean;
+  // the series its owner put at the top, by name, in their order
+  top?: string[];
   displayName: string;
   avatar: string | null;
   manga: {
@@ -30,6 +37,18 @@ export type SharedShelf = {
     // only what they track is sent: the chapter, the volume read, or both
     readVolume?: number | null;
     rating: number | null;
+    // the volume right after their highest, with its price page: for the
+    // "To get" tab. `comingOut`: its release date, when it isn't out yet
+    next?: {
+      volume: number;
+      isbn13: string;
+      title: string;
+      comingOut: string | null;
+      // the best new price on file for it, in cents
+      fromCents?: number | null;
+    };
+    // they have every volume that's out
+    ownsAll?: boolean;
     notes?: string;
     // the volumes they own, as on their shelf (lib/ownedVolumes.ts)
     volumesOwned?: number | null;
@@ -63,6 +82,16 @@ export async function deleteAccount(password: string) {
 
 export const getSharedShelf = (code: string, signal?: AbortSignal) =>
   getJson<SharedShelf>(`/api/share/${encodeURIComponent(code)}`, signal);
+
+// the owner's picks for the top of their shared shelf (up to five names);
+// false when it didn't save
+export async function saveShareTop(names: string[]) {
+  const res = await apiFetch("/api/prefs", {
+    method: "PUT",
+    body: { shareTop: names },
+  }).catch(() => null);
+  return Boolean(res?.ok);
+}
 
 export const shareUrl = (code: string) => `${window.location.origin}/u/${code}`;
 
