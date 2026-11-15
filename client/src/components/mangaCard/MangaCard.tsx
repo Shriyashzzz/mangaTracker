@@ -321,7 +321,8 @@ function RowProgress({
   return (
     <>
       <span className="whitespace-nowrap">
-        {byChapter ? "" : "vol. "}
+        {/* "ch. 50 of 101", "vol. 5 of 12": which the numbers count */}
+        {byChapter ? "ch. " : "vol. "}
         {reading} of {knownTotal}
       </span>
       <span
