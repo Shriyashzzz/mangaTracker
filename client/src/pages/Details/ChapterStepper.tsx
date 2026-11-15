@@ -7,6 +7,8 @@ import { useShelf } from "../../store/shelf";
 import { detailsStyles as styles } from "./styles";
 
 const SAVE_AFTER_MS = 600;
+// how long "Saved" stays; a failed save stays until they try again
+const SAVED_SHOWN_MS = 2000;
 // the furthest each goes, and where it's saved
 const UNITS = {
   chapter: { max: 100000, path: "bookmark", field: "bookmark" },
@@ -46,6 +48,11 @@ export default function ChapterStepper({
   const MAX_CHAPTER = UNITS[unit].max;
   const [draft, setDraft] = useState(String(value ?? 0));
   const [note, setNote] = useState<"saved" | "failed" | null>(null);
+  useEffect(() => {
+    if (note !== "saved") return;
+    const hide = setTimeout(() => setNote(null), SAVED_SHOWN_MS);
+    return () => clearTimeout(hide);
+  }, [note]);
   // what the server has, to go back to if a save fails
   const saved = useRef(value ?? 0);
   // the chapter still waiting to be saved
