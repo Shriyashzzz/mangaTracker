@@ -29,6 +29,10 @@ const STEP_KEY = "demoTourStep";
 const CLOSED_KEY = "demoTourClosed";
 const HOLE_PADDING = 8;
 const GIVE_UP_AFTER_MS = 2500;
+// how long a step glides from where he was to where he's going
+const GLIDE_MS = 380;
+// the longest he waits for covers in sight to load before arriving
+const IMAGES_WAIT_MS = 600;
 // long enough for a step that follows an opened section to find it there
 const NEEDS_LAST_STEP_MS = 1000;
 // long enough for the step's own page to have arrived; off it after this, they've
@@ -196,6 +200,13 @@ function Guide({ onClose }: { onClose: () => void }) {
   // he's placed from the screen's size, so a rotated phone has to place him again
   const [, onScreenChange] = useReducer((n: number) => n + 1, 0);
   const [bubbleHeight, setBubbleHeight] = useState(180);
+  // moving to a step on the same page: his bubble and the ring glide there
+  const [gliding, setGliding] = useState(false);
+  const glideEnds = useRef<number | undefined>(undefined);
+  // counts each time he's drawn afresh (a new page): his grow-in plays then,
+  // not on every step
+  const [visit, setVisit] = useState(0);
+  useEffect(() => () => clearTimeout(glideEnds.current), []);
   const bubble = useRef<HTMLDivElement>(null);
   const dock = useRef<HTMLButtonElement>(null);
   // the screen layer, whose bottom edge is the screen's for fixed things
@@ -206,7 +217,24 @@ function Guide({ onClose }: { onClose: () => void }) {
   const onPage = isOnStepPage(step, pathname, search);
 
   const goTo = useCallback((next: number) => {
-    setAnchor(null);
+    // the next step on the page they're on, with what it points at already
+    // there: Kenji stays in sight and glides to it, rather than vanishing
+    // and popping back in. Anywhere else he's drawn afresh
+    const coming = TOUR_STEPS[next];
+    const { pathname: path, search: query } = window.location;
+    const samePage = Boolean(
+      coming?.target &&
+      isOnStepPage(coming, path, query) &&
+      findTarget(coming.target),
+    );
+    if (samePage) {
+      setGliding(true);
+      clearTimeout(glideEnds.current);
+      glideEnds.current = window.setTimeout(() => setGliding(false), GLIDE_MS);
+    } else {
+      setAnchor(null);
+      setVisit((n) => n + 1);
+    }
     setLost(false);
     setSettled(false);
     setStuckAside(false);
@@ -294,6 +322,20 @@ function Guide({ onClose }: { onClose: () => void }) {
           // a big section starts at the top, leaving Kenji room below it
           const tall = el.offsetHeight > innerHeight * 0.45;
           el.scrollIntoView({ block: tall ? "start" : "center" });
+        }
+        // the covers in sight of what he points at still loading: wait for
+        // them a moment, so the ring and his words don't land on empty boxes
+        // and have the pictures pop in under them
+        if (
+          Date.now() - startedAt < IMAGES_WAIT_MS &&
+          [...el.querySelectorAll("img")].some((img) => {
+            if (img.complete) return false;
+            const box = img.getBoundingClientRect();
+            return box.bottom > 0 && box.top < innerHeight;
+          })
+        ) {
+          frame = requestAnimationFrame(follow);
+          return;
         }
         const r = el.getBoundingClientRect();
         // the phones' bottom bar covers the ring the way it covers the page, so a
@@ -431,10 +473,23 @@ function Guide({ onClose }: { onClose: () => void }) {
     const alreadyOpen = step.opensNext && upcoming && findTarget(upcoming);
     if (step.tap && step.target && !alreadyOpen)
       findTarget(step.target)?.click();
-    goTo(stepAfter(index, 1));
+    const to = stepAfter(index, 1);
+    goTo(to);
+    // on to another page: straight there. (A tapped link is already on its
+    // way, so a tap step leaves that to the step's own short wait)
+    const coming = TOUR_STEPS[to]!;
+    const { pathname: path, search: query } = window.location;
+    if (!step.tap && !isOnStepPage(coming, path, query))
+      navigate(pageOf(coming), { viewTransition: true });
   };
 
   const isLast = index === TOUR_STEPS.length - 1;
+  // counted as they'll see them: a step that only shows when something
+  // holds (single volumes) counts only then
+  const shownSteps = TOUR_STEPS.filter(
+    (st, i) => i === index || !st.when || st.when(),
+  );
+  const shownPlace = shownSteps.indexOf(step) + 1;
   // drawn on the page: everything placed from the screen gets the scroll added back
   const onPageLayer = Boolean(anchor && !anchor.pinned);
   const offY = onPageLayer ? window.scrollY : 0;
@@ -617,7 +672,7 @@ function Guide({ onClose }: { onClose: () => void }) {
   const hole = showHole && (
     <>
       <div
-        className={`tour-ring ${step.tap ? "tour-ring-tap" : ""}`}
+        className={`tour-ring ${step.tap ? "tour-ring-tap" : ""} ${gliding ? "tour-gliding" : ""}`}
         style={ringStyle!}
       />
       {/* in a blurred moment, what's only being explained stays put */}
@@ -660,8 +715,8 @@ function Guide({ onClose }: { onClose: () => void }) {
       aria-label="Kenji's tour"
       data-target={step.target}
       tabIndex={-1}
-      className={`tour-bubble ${waiting ? "tour-bubble-waiting" : ""}`}
-      key={index}
+      className={`tour-bubble ${waiting ? "tour-bubble-waiting" : ""} ${gliding ? "tour-gliding" : ""}`}
+      key={visit}
       style={{
         ...vertical,
         left: bubbleLeft + (bubbleOnPage ? offX : 0),
@@ -671,13 +726,13 @@ function Guide({ onClose }: { onClose: () => void }) {
       <div className="tour-who printed" aria-hidden>
         <Mascot mood="happy" />
       </div>
-      <div className="tour-words">
+      <div className="tour-words" key={index}>
         <p className="tour-count">
           {/* counted across the whole tour: "1 of 5" for the first part
               read as five steps in all, and there are more */}
           <span className="tour-part">{step.part}</span>
           <span className="tour-step">
-            {index + 1} of {TOUR_STEPS.length}
+            {shownPlace} of {shownSteps.length}
           </span>
         </p>
         <p className="tour-say">{say}</p>

@@ -83,7 +83,7 @@ const READER: { name: string; lines: Line[] }[] = [
         target: "shelf",
         focus: true,
         onTop: true,
-        say: "Hi, I'm Kenji! This is your reading list, a practice one, so wander off and explore any of it.",
+        say: "Hi, I'm Kenji! This is your shelf, a practice one, so wander off and explore any of it.",
       },
       {
         path: "/add",
@@ -164,16 +164,16 @@ const READER: { name: string; lines: Line[] }[] = [
 ];
 
 // the collector's practice shelf (lib/demoCollector.json): Berserk, with its
-// deluxe books, is series 2; Lone Wolf and Cub, one volume of fifteen,
-// series 19; Kaiju No.8, twelve of sixteen, is priced as a whole series
+// deluxe books, is series 2; Haikyu!!, missing vol. 31 and 32, series 5
 const DELUXE = "/details/2";
-const BARELY_STARTED = "/update/19";
-const WHOLE_SERIES = seriesPath("Kaiju No.8");
+const GAPS_SERIES = seriesPath("Haikyu!!");
+const GAPS_EDIT = "/update/5";
 
 // The collector's tour: a real collection of forty series, and everything a
-// big shelf can do. Long on purpose: a collector wants to see it all.
-// Bringing it over first; then the gaps, what it's worth and costs, the
-// books themselves, what's new and coming, and getting it all back out
+// big shelf can do. Long on purpose: a collector wants to see it all. Told
+// as a story, each series met before it's used: bringing it over, one
+// series up close (Berserk), what's missing (Haikyu!!, start to finish), the
+// whole shelf in numbers, what's coming, and getting it all back out
 const COLLECTOR: { name: string; lines: Line[] }[] = [
   {
     name: "Bring it over",
@@ -221,48 +221,14 @@ const COLLECTOR: { name: string; lines: Line[] }[] = [
     ],
   },
   {
-    name: "Volumes",
-    lines: [
-      {
-        path: "/shelf",
-        tab: "volumes",
-        target: "gaps",
-        tap: true,
-        opensNext: true,
-        say: "Each series says which volumes you own and how many you're missing. Open Haikyu!!, missing two.",
-      },
-      {
-        path: "/shelf",
-        tab: "volumes",
-        target: "gaps-open",
-        needsLastStep: true,
-        say: "Haikyu!! is missing Vol. 31 and 32: the faded covers. Tap one to see what it costs.",
-      },
-      {
-        path: "/shelf",
-        tab: "volumes",
-        target: "worth",
-        unfold: true,
-        say: "What your shelf is worth used, what you paid, and what finishing every series costs.",
-      },
-      {
-        path: "/prices/series/",
-        go: WHOLE_SERIES,
-        target: "series-cost",
-        onTop: true,
-        say: "This is Kaiju No.8's page. You're missing 4 volumes, and they'd cost $35.96. Tap \"Not on your shelf\" to see just those.",
-      },
-    ],
-  },
-  {
-    name: "Your books",
+    name: "Berserk up close",
     lines: [
       {
         path: DELUXE,
         exact: true,
         target: "book-paid",
         unfold: "your-books",
-        say: 'Deluxe, omnibus or single: every book you own. Type what you paid and the day you bought it, and "You\'ve spent" adds it all up.',
+        say: "Let's open one: Berserk, collected in Deluxe. Every book you own is here. Type what you paid and the day you bought it, and \"You've spent\" adds it all up.",
       },
       {
         path: DELUXE,
@@ -283,16 +249,55 @@ const COLLECTOR: { name: string; lines: Line[] }[] = [
         target: "rate-volume",
         say: "Rate each volume as you read it, out of five, and add a few words if you like.",
       },
+    ],
+  },
+  {
+    name: "What's missing",
+    lines: [
       {
-        path: BARELY_STARTED,
+        path: "/shelf",
+        tab: "volumes",
+        target: "gaps",
+        tap: true,
+        opensNext: true,
+        say: "Now the gaps across your shelf. Every series says which volumes you own and how many you're missing. Haikyu!! is missing two: open it.",
+      },
+      {
+        path: "/shelf",
+        tab: "volumes",
+        target: "gaps-open",
+        needsLastStep: true,
+        say: "Vol. 31 and 32 are the faded ones. Tap one to see what it costs.",
+      },
+      {
+        path: "/prices/series/",
+        go: GAPS_SERIES,
+        target: "series-cost",
+        onTop: true,
+        say: "This is Haikyu!!'s page in Prices. You're missing 2 volumes, and finishing the series costs $17.98. Tap \"Not on your shelf\" to see only those two.",
+      },
+      {
+        path: GAPS_EDIT,
         exact: true,
         target: "volume-picker",
-        say: 'Own a long run? Slide across the spines, or type the last one in "Up to vol."',
+        say: "This is Edit details. If you've bought Vol. 31 and 32, tap their spines to add them. If you own a volume that isn't listed yet, tap \"Show vols.\" below the spines to see more.",
       },
     ],
   },
   {
-    name: "New",
+    name: "Your whole shelf",
+    lines: [
+      {
+        path: "/shelf",
+        tab: "volumes",
+        target: "worth",
+        unfold: true,
+        say: "Add it all up: what you've spent, what your shelf is worth, and what finishing every series would cost.",
+      },
+    ],
+  },
+  {
+    name: "What's coming",
     lines: [
       {
         path: "/shelf",
@@ -327,7 +332,7 @@ const COLLECTOR: { name: string; lines: Line[] }[] = [
         // above it: turning sharing on grows the section downward, and he
         // stays where he is
         onTop: true,
-        say: "Proud of it? Turn on a share link and show your shelf off, with or without your notes.",
+        say: "Proud of it? Turn on a share link and show your shelf off.",
       },
     ],
   },

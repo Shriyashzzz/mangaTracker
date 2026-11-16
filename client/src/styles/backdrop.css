@@ -36,6 +36,11 @@
   pointer-events: none;
 }
 
+/* shown once this stylesheet is in: index.html hides it until then */
+html .backdrop {
+  visibility: visible;
+}
+
 .backdrop > * {
   display: none;
 }

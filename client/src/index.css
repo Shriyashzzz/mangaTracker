@@ -1374,6 +1374,32 @@
   box-shadow: 0 0 0 2px var(--paper);
   pointer-events: none;
 }
+/* on to a step on the same page: Kenji and the ring glide there */
+.tour-gliding {
+  transition:
+    top 0.38s cubic-bezier(0.16, 1, 0.3, 1),
+    left 0.38s cubic-bezier(0.16, 1, 0.3, 1),
+    bottom 0.38s cubic-bezier(0.16, 1, 0.3, 1),
+    width 0.38s cubic-bezier(0.16, 1, 0.3, 1),
+    height 0.38s cubic-bezier(0.16, 1, 0.3, 1);
+}
+/* his new words, said as he moves */
+.tour-words {
+  animation: tour-words-in 0.22s ease-out both;
+}
+@keyframes tour-words-in {
+  from {
+    opacity: 0;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .tour-gliding {
+    transition: none;
+  }
+  .tour-words {
+    animation: none;
+  }
+}
 .tour-ring-tap {
   animation: tour-pulse 1.4s ease-in-out infinite;
 }
