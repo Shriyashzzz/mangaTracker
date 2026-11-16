@@ -575,3 +575,61 @@ test("a gap the catalog has no book for is still a gap", () => {
     status.gapVolumes.find((v) => v.volume === 61)?.isbn13,
   ).toBeUndefined();
 });
+
+// ten chapters a volume: vol. 1 is ch. 1–10, vol. 30 starts at 291
+const tenAVolume = Array.from({ length: 30 }, (_, i) => ({
+  volume: i + 1,
+  firstChapter: i * 10 + 1,
+}));
+const withChapters = (latest: string, englishTo: number) => ({
+  dates: {
+    ...chapter(latest),
+    volumeStarts: tenAVolume,
+  } as FormatedDates,
+  englishVolumes: Array.from({ length: englishTo }, (_, i) => ({
+    volume: i + 1,
+    isbn13: `97810000000${String(i + 1).padStart(2, "0")}`,
+  })),
+});
+
+test("a chapter reader's list: the English books from their next chapter on", () => {
+  // on ch. 143 of 305; English has 28 volumes (to ch. 280)
+  const status = getReleaseStatus(
+    readTo(143),
+    withChapters("305", 28),
+    EVERY_NEXT,
+  );
+  expect(status.readingVolume).toBe(15);
+  expect(status.chapterBooks[0]).toMatchObject({
+    volume: 15,
+    label: "Vol. 15",
+    chapters: { from: 141, to: 150 },
+  });
+  expect(status.chapterBooks.at(-1)?.volume).toBe(28);
+  // and what's out past the newest English volume
+  expect(status.chaptersPastEnglish).toEqual({
+    volume: 28,
+    endsAt: 280,
+    from: 281,
+    to: 305,
+  });
+});
+
+test("a chapter past every English volume is said to be in none yet", () => {
+  // on ch. 303 of 305: nothing in English holds ch. 304
+  const status = getReleaseStatus(
+    readTo(303),
+    withChapters("305", 28),
+    EVERY_NEXT,
+  );
+  expect(status.chapterBooks).toEqual([]);
+  expect(status.chaptersPastEnglish).toEqual({
+    volume: 28,
+    endsAt: 280,
+    from: 281,
+    to: 305,
+  });
+  // vol. 30 is still being collected (no start known after it): no volume
+  // is said for ch. 303
+  expect(status.readingVolume).toBeNull();
+});

@@ -84,14 +84,14 @@ test("only known piles and all can be asked for in the address", () => {
     expect(isPileView(bad)).toBe(false);
 });
 
-test("a few and way behind say how much there is to catch up on", () => {
+test("a few and way behind say how much there is to get", () => {
   const m = (id: number) => ({ id, name: `S${id}` }) as Manga;
   const releases = {
     1: found({ outVolumes: vols(2, 3, 4) }),
     2: found({ outVolumes: vols(5, 6) }),
   };
   expect(catchUpText("few", [m(1), m(2)], releases, "volumes")).toBe(
-    " · 5 to catch up",
+    " · 5 to get",
   );
   expect(catchUpText("one", [m(1)], releases, "volumes")).toBe("");
   const many = Array.from({ length: 300 }, (_, i) => m(i));

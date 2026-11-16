@@ -33,8 +33,10 @@ export const PILE_TEXT: Record<
   Record<Pile, { name: string; why: string }>
 > = {
   volumes: {
-    one: { name: "Next for you", why: "The next volume is the newest" },
-    few: { name: "A few behind", why: "You're 2 to 5 volumes behind" },
+    one: { name: "Next for you", why: "You're one volume behind" },
+    // volumes not on their shelf, gaps included: not "behind", which reads
+    // as unread
+    few: { name: "A few behind", why: "2 to 5 volumes not on your shelf" },
     // gently: on day one every series just added lands here. It counts the
     // volumes out that aren't on their shelf, not ones left to read: a reader
     // on ch. 152 owning vol. 6 isn't 16 volumes from reading
@@ -90,7 +92,10 @@ export function catchUpText(
 ) {
   if (pile !== "few" && pile !== "way") return "";
   const total = list.reduce((n, m) => n + behindOf(releases[m.id], kind), 0);
-  const words = pile === "way" ? "in all" : "to catch up";
+  // volumes are collected ("304 to get"); chapters are caught up on
+  let words = "to catch up";
+  if (pile === "way") words = "in all";
+  else if (kind === "volumes") words = "to get";
   return ` · ${total.toLocaleString("en-US")} ${words}`;
 }
 

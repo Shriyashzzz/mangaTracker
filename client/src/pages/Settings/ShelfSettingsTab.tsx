@@ -72,13 +72,16 @@ export function ShelfSettingsTab() {
           </label>
         ))}
       </fieldset>
-      {/* what New and a series' Buy next name when there are gaps */}
+      {/* the next volume to collect, on New and a series' Buy next, when
+          there are gaps */}
       <fieldset className={styles.group}>
-        <legend className={styles.legend}>“Next for you” shows</legend>
+        <legend className={styles.legend}>
+          Next volume to collect, when a series has gaps
+        </legend>
         {(
           [
-            ["after", "The volume after my highest one"],
-            ["gap", "The first one I'm missing"],
+            ["after", "The one after my highest volume"],
+            ["gap", "The first volume I'm missing"],
           ] as const
         ).map(([value, label]) => (
           <label key={value} className={styles.row}>

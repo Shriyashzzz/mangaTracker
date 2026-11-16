@@ -116,6 +116,24 @@ export type ReleaseStatus = {
   outJapanVolumes: number[];
   latestChapter: number | null;
   latestJapaneseVolume: number | null;
+  // for the Chapters list (server releaseStatus.ts), when the chapter list
+  // is sure: the volume their chapter is in; the English books holding
+  // their next chapter and on; the chapters out past the newest English
+  // volume. Saved answers from before have none
+  readingVolume?: number | null;
+  chapterBooks?: {
+    volume: number;
+    label: string;
+    isbn13?: string;
+    title?: string;
+    chapters: { from: number; to: number | null } | null;
+  }[];
+  chaptersPastEnglish?: {
+    volume: number;
+    endsAt: number;
+    from: number;
+    to: number;
+  } | null;
 };
 
 // what the add / edit forms send

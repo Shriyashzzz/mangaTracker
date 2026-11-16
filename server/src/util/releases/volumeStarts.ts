@@ -93,3 +93,20 @@ export function chaptersAcross(
   if (!first) return null;
   return { from: first.from, to: chaptersIn(to, starts)?.to ?? null };
 }
+
+// The volume that surely holds a chapter: one whose chapters we know from
+// start to end. Stricter than volumeOfChapter, which counts the newest
+// chapters as the last volume's: said to a reader as "vol. 112", it has to
+// be true
+export function volumeSurelyHolding(
+  chapter: number | null,
+  starts: VolumeStart[],
+): number | null {
+  if (!chapter || chapter <= 0) return null;
+  for (const start of starts) {
+    const range = chaptersIn(start.volume, starts);
+    if (range?.to != null && chapter >= range.from && chapter <= range.to)
+      return start.volume;
+  }
+  return null;
+}

@@ -754,6 +754,7 @@ function Library() {
           manga={openManga}
           found={releases[openManga.id]!}
           yours={newsFor(openManga, releases[openManga.id], releaseKind).yours}
+          kind={releaseKind === "chapters" ? "chapters" : "volumes"}
           onClose={() => setOpenList(null)}
         />
       )}

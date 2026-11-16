@@ -6,15 +6,31 @@ const heading =
 export const newReleasesStyles = {
   page: "mx-auto flex max-w-[720px] flex-col gap-[clamp(2rem,5vw,3rem)]",
   head: "flex items-end justify-between gap-4",
+  titleBlock: "flex min-w-0 flex-col gap-2.5",
+  // under the title: who it's for, in the body face, quieter than the lead
+  tagline:
+    "max-w-[44ch] text-[clamp(0.95rem,2.4vw,1.05rem)] leading-[1.45] text-ink-soft",
   title:
     "font-brand text-[clamp(2.8rem,7vw,4.4rem)] leading-[0.95] font-normal tracking-[0.01em] uppercase",
   hit: "inline-block -rotate-2 bg-accent px-[0.12em] text-on-accent",
   // ink on paper in every theme; the dark theme would otherwise turn his face black
   kenji:
     "printed block aspect-square w-[110px] shrink-0 overflow-hidden rounded-full border-[2.5px] border-line bg-card px-2.5 pt-2.5 upto-760:w-[76px] upto-760:px-1.5 upto-760:pt-1.5",
-  lead: "-mt-2 max-w-[50ch] text-[clamp(1.15rem,3vw,1.35rem)] leading-[1.45] text-ink",
+  // the lead, close under the title
+  intro: "-mt-2 flex flex-col gap-2",
+  lead: "max-w-[50ch] text-[clamp(1.15rem,3vw,1.35rem)] leading-[1.45] text-ink",
+  sub: "max-w-[55ch] text-[1.02rem] leading-[1.5] text-ink-soft",
+  // each section is a panel of its own, inked like the strip's
   section:
+    "flex flex-col gap-3 border-2 border-line bg-card p-[clamp(1rem,3vw,1.5rem)] shadow-ink-lg [&_p]:max-w-[65ch] [&_p]:leading-[1.55] [&_p]:text-ink-soft",
+  // the settings: unframed, as the controls bring their own box
+  sectionPlain:
     "flex flex-col gap-3 [&_p]:max-w-[65ch] [&_p]:leading-[1.55] [&_p]:text-ink-soft",
+  // what New does by default: a line, then one list a line
+  defaults:
+    "flex flex-col gap-1.5 [&_b]:font-semibold [&_b]:text-ink [&_li]:leading-[1.5] [&_li]:text-ink-soft [&_ul]:flex [&_ul]:list-disc [&_ul]:flex-col [&_ul]:gap-1 [&_ul]:pl-5 [&_ul]:marker:text-line-soft",
+  // a second thought in an answer, on a line of its own
+  nextLine: "mt-1.5 block",
   heading,
   sources: "flex flex-col border-b-[1.5px] border-line",
   source:
@@ -25,6 +41,8 @@ export const newReleasesStyles = {
   // in a magazine): each an inked panel with its number on a corner tab, a
   // drawing that fills it, and a line of words. An arrow leads from one
   // panel to the next
+  // the change link and the strip under it, close together
+  stripGroup: "flex flex-col gap-3",
   strip:
     "grid grid-cols-3 gap-5 upto-520:gap-2.5 [&>li+li]:before:absolute [&>li+li]:before:top-1/2 [&>li+li]:before:-left-[1.3rem] [&>li+li]:before:-translate-y-1/2 [&>li+li]:before:text-[1.35rem] [&>li+li]:before:leading-none [&>li+li]:before:font-semibold [&>li+li]:before:text-ink [&>li+li]:before:content-['→'] upto-520:[&>li+li]:before:hidden",
   panelBox:
@@ -46,8 +64,21 @@ export const newReleasesStyles = {
     "flex items-center gap-2 font-brand text-[1.7rem] leading-none tracking-[0.03em] text-ink uppercase upto-520:text-[1.35rem] [&_small]:rounded-[3px] [&_small]:bg-accent [&_small]:px-1.5 [&_small]:py-0.5 [&_small]:font-mono [&_small]:text-[0.75rem] [&_small]:text-on-accent",
   news: "font-brand text-[1.35rem] leading-[1.1] tracking-[0.04em] text-accent uppercase upto-520:text-[1.05rem]",
 
+  // a link inside an answer: the page's own setting, further down
+  link: "font-semibold text-ink underline decoration-accent decoration-2 underline-offset-3 hover:text-accent",
+  // a New card drawn under an answer (CardSketch): the row below at
+  // its real size, set off from the words above it
+  sketch: "mt-2.5 flex max-w-[26rem] flex-col gap-1.5 select-none",
+  sketchBehind: "text-ink-soft",
+  sketchYours: "text-[0.84rem] text-ink-soft",
+  // the line a tapped chapter card opens with, as its list says it
+  sketchOpens:
+    "self-start border-[1.5px] border-dashed border-line-soft bg-card px-3 py-1.5 text-[0.84rem] text-ink-soft",
+  // the piles, drawn (PilesPicture): the shelf's own pile styles
+  pilesPicture: "flex flex-col",
   // the three questions: each asked in the lettering, answered beside it
-  questions: "flex flex-col border-b-[1.5px] border-line",
+  questions:
+    "flex flex-col border-2 border-line bg-card px-[clamp(1rem,3vw,1.5rem)] py-1 shadow-ink-lg [&>div:first-child]:border-t-0 [&>div]:border-line-soft",
   question:
     "grid grid-cols-[minmax(0,11rem)_minmax(0,1fr)] gap-x-6 gap-y-0.5 border-t-[1.5px] border-line py-3 upto-520:grid-cols-[minmax(0,1fr)] [&_dd]:leading-[1.5] [&_dd]:text-ink-soft [&_dd_b]:font-semibold [&_dd_b]:text-ink [&_dt]:font-brand [&_dt]:text-[1.2rem] [&_dt]:leading-[1.15] [&_dt]:tracking-[0.02em] [&_dt]:uppercase",
 
@@ -63,30 +94,12 @@ export const newReleasesStyles = {
     "text-[0.92rem] text-ink-soft [&_b]:font-semibold [&_b]:text-ink",
 
   // "More about New": folded, for anyone who wants the rest
-  more: "border-t-[1.5px] border-line pt-3",
+  more: "border-2 border-line bg-card px-[clamp(1rem,3vw,1.5rem)] py-3 shadow-ink-lg",
   moreSummary:
     "tap cursor-pointer font-brand text-[1.3rem] tracking-[0.02em] uppercase marker:text-ink-soft",
   moreBody: "mt-5 flex flex-col gap-[clamp(1.5rem,4vw,2.25rem)]",
 
-  // ---------- the two pictures (NewTabPicture, UpcomingPicture) ----------
-  // A piece of the site drawn at its real size, beside its numbered lines
-  // (over them on a phone). The numbers sit in a margin down the picture's
-  // left side, one beside each part, never on top of the drawing
-  figure:
-    "grid grid-cols-[minmax(0,23rem)_minmax(0,1fr)] items-start gap-x-8 gap-y-5 upto-760:grid-cols-1",
-  picture:
-    "flex flex-col gap-3.5 border-2 border-line bg-paper p-4 shadow-ink-lg select-none upto-520:p-3",
-  // a part and its number: the number's column, then the part
-  picPart: "grid grid-cols-[1.5rem_minmax(0,1fr)] items-center gap-x-3",
-  dot: "grid size-6 flex-none place-items-center rounded-full bg-ink font-brand text-[0.95rem] leading-none text-paper",
-  // the red bar, as the tab draws it
-  picUpcoming:
-    "flex min-h-11 items-center gap-2.5 border-2 border-line bg-accent px-3.5 text-on-accent shadow-ink [&_b]:font-brand [&_b]:text-[1.2rem] [&_b]:font-normal [&_b]:tracking-[0.03em] [&_b]:uppercase [&_span]:text-[0.84rem] [&_span]:font-semibold",
-  // Volumes | Chapters | In Japan: the chosen one filled
-  picKinds:
-    "grid grid-cols-3 overflow-hidden rounded-ink border-2 border-line bg-card font-brand text-[1.05rem] tracking-[0.03em] uppercase [&_small]:font-mono [&_small]:text-[0.72rem] [&>span]:py-2.5 [&>span]:text-center [&>span+span]:border-l-2 [&>span+span]:border-line",
-  picKindOn: "bg-accent text-on-accent",
-  picKindEmpty: "text-muted",
+  // ---------- a New card, drawn (CardSketch) ----------
   // one series: its book, its words, and what can be done about it
   picRow:
     "flex items-center gap-3 border-[1.5px] border-line-soft bg-card px-3 py-2.5",
@@ -99,27 +112,6 @@ export const newReleasesStyles = {
     "font-brand text-[1.1rem] leading-none tracking-[0.04em] text-accent uppercase",
   picHide:
     "flex flex-none items-center gap-1 text-[0.88rem] font-medium text-ink-soft underline decoration-line-soft underline-offset-3",
-  // Upcoming Releases: the day, in the hand the calendar writes dates in
-  upDate:
-    "flex-none font-hand text-[1.3rem] leading-none font-medium text-accent",
-  upPreorder:
-    "flex-none text-[0.88rem] font-semibold text-accent underline decoration-2 underline-offset-3",
-  // the month, as the week that matters: the day it's out ringed
-  upMonth: "flex flex-col border-2 border-line bg-paper",
-  upMonthHead:
-    "flex items-baseline justify-between border-b-2 border-line bg-card px-3 py-2 [&_b]:font-brand [&_b]:text-[1.2rem] [&_b]:font-normal [&_b]:tracking-[0.03em] [&_b]:uppercase [&_small]:font-mono [&_small]:text-[0.75rem] [&_small]:text-ink-soft",
-  upDays:
-    "grid grid-cols-7 pt-2 text-center font-mono text-[0.68rem] font-medium text-muted",
-  upWeek:
-    "grid grid-cols-7 pt-1 pb-2 text-center font-mono text-[0.88rem] text-ink-soft [&>span]:grid [&>span]:h-8 [&>span]:place-items-center",
-  upDayOut:
-    "mx-auto w-8 rounded-full border-2 border-accent font-semibold text-ink",
-  // the two buttons under it
-  upButtons:
-    "grid grid-cols-2 gap-2.5 text-[0.88rem] font-medium text-ink [&>span]:flex [&>span]:min-h-10 [&>span]:items-center [&>span]:justify-center [&>span]:gap-1.5 [&>span]:rounded-ink [&>span]:border-[1.5px] [&>span]:border-line [&>span]:bg-card [&>span]:shadow-ink",
-  // the lines under (or beside) a picture, one to a number
-  parts: "flex flex-col gap-3.5 pt-1",
-  part: "grid grid-cols-[1.5rem_minmax(0,1fr)] items-start gap-x-3 [&_b]:font-semibold [&_b]:text-ink [&_p]:leading-[1.5] [&_p]:text-ink-soft",
   // where the news comes from: smaller, at the foot of the page
   finePrint:
     "flex flex-col gap-2 border-t-[1.5px] border-line-soft pt-4 text-[0.88rem] leading-[1.5] text-muted [&_li]:max-w-[70ch] [&_p]:max-w-[70ch] [&_ul]:flex [&_ul]:list-disc [&_ul]:flex-col [&_ul]:gap-1 [&_ul]:pl-5",

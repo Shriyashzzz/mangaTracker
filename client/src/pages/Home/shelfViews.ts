@@ -158,11 +158,16 @@ export function seenOf(m: Manga, kind: SeenKind) {
 // Does its card open the list of what's out (the popup)? A volumes card
 // with more than one out past theirs, so "A few behind" and "Long reads ahead":
 // each row leads to that book's prices. One volume out goes straight to
-// its prices. Never chapters or Japan: a list of numbers leads nowhere
+// its prices. A chapters card opens the books holding their next chapter,
+// or says it's in none yet. Never Japan: a list of numbers leads nowhere
 export const opensAList = (
   found: ReleaseStatus | null | undefined,
   kind: ReleaseKind,
-) => kind === "volumes" && behindOf(found, kind) > 1;
+) =>
+  kind === "chapters"
+    ? // the books holding their next chapter, or word of where it is
+      found?.nextChapter != null
+    : kind === "volumes" && behindOf(found, kind) > 1;
 
 // what "Hide" on its card hides up to: the one it shows
 export const newestOf = (
@@ -326,7 +331,10 @@ export function newsFor(
     return {
       text: `Ch. ${nextChapter} next`,
       behind: behindWords(found, kind),
-      yours: m.bookmark ? `Read up to ch. ${m.bookmark}` : undefined,
+      // and the volume that chapter is in, when the chapter list is sure
+      yours: m.bookmark
+        ? `Read up to ch. ${m.bookmark}${found?.readingVolume ? ` · vol. ${found.readingVolume}` : ""}`
+        : undefined,
     };
   }
   // nothing past theirs known to be out: only how far behind they are

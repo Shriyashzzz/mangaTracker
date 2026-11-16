@@ -158,6 +158,12 @@ export const homeStyles = {
   // them on a phone (what they have, then what's next, going up)
   modalYours:
     "shrink-0 pt-3 text-[0.9rem] text-ink-soft upto-720:border-t upto-720:border-line-soft upto-720:py-3",
+  // chapters out that no English volume holds yet: said beside where they
+  // are, a shade stronger
+  modalNote:
+    "shrink-0 pt-3 text-[0.9rem] font-medium text-ink upto-720:border-t upto-720:border-line-soft upto-720:py-3",
+  // a book's chapters, after its name
+  modalChapters: "font-normal text-ink-soft",
   // On phones the rows stack up from the bottom, the first one lowest, so
   // the next volume is under a thumb and the rest go up from it in order
   modalRows:

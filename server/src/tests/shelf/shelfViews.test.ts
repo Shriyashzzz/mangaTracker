@@ -257,7 +257,7 @@ test("every card says where they are, under what's next", () => {
   );
 });
 
-test("a volumes card opens the list only when more than one is out", () => {
+test("a card opens its list: volumes when more than one is out, chapters when one is", () => {
   const out = (...volumes: number[]) =>
     found({
       outVolumes: volumes.map((volume) => ({ volume })),
@@ -266,9 +266,14 @@ test("a volumes card opens the list only when more than one is out", () => {
   expect(opensAList(out(5, 6, 7), "volumes")).toBe(true);
   // caught up, so only the newest is out: straight to its prices
   expect(opensAList(out(5), "volumes")).toBe(false);
-  // not for chapters: a list of chapter numbers leads nowhere
+  // a chapters card opens its list too: the books holding the next
+  // chapter, or word that none does yet
   expect(
     opensAList(found({ nextChapter: 31, latestChapter: 34 }), "chapters"),
+  ).toBe(true);
+  // caught up on chapters: nothing to open
+  expect(
+    opensAList(found({ nextChapter: null, latestChapter: 34 }), "chapters"),
   ).toBe(false);
 });
 

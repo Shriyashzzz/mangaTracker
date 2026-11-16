@@ -3,7 +3,12 @@
 // so English volumes come from our US book catalog. Its covers still tell us
 // how far Japan has got, for anyone who wants to know.
 import type { FormatedDates } from "./volumeDataFormatter.js";
-import { chaptersAcross, volumeOfChapter } from "./volumeStarts.js";
+import {
+  chaptersAcross,
+  chaptersIn,
+  volumeOfChapter,
+  volumeSurelyHolding,
+} from "./volumeStarts.js";
 
 type InBook = { book: number; from: number; to: number };
 
@@ -114,6 +119,29 @@ export type ReleaseStatus = {
   outJapanVolumes: number[];
   latestChapter: number | null;
   latestJapaneseVolume: number | null;
+  // for the Chapters list, when the chapter list is sure of it: the volume
+  // their chapter is in ("Read up to ch. 1,128 · vol. 112")
+  readingVolume: number | null;
+  // the English books holding their next chapter and the ones after it,
+  // each with its chapters: what a chapter card's list offers to buy
+  chapterBooks: {
+    volume: number;
+    // "Book 8" for one sold in a book of two or three
+    label: string;
+    isbn13?: string;
+    title?: string;
+    chapters: { from: number; to: number | null } | null;
+  }[];
+  // the chapters out that no English volume holds yet: from just past the
+  // newest English volume's last chapter to the newest out, with that
+  // volume and where it ends ("Vol. 28 ends at ch. 210"). Null when there
+  // are none, or we can't tell
+  chaptersPastEnglish: {
+    volume: number;
+    endsAt: number;
+    from: number;
+    to: number;
+  } | null;
 };
 
 type Shelved = {
@@ -333,6 +361,53 @@ export function getReleaseStatus(
     // it early, so a stricter setting listed more series under In Japan)
     caughtUpWithEnglish;
 
+  // the Chapters list's own: which English books hold their next chapter
+  // and on, and what's out past the newest English volume. Only what the
+  // chapter list is sure of
+  const englishEnd =
+    latestVolume != null
+      ? (chaptersIn(latestVolume, starts)?.to ?? null)
+      : null;
+  const chaptersPastEnglish =
+    nextChapter != null &&
+    latestChapter != null &&
+    englishEnd != null &&
+    latestChapter > englishEnd
+      ? {
+          volume: latestVolume!,
+          endsAt: englishEnd,
+          from: englishEnd + 1,
+          to: latestChapter,
+        }
+      : null;
+  const firstHolding =
+    nextChapter != null ? volumeSurelyHolding(nextChapter, starts) : null;
+  const chapterBooks: ReleaseStatus["chapterBooks"] = [];
+  if (firstHolding != null && latestVolume != null) {
+    const seen = new Set<string>();
+    for (let n = firstHolding; n <= latestVolume; n++) {
+      // sold on its own, else the book of two or three holding it
+      const book =
+        (englishVolumes ?? []).find((v) => v.volume === n && !v.inBook) ??
+        (englishVolumes ?? []).find(
+          (v) => v.inBook && v.inBook.from <= n && n <= v.inBook.to,
+        );
+      const key = book?.isbn13 ?? `vol-${n}`;
+      if (seen.has(key)) continue;
+      seen.add(key);
+      const inBook = book?.inBook;
+      chapterBooks.push({
+        volume: n,
+        label: inBook ? `Book ${inBook.book}` : `Vol. ${n}`,
+        ...(book?.isbn13 ? { isbn13: book.isbn13 } : {}),
+        ...(book?.title ? { title: book.title } : {}),
+        chapters: inBook
+          ? chaptersAcross(inBook.from, inBook.to, starts)
+          : chaptersIn(n, starts),
+      });
+    }
+  }
+
   return {
     hasNewVolume,
     hasNewChapter,
@@ -357,5 +432,8 @@ export function getReleaseStatus(
     nextVolumeInBook,
     latestChapter,
     latestJapaneseVolume,
+    readingVolume: volumeSurelyHolding(bookmark, starts),
+    chapterBooks,
+    chaptersPastEnglish,
   };
 }
