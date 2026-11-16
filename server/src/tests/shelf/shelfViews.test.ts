@@ -457,3 +457,18 @@ test("Next for you names the first gap only for a reader who chose that", async 
   const run = { ...conan, gapVolumes: [] } as unknown as ReleaseStatus;
   expect(withGapFirst(run, "gap")).toBe(run);
 });
+
+test("a reader far behind on Chapters is told where they are", async () => {
+  const { farBehindTitle, standing } =
+    await import("../../../../client/src/pages/Home/farBehind.js");
+  const chainsaw = { name: "Chainsaw Man", on: 38, latest: 232 };
+  expect(farBehindTitle([chainsaw])).toBe("You're on ch. 38 of 232.");
+  expect(
+    farBehindTitle([chainsaw, { name: "One Piece", on: 100, latest: 1130 }]),
+  ).toBe("You're further back on 2 series.");
+  expect(standing({ name: "One Piece", on: 100, latest: 1130 })).toBe(
+    "ch. 100 of 1,130",
+  );
+  // the newest not known: just their chapter
+  expect(standing({ name: "X", on: 12, latest: null })).toBe("ch. 12");
+});

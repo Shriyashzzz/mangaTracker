@@ -22,6 +22,10 @@ import { ratingMarkup, type MarkedReview } from "./src/lib/reviewMarkup.ts";
 import { WHY_COLLECTORS } from "./src/lib/whyCollectors.ts";
 import { FAQ, FAQ_DESCRIPTION, faqJsonLd } from "./src/lib/content/faq.ts";
 import {
+  NEW_RELEASES_DESCRIPTION,
+  NEW_RELEASES_TITLE,
+} from "./src/lib/content/newReleases.ts";
+import {
   answerSentence,
   INDEX_META,
   latestAnswerText,
@@ -512,6 +516,7 @@ const SITE_LINKS: [string, string][] = [
   ["/deals", "Manga deals"],
   ["/after-the-anime", "Where does the anime leave off?"],
   ["/faq", "Questions and answers"],
+  ["/new-releases", NEW_RELEASES_TITLE],
   ["/about", "About Manga Tracker"],
   ["/updates", "What's new"],
 ];
@@ -689,8 +694,8 @@ function afterAnimeTags(
   };
 }
 
-// About, What's new and Acknowledgements: their titles and descriptions as
-// the pages set them (usePageMeta), and a line of what each is
+// About, What's new, Acknowledgements and How New works: their titles and
+// descriptions as the pages set them (usePageMeta), and a line of what each is
 const STATIC_PAGES: Record<
   string,
   { title: string; description: string; heading: string }
@@ -706,6 +711,11 @@ const STATIC_PAGES: Record<
     heading: "What's new",
     description:
       "New on Manga Tracker: see new English volumes and chapters and next chapter dates. Email alerts are coming soon.",
+  },
+  "/new-releases": {
+    title: NEW_RELEASES_TITLE,
+    heading: "How New works",
+    description: NEW_RELEASES_DESCRIPTION,
   },
   "/acknowledgements": {
     title: "Acknowledgements",
@@ -1012,7 +1022,7 @@ async function fetchSitemap() {
 const basicSitemap = (origin: string) =>
   `<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-${["/", "/series", "/deals", "/faq", "/about", "/updates"].map((path) => `  <url><loc>${origin}${path}</loc></url>`).join("\n")}
+${["/", "/series", "/deals", "/faq", "/new-releases", "/about", "/updates"].map((path) => `  <url><loc>${origin}${path}</loc></url>`).join("\n")}
 </urlset>
 `;
 

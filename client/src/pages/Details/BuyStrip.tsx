@@ -39,6 +39,9 @@ type Props = {
   // the same count here, where the catalog may know fewer (20th Century
   // Boys: 3 of its 22 listed)
   shelfTotal?: number;
+  // they own none of this series: a reader, not a collector yet, so the
+  // heading isn't a push to buy
+  ownsNone?: boolean;
 };
 
 // an edition's book: its own price page when the catalog has its ISBN, else
@@ -69,7 +72,21 @@ export default function BuyStrip({
   shelfTotal = 0,
   folded = false,
   onOwnBook,
+  ownsNone = false,
 }: Props) {
+  // the box's heading, laptop and folded phone line alike
+  const title = ownsNone ? "The books" : "Buy next";
+  // the first ticket's label. For someone who owns none of the series it
+  // says what the book is to them, not that it's theirs to buy next
+  const nextLabel = !ownsNone
+    ? "Next for you"
+    : nextChapters
+      ? "Your next chapters are in"
+      : "Next volume";
+  // its price: for that reader, only one we know, never a "check price"
+  // nudge
+  const knownOnly = (cents: number | null | undefined) =>
+    cents != null ? formatCents(cents) : null;
   // "I own Deluxe 7" saving, and whether it failed
   const [owning, setOwning] = useState(false);
   const [ownFailed, setOwnFailed] = useState(false);
@@ -131,7 +148,7 @@ export default function BuyStrip({
           series has another): "Buy next as Deluxe" */}
       <div className={styles.buyHead}>
         <h2 id={titleId} className={styles.deskTitle}>
-          Buy next
+          {title}
         </h2>
         {editions.lines.length > 0 && (
           // the tour's "single, deluxe or omnibus" step points here
@@ -165,9 +182,13 @@ export default function BuyStrip({
                 to={bookPath(plan.next, line.label, seriesName)}
                 viewTransition
               >
-                <span className={styles.buyNextKind}>Next for you</span>
+                <span className={styles.buyNextKind}>{nextLabel}</span>
                 <span>{editionBookLabel(line, plan.next)}</span>
-                <span className={styles.buyPrice}>{bookPrice(plan.next)}</span>
+                <span className={styles.buyPrice}>
+                  {ownsNone
+                    ? knownOnly(plan.next.knownPriceCents)
+                    : bookPrice(plan.next)}
+                </span>
                 {/* what's inside it, on its own line under the ticket's row */}
                 <em className={styles.buyInside}>
                   {insideText(plan.next)}
@@ -248,7 +269,7 @@ export default function BuyStrip({
                 to={volumePath(next.isbn13, next.title)}
                 viewTransition
               >
-                <span className={styles.buyNextKind}>Next for you</span>
+                <span className={styles.buyNextKind}>{nextLabel}</span>
                 <span>
                   Vol. {next.volume}
                   {/* a chapter reader: the chapters in it, under it */}
@@ -258,7 +279,9 @@ export default function BuyStrip({
                     </span>
                   )}
                 </span>
-                <span className={styles.buyPrice}>{price(next)}</span>
+                <span className={styles.buyPrice}>
+                  {ownsNone ? knownOnly(next.knownPriceCents) : price(next)}
+                </span>
               </NavLink>
             </li>
           )}
@@ -315,7 +338,11 @@ export default function BuyStrip({
                 >
                   <span className={styles.buyKind}>Newest</span>
                   <span>Vol. {latest.volume}</span>
-                  <span className={styles.buyPrice}>{price(latest)}</span>
+                  <span className={styles.buyPrice}>
+                    {ownsNone
+                      ? knownOnly(latest.knownPriceCents)
+                      : price(latest)}
+                  </span>
                 </NavLink>
               </li>
             )
@@ -342,7 +369,7 @@ export default function BuyStrip({
   return (
     <details className={styles.buyFold} data-tour="buy">
       <summary className={styles.buyFoldSummary}>
-        <span className={styles.buyFoldTitle}>Buy next</span>
+        <span className={styles.buyFoldTitle}>{title}</span>
         <span className={styles.buyFoldTicket}>{summary}</span>
         <ChevronDownIcon className={styles.buyFoldChevron} />
       </summary>

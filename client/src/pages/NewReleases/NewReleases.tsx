@@ -6,6 +6,10 @@
 import { NavLink } from "react-router";
 import { CheckIcon } from "../../components/icons/Icons";
 import Mascot from "../../components/mascot/Mascot";
+import {
+  NEW_RELEASES_DESCRIPTION,
+  NEW_RELEASES_TITLE,
+} from "../../lib/content/newReleases";
 import { usePageMeta } from "../../lib/seo";
 import { useReleaseChecksOn } from "../../lib/prefs";
 import { openReleasesOnShelf } from "../../lib/shelf";
@@ -147,9 +151,8 @@ const CHOICES = [
 
 export default function NewReleasesPage() {
   usePageMeta({
-    title: "How the New tab works",
-    description:
-      "The New tab shows the next volume to collect for your shelf, fills the gaps in a collection, and lists what's coming. You own vol. 14, vol. 15 comes out, New tells you.",
+    title: NEW_RELEASES_TITLE,
+    description: NEW_RELEASES_DESCRIPTION,
     path: "/new-releases",
   });
   const isSignedIn = useAuth((s) => s.isSignedIn);

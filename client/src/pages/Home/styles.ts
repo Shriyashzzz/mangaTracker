@@ -203,6 +203,9 @@ export const homeStyles = {
     "mx-auto my-12 max-w-[440px] rounded-ink border-[1.5px] border-dashed border-line-soft px-8 py-9 text-center",
   emptyTitle: "font-display text-[1.6rem] font-semibold",
   emptyBody: "mt-2 mb-6 text-ink-soft",
+  // a far-behind reader's series, one a line, where each stands
+  farBehindList:
+    "mt-2 flex flex-col gap-1 text-ink-soft [&_b]:font-semibold [&_b]:text-ink",
 
   // ---------- guest landing ----------
   guestContainer:

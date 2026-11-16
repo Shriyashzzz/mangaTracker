@@ -53,6 +53,7 @@ const sitemap = async (_req: Request, res: Response) => {
   const urls = [
     entry("/"),
     entry("/faq"),
+    entry("/new-releases"),
     entry("/about"),
     entry("/updates"),
     entry("/acknowledgements"),

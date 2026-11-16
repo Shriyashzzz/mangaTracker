@@ -29,6 +29,7 @@ import {
 } from "../../lib/prefs";
 import { SORT_OPTIONS, type ShelfSort } from "../../lib/shelf";
 import { shownNewCount, withGapFirst } from "../../lib/releaseMath";
+import { ownsAny } from "../../lib/ownedVolumes";
 import { isDemo } from "../../lib/demo";
 import { fillCovers } from "../../lib/coverFill";
 import { useAuth } from "../../store/auth";
@@ -129,6 +130,11 @@ function Library() {
     return SORT_OPTIONS.some((o) => o.value === saved) ? saved : "";
   });
   const showingNew = tab === "new";
+  // the side New opens on: Chapters for a reader who owns no volumes (no
+  // buying words for them), else Volumes. Volumes while the shelf loads,
+  // so a collector never sees Chapters flash first
+  const newOpensOn: ReleaseKind =
+    mangaData && !mangaData.some(ownsAny) ? "chapters" : "volumes";
   // on a big New tab, one pile's own page, or everything at once; and which
   // side of New is showing (Volumes, Chapters or In Japan)
   const {
@@ -143,7 +149,7 @@ function Library() {
     pileLeft,
     openPile,
     closePile,
-  } = usePileView(showingNew);
+  } = usePileView(showingNew, newOpensOn);
   // set in settings; Kenji's compact-rows offer (ViewPeek) can change it
   // while they're here
   const [rowsChosen, setRowsChosen] = useState(() => shelfViewNow() === "rows");
@@ -404,7 +410,7 @@ function Library() {
     { kind: "japan", count: counts.newInJapan },
   ];
   const elsewhere = sides.find((s) => s.kind !== releaseKind && s.count > 0);
-  const heldBack = looked.filter((m) => {
+  const heldBackSeries = looked.filter((m) => {
     const found = releases[m.id];
     if (!found || m.planned) return false;
     if (releaseKind === "volumes")
@@ -412,7 +418,18 @@ function Library() {
     if (releaseKind === "chapters")
       return !found.chapterListed && found.nextChapter != null && !m.status;
     return false;
-  }).length;
+  });
+  const heldBack = heldBackSeries.length;
+  // a reader who owns no volumes, held back on Chapters: where each series
+  // stands, said instead of "nothing this close" (NewTabParts FarBehind)
+  const farBehind =
+    releaseKind === "chapters" && newOpensOn === "chapters"
+      ? heldBackSeries.map((m) => ({
+          name: m.name,
+          on: m.bookmark ?? 0,
+          latest: releases[m.id]?.latestChapter ?? null,
+        }))
+      : [];
   // every title failed, so "nothing new" would be a false comfort. A few failing
   // goes unsaid: the rest still stand, and they get tried again on the next visit
   const allFailed =
@@ -523,7 +540,9 @@ function Library() {
           notFound={notFound}
           checking={checking}
           heldBack={heldBack}
-          elsewhere={elsewhere}
+          farBehind={farBehind}
+          // a reader with no volumes isn't sent to the buying list
+          elsewhere={farBehind.length ? undefined : elsewhere}
           onKind={pickKind}
         />
       );

@@ -32,18 +32,15 @@
       content="Compare US manga prices across stores, track the chapters you've read in every series, and see which ones have new volumes out."
     />
     <meta name="twitter:card" content="summary" />
-    <!-- the site itself, and its search, for search engines -->
+    <!-- the site itself, for search engines: its name in results. (No
+         SearchAction: Google retired the sitelinks search box, and its
+         template address got crawled as a duplicate page) -->
     <script type="application/ld+json">
       {
         "@context": "https://schema.org",
         "@type": "WebSite",
         "name": "Manga Tracker",
-        "url": "https://mangatracker.xyz/",
-        "potentialAction": {
-          "@type": "SearchAction",
-          "target": "https://mangatracker.xyz/?q={search_term_string}",
-          "query-input": "required name=search_term_string"
-        }
+        "url": "https://mangatracker.xyz/"
       }
     </script>
     <!-- Impact (Walmart affiliate): turns Walmart links into affiliate links -->

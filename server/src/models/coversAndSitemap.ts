@@ -1,6 +1,7 @@
 // Edition covers that were looked up, and what the sitemap lists. Part of
 // the price queries (priceQueries.ts lists the parts).
 import { prisma } from "../config/prisma.js";
+import { ON_ITS_OWN_PAGE_FOR_MS } from "./priceAge.js";
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 // When Open Library is asked again about an edition it had no cover for.
@@ -55,13 +56,18 @@ export async function saveCoverIds(found: [string, number | null][]) {
 
 // everything worth a search engine's time: each volume we know, and each
 // series once (several searched names can lead to the same AniList entry)
-export async function getSitemapEntries() {
+export async function getSitemapEntries(now = Date.now()) {
+  // the age a price stops showing on its volume's page (priceAge.ts): one
+  // whose newest price is older shows an empty table, which Google files
+  // under "crawled, not indexed"
+  const pricedSince = new Date(now - ON_ITS_OWN_PAGE_FOR_MS);
   const [volumes, series] = await Promise.all([
     prisma.$queryRaw<{ isbn13: string; title: string; updated: Date }[]>`
       -- only volumes with prices to show: one without any is near enough the
       -- same page as every other, so search engines' visits go to the pages
       -- worth finding. Only known manga volumes get priced, so no made-up
-      -- ISBN gets in. Dated by the newest look that found prices
+      -- ISBN gets in. Dated by the newest look that found prices, and only
+      -- while that's young enough for the page to still show them
       SELECT b.isbn13, b.title, GREATEST(b.updated_at, priced.at) AS updated
       FROM books b
       JOIN (
@@ -74,6 +80,7 @@ export async function getSitemapEntries() {
         )
         GROUP BY sc.isbn13
       ) priced USING (isbn13)
+      WHERE priced.at > ${pricedSince}
       ORDER BY b.isbn13
     `,
     prisma.$queryRaw<{ name: string; fetchedAt: Date }[]>`

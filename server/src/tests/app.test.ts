@@ -64,3 +64,8 @@ test("the API's robots.txt only allows the sitemap and covers", async () => {
   expect(res.text).toContain("Allow: /sitemap.xml");
   expect(res.text).toContain("Disallow: /");
 });
+
+test("cover pictures tell search engines they aren't pages", async () => {
+  const res = await request(app).get("/api/prices/cover/not-an-isbn");
+  expect(res.headers["x-robots-tag"]).toBe("noindex");
+});

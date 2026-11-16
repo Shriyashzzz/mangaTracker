@@ -25,6 +25,13 @@ pricesRouter.get("/series", perMinute(40), prices.series);
 pricesRouter.get("/series-sets", perMinute(20), prices.seriesSets);
 // its omnibus and deluxe lines, for a reader collecting one
 pricesRouter.get("/editions", perMinute(40), prices.editions);
+// pictures, not pages: Google counted 160 covers as pages it wouldn't
+// index (or couldn't find, for one we have no picture of). Link previews
+// still use them; only search results leave them out
+pricesRouter.use("/cover", (_req, res, next) => {
+  res.set("X-Robots-Tag", "noindex");
+  next();
+});
 // covers: a series page loads 30+ at once
 // (before /cover/:isbn, or "series" would be read as an ISBN)
 pricesRouter.get("/cover/series", perMinute(600), prices.seriesCover);

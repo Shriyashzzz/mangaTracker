@@ -4,7 +4,8 @@
 // and the pile to give the focus back to. The series whose list of volumes
 // to get is open is in the address too (?list=), so coming Back from one
 // of its price pages finds the list still open. So is the side of New that's
-// showing (?side=chapters): a link to New opens on Volumes, a pile's link
+// showing (?side=chapters): a link to New opens on the fallback side
+// (Volumes, or Chapters for a reader who owns no volumes), a pile's link
 // means one pile only, and Back still returns to the side they were on.
 import { useState } from "react";
 import { useSearchParams } from "react-router";
@@ -29,7 +30,12 @@ const savedSort = (): PileSort => {
   return PILE_SORTS.some((o) => o.value === saved) ? (saved as PileSort) : "";
 };
 
-export function usePileView(showingNew: boolean) {
+export function usePileView(
+  showingNew: boolean,
+  // the side New opens on when the address doesn't say: Volumes for a
+  // collector, Chapters for a reader who owns no volumes (Home.tsx)
+  fallbackSide: ReleaseKind = "volumes",
+) {
   const [searchParams, setSearchParams] = useSearchParams();
   // what the address says, a pile or not
   const pileParam = searchParams.get("pile");
@@ -43,15 +49,17 @@ export function usePileView(showingNew: boolean) {
     setSort(sort);
     writeSession(SORT_KEY, sort);
   };
-  // Volumes unless the address says another side
+  // the fallback side unless the address says another
   const sideParam = searchParams.get("side") ?? "";
   const side: ReleaseKind =
-    sideParam in RELEASE_KINDS ? (sideParam as ReleaseKind) : "volumes";
+    sideParam in RELEASE_KINDS ? (sideParam as ReleaseKind) : fallbackSide;
   // switching sides isn't a step in the history, and leaves any pile's
-  // page: each side has piles of its own
+  // page: each side has piles of its own. The fallback side needs no
+  // ?side=; any other is written, so Volumes stays Volumes for a reader
+  // whose New opens on Chapters
   const setSide = (kind: ReleaseKind) => {
     const next = new URLSearchParams(searchParams);
-    if (kind === "volumes") next.delete("side");
+    if (kind === fallbackSide) next.delete("side");
     else next.set("side", kind);
     next.delete("pile");
     next.delete("list");

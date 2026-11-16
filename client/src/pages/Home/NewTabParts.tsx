@@ -8,6 +8,12 @@ import Mascot from "../../components/mascot/Mascot";
 import { RELEASE_KINDS, type ReleaseKind } from "./shelfViews";
 import type { Hidden } from "./useHideActions";
 import { homeStyles as styles } from "./styles";
+import {
+  FAR_BEHIND_NAMED,
+  farBehindTitle,
+  standing,
+  type FarBehindSeries,
+} from "./farBehind";
 
 // the switch between what's new in English, chapters and Japan, and what
 // the view is about
@@ -234,9 +240,10 @@ function notFoundLine(notFound: number, looked: number) {
   return `We couldn't find release news for ${notFound} of your series.`;
 }
 
-// Under an empty Volumes or In Japan list: the series that can't show up
-// there, and what would let them. One saved by chapter only isn't "unknown":
-// we can't tell which volume its chapter is in
+// Under an empty list, when no series can show up there: what would let
+// them. One saved by chapter only isn't "unknown": we can't tell which
+// volume its chapter is in. When only some can't, nothing is said (a line
+// counting them read as nagging)
 function placeMissingLine(
   unknownPlace: number,
   chapterOnly: number,
@@ -247,7 +254,7 @@ function placeMissingLine(
   if (chapterOnly === looked)
     return `We can't tell which volume your chapter is in. ${missingNumber}`;
   if (unknownPlace === looked) return missingNumber;
-  return `${unknownPlace} of your series can't show up here yet. ${missingNumber}`;
+  return null;
 }
 
 // "75 series are further behind than your setting shows", with the way to
@@ -269,6 +276,39 @@ export function HeldBack({ count }: { count: number }) {
   );
 }
 
+// a reader who owns no volumes, every series further back than the
+// Chapters list waits for: where they are, plainly, and the way to change
+// what the list waits for. Never the Volumes list's backlog
+export function FarBehind({ series }: { series: FarBehindSeries[] }) {
+  const shown = series.slice(0, FAR_BEHIND_NAMED);
+  const more = series.length - shown.length;
+  return (
+    <>
+      <p className={styles.nothingNewTitle}>{farBehindTitle(series)}</p>
+      {series.length > 1 && (
+        <ul className={styles.farBehindList}>
+          {shown.map((one) => (
+            <li key={one.name}>
+              <b>{one.name}:</b> {standing(one)}
+            </li>
+          ))}
+          {more > 0 && <li>+{more} more</li>}
+        </ul>
+      )}
+      <p className={styles.emptyBody}>
+        New chapters show here once you're nearly caught up.{" "}
+        <NavLink
+          to="/settings/new-releases"
+          className="tap font-medium text-ink underline decoration-accent decoration-2 underline-offset-3"
+          viewTransition
+        >
+          Change what New shows
+        </NavLink>
+      </p>
+    </>
+  );
+}
+
 // nothing new on this side of the switch, and why some series can't show up
 export function NothingNew({
   kind,
@@ -279,6 +319,7 @@ export function NothingNew({
   notFound,
   checking,
   heldBack,
+  farBehind = [],
   elsewhere,
   onKind,
 }: {
@@ -296,6 +337,9 @@ export function NothingNew({
   checking: boolean;
   // series with something out that their setting keeps off the list
   heldBack: number;
+  // for a reader who owns no volumes, those series and where each stands:
+  // said in place of "nothing this close"
+  farBehind?: FarBehindSeries[];
   // another side of the switch that does have something, to offer
   elsewhere?: { kind: ReleaseKind; count: number };
   onKind: (kind: ReleaseKind) => void;
@@ -318,7 +362,8 @@ export function NothingNew({
         <Mascot mood="happy" />
       </span>
       {/* their own setting is why: said first, with the way to change it */}
-      {heldBack > 0 && (
+      {farBehind.length > 0 && <FarBehind series={farBehind} />}
+      {heldBack > 0 && farBehind.length === 0 && (
         <>
           <p className={styles.nothingNewTitle}>
             Nothing this close to caught up.

@@ -404,6 +404,7 @@ export default function Details() {
             <div className="hidden upto-720:order-1 upto-720:col-span-full upto-720:block">
               <BuyStrip
                 shelfTotal={shelfTotal.isKnown ? shelfTotal.size : 0}
+                ownsNone={owned.length === 0}
                 folded
                 options={buyOptions}
                 hideNext={hideNextTicket}
@@ -550,6 +551,7 @@ export default function Details() {
           <div className="upto-720:hidden">
             <BuyStrip
               shelfTotal={shelfTotal.isKnown ? shelfTotal.size : 0}
+              ownsNone={owned.length === 0}
               options={buyOptions}
               hideNext={hideNextTicket}
               editions={editions}

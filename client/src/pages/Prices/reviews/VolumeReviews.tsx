@@ -119,7 +119,13 @@ export default function VolumeReviews({
           <span>
             <b>Read it?</b> Sign in to leave a review.
           </span>
-          <NavLink to={signInPath(pathname)} className="btn" viewTransition>
+          <NavLink
+            to={signInPath(pathname)}
+            // a crawler has nothing to sign in to (robots.txt keeps it out)
+            rel="nofollow"
+            className="btn"
+            viewTransition
+          >
             Sign in
           </NavLink>
         </p>
