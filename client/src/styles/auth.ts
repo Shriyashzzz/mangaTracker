@@ -38,6 +38,8 @@ export const authStyles = {
   reveal:
     "absolute top-px right-px grid size-11 place-items-center text-muted hover:text-ink [&_svg]:size-[18px]",
   hint: "font-mono text-[0.72rem] text-muted",
+  // the same hint, now the problem: in the error's colour
+  hintError: "font-mono text-[0.72rem] font-semibold text-accent",
   // a shouted caption box, tilted like a panel interruption
   error:
     "-rotate-[0.6deg] border-2 border-accent bg-accent-wash px-[0.9rem] py-[0.65rem] text-[0.9rem] font-medium text-accent",

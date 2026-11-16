@@ -315,7 +315,9 @@ export default function PriceVolume() {
             />
           )}
           {!inCanada && (
-            <section aria-labelledby="offers-title">
+            // the tour points at all of it, heading and US/Canada switch
+            // included, so Kenji sits above and covers none of it
+            <section aria-labelledby="offers-title" data-tour="prices">
               <div className={styles.sectionHeadRow}>
                 <h2 id="offers-title" className={styles.sectionTitle}>
                   Prices
@@ -363,7 +365,6 @@ export default function PriceVolume() {
                   key={isbn}
                   offers={offers}
                   formatPrice={formatCents}
-                  tourTarget="offers"
                   volume={volume}
                 />
               ) : (

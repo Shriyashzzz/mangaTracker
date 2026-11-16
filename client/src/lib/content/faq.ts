@@ -39,7 +39,7 @@ export const FAQ: FaqGroup[] = [
       },
       {
         q: "I collect the deluxe or omnibus edition. Will it tell me to buy single volumes?",
-        a: "No. On a series that has another edition, set Buy it to Deluxe, Omnibus or 3-in-1. What to buy next and what's left to finish the series are then counted in that edition's books.",
+        a: "No. On a series that has another edition, set Buy next to Deluxe, Omnibus or 3-in-1. What to buy next and what's left to finish the series are then counted in that edition's books.",
       },
       {
         q: "Can I record what I paid for a book?",

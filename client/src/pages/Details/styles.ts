@@ -294,6 +294,20 @@ export const detailsStyles = {
     "tap font-semibold text-accent underline decoration-2 underline-offset-3 disabled:opacity-60",
   twiceWhy: "basis-full text-[0.82rem] text-ink-soft",
   // "Buy it" with "as Deluxe" across from it: which edition the box counts in
+  // phones: Buy it folded under one line, high on the page. The line says
+  // the book and its price, so it's worth reading closed
+  buyFold:
+    "border-t-[1.5px] border-dashed border-line-soft pt-3 [&[open]>summary>svg]:rotate-180",
+  buyFoldSummary:
+    "tap flex min-h-11 cursor-pointer list-none items-center gap-3 [&::-webkit-details-marker]:hidden",
+  buyFoldTitle:
+    "font-brand text-[1.35rem] leading-none tracking-[0.03em] uppercase",
+  buyFoldTicket:
+    "min-w-0 flex-1 truncate font-mono text-[0.85rem] font-medium text-accent tabular-nums",
+  buyFoldChevron:
+    "size-5 shrink-0 text-ink-soft transition-transform duration-200 motion-reduce:transition-none",
+  // opened: the box without its own frame, the line above is its heading
+  buyOpened: "min-w-0 pt-2 [&>div:first-child>h2]:sr-only",
   buyHead:
     "mb-[0.6rem] flex flex-wrap items-center justify-between gap-x-2 [&_h2]:mb-0",
   // "vols. 7–9, you have 1 of 3": under the next book's row, the ticket's width

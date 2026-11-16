@@ -1,4 +1,5 @@
 import { NavLink } from "react-router";
+import { ChevronDownIcon } from "../../components/icons/Icons";
 import { chaptersText, type ChapterRange } from "../../lib/chapterWords";
 import { formatCents, seriesPath, volumePath } from "../../lib/prices";
 import { onSale } from "../../lib/releaseDate";
@@ -17,6 +18,9 @@ import {
 // US, and a link to the whole series (saying how many aren't on the shelf). Stays out of the way when the series can't be
 // found under the name on the shelf
 type Props = {
+  // on phones: folded under one line ("Buy next · Vol. 15 · $8.99") that
+  // opens it, high on the page instead of at the bottom
+  folded?: boolean;
   options: BuyOptions;
   // the red bar is already selling the next volume
   hideNext: boolean;
@@ -54,6 +58,7 @@ export default function BuyStrip({
   editions,
   onCollect,
   nextChapters = null,
+  folded = false,
 }: Props) {
   const { line, plan } = editions;
   const { loading, volumes, latest, next, caughtUp, seriesName, gaps } =
@@ -72,20 +77,39 @@ export default function BuyStrip({
   }
   if (!latest) return null;
 
-  return (
-    <section className={styles.buy} aria-labelledby="buy-title" data-tour="buy">
+  const titleId = folded ? "buy-title-folded" : "buy-title";
+  // the folded line's ticket: the book they need next, else the newest,
+  // with its price only when one is known (never "check price" there)
+  const firstNext = line && plan?.next;
+  const withPrice = (book: string, cents: number | null | undefined) =>
+    cents != null ? `${book} · ${formatCents(cents)}` : book;
+  const summary = firstNext
+    ? withPrice(`${line.label} ${firstNext.number}`, firstNext.knownPriceCents)
+    : next
+      ? withPrice(`Vol. ${next.volume}`, next.knownPriceCents)
+      : withPrice(`Vol. ${latest.volume}`, latest.knownPriceCents);
+
+  const box = (
+    <section
+      className={folded ? styles.buyOpened : styles.buy}
+      aria-labelledby={titleId}
+      data-tour={folded ? undefined : "buy"}
+    >
       {/* the heading, and beside it which edition they buy (only when the
-          series has another): "Buy it as Deluxe" */}
+          series has another): "Buy next as Deluxe" */}
       <div className={styles.buyHead}>
-        <h2 id="buy-title" className={styles.deskTitle}>
-          Buy it
+        <h2 id={titleId} className={styles.deskTitle}>
+          Buy next
         </h2>
         {editions.lines.length > 0 && (
           // the tour's "single, deluxe or omnibus" step points here
           <span data-tour="edition">
             <SortMenu
               lead="as"
-              menuLabel="Buy it as"
+              menuLabel="Buy next as"
+              // folded on phones it sits at the left edge: the list opens
+              // rightward, never off the screen
+              alignLeft={folded}
               wordy
               sortBy={line?.key ?? "singles"}
               onSort={onCollect}
@@ -245,5 +269,16 @@ export default function BuyStrip({
         →
       </NavLink>
     </section>
+  );
+  if (!folded) return box;
+  return (
+    <details className={styles.buyFold} data-tour="buy">
+      <summary className={styles.buyFoldSummary}>
+        <span className={styles.buyFoldTitle}>Buy next</span>
+        <span className={styles.buyFoldTicket}>{summary}</span>
+        <ChevronDownIcon className={styles.buyFoldChevron} />
+      </summary>
+      {box}
+    </details>
   );
 }

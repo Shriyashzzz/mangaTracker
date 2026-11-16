@@ -65,7 +65,12 @@ export default function CanadaPrices({
   const links = allLinks.filter((s) => !preorderAt.includes(s));
 
   return (
-    <section className="mb-8" aria-labelledby="ca-prices-title">
+    // the tour's price step, when they've switched to Canada on it
+    <section
+      className="mb-8"
+      aria-labelledby="ca-prices-title"
+      data-tour="prices"
+    >
       <div className={styles.sectionHeadRow}>
         <h2 id="ca-prices-title" className={styles.sectionTitle}>
           Prices in Canada

@@ -259,9 +259,14 @@ function Library() {
         pileSort,
       )
     : listed;
-  // a big list of what's new, not searched: sorted into piles instead
+  // a big list of what's new, not searched: sorted into piles instead. So
+  // is any list with a series far behind (a series just added at vol. 5 of
+  // 22): it goes in "Way behind", never among what's just come out
   const showPiles =
-    showingNew && !pileView && !query.trim() && listed.length >= PILES_FROM;
+    showingNew &&
+    !pileView &&
+    !query.trim() &&
+    (listed.length >= PILES_FROM || piles.way.length > 0);
   // a pile hidden down to nothing: back to the piles
   const pileEmptied =
     allChecked &&

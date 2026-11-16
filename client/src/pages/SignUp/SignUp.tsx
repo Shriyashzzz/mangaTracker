@@ -11,6 +11,9 @@ import { offerTour } from "../../lib/tourOffer";
 import { usePrivatePage } from "../../lib/seo";
 import { useAuth } from "../../store/auth";
 
+// the server's rule for a new account's password (authController.ts)
+const NEW_PASSWORD_MIN = 8;
+
 export default function SignUp() {
   usePrivatePage("Create account");
   const navigater = useNavigate();
@@ -23,6 +26,8 @@ export default function SignUp() {
   const isSignedIn = useAuth((s) => s.isSignedIn);
   const [justJoined, setJustJoined] = useState(false);
   const [errors, setErrors] = useState<{ msg: string }[]>([]);
+  // the password was too short at the last try: its hint says so
+  const [passwordShort, setPasswordShort] = useState(false);
   // the server's messages name the field they're about
   const hasError = (about: RegExp) => errors.some((e) => about.test(e.msg));
   const describedBy = (hint: string) =>
@@ -46,9 +51,12 @@ export default function SignUp() {
         "Usernames are letters and numbers only",
       (username.length < 4 || username.length > 40) &&
         "Usernames need 4 to 40 letters or numbers.",
-      password.length < 5 && "Password has to be at least 5 characters long!",
     ].filter((slip): slip is string => Boolean(slip));
-    if (slips.length) {
+    // too short is said once, by the hint under the box turning red, not
+    // again in the list below it
+    const short = password.length < NEW_PASSWORD_MIN;
+    setPasswordShort(short);
+    if (slips.length || short) {
       setErrors(slips.map((msg) => ({ msg })));
       return;
     }
@@ -127,11 +135,15 @@ export default function SignUp() {
                 name="password"
                 autoComplete="new-password"
                 required
-                aria-invalid={hasError(/password|secret/i)}
+                aria-invalid={passwordShort || hasError(/password|secret/i)}
                 aria-describedby={describedBy("password-hint")}
               />
-              <span id="password-hint" className={styles.hint}>
-                At least 5 characters.
+              <span
+                id="password-hint"
+                className={passwordShort ? styles.hintError : styles.hint}
+                role={passwordShort ? "alert" : undefined}
+              >
+                At least {NEW_PASSWORD_MIN} characters.
               </span>
             </div>
 

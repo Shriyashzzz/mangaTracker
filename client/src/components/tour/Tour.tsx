@@ -104,9 +104,16 @@ const pageBottom = () => {
 };
 
 // the first one on screen: the shelf has one add button for phones, one for laptops
+// Inside a closed <details> counts as off screen: browsers still give what's
+// folded away a box, so without this he'd keep pointing at a fold that was
+// just closed. The fold itself and its summary line are on screen
+const inClosedFold = (el: HTMLElement) => {
+  const fold = el.closest("details:not([open])");
+  return Boolean(fold && fold !== el && !el.closest("summary"));
+};
 const findTarget = (name: string) =>
   [...document.querySelectorAll<HTMLElement>(`[data-tour="${name}"]`)].find(
-    (el) => el.getClientRects().length > 0,
+    (el) => el.getClientRects().length > 0 && !inClosedFold(el),
   ) ?? null;
 
 // the part of a box above the phones' bottom bar, which the blur leaves alone
@@ -302,7 +309,12 @@ function Guide({ onClose }: { onClose: () => void }) {
           unfolded = true;
         }
       }
-      const el = findTarget(step.target!);
+      // what he points at, or, when it's inside a fold they've closed again
+      // (the edition picker in a folded Buy next), the fold itself: the line
+      // that opens it, rather than a spot where nothing is
+      const el =
+        findTarget(step.target!) ??
+        (typeof step.unfold === "string" ? findTarget(step.unfold) : null);
       if (el) {
         found = true;
         if (step.lookOnly && el !== heldStill) {

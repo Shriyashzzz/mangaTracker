@@ -65,8 +65,16 @@ const login = [
   },
 ];
 
+// a new account's password: at least 8 characters. Signing in keeps the
+// old 5, so accounts made before still get in
+const NEW_PASSWORD_MIN = 8;
+const newPassword = body("password")
+  .isLength({ min: NEW_PASSWORD_MIN })
+  .withMessage(`Passwords need at least ${NEW_PASSWORD_MIN} characters.`);
+
 const signup = [
   ...credentials,
+  newPassword,
   rejectInvalid,
   async (req: Request, res: Response) => {
     const { username, password } = matchedData(req);

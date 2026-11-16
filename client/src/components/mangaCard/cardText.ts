@@ -30,18 +30,11 @@ export function rowPlaceLine(
   return manga.status ? "read to the end" : "not started";
 }
 
-// a cover card's one line: where they are, then what it is. A blank or zero
-// chapter says nothing worth showing
-export function coverLine(
-  manga: Manga,
-  placeText: string | null,
-  ownedText: string | null,
-) {
-  let place: string | null = placeText ?? ownedText;
-  if (manga.status) place = "finished";
-  else if (manga.planned) place = "to read";
-  const parts = [place, manga.lightNovel && "light novel", genreOf(manga)];
-  return parts.filter(Boolean).join(" · ");
+// a cover card's one line: their place ("ch. 38", or "vol. 5" for one read
+// by the volume), only when they've kept one. Nothing else: the name and
+// the stars say the rest, and the line keeps its room so cards line up
+export function coverLine(placeText: string | null) {
+  return placeText ?? "";
 }
 
 // a row's second line: what it is

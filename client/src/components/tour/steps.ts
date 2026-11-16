@@ -113,6 +113,8 @@ const READER: { name: string; lines: Line[] }[] = [
         exact: true,
         target: "spines",
         tap: true,
+        // above the spines: under them is "Tap a book to mark it yours"
+        onTop: true,
         say: "Own the books too? Each spine is a volume: tap one to put it on your shelf.",
       },
       {
@@ -126,6 +128,8 @@ const READER: { name: string; lines: Line[] }[] = [
         path: MANGA,
         exact: true,
         target: "buy",
+        // on phones Buy it is folded: he opens it
+        unfold: true,
         say: "The volume you need next and its cheapest price: Vol. 15, $8.99. Your shelf and the prices work together.",
       },
     ],
@@ -148,9 +152,9 @@ const READER: { name: string; lines: Line[] }[] = [
         // (the page's address goes on to name the volume: anything under
         // this one book's counts)
         path: PRICE_PAGE,
-        target: "offers",
+        target: "prices",
         onTop: true,
-        say: 'Every store for Vol. 15, cheapest first, in US or Canadian dollars. Bought it? "I own Vol. 15" puts it on your shelf.',
+        say: 'Every store for Vol. 15: print copies cheapest first, then ebooks. Switch to Canada for Canadian stores, and tap "I own Vol. 15" once you\'ve bought it.',
       },
     ],
   },
@@ -181,7 +185,7 @@ const GAPS_EDIT = "/update/5";
 // whole shelf in numbers, what's coming, and getting it all back out
 const COLLECTOR: { name: string; lines: Line[] }[] = [
   {
-    name: "Bring it over",
+    name: "Your shelf",
     lines: [
       {
         path: "/shelf",
@@ -196,6 +200,11 @@ const COLLECTOR: { name: string; lines: Line[] }[] = [
             'Welcome to the collector\'s side! Forty real series here. Pick "Compact rows" here to fit far more on one screen.',
         },
       },
+    ],
+  },
+  {
+    name: "Bring it over",
+    lines: [
       {
         path: "/shelf",
         target: "import-link",
@@ -241,6 +250,8 @@ const COLLECTOR: { name: string; lines: Line[] }[] = [
         path: DELUXE,
         exact: true,
         target: "edition",
+        // inside Buy it, folded on phones: opened first
+        unfold: "buy",
         say: "Collect a different edition? Pick it here: single volumes, Deluxe, or whatever the series comes in.",
       },
       {
@@ -249,12 +260,6 @@ const COLLECTOR: { name: string; lines: Line[] }[] = [
         target: "spines",
         when: () => practiceEdition(2) === "singles",
         say: "Collecting single volumes now: tap a spine to mark it yours, then put what you paid in Your books.",
-      },
-      {
-        path: DELUXE,
-        exact: true,
-        target: "rate-volume",
-        say: "Rate each volume as you read it, out of five, and add a few words if you like.",
       },
     ],
   },

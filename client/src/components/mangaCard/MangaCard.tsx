@@ -81,7 +81,8 @@ const COVER_SIZES: Record<Shape, string> = {
 const TITLE_CLAMP: Record<Shape, string> = {
   small: "line-clamp-1",
   news: "line-clamp-2 min-h-[2.5em] upto-720:min-h-0 upto-720:line-clamp-1",
-  cover: "line-clamp-2",
+  // one line, cut short with "…": the full name is on hover and on its page
+  cover: "line-clamp-1",
 };
 const ROOT_CLASS: Record<Shape, string> = {
   small: "group flex animate-card-in flex-row items-start gap-3 py-1.5",
@@ -121,6 +122,10 @@ export default function MangaCard({
     latestChapter,
     latestVolume,
   );
+  // the row's right side shows "ch. 50 of 101" with its bar: the same rule
+  // as RowProgress below
+  const progressSaysPlace =
+    !currentManga.status && reading > 0 && knownTotal != null;
   const owned = ownedOf(currentManga);
   const ownedText = ownedTextOf(owned);
   // where they are: the chapter they're on, the volume they've read, or both
@@ -167,6 +172,7 @@ export default function MangaCard({
       </div>
       <div className="flex min-w-0 flex-col gap-[0.15rem]">
         <p
+          title={shape === "cover" ? currentManga.name : undefined}
           className={`${TITLE_CLAMP[shape]}  font-display text-[1.05rem] leading-[1.25] font-semibold decoration-accent underline-offset-3 group-hover:underline`}
         >
           {currentManga.name}
@@ -174,10 +180,20 @@ export default function MangaCard({
         {/* a row gives the chapter its own line: it's what they came to see */}
         {asColumns ? (
           <>
-            <p className="truncate font-mono text-[0.85rem] font-medium text-ink-soft">
-              {/* the right side already says when it's finished */}
-              {rowPlaceLine(currentManga, placeText, ownedText)}
-            </p>
+            {/* their place, or, when the right side already says it ("ch.
+                135 of 135"), what they own instead: never the chapter twice */}
+            {progressSaysPlace ? (
+              ownedText && (
+                <p className="truncate font-mono text-[0.85rem] font-medium text-ink-soft">
+                  {ownedText}
+                </p>
+              )
+            ) : (
+              <p className="truncate font-mono text-[0.85rem] font-medium text-ink-soft">
+                {/* the right side already says when it's finished */}
+                {rowPlaceLine(currentManga, placeText, ownedText)}
+              </p>
+            )}
             {/* one line for the rest, so every row is the same height */}
             <div className="flex min-h-[1.2rem] min-w-0 items-center gap-3">
               {kindLine && (
@@ -199,7 +215,7 @@ export default function MangaCard({
             // on the New tab the genre makes way for the news on a small card
             className={`min-h-[1.5em] truncate font-mono text-[0.78rem] text-muted${newsGenreHidden}`}
           >
-            {news ? genre : coverLine(currentManga, placeText, ownedText)}
+            {news ? genre : coverLine(placeText)}
           </p>
         )}
         {news && (

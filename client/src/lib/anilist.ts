@@ -52,11 +52,14 @@ const GENRE_PRIORITY: [anilist: string, ours: string][] = [
   ["Mecha", "Mecha"],
   ["Sports", "Sports"],
   ["Horror", "Horror"],
-  ["Romance", "Romance"],
   ["Mystery", "Mystery"],
   ["Sci-Fi", "Sci-Fi"],
   ["Thriller", "Thriller"],
   ["Supernatural", "Supernatural"],
+  // under those: a mystery or a sci-fi with a love story in it is still a
+  // mystery (Detective Conan) or sci-fi (Dandadan). Above Slice of Life, so
+  // a romance led by its love story stays Romance (Kaguya-sama)
+  ["Romance", "Romance"],
   ["Slice of Life", "Slice of Life"],
   ["Adventure", "Adventure"],
   ["Action", "Action"],

@@ -346,6 +346,24 @@ export default function Details() {
                 {genre && <li className={styles.metaGenre}>{genre}</li>}
               </ul>
             </header>
+            {/* phones: Buy it here, above the spines, folded under one line
+                that names the book and its price */}
+            <div className="hidden upto-720:order-1 upto-720:col-span-full upto-720:block">
+              <BuyStrip
+                folded
+                options={buyOptions}
+                hideNext={hideNextTicket}
+                editions={editions}
+                // only when the book offered is the one their next chapter is in
+                nextChapters={
+                  buyOptions.next &&
+                  buyOptions.next.volume === releaseStatus?.nextVolume
+                    ? releaseStatus?.nextVolumeChapters
+                    : null
+                }
+                onCollect={(edition) => saveReading({ edition })}
+              />
+            </div>
             <ShelfBox
               mangaId={mangaData.id}
               name={mangaData.name}
@@ -473,19 +491,22 @@ export default function Details() {
             {mangaStatus && <span className={styles.stamp}>Done</span>}
           </figure>
 
-          <BuyStrip
-            options={buyOptions}
-            hideNext={hideNextTicket}
-            editions={editions}
-            // only when the book offered is the one their next chapter is in
-            nextChapters={
-              buyOptions.next &&
-              buyOptions.next.volume === releaseStatus?.nextVolume
-                ? releaseStatus?.nextVolumeChapters
-                : null
-            }
-            onCollect={(edition) => saveReading({ edition })}
-          />
+          {/* phones have it folded, high on the page (below) */}
+          <div className="upto-720:hidden">
+            <BuyStrip
+              options={buyOptions}
+              hideNext={hideNextTicket}
+              editions={editions}
+              // only when the book offered is the one their next chapter is in
+              nextChapters={
+                buyOptions.next &&
+                buyOptions.next.volume === releaseStatus?.nextVolume
+                  ? releaseStatus?.nextVolumeChapters
+                  : null
+              }
+              onCollect={(edition) => saveReading({ edition })}
+            />
+          </div>
         </div>
       </article>
 
