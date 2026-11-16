@@ -78,11 +78,15 @@ export default function BuyStrip({
     options;
   // as the shelf counts them: up to the newest one out, listed or not
   // (Detective Conan: 98, though only 65 have a book listed)
+  // (Jujutsu Kaisen: 29, its vol. 0 said apart, as the page above says it)
   const out = onSale(volumes);
+  const numbered = out.filter(
+    (v) => Number.isInteger(v.volume) && v.volume >= 1,
+  );
   const outCount = Math.max(
-    out.length,
+    numbered.length,
     shelfTotal,
-    ...out.map((v) => v.volume).filter(Number.isInteger),
+    ...numbered.map((v) => v.volume),
   );
   const coming = volumes.length - out.length;
 
@@ -92,16 +96,28 @@ export default function BuyStrip({
   if (!latest) return null;
 
   const titleId = folded ? "buy-title-folded" : "buy-title";
-  // the folded line's ticket: the book they need next, else the newest,
-  // with its price only when one is known (never "check price" there)
+  // the folded line's ticket, as the open box lists them: the book they
+  // need next (unless the red bar sells it already), else the first gap,
+  // else the newest. Never a volume they own: caught up says so. A price
+  // only when one is known (never "check price" there)
   const firstNext = line && plan?.next;
   const withPrice = (book: string, cents: number | null | undefined) =>
     cents != null ? `${book} · ${formatCents(cents)}` : book;
+  const firstGap = gaps[0];
+  const gapCents = out.find(
+    (v) => v.volume === firstGap?.volume,
+  )?.knownPriceCents;
   const summary = firstNext
     ? withPrice(editionBookLabel(line, firstNext), firstNext.knownPriceCents)
-    : next
+    : next && !hideNext
       ? withPrice(`Vol. ${next.volume}`, next.knownPriceCents)
-      : withPrice(`Vol. ${latest.volume}`, latest.knownPriceCents);
+      : firstGap
+        ? withPrice(`Vol. ${firstGap.volume}`, gapCents)
+        : next
+          ? withPrice(`Vol. ${next.volume}`, next.knownPriceCents)
+          : caughtUp
+            ? "Caught up"
+            : withPrice(`Vol. ${latest.volume}`, latest.knownPriceCents);
 
   const box = (
     <section
@@ -210,6 +226,14 @@ export default function BuyStrip({
             <li className={styles.buyNote}>
               <span className={styles.buyKind}>Caught up</span>
               You have all {plan.outBooks} {line.label} books listed
+              {/* volumes out past the last book, sold only on their own */}
+              {outCount > plan.lastVolume && plan.lastVolume > 0 && (
+                <em className={styles.buyInside}>
+                  {outCount === plan.lastVolume + 1
+                    ? `Vol. ${outCount} isn't in a ${line.label} book yet.`
+                    : `Vols. ${plan.lastVolume + 1}–${outCount} aren't in a ${line.label} book yet.`}
+                </em>
+              )}
             </li>
           )}
         </ul>
@@ -244,8 +268,13 @@ export default function BuyStrip({
               <span className={styles.buyGapList}>
                 {gaps.slice(0, GAPS_SHOWN).map((g) => (
                   <NavLink
-                    key={g.isbn13}
-                    to={volumePath(g.isbn13, g.title)}
+                    key={g.volume}
+                    // one the catalog doesn't list: the series' own list
+                    to={
+                      g.isbn13
+                        ? volumePath(g.isbn13, g.title)
+                        : `${seriesPath(seriesName)}&toget=1`
+                    }
                     className={styles.buyGap}
                     viewTransition
                   >

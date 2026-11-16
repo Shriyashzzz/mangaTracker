@@ -31,11 +31,20 @@ export function rowPlaceLine(
 }
 
 // a cover card's one line: their place ("ch. 38", or "vol. 5" for one read
-// by the volume), or "to read" for one they haven't started, after "light
-// novel" for one. The name and the stars say the rest, and the line keeps
-// its room so cards line up
-export function coverLine(manga: Manga, placeText: string | null) {
-  const place = manga.planned ? "to read" : placeText;
+// by the volume), else what they own ("own vols. 1–10"), or "to read" for
+// one they haven't started, after "light novel" for one. The name and the
+// stars say the rest, and the line keeps its room so cards line up
+export function coverLine(
+  manga: Manga,
+  placeText: string | null,
+  ownedText: string | null = null,
+) {
+  // "not started" as the row says it: never begun, nothing owned, not
+  // finished (a collector's books say where they are on the row)
+  const notStarted = !placeText && !ownedText && !manga.status;
+  const place = manga.planned
+    ? "to read"
+    : (placeText ?? ownedText ?? (notStarted ? "not started" : null));
   const parts = [manga.lightNovel && "light novel", place];
   return parts.filter(Boolean).join(" · ");
 }

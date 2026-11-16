@@ -19,6 +19,14 @@ export type SharedMatch = {
 
 // what the server takes in one go
 const PER_REQUEST = 500;
+// the longest title it takes: a longer one (a 400-character row) is never
+// sent, or the server turns the whole request away and every title waits
+// on AniList
+const LONGEST_NAME = 200;
+const fits = (search: SharedSearch) => {
+  const length = search.name.trim().length;
+  return length >= 1 && length <= LONGEST_NAME;
+};
 // a server that's up but stuck mustn't hold the import at "0 of 442": past
 // this, matching goes on with AniList as if nothing were known
 const ASK_TIMEOUT_MS = 8000;
@@ -36,10 +44,12 @@ export async function askShared(
   searches: SharedSearch[],
   signal?: AbortSignal,
 ): Promise<(SharedMatch | null)[]> {
-  const out: (SharedMatch | null)[] = [];
+  // only the ones the server takes are asked; the rest are not known
+  const asked = searches.filter(fits);
+  const known = new Map<SharedSearch, SharedMatch | null>();
   let answering = true;
-  for (let i = 0; i < searches.length; i += PER_REQUEST) {
-    const part = searches.slice(i, i + PER_REQUEST);
+  for (let i = 0; i < asked.length; i += PER_REQUEST) {
+    const part = asked.slice(i, i + PER_REQUEST);
     // one that didn't answer: the rest aren't asked
     const res = answering
       ? await apiFetch("/api/manga/import/matches", {
@@ -57,16 +67,19 @@ export async function askShared(
       : null;
     if (!res) answering = false;
     // not answered: these just go to AniList
-    out.push(
-      ...(Array.isArray(matches) && matches.length === part.length
+    const answered =
+      Array.isArray(matches) && matches.length === part.length
         ? (matches as (SharedMatch | null)[])
-        : part.map(() => null)),
-    );
+        : part.map(() => null);
+    part.forEach((search, n) => known.set(search, answered[n]));
   }
-  return out;
+  return searches.map((search) => known.get(search) ?? null);
 }
 
-export function tellShared(found: (SharedSearch & { anilistId: number })[]) {
+export function tellShared(
+  everyFound: (SharedSearch & { anilistId: number })[],
+) {
+  const found = everyFound.filter(fits);
   for (let i = 0; i < found.length; i += PER_REQUEST) {
     void apiFetch("/api/manga/import/matches/found", {
       method: "POST",
@@ -80,6 +93,7 @@ export function tellShared(found: (SharedSearch & { anilistId: number })[]) {
 // toward everyone's (server: util/shelf/importPicks.ts). Only a help: if it
 // doesn't arrive, this import still has it
 export function tellPick(search: SharedSearch, match: SharedMatch | null) {
+  if (!fits(search)) return;
   void apiFetch("/api/manga/import/picks", {
     method: "POST",
     body: { search, match },

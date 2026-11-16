@@ -88,7 +88,7 @@ const READER: { name: string; lines: Line[] }[] = [
         target: "shelf",
         focus: true,
         stayPut: true,
-        say: "Hi, I'm Kenji! This is your shelf, a practice one, so wander off and explore any of it.",
+        say: "Hi, I'm Kenji! This is a practice shelf. Tap Hide Kenji to explore it on your own.",
       },
     ],
   },

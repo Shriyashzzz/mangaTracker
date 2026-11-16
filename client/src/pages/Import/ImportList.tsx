@@ -11,6 +11,7 @@ import { useBookImport, type Match } from "../../store/bookImport";
 import MatchModal from "./MatchModal";
 import { importStyles as styles } from "./styles";
 import { shelfKey } from "../../lib/titleKey";
+import { useNearNames } from "./useNearNames";
 
 export default function ImportList({
   found,
@@ -36,8 +37,22 @@ export default function ImportList({
 }) {
   const imported = useBookImport();
   const { edits } = imported;
-  // the row whose Edit is open
+  // the row whose Edit is open, and the name it searches first: the
+  // row's own, or the one "Did you mean" offered
   const [editing, setEditing] = useState<BookSeries | null>(null);
+  const [searchFirst, setSearchFirst] = useState<string | null>(null);
+  const openEdit = (s: BookSeries, name: string | null = null) => {
+    setSearchFirst(name);
+    setEditing(s);
+  };
+  // once matching is done, the rows not found: a typo's likely series
+  const near = useNearNames(
+    lookingUp
+      ? []
+      : rows
+          .filter((r) => matchOf(r) === null && !editOf(r, edits))
+          .map((r) => r.title),
+  );
   // what's on their shelf already: those rows add volumes to it (names
   // compared as the shelf compares them, case and punctuation aside)
   const shelf = useShelf((st) => st.manga);
@@ -78,6 +93,16 @@ export default function ImportList({
             <span className={styles.seriesMeta}>
               {matchLine(s, match, apart, saidNotOnAniList)}
             </span>
+            {match === null && !edited && near.get(s.title) && (
+              <button
+                type="button"
+                className={styles.nearName}
+                disabled={importing}
+                onClick={() => openEdit(s, near.get(s.title)!)}
+              >
+                Did you mean {near.get(s.title)}?
+              </button>
+            )}
             {sparesNote(s) && (
               <span className={styles.seriesMeta}>{sparesNote(s)}</span>
             )}
@@ -103,7 +128,7 @@ export default function ImportList({
           className={styles.seriesEdit}
           disabled={importing || match === undefined}
           aria-label={`Edit ${name}`}
-          onClick={() => setEditing(s)}
+          onClick={() => openEdit(s)}
         >
           Edit
         </button>
@@ -241,6 +266,7 @@ export default function ImportList({
       {editing && (
         <MatchModal
           series={editing}
+          searchFirst={searchFirst ?? undefined}
           current={matchOf(editing)}
           edited={Boolean(editOf(editing, edits))}
           onSave={(edit) => {

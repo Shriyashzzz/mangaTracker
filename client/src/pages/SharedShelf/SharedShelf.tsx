@@ -416,7 +416,9 @@ export default function SharedShelfPage() {
       )}
 
       {/* under the tabs: the search, the order and the open list */}
-      <div className={styles.lists}>
+      {/* held tall only once they've switched tabs, so a short list doesn't
+          pull the stuck tabs back up; a short shelf on its own has no gap */}
+      <div className={picked ? styles.lists : styles.listsShort}>
         {all.length > 0 && (
           <div className={styles.tools}>
             <label className={styles.search}>

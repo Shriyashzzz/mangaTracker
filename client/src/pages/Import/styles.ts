@@ -46,7 +46,8 @@ export const importStyles = {
   list: "flex min-h-12 cursor-pointer items-center gap-3 border-b border-dashed border-line-soft has-[input:disabled]:cursor-default has-[input:disabled]:opacity-50",
   listCheck:
     "size-5 shrink-0 cursor-pointer accent-accent disabled:cursor-default",
-  listName: "flex-1 font-medium",
+  // a long unbroken title wraps, never runs under Edit
+  listName: "flex-1 font-medium wrap-anywhere",
   listCount: "font-mono text-[0.9rem] text-ink-soft tabular-nums",
   // which app the list comes from: two across on phones, three on bigger screens
   sources: "grid grid-cols-3 gap-2 upto-520:grid-cols-2",
@@ -94,6 +95,9 @@ export const importStyles = {
   seriesEdit:
     "tap min-h-11 shrink-0 px-1 text-[0.85rem] font-medium text-ink-soft underline decoration-line-soft underline-offset-3 hover:text-ink hover:decoration-current disabled:cursor-default disabled:no-underline disabled:hover:text-ink-soft",
   edited: "text-ink",
+  // "Did you mean One Piece?" under a row AniList didn't find: opens Edit
+  nearName:
+    "tap self-start text-left text-[0.85rem] font-medium text-accent underline decoration-current/40 underline-offset-3 hover:decoration-current disabled:cursor-default disabled:no-underline",
 
   // Edit: which AniList series, and how many volumes. A full screen on phones
   modal:

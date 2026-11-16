@@ -112,7 +112,7 @@ const NOT_A_NAME = new RegExp(
   "i",
 );
 
-type Parsed = {
+export type Parsed = {
   series: string;
   volume: number | null;
   // every name the series goes by, the series first: both halves of
@@ -273,6 +273,12 @@ export function seriesFromDetails(details: string): Parsed | null {
   return named && { ...named, volume: Number.isFinite(n) && n > 0 ? n : null };
 }
 
+// "JoJo's Bizarre Adventure" in a series column, and "…: Part 3--Stardust
+// Crusaders, Vol. 1" as the title: the title says which part, and each
+// part is its own series
+export const namesAPartOf = (column: Parsed, title: Parsed) =>
+  seriesKey(title.series).startsWith(`${seriesKey(column.series)} part `);
+
 // a series column names the series, so a number in it is part of the name
 export function seriesFromColumn(text: string): Parsed | null {
   const clean = text.normalize("NFKC").trim();
@@ -292,7 +298,7 @@ export const seriesKey = (name: string) =>
   name
     .toLowerCase()
     // "Hunter × Hunter"
-    .replace(/×/g, "x")
+    .replace(/\s*×\s*/g, " x ")
     // "+Anima" isn't "Anima"
     .replace(/\+/g, " plus ")
     .normalize("NFKD")

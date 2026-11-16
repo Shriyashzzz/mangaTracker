@@ -24,6 +24,8 @@ import Spine from "./Spine";
 // spines to start with, and how many more each tap adds: whole shelves
 const FIRST_SHOWN = 20;
 const MORE = 10;
+// how far past the newest the list knows "Up to vol." goes
+const PAST_THE_NEWEST = 3;
 const roundUp = (n: number) => Math.ceil(n / MORE) * MORE;
 
 const sorted = (set: Set<number>) => [...set].sort((a, b) => a - b);
@@ -224,8 +226,15 @@ export function useVolumePicker(
       setFolds(fullRuns(before));
       return;
     }
-    const n = Math.min(999, Math.floor(Number(text)));
+    // never far past what's out: the list can lag a few behind, but 5000
+    // on One Piece isn't a shelf (and would fill every gap). The box shows
+    // the number it came to
+    const most =
+      out && out > 0 ? Math.max(out + PAST_THE_NEWEST, ...before) : 999;
+    const typed = Math.floor(Number(text));
+    const n = Math.min(999, most, typed);
     if (!(n >= 1)) return;
+    if (n < typed) setUpToText(String(n));
     const list = [
       ...new Set([
         ...ownedOf({ volumesOwned: n }),

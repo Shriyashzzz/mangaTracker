@@ -283,7 +283,10 @@ export default function YourBooks({
           }}
         >
           <label htmlFor="books-same">
-            Same price for the other {unpriced.length}?
+            {/* "the other 112" only when some have a price already */}
+            {unpriced.length === rows.length
+              ? `Same price for all ${rows.length}?`
+              : `Same price for the other ${unpriced.length}?`}
           </label>
           <label className={styles.bookPaid}>
             <span aria-hidden>$</span>

@@ -14,6 +14,7 @@ import {
   fileKind,
   mergeSameSeries,
   parseCsv,
+  csvText,
   editOf,
   withEdits,
   withVolumes,
@@ -47,6 +48,8 @@ const MAX_ISBN_LOOKUPS = 50;
 import { importStyles as styles } from "./styles";
 
 const MAX_FILE_BYTES = 20 * 1024 * 1024;
+// a left-out series' name on the last page, at most
+const LONGEST_NAME_SHOWN = 60;
 // files in one import
 const MAX_FILES = 5;
 
@@ -136,7 +139,14 @@ export default function BookImport({ source }: { source: BookSource }) {
         continue;
       }
       try {
-        const rows = parseCsv(await file.text());
+        const rows = parseCsv(csvText(await file.arrayBuffer()));
+        // nothing in it, or only its headers: said as it is, not as a
+        // missing column or the wrong app's file
+        const filled = rows.filter((row) => row.some((cell) => cell.trim()));
+        if (!filled.length) {
+          errors.push(`${file.name} is empty.`);
+          continue;
+        }
         const headers = (rows[0] ?? []).map((h) => h.trim());
         // on the Book Catalogue tab, an older export with just a lowercase
         // "title" column (as Book Catalogue writes it) is taken at its word,
@@ -166,9 +176,11 @@ export default function BookImport({ source }: { source: BookSource }) {
         }
         if (!books.length) {
           errors.push(
-            source === "csv" && thisKind === "csv"
-              ? `We couldn't find a title column in ${file.name}.`
-              : `There are no books in ${file.name}.`,
+            filled.length === 1
+              ? `${file.name} has headers but no books.`
+              : source === "csv" && thisKind === "csv"
+                ? `We couldn't find a title column in ${file.name}.`
+                : `There are no books in ${file.name}.`,
           );
           continue;
         }
@@ -256,8 +268,16 @@ export default function BookImport({ source }: { source: BookSource }) {
   const newOnes = chosen.filter(
     (s) => !onShelf.has(shelfKey(nameOf(s), Boolean(s.lightNovel))),
   ).length;
-  // left unticked: said on the last page, so none goes without a word
-  const leftOut = (rows ?? []).filter((s) => !ticked(s)).map(nameOf);
+  // left unticked, by them or as never found: said on the last page, so
+  // none goes without a word. A title past a line long (a junk row) is cut
+  const leftOut = (rows ?? [])
+    .filter((s) => !ticked(s))
+    .map(nameOf)
+    .map((name) =>
+      name.length > LONGEST_NAME_SHOWN
+        ? `${name.slice(0, LONGEST_NAME_SHOWN).trimEnd()}…`
+        : name,
+    );
 
   if (ours && finished && totals) {
     return (
@@ -278,8 +298,10 @@ export default function BookImport({ source }: { source: BookSource }) {
         </p>
         {leftOut.length > 0 && (
           <p className={styles.resultBody}>
-            Left out, as you unticked them: {leftOut.slice(0, 5).join(", ")}
-            {leftOut.length > 5 && ` and ${leftOut.length - 5} more`}.
+            Not added, as they weren't ticked: {leftOut.slice(0, 5).join(", ")}
+            {leftOut.length > 5 && ` and ${leftOut.length - 5} more`}
+            {/* a cut name ends in "…" already */}
+            {leftOut.length > 5 || !leftOut.at(-1)?.endsWith("…") ? "." : ""}
           </p>
         )}
         <CompleteSets ids={totals.completeSets ?? []} />
@@ -483,12 +505,14 @@ export default function BookImport({ source }: { source: BookSource }) {
                 <button
                   type="button"
                   className="btn btn-primary btn-lg"
-                  disabled={!chosen.length}
+                  disabled={!chosen.length || lookingUp}
                   onClick={start}
                 >
-                  {newOnes
-                    ? `Add ${series(newOnes)} to my shelf`
-                    : `Update ${series(chosen.length)} on my shelf`}
+                  {lookingUp
+                    ? "Matching…"
+                    : newOnes
+                      ? `Add ${series(newOnes)} to my shelf`
+                      : `Update ${series(chosen.length)} on my shelf`}
                 </button>
                 {/* while matching, Stop import above does this */}
                 {!lookingUp && <StopButton cancel />}

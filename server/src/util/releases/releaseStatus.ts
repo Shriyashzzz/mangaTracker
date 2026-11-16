@@ -242,30 +242,29 @@ export function getReleaseStatus(
         null)
       : null;
   const nextBook = (englishVolumes ?? []).find((v) => v.volume === nextVolume);
-  // the English volumes out below the furthest they own that they don't
-  // have (Chainsaw Man owning 1–11 and 13–17: vol. 12), so "N to get"
-  // counts every one, as the Volumes tab does
+  // the volumes below the furthest they own that they don't have (Chainsaw
+  // Man owning 1–11 and 13–17 of 22: vol. 12), so "N to get" counts every
+  // one, as the Volumes tab does. Each number, with its book when the
+  // catalog lists one: it lists only some of Detective Conan's 60–69, and
+  // owning 1–59 and 70–92 is still 10 short there
   const owns = new Set(ownedList ?? []);
-  const gapVolumes =
-    ownedList?.length && currentVolume != null
-      ? [
-          ...new Map(
-            (englishVolumes ?? [])
-              .filter(
-                (v): v is typeof v & { volume: number } =>
-                  v.volume != null &&
-                  Number.isInteger(v.volume) &&
-                  v.volume >= 1 &&
-                  v.volume < currentVolume &&
-                  !owns.has(v.volume),
-              )
-              .map((v) => [
-                v.volume,
-                { volume: v.volume, isbn13: v.isbn13, title: v.title },
-              ]),
-          ).values(),
-        ].sort((a, b) => a.volume - b.volume)
-      : [];
+  const bookOf = new Map(
+    (englishVolumes ?? [])
+      .filter((v) => v.volume != null && Number.isInteger(v.volume))
+      .map((v) => [v.volume!, v]),
+  );
+  const gapVolumes: ReleaseStatus["gapVolumes"] = [];
+  if (ownedList?.length && currentVolume != null) {
+    for (let n = 1; n < currentVolume; n++) {
+      if (owns.has(n)) continue;
+      const book = bookOf.get(n);
+      gapVolumes.push(
+        book
+          ? { volume: n, isbn13: book.isbn13, title: book.title }
+          : { volume: n },
+      );
+    }
+  }
   // for that reader, the chapters in it, so a card can say why that one:
   // "Vol. 5 · ch. 34–42" beside "Read up to ch. 38"
   const nextVolumeInBook = nextBook?.inBook ?? null;

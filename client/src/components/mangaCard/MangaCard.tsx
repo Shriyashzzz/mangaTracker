@@ -173,7 +173,7 @@ export default function MangaCard({
       <div className="flex min-w-0 flex-col gap-[0.15rem]">
         <p
           title={shape === "cover" ? currentManga.name : undefined}
-          className={`${TITLE_CLAMP[shape]}  font-display text-[1.05rem] leading-[1.25] font-semibold decoration-accent underline-offset-3 group-hover:underline`}
+          className={`${TITLE_CLAMP[shape]} wrap-anywhere font-display text-[1.05rem] leading-[1.25] font-semibold decoration-accent underline-offset-3 group-hover:underline`}
         >
           {currentManga.name}
         </p>
@@ -215,7 +215,7 @@ export default function MangaCard({
             // on the New tab the genre makes way for the news on a small card
             className={`min-h-[1.5em] truncate font-mono text-[0.78rem] text-muted${newsGenreHidden}`}
           >
-            {news ? genre : coverLine(currentManga, placeText)}
+            {news ? genre : coverLine(currentManga, placeText, ownedText)}
           </p>
         )}
         {news && (

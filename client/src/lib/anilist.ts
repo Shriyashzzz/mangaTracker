@@ -4,7 +4,8 @@ const ANILIST_URL = "https://graphql.anilist.co";
 const SEARCH_QUERY = `
   query ($search: String, $perPage: Int, $sort: [MediaSort] = [SEARCH_MATCH]) {
     Page(perPage: $perPage) {
-      media(search: $search, type: MANGA, sort: $sort) {
+      # adult entries aren't offered when adding ("…Goes Berserk" for Berserk)
+      media(search: $search, type: MANGA, sort: $sort, isAdult: false) {
         id
         format
         title { english romaji }
@@ -275,12 +276,17 @@ export function matchFrom(
   // or the search is the series cut short ("Chunchu" for "Chunchu: The
   // Genocide Fiend")
   let fit: "exact" | "parent" | "longer" = "exact";
+  // the parts the search is the start of: "JoJo's Bizarre Adventure" starts
+  // all nine ("…Part 3: Stardust Crusaders"), and the most read is a guess
+  const parts = new Set<number>();
   if (!best && !exactOnly && wanted.length >= SHARED_AT_LEAST) {
     let shared = 0;
     for (const m of results) {
       for (const name of namesOf(m)) {
         const t = plain(name);
         if (t.length < SHARED_AT_LEAST) continue;
+        if (t.startsWith(wanted) && /^part\d/.test(t.slice(wanted.length)))
+          parts.add(m.id);
         // the search is that name plus a subtitle, or that name is the search
         // plus a subtitle
         const fits =
@@ -301,6 +307,8 @@ export function matchFrom(
       }
     }
   }
+  // the start of more than one part's name: no telling which
+  if (fit === "longer" && parts.size > 1) best = undefined;
   return best
     ? {
         anilistId: best.id,

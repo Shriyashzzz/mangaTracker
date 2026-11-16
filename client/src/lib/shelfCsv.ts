@@ -46,7 +46,8 @@ export const shelfToCsv = (
       // every one they own, as ranges ("1–5, 8"), so the import reads it back
       // exactly (bookImport isOwnExport)
       rangesText(ownedOf(m)),
-      m.rating,
+      // a cleared rating (0) is no rating, as one never given: blank
+      m.rating || "",
       m.genre,
       m.description,
       // the books behind the volumes, with their ISBNs and editions

@@ -3,6 +3,17 @@
 
 // ---------- CSV ----------
 
+// a file's bytes as text: UTF-8, as exports are now, else Windows' own
+// encoding (an older Excel save), so "Pokémon" isn't "Pok\uFFFDmon" and
+// still matches
+export function csvText(bytes: ArrayBuffer | Uint8Array): string {
+  try {
+    return new TextDecoder("utf-8", { fatal: true }).decode(bytes);
+  } catch {
+    return new TextDecoder("windows-1252").decode(bytes);
+  }
+}
+
 // RFC 4180: quoted fields can hold commas, quotes ("") and line breaks
 export function parseCsv(text: string): string[][] {
   const clean = text.replace(/^\uFEFF/, "");

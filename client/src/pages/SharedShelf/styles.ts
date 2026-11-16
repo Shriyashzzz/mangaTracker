@@ -72,11 +72,12 @@ export const shareStyles = {
 
   // the shelf in a few numbers: small boxes, then the genre bar and its key
   numbers: "flex flex-col gap-2.5",
-  brag: "flex flex-wrap gap-1.5 text-[0.84rem] text-ink-soft [&>li]:border-[1.5px] [&>li]:border-line [&>li]:bg-card [&>li]:px-2 [&>li]:py-0.5 [&_b]:font-semibold [&_b]:text-ink",
+  // a word with no spaces (a 100-letter genre) breaks rather than widening the page
+  brag: "flex flex-wrap gap-1.5 text-[0.84rem] text-ink-soft [&>li]:max-w-full [&>li]:wrap-anywhere [&>li]:border-[1.5px] [&>li]:border-line [&>li]:bg-card [&>li]:px-2 [&>li]:py-0.5 [&_b]:font-semibold [&_b]:text-ink",
   genreBar:
     "flex h-3 max-w-[32rem] border-[1.5px] border-line [&>span]:block [&>span]:basis-0",
   genreKey:
-    "flex flex-wrap gap-x-4 gap-y-1 font-mono text-[0.72rem] text-muted [&>li]:flex [&>li]:items-center [&>li]:gap-1.5 [&_span]:block [&_span]:size-2",
+    "flex flex-wrap gap-x-4 gap-y-1 font-mono text-[0.72rem] text-muted [&>li]:max-w-full [&>li]:wrap-anywhere [&>li]:flex [&>li]:items-center [&>li]:gap-1.5 [&_span]:block [&_span]:size-2",
 
   // their five-star series, a row to swipe along
   favs: "flex flex-col gap-3",
@@ -104,6 +105,8 @@ export const shareStyles = {
   // what's under the tabs: tall enough that a short list doesn't pull the
   // page (and the stuck tabs) back up when it replaces a long one
   lists: "flex min-h-[85dvh] flex-col gap-8 upto-520:gap-6",
+  // before any tab is picked: only as tall as what's in it
+  listsShort: "flex flex-col gap-8 upto-520:gap-6",
   tab: "tap flex w-[11rem] min-w-0 shrink upto-720:w-auto upto-720:flex-1 cursor-pointer flex-col items-center gap-1 border-[1.5px] border-line bg-card px-1 pt-2 pb-1.5 text-ink-soft shadow-[inset_0_-4px_0_var(--tone)] transition-[translate,rotate,box-shadow,background-color] duration-150 ease-ink hover:text-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent focus-visible:outline-dashed",
   tabOn:
     "tap flex w-[11rem] min-w-0 shrink upto-720:w-auto upto-720:flex-1 cursor-pointer flex-col items-center gap-1 border-[1.5px] border-line bg-(--tone) px-1 pt-2 pb-1.5 text-(--stamp-ink) -translate-y-0.5 -rotate-1 shadow-[3px_3px_0_var(--hard-shadow)] transition-[translate,rotate,box-shadow,background-color] duration-150 ease-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent focus-visible:outline-dashed",

@@ -32,6 +32,9 @@ type Props = {
   current: Match | undefined;
   // they've edited it before, so it can go back to what the import found
   edited: boolean;
+  // what to search for first, when not the row's title: the series "Did
+  // you mean" offered
+  searchFirst?: string;
   onSave: (edit: Edit) => void;
   onUndo: () => void;
   onClose: () => void;
@@ -50,12 +53,13 @@ export default function MatchModal({
   series,
   current,
   edited,
+  searchFirst = series.title,
   onSave,
   onUndo,
   onClose,
 }: Props) {
   const dialog = useRef<HTMLDialogElement>(null);
-  const [search, setSearch] = useState(series.title);
+  const [search, setSearch] = useState(searchFirst);
   const [found, setFound] = useState<Found>({ state: "searching" });
   // Search again, after AniList couldn't be reached
   const [tries, setTries] = useState(0);
@@ -106,7 +110,7 @@ export default function MatchModal({
     // nothing typed: no search (the list shows "idle" for it)
     if (words)
       ask(
-        words === series.title && !tries
+        words === searchFirst && !tries
           ? 0
           : Math.max(TYPING_PAUSE_MS, aniListGapMs()),
       );
@@ -114,7 +118,7 @@ export default function MatchModal({
       clearTimeout(timer);
       controller.abort();
     };
-  }, [search, series.title, tries]);
+  }, [search, searchFirst, tries]);
 
   // results for a name that's since been cleared aren't shown, or pickable
   const results: Found = search.trim() ? found : { state: "idle" };

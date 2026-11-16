@@ -94,7 +94,7 @@ function Fan({
             key={m.id}
             to={link.to}
             className={styles.fanCover}
-            aria-label={`${m.name}${link.stamp ? `: ${link.stamp}` : ""}${link.behind ? `, ${link.behind} ${link.countWord ?? countWord}` : ""}`}
+            aria-label={`${m.name}${m.lightNovel ? " (light novel)" : ""}${link.stamp ? `: ${link.stamp}` : ""}${link.behind ? `, ${link.behind} ${link.countWord ?? countWord}` : ""}`}
             viewTransition
             onClick={
               link.onOpen
@@ -114,6 +114,11 @@ function Fan({
                 japanFirst={japanFirst}
               />
             </span>
+            {m.lightNovel && (
+              <span className={styles.novel} aria-hidden>
+                Novel
+              </span>
+            )}
             {link.stamp && (
               <span className={styles.stamp} aria-hidden>
                 {link.stamp}
@@ -126,7 +131,9 @@ function Fan({
             )}
             {/* which series, on hover or keyboard focus (its name is in the
                 link's label for screen readers already) */}
-            <CoverCaption name={m.name} />
+            <CoverCaption
+              name={m.lightNovel ? `${m.name} (light novel)` : m.name}
+            />
           </NavLink>
         );
       })}

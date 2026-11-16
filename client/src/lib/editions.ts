@@ -91,6 +91,9 @@ export function editionPlan(
     left,
     ownedBooks: out.filter(isOwned).length,
     outBooks: out.length,
+    // the last volume those books hold: Vagabond's 12 VIZBIGs end at 36,
+    // and vol. 37 is only sold on its own
+    lastVolume: out.at(-1)?.volumes.at(-1) ?? 0,
     // books past the last listed one: to come, or not in the catalog yet
     later,
     pricedCents,

@@ -407,3 +407,12 @@ test("New counts the gaps behind their furthest in what's left to get", async ()
     ),
   ).toBe(5);
 });
+
+test("a cover card says what they own when they have no place", async () => {
+  const { coverLine } =
+    await import("../../../../client/src/components/mangaCard/cardText.js");
+  const manga = { status: false, planned: false } as Manga;
+  expect(coverLine(manga, null, "own vols. 1–10")).toBe("own vols. 1–10");
+  expect(coverLine(manga, null, null)).toBe("not started");
+  expect(coverLine(manga, "ch. 38", "own vols. 1–10")).toBe("ch. 38");
+});

@@ -548,3 +548,30 @@ test("the English volumes they skipped below their furthest are listed as gaps",
       .gapVolumes,
   ).toEqual([]);
 });
+
+test("a gap the catalog has no book for is still a gap", () => {
+  // Detective Conan: owns 1–59 and 70–92 of 98, and the catalog lists only
+  // 60, 63, 65 and 69 of the ten between
+  const run = (from: number, to: number) =>
+    Array.from({ length: to - from + 1 }, (_, i) => from + i);
+  const status = getReleaseStatus(
+    {
+      volumesOwned: 92,
+      bookmark: null,
+      ownedList: [...run(1, 59), ...run(70, 92)],
+    },
+    volumesOnly(
+      [...run(1, 59), 60, 63, 65, 69, ...run(70, 98)].map((volume) => ({
+        volume,
+        isbn13: `97800000${volume}`,
+      })),
+    ),
+    EVERY_NEXT,
+  );
+  expect(status.gapVolumes.map((v) => v.volume)).toEqual(run(60, 69));
+  // the listed ones keep their book, the rest are just a number
+  expect(status.gapVolumes.find((v) => v.volume === 60)?.isbn13).toBeTruthy();
+  expect(
+    status.gapVolumes.find((v) => v.volume === 61)?.isbn13,
+  ).toBeUndefined();
+});

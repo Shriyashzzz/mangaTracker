@@ -7,13 +7,35 @@ import { parseVolumes, rangesText } from "../ownedVolumes";
 import { type Book } from "./bookTypes";
 import { boxSetOf, oneBookHolds, unsureWithoutBinding } from "./bookVolumes";
 import {
+  namesAPartOf,
   seriesFromTitle,
   seriesFromDetails,
   seriesFromColumn,
   titleSaysLightNovel,
+  type Parsed,
 } from "./bookNames";
 
 // ---------- each app's columns ----------
+
+// the series from a series column and the title together: the column's
+// name, with the title's as another, and a number on the title is its
+// volume. Unless the title names a part of it (JoJo's Part 3), which is
+// the series then
+function withColumn(
+  column: Parsed | null,
+  title: Parsed,
+  volume = title.volume,
+): Parsed {
+  if (!column) return title;
+  if (namesAPartOf(column, title))
+    return { ...title, volume, guessed: undefined };
+  return {
+    ...column,
+    names: [...new Set([...column.names, ...title.names])],
+    volume,
+    guessed: undefined,
+  };
+}
 
 export const header = (headers: string[], ...patterns: RegExp[]) => {
   for (const pattern of patterns) {
@@ -105,14 +127,11 @@ export function bookCatalogueBook(h: string[], row: string[]): Book | null {
   const fromDetails = seriesFromDetails(details);
   return {
     title,
-    ...(fromDetails
-      ? {
-          ...fromDetails,
-          names: [...new Set([...fromDetails.names, ...fromTitle.names])],
-          volume: fromDetails.volume ?? fromTitle.volume,
-          guessed: undefined,
-        }
-      : fromTitle),
+    ...withColumn(
+      fromDetails,
+      fromTitle,
+      fromDetails?.volume ?? fromTitle.volume,
+    ),
     owned: !wanted && !notOwned,
     read,
     reading: false,
@@ -149,15 +168,7 @@ export function bookshelfAppBook(h: string[], row: string[]): Book | null {
     !wishlist && count(cell(row, header(h, /^Number of copies$/))) > 0;
   return {
     title,
-    ...(fromColumn
-      ? {
-          ...fromColumn,
-          names: [...new Set([...fromColumn.names, ...fromTitle.names])],
-          volume: fromTitle.volume,
-          // the column names the series, so a number on the title is its volume
-          guessed: undefined,
-        }
-      : fromTitle),
+    ...withColumn(fromColumn, fromTitle),
     ...(Number.isFinite(volume) && volume > 0
       ? { volume, guessed: undefined }
       : {}),
@@ -349,15 +360,7 @@ export function csvBook(h: string[], row: string[]): Book | null {
     ...(readAt < 0 ? { noReadStatus: true } : {}),
     ...bindingOf(cell(row, header(h, /^(format|binding)$/i))),
     title,
-    ...(fromColumn
-      ? {
-          ...fromColumn,
-          names: [...new Set([...fromColumn.names, ...fromTitle.names])],
-          volume: fromTitle.volume,
-          // the column names the series, so a number on the title is its volume
-          guessed: undefined,
-        }
-      : fromTitle),
+    ...withColumn(fromColumn, fromTitle),
     ...(Number.isFinite(volumeColumn)
       ? { volume: volumeColumn, guessed: undefined }
       : {}),

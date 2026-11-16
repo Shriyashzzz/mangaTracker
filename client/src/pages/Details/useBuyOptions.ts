@@ -62,16 +62,21 @@ export function useBuyOptions(
 
   // the gaps before the furthest they own: "Next for you" goes past them (a
   // gap was read some other way, as a rule), but a collector filling a run
-  // wants to see them. Whole volumes out now, in order
-  const gaps = out
-    .filter(
-      (v) =>
-        Number.isInteger(v.volume) &&
-        v.volume >= 1 &&
-        v.volume < highest &&
-        !owns(owned, v.volume),
-    )
-    .sort((a, b) => a.volume - b.volume);
+  // wants to see them. Every number, in order, with its book when the
+  // catalog lists one (it lists only some of Detective Conan's 60–69)
+  const bookOf = new Map(
+    out.filter((v) => Number.isInteger(v.volume)).map((v) => [v.volume, v]),
+  );
+  const gaps: { volume: number; isbn13?: string; title?: string }[] = [];
+  for (let n = 1; n < highest; n++) {
+    if (owns(owned, n)) continue;
+    const book = bookOf.get(n);
+    gaps.push(
+      book
+        ? { volume: n, isbn13: book.isbn13, title: book.title }
+        : { volume: n },
+    );
+  }
 
   return {
     loading,

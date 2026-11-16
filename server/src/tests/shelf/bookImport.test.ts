@@ -1686,3 +1686,78 @@ test("a title ending in the word Manga keeps it unless punctuation sets it apart
   );
   expect(countRow("Spice & Wolf: Manga,2").title).toBe("Spice & Wolf");
 });
+
+// ---------- the hoarder's file (2026-11-16) ----------
+
+import { csvText } from "../../../../client/src/lib/imports/bookImport.js";
+
+test("a Windows-encoded file keeps its accents", () => {
+  // "Pokémon" saved by an older Excel: é is one byte, 0xE9
+  const latin1 = Uint8Array.from(
+    [..."Title\nPok"]
+      .map((c) => c.charCodeAt(0))
+      .concat(
+        0xe9,
+        ..."mon Adventures, Vol. 1".split("").map((c) => c.charCodeAt(0)),
+      ),
+  );
+  expect(csvText(latin1)).toContain("Pokémon Adventures");
+  // and UTF-8 is read as UTF-8
+  expect(csvText(new TextEncoder().encode("Title\nPokémon"))).toContain(
+    "Pokémon",
+  );
+});
+
+const csvOf = (head: string, lines: string[]) =>
+  groupBooks(readBooks(parseCsv([head, ...lines].join("\n")), "csv"));
+
+test("a full-width title joins the series written plainly", () => {
+  const groups = csvOf("Title", [
+    '"SPY x FAMILY, Vol. 15"',
+    '"ＳＰＹ×ＦＡＭＩＬＹ 16"',
+  ]);
+  expect(groups).toHaveLength(1);
+  expect(groups[0]!.ownedList).toEqual([15, 16]);
+});
+
+test("a series column naming JoJo keeps each part apart", () => {
+  const groups = csvOf("Title,Series,Volume", [
+    ...[1, 2, 3].map(
+      (n) =>
+        `"JoJo's Bizarre Adventure: Part 1--Phantom Blood, Vol. ${n}",JoJo's Bizarre Adventure,${n}`,
+    ),
+    ...[1, 2, 3].map(
+      (n) =>
+        `"JoJo's Bizarre Adventure: Part 3--Stardust Crusaders, Vol. ${n}",JoJo's Bizarre Adventure,${n}`,
+    ),
+    `"Naruto, Vol. 1",Naruto,1`,
+  ]);
+  expect(groups.map((g) => g.title)).toEqual([
+    "JoJo's Bizarre Adventure: Part 1--Phantom Blood",
+    "JoJo's Bizarre Adventure: Part 3--Stardust Crusaders",
+    "Naruto",
+  ]);
+  expect(groups.every((g) => !g.spares?.length)).toBe(true);
+});
+
+test("the start of several parts' names matches none of them", () => {
+  const parts = [
+    candidate(
+      55515,
+      "JoJo’s Bizarre Adventure: Part 8—JoJolion",
+      "JoJo no Kimyou na Bouken: JoJolion",
+      60000,
+    ),
+    candidate(
+      33008,
+      "JoJo's Bizarre Adventure Part 5: Golden Wind",
+      "JoJo no Kimyou na Bouken: Ougon no Kaze",
+      50000,
+    ),
+  ];
+  expect(matchFrom("JoJo's Bizarre Adventure", parts)).toBeNull();
+  // one part alone is still found that way
+  expect(
+    matchFrom("JoJo's Bizarre Adventure", parts.slice(0, 1))?.anilistId,
+  ).toBe(55515);
+});
