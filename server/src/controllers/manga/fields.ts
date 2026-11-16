@@ -10,6 +10,7 @@ import mangaQueries, {
 import { onShelfAs } from "../../util/shelf/titleKey.js";
 import { ownedVolumes } from "../../util/shelf/ownedList.js";
 import { bookFields } from "../../util/shelf/ownedBooks.js";
+import { directionMarksOff } from "../../util/directionMarks.js";
 
 // the exact volumes owned, as numbers like 4 or 10.5
 export const ownedListFields = (field: string) => [
@@ -24,14 +25,20 @@ export const ownedListFields = (field: string) => [
 // with the whole one to use; anything else just that it isn't a number
 export const chapterMessage = (value: unknown) => {
   const text = String(value ?? "").trim();
-  return /^\d+\.\d+$/.test(text)
-    ? `Chapters are whole numbers. Try ${Math.floor(Number(text))}.`
-    : "Chapter has to be a number.";
+  if (/^\d+\.\d+$/.test(text))
+    return `Chapters are whole numbers. Try ${Math.floor(Number(text))}.`;
+  // a number, just not one a chapter can be
+  if (/^-\d+(\.\d+)?$/.test(text)) return "Chapters start at 0.";
+  if (/^\d+$/.test(text)) return "Chapters go up to 100,000.";
+  return "Chapter has to be a number.";
 };
 
 // ---------- validation shared by add and edit ----------
 export const mangaFields = [
   body("name")
+    // the invisible characters that turn text around ("right-to-left
+    // override"): kept, they showed the title scrambled
+    .customSanitizer(directionMarksOff)
     .trim()
     .notEmpty()
     .withMessage("Manga title cannot be empty luv <3")

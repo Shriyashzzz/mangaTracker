@@ -126,6 +126,25 @@ const PLACE_PIECE = 2000;
 
 export type ShelfMove = "finished" | "planned" | "reading";
 export type ShelfPlace = Pick<Manga, "id" | "status" | "planned" | "bookmark">;
+// a series brought back by Undo, under its new id: its old address leads to
+// it for the rest of the visit (this tab only)
+const RESTORED_KEY = (id: number) => `restoredAs:${id}`;
+function rememberRestoredAs(oldId: number, newId: number) {
+  try {
+    sessionStorage.setItem(RESTORED_KEY(oldId), String(newId));
+  } catch {
+    /* private mode: Back finds it gone, as before */
+  }
+}
+export function restoredAs(oldId: number): number | null {
+  try {
+    const id = Number(sessionStorage.getItem(RESTORED_KEY(oldId)));
+    return Number.isInteger(id) && id > 0 ? id : null;
+  } catch {
+    return null;
+  }
+}
+
 export const useShelf = create<ShelfState>()((set, get) => ({
   manga: null,
   loadFailed: false,
@@ -158,6 +177,10 @@ export const useShelf = create<ShelfState>()((set, get) => ({
           return said("It's already back on your shelf.");
         }
         if (!res.ok) throw new Error(res.statusText);
+        // it comes back under a new id: the old address (Back to its page)
+        // is sent on to it (pages/Details)
+        const { id } = (await res.json().catch(() => ({}))) as { id?: number };
+        if (id) rememberRestoredAs(lastDeleted[0]!.id, id);
       } catch {
         return said("That didn't bring it back. Try again.");
       }

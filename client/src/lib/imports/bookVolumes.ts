@@ -308,10 +308,10 @@ export const oneBookHolds = (series: string) =>
 // "1-10" with no Format column is the 10 hardcovers or singles 1 to 10, so
 // it's asked about rather than guessed
 export const unsureWithoutBinding = (series: string, highest: number) =>
-  EDITIONS.some(
+  EDITIONS.find(
     (e) =>
       e.byBinding && e.series.test(seriesKey(series)) && highest <= e.books,
-  );
+  ) ?? null;
 
 // a number in the title besides an "N-in-1"
 const hasOwnNumber = (title: string) =>
@@ -343,6 +343,8 @@ const BOX_SETS: Record<string, Record<number, [number, number]>> = {
   "tokyo ghoul": { 0: [1, 14] },
   // the 35th anniversary set: the six Kodansha volumes
   akira: { 0: [1, 6] },
+  // VIZ's sets (the seven paperbacks, or the two hardcovers): the whole story
+  "nausicaa of the valley of the wind": { 0: [1, 7] },
 };
 const SET_MAX = 120;
 

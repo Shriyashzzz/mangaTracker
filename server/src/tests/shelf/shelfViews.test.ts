@@ -289,7 +289,7 @@ test("the badge counts news, not the backlog the tab also lists", () => {
   expect(counts.new).toBe(2);
 });
 
-test("behind is the newest volume's number less theirs, holes in the catalog or not", () => {
+test("behind is the newest volume's number less theirs, holes in the catalog or not", async () => {
   // they own vol. 1 of 33, and the catalog has books for only three of them
   const holed = found({
     hasNewVolume: true,
@@ -302,12 +302,20 @@ test("behind is the newest volume's number less theirs, holes in the catalog or 
       { volume: 33, isbn13: "9780000000033" },
     ],
   } as Partial<ReleaseStatus>);
-  // and the card doesn't name a next volume: vol. 10 isn't next for
-  // someone who owns vol. 1
+  // and the card names the one after theirs, never the catalog's next book:
+  // vol. 10 isn't next for someone who owns vol. 1, vol. 2 is (volumes come
+  // out in order, and vol. 33 is out)
   expect(newsFor(manga(1), holed, "volumes")).toMatchObject({
-    text: "",
+    text: "Vol. 2 next",
     behind: "32 volumes behind",
   });
+  const { knowsNextVolume, nextVolumeName, nextVolumeNumber } =
+    await import("../../../../client/src/lib/releaseMath.js");
+  // the stamp (newTabLinks stampFor) says it too
+  expect(nextVolumeNumber(holed)).toBe(2);
+  expect(nextVolumeName(holed)).toBe("Vol. 2");
+  // and the catalog's book (vol. 10) isn't linked as theirs (buyLinkFor)
+  expect(knowsNextVolume(holed)).toBe(false);
   // unless the catalog's next book is the newest volume: a new release
   const newRelease = found({
     currentVolume: 30,

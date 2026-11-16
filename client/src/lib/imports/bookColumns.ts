@@ -3,7 +3,7 @@
 // any CSV). Part of the book import (bookImport.ts lists the parts).
 import { importDate } from "./importDate";
 import { booksFromCell, centsOf, newBook, type NewBook } from "../books";
-import { parseVolumes } from "../ownedVolumes";
+import { parseVolumes, rangesText } from "../ownedVolumes";
 import { type Book } from "./bookTypes";
 import { boxSetOf, oneBookHolds, unsureWithoutBinding } from "./bookVolumes";
 import {
@@ -508,9 +508,14 @@ export function csvBooks(h: string[], row: string[]): Book[] {
       title: `${book.title} #${i + 1}`,
       volume: i + 1,
     }));
-  // could be an edition known only by its binding, with no Format column
-  if (!book.binding && unsureWithoutBinding(seriesName, highest))
-    return toCheck;
+  // could be an edition known only by its binding, with no Format column:
+  // kept as the file says, with a word on the other way to read it
+  const byBinding = book.binding
+    ? null
+    : unsureWithoutBinding(seriesName, highest);
+  const check = byBinding
+    ? `Kept as vols. ${rangesText(said.volumes)}. If they're the ${byBinding.books} hardcovers, those hold all ${byBinding.volumes}: change it with Edit.`
+    : undefined;
   // each book keeps the row's title, edition words and all ("Berserk
   // Deluxe Edition #3"), so a deluxe or omnibus run is still read as one.
   // A box set's row lists the volumes inside it ("Akira 35th Anniversary Box
@@ -520,11 +525,12 @@ export function csvBooks(h: string[], row: string[]): Book[] {
       ? book.series
       : seriesFromTitle(book.title, false).series
     : book.title;
-  return said.volumes.map((volume) => ({
+  return said.volumes.map((volume, i) => ({
     ...series,
     owned: true,
     title: `${base} #${volume}`,
     volume,
+    ...(check && i === 0 ? { check } : {}),
   }));
 }
 

@@ -7,7 +7,14 @@ import { validationResult } from "express-validator";
 export function rejectInvalid(req: Request, res: Response, next: NextFunction) {
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
-    res.status(400).json({ error: errors.array({ onlyFirstError: true }) });
+    // what was typed is never sent back: a password in an error is a
+    // password in a log
+    const sent = errors.array({ onlyFirstError: true }).map((error) => {
+      const copy: Record<string, unknown> = { ...error };
+      delete copy.value;
+      return copy;
+    });
+    res.status(400).json({ error: sent });
     return;
   }
   next();

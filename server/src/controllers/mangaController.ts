@@ -40,6 +40,7 @@ import {
   match,
   knownImportMatches,
   tellImportMatches,
+  pickImportMatch,
 } from "./manga/import.js";
 import { releases, savedReleases } from "./manga/releases.js";
 
@@ -80,4 +81,5 @@ export default {
   match,
   knownImportMatches,
   tellImportMatches,
+  pickImportMatch,
 };

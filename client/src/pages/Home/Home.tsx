@@ -437,6 +437,10 @@ function Library() {
       onOpen: opensList ? () => setOpenList(m.id) : undefined,
       stamp: stampFor(found, releaseKind),
       behind: behind > 0 ? behind : undefined,
+      // "Book 7" on the stamp, volumes in the count: said so
+      ...(releaseKind === "volumes" && found?.nextVolumeInBook
+        ? { countWord: "vols" }
+        : {}),
     };
   };
   const card = (manga: Manga, index: number) => (

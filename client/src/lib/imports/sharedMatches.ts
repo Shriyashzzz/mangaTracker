@@ -74,3 +74,14 @@ export function tellShared(found: (SharedSearch & { anilistId: number })[]) {
     }).catch(() => {});
   }
 }
+
+// a series they picked by hand for one of their titles (Edit), or null when
+// they undid it: theirs on every later import, on any device, and a vote
+// toward everyone's (server: util/shelf/importPicks.ts). Only a help: if it
+// doesn't arrive, this import still has it
+export function tellPick(search: SharedSearch, match: SharedMatch | null) {
+  void apiFetch("/api/manga/import/picks", {
+    method: "POST",
+    body: { search, match },
+  }).catch(() => {});
+}

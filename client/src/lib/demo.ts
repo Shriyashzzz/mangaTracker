@@ -972,13 +972,22 @@ export async function demoResponse(
   }
   if (route === "/api/prices/series") {
     const name = url.searchParams.get("name") ?? "";
-    const manga = shelf.find((m) => m.name === name);
+    // as an address spells it too: "one piece" is One Piece
+    const loose = (text: string) =>
+      text.toLowerCase().replace(/[^a-z0-9]/g, "");
+    const manga = shelf.find((m) => loose(m.name) === loose(name));
+    const known = manga ? knownOf(manga) : [];
+    // a series the practice shelf has no volumes for: the real public answer,
+    // as any visitor gets it (nothing of the account goes with it), never
+    // "no English volumes"
+    if (!known.length)
+      return fetch(`${import.meta.env.VITE_API_URL ?? ""}${path}`);
     return json({
-      name,
+      name: manga!.name,
       slug: "practice",
       info: null,
       incomplete: false,
-      volumes: manga ? seriesVolumes(name, knownOf(manga)) : [],
+      volumes: seriesVolumes(manga!.name, known),
     });
   }
   // the shelf tools, made up from the practice shelf

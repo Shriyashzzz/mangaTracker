@@ -14,6 +14,7 @@ import {
   countNew,
   knowsNextVolume,
   nextVolumeName,
+  nextVolumeNumber,
   type SeenKind,
 } from "../../lib/releaseMath";
 import type { Manga, ReleaseStatus } from "../../lib/types";
@@ -328,18 +329,24 @@ export function newsFor(
       yours: m.bookmark ? `Read up to ch. ${m.bookmark}` : undefined,
     };
   }
-  // the catalog has a hole where their next volume should be: only how far
-  // behind they are, which it does know
-  if (found && !knowsNextVolume(found))
+  // nothing past theirs known to be out: only how far behind they are
+  const next = nextVolumeNumber(found);
+  if (found && next == null)
     return { text: "", behind: behindWords(found, kind), yours: volumeYours };
-  const next = found?.nextVolume;
+  // the catalog's own next book (not the one after a hole in it)
+  const catalogsNext = knowsNextVolume(found);
   // "vol. 15", or the book it's sold in: "Book 8"
-  const nextName = found?.nextVolumeInBook
-    ? nextVolumeName(found)
-    : `vol. ${next}`;
+  const nextName =
+    catalogsNext && found?.nextVolumeInBook
+      ? nextVolumeName(found)
+      : `vol. ${next}`;
   // a chapter reader is told which chapters that book holds, under their
-  // own: "Read up to ch. 38 · vol. 5 has ch. 35–43"
-  const range = byChapter && next != null ? found?.nextVolumeChapters : null;
+  // own: "Read up to ch. 38 · vol. 5 has ch. 35–43". Only for the catalog's
+  // own next book, which the chapters were worked out for
+  const range =
+    byChapter && catalogsNext && next != null
+      ? found?.nextVolumeChapters
+      : null;
   if (range && volumeYours)
     volumeYours = `${volumeYours} · ${nextName} has ${chaptersText(range)}`;
   return {

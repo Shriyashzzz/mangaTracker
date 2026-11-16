@@ -15,6 +15,8 @@ import { withFixes, type ShownStop } from "./animeFixes.js";
 import { reachesTheEnd, readAnimeStops, type MangaEnd } from "./animeLines.js";
 import { animeLinesFor } from "./animeSource.js";
 import { acceptedFixes, slugsWithFixes } from "./fixStore.js";
+import { withNextVolumes } from "./nextVolume.js";
+import { storedVolumeStarts } from "../../util/releases/releaseCache.js";
 
 // a season as it's sent: `coversAll` when it adapts the manga to its end, so
 // there's nothing left to read (reachesTheEnd)
@@ -44,9 +46,10 @@ export async function getAfterAnime(asked: string, mayAsk: boolean) {
   // MangaUpdates would be asked about the manga, and a novel's volumes and
   // chapters aren't the manga's
   const novel = isNovelName(info.name);
-  const [saved, fixes] = await Promise.all([
+  const [saved, fixes, starts] = await Promise.all([
     novel ? null : animeLinesFor(info, mayAsk),
     acceptedFixes(slug),
+    novel ? [] : storedVolumeStarts(info.name),
   ]);
   // MangaUpdates names a first series after the manga ("Bleach", beside
   // "Thousand-Year Blood War part 1"). Beside later ones that's the original
@@ -58,7 +61,9 @@ export async function getAfterAnime(asked: string, mayAsk: boolean) {
       ? { ...stop, label: namedAfterManga }
       : stop,
   );
-  const stops = withFixes(read, fixes);
+  // a reader's fix first; then, where nothing says which volume the next
+  // chapter is in, the saved volume starts (nextVolume.ts)
+  const stops = withNextVolumes(withFixes(read, fixes), starts);
   const manga: MangaEnd = {
     finished: info.status === "FINISHED",
     volumes: info.volumes,

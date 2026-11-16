@@ -60,9 +60,11 @@ export const findSeries = (q: string, signal?: AbortSignal) =>
     (text) => knownNamesNear(text, signal),
   );
 
-export const getSeries = (name: string, signal?: AbortSignal) =>
+// `strict`: the name came only from the page's address, so it has to be one
+// of the series' own names (made-up addresses aren't some real series)
+export const getSeries = (name: string, signal?: AbortSignal, strict = false) =>
   getJson<Series>(
-    `/api/prices/series?${new URLSearchParams({ name })}`,
+    `/api/prices/series?${new URLSearchParams({ name, ...(strict ? { strict: "true" } : {}) })}`,
     signal,
   );
 

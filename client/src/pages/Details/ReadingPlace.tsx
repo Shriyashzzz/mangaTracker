@@ -30,6 +30,8 @@ type Props = {
   // changes when the read volume is set from outside its counter, so the
   // counter starts over from the saved number
   volumeSets: number;
+  // the newest chapter out that we know of: a chapter far past it is a slip
+  newestChapter?: number | null;
   onStart: () => void;
   onChange: (change: ReadingChange) => void;
   // a counter saved a new chapter or volume
@@ -44,6 +46,7 @@ export default function ReadingPlace({
   owned,
   highestOwned,
   volumeSets,
+  newestChapter = null,
   onStart,
   onChange,
   onPlaceSaved,
@@ -119,6 +122,7 @@ export default function ReadingPlace({
             key={manga.id}
             mangaId={manga.id}
             value={manga.bookmark}
+            newest={newestChapter}
             onSaved={(chapter) => onPlaceSaved({ bookmark: chapter })}
           />
         </span>

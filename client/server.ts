@@ -1094,8 +1094,11 @@ app.get(
     const name =
       (typeof req.query.name === "string" && req.query.name) ||
       String(req.params.slug).replace(/-/g, " ");
+    // a bare address is held to the series' own names, as the page is
+    const strict: Record<string, string> =
+      typeof req.query.name === "string" ? {} : { strict: "true" };
     const { data, missing } = await summary<SeriesSummary>(
-      `/api/prices/summary/series?${new URLSearchParams({ name })}`,
+      `/api/prices/summary/series?${new URLSearchParams({ name, ...strict })}`,
       ipOf(req),
     );
     if (missing) return "missing";

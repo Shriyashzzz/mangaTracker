@@ -1621,12 +1621,26 @@ const countRow = (row: string, head = "Title,Volumes") => {
       owned: true,
     })),
   );
-  return { title: s?.title, owned: s?.ownedList, check: Boolean(s?.omnibus) };
+  return {
+    title: s?.title,
+    owned: s?.ownedList,
+    check: Boolean(s?.omnibus),
+    books: s?.books,
+    checks: s?.checks,
+  };
 };
 
 test("a box set with a bare number is a set: known ones hold their volumes, others are asked about", () => {
-  expect(countRow("Nausicaä of the Valley of the Wind Box Set,1")).toEqual({
+  // VIZ's sets hold the whole story
+  expect(
+    countRow("Nausicaä of the Valley of the Wind Box Set,1"),
+  ).toMatchObject({
     title: "Nausicaä of the Valley of the Wind",
+    owned: run(1, 7),
+    check: false,
+  });
+  // a set nobody knows: not counted, and asked about
+  expect(countRow("Witch Hat Atelier Box Set,1")).toMatchObject({
     owned: null,
     check: true,
   });
@@ -1649,9 +1663,17 @@ test("editions, one-book series and binding-only editions in a count list", () =
   // Uzumaki's one English book is the whole series; three are singles
   expect(countRow("Uzumaki,1").owned).toEqual(run(1, 3));
   expect(countRow("Uzumaki,3").owned).toEqual(run(1, 3));
-  // JoJo Part 3 1-10 could be the 10 hardcovers: asked, unless Format says
+  // JoJo Part 3 1-10 could be the 10 hardcovers: kept as the file says,
+  // and flagged with why, unless Format says
   const jojo = "JoJo's Bizarre Adventure Part 3 Stardust Crusaders";
-  expect(countRow(`${jojo},1-10`).check).toBe(true);
+  expect(countRow(`${jojo},1-10`)).toMatchObject({
+    owned: run(1, 10),
+    books: 10,
+    check: true,
+    checks: [
+      "Kept as vols. 1–10. If they're the 10 hardcovers, those hold all 16: change it with Edit.",
+    ],
+  });
   expect(
     countRow(`${jojo},1-10,Hardcover`, "Title,Volumes,Format").owned,
   ).toEqual(run(1, 16));

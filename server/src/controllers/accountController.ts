@@ -1,7 +1,7 @@
 // The account's own details: profile, optional recovery email, list sharing and
 // deleting it all. Plus the public view of a shared list.
 import type { Request, Response } from "express";
-import { withoutDirectionMarks } from "../util/directionMarks.js";
+import { directionMarksOff } from "../util/directionMarks.js";
 import { body, matchedData, param } from "express-validator";
 import { sendError } from "../middlewares/errorHandler.js";
 import { rejectInvalid } from "../middlewares/validate.js";
@@ -16,6 +16,7 @@ import { shelfSeries } from "../collector/shelfSeries.js";
 import { ownedVolumes } from "../util/shelf/ownedList.js";
 import { toSharedShelf } from "../util/shelf/sharedShelf.js";
 import { volumeFacts } from "../util/shelf/sharedVolumes.js";
+import config from "../config/config.js";
 
 // the name they show as until they pick one, and the ideas to pick from
 const withNames = <T>(userId: number, account: T) => ({
@@ -68,16 +69,37 @@ const get = async (req: Request, res: Response) => {
   res.json(withNames(req.session.userId!, account));
 };
 
+const RESERVED = [
+  "admin",
+  "administrator",
+  "moderator",
+  "support",
+  "mangatracker",
+  "kenji",
+];
+const bare = (name: string) => name.toLowerCase().replace(/[^a-z0-9]/g, "");
+export const isReservedName = (name: string) => {
+  const plain = bare(name);
+  if (!plain) return false;
+  const owner = config.ADMIN_USERNAME ? bare(config.ADMIN_USERNAME) : null;
+  return RESERVED.includes(plain) || plain === owner;
+};
+
 const update = [
   body("displayName")
     .optional({ values: "null" })
     .isString()
     // the invisible characters that turn text around ("right-to-left
     // override" and its kin): kept, they showed a name backwards to others
-    .customSanitizer(withoutDirectionMarks)
+    .customSanitizer(directionMarksOff)
     .trim()
     .isLength({ max: 40 })
-    .withMessage("Keep your name to 40 characters."),
+    .withMessage("Keep your name to 40 characters.")
+    // names that would pass as the site speaking (or its owner). Other
+    // readers' usernames can't be refused: that would tell anyone which
+    // usernames exist, which signing in never does
+    .custom((name: string) => !isReservedName(name))
+    .withMessage("That name is kept for the site. Pick another."),
   body("avatar").optional({ values: "null" }).isIn(AVATARS),
   body("recoveryEmail")
     .optional({ values: "null" })

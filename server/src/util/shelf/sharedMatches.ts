@@ -74,25 +74,37 @@ export const fits = (told: Search, m: Media) =>
 
 // ---------- asked before matching ----------
 
-// the known match for each search, in the same order; null for not known
-export async function knownMatches(searches: Search[]) {
+// the known match for each search, in the same order; null for not known.
+// The reader's own picks first (importPicks.ts): theirs, whatever others
+// matched the title to
+export async function knownMatches(searches: Search[], userId?: number) {
   const keys = searches.map((s) => matchKey(s.name, s.lightNovel, s.exactOnly));
-  const rows = await prisma.importMatch.findMany({
-    where: {
-      key: { in: [...new Set(keys)] },
-      checkedAt: { gt: new Date(Date.now() - MATCH_FRESH_MS) },
-    },
-  });
-  const byKey = new Map(rows.map((r) => [r.key, r]));
-  return keys.map((k): SharedMatch | null => {
-    const r = byKey.get(k);
-    return r
-      ? { anilistId: r.anilistId, malId: r.malId, name: r.name, cover: r.cover }
-      : null;
-  });
+  const wanted = [...new Set(keys)];
+  const [rows, picks] = await Promise.all([
+    prisma.importMatch.findMany({
+      where: {
+        key: { in: wanted },
+        checkedAt: { gt: new Date(Date.now() - MATCH_FRESH_MS) },
+      },
+    }),
+    userId
+      ? prisma.importPick.findMany({ where: { userId, key: { in: wanted } } })
+      : [],
+  ]);
+  const byKey = new Map<string, SharedMatch>();
+  for (const r of [...rows, ...picks])
+    byKey.set(r.key, {
+      anilistId: r.anilistId,
+      malId: r.malId,
+      name: r.name,
+      cover: r.cover,
+    });
+  return keys.map((k) => byKey.get(k) ?? null);
 }
 
-async function saveMatches(rows: { search: Search; match: SharedMatch }[]) {
+export async function saveMatches(
+  rows: { search: Search; match: SharedMatch }[],
+) {
   for (const { search, match } of rows) {
     const key = matchKey(search.name, search.lightNovel, search.exactOnly);
     const row = { ...match, checkedAt: new Date() };
@@ -122,7 +134,7 @@ const MEDIA_BY_IDS = `
   }
 `;
 
-async function mediaByIds(ids: number[]): Promise<Media[]> {
+export async function mediaByIds(ids: number[]): Promise<Media[]> {
   const res = await fetch("https://graphql.anilist.co", {
     method: "POST",
     headers: { "Content-Type": "application/json", Accept: "application/json" },

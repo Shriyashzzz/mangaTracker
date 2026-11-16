@@ -40,3 +40,19 @@ export function VolumeNotOpened({ onRetry }: { onRetry: () => void }) {
     </div>
   );
 }
+
+// the address isn't an ISBN (/prices/123): nothing to look up
+export function NotAnIsbn() {
+  return (
+    <div className={styles.empty} role="alert">
+      <span className="printed mascot-spot" aria-hidden>
+        <Mascot mood="confused" />
+      </span>
+      <p className={styles.emptyTitle}>That isn't an ISBN.</p>
+      <p>Search by name, or type the 13 digits from the back of a volume.</p>
+      <NavLink to="/" className="btn btn-primary" viewTransition>
+        Back to price check
+      </NavLink>
+    </div>
+  );
+}

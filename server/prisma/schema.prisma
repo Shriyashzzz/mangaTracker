@@ -43,6 +43,7 @@ model User {
   manga           Manga[]
   reviews         VolumeReview[]
   reviewFlags     ReviewFlag[]
+  importPicks     ImportPick[]
 
   @@map("users")
 }
@@ -253,6 +254,26 @@ model ImportMatch {
   checkedAt DateTime @default(now()) @map("checked_at") @db.Timestamptz(6)
 
   @@map("import_matches")
+}
+
+// a series a reader picked by hand for a title in their import (Edit on a
+// row): theirs on every later import, on any device. When three readers pick
+// the same series for the same title it becomes a shared match
+// (import_matches) for everyone (util/shelf/importPicks.ts)
+model ImportPick {
+  userId    Int      @map("user_id")
+  // sha256 of the search, as import_matches keys it (matchRule.ts matchKey)
+  key       String   @db.Char(64)
+  anilistId Int      @map("anilist_id")
+  malId     Int?     @map("mal_id")
+  name      String   @db.VarChar(300)
+  cover     String?
+  pickedAt  DateTime @default(now()) @map("picked_at") @db.Timestamptz(6)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([userId, key])
+  @@index([key, anilistId])
+  @@map("import_picks")
 }
 
 // a manga's last release check, as its answer was sent: the New tab asks for

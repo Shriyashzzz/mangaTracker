@@ -21,9 +21,16 @@ type Props = {
   value: number | null;
   // what the number counts; a chapter unless said
   unit?: Unit;
+  // the newest out that we know of: a number far past it is a slip of the
+  // finger (One Piece at 5000), not saved. A little past is fine: ours can
+  // run behind
+  newest?: number | null;
   // it's been saved, so anything worked out from the old chapter is stale
   onSaved: (chapter: number) => void;
 };
+
+// how far past the newest we know of a chapter may be and still be saved
+const PAST_THE_NEWEST = 100;
 
 // keepalive: a save sent as they close the tab still arrives
 const savePlace = async (mangaId: number, unit: Unit, place: number) => {
@@ -39,11 +46,14 @@ export default function ChapterStepper({
   mangaId,
   value,
   unit = "chapter",
+  newest = null,
   onSaved,
 }: Props) {
   const MAX_CHAPTER = UNITS[unit].max;
   const [draft, setDraft] = useState(String(value ?? 0));
   const [note, setNote] = useState<"saved" | "failed" | null>(null);
+  // why what's typed isn't being saved, said beside the box
+  const [problem, setProblem] = useState<string | null>(null);
   useEffect(() => {
     if (note !== "saved") return;
     const hide = setTimeout(() => setNote(null), SAVED_SHOWN_MS);
@@ -83,11 +93,34 @@ export default function ChapterStepper({
   const change = (next: string) => {
     setDraft(next);
     setNote(null);
+    setProblem(null);
     clearTimeout(timer.current);
+    // nothing waiting from before: what's typed now decides
+    pending.current = null;
     const chapter = Number(next);
-    // half-typed or out of range: nothing to save yet
-    if (next === "" || !Number.isInteger(chapter) || chapter < 0) return;
-    if (chapter > MAX_CHAPTER) return;
+    // half-typed: nothing to save yet, and nothing to say
+    if (next === "") return;
+    // anything else it won't save is said, never left looking saved
+    if (!Number.isInteger(chapter) || chapter < 0) {
+      setProblem(
+        Number.isFinite(chapter) && chapter > 0
+          ? `Whole ${unit}s only. Try ${Math.floor(chapter)}.`
+          : `That isn't a ${unit} number.`,
+      );
+      return;
+    }
+    if (chapter > MAX_CHAPTER) {
+      setProblem(
+        `${unit === "volume" ? "Volumes" : "Chapters"} go up to ${MAX_CHAPTER.toLocaleString("en-US")}.`,
+      );
+      return;
+    }
+    if (unit === "chapter" && newest && chapter > newest + PAST_THE_NEWEST) {
+      setProblem(
+        `Chapter ${newest.toLocaleString("en-US")} is the newest out.`,
+      );
+      return;
+    }
     pending.current = chapter;
     timer.current = setTimeout(flush, SAVE_AFTER_MS);
   };
@@ -138,7 +171,11 @@ export default function ChapterStepper({
           value={draft}
           onChange={(e) => change(e.target.value)}
           onBlur={() => {
-            if (draft === "") setDraft(String(saved.current));
+            // left empty or with something it won't save: back to what's saved
+            if (draft === "" || problem) {
+              setDraft(String(saved.current));
+              setProblem(null);
+            }
           }}
         />
         <button
@@ -155,11 +192,14 @@ export default function ChapterStepper({
         </button>
       </span>
       <span
-        className={note === "failed" ? styles.saveFailed : styles.saveDone}
+        className={
+          note === "failed" || problem ? styles.saveFailed : styles.saveDone
+        }
         role="status"
       >
-        {note === "saved" && "Saved"}
-        {note === "failed" && "That didn't save. Try again."}
+        {problem}
+        {!problem && note === "saved" && "Saved"}
+        {!problem && note === "failed" && "That didn't save. Try again."}
       </span>
     </span>
   );

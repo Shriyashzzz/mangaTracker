@@ -1,3 +1,4 @@
+import { isbnFromTyped } from "../../lib/barcode";
 import { inCanada } from "../../lib/country";
 import CountrySwitch from "./canada/CountrySwitch";
 import { useCountry } from "../../lib/prefs";
@@ -72,6 +73,11 @@ export default function PriceSearch() {
   }, [query, attempt]);
 
   const searching = query.length >= 2;
+  // typed like an ISBN (10 or 13 digits) but one doesn't check out: a typo,
+  // not a missing series
+  const isbnDigits = query.replace(/[\s-]/g, "");
+  const badIsbn =
+    /^(\d{13}|\d{9}[\dXx])$/.test(isbnDigits) && !isbnFromTyped(query);
   const isSignedIn = useAuth((s) => s.isSignedIn);
   // newcomers meet the tracker first; prices are what comes next
   const guest =
@@ -246,11 +252,20 @@ export default function PriceSearch() {
           <span className="printed mascot-spot" aria-hidden>
             <Mascot mood="confused" />
           </span>
-          <p className={styles.emptyTitle}>No English series found.</p>
-          <p>
-            Try the name printed on the US cover, or paste the ISBN from the
-            back of a volume.
-          </p>
+          {badIsbn ? (
+            <>
+              <p className={styles.emptyTitle}>That ISBN doesn't add up.</p>
+              <p>A digit may be off. Check it against the back of the book.</p>
+            </>
+          ) : (
+            <>
+              <p className={styles.emptyTitle}>No English series found.</p>
+              <p>
+                Try the name printed on the US cover, or paste the ISBN from the
+                back of a volume.
+              </p>
+            </>
+          )}
           <p className={styles.quick}>
             <NavLink to="/series" viewTransition>
               Browse every series

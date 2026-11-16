@@ -14,6 +14,13 @@ import { validShareTop } from "../util/shelf/shareTop.js";
 
 const credentials = [
   body("username")
+    .exists({ values: "falsy" })
+    .withMessage("I need your name to let you in, come on you know that!")
+    .bail()
+    // one name, as text: not a list or an object
+    .isString()
+    .withMessage("Usernames are letters and numbers only.")
+    .bail()
     .trim()
     .notEmpty()
     .withMessage("I need your name to let you in, come on you know that!")
@@ -22,6 +29,12 @@ const credentials = [
     .isLength({ min: 4, max: 40 })
     .withMessage("Usernames need 4 to 40 letters or numbers."),
   body("password")
+    .exists({ values: "falsy" })
+    .withMessage("Alright, don't forget your secret code. Spill the beans now!")
+    .bail()
+    .isString()
+    .withMessage("Passwords are text.")
+    .bail()
     .notEmpty()
     .withMessage("Alright, don't forget your secret code. Spill the beans now!")
     .isLength({ min: 5 })
@@ -65,7 +78,11 @@ const login = [
 export const NEW_PASSWORD_MIN = 8;
 const newPassword = body("password")
   .isLength({ min: NEW_PASSWORD_MIN })
-  .withMessage(`Passwords need at least ${NEW_PASSWORD_MIN} characters.`);
+  .withMessage(`Passwords need at least ${NEW_PASSWORD_MIN} characters.`)
+  // eight spaces is no password. Signing in still takes whatever was set
+  .bail()
+  .custom((password: string) => password.trim().length > 0)
+  .withMessage("A password needs more than spaces.");
 
 const signup = [
   ...credentials,

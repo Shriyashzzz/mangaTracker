@@ -28,8 +28,15 @@ const shopName = (store: string) => store.split(/\s[-–—|]\s/)[0]!.trim();
 const total = (cents: number, exact: boolean) =>
   exact ? formatCents(cents) : wholeMoney(Math.round(cents / 1000) * 1000);
 
+// a book AniList knows no manga for and that has no volume number: any ISBN
+// can be looked up (9780000000002 is a poetry book), but it isn't a manga
+export const isUnknownBook = ({
+  series,
+  volume,
+}: Pick<VolumePrices, "series" | "volume">) => !series.info && volume == null;
+
 export function volumeMeta(
-  { book, heading, series, offers }: VolumePrices,
+  { book, heading, series, offers, volume }: VolumePrices,
   // readers' reviews of it, once they've loaded
   reviews: VolumeReviews | null = null,
 ): PageMeta {
@@ -117,6 +124,9 @@ export function volumeMeta(
 
   return {
     title: `${name} price comparison`,
+    // a book we don't know as a manga (no series, no volume): not one of
+    // the site's pages to search engines
+    ...(isUnknownBook({ series, volume }) ? { noindex: true } : {}),
     description,
     path,
     image: book.coverUrl

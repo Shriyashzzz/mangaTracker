@@ -52,6 +52,9 @@ export default function SignUp() {
         "Usernames are letters and numbers only.",
       (username.length < 4 || username.length > 40) &&
         "Usernames need 4 to 40 letters or numbers.",
+      password.length >= NEW_PASSWORD_MIN &&
+        !password.trim() &&
+        "A password needs more than spaces.",
     ].filter((slip): slip is string => Boolean(slip));
     // too short is said once, by the hint under the box turning red, not
     // again in the list below it

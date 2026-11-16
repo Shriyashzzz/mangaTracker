@@ -140,11 +140,14 @@ export function groupBooks(everyBook: Book[]): BookSeries[] {
       lightNovel,
       ...(spares.size ? { spares: [...spares].sort((a, b) => a - b) } : {}),
       ...(list.every((b) => b.noReadStatus) ? { readingUnknown: true } : {}),
-      ...(list.some((b) => b.omnibus)
+      ...(list.some((b) => b.omnibus || b.check)
         ? {
             omnibus: true,
             unsure: list.filter((b) => b.omnibus).map((b) => b.title),
           }
+        : {}),
+      ...(list.some((b) => b.check)
+        ? { checks: [...new Set(list.flatMap((b) => b.check ?? []))] }
         : {}),
       // their own export's (ownExportBooks)
       ...(list.some((b) => b.exact) ? { restore: true } : {}),

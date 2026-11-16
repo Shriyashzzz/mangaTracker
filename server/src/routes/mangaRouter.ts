@@ -49,6 +49,12 @@ mangaRouter.post(
   rateLimit({ max: 30, windowMs: 60_000 }),
   manga.tellImportMatches,
 );
+// a series picked by hand for a title: theirs, and a vote toward sharing it
+mangaRouter.post(
+  "/import/picks",
+  rateLimit({ max: 60, windowMs: 60_000 }),
+  manga.pickImportMatch,
+);
 // these come before "/:id" so their names aren't read as an id
 // the shelf's saved release answers, at once (before /:id, which would take it)
 mangaRouter.get("/releases/saved", manga.savedReleases);

@@ -13,7 +13,7 @@ import { useAuth } from "../../store/auth";
 // the series and its volumes. `key` names the request an answer belongs to:
 // the series plus the attempt, so an answer for another series (or an
 // earlier try) is never shown
-export function useSeriesLoad(name: string) {
+export function useSeriesLoad(name: string, fromAddressOnly = false) {
   const [state, setState] = useState<{
     key: string | null;
     data: Series | null;
@@ -27,7 +27,7 @@ export function useSeriesLoad(name: string) {
     // no series named yet (a page still finding out which): nothing to ask
     if (!name) return;
     const controller = new AbortController();
-    getSeries(name, controller.signal)
+    getSeries(name, controller.signal, fromAddressOnly)
       .then((data) => setState({ key, data, error: "" }))
       .catch((e) => {
         if (e.name !== "AbortError") {

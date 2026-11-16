@@ -83,6 +83,22 @@ export function SeriesNotOpened({
   error: string;
   onRetry: () => void;
 }) {
+  // the server's "no such series" (a made-up address): nothing to try again
+  if (/couldn't find that series/i.test(error))
+    return (
+      <div className={styles.empty} role="alert">
+        <span className="printed mascot-spot" aria-hidden>
+          <Mascot mood="confused" />
+        </span>
+        <p className={styles.emptyTitle}>No series by that name.</p>
+        <p>Search for it by the name on its cover.</p>
+        <div className={styles.emptyActions}>
+          <NavLink to="/" className="btn btn-primary" viewTransition>
+            Search
+          </NavLink>
+        </div>
+      </div>
+    );
   return (
     <div className={styles.empty} role="alert">
       <span className="printed mascot-spot" aria-hidden>

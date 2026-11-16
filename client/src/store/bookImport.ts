@@ -28,6 +28,7 @@ import {
 import { sendToShelf, type ImportTotals } from "../lib/imports/malImport";
 import {
   askShared,
+  tellPick,
   tellShared,
   type SharedSearch,
 } from "../lib/imports/sharedMatches";
@@ -227,10 +228,14 @@ const searchesFor = (s: BookSeries): SharedSearch[] =>
 // what everyone's imports already know about these series, remembered as if
 // found here, so matching skips AniList for them
 async function fillFromShared(list: BookSeries[], signal: AbortSignal) {
+  // asked about too when only remembered as not found: the server may know
+  // it since (their own pick from another device, or everyone's)
   const searches = list
     .flatMap(searchesFor)
     .filter(
-      (q) => !rememberedMatches()[searchKey(q.name, q.lightNovel, q.exactOnly)],
+      (q) =>
+        !rememberedMatches()[searchKey(q.name, q.lightNovel, q.exactOnly)]
+          ?.match,
     );
   if (!searches.length) return;
   const answers = await askShared(searches, signal).catch(() => []);
@@ -258,6 +263,33 @@ const isKnown = (s: BookSeries) => {
   }
   return false;
 };
+
+// a series picked by hand for these rows (Edit), or null when undone: kept
+// in this browser as if matching had found it, and told to the server, which
+// keeps it for them on any device and counts it toward everyone's
+function tellPicks(keys: string[], match: Edit["match"]) {
+  const rows = useBookImport.getState().found ?? [];
+  const memory = rememberedMatches();
+  for (const key of keys) {
+    const s = rows.find((row) => row.key === key);
+    const q = s && searchesFor(s)[0];
+    if (!q) continue;
+    const at = searchKey(q.name, q.lightNovel, q.exactOnly);
+    if (match && match.anilistId) {
+      memory[at] = { match, at: Date.now() };
+      tellPick(q, {
+        anilistId: match.anilistId,
+        malId: match.malId,
+        name: match.name,
+        cover: match.cover,
+      });
+    } else if (match === null) {
+      delete memory[at];
+      tellPick(q, null);
+    }
+  }
+  write(MATCHES_KEY, memory);
+}
 
 // ---------- waiting, without a hidden tab slowing it down ----------
 
@@ -615,6 +647,7 @@ export const useBookImport = create<BookImportState>()((set, get) => ({
   },
 
   edit: (keys, edit) => {
+    if (edit.match !== undefined) tellPicks(keys, edit.match);
     set((s) => {
       const edits = new Map(s.edits);
       const choices = new Map(s.choices);
@@ -628,6 +661,8 @@ export const useBookImport = create<BookImportState>()((set, get) => ({
   },
 
   unedit: (keys) => {
+    const undone = keys.filter((key) => get().edits.get(key)?.match);
+    if (undone.length) tellPicks(undone, null);
     set((s) => {
       const edits = new Map(s.edits);
       const choices = new Map(s.choices);

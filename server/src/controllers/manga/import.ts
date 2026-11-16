@@ -19,11 +19,13 @@ import {
 import { titleKey } from "../../util/shelf/titleKey.js";
 import { oneAtATime } from "../../util/shelf/oneAtATime.js";
 import { knownMatches, tellMatches } from "../../util/shelf/sharedMatches.js";
+import { savePick } from "../../util/shelf/importPicks.js";
 import { ownedListFields } from "./fields.js";
 import { bookFields } from "../../util/shelf/ownedBooks.js";
 import bookQueries, { type BookInput } from "../../models/bookQueries.js";
 import { ownedVolumes } from "../../util/shelf/ownedList.js";
 import { ownedSet } from "../../collector/shelfMath.js";
+import { directionMarksOff } from "../../util/directionMarks.js";
 
 // a piece of a MyAnimeList export. The page sends one piece at a time so a long
 // list can show progress and stop safely: anything already here is skipped, so
@@ -33,7 +35,12 @@ const IMPORT_PIECE = 50;
 export const importList = [
   body("entries").isArray({ min: 1, max: IMPORT_PIECE }),
   body("entries.*.malId").optional().isInt({ min: 1 }).toInt(),
-  body("entries.*.title").isString().trim().isLength({ min: 1, max: 300 }),
+  body("entries.*.title")
+    .isString()
+    // no "right-to-left override" and its kin: they scramble the title
+    .customSanitizer(directionMarksOff)
+    .trim()
+    .isLength({ min: 1, max: 300 }),
   body("entries.*.finished").isBoolean().toBoolean(),
   body("entries.*.readingUnknown").optional().isBoolean().toBoolean(),
   body("entries.*.chapters").isInt({ min: 0, max: 100000 }).toInt(),
@@ -244,7 +251,12 @@ export const knownImportMatches = [
   ...searchFields("searches"),
   rejectInvalid,
   async (req: Request, res: Response) => {
-    res.json({ matches: await knownMatches(matchedData(req).searches) });
+    res.json({
+      matches: await knownMatches(
+        matchedData(req).searches,
+        req.session.userId,
+      ),
+    });
   },
 ];
 
@@ -256,5 +268,40 @@ export const tellImportMatches = [
   async (req: Request, res: Response) => {
     await tellMatches(matchedData(req).matches);
     res.status(202).json({ ok: true });
+  },
+];
+
+// a series they picked by hand for one of their titles (Edit), or null when
+// they undid it: theirs from now on, and a vote toward sharing it
+// (util/shelf/importPicks.ts)
+export const pickImportMatch = [
+  body("search.name").isString().trim().isLength({ min: 1, max: 200 }),
+  body("search.lightNovel").isBoolean({ strict: true }),
+  body("search.exactOnly").isBoolean({ strict: true }),
+  body("match").optional({ values: "null" }).isObject(),
+  body("match.anilistId").optional().isInt({ min: 1 }).toInt(),
+  body("match.malId").optional({ values: "null" }).isInt({ min: 1 }).toInt(),
+  body("match.name")
+    .optional()
+    .isString()
+    .trim()
+    .isLength({ min: 1, max: 300 }),
+  body("match.cover")
+    .optional({ values: "null" })
+    .isURL({ protocols: ["https"], require_protocol: true }),
+  rejectInvalid,
+  async (req: Request, res: Response) => {
+    const { search, match } = matchedData(req);
+    const picked =
+      match?.anilistId && match.name
+        ? {
+            anilistId: match.anilistId,
+            malId: match.malId ?? null,
+            name: match.name,
+            cover: match.cover ?? null,
+          }
+        : null;
+    await savePick(req.session.userId!, search, picked);
+    res.status(204).end();
   },
 ];

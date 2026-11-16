@@ -71,6 +71,15 @@ export function UpdateManga() {
     const getThatManga = async () => {
       try {
         const response = await apiFetch(`/api/manga/${id}`);
+        // not theirs, or not there: said plainly, not "are you signed in?"
+        if (response.status === 403 || response.status === 404) {
+          setError([{ msg: "This one isn't on your shelf." }]);
+          return;
+        }
+        if (response.status === 401) {
+          setError([{ msg: "Sign in to edit your shelf." }]);
+          return;
+        }
         if (!response.ok)
           throw new Error(`Error fetching data from the server`);
         const { manga } = (await response.json()) as { manga: Manga };
@@ -88,7 +97,11 @@ export function UpdateManga() {
         setGenre(manga.genre && manga.genre !== "unlabled" ? manga.genre : "");
       } catch (e) {
         console.error(e);
-        setError([{ msg: "Couldn't load this manga. Are you signed in?" }]);
+        setError([
+          {
+            msg: "Couldn't load this manga. Check your connection and try again.",
+          },
+        ]);
       }
     };
 

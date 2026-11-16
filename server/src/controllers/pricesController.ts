@@ -2,6 +2,8 @@
 // (Open Library, AniList, stores) become 502s with a friendly message, so
 // pages can show "try again" instead of a blank error.
 import { nearSeriesNames } from "../prices/seriesNames.js";
+import { slugify } from "../prices/stores/match.js";
+import { closeEnough } from "../util/shelf/spelling.js";
 import { scanBoxSets } from "../prices/boxSetScan.js";
 import { isNovelName } from "../prices/lightNovel.js";
 import priceQueries, { countryOf } from "../models/priceQueries.js";
@@ -221,15 +223,32 @@ const canadaVolume = [
 ];
 
 // GET /series?name=  every volume of a series
+// a name that came only from a page's address (/prices/series/zz-not-a-series)
+// has to be one of the series' names, give or take a slip, or spelled the same
+// as one: AniList's best guess for made-up words is some real series
+// ("Kidou Senshi Gundam ZZ"). Names sent from a link or a shelf aren't held
+// to this ("Berserk Deluxe" is still Berserk)
+const fitsAddress = (
+  asked: string,
+  info: { name: string; altNames?: string[] },
+) =>
+  [info.name, ...(info.altNames ?? [])].some(
+    (name) => slugify(name) === slugify(asked) || closeEnough(asked, name),
+  );
+
 const series = [
+  query("strict").optional().isBoolean().toBoolean(),
   ...seriesName,
   async (req: Request, res: Response) => {
+    const { name, strict } = matchedData(req);
     const data = await upstream(
       "series lookup",
       "That series couldn't be loaded. Try again in a moment.",
-      () => getSeries(matchedData(req).name, countryOf(req.query.country)),
+      () => getSeries(name, countryOf(req.query.country)),
     );
     if (!data) throw new NotFoundError("We couldn't find that series.");
+    if (strict && data.info && !fitsAddress(name, data.info))
+      throw new NotFoundError("We couldn't find that series.");
     res.json(data);
     // for the page's "Watched the anime?" bar next time (afterAnime.ts)
     if (data.info && !isCrawler(req.get("user-agent")))
@@ -589,11 +608,15 @@ const volumeSummary = [
 
 // GET /summary/series?name=  same, for series pages
 const seriesSummary = [
+  query("strict").optional().isBoolean().toBoolean(),
   ...seriesName,
   async (req: Request, res: Response) => {
-    const { name } = matchedData(req);
+    const { name, strict } = matchedData(req);
     const data = await getSeriesSummary(name);
-    if (data) return res.set("Cache-Control", CACHE_10_MIN).json(data);
+    // a made-up address isn't described as the real series AniList guessed
+    const fits = !strict || !data || fitsAddress(name, data);
+    if (data && fits)
+      return res.set("Cache-Control", CACHE_10_MIN).json(data);
     // nothing stored to describe it: not "missing" either. Finding out would
     // take the series page's whole catalog lookup, which crawlers sending
     // made-up names would turn into a flood of Open Library searches

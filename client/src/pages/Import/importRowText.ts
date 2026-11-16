@@ -72,6 +72,8 @@ const NAMED = 3;
 // "Vinland Saga Omnibus, Vol. 3" doesn't say which volumes it holds, so the
 // count is a guess. Names the books, so nothing is left out without a word
 export function omnibusNote(s: BookSeries) {
+  // counted as the file says, with why it's worth a look
+  if (s.checks?.length && !s.unsure?.length) return s.checks.join(" ");
   const unsure = s.unsure ?? [];
   if (!unsure.length)
     return "Omnibus editions: check the volume count with Edit";

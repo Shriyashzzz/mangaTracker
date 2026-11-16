@@ -126,10 +126,23 @@ export const isStillNew = (kind: SeenKind, m: Manga, found: ReleaseStatus) => {
   );
 };
 
+// the number of their next volume: the catalog's next book when it's the
+// one right after theirs. With a hole there (JoJo Part 3's catalog has no
+// vol. 11, Hunter x Hunter's starts again at vol. 10), the one after theirs
+// all the same once a later one is out: volumes come out in order. Null
+// when nothing past theirs is known to be out
+export function nextVolumeNumber(found: ReleaseStatus | null | undefined) {
+  if (knowsNextVolume(found)) return found!.nextVolume;
+  const { currentVolume, latestVolume } = found ?? {};
+  if (currentVolume == null || latestVolume == null) return null;
+  const after = Math.floor(currentVolume) + 1;
+  return latestVolume >= after ? after : null;
+}
+
 // what to call their next volume: "Vol. 15", or the book it's sold in,
 // "Book 8", when it isn't sold on its own
 export function nextVolumeName(found: ReleaseStatus | null | undefined) {
-  const inBook = found?.nextVolumeInBook;
+  const inBook = knowsNextVolume(found) ? found?.nextVolumeInBook : null;
   if (inBook) return `Book ${inBook.book}`;
-  return `Vol. ${found?.nextVolume ?? found?.latestVolume ?? ""}`;
+  return `Vol. ${nextVolumeNumber(found) ?? found?.latestVolume ?? ""}`;
 }

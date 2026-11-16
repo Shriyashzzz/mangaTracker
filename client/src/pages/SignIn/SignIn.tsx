@@ -1,6 +1,6 @@
 import { useRef, useState, type FormEvent } from "react";
 import { authStyles as styles } from "../../styles/auth";
-import { NavLink, useNavigate, useSearchParams } from "react-router";
+import { Navigate, NavLink, useNavigate, useSearchParams } from "react-router";
 import PasswordInput from "../../components/passwordInput/PasswordInput";
 import AuthArt from "../../components/authArt/AuthArt";
 import { apiFetch, afterSignIn, errorMessages } from "../../lib/api";
@@ -16,6 +16,7 @@ export default function SignInPage() {
   const userNameRef = useRef<HTMLInputElement>(null);
   const passRef = useRef<HTMLInputElement>(null);
   const signedIn = useAuth((s) => s.signedIn);
+  const isSignedIn = useAuth((s) => s.isSignedIn);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
@@ -57,6 +58,10 @@ export default function SignInPage() {
       setLoading(false);
     }
   };
+
+  // already signed in: on to where signing in would take them
+  if (isSignedIn && !loading)
+    return <Navigate to={afterSignIn(params)} replace />;
 
   return (
     <div className={styles.container}>

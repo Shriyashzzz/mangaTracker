@@ -1,7 +1,11 @@
 // Where a card on the New tab leads, and what its cover is stamped with.
 // Worked out from what the release check found for the series; pure, no state.
 import { volumePath } from "../../lib/prices";
-import { knowsNextVolume, nextVolumeName } from "../../lib/releaseMath";
+import {
+  knowsNextVolume,
+  nextVolumeName,
+  nextVolumeNumber,
+} from "../../lib/releaseMath";
 import type { ReleaseStatus } from "../../lib/types";
 import type { ReleaseKind } from "./shelfViews";
 
@@ -20,7 +24,9 @@ export function detailsSearchFor(kind: ReleaseKind) {
 // no catalog entry to go on. (A card that opens the list of what's out does
 // that first: MangaCard's onOpen comes before its link)
 export function buyLinkFor(found: Found, kind: ReleaseKind) {
-  const book = found?.nextVolumeBook;
+  // only when the catalog's next book is theirs: with a hole there, the
+  // details page (it has no book for the one they need)
+  const book = knowsNextVolume(found) ? found?.nextVolumeBook : null;
   if (kind !== "volumes" || !book) return undefined;
   return volumePath(book.isbn13, book.title);
 }
@@ -31,7 +37,7 @@ export function stampFor(found: Found, kind: ReleaseKind) {
     return `Ch. ${found?.nextChapter ?? found?.latestChapter ?? ""}`;
   if (kind === "japan")
     return `Vol. ${found?.outJapanVolumes[0] ?? found?.latestJapaneseVolume ?? ""}`;
-  // no stamp when we can't say which volume is next (a hole in the catalog)
-  if (found && !knowsNextVolume(found)) return "";
+  // no stamp when we can't say which volume is next
+  if (found && nextVolumeNumber(found) == null) return "";
   return nextVolumeName(found);
 }

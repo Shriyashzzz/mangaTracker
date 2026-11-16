@@ -25,7 +25,7 @@ import { usePrivatePage } from "../../lib/seo";
 import { getReleases, saveSeen } from "../../lib/shelf";
 import { closeUpcoming, isUpcomingClosed } from "./upcomingClosed";
 import type { Manga, ReleaseData, ReleaseStatus } from "../../lib/types";
-import { useShelf } from "../../store/shelf";
+import { restoredAs, useShelf } from "../../store/shelf";
 import BuyStrip from "./BuyStrip";
 import { DetailsSkeleton, LoadFailed, type LoadError } from "./DetailsStates";
 import NotesField from "./NotesField";
@@ -131,6 +131,14 @@ export default function Details() {
           return;
         }
         if (response.status === 403 || response.status === 404) {
+          // deleted, then brought back by Undo under a new id: there
+          const movedTo = restoredAs(Number(id));
+          if (movedTo) {
+            navigate(`/details/${movedTo}${window.location.search}`, {
+              replace: true,
+            });
+            return;
+          }
           setLoadError("gone");
           return;
         }
@@ -146,7 +154,7 @@ export default function Details() {
       }
     }
     getManga();
-  }, [id, loadTry]);
+  }, [id, loadTry, navigate]);
 
   // can take a few seconds, so the page doesn't wait for it. Nice to have: the
   // panel just doesn't appear if this fails
@@ -430,6 +438,7 @@ export default function Details() {
             owned={owned}
             highestOwned={highestOwned}
             volumeSets={volumeSets}
+            newestChapter={releaseStatus?.latestChapter ?? null}
             onStart={startReading}
             onChange={saveReading}
             onPlaceSaved={(place) => {

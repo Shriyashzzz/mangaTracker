@@ -39,12 +39,13 @@ import { TYPE_LABEL, linkRel } from "./offerLabels";
 import { stayInTrip, useFromShelf } from "../../lib/fromShelf";
 import { readLocal } from "../../lib/prefs";
 import { usePageMeta } from "../../lib/seo";
-import { volumeMeta } from "./pageMeta";
+import { isUnknownBook, volumeMeta } from "./pageMeta";
 import { useVolumeReviews } from "./reviews/useVolumeReviews";
 import VolumeReviews from "./reviews/VolumeReviews";
 import ShelfAction from "./ShelfAction";
 import { useVolumeLoad } from "./useVolumeLoad";
-import { VolumeNotOpened, VolumeSkeleton } from "./VolumePageStates";
+import { NotAnIsbn, VolumeNotOpened, VolumeSkeleton } from "./VolumePageStates";
+import { isbnFromTyped } from "../../lib/barcode";
 import {
   dayDate,
   nearbyVolumes,
@@ -114,6 +115,8 @@ export default function PriceVolume() {
       document.getElementById("preorder")?.scrollIntoView({ block: "center" });
   }, [loaded, hash]);
 
+  // not an ISBN at all (/prices/123): said so, not "check your connection"
+  if (!isbnFromTyped(isbn)) return <NotAnIsbn />;
   if (page.loading) return <VolumeSkeleton />;
   if (page.error || !page.data) return <VolumeNotOpened onRetry={page.retry} />;
 
@@ -300,11 +303,18 @@ export default function PriceVolume() {
           )}
           {/* where it's seen before anyone heads off to a store */}
           <div className={styles.volumeActions}>
-            <ShelfAction
-              series={seriesLabel}
-              title={seriesTitle(book.title)}
-              volume={volume}
-            />
+            {/* nothing to put on a manga shelf for a book that isn't a manga */}
+            {isUnknownBook({ series, volume }) ? (
+              <p className={styles.bestAside}>
+                We don't know this book as a manga.
+              </p>
+            ) : (
+              <ShelfAction
+                series={seriesLabel}
+                title={seriesTitle(book.title)}
+                volume={volume}
+              />
+            )}
           </div>
         </header>
 

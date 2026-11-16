@@ -21,6 +21,9 @@ export type Book = {
   // an omnibus that doesn't say which volumes it holds ("Vinland Saga
   // Omnibus, Vol. 3"): its number is the omnibus', not a volume's
   omnibus?: boolean;
+  // counted as the file says, but worth a look first: why, in words ("Kept
+  // as vols. 1–10. …"). The series goes to the group that needs a look
+  check?: string;
   owned: boolean;
   // the file says plainly they don't own it ("Owned: no"): a book read
   // isn't then counted as owned. Goodreads never says so: its Owned Copies
@@ -90,6 +93,8 @@ export type BookSeries = {
   // the books whose volumes the file doesn't say (a box set, a deluxe
   // edition): named in the preview, so nothing is dropped without a word
   unsure?: string[];
+  // counted as the file says, but worth a look: why, in words (Book.check)
+  checks?: string[];
   // volumes the file has a second copy of ("Chainsaw Man, Vol. 3" twice):
   // counted once, and said in the preview so a spare isn't lost without a word
   spares?: number[];

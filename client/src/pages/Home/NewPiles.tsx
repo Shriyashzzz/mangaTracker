@@ -62,6 +62,9 @@ export type CoverLink = {
   // how many volumes behind they are, when they are (piles.ts
   // volumesBehind): a small grey stamp at the foot of the cover ("3 behind")
   behind?: number;
+  // its own words for that count, when the pile's would mislead: a stamp
+  // naming a book ("Book 7") counts volumes: "15 vols"
+  countWord?: string;
 };
 
 function Fan({
@@ -91,7 +94,7 @@ function Fan({
             key={m.id}
             to={link.to}
             className={styles.fanCover}
-            aria-label={`${m.name}${link.stamp ? `: ${link.stamp}` : ""}${link.behind ? `, ${link.behind} ${countWord}` : ""}`}
+            aria-label={`${m.name}${link.stamp ? `: ${link.stamp}` : ""}${link.behind ? `, ${link.behind} ${link.countWord ?? countWord}` : ""}`}
             viewTransition
             onClick={
               link.onOpen
@@ -118,7 +121,7 @@ function Fan({
             )}
             {link.behind && (
               <span className={styles.behind} aria-hidden>
-                {link.behind} {countWord}
+                {link.behind} {link.countWord ?? countWord}
               </span>
             )}
             {/* which series, on hover or keyboard focus (its name is in the

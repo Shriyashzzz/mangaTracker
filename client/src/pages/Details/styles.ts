@@ -11,8 +11,9 @@
 const cornerCross =
   "absolute top-0.5 right-0.5 grid size-7 place-items-center transition-[color,transform] duration-150 ease-ink before:absolute before:-inset-2 before:content-[''] active:scale-90 focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-dashed";
 
+// a word with no spaces (a 100-letter genre) breaks rather than widening the page
 const tag =
-  "rounded-[2px] border-[1.5px] px-[0.55rem] py-[0.12rem] text-[0.8rem] font-medium";
+  "max-w-full wrap-anywhere rounded-[2px] border-[1.5px] px-[0.55rem] py-[0.12rem] text-[0.8rem] font-medium";
 
 // the shape shared by the buy tickets and the "caught up" note
 const ticket =
@@ -51,9 +52,11 @@ export const detailsStyles = {
   shelfHint: "basis-full text-muted",
   shelf:
     "min-w-0 flex-[0_1_auto] w-[min(100%,var(--shelf-w))] max-[1099px]:w-full upto-720:order-1 upto-720:col-span-full",
-  head: "flex min-w-0 flex-col gap-[0.7rem] upto-720:gap-2 upto-720:self-center",
+  // room for a word of the title before the spine strip beside it takes any
+  // ("Berser / k" when it could shrink to nothing)
+  head: "flex min-w-[min(18rem,100%)] flex-col gap-[0.7rem] upto-720:gap-2 upto-720:self-center",
   title:
-    "text-[clamp(2.2rem,4.6vw,3.4rem)] leading-[1.02] font-medium tracking-[-0.025em] text-balance wrap-anywhere upto-720:text-[clamp(1.6rem,7vw,2.2rem)]",
+    "text-[clamp(2.2rem,4.6vw,3.4rem)] leading-[1.02] font-medium tracking-[-0.025em] text-balance wrap-break-word upto-720:text-[clamp(1.6rem,7vw,2.2rem)]",
   meta: "flex flex-wrap gap-[0.4rem]",
   metaGenre: `${tag} border-line-soft text-ink-soft`,
   metaReading: `${tag} border-accent text-accent`,

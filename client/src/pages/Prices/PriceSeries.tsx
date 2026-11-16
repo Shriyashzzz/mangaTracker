@@ -66,7 +66,8 @@ export default function PriceSeries() {
   // the link carries the real name; a bare slug still works as a search
   const name = params.get("name") ?? slug.replace(/-/g, " ");
   const isSignedIn = useAuth((s) => s.isSignedIn);
-  const series = useSeriesLoad(name);
+  // a bare address is held to the series' own names (/prices/series/zz-not-a-series)
+  const series = useSeriesLoad(name, !params.get("name"));
   // the series on their shelf, if it is: which volumes are theirs
   const mine = useShelfMatch(name);
   const scannedSets = useBoxSetScan(name, series.key, Boolean(series.data));
