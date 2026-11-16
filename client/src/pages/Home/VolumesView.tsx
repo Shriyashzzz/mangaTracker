@@ -155,30 +155,33 @@ export default function VolumesView({
 // comes to. An estimate says so, with how much of it is real prices
 // said under a total that isn't of every volume yet: prices for the rest
 // are found in the background (server collector/filler.ts, usedFiller.ts)
-const FILL_IN = "the rest fill in over a few days";
+const FILL_IN = "The rest fill in over a few days.";
 // what the shelf's worth is: what it would fetch, not what it cost
-const SOLD_USED = "if sold used, at today's prices";
+const SOLD_USED = "If sold used, at today's prices";
 
-// under "To finish your series": how many to get, how many are priced,
-// any series left out of the total, and that the rest is on its way.
-// "for the 133 volumes you don't have yet · 5 priced so far · the rest fill
-// in over a few days"
+// "4 of 5 priced so far. The rest fill in over a few days."
+const pricedSoFar = (priced: number, of: number) =>
+  `${priced.toLocaleString()} of ${of.toLocaleString()} priced so far. ${FILL_IN}`;
+
+// under "To finish your series", one sentence a line: what the total is
+// for, any series left out of it, and how far the pricing has got.
+//   For the 133 volumes you don't have yet.
+//   5 of 133 priced so far. The rest fill in over a few days.
 function finishNote(tools: ShelfTools, hasTotal: boolean) {
   // a series collected as its deluxe books counts in books
   const unit = tools.finish.some((f) => f.edition) ? "book" : "volume";
   const allPriced = tools.finishPriced >= tools.finishMissing;
-  const parts = [
-    `for the ${plural(tools.finishMissing, unit)} you don't have yet`,
+  const lines = [
+    `For the ${plural(tools.finishMissing, unit)} you don't have yet.`,
   ];
-  if (!allPriced)
-    parts.push(`${tools.finishPriced.toLocaleString()} priced so far`);
   // the total is of the series priced enough to say
   if (tools.finishUncosted && hasTotal)
-    parts.push(
-      `${plural(tools.finishUncosted, "series", "series")} not counted yet`,
+    lines.push(
+      `${plural(tools.finishUncosted, "series", "series")} not counted yet.`,
     );
-  if (!allPriced) parts.push(FILL_IN);
-  return parts.join(" · ");
+  if (!allPriced)
+    lines.push(pricedSoFar(tools.finishPriced, tools.finishMissing));
+  return lines;
 }
 
 function ShelfTotals({ tools, owned }: { tools: ShelfTools; owned: number }) {
@@ -227,19 +230,23 @@ function ShelfTotals({ tools, owned }: { tools: ShelfTools; owned: number }) {
             <dd className={styles.totalValue}>{worth ?? "no total yet"}</dd>
             {/* what "worth" means: resale, not what they paid */}
             {worth && value.priced >= ownedVolumes && (
-              <dd className={styles.totalNote}>{SOLD_USED}</dd>
+              <dd className={styles.totalNote}>{SOLD_USED}.</dd>
             )}
             {worth && value.priced < ownedVolumes && (
               // the total is of every volume, worked out from the ones
               // priced; the background jobs price the rest over a few days
-              <dd className={styles.totalNote}>
-                {SOLD_USED} · for all {ownedVolumes.toLocaleString()} · from{" "}
-                {value.priced.toLocaleString()} priced so far · {FILL_IN}
-              </dd>
+              <>
+                <dd className={styles.totalNote}>
+                  {SOLD_USED}, for all {plural(ownedVolumes, "volume")}.
+                </dd>
+                <dd className={styles.totalNote}>
+                  {pricedSoFar(value.priced, ownedVolumes)}
+                </dd>
+              </>
             )}
             {!worth && (
               <dd className={styles.totalNote}>
-                {value.priced.toLocaleString()} priced so far · {FILL_IN}
+                {pricedSoFar(value.priced, ownedVolumes)}
               </dd>
             )}
           </div>
@@ -249,9 +256,11 @@ function ShelfTotals({ tools, owned }: { tools: ShelfTools; owned: number }) {
             <dt className={styles.totalLabel}>To finish your series</dt>
             {/* no money until enough is priced: the count is still true */}
             <dd className={styles.totalValue}>{finish ?? "no total yet"}</dd>
-            <dd className={styles.totalNote}>
-              {finishNote(tools, Boolean(finish))}
-            </dd>
+            {finishNote(tools, Boolean(finish)).map((line) => (
+              <dd key={line} className={styles.totalNote}>
+                {line}
+              </dd>
+            ))}
           </div>
         )}
       </dl>

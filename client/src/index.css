@@ -852,7 +852,7 @@
   padding-bottom: 3px;
   overflow: hidden;
   background: var(--line-soft);
-  font: 400 0.72rem/1 var(--font-brand);
+  font: 400 0.8rem/1 var(--font-brand);
   font-style: normal;
   font-variant-numeric: tabular-nums;
   color: transparent;
@@ -862,9 +862,11 @@
     color 0.12s,
     border-color 0.18s;
 }
+/* a long series' narrow books (28 on a laptop are about 17px): set tight,
+   so two digits fit at a size that still reads */
 .vshelf-book[data-small] i {
-  font-size: 0.7rem;
-  letter-spacing: -0.02em;
+  font-size: 0.76rem;
+  letter-spacing: -0.05em;
 }
 .vshelf-book[data-own] i {
   height: 54px;

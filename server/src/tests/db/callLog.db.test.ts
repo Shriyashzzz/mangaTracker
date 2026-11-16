@@ -8,8 +8,11 @@ import {
   noteCall,
 } from "../../prices/callLog.js";
 import { closeDb, emptyDb } from "./testDb.js";
+import { pacificDayOf, todayInPacificAt } from "./testClock.js";
 
-const NOW = Date.parse("2026-11-15T22:07:00Z");
+// 2:07pm Pacific today, from the real clock (testClock.ts): well inside one
+// Pacific day, whatever the date
+const NOW = todayInPacificAt(14, 7);
 const MIN = 60_000;
 
 beforeEach(emptyDb);
@@ -35,6 +38,5 @@ test("only the calls inside the window count", async () => {
 test("Google Books calls add up to a day's total, visitors and background", async () => {
   await noteCall("gbooks", 2, NOW);
   await asBackground(() => noteCall("gbooks", 3, NOW));
-  // 22:07 UTC is the same Pacific day
-  expect(await gbooksToday("2026-11-15")).toBe(5);
+  expect(await gbooksToday(pacificDayOf(NOW))).toBe(5);
 });

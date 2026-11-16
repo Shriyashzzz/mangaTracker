@@ -16,15 +16,17 @@ import {
 } from "../../collector/sweep.js";
 import { noteCall } from "../../prices/callLog.js";
 import { closeDb, emptyDb, prisma } from "./testDb.js";
+import { monthOf, pacificDayOf, todayInPacificAt } from "./testClock.js";
 
-// 10:30pm Pacific on Nov 15 (PST, UTC-8)
-const NIGHT = Date.parse("2026-11-16T06:30:00Z");
-const DAY = "2026-11-15";
+// 10:30pm Pacific today, from the real clock (never a fixed date: see
+// testClock.ts)
+const NIGHT = todayInPacificAt(22, 30);
+const DAY = pacificDayOf(NIGHT);
 
 const setEbayUsed = (calls: number) =>
   prisma.$executeRaw`
     INSERT INTO api_usage (provider, month, calls)
-    VALUES (${`ebay:${DAY}`}, '2026-11-01'::date, ${calls})
+    VALUES (${`ebay:${DAY}`}, ${monthOf(DAY)}::date, ${calls})
     ON CONFLICT (provider, month) DO UPDATE SET calls = ${calls}
   `;
 
@@ -40,7 +42,8 @@ test("the sweep may use 70% of what's left of eBay's day when it starts", () => 
 
 test("it's the sweep's time from 10pm Pacific until the midnight reset", () => {
   expect(isSweepTime(NIGHT)).toBe(true);
-  expect(isSweepTime(Date.parse("2026-11-16T05:59:00Z"))).toBe(false);
+  // 9:59pm
+  expect(isSweepTime(NIGHT - 31 * 60_000)).toBe(false);
   expect(hoursUntilReset(NIGHT)).toBeCloseTo(1.5);
 });
 

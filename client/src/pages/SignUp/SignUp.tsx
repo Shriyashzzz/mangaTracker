@@ -49,7 +49,7 @@ export default function SignUp() {
     // slip of the finger shouldn't use up one of the hour's sign-ups
     const slips = [
       !/^[a-z0-9]+$/i.test(username) &&
-        "Usernames are letters and numbers only",
+        "Usernames are letters and numbers only.",
       (username.length < 4 || username.length > 40) &&
         "Usernames need 4 to 40 letters or numbers.",
     ].filter((slip): slip is string => Boolean(slip));

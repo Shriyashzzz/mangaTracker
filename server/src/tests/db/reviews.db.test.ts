@@ -258,7 +258,9 @@ test("the question comes once in a blue moon", async () => {
   const id = await member("reader", { owned: [], readVolume: 1 });
   const manga = await prisma.manga.findFirstOrThrow({ where: { userId: id } });
   const day = 24 * 60 * 60 * 1000;
-  const start = new Date("2026-11-14T12:00:00Z");
+  // from the real clock: the reading saved below is stamped with the real
+  // time, so a fixed start date would drift away from it
+  const start = new Date();
   const later = (days: number) => new Date(start.getTime() + days * day);
   let readVolume = 1;
   // finishes the next volume on this day; true when the page will ask

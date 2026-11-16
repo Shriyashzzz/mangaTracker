@@ -29,6 +29,8 @@ import {
   type FlagKind,
 } from "./reviewRules.js";
 import * as store from "./reviewStore.js";
+import { storedVolumeStarts } from "../util/releases/releaseCache.js";
+import { volumeOfChapter } from "../util/releases/volumeStarts.js";
 
 type StoredReview = Awaited<ReturnType<typeof store.reviewsOfVolume>>[number];
 
@@ -248,6 +250,18 @@ const MOST_VOLUMES = 999;
 // with its book's ISBN (null when we have no book for that volume), their
 // review of each one they've reviewed, by volume number, and the series'
 // slug. A volume is a whole number from 1
+// How far they've read, for which volume to ask about: the volume they keep
+// their place by, or for a chapter reader every volume before the one their
+// next chapter is in (on chapter 38, in vol. 5: up to vol. 4). 0 when they
+// keep no place, or the chapter's volume isn't known
+async function readToOf(manga: Manga) {
+  if (manga.readVolume) return manga.readVolume;
+  if (!manga.bookmark) return 0;
+  const starts = await storedVolumeStarts(manga.name);
+  const holdsNext = volumeOfChapter(Math.floor(manga.bookmark) + 1, starts);
+  return holdsNext ? holdsNext - 1 : 0;
+}
+
 async function theirVolumes(userId: number, manga: Manga) {
   const [[series], seriesSlug] = await Promise.all([
     shelfSeries([manga]),
@@ -333,7 +347,10 @@ export async function askAboutFinishedVolume(
   if (!manga || !reader) return false;
   if (!mayAskAgain(reader.rateAskedAt, everyDays, now)) return false;
   const { theirs, reviewOf } = await theirVolumes(userId, manga);
-  const { latest, isTheOneRead } = latestVolume(manga, theirs);
+  const { latest, isTheOneRead } = latestVolume(
+    { status: manga.status, readVolume: await readToOf(manga) },
+    theirs,
+  );
   if (!latest || !isTheOneRead || reviewOf.has(latest.volume)) return false;
   await mangaQueries.startAskingAboutVolume(mangaId, userId, now);
   return true;
@@ -380,7 +397,10 @@ export async function shelfReviews(
       ...volume,
       review: sent(reviewOf.get(volume.volume)!, userId),
     }));
-  const { latest, isTheOneRead } = latestVolume(manga, theirs);
+  const { latest, isTheOneRead } = latestVolume(
+    { status: manga.status, readVolume: await readToOf(manga) },
+    theirs,
+  );
   // asked about out loud: it's the volume they finished, that was lately,
   // and they haven't rated it
   const isAsked =

@@ -18,7 +18,7 @@ const credentials = [
     .notEmpty()
     .withMessage("I need your name to let you in, come on you know that!")
     .isAlphanumeric()
-    .withMessage("Usernames are letters and numbers only")
+    .withMessage("Usernames are letters and numbers only.")
     .isLength({ min: 4, max: 40 })
     .withMessage("Usernames need 4 to 40 letters or numbers."),
   body("password")

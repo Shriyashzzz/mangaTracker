@@ -113,6 +113,17 @@ const store = async (key: string, data: FormatedDates) => {
     );
 };
 
+// where each volume starts, from the last answer saved for a series, however
+// old: never a lookup (the reviews use it to tell how far a chapter reader
+// has got). Empty when nothing's saved
+export async function storedVolumeStarts(name: string) {
+  const key = (slugify(name) || name.trim().toLowerCase()).slice(0, 160);
+  const row = await prisma.releaseDates
+    .findUnique({ where: { slug: key } })
+    .catch(() => null);
+  return (row?.data as FormatedDates | undefined)?.volumeStarts ?? [];
+}
+
 export async function getCachedReleaseDates(
   name: string,
   match: SeriesMatch = {},

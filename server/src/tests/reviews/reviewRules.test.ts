@@ -112,9 +112,10 @@ test("the page's stars are on the last volume read, or the nearest one we have a
     latest: { volume: 5 },
     isTheOneRead: true,
   });
-  // only ticks what they own: the last of those
-  expect(reading(null)).toEqual({ latest: { volume: 5 }, isTheOneRead: true });
-  expect(reading(0)).toEqual({ latest: { volume: 5 }, isTheOneRead: true });
+  // keeps no place, only ticks what they own: owning isn't having read,
+  // so nothing is asked
+  expect(reading(null)).toEqual({ latest: null, isTheOneRead: false });
+  expect(reading(0)).toEqual({ latest: null, isTheOneRead: false });
   // nothing of theirs at all
   expect(latestVolume({ status: false, readVolume: null }, [])).toEqual({
     latest: null,

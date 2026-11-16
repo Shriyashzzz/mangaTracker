@@ -26,6 +26,7 @@ export function SeriesVolumeCard({
     return (
       <li id={`vol-${first.volume}`}>
         <VolumeCard
+          plainStandIn
           {...first}
           title={`Vol. ${first.volume}`}
           fullTitle={first.title}
@@ -47,6 +48,7 @@ export function SeriesVolumeCard({
         <span key={v.volume} id={`vol-${v.volume}`} />
       ))}
       <VolumeCard
+        plainStandIn
         {...first}
         title={`Book ${first.inBook!.book}`}
         fullTitle={first.title}

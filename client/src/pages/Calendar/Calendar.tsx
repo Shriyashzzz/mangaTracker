@@ -36,12 +36,16 @@ function Month({ month }: { month: CalendarMonth }) {
     <div className={styles.monthBody}>
       <div className={styles.monthSide}>
         <MiniMonth month={month.month} volumes={month.volumes} />
-        <AddToCalendar
-          big
-          volumes={month.volumes}
-          label={`Save ${monthName(month.month)}'s release dates to your calendar`}
-          fileName={`Manga releases ${monthName(month.month)}.ics`}
-        />
+        {/* one release: its own row's button saves it, so no second one */}
+        {month.volumes.length > 1 && (
+          <AddToCalendar
+            big
+            volumes={month.volumes}
+            label={`Save ${monthName(month.month)}'s release dates to your calendar`}
+            fileName={`Manga releases ${monthName(month.month)}.ics`}
+            text={`Save these ${month.volumes.length} dates`}
+          />
+        )}
       </div>
       <div>
         <ReleaseList
@@ -91,15 +95,16 @@ export default function CalendarPage() {
       <p className={styles.lead}>
         Upcoming English volumes for the series on your shelf.
       </p>
-      {/* every dated release into their own calendar, at once */}
-      {months && months.length > 0 && (
+      {/* every dated release into their own calendar, at once: only past
+          a month, as one month's own button already saves all of it */}
+      {months && months.length > 1 && (
         <div className={styles.addAll}>
           <AddToCalendar
             big
             volumes={months.flatMap((m) => m.volumes)}
             label="Save every upcoming release date to your calendar"
             fileName="Upcoming manga releases.ics"
-            text={`Save every date (${months.reduce((n, m) => n + m.volumes.length, 0)})`}
+            text={`Save all ${months.reduce((n, m) => n + m.volumes.length, 0)} dates`}
           />
         </div>
       )}

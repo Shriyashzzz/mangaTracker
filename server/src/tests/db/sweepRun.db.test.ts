@@ -12,6 +12,7 @@ import { forgetKnownVolumes } from "../../prices/service.js";
 import { volumesKey } from "../../prices/volumesKey.js";
 import priceQueries from "../../models/priceQueries.js";
 import { closeDb, emptyDb, prisma } from "./testDb.js";
+import { todayInPacificAt } from "./testClock.js";
 
 // two series, the first the more popular
 const ALPHA = "Zzsweep Alpha";
@@ -37,8 +38,10 @@ const titleOf = new Map(
   ),
 );
 
-// 10:30pm Pacific: the sweep's time
-const NIGHT = Date.parse("2026-11-16T06:30:00Z");
+// 10:30pm Pacific today, the sweep's time, from the real clock: the rows it
+// saves carry the real time, so a fixed date stops matching once the day
+// moves on (testClock.ts)
+const NIGHT = todayInPacificAt(22, 30);
 
 // the fake eBay. `failing`: ISBNs whose search fails; `refuse`: every search
 // answered 429 (a short window: eBay's daily count is still low)

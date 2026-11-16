@@ -508,6 +508,12 @@ export async function sweepOnce(
   // the run's clock starts here, so everything it does fits inside its lock
   const started = Date.now();
   const timeLeft = () => RUN_MS - (Date.now() - started);
+  // the moment of the night the run is about, moving on as it goes: the
+  // time it was asked about, plus how long it's been running. In production
+  // that's the real time; a test asks about 10:30pm and gets that, whatever
+  // the hour it runs at. (A pause, the run's length and what was saved since
+  // stay on the real clock: they're about the database's own times)
+  const runTime = () => now + (Date.now() - started);
   await usedPart(now).catch(() => 0);
   if (!isSweepTime(now)) return "waiting";
 
@@ -519,7 +525,7 @@ export async function sweepOnce(
   // room for one more volume (eBay's timeout is 15 seconds)
   let tries = 0;
   while (timeLeft() > VOLUME_MS && tries < LIMITS.mostPerRun) {
-    const room = await ebayRoom(Date.now());
+    const room = await ebayRoom(runTime());
     if (room === "spent") return priced ? { priced } : "spent";
     if (room === "busy") {
       pausedUntil = Date.now() + PAUSE_MS;
@@ -529,14 +535,14 @@ export async function sweepOnce(
     done++;
     if (nothingLeft.has(country)) country = country === "us" ? "ca" : "us";
     if (nothingLeft.has(country)) break;
-    const isbn = await nextFor(country, Date.now());
+    const isbn = await nextFor(country, runTime());
     if (!isbn) {
       // nothing left that has a list: build the next series' list, once a
       // run, when Google Books has calls to spare
       if (
         !builtAList &&
         timeLeft() > LIST_MS &&
-        (await gbooksRoom(Date.now()))
+        (await gbooksRoom(runTime()))
       ) {
         builtAList = true;
         await fillSeries().catch(() => null);

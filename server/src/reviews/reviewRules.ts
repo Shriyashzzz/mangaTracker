@@ -67,7 +67,12 @@ export const mayAskAgain = (
 //                              the nearest one below that we do have, and
 //                              `isTheOneRead` is false: there's nothing to
 //                              ask about the volume they just finished
-//   only ticks what they own   the last one they own
+//   keeps no place at all        none: owning a book isn't having read it,
+//                              so a volume they've only bought is never
+//                              asked about
+// (`readVolume` is the place they've read to: their volume, or for a
+// chapter reader the last volume before the one their chapter is in,
+// reviews.ts readToOf)
 export function latestVolume<V extends { volume: number }>(
   place: { status: boolean; readVolume: number | null },
   theirs: V[],
@@ -78,10 +83,11 @@ export function latestVolume<V extends { volume: number }>(
       null,
     );
   const readVolume = place.readVolume ?? 0;
-  if (place.status || readVolume < 1) {
+  if (place.status) {
     const latest = last(theirs);
     return { latest, isTheOneRead: latest !== null };
   }
+  if (readVolume < 1) return { latest: null, isTheOneRead: false };
   const latest = last(theirs.filter((one) => one.volume <= readVolume));
   return { latest, isTheOneRead: latest?.volume === readVolume };
 }

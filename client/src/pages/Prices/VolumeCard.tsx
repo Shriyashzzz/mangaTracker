@@ -25,20 +25,24 @@ const TILE_COVER = "60px";
 // (VolumeCard), so it isn't stamped a second time.
 // `small`: for a small tile (the shelf's Volumes tab), the drawn number is
 // drawn smaller
+// `plain`: the series cover as it is, not washed out (a series page's grid,
+// where each card's corner tab already says which volume it is)
 export function CoverFallback({
   number,
   seriesCoverUrl,
   seriesName,
   numbered = false,
   small = false,
+  plain = false,
 }: {
   number?: number | null;
   seriesCoverUrl?: string | null;
   seriesName?: string;
   numbered?: boolean;
   small?: boolean;
+  plain?: boolean;
 }) {
-  const isItsOwnArt = number == null || number <= 1;
+  const isItsOwnArt = number == null || number <= 1 || (plain && numbered);
   const drawn = small ? styles.coverFallbackSmall : styles.coverFallback;
   if (!seriesCoverUrl || isItsOwnArt)
     return (
@@ -83,6 +87,7 @@ export default function VolumeCard({
   mark,
   holds,
   rating,
+  plainStandIn = false,
 }: {
   isbn13: string;
   title: string;
@@ -105,6 +110,8 @@ export default function VolumeCard({
   // readers' average rating of it, on a series page: a small score on the
   // cover's corner, which is how reviews get found from the grid
   rating?: number | null;
+  // a missing cover shows the series' plainly, not washed out (CoverFallback)
+  plainStandIn?: boolean;
 }) {
   const fromShelf = useFromShelf();
   const shown = novelParts(title);
@@ -136,6 +143,7 @@ export default function VolumeCard({
             seriesCoverUrl={seriesCoverUrl}
             seriesName={seriesName}
             numbered={volume != null}
+            plain={plainStandIn}
           />
           <Cover url={coverUrl} sizes={CARD_COVER} />
           {mark && (

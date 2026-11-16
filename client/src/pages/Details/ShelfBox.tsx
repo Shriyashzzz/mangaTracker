@@ -12,7 +12,8 @@ import type { useOwnedVolumes } from "./useOwnedVolumes";
 
 // the shelf's least width beside the title, so its caption reads in a line or two
 const SHELF_MIN = 208;
-const SHELF_MAX = 460;
+// and its most: 28 volumes keep books 20px wide, room for a readable number
+const SHELF_MAX = 560;
 // remembered in the browser once they've ticked a book
 const SHELF_HINT_KEY = "shelfHint";
 // how long Undo stays

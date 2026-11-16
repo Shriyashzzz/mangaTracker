@@ -98,9 +98,7 @@ test("a few and way behind say how much there is to catch up on", () => {
   const lots = Object.fromEntries(
     many.map((x) => [x.id, found({ outVolumes: vols(1, 2, 3, 4, 5, 6, 7) })]),
   );
-  expect(catchUpText("way", many, lots, "volumes")).toBe(
-    " · 2,100 in all",
-  );
+  expect(catchUpText("way", many, lots, "volumes")).toBe(" · 2,100 in all");
 });
 
 test("a pile's page sorts by how much there is to catch up on, or title", () => {
