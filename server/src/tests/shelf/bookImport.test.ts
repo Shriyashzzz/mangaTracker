@@ -1539,6 +1539,10 @@ test("a second copy of a volume is counted once, and said", () => {
   expect(sparesNote(chainsaw!)).toBe("Spare copy of vol. 3, counted once");
   const [one] = groupBooks(goodreads(["Dandadan, Vol. 1"]));
   expect(one!.spares).toBeUndefined();
+  // a run of spares reads as one
+  expect(sparesNote({ ...chainsaw!, spares: [1, 2, 3, 4, 5, 9] })).toBe(
+    "Spare copies of vols. 1–5, 9, counted once",
+  );
 });
 
 test("a Price Paid column goes on each book; a series row's price doesn't", () => {
@@ -1558,4 +1562,17 @@ test("a Price Paid column goes on each book; a series row's price doesn't", () =
   // a plain Price may be the cover price: not taken
   const [cover] = seriesSheet("Title,Price", ['"Dandadan, Vol. 1",12.99']);
   expect(cover!.bookList).toBeUndefined();
+});
+
+test("a Date Purchased column goes on each book", () => {
+  const [one] = seriesSheet("Title,Price Paid,Date Purchased", [
+    '"Chainsaw Man, Vol. 3",9.99,2025-11-02',
+    '"Chainsaw Man, Vol. 4",,',
+  ]);
+  expect(one!.bookList?.map((b) => [b.volumes, b.boughtOn ?? null])).toEqual([
+    [[3], "2025-11-02"],
+    [[4], null],
+  ]);
+  // the date column is never read as owning, or as volumes
+  expect([one!.ownedList, one!.ownedVolumes]).toEqual([[3, 4], 4]);
 });

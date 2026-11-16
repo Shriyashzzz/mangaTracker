@@ -136,6 +136,9 @@ export const importStyles = {
   warning:
     "border-[1.5px] border-dashed border-accent bg-accent-wash px-3 py-2 text-[0.9rem] leading-[1.45]",
   note: "mt-3 text-[0.9rem] leading-[1.45] text-ink-soft",
+  // the import's notes, one a line
+  noteList:
+    "mt-3 grid list-disc gap-1 pl-5 text-[0.9rem] leading-[1.45] text-ink-soft marker:text-line-soft",
   actions: "mt-5 flex flex-wrap items-center gap-3",
 
   progressLine: "font-medium",
@@ -155,4 +158,11 @@ export const importStyles = {
   resultTitle:
     "font-brand text-[clamp(1.9rem,5vw,2.5rem)] leading-[1.05] font-normal tracking-[0.02em] uppercase",
   resultBody: "max-w-[44ch] leading-[1.5] text-ink-soft",
+  // "17 series are complete sets … Mark them finished · Leave as Reading"
+  completeSets:
+    "flex max-w-[44ch] flex-col items-center gap-3 border-y border-dashed border-line-soft py-4",
+  completeSetsActions:
+    "flex flex-wrap items-center justify-center gap-x-5 gap-y-2",
+  completeSetsLeave:
+    "tap text-[0.92rem] font-medium text-ink-soft underline decoration-line-soft underline-offset-3 hover:text-ink",
 } as const;

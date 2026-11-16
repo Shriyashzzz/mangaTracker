@@ -95,8 +95,10 @@ export type MalListing = {
 };
 
 // a book list with nothing about reading, holding every volume of a series
-// that has ended: it comes in finished, not "Reading". Only then: a file
-// that says what they've read is taken at its word
+// that has ended: a complete set. It comes in as Reading all the same (owning
+// every volume isn't having read them: a collector's backlog), and the
+// import's last page asks once whether to mark these finished. A file that
+// says what they've read is taken at its word, so never one of these
 export function ownsWholeSeries(entry: MalEntry, listing: MalListing | null) {
   const total = listing?.totalVolumes;
   if (!entry.readingUnknown || entry.planned || !total) return false;
@@ -120,8 +122,7 @@ export function toMangaInput(entry: MalEntry, listing: MalListing | null) {
     genre: (entry.restore && entry.genre?.trim()) || listing?.genre || null,
     image: listing?.cover ?? entry.cover ?? null,
     description: entry.comments?.trim().slice(0, MAX_NOTES) || null,
-    status:
-      (entry.finished && !entry.planned) || ownsWholeSeries(entry, listing),
+    status: entry.finished && !entry.planned,
     planned: Boolean(entry.planned),
     lightNovel: entryIsLightNovel(entry, listing),
     bookmark: entry.planned ? null : entry.chapters,

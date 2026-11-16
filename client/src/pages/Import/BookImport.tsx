@@ -32,7 +32,14 @@ import {
 } from "../../store/bookImport";
 import ImportList from "./ImportList";
 import { getJson } from "../../lib/api";
-import { FilesInImport, StopButton, WaitingDots } from "./BookImportParts";
+import {
+  CompleteSets,
+  FilesInImport,
+  StopButton,
+  WaitingDots,
+} from "./BookImportParts";
+import { useShelf } from "../../store/shelf";
+import { shelfKey } from "../../lib/titleKey";
 import { APP_NAME, doneTitle, foundLine, HOW, series } from "./bookImportText";
 
 // ISBN-only rows looked up in one file, at most (the scan allows 60 a minute)
@@ -48,6 +55,9 @@ export default function BookImport({ source }: { source: BookSource }) {
   const [dragging, setDragging] = useState(false);
   // the import itself lives in a store, so it carries on while they're away
   const imported = useBookImport();
+  // what's on the shelf already (the list loads it): the Add button counts
+  // only the series that are new to it
+  const shelfNow = useShelf((st) => st.manga);
   const ours = imported.source === source;
   const fileNames = ours ? imported.fileNames : [];
   const found = ours ? imported.found : null;
@@ -234,6 +244,20 @@ export default function BookImport({ source }: { source: BookSource }) {
   const lookingUp = Boolean(found) && checked < (found?.length ?? 0);
 
   const start = () => void imported.add(chosen);
+  // the series ticked that aren't on the shelf yet: the button counts these,
+  // so the same file a second time doesn't offer to "Add 33 series"
+  const onShelf = new Set(
+    (shelfNow ?? []).map((m) => shelfKey(m.name, Boolean(m.lightNovel))),
+  );
+  const nameOf = (s: BookSeries) => {
+    const match = matchOf(s);
+    return match && match !== "failed" ? match.name : s.title;
+  };
+  const newOnes = chosen.filter(
+    (s) => !onShelf.has(shelfKey(nameOf(s), Boolean(s.lightNovel))),
+  ).length;
+  // left unticked: said on the last page, so none goes without a word
+  const leftOut = (rows ?? []).filter((s) => !ticked(s)).map(nameOf);
 
   if (ours && finished && totals) {
     return (
@@ -252,6 +276,13 @@ export default function BookImport({ source }: { source: BookSource }) {
           {totals.noCover > 0 &&
             `${series(totals.noCover)} came in without a cover. You can add one with Edit details.`}
         </p>
+        {leftOut.length > 0 && (
+          <p className={styles.resultBody}>
+            Left out, as you unticked them: {leftOut.slice(0, 5).join(", ")}
+            {leftOut.length > 5 && ` and ${leftOut.length - 5} more`}.
+          </p>
+        )}
+        <CompleteSets ids={totals.completeSets ?? []} />
         <NavLink
           to="/shelf"
           className="btn btn-primary btn-lg mt-2"
@@ -413,16 +444,22 @@ export default function BookImport({ source }: { source: BookSource }) {
               lookingUp={lookingUp}
             />
 
-            <p className={styles.note}>
-              1) Volumes are grouped by series, so each manga comes in once.
-              Ticked: what AniList knows as manga, that you've bought or read.{" "}
-              <br />
-              2) Volumes owned are the ones you bought, gaps and all. A box set
-              or omnibus that doesn't say which volumes it holds is marked to
-              check. <br />
-              3) A series already on your shelf gets the new volumes added. A
-              Price Paid column is kept on each book. Dates bought aren't.{" "}
-            </p>
+            {/* one thing a line: what happens to the file */}
+            <ul className={styles.noteList}>
+              <li>Each series comes in once, however many books it has.</li>
+              <li>
+                Ticked: the manga you bought or read. Untick any to leave out.
+              </li>
+              <li>The volumes you own keep their gaps.</li>
+              <li>
+                A box set or omnibus that doesn't say its volumes is marked to
+                check.
+              </li>
+              <li>A series already on your shelf only gets its new volumes.</li>
+              <li>
+                Price Paid and Date Purchased columns are kept on each book.
+              </li>
+            </ul>
 
             {importing ? (
               <div className="mt-5" role="status">
@@ -449,7 +486,9 @@ export default function BookImport({ source }: { source: BookSource }) {
                   disabled={!chosen.length}
                   onClick={start}
                 >
-                  Add {series(chosen.length)} to my shelf
+                  {newOnes
+                    ? `Add ${series(newOnes)} to my shelf`
+                    : `Update ${series(chosen.length)} on my shelf`}
                 </button>
                 {/* while matching, Stop import above does this */}
                 {!lookingUp && <StopButton cancel />}

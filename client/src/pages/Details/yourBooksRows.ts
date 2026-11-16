@@ -10,6 +10,8 @@ export type BookRow = {
   book: OwnedBook | null;
   // the hand-ticked volume; null when there's a recorded book
   volume: number | null;
+  // a second copy of a book already listed ("Vol. 1 (spare)")
+  spare?: boolean;
 };
 
 // the last volume a row holds: what the list is sorted by, so "Deluxe 2
@@ -22,16 +24,29 @@ export function rowsOf(books: OwnedBook[], owned: number[]): BookRow[] {
   const looseVolumes = owned.filter((volume) => !inABook.has(volume));
 
   const rows: BookRow[] = [];
-  for (const book of books)
-    rows.push({ key: `b${book.id}`, book, volume: null });
+  // the books seen so far, by edition and volumes: one seen again is a spare
+  const seen = new Set<string>();
+  for (const book of books) {
+    const same = `${book.edition}:${book.volumes.join(",")}`;
+    rows.push({
+      key: `b${book.id}`,
+      book,
+      volume: null,
+      spare: seen.has(same),
+    });
+    seen.add(same);
+  }
   for (const volume of looseVolumes)
     rows.push({ key: `v${volume}`, book: null, volume });
   return rows.sort((a, b) => lastVolume(b) - lastVolume(a));
 }
 
-// "Deluxe 2 (vols. 4–6)", or "Vol. 7" for a volume ticked by hand
+// "Deluxe 2 (vols. 4–6)", or "Vol. 7" for a volume ticked by hand, and
+// "Vol. 1 (spare)" for a second copy
 export const rowName = (row: BookRow) =>
-  row.book ? bookLabel(row.book) : `Vol. ${row.volume}`;
+  row.book
+    ? `${bookLabel(row.book)}${row.spare ? " (spare)" : ""}`
+    : `Vol. ${row.volume}`;
 
 // the book a hand-ticked volume becomes once it's given a price or a date
 export const looseBook = (volume: number): NewBook => ({

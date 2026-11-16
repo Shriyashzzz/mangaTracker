@@ -3,6 +3,7 @@
 import { useEffect, useId, useRef, useState } from "react";
 import { ChevronDownIcon } from "../../components/icons/Icons";
 import { useBookImport } from "../../store/bookImport";
+import { useShelf } from "../../store/shelf";
 import { importStyles as styles } from "./styles";
 
 // three dots hopping in turn while AniList makes us wait. Read out as "…"
@@ -118,5 +119,64 @@ export function StopButton({ cancel = false }: { cancel?: boolean }) {
         {cancel ? "Keep it" : "Keep going"}
       </button>
     </span>
+  );
+}
+
+// The last page's one question: series that came in as complete sets (every
+// volume of an ended series, and nothing in the file about reading). Owning
+// them all isn't having read them, so they came in as Reading; the person
+// who knows says, in one tap, whether they're finished
+export function CompleteSets({ ids }: { ids: number[] }) {
+  const [state, setState] = useState<"asking" | "saving" | "done" | "left">(
+    "asking",
+  );
+  const [failed, setFailed] = useState(false);
+  if (!ids.length || state === "left") return null;
+  const count = ids.length === 1 ? "1 series is a" : `${ids.length} series are`;
+  if (state === "done")
+    return (
+      <p className={styles.resultBody} role="status">
+        Marked finished.
+      </p>
+    );
+  const markFinished = async () => {
+    setState("saving");
+    setFailed(false);
+    const moved = await useShelf.getState().moveMany(ids, "finished");
+    if (moved) setState("done");
+    else {
+      setFailed(true);
+      setState("asking");
+    }
+  };
+  return (
+    <div className={styles.completeSets}>
+      <p className={styles.resultBody}>
+        {count} complete {ids.length === 1 ? "set" : "sets"}: you own every
+        volume. Have you read {ids.length === 1 ? "it" : "them"}?
+      </p>
+      <div className={styles.completeSetsActions}>
+        <button
+          type="button"
+          className="btn btn-secondary"
+          disabled={state === "saving"}
+          onClick={() => void markFinished()}
+        >
+          Mark {ids.length === 1 ? "it" : "them"} finished
+        </button>
+        <button
+          type="button"
+          className={styles.completeSetsLeave}
+          onClick={() => setState("left")}
+        >
+          Leave as Reading
+        </button>
+      </div>
+      {failed && (
+        <p className={styles.error} role="alert">
+          That didn't save. Try again.
+        </p>
+      )}
+    </div>
   );
 }

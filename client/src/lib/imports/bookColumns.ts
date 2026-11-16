@@ -265,11 +265,13 @@ export const bookListOf = (
     .map((b) => ({
       ...newBook(b.title, volumesOf(b), b.isbn),
       ...(b.paidCents != null ? { paidCents: b.paidCents } : {}),
+      ...(b.boughtOn ? { boughtOn: b.boughtOn } : {}),
     }));
-  // sent when a book says more than a tick would: its ISBN, its edition, or
-  // what was paid
+  // sent when a book says more than a tick would: its ISBN, its edition,
+  // what was paid, or when
   return list.some(
-    (b) => b.isbn13 || b.edition !== "single" || b.paidCents != null,
+    (b) =>
+      b.isbn13 || b.edition !== "single" || b.paidCents != null || b.boughtOn,
   )
     ? { bookList: list }
     : {};
@@ -300,7 +302,12 @@ export function csvBook(h: string[], row: string[]): Book | null {
   );
   const fromTitle = seriesFromTitle(title);
   const fromColumn = seriesFromColumn(seriesColumn);
-  const ownedAt = header(h, /own|copies|purchased|bought|^qty$|quantity/i);
+  // whether they own it: never a column about when or for how much ("Date
+  // Purchased", "Price Paid"), whose "2025-11-02" isn't a count
+  const ownedAt = header(
+    h,
+    /^(?!.*\b(date|day|price|paid|cost)\b).*(own|copies|purchased|bought)|^qty$|quantity/i,
+  );
   const owned =
     ownedAt < 0
       ? true
@@ -320,8 +327,19 @@ export function csvBook(h: string[], row: string[]): Book | null {
   const paid = centsOf(
     cell(row, header(h, /^(price ?paid|paid|purchase ?price|amount paid)$/i)),
   );
+  // the day they bought it: a column that says so ("Date Purchased")
+  const bought = importDate(
+    cell(
+      row,
+      header(
+        h,
+        /^(date ?(purchased|bought|of purchase)|purchased?( ?date| on)?|bought( ?on| ?date)?)$/i,
+      ),
+    ),
+  )?.slice(0, 10);
   return {
     ...(paid != null ? { paidCents: paid } : {}),
+    ...(bought ? { boughtOn: bought } : {}),
     ...(readAt < 0 ? { noReadStatus: true } : {}),
     title,
     ...(fromColumn
@@ -436,8 +454,10 @@ export function csvBooks(h: string[], row: string[]): Book[] {
     // they have it, or have said how many they have: not a to-read entry
     planned: false,
     guessed: undefined,
-    // a price on a row for several volumes is the row's, not each book's
+    // a price or a day on a row for several volumes is the row's, not each
+    // book's
     paidCents: undefined,
+    boughtOn: undefined,
   };
   // none owned ("0", or left blank): the series, with nothing owned. With no
   // status saying otherwise it's one they mean to read

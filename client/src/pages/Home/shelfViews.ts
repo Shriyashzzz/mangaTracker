@@ -9,6 +9,7 @@ import {
   ownsAny,
 } from "../../lib/ownedVolumes";
 import { chaptersText, readsByChapterOnly } from "../../lib/chapterWords";
+import { closeEnough } from "../../lib/nearMatches";
 import {
   countNew,
   knowsNextVolume,
@@ -227,13 +228,20 @@ export function filterShelf(
 
   const q = query.trim().toLowerCase();
   if (q) {
-    list = list.filter(
+    const found = list.filter(
       (m) =>
         m.name?.toLowerCase().includes(q) ||
         m.genre?.toLowerCase().includes(q) ||
         // "novel" or "light novel" finds the light novels
         (m.lightNovel && "light novel".includes(q)),
     );
+    // nothing, and long enough to be a word: a slip of the finger
+    // ("chainsw" finds Chainsaw Man), as every series search allows
+    // (lib/nearMatches.ts). Never for a few letters, which are near anything
+    list =
+      found.length || q.length < 4
+        ? found
+        : list.filter((m) => m.name && closeEnough(q, m.name));
   }
 
   switch (sortBy) {
@@ -251,10 +259,15 @@ export function filterShelf(
       break;
     }
     case "gaps-dsc": {
-      // volumes missing below the furthest they own
+      // every volume out that isn't theirs: the holes below the furthest
+      // they own, and the ones out after it (Blue Lock, owned to vol. 5 with
+      // 22 out, is 17 short, not 0)
       const gaps = (m: Manga) => {
         const whole = ownedOf(m).filter((v) => Number.isInteger(v) && v >= 1);
-        return whole.length ? Math.max(...whole) - whole.length : 0;
+        const furthest = whole.length ? Math.max(...whole) : 0;
+        const holes = furthest - whole.length;
+        const latest = releases[m.id]?.latestVolume ?? 0;
+        return holes + Math.max(0, latest - furthest);
       };
       list.sort((a, b) => gaps(b) - gaps(a));
       break;

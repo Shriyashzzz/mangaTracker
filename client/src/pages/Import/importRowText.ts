@@ -2,7 +2,7 @@
 // went, and for an omnibus what couldn't be counted. Pure, so the list only
 // draws.
 import { gapsIn, type BookSeries } from "../../lib/imports/bookImport";
-import { ownedPhrase } from "../../lib/ownedVolumes";
+import { ownedPhrase, rangesText } from "../../lib/ownedVolumes";
 import type { Match } from "../../store/bookImport";
 
 // what the file says they have of a series AniList found
@@ -62,7 +62,7 @@ export function sparesNote(s: BookSeries) {
   const which =
     spares.length === 1
       ? `Spare copy of vol. ${spares[0]}`
-      : `Spare copies of vols. ${spares.join(", ")}`;
+      : `Spare copies of vols. ${rangesText(spares)}`;
   return `${which}, counted once`;
 }
 

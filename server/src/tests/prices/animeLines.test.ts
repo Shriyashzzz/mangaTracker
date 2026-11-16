@@ -156,6 +156,9 @@ test("short season names are written out", () => {
   expect(seasonName("OVA 10 + Movie 3")).toBe("OVA 10 + Movie 3");
   expect(seasonName("S2P1 EP4")).toBe("Season 2 part 1 episode 4");
   expect(seasonName("Reze Movie")).toBe("Reze Movie");
+  // a year before an episode is that year's anime
+  expect(seasonName("2003 EP34")).toBe("2003 series, episode 34");
+  expect(seasonName("1996")).toBe("1996");
 });
 
 test("only the furthest season of a finished manga can be its end", () => {

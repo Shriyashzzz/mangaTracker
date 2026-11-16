@@ -12,6 +12,7 @@ import {
   namesOf,
   shelfKey,
   toMangaInput,
+  ownsWholeSeries,
   backupFill,
   type MalEntry,
 } from "../../util/shelf/malEntry.js";
@@ -105,6 +106,8 @@ export const importList = [
         lightNovel: boolean;
         books: BookInput[];
       }[] = [];
+      // new series that are complete sets (malEntry ownsWholeSeries)
+      const completeNames: { name: string; lightNovel: boolean }[] = [];
       for (const entry of entries) {
         const listing = (entry.malId && listings.get(entry.malId)) || null;
         const names = namesOf(entry, listing);
@@ -141,6 +144,13 @@ export const importList = [
         }
         keys.forEach((key) => taken.add(key));
         const input = toMangaInput(entry, listing);
+        // every volume of an ended series, and nothing said about reading:
+        // the last page asks whether to mark these finished
+        if (ownsWholeSeries(entry, listing))
+          completeNames.push({
+            name: input.name.slice(0, 150),
+            lightNovel: Boolean(input.lightNovel),
+          });
         // the shelf's titles stop at 150 characters
         inputs.push({ ...input, name: input.name.slice(0, 150) });
         if (entry.books?.length)
@@ -152,16 +162,22 @@ export const importList = [
         if (!input.image) noCover++;
       }
       if (inputs.length) await mangaQueries.addManyManga(userId, inputs);
-      // the new ones have ids now: their books go by name
-      if (newBooks.length) {
+      // the new ones have ids now: their books and the complete sets go by
+      // name
+      const completeSets: number[] = [];
+      if (newBooks.length || completeNames.length) {
         const now = await mangaQueries.getMangaShelfNames(userId);
-        for (const fresh of newBooks) {
-          const made = now.find(
-            (m) =>
-              m.name === fresh.name &&
-              Boolean(m.lightNovel) === fresh.lightNovel,
+        const made = (n: { name: string; lightNovel: boolean }) =>
+          now.find(
+            (m) => m.name === n.name && Boolean(m.lightNovel) === n.lightNovel,
           );
-          if (made) books.set(made.id, fresh.books);
+        for (const fresh of newBooks) {
+          const found = made(fresh);
+          if (found) books.set(found.id, fresh.books);
+        }
+        for (const set of completeNames) {
+          const found = made(set);
+          if (found) completeSets.push(found.id);
         }
       }
       for (const [id, owned] of merges)
@@ -176,6 +192,8 @@ export const importList = [
         // of those already there, how many got volumes they didn't have
         volumesAdded: new Set([...merges.keys(), ...fills.keys()]).size,
         noCover,
+        // new series that are complete sets, for "Mark them finished"
+        completeSets,
       });
     });
   },

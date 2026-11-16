@@ -155,6 +155,10 @@ export type ImportTotals = {
   // server adds them, never takes any away); missing from an older server
   volumesAdded?: number;
   noCover: number;
+  // new series that are complete sets: every volume of an ended series, and
+  // nothing in the file about reading. The last page asks whether to mark
+  // them finished (server malEntry.ts ownsWholeSeries)
+  completeSets?: number[];
 };
 
 // one piece, tried again once after a pause if the connection dropped or the
@@ -186,6 +190,7 @@ export async function sendToShelf(
     alreadyThere: 0,
     volumesAdded: 0,
     noCover: 0,
+    completeSets: [],
   };
   for (let i = 0; i < entries.length && !shouldStop(); i += PIECE) {
     const piece = entries.slice(i, i + PIECE);
@@ -206,6 +211,10 @@ export async function sendToShelf(
     totals.volumesAdded =
       (totals.volumesAdded ?? 0) + (answer.volumesAdded ?? 0);
     totals.noCover += answer.noCover;
+    totals.completeSets = [
+      ...(totals.completeSets ?? []),
+      ...(answer.completeSets ?? []),
+    ];
     onProgress(i + piece.length, { ...totals });
   }
   // someone who brought a whole list over isn't new: Kenji doesn't offer the

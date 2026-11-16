@@ -66,8 +66,9 @@ function piecesOf(line: string | null | undefined): Piece[] {
 }
 
 // "S2" as "Season 2", "S1P2" as "Season 1 part 2", "TYBW P1" as "TYBW part
-// 1", "EP4" as "episode 4"; anything else ("Reze Movie", "1996") as it's
-// written
+// 1", "EP4" as "episode 4", "2003 EP34" as "2003 series, episode 34"
+// (Fullmetal Alchemist's first anime); anything else ("Reze Movie", "1996")
+// as it's written
 export function seasonName(short: string) {
   return (
     short
@@ -78,6 +79,8 @@ export function seasonName(short: string) {
       // a short name only fans read: Bleach's last arc
       .replace(/\bTYBW\b/g, "Thousand-Year Blood War")
       .replace(/\s+/g, " ")
+      // a year before an episode names that year's anime ("2003 EP34")
+      .replace(/^((?:19|20)\d\d) episode/, "$1 series, episode")
       // a season with extras tacked on is that season: "Season 8 + More OVA"
       .replace(/^(Season \d+(?: part \d+)?)\s*\+.*$/, "$1")
       .trim()

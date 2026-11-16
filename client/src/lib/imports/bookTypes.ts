@@ -51,6 +51,8 @@ export type Book = {
   isbn?: string;
   // what they paid for it, from a "Price Paid" column: kept with the book
   paidCents?: number;
+  // the day they bought it, from a "Date Purchased" column ("2025-11-02")
+  boughtOn?: string;
   // the file has no read or status column: nothing is known about reading
   noReadStatus?: boolean;
   // a backup's own record of the series' books, on its first row

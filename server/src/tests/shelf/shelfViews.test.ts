@@ -118,6 +118,15 @@ test("most gaps first puts the run with the most holes on top", () => {
       (m) => m.name,
     ),
   ).toEqual(["Holes", "One gap", "Run"]);
+  // the volumes out after the furthest they own count too: "Run" owns 1 to 5
+  // of 22 out, so 17 short, more than "Holes" (7 missing below vol. 9)
+  expect(
+    filterShelf(
+      withGaps,
+      { 11: found({ latestVolume: 22 }) },
+      { ...view, sortBy: "gaps-dsc" },
+    ).map((m) => m.name),
+  ).toEqual(["Run", "Holes", "One gap"]);
 });
 
 test("New shows what's new on this side, and the hidden list what's hidden", () => {
@@ -168,7 +177,8 @@ test("the counts on the tabs, and nothing new counts for a series not started", 
     ongoing: 2,
     finished: 1,
     planned: 1,
-    volumes: 1,
+    // every volume owned, as the Volumes tab's own heading counts them
+    volumes: 3,
     newVolumes: 1,
     newChapters: 1,
     newInJapan: 0,
@@ -340,4 +350,19 @@ test("a cover is offered at every width the server makes", () => {
   expect(
     forSlowConnection(coverChoices("https://example.com/a.jpg")),
   ).toHaveLength(1);
+});
+
+test("the shelf search allows a slip of the finger, never for a few letters", () => {
+  const books = [
+    { ...shelf[0]!, id: 21, name: "Chainsaw Man" },
+    { ...shelf[0]!, id: 22, name: "Vinland Saga" },
+  ];
+  const search = (query: string) =>
+    filterShelf(books, {}, { ...view, query }).map((m) => m.name);
+  expect(search("chainsw")).toEqual(["Chainsaw Man"]);
+  expect(search("vinland sga")).toEqual(["Vinland Saga"]);
+  // found as typed: no guessing
+  expect(search("saga")).toEqual(["Vinland Saga"]);
+  // too few letters to guess from
+  expect(search("chx")).toEqual([]);
 });

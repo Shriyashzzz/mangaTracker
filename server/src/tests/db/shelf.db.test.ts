@@ -394,3 +394,41 @@ test("merging only works with a series on your own shelf", async () => {
     .expect(404);
   expect(await prisma.manga.count()).toBe(2);
 });
+
+test("a spare copy is a book of its own, and the same file again adds none", async () => {
+  const agent = await reader("spares");
+  const id = (await add(agent, "Naruto")).body.id as number;
+  await agent
+    .put(`/api/manga/${id}/owned`)
+    .send({ volumesOwned: 2, ownedList: [] })
+    .expect(200);
+  const vol1 = { edition: "single", number: 1, volumes: [1] };
+  const file = [
+    { ...vol1, paidCents: 999 },
+    { ...vol1, paidCents: 400 },
+    { edition: "single", number: 2, volumes: [2] },
+  ];
+  await agent.post(`/api/manga/${id}/books`).send({ books: file }).expect(200);
+  const books = (await agent.get(`/api/manga/${id}/books`)).body.books;
+  // both copies of vol. 1, each with what it cost
+  expect(
+    books.map((b: { volumes: number[]; paidCents: number | null }) => [
+      b.volumes,
+      b.paidCents,
+    ]),
+  ).toEqual([
+    [[1], 999],
+    [[1], 400],
+    [[2], null],
+  ]);
+  // the spare's price counts in what was spent; the volume still once
+  expect((await agent.get("/api/collector/shelf")).body.spent).toEqual({
+    cents: 1399,
+    books: 2,
+  });
+  // the same file again: every copy is there already
+  await agent.post(`/api/manga/${id}/books`).send({ books: file }).expect(200);
+  expect((await agent.get(`/api/manga/${id}/books`)).body.books).toHaveLength(
+    3,
+  );
+});

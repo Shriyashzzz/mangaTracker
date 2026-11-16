@@ -60,13 +60,18 @@ const sameBook = (a: BookInput, b: BookInput) =>
 // volumes) isn't added twice, and takes an ISBN it lacked
 export async function addBooks(mangaId: number, books: BookInput[]) {
   const have = await prisma.ownedBook.findMany({ where: { mangaId } });
+  // each copy sent is matched to one copy already there, used up once
+  // matched: two of Naruto vol. 1 in a file, one on the shelf, adds the
+  // spare; the same file again adds nothing
+  const unmatched = [...have];
   const fresh: BookInput[] = [];
   for (const book of books) {
     const tidy = {
       ...book,
       volumes: [...new Set(book.volumes)].sort((a, b) => a - b),
     };
-    const there = have.find((h) => sameBook(h, tidy));
+    const at = unmatched.findIndex((h) => sameBook(h, tidy));
+    const there = at >= 0 ? unmatched.splice(at, 1)[0] : undefined;
     if (there) {
       // it takes what it lacked: an ISBN, what was paid, the day bought
       const gains = {
@@ -84,7 +89,8 @@ export async function addBooks(mangaId: number, books: BookInput[]) {
         await prisma.ownedBook.update({ where: { id: there.id }, data: gains });
       continue;
     }
-    if (!fresh.some((f) => sameBook(f, tidy))) fresh.push(tidy);
+    // a spare copy is a book of its own
+    fresh.push(tidy);
   }
   if (fresh.length)
     await prisma.ownedBook.createMany({
