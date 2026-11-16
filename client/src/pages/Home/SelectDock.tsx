@@ -7,7 +7,8 @@ import type { RefObject } from "react";
 import { createPortal } from "react-dom";
 import { ChevronDownIcon, CloseIcon } from "../../components/icons/Icons";
 import type { Manga } from "../../lib/types";
-import { MOVE_LABELS, SHELF_PAGE_SIZE } from "./shelfViews";
+import { MOVE_LABELS, shelfPageSize } from "./shelfViews";
+import { useShelf } from "../../store/shelf";
 import type { SelectMode } from "./useSelectMode";
 import { homeStyles as styles } from "./styles";
 
@@ -73,6 +74,7 @@ export default function SelectDock({
   // the "Deleted · Undo" note is up: the bar sits above it
   raised: boolean;
 }) {
+  const pageSize = shelfPageSize(useShelf((s) => s.manga?.length ?? 0));
   const count = select.pickedShown.length;
   return createPortal(
     <div
@@ -97,7 +99,7 @@ export default function SelectDock({
             <span className="[@media(max-width:360px)]:sr-only"> selected</span>
           </span>
           {/* only with more than one page: otherwise it's Select all */}
-          {shown.length > SHELF_PAGE_SIZE && (
+          {shown.length > pageSize && (
             <button
               type="button"
               className={styles.selectLink}

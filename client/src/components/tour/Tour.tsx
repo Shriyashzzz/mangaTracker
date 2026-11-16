@@ -590,17 +590,22 @@ function Guide({ onClose }: { onClose: () => void }) {
   // too big to sit beside: at the bottom, staying put however far they scroll. The
   // big pages marked onTop have him above the section instead, moving with it
   // room to the right of the section, for the steps that would rather sit there
-  const sideRoom = box
-    ? // the page's width, without the scrollbar
-      document.documentElement.clientWidth -
-      (box.left + box.width) -
-      BUBBLE_GAP -
-      SCREEN_MARGIN
-    : 0;
+  // (or to its left, for a step that sits there)
+  const onLeft = step.besideIfRoom === "left";
+  const sideRoom = !box
+    ? 0
+    : onLeft
+      ? box.left - BUBBLE_GAP - SCREEN_MARGIN
+      : // the page's width, without the scrollbar
+        document.documentElement.clientWidth -
+        (box.left + box.width) -
+        BUBBLE_GAP -
+        SCREEN_MARGIN;
   const beside =
     Boolean(step.besideIfRoom) && showHole && sideRoom >= MIN_SIDE_WIDTH;
   const bubbleTop = bubbleTopFor({
     beside,
+    onLeft,
     inCorner,
     onTop: Boolean(step.onTop),
     showHole,
@@ -625,6 +630,7 @@ function Guide({ onClose }: { onClose: () => void }) {
   // a section too big to sit beside: at the bottom, centered under it
   const bubbleLeft = bubbleLeftFor({
     beside,
+    onLeft,
     showHole,
     box,
     holeCenter,
@@ -733,7 +739,13 @@ function Guide({ onClose }: { onClose: () => void }) {
       {(step.onTop || (fits && !inCorner)) && (
         <svg
           className={`tour-pointer ${
-            beside ? "tour-pointer-left" : below ? "tour-pointer-below" : ""
+            beside
+              ? onLeft
+                ? "tour-pointer-right"
+                : "tour-pointer-left"
+              : below
+                ? "tour-pointer-below"
+                : ""
           }`}
           style={
             fromBottom != null && !beside && !below
@@ -743,7 +755,14 @@ function Guide({ onClose }: { onClose: () => void }) {
                 }
               : onLayer(
                   beside
-                    ? { left: box!.left + box!.width - 2, top: box!.top + 30 }
+                    ? {
+                        left: onLeft
+                          ? box!.left - 30
+                          : box!.left + box!.width - 2,
+                        top: onLeft
+                          ? box!.top + box!.height / 2 - 12
+                          : box!.top + 30,
+                      }
                     : {
                         left: pointerLeft - 16,
                         top: below ? box!.top + box!.height + 2 : box!.top - 26,

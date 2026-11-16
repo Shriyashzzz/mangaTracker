@@ -24,9 +24,9 @@ export const pricesStyles = {
   homeHit: "inline-block -rotate-2 bg-ink px-[0.12em] text-paper",
   halves:
     "grid grid-cols-2 gap-[clamp(1rem,2.5vw,1.5rem)] upto-860:grid-cols-[minmax(0,1fr)] [&>*]:min-w-0",
-  // side by side both halves are the same height: the title at the top, level
-  // with the price search's, and the buttons at the bottom, level with its
-  // "Try" row (halfActions' mt-auto)
+  // side by side both halves are the same height, the title level with the
+  // price search's. The buttons follow the words straight away: kept level
+  // with the search's "Try" row they left a gap in the middle of the card
   trackHalf:
     "speed-burst relative flex flex-col items-start gap-3 border-3 border-line p-[clamp(1.25rem,3vw,2rem)] upto-720:gap-2 upto-720:py-4",
   // ink on paper in every theme, or his hair disappears into the dark panel
@@ -36,7 +36,7 @@ export const pricesStyles = {
     "pr-12 font-brand text-[clamp(1.6rem,4vw,2.6rem)] leading-[1] font-normal tracking-[0.02em] uppercase",
   // one row: all three on wider screens, the two that show on phones
   halfActions:
-    "half-actions mt-auto flex flex-nowrap items-center gap-2 pt-2 upto-720:gap-2 upto-720:pt-0.5",
+    "half-actions flex flex-nowrap items-center gap-2 pt-2 upto-720:gap-2 upto-720:pt-0.5",
 
   halfButton:
     "half-button min-w-0 px-[0.75rem] upto-720:h-11 upto-720:px-[0.7rem] upto-720:text-[0.875rem]",

@@ -70,7 +70,7 @@ import {
   readSession,
   readSpot,
   RELEASE_KINDS,
-  SHELF_PAGE_SIZE,
+  shelfPageSize,
   SHELF_SPOT_KEY,
   shelfCounts,
   writeSession,
@@ -279,12 +279,13 @@ function Library() {
     // only when the pile empties: closePile is made anew on every render
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pileEmptied]);
-  // a pile's page on a phone grows by "Show 20 more" instead of turning
+  // a pile's page on a phone grows by "Show 20 more" (or 60) instead of turning
   // pages: one fewer row of controls on a small screen
   const growing = Boolean(pileView) && hasBottomBar();
+  const pageSize = shelfPageSize(mangaData?.length ?? 0);
   const shelfPage = visibleManga.slice(
-    growing ? 0 : pageIndex * SHELF_PAGE_SIZE,
-    (pageIndex + 1) * SHELF_PAGE_SIZE,
+    growing ? 0 : pageIndex * pageSize,
+    (pageIndex + 1) * pageSize,
   );
 
   const { select, moveMenu, movedNote } = useSelectMode({
@@ -320,7 +321,7 @@ function Library() {
   const pager = (scrollUp: boolean) => (
     <RangePager
       total={visibleManga.length}
-      pageSize={SHELF_PAGE_SIZE}
+      pageSize={pageSize}
       page={pageIndex}
       onChange={(index) => changePage(index, scrollUp)}
       label="Shelf pages"
@@ -545,10 +546,7 @@ function Library() {
                   onClick={() => changePage(pageIndex + 1, false)}
                 >
                   Show{" "}
-                  {Math.min(
-                    SHELF_PAGE_SIZE,
-                    visibleManga.length - shelfPage.length,
-                  )}{" "}
+                  {Math.min(pageSize, visibleManga.length - shelfPage.length)}{" "}
                   more
                   <span className={styles.showMoreCount}>
                     {shelfPage.length} of {visibleManga.length}
@@ -556,7 +554,7 @@ function Library() {
                 </button>
               </div>
             )
-          : visibleManga.length > SHELF_PAGE_SIZE && (
+          : visibleManga.length > pageSize && (
               <div className={styles.pagerBottom}>{pager(true)}</div>
             )}
       </>

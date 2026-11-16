@@ -1,6 +1,7 @@
 // Reading a MyAnimeList export in the browser, so the file itself never leaves
 // their computer. It arrives as .xml.gz from the export page, as .xml if they've
 // opened it, and as .zip if they've zipped it up.
+import { markTourDone } from "../tourOffer";
 import type { NewBook } from "../books";
 import { gunzipSync, strFromU8, unzipSync } from "fflate";
 import { apiFetch } from "../api";
@@ -207,5 +208,8 @@ export async function sendToShelf(
     totals.noCover += answer.noCover;
     onProgress(i + piece.length, { ...totals });
   }
+  // someone who brought a whole list over isn't new: Kenji doesn't offer the
+  // tour over their freshly filled shelf (it's still in About and What's new)
+  if (totals.added > 0) markTourDone();
   return totals;
 }

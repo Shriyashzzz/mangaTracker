@@ -54,7 +54,8 @@ type Line = {
   // ("phone": above it on phones only, where the screen is short)
   onTop?: boolean | "phone";
   // on a wide enough screen, beside the section's right edge instead
-  besideIfRoom?: boolean;
+  // ("left": beside its left edge, for a section at the page's right)
+  besideIfRoom?: boolean | "left";
   // a step on the shelf: which of its tabs it's on. The shelf opens on that
   // tab for it, and any other tab counts as having wandered off
   tab?: "all" | "new" | "volumes";
@@ -115,8 +116,11 @@ const READER: { name: string; lines: Line[] }[] = [
         target: "spines",
         tap: true,
         // on phones above the spines, where under them he'd cover "Tap a
-        // book to mark it yours"; on laptops under them, which has room
+        // book to mark it yours"; on laptops to their left, over the title's
+        // empty end, as under them he'd cover the red bar's Buy button and
+        // the line under the spines
         onTop: "phone",
+        besideIfRoom: "left",
         say: "Own the books too? Each spine is a volume: tap one to put it on your shelf.",
       },
       {

@@ -15,7 +15,7 @@ const between = (least: number, value: number, most: number) =>
   Math.min(Math.max(least, value), most);
 
 // the bubble's top edge. In order:
-//   beside the section     level with its top
+//   beside the section     level with its top (its middle, on its left)
 //   in the corner          at the bottom of the screen, above the bottom bar
 //   on top of a big page   above the section, scrolling with it
 //   nothing to point at    the middle of the screen
@@ -23,6 +23,9 @@ const between = (least: number, value: number, most: number) =>
 export function bubbleTopFor(at: {
   // sitting to the right of the section
   beside: boolean;
+  // to its left instead: level with its middle, so he stays clear of what's
+  // under the section (the chapter counter, beside the spines)
+  onLeft?: boolean;
   // out of the way at the bottom, for a section too big to sit by
   inCorner: boolean;
   // the step wants him above the section, moving with it
@@ -40,6 +43,11 @@ export function bubbleTopFor(at: {
   scrolled: boolean;
 }) {
   const { box, bubbleHeight, viewHeight } = at;
+  if (at.beside && at.onLeft)
+    return Math.max(
+      SCREEN_MARGIN,
+      box!.top + box!.height / 2 - bubbleHeight / 2,
+    );
   if (at.beside) return box!.top;
   if (at.inCorner)
     return viewHeight - bubbleHeight - SCREEN_MARGIN - at.barSpace;
@@ -66,6 +74,8 @@ export function bubbleTopFor(at: {
 // screen
 export function bubbleLeftFor(at: {
   beside: boolean;
+  // beside its left edge instead of its right
+  onLeft?: boolean;
   showHole: boolean;
   box: Box | null;
   // the middle of the hole, left to right
@@ -74,6 +84,7 @@ export function bubbleLeftFor(at: {
   viewWidth: number;
 }) {
   const { box, bubbleWidth, viewWidth } = at;
+  if (at.beside && at.onLeft) return box!.left - BUBBLE_GAP - bubbleWidth;
   if (at.beside) return box!.left + box!.width + BUBBLE_GAP;
   if (!at.showHole) return (viewWidth - bubbleWidth) / 2;
   return between(

@@ -1683,6 +1683,19 @@ body:has([data-tour] [aria-haspopup][aria-expanded="true"])
     transform: rotate(90deg) translateY(-6px);
   }
 }
+.tour-pointer-right {
+  transform: rotate(-90deg);
+  animation-name: tour-bob-right;
+}
+@keyframes tour-bob-right {
+  0%,
+  100% {
+    transform: rotate(-90deg);
+  }
+  50% {
+    transform: rotate(-90deg) translateY(-6px);
+  }
+}
 @keyframes tour-bob-up {
   0%,
   100% {
@@ -1701,6 +1714,9 @@ body:has([data-tour] [aria-haspopup][aria-expanded="true"])
   }
   .tour-pointer-left {
     transform: rotate(90deg);
+  }
+  .tour-pointer-right {
+    transform: rotate(-90deg);
   }
 }
 
