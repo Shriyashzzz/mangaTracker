@@ -35,6 +35,10 @@ type Props = {
   // for someone reading by the chapter with no books: the chapters in the
   // book "Next for you" offers, said beside it ("Vol. 5 · ch. 34–42")
   nextChapters?: ChapterRange | null;
+  // how many volumes the page says the series has ("You own 22 of 22"):
+  // the same count here, where the catalog may know fewer (20th Century
+  // Boys: 3 of its 22 listed)
+  shelfTotal?: number;
 };
 
 // an edition's book: its own price page when the catalog has its ISBN, else
@@ -62,6 +66,7 @@ export default function BuyStrip({
   editions,
   onCollect,
   nextChapters = null,
+  shelfTotal = 0,
   folded = false,
   onOwnBook,
 }: Props) {
@@ -76,6 +81,7 @@ export default function BuyStrip({
   const out = onSale(volumes);
   const outCount = Math.max(
     out.length,
+    shelfTotal,
     ...out.map((v) => v.volume).filter(Number.isInteger),
   );
   const coming = volumes.length - out.length;
@@ -92,7 +98,7 @@ export default function BuyStrip({
   const withPrice = (book: string, cents: number | null | undefined) =>
     cents != null ? `${book} · ${formatCents(cents)}` : book;
   const summary = firstNext
-    ? withPrice(`${line.label} ${firstNext.number}`, firstNext.knownPriceCents)
+    ? withPrice(editionBookLabel(line, firstNext), firstNext.knownPriceCents)
     : next
       ? withPrice(`Vol. ${next.volume}`, next.knownPriceCents)
       : withPrice(`Vol. ${latest.volume}`, latest.knownPriceCents);
@@ -262,7 +268,11 @@ export default function BuyStrip({
           {caughtUp ? (
             <li className={styles.buyNote}>
               <span className={styles.buyKind}>Caught up</span>
-              Vol. {latest.volume} is the newest in English
+              {/* the catalog knowing fewer than they own: their count, not its
+                  newest ("Vol. 3 is the newest" beside "22 of 22") */}
+              {shelfTotal > latest.volume
+                ? `You own up to vol. ${shelfTotal}`
+                : `Vol. ${latest.volume} is the newest in English`}
             </li>
           ) : (
             next?.isbn13 !== latest.isbn13 && (

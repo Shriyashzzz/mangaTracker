@@ -16,7 +16,7 @@ import {
 } from "../../lib/afterAnimeText";
 import { seriesCanonicalPath, volumePath } from "../../lib/prices";
 import type { SeriesVolume } from "../../lib/types";
-import { bookFor } from "./bookFor";
+import { bookAfter, bookFor, bookShort } from "./bookFor";
 import BuyRow from "./BuyRow";
 import FixForm from "./FixForm";
 import { afterAnimeStyles as styles } from "./styles";
@@ -46,7 +46,11 @@ export default function SeasonPanel({
   const toBuy = buyVolume(stop);
   const book = toBuy !== null && volumes ? bookFor(volumes, toBuy) : null;
   const after = volumeAfter(stop);
-  const bookAfter = after !== null && volumes ? bookFor(volumes, after) : null;
+  // the one after it: the next volume, or the next book of two
+  const next =
+    after !== null && toBuy !== null && volumes
+      ? bookAfter(volumes, toBuy)
+      : null;
   // the list is in and doesn't have it: not out in English yet
   const notListed = toBuy !== null && volumes !== null && !book;
   // a chapter to start at but no volume on record (a series first published
@@ -100,15 +104,17 @@ export default function SeasonPanel({
           </ul>
         )}
         {/* for someone who already has the pick */}
-        {book && bookAfter && (
+        {book && next && (
           <p className={styles.volumesNote}>
-            Already have volume {toBuy}?{" "}
+            Already have{" "}
+            {book.inBook ? bookShort(book, toBuy!) : `volume ${toBuy}`}?{" "}
             <NavLink
-              to={volumePath(bookAfter.isbn13, bookAfter.title)}
+              to={volumePath(next.isbn13, next.title)}
               className={styles.link}
               viewTransition
             >
-              Volume {after} is next
+              {next.inBook ? bookShort(next, after!) : `Volume ${after}`} is
+              next
             </NavLink>
           </p>
         )}

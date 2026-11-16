@@ -42,8 +42,9 @@ test("a backup's Books cell reads back as written", () => {
     newBook("Berserk Deluxe Volume 2", [4, 5, 6], "9781506711997"),
     newBook("One Piece, Vol. 12", [12]),
   ];
+  // an edition's book keeps its title; a single's is only its number
   expect(booksFromCell(booksToCell(books))).toEqual(
-    books.map((b) => ({ ...b, title: null })),
+    books.map((b) => (b.edition === "single" ? { ...b, title: null } : b)),
   );
   expect(booksFromCell("")).toEqual([]);
   expect(booksFromCell("nonsense; 123 single 1: 1")).toEqual([]);
@@ -78,5 +79,40 @@ test("a typed price is cents, and nonsense is nothing", () => {
   expect(spentOn([{ paidCents: 500 }, { paidCents: null }, {}])).toEqual({
     cents: 500,
     books: 1,
+  });
+});
+
+test("an edition's book keeps its own title through the backup; older cells still read", () => {
+  const perfect = {
+    isbn13: "9781974700127",
+    edition: "deluxe" as const,
+    number: 1,
+    title: "20th Century Boys Perfect Edition #1",
+    volumes: [1, 2],
+  };
+  const single = {
+    isbn13: null,
+    edition: "single" as const,
+    number: 12,
+    title: "Vol. 12",
+    volumes: [12],
+  };
+  const cell = booksToCell([perfect, single]);
+  expect(cell).toBe(
+    "9781974700127 deluxe 1 [20th Century Boys Perfect Edition #1]: 1–2; - single 12: 12",
+  );
+  const [back, backSingle] = booksFromCell(cell);
+  expect(back).toMatchObject(perfect);
+  expect(backSingle).toMatchObject({
+    edition: "single",
+    number: 12,
+    title: null,
+  });
+  // a file from before titles were written
+  expect(booksFromCell("9781974700127 deluxe 1: 1–2")[0]).toMatchObject({
+    edition: "deluxe",
+    number: 1,
+    title: null,
+    volumes: [1, 2],
   });
 });

@@ -144,14 +144,19 @@ export const seasonHeading = (stop: AnimeStop) =>
 export const seasonAnchor = (stop: AnimeStop) =>
   `after-${stop.label.toLowerCase().replace(/[^a-z0-9]+/g, "-")}`;
 
+// What to call the volume to buy: "volume 14" unless the page knows better
+// ("Book 7 (vols. 13–14)", for a series sold only as books of two)
+type BuyWords = (volume: number) => string;
+const volumeWords: BuyWords = (volume) => `volume ${volume}`;
+
 // one season's answer in plain sentences, for the copy of the page search
 // engines read: "Season 2 ends at chapter 137, in volume 16. Start the manga
 // at chapter 138. Buy volume 16."
-export function answerSentence(stop: AnimeStop) {
+export function answerSentence(stop: AnimeStop, words = volumeWords) {
   const where = endText(stop);
   if (stop.coversAll || stop.nextChapter === null) return where;
   const volume = buyVolume(stop);
-  const buy = volume === null ? "" : ` Buy volume ${volume}.`;
+  const buy = volume === null ? "" : ` Buy ${words(volume)}.`;
   return `${where} Start the manga at chapter ${stop.nextChapter}.${buy}`.trim();
 }
 
@@ -192,7 +197,7 @@ export function latestStop(stops: AnimeStop[]) {
 //   asked:  "Finished the anime?"
 //   lead:   "Start the manga at chapter 116. Buy volume 24."
 //   detail: "Season 3 is the latest, and it ends at chapter 115."
-export function latestAnswer(stop: AnimeStop) {
+export function latestAnswer(stop: AnimeStop, words = volumeWords) {
   const asked = "Finished the anime?";
   // "Season 3 is the latest, and it ends at…", or just "The anime ends at…"
   const subject =
@@ -207,7 +212,7 @@ export function latestAnswer(stop: AnimeStop) {
     };
   const volume = buyVolume(stop);
   if (stop.nextChapter !== null) {
-    const buy = volume === null ? "" : ` Buy volume ${volume}.`;
+    const buy = volume === null ? "" : ` Buy ${words(volume)}.`;
     const how = stop.endsMidChapter ? "stops partway through" : "ends at";
     return {
       asked,
@@ -218,7 +223,7 @@ export function latestAnswer(stop: AnimeStop) {
   if (volume !== null)
     return {
       asked,
-      lead: `Start the manga at volume ${volume}.`,
+      lead: `Start the manga at ${words(volume)}.`,
       detail: `${subject} ends in volume ${stop.endVolume ?? volume}.`,
     };
   return { asked: "", lead: "", detail: "" };

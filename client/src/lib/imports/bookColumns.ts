@@ -5,6 +5,7 @@ import { importDate } from "./importDate";
 import { booksFromCell, centsOf, newBook, type NewBook } from "../books";
 import { parseVolumes } from "../ownedVolumes";
 import { type Book } from "./bookTypes";
+import { boxSetOf, oneBookHolds, unsureWithoutBinding } from "./bookVolumes";
 import {
   seriesFromTitle,
   seriesFromDetails,
@@ -432,10 +433,10 @@ export function csvBooks(h: string[], row: string[]): Book[] {
   let severalAt = volumesAt;
   if (severalAt < 0 && /\d/.test(cell(row, ownedAt))) severalAt = ownedAt;
   const several = severalAt >= 0;
-  const said = readVolumesCell(
-    cell(row, several ? severalAt : header(h, VOLUME_COLUMN)),
-    several,
-  );
+  const volumesText = cell(row, several ? severalAt : header(h, VOLUME_COLUMN));
+  const said = readVolumesCell(volumesText, several);
+  // "3", not "1-3": a count
+  const bareNumber = /^\s*\d{1,3}\s*$/.test(volumesText);
   if (said.kind === "one")
     return [
       book.volume == null && said.volume != null
@@ -479,6 +480,37 @@ export function csvBooks(h: string[], row: string[]): Book[] {
   // something we can't read: asked about in the preview, never "vol. 1"
   if (said.kind === "unreadable")
     return [{ ...series, volume: null, owned: true, omnibus: true }];
+  const toCheck = [{ ...series, volume: null, owned: true, omnibus: true }];
+  const seriesName = series.series ?? book.title;
+  const highest = Math.max(...said.volumes);
+  // a box set with a bare number counts sets, not volumes. One set the
+  // title or the publisher's table says the volumes of ("One Piece Box Set
+  // 2", "Death Note Box Set") holds those; any other is asked about, as the
+  // page says
+  if (BOX_SET_WORDS.test(book.title) && bareNumber) {
+    const set = highest === 1 ? boxSetOf(book.title) : null;
+    if (!set?.holds) return toCheck;
+    return set.holds.map((volume) => ({
+      ...series,
+      series: set.series,
+      names: [set.series],
+      owned: true,
+      title: `${set.series} #${volume}`,
+      volume,
+    }));
+  }
+  // one book that is the whole series ("Uzumaki", 1: the 3-in-1)
+  const wholeSeries = oneBookHolds(seriesName);
+  if (wholeSeries && said.volumes.length === 1 && highest === 1)
+    return Array.from({ length: wholeSeries }, (_, i) => ({
+      ...series,
+      owned: true,
+      title: `${book.title} #${i + 1}`,
+      volume: i + 1,
+    }));
+  // could be an edition known only by its binding, with no Format column
+  if (!book.binding && unsureWithoutBinding(seriesName, highest))
+    return toCheck;
   // each book keeps the row's title, edition words and all ("Berserk
   // Deluxe Edition #3"), so a deluxe or omnibus run is still read as one.
   // A box set's row lists the volumes inside it ("Akira 35th Anniversary Box

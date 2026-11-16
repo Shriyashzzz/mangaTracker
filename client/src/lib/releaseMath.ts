@@ -8,11 +8,21 @@ import type { Manga, ReleaseStatus } from "./types";
 // what a check came to: only "failed" means the sites didn't answer
 export type ReleaseOutcome = "news" | "notFound" | "skipped" | "off" | "failed";
 
-// How many are out past where they are (at least the one that put it on
-// New): volumes, chapters, or volumes in Japan. For volumes it's the newest
-// one's number less theirs, not how many books we have: the catalog has
-// holes (Hunter x Hunter with seven volumes missing said "25 behind" for 32)
+// How many they don't have (at least the one that put it on New): volumes,
+// chapters, or volumes in Japan. For volumes it's the newest one's number
+// less theirs, not how many books we have: the catalog has holes (Hunter x
+// Hunter with seven volumes missing said "25 behind" for 32). Plus the gaps
+// behind their furthest (Chainsaw Man owning 1–11 and 13–17 of 22: 6)
 export function behindOf(
+  found: ReleaseStatus | null | undefined,
+  kind: "volumes" | "chapters" | "japan",
+) {
+  const gaps = kind === "volumes" ? (found?.gapVolumes?.length ?? 0) : 0;
+  return behindPastTheirs(found, kind) + gaps;
+}
+
+// how many are out past the furthest they have, gaps behind it aside
+function behindPastTheirs(
   found: ReleaseStatus | null | undefined,
   kind: "volumes" | "chapters" | "japan",
 ) {
@@ -47,9 +57,12 @@ export function knowsNextVolume(found: ReleaseStatus | null | undefined) {
 // book still gets a row, so the list is as long as the card says
 export function volumesToGet(found: ReleaseStatus) {
   const { latestVolume, currentVolume, outVolumes } = found;
-  if (latestVolume == null || currentVolume == null) return outVolumes;
+  // the gaps behind their furthest first, then what's out past it
+  const gaps = found.gapVolumes ?? [];
+  if (latestVolume == null || currentVolume == null)
+    return [...gaps, ...outVolumes];
   const books = new Map(outVolumes.map((v) => [v.volume, v]));
-  const list: ReleaseStatus["outVolumes"] = [];
+  const list: ReleaseStatus["outVolumes"] = [...gaps];
   for (let n = Math.floor(currentVolume) + 1; n <= latestVolume; n++)
     list.push(books.get(n) ?? { volume: n });
   return list;
@@ -60,8 +73,8 @@ export function volumesToGet(found: ReleaseStatus) {
 // backlog: listed on the tab, not counted on its badge
 const isNews = (found: ReleaseStatus | null | undefined) =>
   Boolean(
-    (found?.hasNewVolume && behindOf(found, "volumes") === 1) ||
-    (found?.hasNewChapter && behindOf(found, "chapters") === 1),
+    (found?.hasNewVolume && behindPastTheirs(found, "volumes") === 1) ||
+    (found?.hasNewChapter && behindPastTheirs(found, "chapters") === 1),
   );
 
 // The number on New's red badge: the series with news, for any they've
@@ -112,3 +125,11 @@ export const isStillNew = (kind: SeenKind, m: Manga, found: ReleaseStatus) => {
     (found.latestJapaneseVolume ?? 0) > (m.seenJapanVolume ?? 0)
   );
 };
+
+// what to call their next volume: "Vol. 15", or the book it's sold in,
+// "Book 8", when it isn't sold on its own
+export function nextVolumeName(found: ReleaseStatus | null | undefined) {
+  const inBook = found?.nextVolumeInBook;
+  if (inBook) return `Book ${inBook.book}`;
+  return `Vol. ${found?.nextVolume ?? found?.latestVolume ?? ""}`;
+}

@@ -80,3 +80,16 @@ export function chaptersIn(
         : null,
   };
 }
+
+// the chapters in volumes from..to together, for a book of two or three:
+// from the first one's start to the last one's end (null when that end
+// isn't known yet)
+export function chaptersAcross(
+  from: number,
+  to: number,
+  starts: VolumeStart[],
+): { from: number; to: number | null } | null {
+  const first = chaptersIn(from, starts);
+  if (!first) return null;
+  return { from: first.from, to: chaptersIn(to, starts)?.to ?? null };
+}

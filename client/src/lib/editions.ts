@@ -3,6 +3,7 @@
 // server (prices/editionLines.ts); everything here is worked out from a line
 // and the volumes they own, however they came to own them.
 import type { OwnedBook } from "./books";
+import { bookName } from "./bookName";
 import { rangesText } from "./ownedVolumes";
 
 export type EditionBook = {
@@ -21,9 +22,9 @@ export type EditionLine = {
   books: EditionBook[];
 };
 
-// "Deluxe 3 (vols. 7–9)"
+// "Deluxe 3", "2-in-1 Book 1"
 export const editionBookLabel = (line: EditionLine, book: EditionBook) =>
-  `${line.label} ${book.number}`;
+  bookName(line.label, book.number);
 export const insideText = (book: EditionBook) =>
   `${book.volumes.length === 1 ? "vol." : "vols."} ${rangesText(book.volumes)}`;
 
@@ -40,7 +41,14 @@ const lastIndexWhere = <T>(list: T[], passes: (item: T) => boolean) => {
 };
 
 // what's left of a line for someone who owns these volumes
-export function editionPlan(line: EditionLine, owned: number[]) {
+export function editionPlan(
+  line: EditionLine,
+  owned: number[],
+  // with none owned: the volume their next chapter is in, when known (the
+  // same rule as single volumes, useBuyOptions): someone who finished the
+  // anime at chapter 100 wants the book with chapter 101, not Book 1
+  readingFrom: number | null = null,
+) {
   const ownedVolumes = new Set(owned);
   const books: PlannedBook[] = line.books.map((book) => ({
     ...book,
@@ -61,7 +69,13 @@ export function editionPlan(line: EditionLine, owned: number[]) {
   const upToFurthest = out.slice(0, furthestOwned + 1);
   const pastFurthest = out.slice(furthestOwned + 1);
 
-  const next = pastFurthest.find((book) => !isOwned(book)) ?? null;
+  const readingOn = owned.length === 0 && readingFrom != null;
+  const next =
+    pastFurthest.find(
+      (book) =>
+        !isOwned(book) &&
+        (!readingOn || book.volumes.some((v) => v >= readingFrom)),
+    ) ?? null;
   // behind the furthest: books they lack, or own only some volumes of
   const gaps = upToFurthest.filter((book) => !isOwned(book));
   const left = out.filter((book) => !isOwned(book));

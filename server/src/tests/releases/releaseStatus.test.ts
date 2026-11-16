@@ -507,3 +507,44 @@ test("read by the volume: no chapter news, and the volume read stands in for a b
   expect(getReleaseStatus(both, fifty).nextChapter).toBe(11);
   expect(getReleaseStatus(both, out).nextVolume).toBe(3);
 });
+
+test("a next volume sold only in a book of two is named by its book", () => {
+  // Vinland Saga in English: Book 7 holds 13–14, Book 8 holds 15–16
+  const inBooks = [13, 14, 15, 16].map((volume) => ({
+    volume,
+    inBook: {
+      book: volume <= 14 ? 7 : 8,
+      from: volume <= 14 ? 13 : 15,
+      to: volume <= 14 ? 14 : 16,
+    },
+  }));
+  const status = getReleaseStatus(owns(14), volumesOnly(inBooks), EVERY_NEXT);
+  expect(status.nextVolume).toBe(15);
+  expect(status.nextVolumeInBook).toEqual({ book: 8, from: 15, to: 16 });
+  // sold on its own: no book
+  expect(
+    getReleaseStatus(owns(14), volumesOnly(english(15)), EVERY_NEXT)
+      .nextVolumeInBook,
+  ).toBeNull();
+});
+
+test("the English volumes they skipped below their furthest are listed as gaps", () => {
+  // Chainsaw Man: owns 1–11 and 13–17 of 22
+  const status = getReleaseStatus(
+    {
+      volumesOwned: 17,
+      bookmark: null,
+      ownedList: [...Array(11).keys()]
+        .map((i) => i + 1)
+        .concat([13, 14, 15, 16, 17]),
+    },
+    volumesOnly(english(...Array.from({ length: 22 }, (_, i) => i + 1))),
+    EVERY_NEXT,
+  );
+  expect(status.gapVolumes.map((v) => v.volume)).toEqual([12]);
+  // a run from 1 has none
+  expect(
+    getReleaseStatus(owns(17), volumesOnly(english(1, 2, 18)), EVERY_NEXT)
+      .gapVolumes,
+  ).toEqual([]);
+});

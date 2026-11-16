@@ -21,6 +21,8 @@ export function useEditions(
   // the ISBN of each volume the catalog lists: shared ones mean there are
   // no singles in English (onlyLineInEnglish)
   listedIsbns: (string | null)[] = [],
+  // with none owned: the volume their next chapter is in (editionPlan)
+  readingFrom: number | null = null,
 ) {
   const [state, setState] = useState<{
     name: string | null;
@@ -57,7 +59,7 @@ export function useEditions(
     line,
     // picked for them from their books, until they choose
     guessed: Boolean(line && guessed),
-    plan: line ? editionPlan(line, owned) : null,
+    plan: line ? editionPlan(line, owned, readingFrom) : null,
   };
 }
 

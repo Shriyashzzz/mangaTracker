@@ -8,7 +8,7 @@
 // "Akira 35th Anniversary Box Set" is Akira.
 // Words that end real names ("Rave Master") count only before "Edition"
 const EDITION =
-  /[\s,:(\-–—]+(the )?((deluxe|omnibus|complete( collection)?|box ?set|vizbig|full[\s-]colou?r(\s+collection)?|\d-in-\d|\d-in|\d+ ?in ?\d+)( edition)?|all-in-one( edition)?|(collector'?s|perfect|ultimate|master|revised|fullmetal|eternal) edition|\d+(st|nd|rd|th) anniversary( edition)?)\)?$/i;
+  /[\s,:(\-–—]+(the )?((deluxe|omnibus|complete( collection)?|box ?set|vizbig|full[\s-]colou?r(\s+collection)?|\d-in-\d|\d-in|\d+ ?in ?\d+)( edition)?|all-in-one( edition)?|(collector'?s|perfect|ultimate|master|revised|fullmetal|eternal|black) edition|\d+(st|nd|rd|th) anniversary( edition)?)\)?$/i;
 
 export const tidy = (name: string) =>
   name
@@ -17,9 +17,11 @@ export const tidy = (name: string) =>
     .replace(/\s*\(\s*(light[\s-]?novels?|ln|novel|manga)\s*\)/gi, "")
     .replace(/\s+/g, " ")
     .replace(/[\s,:;.\-–—]+$/, "")
-    // the format said in words: "Spice & Wolf: Manga", "Witch & Wizard: The Manga"
+    // the format said in words, set apart by punctuation: "Spice & Wolf:
+    // Manga", "Witch & Wizard: The Manga". With only a space it may be the
+    // name's own word ("Asdfgh Qwerty Not A Manga"), and stays
     .replace(
-      /[\s,:\-–—]+(the )?(manga|manhwa|light[\s-]?novels?|graphic novels?)$/i,
+      /\s*[,:\-–—]\s*(the )?(manga|manhwa|light[\s-]?novels?|graphic novels?)$/i,
       "",
     )
     // "English Version Attack on Titan"

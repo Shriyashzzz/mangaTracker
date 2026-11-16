@@ -99,6 +99,13 @@ export type ReleaseStatus = {
   // the next English volume after where they are, and its price page
   nextVolume: number | null;
   nextVolumeBook?: { isbn13: string; title: string } | null;
+  // the book of two or three that volume is sold in, when it isn't sold on
+  // its own (Vinland Saga's Book 8 holds vols. 15 and 16)
+  nextVolumeInBook?: InBook | null;
+  // English volumes out below their furthest that they don't own (a gap
+  // at 12): counted in "N to get", listed first. Saved answers from before
+  // have none
+  gapVolumes?: { volume: number; isbn13?: string; title?: string }[];
   // every English volume past where they are: how far behind they are, and
   // the list a card opens
   outVolumes: { volume: number; isbn13?: string; title?: string }[];

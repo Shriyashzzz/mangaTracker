@@ -40,10 +40,10 @@ function VolumeCell({
   return (
     <NavLink
       to={volumePath(book.isbn13, book.title)}
-      aria-label={`Volume ${volume} prices`}
+      aria-label={`${book.inBook ? `Book ${book.inBook.book}` : `Volume ${volume}`} prices`}
       viewTransition
     >
-      {volume}
+      {book.inBook ? `Book ${book.inBook.book}` : volume}
     </NavLink>
   );
 }

@@ -50,12 +50,20 @@ const EDITIONS: {
     books: 12,
     volumes: 23,
   },
+  // VIZ's Death Note Black Edition: 6 books of two for the 12 volumes
+  {
+    series: "death note",
+    edition: /\bblack edition\b/i,
+    perBook: 2,
+    books: 6,
+    volumes: 12,
+  },
 ];
 
 // the edition's words off the series' name: "Berserk Deluxe Edition" is Berserk
 // (words that end real names, "Rave Master", only before "Edition")
 const EDITION_WORDS =
-  /[\s,:(-]+(the\s+)?(deluxe(\s+edition)?|(perfect|collector'?s|fullmetal|master|ultimate)\s+edition)\)?\s*$/i;
+  /[\s,:(-]+(the\s+)?(deluxe(\s+edition)?|(perfect|collector'?s|fullmetal|master|ultimate|black)\s+edition)\)?\s*$/i;
 export const withoutEdition = (name: string) =>
   name.replace(EDITION_WORDS, "").trim() || name;
 

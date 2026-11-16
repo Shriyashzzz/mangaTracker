@@ -45,7 +45,7 @@ export const spentOn = (books: Pick<OwnedBook, "paidCents">[]) => {
 const editionOf = (title: string, volumes: number[]): EditionKind =>
   /\bbox(ed)?[\s-]?set\b|\bcomplete (collection|set|series)\b/i.test(title)
     ? "boxset"
-    : /\bdeluxe\b|\b(perfect|collector'?s|master|ultimate|fullmetal) edition\b|\bkanzenban\b/i.test(
+    : /\bdeluxe\b|\b(perfect|collector'?s|master|ultimate|fullmetal|black|eternal) edition\b|\bkanzenban\b/i.test(
           title,
         )
       ? "deluxe"
@@ -93,13 +93,23 @@ export const bookLabel = (
 };
 
 // a series' books in one cell of the backup, and read back from it:
-// "9781506711980 deluxe 1: 1–3 @49.99 2026-01-05; - single 12: 12". What
-// was paid ("@") and the day bought follow the volumes, when they're known
+// "9781506711980 deluxe 1 [Berserk Deluxe Edition Volume 1]: 1–3 @49.99
+// 2026-01-05; - single 12: 12". An edition's book keeps its own title in
+// brackets, so a Perfect Edition isn't only "deluxe" (files from before have
+// none, and still read). What was paid ("@") and the day bought follow the
+// volumes, when they're known
+const titleInCell = (b: NewBook) =>
+  b.edition !== "single" && b.title
+    ? ` [${b.title
+        .replace(/[[\];]/g, " ")
+        .replace(/\s+/g, " ")
+        .trim()}]`
+    : "";
 export const booksToCell = (books: NewBook[]) =>
   books
     .map((b) =>
       [
-        `${b.isbn13 ?? "-"} ${b.edition} ${b.number ?? "-"}: ${rangesText(b.volumes)}`,
+        `${b.isbn13 ?? "-"} ${b.edition} ${b.number ?? "-"}${titleInCell(b)}: ${rangesText(b.volumes)}`,
         b.paidCents != null ? `@${(b.paidCents / 100).toFixed(2)}` : null,
         dayOf(b.boughtOn),
       ]
@@ -115,17 +125,17 @@ export const booksFromCell = (text: string): NewBook[] =>
     const paid = /\s@(\d+(?:\.\d{1,2})?)\s*$/.exec(undated);
     const rest = paid ? undated.slice(0, paid.index) : undated;
     const found =
-      /^\s*(97[89]\d{10}|-)\s+(single|omnibus|deluxe|boxset)\s+([\d.]+|-):\s*(.+?)\s*$/.exec(
+      /^\s*(97[89]\d{10}|-)\s+(single|omnibus|deluxe|boxset)\s+([\d.]+|-)(?:\s+\[([^\]]*)\])?:\s*(.+?)\s*$/.exec(
         rest,
       );
-    const volumes = found ? parseVolumes(found[4]!) : null;
+    const volumes = found ? parseVolumes(found[5]!) : null;
     if (!found || !volumes?.length) return [];
     return [
       {
         isbn13: found[1] === "-" ? null : found[1]!,
         edition: found[2] as EditionKind,
         number: found[3] === "-" ? null : Number(found[3]),
-        title: null,
+        title: found[4]?.trim() || null,
         volumes,
         ...(paid ? { paidCents: Math.round(Number(paid[1]) * 100) } : {}),
         ...(day ? { boughtOn: day[1]! } : {}),

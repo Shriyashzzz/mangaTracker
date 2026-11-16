@@ -33,7 +33,7 @@ import { pricesStyles as priceStyles } from "../Prices/styles";
 import { useSeriesLoad } from "../Prices/useSeriesData";
 import FixForm from "./FixForm";
 import MoreShows from "./MoreShows";
-import { bookFor } from "./bookFor";
+import { bookFor, bookWords } from "./bookFor";
 import SeasonPanel, { ALL_VOLUMES } from "./SeasonPanel";
 import SeasonTable from "./SeasonTable";
 import { afterAnimeStyles as styles } from "./styles";
@@ -125,6 +125,14 @@ export default function AfterAnimeShow() {
   const name = show?.name ?? asked;
   // the season most people have just finished comes first
   const latest = show ? latestStop(show.stops) : undefined;
+  // its answer, naming the book to buy once the English list is in: "Buy
+  // Book 7 (vols. 13–14)" for a series sold only as books of two
+  const answer =
+    latest &&
+    latestAnswer(
+      latest,
+      volumes ? (n) => bookWords(bookFor(volumes, n), n) : undefined,
+    );
   const newestFirst = show ? [...show.stops].reverse() : [];
   // several volumes in one buy, when a store has a box set priced (cheapest
   // first). Not eBay's: a single volume listed there as a "set" gave Bleach a
@@ -158,20 +166,14 @@ export default function AfterAnimeShow() {
             {hasAnswer ? "Where to start the manga" : "No answer yet"}
           </span>
         </h1>
-        {latest && (
+        {answer && (
           <>
             {/* the question on its own line, the answer under it */}
             <p className={styles.lead}>
-              <span className={styles.leadAsked}>
-                {latestAnswer(latest).asked}
-              </span>{" "}
-              <span className="block">
-                {keepNumbers(latestAnswer(latest).lead)}
-              </span>
+              <span className={styles.leadAsked}>{answer.asked}</span>{" "}
+              <span className="block">{keepNumbers(answer.lead)}</span>
             </p>
-            <p className={styles.sub}>
-              {keepNumbers(latestAnswer(latest).detail)}
-            </p>
+            <p className={styles.sub}>{keepNumbers(answer.detail)}</p>
           </>
         )}
       </header>

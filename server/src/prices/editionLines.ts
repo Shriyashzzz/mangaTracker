@@ -112,6 +112,12 @@ const LINES: {
   { key: "omnibus", kind: "omnibus", label: "Omnibus", words: /\bomnibus\b/i },
 ];
 
+// what one book of a line is called: "Deluxe 3", "2-in-1 Book 1". The page
+// keeps a copy (client lib/bookName.ts); tests/shelf/rulesInStep.test.ts
+// fails if the two differ
+export const bookName = (label: string, number: number) =>
+  /-in-1$/i.test(label) ? `${label} Book ${number}` : `${label} ${number}`;
+
 // third-party bundles and rebinds borrow a line's name: never the publisher's
 const NOT_ONE_BOOK =
   /\b(box(ed)?\s*set|books?\s+collection|collection\s+set|bundle|lot|notebook|colou?ring|journal|planner|calendar|art\s*book|guide)\b/i;

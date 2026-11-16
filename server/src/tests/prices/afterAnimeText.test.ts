@@ -2,6 +2,13 @@
 // (client/src/lib/afterAnimeText.ts), over what the server's reader makes of
 // real MangaUpdates lines
 import {
+  bookAfter,
+  bookFor,
+  bookShort,
+  bookWords,
+} from "../../../../client/src/pages/AfterAnime/bookFor.js";
+import type { SeriesVolume } from "../../../../client/src/lib/types.js";
+import {
   afterLabel,
   answerSentence,
   answerText,
@@ -293,4 +300,35 @@ test('a season named by a plain word gets its "the"', () => {
   // a name is left as it is
   expect(afterLabel(named!)).toBe("After Reze Movie");
   expect(afterLabel(season!)).toBe("After Season 1");
+});
+
+// Vinland Saga in English: only Kodansha's books of two (Book 7 holds 13–14)
+const books: SeriesVolume[] = [13, 14, 15, 16].map((volume) => {
+  const book = volume <= 14 ? 7 : 8;
+  return {
+    isbn13: `97816323600${book}0`,
+    title: `Vinland Saga, Book ${book}`,
+    volume,
+    coverUrl: "",
+    knownPriceCents: null,
+    inBook: { book, from: book * 2 - 1, to: book * 2 },
+  };
+});
+
+test("a volume sold only in a book of two: the book is the one to buy", () => {
+  const book = bookFor(books, 14);
+  expect(book?.title).toBe("Vinland Saga, Book 7");
+  expect(bookWords(book, 14)).toBe("Book 7 (vols. 13–14)");
+  expect(bookShort(book, 14)).toBe("Book 7");
+  // the one after Book 7 is Book 8, even from its first volume
+  expect(bookAfter(books, 13)?.title).toBe("Vinland Saga, Book 8");
+  // a volume sold on its own is still called a volume
+  const single = { ...books[0]!, inBook: undefined, volume: 3 };
+  expect(bookFor([single], 3)).toBe(single);
+  expect(bookWords(single, 3)).toBe("volume 3");
+  // the page's answer says the book; the search engines' copy, the volume
+  expect(latestAnswer(third!, () => "Book 7 (vols. 13–14)").lead).toMatch(
+    /Buy Book 7 \(vols\. 13–14\)\.$/,
+  );
+  expect(latestAnswer(third!).lead).toMatch(/Buy volume \d+\.$/);
 });

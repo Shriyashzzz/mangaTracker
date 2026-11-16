@@ -3,7 +3,9 @@
 // so English volumes come from our US book catalog. Its covers still tell us
 // how far Japan has got, for anyone who wants to know.
 import type { FormatedDates } from "./volumeDataFormatter.js";
-import { chaptersIn, volumeOfChapter } from "./volumeStarts.js";
+import { chaptersAcross, volumeOfChapter } from "./volumeStarts.js";
+
+type InBook = { book: number; from: number; to: number };
 
 // which series the New tab lists, set by each reader. "next": every series,
 // with the next one for it, however far behind. "within": only once they're
@@ -99,9 +101,15 @@ export type ReleaseStatus = {
   // the next English volume after where they are, and its price page
   nextVolume: number | null;
   nextVolumeBook: { isbn13: string; title: string } | null;
+  // the book of two or three that volume is sold in, when it isn't sold on
+  // its own: the card says "Book 8 next", what they can actually buy
+  nextVolumeInBook: InBook | null;
   // every English volume past where they are: how far behind they are, and
   // the list a card opens
   outVolumes: { volume: number; isbn13?: string; title?: string }[];
+  // English volumes out below their furthest that they don't own: counted
+  // in "N to get" and listed first on the list a card opens
+  gapVolumes: { volume: number; isbn13?: string; title?: string }[];
   // the same for what's only out in Japan
   outJapanVolumes: number[];
   latestChapter: number | null;
@@ -119,6 +127,8 @@ type Shelved = {
   seenJapanVolume?: number | null;
   // hidden one at a time
   hiddenVolumes?: number[];
+  // the exact volumes they own, when not a run from 1 (a gap at 12)
+  ownedList?: number[];
 };
 
 // how a reader keeps their place: each series its own way, every series by
@@ -167,6 +177,9 @@ type Sources = {
         title?: string;
         // "2026-11-17", or "2026-11" when only the month is known
         published?: string;
+        // sold only inside a book of two or three (Vinland Saga's Book 8
+        // holds vols. 15 and 16)
+        inBook?: InBook;
       }[]
     | null;
 };
@@ -184,6 +197,7 @@ export function getReleaseStatus(
     seenChapter,
     seenJapanVolume,
     hiddenVolumes,
+    ownedList,
   }: Shelved,
   { dates, englishVolumes }: Sources,
   { volumes, chapters }: ReleaseSettings = DEFAULT_RELEASE_SETTINGS,
@@ -228,10 +242,41 @@ export function getReleaseStatus(
         null)
       : null;
   const nextBook = (englishVolumes ?? []).find((v) => v.volume === nextVolume);
+  // the English volumes out below the furthest they own that they don't
+  // have (Chainsaw Man owning 1–11 and 13–17: vol. 12), so "N to get"
+  // counts every one, as the Volumes tab does
+  const owns = new Set(ownedList ?? []);
+  const gapVolumes =
+    ownedList?.length && currentVolume != null
+      ? [
+          ...new Map(
+            (englishVolumes ?? [])
+              .filter(
+                (v): v is typeof v & { volume: number } =>
+                  v.volume != null &&
+                  Number.isInteger(v.volume) &&
+                  v.volume >= 1 &&
+                  v.volume < currentVolume &&
+                  !owns.has(v.volume),
+              )
+              .map((v) => [
+                v.volume,
+                { volume: v.volume, isbn13: v.isbn13, title: v.title },
+              ]),
+          ).values(),
+        ].sort((a, b) => a.volume - b.volume)
+      : [];
   // for that reader, the chapters in it, so a card can say why that one:
   // "Vol. 5 · ch. 34–42" beside "Read up to ch. 38"
+  const nextVolumeInBook = nextBook?.inBook ?? null;
   const nextVolumeChapters =
-    byChapterOnly && nextVolume != null ? chaptersIn(nextVolume, starts) : null;
+    byChapterOnly && nextVolume != null
+      ? chaptersAcross(
+          nextVolumeInBook?.from ?? nextVolume,
+          nextVolumeInBook?.to ?? nextVolume,
+          starts,
+        )
+      : null;
   const nextVolumeBook =
     nextVolume != null && nextBook?.isbn13
       ? { isbn13: nextBook.isbn13, title: nextBook.title ?? "" }
@@ -298,6 +343,7 @@ export function getReleaseStatus(
     chapterListed,
     japanListed,
     outVolumes,
+    gapVolumes,
     outJapanVolumes,
     isNextVolumeOut,
     currentVolume,
@@ -309,6 +355,7 @@ export function getReleaseStatus(
     nextChapter,
     nextVolume,
     nextVolumeBook,
+    nextVolumeInBook,
     latestChapter,
     latestJapaneseVolume,
   };

@@ -116,6 +116,7 @@ export default function Details() {
     mangaData?.edition,
     mangaData ? ownedOf(mangaData) : [],
     buyOptions.volumes.map((v) => v.isbn13),
+    releaseStatus?.nextChapterVolume ?? null,
   );
 
   // ---------- loading ----------
@@ -394,6 +395,7 @@ export default function Details() {
                 that names the book and its price */}
             <div className="hidden upto-720:order-1 upto-720:col-span-full upto-720:block">
               <BuyStrip
+                shelfTotal={shelfTotal.isKnown ? shelfTotal.size : 0}
                 folded
                 options={buyOptions}
                 hideNext={hideNextTicket}
@@ -538,6 +540,7 @@ export default function Details() {
           {/* phones have it folded, high on the page (below) */}
           <div className="upto-720:hidden">
             <BuyStrip
+              shelfTotal={shelfTotal.isKnown ? shelfTotal.size : 0}
               options={buyOptions}
               hideNext={hideNextTicket}
               editions={editions}

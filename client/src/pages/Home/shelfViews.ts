@@ -13,6 +13,7 @@ import { closeEnough } from "../../lib/nearMatches";
 import {
   countNew,
   knowsNextVolume,
+  nextVolumeName,
   type SeenKind,
 } from "../../lib/releaseMath";
 import type { Manga, ReleaseStatus } from "../../lib/types";
@@ -332,13 +333,17 @@ export function newsFor(
   if (found && !knowsNextVolume(found))
     return { text: "", behind: behindWords(found, kind), yours: volumeYours };
   const next = found?.nextVolume;
+  // "vol. 15", or the book it's sold in: "Book 8"
+  const nextName = found?.nextVolumeInBook
+    ? nextVolumeName(found)
+    : `vol. ${next}`;
   // a chapter reader is told which chapters that book holds, under their
   // own: "Read up to ch. 38 · vol. 5 has ch. 35–43"
   const range = byChapter && next != null ? found?.nextVolumeChapters : null;
   if (range && volumeYours)
-    volumeYours = `${volumeYours} · vol. ${next} has ${chaptersText(range)}`;
+    volumeYours = `${volumeYours} · ${nextName} has ${chaptersText(range)}`;
   return {
-    text: `Vol. ${next} next`,
+    text: `${nextVolumeName(found)} next`,
     behind: behindWords(found, kind),
     // always, so every card answers "where am I?" the same way
     yours: volumeYours,

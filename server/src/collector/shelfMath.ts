@@ -3,7 +3,7 @@
 // and what's coming out when. Everything reads prices already saved; nothing
 // here asks a store or a catalog.
 import type { CheapestCopy, RecordedPrice } from "../models/priceQueries.js";
-import type { EditionLine } from "../prices/editionLines.js";
+import { bookName, type EditionLine } from "../prices/editionLines.js";
 
 // a volume of a series as the saved lists know it
 export type ListedVolume = {
@@ -361,7 +361,7 @@ export function finishEdition(
   for (const book of booksOut) {
     const ownsAllOfIt = book.volumes.every((v) => mine.has(v));
     if (ownsAllOfIt) continue;
-    const label = `${line.label} ${book.number}`;
+    const label = bookName(line.label, book.number);
     missing.push({
       volume: book.number,
       isbn13: book.isbn13 ?? "",

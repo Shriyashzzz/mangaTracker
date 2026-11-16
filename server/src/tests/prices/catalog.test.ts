@@ -1,6 +1,7 @@
 import {
   bookFromListing,
   booksFromEditions,
+  englishAuthors,
   isIsbn13,
   isMergedWork,
   isSelfPublished,
@@ -254,4 +255,17 @@ describe("a book Google Books lists", () => {
       }),
     ).toBeNull();
   });
+});
+
+test("each author is named once, and Japanese names are left out", () => {
+  expect(
+    englishAuthors([
+      "Tatsuki Fujmoto",
+      "Judit Moreno",
+      "tatsuki fujmoto ",
+      "藤本タツキ",
+    ]),
+  ).toBe("Tatsuki Fujmoto, Judit Moreno");
+  expect(englishAuthors(["藤本タツキ"])).toBeNull();
+  expect(englishAuthors(undefined)).toBeNull();
 });

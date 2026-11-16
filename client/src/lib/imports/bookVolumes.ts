@@ -126,6 +126,9 @@ type Edition = {
   perBook?: number;
   books: number;
   volumes: number;
+  // known only by a Format column ("Hardcover"), as its titles say "Vol. 1"
+  // like the singles do
+  byBinding?: true;
 };
 const EDITIONS: Edition[] = [
   // Deluxe 14 ends at vol. 41
@@ -228,8 +231,18 @@ const EDITIONS: Edition[] = [
     edition: /\bhardcover\b/i,
     books: 10,
     volumes: 16,
+    byBinding: true,
+  },
+  // VIZ's Death Note Black Edition: 6 books of two for the 12 volumes
+  {
+    series: /^death note$/,
+    edition: /\bblack edition\b/i,
+    perBook: 2,
+    books: 6,
+    volumes: 12,
   },
   // Kodansha's Eternal Edition: 10 books for the 12 volumes
+
   {
     series: /^sailor moon$|^pretty guardian sailor moon$/,
     edition: /\beternal edition\b/i,
@@ -259,7 +272,7 @@ export function evenRange(
   return [from, Math.max(from, to)];
 }
 const SPECIAL_EDITION =
-  /\b(deluxe|perfect edition|collector'?s edition|fullmetal edition|master edition|eternal edition)\b/i;
+  /\b(deluxe|perfect edition|collector'?s edition|fullmetal edition|master edition|eternal edition|black edition)\b/i;
 
 export function editionVolumes(
   series: string,
@@ -283,6 +296,22 @@ export function editionVolumes(
     return { holds: run(1, Number(perBook))! };
   return SPECIAL_EDITION.test(title) ? { omnibus: true } : null;
 }
+
+// Series sold in English as one book holding every volume: "Uzumaki", 1 is
+// the 3-in-1 (VIZ's singles are long out of print). Only ones checked by
+// hand; no other series is guessed
+const ONE_BOOK: Record<string, number> = { uzumaki: 3 };
+export const oneBookHolds = (series: string) =>
+  ONE_BOOK[seriesKey(series)] ?? null;
+
+// a run that could be an edition known only by its binding: JoJo Part 3
+// "1-10" with no Format column is the 10 hardcovers or singles 1 to 10, so
+// it's asked about rather than guessed
+export const unsureWithoutBinding = (series: string, highest: number) =>
+  EDITIONS.some(
+    (e) =>
+      e.byBinding && e.series.test(seriesKey(series)) && highest <= e.books,
+  );
 
 // a number in the title besides an "N-in-1"
 const hasOwnNumber = (title: string) =>
@@ -317,7 +346,7 @@ const BOX_SETS: Record<string, Record<number, [number, number]>> = {
 };
 const SET_MAX = 120;
 
-function boxSetOf(
+export function boxSetOf(
   title: string,
 ): { series: string; holds: number[] | null } | null {
   const text = withAmpersands(title.normalize("NFKC"));

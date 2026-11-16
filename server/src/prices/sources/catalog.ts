@@ -22,7 +22,15 @@ const TIMEOUT_MS = 8000;
 // ("丸山くがね, Kugane Maruyama"), and readers here get the English one
 export const englishAuthors = (names: string[] | undefined) => {
   const english = (names ?? []).filter((n) => !/[\u3000-ヿ㐀-鿿＀-￯]/.test(n));
-  return english.length ? english.join(", ") : null;
+  // a name the catalog lists twice ("Tatsuki Fujimoto, Judit Moreno,
+  // Tatsuki Fujimoto") is said once
+  const once = english.filter(
+    (name, i) =>
+      english.findIndex(
+        (other) => other.trim().toLowerCase() === name.trim().toLowerCase(),
+      ) === i,
+  );
+  return once.length ? once.join(", ") : null;
 };
 
 // one search hit, with only the fields we ask for

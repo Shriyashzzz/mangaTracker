@@ -1610,3 +1610,57 @@ test("JoJo Part 3's hardcovers are known by their binding: 10 books for the 16",
   );
   expect(soft!.ownedVolumes).toBe(10);
 });
+
+// another app's list of series with a count or a range: Title,Volumes
+const run = (from: number, to: number) =>
+  Array.from({ length: to - from + 1 }, (_, i) => from + i);
+const countRow = (row: string, head = "Title,Volumes") => {
+  const [s] = groupBooks(
+    readBooks(parseCsv([head, row].join("\n")), "other" as never).map((b) => ({
+      ...b,
+      owned: true,
+    })),
+  );
+  return { title: s?.title, owned: s?.ownedList, check: Boolean(s?.omnibus) };
+};
+
+test("a box set with a bare number is a set: known ones hold their volumes, others are asked about", () => {
+  expect(countRow("Nausicaä of the Valley of the Wind Box Set,1")).toEqual({
+    title: "Nausicaä of the Valley of the Wind",
+    owned: null,
+    check: true,
+  });
+  expect(countRow("One Piece Box Set 2,1").owned).toEqual(run(24, 46));
+  expect(countRow("Death Note Box Set,1").owned).toEqual(run(1, 12));
+  // two sets of who knows which: asked
+  expect(countRow("One Piece Box Set,2").check).toBe(true);
+  // a range is the volumes inside, as before
+  expect(countRow("Akira 35th Anniversary Box Set,1-6").owned).toEqual(
+    run(1, 6),
+  );
+});
+
+test("editions, one-book series and binding-only editions in a count list", () => {
+  // VIZ's Black Edition: 6 books of two
+  expect(countRow("Death Note Black Edition,1-6")).toMatchObject({
+    title: "Death Note",
+    owned: run(1, 12),
+  });
+  // Uzumaki's one English book is the whole series; three are singles
+  expect(countRow("Uzumaki,1").owned).toEqual(run(1, 3));
+  expect(countRow("Uzumaki,3").owned).toEqual(run(1, 3));
+  // JoJo Part 3 1-10 could be the 10 hardcovers: asked, unless Format says
+  const jojo = "JoJo's Bizarre Adventure Part 3 Stardust Crusaders";
+  expect(countRow(`${jojo},1-10`).check).toBe(true);
+  expect(
+    countRow(`${jojo},1-10,Hardcover`, "Title,Volumes,Format").owned,
+  ).toEqual(run(1, 16));
+  expect(countRow(`${jojo},1-16`).owned).toEqual(run(1, 16));
+});
+
+test("a title ending in the word Manga keeps it unless punctuation sets it apart", () => {
+  expect(countRow("Asdfgh Qwerty Not A Manga,3").title).toBe(
+    "Asdfgh Qwerty Not A Manga",
+  );
+  expect(countRow("Spice & Wolf: Manga,2").title).toBe("Spice & Wolf");
+});

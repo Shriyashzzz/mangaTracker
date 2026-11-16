@@ -231,3 +231,12 @@ test("volumes listed under shared books default to that line", () => {
     ),
   ).toBeNull();
 });
+
+test("owning none, a chapter reader starts at the book with their next chapter", () => {
+  // finished the anime at chapter 50, which is in vol. 8: Deluxe 3 holds 7–9
+  expect(editionPlan(line(5), [], 8).next?.number).toBe(3);
+  // owning some, it goes by what they own, as before
+  expect(editionPlan(line(5), run(1, 3), 8).next?.number).toBe(2);
+  // nothing known about where they read: Book 1
+  expect(editionPlan(line(5), [], null).next?.number).toBe(1);
+});

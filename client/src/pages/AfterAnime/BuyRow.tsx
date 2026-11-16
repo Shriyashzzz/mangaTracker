@@ -11,6 +11,7 @@ import { formatCents, timeAgo, volumePath } from "../../lib/prices";
 import type { SeriesVolume } from "../../lib/types";
 import { linkRel } from "../Prices/offerLabels";
 import { CoverFallback } from "../Prices/VolumeCard";
+import { bookShort, bookWords } from "./bookFor";
 import { afterAnimeStyles as styles } from "./styles";
 
 export default function BuyRow({
@@ -35,6 +36,10 @@ export default function BuyRow({
   seriesCoverUrl: string | null;
   seriesName: string;
 }) {
+  // "Volume 14", or the book it's in: "Book 7 (vols. 13–14)"
+  const words = bookWords(book, volume);
+  const heading = words[0]!.toUpperCase() + words.slice(1);
+  const short = bookShort(book, volume);
   // where the button goes: the new copy, or else the used one
   const main = offer ?? used;
   const pricePage = volumePath(book.isbn13, book.title);
@@ -60,7 +65,7 @@ export default function BuyRow({
         <Cover url={book.coverUrl} sizes="80px" />
       </NavLink>
       <div className={styles.buyWords}>
-        <h3 className={styles.buyTitle}>Volume {volume}</h3>
+        <h3 className={styles.buyTitle}>{heading}</h3>
         <p className={styles.buyWhy}>{why}</p>
         {/* the price said first: a new copy's, or else a used one's */}
         {offer && (
@@ -88,7 +93,7 @@ export default function BuyRow({
                 target="_blank"
                 rel={linkRel(main)}
               >
-                Buy vol. {volume}
+                Buy {short}
                 {!offer && " used"}
               </a>
               <NavLink to={pricePage} className={styles.link} viewTransition>
@@ -97,7 +102,7 @@ export default function BuyRow({
             </>
           ) : (
             <NavLink to={pricePage} className="btn btn-primary" viewTransition>
-              Check vol. {volume} prices
+              Check {short} prices
             </NavLink>
           )}
         </div>

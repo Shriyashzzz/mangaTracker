@@ -366,3 +366,36 @@ test("the shelf search allows a slip of the finger, never for a few letters", ()
   // too few letters to guess from
   expect(search("chx")).toEqual([]);
 });
+
+test("a New card names the book a next volume is sold in", () => {
+  const m = manga(1, { volumesOwned: 14, bookmark: null });
+  const inBook = found({
+    nextVolume: 15,
+    latestVolume: 16,
+    nextVolumeInBook: { book: 8, from: 15, to: 16 },
+  } as Partial<ReleaseStatus>);
+  expect(newsFor(m, inBook, "volumes").text).toBe("Book 8 next");
+});
+
+test("New counts the gaps behind their furthest in what's left to get", async () => {
+  const { behindOf, volumesToGet } =
+    await import("../../../../client/src/lib/releaseMath.js");
+  const chainsaw = found({
+    nextVolume: 18,
+    latestVolume: 22,
+    currentVolume: 17,
+    outVolumes: [18, 19, 20, 21, 22].map((volume) => ({ volume })),
+    gapVolumes: [{ volume: 12 }],
+  } as Partial<ReleaseStatus>);
+  expect(behindOf(chainsaw, "volumes")).toBe(6);
+  expect(volumesToGet(chainsaw).map((v) => v.volume)).toEqual([
+    12, 18, 19, 20, 21, 22,
+  ]);
+  // a saved answer from before gaps were sent counts as it did
+  expect(
+    behindOf(
+      found({ latestVolume: 22, currentVolume: 17 } as Partial<ReleaseStatus>),
+      "volumes",
+    ),
+  ).toBe(5);
+});
