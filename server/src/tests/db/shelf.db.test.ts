@@ -163,10 +163,20 @@ test("owned volumes: a run from 1, or the exact list with gaps", async () => {
     .delete(`/api/manga/${id}/books/${again.body.books[0].id}`)
     .expect(200);
   expect(left.body).toMatchObject({ volumesOwned: 5, ownedList: [5] });
-  // unticking a volume by hand drops the book that held it
+  // unticking a volume by hand leaves out the book that held it, kept with
+  // what was paid: ticking it again brings the book back
+  const before = (await agent.get(`/api/manga/${id}/books`)).body.books;
   await agent.put(`/api/manga/${id}/owned`).send({ ownedList: [] }).expect(200);
   expect((await agent.get(`/api/manga/${id}/books`)).body.books).toEqual([]);
   expect((await agent.get("/api/manga/books")).body.books).toEqual([]);
+  await agent
+    .put(`/api/manga/${id}/owned`)
+    .send({ ownedList: [5] })
+    .expect(200);
+  expect((await agent.get(`/api/manga/${id}/books`)).body.books).toEqual(
+    before,
+  );
+  await agent.put(`/api/manga/${id}/owned`).send({ ownedList: [] }).expect(200);
 
   // deleted with its books, and the undo brings both back
   await agent
@@ -178,12 +188,18 @@ test("owned volumes: a run from 1, or the exact list with gaps", async () => {
     .post("/api/manga/delete-many")
     .send({ ids: [id] })
     .expect(200);
-  expect(gone.body.manga[0].books).toMatchObject([deluxe]);
-  const { books: had, ...whole } = gone.body.manga[0];
+  // every book goes with it, a hidden one too (vol. 5's, unticked above)
+  expect(gone.body.manga[0].books).toEqual(
+    expect.arrayContaining([expect.objectContaining(deluxe)]),
+  );
+  const { books: _had, ...whole } = gone.body.manga[0];
+  void _had;
   const rest = { ...whole, id: undefined, userId: undefined };
   await agent
     .post("/api/manga/restore-many")
-    .send({ manga: [{ ...rest, books: had.map(() => deluxe) }] })
+    // the Deluxe book back (the hidden vol. 5 one needs vol. 5 owned to
+    // show, so the check below is about the Deluxe)
+    .send({ manga: [{ ...rest, books: [deluxe] }] })
     .expect(200);
   expect((await agent.get("/api/manga/books")).body.books).toMatchObject([
     deluxe,

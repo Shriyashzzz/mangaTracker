@@ -172,11 +172,8 @@ export const importList = [
         await mangaQueries.setVolumesOwned(id, owned);
       for (const [id, fill] of fills)
         await mangaQueries.fillFromBackup(id, fill);
-      // after the volumes: a book is kept only where its volumes are owned
-      for (const [id, list] of books) {
-        await bookQueries.addBooks(id, list);
-        await bookQueries.booksOf(id);
-      }
+      // after the volumes: a book shows only where its volumes are owned
+      for (const [id, list] of books) await bookQueries.addBooks(id, list);
       res.json({
         added: inputs.length,
         alreadyThere,

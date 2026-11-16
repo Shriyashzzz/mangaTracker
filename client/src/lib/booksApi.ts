@@ -1,6 +1,13 @@
 // Reading and saving a series' books (lib/books.ts says what one is).
 import { apiFetch, getJson } from "./api";
 import type { NewBook, OwnedBook } from "./books";
+import {
+  editionBookLabel,
+  type EditionBook,
+  type EditionLine,
+} from "./editions";
+import { ownedVolumes } from "./ownedVolumes";
+import { setVolumesOwned } from "./shelf";
 
 export const getBooks = async (mangaId: number, signal?: AbortSignal) =>
   (await getJson<{ books: OwnedBook[] }>(`/api/manga/${mangaId}/books`, signal))
@@ -51,3 +58,31 @@ export const removeBook = async (mangaId: number, bookId: number) => {
     ownedList: number[];
   };
 };
+
+// A book of an edition they own (Berserk's Deluxe 7): its volumes put on
+// their shelf, then the book saved with its edition, number and ISBN. In
+// that order: the server drops any book whose volumes aren't all owned
+// (bookQueries.booksOf), so a book saved first is gone at once. What they
+// own afterwards comes back, and the books, or null when the book didn't
+// save (its volumes did: the page has to show them either way)
+export async function ownEditionBook(
+  mangaId: number,
+  owned: number[],
+  line: EditionLine,
+  book: EditionBook,
+) {
+  const now = await setVolumesOwned(
+    mangaId,
+    ownedVolumes(null, [...owned, ...book.volumes]),
+  );
+  const books = await addBooks(mangaId, [
+    {
+      edition: line.kind,
+      number: book.number,
+      title: book.title ?? editionBookLabel(line, book),
+      isbn13: book.isbn13,
+      volumes: book.volumes,
+    },
+  ]).catch(() => null);
+  return { owned: now, books };
+}

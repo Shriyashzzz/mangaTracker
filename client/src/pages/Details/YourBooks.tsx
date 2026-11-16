@@ -10,6 +10,7 @@ import { centsOf, spentOn, type OwnedBook } from "../../lib/books";
 import {
   addBooks,
   getBooks,
+  ownEditionBook,
   removeBook,
   savePurchase,
 } from "../../lib/booksApi";
@@ -17,6 +18,26 @@ import { formatPaid } from "../../lib/prices";
 import BookRow, { type Purchase } from "./BookRow";
 import { detailsStyles as styles } from "./styles";
 import { looseBook, rowsOf, type BookRow as Row } from "./yourBooksRows";
+import {
+  editionBookLabel,
+  insideText,
+  type EditionBook,
+  type EditionLine,
+} from "../../lib/editions";
+import { SortMenu } from "../Home/ShelfBar";
+
+// the last book of a line the catalog lists: past it, books are only
+// worked out from the series' volumes and may not be out
+const lastListedIndex = (line: EditionLine) =>
+  line.books.reduce((last, book, i) => (book.listed ? i : last), -1);
+
+// an edition book they've recorded already: the same ISBN, or without one
+// the same kind of edition holding the same volumes (Deluxe 3 and a Perfect
+// Edition 3 hold different volumes, so they're never mixed up)
+const isSameBook = (had: OwnedBook, line: EditionLine, book: EditionBook) =>
+  had.isbn13 && book.isbn13
+    ? had.isbn13 === book.isbn13
+    : had.edition === line.kind && had.volumes.join() === book.volumes.join();
 
 type Props = {
   mangaId: number;
@@ -27,6 +48,15 @@ type Props = {
     volumesOwned: number | null;
     ownedList: number[];
   }) => void;
+  // the series' omnibus and deluxe lines: their books can be added here
+  lines: EditionLine[];
+  // a book added put its volumes on the shelf
+  onAdded: (owned: {
+    volumesOwned: number | null;
+    ownedList: number[];
+  }) => void;
+  // goes up when a book was added somewhere else (Buy next): asked again
+  booksChanged: number;
 };
 
 // how many rows show at first, and how many each press adds
@@ -37,7 +67,14 @@ const PRIVATE_NOTE = "What you paid is only yours to see.";
 // said only when there's a book to remove
 const REMOVE_NOTE = " Removing a book takes its volumes off your shelf too.";
 
-export default function YourBooks({ mangaId, owned, onRemoved }: Props) {
+export default function YourBooks({
+  mangaId,
+  owned,
+  onRemoved,
+  lines,
+  onAdded,
+  booksChanged,
+}: Props) {
   const [books, setBooks] = useState<OwnedBook[]>([]);
   // a failure, said under the list
   const [note, setNote] = useState("");
@@ -45,6 +82,9 @@ export default function YourBooks({ mangaId, owned, onRemoved }: Props) {
   const [samePrice, setSamePrice] = useState("");
   const [settingSame, setSettingSame] = useState(false);
   const [shown, setShown] = useState(STEP);
+  // the edition book picked to add, by its key; null: the first there is
+  const [adding, setAdding] = useState<string | null>(null);
+  const [addingNow, setAddingNow] = useState(false);
 
   // the books are asked for again whenever the owned volumes change
   const ownedKey = owned.join();
@@ -54,9 +94,53 @@ export default function YourBooks({ mangaId, owned, onRemoved }: Props) {
       .then(setBooks)
       .catch(() => {});
     return () => controller.abort();
-  }, [mangaId, ownedKey]);
+  }, [mangaId, ownedKey, booksChanged]);
 
-  if (!owned.length) return null;
+  // the edition books not recorded yet, to pick one they own: "Deluxe 7
+  // (vols. 19–21)"
+  const toAdd = lines.flatMap((line) =>
+    line.books
+      // only books the catalog lists (the last ones of a line can be worked
+      // out but not published yet), and not ones already recorded
+      .filter((_, i) => i <= lastListedIndex(line))
+      .filter((book) => !books.some((b) => isSameBook(b, line, book)))
+      .map((book) => ({
+        key: `${line.key}:${book.number}`,
+        label: `${editionBookLabel(line, book)} (${insideText(book)})`,
+        line,
+        book,
+      })),
+  );
+  const picked = toAdd.find((o) => o.key === adding) ?? toAdd[0];
+  const addPicked = async () => {
+    if (!picked) return;
+    setNote("");
+    setAddingNow(true);
+    try {
+      const added = await ownEditionBook(
+        mangaId,
+        owned,
+        picked.line,
+        picked.book,
+      );
+      // what they own now, whether or not the book itself saved
+      onAdded(added.owned);
+      if (!added.books) {
+        failed();
+        return;
+      }
+      // the books as the server has them now: the list shows the new one
+      // even when its volumes were owned already
+      setBooks(added.books);
+      setAdding(null);
+    } catch {
+      failed();
+    } finally {
+      setAddingNow(false);
+    }
+  };
+
+  if (!owned.length && !toAdd.length) return null;
 
   const rows = rowsOf(books, owned);
   // a recorded book can be removed here; a hand-ticked volume can't
@@ -139,11 +223,9 @@ export default function YourBooks({ mangaId, owned, onRemoved }: Props) {
         )}
       </summary>
       <ul className={styles.booksList}>
-        {rows.slice(0, shown).map((row, i) => (
+        {rows.slice(0, shown).map((row) => (
           <BookRow
             key={row.key}
-            // the tour points at the first: what was paid, and when
-            tourTarget={i === 0}
             row={row}
             onSave={save}
             onRemove={remove}
@@ -195,6 +277,35 @@ export default function YourBooks({ mangaId, owned, onRemoved }: Props) {
             Set them
           </button>
         </form>
+      )}
+      {/* a deluxe or omnibus book they own, added by name: ticking spines
+          only ever adds single volumes */}
+      {toAdd.length > 0 && picked && (
+        <div className={styles.booksAdd}>
+          <label htmlFor="books-add" className={styles.booksAddLabel}>
+            Add a book you own
+          </label>
+          <div className={styles.booksAddPick}>
+            <SortMenu
+              id="books-add"
+              box
+              alignLeft
+              menuLabel="Add a book you own"
+              sortBy={picked.key}
+              onSort={setAdding}
+              options={toAdd.map((o) => ({ value: o.key, label: o.label }))}
+            />
+          </div>
+          <button
+            type="button"
+            // full size (44px), as tall as the picker beside it
+            className="btn btn-secondary tap"
+            disabled={addingNow}
+            onClick={() => void addPicked()}
+          >
+            {addingNow ? "Adding…" : "Add"}
+          </button>
+        </div>
       )}
       <p className={styles.booksNote} role="status">
         {note || `${PRIVATE_NOTE}${canRemove ? REMOVE_NOTE : ""}`}

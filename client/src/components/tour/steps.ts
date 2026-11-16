@@ -51,7 +51,8 @@ type Line = {
   // only there after the step before, so Back skips over it: the red bar's dates
   needsLastStep?: boolean;
   // a big page he'd cover: he sits above it instead, scrolling with it
-  onTop?: boolean;
+  // ("phone": above it on phones only, where the screen is short)
+  onTop?: boolean | "phone";
   // on a wide enough screen, beside the section's right edge instead
   besideIfRoom?: boolean;
   // a step on the shelf: which of its tabs it's on. The shelf opens on that
@@ -113,8 +114,9 @@ const READER: { name: string; lines: Line[] }[] = [
         exact: true,
         target: "spines",
         tap: true,
-        // above the spines: under them is "Tap a book to mark it yours"
-        onTop: true,
+        // on phones above the spines, where under them he'd cover "Tap a
+        // book to mark it yours"; on laptops under them, which has room
+        onTop: "phone",
         say: "Own the books too? Each spine is a volume: tap one to put it on your shelf.",
       },
       {
@@ -122,7 +124,7 @@ const READER: { name: string; lines: Line[] }[] = [
         exact: true,
         target: "release-toggle",
         focus: true,
-        say: "Psst! Vol. 15 is out. Red means something's new for you: open it for the dates.",
+        say: "This red bar only shows once you're caught up and something new arrives.",
       },
       {
         path: MANGA,
@@ -240,8 +242,9 @@ const COLLECTOR: { name: string; lines: Line[] }[] = [
       {
         path: DELUXE,
         exact: true,
-        target: "book-paid",
-        unfold: "your-books",
+        // the whole of Your books, opened
+        target: "your-books",
+        unfold: true,
         // always above the books, never over the ones below
         onTop: true,
         say: "Let's open one: Berserk, collected in Deluxe. Every book you own is here, with what you paid. We add it all up for you.",
@@ -252,7 +255,7 @@ const COLLECTOR: { name: string; lines: Line[] }[] = [
         target: "edition",
         // inside Buy it, folded on phones: opened first
         unfold: "buy",
-        say: "Collect a different edition? Pick it here: single volumes, Deluxe, or whatever the series comes in.",
+        say: "Collect a different edition? Pick it here: Single, Deluxe, or whatever the series comes in.",
       },
       {
         path: DELUXE,

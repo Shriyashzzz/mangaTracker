@@ -324,6 +324,8 @@ export function SortMenu<T extends string>({
   onLayout?: (layout: "covers" | "rows") => void;
 }) {
   const { open, setOpen, ref } = useMenu();
+  // a boxed list opens upward when there's no room for it below
+  const [opensUp, setOpensUp] = useState(false);
   const picked = options.find((o) => o.value === sortBy) ?? options[0]!;
   // a name keeps its capital ("Deluxe"); a sort reads on from "Sorted by"
   const pickedText = wordy ? picked.label : lowerFirst(picked.label);
@@ -353,13 +355,24 @@ export function SortMenu<T extends string>({
           aria-expanded={open}
           aria-haspopup="true"
           aria-label={`${menuLabel}: ${picked.label}. Change`}
-          onClick={() => setOpen(!open)}
+          onClick={(e) => {
+            // the list is up to 20rem tall: under the box if it fits there,
+            // else above it when there's more room above
+            const box = e.currentTarget.getBoundingClientRect();
+            const listHeight = Math.min(320, innerHeight * 0.6);
+            const roomBelow = innerHeight - box.bottom;
+            setOpensUp(roomBelow < listHeight && box.top > roomBelow);
+            setOpen(!open);
+          }}
         >
           <span className={styles.boxWords}>{picked.label}</span>
           <ChevronDownIcon className={styles.boxChevron} />
         </button>
         {open && (
-          <ul className={styles.menuBox} aria-label={menuLabel}>
+          <ul
+            className={`${styles.menuBox} ${opensUp ? styles.menuBoxUp : ""}`}
+            aria-label={menuLabel}
+          >
             {optionRows}
           </ul>
         )}

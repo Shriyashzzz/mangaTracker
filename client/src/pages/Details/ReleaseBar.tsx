@@ -1,240 +1,45 @@
-import { useId, useState } from "react";
+// "There's a new one", for someone who's caught up (releaseNews.ts says
+// when): a slim red bar with the news, the white button to buy or preorder
+// the book, and an × that silences this one release
 import { NavLink } from "react-router";
-import { ChevronDownIcon } from "../../components/icons/Icons";
+import { InkCrossIcon } from "../../components/icons/Icons";
+import { isDemo } from "../../lib/demo";
 import { detailsStyles as styles } from "./styles";
-import { formatReleaseDate } from "../../lib/releaseDates";
-import type { ReleaseData } from "../../lib/types";
 
 type Props = {
-  // what's out: "Vol. 25" or "Ch. 250"
-  what: string;
-  // which kind of release the headline is about, so the dates match it
-  kind: "volume" | "chapter";
-  inJapan: boolean;
-  // where they've got to: "you own up to vol. 24" or "read up to ch. 203"
-  yours: string | null;
-  data: ReleaseData | null;
-  // a volume that's for sale in English; there's nowhere to send a chapter
-  buy: { to: string; label: string } | null;
-  // an English volume's bar opens to English releases only, each a way to
-  // its prices. Japan's dates are the Japan
-  // edition's own bar, never mixed in here
-  english?: { groups: Group[] } | null;
+  // "Vol. 44 is out!", "Ch. 125 expected Dec 3"
+  headline: string;
+  // the book to buy or preorder; null: the news alone
+  link: { to: string; label: string } | null;
+  // the ×: this release won't show again, the next one will
+  onClose: () => void;
 };
 
-// `to`: the volume's price page
-export type Row = {
-  what: string;
-  when: string;
-  estimate?: boolean;
-  to?: string;
-  // `when` is a price ("Check price", "from $9.99"): it links there too
-  compare?: boolean;
-};
-export type Group = { title: string; rows: Row[] };
-
-// the newest volume we have a date for
-const newestDatedVolume = (data: ReleaseData | null): Row | null => {
-  let newest: { volume: string; when: string } | null = null;
-  for (const { volume, releaseDate } of data?.volume ?? []) {
-    const when = formatReleaseDate(releaseDate);
-    if (!volume || !when) continue;
-    if (!newest || Number(volume) > Number(newest.volume)) {
-      newest = { volume, when };
-    }
-  }
-  return newest && { what: `Vol. ${newest.volume}`, when: newest.when };
-};
-
-// Dates that match the headline: a volume gets volumes, a chapter gets chapters.
-// Volume dates are all Japan's: MangaDex has no English ones, so on an English
-// volume the groups say so
-const groupsFrom = (
-  data: ReleaseData | null,
-  kind: Props["kind"],
-  inJapan: boolean,
-  // the headline's volume ("Vol. 41" is out in English)
-  headline: number,
-): Group[] => {
-  const outNow: Row[] = [];
-  const comingUp: Row[] = [];
-  // on an English volume the Japan lists are what's further on: never the
-  // headline's own volume or one before it
-  const beyond = (volume: string | undefined) =>
-    inJapan || !Number.isFinite(headline) || Number(volume) > headline;
-
-  if (kind === "volume") {
-    const newest = newestDatedVolume(data);
-    if (newest && beyond(newest.what.replace(/^Vol\. /, "")))
-      outNow.push(newest);
-    const next = data?.newVolume;
-    const when = formatReleaseDate(next?.releaseDate);
-    if (next?.volume && when && beyond(next.volume)) {
-      comingUp.push({
-        what: `Vol. ${next.volume}`,
-        when,
-        estimate: next.isEstimate,
-      });
-    }
-  } else {
-    const latest = data?.chapter?.latestReleased;
-    const latestWhen = formatReleaseDate(latest?.releaseDate);
-    if (latest?.chapterNumber && latestWhen) {
-      outNow.push({
-        what: `Ch. ${latest.chapterNumber}`,
-        when: latestWhen,
-      });
-    }
-    const next = data?.chapter?.estimateRelease;
-    const nextWhen = formatReleaseDate(next?.releaseDate);
-    if (next?.chapterNumber && nextWhen) {
-      comingUp.push({
-        what: `Ch. ${next.chapterNumber}`,
-        when: nextWhen,
-        estimate: next.isEstimate,
-      });
-    }
-  }
-
-  const inJapanToo = kind === "volume" && !inJapan;
-  const groups = [
-    // the English one is out (the bar's headline); these are further on, in
-    // Japan only, so the heading mustn't read as if the headline's were
-    { title: inJapanToo ? "Further ahead in Japan" : "Out now", rows: outNow },
-    { title: inJapanToo ? "Next in Japan" : "Coming up", rows: comingUp },
-  ].filter((group) => group.rows.length > 0);
-  return groups;
-};
-
-// "there's a new one": a slim red bar that opens to the dates when clicked
-// anywhere, except on its Buy link
-export default function ReleaseBar({
-  what,
-  kind,
-  inJapan,
-  yours,
-  data,
-  buy,
-  english,
-}: Props) {
-  const [open, setOpen] = useState(false);
-  const datesId = useId();
-  // the number, not the "." in "Vol."
-  const headlineNumber = Number(what.match(/\d+(?:\.\d+)?/)?.[0] ?? NaN);
-  const groups = english
-    ? [
-        ...english.groups,
-        // the chapters too, when we know them: never Japan's volumes
-        ...groupsFrom(data, "chapter", false, NaN).map((g) => ({
-          ...g,
-          title: g.title === "Out now" ? "Latest chapter" : "Next chapter",
-        })),
-      ]
-    : groupsFrom(data, kind, inJapan, headlineNumber);
-  const hasDates = groups.length > 0 || Boolean(english);
-  const headline = (
-    <span className={styles.releaseHeadline}>{what} is out!</span>
-  );
-  const yoursLine = yours ? `${yours[0]!.toUpperCase()}${yours.slice(1)}.` : "";
-  const owned = (
-    <span className={styles.releaseOwned}>
-      {inJapan ? `In Japan. ${yoursLine}` : yoursLine || "In English."}
-    </span>
-  );
-
+export default function ReleaseBar({ headline, link, onClose }: Props) {
   return (
-    <section
-      className={styles.release}
-      aria-label={`New release, ${inJapan ? "Japan" : "English"}`}
-    >
-      <div
-        className={`${styles.releaseBar} ${hasDates ? styles.releaseBarOpens : ""}`}
-        onClick={(e) => {
-          if (hasDates && !(e.target as HTMLElement).closest("a"))
-            setOpen(!open);
-        }}
-      >
+    <section className={styles.release} aria-label="New release">
+      <div className={styles.releaseBar} data-tour="release-toggle">
         <span className={styles.releaseStamp} aria-hidden>
           Psst!
         </span>
-
-        {/* the whole bar takes the click, which bubbles up from here; the button
-            is what keyboards and screen readers use */}
-        {hasDates ? (
-          <button
-            type="button"
-            data-tour="release-toggle"
-            className={styles.releaseToggle}
-            aria-expanded={open}
-            aria-controls={datesId}
-          >
-            {headline}
-            {owned}
-          </button>
-        ) : (
-          <p className={styles.releaseToggle}>
-            {headline}
-            {owned}
-          </p>
-        )}
-
-        {buy && (
-          <NavLink className={styles.releaseBuy} to={buy.to} viewTransition>
-            {buy.label} →
+        <p className={styles.releaseHeadline}>{headline}</p>
+        {link && (
+          <NavLink className={styles.releaseBuy} to={link.to} viewTransition>
+            {link.label} →
           </NavLink>
         )}
-        {hasDates && (
-          <ChevronDownIcon
-            className={`${styles.releaseChevron} ${open ? styles.releaseChevronOpen : ""}`}
-            aria-hidden
-          />
+        {/* not on the tour's practice shelf: its news is there to be seen */}
+        {!isDemo() && (
+          <button
+            type="button"
+            className={styles.releaseClose}
+            aria-label="Hide this news"
+            onClick={onClose}
+          >
+            <InkCrossIcon className="size-[0.9rem]" />
+          </button>
         )}
       </div>
-
-      {hasDates && (
-        <div id={datesId} className={styles.releaseDates} hidden={!open}>
-          {groups.map((group) => (
-            <div key={group.title} className={styles.releaseGroup}>
-              <h3 className={styles.releaseGroupTitle}>{group.title}</h3>
-              {group.rows.map((row) => (
-                <p key={row.what} className={styles.releaseRow}>
-                  {row.to ? (
-                    <NavLink
-                      className={`${styles.releaseWhat} ${styles.releaseLink}`}
-                      to={row.to}
-                      viewTransition
-                    >
-                      {row.what}
-                    </NavLink>
-                  ) : (
-                    <span className={styles.releaseWhat}>{row.what}</span>
-                  )}
-                  {row.to && row.compare ? (
-                    // the price is the way to where its prices are compared
-                    <NavLink
-                      className={`${styles.releaseWhen} ${styles.releaseCompare}`}
-                      to={row.to}
-                      viewTransition
-                      aria-label={`${row.what}: ${row.when}, compare prices`}
-                    >
-                      {row.when} →
-                    </NavLink>
-                  ) : (
-                    <span className={styles.releaseWhen}>
-                      {row.when}
-                      {row.estimate && (
-                        <span className={styles.releaseEstimate}>
-                          estimated
-                        </span>
-                      )}
-                    </span>
-                  )}
-                </p>
-              ))}
-            </div>
-          ))}
-        </div>
-      )}
     </section>
   );
 }

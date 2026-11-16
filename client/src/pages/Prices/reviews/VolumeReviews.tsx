@@ -179,18 +179,21 @@ export default function VolumeReviews({
         !writing &&
         !yours && (
           <div className={styles.empty}>
+            {/* an invitation, not "nothing here": on a popular volume an
+                empty-sounding line made the whole site feel empty */}
             <p>
-              <b>No reviews yet.</b>
+              <b>Read this one?</b>
             </p>
             <p className={styles.emptyNote}>
-              Reviews come from readers who own or have read this volume.
+              Say what you thought, out of five. Reviews come from readers who
+              own or have read it.
             </p>
             <button
               type="button"
               className="btn btn-primary"
               onClick={startWriting}
             >
-              Be the first
+              Write the first review
             </button>
           </div>
         )

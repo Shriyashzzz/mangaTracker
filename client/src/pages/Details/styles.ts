@@ -5,6 +5,12 @@
 // Buy it. The DOM follows the laptop's reading order, and `order` does the rest.
 
 // a small ink tag under the title (status, genre)
+// the ink cross that closes something from its top-right corner: small to
+// see, with a thumb-sized landing area around it. The rating ticket's and
+// the red release bar's, each with its own colour
+const cornerCross =
+  "absolute top-0.5 right-0.5 grid size-7 place-items-center transition-[color,transform] duration-150 ease-ink before:absolute before:-inset-2 before:content-[''] active:scale-90 focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-dashed";
+
 const tag =
   "rounded-[2px] border-[1.5px] px-[0.55rem] py-[0.12rem] text-[0.8rem] font-medium";
 
@@ -109,6 +115,12 @@ export const detailsStyles = {
   bookRowPlain:
     "grid grid-cols-[minmax(0,1fr)_auto_auto] items-center gap-x-3 gap-y-1.5 border-b border-dashed border-line-soft py-2 text-[0.92rem] upto-560:grid-cols-[auto_minmax(0,1fr)]",
   // "Paid the same for the 12 without a price? $[ ] Set them"
+  // "Add a book you own: [Deluxe 7 (vols. 19–21)] [Add]"
+  booksAdd:
+    "mt-3 grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-x-3 gap-y-2 border-t border-dashed border-line-soft pt-3 text-[0.9rem] upto-720:grid-cols-[minmax(0,1fr)_auto]",
+  // its own line on phones; the picker and Add share the line under it
+  booksAddLabel: "font-medium text-ink-soft upto-720:col-span-full",
+  booksAddPick: "min-w-0",
   booksSame:
     "mt-3 flex flex-wrap items-center gap-x-3 gap-y-2 text-[0.88rem] text-ink-soft",
   // the next five rows of a long list
@@ -140,41 +152,24 @@ export const detailsStyles = {
   // rating, notes and the buttons
   body: "flex min-w-0 flex-col gap-4 upto-720:order-4 upto-720:col-span-full",
 
-  // the new release: a slim red bar with the dates folding out under it
+  // the new release, for someone caught up: a slim red bar with the news,
+  // the white button to buy or preorder it, and an × that hides it
+  // above the tour's dimming and ring (z-4), so on Kenji's step about it
+  // the "Psst!" stamp sticking up over the bar is never blurred or cut
   release:
-    "min-w-0 animate-card-in motion-reduce:animate-none upto-720:order-1 upto-720:col-span-full",
+    "relative z-5 min-w-0 animate-card-in motion-reduce:animate-none upto-720:order-1 upto-720:col-span-full",
   releaseBar:
-    "relative flex min-h-11.5 flex-wrap items-center gap-x-2.5 gap-y-1.5 rounded-ink border-2 border-line bg-accent px-3 py-2 text-on-accent shadow-ink-lg",
-  releaseBarOpens:
-    "cursor-pointer transition-[filter] duration-120 ease-[ease] hover:brightness-105",
+    "relative flex min-h-11.5 flex-wrap items-center gap-x-2.5 gap-y-1.5 rounded-ink border-2 border-line bg-accent pl-3 pr-9 py-2 text-on-accent shadow-ink-lg",
   // the hanko-style stamp knocked onto the bar's top edge, kin to "Done"
   releaseStamp:
-    "pointer-events-none absolute -top-5 right-2.5 z-1 upto-720:-top-4 rotate-6 rounded-[4px] border-2 border-accent bg-paper px-[0.35rem] font-brand text-[0.92rem] tracking-[1.5px] text-accent",
-  releaseToggle:
-    "flex min-w-0 flex-1 basis-40 upto-720:basis-30 cursor-[inherit] flex-wrap items-baseline gap-x-2.5 text-left focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-on-accent upto-720:flex-col upto-720:items-start",
+    "pointer-events-none absolute -top-5 right-9 z-1 upto-720:-top-4 rotate-6 rounded-[4px] border-2 border-accent bg-paper px-[0.35rem] font-brand text-[0.92rem] tracking-[1.5px] text-accent",
   releaseHeadline:
-    "font-brand text-[1.32rem] leading-none tracking-[1px] whitespace-nowrap",
-  releaseOwned: "font-letter text-[0.82rem] leading-tight font-bold",
+    "m-0 min-w-0 flex-1 font-brand text-[1.32rem] leading-tight tracking-[1px]",
+  // white in both themes: the one light spot on the red
   releaseBuy:
-    "tap ml-auto inline-flex min-h-8 items-center rounded-[3px] border-[1.5px] border-line bg-on-accent px-2.5 text-[0.86rem] font-semibold whitespace-nowrap text-accent transition-colors duration-120 ease-[ease] hover:bg-card focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-on-accent",
-  releaseChevron:
-    "ml-auto size-4 shrink-0 transition-transform duration-200 ease-ink",
-  releaseChevronOpen: "rotate-180",
-  releaseDates: "mr-1 border-2 border-t-0 border-line bg-card px-3.5 pt-2 pb-3",
-  // "Out now", "Coming up"
-  releaseGroup:
-    "not-first:mt-3 not-first:border-t not-first:border-dashed not-first:border-line-soft not-first:pt-3",
-  releaseGroupTitle: "mb-1 font-mono text-[0.75rem] font-normal text-muted",
-  releaseRow: "flex items-baseline justify-between gap-3 py-0.5",
-  releaseWhat: "font-semibold whitespace-nowrap",
-  // a volume's name as the way to its prices
-  releaseLink:
-    "tap underline decoration-accent decoration-2 underline-offset-3 hover:text-accent",
-  // "Check price →" on the right: the same kind of link as the volume's name
-  releaseCompare:
-    "tap font-medium text-ink underline decoration-accent decoration-2 underline-offset-3 hover:text-accent",
-  releaseWhen: "text-right text-[0.92rem] text-ink-soft",
-  releaseEstimate: "ml-1.5 font-mono text-[0.75rem] text-muted",
+    "tap ml-auto inline-flex min-h-8 items-center rounded-[3px] border-[1.5px] border-line bg-white px-2.5 text-[0.86rem] font-semibold whitespace-nowrap text-accent transition-colors duration-120 ease-[ease] hover:bg-white/90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-on-accent",
+  // the rating ticket's cross, in white on the red, right of the stamp
+  releaseClose: `${cornerCross} text-on-accent hover:opacity-80 focus-visible:outline-on-accent`,
   label: "mb-[0.3rem] block font-mono text-[0.75rem] text-muted",
   // the series' rating and, beside it, the latest volume's: two of a
   // kind, a label over five stars. Stacked on a phone
@@ -188,8 +183,7 @@ export const detailsStyles = {
   rateTicket:
     "relative flex w-fit max-w-full items-stretch self-end border-[1.5px] border-dashed border-line bg-card upto-720:w-full",
   // its cross, in the top corner, with a thumb-sized landing area
-  rateTicketClose:
-    "absolute top-0.5 right-0.5 grid size-7 place-items-center text-ink-soft transition-[color,transform] duration-150 ease-ink before:absolute before:-inset-2 before:content-[''] hover:text-accent active:scale-90 focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-accent focus-visible:outline-dashed",
+  rateTicketClose: `${cornerCross} text-ink-soft hover:text-accent focus-visible:outline-accent`,
   rateStub:
     "flex min-w-[3.4rem] flex-none flex-col items-center justify-center bg-ink px-2.5 pt-1 pb-0.5 font-brand text-[1.5rem] leading-none tracking-[0.02em] text-paper [&_small]:text-[0.7rem] [&_small]:tracking-[0.08em] [&_small]:uppercase",
   // two short rows: a line of words, then the stars. The same height
@@ -272,6 +266,10 @@ export const detailsStyles = {
   // where to buy: an inked box under the cover, plain on phones
   buy: "min-w-0 border-2 border-line bg-card p-3 shadow-ink-lg upto-720:order-5 upto-720:col-span-full upto-720:border-0 upto-720:border-t-[1.5px] upto-720:border-dashed upto-720:border-line-soft upto-720:bg-transparent upto-720:px-0 upto-720:pt-4 upto-720:pb-0 upto-720:shadow-none",
   buyList: "flex flex-col gap-2",
+  // "I own Deluxe 7", quiet under the ticket it records
+  buyOwn:
+    "tap mt-1.5 min-h-11 text-[0.85rem] font-medium text-ink-soft underline decoration-line-soft underline-offset-3 hover:text-ink hover:decoration-current disabled:opacity-60",
+  buyOwnFailed: "ml-3 text-[0.8rem] text-accent",
   buyLink: `${ticket} grid min-h-11 grid-cols-[minmax(0,1fr)_auto] border-dashed border-line bg-paper font-semibold transition-[background-color,border-color] duration-120 ease-[ease] hover:border-accent hover:bg-accent-wash focus-visible:border-accent focus-visible:bg-accent-wash upto-720:grid-cols-[minmax(0,1fr)_auto_auto] upto-720:border-solid upto-720:bg-card`,
   // the one they need next stands out: inked solid in red on a red wash,
   // with a hard shadow, where the rest are dashed paper
@@ -313,7 +311,6 @@ export const detailsStyles = {
   // "vols. 7–9, you have 1 of 3": under the next book's row, the ticket's width
   buyInside: "col-span-full text-[0.85rem] font-normal text-ink-soft italic",
   // books past the last one listed: said quietly, nothing to click
-  buyLater: "px-1 text-[0.82rem] text-ink-soft",
   // the series link, a plain link with room around it for a thumb
   buySeries:
     "tap mt-2.5 block py-1 text-right text-[0.85rem] font-medium text-ink-soft underline decoration-line-soft underline-offset-3 transition-colors duration-120 ease-[ease] hover:text-accent hover:decoration-accent",

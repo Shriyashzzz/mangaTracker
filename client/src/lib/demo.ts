@@ -2,7 +2,7 @@
 // every real page works on a practice shelf and nothing reaches the server: no real
 // data can change and no paid price search can run. It lives in this tab and goes
 // when the tour ends.
-import { spentOn } from "./books";
+import { spentOn, type OwnedBook } from "./books";
 import { ownedOf, ownedVolumes } from "./ownedVolumes";
 import type { MalEntry } from "./imports/malImport";
 import type { Manga } from "./types";
@@ -625,6 +625,11 @@ const save = (key: string, value: unknown) => {
 // what they type into the practice shelf's books (a price paid, the day
 // bought) and the volumes they rate: kept in this tab, like the shelf
 const PAID_KEY = "demoPaid";
+// books they've added by hand ("Add a book you own", "I own Deluxe 7"), by
+// series id
+const ADDED_KEY = "demoAddedBooks";
+// books they've removed, by id
+const REMOVED_KEY = "demoRemovedBooks";
 const REVIEWS_KEY = "demoReviews";
 type Purchase = { paidCents?: number | null; boughtOn?: string | null };
 type SavedReview = {
@@ -665,10 +670,26 @@ const booksOf = (series: CollectorSeries | undefined, manga: Manga) => {
       paidCents: 799 + ((series.id * 7 + volume) % 5) * 100,
       boughtOn: boughtDay(series.id * 100 + volume),
     }));
-  return [...fromFile, ...singles].map((b) => ({
-    ...b,
-    ...typed[String(b.id)],
-  }));
+  const added = (
+    readSaved<Record<string, Omit<OwnedBook, "id">[]>>(ADDED_KEY, {})[
+      String(series.id)
+    ] ?? []
+  ).map((b, i) => ({ ...b, id: series.id * 1000 + 900 + i }));
+  const removed = new Set(readSaved<number[]>(REMOVED_KEY, []));
+  // as the server: a book whose volumes aren't all owned any more is gone
+  const owned = new Set(ownedOf(manga));
+  return [
+    ...fromFile,
+    ...added,
+    ...singles.filter(
+      (single) => !added.some((b) => b.volumes.includes(single.number!)),
+    ),
+  ]
+    .filter((b) => !removed.has(b.id) && b.volumes.every((v) => owned.has(v)))
+    .map((b) => ({
+      ...b,
+      ...typed[String(b.id)],
+    }));
 };
 
 const STARTING_ACCOUNT = {
@@ -893,6 +914,45 @@ export async function demoResponse(
   }
   const volume = route.match(/^\/api\/prices\/(\d{13})$/);
   if (volume) return json(volumePage(volume[1]!, shelf, collector));
+
+  // a book removed: it goes, and so do its volumes unless another book of
+  // theirs holds them too (as the server's removeBook)
+  const removing = route.match(/^\/api\/manga\/(\d+)\/books\/(\d+)$/);
+  if (removing && method === "DELETE") {
+    const manga = shelf.find((m) => m.id === Number(removing[1]));
+    if (!manga) return json({ error: [{ msg: "Not found" }] }, 404);
+    const books = booksOf(seriesOf(manga), manga);
+    const book = books.find((b) => b.id === Number(removing[2]));
+    if (!book) return json({ error: [{ msg: "Not found" }] }, 404);
+    const kept = new Set(
+      books.filter((b) => b.id !== book.id).flatMap((b) => b.volumes),
+    );
+    const left = ownedVolumes(
+      null,
+      ownedOf(manga).filter((v) => kept.has(v) || !book.volumes.includes(v)),
+    );
+    writeShelf(shelf.map((m) => (m.id === manga.id ? { ...m, ...left } : m)));
+    save(REMOVED_KEY, [...readSaved<number[]>(REMOVED_KEY, []), book.id]);
+    return json(left);
+  }
+
+  // the "You finished vol. 8" card's cross: nothing to keep on a practice
+  // shelf, so it just goes
+  if (/^\/api\/manga\/\d+\/finished-volume$/.test(route))
+    return json({ ok: true });
+
+  // a book added by hand: kept for the tab, like the shelf
+  const addTo = route.match(/^\/api\/manga\/(\d+)\/books$/);
+  if (addTo && method === "POST") {
+    const all = readSaved<Record<string, unknown[]>>(ADDED_KEY, {});
+    all[addTo[1]!] = [
+      ...(all[addTo[1]!] ?? []),
+      ...((body.books as unknown[]) ?? []),
+    ];
+    save(ADDED_KEY, all);
+    const manga = shelf.find((m) => m.id === Number(addTo[1]));
+    return json({ books: manga ? booksOf(seriesOf(manga), manga) : [] });
+  }
 
   // a price paid or the day bought, typed into one of the books
   const purchase = route.match(/^\/api\/manga\/\d+\/books\/(\d+)$/);

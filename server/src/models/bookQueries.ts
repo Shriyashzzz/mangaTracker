@@ -26,25 +26,27 @@ const ownedSet = (m: { volumesOwned: number | null; ownedList: number[] }) =>
       : Array.from({ length: m.volumesOwned ?? 0 }, (_, i) => i + 1),
   );
 
-// a series' books, lowest volume first. One whose volumes aren't all owned
-// any more (unticked by hand, or a scan undone) goes here, so nothing that
-// changes the owned volumes has to know about books
+// A book counts while every volume it holds is owned. One whose volumes
+// aren't all owned any more (a volume unticked by hand, a scan undone) is
+// kept but left out of every list and total, so ticking the volume again
+// brings it back with what was paid. Only removing it deletes it
+const isShown = (
+  book: { volumes: number[] },
+  manga: { volumesOwned: number | null; ownedList: number[] },
+) => {
+  const owned = ownedSet(manga);
+  return book.volumes.every((v) => owned.has(v));
+};
+
+// a series' books, lowest volume first: those whose volumes are all owned
 export async function booksOf(mangaId: number) {
   const manga = await prisma.manga.findUnique({
     where: { id: mangaId },
     select: { volumesOwned: true, ownedList: true, books: true },
   });
   if (!manga) return [];
-  const owned = ownedSet(manga);
-  const stale = manga.books.filter(
-    (b) => !b.volumes.every((v) => owned.has(v)),
-  );
-  if (stale.length)
-    await prisma.ownedBook.deleteMany({
-      where: { id: { in: stale.map((b) => b.id) } },
-    });
   return manga.books
-    .filter((b) => !stale.includes(b))
+    .filter((b) => isShown(b, manga))
     .sort(
       (a, b) =>
         Math.min(...a.volumes, 1e6) - Math.min(...b.volumes, 1e6) ||
@@ -107,8 +109,11 @@ export const removeBook = (mangaId: number, bookId: number) =>
     });
     const book = manga?.books.find((b) => b.id === bookId);
     if (!manga || !book) return null;
+    // the volumes another book they still have holds
     const kept = new Set(
-      manga.books.filter((b) => b.id !== bookId).flatMap((b) => b.volumes),
+      manga.books
+        .filter((b) => b.id !== bookId && isShown(b, manga))
+        .flatMap((b) => b.volumes),
     );
     const gone = new Set(book.volumes.filter((v) => !kept.has(v)));
     await tx.ownedBook.delete({ where: { id: bookId } });
@@ -138,22 +143,38 @@ export const setPurchase = async (
   return count > 0;
 };
 
-// what a shelf has cost so far: every book with a price paid, added up
+// what a shelf has cost so far: every book they have with a price paid,
+// added up
 export async function shelfSpent(userId: number) {
-  const { _sum, _count } = await prisma.ownedBook.aggregate({
+  const paid = await prisma.ownedBook.findMany({
     where: { manga: { userId }, paidCents: { not: null } },
-    _sum: { paidCents: true },
-    _count: true,
+    select: {
+      paidCents: true,
+      volumes: true,
+      manga: { select: { volumesOwned: true, ownedList: true } },
+    },
   });
-  return { cents: _sum.paidCents ?? 0, books: _count };
+  const counted = paid.filter((b) => isShown(b, b.manga));
+  return {
+    cents: counted.reduce((sum, b) => sum + (b.paidCents ?? 0), 0),
+    books: counted.length,
+  };
 }
 
-// every book on a shelf, for its backup
-export const shelfBooks = (userId: number) =>
-  prisma.ownedBook.findMany({
+// every book on a shelf they have, for its backup
+export async function shelfBooks(userId: number) {
+  const books = await prisma.ownedBook.findMany({
     where: { manga: { userId } },
     orderBy: { id: "asc" },
+    include: { manga: { select: { volumesOwned: true, ownedList: true } } },
   });
+  // each book as the backup saves it, without the shelf entry read beside it
+  const withoutManga = ({ manga, ...book }: (typeof books)[number]) => {
+    void manga;
+    return book;
+  };
+  return books.filter((b) => isShown(b, b.manga)).map(withoutManga);
+}
 
 export default {
   booksOf,

@@ -28,9 +28,9 @@ const MUST = [
 ];
 
 // series cut short for the tour: owned and read up to this volume. Berserk
-// stops at 20, so its books mix deluxe (1 to 18) with two singles, and the
-// tour's step on single volumes has volumes left to tap
-const UP_TO: Record<string, number> = { Berserk: 20 };
+// stops at 7, so its books are a few and mixed: Deluxe 1 and 2 (vols. 1 to
+// 6) and a single vol. 7, with Deluxe 3 next to buy and plenty left to show
+const UP_TO: Record<string, number> = { Berserk: 7 };
 
 type Saved = { volume: number | null; isbn13: string };
 

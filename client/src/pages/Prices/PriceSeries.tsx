@@ -168,6 +168,14 @@ export default function PriceSeries() {
     : null;
   // "Not on your shelf" pages through just those, 30 at a time, in place of
   // the volume ranges, so the controls keep their shape
+  // the catalog was slow, but is the list missing anything? Only a gap in
+  // the numbers (vol. 4 with no vol. 3) says so: a whole run from 1 to the
+  // newest reads as complete, and the page asks again on the next visit
+  const wholeNumbers = volumes
+    .map((v) => v.volume)
+    .filter((n): n is number => n != null && Number.isInteger(n));
+  const newestNumber = Math.max(0, ...wholeNumbers);
+  const hasHole = new Set(wholeNumbers).size < newestNumber;
   const toGetShown = Boolean(mine) && toGetOnly;
   const toGetPage = Math.min(
     toGetPageIndex,
@@ -371,7 +379,7 @@ export default function PriceSeries() {
             out, try searching it by name or ISBN.
           </p>
         )}
-        {incomplete && volumes.length > 0 && (
+        {incomplete && volumes.length > 0 && hasHole && (
           <p className={styles.checked} role="status">
             Some volumes may be missing: the book catalog was slow to answer.{" "}
             <button type="button" className={styles.textBtn} onClick={retry}>

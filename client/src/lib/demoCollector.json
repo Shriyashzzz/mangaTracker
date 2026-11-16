@@ -413,7 +413,7 @@
     "bookmark": 0,
     "rating": null,
     "edition": "singles",
-    "volumesOwned": 20,
+    "volumesOwned": 7,
     "ownedList": [],
     "volumes": [
       [1, "9781630089993"],
@@ -480,58 +480,13 @@
         "boughtOn": "2025-11-06"
       },
       {
-        "edition": "deluxe",
-        "number": 3,
-        "title": "Berserk Deluxe Edition #3",
-        "isbn13": null,
-        "volumes": [7, 8, 9],
-        "paidCents": 4099,
-        "boughtOn": "2026-04-16"
-      },
-      {
-        "edition": "deluxe",
-        "number": 4,
-        "title": "Berserk Deluxe Edition #4",
-        "isbn13": null,
-        "volumes": [10, 11, 12],
-        "paidCents": 3399,
-        "boughtOn": "2025-03-06"
-      },
-      {
-        "edition": "deluxe",
-        "number": 5,
-        "title": "Berserk Deluxe Edition #5",
-        "isbn13": null,
-        "volumes": [13, 14, 15],
-        "paidCents": 3899,
-        "boughtOn": "2026-01-03"
-      },
-      {
-        "edition": "deluxe",
-        "number": 6,
-        "title": "Berserk Deluxe Edition #6",
-        "isbn13": null,
-        "volumes": [16, 17, 18],
-        "paidCents": 3699,
-        "boughtOn": "2025-08-17"
-      },
-      {
         "edition": "single",
-        "number": 19,
+        "number": 7,
         "title": null,
-        "isbn13": "9781506704326",
-        "volumes": [19],
+        "isbn13": "9781506704180",
+        "volumes": [7],
         "paidCents": 1299,
         "boughtOn": "2025-09-30"
-      },
-      {
-        "edition": "single",
-        "number": 20,
-        "title": null,
-        "isbn13": "9781506704333",
-        "volumes": [20],
-        "paidCents": 1499,
-        "boughtOn": "2026-10-02"
       }
     ],
     "editions": [

@@ -12,7 +12,14 @@ import {
   SCREEN_MARGIN,
   type Box,
 } from "./tourPlace";
-import { useCallback, useEffect, useReducer, useRef, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useReducer,
+  useRef,
+  useState,
+} from "react";
 import { createPortal } from "react-dom";
 import { useLocation, useNavigate } from "react-router";
 import { hasBottomBar } from "../../lib/bottomBar";
@@ -232,7 +239,12 @@ function Guide({ onClose }: { onClose: () => void }) {
   const screen = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
   const { pathname, search } = useLocation();
-  const step = TOUR_STEPS[index]!;
+  // the step, with "above it on phones only" settled for this screen. The
+  // same object for the step's whole visit, as the effects below key on it
+  const step = useMemo(() => {
+    const line = TOUR_STEPS[index]!;
+    return line.onTop === "phone" ? { ...line, onTop: hasBottomBar() } : line;
+  }, [index]);
   const onPage = isOnStepPage(step, pathname, search);
 
   const goTo = useCallback((next: number) => {
@@ -523,7 +535,11 @@ function Guide({ onClose }: { onClose: () => void }) {
   const shownSteps = TOUR_STEPS.filter(
     (st, i) => i === index || !st.when || st.when(),
   );
-  const shownPlace = shownSteps.indexOf(step) + 1;
+  // by place, not by the step object (a step settled for this screen is a
+  // copy): the shown steps up to and including this one
+  const shownPlace = TOUR_STEPS.filter(
+    (st, i) => i <= index && (i === index || !st.when || st.when()),
+  ).length;
   // drawn on the page: everything placed from the screen gets the scroll added back
   const onPageLayer = Boolean(anchor && !anchor.pinned);
   const offY = onPageLayer ? window.scrollY : 0;

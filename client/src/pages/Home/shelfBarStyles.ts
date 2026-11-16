@@ -78,6 +78,9 @@ export const shelfBarStyles = {
   // under a boxed pick: as wide as its box at least, and a long list (the
   // genres) scrolls inside it instead of running off the screen
   menuBox: `${card} left-0 max-h-[min(20rem,60dvh)] w-full min-w-52 overflow-y-auto overscroll-contain`,
+  // the same list opened upward: too little room under the box (near the
+  // bottom of the page), more above it
+  menuBoxUp: "top-auto bottom-[calc(100%+10px)]",
   // a pick drawn as a form's box, where a native select used to be
   boxWrap: "relative w-full",
   boxButton:

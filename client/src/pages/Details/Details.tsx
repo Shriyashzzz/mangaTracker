@@ -14,14 +14,16 @@ import type { ShelfVolume } from "../../lib/reviews";
 import { useEffect, useRef, useState } from "react";
 import { NavLink, useNavigate, useParams, useSearchParams } from "react-router";
 import { apiFetch } from "../../lib/api";
-import { getBooks } from "../../lib/booksApi";
+import { getBooks, ownEditionBook } from "../../lib/booksApi";
+import type { EditionBook, EditionLine } from "../../lib/editions";
 import { ownedOf } from "../../lib/ownedVolumes";
 import { useReleaseChecksOn, useTrackBy } from "../../lib/prefs";
 import { priceName } from "../../lib/prices";
 import { tracksOf } from "../../lib/reading";
 import { placeOnShelf } from "../../lib/chapterVolumes";
 import { usePrivatePage } from "../../lib/seo";
-import { getReleases } from "../../lib/shelf";
+import { getReleases, saveSeen } from "../../lib/shelf";
+import { closeUpcoming, isUpcomingClosed } from "./upcomingClosed";
 import type { Manga, ReleaseData, ReleaseStatus } from "../../lib/types";
 import { useShelf } from "../../store/shelf";
 import BuyStrip from "./BuyStrip";
@@ -56,8 +58,6 @@ export default function Details() {
   const [searchParams] = useSearchParams();
   // English unless they came from the shelf's In Japan tab
   const inJapan = searchParams.get("edition") === "japan";
-  // or the Chapters side of it, which is about the chapter rather than a volume
-  const chapterNews = searchParams.get("new") === "chapter";
 
   // ---------- what's loaded ----------
   const [mangaData, setMangaData] = useState<Manga | null>(null);
@@ -222,6 +222,49 @@ export default function Details() {
   };
 
   // which way this series keeps their place, or the volume they've read
+  // "I own Deluxe 7" on Buy next: the book and its volumes, then the page
+  // shows what they own now
+  // the red bar's ×: this release is seen (as New's Hide marks it), so the
+  // bar goes until the next one. Gone at once; back if the save fails
+  const hideRelease = (seen: {
+    kind: "volume" | "chapter";
+    number: number;
+    upcoming: boolean;
+  }) => {
+    if (!mangaData) return;
+    // still coming: only its notice goes, in this browser. Marking it seen
+    // would also hide the day it's out, here and on the New tab
+    if (seen.upcoming) {
+      closeUpcoming(mangaData.id, seen.kind, seen.number);
+      setUpcomingClosedAt(Date.now());
+      return;
+    }
+    const field = seen.kind === "volume" ? "seenVolume" : "seenChapter";
+    const before = mangaData[field] ?? null;
+    setMangaData((now) => now && { ...now, [field]: seen.number });
+    saveSeen(mangaData.id, seen.kind, seen.number).catch(() =>
+      setMangaData((now) => now && { ...now, [field]: before }),
+    );
+  };
+
+  // a coming release's notice just closed: the page draws again without it
+  const [, setUpcomingClosedAt] = useState(0);
+  const [booksChanged, setBooksChanged] = useState(0);
+  const ownBook = async (line: EditionLine, book: EditionBook) => {
+    if (!mangaData) return;
+    const { owned, books } = await ownEditionBook(
+      mangaData.id,
+      ownedOf(mangaData),
+      line,
+      book,
+    );
+    // onto the page as it is now, not as it was when the tap started
+    setMangaData((now) => now && { ...now, ...owned });
+    setBooksChanged((n) => n + 1);
+    void useShelf.getState().load();
+    if (!books) throw new Error("The book didn't save");
+  };
+
   const saveReading = async (change: ReadingChange) => {
     if (!mangaData) return;
     const was = mangaData;
@@ -303,18 +346,18 @@ export default function Details() {
     tracksOf(mangaData, trackBy),
     releaseData?.volumeStarts ?? [],
   );
-  const { release, barBuy, barEnglish, hideNextTicket } = releaseNews({
+  const { release, hideNextTicket } = releaseNews({
     manga: mangaData,
     releaseStatus,
+    releaseData,
     buyOptions,
     collectsEdition: Boolean(editions.line),
     checksOn,
     planned,
-    finished: mangaStatus,
-    inJapan,
-    chapterNews,
     tracksChapters: tracksOf(mangaData, trackBy).chapters,
     highestOwned,
+    upcomingClosed: (kind, number) =>
+      isUpcomingClosed(mangaData.id, kind, number),
   });
 
   let statusWord = "Reading";
@@ -362,6 +405,7 @@ export default function Details() {
                     : null
                 }
                 onCollect={(edition) => saveReading({ edition })}
+                onOwnBook={ownBook}
               />
             </div>
             <ShelfBox
@@ -393,16 +437,10 @@ export default function Details() {
 
           {release && (
             <ReleaseBar
-              key={release.what}
-              what={release.what}
-              kind={release.kind}
-              inJapan={inJapan}
-              yours={release.yours}
-              data={releaseData}
-              buy={barBuy}
-              english={
-                release.kind === "volume" && !inJapan ? barEnglish : null
-              }
+              key={release.headline}
+              headline={release.headline}
+              link={release.link}
+              onClose={() => hideRelease(release.seen)}
             />
           )}
 
@@ -456,6 +494,11 @@ export default function Details() {
               mangaId={mangaData.id}
               owned={owned}
               onRemoved={(left) => setMangaData({ ...mangaData, ...left })}
+              lines={editions.lines}
+              onAdded={(owned) =>
+                setMangaData((now) => now && { ...now, ...owned })
+              }
+              booksChanged={booksChanged}
             />
 
             <YourReviews written={reviews.written} onEdit={setReviewing} />
@@ -505,6 +548,7 @@ export default function Details() {
                   : null
               }
               onCollect={(edition) => saveReading({ edition })}
+              onOwnBook={ownBook}
             />
           </div>
         </div>

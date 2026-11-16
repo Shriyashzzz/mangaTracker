@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { NavLink } from "react-router";
 import { ChevronDownIcon } from "../../components/icons/Icons";
 import { chaptersText, type ChapterRange } from "../../lib/chapterWords";
@@ -12,6 +13,7 @@ import {
   editionBookLabel,
   insideText,
   type EditionBook,
+  type EditionLine,
 } from "../../lib/editions";
 
 // where to buy more of this manga: the next volume they need, the newest in the
@@ -21,6 +23,8 @@ type Props = {
   // on phones: folded under one line ("Buy next · Vol. 15 · $8.99") that
   // opens it, high on the page instead of at the bottom
   folded?: boolean;
+  // they've bought an edition's next book: record it and its volumes
+  onOwnBook?: (line: EditionLine, book: EditionBook) => Promise<void>;
   options: BuyOptions;
   // the red bar is already selling the next volume
   hideNext: boolean;
@@ -59,7 +63,11 @@ export default function BuyStrip({
   onCollect,
   nextChapters = null,
   folded = false,
+  onOwnBook,
 }: Props) {
+  // "I own Deluxe 7" saving, and whether it failed
+  const [owning, setOwning] = useState(false);
+  const [ownFailed, setOwnFailed] = useState(false);
   const { line, plan } = editions;
   const { loading, volumes, latest, next, caughtUp, seriesName, gaps } =
     options;
@@ -114,7 +122,7 @@ export default function BuyStrip({
               sortBy={line?.key ?? "singles"}
               onSort={onCollect}
               options={[
-                { value: "singles", label: "Single volumes" },
+                { value: "singles", label: "Single" },
                 ...editions.lines.map((l) => ({
                   value: l.key,
                   label: l.label,
@@ -143,6 +151,30 @@ export default function BuyStrip({
                     `, you have ${plan.next.have} of ${plan.next.volumes.length}`}
                 </em>
               </NavLink>
+              {/* bought it: one tap records the book and its volumes */}
+              {onOwnBook && (
+                <button
+                  type="button"
+                  className={styles.buyOwn}
+                  disabled={owning}
+                  onClick={() => {
+                    setOwning(true);
+                    setOwnFailed(false);
+                    onOwnBook(line, plan.next!)
+                      .catch(() => setOwnFailed(true))
+                      .finally(() => setOwning(false));
+                  }}
+                >
+                  {owning
+                    ? "Saving…"
+                    : `I own ${editionBookLabel(line, plan.next)}`}
+                </button>
+              )}
+              {ownFailed && (
+                <span className={styles.buyOwnFailed} role="alert">
+                  That didn't save. Try again.
+                </span>
+              )}
             </li>
           )}
           {plan.gaps.length > 0 && (
@@ -172,11 +204,6 @@ export default function BuyStrip({
             <li className={styles.buyNote}>
               <span className={styles.buyKind}>Caught up</span>
               You have all {plan.outBooks} {line.label} books listed
-            </li>
-          )}
-          {plan.later > 0 && (
-            <li className={styles.buyLater}>
-              {plan.later} more to come, or not listed yet.
             </li>
           )}
         </ul>

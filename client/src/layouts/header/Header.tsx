@@ -139,8 +139,10 @@ export default function Header() {
   return (
     <header className="relative z-30 border-b-[3px] border-double border-line bg-paper">
       <div className="px-gutter mx-auto flex h-[62px] max-w-page items-center gap-4">
+        {/* the shelf, signed in or not (signed out, it's what the site is
+            for, with the way to start one): "Prices" is the price search */}
         <NavLink
-          to={isSignedIn ? "/shelf" : "/"}
+          to="/shelf"
           viewTransition
           className="tap group mr-auto flex items-center gap-[0.55rem] font-brand text-[1.6rem] leading-none tracking-[1px]"
         >

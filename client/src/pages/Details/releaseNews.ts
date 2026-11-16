@@ -1,26 +1,27 @@
 // What a series' page says about new releases, worked out from what's loaded:
-// how many books the little shelf draws, the red "it's out" bar, what the bar
-// offers to buy, and the list it opens to. No requests are made here.
+// how many books the little shelf draws, and the red "it's out" bar. No
+// requests are made here.
+//
+// The red bar is news for someone who's caught up, never a list of what
+// they're behind on (Buy next and the New tab's piles do that):
+//   volumes: they have every English volume but the newest, just out
+//            ("Vol. 44 is out!"), or all of them and the next is up for
+//            preorder ("Vol. 44 comes out Dec 12")
+//   chapters: they've read up to the one before the newest ("Ch. 124 is
+//            out!"), or the newest and the next has a date ("Ch. 125
+//            expected Dec 3")
+// Never Japan's. Its × marks that one release seen, so the next brings the
+// bar back. Volume news comes first when there's both
 import { onSale } from "../../lib/releaseDate";
-import { readsByChapterOnly } from "../../lib/chapterWords";
 import { formatReleaseDate } from "../../lib/releaseDates";
-import {
-  formatCents,
-  priceName,
-  seriesPath,
-  volumePath,
-} from "../../lib/prices";
-import { ownedPhrase } from "../../lib/ownedVolumes";
-import type { Manga, ReleaseStatus } from "../../lib/types";
-import type { Group, Row } from "./ReleaseBar";
+import { formatCents, volumePath } from "../../lib/prices";
+import type { Manga, ReleaseData, ReleaseStatus } from "../../lib/types";
 import type { BuyOptions } from "./useBuyOptions";
 
 type Volume = BuyOptions["volumes"][number];
 
 // the most the shelf ever draws
 const MOST_BOOKS = 999;
-// how many volumes a list in the bar shows before "+3 more"
-const BAR_ROWS = 6;
 
 // How many books the shelf holds: the most we know is out, and never fewer
 // than they own. Until that's known (the answer is on its way, or we've
@@ -66,159 +67,165 @@ function preorderDay(published?: string | null) {
   return `${monthName} ${year}`;
 }
 
-// the bar's headline: what's out, and where they are beside it
 export type Release = {
-  // "Vol. 25" or "Ch. 250"
-  what: string;
-  kind: "volume" | "chapter";
-  // "you own up to vol. 24"; null when there's nothing to say
-  yours: string | null;
+  // "Vol. 44 is out!", "Vol. 44 comes out Dec 12", "Ch. 124 is out!"
+  headline: string;
+  // the white button on the bar: buy or preorder the volume. Null when
+  // there's no book to send them to
+  link: { to: string; label: string } | null;
+  // what its × silences: only this release. One that's out is marked seen
+  // (as New's Hide does); one still coming (a preorder, an expected
+  // chapter) is only silenced as a notice, so the day it's out the bar and
+  // the New tab still say so
+  seen: { kind: "volume" | "chapter"; number: number; upcoming: boolean };
+  // the volume the button sells, so Buy next doesn't offer it twice
+  sellsIsbn: string | null;
 };
 
 type Asked = {
   manga: Manga;
   releaseStatus: ReleaseStatus | null;
+  releaseData: ReleaseData | null;
   buyOptions: BuyOptions;
-  // they collect an omnibus or deluxe line, not single volumes
+  // they collect an omnibus or deluxe line: a single volume isn't theirs
   collectsEdition: boolean;
   // release checks are switched on in Settings
   checksOn: boolean;
   planned: boolean;
-  finished: boolean;
-  // they came from the shelf's In Japan tab
-  inJapan: boolean;
-  // they came about a chapter, not a volume
-  chapterNews: boolean;
   tracksChapters: boolean;
   highestOwned: number;
+  // a coming release whose notice they've closed (Details keeps these)
+  upcomingClosed: (kind: "volume" | "chapter", number: number) => boolean;
 };
 
-// the red bar: only what's next for them, and what they came here about
-function releaseOf(asked: Asked): Release | null {
-  const { manga, releaseStatus, inJapan } = asked;
-  if (!releaseStatus || !asked.checksOn || asked.planned) return null;
+const byNumber = (a: Volume, b: Volume) => a.volume - b.volume;
 
-  // owning and reading aren't the same, so say which it is
-  const owns = ownedPhrase(manga);
-  let volumeYours: string | null = null;
-  if (owns) volumeYours = `you own ${owns}`;
-  else if (readsByChapterOnly(manga))
-    volumeYours = `read up to ch. ${manga.bookmark}`;
-  else if (releaseStatus.currentVolume)
-    volumeYours = `read up to vol. ${releaseStatus.currentVolume}`;
+// a volume out now: its prices, with the price when we know one
+const buyLink = (v: Volume) => ({
+  to: volumePath(v.isbn13, v.title),
+  label:
+    v.knownPriceCents != null
+      ? `Buy for ${formatCents(v.knownPriceCents)}`
+      : "See prices",
+});
+// a volume not out yet: its page, where it can be preordered
+const preorderLink = (v: Volume) => ({
+  to: volumePath(v.isbn13, v.title),
+  label: "Preorder",
+});
 
-  if (inJapan) {
-    if (!releaseStatus.hasNewJapaneseVolume) return null;
+function volumeNews(asked: Asked): Release | null {
+  const { manga, buyOptions } = asked;
+  if (asked.collectsEdition) return null;
+  const whole = buyOptions.volumes.filter((v) => Number.isInteger(v.volume));
+  const out = onSale(whole).sort(byNumber);
+  const coming = whole.filter((v) => !out.includes(v)).sort(byNumber);
+  const newest = out.at(-1);
+  if (!newest) return null;
+  // where they are: the furthest they own, or read when they keep their
+  // place by volume without owning the books
+  const place = Math.max(
+    asked.highestOwned,
+    manga.byVolume ? (manga.readVolume ?? 0) : 0,
+  );
+  // a gap before that is being behind, not news
+  if (!place || buyOptions.gaps.length > 0) return null;
+  const seen = manga.seenVolume ?? 0;
+
+  if (place === newest.volume - 1) {
+    if (seen >= newest.volume) return null;
     return {
-      what: `Vol. ${releaseStatus.latestJapaneseVolume}`,
-      kind: "volume",
-      yours: volumeYours,
+      headline: `Vol. ${newest.volume} is out!`,
+      link: buyLink(newest),
+      seen: { kind: "volume", number: newest.volume, upcoming: false },
+      sellsIsbn: newest.isbn13,
     };
   }
-  const aboutAChapter = asked.chapterNews && !asked.finished;
-  if (aboutAChapter) {
-    if (!releaseStatus.hasNewChapter) return null;
-    const onChapter = asked.tracksChapters && manga.bookmark;
+  const next = coming[0];
+  if (
+    place >= newest.volume &&
+    next &&
+    seen < next.volume &&
+    !asked.upcomingClosed("volume", next.volume)
+  ) {
+    const day = preorderDay(next.published);
     return {
-      what: `Ch. ${releaseStatus.latestChapter}`,
-      kind: "chapter",
-      yours: onChapter ? `read up to ch. ${manga.bookmark}` : null,
+      headline: day
+        ? `Vol. ${next.volume} comes out ${day}`
+        : `Vol. ${next.volume} is coming`,
+      link: preorderLink(next),
+      seen: { kind: "volume", number: next.volume, upcoming: true },
+      sellsIsbn: next.isbn13,
     };
   }
-  if (!releaseStatus.isNextVolumeOut) return null;
-  return {
-    what: `Vol. ${releaseStatus.latestVolume}`,
-    kind: "volume",
-    yours: volumeYours,
-  };
+  return null;
 }
 
-// the button's words: the volume is named when it isn't the one in the
-// headline, and the price is said when we know one
-function buyLabel(toBuy: Volume, headlineVolume: number | null | undefined) {
-  const isAnotherVolume = toBuy.volume !== headlineVolume;
-  if (toBuy.knownPriceCents == null)
-    return isAnotherVolume ? `Check vol. ${toBuy.volume}` : "Check price";
-  const price = formatCents(toBuy.knownPriceCents);
-  return isAnotherVolume
-    ? `Buy vol. ${toBuy.volume} for ${price}`
-    : `Buy for ${price}`;
+// a chapter's news goes to the book that will hold it: the volume it's in
+// when that's out or can be preordered, else the next volume coming
+function chapterLink(asked: Asked) {
+  const { buyOptions, releaseStatus } = asked;
+  const holding = buyOptions.volumes.find(
+    (v) => v.volume === releaseStatus?.nextChapterVolume,
+  );
+  if (holding)
+    return onSale([holding]).length ? buyLink(holding) : preorderLink(holding);
+  const coming = buyOptions.volumes
+    .filter((v) => Number.isInteger(v.volume) && !onSale([v]).length)
+    .sort(byNumber)[0];
+  return coming ? preorderLink(coming) : null;
 }
 
-// what the bar opens to on an English volume: English releases only, each a
-// way to its prices. What's out past the furthest they own (a few, then the
-// rest behind one link), and what's coming with its date
-function englishGroups(asked: Asked): Group[] {
-  const { buyOptions, manga } = asked;
-  const pastMine = buyOptions.volumes
-    .filter((v) => Number.isInteger(v.volume) && v.volume > asked.highestOwned)
-    .sort((a, b) => a.volume - b.volume);
-  const out = onSale(pastMine);
-  const coming = pastMine.filter((v) => !out.includes(v));
+function chapterNews(asked: Asked): Release | null {
+  const { manga, releaseStatus, releaseData } = asked;
+  const read = manga.bookmark ?? 0;
+  const latest = releaseStatus?.latestChapter ?? 0;
+  if (!asked.tracksChapters || !read || !latest) return null;
+  const seen = manga.seenChapter ?? 0;
 
-  const outRows: Row[] = out.slice(0, BAR_ROWS).map((v) => ({
-    what: `Vol. ${v.volume}`,
-    when:
-      v.knownPriceCents != null
-        ? `from ${formatCents(v.knownPriceCents)}`
-        : "Check price",
-    to: volumePath(v.isbn13, v.title),
-    compare: true,
-  }));
-  if (out.length > BAR_ROWS) {
-    const seriesTo = seriesPath(buyOptions.seriesName || priceName(manga));
-    outRows.push({
-      what: `+${out.length - BAR_ROWS} more`,
-      when: "See them all",
-      to: `${seriesTo}&toget=1`,
-      compare: true,
-    });
+  if (read === latest - 1 && seen < latest) {
+    return {
+      headline: `Ch. ${latest} is out!`,
+      link: chapterLink(asked),
+      seen: { kind: "chapter", number: latest, upcoming: false },
+      sellsIsbn: null,
+    };
   }
-  const comingRows: Row[] = coming.slice(0, BAR_ROWS).map((v) => ({
-    what: `Vol. ${v.volume}`,
-    when: preorderDay(v.published),
-    to: volumePath(v.isbn13, v.title),
-    compare: false,
-  }));
-
-  const groups: Group[] = [];
-  if (outRows.length) groups.push({ title: "Out in English", rows: outRows });
-  if (comingRows.length)
-    groups.push({ title: "Preorder in English", rows: comingRows });
-  return groups;
+  // caught up: the next one, when it has a date still to come
+  const next = releaseData?.chapter?.estimateRelease;
+  const nextNumber = Number(next?.chapterNumber);
+  const nextDay = next?.releaseDate ? new Date(next.releaseDate) : null;
+  const when = formatReleaseDate(next?.releaseDate);
+  if (
+    read >= latest &&
+    Number.isFinite(nextNumber) &&
+    nextNumber > seen &&
+    !asked.upcomingClosed("chapter", nextNumber) &&
+    nextDay &&
+    nextDay.getTime() > Date.now() &&
+    when
+  ) {
+    return {
+      headline: `Ch. ${nextNumber} expected ${when}`,
+      link: chapterLink(asked),
+      seen: { kind: "chapter", number: nextNumber, upcoming: true },
+      sellsIsbn: null,
+    };
+  }
+  return null;
 }
 
 export function releaseNews(asked: Asked) {
-  const { buyOptions, releaseStatus } = asked;
-  const release = releaseOf(asked);
-
-  // an English volume release can be bought from the bar: the one they need
-  // next, named if that's not the one in the headline
-  const aboutAChapter = asked.chapterNews && !asked.finished;
-  const sellsVolume =
-    release !== null &&
-    !asked.inJapan &&
-    !aboutAChapter &&
-    !buyOptions.caughtUp &&
-    // collecting an edition: the single volume is news, not theirs to buy
-    !asked.collectsEdition;
-  const toBuy = sellsVolume ? (buyOptions.next ?? buyOptions.latest) : null;
-  // the newest is Buy it's own ticket already: the bar doesn't sell it twice
-  const barSells = toBuy && toBuy.isbn13 !== buyOptions.latest?.isbn13;
-  const barBuy = barSells
-    ? {
-        to: volumePath(toBuy.isbn13, toBuy.title),
-        label: buyLabel(toBuy, releaseStatus?.latestVolume),
-      }
-    : null;
-
-  const groups = englishGroups(asked);
-  const barEnglish = sellsVolume || groups.length ? { groups } : null;
-
-  // no need to sell the next one twice, unless it's the only ticket there is
-  const nextIsNotTheNewest =
-    buyOptions.next && buyOptions.next.isbn13 !== buyOptions.latest?.isbn13;
-  const hideNextTicket = Boolean(barBuy && nextIsNotTheNewest);
-
-  return { release, barBuy, barEnglish, hideNextTicket };
+  if (!asked.releaseStatus || !asked.checksOn || asked.planned)
+    return { release: null, hideNextTicket: false };
+  const release = volumeNews(asked) ?? chapterNews(asked);
+  // the bar sells the volume Buy next would: Buy next leaves it out,
+  // unless it's Buy next's only ticket (the next is the newest)
+  const { next, latest } = asked.buyOptions;
+  const hideNextTicket = Boolean(
+    release?.sellsIsbn &&
+    next?.isbn13 === release.sellsIsbn &&
+    next.isbn13 !== latest?.isbn13,
+  );
+  return { release, hideNextTicket };
 }
