@@ -272,7 +272,7 @@ export function useVolumePicker(
   );
 
   const field = (
-    <div className={styles.field}>
+    <div className={styles.field} data-tour="volume-picker">
       <div className={styles.head}>
         <span className={formStyles.label} id={labelId}>
           Your shelf{" "}

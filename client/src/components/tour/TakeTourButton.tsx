@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { startDemo } from "../../lib/demo";
+import { startDemo, type DemoKind } from "../../lib/demo";
 import { markTourDone } from "../../lib/tourOffer";
 import { useAuth } from "../../store/auth";
 
@@ -8,8 +8,11 @@ export default function TakeTourButton({
   large = false,
   small = false,
   className,
+  kind = "reader",
   children,
 }: {
+  // which tour: the short one, or the collector's on a big shelf
+  kind?: DemoKind;
   large?: boolean;
   small?: boolean;
   className?: string;
@@ -28,7 +31,7 @@ export default function TakeTourButton({
       onClick={() => {
         // taken: Kenji needn't offer it (lib/tourOffer.ts)
         markTourDone();
-        startDemo(Boolean(isSignedIn));
+        startDemo(Boolean(isSignedIn), kind);
       }}
     >
       {children ?? "Try Interactive Demo →"}

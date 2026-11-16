@@ -49,6 +49,7 @@ export default function WatchedAnime({
       className={styles.watched}
       role="group"
       aria-label="Watched the anime?"
+      data-tour="anime"
     >
       <span>Watched the anime? Tap your last season:</span>
       {seasons.map((stop) => (

@@ -73,7 +73,7 @@ export default function BuyStrip({
   if (!latest) return null;
 
   return (
-    <section className={styles.buy} aria-labelledby="buy-title">
+    <section className={styles.buy} aria-labelledby="buy-title" data-tour="buy">
       {/* the heading, and beside it which edition they buy (only when the
           series has another): "Buy it as Deluxe" */}
       <div className={styles.buyHead}>
@@ -81,17 +81,23 @@ export default function BuyStrip({
           Buy it
         </h2>
         {editions.lines.length > 0 && (
-          <SortMenu
-            lead="as"
-            menuLabel="Buy it as"
-            wordy
-            sortBy={line?.key ?? "singles"}
-            onSort={onCollect}
-            options={[
-              { value: "singles", label: "Single volumes" },
-              ...editions.lines.map((l) => ({ value: l.key, label: l.label })),
-            ]}
-          />
+          // the tour's "single, deluxe or omnibus" step points here
+          <span data-tour="edition">
+            <SortMenu
+              lead="as"
+              menuLabel="Buy it as"
+              wordy
+              sortBy={line?.key ?? "singles"}
+              onSort={onCollect}
+              options={[
+                { value: "singles", label: "Single volumes" },
+                ...editions.lines.map((l) => ({
+                  value: l.key,
+                  label: l.label,
+                })),
+              ]}
+            />
+          </span>
         )}
       </div>
       {line && plan ? (

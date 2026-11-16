@@ -162,7 +162,11 @@ export function NewPiles({
     if (returnTo) document.getElementById(`see-all-${returnTo}`)?.focus();
   }, [returnTo]);
   return (
-    <div className={styles.piles} onClickCapture={onCardClick}>
+    <div
+      className={styles.piles}
+      onClickCapture={onCardClick}
+      data-tour="shelf"
+    >
       {PILES.filter((p) => piles[p].length > 0).map((p) => {
         const list = piles[p];
         const { name, why } = PILE_TEXT[kind][p];

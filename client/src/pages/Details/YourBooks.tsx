@@ -128,7 +128,7 @@ export default function YourBooks({ mangaId, owned, onRemoved }: Props) {
 
   const hidden = rows.length - shown;
   return (
-    <details className={styles.books}>
+    <details className={styles.books} data-tour="your-books">
       <summary className={styles.booksSummary}>
         Your books <span className={styles.booksCount}>{rows.length}</span>
         {spent.books > 0 && (
@@ -139,9 +139,11 @@ export default function YourBooks({ mangaId, owned, onRemoved }: Props) {
         )}
       </summary>
       <ul className={styles.booksList}>
-        {rows.slice(0, shown).map((row) => (
+        {rows.slice(0, shown).map((row, i) => (
           <BookRow
             key={row.key}
+            // the tour points at the first: what was paid, and when
+            tourTarget={i === 0}
             row={row}
             onSave={save}
             onRemove={remove}

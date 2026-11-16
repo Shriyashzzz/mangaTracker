@@ -28,7 +28,7 @@ export default function AddButton({ onClick }: { onClick: () => void }) {
       type="button"
       className={`${styles.addButton}${away ? ` ${styles.addButtonAway}` : ""}`}
       aria-label="Add manga"
-      data-tour="add"
+      data-tour="scan"
       onClick={onClick}
     >
       <PlusIcon aria-hidden />

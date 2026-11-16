@@ -1,0 +1,2785 @@
+[
+  {
+    "id": 1,
+    "name": "One Piece",
+    "genre": "Action",
+    "image": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/medium/bx30013-BeslEMqiPhlk.jpg",
+    "status": false,
+    "planned": false,
+    "bookmark": 20,
+    "rating": 5,
+    "edition": null,
+    "volumesOwned": 112,
+    "ownedList": [],
+    "volumes": [
+      [1, "9781421545257"],
+      [2, "9781421546049"],
+      [3, "9781421546056"],
+      [4, "9781591163374"],
+      [5, "9781417681198"],
+      [6, "9781417680986"],
+      [7, "9781591168522"],
+      [8, "9781417696857"],
+      [9, "9781421546155"],
+      [10, "9781417784851"],
+      [11, "9781421506630"],
+      [12, "9781421547893"],
+      [13, "9781428700901"],
+      [14, "9781421510910"],
+      [15, "9781421548036"],
+      [16, "9781421510934"],
+      [17, "9781417817689"],
+      [18, "9781421515120"],
+      [19, "9781421515137"],
+      [20, "9781421548111"],
+      [21, "9781421546193"],
+      [22, "9781421546209"],
+      [23, "9781421546216"],
+      [24, "9781421528458"],
+      [25, "9781421546230"],
+      [26, "9781421546254"],
+      [27, "9781421546261"],
+      [28, "9781421534442"],
+      [29, "9781421534459"],
+      [30, "9781421534466"],
+      [31, "9781421534473"],
+      [32, "9781421546322"],
+      [33, "9781421534497"],
+      [34, "9781421545967"],
+      [35, "9781421545943"],
+      [36, "9781421545912"],
+      [37, "9781421545899"],
+      [38, "9781421545875"],
+      [39, "9781421545868"],
+      [40, "9781421545523"],
+      [41, "9781421545516"],
+      [42, "9781421534589"],
+      [43, "9781421545493"],
+      [44, "9781421534602"],
+      [45, "9781421534619"],
+      [46, "9781421534626"],
+      [47, "9781421534633"],
+      [48, "9781421534640"],
+      [49, "9781421534657"],
+      [50, "9781421545394"],
+      [51, "9781421545370"],
+      [52, "9781421545363"],
+      [53, "9781421545356"],
+      [54, "9781421534701"],
+      [55, "9781421534718"],
+      [56, "9781421538501"],
+      [57, "9781421538518"],
+      [58, "9781421545295"],
+      [59, "9781421539591"],
+      [60, "9781421540856"],
+      [61, "9781421541440"],
+      [62, "9781421549613"],
+      [63, "9781421543079"],
+      [64, "9781421550510"],
+      [65, "9781421549798"],
+      [66, "9781421552378"],
+      [67, "9781421553719"],
+      [68, "9781421558813"],
+      [69, "9781421561431"],
+      [70, "9781421573878"],
+      [71, "9781421569451"],
+      [72, "9781421580036"],
+      [73, "9781421581927"],
+      [74, "9781421583549"],
+      [75, "9781421585970"],
+      [76, "9781421582603"],
+      [77, "9781421589442"],
+      [78, "9781421590332"],
+      [79, "9781421588155"],
+      [80, "9781421590240"],
+      [81, "9781421595689"],
+      [82, "9781421592695"],
+      [83, "9781421594330"],
+      [84, "9781974700875"],
+      [85, "9781974702008"],
+      [86, "9781974703289"],
+      [87, "9781974701414"],
+      [88, "9781974707591"],
+      [89, "9781974705214"],
+      [90, "9781974711437"],
+      [91, "9781974713509"],
+      [92, "9781974710157"],
+      [93, "9781974712557"],
+      [94, "9781974715374"],
+      [95, "9781974724284"],
+      [96, "9781974726738"],
+      [97, "9781974722891"],
+      [98, "9781974725199"],
+      [99, "9781974729005"],
+      [100, "9781974733590"],
+      [101, "9781974734207"],
+      [102, "9781974736553"],
+      [103, "9781974739813"],
+      [104, "9781974742196"],
+      [105, "9781974743278"],
+      [106, "9781974748068"],
+      [107, "9781974750931"],
+      [108, "9781974753949"],
+      [109, "9781974757039"],
+      [110, "9781974758968"],
+      [111, "9781974762286"],
+      [112, "9781974767694"],
+      [113, "9781974766703"]
+    ],
+    "books": [],
+    "editions": [
+      {
+        "key": "omnibus",
+        "kind": "omnibus",
+        "books": [
+          {
+            "title": null,
+            "isbn13": null,
+            "listed": false,
+            "number": 1,
+            "volumes": [1, 2, 3]
+          },
+          {
+            "title": null,
+            "isbn13": null,
+            "listed": false,
+            "number": 2,
+            "volumes": [4, 5, 6]
+          },
+          {
+            "title": null,
+            "isbn13": null,
+            "listed": false,
+            "number": 3,
+            "volumes": [7, 8, 9]
+          },
+          {
+            "title": null,
+            "isbn13": null,
+            "listed": false,
+            "number": 4,
+            "volumes": [10, 11, 12]
+          },
+          {
+            "title": null,
+            "isbn13": null,
+            "listed": false,
+            "number": 5,
+            "volumes": [13, 14, 15]
+          },
+          {
+            "title": null,
+            "isbn13": null,
+            "listed": false,
+            "number": 6,
+            "volumes": [16, 17, 18]
+          },
+          {
+            "title": null,
+            "isbn13": null,
+            "listed": false,
+            "number": 7,
+            "volumes": [19, 20, 21]
+          },
+          {
+            "title": null,
+            "isbn13": null,
+            "listed": false,
+            "number": 8,
+            "volumes": [22, 23, 24]
+          },
+          {
+            "title": null,
+            "isbn13": null,
+            "listed": false,
+            "number": 9,
+            "volumes": [25, 26, 27]
+          },
+          {
+            "title": null,
+            "isbn13": null,
+            "listed": false,
+            "number": 10,
+            "volumes": [28, 29, 30]
+          },
+          {
+            "title": null,
+            "isbn13": null,
+            "listed": false,
+            "number": 11,
+            "volumes": [31, 32, 33]
+          },
+          {
+            "title": null,
+            "isbn13": null,
+            "listed": false,
+            "number": 12,
+            "volumes": [34, 35, 36]
+          },
+          {
+            "title": null,
+            "isbn13": null,
+            "listed": false,
+            "number": 13,
+            "volumes": [37, 38, 39]
+          },
+          {
+            "title": null,
+            "isbn13": null,
+            "listed": false,
+            "number": 14,
+            "volumes": [40, 41, 42]
+          },
+          {
+            "title": null,
+            "isbn13": null,
+            "listed": false,
+            "number": 15,
+            "volumes": [43, 44, 45]
+          },
+          {
+            "title": null,
+            "isbn13": null,
+            "listed": false,
+            "number": 16,
+            "volumes": [46, 47, 48]
+          },
+          {
+            "title": null,
+            "isbn13": null,
+            "listed": false,
+            "number": 17,
+            "volumes": [49, 50, 51]
+          },
+          {
+            "title": null,
+            "isbn13": null,
+            "listed": false,
+            "number": 18,
+            "volumes": [52, 53, 54]
+          },
+          {
+            "title": null,
+            "isbn13": null,
+            "listed": false,
+            "number": 19,
+            "volumes": [55, 56, 57]
+          },
+          {
+            "title": null,
+            "isbn13": null,
+            "listed": false,
+            "number": 20,
+            "volumes": [58, 59, 60]
+          },
+          {
+            "title": null,
+            "isbn13": null,
+            "listed": false,
+            "number": 21,
+            "volumes": [61, 62, 63]
+          },
+          {
+            "title": null,
+            "isbn13": null,
+            "listed": false,
+            "number": 22,
+            "volumes": [64, 65, 66]
+          },
+          {
+            "title": null,
+            "isbn13": null,
+            "listed": false,
+            "number": 23,
+            "volumes": [67, 68, 69]
+          },
+          {
+            "title": null,
+            "isbn13": null,
+            "listed": false,
+            "number": 24,
+            "volumes": [70, 71, 72]
+          },
+          {
+            "title": null,
+            "isbn13": null,
+            "listed": false,
+            "number": 25,
+            "volumes": [73, 74, 75]
+          },
+          {
+            "title": null,
+            "isbn13": null,
+            "listed": false,
+            "number": 26,
+            "volumes": [76, 77, 78]
+          },
+          {
+            "title": null,
+            "isbn13": null,
+            "listed": false,
+            "number": 27,
+            "volumes": [79, 80, 81]
+          },
+          {
+            "title": null,
+            "isbn13": null,
+            "listed": false,
+            "number": 28,
+            "volumes": [82, 83, 84]
+          },
+          {
+            "title": null,
+            "isbn13": null,
+            "listed": false,
+            "number": 29,
+            "volumes": [85, 86, 87]
+          },
+          {
+            "title": null,
+            "isbn13": null,
+            "listed": false,
+            "number": 30,
+            "volumes": [88, 89, 90]
+          },
+          {
+            "title": null,
+            "isbn13": null,
+            "listed": false,
+            "number": 31,
+            "volumes": [91, 92, 93]
+          },
+          {
+            "title": null,
+            "isbn13": null,
+            "listed": false,
+            "number": 32,
+            "volumes": [94, 95, 96]
+          },
+          {
+            "title": null,
+            "isbn13": null,
+            "listed": false,
+            "number": 33,
+            "volumes": [97, 98, 99]
+          },
+          {
+            "title": "One Piece Omnibus 34",
+            "isbn13": "9781974749553",
+            "listed": true,
+            "number": 34,
+            "volumes": [100, 101, 102]
+          },
+          {
+            "title": null,
+            "isbn13": null,
+            "listed": false,
+            "number": 35,
+            "volumes": [103, 104, 105]
+          },
+          {
+            "title": null,
+            "isbn13": null,
+            "listed": false,
+            "number": 36,
+            "volumes": [106, 107, 108]
+          },
+          {
+            "title": null,
+            "isbn13": null,
+            "listed": false,
+            "number": 37,
+            "volumes": [109, 110, 111]
+          },
+          {
+            "title": null,
+            "isbn13": null,
+            "listed": false,
+            "number": 38,
+            "volumes": [112, 113]
+          }
+        ],
+        "label": "Omnibus"
+      }
+    ]
+  },
+  {
+    "id": 2,
+    "name": "Berserk",
+    "genre": "Action",
+    "image": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/medium/bx30002-Cul4OeN7bYtn.jpg",
+    "status": false,
+    "planned": false,
+    "bookmark": 0,
+    "rating": null,
+    "edition": "singles",
+    "volumesOwned": 20,
+    "ownedList": [],
+    "volumes": [
+      [1, "9781630089993"],
+      [2, "9781593070212"],
+      [3, "9781593070229"],
+      [4, "9781593072032"],
+      [5, "9781506704173"],
+      [6, "9781506704210"],
+      [7, "9781506704180"],
+      [8, "9781593073299"],
+      [9, "9781506704227"],
+      [10, "9781593073312"],
+      [11, "9781593074708"],
+      [12, "9781506704258"],
+      [13, "9781506704265"],
+      [14, "9781593075019"],
+      [15, "9781593075774"],
+      [16, "9781506704302"],
+      [17, "9781506704296"],
+      [18, "9781506704319"],
+      [19, "9781506704326"],
+      [20, "9781506704333"],
+      [21, "9781506704340"],
+      [22, "9781593078638"],
+      [23, "9781506704364"],
+      [24, "9781506704371"],
+      [25, "9781506704388"],
+      [26, "9781506704395"],
+      [27, "9781593079239"],
+      [28, "9781506704418"],
+      [29, "9781506704425"],
+      [30, "9781595822116"],
+      [31, "9781595823663"],
+      [32, "9781506704463"],
+      [33, "9781595823724"],
+      [34, "9781595825322"],
+      [35, "9781506704487"],
+      [36, "9781506704494"],
+      [37, "9781616552053"],
+      [38, "9781506703985"],
+      [39, "9781506707082"],
+      [40, "9781506714981"],
+      [41, "9781506733760"],
+      [42, "9781506746418"],
+      [43, "9781506757278"]
+    ],
+    "books": [
+      {
+        "edition": "deluxe",
+        "number": 1,
+        "title": "Berserk Deluxe Edition #1",
+        "isbn13": null,
+        "volumes": [1, 2, 3],
+        "paidCents": 3399,
+        "boughtOn": "2025-03-17"
+      },
+      {
+        "edition": "deluxe",
+        "number": 2,
+        "title": "Berserk Deluxe Edition #2",
+        "isbn13": null,
+        "volumes": [4, 5, 6],
+        "paidCents": 3799,
+        "boughtOn": "2025-11-06"
+      },
+      {
+        "edition": "deluxe",
+        "number": 3,
+        "title": "Berserk Deluxe Edition #3",
+        "isbn13": null,
+        "volumes": [7, 8, 9],
+        "paidCents": 4099,
+        "boughtOn": "2026-04-16"
+      },
+      {
+        "edition": "deluxe",
+        "number": 4,
+        "title": "Berserk Deluxe Edition #4",
+        "isbn13": null,
+        "volumes": [10, 11, 12],
+        "paidCents": 3399,
+        "boughtOn": "2025-03-06"
+      },
+      {
+        "edition": "deluxe",
+        "number": 5,
+        "title": "Berserk Deluxe Edition #5",
+        "isbn13": null,
+        "volumes": [13, 14, 15],
+        "paidCents": 3899,
+        "boughtOn": "2026-01-03"
+      },
+      {
+        "edition": "deluxe",
+        "number": 6,
+        "title": "Berserk Deluxe Edition #6",
+        "isbn13": null,
+        "volumes": [16, 17, 18],
+        "paidCents": 3699,
+        "boughtOn": "2025-08-17"
+      },
+      {
+        "edition": "single",
+        "number": 19,
+        "title": null,
+        "isbn13": "9781506704326",
+        "volumes": [19],
+        "paidCents": 1299,
+        "boughtOn": "2025-09-30"
+      },
+      {
+        "edition": "single",
+        "number": 20,
+        "title": null,
+        "isbn13": "9781506704333",
+        "volumes": [20],
+        "paidCents": 1499,
+        "boughtOn": "2026-10-02"
+      }
+    ],
+    "editions": [
+      {
+        "key": "deluxe",
+        "kind": "deluxe",
+        "books": [
+          {
+            "title": "Berserk Deluxe Volume 1",
+            "isbn13": "9781506711980",
+            "listed": true,
+            "number": 1,
+            "volumes": [1, 2, 3]
+          },
+          {
+            "title": "Berserk Deluxe Volume 2",
+            "isbn13": "9781506711997",
+            "listed": true,
+            "number": 2,
+            "volumes": [4, 5, 6]
+          },
+          {
+            "title": "Berserk Deluxe Volume 3",
+            "isbn13": "9781506712000",
+            "listed": true,
+            "number": 3,
+            "volumes": [7, 8, 9]
+          },
+          {
+            "title": "Berserk Deluxe Volume 4",
+            "isbn13": "9781506715216",
+            "listed": true,
+            "number": 4,
+            "volumes": [10, 11, 12]
+          },
+          {
+            "title": "Berserk Deluxe Volume 5",
+            "isbn13": "9781506715223",
+            "listed": true,
+            "number": 5,
+            "volumes": [13, 14, 15]
+          },
+          {
+            "title": "Berserk Deluxe Volume 6",
+            "isbn13": "9781506715230",
+            "listed": true,
+            "number": 6,
+            "volumes": [16, 17, 18]
+          },
+          {
+            "title": "Berserk Deluxe Volume 7",
+            "isbn13": "9781506717906",
+            "listed": true,
+            "number": 7,
+            "volumes": [19, 20, 21]
+          },
+          {
+            "title": "Berserk Deluxe Volume 8",
+            "isbn13": "9781506717913",
+            "listed": true,
+            "number": 8,
+            "volumes": [22, 23, 24]
+          },
+          {
+            "title": "Berserk Deluxe Volume 9",
+            "isbn13": "9781506717920",
+            "listed": true,
+            "number": 9,
+            "volumes": [25, 26, 27]
+          },
+          {
+            "title": "Berserk Deluxe Volume 10",
+            "isbn13": "9781506727547",
+            "listed": true,
+            "number": 10,
+            "volumes": [28, 29, 30]
+          },
+          {
+            "title": "Berserk Deluxe Books 1-11",
+            "isbn13": "9781338727807",
+            "listed": true,
+            "number": 11,
+            "volumes": [31, 32, 33]
+          },
+          {
+            "title": "Berserk Deluxe Volume 12",
+            "isbn13": "9781506727561",
+            "listed": true,
+            "number": 12,
+            "volumes": [34, 35, 36]
+          },
+          {
+            "title": "Berserk Deluxe Volume 13",
+            "isbn13": "9781506727578",
+            "listed": true,
+            "number": 13,
+            "volumes": [37, 38, 39]
+          },
+          {
+            "title": "Berserk Deluxe Volume 14",
+            "isbn13": "9781506741062",
+            "listed": true,
+            "number": 14,
+            "volumes": [40, 41]
+          },
+          {
+            "title": null,
+            "isbn13": null,
+            "listed": false,
+            "number": 15,
+            "volumes": [42, 43]
+          }
+        ],
+        "label": "Deluxe"
+      }
+    ]
+  },
+  {
+    "id": 3,
+    "name": "Naruto",
+    "genre": "Action",
+    "image": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/medium/nx30011-9yUF1dXWgDOx.jpg",
+    "status": false,
+    "planned": false,
+    "bookmark": 0,
+    "rating": null,
+    "edition": null,
+    "volumesOwned": 72,
+    "ownedList": [],
+    "volumes": [
+      [1, "9781569319000"],
+      [2, "9781591161783"],
+      [3, "9781591161875"],
+      [4, "9781415572788"],
+      [5, "9781417654024"],
+      [6, "9781591167396"],
+      [7, "9781417752416"],
+      [8, "9781421501246"],
+      [9, "9781417752430"],
+      [10, "9781415672709"],
+      [11, "9781417784042"],
+      [12, "9781421502427"],
+      [13, "9781417784066"],
+      [14, "9781428773639"],
+      [15, "9781417779277"],
+      [16, "9781421510903"],
+      [17, "9781421516523"],
+      [18, "9781435214873"],
+      [19, "9781417813889"],
+      [20, "9781421516554"],
+      [21, "9781417813919"],
+      [22, "9781421518589"],
+      [23, "9781421518596"],
+      [24, "9781417813940"],
+      [25, "9781421518619"],
+      [26, "9781421518626"],
+      [27, "9781421518633"],
+      [28, "9781421518640"],
+      [29, "9781421518657"],
+      [30, "9781421519425"],
+      [31, "9780329672812"],
+      [32, "9781421519449"],
+      [33, "9781421520018"],
+      [34, "9781421520025"],
+      [35, "9781421520032"],
+      [36, "9781421521725"],
+      [37, "9781421521732"],
+      [38, "9781421521749"],
+      [39, "9781421521756"],
+      [40, "9781439580905"],
+      [41, "9781421528427"],
+      [42, "9780329709402"],
+      [43, "9781421529295"],
+      [44, "9781421531342"],
+      [45, "9781421531359"],
+      [46, "9781421533049"],
+      [47, "9781421533056"],
+      [48, "9781421534749"],
+      [49, "9781421534756"],
+      [50, "9781421534978"],
+      [51, "9781421534985"],
+      [52, "9781421539577"],
+      [53, "9781421540498"],
+      [54, "9781421541020"],
+      [55, "9781451736953"],
+      [56, "9781421542072"],
+      [57, "9781421543062"],
+      [58, "9781421543284"],
+      [59, "9781421549422"],
+      [60, "9781421549439"],
+      [61, "9781421552484"],
+      [62, "9781421556192"],
+      [63, "9781421558851"],
+      [64, "9781421561394"],
+      [65, "9781421564555"],
+      [66, "9781421569482"],
+      [67, "9781421573847"],
+      [68, "9780606385725"],
+      [69, "9781421578569"],
+      [70, "9780606371513"],
+      [71, "9780606382120"],
+      [72, "9781421582849"]
+    ],
+    "books": [
+      {
+        "edition": "omnibus",
+        "number": 1,
+        "title": "Naruto 3-in-1 #1",
+        "isbn13": null,
+        "volumes": [1, 2, 3],
+        "paidCents": 1199,
+        "boughtOn": "2025-05-14"
+      },
+      {
+        "edition": "omnibus",
+        "number": 2,
+        "title": "Naruto 3-in-1 #2",
+        "isbn13": null,
+        "volumes": [4, 5, 6],
+        "paidCents": 1499,
+        "boughtOn": "2026-09-24"
+      },
+      {
+        "edition": "omnibus",
+        "number": 3,
+        "title": "Naruto 3-in-1 #3",
+        "isbn13": null,
+        "volumes": [7, 8, 9],
+        "paidCents": 1399,
+        "boughtOn": "2026-05-22"
+      },
+      {
+        "edition": "omnibus",
+        "number": 4,
+        "title": "Naruto 3-in-1 #4",
+        "isbn13": null,
+        "volumes": [10, 11, 12],
+        "paidCents": 1399,
+        "boughtOn": "2026-05-16"
+      },
+      {
+        "edition": "omnibus",
+        "number": 5,
+        "title": "Naruto 3-in-1 #5",
+        "isbn13": null,
+        "volumes": [13, 14, 15],
+        "paidCents": 1399,
+        "boughtOn": "2026-02-28"
+      },
+      {
+        "edition": "omnibus",
+        "number": 6,
+        "title": "Naruto 3-in-1 #6",
+        "isbn13": null,
+        "volumes": [16, 17, 18],
+        "paidCents": 1099,
+        "boughtOn": "2024-11-09"
+      },
+      {
+        "edition": "omnibus",
+        "number": 7,
+        "title": "Naruto 3-in-1 #7",
+        "isbn13": null,
+        "volumes": [19, 20, 21],
+        "paidCents": 1499,
+        "boughtOn": "2026-09-18"
+      },
+      {
+        "edition": "omnibus",
+        "number": 8,
+        "title": "Naruto 3-in-1 #8",
+        "isbn13": null,
+        "volumes": [22, 23, 24],
+        "paidCents": 1299,
+        "boughtOn": "2025-08-22"
+      },
+      {
+        "edition": "omnibus",
+        "number": 9,
+        "title": "Naruto 3-in-1 #9",
+        "isbn13": null,
+        "volumes": [25, 26, 27],
+        "paidCents": 1299,
+        "boughtOn": "2025-12-30"
+      },
+      {
+        "edition": "omnibus",
+        "number": 10,
+        "title": "Naruto 3-in-1 #10",
+        "isbn13": null,
+        "volumes": [28, 29, 30],
+        "paidCents": 1199,
+        "boughtOn": "2025-04-15"
+      },
+      {
+        "edition": "omnibus",
+        "number": 11,
+        "title": "Naruto 3-in-1 #11",
+        "isbn13": null,
+        "volumes": [31, 32, 33],
+        "paidCents": 1399,
+        "boughtOn": "2026-07-08"
+      },
+      {
+        "edition": "omnibus",
+        "number": 12,
+        "title": "Naruto 3-in-1 #12",
+        "isbn13": null,
+        "volumes": [34, 35, 36],
+        "paidCents": 1399,
+        "boughtOn": "2026-02-28"
+      },
+      {
+        "edition": "omnibus",
+        "number": 13,
+        "title": "Naruto 3-in-1 #13",
+        "isbn13": null,
+        "volumes": [37, 38, 39],
+        "paidCents": 1299,
+        "boughtOn": "2025-08-09"
+      },
+      {
+        "edition": "omnibus",
+        "number": 14,
+        "title": "Naruto 3-in-1 #14",
+        "isbn13": null,
+        "volumes": [40, 41, 42],
+        "paidCents": 1299,
+        "boughtOn": "2025-10-27"
+      },
+      {
+        "edition": "omnibus",
+        "number": 15,
+        "title": "Naruto 3-in-1 #15",
+        "isbn13": null,
+        "volumes": [43, 44, 45],
+        "paidCents": 1399,
+        "boughtOn": "2026-04-08"
+      },
+      {
+        "edition": "omnibus",
+        "number": 16,
+        "title": "Naruto 3-in-1 #16",
+        "isbn13": null,
+        "volumes": [46, 47, 48],
+        "paidCents": 1199,
+        "boughtOn": "2025-02-15"
+      },
+      {
+        "edition": "omnibus",
+        "number": 17,
+        "title": "Naruto 3-in-1 #17",
+        "isbn13": null,
+        "volumes": [49, 50, 51],
+        "paidCents": 1199,
+        "boughtOn": "2025-02-26"
+      },
+      {
+        "edition": "omnibus",
+        "number": 18,
+        "title": "Naruto 3-in-1 #18",
+        "isbn13": null,
+        "volumes": [52, 53, 54],
+        "paidCents": 1399,
+        "boughtOn": "2026-05-31"
+      },
+      {
+        "edition": "omnibus",
+        "number": 19,
+        "title": "Naruto 3-in-1 #19",
+        "isbn13": null,
+        "volumes": [55, 56, 57],
+        "paidCents": 1499,
+        "boughtOn": "2026-09-17"
+      },
+      {
+        "edition": "omnibus",
+        "number": 20,
+        "title": "Naruto 3-in-1 #20",
+        "isbn13": null,
+        "volumes": [58, 59, 60],
+        "paidCents": 1299,
+        "boughtOn": "2025-10-03"
+      },
+      {
+        "edition": "omnibus",
+        "number": 21,
+        "title": "Naruto 3-in-1 #21",
+        "isbn13": null,
+        "volumes": [61, 62, 63],
+        "paidCents": 1499,
+        "boughtOn": "2026-10-03"
+      },
+      {
+        "edition": "omnibus",
+        "number": 22,
+        "title": "Naruto 3-in-1 #22",
+        "isbn13": null,
+        "volumes": [64, 65, 66],
+        "paidCents": 1299,
+        "boughtOn": "2025-11-21"
+      },
+      {
+        "edition": "omnibus",
+        "number": 23,
+        "title": "Naruto 3-in-1 #23",
+        "isbn13": null,
+        "volumes": [67, 68, 69],
+        "paidCents": 1099,
+        "boughtOn": "2024-11-25"
+      },
+      {
+        "edition": "omnibus",
+        "number": 24,
+        "title": "Naruto 3-in-1 #24",
+        "isbn13": null,
+        "volumes": [70, 71, 72],
+        "paidCents": 1099,
+        "boughtOn": "2024-12-03"
+      }
+    ],
+    "editions": [
+      {
+        "key": "3in1",
+        "kind": "omnibus",
+        "books": [
+          {
+            "title": "Naruto #1-3",
+            "isbn13": "9781421539898",
+            "listed": true,
+            "number": 1,
+            "volumes": [1, 2, 3]
+          },
+          {
+            "title": "Naruto #4-6",
+            "isbn13": "9781421539904",
+            "listed": true,
+            "number": 2,
+            "volumes": [4, 5, 6]
+          },
+          {
+            "title": "Naruto #7-9",
+            "isbn13": "9781421539911",
+            "listed": true,
+            "number": 3,
+            "volumes": [7, 8, 9]
+          },
+          {
+            "title": "Naruto #10-12",
+            "isbn13": "9781421554884",
+            "listed": true,
+            "number": 4,
+            "volumes": [10, 11, 12]
+          },
+          {
+            "title": "Naruto #13-15",
+            "isbn13": "9781421554891",
+            "listed": true,
+            "number": 5,
+            "volumes": [13, 14, 15]
+          },
+          {
+            "title": "Naruto #16-18",
+            "isbn13": "9781421554907",
+            "listed": true,
+            "number": 6,
+            "volumes": [16, 17, 18]
+          },
+          {
+            "title": "Naruto #19-21",
+            "isbn13": "9781421554952",
+            "listed": true,
+            "number": 7,
+            "volumes": [19, 20, 21]
+          },
+          {
+            "title": "Naruto #22-24",
+            "isbn13": "9781421564517",
+            "listed": true,
+            "number": 8,
+            "volumes": [22, 23, 24]
+          },
+          {
+            "title": "Naruto #25-27",
+            "isbn13": "9781421564753",
+            "listed": true,
+            "number": 9,
+            "volumes": [25, 26, 27]
+          },
+          {
+            "title": "Naruto #28-30",
+            "isbn13": "9781421564746",
+            "listed": true,
+            "number": 10,
+            "volumes": [28, 29, 30]
+          },
+          {
+            "title": "Naruto #31-33",
+            "isbn13": "9781421573816",
+            "listed": true,
+            "number": 11,
+            "volumes": [31, 32, 33]
+          },
+          {
+            "title": "Naruto #34-36",
+            "isbn13": "9781421573823",
+            "listed": true,
+            "number": 12,
+            "volumes": [34, 35, 36]
+          },
+          {
+            "title": "Naruto #37-39",
+            "isbn13": "9781421582535",
+            "listed": true,
+            "number": 13,
+            "volumes": [37, 38, 39]
+          },
+          {
+            "title": "Naruto #40-42",
+            "isbn13": "9781421582542",
+            "listed": true,
+            "number": 14,
+            "volumes": [40, 41, 42]
+          },
+          {
+            "title": "Naruto #43-45",
+            "isbn13": "9781421583419",
+            "listed": true,
+            "number": 15,
+            "volumes": [43, 44, 45]
+          },
+          {
+            "title": "Naruto #46-48",
+            "isbn13": "9781421583426",
+            "listed": true,
+            "number": 16,
+            "volumes": [46, 47, 48]
+          },
+          {
+            "title": "Naruto #49-51",
+            "isbn13": "9781421583433",
+            "listed": true,
+            "number": 17,
+            "volumes": [49, 50, 51]
+          },
+          {
+            "title": "Naruto #52-54",
+            "isbn13": "9781421583440",
+            "listed": true,
+            "number": 18,
+            "volumes": [52, 53, 54]
+          },
+          {
+            "title": "Naruto #55-57",
+            "isbn13": "9781421591148",
+            "listed": true,
+            "number": 19,
+            "volumes": [55, 56, 57]
+          },
+          {
+            "title": "Naruto #58-60",
+            "isbn13": "9781421591155",
+            "listed": true,
+            "number": 20,
+            "volumes": [58, 59, 60]
+          },
+          {
+            "title": null,
+            "isbn13": null,
+            "listed": false,
+            "number": 21,
+            "volumes": [61, 62, 63]
+          },
+          {
+            "title": null,
+            "isbn13": null,
+            "listed": false,
+            "number": 22,
+            "volumes": [64, 65, 66]
+          },
+          {
+            "title": "Naruto #67-69",
+            "isbn13": "9781421597065",
+            "listed": true,
+            "number": 23,
+            "volumes": [67, 68, 69]
+          },
+          {
+            "title": null,
+            "isbn13": null,
+            "listed": false,
+            "number": 24,
+            "volumes": [70, 71, 72]
+          }
+        ],
+        "label": "3-in-1"
+      }
+    ]
+  },
+  {
+    "id": 4,
+    "name": "Vagabond",
+    "genre": "Action",
+    "image": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/medium/bx30656-9mW113O7rDnA.png",
+    "status": false,
+    "planned": false,
+    "bookmark": 0,
+    "rating": 5,
+    "edition": null,
+    "volumesOwned": 36,
+    "ownedList": [],
+    "volumes": [
+      [1, "9781421519111"],
+      [2, "9781421519128"],
+      [3, "9781421519135"],
+      [4, "9781421519142"],
+      [5, "9781569318935"],
+      [6, "9781569318942"],
+      [7, "9781591160731"],
+      [8, "9780613790437"],
+      [9, "9781591162568"],
+      [10, "9781591163404"],
+      [11, "9781591163961"],
+      [12, "9781591164340"],
+      [13, "9781591164517"],
+      [14, "9781591164524"],
+      [15, "9781591164531"],
+      [16, "9781591164548"],
+      [17, "9781591164555"],
+      [18, "9781591166429"],
+      [19, "9781591166436"],
+      [20, "9781591165835"],
+      [21, "9781421507415"],
+      [22, "9781421508184"],
+      [23, "9781421508269"],
+      [24, "9781421508276"],
+      [25, "9781421509754"],
+      [26, "9781421519838"],
+      [27, "9781421520087"],
+      [28, "9781421527086"],
+      [29, "9781421531489"],
+      [30, "9781421534381"],
+      [31, "9781421536316"],
+      [32, "9781421538136"],
+      [33, "9781421538143"],
+      [34, "9781421549309"],
+      [35, "9781421564456"],
+      [37, "9781421577449"]
+    ],
+    "books": [
+      {
+        "edition": "omnibus",
+        "number": 1,
+        "title": "Vagabond (VIZBIG Edition) #1",
+        "isbn13": null,
+        "volumes": [1, 2, 3],
+        "paidCents": 1099,
+        "boughtOn": "2024-11-12"
+      },
+      {
+        "edition": "omnibus",
+        "number": 2,
+        "title": "Vagabond (VIZBIG Edition) #2",
+        "isbn13": null,
+        "volumes": [4, 5, 6],
+        "paidCents": 1499,
+        "boughtOn": "2026-08-21"
+      },
+      {
+        "edition": "omnibus",
+        "number": 3,
+        "title": "Vagabond (VIZBIG Edition) #3",
+        "isbn13": null,
+        "volumes": [7, 8, 9],
+        "paidCents": 1299,
+        "boughtOn": "2025-09-12"
+      },
+      {
+        "edition": "omnibus",
+        "number": 4,
+        "title": "Vagabond (VIZBIG Edition) #4",
+        "isbn13": null,
+        "volumes": [10, 11, 12],
+        "paidCents": 1299,
+        "boughtOn": "2025-10-01"
+      },
+      {
+        "edition": "omnibus",
+        "number": 5,
+        "title": "Vagabond (VIZBIG Edition) #5",
+        "isbn13": null,
+        "volumes": [13, 14, 15],
+        "paidCents": 1099,
+        "boughtOn": "2024-12-02"
+      },
+      {
+        "edition": "omnibus",
+        "number": 6,
+        "title": "Vagabond (VIZBIG Edition) #6",
+        "isbn13": null,
+        "volumes": [16, 17, 18],
+        "paidCents": 1299,
+        "boughtOn": "2025-12-27"
+      },
+      {
+        "edition": "omnibus",
+        "number": 7,
+        "title": "Vagabond (VIZBIG Edition) #7",
+        "isbn13": null,
+        "volumes": [19, 20, 21],
+        "paidCents": 1499,
+        "boughtOn": "2026-09-04"
+      },
+      {
+        "edition": "omnibus",
+        "number": 8,
+        "title": "Vagabond (VIZBIG Edition) #8",
+        "isbn13": null,
+        "volumes": [22, 23, 24],
+        "paidCents": 1099,
+        "boughtOn": "2025-01-21"
+      },
+      {
+        "edition": "omnibus",
+        "number": 9,
+        "title": "Vagabond (VIZBIG Edition) #9",
+        "isbn13": null,
+        "volumes": [25, 26, 27],
+        "paidCents": 1299,
+        "boughtOn": "2026-01-15"
+      },
+      {
+        "edition": "omnibus",
+        "number": 10,
+        "title": "Vagabond (VIZBIG Edition) #10",
+        "isbn13": null,
+        "volumes": [28, 29, 30],
+        "paidCents": 1399,
+        "boughtOn": "2026-06-11"
+      },
+      {
+        "edition": "omnibus",
+        "number": 11,
+        "title": "Vagabond (VIZBIG Edition) #11",
+        "isbn13": null,
+        "volumes": [31, 32, 33],
+        "paidCents": 1399,
+        "boughtOn": "2026-04-03"
+      },
+      {
+        "edition": "omnibus",
+        "number": 12,
+        "title": "Vagabond (VIZBIG Edition) #12",
+        "isbn13": null,
+        "volumes": [34, 35, 36],
+        "paidCents": 1399,
+        "boughtOn": "2026-03-07"
+      }
+    ],
+    "editions": [
+      {
+        "key": "vizbig",
+        "kind": "omnibus",
+        "books": [
+          {
+            "title": "Vagabond VIZBIG Edition, Vol. 1",
+            "isbn13": "9781421520544",
+            "listed": true,
+            "number": 1,
+            "volumes": [1, 2, 3]
+          },
+          {
+            "title": "Vagabond VIZBIG Edition, Vol. 2",
+            "isbn13": "9781421522449",
+            "listed": true,
+            "number": 2,
+            "volumes": [4, 5, 6]
+          },
+          {
+            "title": "Vagabond VIZBIG Edition, Vol. 3",
+            "isbn13": "9781421522456",
+            "listed": true,
+            "number": 3,
+            "volumes": [7, 8, 9]
+          },
+          {
+            "title": "Vagabond VIZBIG Edition, Vol. 4",
+            "isbn13": "9781421522463",
+            "listed": true,
+            "number": 4,
+            "volumes": [10, 11, 12]
+          },
+          {
+            "title": "Vagabond VIZBIG Edition, Vol. 5",
+            "isbn13": "9781421522470",
+            "listed": true,
+            "number": 5,
+            "volumes": [13, 14, 15]
+          },
+          {
+            "title": "Vagabond VIZBIG Edition, Vol. 6",
+            "isbn13": "9781421522807",
+            "listed": true,
+            "number": 6,
+            "volumes": [16, 17, 18]
+          },
+          {
+            "title": "Vagabond VIZBIG Edition, Vol. 7",
+            "isbn13": "9781421522814",
+            "listed": true,
+            "number": 7,
+            "volumes": [19, 20, 21]
+          },
+          {
+            "title": "Vagabond VIZBIG Edition, Vol. 8",
+            "isbn13": "9781421522821",
+            "listed": true,
+            "number": 8,
+            "volumes": [22, 23, 24]
+          },
+          {
+            "title": "Vagabond VIZBIG Edition, Vol. 9",
+            "isbn13": "9781421523132",
+            "listed": true,
+            "number": 9,
+            "volumes": [25, 26, 27]
+          },
+          {
+            "title": "Vagabond (VIZBIG Edition), Vol. 10",
+            "isbn13": "9781421540481",
+            "listed": true,
+            "number": 10,
+            "volumes": [28, 29, 30]
+          },
+          {
+            "title": "Vagabond VIZBIG Edition, Vol. 11",
+            "isbn13": "9781421549293",
+            "listed": true,
+            "number": 11,
+            "volumes": [31, 32, 33]
+          },
+          {
+            "title": "Vagabond VIZBIG Edition, Vol. 12",
+            "isbn13": "9781421573342",
+            "listed": true,
+            "number": 12,
+            "volumes": [34, 35, 36]
+          },
+          {
+            "title": null,
+            "isbn13": null,
+            "listed": false,
+            "number": 13,
+            "volumes": [37]
+          }
+        ],
+        "label": "VIZBIG"
+      }
+    ]
+  },
+  {
+    "id": 5,
+    "name": "Haikyu!!",
+    "genre": "Comedy",
+    "image": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/medium/bx65243-mR4MnJFmfaOF.png",
+    "status": false,
+    "planned": false,
+    "bookmark": 0,
+    "rating": 4,
+    "edition": null,
+    "volumesOwned": null,
+    "ownedList": [
+      1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21,
+      22, 23, 24, 25, 26, 27, 28, 29, 30, 33, 34, 35, 36, 37, 38, 39, 40, 41,
+      42, 43, 44, 45
+    ],
+    "volumes": [
+      [1, "9781421587660"],
+      [2, "9781421587677"],
+      [3, "9781421592350"],
+      [4, "9781421587691"],
+      [5, "9781421593555"],
+      [6, "9781421594651"],
+      [7, "9781421595283"],
+      [8, "9781421595641"],
+      [9, "9781421590998"],
+      [10, "9781421591001"],
+      [11, "9781421597409"],
+      [12, "9781421597850"],
+      [13, "9781421598376"],
+      [14, "9781421598833"],
+      [15, "9781421591056"],
+      [16, "9781421599861"],
+      [17, "9781421591070"],
+      [18, "9781421591087"],
+      [19, "9781421591094"],
+      [20, "9781421596075"],
+      [21, "9781421596082"],
+      [22, "9781974702787"],
+      [23, "9781421596105"],
+      [24, "9781421596112"],
+      [25, "9781974704705"],
+      [26, "9781974705320"],
+      [27, "9781974706198"],
+      [28, "9781974701056"],
+      [29, "9781974702206"],
+      [30, "9781974702589"],
+      [31, "9781974710263"],
+      [32, "9781974711406"],
+      [33, "9781974712748"],
+      [34, "9781974713752"],
+      [35, "9781974709458"],
+      [36, "9781974717583"],
+      [37, "9781974719020"],
+      [38, "9781974715992"],
+      [39, "9781974715275"],
+      [40, "9781974717309"],
+      [41, "9781974718122"],
+      [42, "9781974719754"],
+      [43, "9781974726219"],
+      [44, "9781974727414"],
+      [45, "9781974723645"]
+    ],
+    "books": [],
+    "editions": []
+  },
+  {
+    "id": 6,
+    "name": "Detective Conan",
+    "genre": "Romance",
+    "image": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx31061-SJQb7931MG7m.jpg",
+    "status": false,
+    "planned": false,
+    "bookmark": 0,
+    "rating": null,
+    "edition": null,
+    "volumesOwned": null,
+    "ownedList": [
+      1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21,
+      22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39,
+      40, 41, 42, 43, 44, 45, 46, 47, 49, 50, 51, 52, 53, 54, 57, 58, 62, 64,
+      65, 70, 79
+    ],
+    "volumes": [
+      [1, "9780575077393"],
+      [2, "9781591165873"],
+      [3, "9780575077478"],
+      [4, "9781591166320"],
+      [5, "9781591166337"],
+      [6, "9780575078215"],
+      [8, "9780575078345"],
+      [9, "9780575078352"],
+      [10, "9781415657461"],
+      [11, "9781417795345"],
+      [15, "9781421504452"],
+      [16, "9781421508818"],
+      [18, "9780575080836"],
+      [20, "9781421508856"],
+      [22, "9781421516745"],
+      [24, "9781421516769"],
+      [39, "9781421534992"]
+    ],
+    "books": [],
+    "editions": []
+  },
+  {
+    "id": 7,
+    "name": "Video Girl Ai",
+    "genre": "Drama",
+    "image": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/medium/b30755-s5W5ORrhNybS.jpg",
+    "status": false,
+    "planned": false,
+    "bookmark": 0,
+    "rating": null,
+    "edition": null,
+    "volumesOwned": 15,
+    "ownedList": [],
+    "volumes": [
+      [1, "9781415537657"],
+      [2, "9781569315361"],
+      [3, "9781569316320"],
+      [4, "9781591161042"],
+      [5, "9781591161462"],
+      [6, "9780613887601"],
+      [7, "9781591167488"],
+      [8, "9781591163039"],
+      [9, "9781591163046"],
+      [10, "9781591163053"],
+      [11, "9781591163060"],
+      [12, "9781591163077"],
+      [13, "9781591163084"],
+      [14, "9781591163091"],
+      [15, "9781421502953"]
+    ],
+    "books": [],
+    "editions": []
+  },
+  {
+    "id": 8,
+    "name": "Chi's Sweet Home",
+    "genre": "Comedy",
+    "image": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/medium/bx31397-nk2SNXoSRwwF.jpg",
+    "status": false,
+    "planned": false,
+    "bookmark": 0,
+    "rating": null,
+    "edition": null,
+    "volumesOwned": 12,
+    "ownedList": [],
+    "volumes": [
+      [1, "9781451713107"],
+      [2, "9781934287859"],
+      [3, "9781941220115"],
+      [4, "9781934287965"],
+      [5, "9781934287132"],
+      [6, "9780606234931"],
+      [7, "9780606234948"],
+      [8, "9780606234955"],
+      [9, "9781935654421"],
+      [10, "9781935654698"],
+      [11, "9781941220405"],
+      [12, "9781941220252"]
+    ],
+    "books": [],
+    "editions": []
+  },
+  {
+    "id": 9,
+    "name": "Reincarnated as a Dragon Hatchling",
+    "genre": "Adventure",
+    "image": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/medium/bx101468-9sy5lurKG5T5.jpg",
+    "status": false,
+    "planned": false,
+    "bookmark": 0,
+    "rating": null,
+    "edition": null,
+    "volumesOwned": 9,
+    "ownedList": [],
+    "volumes": [
+      [1, "9781648276019"],
+      [2, "9781648276200"],
+      [3, "9781638581130"],
+      [4, "9781638583585"],
+      [5, "9781638588399"],
+      [7, "9798893731675"]
+    ],
+    "books": [
+      {
+        "edition": "single",
+        "number": 1,
+        "title": null,
+        "isbn13": "9781648276019",
+        "volumes": [1],
+        "paidCents": 799,
+        "boughtOn": "2025-03-19"
+      },
+      {
+        "edition": "single",
+        "number": 2,
+        "title": null,
+        "isbn13": "9781648276200",
+        "volumes": [2],
+        "paidCents": 799,
+        "boughtOn": "2025-03-31"
+      },
+      {
+        "edition": "single",
+        "number": 3,
+        "title": null,
+        "isbn13": "9781638581130",
+        "volumes": [3],
+        "paidCents": 799,
+        "boughtOn": "2025-02-02"
+      },
+      {
+        "edition": "single",
+        "number": 4,
+        "title": null,
+        "isbn13": "9781638583585",
+        "volumes": [4],
+        "paidCents": 799,
+        "boughtOn": "2025-06-27"
+      },
+      {
+        "edition": "single",
+        "number": 5,
+        "title": null,
+        "isbn13": "9781638588399",
+        "volumes": [5],
+        "paidCents": 1099,
+        "boughtOn": "2026-10-12"
+      },
+      {
+        "edition": "single",
+        "number": 6,
+        "title": null,
+        "isbn13": null,
+        "volumes": [6],
+        "paidCents": 799,
+        "boughtOn": "2025-04-27"
+      },
+      {
+        "edition": "single",
+        "number": 7,
+        "title": null,
+        "isbn13": "9798893731675",
+        "volumes": [7],
+        "paidCents": 999,
+        "boughtOn": "2026-04-18"
+      },
+      {
+        "edition": "single",
+        "number": 8,
+        "title": null,
+        "isbn13": null,
+        "volumes": [8],
+        "paidCents": 999,
+        "boughtOn": "2026-07-19"
+      },
+      {
+        "edition": "single",
+        "number": 9,
+        "title": null,
+        "isbn13": null,
+        "volumes": [9],
+        "paidCents": 699,
+        "boughtOn": "2024-12-28"
+      }
+    ],
+    "editions": []
+  },
+  {
+    "id": 10,
+    "name": "That Time I Got Reincarnated as a Slime: Trinity in Tempest",
+    "genre": "Adventure",
+    "image": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/medium/bx110271-eACIQnUoIUAu.jpg",
+    "status": false,
+    "planned": false,
+    "bookmark": 0,
+    "rating": null,
+    "edition": null,
+    "volumesOwned": 7,
+    "ownedList": [],
+    "volumes": [
+      [1, "9781646511761"],
+      [2, "9781646511822"],
+      [3, "9781646511952"],
+      [4, "9781646511969"],
+      [5, "9781646512218"],
+      [6, "9781646512225"],
+      [7, "9781646512997"],
+      [8, "9781646513000"]
+    ],
+    "books": [],
+    "editions": []
+  },
+  {
+    "id": 11,
+    "name": "Knights of Sidonia",
+    "genre": "Action",
+    "image": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/medium/bx43723-FWCBxAMFZhWq.jpg",
+    "status": false,
+    "planned": false,
+    "bookmark": 0,
+    "rating": null,
+    "edition": null,
+    "volumesOwned": 15,
+    "ownedList": [],
+    "volumes": [
+      [1, "9781935654803"],
+      [2, "9781935654810"],
+      [12, "9781939130990"],
+      [13, "9781941220320"]
+    ],
+    "books": [],
+    "editions": []
+  },
+  {
+    "id": 12,
+    "name": "Culdcept",
+    "genre": "Action",
+    "image": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/medium/bx30270-qZfay3Plb72v.jpg",
+    "status": false,
+    "planned": false,
+    "bookmark": 0,
+    "rating": null,
+    "edition": null,
+    "volumesOwned": 1,
+    "ownedList": [],
+    "volumes": [
+      [1, "9781417683581"],
+      [2, "9781417683598"],
+      [3, "9781417683604"],
+      [4, "9781595324474"],
+      [5, "9781598165531"]
+    ],
+    "books": [],
+    "editions": []
+  },
+  {
+    "id": 13,
+    "name": "Kaiju No.8",
+    "genre": "Action",
+    "image": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/medium/bx120760-MtXvMgujLBpe.jpg",
+    "status": false,
+    "planned": false,
+    "bookmark": 0,
+    "rating": null,
+    "edition": null,
+    "volumesOwned": 12,
+    "ownedList": [],
+    "volumes": [
+      [1, "9781974729623"],
+      [2, "9781974731855"],
+      [3, "9781974733347"],
+      [4, "9781974735280"],
+      [5, "9781974737307"],
+      [6, "9781974738366"],
+      [7, "9781974739912"],
+      [8, "9781974741939"],
+      [9, "9781974744237"],
+      [10, "9781974747788"],
+      [11, "9781974750429"],
+      [12, "9781974753505"],
+      [13, "9781974756681"],
+      [14, "9781974758395"],
+      [15, "9781974764556"],
+      [16, "9781974770144"]
+    ],
+    "books": [],
+    "editions": []
+  },
+  {
+    "id": 14,
+    "name": "Magi: The Labyrinth of Magic",
+    "genre": "Action",
+    "image": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/medium/bx44790-4Rzup5aNVcVC.png",
+    "status": false,
+    "planned": false,
+    "bookmark": 0,
+    "rating": 5,
+    "edition": null,
+    "volumesOwned": 10,
+    "ownedList": [],
+    "volumes": [
+      [1, "9781421559513"],
+      [34, "9781974700226"],
+      [35, "9781974700721"],
+      [36, "9781974703036"],
+      [37, "9781974703043"]
+    ],
+    "books": [],
+    "editions": []
+  },
+  {
+    "id": 15,
+    "name": "SPY x FAMILY",
+    "genre": "Action",
+    "image": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/medium/bx108556-NHjkz0BNJhLx.jpg",
+    "status": false,
+    "planned": false,
+    "bookmark": 0,
+    "rating": null,
+    "edition": null,
+    "volumesOwned": 16,
+    "ownedList": [],
+    "volumes": [
+      [1, "9781974715466"],
+      [2, "9781974717248"],
+      [3, "9781974718160"],
+      [4, "9781974721030"],
+      [5, "9781974722945"],
+      [6, "9781974725137"],
+      [7, "9781974728480"],
+      [8, "9781974734276"],
+      [9, "9781974736287"],
+      [10, "9781974740673"],
+      [11, "9781974743292"],
+      [12, "9781974747054"],
+      [13, "9781974751983"],
+      [14, "9781974756001"],
+      [15, "9781974759170"]
+    ],
+    "books": [
+      {
+        "edition": "single",
+        "number": 1,
+        "title": null,
+        "isbn13": "9781974715466",
+        "volumes": [1],
+        "paidCents": 899,
+        "boughtOn": "2025-08-20"
+      },
+      {
+        "edition": "single",
+        "number": 2,
+        "title": null,
+        "isbn13": "9781974717248",
+        "volumes": [2],
+        "paidCents": 1099,
+        "boughtOn": "2026-10-11"
+      },
+      {
+        "edition": "single",
+        "number": 3,
+        "title": null,
+        "isbn13": "9781974718160",
+        "volumes": [3],
+        "paidCents": 999,
+        "boughtOn": "2026-05-03"
+      },
+      {
+        "edition": "single",
+        "number": 4,
+        "title": null,
+        "isbn13": "9781974721030",
+        "volumes": [4],
+        "paidCents": 799,
+        "boughtOn": "2025-04-01"
+      },
+      {
+        "edition": "single",
+        "number": 5,
+        "title": null,
+        "isbn13": "9781974722945",
+        "volumes": [5],
+        "paidCents": 999,
+        "boughtOn": "2026-02-05"
+      },
+      {
+        "edition": "single",
+        "number": 6,
+        "title": null,
+        "isbn13": "9781974725137",
+        "volumes": [6],
+        "paidCents": 999,
+        "boughtOn": "2026-02-05"
+      },
+      {
+        "edition": "single",
+        "number": 7,
+        "title": null,
+        "isbn13": "9781974728480",
+        "volumes": [7],
+        "paidCents": 899,
+        "boughtOn": "2025-10-22"
+      },
+      {
+        "edition": "single",
+        "number": 8,
+        "title": null,
+        "isbn13": "9781974734276",
+        "volumes": [8],
+        "paidCents": 699,
+        "boughtOn": "2025-01-15"
+      },
+      {
+        "edition": "single",
+        "number": 9,
+        "title": null,
+        "isbn13": "9781974736287",
+        "volumes": [9],
+        "paidCents": 999,
+        "boughtOn": "2026-06-30"
+      },
+      {
+        "edition": "single",
+        "number": 10,
+        "title": null,
+        "isbn13": "9781974740673",
+        "volumes": [10],
+        "paidCents": 999,
+        "boughtOn": "2026-05-25"
+      },
+      {
+        "edition": "single",
+        "number": 11,
+        "title": null,
+        "isbn13": "9781974743292",
+        "volumes": [11],
+        "paidCents": 799,
+        "boughtOn": "2025-03-09"
+      },
+      {
+        "edition": "single",
+        "number": 12,
+        "title": null,
+        "isbn13": "9781974747054",
+        "volumes": [12],
+        "paidCents": 699,
+        "boughtOn": "2025-01-04"
+      }
+    ],
+    "editions": []
+  },
+  {
+    "id": 16,
+    "name": "Is It Wrong to Try to Pick Up Girls in a Dungeon? II",
+    "genre": "Action",
+    "image": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/medium/bx120779-4nrOV2NWQmlO.jpg",
+    "status": false,
+    "planned": false,
+    "bookmark": 0,
+    "rating": null,
+    "edition": null,
+    "volumesOwned": 5,
+    "ownedList": [],
+    "volumes": [
+      [1, "9781975338077"],
+      [2, "9781975342074"],
+      [3, "9781975361310"],
+      [4, "9781975375430"],
+      [5, "9798855402193"],
+      [6, "9798855424614"]
+    ],
+    "books": [],
+    "editions": []
+  },
+  {
+    "id": 17,
+    "name": "Ran and the Gray World",
+    "genre": "Comedy",
+    "image": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/medium/bx52986-xWy27RsyqkXW.jpg",
+    "status": false,
+    "planned": false,
+    "bookmark": 0,
+    "rating": null,
+    "edition": null,
+    "volumesOwned": 3,
+    "ownedList": [],
+    "volumes": [
+      [1, "9781974703623"],
+      [2, "9781974703630"],
+      [3, "9781974703647"],
+      [4, "9781974703654"],
+      [5, "9781974703661"],
+      [6, "9781974703678"],
+      [7, "9781974703685"]
+    ],
+    "books": [],
+    "editions": []
+  },
+  {
+    "id": 18,
+    "name": "A Bride's Story",
+    "genre": "Drama",
+    "image": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/medium/bx41514-IHeXFwqmWivk.jpg",
+    "status": false,
+    "planned": false,
+    "bookmark": 0,
+    "rating": null,
+    "edition": null,
+    "volumesOwned": 5,
+    "ownedList": [],
+    "volumes": [
+      [1, "9780316180993"],
+      [2, "9780316194464"],
+      [3, "9781975356392"],
+      [4, "9780316232036"],
+      [5, "9780316243094"],
+      [6, "9780316336109"],
+      [7, "9780316348935"],
+      [8, "9780316317627"],
+      [9, "9780316562621"],
+      [10, "9781975327989"],
+      [12, "9781975332921"]
+    ],
+    "books": [],
+    "editions": []
+  },
+  {
+    "id": 19,
+    "name": "Lone Wolf and Cub",
+    "genre": "Action",
+    "image": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/medium/bx30904-KRN1WE3ZU3vl.jpg",
+    "status": false,
+    "planned": false,
+    "bookmark": 0,
+    "rating": null,
+    "edition": null,
+    "volumesOwned": 1,
+    "ownedList": [],
+    "volumes": [
+      [1, "9781569715024"],
+      [2, "9780915419111"],
+      [3, "9781417654413"],
+      [4, "9781417654420"],
+      [5, "9781417654482"],
+      [9, "9781417654451"],
+      [15, "9781417654512"]
+    ],
+    "books": [],
+    "editions": []
+  },
+  {
+    "id": 20,
+    "name": "Eden: It's an Endless World!",
+    "genre": "Action",
+    "image": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/medium/bx30731-I2lMIZYDECe2.jpg",
+    "status": false,
+    "planned": false,
+    "bookmark": 0,
+    "rating": null,
+    "edition": null,
+    "volumesOwned": 14,
+    "ownedList": [],
+    "volumes": [
+      [3, "9781593075293"],
+      [5, "9781593076344"],
+      [6, "9781593077020"]
+    ],
+    "books": [],
+    "editions": []
+  },
+  {
+    "id": 21,
+    "name": "Bunny Drop",
+    "genre": "Drama",
+    "image": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/medium/3468-hM6i0FBapg7g.jpg",
+    "status": false,
+    "planned": false,
+    "bookmark": 0,
+    "rating": null,
+    "edition": null,
+    "volumesOwned": 10,
+    "ownedList": [],
+    "volumes": [
+      [2, "9780759531192"],
+      [5, "9780316210331"],
+      [6, "9780316217194"],
+      [7, "9780316217200"],
+      [8, "9780316217224"],
+      [9, "9780316252775"],
+      [10, "9780316400800"]
+    ],
+    "books": [
+      {
+        "edition": "single",
+        "number": 1,
+        "title": null,
+        "isbn13": null,
+        "volumes": [1],
+        "paidCents": 999,
+        "boughtOn": "2026-02-15"
+      },
+      {
+        "edition": "single",
+        "number": 2,
+        "title": null,
+        "isbn13": "9780759531192",
+        "volumes": [2],
+        "paidCents": 699,
+        "boughtOn": "2025-01-19"
+      },
+      {
+        "edition": "single",
+        "number": 3,
+        "title": null,
+        "isbn13": null,
+        "volumes": [3],
+        "paidCents": 999,
+        "boughtOn": "2026-02-17"
+      },
+      {
+        "edition": "single",
+        "number": 4,
+        "title": null,
+        "isbn13": null,
+        "volumes": [4],
+        "paidCents": 999,
+        "boughtOn": "2026-04-15"
+      },
+      {
+        "edition": "single",
+        "number": 5,
+        "title": null,
+        "isbn13": "9780316210331",
+        "volumes": [5],
+        "paidCents": 999,
+        "boughtOn": "2026-05-31"
+      },
+      {
+        "edition": "single",
+        "number": 6,
+        "title": null,
+        "isbn13": "9780316217194",
+        "volumes": [6],
+        "paidCents": 699,
+        "boughtOn": "2024-12-03"
+      },
+      {
+        "edition": "single",
+        "number": 7,
+        "title": null,
+        "isbn13": "9780316217200",
+        "volumes": [7],
+        "paidCents": 799,
+        "boughtOn": "2025-07-08"
+      },
+      {
+        "edition": "single",
+        "number": 8,
+        "title": null,
+        "isbn13": "9780316217224",
+        "volumes": [8],
+        "paidCents": 699,
+        "boughtOn": "2025-01-12"
+      },
+      {
+        "edition": "single",
+        "number": 9,
+        "title": null,
+        "isbn13": "9780316252775",
+        "volumes": [9],
+        "paidCents": 799,
+        "boughtOn": "2025-04-08"
+      },
+      {
+        "edition": "single",
+        "number": 10,
+        "title": null,
+        "isbn13": "9780316400800",
+        "volumes": [10],
+        "paidCents": 999,
+        "boughtOn": "2026-01-25"
+      }
+    ],
+    "editions": []
+  },
+  {
+    "id": 22,
+    "name": "xxxHOLiC",
+    "genre": "Comedy",
+    "image": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/medium/bx30010-NEPm8nwp7e0M.png",
+    "status": false,
+    "planned": false,
+    "bookmark": 0,
+    "rating": null,
+    "edition": null,
+    "volumesOwned": 19,
+    "ownedList": [],
+    "volumes": [
+      [1, "9781417686322"],
+      [2, "9781417686339"],
+      [3, "9780099504092"],
+      [4, "9780345477880"],
+      [5, "9781417686353"],
+      [6, "9780345477903"],
+      [7, "9780345483355"],
+      [8, "9780345483362"],
+      [9, "9780345496393"],
+      [10, "9780345496836"],
+      [11, "9780345501639"],
+      [12, "9780345505651"],
+      [13, "9780345505668"],
+      [14, "9780345518439"],
+      [15, "9780345521125"],
+      [16, "9780345524126"],
+      [17, "9780345530714"],
+      [18, "9780345530721"],
+      [19, "9780345531261"]
+    ],
+    "books": [],
+    "editions": []
+  },
+  {
+    "id": 23,
+    "name": "Skip Beat!",
+    "genre": "Drama",
+    "image": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/medium/bx30610-HHSa8X8Hupxk.png",
+    "status": false,
+    "planned": true,
+    "bookmark": 0,
+    "rating": 5,
+    "edition": null,
+    "volumesOwned": 51,
+    "ownedList": [],
+    "volumes": [
+      [1, "9781417813629"],
+      [2, "9781421505862"],
+      [3, "9781421505879"],
+      [4, "9781421505886"],
+      [5, "9781421510224"],
+      [6, "9781421510231"],
+      [7, "9781421510248"],
+      [8, "9781421510255"],
+      [9, "9781421510262"],
+      [10, "9781421513997"],
+      [11, "9781421517513"],
+      [12, "9781421517520"],
+      [13, "9781439513989"],
+      [14, "9781421599144"],
+      [15, "9781421519524"],
+      [16, "9781421520407"],
+      [17, "9781421523521"],
+      [18, "9781439575826"],
+      [19, "9781421527802"],
+      [20, "9781421530727"],
+      [21, "9781421532707"],
+      [22, "9781421535081"],
+      [23, "9781421536927"],
+      [24, "9781421538334"],
+      [25, "9781421539232"],
+      [26, "9781421539997"],
+      [27, "9781421541082"],
+      [28, "9780329930097"],
+      [29, "9781421543345"],
+      [30, "9781421550619"],
+      [31, "9781421554792"],
+      [32, "9781421562346"],
+      [33, "9781421569529"],
+      [34, "9781421577432"],
+      [35, "9781421580340"],
+      [36, "9781421584508"],
+      [37, "9781421587141"],
+      [38, "9781421591612"],
+      [40, "9781421598291"],
+      [41, "9781974701353"]
+    ],
+    "books": [],
+    "editions": []
+  },
+  {
+    "id": 24,
+    "name": "Dragon Ball",
+    "genre": "Action",
+    "image": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/medium/bx30042-4SetGiEbGc9x.jpg",
+    "status": false,
+    "planned": false,
+    "bookmark": 0,
+    "rating": null,
+    "edition": null,
+    "volumesOwned": 27,
+    "ownedList": [],
+    "volumes": [
+      [1, "9781417751693"],
+      [2, "9781569319215"],
+      [3, "9781569315293"],
+      [4, "9781569319239"],
+      [5, "9781569319246"],
+      [6, "9781569316375"],
+      [7, "9780613557047"],
+      [8, "9781591160052"],
+      [9, "9781591160427"],
+      [10, "9781569318485"],
+      [11, "9781569319192"],
+      [12, "9781591161554"],
+      [13, "9781569319260"],
+      [14, "9781591161691"],
+      [15, "9781591162971"],
+      [16, "9781591164579"]
+    ],
+    "books": [],
+    "editions": []
+  },
+  {
+    "id": 25,
+    "name": "Kaiju Girl Caramelise",
+    "genre": "Comedy",
+    "image": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/medium/nx102961-PEA0XqqSXYY6.jpg",
+    "status": false,
+    "planned": false,
+    "bookmark": 0,
+    "rating": null,
+    "edition": null,
+    "volumesOwned": 8,
+    "ownedList": [],
+    "volumes": [
+      [1, "9781975357054"],
+      [2, "9781975359461"],
+      [3, "9781975310165"],
+      [4, "9781975322755"],
+      [5, "9781975335571"],
+      [6, "9781975351120"],
+      [7, "9781975380373"],
+      [8, "9798855418330"]
+    ],
+    "books": [],
+    "editions": []
+  },
+  {
+    "id": 26,
+    "name": "Until Death Do Us Part",
+    "genre": "Action",
+    "image": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/medium/bx31456-8jTyq0ENde5k.jpg",
+    "status": false,
+    "planned": false,
+    "bookmark": 0,
+    "rating": null,
+    "edition": null,
+    "volumesOwned": 6,
+    "ownedList": [],
+    "volumes": [
+      [1, "9780316239189"],
+      [2, "9780316239202"],
+      [3, "9780316239226"],
+      [4, "9780316239240"],
+      [5, "9780316239271"],
+      [6, "9780316239295"],
+      [7, "9780316239318"],
+      [8, "9780316340243"]
+    ],
+    "books": [],
+    "editions": []
+  },
+  {
+    "id": 27,
+    "name": "Gate 7",
+    "genre": "Drama",
+    "image": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/medium/bx44902-DRXymbjMeWkl.jpg",
+    "status": false,
+    "planned": false,
+    "bookmark": 0,
+    "rating": null,
+    "edition": null,
+    "volumesOwned": 4,
+    "ownedList": [],
+    "volumes": [
+      [1, "9781451744194"],
+      [2, "9781595828071"],
+      [3, "9781595829023"],
+      [4, "9781595829610"]
+    ],
+    "books": [
+      {
+        "edition": "single",
+        "number": 1,
+        "title": null,
+        "isbn13": "9781451744194",
+        "volumes": [1],
+        "paidCents": 999,
+        "boughtOn": "2026-02-24"
+      },
+      {
+        "edition": "single",
+        "number": 2,
+        "title": null,
+        "isbn13": "9781595828071",
+        "volumes": [2],
+        "paidCents": 899,
+        "boughtOn": "2026-01-19"
+      },
+      {
+        "edition": "single",
+        "number": 3,
+        "title": null,
+        "isbn13": "9781595829023",
+        "volumes": [3],
+        "paidCents": 899,
+        "boughtOn": "2025-11-15"
+      },
+      {
+        "edition": "single",
+        "number": 4,
+        "title": null,
+        "isbn13": "9781595829610",
+        "volumes": [4],
+        "paidCents": 899,
+        "boughtOn": "2025-10-02"
+      }
+    ],
+    "editions": []
+  },
+  {
+    "id": 28,
+    "name": "Rozen Maiden",
+    "genre": "Comedy",
+    "image": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/medium/bx30098-1DhP1TF05Lct.png",
+    "status": false,
+    "planned": false,
+    "bookmark": 0,
+    "rating": null,
+    "edition": null,
+    "volumesOwned": 8,
+    "ownedList": [],
+    "volumes": [
+      [1, "9781598163124"],
+      [2, "9781598163131"],
+      [3, "9781598163148"],
+      [4, "9781598163155"],
+      [5, "9781598168419"],
+      [6, "9781598168891"],
+      [7, "9781427802217"],
+      [8, "9781427811738"]
+    ],
+    "books": [],
+    "editions": []
+  },
+  {
+    "id": 29,
+    "name": "Dance in the Vampire Bund",
+    "genre": "Action",
+    "image": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/medium/bx37627-5hr64ZA4She7.jpg",
+    "status": false,
+    "planned": false,
+    "bookmark": 0,
+    "rating": null,
+    "edition": null,
+    "volumesOwned": 14,
+    "ownedList": [],
+    "volumes": [
+      [1, "9781933164809"],
+      [2, "9781933164816"],
+      [3, "9781934876152"],
+      [4, "9781934876534"],
+      [5, "9781934876657"],
+      [6, "9781934876749"],
+      [7, "9781934876800"],
+      [8, "9781934876817"],
+      [9, "9781934876879"],
+      [10, "9781934876558"],
+      [11, "9781935934042"],
+      [12, "9781935934721"],
+      [13, "9781937867027"],
+      [14, "9781937867263"]
+    ],
+    "books": [],
+    "editions": []
+  },
+  {
+    "id": 30,
+    "name": "Fairy Tail: Blue Mistral",
+    "genre": "Fantasy",
+    "image": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/medium/bx85433-vfPT5n1hcPWw.jpg",
+    "status": false,
+    "planned": false,
+    "bookmark": 0,
+    "rating": null,
+    "edition": null,
+    "volumesOwned": 2,
+    "ownedList": [],
+    "volumes": [
+      [1, "9781632361332"],
+      [2, "9781632362759"],
+      [4, "9781632365309"]
+    ],
+    "books": [],
+    "editions": []
+  },
+  {
+    "id": 31,
+    "name": "Outbride: Beauty and the Beasts",
+    "genre": "Fantasy",
+    "image": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/medium/bx128218-j3Fh8IbvCCDU.png",
+    "status": false,
+    "planned": false,
+    "bookmark": 0,
+    "rating": null,
+    "edition": null,
+    "volumesOwned": 1,
+    "ownedList": [],
+    "volumes": [
+      [1, "9781638582304"],
+      [2, "9781638586630"],
+      [3, "9781638589488"],
+      [4, "9781685796013"],
+      [5, "9798888430323"],
+      [6, "9798888434260"],
+      [7, "9798891608696"],
+      [9, "9798897653935"]
+    ],
+    "books": [],
+    "editions": []
+  },
+  {
+    "id": 32,
+    "name": "Haganai: I Don't Have Many Friends",
+    "genre": "Comedy",
+    "image": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/medium/bx49087-UIyC5ba1EBId.jpg",
+    "status": false,
+    "planned": false,
+    "bookmark": 0,
+    "rating": null,
+    "edition": null,
+    "volumesOwned": 9,
+    "ownedList": [],
+    "volumes": [
+      [2, "9781937867171"],
+      [3, "9781937867300"],
+      [4, "9781937867706"],
+      [5, "9781937867867"],
+      [7, "9781626920354"],
+      [8, "9781626920446"],
+      [10, "9781626920934"],
+      [11, "9781626921542"],
+      [12, "9781626921740"],
+      [13, "9781626922228"],
+      [14, "9781626922501"],
+      [15, "9781626922877"],
+      [16, "9781626928480"],
+      [17, "9781642757019"],
+      [18, "9781645054511"],
+      [19, "9781648279324"],
+      [20, "9781648279423"]
+    ],
+    "books": [],
+    "editions": []
+  },
+  {
+    "id": 33,
+    "name": ".hack//G.U.+",
+    "genre": "Action",
+    "image": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/medium/b30116-n9RLhVGgkUeE.jpg",
+    "status": false,
+    "planned": false,
+    "bookmark": 0,
+    "rating": null,
+    "edition": null,
+    "volumesOwned": 3,
+    "ownedList": [],
+    "volumes": [
+      [1, "9781427806352"],
+      [2, "9781427806369"],
+      [5, "9781427817105"]
+    ],
+    "books": [
+      {
+        "edition": "single",
+        "number": 1,
+        "title": null,
+        "isbn13": "9781427806352",
+        "volumes": [1],
+        "paidCents": 899,
+        "boughtOn": "2025-09-18"
+      },
+      {
+        "edition": "single",
+        "number": 2,
+        "title": null,
+        "isbn13": "9781427806369",
+        "volumes": [2],
+        "paidCents": 1099,
+        "boughtOn": "2026-07-28"
+      },
+      {
+        "edition": "single",
+        "number": 3,
+        "title": null,
+        "isbn13": null,
+        "volumes": [3],
+        "paidCents": 999,
+        "boughtOn": "2026-03-27"
+      }
+    ],
+    "editions": []
+  },
+  {
+    "id": 34,
+    "name": "Gunparade March",
+    "genre": "Drama",
+    "image": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/medium/b31613-cL1QuCPAhhDp.jpg",
+    "status": false,
+    "planned": false,
+    "bookmark": 0,
+    "rating": null,
+    "edition": null,
+    "volumesOwned": 1,
+    "ownedList": [],
+    "volumes": [
+      [1, "9781413900354"],
+      [2, "9781413901412"],
+      [3, "9781413901429"]
+    ],
+    "books": [],
+    "editions": []
+  },
+  {
+    "id": 35,
+    "name": "Daughter of the Emperor",
+    "genre": "Comedy",
+    "image": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/medium/bx99128-TEFmI7S8Lczm.jpg",
+    "status": false,
+    "planned": false,
+    "bookmark": 0,
+    "rating": null,
+    "edition": null,
+    "volumesOwned": 3,
+    "ownedList": [],
+    "volumes": [
+      [1, "9781975340933"],
+      [2, "9781975340940"],
+      [3, "9781975340964"],
+      [4, "9781975340988"],
+      [5, "9781975341008"],
+      [6, "9781975341022"],
+      [9, "9781975351595"],
+      [10, "9781975351618"],
+      [11, "9781975392161"],
+      [12, "9781975392185"]
+    ],
+    "books": [],
+    "editions": []
+  },
+  {
+    "id": 36,
+    "name": "Phantom Dream",
+    "genre": "Drama",
+    "image": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/medium/bx33933-XDn4BolAsQ4w.jpg",
+    "status": false,
+    "planned": false,
+    "bookmark": 0,
+    "rating": null,
+    "edition": null,
+    "volumesOwned": 1,
+    "ownedList": [],
+    "volumes": [
+      [1, "9781427810892"],
+      [2, "9781427810908"],
+      [3, "9781427810915"],
+      [4, "9781427810922"]
+    ],
+    "books": [],
+    "editions": []
+  },
+  {
+    "id": 37,
+    "name": "Fushigi Yûgi",
+    "genre": "Action",
+    "image": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/medium/bx30084-GDzkhM6F3Eun.jpg",
+    "status": false,
+    "planned": false,
+    "bookmark": 0,
+    "rating": null,
+    "edition": null,
+    "volumesOwned": 18,
+    "ownedList": [],
+    "volumes": [
+      [1, "9781417651221"],
+      [2, "9780575077454"],
+      [3, "9780329405465"],
+      [4, "9781569319932"],
+      [5, "9781421523033"],
+      [6, "9781421523040"],
+      [7, "9781417652396"],
+      [8, "9781591160878"],
+      [9, "9781591160960"],
+      [10, "9780575078307"],
+      [11, "9780575078314"],
+      [12, "9781417652327"],
+      [13, "9781417652334"],
+      [14, "9781591167372"],
+      [15, "9781591168430"],
+      [16, "9781415638637"],
+      [17, "9781421501802"],
+      [18, "9781421503936"]
+    ],
+    "books": [],
+    "editions": []
+  },
+  {
+    "id": 38,
+    "name": "Not Lives",
+    "genre": "Action",
+    "image": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/medium/bx56566-tSd5XS4BKvsc.jpg",
+    "status": false,
+    "planned": false,
+    "bookmark": 0,
+    "rating": null,
+    "edition": null,
+    "volumesOwned": 4,
+    "ownedList": [],
+    "volumes": [
+      [1, "9781626923072"],
+      [2, "9781626923119"],
+      [3, "9781626923140"],
+      [4, "9781626923676"],
+      [5, "9781626924567"],
+      [6, "9781626925182"],
+      [7, "9781626925908"],
+      [8, "9781626927254"],
+      [9, "9781626928534"],
+      [10, "9781626929012"]
+    ],
+    "books": [],
+    "editions": []
+  },
+  {
+    "id": 39,
+    "name": "APOSIMZ",
+    "genre": "Action",
+    "image": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/medium/nx98354-BeYVwYth928o.jpg",
+    "status": false,
+    "planned": false,
+    "bookmark": 0,
+    "rating": null,
+    "edition": null,
+    "volumesOwned": 3,
+    "ownedList": [],
+    "volumes": [
+      [2, "9781947194441"],
+      [3, "9781947194816"],
+      [4, "9781947194960"],
+      [5, "9781949980363"],
+      [6, "9781949980660"],
+      [7, "9781647290559"],
+      [8, "9781647290610"],
+      [9, "9781647291006"]
+    ],
+    "books": [
+      {
+        "edition": "single",
+        "number": 1,
+        "title": null,
+        "isbn13": null,
+        "volumes": [1],
+        "paidCents": 999,
+        "boughtOn": "2026-06-15"
+      },
+      {
+        "edition": "single",
+        "number": 2,
+        "title": null,
+        "isbn13": "9781947194441",
+        "volumes": [2],
+        "paidCents": 999,
+        "boughtOn": "2026-02-19"
+      },
+      {
+        "edition": "single",
+        "number": 3,
+        "title": null,
+        "isbn13": "9781947194816",
+        "volumes": [3],
+        "paidCents": 799,
+        "boughtOn": "2025-06-21"
+      }
+    ],
+    "editions": []
+  },
+  {
+    "id": 40,
+    "name": "Angelic Layer",
+    "genre": "Action",
+    "image": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/medium/bx30080-bVn8M4NcYX9X.png",
+    "status": false,
+    "planned": false,
+    "bookmark": 0,
+    "rating": null,
+    "edition": null,
+    "volumesOwned": 5,
+    "ownedList": [],
+    "volumes": [
+      [1, "9781417683536"],
+      [3, "9781417683550"],
+      [4, "9781417683567"],
+      [5, "9781591821526"]
+    ],
+    "books": [],
+    "editions": []
+  }
+]

@@ -366,7 +366,13 @@ export function SortMenu<T extends string>({
       </div>
     );
   return (
-    <div ref={ref} className={styles.sortWrap}>
+    // the tour's "Compact rows" step points at the shelf's, the one with
+    // "Show as"
+    <div
+      ref={ref}
+      className={styles.sortWrap}
+      data-tour={layout ? "sort" : undefined}
+    >
       <button
         type="button"
         className={wordy ? styles.pickButton : styles.sortButton}

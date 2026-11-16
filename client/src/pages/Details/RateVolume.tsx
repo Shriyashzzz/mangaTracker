@@ -51,6 +51,7 @@ export default function RateVolume({ volume, onWrite }: Props) {
     // stub, then its stars. Not a second row of the series' stars
     <div
       className={styles.rateTicket}
+      data-tour="rate-volume"
       role="group"
       aria-label={
         rating

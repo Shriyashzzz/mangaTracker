@@ -34,6 +34,15 @@ export default function GuestHero() {
             </NavLink>
             <TakeTourButton>Try the demo first →</TakeTourButton>
           </div>
+          {/* the demo is short on purpose; a big collection gets its own */}
+          <p className={styles.guestCollector}>
+            <TakeTourButton
+              kind="collector"
+              className={styles.guestCollectorLink}
+            >
+              Big collection? Take the collector tour →
+            </TakeTourButton>
+          </p>
         </div>
 
         {/* a manga page: one panel per thing the app does */}

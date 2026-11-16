@@ -116,7 +116,11 @@ export function AccountTab({ account }: { account: Account }) {
         </form>
       </section>
 
-      <section className={styles.section} aria-labelledby="set-export">
+      <section
+        className={styles.section}
+        aria-labelledby="set-export"
+        data-tour="export"
+      >
         <h3 id="set-export" className={styles.heading}>
           Export my list
         </h3>

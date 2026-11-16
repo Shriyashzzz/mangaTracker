@@ -23,9 +23,12 @@ import {
 import { CoverFallback } from "../Prices/VolumeCard";
 import FinishList from "./FinishList";
 import { volumesStyles as styles } from "./volumesStyles";
+import { readSession, writeSession } from "./shelfViews";
 
 const plural = (n: number, one: string, many = `${one}s`) =>
   `${n.toLocaleString()} ${n === 1 ? one : many}`;
+
+const OPEN_KEY = "volumesOpen";
 
 // series a page, as the shelf's
 const PAGE_SIZE = 20;
@@ -44,7 +47,15 @@ export default function VolumesView({
   // a new search or sort starts again from the first page
   resetKey: string;
 }) {
-  const [open, setOpen] = useState<number | null>(null);
+  // the series opened, kept for this browser tab: back from a volume's
+  // prices, it's still open where they left it
+  const [open, setOpenNow] = useState<number | null>(
+    () => Number(readSession(OPEN_KEY, "")) || null,
+  );
+  const setOpen = (next: number | null) => {
+    setOpenNow(next);
+    writeSession(OPEN_KEY, next == null ? "" : String(next));
+  };
   const [page, setPage] = useState({ key: resetKey, index: 0 });
   // what the shelf is worth and what finishing each series costs, from
   // prices already saved; left out (as before) when it can't be had
@@ -102,6 +113,17 @@ export default function VolumesView({
   }
 
   const volumes = manga.reduce((sum, m) => sum + ownedCount(m), 0);
+  // the tour opens a series with a real gap, a volume missing between ones
+  // they own, or else the first with any still to get
+  const hasHole = (m: Manga) => {
+    const newestOwned = Math.max(...ownedOf(m));
+    return Boolean(
+      finishOf.get(m.id)?.missing.some((v) => v.volume < newestOwned),
+    );
+  };
+  const firstWithGaps = (
+    shown.find(hasHole) ?? shown.find((m) => finishOf.get(m.id))
+  )?.id;
   return (
     <section aria-label="Volumes you own">
       <p className={styles.summary}>
@@ -115,9 +137,10 @@ export default function VolumesView({
           <SeriesRow
             key={m.id}
             manga={m}
+            tourTarget={m.id === firstWithGaps}
             finish={finishOf.get(m.id)}
             open={open === m.id}
-            onToggle={() => setOpen((o) => (o === m.id ? null : m.id))}
+            onToggle={() => setOpen(open === m.id ? null : m.id)}
           />
         ))}
       </ul>
@@ -133,16 +156,20 @@ export default function VolumesView({
 // said under a total that isn't of every volume yet: prices for the rest
 // are found in the background (server collector/filler.ts, usedFiller.ts)
 const FILL_IN = "the rest fill in over a few days";
+// what the shelf's worth is: what it would fetch, not what it cost
+const SOLD_USED = "if sold used, at today's prices";
 
-// under "To finish every series": how many to get, how many are priced,
+// under "To finish your series": how many to get, how many are priced,
 // any series left out of the total, and that the rest is on its way.
-// "133 volumes not on your shelf · 5 priced so far · the rest fill in over a
-// few days"
+// "for the 133 volumes you don't have yet · 5 priced so far · the rest fill
+// in over a few days"
 function finishNote(tools: ShelfTools, hasTotal: boolean) {
   // a series collected as its deluxe books counts in books
   const unit = tools.finish.some((f) => f.edition) ? "book" : "volume";
   const allPriced = tools.finishPriced >= tools.finishMissing;
-  const parts = [`${plural(tools.finishMissing, unit)} not on your shelf`];
+  const parts = [
+    `for the ${plural(tools.finishMissing, unit)} you don't have yet`,
+  ];
   if (!allPriced)
     parts.push(`${tools.finishPriced.toLocaleString()} priced so far`);
   // the total is of the series priced enough to say
@@ -176,7 +203,7 @@ function ShelfTotals({ tools, owned }: { tools: ShelfTools; owned: number }) {
   if (!ownedVolumes && !tools.finishMissing && !spent) return null;
   // folded until asked: a question to open, not two numbers in the way
   return (
-    <details className={styles.worth}>
+    <details className={styles.worth} data-tour="worth">
       <summary className={styles.worthSummary}>
         How much is my shelf worth?
         <ChevronDownIcon className={styles.worthChevron} />
@@ -185,24 +212,28 @@ function ShelfTotals({ tools, owned }: { tools: ShelfTools; owned: number }) {
         {/* what they've said they paid, on each series' page ("Your books") */}
         {spent && (
           <div className={styles.total}>
-            <dt className={styles.totalLabel}>Spent so far</dt>
+            <dt className={styles.totalLabel}>You've spent</dt>
             <dd className={styles.totalValue}>{formatPaid(spent.cents)}</dd>
             <dd className={styles.totalNote}>
-              what you paid for {plural(spent.books, "book")}
+              on the {plural(spent.books, "book")} you added a price to
             </dd>
           </div>
         )}
         {ownedVolumes > 0 && (
           <div className={styles.total}>
-            <dt className={styles.totalLabel}>Worth used</dt>
+            <dt className={styles.totalLabel}>Your shelf is worth</dt>
             {/* no money until enough is priced (the server's
                 enoughToEstimate), as "To finish" below */}
             <dd className={styles.totalValue}>{worth ?? "no total yet"}</dd>
+            {/* what "worth" means: resale, not what they paid */}
+            {worth && value.priced >= ownedVolumes && (
+              <dd className={styles.totalNote}>{SOLD_USED}</dd>
+            )}
             {worth && value.priced < ownedVolumes && (
               // the total is of every volume, worked out from the ones
               // priced; the background jobs price the rest over a few days
               <dd className={styles.totalNote}>
-                for all {ownedVolumes.toLocaleString()} · from{" "}
+                {SOLD_USED} · for all {ownedVolumes.toLocaleString()} · from{" "}
                 {value.priced.toLocaleString()} priced so far · {FILL_IN}
               </dd>
             )}
@@ -215,7 +246,7 @@ function ShelfTotals({ tools, owned }: { tools: ShelfTools; owned: number }) {
         )}
         {tools.finishMissing > 0 && (
           <div className={styles.total}>
-            <dt className={styles.totalLabel}>To finish every series</dt>
+            <dt className={styles.totalLabel}>To finish your series</dt>
             {/* no money until enough is priced: the count is still true */}
             <dd className={styles.totalValue}>{finish ?? "no total yet"}</dd>
             <dd className={styles.totalNote}>
@@ -230,11 +261,13 @@ function ShelfTotals({ tools, owned }: { tools: ShelfTools; owned: number }) {
 
 function SeriesRow({
   manga,
+  tourTarget,
   finish,
   open,
   onToggle,
 }: {
   manga: Manga;
+  tourTarget: boolean;
   finish?: FinishRow;
   open: boolean;
   onToggle: () => void;
@@ -248,6 +281,7 @@ function SeriesRow({
         className={styles.row}
         aria-expanded={open}
         aria-controls={panelId}
+        data-tour={tourTarget ? "gaps" : undefined}
         onClick={onToggle}
       >
         <span className={styles.thumb} aria-hidden>
@@ -283,6 +317,7 @@ function SeriesRow({
       </button>
       {open && (
         <SeriesVolumes
+          tourTarget={tourTarget}
           id={panelId}
           manga={manga}
           owned={owned}
@@ -296,11 +331,13 @@ function SeriesRow({
 type Tile = { volume: number; book?: SeriesVolume; yours: boolean };
 
 function SeriesVolumes({
+  tourTarget,
   id,
   manga,
   owned,
   finish,
 }: {
+  tourTarget: boolean;
   id: string;
   manga: Manga;
   owned: number[];
@@ -336,6 +373,8 @@ function SeriesVolumes({
     yours: owned.includes(volume),
   }));
   const toGet = tiles.filter((t) => !t.yours).length;
+  // the tour points at the first one not on the shelf
+  const firstToGet = tourTarget ? tiles.find((t) => !t.yours)?.volume : null;
   // the line above the tiles: still loading, what's missing, or all of it
   let summary = `You own all ${plural(owned.length, "volume")} we know of`;
   if (list === undefined) summary = "Finding its volumes…";
@@ -367,6 +406,7 @@ function SeriesVolumes({
           <li key={t.volume}>
             <VolumeTile
               tile={t}
+              tourTarget={list !== undefined && t.volume === firstToGet}
               // not while the list is on its way: the real covers are about
               // to arrive, and a stand-in would flash before them
               fallbackCover={list === undefined ? null : manga.image}
@@ -382,10 +422,12 @@ function SeriesVolumes({
 
 function VolumeTile({
   tile,
+  tourTarget,
   fallbackCover,
   seriesName,
 }: {
   tile: Tile;
+  tourTarget: boolean;
   // the series' cover, to stand in for a volume with none of its own
   fallbackCover: string | null;
   seriesName: string;
@@ -435,13 +477,19 @@ function VolumeTile({
     <NavLink
       to={volumePath(tile.book.isbn13, tile.book.title)}
       className={styles.tile}
+      data-tour={tourTarget ? "gaps-open" : undefined}
       aria-label={`${name}: see prices`}
       viewTransition
     >
       {inner}
     </NavLink>
   ) : (
-    <span className={styles.tile} aria-label={name} role="img">
+    <span
+      className={styles.tile}
+      data-tour={tourTarget ? "gaps-open" : undefined}
+      aria-label={name}
+      role="img"
+    >
       {inner}
     </span>
   );

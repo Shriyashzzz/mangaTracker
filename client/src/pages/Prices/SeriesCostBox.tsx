@@ -29,7 +29,11 @@ export default function SeriesCostBox({
   if (!sayTotal && !used) return null;
   if (cost.estimateCents == null || !sayTotal)
     return (
-      <aside className={styles.costBox} aria-labelledby="series-cost-title">
+      <aside
+        className={styles.costBox}
+        aria-labelledby="series-cost-title"
+        data-tour="series-cost"
+      >
         <div className={styles.costText}>
           <h2 id="series-cost-title" className={styles.costLabel}>
             Collect every volume
@@ -48,7 +52,11 @@ export default function SeriesCostBox({
     ? cost.estimateCents
     : Math.round(cost.estimateCents / 1000) * 1000;
   return (
-    <aside className={styles.costBox} aria-labelledby="series-cost-title">
+    <aside
+      className={styles.costBox}
+      aria-labelledby="series-cost-title"
+      data-tour="series-cost"
+    >
       <div className={styles.costText}>
         <h2 id="series-cost-title" className={styles.costLabel}>
           Collect every volume

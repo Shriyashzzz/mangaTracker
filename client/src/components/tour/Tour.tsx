@@ -3,6 +3,8 @@
 // so people can really try things; only a few big moments blur the rest (step.focus).
 // Wandering off is fine: he waits, and offers the way back. If a step's button can't
 // be found he says his line anyway and offers a way on, so nothing can trap anyone.
+// Skipping the tour closes Kenji, not the practice shelf: a small bar stays to
+// bring him back or leave.
 import {
   BUBBLE_GAP,
   bubbleLeftFor,
@@ -14,13 +16,21 @@ import { useCallback, useEffect, useReducer, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useLocation, useNavigate } from "react-router";
 import { hasBottomBar } from "../../lib/bottomBar";
-import { endDemo, wasSignedInBeforeTour } from "../../lib/demo";
+import {
+  demoKind,
+  endDemo,
+  startDemo,
+  wasSignedInBeforeTour,
+} from "../../lib/demo";
 import Mascot from "../mascot/Mascot";
 import { TOUR_STEPS, type TourStep } from "./steps";
 
 const STEP_KEY = "demoTourStep";
+const CLOSED_KEY = "demoTourClosed";
 const HOLE_PADDING = 8;
 const GIVE_UP_AFTER_MS = 2500;
+// long enough for a step that follows an opened section to find it there
+const NEEDS_LAST_STEP_MS = 1000;
 // long enough for the step's own page to have arrived; off it after this, they've
 // gone exploring
 const SETTLED_AFTER_MS = 900;
@@ -47,6 +57,14 @@ const isPinned = (el: HTMLElement) => {
     if (position === "fixed" || position === "sticky") return true;
   }
   return false;
+};
+
+// the next step to show, going on (1) or back (-1): one that only shows
+// when something holds is passed over when it doesn't
+const stepAfter = (from: number, way: 1 | -1) => {
+  let at = from + way;
+  while (TOUR_STEPS[at]?.when && !TOUR_STEPS[at]!.when!()) at += way;
+  return Math.min(Math.max(at, 0), TOUR_STEPS.length - 1);
 };
 
 const readStep = () => {
@@ -97,9 +115,77 @@ const holePath = (
   return `path(evenodd, "M0 0H${areaWidth}V${areaHeight}H0Z M${left} ${top}H${right}V${bottom}H${left}Z")`;
 };
 
+const readClosed = () => {
+  try {
+    return sessionStorage.getItem(CLOSED_KEY) === "yes";
+  } catch {
+    return false;
+  }
+};
+
 export default function Tour() {
+  const [closed, setClosed] = useState(readClosed);
+  const close = (yes: boolean) => {
+    try {
+      if (yes) sessionStorage.setItem(CLOSED_KEY, "yes");
+      else sessionStorage.removeItem(CLOSED_KEY);
+    } catch {
+      /* it just won't survive a refresh */
+    }
+    setClosed(yes);
+  };
+  return closed ? (
+    <ClosedBar onReopen={() => close(false)} />
+  ) : (
+    <Guide onClose={() => close(true)} />
+  );
+}
+
+// the tour skipped, the practice shelf still theirs to explore: a bar at the
+// bottom to bring Kenji back, or leave
+function ClosedBar({ onReopen }: { onReopen: () => void }) {
+  const barSpace = hasBottomBar() ? BOTTOM_BAR : 0;
+  return createPortal(
+    <div className="tour" aria-live="polite">
+      <div
+        role="region"
+        aria-label="Practice shelf"
+        className="tour-dock tour-dock-closed"
+        style={{
+          bottom: `calc(${barSpace + SCREEN_MARGIN}px + env(safe-area-inset-bottom))`,
+        }}
+      >
+        {/* the bar itself is the way back, as when they wander off */}
+        <button type="button" className="tour-dock-resume" onClick={onReopen}>
+          <span className="tour-dock-face printed" aria-hidden>
+            <Mascot mood="happy" />
+          </span>
+          <span className="tour-dock-words">
+            <span className="tour-dock-say">Kenji's waiting</span>
+            <span className="tour-dock-go">Back to the tour</span>
+          </span>
+          <svg className="tour-dock-arrow" viewBox="0 0 24 24" aria-hidden>
+            <path d="M5 12h13M13 6l6 6-6 6" />
+          </svg>
+        </button>
+        {/* one quiet way out beside it */}
+        <button
+          type="button"
+          className="tour-skip tour-dock-leave"
+          onClick={() => endDemo()}
+        >
+          Leave demo
+        </button>
+      </div>
+    </div>,
+    document.body,
+  );
+}
+
+function Guide({ onClose }: { onClose: () => void }) {
   // their real account, not the practice one the tour signs them into
   const hasShelf = wasSignedInBeforeTour();
+  const collector = demoKind() === "collector";
   const [index, setIndex] = useState(readStep);
   const [anchor, setAnchor] = useState<Anchor | null>(null);
   const [lost, setLost] = useState(false);
@@ -163,7 +249,19 @@ export default function Tour() {
     let scrolled = false;
     let heldStill: HTMLElement | null = null;
     const startedAt = Date.now();
+    let unfolded = false;
     const follow = () => {
+      // a folded section he's about to talk about, or the one what he points
+      // at is inside: opened, once, so they can still fold it again
+      if (step.unfold && !unfolded) {
+        const fold = findTarget(
+          typeof step.unfold === "string" ? step.unfold : step.target!,
+        );
+        if (fold instanceof HTMLDetailsElement) {
+          fold.open = true;
+          unfolded = true;
+        }
+      }
       const el = findTarget(step.target!);
       if (el) {
         found = true;
@@ -241,6 +339,16 @@ export default function Tour() {
             : next,
         );
         setLost(false);
+      } else if (
+        step.needsLastStep &&
+        (found || Date.now() - startedAt > NEEDS_LAST_STEP_MS)
+      ) {
+        // only there after the step before (an opened series), and they've
+        // closed it, opened another, or come back from a page they went to
+        // with it shut: back to that step, rather than talking about what's
+        // no longer on screen
+        goTo(index - 1);
+        return;
       } else if (found || Date.now() - startedAt > GIVE_UP_AFTER_MS) {
         // never there, or gone since, like hiding the only thing on the list. No ring
         // around nothing, and it comes back if they undo
@@ -253,7 +361,7 @@ export default function Tour() {
       cancelAnimationFrame(frame);
       if (heldStill) heldStill.inert = false;
     };
-  }, [step, onPage]);
+  }, [step, onPage, index, goTo]);
 
   // on phones some targets live in the header menu: open it so he can point inside
   // and close it again when the step ends, by Next, Back or leaving the page
@@ -283,7 +391,7 @@ export default function Tour() {
         clicked.closest("a, button, input, label")
       ) {
         if (!step.opensNext) {
-          goTo(index + 1);
+          goTo(stepAfter(index, 1));
           return;
         }
         // switched off instead of on: stay here
@@ -310,13 +418,11 @@ export default function Tour() {
       const onKenji = [bubble.current, dock.current].some((el) =>
         el?.contains(document.activeElement),
       );
-      if (e.key === "Escape" && onKenji) {
-        endDemo();
-      }
+      if (e.key === "Escape" && onKenji) onClose();
     };
     document.addEventListener("keydown", onKey);
     return () => document.removeEventListener("keydown", onKey);
-  }, []);
+  }, [onClose]);
 
   // Next does what the step was about, so what comes after has what it needs: the
   // dates are only there once the red bar is open
@@ -325,7 +431,7 @@ export default function Tour() {
     const alreadyOpen = step.opensNext && upcoming && findTarget(upcoming);
     if (step.tap && step.target && !alreadyOpen)
       findTarget(step.target)?.click();
-    goTo(index + 1);
+    goTo(stepAfter(index, 1));
   };
 
   const isLast = index === TOUR_STEPS.length - 1;
@@ -451,7 +557,9 @@ export default function Tour() {
             bottom: `calc(${barSpace + SCREEN_MARGIN}px + env(safe-area-inset-bottom))`,
           }}
           onClick={
-            step.free || step.doneOnLeaving ? () => goTo(index + 1) : backToStep
+            step.free || step.doneOnLeaving
+              ? () => goTo(stepAfter(index, 1))
+              : backToStep
           }
         >
           <span className="tour-dock-face printed" aria-hidden>
@@ -567,71 +675,80 @@ export default function Tour() {
         <p className="tour-count">
           {/* counted across the whole tour: "1 of 5" for the first part
               read as five steps in all, and there are more */}
-          {step.part} · {index + 1} of {TOUR_STEPS.length}
+          <span className="tour-part">{step.part}</span>
+          <span className="tour-step">
+            {index + 1} of {TOUR_STEPS.length}
+          </span>
         </p>
         <p className="tour-say">{say}</p>
-        <div className="tour-actions">
-          {isLast ? (
-            <>
-              <button
-                type="button"
-                className="btn btn-primary btn-sm"
-                onClick={() => endDemo(hasShelf ? "/shelf" : "/signup")}
-              >
-                {hasShelf ? "Back to my shelf" : "Start your shelf"}
-              </button>
-              <button
-                type="button"
-                className="tour-skip"
-                onClick={() => endDemo()}
-              >
-                Leave the tour
-              </button>
-            </>
-          ) : (
-            <>
-              <button
-                type="button"
-                className="btn btn-primary btn-sm"
-                onClick={next}
-              >
-                Next
-              </button>
-              {index > 0 && (
-                <button
-                  type="button"
-                  className="tour-skip"
-                  onClick={() =>
-                    goTo(
-                      TOUR_STEPS[index - 1]!.needsLastStep
-                        ? index - 2
-                        : index - 1,
-                    )
-                  }
-                >
-                  Back
-                </button>
-              )}
-              <button
-                type="button"
-                className="tour-skip"
-                onClick={() => endDemo()}
-              >
-                Skip tour
-              </button>
-              {/* seen enough to want one: no need to sit through the rest */}
-              {!hasShelf && index > 0 && (
-                <button
-                  type="button"
-                  className="tour-skip"
-                  onClick={() => endDemo("/signup")}
-                >
-                  Start your shelf
-                </button>
-              )}
-            </>
+      </div>
+      {/* one line under the whole bubble: the ways out at the left, quiet,
+          and the way on at the right, where the eye ends up */}
+      <div className="tour-bar">
+        {!isLast && index > 0 && (
+          <button
+            type="button"
+            className="tour-skip"
+            onClick={() =>
+              goTo(
+                TOUR_STEPS[index - 1]!.needsLastStep
+                  ? index - 2
+                  : stepAfter(index, -1),
+              )
+            }
+          >
+            Back
+          </button>
+        )}
+        {/* hiding Kenji keeps the practice shelf; leaving ends it */}
+        {!isLast && (
+          <button type="button" className="tour-skip" onClick={onClose}>
+            Hide Kenji
+          </button>
+        )}
+        <button type="button" className="tour-skip" onClick={() => endDemo()}>
+          {isLast ? "Leave" : "Leave demo"}
+        </button>
+        <span className="tour-bar-on">
+          {/* the reader's tour is short on purpose: the collector's side
+              is its own tour, for those who want it */}
+          {isLast && !collector && (
+            <button
+              type="button"
+              className="btn btn-secondary btn-sm"
+              onClick={() => startDemo(hasShelf, "collector", true)}
+            >
+              Collector tour
+            </button>
           )}
-        </div>
+          {/* a collector with an account: their own collection next */}
+          {isLast && collector && hasShelf && (
+            <button
+              type="button"
+              className="btn btn-secondary btn-sm"
+              onClick={() => endDemo("/import")}
+            >
+              Import my list
+            </button>
+          )}
+          {isLast ? (
+            <button
+              type="button"
+              className="btn btn-primary btn-sm"
+              onClick={() => endDemo(hasShelf ? "/shelf" : "/signup")}
+            >
+              {hasShelf ? "My shelf" : "Start your shelf"}
+            </button>
+          ) : (
+            <button
+              type="button"
+              className="btn btn-primary btn-sm tour-next"
+              onClick={next}
+            >
+              Next
+            </button>
+          )}
+        </span>
       </div>
     </div>
   );

@@ -267,7 +267,8 @@ export default function PriceSeries() {
         )}
         {/* what's left of their series, and what it costs at stored prices */}
         {(finish || (mine && toGet.length < volumes.length)) && (
-          <div className={styles.toGetRow}>
+          // the tour's "what the series costs" step, for one on the shelf
+          <div className={styles.toGetRow} data-tour="series-cost">
             {mine && toGet.length < volumes.length && (
               <button
                 type="button"

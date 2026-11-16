@@ -191,6 +191,7 @@ export default function ProfileTab({ account }: { account: Account }) {
       <section
         ref={shareSection}
         className={styles.section}
+        data-tour="share"
         aria-labelledby="profile-share"
       >
         <h3 id="profile-share" className={styles.heading}>

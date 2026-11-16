@@ -8,6 +8,8 @@ import { moneyText, rowName, type BookRow as Row } from "./yourBooksRows";
 export type Purchase = { paidCents?: number | null; boughtOn?: string | null };
 
 type Props = {
+  // the one the tour points at
+  tourTarget?: boolean;
   row: Row;
   onSave: (row: Row, change: Purchase) => void;
   onRemove: (row: Row) => void;
@@ -17,6 +19,7 @@ type Props = {
 };
 
 export default function BookRow({
+  tourTarget = false,
   row,
   onSave,
   onRemove,
@@ -40,7 +43,10 @@ export default function BookRow({
   };
 
   return (
-    <li className={removeColumn ? styles.bookRow : styles.bookRowPlain}>
+    <li
+      className={removeColumn ? styles.bookRow : styles.bookRowPlain}
+      data-tour={tourTarget ? "book-paid" : undefined}
+    >
       <span className={styles.bookName}>
         {name}
         {row.book?.isbn13 && (

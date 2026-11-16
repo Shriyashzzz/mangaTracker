@@ -576,6 +576,7 @@ function Library() {
           <button
             type="button"
             className="btn btn-secondary"
+            data-tour="scan"
             onClick={addFlow.scan}
             // its code starts loading on the way to a click
             onPointerEnter={loadScanner}
