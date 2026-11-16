@@ -62,14 +62,25 @@ async function accountNamed(username: string) {
   return alike.length === 1 ? alike[0]! : null;
 }
 
+// compared against when no account has the name, so a wrong name takes as
+// long to answer as a wrong password (the time can't tell them apart either)
+// (made the first time it's needed, at the same cost as a real one)
+let noSuchAccount: Promise<string> | null = null;
+const noSuchAccountHash = () =>
+  (noSuchAccount ??= bcrypt.hash(randomBytes(16).toString("hex"), 12));
+
+// the account's id, or null for a wrong name or password: the two answer the
+// same, so signing in can't be used to find out which usernames exist
 export async function checkCredentials(
   username: string,
   password: string,
-): Promise<{ userId: number } | { status: 401 | 404 }> {
+): Promise<{ userId: number } | null> {
   const user = await accountNamed(username);
-  if (!user) return { status: 404 };
-  if (!(await bcrypt.compare(password, user.password))) return { status: 401 };
-  return { userId: user.id };
+  const matches = await bcrypt.compare(
+    password,
+    user?.password ?? (await noSuchAccountHash()),
+  );
+  return user && matches ? { userId: user.id } : null;
 }
 
 // the new account's id, or null when the username is already taken

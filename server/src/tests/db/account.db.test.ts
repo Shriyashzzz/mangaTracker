@@ -90,6 +90,6 @@ test("deleting an account needs its password, and takes everything with it", asy
   const again = await request(app)
     .post("/api/auth/login")
     .send({ username: "reader", password: PASSWORD });
-  // no such account any more
-  expect(again.status).toBe(404);
+  // no such account any more: refused like any wrong name or password
+  expect(again.status).toBe(401);
 });

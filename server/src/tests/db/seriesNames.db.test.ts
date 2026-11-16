@@ -3,6 +3,7 @@
 // of its own (Zz…), so no other test's series are touched
 import {
   forgetSeriesNames,
+  knownSeriesHits,
   nearSeriesNames,
 } from "../../prices/seriesNames.js";
 import { closeDb, emptyDb, prisma } from "./testDb.js";
@@ -54,4 +55,38 @@ test("the list is read once and kept, until it's an hour old", async () => {
   expect(await nearSeriesNames("zzlatter")).toEqual([]);
   forgetSeriesNames();
   expect(await nearSeriesNames("zzlatter")).toEqual(["Zzlater"]);
+});
+
+test("a search answered from the known series: by name, other names or a slip", async () => {
+  await prisma.seriesInfo.update({
+    where: { slug: slugOf("Zzchainsaw Mann") },
+    data: {
+      info: {
+        name: "Zzchainsaw Mann",
+        altNames: ["Zzchensoo Man"],
+        coverUrl: "https://example.com/c.jpg",
+        score: 85,
+        volumes: 22,
+        status: "RELEASING",
+        popularityRank: 3,
+      },
+    },
+  });
+  forgetSeriesNames();
+  const found = await knownSeriesHits("zzchainsaw");
+  // the most popular first, shaped as the search's own answers
+  expect(found[0]).toMatchObject({
+    name: "Zzchainsaw Mann",
+    slug: "zzchainsaw-mann",
+    coverUrl: "https://example.com/c.jpg",
+    score: 85,
+  });
+  expect(found.map((s) => s.name)).toEqual([
+    "Zzchainsaw Mann",
+    "Zzchainsaw Mann: Buddy Stories",
+  ]);
+  // another name, and a slip of the finger
+  expect((await knownSeriesHits("zzchensoo"))[0]?.name).toBe("Zzchainsaw Mann");
+  expect((await knownSeriesHits("zzone peiced"))[0]?.name).toBe("Zzone Pieced");
+  expect(await knownSeriesHits("qqxx nothing")).toEqual([]);
 });

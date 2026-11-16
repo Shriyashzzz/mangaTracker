@@ -43,7 +43,7 @@ export default function SignInPage() {
         navigater(afterSignIn(params), { viewTransition: true });
       } else if (result.status === 400) {
         setError((await errorMessages(result))[0] ?? "Check your details.");
-      } else if (result.status === 401 || result.status === 404) {
+      } else if (result.status === 401) {
         setError("Incorrect username or password. Try again.");
       } else {
         // there's no password reset, so never let an outage look like a lost account

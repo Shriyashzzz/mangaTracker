@@ -47,17 +47,10 @@ const login = [
   async (req: Request, res: Response) => {
     const { username, password } = matchedData(req);
     const result = await userQueries.checkCredentials(username, password);
-    if ("status" in result) {
-      res.status(result.status).json({
-        error: [
-          {
-            msg:
-              result.status === 401
-                ? "Incorrect password"
-                : "No account with that username",
-          },
-        ],
-      });
+    if (!result) {
+      res
+        .status(401)
+        .json({ error: [{ msg: "Incorrect username or password" }] });
       return;
     }
     await startSession(req, result.userId);

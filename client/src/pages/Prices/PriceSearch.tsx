@@ -117,6 +117,18 @@ export default function PriceSearch() {
                   Keep your place and see what's out.
                 </span>
               </p>
+              <ul className={styles.trackGets}>
+                {[
+                  "Keep your place in every series",
+                  "Get notified when new volumes come out",
+                  "Find out how much the next volume costs",
+                ].map((line) => (
+                  <li key={line}>
+                    <CheckIcon className={styles.trackGetsTick} aria-hidden />
+                    {line}
+                  </li>
+                ))}
+              </ul>
               <div className={styles.halfActions}>
                 <NavLink
                   to="/signup"
@@ -138,20 +150,6 @@ export default function PriceSearch() {
                   Sign in
                 </NavLink>
               </div>
-              {/* side by side the card is as tall as the price search: what
-                  the shelf does, where there'd be empty space */}
-              <ul className={styles.trackGets}>
-                {[
-                  "Your place in every series",
-                  "New volumes when they come out",
-                  "What the next one costs",
-                ].map((line) => (
-                  <li key={line}>
-                    <CheckIcon className={styles.trackGetsTick} aria-hidden />
-                    {line}
-                  </li>
-                ))}
-              </ul>
             </section>
           )}
 

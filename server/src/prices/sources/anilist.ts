@@ -14,6 +14,8 @@ import type { MalListing } from "../../util/shelf/malEntry.js";
 import { baseName, isNovelName, novelName } from "../lightNovel.js";
 import { volumesKey } from "../volumesKey.js";
 import priceQueries from "../../models/priceQueries.js";
+import { inBackground } from "../callLog.js";
+import { knownSeriesHits } from "../seriesNames.js";
 
 export { slugify };
 
@@ -51,9 +53,32 @@ type Media = {
 const ANILIST_PAUSE_MS = 60_000;
 let anilistPausedUntil = 0;
 
+// AniList's allowance is shared by visitors and the background jobs (anime
+// answers, series lists, sweeps). The jobs take at most this many calls a
+// minute, so what's left is always a visitor's: right after a restart they
+// all start at once, and a visitor's search was the one turned away
+const BACKGROUND_PER_MINUTE = 20;
+const backgroundCalls: number[] = [];
+function backgroundMayAsk(now = Date.now()) {
+  while (backgroundCalls.length && now - backgroundCalls[0]! >= 60_000)
+    backgroundCalls.shift();
+  if (backgroundCalls.length >= BACKGROUND_PER_MINUTE) return false;
+  backgroundCalls.push(now);
+  return true;
+}
+
+// a failure that's only the pause or the background's share being used:
+// said once when it begins (query), never again for every call it turns away
+export const isAniListWait = (e: unknown) =>
+  /waiting before asking again|kept for visitors/.test(
+    (e as Error)?.message ?? "",
+  );
+
 async function query<T>(gql: string, variables?: Record<string, unknown>) {
   if (Date.now() < anilistPausedUntil)
     throw new Error("AniList responded 429 (waiting before asking again)");
+  if (inBackground() && !backgroundMayAsk())
+    throw new Error("AniList calls are kept for visitors this minute");
   const res = await fetch(URL, {
     method: "POST",
     headers: { "Content-Type": "application/json", Accept: "application/json" },
@@ -62,8 +87,12 @@ async function query<T>(gql: string, variables?: Record<string, unknown>) {
   });
   if (res.status === 429) {
     const retryAfter = Number(res.headers.get("Retry-After"));
-    anilistPausedUntil =
-      Date.now() + (retryAfter > 0 ? retryAfter * 1000 : ANILIST_PAUSE_MS);
+    const waitMs = retryAfter > 0 ? retryAfter * 1000 : ANILIST_PAUSE_MS;
+    anilistPausedUntil = Date.now() + waitMs;
+    // one line for the whole pause, not one for every call it turns away
+    console.error(
+      `AniList asked us to slow down: pausing its calls for ${Math.round(waitMs / 1000)}s`,
+    );
     await res.body?.cancel().catch(() => {});
   }
   if (!res.ok) throw new Error(`AniList responded ${res.status}`);
@@ -397,7 +426,8 @@ export async function getSeriesInfo(name: string): Promise<SeriesInfo | null> {
       return null;
     }
     // a stale answer beats none if AniList is down or rate limiting us
-    console.error("AniList series lookup failed:", (e as Error).message);
+    if (!isAniListWait(e))
+      console.error("AniList series lookup failed:", (e as Error).message);
     return saved?.info ? withAltNames(saved.info as SeriesInfo) : null;
   }
 }
@@ -473,7 +503,16 @@ export async function searchSeries(
   q: string,
   popular = false,
 ): Promise<SeriesHit[]> {
-  return withKnownNovels(await searchAniList(q, popular));
+  try {
+    return withKnownNovels(await searchAniList(q, popular));
+  } catch (e) {
+    // AniList has asked us to wait, or didn't answer: the series the site
+    // already knows, so a search for one of them still finds it
+    // (seriesNames.ts). Nothing known by that name: the failure as it was
+    const known = await knownSeriesHits(q).catch(() => []);
+    if (known.length) return known;
+    throw e;
+  }
 }
 
 // a novel AniList doesn't list (Solo Leveling's, like many Korean web novels)
@@ -600,7 +639,8 @@ export function englishSeriesName(
     .catch((e: Error) => {
       // a 404 means no match: a real answer, kept cached
       if (/responded 404/.test(e.message)) return null;
-      console.error("AniList name lookup failed:", e.message);
+      if (!isAniListWait(e))
+        console.error("AniList name lookup failed:", e.message);
       englishNames.delete(key);
       throw e;
     });
@@ -639,7 +679,8 @@ export async function getTrending(): Promise<SeriesHit[]> {
       }));
     trending = { at: Date.now(), items };
   } catch (e) {
-    console.error("AniList trending failed:", (e as Error).message);
+    if (!isAniListWait(e))
+      console.error("AniList trending failed:", (e as Error).message);
   }
   return trending.items;
 }
