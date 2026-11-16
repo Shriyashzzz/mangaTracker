@@ -14,28 +14,6 @@ export const stillToGet = <T extends { volume: number }>(
   owned: Pick<Manga, "volumesOwned"> & { ownedList?: number[] },
 ) => volumes.filter((v) => !owns(owned, v.volume));
 
-// those, and the whole volumes below the newest that no catalog lists yet
-// and they don't own: out all the same, just with no book to price. So "to
-// finish" counts what the shelf's own tools count (server finishSeries)
-export function leftToGet<
-  T extends { volume: number; isbn13: string; knownPriceCents: number | null },
->(
-  out: T[],
-  owned: Pick<Manga, "volumesOwned"> & { ownedList?: number[] },
-): (T | { volume: number; isbn13: string; knownPriceCents: null })[] {
-  const listed = new Set(out.map((v) => v.volume));
-  const newest = Math.max(
-    0,
-    ...out.map((v) => v.volume).filter(Number.isInteger),
-  );
-  const unlisted = Array.from({ length: newest }, (_, i) => i + 1)
-    .filter((n) => !listed.has(n) && !owns(owned, n))
-    .map((n) => ({ volume: n, isbn13: "", knownPriceCents: null }));
-  return [...stillToGet(out, owned), ...unlisted].sort(
-    (a, b) => a.volume - b.volume,
-  );
-}
-
 type FinishCost = {
   // the priced ones, added up
   cents: number;

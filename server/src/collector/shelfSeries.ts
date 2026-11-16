@@ -11,6 +11,7 @@ import { slugify } from "../prices/stores/match.js";
 import type { CatalogBook, SeriesInfo } from "../prices/types.js";
 import { volumesKey } from "../prices/volumesKey.js";
 import { guessedLine, type ListedVolume } from "./shelfMath.js";
+import { isShown } from "../models/bookQueries.js";
 import type { EditionLine } from "../prices/editionLines.js";
 
 type ShelfSeries<T> = {
@@ -76,9 +77,15 @@ export async function shelfEditionLines(
         select: { mangaId: true, edition: true, volumes: true },
       })
     : [];
+  // only the books they have: one hidden by an unticked volume
+  // (bookQueries isShown) doesn't point to its edition any more
+  const mangaById = new Map(open.map((m) => [m.id, m]));
   const booksOf = new Map<number, typeof recorded>();
-  for (const b of recorded)
+  for (const b of recorded) {
+    const of = mangaById.get(b.mangaId);
+    if (!of || !isShown(b, of)) continue;
     booksOf.set(b.mangaId, [...(booksOf.get(b.mangaId) ?? []), b]);
+  }
   const collecting = open.filter((m) => m.edition || booksOf.has(m.id));
   if (!collecting.length) return new Map();
   const names = collecting.map((m) => priceName(m));

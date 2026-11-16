@@ -209,11 +209,6 @@ export async function canadaQueue(now = new Date()): Promise<string[]> {
 const triedInCanada = triedLately();
 let canadaList: { at: number; isbns: string[] } = { at: 0, isbns: [] };
 
-export const resetCanadaFiller = () => {
-  triedInCanada.clear();
-  canadaList = { at: 0, isbns: [] };
-};
-
 // one Canadian volume, if one is waiting and today's Canadian share and
 // eBay's day both have room
 export async function fillCanadaOne(

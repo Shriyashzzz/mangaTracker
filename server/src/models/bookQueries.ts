@@ -3,6 +3,7 @@
 // physical book put them there.
 import { prisma } from "../config/prisma.js";
 import { ownedVolumes } from "../util/shelf/ownedList.js";
+import { ownedSet } from "../collector/shelfMath.js";
 
 export type BookInput = {
   isbn13?: string | null;
@@ -19,18 +20,11 @@ export type BookInput = {
 const dayOf = (day: string | Date | null | undefined) =>
   day == null ? day : new Date(day);
 
-const ownedSet = (m: { volumesOwned: number | null; ownedList: number[] }) =>
-  new Set(
-    m.ownedList.length
-      ? m.ownedList
-      : Array.from({ length: m.volumesOwned ?? 0 }, (_, i) => i + 1),
-  );
-
 // A book counts while every volume it holds is owned. One whose volumes
 // aren't all owned any more (a volume unticked by hand, a scan undone) is
 // kept but left out of every list and total, so ticking the volume again
 // brings it back with what was paid. Only removing it deletes it
-const isShown = (
+export const isShown = (
   book: { volumes: number[] },
   manga: { volumesOwned: number | null; ownedList: number[] },
 ) => {

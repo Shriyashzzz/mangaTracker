@@ -630,6 +630,10 @@ const PAID_KEY = "demoPaid";
 const ADDED_KEY = "demoAddedBooks";
 // books they've removed, by id
 const REMOVED_KEY = "demoRemovedBooks";
+// series deleted from the practice shelf, by name, as they were: the undo
+// puts each back with its own id (the undo sends no ids), so its covers and
+// books come back with it
+const DELETED_KEY = "demoDeleted";
 const REVIEWS_KEY = "demoReviews";
 type Purchase = { paidCents?: number | null; boughtOn?: string | null };
 type SavedReview = {
@@ -785,12 +789,96 @@ export async function demoResponse(
     writeShelf([...shelf, { ...practice(id, "", "", ""), ...fromForm(body) }]);
     return json({ id }, 201);
   }
+  // ---------- deleting and its undo, one or many (shelf Select) ----------
+  const forget = (gone: Manga[]) =>
+    save(DELETED_KEY, {
+      ...readSaved<Record<string, Manga>>(DELETED_KEY, {}),
+      ...Object.fromEntries(gone.map((m) => [m.name, m])),
+    });
+  // a series sent back by the undo: the one that went, as it was, or a new
+  // one from what was sent. Null when it's on the shelf already
+  const restore = (sent: Partial<Manga>, onShelf: Manga[]) => {
+    if (hasTitle(onShelf, sent.name, Boolean(sent.lightNovel))) return null;
+    const was = readSaved<Record<string, Manga>>(DELETED_KEY, {})[
+      String(sent.name)
+    ];
+    if (was && !onShelf.some((m) => m.id === was.id)) return was;
+    const id = nextId(onShelf);
+    return { ...practice(id, "", "", ""), ...sent, id } as Manga;
+  };
   if (route === "/api/manga/restore") {
-    const manga = body as unknown as Manga;
-    if (shelf.some((m) => m.id === manga.id)) return json({ ok: true }, 409);
-    writeShelf([...shelf, manga]);
+    const back = restore(body as Partial<Manga>, shelf);
+    if (!back) return json({ ok: true }, 409);
+    writeShelf([...shelf, back]);
     return json({ ok: true });
   }
+  if (route === "/api/manga/restore-many") {
+    let now = shelf;
+    let restored = 0;
+    for (const sent of body.manga as Partial<Manga>[]) {
+      const back = restore(sent, now);
+      if (!back) continue;
+      now = [...now, back];
+      restored++;
+    }
+    writeShelf(now);
+    return json({ restored, invalid: 0 });
+  }
+  if (route === "/api/manga/delete-many") {
+    const ids = new Set(body.ids as number[]);
+    const gone = shelf.filter((m) => ids.has(m.id));
+    forget(gone);
+    writeShelf(shelf.filter((m) => !ids.has(m.id)));
+    return json({ manga: gone });
+  }
+  // Select's "Move to": as the server does it, Reading puts one that hadn't
+  // started at chapter 1. What each was comes back, for the undo
+  if (route === "/api/manga/move-many") {
+    const ids = new Set(body.ids as number[]);
+    const to = body.to as "reading" | "finished" | "planned";
+    const was = shelf
+      .filter((m) => ids.has(m.id))
+      .map(({ id, status, planned, bookmark }) => ({
+        id,
+        status,
+        planned,
+        bookmark,
+      }));
+    writeShelf(
+      shelf.map((m) =>
+        !ids.has(m.id)
+          ? m
+          : to === "finished"
+            ? { ...m, status: true, planned: false }
+            : to === "planned"
+              ? { ...m, planned: true, status: false }
+              : {
+                  ...m,
+                  status: false,
+                  planned: false,
+                  bookmark: m.planned && m.bookmark == null ? 1 : m.bookmark,
+                },
+      ),
+    );
+    return json({ was });
+  }
+  // the move's undo: each one's place put back
+  if (route === "/api/manga/place-many") {
+    const places = new Map(
+      (
+        body.places as Pick<Manga, "id" | "status" | "planned" | "bookmark">[]
+      ).map((p) => [p.id, p]),
+    );
+    writeShelf(shelf.map((m) => ({ ...m, ...places.get(m.id) })));
+    return json({ ok: true });
+  }
+  // every book on the practice shelf, for the export (Settings, Account)
+  if (route === "/api/manga/books")
+    return json({
+      books: shelf.flatMap((m) =>
+        booksOf(seriesOf(m), m).map((b) => ({ ...b, mangaId: m.id })),
+      ),
+    });
   if (route === "/api/manga/import") {
     const entries = body.entries as MalEntry[];
     const added = entries.filter((entry) => !hasTitle(shelf, entry.title));
@@ -1044,6 +1132,7 @@ export async function demoResponse(
     if (!manga) return json({ error: [{ msg: "Not found" }] }, 404);
     const part = found[2];
     if (!part && method === "DELETE") {
+      forget([manga]);
       writeShelf(shelf.filter((m) => m.id !== id));
       return json({ ok: true });
     }

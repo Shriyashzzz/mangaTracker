@@ -4,7 +4,8 @@ import type { SeriesHit } from "../../lib/types";
 import { useNavigate } from "react-router";
 import SeriesPicture from "../../components/cover/SeriesPicture";
 import { SearchIcon } from "../../components/icons/Icons";
-import { asIsbn, novelParts, searchSeries, seriesPath } from "../../lib/prices";
+import { asIsbn, findSeries, novelParts, seriesPath } from "../../lib/prices";
+import { DID_YOU_MEAN } from "../../lib/nearMatches";
 import { starsOf } from "./reviews/reviewText";
 import { pricesStyles as styles } from "./styles";
 import { isMobile } from "react-device-detect";
@@ -43,6 +44,8 @@ export default function SeriesSearchBox({
   const [found, setFound] = useState<{
     q: string;
     items: SeriesHit[];
+    // found by one of its words: a typo's guesses
+    guessed?: boolean;
     loading: boolean;
   }>({ q: "", items: [], loading: false });
 
@@ -64,8 +67,10 @@ export default function SeriesSearchBox({
     const timer = setTimeout(() => {
       setFound((f) => ({ ...f, loading: true }));
       // "berserk deluxe": the series is searched, the edition kept for its page
-      searchSeries(askedEdition(q).series, controller.signal)
-        .then((items) => setFound({ q, items, loading: false }))
+      findSeries(askedEdition(q).series, controller.signal)
+        .then(({ hits, guessed }) =>
+          setFound({ q, items: hits, guessed, loading: false }),
+        )
         .catch((e) => {
           if (e.name !== "AbortError") {
             setFound({ q, items: [], loading: false });
@@ -198,7 +203,12 @@ export default function SeriesSearchBox({
             )}
             {fresh && shown.length === 0 && (
               <li className={styles.suggestNote} aria-live="polite">
-                No English series match “{q}”
+                No English series by that name. Check the spelling.
+              </li>
+            )}
+            {fresh && found.guessed && shown.length > 0 && (
+              <li className={styles.suggestNote} aria-live="polite">
+                {DID_YOU_MEAN}
               </li>
             )}
             {shown.map((s, i) => (

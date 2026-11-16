@@ -43,8 +43,6 @@ export const formStyles = {
   titleField: "col-start-2 row-start-1 upto-760:col-start-1",
   // the title box and AniList's guesses dropping down from it
   titleCombo: "relative",
-  titleComboNote:
-    "mt-1 border-t border-dashed border-line-soft px-[0.55rem] pt-[0.45rem] pb-[0.2rem] text-[0.85rem] text-ink-soft",
   // the add page: one column, the title search first and the rest under it
   // once a series is chosen
   addPage: "mx-auto max-w-[720px] upto-760:mt-0",

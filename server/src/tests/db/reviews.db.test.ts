@@ -9,6 +9,7 @@ import { app } from "../../app.js";
 import { slugify } from "../../prices/stores/match.js";
 import {
   askAboutFinishedVolume,
+  seriesReviews,
   attachNoBookReviews,
   deleteShelfReview,
   publicReviews,
@@ -345,13 +346,11 @@ test("a series adds up its volumes' ratings", async () => {
     text: "A step down.",
     spoiler: false,
   });
-  const res = await request(app)
-    .get("/api/reviews/series")
-    .query({ name: SERIES })
-    .expect(200);
+  // what the series page gets (prices/seriesService.ts)
+  const ratings = await seriesReviews(slugify(SERIES));
   // counted volume by volume; nothing has the five ratings a score needs
-  expect(res.body).toMatchObject({ count: 3, average: null });
-  expect(res.body.volumes).toEqual([
+  expect(ratings).toMatchObject({ count: 3, average: null });
+  expect(ratings.volumes).toEqual([
     { isbn13: ISBN(1), volume: 1, count: 2, average: null, written: 1 },
     { isbn13: ISBN(2), volume: 2, count: 1, average: null, written: 1 },
   ]);

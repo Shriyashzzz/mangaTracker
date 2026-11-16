@@ -5,12 +5,13 @@ import { useEffect, useState } from "react";
 import { NavLink, useLocation, useSearchParams } from "react-router";
 import type { Highlights as HighlightsData, SeriesHit } from "../../lib/types";
 import { probablySignedIn, useAuth } from "../../store/auth";
-import { getHighlights, searchSeries, seriesPath } from "../../lib/prices";
+import { findSeries, getHighlights, seriesPath } from "../../lib/prices";
 import SeriesSearchBox from "./SeriesSearchBox";
 import VolumeCard from "./VolumeCard";
 import SeriesCard from "./SeriesCard";
 import { pricesStyles as styles } from "./styles";
 import Mascot from "../../components/mascot/Mascot";
+import { DID_YOU_MEAN } from "../../lib/nearMatches";
 import { CheckIcon } from "../../components/icons/Icons";
 import SlowLoadQuote from "../../components/slowLoadQuote/SlowLoadQuote";
 import { usePageMeta } from "../../lib/seo";
@@ -42,6 +43,8 @@ export default function PriceSearch() {
   const [result, setResult] = useState<{
     query: string;
     items: SeriesHit[];
+    // found by one of its words: a typo's guesses
+    guessed?: boolean;
     error: string;
   }>({ query: "", items: [], error: "" });
   const [attempt, setAttempt] = useState(0);
@@ -56,8 +59,10 @@ export default function PriceSearch() {
   useEffect(() => {
     if (query.length < 2) return;
     const controller = new AbortController();
-    searchSeries(query, controller.signal)
-      .then((items) => setResult({ query, items, error: "" }))
+    findSeries(query, controller.signal)
+      .then(({ hits, guessed }) =>
+        setResult({ query, items: hits, guessed, error: "" }),
+      )
       .catch((e) => {
         if (e.name !== "AbortError") {
           setResult({ query, items: [], error: e.message });
@@ -259,7 +264,9 @@ export default function PriceSearch() {
       {!loading && searching && result.items.length > 0 && (
         <section aria-labelledby="results-title">
           <h2 id="results-title" className={styles.count} aria-live="polite">
-            {result.items.length} series for “{query}”
+            {result.guessed
+              ? DID_YOU_MEAN
+              : `${result.items.length} series for “${query}”`}
           </h2>
           <ul className={styles.grid}>
             {result.items.map((s) => (

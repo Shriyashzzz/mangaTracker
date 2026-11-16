@@ -5,6 +5,8 @@
 // asks the same "which series" with the same AniList search and looks; this
 // one asks for volume numbers rather than a count. A native dialog over the
 // scanner: its own focus trap, Escape and backdrop.
+import { DID_YOU_MEAN, withNearMatches } from "../../lib/nearMatches";
+import { knownNamesNear } from "../../lib/knownNames";
 import { useEffect, useId, useRef, useState, type FormEvent } from "react";
 import { NavLink } from "react-router";
 import { aniListGapMs, searchSeries, type SeriesHit } from "../../lib/anilist";
@@ -26,7 +28,7 @@ type Props = {
 
 type Found =
   | { state: "idle" | "searching" | "failed" }
-  | { state: "done"; hits: SeriesHit[] };
+  | { state: "done"; hits: SeriesHit[]; guessed: boolean };
 
 export default function ScanEdit({
   name,
@@ -57,8 +59,15 @@ export default function ScanEdit({
     const timer = setTimeout(
       () => {
         setFound({ state: "searching" });
-        searchSeries(words, controller.signal)
-          .then((hits) => setFound({ state: "done", hits }))
+        withNearMatches(
+          words,
+          (text, retry) => searchSeries(text, controller.signal, retry),
+          (hit) => hit.name,
+          (text) => knownNamesNear(text, controller.signal),
+        )
+          .then(({ hits, guessed }) =>
+            setFound({ state: "done", hits, guessed }),
+          )
           .catch(() => {
             if (!controller.signal.aborted) setFound({ state: "failed" });
           });
@@ -157,8 +166,11 @@ export default function ScanEdit({
             )}
             {results.state === "done" && !results.hits.length && (
               <p className={styles.modalStatus}>
-                Nothing on AniList by that name. Try a shorter one.
+                No manga by that name. Check the spelling, or try a shorter one.
               </p>
+            )}
+            {results.state === "done" && results.guessed && (
+              <p className={styles.modalStatus}>{DID_YOU_MEAN}</p>
             )}
             {results.state === "done" &&
               results.hits.slice(0, 6).map((hit) => (

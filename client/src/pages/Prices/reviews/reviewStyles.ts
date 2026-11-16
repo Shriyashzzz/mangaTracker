@@ -59,7 +59,6 @@ export const reviewStyles = {
   tick: "tap flex min-h-11 cursor-pointer items-center gap-2 text-[0.92rem] [&_input]:size-5 [&_input]:accent-accent",
   count: "font-mono text-[0.8rem] text-muted tabular-nums",
   countOver: "font-mono text-[0.8rem] font-medium text-accent-ink tabular-nums",
-  shownAs: "text-[0.84rem] text-muted [&_b]:font-semibold [&_b]:text-ink",
   buttons: "flex flex-wrap items-center gap-3",
   problem: "mt-2 text-[0.88rem] font-medium text-accent-ink",
 };

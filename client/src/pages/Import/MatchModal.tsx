@@ -1,6 +1,8 @@
 // Edit, for one series in a book import: which AniList series it is (or none),
 // and how many volumes they own, before it goes on the shelf. A native dialog:
 // it brings its own focus trap, Escape and backdrop.
+import { DID_YOU_MEAN, withNearMatches } from "../../lib/nearMatches";
+import { knownNamesNear } from "../../lib/knownNames";
 import { useEffect, useId, useRef, useState, type FormEvent } from "react";
 import {
   AniListBusy,
@@ -38,7 +40,7 @@ type Props = {
 type Found =
   | { state: "idle" }
   | { state: "searching" }
-  | { state: "done"; hits: SeriesHit[] }
+  | { state: "done"; hits: SeriesHit[]; guessed: boolean }
   // AniList asked us to wait: trying again by itself
   | { state: "waiting"; seconds: number }
   | { state: "unreachable" }
@@ -81,8 +83,15 @@ export default function MatchModal({
     const ask = (after: number) => {
       timer = setTimeout(() => {
         setFound({ state: "searching" });
-        searchSeries(words, controller.signal)
-          .then((hits) => setFound({ state: "done", hits }))
+        withNearMatches(
+          words,
+          (text, retry) => searchSeries(text, controller.signal, retry),
+          (hit) => hit.name,
+          (text) => knownNamesNear(text, controller.signal),
+        )
+          .then(({ hits, guessed }) =>
+            setFound({ state: "done", hits, guessed }),
+          )
           .catch((e: unknown) => {
             if (controller.signal.aborted) return;
             if (e instanceof AniListBusy && e.unreachable)
@@ -238,9 +247,12 @@ export default function MatchModal({
             )}
             {results.state === "done" && !results.hits.length && (
               <p className={styles.modalStatus}>
-                Nothing on AniList by that name. Try its Japanese name, or a
-                shorter one.
+                No manga by that name. Check the spelling, try its Japanese
+                name, or a shorter one.
               </p>
+            )}
+            {results.state === "done" && results.guessed && (
+              <p className={styles.modalStatus}>{DID_YOU_MEAN}</p>
             )}
             {results.state === "done" &&
               results.hits.map((hit) => (

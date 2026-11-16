@@ -4,6 +4,7 @@ import { formStyles as styles } from "../../styles/form";
 import type { CoverHit } from "../../lib/anilist";
 import { hasBottomBar } from "../../lib/bottomBar";
 import { SearchIcon } from "../../components/icons/Icons";
+import { DID_YOU_MEAN } from "../../lib/nearMatches";
 import {
   MIN_QUERY,
   type SearchStatus,
@@ -174,9 +175,7 @@ export default function TitleField({
           <div className={styles.titleListFoot}>
             {hits.length > 0 && (
               <span className={styles.counter}>
-                {guessed
-                  ? "Nothing by that name. Did you mean one of these?"
-                  : `${hits.length} from AniList`}
+                {guessed ? DID_YOU_MEAN : `${hits.length} from AniList`}
               </span>
             )}
             <button

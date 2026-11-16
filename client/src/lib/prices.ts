@@ -5,6 +5,8 @@ import { humanQuery } from "./turnstile";
 import { isbnFromTyped } from "./barcode";
 import type { SyntheticEvent } from "react";
 import { API_URL, getJson } from "./api";
+import { withNearMatches } from "./nearMatches";
+import { knownNamesNear } from "./knownNames";
 import type {
   CatalogBook,
   Highlights,
@@ -37,11 +39,26 @@ export const getVolume = async (
     signal,
   );
 
-export const searchSeries = (q: string, signal?: AbortSignal) =>
+// `popular`: the most read first (a typo's retry, lib/nearMatches.ts)
+export const searchSeries = (
+  q: string,
+  signal?: AbortSignal,
+  popular = false,
+) =>
   getJson<{ results: SeriesHit[] }>(
-    `/api/prices/series-search?${new URLSearchParams({ q })}`,
+    `/api/prices/series-search?${new URLSearchParams({ q, ...(popular ? { popular: "true" } : {}) })}`,
     signal,
   ).then((d) => d.results);
+
+// a search someone typed: a typo gets its words' matches, as a guess
+// ("Did you mean", lib/nearMatches.ts)
+export const findSeries = (q: string, signal?: AbortSignal) =>
+  withNearMatches(
+    q,
+    (text, retry) => searchSeries(text, signal, retry),
+    (hit) => hit.name,
+    (text) => knownNamesNear(text, signal),
+  );
 
 export const getSeries = (name: string, signal?: AbortSignal) =>
   getJson<Series>(

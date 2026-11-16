@@ -1,6 +1,7 @@
 // Public price checker endpoints: no account needed. Upstream failures
 // (Open Library, AniList, stores) become 502s with a friendly message, so
 // pages can show "try again" instead of a blank error.
+import { nearSeriesNames } from "../prices/seriesNames.js";
 import { scanBoxSets } from "../prices/boxSetScan.js";
 import { isNovelName } from "../prices/lightNovel.js";
 import priceQueries, { countryOf } from "../models/priceQueries.js";
@@ -111,14 +112,27 @@ const search = [
   },
 ];
 
-// GET /series-search?q=  the typeahead
-const seriesSearch = [
+// GET /series-near?q=  a typo AniList found nothing for: the known series
+// names it's a slip or two from ("chainsw man": Chainsaw Man). From the
+// names the site already keeps, in memory: no API is called
+const seriesNear = [
   ...searchQuery,
   async (req: Request, res: Response) => {
+    res.json({ names: await nearSeriesNames(matchedData(req).q) });
+  },
+];
+
+// GET /series-search?q=  the typeahead. &popular=true: the most read first
+// (a typo's retry by one of its words)
+const seriesSearch = [
+  query("popular").optional().isBoolean().toBoolean(),
+  ...searchQuery,
+  async (req: Request, res: Response) => {
+    const { q, popular } = matchedData(req);
     const results = await upstream(
       "series search",
       "Series search didn't answer. Try again in a moment.",
-      () => searchSeries(matchedData(req).q),
+      () => searchSeries(q, Boolean(popular)),
     );
     res.json({ results });
     // after answering: the top few manga with no novel shown get checked for
@@ -588,6 +602,7 @@ const seriesSummary = [
 ];
 
 export default {
+  seriesNear,
   stats,
   scan,
   editions,

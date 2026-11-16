@@ -4,7 +4,6 @@
 //   getVolumePrices   one volume's page: offers, history, series, siblings
 //   getSeries         one series' page: every US volume with known prices
 //   getHighlights     the home page: trending, deals, recently checked
-//   getShelfPrices    cheapest known price per manga on someone's shelf
 //   getSeriesIndex    the /series page
 //   get*Summary       database-only data for link previews and crawlers
 //
@@ -17,7 +16,7 @@
 //   volumeService.ts   one volume's prices, and the sources that are checked
 //   scanService.ts     a scanned barcode
 //   seriesService.ts   a series' list of volumes
-//   shelfService.ts    prices for someone's shelf
+//   shelfService.ts    the saved volume lists, and a series on a shelf
 //   pagesService.ts    the series index, link previews, deals and price home
 export { searchSeries } from "./sources/anilist.js";
 export * from "./volumeNames.js";

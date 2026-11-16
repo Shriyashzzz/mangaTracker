@@ -51,7 +51,7 @@ const CACHE_MAX = 1000;
 const SITE_NAME = "Manga Tracker";
 const template = readFileSync(`${DIST}index.html`, "utf8");
 
-// ---------- the tags, matching client/src/lib/seo.js ----------
+// ---------- the tags, matching client/src/lib/seo.ts ----------
 
 const escapeHtml = (text: unknown) =>
   String(text).replace(

@@ -1,6 +1,5 @@
 // What's newly out for a series on the shelf (the New tab and the details
-// page), and the shelf's cheapest known prices.
-import { countryOf } from "../../models/priceQueries.js";
+// page).
 import {
   mangaOutcome,
   type ReleaseOutcome,
@@ -8,8 +7,8 @@ import {
 import type { Request, Response } from "express";
 import mangaQueries from "../../models/mangaQueries.js";
 import { getSeriesInfo } from "../../prices/sources/anilist.js";
-import { getSeries, getShelfPrices } from "../../prices/service.js";
-import { novelName, priceName } from "../../prices/lightNovel.js";
+import { getSeries } from "../../prices/service.js";
+import { novelName } from "../../prices/lightNovel.js";
 import {
   getCachedReleaseDates,
   withTimeout,
@@ -179,18 +178,6 @@ export const releases = async (req: Request, res: Response) => {
     complete,
     outcome,
   });
-};
-
-// the cheapest known price for each manga on the shelf, for the cards. A light
-// novel is priced as the novel, never as the manga of the same name
-export const shelfPrices = async (req: Request, res: Response) => {
-  const manga = await mangaQueries.getShelf(req.session.userId!);
-  res.json(
-    await getShelfPrices(
-      manga.map((m) => ({ id: m.id, name: priceName(m) })),
-      countryOf(req.query.country),
-    ),
-  );
 };
 
 // every saved release answer for the shelf still good to use, at once: the

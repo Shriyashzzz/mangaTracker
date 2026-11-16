@@ -269,21 +269,6 @@ const asNovel = (info: SeriesInfo): SeriesInfo => ({
   altNames: info.altNames.map(novelName),
 });
 
-// every series we've seen, slug -> real name, newest first: knownSeriesName
-// for a whole shelf in one query
-export async function knownSeriesNames(): Promise<Map<string, string>> {
-  const rows = await prisma.$queryRaw<{ slug: string; name: string }[]>`
-    SELECT DISTINCT ON (slug) slug, name FROM (
-      SELECT left(trim(both '-' from
-               regexp_replace(lower(info->>'name'), '[^a-z0-9]+', '-', 'g')), 80) AS slug,
-             info->>'name' AS name, fetched_at
-      FROM series_info WHERE info IS NOT NULL
-    ) named
-    ORDER BY slug, fetched_at DESC
-  `;
-  return new Map(rows.map((r) => [r.slug, r.name]));
-}
-
 // A series address can be just the slug of AniList's name
 // (/prices/series/frieren-beyond-journey-s-end), which reaches us as
 // "frieren beyond journey s end". If a series we've seen has that slug,
@@ -419,14 +404,14 @@ export async function getSeriesInfo(name: string): Promise<SeriesInfo | null> {
 
 // manga and light novels in one request: AniList counts requests, not lists
 const SEARCH_QUERY = `
-  query ($search: String) {
+  query ($search: String, $sort: [MediaSort] = [SEARCH_MATCH]) {
     manga: Page(perPage: 20) {
-      media(search: $search, type: MANGA, format: MANGA, sort: SEARCH_MATCH) {
+      media(search: $search, type: MANGA, format: MANGA, sort: $sort) {
         ...hit
       }
     }
     novel: Page(perPage: 10) {
-      media(search: $search, type: MANGA, format: NOVEL, sort: SEARCH_MATCH) {
+      media(search: $search, type: MANGA, format: NOVEL, sort: $sort) {
         ...hit
       }
     }
@@ -481,9 +466,14 @@ export function withNovels<T extends { name: string }>(
 
 const searchCache = new Map<string, { at: number; items: SeriesHit[] }>();
 
-// series matching what someone typed (the home page typeahead)
-export async function searchSeries(q: string): Promise<SeriesHit[]> {
-  return withKnownNovels(await searchAniList(q));
+// series matching what someone typed (the home page typeahead). `popular`:
+// the most read first, not the closest names: a typo's retry by one of its
+// words ("one" for "one peice") wants One Piece, not a series called "One"
+export async function searchSeries(
+  q: string,
+  popular = false,
+): Promise<SeriesHit[]> {
+  return withKnownNovels(await searchAniList(q, popular));
 }
 
 // a novel AniList doesn't list (Solo Leveling's, like many Korean web novels)
@@ -529,8 +519,11 @@ async function withKnownNovels(items: SeriesHit[]): Promise<SeriesHit[]> {
   });
 }
 
-async function searchAniList(q: string): Promise<SeriesHit[]> {
-  const key = q.trim().toLowerCase();
+async function searchAniList(
+  q: string,
+  popular: boolean,
+): Promise<SeriesHit[]> {
+  const key = `${popular ? "popular:" : ""}${q.trim().toLowerCase()}`;
   const hit = searchCache.get(key);
   if (hit && Date.now() - hit.at < SEARCH_FRESH_MS) return hit.items;
 
@@ -539,7 +532,10 @@ async function searchAniList(q: string): Promise<SeriesHit[]> {
   const novelsFirst = asked !== q.trim() && asked.length > 0;
   const data = await query<Record<"manga" | "novel", { media: Media[] }>>(
     SEARCH_QUERY,
-    { search: asked || q },
+    {
+      search: asked || q,
+      ...(popular ? { sort: ["POPULARITY_DESC"] } : {}),
+    },
   );
   // our readers are in the US: only series with an official English title. A
   // novel goes by its novel name (lightNovel.ts), so it leads to its own page

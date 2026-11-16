@@ -7,9 +7,7 @@ import { body, matchedData, param, query } from "express-validator";
 import { requireSignIn } from "../middlewares/auth.js";
 import { requireOwnerOfSite } from "../middlewares/ownerOfSite.js";
 import { rejectInvalid } from "../middlewares/validate.js";
-import { knownSeriesName } from "../prices/sources/anilist.js";
 import { toIsbn13 } from "../prices/sources/catalog.js";
-import { slugify } from "../prices/stores/match.js";
 import { MOST_WORDS } from "../reviews/reviewRules.js";
 import {
   decideReview,
@@ -17,7 +15,6 @@ import {
   deleteShelfReview,
   flagReview,
   reviewsToCheck,
-  seriesReviews,
   shelfReviews,
   volumeReviews,
   writeReview,
@@ -99,22 +96,6 @@ const flag = [
   },
 ];
 
-// GET /series?name=  a series' ratings added up, and each reviewed volume's
-const ofSeries = [
-  query("name")
-    .trim()
-    .isLength({ min: 2, max: 120 })
-    .withMessage("Which series?"),
-  rejectInvalid,
-  async (req: Request, res: Response) => {
-    // under the name the price pages know it by
-    const name = await knownSeriesName(matchedData(req).name);
-    res
-      .set("Cache-Control", "public, max-age=300")
-      .json(await seriesReviews(slugify(name)));
-  },
-];
-
 // GET /shelf?manga=  for a series on your shelf: the volumes you could rate
 // next, and the reviews you've written of it
 // a volume of a series on their shelf, by the series' id and the volume's
@@ -193,7 +174,6 @@ export default {
   write,
   remove,
   flag,
-  ofSeries,
   onShelf,
   writeOnShelf,
   removeOnShelf,

@@ -2,6 +2,7 @@
 import { prisma } from "../config/prisma.js";
 import type { Manga } from "../../generated/prisma/client.js";
 import { ownedVolumes } from "../util/shelf/ownedList.js";
+import { ownedSet } from "../collector/shelfMath.js";
 
 // the fields a user can set when adding or editing a manga
 export type MangaInput = {
@@ -283,11 +284,7 @@ export async function mergeManga(keep: number, other: number) {
       tx.manga.findUniqueOrThrow({ where: { id: keep } }),
       tx.manga.findUniqueOrThrow({ where: { id: other } }),
     ]);
-    const setOf = (m: typeof a) =>
-      m.ownedList.length
-        ? m.ownedList
-        : Array.from({ length: m.volumesOwned ?? 0 }, (_, i) => i + 1);
-    const owned = ownedVolumes(null, [...setOf(a), ...setOf(b)]);
+    const owned = ownedVolumes(null, [...ownedSet(a), ...ownedSet(b)]);
     const most = (x: number | null, y: number | null) =>
       x == null ? y : y == null ? x : Math.max(x, y);
     const notes = [a.description, b.description]

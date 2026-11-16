@@ -41,7 +41,7 @@ import {
   knownImportMatches,
   tellImportMatches,
 } from "./manga/import.js";
-import { releases, savedReleases, shelfPrices } from "./manga/releases.js";
+import { releases, savedReleases } from "./manga/releases.js";
 
 // named, for the tests
 export { nothingLeftToCheck } from "./manga/releases.js";
@@ -77,7 +77,6 @@ export default {
   setNotes,
   setImage,
   setOwned,
-  shelfPrices,
   match,
   knownImportMatches,
   tellImportMatches,

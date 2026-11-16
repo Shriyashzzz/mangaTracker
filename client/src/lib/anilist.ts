@@ -2,9 +2,9 @@
 const ANILIST_URL = "https://graphql.anilist.co";
 
 const SEARCH_QUERY = `
-  query ($search: String, $perPage: Int) {
+  query ($search: String, $perPage: Int, $sort: [MediaSort] = [SEARCH_MATCH]) {
     Page(perPage: $perPage) {
-      media(search: $search, type: MANGA, sort: SEARCH_MATCH) {
+      media(search: $search, type: MANGA, sort: $sort) {
         id
         format
         title { english romaji }
@@ -69,7 +69,7 @@ const GENRE_PRIORITY: [anilist: string, ours: string][] = [
   ["Ecchi", "Ecchi"],
 ];
 
-// picks the one genre from lib/content/genres.js that best describes an AniList entry
+// picks the one genre from lib/content/genres.ts that best describes an AniList entry
 export function pickGenre(genres: string[] = [], tags: Tag[] = []) {
   const has = (g: string) => genres.includes(g);
   if (has("Mahou Shoujo")) return "Magical Girl";
@@ -98,17 +98,24 @@ export function pickGenre(genres: string[] = [], tags: Tag[] = []) {
 // returns [{ id, title, year, cover, genre }], throws on network / rate limit errors
 // perPage: the edit form's cover strip shows six; the add page's title
 // dropdown lists twelve
+// `popular`: the most read first, not the closest names (a typo's retry by
+// one of its words, lib/nearMatches.ts)
 export async function searchCovers(
   search: string,
   signal?: AbortSignal,
   perPage = 6,
+  popular = false,
 ): Promise<CoverHit[]> {
   const response = await fetch(ANILIST_URL, {
     method: "POST",
     headers: { "Content-Type": "application/json", Accept: "application/json" },
     body: JSON.stringify({
       query: SEARCH_QUERY,
-      variables: { search, perPage },
+      variables: {
+        search,
+        perPage,
+        ...(popular ? { sort: ["POPULARITY_DESC"] } : {}),
+      },
     }),
     signal,
   });
@@ -480,9 +487,9 @@ const searchManga = (
   searchOnce(withoutAccents(search), signal, novel);
 
 const PICK_QUERY = `
-  query ($search: String) {
+  query ($search: String, $sort: [MediaSort] = [SEARCH_MATCH]) {
     Page(perPage: 8) {
-      media(search: $search, type: MANGA, sort: SEARCH_MATCH) {
+      media(search: $search, type: MANGA, sort: $sort) {
         id
         idMal
         format
@@ -513,6 +520,8 @@ export type SeriesHit = {
 export async function searchSeries(
   search: string,
   signal?: AbortSignal,
+  // the most read first (a typo's retry, lib/nearMatches.ts)
+  popular = false,
 ): Promise<SeriesHit[]> {
   type Media = {
     id: number;
@@ -525,7 +534,10 @@ export async function searchSeries(
   };
   const data = await askAniList<{ Page?: { media?: Media[] } }>(
     PICK_QUERY,
-    { search: withoutAccents(search) },
+    {
+      search: withoutAccents(search),
+      ...(popular ? { sort: ["POPULARITY_DESC"] } : {}),
+    },
     signal,
   );
   return (data?.Page?.media ?? []).map((m) => {

@@ -460,25 +460,6 @@
     width: 100%;
   }
 
-  .icon-btn {
-    display: inline-grid;
-    place-items: center;
-    width: 44px;
-    height: 44px;
-    border-radius: var(--radius);
-    color: var(--ink-soft);
-    transition: color 0.15s ease;
-  }
-
-  .icon-btn:hover {
-    color: var(--accent);
-  }
-
-  .icon-btn svg {
-    width: 19px;
-    height: 19px;
-  }
-
   /* ---------- loading ---------- */
   .skeleton {
     background: var(--paper-2);

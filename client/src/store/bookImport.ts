@@ -521,7 +521,10 @@ let stopAdding = false;
 // library can be too much for the browser to keep (about 5MB): then without
 // them, so a reload still has the import, just not room for more files
 const save = (s: BookImportState) => {
-  if (!s.source || !s.found) return write(SAVED_KEY, null);
+  if (!s.source || !s.found) {
+    write(SAVED_KEY, null);
+    return;
+  }
   const saved: Saved = {
     source: s.source,
     fileNames: s.fileNames,

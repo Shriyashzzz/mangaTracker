@@ -50,7 +50,6 @@ mangaRouter.post(
   manga.tellImportMatches,
 );
 // these come before "/:id" so their names aren't read as an id
-mangaRouter.get("/prices", manga.shelfPrices);
 // the shelf's saved release answers, at once (before /:id, which would take it)
 mangaRouter.get("/releases/saved", manga.savedReleases);
 // every book behind the shelf's owned volumes, for the backup

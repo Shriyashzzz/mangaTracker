@@ -4,19 +4,13 @@
 // cover for them); it's read when the lookup ends, so it needn't be stable.
 import { useEffect, useRef, useState } from "react";
 import { searchCovers, type CoverHit } from "../../lib/anilist";
+import { withNearMatches } from "../../lib/nearMatches";
+import { knownNamesNear } from "../../lib/knownNames";
 
 export type SearchStatus = "idle" | "loading" | "done" | "error";
 
 export const MIN_QUERY = 3;
 const DEBOUNCE_MS = 450;
-
-// a title that found nothing, tried again by its longer words, longest
-// first: "vinland sga" finds Vinland Saga by "vinland". Two tries at most
-export const wordsToTry = (query: string) =>
-  [...new Set(query.toLowerCase().split(/[^\p{L}\p{N}]+/u))]
-    .filter((word) => word.length >= 4 && word !== query.toLowerCase())
-    .sort((a, b) => b.length - a.length)
-    .slice(0, 2);
 
 export function useCoverSearch(
   title: string,
@@ -49,24 +43,18 @@ export function useCoverSearch(
     const controller = new AbortController();
     const timer = setTimeout(async () => {
       try {
-        const hits = await searchCovers(query, controller.signal, perPage);
-        // a near miss (a typo): its words alone, never picked for them
-        let near: CoverHit[] = [];
-        for (const word of hits.length ? [] : wordsToTry(query)) {
-          // only titles that hold the word: AniList's loose matches for
-          // "nothing" aren't anything they meant
-          near = (await searchCovers(word, controller.signal, perPage)).filter(
-            (hit) => hit.title.toLowerCase().includes(word),
-          );
-          if (near.length) break;
-        }
-        setResults({
+        // a typo gets its words' matches, as a guess (lib/nearMatches.ts)
+        const { hits, guessed } = await withNearMatches(
           query,
-          hits: hits.length ? hits : near,
-          guessed: !hits.length && near.length > 0,
-        });
+          (text, retry) =>
+            searchCovers(text, controller.signal, perPage, retry),
+          (hit) => hit.title,
+          (text) => knownNamesNear(text, controller.signal),
+        );
+        setResults({ query, hits, guessed });
         setFailed(null);
-        found.current?.(hits, query);
+        // a guess is never picked for them
+        found.current?.(guessed ? [] : hits, query);
       } catch (e) {
         if ((e as Error).name !== "AbortError") setFailed(query);
       }

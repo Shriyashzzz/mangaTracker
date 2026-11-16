@@ -22,12 +22,7 @@ import { ownedListFields } from "./fields.js";
 import { bookFields } from "../../util/shelf/ownedBooks.js";
 import bookQueries, { type BookInput } from "../../models/bookQueries.js";
 import { ownedVolumes } from "../../util/shelf/ownedList.js";
-
-// every volume a series says it owns: the exact list, or 1 to "up to"
-const ownedSetOf = (volumesOwned: number | null, list: number[]) =>
-  list.length
-    ? list
-    : Array.from({ length: volumesOwned ?? 0 }, (_, i) => i + 1);
+import { ownedSet } from "../../collector/shelfMath.js";
 
 // a piece of a MyAnimeList export. The page sends one piece at a time so a long
 // list can show progress and stop safely: anything already here is skipped, so
@@ -130,11 +125,11 @@ export const importList = [
               volumesOwned: existing.volumesOwned,
               ownedList: existing.ownedList,
             };
-            const before = ownedSetOf(had.volumesOwned, had.ownedList);
-            const incoming = ownedSetOf(
-              entry.ownedVolumes || null,
-              entry.ownedList ?? [],
-            );
+            const before = [...ownedSet(had)];
+            const incoming = ownedSet({
+              volumesOwned: entry.ownedVolumes || null,
+              ownedList: entry.ownedList ?? [],
+            });
             const all = [...new Set([...before, ...incoming])];
             if (all.length > before.length)
               merges.set(existing.id, ownedVolumes(null, all));

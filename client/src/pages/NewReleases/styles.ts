@@ -19,8 +19,6 @@ export const newReleasesStyles = {
   sources: "flex flex-col border-b-[1.5px] border-line",
   source:
     "grid grid-cols-[minmax(0,11rem)_minmax(0,1fr)] gap-x-6 gap-y-1 border-t-[1.5px] border-line py-3 upto-520:grid-cols-[minmax(0,1fr)]",
-  sourceName:
-    "font-brand text-[1.2rem] leading-[1.15] font-normal tracking-[0.02em] uppercase",
 
   // ---------- the strip: the idea in three panels ----------
   // Read left to right, on a phone too (three narrow panels, like a strip
