@@ -3,7 +3,6 @@
 import { useEffect, useRef } from "react";
 import { Outlet, ScrollRestoration, useLocation } from "react-router";
 import "./index.css";
-import Backdrop from "./components/backdrop/Backdrop";
 import Header from "./layouts/header/Header";
 import Footer from "./layouts/Footer/Footer";
 import DeletedNote from "./components/deletedNote/DeletedNote";
@@ -59,7 +58,6 @@ export default function App() {
       >
         Skip to content
       </a>
-      <Backdrop />
       <Header />
       <main id="main" ref={main} tabIndex={-1} className="outline-none">
         {/* a new country means new prices: the page is drawn again and asks

@@ -609,7 +609,8 @@ function Library() {
           // opens this way on their other devices too
           savePrefs({ shelfSort: value as ShelfSort }, true);
         }}
-        layout={rowsChosen ? "rows" : "covers"}
+        // the Volumes tab is rows only: no choice of layout there
+        layout={tab === "volumes" ? undefined : rowsChosen ? "rows" : "covers"}
         onLayout={(view) => {
           setRowsChosen(view === "rows");
           savePrefs({ shelfView: view }, true);

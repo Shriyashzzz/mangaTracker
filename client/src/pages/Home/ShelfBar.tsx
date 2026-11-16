@@ -85,7 +85,8 @@ export default function ShelfBar({
   sortBy: string;
   onSort: (value: string) => void;
   // covers or compact rows, picked in the sort menu (also in Settings)
-  layout: "covers" | "rows";
+  // left out where there's no choice (the Volumes tab is rows only)
+  layout?: "covers" | "rows";
   onLayout: (layout: "covers" | "rows") => void;
   // turns on Select; left out where cards can't be selected (New, Volumes)
   onSelect?: () => void;
@@ -150,6 +151,9 @@ export default function ShelfBar({
         <input
           ref={input}
           type="search"
+          // the browser's own clear button, hidden: Close search beside it
+          // already clears, and two x's read as a mistake
+          className="[&::-webkit-search-cancel-button]:appearance-none"
           data-shelf-search
           aria-keyshortcuts="/"
           placeholder="Title or genre"

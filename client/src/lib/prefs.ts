@@ -9,7 +9,7 @@ import { apiFetch } from "./api";
 import { hasBottomBar } from "./bottomBar";
 import type { Background, Prefs, Theme } from "./types";
 
-// the page backgrounds, drawn in styles/backdrop.css
+// the page backgrounds, drawn in styles/backdrop.css on the markup in index.html
 export const BACKGROUNDS: { id: Background; label: string }[] = [
   { id: "sfx", label: "Comic lettering" },
   { id: "ink", label: "Ink brush" },

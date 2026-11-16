@@ -241,14 +241,6 @@ function SeriesRow({
 }) {
   const owned = ownedOf(manga);
   const panelId = `volumes-${manga.id}`;
-  const toFinish =
-    finish &&
-    totalText(
-      finish.cents,
-      finish.priced,
-      finish.missing.length,
-      finish.estimateCents,
-    );
   return (
     <li className={styles.item}>
       <button
@@ -282,7 +274,6 @@ function SeriesRow({
                 {finish.edition &&
                   ` ${finish.edition} book${finish.missing.length === 1 ? "" : "s"}`}{" "}
                 not on your shelf
-                {toFinish && ` · ${toFinish}`}
               </span>
             )}
           </span>

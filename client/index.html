@@ -85,18 +85,20 @@
         href="https://fonts.googleapis.com/css2?family=Bangers&family=Caveat:wght@500&family=Comic+Neue:wght@700&family=Fraunces:ital,opsz,wght@0,9..144,400..700;1,9..144,400..700&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap"
         rel="stylesheet"
     /></noscript>
-    <!-- only the two glyphs of the background sound effect -->
-    <link
-      href="https://fonts.googleapis.com/css2?family=Dela+Gothic+One&text=%E3%83%89%E3%83%B3&display=swap"
-      rel="stylesheet"
-      media="print"
-      onload="this.media = 'all'"
-    />
-    <noscript
-      ><link
-        href="https://fonts.googleapis.com/css2?family=Dela+Gothic+One&text=%E3%83%89%E3%83%B3&display=swap"
-        rel="stylesheet"
-    /></noscript>
+    <!-- the background sound effect's font, only its two glyphs (ド, ン:
+         Dela Gothic One, SIL Open Font License), inlined so ドン is drawn
+         in it from the first paint, without waiting for Google Fonts -->
+    <style>
+      @font-face {
+        font-family: "Dela Gothic One";
+        font-style: normal;
+        font-weight: 400;
+        font-display: block;
+        src: url(data:font/woff2;base64,d09GMgABAAAAAAOEABAAAAAABsQAAAMvAAEAAAAAAAAAAAAAAAAAAAAAAAAAAAAAGhQbHhwuBmAATBEICoMAgkYLDgABNgIkAxgEIAWEKAcgFyQYDhtlBcgEHvg86/0kxdgZyYti5c6KOoE8CTqJtWw5/QiH0OSUwar/oS6lNEdwpTRlQShwtVsUxiFUN46gCl3pTtQzGQHYI7oFGmjl4iZb/PFHlFXUGdCj1Nmt1g6QJXHEIU/37jpyUB/c+3Qe0g/3xpqO42X5gliABqRZUivS1QZxogMpIo6cGkyvrNeRxpm/uNhQ20ARatIXeYB1BigzhKpKYhUTlvylO5pHRU5hkEB6903z8CpkbW+6HgkJNWll0vmkL1tBIjpXYH1+tc/VnKsunZVmokBYrdiSVuvhUjg7akf6bR20CoPFcE2/SkJSZNnJSat1tdVq7TQuyqjhjn2HOP25ZbjTRbK/+1A4cPu5MZ1oumMy3zYamOvu3imZfdd89675/G3jrVuGW88Mljt3TKfuJt6+bezQqO2EP9bvzd436QPGLHJd/MdznbqenIVDQ5s8DJerPTILfLWbpMa/zlcnO2UVTgorv68RFqfyKEOjd1i1e+PhHNf6iLpG78gGlxp6V8f0W3nsa5I5szHFfMp50f4hgQY3ryNT3g5ubqn2aLzkGrp8dPzy2Om+nzqPsIwNOV3cLZpNmUEj8kZOiCwYGjQmrm3QyLwREyILhgaNAQABNglReebE9uqOTnnf9Hbyu7LIo+lOBm3s46gpuf+u/n+ms1XGQat7QtmAkDLj/zMMdVny7+q/Mzrbx4E5Xyu/w49zIL9joBSzhf/NO42m5Rd+dEA3RKtkPXp6vCFmxYbx7xTuCQ9/IN/BJBx5x8NfxGYwhQRGMQ2+dGJaYsggR349NDGEIQxgMDkkksjndmUQPRnAEE2cwGDqg1v2ZxAWEmmkgjrK6E4fOlNJf4bQRE+60kg/uhNPC95rYWhTdBAmugMTUH9appJMAkkkka72qoJeFaSpVUMeVS7FGKilgdwt1Mm0sGxiKf0ZwMgr0Foux62SQnBIhbZpa00Nn9aMQfSnF93pOshbzNAGXF7/wahEXTdZGDROG0oXEuhKf/o+wrdH0pneDGUU3elH4kG10d+1IA20HiAFc79wRnz9by+/k9/9//w/WFnwR6xCrpDfMUsewETOM48A)
+          format("woff2");
+        unicode-range: U+3099, U+30C8-30C9, U+30F3;
+      }
+    </style>
     <script>
       // apply the saved theme and background before first paint so there is no flash
       document.documentElement.dataset.bg = "sfx";
@@ -115,6 +117,16 @@
     </script>
   </head>
   <body>
+    <!-- the decoration behind every page, here rather than in React so it is
+         drawn with the first paint. Which piece shows is picked by
+         <html data-bg> (set above) in src/styles/backdrop.css -->
+    <div class="backdrop" aria-hidden="true">
+      <span class="backdrop-sfx">ドン</span>
+      <span class="backdrop-panel"></span>
+      <span class="backdrop-panel"></span>
+      <span class="backdrop-panel"></span>
+      <span class="backdrop-panel"></span>
+    </div>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
