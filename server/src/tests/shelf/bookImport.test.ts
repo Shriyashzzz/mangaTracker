@@ -1576,3 +1576,37 @@ test("a Date Purchased column goes on each book", () => {
   // the date column is never read as owning, or as volumes
   expect([one!.ownedList, one!.ownedVolumes]).toEqual([[3, 4], 4]);
 });
+
+test("JoJo Part 3's hardcovers are known by their binding: 10 books for the 16", () => {
+  const jojo = (n: number) =>
+    `"JoJo's Bizarre Adventure: Part 3--Stardust Crusaders, Vol. ${n}",JoJo's Bizarre Adventure: Part 3--Stardust Crusaders,${n}`;
+  const ten = Array.from({ length: 10 }, (_, i) => i + 1);
+  // a Format column that says so
+  const [hard] = seriesSheet(
+    "Title,Series,Volume,Format",
+    ten.map((n) => `${jojo(n)},Hardcover`),
+  );
+  expect(hard!.ownedVolumes).toBe(16);
+  // Goodreads' Binding column
+  const [goodreadsHard] = groupBooks(
+    readBooks(
+      parseCsv(
+        [
+          "Book Id,Title,Exclusive Shelf,Owned Copies,My Rating,Read Count,Bookshelves,Binding",
+          ...ten.map(
+            (n) =>
+              `${n},"JoJo's Bizarre Adventure: Part 3--Stardust Crusaders, Vol. ${n}",read,1,0,1,,Hardcover`,
+          ),
+        ].join("\n"),
+      ),
+      "goodreads",
+    ),
+  );
+  expect(goodreadsHard!.ownedVolumes).toBe(16);
+  // the paperbacks, numbered as the series is: as they are
+  const [soft] = seriesSheet(
+    "Title,Series,Volume,Format",
+    ten.map((n) => `${jojo(n)},Paperback`),
+  );
+  expect(soft!.ownedVolumes).toBe(10);
+});

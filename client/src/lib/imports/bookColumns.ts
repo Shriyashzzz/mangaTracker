@@ -44,6 +44,10 @@ export const isBookCatalogue = (headers: string[]) =>
   (headers.includes("title") &&
     (headers.includes("author_details") || headers.includes("bookshelf_id")));
 
+// how a book is bound, kept only when the column says something
+const bindingOf = (text: string) =>
+  text.trim() ? { binding: text.trim() } : {};
+
 export function goodreadsBook(h: string[], row: string[]): Book | null {
   const title = cell(row, header(h, /^Title$/));
   if (!title) return null;
@@ -65,6 +69,7 @@ export function goodreadsBook(h: string[], row: string[]): Book | null {
     rating: stars(cell(row, header(h, /^My Rating$/))),
     planned: shelf === "to-read" && !owned && !read,
     lightNovel: titleSaysLightNovel(title),
+    ...bindingOf(cell(row, header(h, /^Binding$/))),
     // the day they read it, or else the day they added it
     changedOn:
       importDate(cell(row, header(h, /^Date Read$/))) ??
@@ -341,6 +346,7 @@ export function csvBook(h: string[], row: string[]): Book | null {
     ...(paid != null ? { paidCents: paid } : {}),
     ...(bought ? { boughtOn: bought } : {}),
     ...(readAt < 0 ? { noReadStatus: true } : {}),
+    ...bindingOf(cell(row, header(h, /^(format|binding)$/i))),
     title,
     ...(fromColumn
       ? {

@@ -220,6 +220,15 @@ const EDITIONS: Edition[] = [
     books: 12,
     volumes: 37,
   },
+  // VIZ's hardcovers of JoJo Part 3, 2016 to 2019: 10 books for the arc the
+  // paperbacks told in 16, regrouped by chapter (Hardcover 3 holds Japan's
+  // vols 15 to 17). Titled "Vol. 1", so known by their binding
+  {
+    series: /^jojo s bizarre adventure part 3 stardust crusaders$/,
+    edition: /\bhardcover\b/i,
+    books: 10,
+    volumes: 16,
+  },
   // Kodansha's Eternal Edition: 10 books for the 12 volumes
   {
     series: /^sailor moon$|^pretty guardian sailor moon$/,
@@ -341,7 +350,12 @@ const withVolumesInside = (book: Book): Book => {
       ...(box.holds ? { holds: box.holds } : { omnibus: true as const }),
       guessed: undefined,
     };
-  const edition = editionVolumes(book.series, book.title, book.volume);
+  // the binding counts as the title's words: an edition the title doesn't name
+  const edition = editionVolumes(
+    book.series,
+    book.binding ? `${book.title} (${book.binding})` : book.title,
+    book.volume,
+  );
   if (edition && "holds" in edition)
     return {
       ...book,

@@ -1,6 +1,8 @@
 // A series' list of volumes: asked of the catalogs, merged into one list,
 // saved, and read back for the series page. Part of the price service
 // (service.ts lists the parts).
+import { runsPastItsEnd, withoutTheNovels } from "./novelsOnMangaPage.js";
+import { editionSoldToday } from "./reissue.js";
 import { titleVolume } from "./volumeNames.js";
 import { hasAnimeAnswer } from "./afterAnime/afterAnime.js";
 import { attachNoBookReviews, seriesReviews } from "../reviews/reviews.js";
@@ -586,6 +588,20 @@ async function mergeIntoOneList(
     .sort((a, b) => a.volume - b.volume);
 }
 
+// every ISBN on the saved lists of a series' light novel ("Accel World Light
+// Novel"): its own search, Google's, and its page's. None when it has none
+async function novelIsbnsOf(name: string) {
+  const key = volumesKey(novelName(name));
+  const lists = await Promise.all(
+    [key, `${key}:google`, finalKey(novelName(name))].map((k) =>
+      priceQueries.getSeriesVolumes(k).catch(() => null),
+    ),
+  );
+  return new Set(
+    lists.flatMap((list) => list?.volumes ?? []).map((v) => v.isbn13.trim()),
+  );
+}
+
 // a finished manga has as many volumes as AniList counts: a "vol. 35" past
 // Attack on Titan's 34 is an art book or a box set a catalog numbered on (it
 // was listed at $249.99). Only a stray one or two are dropped: a longer run
@@ -664,7 +680,32 @@ export async function getSeriesWithVolumes(
     ...underOtherNames,
     fromGoogle,
   ]);
-  const volumes = withoutStraysPastTheEnd(numbered, info, name);
+  // a series sold today as a reissue numbered its own way: that edition,
+  // not a mix of it and the older run (reissue.ts, a hand table). Every
+  // catalog's books, one-volume ones only, as the merge takes them
+  const candidates = [main, ...underOtherNames, fromGoogle]
+    .flatMap((list) => list.volumes)
+    .filter((v) => isNovelName(name) || !isOmnibus(v));
+  const ofTheEdition = editionSoldToday(
+    [name, info?.name],
+    numbered,
+    candidates,
+  );
+  // a manga page that picked up its light novel's volumes: those go
+  // (novelsOnMangaPage.ts). The novel's lists are read only for a finished
+  // manga running well past its count
+  const finishedWith =
+    info?.status === "FINISHED" && !isNovelName(name) && info.volumes
+      ? info.volumes
+      : null;
+  const novelIsbns = runsPastItsEnd(ofTheEdition, finishedWith)
+    ? await novelIsbnsOf(name)
+    : new Set<string>();
+  const volumes = withoutStraysPastTheEnd(
+    withoutTheNovels(ofTheEdition, finishedWith, novelIsbns),
+    info,
+    name,
+  );
 
   // start finding every cover now, in one batch, so they're ready by the
   // time the browser asks for them (failures are retried when it asks)

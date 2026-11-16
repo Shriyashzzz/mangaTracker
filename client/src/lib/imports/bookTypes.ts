@@ -55,6 +55,9 @@ export type Book = {
   boughtOn?: string;
   // the file has no read or status column: nothing is known about reading
   noReadStatus?: boolean;
+  // how the book is bound, when a column says ("Hardcover"): an edition the
+  // title doesn't name (JoJo Part 3's hardcovers are titled "Vol. 1")
+  binding?: string;
   // a backup's own record of the series' books, on its first row
   ownBooks?: NewBook[];
   // when the file says it was last changed (read, or added): ISO text
