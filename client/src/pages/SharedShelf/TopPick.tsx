@@ -7,7 +7,8 @@ import { saveShareTop } from "../../lib/account";
 import type { SharedManga } from "./shareParts";
 import { shareStyles as styles } from "./styles";
 
-// the same limit as the server's MOST_TOP
+// the same limit as the server's MOST_TOP (server
+// tests/shelf/rulesInStep.test.ts fails if they differ)
 const MOST_TOP = 5;
 
 export default function TopPick({

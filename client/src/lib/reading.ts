@@ -11,7 +11,7 @@ export const readTrackBy = (value: unknown): TrackBy =>
 // which counters a series shows. One setting for every series wins; left on
 // "series", each series follows its own switch. The same rule as the
 // server's (server/src/util/releases/releaseStatus.ts tracksOf): change both
-// together
+// together (server tests/shelf/rulesInStep.test.ts fails if they differ)
 export const tracksOf = (m: { byVolume?: boolean }, mode: TrackBy) => {
   if (mode === "both") return { chapters: true, volumes: true };
   if (mode === "chapters") return { chapters: true, volumes: false };

@@ -2,7 +2,12 @@
 // names them, what each side of the New tab is called, which series a view
 // shows and in what order, the counts on the tabs, and what a New card says.
 // Pure, so server/src/tests/shelf/shelfViews.test.ts can test it.
-import { ownedOf, ownedPhrase, ownsAny } from "../../lib/ownedVolumes";
+import {
+  ownedCount,
+  ownedOf,
+  ownedPhrase,
+  ownsAny,
+} from "../../lib/ownedVolumes";
 import { chaptersText, readsByChapterOnly } from "../../lib/chapterWords";
 import {
   countNew,
@@ -177,8 +182,9 @@ export function shelfCounts(list: Manga[], releases: Releases) {
     ongoing: list.length - finished - planned,
     finished,
     planned,
-    // series they own any volumes of
-    volumes: list.filter((m) => ownsAny(m)).length,
+    // every volume they own, as the Volumes tab's own heading counts them
+    // ("230 volumes across 82 series"), not the series
+    volumes: list.reduce((sum, m) => sum + ownedCount(m), 0),
     newVolumes: started.filter((m) => releases[m.id]?.hasNewVolume).length,
     newChapters: started.filter((m) => releases[m.id]?.hasNewChapter).length,
     newInJapan: started.filter((m) => releases[m.id]?.hasNewJapaneseVolume)

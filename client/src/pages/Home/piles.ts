@@ -17,6 +17,14 @@ export type PileView = Pile | "all";
 export const isPileView = (value: string | null): value is PileView =>
   value === "all" || PILES.includes(value as Pile);
 
+// under each cover of a pile: what its number counts. Volumes out that
+// aren't theirs ("16 to get"), chapters out past theirs ("16 to read")
+export const COUNT_WORD: Record<ReleaseKind, string> = {
+  volumes: "to get",
+  chapters: "to read",
+  japan: "ahead",
+};
+
 // fewer new series than this and the plain list is short enough as it is
 export const PILES_FROM = 12;
 
@@ -27,8 +35,13 @@ export const PILE_TEXT: Record<
   volumes: {
     one: { name: "Next for you", why: "The next volume is the newest" },
     few: { name: "A few behind", why: "You're 2 to 5 volumes behind" },
-    // gently: on day one every series just added lands here
-    way: { name: "Long reads ahead", why: "6 or more volumes still to read" },
+    // gently: on day one every series just added lands here. It counts the
+    // volumes out that aren't on their shelf, not ones left to read: a reader
+    // on ch. 152 owning vol. 6 isn't 16 volumes from reading
+    way: {
+      name: "Long reads ahead",
+      why: "6 or more volumes not on your shelf",
+    },
   },
   chapters: {
     one: { name: "One to read", why: "The next chapter is the newest" },

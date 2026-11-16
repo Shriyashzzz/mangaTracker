@@ -8,6 +8,7 @@ import { useEffect, useRef, useState } from "react";
 import { NavLink } from "react-router";
 import type { Manga } from "../../lib/types";
 import {
+  COUNT_WORD,
   PILE_SORTS,
   PILE_TEXT,
   PILES,
@@ -68,12 +69,15 @@ function Fan({
   onMore,
   linkFor,
   japanFirst,
+  countWord,
 }: {
   manga: Manga[];
   onMore: () => void;
   linkFor: (m: Manga) => CoverLink;
   // In Japan: the Japanese covers, since those are the volumes it's about
   japanFirst: boolean;
+  // what each cover's number counts (piles.ts COUNT_WORD)
+  countWord: string;
 }) {
   const { row, size } = useFanSize();
   const manga = all.slice(0, size);
@@ -87,7 +91,7 @@ function Fan({
             key={m.id}
             to={link.to}
             className={styles.fanCover}
-            aria-label={`${m.name}${link.stamp ? `: ${link.stamp}` : ""}${link.behind ? `, ${link.behind} to go` : ""}`}
+            aria-label={`${m.name}${link.stamp ? `: ${link.stamp}` : ""}${link.behind ? `, ${link.behind} ${countWord}` : ""}`}
             viewTransition
             onClick={
               link.onOpen
@@ -114,7 +118,7 @@ function Fan({
             )}
             {link.behind && (
               <span className={styles.behind} aria-hidden>
-                {link.behind} to go
+                {link.behind} {countWord}
               </span>
             )}
             {/* which series, on hover or keyboard focus (its name is in the
@@ -200,6 +204,7 @@ export function NewPiles({
               onMore={() => onOpen(p)}
               linkFor={linkFor}
               japanFirst={kind === "japan"}
+              countWord={COUNT_WORD[kind]}
             />
           </section>
         );

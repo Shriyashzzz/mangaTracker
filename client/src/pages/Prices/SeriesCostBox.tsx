@@ -3,7 +3,7 @@
 // copies on sale now come to, for however many volumes have one. Shown to everyone; someone
 // with it on their shelf gets "Finish the series" beside the volumes instead,
 // so this is for deciding. Never asks for a price (lib/finishCost.ts)
-import { NavLink } from "react-router";
+import { NavLink, useLocation } from "react-router";
 import { formatCents, wholeMoney } from "../../lib/prices";
 import type { SeriesCost } from "../../lib/finishCost";
 import { pricesStyles as styles } from "./styles";
@@ -106,8 +106,16 @@ function UsedLine({
   );
 }
 
-const TrackButton = () => (
-  <NavLink to="/signup" className="btn btn-primary" viewTransition>
-    Track what you own
-  </NavLink>
-);
+// signing up brings them back to this series, not to an empty shelf
+function TrackButton() {
+  const { pathname } = useLocation();
+  return (
+    <NavLink
+      to={`/signup?${new URLSearchParams({ next: pathname })}`}
+      className="btn btn-primary"
+      viewTransition
+    >
+      Track what you own
+    </NavLink>
+  );
+}

@@ -23,6 +23,7 @@ import {
 import { CoverFallback } from "../Prices/VolumeCard";
 import FinishList from "./FinishList";
 import { volumesStyles as styles } from "./volumesStyles";
+import { pricesStyles } from "../Prices/styles";
 import { readSession, writeSession } from "./shelfViews";
 
 const plural = (n: number, one: string, many = `${one}s`) =>
@@ -354,6 +355,8 @@ function SeriesVolumes({
 }) {
   // undefined while asking; null if the list couldn't be had
   const [list, setList] = useState<SeriesVolume[] | null | undefined>();
+  // only the volumes not on the shelf, as the series page's own filter
+  const [toGetOnly, setToGetOnly] = useState(false);
   // the series the price checker knows it as: a light novel's is its own
   const series = priceName(manga);
   useEffect(() => {
@@ -387,19 +390,37 @@ function SeriesVolumes({
   // the line above the tiles: still loading, what's missing, or all of it
   let summary = `You own all ${plural(owned.length, "volume")} we know of`;
   if (list === undefined) summary = "Finding its volumes…";
+  // with the "Not on your shelf (10)" button beside it, the count of those
+  // is the button's: said once, and the two fit side by side on a phone
+  else if (toGet && toGet < tiles.length)
+    summary = `You own ${owned.length} of ${tiles.length}`;
   else if (toGet)
     summary = `You own ${owned.length} of ${tiles.length} · ${toGet} not on your shelf`;
 
   return (
     <div id={id} className={styles.panel}>
       <div className={styles.panelHead}>
-        <p className={styles.panelSummary}>{summary}</p>
+        <div className={styles.panelSummaryRow}>
+          <p className={styles.panelSummary}>{summary}</p>
+          {/* a long run with a few holes: just the holes (the series page's
+              own "Not on your shelf" button) */}
+          {list !== undefined && toGet > 0 && toGet < tiles.length && (
+            <button
+              type="button"
+              className={pricesStyles.toGet}
+              aria-pressed={toGetOnly}
+              onClick={() => setToGetOnly(!toGetOnly)}
+            >
+              Not on your shelf ({toGet})
+            </button>
+          )}
+        </div>
         <NavLink
           to={`/update/${manga.id}`}
           className={styles.edit}
           viewTransition
         >
-          Change volumes
+          Edit volumes you own
         </NavLink>
       </div>
       {list === null && (
@@ -410,7 +431,7 @@ function SeriesVolumes({
       <ul className={styles.tiles}>
         {(list === undefined
           ? owned.map((volume) => ({ volume, yours: true }))
-          : tiles
+          : tiles.filter((t) => !toGetOnly || !t.yours)
         ).map((t: Tile) => (
           <li key={t.volume}>
             <VolumeTile
@@ -458,6 +479,10 @@ function VolumeTile({
           seriesName={seriesName}
           numbered
           small
+          // theirs, with no cover of its own: the series' cover as it is,
+          // not washed out (that reads as not owned); the corner stamp says
+          // which volume
+          plain={tile.yours}
         />
         <Cover url={tile.book?.coverUrl} sizes={TILE_COVER} />
         {!tile.yours && hasPicture && (
@@ -474,7 +499,7 @@ function VolumeTile({
             Yours
           </>
         ) : (
-          "Not Owned"
+          "Not on your shelf"
         )}
       </span>
     </>

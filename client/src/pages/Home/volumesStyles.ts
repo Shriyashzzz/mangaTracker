@@ -42,6 +42,8 @@ export const volumesStyles = {
   panelHead:
     "mb-3 flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1",
   panelSummary: "text-[0.9rem] font-semibold",
+  // the summary and its "Not on your shelf" button, side by side
+  panelSummaryRow: "flex flex-wrap items-center gap-x-3 gap-y-1.5",
   edit: "tap text-[0.84rem] font-medium text-ink-soft underline decoration-line-soft underline-offset-3 hover:text-ink hover:decoration-current",
   note: "mb-3 text-[0.84rem] text-ink-soft",
   tiles:

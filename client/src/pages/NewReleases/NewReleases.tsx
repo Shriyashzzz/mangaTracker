@@ -185,8 +185,8 @@ export default function NewReleasesPage() {
           A lot of news? It's sorted into piles
         </h2>
         <p>
-          With {PILES_FROM} or more series on New, they're grouped by how far
-          behind you are. "See all" opens a pile.
+          With {PILES_FROM} or more series on New, or any far behind, they're
+          grouped by how far behind you are. "See all" opens a pile.
         </p>
         <dl className={styles.questions}>
           {PILES.map((pile) => (
