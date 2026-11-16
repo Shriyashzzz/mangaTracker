@@ -115,13 +115,11 @@ const preorderLink = (v: Volume) => ({
 });
 
 function volumeNews(asked: Asked): Release | null {
-  const { manga, buyOptions } = asked;
+  const { manga, buyOptions, releaseStatus } = asked;
   if (asked.collectsEdition) return null;
   const whole = buyOptions.volumes.filter((v) => Number.isInteger(v.volume));
   const out = onSale(whole).sort(byNumber);
   const coming = whole.filter((v) => !out.includes(v)).sort(byNumber);
-  const newest = out.at(-1);
-  if (!newest) return null;
   // where they are: the furthest they own, or read when they keep their
   // place by volume without owning the books
   const place = Math.max(
@@ -131,6 +129,29 @@ function volumeNews(asked: Asked): Release | null {
   // a gap before that is being behind, not news
   if (!place || buyOptions.gaps.length > 0) return null;
   const seen = manga.seenVolume ?? 0;
+
+  // the catalog's list can be short (still loading, or a search that came
+  // back thin) while the server knows a newer volume is out: its news, from
+  // the server's own book, and never a preorder for what's already out
+  const serverLatest = releaseStatus?.latestVolume ?? 0;
+  if (serverLatest > (out.at(-1)?.volume ?? 0)) {
+    const book = releaseStatus?.nextVolumeBook;
+    if (
+      place !== serverLatest - 1 ||
+      releaseStatus?.nextVolume !== serverLatest ||
+      !book ||
+      seen >= serverLatest
+    )
+      return null;
+    return {
+      headline: `Vol. ${serverLatest} is out!`,
+      link: { to: volumePath(book.isbn13, book.title), label: "See prices" },
+      seen: { kind: "volume", number: serverLatest, upcoming: false },
+      sellsIsbn: book.isbn13,
+    };
+  }
+  const newest = out.at(-1);
+  if (!newest) return null;
 
   if (place === newest.volume - 1) {
     if (seen >= newest.volume) return null;

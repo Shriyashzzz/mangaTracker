@@ -11,7 +11,8 @@ import { offerTour } from "../../lib/tourOffer";
 import { usePrivatePage } from "../../lib/seo";
 import { useAuth } from "../../store/auth";
 
-// the server's rule for a new account's password (authController.ts)
+// the server's rule for a new account's password (authController.ts); a
+// server test fails if the two differ
 const NEW_PASSWORD_MIN = 8;
 
 export default function SignUp() {
@@ -135,6 +136,11 @@ export default function SignUp() {
                 name="password"
                 autoComplete="new-password"
                 required
+                // long enough now: the red hint goes as they type
+                onChange={(e) => {
+                  if (e.target.value.length >= NEW_PASSWORD_MIN)
+                    setPasswordShort(false);
+                }}
                 aria-invalid={passwordShort || hasError(/password|secret/i)}
                 aria-describedby={describedBy("password-hint")}
               />

@@ -7,10 +7,11 @@ import type { ReleaseKind } from "./shelfViews";
 
 type Found = ReleaseStatus | null | undefined;
 
-// a card on New opens its details at the part about this kind of release
+// a card on New opens its details at the part about this kind of release:
+// the Japanese edition for a volume out in Japan. Other news is on the page
+// as it opens
 export function detailsSearchFor(kind: ReleaseKind) {
   if (kind === "japan") return "?edition=japan";
-  if (kind === "chapters") return "?new=chapter";
   return undefined;
 }
 

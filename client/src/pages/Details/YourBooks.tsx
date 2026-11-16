@@ -76,6 +76,9 @@ export default function YourBooks({
   booksChanged,
 }: Props) {
   const [books, setBooks] = useState<OwnedBook[]>([]);
+  // the series whose books have come: until then "Add a book you own"
+  // waits, or it would offer books already recorded
+  const [loadedFor, setLoadedFor] = useState<number | null>(null);
   // a failure, said under the list
   const [note, setNote] = useState("");
   // the "paid the same" box
@@ -91,7 +94,10 @@ export default function YourBooks({
   useEffect(() => {
     const controller = new AbortController();
     getBooks(mangaId, controller.signal)
-      .then(setBooks)
+      .then((list) => {
+        setBooks(list);
+        setLoadedFor(mangaId);
+      })
       .catch(() => {});
     return () => controller.abort();
   }, [mangaId, ownedKey, booksChanged]);
@@ -280,7 +286,7 @@ export default function YourBooks({
       )}
       {/* a deluxe or omnibus book they own, added by name: ticking spines
           only ever adds single volumes */}
-      {toAdd.length > 0 && picked && (
+      {loadedFor === mangaId && toAdd.length > 0 && picked && (
         <div className={styles.booksAdd}>
           <label htmlFor="books-add" className={styles.booksAddLabel}>
             Add a book you own

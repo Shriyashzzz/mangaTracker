@@ -66,8 +66,10 @@ const login = [
 ];
 
 // a new account's password: at least 8 characters. Signing in keeps the
-// old 5, so accounts made before still get in
-const NEW_PASSWORD_MIN = 8;
+// old 5, so accounts made before still get in. The sign-up form says it
+// too (client SignUp.tsx); tests/site/passwordRule.test.ts fails if the
+// two differ
+export const NEW_PASSWORD_MIN = 8;
 const newPassword = body("password")
   .isLength({ min: NEW_PASSWORD_MIN })
   .withMessage(`Passwords need at least ${NEW_PASSWORD_MIN} characters.`);

@@ -215,7 +215,7 @@ export default function MangaCard({
             // on the New tab the genre makes way for the news on a small card
             className={`min-h-[1.5em] truncate font-mono text-[0.78rem] text-muted${newsGenreHidden}`}
           >
-            {news ? genre : coverLine(placeText)}
+            {news ? genre : coverLine(currentManga, placeText)}
           </p>
         )}
         {news && (

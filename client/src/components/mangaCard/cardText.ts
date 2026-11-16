@@ -31,10 +31,13 @@ export function rowPlaceLine(
 }
 
 // a cover card's one line: their place ("ch. 38", or "vol. 5" for one read
-// by the volume), only when they've kept one. Nothing else: the name and
-// the stars say the rest, and the line keeps its room so cards line up
-export function coverLine(placeText: string | null) {
-  return placeText ?? "";
+// by the volume), or "to read" for one they haven't started, after "light
+// novel" for one. The name and the stars say the rest, and the line keeps
+// its room so cards line up
+export function coverLine(manga: Manga, placeText: string | null) {
+  const place = manga.planned ? "to read" : placeText;
+  const parts = [manga.lightNovel && "light novel", place];
+  return parts.filter(Boolean).join(" · ");
 }
 
 // a row's second line: what it is
