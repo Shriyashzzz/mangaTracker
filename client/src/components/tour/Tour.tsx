@@ -95,6 +95,14 @@ const isOnStepPage = (step: TourStep, pathname: string, search: string) => {
 const pageOf = (step: TourStep) =>
   step.tab ? `/shelf?tab=${step.tab}` : (step.go ?? step.path);
 
+// where the page ends: the bottom of its footer, in page coordinates
+const pageBottom = () => {
+  const footer = document.querySelector("footer");
+  return footer
+    ? Math.ceil(footer.getBoundingClientRect().bottom + window.scrollY)
+    : document.documentElement.scrollHeight;
+};
+
 // the first one on screen: the shelf has one add button for phones, one for laptops
 const findTarget = (name: string) =>
   [...document.querySelectorAll<HTMLElement>(`[data-tour="${name}"]`)].find(
@@ -206,6 +214,10 @@ function Guide({ onClose }: { onClose: () => void }) {
   // counts each time he's drawn afresh (a new page): his grow-in plays then,
   // not on every step
   const [visit, setVisit] = useState(0);
+  // his first appearance on this page load: only then does he wait for the
+  // covers in sight (later steps would sit on old words while a thumbnail
+  // loads)
+  const firstLook = useRef(true);
   useEffect(() => () => clearTimeout(glideEnds.current), []);
   const bubble = useRef<HTMLDivElement>(null);
   const dock = useRef<HTMLButtonElement>(null);
@@ -327,6 +339,7 @@ function Guide({ onClose }: { onClose: () => void }) {
         // them a moment, so the ring and his words don't land on empty boxes
         // and have the pictures pop in under them
         if (
+          firstLook.current &&
           Date.now() - startedAt < IMAGES_WAIT_MS &&
           [...el.querySelectorAll("img")].some((img) => {
             if (img.complete) return false;
@@ -337,6 +350,7 @@ function Guide({ onClose }: { onClose: () => void }) {
           frame = requestAnimationFrame(follow);
           return;
         }
+        firstLook.current = false;
         const r = el.getBoundingClientRect();
         // the phones' bottom bar covers the ring the way it covers the page, so a
         // tall section scrolls under it rather than its ring stopping short
@@ -451,7 +465,15 @@ function Guide({ onClose }: { onClose: () => void }) {
 
   useEffect(() => {
     window.addEventListener("resize", onScreenChange);
-    return () => window.removeEventListener("resize", onScreenChange);
+    // the page growing or shrinking under him (a filter, a list loading):
+    // his layers follow its new size
+    const content = new ResizeObserver(() => onScreenChange());
+    const main = document.querySelector("main");
+    if (main) content.observe(main);
+    return () => {
+      window.removeEventListener("resize", onScreenChange);
+      content.disconnect();
+    };
   }, []);
 
   useEffect(() => {
@@ -664,10 +686,11 @@ function Guide({ onClose }: { onClose: () => void }) {
         }
       : box && onLayer(box);
   const pageWidth = document.documentElement.clientWidth;
-  const pageHeight = Math.max(
-    document.documentElement.scrollHeight,
-    innerHeight,
-  );
+  // the page's own height, where its footer ends: never the document's,
+  // which counts these layers too and so could never shrink back when the
+  // page does (a filter showing 2 covers of 45 left the footer mid-screen
+  // over empty space)
+  const pageHeight = Math.max(pageBottom(), innerHeight);
 
   const hole = showHole && (
     <>

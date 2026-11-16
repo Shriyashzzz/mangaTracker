@@ -1580,15 +1580,23 @@ body:has([data-tour] [aria-haspopup][aria-expanded="true"])
 }
 .tour-count {
   display: flex;
-  align-items: baseline;
+  align-items: center;
   justify-content: space-between;
   gap: 0.75rem;
   margin: 0;
   font: 500 0.7rem var(--font-mono);
   color: var(--muted);
 }
+/* where they are in the tour, said like a chapter title in the app's comic
+   lettering: the first thing read on each bubble */
 .tour-part {
-  color: var(--ink-soft);
+  font-family: var(--font-brand);
+  font-size: 1.15rem;
+  font-weight: 400;
+  line-height: 1;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--accent);
 }
 .tour-step {
   flex: none;

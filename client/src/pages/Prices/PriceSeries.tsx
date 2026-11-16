@@ -9,7 +9,7 @@
 //   AfterAnime/AfterAnimeBar    the way to where the anime leaves off
 import Cover from "../../components/cover/Cover";
 import { SeriesScoreBadge } from "./SeriesScore";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { NavLink, useParams, useSearchParams } from "react-router";
 import DealsStrip from "../../components/deals/DealsStrip";
 import RangePager from "../../components/rangePager/RangePager";
@@ -87,7 +87,18 @@ export default function PriceSeries() {
     ? filter.on
     : params.get("toget") === "1";
   const toGetPageIndex = filterIsForThisSeries ? filter.page : 0;
-  const setToGetOnly = (on: boolean) => setFilter({ name, on, page: 0 });
+  // the list's height when "Not on your shelf" was turned on: held while
+  // it's on, so 2 covers of 45 don't pull the footer up and the page jump
+  const grid = useRef<HTMLUListElement>(null);
+  const [heldHeight, setHeldHeight] = useState<{
+    name: string;
+    height: number;
+  } | null>(null);
+  const setToGetOnly = (on: boolean) => {
+    const height = grid.current?.offsetHeight;
+    setHeldHeight(on && height ? { name, height } : null);
+    setFilter({ name, on, page: 0 });
+  };
   const setToGetPageIndex = (index: number) =>
     setFilter({ name, on: toGetOnly, page: index });
   // the series' other editions, once OtherEditions has them
@@ -325,7 +336,15 @@ export default function PriceSeries() {
           </p>
         )}
         {volumes.length ? (
-          <ul className={styles.grid}>
+          <ul
+            ref={grid}
+            className={styles.grid}
+            style={
+              toGetShown && heldHeight?.name === name
+                ? { minHeight: heldHeight.height }
+                : undefined
+            }
+          >
             {cardsOf(shown).map((card) => (
               <SeriesVolumeCard
                 key={card[0]!.volume}

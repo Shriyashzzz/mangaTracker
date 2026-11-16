@@ -85,6 +85,11 @@ const READER: { name: string; lines: Line[] }[] = [
         onTop: true,
         say: "Hi, I'm Kenji! This is your shelf, a practice one, so wander off and explore any of it.",
       },
+    ],
+  },
+  {
+    name: "Adding a manga",
+    lines: [
       {
         path: "/add",
         go: FROM_THE_ANIME,
@@ -228,7 +233,9 @@ const COLLECTOR: { name: string; lines: Line[] }[] = [
         exact: true,
         target: "book-paid",
         unfold: "your-books",
-        say: "Let's open one: Berserk, collected in Deluxe. Every book you own is here. Type what you paid and the day you bought it, and \"You've spent\" adds it all up.",
+        // always above the books, never over the ones below
+        onTop: true,
+        say: "Let's open one: Berserk, collected in Deluxe. Every book you own is here, with what you paid. We add it all up for you.",
       },
       {
         path: DELUXE,
@@ -280,7 +287,9 @@ const COLLECTOR: { name: string; lines: Line[] }[] = [
         path: GAPS_EDIT,
         exact: true,
         target: "volume-picker",
-        say: "This is Edit details. If you've bought Vol. 31 and 32, tap their spines to add them. If you own a volume that isn't listed yet, tap \"Show vols.\" below the spines to see more.",
+        // above the spines, never over them
+        onTop: true,
+        say: 'This is Edit details. Tap Vol. 31 and 32 once you have them. A volume not listed? "Show vols." below adds more.',
       },
     ],
   },
