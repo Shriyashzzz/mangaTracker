@@ -193,3 +193,41 @@ test("the server's guess at the edition matches the page's", () => {
     );
   expect(guessedLine(lines, [deluxe(1), deluxe(2)], 6)?.key).toBe("deluxe");
 });
+
+// ---------- a series sold only in an edition ----------
+
+import { onlyLineInEnglish } from "../../../../client/src/lib/editions.js";
+
+test("volumes listed under shared books default to that line", () => {
+  const book = (number: number, isbn13: string) => ({
+    number,
+    volumes: [number * 2 - 1, number * 2],
+    isbn13,
+    title: null,
+    listed: true,
+  });
+  const twoInOne = {
+    key: "2in1",
+    kind: "omnibus" as const,
+    label: "2-in-1",
+    books: [book(1, "9781612624204"), book(2, "9781612624211")],
+  };
+  // Vinland Saga: vols 1 and 2 are both book 1
+  expect(
+    onlyLineInEnglish(
+      [twoInOne],
+      ["9781612624204", "9781612624204", "9781612624211", "9781612624211"],
+    ),
+  ).toBe("2in1");
+  // a volume each: singles exist, nothing is picked
+  expect(
+    onlyLineInEnglish([twoInOne], ["9781974700001", "9781974700002"]),
+  ).toBeNull();
+  // shared ISBNs, but not this line's books
+  expect(
+    onlyLineInEnglish(
+      [twoInOne],
+      ["9781974700001", "9781974700001", "9781974700002", "9781974700002"],
+    ),
+  ).toBeNull();
+});

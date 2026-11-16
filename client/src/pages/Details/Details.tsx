@@ -102,12 +102,6 @@ export default function Details() {
   const loadedId = mangaData?.id;
   // the series' omnibus and deluxe lines, and the one they collect. A light
   // novel's prices are the novel's, never the manga of the same name
-  const editions = useEditions(
-    mangaData && !mangaData.lightNovel ? priceName(mangaData) : null,
-    mangaData?.id ?? null,
-    mangaData?.edition,
-    mangaData ? ownedOf(mangaData) : [],
-  );
   const buyOptions = useBuyOptions(
     mangaData ? priceName(mangaData) : null,
     {
@@ -115,6 +109,13 @@ export default function Details() {
       ownedList: mangaData?.ownedList,
     },
     releaseStatus?.nextChapterVolume ?? null,
+  );
+  const editions = useEditions(
+    mangaData && !mangaData.lightNovel ? priceName(mangaData) : null,
+    mangaData?.id ?? null,
+    mangaData?.edition,
+    mangaData ? ownedOf(mangaData) : [],
+    buyOptions.volumes.map((v) => v.isbn13),
   );
 
   // ---------- loading ----------

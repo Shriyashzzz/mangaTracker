@@ -53,6 +53,9 @@ type Line = {
   // a big page he'd cover: he sits above it instead, scrolling with it
   // ("phone": above it on phones only, where the screen is short)
   onTop?: boolean | "phone";
+  // the page isn't scrolled for this step: the first look at the shelf
+  // keeps its header and tabs in sight, and Kenji sits where there's room
+  stayPut?: boolean;
   // on a wide enough screen, beside the section's right edge instead
   // ("left": beside its left edge, for a section at the page's right)
   besideIfRoom?: boolean | "left";
@@ -84,7 +87,7 @@ const READER: { name: string; lines: Line[] }[] = [
         tab: "all",
         target: "shelf",
         focus: true,
-        onTop: true,
+        stayPut: true,
         say: "Hi, I'm Kenji! This is your shelf, a practice one, so wander off and explore any of it.",
       },
     ],

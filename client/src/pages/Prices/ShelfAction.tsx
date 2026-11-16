@@ -10,11 +10,15 @@ import type { ShelfMatch } from "../../lib/types";
 import { useAuth } from "../../store/auth";
 import { tracksOf } from "../../lib/reading";
 import { trackByNow } from "../../lib/prefs";
+import ToReadButton from "../../components/toRead/ToReadButton";
+import { useShelf } from "../../store/shelf";
 
 const UNDO_MS = 6000;
 
 // The volume page's shelf button, which knows what's already there:
-//   not on the shelf      -> add the series, with this volume as owned
+//   not on the shelf      -> "+ Add to my to-read" (the series page's own
+//                            button: looking at a price isn't owning it),
+//                            and "I own Vol. 2", the add form with it owned
 //   on it, volume not owned -> "I own Vol. 15", one tap, with undo
 //   on it, volume owned     -> shows that, links to the manga
 //   signed out            -> sign in, then come back here
@@ -43,6 +47,8 @@ export default function ShelfAction({ series, title, volume }: Props) {
   const [failed, setFailed] = useState(false);
   const undoTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
 
+  // the shelf as the to-read button leaves it: asked again once it's added
+  const shelfSize = useShelf((s) => s.manga?.length ?? 0);
   useEffect(() => {
     if (!isSignedIn) return;
     const controller = new AbortController();
@@ -54,7 +60,7 @@ export default function ShelfAction({ series, title, volume }: Props) {
           setMatch({ series, manga: null });
       });
     return () => controller.abort();
-  }, [isSignedIn, series]);
+  }, [isSignedIn, series, shelfSize]);
 
   useEffect(() => () => clearTimeout(undoTimer.current), []);
 
@@ -94,9 +100,18 @@ export default function ShelfAction({ series, title, volume }: Props) {
     // they own this volume, which says nothing about the ones before it
     if (volume != null) params.set("ownedVolume", String(volume));
     return (
-      <NavLink to={`/add?${params}`} className="btn btn-primary" viewTransition>
-        Add series to shelf
-      </NavLink>
+      <div className={styles.shelfChoices}>
+        <ToReadButton name={title} cover={null} />
+        {volume != null && (
+          <NavLink
+            to={`/add?${params}`}
+            className="btn btn-secondary btn-sm"
+            viewTransition
+          >
+            I own Vol. {volume}
+          </NavLink>
+        )}
+      </div>
     );
   }
 

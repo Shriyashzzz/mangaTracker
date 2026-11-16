@@ -6,6 +6,7 @@ import { getBooks } from "../../lib/booksApi";
 import {
   editionPlan,
   guessEdition,
+  onlyLineInEnglish,
   type EditionLine,
 } from "../../lib/editions";
 import type { OwnedBook } from "../../lib/books";
@@ -17,6 +18,9 @@ export function useEditions(
   // what they picked: a line's key, "singles", or null for not chosen
   chosen: string | null | undefined,
   owned: number[],
+  // the ISBN of each volume the catalog lists: shared ones mean there are
+  // no singles in English (onlyLineInEnglish)
+  listedIsbns: (string | null)[] = [],
 ) {
   const [state, setState] = useState<{
     name: string | null;
@@ -42,7 +46,10 @@ export function useEditions(
 
   const lines = state.name === name ? state.lines : [];
   const guessed =
-    chosen == null ? guessEdition(lines, state.books, owned) : null;
+    chosen == null
+      ? (guessEdition(lines, state.books, owned) ??
+        onlyLineInEnglish(lines, listedIsbns))
+      : null;
   const key = chosen ?? guessed;
   const line = lines.find((l) => l.key === key) ?? null;
   return {

@@ -99,7 +99,7 @@ test("a few and way behind say how much there is to catch up on", () => {
     many.map((x) => [x.id, found({ outVolumes: vols(1, 2, 3, 4, 5, 6, 7) })]),
   );
   expect(catchUpText("way", many, lots, "volumes")).toBe(
-    " · 2,100 to catch up",
+    " · 2,100 in all",
   );
 });
 

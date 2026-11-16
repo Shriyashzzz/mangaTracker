@@ -10,6 +10,14 @@ export type SearchStatus = "idle" | "loading" | "done" | "error";
 export const MIN_QUERY = 3;
 const DEBOUNCE_MS = 450;
 
+// a title that found nothing, tried again by its longer words, longest
+// first: "vinland sga" finds Vinland Saga by "vinland". Two tries at most
+export const wordsToTry = (query: string) =>
+  [...new Set(query.toLowerCase().split(/[^\p{L}\p{N}]+/u))]
+    .filter((word) => word.length >= 4 && word !== query.toLowerCase())
+    .sort((a, b) => b.length - a.length)
+    .slice(0, 2);
+
 export function useCoverSearch(
   title: string,
   {
@@ -23,7 +31,9 @@ export function useCoverSearch(
   const [results, setResults] = useState<{
     query: string;
     hits: CoverHit[];
-  }>({ query: "", hits: [] });
+    // found by one of its words, not the whole title: "Did you mean"
+    guessed: boolean;
+  }>({ query: "", hits: [], guessed: false });
   // the title AniList couldn't be reached for
   const [failed, setFailed] = useState<string | null>(null);
   const found = useRef(onFound);
@@ -40,7 +50,21 @@ export function useCoverSearch(
     const timer = setTimeout(async () => {
       try {
         const hits = await searchCovers(query, controller.signal, perPage);
-        setResults({ query, hits });
+        // a near miss (a typo): its words alone, never picked for them
+        let near: CoverHit[] = [];
+        for (const word of hits.length ? [] : wordsToTry(query)) {
+          // only titles that hold the word: AniList's loose matches for
+          // "nothing" aren't anything they meant
+          near = (await searchCovers(word, controller.signal, perPage)).filter(
+            (hit) => hit.title.toLowerCase().includes(word),
+          );
+          if (near.length) break;
+        }
+        setResults({
+          query,
+          hits: hits.length ? hits : near,
+          guessed: !hits.length && near.length > 0,
+        });
         setFailed(null);
         found.current?.(hits, query);
       } catch (e) {
@@ -66,6 +90,7 @@ export function useCoverSearch(
     // the last answer's hits, which may be for an older title (the cover
     // strip dims them while it looks); a cleared title has none
     hits: tooShort ? [] : results.hits,
+    guessed: !tooShort && results.guessed,
     query: results.query,
   };
 }

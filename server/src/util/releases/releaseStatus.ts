@@ -19,7 +19,7 @@ const MAX_WITHIN = { volumes: 10, chapters: 50 } as const;
 // how far behind they are (client Home/piles.ts). Chapters: only once
 // they're within a few of the latest, since a chapter backlog is long and
 // nobody buys one. (Volumes were "within 3" for a day in November 2026; it
-// left the "Way behind" pile empty for everyone who hadn't chosen.)
+// left the "Way behind" pile (now "Long reads ahead") empty for everyone who hadn't chosen.)
 const DEFAULT_RELEASE_SETTINGS: ReleaseSettings = {
   // (within 1: where the slider starts if they switch to "only series I'm
   // nearly caught up on", which is new releases only)

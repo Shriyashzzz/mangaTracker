@@ -87,7 +87,7 @@ function Fan({
             key={m.id}
             to={link.to}
             className={styles.fanCover}
-            aria-label={`${m.name}${link.stamp ? `: ${link.stamp}` : ""}${link.behind ? `, ${link.behind} behind` : ""}`}
+            aria-label={`${m.name}${link.stamp ? `: ${link.stamp}` : ""}${link.behind ? `, ${link.behind} to go` : ""}`}
             viewTransition
             onClick={
               link.onOpen
@@ -114,7 +114,7 @@ function Fan({
             )}
             {link.behind && (
               <span className={styles.behind} aria-hidden>
-                {link.behind} behind
+                {link.behind} to go
               </span>
             )}
             {/* which series, on hover or keyboard focus (its name is in the

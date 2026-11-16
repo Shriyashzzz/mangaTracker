@@ -353,7 +353,7 @@ function Guide({ onClose }: { onClose: () => void }) {
             0,
             el.getBoundingClientRect().top - SCREEN_MARGIN * 4,
           );
-        } else if (!scrolled && !step.onTop) {
+        } else if (!scrolled && !step.onTop && !step.stayPut) {
           scrolled = true;
           // a big section starts at the top, leaving Kenji room below it
           const tall = el.offsetHeight > innerHeight * 0.45;
@@ -586,7 +586,10 @@ function Guide({ onClose }: { onClose: () => void }) {
   const below =
     !step.onTop &&
     roomBelow >= bubbleHeight &&
-    (roomAbove < bubbleHeight || holeMiddle < innerHeight / 2);
+    (roomAbove < bubbleHeight ||
+      holeMiddle < innerHeight / 2 ||
+      // a step that keeps the page still keeps what's above in sight too
+      Boolean(step.stayPut));
   // too big to sit beside: at the bottom, staying put however far they scroll. The
   // big pages marked onTop have him above the section instead, moving with it
   // room to the right of the section, for the steps that would rather sit there

@@ -38,6 +38,11 @@ export const pricesStyles = {
   halfActions:
     "half-actions flex flex-nowrap items-center gap-2 pt-2 upto-720:gap-2 upto-720:pt-0.5",
 
+  // what the shelf does, at the card's foot: only side by side (stacked,
+  // the card has no empty space to fill)
+  trackGets:
+    "mt-auto grid gap-1.5 border-t border-dashed border-line-soft pt-4 text-[0.95rem] text-ink-soft upto-860:hidden [&>li]:flex [&>li]:items-center [&>li]:gap-2",
+  trackGetsTick: "size-4 flex-none text-accent",
   halfButton:
     "half-button min-w-0 px-[0.75rem] upto-720:h-11 upto-720:px-[0.7rem] upto-720:text-[0.875rem]",
   searchHead:
@@ -337,6 +342,8 @@ export const pricesStyles = {
   undoBtn: "font-semibold text-accent underline underline-offset-3",
   // holds the button's place while we check the shelf
   shelfPending: "pointer-events-none opacity-55",
+  // a series not on the shelf yet: to-read, or "I own Vol. 2", side by side
+  shelfChoices: "flex flex-wrap items-center gap-3",
   siblings: "mt-10 border-t-[1.5px] border-dashed border-line-soft pt-6",
 
   // ---------- shared by series and volume pages ----------

@@ -27,12 +27,13 @@ export const PILE_TEXT: Record<
   volumes: {
     one: { name: "Next for you", why: "The next volume is the newest" },
     few: { name: "A few behind", why: "You're 2 to 5 volumes behind" },
-    way: { name: "Way behind", why: "You're 6 or more volumes behind" },
+    // gently: on day one every series just added lands here
+    way: { name: "Long reads ahead", why: "6 or more volumes still to read" },
   },
   chapters: {
     one: { name: "One to read", why: "The next chapter is the newest" },
     few: { name: "A few to read", why: "You're 2 to 10 chapters behind" },
-    way: { name: "Way behind", why: "You're 11 or more chapters behind" },
+    way: { name: "Long reads ahead", why: "11 or more chapters still to read" },
   },
   japan: {
     one: { name: "One ahead", why: "Japan has one more" },
@@ -66,7 +67,8 @@ export function pileOf(
 }
 
 // what a pile's line says after what it is: how much there is to catch up
-// on, for the piles where that's more than one each ("· 112 to catch up")
+// on, for the piles where that's more than one each ("· 12 to catch up",
+// and for Long reads ahead, gently, "· 112 in all")
 export function catchUpText(
   pile: Pile,
   list: Manga[],
@@ -75,7 +77,8 @@ export function catchUpText(
 ) {
   if (pile !== "few" && pile !== "way") return "";
   const total = list.reduce((n, m) => n + behindOf(releases[m.id], kind), 0);
-  return ` · ${total.toLocaleString("en-US")} to catch up`;
+  const words = pile === "way" ? "in all" : "to catch up";
+  return ` · ${total.toLocaleString("en-US")} ${words}`;
 }
 
 // how a pile's own page can be ordered: as the shelf lists it, most or least

@@ -73,9 +73,9 @@ type Props = {
 
 export default function SettingsMenu({ isSignedIn, onLogOut }: Props) {
   const avatar = useAccount((s) => s.account?.avatar);
-  const name = useAccount(
-    (s) => s.account?.displayName || s.account?.defaultName,
-  );
+  // the name they chose, else their username: the reader name made up for
+  // them ("One More Chapter") is only what a shared list shows
+  const name = useAccount((s) => s.account?.displayName || s.account?.username);
   const loadAccount = useAccount((s) => s.load);
   const clearAccount = useAccount((s) => s.clear);
   // the button is their picture, so it needs the account from the start

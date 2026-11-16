@@ -261,7 +261,7 @@ function Library() {
     : listed;
   // a big list of what's new, not searched: sorted into piles instead. So
   // is any list with a series far behind (a series just added at vol. 5 of
-  // 22): it goes in "Way behind", never among what's just come out
+  // 22): it goes in "Long reads ahead", never among what's just come out
   const showPiles =
     showingNew &&
     !pileView &&

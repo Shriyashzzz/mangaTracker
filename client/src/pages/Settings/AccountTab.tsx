@@ -71,7 +71,12 @@ export function AccountTab({ account }: { account: Account }) {
       await deleteAccount(password);
       // the session's gone already, so this only tidies up on this device
       await logOut();
-      navigate("/", { replace: true, viewTransition: true });
+      // the home page says it's done, so it doesn't end in silence
+      navigate("/", {
+        replace: true,
+        viewTransition: true,
+        state: { accountDeleted: true },
+      });
     } catch (error) {
       setDeleteError((error as Error).message);
       setDeleting(false);

@@ -2,7 +2,7 @@ import { inCanada } from "../../lib/country";
 import CountrySwitch from "./canada/CountrySwitch";
 import { useCountry } from "../../lib/prefs";
 import { useEffect, useState } from "react";
-import { NavLink, useSearchParams } from "react-router";
+import { NavLink, useLocation, useSearchParams } from "react-router";
 import type { Highlights as HighlightsData, SeriesHit } from "../../lib/types";
 import { probablySignedIn, useAuth } from "../../store/auth";
 import { getHighlights, searchSeries, seriesPath } from "../../lib/prices";
@@ -11,6 +11,7 @@ import VolumeCard from "./VolumeCard";
 import SeriesCard from "./SeriesCard";
 import { pricesStyles as styles } from "./styles";
 import Mascot from "../../components/mascot/Mascot";
+import { CheckIcon } from "../../components/icons/Icons";
 import SlowLoadQuote from "../../components/slowLoadQuote/SlowLoadQuote";
 import { usePageMeta } from "../../lib/seo";
 import WhatsNew from "../../components/whatsNew/WhatsNew";
@@ -72,9 +73,19 @@ export default function PriceSearch() {
     !query &&
     (isSignedIn === false || (isSignedIn === null && !probablySignedIn()));
   const loading = searching && result.query !== query;
+  // they've just deleted their account (Settings, Account)
+  const accountDeleted = Boolean(
+    (useLocation().state as { accountDeleted?: boolean } | null)
+      ?.accountDeleted,
+  );
 
   return (
     <div className={`${styles.page} fade-in`}>
+      {accountDeleted && (
+        <p className={styles.note} role="status">
+          Your account is deleted, with your shelf and everything on it.
+        </p>
+      )}
       {guest && (
         <h1 className={styles.homeTitle}>
           Your manga, <span className={styles.homeHit}>tracked</span> and{" "}
@@ -122,6 +133,20 @@ export default function PriceSearch() {
                   Sign in
                 </NavLink>
               </div>
+              {/* side by side the card is as tall as the price search: what
+                  the shelf does, where there'd be empty space */}
+              <ul className={styles.trackGets}>
+                {[
+                  "Your place in every series",
+                  "New volumes when they come out",
+                  "What the next one costs",
+                ].map((line) => (
+                  <li key={line}>
+                    <CheckIcon className={styles.trackGetsTick} aria-hidden />
+                    {line}
+                  </li>
+                ))}
+              </ul>
             </section>
           )}
 

@@ -17,6 +17,8 @@ type Props = {
   // what AniList thinks they might mean, for this title, and how the
   // lookup is going
   hits: CoverHit[];
+  // the hits are for one of its words, the title itself found nothing
+  guessed?: boolean;
   status: SearchStatus;
   onPick: (hit: CoverHit) => void;
   // none of these: the title as they typed it
@@ -32,8 +34,8 @@ type Props = {
 // under an empty list of matches: why it's empty. While the search is still
 // running it says so instead
 const NO_HITS_NOTE: Partial<Record<string, string>> = {
-  error: "Couldn't reach AniList right now.",
-  done: "AniList doesn't know that one.",
+  error: "Couldn't search right now. Try again in a moment.",
+  done: "No manga by that name. Check the spelling.",
 };
 
 export default function TitleField({
@@ -41,6 +43,7 @@ export default function TitleField({
   error,
   onChange,
   hits,
+  guessed = false,
   status,
   onPick,
   onTyped,
@@ -170,7 +173,11 @@ export default function TitleField({
           )}
           <div className={styles.titleListFoot}>
             {hits.length > 0 && (
-              <span className={styles.counter}>{hits.length} from AniList</span>
+              <span className={styles.counter}>
+                {guessed
+                  ? "Nothing by that name. Did you mean one of these?"
+                  : `${hits.length} from AniList`}
+              </span>
             )}
             <button
               type="button"

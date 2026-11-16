@@ -127,6 +127,27 @@ export function guessEdition(
   return atLeastHalf ? bestKey : null;
 }
 
+// A series with no single volumes in English: the catalog lists its
+// volumes under the books that hold them (Vinland Saga's vols 1 and 2 are
+// both Kodansha's 2-in-1 book 1). When volumes share ISBNs like that and
+// nearly all of those ISBNs are one line's books, that line is how it's
+// sold, so it's the one to buy from
+export function onlyLineInEnglish(
+  lines: EditionLine[],
+  listedIsbns: (string | null)[],
+): string | null {
+  const isbns = listedIsbns.filter((isbn): isbn is string => Boolean(isbn));
+  const distinct = new Set(isbns);
+  // no two volumes share a book: they're singles
+  if (distinct.size < 2 || distinct.size === isbns.length) return null;
+  for (const line of lines) {
+    const ofLine = new Set(line.books.map((book) => book.isbn13));
+    const held = [...distinct].filter((isbn) => ofLine.has(isbn)).length;
+    if (held / distinct.size >= 0.8) return line.key;
+  }
+  return null;
+}
+
 // ---------- asking for an edition by name ----------
 
 // the words a search uses for an edition, and the line they mean

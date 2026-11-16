@@ -315,6 +315,7 @@ export function AddManga() {
                 setFieldErrors((e) => ({ ...e, title: undefined }));
               }}
               hits={search.query === title.trim() ? search.hits : []}
+              guessed={search.guessed}
               status={search.status}
               onPick={pickTitle}
               onTyped={asTyped}
