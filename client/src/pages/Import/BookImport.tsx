@@ -329,6 +329,13 @@ export default function BookImport({ source }: { source: BookSource }) {
           <div>
             <h2 className={styles.stepTitle}>Export your library</h2>
             <p className={styles.stepBody}>{how.step}</p>
+            {how.points && (
+              <ul className={styles.noteList}>
+                {how.points.map((point) => (
+                  <li key={point}>{point}</li>
+                ))}
+              </ul>
+            )}
             {how.link && (
               <a
                 className={styles.stepLink}

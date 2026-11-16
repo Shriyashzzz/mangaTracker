@@ -71,7 +71,7 @@ export async function askShared(
       Array.isArray(matches) && matches.length === part.length
         ? (matches as (SharedMatch | null)[])
         : part.map(() => null);
-    part.forEach((search, n) => known.set(search, answered[n]));
+    part.forEach((search, n) => known.set(search, answered[n] ?? null));
   }
   return searches.map((search) => known.get(search) ?? null);
 }

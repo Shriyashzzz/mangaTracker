@@ -8,6 +8,7 @@ import {
   readLocal,
   shelfViewNow,
   savePrefs,
+  useNextFor,
   useTrackBy,
 } from "../../lib/prefs";
 import type { ShelfTab } from "../../lib/types";
@@ -24,6 +25,7 @@ export function ShelfSettingsTab() {
   );
   const [shelfView, setShelfView] = useState(() => shelfViewNow());
   const trackBy = useTrackBy();
+  const nextFor = useNextFor();
   return (
     <div className={styles.tabBody}>
       <h2 className={styles.tabTitle}>Your shelf</h2>
@@ -65,6 +67,26 @@ export function ShelfSettingsTab() {
               name="track-by"
               checked={trackBy === value}
               onChange={() => savePrefs({ trackBy: value }, isSignedIn)}
+            />
+            {label}
+          </label>
+        ))}
+      </fieldset>
+      {/* what New and a series' Buy next name when there are gaps */}
+      <fieldset className={styles.group}>
+        <legend className={styles.legend}>“Next for you” shows</legend>
+        {(
+          [
+            ["after", "The volume after my highest one"],
+            ["gap", "The first one I'm missing"],
+          ] as const
+        ).map(([value, label]) => (
+          <label key={value} className={styles.row}>
+            <input
+              type="radio"
+              name="next-for"
+              checked={nextFor === value}
+              onChange={() => savePrefs({ nextFor: value }, isSignedIn)}
             />
             {label}
           </label>

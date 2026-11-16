@@ -416,3 +416,39 @@ test("a cover card says what they own when they have no place", async () => {
   expect(coverLine(manga, null, null)).toBe("not started");
   expect(coverLine(manga, "ch. 38", "own vols. 1–10")).toBe("ch. 38");
 });
+
+test("Next for you names the first gap only for a reader who chose that", async () => {
+  const { nextVolumeName, withGapFirst, behindOf } =
+    await import("../../../../client/src/lib/releaseMath.js");
+  // Detective Conan: owns 1–59 and 70–92 of 98
+  const gaps = Array.from({ length: 10 }, (_, i) => ({
+    volume: 60 + i,
+    isbn13: `97800000${60 + i}`,
+    title: `Case Closed, Vol. ${60 + i}`,
+  }));
+  const conan = {
+    currentVolume: 92,
+    latestVolume: 98,
+    nextVolume: 93,
+    gapVolumes: gaps,
+    outVolumes: [],
+  } as unknown as ReleaseStatus;
+  expect(nextVolumeName(withGapFirst(conan, "after"))).toBe("Vol. 93");
+  const gapFirst = withGapFirst(conan, "gap");
+  expect(nextVolumeName(gapFirst)).toBe("Vol. 60");
+  expect(gapFirst?.nextVolumeBook?.isbn13).toBe("9780000060");
+  // the count is the same either way: 6 past theirs and 10 gaps
+  expect(behindOf(gapFirst, "volumes")).toBe(behindOf(conan, "volumes"));
+  // One Piece, caught up with gaps: its first gap when chosen
+  const onePiece = {
+    ...conan,
+    currentVolume: 113,
+    latestVolume: 113,
+    nextVolume: null,
+    gapVolumes: [{ volume: 37 }, { volume: 58 }],
+  } as unknown as ReleaseStatus;
+  expect(nextVolumeName(withGapFirst(onePiece, "gap"))).toBe("Vol. 37");
+  // no gaps: nothing changes
+  const run = { ...conan, gapVolumes: [] } as unknown as ReleaseStatus;
+  expect(withGapFirst(run, "gap")).toBe(run);
+});

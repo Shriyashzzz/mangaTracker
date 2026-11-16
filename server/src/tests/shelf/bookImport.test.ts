@@ -1761,3 +1761,11 @@ test("the start of several parts' names matches none of them", () => {
     matchFrom("JoJo's Bizarre Adventure", parts.slice(0, 1))?.anilistId,
   ).toBe(55515);
 });
+
+test("the import offers a name only when it's near both ways", async () => {
+  const { nearBothWays } =
+    await import("../../../../client/src/lib/nearMatches.js");
+  expect(nearBothWays("one peice", "One Piece")).toBe(true);
+  expect(nearBothWays("chainsw man", "Chainsaw Man")).toBe(true);
+  expect(nearBothWays("Dune", "Slam Dunk")).toBe(false);
+});

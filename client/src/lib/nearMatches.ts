@@ -89,3 +89,9 @@ export async function withNearMatches<T>(
   }
   return { hits: [], guessed: false };
 }
+
+// a name worth offering on its own (the import's "Did you mean"): every word
+// typed is near one of its words, and every word of it near one typed. "one
+// peice" is One Piece; "Dune" isn't "Slam Dunk", whose "Slam" was never typed
+export const nearBothWays = (typed: string, name: string) =>
+  closeEnough(typed, name) && closeEnough(name, typed);

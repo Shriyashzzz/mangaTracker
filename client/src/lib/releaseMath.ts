@@ -45,6 +45,7 @@ function behindPastTheirs(
 // wrong. Then a card only says how far behind they are
 export function knowsNextVolume(found: ReleaseStatus | null | undefined) {
   if (!found || found.nextVolume == null) return false;
+  if (found.nextIsGap) return true;
   if (found.currentVolume == null) return true;
   return (
     found.nextVolume === Math.floor(found.currentVolume) + 1 ||
@@ -145,4 +146,27 @@ export function nextVolumeName(found: ReleaseStatus | null | undefined) {
   const inBook = knowsNextVolume(found) ? found?.nextVolumeInBook : null;
   if (inBook) return `Book ${inBook.book}`;
   return `Vol. ${nextVolumeNumber(found) ?? found?.latestVolume ?? ""}`;
+}
+
+// "Next for you" as a reader who fills their gaps first sees it (Settings,
+// Your shelf): their first gap, with its book when the catalog lists one
+// (Detective Conan owning 1–59 and 70–92: vol. 60, not 93). Only for what a
+// card shows and where it links: the piles, the counts and Hide still go by
+// the volume after their furthest
+export function withGapFirst(
+  found: ReleaseStatus | null | undefined,
+  nextFor: "after" | "gap",
+): ReleaseStatus | null | undefined {
+  const gap = found?.gapVolumes?.[0];
+  if (nextFor !== "gap" || !found || !gap) return found;
+  return {
+    ...found,
+    nextVolume: gap.volume,
+    nextVolumeBook: gap.isbn13
+      ? { isbn13: gap.isbn13, title: gap.title ?? "" }
+      : null,
+    nextVolumeInBook: null,
+    nextVolumeChapters: null,
+    nextIsGap: true,
+  };
 }

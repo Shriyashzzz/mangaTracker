@@ -74,8 +74,10 @@ export default function BuyStrip({
   const [owning, setOwning] = useState(false);
   const [ownFailed, setOwnFailed] = useState(false);
   const { line, plan } = editions;
-  const { loading, volumes, latest, next, caughtUp, seriesName, gaps } =
-    options;
+  const { loading, volumes, latest, next, caughtUp, seriesName } = options;
+  // the gaps under "Not on your shelf": not the one "Next for you" already
+  // names (their first gap, when they've chosen that)
+  const gaps = options.gaps.filter((g) => g.volume !== next?.volume);
   // as the shelf counts them: up to the newest one out, listed or not
   // (Detective Conan: 98, though only 65 have a book listed)
   // (Jujutsu Kaisen: 29, its vol. 0 said apart, as the page above says it)

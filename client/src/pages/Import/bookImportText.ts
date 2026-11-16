@@ -31,7 +31,12 @@ export function foundLine(found: BookSeries[]) {
 
 export const HOW: Record<
   BookSource,
-  { step: string; link?: { href: string; label: string } }
+  {
+    step: string;
+    // what the file needs and what helps, one thing a line
+    points?: string[];
+    link?: { href: string; label: string };
+  }
 > = {
   goodreads: {
     step: "On Goodreads, go to My Books, then Import and export, and press Export Library. Download the file once it's ready.",
@@ -45,6 +50,12 @@ export const HOW: Record<
   },
   csv: {
     // the columns bookImport.ts reads (any of these names, any order)
-    step: "Export your library from your app as a CSV file. It needs a Title or ISBN column; Series, Volume (or Number), an Owned or Purchased column, Rating and Format help if your app has them. A box set's volumes are asked for if the title doesn't say. A Manga Tracker export (Settings) restores volumes, chapter, status, rating and notes; a series already on your shelf only gets what it lacks.",
+    step: "Save it from your app as a CSV file.",
+    points: [
+      "Needs a Title or ISBN column.",
+      "Series, Volume, Owned, Rating and Format columns help, if your app has them.",
+      "Box sets: we ask which volumes, when the title doesn't say.",
+      "A series already on your shelf only gets what it's missing.",
+    ],
   },
 };

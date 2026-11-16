@@ -21,9 +21,14 @@ import RangePager from "../../components/rangePager/RangePager";
 import ReleaseTip from "../../components/whatsNew/ReleaseTip";
 import ViewPeek from "../../components/viewPeek/ViewPeek";
 import { usePrivatePage } from "../../lib/seo";
-import { readLocal, savePrefs, shelfViewNow } from "../../lib/prefs";
+import {
+  readLocal,
+  savePrefs,
+  shelfViewNow,
+  useNextFor,
+} from "../../lib/prefs";
 import { SORT_OPTIONS, type ShelfSort } from "../../lib/shelf";
-import { shownNewCount } from "../../lib/releaseMath";
+import { shownNewCount, withGapFirst } from "../../lib/releaseMath";
 import { isDemo } from "../../lib/demo";
 import { fillCovers } from "../../lib/coverFill";
 import { useAuth } from "../../store/auth";
@@ -105,6 +110,8 @@ export default function Home() {
 }
 
 function Library() {
+  // what "Next for you" names for a series with gaps (Settings)
+  const nextFor = useNextFor();
   const mangaData = useShelf((s) => s.manga);
   const loadError = useShelf((s) => s.loadFailed);
   const releases = useShelf((s) => s.releases);
@@ -426,7 +433,8 @@ function Library() {
     (checking && (p === "few" || p === "way") ? " so far" : "");
   // a pile's cover goes where its card would, stamped with which one
   const coverLink = (m: Manga): CoverLink => {
-    const found = releases[m.id];
+    // their first gap as the next, for a reader who chose that
+    const found = withGapFirst(releases[m.id], nextFor);
     const detailsTo = `/details/${m.id}${detailsSearchFor(releaseKind) ?? ""}`;
     const opensList = !viewingHidden && opensAList(found, releaseKind);
     // Japan being ahead isn't them being behind: no "3 behind" there

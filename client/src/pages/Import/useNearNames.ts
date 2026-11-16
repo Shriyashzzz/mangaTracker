@@ -6,6 +6,7 @@
 import { useEffect, useState } from "react";
 import { knownNamesNear } from "../../lib/knownNames";
 import { plain } from "../../lib/anilist";
+import { nearBothWays } from "../../lib/nearMatches";
 
 // rows asked about, at most: one request each, well under the server's 60
 // a minute
@@ -36,13 +37,14 @@ export function useNearNames(titles: string[]) {
     void (async () => {
       const found = new Map<string, string>();
       for (const title of asked.split("\n")) {
-        const [name] = await knownNamesNear(
-          withoutVolume(title),
-          controller.signal,
-        );
+        const bare = withoutVolume(title);
+        const names = await knownNamesNear(bare, controller.signal);
         if (controller.signal.aborted) return;
-        if (name && plain(name) !== plain(withoutVolume(title)))
-          found.set(title, name);
+        // the closest that's near both ways, and isn't just the title again
+        const name = names.find(
+          (n) => plain(n) !== plain(bare) && nearBothWays(bare, n),
+        );
+        if (name) found.set(title, name);
       }
       setNear(found);
     })();

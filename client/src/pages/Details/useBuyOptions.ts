@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { getSeries } from "../../lib/prices";
 import type { Series, SeriesVolume } from "../../lib/types";
 import { nextToGet, owns } from "../../lib/ownedVolumes";
+import { useNextFor } from "../../lib/prefs";
 
 // a volume we know the number of
 type NumberedVolume = SeriesVolume & { volume: number };
@@ -34,6 +35,9 @@ export function useBuyOptions(
     return () => controller.abort();
   }, [name]);
 
+  // "Next for you": the volume after their furthest, or their first gap
+  // when they've chosen that (Settings, Your shelf)
+  const nextFor = useNextFor();
   const loading = state.name !== name;
   const volumes = loading
     ? []
@@ -78,13 +82,21 @@ export function useBuyOptions(
     );
   }
 
+  // their first gap's book, for a reader who fills gaps first. A gap the
+  // catalog has no book for can't be a ticket: the next after theirs then
+  const firstGap = gaps[0];
+  const gapBook =
+    nextFor === "gap" && firstGap?.isbn13
+      ? (out.find((v) => v.volume === firstGap.volume) ?? null)
+      : null;
+
   return {
     loading,
     volumes,
     latest,
     gaps,
     // the one they need next, once we know what they own
-    next: missing,
+    next: gapBook ?? missing,
     // nothing on sale after the furthest they own
     caughtUp: Boolean(latest && highest > 0 && !missing),
     seriesName: state.data?.info?.name ?? state.data?.name ?? name ?? "",

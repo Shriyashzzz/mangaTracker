@@ -106,6 +106,9 @@ export type ReleaseStatus = {
   // at 12): counted in "N to get", listed first. Saved answers from before
   // have none
   gapVolumes?: { volume: number; isbn13?: string; title?: string }[];
+  // set only on the copy shown to a reader who fills gaps first (Settings):
+  // nextVolume is then their first gap (lib/releaseMath.ts withGapFirst)
+  nextIsGap?: boolean;
   // every English volume past where they are: how far behind they are, and
   // the list a card opens
   outVolumes: { volume: number; isbn13?: string; title?: string }[];
@@ -185,6 +188,9 @@ export type Prefs = {
   trackBy?: "series" | "chapters" | "volumes" | "both";
   // where they buy: Canada gets Canadian store links beside the US prices
   country?: "us" | "ca";
+  // what "Next for you" names when there are gaps: the volume after their
+  // furthest ("after", unless chosen) or their first gap
+  nextFor?: "after" | "gap";
 };
 export type Background = "sfx" | "ink" | "pages" | "panels";
 export type Theme = "light" | "dark";

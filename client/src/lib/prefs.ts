@@ -64,6 +64,7 @@ export const currentTheme = (): Theme => {
 const checksListeners = new Set<() => void>();
 const countryListeners = new Set<() => void>();
 const trackListeners = new Set<() => void>();
+const nextForListeners = new Set<() => void>();
 
 // puts preferences on the page and remembers them in this browser
 const applyPrefs = ({
@@ -76,7 +77,12 @@ const applyPrefs = ({
   releaseChecks,
   country,
   trackBy,
+  nextFor,
 }: Prefs = {}) => {
+  if (nextFor && nextFor !== readLocal("nextFor")) {
+    writeLocal("nextFor", nextFor);
+    nextForListeners.forEach((listener) => listener());
+  }
   if (trackBy && trackBy !== readLocal("trackBy")) {
     writeLocal("trackBy", trackBy);
     trackListeners.forEach((listener) => listener());
@@ -150,6 +156,17 @@ export const useTrackBy = () =>
     return () => trackListeners.delete(listener);
   }, trackByNow);
 
+// what "Next for you" names for a series with gaps: the volume after their
+// furthest unless they've chosen their first gap (Settings, Your shelf).
+// New and the series page follow a change at once
+export const nextForNow = (): "after" | "gap" =>
+  readLocal("nextFor") === "gap" ? "gap" : "after";
+export const useNextFor = () =>
+  useSyncExternalStore((listener) => {
+    nextForListeners.add(listener);
+    return () => nextForListeners.delete(listener);
+  }, nextForNow);
+
 // applies a change right away, and keeps it on the account when signed in
 export const savePrefs = (patch: Prefs, isSignedIn: boolean | null) => {
   applyPrefs(patch);
@@ -172,6 +189,7 @@ export const syncPrefs = async () => {
     applyPrefs({
       releaseChecks: "on",
       trackBy: "series",
+      nextFor: "after",
       ...stored,
     });
     const missing: Prefs = {};

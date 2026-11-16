@@ -3,6 +3,8 @@
 import { CheckIcon } from "../../components/icons/Icons";
 import MangaCard from "../../components/mangaCard/MangaCard";
 import type { Manga, ReleaseStatus } from "../../lib/types";
+import { useNextFor } from "../../lib/prefs";
+import { withGapFirst } from "../../lib/releaseMath";
 import { buyLinkFor, detailsSearchFor } from "./newTabLinks";
 import { newsFor, opensAList, type ReleaseKind } from "./shelfViews";
 import { homeStyles as styles } from "./styles";
@@ -48,13 +50,15 @@ export default function ShelfCard({
   else if (showingNew) wrapperClass = styles.cardAsRow;
 
   const hideLabel = viewingHidden ? "Unhide" : "Hide";
+  // what the card says is next: their first gap, for a reader who chose that
+  const shown = withGapFirst(found, useNextFor());
 
   return (
     <div className={wrapperClass}>
       <MangaCard
         currentManga={manga}
-        news={showingNew ? newsFor(manga, found, releaseKind) : undefined}
-        linkTo={showingNew ? buyLinkFor(found, releaseKind) : undefined}
+        news={showingNew ? newsFor(manga, shown, releaseKind) : undefined}
+        linkTo={showingNew ? buyLinkFor(shown, releaseKind) : undefined}
         onOpen={opensList ? onOpenReleases : undefined}
         japanFirst={showingNew && releaseKind === "japan"}
         detailsSearch={showingNew ? detailsSearchFor(releaseKind) : undefined}

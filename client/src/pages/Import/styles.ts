@@ -46,8 +46,9 @@ export const importStyles = {
   list: "flex min-h-12 cursor-pointer items-center gap-3 border-b border-dashed border-line-soft has-[input:disabled]:cursor-default has-[input:disabled]:opacity-50",
   listCheck:
     "size-5 shrink-0 cursor-pointer accent-accent disabled:cursor-default",
-  // a long unbroken title wraps, never runs under Edit
-  listName: "flex-1 font-medium wrap-anywhere",
+  // a long unbroken title wraps, never runs under Edit, and stops at two
+  // lines (the whole of it on hover)
+  listName: "line-clamp-2 flex-1 font-medium wrap-anywhere",
   listCount: "font-mono text-[0.9rem] text-ink-soft tabular-nums",
   // which app the list comes from: two across on phones, three on bigger screens
   sources: "grid grid-cols-3 gap-2 upto-520:grid-cols-2",

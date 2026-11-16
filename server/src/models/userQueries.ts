@@ -31,6 +31,9 @@ export const PREF_VALUES = {
   trackBy: ["series", "chapters", "volumes", "both"],
   // where they buy: Canada gets Canadian store links beside the US prices
   country: ["us", "ca"],
+  // what "Next for you" names for a series with gaps: the volume after the
+  // furthest they own ("after", the default) or their first gap ("gap")
+  nextFor: ["after", "gap"],
 } as const;
 export type StringPref = keyof typeof PREF_VALUES;
 

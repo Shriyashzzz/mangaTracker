@@ -89,7 +89,9 @@ export default function ImportList({
             }
           />
           <span className={styles.seriesText}>
-            <span className={styles.listName}>{name}</span>
+            <span className={styles.listName} title={name}>
+              {name}
+            </span>
             <span className={styles.seriesMeta}>
               {matchLine(s, match, apart, saidNotOnAniList)}
             </span>
