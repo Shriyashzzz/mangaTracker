@@ -49,6 +49,10 @@ export type Book = {
   collecting?: string;
   // the row's ISBN, when the file has one: kept with the book (lib/books.ts)
   isbn?: string;
+  // what they paid for it, from a "Price Paid" column: kept with the book
+  paidCents?: number;
+  // the file has no read or status column: nothing is known about reading
+  noReadStatus?: boolean;
   // a backup's own record of the series' books, on its first row
   ownBooks?: NewBook[];
   // when the file says it was last changed (read, or added): ISO text
@@ -81,6 +85,11 @@ export type BookSeries = {
   // the books whose volumes the file doesn't say (a box set, a deluxe
   // edition): named in the preview, so nothing is dropped without a word
   unsure?: string[];
+  // volumes the file has a second copy of ("Chainsaw Man, Vol. 3" twice):
+  // counted once, and said in the preview so a spare isn't lost without a word
+  spares?: number[];
+  // none of its books' files says anything about reading (Book.noReadStatus)
+  readingUnknown?: boolean;
   // from Manga Tracker's own export: finished, the chapter they're on, notes
   restore?: boolean;
   finished?: boolean;

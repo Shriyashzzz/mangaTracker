@@ -45,6 +45,9 @@ export type MalEntry = {
   // when they last changed it where it came from, as ISO text: the shelf's
   // "Last updated" order comes along with the import
   updatedAt?: string;
+  // a book list that says nothing about reading (no read or status column):
+  // a complete set they own all of comes in finished (ownsWholeSeries)
+  readingUnknown?: boolean;
 };
 
 // what a backup gives a series already on the shelf: only what the shelf
@@ -87,7 +90,25 @@ export type MalListing = {
   lightNovel: boolean;
   // a finished series' last chapter, from AniList; null while it's coming out
   latestChapter: number | null;
+  // a finished series' volumes, from AniList; null while it's coming out
+  totalVolumes: number | null;
 };
+
+// a book list with nothing about reading, holding every volume of a series
+// that has ended: it comes in finished, not "Reading". Only then: a file
+// that says what they've read is taken at its word
+export function ownsWholeSeries(entry: MalEntry, listing: MalListing | null) {
+  const total = listing?.totalVolumes;
+  if (!entry.readingUnknown || entry.planned || !total) return false;
+  const owned = new Set(
+    entry.ownedList?.length
+      ? entry.ownedList
+      : Array.from({ length: entry.ownedVolumes }, (_, i) => i + 1),
+  );
+  return Array.from({ length: total }, (_, i) => i + 1).every((v) =>
+    owned.has(v),
+  );
+}
 
 export function toMangaInput(entry: MalEntry, listing: MalListing | null) {
   const name =
@@ -99,7 +120,8 @@ export function toMangaInput(entry: MalEntry, listing: MalListing | null) {
     genre: (entry.restore && entry.genre?.trim()) || listing?.genre || null,
     image: listing?.cover ?? entry.cover ?? null,
     description: entry.comments?.trim().slice(0, MAX_NOTES) || null,
-    status: entry.finished && !entry.planned,
+    status:
+      (entry.finished && !entry.planned) || ownsWholeSeries(entry, listing),
     planned: Boolean(entry.planned),
     lightNovel: entryIsLightNovel(entry, listing),
     bookmark: entry.planned ? null : entry.chapters,

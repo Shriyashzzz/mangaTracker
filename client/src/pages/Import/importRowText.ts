@@ -54,6 +54,18 @@ export function matchLine(
   return kind + whatTheyHave(s);
 }
 
+// a second copy of a volume in the file: "Spare copy of vol. 3, counted
+// once"
+export function sparesNote(s: BookSeries) {
+  const spares = s.spares ?? [];
+  if (!spares.length) return null;
+  const which =
+    spares.length === 1
+      ? `Spare copy of vol. ${spares[0]}`
+      : `Spare copies of vols. ${spares.join(", ")}`;
+  return `${which}, counted once`;
+}
+
 // how many unsure books are named before "and N more"
 const NAMED = 3;
 

@@ -6,7 +6,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useShelf } from "../../store/shelf";
 import { ChevronDownIcon, InfoIcon } from "../../components/icons/Icons";
 import { editOf, type BookSeries } from "../../lib/imports/bookImport";
-import { matchLine, omnibusNote } from "./importRowText";
+import { matchLine, omnibusNote, sparesNote } from "./importRowText";
 import { useBookImport, type Match } from "../../store/bookImport";
 import MatchModal from "./MatchModal";
 import { importStyles as styles } from "./styles";
@@ -78,6 +78,9 @@ export default function ImportList({
             <span className={styles.seriesMeta}>
               {matchLine(s, match, apart, saidNotOnAniList)}
             </span>
+            {sparesNote(s) && (
+              <span className={styles.seriesMeta}>{sparesNote(s)}</span>
+            )}
             {s.omnibus && match && match !== "failed" && (
               <span className={styles.omnibusNote}>{omnibusNote(s)}</span>
             )}

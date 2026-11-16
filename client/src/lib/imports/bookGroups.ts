@@ -112,6 +112,13 @@ export function groupBooks(everyBook: Book[]): BookSeries[] {
     // a book read counts as owned too (Goodreads files rarely say what's
     // owned), unless the file says plainly it isn't theirs
     const readAndMaybeOwned = readUpTo(list.filter((b) => !b.notOwned));
+    // a volume a second owned book holds again: a spare copy
+    const seen = new Set<number>();
+    const spares = new Set<number>();
+    for (const v of numberedOwned.flatMap(volumesOf)) {
+      if (seen.has(v)) spares.add(v);
+      seen.add(v);
+    }
     const rated = list.filter((b) => b.rating > 0);
     const average =
       rated.reduce((sum, b) => sum + b.rating, 0) / (rated.length || 1);
@@ -131,6 +138,8 @@ export function groupBooks(everyBook: Book[]): BookSeries[] {
       score: Math.round(average * 2),
       planned: list.every((b) => b.planned),
       lightNovel,
+      ...(spares.size ? { spares: [...spares].sort((a, b) => a - b) } : {}),
+      ...(list.every((b) => b.noReadStatus) ? { readingUnknown: true } : {}),
       ...(list.some((b) => b.omnibus)
         ? {
             omnibus: true,
@@ -404,6 +413,8 @@ export const toEntry = (
   ...(s.restore && s.byVolume != null ? { byVolume: s.byVolume } : {}),
   ...(s.restore && s.collecting ? { edition: s.collecting } : {}),
   ...(s.updatedAt ? { updatedAt: s.updatedAt } : {}),
+  // nothing said about reading: the server marks a whole ended set finished
+  ...(s.readingUnknown ? { readingUnknown: true } : {}),
   // only the books whose volumes go on the shelf: the server keeps no other
   ...(s.bookList?.length ? { books: s.bookList.slice(0, 300) } : {}),
   ownedVolumes: s.ownedVolumes,

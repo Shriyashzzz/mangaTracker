@@ -2,7 +2,7 @@
 // mean (Goodreads, Book Catalogue, Bookshelf, Manga Tracker's own backup, or
 // any CSV). Part of the book import (bookImport.ts lists the parts).
 import { importDate } from "./importDate";
-import { booksFromCell, newBook, type NewBook } from "../books";
+import { booksFromCell, centsOf, newBook, type NewBook } from "../books";
 import { parseVolumes } from "../ownedVolumes";
 import { type Book } from "./bookTypes";
 import {
@@ -262,8 +262,15 @@ export const bookListOf = (
   if (own.length) return { bookList: own };
   const list = owned
     .filter((b) => !b.omnibus && volumesOf(b).length)
-    .map((b) => newBook(b.title, volumesOf(b), b.isbn));
-  return list.some((b) => b.isbn13 || b.edition !== "single")
+    .map((b) => ({
+      ...newBook(b.title, volumesOf(b), b.isbn),
+      ...(b.paidCents != null ? { paidCents: b.paidCents } : {}),
+    }));
+  // sent when a book says more than a tick would: its ISBN, its edition, or
+  // what was paid
+  return list.some(
+    (b) => b.isbn13 || b.edition !== "single" || b.paidCents != null,
+  )
     ? { bookList: list }
     : {};
 };
@@ -308,7 +315,14 @@ export function csvBook(h: string[], row: string[]): Book | null {
   const read = readAt >= 0 && yes(cell(row, readAt));
   const reading =
     readAt >= 0 && /^(currently[- ]?)?reading$/i.test(cell(row, readAt));
+  // only a column that says it's what they paid: a plain "Price" may be the
+  // cover price
+  const paid = centsOf(
+    cell(row, header(h, /^(price ?paid|paid|purchase ?price|amount paid)$/i)),
+  );
   return {
+    ...(paid != null ? { paidCents: paid } : {}),
+    ...(readAt < 0 ? { noReadStatus: true } : {}),
     title,
     ...(fromColumn
       ? {
@@ -422,6 +436,8 @@ export function csvBooks(h: string[], row: string[]): Book[] {
     // they have it, or have said how many they have: not a to-read entry
     planned: false,
     guessed: undefined,
+    // a price on a row for several volumes is the row's, not each book's
+    paidCents: undefined,
   };
   // none owned ("0", or left blank): the series, with nothing owned. With no
   // status saying otherwise it's one they mean to read

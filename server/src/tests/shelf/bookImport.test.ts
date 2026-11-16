@@ -1020,6 +1020,7 @@ test("two spin-offs found by the same cut clash with each other, while different
 });
 
 import { isNamedFor } from "../../../../client/src/lib/anilist.js";
+import { sparesNote } from "../../../../client/src/pages/Import/importRowText.js";
 
 test("third review: Japanese numbers, other series that start the same, read-only spin-offs, near names", () => {
   // a number stuck to Japanese text is only a guess: alone, it's the name's
@@ -1498,4 +1499,63 @@ test("none owned but Reading stays Reading", () => {
     "Berserk,0,Reading",
   ]);
   expect([berserk!.ownedVolumes, berserk!.planned]).toEqual([0, false]);
+});
+
+// ---------- editions said only by how stores list them ----------
+
+test("Kodansha's Vinland Saga books, Gantz omnibuses and an unnumbered 3-in-1", () => {
+  const groups = groupBooks(
+    goodreads([
+      // as stores list Kodansha's 2-in-1 hardcovers
+      "Vinland Saga 1",
+      "Vinland Saga 13",
+      // Dark Horse: three a book, the twelfth holding 34 to 37
+      "Gantz Omnibus Volume 5",
+      "Gantz Omnibus Volume 12",
+      // the whole series in one book
+      "Uzumaki (3-in-1 Deluxe Edition)",
+    ]),
+  );
+  const owned = (name: string) =>
+    groups.find((g) => g.title === name)?.ownedList;
+  expect(owned("Vinland Saga")).toEqual([1, 2, 25, 26]);
+  expect(owned("Gantz")).toEqual([13, 14, 15, 34, 35, 36, 37]);
+  expect(owned("Uzumaki")).toEqual([1, 2, 3]);
+  // a numbered N-in-1 keeps its own number: book 21 is 61 to 63
+  expect(volumesInside("Bleach (3-in-1 Edition), Vol. 21", 21).holds).toEqual([
+    61, 62, 63,
+  ]);
+});
+
+test("a second copy of a volume is counted once, and said", () => {
+  const [chainsaw] = groupBooks(
+    goodreads([
+      "Chainsaw Man, Vol. 3",
+      "Chainsaw Man, Vol. 4",
+      "Chainsaw Man, Vol. 3",
+    ]),
+  );
+  expect([chainsaw!.ownedList, chainsaw!.spares]).toEqual([[3, 4], [3]]);
+  expect(sparesNote(chainsaw!)).toBe("Spare copy of vol. 3, counted once");
+  const [one] = groupBooks(goodreads(["Dandadan, Vol. 1"]));
+  expect(one!.spares).toBeUndefined();
+});
+
+test("a Price Paid column goes on each book; a series row's price doesn't", () => {
+  const [one] = seriesSheet("Title,Publisher,Price Paid", [
+    '"Chainsaw Man, Vol. 3",VIZ Media,$9.99',
+    '"Chainsaw Man, Vol. 4",VIZ Media,',
+  ]);
+  expect(one!.bookList?.map((b) => [b.volumes, b.paidCents ?? null])).toEqual([
+    [[3], 999],
+    [[4], null],
+  ]);
+  // a whole series on one row: the price isn't each volume's
+  const [row] = seriesSheet("Title,Owned volumes,Price Paid", [
+    "Dandadan,1-3,30",
+  ]);
+  expect(row!.bookList).toBeUndefined();
+  // a plain Price may be the cover price: not taken
+  const [cover] = seriesSheet("Title,Price", ['"Dandadan, Vol. 1",12.99']);
+  expect(cover!.bookList).toBeUndefined();
 });

@@ -39,6 +39,7 @@ export const importList = [
   body("entries.*.malId").optional().isInt({ min: 1 }).toInt(),
   body("entries.*.title").isString().trim().isLength({ min: 1, max: 300 }),
   body("entries.*.finished").isBoolean().toBoolean(),
+  body("entries.*.readingUnknown").optional().isBoolean().toBoolean(),
   body("entries.*.chapters").isInt({ min: 0, max: 100000 }).toInt(),
   body("entries.*.readVolumes").isInt({ min: 0, max: 999 }).toInt(),
   body("entries.*.ownedVolumes").isInt({ min: 0, max: 999 }).toInt(),

@@ -44,6 +44,8 @@ export type MalEntry = {
   byVolume?: boolean;
   // a backup's own genre (they may have set it by hand)
   genre?: string;
+  // a book list that says nothing about reading (server malEntry.ts)
+  readingUnknown?: boolean;
 };
 
 // the lists on MyAnimeList, in the order it shows them
@@ -61,7 +63,10 @@ export type MalItem = { status: string; entry: MalEntry };
 export class ImportFileError extends Error {}
 
 const MAX_FILE_BYTES = 20 * 1024 * 1024;
-const PIECE = 50;
+// series sent to the shelf at a time: small enough that the progress bar
+// moves on an import of 30, big enough that 400 is 20 requests (each one
+// asks AniList once, and AniList limits how often)
+const PIECE = 20;
 
 const toXml = async (file: File) => {
   if (file.size > MAX_FILE_BYTES) {

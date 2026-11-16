@@ -79,7 +79,7 @@ const BY_MAL_ID_QUERY = `
   query ($ids: [Int]) {
     Page(perPage: 50) {
       media(idMal_in: $ids, type: MANGA) {
-        idMal genres format status chapters
+        idMal genres format status chapters volumes
         title { english romaji }
         coverImage { large }
       }
@@ -102,6 +102,7 @@ export async function getListingsByMalIds(ids: number[]) {
             idMal: number | null;
             format: string | null;
             chapters: number | null;
+            volumes: number | null;
           })[];
         };
       }>(BY_MAL_ID_QUERY, { ids });
@@ -122,6 +123,8 @@ export async function getListingsByMalIds(ids: number[]) {
           // import knows who's caught up before its first release check
           latestChapter:
             m.status === "FINISHED" && m.chapters ? m.chapters : null,
+          // and its volumes, once it's finished: a count that won't grow
+          totalVolumes: m.status === "FINISHED" && m.volumes ? m.volumes : null,
         });
       }
       return listings;

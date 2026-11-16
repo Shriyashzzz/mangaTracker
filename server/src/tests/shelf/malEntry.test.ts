@@ -24,6 +24,7 @@ const listing = {
   genre: "Action",
   lightNovel: false,
   latestChapter: null as number | null,
+  totalVolumes: null as number | null,
 };
 
 test("uses AniList's name, cover and genre when it has them", () => {
@@ -92,6 +93,7 @@ describe("covers from a book app import", () => {
       genre: null,
       lightNovel: false,
       latestChapter: null,
+      totalVolumes: null,
     };
     expect(toMangaInput(entry, listing).image).toBe(
       "https://listing/cover.jpg",
@@ -165,4 +167,40 @@ test("a book app's file says what's owned: none owned stays none", () => {
     toMangaInput(entry({ readVolumes: 6, ownedFromFile: true }), null)
       .volumesOwned,
   ).toBeNull();
+});
+
+test("a book list with nothing about reading: a whole ended series comes in finished", () => {
+  const ended = { ...listing, totalVolumes: 12 };
+  const book = (over: Partial<MalEntry>) =>
+    entry({ chapters: 0, readVolumes: 0, ownedFromFile: true, ...over });
+  // every volume of an ended series, and the file says nothing about reading
+  expect(
+    toMangaInput(book({ ownedVolumes: 12, readingUnknown: true }), ended)
+      .status,
+  ).toBe(true);
+  // one missing
+  expect(
+    toMangaInput(
+      book({
+        ownedVolumes: 12,
+        ownedList: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 12],
+        readingUnknown: true,
+      }),
+      ended,
+    ).status,
+  ).toBe(false);
+  // still coming out: AniList gives no total
+  expect(
+    toMangaInput(book({ ownedVolumes: 12, readingUnknown: true }), listing)
+      .status,
+  ).toBe(false);
+  // the file says what they've read: taken at its word
+  expect(toMangaInput(book({ ownedVolumes: 12 }), ended).status).toBe(false);
+  // on a to-read list
+  expect(
+    toMangaInput(
+      book({ ownedVolumes: 12, readingUnknown: true, planned: true }),
+      ended,
+    ).status,
+  ).toBe(false);
 });

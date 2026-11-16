@@ -420,8 +420,8 @@ export default function BookImport({ source }: { source: BookSource }) {
               2) Volumes owned are the ones you bought, gaps and all. A box set
               or omnibus that doesn't say which volumes it holds is marked to
               check. <br />
-              3) A series already on your shelf gets the new volumes added.
-              Prices paid and dates bought aren't kept.{" "}
+              3) A series already on your shelf gets the new volumes added. A
+              Price Paid column is kept on each book. Dates bought aren't.{" "}
             </p>
 
             {importing ? (

@@ -137,7 +137,10 @@ const EDITIONS: Edition[] = [
     volumes: 41,
   },
   // the 3-in-1 deluxe hardcovers first, then Kodansha's 2-in-1 books: every
-  // English "Book N" holds two (Book 9 is vols 17 and 18)
+  // English "Book N" holds two (Book 9 is vols 17 and 18). Kodansha's are the
+  // only English numbered books, so a plain "Vinland Saga 3", exactly as
+  // stores list them, is one too (not "Vol. 3" or "#3", which may be a
+  // volume)
   {
     series: /^vinland saga$/,
     edition: /\bdeluxe\b/i,
@@ -147,7 +150,7 @@ const EDITIONS: Edition[] = [
   },
   {
     series: /^vinland saga$/,
-    edition: /\bbook\b|\bhardcover\b/i,
+    edition: /\bbook\b|\bhardcover\b|^vinland saga \d+$/i,
     perBook: 2,
     books: 15,
     volumes: 29,
@@ -209,6 +212,14 @@ const EDITIONS: Edition[] = [
     books: 6,
     volumes: 9,
   },
+  // Dark Horse, 2018 to 2023: 12 omnibuses for the 37 volumes, three a
+  // book (Omnibus 5 is vols 13 to 15) and the last holding four
+  {
+    series: /^gantz$/,
+    edition: /\bomnibus\b/i,
+    books: 12,
+    volumes: 37,
+  },
   // Kodansha's Eternal Edition: 10 books for the 12 volumes
   {
     series: /^sailor moon$|^pretty guardian sailor moon$/,
@@ -256,8 +267,17 @@ export function editionVolumes(
       holds: Array.from({ length: to - from + 1 }, (_, i) => from + i),
     };
   }
+  // a 3-in-1 with no number of its own ("Uzumaki (3-in-1 Deluxe Edition)")
+  // is the first, or the only one: it holds vols 1 to 3
+  const perBook = title.match(N_IN_ONE)?.[1];
+  if (perBook && !hasOwnNumber(title))
+    return { holds: run(1, Number(perBook))! };
   return SPECIAL_EDITION.test(title) ? { omnibus: true } : null;
 }
+
+// a number in the title besides an "N-in-1"
+const hasOwnNumber = (title: string) =>
+  /\d/.test(title.replace(new RegExp(N_IN_ONE.source, "gi"), ""));
 
 // ---------- box sets ----------
 
