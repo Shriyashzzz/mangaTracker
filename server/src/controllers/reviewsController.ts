@@ -6,9 +6,10 @@ import type { Request, Response } from "express";
 import { body, matchedData, param, query } from "express-validator";
 import { requireSignIn } from "../middlewares/auth.js";
 import { requireOwnerOfSite } from "../middlewares/ownerOfSite.js";
-import { rejectInvalid } from "../middlewares/validate.js";
+import { ROW_ID, rejectInvalid } from "../middlewares/validate.js";
 import { toIsbn13 } from "../prices/sources/catalog.js";
 import { MOST_WORDS } from "../reviews/reviewRules.js";
+import { siteStats } from "../models/siteStats.js";
 import {
   decideReview,
   deleteReview,
@@ -26,7 +27,7 @@ const isbnParam = param("isbn")
   .customSanitizer(toIsbn13)
   .custom((isbn) => isbn !== null)
   .withMessage("That isn't a valid ISBN");
-const idParam = param("id").isInt({ min: 1 }).toInt();
+const idParam = param("id").isInt(ROW_ID).toInt();
 
 // GET /volume/:isbn  the volume's reviews, and whether you may write one
 const ofVolume = [
@@ -101,7 +102,7 @@ const flag = [
 // a volume of a series on their shelf, by the series' id and the volume's
 // number: /shelf/:manga/:volume
 const shelfVolume = [
-  param("manga").isInt({ min: 1 }).toInt(),
+  param("manga").isInt(ROW_ID).toInt(),
   param("volume").isInt({ min: 1, max: 999 }).toInt(),
 ];
 
@@ -138,7 +139,7 @@ const removeOnShelf = [
 
 const onShelf = [
   requireSignIn,
-  query("manga").isInt({ min: 1 }).toInt(),
+  query("manga").isInt(ROW_ID).toInt(),
   rejectInvalid,
   async (req: Request, res: Response) => {
     const { manga } = matchedData(req);
@@ -156,6 +157,15 @@ const reported = [
   },
 ];
 
+// GET /stats  the site's own numbers, for the owner's page beside the
+// reported reviews (models/siteStats.ts). Never kept: only the owner asks
+const stats = [
+  requireOwnerOfSite,
+  async (_req: Request, res: Response) => {
+    res.set("Cache-Control", "no-store").json(await siteStats());
+  },
+];
+
 // POST /:id/decide  { keep: boolean }  keep a reported review, or remove it
 const decide = [
   requireOwnerOfSite,
@@ -170,6 +180,7 @@ const decide = [
 ];
 
 export default {
+  stats,
   ofVolume,
   write,
   remove,

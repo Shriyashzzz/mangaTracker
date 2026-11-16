@@ -2,7 +2,7 @@
 // import matches readers share so the next import of the same title is quicker.
 import type { Request, Response } from "express";
 import { body, matchedData, query } from "express-validator";
-import { rejectInvalid } from "../../middlewares/validate.js";
+import { ROW_ID, rejectInvalid } from "../../middlewares/validate.js";
 import mangaQueries from "../../models/mangaQueries.js";
 import { getListingsByMalIds } from "../../prices/sources/anilist.js";
 import { findOnShelf } from "../../prices/service.js";
@@ -34,7 +34,7 @@ const IMPORT_PIECE = 50;
 
 export const importList = [
   body("entries").isArray({ min: 1, max: IMPORT_PIECE }),
-  body("entries.*.malId").optional().isInt({ min: 1 }).toInt(),
+  body("entries.*.malId").optional().isInt(ROW_ID).toInt(),
   body("entries.*.title")
     .isString()
     // no "right-to-left override" and its kin: they scramble the title
@@ -263,7 +263,7 @@ export const knownImportMatches = [
 // after: the matches this import found, checked before anyone else gets them
 export const tellImportMatches = [
   ...searchFields("matches"),
-  body("matches.*.anilistId").isInt({ min: 1 }).toInt(),
+  body("matches.*.anilistId").isInt(ROW_ID).toInt(),
   rejectInvalid,
   async (req: Request, res: Response) => {
     await tellMatches(matchedData(req).matches);
@@ -279,8 +279,8 @@ export const pickImportMatch = [
   body("search.lightNovel").isBoolean({ strict: true }),
   body("search.exactOnly").isBoolean({ strict: true }),
   body("match").optional({ values: "null" }).isObject(),
-  body("match.anilistId").optional().isInt({ min: 1 }).toInt(),
-  body("match.malId").optional({ values: "null" }).isInt({ min: 1 }).toInt(),
+  body("match.anilistId").optional().isInt(ROW_ID).toInt(),
+  body("match.malId").optional({ values: "null" }).isInt(ROW_ID).toInt(),
   body("match.name")
     .optional()
     .isString()

@@ -2,9 +2,9 @@
 // inline updates (status, to read, rating, chapter, hidden releases, cover,
 // notes, volumes owned). Every :id route runs requireOwner first, which loads
 // the manga onto res.locals.manga.
-import type { Request, Response } from "express";
+import type { NextFunction, Request, Response } from "express";
 import { body, matchedData, param } from "express-validator";
-import { rejectInvalid } from "../../middlewares/validate.js";
+import { ROW_ID, rejectInvalid } from "../../middlewares/validate.js";
 import mangaQueries from "../../models/mangaQueries.js";
 import bookQueries from "../../models/bookQueries.js";
 import { bookFields, purchaseFields } from "../../util/shelf/ownedBooks.js";
@@ -12,6 +12,8 @@ import { getSeriesInfo } from "../../prices/sources/anilist.js";
 import { canonicalTitle } from "../../util/shelf/canonicalTitle.js";
 import type { Manga } from "../../../generated/prisma/client.js";
 import { askAboutFinishedVolume } from "../../reviews/reviews.js";
+import { newestChapterKnown } from "../../util/releases/releaseAnswers.js";
+import { sendError } from "../../middlewares/errorHandler.js";
 import { oneAtATime } from "../../util/shelf/oneAtATime.js";
 import { keepSavedList, ownedVolumes } from "../../util/shelf/ownedList.js";
 import {
@@ -56,9 +58,35 @@ export const detail = (_req: Request, res: Response) => {
   res.json({ manga: res.locals.manga });
 };
 
+// how far past the newest chapter we know a place can be: the list can lag a
+// little behind what's out. The chapter box says the same
+// (client pages/Details/ChapterStepper.tsx PAST_THE_NEWEST)
+const PAST_THE_NEWEST = 100;
+
+// a chapter far past the newest out (5000 on a 220-chapter series) is a slip,
+// whichever way it's sent. A series with no newest known keeps 100,000
+async function notPastTheNewest(
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) {
+  const chapter = matchedData(req).bookmark;
+  if (typeof chapter === "number") {
+    const newest = await newestChapterKnown((res.locals.manga as Manga).id);
+    if (newest != null && chapter > newest + PAST_THE_NEWEST)
+      return sendError(
+        res,
+        400,
+        `Chapter ${newest.toLocaleString("en-US")} is the newest out.`,
+      );
+  }
+  next();
+}
+
 export const update = [
   ...mangaFields,
   rejectInvalid,
+  notPastTheNewest,
   async (req: Request, res: Response) => {
     const input = toInput(req);
     const { id, lightNovel } = res.locals.manga as Manga;
@@ -136,6 +164,7 @@ export const setBookmark = [
     .withMessage(chapterMessage)
     .toInt(),
   rejectInvalid,
+  notPastTheNewest,
   async (req: Request, res: Response) => {
     await mangaQueries.setBookmark(
       res.locals.manga.id,
@@ -206,7 +235,7 @@ export const addBooks = [
 
 // what they paid for a book and the day they bought it
 export const setPurchase = [
-  param("bookId").isInt({ min: 1 }).toInt(),
+  param("bookId").isInt(ROW_ID).toInt(),
   ...purchaseFields(),
   rejectInvalid,
   async (req: Request, res: Response) => {
@@ -226,7 +255,7 @@ export const setPurchase = [
 
 // a book they no longer have: it goes, with the volumes only it held
 export const removeBook = [
-  param("bookId").isInt({ min: 1 }).toInt(),
+  param("bookId").isInt(ROW_ID).toInt(),
   rejectInvalid,
   async (req: Request, res: Response) => {
     const owned = await bookQueries.removeBook(

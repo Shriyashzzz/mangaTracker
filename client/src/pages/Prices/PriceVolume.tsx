@@ -157,6 +157,8 @@ export default function PriceVolume() {
     hideEbooks,
   );
   const nearby = nearbyVolumes(siblings, volume, inBook);
+  // a book we don't know as a manga: no shelf button, no reviews
+  const unknownBook = isUnknownBook({ series, volume });
   // a preorder's main buttons, and the other stores listed under them
   const { buttons: preorderAt, others: otherStores } = storeLinksToShow(
     storeLinks,
@@ -304,7 +306,7 @@ export default function PriceVolume() {
           {/* where it's seen before anyone heads off to a store */}
           <div className={styles.volumeActions}>
             {/* nothing to put on a manga shelf for a book that isn't a manga */}
-            {isUnknownBook({ series, volume }) ? (
+            {unknownBook ? (
               <p className={styles.bestAside}>
                 We don't know this book as a manga.
               </p>
@@ -512,7 +514,7 @@ export default function PriceVolume() {
         </div>
       </article>
 
-      {reviews.data && (
+      {reviews.data && !unknownBook && (
         <VolumeReviews
           isbn13={book.isbn13}
           volumeLabel={volume != null ? `vol. ${volume}` : "this book"}

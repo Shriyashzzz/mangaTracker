@@ -3,6 +3,7 @@
 import type { Request, Response } from "express";
 import { body, matchedData } from "express-validator";
 import { rejectInvalid } from "../middlewares/validate.js";
+import { isReservedName, RESERVED_MESSAGE } from "../util/reservedNames.js";
 import { sendError } from "../middlewares/errorHandler.js";
 import userQueries, {
   PREF_VALUES,
@@ -26,6 +27,8 @@ const credentials = [
     .withMessage("I need your name to let you in, come on you know that!")
     .isAlphanumeric()
     .withMessage("Usernames are letters and numbers only.")
+    // one message a box: "a!" is only told about the letters
+    .bail()
     .isLength({ min: 4, max: 40 })
     .withMessage("Usernames need 4 to 40 letters or numbers."),
   body("password")
@@ -37,12 +40,18 @@ const credentials = [
     .bail()
     .notEmpty()
     .withMessage("Alright, don't forget your secret code. Spill the beans now!")
-    .isLength({ min: 5 })
-    .withMessage("Password has to be at least 5 characters long!")
+    .bail()
     // hashing only reads the first 72 bytes: no reason to take a novel
     .isLength({ max: 200 })
-    .withMessage("That password is too long. Keep it under 200 characters."),
+    .withMessage("That password is too long. Keep it under 200 characters.")
+    .bail(),
 ];
+
+// signing in: the old 5 characters, so accounts made before still get in.
+// A new account has its own rule (newPassword), so sign-up never says both
+const oldPassword = body("password")
+  .isLength({ min: 5 })
+  .withMessage("Password has to be at least 5 characters long!");
 
 // a fresh session id on every sign in, so an old cookie can't be reused
 const startSession = (req: Request, userId: number) =>
@@ -56,6 +65,7 @@ const startSession = (req: Request, userId: number) =>
 
 const login = [
   ...credentials,
+  oldPassword,
   rejectInvalid,
   async (req: Request, res: Response) => {
     const { username, password } = matchedData(req);
@@ -84,8 +94,14 @@ const newPassword = body("password")
   .custom((password: string) => password.trim().length > 0)
   .withMessage("A password needs more than spaces.");
 
+// the site's own names ("admin", "Kenji") aren't anyone's to take
+const notReserved = body("username")
+  .custom((name: unknown) => typeof name !== "string" || !isReservedName(name))
+  .withMessage(RESERVED_MESSAGE);
+
 const signup = [
   ...credentials,
+  notReserved,
   newPassword,
   rejectInvalid,
   async (req: Request, res: Response) => {

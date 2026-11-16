@@ -466,7 +466,13 @@ const seriesCover = async (req: Request, res: Response) => {
       });
       if (sent) return;
     } catch (e) {
-      console.error("series cover failed:", (e as Error).message);
+      // a picture its host no longer has is expected, and the next one is
+      // tried: only other failures are worth a line
+      if (!/answered 404/.test((e as Error).message))
+        console.error(
+          `series cover failed for ${named ? name : "a series"}:`,
+          (e as Error).message,
+        );
     }
   }
   // none could be fetched from here: the saved picture itself, as the page
@@ -615,8 +621,7 @@ const seriesSummary = [
     const data = await getSeriesSummary(name);
     // a made-up address isn't described as the real series AniList guessed
     const fits = !strict || !data || fitsAddress(name, data);
-    if (data && fits)
-      return res.set("Cache-Control", CACHE_10_MIN).json(data);
+    if (data && fits) return res.set("Cache-Control", CACHE_10_MIN).json(data);
     // nothing stored to describe it: not "missing" either. Finding out would
     // take the series page's whole catalog lookup, which crawlers sending
     // made-up names would turn into a flood of Open Library searches

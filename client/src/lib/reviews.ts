@@ -145,6 +145,19 @@ export type ReportedReview = {
 export const getReportedReviews = (signal?: AbortSignal) =>
   getJson<ReportedReview[]>("/api/reviews/reported", signal);
 
+// the site's own numbers, for the owner's page (server models/siteStats.ts)
+export type SiteStats = {
+  readers: number;
+  shelved: number;
+  shelvedSeries: number;
+  prices: { total: number; week: number };
+  volumesPriced: { total: number; week: number };
+  seriesKnown: number;
+  reviews: { total: number; week: number };
+};
+export const getSiteStats = (signal?: AbortSignal) =>
+  getJson<SiteStats>("/api/reviews/stats", signal);
+
 // keeps a reported review (its reports are cleared) or removes it for good
 export async function decideReview(id: number, keep: boolean) {
   const res = await apiFetch(`/api/reviews/${id}/decide`, {

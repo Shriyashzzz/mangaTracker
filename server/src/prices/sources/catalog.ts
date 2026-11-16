@@ -684,9 +684,17 @@ export const searchVolumes = async (
   options?: { max?: number; timeoutMs?: number },
 ) => (await searchVolumesDetailed(query, options)).books;
 
+// Open Library can hold one ISBN under two records, one a reader's typo
+// with no volume ("One Pice Ace's Story THE MANGA") and one the series'
+// own ("ONE PIECE EPISODE A 1"): the one that names a volume is the one a
+// series can be found from
+const RECORDS_FOR_AN_ISBN = 3;
+const namesAVolume = (title: string | undefined) =>
+  Boolean(title && /(\bvol(ume)?\.?\s*\d+|\s\d{1,3})\s*$/i.test(title));
+
 export async function lookupIsbn(isbn13: string): Promise<CatalogBook | null> {
-  const docs = await search(`isbn:${isbn13}`, 1);
-  const doc = docs[0];
+  const docs = await search(`isbn:${isbn13}`, RECORDS_FOR_AN_ISBN);
+  const doc = docs.find((d) => namesAVolume(d.title)) ?? docs[0];
   if (!doc) return null;
   // the requested ISBN wins even if Open Library lists another edition first
   const { book, degraded } = await toBook(doc, isbn13);

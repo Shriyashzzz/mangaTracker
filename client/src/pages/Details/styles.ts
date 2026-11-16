@@ -53,10 +53,12 @@ export const detailsStyles = {
   shelf:
     "min-w-0 flex-[0_1_auto] w-[min(100%,var(--shelf-w))] max-[1099px]:w-full upto-720:order-1 upto-720:col-span-full",
   // room for a word of the title before the spine strip beside it takes any
-  // ("Berser / k" when it could shrink to nothing)
-  head: "flex min-w-[min(18rem,100%)] flex-col gap-[0.7rem] upto-720:gap-2 upto-720:self-center",
+  // ("Berser / k" when it could shrink to nothing). A word wider than that
+  // breaks inside itself (title: wrap-anywhere) rather than push the strip
+  // to a sliver
+  head: "flex min-w-[min(18rem,100%)] flex-[1_1_18rem] flex-col gap-[0.7rem] upto-720:gap-2 upto-720:self-center",
   title:
-    "text-[clamp(2.2rem,4.6vw,3.4rem)] leading-[1.02] font-medium tracking-[-0.025em] text-balance wrap-break-word upto-720:text-[clamp(1.6rem,7vw,2.2rem)]",
+    "text-[clamp(2.2rem,4.6vw,3.4rem)] leading-[1.02] font-medium tracking-[-0.025em] text-balance wrap-anywhere upto-720:text-[clamp(1.6rem,7vw,2.2rem)]",
   meta: "flex flex-wrap gap-[0.4rem]",
   metaGenre: `${tag} border-line-soft text-ink-soft`,
   metaReading: `${tag} border-accent text-accent`,

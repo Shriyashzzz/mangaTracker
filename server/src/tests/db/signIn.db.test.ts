@@ -43,3 +43,40 @@ test("an error never sends back what was typed", async () => {
   expect(JSON.stringify(res.body)).not.toContain("secret");
   for (const error of res.body.error) expect(error).not.toHaveProperty("value");
 });
+
+test("sign-up keeps the site's names, and says one thing a box", async () => {
+  const admin = await signUp({
+    username: "Admin",
+    password: "a good password",
+  });
+  expect(admin.status).toBe(400);
+  expect(admin.body.error[0].msg).toBe(
+    "That name is kept for the site. Pick another.",
+  );
+  // a short password is told the sign-up rule only, never sign-in's old 5
+  for (const password of ["abc", "abcdef"]) {
+    const short = await signUp({ username: "shorty", password });
+    expect(short.body.error.map((e: { msg: string }) => e.msg)).toEqual([
+      "Passwords need at least 8 characters.",
+    ]);
+  }
+  // "a!" breaks two username rules, and hears about one
+  const both = await signUp({ username: "a!", password: "x" });
+  const about = both.body.error.filter(
+    (e: { path: string }) => e.path === "username",
+  );
+  expect(about).toHaveLength(1);
+});
+
+test("an id too big for the database is not found, not a crash", async () => {
+  const agent = request.agent(app);
+  await agent
+    .post("/api/auth/signup")
+    .send({ username: "bigid", password: "a good password" })
+    .expect(201);
+  await agent.get("/api/manga/999999999999").expect(404);
+  await agent
+    .patch("/api/manga/999999999999/bookmark")
+    .send({ bookmark: 3 })
+    .expect(404);
+});

@@ -6,7 +6,7 @@ import type { Request, Response } from "express";
 import { body, matchedData, param, query } from "express-validator";
 import { AppError, NotFoundError } from "../errors/AppError.js";
 import { requireOwnerOfSite } from "../middlewares/ownerOfSite.js";
-import { rejectInvalid } from "../middlewares/validate.js";
+import { ROW_ID, rejectInvalid } from "../middlewares/validate.js";
 import {
   getAfterAnime,
   getAfterAnimeIndex,
@@ -137,7 +137,7 @@ const review = [
 // POST /fixes/:id  { accept: boolean }
 const decide = [
   requireOwnerOfSite,
-  param("id").isInt({ min: 1 }).toInt(),
+  param("id").isInt(ROW_ID).toInt(),
   body("accept").isBoolean().toBoolean(),
   rejectInvalid,
   async (req: Request, res: Response) => {

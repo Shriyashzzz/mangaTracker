@@ -17,6 +17,8 @@ import ErrorPage from "../../Error/Error";
 import { pricesStyles } from "../styles";
 import { writtenText } from "./reviewText";
 import { reportedStyles as styles } from "./reportedStyles";
+import SiteNumbers from "./SiteNumbers";
+import OwnerTools from "./OwnerTools";
 
 export default function ReportedReviews() {
   usePrivatePage("Reported reviews");
@@ -51,6 +53,8 @@ export default function ReportedReviews() {
 
   return (
     <div className={`${styles.page} fade-in`}>
+      <OwnerTools />
+      <SiteNumbers />
       <header>
         <h1 className={pricesStyles.sectionTitle}>Reported reviews</h1>
         <p className={styles.sub}>

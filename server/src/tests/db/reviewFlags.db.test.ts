@@ -109,3 +109,20 @@ test("three reports hide a review until the site's owner keeps or removes it", a
     .send({ keep: true })
     .expect(404);
 });
+
+test("the site's numbers are the owner's alone", async () => {
+  const writerId = await member("writer", { owned: [1] });
+  await writeReview(writerId, ISBN(1), good);
+  await member("theowner", null);
+  // a reader, and someone signed out, are told there's nothing here
+  await (await signedIn("writer")).get("/api/reviews/stats").expect(404);
+  await request(app).get("/api/reviews/stats").expect(404);
+  const stats = (
+    await (await signedIn("theowner")).get("/api/reviews/stats").expect(200)
+  ).body;
+  expect(stats).toMatchObject({
+    readers: 2,
+    reviews: { total: 1, week: 1 },
+  });
+  expect(stats.prices.total).toBeGreaterThanOrEqual(stats.prices.week);
+});

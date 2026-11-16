@@ -2,7 +2,7 @@
 // undo (restore one, restore many, put many back where they were).
 import type { Request, Response } from "express";
 import { body, matchedData, validationResult } from "express-validator";
-import { rejectInvalid } from "../../middlewares/validate.js";
+import { ROW_ID, rejectInvalid } from "../../middlewares/validate.js";
 import { sendError } from "../../middlewares/errorHandler.js";
 import mangaQueries, { type RestoredManga } from "../../models/mangaQueries.js";
 import { shelfKey } from "../../util/shelf/malEntry.js";
@@ -45,7 +45,7 @@ export const removeMany = [
   body("ids")
     .isArray({ min: 1, max: MOST_DELETED })
     .withMessage(`Pick between 1 and ${MOST_DELETED} series.`),
-  body("ids.*").isInt({ min: 1 }).toInt(),
+  body("ids.*").isInt(ROW_ID).toInt(),
   rejectInvalid,
   async (req: Request, res: Response) => {
     const ids = [...new Set(matchedData(req).ids as number[])];
@@ -60,7 +60,7 @@ export const moveMany = [
   body("ids")
     .isArray({ min: 1, max: MOST_DELETED })
     .withMessage(`Pick between 1 and ${MOST_DELETED} series.`),
-  body("ids.*").isInt({ min: 1 }).toInt(),
+  body("ids.*").isInt(ROW_ID).toInt(),
   body("to").isIn(["finished", "planned", "reading"]),
   rejectInvalid,
   async (req: Request, res: Response) => {
@@ -82,7 +82,7 @@ export const placeMany = [
   body("places")
     .isArray({ min: 1, max: MOST_PLACED })
     .withMessage(`Between 1 and ${MOST_PLACED} series.`),
-  body("places.*.id").isInt({ min: 1 }).toInt(),
+  body("places.*.id").isInt(ROW_ID).toInt(),
   body("places.*.status").isBoolean({ strict: true }),
   body("places.*.planned").isBoolean({ strict: true }),
   body("places.*.bookmark")
@@ -182,7 +182,7 @@ export const restoreMany = [
 // (mangaQueries.mergeManga). Both theirs: the other is checked here, the first
 // by requireOwner
 export const merge = [
-  body("otherId").isInt({ min: 1 }).toInt(),
+  body("otherId").isInt(ROW_ID).toInt(),
   rejectInvalid,
   async (req: Request, res: Response) => {
     const otherId: number = matchedData(req).otherId;

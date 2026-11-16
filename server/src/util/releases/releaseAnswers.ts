@@ -137,3 +137,15 @@ export async function savedAnswers(
   }
   return out;
 }
+
+// the newest chapter out that the series' last answer knew of, however old
+// that answer is (a chapter count only grows): for refusing a place far past
+// it. Null when nothing's known
+export async function newestChapterKnown(mangaId: number) {
+  const row = await prisma.releaseAnswer.findUnique({ where: { mangaId } });
+  const status = (
+    row?.answer as { releaseStatus?: { latestChapter?: unknown } }
+  )?.releaseStatus;
+  const latest = Number(status?.latestChapter);
+  return Number.isFinite(latest) && latest > 0 ? latest : null;
+}

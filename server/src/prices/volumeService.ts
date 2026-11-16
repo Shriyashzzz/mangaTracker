@@ -167,7 +167,10 @@ export async function fetchProviders(
         groups.set(group, [...(groups.get(group) ?? []), ...r.value]);
       } else if (!(r.reason instanceof SearchesUsedUp)) {
         noteFailure(isbn13, provider);
-        console.error(`price provider ${provider.id} failed:`, r.reason);
+        // a store that's slow today: one line, not a stack trace each time
+        if ((r.reason as Error)?.name === "TimeoutError")
+          console.error(`price provider ${provider.id} took too long, skipped`);
+        else console.error(`price provider ${provider.id} failed:`, r.reason);
       }
     });
   };

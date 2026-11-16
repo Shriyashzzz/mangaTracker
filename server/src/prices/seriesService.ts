@@ -286,8 +286,9 @@ async function askCatalog(name: string, queries: string[], google: boolean) {
   for (const result of results) {
     if (result.status === "rejected") {
       anyFailed = true;
+      // which series, so a refusal (Open Library's 422) can be looked into
       console.error(
-        "series volume lookup failed:",
+        `series volume lookup failed for ${name}:`,
         (result.reason as Error)?.message,
       );
       continue;

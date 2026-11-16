@@ -1,6 +1,10 @@
 import type { NextFunction, Request, Response } from "express";
 import { validationResult } from "express-validator";
 
+// an id the database can hold: its whole numbers stop at 2,147,483,647, and a
+// bigger one asked for ("/details/999999999999") failed as a 500
+export const ROW_ID = { min: 1, max: 2_147_483_647 };
+
 // ends the request with 400 when a rule failed: one message per field, the
 // first rule it broke (an empty username shouldn't also be told it's too
 // short and has invalid characters)

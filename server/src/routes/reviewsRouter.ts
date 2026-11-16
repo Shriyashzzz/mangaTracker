@@ -25,5 +25,7 @@ reviewsRouter.delete(
   reviews.removeOnShelf,
 );
 reviewsRouter.get("/reported", perMinute(60), reviews.reported);
+// the owner's page's site numbers: counts over whole tables, so a few a minute
+reviewsRouter.get("/stats", perMinute(10), reviews.stats);
 reviewsRouter.post("/:id/flag", perMinute(20), reviews.flag);
 reviewsRouter.post("/:id/decide", perMinute(60), reviews.decide);

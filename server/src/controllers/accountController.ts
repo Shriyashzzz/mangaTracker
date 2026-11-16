@@ -16,7 +16,7 @@ import { shelfSeries } from "../collector/shelfSeries.js";
 import { ownedVolumes } from "../util/shelf/ownedList.js";
 import { toSharedShelf } from "../util/shelf/sharedShelf.js";
 import { volumeFacts } from "../util/shelf/sharedVolumes.js";
-import config from "../config/config.js";
+import { isReservedName, RESERVED_MESSAGE } from "../util/reservedNames.js";
 
 // the name they show as until they pick one, and the ideas to pick from
 const withNames = <T>(userId: number, account: T) => ({
@@ -69,22 +69,6 @@ const get = async (req: Request, res: Response) => {
   res.json(withNames(req.session.userId!, account));
 };
 
-const RESERVED = [
-  "admin",
-  "administrator",
-  "moderator",
-  "support",
-  "mangatracker",
-  "kenji",
-];
-const bare = (name: string) => name.toLowerCase().replace(/[^a-z0-9]/g, "");
-export const isReservedName = (name: string) => {
-  const plain = bare(name);
-  if (!plain) return false;
-  const owner = config.ADMIN_USERNAME ? bare(config.ADMIN_USERNAME) : null;
-  return RESERVED.includes(plain) || plain === owner;
-};
-
 const update = [
   body("displayName")
     .optional({ values: "null" })
@@ -99,7 +83,7 @@ const update = [
     // readers' usernames can't be refused: that would tell anyone which
     // usernames exist, which signing in never does
     .custom((name: string) => !isReservedName(name))
-    .withMessage("That name is kept for the site. Pick another."),
+    .withMessage(RESERVED_MESSAGE),
   body("avatar").optional({ values: "null" }).isIn(AVATARS),
   body("recoveryEmail")
     .optional({ values: "null" })

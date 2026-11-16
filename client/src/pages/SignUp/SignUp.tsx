@@ -47,11 +47,14 @@ export default function SignUp() {
     }
     // The server's own rules (authController.ts), checked here first: a
     // slip of the finger shouldn't use up one of the hour's sign-ups
+    // one message a box, as the server sends them: "a!" is only told
+    // about the letters
+    const usernameSlip = !/^[a-z0-9]+$/i.test(username)
+      ? "Usernames are letters and numbers only."
+      : (username.length < 4 || username.length > 40) &&
+        "Usernames need 4 to 40 letters or numbers.";
     const slips = [
-      !/^[a-z0-9]+$/i.test(username) &&
-        "Usernames are letters and numbers only.",
-      (username.length < 4 || username.length > 40) &&
-        "Usernames need 4 to 40 letters or numbers.",
+      usernameSlip,
       password.length >= NEW_PASSWORD_MIN &&
         !password.trim() &&
         "A password needs more than spaces.",

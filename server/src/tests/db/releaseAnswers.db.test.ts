@@ -146,3 +146,36 @@ test("with release checks off, the route hands back nothing", async () => {
   const res = await agent.get("/api/manga/releases/saved").expect(200);
   expect(res.body.answers).toEqual({});
 });
+
+test("a chapter far past the newest known is refused, however it's sent", async () => {
+  const { manga, agent } = await reader("farpast");
+  // nothing known yet: up to 100,000 as before
+  await agent
+    .patch(`/api/manga/${manga.id}/bookmark`)
+    .send({ bookmark: 5000 })
+    .expect(204);
+  await saveAnswer(
+    manga,
+    {},
+    {
+      releaseStatus: { latestChapter: 220 },
+      complete: true,
+      outcome: "news",
+    },
+  );
+  const far = await agent
+    .patch(`/api/manga/${manga.id}/bookmark`)
+    .send({ bookmark: 5000 })
+    .expect(400);
+  expect(far.body.error[0].msg).toBe("Chapter 220 is the newest out.");
+  // a little past it is fine: the list can lag
+  await agent
+    .patch(`/api/manga/${manga.id}/bookmark`)
+    .send({ bookmark: 300 })
+    .expect(204);
+  // and the edit form's save is held to it too
+  await agent
+    .put(`/api/manga/${manga.id}`)
+    .send({ name: "Zzanswer Series", status: false, bookmark: 5000 })
+    .expect(400);
+});

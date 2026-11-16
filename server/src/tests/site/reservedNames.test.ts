@@ -1,5 +1,5 @@
 // display names that would pass as the site speaking are refused
-import { isReservedName } from "../../controllers/accountController.js";
+import { isReservedName } from "../../util/reservedNames.js";
 
 test("the site's own names are kept, however they're written", () => {
   expect(isReservedName("Admin")).toBe(true);

@@ -1,6 +1,7 @@
 import type { NextFunction, Request, Response } from "express";
 import mangaQueries from "../models/mangaQueries.js";
 import { sendError } from "./errorHandler.js";
+import { ROW_ID } from "./validate.js";
 
 const SIGN_IN = "Please sign in first.";
 const NO_MANGA = "We couldn't find that manga.";
@@ -27,7 +28,7 @@ export async function requireOwner(
     return;
   }
   const id = Number(req.params.id);
-  if (!Number.isInteger(id) || id <= 0) {
+  if (!Number.isInteger(id) || id < ROW_ID.min || id > ROW_ID.max) {
     sendError(res, 404, NO_MANGA);
     return;
   }
