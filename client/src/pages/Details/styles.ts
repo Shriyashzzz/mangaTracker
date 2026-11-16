@@ -109,7 +109,8 @@ export const detailsStyles = {
     "h-9 rounded-[2px] border-[1.5px] border-line-soft bg-paper px-2 font-mono text-[0.8rem] text-ink upto-720:h-11 focus:border-line focus:outline-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent focus-visible:outline-dashed",
   bookRemove:
     "tap justify-self-end text-[0.85rem] font-medium text-ink-soft underline decoration-line-soft underline-offset-3 hover:text-accent hover:decoration-current",
-  bookRemoveGap: "upto-560:hidden",
+  // under the row: what's typed in "paid" isn't an amount
+  bookPaidWrong: "col-span-full text-[0.82rem] font-medium text-accent-ink",
   // the same row when nothing in the list can be removed: no column kept
   // empty for a button
   bookRowPlain:
@@ -121,14 +122,20 @@ export const detailsStyles = {
   // its own line on phones; the picker and Add share the line under it
   booksAddLabel: "font-medium text-ink-soft upto-720:col-span-full",
   booksAddPick: "min-w-0",
+  // Add, as tall as the picker beside it: 36px, 44px on a phone
+  booksAddButton:
+    "btn btn-secondary tap h-9 px-3.5 text-[0.875rem] upto-720:h-11",
   booksSame:
     "mt-3 flex flex-wrap items-center gap-x-3 gap-y-2 text-[0.88rem] text-ink-soft",
-  // the next five rows of a long list
+  // the next five rows of a long list, or all of them, and how many are shown
   booksMore:
-    "group/more tap mt-1 flex w-full items-baseline justify-between gap-3 py-2 text-left text-[0.85rem] font-medium text-ink",
-  // only the words are a link; the count beside them isn't underlined
-  booksMoreWords:
-    "underline decoration-line-soft underline-offset-3 group-hover/more:decoration-line",
+    "mt-1 flex w-full items-baseline justify-between gap-3 py-2 text-[0.85rem] font-medium text-ink",
+  booksMoreLinks: "flex flex-wrap items-baseline gap-x-5 gap-y-1",
+  // Your reviews' "Show 5 more": the whole row is the button
+  reviewsMore:
+    "tap mt-1 flex w-full items-baseline justify-between gap-3 py-2 text-left text-[0.85rem] font-medium text-ink",
+  booksMoreLink:
+    "tap underline decoration-line-soft underline-offset-3 hover:decoration-line",
   booksMoreLeft: "font-mono text-[0.78rem] font-normal text-ink-soft",
   booksNote: "mt-2 text-[0.82rem] text-muted",
   // under the counter: the quiet ways to change what it counts. When they

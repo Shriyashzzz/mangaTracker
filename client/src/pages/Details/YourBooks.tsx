@@ -15,6 +15,8 @@ import {
   savePurchase,
 } from "../../lib/booksApi";
 import { formatPaid } from "../../lib/prices";
+import { setVolumesOwned } from "../../lib/shelf";
+import { ownedVolumes, toggleVolume } from "../../lib/ownedVolumes";
 import BookRow, { type Purchase } from "./BookRow";
 import { detailsStyles as styles } from "./styles";
 import { looseBook, rowsOf, type BookRow as Row } from "./yourBooksRows";
@@ -64,7 +66,6 @@ const STEP = 5;
 // the most books the server takes in one request
 const MOST_AT_ONCE = 50;
 const PRIVATE_NOTE = "What you paid is only yours to see.";
-// said only when there's a book to remove
 const REMOVE_NOTE = " Removing a book takes its volumes off your shelf too.";
 
 export default function YourBooks({
@@ -150,7 +151,8 @@ export default function YourBooks({
 
   const rows = rowsOf(books, owned);
   // a recorded book can be removed here; a hand-ticked volume can't
-  const canRemove = rows.some((row) => row.book);
+  // every row: a book, or a volume ticked by hand
+  const canRemove = rows.length > 0;
   const spent = spentOn(books);
   const unpriced = rows.filter((row) => row.book?.paidCents == null);
   const failed = () => setNote("That didn't save. Try again.");
@@ -204,13 +206,19 @@ export default function YourBooks({
     }
   };
 
+  // a recorded book goes with its volumes; a volume ticked by hand is
+  // unticked, as tapping its spine again does
   const remove = async (row: Row) => {
     const book = row.book;
-    if (!book) return;
     setNote("");
     try {
-      onRemoved(await removeBook(mangaId, book.id));
-      setBooks((list) => list.filter((b) => b.id !== book.id));
+      if (book) {
+        onRemoved(await removeBook(mangaId, book.id));
+        setBooks((list) => list.filter((b) => b.id !== book.id));
+      } else if (row.volume != null) {
+        const after = toggleVolume(ownedVolumes(null, owned), row.volume);
+        onRemoved(await setVolumesOwned(mangaId, after));
+      }
     } catch {
       failed();
     }
@@ -239,19 +247,32 @@ export default function YourBooks({
           />
         ))}
       </ul>
+      {/* five more at a time, or the whole list at once (One Piece's 101
+          books would be twenty clicks) */}
       {hidden > 0 && (
-        <button
-          type="button"
-          className={styles.booksMore}
-          onClick={() => setShown(shown + STEP)}
-        >
-          <span className={styles.booksMoreWords}>
-            Show {Math.min(STEP, hidden)} more
+        <div className={styles.booksMore}>
+          <span className={styles.booksMoreLinks}>
+            <button
+              type="button"
+              className={styles.booksMoreLink}
+              onClick={() => setShown(shown + STEP)}
+            >
+              Show {Math.min(STEP, hidden)} more
+            </button>
+            {hidden > STEP && (
+              <button
+                type="button"
+                className={styles.booksMoreLink}
+                onClick={() => setShown(rows.length)}
+              >
+                Show all {rows.length}
+              </button>
+            )}
           </span>
           <span className={styles.booksMoreLeft}>
             {shown} of {rows.length}
           </span>
-        </button>
+        </div>
       )}
       {unpriced.length > 1 && (
         <form
@@ -262,7 +283,7 @@ export default function YourBooks({
           }}
         >
           <label htmlFor="books-same">
-            Paid the same for the {unpriced.length} without a price?
+            Same price for the other {unpriced.length}?
           </label>
           <label className={styles.bookPaid}>
             <span aria-hidden>$</span>
@@ -270,17 +291,17 @@ export default function YourBooks({
               id="books-same"
               className={styles.bookPaidInput}
               inputMode="decimal"
-              placeholder="each"
+              placeholder="price"
               value={samePrice}
               onChange={(e) => setSamePrice(e.target.value)}
             />
           </label>
           <button
             type="submit"
-            className="btn btn-secondary btn-sm tap"
+            className={styles.booksAddButton}
             disabled={settingSame || centsOf(samePrice) === null}
           >
-            Set them
+            Apply to {unpriced.length}
           </button>
         </form>
       )}
@@ -295,6 +316,7 @@ export default function YourBooks({
             <SortMenu
               id="books-add"
               box
+              compact
               alignLeft
               menuLabel="Add a book you own"
               sortBy={picked.key}
@@ -304,8 +326,8 @@ export default function YourBooks({
           </div>
           <button
             type="button"
-            // full size (44px), as tall as the picker beside it
-            className="btn btn-secondary tap"
+            // as tall as the picker beside it, and the list's own boxes
+            className={styles.booksAddButton}
             disabled={addingNow}
             onClick={() => void addPicked()}
           >

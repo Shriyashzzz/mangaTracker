@@ -81,6 +81,10 @@ export const shelfBarStyles = {
   boxWrap: "relative w-full",
   boxButton:
     "tap group flex h-11 w-full cursor-pointer items-center justify-between gap-2 rounded-[2px] border-2 border-line bg-card px-3 text-left text-[1rem] text-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent focus-visible:outline-dashed aria-expanded:border-accent",
+  // the same box, sized like a list's small boxes (Your books' paid and
+  // date): 36px, 44px on a phone, with their lighter border and text
+  boxButtonCompact:
+    "tap group flex h-9 w-full cursor-pointer items-center justify-between gap-2 rounded-[2px] border-[1.5px] border-line bg-card px-2.5 text-left text-[0.9rem] text-ink upto-720:h-11 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent focus-visible:outline-dashed aria-expanded:border-accent",
   boxWords: "min-w-0 truncate",
   boxChevron:
     "size-4 shrink-0 text-ink-soft transition-transform duration-150 group-aria-expanded:rotate-180",

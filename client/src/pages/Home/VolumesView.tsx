@@ -75,6 +75,26 @@ export default function VolumesView({
   const pageIndex = page.key === resetKey ? Math.min(page.index, lastPage) : 0;
   const shown = manga.slice(pageIndex * PAGE_SIZE, (pageIndex + 1) * PAGE_SIZE);
   const listRef = useRef<HTMLUListElement>(null);
+  // opening a series: its row goes to the top, just under the shelf's sticky
+  // bar. Otherwise the one closing above it pulls the page, and the opened
+  // series lands somewhere else
+  const toggle = (id: number) => {
+    const opening = open !== id;
+    setOpen(opening ? id : null);
+    if (!opening) return;
+    requestAnimationFrame(() =>
+      requestAnimationFrame(() => {
+        const row = document.getElementById(`series-${id}`);
+        const bar = document.querySelector("[data-shelf-bar]");
+        if (!row) return;
+        const under = (bar?.getBoundingClientRect().bottom ?? 0) + 8;
+        window.scrollBy({
+          top: row.getBoundingClientRect().top - under,
+          behavior: "smooth",
+        });
+      }),
+    );
+  };
   // the bottom one takes them up to the new page; the top one is already there
   const pager = (scrollUp: boolean) => (
     <RangePager
@@ -141,7 +161,7 @@ export default function VolumesView({
             tourTarget={m.id === firstWithGaps}
             finish={finishOf.get(m.id)}
             open={open === m.id}
-            onToggle={() => setOpen(open === m.id ? null : m.id)}
+            onToggle={() => toggle(m.id)}
           />
         ))}
       </ul>
@@ -236,12 +256,15 @@ function ShelfTotals({ tools, owned }: { tools: ShelfTools; owned: number }) {
             {worth && value.priced < ownedVolumes && (
               // the total is of every volume, worked out from the ones
               // priced; the background jobs price the rest over a few days
+              // said plainly: it's the whole shelf, not only what's priced
               <>
                 <dd className={styles.totalNote}>
-                  {SOLD_USED}, for all {plural(ownedVolumes, "volume")}.
+                  An estimate for all {plural(ownedVolumes, "volume")}, if sold
+                  used at today's prices.
                 </dd>
                 <dd className={styles.totalNote}>
-                  {pricedSoFar(value.priced, ownedVolumes)}
+                  {value.priced.toLocaleString()} priced so far, the rest at
+                  their series' usual price.
                 </dd>
               </>
             )}
@@ -285,7 +308,7 @@ function SeriesRow({
   const owned = ownedOf(manga);
   const panelId = `volumes-${manga.id}`;
   return (
-    <li className={styles.item}>
+    <li id={`series-${manga.id}`} className={styles.item}>
       <button
         type="button"
         className={styles.row}
@@ -389,7 +412,9 @@ function SeriesVolumes({
   const firstToGet = tourTarget ? tiles.find((t) => !t.yours)?.volume : null;
   // the line above the tiles: still loading, what's missing, or all of it
   let summary = `You own all ${plural(owned.length, "volume")} we know of`;
-  if (list === undefined) summary = "Finding its volumes…";
+  // the series' list can take a moment: what they own is known already, and
+  // the tiles show it meanwhile
+  if (list === undefined) summary = `You own ${plural(owned.length, "volume")}`;
   // with the "Not on your shelf (10)" button beside it, the count of those
   // is the button's: said once, and the two fit side by side on a phone
   else if (toGet && toGet < tiles.length)

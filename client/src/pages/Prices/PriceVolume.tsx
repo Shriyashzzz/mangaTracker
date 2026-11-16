@@ -289,7 +289,12 @@ export default function PriceVolume() {
                 </span>
               )}
               {stale && (
-                <span className={styles.bestAside}> · checked {stale}</span>
+                // this price's own age: the list's "checked" is the newest
+                // look at any store, which reads as a second answer
+                <span className={styles.bestAside}>
+                  {" "}
+                  · this price seen {stale}
+                </span>
               )}
             </p>
           )}

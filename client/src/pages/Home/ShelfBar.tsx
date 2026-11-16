@@ -301,8 +301,12 @@ export function SortMenu<T extends string>({
   wordy = false,
   alignLeft = false,
   box = false,
+  compact = false,
   id,
 }: {
+  // a box sized like a list's own small boxes (36px, 44px on a phone):
+  // inside "Your books", beside the paid and date boxes
+  compact?: boolean;
   // drawn as a form's box, as wide as what it's in: where a form or a
   // settings page picks from a list. The list opens under it and scrolls
   // when it's long
@@ -351,7 +355,7 @@ export function SortMenu<T extends string>({
         <button
           type="button"
           id={id}
-          className={styles.boxButton}
+          className={compact ? styles.boxButtonCompact : styles.boxButton}
           aria-expanded={open}
           aria-haspopup="true"
           aria-label={`${menuLabel}: ${picked.label}. Change`}

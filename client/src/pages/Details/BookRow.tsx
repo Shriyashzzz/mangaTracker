@@ -11,8 +11,8 @@ type Props = {
   row: Row;
   onSave: (row: Row, change: Purchase) => void;
   onRemove: (row: Row) => void;
-  // some row in the list can be removed, so every row keeps a column for
-  // the button and they line up
+  // the list has a Remove column (every row has one now; kept so a row
+  // can still line up without it)
   removeColumn: boolean;
 };
 
@@ -24,17 +24,24 @@ export default function BookRow({
 }: Props) {
   // what's typed in the price box, until it's saved; null: showing the saved one
   const [draft, setDraft] = useState<string | null>(null);
+  // what was typed isn't an amount: it stays in the box, and the row says so
+  const [notAnAmount, setNotAnAmount] = useState(false);
   const name = rowName(row);
   const savedCents = row.book?.paidCents ?? null;
 
   // the text is read from the box itself, so a quick tab away never saves a
   // letter behind
   const savePrice = (text: string) => {
-    setDraft(null);
     const typed = text.trim();
     const cents = typed ? centsOf(typed) : null;
-    // nonsense typed: the box goes back to what's saved
-    if (typed && cents === null) return;
+    // not an amount ("twelve"): kept as typed, with a word, never dropped
+    // without one
+    if (typed && cents === null) {
+      setNotAnAmount(true);
+      return;
+    }
+    setNotAnAmount(false);
+    setDraft(null);
     if (cents === savedCents) return;
     onSave(row, { paidCents: cents });
   };
@@ -54,6 +61,7 @@ export default function BookRow({
           inputMode="decimal"
           placeholder="paid"
           aria-label={`What you paid for ${name}`}
+          aria-invalid={notAnAmount || undefined}
           value={draft ?? moneyText(savedCents)}
           onChange={(e) => setDraft(e.target.value)}
           onBlur={(e) => savePrice(e.currentTarget.value)}
@@ -70,19 +78,24 @@ export default function BookRow({
         max="2099-12-31"
         onChange={(e) => onSave(row, { boughtOn: e.target.value || null })}
       />
-      {row.book ? (
+      {removeColumn ? (
         <button
           type="button"
           className={styles.bookRemove}
-          aria-label={`Remove ${name} and its volumes`}
+          aria-label={
+            row.book
+              ? `Remove ${name} and its volumes`
+              : `Remove ${name} from your shelf`
+          }
           onClick={() => onRemove(row)}
         >
           Remove
         </button>
-      ) : (
-        // a hand-ticked volume is removed on the volume picker; this keeps
-        // the columns lined up
-        removeColumn && <span className={styles.bookRemoveGap} aria-hidden />
+      ) : null}
+      {notAnAmount && (
+        <span className={styles.bookPaidWrong} role="alert">
+          Type an amount, like 12.99
+        </span>
       )}
     </li>
   );

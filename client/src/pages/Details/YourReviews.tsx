@@ -57,7 +57,7 @@ export default function YourReviews({
       {left > 0 && (
         <button
           type="button"
-          className={styles.booksMore}
+          className={styles.reviewsMore}
           onClick={() => setShown(shown + STEP)}
         >
           Show {Math.min(STEP, left)} more
