@@ -5,6 +5,7 @@
 // config.ts). Each search takes one from today's count (api_usage, a row a
 // day, CJ_DAILY_LIMIT); none left, it throws SearchesUsedUp and the stored
 // prices stay. https://developers.cj.com/graphql/reference/Product%20Search
+import { noteCall } from "../callLog.js";
 import config from "../../config/config.js";
 import priceQueries from "../../models/priceQueries.js";
 import { monthOf } from "../../models/apiAllowance.js";
@@ -14,8 +15,13 @@ import { SearchesUsedUp } from "./serpapiKeys.js";
 
 const URL = "https://ads.api.cj.com/query";
 
-// the day in UTC: CJ doesn't say when its day turns over
-export const cjDay = () => new Date().toISOString().slice(0, 10);
+// CJ doesn't say when its day turns over, so our count keeps Pacific time,
+// like eBay's and Google Books': every daily allowance starts at the same
+// midnight, and the nightly sweep spends what's left of all of them together
+const pacificDay = new Intl.DateTimeFormat("en-CA", {
+  timeZone: "America/Los_Angeles",
+});
+export const cjDay = (at = new Date()) => pacificDay.format(at);
 const today = cjDay;
 export const cjBudgetLabel = (day = today()) => `cj:${day}`;
 export const cjCallsLeft = () =>
@@ -73,6 +79,7 @@ async function search(
       resultList { title advertiserId price { amount currency } salePrice { amount currency } link
         ... on Shopping { gtin availability }
         linkCode(pid: ${str(config.CJ_WEBSITE_ID!)}) { clickUrl } } } }`;
+  void noteCall("cj");
   const res = await fetch(URL, {
     method: "POST",
     headers: {

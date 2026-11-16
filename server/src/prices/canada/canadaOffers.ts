@@ -7,6 +7,7 @@ import {
   namesOtherVolume,
 } from "../stores/match.js";
 import {
+  CAD_SCALE,
   dropUnlikelyNew,
   isNotABook,
   isResaleSite,
@@ -55,7 +56,7 @@ export function shoppingOffers(
     if (!isSingleVolume(name) || namesOtherVolume(name, title)) continue;
     if (isNotABook(item.source)) continue;
     const priceCents = toCents(item.extracted_price);
-    if (!plausiblePrice(priceCents)) continue;
+    if (!plausiblePrice(priceCents, CAD_SCALE)) continue;
     offers.push({
       store: item.source.replace(/^Amazon CA$/i, "Amazon.ca").slice(0, 60),
       format: DIGITAL.test(item.source) ? "ebook" : "print",
@@ -87,7 +88,7 @@ export function ebayCaOffers(results: CaEbayResult[], title: string): Offer[] {
     if (!isSingleVolume(name) || namesOtherVolume(name, title)) continue;
     if (JAPANESE_EDITION.test(name) || /\bimport\b/i.test(name)) continue;
     const priceCents = toCents(price) + shipping;
-    if (!plausiblePrice(priceCents)) continue;
+    if (!plausiblePrice(priceCents, CAD_SCALE)) continue;
     offers.push({
       store: "eBay.ca",
       format: "print",

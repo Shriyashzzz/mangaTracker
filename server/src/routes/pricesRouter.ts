@@ -15,6 +15,8 @@ pricesRouter.get("/ca/:isbn", perMinute(20), prices.canadaVolume);
 // typeahead: called as people type, so it gets a bigger allowance
 pricesRouter.get("/series-search", perMinute(120), prices.seriesSearch);
 pricesRouter.get("/highlights", perMinute(60), prices.highlights);
+// the About page's "volumes priced" count, worked out hourly
+pricesRouter.get("/stats", perMinute(60), prices.stats);
 pricesRouter.get("/deals", perMinute(60), prices.deals);
 pricesRouter.get("/series-index", perMinute(60), prices.seriesIndex);
 pricesRouter.get("/series", perMinute(40), prices.series);

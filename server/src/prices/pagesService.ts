@@ -9,7 +9,8 @@ import {
   isWellKnown,
 } from "./volumeNames.js";
 import { hasNoCover } from "../models/coversAndSitemap.js";
-import priceQueries from "../models/priceQueries.js";
+import priceQueries, { SHOWN_FOR_MS } from "../models/priceQueries.js";
+import { prisma } from "../config/prisma.js";
 import { englishAuthors } from "./sources/catalog.js";
 import {
   getSeriesInfo,
@@ -365,4 +366,30 @@ export async function getHighlights() {
     deals: dealRows.map(toCard),
     recent: recentRows.map(toCard),
   };
+}
+
+// ---------- the About page's count ----------
+
+// How many volumes have a price found in the last 30 days, US or Canada:
+// "12,345 volumes priced". A real in-stock price, not just a look (a store
+// saying "we don't have it" is a look). Only recent ones, so it stays true
+// as old prices age out (priceAge.ts). Worked out at most once an hour
+const PRICED_COUNT_MS = 60 * 60_000;
+let pricedCount: { at: number; volumes: number } | null = null;
+
+export async function getPricedCount(now = Date.now()) {
+  if (pricedCount && now - pricedCount.at < PRICED_COUNT_MS)
+    return pricedCount.volumes;
+  const since = new Date(now - SHOWN_FOR_MS);
+  const rows = await prisma.$queryRaw<{ volumes: bigint }[]>`
+    SELECT COUNT(*) AS volumes FROM (
+      SELECT isbn13 FROM price_samples
+      WHERE fetched_at > ${since} AND in_stock
+      UNION
+      SELECT isbn13 FROM ca_price_samples
+      WHERE fetched_at > ${since} AND in_stock
+    ) priced
+  `;
+  pricedCount = { at: now, volumes: Number(rows[0]?.volumes ?? 0) };
+  return pricedCount.volumes;
 }

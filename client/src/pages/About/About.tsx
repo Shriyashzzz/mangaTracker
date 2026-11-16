@@ -1,4 +1,6 @@
+import { useEffect, useState } from "react";
 import { NavLink } from "react-router";
+import { getPricedCount } from "../../lib/prices";
 import TakeTourButton from "../../components/tour/TakeTourButton";
 import Mascot from "../../components/mascot/Mascot";
 
@@ -34,8 +36,22 @@ const STRIP = [
   },
 ];
 
+// the "volumes priced" count, 0 until it arrives (or if it can't)
+function usePricedCount() {
+  const [count, setCount] = useState(0);
+  useEffect(() => {
+    const controller = new AbortController();
+    getPricedCount(controller.signal)
+      .then(setCount)
+      .catch(() => {});
+    return () => controller.abort();
+  }, []);
+  return count;
+}
+
 export function AboutPage() {
   const isSignedIn = useAuth((s) => s.isSignedIn);
+  const pricedVolumes = usePricedCount();
   usePageMeta({
     title: "About",
     description:
@@ -137,6 +153,9 @@ export function AboutPage() {
               <p>
                 See what US and Canadian stores charge for any volume, and its
                 price history.
+                {/* a real count, said plainly; left out until it's loaded */}
+                {pricedVolumes > 0 &&
+                  ` ${pricedVolumes.toLocaleString("en-US")} volumes priced in the last 30 days.`}
               </p>
               <NavLink to="/" className={styles.doesLink} viewTransition>
                 Check a price →

@@ -5,6 +5,7 @@ import { prisma } from "../config/prisma.js";
 import { Prisma } from "../../generated/prisma/client.js";
 import type { CatalogBook } from "../prices/types.js";
 import { tablesOf, type Country } from "./priceTables.js";
+import { SHOWN_FOR_MS } from "./priceAge.js";
 import { withoutReprintDates } from "../prices/preorder.js";
 
 // a volume as a series' saved list knows it (the newest list, today's naming
@@ -132,6 +133,8 @@ export async function getCollectionOffers(
      AND ps.fetched_at = sc.checked_at
     WHERE ps.isbn13 IN (${Prisma.join(isbns)})
       AND ps.format IN ('set', 'omnibus') AND ps.in_stock
+      -- too old to show (priceAge.ts)
+      AND ps.fetched_at > ${new Date(Date.now() - SHOWN_FOR_MS)}
     ORDER BY COALESCE(ps.url, ps.store || ps.price_cents), ps.price_cents
   `;
 }

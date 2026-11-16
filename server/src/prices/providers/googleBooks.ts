@@ -5,6 +5,7 @@
 // Ebooks have their own ISBN, so looking up the print ISBN finds nothing.
 // Instead we search the volume's title and keep the ebook whose series name
 // and volume number match.
+import { noteCall } from "../callLog.js";
 import config from "../../config/config.js";
 import { sameVolume } from "../stores/match.js";
 import type { Provider } from "../types.js";
@@ -34,6 +35,7 @@ const googleBooks: Provider = {
       maxResults: "20",
       key: config.GOOGLE_BOOKS_API_KEY!,
     });
+    void noteCall("gbooks");
     const res = await fetch(`${URL}?${params}`, { signal });
     if (!res.ok) throw new Error(`Google Books responded ${res.status}`);
     const { items = [] } = (await res.json()) as { items?: Item[] };

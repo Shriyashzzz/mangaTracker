@@ -118,3 +118,29 @@ test("each Canadian group's last look is kept", async () => {
   // a look that found nothing still counts as a look
   expect(await stores()).toEqual([]);
 });
+
+test("a 45-day-old price stays on its own page, dated, but not on cards", async () => {
+  await priceQueries.saveCheck(
+    ISBN,
+    ["google.ca"],
+    new Map([["shopping", [offer("Amazon.ca", 1599)]]]),
+    "ca",
+  );
+  const old = new Date(Date.now() - 45 * 24 * 60 * 60 * 1000);
+  await prisma.caPriceSample.updateMany({
+    where: { isbn13: ISBN },
+    data: { fetchedAt: old },
+  });
+  await prisma.caPriceSourceCheck.updateMany({
+    where: { isbn13: ISBN },
+    data: { checkedAt: old },
+  });
+  // its own page: still there, with the day it was checked
+  const onItsPage = await priceQueries.getCurrentOffers(ISBN, "ca");
+  expect(onItsPage.map((o) => o.priceCents)).toEqual([1599]);
+  expect(new Date(onItsPage[0]!.fetchedAt).getTime()).toBe(old.getTime());
+  // a card or a total: too old to show
+  expect((await priceQueries.getKnownPrices([ISBN], "ca")).has(ISBN)).toBe(
+    false,
+  );
+});

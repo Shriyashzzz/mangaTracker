@@ -42,6 +42,7 @@ import { getCanadaPrices } from "../prices/canada/canadaPrices.js";
 import {
   getDealsPage,
   getHighlights,
+  getPricedCount,
   getSeries,
   getSeriesIndex,
   getSeriesSummary,
@@ -282,6 +283,12 @@ const seriesSets = [
     res.json({ boxSets: fresh?.boxSets ?? null });
   },
 ];
+
+// GET /stats  the About page's count: volumes priced in the last 30 days
+const stats = async (_req: Request, res: Response) => {
+  res.set("Cache-Control", "public, max-age=3600");
+  res.json({ pricedVolumes: await getPricedCount() });
+};
 
 // GET /highlights  the home page rows
 const highlights = async (_req: Request, res: Response) => {
@@ -581,6 +588,7 @@ const seriesSummary = [
 ];
 
 export default {
+  stats,
   scan,
   editions,
   seriesSets,

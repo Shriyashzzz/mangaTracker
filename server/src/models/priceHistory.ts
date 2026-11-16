@@ -20,6 +20,7 @@ import {
   groupBy,
 } from "./priceBooks.js";
 import { tablesOf, type Country } from "./priceTables.js";
+import { SHOWN_FOR_MS, stillShown } from "./priceAge.js";
 
 // samples saved before a rule changed, that it would have kept out: each is judged
 // against the other copies in its own check, the same way a new check is
@@ -225,7 +226,14 @@ export async function getCheapestCopies(
     const copies = dropUnlikelyNew(
       currentOf(group, looked.get(isbn)),
       usual.get(isbn),
-    ).filter((o) => o.inStock && o.format === "print" && fromStore(o.store));
+    ).filter(
+      (o) =>
+        o.inStock &&
+        o.format === "print" &&
+        fromStore(o.store) &&
+        // too old to show (priceAge.ts)
+        stillShown(o.fetchedAt),
+    );
     out.set(isbn, {
       new: cheapest(copies.filter((o) => o.condition === "new")),
       used: cheapest(copies.filter((o) => o.condition !== "new")),
@@ -244,10 +252,12 @@ export async function getKnownPrices(
   const [rows, looked, checks, usual] = await Promise.all([
     currentRows(isbns, country),
     lookedAt(isbns, country),
-    // "checked": the oldest of each volume's source checks, as on its page
+    // "checked": the oldest of each volume's source checks still young
+    // enough to show, as on its page
     prisma.$queryRaw<{ isbn13: string; oldest: Date }[]>`
       SELECT isbn13, MIN(checked_at) AS oldest FROM ${tablesOf(country).checks}
       WHERE isbn13 = ANY(${isbns}::text[])
+        AND checked_at > ${new Date(Date.now() - SHOWN_FOR_MS)}
       GROUP BY isbn13
     `,
     newMedians(isbns, country),
@@ -260,7 +270,8 @@ export async function getKnownPrices(
   for (const [isbn, group] of groupBy(rows, (row) => row.isbn13.trim())) {
     // checks saved before a rule changed still get held to it
     const priceCents = lowestBelievableNew(
-      currentOf(group, looked.get(isbn)),
+      // too old to show: not a price to put on a page (priceAge.ts)
+      currentOf(group, looked.get(isbn)).filter((o) => stillShown(o.fetchedAt)),
       usualOf.get(isbn),
     );
     const at = checkedAt.get(isbn);

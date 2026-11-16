@@ -58,6 +58,9 @@ const schema = z.object({
     blankToUndefined,
     z.coerce.number().int().nonnegative().default(200),
   ),
+  // the nightly sweep (collector/sweep.ts): "off" stops it. It runs where
+  // the background jobs run (production, or PRICE_FILL=on)
+  PRICE_SWEEP: z.preprocess(blankToUndefined, z.enum(["on", "off"]).optional()),
   // the same job's Canadian share: volumes a day looked at on eBay.ca, about
   // 2 eBay calls each (collector/filler.ts fillCanadaOne)
   CANADA_FILL_DAILY: z.preprocess(

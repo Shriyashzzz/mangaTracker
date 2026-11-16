@@ -63,7 +63,18 @@ const RETAILERS = new Set([
 
 // any single volume, deluxe editions included, sits inside this. It catches
 // bad listings even when there are too few to compare with each other
-export const plausiblePrice = (cents: number) => cents >= 200 && cents <= 7500;
+// (in Canadian dollars, the same range scaled: see CAD_SCALE)
+export const plausiblePrice = (cents: number, scale = 1) =>
+  cents >= 200 * scale && cents <= 7500 * scale;
+
+// Canadian prices run higher than US ones (the dollar, shipping, smaller
+// stores), so every rule here written in dollars is 1.4 times as much for a
+// Canadian price: CA$105 is the top of the plausible range, not CA$75. The
+// rules written as shares (60% of the big stores, 2.2 times) need nothing
+export const CAD_SCALE = 1.4;
+// the scale for prices in a currency: offers carry theirs
+export const priceScale = (offers: Pick<Offer, "currency">[]) =>
+  offers.some((o) => o.currency === "CAD") ? CAD_SCALE : 1;
 
 // resale sites where listings are mostly used copies from individual sellers
 const RESALE =
@@ -110,6 +121,8 @@ const isNewPrint = (o: Offer) => o.condition === "new" && o.format === "print";
 // earlier checks. It's only used against low prices: a $42 listing's own history
 // would otherwise vouch for it
 export function unlikelyNewTest(offers: Offer[], usualCents?: number | null) {
+  // the dollar amounts below, in the offers' own currency
+  const scale = priceScale(offers);
   const bigStore = offers
     .filter((o) => isNewPrint(o) && isRetailer(o.store))
     .map((o) => o.priceCents);
@@ -117,12 +130,12 @@ export function unlikelyNewTest(offers: Offer[], usualCents?: number | null) {
     ? Math.min(...bigStore) * MIN_SHARE
     : usualCents
       ? usualCents * MIN_SHARE
-      : MIN_UNKNOWN_CENTS;
+      : MIN_UNKNOWN_CENTS * scale;
   const tooDear = (o: Offer) => {
     if (bigStore.length)
       return o.priceCents > Math.min(...bigStore) * MAX_TIMES;
     // a normal volume's price is fine, however cheap the used copies are
-    if (o.priceCents <= MAX_NORMAL_CENTS) return false;
+    if (o.priceCents <= MAX_NORMAL_CENTS * scale) return false;
     const others = offers
       .filter((other) => other !== o && other.format === "print")
       .map((other) => other.priceCents);

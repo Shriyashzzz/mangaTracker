@@ -14,7 +14,7 @@ import { getSeriesWithVolumes, upcomingReleaseOf } from "../service.js";
 import { scanIfNeverScanned } from "../boxSetScan.js";
 import { seriesName } from "../stores/match.js";
 import config from "../../config/config.js";
-import priceQueries from "../../models/priceQueries.js";
+import priceQueries, { shownOnItsPage } from "../../models/priceQueries.js";
 import {
   ebayApiEnabled,
   ebayCallsLeft,
@@ -75,7 +75,10 @@ async function saved(
     priceQueries.getSourceChecks(isbn13, "ca"),
   ]);
   const history = await priceQueries.getPriceHistory(isbn13, usual, "ca");
-  const times = [...checks.values()].map((at) => at.getTime());
+  // only the looks whose prices are still shown on this page (priceAge.ts)
+  const times = [...checks.values()]
+    .filter((at) => shownOnItsPage(at))
+    .map((at) => at.getTime());
   return {
     status,
     offers: dropUnlikelyNew(current, usual).map((o) => ({

@@ -6,6 +6,7 @@ import { startUsedFiller } from "./collector/usedFiller.js";
 import { startNewPriceFiller } from "./collector/newPriceFiller.js";
 import { startAnimeFiller } from "./collector/animeFiller.js";
 import { startSeriesFiller } from "./prices/seriesFiller.js";
+import { startSweep } from "./collector/sweep.js";
 
 app.listen(config.PORT, () => {
   console.log(`API running on http://localhost:${config.PORT}`);
@@ -16,4 +17,7 @@ app.listen(config.PORT, () => {
   startAnimeFiller();
   // background volume lists for series nobody has opened yet (same switch)
   startSeriesFiller();
+  // the day's unused free calls, spent pricing unexplored series at night
+  // (same switch, and PRICE_SWEEP=off)
+  startSweep();
 });

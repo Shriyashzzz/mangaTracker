@@ -5,7 +5,10 @@ import { titleVolume } from "./volumeNames.js";
 import { hasAnimeAnswer } from "./afterAnime/afterAnime.js";
 import { attachNoBookReviews, seriesReviews } from "../reviews/reviews.js";
 import { savedBoxSets } from "./boxSetScan.js";
-import priceQueries, { type Country } from "../models/priceQueries.js";
+import priceQueries, {
+  stillShown,
+  type Country,
+} from "../models/priceQueries.js";
 import { canadaBoxSetLinks, canadaOfferLink } from "./canada/canadaLinks.js";
 import { searchVolumesDetailed } from "./sources/catalog.js";
 import { getSeriesInfo, knownSeriesName } from "./sources/anilist.js";
@@ -716,8 +719,10 @@ export async function getSeriesWithVolumes(
   const ratingOf = new Map(
     (reviews?.volumes ?? []).map((rated) => [rated.isbn13, rated.average]),
   );
-  // a scanned set has no book of its own: it borrows the first volume's ISBN
-  const scannedSets = (scanned?.sets ?? []).map((set) => ({
+  // a scanned set has no book of its own: it borrows the first volume's ISBN.
+  // A scan too old to show (priceAge.ts) shows none
+  const scanShown = scanned ? stillShown(new Date(scanned.at)) : false;
+  const scannedSets = (scanShown ? (scanned?.sets ?? []) : []).map((set) => ({
     ...set,
     isbn13: volumes[0]?.isbn13 ?? "",
   }));
@@ -743,6 +748,9 @@ export async function getSeriesWithVolumes(
       volume: v.volume,
       coverUrl: v.coverUrl,
       knownPriceCents: known.get(v.isbn13)?.priceCents ?? null,
+      // when that price was checked: a total counting one over a week old
+      // says "About" (priceAge.ts)
+      knownCheckedAt: known.get(v.isbn13)?.checkedAt ?? null,
       recordedCents: recorded.get(v.isbn13)?.new ?? null,
       usedCents: cheapest.get(v.isbn13)?.used?.cents ?? null,
       // readers' average for this volume, when any have rated it

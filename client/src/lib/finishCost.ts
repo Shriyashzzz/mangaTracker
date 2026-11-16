@@ -185,13 +185,28 @@ export function usedCopies(
 // weighing up a series before buying it. Null with nothing priced. The
 // estimate is worked out from any priced volume, but only said when most of
 // the series is priced (`enough`), like "Finish the series"
+// a price checked over a week ago still shows, with its age, but a total
+// counting one is "About", not exact (the server's models/priceAge.ts)
+const WEEK_MS = 7 * 24 * 60 * 60 * 1000;
+const isFresh = (checkedAt: string | null | undefined, now: number) =>
+  !checkedAt || now - new Date(checkedAt).getTime() <= WEEK_MS;
+
 export function seriesCost(
-  volumes: { knownPriceCents: number | null; isbn13?: string }[],
+  volumes: {
+    knownPriceCents: number | null;
+    knownCheckedAt?: string | null;
+    isbn13?: string;
+  }[],
+  now = Date.now(),
 ): SeriesCost | null {
   const books = oneOfEachBook(volumes);
   const prices: number[] = [];
+  let anyOld = false;
   for (const book of books)
-    if (book.knownPriceCents != null) prices.push(book.knownPriceCents);
+    if (book.knownPriceCents != null) {
+      prices.push(book.knownPriceCents);
+      if (!isFresh(book.knownCheckedAt, now)) anyOld = true;
+    }
   const usual = median(prices);
   if (usual === null) return null;
 
@@ -204,7 +219,8 @@ export function seriesCost(
     priced: volumes.filter((v) => v.knownPriceCents != null).length,
     estimateCents: cents + unpricedBooks * usual,
     usualCents: usual,
-    complete: unpricedBooks === 0,
+    // every one priced, and every price under a week old
+    complete: unpricedBooks === 0 && !anyOld,
     enough: prices.length >= books.length * ENOUGH_PRICED,
   };
 }

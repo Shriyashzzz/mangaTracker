@@ -10,6 +10,7 @@
 // Here: the switch that turns them on, which volumes they look at, which of
 // those a store has never been asked about, the memory of what was tried
 // lately, and the timer that runs a job.
+import { asBackground } from "../prices/callLog.js";
 import config from "../config/config.js";
 import { tablesOf, type Country } from "../models/priceTables.js";
 import { prisma } from "../config/prisma.js";
@@ -143,8 +144,11 @@ export function startEvery(
   run: () => Promise<unknown>,
   { everyMs, firstAfterMs }: { everyMs: number; firstAfterMs: number },
 ) {
+  // its calls count as the background's, apart from visitors' (callLog.ts)
   const safely = () =>
-    run().catch((e: Error) => console.error(`${name} failed:`, e.message));
+    asBackground(run).catch((e: Error) =>
+      console.error(`${name} failed:`, e.message),
+    );
   setTimeout(safely, firstAfterMs).unref();
   const timer = setInterval(safely, everyMs);
   timer.unref();

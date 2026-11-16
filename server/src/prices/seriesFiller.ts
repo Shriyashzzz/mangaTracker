@@ -7,6 +7,7 @@
 //
 // Runs where the price filler runs (collector/filler.ts: production, or
 // PRICE_FILL=on; PRICE_FILL=off stops both)
+import { asBackground } from "./callLog.js";
 import { listKnownSeries } from "./sources/anilist.js";
 import {
   forgetKnownVolumes,
@@ -42,7 +43,9 @@ async function nextSeries(now = Date.now()): Promise<string | null> {
   return missing[0]?.name ?? null;
 }
 
-async function fillSeries(now = Date.now()) {
+// builds the next missing list: the most popular series with none. Also
+// used by the nightly sweep, when Google Books has calls to spare
+export async function fillSeries(now = Date.now()) {
   const name = await nextSeries(now);
   if (!name) return null;
   tried.set(name, now);
@@ -56,8 +59,9 @@ let timer: ReturnType<typeof setInterval> | null = null;
 // started by server.ts, never by the tests
 export function startSeriesFiller() {
   if (timer || !fillerOn()) return;
+  // its calls count as the background's (callLog.ts)
   const run = () =>
-    fillSeries().catch((e: Error) =>
+    asBackground(fillSeries).catch((e: Error) =>
       console.error("Background series lists failed:", e.message),
     );
   setTimeout(run, 90_000).unref();

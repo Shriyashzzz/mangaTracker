@@ -3,6 +3,7 @@
 // it replaces those searches in both countries. Needs EBAY_CLIENT_ID +
 // EBAY_CLIENT_SECRET (a production keyset) from developer.ebay.com.
 // https://developer.ebay.com/api-docs/buy/browse/resources/item_summary/methods/search
+import { noteCall } from "../callLog.js";
 import config from "../../config/config.js";
 import { cheapestOfEach, toCents } from "../offerHelpers.js";
 import { ebayAffiliateUrl, ebayCampaignId } from "../stores/affiliates.js";
@@ -36,13 +37,15 @@ import {
   seriesThenVolume,
   volumeOf,
 } from "../stores/match.js";
-import { plausiblePrice } from "../stores/retailers.js";
+import { CAD_SCALE, plausiblePrice } from "../stores/retailers.js";
 
 // a used copy found by its own ISBN can be out of print, and cost what it
 // does now (xxxHOLiC 19 at $91, Parasyte 8 at $298). A new one, or one
 // matched by title, keeps the usual ceiling: a "new" copy far above it is a
 // collector's edition or a mistake, not this paperback
-const plausibleUsedByIsbn = (cents: number) => cents >= 200 && cents <= 50_000;
+// (eBay.ca's in Canadian dollars: scale)
+const plausibleUsedByIsbn = (cents: number, scale: number) =>
+  cents >= 200 * scale && cents <= 50_000 * scale;
 
 // a distributor's code ("(C: 1-0-0)") and an ISBN written with dashes read
 // like volume numbers: they go before a title is read
@@ -53,8 +56,8 @@ const cleanTitle = (title: string) =>
 
 // a box set can cost what many volumes do, but not under $3 a volume: that's
 // one volume's price on a listing naming the whole run
-const plausibleSetPrice = (cents: number, size: number) =>
-  cents >= Math.max(200, size * 300) && cents <= 100_000;
+const plausibleSetPrice = (cents: number, size: number, scale: number) =>
+  cents >= Math.max(200, size * 300) * scale && cents <= 100_000 * scale;
 import { isCollection, type Offer, type Provider } from "../types.js";
 import priceQueries from "../../models/priceQueries.js";
 import { monthOf } from "../../models/apiAllowance.js";
@@ -145,6 +148,12 @@ async function readEbayCount(signal: AbortSignal): Promise<boolean> {
     return false;
   }
 }
+
+// when eBay last answered 429 (too many calls, a short window or the day).
+// The check that got it fails quietly, so the nightly sweep reads this to
+// stop rather than run through its queue (collector/sweep.ts)
+let lastRefusedAt = 0;
+export const ebayRefusedSince = (since: number) => lastRefusedAt >= since;
 
 const TOKEN_URL = "https://api.ebay.com/identity/v1/oauth2/token";
 const SEARCH_URL = "https://api.ebay.com/buy/browse/v1/item_summary/search";
@@ -303,18 +312,20 @@ function singleFits({ name, rest }: Listing, asked: Asked) {
   );
 }
 
-// a price a copy like this could really go for
+// a price a copy like this could really go for. `scale`: 1 for US dollars,
+// CAD_SCALE for eBay.ca's Canadian dollars
 function priceIsPlausible(
   priceCents: number,
   condition: "new" | "used",
   isSet: boolean,
   rest: string,
   by: Asked["by"],
+  scale: number,
 ) {
-  if (isSet) return plausibleSetPrice(priceCents, setSize(rest));
+  if (isSet) return plausibleSetPrice(priceCents, setSize(rest), scale);
   if (by === "isbn" && condition === "used")
-    return plausibleUsedByIsbn(priceCents);
-  return plausiblePrice(priceCents);
+    return plausibleUsedByIsbn(priceCents, scale);
+  return plausiblePrice(priceCents, scale);
 }
 
 export function browseOffers(
@@ -376,7 +387,9 @@ export function browseOffers(
     const priceCents =
       toCents(Number(item.price.value)) + toCents(Number(shippingValue));
     const condition = item.conditionId === "1000" ? "new" : "used";
-    if (!priceIsPlausible(priceCents, condition, isSet, rest, by)) continue;
+    const scale = market === "CA" ? CAD_SCALE : 1;
+    if (!priceIsPlausible(priceCents, condition, isSet, rest, by, scale))
+      continue;
 
     let format: Offer["format"] = "print";
     if (isSet) format = isOmnibus ? "omnibus" : "set";
@@ -456,6 +469,7 @@ async function browse(
     limit: "50",
   });
   const campaignId = ebayCampaignId();
+  void noteCall("ebay");
   const res = await fetch(`${SEARCH_URL}?${params}`, {
     headers: {
       Authorization: `Bearer ${token}`,
@@ -469,6 +483,7 @@ async function browse(
     signal,
   });
   if (res.status === 429) {
+    lastRefusedAt = Date.now();
     // too many calls: eBay's own count says whether it's the day's allowance
     // (then ours is raised to it) or a short burst (this search just fails).
     // If it can't be read, the day is closed to be safe

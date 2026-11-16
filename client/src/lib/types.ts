@@ -235,6 +235,8 @@ export type SeriesVolume = {
   volume: number;
   coverUrl: string;
   knownPriceCents: number | null;
+  // when that price was checked (prices over 30 days old aren't sent at all)
+  knownCheckedAt?: string | null;
   // what it has usually sold for new, from every price recorded: for
   // estimates, when no store has it right now (lib/finishCost.ts)
   recordedCents?: number | null;

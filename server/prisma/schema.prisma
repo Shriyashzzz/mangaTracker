@@ -176,6 +176,8 @@ model PriceSample {
   source     String?  @db.VarChar(20)
 
   @@index([isbn13, fetchedAt(sort: Desc)], map: "price_samples_isbn_time")
+  // the About page's count reads by time alone
+  @@index([fetchedAt])
   @@map("price_samples")
 }
 
@@ -341,6 +343,7 @@ model CaPriceSample {
   source     String?  @db.VarChar(20)
 
   @@index([isbn13, fetchedAt(sort: Desc)])
+  @@index([fetchedAt])
   @@map("ca_price_samples")
 }
 

@@ -5,6 +5,7 @@
 import { volumeHeading, titleVolume, isWellKnown } from "./volumeNames.js";
 import { hasNoCover } from "../models/coversAndSitemap.js";
 import priceQueries, {
+  shownOnItsPage,
   type Book,
   type Country,
 } from "../models/priceQueries.js";
@@ -372,7 +373,10 @@ async function pricesCheckedAt(isbn13: string) {
     priceQueries.getLastCheck(isbn13),
     priceQueries.getSourceChecks(isbn13),
   ]);
-  const times = [...sourceChecks.values()].map((at) => at.getTime());
+  // only the looks whose prices are still shown on this page (priceAge.ts)
+  const times = [...sourceChecks.values()]
+    .filter((at) => shownOnItsPage(at))
+    .map((at) => at.getTime());
   return times.length ? new Date(Math.min(...times)) : lastCheck?.checkedAt;
 }
 

@@ -56,6 +56,13 @@ export const getSeriesIndex = (signal?: AbortSignal) =>
 export const getHighlights = (signal?: AbortSignal) =>
   getJson<Highlights>("/api/prices/highlights", signal);
 
+// how many volumes have a price checked in the last 30 days, US or Canada
+// (the About page). Worked out hourly on the server
+export const getPricedCount = (signal?: AbortSignal) =>
+  getJson<{ pricedVolumes: number }>("/api/prices/stats", signal).then(
+    (r) => r.pricedVolumes,
+  );
+
 // the /deals page: volumes now well under their usual price
 export const getDeals = (signal?: AbortSignal) =>
   getJson<{ deals: PriceCard[] }>("/api/prices/deals", signal);

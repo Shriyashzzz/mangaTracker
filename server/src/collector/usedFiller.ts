@@ -70,6 +70,15 @@ async function saveLook(isbn13: string, offers: Map<string, Offer>) {
 // how many Better World Books had, for the logs and the tests. A run that
 // fails saves nothing, so the same volumes wait for the next one: an outage
 // costs a request every five minutes, never a wrong "they don't have it"
+// asks Better World Books about these volumes (50 to a request) and saves
+// each answer, "they don't have it" included. For the sweep, which asks
+// about volumes no shelf holds yet
+export async function askUsedAbout(isbns: string[], signal: AbortSignal) {
+  const offers = await bwbOffers(isbns, signal);
+  for (const isbn13 of isbns) await saveLook(isbn13, offers);
+  return offers.size;
+}
+
 export async function fillUsedOnce(
   now = new Date(),
 ): Promise<"off" | { asked: number; found: number }> {

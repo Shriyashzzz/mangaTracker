@@ -1,9 +1,11 @@
 // Which "new" copies are believed. A wrong call either puts a fake price in
 // the headline and history, or hides a real comic shop's copy
 import {
+  CAD_SCALE,
   dropUnlikelyNew,
   isRetailer,
   lowestBelievableNew,
+  plausiblePrice,
 } from "../../prices/stores/retailers.js";
 import type { Offer } from "../../prices/types.js";
 
@@ -194,5 +196,33 @@ describe("lowestBelievableNew", () => {
     expect(
       lowestBelievableNew([offer("ThriftBooks", 300, { condition: "used" })]),
     ).toBeNull();
+  });
+});
+
+// Canadian prices run higher: the rules written in dollars are 1.4 times as
+// much for them, so a real CA$90 deluxe edition isn't thrown out
+describe("Canadian dollars", () => {
+  const cad = (store: string, priceCents: number): Offer => ({
+    store,
+    format: "print",
+    condition: "new",
+    priceCents,
+    currency: "CAD",
+    inStock: true,
+    url: null,
+  });
+
+  test("the plausible range is scaled", () => {
+    expect(plausiblePrice(9000)).toBe(false);
+    expect(plausiblePrice(9000, CAD_SCALE)).toBe(true);
+    expect(plausiblePrice(11_000, CAD_SCALE)).toBe(false);
+  });
+
+  test("an unknown seller's CA$45 copy needs no vouching, as a $32 one doesn't", () => {
+    // under 1.4 × $35: a normal volume's price in Canada
+    const offers = [cad("Some Shop", 4500)];
+    expect(dropUnlikelyNew(offers)).toEqual(offers);
+    // the same number in US dollars is over $35 with nothing to vouch for it
+    expect(dropUnlikelyNew([{ ...offers[0]!, currency: "USD" }])).toEqual([]);
   });
 });

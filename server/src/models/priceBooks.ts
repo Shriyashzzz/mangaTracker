@@ -13,6 +13,7 @@ import {
 } from "../prices/stores/storeLinks.js";
 import type { Offer } from "../prices/types.js";
 import { tablesOf, type Country } from "./priceTables.js";
+import { shownOnItsPage } from "./priceAge.js";
 
 export type { Book };
 
@@ -239,15 +240,20 @@ export async function getCurrentRows(isbn13: string, country: Country = "us") {
   return currentOf(rows, looked.get(isbn13));
 }
 
-// the same, as plain offers for pages
+// the same, as plain offers for the volume's own page (and its preview for
+// search engines): prices up to 90 days old, which the page dates
+// (priceAge.ts). getCurrentRows keeps them all, for judging a new check
 export async function getCurrentOffers(
   isbn13: string,
   country: Country = "us",
 ): Promise<StoredOffer[]> {
-  return (await getCurrentRows(isbn13, country)).map(
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    ({ isbn13: _isbn, source: _source, ...offer }) => offer,
-  );
+  const rows = await getCurrentRows(isbn13, country);
+  return rows
+    .filter((row) => shownOnItsPage(row.fetchedAt))
+    .map(
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      ({ isbn13: _isbn, source: _source, ...offer }) => offer,
+    );
 }
 
 export const groupBy = <T, K>(items: T[], keyOf: (item: T) => K) => {

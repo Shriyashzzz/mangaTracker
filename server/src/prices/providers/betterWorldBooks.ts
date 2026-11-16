@@ -12,6 +12,7 @@
 // scope; see config.ts). An item's own link already carries our tracking and
 // goes to that book's page.
 // https://integrations.impact.com/impact-publisher/reference/search-catalog-items
+import { noteCall } from "../callLog.js";
 import config from "../../config/config.js";
 import type { Offer, Provider } from "../types.js";
 import { SearchesUsedUp } from "./serpapiKeys.js";
@@ -76,6 +77,7 @@ async function getPage(path: string, signal: AbortSignal): Promise<Page> {
   const login = Buffer.from(
     `${config.IMPACT_ACCOUNT_SID}:${config.IMPACT_AUTH_TOKEN}`,
   ).toString("base64");
+  void noteCall("impact");
   const res = await fetch(`https://api.impact.com${path}`, {
     headers: { Authorization: `Basic ${login}`, Accept: "application/json" },
     signal,
