@@ -10,6 +10,7 @@ import { starsOf } from "./reviews/reviewText";
 import { pricesStyles as styles } from "./styles";
 import { isMobile } from "react-device-detect";
 import { hasBottomBar } from "../../lib/bottomBar";
+import { keepFocus, onMouseHover } from "../../lib/keepFocus";
 
 const SHOWN = 5;
 const DEBOUNCE_MS = 250;
@@ -218,9 +219,9 @@ export default function SeriesSearchBox({
                 role="option"
                 aria-selected={active === i}
                 className={`${styles.suggestion} ${active === i ? styles.suggestActive : ""}`}
-                onPointerDown={(e) => e.preventDefault()}
+                {...keepFocus}
                 onClick={() => pick(s)}
-                onMouseEnter={() => setActive(i)}
+                {...onMouseHover(() => setActive(i))}
               >
                 <span className={styles.suggestThumb}>
                   <SeriesPicture name={s.name} url={s.thumbUrl} sizes="34px" />
@@ -249,9 +250,9 @@ export default function SeriesSearchBox({
                 role="option"
                 aria-selected={active === shown.length}
                 className={`${styles.seeAll} ${active === shown.length ? styles.suggestActive : ""}`}
-                onPointerDown={(e) => e.preventDefault()}
+                {...keepFocus}
                 onClick={seeAll}
-                onMouseEnter={() => setActive(shown.length)}
+                {...onMouseHover(() => setActive(shown.length))}
               >
                 See all results for “{q}”
               </li>

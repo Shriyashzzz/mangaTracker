@@ -1,4 +1,5 @@
-import { useId, useState, type KeyboardEvent } from "react";
+import { useId, useRef, useState, type KeyboardEvent } from "react";
+import { keepFocus, onMouseHover } from "../../lib/keepFocus";
 import { pricesStyles as list } from "../Prices/styles";
 import { formStyles as styles } from "../../styles/form";
 import type { CoverHit } from "../../lib/anilist";
@@ -55,6 +56,15 @@ export default function TitleField({
   const listId = useId();
   const typed = value.trim();
   const showing = open && typed.length >= MIN_QUERY;
+
+  // true for a moment after a press starts on the list: the box's blur
+  // reads it (a touch's mousedown comes after its pointerup, so it can't
+  // simply end with the press)
+  const pressingList = useRef(false);
+  const notePress = () => {
+    pressingList.current = true;
+    setTimeout(() => (pressingList.current = false), 600);
+  };
 
   const pick = (hit: CoverHit) => {
     setOpen(false);
@@ -125,7 +135,12 @@ export default function TitleField({
           if (hasBottomBar())
             e.currentTarget.scrollIntoView({ block: "start" });
         }}
-        onBlur={() => setOpen(false)}
+        onBlur={(e) => {
+          // a press on the list took the cursor anyway (a browser that
+          // ignores keepFocus): back in the box, so the pick still lands
+          if (pressingList.current) e.currentTarget.focus();
+          else setOpen(false);
+        }}
         onKeyDown={onKeyDown}
         maxLength={150}
         autoComplete="off"
@@ -137,7 +152,8 @@ export default function TitleField({
         // keeps focus in the box, so a click lands before it closes
         <div
           className={styles.titleList}
-          onPointerDown={(e) => e.preventDefault()}
+          {...keepFocus}
+          onPointerDownCapture={notePress}
         >
           <ul id={listId} role="listbox" aria-label="Matches from AniList">
             {hits.map((hit, i) => (
@@ -148,7 +164,7 @@ export default function TitleField({
                 aria-selected={active === i}
                 className={`${list.suggestion} ${styles.titleOption} ${active === i ? list.suggestActive : ""}`}
                 onClick={() => pick(hit)}
-                onMouseEnter={() => setActive(i)}
+                {...onMouseHover(() => setActive(i))}
               >
                 <span className={list.suggestThumb}>
                   <img src={hit.cover} alt="" loading="lazy" />

@@ -17,6 +17,7 @@ import {
 } from "../../components/icons/Icons";
 import { SORT_OPTIONS } from "../../lib/shelf";
 import { shelfBarStyles as styles } from "./shelfBarStyles";
+import { keepFocus } from "../../lib/keepFocus";
 
 type ShelfView = {
   value: string;
@@ -181,7 +182,7 @@ export default function ShelfBar({
             className={styles.searchClose}
             aria-label="Close search"
             // before the input's blur, so a tap here always closes
-            onPointerDown={(e) => e.preventDefault()}
+            {...keepFocus}
             onClick={() => {
               onQuery("");
               setSearchOpen(false);
