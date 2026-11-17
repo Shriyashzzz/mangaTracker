@@ -13,6 +13,13 @@ const suggestionRow = "flex cursor-pointer items-center gap-3 rounded-[2px]";
 // underlined text link look used across the pages
 const softLink = "underline decoration-line-soft underline-offset-3";
 
+// a row of store names to tap ("More places to look", "Looking for a box
+// set?"). On a laptop they sit in a line, each as wide as its name. On a
+// phone that left a ragged edge and a gap on the right, so there they're an
+// even grid of two, a full finger tall; an odd one out takes the whole row
+const storeButtons =
+  "flex flex-wrap gap-2 upto-720:grid upto-720:grid-cols-2 upto-720:[&>li:last-child:nth-child(odd)]:col-span-2 [&_a]:tap [&_a]:inline-block [&_a]:rounded-[2px] [&_a]:border-[1.5px] [&_a]:border-line [&_a]:bg-card [&_a]:px-[0.8rem] [&_a]:py-[0.35rem] [&_a]:text-[0.88rem] [&_a]:font-medium [&_a]:transition-[background-color,color] [&_a]:duration-120 [&_a]:ease-[ease] [&_a]:hover:bg-ink [&_a]:hover:text-paper upto-720:[&_a]:flex upto-720:[&_a]:min-h-11 upto-720:[&_a]:items-center upto-720:[&_a]:justify-center upto-720:[&_a]:text-center";
+
 export const pricesStyles = {
   // ---------- price home + search ----------
   page: "prices-page flex flex-col gap-8",
@@ -21,7 +28,13 @@ export const pricesStyles = {
   // the two halves of the app, side by side for anyone new
   homeTitle:
     "font-brand text-[clamp(2.1rem,6.5vw,4.6rem)] leading-[0.98] font-normal tracking-[0.01em] text-balance uppercase",
+  // a word in a heading painted over with one tilted stroke, the letters
+  // knocked out of it: "tracked" and "priced" here
   homeHit: "inline-block -rotate-2 bg-ink px-[0.12em] text-paper",
+  // the same stroke in the accent with white letters, on After the anime's
+  // heading: the colour of the "Finished the anime?" door on this page that
+  // leads there, at the shade white letters can be read on (index.css --paint)
+  accentHit: "inline-block -rotate-2 bg-paint px-[0.12em] text-on-paint",
   halves:
     "grid grid-cols-2 gap-[clamp(1rem,2.5vw,1.5rem)] upto-860:grid-cols-[minmax(0,1fr)] [&>*]:min-w-0",
   // side by side both halves are the same height, the title level with the
@@ -132,13 +145,15 @@ export const pricesStyles = {
   editionUnlisted:
     "row-span-2 self-center text-right font-mono text-[0.78rem] text-muted",
   // signed out on a volume page: the button and what tracking gets them
-  trackPitch: "flex max-w-[34rem] flex-col items-start gap-2",
+  // on a phone the button is as wide as the column it sits in
+  trackPitch:
+    "flex max-w-[34rem] flex-col items-start gap-2 upto-720:items-stretch",
   // the button says enough on a phone, where the prices need the room
   trackWhy: "text-[0.85rem] leading-snug text-ink-soft upto-720:hidden",
   // what collecting the whole series costs: a printed receipt-like slip with
   // the total in the display face; the button drops under it on a phone
   costBox:
-    "mb-8 flex flex-wrap items-center justify-between gap-x-8 gap-y-4 border-2 border-line bg-card px-5 py-4 shadow-ink upto-520:px-4",
+    "mb-8 flex flex-wrap items-center justify-between gap-x-8 gap-y-4 border-2 border-line bg-card px-5 py-4 shadow-ink upto-520:px-4 upto-520:[&>.btn]:w-full",
   costText: "flex min-w-0 flex-col gap-1",
   costLabel:
     "font-brand text-[1.05rem] leading-none font-normal tracking-[0.04em] text-accent uppercase",
@@ -320,8 +335,7 @@ export const pricesStyles = {
   // (its full name is the tooltip)
   statDate: "font-mono text-[0.75rem]! leading-[1.35] text-muted",
   statStore: "truncate font-mono text-[0.75rem]! leading-[1.35] text-muted",
-  storeLinks:
-    "flex flex-wrap gap-2 [&_a]:tap [&_a]:inline-block [&_a]:rounded-[2px] [&_a]:border-[1.5px] [&_a]:border-line [&_a]:bg-card [&_a]:px-[0.8rem] [&_a]:py-[0.35rem] [&_a]:text-[0.88rem] [&_a]:font-medium [&_a]:transition-[background-color,color] [&_a]:duration-120 [&_a]:ease-[ease] [&_a]:hover:bg-ink [&_a]:hover:text-paper",
+  storeLinks: storeButtons,
   disclosure:
     "mt-3 max-w-[62ch] text-[0.78rem] leading-normal text-muted italic",
   amazonDisclosure: "mt-10 text-right text-[0.75rem] text-muted",
@@ -329,7 +343,7 @@ export const pricesStyles = {
   // stores with no price, tucked under the list they belong with
   otherStores: "mt-3",
   otherStoresTitle: "mb-2 font-body text-[0.92rem] font-normal text-ink-soft",
-  // history folded shut: most people only need the one number on its heading
+  // the price history: open to start with, and its heading folds it shut
   historyFold: "group/fold",
   historySummary:
     "flex min-h-11 cursor-pointer list-none flex-wrap items-center gap-x-3 [&_h2]:mb-0 [&::-webkit-details-marker]:hidden [&_svg]:ml-auto [&_svg]:size-5 [&_svg]:transition-transform [&_svg]:duration-150 group-open/fold:[&_svg]:rotate-180 group-open/fold:mb-3",
@@ -342,8 +356,22 @@ export const pricesStyles = {
   undoBtn: "font-semibold text-accent underline underline-offset-3",
   // holds the button's place while we check the shelf
   shelfPending: "pointer-events-none opacity-55",
-  // a series not on the shelf yet: to-read, or "I own Vol. 2", side by side
-  shelfChoices: "flex flex-wrap items-center gap-3",
+  // a series not on the shelf yet: to-read, "I own Vol. 2" and "+ To buy",
+  // side by side. Beside a phone's cover there's no room for three in a
+  // line, and three stacked pushed the prices down: there, to-read takes
+  // the column's width and the other two share the row under it, all a
+  // full finger tall. (Lines of words, and a To buy button with no "I own"
+  // beside it, take a whole row.)
+  shelfChoices:
+    "flex flex-wrap items-center gap-3 upto-720:grid upto-720:w-full upto-720:grid-cols-2 upto-720:gap-2 upto-720:[&_.btn]:h-11 upto-720:[&_.btn]:w-full upto-720:[&_.btn]:px-2 upto-720:[&>p]:col-span-2 upto-720:[&>button:nth-child(2)]:col-span-2",
+  // the one button of a series on the shelf, full size like "+ To buy"
+  // beside it: on a phone it shares its row with that, or fills the row
+  // when it's alone
+  shelfButton:
+    "upto-720:min-w-0 upto-720:flex-1 upto-720:basis-0 upto-720:px-1 upto-720:text-[0.875rem]",
+  // "+ To buy" beside it, the same height
+  shelfMore:
+    "flex flex-wrap items-center gap-3 upto-720:min-w-0 upto-720:flex-1 upto-720:basis-0 upto-720:gap-y-1 upto-720:[&_.btn]:h-11 upto-720:[&_.btn]:w-full upto-720:[&_.btn]:px-2 upto-720:[&_.btn]:text-[0.875rem]",
   siblings: "mt-10 border-t-[1.5px] border-dashed border-line-soft pt-6",
 
   // ---------- shared by series and volume pages ----------
@@ -416,8 +444,7 @@ export const pricesStyles = {
   // "Looking for a box set? Try [stores]": a quiet row at the foot of the page
   setSearch: "mt-10",
   setSearchTitle: "mb-2 font-body text-[0.92rem] font-normal text-ink-soft",
-  setSearchStores:
-    "flex flex-wrap gap-2 [&_a]:tap [&_a]:inline-block [&_a]:rounded-[2px] [&_a]:border-[1.5px] [&_a]:border-line [&_a]:bg-card [&_a]:px-[0.8rem] [&_a]:py-[0.35rem] [&_a]:text-[0.88rem] [&_a]:font-medium [&_a]:transition-[background-color,color] [&_a]:duration-120 [&_a]:ease-[ease] [&_a]:hover:bg-ink [&_a]:hover:text-paper",
+  setSearchStores: storeButtons,
   setDisclosure: "mt-2 text-[0.72rem] leading-snug text-muted italic",
   seriesCover:
     "aspect-2/3 w-[clamp(110px,16vw,180px)] border-[1.5px] border-line object-cover shadow-[6px_6px_0_var(--hard-shadow)] upto-720:w-24",

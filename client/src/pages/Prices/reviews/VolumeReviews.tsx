@@ -196,7 +196,7 @@ export default function VolumeReviews({
             </p>
             <button
               type="button"
-              className="btn btn-primary"
+              className="btn btn-primary upto-520:w-full"
               onClick={startWriting}
             >
               Write the first review
