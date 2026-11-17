@@ -77,6 +77,9 @@ export type SeriesInfo = {
   // who wrote and drew it, in English letters ("Eiichiro Oda"), for volumes
   // whose catalog record only names them in Japanese. Missing from older rows
   authors?: string[];
+  // never saved: set as it's read, when the score shown is only the plain
+  // mean of a few raters (scores.ts)
+  fewRaters?: true;
 };
 
 // a series in search results and the trending row

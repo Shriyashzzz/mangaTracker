@@ -1,7 +1,8 @@
 // MangaUpdates: free, no key. A second opinion on chapter counts, because MangaDex
 // loses chapters when a series gets officially licensed: it had Solo Leveling at
-// 15 of 201. Also says whether a series has finished, and where its anime
-// leaves off (afterAnime/).
+// 15 of 201. Also says whether a series has finished, where its anime
+// leaves off (afterAnime/), and its readers' rating, a backup score
+// (prices/scores.ts).
 // https://api.mangaupdates.com
 import { slugify } from "../stores/match.js";
 import { politeFetch } from "../../util/politeFetch.js";
@@ -49,7 +50,29 @@ type SeriesRecord = {
   completed?: boolean;
   url?: string;
   anime?: { start?: string | null; end?: string | null } | null;
+  // out of 10, already pulled toward the site's average when few have voted
+  bayesian_rating?: number | null;
+  rating_votes?: number | null;
 };
+
+export type MuRating = {
+  // out of 100, like AniList's; null when nobody has rated it
+  score: number | null;
+  raters: number | null;
+};
+
+// MangaUpdates rates out of 10 ("7.84"); ours are out of 100
+export function ratingOf(series: SeriesRecord): MuRating {
+  const rating = Number(series.bayesian_rating);
+  const voted = (series.rating_votes ?? 0) > 0;
+  return {
+    score:
+      voted && Number.isFinite(rating) && rating > 0
+        ? Math.round(rating * 10)
+        : null,
+    raters: series.rating_votes ?? null,
+  };
+}
 
 // where the series' anime starts and ends, as MangaUpdates wrote it; both
 // null when it has no anime or nobody has filled it in
@@ -104,6 +127,14 @@ export async function getChapterSource(
     console.error("MangaUpdates lookup failed:", (e as Error).message);
     return null;
   }
+}
+
+// a series' rating, found under one of its real names only (pickHit): no
+// score when MangaUpdates has no such series. Throws when it can't be asked,
+// so an outage isn't saved as "no rating"
+export async function getMuRating(names: string[]): Promise<MuRating> {
+  const series = await findSeries(names);
+  return series ? ratingOf(series) : { score: null, raters: null };
 }
 
 // the anime's lines for a series: null when MangaUpdates doesn't know the

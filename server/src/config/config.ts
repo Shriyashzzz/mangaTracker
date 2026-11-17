@@ -104,6 +104,9 @@ const schema = z.object({
   ),
   KEEPA_API_KEY: optional,
   GOOGLE_BOOKS_API_KEY: optional,
+  // MyAnimeList's official API, for series scores: the app's client ID
+  // (myanimelist.net/apiconfig). The secret isn't used
+  MAL_CLIENT_ID: optional,
   // Cloudflare Turnstile's secret: live price checks only for people
   TURNSTILE_SECRET_KEY: optional,
 

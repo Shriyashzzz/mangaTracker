@@ -399,6 +399,8 @@ export type SeriesIndexEntry = {
   name: string;
   coverUrl: string | null;
   score: number | null;
+  // the score is only the mean of a few raters (server prices/scores.ts)
+  fewRaters?: true;
   popularityRank: number | null;
   genres: string[];
   status: string | null;

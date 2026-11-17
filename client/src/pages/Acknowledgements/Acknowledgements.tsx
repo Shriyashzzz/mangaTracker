@@ -15,7 +15,7 @@ const DATA = [
   {
     name: "MangaUpdates",
     url: "https://www.mangaupdates.com",
-    body: "Chapter counts, and whether a series has finished.",
+    body: "Chapter counts, whether a series has finished, and a rating for series the others have no score for.",
   },
   {
     name: "Wikipedia",
@@ -26,6 +26,11 @@ const DATA = [
     name: "AniList",
     url: "https://anilist.co",
     body: "Series details, scores, genres and what's trending.",
+  },
+  {
+    name: "MyAnimeList",
+    url: "https://myanimelist.net",
+    body: "Series scores, through its own API.",
   },
   {
     name: "Kitsu",

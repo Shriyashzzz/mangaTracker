@@ -242,6 +242,7 @@ Price checking works without any store keys: series, volumes and covers come fro
 | `KEEPA_API_KEY` | no | Amazon prices |
 | `CJ_API_TOKEN`, `CJ_COMPANY_ID`, `CJ_BAM_ID`, `CJ_WEBSITE_ID`, `CJ_DAILY_LIMIT` | no | Books-A-Million prices and affiliate links, through CJ |
 | `AMAZON_ASSOCIATE_TAG`, `BOOKSHOP_AFFILIATE_ID`, `EBAY_CAMPAIGN_ID`, `WALMART_AFFILIATE` | no | Affiliate links |
+| `MAL_CLIENT_ID` | no | MyAnimeList's official API (the client ID from myanimelist.net/apiconfig; the secret isn't used): series scores, shown before AniList's. Free |
 | `IMPACT_ACCOUNT_SID`, `IMPACT_AUTH_TOKEN` | no | impact.com's partner API (a token with the Catalogs scope): Better World Books' used prices by ISBN. Free |
 | `BAM_FILL_DAILY` | no | Volumes a day the background asks Books-A-Million about for the first time (default 400), out of `CJ_DAILY_LIMIT` |
 | `RATE_ASK_EVERY_DAYS` | no | how rarely a series page asks "How was vol. 9?" after a volume is finished: at most once in this many days per reader (default 30; 0 asks every time) |

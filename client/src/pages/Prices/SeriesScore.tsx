@@ -1,5 +1,6 @@
 // A series' score: a small "★ 4.6" badge hanging on the corner of its
-// cover, over the cover's edge. The score is AniList's (a series' `score`,
+// cover, over the cover's edge. The score is MyAnimeList's, or AniList's
+// when it has none (server prices/scores.ts; a series' `score`,
 // out of 100), said in stars out of 5 because that's how readers think of
 // a rating: 91% is 4.6.
 //
@@ -11,7 +12,7 @@ import { pricesStyles as styles } from "./styles";
 
 export function SeriesScoreBadge({ percent }: { percent?: number | null }) {
   if (!percent) return null;
-  const said = `Rated ${starsOf(percent)} out of 5 on AniList`;
+  const said = `Rated ${starsOf(percent)} out of 5`;
   return (
     <span className={styles.seriesScore} aria-label={said} title={said}>
       <StarIcon filled aria-hidden />

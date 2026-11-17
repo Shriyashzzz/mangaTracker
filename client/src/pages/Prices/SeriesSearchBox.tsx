@@ -235,7 +235,7 @@ export default function SeriesSearchBox({
                       s.year,
                       s.volumes &&
                         `${s.volumes} volume${s.volumes === 1 ? "" : "s"}`,
-                      s.score && `★ ${starsOf(s.score)} on AniList`,
+                      s.score && `★ ${starsOf(s.score)}`,
                     ]
                       .filter(Boolean)
                       .join(" · ")}

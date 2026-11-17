@@ -11,6 +11,7 @@ import { closeEnough, slipsInName } from "../util/shelf/spelling.js";
 import { slugify } from "./stores/match.js";
 import { isNovelName } from "./lightNovel.js";
 import type { SeriesHit } from "./types.js";
+import { withShownScore } from "./scores.js";
 
 const REFRESH_MS = 60 * 60_000;
 // names offered for one typo, closest first
@@ -20,6 +21,7 @@ const MOST_HITS = 12;
 
 // what a search result needs of each, and its other names to match on
 type Known = {
+  anilistId: number | null;
   name: string;
   altNames: string[];
   coverUrl: string | null;
@@ -38,6 +40,7 @@ async function load() {
     (Omit<Known, "altNames"> & { altNames: string[] | null })[]
   >`
     SELECT DISTINCT ON (info->>'name')
+      (info->>'anilistId')::int AS "anilistId",
       info->>'name' AS name,
       ARRAY(SELECT jsonb_array_elements_text(COALESCE(info->'altNames', '[]'))) AS "altNames",
       info->>'coverUrl' AS "coverUrl",
@@ -81,23 +84,24 @@ export async function knownSeriesHits(typed: string): Promise<SeriesHit[]> {
   const matches = (name: string) =>
     name.toLowerCase().includes(asked) ||
     (asked.length >= 4 && closeEnough(asked, name));
-  return (await knownSeries())
+  const found = (await knownSeries())
     .filter((s) => [s.name, ...s.altNames].some(matches))
     .sort(
       (a, b) =>
         (a.popularityRank ?? Infinity) - (b.popularityRank ?? Infinity) ||
         a.name.localeCompare(b.name),
     )
-    .slice(0, MOST_HITS)
-    .map((s) => ({
-      name: s.name,
-      slug: slugify(s.name),
-      score: s.score,
-      volumes: s.volumes,
-      status: s.status,
-      coverUrl: s.coverUrl,
-      ...(isNovelName(s.name) ? { lightNovel: true } : {}),
-    }));
+    .slice(0, MOST_HITS);
+  // with the score each one shows (scores.ts)
+  return (await withShownScore(found)).map((s) => ({
+    name: s.name,
+    slug: slugify(s.name),
+    score: s.score,
+    volumes: s.volumes,
+    status: s.status,
+    coverUrl: s.coverUrl,
+    ...(isNovelName(s.name) ? { lightNovel: true } : {}),
+  }));
 }
 
 // for tests: the list as it is now, read again on the next ask

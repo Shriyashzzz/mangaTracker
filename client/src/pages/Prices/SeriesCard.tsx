@@ -61,7 +61,7 @@ export default function SeriesCard({
             sizes="(max-width: 720px) 110px, 156px"
           />
         </span>
-        {/* AniList's score, as stars */}
+        {/* its score, as stars */}
         <SeriesScoreBadge percent={series.score} />
       </span>
       <span className={styles.cardTitle}>{shown.title}</span>

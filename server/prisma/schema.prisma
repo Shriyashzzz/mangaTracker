@@ -213,6 +213,23 @@ model SeriesInfo {
   @@map("series_info")
 }
 
+// a series' scores from outside AniList's average, out of 100: MyAnimeList's
+// (shown first), MangaUpdates' (asked only when a series has neither that
+// nor an AniList average) and AniList's plain mean, the last resort. Filled in the background (collector/scoreFiller.ts). A
+// null is an answer too: no MyAnimeList entry, or too few raters there
+model SeriesScore {
+  anilistId Int      @id @map("anilist_id")
+  malId     Int?     @map("mal_id")
+  malScore  Int?     @map("mal_score")
+  malRaters Int?     @map("mal_raters")
+  muScore   Int?     @map("mu_score")
+  muRaters  Int?     @map("mu_raters")
+  meanScore Int?     @map("mean_score")
+  checkedAt DateTime @default(now()) @map("checked_at") @db.Timestamptz(6)
+
+  @@map("series_scores")
+}
+
 // the last good list of a series' volumes, so a restart or an Open Library outage
 // doesn't empty the page. Keyed by the normalized series name
 model SeriesVolumes {

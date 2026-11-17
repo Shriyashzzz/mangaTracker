@@ -217,7 +217,7 @@ export default function PriceSeries() {
               sizes="(max-width: 720px) 94px, 178px"
               eager
             />
-            {/* AniList's score as stars, hung on the cover's corner */}
+            {/* its score as stars, hung on the cover's corner */}
             <SeriesScoreBadge percent={info?.score} />
           </span>
         )}

@@ -16,6 +16,7 @@ import { volumesKey } from "../volumesKey.js";
 import priceQueries from "../../models/priceQueries.js";
 import { inBackground } from "../callLog.js";
 import { knownSeriesHits } from "../seriesNames.js";
+import { withShownScore } from "../scores.js";
 
 export { slugify };
 
@@ -162,6 +163,40 @@ export async function getListingsByMalIds(ids: number[]) {
     }
   }
   return listings;
+}
+
+const MAL_IDS_QUERY = `
+  query ($ids: [Int]) {
+    Page(perPage: 50) {
+      media(id_in: $ids, type: MANGA) { id idMal meanScore averageScore }
+    }
+  }
+`;
+
+// each of these series' MyAnimeList id and its scores now, by AniList id
+// (up to 50), in one request: what the background scores are built from
+// (collector/scoreFiller.ts). Throws when AniList can't answer
+export async function getMalIdsAndMeans(anilistIds: number[]) {
+  const { Page } = await query<{
+    Page: {
+      media: {
+        id: number;
+        idMal: number | null;
+        meanScore: number | null;
+        averageScore: number | null;
+      }[];
+    };
+  }>(MAL_IDS_QUERY, { ids: anilistIds });
+  return new Map(
+    Page.media.map((m) => [
+      m.id,
+      {
+        malId: m.idMal,
+        meanScore: m.meanScore,
+        averageScore: m.averageScore,
+      },
+    ]),
+  );
 }
 
 // the HTML escapes AniList uses in plain-text descriptions
@@ -325,7 +360,8 @@ export async function listKnownSeries(): Promise<SeriesInfo[]> {
     WHERE info IS NOT NULL AND info->>'name' IS NOT NULL
     ORDER BY info->>'anilistId', fetched_at DESC
   `;
-  return rows.map((r) => tidy(r.info));
+  // with the score each one shows (scores.ts), not AniList's own
+  return withShownScore(rows.map((r) => tidy(r.info)));
 }
 
 // series info, cached a week in the database so pages stay fast and we stay
@@ -407,7 +443,14 @@ function saveInfo(slug: string, info: SeriesInfo | null) {
   });
 }
 
+// a series' info with the score it shows (scores.ts). What's saved keeps
+// AniList's own score
 export async function getSeriesInfo(name: string): Promise<SeriesInfo | null> {
+  const info = await savedOrAskedInfo(name);
+  return info ? (await withShownScore([info]))[0]! : null;
+}
+
+async function savedOrAskedInfo(name: string): Promise<SeriesInfo | null> {
   const slug = slugify(name);
   if (!slug) return null;
   const saved = await prisma.seriesInfo.findUnique({ where: { slug } });
@@ -432,15 +475,17 @@ export async function getSeriesInfo(name: string): Promise<SeriesInfo | null> {
   }
 }
 
-// manga and light novels in one request: AniList counts requests, not lists
+// manga and light novels in one request: AniList counts requests, not lists.
+// 50 is the most AniList gives in a page; the search results page shows what
+// comes back 30 at a time
 const SEARCH_QUERY = `
   query ($search: String, $sort: [MediaSort] = [SEARCH_MATCH]) {
-    manga: Page(perPage: 20) {
+    manga: Page(perPage: 50) {
       media(search: $search, type: MANGA, format: MANGA, sort: $sort) {
         ...hit
       }
     }
-    novel: Page(perPage: 10) {
+    novel: Page(perPage: 25) {
       media(search: $search, type: MANGA, format: NOVEL, sort: $sort) {
         ...hit
       }
@@ -587,9 +632,10 @@ async function searchAniList(
       });
   const manga = hits(data.manga.media, false);
   const novels = hits(data.novel.media, true);
-  const items = (
+  const found = (
     novelsFirst ? withNovels(novels, manga) : withNovels(manga, novels)
   ).map(({ m, name, novel }) => ({
+    anilistId: m.id,
     name,
     slug: slugify(name),
     ...(novel ? { lightNovel: true } : {}),
@@ -600,6 +646,7 @@ async function searchAniList(
     coverUrl: m.coverImage?.large ?? m.coverImage?.medium ?? null,
     thumbUrl: m.coverImage?.medium ?? null,
   }));
+  const items = await withShownScore(found);
 
   searchCache.set(key, { at: Date.now(), items });
   if (searchCache.size > 1000) {
@@ -668,15 +715,17 @@ export async function getTrending(): Promise<SeriesHit[]> {
   if (Date.now() - trending.at < TRENDING_FRESH_MS) return trending.items;
   try {
     const { Page } = await query<{ Page: { media: Media[] } }>(TRENDING_QUERY);
-    const items = Page.media
+    const found = Page.media
       // all 30: the home page keeps the ones with English books (service.ts)
       .filter((m) => m.title.english)
       .map((m) => ({
+        anilistId: m.id,
         name: m.title.english!,
         slug: slugify(m.title.english!),
         coverUrl: m.coverImage?.large ?? null,
         score: m.averageScore ?? null,
       }));
+    const items = await withShownScore(found);
     trending = { at: Date.now(), items };
   } catch (e) {
     if (!isAniListWait(e))
