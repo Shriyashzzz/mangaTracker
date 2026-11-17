@@ -68,9 +68,30 @@ export const getSeries = (name: string, signal?: AbortSignal, strict = false) =>
     signal,
   );
 
-// every series we know, for the /series page
-export const getSeriesIndex = (signal?: AbortSignal) =>
-  getJson<SeriesIndexEntry[]>("/api/prices/series-index", signal);
+// every series we know, for the /series page. The last answer is kept ten
+// minutes (as long as the server keeps its own), so going Back to the list
+// draws it at once, at its full height: the browser puts the scroll back
+// before a fresh answer could arrive, and a short "loading" page left them
+// somewhere else
+const SERIES_INDEX_FRESH_MS = 10 * 60_000;
+let seriesIndex: { at: number; series: SeriesIndexEntry[] } | null = null;
+
+// the kept list, or null when there's none or it's old
+export const keptSeriesIndex = () =>
+  seriesIndex && Date.now() - seriesIndex.at < SERIES_INDEX_FRESH_MS
+    ? seriesIndex.series
+    : null;
+
+export async function getSeriesIndex(signal?: AbortSignal) {
+  const kept = keptSeriesIndex();
+  if (kept) return kept;
+  const series = await getJson<SeriesIndexEntry[]>(
+    "/api/prices/series-index",
+    signal,
+  );
+  seriesIndex = { at: Date.now(), series };
+  return series;
+}
 
 export const getHighlights = (signal?: AbortSignal) =>
   getJson<Highlights>("/api/prices/highlights", signal);

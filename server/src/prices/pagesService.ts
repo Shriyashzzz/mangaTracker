@@ -28,30 +28,38 @@ import { type KnownVolume, knownVolumesBySeries } from "./shelfService.js";
 
 // ---------- series index ----------
 
-// every series on the site for the /series page: AniList's facts plus how
-// many US volumes we know. Database and memory only
+// every series with volumes known, for the /series page: AniList's facts
+// plus how many US volumes we know. A series someone only looked up, with no
+// volume found yet, is a near-empty page: it joins once its list is built
+// (the sitemap leaves it out the same way). Database and memory only
 export async function getSeriesIndex() {
   const [series, bySeries] = await Promise.all([
     listKnownSeries(),
     knownVolumesBySeries(),
   ]);
-  return series.map((info) => ({
-    name: info.name,
-    coverUrl: info.coverUrl,
-    score: info.score,
-    popularityRank: info.popularityRank,
-    genres: info.genres ?? [],
-    status: info.status,
-    volumes: info.volumes,
-    // one per volume number: the same volume is known under several ISBNs
-    // (a rebind, a UK printing, another catalog's spelling), and counting
-    // those said Naruto has 96 volumes
-    knownVolumes: new Set(
-      [...(bySeries.get(slugify(info.name))?.values() ?? [])]
+  // one per volume number: the same volume is known under several ISBNs
+  // (a rebind, a UK printing, another catalog's spelling), and counting
+  // those said Naruto has 96 volumes
+  const volumesKnown = (name: string) =>
+    new Set(
+      [...(bySeries.get(slugify(name))?.values() ?? [])]
         .map((v) => titleVolume(v.title))
         .filter((n) => n != null && Number.isInteger(n) && n >= 1),
-    ).size,
-  }));
+    ).size;
+  return series
+    .map((info) => ({
+      name: info.name,
+      coverUrl: info.coverUrl,
+      score: info.score,
+      // only a few raters' mean: "Top rated" keeps it below the rest
+      ...(info.fewRaters ? { fewRaters: true } : {}),
+      popularityRank: info.popularityRank,
+      genres: info.genres ?? [],
+      status: info.status,
+      volumes: info.volumes,
+      knownVolumes: volumesKnown(info.name),
+    }))
+    .filter((entry) => entry.knownVolumes > 0);
 }
 
 // ---------- link previews ----------

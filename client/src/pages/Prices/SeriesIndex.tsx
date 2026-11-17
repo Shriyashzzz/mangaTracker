@@ -2,7 +2,11 @@ import { SortMenu } from "../Home/ShelfBar";
 import type { SeriesIndexEntry } from "../../lib/types";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { NavLink, useSearchParams } from "react-router";
-import { getSeriesIndex, seriesCanonicalPath } from "../../lib/prices";
+import {
+  getSeriesIndex,
+  keptSeriesIndex,
+  seriesCanonicalPath,
+} from "../../lib/prices";
 import { usePageMeta } from "../../lib/seo";
 import SeriesCard from "./SeriesCard";
 import { pickGenre } from "../../lib/anilist";
@@ -25,16 +29,47 @@ const letterOf = (name: string) => {
 };
 const sortName = (name: string) => name.replace(/^the\s+/i, "").toLowerCase();
 
-// every series we have prices for, by popularity or A to Z, with a genre
+// the ways to order the list; the first is the one with no ?sort= in the URL
+const SORTS = [
+  ["popular", "Popular"],
+  ["rated", "Top rated"],
+  ["az", "A to Z"],
+] as const;
+type Sort = (typeof SORTS)[number][0];
+
+// most read first; AniList ranks only its most read, the rest go by score
+const byPopularity = (a: SeriesIndexEntry, b: SeriesIndexEntry) =>
+  (a.popularityRank ?? Infinity) - (b.popularityRank ?? Infinity) ||
+  (b.score ?? 0) - (a.score ?? 0);
+// highest score first. A score from only a few raters can look better than
+// it is, so those come after the rest; a series with no score goes last
+const scoreGroup = (s: SeriesIndexEntry) =>
+  s.score == null ? 2 : s.fewRaters ? 1 : 0;
+const byScore = (a: SeriesIndexEntry, b: SeriesIndexEntry) =>
+  scoreGroup(a) - scoreGroup(b) ||
+  (b.score ?? 0) - (a.score ?? 0) ||
+  byPopularity(a, b);
+const byName = (a: SeriesIndexEntry, b: SeriesIndexEntry) =>
+  sortName(a.name).localeCompare(sortName(b.name));
+const ORDER: Record<Sort, typeof byName> = {
+  popular: byPopularity,
+  rated: byScore,
+  az: byName,
+};
+
+// every series we know volumes for, by popularity, score or A to Z, with a genre
 // filter. The choices live in the URL so a filtered list can be shared
 export default function SeriesIndex() {
   const [params, setParams] = useSearchParams();
-  const sort = params.get("sort") === "az" ? "az" : "popular";
+  const sort: Sort =
+    SORTS.find(([value]) => value === params.get("sort"))?.[0] ?? "popular";
   const genre = params.get("genre") ?? "";
   const [state, setState] = useState<{
     series: SeriesIndexEntry[] | null;
     error: boolean;
-  }>({ series: null, error: false });
+    // the list from a moment ago, if there is one: Back to this page opens
+    // where they left it (lib/prices.ts keptSeriesIndex)
+  }>(() => ({ series: keptSeriesIndex(), error: false }));
 
   useEffect(() => {
     const controller = new AbortController();
@@ -53,13 +88,7 @@ export default function SeriesIndex() {
   );
   const shown = useMemo(() => {
     const list = (all ?? []).filter((s) => !genre || s.genres.includes(genre));
-    return sort === "az"
-      ? list.sort((a, b) => sortName(a.name).localeCompare(sortName(b.name)))
-      : list.sort(
-          (a, b) =>
-            (a.popularityRank ?? Infinity) - (b.popularityRank ?? Infinity) ||
-            (b.score ?? 0) - (a.score ?? 0),
-        );
+    return list.sort(ORDER[sort]);
   }, [all, sort, genre]);
 
   // each page of the full list is its own page to search engines (its own
@@ -165,17 +194,14 @@ export default function SeriesIndex() {
       <header className={styles.indexHead}>
         <h1 className={styles.title}>All series</h1>
         <p className={styles.sub}>
-          Every series we've priced so far
+          Every series we have volumes for
           {all?.length ? ` (${all.length})` : ""}. Pick one to compare its
           volumes across US stores.
         </p>
 
         <div className={styles.indexControls}>
           <div className={styles.segmented} role="group" aria-label="Sort">
-            {[
-              ["popular", "Popular"],
-              ["az", "A to Z"],
-            ].map(([value, label]) => (
+            {SORTS.map(([value, label]) => (
               <button
                 key={value}
                 type="button"
