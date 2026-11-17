@@ -125,6 +125,10 @@ const schema = z.object({
   // SID and an access token with the Catalogs scope
   IMPACT_ACCOUNT_SID: optional,
   IMPACT_AUTH_TOKEN: optional,
+
+  // smtp
+  SMTP_USER: optional,
+  SMTP_PASS: optional,
 });
 
 const parsed = schema.safeParse(process.env);
@@ -137,5 +141,10 @@ if (!parsed.success) {
 
 type Config = z.infer<typeof schema>;
 const config: Config = parsed.data;
+if (Boolean(config.SMTP_USER) !== Boolean(config.SMTP_PASS)) {
+  throw new Error(
+    `SMTP_USER is ${Boolean(config.SMTP_USER) ? `configured` : `no configured`} & SMTP_PASS is ${Boolean(config.SMTP_PASS) ? `configured` : `not configured`} `,
+  );
+}
 export const isProd = config.ENV === "PROD";
 export default config;
