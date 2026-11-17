@@ -205,3 +205,17 @@ test("without a CJ website ID, Books-A-Million is a plain search", async () => {
     affiliate: false,
   });
 });
+
+// their /s/ address answers 404 for words (it only takes an ISBN), so a box
+// set search goes to their search page
+test("Barnes & Noble's box set link is a word search, a volume's is by ISBN", async () => {
+  const { boxSetLinks, storeLinks } = await load({});
+  const sets = boxSetLinks("One Piece").find(
+    (l) => l.store === "Barnes & Noble",
+  )!;
+  expect(sets.url).toBe(
+    "https://www.barnesandnoble.com/search?q=One+Piece+manga+box+set",
+  );
+  const volume = storeLinks(isbn).find((l) => l.store === "Barnes & Noble")!;
+  expect(volume.url).toBe(`https://www.barnesandnoble.com/s/${isbn}`);
+});

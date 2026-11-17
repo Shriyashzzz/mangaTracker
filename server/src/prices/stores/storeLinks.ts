@@ -259,7 +259,8 @@ export const boxSetLinks = (series: string): StoreLink[] => {
     },
     {
       store: "Barnes & Noble",
-      url: `https://www.barnesandnoble.com/s/${encodeURIComponent(query)}`,
+      // their /s/ address only takes an ISBN now (words answer 404)
+      url: `https://www.barnesandnoble.com/search?${new URLSearchParams({ q: query })}`,
       affiliate: false,
     },
   ];
