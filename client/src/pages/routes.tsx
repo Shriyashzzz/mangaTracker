@@ -107,6 +107,13 @@ export const routes = [
       { path: "/u/:code", element: <SharedShelfPage /> },
       { path: "/signup", element: <SignUp /> },
       { path: "/series", element: <SeriesIndex /> },
+      {
+        path: "/to-buy",
+        lazy: page(
+          () => import("./ToBuy/ToBuy"),
+          (m) => m.default,
+        ),
+      },
       { path: "/deals", element: <Deals /> },
       {
         path: "/after-the-anime",

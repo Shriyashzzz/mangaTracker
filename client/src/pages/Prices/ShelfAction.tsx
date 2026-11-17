@@ -1,17 +1,15 @@
 import { useEffect, useRef, useState } from "react";
 import { NavLink, useLocation } from "react-router";
-import KeepRanges from "../../components/keepRanges/KeepRanges";
 import { signInPath } from "../../lib/api";
 import { findOnShelf, setVolumesOwned, type Owned } from "../../lib/shelf";
-import { ownedPhrase, owns, withVolume } from "../../lib/ownedVolumes";
+import { owns, withVolume } from "../../lib/ownedVolumes";
 import { novelParts } from "../../lib/prices";
 import { pricesStyles as styles } from "./styles";
 import type { ShelfMatch } from "../../lib/types";
 import { useAuth } from "../../store/auth";
-import { tracksOf } from "../../lib/reading";
-import { trackByNow } from "../../lib/prefs";
 import ToReadButton from "../../components/toRead/ToReadButton";
 import { useShelf } from "../../store/shelf";
+import ToBuyButton from "../../components/toBuy/ToBuyButton";
 
 const UNDO_MS = 6000;
 
@@ -20,9 +18,13 @@ const UNDO_MS = 6000;
 //                            button: looking at a price isn't owning it),
 //                            and "I own Vol. 2", the add form with it owned
 //   on it, volume not owned -> "I own Vol. 15", one tap, with undo
+// and, while the volume isn't theirs, "+ To buy" keeps it on their To buy
+// list (components/toBuy/ToBuyButton.tsx)
 //   on it, volume owned     -> shows that, links to the manga
 //   signed out            -> sign in, then come back here
 type Props = {
+  // the volume's own ISBN, for the To buy list
+  isbn13: string;
   // the series name, as the volume page knows it
   series: string;
   // what to prefill the add form with
@@ -30,7 +32,7 @@ type Props = {
   volume: number | null;
 };
 
-export default function ShelfAction({ series, title, volume }: Props) {
+export default function ShelfAction({ isbn13, series, title, volume }: Props) {
   const isSignedIn = useAuth((s) => s.isSignedIn);
   const { pathname } = useLocation();
   // `series` names which lookup this answers, so a stale one never shows
@@ -85,7 +87,10 @@ export default function ShelfAction({ series, title, volume }: Props) {
   // still asking (who's signed in, or what's on the shelf): hold the space
   if (!isSignedIn || match.series !== series) {
     return (
-      <span className={`btn btn-primary ${styles.shelfPending}`} aria-hidden>
+      <span
+        className={`btn btn-primary ${styles.shelfPending} ${styles.shelfButton}`}
+        aria-hidden
+      >
         Add to my shelf
       </span>
     );
@@ -111,6 +116,7 @@ export default function ShelfAction({ series, title, volume }: Props) {
             I own Vol. {volume}
           </NavLink>
         )}
+        <ToBuyButton isbn13={isbn13} />
       </div>
     );
   }
@@ -142,40 +148,16 @@ export default function ShelfAction({ series, title, volume }: Props) {
     }
   };
 
-  const tracks = tracksOf(manga, trackByNow());
-  const progress = [
-    manga.status
-      ? "finished"
-      : manga.planned
-        ? "on your To read list"
-        : // their place as they keep it: the chapter, the volume read, or both
-          [
-            tracks.chapters && manga.bookmark
-              ? `chapter ${manga.bookmark}`
-              : null,
-            tracks.volumes && manga.readVolume
-              ? `read vol. ${manga.readVolume}`
-              : null,
-          ]
-            .filter(Boolean)
-            .join(" · ") || null,
-    ownedPhrase(manga) ? `own ${ownedPhrase(manga)}` : null,
-  ]
-    .filter(Boolean)
-    .join(" · ");
-
   return (
     <div className={styles.shelfAction}>
       <p className={styles.shelfState}>
-        On your shelf ·{" "}
-        <NavLink to={`/details/${manga.id}`}>
-          {progress ? <KeepRanges text={progress} /> : "open it"}
-        </NavLink>
+        {/* just that: how far they are is on the manga's own page */}
+        <NavLink to={`/details/${manga.id}`}>On your shelf</NavLink>
       </p>
       {volume != null && !ownsThis ? (
         <button
           type="button"
-          className="btn btn-primary"
+          className={`btn btn-primary ${styles.shelfButton}`}
           disabled={saving}
           onClick={() => setOwned(withVolume(manga, volume), volume)}
         >
@@ -184,11 +166,18 @@ export default function ShelfAction({ series, title, volume }: Props) {
       ) : (
         <NavLink
           to={`/details/${manga.id}`}
-          className="btn btn-secondary"
+          className={`btn btn-secondary ${styles.shelfButton}`}
           viewTransition
         >
           ✓ {volume != null ? `You own Vol. ${volume}` : "On your shelf"}
         </NavLink>
+      )}
+      {/* not for a volume that's already theirs */}
+      {!ownsThis && (
+        <span className={styles.shelfMore}>
+          {/* full size, like the shelf button it sits beside */}
+          <ToBuyButton isbn13={isbn13} full />
+        </span>
       )}
       <p className={styles.shelfNote} role="status">
         {failed

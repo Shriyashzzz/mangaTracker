@@ -44,6 +44,7 @@ model User {
   reviews         VolumeReview[]
   reviewFlags     ReviewFlag[]
   importPicks     ImportPick[]
+  toBuy           ToBuy[]
 
   @@map("users")
 }
@@ -291,6 +292,18 @@ model ImportPick {
   @@id([userId, key])
   @@index([key, anilistId])
   @@map("import_picks")
+}
+
+// a volume on a reader's To buy list: one they looked up and mean to buy
+// (toBuy/toBuy.ts). Its prices are read from what's stored, never kept here
+model ToBuy {
+  userId  Int      @map("user_id")
+  isbn13  String   @db.Char(13)
+  addedAt DateTime @default(now()) @map("added_at") @db.Timestamptz(6)
+  user    User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([userId, isbn13])
+  @@map("to_buy")
 }
 
 // a manga's last release check, as its answer was sent: the New tab asks for

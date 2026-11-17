@@ -1,0 +1,332 @@
+// /to-buy  The reader's To buy list: the volumes they kept from price pages,
+// each with its cheapest new and used copy now, and what the lot costs
+// (above the list, so it's there without scrolling). 20 to a page, in the
+// order they pick; both live in the address (?sort=, ?page=).
+// "I bought it" takes one off and, when its series is on their shelf, marks
+// the volume as owned there. A volume that isn't out yet says when it is,
+// and its button is "I preordered it": off the list, but not on the shelf
+// as owned, since they don't have it yet. Stored prices only: nothing here asks a store.
+import { useEffect, useMemo, useState } from "react";
+import { NavLink, useNavigate, useSearchParams } from "react-router";
+import Cover from "../../components/cover/Cover";
+import Mascot from "../../components/mascot/Mascot";
+import RangePager from "../../components/rangePager/RangePager";
+import { useUrlPages } from "../../components/rangePager/useUrlPages";
+import { signInPath } from "../../lib/api";
+import { withVolume } from "../../lib/ownedVolumes";
+import { formatCents, novelParts, volumePath } from "../../lib/prices";
+import { usePageMeta } from "../../lib/seo";
+import { findOnShelf, setVolumesOwned } from "../../lib/shelf";
+import {
+  sortToBuy,
+  TO_BUY_SORTS,
+  type ToBuyItem,
+  type ToBuyList,
+  type ToBuyPrice,
+  type ToBuySort,
+} from "../../lib/toBuy";
+import { useAuth } from "../../store/auth";
+import { useToBuy } from "../../store/toBuy";
+import { pricesStyles } from "../Prices/styles";
+import ClearListModal from "./ClearListModal";
+import { SortMenu } from "../Home/ShelfBar";
+import { volumesStyles } from "../Home/volumesStyles";
+import { CoverFallback } from "../Prices/VolumeCard";
+import { releaseDay } from "../Prices/volumePageRules";
+
+const styles = {
+  // the sort, close above the list it orders
+  // the sort at the left, "Clear list" at the right; its question wraps
+  // under the sort on a phone
+  controls: "-mb-4 flex flex-wrap items-center justify-between gap-x-4 gap-y-2",
+  // quiet: it's rarely wanted, and it empties everything
+  clearBtn:
+    "tap ml-auto text-[0.9rem] text-ink-soft underline decoration-line-soft underline-offset-3 hover:text-ink hover:decoration-accent",
+  list: "flex flex-col border-2 border-line bg-card shadow-ink",
+  // cover, then what it is and costs, then its two buttons; on a phone the
+  // buttons go under the words, side by side and the same width
+  row: "grid grid-cols-[60px_minmax(0,1fr)_auto] items-center gap-x-4 gap-y-3 border-b-[1.5px] border-dashed border-line-soft px-4 py-3 last:border-b-0 upto-720:grid-cols-[60px_minmax(0,1fr)]",
+  cover:
+    "relative block aspect-2/3 w-[60px] overflow-hidden border-[1.5px] border-line bg-paper-2 [&>img]:relative [&>img]:size-full [&>img]:object-cover",
+  words: "flex min-w-0 flex-col gap-1",
+  name: "tap text-[1rem] leading-snug font-semibold underline decoration-transparent underline-offset-3 hover:decoration-accent",
+  prices:
+    "flex flex-wrap gap-x-4 gap-y-0.5 font-mono text-[0.85rem] text-ink-soft [&_b]:font-medium [&_b]:text-ink [&_b]:tabular-nums",
+  // on a phone: a pair the same width across the row, 38px tall (44 read
+  // as too big here; smaller than 38 is hard to hit)
+  actions:
+    "flex items-center gap-2 upto-720:col-span-2 upto-720:grid upto-720:grid-cols-2 upto-720:[&_.btn]:h-[38px]",
+  // how the last tap went; takes no room until there's something to say
+  note: "text-[0.9rem] text-ink-soft empty:hidden",
+};
+
+// "Chainsaw Man, Vol. 3", or the book's own title when it isn't one volume
+const nameOf = (item: ToBuyItem) =>
+  item.volume != null
+    ? `${novelParts(item.series).title}, Vol. ${item.volume}`
+    : novelParts(item.title).title;
+
+function Price({ label, price }: { label: string; price: ToBuyPrice }) {
+  if (!price) return null;
+  return (
+    <span>
+      {label} <b>{formatCents(price.cents)}</b> at {price.store}
+    </span>
+  );
+}
+
+// "New: $21.98 for all 3", or "for 2 of 3" while some have no price
+function Total({
+  label,
+  sum,
+  of,
+}: {
+  label: string;
+  sum: ToBuyList["totals"]["new"];
+  of: number;
+}) {
+  if (!sum.volumes) return null;
+  return (
+    <p className={pricesStyles.costNote}>
+      {label}: <strong>{formatCents(sum.cents)}</strong> for{" "}
+      {sum.volumes === of ? `all ${of}` : `${sum.volumes} of ${of}`}
+    </p>
+  );
+}
+
+export default function ToBuy() {
+  const navigate = useNavigate();
+  const isSignedIn = useAuth((s) => s.isSignedIn);
+  const { list, loadFailed, load, remove, clear } = useToBuy();
+  // the volume a tap is saving, and how the last one went
+  const [busy, setBusy] = useState<string | null>(null);
+  const [note, setNote] = useState("");
+  // "Clear list" asks once more, in a dialog, before it empties the list
+  const [asking, setAsking] = useState(false);
+  const clearAll = async () => {
+    setNote("");
+    // nothing more to say: the empty page says the list is empty
+    await clear();
+  };
+
+  usePageMeta({ title: "To buy", path: "/to-buy", noindex: true });
+
+  useEffect(() => {
+    if (isSignedIn === false) {
+      navigate(signInPath("/to-buy"), { replace: true });
+      return;
+    }
+    // asked again on every visit: prices move
+    if (isSignedIn) void load();
+  }, [isSignedIn, navigate, load]);
+
+  const takeOff = async (item: ToBuyItem, bought: boolean) => {
+    setBusy(item.isbn13);
+    setNote("");
+    try {
+      let onShelf = false;
+      // a preorder isn't theirs until it ships
+      if (bought && item.volume != null && !item.outOn) {
+        const manga = await findOnShelf(item.series).catch(() => null);
+        if (manga) {
+          await setVolumesOwned(manga.id, withVolume(manga, item.volume));
+          onShelf = true;
+        }
+      }
+      await remove(item.isbn13);
+      setNote(
+        onShelf
+          ? `${nameOf(item)} is off the list, and yours on your shelf.`
+          : `${nameOf(item)} is off the list.`,
+      );
+    } catch {
+      setNote("That didn't save. Try again.");
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  // the order they picked, in the address so a reload keeps it
+  const [params, setParams] = useSearchParams();
+  const sort: ToBuySort =
+    TO_BUY_SORTS.find((s) => s.value === params.get("sort"))?.value ?? "added";
+  // a new order starts again from the first page
+  const setSort = (value: ToBuySort) => {
+    const next = new URLSearchParams(params);
+    if (value === "added") next.delete("sort");
+    else next.set("sort", value);
+    next.delete("page");
+    setParams(next, { replace: true });
+  };
+
+  const items = list?.items;
+  const sorted = useMemo(() => sortToBuy(items ?? [], sort), [items, sort]);
+  const { pageItems, pager } = useUrlPages(sorted, "to-buy-list");
+  return (
+    <div className={`${pricesStyles.page} fade-in`}>
+      <header className={pricesStyles.sectionHead}>
+        <h1 className={pricesStyles.title}>To buy</h1>
+      </header>
+
+      {!items && !loadFailed && (
+        <div className="skeleton h-40" aria-busy="true" aria-label="Loading" />
+      )}
+
+      {!items && loadFailed && (
+        <div className={pricesStyles.empty} role="alert">
+          <span className="printed mascot-spot" aria-hidden>
+            <Mascot mood="panic" />
+          </span>
+          <p className={pricesStyles.emptyTitle}>The list didn't load.</p>
+          <button
+            type="button"
+            className="btn btn-secondary"
+            onClick={() => void load()}
+          >
+            Try again
+          </button>
+        </div>
+      )}
+
+      {items?.length === 0 && (
+        <div className={pricesStyles.empty}>
+          <span className="printed mascot-spot" aria-hidden>
+            <Mascot mood="confused" />
+          </span>
+          <p className={pricesStyles.emptyTitle}>Your list is empty.</p>
+          <p>Open a volume's prices and tap “+ To buy” to keep it here.</p>
+          <NavLink to="/series" className="btn btn-secondary" viewTransition>
+            Browse every series
+          </NavLink>
+        </div>
+      )}
+
+      <p className={styles.note} role="status">
+        {note}
+      </p>
+
+      {items && items.length > 0 && list && (
+        <>
+          {/* the page spaces its parts itself: the slip's own margin is dropped */}
+          <section
+            className={`${pricesStyles.costBox} mb-0!`}
+            aria-label="What it costs"
+          >
+            <div className={pricesStyles.costText}>
+              <h2 className={pricesStyles.costLabel}>
+                {items.length === 1 ? "1 volume" : `${items.length} volumes`} to
+                buy
+              </h2>
+              <Total label="New" sum={list.totals.new} of={items.length} />
+              <Total label="Used" sum={list.totals.used} of={items.length} />
+              {!list.totals.new.volumes && !list.totals.used.volumes && (
+                <p className={pricesStyles.costNote}>
+                  No prices found for these yet.
+                </p>
+              )}
+            </div>
+          </section>
+          <div className={styles.controls}>
+            <SortMenu
+              sortBy={sort}
+              onSort={setSort}
+              options={TO_BUY_SORTS}
+              wordy
+              alignLeft
+            />
+            <button
+              type="button"
+              className={styles.clearBtn}
+              onClick={() => setAsking(true)}
+            >
+              Clear list
+            </button>
+          </div>
+          <div id="to-buy-list" className="-mt-8 scroll-mt-4" />
+          <ul className={styles.list}>
+            {pageItems.map((item) => (
+              <li key={item.isbn13} className={styles.row}>
+                <NavLink
+                  to={volumePath(item.isbn13, item.title)}
+                  className={styles.cover}
+                  tabIndex={-1}
+                  aria-hidden
+                  viewTransition
+                >
+                  {/* the cover its price page shows, over the same stand-in */}
+                  <CoverFallback
+                    number={item.volume}
+                    seriesCoverUrl={item.seriesCoverUrl}
+                    seriesName={item.series}
+                    numbered={item.volume != null}
+                    small
+                  />
+                  <Cover url={item.coverUrl} sizes="60px" />
+                  {/* its number on the corner, as a series page's covers
+                      carry it (the small tile's stamp, from the shelf) */}
+                  {item.volume != null && (
+                    <span className={volumesStyles.vol} aria-hidden>
+                      {item.volume}
+                    </span>
+                  )}
+                </NavLink>
+                <div className={styles.words}>
+                  <NavLink
+                    to={volumePath(item.isbn13, item.title)}
+                    className={styles.name}
+                    viewTransition
+                  >
+                    {nameOf(item)}
+                  </NavLink>
+                  <p className={styles.prices}>
+                    <Price label="New" price={item.new} />
+                    <Price label="Used" price={item.used} />
+                    {!item.new &&
+                      !item.used &&
+                      (item.outOn ? (
+                        <span>
+                          Preorder. Out <b>{releaseDay(item.outOn)}</b>
+                        </span>
+                      ) : (
+                        <span>No price yet</span>
+                      ))}
+                  </p>
+                </div>
+                <div className={styles.actions}>
+                  <button
+                    type="button"
+                    className="btn btn-primary btn-sm"
+                    disabled={busy !== null}
+                    onClick={() => void takeOff(item, true)}
+                  >
+                    {busy === item.isbn13
+                      ? "Saving…"
+                      : item.outOn
+                        ? "I preordered it"
+                        : "I bought it"}
+                  </button>
+                  <button
+                    type="button"
+                    className="btn btn-secondary btn-sm"
+                    disabled={busy !== null}
+                    onClick={() => void takeOff(item, false)}
+                  >
+                    Remove
+                  </button>
+                </div>
+              </li>
+            ))}
+          </ul>
+          <RangePager {...pager} label="To buy pages" />
+        </>
+      )}
+      {asking && items && (
+        <ClearListModal
+          count={items.length}
+          onClear={clearAll}
+          onClose={() => setAsking(false)}
+        />
+      )}
+    </div>
+  );
+}

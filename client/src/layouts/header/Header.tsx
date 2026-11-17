@@ -6,10 +6,13 @@ import { Link, NavLink, useLocation, useNavigate } from "react-router";
 import clsx from "clsx";
 // same mark as the favicon: a manga volume in an inked panel
 import logo from "../../assets/logo.svg";
+import { BagIcon } from "../../components/icons/Icons";
 import SettingsMenu from "../../components/settingsMenu/SettingsMenu";
 import { useFromShelf } from "../../lib/fromShelf";
 import { probablySignedIn, useAuth } from "../../store/auth";
 import { useShelf } from "../../store/shelf";
+import { loadToBuyOnce, useToBuy } from "../../store/toBuy";
+import { isDemo } from "../../lib/demo";
 import { readLocal, useReleaseChecksOn } from "../../lib/prefs";
 import { LAST_NEW_COUNT_KEY } from "../../lib/shelf";
 import { shownNewCount } from "../../lib/releaseMath";
@@ -42,6 +45,10 @@ const barClass = (active: boolean) =>
 const barCount =
   "rounded-[3px] bg-accent px-1.5 font-mono text-[0.78rem] leading-[1.35] tracking-normal text-on-accent tabular-nums group-data-on:bg-on-accent group-data-on:text-accent";
 
+// the To buy list's count, beside its link in the top bar
+const topCount =
+  "ml-1.5 rounded-[3px] bg-accent px-1.5 font-mono text-[0.78rem] leading-[1.35] text-on-accent tabular-nums";
+
 export default function Header() {
   const navigate = useNavigate();
   const { pathname, search } = useLocation();
@@ -70,6 +77,15 @@ export default function Header() {
       ) ?? 0
     );
   }, [manga, releases, outcomes]);
+  // the To buy list's link and count: signed-in readers only (the practice
+  // tour has no list)
+  const showToBuy = Boolean(isSignedIn) && !isDemo();
+  const toBuyCount = useToBuy((s) => s.list?.items.length ?? 0);
+  useEffect(() => {
+    if (showToBuy) loadToBuyOnce();
+  }, [showToBuy]);
+  const onToBuy = pathname === "/to-buy";
+  const toBuyLabel = toBuyCount ? `To buy: ${toBuyCount} volumes` : "To buy";
   const currentTab = fromShelf ? "shelf" : tabOf(pathname);
   // the home page anyone new sees is both halves of the app, so neither lights up
   const guestHome =
@@ -177,6 +193,18 @@ export default function Header() {
           >
             Prices
           </Link>
+          {showToBuy && (
+            <Link
+              to="/to-buy"
+              className={linkClass(onToBuy)}
+              aria-current={onToBuy ? "page" : undefined}
+              aria-label={toBuyLabel}
+              viewTransition
+            >
+              To buy
+              {toBuyCount > 0 && <span className={topCount}>{toBuyCount}</span>}
+            </Link>
+          )}
           {isSignedIn === false && (
             <NavLink
               to="/signin"
@@ -188,6 +216,23 @@ export default function Header() {
           )}
         </nav>
 
+        {/* on a phone the top bar has no links: To buy sits beside the menu */}
+        {showToBuy && (
+          <Link
+            to="/to-buy"
+            className={clsx(
+              "tap hidden min-h-11 min-w-11 items-center justify-center upto-720:flex",
+              onToBuy ? "text-ink" : "text-ink-soft",
+            )}
+            aria-current={onToBuy ? "page" : undefined}
+            aria-label={toBuyLabel}
+            viewTransition
+          >
+            {/* a shopping bag stands for the words here: the bar is short on room */}
+            <BagIcon className="size-[22px]" />
+            {toBuyCount > 0 && <span className={topCount}>{toBuyCount}</span>}
+          </Link>
+        )}
         <SettingsMenu isSignedIn={isSignedIn} onLogOut={handleLogOut} />
       </div>
 

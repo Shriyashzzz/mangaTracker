@@ -152,6 +152,14 @@ export const TagIcon = (props: IconProps) => (
   </svg>
 );
 
+// a shopping bag, for the To buy list
+export const BagIcon = (props: IconProps) => (
+  <svg {...base} {...props}>
+    <path d="M5 8h14l1 13H4z" />
+    <path d="M8 8V7a4 4 0 0 1 8 0v1" />
+  </svg>
+);
+
 // sending something out: sharing a list
 export const ShareIcon = (props: IconProps) => (
   <svg {...base} {...props}>

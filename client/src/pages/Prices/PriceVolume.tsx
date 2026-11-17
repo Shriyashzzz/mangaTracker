@@ -312,6 +312,7 @@ export default function PriceVolume() {
               </p>
             ) : (
               <ShelfAction
+                isbn13={book.isbn13.trim()}
                 series={seriesLabel}
                 title={seriesTitle(book.title)}
                 volume={volume}
@@ -452,7 +453,8 @@ export default function PriceVolume() {
           )}
 
           {history && (
-            <details className={styles.historyFold}>
+            // open to start with; its heading still folds it away
+            <details className={styles.historyFold} open>
               <summary className={styles.historySummary}>
                 <h2 className={styles.sectionTitle}>Price history</h2>
                 <span className={styles.checked}>
