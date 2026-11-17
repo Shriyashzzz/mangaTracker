@@ -17,7 +17,9 @@ export const afterAnimeStyles = {
   // question, then what to do on its own line, big; where the anime stops is
   // the quieter line under them (sub)
   lead: "max-w-[34ch] font-display text-[clamp(1.4rem,3.2vw,1.9rem)] leading-[1.2] font-semibold text-balance text-ink",
-  leadAsked: "block font-normal text-ink-soft",
+  // the question, in blue: what's asked and which season are one colour,
+  // the answers (chapter, volume) another, so each is found at a glance
+  leadAsked: "block font-normal text-asked",
 
   // ---------- every season at a glance ----------
   // a long season name wraps; the chapter and the volume never do
@@ -34,10 +36,13 @@ export const afterAnimeStyles = {
   seasonWords: "flex min-w-0 flex-col items-start gap-2",
   seasonHeading: "flex flex-col items-start gap-2",
   seasonTitle:
-    "inline-block bg-[linear-gradient(var(--accent),var(--accent))] bg-size-[1.8em_3px] bg-left-bottom bg-no-repeat pb-[0.2rem] font-brand text-[1.3rem] font-normal tracking-[0.03em] uppercase",
+    "inline-block bg-[linear-gradient(var(--asked),var(--asked))] bg-size-[1.8em_3px] bg-left-bottom bg-no-repeat pb-[0.2rem] font-brand text-[1.3rem] font-normal tracking-[0.03em] text-asked uppercase",
   // the answer: what to start at
   start:
     "font-display text-[clamp(1.7rem,4.4vw,2.5rem)] leading-[1.08] font-semibold tracking-[-0.01em] text-balance",
+  // the chapter or volume in a line of the answer, in the accent colour
+  // (AnswerWords.tsx)
+  startAnswer: "text-accent",
   end: "max-w-[52ch] text-[1.02rem] text-ink-soft",
   note: "max-w-[52ch] text-[0.92rem] text-muted",
   corrected:
@@ -55,7 +60,9 @@ export const afterAnimeStyles = {
   buyCover:
     "[&>span]:text-[1.6rem] relative block aspect-2/3 overflow-hidden border-[1.5px] border-line bg-paper-2 shadow-ink [&>img]:relative [&>img]:size-full [&>img]:object-cover",
   buyWords: "flex min-w-0 flex-col items-start gap-[0.2rem]",
-  buyTitle: "text-[1.08rem] leading-tight font-semibold",
+  // which volume to buy: the thing they came for, so it's said large
+  buyTitle:
+    "font-display text-[1.5rem] leading-tight font-semibold text-accent",
   buyWhy: "text-[0.88rem] text-ink-soft",
   buyPrice:
     "text-[0.98rem] text-ink [&_strong]:font-mono [&_strong]:font-semibold",
@@ -85,12 +92,14 @@ export const afterAnimeStyles = {
   fixThanks: "text-[0.95rem] text-ink-soft",
 
   // ---------- the bar on a series' price page ----------
-  // quieter than the cost slip under it: dashed, no shadow, and close to it
-  bar: "-mb-4 flex flex-wrap items-center justify-between gap-x-8 gap-y-3 border-2 border-dashed border-line bg-paper-2 px-5 py-3 upto-520:px-4",
+  // quieter than the cost slip under it: dashed, no shadow, and close to it.
+  // On a phone it's one short row: the question and a small button, with
+  // the sentence left out (the button says where it leads)
+  bar: "-mb-4 flex flex-wrap items-center justify-between gap-x-8 gap-y-3 border-2 border-dashed border-line bg-paper-2 px-5 py-3 upto-520:flex-nowrap upto-520:gap-x-3 upto-520:px-3 upto-520:py-2 upto-520:[&>.btn]:h-9 upto-520:[&>.btn]:shrink-0 upto-520:[&>.btn]:px-3 upto-520:[&>.btn]:text-[0.875rem]",
   barWords: "flex min-w-0 flex-wrap items-baseline gap-x-3 gap-y-1",
   barTitle:
-    "font-brand text-[1.3rem] leading-none font-normal tracking-[0.03em] uppercase",
-  barText: "text-[0.98rem] text-ink-soft",
+    "font-brand text-[1.3rem] leading-none font-normal tracking-[0.03em] uppercase upto-520:text-[1.15rem]",
+  barText: "text-[0.98rem] text-ink-soft upto-520:hidden",
 
   // ---------- the add form's "watched the anime?" row ----------
   watched: "flex flex-wrap items-center gap-2 text-[0.88rem] text-ink-soft",

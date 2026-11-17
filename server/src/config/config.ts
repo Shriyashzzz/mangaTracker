@@ -146,7 +146,7 @@ type Config = z.infer<typeof schema>;
 const config: Config = parsed.data;
 if (Boolean(config.SMTP_USER) !== Boolean(config.SMTP_PASS)) {
   throw new Error(
-    `SMTP_USER is ${Boolean(config.SMTP_USER) ? `configured` : `no configured`} & SMTP_PASS is ${Boolean(config.SMTP_PASS) ? `configured` : `not configured`} `,
+    `SMTP_USER is ${config.SMTP_USER ? `configured` : `no configured`} & SMTP_PASS is ${config.SMTP_PASS ? `configured` : `not configured`} `,
   );
 }
 export const isProd = config.ENV === "PROD";

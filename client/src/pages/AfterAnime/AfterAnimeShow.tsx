@@ -4,6 +4,7 @@
 // questions the page hasn't answered yet. The seasons come from
 // /api/after-anime; the volumes and prices from the same series list the
 // price page uses.
+import AnswerWords from "./AnswerWords";
 import {
   buyVolume,
   keepNumbers,
@@ -171,7 +172,9 @@ export default function AfterAnimeShow() {
             {/* the question on its own line, the answer under it */}
             <p className={styles.lead}>
               <span className={styles.leadAsked}>{answer.asked}</span>{" "}
-              <span className="block">{keepNumbers(answer.lead)}</span>
+              <span className="block">
+                <AnswerWords text={keepNumbers(answer.lead)} />
+              </span>
             </p>
             <p className={styles.sub}>{keepNumbers(answer.detail)}</p>
           </>

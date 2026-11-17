@@ -37,7 +37,12 @@ export default function AfterAnimeIndex() {
   return (
     <div className={`${styles.page} fade-in`}>
       <header className={priceStyles.searchHead}>
-        <h1 className={priceStyles.title}>Where does the anime leave off?</h1>
+        <h1 className={priceStyles.title}>
+          {/* painted like the home page's "tracked" and "priced", in the accent
+              of the door there that leads here */}
+          Where does the{" "}
+          <span className={priceStyles.accentHit}>anime leave off</span>?
+        </h1>
         <p className={priceStyles.sub}>
           Finished a season? Find the chapter and volume to read next.
         </p>

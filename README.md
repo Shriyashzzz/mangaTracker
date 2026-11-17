@@ -538,7 +538,7 @@ All styling is Tailwind CSS 4, configured in `client/src/index.css`:
 - [x] SEO: sitemap, structured data, readable URLs, link previews
 - [x] Price stamps and per-kind price history
 - [x] New releases: New tab, In Japan view and next chapter dates
-- [ ] Live eBay listings from eBay's own API, including used copies (eBay prices currently arrive through Google Shopping)
+- [x] Live eBay listings from eBay's own API, including used copies (eBay prices currently arrive through Google Shopping)
 - [ ] More price sources, especially Amazon (access to live Amazon prices opens after the first affiliate sales)
 - [ ] Scheduled price refreshes and price-drop alerts for volumes on your shelf, using Redis, BullMQ and an email newsletter via Resend
 

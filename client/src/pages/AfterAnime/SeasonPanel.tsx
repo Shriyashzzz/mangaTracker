@@ -1,6 +1,7 @@
 // One season of an "after the anime" page: what to start at, and the one
 // volume to buy to carry on (BuyRow). The words are lib/afterAnimeText.ts;
 // the volume's book comes from the series' own list.
+import AnswerWords from "./AnswerWords";
 import { NavLink } from "react-router";
 import type { VolumeOffers } from "../../lib/afterAnime";
 import {
@@ -77,7 +78,9 @@ export default function SeasonPanel({
             {keepNumbers(afterLabel(stop))}
           </span>
           <span className="sr-only">: </span>
-          <span className={styles.start}>{keepNumbers(startText(stop))}</span>
+          <span className={styles.start}>
+            <AnswerWords text={keepNumbers(startText(stop))} />
+          </span>
         </h2>
         {where && <p className={styles.end}>{keepNumbers(where)}</p>}
         {stop.note && <p className={styles.note}>Worth knowing: {stop.note}</p>}

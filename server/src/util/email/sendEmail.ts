@@ -39,21 +39,20 @@ const sendEmail = async ({
 };
 
 // unused function, can be used later incase if you want to send mass email without schduling jobs. Caution : doing so on a big list might block the api threads
+//eslint-disable-next-line @typescript-eslint/no-unused-vars
 const validateBigEmailArray = (
   emailArray: Array<string>,
   subject: string,
-): Array<string | any> => {
+): Array<string> => {
   let invalidCount = 0;
-  const validEmails: Array<string> = emailArray.filter(
-    (email: string | any) => {
-      if (isValidEmail(email)) {
-        return email;
-      } else {
-        invalidCount++;
-        return false;
-      }
-    },
-  );
+  const validEmails: Array<string> = emailArray.filter((email: string) => {
+    if (isValidEmail(email)) {
+      return email;
+    } else {
+      invalidCount++;
+      return false;
+    }
+  });
   if (invalidCount > 0)
     console.log(
       `Found ${invalidCount} invalid emails while sending ${subject} email`,

@@ -4,6 +4,7 @@
 // stores" opens the volume's own page; without one, the button opens that
 // page, where its prices are looked up. A cheaper used copy is offered under
 // a new one; with no new copy priced, the used one is the button.
+import { volumesStyles } from "../Home/volumesStyles";
 import Cover from "../../components/cover/Cover";
 import { NavLink } from "react-router";
 import type { BuyOffer, UsedOffer } from "../../lib/afterAnime";
@@ -61,8 +62,12 @@ export default function BuyRow({
           number={volume}
           seriesCoverUrl={seriesCoverUrl}
           seriesName={seriesName}
+          numbered
         />
         <Cover url={book.coverUrl} sizes="80px" />
+        {/* its number on the corner, as a series page's covers carry it
+            (the small tile's stamp, from the shelf) */}
+        <span className={`${volumesStyles.vol} text-[1.05rem]!`}>{volume}</span>
       </NavLink>
       <div className={styles.buyWords}>
         <h3 className={styles.buyTitle}>{heading}</h3>

@@ -57,6 +57,14 @@
   --accent-wash: rgba(177, 74, 60, 0.09);
   --on-accent: #fffaf2;
   --ok: #2e6b4c;
+  /* what's being asked (a question, which season), beside the accent's
+     answers: the ebook stamp's blue, dark enough here to be read as text */
+  --asked: #3f55a8;
+  /* a painted stroke under white letters (After the anime's heading): the
+     accent at its deeper shade in every theme, since white letters on the
+     dark theme's lighter accent can't be read (2.5:1) */
+  --paint: #b14a3c;
+  --on-paint: #fffaf2;
   --star: #d99a00;
   --star-off: #7f7562;
   --hard-shadow: #1d1a16;
@@ -100,6 +108,7 @@
     --accent-wash: rgba(210, 122, 102, 0.11);
     --on-accent: #16140f;
     --ok: #6fbf8f;
+    --asked: #9fb0ec;
     --star: #f2b630;
     --star-off: #7d7362;
     --hard-shadow: #463e31;
@@ -141,6 +150,7 @@
   --accent-wash: rgba(210, 122, 102, 0.11);
   --on-accent: #16140f;
   --ok: #6fbf8f;
+  --asked: #9fb0ec;
   --star: #f2b630;
   --star-off: #7d7362;
   --hard-shadow: #463e31;
@@ -166,6 +176,7 @@
   --paper: #f3eee2;
   --paper-2: #e9e2d1;
   --card: #fbf8f0;
+  --asked: #3f55a8;
   --ink: #1d1a16;
   --ink-soft: #4a443b;
   --muted: #6f6758;
@@ -222,6 +233,9 @@
   --color-accent-wash: var(--accent-wash);
   --color-on-accent: var(--on-accent);
   --color-ok: var(--ok);
+  --color-asked: var(--asked);
+  --color-paint: var(--paint);
+  --color-on-paint: var(--on-paint);
   --color-star: var(--star);
   --color-star-off: var(--star-off);
   --color-stamp-new: var(--stamp-new);
