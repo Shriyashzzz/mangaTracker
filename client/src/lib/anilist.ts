@@ -98,7 +98,7 @@ export function pickGenre(genres: string[] = [], tags: Tag[] = []) {
 
 // returns [{ id, title, year, cover, genre }], throws on network / rate limit errors
 // perPage: the edit form's cover strip shows six; the add page's title
-// dropdown lists twelve
+// dropdown lists thirty
 // `popular`: the most read first, not the closest names (a typo's retry by
 // one of its words, lib/nearMatches.ts)
 export async function searchCovers(

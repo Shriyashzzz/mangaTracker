@@ -21,6 +21,11 @@ import ReleaseTip from "../../components/whatsNew/ReleaseTip";
 import TakeTourButton from "../../components/tour/TakeTourButton";
 import DealsStrip from "../../components/deals/DealsStrip";
 import WhyCollectors from "./WhyCollectors";
+import RangePager from "../../components/rangePager/RangePager";
+import { useUrlPages } from "../../components/rangePager/useUrlPages";
+
+// search results to a page; the rest are behind the pager under them
+const RESULTS_A_PAGE = 30;
 
 // phones get short names, so three even buttons fit across
 const QUICK_PICKS = [
@@ -49,6 +54,11 @@ export default function PriceSearch() {
     error: string;
   }>({ query: "", items: [], error: "" });
   const [attempt, setAttempt] = useState(0);
+  const { pageItems, pager } = useUrlPages(
+    result.items,
+    "results-title",
+    RESULTS_A_PAGE,
+  );
   // the front page is the one to find; result lists for a typed query are
   // thin and endless, so they stay out of search engines
   usePageMeta(
@@ -282,12 +292,13 @@ export default function PriceSearch() {
               : `${result.items.length} series for “${query}”`}
           </h2>
           <ul className={styles.grid}>
-            {result.items.map((s) => (
+            {pageItems.map((s) => (
               <li key={s.slug}>
                 <SeriesCard series={s} />
               </li>
             ))}
           </ul>
+          <RangePager {...pager} label="Result pages" />
         </section>
       )}
 

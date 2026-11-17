@@ -3,6 +3,7 @@
 // engine. Gives back the page's items and everything a RangePager needs:
 //
 //   const { pageItems, pager } = useUrlPages(deals, "deals-list");
+//   (20 to a page, or a third argument for another size)
 //   <div id="deals-list" /> ...the list of pageItems... <RangePager {...pager} />
 //
 // Changing page scrolls to the element with `listId`, the top of the list.
@@ -13,10 +14,14 @@ import { useLocation, useSearchParams } from "react-router";
 
 const PAGE_SIZE = 20;
 
-export function useUrlPages<T>(items: T[], listId: string) {
+export function useUrlPages<T>(
+  items: T[],
+  listId: string,
+  pageSize = PAGE_SIZE,
+) {
   const [params, setParams] = useSearchParams();
   const { pathname } = useLocation();
-  const pages = Math.max(1, Math.ceil(items.length / PAGE_SIZE));
+  const pages = Math.max(1, Math.ceil(items.length / pageSize));
   // in the address pages count from 1; here from 0
   const asked = Math.floor(Number(params.get("page")) || 1);
   const page = Math.min(Math.max(asked, 1), pages) - 1;
@@ -39,10 +44,10 @@ export function useUrlPages<T>(items: T[], listId: string) {
   }, [page, listId]);
 
   return {
-    pageItems: items.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE),
+    pageItems: items.slice(page * pageSize, (page + 1) * pageSize),
     pager: {
       total: items.length,
-      pageSize: PAGE_SIZE,
+      pageSize,
       page,
       onChange: (index: number) => {
         toListTop.current = true;

@@ -37,8 +37,8 @@ import type { ShelfMatch } from "../../lib/types";
 
 const DESC_MAX = 450;
 const GENRE_OPTIONS = [{ value: "", label: "Select a genre" }, ...GENRES];
-// AniList's matches in the title dropdown
-const MATCHES = 12;
+// AniList's matches in the title dropdown, which scrolls
+const MATCHES = 30;
 // whether they left "More about it" open last time
 const MORE_KEY = "addMoreOpen";
 
