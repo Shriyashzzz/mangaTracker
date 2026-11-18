@@ -8,7 +8,7 @@ import { ownedOf, ownedVolumes, owns, withVolume } from "./ownedVolumes";
 import { findOnShelf, setVolumesOwned, type Owned } from "./shelf";
 import type { Manga, ScannedBook } from "./types";
 import { newBook } from "./books";
-import { saveBooks } from "./booksApi";
+import { getBooks, removeBook, saveBooks } from "./booksApi";
 
 // name: the series as their shelf names it ("One Piece", where the catalog
 // may say "ONE PIECE")
@@ -34,15 +34,35 @@ const ownedNow = async (id: number): Promise<Owned> => {
   return { volumesOwned: manga.volumesOwned, ownedList: manga.ownedList ?? [] };
 };
 
-// the volumes one scan put on, taken back off, whatever else has changed
-// since (a book like "Vinland Saga, Book 9" is two)
-const takeBack = async (id: number, volumes: number[]) => {
+// One scan taken back, whatever else has changed since: its book goes, and
+// with it the volumes the scan put on (`added`), but never a volume another
+// book of theirs holds. A Vagabond VIZBIG 1 undone leaves vols 1 to 3 where
+// a Definitive 1 is on the shelf too
+const takeBack = async (id: number, book: ScannedBook, added: number[]) => {
+  const books = await getBooks(id).catch(() => []);
+  const scanned = books.find((b) => b.isbn13 === book.isbn13);
+  if (scanned) {
+    // the server keeps what their other books hold (bookQueries.removeBook)
+    const left = await removeBook(id, scanned.id);
+    // and what they'd ticked by hand before this scan stays theirs
+    const theirsBefore = book.volumes.filter(
+      (v) => !added.includes(v) && !owns(left, v),
+    );
+    if (theirsBefore.length)
+      await setVolumesOwned(
+        id,
+        theirsBefore.reduce((all, v) => withVolume(all, v), left),
+      );
+    return;
+  }
+  // its book was never saved: only the volumes to take off
+  const kept = new Set(books.flatMap((b) => b.volumes));
   const now = await ownedNow(id);
   await setVolumesOwned(
     id,
     ownedVolumes(
       null,
-      ownedOf(now).filter((v) => !volumes.includes(v)),
+      ownedOf(now).filter((v) => !added.includes(v) || kept.has(v)),
     ),
   );
 };
@@ -77,7 +97,7 @@ async function markOn(
     book,
     name,
     id,
-    undo: () => takeBack(id, added),
+    undo: () => takeBack(id, book, added),
   };
 }
 
@@ -164,12 +184,16 @@ async function shelveBook(book: ScannedBook): Promise<ScanResult> {
       book,
       id,
       name: book.shelfName,
-      // the series goes again only if this is still all they own of it; a
-      // later scan's volume keeps it on the shelf
+      // the series goes again only if this is still all they have of it: a
+      // later scan's volume keeps it on the shelf, and so does another book
+      // holding these same volumes (another edition of them)
       undo: async () => {
         const now = ownedOf(await ownedNow(id));
-        if (now.some((v) => !book.volumes.includes(v)))
-          return takeBack(id, book.volumes);
+        const others = (await getBooks(id).catch(() => [])).filter(
+          (b) => b.isbn13 !== book.isbn13,
+        );
+        if (others.length || now.some((v) => !book.volumes.includes(v)))
+          return takeBack(id, book, book.volumes);
         const gone = await apiFetch(`/api/manga/${id}`, { method: "DELETE" });
         if (!gone.ok) throw new Error("Couldn't take it off the shelf");
       },

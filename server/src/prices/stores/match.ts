@@ -83,6 +83,21 @@ const ITS_OWN_NUMBER = /(\s*#\s*\d{1,3})?\s*[:,]?\s*$/;
 // a run of volumes ending a title in place of a number: "Naruto #1-3"
 const BARE_RANGE = /\s*#\s*(\d{1,3})\s*[‐\-–]\s*(\d{1,3})\s*$/;
 
+// A run too long for one omnibus, ending a title: "Naruto #28-48" is a box
+// set of vols 28 to 48, "Death Note #1-13" the whole series in one book.
+// The title says the volumes itself. null for anything shorter (an
+// omnibus: omnibusVolumes) or no run at all
+const MOST_IN_A_RUN = 200;
+export function setRun(title: string): number[] | null {
+  const bare = title.match(BARE_RANGE);
+  if (!bare) return null;
+  const from = Number(bare[1]);
+  const to = Number(bare[2]);
+  return from >= 1 && to - from > 4 && to - from < MOST_IN_A_RUN
+    ? Array.from({ length: to - from + 1 }, (_, i) => from + i)
+    : null;
+}
+
 // the normalized series part of a title, for comparing
 export const seriesOf = (title: string) =>
   normalize(

@@ -7,7 +7,12 @@ import {
 } from "../../util/shelf/editionNames.js";
 import { editionOfBook, editionStamp } from "../../util/shelf/editionStamp.js";
 import { editionVolumes } from "../../util/shelf/editions.js";
-import { editionOfTitle, seriesOfBook } from "../../prices/stores/match.js";
+import {
+  editionOfTitle,
+  omnibusVolumes,
+  seriesOfBook,
+  setRun,
+} from "../../prices/stores/match.js";
 import { coverLinkProblem } from "../../../../client/src/lib/formChecks.js";
 import { editionVolumes as pageEditionVolumes } from "../../../../client/src/lib/imports/bookVolumes.js";
 
@@ -173,4 +178,103 @@ test("the edit form lets a book's own cover through, and still checks typed link
   expect(coverLinkProblem("")).toBeFalsy();
   expect(coverLinkProblem("/api/auth/logout")).toBeTruthy();
   expect(coverLinkProblem("cover.jpg")).toBeTruthy();
+});
+
+// ---------- found by scanning as a collector would (2026-11-18) ----------
+
+test("a box set is its series', whatever it says after its name", () => {
+  expect(
+    seriesOfBook(
+      "One Piece Box Set 1: East Blue and Baroque Works: Volumes 1-23 with Premium",
+    ),
+  ).toBe("One Piece");
+  expect(
+    seriesOfBook("Claymore Complete Box Set: Volumes 1-27 with Premium"),
+  ).toBe("Claymore");
+  expect(seriesOfBook("Naruto Box Set 2")).toBe("Naruto");
+});
+
+test("'complete' before an edition's words goes with them", () => {
+  expect(seriesOfBook("Tomie: Complete Deluxe Edition")).toBe("Tomie");
+  expect(seriesOfBook("Silent Voice Complete Collector's Edition 1")).toBe(
+    "Silent Voice",
+  );
+});
+
+test("the big-book editions are their series' books too", () => {
+  const titles: [string, string, string][] = [
+    ["Attack on Titan: Colossal Edition 1", "Attack on Titan", "colossal"],
+    ["Fairy Tail: Master's Edition Vol. 1", "Fairy Tail", "masters"],
+    [
+      "The Legend of Zelda: Ocarina of Time -Legendary Edition-",
+      "The Legend of Zelda: Ocarina of Time",
+      "legendary",
+    ],
+    ["Death Note (All-in-One Edition)", "Death Note", "allinone"],
+    // and the Master Edition is still its own
+    ["Blame! Master Edition 2", "Blame!", "master"],
+  ];
+  for (const [title, series, key] of titles) {
+    expect([title, seriesOfBook(title)]).toEqual([title, series]);
+    expect([title, editionOfTitle(title)?.key]).toEqual([title, key]);
+  }
+  // names that only look like one
+  expect(seriesOfBook("Rave Master, Vol. 3")).toBe("Rave Master");
+  expect(editionOfTitle("All You Need Is Kill")).toBeNull();
+});
+
+test("an Ultimate Edition's name isn't a count: the table says, per series", () => {
+  expect(EDITION_NAMES.find((e) => e.key === "ultimate")?.perBook).toBe(
+    undefined,
+  );
+  const cases: [string, string, number, number[]][] = [
+    ["Fruits Basket", "Fruits Basket Ultimate Edition Volume 1", 1, [1, 2]],
+    ["Battle Royale", "Battle Royale Ultimate Edition Volume 1", 1, [1, 2, 3]],
+    [
+      "Battle Royale",
+      "Battle Royale Ultimate Edition Volume 5",
+      5,
+      [13, 14, 15],
+    ],
+  ];
+  for (const [series, title, number, holds] of cases) {
+    expect(editionVolumes(series, title, number)).toEqual(holds);
+    expect(pageEditionVolumes(series, title, number)).toEqual({ holds });
+  }
+  // any other series' Ultimate Edition isn't known here: it's asked about
+  expect(
+    editionVolumes("Hellsing", "Hellsing Ultimate Edition 1", 1),
+  ).toBeNull();
+});
+
+test("the last book of a line holds what's left, more or fewer", () => {
+  // nine VIZBIG books for Rurouni Kenshin's 28 volumes
+  const kenshin = "Rurouni Kenshin (VIZBIG Edition), Vol. 9";
+  expect(editionVolumes("Rurouni Kenshin", kenshin, 9)).toEqual([
+    25, 26, 27, 28,
+  ]);
+  expect(pageEditionVolumes("Rurouni Kenshin", kenshin, 9)).toEqual({
+    holds: [25, 26, 27, 28],
+  });
+  expect(
+    editionVolumes(
+      "Rurouni Kenshin",
+      "Rurouni Kenshin (VIZBIG Edition), Vol. 8",
+      8,
+    ),
+  ).toEqual([22, 23, 24]);
+  // and fewer, as before: Berserk Deluxe 14 ends at vol. 41
+  expect(editionVolumes("Berserk", "Berserk Deluxe Volume 14", 14)).toEqual([
+    40, 41,
+  ]);
+});
+
+test("a title ending in a long run is a set of those volumes", () => {
+  expect(setRun("Naruto #28-48")).toHaveLength(21);
+  expect(setRun("Naruto #28-48")?.[0]).toBe(28);
+  expect(setRun("Death Note #1-13")?.at(-1)).toBe(13);
+  // a short run is an omnibus, read where it always was
+  expect(setRun("Naruto #1-3")).toBeNull();
+  expect(omnibusVolumes("Naruto #1-3")).toEqual([1, 2, 3]);
+  expect(setRun("Naruto, Vol. 48")).toBeNull();
 });

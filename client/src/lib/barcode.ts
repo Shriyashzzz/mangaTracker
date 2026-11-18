@@ -36,7 +36,12 @@ export function isbnFromTyped(typed: string): string | null {
   return first12 + checkDigit(first12);
 }
 
-// "3", "3, 4", "3-4" or "3 & 4": whole volumes 1 to 999, a few at most
+// the most volumes one book can be said to hold: a box set's worth (the
+// server takes as many: controllers/manga/many.ts bookVolumes)
+export const MOST_IN_A_BOOK = 100;
+
+// "3", "3, 4", "3-4" or "3 & 4": whole volumes 1 to 999. A long run is a
+// box set: "1-23"
 export function volumesFrom(typed: string): number[] | null {
   const parts = typed.split(/\s*(?:,|&|and)\s*/i).filter(Boolean);
   const all = new Set<number>();
@@ -47,8 +52,10 @@ export function volumesFrom(typed: string): number[] | null {
       : [Number(part), Number(part)];
     if (!Number.isInteger(from) || !Number.isInteger(to) || from < 1)
       return null;
-    if (to < from || to > 999 || to - from > 5) return null;
+    if (to < from || to > 999 || to - from >= MOST_IN_A_BOOK) return null;
     for (let v = from; v <= to; v++) all.add(v);
   }
-  return all.size && all.size <= 6 ? [...all].sort((a, b) => a - b) : null;
+  return all.size && all.size <= MOST_IN_A_BOOK
+    ? [...all].sort((a, b) => a - b)
+    : null;
 }

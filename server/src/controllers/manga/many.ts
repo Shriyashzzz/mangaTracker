@@ -189,7 +189,8 @@ export const restoreMany = [
 // at once, everyone's once three readers agree
 export const bookVolumes = [
   body("isbn13").matches(/^97[89]\d{10}$/),
-  body("volumes").isArray({ min: 1, max: 60 }),
+  // (a box set's worth: the page's MOST_IN_A_BOOK, lib/barcode.ts)
+  body("volumes").isArray({ min: 1, max: 100 }),
   body("volumes.*").isInt({ min: 1, max: 999 }).toInt(),
   rejectInvalid,
   async (req: Request, res: Response) => {

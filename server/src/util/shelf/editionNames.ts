@@ -119,8 +119,40 @@ export const EDITION_NAMES: EditionName[] = [
     kind: "omnibus",
     label: "Ultimate Edition",
     short: "ULT",
+    // two a book for Fruits Basket, three for Battle Royale: the name
+    // isn't a count, so the hand table says (util/shelf/editions.ts)
     words: /\bultimate\s+edition\b/i,
-    perBook: 2,
+  },
+  // big books of several volumes; how many isn't in the name, so the
+  // series' lines say, or the reader is asked
+  {
+    key: "colossal",
+    kind: "omnibus",
+    label: "Colossal Edition",
+    short: "COL",
+    words: /\bcolossal\s+edition\b/i,
+  },
+  {
+    key: "masters",
+    kind: "omnibus",
+    label: "Master's Edition",
+    short: "MSTR",
+    words: /\bmaster'?s\s+edition\b/i,
+  },
+  {
+    key: "legendary",
+    kind: "omnibus",
+    label: "Legendary Edition",
+    short: "LGND",
+    words: /\blegendary\s+edition\b/i,
+  },
+  // a whole series in one book ("Death Note (All-in-One Edition)")
+  {
+    key: "allinone",
+    kind: "omnibus",
+    label: "All-in-One",
+    short: "ALL",
+    words: /\ball\s*-?\s*in\s*-?\s*one\b/i,
   },
   {
     key: "vizbig",
@@ -165,15 +197,19 @@ export const editionNameOf = (title: string): EditionName | null =>
 const ANY_EDITION = EDITION_NAMES.map((edition) => edition.words.source).join(
   "|",
 );
+// ("Tomie: Complete Deluxe Edition" is Tomie: "complete" belongs to the
+// edition; and "Ocarina of Time -Legendary Edition-" ends in a dash)
 const ENDS_IN_EDITION = new RegExp(
-  `[\\s,:(-]+(the\\s+)?(${ANY_EDITION})(\\s+edition)?\\)?\\s*$`,
+  `[\\s,:(-]+(the\\s+)?(complete\\s+)?(${ANY_EDITION})(\\s+edition)?[)\\s-]*$`,
   "i",
 );
 
 // a box set's words ending a name: "Claymore Complete Box Set", "Naruto Box
-// Set 2", "Akira 35th Anniversary Box Set". A box set is its series' too
+// Set 2", "Akira 35th Anniversary Box Set". A box set is its series' too.
+// What a set says after its name goes with it: "One Piece Box Set 1: East
+// Blue and Baroque Works: Volumes 1-23 with Premium" is One Piece
 const ENDS_IN_BOX_SET =
-  /[\s,:(-]+((the\s+)?complete\s+(series\s+)?|\d+(st|nd|rd|th)\s+anniversary\s+)?box(ed)?\s*set(\s*\d+)?\)?\s*$/i;
+  /[\s,:(-]+((the\s+)?complete\s+(series\s+)?|\d+(st|nd|rd|th)\s+anniversary\s+)?box(ed)?\s*set(\s*\d+)?\)?(\s*:.*)?\s*$/i;
 
 // the edition's words off the series' name: "Berserk Deluxe Edition" is
 // Berserk, "Vagabond VIZBIG Edition" is Vagabond, "Claymore Complete Box Set"

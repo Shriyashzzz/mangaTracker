@@ -41,6 +41,12 @@ test("the volumes a scan is corrected to", () => {
   expect(volumesFrom("")).toBeNull();
   expect(volumesFrom("0")).toBeNull();
   expect(volumesFrom("three")).toBeNull();
-  // a whole run is a different job than one scanned book
-  expect(volumesFrom("1-40")).toBeNull();
+  // a box set says a long run: One Piece Box Set 1 holds 23, Naruto's
+  // second vols 28 to 48
+  expect(volumesFrom("1-23")).toHaveLength(23);
+  expect(volumesFrom("28-48")?.[0]).toBe(28);
+  expect(volumesFrom("28-48")?.at(-1)).toBe(48);
+  // but never more than a box set could hold
+  expect(volumesFrom("1-200")).toBeNull();
+  expect(volumesFrom("5-3")).toBeNull();
 });

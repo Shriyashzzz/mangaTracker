@@ -281,13 +281,45 @@ const EDITIONS: Edition[] = [
     books: 10,
     volumes: 12,
   },
+  // Tokyopop's Ultimate Editions: the name isn't a count. Fruits Basket's
+  // six hold two each (vols 1 to 12, then the line stopped); Battle
+  // Royale's five hold three each
+  {
+    series: /^fruits basket$/,
+    edition: /\bultimate edition\b/i,
+    perBook: 2,
+    books: 6,
+    volumes: 12,
+  },
+  {
+    series: /^battle royale$/,
+    edition: /\bultimate edition\b/i,
+    perBook: 3,
+    books: 5,
+    volumes: 15,
+  },
+  // VIZ's VIZBIG: nine books for the 28 volumes, three each and the last
+  // holding the four that are left
+  {
+    series: /^rurouni kenshin$/,
+    edition: /\bvizbig\b/i,
+    perBook: 3,
+    books: 9,
+    volumes: 28,
+  },
 ];
 
 // book `n` of an edition: the volumes it holds
 function editionRange(edition: Edition, n: number): [number, number] {
   if (edition.perBook) {
     const from = (n - 1) * edition.perBook + 1;
-    return [from, Math.min(n * edition.perBook, edition.volumes)];
+    // the last book holds what's left: fewer, or more (Rurouni Kenshin
+    // VIZBIG 9 holds four)
+    const to =
+      n === edition.books
+        ? edition.volumes
+        : Math.min(n * edition.perBook, edition.volumes);
+    return [from, to];
   }
   return evenRange(n, edition.books, edition.volumes);
 }
@@ -304,7 +336,7 @@ export function evenRange(
   return [from, Math.max(from, to)];
 }
 const SPECIAL_EDITION =
-  /\b(deluxe|perfect edition|collector'?s edition|fullmetal edition|master edition|eternal edition|black edition|definitive edition|complete edition|anniversary edition)\b/i;
+  /\b(deluxe|perfect edition|collector'?s edition|fullmetal edition|master edition|eternal edition|black edition|definitive edition|complete edition|anniversary edition|ultimate edition|colossal edition|master'?s edition|legendary edition)\b/i;
 
 export function editionVolumes(
   series: string,

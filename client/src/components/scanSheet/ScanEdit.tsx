@@ -192,7 +192,7 @@ export default function ScanEdit({
       />
       <p id={`${ids}-volumes-hint`} className={styles.modalHint}>
         {asking
-          ? "Every volume inside it, like 4, 5, 6. It's on its back cover or first pages."
+          ? "Every volume inside it: 4, 5, 6, or 1-23 for a box set. Its back cover says."
           : chosen
             ? "One number, or a few for a book holding several: 3, 4"
             : "Volume numbers, like 3 or 3, 4"}

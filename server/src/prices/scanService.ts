@@ -8,6 +8,7 @@ import {
   bookNumberOf,
   omnibusVolumes,
   editionOfTitle,
+  setRun,
 } from "./stores/match.js";
 import { baseName, isNovelName, novelName } from "./lightNovel.js";
 import { editionVolumes, withoutEdition } from "../util/shelf/editions.js";
@@ -67,8 +68,12 @@ export async function lookupScannedIsbn(
       volumesByName(edition, titleVolume(book.title) ?? onlyBookOf(edition));
   // a box set: every volume its title says it holds, or the whole of a
   // finished series for a "complete" one
-  const boxSet = BOX_SET.test(book.title);
-  if (boxSet && !held) held = await boxSetVolumes(book.title, named);
+  // (or a title that ends in a long run, as a catalog names some sets:
+  // "Naruto #28-48")
+  const longRun = setRun(book.title);
+  const boxSet = BOX_SET.test(book.title) || Boolean(longRun);
+  if (boxSet && !held)
+    held = longRun ?? (await boxSetVolumes(book.title, named));
   // What nothing above could say: an edition's book (or a box set) whose
   // volumes aren't known. Readers' own answers then (theirs, or the one
   // three readers agree on); and with none, it's said to be unsure, so the

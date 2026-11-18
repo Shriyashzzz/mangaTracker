@@ -6,7 +6,9 @@
 // Two kinds, as the page's copy has them (client/src/lib/imports/
 // bookVolumes.ts EDITIONS; tests/shelf/rulesInStep.test.ts fails if the two
 // differ):
-//   perBook        every book holds that many (the last one what's left)
+//   perBook        every book holds that many, and the last one whatever is
+//                  left: fewer (Berserk Deluxe 14) or more (Rurouni Kenshin
+//                  VIZBIG 9 holds four)
 //   books/volumes  an edition regrouped by chapter (Fullmetal Edition puts 27
 //                  volumes in 18 books): spread evenly, so every volume is in
 //                  exactly one book. Owning every book is owning every volume
@@ -151,6 +153,32 @@ const EDITIONS: KnownEdition[] = [
     books: 10,
     volumes: 12,
   },
+  // Tokyopop's Ultimate Editions: the name isn't a count. Fruits Basket's
+  // six hold two each (vols 1 to 12, then the line stopped); Battle
+  // Royale's five hold three each
+  {
+    series: "fruits basket",
+    edition: /\bultimate edition\b/i,
+    perBook: 2,
+    books: 6,
+    volumes: 12,
+  },
+  {
+    series: "battle royale",
+    edition: /\bultimate edition\b/i,
+    perBook: 3,
+    books: 5,
+    volumes: 15,
+  },
+  // VIZ's VIZBIG: nine books for the 28 volumes, three each and the last
+  // holding the four that are left
+  {
+    series: "rurouni kenshin",
+    edition: /\bvizbig\b/i,
+    perBook: 3,
+    books: 9,
+    volumes: 28,
+  },
 ];
 
 // the edition's words off a series' name: the one list (editionNames.ts)
@@ -169,7 +197,10 @@ export function editionVolumes(
   const [from, to] = known.perBook
     ? [
         (book - 1) * known.perBook + 1,
-        Math.min(book * known.perBook, known.volumes),
+        // the last book holds what's left
+        book === known.books
+          ? known.volumes
+          : Math.min(book * known.perBook, known.volumes),
       ]
     : evenRange(book, known.books, known.volumes);
   return Array.from({ length: to - from + 1 }, (_, i) => from + i);
