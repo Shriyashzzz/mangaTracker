@@ -34,7 +34,11 @@ const show = [
   ...seriesName,
   async (req: Request, res: Response) => {
     const mayAsk = !isCrawler(req.get("user-agent"));
-    const data = await getAfterAnime(matchedData(req).name, mayAsk);
+    const data = await getAfterAnime(
+      matchedData(req).name,
+      mayAsk,
+      countryOf(req.query.country),
+    );
     if (!data) throw new NotFoundError("We couldn't find that series.");
     res.json(data);
   },

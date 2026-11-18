@@ -13,12 +13,15 @@ import {
   answerSentence,
   answerText,
   buyVolume,
+  catchUp,
   endText,
   keepNumbers,
   latestAnswer,
   latestAnswerText,
   latestStop,
+  leftLine,
   pageHeading,
+  priceLine,
   placeAfter,
   showJsonLd,
   showMeta,
@@ -28,6 +31,7 @@ import {
   volumeAfter,
   whyThisVolume,
   type AnimeStop,
+  type SavedBook,
 } from "../../../../client/src/lib/afterAnimeText.js";
 import { readAnimeStops } from "../../prices/afterAnime/animeLines.js";
 
@@ -331,4 +335,119 @@ test("a volume sold only in a book of two: the book is the one to buy", () => {
     /Buy Book 7 \(vols\. 13–14\)\.$/,
   );
   expect(latestAnswer(third!).lead).toMatch(/Buy volume \d+\.$/);
+});
+
+// ---------- buying: the price, and what's left ----------
+
+// times from the real clock (no fixed dates): the page is given its "now"
+const NOW = new Date();
+const daysBack = (days: number) =>
+  new Date(NOW.getTime() - days * 24 * 60 * 60 * 1000).toISOString();
+// Jujutsu Kaisen's volumes 19 to 24, each $9.59 at Books-A-Million and
+// checked four days ago
+const priced = (volume: number, cents: number | null = 959): SavedBook => ({
+  volume,
+  cents,
+  store: cents === null ? null : "Books-A-Million",
+  checkedAt: cents === null ? null : daysBack(4),
+});
+const jjkBooks = [19, 20, 21, 22, 23, 24].map((v) => priced(v));
+const running = { finished: false, volumes: null };
+
+test("the volume to buy and its saved price, as a sentence", () => {
+  expect(priceLine(third, jjkBooks, NOW)).toBe(
+    "Volume 21 is $9.59 new at Books-A-Million, checked 4 days ago.",
+  );
+  expect(
+    priceLine(third, [{ ...priced(21), checkedAt: daysBack(0) }], NOW),
+  ).toBe("Volume 21 is $9.59 new at Books-A-Million, checked today.");
+  expect(
+    priceLine(third, [{ ...priced(21), checkedAt: daysBack(1) }], NOW),
+  ).toBe("Volume 21 is $9.59 new at Books-A-Million, checked yesterday.");
+  // nothing is said without a saved price, for another volume's, or for one
+  // too old to quote
+  expect(priceLine(third, [priced(21, null)], NOW)).toBe("");
+  expect(priceLine(third, [priced(20)], NOW)).toBe("");
+  expect(
+    priceLine(third, [{ ...priced(21), checkedAt: daysBack(45) }], NOW),
+  ).toBe("");
+  expect(priceLine(finished, jjkBooks, NOW)).toBe("");
+});
+
+test("what's left after the anime: the volumes out, and all of them priced", () => {
+  expect(catchUp(third, jjkBooks)).toEqual({
+    from: 21,
+    to: 24,
+    count: 4,
+    unbroken: true,
+    cents: 4 * 959,
+  });
+  expect(leftLine(third, running, jjkBooks)).toBe(
+    "The manga is still running. Volumes 21 to 24 are out in English: 4 to catch up. All 4 cost $38.36 new.",
+  );
+  expect(leftLine(third, { finished: true, volumes: 30 }, jjkBooks)).toBe(
+    "The manga is finished at 30 volumes. Volumes 21 to 24 are out in English: 4 to catch up. All 4 cost $38.36 new.",
+  );
+});
+
+test("a total is never said with a price missing, and gaps aren't called a run", () => {
+  const onePriceShort = [priced(21), priced(22, null), priced(23), priced(24)];
+  expect(catchUp(third, onePriceShort)?.cents).toBeNull();
+  expect(leftLine(third, running, onePriceShort)).toBe(
+    "The manga is still running. Volumes 21 to 24 are out in English: 4 to catch up.",
+  );
+  // volume 23 isn't in the list
+  expect(leftLine(third, running, [priced(21), priced(22), priced(24)])).toBe(
+    "The manga is still running. 3 volumes from volume 21 on are out in English. All 3 cost $28.77 new.",
+  );
+  // only the one to buy is out
+  expect(leftLine(third, running, [priced(20), priced(21)])).toBe(
+    "The manga is still running. Volume 21 is the one out in English after the anime.",
+  );
+  // the volume to buy isn't out in English, or the anime told it all
+  expect(leftLine(third, running, [priced(19), priced(20)])).toBe("");
+  expect(leftLine(third, running, [priced(22), priced(23)])).toBe("");
+  expect(leftLine(finished, running, jjkBooks)).toBe("");
+});
+
+test("a show's description leads with the price when one is saved and it fits", () => {
+  const show = {
+    name: "Jujutsu Kaisen",
+    slug: "jujutsu-kaisen",
+    coverUrl: null,
+    stops: [first, second, third],
+  };
+  const plain = showMeta(show, false, "https://example.com", NOW)!;
+  const withPrice = showMeta(
+    { ...show, books: jjkBooks, manga: running, checkedAt: daysBack(2) },
+    false,
+    "https://example.com",
+    NOW,
+  )!;
+  expect(plain.description).not.toContain("$");
+  // with the price it's the answer and the price, if both fit; never cut
+  const answer = latestAnswerText(third);
+  const price = priceLine(third, jjkBooks, NOW);
+  expect(withPrice.description).toBe(
+    `${answer} ${price}`.length <= 160
+      ? `${answer} ${price}`
+      : plain.description,
+  );
+  // and the page's questions say what's left, with the date it was checked
+  const questions = showQuestions({ ...show, books: jjkBooks, manga: running });
+  expect(
+    questions.find(
+      (q) =>
+        q.q === "How many Jujutsu Kaisen volumes are left after the anime?",
+    )?.a,
+  ).toBe(leftLine(third, running, jjkBooks));
+  expect(showQuestions(show).some((q) => /volumes are left/.test(q.q))).toBe(
+    false,
+  );
+  const faq = (
+    showJsonLd({ ...show, checkedAt: daysBack(2) }, "https://example.com")[
+      "@graph"
+    ] as Record<string, unknown>[]
+  )[0]!;
+  expect(faq.dateModified).toBe(daysBack(2));
 });

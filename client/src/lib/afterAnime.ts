@@ -2,7 +2,7 @@
 // (server: prices/afterAnime/) and where its pages live. The words for a
 // season are in afterAnimeText.ts.
 import { apiFetch, errorMessages, getJson } from "./api";
-import type { AnimeStop } from "./afterAnimeText";
+import type { AnimeStop, MangaFacts, SavedBook } from "./afterAnimeText";
 import { slugify } from "./prices";
 
 export type AfterAnime = {
@@ -13,6 +13,9 @@ export type AfterAnime = {
   // the series on MangaUpdates, for the credit; null when the answer isn't theirs
   sourceUrl: string | null;
   checkedAt: string | null;
+  // for what's left after the anime and what it costs (afterAnimeText.ts)
+  manga: MangaFacts;
+  books: SavedBook[];
 };
 
 // a series in the list of every show with an answer

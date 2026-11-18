@@ -17,6 +17,8 @@ import { animeLinesFor } from "./animeSource.js";
 import { acceptedFixes, slugsWithFixes } from "./fixStore.js";
 import { withNextVolumes } from "./nextVolume.js";
 import { storedVolumeStarts } from "../../util/releases/releaseCache.js";
+import type { Country } from "../../models/priceQueries.js";
+import { savedBooksOf } from "./savedBooks.js";
 
 // a season as it's sent: `coversAll` when it adapts the manga to its end, so
 // there's nothing left to read (reachesTheEnd)
@@ -36,7 +38,12 @@ async function savedSeriesInfo(name: string) {
 
 // null when we don't know the series at all. `mayAsk` false reads the
 // database only (a crawler mustn't start lookups)
-export async function getAfterAnime(asked: string, mayAsk: boolean) {
+export async function getAfterAnime(
+  asked: string,
+  mayAsk: boolean,
+  // whose prices the page's buying lines use
+  country: Country = "us",
+) {
   const name = await knownSeriesName(asked);
   // a crawler sending made-up names mustn't turn into AniList lookups: for
   // it, only a series we've already seen
@@ -46,10 +53,11 @@ export async function getAfterAnime(asked: string, mayAsk: boolean) {
   // MangaUpdates would be asked about the manga, and a novel's volumes and
   // chapters aren't the manga's
   const novel = isNovelName(info.name);
-  const [saved, fixes, starts] = await Promise.all([
+  const [saved, fixes, starts, books] = await Promise.all([
     novel ? null : animeLinesFor(info, mayAsk),
     acceptedFixes(slug),
     novel ? [] : storedVolumeStarts(info.name),
+    novel ? [] : savedBooksOf(info.name, country),
   ]);
   // MangaUpdates names a first series after the manga ("Bleach", beside
   // "Thousand-Year Blood War part 1"). Beside later ones that's the original
@@ -81,6 +89,10 @@ export async function getAfterAnime(asked: string, mayAsk: boolean) {
     // answer isn't theirs
     sourceUrl: saved?.endLine ? saved.sourceUrl : null,
     checkedAt: saved?.fetchedAt ?? null,
+    // for "what's left, and what it costs": whether the manga has ended, and
+    // each English volume that's out with its saved price (savedBooks.ts)
+    manga: { finished: manga.finished, volumes: manga.volumes },
+    books,
   };
 }
 

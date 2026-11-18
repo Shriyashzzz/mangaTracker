@@ -235,6 +235,97 @@ export function latestAnswerText(stop: AnimeStop) {
   return `${asked} ${lead} ${detail}`.trim();
 }
 
+// ---------- buying: the price, and what's left after the anime ----------
+
+// an English volume that's out, and its cheapest saved new price at a store
+// readers know (the server's savedBooks.ts). No price saved: nulls
+export type SavedBook = {
+  volume: number;
+  cents: number | null;
+  store: string | null;
+  checkedAt: string | null;
+};
+// whether the manga has ended, and at how many volumes
+export type MangaFacts = { finished: boolean; volumes: number | null };
+
+const dollars = (cents: number) => `$${(cents / 100).toFixed(2)}`;
+const DAY_MS = 24 * 60 * 60 * 1000;
+// a price older than this isn't quoted in a sentence
+const QUOTED_FOR_DAYS = 30;
+
+// "today", "yesterday", "4 days ago"; "" for a price too old to quote
+function daysAgo(at: string, now: Date) {
+  const days = Math.floor((now.getTime() - new Date(at).getTime()) / DAY_MS);
+  if (!(days >= 0) || days > QUOTED_FOR_DAYS) return "";
+  if (days === 0) return "today";
+  return days === 1 ? "yesterday" : `${days} days ago`;
+}
+
+// what the volume to buy costs, as a sentence: "Volume 21 is $9.59 new at
+// Books-A-Million, checked 4 days ago." "" with no recent saved price
+export function priceLine(
+  stop: AnimeStop,
+  books: SavedBook[],
+  now = new Date(),
+  money = dollars,
+) {
+  const volume = buyVolume(stop);
+  const book = books.find((b) => b.volume === volume);
+  if (!book || book.cents === null || !book.store || !book.checkedAt) return "";
+  const ago = daysAgo(book.checkedAt, now);
+  if (!ago) return "";
+  return `Volume ${volume} is ${money(book.cents)} new at ${book.store}, checked ${ago}.`;
+}
+
+// What's left to read after a season, in English volumes that are out: from
+// the volume to buy to the newest. `cents` is all of them new, and only said
+// when every one has a saved price: a total with volumes missing would be a
+// guess. null when there's nothing to carry on with
+export function catchUp(stop: AnimeStop, books: SavedBook[]) {
+  const first = buyVolume(stop);
+  if (first === null) return null;
+  const left = books.filter((b) => b.volume >= first);
+  if (!left.length || left[0]!.volume !== first) return null;
+  const last = left[left.length - 1]!.volume;
+  return {
+    from: first,
+    to: last,
+    count: left.length,
+    // every volume from first to last is there
+    unbroken: left.length === last - first + 1,
+    cents: left.every((b) => b.cents !== null)
+      ? left.reduce((sum, b) => sum + b.cents!, 0)
+      : null,
+  };
+}
+
+// the same, in sentences: "The manga is still running. Volumes 21 to 27 are
+// out in English: 7 to catch up. All 7 cost $67.13 new." "" when there's
+// nothing to say
+export function leftLine(
+  stop: AnimeStop,
+  manga: MangaFacts,
+  books: SavedBook[],
+  money = dollars,
+) {
+  const left = catchUp(stop, books);
+  if (!left) return "";
+  const finished = manga.volumes
+    ? `The manga is finished at ${manga.volumes} volumes.`
+    : "The manga is finished.";
+  const status = manga.finished ? finished : "The manga is still running.";
+  let out = `Volume ${left.from} is the one out in English after the anime.`;
+  if (left.count > 1)
+    out = left.unbroken
+      ? `Volumes ${left.from} to ${left.to} are out in English: ${left.count} to catch up.`
+      : `${left.count} volumes from volume ${left.from} on are out in English.`;
+  const cost =
+    left.cents !== null && left.count > 1
+      ? ` All ${left.count} cost ${money(left.cents)} new.`
+      : "";
+  return `${status} ${out}${cost}`;
+}
+
 // ---------- what a page says about itself (heading, title, description) ----------
 
 // a show, as much of it as its title and description need
@@ -243,6 +334,11 @@ type ShowForMeta = {
   slug: string;
   coverUrl: string | null;
   stops: AnimeStop[];
+  // for the buying lines; a show sent without them just doesn't say them
+  books?: SavedBook[];
+  manga?: MangaFacts;
+  // when the answer was last checked at its source
+  checkedAt?: string | null;
 };
 
 // fits the app's PageMeta (lib/seo.ts)
@@ -337,6 +433,13 @@ export function showQuestions(show: ShowForMeta): ShowQuestion[] {
       q: `Which ${show.name} volume do I buy after the anime?`,
       a: `Volume ${volume}. The story carries on at chapter ${latest.nextChapter}.`,
     });
+  const left = show.manga ? leftLine(latest, show.manga, show.books ?? []) : "";
+  if (left)
+    questions.push({
+      q: `How many ${show.name} volumes are left after the anime?`,
+      shown: "How many volumes are left after the anime?",
+      a: left,
+    });
   if (latest.endChapter !== null)
     questions.push({
       q: `Does ${theAnime(show.name)} cover the whole manga?`,
@@ -356,6 +459,9 @@ export const showJsonLd = (show: ShowForMeta, origin: string) => ({
   "@graph": [
     {
       "@type": "FAQPage",
+      // when the answer was last checked at its source (left out of the
+      // markup when there's no date)
+      dateModified: show.checkedAt ?? undefined,
       mainEntity: showQuestions(show).map((question) => ({
         "@type": "Question",
         name: question.q,
@@ -383,6 +489,7 @@ export function showMeta(
   show: ShowForMeta | null,
   failed: boolean,
   origin: string,
+  now = new Date(),
 ): ShowMeta | null {
   if (failed) return { title: "After the anime", noindex: true };
   if (!show) return null;
@@ -391,14 +498,20 @@ export function showMeta(
   if (!show.stops.length) return { title, path, noindex: true };
   // the answer itself, so it can be read off the search result; what else
   // the page has only when both fit
-  const answer = latestAnswerText(latestStop(show.stops)!);
+  const latest = latestStop(show.stops)!;
+  const answer = latestAnswerText(latest);
+  // the price first, when one is saved: it's what the search result of any
+  // other site can't say
+  const price = priceLine(latest, show.books ?? [], now);
+  const withPrice = price ? `${answer} ${price}` : "";
   const withMore = `${answer} ${WHAT_ELSE}`;
+  const fits = (text: string) => text !== "" && text.length <= DESCRIPTION_FITS;
   return {
     title,
     // the question is the whole title: with the site's name after it, a
     // search result cuts the question short
     fullTitle: true,
-    description: withMore.length <= DESCRIPTION_FITS ? withMore : answer,
+    description: [withPrice, withMore].find(fits) ?? answer,
     path,
     image: show.coverUrl,
     jsonLd: showJsonLd(show, origin),

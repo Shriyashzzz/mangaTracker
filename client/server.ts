@@ -30,7 +30,9 @@ import {
   INDEX_META,
   latestAnswerText,
   latestStop,
+  leftLine,
   pageHeading,
+  priceLine,
   seasonHeading,
   showMeta,
   showQuestion,
@@ -38,6 +40,8 @@ import {
   tableRow,
   withoutThe,
   type AnimeStop,
+  type MangaFacts,
+  type SavedBook,
 } from "./src/lib/afterAnimeText.ts";
 
 const DIST = fileURLToPath(new URL("./dist/", import.meta.url));
@@ -612,7 +616,18 @@ type AfterAnime = {
   slug: string;
   coverUrl: string | null;
   stops: AnimeStop[];
+  checkedAt?: string | null;
+  manga?: MangaFacts;
+  books?: SavedBook[];
 };
+// "18 November 2026", for "Checked on"
+const longDate = (at: string) =>
+  new Date(at).toLocaleDateString("en-GB", {
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+    timeZone: "UTC",
+  });
 
 // /after-the-anime: every show with an answer, linked. The title and
 // description are the app's own (src/lib/afterAnimeText.ts)
@@ -665,6 +680,14 @@ function afterAnimeTags(
       }`,
   );
   const more = others.filter((other) => other.slug !== show.slug).slice(0, 12);
+  // what no other answer has: the price of the volume to buy, and what's
+  // left after the anime (saved prices only)
+  const buying = latest
+    ? [
+        priceLine(latest, show.books ?? []),
+        show.manga ? leftLine(latest, show.manga, show.books ?? []) : "",
+      ].filter(Boolean)
+    : [];
   return {
     title: meta.title,
     fullTitle: meta.fullTitle,
@@ -683,6 +706,8 @@ function afterAnimeTags(
       ${
         latest
           ? `<p>${escapeHtml(latestAnswerText(latest))}</p>
+      ${buying.map((line) => `<p>${escapeHtml(line)}</p>`).join("")}
+      ${show.checkedAt ? `<p>Checked on <time datetime="${escapeHtml(show.checkedAt)}">${escapeHtml(longDate(show.checkedAt))}</time>.</p>` : ""}
       <table><thead><tr><th>You watched</th><th>Start at chapter</th><th>Buy volume</th></tr></thead><tbody>${rows.join("")}</tbody></table>
       ${seasons.join("")}
       <h2>Questions</h2>${questions.join("")}`
