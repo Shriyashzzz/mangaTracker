@@ -9,7 +9,7 @@ import type { CheapestCopy } from "../models/priceHistory.js";
 import { notOutYet } from "../prices/preorder.js";
 import { getOrCreateBook } from "../prices/service.js";
 import { getSeriesInfo } from "../prices/sources/anilist.js";
-import { seriesName } from "../prices/stores/match.js";
+import { seriesOfBook } from "../prices/stores/match.js";
 import { shopName, titleVolume } from "../prices/volumeNames.js";
 
 // plenty for a shopping list, and it keeps one account's list a quick read
@@ -74,7 +74,7 @@ export async function toBuyList(userId: number, country: Country = "us") {
   const bookOf = new Map(books.map((b) => [b.isbn13.trim(), b]));
   const coverRowOf = new Map(coverRows.map((c) => [c.isbn13.trim(), c]));
   // each series' own cover, once per series, as the deals list finds it
-  const seriesNames = [...new Set(books.map((b) => seriesName(b.title)))];
+  const seriesNames = [...new Set(books.map((b) => seriesOfBook(b.title)))];
   const seriesCovers = new Map(
     await Promise.all(
       seriesNames.map(async (name) => {
@@ -103,10 +103,10 @@ export async function toBuyList(userId: number, country: Country = "us") {
     return {
       isbn13,
       title,
-      series: seriesName(title),
+      series: seriesOfBook(title),
       volume: titleVolume(title),
       coverUrl: hasNoCover(coverRowOf.get(isbn13)) ? null : book.coverUrl,
-      seriesCoverUrl: seriesCovers.get(seriesName(title)) ?? null,
+      seriesCoverUrl: seriesCovers.get(seriesOfBook(title)) ?? null,
       new: priceOf(copies.get(isbn13)?.new),
       used: priceOf(copies.get(isbn13)?.used),
       outOn: outOn.get(isbn13) ?? null,

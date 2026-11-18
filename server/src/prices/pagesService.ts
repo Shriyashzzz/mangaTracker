@@ -18,7 +18,7 @@ import {
   knownSeriesName,
   listKnownSeries,
 } from "./sources/anilist.js";
-import { seriesName, slugify } from "./stores/match.js";
+import { seriesName, seriesOfBook, slugify } from "./stores/match.js";
 import { dropUnlikelyNew } from "./stores/retailers.js";
 import { volumesKey } from "./volumesKey.js";
 import { isCollection, type SeriesHit } from "./types.js";
@@ -83,11 +83,11 @@ export async function getVolumeSummary(isbn13: string) {
     (o) => o.condition === "new" && o.format === "print",
   );
   const [series, saved, [coverRow]] = await Promise.all([
-    getSeriesInfo(seriesName(book.title)).catch(() => null),
+    getSeriesInfo(seriesOfBook(book.title)).catch(() => null),
     priceQueries.getSavedVolume(isbn13).catch(() => null),
     priceQueries.getCoverIds([isbn13]).catch(() => []),
   ]);
-  const seriesLabel = series?.name ?? seriesName(book.title);
+  const seriesLabel = series?.name ?? seriesOfBook(book.title);
   return {
     isbn13: book.isbn13.trim(),
     title: book.title,
@@ -102,7 +102,7 @@ export async function getVolumeSummary(isbn13: string) {
     // an edition we know has no cover: none, so previews and search engines
     // get the series' picture instead of an image address that answers 404
     coverUrl: hasNoCover(coverRow) ? null : book.coverUrl,
-    seriesName: series?.name ?? seriesName(book.title),
+    seriesName: series?.name ?? seriesOfBook(book.title),
     seriesCoverUrl: series?.coverUrl ?? null,
     // stores people know first; `knownStores` is just those, for search
     // results, where "at nuclearwaste" reads as spam
@@ -309,7 +309,7 @@ export async function getDealsPage() {
     })
     .sort((a, b) => a.priceCents / a.avgCents - b.priceCents / b.avgCents)
     .slice(0, DEALS_SHOWN);
-  const names = [...new Set(deals.map((r) => seriesName(r.title)))];
+  const names = [...new Set(deals.map((r) => seriesOfBook(r.title)))];
   const infos = await Promise.all(
     names.map((name) => getSeriesInfo(name).catch(() => null)),
   );
@@ -319,7 +319,7 @@ export async function getDealsPage() {
     title: r.title,
     volume: titleVolume(r.title),
     coverUrl: r.coverUrl,
-    seriesCoverUrl: covers.get(seriesName(r.title)) ?? null,
+    seriesCoverUrl: covers.get(seriesOfBook(r.title)) ?? null,
     priceCents: r.priceCents,
     avgCents: r.avgCents,
     checkedAt: r.fetchedAt,
@@ -350,7 +350,7 @@ export async function getHighlights() {
   // each series' AniList cover, shown when a volume has no US cover of its
   // own. Cached a week, and a series AniList can't find just goes without
   const names = [
-    ...new Set([...dealRows, ...recentRows].map((r) => seriesName(r.title))),
+    ...new Set([...dealRows, ...recentRows].map((r) => seriesOfBook(r.title))),
   ];
   const infos = await Promise.all(
     names.map((name) => getSeriesInfo(name).catch(() => null)),
@@ -364,7 +364,7 @@ export async function getHighlights() {
     title: r.title,
     volume: titleVolume(r.title),
     coverUrl: r.coverUrl,
-    seriesCoverUrl: seriesCovers.get(seriesName(r.title)) ?? null,
+    seriesCoverUrl: seriesCovers.get(seriesOfBook(r.title)) ?? null,
     priceCents: r.priceCents,
     avgCents: r.avgCents,
     checkedAt: r.fetchedAt,

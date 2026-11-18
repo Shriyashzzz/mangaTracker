@@ -6,7 +6,7 @@
 //
 // A series owned mostly as single volumes gets no stamp: that's how most are
 // collected, and a stamp on every card would say nothing.
-import { editionNameOf } from "./editionNames.js";
+import { editionOfTitle } from "../../prices/stores/match.js";
 
 type Book = { title: string | null; edition: string; volumes: number[] };
 
@@ -32,7 +32,8 @@ const KIND_NAMES: Record<string, { label: string; short: string }> = {
 export function editionOfBook(book: Pick<Book, "title" | "edition">) {
   // a box set is a box set, whatever edition its title also names
   if (book.edition === "boxset") return KIND_NAMES.boxset!;
-  const named = editionNameOf(book.title ?? "");
+  // (never a word in the middle of the series' own name: editionOfTitle)
+  const named = editionOfTitle(book.title ?? "");
   if (named) return { label: named.label, short: named.short };
   return KIND_NAMES[book.edition] ?? null;
 }

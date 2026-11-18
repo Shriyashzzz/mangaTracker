@@ -76,7 +76,9 @@ export function useSwipeAway(onAway: () => void) {
   };
 
   const onPointerDown = (e: PointerEvent<HTMLElement>) => {
-    if (e.pointerType === "mouse" || drag.current) return;
+    // the first finger only. A drag left over (its message went away while
+    // the finger was still down, so no "up" came) is simply replaced
+    if (e.pointerType === "mouse" || !e.isPrimary) return;
     swiped.current = false;
     drag.current = {
       id: e.pointerId,

@@ -7,6 +7,8 @@ import {
 } from "../../util/shelf/editionNames.js";
 import { editionOfBook, editionStamp } from "../../util/shelf/editionStamp.js";
 import { editionVolumes } from "../../util/shelf/editions.js";
+import { editionOfTitle, seriesOfBook } from "../../prices/stores/match.js";
+import { coverLinkProblem } from "../../../../client/src/lib/formChecks.js";
 import { editionVolumes as pageEditionVolumes } from "../../../../client/src/lib/imports/bookVolumes.js";
 
 const book = (title: string, volumes: number[], edition = "single") => ({
@@ -129,4 +131,46 @@ test("a Vagabond Definitive holds three volumes, on the server and the page", ()
   expect(
     editionVolumes("Vagabond", "Vagabond Definitive Edition 13", 13),
   ).toEqual([37]);
+});
+
+test("an edition's word inside a series' own name isn't an edition", () => {
+  // a plain volume of a series that happens to have the word in its name
+  expect(editionOfTitle("Magical Deluxe Girl, Vol. 1")).toBe(null);
+  expect(editionOfTitle("My Omnibus Life, Vol. 3")).toBe(null);
+  expect(seriesOfBook("Magical Deluxe Girl, Vol. 1")).toBe(
+    "Magical Deluxe Girl",
+  );
+  // the word ending the name, or outside it, is one
+  expect(editionOfTitle("Berserk Deluxe Volume 2")?.key).toBe("deluxe");
+  expect(editionOfTitle("One Piece (Omnibus Edition), Vol. 1")?.key).toBe(
+    "omnibus",
+  );
+  expect(editionOfTitle("Vagabond, Vol. 11")).toBe(null);
+  // and a stamp never comes from such a name
+  expect(editionStamp([book("Magical Deluxe Girl, Vol. 1", [1])], [1])).toBe(
+    null,
+  );
+});
+
+test("a book's series is its own, whatever its edition", () => {
+  for (const [title, series] of [
+    ["Vagabond VIZBIG Edition, Vol. 1", "Vagabond"],
+    ["Vagabond Definitive Edition, Vol. 3", "Vagabond"],
+    ["Berserk Deluxe Volume 2", "Berserk"],
+    ["One Piece (Omnibus Edition), Vol. 1", "One Piece"],
+    ["Girl Friends: The Complete Collection 1", "Girl Friends"],
+    ["Akira 35th Anniversary Edition, Vol. 1", "Akira"],
+    ["BLAME! Master Edition 2", "BLAME!"],
+    ["Vagabond, Vol. 11", "Vagabond"],
+    ["Rave Master, Vol. 4", "Rave Master"],
+  ])
+    expect([title, seriesOfBook(title!)]).toEqual([title, series]);
+});
+
+test("the edit form lets a book's own cover through, and still checks typed links", () => {
+  expect(coverLinkProblem("/api/prices/cover/9781974752584")).toBe(undefined);
+  expect(coverLinkProblem("https://example.com/cover.jpg")).toBe(undefined);
+  expect(coverLinkProblem("")).toBeFalsy();
+  expect(coverLinkProblem("/api/auth/logout")).toBeTruthy();
+  expect(coverLinkProblem("cover.jpg")).toBeTruthy();
 });

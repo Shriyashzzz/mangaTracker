@@ -10,7 +10,12 @@ import priceQueries, {
   type Country,
 } from "../models/priceQueries.js";
 import { englishAuthors, lookupIsbn } from "./sources/catalog.js";
-import { isNovelBook, seriesName } from "./stores/match.js";
+import {
+  editionOfTitle,
+  isNovelBook,
+  seriesName,
+  seriesOfBook,
+} from "./stores/match.js";
 import { enabledProviders } from "./providers/index.js";
 import { ebayCallsLeft } from "./providers/ebay.js";
 import { cjCallsLeft } from "./providers/booksAMillion.js";
@@ -30,7 +35,7 @@ import { notOutYet } from "./preorder.js";
 import { publisherOf } from "./publishers.js";
 import { getSeriesWithVolumes } from "./seriesService.js";
 import { bookInLine, restOfLine } from "./editionBooks.js";
-import { editionNameOf, withoutEdition } from "../util/shelf/editionNames.js";
+import { withoutEdition } from "../util/shelf/editionNames.js";
 import { normalize } from "./stores/match.js";
 import { scanIfNeverScanned } from "./boxSetScan.js";
 
@@ -364,7 +369,7 @@ export async function volumeExists(isbn13: string): Promise<boolean> {
 export async function upcomingReleaseOf(isbn13: string) {
   const book = await priceQueries.getBook(isbn13).catch(() => null);
   if (!book) return null;
-  const series = await getSeriesWithVolumes(seriesName(book.title)).catch(
+  const series = await getSeriesWithVolumes(seriesOfBook(book.title)).catch(
     () => null,
   );
   return notOutYet(series?.volumes.find((v) => v.isbn13 === isbn13)?.published);
@@ -422,7 +427,7 @@ export async function getVolumePrices(
   // series' own name, so the page knows the series, and under the edition's
   // name nothing is found
   const ownName = seriesName(book.title);
-  const edition = editionNameOf(book.title);
+  const edition = editionOfTitle(book.title);
   const series = await getSeriesWithVolumes(
     edition ? withoutEdition(ownName) : ownName,
     country,
@@ -431,6 +436,10 @@ export async function getVolumePrices(
   // what's saved for a crawler, which never sets off a search)
   const inLine =
     edition && series.info ? await bookInLine(series, isbn13, refresh) : null;
+  // a person's first look at it (what's stored, shown at once): the lines
+  // are looked up behind the page, so the next look has its edition's books
+  if (edition && series.info && !inLine && report && !refresh)
+    void bookInLine(series, isbn13, true);
   // an edition's book the lines don't list yet still counts when the
   // catalog's own title for this ISBN names the series and an edition of it
   const editionOfKnownSeries =

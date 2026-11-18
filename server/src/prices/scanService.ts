@@ -7,10 +7,10 @@ import {
   seriesName,
   bookNumberOf,
   omnibusVolumes,
+  editionOfTitle,
 } from "./stores/match.js";
 import { baseName, isNovelName, novelName } from "./lightNovel.js";
 import { editionVolumes, withoutEdition } from "../util/shelf/editions.js";
-import { editionNameOf } from "../util/shelf/editionNames.js";
 import { bookInLine } from "./editionBooks.js";
 import { titleVolume } from "./volumeNames.js";
 import { getOrCreateBook, getVolumePrices } from "./volumeService.js";
@@ -44,7 +44,7 @@ export async function lookupScannedIsbn(isbn13: string) {
   // any other edition's book ("Vagabond Definitive Edition, Vol. 1"): the
   // series' edition lines say what it holds (prices/editionBooks.ts)
   const inLine =
-    !inBook && !inEdition && editionNameOf(book.title)
+    !inBook && !inEdition && editionOfTitle(book.title)
       ? await volumesInItsLine(named, book.isbn13)
       : null;
   // an omnibus ("One Piece, Vol. 1 (Romance Dawn / … )" is vols 1 to 3):

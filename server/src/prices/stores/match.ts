@@ -1,6 +1,10 @@
 // Stores and search APIs list volumes by title, not ISBN, so these helpers
 // decide whether a listing is the same volume we're pricing:
 // same series name and same volume number.
+import {
+  editionNameOf,
+  withoutEdition,
+} from "../../util/shelf/editionNames.js";
 
 // accents and apostrophes go first, so "Café" is "cafe" and "Cat's" is
 // "cats", however a listing writes them
@@ -80,6 +84,27 @@ export const seriesName = (title: string) =>
     .replace(/\s+\d+\s*$/, "")
     .replace(/\s+/g, " ")
     .trim();
+
+// The series a book is a book OF, whatever edition it is: "Vagabond VIZBIG
+// Edition, Vol. 1" is Vagabond's (util/shelf/editionNames.ts has the one list
+// of editions). For anything that asks about a book's series: its page, its
+// preview, a To buy list. seriesName alone is the name as the title has it
+export const seriesOfBook = (title: string) =>
+  withoutEdition(seriesName(title));
+
+// The edition a BOOK is, read from its title: "Berserk Deluxe Volume 2" is a
+// Deluxe, "One Piece (Omnibus Edition), Vol. 1" an Omnibus. Not when the word
+// is part of the series' own name, in the middle of it ("Magical Deluxe
+// Girl, Vol. 1" is a plain volume): an edition's words end the series' name,
+// or sit outside it
+export function editionOfTitle(title: string) {
+  const edition = editionNameOf(title);
+  if (!edition) return null;
+  const name = seriesName(title);
+  const endsTheName = withoutEdition(name) !== name;
+  const outsideTheName = !editionNameOf(name);
+  return endsTheName || outsideTheName ? edition : null;
+}
 
 // a light novel's volumes are named "Overlord Light Novel, Vol. 3" (see
 // prices/lightNovel.ts); a store lists it as "Overlord, Vol. 3 (light novel)"

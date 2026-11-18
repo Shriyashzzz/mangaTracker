@@ -83,7 +83,7 @@ export const EDITION_NAMES: EditionName[] = [
     kind: "deluxe",
     label: "Complete Edition",
     short: "CMPL",
-    words: /\bcomplete\s+edition\b/i,
+    words: /\bcomplete\s+(edition|collection)\b/i,
   },
   {
     key: "anniversary",

@@ -2,7 +2,7 @@ import { useRef, useState } from "react";
 import type { CoverHit } from "../../lib/anilist";
 import clsx from "clsx";
 import { useCoverSearch } from "./useCoverSearch";
-import { API_URL } from "../../lib/api";
+import { coverSrc } from "../../lib/prices";
 import { isVolumeCover } from "../../lib/coverSizes";
 
 // the other matches, small enough to sit under the cover; a sideways
@@ -31,10 +31,6 @@ const PHONE_ROWS = {
 
 // a cover of a book they own: the address the shelf saves, and its name
 export type OwnCover = { url: string; name: string };
-
-// the picture at an address: one of our own cover routes is on the API
-const shownAt = (url: string) =>
-  isVolumeCover(url) ? `${API_URL}${url}` : url;
 
 const thumbClass = (selected: boolean) =>
   clsx(
@@ -145,7 +141,7 @@ export default function CoverPicker({
       >
         {hasImage ? (
           <img
-            src={shownAt(bigCover)}
+            src={coverSrc(bigCover)}
             alt=""
             className="size-full object-cover"
             onError={() => setBrokenUrl(bigCover)}
@@ -189,7 +185,7 @@ export default function CoverPicker({
                   onClick={() => (selected ? pick("") : pick(own.url))}
                 >
                   <img
-                    src={shownAt(own.url)}
+                    src={coverSrc(own.url)}
                     alt=""
                     loading="lazy"
                     className={thumbClass(selected)}

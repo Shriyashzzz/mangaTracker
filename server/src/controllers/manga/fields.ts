@@ -99,6 +99,7 @@ export const mangaFields = [
     .custom(
       (value: string) => OWN_BOOK_COVER.test(value) || isWebAddress(value),
     )
+    .withMessage("Please provide a valid URL")
     .isLength({ max: 1000 })
     .withMessage("Please provide a valid URL"),
 ];

@@ -178,6 +178,15 @@ test("the shelf check finds a series by any edition's name, both ways", async ()
   expect(await findOnShelf(shelf, "Vinland Saga")).toBe(null);
 });
 
+test("a name ending in a number still finds itself, and other names don't", async () => {
+  const shelf = [{ name: "Kaiju No. 8" }, { name: "Rave Master" }];
+  expect((await findOnShelf(shelf, "Kaiju No. 8"))?.name).toBe("Kaiju No. 8");
+  expect((await findOnShelf(shelf, "Rave Master"))?.name).toBe("Rave Master");
+  // "Master Edition" is an edition; "Rave" is not "Rave Master"
+  expect(await findOnShelf(shelf, "Rave")).toBe(null);
+  expect(await findOnShelf(shelf, "Master")).toBe(null);
+});
+
 test("a cover can be a book's own, by its ISBN, and nothing else of ours", async () => {
   const { agent, userId } = await signedIn();
   const { plain } = await threeVagabonds(userId);

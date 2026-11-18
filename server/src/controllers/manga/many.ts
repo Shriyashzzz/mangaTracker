@@ -8,10 +8,8 @@ import mangaQueries, { type RestoredManga } from "../../models/mangaQueries.js";
 import bookQueries from "../../models/bookQueries.js";
 import type { Manga } from "../../../generated/prisma/client.js";
 import { lookupScannedIsbn, titleVolume } from "../../prices/service.js";
-import {
-  editionNameOf,
-  withoutEdition,
-} from "../../util/shelf/editionNames.js";
+import { withoutEdition } from "../../util/shelf/editionNames.js";
+import { editionOfTitle } from "../../prices/stores/match.js";
 import { shelfKey } from "../../util/shelf/malEntry.js";
 import { titleKey } from "../../util/shelf/titleKey.js";
 import { oneAtATime } from "../../util/shelf/oneAtATime.js";
@@ -229,14 +227,14 @@ export const merge = [
 async function putEditionBooksRight(mangaId: number) {
   const books = await bookQueries.booksOf(mangaId);
   const wrong = books.filter(
-    (b) => b.isbn13 && b.volumes.length === 1 && editionNameOf(b.title ?? ""),
+    (b) => b.isbn13 && b.volumes.length === 1 && editionOfTitle(b.title ?? ""),
   );
   for (const book of wrong.slice(0, 20)) {
     const scanned = await lookupScannedIsbn(book.isbn13!).catch(() => null);
     if (!scanned || scanned.volumes.length < 2) continue;
     await bookQueries.setBookVolumes(mangaId, book.id, {
       volumes: scanned.volumes,
-      edition: editionNameOf(book.title ?? "")!.kind,
+      edition: editionOfTitle(book.title ?? "")!.kind,
       number: titleVolume(book.title ?? ""),
     });
   }

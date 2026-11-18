@@ -72,19 +72,24 @@ export async function findOnShelf<T extends { name: string }>(
 ): Promise<T | null> {
   // an edition is its series: "Vagabond VIZBIG Edition" finds "Vagabond" on
   // the shelf, and the other way round (util/shelf/editionNames.ts)
-  const plain = withoutEdition(seriesName(series));
+  // (the name as given is still asked about as it is: "Kaiju No. 8" loses
+  // its number to seriesName, and must still find itself)
+  const plain = withoutEdition(series);
   const wanted = new Set([
     slugify(series),
     slugify(seriesName(series)),
     slugify(plain),
+    slugify(withoutEdition(seriesName(series))),
   ]);
-  wanted.add(slugify(await knownSeriesName(plain).catch(() => plain)));
+  wanted.add(slugify(await knownSeriesName(series).catch(() => series)));
+  if (plain !== series)
+    wanted.add(slugify(await knownSeriesName(plain).catch(() => plain)));
   return (
     manga.find(
       (m) =>
         wanted.has(slugify(m.name)) ||
         wanted.has(slugify(seriesName(m.name))) ||
-        wanted.has(slugify(withoutEdition(seriesName(m.name)))),
+        wanted.has(slugify(withoutEdition(m.name))),
     ) ?? null
   );
 }

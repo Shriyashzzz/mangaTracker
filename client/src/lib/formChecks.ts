@@ -12,8 +12,13 @@ export const chapterProblem = (text: string) => {
   return undefined;
 };
 
-// a pasted cover link: a web address, or nothing
+// a pasted cover link: a web address, or nothing. A cover picked from the
+// books they own is one of our own (/api/prices/cover/<isbn>): not typed, so
+// there's nothing of theirs to put right
+const OWN_BOOK_COVER = /^\/api\/prices\/cover\/97[89]\d{10}$/;
 export const coverLinkProblem = (url: string) =>
-  url && !/^https?:\/\/\S+$/i.test(url.trim())
+  url &&
+  !OWN_BOOK_COVER.test(url.trim()) &&
+  !/^https?:\/\/\S+$/i.test(url.trim())
     ? "That isn't a web address. Paste one that starts with https://"
     : undefined;

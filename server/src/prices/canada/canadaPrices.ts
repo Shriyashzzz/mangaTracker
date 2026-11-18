@@ -12,7 +12,7 @@
 // prices depend on. CANADA_PRICES=off turns it all off.
 import { getSeriesWithVolumes, upcomingReleaseOf } from "../service.js";
 import { scanIfNeverScanned } from "../boxSetScan.js";
-import { seriesName } from "../stores/match.js";
+import { seriesOfBook } from "../stores/match.js";
 import config from "../../config/config.js";
 import priceQueries, { shownOnItsPage } from "../../models/priceQueries.js";
 import {
@@ -262,7 +262,7 @@ async function runCheck(
 async function scanCanadaSetsOnce(isbn13: string) {
   const book = await priceQueries.getBook(isbn13).catch(() => null);
   if (!book) return;
-  const series = await getSeriesWithVolumes(seriesName(book.title)).catch(
+  const series = await getSeriesWithVolumes(seriesOfBook(book.title)).catch(
     () => null,
   );
   if (series?.volumes.length)
