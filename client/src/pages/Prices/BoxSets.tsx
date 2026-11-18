@@ -18,8 +18,6 @@ const KIND: Record<string, string> = {
   omnibus: "Omnibus",
 };
 const CONDITION: Record<string, string> = { new: "new", used: "used" };
-// shown at once in the box; the rest are a tap away
-const FIRST_SHOWN = 2;
 
 // with no set priced yet: where to look for one, a quiet row under the page
 export function BoxSetSearch({ links }: { links: StoreLink[] }) {
@@ -75,40 +73,36 @@ export default function BoxSets({
   if (!sets.length) return null;
   const affiliate = [...sets, ...links].some((l) => l.affiliate);
 
-  const ticket = (s: BoxSet, first: boolean, where?: string) => {
-    const kind = KIND[s.format] ?? "Set";
-    const condition = CONDITION[s.condition] ?? "resold";
-    const body = (
-      <>
-        <span className={first ? styles.setKindFirst : styles.setKind}>
-          {first ? `Cheapest · ${condition}` : `${kind} · ${condition}`}
-        </span>
-        <span className={styles.setStore}>{shopName(s.store)}</span>
-        <span className={styles.setPrice}>{formatCents(s.priceCents)}</span>
-      </>
-    );
-    return (
-      <li key={`${s.store}-${s.priceCents}-${s.url}`} className={where}>
-        {s.url ? (
-          <a
-            className={first ? styles.setTicketFirst : styles.setTicket}
-            href={s.url}
-            target="_blank"
-            rel={linkRel(s)}
-            onClick={noteStoreClick}
-            onAuxClick={noteStoreClick}
-            aria-label={`${kind}, ${condition}, at ${shopName(s.store)}: ${formatCents(s.priceCents)}. Opens the store in a new tab`}
-          >
-            {body}
-          </a>
-        ) : (
-          <span className={first ? styles.setTicketFirst : styles.setTicket}>
-            {body}
-          </span>
-        )}
-      </li>
+  // what a set is, in words: for a link's label, and a row's
+  const said = (s: BoxSet) => ({
+    kind: KIND[s.format] ?? "Set",
+    condition: CONDITION[s.condition] ?? "resold",
+    store: shopName(s.store),
+    price: formatCents(s.priceCents),
+  });
+  const linked = (s: BoxSet, className: string, body: React.ReactNode) => {
+    const { kind, condition, store, price } = said(s);
+    return s.url ? (
+      <a
+        className={className}
+        href={s.url}
+        target="_blank"
+        rel={linkRel(s)}
+        onClick={noteStoreClick}
+        onAuxClick={noteStoreClick}
+        aria-label={`${kind}, ${condition}, at ${store}: ${price}. Opens the store in a new tab`}
+      >
+        {body}
+      </a>
+    ) : (
+      <span className={className}>{body}</span>
     );
   };
+  // The cheapest is the one ticket. The rest are a short price list under
+  // it: one line each, since four tickets saying "Box set · eBay" four times
+  // filled the box (and a phone's screen) with the same words
+  const [cheapest, ...rest] = sets;
+  const lead = said(cheapest!);
 
   const stores = (
     <>
@@ -137,30 +131,84 @@ export default function BoxSets({
     </>
   );
 
+  // a ticket, as every set is drawn below a laptop
+  const ticket = (s: BoxSet, first: boolean) => {
+    const { kind, condition, store, price } = said(s);
+    return (
+      <li key={`${s.store}-${s.priceCents}-${s.url}`}>
+        {linked(
+          s,
+          first ? styles.setTicketFirst : styles.setTicket,
+          <>
+            <span className={first ? styles.setKindFirst : styles.setKind}>
+              {first ? `Cheapest · ${condition}` : `${kind} · ${condition}`}
+            </span>
+            <span className={styles.setStore}>{store}</span>
+            <span className={styles.setPrice}>{price}</span>
+          </>,
+        )}
+      </li>
+    );
+  };
+
   const tickets = (
     <>
-      {/* the first two in the box; on a phone, all of them in one row */}
-      <ul className={styles.setsList}>
-        {sets.map((s, i) =>
-          ticket(s, i === 0, i >= FIRST_SHOWN ? styles.setLater : undefined),
-        )}
-      </ul>
-      <details className={styles.setsMore}>
-        <summary className={styles.setsMoreSummary}>
-          {sets.length > FIRST_SHOWN && (
-            <span className={styles.setsMoreCount}>
-              {sets.length - FIRST_SHOWN} more, and{" "}
+      {/* on a laptop, in the narrow box: the cheapest as a ticket, the rest
+          a price list under it */}
+      <div className={styles.setsOnLaptop}>
+        {linked(
+          cheapest!,
+          styles.editionsBoxTicket,
+          <>
+            <span className={styles.setKindFirst}>
+              Cheapest · {lead.condition}
             </span>
-          )}
-          other stores
-        </summary>
-        {sets.length > FIRST_SHOWN && (
-          <ul className={styles.setsRest}>
-            {sets.slice(FIRST_SHOWN).map((s) => ticket(s, false))}
+            <span className={styles.setStore}>{lead.store}</span>
+            <span className={styles.setPrice}>{lead.price}</span>
+          </>,
+        )}
+        {rest.length > 0 && (
+          <ul className={styles.setRows}>
+            {rest.map((s) => {
+              const { kind, condition, store, price } = said(s);
+              return (
+                <li key={`${s.store}-${s.priceCents}-${s.url}`}>
+                  {linked(
+                    s,
+                    styles.setRow,
+                    <>
+                      {/* what tells them apart first: new or used (and an
+                          omnibus, when the box holds those too) */}
+                      <span className={styles.setRowKind}>
+                        {s.format === "omnibus" ? `${kind} · ` : ""}
+                        {condition}
+                      </span>
+                      <span className={styles.setStore}>{store}</span>
+                      <span className={styles.setPrice}>{price}</span>
+                    </>,
+                  )}
+                </li>
+              );
+            })}
           </ul>
         )}
-        {stores}
-      </details>
+      </div>
+      {/* below a laptop there's the width for it: every set a ticket, in a
+          row on a tablet and stacked on a phone, as it always was */}
+      <div className={styles.setsBelowLaptop}>
+        <ul className={styles.setsList}>
+          {sets.map((s, i) => ticket(s, i === 0))}
+        </ul>
+      </div>
+      {links.length > 0 && (
+        <details className={styles.setsMore}>
+          <summary className={styles.setsMoreSummary}>
+            <span className={styles.setsOnLaptop}>Look in other stores</span>
+            <span className={styles.setsBelowLaptop}>other stores</span>
+          </summary>
+          {stores}
+        </details>
+      )}
     </>
   );
   if (bare) return tickets;

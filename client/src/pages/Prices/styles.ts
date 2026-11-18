@@ -419,8 +419,6 @@ export const pricesStyles = {
   setsOtherFrom: "font-mono text-[0.8rem] font-normal text-muted",
   setsList:
     "flex flex-col gap-2 upto-980:flex-row upto-980:overflow-x-auto upto-980:pb-1 upto-980:[scrollbar-width:none] upto-560:flex-col upto-560:overflow-visible",
-  // past the first two: in the row on a phone, behind "more" in the box
-  setLater: "hidden upto-980:block",
   setTicket:
     "grid min-h-11 grid-cols-[minmax(0,1fr)_auto] gap-x-2 rounded-ink border-[1.5px] border-dashed border-line bg-paper px-3 py-[0.45rem] text-[0.92rem] font-semibold transition-[background-color,border-color] duration-120 ease-[ease] [a&]:hover:border-accent [a&]:hover:bg-accent-wash upto-980:w-[11rem] upto-980:shrink-0 upto-560:w-auto",
   setTicketFirst:
@@ -431,14 +429,26 @@ export const pricesStyles = {
     "col-span-full font-mono text-[0.72rem] font-medium tracking-[0.06em] whitespace-nowrap text-accent-ink uppercase",
   setStore: "min-w-0 truncate",
   setPrice: "text-right font-mono font-medium text-accent-ink",
+  // the box draws its sets two ways: a ticket and a price list in the
+  // narrow box on a laptop, every set a ticket below it
+  setsOnLaptop: "upto-980:hidden",
+  setsBelowLaptop: "hidden upto-980:block",
+  // the sets after the cheapest: a price list, a line each. New or used
+  // first (the store is often the same four times), then the store, and
+  // the price at the right
+  setRows: "mt-1.5",
+  setRow:
+    "grid min-h-9 grid-cols-[4.2rem_minmax(0,1fr)_auto] items-baseline gap-x-2 border-b border-dashed border-line-soft py-1.5 text-[0.9rem] font-medium transition-colors duration-120 ease-[ease] [a&]:hover:text-accent upto-720:min-h-11 upto-720:items-center",
+  setRowKind:
+    "font-mono text-[0.72rem] font-normal tracking-[0.06em] whitespace-nowrap text-muted uppercase",
   setsMore: "mt-2",
   setsMoreSummary:
     "tap cursor-pointer py-1 text-right text-[0.85rem] font-medium text-ink-soft underline decoration-line-soft underline-offset-3 marker:content-none hover:text-accent hover:decoration-accent [&::-webkit-details-marker]:hidden upto-980:text-left",
-  // the count is of what the box holds back: a phone's row shows them all
-  setsMoreCount: "upto-980:hidden",
-  setsRest: "mt-2 flex flex-col gap-2 upto-980:hidden",
+  // where else to look. In the laptop's narrow box, plain links that wrap
+  // like a line of text (as boxes they broke one to a line, each a different
+  // width); below it, where there's the width, the same boxes as before
   setStores:
-    "mt-2 flex flex-wrap gap-1.5 upto-980:grid upto-980:grid-cols-4 upto-560:grid-cols-2 [&_a]:tap [&_a]:inline-block upto-980:[&_a]:block upto-980:[&_a]:text-center [&_a]:rounded-[2px] [&_a]:border-[1.5px] [&_a]:border-line [&_a]:bg-paper [&_a]:px-[0.6rem] [&_a]:py-[0.25rem] [&_a]:text-[0.82rem] [&_a]:font-medium [&_a]:transition-[background-color,color] [&_a]:duration-120 [&_a]:ease-[ease] [&_a]:hover:bg-ink [&_a]:hover:text-paper",
+    "mt-2 flex flex-wrap gap-x-3.5 gap-y-1 upto-980:grid upto-980:grid-cols-4 upto-980:gap-1.5 upto-560:grid-cols-2 [&_a]:tap [&_a]:text-[0.85rem] [&_a]:font-medium [&_a]:underline [&_a]:decoration-line-soft [&_a]:underline-offset-3 [&_a]:transition-[background-color,color] [&_a]:duration-120 [&_a]:ease-[ease] [&_a]:hover:text-accent upto-980:[&_a]:block upto-980:[&_a]:rounded-[2px] upto-980:[&_a]:border-[1.5px] upto-980:[&_a]:border-line upto-980:[&_a]:bg-paper upto-980:[&_a]:px-[0.6rem] upto-980:[&_a]:py-[0.25rem] upto-980:[&_a]:text-center upto-980:[&_a]:text-[0.82rem] upto-980:[&_a]:no-underline upto-980:[&_a]:hover:bg-ink upto-980:[&_a]:hover:text-paper",
   // the edition box's one ticket: the row's whole width on a phone
   editionsBoxTicket:
     "grid min-h-11 grid-cols-[minmax(0,1fr)_auto] gap-x-2 rounded-ink border-2 border-accent bg-accent-wash px-3 py-[0.45rem] text-[0.92rem] font-semibold shadow-[3px_3px_0_var(--hard-shadow)] transition-[translate,box-shadow] duration-120 ease-[ease] [a&]:hover:-translate-y-px [a&]:hover:shadow-[4px_4px_0_var(--hard-shadow)]",
