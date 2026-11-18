@@ -10,6 +10,8 @@ import {
 } from "./stores/match.js";
 import { baseName, isNovelName, novelName } from "./lightNovel.js";
 import { editionVolumes, withoutEdition } from "../util/shelf/editions.js";
+import { editionNameOf } from "../util/shelf/editionNames.js";
+import { bookInLine } from "./editionBooks.js";
 import { titleVolume } from "./volumeNames.js";
 import { getOrCreateBook, getVolumePrices } from "./volumeService.js";
 import { getSeriesWithVolumes } from "./seriesService.js";
@@ -39,9 +41,17 @@ export async function lookupScannedIsbn(isbn13: string) {
       : ((await getSeriesWithVolumes(named).catch(() => null))?.volumes.find(
           (v) => v.isbn13 === book.isbn13 && v.inBook,
         )?.inBook ?? null);
+  // any other edition's book ("Vagabond Definitive Edition, Vol. 1"): the
+  // series' edition lines say what it holds (prices/editionBooks.ts)
+  const inLine =
+    !inBook && !inEdition && editionNameOf(book.title)
+      ? await volumesInItsLine(named, book.isbn13)
+      : null;
   // an omnibus ("One Piece, Vol. 1 (Romance Dawn / … )" is vols 1 to 3):
   // every volume in it, or nothing at all when it can't say which
-  const omnibus = inBook ? null : (inEdition ?? omnibusVolumes(book.title));
+  const omnibus = inBook
+    ? null
+    : (inEdition ?? inLine ?? omnibusVolumes(book.title));
   if (omnibus && !omnibus.length) return null;
   // the first volume it holds: as its series' list says, as its title
   // says, or the one volume its title names
@@ -84,6 +94,15 @@ export async function lookupScannedIsbn(isbn13: string) {
     lightNovel,
     coverUrl: book.coverUrl,
   };
+}
+
+// the volumes an edition's book holds, from its series' edition lines; null
+// when no line lists it (the book then goes by the number in its title)
+async function volumesInItsLine(series: string, isbn13: string) {
+  const found = await getSeriesWithVolumes(series).catch(() => null);
+  if (!found?.info) return null;
+  const inLine = await bookInLine(found, isbn13).catch(() => null);
+  return inLine?.book.volumes.length ? inLine.book.volumes : null;
 }
 
 export type ScannedBook = NonNullable<

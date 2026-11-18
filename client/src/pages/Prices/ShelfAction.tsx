@@ -2,7 +2,14 @@ import { useEffect, useRef, useState } from "react";
 import { NavLink, useLocation } from "react-router";
 import { signInPath } from "../../lib/api";
 import { findOnShelf, setVolumesOwned, type Owned } from "../../lib/shelf";
-import { owns, withVolume } from "../../lib/ownedVolumes";
+import {
+  ownedOf,
+  ownedVolumes,
+  owns,
+  withVolume,
+} from "../../lib/ownedVolumes";
+import { newBook } from "../../lib/books";
+import { saveBooks } from "../../lib/booksApi";
 import { novelParts } from "../../lib/prices";
 import { pricesStyles as styles } from "./styles";
 import type { ShelfMatch } from "../../lib/types";
@@ -22,6 +29,10 @@ const UNDO_MS = 6000;
 // list (components/toBuy/ToBuyButton.tsx)
 //   on it, volume owned     -> shows that, links to the manga
 //   signed out            -> sign in, then come back here
+// A book of an edition ("VIZBIG 1", holding vols 1 to 3) is on its series'
+// own shelf entry, never one of its own: "I own VIZBIG 1" marks every volume
+// it holds and records the book, so the entry knows its edition. When its
+// line doesn't say what it holds, there's no "I own" (the scan can say)
 type Props = {
   // the volume's own ISBN, for the To buy list
   isbn13: string;
@@ -30,9 +41,18 @@ type Props = {
   // what to prefill the add form with
   title: string;
   volume: number | null;
+  // a book of an edition: its name ("VIZBIG 1"), its own title, and the
+  // series' volumes it holds (null when its line doesn't say)
+  editionBook?: { name: string; title: string; holds: number[] | null };
 };
 
-export default function ShelfAction({ isbn13, series, title, volume }: Props) {
+export default function ShelfAction({
+  isbn13,
+  series,
+  title,
+  volume,
+  editionBook,
+}: Props) {
   const isSignedIn = useAuth((s) => s.isSignedIn);
   const { pathname } = useLocation();
   // `series` names which lookup this answers, so a stale one never shows
@@ -43,7 +63,8 @@ export default function ShelfAction({ isbn13, series, title, volume }: Props) {
   // the last "I own" tap, offered back as Undo for a few seconds
   const [undo, setUndo] = useState<{
     previous: Owned;
-    volume: number;
+    // what was just marked: "vol. 15", "VIZBIG 1"
+    what: string;
   } | null>(null);
   const [saving, setSaving] = useState(false);
   const [failed, setFailed] = useState(false);
@@ -107,7 +128,7 @@ export default function ShelfAction({ isbn13, series, title, volume }: Props) {
     return (
       <div className={styles.shelfChoices}>
         <ToReadButton name={title} cover={null} />
-        {volume != null && (
+        {volume != null && !editionBook && (
           <NavLink
             to={`/add?${params}`}
             className="btn btn-secondary btn-sm"
@@ -121,14 +142,21 @@ export default function ShelfAction({ isbn13, series, title, volume }: Props) {
     );
   }
 
-  const ownsThis = volume != null && owns(manga, volume);
+  // what "this" is: the volumes an edition's book holds, or the one volume
+  const holds = editionBook
+    ? editionBook.holds
+    : volume != null
+      ? [volume]
+      : null;
+  const thing = editionBook?.name ?? (volume != null ? `Vol. ${volume}` : null);
+  const ownsThis = Boolean(holds?.length && holds.every((v) => owns(manga, v)));
   const before: Owned = {
     volumesOwned: manga.volumesOwned,
     ownedList: manga.ownedList ?? [],
   };
   // this volume as theirs (just it: One Piece 1 and 4 stays without 2 and 3),
   // or, from Undo, back to what it was
-  const setOwned = async (next: Owned, tapped?: number) => {
+  const setOwned = async (next: Owned, tapped?: string) => {
     setSaving(true);
     setFailed(false);
     try {
@@ -136,7 +164,12 @@ export default function ShelfAction({ isbn13, series, title, volume }: Props) {
       setMatch({ series, manga: { ...manga, ...saved } });
       clearTimeout(undoTimer.current);
       if (tapped !== undefined) {
-        setUndo({ previous: before, volume: tapped });
+        setUndo({ previous: before, what: tapped });
+        // an edition's book is recorded too, so its series knows the edition
+        if (editionBook?.holds)
+          void saveBooks(manga.id, [
+            newBook(editionBook.title, editionBook.holds, isbn13),
+          ]);
         undoTimer.current = setTimeout(() => setUndo(null), UNDO_MS);
       } else {
         setUndo(null);
@@ -154,14 +187,21 @@ export default function ShelfAction({ isbn13, series, title, volume }: Props) {
         {/* just that: how far they are is on the manga's own page */}
         <NavLink to={`/details/${manga.id}`}>On your shelf</NavLink>
       </p>
-      {volume != null && !ownsThis ? (
+      {holds?.length && thing && !ownsThis ? (
         <button
           type="button"
           className={`btn btn-primary ${styles.shelfButton}`}
           disabled={saving}
-          onClick={() => setOwned(withVolume(manga, volume), volume)}
+          onClick={() =>
+            setOwned(
+              editionBook
+                ? ownedVolumes(null, [...ownedOf(manga), ...holds])
+                : withVolume(manga, holds[0]!),
+              editionBook ? thing : `vol. ${holds[0]}`,
+            )
+          }
         >
-          {saving ? "Saving…" : `I own Vol. ${volume}`}
+          {saving ? "Saving…" : `I own ${thing}`}
         </button>
       ) : (
         <NavLink
@@ -169,7 +209,7 @@ export default function ShelfAction({ isbn13, series, title, volume }: Props) {
           className={`btn btn-secondary ${styles.shelfButton}`}
           viewTransition
         >
-          ✓ {volume != null ? `You own Vol. ${volume}` : "On your shelf"}
+          ✓ {ownsThis && thing ? `You own ${thing}` : "On your shelf"}
         </NavLink>
       )}
       {/* not for a volume that's already theirs */}
@@ -184,7 +224,7 @@ export default function ShelfAction({ isbn13, series, title, volume }: Props) {
           ? "That didn't save. Try again."
           : undo && (
               <>
-                Shelf updated: vol. {undo.volume} is yours.{" "}
+                Shelf updated: {undo.what} is yours.{" "}
                 <button
                   type="button"
                   className={styles.undoBtn}

@@ -26,6 +26,15 @@ export type Manga = {
   // the edition they collect: a line's key ("deluxe"), "singles", or not
   // chosen yet (lib/editions.ts)
   edition?: string | null;
+  // the edition they own most of it in, for the stamp on its card
+  // ("Definitive +2"); null when that's single volumes. From the server
+  editionStamp?: { label: string; short: string; more: number } | null;
+  // the series it's an entry of, edition or not: two entries with the same
+  // key are one series ("Vagabond" and "Vagabond VIZBIG Edition"), and the
+  // shelf offers to merge them. `plainName`: its name without the edition's
+  // words, when it has any
+  seriesKey?: string;
+  plainName?: string | null;
   // their place kept by the volume instead of the chapter, and the last
   // volume read
   byVolume?: boolean;
@@ -363,6 +372,9 @@ export type VolumePrices = {
   // checked, the page offers preorder links
   preorder: string | null;
   siblings: SeriesVolume[];
+  // a book of an edition ("VIZBIG"): which, and the series' volumes it
+  // holds when its line says. Its siblings are then that edition's books
+  edition?: { label: string; volumes: number[] | null } | null;
   book: {
     isbn13: string;
     title: string;

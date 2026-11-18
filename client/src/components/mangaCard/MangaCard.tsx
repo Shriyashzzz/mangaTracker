@@ -56,6 +56,56 @@ type Props = {
   select?: { checked: boolean; onToggle: () => void };
 };
 
+// The edition they own most of the series in, stamped on its cover like
+// "Done": "Definitive +2" (two more editions sit beside it). A row's cover is
+// 44px wide, so it carries the edition's few letters ("DEF"); the whole of it
+// is said for screen readers and on hover. The server works it out
+// (util/shelf/editionStamp.ts); most series, owned as single volumes, have
+// none
+const STAMP_FULL =
+  "absolute bottom-2.5 left-2 max-w-[calc(100%-1rem)] -rotate-5 truncate rounded-[3px] border-2 border-line bg-[color-mix(in_srgb,var(--card)_94%,transparent)] px-2 py-[0.15rem] font-brand text-[1rem] leading-[1.2] tracking-[1.5px] text-ink";
+const STAMP_SHORT =
+  "absolute inset-x-[2px] bottom-[2px] truncate rounded-[2px] border-[1.5px] border-line bg-card px-px text-center font-brand text-[0.62rem] leading-[1.3] tracking-[0.4px] text-ink";
+
+function EditionStamp({
+  stamp,
+  shape,
+}: {
+  stamp: NonNullable<Manga["editionStamp"]>;
+  shape: Shape;
+}) {
+  const more =
+    stamp.more > 0
+      ? `, and ${stamp.more} more ${stamp.more === 1 ? "edition" : "editions"}`
+      : "";
+  const said = `${stamp.label} edition${more}`;
+  // a New tab card is a cover on laptops and a row on phones
+  const full = shape === "news" ? `${STAMP_FULL} upto-720:hidden` : STAMP_FULL;
+  const short =
+    shape === "news" ? `${STAMP_SHORT} hidden upto-720:block` : STAMP_SHORT;
+  return (
+    <>
+      {shape !== "small" && (
+        <span className={full} title={said}>
+          <span className="sr-only">{said}</span>
+          <span aria-hidden>
+            {stamp.label}
+            {stamp.more > 0 && (
+              <span className="ml-1.5 text-accent-hover">+{stamp.more}</span>
+            )}
+          </span>
+        </span>
+      )}
+      {shape !== "cover" && (
+        <span className={short} title={said}>
+          <span className="sr-only">{said}</span>
+          <span aria-hidden>{stamp.short}</span>
+        </span>
+      )}
+    </>
+  );
+}
+
 // every card leans a little differently when you hover it: the 1st, 2nd and
 // 3rd of each three tilt their own way. Ticked in Select, it's ringed in red
 const coverBase =
@@ -160,6 +210,9 @@ export default function MangaCard({
               aria-label={`Select ${currentManga.name}`}
             />
           </span>
+        )}
+        {currentManga.editionStamp && (
+          <EditionStamp stamp={currentManga.editionStamp} shape={shape} />
         )}
         {/* hanko-style stamp for finished series */}
         {currentManga.status && !compact && (

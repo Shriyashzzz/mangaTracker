@@ -29,6 +29,9 @@ import { type Offer, type Provider } from "./types.js";
 import { notOutYet } from "./preorder.js";
 import { publisherOf } from "./publishers.js";
 import { getSeriesWithVolumes } from "./seriesService.js";
+import { bookInLine, restOfLine } from "./editionBooks.js";
+import { editionNameOf, withoutEdition } from "../util/shelf/editionNames.js";
+import { normalize } from "./stores/match.js";
 import { scanIfNeverScanned } from "./boxSetScan.js";
 
 // prices are re-fetched at most this often per volume; in between, people
@@ -414,7 +417,29 @@ export async function getVolumePrices(
   const book = await getOrCreateBook(isbn13);
   if (!book) return null;
 
-  const series = await getSeriesWithVolumes(seriesName(book.title), country);
+  // a book of an edition belongs to its series: "Vagabond VIZBIG Edition,
+  // Vol. 1" is Vagabond's (util/shelf/editionNames.ts). Looked up under the
+  // series' own name, so the page knows the series, and under the edition's
+  // name nothing is found
+  const ownName = seriesName(book.title);
+  const edition = editionNameOf(book.title);
+  const series = await getSeriesWithVolumes(
+    edition ? withoutEdition(ownName) : ownName,
+    country,
+  );
+  // which book of the edition it is, from the series' edition lines (only
+  // what's saved for a crawler, which never sets off a search)
+  const inLine =
+    edition && series.info ? await bookInLine(series, isbn13, refresh) : null;
+  // an edition's book the lines don't list yet still counts when the
+  // catalog's own title for this ISBN names the series and an edition of it
+  const editionOfKnownSeries =
+    Boolean(inLine) ||
+    Boolean(
+      edition &&
+      series.info &&
+      normalize(withoutEdition(ownName)) === normalize(series.info.name),
+    );
   // paid searches only for a volume of a series AniList knows, as the catalog
   // lists it: anyone can open a page for any ISBN, and made-up or unrelated
   // ones mustn't spend the month's searches
@@ -422,7 +447,8 @@ export async function getVolumePrices(
   // catalog lists the volume as one of the novel's
   const known =
     (Boolean(series.info) || isNovelName(series.name)) &&
-    series.volumes.some((v) => v.isbn13.trim() === isbn13);
+    (series.volumes.some((v) => v.isbn13.trim() === isbn13) ||
+      editionOfKnownSeries);
   // not out yet: no paid search, the page offers the preorder links instead
   const preorder = notOutYet(
     series.volumes.find((v) => v.isbn13 === book.isbn13)?.published,
@@ -469,7 +495,17 @@ export async function getVolumePrices(
     preorder,
     // the rest of the series, for the "from the same series" row: each book
     // once, though it holds two volumes
-    siblings: otherBooksOf(series.volumes, book.isbn13),
+    // (an edition's book: the other books of its edition, so "next" is the
+    // next Deluxe, not the next paperback)
+    siblings: inLine
+      ? await restOfLine(series.info?.name ?? series.name, inLine, country)
+      : otherBooksOf(series.volumes, book.isbn13),
+    // the edition it's a book of, and the volumes of the series it holds
+    edition: inLine
+      ? { label: inLine.line.label, volumes: inLine.book.volumes }
+      : edition
+        ? { label: edition.label, volumes: null }
+        : null,
     book: {
       isbn13: book.isbn13,
       title: book.title,

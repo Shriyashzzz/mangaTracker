@@ -5,6 +5,7 @@ import priceQueries from "../models/priceQueries.js";
 import { knownSeriesName } from "./sources/anilist.js";
 import { seriesName, slugify } from "./stores/match.js";
 import { VOLUMES_KEY_VERSION } from "./volumesKey.js";
+import { withoutEdition } from "../util/shelf/editionNames.js";
 import {
   FINAL,
   knownVolumes,
@@ -69,12 +70,21 @@ export async function findOnShelf<T extends { name: string }>(
   manga: T[],
   series: string,
 ): Promise<T | null> {
-  const wanted = new Set([slugify(series), slugify(seriesName(series))]);
-  wanted.add(slugify(await knownSeriesName(series).catch(() => series)));
+  // an edition is its series: "Vagabond VIZBIG Edition" finds "Vagabond" on
+  // the shelf, and the other way round (util/shelf/editionNames.ts)
+  const plain = withoutEdition(seriesName(series));
+  const wanted = new Set([
+    slugify(series),
+    slugify(seriesName(series)),
+    slugify(plain),
+  ]);
+  wanted.add(slugify(await knownSeriesName(plain).catch(() => plain)));
   return (
     manga.find(
       (m) =>
-        wanted.has(slugify(m.name)) || wanted.has(slugify(seriesName(m.name))),
+        wanted.has(slugify(m.name)) ||
+        wanted.has(slugify(seriesName(m.name))) ||
+        wanted.has(slugify(withoutEdition(seriesName(m.name)))),
     ) ?? null
   );
 }

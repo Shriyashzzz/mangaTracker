@@ -7,7 +7,11 @@ import { formStyles as styles } from "../../styles/form";
 import { useState, useEffect, useRef, type FormEvent } from "react";
 import { apiFetch, errorMessages } from "../../lib/api";
 import type { Manga } from "../../lib/types";
-import CoverPicker from "../../components/coverPicker/CoverPicker";
+import CoverPicker, {
+  type OwnCover,
+} from "../../components/coverPicker/CoverPicker";
+import { getBooks } from "../../lib/booksApi";
+import { ownCoversOf } from "../../lib/books";
 import FormatField from "../../components/formatField/FormatField";
 import { usePrivatePage } from "../../lib/seo";
 import { GENRES } from "../../lib/content/genres";
@@ -39,6 +43,9 @@ export function UpdateManga() {
   const [titleError, setTitleError] = useState("");
   const [chapterError, setChapterError] = useState<string>();
   const [imageError, setImageError] = useState<string>();
+  // covers of the books they own of it, for the picker (none on failure:
+  // the picker is whole without them)
+  const [ownCovers, setOwnCovers] = useState<OwnCover[]>([]);
   const titleInput = useRef<HTMLInputElement>(null);
   const [lightNovel, setLightNovel] = useState(false);
   const [chapter, setChapter] = useState("");
@@ -83,6 +90,9 @@ export function UpdateManga() {
         if (!response.ok)
           throw new Error(`Error fetching data from the server`);
         const { manga } = (await response.json()) as { manga: Manga };
+        getBooks(manga.id)
+          .then((books) => setOwnCovers(ownCoversOf(books)))
+          .catch(() => {});
         setMangaData(manga);
         setStage(
           manga.planned ? "planned" : manga.status ? "finished" : "reading",
@@ -243,6 +253,7 @@ export function UpdateManga() {
               title={title}
               value={image}
               error={imageError}
+              ownCovers={ownCovers}
               onChange={(url) => {
                 setImage(url);
                 setImageError(undefined);

@@ -2,6 +2,11 @@
 // inline updates (status, to read, rating, chapter, hidden releases, cover,
 // notes, volumes owned). Every :id route runs requireOwner first, which loads
 // the manga onto res.locals.manga.
+import { isShown } from "../../models/bookQueries.js";
+import { ownedSet } from "../../collector/shelfMath.js";
+import { editionStamp } from "../../util/shelf/editionStamp.js";
+import { withoutEdition } from "../../util/shelf/editionNames.js";
+import { slugify } from "../../prices/stores/match.js";
 import type { NextFunction, Request, Response } from "express";
 import { body, matchedData, param } from "express-validator";
 import { ROW_ID, rejectInvalid } from "../../middlewares/validate.js";
@@ -24,8 +29,30 @@ import {
   toInput,
 } from "./fields.js";
 
+// each series with what the shelf's cards need beyond its own row:
+//   editionStamp  the edition they own most of it in ("Definitive +2")
+//   seriesKey     the series it's an entry of, edition or not: two entries
+//                 with the same key are one series, and the shelf offers to
+//                 merge them ("Vagabond" and "Vagabond VIZBIG Edition")
+//   plainName     its name without the edition's words, when it has any
 export const list = async (req: Request, res: Response) => {
-  res.json({ manga: await mangaQueries.getShelf(req.session.userId!) });
+  const userId = req.session.userId!;
+  const [shelf, books] = await Promise.all([
+    mangaQueries.getShelf(userId),
+    bookQueries.shelfBooksBySeries(userId),
+  ]);
+  res.json({
+    manga: shelf.map((m) => {
+      const plainName = withoutEdition(m.name);
+      const theirs = (books.get(m.id) ?? []).filter((b) => isShown(b, m));
+      return {
+        ...m,
+        editionStamp: editionStamp(theirs, ownedSet(m)),
+        seriesKey: `${slugify(plainName)}${m.lightNovel ? ":novel" : ""}`,
+        plainName: plainName === m.name ? null : plainName,
+      };
+    }),
+  });
 };
 
 export const add = [

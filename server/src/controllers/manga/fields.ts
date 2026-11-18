@@ -93,11 +93,26 @@ export const mangaFields = [
   body("image")
     .optional({ values: "falsy" })
     .trim()
-    // a web address only (never ftp: or the like), of a sane length
-    .isURL({ protocols: ["http", "https"], require_protocol: true })
+    // a web address only (never ftp: or the like), of a sane length; or the
+    // cover of a book they own, by its ISBN (our own cover route, which the
+    // cover picker offers: "/api/prices/cover/9781974752584")
+    .custom(
+      (value: string) => OWN_BOOK_COVER.test(value) || isWebAddress(value),
+    )
     .isLength({ max: 1000 })
     .withMessage("Please provide a valid URL"),
 ];
+
+const OWN_BOOK_COVER = /^\/api\/prices\/cover\/97[89]\d{10}$/;
+// http or https, with a host that has a dot in it
+const isWebAddress = (value: string) => {
+  if (!/^https?:\/\/[^\s/]+\.[^\s/]+/i.test(value)) return false;
+  try {
+    return Boolean(new URL(value).hostname);
+  } catch {
+    return false;
+  }
+};
 
 // answers for anything that would put a title on the shelf twice. Checked in the
 // handlers rather than as a validation rule: adding has to check AniList's name for

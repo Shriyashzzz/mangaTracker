@@ -4,6 +4,7 @@
 import { prisma } from "../config/prisma.js";
 import { ownedVolumes } from "../util/shelf/ownedList.js";
 import { ownedSet } from "../collector/shelfMath.js";
+import { editionOfBook } from "../util/shelf/editionStamp.js";
 
 export type BookInput = {
   isbn13?: string | null;
@@ -39,14 +40,55 @@ export async function booksOf(mangaId: number) {
     select: { volumesOwned: true, ownedList: true, books: true },
   });
   if (!manga) return [];
-  return manga.books
-    .filter((b) => isShown(b, manga))
-    .sort(
-      (a, b) =>
-        Math.min(...a.volumes, 1e6) - Math.min(...b.volumes, 1e6) ||
-        a.id - b.id,
-    );
+  return (
+    manga.books
+      .filter((b) => isShown(b, manga))
+      .sort(
+        (a, b) =>
+          Math.min(...a.volumes, 1e6) - Math.min(...b.volumes, 1e6) ||
+          a.id - b.id,
+      )
+      // its edition as the page names it ("Definitive", "VIZBIG"), read from
+      // its own title; null for a single volume
+      .map((b) => ({ ...b, label: editionOfBook(b)?.label ?? null }))
+  );
 }
+
+// every book on a shelf they still have, by the series it's on: for the
+// edition stamps on the shelf's cards (util/shelf/editionStamp.ts)
+export async function shelfBooksBySeries(userId: number) {
+  const books = await prisma.ownedBook.findMany({
+    where: { manga: { userId } },
+    select: { mangaId: true, title: true, edition: true, volumes: true },
+  });
+  const bySeries = new Map<number, typeof books>();
+  for (const book of books)
+    bySeries.set(book.mangaId, [...(bySeries.get(book.mangaId) ?? []), book]);
+  return bySeries;
+}
+
+// A book saved as one volume that its edition's line says holds several
+// (a Definitive scanned before the app knew the edition): its volumes are
+// put right, and all of them are owned on its series
+export const setBookVolumes = (
+  mangaId: number,
+  bookId: number,
+  book: { volumes: number[]; edition: string; number: number | null },
+) =>
+  prisma.$transaction(async (tx) => {
+    const manga = await tx.manga.findUniqueOrThrow({
+      where: { id: mangaId },
+      select: { volumesOwned: true, ownedList: true },
+    });
+    await tx.ownedBook.updateMany({
+      where: { id: bookId, mangaId },
+      data: book,
+    });
+    await tx.manga.update({
+      where: { id: mangaId },
+      data: ownedVolumes(null, [...ownedSet(manga), ...book.volumes]),
+    });
+  });
 
 const sameBook = (a: BookInput, b: BookInput) =>
   a.isbn13 && b.isbn13
@@ -181,6 +223,8 @@ export default {
   addBooks,
   removeBook,
   shelfBooks,
+  shelfBooksBySeries,
+  setBookVolumes,
   setPurchase,
   shelfSpent,
 };

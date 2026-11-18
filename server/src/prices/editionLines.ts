@@ -12,6 +12,7 @@
 // A book the catalog doesn't list is still worked out, without an ISBN, so
 // the line has no holes; it's marked unlisted and the page links a search.
 import { editionVolumes } from "../util/shelf/editions.js";
+import { EDITION_NAMES } from "../util/shelf/editionNames.js";
 import { normalize, omnibusVolumes } from "./stores/match.js";
 
 export type EditionBook = {
@@ -41,76 +42,8 @@ export type EditionDoc = {
   pages?: number | null;
 };
 
-// the words that name a line, most specific first
-const LINES: {
-  key: string;
-  kind: EditionLine["kind"];
-  label: string;
-  words: RegExp;
-  perBook?: number;
-}[] = [
-  { key: "deluxe", kind: "deluxe", label: "Deluxe", words: /\bdeluxe\b/i },
-  {
-    key: "perfect",
-    kind: "deluxe",
-    label: "Perfect Edition",
-    words: /\bperfect\s+edition\b/i,
-  },
-  {
-    key: "collectors",
-    kind: "deluxe",
-    label: "Collector's Edition",
-    words: /\bcollector'?s\s+edition\b/i,
-  },
-  {
-    key: "master",
-    kind: "deluxe",
-    label: "Master Edition",
-    words: /\bmaster\s+edition\b/i,
-  },
-  {
-    key: "fullmetal",
-    kind: "deluxe",
-    label: "Fullmetal Edition",
-    words: /\bfullmetal\s+edition\b/i,
-  },
-  {
-    key: "black",
-    kind: "omnibus",
-    label: "Black Edition",
-    words: /\bblack\s+edition\b/i,
-    perBook: 2,
-  },
-  {
-    key: "ultimate",
-    kind: "omnibus",
-    label: "Ultimate Edition",
-    words: /\bultimate\s+edition\b/i,
-    perBook: 2,
-  },
-  {
-    key: "vizbig",
-    kind: "omnibus",
-    label: "VIZBIG",
-    words: /\bvizbig\b/i,
-    perBook: 3,
-  },
-  {
-    key: "3in1",
-    kind: "omnibus",
-    label: "3-in-1",
-    words: /\b3\s*-?\s*in\s*-?\s*1\b/i,
-    perBook: 3,
-  },
-  {
-    key: "2in1",
-    kind: "omnibus",
-    label: "2-in-1",
-    words: /\b2\s*-?\s*in\s*-?\s*1\b/i,
-    perBook: 2,
-  },
-  { key: "omnibus", kind: "omnibus", label: "Omnibus", words: /\bomnibus\b/i },
-];
+// the lines there are: every edition in the one list (editionNames.ts)
+const LINES = EDITION_NAMES;
 
 // what one book of a line is called: "Deluxe 3", "2-in-1 Book 1". The page
 // keeps a copy (client lib/bookName.ts); tests/shelf/rulesInStep.test.ts
@@ -160,7 +93,7 @@ const isOf = (title: string, name: string) => {
   const n = normalize(name);
   if (t !== n && !t.startsWith(`${n} `)) return false;
   const rest = t.slice(n.length).trim();
-  return /^(the\s+)?(\d|#|vol|book|deluxe|perfect|collectors?|master|fullmetal|black|ultimate|vizbig|omnibus|[23]\s*in\s*1|edition)/.test(
+  return /^(the\s+)?(\d|#|vol|book|deluxe|perfect|collectors?|master|fullmetal|definitive|eternal|complete|anniversary|hardcover|kanzenban|black|ultimate|vizbig|omnibus|[23]\s*in\s*1|edition)/.test(
     rest,
   );
 };

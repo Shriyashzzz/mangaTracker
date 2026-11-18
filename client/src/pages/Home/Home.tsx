@@ -20,6 +20,7 @@ import { BarcodeIcon } from "../../components/icons/Icons";
 import RangePager from "../../components/rangePager/RangePager";
 import ReleaseTip from "../../components/whatsNew/ReleaseTip";
 import ViewPeek from "../../components/viewPeek/ViewPeek";
+import MergeOffer from "./MergeOffer";
 import { usePrivatePage } from "../../lib/seo";
 import {
   readLocal,
@@ -657,6 +658,14 @@ function Library() {
             : undefined
         }
       />
+
+      {/* entries that are one series under different names: on the shelf's
+          own tabs, never over a search, Select or the New tab */}
+      {!showingNew &&
+        tab !== "volumes" &&
+        !select.selectOn &&
+        !query.trim() &&
+        mangaData && <MergeOffer shelf={mangaData} />}
 
       <HiddenNote
         show={showingNew}

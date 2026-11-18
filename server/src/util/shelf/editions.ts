@@ -4,6 +4,7 @@
 // every volume it holds. Kept in step with the import's table
 // (client/src/lib/imports/bookImport.ts EDITIONS)
 import { normalize } from "../../prices/stores/match.js";
+import { withoutEdition } from "./editionNames.js";
 
 const EDITIONS: {
   series: string;
@@ -50,6 +51,15 @@ const EDITIONS: {
     books: 12,
     volumes: 23,
   },
+  // VIZ's Vagabond Definitive Edition (2025 on): three volumes a book, as
+  // its publisher's listings say; 37 volumes, so 13 books
+  {
+    series: "vagabond",
+    edition: /\bdefinitive\b/i,
+    perBook: 3,
+    books: 13,
+    volumes: 37,
+  },
   // VIZ's Death Note Black Edition: 6 books of two for the 12 volumes
   {
     series: "death note",
@@ -60,12 +70,8 @@ const EDITIONS: {
   },
 ];
 
-// the edition's words off the series' name: "Berserk Deluxe Edition" is Berserk
-// (words that end real names, "Rave Master", only before "Edition")
-const EDITION_WORDS =
-  /[\s,:(-]+(the\s+)?(deluxe(\s+edition)?|(perfect|collector'?s|fullmetal|master|ultimate|black)\s+edition)\)?\s*$/i;
-export const withoutEdition = (name: string) =>
-  name.replace(EDITION_WORDS, "").trim() || name;
+// the edition's words off a series' name: the one list (editionNames.ts)
+export { withoutEdition };
 
 // the volumes one book of a known edition holds, or null
 export function editionVolumes(

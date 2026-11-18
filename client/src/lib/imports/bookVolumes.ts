@@ -172,6 +172,15 @@ const EDITIONS: Edition[] = [
     books: 12,
     volumes: 23,
   },
+  // VIZ's Definitive Edition (2025 on): three volumes a book, as its
+  // publisher's listings say; 37 volumes, so 13 books
+  {
+    series: /^vagabond$/,
+    edition: /\bdefinitive\b/i,
+    perBook: 3,
+    books: 13,
+    volumes: 37,
+  },
   // VIZ: 11 books of 2; its 12th is 21st Century Boys, a series of its own
   {
     series: /^20th century boys$/,
@@ -272,7 +281,7 @@ export function evenRange(
   return [from, Math.max(from, to)];
 }
 const SPECIAL_EDITION =
-  /\b(deluxe|perfect edition|collector'?s edition|fullmetal edition|master edition|eternal edition|black edition)\b/i;
+  /\b(deluxe|perfect edition|collector'?s edition|fullmetal edition|master edition|eternal edition|black edition|definitive edition|complete edition)\b/i;
 
 export function editionVolumes(
   series: string,

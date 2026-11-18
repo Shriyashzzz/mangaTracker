@@ -17,8 +17,11 @@ export type OwnedBook = {
   // ("2026-01-05"; the server sends the day with a time on the end)
   paidCents?: number | null;
   boughtOn?: string | null;
+  // its edition as the app says it ("Definitive", "VIZBIG"), read from its
+  // title by the server; missing for a single volume and on a new book
+  label?: string | null;
 };
-export type NewBook = Omit<OwnedBook, "id">;
+export type NewBook = Omit<OwnedBook, "id" | "label">;
 
 // the day alone, however it came
 export const dayOf = (day: string | null | undefined) =>
@@ -83,14 +86,38 @@ const EDITION_WORDS: Record<EditionKind, string> = {
 };
 
 // "Deluxe 2 (vols. 4–6)", "Vol. 12", "Box set (vols. 1–27)"
+// its own edition's name when the server sent one: "Definitive 2 (vols. 4–6)",
+// not just "Deluxe 2"
 export const bookLabel = (
-  b: Pick<OwnedBook, "edition" | "number" | "volumes">,
+  b: Pick<OwnedBook, "edition" | "number" | "volumes" | "label">,
 ) => {
-  if (b.edition === "single")
+  if (b.edition === "single" && !b.label)
     return `Vol. ${b.number ?? rangesText(b.volumes)}`;
-  const name = [EDITION_WORDS[b.edition], b.number].filter(Boolean).join(" ");
+  const edition = b.label ?? EDITION_WORDS[b.edition];
+  // a box set has no number worth saying beside its name
+  const name = [edition, b.number].filter(Boolean).join(" ");
   return `${name} (${b.volumes.length === 1 ? "vol." : "vols."} ${rangesText(b.volumes)})`;
 };
+
+// One cover per edition they own of a series, for the cover picker: each
+// edition's first book that has an ISBN (its cover is looked up by it), named
+// as the book is ("Definitive 1", "Vol. 11"). Only books they own, so an
+// edition they have none of is never offered
+export function ownCoversOf(books: OwnedBook[]) {
+  const first = new Map<string, OwnedBook>();
+  const byNumber = [...books].sort(
+    (a, b) => Math.min(...a.volumes, 1e6) - Math.min(...b.volumes, 1e6),
+  );
+  for (const book of byNumber) {
+    if (!book.isbn13) continue;
+    const edition = book.label ?? book.edition;
+    if (!first.has(edition)) first.set(edition, book);
+  }
+  return [...first.values()].map((book) => ({
+    url: `/api/prices/cover/${book.isbn13}`,
+    name: bookLabel(book).replace(/\s*\(.*\)$/, ""),
+  }));
+}
 
 // a series' books in one cell of the backup, and read back from it:
 // "9781506711980 deluxe 1 [Berserk Deluxe Edition Volume 1]: 1–3 @49.99

@@ -180,6 +180,11 @@ export const setNotes = (id: number, description: string | null) =>
   });
 
 // a cover found for it after an import (the shelf fills them in)
+// its name put right by the app (an edition's words taken off after a
+// merge): the reader's own change, since they asked for the merge
+export const setName = (id: number, name: string) =>
+  prisma.manga.update({ where: { id }, data: { name, ...changedNow() } });
+
 export const setImage = (id: number, image: string) =>
   prisma.manga.update({ where: { id }, data: { image } });
 
@@ -422,6 +427,7 @@ export default {
   placeManyManga,
   setNotes,
   getShelf,
+  setName,
   getMangaShelfNames,
   getManga,
   addManga,

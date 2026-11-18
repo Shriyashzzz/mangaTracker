@@ -2,11 +2,47 @@ import { useRef, useState } from "react";
 import type { CoverHit } from "../../lib/anilist";
 import clsx from "clsx";
 import { useCoverSearch } from "./useCoverSearch";
+import { API_URL } from "../../lib/api";
+import { isVolumeCover } from "../../lib/coverSizes";
 
 // the other matches, small enough to sit under the cover; a sideways
 // strip on phones
-const grid =
-  "grid grid-cols-4 gap-[0.35rem] transition-opacity duration-200 ease-[ease] upto-760:col-start-2 upto-760:row-start-3 upto-760:auto-cols-[58px] upto-760:grid-flow-col upto-760:grid-cols-none upto-760:content-start upto-760:overflow-x-auto upto-760:pb-1 upto-760:[scrollbar-color:var(--line-soft)_transparent] upto-760:[scrollbar-width:thin]";
+const gridBase =
+  "grid grid-cols-4 gap-[0.35rem] transition-opacity duration-200 ease-[ease] upto-760:col-start-2 upto-760:auto-cols-[58px] upto-760:grid-flow-col upto-760:grid-cols-none upto-760:content-start upto-760:overflow-x-auto upto-760:pb-1 upto-760:[scrollbar-color:var(--line-soft)_transparent] upto-760:[scrollbar-width:thin]";
+const grid = `${gridBase} upto-760:row-start-3`;
+
+// On phones the picker is a small grid with a row for each part. With covers
+// from their own books there are three more rows above AniList's, so the
+// parts after them sit further down
+const PHONE_ROWS = {
+  plain: {
+    cover: "upto-760:row-span-3",
+    matchesLabel: "upto-760:row-start-2",
+    matches: "upto-760:row-start-3",
+    link: "upto-760:row-start-4",
+  },
+  withOwn: {
+    cover: "upto-760:row-span-6",
+    matchesLabel: "upto-760:row-start-5",
+    matches: "upto-760:row-start-6",
+    link: "upto-760:row-start-7",
+  },
+};
+
+// a cover of a book they own: the address the shelf saves, and its name
+export type OwnCover = { url: string; name: string };
+
+// the picture at an address: one of our own cover routes is on the API
+const shownAt = (url: string) =>
+  isVolumeCover(url) ? `${API_URL}${url}` : url;
+
+const thumbClass = (selected: boolean) =>
+  clsx(
+    "block aspect-2/3 w-full bg-paper-2 object-cover transition-[border-color,translate] duration-200 ease-ink group-hover/thumb:-translate-y-0.5 group-hover/thumb:border-line group-focus-visible/thumb:outline-2 group-focus-visible/thumb:outline-offset-2 group-focus-visible/thumb:outline-accent group-focus-visible/thumb:outline-dashed",
+    selected
+      ? "border-[2.5px] border-accent group-hover/thumb:border-accent"
+      : "border-[1.5px] border-line-soft",
+  );
 
 // the cover column of the add / edit forms: shows the chosen cover big,
 // looks the title up on AniList for alternatives, and takes a pasted link.
@@ -25,6 +61,10 @@ type Props = {
   className?: string;
   // what's wrong with a pasted link, said under the box
   error?: string;
+  // covers of the books they own of this series, one per edition, offered
+  // above AniList's matches. Only ever their own books': an edition's cover
+  // isn't offered to someone who doesn't own a book of it
+  ownCovers?: OwnCover[];
 };
 
 export default function CoverPicker({
@@ -36,6 +76,7 @@ export default function CoverPicker({
   onResults,
   className = "",
   error,
+  ownCovers = [],
 }: Props) {
   const [brokenUrl, setBrokenUrl] = useState<string | null>(null);
   // once the user picks or pastes something we stop auto-choosing for them
@@ -64,7 +105,10 @@ export default function CoverPicker({
   const pasted =
     Boolean(value) &&
     !results.some((r) => r.cover === value) &&
+    !isVolumeCover(value) &&
     !/anilist\.co|myanimelist|kitsu/i.test(value);
+  const rows = ownCovers.length ? PHONE_ROWS.withOwn : PHONE_ROWS.plain;
+  const pickedOwn = ownCovers.find((c) => c.url === value);
 
   const hasImage = Boolean(bigCover) && !broken;
 
@@ -92,7 +136,8 @@ export default function CoverPicker({
           viewport so the whole add form fits on short laptop screens too */}
       <div
         className={clsx(
-          "mx-auto grid aspect-2/3 h-[clamp(150px,calc(100dvh-470px),258px)] max-w-full place-items-center bg-paper upto-760:col-start-1 upto-760:row-span-3 upto-760:row-start-2 upto-760:h-auto upto-760:w-full",
+          "mx-auto grid aspect-2/3 h-[clamp(150px,calc(100dvh-470px),258px)] max-w-full place-items-center bg-paper upto-760:col-start-1 upto-760:row-start-2 upto-760:h-auto upto-760:w-full",
+          rows.cover,
           hasImage
             ? "border-[1.5px] border-line p-0"
             : "border-[1.5px] border-dashed border-line-soft p-4 upto-760:p-2",
@@ -100,7 +145,7 @@ export default function CoverPicker({
       >
         {hasImage ? (
           <img
-            src={bigCover}
+            src={shownAt(bigCover)}
             alt=""
             className="size-full object-cover"
             onError={() => setBrokenUrl(bigCover)}
@@ -114,8 +159,60 @@ export default function CoverPicker({
         )}
       </div>
 
+      {ownCovers.length > 0 && (
+        <>
+          <span
+            className="font-mono text-[0.7rem] leading-[1.3] text-muted upto-760:col-start-2 upto-760:row-start-2"
+            id="own-covers-label"
+          >
+            From books you own
+          </span>
+          <div
+            className={grid}
+            role="radiogroup"
+            aria-labelledby="own-covers-label"
+          >
+            {ownCovers.map((own) => {
+              const selected = value === own.url;
+              return (
+                <button
+                  key={own.url}
+                  type="button"
+                  role="radio"
+                  aria-checked={selected}
+                  aria-label={own.name}
+                  title={own.name}
+                  className={clsx(
+                    "group/thumb relative block cursor-pointer focus-visible:outline-none",
+                    selected && "tick-corner",
+                  )}
+                  onClick={() => (selected ? pick("") : pick(own.url))}
+                >
+                  <img
+                    src={shownAt(own.url)}
+                    alt=""
+                    loading="lazy"
+                    className={thumbClass(selected)}
+                  />
+                </button>
+              );
+            })}
+          </div>
+          {/* which book the picked one is: the thumbnails are small */}
+          <span
+            className="min-h-[1.3em] font-mono text-[0.7rem] leading-[1.3] text-ink-soft upto-760:col-start-2 upto-760:row-start-4"
+            aria-live="polite"
+          >
+            {pickedOwn?.name}
+          </span>
+        </>
+      )}
+
       <span
-        className="min-h-[1em] font-mono text-[0.7rem] leading-[1.3] text-muted empty:hidden upto-760:col-start-2 upto-760:row-start-2 [&_a]:text-ink-soft [&_a]:underline [&_a]:underline-offset-2"
+        className={clsx(
+          "min-h-[1em] font-mono text-[0.7rem] leading-[1.3] text-muted empty:hidden upto-760:col-start-2 [&_a]:text-ink-soft [&_a]:underline [&_a]:underline-offset-2",
+          rows.matchesLabel,
+        )}
         aria-live="polite"
       >
         {shownStatus === "loading" && "Looking it up…"}
@@ -135,7 +232,7 @@ export default function CoverPicker({
       </span>
 
       {shownStatus === "loading" && shown.length === 0 && (
-        <div className={grid} aria-hidden>
+        <div className={clsx(gridBase, rows.matches)} aria-hidden>
           {Array.from({ length: 3 }, (_, i) => (
             <span key={i} className="skeleton block aspect-2/3 w-full" />
           ))}
@@ -144,7 +241,11 @@ export default function CoverPicker({
 
       {shown.length > 0 && (
         <div
-          className={clsx(grid, shownStatus === "loading" && "opacity-50")}
+          className={clsx(
+            gridBase,
+            rows.matches,
+            shownStatus === "loading" && "opacity-50",
+          )}
           role="radiogroup"
           aria-labelledby="cover-label"
         >
@@ -172,12 +273,7 @@ export default function CoverPicker({
                   src={r.cover}
                   alt=""
                   loading="lazy"
-                  className={clsx(
-                    "block aspect-2/3 w-full bg-paper-2 object-cover transition-[border-color,translate] duration-200 ease-ink group-hover/thumb:-translate-y-0.5 group-hover/thumb:border-line group-focus-visible/thumb:outline-2 group-focus-visible/thumb:outline-offset-2 group-focus-visible/thumb:outline-accent group-focus-visible/thumb:outline-dashed",
-                    selected
-                      ? "border-[2.5px] border-accent group-hover/thumb:border-accent"
-                      : "border-[1.5px] border-line-soft",
-                  )}
+                  className={thumbClass(selected)}
                 />
               </button>
             );
@@ -195,7 +291,9 @@ export default function CoverPicker({
         </button>
       )}
 
-      <label className="upto-760:col-start-2 upto-760:row-start-4 upto-760:self-start">
+      <label
+        className={clsx("upto-760:col-start-2 upto-760:self-start", rows.link)}
+      >
         <span className="sr-only">Cover image link</span>
         <input
           type="url"

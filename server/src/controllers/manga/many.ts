@@ -5,6 +5,13 @@ import { body, matchedData, validationResult } from "express-validator";
 import { ROW_ID, rejectInvalid } from "../../middlewares/validate.js";
 import { sendError } from "../../middlewares/errorHandler.js";
 import mangaQueries, { type RestoredManga } from "../../models/mangaQueries.js";
+import bookQueries from "../../models/bookQueries.js";
+import type { Manga } from "../../../generated/prisma/client.js";
+import { lookupScannedIsbn, titleVolume } from "../../prices/service.js";
+import {
+  editionNameOf,
+  withoutEdition,
+} from "../../util/shelf/editionNames.js";
 import { shelfKey } from "../../util/shelf/malEntry.js";
 import { titleKey } from "../../util/shelf/titleKey.js";
 import { oneAtATime } from "../../util/shelf/oneAtATime.js";
@@ -181,18 +188,56 @@ export const restoreMany = [
 // POST /:id/merge {otherId}: the same series on the shelf twice becomes one
 // (mangaQueries.mergeManga). Both theirs: the other is checked here, the first
 // by requireOwner
+// or {otherIds}: several entries of one series ("Vagabond", "Vagabond VIZBIG
+// Edition", "Vagabond Definitive Edition") become this one. It then goes by
+// the series' own name, and each book keeps its edition
 export const merge = [
-  body("otherId").isInt(ROW_ID).toInt(),
+  body("otherId").optional().isInt(ROW_ID).toInt(),
+  body("otherIds").optional().isArray({ min: 1, max: 20 }),
+  body("otherIds.*").isInt(ROW_ID).toInt(),
   rejectInvalid,
   async (req: Request, res: Response) => {
-    const otherId: number = matchedData(req).otherId;
-    const keep = res.locals.manga.id as number;
-    const other = await mangaQueries.getManga(otherId);
-    if (!other || other.userId !== req.session.userId || otherId === keep) {
+    const sent = matchedData(req) as { otherId?: number; otherIds?: number[] };
+    const keep = res.locals.manga as Manga;
+    const otherIds = [
+      ...new Set(sent.otherIds ?? (sent.otherId ? [sent.otherId] : [])),
+    ];
+    const others = await Promise.all(
+      otherIds.map((id) => mangaQueries.getManga(id)),
+    );
+    const theirs = (m: Manga | null): m is Manga =>
+      Boolean(m) && m!.userId === req.session.userId && m!.id !== keep.id;
+    if (!others.length || !others.every(theirs)) {
       sendError(res, 404, "That one isn't on your shelf.");
       return;
     }
-    await mangaQueries.mergeManga(keep, otherId);
+    for (const other of others)
+      await mangaQueries.mergeManga(keep.id, other.id);
+    // several editions merged: the entry is the series, not one edition of it
+    const plainName = withoutEdition(keep.name);
+    if (sent.otherIds && plainName !== keep.name)
+      await mangaQueries.setName(keep.id, plainName);
+    // never holds the answer up, and a catalog that's down changes nothing
+    if (sent.otherIds) await putEditionBooksRight(keep.id).catch(() => {});
     res.sendStatus(204);
   },
 ];
+
+// Books saved as one volume before the app knew their edition (a Definitive
+// scanned as "vol. 1"): asked about again, the way a scan asks, and given the
+// volumes their edition's line says they hold
+async function putEditionBooksRight(mangaId: number) {
+  const books = await bookQueries.booksOf(mangaId);
+  const wrong = books.filter(
+    (b) => b.isbn13 && b.volumes.length === 1 && editionNameOf(b.title ?? ""),
+  );
+  for (const book of wrong.slice(0, 20)) {
+    const scanned = await lookupScannedIsbn(book.isbn13!).catch(() => null);
+    if (!scanned || scanned.volumes.length < 2) continue;
+    await bookQueries.setBookVolumes(mangaId, book.id, {
+      volumes: scanned.volumes,
+      edition: editionNameOf(book.title ?? "")!.kind,
+      number: titleVolume(book.title ?? ""),
+    });
+  }
+}

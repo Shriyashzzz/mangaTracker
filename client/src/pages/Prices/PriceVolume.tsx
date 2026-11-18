@@ -5,6 +5,7 @@
 //   volumePageRules.ts    what shows, which stores get a link (pure)
 //   VolumePageStates.tsx  loading and not-found
 //   OfferList, ShelfAction, BoxSetNote, canada/ (the Canadian prices)
+import { bookName } from "../../lib/bookName";
 import Cover from "../../components/cover/Cover";
 import { isCollection } from "../../lib/types";
 import CanadaPrices from "./canada/CanadaPrices";
@@ -127,6 +128,7 @@ export default function PriceVolume() {
     inBook,
     preorder,
     siblings,
+    edition,
     offers: allOffers,
     history: allHistory,
     checkedAt,
@@ -314,8 +316,18 @@ export default function PriceVolume() {
               <ShelfAction
                 isbn13={book.isbn13.trim()}
                 series={seriesLabel}
-                title={seriesTitle(book.title)}
+                // a book of an edition goes on its series' own entry
+                title={edition ? seriesLabel : seriesTitle(book.title)}
                 volume={volume}
+                editionBook={
+                  edition && volume != null
+                    ? {
+                        name: bookName(edition.label, volume),
+                        title: book.title,
+                        holds: edition.volumes,
+                      }
+                    : undefined
+                }
               />
             )}
           </div>
