@@ -298,6 +298,15 @@ const EDITIONS: Edition[] = [
     books: 5,
     volumes: 15,
   },
+  // VIZ's 3-in-1 Rurouni Kenshin: nine books for the 28 volumes, the ninth
+  // sold as a "4-in-1" holding vols 25 to 28
+  {
+    series: /^rurouni kenshin$/,
+    edition: /\b[34]\s*-?\s*in\s*-?\s*1\b/i,
+    perBook: 3,
+    books: 9,
+    volumes: 28,
+  },
   // VIZ's VIZBIG: nine books for the 28 volumes, three each and the last
   // holding the four that are left
   {

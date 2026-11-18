@@ -162,6 +162,15 @@ export const EDITION_NAMES: EditionName[] = [
     words: /\bvizbig\b/i,
     perBook: 3,
   },
+  // rare, and no count of its own: Rurouni Kenshin's is the last book of
+  // its 3-in-1 line, holding four (the hand table says: editions.ts)
+  {
+    key: "4in1",
+    kind: "omnibus",
+    label: "4-in-1",
+    short: "4-IN-1",
+    words: /\b4\s*-?\s*in\s*-?\s*1\b/i,
+  },
   {
     key: "3in1",
     kind: "omnibus",
@@ -236,7 +245,7 @@ export function withoutEdition(name: string) {
 // Deluxe Edition)") is the first, or the only one: book 1. Any other
 // edition without a number can't say which book it is
 export const onlyBookOf = (edition: EditionName) =>
-  /^\din1$/.test(edition.key) ? 1 : null;
+  /^[23]in1$/.test(edition.key) ? 1 : null;
 
 export function volumesByName(edition: EditionName, number: number | null) {
   const each = edition.perBook;

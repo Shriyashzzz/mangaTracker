@@ -332,3 +332,22 @@ test("a set named by its run is a set on its price page, never a volume", () => 
     "Naruto, Vols. 28–48",
   );
 });
+
+test("a 4-in-1 is its series' book, and never counted by its name", () => {
+  const title = "Rurouni Kenshin (4-in-1 Edition), Vol. 9";
+  expect(seriesOfBook(title)).toBe("Rurouni Kenshin");
+  expect(editionOfTitle(title)?.key).toBe("4in1");
+  expect(EDITION_NAMES.find((e) => e.key === "4in1")?.perBook).toBe(undefined);
+  // the ninth book of Rurouni Kenshin's 3-in-1 line holds the last four
+  expect(editionVolumes("Rurouni Kenshin", title, 9)).toEqual([25, 26, 27, 28]);
+  expect(
+    editionVolumes(
+      "Rurouni Kenshin",
+      "Rurouni Kenshin (3-in-1 Edition), Vol. 1",
+      1,
+    ),
+  ).toEqual([1, 2, 3]);
+  expect(pageEditionVolumes("Rurouni Kenshin", title, 9)).toEqual({
+    holds: [25, 26, 27, 28],
+  });
+});
