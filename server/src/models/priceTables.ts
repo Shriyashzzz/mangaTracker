@@ -14,13 +14,10 @@ const TABLES = {
   us: {
     samples: Prisma.raw(`"price_samples"`),
     checks: Prisma.raw(`"price_source_checks"`),
-    // each volume's last check of all, and who asked (price_checks.sources)
-    lastChecks: Prisma.raw(`"price_checks"`),
   },
   ca: {
     samples: Prisma.raw(`"ca_price_samples"`),
     checks: Prisma.raw(`"ca_price_source_checks"`),
-    lastChecks: Prisma.raw(`"ca_price_checks"`),
   },
 } as const;
 

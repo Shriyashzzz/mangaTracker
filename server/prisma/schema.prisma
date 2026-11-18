@@ -45,6 +45,9 @@ model User {
   reviewFlags     ReviewFlag[]
   importPicks     ImportPick[]
   toBuy           ToBuy[]
+  //token for password reset
+  token           String?
+  token_expiry    BigInt?
 
   @@map("users")
 }
@@ -153,11 +156,15 @@ model Book {
   coverUrl     String?            @map("cover_url")
   year         Int?               @db.SmallInt
   updatedAt    DateTime           @default(now()) @map("updated_at") @db.Timestamptz(6)
+  // when a person last opened its page, never a search engine: the
+  // background keeps these volumes' prices fresh first (collector/filler.ts)
+  openedAt     DateTime?          @map("opened_at") @db.Timestamptz(6)
   samples      PriceSample[]
   check        PriceCheck?
   // each price source group's last look (prices/service.ts)
   sourceChecks PriceSourceCheck[]
 
+  @@index([openedAt])
   @@map("books")
 }
 

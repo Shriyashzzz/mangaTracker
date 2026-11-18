@@ -27,6 +27,7 @@ export * from "./priceAge.js";
 import {
   getBook,
   upsertBook,
+  noteOpened,
   getLastCheck,
   saveCheck,
   getSourceChecks,
@@ -68,6 +69,7 @@ import {
 
 // the same queries as one object: `priceQueries.getBook(...)`
 export default {
+  noteOpened,
   claimApiCall,
   anyCallsLeft,
   markApiSpent,

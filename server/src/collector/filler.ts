@@ -108,7 +108,8 @@ export async function popularQueue(
 // first:
 //   1. To buy lists       over 3 days old
 //   2. shelves            over 3 days old
-//   3. opened by a person over 3 days old (their last check was a visitor's)
+//   3. opened by a person over 3 days old (its page, in the last 30 days:
+//                         books.opened_at, never a search engine's visit)
 //   4. everything else    over 5 days old: still inside the week a price
 //                         counts as fresh (models/priceAge.ts), and it
 //                         leaves more of the share for the first three
@@ -119,22 +120,25 @@ const STALE_MS = 3 * DAY_MS;
 const REST_STALE_MS = 5 * DAY_MS;
 const STALE_BATCH = 300;
 
+const OPENED_LATELY_MS = 30 * DAY_MS;
+
 // volumes whose eBay look is over this old, oldest first. `byAPerson`: only
-// the ones whose last check a visitor set off, not a background job
+// the ones whose page a person opened lately
 async function anyOlderThan(
   ms: number,
   country: Country,
   now: Date,
   byAPerson = false,
 ) {
-  const { checks, lastChecks } = tablesOf(country);
+  const { checks } = tablesOf(country);
   const before = new Date(now.getTime() - ms);
+  const openedSince = new Date(now.getTime() - OPENED_LATELY_MS);
   const rows = byAPerson
     ? await prisma.$queryRaw<{ isbn13: string }[]>`
         SELECT c.isbn13 FROM ${checks} c
-        JOIN ${lastChecks} last USING (isbn13)
+        JOIN books b USING (isbn13)
         WHERE c.source = 'ebay' AND c.checked_at < ${before}
-          AND NOT ('fill' = ANY(last.sources))
+          AND b.opened_at > ${openedSince}
         ORDER BY c.checked_at ASC
         LIMIT ${STALE_BATCH}
       `

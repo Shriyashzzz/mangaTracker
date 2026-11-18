@@ -268,22 +268,19 @@ test("keeping fresh: To buy lists, then shelves, then pages a person opened, the
   // vol 2 is on the shelf; 4 to 7 are on nobody's
   const looks = [
     // on a To buy list
-    { n: 4, days: 4, sources: ["ebay", "fill"] },
-    { n: 2, days: 10, sources: ["ebay", "fill"] },
-    // its last check was a visitor's
-    { n: 5, days: 4, sources: ["ebay"] },
-    // only the background has looked: it waits until 5 days
-    { n: 6, days: 4, sources: ["ebay", "fill"] },
-    { n: 7, days: 6, sources: ["ebay", "fill"] },
+    { n: 4, days: 4 },
+    { n: 2, days: 10 },
+    // a person opened its page two days ago
+    { n: 5, days: 4, openedAt: daysAgo(2) },
+    // nobody has opened it: it waits until 5 days
+    { n: 6, days: 4 },
+    { n: 7, days: 6 },
   ];
-  for (const { n, days, sources } of looks) {
+  for (const { n, days, openedAt } of looks) {
     await prisma.book.upsert({
       where: { isbn13: ISBN(n) },
-      create: { isbn13: ISBN(n), title: `${SERIES}, Vol. ${n}` },
-      update: {},
-    });
-    await prisma.priceCheck.create({
-      data: { isbn13: ISBN(n), sources, checkedAt: daysAgo(days) },
+      create: { isbn13: ISBN(n), title: `${SERIES}, Vol. ${n}`, openedAt },
+      update: { openedAt },
     });
     await prisma.priceSourceCheck.create({
       data: { isbn13: ISBN(n), source: "ebay", checkedAt: daysAgo(days) },
@@ -292,6 +289,19 @@ test("keeping fresh: To buy lists, then shelves, then pages a person opened, the
   const reader = await prisma.user.findFirstOrThrow();
   await prisma.toBuy.create({ data: { userId: reader.id, isbn13: ISBN(4) } });
   expect(await staleQueue(now)).toEqual([ISBN(4), ISBN(2), ISBN(5), ISBN(7)]);
+});
+
+test("opening a volume's page is remembered on its book, once an hour", async () => {
+  await prisma.book.create({
+    data: { isbn13: ISBN(5), title: `${SERIES}, Vol. 5` },
+  });
+  expect(await priceQueries.noteOpened(ISBN(5))).toBe(1);
+  const book = await prisma.book.findUniqueOrThrow({
+    where: { isbn13: ISBN(5) },
+  });
+  expect(book.openedAt).not.toBeNull();
+  // asked again as the page loads: already noted
+  expect(await priceQueries.noteOpened(ISBN(5))).toBe(0);
 });
 
 test("then the most popular series' unpriced volumes, in order, out now only", async () => {

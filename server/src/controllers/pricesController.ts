@@ -180,6 +180,9 @@ const volume = [
         ),
     );
     if (!data) throw new NotFoundError("We couldn't find that volume.");
+    // a person opened it: the background keeps its prices fresh sooner
+    if (!crawler)
+      void priceQueries.noteOpened(matchedData(req).isbn).catch(() => {});
     res.json(data);
   },
 ];

@@ -52,6 +52,16 @@ export type PriceHistory = {
 export const getBook = (isbn13: string) =>
   prisma.book.findUnique({ where: { isbn13 } });
 
+// A person opened this volume's page: remembered on its book, at most once
+// an hour (a page asks several times as it loads). The background pricing
+// reads it to keep the volumes people open fresh first
+export const noteOpened = (isbn13: string) =>
+  prisma.$executeRaw`
+    UPDATE books SET opened_at = now()
+    WHERE isbn13 = ${isbn13}
+      AND (opened_at IS NULL OR opened_at < now() - interval '1 hour')
+  `;
+
 // only the columns books has: catalog lookups carry extras (volume, ...)
 // that Prisma would reject as unknown arguments
 export async function upsertBook({
