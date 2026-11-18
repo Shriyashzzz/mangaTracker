@@ -16,10 +16,14 @@
 import { prisma } from "../config/prisma.js";
 import { animeLinesFor } from "../prices/afterAnime/animeSource.js";
 import { isNovelName } from "../prices/lightNovel.js";
-import { listKnownSeries } from "../prices/sources/anilist.js";
 import { slugify } from "../prices/stores/match.js";
 import type { SeriesInfo } from "../prices/types.js";
-import { fillSwitchOn, startEvery, triedLately } from "./fillShared.js";
+import {
+  fillSwitchOn,
+  knownSeries,
+  startEvery,
+  triedLately,
+} from "./fillShared.js";
 
 const EVERY_MS = 60_000;
 
@@ -35,7 +39,7 @@ const rankOf = (series: SeriesInfo) => series.popularityRank ?? Infinity;
 // first. Database only
 export async function animeQueue(): Promise<SeriesInfo[]> {
   const [everySeries, asked] = await Promise.all([
-    listKnownSeries(),
+    knownSeries(),
     prisma.animeStops.findMany({ select: { slug: true } }),
   ]);
   const done = new Set(asked.map((row) => row.slug));

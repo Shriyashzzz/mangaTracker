@@ -71,7 +71,7 @@ const clean = async () => {
     where: { key: volumesKey(SERIES) },
   });
   await prisma.book.deleteMany({
-    where: { isbn13: { in: [1, 2, 3, 9].map(ISBN) } },
+    where: { isbn13: { in: [1, 2, 3, 4, 5, 6, 7, 9].map(ISBN) } },
   });
 };
 
@@ -113,6 +113,15 @@ afterAll(async () => {
 test("the queue: numbered volumes eBay never looked at, owned ones first", async () => {
   // the guidebook (no volume number) isn't in it
   expect(await fillQueue()).toEqual([ISBN(2), ISBN(1), ISBN(3)]);
+});
+
+test("a volume on someone's To buy list goes before the shelves", async () => {
+  const reader = await prisma.user.findFirstOrThrow();
+  await prisma.book.create({
+    data: { isbn13: ISBN(3), title: `${SERIES}, Vol. 3` },
+  });
+  await prisma.toBuy.create({ data: { userId: reader.id, isbn13: ISBN(3) } });
+  expect(await fillQueue()).toEqual([ISBN(3), ISBN(2), ISBN(1)]);
 });
 
 test("each run prices one volume as a page visit would, then moves on", async () => {
@@ -251,6 +260,38 @@ test("then priced volumes whose eBay look is over 3 days old, oldest first", asy
   expect(await staleQueue(now)).toEqual([ISBN(2), ISBN(1)]);
   // and a volume eBay has looked at lately isn't asked again
   expect(await fillQueue(now)).toEqual([]);
+});
+
+test("keeping fresh: To buy lists, then shelves, then pages a person opened, then the rest", async () => {
+  const now = new Date();
+  const daysAgo = (d: number) => new Date(now.getTime() - d * 86_400_000);
+  // vol 2 is on the shelf; 4 to 7 are on nobody's
+  const looks = [
+    // on a To buy list
+    { n: 4, days: 4, sources: ["ebay", "fill"] },
+    { n: 2, days: 10, sources: ["ebay", "fill"] },
+    // its last check was a visitor's
+    { n: 5, days: 4, sources: ["ebay"] },
+    // only the background has looked: it waits until 5 days
+    { n: 6, days: 4, sources: ["ebay", "fill"] },
+    { n: 7, days: 6, sources: ["ebay", "fill"] },
+  ];
+  for (const { n, days, sources } of looks) {
+    await prisma.book.upsert({
+      where: { isbn13: ISBN(n) },
+      create: { isbn13: ISBN(n), title: `${SERIES}, Vol. ${n}` },
+      update: {},
+    });
+    await prisma.priceCheck.create({
+      data: { isbn13: ISBN(n), sources, checkedAt: daysAgo(days) },
+    });
+    await prisma.priceSourceCheck.create({
+      data: { isbn13: ISBN(n), source: "ebay", checkedAt: daysAgo(days) },
+    });
+  }
+  const reader = await prisma.user.findFirstOrThrow();
+  await prisma.toBuy.create({ data: { userId: reader.id, isbn13: ISBN(4) } });
+  expect(await staleQueue(now)).toEqual([ISBN(4), ISBN(2), ISBN(5), ISBN(7)]);
 });
 
 test("then the most popular series' unpriced volumes, in order, out now only", async () => {

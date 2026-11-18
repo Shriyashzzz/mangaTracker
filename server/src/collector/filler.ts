@@ -6,22 +6,26 @@
 // visits). It runs the same check a volume page does (fetchProviders, the
 // free sources only: eBay, and Books-A-Million and Better World Books when
 // set up), marked as a
-// background one so the home page's "recently checked" leaves it out. Once
-// every shelf volume has had a look, it prices the most popular series'
-// volumes nobody has opened (popularQueue), then keeps priced volumes fresh:
-// the ones whose free sources looked over 3 days ago, oldest first
-// (staleQueue).
+// background one so the home page's "recently checked" leaves it out. To buy
+// lists come before shelves. Once every one of those volumes has had a look,
+// it prices the most popular series' volumes nobody has opened
+// (popularQueue), then keeps priced volumes fresh, the ones people are
+// waiting on first (staleQueue).
 //
 // Canada gets its own share alongside (CANADA_FILL_DAILY volumes a day, 50):
-// the same volumes in the same order, looked at on eBay.ca, so Canadians see
-// Canadian prices on their shelves and series pages too (fillCanadaOne).
+// the same volumes in the same order (pricingQueue), looked at on eBay.ca,
+// so Canadians see Canadian prices on their shelves and series pages too
+// (fillCanadaOne).
 // Only eBay's free API: the background never spends a paid search.
 //
 // What it shares with the other two jobs is in fillShared.ts.
 import config from "../config/config.js";
 import { checkCanada } from "../prices/canada/canadaPrices.js";
 import { prisma } from "../config/prisma.js";
-import priceQueries from "../models/priceQueries.js";
+import priceQueries, {
+  tablesOf,
+  type Country,
+} from "../models/priceQueries.js";
 import { monthOf } from "../models/apiAllowance.js";
 import betterWorldBooks from "../prices/providers/betterWorldBooks.js";
 import booksAMillion from "../prices/providers/booksAMillion.js";
@@ -35,9 +39,11 @@ import {
   DAY_MS,
   fillSwitchOn,
   neverLooked,
+  olderThan,
   popularVolumes,
   shelfVolumes,
   startEvery,
+  toBuyVolumes,
   triedLately,
 } from "./fillShared.js";
 
@@ -72,40 +78,108 @@ export const resetFiller = () => {
   queue = { at: 0, isbns: [] };
 };
 
-// the shelf volumes eBay's API has never looked at: owned ones first, then
-// the ones still to get
-export async function fillQueue(now = new Date()): Promise<string[]> {
-  const { owned, missing } = await shelfVolumes(now);
-  return neverLooked([...owned, ...missing], "ebay");
+// the volumes a country's eBay has never looked at: To buy lists first, then
+// shelves, owned ones before the ones still to get
+export async function fillQueue(
+  now = new Date(),
+  country: Country = "us",
+): Promise<string[]> {
+  const [wanted, { owned, missing }] = await Promise.all([
+    toBuyVolumes(now),
+    shelfVolumes(now),
+  ]);
+  return neverLooked([...wanted, ...owned, ...missing], "ebay", country);
 }
 
 // how many of the most popular series' volumes a queue takes
 const POPULAR_BATCH = 500;
 
 // the ones of those eBay has never looked at
-export async function popularQueue(now = new Date()): Promise<string[]> {
-  const waiting = await neverLooked(await popularVolumes(now), "ebay");
+export async function popularQueue(
+  now = new Date(),
+  country: Country = "us",
+): Promise<string[]> {
+  const waiting = await neverLooked(await popularVolumes(now), "ebay", country);
   return waiting.slice(0, POPULAR_BATCH);
 }
 
-// Then keeping prices fresh: a volume already priced whose free sources
-// (eBay, Books-A-Million) last looked over this long ago, oldest first. These
-// are the pages search engines send people to, and a crawler's visit never
-// sets off a check, so without this they'd only refresh when a person came
+// Then keeping prices fresh. A day's share is a few hundred volumes, far
+// fewer than the site has priced, so the ones people are waiting on go
+// first:
+//   1. To buy lists       over 3 days old
+//   2. shelves            over 3 days old
+//   3. opened by a person over 3 days old (their last check was a visitor's)
+//   4. everything else    over 5 days old: still inside the week a price
+//                         counts as fresh (models/priceAge.ts), and it
+//                         leaves more of the share for the first three
+// each oldest first. The last two are the pages search engines send people
+// to, and a crawler's visit never sets off a check, so without this they'd
+// only refresh when a person came
 const STALE_MS = 3 * DAY_MS;
+const REST_STALE_MS = 5 * DAY_MS;
 const STALE_BATCH = 300;
 
-export async function staleQueue(now = new Date()): Promise<string[]> {
-  const rows = await prisma.priceSourceCheck.findMany({
-    where: {
-      source: "ebay",
-      checkedAt: { lt: new Date(now.getTime() - STALE_MS) },
-    },
-    orderBy: { checkedAt: "asc" },
-    take: STALE_BATCH,
-    select: { isbn13: true },
-  });
+// volumes whose eBay look is over this old, oldest first. `byAPerson`: only
+// the ones whose last check a visitor set off, not a background job
+async function anyOlderThan(
+  ms: number,
+  country: Country,
+  now: Date,
+  byAPerson = false,
+) {
+  const { checks, lastChecks } = tablesOf(country);
+  const before = new Date(now.getTime() - ms);
+  const rows = byAPerson
+    ? await prisma.$queryRaw<{ isbn13: string }[]>`
+        SELECT c.isbn13 FROM ${checks} c
+        JOIN ${lastChecks} last USING (isbn13)
+        WHERE c.source = 'ebay' AND c.checked_at < ${before}
+          AND NOT ('fill' = ANY(last.sources))
+        ORDER BY c.checked_at ASC
+        LIMIT ${STALE_BATCH}
+      `
+    : await prisma.$queryRaw<{ isbn13: string }[]>`
+        SELECT isbn13 FROM ${checks}
+        WHERE source = 'ebay' AND checked_at < ${before}
+        ORDER BY checked_at ASC
+        LIMIT ${STALE_BATCH}
+      `;
   return rows.map((r) => r.isbn13.trim());
+}
+
+export async function staleQueue(
+  now = new Date(),
+  country: Country = "us",
+): Promise<string[]> {
+  const [wanted, { owned, missing }] = await Promise.all([
+    toBuyVolumes(now),
+    shelfVolumes(now),
+  ]);
+  const at = now.getTime();
+  const [toBuy, shelf, opened, rest] = await Promise.all([
+    olderThan(wanted, STALE_MS, country, at),
+    olderThan([...owned, ...missing], STALE_MS, country, at),
+    anyOlderThan(STALE_MS, country, now, true),
+    anyOlderThan(REST_STALE_MS, country, now),
+  ]);
+  return [...new Set([...toBuy, ...shelf, ...opened, ...rest])].slice(
+    0,
+    STALE_BATCH,
+  );
+}
+
+// a country's whole queue, in order: never looked at (To buy, shelves, the
+// popular series), then the stale ones
+export async function pricingQueue(
+  now = new Date(),
+  country: Country = "us",
+): Promise<string[]> {
+  const [never, popular, stale] = await Promise.all([
+    fillQueue(now, country),
+    popularQueue(now, country).catch(() => []),
+    staleQueue(now, country),
+  ]);
+  return [...new Set([...never, ...popular, ...stale])];
 }
 
 // the free sources a background check asks: eBay's API, and when their keys
@@ -126,14 +200,8 @@ export async function fillOne(
 ): Promise<"off" | "budget" | "done" | "nothing" | { isbn13: string }> {
   if (!fillerOn()) return "off";
   if (!(await ebayHeadroom().catch(() => false))) return "budget";
-  if (now - queue.at > QUEUE_MS) {
-    const [never, popular, stale] = await Promise.all([
-      fillQueue(new Date(now)),
-      popularQueue(new Date(now)).catch(() => []),
-      staleQueue(new Date(now)),
-    ]);
-    queue = { at: now, isbns: [...new Set([...never, ...popular, ...stale])] };
-  }
+  if (now - queue.at > QUEUE_MS)
+    queue = { at: now, isbns: await pricingQueue(new Date(now)) };
   const isbn13 = queue.isbns.find((isbn) => tried.isDue(isbn, now));
   if (!isbn13) return "nothing";
   tried.mark(isbn13, now);
@@ -185,26 +253,8 @@ export async function fillOne(
 
 export const fillCanadaLabel = (day = ebayDay()) => `price-fill-ca:${day}`;
 
-// the same volumes the US share looks at, in the same order: shelf volumes
-// eBay.ca has never looked at, then the popular series', then the ones whose
-// eBay.ca prices are over 3 days old, oldest first
-export async function canadaQueue(now = new Date()): Promise<string[]> {
-  const { owned, missing } = await shelfVolumes(now);
-  const [never, popular, stale] = await Promise.all([
-    neverLooked([...owned, ...missing], "ebay", "ca"),
-    popularVolumes(now)
-      .then((isbns) => neverLooked(isbns, "ebay", "ca"))
-      .then((isbns) => isbns.slice(0, POPULAR_BATCH))
-      .catch(() => []),
-    prisma.$queryRaw<{ isbn13: string }[]>`
-      SELECT isbn13 FROM ca_price_source_checks
-      WHERE source = 'ebay' AND checked_at < ${new Date(now.getTime() - STALE_MS)}
-      ORDER BY checked_at ASC
-      LIMIT ${STALE_BATCH}
-    `.then((rows) => rows.map((r) => r.isbn13.trim())),
-  ]);
-  return [...new Set([...never, ...popular, ...stale])];
-}
+// the same volumes the US share looks at, in the same order, on eBay.ca
+export const canadaQueue = (now = new Date()) => pricingQueue(now, "ca");
 
 const triedInCanada = triedLately();
 let canadaList: { at: number; isbns: string[] } = { at: 0, isbns: [] };

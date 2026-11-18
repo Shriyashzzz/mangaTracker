@@ -13,15 +13,12 @@
 // Runs where the price filler runs (production, or PRICE_FILL=on). Without
 // MAL_CLIENT_ID it still saves the other two.
 import { prisma } from "../config/prisma.js";
-import {
-  getMalIdsAndMeans,
-  listKnownSeries,
-} from "../prices/sources/anilist.js";
+import { getMalIdsAndMeans } from "../prices/sources/anilist.js";
 import { isNovelName } from "../prices/lightNovel.js";
 import { getMuRating } from "../prices/sources/mangaUpdates.js";
 import { malOn, malScore } from "../prices/sources/myAnimeList.js";
 import { forgetSavedScores } from "../prices/scores.js";
-import { fillSwitchOn, startEvery } from "./fillShared.js";
+import { fillSwitchOn, knownSeries, startEvery } from "./fillShared.js";
 
 const EVERY_MS = 5 * 60_000;
 const A_RUN = 25;
@@ -34,7 +31,7 @@ type Waiting = { anilistId: number; names: string[] };
 // Database only
 export async function scoreQueue(now = Date.now()): Promise<Waiting[]> {
   const [series, rows] = await Promise.all([
-    listKnownSeries(),
+    knownSeries(),
     prisma.seriesScore.findMany({
       select: { anilistId: true, checkedAt: true },
     }),

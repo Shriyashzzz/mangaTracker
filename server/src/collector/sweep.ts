@@ -3,12 +3,13 @@
 // series pages show real prices and box sets, and "Collect every volume"
 // becomes a real total instead of "About".
 //
-// When:  eBay, Books-A-Million and Google Books from 10pm Pacific until their
+// When:  eBay, Books-A-Million and Google Books from 8pm Pacific until their
 //        midnight reset (all three count Pacific days). Better World Books
 //        allows so many requests an hour, so its part runs all day, a little
 //        each hour.
 // What, in order (each night):
-//   1. shelf volumes whose eBay prices are over a week old (readers see these)
+//   1. To buy and shelf volumes whose eBay prices are over a week old
+//      (readers see these)
 //   2. the popular series' volumes whose prices are over 30 days old
 //   3. new series, most popular first, every volume of one before the next
 //      (its box sets scanned once first)
@@ -22,20 +23,18 @@
 //   Better World Books   at least 1,000 requests an hour
 // And it stands aside when visitors get busy: if their pace over the last
 // hour (or, for a sudden rush, the last 15 minutes) would use more than is
-// kept for them before the reset, it pauses for 15 minutes and looks again.
+// kept for them before the reset, it pauses for 15 minutes and looks again
+// (the pace rules are in visitorPace.ts).
 //
 // Never a paid search: SerpApi is nowhere in here. PRICE_SWEEP=off stops it.
 // One sweep at a time even with two servers (a database lock); what's done is
 // in the database, so a restart carries on where it was.
 import config from "../config/config.js";
 import { prisma } from "../config/prisma.js";
-import priceQueries, {
-  tablesOf,
-  type Country,
-} from "../models/priceQueries.js";
+import priceQueries, { type Country } from "../models/priceQueries.js";
 import { monthOf } from "../models/apiAllowance.js";
 import { checkCanada } from "../prices/canada/canadaPrices.js";
-import { callsSince, gbooksToday, type MeteredApi } from "../prices/callLog.js";
+import { callsSince } from "../prices/callLog.js";
 import betterWorldBooks from "../prices/providers/betterWorldBooks.js";
 import booksAMillion, {
   cjBudgetLabel,
@@ -55,18 +54,31 @@ import {
   titleVolume,
 } from "../prices/service.js";
 import { scanIfNeverScanned } from "../prices/boxSetScan.js";
-import { listKnownSeries } from "../prices/sources/anilist.js";
 import { slugify } from "../prices/stores/match.js";
 import { fillSeries } from "../prices/seriesFiller.js";
 import { askUsedAbout } from "./usedFiller.js";
 import {
   DAY_MS,
   fillSwitchOn,
+  knownSeries,
   neverLooked,
+  olderThan,
   shelfVolumes,
   startEvery,
+  toBuyVolumes,
   triedLately,
 } from "./fillShared.js";
+import {
+  gbooksRoom,
+  hoursUntilReset,
+  pacificClock,
+  shouldBackOff,
+  usersPace,
+  usersWillNeed,
+} from "./visitorPace.js";
+
+// the pace rules, for the tests that read them from here
+export { hoursUntilReset, shouldBackOff, usersWillNeed };
 
 // ---------- the limits ----------
 
@@ -77,14 +89,12 @@ export const LIMITS = {
   canadaShare: 0.2,
   // Books-A-Million: lookups always left for visitors
   bamKept: 1000,
-  // Google Books: about 1,000 calls a day for the whole site; this many kept
-  gbooksDaily: 1000,
-  gbooksKept: 300,
   // Better World Books (Impact): 3,000 requests an hour; this many kept
   impactHourly: 3000,
   impactKept: 1000,
-  // when the night's part starts, Pacific
-  startsAtHour: 22,
+  // when the night's part starts, Pacific. Four hours: at about 6 seconds a
+  // volume, two weren't enough to spend the sweep's share of eBay's day
+  startsAtHour: 20,
   // the gap between volumes: steady, never a burst (eBay has short-window
   // limits as well as the daily one)
   gapMs: 3_000,
@@ -110,39 +120,10 @@ export const sweepCeiling = (limit: number, usedAtStart: number) =>
       ),
   );
 
-// what visitors will likely use before the reset: their pace over the last
-// hour, or four times the last 15 minutes when that's higher (a rush)
-export const usersWillNeed = (
-  lastHour: number,
-  last15: number,
-  hoursLeft: number,
-) => Math.max(lastHour, last15 * 4) * hoursLeft;
-
-// the sweep stands aside when visitors would need more than is kept for them
-export const shouldBackOff = (willNeed: number, keptLeft: number) =>
-  willNeed > keptLeft;
-
-const pacific = new Intl.DateTimeFormat("en-US", {
-  timeZone: "America/Los_Angeles",
-  hour: "numeric",
-  minute: "numeric",
-  hourCycle: "h23",
-});
-const pacificClock = (now: number) => {
-  const parts = pacific.formatToParts(new Date(now));
-  const part = (type: string) =>
-    Number(parts.find((p) => p.type === type)?.value ?? 0);
-  return { hour: part("hour"), minute: part("minute") };
-};
-
-// whether it's the night's window, and how long until the Pacific midnight
-// reset (at least a few minutes, so a rate times it never reads as nothing)
+// whether it's the night's window (how long until the reset is
+// visitorPace.ts hoursUntilReset)
 export const isSweepTime = (now: number) =>
   pacificClock(now).hour >= LIMITS.startsAtHour;
-export const hoursUntilReset = (now: number) => {
-  const { hour, minute } = pacificClock(now);
-  return Math.max(0.1, 24 - hour - minute / 60);
-};
 
 // one volume in five is Canada's: 80% of the searches US, 20% Canada
 export const isCanadasTurn = (done: number) =>
@@ -162,15 +143,6 @@ const usedToday = async (label: string, month: string) => {
   });
   return row?.calls ?? 0;
 };
-
-// visitors' pace on one API: the last hour, and the last 15 minutes
-async function usersPace(api: MeteredApi, now: number) {
-  const [lastHour, last15] = await Promise.all([
-    callsSince(api, "user", now - 60 * 60_000, now),
-    callsSince(api, "user", now - 15 * 60_000, now),
-  ]);
-  return { lastHour, last15 };
-}
 
 // tonight's eBay ceiling, worked out once when the sweep starts and kept in
 // api_usage, so a restart doesn't move it
@@ -225,18 +197,6 @@ async function bamRoom(now: number) {
   );
 }
 
-// whether Google Books can build a list: over 300 left after this one (a
-// list can take 2 calls), and visitors not about to need them
-async function gbooksRoom(now: number) {
-  const left = LIMITS.gbooksDaily - (await gbooksToday());
-  if (left - 2 <= LIMITS.gbooksKept) return false;
-  const pace = await usersPace("gbooks", now);
-  return !shouldBackOff(
-    usersWillNeed(pace.lastHour, pace.last15, hoursUntilReset(now)),
-    LIMITS.gbooksKept,
-  );
-}
-
 // whether Better World Books has room this hour: the sweep's own under
 // 2,000, and visitors under their 1,000
 async function impactRoom(now: number) {
@@ -281,25 +241,13 @@ function pricedVolumesOf(
     .map((v) => ({ isbn13: v.isbn13, title: v.title, volume: v.number! }));
 }
 
-// a country's eBay looks older than this, of these volumes, oldest first
-async function olderThan(isbns: string[], ms: number, country: Country) {
-  if (!isbns.length) return [];
-  const rows = await prisma.$queryRaw<{ isbn13: string }[]>`
-    SELECT isbn13 FROM ${tablesOf(country).checks}
-    WHERE source = 'ebay' AND isbn13 = ANY(${isbns}::text[])
-      AND checked_at < ${new Date(Date.now() - ms)}
-    ORDER BY checked_at ASC
-  `;
-  return rows.map((r) => r.isbn13.trim());
-}
-
 const POPULAR_SERIES = 150;
 const MOST_IN_A_QUEUE = 400;
 
 // the series in popularity order, each with the volumes the site prices
 async function seriesInOrder(now: Date) {
   const [series, bySeries] = await Promise.all([
-    listKnownSeries(),
+    knownSeries(),
     knownVolumesBySeries(),
   ]);
   const today = now.toISOString().slice(0, 10);
@@ -330,8 +278,8 @@ export function nextSeries<
   return { series, explore: series ? waiting(series) : [] };
 }
 
-// What to price next in a country, in the night's order: stale shelf
-// volumes, stale popular ones, then the next new series whole. `series` is
+// What to price next in a country, in the night's order: stale To buy and
+// shelf volumes, stale popular ones, then the next new series whole. `series` is
 // the one being explored, so its box sets can be scanned first. `isDue`
 // leaves out volumes that failed lately (triedLately): a series whose only
 // unpriced volumes failed steps aside, and the next one gets its turn
@@ -341,8 +289,11 @@ export async function sweepQueue(
   isDue: (isbn: string) => boolean = () => true,
 ) {
   const ordered = await seriesInOrder(now);
-  const { owned, missing } = await shelfVolumes(now);
-  const shelf = [...owned, ...missing].filter(isEnglishIsbn);
+  const [wanted, { owned, missing }] = await Promise.all([
+    toBuyVolumes(now),
+    shelfVolumes(now),
+  ]);
+  const shelf = [...wanted, ...owned, ...missing].filter(isEnglishIsbn);
   const popular = ordered
     .slice(0, POPULAR_SERIES)
     .flatMap((s) => s.volumes.map((v) => v.isbn13));
@@ -606,6 +557,6 @@ export function startSweep() {
     { everyMs: EVERY_MS, firstAfterMs: 120_000 },
   );
   console.log(
-    `Nightly price sweep on: from ${LIMITS.startsAtHour}:00 Pacific, leaving visitors 30% of eBay's day`,
+    `Nightly price sweep on: from ${LIMITS.startsAtHour}:00 Pacific, leaving visitors 30% of what's left of eBay's day`,
   );
 }

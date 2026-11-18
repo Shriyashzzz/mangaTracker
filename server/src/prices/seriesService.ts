@@ -247,6 +247,11 @@ export async function seriesVolumes(
 // series lists being looked up again in the background, one at a time each
 const rebuilding = new Map<string, Promise<unknown>>();
 
+// every list being looked up again right now, finished. For the background
+// refresh (seriesFiller.ts): it opens a series to set these off, waits here,
+// and opens it again to save what they found
+export const rebuildsDone = () => Promise.all([...rebuilding.values()]);
+
 // what to search Open Library for. The plain name finds more, the quoted
 // title is more precise; the answers are merged. A light novel's editions
 // mostly go by the manga's name ("Overlord, Vol. 3"), so the quoted one is

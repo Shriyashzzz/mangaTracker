@@ -14,6 +14,7 @@ import {
   sweepCeiling,
   usersWillNeed,
 } from "../../collector/sweep.js";
+import { spareCalls } from "../../collector/visitorPace.js";
 import { noteCall } from "../../prices/callLog.js";
 import { closeDb, emptyDb, prisma } from "./testDb.js";
 import { monthOf, pacificDayOf, todayInPacificAt } from "./testClock.js";
@@ -40,11 +41,20 @@ test("the sweep may use 70% of what's left of eBay's day when it starts", () => 
   expect(LIMITS.ebayUsersShare).toBe(0.3);
 });
 
-test("it's the sweep's time from 10pm Pacific until the midnight reset", () => {
+test("it's the sweep's time from 8pm Pacific until the midnight reset", () => {
   expect(isSweepTime(NIGHT)).toBe(true);
-  // 9:59pm
-  expect(isSweepTime(NIGHT - 31 * 60_000)).toBe(false);
+  expect(isSweepTime(todayInPacificAt(20, 0))).toBe(true);
+  expect(isSweepTime(todayInPacificAt(19, 59))).toBe(false);
   expect(hoursUntilReset(NIGHT)).toBeCloseTo(1.5);
+});
+
+test("the background's spare calls: what's left after visitors' share or their pace", () => {
+  // 900 left, 300 kept, visitors heading for 450: 450 spare
+  expect(spareCalls(900, 300, 450)).toBe(450);
+  // a quiet day: only what's kept is held back
+  expect(spareCalls(900, 300, 0)).toBe(600);
+  // nothing spare once what's left is all visitors'
+  expect(spareCalls(300, 300, 0)).toBe(0);
 });
 
 test("visitors' pace decides, and a sudden rush counts four times over", () => {

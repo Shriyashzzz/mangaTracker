@@ -8,8 +8,8 @@
 // an hour, 50 volumes a request), so a reader who imports 2,000 volumes
 // gets their used prices within the hour, not in two weeks.
 //
-// The rule: a volume gets one look, the first time it's on any shelf, owned
-// ones first. Whatever came back is saved, "they don't have it" included, so
+// The rule: a volume gets one look, the first time it's on a To buy list or
+// any shelf: To buy lists first, then owned ones. Whatever came back is saved, "they don't have it" included, so
 // it's never asked again from here. Looking again is the eBay job's work
 // (filler.ts asks Better World Books whenever it refreshes a volume) and the
 // volume's own page's (prices/volumeService.ts, every 3 days at most).
@@ -26,6 +26,7 @@ import {
   neverLooked,
   shelfVolumes,
   startEvery,
+  toBuyVolumes,
 } from "./fillShared.js";
 
 // Better World Books' group in price_source_checks
@@ -38,11 +39,14 @@ const REQUEST_TIMEOUT_MS = 30_000;
 
 export const usedFillerOn = () => fillSwitchOn() && betterWorldBooks.enabled();
 
-// the shelf volumes Better World Books has never been asked about: owned
-// ones first, then the ones still to get. Database only
+// the volumes Better World Books has never been asked about: To buy lists
+// first, then shelves, owned ones before the ones still to get. Database only
 export async function usedQueue(now = new Date()): Promise<string[]> {
-  const { owned, missing } = await shelfVolumes(now);
-  return neverLooked([...owned, ...missing], SOURCE);
+  const [wanted, { owned, missing }] = await Promise.all([
+    toBuyVolumes(now),
+    shelfVolumes(now),
+  ]);
+  return neverLooked([...wanted, ...owned, ...missing], SOURCE);
 }
 
 // saves one volume's answer the way a background check does ("fill": the

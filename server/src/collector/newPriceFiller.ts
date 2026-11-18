@@ -10,7 +10,7 @@
 // its own: BAM_FILL_DAILY volumes a day (400), one lookup each.
 //
 // What it asks about: volumes Books-A-Million has never been asked about.
-// The ones readers still have to buy first (their "cost to finish"), then
+// To buy lists first, then the ones readers still have to buy (their "cost to finish"), then
 // the ones they own, then the most popular series' (their pages' totals).
 // A volume gets one first look here; keeping it fresh is the page's own job
 // (every 3 days when someone opens it) and the eBay job's.
@@ -34,6 +34,7 @@ import {
   popularVolumes,
   shelfVolumes,
   startEvery,
+  toBuyVolumes,
   triedLately,
 } from "./fillShared.js";
 
@@ -54,14 +55,15 @@ const newPriceFillerOn = () => fillSwitchOn() && booksAMillion.enabled();
 const tried = triedLately();
 export const resetNewPriceFiller = () => tried.clear();
 
-// the volumes Books-A-Million has never been asked about: still to buy,
-// then owned, then the popular series'. Database only
+// the volumes Books-A-Million has never been asked about: To buy lists,
+// then still to buy, then owned, then the popular series'. Database only
 export async function newPriceQueue(now = new Date()): Promise<string[]> {
-  const [{ owned, missing }, popular] = await Promise.all([
+  const [wanted, { owned, missing }, popular] = await Promise.all([
+    toBuyVolumes(now),
     shelfVolumes(now),
     popularVolumes(now).catch(() => []),
   ]);
-  return neverLooked([...missing, ...owned, ...popular], SOURCE);
+  return neverLooked([...wanted, ...missing, ...owned, ...popular], SOURCE);
 }
 
 // one run: up to A_RUN waiting volumes, while today's share and CJ's own

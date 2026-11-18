@@ -10,7 +10,11 @@
 // Here: the switch that turns them on, which volumes they look at, which of
 // those a store has never been asked about, the memory of what was tried
 // lately, and the timer that runs a job.
-import { asBackground } from "../prices/callLog.js";
+//
+// Whose volumes come first, in every job: the ones on a To buy list (someone
+// is about to buy them), then shelves, then the popular series, then the
+// rest.
+import { asBackground, inBackground } from "../prices/callLog.js";
 import config from "../config/config.js";
 import { tablesOf, type Country } from "../models/priceTables.js";
 import { prisma } from "../config/prisma.js";
@@ -21,7 +25,7 @@ import {
 } from "../prices/service.js";
 import { listKnownSeries } from "../prices/sources/anilist.js";
 import { slugify } from "../prices/stores/match.js";
-import { isOut, ownedSet } from "./shelfMath.js";
+import { isOut, ownedSet, releaseDay } from "./shelfMath.js";
 import { shelfSeries } from "./shelfSeries.js";
 
 export const DAY_MS = 24 * 60 * 60_000;
@@ -35,13 +39,49 @@ export const fillSwitchOn = () =>
   config.PRICE_FILL !== "off" &&
   (config.PRICE_FILL === "on" || config.ENV === "PROD");
 
+// The timers' runs share one copy of the big lists they all read (every
+// shelf, every known series) for ten minutes: five jobs asking every few
+// minutes would otherwise each read every reader's shelf again, which is
+// the first thing to slow down as the site grows. Only inside a timer's run
+// (asBackground): anything else, a test or a script, reads afresh
+const SHARED_MS = 10 * 60_000;
+function sharedByJobs<T>(read: () => Promise<T>) {
+  let kept: { at: number; value: Promise<T> } | null = null;
+  return () => {
+    if (!inBackground()) return read();
+    if (!kept || Date.now() - kept.at > SHARED_MS) {
+      const value = read();
+      kept = { at: Date.now(), value };
+      // a read that failed isn't kept: the next run reads again
+      value.catch(() => {
+        if (kept?.value === value) kept = null;
+      });
+    }
+    return kept.value;
+  };
+}
+
+// every series the site knows, as the jobs read it
+export const knownSeries = sharedByJobs(listKnownSeries);
+
 // every numbered volume out on any shelf, by ISBN: the ones readers own
 // (they make up what shelves are worth), and the ones still to get. Only
 // whole-numbered volumes, the ones shelf totals count: never a guidebook or
 // anything else a list holds. Database only
-export async function shelfVolumes(now = new Date()) {
+const sharedShelf = sharedByJobs(() => readShelfVolumes(new Date()));
+export const shelfVolumes = (now = new Date()) =>
+  inBackground() ? sharedShelf() : readShelfVolumes(now);
+
+async function readShelfVolumes(now: Date) {
+  // only what's read of a shelf entry: its name and what's owned of it
   const manga = await prisma.manga.findMany({
     where: { userId: { not: null } },
+    select: {
+      name: true,
+      lightNovel: true,
+      volumesOwned: true,
+      ownedList: true,
+    },
   });
   const owned: string[] = [];
   const missing: string[] = [];
@@ -62,6 +102,35 @@ export async function shelfVolumes(now = new Date()) {
   return { owned, missing };
 }
 
+// The volumes on readers' To buy lists that are out now, the latest added
+// first: someone means to buy each one, so every job looks at these before
+// anything else. A preorder waits until it's out (it has no price to find).
+// Database only
+const sharedToBuy = sharedByJobs(() => readToBuyVolumes(new Date()));
+export const toBuyVolumes = (now = new Date()) =>
+  inBackground() ? sharedToBuy() : readToBuyVolumes(now);
+
+async function readToBuyVolumes(now: Date) {
+  const [rows, bySeries] = await Promise.all([
+    prisma.toBuy.findMany({
+      orderBy: { addedAt: "desc" },
+      select: { isbn13: true },
+    }),
+    knownVolumesBySeries(),
+  ]);
+  // each listed volume's release date, where a series' list knows it
+  const publishedOf = new Map<string, string>();
+  for (const volumes of bySeries.values())
+    for (const volume of volumes.values())
+      if (volume.published)
+        publishedOf.set(volume.isbn13.trim(), volume.published);
+  const isbns = rows.map((row) => row.isbn13.trim());
+  return [...new Set(isbns)].filter((isbn) => {
+    const day = releaseDay(publishedOf.get(isbn));
+    return !day || day <= now;
+  });
+}
+
 // The most popular series' volumes, a series' in order: a collector weighing
 // up One Piece sees "Check price" on most of it otherwise, and its "collect
 // every volume" total is mostly a guess. Whole volumes out now, never a
@@ -70,7 +139,7 @@ const POPULAR_SERIES = 150;
 
 export async function popularVolumes(now = new Date()): Promise<string[]> {
   const [everySeries, bySeries] = await Promise.all([
-    listKnownSeries(),
+    knownSeries(),
     knownVolumesBySeries(),
   ]);
   const mostPopular = everySeries
@@ -113,6 +182,24 @@ export async function neverLooked(
   `;
   const done = new Set(looked.map((row) => row.isbn13.trim()));
   return all.filter((isbn) => !done.has(isbn));
+}
+
+// of these volumes, the ones a country's eBay last looked at over this long
+// ago, oldest first
+export async function olderThan(
+  isbns: string[],
+  ms: number,
+  country: Country,
+  now = Date.now(),
+) {
+  if (!isbns.length) return [];
+  const rows = await prisma.$queryRaw<{ isbn13: string }[]>`
+    SELECT isbn13 FROM ${tablesOf(country).checks}
+    WHERE source = 'ebay' AND isbn13 = ANY(${isbns}::text[])
+      AND checked_at < ${new Date(now - ms)}
+    ORDER BY checked_at ASC
+  `;
+  return rows.map((r) => r.isbn13.trim());
 }
 
 // What a job tried lately, whatever came of it. A look that fails saves
