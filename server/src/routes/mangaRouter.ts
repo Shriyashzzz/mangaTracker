@@ -33,9 +33,11 @@ mangaRouter.post(
   rateLimit({ max: 30, windowMs: 60_000 }),
   manga.placeMany,
 );
+// (pieces of 50: a list of thousands sends many in a minute, and the page
+// waits and carries on if it's ever asked to slow down)
 mangaRouter.post(
   "/import",
-  rateLimit({ max: 60, windowMs: 60_000 }),
+  rateLimit({ max: 300, windowMs: 60_000 }),
   manga.importList,
 );
 // the book import's matches, shared by everyone's imports

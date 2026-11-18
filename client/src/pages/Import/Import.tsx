@@ -63,6 +63,7 @@ export function ImportPage() {
     finding,
     unticked,
     progress,
+    waiting,
     totals,
     failed,
     chosen,
@@ -303,7 +304,9 @@ export function ImportPage() {
                 {importing ? (
                   <div className="mt-5" role="status">
                     <p className={styles.progressLine}>
-                      Adding {progress} of {chosen.length}…
+                      {waiting
+                        ? `${progress} of ${chosen.length} added. Pausing a minute, then carrying on…`
+                        : `Adding ${progress} of ${chosen.length}…`}
                     </p>
                     <div className={styles.bar} aria-hidden>
                       <div

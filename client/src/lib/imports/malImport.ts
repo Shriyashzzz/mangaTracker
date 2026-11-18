@@ -161,18 +161,37 @@ export type ImportTotals = {
   completeSets?: number[];
 };
 
-// one piece, tried again once after a pause if the connection dropped or the
-// server was busy. Trying again is safe: anything already added is skipped
-async function sendPiece(entries: MalEntry[]): Promise<Response> {
-  for (const pause of [0, 5000]) {
-    if (pause) await new Promise((done) => setTimeout(done, pause));
-    const res = await apiFetch("/api/manga/import", {
-      method: "POST",
-      body: { entries },
-    }).catch(() => null);
-    if (res && (res.ok || (res.status < 500 && res.status !== 429))) return res;
-    if (pause && res) return res;
+// how long to wait when the server says "slow down", and how often: its
+// allowance is by the minute (server rateLimit), so a minute clears it
+const SLOW_DOWN_WAITS = 3;
+const waitFor = (ms: number) => new Promise((done) => setTimeout(done, ms));
+
+// One piece. Tried again once after a pause if the connection dropped or
+// the server was busy; and when the server asks to slow down (a list of
+// thousands sends its pieces faster than it allows), it waits as long as
+// asked and carries on, telling the page it's waiting. Trying again is
+// safe: anything already added is skipped
+async function sendPiece(
+  entries: MalEntry[],
+  onWaiting: (waiting: boolean) => void,
+): Promise<Response> {
+  const send = () =>
+    apiFetch("/api/manga/import", { method: "POST", body: { entries } }).catch(
+      () => null,
+    );
+  let res = await send();
+  for (let waits = 0; res?.status === 429 && waits < SLOW_DOWN_WAITS; waits++) {
+    const asked = Number(res.headers.get("Retry-After")) || 60;
+    onWaiting(true);
+    await waitFor((Math.min(asked, 60) + 1) * 1000);
+    onWaiting(false);
+    res = await send();
   }
+  if (res && res.status < 500) return res;
+  // dropped, or the server was busy: once more
+  await waitFor(5000);
+  res = await send();
+  if (res) return res;
   throw new Error("The connection dropped");
 }
 
@@ -184,6 +203,8 @@ export async function sendToShelf(
   onProgress: (done: number, totals: ImportTotals) => void,
   // asked to stop: the piece being sent finishes, the rest aren't sent
   shouldStop: () => boolean = () => false,
+  // true while it waits because the server asked it to slow down
+  onWaiting: (waiting: boolean) => void = () => {},
 ) {
   const totals: ImportTotals = {
     added: 0,
@@ -194,7 +215,7 @@ export async function sendToShelf(
   };
   for (let i = 0; i < entries.length && !shouldStop(); i += PIECE) {
     const piece = entries.slice(i, i + PIECE);
-    const res = await sendPiece(piece).catch((e: Error) => {
+    const res = await sendPiece(piece, onWaiting).catch((e: Error) => {
       throw Object.assign(e, { totals });
     });
     if (!res.ok) {

@@ -74,6 +74,8 @@ type BookImportState = {
   waitingOnAniList: boolean;
   // how many have gone to the shelf, while adding
   progress: number | null;
+  // waiting because the server asked it to slow down (a very long list)
+  waiting: boolean;
   // how many are being added
   adding: number;
   totals: ImportTotals | null;
@@ -539,6 +541,7 @@ const empty = {
   edits: new Map<string, Edit>(),
   waitingOnAniList: false,
   progress: null,
+  waiting: false,
   adding: 0,
   totals: null,
   failed: null,
@@ -697,6 +700,7 @@ export const useBookImport = create<BookImportState>()((set, get) => ({
         }),
         (sent, soFar) => set({ progress: sent, totals: soFar }),
         () => stopAdding,
+        (waiting) => set({ waiting }),
       );
       if (stopAdding) {
         stopAdding = false;

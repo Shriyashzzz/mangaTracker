@@ -496,7 +496,9 @@ export default function BookImport({ source }: { source: BookSource }) {
               <div className="mt-5" role="status">
                 <div className={styles.matchingLine}>
                   <p className={styles.progressLine}>
-                    Adding {progress} of {imported.adding}…
+                    {imported.waiting
+                      ? `${progress} of ${imported.adding} added. Pausing a minute, then carrying on…`
+                      : `Adding ${progress} of ${imported.adding}…`}
                   </p>
                   <StopButton />
                 </div>

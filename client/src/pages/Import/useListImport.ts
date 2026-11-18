@@ -41,6 +41,8 @@ export function useListImport() {
   const [unticked, setUnticked] = useState<Set<string>>(new Set());
   // how many have gone to the shelf; null when nothing is being added
   const [progress, setProgress] = useState<number | null>(null);
+  // waiting because the server asked it to slow down (a very long list)
+  const [waiting, setWaiting] = useState(false);
   const [totals, setTotals] = useState<ImportTotals | null>(null);
   // adding stopped partway
   const [failed, setFailed] = useState(false);
@@ -128,6 +130,8 @@ export function useListImport() {
           setProgress(sent);
           setTotals(soFar);
         },
+        undefined,
+        setWaiting,
       );
       setTotals(done);
       setFinished(true);
@@ -151,6 +155,7 @@ export function useListImport() {
     finding,
     unticked,
     progress,
+    waiting,
     totals,
     failed,
     finished,
