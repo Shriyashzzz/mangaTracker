@@ -179,6 +179,22 @@ const EDITIONS: KnownEdition[] = [
     books: 9,
     volumes: 28,
   },
+  // VIZ's VIZBIG Dragon Ball: five books for the 16 volumes (the last holds
+  // four), and nine for Dragon Ball Z's 26 (the last holds two)
+  {
+    series: "dragon ball",
+    edition: /\bvizbig\b/i,
+    perBook: 3,
+    books: 5,
+    volumes: 16,
+  },
+  {
+    series: "dragon ball z",
+    edition: /\bvizbig\b/i,
+    perBook: 3,
+    books: 9,
+    volumes: 26,
+  },
 ];
 
 // the edition's words off a series' name: the one list (editionNames.ts)

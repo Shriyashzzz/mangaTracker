@@ -266,6 +266,31 @@ test("the last book of a line holds what's left, more or fewer", () => {
       8,
     ),
   ).toEqual([22, 23, 24]);
+  // Dragon Ball's five VIZBIG books hold its 16 volumes, Dragon Ball Z's
+  // nine its 26: each a series of its own
+  const dragonBall: [string, string, number, number[]][] = [
+    [
+      "Dragon Ball",
+      "Dragon Ball (VIZBIG Edition), Vol. 5",
+      5,
+      [13, 14, 15, 16],
+    ],
+    ["Dragon Ball", "Dragon Ball (VIZBIG Edition), Vol. 4", 4, [10, 11, 12]],
+    ["Dragon Ball Z", "Dragon Ball Z (VIZBIG Edition), Vol. 9", 9, [25, 26]],
+    [
+      "Dragon Ball Z",
+      "Dragon Ball Z (VIZBIG Edition), Vol. 5",
+      5,
+      [13, 14, 15],
+    ],
+  ];
+  for (const [series, title, number, holds] of dragonBall) {
+    expect([title, editionVolumes(series, title, number)]).toEqual([
+      title,
+      holds,
+    ]);
+    expect(pageEditionVolumes(series, title, number)).toEqual({ holds });
+  }
   // and fewer, as before: Berserk Deluxe 14 ends at vol. 41
   expect(editionVolumes("Berserk", "Berserk Deluxe Volume 14", 14)).toEqual([
     40, 41,

@@ -307,6 +307,22 @@ const EDITIONS: Edition[] = [
     books: 9,
     volumes: 28,
   },
+  // VIZ's VIZBIG Dragon Ball: five books for the 16 volumes (the last holds
+  // four), and nine for Dragon Ball Z's 26 (the last holds two)
+  {
+    series: /^dragon ball$/,
+    edition: /\bvizbig\b/i,
+    perBook: 3,
+    books: 5,
+    volumes: 16,
+  },
+  {
+    series: /^dragon ball z$/,
+    edition: /\bvizbig\b/i,
+    perBook: 3,
+    books: 9,
+    volumes: 26,
+  },
 ];
 
 // book `n` of an edition: the volumes it holds
