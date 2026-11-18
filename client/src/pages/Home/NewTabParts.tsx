@@ -1,6 +1,7 @@
 // The New tab's pieces around the cards: the Volumes / Chapters / In Japan
 // switch with its links, the check's progress bar, the "Hidden: Berserk ·
 // Undo" note, and what it says when there's nothing new.
+import { useSwipeAway } from "../../lib/useSwipeAway";
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { NavLink } from "react-router";
@@ -196,17 +197,21 @@ export function HiddenNote({
   failed,
   noteRef,
   onUndo,
+  onAway,
 }: {
   show: boolean;
   hidden: Hidden | null;
   failed: boolean;
   noteRef: React.RefObject<HTMLDivElement | null>;
   onUndo: () => void;
+  // swiped off the screen
+  onAway: () => void;
 }) {
+  const swipe = useSwipeAway(onAway);
   return createPortal(
     <div role="status" ref={noteRef}>
       {show && (hidden || failed) && (
-        <div className={styles.seenNote} data-over-add-button>
+        <div className={styles.seenNote} data-over-add-button {...swipe}>
           {failed ? (
             "That didn't save. Try again."
           ) : (

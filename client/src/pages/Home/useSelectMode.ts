@@ -161,6 +161,11 @@ export function useSelectMode({
     movedShowing: Boolean(moved || moveFailed),
     moveTo,
     undoMove,
+    // the moved note swiped off the screen: gone as if it had run out
+    dismissMoved: () => {
+      setMoved(null);
+      setMoveFailed(false);
+    },
     confirmingDelete,
     setConfirmingDelete,
     deletePicked,

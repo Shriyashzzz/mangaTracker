@@ -164,10 +164,17 @@ export function useHideActions({
     );
   };
 
+  // the note swiped off the screen: gone as if it had run out
+  const dismiss = () => {
+    setHidden(null);
+    setFailed(false);
+  };
+
   return {
     hidden,
     failed,
     note,
+    dismiss,
     hide,
     hideAll,
     unhideAll,

@@ -5,6 +5,7 @@
 // either note can say it, and it outstays the undo itself
 import { useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
+import { useSwipeAway } from "../../lib/useSwipeAway";
 import { useShelf } from "../../store/shelf";
 
 const UNDO_MS = 8000;
@@ -42,6 +43,14 @@ export default function DeletedNote() {
   const note = useRef<HTMLDivElement>(null);
   const { manga, message, line, button } = useUndo();
   const showing = (manga || message) && !shelfEmpty;
+  // swiped off the screen: gone as if it had run out, and the add button is
+  // back. Not while an undo is still going
+  const swipe = useSwipeAway(() => {
+    const { undoing, setLastDeleted, clearUndoMessage } = useShelf.getState();
+    if (undoing) return;
+    setLastDeleted(null);
+    clearUndoMessage();
+  });
 
   // it leaves on its own, but not from under someone reading or tabbing to it,
   // or while an undo is still going
@@ -74,6 +83,7 @@ export default function DeletedNote() {
       {showing && (
         <div
           data-over-add-button
+          {...swipe}
           className="fixed inset-x-0 bottom-6 z-15 mx-auto flex w-fit max-w-[min(30rem,calc(100vw-2rem))] animate-drop items-center gap-4 rounded-ink border-[2.5px] border-line bg-card px-4 py-3 text-[0.95rem] text-ink shadow-ink motion-reduce:animate-none upto-720:bottom-[calc(4.5rem+env(safe-area-inset-bottom))]"
         >
           <span className="min-w-0">{line}</span>

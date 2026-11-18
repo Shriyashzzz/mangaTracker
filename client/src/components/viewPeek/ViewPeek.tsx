@@ -8,6 +8,7 @@ import { isDemo } from "../../lib/demo";
 import { claimNote, noteFree } from "../../lib/notes";
 import { readLocal, writeLocal } from "../../lib/prefs";
 import { hasBottomBar } from "../../lib/bottomBar";
+import { useSwipeAway } from "../../lib/useSwipeAway";
 import {
   VIEW_PEEK_KEY,
   VIEW_PEEK_LEAVE_MS,
@@ -70,6 +71,9 @@ export default function ViewPeek({ series, rows, blocked, onChoose }: Props) {
     }, LEAVING_MS);
   };
 
+  // swiped off a touch screen: he ducks away, as if left alone
+  const swipe = useSwipeAway(leave);
+
   // left alone, he ducks away (and asks again another day); not while they're
   // on him or reading with a keyboard
   const waitToLeave = () => {
@@ -111,6 +115,7 @@ export default function ViewPeek({ series, rows, blocked, onChoose }: Props) {
       role="status"
       aria-label="Try compact rows"
       data-over-add-button
+      {...swipe}
       className={`support-peek view-peek ${leaving ? "is-leaving" : ""}`}
       onMouseEnter={holdOn}
       onMouseLeave={waitToLeave}

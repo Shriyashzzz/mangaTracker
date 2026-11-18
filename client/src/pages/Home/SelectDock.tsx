@@ -3,6 +3,7 @@
 // Delete and Done. The "Moved 12 series to Finished · Undo" note sits above
 // it while selecting, and where the Deleted note goes otherwise (MovedNote).
 // Both in portals: the page's fade-in would otherwise pin them to the page.
+import { useSwipeAway } from "../../lib/useSwipeAway";
 import type { RefObject } from "react";
 import { createPortal } from "react-dom";
 import { ChevronDownIcon, CloseIcon } from "../../components/icons/Icons";
@@ -41,10 +42,11 @@ export function MovedNote({
   select: SelectMode;
   noteRef: RefObject<HTMLDivElement | null>;
 }) {
+  const swipe = useSwipeAway(select.dismissMoved);
   return createPortal(
     <div role="status" ref={noteRef}>
       {select.movedShowing && (
-        <div className={styles.seenNote} data-over-add-button>
+        <div className={styles.seenNote} data-over-add-button {...swipe}>
           <MovedLine select={select} />
         </div>
       )}
@@ -76,6 +78,8 @@ export default function SelectDock({
 }) {
   const pageSize = shelfPageSize(useShelf((s) => s.manga?.length ?? 0));
   const count = select.pickedShown.length;
+  // only the note swipes away: the bar under it holds Move, Delete and Done
+  const swipe = useSwipeAway(select.dismissMoved);
   return createPortal(
     <div
       className={`${styles.selectDock}${raised ? ` ${styles.selectBarRaised}` : ""}`}
@@ -83,7 +87,7 @@ export default function SelectDock({
     >
       <div role="status" ref={noteRef}>
         {select.movedShowing && (
-          <div className={styles.dockNote}>
+          <div className={styles.dockNote} {...swipe}>
             <MovedLine select={select} />
           </div>
         )}

@@ -3,6 +3,7 @@
 // they needn't wait there. Away from it, a small badge says it's going; closing
 // it, Kenji promises to say when it's done, and when it is, he peeks in to tell
 // them.
+import { useSwipeAway } from "../../lib/useSwipeAway";
 import { useEffect, useRef, useState } from "react";
 import { NavLink, useLocation } from "react-router";
 import { useAuth } from "../../store/auth";
@@ -101,6 +102,8 @@ export default function ImportPeek() {
       setLeaving(false);
     });
   };
+  // his note swiped off the screen (the progress badge stays: it's the import)
+  const swipe = useSwipeAway(leave);
 
   // a long match on the import page: they needn't sit and watch it. Once per import
   const toldFor = useRef<typeof found>(null);
@@ -137,6 +140,7 @@ export default function ImportPeek() {
         role="status"
         aria-label="Your import"
         data-over-add-button
+        {...swipe}
         className={`support-peek import-peek ${leaving ? "is-leaving" : ""}`}
       >
         <div className="printed support-peek-kenji" aria-hidden>

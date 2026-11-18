@@ -1,6 +1,7 @@
 // A small note for screens with no room for WhatsNew: your shelf can show what's
 // newly out. Blocks nothing and leaves on its own. Shown twice at most, in case
 // they weren't looking the first time; once if they answer it.
+import { useSwipeAway } from "../../lib/useSwipeAway";
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { NavLink } from "react-router";
@@ -69,6 +70,12 @@ export default function ReleaseTip({ enabled, onCheck }: Props) {
     };
   }, [enabled, isSignedIn, checksOn]);
 
+  // swiped off the screen: they've seen it, the same as Dismiss
+  const swipe = useSwipeAway(() => {
+    writeLocal(SEEN_KEY, "yes");
+    setOpen(false);
+  });
+
   useEffect(() => {
     if (!open) return;
     const timer = setTimeout(() => setOpen(false), LEAVE_AFTER_MS);
@@ -92,6 +99,7 @@ export default function ReleaseTip({ enabled, onCheck }: Props) {
     <div
       role="status"
       data-over-add-button
+      {...swipe}
       className="printed fixed inset-x-3 bottom-[max(0.75rem,env(safe-area-inset-bottom))] z-30 upto-720:bottom-[calc(4.25rem+env(safe-area-inset-bottom))] mx-auto grid max-w-[420px] min-[861px]:mr-0 animate-card-in grid-cols-[44px_minmax(0,1fr)_auto] items-center gap-x-2 rounded-ink border-[2.5px] border-line bg-card py-1 pr-1 pl-2 text-ink shadow-[0_14px_30px_-14px_rgba(20,14,8,0.6)] motion-reduce:animate-none"
     >
       <span aria-hidden>

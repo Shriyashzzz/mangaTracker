@@ -664,6 +664,7 @@ function Library() {
         failed={hideActions.failed}
         noteRef={hideActions.note}
         onUndo={hideActions.undo}
+        onAway={hideActions.dismiss}
       />
 
       {select.selectOn ? (

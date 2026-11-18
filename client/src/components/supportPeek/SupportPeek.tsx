@@ -1,5 +1,6 @@
 // Kenji peeks in, once in a long while, to mention the site runs on coffee. Which
 // way he comes in is picked at random each time. See lib/support.ts for when.
+import { useSwipeAway } from "../../lib/useSwipeAway";
 import { useEffect, useRef, useState } from "react";
 import { useLocation } from "react-router";
 import { CloseIcon } from "../icons/Icons";
@@ -68,6 +69,8 @@ export default function SupportPeek() {
     leaveTimer.current = window.setTimeout(leave, LEAVE_AFTER_MS);
   };
   const holdOn = () => clearTimeout(leaveTimer.current);
+  // swiped off the screen: he ducks away, as when left alone
+  const swipe = useSwipeAway(leave);
   useEffect(() => {
     if (!way) return;
     waitToLeave();
@@ -86,6 +89,7 @@ export default function SupportPeek() {
     <div
       role="status"
       aria-label="Support Manga Tracker"
+      {...swipe}
       className={`support-peek support-peek-${way} ${leaving ? "is-leaving" : ""}`}
       onMouseEnter={holdOn}
       onMouseLeave={waitToLeave}

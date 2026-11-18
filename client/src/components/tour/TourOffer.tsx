@@ -4,6 +4,7 @@
 // away after a while and asks again the next time they open the shelf. He stays
 // out of the way of the import's notes; the support note keeps away from his
 // (data-over-add-button)
+import { useSwipeAway } from "../../lib/useSwipeAway";
 import { useEffect, useRef, useState } from "react";
 import { useLocation } from "react-router";
 import { hasBottomBar } from "../../lib/bottomBar";
@@ -59,6 +60,11 @@ export default function TourOffer() {
     }, PHONE_LEAVE_AFTER_MS);
   };
   const holdOn = () => clearTimeout(leaveTimer.current);
+  // swiped off the screen: he ducks away, as when left unanswered
+  const swipe = useSwipeAway(() => {
+    setDucked(true);
+    leave();
+  });
   useEffect(() => {
     if (!shown) return;
     waitToLeave();
@@ -84,6 +90,7 @@ export default function TourOffer() {
       role="status"
       aria-label="Take the tour"
       data-over-add-button
+      {...swipe}
       className={`support-peek tour-offer ${leaving ? "is-leaving" : ""}`}
       onFocus={holdOn}
       onBlur={waitToLeave}
