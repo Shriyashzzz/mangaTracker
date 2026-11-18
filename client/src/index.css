@@ -1740,3 +1740,33 @@ body:has([data-tour] [aria-haspopup][aria-expanded="true"])
     top: 80%;
   }
 }
+/* a barcode was read: a disc stamps in, holds, and goes (0.7s, as TICK_MS in
+   ScanSheet.tsx); its tick is drawn in as it lands */
+@keyframes scan-tick {
+  0% {
+    opacity: 0;
+    scale: 0.6;
+  }
+  22% {
+    opacity: 1;
+    scale: 1.06;
+  }
+  32% {
+    scale: 1;
+  }
+  80% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    scale: 1;
+  }
+}
+@keyframes scan-tick-draw {
+  from {
+    stroke-dashoffset: 30;
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
+}

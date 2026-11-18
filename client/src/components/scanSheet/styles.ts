@@ -23,6 +23,10 @@ export const scanStyles = {
     "relative aspect-[16/9] w-[min(78%,22rem)] border-[3px] border-[#f3eee2] outline-[3px] outline-[#0e0c09] transition-colors duration-150 data-read:border-accent",
   laser:
     "absolute inset-x-[6%] h-0.5 animate-[scan-sweep_1.8s_ease-in-out_infinite_alternate] bg-accent motion-reduce:hidden",
+  // "read!": a paper disc stamped in the middle of the frame, its tick drawn
+  // in red, there and gone in 0.7s. Never in the way of a tap or the camera.
+  // With motion turned down it simply shows, then goes
+  tick: "pointer-events-none absolute top-1/2 left-1/2 grid size-16 -translate-1/2 animate-[scan-tick_0.7s_var(--ease-ink)_forwards] place-items-center rounded-full border-[3px] border-[#0e0c09] bg-[#f3eee2] text-accent shadow-[3px_3px_0_#0e0c09] motion-reduce:animate-none [&_path]:[stroke-dasharray:30] [&_path]:animate-[scan-tick-draw_0.26s_ease-out_0.1s_backwards] motion-reduce:[&_path]:animate-none [&_svg]:size-9 [&_svg]:[stroke-width:3]",
   hint: "relative m-0 bg-[rgba(14,12,9,0.82)] px-3 py-2 text-center text-[0.95rem] text-balance text-[#f3eee2]",
   hintSmall: "mt-1 block text-[0.8rem] text-[#b9b09c]",
   blocked:

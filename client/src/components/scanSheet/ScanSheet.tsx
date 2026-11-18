@@ -49,6 +49,10 @@ function beep(ctx: AudioContext | null) {
   tone.stop(ctx.currentTime + 0.12);
 }
 
+// how long the tick for a barcode just read stays in the frame: long enough
+// to see, short enough that the next book is never waiting on it (the
+// camera goes on reading throughout). The same as scan-tick in index.css
+const TICK_MS = 700;
 // how long "Already scanned" stays under the frame
 const NOTICE_MS = 1600;
 
@@ -88,6 +92,9 @@ export default function ScanSheet({
   const [typing, setTyping] = useState(false);
   const [typedError, setTypedError] = useState("");
   const [justRead, setJustRead] = useState(false);
+  // the tick drawn in the frame the moment a new barcode is read: which
+  // read it's for (so each one plays afresh), or 0 for none showing
+  const [tick, setTick] = useState(0);
   const [notice, setNotice] = useState("");
   // what the last scan came to, big over the camera for a moment, and which
   // row it is in the list
@@ -152,6 +159,11 @@ export default function ScanSheet({
     }
     handled.current.add(isbn);
     const key = nextKey.current++;
+    // read, and new: a tick in the frame says so at once, well before the
+    // lookup answers, and is gone in time for the next book. A later read's
+    // tick isn't cut short by an earlier one's timer
+    setTick(key + 1);
+    later(() => setTick((now) => (now === key + 1 ? 0 : now)), TICK_MS);
     // shown at once, so a slow lookup never looks like a missed scan
     setRows((now) => [{ key, isbn }, ...now]);
     queue.current = queue.current.then(async () => {
@@ -276,8 +288,15 @@ export default function ScanSheet({
           <>
             <video ref={video} className={styles.video} muted playsInline />
             <div className={styles.frame} data-read={justRead || undefined}>
-              {/* only once it's really looking */}
-              {camera.state === "live" && <span className={styles.laser} />}
+              {/* only once it's really looking (and out of the tick's way) */}
+              {camera.state === "live" && !tick && (
+                <span className={styles.laser} />
+              )}
+              {tick > 0 && (
+                <span key={tick} className={styles.tick} aria-hidden>
+                  <CheckIcon />
+                </span>
+              )}
             </div>
             {flash && (
               <div
