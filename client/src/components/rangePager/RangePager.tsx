@@ -1,5 +1,6 @@
 // Splits a long list into pages of `pageSize` and offers a quick-select chip
-// per page ("Vol. 1–30", "31–60", ...) plus previous / next. `labelFor`
+// per page ("Vol. 1–30", "31–60", ...) plus previous / next, and first /
+// last once there are many pages. `labelFor`
 // turns a page's first and last item into the chip text. Renders nothing
 // when everything fits on one page. On phones the chips scroll sideways
 // instead of wrapping into a wall.
@@ -28,6 +29,15 @@ const stepButton = clsx(
   pagerButton,
   "grid w-[34px] upto-720:w-11 place-items-center p-0 hover:enabled:border-line hover:enabled:text-ink disabled:cursor-default disabled:opacity-40 [&_svg]:size-4",
 );
+
+// a long strip (a shelf of thousands) also gets "first" and "last", so
+// either end is one press away. Short ones stay as they were
+const ENDS_FROM_PAGES = 9;
+// the arrow twice, close together: «  »
+const twice = "flex [&_svg+svg]:-ml-[0.6rem]";
+// on a phone the strip is short: the end it's already at is left out (it
+// could do nothing), and the chips get the room
+const endButton = clsx(stepButton, "upto-720:disabled:hidden");
 
 // one pager control: a link when pages have addresses, else a plain button.
 // A click with a modifier key (new tab) is left to the browser
@@ -105,12 +115,28 @@ export default function RangePager({
   if (pages <= 1) return null;
 
   const go = (p: number) => onChange(Math.min(Math.max(p, 0), pages - 1));
+  const hasEnds = pages >= ENDS_FROM_PAGES;
 
   return (
     <nav
       className="mt-1 mb-5 flex min-w-0 items-center gap-2"
       aria-label={label}
     >
+      {hasEnds && (
+        <PageControl
+          go={go}
+          hrefFor={hrefFor}
+          to={0}
+          className={endButton}
+          disabled={page === 0}
+          aria-label="First page"
+        >
+          <span className={twice}>
+            <ChevronLeftIcon />
+            <ChevronLeftIcon />
+          </span>
+        </PageControl>
+      )}
       <PageControl
         go={go}
         hrefFor={hrefFor}
@@ -158,6 +184,21 @@ export default function RangePager({
       >
         <ChevronRightIcon />
       </PageControl>
+      {hasEnds && (
+        <PageControl
+          go={go}
+          hrefFor={hrefFor}
+          to={pages - 1}
+          className={endButton}
+          disabled={page === pages - 1}
+          aria-label="Last page"
+        >
+          <span className={twice}>
+            <ChevronRightIcon />
+            <ChevronRightIcon />
+          </span>
+        </PageControl>
+      )}
     </nav>
   );
 }
