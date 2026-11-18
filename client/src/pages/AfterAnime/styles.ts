@@ -5,7 +5,30 @@
 // upto-720.
 export const afterAnimeStyles = {
   page: "prices-page flex flex-col gap-8",
-  head: "flex flex-col gap-3",
+  // The page's opening. On a laptop: what the page is, the answer and where
+  // the anime stops on the left; the ticket to buy on the right, beside all
+  // three. On a phone they're one column in the order they're written: the
+  // title, the answer, the ticket, then the rest
+  head: "grid grid-cols-[minmax(0,1fr)_minmax(0,25rem)] grid-rows-[auto_auto_1fr] items-start gap-x-[clamp(1.5rem,4vw,3rem)] gap-y-3 upto-860:grid-cols-[minmax(0,1fr)] upto-860:grid-rows-none",
+  // the answer to buy, in its own inked box: the latest season's volume,
+  // its price and the way to a store, in the first screen at every size
+  ticket:
+    "col-start-2 row-span-3 row-start-1 flex flex-col gap-3 border-3 border-line bg-card p-[clamp(1rem,2.6vw,1.4rem)] shadow-ink-lg upto-860:col-start-1 upto-860:row-span-1 upto-860:row-start-auto upto-860:my-1",
+  // under the answer: where the anime stops, what's worth knowing, and the
+  // way to keep their place
+  headRest: "flex min-w-0 flex-col items-start gap-2",
+  track: "text-[0.95rem] text-ink-soft",
+
+  // ---------- what's left after the anime ----------
+  // a ruled strip under the opening: how much there is to catch up on and
+  // what it costs, with the way to all of it
+  left: "flex items-center justify-between gap-x-8 gap-y-3 border-t-3 border-line pt-4 upto-720:flex-col upto-720:items-stretch upto-720:[&_.btn]:justify-center",
+  leftTitle:
+    "font-brand text-[1.25rem] leading-tight font-normal tracking-[0.03em] uppercase",
+  leftText: "mt-0.5 max-w-[62ch] text-[1rem] text-ink-soft",
+  // "Watched less? Earlier seasons"
+  earlier: "font-display text-[1.3rem] leading-tight font-semibold",
+
   // two lines: the series' name inked in, then what the page is for
   title:
     "flex max-w-[24ch] flex-col items-start gap-[0.14em] font-brand text-[clamp(2rem,5.4vw,3.4rem)] leading-[1.02] font-normal tracking-[0.02em] text-balance uppercase",
@@ -64,13 +87,21 @@ export const afterAnimeStyles = {
   buyTitle:
     "font-display text-[1.5rem] leading-tight font-semibold text-accent",
   buyWhy: "text-[0.88rem] text-ink-soft",
+  // the price, large: what a buyer looks for first. Larger still in the
+  // page's ticket (buyPriceLead)
   buyPrice:
-    "text-[0.98rem] text-ink [&_strong]:font-mono [&_strong]:font-semibold",
-  buyChecked: "block text-[0.82rem] text-muted",
-  buyActions: "mt-1.5 flex flex-wrap items-center gap-x-4 gap-y-2",
-  // "Or used from $5.96 at Better World Books", under the buttons
-  buyUsed:
-    "mt-1 text-[0.88rem] text-ink-soft [&_a]:font-medium [&_a]:text-ink [&_a]:underline [&_a]:decoration-accent [&_a]:decoration-2 [&_a]:underline-offset-3",
+    "mt-1 flex flex-wrap items-baseline gap-x-2 text-[1rem] text-ink [&_strong]:font-mono [&_strong]:text-[1.45rem] [&_strong]:leading-none [&_strong]:font-semibold [&_strong]:tracking-[-0.02em]",
+  buyPriceLead: "[&_strong]:text-[1.9rem]!",
+  // the button on its own line (full width on a phone), then the other
+  // ways in
+  buyActions:
+    "mt-2 flex w-full flex-col items-start gap-2 upto-720:items-stretch upto-720:[&_.btn]:justify-center",
+  // a cheaper used copy and every store: links, not buttons, so one button
+  // leads
+  buyOthers:
+    "flex flex-wrap gap-x-4 gap-y-1 text-[0.9rem] [&_a]:font-medium [&_a]:text-ink [&_a]:underline [&_a]:decoration-accent [&_a]:decoration-2 [&_a]:underline-offset-3 upto-720:[&_a]:py-1",
+  // last: nothing between the price and the button
+  buyChecked: "text-[0.8rem] text-muted",
   buySkeleton: "h-28",
   link: "tap w-fit text-[0.92rem] font-medium underline decoration-accent decoration-2 underline-offset-3",
 

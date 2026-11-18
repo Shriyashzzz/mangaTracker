@@ -436,8 +436,8 @@ export function showQuestions(show: ShowForMeta): ShowQuestion[] {
   const left = show.manga ? leftLine(latest, show.manga, show.books ?? []) : "";
   if (left)
     questions.push({
+      // (not shown as a question: the page says it under its answer)
       q: `How many ${show.name} volumes are left after the anime?`,
-      shown: "How many volumes are left after the anime?",
       a: left,
     });
   if (latest.endChapter !== null)

@@ -78,8 +78,21 @@ export function AddManga() {
   // kept here rather than in the box: the box goes when they press Change or
   // pick another status, and what they typed must survive that. 0 to start,
   // so a first save goes through
-  const [chapter, setChapter] = useState("0");
-  const [readVolume, setReadVolume] = useState("");
+  // An "after the anime" page's link says where its season leaves them:
+  // the last chapter it covered, and the last volume it covered all of
+  const [fromAnime] = useState(() => {
+    const place = new URLSearchParams(location.search);
+    const whole = (key: string, most: number) => {
+      const n = Number(place.get(key));
+      return Number.isInteger(n) && n > 0 && n <= most ? String(n) : null;
+    };
+    return {
+      chapter: whole("chapter", 100000),
+      volume: whole("readVolume", 999),
+    };
+  });
+  const [chapter, setChapter] = useState(fromAnime.chapter ?? "0");
+  const [readVolume, setReadVolume] = useState(fromAnime.volume ?? "");
   // by the volume or the chapter: a light novel by the volume until they say
   const [byVolumeChoice, setByVolumeChoice] = useState<boolean | null>(null);
   const trackBy = useTrackBy();

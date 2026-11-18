@@ -1,6 +1,7 @@
 // /after-the-anime/:slug  Where to start a series' manga after its anime.
-// Top to bottom: the answer for the latest season, a table of every season
-// (long shows only), a panel per season with the one volume to buy, and the
+// Top to bottom: the answer for the latest season with its volume to buy
+// beside it (the ticket), what's left to read and what it costs, a table of
+// every season (long shows only), a panel per earlier season, and the
 // questions the page hasn't answered yet. The seasons come from
 // /api/after-anime; the volumes and prices from the same series list the
 // price page uses.
@@ -10,7 +11,10 @@ import {
   keepNumbers,
   latestAnswer,
   latestStop,
+  leftLine,
   pageHeading,
+  placeAfter,
+  seasonAnchor,
   showMeta,
   showQuestions,
 } from "../../lib/afterAnimeText";
@@ -24,7 +28,7 @@ import {
   type AfterAnime,
   type VolumeOffers,
 } from "../../lib/afterAnime";
-import { HttpError } from "../../lib/api";
+import { HttpError, signInPath } from "../../lib/api";
 import { formatCents, seriesCanonicalPath, timeAgo } from "../../lib/prices";
 import type { SeriesVolume } from "../../lib/types";
 import { linkRel } from "../Prices/offerLabels";
@@ -35,7 +39,11 @@ import { useSeriesLoad } from "../Prices/useSeriesData";
 import FixForm from "./FixForm";
 import MoreShows from "./MoreShows";
 import { bookFor, bookWords } from "./bookFor";
-import SeasonPanel, { ALL_VOLUMES } from "./SeasonPanel";
+import SeasonBuy from "./SeasonBuy";
+import SeasonNotes from "./SeasonNotes";
+import SeasonPanel from "./SeasonPanel";
+import { ALL_VOLUMES } from "./words";
+import { useAuth } from "../../store/auth";
 import SeasonTable from "./SeasonTable";
 import { afterAnimeStyles as styles } from "./styles";
 
@@ -135,6 +143,22 @@ export default function AfterAnimeShow() {
       volumes ? (n) => bookWords(bookFor(volumes, n), n) : undefined,
     );
   const newestFirst = show ? [...show.stops].reverse() : [];
+  // every season but the latest, which is the page's own opening
+  const earlier = newestFirst.filter((stop) => stop !== latest);
+  // what's left after the latest season, and what it costs (saved prices)
+  const left =
+    show && latest
+      ? leftLine(latest, show.manga, show.books ?? [], formatCents)
+      : "";
+  // the add form, with the series and where the season leaves them filled
+  // in: the last chapter it covered, the last volume it covered all of
+  const isSignedIn = useAuth((s) => s.isSignedIn);
+  const place = latest ? placeAfter(latest) : null;
+  const trackPath = `/add?${new URLSearchParams({
+    title: name,
+    ...(place?.chapter ? { chapter: String(place.chapter) } : {}),
+    ...(place?.volume ? { readVolume: String(place.volume) } : {}),
+  })}`;
   // several volumes in one buy, when a store has a box set priced (cheapest
   // first). Not eBay's: a single volume listed there as a "set" gave Bleach a
   // box set for $15
@@ -168,16 +192,52 @@ export default function AfterAnimeShow() {
           </span>
         </h1>
         {answer && (
-          <>
-            {/* the question on its own line, the answer under it */}
-            <p className={styles.lead}>
-              <span className={styles.leadAsked}>{answer.asked}</span>{" "}
-              <span className="block">
-                <AnswerWords text={keepNumbers(answer.lead)} />
-              </span>
-            </p>
+          // the question on its own line, the answer under it
+          <p className={styles.lead}>
+            <span className={styles.leadAsked}>{answer.asked}</span>{" "}
+            <span className="block">
+              <AnswerWords text={keepNumbers(answer.lead)} />
+            </span>
+          </p>
+        )}
+        {/* the answer to buy, beside the words on a laptop and right under
+            the answer on a phone: the price and the button are in the
+            first screen either way */}
+        {show && latest && (
+          <div className={styles.ticket} id={seasonAnchor(latest)}>
+            <SeasonBuy
+              stop={latest}
+              seriesName={show.name}
+              volumes={volumes}
+              offers={offers}
+              seriesCoverUrl={show.coverUrl}
+              lead
+            />
+          </div>
+        )}
+        {show && latest && answer && (
+          <div className={styles.headRest}>
             <p className={styles.sub}>{keepNumbers(answer.detail)}</p>
-          </>
+            <SeasonNotes stop={latest} />
+            {!latest.coversAll && (
+              <p className={styles.track}>
+                Going to read it?{" "}
+                <NavLink
+                  to={isSignedIn === false ? signInPath(trackPath) : trackPath}
+                  className={styles.link}
+                  // a sign-in page per show is nothing for a search engine
+                  rel="nofollow"
+                  viewTransition
+                >
+                  Keep your place from where the anime stops
+                </NavLink>
+              </p>
+            )}
+            {/* the full width of the words, as in a season's panel */}
+            <div className="w-full">
+              <FixForm seriesName={show.name} season={latest.label} />
+            </div>
+          </div>
         )}
       </header>
 
@@ -231,26 +291,23 @@ export default function AfterAnimeShow() {
 
       {show && show.stops.length > 0 && (
         <>
-          {show.stops.length >= TABLE_FROM_SEASONS && (
-            <SeasonTable
-              stops={newestFirst}
-              seriesName={show.name}
-              volumes={volumes}
-            />
+          {left && (
+            <section className={styles.left} aria-labelledby="left-title">
+              <div>
+                <h2 id="left-title" className={styles.leftTitle}>
+                  What's left to read
+                </h2>
+                <p className={styles.leftText}>{left}</p>
+              </div>
+              <NavLink
+                to={seriesCanonicalPath(show.name)}
+                className="btn shrink-0"
+                viewTransition
+              >
+                {ALL_VOLUMES}
+              </NavLink>
+            </section>
           )}
-          <div className={styles.seasons}>
-            {newestFirst.map((stop) => (
-              <SeasonPanel
-                key={stop.label}
-                stop={stop}
-                seriesName={show.name}
-                volumes={volumes}
-                offers={offers}
-                saidAbove={stop === latest}
-                seriesCoverUrl={show.coverUrl}
-              />
-            ))}
-          </div>
           {boxSet?.url && (
             <p className={styles.boxSet}>
               Buying several? A {show.name} box set is{" "}
@@ -261,14 +318,41 @@ export default function AfterAnimeShow() {
               .
             </p>
           )}
+          {show.stops.length >= TABLE_FROM_SEASONS && (
+            <SeasonTable
+              stops={newestFirst}
+              seriesName={show.name}
+              volumes={volumes}
+            />
+          )}
+          {earlier.length > 0 && (
+            <>
+              <h2 className={styles.earlier}>Watched less? Earlier seasons</h2>
+              <div className={styles.seasons}>
+                {earlier.map((stop) => (
+                  <SeasonPanel
+                    key={stop.label}
+                    stop={stop}
+                    seriesName={show.name}
+                    volumes={volumes}
+                    offers={offers}
+                    seriesCoverUrl={show.coverUrl}
+                  />
+                ))}
+              </div>
+            </>
+          )}
           <div className={styles.more}>
-            <NavLink
-              to={seriesCanonicalPath(show.name)}
-              className="btn"
-              viewTransition
-            >
-              {ALL_VOLUMES}
-            </NavLink>
+            {/* said once: the strip above has it when there's a strip */}
+            {!left && (
+              <NavLink
+                to={seriesCanonicalPath(show.name)}
+                className="btn"
+                viewTransition
+              >
+                {ALL_VOLUMES}
+              </NavLink>
+            )}
             <NavLink to={AFTER_ANIME_PATH} className="btn" viewTransition>
               Look up another show
             </NavLink>

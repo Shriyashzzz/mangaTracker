@@ -1,10 +1,13 @@
-// One volume to buy in a season's panel: its cover, why it's this volume,
-// and the way to a store. With a saved price the button goes straight to
-// that store (our affiliate link, where we have one), and "Compare all
-// stores" opens the volume's own page; without one, the button opens that
-// page, where its prices are looked up. A cheaper used copy is offered under
-// a new one; with no new copy priced, the used one is the button.
+// One volume to buy after a season: its cover, why it's this volume, what
+// it costs, and the way to a store. Top to bottom, in the order someone
+// decides: the price (said large), one button that names the store it goes
+// to (our affiliate link, where we have one), then the other ways in as a
+// quiet row (a cheaper used copy, every store on the volume's own page),
+// and last when the price was checked. With no saved price the button opens
+// the volume's page, where its prices are looked up. With no new copy
+// priced, the used one is the price and the button.
 import { volumesStyles } from "../Home/volumesStyles";
+import clsx from "clsx";
 import Cover from "../../components/cover/Cover";
 import { NavLink } from "react-router";
 import type { BuyOffer, UsedOffer } from "../../lib/afterAnime";
@@ -23,6 +26,7 @@ export default function BuyRow({
   used,
   seriesCoverUrl,
   seriesName,
+  lead = false,
 }: {
   volume: number;
   // "Chapter 95 is in this one"
@@ -36,6 +40,8 @@ export default function BuyRow({
   // stands in, washed out, when this volume has no cover of its own
   seriesCoverUrl: string | null;
   seriesName: string;
+  // in the page's opening ticket: the price is said larger still
+  lead?: boolean;
 }) {
   // "Volume 14", or the book it's in: "Book 7 (vols. 13–14)"
   const words = bookWords(book, volume);
@@ -44,6 +50,7 @@ export default function BuyRow({
   // where the button goes: the new copy, or else the used one
   const main = offer ?? used;
   const pricePage = volumePath(book.isbn13, book.title);
+  const cheaperUsed = offer && used && used.cents < offer.cents ? used : null;
   // a cheaper copy at a seller we don't name here is on the volume's page
   const cheaperElsewhere =
     offer && book.knownPriceCents !== null && book.knownPriceCents < offer.cents
@@ -72,52 +79,51 @@ export default function BuyRow({
       <div className={styles.buyWords}>
         <h3 className={styles.buyTitle}>{heading}</h3>
         <p className={styles.buyWhy}>{why}</p>
-        {/* the price said first: a new copy's, or else a used one's */}
-        {offer && (
-          <p className={styles.buyPrice}>
-            <strong>{formatCents(offer.cents)}</strong> at {offer.store}
-            <span className={styles.buyChecked}>
-              Price checked {timeAgo(offer.checkedAt)}
-            </span>
-          </p>
-        )}
-        {!offer && used && (
-          <p className={styles.buyPrice}>
-            <strong>{formatCents(used.cents)}</strong> used at {used.store}
-            <span className={styles.buyChecked}>
-              Price checked {timeAgo(used.checkedAt)}
-            </span>
+        {main && (
+          <p className={clsx(styles.buyPrice, lead && styles.buyPriceLead)}>
+            <strong>{formatCents(main.cents)}</strong>
+            {offer ? "new" : "used"} at {main.store}
           </p>
         )}
         <div className={styles.buyActions}>
           {main ? (
-            <>
-              <a
-                href={main.url}
-                className="btn btn-primary"
-                target="_blank"
-                rel={linkRel(main)}
-              >
-                Buy {short}
-                {!offer && " used"}
-              </a>
-              <NavLink to={pricePage} className={styles.link} viewTransition>
-                Compare all stores{cheaperElsewhere}
-              </NavLink>
-            </>
+            <a
+              href={main.url}
+              className="btn btn-primary"
+              target="_blank"
+              rel={linkRel(main)}
+              // the volume is in the heading above; said again for a screen
+              // reader, which may meet the button on its own
+              aria-label={`Buy ${short}${offer ? "" : " used"} at ${main.store}`}
+            >
+              Buy{!offer && " used"} at {main.store}
+            </a>
           ) : (
             <NavLink to={pricePage} className="btn btn-primary" viewTransition>
               Check {short} prices
             </NavLink>
           )}
+          {main && (
+            <p className={styles.buyOthers}>
+              {/* the cheaper used copy, when it is cheaper */}
+              {cheaperUsed && (
+                <a
+                  href={cheaperUsed.url}
+                  target="_blank"
+                  rel={linkRel(cheaperUsed)}
+                >
+                  Used, {formatCents(cheaperUsed.cents)} at {cheaperUsed.store}
+                </a>
+              )}
+              <NavLink to={pricePage} viewTransition>
+                Compare all stores{cheaperElsewhere}
+              </NavLink>
+            </p>
+          )}
         </div>
-        {/* under a new copy: the cheaper used one, when it is cheaper */}
-        {offer && used && used.cents < offer.cents && (
-          <p className={styles.buyUsed}>
-            Or used from{" "}
-            <a href={used.url} target="_blank" rel={linkRel(used)}>
-              {formatCents(used.cents)} at {used.store}
-            </a>
+        {main && (
+          <p className={styles.buyChecked}>
+            Price checked {timeAgo(main.checkedAt)}
           </p>
         )}
       </div>
