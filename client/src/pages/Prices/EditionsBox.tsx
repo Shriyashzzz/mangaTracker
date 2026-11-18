@@ -9,9 +9,10 @@
 import { NavLink } from "react-router";
 import {
   editionBookLabel,
-  editionPlan,
   insideText,
   type EditionLine,
+  editionTitle,
+  leadBooksOf,
 } from "../../lib/editions";
 import { formatCents, volumePath } from "../../lib/prices";
 import { pricesStyles as styles } from "./styles";
@@ -25,30 +26,21 @@ const priceText = (book: { knownPriceCents?: number | null }) =>
 export default function EditionsBox({
   line,
   owned,
+  bare = false,
 }: {
   line: EditionLine;
   // the volumes they own, when the series is on their shelf
   owned: number[];
+  // just the books, with no box or title of its own: for the box that
+  // holds box sets and editions together (SetsBox.tsx)
+  bare?: boolean;
 }) {
-  const plan = editionPlan(line, owned);
-  const theirs = owned.length > 0 && plan.next;
-  // two books: theirs next (or the first), and the one after it
-  const from = line.books.indexOf(
-    line.books.find(
-      (b) => b.number === (theirs ? plan.next! : line.books[0]!).number,
-    )!,
-  );
-  const lead = line.books[from];
-  if (!lead?.isbn13) return null;
-  // the one after it too, when that can be opened
-  const after = line.books[from + 1];
-  const shown = after?.isbn13 ? [lead, after] : [lead];
+  const leading = leadBooksOf(line, owned);
+  if (!leading) return null;
+  const { theirs, shown } = leading;
   const inside = line.books.flatMap((b) => b.volumes);
-  return (
-    <aside aria-labelledby="editions-box-title" className={styles.setsBox}>
-      <h2 id="editions-box-title" className={styles.setsTitle}>
-        {/edition/i.test(line.label) ? line.label : `${line.label} edition`}
-      </h2>
+  const books = (
+    <>
       <ul className={styles.editionsBoxList}>
         {shown.map((book, at) => {
           const label = editionBookLabel(line, book);
@@ -89,6 +81,15 @@ export default function EditionsBox({
           See all
         </a>
       </p>
+    </>
+  );
+  if (bare) return books;
+  return (
+    <aside aria-labelledby="editions-box-title" className={styles.setsBox}>
+      <h2 id="editions-box-title" className={styles.setsTitle}>
+        {editionTitle(line)}
+      </h2>
+      {books}
     </aside>
   );
 }

@@ -9,7 +9,7 @@ import { formatCents, shopName } from "../../lib/prices";
 import { noteStoreClick } from "../../lib/support";
 import type { BoxSet, StoreLink } from "../../lib/types";
 import { linkRel } from "./offerLabels";
-import { shownSets } from "./boxSetRules";
+import { setsTitle, shownSets } from "./boxSetRules";
 import { pricesStyles as styles } from "./styles";
 
 const KIND: Record<string, string> = {
@@ -59,7 +59,11 @@ export default function BoxSets({
   sets: found,
   links,
   editionsListed,
+  bare = false,
 }: {
+  // just the tickets and the stores, with no box or title of its own: for
+  // the box that holds box sets and editions together (SetsBox.tsx)
+  bare?: boolean;
   sets: BoxSet[];
   links: StoreLink[];
   // the page lists the series' omnibus and deluxe books itself ("Other
@@ -69,7 +73,6 @@ export default function BoxSets({
   const sets = shownSets(found, editionsListed);
   // nothing priced: no box (BoxSetSearch offers the stores, further down)
   if (!sets.length) return null;
-  const hasOmnibus = sets.some((s) => s.format === "omnibus");
   const affiliate = [...sets, ...links].some((l) => l.affiliate);
 
   const ticket = (s: BoxSet, first: boolean, where?: string) => {
@@ -134,11 +137,8 @@ export default function BoxSets({
     </>
   );
 
-  return (
-    <aside aria-labelledby="box-sets-title" className={styles.setsBox}>
-      <h2 id="box-sets-title" className={styles.setsTitle}>
-        {hasOmnibus ? "Box sets & omnibuses" : "Box sets"}
-      </h2>
+  const tickets = (
+    <>
       {/* the first two in the box; on a phone, all of them in one row */}
       <ul className={styles.setsList}>
         {sets.map((s, i) =>
@@ -161,6 +161,15 @@ export default function BoxSets({
         )}
         {stores}
       </details>
+    </>
+  );
+  if (bare) return tickets;
+  return (
+    <aside aria-labelledby="box-sets-title" className={styles.setsBox}>
+      <h2 id="box-sets-title" className={styles.setsTitle}>
+        {setsTitle(sets)}
+      </h2>
+      {tickets}
     </aside>
   );
 }

@@ -5,7 +5,7 @@
 //   useSeriesData.ts     what it asks the server for (three hooks)
 //   seriesPageRules.ts   cards, subtitles, pages of the list (pure)
 //   SeriesPageParts.tsx  one card of the list, loading and not-found
-//   BoxSets, EditionsBox, OtherEditions, SeriesCostBox, SeriesFacts
+//   SetsBox (BoxSets, EditionsBox), OtherEditions, SeriesCostBox, SeriesFacts
 //   AfterAnime/AfterAnimeBar    the way to where the anime leaves off
 import Cover from "../../components/cover/Cover";
 import { SeriesScoreBadge } from "./SeriesScore";
@@ -30,9 +30,9 @@ import { usePageMeta } from "../../lib/seo";
 import { useAuth } from "../../store/auth";
 import AfterAnimeBar from "../AfterAnime/AfterAnimeBar";
 import BackToNew from "./BackToNew";
-import BoxSets, { BoxSetSearch } from "./BoxSets";
+import { BoxSetSearch } from "./BoxSets";
+import SetsBox from "./SetsBox";
 import { shownSets } from "./boxSetRules";
-import EditionsBox from "./EditionsBox";
 import OtherEditions from "./OtherEditions";
 import { seriesMeta } from "./pageMeta";
 import SeriesCostBox from "./SeriesCostBox";
@@ -236,20 +236,18 @@ export default function PriceSeries() {
             genres={info?.genres}
           />
         </div>
-        {/* beside the title: a whole run in one buy when a box set is
-            priced, else the series' deluxe (or omnibus) edition; neither,
-            nothing */}
-        {hasSets ? (
-          <BoxSets
-            sets={boxSets}
-            links={data.boxSetLinks ?? []}
-            editionsListed={editionLines.length > 0}
-          />
-        ) : (
-          headline && (
-            <EditionsBox line={headline} owned={mine ? ownedOf(mine) : []} />
-          )
-        )}
+        {/* beside the title: a whole run in one buy (its box sets), and its
+            editions' bigger books, in one box; neither, nothing */}
+        <SetsBox
+          // a new series starts from its own remembered pick
+          key={data.slug}
+          series={data.slug}
+          sets={boxSets}
+          links={data.boxSetLinks ?? []}
+          lines={editionLines}
+          headline={headline ?? null}
+          owned={mine ? ownedOf(mine) : []}
+        />
       </header>
 
       {/* for someone coming from the anime, before what collecting costs */}

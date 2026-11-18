@@ -404,6 +404,19 @@ export const pricesStyles = {
     "w-[15.5rem] min-w-0 border-2 border-line bg-card p-3 shadow-ink-lg upto-980:col-span-full upto-980:w-auto upto-980:border-0 upto-980:border-t-[1.5px] upto-980:border-dashed upto-980:border-line-soft upto-980:bg-transparent upto-980:px-0 upto-980:pt-4 upto-980:pb-0 upto-980:shadow-none",
   setsTitle:
     "mb-[0.6rem] font-brand text-[1.4rem] leading-none font-normal tracking-[1px] uppercase",
+  // the title, and beside it (below a laptop) which of the series' sets and
+  // editions is showing: the shelf's "Buy next · as 3-in-1" head
+  setsHead:
+    "mb-[0.6rem] flex flex-wrap items-center justify-between gap-x-3 gap-y-1 [&_h2]:mb-0",
+  setsPickInline: "hidden upto-980:inline-flex",
+  // on a laptop the pick is a box of its own under the title
+  setsPickBox: "mb-2.5 upto-980:hidden",
+  // the ones not showing: a quiet row each, with its cheapest price
+  setsOthers: "mt-3 border-t-[1.5px] border-dashed border-line-soft pt-1.5",
+  setsOther:
+    "tap flex min-h-9 w-full items-baseline justify-between gap-3 text-left text-[0.9rem] font-medium text-ink-soft transition-colors duration-120 ease-[ease] hover:text-accent upto-720:min-h-11",
+  setsOtherName: "underline decoration-line-soft underline-offset-3",
+  setsOtherFrom: "font-mono text-[0.8rem] font-normal text-muted",
   setsList:
     "flex flex-col gap-2 upto-980:flex-row upto-980:overflow-x-auto upto-980:pb-1 upto-980:[scrollbar-width:none] upto-560:flex-col upto-560:overflow-visible",
   // past the first two: in the row on a phone, behind "more" in the box

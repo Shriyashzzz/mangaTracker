@@ -216,3 +216,25 @@ export function lineFor(lines: EditionLine[], asked: string | null) {
 // the line worth the spot: a deluxe one before an omnibus
 export const headlineLine = (lines: EditionLine[]) =>
   lines.find((l) => l.kind === "deluxe") ?? lines[0] ?? null;
+
+// the books an edition's box leads with: theirs next (or the first) and the
+// one after it. null when the one to lead with can't be opened, so there's
+// nothing to show for this edition
+export function leadBooksOf(line: EditionLine, owned: number[]) {
+  const plan = editionPlan(line, owned);
+  const theirs = owned.length > 0 && Boolean(plan.next);
+  const from = line.books.indexOf(
+    line.books.find(
+      (b) => b.number === (theirs ? plan.next! : line.books[0]!).number,
+    )!,
+  );
+  const lead = line.books[from];
+  if (!lead?.isbn13) return null;
+  // the one after it too, when that can be opened
+  const after = line.books[from + 1];
+  return { theirs, shown: after?.isbn13 ? [lead, after] : [lead] };
+}
+
+// what the box is called: "Deluxe edition", "Perfect Edition"
+export const editionTitle = (line: EditionLine) =>
+  /edition/i.test(line.label) ? line.label : `${line.label} edition`;

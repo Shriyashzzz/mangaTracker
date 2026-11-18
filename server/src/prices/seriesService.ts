@@ -653,7 +653,16 @@ function boxSetRows(offers: CollectionOffer[], country: Country) {
     seen.add(key);
     return true;
   });
-  return oneOfEach.slice(0, BOX_SETS_SHOWN).map((offer) => {
+  // the cheapest few of each kind, not of both together: a run of cheap
+  // omnibus listings would otherwise leave no room for a box set, and the
+  // page shows the two apart (client pages/Prices/SetsBox.tsx)
+  const taken = new Map<string, number>();
+  const fewOfEach = oneOfEach.filter((offer) => {
+    const soFar = taken.get(offer.format) ?? 0;
+    taken.set(offer.format, soFar + 1);
+    return soFar < BOX_SETS_SHOWN;
+  });
+  return fewOfEach.map((offer) => {
     const link =
       country === "ca"
         ? canadaOfferLink(offer, offer.isbn13.trim())
