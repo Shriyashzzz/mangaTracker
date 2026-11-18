@@ -98,6 +98,12 @@ export function setRun(title: string): number[] | null {
     : null;
 }
 
+// A set of books rather than a book: a box set by name, or a title that
+// ends in a long run. One rule for the scan and the price page
+const BOX_SET = /\bbox(ed)?[\s-]?set\b/i;
+export const isSetOfBooks = (title: string) =>
+  BOX_SET.test(title) || setRun(title) !== null;
+
 // the normalized series part of a title, for comparing
 export const seriesOf = (title: string) =>
   normalize(

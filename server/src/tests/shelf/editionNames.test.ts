@@ -9,10 +9,13 @@ import { editionOfBook, editionStamp } from "../../util/shelf/editionStamp.js";
 import { editionVolumes } from "../../util/shelf/editions.js";
 import {
   editionOfTitle,
+  isSetOfBooks,
   omnibusVolumes,
   seriesOfBook,
   setRun,
 } from "../../prices/stores/match.js";
+import { upToLastVolume } from "../../prices/scanService.js";
+import { titleVolume, volumeHeading } from "../../prices/volumeNames.js";
 import { coverLinkProblem } from "../../../../client/src/lib/formChecks.js";
 import { editionVolumes as pageEditionVolumes } from "../../../../client/src/lib/imports/bookVolumes.js";
 
@@ -277,4 +280,30 @@ test("a title ending in a long run is a set of those volumes", () => {
   expect(setRun("Naruto #1-3")).toBeNull();
   expect(omnibusVolumes("Naruto #1-3")).toEqual([1, 2, 3]);
   expect(setRun("Naruto, Vol. 48")).toBeNull();
+});
+
+test("volumes read off an edition's name stop at a finished series' last", () => {
+  const bleach = { status: "FINISHED", volumes: 74 };
+  // Bleach's 25th 3-in-1: there is no vol. 75
+  expect(upToLastVolume([73, 74, 75], bleach)).toEqual([73, 74]);
+  expect(upToLastVolume([70, 71, 72], bleach)).toEqual([70, 71, 72]);
+  // nothing real left: the book is asked about
+  expect(upToLastVolume([76, 77, 78], bleach)).toBeNull();
+  // a series still running, or one we know nothing of, has no last volume
+  expect(
+    upToLastVolume([73, 74, 75], { status: "RELEASING", volumes: 74 }),
+  ).toEqual([73, 74, 75]);
+  expect(upToLastVolume([1, 2, 3], null)).toEqual([1, 2, 3]);
+});
+
+test("a set named by its run is a set on its price page, never a volume", () => {
+  expect(isSetOfBooks("Naruto #28-48")).toBe(true);
+  expect(isSetOfBooks("Naruto Box Set 2")).toBe(true);
+  expect(isSetOfBooks("Naruto #1-3")).toBe(false);
+  expect(isSetOfBooks("Naruto, Vol. 48")).toBe(false);
+  expect(titleVolume("Naruto #28-48")).toBeNull();
+  expect(titleVolume("Naruto, Vol. 48")).toBe(48);
+  expect(volumeHeading("Naruto #28-48", "Naruto", null)).toBe(
+    "Naruto, Vols. 28–48",
+  );
 });

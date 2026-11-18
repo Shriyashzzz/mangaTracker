@@ -2,7 +2,7 @@
 // number from its title, and a seller's store by a name a reader knows.
 // Small and shared by the price service's files, so none of them has to
 // import another for it.
-import { bookNumberOf, normalize, volumeOf } from "./stores/match.js";
+import { bookNumberOf, normalize, volumeOf, setRun } from "./stores/match.js";
 import { isRetailer } from "./stores/retailers.js";
 import { storeName } from "./stores/storeLinks.js";
 
@@ -18,6 +18,9 @@ export const volumeHeading = (
   listed: { volume?: number | null; inBook?: unknown } | null | undefined,
 ) => {
   if (bookNumberOf(title) !== null || listed?.inBook) return title;
+  // a set a catalog names by its run: "Naruto #28-48"
+  const run = setRun(title);
+  if (run) return `${series}, Vols. ${run[0]}–${run[run.length - 1]}`;
   const n = volumeOf(title);
   if (!Number.isFinite(n))
     return listed?.volume != null ? `${series}, Vol. ${listed.volume}` : title;
@@ -29,8 +32,11 @@ export const volumeHeading = (
 };
 // the volume a title names: none for a book holding several ("Vinland Saga,
 // Book 9" is vols 17 and 18, never vol 9)
+// (nor for a set named by its run: "Naruto #28-48" isn't vol 48)
 export const titleVolume = (title: string) =>
-  bookNumberOf(title) !== null ? null : numberOrNull(volumeOf(title));
+  bookNumberOf(title) !== null || setRun(title) !== null
+    ? null
+    : numberOrNull(volumeOf(title));
 
 // a seller on a big store ("eBay - pele-onfyah") goes by the store's name
 export const shopName = (store: string) =>

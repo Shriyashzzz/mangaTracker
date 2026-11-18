@@ -43,7 +43,7 @@ import {
 } from "../util/shelf/editionNames.js";
 import { editionVolumes } from "../util/shelf/editions.js";
 import { answeredVolumes } from "../util/shelf/bookVolumeAnswers.js";
-import { normalize } from "./stores/match.js";
+import { isSetOfBooks, normalize } from "./stores/match.js";
 import { scanIfNeverScanned } from "./boxSetScan.js";
 
 // prices are re-fetched at most this often per volume; in between, people
@@ -490,7 +490,11 @@ export async function getVolumePrices(
   // ones mustn't spend the month's searches
   // a light novel AniList doesn't list (Solo Leveling's) still counts when the
   // catalog lists the volume as one of the novel's
+  // (a set of books is never "a volume", even where a catalog lists it
+  // among them: "Naruto #28-48" isn't vol. 48)
+  const isSet = isSetOfBooks(book.title);
   const known =
+    !isSet &&
     (Boolean(series.info) || isNovelName(series.name)) &&
     (series.volumes.some((v) => v.isbn13.trim() === isbn13) ||
       editionOfKnownSeries);
@@ -501,8 +505,7 @@ export async function getVolumePrices(
   // a box set of a series we know: its prices are worth a look too, at the
   // free stores only (eBay, Books-A-Million, Better World Books). Never a
   // paid search: those stay for volumes
-  const boxSet =
-    !known && Boolean(series.info) && /\bbox(ed)?[\s-]?set\b/i.test(book.title);
+  const boxSet = isSet && Boolean(series.info);
   if (refresh && known && !preorder) {
     // its series' box sets, if nobody has looked for them yet
     void scanIfNeverScanned(series.name, series.volumes);

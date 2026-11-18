@@ -9,6 +9,7 @@ import {
   omnibusVolumes,
   editionOfTitle,
   setRun,
+  isSetOfBooks,
 } from "./stores/match.js";
 import { baseName, isNovelName, novelName } from "./lightNovel.js";
 import { editionVolumes, withoutEdition } from "../util/shelf/editions.js";
@@ -62,16 +63,25 @@ export async function lookupScannedIsbn(
   const edition = editionOfTitle(book.title);
   const stated = omnibusVolumes(book.title);
   let held: number[] | null = inEdition ?? (stated?.length ? stated : null);
-  if (!inBook && !held && edition)
-    held =
-      (await volumesInItsLine(named, book.isbn13)) ??
-      volumesByName(edition, titleVolume(book.title) ?? onlyBookOf(edition));
+  if (!inBook && !held && edition) {
+    held = await volumesInItsLine(named, book.isbn13);
+    // by its name's count, but never past the last volume of a finished
+    // series: Bleach's 25th 3-in-1 holds 73 and 74, there is no 75
+    if (!held) {
+      const byName = volumesByName(
+        edition,
+        titleVolume(book.title) ?? onlyBookOf(edition),
+      );
+      const ofSeries = byName && (await getSeriesInfo(named).catch(() => null));
+      held = byName && upToLastVolume(byName, ofSeries);
+    }
+  }
   // a box set: every volume its title says it holds, or the whole of a
   // finished series for a "complete" one
   // (or a title that ends in a long run, as a catalog names some sets:
   // "Naruto #28-48")
   const longRun = setRun(book.title);
-  const boxSet = BOX_SET.test(book.title) || Boolean(longRun);
+  const boxSet = isSetOfBooks(book.title);
   if (boxSet && !held)
     held = longRun ?? (await boxSetVolumes(book.title, named));
   // What nothing above could say: an edition's book (or a box set) whose
@@ -144,9 +154,21 @@ export async function lookupScannedIsbn(
   };
 }
 
-const BOX_SET = /\bbox(ed)?[\s-]?set\b/i;
 // the longest run a box set's title may claim
 const MOST_IN_A_SET = 200;
+
+// volumes worked out from an edition's name, held to what exists: a series
+// AniList says is finished has a last volume, and nothing is past it. null
+// when that leaves none (the book is then asked about)
+export function upToLastVolume(
+  volumes: number[],
+  series: { status?: string | null; volumes?: number | null } | null,
+) {
+  const last = series?.status === "FINISHED" ? series.volumes : null;
+  if (!last) return volumes;
+  const real = volumes.filter((v) => v <= last);
+  return real.length ? real : null;
+}
 
 // The volumes a box set holds: the run its title says ("Includes vols. 1-14",
 // "Volumes 1-27"), or, for a "complete" set of a series AniList says is
