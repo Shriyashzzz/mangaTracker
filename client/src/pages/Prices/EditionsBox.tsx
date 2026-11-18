@@ -38,7 +38,6 @@ export default function EditionsBox({
   const leading = leadBooksOf(line, owned);
   if (!leading) return null;
   const { theirs, shown } = leading;
-  const inside = line.books.flatMap((b) => b.volumes);
   const books = (
     <>
       <ul className={styles.editionsBoxList}>
@@ -74,13 +73,10 @@ export default function EditionsBox({
           );
         })}
       </ul>
-      <p className={styles.editionsBoxNote}>
-        {line.books.length} books hold vols. {Math.min(...inside)}–
-        {Math.max(...inside)}.{" "}
-        <a href="#editions-title" className={styles.editionsBoxAll}>
-          See all
-        </a>
-      </p>
+      {/* the way down to every book of it: a line of its own, so it's seen */}
+      <a href="#editions-title" className={styles.editionsBoxAll}>
+        See all {line.books.length} books <span aria-hidden>↓</span>
+      </a>
     </>
   );
   if (bare) return books;

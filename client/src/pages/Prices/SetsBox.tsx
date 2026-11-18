@@ -6,7 +6,7 @@
 //
 // Box sets show first whenever one is priced. A menu picks another (your
 // shelf's SortMenu: a box of its own on a laptop, beside the title on a
-// phone, as "Buy next · as 3-in-1" does), and the ones not showing stay at
+// phone, as "Buy next · as 3-in-1" does), and the editions not showing stay at
 // the bottom, each with its cheapest price, a tap away. The pick is
 // remembered for that series on this device. setsBoxRules.ts has the rules.
 import { useState } from "react";
@@ -81,13 +81,17 @@ export default function SetsBox({
 
   // the cheapest way into each of the others
   const fromOf = (value: string) =>
-    value === BOX_SETS
-      ? cheapestOf(sets.map((s) => s.priceCents))
-      : cheapestOf(
-          showable
-            .find((l) => l.key === value)!
-            .books.map((b) => b.knownPriceCents),
-        );
+    cheapestOf(
+      showable
+        .find((l) => l.key === value)!
+        .books.map((b) => b.knownPriceCents),
+    );
+  // the editions not showing, each a row at the bottom. Box sets have no
+  // row there: they're the first thing in the menu, and the box opens on
+  // them whenever there is one
+  const others = options.filter(
+    (o) => o.value !== picked && o.value !== BOX_SETS,
+  );
   const menu = (inline: boolean) => (
     <SortMenu
       {...(inline ? { lead: "showing" } : { box: true, compact: true })}
@@ -122,29 +126,27 @@ export default function SetsBox({
         />
       )}
 
-      {!alone && (
+      {others.length > 0 && (
         <ul className={styles.setsOthers} aria-label="Also for this series">
-          {options
-            .filter((o) => o.value !== picked)
-            .map((o) => {
-              const cents = fromOf(o.value);
-              return (
-                <li key={o.value}>
-                  <button
-                    type="button"
-                    className={styles.setsOther}
-                    onClick={() => pick(o.value)}
-                  >
-                    <span className={styles.setsOtherName}>{o.label}</span>
-                    <span className={styles.setsOtherFrom}>
-                      {cents !== null
-                        ? `from ${formatCents(cents)}`
-                        : "check price"}
-                    </span>
-                  </button>
-                </li>
-              );
-            })}
+          {others.map((o) => {
+            const cents = fromOf(o.value);
+            return (
+              <li key={o.value}>
+                <button
+                  type="button"
+                  className={styles.setsOther}
+                  onClick={() => pick(o.value)}
+                >
+                  <span className={styles.setsOtherName}>{o.label}</span>
+                  <span className={styles.setsOtherFrom}>
+                    {cents !== null
+                      ? `from ${formatCents(cents)}`
+                      : "check price"}
+                  </span>
+                </button>
+              </li>
+            );
+          })}
         </ul>
       )}
     </aside>

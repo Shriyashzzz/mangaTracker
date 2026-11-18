@@ -450,10 +450,10 @@ export const pricesStyles = {
   // "vols. 7–9" under a book's name
   editionsBoxInside:
     "col-span-full font-mono text-[0.78rem] font-normal text-ink-soft",
-  // under the edition's first book: how many there are, and the way down
-  editionsBoxNote: "mt-2 text-[0.82rem] leading-snug text-ink-soft",
+  // the app's strong text link (ink, a red underline), on a line of its own
+  // at the box's right; a full thumb's height on a phone
   editionsBoxAll:
-    "tap font-medium text-ink underline decoration-line-soft underline-offset-3 hover:text-accent hover:decoration-accent",
+    "tap mt-2 flex min-h-9 items-center justify-end gap-1 text-[0.92rem] font-semibold text-ink underline decoration-accent decoration-2 underline-offset-3 transition-colors duration-120 ease-[ease] hover:text-accent upto-980:justify-start upto-720:min-h-11",
   // "Looking for a box set? Try [stores]": a quiet row at the foot of the page
   setSearch: "mt-10",
   setSearchTitle: "mb-2 font-body text-[0.92rem] font-normal text-ink-soft",
