@@ -316,6 +316,7 @@ export default function PriceVolume() {
               <ShelfAction
                 isbn13={book.isbn13.trim()}
                 series={seriesLabel}
+                alsoCalled={series.name}
                 // a book of an edition goes on its series' own entry
                 title={edition ? seriesLabel : seriesTitle(book.title)}
                 volume={volume}

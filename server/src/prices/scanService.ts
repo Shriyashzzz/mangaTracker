@@ -12,6 +12,7 @@ import {
 import { baseName, isNovelName, novelName } from "./lightNovel.js";
 import { editionVolumes, withoutEdition } from "../util/shelf/editions.js";
 import { bookInLine } from "./editionBooks.js";
+import { onlyBookOf, volumesByName } from "../util/shelf/editionNames.js";
 import { titleVolume } from "./volumeNames.js";
 import { getOrCreateBook, getVolumePrices } from "./volumeService.js";
 import { getSeriesWithVolumes } from "./seriesService.js";
@@ -43,15 +44,22 @@ export async function lookupScannedIsbn(isbn13: string) {
         )?.inBook ?? null);
   // any other edition's book ("Vagabond Definitive Edition, Vol. 1"): the
   // series' edition lines say what it holds (prices/editionBooks.ts)
-  const inLine =
-    !inBook && !inEdition && editionOfTitle(book.title)
-      ? await volumesInItsLine(named, book.isbn13)
-      : null;
-  // an omnibus ("One Piece, Vol. 1 (Romance Dawn / … )" is vols 1 to 3):
-  // every volume in it, or nothing at all when it can't say which
-  const omnibus = inBook
-    ? null
-    : (inEdition ?? inLine ?? omnibusVolumes(book.title));
+  // What an edition's book holds, the most certain first:
+  //   1. the hand-kept table of uneven editions (inEdition)
+  //   2. its own title ("Omnibus 1 (Vol. 1-3)", "Naruto #1-3", or each
+  //      volume's name in brackets)
+  //   3. its series' edition lines, built from the catalog
+  //   4. its edition's name, when the name is the count (book 2 of a
+  //      VIZBIG or a 3-in-1 holds vols 4 to 6)
+  // then nothing at all for an omnibus that can't say (never a guess)
+  const edition = editionOfTitle(book.title);
+  const stated = omnibusVolumes(book.title);
+  let held: number[] | null = inEdition ?? (stated?.length ? stated : null);
+  if (!inBook && !held && edition)
+    held =
+      (await volumesInItsLine(named, book.isbn13)) ??
+      volumesByName(edition, titleVolume(book.title) ?? onlyBookOf(edition));
+  const omnibus = inBook ? null : (held ?? stated);
   if (omnibus && !omnibus.length) return null;
   // the first volume it holds: as its series' list says, as its title
   // says, or the one volume its title names
@@ -74,8 +82,10 @@ export async function lookupScannedIsbn(isbn13: string) {
   const info = await getSeriesInfo(series).catch(() => null);
   const ownName = lightNovel ? baseName(series) : series;
   const spelled = info && (lightNovel ? baseName(info.name) : info.name);
+  // (spaces too: a catalog's "Dragonball" is AniList's "Dragon Ball")
+  const letters = (name: string) => normalize(name).replace(/\s+/g, "");
   const shelfName =
-    spelled && normalize(spelled) === normalize(ownName) ? spelled : ownName;
+    spelled && letters(spelled) === letters(ownName) ? spelled : ownName;
   return {
     isbn13: book.isbn13,
     title: book.title,
@@ -99,9 +109,13 @@ export async function lookupScannedIsbn(isbn13: string) {
 // the volumes an edition's book holds, from its series' edition lines; null
 // when no line lists it (the book then goes by the number in its title)
 async function volumesInItsLine(series: string, isbn13: string) {
+  // by the series' name alone when its own list can't be read (AniList
+  // slow or down): the lines come from the catalog, not from AniList
   const found = await getSeriesWithVolumes(series).catch(() => null);
-  if (!found?.info) return null;
-  const inLine = await bookInLine(found, isbn13).catch(() => null);
+  const inLine = await bookInLine(
+    found ?? { name: series, volumes: [] },
+    isbn13,
+  ).catch(() => null);
   return inLine?.book.volumes.length ? inLine.book.volumes : null;
 }
 

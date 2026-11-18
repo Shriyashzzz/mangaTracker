@@ -207,8 +207,12 @@ export const importList = [
 ];
 
 // is this series on the shelf? For the volume page's shelf button
+// `also`: another name the series goes by. A price page knows a series by
+// AniList's name ("Dragon Ball") and by its catalog's ("Dragon Ball Z"), and
+// a scan may have put it on the shelf under either
 export const match = [
   query("series").trim().isLength({ min: 2, max: 150 }),
+  query("also").optional().trim().isLength({ min: 2, max: 150 }),
   rejectInvalid,
   async (req: Request, res: Response) => {
     // the series asked about is the manga's or, named "… Light Novel", the
@@ -217,7 +221,10 @@ export const match = [
     const manga = (await mangaQueries.getShelf(req.session.userId!))
       .filter((m) => Boolean(m.lightNovel) === isNovelName(series))
       .map((m) => ({ ...m, shelfName: m.name, name: priceName(m) }));
-    const found = await findOnShelf(manga, series);
+    const also: string | undefined = matchedData(req).also;
+    const found =
+      (await findOnShelf(manga, series)) ??
+      (also && also !== series ? await findOnShelf(manga, also) : null);
 
     res.json(
       found && {

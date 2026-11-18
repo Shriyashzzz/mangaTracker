@@ -84,12 +84,15 @@ export async function findOnShelf<T extends { name: string }>(
   wanted.add(slugify(await knownSeriesName(series).catch(() => series)));
   if (plain !== series)
     wanted.add(slugify(await knownSeriesName(plain).catch(() => plain)));
+  // compared without spaces or punctuation too: a catalog's "Dragonball" is
+  // the shelf's "Dragon Ball"
+  const letters = (slug: string) => slug.replace(/-/g, "");
+  const wantedLetters = new Set([...wanted].map(letters));
+  const is = (name: string) =>
+    wanted.has(slugify(name)) || wantedLetters.has(letters(slugify(name)));
   return (
     manga.find(
-      (m) =>
-        wanted.has(slugify(m.name)) ||
-        wanted.has(slugify(seriesName(m.name))) ||
-        wanted.has(slugify(withoutEdition(m.name))),
+      (m) => is(m.name) || is(seriesName(m.name)) || is(withoutEdition(m.name)),
     ) ?? null
   );
 }

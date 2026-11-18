@@ -1,5 +1,7 @@
 // Open Library: free, no key. Finds volumes and their ISBNs.
 // https://openlibrary.org/dev/docs/api/search
+import { saysMoreThan, titleOfRecord, withEditionOf } from "./editionTitle.js";
+import { editionNameOf } from "../../util/shelf/editionNames.js";
 import { openLibraryFetch } from "./openLibrary.js";
 import { englishSeriesName } from "./anilist.js";
 import { coverPath } from "./covers.js";
@@ -385,6 +387,8 @@ type Edition = {
   title?: string;
   physical_format?: string;
   subtitle?: string;
+  // the publisher's note on which edition it is: "Omnibus Edition"
+  edition_name?: string;
   isbn_13?: string[];
   isbn_10?: string[];
   publishers?: string[];
@@ -695,40 +699,79 @@ const namesAVolume = (title: string | undefined) =>
 export async function lookupIsbn(isbn13: string): Promise<CatalogBook | null> {
   const docs = await search(`isbn:${isbn13}`, RECORDS_FOR_AN_ISBN);
   const doc = docs.find((d) => namesAVolume(d.title)) ?? docs[0];
-  if (!doc) return null;
   // the requested ISBN wins even if Open Library lists another edition first
-  const { book, degraded } = await toBook(doc, isbn13);
-  // a Japanese title that couldn't be translated right now (AniList down):
-  // an outage, never "no such book"
-  if (!book && degraded)
-    throw new Error("catalog degraded: title not translated");
-  if (book || !doc.title || !volumeRange(doc.title)) return book;
-  // a book holding a few volumes, filed under the Japanese title: its own
-  // edition record has the English name ("Vinland Saga, Book Nine")
-  // unreachable or failing: thrown, never read as "no such book" (a 404 is)
+  const { book, degraded } = doc
+    ? await toBook(doc, isbn13)
+    : { book: null, degraded: false };
+
+  // The ISBN's own record: a search answers with the work's title, which for
+  // an edition's book is bare ("Monster"), Japanese, or names no edition
+  // ("Dragon Ball Z, Vol. 1" for the VIZBIG). Its own record says the rest
+  // (sources/editionTitle.ts). A record that can't be read leaves the title
+  // as it was
+  // (without one, it fails only where it always did: a book holding a few
+  // volumes filed under a Japanese title, which has no other way to be read)
+  const record = await ownRecord(isbn13).catch((e: Error) => {
+    if (!book && doc?.title && volumeRange(doc.title)) throw e;
+    return null;
+  });
+  const said = record ? titleOfRecord(record) : null;
+  const recordTitle =
+    said && !JAPANESE.test(said) ? withBookDigits(said) : null;
+
+  if (book) {
+    if (!recordTitle || !saysMoreThan(recordTitle, book.title)) return book;
+    // a title that names its volume keeps what it says and gains the
+    // edition; a bare one ("Monster") is replaced by the record's
+    const title = namesAVolume(book.title.replace(/\s*\(.*\)\s*$/, ""))
+      ? withEditionOf(book.title, recordTitle)
+      : recordTitle;
+    return { ...book, title };
+  }
+
+  // no book from the search. Its own record can still name it: a book
+  // holding a few volumes filed under the Japanese title ("Vinland Saga, Book
+  // Nine"), or an edition's ("Fullmetal Alchemist: 3-in-1 Edition, Vol. 1").
+  // Only a numbered book or a named edition from a manga publisher: any
+  // other book stays "we don't know this as a manga"
+  const publisher = publisherOf(isbn13, {
+    edition: record?.publishers,
+    work: doc?.publisher,
+  });
+  const isABook = recordTitle !== null && bookNumberOf(recordTitle) !== null;
+  const isAnEdition =
+    recordTitle !== null &&
+    publisher !== null &&
+    (editionNameOf(recordTitle) !== null ||
+      /\bbox(ed)?\s*set\b/i.test(recordTitle));
+  if (recordTitle === null || !(isABook || isAnEdition)) {
+    // a Japanese title that couldn't be translated right now (AniList
+    // down): an outage, never "no such book"
+    if (degraded) throw new Error("catalog degraded: title not translated");
+    return null;
+  }
+  return {
+    isbn13,
+    title: recordTitle,
+    authors: englishAuthors(doc?.author_name),
+    publisher,
+    year: doc?.first_publish_year ?? null,
+    // the book's number isn't a volume's
+    volume: null,
+    coverUrl: coverPath(isbn13),
+    pages: record?.number_of_pages ?? null,
+    comic: true,
+  };
+}
+
+// Open Library's own record for an ISBN; null when it has none. Unreachable
+// or failing: thrown, never read as "no such book"
+async function ownRecord(isbn13: string): Promise<Edition | null> {
   const res = await openLibraryFetch(
     `https://openlibrary.org/isbn/${isbn13}.json`,
     TIMEOUT_MS,
   );
-  if (!res.ok && res.status !== 404)
-    throw new Error(`Open Library responded ${res.status}`);
-  const edition = res.ok ? ((await res.json()) as Edition) : null;
-  const title = withBookDigits((edition?.title ?? "").trim());
-  if (!title || JAPANESE.test(title) || bookNumberOf(title) === null)
-    return null;
-  return {
-    isbn13,
-    title,
-    authors: englishAuthors(doc.author_name),
-    publisher: publisherOf(isbn13, {
-      edition: edition?.publishers,
-      work: doc.publisher,
-    }),
-    year: doc.first_publish_year ?? null,
-    // the book's number isn't a volume's
-    volume: null,
-    coverUrl: coverPath(isbn13),
-    pages: edition?.number_of_pages ?? null,
-    comic: true,
-  };
+  if (res.status === 404) return null;
+  if (!res.ok) throw new Error(`Open Library responded ${res.status}`);
+  return (await res.json()) as Edition;
 }

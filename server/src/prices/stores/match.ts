@@ -2,6 +2,7 @@
 // decide whether a listing is the same volume we're pricing:
 // same series name and same volume number.
 import {
+  EDITION_NAMES,
   editionNameOf,
   withoutEdition,
 } from "../../util/shelf/editionNames.js";
@@ -62,16 +63,36 @@ export function omnibusVolumes(title: string): number[] | null {
     if (count >= 2 && count <= 4 && Number.isFinite(n) && n >= 1)
       return Array.from({ length: count }, (_, i) => count * (n - 1) + 1 + i);
   }
+  // "Naruto #1-3", as Open Library titles some 3-in-1 books
+  const bare = title.match(BARE_RANGE);
+  if (bare) {
+    const from = Number(bare[1]);
+    const to = Number(bare[2]);
+    if (to > from && to - from <= 4)
+      return Array.from({ length: to - from + 1 }, (_, i) => from + i);
+  }
   return /\bomnibus\b/i.test(title) ? [] : null;
 }
+
+// what a set says it holds, after its name: "Tokyo Ghoul Complete Box Set:
+// Includes vols. 1-14 with premium"
+const WHAT_IT_HOLDS = /[:,]?\s*\bincludes\s+vol.*$/i;
+// a book's own number left on the end of the name, and the colon or comma
+// that joined them: "Bleach #1: (3-In-1 Edition) Vol. 1-3" is Bleach
+const ITS_OWN_NUMBER = /(\s*#\s*\d{1,3})?\s*[:,]?\s*$/;
+// a run of volumes ending a title in place of a number: "Naruto #1-3"
+const BARE_RANGE = /\s*#\s*(\d{1,3})\s*[‐\-–]\s*(\d{1,3})\s*$/;
 
 // the normalized series part of a title, for comparing
 export const seriesOf = (title: string) =>
   normalize(
     title
       .replace(BOOK, "")
+      .replace(BARE_RANGE, "")
       .replace(/\(.*?\)/g, "")
+      .replace(WHAT_IT_HOLDS, "")
       .replace(/,?\s*\bvol(?:ume)?\.?\s*\d+.*$/i, "")
+      .replace(ITS_OWN_NUMBER, "")
       .replace(/\s\d+\s*$/, ""),
   );
 
@@ -79,8 +100,11 @@ export const seriesOf = (title: string) =>
 export const seriesName = (title: string) =>
   title
     .replace(BOOK, "")
+    .replace(BARE_RANGE, "")
     .replace(/\(.*?\)/g, " ")
+    .replace(WHAT_IT_HOLDS, "")
     .replace(/,?\s*\bvol(?:ume)?\.?\s*\d+.*$/i, "")
+    .replace(ITS_OWN_NUMBER, "")
     .replace(/\s+\d+\s*$/, "")
     .replace(/\s+/g, " ")
     .trim();
@@ -98,8 +122,19 @@ export const seriesOfBook = (title: string) =>
 // Girl, Vol. 1" is a plain volume): an edition's words end the series' name,
 // or sit outside it
 export function editionOfTitle(title: string) {
+  // a box set is a set of books, not a book of an edition, whatever edition
+  // its books are ("Battle Angel Alita Deluxe Complete Series Box Set")
+  if (/\bbox(ed)?\s*set\b/i.test(title)) return null;
   const edition = editionNameOf(title);
-  if (!edition) return null;
+  // no edition named, but a book that says it holds two or three volumes
+  // ("Naruto #1-3", "One Piece, Vol. 1 (Romance Dawn / … / …)"): a 2-in-1 or
+  // a 3-in-1, which is what its publisher calls it
+  if (!edition) {
+    const held = omnibusVolumes(title)?.length;
+    return held === 2 || held === 3
+      ? (EDITION_NAMES.find((e) => e.key === `${held}in1`) ?? null)
+      : null;
+  }
   const name = seriesName(title);
   const endsTheName = withoutEdition(name) !== name;
   const outsideTheName = !editionNameOf(name);

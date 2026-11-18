@@ -44,6 +44,9 @@ type Props = {
   // a book of an edition: its name ("VIZBIG 1"), its own title, and the
   // series' volumes it holds (null when its line doesn't say)
   editionBook?: { name: string; title: string; holds: number[] | null };
+  // the series' name as its catalog has it, when that differs ("Dragon Ball
+  // Z" beside AniList's "Dragon Ball"): a scan may have used it on the shelf
+  alsoCalled?: string;
 };
 
 export default function ShelfAction({
@@ -52,6 +55,7 @@ export default function ShelfAction({
   title,
   volume,
   editionBook,
+  alsoCalled,
 }: Props) {
   const isSignedIn = useAuth((s) => s.isSignedIn);
   const { pathname } = useLocation();
@@ -75,7 +79,7 @@ export default function ShelfAction({
   useEffect(() => {
     if (!isSignedIn) return;
     const controller = new AbortController();
-    findOnShelf(series, controller.signal)
+    findOnShelf(series, controller.signal, alsoCalled)
       .then((manga) => setMatch({ series, manga }))
       .catch((e) => {
         // can't tell: offer adding, which still works
@@ -83,7 +87,7 @@ export default function ShelfAction({
           setMatch({ series, manga: null });
       });
     return () => controller.abort();
-  }, [isSignedIn, series, shelfSize]);
+  }, [isSignedIn, series, alsoCalled, shelfSize]);
 
   useEffect(() => () => clearTimeout(undoTimer.current), []);
 

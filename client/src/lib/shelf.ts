@@ -86,9 +86,14 @@ export const openReleasesOnShelf = () => {
 };
 
 // the manga on the signed-in shelf that is this series, or null
-export const findOnShelf = (series: string, signal?: AbortSignal) =>
+// `also`: another name the series goes by (its catalog's, beside AniList's)
+export const findOnShelf = (
+  series: string,
+  signal?: AbortSignal,
+  also?: string,
+) =>
   getJson<ShelfMatch>(
-    `/api/manga/match?${new URLSearchParams({ series })}`,
+    `/api/manga/match?${new URLSearchParams(also && also !== series ? { series, also } : { series })}`,
     signal,
   );
 

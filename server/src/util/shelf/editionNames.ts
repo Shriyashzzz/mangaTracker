@@ -170,13 +170,40 @@ const ENDS_IN_EDITION = new RegExp(
   "i",
 );
 
+// a box set's words ending a name: "Claymore Complete Box Set", "Naruto Box
+// Set 2", "Akira 35th Anniversary Box Set". A box set is its series' too
+const ENDS_IN_BOX_SET =
+  /[\s,:(-]+((the\s+)?complete\s+(series\s+)?|\d+(st|nd|rd|th)\s+anniversary\s+)?box(ed)?\s*set(\s*\d+)?\)?\s*$/i;
+
 // the edition's words off the series' name: "Berserk Deluxe Edition" is
-// Berserk, "Vagabond VIZBIG Edition" is Vagabond. Taken off again while there
-// are more ("Uzumaki 3-in-1 Deluxe Edition"). A name that is nothing but an
-// edition's words is left as it is
+// Berserk, "Vagabond VIZBIG Edition" is Vagabond, "Claymore Complete Box Set"
+// is Claymore. Taken off again while there are more ("Uzumaki 3-in-1 Deluxe
+// Edition"). A name that is nothing but an edition's words is left as it is
 export function withoutEdition(name: string) {
   let series = name.trim();
-  for (let i = 0; i < 3 && ENDS_IN_EDITION.test(series); i++)
-    series = series.replace(ENDS_IN_EDITION, "").trim();
+  for (let i = 0; i < 3; i++) {
+    const shorter = series
+      .replace(ENDS_IN_BOX_SET, "")
+      .replace(ENDS_IN_EDITION, "")
+      .trim();
+    if (shorter === series) break;
+    series = shorter;
+  }
   return series || name;
+}
+
+// The volumes a book holds when its edition's own name says how many: book
+// 2 of a 3-in-1 (or a VIZBIG, which is three) holds vols 4 to 6. Not a
+// guess: the name is the count. null for an edition whose books vary
+// ("Deluxe"), which the series' lines or the hand table have to say
+// A 2-in-1 or 3-in-1 whose title has no number of its own ("Uzumaki (3-in-1
+// Deluxe Edition)") is the first, or the only one: book 1. Any other
+// edition without a number can't say which book it is
+export const onlyBookOf = (edition: EditionName) =>
+  /^\din1$/.test(edition.key) ? 1 : null;
+
+export function volumesByName(edition: EditionName, number: number | null) {
+  const each = edition.perBook;
+  if (!each || !number || !Number.isInteger(number) || number < 1) return null;
+  return Array.from({ length: each }, (_, i) => (number - 1) * each + 1 + i);
 }

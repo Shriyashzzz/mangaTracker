@@ -13,6 +13,7 @@ import { englishAuthors, lookupIsbn } from "./sources/catalog.js";
 import {
   editionOfTitle,
   isNovelBook,
+  omnibusVolumes,
   seriesName,
   seriesOfBook,
 } from "./stores/match.js";
@@ -35,7 +36,12 @@ import { notOutYet } from "./preorder.js";
 import { publisherOf } from "./publishers.js";
 import { getSeriesWithVolumes } from "./seriesService.js";
 import { bookInLine, restOfLine } from "./editionBooks.js";
-import { withoutEdition } from "../util/shelf/editionNames.js";
+import {
+  onlyBookOf,
+  volumesByName,
+  withoutEdition,
+} from "../util/shelf/editionNames.js";
+import { editionVolumes } from "../util/shelf/editions.js";
 import { normalize } from "./stores/match.js";
 import { scanIfNeverScanned } from "./boxSetScan.js";
 
@@ -391,6 +397,25 @@ async function pricesCheckedAt(isbn13: string) {
   return times.length ? new Date(Math.min(...times)) : lastCheck?.checkedAt;
 }
 
+// What an edition's book holds when its series' lines don't list it, the
+// most certain first, as a scan reads it (scanService.ts): its own title
+// ("Omnibus 1 (Vol. 1-3)", each volume's name in brackets), the hand-kept
+// table of uneven editions, then its edition's name when the name is the
+// count (a VIZBIG is three). null when nothing says
+function heldByItsOwnWord(
+  ownName: string,
+  title: string,
+  edition: NonNullable<ReturnType<typeof editionOfTitle>>,
+) {
+  const stated = omnibusVolumes(title);
+  if (stated?.length) return stated;
+  const number = titleVolume(title);
+  return (
+    editionVolumes(ownName, title, number) ??
+    volumesByName(edition, number ?? onlyBookOf(edition))
+  );
+}
+
 // the rest of a series' books, each once: a book holding two volumes is
 // listed under both numbers
 function otherBooksOf<T extends { isbn13: string }>(
@@ -428,17 +453,14 @@ export async function getVolumePrices(
   // name nothing is found
   const ownName = seriesName(book.title);
   const edition = editionOfTitle(book.title);
-  const series = await getSeriesWithVolumes(
-    edition ? withoutEdition(ownName) : ownName,
-    country,
-  );
+  // (a box set too: "Claymore Complete Box Set" is Claymore's)
+  const series = await getSeriesWithVolumes(seriesOfBook(book.title), country);
   // which book of the edition it is, from the series' edition lines (only
   // what's saved for a crawler, which never sets off a search)
-  const inLine =
-    edition && series.info ? await bookInLine(series, isbn13, refresh) : null;
+  const inLine = edition ? await bookInLine(series, isbn13, refresh) : null;
   // a person's first look at it (what's stored, shown at once): the lines
   // are looked up behind the page, so the next look has its edition's books
-  if (edition && series.info && !inLine && report && !refresh)
+  if (edition && !inLine && report && !refresh)
     void bookInLine(series, isbn13, true);
   // an edition's book the lines don't list yet still counts when the
   // catalog's own title for this ISBN names the series and an edition of it
@@ -447,7 +469,11 @@ export async function getVolumePrices(
     Boolean(
       edition &&
       series.info &&
-      normalize(withoutEdition(ownName)) === normalize(series.info.name),
+      // by any name the series goes by: the VIZBIG "Dragon Ball Z" is
+      // AniList's "Dragon Ball", which lists that name too
+      [series.info.name, ...(series.info.altNames ?? [])].some(
+        (name) => normalize(name) === normalize(withoutEdition(ownName)),
+      ),
     );
   // paid searches only for a volume of a series AniList knows, as the catalog
   // lists it: anyone can open a page for any ISBN, and made-up or unrelated
@@ -513,7 +539,13 @@ export async function getVolumePrices(
     edition: inLine
       ? { label: inLine.line.label, volumes: inLine.book.volumes }
       : edition
-        ? { label: edition.label, volumes: null }
+        ? {
+            label: edition.label,
+            // when the lines don't list it: what the hand-kept table of
+            // uneven editions says, or its edition's name alone (a VIZBIG is
+            // three)
+            volumes: heldByItsOwnWord(ownName, book.title, edition),
+          }
         : null,
     book: {
       isbn13: book.isbn13,
