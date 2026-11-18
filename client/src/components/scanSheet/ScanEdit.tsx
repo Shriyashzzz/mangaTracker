@@ -20,11 +20,20 @@ type Props = {
   // as the scan found it
   name: string;
   volumes: number[];
-  // the series on their shelf, for its full edit page
-  id: number;
+  // the series on their shelf, for its full edit page; none for a book
+  // that isn't on it yet
+  id?: number;
+  // A book the app couldn't tell the volumes of: the form is the question
+  // "Which volumes are in this book?", and saving puts it on the shelf.
+  // `edition` and `bookNumber` say which book it is ("Deluxe", 2)
+  asking?: { edition: string | null; bookNumber: number | null };
   onSave: (change: { name: string; volumes: number[] }) => Promise<void>;
   onClose: () => void;
 };
+
+// which book of its edition it is, in a word or two: "Deluxe 2"
+const bookOf = (asking: NonNullable<Props["asking"]>) =>
+  [asking.edition, asking.bookNumber].filter(Boolean).join(" ");
 
 type Found =
   | { state: "idle" | "searching" | "failed" }
@@ -34,6 +43,7 @@ export default function ScanEdit({
   name,
   volumes,
   id,
+  asking,
   onSave,
   onClose,
 }: Props) {
@@ -100,6 +110,96 @@ export default function ScanEdit({
 
   const results: Found = search.trim() ? found : { state: "idle" };
 
+  const seriesField = (
+    <>
+      <label htmlFor={`${ids}-search`} className={styles.modalLabel}>
+        Which series is it?
+      </label>
+      <input
+        id={`${ids}-search`}
+        type="search"
+        className={styles.modalSearch}
+        value={search}
+        onChange={(e) => setSearch(e.target.value)}
+        autoComplete="off"
+        enterKeyHint="search"
+        onKeyDown={(e) => {
+          if (e.key === "Enter") e.preventDefault();
+        }}
+      />
+      <div
+        className={styles.modalHits}
+        role="radiogroup"
+        aria-label="AniList series"
+        aria-busy={results.state === "searching"}
+      >
+        {results.state === "searching" && (
+          <p className={styles.modalStatus}>Searching AniList…</p>
+        )}
+        {results.state === "failed" && (
+          <p className={styles.modalStatus} role="alert">
+            Couldn't search AniList just now. The series stays as scanned unless
+            you pick another.
+          </p>
+        )}
+        {results.state === "done" && !results.hits.length && (
+          <p className={styles.modalStatus}>
+            No manga by that name. Check the spelling, or try a shorter one.
+          </p>
+        )}
+        {results.state === "done" && results.guessed && (
+          <p className={styles.modalStatus}>{DID_YOU_MEAN}</p>
+        )}
+        {results.state === "done" &&
+          results.hits.slice(0, 6).map((hit) => (
+            <button
+              key={hit.anilistId}
+              type="button"
+              role="radio"
+              aria-checked={picked === hit.name}
+              className={styles.modalHit}
+              onClick={() => setPicked(hit.name)}
+            >
+              {hit.cover ? (
+                <img src={hit.cover} alt="" className={styles.modalCover} />
+              ) : (
+                <span className={styles.modalCover} />
+              )}
+              <span className="min-w-0">
+                <span className={styles.modalHitName}>{hit.name}</span>
+                {hit.year && (
+                  <span className={styles.modalHitMeta}>{hit.year}</span>
+                )}
+              </span>
+            </button>
+          ))}
+      </div>
+    </>
+  );
+  const volumesField = (
+    <>
+      <label htmlFor={`${ids}-volumes`} className={styles.modalLabel}>
+        Which volumes
+      </label>
+      <input
+        id={`${ids}-volumes`}
+        className={styles.modalVolumes}
+        inputMode="numeric"
+        value={typed}
+        onChange={(e) => setTyped(e.target.value)}
+        aria-describedby={`${ids}-volumes-hint`}
+        aria-invalid={!chosen}
+      />
+      <p id={`${ids}-volumes-hint`} className={styles.modalHint}>
+        {asking
+          ? "Every volume inside it, like 4, 5, 6. It's on its back cover or first pages."
+          : chosen
+            ? "One number, or a few for a book holding several: 3, 4"
+            : "Volume numbers, like 3 or 3, 4"}
+      </p>
+    </>
+  );
+
   return (
     <dialog
       ref={dialog}
@@ -118,10 +218,19 @@ export default function ScanEdit({
         <div className={styles.modalHead}>
           <div className="min-w-0">
             <h2 id={`${ids}-title`} className={styles.modalTitle}>
-              Edit this scan
+              {asking ? "Which volumes are in this book?" : "Edit this scan"}
             </h2>
             <p className={styles.modalNow}>
-              Scanned as {name}, vol. {volumes.join(" & ")}
+              {asking ? (
+                <>
+                  {[name, bookOf(asking)].filter(Boolean).join(" · ")}. We
+                  couldn't tell, so nothing is on your shelf yet.
+                </>
+              ) : (
+                <>
+                  Scanned as {name}, vol. {volumes.join(" & ")}
+                </>
+              )}
             </p>
           </div>
           <button
@@ -134,93 +243,20 @@ export default function ScanEdit({
         </div>
 
         <div className={styles.modalBody}>
-          <label htmlFor={`${ids}-search`} className={styles.modalLabel}>
-            Which series is it?
-          </label>
-          <input
-            id={`${ids}-search`}
-            type="search"
-            className={styles.modalSearch}
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            autoComplete="off"
-            enterKeyHint="search"
-            onKeyDown={(e) => {
-              if (e.key === "Enter") e.preventDefault();
-            }}
-          />
-          <div
-            className={styles.modalHits}
-            role="radiogroup"
-            aria-label="AniList series"
-            aria-busy={results.state === "searching"}
-          >
-            {results.state === "searching" && (
-              <p className={styles.modalStatus}>Searching AniList…</p>
-            )}
-            {results.state === "failed" && (
-              <p className={styles.modalStatus} role="alert">
-                Couldn't search AniList just now. The series stays as scanned
-                unless you pick another.
-              </p>
-            )}
-            {results.state === "done" && !results.hits.length && (
-              <p className={styles.modalStatus}>
-                No manga by that name. Check the spelling, or try a shorter one.
-              </p>
-            )}
-            {results.state === "done" && results.guessed && (
-              <p className={styles.modalStatus}>{DID_YOU_MEAN}</p>
-            )}
-            {results.state === "done" &&
-              results.hits.slice(0, 6).map((hit) => (
-                <button
-                  key={hit.anilistId}
-                  type="button"
-                  role="radio"
-                  aria-checked={picked === hit.name}
-                  className={styles.modalHit}
-                  onClick={() => setPicked(hit.name)}
-                >
-                  {hit.cover ? (
-                    <img src={hit.cover} alt="" className={styles.modalCover} />
-                  ) : (
-                    <span className={styles.modalCover} />
-                  )}
-                  <span className="min-w-0">
-                    <span className={styles.modalHitName}>{hit.name}</span>
-                    {hit.year && (
-                      <span className={styles.modalHitMeta}>{hit.year}</span>
-                    )}
-                  </span>
-                </button>
-              ))}
-          </div>
-
-          <label htmlFor={`${ids}-volumes`} className={styles.modalLabel}>
-            Which volumes
-          </label>
-          <input
-            id={`${ids}-volumes`}
-            className={styles.modalVolumes}
-            inputMode="numeric"
-            value={typed}
-            onChange={(e) => setTyped(e.target.value)}
-            aria-describedby={`${ids}-volumes-hint`}
-            aria-invalid={!chosen}
-          />
-          <p id={`${ids}-volumes-hint`} className={styles.modalHint}>
-            {chosen
-              ? "One number, or a few for a book holding several: 3, 4"
-              : "Volume numbers, like 3 or 3, 4"}
-          </p>
-          <NavLink
-            to={`/update/${id}`}
-            className={styles.modalHint}
-            viewTransition
-          >
-            Chapter, status or notes? Open the series' edit page
-          </NavLink>
+          {/* the question first: when it's asking which volumes, that box
+              leads and the series (already known) follows */}
+          {asking && volumesField}
+          {seriesField}
+          {!asking && volumesField}
+          {id !== undefined && (
+            <NavLink
+              to={`/update/${id}`}
+              className={styles.modalHint}
+              viewTransition
+            >
+              Chapter, status or notes? Open the series' edit page
+            </NavLink>
+          )}
           {problem && (
             <p className={styles.modalStatus} role="alert">
               {problem}
@@ -241,7 +277,7 @@ export default function ScanEdit({
             className="btn btn-primary"
             disabled={!chosen || saving}
           >
-            {saving ? "Saving…" : "Save"}
+            {saving ? "Saving…" : asking ? "Add to my shelf" : "Save"}
           </button>
         </div>
       </form>

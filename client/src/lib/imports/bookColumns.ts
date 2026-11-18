@@ -558,6 +558,8 @@ export function isbnOnlyRows(rows: string[][]): string[] {
 
 // a looked-up ISBN as a book of the file: owned, with every volume it holds
 export const bookFromScan = (scan: {
+  // (a book the app can't tell the volumes of is left out by the caller)
+  unsure?: boolean;
   isbn13?: string;
   shelfName: string;
   volume: number;

@@ -6,6 +6,7 @@ import { ROW_ID, rejectInvalid } from "../../middlewares/validate.js";
 import { sendError } from "../../middlewares/errorHandler.js";
 import mangaQueries, { type RestoredManga } from "../../models/mangaQueries.js";
 import bookQueries from "../../models/bookQueries.js";
+import { saveBookVolumes } from "../../util/shelf/bookVolumeAnswers.js";
 import type { Manga } from "../../../generated/prisma/client.js";
 import { lookupScannedIsbn, titleVolume } from "../../prices/service.js";
 import { withoutEdition } from "../../util/shelf/editionNames.js";
@@ -180,6 +181,21 @@ export const restoreMany = [
         invalid,
       });
     });
+  },
+];
+
+// POST /book-volumes {isbn13, volumes}: what they say a book holds, for an
+// edition the app couldn't work out (util/shelf/bookVolumeAnswers.ts). Theirs
+// at once, everyone's once three readers agree
+export const bookVolumes = [
+  body("isbn13").matches(/^97[89]\d{10}$/),
+  body("volumes").isArray({ min: 1, max: 60 }),
+  body("volumes.*").isInt({ min: 1, max: 999 }).toInt(),
+  rejectInvalid,
+  async (req: Request, res: Response) => {
+    const sent = matchedData(req) as { isbn13: string; volumes: number[] };
+    await saveBookVolumes(req.session.userId!, sent.isbn13, sent.volumes);
+    res.sendStatus(204);
   },
 ];
 

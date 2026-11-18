@@ -242,6 +242,29 @@ const EDITIONS: Edition[] = [
     volumes: 16,
     byBinding: true,
   },
+  // Dark Horse: 5 hardcovers for the 14 volumes, three a book and the last
+  // holding two (its own listing: 1-3, 4-6, 7-9, 10-12, 13-14)
+  {
+    series: /^trigun maximum$/,
+    edition: /\bdeluxe\b/i,
+    perBook: 3,
+    books: 5,
+    volumes: 14,
+  },
+  // Kodansha: 9 hardcovers for the 12 volumes
+  {
+    series: /^cardcaptor sakura$/,
+    edition: /\bcollector'?s edition\b/i,
+    books: 9,
+    volumes: 12,
+  },
+  // Kodansha: 4 hardcovers for the 8 volumes
+  {
+    series: /^chobits$/,
+    edition: /\banniversary edition\b/i,
+    books: 4,
+    volumes: 8,
+  },
   // VIZ's Death Note Black Edition: 6 books of two for the 12 volumes
   {
     series: /^death note$/,
@@ -281,7 +304,7 @@ export function evenRange(
   return [from, Math.max(from, to)];
 }
 const SPECIAL_EDITION =
-  /\b(deluxe|perfect edition|collector'?s edition|fullmetal edition|master edition|eternal edition|black edition|definitive edition|complete edition)\b/i;
+  /\b(deluxe|perfect edition|collector'?s edition|fullmetal edition|master edition|eternal edition|black edition|definitive edition|complete edition|anniversary edition)\b/i;
 
 export function editionVolumes(
   series: string,

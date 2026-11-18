@@ -5,6 +5,7 @@
 // "has none" is an answer too.
 import priceQueries from "../models/priceQueries.js";
 import { openLibraryFetch } from "./sources/openLibrary.js";
+import { isJapaneseTitle, ownTitleOf } from "./sources/catalog.js";
 import { volumesKey } from "./volumesKey.js";
 import {
   buildEditionLines,
@@ -17,6 +18,10 @@ const FRESH_MS = 7 * 24 * 60 * 60 * 1000;
 // a failed search is asked again sooner
 const RETRY_MS = 60 * 60 * 1000;
 const TIMEOUT_MS = 8000;
+// when the rules for building lines last changed (the one list of editions,
+// Definitive and the rest; own titles for Japanese-filed books): a list saved
+// before then is built again, whatever its age
+const RULES_FROM = Date.UTC(2026, 10, 18, 6);
 const editionsKey = (name: string) => volumesKey(name) + ":editions";
 
 type OpenLibraryDoc = {
@@ -70,6 +75,30 @@ const docsFromVolumes = (name: string, volumes: CatalogBook[]) => {
   });
 };
 
+// The records a search filed under a Japanese title, each given the English
+// title of its own record (catalog.ts ownTitleOf). null when there are none,
+// so nothing is saved again. At most MOST_OWN_TITLES, three at a time: Open
+// Library is shared and free
+const MOST_OWN_TITLES = 45;
+async function withOwnTitles(docs: EditionDoc[]): Promise<EditionDoc[] | null> {
+  const filed = docs
+    .filter((doc) => isJapaneseTitle(doc.title))
+    .slice(0, MOST_OWN_TITLES);
+  if (!filed.length) return null;
+  const titles = new Map<string, string>();
+  for (let i = 0; i < filed.length; i += 3)
+    await Promise.all(
+      filed.slice(i, i + 3).map(async (doc) => {
+        const title = await ownTitleOf(doc.isbn13);
+        if (title) titles.set(doc.isbn13, title);
+      }),
+    );
+  if (!titles.size) return null;
+  return docs.map((doc) =>
+    titles.has(doc.isbn13) ? { ...doc, title: titles.get(doc.isbn13)! } : doc,
+  );
+}
+
 const inFlight = new Map<string, Promise<EditionLine[]>>();
 
 // a series' edition lines. `volumes`: its own list (getSeries), for the last
@@ -85,7 +114,14 @@ export async function editionLinesOf(
   const lines = (saved?.volumes ?? null) as unknown as
     EditionLine[] | { failed: true }[] | null;
   const failed = Boolean(lines?.length && "failed" in lines[0]!);
-  if (saved && Date.now() - saved.at < (failed ? RETRY_MS : FRESH_MS))
+  // lines saved before the rules last changed (more editions, books filed
+  // under Japanese titles) are old whatever their age: built again
+  const byTheseRules = saved !== null && saved.at >= RULES_FROM;
+  if (
+    saved &&
+    byTheseRules &&
+    Date.now() - saved.at < (failed ? RETRY_MS : FRESH_MS)
+  )
     return failed ? [] : (lines as EditionLine[]);
   // old or missing, and not to be looked up: what's saved, however old
   if (!lookUp) return failed || !lines ? [] : (lines as EditionLine[]);
@@ -98,13 +134,28 @@ export async function editionLinesOf(
   const build = (async () => {
     try {
       const docs = await searchEditions(name);
-      const built = buildEditionLines(
-        name,
-        [...docs, ...docsFromVolumes(name, volumes)],
-        total,
-      );
+      const fromVolumes = docsFromVolumes(name, volumes);
+      const built = buildEditionLines(name, [...docs, ...fromVolumes], total);
       await priceQueries
         .saveSeriesVolumes(key, built as unknown as CatalogBook[])
+        .catch(() => {});
+      // books filed under the series' Japanese title ("鋼の錬金術師 1-3" for
+      // the Fullmetal Alchemist 3-in-1): their own records have the English
+      // one. Read behind this answer, a few at a time, and the lines saved
+      // again with them, so the next ask has those editions too
+      void withOwnTitles(docs)
+        .then((named) => {
+          if (!named) return;
+          const fuller = buildEditionLines(
+            name,
+            [...named, ...fromVolumes],
+            total,
+          );
+          return priceQueries.saveSeriesVolumes(
+            key,
+            fuller as unknown as CatalogBook[],
+          );
+        })
         .catch(() => {});
       return built;
     } catch {

@@ -65,6 +65,8 @@ function flashFor(kind: ScanResult["kind"]): {
   if (kind === "marked" || kind === "added")
     return { tone: "good", note: "On your shelf" };
   if (kind === "already") return { tone: "same", note: "Already yours" };
+  // found, but the app can't tell what's inside: its row asks
+  if (kind === "unsure") return { tone: "same", note: "Which volumes?" };
   if (kind === "unknown")
     return { tone: "bad", note: "Couldn't find this one" };
   return { tone: "bad", note: "That didn't save" };
@@ -405,7 +407,15 @@ export default function ScanSheet({
           <ScanEdit
             name={result.name}
             volumes={result.book.volumes}
-            id={result.id}
+            id={"id" in result ? result.id : undefined}
+            asking={
+              result.kind === "unsure"
+                ? {
+                    edition: result.book.edition ?? null,
+                    bookNumber: result.book.bookNumber ?? null,
+                  }
+                : undefined
+            }
             onClose={() => setEditing(null)}
             onSave={async (change) => {
               const next = await editScan(result, change);
@@ -452,10 +462,18 @@ function ScanRow({
         </span>
       </div>
     );
-  const title =
-    "book" in result
-      ? `${result.name} · ${volumesLabel(result.book.volumes)}`
-      : row.isbn;
+  let title = row.isbn;
+  if (result.kind === "unsure")
+    // which book it is, since its volumes aren't known: "Chobits ·
+    // Anniversary Edition 1"
+    title = [
+      result.name,
+      [result.book.edition, result.book.bookNumber].filter(Boolean).join(" "),
+    ]
+      .filter(Boolean)
+      .join(" · ");
+  else if ("book" in result)
+    title = `${result.name} · ${volumesLabel(result.book.volumes)}`;
   // what happened to this scan, in words: an undo first, then how it went
   let note = "That didn't save";
   if (row.undoFailed) note = "Undo didn't save. Try again";
@@ -465,6 +483,7 @@ function ScanRow({
     note = `Added to your shelf with ${volumesLabel(result.book.volumes)}`;
   else if (result.kind === "already") note = "Already yours";
   else if (result.kind === "unknown") note = "Couldn't find this one";
+  else if (result.kind === "unsure") note = "Which volumes are in this book?";
   const good = landed(row) && !row.undoFailed;
   const bad =
     row.undoFailed || result.kind === "unknown" || result.kind === "failed";
@@ -488,6 +507,11 @@ function ScanRow({
         {"id" in result && !row.undone && (
           <button type="button" className={styles.link} onClick={onEdit}>
             Edit
+          </button>
+        )}
+        {result.kind === "unsure" && (
+          <button type="button" className={styles.link} onClick={onEdit}>
+            Say which
           </button>
         )}
         {result.kind === "unknown" && (

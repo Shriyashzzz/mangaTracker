@@ -61,6 +61,8 @@ mangaRouter.get("/releases/saved", manga.savedReleases);
 // every book behind the shelf's owned volumes, for the backup
 mangaRouter.get("/books", manga.allBooks);
 mangaRouter.get("/match", manga.match);
+// what they say a book holds, when the app can't work it out
+mangaRouter.post("/book-volumes", manga.bookVolumes);
 
 // requireOwner: the manga exists and belongs to whoever is signed in
 mangaRouter.get("/:id", requireOwner, manga.detail);

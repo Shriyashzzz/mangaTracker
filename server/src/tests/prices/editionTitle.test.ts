@@ -7,6 +7,7 @@ import {
   withEditionOf,
 } from "../../prices/sources/editionTitle.js";
 import { editionVolumes } from "../../util/shelf/editions.js";
+import { buildEditionLines } from "../../prices/editionLines.js";
 import { editionVolumes as pageEditionVolumes } from "../../../../client/src/lib/imports/bookVolumes.js";
 import {
   editionOfTitle,
@@ -279,6 +280,13 @@ test("uneven editions hold the same volumes on the server and the page", () => {
     ["Gantz", (n) => `Gantz Omnibus Volume ${n}`, 12],
     ["Death Note", (n) => `Death Note: Black Edition, Vol. ${n}`, 6],
     ["Sailor Moon", (n) => `Sailor Moon Eternal Edition ${n}`, 10],
+    ["Trigun Maximum", (n) => `Trigun Maximum Deluxe Edition Volume ${n}`, 5],
+    [
+      "Cardcaptor Sakura",
+      (n) => `Cardcaptor Sakura Collector's Edition ${n}`,
+      9,
+    ],
+    ["Chobits", (n) => `Chobits 20th Anniversary Edition ${n}`, 4],
   ];
   for (const [series, title, books] of editions)
     for (let n = 1; n <= books; n++) {
@@ -305,4 +313,50 @@ test("a box set is never a book of an edition", () => {
   expect(
     seriesOfBook("Battle Angel Alita Deluxe Complete Series Box Set"),
   ).toBe("Battle Angel Alita");
+});
+
+test("Trigun Maximum Deluxe holds what its publisher lists", () => {
+  const book = (n: number) =>
+    editionVolumes(
+      "Trigun Maximum",
+      `Trigun Maximum Deluxe Edition Volume ${n}`,
+      n,
+    );
+  expect([1, 2, 3, 4, 5].map(book)).toEqual([
+    [1, 2, 3],
+    [4, 5, 6],
+    [7, 8, 9],
+    [10, 11, 12],
+    [13, 14],
+  ]);
+});
+
+test("edition lines are built from books filed under Japanese titles, once named", () => {
+  // as Open Library's own records name three Fullmetal Alchemist 3-in-1s
+  const lines = buildEditionLines(
+    "Fullmetal Alchemist",
+    [1, 2, 4].map((n, i) => ({
+      title: `Fullmetal Alchemist: 3-in-1 Edition, Vol. ${n}`,
+      isbn13: ["9781421540184", "9781421540191", "9781421554914"][i]!,
+    })),
+    27,
+  );
+  const line = lines.find((l) => l.key === "3in1");
+  expect(line?.books.slice(0, 4).map((b) => [b.number, b.volumes])).toEqual([
+    [1, [1, 2, 3]],
+    [2, [4, 5, 6]],
+    [3, [7, 8, 9]],
+    [4, [10, 11, 12]],
+  ]);
+  // book 3 wasn't among the records: worked out, with no ISBN
+  expect(line?.books[2]?.isbn13).toBe(null);
+});
+
+test("an edition added to a title never leaves a double space", () => {
+  expect(
+    withEditionOf(
+      "Rurouni Kenshin , Vol. 1",
+      "Rurouni Kenshin (3-in-1 Edition), Vol. 1",
+    ),
+  ).toBe("Rurouni Kenshin (3-In-1 Edition), Vol. 1");
 });

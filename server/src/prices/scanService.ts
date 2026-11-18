@@ -13,6 +13,7 @@ import { baseName, isNovelName, novelName } from "./lightNovel.js";
 import { editionVolumes, withoutEdition } from "../util/shelf/editions.js";
 import { bookInLine } from "./editionBooks.js";
 import { onlyBookOf, volumesByName } from "../util/shelf/editionNames.js";
+import { answeredVolumes } from "../util/shelf/bookVolumeAnswers.js";
 import { titleVolume } from "./volumeNames.js";
 import { getOrCreateBook, getVolumePrices } from "./volumeService.js";
 import { getSeriesWithVolumes } from "./seriesService.js";
@@ -23,7 +24,12 @@ import { getSeriesWithVolumes } from "./seriesService.js";
 // stored book or the free catalog only: it never asks a store for a price, so
 // a scan never spends a paid search. Null when the catalog doesn't know it or
 // the title carries no volume number
-export async function lookupScannedIsbn(isbn13: string) {
+export async function lookupScannedIsbn(
+  isbn13: string,
+  // who's scanning, when signed in: their own answer to "which volumes are
+  // in this book?" comes first (util/shelf/bookVolumeAnswers.ts)
+  userId?: number | null,
+) {
   const book = await getOrCreateBook(isbn13);
   if (!book) return null;
   // "Berserk Deluxe Edition, Vol. 2" is Berserk, and vols 4 to 6
@@ -59,14 +65,29 @@ export async function lookupScannedIsbn(isbn13: string) {
     held =
       (await volumesInItsLine(named, book.isbn13)) ??
       volumesByName(edition, titleVolume(book.title) ?? onlyBookOf(edition));
+  // a box set: every volume its title says it holds, or the whole of a
+  // finished series for a "complete" one
+  const boxSet = BOX_SET.test(book.title);
+  if (boxSet && !held) held = await boxSetVolumes(book.title, named);
+  // What nothing above could say: an edition's book (or a box set) whose
+  // volumes aren't known. Readers' own answers then (theirs, or the one
+  // three readers agree on); and with none, it's said to be unsure, so the
+  // page asks "Which volumes are in this book?" rather than guess
+  const cantSay = !inBook && !held && (boxSet || Boolean(edition));
+  const answered = cantSay
+    ? await answeredVolumes(book.isbn13, userId).catch(() => null)
+    : null;
+  if (answered?.length) held = answered;
+  const unsure = cantSay && !answered?.length;
   const omnibus = inBook ? null : (held ?? stated);
-  if (omnibus && !omnibus.length) return null;
+  if (omnibus && !omnibus.length && !unsure) return null;
   // the first volume it holds: as its series' list says, as its title
   // says, or the one volume its title names
   let volume = titleVolume(book.title);
   if (inBook) volume = inBook.from;
-  else if (omnibus) volume = omnibus[0]!;
-  if (volume == null) return null;
+  else if (omnibus?.length) volume = omnibus[0]!;
+  // a book that names no volume is still a book they can say the volumes of
+  if (volume == null && !unsure) return null;
   // the catalog sometimes says so only in brackets ("Overlord, Vol. 3 (light
   // novel)"), which seriesName drops
   const lightNovel =
@@ -89,14 +110,26 @@ export async function lookupScannedIsbn(isbn13: string) {
   return {
     isbn13: book.isbn13,
     title: book.title,
+    // (null only when unsure, and its title names none)
     volume,
-    // every volume it holds, when it's one book holding several
+    // every volume it holds, when it's one book holding several. Empty
+    // when unsure
     volumes: inBook
       ? Array.from(
           { length: inBook.to - inBook.from + 1 },
           (_, i) => inBook.from + i,
         )
-      : (omnibus ?? [volume]),
+      : omnibus?.length
+        ? omnibus
+        : volume != null && !unsure
+          ? [volume]
+          : [],
+    // the app can't say what this book holds: the page asks the reader
+    // (POST /api/manga/book-volumes), and never puts a guess on the shelf
+    unsure,
+    // its edition, as the page names the book ("Deluxe"), and its number
+    edition: boxSet ? "Box set" : (edition?.label ?? null),
+    bookNumber: titleVolume(book.title),
     // the price checker's name ("Overlord Light Novel"), for /api/manga/match
     series,
     // the name a shelf keeps it under: a novel is the series' own name, marked
@@ -104,6 +137,28 @@ export async function lookupScannedIsbn(isbn13: string) {
     lightNovel,
     coverUrl: book.coverUrl,
   };
+}
+
+const BOX_SET = /\bbox(ed)?[\s-]?set\b/i;
+// the longest run a box set's title may claim
+const MOST_IN_A_SET = 200;
+
+// The volumes a box set holds: the run its title says ("Includes vols. 1-14",
+// "Volumes 1-27"), or, for a "complete" set of a series AniList says is
+// finished, every volume of it. null when neither says
+async function boxSetVolumes(title: string, series: string) {
+  const said = title.match(
+    /\bvol(?:ume)?s?\.?\s*(\d{1,3})\s*(?:-|–|to)\s*(\d{1,3})/i,
+  );
+  const from = Number(said?.[1]);
+  const to = Number(said?.[2]);
+  if (said && to > from && to - from < MOST_IN_A_SET)
+    return Array.from({ length: to - from + 1 }, (_, i) => from + i);
+  if (!/\bcomplete\b/i.test(title)) return null;
+  const info = await getSeriesInfo(series).catch(() => null);
+  return info?.status === "FINISHED" && info.volumes
+    ? Array.from({ length: info.volumes }, (_, i) => i + 1)
+    : null;
 }
 
 // the volumes an edition's book holds, from its series' edition lines; null

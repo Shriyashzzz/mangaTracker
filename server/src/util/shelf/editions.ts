@@ -107,6 +107,29 @@ const EDITIONS: KnownEdition[] = [
   // Dark Horse, 2018 to 2023: 12 omnibuses for the 37 volumes, three a book
   // and the last holding four
   { series: "gantz", edition: /\bomnibus\b/i, books: 12, volumes: 37 },
+  // Dark Horse: 5 hardcovers for the 14 volumes, three a book and the last
+  // holding two (its own listing: 1-3, 4-6, 7-9, 10-12, 13-14)
+  {
+    series: "trigun maximum",
+    edition: /\bdeluxe\b/i,
+    perBook: 3,
+    books: 5,
+    volumes: 14,
+  },
+  // Kodansha: 9 hardcovers for the 12 volumes
+  {
+    series: "cardcaptor sakura",
+    edition: /\bcollector'?s edition\b/i,
+    books: 9,
+    volumes: 12,
+  },
+  // Kodansha: 4 hardcovers for the 8 volumes
+  {
+    series: "chobits",
+    edition: /\banniversary edition\b/i,
+    books: 4,
+    volumes: 8,
+  },
   // VIZ's Death Note Black Edition: 6 books of two for the 12 volumes
   {
     series: "death note",

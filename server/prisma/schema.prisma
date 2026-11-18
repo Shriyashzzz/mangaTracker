@@ -45,6 +45,7 @@ model User {
   reviewFlags     ReviewFlag[]
   importPicks     ImportPick[]
   toBuy           ToBuy[]
+  bookVolumes     BookVolumeAnswer[]
   //token for password reset
   token           String?
   token_expiry    BigInt?
@@ -299,6 +300,21 @@ model ImportPick {
   @@id([userId, key])
   @@index([key, anilistId])
   @@map("import_picks")
+}
+
+// what a reader said a book holds, for an edition the app couldn't work out
+// ("Which volumes are in this book?"): theirs at once, and everyone's once
+// three readers say the same (util/shelf/bookVolumeAnswers.ts)
+model BookVolumeAnswer {
+  userId     Int      @map("user_id")
+  isbn13     String   @db.Char(13)
+  volumes    Float[]
+  answeredAt DateTime @default(now()) @map("answered_at") @db.Timestamptz(6)
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([userId, isbn13])
+  @@index([isbn13])
+  @@map("book_volume_answers")
 }
 
 // a volume on a reader's To buy list: one they looked up and mean to buy

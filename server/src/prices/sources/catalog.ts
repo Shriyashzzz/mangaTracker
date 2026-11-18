@@ -2,6 +2,7 @@
 // https://openlibrary.org/dev/docs/api/search
 import { saysMoreThan, titleOfRecord, withEditionOf } from "./editionTitle.js";
 import { editionNameOf } from "../../util/shelf/editionNames.js";
+import { googleRecordOf } from "./googleBooksCatalog.js";
 import { openLibraryFetch } from "./openLibrary.js";
 import { englishSeriesName } from "./anilist.js";
 import { coverPath } from "./covers.js";
@@ -720,13 +721,25 @@ export async function lookupIsbn(isbn13: string): Promise<CatalogBook | null> {
     said && !JAPANESE.test(said) ? withBookDigits(said) : null;
 
   if (book) {
-    if (!recordTitle || !saysMoreThan(recordTitle, book.title)) return book;
-    // a title that names its volume keeps what it says and gains the
-    // edition; a bare one ("Monster") is replaced by the record's
-    const title = namesAVolume(book.title.replace(/\s*\(.*\)\s*$/, ""))
-      ? withEditionOf(book.title, recordTitle)
-      : recordTitle;
-    return { ...book, title };
+    let title = book.title;
+    if (recordTitle && saysMoreThan(recordTitle, title))
+      // a title that names its volume keeps what it says and gains the
+      // edition; a bare one ("Monster") is replaced by the record's
+      title = namesItsVolume(title)
+        ? withEditionOf(title, recordTitle)
+        : recordTitle;
+    // Open Library names no edition, but the book is as long as three
+    // volumes (or has no number at all): its publisher's own listing, on
+    // Google Books, is asked once (a Rurouni Kenshin 3-in-1 that Open
+    // Library files as plain "Vol. 1")
+    const pages = record?.number_of_pages ?? book.pages ?? 0;
+    const looksLikeMore = pages >= OMNIBUS_PAGES || !namesItsVolume(title);
+    if (!editionNameOf(title) && looksLikeMore) {
+      const listed = await googleTitleOf(isbn13);
+      if (listed && saysMoreThan(listed, title))
+        title = namesItsVolume(title) ? withEditionOf(title, listed) : listed;
+    }
+    return title === book.title ? book : { ...book, title };
   }
 
   // no book from the search. Its own record can still name it: a book
@@ -738,13 +751,19 @@ export async function lookupIsbn(isbn13: string): Promise<CatalogBook | null> {
     edition: record?.publishers,
     work: doc?.publisher,
   });
-  const isABook = recordTitle !== null && bookNumberOf(recordTitle) !== null;
-  const isAnEdition =
-    recordTitle !== null &&
-    publisher !== null &&
-    (editionNameOf(recordTitle) !== null ||
-      /\bbox(ed)?\s*set\b/i.test(recordTitle));
-  if (recordTitle === null || !(isABook || isAnEdition)) {
+  const worthKeeping = (title: string | null): title is string =>
+    title !== null &&
+    (bookNumberOf(title) !== null ||
+      (publisher !== null &&
+        (editionNameOf(title) !== null || /\bbox(ed)?\s*set\b/i.test(title))));
+  // then its publisher's listing on Google Books, for a manga publisher's
+  // ISBN Open Library can't name
+  const named = worthKeeping(recordTitle)
+    ? recordTitle
+    : publisher !== null
+      ? await googleTitleOf(isbn13)
+      : null;
+  if (!worthKeeping(named)) {
     // a Japanese title that couldn't be translated right now (AniList
     // down): an outage, never "no such book"
     if (degraded) throw new Error("catalog degraded: title not translated");
@@ -752,7 +771,7 @@ export async function lookupIsbn(isbn13: string): Promise<CatalogBook | null> {
   }
   return {
     isbn13,
-    title: recordTitle,
+    title: named,
     authors: englishAuthors(doc?.author_name),
     publisher,
     year: doc?.first_publish_year ?? null,
@@ -763,6 +782,31 @@ export async function lookupIsbn(isbn13: string): Promise<CatalogBook | null> {
     comic: true,
   };
 }
+
+// a manga volume runs to about 250 pages; a book this long holds three
+const OMNIBUS_PAGES = 500;
+// "Vol. 3" or a number ending the title, read before any brackets after it
+const namesItsVolume = (title: string) =>
+  namesAVolume(title.replace(/\s*\(.*\)\s*$/, ""));
+
+// its title as its publisher listed it on Google Books; null when Google
+// has nothing in English (or no key, or the day's lookups are used up)
+async function googleTitleOf(isbn13: string) {
+  const listed = await googleRecordOf(isbn13).catch(() => null);
+  const said = listed ? titleOfRecord(listed) : null;
+  return said && !JAPANESE.test(said) ? withBookDigits(said) : null;
+}
+
+// A book's full title from its own record, in English; null when it has no
+// record, or the record is Japanese too. Never throws: for the edition
+// lines, which read the records of books a search filed under Japanese
+// titles (editionSource.ts)
+export async function ownTitleOf(isbn13: string): Promise<string | null> {
+  const record = await ownRecord(isbn13).catch(() => null);
+  const said = record ? titleOfRecord(record) : null;
+  return said && !JAPANESE.test(said) ? withBookDigits(said) : null;
+}
+export const isJapaneseTitle = (title: string) => JAPANESE.test(title);
 
 // Open Library's own record for an ISBN; null when it has none. Unreachable
 // or failing: thrown, never read as "no such book"

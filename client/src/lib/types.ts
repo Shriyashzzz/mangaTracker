@@ -167,7 +167,16 @@ export type MangaForm = {
 export type ScannedBook = {
   isbn13: string;
   title: string;
-  volume: number;
+  // the first volume it holds; null only when `unsure` and its title names
+  // no number
+  volume: number | null;
+  // The app can't tell which volumes this book holds (an edition whose
+  // books vary, with nothing saying): `volumes` is then empty, nothing goes
+  // on the shelf, and the scan asks. `edition` and `bookNumber` say which
+  // book it is ("Deluxe", 2)
+  unsure?: boolean;
+  edition?: string | null;
+  bookNumber?: number | null;
   // every volume it holds: one, or several for a book like "Vinland Saga,
   // Book 9" (vols 17 and 18)
   volumes: number[];

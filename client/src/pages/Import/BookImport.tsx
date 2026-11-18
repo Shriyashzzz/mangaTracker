@@ -171,7 +171,9 @@ export default function BookImport({ source }: { source: BookSource }) {
           const scan = await getJson<Parameters<typeof bookFromScan>[0]>(
             `/api/prices/scan/${isbn}`,
           ).catch(() => null);
-          if (scan) books.push(bookFromScan(scan));
+          // one whose volumes the app can't tell (`unsure`) isn't guessed at
+          // here either: it's added by title, where its volumes are typed
+          if (scan && !scan.unsure) books.push(bookFromScan(scan));
           else unknownIsbns++;
         }
         if (!books.length) {
@@ -192,7 +194,7 @@ export default function BookImport({ source }: { source: BookSource }) {
     }
     if (unknownIsbns)
       errors.push(
-        `${unknownIsbns} ${unknownIsbns === 1 ? "row has" : "rows have"} only an ISBN the book catalog doesn't know. Add ${unknownIsbns === 1 ? "it" : "them"} by title.`,
+        `${unknownIsbns} ${unknownIsbns === 1 ? "row has" : "rows have"} only an ISBN we couldn't read a book and its volumes from. Add ${unknownIsbns === 1 ? "it" : "them"} by title.`,
       );
     setFileErrors(errors);
     if (!files.length) return;

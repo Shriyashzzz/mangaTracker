@@ -50,8 +50,8 @@ function marked(title: string, editionWords: string) {
   const inBrackets = `(${capitalised(edition.toLowerCase())})`;
   const number = title.match(ITS_NUMBER);
   return number
-    ? `${title.slice(0, number.index)} ${inBrackets}${number[0]}`
-    : `${title} ${inBrackets}`;
+    ? `${title.slice(0, number.index).trimEnd()} ${inBrackets}${number[0]}`
+    : `${title.trimEnd()} ${inBrackets}`;
 }
 
 // A search's title that already names its volume, given the edition its own

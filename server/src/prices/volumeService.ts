@@ -42,6 +42,7 @@ import {
   withoutEdition,
 } from "../util/shelf/editionNames.js";
 import { editionVolumes } from "../util/shelf/editions.js";
+import { answeredVolumes } from "../util/shelf/bookVolumeAnswers.js";
 import { normalize } from "./stores/match.js";
 import { scanIfNeverScanned } from "./boxSetScan.js";
 
@@ -95,6 +96,10 @@ const FRESH_FOR_PROVIDER_MS: Record<string, number> = {
 export const freshForMs = (provider: Pick<Provider, "id">) =>
   FRESH_FOR_PROVIDER_MS[provider.id] ?? FRESH_FOR_MS;
 
+// the stores asked for nothing: the ones a background check asks too
+// (collector/filler.ts)
+const FREE_STORES = new Set(["ebay", "books-a-million", "better-world-books"]);
+
 const isPaid = (provider: Pick<Provider, "id">) =>
   provider.id.startsWith("serpapi");
 
@@ -102,7 +107,11 @@ const isPaid = (provider: Pick<Provider, "id">) =>
 // or never happened. Paid ones only while a search is left this month, and
 // eBay's own only while today's calls last: without them they'd only fail,
 // and the volume would look due forever
-async function dueProviders(isbn13: string): Promise<Provider[]> {
+// `freeOnly`: never a paid search, whatever is due (a box set's page)
+async function dueProviders(
+  isbn13: string,
+  freeOnly = false,
+): Promise<Provider[]> {
   const [checks, searchesLeft, ebayLeft, cjLeft] = await Promise.all([
     priceQueries.getSourceChecks(isbn13),
     serpApiSearchesLeft().catch(() => true),
@@ -111,6 +120,7 @@ async function dueProviders(isbn13: string): Promise<Provider[]> {
   ]);
   const now = Date.now();
   return enabledProviders().filter((p) => {
+    if (freeOnly && !FREE_STORES.has(p.id)) return false;
     if (isPaid(p) && !searchesLeft) return false;
     // eBay's own API with today's calls used up: not due until tomorrow
     if (p.id === "ebay" && !ebayLeft) return false;
@@ -265,12 +275,12 @@ export async function checkAlone(isbn13: string, run: () => Promise<unknown>) {
   return true;
 }
 
-async function refreshIfStale(isbn13: string, book: Book) {
+async function refreshIfStale(isbn13: string, book: Book, freeOnly = false) {
   if (!inFlight.has(isbn13)) {
     inFlight.set(
       isbn13,
       (async () => {
-        const due = await dueProviders(isbn13);
+        const due = await dueProviders(isbn13, freeOnly);
         if (due.length) await fetchProviders(isbn13, book, due);
       })().finally(() => inFlight.delete(isbn13)),
     );
@@ -488,10 +498,17 @@ export async function getVolumePrices(
   const preorder = notOutYet(
     series.volumes.find((v) => v.isbn13 === book.isbn13)?.published,
   );
+  // a box set of a series we know: its prices are worth a look too, at the
+  // free stores only (eBay, Books-A-Million, Better World Books). Never a
+  // paid search: those stay for volumes
+  const boxSet =
+    !known && Boolean(series.info) && /\bbox(ed)?[\s-]?set\b/i.test(book.title);
   if (refresh && known && !preorder) {
     // its series' box sets, if nobody has looked for them yet
     void scanIfNeverScanned(series.name, series.volumes);
     await refreshIfStale(isbn13, book);
+  } else if (refresh && boxSet) {
+    await refreshIfStale(isbn13, book, true);
   }
 
   const [checkedAt, [coverRow]] = await Promise.all([
@@ -501,7 +518,10 @@ export async function getVolumePrices(
   // whether a live check (with Turnstile) would look again: the page shows
   // these stored prices first and only asks for one when it would
   const refreshable =
-    report && known && !preorder && (await dueProviders(isbn13)).length > 0;
+    report &&
+    (known || boxSet) &&
+    !preorder &&
+    (await dueProviders(isbn13, !known)).length > 0;
   const [stored, usual] = await Promise.all([
     priceQueries.getCurrentOffers(isbn13),
     priceQueries.getNewPriceMedian(isbn13),
@@ -536,17 +556,18 @@ export async function getVolumePrices(
       ? await restOfLine(series.info?.name ?? series.name, inLine, country)
       : otherBooksOf(series.volumes, book.isbn13),
     // the edition it's a book of, and the volumes of the series it holds
-    edition: inLine
-      ? { label: inLine.line.label, volumes: inLine.book.volumes }
-      : edition
-        ? {
-            label: edition.label,
-            // when the lines don't list it: what the hand-kept table of
-            // uneven editions says, or its edition's name alone (a VIZBIG is
-            // three)
-            volumes: heldByItsOwnWord(ownName, book.title, edition),
-          }
-        : null,
+    // (named as its own title names it: a Black Edition's line may be filed
+    // under "2-in-1")
+    edition: edition
+      ? {
+          label: edition.label,
+          volumes:
+            inLine?.book.volumes ??
+            heldByItsOwnWord(ownName, book.title, edition) ??
+            // what three readers agreed it holds, when nothing else says
+            (await answeredVolumes(isbn13).catch(() => null)),
+        }
+      : null,
     book: {
       isbn13: book.isbn13,
       title: book.title,

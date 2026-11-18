@@ -6,6 +6,7 @@ import request from "supertest";
 import { app } from "../../app.js";
 import userQueries from "../../models/userQueries.js";
 import { findOnShelf } from "../../prices/service.js";
+import { answeredVolumes } from "../../util/shelf/bookVolumeAnswers.js";
 import { sameSeriesGroups } from "../../../../client/src/lib/sameSeries.js";
 import { closeDb, emptyDb, prisma } from "./testDb.js";
 
@@ -198,4 +199,57 @@ test("a cover can be a book's own, by its ISBN, and nothing else of ours", async
   expect(own.status).toBeLessThan(300);
   expect((await save("/api/auth/logout")).status).toBe(400);
   expect((await save("javascript:alert(1)")).status).toBe(400);
+});
+
+// ---------- "Which volumes are in this book?" ----------
+
+test("a reader's answer is theirs at once, and everyone's once three agree", async () => {
+  const isbn = "9781632368164";
+  const readers = await Promise.all(
+    ["one", "two", "three", "four"].map((name) => signedIn(`reader${name}`)),
+  );
+  const say = (i: number, volumes: number[]) =>
+    readers[i]!.agent.post("/api/manga/book-volumes").send({
+      isbn13: isbn,
+      volumes,
+    });
+
+  await say(0, [2, 1]).expect(204);
+  // theirs, in order; nobody else's yet
+  expect(await answeredVolumes(isbn, readers[0]!.userId)).toEqual([1, 2]);
+  expect(await answeredVolumes(isbn, readers[3]!.userId)).toBe(null);
+  expect(await answeredVolumes(isbn)).toBe(null);
+
+  // a second reader agrees, a third says something else: still not shared
+  await say(1, [1, 2]).expect(204);
+  await say(2, [1, 2, 3]).expect(204);
+  expect(await answeredVolumes(isbn)).toBe(null);
+  // the third changes their mind: three agree, so it's everyone's
+  await say(2, [1, 2]).expect(204);
+  expect(await answeredVolumes(isbn)).toEqual([1, 2]);
+  expect(await answeredVolumes(isbn, readers[3]!.userId)).toEqual([1, 2]);
+  // their own answer still comes first for them
+  await say(3, [5]).expect(204);
+  expect(await answeredVolumes(isbn, readers[3]!.userId)).toEqual([5]);
+  expect(await answeredVolumes(isbn)).toEqual([1, 2]);
+});
+
+test("an answer needs a real ISBN and whole volumes, and a signed-in reader", async () => {
+  const { agent } = await signedIn();
+  const send = (body: object) =>
+    agent.post("/api/manga/book-volumes").send(body);
+  expect((await send({ isbn13: "123", volumes: [1] })).status).toBe(400);
+  expect((await send({ isbn13: "9781632368164", volumes: [] })).status).toBe(
+    400,
+  );
+  expect((await send({ isbn13: "9781632368164", volumes: [1.5] })).status).toBe(
+    400,
+  );
+  expect((await send({ isbn13: "9781632368164", volumes: [0] })).status).toBe(
+    400,
+  );
+  const guest = await request(app)
+    .post("/api/manga/book-volumes")
+    .send({ isbn13: "9781632368164", volumes: [1] });
+  expect(guest.status).toBe(401);
 });

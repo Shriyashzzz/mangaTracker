@@ -195,7 +195,9 @@ const scan = [
     const book = await upstream(
       "barcode lookup",
       "The book catalog didn't answer. Try again in a moment.",
-      () => lookupScannedIsbn(matchedData(req).isbn),
+      // signed in or not: their own answer to "which volumes are in this
+      // book?" comes first when they've given one
+      () => lookupScannedIsbn(matchedData(req).isbn, req.session.userId),
     );
     if (!book) throw new NotFoundError("We couldn't find that book.");
     res.json(book);

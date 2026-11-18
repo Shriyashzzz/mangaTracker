@@ -48,7 +48,7 @@ export const spentOn = (books: Pick<OwnedBook, "paidCents">[]) => {
 const editionOf = (title: string, volumes: number[]): EditionKind =>
   /\bbox(ed)?[\s-]?set\b|\bcomplete (collection|set|series)\b/i.test(title)
     ? "boxset"
-    : /\bdeluxe\b|\b(perfect|collector'?s|master|ultimate|fullmetal|black|eternal) edition\b|\bkanzenban\b/i.test(
+    : /\bdeluxe\b|\b(perfect|collector'?s|master|ultimate|fullmetal|black|eternal|definitive|anniversary) edition\b|\bkanzenban\b/i.test(
           title,
         )
       ? "deluxe"

@@ -22,6 +22,9 @@ export type ScanResult =
       undo: () => Promise<void>;
     }
   | { kind: "already"; book: ScannedBook; name: string; id: number }
+  // the app can't tell which volumes the book holds: nothing is on the shelf
+  // until they say (ScanEdit), and their answer is kept for next time
+  | { kind: "unsure"; book: ScannedBook; name: string }
   | { kind: "unknown"; isbn: string }
   | { kind: "failed"; isbn: string };
 
@@ -88,6 +91,8 @@ export async function shelveScan(isbn: string): Promise<ScanResult> {
       ? { kind: "unknown", isbn }
       : { kind: "failed", isbn };
   }
+  // never a guess on the shelf: the scan asks which volumes it holds
+  if (book.unsure) return { kind: "unsure", book, name: book.shelfName };
   return shelveBook(book);
 }
 
@@ -99,14 +104,23 @@ export async function editScan(
 ): Promise<ScanResult> {
   if ("undo" in scanned) await scanned.undo();
   const { book } = scanned;
-  return shelveBook({
+  const next = await shelveBook({
     ...book,
+    unsure: false,
     volume: change.volumes[0]!,
     volumes: change.volumes,
     shelfName: change.name,
     // a novel goes by "<name> Light Novel" for the shelf match, as scanned
     series: book.lightNovel ? `${change.name} Light Novel` : change.name,
   });
+  // what they said an unsure book holds is kept: theirs on their next scan
+  // of it, and everyone's once three readers say the same
+  if (scanned.kind === "unsure" && next.kind !== "failed")
+    void apiFetch("/api/manga/book-volumes", {
+      method: "POST",
+      body: { isbn13: book.isbn13, volumes: change.volumes },
+    }).catch(() => {});
+  return next;
 }
 
 // a book whose series and volumes are known, onto the shelf

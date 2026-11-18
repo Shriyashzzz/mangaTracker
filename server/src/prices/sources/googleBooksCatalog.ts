@@ -102,6 +102,36 @@ export async function googleSeriesVolumes(
   return books;
 }
 
+// A book's title by its ISBN, as its publisher gave it to Google: "Rurouni
+// Kenshin (3-in-1 Edition), Vol. 1", where Open Library has only "Rurouni
+// Kenshin, Vol. 1". The second catalog for a book's edition, asked only when
+// Open Library's own record doesn't say (catalog.ts lookupIsbn). One of the
+// day's lookups; null with no key, no such book, or the day used up
+export async function googleRecordOf(isbn13: string, timeoutMs = 6000) {
+  const key = config.GOOGLE_BOOKS_API_KEY;
+  if (!key || Date.now() < backOffUntil) return null;
+  const params = new URLSearchParams({
+    q: `isbn:${isbn13}`,
+    maxResults: "1",
+    key,
+  });
+  void noteCall("gbooks");
+  const res = await fetch(`${URL}?${params}`, {
+    signal: AbortSignal.timeout(timeoutMs),
+  });
+  if (res.status === 429) backOffUntil = Date.now() + BACK_OFF_MS;
+  if (!res.ok) return null;
+  const { items = [] } = (await res.json()) as { items?: Item[] };
+  const info = items[0]?.volumeInfo;
+  return info?.title
+    ? {
+        title: info.title,
+        subtitle: info.subtitle,
+        pages: info.pageCount ?? null,
+      }
+    : null;
+}
+
 // One volume asked for by number, for a series whose list has a gap there or
 // only a library rebind ("One Piece 8"): the series search's 80 results don't
 // reach every volume of a long runner. Only an English book whose title says

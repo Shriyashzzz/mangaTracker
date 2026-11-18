@@ -81,7 +81,11 @@ const numberOf = (title: string, hasRange: boolean) => {
       /(?:\bvol(?:ume)?\.?|\bbook|\bomnibus|\bdeluxe|\bedition\)?,?|#)\s*(\d{1,3})\b(?!\s*[‐\-–]\s*\d)/i,
     )?.[1] ??
     // a number ending the title, unless that's the end of a range ("#1-3")
-    (hasRange ? undefined : head.match(/\b(\d{1,3})\s*$/)?.[1]);
+    (hasRange ? undefined : head.match(/\b(\d{1,3})\s*$/)?.[1]) ??
+    // the edition named after a colon, its number after that: "Fullmetal
+    // Alchemist: 3-in-1 Edition, Vol. 1", "Monster: The Perfect Edition,
+    // Vol. 2" (the head, cut at the colon, has no number at all)
+    title.match(/\bvol(?:ume)?\.?\s*(\d{1,3})\b(?!\s*[‐\-–]\s*\d)/i)?.[1];
   const n = Number(said);
   return said && n >= 1 && n <= MOST_BOOKS ? n : null;
 };
