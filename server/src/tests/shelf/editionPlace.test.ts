@@ -67,3 +67,24 @@ test("for the New tab: the next book, how many behind, and how far they are", ()
   const none = editionPlaceOf(VIZBIG, null, []);
   expect([none.next, none.behind, none.upTo]).toEqual([1, 12, null]);
 });
+
+test("a book that isn't out yet isn't one they're behind on", () => {
+  const line = {
+    label: "VIZBIG",
+    books: [
+      { number: 1, volumes: [1, 2, 3], listed: true, published: "2020-01-07" },
+      { number: 2, volumes: [4, 5, 6], listed: true, published: "2020-04-07" },
+      { number: 3, volumes: [7, 8, 9], listed: true, published: "2999-01-01" },
+    ],
+  };
+  // owns book 1: one behind (book 2), and book 3 is still to come
+  const one = editionPlaceOf(line, null, [1, 2, 3], "2026-11-19");
+  expect([one.next, one.behind]).toEqual([2, 1]);
+  // owns both that are out: none behind, and the next is the one coming
+  const both = editionPlaceOf(line, null, upTo(6), "2026-11-19");
+  expect([both.next, both.behind, both.nextPublished]).toEqual([
+    3,
+    0,
+    "2999-01-01",
+  ]);
+});

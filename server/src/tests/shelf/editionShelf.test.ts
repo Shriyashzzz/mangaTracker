@@ -164,3 +164,20 @@ test("reading past an edition's last book is said in volumes", () => {
   // no books at all: nothing to be past
   expect(readPastTheBooks(slotsOf(lineOf(0), 5), 3)).toBe(false);
 });
+
+test("a book with a day still to come isn't on the shelf yet", () => {
+  const line = lineOf(3);
+  line.books[2]!.published = "2999-01-01";
+  // book 3's volumes are out as singles: they show as those
+  const shelf = slotsOf(line, 9, "2026-11-19");
+  expect(shelf.map((slot) => slot.volumes)).toEqual([
+    [1, 2, 3],
+    [4, 5, 6],
+    [7],
+    [8],
+    [9],
+  ]);
+  // out by then, or no day said: a book like any other
+  expect(slotsOf(line, 9, "2999-06-01")).toHaveLength(3);
+  expect(slotsOf(line, 9)).toHaveLength(3);
+});

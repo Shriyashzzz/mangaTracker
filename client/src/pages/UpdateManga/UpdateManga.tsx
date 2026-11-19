@@ -22,6 +22,7 @@ import StatusField, {
 import { useBuyOptions } from "../Details/useBuyOptions";
 import { useEditions } from "../Details/useEditions";
 import { slotsOf } from "../../lib/editionShelf";
+import { todayOf } from "../../lib/editionNews";
 import { ownedOf } from "../../lib/ownedVolumes";
 import { priceName } from "../../lib/prices";
 import {
@@ -79,7 +80,7 @@ export function UpdateManga() {
     { volumesOwned: null },
     out,
     editions.line && out
-      ? { line: editions.line, slots: slotsOf(editions.line, out) }
+      ? { line: editions.line, slots: slotsOf(editions.line, out, todayOf()) }
       : null,
   );
   const { reset: resetVolumes } = volumes;

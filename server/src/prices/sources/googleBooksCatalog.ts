@@ -49,10 +49,11 @@ const titleOf = (info: NonNullable<Item["volumeInfo"]>) =>
 // a while rather than asked again by every page
 const BACK_OFF_MS = 6 * 60 * 60 * 1000;
 let backOffUntil = 0;
-// whether Google is being left alone just now (or there's no key): a lookup
-// then finds nothing, which isn't the same as there being nothing
+// whether Google is being left alone just now, its day's lookups used up:
+// a lookup then finds nothing, which isn't the same as there being nothing.
+// (With no key at all it's simply not one of our catalogs: never "paused")
 export const googleLookupsPaused = () =>
-  !config.GOOGLE_BOOKS_API_KEY || Date.now() < backOffUntil;
+  Boolean(config.GOOGLE_BOOKS_API_KEY) && Date.now() < backOffUntil;
 
 export async function googleSeriesVolumes(
   name: string,
@@ -137,10 +138,28 @@ export async function googleEditionBooks(
   // by family name, the last word: Google files "Urasawa, Naoki" too
   const familyName = authors[0]?.trim().split(/\s+/).at(-1);
   const byThem = familyName ? ` inauthor:${familyName}` : "";
+  const theirs = await searchEditionWords(name, byThem, key, timeoutMs);
+  // AniList and Google don't always spell an author alike ("Tsugumi Ooba"
+  // is Google's "Ohba", "Atsushi Ookubo" its "Ohkubo"): a search by them
+  // that finds nothing at all is asked again without the name
+  if (theirs.length || !byThem) return theirs;
+  return searchEditionWords(name, "", key, timeoutMs);
+}
+
+// the three searches, each up to two pages; `byThem` narrows them to an
+// author (" inauthor:Urasawa") or is empty
+async function searchEditionWords(
+  name: string,
+  byThem: string,
+  key: string,
+  timeoutMs: number,
+): Promise<GoogleEditionBook[]> {
   const found = new Map<string, GoogleEditionBook>();
-  for (const word of EDITION_WORDS) {
+  // one word's search, a page after the other. The three words are asked
+  // side by side: one after another, a slow day made a page wait 20 seconds
+  const searchWord = async (word: string) => {
     for (let page = 0; page < PAGES; page++) {
-      if (Date.now() < backOffUntil) return [...found.values()];
+      if (Date.now() < backOffUntil) return;
       const params = new URLSearchParams({
         q: `${titleWords(baseName(name))} intitle:${word}${byThem}`,
         printType: "books",
@@ -179,7 +198,8 @@ export async function googleEditionBooks(
       }
       if (items.length < PAGE) break;
     }
-  }
+  };
+  await Promise.all(EDITION_WORDS.map(searchWord));
   return [...found.values()];
 }
 

@@ -22,6 +22,7 @@ import {
   type EditionLine,
 } from "../../lib/editions";
 import { slotsOf } from "../../lib/editionShelf";
+import { todayOf } from "../../lib/editionNews";
 import { SortMenu } from "../Home/ShelfBar";
 import { ownedOf } from "../../lib/ownedVolumes";
 import { useReleaseChecksOn, useTrackBy } from "../../lib/prefs";
@@ -428,7 +429,7 @@ export default function Details() {
     editions.line && shelfTotal.isKnown
       ? {
           line: editions.line,
-          slots: slotsOf(editions.line, shelfTotal.size),
+          slots: slotsOf(editions.line, shelfTotal.size, todayOf()),
         }
       : null;
 

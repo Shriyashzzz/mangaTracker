@@ -55,9 +55,20 @@ export function realBooksOf(line: EditionLine): EditionBook[] {
 // volumes are shown as the singles they're sold as. A line with no listed
 // book at all keeps what it has (nothing says where it ends), less any book
 // that starts past the last volume out
-export function slotsOf(line: EditionLine, total: number): Slot[] {
+export function slotsOf(
+  line: EditionLine,
+  total: number,
+  // the day, "2026-11-19": a book with a day still to come isn't out, and
+  // isn't on the shelf to be ticked (its volumes show as the singles that
+  // are). Left out, every book counts
+  today?: string,
+): Slot[] {
+  const comesLater = (book: EditionBook) =>
+    Boolean(today) &&
+    /^\d{4}-\d{2}-\d{2}$/.test(book.published ?? "") &&
+    book.published! > today!;
   const books = realBooksOf(line).filter(
-    (book) => Math.min(...book.volumes) <= total,
+    (book) => Math.min(...book.volumes) <= total && !comesLater(book),
   );
   const inABook = new Set(books.flatMap((book) => book.volumes));
   const singles: Slot[] = [];

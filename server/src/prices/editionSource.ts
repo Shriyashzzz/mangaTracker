@@ -181,6 +181,9 @@ export async function findEditionLines(
 }
 
 const inFlight = new Map<string, Promise<EditionLine[]>>();
+// lines built while a catalog wasn't answering, by key: used for an hour
+// in place of asking again, and never saved (editionLinesOf)
+const partial = new Map<string, { at: number; lines: EditionLine[] }>();
 
 // a series' edition lines. `volumes`: its own list (getSeries), for the last
 // volume out and the books it already knows hold several
@@ -208,6 +211,10 @@ export async function editionLinesOf(
     return failed ? [] : (lines as EditionLine[]);
   // old or missing, and not to be looked up: what's saved, however old
   if (!lookUp) return failed || !lines ? [] : (lines as EditionLine[]);
+  // built lately while a catalog wasn't answering: that, until it's worth
+  // asking again
+  const lately = partial.get(key);
+  if (lately && Date.now() - lately.at < RETRY_MS) return lately.lines;
   const running = inFlight.get(key);
   if (running) return running;
   const build = (async () => {
@@ -216,12 +223,24 @@ export async function editionLinesOf(
         lines: built,
         docs,
         google,
+        answered,
       } = await findEditionLines(
         name,
         volumes,
         await savedAuthorsOf(name),
         askTheStore,
       );
+      // A catalog that didn't answer (Google's day used up, Open Library
+      // slow) leaves lines with holes in them. Those are shown now, but
+      // never kept for the week: they're remembered here for an hour, and
+      // then the series is asked about again
+      const everyoneAnswered = answered.openLibrary && answered.google;
+      if (!everyoneAnswered) {
+        partial.set(key, { at: Date.now(), lines: built });
+        if (partial.size > 2_000) partial.delete(partial.keys().next().value!);
+        return built;
+      }
+      partial.delete(key);
       await priceQueries
         .saveSeriesVolumes(key, built as unknown as CatalogBook[])
         .catch(() => {});

@@ -44,7 +44,11 @@ export function editionPlaceOf(
   line: Line,
   readVolume: number | null,
   owned: number[],
+  // the day, "2026-11-19"
+  today = new Date().toISOString().slice(0, 10),
 ): EditionPlace {
+  const comesLater = (book: Book) =>
+    /^\d{4}-\d{2}-\d{2}$/.test(book.published ?? "") && book.published! > today;
   // the line's real books: up to the last one the catalog lists. Past that
   // they're only worked out, and may never have been printed (the page's
   // slotsOf has the same rule: change both together)
@@ -87,7 +91,8 @@ export function editionPlaceOf(
     owned: allInBooks ? whole.map((book) => book.number) : null,
     next: next?.number ?? null,
     nextPublished: next?.published ?? null,
-    behind: books.filter((book) => !had(book)).length,
+    // (a book with a day still to come isn't one they're behind on)
+    behind: books.filter((book) => !had(book) && !comesLater(book)).length,
     upTo: furthest < 0 ? null : books[furthest]!.number,
   };
 }
