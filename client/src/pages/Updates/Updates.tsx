@@ -9,6 +9,10 @@ import { updatesStyles as styles } from "./styles";
 // the big features only, a line each. Add new ones here when they ship
 const UPDATES = [
   {
+    name: "Alerts on your phone",
+    body: "Switch them on in Settings: a volume for your shelf the day it's out, and price drops on your To buy list. On iPhone, they work in the installed app.",
+  },
+  {
     name: "The app on your phone",
     body: "Install Manga Tracker from the menu. It opens on your shelf even with no signal, and the chapters and volumes you change offline save when you're back.",
   },
@@ -158,11 +162,11 @@ export function UpdatesPage() {
           Soon!
         </span>
         <h2 id="updates-soon" className={styles.soonTitle}>
-          Alerts on your phone
+          A release calendar for everyone
         </h2>
         <p className={styles.itemBody}>
-          A release-day alert from the app, the moment a volume for your shelf
-          is out.
+          Every English volume coming out, week by week, whether you have a
+          shelf or not.
         </p>
       </section>
     </article>
