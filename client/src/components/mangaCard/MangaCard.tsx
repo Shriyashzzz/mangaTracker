@@ -133,7 +133,8 @@ const COVER_SIZES: Record<Shape, string> = {
 };
 const TITLE_CLAMP: Record<Shape, string> = {
   small: "line-clamp-1",
-  news: "line-clamp-2 min-h-[2.5em] upto-720:min-h-0 upto-720:line-clamp-1",
+  // (no line kept for a second: a short name's news sits right under it)
+  news: "line-clamp-2 upto-720:line-clamp-1",
   // one line, cut short with "…": the full name is on hover and on its page
   cover: "line-clamp-1",
 };

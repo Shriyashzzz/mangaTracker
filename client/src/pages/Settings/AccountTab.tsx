@@ -139,8 +139,7 @@ export function AccountTab({ account }: { account: Account }) {
             onChange={(e) => setEmail(e.target.value)}
           />
           <p className={styles.body}>
-            A password reset link is sent here, and the weekly email if you
-            switch it on. Without one, a forgotten password can't be reset.
+            For password resets and the weekly email.
           </p>
           <div className={styles.actions}>
             <button type="submit" className="btn btn-secondary">
