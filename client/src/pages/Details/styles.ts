@@ -323,7 +323,7 @@ export const detailsStyles = {
   // phones: Buy it folded under one line, high on the page. The line says
   // the book and its price, so it's worth reading closed
   buyFold:
-    "mb-6 border-y-[1.5px] border-dashed border-line-soft py-3 [&[open]>summary>svg]:rotate-180",
+    "mb-4 border-y-[1.5px] border-dashed border-line-soft pt-3 pb-1 [&[open]>summary>svg]:rotate-180",
   buyFoldSummary:
     "tap flex min-h-11 cursor-pointer list-none items-center gap-3 [&::-webkit-details-marker]:hidden",
   buyFoldTitle:
@@ -340,6 +340,9 @@ export const detailsStyles = {
   buyInside: "col-span-full text-[0.85rem] font-normal text-ink-soft italic",
   // books past the last one listed: said quietly, nothing to click
   // the series link, a plain link with room around it for a thumb
+  // the same, up in the heading's row (folded on a phone): a line saved
+  buySeriesTop:
+    "tap ml-auto py-1 text-[0.85rem] font-medium text-ink-soft underline decoration-line-soft underline-offset-3 hover:text-accent hover:decoration-accent",
   buySeries:
     "tap mt-2.5 block py-1 text-right text-[0.85rem] font-medium text-ink-soft underline decoration-line-soft underline-offset-3 transition-colors duration-120 ease-[ease] hover:text-accent hover:decoration-accent",
   // (on the narrowest phones a long label takes two lines rather than

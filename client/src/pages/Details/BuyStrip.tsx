@@ -210,6 +210,22 @@ export default function BuyStrip({
     </li>
   );
 
+  // the series' page, with how many are out ("All 43 volumes")
+  const seriesLink = (className: string) => (
+    <NavLink
+      className={className}
+      to={seriesPath(seriesName)}
+      viewTransition
+      {...offlineLink(offline)}
+    >
+      {/* out now, as the shelf's "of 15" counts them; preorders apart */}
+      {outCount <= 1 && !coming
+        ? "The series"
+        : `All ${outCount} volumes${coming ? ` + ${coming} coming` : ""}`}{" "}
+      →
+    </NavLink>
+  );
+
   const box = (
     <section
       className={folded ? styles.buyOpened : styles.buy}
@@ -244,6 +260,7 @@ export default function BuyStrip({
             />
           </span>
         )}
+        {folded && seriesLink(styles.buySeriesTop)}
       </div>
       {line && plan ? (
         <ul className={styles.buyList}>
@@ -470,19 +487,9 @@ export default function BuyStrip({
       )}
       {/* a way to look further, not something to buy, so not a ticket.
           (A "Finish the series" ticket that went to the same page is gone:
-          the Not on your shelf ticket and the shelf above say the rest) */}
-      <NavLink
-        className={styles.buySeries}
-        to={seriesPath(seriesName)}
-        viewTransition
-        {...offlineLink(offline)}
-      >
-        {/* out now, as the shelf's "of 15" counts them; preorders apart */}
-        {outCount <= 1 && !coming
-          ? "The series"
-          : `All ${outCount} volumes${coming ? ` + ${coming} coming` : ""}`}{" "}
-        →
-      </NavLink>
+          the Not on your shelf ticket and the shelf above say the rest).
+          Folded on a phone, it's up beside "as Deluxe" instead, a line saved */}
+      {!folded && seriesLink(styles.buySeries)}
     </section>
   );
   if (!folded) return box;
