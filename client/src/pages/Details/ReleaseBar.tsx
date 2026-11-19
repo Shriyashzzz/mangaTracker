@@ -5,6 +5,7 @@ import { NavLink } from "react-router";
 import { InkCrossIcon } from "../../components/icons/Icons";
 import { isDemo } from "../../lib/demo";
 import { detailsStyles as styles } from "./styles";
+import { offlineLink, useIsOffline } from "../../lib/offline";
 
 type Props = {
   // "Vol. 44 is out!", "Ch. 125 expected Dec 3"
@@ -16,6 +17,7 @@ type Props = {
 };
 
 export default function ReleaseBar({ headline, link, onClose }: Props) {
+  const offline = useIsOffline();
   return (
     <section className={styles.release} aria-label="New release">
       <div className={styles.releaseBar} data-tour="release-toggle">
@@ -24,7 +26,12 @@ export default function ReleaseBar({ headline, link, onClose }: Props) {
         </span>
         <p className={styles.releaseHeadline}>{headline}</p>
         {link && (
-          <NavLink className={styles.releaseBuy} to={link.to} viewTransition>
+          <NavLink
+            className={styles.releaseBuy}
+            to={link.to}
+            viewTransition
+            {...offlineLink(offline)}
+          >
             {link.label} →
           </NavLink>
         )}

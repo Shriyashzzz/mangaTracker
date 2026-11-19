@@ -3,6 +3,7 @@
 import { apiFetch, getJson } from "./api";
 import type { ReleaseData, ReleaseStatus, ShelfMatch } from "./types";
 import type { ReleaseOutcome, SeenKind } from "./releaseMath";
+import { orOffline } from "./offline";
 
 // release dates and what's new in English for one manga on the shelf
 // the shelf says which lane it waits in (lib/releaseOrder.ts); the details
@@ -68,7 +69,7 @@ export async function saveSeen(
     method: "PATCH",
     body: { kind, number, ...(hiddenVolumes ? { hiddenVolumes } : {}) },
   });
-  if (!res.ok) throw new Error("Couldn't save that");
+  if (!res.ok) throw new Error(orOffline("Couldn't save that"));
 }
 
 // set once a whole shelf has had its releases checked

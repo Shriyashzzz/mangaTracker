@@ -17,6 +17,7 @@ import { useAuth } from "../../store/auth";
 import ToReadButton from "../../components/toRead/ToReadButton";
 import { useShelf } from "../../store/shelf";
 import ToBuyButton from "../../components/toBuy/ToBuyButton";
+import { orOffline } from "../../lib/offline";
 
 const UNDO_MS = 6000;
 
@@ -225,7 +226,7 @@ export default function ShelfAction({
       )}
       <p className={styles.shelfNote} role="status">
         {failed
-          ? "That didn't save. Try again."
+          ? orOffline("That didn't save. Try again.")
           : undo && (
               <>
                 Shelf updated: {undo.what} is yours.{" "}

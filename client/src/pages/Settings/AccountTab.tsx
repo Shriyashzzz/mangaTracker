@@ -11,6 +11,7 @@ import { useAccount } from "../../store/account";
 import { useAuth } from "../../store/auth";
 import { settingsStyles as styles } from "./styles";
 import { AlertsSection } from "./AlertsSection";
+import { orOffline } from "../../lib/offline";
 
 // said when the confirm link was meant to go and didn't
 const LINK_NOT_SENT = "We couldn't send the link. Try again in a minute.";
@@ -242,7 +243,7 @@ export function AccountTab({ account }: { account: Account }) {
           </button>
           {exportFailed && (
             <span className={styles.failed} role="alert">
-              That didn't work. Try again.
+              {orOffline("That didn't work. Try again.")}
             </span>
           )}
         </div>

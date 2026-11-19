@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import type { Manga } from "../../lib/types";
 import { homeStyles as styles } from "./styles";
+import { orOffline } from "../../lib/offline";
 
 // names shown before "and 9 more"
 const NAMED = 5;
@@ -74,7 +75,7 @@ export default function DeleteManyModal({ manga, onDelete, onClose }: Props) {
         </div>
         {failed && (
           <p className={styles.confirmError} role="alert">
-            That didn't delete them. Try again.
+            {orOffline("That didn't delete them. Try again.")}
           </p>
         )}
         <div className={styles.confirmActions}>

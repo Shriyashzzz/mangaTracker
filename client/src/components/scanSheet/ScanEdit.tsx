@@ -12,6 +12,7 @@ import { NavLink } from "react-router";
 import { aniListGapMs, searchSeries, type SeriesHit } from "../../lib/anilist";
 import { importStyles as styles } from "../../pages/Import/styles";
 import { volumesFrom } from "../../lib/barcode";
+import { orOffline } from "../../lib/offline";
 
 // a search per pause in typing, not per letter, at AniList's pace
 const TYPING_PAUSE_MS = 450;
@@ -103,7 +104,7 @@ export default function ScanEdit({
       await onSave({ name: picked, volumes: chosen });
       dialog.current?.close();
     } catch {
-      setProblem("That didn't save. Try again.");
+      setProblem(orOffline("That didn't save. Try again."));
       setSaving(false);
     }
   };

@@ -3,6 +3,7 @@
 // a failed save, or "Marked as finished." with an Undo.
 import { useEffect, useRef, useState } from "react";
 import { detailsStyles as styles } from "./styles";
+import { offlineLink, useIsOffline } from "../../lib/offline";
 
 type Props = {
   name: string;
@@ -30,6 +31,7 @@ export default function SeriesActions({
   onUndoFinished,
   onDelete,
 }: Props) {
+  const offline = useIsOffline();
   const [confirming, setConfirming] = useState(false);
   const deleteButton = useRef<HTMLButtonElement>(null);
   const keepButton = useRef<HTMLButtonElement>(null);
@@ -47,7 +49,11 @@ export default function SeriesActions({
 
   return (
     <div className={styles.actions}>
-      <button className="btn btn-secondary" onClick={onEdit}>
+      <button
+        className="btn btn-secondary"
+        onClick={onEdit}
+        {...offlineLink(offline)}
+      >
         Edit details
       </button>
       <button className="btn btn-secondary" onClick={onToggleFinished}>
@@ -79,6 +85,7 @@ export default function SeriesActions({
           ref={deleteButton}
           className={`btn btn-ghost ${styles.deleteBtn}`}
           onClick={() => setConfirming(true)}
+          {...offlineLink(offline)}
         >
           Delete
         </button>

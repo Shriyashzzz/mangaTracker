@@ -16,6 +16,7 @@ import type { Manga } from "../../lib/types";
 import { useShelf } from "../../store/shelf";
 import SeriesPicture from "../../components/cover/SeriesPicture";
 import { ownedTextOf } from "../../components/mangaCard/cardText";
+import { orOffline } from "../../lib/offline";
 
 const KEPT_APART_KEY = "mergeKeptApart";
 const MOST_REMEMBERED = 200;
@@ -178,7 +179,7 @@ export default function MergeOffer({ shelf }: { shelf: Manga[] }) {
 
       {failed && (
         <p className="col-span-full text-[0.9rem] text-accent" role="alert">
-          That didn't merge. Try again.
+          {orOffline("That didn't merge. Try again.")}
         </p>
       )}
     </section>

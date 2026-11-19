@@ -1,6 +1,7 @@
 // The account's own details, and shared lists.
 import { apiFetch, errorMessages, getJson } from "./api";
 import { SORT_OPTIONS } from "./shelf";
+import { orOffline } from "./offline";
 
 export type Account = {
   username: string;
@@ -83,7 +84,9 @@ export async function saveAccount(
 ) {
   const res = await apiFetch("/api/account", { method: "PATCH", body: patch });
   if (!res.ok)
-    throw new Error((await errorMessages(res))[0] ?? "That didn't save.");
+    throw new Error(
+      (await errorMessages(res))[0] ?? orOffline("That didn't save."),
+    );
   return (await res.json()) as Account;
 }
 
@@ -96,7 +99,9 @@ export async function setWeeklyEmail(on: boolean) {
     body: { on },
   });
   if (!res.ok)
-    throw new Error((await errorMessages(res))[0] ?? "That didn't save.");
+    throw new Error(
+      (await errorMessages(res))[0] ?? orOffline("That didn't save."),
+    );
   return (await res.json()) as Account;
 }
 
@@ -106,7 +111,9 @@ export async function deleteAccount(password: string) {
     body: { password },
   });
   if (!res.ok)
-    throw new Error((await errorMessages(res))[0] ?? "That didn't work.");
+    throw new Error(
+      (await errorMessages(res))[0] ?? orOffline("That didn't work."),
+    );
 }
 
 export const getSharedShelf = (code: string, signal?: AbortSignal) =>

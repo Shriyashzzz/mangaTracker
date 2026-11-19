@@ -9,6 +9,7 @@ import { apiFetch, errorMessages } from "../../lib/api";
 import { NEW_PASSWORD_MIN } from "../../lib/passwordRule";
 import { usePrivatePage } from "../../lib/seo";
 import { authStyles as styles } from "../../styles/auth";
+import { orOffline } from "../../lib/offline";
 
 // the server's answer for a link that is unknown, used, or out of time
 const LINK_GONE = 410;
@@ -80,7 +81,7 @@ export default function ResetPassword() {
       else if (result.status === LINK_GONE) setStage("gone");
       else setError((await errorMessages(result))[0]);
     } catch {
-      setError("We couldn't save it. Try again in a minute.");
+      setError(orOffline("We couldn't save it. Try again in a minute."));
     } finally {
       setSaving(false);
     }

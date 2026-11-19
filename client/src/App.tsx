@@ -15,6 +15,9 @@ import { inPlayApp } from "./lib/playApp";
 import { useCountry } from "./lib/prefs";
 import { useAuth } from "./store/auth";
 import OfflineBar from "./components/offlineBar/OfflineBar";
+import OfflineNudge from "./components/offlineBar/OfflineNudge";
+import { OnlineOnly } from "./components/offlineBar/NeedsConnection";
+import { needsConnection } from "./lib/offline";
 import {
   CHANGES_SENT,
   sendChanges,
@@ -84,10 +87,17 @@ export default function App() {
       </a>
       <Header />
       <OfflineBar />
+      <OfflineNudge />
       <main id="main" ref={main} tabIndex={-1} className="outline-none">
         {/* a new country means new prices: the page is drawn again and asks
             for them in that country (lib/country.ts) */}
-        <Outlet key={country} />
+        {needsConnection(pathname) ? (
+          <OnlineOnly key={pathname}>
+            <Outlet key={country} />
+          </OnlineOnly>
+        ) : (
+          <Outlet key={country} />
+        )}
       </main>
       <Footer />
       <DeletedNote />

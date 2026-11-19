@@ -51,6 +51,7 @@ import { useBuyOptions } from "./useBuyOptions";
 import { useEditions } from "./useEditions";
 import { useOwnedVolumes } from "./useOwnedVolumes";
 import YourBooks from "./YourBooks";
+import { orOffline } from "../../lib/offline";
 
 const DIDNT_SAVE = "That didn't save. Try again.";
 
@@ -277,7 +278,7 @@ export default function Details() {
       console.error(e);
       setMangaStatus(!next);
       setPlanned(wasPlanned);
-      setActionNote(DIDNT_SAVE);
+      setActionNote(orOffline(DIDNT_SAVE));
     }
   };
 
@@ -343,7 +344,7 @@ export default function Details() {
     } catch (e) {
       console.error(e);
       setMangaData(was);
-      setActionNote(DIDNT_SAVE);
+      setActionNote(orOffline(DIDNT_SAVE));
     }
   };
 
@@ -366,7 +367,7 @@ export default function Details() {
     } catch (e) {
       console.error(e);
       setPlanned(true);
-      setActionNote(DIDNT_SAVE);
+      setActionNote(orOffline(DIDNT_SAVE));
     }
   };
 
@@ -379,7 +380,7 @@ export default function Details() {
       setCanUndoStatus(false);
     },
     onFailed: () => {
-      setActionNote(DIDNT_SAVE);
+      setActionNote(orOffline(DIDNT_SAVE));
       setCanUndoStatus(false);
     },
   });

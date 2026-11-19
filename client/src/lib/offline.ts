@@ -21,23 +21,74 @@ type OfflineState = {
 export const useIsOffline = () =>
   useOffline((s) => !s.online || s.savedAt != null);
 
-// A link or tab that needs a connection, greyed and doing nothing while
-// offline (index.css [data-offline]). Spread last, so its onClick wins
+// A link, tab or button that needs a connection: greyed while offline
+// (index.css [data-offline]), and a tap says why with a note by the finger
+// (components/offlineBar/OfflineNudge.tsx), since phones have no hover text.
+// Spread last, so its onClick wins
+export const NEEDS_CONNECTION = "needsconnection";
+type Tap = {
+  preventDefault: () => void;
+  stopPropagation: () => void;
+  clientX: number;
+  clientY: number;
+  currentTarget: EventTarget;
+};
 export const offlineLink = (offline: boolean) =>
   offline
     ? {
         "aria-disabled": true,
         "data-offline": true,
-        tabIndex: -1,
         title: "Needs a connection",
-        onClick: (e: { preventDefault: () => void }) => e.preventDefault(),
+        onClick: (e: Tap) => {
+          e.preventDefault();
+          e.stopPropagation();
+          // a key press has no finger: the note sits by the control
+          const box = (e.currentTarget as Element).getBoundingClientRect();
+          const keyed = e.clientX === 0 && e.clientY === 0;
+          window.dispatchEvent(
+            new CustomEvent(NEEDS_CONNECTION, {
+              detail: keyed
+                ? { x: box.left + box.width / 2, y: box.top }
+                : { x: e.clientX, y: e.clientY },
+            }),
+          );
+        },
       }
     : {};
+
+// Pages that need a connection, by where their address starts: opened
+// offline, they say so (components/offlineBar/NeedsConnection.tsx)
+const ONLINE_PAGES = [
+  "/add",
+  "/import",
+  "/update/",
+  "/to-buy",
+  "/prices",
+  "/deals",
+  "/u/",
+  "/calendar",
+  "/new-releases",
+  "/after-the-anime",
+  "/series",
+  "/reviews",
+  "/signin",
+  "/signup",
+  "/forgot-password",
+  "/reset-password",
+  "/email/",
+];
+export const needsConnection = (path: string) =>
+  ONLINE_PAGES.some((start) => path.startsWith(start));
 
 export const useOffline = create<OfflineState>()(() => ({
   online: typeof navigator === "undefined" ? true : navigator.onLine,
   savedAt: null,
 }));
+
+// what a failed change says with no connection, everywhere
+export const OFFLINE_SAID = "You're offline. Try again when you're back.";
+// a failure message, unless there's no connection: then OFFLINE_SAID
+export const orOffline = (said: string) => (isOffline() ? OFFLINE_SAID : said);
 
 // no connection at all, as the browser knows it
 export const isOffline = () =>
@@ -74,7 +125,7 @@ export const CONNECTION_BACK = "connectionback";
 export const offlineAnswer = () =>
   new Response(
     JSON.stringify({
-      error: [{ msg: "You're offline, so that didn't save." }],
+      error: [{ msg: OFFLINE_SAID }],
     }),
     { status: 503, headers: { "Content-Type": "application/json" } },
   );

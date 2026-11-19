@@ -4,6 +4,7 @@ import type { NewBook, OwnedBook } from "./books";
 import { asOwnedBook, type EditionBook, type EditionLine } from "./editions";
 import { ownedVolumes } from "./ownedVolumes";
 import { setVolumesOwned } from "./shelf";
+import { orOffline } from "./offline";
 
 export const getBooks = async (mangaId: number, signal?: AbortSignal) =>
   (await getJson<{ books: OwnedBook[] }>(`/api/manga/${mangaId}/books`, signal))
@@ -29,7 +30,7 @@ export const savePurchase = async (
     method: "PATCH",
     body: change,
   });
-  if (!res.ok) throw new Error("Couldn't save what you paid");
+  if (!res.ok) throw new Error(orOffline("Couldn't save what you paid"));
 };
 
 // a volume ticked by hand becomes a book, to hold what was paid for it.
@@ -39,7 +40,7 @@ export const addBooks = async (mangaId: number, books: NewBook[]) => {
     method: "POST",
     body: { books },
   });
-  if (!res.ok) throw new Error("Couldn't save the book");
+  if (!res.ok) throw new Error(orOffline("Couldn't save the book"));
   return ((await res.json()) as { books?: OwnedBook[] }).books ?? [];
 };
 

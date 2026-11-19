@@ -8,6 +8,7 @@ import { novelParts } from "../../lib/prices";
 import { useAuth } from "../../store/auth";
 import { useShelf } from "../../store/shelf";
 import { titleKey as sameName } from "../../lib/titleKey";
+import { orOffline } from "../../lib/offline";
 
 type Props = {
   name: string;
@@ -92,7 +93,7 @@ export default function ToReadButton({
       await loadShelf();
     } catch (e) {
       console.error(e);
-      setError("That didn't save. Try again.");
+      setError(orOffline("That didn't save. Try again."));
     } finally {
       setSaving(false);
     }

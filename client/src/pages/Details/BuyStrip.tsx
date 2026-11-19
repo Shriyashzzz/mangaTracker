@@ -15,6 +15,7 @@ import {
   type EditionBook,
   type EditionLine,
 } from "../../lib/editions";
+import { offlineLink, useIsOffline } from "../../lib/offline";
 
 // where to buy more of this manga: the next volume they need, the newest in the
 // US, and a link to the whole series (saying how many aren't on the shelf). Stays out of the way when the series can't be
@@ -78,6 +79,7 @@ export default function BuyStrip({
   onOwnBook,
   ownsNone = false,
 }: Props) {
+  const offline = useIsOffline();
   // the box's heading, laptop and folded phone line alike
   const title = ownsNone ? "The books" : "Buy next";
   // the first ticket's label. For someone who owns none of the series it
@@ -192,6 +194,7 @@ export default function BuyStrip({
                 className={styles.buyNext}
                 to={bookPath(plan.next, line.label, seriesName)}
                 viewTransition
+                {...offlineLink(offline)}
               >
                 <span className={styles.buyNextKind}>{nextLabel}</span>
                 <span>{editionBookLabel(line, plan.next)}</span>
@@ -246,6 +249,7 @@ export default function BuyStrip({
                     className={styles.buyGap}
                     title={`${insideText(g)}${g.have ? `, you have ${g.have} of ${g.volumes.length}` : ""}`}
                     viewTransition
+                    {...offlineLink(offline)}
                   >
                     {editionBookLabel(line, g)}
                   </NavLink>
@@ -281,6 +285,7 @@ export default function BuyStrip({
                 className={styles.buyNext}
                 to={volumePath(next.isbn13, next.title)}
                 viewTransition
+                {...offlineLink(offline)}
               >
                 <span className={styles.buyNextKind}>{nextLabel}</span>
                 <span>
@@ -315,6 +320,7 @@ export default function BuyStrip({
                     }
                     className={styles.buyGap}
                     viewTransition
+                    {...offlineLink(offline)}
                   >
                     Vol. {g.volume}
                   </NavLink>
@@ -325,6 +331,7 @@ export default function BuyStrip({
                     to={`${seriesPath(seriesName)}&toget=1`}
                     className={styles.buyGap}
                     viewTransition
+                    {...offlineLink(offline)}
                   >
                     +{gaps.length - GAPS_SHOWN} more
                   </NavLink>
@@ -348,6 +355,7 @@ export default function BuyStrip({
                   className={styles.buyLink}
                   to={volumePath(latest.isbn13, latest.title)}
                   viewTransition
+                  {...offlineLink(offline)}
                 >
                   <span className={styles.buyKind}>Newest</span>
                   <span>Vol. {latest.volume}</span>
@@ -369,6 +377,7 @@ export default function BuyStrip({
         className={styles.buySeries}
         to={seriesPath(seriesName)}
         viewTransition
+        {...offlineLink(offline)}
       >
         {/* out now, as the shelf's "of 15" counts them; preorders apart */}
         {outCount <= 1 && !coming

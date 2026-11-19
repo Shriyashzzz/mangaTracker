@@ -12,6 +12,7 @@ import { addToRead } from "./addToRead";
 import type { SharedManga } from "./shareParts";
 import { shareStyles as styles } from "./styles";
 import { titleKey as sameName } from "../../lib/titleKey";
+import { orOffline } from "../../lib/offline";
 
 export default function AddToShelf({ m }: { m: SharedManga }) {
   const isSignedIn = useAuth((s) => s.isSignedIn);
@@ -51,7 +52,7 @@ export default function AddToShelf({ m }: { m: SharedManga }) {
     setError("");
     const saved = await addToRead(m);
     if (saved) await loadShelf();
-    else setError("That didn't save. Try again.");
+    else setError(orOffline("That didn't save. Try again."));
     setSaving(false);
   };
 

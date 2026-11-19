@@ -101,6 +101,7 @@ import {
   ShelfUnreachable,
 } from "./ShelfStates";
 import { homeStyles as styles } from "./styles";
+import { offlineLink, useIsOffline } from "../../lib/offline";
 
 export default function Home() {
   usePrivatePage("Your shelf");
@@ -113,6 +114,7 @@ export default function Home() {
 }
 
 function Library() {
+  const offline = useIsOffline();
   // what "Next for you" names for a series with gaps (Settings)
   const nextFor = useNextFor();
   const mangaData = useShelf((s) => s.manga);
@@ -613,6 +615,7 @@ function Library() {
             data-tour="import-link"
             className={styles.importLink}
             viewTransition
+            {...offlineLink(offline)}
           >
             Import your list
           </NavLink>
@@ -626,11 +629,17 @@ function Library() {
             // its code starts loading on the way to a click
             onPointerEnter={loadScanner}
             onFocus={loadScanner}
+            {...offlineLink(offline)}
           >
             <BarcodeIcon className="size-5" />
             Scan a barcode
           </button>
-          <button className="btn btn-primary" data-tour="add" onClick={goToAdd}>
+          <button
+            className="btn btn-primary"
+            data-tour="add"
+            onClick={goToAdd}
+            {...offlineLink(offline)}
+          >
             + Add manga
           </button>
         </div>

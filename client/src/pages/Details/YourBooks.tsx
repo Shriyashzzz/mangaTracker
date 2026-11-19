@@ -33,6 +33,7 @@ import {
   type EditionLine,
 } from "../../lib/editions";
 import { SortMenu } from "../Home/ShelfBar";
+import { orOffline } from "../../lib/offline";
 
 // the last book of a line the catalog lists: past it, books are only
 // worked out from the series' volumes and may not be out
@@ -164,7 +165,7 @@ export default function YourBooks({
   const canRemove = rows.length > 0;
   const spent = spentOn(books);
   const unpriced = rows.filter((row) => row.book?.paidCents == null);
-  const failed = () => setNote("That didn't save. Try again.");
+  const failed = () => setNote(orOffline("That didn't save. Try again."));
 
   // what they paid or the day they bought it, on a book or a loose volume
   const save = async (row: Row, change: Purchase) => {

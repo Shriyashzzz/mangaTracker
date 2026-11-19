@@ -8,6 +8,7 @@ import { usePrivatePage } from "../../lib/seo";
 import { useAuth } from "../../store/auth";
 import { isMobile } from "react-device-detect";
 import { hasBottomBar } from "../../lib/bottomBar";
+import { orOffline } from "../../lib/offline";
 
 export default function SignInPage() {
   usePrivatePage("Sign in");
@@ -53,7 +54,7 @@ export default function SignInPage() {
         );
       }
     } catch {
-      setError("Something went wrong. Please try again.");
+      setError(orOffline("Something went wrong. Please try again."));
     } finally {
       setLoading(false);
     }

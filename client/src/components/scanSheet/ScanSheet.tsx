@@ -18,6 +18,7 @@ import ScanEdit from "./ScanEdit";
 import { useShelf } from "../../store/shelf";
 import { useBarcodeReader } from "./useBarcodeReader";
 import { scanStyles as styles } from "./styles";
+import { orOffline } from "../../lib/offline";
 
 // one scanned book: looking it up until result arrives
 type Row = {
@@ -73,7 +74,7 @@ function flashFor(kind: ScanResult["kind"]): {
   if (kind === "unsure") return { tone: "same", note: "Which volumes?" };
   if (kind === "unknown")
     return { tone: "bad", note: "Couldn't find this one" };
-  return { tone: "bad", note: "That didn't save" };
+  return { tone: "bad", note: orOffline("That didn't save") };
 }
 
 export default function ScanSheet({
@@ -494,7 +495,7 @@ function ScanRow({
   else if ("book" in result)
     title = `${result.name} · ${volumesLabel(result.book.volumes)}`;
   // what happened to this scan, in words: an undo first, then how it went
-  let note = "That didn't save";
+  let note = orOffline("That didn't save");
   if (row.undoFailed) note = "Undo didn't save. Try again";
   else if (row.undone) note = "Undone";
   else if (result.kind === "marked") note = "Marked yours";

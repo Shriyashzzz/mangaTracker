@@ -9,6 +9,7 @@ import type {
   SavedBook,
 } from "./afterAnimeText";
 import { slugify } from "./prices";
+import { orOffline } from "./offline";
 
 export type AfterAnime = {
   name: string;
@@ -59,7 +60,9 @@ export async function sendFix(fix: FixToSend) {
     body: fix,
   });
   if (res.ok) return "";
-  return (await errorMessages(res))[0] ?? "That didn't send. Try again.";
+  return (
+    (await errorMessages(res))[0] ?? orOffline("That didn't send. Try again.")
+  );
 }
 
 export const AFTER_ANIME_PATH = "/after-the-anime";

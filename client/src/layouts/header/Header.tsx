@@ -211,6 +211,7 @@ export default function Header() {
               aria-current={onToBuy ? "page" : undefined}
               aria-label={toBuyLabel}
               viewTransition
+              {...offlineLink(offline)}
             >
               To buy
               {toBuyCount > 0 && <span className={topCount}>{toBuyCount}</span>}
@@ -238,6 +239,7 @@ export default function Header() {
             aria-current={onToBuy ? "page" : undefined}
             aria-label={toBuyLabel}
             viewTransition
+            {...offlineLink(offline)}
           >
             {/* a shopping bag stands for the words here: the bar is short on room */}
             <BagIcon className="size-[22px]" />

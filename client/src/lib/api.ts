@@ -4,7 +4,7 @@
 // /api on the site itself is passed on to the API (see client/server.ts)
 import { withCountry } from "./country";
 import { demoResponse, isDemo } from "./demo";
-import { isOffline, noteAnswer, offlineAnswer } from "./offline";
+import { isOffline, noteAnswer, offlineAnswer, orOffline } from "./offline";
 import type { ApiError } from "./types";
 
 export const API_URL: string = import.meta.env.VITE_API_URL ?? "";
@@ -37,11 +37,20 @@ export function apiFetch(
         ? { "Content-Type": "application/json", ...headers }
         : headers,
     body: body !== undefined ? JSON.stringify(body) : undefined,
-  }).then((res) => {
-    // the copy the service worker kept, or a fresh answer (lib/offline.ts)
-    noteAnswer(res);
-    return res;
-  });
+  }).then(
+    (res) => {
+      // the copy the service worker kept, or a fresh answer (lib/offline.ts)
+      noteAnswer(res);
+      return res;
+    },
+    (e: unknown) => {
+      // never reached the server: said in words a reader can act on, still a
+      // TypeError so the changes that wait (isNetworkError) know it
+      if (e instanceof TypeError)
+        throw new TypeError(orOffline("Couldn't reach the server. Try again."));
+      throw e;
+    },
+  );
 }
 
 // a failed request, with the server's message and its status (404 and the
@@ -72,7 +81,7 @@ export async function getJson<T>(
   if (!res.ok) {
     throw new HttpError(
       (data as ApiError | null)?.error?.[0]?.msg ??
-        "Something went wrong. Try again.",
+        orOffline("Something went wrong. Try again."),
       res.status,
     );
   }
@@ -84,7 +93,7 @@ export async function errorMessages(res: Response): Promise<string[]> {
   const data = (await res.json().catch(() => null)) as ApiError | null;
   return (
     data?.error?.map((e) => e.msg) ?? [
-      "Something went wrong, please try again!",
+      orOffline("Something went wrong, please try again!"),
     ]
   );
 }

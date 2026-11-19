@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { PlusIcon } from "../../components/icons/Icons";
 import { homeStyles as styles } from "./styles";
+import { offlineLink, useIsOffline } from "../../lib/offline";
 
 // The round + on small screens, within reach of a thumb. It slides away while
 // they scroll down the shelf and stays away, so it doesn't sit over the
@@ -11,6 +12,7 @@ import { homeStyles as styles } from "./styles";
 // the screen
 const NEAR_THE_TOP = 120;
 export default function AddButton({ onClick }: { onClick: () => void }) {
+  const offline = useIsOffline();
   const [away, setAway] = useState(false);
   useEffect(() => {
     let last = window.scrollY;
@@ -30,6 +32,7 @@ export default function AddButton({ onClick }: { onClick: () => void }) {
       aria-label="Add manga"
       data-tour="scan"
       onClick={onClick}
+      {...offlineLink(offline)}
     >
       <PlusIcon aria-hidden />
     </button>,

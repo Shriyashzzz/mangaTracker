@@ -1,6 +1,7 @@
 // The To buy list: volumes a signed-in reader looked up and means to buy.
 // The server keeps it and prices it from what's stored (server toBuy/toBuy.ts)
 import { apiFetch, getJson } from "./api";
+import { orOffline } from "./offline";
 
 // a price on the list: how much, and where
 export type ToBuyPrice = { cents: number; store: string } | null;
@@ -39,12 +40,14 @@ async function change(method: "PUT" | "DELETE", isbn13: string) {
   const data = (await res.json().catch(() => null)) as {
     error?: { msg?: string }[];
   } | null;
-  throw new Error(data?.error?.[0]?.msg ?? "That didn't save. Try again.");
+  throw new Error(
+    data?.error?.[0]?.msg ?? orOffline("That didn't save. Try again."),
+  );
 }
 // empties the whole list
 export async function clearToBuy() {
   const res = await apiFetch("/api/to-buy", { method: "DELETE" });
-  if (!res.ok) throw new Error("That didn't save. Try again.");
+  if (!res.ok) throw new Error(orOffline("That didn't save. Try again."));
 }
 export const addToBuy = (isbn13: string) => change("PUT", isbn13);
 export const removeToBuy = (isbn13: string) => change("DELETE", isbn13);

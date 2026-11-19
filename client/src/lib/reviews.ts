@@ -2,6 +2,7 @@
 // read, write and flag them. The server's side is server/src/reviews/
 // (reviews.ts sends these shapes; reviewRules.ts holds the rules).
 import { apiFetch, errorMessages, getJson } from "./api";
+import { orOffline } from "./offline";
 
 // the most characters a review's words can have (the server's MOST_WORDS)
 export const MOST_WORDS = 500;
@@ -52,7 +53,8 @@ async function putReview(
   const res = await apiFetch(path, { method: "PUT", body: draft }).catch(
     () => null,
   );
-  if (!res) return { problem: "That didn't save. Check your connection." };
+  if (!res)
+    return { problem: orOffline("That didn't save. Check your connection.") };
   if (!res.ok) return { problem: (await errorMessages(res))[0]! };
   return { review: (await res.json()) as Review };
 }

@@ -4,6 +4,7 @@
 // backdrop.
 import { useEffect, useRef, useState } from "react";
 import { homeStyles as styles } from "../Home/styles";
+import { orOffline } from "../../lib/offline";
 
 type Props = {
   count: number;
@@ -61,7 +62,7 @@ export default function ClearListModal({ count, onClear, onClose }: Props) {
         </p>
         {failed && (
           <p className={styles.confirmError} role="alert">
-            That didn't clear it. Try again.
+            {orOffline("That didn't clear it. Try again.")}
           </p>
         )}
         <div className={styles.confirmActions}>

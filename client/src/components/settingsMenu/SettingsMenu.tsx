@@ -29,6 +29,7 @@ import Avatar from "../avatar/Avatar";
 import { useAccount } from "../../store/account";
 import { openInstallBox, useInstallWay } from "../../lib/install";
 import InstallSheet from "../installApp/InstallSheet";
+import { offlineLink, useIsOffline } from "../../lib/offline";
 
 // one row of the menu: a button or link
 const item =
@@ -76,6 +77,7 @@ type Props = {
 };
 
 export default function SettingsMenu({ isSignedIn, onLogOut }: Props) {
+  const offline = useIsOffline();
   const avatar = useAccount((s) => s.account?.avatar);
   // the name they chose, else their username: the reader name made up for
   // them ("One More Chapter") is only what a shared list shows
@@ -261,6 +263,7 @@ export default function SettingsMenu({ isSignedIn, onLogOut }: Props) {
                   // the tour opens this menu on phones and points here
                   data-tour="import-link"
                   viewTransition
+                  {...offlineLink(offline)}
                 >
                   <ImportIcon />
                   Import your list

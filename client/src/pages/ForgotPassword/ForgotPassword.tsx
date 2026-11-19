@@ -9,6 +9,7 @@ import { apiFetch, errorMessages } from "../../lib/api";
 import { hasBottomBar } from "../../lib/bottomBar";
 import { usePrivatePage } from "../../lib/seo";
 import { authStyles as styles } from "../../styles/auth";
+import { orOffline } from "../../lib/offline";
 
 export default function ForgotPassword() {
   usePrivatePage("Forgot password");
@@ -31,7 +32,7 @@ export default function ForgotPassword() {
       if (result.ok) return true;
       setError((await errorMessages(result))[0]);
     } catch {
-      setError("We couldn't send it. Try again in a minute.");
+      setError(orOffline("We couldn't send it. Try again in a minute."));
     } finally {
       setLoading(false);
     }

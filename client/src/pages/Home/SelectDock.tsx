@@ -12,10 +12,12 @@ import { MOVE_LABELS, shelfPageSize } from "./shelfViews";
 import { useShelf } from "../../store/shelf";
 import type { SelectMode } from "./useSelectMode";
 import { homeStyles as styles } from "./styles";
+import { orOffline } from "../../lib/offline";
 
 // what the moved note says
 function MovedLine({ select }: { select: SelectMode }) {
-  if (select.moveFailed) return <>That didn't save. Try again.</>;
+  if (select.moveFailed)
+    return <>{orOffline("That didn't save. Try again.")}</>;
   if (!select.moved) return null;
   const { name, was, to } = select.moved;
   return (

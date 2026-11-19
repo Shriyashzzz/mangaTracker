@@ -7,6 +7,7 @@ import InstallAppButton from "../../components/installApp/InstallAppButton";
 import { alertsWay, switchAlertsOff, switchAlertsOn } from "../../lib/alerts";
 import type { AlertsWay } from "../../lib/alertsWay";
 import { settingsStyles as styles } from "./styles";
+import { orOffline } from "../../lib/offline";
 
 export function AlertsSection() {
   // null while it's being worked out
@@ -27,7 +28,10 @@ export function AlertsSection() {
     if (on) {
       const now = await switchAlertsOn();
       if (now === "failed") {
-        setNote({ text: "That didn't work. Try again.", failed: true });
+        setNote({
+          text: orOffline("That didn't work. Try again."),
+          failed: true,
+        });
         setWay("off");
       } else {
         setWay(now);

@@ -15,6 +15,7 @@ import {
   standing,
   type FarBehindSeries,
 } from "./farBehind";
+import { orOffline } from "../../lib/offline";
 
 // the switch between what's new in English, chapters and Japan, and what
 // the view is about
@@ -213,7 +214,7 @@ export function HiddenNote({
       {show && (hidden || failed) && (
         <div className={styles.seenNote} data-over-add-button {...swipe}>
           {failed ? (
-            "That didn't save. Try again."
+            orOffline("That didn't save. Try again.")
           ) : (
             <>
               <span className={styles.seenName}>

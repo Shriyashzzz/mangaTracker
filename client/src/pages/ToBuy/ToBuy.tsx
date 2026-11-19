@@ -33,6 +33,7 @@ import { SortMenu } from "../Home/ShelfBar";
 import { volumesStyles } from "../Home/volumesStyles";
 import { CoverFallback } from "../Prices/VolumeCard";
 import { releaseDay } from "../Prices/volumePageRules";
+import { orOffline } from "../../lib/offline";
 
 const styles = {
   // the sort, close above the list it orders
@@ -140,7 +141,7 @@ export default function ToBuy() {
           : `${nameOf(item)} is off the list.`,
       );
     } catch {
-      setNote("That didn't save. Try again.");
+      setNote(orOffline("That didn't save. Try again."));
     } finally {
       setBusy(null);
     }
