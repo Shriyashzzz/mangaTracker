@@ -32,7 +32,9 @@ const dayText = (day: string) =>
     day: "numeric",
     timeZone: "UTC",
   });
-const money = (cents: number) => `$${(cents / 100).toFixed(2)}`;
+// "$10.99", or "CA$14.99" for a reader in Canada, as the site writes it
+const moneyIn = (country: "us" | "ca") => (cents: number) =>
+  `${country === "ca" ? "CA$" : "$"}${(cents / 100).toFixed(2)}`;
 
 const FONT = "font-family:Arial, Helvetica, sans-serif;";
 const INK = "#1d1a16";
@@ -131,7 +133,8 @@ const bookOf = (item: ReleaseItem) => `${item.series} ${item.book}`;
 
 // the subject names the first thing in it: "Vagabond VIZBIG 13 is out, and
 // 2 more for your shelf"
-export function digestSubject(digest: Digest) {
+export function digestSubject(digest: Digest, country: "us" | "ca" = "us") {
+  const money = moneyIn(country);
   const count = digest.out.length + digest.soon.length + digest.drops.length;
   const rest = count > 1 ? `, and ${count - 1} more for your shelf` : "";
   const [out] = digest.out;
@@ -142,11 +145,14 @@ export function digestSubject(digest: Digest) {
   return `${drop.title} is ${money(drop.cents)}${rest}`;
 }
 
-// the weekly email for one reader. `code` is the code in their links
+// the weekly email for one reader. `code` is the code in their links;
+// `country` is where their prices are from
 export function digestMail(
-  reader: { username: string; code: string },
+  reader: { username: string; code: string; country?: "us" | "ca" },
   digest: Digest,
 ): Mail {
+  const country = reader.country ?? "us";
+  const money = moneyIn(country);
   const home = site();
   const seriesUrl = (item: ReleaseItem) => `${home}/details/${item.mangaId}`;
   const unsubscribeUrl = `${home}/email/unsubscribe/${reader.code}`;
@@ -177,7 +183,7 @@ export function digestMail(
       moreRow(extra(digest.drops), `${home}/to-buy`, "on your To buy list"),
     );
 
-  const subject = digestSubject(digest);
+  const subject = digestSubject(digest, country);
   const card = [
     heading("New for your shelf"),
     `              <p style="margin:0; ${FONT} font-size:16px; line-height:1.55; color:${SOFT};">Hi ${esc(reader.username)}, here's what changed this week.</p>`,
@@ -189,8 +195,11 @@ export function digestMail(
   ]
     .filter(Boolean)
     .join("\n");
+  const pricesNote = digest.drops.length
+    ? " · Prices were checked in the last few days and can change."
+    : "";
   const footer = `              You get this because you switched on the weekly email in your Manga Tracker settings. It only comes when there's news.<br>
-              <a href="${unsubscribeUrl}" target="_blank" style="color:${FAINT}; text-decoration:underline;">Unsubscribe</a> · Prices were checked in the last few days and can change.`;
+              <a href="${unsubscribeUrl}" target="_blank" style="color:${FAINT}; text-decoration:underline;">Unsubscribe</a>${pricesNote}`;
 
   const lines = [
     `Hi ${reader.username}, here's what changed this week.`,
@@ -222,7 +231,7 @@ export function digestMail(
 
   return {
     subject,
-    html: page(subject, previewOf(digest), card, footer),
+    html: page(subject, previewOf(digest, money), card, footer),
     text: lines.join("\n"),
     headers: unsubscribeHeaders(reader.code),
   };
@@ -232,7 +241,7 @@ const textSection = (title: string, rows: string[]) =>
   rows.length ? ["", title, ...rows.slice(0, MOST_PER_KIND)] : [];
 
 // the words an inbox shows beside the subject: the second thing in it
-function previewOf(digest: Digest) {
+function previewOf(digest: Digest, money: (cents: number) => string) {
   const names = [
     ...digest.out.map((i) => `${bookOf(i)} is out`),
     ...digest.soon.map((i) => `${bookOf(i)} on ${dayText(i.day)}`),

@@ -11,6 +11,7 @@ import sendEmail from "../util/email/sendEmail.js";
 import { digestFor } from "./digestData.js";
 import { confirmMail, digestMail, type Mail } from "./digestEmail.js";
 import { isEmpty, keysOf } from "./digestRules.js";
+import type { Prefs } from "../models/userQueries.js";
 
 const FROM = "updates@mangatracker.xyz";
 const WEEK_MS = 7 * DAY_MS;
@@ -78,7 +79,15 @@ export async function sendDueDigests(
       }
       await send(
         user.recoveryEmail!,
-        digestMail({ username: user.username, code: user.emailCode! }, digest),
+        digestMail(
+          {
+            username: user.username,
+            code: user.emailCode!,
+            country:
+              (user.prefs as Prefs | null)?.country === "ca" ? "ca" : "us",
+          },
+          digest,
+        ),
       );
       // told: none of it is mailed again, and their week starts over
       await prisma.$transaction([

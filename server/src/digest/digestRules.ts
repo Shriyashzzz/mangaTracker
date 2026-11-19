@@ -10,7 +10,8 @@
 // Only what is certain is said. A release needs its day in full
 // ("2026-11-24"): a month alone, or no date, and nothing is claimed. News is
 // for someone caught up, as on the New tab: a reader three books behind has
-// a backlog, not news.
+// a backlog, not news. And what they've said "Seen it" to on the site, or
+// hidden there, is never mailed: an email can't know less than the page.
 import { bookName, type EditionLine } from "../prices/editionLines.js";
 import { editionPlaceOf } from "../util/shelf/editionPlace.js";
 import type { ListedVolume } from "../collector/shelfMath.js";
@@ -40,7 +41,15 @@ export type DigestSeries = {
   volumes: ListedVolume[];
   // the edition they collect it in, when they do
   line: EditionLine | null;
+  // the newest release they've said "Seen it" to on the site, and the
+  // volumes they've hidden there one at a time
+  seenVolume: number | null;
+  hiddenVolumes: number[];
 };
+
+// a volume they've dismissed on the site (releaseStatus.ts isHidden)
+const dismissed = (series: DigestSeries, volume: number) =>
+  volume <= (series.seenVolume ?? 0) || series.hiddenVolumes.includes(volume);
 
 export type ReleaseItem = {
   key: string;
@@ -104,6 +113,7 @@ function singleVolumeNews(
     if (!afterDay || afterDay <= today) return null;
   }
   const volume = furthest + 1;
+  if (dismissed(series, volume)) return null;
   return {
     key: `${kind}:${series.mangaId}:${volume}`,
     kind,
@@ -127,6 +137,10 @@ function editionNews(
   if (!kind) return null;
   // out and the only one they lack; or coming, with every book out theirs
   if (place.behind !== (kind === "out" ? 1 : 0)) return null;
+  // dismissed on the series page, whose bar counts a book by its last
+  // volume (client pages/Details/releaseNews.ts editionBookNews)
+  const book = line.books.find((b) => b.number === place.next);
+  if (book && dismissed(series, Math.max(...book.volumes))) return null;
   return {
     key: `${kind}:${series.mangaId}:${line.key}${place.next}`,
     kind,

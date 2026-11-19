@@ -32,6 +32,8 @@ async function shelfOf(userId: number): Promise<DigestSeries[]> {
     owned: [...ownedSet(m)],
     volumes: volumesOf.get(m.id) ?? [],
     line: lines.get(m.id) ?? null,
+    seenVolume: m.seenVolume,
+    hiddenVolumes: m.hiddenVolumes,
   }));
 }
 

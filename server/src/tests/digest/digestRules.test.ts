@@ -28,6 +28,8 @@ const series = (
   readVolume: null,
   owned: [],
   line: null,
+  seenVolume: null,
+  hiddenVolumes: [],
   volumes: days.map((published, i) => ({
     volume: i + 1,
     isbn13: `978000000000${i}`,
@@ -83,6 +85,19 @@ test("nothing is said that isn't certain or isn't news", () => {
   quiet(series([day(-400), day(-5)], { owned: [1, 2] })).toBe(true);
 });
 
+test("a volume they've seen or hidden on the site isn't mailed", () => {
+  const days = [day(-400), day(-200), day(-5)];
+  // "Seen it" on the site, up to vol. 3
+  const seen = news(series(days, { owned: [1, 2], seenVolume: 3 }));
+  expect(seen.out).toEqual([]);
+  // vol. 3 hidden on its own
+  const hidden = news(series(days, { owned: [1, 2], hiddenVolumes: [3] }));
+  expect(hidden.out).toEqual([]);
+  // seen up to an older one: vol. 3 is still news
+  const older = news(series(days, { owned: [1, 2], seenVolume: 2 }));
+  expect(older.out.map((i) => i.book)).toEqual(["Vol. 3"]);
+});
+
 // ---------- collected as an edition ----------
 const three = (book: number) => [book * 3 - 2, book * 3 - 1, book * 3];
 const lineOf = (days: (string | null)[]): EditionLine =>
@@ -117,6 +132,9 @@ test("an edition collector hears about books, not volumes", () => {
   // owns all three out: the fourth has a day
   const soon = news(series([], { owned: upTo(9), line }));
   expect(soon.soon.map((i) => i.book)).toEqual(["VIZBIG 4"]);
+  // the series page's bar for VIZBIG 3 closed: counted by its last volume
+  const closed = news(series([], { owned: upTo(6), line, seenVolume: 9 }));
+  expect(closed.out).toEqual([]);
   // owns only the first: two behind, nothing said
   const behind = news(series([], { owned: upTo(3), line }));
   expect(isEmpty({ ...behind, drops: [] })).toBe(true);

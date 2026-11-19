@@ -939,6 +939,12 @@ export async function demoResponse(
       ? json(ANIME_SERIES)
       : json({ error: [{ msg: "Not found" }] }, 404);
   }
+  // the practice account has no inbox to send to
+  if (route === "/api/account/weekly-email")
+    return json(
+      { error: [{ msg: "The practice account can't get emails." }] },
+      400,
+    );
   if (route === "/api/account") {
     const account = { ...readAccount(), ...(method === "PATCH" ? body : {}) };
     save(ACCOUNT_KEY, account);

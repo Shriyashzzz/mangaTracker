@@ -80,3 +80,18 @@ test("the confirm email carries its link", () => {
   expect(mail.html).toContain(`/email/confirm/${reader.code}`);
   expect(mail.text).toContain(`/email/confirm/${reader.code}`);
 });
+
+test("a reader in Canada sees CA$, and prices are only mentioned with prices", () => {
+  const canada = digestMail(
+    { ...reader, country: "ca" },
+    { ...empty, drops: [drop] },
+  );
+  expect(canada.subject).toBe("Vagabond, Vol. 12 is CA$10.99");
+  expect(canada.html).toContain("CA$10.99");
+  expect(canada.text).toContain(
+    "CA$10.99 at Books-A-Million, usually CA$14.99",
+  );
+  expect(canada.html).toContain("Prices were checked");
+  const noPrices = digestMail(reader, { ...empty, out: [release({})] });
+  expect(noPrices.html).not.toContain("Prices were checked");
+});

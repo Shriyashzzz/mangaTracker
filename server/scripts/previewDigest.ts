@@ -13,6 +13,7 @@ import { prisma } from "../src/config/prisma.js";
 import { digestFor } from "../src/digest/digestData.js";
 import { digestMail } from "../src/digest/digestEmail.js";
 import { isEmpty } from "../src/digest/digestRules.js";
+import type { Prefs } from "../src/models/userQueries.js";
 
 const [username, flag] = process.argv.slice(2);
 if (!username) {
@@ -32,7 +33,11 @@ if (isEmpty(digest)) {
   console.log("No news for them right now: no email would be sent.");
 } else {
   const mail = digestMail(
-    { username: user.username, code: user.emailCode ?? "preview-only" },
+    {
+      username: user.username,
+      code: user.emailCode ?? "preview-only",
+      country: (user.prefs as Prefs | null)?.country === "ca" ? "ca" : "us",
+    },
     digest,
   );
   console.log(

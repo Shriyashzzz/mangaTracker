@@ -24,11 +24,22 @@ accountRouter.post(
   account.weeklyEmail,
 );
 
-// the links in our emails: no sign-in, the code in the link says whose
+// The links in our emails: no sign-in, the code in the link says whose.
+// The codes are 24 random bytes, so the limits are only against hammering,
+// never guessing. Unsubscribing's is loose: Gmail's and Yahoo's one-click
+// button posts from their own servers, so many readers share a few
+// addresses, and an unsubscribe must never be turned away
 export const emailRouter = Router();
-const emailLinks = rateLimit({ max: isProd ? 30 : 500, windowMs: 60 * 60_000 });
-emailRouter.post("/confirm/:code", emailLinks, account.confirmEmail);
-emailRouter.post("/unsubscribe/:code", emailLinks, account.unsubscribe);
+emailRouter.post(
+  "/confirm/:code",
+  rateLimit({ max: isProd ? 30 : 500, windowMs: 60 * 60_000 }),
+  account.confirmEmail,
+);
+emailRouter.post(
+  "/unsubscribe/:code",
+  rateLimit({ max: 2_000, windowMs: 60 * 60_000 }),
+  account.unsubscribe,
+);
 
 // public: anyone with the link
 export const shareRouter = Router();
