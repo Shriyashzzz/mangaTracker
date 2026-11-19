@@ -31,6 +31,7 @@ import {
   latestAnswerText,
   latestStop,
   leftLine,
+  noAnswerLine,
   pageHeading,
   priceLine,
   seasonHeading,
@@ -40,6 +41,7 @@ import {
   tableRow,
   withoutThe,
   type AnimeStop,
+  type AnimeState,
   type MangaFacts,
   type SavedBook,
 } from "./src/lib/afterAnimeText.ts";
@@ -619,6 +621,7 @@ type AfterAnime = {
   checkedAt?: string | null;
   manga?: MangaFacts;
   books?: SavedBook[];
+  anime?: AnimeState | null;
 };
 // "18 November 2026", for "Checked on"
 const longDate = (at: string) =>
@@ -711,7 +714,7 @@ function afterAnimeTags(
       <table><thead><tr><th>You watched</th><th>Start at chapter</th><th>Buy volume</th></tr></thead><tbody>${rows.join("")}</tbody></table>
       ${seasons.join("")}
       <h2>Questions</h2>${questions.join("")}`
-          : "<p>No answer yet.</p>"
+          : `<p>${escapeHtml(noAnswerLine(show.name, show.anime ?? null))}</p>`
       }
       <p><a href="${escapeHtml(seriesPath(show.name))}">See all ${escapeHtml(show.name)} volumes and prices</a></p>
       ${more.length ? `<h2>More shows</h2>${linkList(more.map((other) => [afterAnimeShowPath(other.name), `Where does the ${withoutThe(other.name)} anime leave off?`]))}` : ""}

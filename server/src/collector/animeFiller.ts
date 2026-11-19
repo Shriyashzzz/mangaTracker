@@ -59,7 +59,8 @@ export async function fillOneAnime(
   const series = waiting.find((one) => tried.isDue(slugify(one.name), now));
   if (!series) return "nothing";
   tried.mark(slugify(series.name), now);
-  // asks, and keeps the answer ("it has no anime" is one, and is kept too)
+  // asks, and keeps the answer ("it has no anime" is one, and is kept too;
+  // "its anime is still airing" isn't, and is asked again another day)
   await animeLinesFor(series, true);
   return { asked: series.name };
 }

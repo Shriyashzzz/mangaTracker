@@ -93,6 +93,9 @@ export async function getAfterAnime(
     // each English volume that's out with its saved price (savedBooks.ts)
     manga: { finished: manga.finished, volumes: manga.volumes },
     books,
+    // whether it has an anime and where that's up to, for a page with no
+    // answer to say why; null for a series saved before this was asked for
+    anime: info.anime ?? null,
   };
 }
 

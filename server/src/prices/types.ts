@@ -59,6 +59,17 @@ export type CatalogBook = {
 };
 
 // a series as AniList describes it, cached in series_info.info
+// Whether a series has an anime, and where it's up to, as AniList lists it:
+//   none      no anime
+//   upcoming  announced, not started
+//   airing    episodes still coming out
+//   ended     every anime of it has finished
+// `episodes` is how many the one airing is planned to run, when AniList says
+export type AnimeState = {
+  state: "none" | "upcoming" | "airing" | "ended";
+  episodes: number | null;
+};
+
 export type SeriesInfo = {
   anilistId: number;
   name: string;
@@ -77,6 +88,9 @@ export type SeriesInfo = {
   // who wrote and drew it, in English letters ("Eiichiro Oda"), for volumes
   // whose catalog record only names them in Japanese. Missing from older rows
   authors?: string[];
+  // its anime, for a page with no answer to say why (afterAnime/). Missing
+  // from rows saved before it was asked for
+  anime?: AnimeState;
   // never saved: set as it's read, when the score shown is only the plain
   // mean of a few raters (scores.ts)
   fewRaters?: true;

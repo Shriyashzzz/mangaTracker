@@ -5,6 +5,7 @@
 // here too, so most series are known before anyone opens their page.
 import { prisma } from "../../config/prisma.js";
 import { slugify } from "../stores/match.js";
+import type { AnimeState } from "../types.js";
 import {
   getAnimeLines,
   onAnimeLines,
@@ -32,8 +33,24 @@ function save(name: string, lines: AnimeLines) {
   });
 }
 
-// a series as much as this needs: its own name and the others it goes by
-type Named = { name: string; altNames?: string[] };
+// a series as much as this needs: its own name, the others it goes by, and
+// its anime as AniList lists it
+type Named = { name: string; altNames?: string[]; anime?: AnimeState };
+
+// An anime that's still airing, or hasn't started, has no last chapter yet:
+// MangaUpdates fills it in once the anime ends. So for these "nothing known"
+// is NOT kept in the database, where it would stand for a month. It's only
+// remembered here for a while, and asked again after that
+const waitingOnAnime = (series: Named) =>
+  series.anime?.state === "airing" || series.anime?.state === "upcoming";
+const ASK_AGAIN_AFTER_MS = 6 * 60 * 60 * 1000;
+const nothingYetAt = new Map<string, number>();
+// for the tests
+export const forgetWaiting = () => nothingYetAt.clear();
+const hasNoLines = (lines: {
+  startLine: string | null;
+  endLine: string | null;
+}) => !lines.startLine && !lines.endLine;
 
 // MangaUpdates couldn't be asked about these a moment ago: they wait this
 // long, so a page that's opened again and again doesn't ask every time
@@ -61,8 +78,19 @@ async function askAndKeep(series: Named, saved: Saved | null) {
         data: { fetchedAt: new Date() },
       });
     }
+    const answer = lines ?? NOTHING_KNOWN;
+    if (hasNoLines(answer) && waitingOnAnime(series)) {
+      // an empty row saved before the anime was known to be airing goes too
+      await prisma.animeStops.deleteMany({
+        where: { slug, startLine: null, endLine: null },
+      });
+      nothingYetAt.set(slug, Date.now());
+      if (nothingYetAt.size > 5_000)
+        nothingYetAt.delete(nothingYetAt.keys().next().value!);
+      return null;
+    }
     // "MangaUpdates doesn't know it" is an answer, kept like any other
-    return await save(series.name, lines ?? NOTHING_KNOWN);
+    return await save(series.name, answer);
   } catch (e) {
     console.error("anime lines lookup failed:", (e as Error).message);
     failedAt.set(slug, Date.now());
@@ -78,10 +106,16 @@ async function askAndKeep(series: Named, saved: Saved | null) {
 export async function animeLinesFor(series: Named, mayAsk: boolean) {
   const slug = slugify(series.name);
   const saved = await prisma.animeStops.findUnique({ where: { slug } });
-  const fresh = saved && Date.now() - saved.fetchedAt.getTime() < FRESH_FOR_MS;
+  // an empty answer for an anime that's still airing doesn't stand
+  const empty = saved && hasNoLines(saved) && waitingOnAnime(series);
+  const fresh =
+    saved && !empty && Date.now() - saved.fetchedAt.getTime() < FRESH_FOR_MS;
   if (fresh || !mayAsk) return saved;
   const failedLately = Date.now() - (failedAt.get(slug) ?? 0) < RETRY_AFTER_MS;
   if (failedLately) return saved;
+  const askedLately =
+    Date.now() - (nothingYetAt.get(slug) ?? 0) < ASK_AGAIN_AFTER_MS;
+  if (askedLately) return saved;
   const running = asking.get(slug);
   if (running) return running;
   const lookup = askAndKeep(series, saved).finally(() => asking.delete(slug));

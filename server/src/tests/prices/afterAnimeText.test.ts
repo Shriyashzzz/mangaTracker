@@ -451,3 +451,32 @@ test("a show's description leads with the price when one is saved and it fits", 
   )[0]!;
   expect(faq.dateModified).toBe(daysBack(2));
 });
+
+// ---------- why a show has no answer ----------
+test("a show with no answer says why, and only what's certain", async () => {
+  const { noAnswerLine } =
+    await import("../../../../client/src/lib/afterAnimeText.js");
+  // Overgeared, November 2026: 12 episodes planned, not all out
+  expect(noAnswerLine("Overgeared", { state: "airing", episodes: 12 })).toBe(
+    "The Overgeared anime is still airing, 12 episodes in all. It has no last chapter until it ends.",
+  );
+  expect(noAnswerLine("Overgeared", { state: "airing", episodes: null })).toBe(
+    "The Overgeared anime is still airing. It has no last chapter until it ends.",
+  );
+  expect(
+    noAnswerLine("Sakamoto Days", { state: "upcoming", episodes: null }),
+  ).toBe("The Sakamoto Days anime hasn't started yet.");
+  // "The The Promised Neverland anime" is never said
+  expect(
+    noAnswerLine("The Promised Neverland", { state: "ended", episodes: null }),
+  ).toBe(
+    "The Promised Neverland anime has ended, but nobody has recorded where it leaves off.",
+  );
+  expect(noAnswerLine("Vagabond", { state: "none", episodes: null })).toBe(
+    "We know of no anime for Vagabond.",
+  );
+  // a series saved before its anime was asked about: no reason is made up
+  expect(noAnswerLine("Vagabond", null)).toBe(
+    "We have no answer for Vagabond yet.",
+  );
+});

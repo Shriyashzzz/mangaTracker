@@ -12,6 +12,8 @@ import {
   latestAnswer,
   latestStop,
   leftLine,
+  hasNoEndYet,
+  noAnswerLine,
   pageHeading,
   placeAfter,
   seasonAnchor,
@@ -274,9 +276,7 @@ export default function AfterAnimeShow() {
       {show && show.stops.length === 0 && (
         <section className={styles.season}>
           <div className={styles.seasonWords}>
-            <p className={styles.end}>
-              We have nothing for {show.name} yet. It may not have an anime.
-            </p>
+            <p className={styles.end}>{noAnswerLine(show.name, show.anime)}</p>
             <NavLink
               to={seriesCanonicalPath(show.name)}
               className={styles.link}
@@ -285,7 +285,13 @@ export default function AfterAnimeShow() {
               {ALL_VOLUMES}
             </NavLink>
           </div>
-          <FixForm seriesName={show.name} season={null} open />
+          {/* opened ready to fill in, unless the anime hasn't ended: then
+              there's nothing to tell us yet, and it stays a closed link */}
+          <FixForm
+            seriesName={show.name}
+            season={null}
+            open={!hasNoEndYet(show.anime)}
+          />
         </section>
       )}
 

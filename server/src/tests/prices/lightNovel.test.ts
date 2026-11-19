@@ -369,3 +369,51 @@ test("the novel finder counts only this series' novel volumes", async () => {
   expect(novelVolumesOf(titles, "Solo Leveling")).toBe(2);
   expect(novelVolumesOf(titles, "Omniscient Reader")).toBe(0);
 });
+
+test("a series' anime, read from what AniList ties to it", async () => {
+  const { animeOf } = await import("../../prices/sources/anilist.js");
+  const tie = (
+    relationType: string,
+    type: string,
+    status: string,
+    episodes: number | null = null,
+  ) => ({
+    relationType,
+    node: { type, status, episodes },
+  });
+  const of = (...edges: ReturnType<typeof tie>[]) => animeOf({ edges });
+
+  // Overgeared: an older comic beside it, and an anime still coming out
+  expect(
+    of(
+      tie("ALTERNATIVE", "MANGA", "FINISHED"),
+      tie("ADAPTATION", "ANIME", "RELEASING", 12),
+    ),
+  ).toEqual({ state: "airing", episodes: 12 });
+  // a new season airing beside finished ones is still airing
+  expect(
+    of(
+      tie("ADAPTATION", "ANIME", "FINISHED", 24),
+      tie("ADAPTATION", "ANIME", "RELEASING"),
+    ),
+  ).toEqual({ state: "airing", episodes: null });
+  expect(of(tie("ADAPTATION", "ANIME", "FINISHED", 24))).toEqual({
+    state: "ended",
+    episodes: null,
+  });
+  expect(of(tie("ADAPTATION", "ANIME", "NOT_YET_RELEASED"))).toEqual({
+    state: "upcoming",
+    episodes: null,
+  });
+  // no anime: a spin-off manga, a cancelled anime, an anime it's only a side story of
+  expect(
+    of(
+      tie("SPIN_OFF", "MANGA", "FINISHED"),
+      tie("ADAPTATION", "ANIME", "CANCELLED"),
+      tie("OTHER", "ANIME", "FINISHED"),
+    ),
+  ).toEqual({ state: "none", episodes: null });
+  expect(of()).toEqual({ state: "none", episodes: null });
+  // the relations weren't asked for: nothing is claimed
+  expect(animeOf(undefined)).toBeUndefined();
+});

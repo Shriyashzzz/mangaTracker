@@ -248,6 +248,13 @@ export type SavedBook = {
 // whether the manga has ended, and at how many volumes
 export type MangaFacts = { finished: boolean; volumes: number | null };
 
+// whether the series has an anime and where it's up to (the server's
+// AnimeState, prices/types.ts); null when we haven't been told
+export type AnimeState = {
+  state: "none" | "upcoming" | "airing" | "ended";
+  episodes: number | null;
+};
+
 const dollars = (cents: number) => `$${(cents / 100).toFixed(2)}`;
 const DAY_MS = 24 * 60 * 60 * 1000;
 // a price older than this isn't quoted in a sentence
@@ -339,6 +346,7 @@ type ShowForMeta = {
   manga?: MangaFacts;
   // when the answer was last checked at its source
   checkedAt?: string | null;
+  anime?: AnimeState | null;
 };
 
 // fits the app's PageMeta (lib/seo.ts)
@@ -373,6 +381,26 @@ const theAnime = (name: string) => `the ${withoutThe(name)} anime`;
 // page's title in a search result, not its heading
 export const showQuestion = (name: string) =>
   `Where does ${theAnime(name)} leave off in the manga?`;
+
+// an anime that's still airing, or hasn't started: it has no last chapter
+// for anyone to know yet
+export const hasNoEndYet = (anime: AnimeState | null) =>
+  anime?.state === "airing" || anime?.state === "upcoming";
+
+// Why a show has no answer, in a sentence or two: only what's certain. An
+// anime that's still airing has no last chapter yet
+export function noAnswerLine(name: string, anime: AnimeState | null) {
+  const its = `The ${withoutThe(name)} anime`;
+  if (anime?.state === "airing") {
+    const run = anime.episodes ? `, ${anime.episodes} episodes in all` : "";
+    return `${its} is still airing${run}. It has no last chapter until it ends.`;
+  }
+  if (anime?.state === "upcoming") return `${its} hasn't started yet.`;
+  if (anime?.state === "ended")
+    return `${its} has ended, but nobody has recorded where it leaves off.`;
+  if (anime?.state === "none") return `We know of no anime for ${name}.`;
+  return `We have no answer for ${name} yet.`;
+}
 
 // the page's own heading: plain, with the series first
 export const pageHeading = (name: string, hasAnswer: boolean) =>

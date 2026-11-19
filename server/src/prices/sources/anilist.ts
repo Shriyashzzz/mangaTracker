@@ -9,7 +9,7 @@
 import { prisma } from "../../config/prisma.js";
 import { seriesOf, slugify } from "../stores/match.js";
 import { Prisma } from "../../../generated/prisma/client.js";
-import type { SeriesHit, SeriesInfo } from "../types.js";
+import type { AnimeState, SeriesHit, SeriesInfo } from "../types.js";
 import type { MalListing } from "../../util/shelf/malEntry.js";
 import { baseName, isNovelName, novelName } from "../lightNovel.js";
 import { volumesKey } from "../volumesKey.js";
@@ -26,6 +26,12 @@ const TRENDING_FRESH_MS = 6 * 60 * 60 * 1000;
 const SEARCH_FRESH_MS = 60 * 60 * 1000;
 
 // the bits of AniList's Media type we ask for
+// another work a series is tied to: we read its anime adaptations
+type Relation = {
+  relationType: string;
+  node: { type: string; status: string | null; episodes: number | null };
+};
+
 type Media = {
   id: number;
   siteUrl: string;
@@ -45,6 +51,8 @@ type Media = {
   description: string | null;
   rankings: { rank: number; type: string; allTime: boolean }[] | null;
   startDate?: { year: number | null } | null;
+  // what it was adapted into, and from
+  relations?: { edges: Relation[] } | null;
   staff?: {
     edges: { role: string; node: { name: { full: string | null } } }[];
   };
@@ -256,6 +264,7 @@ const SERIES_QUERY = `
     Page(perPage: 5) {
       media(search: $search, type: MANGA, format: $format, sort: SEARCH_MATCH) {
         id siteUrl status volumes averageScore genres synonyms popularity
+        relations { edges { relationType node { type status episodes } } }
         title { english romaji native }
         coverImage { large }
         description(asHtml: false)
@@ -305,6 +314,25 @@ export const creatorsOf = (m: Pick<Media, "staff">) =>
     ),
   ].slice(0, 3);
 
+// A series' anime, from what AniList ties to it: one still airing says so
+// even beside finished seasons; undefined when the relations weren't asked
+// for. A cancelled anime isn't one
+export function animeOf(relations: Media["relations"]): AnimeState | undefined {
+  if (!relations) return undefined;
+  const animes = relations.edges
+    .filter((edge) => edge.relationType === "ADAPTATION")
+    .map((edge) => edge.node)
+    .filter((node) => node.type === "ANIME" && node.status !== "CANCELLED");
+  const withStatus = (status: string) =>
+    animes.find((anime) => anime.status === status);
+  const airing = withStatus("RELEASING");
+  if (airing) return { state: "airing", episodes: airing.episodes ?? null };
+  if (withStatus("FINISHED")) return { state: "ended", episodes: null };
+  if (withStatus("NOT_YET_RELEASED"))
+    return { state: "upcoming", episodes: null };
+  return { state: "none", episodes: null };
+}
+
 const toInfo = (m: Media): SeriesInfo => ({
   anilistId: m.id,
   name: (m.title.english || m.title.romaji) ?? "",
@@ -322,6 +350,8 @@ const toInfo = (m: Media): SeriesInfo => ({
   nativeName: m.title.native ?? null,
   // the same, for rows saved before authors were asked for
   authors: creatorsOf(m),
+  // and the same again, for its anime
+  ...(animeOf(m.relations) ? { anime: animeOf(m.relations) } : {}),
   // other names, e.g. Detective Conan is published in the US as Case Closed
   altNames: [m.title.romaji, ...(m.synonyms ?? [])].filter(
     (n): n is string => !!n && /^[\x20-\x7e’]+$/.test(n),
@@ -383,6 +413,8 @@ export const lacksNativeName = (info: unknown) =>
   info != null && !("nativeName" in (info as object));
 export const lacksAuthors = (info: unknown) =>
   info != null && !("authors" in (info as object));
+export const lacksAnime = (info: unknown) =>
+  info != null && !("anime" in (info as object));
 const mayAskForNative = () => {
   const minute = Math.floor(Date.now() / 60_000);
   if (nativeAsks.minute !== minute) nativeAsks = { minute, count: 0 };
@@ -399,8 +431,9 @@ type SavedInfo = { info: unknown; fetchedAt: Date } | null;
 
 // whether a saved answer can be used as it is. Not when it's old or
 // incomplete, nor when it's a novel's row saved before novels were looked up
-// as novels (it holds the manga's answer). A row missing its Japanese name or
-// its authors is asked for again too, a few a minute (mayAskForNative)
+// as novels (it holds the manga's answer). A row missing its Japanese name,
+// its authors or its anime is asked for again too, a few a minute
+// (mayAskForNative)
 function savedAnswerStands(saved: SavedInfo, name: string) {
   if (!saved) return false;
   const isFresh = Date.now() - saved.fetchedAt.getTime() < SERIES_FRESH_MS;
@@ -411,7 +444,9 @@ function savedAnswerStands(saved: SavedInfo, name: string) {
     !isNovelName((saved.info as SeriesInfo).name ?? "");
   if (holdsTheMangasAnswer) return false;
   const lacksSomething =
-    lacksNativeName(saved.info) || lacksAuthors(saved.info);
+    lacksNativeName(saved.info) ||
+    lacksAuthors(saved.info) ||
+    lacksAnime(saved.info);
   // only counted against the minute's allowance when it would be used
   if (lacksSomething && mayAskForNative()) return false;
   return true;
