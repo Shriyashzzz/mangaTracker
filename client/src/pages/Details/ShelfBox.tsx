@@ -75,7 +75,13 @@ export default function ShelfBox({
   onBooks,
 }: Props) {
   // the part-owned book they tapped: asked about before it's completed
-  const [asking, setAsking] = useState<number | null>(null);
+  // (with the edition it's a book of: the question goes if they switch)
+  const [asked, setAsked] = useState<{ line: string; slot: number } | null>(
+    null,
+  );
+  const asking = asked && asked.line === edition?.line.key ? asked.slot : null;
+  const setAsking = (slot: number | null) =>
+    setAsked(slot && edition ? { line: edition.line.key, slot } : null);
   // "Tap a book to mark it yours": said until they've done it once on this
   // device. Nothing else on the page says the books can be pressed
   const [knowsTheShelf, setKnowsTheShelf] = useState(
@@ -224,6 +230,8 @@ export default function ShelfBox({
               </span>
             )}
             {ownedCaption(slots, owned)}
+            {offShelf.length > 0 &&
+              `, plus vol${offShelf.length > 1 ? "s" : ""}. ${rangesText(offShelf)}`}
           </span>
         ) : (
           <span>

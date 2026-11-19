@@ -41,9 +41,18 @@ export function slotsOf(line: EditionLine, total: number): Slot[] {
   const lastListed = line.books.map((book) => book.listed).lastIndexOf(true);
   const real =
     lastListed < 0 ? line.books : line.books.slice(0, lastListed + 1);
-  const books = real.filter(
+  const out = real.filter(
     (book) => book.volumes.length > 0 && Math.min(...book.volumes) <= total,
   );
+  // A volume is in one book. Should the catalog ever put one in two, the
+  // earlier book keeps it and the later one is left off (its other volumes
+  // show as singles), so nothing is counted or owned twice
+  const taken = new Set<number>();
+  const books = out.filter((book) => {
+    if (book.volumes.some((v) => taken.has(v))) return false;
+    for (const v of book.volumes) taken.add(v);
+    return true;
+  });
   const inABook = new Set(books.flatMap((book) => book.volumes));
   const singles: Slot[] = [];
   for (let volume = 1; volume <= total; volume++) {
@@ -133,6 +142,14 @@ export function slotOfVolume(slots: Slot[], volume: number) {
 // to vol. 12 is four books of three; up to vol. 11 is still three
 export const slotsRead = (slots: Slot[], readVolume: number | null) =>
   slots.filter((slot) => Math.max(...slot.volumes) <= (readVolume ?? 0)).length;
+
+// Whether they've read past the edition's last book: Vagabond's Definitive
+// has six so far, and someone on vol. 20 is reading single volumes. Their
+// place is then said in volumes ("Definitive 7" isn't a book)
+export function readPastTheBooks(slots: Slot[], readVolume: number | null) {
+  const inBooks = slots.filter((s) => s.book).flatMap((s) => s.volumes);
+  return inBooks.length > 0 && (readVolume ?? 0) > Math.max(...inBooks);
+}
 
 // the volume that reading `count` slots comes to, which is what's saved
 export const volumeReadAfter = (slots: Slot[], count: number) =>

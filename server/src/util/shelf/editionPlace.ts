@@ -39,8 +39,16 @@ export function editionPlaceOf(
   // they're only worked out, and may never have been printed (the page's
   // slotsOf has the same rule: change both together)
   const lastListed = line.books.map((book) => book.listed).lastIndexOf(true);
-  const books =
+  const real =
     lastListed < 0 ? line.books : line.books.slice(0, lastListed + 1);
+  // and a volume is in one book: a later book sharing one is left off
+  const taken = new Set<number>();
+  const books = real.filter((book) => {
+    if (!book.volumes.length || book.volumes.some((v) => taken.has(v)))
+      return false;
+    for (const v of book.volumes) taken.add(v);
+    return true;
+  });
   const holding = (volume: number) =>
     books.find((book) => book.volumes.includes(volume)) ?? null;
   const read = readVolume ? (holding(readVolume)?.number ?? null) : null;

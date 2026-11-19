@@ -7,6 +7,7 @@
 import { useState } from "react";
 import {
   insideOf,
+  readPastTheBooks,
   slotsRead,
   volumeReadAfter,
   type EditionShelf,
@@ -67,6 +68,11 @@ export default function ReadingPlace({
   const booksRead = edition
     ? slotsRead(edition.slots, manga.readVolume ?? null)
     : 0;
+  // counted in the edition's books, unless they've read past its last one:
+  // from there on it's single volumes, and the counter says so
+  const inBooks =
+    edition != null &&
+    !readPastTheBooks(edition.slots, manga.readVolume ?? null);
 
   if (finished)
     return <p className={styles.progress}>Read all the way through.</p>;
@@ -141,7 +147,7 @@ export default function ReadingPlace({
           />
         </span>
       )}
-      {tracks.volumes && !edition && (
+      {tracks.volumes && !inBooks && (
         // their place by the volume: read is apart from owned
         <span className={styles.placeLine}>
           You've read up to vol.{" "}
@@ -154,7 +160,7 @@ export default function ReadingPlace({
           />
         </span>
       )}
-      {tracks.volumes && edition && (
+      {tracks.volumes && inBooks && edition && (
         // the same place, counted in the edition's books: "VIZBIG 4" is
         // saved as the last volume that book holds
         <span className={styles.placeLine}>

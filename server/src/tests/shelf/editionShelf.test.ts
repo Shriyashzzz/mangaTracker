@@ -4,6 +4,7 @@ import {
   booksGained,
   ownedCaption,
   placeInSlots,
+  readPastTheBooks,
   shareOwned,
   slotName,
   slotOfVolume,
@@ -152,4 +153,14 @@ test("a slot by name, for hovering", () => {
     "VIZBIG 5: you have vol. 13 of 13–15",
   );
   expect(slotName(VIZBIG, slots[12]!)).toBe("Vol. 37, sold on its own");
+});
+
+test("reading past an edition's last book is said in volumes", () => {
+  // six Definitive books out (vols. 1 to 18) of a series with 37
+  const six = slotsOf(lineOf(6, "Definitive"), 37);
+  expect(readPastTheBooks(six, 18)).toBe(false);
+  expect(readPastTheBooks(six, 19)).toBe(true);
+  expect(readPastTheBooks(six, null)).toBe(false);
+  // no books at all: nothing to be past
+  expect(readPastTheBooks(slotsOf(lineOf(0), 5), 3)).toBe(false);
 });
