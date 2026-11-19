@@ -5,29 +5,15 @@ import { useCoverSearch } from "./useCoverSearch";
 import { coverSrc } from "../../lib/prices";
 import { isVolumeCover } from "../../lib/coverSizes";
 
-// the other matches, small enough to sit under the cover; a sideways
-// strip on phones
-const gridBase =
-  "grid grid-cols-4 gap-[0.35rem] transition-opacity duration-200 ease-[ease] upto-760:col-start-2 upto-760:auto-cols-[58px] upto-760:grid-flow-col upto-760:grid-cols-none upto-760:content-start upto-760:overflow-x-auto upto-760:pb-1 upto-760:[scrollbar-color:var(--line-soft)_transparent] upto-760:[scrollbar-width:thin]";
-const grid = `${gridBase} upto-760:row-start-3`;
-
-// On phones the picker is a small grid with a row for each part. With covers
-// from their own books there are three more rows above AniList's, so the
-// parts after them sit further down
-const PHONE_ROWS = {
-  plain: {
-    cover: "upto-760:row-span-3",
-    matchesLabel: "upto-760:row-start-2",
-    matches: "upto-760:row-start-3",
-    link: "upto-760:row-start-4",
-  },
-  withOwn: {
-    cover: "upto-760:row-span-6",
-    matchesLabel: "upto-760:row-start-5",
-    matches: "upto-760:row-start-6",
-    link: "upto-760:row-start-7",
-  },
-};
+// The covers to pick from, small enough to sit under the big one; a sideways
+// strip on phones. One strip for all of them: their own books' covers first
+// (each tagged "yours"), then AniList's matches. Two strips, each with its
+// own heading, took twice the room on a phone for a book or two
+const grid =
+  "grid grid-cols-4 gap-[0.35rem] transition-opacity duration-200 ease-[ease] upto-760:col-start-2 upto-760:row-start-3 upto-760:auto-cols-[58px] upto-760:grid-flow-col upto-760:grid-cols-none upto-760:content-start upto-760:overflow-x-auto upto-760:pb-1 upto-760:[scrollbar-color:var(--line-soft)_transparent] upto-760:[scrollbar-width:thin]";
+// the tag across the foot of a cover that's from a book they own
+const yoursTag =
+  "pointer-events-none absolute inset-x-0 bottom-0 bg-ink py-[1px] text-center font-mono text-[0.6rem] leading-[1.4] tracking-[0.04em] text-paper uppercase";
 
 // a cover of a book they own: the address the shelf saves, and its name
 export type OwnCover = { url: string; name: string };
@@ -103,8 +89,9 @@ export default function CoverPicker({
     !results.some((r) => r.cover === value) &&
     !isVolumeCover(value) &&
     !/anilist\.co|myanimelist|kitsu/i.test(value);
-  const rows = ownCovers.length ? PHONE_ROWS.withOwn : PHONE_ROWS.plain;
   const pickedOwn = ownCovers.find((c) => c.url === value);
+  const hasOwn = ownCovers.length > 0;
+  const searching = shownStatus === "loading" && shown.length === 0;
 
   const hasImage = Boolean(bigCover) && !broken;
 
@@ -132,8 +119,7 @@ export default function CoverPicker({
           viewport so the whole add form fits on short laptop screens too */}
       <div
         className={clsx(
-          "mx-auto grid aspect-2/3 h-[clamp(150px,calc(100dvh-470px),258px)] max-w-full place-items-center bg-paper upto-760:col-start-1 upto-760:row-start-2 upto-760:h-auto upto-760:w-full",
-          rows.cover,
+          "mx-auto grid aspect-2/3 h-[clamp(150px,calc(100dvh-470px),258px)] max-w-full place-items-center bg-paper upto-760:col-start-1 upto-760:row-span-3 upto-760:row-start-2 upto-760:h-auto upto-760:w-full",
           hasImage
             ? "border-[1.5px] border-line p-0"
             : "border-[1.5px] border-dashed border-line-soft p-4 upto-760:p-2",
@@ -155,96 +141,91 @@ export default function CoverPicker({
         )}
       </div>
 
-      {ownCovers.length > 0 && (
-        <>
-          <span
-            className="font-mono text-[0.7rem] leading-[1.3] text-muted upto-760:col-start-2 upto-760:row-start-2"
-            id="own-covers-label"
-          >
-            From books you own
-          </span>
-          <div
-            className={grid}
-            role="radiogroup"
-            aria-labelledby="own-covers-label"
-          >
-            {ownCovers.map((own) => {
-              const selected = value === own.url;
-              return (
-                <button
-                  key={own.url}
-                  type="button"
-                  role="radio"
-                  aria-checked={selected}
-                  aria-label={own.name}
-                  title={own.name}
-                  className={clsx(
-                    "group/thumb relative block cursor-pointer focus-visible:outline-none",
-                    selected && "tick-corner",
-                  )}
-                  onClick={() => (selected ? pick("") : pick(own.url))}
-                >
-                  <img
-                    src={coverSrc(own.url)}
-                    alt=""
-                    loading="lazy"
-                    className={thumbClass(selected)}
-                  />
-                </button>
-              );
-            })}
-          </div>
-          {/* which book the picked one is: the thumbnails are small */}
-          <span
-            className="min-h-[1.3em] font-mono text-[0.7rem] leading-[1.3] text-ink-soft upto-760:col-start-2 upto-760:row-start-4"
-            aria-live="polite"
-          >
-            {pickedOwn?.name}
-          </span>
-        </>
-      )}
-
-      <span
-        className={clsx(
-          "min-h-[1em] font-mono text-[0.7rem] leading-[1.3] text-muted empty:hidden upto-760:col-start-2 [&_a]:text-ink-soft [&_a]:underline [&_a]:underline-offset-2",
-          rows.matchesLabel,
-        )}
-        aria-live="polite"
-      >
-        {shownStatus === "loading" && "Looking it up…"}
-        {shownStatus === "done" &&
-          (shown.length ? (
-            <>
-              Matches from{" "}
-              <a href="https://anilist.co" target="_blank" rel="noreferrer">
-                AniList
-              </a>
-            </>
-          ) : (
-            "No covers found for that title"
-          ))}
-        {shownStatus === "error" &&
-          "Couldn't reach AniList, paste a link instead"}
-      </span>
-
-      {shownStatus === "loading" && shown.length === 0 && (
-        <div className={clsx(gridBase, rows.matches)} aria-hidden>
-          {Array.from({ length: 3 }, (_, i) => (
-            <span key={i} className="skeleton block aspect-2/3 w-full" />
-          ))}
-        </div>
-      )}
-
-      {shown.length > 0 && (
-        <div
-          className={clsx(
-            gridBase,
-            rows.matches,
-            shownStatus === "loading" && "opacity-50",
-          )}
-          role="radiogroup"
-          aria-labelledby="cover-label"
+      {/* what the strip under it holds, and on the same line the way back to
+          no cover at all */}
+      <div className="flex min-h-[1em] items-baseline justify-between gap-2 upto-760:col-start-2 upto-760:row-start-2">
+        <span
+          className="font-mono text-[0.7rem] leading-[1.3] text-muted [&_a]:text-ink-soft [&_a]:underline [&_a]:underline-offset-2"
+          aria-live="polite"
         >
+          {/* which book the picked one is: the thumbnails are small */}
+          {pickedOwn ? (
+            <span className="text-ink-soft">{pickedOwn.name}, your book</span>
+          ) : (
+            <>
+              {shownStatus === "loading" && "Looking it up…"}
+              {shownStatus === "done" &&
+                (shown.length ? (
+                  <>
+                    Matches from{" "}
+                    <a
+                      href="https://anilist.co"
+                      target="_blank"
+                      rel="noreferrer"
+                    >
+                      AniList
+                    </a>
+                  </>
+                ) : hasOwn ? (
+                  "From books you own"
+                ) : (
+                  "No covers found for that title"
+                ))}
+              {shownStatus === "error" &&
+                "Couldn't reach AniList, paste a link instead"}
+              {shownStatus === "idle" && hasOwn && "From books you own"}
+            </>
+          )}
+        </span>
+        {value && (
+          <button
+            type="button"
+            className="tap shrink-0 text-[0.8rem] text-ink-soft underline decoration-line-soft underline-offset-3 hover:text-ink hover:decoration-current"
+            onClick={() => pick("")}
+          >
+            No cover
+          </button>
+        )}
+      </div>
+
+      {(hasOwn || shown.length > 0 || searching) && (
+        <div className={grid} role="radiogroup" aria-labelledby="cover-label">
+          {ownCovers.map((own) => {
+            const selected = value === own.url;
+            return (
+              <button
+                key={own.url}
+                type="button"
+                role="radio"
+                aria-checked={selected}
+                aria-label={`${own.name}, your book`}
+                title={own.name}
+                className={clsx(
+                  "group/thumb relative block cursor-pointer focus-visible:outline-none",
+                  selected && "tick-corner",
+                )}
+                onClick={() => (selected ? pick("") : pick(own.url))}
+              >
+                <img
+                  src={coverSrc(own.url)}
+                  alt=""
+                  loading="lazy"
+                  className={thumbClass(selected)}
+                />
+                <span className={yoursTag} aria-hidden>
+                  yours
+                </span>
+              </button>
+            );
+          })}
+          {searching &&
+            Array.from({ length: 3 }, (_, i) => (
+              <span
+                key={i}
+                className="skeleton block aspect-2/3 w-full"
+                aria-hidden
+              />
+            ))}
           {shown.map((r) => {
             const selected = value === r.cover;
             const label =
@@ -262,6 +243,7 @@ export default function CoverPicker({
                 className={clsx(
                   "group/thumb relative block cursor-pointer focus-visible:outline-none",
                   selected && "tick-corner",
+                  shownStatus === "loading" && "opacity-50",
                 )}
                 onClick={() => (selected ? pick("") : pick(r.cover, r))}
               >
@@ -277,19 +259,7 @@ export default function CoverPicker({
         </div>
       )}
 
-      {value && (
-        <button
-          type="button"
-          className="tap self-start text-[0.8rem] text-ink-soft underline decoration-line-soft underline-offset-3 hover:text-ink hover:decoration-current upto-760:col-start-2 upto-760:justify-self-start"
-          onClick={() => pick("")}
-        >
-          No cover
-        </button>
-      )}
-
-      <label
-        className={clsx("upto-760:col-start-2 upto-760:self-start", rows.link)}
-      >
+      <label className="upto-760:col-start-2 upto-760:row-start-4 upto-760:self-start">
         <span className="sr-only">Cover image link</span>
         <input
           type="url"
