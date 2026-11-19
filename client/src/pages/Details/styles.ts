@@ -159,6 +159,11 @@ export const detailsStyles = {
   // "You've read up to ch." and its counter, with room between them, side by
   // side or (on a narrow screen) one above the other
   placeLine: "flex flex-wrap items-center gap-x-3 gap-y-2 [&+&]:mt-2",
+  // counted in an edition's books ("Definitive", "VIZBIG"): on a phone the
+  // counter always takes its own line under the words, with what's inside
+  // the book beside it ("vols. 1–3"), not wrapping onto a third
+  placeLineBooks:
+    "flex flex-wrap items-center gap-x-3 gap-y-2 [&+&]:mt-2 upto-720:flex-col upto-720:items-start upto-720:[&_[role=status]]:static upto-720:[&_[role=status]]:m-0 upto-720:[&_[role=status]]:translate-y-0 upto-720:[&_[role=status]]:text-[0.8rem]",
   // "Keep my place by [Chapter] [Volume]": under what they own, for a
   // series with no place saved. Small plain words, then the two buttons
   pickPlace:
@@ -286,16 +291,20 @@ export const detailsStyles = {
   buy: "min-w-0 border-2 border-line bg-card p-3 shadow-ink-lg upto-720:order-5 upto-720:col-span-full upto-720:border-0 upto-720:border-t-[1.5px] upto-720:border-dashed upto-720:border-line-soft upto-720:bg-transparent upto-720:px-0 upto-720:pt-4 upto-720:pb-0 upto-720:shadow-none",
   buyList: "flex flex-col gap-2",
   // "I own Deluxe 7", quiet under the ticket it records
-  // the stamps under a Next ticket: "I own it", "I ordered it"
-  buyActions: "mt-2 flex flex-wrap items-center gap-2",
+  // the line under a Next ticket: "Got it? I own it · I ordered it", in the
+  // same quiet underline as the gaps' chips
+  buyActions:
+    "mt-1 flex flex-wrap items-center gap-x-2 text-[0.85rem] text-ink-soft",
+  buyAction:
+    "tap inline-flex min-h-9 items-center font-semibold text-ink underline decoration-line-soft underline-offset-3 hover:text-accent hover:decoration-accent disabled:opacity-50 upto-720:min-h-11",
   buyOwnFailed: "ml-3 text-[0.8rem] text-accent",
   buyLink: `${ticket} grid min-h-11 grid-cols-[minmax(0,1fr)_auto] border-dashed border-line bg-paper font-semibold transition-[background-color,border-color] duration-120 ease-[ease] hover:border-accent hover:bg-accent-wash focus-visible:border-accent focus-visible:bg-accent-wash upto-720:grid-cols-[minmax(0,1fr)_auto_auto] upto-720:border-solid upto-720:bg-card`,
   // the one they need next stands out: inked solid in red on a red wash,
   // with a hard shadow, where the rest are dashed paper
-  buyNext: `${ticket} grid min-h-11 grid-cols-[minmax(0,1fr)_auto] border-[2px] border-solid border-accent bg-accent-wash font-semibold shadow-[3px_3px_0_var(--hard-shadow)] transition-[translate,box-shadow] duration-120 ease-[ease] hover:-translate-y-px hover:shadow-[4px_4px_0_var(--hard-shadow)] focus-visible:-translate-y-px upto-720:grid-cols-[minmax(0,1fr)_auto_auto]`,
+  buyNext: `${ticket} grid min-h-11 grid-cols-[minmax(0,1fr)_auto] border-[2px] border-solid border-accent bg-accent-wash font-semibold shadow-[3px_3px_0_var(--hard-shadow)] transition-[translate,box-shadow] duration-120 ease-[ease] hover:-translate-y-px hover:shadow-[4px_4px_0_var(--hard-shadow)] focus-visible:-translate-y-px`,
   // its label in red too
   buyNextKind:
-    "col-span-full font-mono text-[0.72rem] font-medium tracking-[0.06em] whitespace-nowrap text-accent-ink uppercase upto-720:col-span-1",
+    "col-span-full font-mono text-[0.72rem] font-medium tracking-[0.06em] whitespace-nowrap text-accent-ink uppercase",
   // "Missing: Vol. 6, Vol. 7": the gaps before the furthest they own, each a
   // link, on a quiet dashed ticket under Next
   buyGaps: `${ticket} flex-col border-dashed border-line-soft`,
@@ -314,13 +323,13 @@ export const detailsStyles = {
   // phones: Buy it folded under one line, high on the page. The line says
   // the book and its price, so it's worth reading closed
   buyFold:
-    "border-t-[1.5px] border-dashed border-line-soft pt-3 [&[open]>summary>svg]:rotate-180",
+    "mb-6 border-y-[1.5px] border-dashed border-line-soft py-3 [&[open]>summary>svg]:rotate-180",
   buyFoldSummary:
     "tap flex min-h-11 cursor-pointer list-none items-center gap-3 [&::-webkit-details-marker]:hidden",
   buyFoldTitle:
     "font-brand text-[1.35rem] leading-none tracking-[0.03em] uppercase",
   buyFoldTicket:
-    "min-w-0 flex-1 truncate font-mono text-[0.85rem] font-medium text-accent tabular-nums",
+    "min-w-0 flex-1 truncate font-mono text-[0.85rem] font-medium text-accent tabular-nums [details[open]_&]:invisible",
   buyFoldChevron:
     "size-5 shrink-0 text-ink-soft transition-transform duration-200 motion-reduce:transition-none",
   // opened: the box without its own frame, the line above is its heading

@@ -274,10 +274,11 @@ export default function BuyStrip({
               {/* bought it, or ordered it: one tap each, for the book and all
                   its volumes */}
               <span className={styles.buyActions}>
+                <span>Got it?</span>
                 {onOwnBook && (
                   <button
                     type="button"
-                    className="tap stamp-button"
+                    className={styles.buyAction}
                     disabled={owning}
                     aria-label={`I own ${editionBookLabel(line, plan.next)}`}
                     onClick={() => {
@@ -291,10 +292,11 @@ export default function BuyStrip({
                     {owning ? "Saving…" : "I own it"}
                   </button>
                 )}
+                {onOwnBook && onOrdered && <span aria-hidden>·</span>}
                 {onOrdered && (
                   <button
                     type="button"
-                    className="tap stamp-button"
+                    className={styles.buyAction}
                     disabled={ordering}
                     aria-label={`I ordered ${editionBookLabel(line, plan.next)}`}
                     onClick={() => order(plan.next!.volumes, true)}
@@ -378,9 +380,10 @@ export default function BuyStrip({
               {/* bought it somewhere and it's on its way: Next moves past it */}
               {onOrdered && (
                 <span className={styles.buyActions}>
+                  <span>Bought it already?</span>
                   <button
                     type="button"
-                    className="tap stamp-button"
+                    className={styles.buyAction}
                     disabled={ordering}
                     aria-label={`I ordered vol. ${next.volume}`}
                     onClick={() => order([next.volume], true)}

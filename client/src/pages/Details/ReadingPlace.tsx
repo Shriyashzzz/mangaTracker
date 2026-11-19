@@ -165,8 +165,8 @@ export default function ReadingPlace({
       {tracks.volumes && inBooks && edition && (
         // the same place, counted in the edition's books: "VIZBIG 4" is
         // saved as the last volume that book holds
-        <span className={styles.placeLine}>
-          You've read up to {edition.line.label}{" "}
+        <span className={styles.placeLineBooks}>
+          <span>You've read up to {edition.line.label}</span>
           <ChapterStepper
             key={`${manga.id}-${edition.line.key}-${volumeSets}`}
             mangaId={manga.id}
