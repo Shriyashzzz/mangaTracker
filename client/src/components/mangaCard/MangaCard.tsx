@@ -22,6 +22,9 @@ import {
 // what's come out for it on the New tab
 export type CardNews = {
   text: string;
+  // cut short for a phone's row and a compact row ("Def. 3 next"); the
+  // whole of it stays for screen readers and hover
+  short?: string;
   // where they've got to, right under it
   yours?: string;
   // "2 volumes behind", when they are: said under it, and the card goes
@@ -277,7 +280,22 @@ export default function MangaCard({
           <p
             className={`font-brand text-[1.05rem] tracking-[1px] ${news.behind ? "text-ink-soft" : "text-accent"}`}
           >
-            {news.text}
+            {news.short ? (
+              <>
+                <span className={compact ? "sr-only" : "upto-720:sr-only"}>
+                  {news.text}
+                </span>
+                <span
+                  className={compact ? "" : "hidden upto-720:inline"}
+                  title={news.text}
+                  aria-hidden
+                >
+                  {news.short}
+                </span>
+              </>
+            ) : (
+              news.text
+            )}
             {/* on a cover card it has a line of its own (the card is
                 narrow, and the words broke in two); on a phone's row it
                 follows on the same line */}

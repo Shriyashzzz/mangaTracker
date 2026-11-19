@@ -309,6 +309,15 @@ test("the shelf says where they are in the edition they collect", async () => {
       behind: 8,
       upTo: 4,
       nextPublished: null,
+      // this test's line has no ISBNs: the card opens the series' page
+      nextIsbn13: null,
+      nextTitle: null,
+      // books 5 to 12, the eight it's behind
+      toGet: [5, 6, 7, 8, 9, 10, 11, 12].map((number) => ({
+        number,
+        isbn13: null,
+        title: null,
+      })),
     });
     // single volumes: nothing to say
     expect(

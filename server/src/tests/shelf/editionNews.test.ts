@@ -51,7 +51,14 @@ test("someone with every book of their edition has no volume news", () => {
   // a book still to get: the news stands, counted and named in books
   const some = forEdition({ editionPlace: place(5, 8, 4) }, found);
   expect(some?.hasNewVolume).toBe(true);
-  expect(some?.editionBooks).toEqual({ label: "VIZBIG", next: 5, behind: 8 });
+  expect(some?.editionBooks).toEqual({
+    label: "VIZBIG",
+    next: 5,
+    behind: 8,
+    isbn13: null,
+    title: null,
+    toGet: [],
+  });
   // single volumes, and a place sent before books were counted: untouched
   expect(forEdition({ editionPlace: null }, found)).toBe(found);
   const old = { label: "VIZBIG", read: 4, owned: [1] };
@@ -164,4 +171,61 @@ test("a book that isn't out yet stays off the New tab", () => {
   expect(forEdition({ editionPlace: out }, found)?.editionBooks?.next).toBe(13);
   const undated = { ...place(13, 1, 12), nextPublished: null };
   expect(forEdition({ editionPlace: undated }, found)?.hasNewVolume).toBe(true);
+});
+
+test("a New card for an edition opens its next book's price page", async () => {
+  const { buyLinkFor, stampFor } =
+    await import("../../../../client/src/pages/Home/newTabLinks.js");
+  // the single volume the catalog would point to: never where it goes
+  const onSingles = {
+    ...found,
+    nextVolume: 7,
+    currentVolume: 6,
+    latestVolume: 37,
+    nextVolumeBook: { isbn13: "9781591160731", title: "Vagabond, Vol. 7" },
+  };
+  const definitive = {
+    label: "Definitive",
+    read: null,
+    owned: null,
+    next: 3,
+    behind: 4,
+    upTo: 2,
+    nextPublished: "2025-11-11",
+    nextIsbn13: "9781974752669",
+    nextTitle: "Vagabond Definitive Edition, Vol. 3",
+    toGet: [3, 4, 5, 6].map((number) => ({
+      number,
+      isbn13: `97819747526${60 + number}`,
+      title: null,
+    })),
+  };
+  const read = forEdition({ editionPlace: definitive }, onSingles as never);
+  expect(buyLinkFor(read, "volumes")).toBe(
+    "/prices/9781974752669/vagabond-definitive-edition-vol-3",
+  );
+  // the stamp on its cover, cut to fit
+  expect(stampFor(read, "volumes")).toBe("Def. 3");
+  // and its card's words, whole and short
+  expect(editionNews({ editionPlace: definitive })).toMatchObject({
+    text: "Definitive 3 next",
+    short: "Def. 3 next",
+  });
+  // four books behind: the card opens their list, not a page
+  const { opensAList } =
+    await import("../../../../client/src/pages/Home/shelfViews.js");
+  expect(opensAList(read, "volumes")).toBe(true);
+  expect(read?.editionBooks?.toGet?.map((b) => b.number)).toEqual([3, 4, 5, 6]);
+  // just the one: straight to its price page
+  const justOne = forEdition(
+    { editionPlace: { ...definitive, toGet: definitive.toGet.slice(0, 1) } },
+    onSingles as never,
+  );
+  expect(opensAList(justOne, "volumes")).toBe(false);
+  // no catalog lists the book: the series' own page (undefined) instead
+  const unlisted = forEdition(
+    { editionPlace: { ...definitive, nextIsbn13: null } },
+    onSingles as never,
+  );
+  expect(buyLinkFor(unlisted, "volumes")).toBeUndefined();
 });

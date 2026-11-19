@@ -1,6 +1,7 @@
 // The volumes that are out for one series and aren't the reader's yet: what
-// a New card opens when they're more than one behind. Each row leads to
-// that book's prices. From the Chapters list, the English books holding
+// a New card opens when they're more than one behind (collected as an
+// edition, its books: "Definitive 3, 4, 5"). Each row leads to that book's
+// price. From the Chapters list, the English books holding
 // their next chapter and on, each with its chapters, and word of the
 // chapters out that no English volume holds yet. A native dialog: it brings its own focus trap, Escape
 // and backdrop. On phones it's a sheet at the bottom, as tall as its list.
@@ -10,6 +11,7 @@ import KeepRanges from "../../components/keepRanges/KeepRanges";
 import { chaptersText } from "../../lib/chapterWords";
 import { volumePath } from "../../lib/prices";
 import { volumesToGet } from "../../lib/releaseMath";
+import { bookName } from "../../lib/bookName";
 import type { Manga, ReleaseStatus } from "../../lib/types";
 import { homeStyles as styles } from "./styles";
 
@@ -82,12 +84,17 @@ export default function ReleaseModal({
   // every volume past theirs: the count the card gave. For a chapters card,
   // the books holding their next chapter and on
   const byChapter = kind === "chapters";
-  const volumes = byChapter ? [] : volumesToGet(found);
+  // collected as an edition: its books they don't have, not single volumes
+  const edition = byChapter ? null : (found.editionBooks ?? null);
+  const editionBooks = edition?.toGet ?? [];
+  const volumes = byChapter || edition ? [] : volumesToGet(found);
   const books = byChapter ? (found.chapterBooks ?? []) : [];
   const pastEnglish = byChapter ? (found.chaptersPastEnglish ?? null) : null;
-  const title = byChapter
-    ? `${manga.name}: ch. ${count(found.nextChapter ?? 0)} next`
-    : `${manga.name}: ${volumes.length} ${volumes.length === 1 ? "volume" : "volumes"} behind`;
+  let title = `${manga.name}: ${volumes.length} ${volumes.length === 1 ? "volume" : "volumes"} behind`;
+  if (byChapter)
+    title = `${manga.name}: ch. ${count(found.nextChapter ?? 0)} next`;
+  else if (edition)
+    title = `${manga.name}: ${editionBooks.length} ${editionBooks.length === 1 ? "book" : "books"} behind`;
 
   return (
     <dialog
@@ -139,7 +146,7 @@ export default function ReleaseModal({
                     </span>
                   )}
                 </span>
-                <span className={styles.modalRowGo}>See prices</span>
+                <span className={styles.modalRowGo}>See price</span>
               </NavLink>
             ) : (
               <span className={styles.modalName}>
@@ -154,6 +161,27 @@ export default function ReleaseModal({
             )}
           </li>
         ))}
+        {editionBooks.map((b) => {
+          const name = bookName(edition!.label, b.number);
+          return (
+            <li key={b.number} className={styles.modalRow}>
+              {b.isbn13 ? (
+                <NavLink
+                  to={volumePath(b.isbn13, b.title ?? name)}
+                  className={styles.modalRowLink}
+                  onClick={keepSpot}
+                  viewTransition
+                >
+                  {name}
+                  <span className={styles.modalRowGo}>See price</span>
+                </NavLink>
+              ) : (
+                // out, but no catalog lists it to price
+                <span className={styles.modalName}>{name}</span>
+              )}
+            </li>
+          );
+        })}
         {volumes.map((v) => (
           <li key={v.volume} className={styles.modalRow}>
             {v.isbn13 ? (
@@ -164,7 +192,7 @@ export default function ReleaseModal({
                 viewTransition
               >
                 Vol. {v.volume}
-                <span className={styles.modalRowGo}>See prices</span>
+                <span className={styles.modalRowGo}>See price</span>
               </NavLink>
             ) : (
               // out, but we have no book on file for it to price

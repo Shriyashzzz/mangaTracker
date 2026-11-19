@@ -461,16 +461,15 @@ function Library() {
     // their first gap as the next, for a reader who chose that
     const found = withGapFirst(releases[m.id], nextFor);
     const detailsTo = `/details/${m.id}${detailsSearchFor(releaseKind) ?? ""}`;
-    // collected as an edition: its next book is on the series' own page
-    // (Buy next), not a single volume's price page or a list of volumes
+    // collected as an edition: its next book's price page (buyLinkFor), or
+    // the series' page; never a list of single volumes
     const inBooks = releaseKind === "volumes" && Boolean(found?.editionBooks);
-    const opensList =
-      !viewingHidden && !inBooks && opensAList(found, releaseKind);
+    const opensList = !viewingHidden && opensAList(found, releaseKind);
     // Japan being ahead isn't them being behind: no "3 behind" there
     const behind =
       releaseKind === "japan" ? 0 : volumesBehind(found, releaseKind);
     return {
-      to: inBooks ? detailsTo : (buyLinkFor(found, releaseKind) ?? detailsTo),
+      to: buyLinkFor(found, releaseKind) ?? detailsTo,
       onOpen: opensList ? () => setOpenList(m.id) : undefined,
       stamp: stampFor(found, releaseKind),
       behind: behind > 0 ? behind : undefined,

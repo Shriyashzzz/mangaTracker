@@ -11,6 +11,8 @@
 type Book = {
   number: number;
   volumes: number[];
+  isbn13?: string | null;
+  title?: string | null;
   listed?: boolean;
   sure?: boolean;
   published?: string | null;
@@ -38,6 +40,13 @@ export type EditionPlace = {
   // null when none does. The page leaves a book that's still coming off the
   // New tab (client lib/editionNews.ts)
   nextPublished: string | null;
+  // that book's ISBN and its catalog title, for its price page; null when
+  // no catalog lists it (the card then opens the series' page)
+  nextIsbn13: string | null;
+  nextTitle: string | null;
+  // every book out that they don't have, in order, for the New tab's list
+  // ("Definitive 3, 4, 5, 6"): what `behind` counts
+  toGet: { number: number; isbn13: string | null; title: string | null }[];
 };
 
 export function editionPlaceOf(
@@ -84,6 +93,7 @@ export function editionPlaceOf(
     whole.includes(book) || lastOf(book) <= (readVolume ?? 0);
   const furthest = books.map(had).lastIndexOf(true);
   const next = books.slice(furthest + 1).find((book) => !had(book)) ?? null;
+  const toGet = books.filter((book) => !had(book) && !comesLater(book));
 
   return {
     label: line.label,
@@ -91,8 +101,15 @@ export function editionPlaceOf(
     owned: allInBooks ? whole.map((book) => book.number) : null,
     next: next?.number ?? null,
     nextPublished: next?.published ?? null,
+    nextIsbn13: next?.isbn13 ?? null,
+    nextTitle: next?.title ?? null,
     // (a book with a day still to come isn't one they're behind on)
-    behind: books.filter((book) => !had(book) && !comesLater(book)).length,
+    behind: toGet.length,
+    toGet: toGet.map((book) => ({
+      number: book.number,
+      isbn13: book.isbn13 ?? null,
+      title: book.title ?? null,
+    })),
     upTo: furthest < 0 ? null : books[furthest]!.number,
   };
 }

@@ -28,6 +28,8 @@ export type Releases = Record<number, ReleaseStatus | null>;
 export type CardNews = {
   // what's next ("Vol. 13 next"); empty when we can't say which is next
   text: string;
+  // the same, cut short for a phone's row ("Def. 3 next"), when it's long
+  short?: string;
   yours?: string;
   // "2 volumes behind", when they are: the card says it under the text,
   // and goes grey
@@ -168,9 +170,12 @@ export const opensAList = (
   kind === "chapters"
     ? // the books holding their next chapter, or word of where it is
       found?.nextChapter != null
-    : // (an edition's books to get are on the series' page, not a list of
-      // single volumes)
-      kind === "volumes" && !found?.editionBooks && behindOf(found, kind) > 1;
+    : // more than one out past theirs: the list of them. For an edition,
+      // its books ("Definitive 3, 4, 5"), never the single volumes
+      kind === "volumes" &&
+      (found?.editionBooks
+        ? (found.editionBooks.toGet?.length ?? 0) > 1
+        : behindOf(found, kind) > 1);
 
 // what "Hide" on its card hides up to: the one it shows
 export const newestOf = (
@@ -346,6 +351,7 @@ export function newsFor(
   if (inBooks)
     return {
       text: inBooks.text,
+      short: inBooks.short,
       behind: inBooks.behind,
       yours: inBooks.yours ?? volumeYours,
     };

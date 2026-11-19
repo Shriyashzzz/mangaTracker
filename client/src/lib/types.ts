@@ -43,6 +43,11 @@ export type Manga = {
     upTo?: number | null;
     // the day their next book came out or comes out, when a catalog says
     nextPublished?: string | null;
+    // that book's ISBN and title, for its price page
+    nextIsbn13?: string | null;
+    nextTitle?: string | null;
+    // the books out that they don't have, for the New tab's list
+    toGet?: EditionBookToGet[];
   } | null;
   // the series it's an entry of, edition or not: two entries with the same
   // key are one series ("Vagabond" and "Vagabond VIZBIG Edition"), and the
@@ -102,7 +107,16 @@ export type ReleaseStatus = {
   // Never sent by the server: put on by lib/editionNews.ts for a series
   // collected as an edition that has a book still to get. The New tab then
   // counts and names in that edition's books ("VIZBIG 5", 8 to get)
-  editionBooks?: { label: string; next: number; behind: number };
+  editionBooks?: {
+    label: string;
+    next: number;
+    behind: number;
+    // the next book's ISBN and title: its price page is where the card goes
+    isbn13?: string | null;
+    title?: string | null;
+    // every book out that they don't have, in order (the list a card opens)
+    toGet?: EditionBookToGet[];
+  };
   hasNewVolume: boolean;
   hasNewChapter: boolean;
   // out in Japan past what they own and what's in English; a blank on the shelf
@@ -446,4 +460,11 @@ export type SeriesIndexEntry = {
   status: string | null;
   volumes: number | null;
   knownVolumes: number;
+};
+
+// a book of the edition they collect that's out and not theirs yet
+export type EditionBookToGet = {
+  number: number;
+  isbn13: string | null;
+  title: string | null;
 };
