@@ -18,6 +18,7 @@ import { LAST_NEW_COUNT_KEY } from "../../lib/shelf";
 import { shownNewCount } from "../../lib/releaseMath";
 import { editionReleases } from "../../lib/editionNews";
 import { showOnIcon } from "../../lib/alerts";
+import { offlineLink, useIsOffline } from "../../lib/offline";
 import {
   forgetAllSpots,
   forgetSpot,
@@ -57,6 +58,8 @@ export default function Header() {
   // opened from a card on the New tab: still part of what they were doing there
   const fromShelf = useFromShelf();
   const { isSignedIn, logOut } = useAuth();
+  // prices and New need a connection: greyed out without one
+  const offline = useIsOffline();
   const here = pathname + search;
   // the shelf's New view has its own place in the phones' bar
   const onNew =
@@ -197,6 +200,7 @@ export default function Header() {
             className={linkClass(onPrices)}
             aria-current={onPrices ? "page" : undefined}
             viewTransition
+            {...offlineLink(offline)}
           >
             Prices
           </Link>
@@ -267,6 +271,7 @@ export default function Header() {
               data-on={onNew || undefined}
               aria-label={newCount ? `New: ${newCount} series` : "New"}
               viewTransition
+              {...offlineLink(offline)}
             >
               New
               {newCount > 0 && <span className={barCount}>{newCount}</span>}
@@ -277,6 +282,7 @@ export default function Header() {
             className={barClass(onPrices)}
             aria-current={onPrices ? "page" : undefined}
             viewTransition
+            {...offlineLink(offline)}
           >
             Prices
           </Link>

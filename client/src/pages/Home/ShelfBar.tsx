@@ -18,6 +18,7 @@ import {
 import { SORT_OPTIONS } from "../../lib/shelf";
 import { shelfBarStyles as styles } from "./shelfBarStyles";
 import { keepFocus } from "../../lib/keepFocus";
+import { offlineLink, useIsOffline } from "../../lib/offline";
 
 type ShelfView = {
   value: string;
@@ -93,6 +94,7 @@ export default function ShelfBar({
   onSelect?: () => void;
 }) {
   const shown = views.find((v) => v.value === current) ?? views[0]!;
+  const offline = useIsOffline();
   // the view they were on before New, for the way back (All if they arrived
   // on New)
   const [cameFrom, setCameFrom] = useState(current === "new" ? "all" : current);
@@ -118,6 +120,8 @@ export default function ShelfBar({
             aria-current={v.value === shown.value ? "page" : undefined}
             data-tour={v.value === "new" ? "tab-new" : undefined}
             onClick={() => onPick(v.value)}
+            // New checks for releases: it needs a connection
+            {...offlineLink(offline && v.value === "new")}
           >
             <span className={styles.tabWord}>{v.label}</span>
             <Count view={v} />

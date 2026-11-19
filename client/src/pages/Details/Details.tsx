@@ -126,9 +126,32 @@ export default function Details() {
 
   // ---------- loading ----------
   useEffect(() => {
+    // The series from the shelf list this device keeps (the service worker's
+    // copy of /api/manga): with no signal, every series on the shelf opens,
+    // not only the ones opened online before. Null when it isn't there
+    async function fromKeptShelf(): Promise<Manga | null> {
+      const inStore = useShelf
+        .getState()
+        .manga?.find((m) => m.id === Number(id));
+      if (inStore) return inStore;
+      try {
+        const res = await apiFetch("/api/manga");
+        if (!res.ok) return null;
+        const { manga } = (await res.json()) as { manga: Manga[] };
+        return manga.find((m) => m.id === Number(id)) ?? null;
+      } catch {
+        return null;
+      }
+    }
     async function getManga() {
       try {
-        const response = await apiFetch(`/api/manga/${id}`);
+        let response = await apiFetch(`/api/manga/${id}`).catch(() => null);
+        // no signal and this series not kept on its own: the shelf's copy
+        if (!response || response.status === 503) {
+          const kept = await fromKeptShelf();
+          if (!kept) throw new Error("offline");
+          response = new Response(JSON.stringify({ manga: kept }));
+        }
         // what the server says, not what this page last thought: a session
         // that's expired since still needs a sign in
         if (response.status === 401) {

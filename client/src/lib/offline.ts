@@ -15,6 +15,25 @@ type OfflineState = {
   savedAt: number | null;
 };
 
+// Offline as the screen sees it: no connection, or the copy on screen is the
+// kept one (a signal too weak to answer). What needs a live answer (prices,
+// the New tab's checks) is greyed out then: offlineLink below
+export const useIsOffline = () =>
+  useOffline((s) => !s.online || s.savedAt != null);
+
+// A link or tab that needs a connection, greyed and doing nothing while
+// offline (index.css [data-offline]). Spread last, so its onClick wins
+export const offlineLink = (offline: boolean) =>
+  offline
+    ? {
+        "aria-disabled": true,
+        "data-offline": true,
+        tabIndex: -1,
+        title: "Needs a connection",
+        onClick: (e: { preventDefault: () => void }) => e.preventDefault(),
+      }
+    : {};
+
 export const useOffline = create<OfflineState>()(() => ({
   online: typeof navigator === "undefined" ? true : navigator.onLine,
   savedAt: null,
