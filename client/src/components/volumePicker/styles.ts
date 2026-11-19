@@ -18,6 +18,21 @@ export const volumePickerStyles = {
     "flex h-[74px] w-[22px] flex-col items-center justify-end border-[1.5px] border-line bg-ink upto-760:h-[58px] upto-760:w-[20px] pb-1 text-paper transition-[height] duration-150 ease-ink motion-reduce:transition-none",
   spineDown:
     "flex h-[58px] w-[22px] upto-760:h-[44px] upto-760:w-[20px] origin-bottom-left rotate-[4deg] flex-col items-center justify-end border-[1.5px] border-dashed border-ink-soft/45 bg-paper pb-1 text-muted transition-[rotate,height] duration-150 ease-ink group-hover:rotate-0 group-hover:text-ink motion-reduce:transition-none",
+  // An edition's books (VIZBIG, Deluxe): thicker than a volume. Theirs stand
+  // inked; one they own part of is inked part of the way down; the rest
+  // lean pale like any spine. A single volume among them keeps a volume's
+  // width (bookSingle)
+  bookSlot:
+    "tap group flex h-[80px] w-[38px] upto-760:h-[64px] upto-760:w-[30px] shrink-0 cursor-pointer items-end justify-center border-b-[3px] border-double border-line pb-0.5 focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-accent focus-visible:outline-dashed",
+  bookUp:
+    "flex h-[74px] w-[32px] flex-col items-center justify-end border-[1.5px] border-line bg-ink upto-760:h-[58px] upto-760:w-[25px] pb-1 text-paper transition-[height] duration-150 ease-ink motion-reduce:transition-none",
+  bookDown:
+    "flex h-[58px] w-[32px] upto-760:h-[44px] upto-760:w-[25px] origin-bottom-left rotate-[4deg] flex-col items-center justify-end border-[1.5px] border-dashed border-ink-soft/45 bg-paper pb-1 text-muted transition-[rotate,height] duration-150 ease-ink group-hover:rotate-0 group-hover:text-ink motion-reduce:transition-none",
+  bookPart:
+    "flex h-[66px] w-[32px] upto-760:h-[51px] upto-760:w-[25px] flex-col items-center justify-end border-[1.5px] border-line bg-[linear-gradient(to_bottom,var(--ink)_var(--part),var(--paper)_var(--part))] pb-1 text-ink",
+  bookSingle: "w-[22px]! upto-760:w-[20px]!",
+  // "VIZBIG 5: you have vol. 14 of 13–15. Own the whole book?" and its answers
+  ask: "flex flex-wrap items-baseline gap-x-3 gap-y-1 text-[0.84rem] text-ink-soft",
   number: "font-brand text-[0.9rem] leading-none tabular-nums",
   // three digits on a 22px spine
   numberSmall:

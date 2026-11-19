@@ -9,6 +9,10 @@
 // smaller spines, ten to a row.
 // The form reads `volumesOwned` and `ownedList` (comma separated) from its
 // fields, as it reads everything else.
+// For a series collected as an edition (`edition`), the bookcase holds that
+// edition's books instead, as the details page's shelf does: tap a book to
+// own every volume in it (lib/editionShelf.ts). What the form sends is still
+// volumes.
 import {
   useId,
   useRef,
@@ -16,6 +20,15 @@ import {
   type PointerEvent,
   type ReactNode,
 } from "react";
+import {
+  ownedCaption,
+  shareOwned,
+  slotName,
+  spineOf,
+  stateOf,
+  toggleSlot,
+  type EditionShelf,
+} from "../../lib/editionShelf";
 import { ownedOf, ownedVolumes, rangesText } from "../../lib/ownedVolumes";
 import { formStyles } from "../../styles/form";
 import { volumePickerStyles as styles } from "./styles";
@@ -59,12 +72,17 @@ export function useVolumePicker(
   // how many volumes are out, as far as the price list knows: the count
   // says "of 113". Not a limit: the list can lag behind what's out
   out?: number | null,
+  // the edition they collect, and its books; null for single volumes
+  edition: EditionShelf | null = null,
 ): {
   field: ReactNode;
   // the edit form's manga arrives after the page: start from it
   reset: (to: Start) => void;
 } {
   const [owned, setOwned] = useState<number[]>(() => ownedOf(start));
+  // an edition's book they own part of, tapped: asked about before it's
+  // completed
+  const [asking, setAsking] = useState<number | null>(null);
   // box sets: what was already theirs, or typed as "up to". Never mid-drag, so
   // nothing folds away from under a finger
   const [folds, setFolds] = useState<Run[]>(() => fullRuns(ownedOf(start)));
@@ -426,6 +444,105 @@ export function useVolumePicker(
     </div>
   );
 
+  // ---------- the same bookcase, holding an edition's books ----------
+  const slots = edition?.slots ?? [];
+  const tapSlot = (number: number) => {
+    const slot = slots[number - 1];
+    if (!slot) return;
+    if (stateOf(slot, owned) === "part") return setAsking(number);
+    setAsking(null);
+    setOwned(toggleSlot(slot, owned));
+  };
+  const askedSlot = asking ? slots[asking - 1] : null;
+  // volumes with no book on this shelf (10.5, a vol. 0)
+  const inASlot = new Set(slots.flatMap((slot) => slot.volumes));
+  const offEditionShelf = owned.filter((v) => !inASlot.has(v));
+  const editionField = edition && (
+    <div className={styles.field} data-tour="volume-picker">
+      <div className={styles.head}>
+        <span className={formStyles.label} id={labelId}>
+          Your shelf <span className={formStyles.optional}>(optional)</span>
+        </span>
+      </div>
+      <p className={styles.note} id={`${labelId}-how`}>
+        Each spine is a {edition.line.label} book. Tap the ones you own.
+      </p>
+      {/* what the form sends: volumes, as ever */}
+      <input
+        type="hidden"
+        name="volumesOwned"
+        value={saved.volumesOwned ?? ""}
+      />
+      <input type="hidden" name="ownedList" value={saved.ownedList.join(",")} />
+      <div
+        className={styles.shelf}
+        role="group"
+        aria-labelledby={labelId}
+        aria-describedby={`${labelId}-how`}
+      >
+        {slots.map((slot, i) => (
+          <Spine
+            key={i}
+            volume={i + 1}
+            yours={stateOf(slot, owned) === "all"}
+            onKeyboard={() => {}}
+            book={{
+              label: spineOf(slot),
+              name: slotName(edition.line, slot, owned),
+              share: shareOwned(slots, owned, i + 1),
+              single: !slot.book,
+              onTap: () => tapSlot(i + 1),
+            }}
+          />
+        ))}
+      </div>
+      {askedSlot && (
+        <p className={styles.ask} role="group" aria-label="Own the whole book?">
+          <span>
+            {slotName(edition.line, askedSlot, owned)}. Own the whole book?
+          </span>
+          <button
+            type="button"
+            className={styles.clear}
+            onClick={() => {
+              setAsking(null);
+              setOwned(toggleSlot(askedSlot, owned));
+            }}
+          >
+            Yes, all of it
+          </button>
+          <button
+            type="button"
+            className={styles.clear}
+            onClick={() => setAsking(null)}
+          >
+            No
+          </button>
+        </p>
+      )}
+      <div className={styles.foot}>
+        <p className={styles.said} aria-live="polite">
+          {owned.length ? ownedCaption(slots, owned) : "None yet"}
+        </p>
+        {owned.length > 0 && (
+          <button
+            type="button"
+            className={styles.clear}
+            onClick={() => {
+              setOwned([]);
+              setAsking(null);
+            }}
+          >
+            Clear
+          </button>
+        )}
+      </div>
+      {offEditionShelf.length > 0 && (
+        <p className={styles.note}>Also: vol. {rangesText(offEditionShelf)}</p>
+      )}
+    </div>
+  );
+
   const reset = (to: Start) => {
     const list = ownedOf(to);
     setOwned(list);
@@ -436,5 +553,5 @@ export function useVolumePicker(
     setShown(Math.max(FIRST_SHOWN, roundUp((list[list.length - 1] ?? 0) + 1)));
   };
 
-  return { field, reset };
+  return { field: editionField || field, reset };
 }

@@ -20,6 +20,9 @@ import StatusField, {
   type Stage,
 } from "../../components/statusField/StatusField";
 import { useBuyOptions } from "../Details/useBuyOptions";
+import { useEditions } from "../Details/useEditions";
+import { slotsOf } from "../../lib/editionShelf";
+import { ownedOf } from "../../lib/ownedVolumes";
 import { priceName } from "../../lib/prices";
 import {
   firstProblemField,
@@ -62,9 +65,22 @@ export function UpdateManga() {
     volumesOwned: mangaData?.volumesOwned ?? null,
     ownedList: mangaData?.ownedList,
   });
+  // the edition they collect: the picker then holds its books, as the
+  // details page's shelf does. Only with the number of volumes out known
+  const editions = useEditions(
+    mangaData && !mangaData.lightNovel ? priceName(mangaData) : null,
+    mangaData?.id ?? null,
+    mangaData?.edition,
+    mangaData ? ownedOf(mangaData) : [],
+    series.volumes.map((v) => v.isbn13),
+  );
+  const out = series.latest?.volume ?? null;
   const volumes = useVolumePicker(
     { volumesOwned: null },
-    series.latest?.volume ?? null,
+    out,
+    editions.line && out
+      ? { line: editions.line, slots: slotsOf(editions.line, out) }
+      : null,
   );
   const { reset: resetVolumes } = volumes;
   // once the manga's here, the picker starts from what it has
