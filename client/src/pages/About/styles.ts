@@ -57,6 +57,11 @@ export const aboutStyles = {
     "tap mt-1 py-1 font-medium text-ink underline decoration-accent decoration-2 underline-offset-3 hover:decoration-line",
 
   cta: "flex flex-wrap justify-center gap-3",
+  // "Install Manga Tracker as an app": only where it can be (empty, and
+  // hidden, everywhere else)
+  installLine: "-mt-2 text-center empty:hidden",
+  installButton:
+    "tap py-1 font-medium text-ink underline decoration-accent decoration-2 underline-offset-3 hover:decoration-line",
 
   // ---------- getting in touch, and the credits ----------
   contact:

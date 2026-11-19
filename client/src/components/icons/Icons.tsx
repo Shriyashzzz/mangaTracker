@@ -174,6 +174,14 @@ export const ImportIcon = (props: IconProps) => (
   </svg>
 );
 
+// a phone with an arrow down into it: "Install the app"
+export const InstallIcon = (props: IconProps) => (
+  <svg {...base} {...props}>
+    <rect x="6" y="2.5" width="12" height="19" rx="2.5" />
+    <path d="M12 7v7M9 11l3 3 3-3" />
+  </svg>
+);
+
 export const InfoIcon = (props: IconProps) => (
   <svg {...base} {...props}>
     <circle cx="12" cy="12" r="9" />

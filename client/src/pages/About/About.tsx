@@ -9,6 +9,7 @@ import { usePageMeta } from "../../lib/seo";
 import { CoffeeIcon } from "../../components/icons/Icons";
 import { SUPPORT_URL, stopAsking } from "../../lib/support";
 import { useAuth } from "../../store/auth";
+import InstallAppButton from "../../components/installApp/InstallAppButton";
 
 const CONTACT_EMAIL = "ghimireshriyash@gmail.com";
 
@@ -177,6 +178,12 @@ export function AboutPage() {
         </NavLink>
         <TakeTourButton large>Try the demo first →</TakeTourButton>
       </div>
+      {/* on a phone or a laptop that can install it; nothing elsewhere */}
+      <p className={styles.installLine}>
+        <InstallAppButton className={styles.installButton}>
+          Install Manga Tracker as an app →
+        </InstallAppButton>
+      </p>
 
       <section className={styles.contact} aria-labelledby="contact-title">
         <h2 id="contact-title" className={styles.contactTitle}>

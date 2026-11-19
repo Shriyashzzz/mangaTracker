@@ -6,6 +6,7 @@ import {
   CoffeeIcon,
   ImportIcon,
   InfoIcon,
+  InstallIcon,
   MoonIcon,
   SettingsIcon,
   ShareIcon,
@@ -25,6 +26,8 @@ import type { Background } from "../../lib/types";
 import clsx from "clsx";
 import Avatar from "../avatar/Avatar";
 import { useAccount } from "../../store/account";
+import { openInstallBox, useInstallWay } from "../../lib/install";
+import InstallSheet from "../installApp/InstallSheet";
 
 // one row of the menu: a button or link
 const item =
@@ -95,6 +98,11 @@ export default function SettingsMenu({ isSignedIn, onLogOut }: Props) {
   if (openOn && openOn !== pathname) setOpenOn(null);
   const open = openOn === pathname;
   const close = () => setOpenOn(null);
+  // putting the site on this device as an app: the browser's own box, or on
+  // an iPhone the steps, in a sheet kept outside the menu (which closes as
+  // the row is tapped)
+  const installWay = useInstallWay();
+  const [showInstallSteps, setShowInstallSteps] = useState(false);
 
   // the account's preferences can arrive after sign in, so re-read on open
   const toggle = () => {
@@ -295,6 +303,22 @@ export default function SettingsMenu({ isSignedIn, onLogOut }: Props) {
               FAQ
             </NavLink>
           </li>
+          {installWay && (
+            <li>
+              <button
+                type="button"
+                className={item}
+                onClick={() =>
+                  installWay === "prompt"
+                    ? void openInstallBox()
+                    : setShowInstallSteps(true)
+                }
+              >
+                <InstallIcon />
+                Install the app
+              </button>
+            </li>
+          )}
           <li>
             <a
               href={SUPPORT_URL}
@@ -319,6 +343,9 @@ export default function SettingsMenu({ isSignedIn, onLogOut }: Props) {
             </>
           )}
         </ul>
+      )}
+      {showInstallSteps && (
+        <InstallSheet onClose={() => setShowInstallSteps(false)} />
       )}
     </div>
   );
