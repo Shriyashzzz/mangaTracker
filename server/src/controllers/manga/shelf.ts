@@ -5,6 +5,8 @@
 import { isShown } from "../../models/bookQueries.js";
 import { ownedSet } from "../../collector/shelfMath.js";
 import { editionStamp } from "../../util/shelf/editionStamp.js";
+import { editionPlaceOf } from "../../util/shelf/editionPlace.js";
+import { shelfEditionLines } from "../../collector/shelfSeries.js";
 import { withoutEdition } from "../../util/shelf/editionNames.js";
 import { slugify } from "../../prices/stores/match.js";
 import type { NextFunction, Request, Response } from "express";
@@ -35,18 +37,26 @@ import {
 //                 with the same key are one series, and the shelf offers to
 //                 merge them ("Vagabond" and "Vagabond VIZBIG Edition")
 //   plainName     its name without the edition's words, when it has any
+//   editionPlace  where they are in the edition they collect ("VIZBIG 4"),
+//                 for a series collected in one (util/shelf/editionPlace.ts)
 export const list = async (req: Request, res: Response) => {
   const userId = req.session.userId!;
   const [shelf, books] = await Promise.all([
     mangaQueries.getShelf(userId),
     bookQueries.shelfBooksBySeries(userId),
   ]);
+  // (never the reason the shelf doesn't open: without it cards say volumes)
+  const lines = await shelfEditionLines(shelf).catch(() => new Map());
   res.json({
     manga: shelf.map((m) => {
       const plainName = withoutEdition(m.name);
       const theirs = (books.get(m.id) ?? []).filter((b) => isShown(b, m));
+      const line = lines.get(m.id);
       return {
         ...m,
+        editionPlace: line
+          ? editionPlaceOf(line, m.readVolume, [...ownedSet(m)])
+          : null,
         editionStamp: editionStamp(theirs, ownedSet(m)),
         seriesKey: `${slugify(plainName)}${m.lightNovel ? ":novel" : ""}`,
         plainName: plainName === m.name ? null : plainName,

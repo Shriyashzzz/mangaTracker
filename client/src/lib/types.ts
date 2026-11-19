@@ -29,6 +29,14 @@ export type Manga = {
   // the edition they own most of it in, for the stamp on its card
   // ("Definitive +2"); null when that's single volumes. From the server
   editionStamp?: { label: string; short: string; more: number } | null;
+  // where they are in the edition they collect, for a card: the book their
+  // read volume is in, and the books they own when it's whole books only
+  // (the server's util/shelf/editionPlace.ts). Null for single volumes
+  editionPlace?: {
+    label: string;
+    read: number | null;
+    owned: number[] | null;
+  } | null;
   // the series it's an entry of, edition or not: two entries with the same
   // key are one series ("Vagabond" and "Vagabond VIZBIG Edition"), and the
   // shelf offers to merge them. `plainName`: its name without the edition's

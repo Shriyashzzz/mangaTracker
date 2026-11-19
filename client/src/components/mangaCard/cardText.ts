@@ -6,8 +6,14 @@ import type { Manga } from "../../lib/types";
 
 // "own vols. 1–10": a collector of the books, no chapter kept. What they own
 // says where they are, never "not started"
-export function ownedTextOf(owned: number[]) {
+// For someone collecting an edition, in its books: "own VIZBIG 1–4"
+export function ownedTextOf(
+  owned: number[],
+  edition?: { label: string; owned: number[] | null } | null,
+) {
   if (!owned.length) return null;
+  if (edition?.owned?.length)
+    return `own ${edition.label} ${rangesText(edition.owned)}`;
   const word = owned.length === 1 ? "vol." : "vols.";
   return `own ${word} ${rangesText(owned)}`;
 }

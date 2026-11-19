@@ -177,7 +177,7 @@ export default function MangaCard({
   const progressSaysPlace =
     !currentManga.status && reading > 0 && knownTotal != null;
   const owned = ownedOf(currentManga);
-  const ownedText = ownedTextOf(owned);
+  const ownedText = ownedTextOf(owned, currentManga.editionPlace);
   // where they are: the chapter they're on, the volume they've read, or both
   const placeText = placeOf(currentManga, trackingBy);
   const genre = genreOf(currentManga);

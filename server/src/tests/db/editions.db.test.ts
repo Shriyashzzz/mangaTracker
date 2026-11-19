@@ -7,6 +7,7 @@ import { app } from "../../app.js";
 import userQueries from "../../models/userQueries.js";
 import { findOnShelf } from "../../prices/service.js";
 import { answeredVolumes } from "../../util/shelf/bookVolumeAnswers.js";
+import { volumesKey } from "../../prices/volumesKey.js";
 import { sameSeriesGroups } from "../../../../client/src/lib/sameSeries.js";
 import { closeDb, emptyDb, prisma } from "./testDb.js";
 
@@ -252,4 +253,64 @@ test("an answer needs a real ISBN and whole volumes, and a signed-in reader", as
     .post("/api/manga/book-volumes")
     .send({ isbn13: "9781632368164", volumes: [1] });
   expect(guest.status).toBe(401);
+});
+
+// ---------- a card's place in the edition they collect ----------
+test("the shelf says where they are in the edition they collect", async () => {
+  const { agent, userId } = await signedIn();
+  const NAME = "Zzplace Edition Series";
+  const key = `${volumesKey(NAME)}:editions`;
+  const three = (book: number) => [book * 3 - 2, book * 3 - 1, book * 3];
+  await prisma.seriesVolumes.deleteMany({ where: { key } });
+  await prisma.seriesVolumes.create({
+    data: {
+      key,
+      volumes: [
+        {
+          key: "vizbig",
+          kind: "omnibus",
+          label: "VIZBIG",
+          books: Array.from({ length: 12 }, (_, i) => ({
+            number: i + 1,
+            volumes: three(i + 1),
+            isbn13: null,
+            title: null,
+            listed: true,
+          })),
+        },
+      ],
+    },
+  });
+  try {
+    await prisma.manga.create({
+      data: {
+        userId,
+        name: NAME,
+        edition: "vizbig",
+        byVolume: true,
+        readVolume: 12,
+        volumesOwned: 12,
+      },
+    });
+    await prisma.manga.create({
+      data: { userId, name: "Zzplace Plain Series", readVolume: 3 },
+    });
+    type WithPlace = {
+      name: string;
+      editionPlace: { label: string; read: number; owned: number[] } | null;
+    };
+    const res = await agent.get("/api/manga").expect(200);
+    const sent = res.body.manga as WithPlace[];
+    expect(sent.find((m) => m.name === NAME)?.editionPlace).toEqual({
+      label: "VIZBIG",
+      read: 4,
+      owned: [1, 2, 3, 4],
+    });
+    // single volumes: nothing to say
+    expect(
+      sent.find((m) => m.name === "Zzplace Plain Series")?.editionPlace,
+    ).toBeNull();
+  } finally {
+    await prisma.seriesVolumes.deleteMany({ where: { key } });
+  }
 });

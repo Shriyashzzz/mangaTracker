@@ -26,6 +26,8 @@ export const placeText = (
     byVolume?: boolean;
     bookmark: number | null;
     readVolume?: number | null;
+    // the edition they collect: the volume is then said as its book
+    editionPlace?: { label: string; read: number | null } | null;
   },
   mode: TrackBy,
   // "read vol. 5": where the volumes owned sit beside it as "Vol. 1–7" (a
@@ -36,7 +38,12 @@ export const placeText = (
   const parts: string[] = [];
   if (tracks.chapters && m.bookmark) parts.push(`ch. ${m.bookmark}`);
   if (tracks.volumes && m.readVolume) {
-    const volume = `vol. ${m.readVolume}`;
+    // "VIZBIG 4" for someone collecting VIZBIG; "vol. 12" otherwise, and
+    // for a volume their edition has no book for
+    const book = m.editionPlace?.read;
+    const volume = book
+      ? `${m.editionPlace!.label} ${book}`
+      : `vol. ${m.readVolume}`;
     parts.push(saysRead ? `read ${volume}` : volume);
   }
   return parts.length ? parts.join(" · ") : null;
