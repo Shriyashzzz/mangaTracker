@@ -139,7 +139,9 @@ export default function ReadingPlace({
         <span className={styles.placeLine}>
           You've read up to ch.{" "}
           <ChapterStepper
-            key={manga.id}
+            // a new one when the series is asked for again (coming back to
+            // the app): it starts from what's saved
+            key={`${manga.id}-${volumeSets}`}
             mangaId={manga.id}
             value={manga.bookmark}
             newest={newestChapter}

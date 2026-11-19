@@ -16,6 +16,7 @@ import { NavLink, useNavigate, useParams, useSearchParams } from "react-router";
 import { apiFetch } from "../../lib/api";
 import { getBooks, ownEditionBook } from "../../lib/booksApi";
 import { waitingChanges, withChanges } from "../../lib/offlineChanges";
+import { CAME_BACK } from "../../lib/comeBack";
 import { type EditionBook, type EditionLine } from "../../lib/editions";
 import { slotsOf } from "../../lib/editionShelf";
 import { todayOf } from "../../lib/editionNews";
@@ -153,6 +154,10 @@ export default function Details() {
         // as it is on this device: with what was changed offline, not sent
         const thisManga = withChanges(fromServer, await waitingChanges());
         setMangaData(thisManga);
+        if (cameBackNow.current) {
+          cameBackNow.current = false;
+          setVolumeSets((n) => n + 1);
+        }
         setMangaStatus(thisManga.status);
         setPlanned(Boolean(thisManga.planned));
       } catch {
@@ -161,6 +166,22 @@ export default function Details() {
     }
     getManga();
   }, [id, loadTry, navigate]);
+
+  // back after a while away (lib/comeBack.ts): the series is asked for
+  // again, its counters start over from what's saved, and its news is
+  // checked again
+  // (the counters start over once the fresh series has come: before, they'd
+  // start from the old numbers)
+  const cameBackNow = useRef(false);
+  useEffect(() => {
+    const again = () => {
+      cameBackNow.current = true;
+      setLoadTry((n) => n + 1);
+      setChapterSaves((n) => n + 1);
+    };
+    window.addEventListener(CAME_BACK, again);
+    return () => window.removeEventListener(CAME_BACK, again);
+  }, []);
 
   // can take a few seconds, so the page doesn't wait for it. Nice to have: the
   // panel just doesn't appear if this fails

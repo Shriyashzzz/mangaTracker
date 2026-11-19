@@ -14,7 +14,12 @@ import { isDemo } from "./lib/demo";
 import { useCountry } from "./lib/prefs";
 import { useAuth } from "./store/auth";
 import OfflineBar from "./components/offlineBar/OfflineBar";
-import { CHANGES_SENT, startSendingChanges } from "./lib/offlineChanges";
+import {
+  CHANGES_SENT,
+  sendChanges,
+  startSendingChanges,
+} from "./lib/offlineChanges";
+import { CAME_BACK, watchForComingBack } from "./lib/comeBack";
 import { watchConnection } from "./lib/offline";
 import { useShelf } from "./store/shelf";
 
@@ -23,6 +28,14 @@ watchConnection();
 if (!isDemo()) startSendingChanges();
 // sent: the shelf is asked for again, so it's the server's from now on
 window.addEventListener(CHANGES_SENT, () => void useShelf.getState().load());
+// back after a while away (lib/comeBack.ts): what's changed since, and
+// anything changed offline sent
+watchForComingBack();
+window.addEventListener(CAME_BACK, () => {
+  if (!useAuth.getState().isSignedIn || isDemo()) return;
+  void useShelf.getState().load();
+  void sendChanges();
+});
 
 // The page a tab opened on, for ScrollRestoration below: a key of its own,
 // kept in that history entry, so Back to it restores even after a reload of
