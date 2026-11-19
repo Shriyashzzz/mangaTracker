@@ -34,9 +34,15 @@ const choose = (token: string, newPassword: string, confirmPassword: string) =>
     .send({ newPassword, confirmPassword });
 const signIn = (password: string) =>
   request(app).post("/api/auth/login").send({ username: "reader", password });
-// the token in the link of the email that went out
+// the first email that went out
+const firstMail = () => {
+  const mail = sent[0];
+  if (!mail) throw new Error("No email was sent");
+  return mail;
+};
+// the token in its link
 const tokenSent = () =>
-  sent[0].html.match(/\/reset-password\/([a-f0-9]+)"/)?.[1] ?? "";
+  firstMail().html.match(/\/reset-password\/([a-f0-9]+)"/)?.[1] ?? "";
 
 test("an email with an account and one without get the same answer", async () => {
   await addReader();
@@ -101,7 +107,7 @@ test("the email has a working link, the name, and no leftover blanks", async () 
   await addReader();
   await ask(EMAIL);
 
-  const { html, from } = sent[0];
+  const { html, from } = firstMail();
   expect(tokenSent()).toHaveLength(64);
   expect(html).toContain("Hi reader,");
   expect(html).toContain("15 minutes");
