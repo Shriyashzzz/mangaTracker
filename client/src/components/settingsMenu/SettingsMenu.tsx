@@ -12,6 +12,7 @@ import {
   ShareIcon,
   SignOutIcon,
   StarIcon,
+  LinkIcon,
   SunIcon,
   TagIcon,
 } from "../icons/Icons";
@@ -260,6 +261,12 @@ export default function SettingsMenu({ isSignedIn, onLogOut }: Props) {
                 <NavLink to="/year" className={item} viewTransition>
                   <StarIcon />
                   Your year in manga
+                </NavLink>
+              </li>
+              <li>
+                <NavLink to="/friends" className={item} viewTransition>
+                  <LinkIcon />
+                  Friends
                 </NavLink>
               </li>
               {/* laptops have this one on the shelf */}

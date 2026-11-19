@@ -19,6 +19,7 @@ import { ownedVolumes } from "../util/shelf/ownedList.js";
 import { toSharedShelf } from "../util/shelf/sharedShelf.js";
 import { volumeFacts } from "../util/shelf/sharedVolumes.js";
 import { isReservedName, RESERVED_MESSAGE } from "../util/reservedNames.js";
+import { follows } from "../friends/friends.js";
 
 // the name they show as until they pick one, and the ideas to pick from
 const withNames = <T>(userId: number, account: T) => ({
@@ -220,6 +221,8 @@ const shared = [
       // the owner looking at their own shared shelf, who is shown the way
       // to its settings. (Not cached anywhere: it differs by viewer)
       yours: req.session.userId === user.id,
+      // the viewer follows it (friends/friends.ts)
+      following: await follows(req.session.userId, user.id),
     });
   },
 ];

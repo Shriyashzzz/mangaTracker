@@ -35,6 +35,7 @@ import { useShelf } from "../../store/shelf";
 import { settingsStyles } from "../Settings/styles";
 import { onMyShelf } from "./compare";
 import CompareNote from "./CompareNote";
+import FollowBar from "./FollowBar";
 import CoverRow from "./CoverRow";
 import SeriesSheet from "./SeriesSheet";
 import ShelfFacts from "./ShelfFacts";
@@ -313,6 +314,15 @@ export default function SharedShelfPage() {
     <article className={`${styles.page} fade-in`}>
       {/* its owner, looking at their own: where to change what's shared.
           First on the page, before anything a visitor sees */}
+      {/* someone else's, to someone signed in: Follow */}
+      {comparing && (
+        <FollowBar
+          key={code}
+          code={code}
+          name={shelf.displayName}
+          following={Boolean(shelf.following)}
+        />
+      )}
       {shelf.yours && (
         <div className={styles.ownerNote}>
           <p>

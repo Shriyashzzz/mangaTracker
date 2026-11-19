@@ -131,6 +131,13 @@ export const routes = [
       },
       { path: "/deals", element: <Deals /> },
       {
+        path: "/friends",
+        lazy: page(
+          () => import("./Friends/Friends"),
+          (m) => m.default,
+        ),
+      },
+      {
         path: "/year/:year?",
         lazy: page(
           () => import("./Year/Year"),

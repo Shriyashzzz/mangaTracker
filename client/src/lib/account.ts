@@ -29,6 +29,8 @@ export type Account = {
 export type SharedShelf = {
   // the viewer is its owner
   yours?: boolean;
+  // the viewer follows it (Friends)
+  following?: boolean;
   // the series its owner put at the top, by name, in their order
   top?: string[];
   displayName: string;
