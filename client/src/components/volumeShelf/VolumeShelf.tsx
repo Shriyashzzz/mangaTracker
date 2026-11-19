@@ -165,18 +165,27 @@ export default function VolumeShelf({
   // the books share what's left once the gaps have their room
   const room = Math.max(0, width - gaps * APART);
   const widths = width ? bookWidths(total, room, aimed, FULL) : [];
+  // A shelf with room to spare sits in the middle, its books at full size,
+  // the space shared either side. A finger's place is then read from where
+  // the row starts, and aimed across the row, not the whole box
+  const atRest = width
+    ? bookWidths(total, room, null, FULL).reduce((sum, w) => sum + w, 0) +
+      gaps * APART
+    : 0;
+  const offset = width > atRest + 1 ? (width - atRest) / 2 : 0;
+  const span = offset ? atRest : width;
   const lit = aimed == null ? null : Math.min(total, Math.floor(aimed) + 1);
   const oneTap = width / total >= (coarse ? FINGER_TAPPABLE : TAPPABLE);
   const paged = coarse && width > 0 && !oneTap;
 
   const xOf = (e: PointerEvent) =>
-    e.clientX - (shelf.current?.getBoundingClientRect().left ?? 0);
+    e.clientX - (shelf.current?.getBoundingClientRect().left ?? 0) - offset;
   // one layout a frame, however fast the pointer moves
   const look = (x: number) => {
     cancelAnimationFrame(frame.current);
     frame.current = requestAnimationFrame(() => {
       setLive(true);
-      setAimed(aimAt(x, total, width, FULL));
+      setAimed(aimAt(x, total, span, FULL));
     });
   };
   const rest = () => {
@@ -499,7 +508,7 @@ export default function VolumeShelf({
           setSaid("");
         }}
       >
-        <div className="vshelf-row">
+        <div className="vshelf-row" style={{ left: offset }}>
           {widths.map((w, i) => {
             const v = i + 1;
             return (

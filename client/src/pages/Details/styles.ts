@@ -159,11 +159,6 @@ export const detailsStyles = {
   // "You've read up to ch." and its counter, with room between them, side by
   // side or (on a narrow screen) one above the other
   placeLine: "flex flex-wrap items-center gap-x-3 gap-y-2 [&+&]:mt-2",
-  // counted in an edition's books ("Definitive", "VIZBIG"): on a phone the
-  // counter always takes its own line under the words, with what's inside
-  // the book beside it ("vols. 1–3"), not wrapping onto a third
-  placeLineBooks:
-    "flex flex-wrap items-center gap-x-3 gap-y-2 [&+&]:mt-2 upto-720:flex-col upto-720:items-start upto-720:[&_[role=status]]:static upto-720:[&_[role=status]]:m-0 upto-720:[&_[role=status]]:translate-y-0 upto-720:[&_[role=status]]:text-[0.8rem]",
   // "Keep my place by [Chapter] [Volume]": under what they own, for a
   // series with no place saved. Small plain words, then the two buttons
   pickPlace:

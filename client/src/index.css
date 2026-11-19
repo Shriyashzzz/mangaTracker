@@ -999,6 +999,12 @@ body {
 .vshelf-book[data-run] {
   position: relative;
 }
+/* a run that starts on the last spine (one single after the books): its
+   name hangs from the right edge, never cut off by the shelf's end */
+.vshelf-book[data-run]:last-child::before {
+  left: auto;
+  right: 1px;
+}
 .vshelf-book[data-run]::before {
   content: attr(data-run);
   position: absolute;

@@ -17,6 +17,7 @@ import { tracksOf, type TrackBy } from "../../lib/reading";
 import type { Manga } from "../../lib/types";
 import ChapterStepper from "./ChapterStepper";
 import { detailsStyles as styles } from "./styles";
+import { shortEditionName } from "../../lib/editionShort";
 
 // a change to how the series is read, saved by the page
 export type ReadingChange = {
@@ -165,8 +166,18 @@ export default function ReadingPlace({
       {tracks.volumes && inBooks && edition && (
         // the same place, counted in the edition's books: "VIZBIG 4" is
         // saved as the last volume that book holds
-        <span className={styles.placeLineBooks}>
-          <span>You've read up to {edition.line.label}</span>
+        <span className={styles.placeLine}>
+          {/* a phone has room for the counter beside shorter words: a long
+              edition name is cut (the picker above says it in full) */}
+          <span className="upto-720:hidden">
+            You've read up to {edition.line.label}
+          </span>
+          <span className="hidden upto-720:inline">
+            Read up to{" "}
+            {edition.line.label.length > 8
+              ? shortEditionName(edition.line.label)
+              : edition.line.label}
+          </span>
           <ChapterStepper
             key={`${manga.id}-${edition.line.key}-${volumeSets}`}
             mangaId={manga.id}
