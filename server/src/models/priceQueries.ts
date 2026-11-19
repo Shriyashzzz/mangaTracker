@@ -58,6 +58,7 @@ import {
   getSavedListSizes,
   getFoundNovels,
   saveSeriesVolumes,
+  forgetSeriesVolumes,
   isKnownVolume,
 } from "./savedVolumes.js";
 import {
@@ -83,6 +84,7 @@ export default {
   getSavedListSizes,
   getFoundNovels,
   saveSeriesVolumes,
+  forgetSeriesVolumes,
   getKnownPrices,
   getCheapestCopies,
   getRecordedMedians,

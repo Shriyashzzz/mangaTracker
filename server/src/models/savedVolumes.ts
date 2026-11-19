@@ -163,6 +163,10 @@ export async function getSeriesVolumes(key: string) {
   );
 }
 
+// a saved list, gone (a marker that no longer applies)
+export const forgetSeriesVolumes = (key: string) =>
+  prisma.seriesVolumes.deleteMany({ where: { key } });
+
 export async function saveSeriesVolumes(key: string, volumes: CatalogBook[]) {
   const data = {
     volumes: withoutReprintDates(volumes) as unknown as Prisma.InputJsonValue,

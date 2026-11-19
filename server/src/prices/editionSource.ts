@@ -34,12 +34,24 @@ const TIMEOUT_MS = 8000;
 // would make every save old the instant it's made, and ask without end
 const RULES_FROM = Date.UTC(2026, 10, 19, 11);
 export const editionsKey = (name: string) => volumesKey(name) + ":editions";
+// Saved beside a series' lines when they were built while a catalog wasn't
+// answering (Google's day used up): the lines are used, by the series' page
+// and the shelf alike, but asked about again an hour on. Gone once a whole
+// answer comes
+export const halfAnswerKey = (name: string) => editionsKey(name) + ":half";
 
 // whether lines saved at `savedAt` can still be used as they are: built by
-// today's rules, and not a week old. The background job asks about the rest
+// today's rules, and not a week old; and if they're a half answer (saved at
+// `halfAt`), not an hour old. The background job asks about the rest
 // (collector/editionFiller.ts)
-export const editionLinesFresh = (savedAt: number, now = Date.now()) =>
-  savedAt >= RULES_FROM && now - savedAt < FRESH_MS;
+export const editionLinesFresh = (
+  savedAt: number,
+  now = Date.now(),
+  halfAt: number | null = null,
+) =>
+  savedAt >= RULES_FROM &&
+  now - savedAt < FRESH_MS &&
+  (halfAt == null || now - halfAt < RETRY_MS);
 
 type OpenLibraryDoc = {
   title?: string;
@@ -183,7 +195,6 @@ export async function findEditionLines(
 const inFlight = new Map<string, Promise<EditionLine[]>>();
 // lines built while a catalog wasn't answering, by key: used for an hour
 // in place of asking again, and never saved (editionLinesOf)
-const partial = new Map<string, { at: number; lines: EditionLine[] }>();
 
 // a series' edition lines. `volumes`: its own list (getSeries), for the last
 // volume out and the books it already knows hold several
@@ -196,25 +207,24 @@ export async function editionLinesOf(
   askTheStore = false,
 ): Promise<EditionLine[]> {
   const key = editionsKey(name);
-  const saved = await priceQueries.getSeriesVolumes(key).catch(() => null);
+  const halfKey = halfAnswerKey(name);
+  const [saved, half] = await Promise.all([
+    priceQueries.getSeriesVolumes(key).catch(() => null),
+    priceQueries.getSeriesVolumes(halfKey).catch(() => null),
+  ]);
   const lines = (saved?.volumes ?? null) as unknown as
     EditionLine[] | { failed: true }[] | null;
   const failed = Boolean(lines?.length && "failed" in lines[0]!);
   // lines saved before the rules last changed (more editions, books filed
   // under Japanese titles) are old whatever their age: built again
-  const byTheseRules = saved !== null && saved.at >= RULES_FROM;
-  if (
-    saved &&
-    byTheseRules &&
-    Date.now() - saved.at < (failed ? RETRY_MS : FRESH_MS)
-  )
-    return failed ? [] : (lines as EditionLine[]);
+  const fresh = failed
+    ? saved !== null &&
+      saved.at >= RULES_FROM &&
+      Date.now() - saved.at < RETRY_MS
+    : saved !== null && editionLinesFresh(saved.at, Date.now(), half?.at);
+  if (fresh) return failed ? [] : (lines as EditionLine[]);
   // old or missing, and not to be looked up: what's saved, however old
   if (!lookUp) return failed || !lines ? [] : (lines as EditionLine[]);
-  // built lately while a catalog wasn't answering: that, until it's worth
-  // asking again
-  const lately = partial.get(key);
-  if (lately && Date.now() - lately.at < RETRY_MS) return lately.lines;
   const running = inFlight.get(key);
   if (running) return running;
   const build = (async () => {
@@ -231,19 +241,25 @@ export async function editionLinesOf(
         askTheStore,
       );
       // A catalog that didn't answer (Google's day used up, Open Library
-      // slow) leaves lines with holes in them. Those are shown now, but
-      // never kept for the week: they're remembered here for an hour, and
-      // then the series is asked about again
+      // slow) leaves lines with holes in them. They're saved, so the shelf
+      // and the series' page show the same, with a marker to ask again in
+      // an hour. A whole answer saved before is better than a half one: it
+      // stays, and is asked about again in an hour too
       const everyoneAnswered = answered.openLibrary && answered.google;
+      const hadWhole =
+        !failed && Boolean(lines?.length) && !half && saved !== null;
       if (!everyoneAnswered) {
-        partial.set(key, { at: Date.now(), lines: built });
-        if (partial.size > 2_000) partial.delete(partial.keys().next().value!);
-        return built;
+        if (!hadWhole)
+          await priceQueries
+            .saveSeriesVolumes(key, built as unknown as CatalogBook[])
+            .catch(() => {});
+        await priceQueries.saveSeriesVolumes(halfKey, []).catch(() => {});
+        return hadWhole ? (lines as EditionLine[]) : built;
       }
-      partial.delete(key);
       await priceQueries
         .saveSeriesVolumes(key, built as unknown as CatalogBook[])
         .catch(() => {});
+      await priceQueries.forgetSeriesVolumes(halfKey).catch(() => {});
       // books filed under the series' Japanese title ("鋼の錬金術師 1-3" for
       // the Fullmetal Alchemist 3-in-1): their own records have the English
       // one. Read behind this answer, a few at a time, and the lines saved

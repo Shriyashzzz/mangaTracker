@@ -18,6 +18,7 @@ import { prisma } from "../config/prisma.js";
 import priceQueries from "../models/priceQueries.js";
 import {
   editionLinesFresh,
+  halfAnswerKey,
   editionLinesOf,
   editionsKey,
 } from "../prices/editionSource.js";
@@ -48,8 +49,13 @@ export async function editionQueue(now = Date.now()): Promise<SeriesInfo[]> {
   const manga = (await knownSeries()).filter(
     (series) => !isNovelName(series.name),
   );
+  // each series' lines, and the marker of a half answer beside them
+  const keys = manga.flatMap((series) => [
+    editionsKey(series.name),
+    halfAnswerKey(series.name),
+  ]);
   const saved = await prisma.seriesVolumes.findMany({
-    where: { key: { in: manga.map((series) => editionsKey(series.name)) } },
+    where: { key: { in: keys } },
     select: { key: true, fetchedAt: true },
   });
   const savedAt = new Map(
@@ -57,7 +63,8 @@ export async function editionQueue(now = Date.now()): Promise<SeriesInfo[]> {
   );
   const isFresh = (series: SeriesInfo) => {
     const at = savedAt.get(editionsKey(series.name));
-    return at != null && editionLinesFresh(at, now);
+    const halfAt = savedAt.get(halfAnswerKey(series.name)) ?? null;
+    return at != null && editionLinesFresh(at, now, halfAt);
   };
   return manga
     .filter((series) => !isFresh(series))
