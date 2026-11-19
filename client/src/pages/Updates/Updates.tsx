@@ -9,6 +9,18 @@ import { updatesStyles as styles } from "./styles";
 // the big features only, a line each. Add new ones here when they ship
 const UPDATES = [
   {
+    name: "A weekly email",
+    body: "Switch it on in Settings for one email a week: volumes for your shelf that just came out or are due soon, and price drops on your To buy list. Quiet weeks, no email.",
+  },
+  {
+    name: "Your shelf, by edition",
+    body: "Collect a series as VIZBIG, Definitive or 3-in-1? Your shelf, your place and the New tab count in that edition's books, and say when its next one is out.",
+  },
+  {
+    name: "Forgot your password?",
+    body: "Add an email when you sign up or in Settings, and reset a forgotten password from the sign-in page.",
+  },
+  {
     name: "After the anime",
     body: "Finished a season? Look up the show and see which chapter of the manga to start at, which volume that's in, and what it costs.",
   },
@@ -74,7 +86,7 @@ export function UpdatesPage() {
   usePageMeta({
     title: "What's new",
     description:
-      "New on Manga Tracker: see new English volumes and chapters and next chapter dates. Email alerts are coming soon.",
+      "New on Manga Tracker: a weekly email for your shelf, shelves that count in deluxe and omnibus books, new English volumes and next chapter dates.",
     path: "/updates",
   });
   const isSignedIn = useAuth((s) => s.isSignedIn);
@@ -142,10 +154,11 @@ export function UpdatesPage() {
           Soon!
         </span>
         <h2 id="updates-soon" className={styles.soonTitle}>
-          Email alerts
+          The app on your phone
         </h2>
         <p className={styles.itemBody}>
-          Get an email when a new chapter or volume is out.
+          Put Manga Tracker on your home screen, and get a release-day alert on
+          your phone.
         </p>
       </section>
     </article>
