@@ -10,6 +10,14 @@
 import { coverChoices } from "../../lib/coverSizes";
 import { coverSrc } from "../../lib/prices";
 import type { GenreShare } from "./shelfNumbers";
+import {
+  ACCENT,
+  CARD,
+  drawPaper,
+  fitText,
+  INK,
+  pictureOf,
+} from "../../lib/picture";
 
 const WIDTH = 1080;
 const HEIGHT = 1350;
@@ -17,9 +25,6 @@ const HEIGHT = 1350;
 const PAPERS = ["#f8d46b", "#bfe6c8", "#cdd6fb", "#f2c9bf", "#f3eee2"];
 const pick = <T>(from: readonly T[]) =>
   from[Math.floor(Math.random() * from.length)]!;
-const INK = "#1d1a16";
-const ACCENT = "#b14a3c";
-const CARD = "#fbf8f0";
 // The genres are stamps, the biggest first, two to a row: what each is
 // inked in and lettered in, how big its letters are, how far it's tilted,
 // and which row it's on
@@ -69,19 +74,6 @@ function loadCover(url: string): Promise<HTMLImageElement | null> {
   });
 }
 
-// the paper and its print dots
-function drawPaper(ctx: CanvasRenderingContext2D, paper: string) {
-  ctx.fillStyle = paper;
-  ctx.fillRect(0, 0, WIDTH, HEIGHT);
-  ctx.fillStyle = "rgba(29, 26, 22, 0.28)";
-  for (let y = 8; y < HEIGHT; y += 16)
-    for (let x = 8; x < WIDTH; x += 16) {
-      ctx.beginPath();
-      ctx.arc(x, y, 1.8, 0, Math.PI * 2);
-      ctx.fill();
-    }
-}
-
 // the covers in a row across the middle, each overlapping the one before,
 // tilted, edged in ink with a hard shadow
 function drawCovers(ctx: CanvasRenderingContext2D, covers: HTMLImageElement[]) {
@@ -114,21 +106,6 @@ function drawCovers(ctx: CanvasRenderingContext2D, covers: HTMLImageElement[]) {
     ctx.strokeRect(-COVER_W / 2, -COVER_H / 2, COVER_W, COVER_H);
     ctx.restore();
   });
-}
-
-// text that's made smaller until it fits the width
-function fitText(
-  ctx: CanvasRenderingContext2D,
-  text: string,
-  face: string,
-  size: number,
-  room: number,
-) {
-  let px = size;
-  do {
-    ctx.font = `${px}px ${face}`;
-    px -= 4;
-  } while (ctx.measureText(text).width > room && px > 40);
 }
 
 // The genre split as stamps, each with its share: "ACTION 53%" biggest and
@@ -215,12 +192,6 @@ export async function drawShelfPicture(
   drawPaper(ctx, pick(PAPERS));
   drawWords(ctx, picture);
   drawCovers(ctx, covers);
-  return new Promise((resolve) => {
-    try {
-      canvas.toBlob(resolve, "image/png");
-    } catch {
-      // a cover the canvas may not read back: no picture
-      resolve(null);
-    }
-  });
+  // (null: a cover the canvas may not read back)
+  return pictureOf(canvas);
 }

@@ -23,6 +23,7 @@ import { reviewsRouter } from "./routes/reviewsRouter.js";
 import { toBuyRouter } from "./routes/toBuyRouter.js";
 import { seoRouter } from "./routes/seoRouter.js";
 import { collectorRouter } from "./collector/router.js";
+import { historyRouter } from "./history/yearRouter.js";
 import { errorHandler } from "./middlewares/errorHandler.js";
 
 export const app = express();
@@ -81,6 +82,7 @@ app.use("/api/after-anime", afterAnimeRouter);
 app.use("/api/reviews", reviewsRouter);
 app.use("/api/to-buy", toBuyRouter);
 app.use("/api/collector", collectorRouter);
+app.use("/api/history", historyRouter);
 app.use("/", seoRouter);
 
 app.use((_req, res) => {

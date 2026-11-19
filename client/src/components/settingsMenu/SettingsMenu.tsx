@@ -11,6 +11,7 @@ import {
   SettingsIcon,
   ShareIcon,
   SignOutIcon,
+  StarIcon,
   SunIcon,
   TagIcon,
 } from "../icons/Icons";
@@ -253,6 +254,12 @@ export default function SettingsMenu({ isSignedIn, onLogOut }: Props) {
                 >
                   <ShareIcon />
                   Share my list
+                </NavLink>
+              </li>
+              <li>
+                <NavLink to="/year" className={item} viewTransition>
+                  <StarIcon />
+                  Your year in manga
                 </NavLink>
               </li>
               {/* laptops have this one on the shelf */}

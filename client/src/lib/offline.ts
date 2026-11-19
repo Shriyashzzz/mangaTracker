@@ -56,6 +56,7 @@ const ONLINE_PAGES = [
   "/import",
   "/update/",
   "/to-buy",
+  "/year",
   "/prices",
   "/deals",
   "/u/",

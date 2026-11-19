@@ -131,6 +131,13 @@ export const routes = [
       },
       { path: "/deals", element: <Deals /> },
       {
+        path: "/year/:year?",
+        lazy: page(
+          () => import("./Year/Year"),
+          (m) => m.default,
+        ),
+      },
+      {
         path: "/after-the-anime",
         lazy: page(
           () => import("./AfterAnime/AfterAnimeIndex"),
