@@ -1,6 +1,7 @@
 // A picture of a shelf for its owner to save and post: its name, the shelf
 // in numbers, its genres as stamps and a few covers fanned out on dotted
-// paper (a different colour each time), 1080 by 1350 (a portrait post).
+// paper (a different colour each time), 1080 by 1350 (a portrait post), or
+// the same on a 1080 by 1920 page (a phone's story).
 // Drawn in the browser on a canvas, so the lettering is in the site's own
 // faces (which the page has already loaded)
 // and the server needs no fonts.
@@ -171,12 +172,16 @@ function drawWords(ctx: CanvasRenderingContext2D, picture: ShelfPicture) {
 }
 
 // The picture, as a PNG file. Null where the browser can't make one
+export type PictureSize = "post" | "story";
+const STORY_HEIGHT = 1920;
+
 export async function drawShelfPicture(
   picture: ShelfPicture,
+  size: PictureSize = "post",
 ): Promise<Blob | null> {
   const canvas = document.createElement("canvas");
   canvas.width = WIDTH;
-  canvas.height = HEIGHT;
+  canvas.height = size === "story" ? STORY_HEIGHT : HEIGHT;
   const ctx = canvas.getContext("2d");
   if (!ctx) return null;
   // the faces the lettering is in, in case this page hasn't shown them yet
@@ -190,6 +195,8 @@ export async function drawShelfPicture(
   ).filter((cover) => cover !== null);
 
   drawPaper(ctx, pick(PAPERS));
+  // a story is the post, centred on the taller page
+  ctx.translate(0, (canvas.height - HEIGHT) / 2);
   drawWords(ctx, picture);
   drawCovers(ctx, covers);
   // (null: a cover the canvas may not read back)
