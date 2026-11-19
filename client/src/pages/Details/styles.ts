@@ -344,6 +344,11 @@ export const detailsStyles = {
     "tap mt-2.5 block py-1 text-right text-[0.85rem] font-medium text-ink-soft underline decoration-line-soft underline-offset-3 transition-colors duration-120 ease-[ease] hover:text-accent hover:decoration-accent",
   // (on the narrowest phones a long label takes two lines rather than
   // running into what's beside it)
+  // "On order: Vols. 7–12": one quiet line under the tickets, not a box
+  buyOrdered:
+    "flex flex-wrap items-baseline gap-x-2 px-1 text-[0.88rem] text-ink-soft",
+  buyOrderedLabel:
+    "font-mono text-[0.72rem] tracking-[0.06em] whitespace-nowrap text-muted uppercase",
   buyKind:
     "col-span-full font-mono text-[0.72rem] font-normal tracking-[0.06em] whitespace-nowrap text-muted uppercase upto-720:col-span-1 max-[359px]:whitespace-normal",
   buyPrice: "text-right font-mono font-medium text-accent-ink",

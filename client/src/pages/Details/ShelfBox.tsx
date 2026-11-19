@@ -174,8 +174,13 @@ export default function ShelfBox({
       className={styles.shelf}
       style={{ "--shelf-w": `${width}px` } as CSSProperties}
     >
-      {/* the books keep to their own width; the caption gets the room */}
-      <div style={{ maxWidth: books * bookWidth }} data-tour="spines">
+      {/* the books keep to their own width, centred over the caption,
+          which gets the room: the same space either side */}
+      <div
+        className="mx-auto"
+        style={{ maxWidth: books * bookWidth }}
+        data-tour="spines"
+      >
         {edition ? (
           <VolumeShelf
             // a different shelf for each edition: the slide and the page it

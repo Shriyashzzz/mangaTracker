@@ -183,8 +183,8 @@ export default function BuyStrip({
   // what's ordered and on its way, each run with a way to take it back
   // (both layouts: single volumes and an edition's books)
   const orderedLine = ordered.length > 0 && (
-    <li className={styles.buyGaps}>
-      <span className={styles.buyKind}>Ordered</span>
+    <li className={styles.buyOrdered}>
+      <span className={styles.buyOrderedLabel}>On order:</span>
       <span className={styles.buyGapList}>
         {runsOf(ordered).map((run) => {
           const said =
@@ -329,7 +329,6 @@ export default function BuyStrip({
               )}
             </li>
           )}
-          {orderedLine}
           {plan.gaps.length > 0 && (
             <li className={styles.buyGaps}>
               <span className={styles.buyKind}>Not on your shelf</span>
@@ -368,6 +367,8 @@ export default function BuyStrip({
               )}
             </li>
           )}
+          {/* last: what's on its way, under the tickets */}
+          {orderedLine}
         </ul>
       ) : (
         <ul className={styles.buyList}>
@@ -415,7 +416,6 @@ export default function BuyStrip({
               )}
             </li>
           )}
-          {orderedLine}
           {/* the gaps behind them: Next goes past these, a collector filling
             the run wants each one */}
           {gaps.length > 0 && (
@@ -481,6 +481,8 @@ export default function BuyStrip({
               </li>
             )
           )}
+          {/* last: what's on its way, under the tickets */}
+          {orderedLine}
         </ul>
       )}
       {/* a way to look further, not something to buy, so not a ticket.
