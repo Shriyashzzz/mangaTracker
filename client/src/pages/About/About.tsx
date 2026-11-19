@@ -8,6 +8,7 @@ import { aboutStyles as styles } from "./styles";
 import { usePageMeta } from "../../lib/seo";
 import { CoffeeIcon } from "../../components/icons/Icons";
 import { SUPPORT_URL, stopAsking } from "../../lib/support";
+import { inPlayApp } from "../../lib/playApp";
 import { useAuth } from "../../store/auth";
 import InstallAppButton from "../../components/installApp/InstallAppButton";
 
@@ -192,23 +193,28 @@ export function AboutPage() {
         <p className={styles.contactBody}>
           Found a bug, want a feature or just want to say hi? Send me an email.
         </p>
-        <p className={styles.contactBody}>
-          Made by a collector, for collectors. A coffee keeps it free.
-        </p>
+        {/* no coffee asks inside the Google Play app (lib/playApp.ts) */}
+        {!inPlayApp() && (
+          <p className={styles.contactBody}>
+            Made by a collector, for collectors. A coffee keeps it free.
+          </p>
+        )}
         <div className={styles.contactButtons}>
           <a href={`mailto:${CONTACT_EMAIL}`} className="btn btn-secondary">
             Contact me
           </a>
-          <a
-            href={SUPPORT_URL}
-            target="_blank"
-            rel="noreferrer"
-            className="btn btn-secondary"
-            onClick={stopAsking}
-          >
-            <CoffeeIcon />
-            Buy me a coffee
-          </a>
+          {!inPlayApp() && (
+            <a
+              href={SUPPORT_URL}
+              target="_blank"
+              rel="noreferrer"
+              className="btn btn-secondary"
+              onClick={stopAsking}
+            >
+              <CoffeeIcon />
+              Buy me a coffee
+            </a>
+          )}
         </div>
         <p className={styles.contactAddress}>{CONTACT_EMAIL}</p>
         <NavLink

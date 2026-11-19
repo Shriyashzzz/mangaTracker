@@ -15,6 +15,7 @@ import {
   TagIcon,
 } from "../icons/Icons";
 import { SUPPORT_URL, stopAsking } from "../../lib/support";
+import { inPlayApp } from "../../lib/playApp";
 import {
   BACKGROUNDS,
   currentBackground,
@@ -319,18 +320,21 @@ export default function SettingsMenu({ isSignedIn, onLogOut }: Props) {
               </button>
             </li>
           )}
-          <li>
-            <a
-              href={SUPPORT_URL}
-              target="_blank"
-              rel="noreferrer"
-              className={item}
-              onClick={stopAsking}
-            >
-              <CoffeeIcon />
-              Support me
-            </a>
-          </li>
+          {/* not inside the Google Play app (lib/playApp.ts) */}
+          {!inPlayApp() && (
+            <li>
+              <a
+                href={SUPPORT_URL}
+                target="_blank"
+                rel="noreferrer"
+                className={item}
+                onClick={stopAsking}
+              >
+                <CoffeeIcon />
+                Support me
+              </a>
+            </li>
+          )}
           {isSignedIn && (
             <>
               {divider}

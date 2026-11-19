@@ -9,3 +9,5 @@ package-lock.json
 *.md
 .impeccable
 book
+# the Google Play app's project: Bubblewrap writes it (android/twa-manifest.json)
+android

@@ -11,6 +11,7 @@ import ImportPeek from "./components/importPeek/ImportPeek";
 import Tour from "./components/tour/Tour";
 import TourOffer from "./components/tour/TourOffer";
 import { isDemo } from "./lib/demo";
+import { inPlayApp } from "./lib/playApp";
 import { useCountry } from "./lib/prefs";
 import { useAuth } from "./store/auth";
 import OfflineBar from "./components/offlineBar/OfflineBar";
@@ -90,7 +91,8 @@ export default function App() {
       </main>
       <Footer />
       <DeletedNote />
-      {isDemo() ? <Tour /> : <SupportPeek />}
+      {/* (no coffee asks inside the Google Play app: lib/playApp.ts) */}
+      {isDemo() ? <Tour /> : !inPlayApp() && <SupportPeek />}
       {!isDemo() && <ImportPeek />}
       {!isDemo() && <TourOffer />}
       {/* the page this tab opened on (typed, a link from outside, a reload)

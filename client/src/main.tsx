@@ -4,6 +4,10 @@ import { createRoot } from "react-dom/client";
 import { RouterProvider } from "react-router";
 import router from "./pages/routes";
 import { listenForInstall } from "./lib/install";
+import { notePlayApp } from "./lib/playApp";
+
+// opened inside the Google Play app: remembered for the visit (lib/playApp.ts)
+notePlayApp();
 
 // the browser offers to install the site as an app once, early: kept for
 // the "Install the app" button

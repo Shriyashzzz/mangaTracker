@@ -1,0 +1,14 @@
+# The signing key and its passwords never go in git: whoever has them can
+# publish updates as this app. Keep a copy somewhere safe (a password
+# manager); Google Play can't recover it
+*.keystore
+*.jks
+keystore-passwords.txt
+# what a build makes
+*.apk
+*.aab
+*.idsig
+build/
+app/build/
+.gradle/
+local.properties

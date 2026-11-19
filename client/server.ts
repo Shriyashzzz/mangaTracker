@@ -1076,6 +1076,38 @@ const robots = readFileSync(`${DIST}robots.txt`, "utf8").replace(
   /^Sitemap:.*$/m,
   "",
 );
+// Digital Asset Links: says the Google Play app (lib/playApp.ts
+// PLAY_PACKAGE) may show this site full screen, without an address bar.
+// ANDROID_CERT_SHA256 holds the SHA-256 fingerprints of the keys the app is
+// signed with, comma-separated: your own upload key, and Google Play's app
+// signing key once it's in the Play Console. None set: an empty list, and
+// the app still opens, with Chrome's address bar showing
+const ANDROID_FINGERPRINTS = (process.env.ANDROID_CERT_SHA256 ?? "")
+  .split(",")
+  .map((f) => f.trim().toUpperCase())
+  .filter((f) => /^([0-9A-F]{2}:){31}[0-9A-F]{2}$/.test(f));
+app.get("/.well-known/assetlinks.json", (_req, res) => {
+  res
+    .type("application/json")
+    .set("Cache-Control", "public, max-age=3600")
+    .send(
+      JSON.stringify(
+        ANDROID_FINGERPRINTS.length
+          ? [
+              {
+                relation: ["delegate_permission/common.handle_all_urls"],
+                target: {
+                  namespace: "android_app",
+                  package_name: "xyz.mangatracker.app",
+                  sha256_cert_fingerprints: ANDROID_FINGERPRINTS,
+                },
+              },
+            ]
+          : [],
+      ),
+    );
+});
+
 app.get("/robots.txt", (req, res) => {
   const origin = `${req.protocol}://${req.get("host")}`;
   res.type("text/plain").send(`${robots.trimEnd()}
