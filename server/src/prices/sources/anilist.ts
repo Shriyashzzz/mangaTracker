@@ -260,9 +260,9 @@ const plainText = (html: string | null) =>
 // "86—EIGHTY-SIX" it's the spin-off 86—EIGHTY-SIX Alter, and for
 // "Overgeared" a dropped 24-chapter version with that as another name
 const SERIES_QUERY = `
-  query ($search: String, $format: MediaFormat) {
+  query ($search: String, $formats: [MediaFormat]) {
     Page(perPage: 5) {
-      media(search: $search, type: MANGA, format: $format, sort: SEARCH_MATCH) {
+      media(search: $search, type: MANGA, format_in: $formats, sort: SEARCH_MATCH) {
         id siteUrl status volumes averageScore genres synonyms popularity
         relations { edges { relationType node { type status episodes } } }
         title { english romaji native }
@@ -275,28 +275,59 @@ const SERIES_QUERY = `
   }
 `;
 const sameName = (a: string) => a.toLowerCase().replace(/[^\p{L}\p{N}]+/gu, "");
+// a name's words with one space between, for telling where a word ends
+const sameWords = (a: string) =>
+  a
+    .toLowerCase()
+    .replace(/[^\p{L}\p{N}]+/gu, " ")
+    .trim();
 
 // Which of AniList's guesses a name means, in this order:
 //   1. one whose own title is exactly the name ("Overgeared")
 //   2. one that has the name as another name of its
-//   3. AniList's first guess
-// Where several fit, the one most readers list: "Monster" is Urasawa's, not
-// an unknown comic also known by that word
+//   3. one whose title starts with the name: "Demon Slayer" is "Demon
+//      Slayer: Kimetsu no Yaiba"
+//   4. AniList's first guess
+// Where several fit, AniList's order stands unless another is far more
+// read: "Fairy Tail" is Mashima's (57,000 readers), not the unknown comic
+// AniList puts first (39). Two that are both well read are real twins, and
+// there AniList's own first stays: WIND BREAKER, the manga with the anime,
+// ahead of the Korean Wind Breaker, which only has twice its readers
+const FAR_MORE_READ = 3;
 export function pickNamed<
   M extends Pick<Media, "title" | "synonyms" | "popularity">,
 >(search: string, media: M[]): M | null {
   const isName = (name: string | null) =>
     Boolean(name) && sameName(name!) === sameName(search);
-  // (sort keeps AniList's order between two as popular as each other)
-  const mostRead = (found: M[]) =>
-    [...found].sort((a, b) => (b.popularity ?? 0) - (a.popularity ?? 0))[0];
+  const readers = (m: M) => m.popularity ?? 0;
+  // AniList's first of them, or the most read when that's far more read
+  const meant = (found: M[]) => {
+    const first = found[0];
+    if (!first) return null;
+    const mostRead = found.reduce((a, b) => (readers(b) > readers(a) ? b : a));
+    return readers(mostRead) >= readers(first) * FAR_MORE_READ &&
+      readers(mostRead) > readers(first)
+      ? mostRead
+      : first;
+  };
 
   const titled = media.filter(
     (m) => isName(m.title.english) || isName(m.title.romaji),
   );
-  if (titled.length) return mostRead(titled) ?? null;
+  if (titled.length) return meant(titled);
   const alsoCalled = media.filter((m) => (m.synonyms ?? []).some(isName));
-  if (alsoCalled.length) return mostRead(alsoCalled) ?? null;
+  if (alsoCalled.length) return meant(alsoCalled);
+  // the name, then more words: never the start of a longer word ("Blue" is
+  // not "Bluelock")
+  const startsWithIt = (title: string | null) =>
+    Boolean(title) &&
+    new RegExp(`^${sameWords(search)}[^\\p{L}\\p{N}]`, "iu").test(
+      sameWords(title!),
+    );
+  const startsWith = media.filter(
+    (m) => startsWithIt(m.title.english) || startsWithIt(m.title.romaji),
+  );
+  if (startsWith.length) return meant(startsWith);
   return media[0] ?? null;
 }
 
@@ -452,6 +483,9 @@ function savedAnswerStands(saved: SavedInfo, name: string) {
   return true;
 }
 
+// A one-shot counts as a manga: "Look Back" is one, and is sold as a book
+const COMIC_FORMATS = ["MANGA", "ONE_SHOT"];
+
 // AniList's answer for a series: a manga by its name, a light novel by its
 // base name, each picked from the top five found (pickNamed). Null when it
 // knows none
@@ -460,7 +494,7 @@ async function askAniList(name: string): Promise<SeriesInfo | null> {
   const search = novel ? baseName(name) : name;
   const answer = await query<{ Page: { media: Media[] } }>(SERIES_QUERY, {
     search,
-    format: novel ? "NOVEL" : "MANGA",
+    formats: novel ? ["NOVEL"] : COMIC_FORMATS,
   });
   const found = pickNamed(search, answer.Page.media);
   if (!found) return null;

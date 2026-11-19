@@ -312,6 +312,30 @@ test("the series most readers mean, not a lesser one also known by the name", as
   ];
   expect(pickNamed("Orange", orange)?.popularity).toBe(39701);
 
+  // real twins, both well read: AniList's first stays (the manga with the
+  // anime), though the Korean one has twice its readers
+  const windBreaker = [
+    entry("WIND BREAKER", "WIND BREAKER", 22609),
+    entry("Wind Breaker", "Wind Breaker", 42969),
+  ];
+  expect(pickNamed("Wind Breaker", windBreaker)?.popularity).toBe(22609);
+
+  // no title is exactly "Demon Slayer": the one that starts with it, and of
+  // those the one far more read than the school spin-off AniList puts first
+  const demonSlayer = [
+    entry(null, "Taima no Haha", 602, ["Demon Slayer Mother"]),
+    entry("Demon Slayer: Kimetsu Academy", "Kimetsu Gakuen!", 2805),
+    entry("Demon Slayer: Kimetsu no Yaiba", "Kimetsu no Yaiba", 212904),
+  ];
+  expect(pickNamed("Demon Slayer", demonSlayer)?.popularity).toBe(212904);
+  // but never the start of a longer word: nothing here is "Blue ...", so
+  // AniList's first stands, however read the other is
+  const blue = [
+    entry("Blues", "Blues", 5),
+    entry("Bluebird", "Bluebird", 90000),
+  ];
+  expect(pickNamed("Blue", blue)?.popularity).toBe(5);
+
   // only known by the name as another name: still found
   const nickname = [
     entry("Other", "Other", 900),
