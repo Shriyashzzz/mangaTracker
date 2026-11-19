@@ -66,6 +66,10 @@ export default function Footer() {
             <span>Vol. 2, {new Date().getFullYear()}</span>
             <span aria-hidden>·</span>
             <span>© {new Date().getFullYear()} Manga Tracker</span>
+            <span aria-hidden>·</span>
+            <NavLink to="/privacy" className={footerLink}>
+              Privacy
+            </NavLink>
           </p>
         </div>
       </div>

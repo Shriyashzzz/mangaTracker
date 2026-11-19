@@ -11,8 +11,7 @@ import { SUPPORT_URL, stopAsking } from "../../lib/support";
 import { inPlayApp } from "../../lib/playApp";
 import { useAuth } from "../../store/auth";
 import InstallAppButton from "../../components/installApp/InstallAppButton";
-
-const CONTACT_EMAIL = "ghimireshriyash@gmail.com";
+import { CONTACT_EMAIL } from "../../lib/contact";
 
 // the three problems the app fixes and the payoff, told as a four-panel strip
 const STRIP = [
@@ -223,6 +222,9 @@ export function AboutPage() {
           viewTransition
         >
           Acknowledgements
+        </NavLink>
+        <NavLink to="/privacy" className={styles.credits} viewTransition>
+          Privacy policy
         </NavLink>
       </section>
     </article>

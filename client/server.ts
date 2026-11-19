@@ -745,6 +745,12 @@ const STATIC_PAGES: Record<
     heading: "How New works",
     description: NEW_RELEASES_DESCRIPTION,
   },
+  "/privacy": {
+    title: "Privacy policy",
+    heading: "Privacy policy",
+    description:
+      "What Manga Tracker keeps, what stays on your device, who else sees anything, and how to delete it all.",
+  },
   "/acknowledgements": {
     title: "Acknowledgements",
     heading: "Acknowledgements",

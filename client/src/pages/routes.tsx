@@ -13,6 +13,7 @@ import { AboutPage } from "./About/About";
 import { UpdatesPage } from "./Updates/Updates";
 import { FaqPage } from "./Faq/Faq";
 import { AcknowledgementsPage } from "./Acknowledgements/Acknowledgements";
+import { PrivacyPage } from "./Privacy/Privacy";
 import SharedShelfPage from "./SharedShelf/SharedShelf";
 import SeriesIndex from "./Prices/SeriesIndex";
 import Deals from "./Prices/Deals";
@@ -82,6 +83,7 @@ export const routes = [
       { path: "/updates", element: <UpdatesPage /> },
       { path: "/faq", element: <FaqPage /> },
       { path: "/acknowledgements", element: <AcknowledgementsPage /> },
+      { path: "/privacy", element: <PrivacyPage /> },
       {
         path: "/new-releases",
         lazy: page(
