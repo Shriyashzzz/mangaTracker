@@ -4,8 +4,8 @@ import { body } from "express-validator";
 
 const EDITION_KINDS = ["single", "omnibus", "deluxe", "boxset"] as const;
 
-// what they paid (cents, up to $100,000) and the day they bought it
-// ("2026-01-05"); null clears either
+// what they paid (cents, up to $100,000), the day they bought it
+// ("2026-01-05"), and who it's lent to; null clears each
 export const purchaseFields = (prefix = "") => [
   body(`${prefix}paidCents`)
     .optional({ values: "null" })
@@ -15,6 +15,12 @@ export const purchaseFields = (prefix = "") => [
     .optional({ values: "null" })
     .isISO8601({ strict: true })
     .isLength({ min: 10, max: 10 }),
+  body(`${prefix}lentTo`)
+    .optional({ values: "null" })
+    .isString()
+    .trim()
+    .isLength({ max: 40 })
+    .withMessage("A name up to 40 letters."),
 ];
 
 export const bookFields = (list: string, most: number) => [

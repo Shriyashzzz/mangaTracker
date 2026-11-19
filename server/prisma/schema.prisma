@@ -125,6 +125,9 @@ model Manga {
   // empty means 1 to volumesOwned. volumesOwned is its highest
   // (util/shelf/ownedList.ts)
   ownedList       Float[]   @default([]) @map("owned_list")
+  // ordered, not here yet: Buy next goes past them; owning one takes it off
+  // (migration 20261210000000_ordered_and_lent)
+  orderedList     Float[]   @default([]) @map("ordered_list")
   rating          Int?      @db.SmallInt
   // the newest release they've said "Seen it" to; anything newer shows as new
   seenVolume      Float?    @map("seen_volume")
@@ -172,6 +175,9 @@ model OwnedBook {
   // to say, for "spent so far"
   paidCents Int?      @map("paid_cents")
   boughtOn  DateTime? @map("bought_on") @db.Date
+  // lent out: who has it, and since when
+  lentTo    String?   @map("lent_to") @db.VarChar(40)
+  lentOn    DateTime? @map("lent_on") @db.Date
 
   @@index([mangaId])
   @@map("owned_books")

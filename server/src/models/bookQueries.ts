@@ -15,7 +15,13 @@ export type BookInput = {
   // what they paid, and the day they bought it ("2026-01-05")
   paidCents?: number | null;
   boughtOn?: string | Date | null;
+  // lent out to someone (lentOn is set to the day it's saved)
+  lentTo?: string | null;
 };
+
+// lent to someone: since today; back (empty): neither
+const lending = (lentTo: string | null | undefined) =>
+  lentTo ? { lentTo, lentOn: new Date() } : { lentTo: null, lentOn: null };
 
 // a day as the database keeps it
 const dayOf = (day: string | Date | null | undefined) =>
@@ -136,7 +142,12 @@ export async function addBooks(mangaId: number, books: BookInput[]) {
   }
   if (fresh.length)
     await prisma.ownedBook.createMany({
-      data: fresh.map((b) => ({ ...b, boughtOn: dayOf(b.boughtOn), mangaId })),
+      data: fresh.map((b) => ({
+        ...b,
+        boughtOn: dayOf(b.boughtOn),
+        ...(b.lentTo ? lending(b.lentTo) : {}),
+        mangaId,
+      })),
     });
   return fresh.length;
 }
@@ -173,13 +184,18 @@ export const removeBook = (mangaId: number, bookId: number) =>
 export const setPurchase = async (
   mangaId: number,
   bookId: number,
-  data: { paidCents?: number | null; boughtOn?: string | null },
+  data: {
+    paidCents?: number | null;
+    boughtOn?: string | null;
+    lentTo?: string | null;
+  },
 ) => {
   const { count } = await prisma.ownedBook.updateMany({
     where: { id: bookId, mangaId },
     data: {
       ...("paidCents" in data ? { paidCents: data.paidCents } : {}),
       ...("boughtOn" in data ? { boughtOn: dayOf(data.boughtOn) } : {}),
+      ...("lentTo" in data ? lending(data.lentTo) : {}),
     },
   });
   return count > 0;

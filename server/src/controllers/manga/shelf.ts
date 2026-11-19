@@ -283,6 +283,7 @@ export const setPurchase = [
       {
         ...("paidCents" in req.body ? { paidCents: d.paidCents ?? null } : {}),
         ...("boughtOn" in req.body ? { boughtOn: d.boughtOn ?? null } : {}),
+        ...("lentTo" in req.body ? { lentTo: d.lentTo || null } : {}),
       },
     );
     if (!saved) return void res.sendStatus(404);
@@ -357,6 +358,24 @@ export const setNotes = [
       (matchedData(req).description as string | undefined) || null;
     await mangaQueries.setNotes(res.locals.manga.id, description);
     res.sendStatus(204);
+  },
+];
+
+// "I ordered it": a volume ordered and on its way, or taken off that list.
+// Owning it later takes it off by itself (the database: manga_arrived)
+export const setOrdered = [
+  body("volume").isFloat({ min: 0, max: 999 }).toFloat(),
+  body("ordered").isBoolean().toBoolean(),
+  rejectInvalid,
+  async (req: Request, res: Response) => {
+    const { volume, ordered } = matchedData(req);
+    const manga = res.locals.manga as Manga;
+    const others = manga.orderedList.filter((v) => v !== volume);
+    const saved = await mangaQueries.setOrdered(
+      manga.id,
+      ordered ? [...others, volume].sort((a, b) => a - b) : others,
+    );
+    res.json(saved);
   },
 ];
 

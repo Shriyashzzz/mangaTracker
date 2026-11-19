@@ -57,6 +57,8 @@ type Props = {
   // the edition they collect, and its books on this shelf; null for single
   // volumes
   edition?: EditionShelf | null;
+  // single volumes ordered and on their way: drawn as such
+  ordered?: number[];
 };
 
 export default function ShelfBox({
@@ -68,6 +70,7 @@ export default function ShelfBox({
   ownedVolumes,
   place = null,
   edition = null,
+  ordered = [],
 }: Props) {
   // the part-owned book they tapped: asked about before it's completed
   // (with the edition it's a book of: the question goes if they switch)
@@ -212,6 +215,7 @@ export default function ShelfBox({
             onPaint={paint}
             name={name}
             here={place?.volume ?? null}
+            ordered={ordered}
           />
         )}
       </div>

@@ -167,7 +167,8 @@ export default function YourBooks({
   const unpriced = rows.filter((row) => row.book?.paidCents == null);
   const failed = () => setNote(orOffline("That didn't save. Try again."));
 
-  // what they paid or the day they bought it, on a book or a loose volume
+  // what they paid, the day they bought it or who has it, on a book or a
+  // loose volume
   const save = async (row: Row, change: Purchase) => {
     setNote("");
     try {
@@ -176,13 +177,30 @@ export default function YourBooks({
         await savePurchase(mangaId, bookId, change);
         setBooks((list) =>
           list.map((book) =>
-            book.id === bookId ? { ...book, ...change } : book,
+            book.id === bookId
+              ? {
+                  ...book,
+                  ...change,
+                  // lent today, as the server saves it; back, no day
+                  ...("lentTo" in change
+                    ? {
+                        lentOn: change.lentTo
+                          ? new Date().toISOString().slice(0, 10)
+                          : null,
+                      }
+                    : {}),
+                }
+              : book,
           ),
         );
         return;
       }
-      // a hand-ticked volume has no book to keep it on: only a value makes one
-      const hasValue = change.paidCents != null || Boolean(change.boughtOn);
+      // a hand-ticked volume has no book to keep it on: only a value makes
+      // one (lending it is one)
+      const hasValue =
+        change.paidCents != null ||
+        Boolean(change.boughtOn) ||
+        Boolean(change.lentTo);
       if (!hasValue) return;
       const made = { ...newBookOf(row), ...change };
       setBooks(await addBooks(mangaId, [made]));

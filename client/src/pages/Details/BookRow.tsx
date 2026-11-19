@@ -1,11 +1,93 @@
 // One row of "Your books": the book's name, what they paid, the day they
-// bought it, and Remove. The price is saved when they leave the box.
+// bought it, and Remove. The price is saved when they leave the box. Under
+// the name: who it's lent to, or a way to say so.
 import { useState } from "react";
 import { centsOf, dayOf } from "../../lib/books";
 import { detailsStyles as styles } from "./styles";
 import { moneyText, rowName, type BookRow as Row } from "./yourBooksRows";
 
-export type Purchase = { paidCents?: number | null; boughtOn?: string | null };
+export type Purchase = {
+  paidCents?: number | null;
+  boughtOn?: string | null;
+  lentTo?: string | null;
+};
+
+// "Nov 3", or "Nov 3, 2025" from another year
+const sinceText = (day: string) => {
+  const date = new Date(`${day.slice(0, 10)}T12:00:00Z`);
+  return date.toLocaleDateString("en-US", {
+    month: "short",
+    day: "numeric",
+    timeZone: "UTC",
+    ...(date.getUTCFullYear() === new Date().getFullYear()
+      ? {}
+      : { year: "numeric" }),
+  });
+};
+
+// who has it, or a way to say someone does
+function Lending({
+  name,
+  lentTo,
+  lentOn,
+  onSave,
+}: {
+  name: string;
+  lentTo: string | null;
+  lentOn: string | null;
+  onSave: (lentTo: string | null) => void;
+}) {
+  const [asking, setAsking] = useState(false);
+  const [who, setWho] = useState("");
+  const link =
+    "tap text-[0.78rem] font-medium text-ink-soft underline decoration-line-soft underline-offset-3 hover:decoration-current";
+  if (lentTo)
+    return (
+      <span className="mt-1 flex flex-wrap items-baseline gap-x-2 text-[0.8rem] text-accent-ink">
+        Lent to {lentTo}
+        {lentOn && ` since ${sinceText(lentOn)}`}
+        <button type="button" className={link} onClick={() => onSave(null)}>
+          Got it back
+        </button>
+      </span>
+    );
+  if (!asking)
+    return (
+      <button
+        type="button"
+        className={`${link} mt-1 block`}
+        onClick={() => setAsking(true)}
+      >
+        Lend
+      </button>
+    );
+  const save = () => {
+    const name = who.trim();
+    setAsking(false);
+    setWho("");
+    if (name) onSave(name);
+  };
+  return (
+    <span className="mt-1 flex items-center gap-2">
+      <input
+        className="w-36 border-b-[1.5px] border-line-soft bg-transparent text-[0.85rem] focus:border-line focus:outline-none"
+        placeholder="Who has it?"
+        aria-label={`Who you lent ${name} to`}
+        maxLength={40}
+        autoFocus
+        value={who}
+        onChange={(e) => setWho(e.target.value)}
+        onKeyDown={(e) => {
+          if (e.key === "Enter") save();
+          if (e.key === "Escape") setAsking(false);
+        }}
+      />
+      <button type="button" className={link} onClick={save}>
+        Save
+      </button>
+    </span>
+  );
+}
 
 type Props = {
   row: Row;
@@ -53,6 +135,12 @@ export default function BookRow({
         {row.book?.isbn13 && (
           <span className={styles.bookIsbn}>ISBN {row.book.isbn13}</span>
         )}
+        <Lending
+          name={name}
+          lentTo={row.book?.lentTo ?? null}
+          lentOn={row.book?.lentOn ?? null}
+          onSave={(lentTo) => onSave(row, { lentTo })}
+        />
       </span>
       <label className={styles.bookPaid}>
         <span aria-hidden>$</span>

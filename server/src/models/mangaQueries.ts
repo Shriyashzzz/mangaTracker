@@ -305,6 +305,14 @@ export const setVolumesOwned = (
     select: { volumesOwned: true, ownedList: true },
   });
 
+// the volumes ordered and on their way (the database drops any owned)
+export const setOrdered = (id: number, orderedList: number[]) =>
+  prisma.manga.update({
+    where: { id },
+    data: { orderedList },
+    select: { orderedList: true },
+  });
+
 // a backup read back in (the import's `restore`): what the shelf entry lacks
 export const fillFromBackup = (
   id: number,
@@ -491,6 +499,7 @@ export default {
   startAskingAboutVolume,
   setSeen,
   setVolumesOwned,
+  setOrdered,
   fillFromBackup,
   deleteManga,
   deleteManyManga,

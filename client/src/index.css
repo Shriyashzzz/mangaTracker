@@ -930,6 +930,16 @@ body {
   filter: grayscale(1);
   cursor: not-allowed;
 }
+/* ordered, on its way: hatched in the spot colour (VolumeShelf ordered) */
+.vshelf-book[data-ordered] {
+  border-style: solid;
+  border-color: var(--accent);
+  background: repeating-linear-gradient(
+    -45deg,
+    var(--accent-wash) 0 4px,
+    transparent 4px 8px
+  );
+}
 .vshelf-book[data-apart] {
   margin-left: 7px;
 }

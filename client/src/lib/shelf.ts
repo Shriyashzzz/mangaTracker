@@ -102,6 +102,16 @@ export type Owned = { volumesOwned: number | null; ownedList: number[] };
 
 // sets what they own: "up to" a volume (null clears it) or the exact list
 // (lib/ownedVolumes.ts); returns what was saved
+// a volume ordered and on its way, or not after all. The list as saved
+export async function setOrdered(id: number, volume: number, ordered: boolean) {
+  const res = await apiFetch(`/api/manga/${id}/ordered`, {
+    method: "PUT",
+    body: { volume, ordered },
+  });
+  if (!res.ok) throw new Error("Couldn't save that");
+  return ((await res.json()) as { orderedList: number[] }).orderedList;
+}
+
 export async function setVolumesOwned(id: number, owned: Owned) {
   const res = await apiFetch(`/api/manga/${id}/owned`, {
     method: "PUT",

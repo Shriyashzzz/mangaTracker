@@ -100,6 +100,7 @@ mangaRouter.patch(
   manga.setImage,
 );
 mangaRouter.put("/:id/owned", requireOwner, manga.setOwned);
+mangaRouter.put("/:id/ordered", requireOwner, manga.setOrdered);
 // the books behind the owned volumes
 mangaRouter.get("/:id/books", requireOwner, manga.books);
 mangaRouter.post("/:id/books", requireOwner, manga.addBooks);

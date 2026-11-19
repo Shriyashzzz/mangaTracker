@@ -63,6 +63,9 @@ export type Manga = {
   volumesOwned: number | null;
   // exactly which, when it isn't a run from 1 (lib/ownedVolumes.ts)
   ownedList?: number[];
+  // ordered and on their way: Buy next goes past them. Owning one takes it
+  // off (the server does)
+  orderedList?: number[];
   rating: number | null;
   // when they last changed it: the shelf's "Last updated" order. ISO text;
   // missing on a shelf loaded before the server sent it

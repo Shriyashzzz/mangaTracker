@@ -26,13 +26,13 @@ import { type EditionBook, type EditionLine } from "../../lib/editions";
 import { slotsOf } from "../../lib/editionShelf";
 import { todayOf } from "../../lib/editionNews";
 import { SortMenu } from "../Home/ShelfBar";
-import { ownedOf } from "../../lib/ownedVolumes";
+import { ownedOf, ownedVolumes as ownedFrom } from "../../lib/ownedVolumes";
 import { useReleaseChecksOn, useTrackBy } from "../../lib/prefs";
 import { priceName } from "../../lib/prices";
 import { tracksOf } from "../../lib/reading";
 import { placeOnShelf } from "../../lib/chapterVolumes";
 import { usePrivatePage } from "../../lib/seo";
-import { getReleases, saveSeen } from "../../lib/shelf";
+import { getReleases, saveSeen, setOrdered } from "../../lib/shelf";
 import { closeUpcoming, isUpcomingClosed } from "./upcomingClosed";
 import type { Manga, ReleaseData, ReleaseStatus } from "../../lib/types";
 import { restoredAs, useShelf } from "../../store/shelf";
@@ -113,12 +113,20 @@ export default function Details() {
   const loadedId = mangaData?.id;
   // the series' omnibus and deluxe lines, and the one they collect. A light
   // novel's prices are the novel's, never the manga of the same name
+  // ordered and on their way, and not owned since: Buy next goes past them
+  const ordered = mangaData
+    ? (mangaData.orderedList ?? []).filter(
+        (v) => !ownedOf(mangaData).includes(v),
+      )
+    : [];
   const buyOptions = useBuyOptions(
     mangaData ? priceName(mangaData) : null,
-    {
-      volumesOwned: mangaData?.volumesOwned ?? null,
-      ownedList: mangaData?.ownedList,
-    },
+    ordered.length && mangaData
+      ? ownedFrom(null, [...ownedOf(mangaData), ...ordered])
+      : {
+          volumesOwned: mangaData?.volumesOwned ?? null,
+          ownedList: mangaData?.ownedList,
+        },
     releaseStatus?.nextChapterVolume ?? null,
   );
   const editions = useEditions(
@@ -297,6 +305,12 @@ export default function Details() {
       setPlanned(wasPlanned);
       setActionNote(orOffline(DIDNT_SAVE));
     }
+  };
+
+  // "I ordered it", or not after all: saved, then the list as saved
+  const orderVolume = async (volume: number, on: boolean) => {
+    const orderedList = await setOrdered(Number(id), volume, on);
+    setMangaData((m) => (m ? { ...m, orderedList } : m));
   };
 
   // which way this series keeps their place, or the volume they've read
@@ -527,6 +541,8 @@ export default function Details() {
                 }
                 onCollect={(edition) => saveReading({ edition })}
                 onOwnBook={ownBook}
+                ordered={ordered}
+                onOrdered={orderVolume}
               />
             </div>
             <ShelfBox
@@ -538,6 +554,7 @@ export default function Details() {
               ownedVolumes={ownedVolumes}
               place={shelfPlace}
               edition={editionShelf}
+              ordered={ordered}
             />
           </div>
 
@@ -677,6 +694,8 @@ export default function Details() {
               }
               onCollect={(edition) => saveReading({ edition })}
               onOwnBook={ownBook}
+              ordered={ordered}
+              onOrdered={orderVolume}
             />
           </div>
         </div>

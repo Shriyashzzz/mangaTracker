@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { NavLink } from "react-router";
-import { ChevronDownIcon } from "../../components/icons/Icons";
+import { ChevronDownIcon, InkCrossIcon } from "../../components/icons/Icons";
 import { chaptersText, type ChapterRange } from "../../lib/chapterWords";
 import { formatCents, seriesPath, volumePath } from "../../lib/prices";
 import { onSale } from "../../lib/releaseDate";
@@ -15,7 +15,7 @@ import {
   type EditionBook,
   type EditionLine,
 } from "../../lib/editions";
-import { offlineLink, useIsOffline } from "../../lib/offline";
+import { offlineLink, orOffline, useIsOffline } from "../../lib/offline";
 
 // where to buy more of this manga: the next volume they need, the newest in the
 // US, and a link to the whole series (saying how many aren't on the shelf). Stays out of the way when the series can't be
@@ -26,6 +26,9 @@ type Props = {
   folded?: boolean;
   // they've bought an edition's next book: record it and its volumes
   onOwnBook?: (line: EditionLine, book: EditionBook) => Promise<void>;
+  // single volumes ordered and on their way, and saying one is (or isn't)
+  ordered?: number[];
+  onOrdered?: (volume: number, ordered: boolean) => Promise<void>;
   options: BuyOptions;
   // the red bar is already selling the next volume
   hideNext: boolean;
@@ -77,6 +80,8 @@ export default function BuyStrip({
   shelfTotal = 0,
   folded = false,
   onOwnBook,
+  ordered = [],
+  onOrdered,
   ownsNone = false,
 }: Props) {
   const offline = useIsOffline();
@@ -96,6 +101,17 @@ export default function BuyStrip({
   // "I own Deluxe 7" saving, and whether it failed
   const [owning, setOwning] = useState(false);
   const [ownFailed, setOwnFailed] = useState(false);
+  // "I ordered it" saving, and whether it failed
+  const [ordering, setOrdering] = useState(false);
+  const [orderFailed, setOrderFailed] = useState(false);
+  const order = (volume: number, on: boolean) => {
+    if (!onOrdered) return;
+    setOrdering(true);
+    setOrderFailed(false);
+    onOrdered(volume, on)
+      .catch(() => setOrderFailed(true))
+      .finally(() => setOrdering(false));
+  };
   const { line, plan } = editions;
   const { loading, volumes, latest, next, caughtUp, seriesName } = options;
   // the gaps under "Not on your shelf": not the one "Next for you" already
@@ -301,6 +317,46 @@ export default function BuyStrip({
                   {ownsNone ? knownOnly(next.knownPriceCents) : price(next)}
                 </span>
               </NavLink>
+            </li>
+          )}
+          {/* bought it somewhere and it's on its way: Next moves past it */}
+          {next && !hideNext && onOrdered && (
+            <li>
+              <button
+                type="button"
+                className={styles.buyOwn}
+                disabled={ordering}
+                onClick={() => order(next.volume, true)}
+                {...offlineLink(offline)}
+              >
+                {ordering ? "Saving…" : `I ordered vol. ${next.volume}`}
+              </button>
+              {orderFailed && (
+                <span className={styles.buyOwnFailed} role="alert">
+                  {orOffline("That didn't save. Try again.")}
+                </span>
+              )}
+            </li>
+          )}
+          {ordered.length > 0 && (
+            <li className={styles.buyGaps}>
+              <span className={styles.buyKind}>Ordered</span>
+              <span className={styles.buyGapList}>
+                {ordered.map((v) => (
+                  <button
+                    key={v}
+                    type="button"
+                    className={`${styles.buyGap} inline-flex items-center gap-1`}
+                    aria-label={`Vol. ${v}: not ordered after all`}
+                    disabled={ordering}
+                    onClick={() => order(v, false)}
+                    {...offlineLink(offline)}
+                  >
+                    Vol. {v}
+                    <InkCrossIcon className="size-[0.7rem]" />
+                  </button>
+                ))}
+              </span>
             </li>
           )}
           {/* the gaps behind them: Next goes past these, a collector filling

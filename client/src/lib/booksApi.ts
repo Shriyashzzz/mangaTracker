@@ -24,7 +24,11 @@ export const saveBooks = async (mangaId: number, books: NewBook[]) => {
 export const savePurchase = async (
   mangaId: number,
   bookId: number,
-  change: { paidCents?: number | null; boughtOn?: string | null },
+  change: {
+    paidCents?: number | null;
+    boughtOn?: string | null;
+    lentTo?: string | null;
+  },
 ) => {
   const res = await apiFetch(`/api/manga/${mangaId}/books/${bookId}`, {
     method: "PATCH",

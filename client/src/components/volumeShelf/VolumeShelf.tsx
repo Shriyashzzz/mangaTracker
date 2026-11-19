@@ -44,6 +44,8 @@ type Props = {
   // the volume they're in (or have read up to): drawn in red, the rest as
   // usual. Null when we can't tell
   here?: number | null;
+  // ordered and on their way: drawn hatched, said in its name
+  ordered?: number[];
   // The shelf seen through an edition (lib/editionShelf.ts): each "volume"
   // here is then a slot, a book of the edition or a volume it has no book
   // for. The shelf works the same; these say how a slot differs
@@ -78,11 +80,14 @@ export default function VolumeShelf({
   onPaint,
   name,
   here = null,
+  ordered = [],
   slots,
 }: Props) {
+  const onTheWay = new Set(ordered);
   const FULL = slots?.bookWidth ?? BOOK;
   const spineOf = (v: number) => slots?.spine(v) ?? String(v);
-  const nameOf = (v: number) => slots?.name(v) ?? `Vol. ${v}`;
+  const nameOf = (v: number) =>
+    slots?.name(v) ?? `Vol. ${v}${onTheWay.has(v) ? ", ordered" : ""}`;
   // what a slot that differs from a plain volume carries: how far a
   // part-owned book is filled, and whether it starts a run set apart
   const slotMarks = (v: number, theirs: boolean, firstShown = 1) => {
@@ -90,6 +95,7 @@ export default function VolumeShelf({
     const named = v === 1 || v === firstShown || startsRun(v);
     return {
       "data-part": share > 0 || undefined,
+      "data-ordered": (!theirs && onTheWay.has(v)) || undefined,
       "data-apart": startsRun(v) || undefined,
       "data-run": (named && slots?.runName?.(v)) || undefined,
       // never so far down that its number sits on ink

@@ -26,6 +26,7 @@ import {
   setNotes,
   setImage,
   setOwned,
+  setOrdered,
 } from "./manga/shelf.js";
 import {
   removeMany,
@@ -80,6 +81,7 @@ export default {
   setNotes,
   setImage,
   setOwned,
+  setOrdered,
   match,
   knownImportMatches,
   tellImportMatches,

@@ -17,6 +17,10 @@ export type OwnedBook = {
   // ("2026-01-05"; the server sends the day with a time on the end)
   paidCents?: number | null;
   boughtOn?: string | null;
+  // lent out: to whom, and the day it was ("2026-11-03", with a time on the
+  // end from the server)
+  lentTo?: string | null;
+  lentOn?: string | null;
   // its edition as the app says it ("Definitive", "VIZBIG"), read from its
   // title by the server; missing for a single volume and on a new book
   label?: string | null;

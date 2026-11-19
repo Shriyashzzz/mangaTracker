@@ -1,5 +1,6 @@
 // The shelf's dated history, written by the database itself
 // (migration 20261209000000_shelf_history), with a real database
+import bookQueries from "../../models/bookQueries.js";
 import mangaQueries from "../../models/mangaQueries.js";
 import userQueries from "../../models/userQueries.js";
 import { closeDb, emptyDb, prisma } from "./testDb.js";
@@ -90,4 +91,39 @@ test("a deleted series keeps its history; the account's goes with it", async () 
   expect(kept[0]).toMatchObject({ mangaId: null, series: "Haikyu!!" });
   await prisma.user.delete({ where: { id: userId } });
   expect(await prisma.shelfEvent.count()).toBe(0);
+});
+
+test("an ordered volume stops being ordered once it's owned", async () => {
+  const userId = await reader();
+  const id = await mangaQueries.addManga(userId, {
+    name: "Blue Box",
+    status: false,
+    volumesOwned: 3,
+  });
+  await mangaQueries.setOrdered(id, [4, 5]);
+  await mangaQueries.setVolumesOwned(id, { volumesOwned: 4, ownedList: [] });
+  expect((await mangaQueries.getManga(id))!.orderedList).toEqual([5]);
+  // owned already: never ordered
+  await mangaQueries.setOrdered(id, [2, 5]);
+  expect((await mangaQueries.getManga(id))!.orderedList).toEqual([5]);
+});
+
+test("a book lent out says to whom and since when; back, neither", async () => {
+  const userId = await reader();
+  const id = await mangaQueries.addManga(userId, {
+    name: "Blue Box",
+    status: false,
+    volumesOwned: 1,
+  });
+  await bookQueries.addBooks(id, [
+    { edition: "single", volumes: [1], lentTo: "Sam" },
+  ]);
+  const [book] = await bookQueries.booksOf(id);
+  expect(book).toMatchObject({ lentTo: "Sam" });
+  expect(book!.lentOn).not.toBeNull();
+  await bookQueries.setPurchase(id, book!.id, { lentTo: null });
+  expect((await bookQueries.booksOf(id))[0]).toMatchObject({
+    lentTo: null,
+    lentOn: null,
+  });
 });
