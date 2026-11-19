@@ -1,30 +1,36 @@
 // The stars on a series' page. A tap shows at once and saves in the
-// background; if the save fails the stars go back and a line says so.
+// background; with no connection it's kept on this device and goes when
+// it's back (lib/offlineChanges.ts). If the server refuses it, the stars go
+// back and a line says so.
 import { useState } from "react";
 import StarRating from "../../components/starRating/StarRating";
 import { apiFetch } from "../../lib/api";
+import { orOffline } from "../../lib/offline";
+import { KEPT_NOTE, saveOrKeep } from "../../lib/offlineChanges";
 import { detailsStyles as styles } from "./styles";
 
 type Props = { mangaId: number; initial: number };
 
 export default function RatingField({ mangaId, initial }: Props) {
   const [rating, setRating] = useState(initial);
-  const [failed, setFailed] = useState(false);
+  const [note, setNote] = useState<"kept" | "failed" | null>(null);
 
   const save = async (newRating: number) => {
     const previous = rating;
     setRating(newRating);
-    setFailed(false);
+    setNote(null);
     try {
-      const response = await apiFetch(`/api/manga/${mangaId}/rating`, {
-        method: "PATCH",
-        body: { rating: newRating },
-      });
-      if (!response.ok) throw new Error(response.statusText);
+      const how = await saveOrKeep(mangaId, "rating", previous, newRating, () =>
+        apiFetch(`/api/manga/${mangaId}/rating`, {
+          method: "PATCH",
+          body: { rating: newRating },
+        }),
+      );
+      if (how === "kept") setNote("kept");
     } catch (e) {
       console.error(`failed changing manga rating, ${(e as Error).message}`);
       setRating(previous);
-      setFailed(true);
+      setNote("failed");
     }
   };
 
@@ -36,8 +42,12 @@ export default function RatingField({ mangaId, initial }: Props) {
       <span className="inline-block w-fit">
         <StarRating value={rating} size="lg" onChange={save} />
       </span>
-      <p className={styles.saveFailed} role="status">
-        {failed && "That didn't save. Try again."}
+      <p
+        className={note === "kept" ? styles.notesSaved : styles.saveFailed}
+        role="status"
+      >
+        {note === "kept" && KEPT_NOTE}
+        {note === "failed" && orOffline("That didn't save. Try again.")}
       </p>
     </div>
   );

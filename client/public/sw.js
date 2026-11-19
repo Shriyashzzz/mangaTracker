@@ -21,7 +21,7 @@
 // signal's back, even with the app closed.
 //
 // A change to how this works: raise VERSION, and old caches are cleared.
-const VERSION = 5;
+const VERSION = 6;
 const SHELL = `shell-v${VERSION}`;
 const ASSETS = `assets-v${VERSION}`;
 // kept in step with client lib/offline.ts OFFLINE_DATA_CACHE
@@ -282,10 +282,11 @@ async function sendChanges() {
   const db = await openChanges();
   try {
     // (the most the server takes in one go: any more go next time)
-    const changes = (await inChanges(db, "readonly", (s) => s.getAll())).slice(
-      0,
-      200,
-    );
+    // in the order they were made, as the server applies them (client
+    // lib/offlineChangeRules.ts inOrder)
+    const changes = (await inChanges(db, "readonly", (s) => s.getAll()))
+      .sort((a, b) => a.at - b.at)
+      .slice(0, 200);
     if (!changes.length) return;
     const response = await fetch("/api/manga/offline-changes", {
       method: "POST",

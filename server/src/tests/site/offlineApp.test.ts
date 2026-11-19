@@ -3,8 +3,10 @@
 // (client/src/lib/offlineChangeRules.ts); and what the offline bar says
 // (client/src/components/offlineBar/offlineBarText.ts)
 import {
+  changesNothing,
   combinedOwned,
-  combinedPlace,
+  combinedChange,
+  inOrder,
   sentNote,
   toSend,
   withChanges,
@@ -33,25 +35,25 @@ test("many taps on one series are one change: the first start, the last end", ()
     at: 200,
   });
   // a chapter moved 20 to 21 to 25: from 20, to 25
-  const a = combinedPlace(undefined, 7, "bookmark", 20, 21, 100);
-  const b = combinedPlace(a, 7, "bookmark", 21, 25, 200);
+  const a = combinedChange(undefined, 7, "bookmark", 20, 21, 100);
+  const b = combinedChange(a, 7, "bookmark", 21, 25, 200);
   expect([
     b.key,
     b.kind === "bookmark" && b.from,
     b.kind === "bookmark" && b.to,
   ]).toEqual(["7:bookmark", 20, 25]);
   // the volume read is its own change, beside the chapter
-  const v = combinedPlace(b, 7, "readVolume", 2, 3, 300);
+  const v = combinedChange(b, 7, "readVolume", 2, 3, 300);
   expect(v.kind === "readVolume" && v.from).toBe(2);
 });
 
 test("the shelf shows a series as it is on this device", () => {
   const changes: OfflineChange[] = [
     combinedOwned(undefined, 7, [1, 2, 3], [1, 2, 3, 5], 1),
-    combinedPlace(undefined, 7, "bookmark", 20, 22, 1),
-    combinedPlace(undefined, 7, "readVolume", 2, 3, 1),
+    combinedChange(undefined, 7, "bookmark", 20, 22, 1),
+    combinedChange(undefined, 7, "readVolume", 2, 3, 1),
     // another series' change: not this one's
-    combinedPlace(undefined, 9, "bookmark", 1, 99, 1),
+    combinedChange(undefined, 9, "bookmark", 1, 99, 1),
   ];
   const shown = withChanges(series, changes);
   expect(shown).toMatchObject({
@@ -76,7 +78,7 @@ test("what's sent leaves off what only this device keeps", () => {
     started: [1],
     ended: [1, 2],
   });
-  const place = combinedPlace(undefined, 7, "bookmark", null, 3, 5);
+  const place = combinedChange(undefined, 7, "bookmark", null, 3, 5);
   expect(toSend(place)).toEqual({
     kind: "bookmark",
     mangaId: 7,
@@ -119,4 +121,51 @@ test("the offline bar", () => {
   expect(
     offlineBarText({ ...base, note: "Saved 1 change made offline." }),
   ).toEqual({ tone: "note", text: "Saved 1 change made offline." });
+});
+
+test("finished, To read, rating and notes are shown as the server will save them", () => {
+  const base = {
+    ...series,
+    status: false,
+    planned: true,
+    rating: 3,
+    description: "old",
+  } as Manga;
+  // started reading, then finished, rated and noted, in that order
+  const changes = [
+    combinedChange(undefined, 7, "rating", 3, 5, 30),
+    combinedChange(undefined, 7, "status", false, true, 20),
+    combinedChange(undefined, 7, "planned", true, false, 10),
+    combinedChange(undefined, 7, "notes", "old", "on a train", 40),
+  ];
+  expect(withChanges(base, changes)).toMatchObject({
+    planned: false,
+    status: true,
+    rating: 5,
+    description: "on a train",
+    // starting a series puts its chapter at 1, as the server does
+    bookmark: 1,
+  });
+  // sent in the order made, whatever order they were kept in
+  expect(inOrder(changes).map((c) => c.kind)).toEqual([
+    "planned",
+    "status",
+    "rating",
+    "notes",
+  ]);
+  // finished, then put back on To read: To read wins, as on the server
+  expect(
+    withChanges(base, [
+      combinedChange(undefined, 7, "status", false, true, 1),
+      combinedChange(undefined, 7, "planned", false, true, 2),
+    ]),
+  ).toMatchObject({ status: false, planned: true });
+});
+
+test("a change taken back is nothing to send", () => {
+  const rated = combinedChange(undefined, 7, "rating", 3, 5, 1);
+  const back = combinedChange(rated, 7, "rating", 5, 3, 2);
+  expect(changesNothing(back)).toBe(true);
+  expect(changesNothing(rated)).toBe(false);
+  expect(toSend(rated)).toEqual({ kind: "rating", mangaId: 7, from: 3, to: 5 });
 });

@@ -10,9 +10,13 @@ import { ownedVolumes } from "./ownedVolumes";
 import type { Manga } from "./types";
 
 export type PlaceKind = "bookmark" | "readVolume";
+// what else can wait: finished or not, To read, the rating and the notes
+export type ValueKind = "status" | "planned" | "rating" | "notes";
+export type ChangeKind = PlaceKind | ValueKind;
+export type ChangeValue = number | boolean | string | null;
 export type OfflineChange = { key: string; mangaId: number; at: number } & (
   | { kind: "owned"; started: number[]; ended: number[] }
-  | { kind: PlaceKind; from: number | null; to: number | null }
+  | { kind: ChangeKind; from: ChangeValue; to: ChangeValue }
 );
 
 // another tap on a series' shelf, put with the change already waiting: the
@@ -34,14 +38,15 @@ export function combinedOwned(
   };
 }
 
-// the chapter or volume read moved again: the first move's "from", this
-// one's "to"
-export function combinedPlace(
+// the chapter, the volume read, finished, To read, the rating or the notes
+// changed again: the first change's "from", this one's "to". (Back where it
+// started is nothing to send: lib/offlineChanges.ts drops it)
+export function combinedChange(
   had: OfflineChange | undefined,
   mangaId: number,
-  kind: PlaceKind,
-  from: number | null,
-  to: number | null,
+  kind: ChangeKind,
+  from: ChangeValue,
+  to: ChangeValue,
   at: number,
 ): OfflineChange {
   return {
@@ -54,16 +59,39 @@ export function combinedPlace(
   };
 }
 
-// a series as it is on this device: with its waiting changes on it
+// a change with nothing in it: back where it started
+export const changesNothing = (change: OfflineChange) =>
+  change.kind !== "owned" && change.from === change.to;
+
+// in the order they were made, which is how the server applies them
+// (finishing a series takes it off To read, so the order matters)
+export const inOrder = (changes: OfflineChange[]) =>
+  [...changes].sort((a, b) => a.at - b.at);
+
+// a series as it is on this device: with its waiting changes on it, as the
+// server will save them (server models/mangaQueries.ts setStatus, setPlanned)
 export function withChanges(manga: Manga, changes: OfflineChange[]): Manga {
   let shown = manga;
-  for (const change of changes) {
+  for (const change of inOrder(changes)) {
     if (change.mangaId !== manga.id) continue;
-    if (change.kind === "owned")
+    if (change.kind === "owned") {
       shown = { ...shown, ...ownedVolumes(null, change.ended) };
-    else if (change.kind === "bookmark")
-      shown = { ...shown, bookmark: change.to };
-    else shown = { ...shown, readVolume: change.to };
+      continue;
+    }
+    const to = change.to;
+    if (change.kind === "bookmark")
+      shown = { ...shown, bookmark: to as number };
+    else if (change.kind === "readVolume")
+      shown = { ...shown, readVolume: to as number | null };
+    else if (change.kind === "status")
+      shown = { ...shown, status: Boolean(to), planned: false };
+    else if (change.kind === "planned")
+      shown = to
+        ? { ...shown, planned: true, status: false }
+        : { ...shown, planned: false, bookmark: 1 };
+    else if (change.kind === "rating")
+      shown = { ...shown, rating: (to as number) || null };
+    else shown = { ...shown, description: (to as string | null) || null };
   }
   return shown;
 }

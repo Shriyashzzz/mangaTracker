@@ -1,6 +1,7 @@
 // Changes made with no connection, kept on this device until they can be
-// sent: the volumes ticked on a series' shelf, and the chapter or volume
-// read. Everything else can't be changed offline (lib/offline.ts).
+// sent: the volumes ticked on a series' shelf, the chapter or volume read,
+// finished or not, To read, the rating and the notes. Everything else
+// can't be changed offline (lib/offline.ts).
 //
 // Each series keeps one change of each kind, however many taps went into
 // it: where it started (the first tap's "before") and where it ended up
@@ -14,14 +15,17 @@
 // they're sent when the app is next open with a connection.
 import { create } from "zustand";
 import { apiFetch } from "./api";
-import { CONNECTION_BACK, isOffline } from "./offline";
+import { CONNECTION_BACK, isNetworkError, isOffline } from "./offline";
 import {
+  changesNothing,
+  combinedChange,
   combinedOwned,
-  combinedPlace,
+  inOrder,
   sentNote,
   toSend,
+  type ChangeKind,
+  type ChangeValue,
   type OfflineChange,
-  type PlaceKind,
 } from "./offlineChangeRules";
 
 // the rules themselves, for the pages that show changes
@@ -110,18 +114,52 @@ export async function keepOwnedChange(
   sendWhenBack();
 }
 
-// the chapter or volume read, moved from one number to another
-export async function keepPlaceChange(
+// the chapter, the volume read, finished, To read, the rating or the
+// notes, changed from one value to another. Changed back to where it
+// started: nothing's left to send
+export async function keepChange(
   mangaId: number,
-  kind: PlaceKind,
-  from: number | null,
-  to: number | null,
+  kind: ChangeKind,
+  from: ChangeValue,
+  to: ChangeValue,
 ) {
-  const had = await changeOf(`${mangaId}:${kind}`).catch(() => undefined);
-  await keep(combinedPlace(had, mangaId, kind, from, to, Date.now()));
+  const key = `${mangaId}:${kind}`;
+  const had = await changeOf(key).catch(() => undefined);
+  const change = combinedChange(had, mangaId, kind, from, to, Date.now());
+  if (changesNothing(change)) await drop(key).catch(() => undefined);
+  else await keep(change);
   await recount();
   sendWhenBack();
 }
+
+// Saved now if there's a connection; kept on this device to go when
+// there's one again if not. `send` is the ordinary save. Throws when the
+// server refuses it (that one isn't kept)
+export async function saveOrKeep(
+  mangaId: number,
+  kind: ChangeKind,
+  from: ChangeValue,
+  to: ChangeValue,
+  send: () => Promise<Response>,
+): Promise<"saved" | "kept"> {
+  const keepIt = async () => {
+    await keepChange(mangaId, kind, from, to);
+    return "kept" as const;
+  };
+  if (isOffline()) return keepIt();
+  let res: Response;
+  try {
+    res = await send();
+  } catch (e) {
+    if (isNetworkError(e)) return keepIt();
+    throw e;
+  }
+  if (!res.ok) throw new Error(`answered ${res.status}`);
+  return "saved";
+}
+
+// what a change kept on this device says
+export const KEPT_NOTE = "Kept on this device. It saves when you're back.";
 
 // ---------- showing them ----------
 
@@ -141,7 +179,7 @@ export const MOST_PER_SEND = 200;
 
 export async function sendChanges(): Promise<void> {
   if (useOfflineChanges.getState().sending || isOffline()) return;
-  const waiting = await allChanges();
+  const waiting = inOrder(await allChanges());
   if (!waiting.length) return;
   const changes = waiting.slice(0, MOST_PER_SEND);
   let sentAll = false;

@@ -4,7 +4,7 @@
 import { useEffect, useRef, useState } from "react";
 import { apiFetch } from "../../lib/api";
 import { isNetworkError, isOffline } from "../../lib/offline";
-import { keepPlaceChange } from "../../lib/offlineChanges";
+import { keepChange } from "../../lib/offlineChanges";
 import { useShelf } from "../../store/shelf";
 import { detailsStyles as styles } from "./styles";
 
@@ -58,7 +58,7 @@ const savePlace = async (
   from: number,
 ): Promise<"saved" | "kept"> => {
   const keepIt = async () => {
-    await keepPlaceChange(mangaId, UNITS[unit].field, from, place);
+    await keepChange(mangaId, UNITS[unit].field, from, place);
     return "kept" as const;
   };
   if (isOffline()) return keepIt();

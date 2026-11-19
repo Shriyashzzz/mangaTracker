@@ -15,7 +15,12 @@ import { useEffect, useRef, useState } from "react";
 import { NavLink, useNavigate, useParams, useSearchParams } from "react-router";
 import { apiFetch } from "../../lib/api";
 import { getBooks, ownEditionBook } from "../../lib/booksApi";
-import { waitingChanges, withChanges } from "../../lib/offlineChanges";
+import {
+  KEPT_NOTE,
+  saveOrKeep,
+  waitingChanges,
+  withChanges,
+} from "../../lib/offlineChanges";
 import { CAME_BACK } from "../../lib/comeBack";
 import { type EditionBook, type EditionLine } from "../../lib/editions";
 import { slotsOf } from "../../lib/editionShelf";
@@ -257,23 +262,29 @@ export default function Details() {
     setActionNote("");
     setCanUndoStatus(false);
     try {
-      const res = await apiFetch(`/api/manga/${id}/status`, {
-        method: "PATCH",
-        body: { status: next },
-      });
-      if (!res.ok) throw new Error(`Failed changing manga status`);
-      if (isUndo && finishedFromPlanned.current) {
-        const back = await apiFetch(`/api/manga/${id}/planned`, {
+      // with no connection it's kept on this device and goes when it's back
+      // (lib/offlineChanges.ts)
+      const how = await saveOrKeep(Number(id), "status", !next, next, () =>
+        apiFetch(`/api/manga/${id}/status`, {
           method: "PATCH",
-          body: { planned: true },
-        });
-        if (back.ok) setPlanned(true);
+          body: { status: next },
+        }),
+      );
+      if (isUndo && finishedFromPlanned.current) {
+        const back = await saveOrKeep(Number(id), "planned", false, true, () =>
+          apiFetch(`/api/manga/${id}/planned`, {
+            method: "PATCH",
+            body: { planned: true },
+          }),
+        ).catch(() => null);
+        if (back) setPlanned(true);
       }
       finishedFromPlanned.current = !isUndo && next && wasPlanned;
       if (!isUndo) {
-        setActionNote(next ? "Marked as finished." : "Back to reading.");
+        const done = next ? "Marked as finished." : "Back to reading.";
+        setActionNote(how === "kept" ? `${done} ${KEPT_NOTE}` : done);
         setCanUndoStatus(true);
-      }
+      } else if (how === "kept") setActionNote(KEPT_NOTE);
     } catch (e) {
       console.error(e);
       setMangaStatus(!next);
@@ -353,17 +364,18 @@ export default function Details() {
     setPlanned(false);
     setActionNote("");
     try {
-      const res = await apiFetch(`/api/manga/${id}/planned`, {
-        method: "PATCH",
-        body: { planned: false },
-      });
-      if (!res.ok) throw new Error("Failed starting manga");
+      const how = await saveOrKeep(Number(id), "planned", true, false, () =>
+        apiFetch(`/api/manga/${id}/planned`, {
+          method: "PATCH",
+          body: { planned: false },
+        }),
+      );
       setMangaData((m) => (m ? { ...m, planned: false, bookmark: 1 } : m));
-      setActionNote(
+      const started =
         mangaData && !tracksOf(mangaData, trackBy).chapters
           ? "Started!"
-          : "Started! Ch. 1 marked as read.",
-      );
+          : "Started! Ch. 1 marked as read.";
+      setActionNote(how === "kept" ? `${started} ${KEPT_NOTE}` : started);
     } catch (e) {
       console.error(e);
       setPlanned(true);

@@ -81,11 +81,58 @@ test("signed out, or nothing sensible sent: refused whole", async () => {
 
   const { agent } = await reader("reader");
   expect((await send(agent, [])).status).toBe(400);
-  expect(
-    (await send(agent, [{ kind: "rating", mangaId: 1, to: 5 }])).status,
-  ).toBe(400);
+  expect((await send(agent, [{ kind: "delete", mangaId: 1 }])).status).toBe(
+    400,
+  );
   expect(
     (await send(agent, [{ kind: "bookmark", mangaId: 1, from: 1, to: -4 }]))
       .status,
   ).toBe(400);
+});
+
+test("finished, To read, rating and notes made offline are saved", async () => {
+  const { agent, id } = await reader("reader");
+  const manga = await series(id, {
+    planned: true,
+    rating: 3,
+    description: "old",
+  });
+  const res = await send(agent, [
+    { kind: "planned", mangaId: manga.id, from: true, to: false },
+    { kind: "status", mangaId: manga.id, from: false, to: true },
+    { kind: "rating", mangaId: manga.id, from: 3, to: 5 },
+    { kind: "notes", mangaId: manga.id, from: "old", to: "read on a train" },
+  ]);
+  expect(res.status).toBe(200);
+  expect(res.body.answers.every((a: { saved: boolean }) => a.saved)).toBe(true);
+  const now = await prisma.manga.findUniqueOrThrow({ where: { id: manga.id } });
+  expect(now.planned).toBe(false);
+  expect(now.status).toBe(true);
+  expect(now.rating).toBe(5);
+  expect(now.description).toBe("read on a train");
+});
+
+test("changed on another device meanwhile: that stays, notes kept both", async () => {
+  const { agent, id } = await reader("reader");
+  // the laptop, since: un-rated to 2, and wrote its own note
+  const manga = await series(id, { rating: 2, description: "laptop note" });
+  await send(agent, [
+    { kind: "rating", mangaId: manga.id, from: 3, to: 5 },
+    { kind: "notes", mangaId: manga.id, from: "old", to: "phone note" },
+  ]);
+  const now = await prisma.manga.findUniqueOrThrow({ where: { id: manga.id } });
+  expect(now.rating).toBe(2);
+  expect(now.description).toBe("laptop note\n\nphone note (written offline)");
+});
+
+test("a change of an unknown kind or shape refuses the whole send", async () => {
+  const { agent, id } = await reader("reader");
+  const manga = await series(id);
+  const res = await send(agent, [
+    { kind: "rating", mangaId: manga.id, from: 3, to: 5 },
+    { kind: "status", mangaId: manga.id, from: "yes", to: true },
+  ]);
+  expect(res.status).toBe(400);
+  const now = await prisma.manga.findUniqueOrThrow({ where: { id: manga.id } });
+  expect(now.rating).toBe(null);
 });

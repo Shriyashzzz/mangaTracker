@@ -1,8 +1,10 @@
 // Notes, typed right where they're read. They save on their own when you click
-// away or leave the page, like the chapter stepper does. If a save fails the text
-// stays put, so nothing's lost.
+// away or leave the page, like the chapter stepper does; with no connection
+// they're kept on this device and go when it's back (lib/offlineChanges.ts).
+// If a save fails the text stays put, so nothing's lost.
 import { useEffect, useRef, useState } from "react";
 import { apiFetch, errorMessages } from "../../lib/api";
+import { saveOrKeep } from "../../lib/offlineChanges";
 import { useShelf } from "../../store/shelf";
 import { detailsStyles as styles } from "./styles";
 
@@ -16,7 +18,9 @@ export default function NotesField({
   initial: string | null;
 }) {
   const [text, setText] = useState(initial ?? "");
-  const [status, setStatus] = useState<"" | "saving" | "saved" | "failed">("");
+  const [status, setStatus] = useState<
+    "" | "saving" | "saved" | "kept" | "failed"
+  >("");
   const [failure, setFailure] = useState("");
   const savedText = useRef(initial ?? "");
   const latest = useRef(text);
@@ -26,17 +30,25 @@ export default function NotesField({
     if (notes === savedText.current.trim()) return;
     setStatus("saving");
     try {
-      const res = await apiFetch(`/api/manga/${id}/notes`, {
-        method: "PATCH",
-        body: { description: notes || null },
-        keepalive: true,
+      let refused = "";
+      const how = await saveOrKeep(
+        id,
+        "notes",
+        savedText.current.trim() || null,
+        notes || null,
+        async () => {
+          const res = await apiFetch(`/api/manga/${id}/notes`, {
+            method: "PATCH",
+            body: { description: notes || null },
+            keepalive: true,
+          });
+          // a 400 says what's wrong with the notes
+          if (res.status === 400) refused = (await errorMessages(res))[0] ?? "";
+          return res;
+        },
+      ).catch((e: Error) => {
+        throw new Error(refused || e.message);
       });
-      // a 400 says what's wrong with the notes; anything else is on our side
-      if (!res.ok) {
-        throw new Error(
-          res.status === 400 ? (await errorMessages(res))[0] : "",
-        );
-      }
       savedText.current = notes;
       useShelf.setState((state) => ({
         manga:
@@ -44,9 +56,14 @@ export default function NotesField({
             m.id === id ? { ...m, description: notes || null } : m,
           ) ?? null,
       }));
-      setStatus("saved");
+      setStatus(how);
     } catch (e) {
-      setFailure((e as Error).message || "That didn't save. Try again.");
+      const said = (e as Error).message;
+      setFailure(
+        said && !said.startsWith("answered")
+          ? said
+          : "That didn't save. Try again.",
+      );
       setStatus("failed");
     }
   };
@@ -56,11 +73,18 @@ export default function NotesField({
     () => () => {
       const notes = latest.current.trim();
       if (notes !== savedText.current.trim()) {
-        apiFetch(`/api/manga/${id}/notes`, {
-          method: "PATCH",
-          body: { description: notes || null },
-          keepalive: true,
-        }).catch(() => {});
+        saveOrKeep(
+          id,
+          "notes",
+          savedText.current.trim() || null,
+          notes || null,
+          () =>
+            apiFetch(`/api/manga/${id}/notes`, {
+              method: "PATCH",
+              body: { description: notes || null },
+              keepalive: true,
+            }),
+        ).catch(() => {});
       }
     },
     [id],
@@ -80,6 +104,8 @@ export default function NotesField({
         >
           {status === "saving" && "Saving…"}
           {status === "saved" && "Saved"}
+          {/* short: it shares a line with "Your notes" */}
+          {status === "kept" && "Saves when you're back"}
           {status === "failed" && failure}
         </span>
       </div>

@@ -1,6 +1,7 @@
 // Changes made on the installed app with no connection, sent when it's back
 // (client lib/offlineChanges.ts keeps them): the volumes ticked on a series'
-// shelf, and the chapter or volume read. Each is put together with what the
+// shelf, the chapter or volume read, finished or not, To read, the rating
+// and the notes. Each is put together with what the
 // server has now by offlineRules.ts, so another device's changes since are
 // never undone. One answer for each change, in order.
 import { body, matchedData } from "express-validator";
@@ -13,46 +14,31 @@ import { ownedVolumes } from "../util/shelf/ownedList.js";
 import { askAboutFinishedVolume } from "../reviews/reviews.js";
 import { newestChapterKnown } from "../util/releases/releaseAnswers.js";
 import { PAST_THE_NEWEST } from "../controllers/manga/shelf.js";
-import { mergeOwned, mergePlace } from "./offlineRules.js";
+import {
+  mergeNotes,
+  mergeOwned,
+  mergePlace,
+  mergeValue,
+  readChange,
+  type Change,
+} from "./offlineRules.js";
 import { oneAtATime } from "../util/shelf/oneAtATime.js";
 
 // plenty for a day underground; one request stays small
 export const MOST_CHANGES = 200;
-
-type Change =
-  | { kind: "owned"; mangaId: number; started: number[]; ended: number[] }
-  | { kind: "bookmark"; mangaId: number; from: number | null; to: number }
-  | {
-      kind: "readVolume";
-      mangaId: number;
-      from: number | null;
-      to: number | null;
-    };
 
 export type ChangeAnswer =
   | { saved: true }
   // the series isn't on their shelf now (deleted on another device)
   | { saved: false; reason: "gone" | "pastNewest" };
 
-// an owned change's volumes: where they started and where they ended up
-const volumeList = (field: string) => [
-  body(`changes.*.${field}`).optional().isArray({ max: 999 }),
-  body(`changes.*.${field}.*`).isFloat({ min: 0, max: 999 }).toFloat(),
-];
-const place = (field: string, max: number) =>
-  body(`changes.*.${field}`)
-    .optional({ values: "null" })
-    .isInt({ min: 0, max })
-    .toInt();
-
 export const applyOfflineChanges = [
   body("changes").isArray({ min: 1, max: MOST_CHANGES }),
-  body("changes.*.kind").isIn(["owned", "bookmark", "readVolume"]),
-  body("changes.*.mangaId").isInt({ min: 1 }).toInt(),
-  ...volumeList("started"),
-  ...volumeList("ended"),
-  place("from", 100000),
-  place("to", 100000),
+  // each checked by its kind (offlineRules.ts readChange)
+  body("changes.*")
+    .customSanitizer(readChange)
+    .custom((change) => change !== null)
+    .withMessage("That isn't a change."),
   rejectInvalid,
   async (req: Request, res: Response) => {
     const userId = req.session.userId!;
@@ -88,6 +74,31 @@ async function applyOne(userId: number, change: Change): Promise<ChangeAnswer> {
     if (newest != null && to > newest + PAST_THE_NEWEST)
       return { saved: false, reason: "pastNewest" };
     await mangaQueries.setBookmark(manga.id, to);
+    return { saved: true };
+  }
+  if (change.kind === "status") {
+    const to = mergeValue(manga.status, change.from, change.to);
+    if (to !== manga.status) {
+      await mangaQueries.setStatus(manga.id, to);
+      // finishing the series is finishing its last volume, as online
+      if (to) await askAboutFinishedVolume(userId, manga.id);
+    }
+    return { saved: true };
+  }
+  if (change.kind === "planned") {
+    const to = mergeValue(manga.planned, change.from, change.to);
+    if (to !== manga.planned) await mangaQueries.setPlanned(manga.id, to);
+    return { saved: true };
+  }
+  if (change.kind === "rating") {
+    const now = manga.rating ?? 0;
+    const to = mergeValue(now, change.from, change.to);
+    if (to !== now) await mangaQueries.setRating(manga.id, to);
+    return { saved: true };
+  }
+  if (change.kind === "notes") {
+    const to = mergeNotes(manga.description, change.from, change.to);
+    if (to !== manga.description) await mangaQueries.setNotes(manga.id, to);
     return { saved: true };
   }
   const to = mergePlace(manga.readVolume, change.from, change.to);
