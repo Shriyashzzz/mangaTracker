@@ -232,3 +232,32 @@ test("at most so many a run, and each reader once a week", async () => {
   const nextWeek = await sendDueDigests(new Date(now.getTime() + 8 * DAY), 10);
   expect(nextWeek.due).toBe(2);
 });
+
+test("a confirm link that couldn't be sent is said so, and can be sent again", async () => {
+  const { agent } = await signedIn();
+  const send = (transporter as { sendMail: unknown }).sendMail;
+  (transporter as { sendMail: unknown }).sendMail = async () => {
+    throw new Error("mail service down");
+  };
+  try {
+    const res = await switchOn(agent);
+    // the setting is saved; the page is told the link didn't go
+    expect(res.status).toBe(200);
+    expect(res.body).toMatchObject({
+      weeklyEmail: true,
+      emailConfirmed: false,
+      confirmNotSent: true,
+    });
+    // a new address while it's down: the same
+    const changed = await agent
+      .patch("/api/account")
+      .send({ recoveryEmail: "new@example.com" });
+    expect(changed.body.confirmNotSent).toBe(true);
+  } finally {
+    (transporter as { sendMail: unknown }).sendMail = send;
+  }
+  // working again: sent, and nothing said about it failing
+  const again = await switchOn(agent);
+  expect(again.body.confirmNotSent).toBeUndefined();
+  expect(sent.map((m) => m.to)).toEqual(["new@example.com"]);
+});

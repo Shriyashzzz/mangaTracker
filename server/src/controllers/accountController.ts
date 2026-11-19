@@ -112,22 +112,34 @@ const update = [
     }
     const saved = await userQueries.updateAccount(req.session.userId!, data);
     // a new address with the weekly email on: it's asked to confirm again
-    if (data.recoveryEmail && saved.weeklyEmail && !saved.emailConfirmed)
-      await mailConfirmLink(req.session.userId!);
-    res.json(withNames(req.session.userId!, saved));
+    const mailed =
+      data.recoveryEmail && saved.weeklyEmail && !saved.emailConfirmed
+        ? await mailConfirmLink(req.session.userId!)
+        : true;
+    res.json({
+      ...withNames(req.session.userId!, saved),
+      ...(mailed ? {} : { confirmNotSent: true }),
+    });
   },
 ];
 
-// mails the account its confirm link, if its address still needs one. A
-// mail that fails to go is logged, never the reason a setting doesn't save
+// Mails the account its confirm link, if its address still needs one.
+// False when the mail didn't go: the setting is saved either way, and the
+// page says the link wasn't sent (confirmNotSent), so nobody waits for it
 async function mailConfirmLink(userId: number) {
   const user = await userQueries.setWeeklyEmail(userId, true);
-  if (!user?.recoveryEmail || !user.emailCode || user.emailConfirmed) return;
-  await sendConfirmMail({
+  if (!user?.recoveryEmail || !user.emailCode || user.emailConfirmed)
+    return true;
+  return sendConfirmMail({
     to: user.recoveryEmail,
     username: user.username,
     code: user.emailCode,
-  }).catch((e: Error) => console.error("confirm email failed:", e.message));
+  })
+    .then(() => true)
+    .catch((e: Error) => {
+      console.error("confirm email failed:", e.message);
+      return false;
+    });
 }
 
 // the weekly email's switch in settings. On needs an address saved, and
@@ -142,9 +154,12 @@ const weeklyEmail = [
     if (!account) return sendError(res, 404, "No account found.");
     if (on && !account.recoveryEmail)
       return sendError(res, 400, "Save an email first.");
-    if (on) await mailConfirmLink(userId);
-    else await userQueries.setWeeklyEmail(userId, false);
-    res.json(withNames(userId, await userQueries.getAccount(userId)));
+    const mailed = on ? await mailConfirmLink(userId) : true;
+    if (!on) await userQueries.setWeeklyEmail(userId, false);
+    res.json({
+      ...withNames(userId, await userQueries.getAccount(userId)),
+      ...(mailed ? {} : { confirmNotSent: true }),
+    });
   },
 ];
 

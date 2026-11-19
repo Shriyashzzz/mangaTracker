@@ -17,6 +17,9 @@ export type Account = {
   // from the link mailed to it (nothing weekly is sent until it is)
   weeklyEmail: boolean;
   emailConfirmed: boolean;
+  // the confirm link was meant to go just now and didn't: said on the page
+  // instead of "press the link we sent". Only on that one answer
+  confirmNotSent?: boolean;
   // what they show as until they pick a name, and ideas for one
   defaultName: string;
   nameIdeas: string[];
@@ -74,6 +77,7 @@ export async function saveAccount(
       | "nameIdeas"
       | "weeklyEmail"
       | "emailConfirmed"
+      | "confirmNotSent"
     >
   >,
 ) {

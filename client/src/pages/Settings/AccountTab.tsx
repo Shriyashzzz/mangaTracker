@@ -11,6 +11,9 @@ import { useAccount } from "../../store/account";
 import { useAuth } from "../../store/auth";
 import { settingsStyles as styles } from "./styles";
 
+// said when the confirm link was meant to go and didn't
+const LINK_NOT_SENT = "We couldn't send the link. Try again in a minute.";
+
 export function AccountTab({ account }: { account: Account }) {
   const logOut = useAuth((s) => s.logOut);
   const saveAccount = useAccount((s) => s.save);
@@ -26,14 +29,20 @@ export function AccountTab({ account }: { account: Account }) {
     setWeeklySaving(true);
     try {
       await setWeeklyEmail(on);
-      setWeeklyNote({ text: said });
+      // on, but the confirm link didn't go: said, never "check your inbox"
+      if (useAccount.getState().account?.confirmNotSent)
+        setWeeklyNote({ text: LINK_NOT_SENT, failed: true });
+      else setWeeklyNote({ text: said });
     } catch (error) {
       setWeeklyNote({ text: (error as Error).message, failed: true });
     } finally {
       setWeeklySaving(false);
     }
   };
-  const waitingToConfirm = account.weeklyEmail && !account.emailConfirmed;
+  // waiting for the address to be confirmed. Just now the link didn't go:
+  // the note says that instead (the button to send it again stays)
+  const waitingToConfirm =
+    account.weeklyEmail && !account.emailConfirmed && !account.confirmNotSent;
   const navigate = useNavigate();
   const [email, setEmail] = useState(account.recoveryEmail ?? "");
   const [emailNote, setEmailNote] = useState<{
@@ -52,6 +61,9 @@ export function AccountTab({ account }: { account: Account }) {
     try {
       await saveAccount({ recoveryEmail: email.trim() || null });
       setEmailNote({ text: email.trim() ? "Saved." : "Removed." });
+      // a new address with the weekly email on: its confirm link didn't go
+      if (useAccount.getState().account?.confirmNotSent)
+        setWeeklyNote({ text: LINK_NOT_SENT, failed: true });
     } catch (error) {
       setEmailNote({ text: (error as Error).message, failed: true });
     }
@@ -173,8 +185,9 @@ export function AccountTab({ account }: { account: Account }) {
             </label>
             {waitingToConfirm && (
               <p className={styles.body}>
-                Almost there: press the link we sent to{" "}
-                <strong>{account.recoveryEmail}</strong> to confirm it's yours.
+                Almost there: confirm it's yours from the email to{" "}
+                <strong>{account.recoveryEmail}</strong>. No email? Send the
+                link again.
               </p>
             )}
             {account.weeklyEmail && account.emailConfirmed && (
@@ -183,7 +196,7 @@ export function AccountTab({ account }: { account: Account }) {
               </p>
             )}
             <div className={styles.actions}>
-              {waitingToConfirm && (
+              {account.weeklyEmail && !account.emailConfirmed && (
                 <button
                   type="button"
                   className="btn btn-secondary"
