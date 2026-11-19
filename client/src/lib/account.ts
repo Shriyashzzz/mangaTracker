@@ -13,6 +13,10 @@ export type Account = {
   shareRatings: boolean;
   shareProgress: boolean;
   shareCode: string | null;
+  // the weekly email: switched on, and whether the address was confirmed
+  // from the link mailed to it (nothing weekly is sent until it is)
+  weeklyEmail: boolean;
+  emailConfirmed: boolean;
   // what they show as until they pick a name, and ideas for one
   defaultName: string;
   nameIdeas: string[];
@@ -62,10 +66,31 @@ export const getAccount = (signal?: AbortSignal) =>
 // throws with what was wrong, in words for the page
 export async function saveAccount(
   patch: Partial<
-    Omit<Account, "username" | "shareCode" | "defaultName" | "nameIdeas">
+    Omit<
+      Account,
+      | "username"
+      | "shareCode"
+      | "defaultName"
+      | "nameIdeas"
+      | "weeklyEmail"
+      | "emailConfirmed"
+    >
   >,
 ) {
   const res = await apiFetch("/api/account", { method: "PATCH", body: patch });
+  if (!res.ok)
+    throw new Error((await errorMessages(res))[0] ?? "That didn't save.");
+  return (await res.json()) as Account;
+}
+
+// Switches the weekly email on or off. On mails a confirm link until the
+// address has been confirmed, so "on" again is also "send it again".
+// Throws with what was wrong, in words for the page
+export async function setWeeklyEmail(on: boolean) {
+  const res = await apiFetch("/api/account/weekly-email", {
+    method: "POST",
+    body: { on },
+  });
   if (!res.ok)
     throw new Error((await errorMessages(res))[0] ?? "That didn't save.");
   return (await res.json()) as Account;

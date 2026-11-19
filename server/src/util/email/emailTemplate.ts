@@ -2,7 +2,7 @@ import config from "../../config/config.js";
 import { RESET_LINK_MINUTES } from "../resetToken.js";
 
 // where the site lives: the live one, or CLIENT_URL on your own machine
-const site = () =>
+export const site = () =>
   (config.CLIENT_URL ?? "https://mangatracker.xyz").replace(/\/+$/, "");
 
 type Props =

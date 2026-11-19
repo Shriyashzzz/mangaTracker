@@ -156,6 +156,9 @@ const ACCOUNT_FIELDS = {
   shareRatings: true,
   shareProgress: true,
   shareCode: true,
+  // the weekly email: asked for, and whether the address was confirmed
+  weeklyEmail: true,
+  emailConfirmed: true,
 } as const;
 
 export const getAccount = (id: number) =>
@@ -171,18 +174,80 @@ export type AccountPatch = Partial<{
   shareProgress: boolean;
 }>;
 
+// a new code for an account's confirm and unsubscribe links
+const newEmailCode = () => randomBytes(24).toString("base64url");
+
 // the first time sharing goes on, it gets its link
 export async function updateAccount(id: number, patch: AccountPatch) {
-  const data: AccountPatch & { shareCode?: string } = { ...patch };
-  if (patch.shareEnabled) {
-    const current = await prisma.user.findUnique({
-      where: { id },
-      select: { shareCode: true },
-    });
-    if (!current?.shareCode)
-      data.shareCode = randomBytes(9).toString("base64url");
+  const data: AccountPatch & {
+    shareCode?: string;
+    emailConfirmed?: boolean;
+    emailCode?: string | null;
+    weeklyEmail?: boolean;
+  } = { ...patch };
+  const current = await prisma.user.findUnique({
+    where: { id },
+    select: { shareCode: true, recoveryEmail: true },
+  });
+  if (patch.shareEnabled && !current?.shareCode)
+    data.shareCode = randomBytes(9).toString("base64url");
+  // A different address hasn't been confirmed, and the old one's links stop
+  // working. With no address at all there's nowhere to send the weekly email
+  const emailChanged =
+    patch.recoveryEmail !== undefined &&
+    patch.recoveryEmail !== (current?.recoveryEmail ?? null);
+  if (emailChanged) {
+    data.emailConfirmed = false;
+    data.emailCode = patch.recoveryEmail ? newEmailCode() : null;
+    if (!patch.recoveryEmail) data.weeklyEmail = false;
   }
   return prisma.user.update({ where: { id }, data, select: ACCOUNT_FIELDS });
+}
+
+// ---------- the weekly email (src/digest/) ----------
+
+// Switches it on or off. On, the account has a code for its links. What the
+// caller needs to mail a confirm link comes back; null for no such account
+export async function setWeeklyEmail(id: number, on: boolean) {
+  const user = await prisma.user.findUnique({
+    where: { id },
+    select: { emailCode: true },
+  });
+  if (!user) return null;
+  return prisma.user.update({
+    where: { id },
+    data: {
+      weeklyEmail: on,
+      ...(on && !user.emailCode ? { emailCode: newEmailCode() } : {}),
+    },
+    select: {
+      username: true,
+      recoveryEmail: true,
+      emailCode: true,
+      emailConfirmed: true,
+      weeklyEmail: true,
+    },
+  });
+}
+
+// the link in a confirm email was pressed. False for a code nobody has (an
+// old link, after the address changed)
+export async function confirmEmailByCode(code: string) {
+  const { count } = await prisma.user.updateMany({
+    where: { emailCode: code, recoveryEmail: { not: null } },
+    data: { emailConfirmed: true },
+  });
+  return count > 0;
+}
+
+// the unsubscribe link in a weekly email: no sign-in needed. False for a
+// code nobody has
+export async function unsubscribeByCode(code: string) {
+  const { count } = await prisma.user.updateMany({
+    where: { emailCode: code },
+    data: { weeklyEmail: false },
+  });
+  return count > 0;
 }
 
 // false when the password is wrong. Their manga go with them, and so does every
@@ -291,6 +356,9 @@ export default {
   updatePrefs,
   getAccount,
   updateAccount,
+  setWeeklyEmail,
+  confirmEmailByCode,
+  unsubscribeByCode,
   deleteAccount,
   getSharedShelf,
   getUserByEmail,

@@ -1,5 +1,6 @@
-// Settings, Account: the recovery email, a backup of the shelf to download,
-// signing out, and deleting the account (which asks for the password).
+// Settings, Account: the email, the weekly email sent to it, a backup of the
+// shelf to download, signing out, and deleting the account (which asks for
+// the password).
 import type { OwnedBook } from "../../lib/books";
 import { useState, type FormEvent } from "react";
 import { useNavigate } from "react-router";
@@ -13,6 +14,26 @@ import { settingsStyles as styles } from "./styles";
 export function AccountTab({ account }: { account: Account }) {
   const logOut = useAuth((s) => s.logOut);
   const saveAccount = useAccount((s) => s.save);
+  const setWeeklyEmail = useAccount((s) => s.weeklyEmail);
+  const [weeklyNote, setWeeklyNote] = useState<{
+    text: string;
+    failed?: boolean;
+  } | null>(null);
+  const [weeklySaving, setWeeklySaving] = useState(false);
+  // on, off, or on again to mail the confirm link once more
+  const switchWeekly = async (on: boolean, said: string) => {
+    setWeeklyNote(null);
+    setWeeklySaving(true);
+    try {
+      await setWeeklyEmail(on);
+      setWeeklyNote({ text: said });
+    } catch (error) {
+      setWeeklyNote({ text: (error as Error).message, failed: true });
+    } finally {
+      setWeeklySaving(false);
+    }
+  };
+  const waitingToConfirm = account.weeklyEmail && !account.emailConfirmed;
   const navigate = useNavigate();
   const [email, setEmail] = useState(account.recoveryEmail ?? "");
   const [emailNote, setEmailNote] = useState<{
@@ -92,7 +113,7 @@ export function AccountTab({ account }: { account: Account }) {
 
       <section className={styles.section} aria-labelledby="set-email">
         <h3 id="set-email" className={styles.heading}>
-          Recovery email
+          Email
         </h3>
         <form className={styles.field} onSubmit={saveEmail} noValidate>
           <label htmlFor="recovery-email">Email (optional)</label>
@@ -105,8 +126,8 @@ export function AccountTab({ account }: { account: Account }) {
             onChange={(e) => setEmail(e.target.value)}
           />
           <p className={styles.body}>
-            A password reset link is sent here. Without one, a forgotten
-            password can't be reset.
+            A password reset link is sent here, and the weekly email if you
+            switch it on. Without one, a forgotten password can't be reset.
           </p>
           <div className={styles.actions}>
             <button type="submit" className="btn btn-secondary">
@@ -120,6 +141,69 @@ export function AccountTab({ account }: { account: Account }) {
             </span>
           </div>
         </form>
+      </section>
+
+      <section className={styles.section} aria-labelledby="set-weekly">
+        <h3 id="set-weekly" className={styles.heading}>
+          Weekly email
+        </h3>
+        <p className={styles.body}>
+          New volumes for your shelf, and price drops on your To buy list. Only
+          sent when there's news.
+        </p>
+        {account.recoveryEmail ? (
+          <>
+            <label className={styles.row}>
+              <input
+                type="checkbox"
+                checked={account.weeklyEmail}
+                disabled={weeklySaving}
+                onChange={(e) =>
+                  switchWeekly(
+                    e.target.checked,
+                    e.target.checked
+                      ? account.emailConfirmed
+                        ? "It's on."
+                        : "Check your inbox."
+                      : "It's off.",
+                  )
+                }
+              />
+              Send me the weekly email
+            </label>
+            {waitingToConfirm && (
+              <p className={styles.body}>
+                Almost there: press the link we sent to{" "}
+                <strong>{account.recoveryEmail}</strong> to confirm it's yours.
+              </p>
+            )}
+            {account.weeklyEmail && account.emailConfirmed && (
+              <p className={styles.body}>
+                Sent to <strong>{account.recoveryEmail}</strong>.
+              </p>
+            )}
+            <div className={styles.actions}>
+              {waitingToConfirm && (
+                <button
+                  type="button"
+                  className="btn btn-secondary"
+                  disabled={weeklySaving}
+                  onClick={() => switchWeekly(true, "Sent again.")}
+                >
+                  Send the link again
+                </button>
+              )}
+              <span
+                className={weeklyNote?.failed ? styles.failed : styles.saved}
+                role="status"
+              >
+                {weeklyNote?.text}
+              </span>
+            </div>
+          </>
+        ) : (
+          <p className={styles.body}>Save an email above to switch it on.</p>
+        )}
       </section>
 
       <section

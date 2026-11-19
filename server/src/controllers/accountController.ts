@@ -11,6 +11,7 @@ import priceQueries, {
   type Country,
 } from "../models/priceQueries.js";
 import userQueries, { type AccountPatch } from "../models/userQueries.js";
+import { sendConfirmMail } from "../digest/digestSender.js";
 import { AVATARS } from "../util/shelf/avatars.js";
 import { defaultReaderName, READER_NAMES } from "../util/shelf/readerNames.js";
 import { shelfSeries } from "../collector/shelfSeries.js";
@@ -109,12 +110,63 @@ const update = [
       if (owner && owner.id !== req.session.userId)
         return sendError(res, 409, EMAIL_TAKEN);
     }
-    res.json(
-      withNames(
-        req.session.userId!,
-        await userQueries.updateAccount(req.session.userId!, data),
-      ),
-    );
+    const saved = await userQueries.updateAccount(req.session.userId!, data);
+    // a new address with the weekly email on: it's asked to confirm again
+    if (data.recoveryEmail && saved.weeklyEmail && !saved.emailConfirmed)
+      await mailConfirmLink(req.session.userId!);
+    res.json(withNames(req.session.userId!, saved));
+  },
+];
+
+// mails the account its confirm link, if its address still needs one. A
+// mail that fails to go is logged, never the reason a setting doesn't save
+async function mailConfirmLink(userId: number) {
+  const user = await userQueries.setWeeklyEmail(userId, true);
+  if (!user?.recoveryEmail || !user.emailCode || user.emailConfirmed) return;
+  await sendConfirmMail({
+    to: user.recoveryEmail,
+    username: user.username,
+    code: user.emailCode,
+  }).catch((e: Error) => console.error("confirm email failed:", e.message));
+}
+
+// the weekly email's switch in settings. On needs an address saved, and
+// mails a confirm link until that address has been confirmed
+const weeklyEmail = [
+  body("on").isBoolean({ strict: true }),
+  rejectInvalid,
+  async (req: Request, res: Response) => {
+    const userId = req.session.userId!;
+    const { on } = matchedData(req) as { on: boolean };
+    const account = await userQueries.getAccount(userId);
+    if (!account) return sendError(res, 404, "No account found.");
+    if (on && !account.recoveryEmail)
+      return sendError(res, 400, "Save an email first.");
+    if (on) await mailConfirmLink(userId);
+    else await userQueries.setWeeklyEmail(userId, false);
+    res.json(withNames(userId, await userQueries.getAccount(userId)));
+  },
+];
+
+// The links in our emails, pressed by someone who may not be signed in: the
+// code in the link is all that says whose it is. 404 for a code nobody has
+const linkCode = param("code").matches(/^[\w-]{20,40}$/);
+const confirmEmail = [
+  linkCode,
+  rejectInvalid,
+  async (req: Request, res: Response) => {
+    const done = await userQueries.confirmEmailByCode(matchedData(req).code);
+    if (!done) return sendError(res, 404, "This link doesn't work any more.");
+    res.sendStatus(204);
+  },
+];
+const unsubscribe = [
+  linkCode,
+  rejectInvalid,
+  async (req: Request, res: Response) => {
+    const done = await userQueries.unsubscribeByCode(matchedData(req).code);
+    if (!done) return sendError(res, 404, "This link doesn't work any more.");
+    res.sendStatus(204);
   },
 ];
 
@@ -150,4 +202,12 @@ const shared = [
   },
 ];
 
-export default { get, update, remove, shared };
+export default {
+  get,
+  update,
+  remove,
+  shared,
+  weeklyEmail,
+  confirmEmail,
+  unsubscribe,
+};

@@ -50,8 +50,29 @@ model User {
   // a password reset link's token, as its hash (util/resetToken.ts)
   reset_token        String?            @unique
   reset_token_expiry BigInt? // in milliseconds
+  // The weekly email (src/digest/). Asked for in settings, and only sent
+  // once the address has been confirmed from a link mailed to it. emailCode
+  // is the random code in that link and in every unsubscribe link; a new
+  // address gets a new one. digestSentAt: when their last one went out
+  weeklyEmail        Boolean            @default(false) @map("weekly_email")
+  emailConfirmed     Boolean            @default(false) @map("email_confirmed")
+  emailCode          String?            @unique @map("email_code") @db.VarChar(40)
+  digestSentAt       DateTime?          @map("digest_sent_at") @db.Timestamptz(6)
+  digestItems        DigestItem[]
 
   @@map("users")
+}
+
+// what a reader has been emailed about, so nothing is sent twice
+// (src/digest/digestRules.ts names the items)
+model DigestItem {
+  userId Int      @map("user_id")
+  item   String   @db.VarChar(80)
+  sentAt DateTime @default(now()) @map("sent_at") @db.Timestamptz(6)
+  user   User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([userId, item])
+  @@map("digest_items")
 }
 
 model Manga {

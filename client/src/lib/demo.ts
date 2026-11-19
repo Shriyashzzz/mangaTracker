@@ -704,6 +704,8 @@ const STARTING_ACCOUNT = {
   shareEnabled: false,
   shareNotes: false,
   shareCode: "practice" as string | null,
+  weeklyEmail: false,
+  emailConfirmed: false,
   defaultName: "Chapter Goblin",
   nameIdeas: ["Chapter Goblin", "Volume Hoarder", "Panel Hopper"],
 };

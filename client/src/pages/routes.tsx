@@ -6,6 +6,7 @@ import SignInPage from "./SignIn/SignIn";
 import SignUp from "./SignUp/SignUp";
 import ForgotPassword from "./ForgotPassword/ForgotPassword";
 import ResetPassword from "./ResetPassword/ResetPassword";
+import EmailLink from "./EmailLink/EmailLink";
 import FrontDoor from "./Prices/FrontDoor";
 import ToPriceHome from "./Prices/ToPriceHome";
 import { AboutPage } from "./About/About";
@@ -110,6 +111,14 @@ export const routes = [
       { path: "/signup", element: <SignUp /> },
       { path: "/forgot-password", element: <ForgotPassword /> },
       { path: "/reset-password/:token", element: <ResetPassword /> },
+      {
+        path: "/email/confirm/:code",
+        element: <EmailLink action="confirm" />,
+      },
+      {
+        path: "/email/unsubscribe/:code",
+        element: <EmailLink action="unsubscribe" />,
+      },
       { path: "/series", element: <SeriesIndex /> },
       {
         path: "/to-buy",

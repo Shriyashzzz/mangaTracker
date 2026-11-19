@@ -114,7 +114,7 @@ export async function getNewPriceMedian(
 
 // each volume's usual new print price (the median of every one saved), the
 // yardstick for a "new" price too far off to believe
-async function newMedians(isbns: string[], country: Country) {
+export async function newMedians(isbns: string[], country: Country) {
   const rows = await prisma.$queryRaw<{ isbn13: string; median: number }[]>`
     SELECT isbn13,
            ROUND(percentile_cont(0.5) WITHIN GROUP (ORDER BY price_cents))::int AS median

@@ -11,11 +11,17 @@ const sendEmail = async ({
   to,
   subject,
   html,
+  text,
+  headers,
 }: {
   from: string;
   to: string;
   subject: string;
   html: string;
+  // the same email in plain words, for readers and filters that want it
+  text?: string;
+  // extra headers: the weekly email's one-click unsubscribe
+  headers?: Record<string, string>;
 }): Promise<boolean> => {
   if (!isValidEmail(from)) throw new Error("`from` email is not valid");
   if (!isValidEmail(to)) throw new Error("`to` email is not valid");
@@ -29,6 +35,8 @@ const sendEmail = async ({
       to: toEmail,
       subject: subject,
       html: html,
+      ...(text ? { text } : {}),
+      ...(headers ? { headers } : {}),
     });
     return true;
   } catch (e) {

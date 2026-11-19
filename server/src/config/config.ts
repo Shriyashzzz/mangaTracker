@@ -132,6 +132,16 @@ const schema = z.object({
   // smtp
   SMTP_USER: optional,
   SMTP_PASS: optional,
+  // The weekly email (src/digest/). EMAIL_DIGEST=off stops it being sent;
+  // DIGEST_PER_RUN is the most that go out in one hourly run. API_URL is
+  // this server's own public address (https://api.mangatracker.xyz): with
+  // it each email carries the one-click unsubscribe header inboxes look for
+  EMAIL_DIGEST: optional,
+  DIGEST_PER_RUN: z.preprocess(
+    blankToUndefined,
+    z.coerce.number().int().nonnegative().default(20),
+  ),
+  API_URL: optional,
 });
 
 const parsed = schema.safeParse(process.env);

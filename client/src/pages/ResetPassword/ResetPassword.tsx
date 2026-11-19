@@ -3,7 +3,7 @@
 // used says so, and offers a new one.
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { NavLink, useParams } from "react-router";
-import AuthArt from "../../components/authArt/AuthArt";
+import Spread from "../../components/authArt/Spread";
 import PasswordInput from "../../components/passwordInput/PasswordInput";
 import { apiFetch, errorMessages } from "../../lib/api";
 import { NEW_PASSWORD_MIN } from "../../lib/passwordRule";
@@ -208,33 +208,6 @@ export default function ResetPassword() {
         </button>
       </form>
     </Spread>
-  );
-}
-
-// the two panels every stage of this page is drawn in
-function Spread({
-  sfx,
-  line,
-  chapter,
-  title,
-  children,
-}: {
-  sfx: string;
-  line: string;
-  chapter?: string;
-  title: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <div className={styles.container}>
-      <div className={`${styles.spread} fade-in`}>
-        <AuthArt sfx={sfx} line={line} chapter={chapter} />
-        <div className={styles.card}>
-          <h1 className={styles.title}>{title}</h1>
-          {children}
-        </div>
-      </div>
-    </div>
   );
 }
 

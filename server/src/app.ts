@@ -10,7 +10,11 @@ import connectPgSimple from "connect-pg-simple";
 import config, { isProd } from "./config/config.js";
 import { pool } from "./config/prisma.js";
 import { authRouter, prefsRouter } from "./routes/authRouter.js";
-import { accountRouter, shareRouter } from "./routes/accountRouter.js";
+import {
+  accountRouter,
+  emailRouter,
+  shareRouter,
+} from "./routes/accountRouter.js";
 import { mangaRouter } from "./routes/mangaRouter.js";
 import { pricesRouter } from "./routes/pricesRouter.js";
 import { afterAnimeRouter } from "./routes/afterAnimeRouter.js";
@@ -68,6 +72,7 @@ app.use("/api/auth", authRouter);
 app.use("/api/prefs", prefsRouter);
 app.use("/api/account", accountRouter);
 app.use("/api/share", shareRouter);
+app.use("/api/email", emailRouter);
 app.use("/api/manga", mangaRouter);
 app.use("/api/prices", pricesRouter);
 app.use("/api/after-anime", afterAnimeRouter);
