@@ -183,6 +183,13 @@ export default function ShelfBox({
             key={`${mangaId}-${edition.line.key}`}
             total={slots.length}
             owned={slotsIn(slots, owned, "all")}
+            // a book whose missing volumes are all ordered: on its way
+            ordered={slots.flatMap((slot, i) => {
+              const missing = slot.volumes.filter((v) => !owned.includes(v));
+              return missing.length && missing.every((v) => ordered.includes(v))
+                ? [i + 1]
+                : [];
+            })}
             onToggle={tapSlot}
             onPaint={paintSlots}
             name={name}

@@ -971,15 +971,25 @@ body {
 .year-rays > * {
   position: relative;
 }
-/* ordered, on its way: hatched in the spot colour (VolumeShelf ordered) */
-.vshelf-book[data-ordered] {
-  border-style: solid;
-  border-color: var(--accent);
-  background: repeating-linear-gradient(
+/* ordered, on its way (VolumeShelf ordered): the spine itself hatched in
+   the spot colour; a book partly owned keeps its owned part inked */
+.vshelf-book[data-ordered]:not([data-own]) i {
+  --ordered-hatch: repeating-linear-gradient(
     -45deg,
-    var(--accent-wash) 0 4px,
-    transparent 4px 8px
+    color-mix(in srgb, var(--accent) 32%, transparent) 0 3px,
+    transparent 3px 7px
   );
+  border: 1.5px solid var(--accent);
+  background: var(--ordered-hatch), var(--paper);
+  color: var(--accent-ink);
+}
+.vshelf-box
+  .vshelf-book[data-part][data-ordered]:not([data-own]):not([data-here])
+  i {
+  border-color: var(--accent);
+  background:
+    linear-gradient(to bottom, var(--ink) var(--part), transparent var(--part)),
+    var(--ordered-hatch), var(--paper);
 }
 .vshelf-book[data-apart] {
   margin-left: 7px;

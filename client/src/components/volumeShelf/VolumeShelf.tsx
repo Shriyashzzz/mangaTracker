@@ -87,7 +87,7 @@ export default function VolumeShelf({
   const FULL = slots?.bookWidth ?? BOOK;
   const spineOf = (v: number) => slots?.spine(v) ?? String(v);
   const nameOf = (v: number) =>
-    slots?.name(v) ?? `Vol. ${v}${onTheWay.has(v) ? ", ordered" : ""}`;
+    `${slots?.name(v) ?? `Vol. ${v}`}${onTheWay.has(v) ? ", ordered" : ""}`;
   // what a slot that differs from a plain volume carries: how far a
   // part-owned book is filled, and whether it starts a run set apart
   const slotMarks = (v: number, theirs: boolean, firstShown = 1) => {
