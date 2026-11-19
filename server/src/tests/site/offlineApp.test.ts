@@ -10,10 +10,7 @@ import {
   withChanges,
   type OfflineChange,
 } from "../../../../client/src/lib/offlineChangeRules.js";
-import {
-  keptText,
-  offlineBarText,
-} from "../../../../client/src/components/offlineBar/offlineBarText.js";
+import { offlineBarText } from "../../../../client/src/components/offlineBar/offlineBarText.js";
 import type { Manga } from "../../../../client/src/lib/types.js";
 
 const series = {
@@ -97,7 +94,6 @@ test("how a send went, in words", () => {
 });
 
 test("the offline bar", () => {
-  const now = new Date(2026, 10, 19, 14, 30).getTime();
   const at = new Date(2026, 10, 19, 14, 14).getTime();
   const base = {
     online: true,
@@ -107,36 +103,20 @@ test("the offline bar", () => {
     note: null,
   };
   // all fresh: nothing
-  expect(offlineBarText(base, now)).toBeNull();
-  // offline, shelf kept at 2:14, two changes waiting
+  expect(offlineBarText(base)).toBeNull();
+  // offline: just the word, whatever is waiting
+  const offline = { tone: "offline", text: "Offline" };
+  expect(offlineBarText({ ...base, online: false })).toEqual(offline);
   expect(
-    offlineBarText({ ...base, online: false, savedAt: at, waiting: 2 }, now),
-  ).toEqual({
-    tone: "offline",
-    lead: "Offline.",
-    text: "Your shelf as of 2:14 PM. 2 changes waiting: they save when you're back.",
-  });
-  // offline, nothing kept yet
-  expect(offlineBarText({ ...base, online: false }, now)?.text).toBe(
-    "Chapters and volumes you change save when you're back.",
-  );
-  // offline, nothing kept, one change: said once, not twice
-  expect(
-    offlineBarText({ ...base, online: false, waiting: 1 }, now)?.text,
-  ).toBe("1 change waiting: it saves when you're back.");
-  // a kept shelf, nothing waiting: just how old it is
-  expect(
-    offlineBarText({ ...base, online: false, savedAt: at }, now)?.text,
-  ).toBe("Your shelf as of 2:14 PM.");
+    offlineBarText({ ...base, online: false, savedAt: at, waiting: 2 }),
+  ).toEqual(offline);
   // a kept copy on screen though the browser says online (the signal's bad)
-  expect(offlineBarText({ ...base, savedAt: at }, now)?.tone).toBe("offline");
+  expect(offlineBarText({ ...base, savedAt: at })).toEqual(offline);
   // back: sending, then how it went
+  expect(offlineBarText({ ...base, sending: true, waiting: 1 })?.text).toBe(
+    "Saving 1 change made offline…",
+  );
   expect(
-    offlineBarText({ ...base, sending: true, waiting: 1 }, now)?.text,
-  ).toBe("Saving 1 change made offline…");
-  expect(
-    offlineBarText({ ...base, note: "Saved 1 change made offline." }, now),
+    offlineBarText({ ...base, note: "Saved 1 change made offline." }),
   ).toEqual({ tone: "note", text: "Saved 1 change made offline." });
-  // a copy from another day says the day
-  expect(keptText(new Date(2026, 10, 18, 9, 0).getTime(), now)).toBe("Nov 18");
 });
