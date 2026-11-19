@@ -41,6 +41,8 @@ export type Manga = {
     next?: number | null;
     behind?: number;
     upTo?: number | null;
+    // the day their next book came out or comes out, when a catalog says
+    nextPublished?: string | null;
   } | null;
   // the series it's an entry of, edition or not: two entries with the same
   // key are one series ("Vagabond" and "Vagabond VIZBIG Edition"), and the

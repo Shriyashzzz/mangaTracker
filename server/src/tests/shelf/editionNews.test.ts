@@ -95,3 +95,73 @@ test("the New tab counts and names an edition's books", async () => {
   expect(behindOf(inBooks, "volumes")).toBe(8);
   expect(nextVolumeName(inBooks)).toBe("VIZBIG 5");
 });
+
+// ---------- the day an edition's next book comes out ----------
+test("an edition's next book is news when it's just out, or has a day", async () => {
+  const { editionRelease, fullDayOf } =
+    await import("../../../../client/src/lib/editionNews.js");
+  const three = (book: number) => [book * 3 - 2, book * 3 - 1, book * 3];
+  // four VIZBIGs: three out, the fourth with a day
+  const lineOf = (days: (string | null)[]) => ({
+    key: "vizbig",
+    kind: "omnibus" as const,
+    label: "VIZBIG",
+    books: days.map((published, i) => ({
+      number: i + 1,
+      volumes: three(i + 1),
+      isbn13: `978142150000${i}`,
+      title: null,
+      listed: true,
+      published,
+    })),
+  });
+  const today = "2026-11-19";
+  const line = lineOf(["2020-01-07", "2020-04-07", "2026-11-10", "2027-03-04"]);
+  const upTo = (n: number) => Array.from({ length: n }, (_, i) => i + 1);
+
+  // owns books 1 and 2: the third is the newest out
+  expect(editionRelease(line, upTo(6), null, today)).toMatchObject({
+    isOut: true,
+    day: "2026-11-10",
+    book: { number: 3 },
+  });
+  // owns all three: the fourth has a day
+  expect(editionRelease(line, upTo(9), null, today)).toMatchObject({
+    isOut: false,
+    day: "2027-03-04",
+    book: { number: 4 },
+  });
+  // reads them without owning any: read up to vol. 6 is the same place
+  expect(editionRelease(line, [], 6, today)?.book.number).toBe(3);
+  // only book 1: two are out past it, which is being behind, not news
+  expect(editionRelease(line, upTo(3), null, today)).toBeNull();
+  // a gap behind their furthest: not news either
+  expect(editionRelease(line, [4, 5, 6], null, today)).toBeNull();
+  // none of the edition yet, and all of it
+  expect(editionRelease(line, [], null, today)).toBeNull();
+  expect(editionRelease(line, upTo(12), null, today)).toBeNull();
+
+  // a year alone is never said
+  const vague = lineOf(["2020-01-07", "2020-04-07", "2026", null]);
+  expect(editionRelease(vague, upTo(6), null, today)).toBeNull();
+  expect(fullDayOf("2026")).toBeNull();
+  expect(fullDayOf("2026-03")).toBeNull();
+  expect(fullDayOf("2026-03-04")).toBe("2026-03-04");
+  // a book after it with no day: it may be out too, so nothing is claimed
+  const unknownAfter = lineOf(["2020-01-07", "2026-11-10", null]);
+  expect(editionRelease(unknownAfter, upTo(3), null, today)).toBeNull();
+});
+
+test("a book that isn't out yet stays off the New tab", () => {
+  const coming = {
+    ...place(13, 1, 12),
+    nextPublished: "2999-01-01",
+  };
+  const read = forEdition({ editionPlace: coming }, found);
+  expect(read?.hasNewVolume).toBe(false);
+  // out already, or with no day known: it's theirs to hear about
+  const out = { ...place(13, 1, 12), nextPublished: "2020-01-01" };
+  expect(forEdition({ editionPlace: out }, found)?.editionBooks?.next).toBe(13);
+  const undated = { ...place(13, 1, 12), nextPublished: null };
+  expect(forEdition({ editionPlace: undated }, found)?.hasNewVolume).toBe(true);
+});

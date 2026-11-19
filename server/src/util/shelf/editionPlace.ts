@@ -13,6 +13,7 @@ type Book = {
   volumes: number[];
   listed?: boolean;
   sure?: boolean;
+  published?: string | null;
 };
 type Line = { label: string; books: Book[] };
 
@@ -33,6 +34,10 @@ export type EditionPlace = {
   next: number | null;
   behind: number;
   upTo: number | null;
+  // the day their next book came out or comes out, as a catalog gives it;
+  // null when none does. The page leaves a book that's still coming off the
+  // New tab (client lib/editionNews.ts)
+  nextPublished: string | null;
 };
 
 export function editionPlaceOf(
@@ -81,6 +86,7 @@ export function editionPlaceOf(
     read,
     owned: allInBooks ? whole.map((book) => book.number) : null,
     next: next?.number ?? null,
+    nextPublished: next?.published ?? null,
     behind: books.filter((book) => !had(book)).length,
     upTo: furthest < 0 ? null : books[furthest]!.number,
   };

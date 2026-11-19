@@ -253,7 +253,7 @@ export default function Details() {
     // would also hide the day it's out, here and on the New tab
     if (seen.upcoming) {
       closeUpcoming(mangaData.id, seen.kind, seen.number);
-      setUpcomingClosedAt(Date.now());
+      setUpcomingClosedAt((n) => n + 1);
       return;
     }
     const field = seen.kind === "volume" ? "seenVolume" : "seenChapter";
@@ -412,6 +412,7 @@ export default function Details() {
     releaseData,
     buyOptions,
     collectsEdition: Boolean(editions.line),
+    edition: editions.line ? { line: editions.line, owned } : null,
     checksOn,
     planned,
     tracksChapters: tracksOf(mangaData, trackBy).chapters,

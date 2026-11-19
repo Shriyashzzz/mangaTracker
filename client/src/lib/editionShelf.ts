@@ -28,6 +28,24 @@ export type EditionShelf = { line: EditionLine; slots: Slot[] };
 // how much of a slot is theirs
 export type SlotState = "all" | "part" | "none";
 
+// A line's real books, in order: up to the last one a catalog lists or the
+// hand table vouches for (`sure`: Naruto 3-in-1 24, which no catalog lists).
+// A volume is in one book: should a catalog ever put one in two, the earlier
+// book keeps it and the later one is left off, so nothing is counted twice
+export function realBooksOf(line: EditionLine): EditionBook[] {
+  const last = line.books
+    .map((book) => Boolean(book.listed || book.sure))
+    .lastIndexOf(true);
+  const real = last < 0 ? line.books : line.books.slice(0, last + 1);
+  const taken = new Set<number>();
+  return real.filter((book) => {
+    if (!book.volumes.length) return false;
+    if (book.volumes.some((v) => taken.has(v))) return false;
+    for (const v of book.volumes) taken.add(v);
+    return true;
+  });
+}
+
 // The slots of a series with `total` volumes out, seen as `line`.
 //
 // Which of the line's books are real: the ones up to the last the catalog
@@ -38,25 +56,9 @@ export type SlotState = "all" | "part" | "none";
 // book at all keeps what it has (nothing says where it ends), less any book
 // that starts past the last volume out
 export function slotsOf(line: EditionLine, total: number): Slot[] {
-  // (a book the hand table vouches for, `sure`, is real too: Naruto 3-in-1
-  // 24, which no catalog lists)
-  const lastListed = line.books
-    .map((book) => Boolean(book.listed || book.sure))
-    .lastIndexOf(true);
-  const real =
-    lastListed < 0 ? line.books : line.books.slice(0, lastListed + 1);
-  const out = real.filter(
-    (book) => book.volumes.length > 0 && Math.min(...book.volumes) <= total,
+  const books = realBooksOf(line).filter(
+    (book) => Math.min(...book.volumes) <= total,
   );
-  // A volume is in one book. Should the catalog ever put one in two, the
-  // earlier book keeps it and the later one is left off (its other volumes
-  // show as singles), so nothing is counted or owned twice
-  const taken = new Set<number>();
-  const books = out.filter((book) => {
-    if (book.volumes.some((v) => taken.has(v))) return false;
-    for (const v of book.volumes) taken.add(v);
-    return true;
-  });
   const inABook = new Set(books.flatMap((book) => book.volumes));
   const singles: Slot[] = [];
   for (let volume = 1; volume <= total; volume++) {

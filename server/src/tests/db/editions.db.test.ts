@@ -308,6 +308,7 @@ test("the shelf says where they are in the edition they collect", async () => {
       next: 5,
       behind: 8,
       upTo: 4,
+      nextPublished: null,
     });
     // single volumes: nothing to say
     expect(

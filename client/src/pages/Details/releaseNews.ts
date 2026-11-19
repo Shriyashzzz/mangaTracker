@@ -15,6 +15,8 @@
 import { onSale } from "../../lib/releaseDate";
 import { formatReleaseDate } from "../../lib/releaseDates";
 import { formatCents, volumePath } from "../../lib/prices";
+import { editionRelease, todayOf } from "../../lib/editionNews";
+import type { EditionLine } from "../../lib/editions";
 import type { Manga, ReleaseData, ReleaseStatus } from "../../lib/types";
 import type { BuyOptions } from "./useBuyOptions";
 
@@ -89,6 +91,8 @@ type Asked = {
   buyOptions: BuyOptions;
   // they collect an omnibus or deluxe line: a single volume isn't theirs
   collectsEdition: boolean;
+  // that line, and the volumes they own: its next book is their news
+  edition?: { line: EditionLine; owned: number[] } | null;
   // release checks are switched on in Settings
   checksOn: boolean;
   planned: boolean;
@@ -114,9 +118,48 @@ const preorderLink = (v: Volume) => ({
   label: "Preorder",
 });
 
+// The bar for someone collecting an edition: its next book, just out or
+// with a day it comes out (lib/editionNews.ts editionRelease has the rule).
+// What its × silences is counted in volumes like any other: the last volume
+// the book holds
+function editionBookNews(asked: Asked): Release | null {
+  if (!asked.edition) return null;
+  const { line, owned } = asked.edition;
+  const { manga } = asked;
+  const news = editionRelease(
+    line,
+    owned,
+    manga.byVolume ? (manga.readVolume ?? null) : null,
+    todayOf(),
+  );
+  if (!news) return null;
+  const { book } = news;
+  const name = `${line.label} ${book.number}`;
+  const lastVolume = Math.max(...book.volumes);
+  const to = book.isbn13 ? volumePath(book.isbn13, book.title ?? name) : null;
+  if (!news.isOut) {
+    if (asked.upcomingClosed("volume", lastVolume)) return null;
+    return {
+      headline: `${name} comes out ${preorderDay(news.day)}`,
+      link: to ? { to, label: "Preorder" } : null,
+      seen: { kind: "volume", number: lastVolume, upcoming: true },
+      sellsIsbn: book.isbn13,
+    };
+  }
+  if ((manga.seenVolume ?? 0) >= lastVolume) return null;
+  const price = book.knownPriceCents;
+  const label = price != null ? `Buy for ${formatCents(price)}` : "See prices";
+  return {
+    headline: `${name} is out!`,
+    link: to ? { to, label } : null,
+    seen: { kind: "volume", number: lastVolume, upcoming: false },
+    sellsIsbn: book.isbn13,
+  };
+}
+
 function volumeNews(asked: Asked): Release | null {
   const { manga, buyOptions, releaseStatus } = asked;
-  if (asked.collectsEdition) return null;
+  if (asked.collectsEdition) return editionBookNews(asked);
   const whole = buyOptions.volumes.filter((v) => Number.isInteger(v.volume));
   const out = onSale(whole).sort(byNumber);
   const coming = whole.filter((v) => !out.includes(v)).sort(byNumber);
