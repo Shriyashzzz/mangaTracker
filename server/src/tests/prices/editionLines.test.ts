@@ -120,19 +120,206 @@ test("two names for one line are one line", () => {
 });
 
 test("nothing usable is no line, never a guess", () => {
+  // (series the hand table has no finished edition for: one it has gets
+  // its line from the table, whatever the catalogs say)
   expect(
     buildEditionLines(
-      "20th Century Boys",
-      [doc("20th Century Boys", isbn()), doc("20th Century Boys", isbn())],
-      22,
+      "Dorohedoro",
+      [doc("Dorohedoro", isbn()), doc("Dorohedoro", isbn())],
+      23,
     ),
   ).toEqual([]);
   // another series whose name starts the same
   expect(
     buildEditionLines(
-      "Monster",
-      [doc("Monster High Deluxe Edition 1", isbn())],
-      18,
+      "Pluto",
+      [doc("Pluto Water Deluxe Edition 1", isbn())],
+      8,
     ),
   ).toEqual([]);
+});
+
+// ---------- Google's records, and the hand table as a source ----------
+const dated = (title: string, isbn13: string, published: string) => ({
+  title,
+  isbn13,
+  published,
+});
+
+test("a number straight after the edition's words, and the day a book came out", () => {
+  // as Google has Fruits Basket's Collector's Edition
+  const lines = buildEditionLines(
+    "Fruits Basket",
+    [
+      dated("Fruits Basket Collector's Edition 01", isbn(), "2016-06-28"),
+      dated("Fruits Basket Collector's Edition 02", isbn(), "2016-07-26"),
+    ],
+    23,
+  );
+  const line = lines.find((l) => l.key === "collectors")!;
+  expect(line.books[0]).toMatchObject({
+    number: 1,
+    volumes: [1, 2],
+    published: "2016-06-28",
+  });
+  // the table knows all twelve, the last holding one volume
+  expect(line.books).toHaveLength(12);
+  expect(line.books[11]!.volumes).toEqual([23]);
+});
+
+test("a finished edition in the table is whole, whatever the catalogs list", () => {
+  // the catalogs have 21 of Naruto's 24: all 24 are in print
+  const found = [1, 2, 3].map((n) =>
+    doc(`Naruto (3-in-1 Edition), Vol. ${n}`, isbn(), 600),
+  );
+  const [line] = buildEditionLines("Naruto", found, 72);
+  expect(line!.books).toHaveLength(24);
+  expect(line!.books.every((book) => book.sure)).toBe(true);
+  expect(line!.books[23]).toMatchObject({
+    volumes: [70, 71, 72],
+    listed: false,
+  });
+  expect(line!.books[0]!.listed).toBe(true);
+  // and with nothing found at all, the table's line is still there
+  const [alone] = buildEditionLines("Naruto", [], 72);
+  expect(alone).toMatchObject({ key: "3in1", label: "3-in-1" });
+  expect(alone!.books).toHaveLength(24);
+});
+
+test("an edition still coming out is never vouched for", () => {
+  // Vagabond's Definitive: 13 planned, the catalogs list what's out
+  const found = [1, 2].map((n) =>
+    doc(`Vagabond Definitive Edition, Vol. ${n}`, isbn()),
+  );
+  const line = buildEditionLines("Vagabond", found, 37).find(
+    (l) => l.key === "definitive",
+  )!;
+  expect(line.books.some((book) => book.sure)).toBe(false);
+  // nothing found: no line is made up for it
+  expect(buildEditionLines("Vagabond", [], 37)).toEqual([]);
+});
+
+test("two editions that start with the same volumes both stay", () => {
+  const lines = buildEditionLines(
+    "Vagabond",
+    [
+      doc("Vagabond (VIZBIG Edition), Vol. 1", isbn()),
+      doc("Vagabond (VIZBIG Edition), Vol. 2", isbn()),
+      doc("Vagabond Definitive Edition, Vol. 1", isbn()),
+      doc("Vagabond Definitive Edition, Vol. 2", isbn()),
+    ],
+    37,
+  );
+  expect(lines.map((l) => l.key).sort()).toEqual(["definitive", "vizbig"]);
+});
+
+test("books a catalog filed as a 2-in-1 are the table's Black Edition", () => {
+  // Open Library titles them "Death Note #1-2"
+  const lines = buildEditionLines(
+    "Death Note",
+    [doc("Death Note #1-2", isbn()), doc("Death Note #3-4", isbn())],
+    12,
+  );
+  expect(lines.map((l) => l.label)).toEqual(["Black Edition"]);
+  expect(lines[0]!.books).toHaveLength(6);
+  // and they keep their ISBNs
+  expect(lines[0]!.books[0]!.listed).toBe(true);
+  expect(lines[0]!.books[5]).toMatchObject({ volumes: [11, 12], sure: true });
+});
+
+test("a short last book sold under another name is that edition's last book", () => {
+  // VIZ calls Bleach's 25th 3-in-1 a "2-in-1 Edition"
+  const lines = buildEditionLines(
+    "Bleach",
+    [
+      doc("Bleach (3-in-1 Edition), Vol. 1: Includes vols. 1, 2 & 3", isbn()),
+      doc("Bleach (3-in-1 Edition), Vol. 2: Includes vols. 4, 5 & 6", isbn()),
+      doc("Bleach (2-in-1 Edition), Vol. 25: Includes vols. 73 & 74", isbn()),
+    ],
+    74,
+  );
+  expect(lines.map((l) => l.key)).toEqual(["3in1"]);
+  expect(lines[0]!.books).toHaveLength(25);
+  expect(lines[0]!.books[24]).toMatchObject({
+    volumes: [73, 74],
+    listed: true,
+  });
+});
+
+test("the table caps an edition at the books it has", () => {
+  // a catalog's stray record for a twelfth Ultimate Edition: there are six
+  const lines = buildEditionLines(
+    "Fruits Basket",
+    [1, 2, 12].map((n) =>
+      doc(`Fruits Basket Ultimate Edition Volume ${n}`, isbn()),
+    ),
+    23,
+  );
+  const ultimate = lines.find((l) => l.key === "ultimate")!;
+  expect(ultimate.books).toHaveLength(6);
+  expect(ultimate.books[5]!.volumes).toEqual([11, 12]);
+});
+
+test("two editions of the table's that start alike are both kept", () => {
+  // Rurouni Kenshin's 3-in-1 and its VIZBIG: nine books each, 1 to 3 first
+  const lines = buildEditionLines("Rurouni Kenshin", [], 28);
+  expect(lines.map((l) => l.key).sort()).toEqual(["3in1", "vizbig"]);
+  // the ninth of each holds the last four
+  for (const line of lines)
+    expect(line.books[8]!.volumes).toEqual([25, 26, 27, 28]);
+});
+
+const store = (title: string, isbn13: string) => ({
+  title,
+  isbn13,
+  fromStore: true,
+});
+
+test("a book with the newer 979-8 ISBN is a publisher's book too", () => {
+  // Seven Seas' later Tokyo Revengers omnibuses, as a store lists them
+  const lines = buildEditionLines(
+    "Tokyo Revengers",
+    [
+      doc("Tokyo Revengers (Omnibus) Vol. 1-2", "9781638585718"),
+      store("Tokyo Revengers (Omnibus) Vol. 23-24", "9798888438626"),
+      store("Tokyo Revengers (Omnibus) Vol. 29-31", "9798891604858"),
+    ],
+    31,
+  );
+  const [line] = lines;
+  expect(line!.books).toHaveLength(15);
+  expect(line!.books[11]).toMatchObject({ volumes: [23, 24], listed: true });
+  // the last holds three, and is the fifteenth
+  expect(line!.books[14]).toMatchObject({
+    volumes: [29, 30, 31],
+    isbn13: "9798891604858",
+    listed: true,
+  });
+});
+
+test("a 979-8 book nobody vouches for is not taken", () => {
+  // the prefix print-on-demand bundles share: no store, no known publisher
+  const lines = buildEditionLines(
+    "Hellsing",
+    [
+      doc("Hellsing Deluxe Volume 1", "9798888888881"),
+      doc("Hellsing Deluxe Volume 2", "9798888888882"),
+    ],
+    10,
+  );
+  // the table's line is there, but neither book is "listed" from these
+  expect(lines[0]!.books.some((book) => book.listed)).toBe(false);
+  // with a manga publisher's name on it, it is
+  const named = buildEditionLines(
+    "Hellsing",
+    [
+      {
+        title: "Hellsing Deluxe Volume 1",
+        isbn13: "9798888888881",
+        publishers: ["Dark Horse Comics"],
+      },
+    ],
+    10,
+  );
+  expect(named[0]!.books[0]!.listed).toBe(true);
 });

@@ -274,9 +274,9 @@ test("uneven editions hold the same volumes on the server and the page", () => {
       18,
     ],
     ["BLAME!", (n) => `BLAME! Master Edition ${n}`, 6],
-    ["Knights of Sidonia", (n) => `Knights of Sidonia Master Edition ${n}`, 8],
+    ["Knights of Sidonia", (n) => `Knights of Sidonia Master Edition ${n}`, 7],
     ["Hellsing", (n) => `Hellsing Deluxe Volume ${n}`, 3],
-    ["Battle Angel Alita", (n) => `Battle Angel Alita Deluxe Edition ${n}`, 6],
+    ["Battle Angel Alita", (n) => `Battle Angel Alita Deluxe Edition ${n}`, 5],
     ["Gantz", (n) => `Gantz Omnibus Volume ${n}`, 12],
     ["Death Note", (n) => `Death Note: Black Edition, Vol. ${n}`, 6],
     ["Sailor Moon", (n) => `Sailor Moon Eternal Edition ${n}`, 10],
@@ -287,6 +287,35 @@ test("uneven editions hold the same volumes on the server and the page", () => {
       9,
     ],
     ["Chobits", (n) => `Chobits 20th Anniversary Edition ${n}`, 4],
+    // added 2026-11-19
+    ["Naruto", (n) => `Naruto (3-in-1 Edition), Vol. ${n}`, 24],
+    ["Bleach", (n) => `Bleach (3-in-1 Edition), Vol. ${n}`, 25],
+    ["Dragon Ball", (n) => `Dragon Ball (3-in-1 Edition), Vol. ${n}`, 14],
+    [
+      "Fullmetal Alchemist",
+      (n) => `Fullmetal Alchemist (3-in-1 Edition), Vol. ${n}`,
+      9,
+    ],
+    [
+      "Ouran High School Host Club",
+      (n) => `Ouran High School Host Club (3-in-1 Edition), Vol. ${n}`,
+      6,
+    ],
+    ["Attack on Titan", (n) => `Attack on Titan: Colossal Edition ${n}`, 7],
+    [
+      "Blade of the Immortal",
+      (n) => `Blade of the Immortal Omnibus Volume ${n}`,
+      10,
+    ],
+    ["Tokyo Revengers", (n) => `Tokyo Revengers (Omnibus) ${n}`, 15],
+    ["Fairy Tail", (n) => `Fairy Tail Master's Edition Vol. ${n}`, 5],
+    ["Soul Eater", (n) => `Soul Eater: The Perfect Edition ${n}`, 17],
+    [
+      "Maison Ikkoku",
+      (n) => `Maison Ikkoku Collector's Edition, Vol. ${n}`,
+      10,
+    ],
+    ["Chobits", (n) => `Chobits Omnibus ${n}`, 2],
   ];
   for (const [series, title, books] of editions)
     for (let n = 1; n <= books; n++) {

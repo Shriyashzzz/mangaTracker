@@ -8,7 +8,12 @@
 // edition's books (vol. 37, which VIZBIG has no book for; one volume of a
 // book bought on its own) is left null, and the card says it in volumes.
 
-type Book = { number: number; volumes: number[]; listed?: boolean };
+type Book = {
+  number: number;
+  volumes: number[];
+  listed?: boolean;
+  sure?: boolean;
+};
 type Line = { label: string; books: Book[] };
 
 export type EditionPlace = {
@@ -38,7 +43,10 @@ export function editionPlaceOf(
   // the line's real books: up to the last one the catalog lists. Past that
   // they're only worked out, and may never have been printed (the page's
   // slotsOf has the same rule: change both together)
-  const lastListed = line.books.map((book) => book.listed).lastIndexOf(true);
+  // (or the hand table vouches for: `sure`)
+  const lastListed = line.books
+    .map((book) => Boolean(book.listed || book.sure))
+    .lastIndexOf(true);
   const real =
     lastListed < 0 ? line.books : line.books.slice(0, lastListed + 1);
   // and a volume is in one book: a later book sharing one is left off

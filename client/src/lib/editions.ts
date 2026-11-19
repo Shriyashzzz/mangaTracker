@@ -13,6 +13,10 @@ export type EditionBook = {
   title: string | null;
   // in the catalog, with an ISBN; false: worked out from the line
   listed: boolean;
+  // the server's hand table says this book exists, listed or not
+  sure?: boolean;
+  // the day it came out, when a catalog says
+  published?: string | null;
   knownPriceCents?: number | null;
 };
 export type EditionLine = {

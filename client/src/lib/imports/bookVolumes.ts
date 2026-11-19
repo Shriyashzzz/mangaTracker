@@ -207,7 +207,7 @@ const EDITIONS: Edition[] = [
   {
     series: /^knights of sidonia$/,
     edition: /\bmaster edition\b/i,
-    books: 8,
+    books: 7,
     volumes: 15,
   },
   // Dark Horse: 3 books for the 10 volumes
@@ -221,7 +221,7 @@ const EDITIONS: Edition[] = [
   {
     series: /^battle angel alita$/,
     edition: /\bdeluxe\b/i,
-    books: 6,
+    books: 5,
     volumes: 9,
   },
   // Dark Horse, 2018 to 2023: 12 omnibuses for the 37 volumes, three a
@@ -331,6 +331,89 @@ const EDITIONS: Edition[] = [
     perBook: 3,
     books: 9,
     volumes: 26,
+  },
+  // ---------- added 2026-11-19, with the server's (util/shelf/editions.ts) ----------
+  {
+    series: /^naruto$/,
+    edition: /\b3\s*-?\s*in\s*-?\s*1\b/i,
+    perBook: 3,
+    books: 24,
+    volumes: 72,
+  },
+  {
+    series: /^bleach$/,
+    edition: /\b3\s*-?\s*in\s*-?\s*1\b/i,
+    perBook: 3,
+    books: 25,
+    volumes: 74,
+  },
+  {
+    series: /^dragon ball$/,
+    edition: /\b3\s*-?\s*in\s*-?\s*1\b/i,
+    perBook: 3,
+    books: 14,
+    volumes: 42,
+  },
+  {
+    series: /^fullmetal alchemist$/,
+    edition: /\b3\s*-?\s*in\s*-?\s*1\b/i,
+    perBook: 3,
+    books: 9,
+    volumes: 27,
+  },
+  {
+    series: /^ouran high school host club$/,
+    edition: /\b3\s*-?\s*in\s*-?\s*1\b/i,
+    perBook: 3,
+    books: 6,
+    volumes: 18,
+  },
+  {
+    series: /^attack on titan$/,
+    edition: /\bcolossal edition\b/i,
+    perBook: 5,
+    books: 7,
+    volumes: 34,
+  },
+  {
+    series: /^blade of the immortal$/,
+    edition: /\bomnibus\b/i,
+    perBook: 3,
+    books: 10,
+    volumes: 31,
+  },
+  {
+    series: /^tokyo revengers$/,
+    edition: /\bomnibus\b/i,
+    perBook: 2,
+    books: 15,
+    volumes: 31,
+  },
+  {
+    series: /^fairy tail$/,
+    edition: /\bmaster'?s edition\b/i,
+    perBook: 5,
+    books: 5,
+    volumes: 25,
+  },
+  {
+    series: /^soul eater$/,
+    edition: /\bperfect edition\b/i,
+    books: 17,
+    volumes: 25,
+  },
+  {
+    series: /^maison ikkoku$/,
+    edition: /\bcollector'?s edition\b/i,
+    books: 10,
+    volumes: 15,
+  },
+  {
+    series: /^chobits$/,
+    edition: /\bomnibus\b/i,
+    perBook: 4,
+    books: 2,
+    volumes: 8,
   },
 ];
 

@@ -3,12 +3,20 @@
 // own volume list already knows hold several (CatalogBook.inBook). Saved
 // beside the series' other lists (series_volumes, ":editions") for a week;
 // "has none" is an answer too.
+import { prisma } from "../config/prisma.js";
 import priceQueries from "../models/priceQueries.js";
+import { slugify } from "./stores/match.js";
 import { openLibraryFetch } from "./sources/openLibrary.js";
+import { bamEditionBooks } from "./providers/booksAMillion.js";
+import {
+  googleEditionBooks,
+  googleLookupsPaused,
+} from "./sources/googleBooksCatalog.js";
 import { isJapaneseTitle, ownTitleOf } from "./sources/catalog.js";
 import { volumesKey } from "./volumesKey.js";
 import {
   buildEditionLines,
+  TRADE_ISBN,
   type EditionDoc,
   type EditionLine,
 } from "./editionLines.js";
@@ -21,8 +29,17 @@ const TIMEOUT_MS = 8000;
 // when the rules for building lines last changed (the one list of editions,
 // Definitive and the rest; own titles for Japanese-filed books): a list saved
 // before then is built again, whatever its age
-const RULES_FROM = Date.UTC(2026, 10, 18, 6);
-const editionsKey = (name: string) => volumesKey(name) + ":editions";
+// (2026-11-19: Google Books beside Open Library, and the hand table as a
+// source of its own). Always a moment already past: a time still to come
+// would make every save old the instant it's made, and ask without end
+const RULES_FROM = Date.UTC(2026, 10, 19, 11);
+export const editionsKey = (name: string) => volumesKey(name) + ":editions";
+
+// whether lines saved at `savedAt` can still be used as they are: built by
+// today's rules, and not a week old. The background job asks about the rest
+// (collector/editionFiller.ts)
+export const editionLinesFresh = (savedAt: number, now = Date.now()) =>
+  savedAt >= RULES_FROM && now - savedAt < FRESH_MS;
 
 type OpenLibraryDoc = {
   title?: string;
@@ -45,7 +62,7 @@ async function searchEditions(name: string): Promise<EditionDoc[]> {
   const { docs = [] } = (await res.json()) as { docs?: OpenLibraryDoc[] };
   return docs.flatMap((doc) => {
     // the US trade copy: a record lists every language's ISBNs together
-    const isbn13 = doc.isbn?.find((i) => /^978[01]\d{9}$/.test(i));
+    const isbn13 = doc.isbn?.find((i) => TRADE_ISBN.test(i));
     return doc.title && isbn13
       ? [
           {
@@ -99,6 +116,70 @@ async function withOwnTitles(docs: EditionDoc[]): Promise<EditionDoc[] | null> {
   );
 }
 
+// the last volume out, as the series' own list has it; null when it has none
+function lastVolumeOf(volumes: CatalogBook[]) {
+  const numbers = volumes
+    .map((v) => v.volume)
+    .filter((v): v is number => v != null && Number.isInteger(v));
+  return numbers.length ? Math.max(...numbers) : null;
+}
+
+// who wrote the series, as it's saved from AniList; none when it isn't saved
+async function savedAuthorsOf(name: string) {
+  const saved = await prisma.seriesInfo
+    .findUnique({ where: { slug: slugify(name) }, select: { info: true } })
+    .catch(() => null);
+  return (saved?.info as { authors?: string[] } | null)?.authors ?? [];
+}
+
+// A series' edition lines, asked for afresh: Open Library's records and
+// Google Books' (publishers' own, with what each book holds and the day it
+// came out), and the books the series' own list knows hold several. Nothing
+// is read from or saved to the database, so a script can call it too
+// (scripts/checkEditions.ts). Throws only when neither catalog answered
+export async function findEditionLines(
+  name: string,
+  volumes: CatalogBook[],
+  // the series' authors, where known: Google's search is narrowed to them
+  authors: string[] = [],
+  // also ask Books-A-Million's shelf, one of the day's CJ calls: the
+  // background job does, a page never (bamEditionBooks says why)
+  askTheStore = false,
+) {
+  const [fromOpenLibrary, fromGoogle, fromStore] = await Promise.allSettled([
+    searchEditions(name),
+    googleEditionBooks(name, authors),
+    askTheStore ? bamEditionBooks(name) : Promise.resolve([]),
+  ]);
+  const store: EditionDoc[] =
+    fromStore.status === "fulfilled" ? fromStore.value : [];
+  if (fromOpenLibrary.status === "rejected" && fromGoogle.status === "rejected")
+    throw fromOpenLibrary.reason;
+  const docs =
+    fromOpenLibrary.status === "fulfilled" ? fromOpenLibrary.value : [];
+  const google: EditionDoc[] =
+    fromGoogle.status === "fulfilled" ? fromGoogle.value : [];
+  const lines = buildEditionLines(
+    name,
+    [...docs, ...google, ...store, ...docsFromVolumes(name, volumes)],
+    lastVolumeOf(volumes),
+  );
+  return {
+    lines,
+    docs,
+    // (the store's with Google's: both are kept for the rebuild that
+    // follows the books filed under Japanese titles)
+    google: [...google, ...store],
+    // which catalogs answered: an edition can't be called missing on the
+    // word of one that didn't
+    answered: {
+      openLibrary: fromOpenLibrary.status === "fulfilled",
+      google: !googleLookupsPaused(),
+      store: !askTheStore || fromStore.status === "fulfilled",
+    },
+  };
+}
+
 const inFlight = new Map<string, Promise<EditionLine[]>>();
 
 // a series' edition lines. `volumes`: its own list (getSeries), for the last
@@ -108,6 +189,8 @@ export async function editionLinesOf(
   volumes: CatalogBook[],
   // false: only what's saved, never a search (a crawler's visit)
   lookUp = true,
+  // the background job's lookup: Books-A-Million's shelf is asked too
+  askTheStore = false,
 ): Promise<EditionLine[]> {
   const key = editionsKey(name);
   const saved = await priceQueries.getSeriesVolumes(key).catch(() => null);
@@ -127,15 +210,18 @@ export async function editionLinesOf(
   if (!lookUp) return failed || !lines ? [] : (lines as EditionLine[]);
   const running = inFlight.get(key);
   if (running) return running;
-  const numbers = volumes
-    .map((v) => v.volume)
-    .filter((v): v is number => v != null && Number.isInteger(v));
-  const total = numbers.length ? Math.max(...numbers) : null;
   const build = (async () => {
     try {
-      const docs = await searchEditions(name);
-      const fromVolumes = docsFromVolumes(name, volumes);
-      const built = buildEditionLines(name, [...docs, ...fromVolumes], total);
+      const {
+        lines: built,
+        docs,
+        google,
+      } = await findEditionLines(
+        name,
+        volumes,
+        await savedAuthorsOf(name),
+        askTheStore,
+      );
       await priceQueries
         .saveSeriesVolumes(key, built as unknown as CatalogBook[])
         .catch(() => {});
@@ -148,8 +234,8 @@ export async function editionLinesOf(
           if (!named) return;
           const fuller = buildEditionLines(
             name,
-            [...named, ...fromVolumes],
-            total,
+            [...named, ...google, ...docsFromVolumes(name, volumes)],
+            lastVolumeOf(volumes),
           );
           return priceQueries.saveSeriesVolumes(
             key,
@@ -163,7 +249,11 @@ export async function editionLinesOf(
       await priceQueries
         .saveSeriesVolumes(key, [{ failed: true }] as unknown as CatalogBook[])
         .catch(() => {});
-      return buildEditionLines(name, docsFromVolumes(name, volumes), total);
+      return buildEditionLines(
+        name,
+        docsFromVolumes(name, volumes),
+        lastVolumeOf(volumes),
+      );
     } finally {
       inFlight.delete(key);
     }

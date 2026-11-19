@@ -46,6 +46,9 @@ const english = (name: string) => {
   return hit ? (hit[1] ?? clean) : null;
 };
 
+// a publisher of manga in English, by any of the names the catalogs use
+export const isEnglishPublisher = (name: string) => english(name) !== null;
+
 export function publisherOf(
   isbn13: string,
   {

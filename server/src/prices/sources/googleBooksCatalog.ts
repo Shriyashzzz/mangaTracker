@@ -49,6 +49,10 @@ const titleOf = (info: NonNullable<Item["volumeInfo"]>) =>
 // a while rather than asked again by every page
 const BACK_OFF_MS = 6 * 60 * 60 * 1000;
 let backOffUntil = 0;
+// whether Google is being left alone just now (or there's no key): a lookup
+// then finds nothing, which isn't the same as there being nothing
+export const googleLookupsPaused = () =>
+  !config.GOOGLE_BOOKS_API_KEY || Date.now() < backOffUntil;
 
 export async function googleSeriesVolumes(
   name: string,
@@ -100,6 +104,83 @@ export async function googleSeriesVolumes(
     if ((page + 1) * PAGE >= totalItems) break;
   }
   return books;
+}
+
+// The words an edition's book has in its title, one search each: "Naruto
+// (3-in-1 Edition)", "Tokyo Revengers (Omnibus)", "Berserk Deluxe Volume 1"
+const EDITION_WORDS = ["edition", "omnibus", "deluxe"];
+// a book as an edition line reads it (editionLines.ts EditionDoc)
+export type GoogleEditionBook = {
+  title: string;
+  isbn13: string;
+  publishers: string[];
+  pages: number | null;
+  // the day it came out, as its publisher told Google: "2013-02-05"
+  published: string | null;
+};
+
+// The books of a series' omnibus and deluxe editions, from publishers' own
+// records: "Naruto (3-in-1 Edition), Vol. 4: Includes vols. 10, 11 & 12",
+// with the day each came out. Open Library is missing most of these (of 57
+// popular editions it had 21 right: scripts/checkEditions.ts). Up to six of
+// the day's lookups a series; [] with no key or with the day used up, and
+// whatever was found before a search failed
+export async function googleEditionBooks(
+  name: string,
+  // who wrote it, as AniList names them ("Naoki Urasawa"): the search is
+  // then theirs only. Without it "Monster" finds a hundred other monsters
+  authors: string[] = [],
+  timeoutMs = 8000,
+): Promise<GoogleEditionBook[]> {
+  const key = config.GOOGLE_BOOKS_API_KEY;
+  if (!key) return [];
+  // by family name, the last word: Google files "Urasawa, Naoki" too
+  const familyName = authors[0]?.trim().split(/\s+/).at(-1);
+  const byThem = familyName ? ` inauthor:${familyName}` : "";
+  const found = new Map<string, GoogleEditionBook>();
+  for (const word of EDITION_WORDS) {
+    for (let page = 0; page < PAGES; page++) {
+      if (Date.now() < backOffUntil) return [...found.values()];
+      const params = new URLSearchParams({
+        q: `${titleWords(baseName(name))} intitle:${word}${byThem}`,
+        printType: "books",
+        langRestrict: "en",
+        maxResults: String(PAGE),
+        startIndex: String(page * PAGE),
+        key,
+      });
+      void noteCall("gbooks");
+      let items: Item[];
+      try {
+        const res = await fetch(`${URL}?${params}`, {
+          signal: AbortSignal.timeout(timeoutMs),
+        });
+        if (res.status === 429) backOffUntil = Date.now() + BACK_OFF_MS;
+        if (!res.ok) break;
+        items = ((await res.json()) as { items?: Item[] }).items ?? [];
+      } catch {
+        break;
+      }
+      for (const { volumeInfo: info } of items) {
+        const isbn13 = info?.industryIdentifiers?.find(
+          (i) => i.type === "ISBN_13",
+        )?.identifier;
+        // (langRestrict lets other languages through: the record says)
+        if (!info?.title || !isbn13 || info.language !== "en") continue;
+        if (found.has(isbn13)) continue;
+        found.set(isbn13, {
+          // what it holds is often in the subtitle: "Includes vols. 1, 2 & 3"
+          title: [info.title, info.subtitle].filter(Boolean).join(": "),
+          isbn13,
+          publishers: info.publisher ? [info.publisher] : [],
+          pages: info.pageCount ?? null,
+          published: info.publishedDate ?? null,
+        });
+      }
+      if (items.length < PAGE) break;
+    }
+  }
+  return [...found.values()];
 }
 
 // A book's title by its ISBN, as its publisher gave it to Google: "Rurouni

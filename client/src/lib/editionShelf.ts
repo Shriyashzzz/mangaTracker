@@ -38,7 +38,11 @@ export type SlotState = "all" | "part" | "none";
 // book at all keeps what it has (nothing says where it ends), less any book
 // that starts past the last volume out
 export function slotsOf(line: EditionLine, total: number): Slot[] {
-  const lastListed = line.books.map((book) => book.listed).lastIndexOf(true);
+  // (a book the hand table vouches for, `sure`, is real too: Naruto 3-in-1
+  // 24, which no catalog lists)
+  const lastListed = line.books
+    .map((book) => Boolean(book.listed || book.sure))
+    .lastIndexOf(true);
   const real =
     lastListed < 0 ? line.books : line.books.slice(0, lastListed + 1);
   const out = real.filter(

@@ -113,6 +113,38 @@ const lowestOf = (p: Product) => {
 // title happens to say "box"
 const LEAST_SET_CENTS = 2500;
 
+// The books of a series' omnibus and deluxe editions that Books-A-Million
+// sells: "Tokyo Revengers (Omnibus) Vol. 29-31", with its ISBN. A store's own
+// shelf, so a book here is in print: it lists edition books the catalogs
+// haven't caught up with. ONE of the day's CJ calls a series (its keywords
+// are any-of, best matches first, so one search finds every kind of
+// edition). Asked only by the background job (collector/editionFiller.ts),
+// about seventy a day of the 2,000 the price checks share. [] when CJ isn't
+// set up; throws SearchesUsedUp when the day's calls are spent
+export async function bamEditionBooks(name: string, timeoutMs = 8000) {
+  if (!enabled()) return [];
+  const products = await search(
+    [name, "omnibus", "edition", "deluxe"],
+    200,
+    AbortSignal.timeout(timeoutMs),
+  );
+  return products.flatMap((product) => {
+    const isbn13 = product.gtin?.trim() ?? "";
+    // a book, not a keychain: its barcode is an ISBN
+    if (!product.title || !/^97[89]\d{10}$/.test(isbn13)) return [];
+    return [{ title: bookTitleOf(product.title), isbn13, fromStore: true }];
+  });
+}
+
+// their title as a catalog would write it: "Naruto (3-In-1 Edition), Vol. 3 :
+// Includes Vols. 7, 8 & 9, by Masashi Kishimoto" without the author, and
+// with its colons set like anyone else's
+const bookTitleOf = (title: string) =>
+  title
+    .replace(/,\s+by\s+[^,]+$/i, "")
+    .replace(/\s+:\s+/g, ": ")
+    .trim();
+
 // a series' box sets in their catalog, by its name: products titled as a box
 // set of this series (never a light novel's for the manga, or the other way)
 export async function searchBamSets(
