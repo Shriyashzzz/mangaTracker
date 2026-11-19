@@ -110,10 +110,17 @@ const update = [
       if (owner && owner.id !== req.session.userId)
         return sendError(res, 409, EMAIL_TAKEN);
     }
+    // the address before, so saving the same one again mails nothing
+    const before = data.recoveryEmail
+      ? await userQueries.getAccount(req.session.userId!)
+      : null;
     const saved = await userQueries.updateAccount(req.session.userId!, data);
     // a new address with the weekly email on: it's asked to confirm again
+    const newAddress =
+      Boolean(data.recoveryEmail) &&
+      data.recoveryEmail !== before?.recoveryEmail;
     const mailed =
-      data.recoveryEmail && saved.weeklyEmail && !saved.emailConfirmed
+      newAddress && saved.weeklyEmail && !saved.emailConfirmed
         ? await mailConfirmLink(req.session.userId!)
         : true;
     res.json({

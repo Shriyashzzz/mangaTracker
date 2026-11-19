@@ -179,6 +179,7 @@ export default function ReadingPlace({
                 const book = edition.slots[count - 1];
                 return book ? insideOf(book) : "";
               },
+              savedVolume: manga.readVolume ?? null,
             }}
             onSaved={(count) =>
               onPlaceSaved({

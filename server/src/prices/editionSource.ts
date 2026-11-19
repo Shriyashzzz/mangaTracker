@@ -170,7 +170,7 @@ export async function findEditionLines(
   const docs =
     fromOpenLibrary.status === "fulfilled" ? fromOpenLibrary.value : [];
   const google: EditionDoc[] =
-    fromGoogle.status === "fulfilled" ? fromGoogle.value : [];
+    fromGoogle.status === "fulfilled" ? fromGoogle.value.books : [];
   const lines = buildEditionLines(
     name,
     [...docs, ...google, ...store, ...docsFromVolumes(name, volumes)],
@@ -186,7 +186,12 @@ export async function findEditionLines(
     // word of one that didn't
     answered: {
       openLibrary: fromOpenLibrary.status === "fulfilled",
-      google: !googleLookupsPaused(),
+      // (a search that timed out or failed leaves holes too, not only a
+      // day used up)
+      google:
+        fromGoogle.status === "fulfilled" &&
+        fromGoogle.value.whole &&
+        !googleLookupsPaused(),
       store: !askTheStore || fromStore.status === "fulfilled",
     },
   };
@@ -217,11 +222,20 @@ export async function editionLinesOf(
   const failed = Boolean(lines?.length && "failed" in lines[0]!);
   // lines saved before the rules last changed (more editions, books filed
   // under Japanese titles) are old whatever their age: built again
+  // the marker says a whole answer was kept over a half one (written below)
+  const keptWhole = Boolean(
+    (half?.volumes as unknown as { whole?: boolean }[] | undefined)?.[0]?.whole,
+  );
+  // A whole answer kept through an outage waits the hour too, however old
+  // it is: otherwise every visit to the page would ask again
+  const wholeWaiting =
+    keptWhole && half !== null && Date.now() - half.at < RETRY_MS;
   const fresh = failed
     ? saved !== null &&
       saved.at >= RULES_FROM &&
       Date.now() - saved.at < RETRY_MS
-    : saved !== null && editionLinesFresh(saved.at, Date.now(), half?.at);
+    : saved !== null &&
+      (wholeWaiting || editionLinesFresh(saved.at, Date.now(), half?.at));
   if (fresh) return failed ? [] : (lines as EditionLine[]);
   // old or missing, and not to be looked up: what's saved, however old
   if (!lookUp) return failed || !lines ? [] : (lines as EditionLine[]);
@@ -247,14 +261,12 @@ export async function editionLinesOf(
       // stays, and is asked about again in an hour too
       const everyoneAnswered = answered.openLibrary && answered.google;
       // the lines saved are a whole answer: none marked, or the marker says
-      // a whole one was kept (written below)
-      const keptWhole = (half?.volumes as unknown as { whole?: boolean }[])?.[0]
-        ?.whole;
+      // a whole one was kept
       const hadWhole =
         !failed &&
         Boolean(lines?.length) &&
         saved !== null &&
-        (!half || Boolean(keptWhole));
+        (!half || keptWhole);
       if (!everyoneAnswered) {
         if (!hadWhole)
           await priceQueries

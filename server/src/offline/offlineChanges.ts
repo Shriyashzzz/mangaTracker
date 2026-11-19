@@ -14,6 +14,7 @@ import { askAboutFinishedVolume } from "../reviews/reviews.js";
 import { newestChapterKnown } from "../util/releases/releaseAnswers.js";
 import { PAST_THE_NEWEST } from "../controllers/manga/shelf.js";
 import { mergeOwned, mergePlace } from "./offlineRules.js";
+import { oneAtATime } from "../util/shelf/oneAtATime.js";
 
 // plenty for a day underground; one request stays small
 export const MOST_CHANGES = 200;
@@ -57,8 +58,13 @@ export const applyOfflineChanges = [
     const userId = req.session.userId!;
     const { changes } = matchedData(req) as { changes: Change[] };
     const answers: ChangeAnswer[] = [];
-    // one at a time, in the order they were made
-    for (const change of changes) answers.push(await applyOne(userId, change));
+    // one at a time, in the order they were made, and under the reader's
+    // lock (util/shelf/oneAtATime.ts): owned volumes are read, merged and
+    // written, so a tick saved from another device mid-way can't be lost
+    await oneAtATime(userId, async () => {
+      for (const change of changes)
+        answers.push(await applyOne(userId, change));
+    });
     res.json({ answers });
   },
 ];

@@ -84,63 +84,76 @@ export async function sendDueAlerts(
     if (!looked.isDue(key, now.getTime())) continue;
     looked.mark(key, now.getTime());
 
-    const { news, told } = await newsFor(user, now);
-    // what alerts have told them, without the "push:" in front
-    const toldByAlert = told
-      .filter((t) => t.item.startsWith(PUSH_PREFIX))
-      .map((t) => ({ ...t, item: t.item.slice(PUSH_PREFIX.length) }));
-    const country =
-      (user.prefs as Prefs | null)?.country === "ca" ? "ca" : "us";
-    const alerts = alertsFrom(
-      withoutSent(news, toldByAlert, now),
-      today,
-      country,
-    );
+    // one reader's trouble (a database error gathering their news) is
+    // logged, and the run goes on to the next reader
+    try {
+      const { news, told } = await newsFor(user, now);
+      // what alerts have told them, without the "push:" in front
+      const toldByAlert = told
+        .filter((t) => t.item.startsWith(PUSH_PREFIX))
+        .map((t) => ({ ...t, item: t.item.slice(PUSH_PREFIX.length) }));
+      const country =
+        (user.prefs as Prefs | null)?.country === "ca" ? "ca" : "us";
+      const alerts = alertsFrom(
+        withoutSent(news, toldByAlert, now),
+        today,
+        country,
+      );
 
-    for (const alert of alerts) {
-      if (sent >= most) break;
-      let reached = false;
-      for (const device of theirs) {
-        try {
-          await send(
-            {
-              endpoint: device.endpoint,
-              keys: { p256dh: device.p256dh, auth: device.auth },
-            },
-            payloadOf(alert),
-            { TTL: KEEP_FOR_SECONDS, urgency: "normal", timeout: 10_000 },
-          );
-          reached = true;
-        } catch (e) {
-          const status = (e as { statusCode?: number }).statusCode;
-          // the device switched alerts off, or the app was removed: its
-          // address is no good, and goes
-          if (status === 404 || status === 410) {
-            await prisma.pushSubscription
-              .delete({ where: { id: device.id } })
-              .catch(() => {});
-            gone++;
-          } else {
-            failed++;
-            console.error(`alert for user ${user.id} failed:`, status ?? e);
+      for (const alert of alerts) {
+        // the cap reached partway: the rest of theirs go next run, not in 3 hours
+        if (sent >= most) {
+          looked.unmark(key);
+          break;
+        }
+        let reached = false;
+        for (const device of [...theirs]) {
+          try {
+            await send(
+              {
+                endpoint: device.endpoint,
+                keys: { p256dh: device.p256dh, auth: device.auth },
+              },
+              payloadOf(alert),
+              { TTL: KEEP_FOR_SECONDS, urgency: "normal", timeout: 10_000 },
+            );
+            reached = true;
+          } catch (e) {
+            const status = (e as { statusCode?: number }).statusCode;
+            // the device switched alerts off, or the app was removed: its
+            // address is no good, and goes
+            if (status === 404 || status === 410) {
+              await prisma.pushSubscription
+                .delete({ where: { id: device.id } })
+                .catch(() => {});
+              // not sent the rest of this run's alerts either
+              theirs.splice(theirs.indexOf(device), 1);
+              gone++;
+            } else {
+              failed++;
+              console.error(`alert for user ${user.id} failed:`, status ?? e);
+            }
           }
         }
+        if (!reached) continue;
+        sent++;
+        // told: not sent again (a price again after a month, as the email)
+        await prisma.$transaction([
+          prisma.digestItem.deleteMany({
+            where: { userId: user.id, item: { in: alert.keys } },
+          }),
+          prisma.digestItem.createMany({
+            data: alert.keys.map((item) => ({
+              userId: user.id,
+              item,
+              sentAt: now,
+            })),
+          }),
+        ]);
       }
-      if (!reached) continue;
-      sent++;
-      // told: not sent again (a price again after a month, as the email)
-      await prisma.$transaction([
-        prisma.digestItem.deleteMany({
-          where: { userId: user.id, item: { in: alert.keys } },
-        }),
-        prisma.digestItem.createMany({
-          data: alert.keys.map((item) => ({
-            userId: user.id,
-            item,
-            sentAt: now,
-          })),
-        }),
-      ]);
+    } catch (e) {
+      failed++;
+      console.error(`alerts for user ${user.id} failed:`, e);
     }
   }
   return { readers: byUser.size, sent, gone, failed };

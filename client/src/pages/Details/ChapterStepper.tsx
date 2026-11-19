@@ -38,6 +38,9 @@ type Props = {
     // what the book they're on holds ("vols. 10–12"), said beside the
     // counter where "Saved" shows
     inside: (books: number) => string;
+    // the volume saved now, which can sit partway through a book (vol. 11
+    // of VIZBIG 4): sent as where an offline move started from
+    savedVolume: number | null;
   };
 };
 
@@ -104,6 +107,10 @@ export default function ChapterStepper({
   }, [note]);
   // what the server has, to go back to if a save fails
   const saved = useRef(value ?? 0);
+  // and as it's saved: the number a move starts from. Counting books, the
+  // volume saved may be partway through one, so it isn't worked out from
+  // the book shown
+  const savedPlace = useRef(books ? (books.savedVolume ?? 0) : (value ?? 0));
   // the chapter still waiting to be saved
   const pending = useRef<number | null>(null);
   const timer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
@@ -112,7 +119,7 @@ export default function ChapterStepper({
   const queue = useRef<Promise<unknown>>(Promise.resolve());
   const inOrder = (chapter: number) => {
     const save = queue.current.then(() =>
-      savePlace(mangaId, unit, toSave(chapter), toSave(saved.current)),
+      savePlace(mangaId, unit, toSave(chapter), savedPlace.current),
     );
     queue.current = save.catch(() => {});
     return save;
@@ -125,6 +132,7 @@ export default function ChapterStepper({
     try {
       const how = await inOrder(chapter);
       saved.current = chapter;
+      savedPlace.current = toSave(chapter);
       setNote(how);
       onSaved(chapter);
     } catch {
@@ -184,7 +192,7 @@ export default function ChapterStepper({
               mangaId,
               unit,
               toSaveNow.current(chapter),
-              toSaveNow.current(saved.current),
+              savedPlace.current,
             ),
           )
           .then(() => useShelf.getState().load())

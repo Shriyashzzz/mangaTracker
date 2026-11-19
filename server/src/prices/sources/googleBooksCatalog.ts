@@ -124,17 +124,18 @@ export type GoogleEditionBook = {
 // records: "Naruto (3-in-1 Edition), Vol. 4: Includes vols. 10, 11 & 12",
 // with the day each came out. Open Library is missing most of these (of 57
 // popular editions it had 21 right: scripts/checkEditions.ts). Up to six of
-// the day's lookups a series; [] with no key or with the day used up, and
-// whatever was found before a search failed
+// the day's lookups a series; none with no key, and whatever was found
+// before a search failed. `whole` is false when a search failed or the day
+// was used up: what's missing then isn't known to be missing
 export async function googleEditionBooks(
   name: string,
   // who wrote it, as AniList names them ("Naoki Urasawa"): the search is
   // then theirs only. Without it "Monster" finds a hundred other monsters
   authors: string[] = [],
   timeoutMs = 8000,
-): Promise<GoogleEditionBook[]> {
+): Promise<{ books: GoogleEditionBook[]; whole: boolean }> {
   const key = config.GOOGLE_BOOKS_API_KEY;
-  if (!key) return [];
+  if (!key) return { books: [], whole: true };
   // by family name, the last word: Google files "Urasawa, Naoki" too
   const familyName = authors[0]?.trim().split(/\s+/).at(-1);
   const byThem = familyName ? ` inauthor:${familyName}` : "";
@@ -142,7 +143,7 @@ export async function googleEditionBooks(
   // AniList and Google don't always spell an author alike ("Tsugumi Ooba"
   // is Google's "Ohba", "Atsushi Ookubo" its "Ohkubo"): a search by them
   // that finds nothing at all is asked again without the name
-  if (theirs.length || !byThem) return theirs;
+  if (theirs.books.length || !byThem) return theirs;
   return searchEditionWords(name, "", key, timeoutMs);
 }
 
@@ -153,13 +154,17 @@ async function searchEditionWords(
   byThem: string,
   key: string,
   timeoutMs: number,
-): Promise<GoogleEditionBook[]> {
+): Promise<{ books: GoogleEditionBook[]; whole: boolean }> {
   const found = new Map<string, GoogleEditionBook>();
+  let whole = true;
   // one word's search, a page after the other. The three words are asked
   // side by side: one after another, a slow day made a page wait 20 seconds
   const searchWord = async (word: string) => {
     for (let page = 0; page < PAGES; page++) {
-      if (Date.now() < backOffUntil) return;
+      if (Date.now() < backOffUntil) {
+        whole = false;
+        return;
+      }
       const params = new URLSearchParams({
         q: `${titleWords(baseName(name))} intitle:${word}${byThem}`,
         printType: "books",
@@ -175,9 +180,13 @@ async function searchEditionWords(
           signal: AbortSignal.timeout(timeoutMs),
         });
         if (res.status === 429) backOffUntil = Date.now() + BACK_OFF_MS;
-        if (!res.ok) break;
+        if (!res.ok) {
+          whole = false;
+          break;
+        }
         items = ((await res.json()) as { items?: Item[] }).items ?? [];
       } catch {
+        whole = false;
         break;
       }
       for (const { volumeInfo: info } of items) {
@@ -200,7 +209,7 @@ async function searchEditionWords(
     }
   };
   await Promise.all(EDITION_WORDS.map(searchWord));
-  return [...found.values()];
+  return { books: [...found.values()], whole };
 }
 
 // A book's title by its ISBN, as its publisher gave it to Google: "Rurouni

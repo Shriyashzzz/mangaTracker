@@ -281,7 +281,11 @@ async function sendChanges() {
   if (open.length) return;
   const db = await openChanges();
   try {
-    const changes = await inChanges(db, "readonly", (s) => s.getAll());
+    // (the most the server takes in one go: any more go next time)
+    const changes = (await inChanges(db, "readonly", (s) => s.getAll())).slice(
+      0,
+      200,
+    );
     if (!changes.length) return;
     const response = await fetch("/api/manga/offline-changes", {
       method: "POST",

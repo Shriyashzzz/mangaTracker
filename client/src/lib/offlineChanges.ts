@@ -135,10 +135,16 @@ export const CHANGES_SENT = "offlinechangessent";
 
 type Answer = { saved: true } | { saved: false; reason: string };
 
-export async function sendChanges() {
+// the most the server takes in one go (server offline/offlineChanges.ts
+// MOST_CHANGES): any more go in the next send
+export const MOST_PER_SEND = 200;
+
+export async function sendChanges(): Promise<void> {
   if (useOfflineChanges.getState().sending || isOffline()) return;
-  const changes = await allChanges();
-  if (!changes.length) return;
+  const waiting = await allChanges();
+  if (!waiting.length) return;
+  const changes = waiting.slice(0, MOST_PER_SEND);
+  let sentAll = false;
   useOfflineChanges.setState({ sending: true, note: null });
   try {
     const res = await apiFetch("/api/manga/offline-changes", {
@@ -158,12 +164,15 @@ export async function sendChanges() {
     const saved = changes.length - refused;
     useOfflineChanges.setState({ note: sentNote(saved, refused) });
     window.dispatchEvent(new Event(CHANGES_SENT));
+    sentAll = true;
   } catch {
     // the connection dropped again: they stay, and go next time
   } finally {
     useOfflineChanges.setState({ sending: false });
     await recount();
   }
+  // more than one send's worth: the rest go now
+  if (sentAll && waiting.length > changes.length) return sendChanges();
 }
 
 // as the app starts: anything waiting goes, and goes whenever the signal's

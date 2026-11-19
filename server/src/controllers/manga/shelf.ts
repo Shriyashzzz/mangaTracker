@@ -373,8 +373,10 @@ export const setOwned = [
   async (req: Request, res: Response) => {
     const d = matchedData(req);
     const manga = res.locals.manga as Manga;
-    res.json(
-      await mangaQueries.setVolumesOwned(
+    // under the reader's lock, as offline changes are (offline/
+    // offlineChanges.ts): neither lands in the middle of the other
+    const saved = await oneAtATime(req.session.userId!, () =>
+      mangaQueries.setVolumesOwned(
         manga.id,
         d.ownedList === undefined
           ? keepSavedList(
@@ -385,5 +387,6 @@ export const setOwned = [
           : ownedVolumes(d.volumesOwned ?? null, d.ownedList),
       ),
     );
+    res.json(saved);
   },
 ];
