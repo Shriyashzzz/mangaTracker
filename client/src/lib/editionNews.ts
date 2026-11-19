@@ -10,6 +10,7 @@
 // full: a year alone isn't news.
 import { realBooksOf } from "./editionShelf";
 import { shortBookName } from "./editionShort";
+import { rangesText } from "./ownedVolumes";
 import type { EditionBook, EditionLine } from "./editions";
 import type { Manga, ReleaseStatus } from "./types";
 
@@ -107,6 +108,15 @@ export function editionReleases(
   return read;
 }
 
+// Where they are, in the edition's books. The books they own when they're
+// all whole books ("You have Definitive 3–4": never "up to 4" when 1 and 2
+// aren't theirs); else as far as they've got
+function yoursIn(place: NonNullable<Manga["editionPlace"]>) {
+  if (place.owned?.length)
+    return `You have ${place.label} ${rangesText(place.owned)}`;
+  return place.upTo ? `You have up to ${place.label} ${place.upTo}` : undefined;
+}
+
 // What a New card says for a series collected as an edition, in its books;
 // null for single volumes, and when no book is next
 export function editionNews(m: Pick<Manga, "editionPlace">) {
@@ -122,9 +132,7 @@ export function editionNews(m: Pick<Manga, "editionPlace">) {
     short: short === text ? undefined : short,
     // one behind is just the next one: that's news, never "behind"
     behind: behind > 1 ? `${behind} books behind` : undefined,
-    yours: place.upTo
-      ? `You have up to ${place.label} ${place.upTo}`
-      : undefined,
+    yours: yoursIn(place),
     // how many books behind, for the pile it's put in
     count: behind,
   };

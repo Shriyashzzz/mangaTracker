@@ -229,3 +229,19 @@ test("a New card for an edition opens its next book's price page", async () => {
   );
   expect(buyLinkFor(unlisted, "volumes")).toBeUndefined();
 });
+
+test("the card says the books they own, never up to one with gaps before it", () => {
+  const base = { label: "Definitive", read: null, next: 5, behind: 4, upTo: 4 };
+  // books 3 and 4 only
+  expect(editionNews({ editionPlace: { ...base, owned: [3, 4] } })?.yours).toBe(
+    "You have Definitive 3–4",
+  );
+  // 1 to 4: a run, said as one
+  expect(
+    editionNews({ editionPlace: { ...base, owned: [1, 2, 3, 4] } })?.yours,
+  ).toBe("You have Definitive 1–4");
+  // some volumes outside the books: as far as they've got
+  expect(editionNews({ editionPlace: { ...base, owned: null } })?.yours).toBe(
+    "You have up to Definitive 4",
+  );
+});
