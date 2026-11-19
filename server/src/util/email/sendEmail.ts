@@ -4,17 +4,16 @@ const isValidEmail = (email: string) => {
   const regex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
   return regex.test(email);
 };
+
 const sendEmail = async ({
   //for reference email domain will look like this `"Alert Name"<email_service_type>@mangatracker.xyz>`
   from, // eg: '<email_service_type>@mangatracker.xyz'
   to,
-  emailType, //eg: 'Alert Name'
   subject,
   html,
 }: {
   from: string;
   to: string;
-  emailType: string;
   subject: string;
   html: string;
 }): Promise<boolean> => {
@@ -22,7 +21,7 @@ const sendEmail = async ({
   if (!isValidEmail(to)) throw new Error("`to` email is not valid");
   if (!subject) throw new Error("subject field is Empty");
   if (!html) throw new Error("HTML field is empty");
-  const formEmail = `"${emailType.trim()}" <${from.trim()}>`;
+  const formEmail = `"Manga Tracker" <${from.trim()}>`;
   const toEmail = to.trim();
   try {
     await transporter.sendMail({

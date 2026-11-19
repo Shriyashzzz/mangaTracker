@@ -4,6 +4,7 @@ import bcrypt from "bcryptjs";
 import { prisma } from "../config/prisma.js";
 import { Prisma } from "../../generated/prisma/client.js";
 import type { ReleaseSettings } from "../util/releases/releaseStatus.js";
+import { hashOfResetToken, RESET_LINK_MINUTES } from "../util/resetToken.js";
 
 // the values each display preference may take; anything else is ignored when
 // saving (authController's updatePrefs). The Prefs type is made from it
@@ -90,6 +91,8 @@ export async function checkCredentials(
 export async function addUser(
   username: string,
   password: string,
+  // optional: where a password reset link is sent
+  recoveryEmail?: string,
 ): Promise<number | null> {
   // a name that differs only in capitals from one taken is taken too, so
   // signing in with either case finds one account
@@ -101,7 +104,11 @@ export async function addUser(
   const hashed = await bcrypt.hash(password, 12);
   try {
     const user = await prisma.user.create({
-      data: { username, password: hashed },
+      data: {
+        username,
+        password: hashed,
+        recoveryEmail: recoveryEmail ?? null,
+      },
       select: { id: true },
     });
     return user.id;
@@ -191,6 +198,34 @@ export async function deleteAccount(id: number, password: string) {
   return true;
 }
 
+// the account with this recovery email, or null. Emails are saved in
+// lowercase (util/email/emailField.ts), so the one asked for is too
+export const getUserByEmail = (email: string) =>
+  prisma.user.findUnique({
+    where: { recoveryEmail: email.toLowerCase() },
+    select: { id: true, username: true },
+  });
+
+// saves a reset link's token on the account, as its hash (util/resetToken.ts)
+export async function fillToken(token: string, userId: number) {
+  const token_ttl = Date.now() + RESET_LINK_MINUTES * 60 * 1000;
+  await prisma.user.update({
+    where: { id: userId },
+    data: {
+      reset_token: hashOfResetToken(token),
+      reset_token_expiry: token_ttl,
+    },
+  });
+}
+
+// the account a reset link's token was made for, or null
+export async function getUserWithToken(token: string) {
+  const user = await prisma.user.findUnique({
+    where: { reset_token: hashOfResetToken(token) },
+  });
+  return user;
+}
+
 // a shared list, or null if there isn't one at that link
 export const getSharedShelf = (shareCode: string) =>
   prisma.user.findFirst({
@@ -227,6 +262,28 @@ export const getSharedShelf = (shareCode: string) =>
     },
   });
 
+export const updatePassword = async (
+  userId: number,
+  newHashedPassword: string,
+) => {
+  try {
+    await prisma.user.update({
+      where: { id: userId },
+      data: {
+        password: newHashedPassword,
+        reset_token: null,
+        reset_token_expiry: null,
+      },
+    });
+    // whoever was signed in with the old password is signed out
+    await prisma.$executeRaw`DELETE FROM session WHERE (sess->>'userId')::int = ${userId}`;
+    return true;
+  } catch (e) {
+    console.error(e);
+    return false;
+  }
+};
+
 export default {
   checkCredentials,
   addUser,
@@ -236,4 +293,7 @@ export default {
   updateAccount,
   deleteAccount,
   getSharedShelf,
+  getUserByEmail,
+  fillToken,
+  updatePassword,
 };

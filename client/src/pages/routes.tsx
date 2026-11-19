@@ -4,6 +4,8 @@ import ErrorPage from "./Error/Error";
 import { probablySignedIn } from "../store/auth";
 import SignInPage from "./SignIn/SignIn";
 import SignUp from "./SignUp/SignUp";
+import ForgotPassword from "./ForgotPassword/ForgotPassword";
+import ResetPassword from "./ResetPassword/ResetPassword";
 import FrontDoor from "./Prices/FrontDoor";
 import ToPriceHome from "./Prices/ToPriceHome";
 import { AboutPage } from "./About/About";
@@ -106,6 +108,8 @@ export const routes = [
       },
       { path: "/u/:code", element: <SharedShelfPage /> },
       { path: "/signup", element: <SignUp /> },
+      { path: "/forgot-password", element: <ForgotPassword /> },
+      { path: "/reset-password/:token", element: <ResetPassword /> },
       { path: "/series", element: <SeriesIndex /> },
       {
         path: "/to-buy",

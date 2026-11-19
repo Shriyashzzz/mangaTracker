@@ -1,6 +1,6 @@
 // Sign in, sign up, sign out, "am I signed in?" and display preferences.
 // Sessions live in Postgres (connect-pg-simple); the cookie only holds its id.
-import type { Request, Response } from "express";
+import type { NextFunction, Request, Response } from "express";
 import { body, matchedData } from "express-validator";
 import { rejectInvalid } from "../middlewares/validate.js";
 import { isReservedName, RESERVED_MESSAGE } from "../util/reservedNames.js";
@@ -12,6 +12,10 @@ import userQueries, {
 } from "../models/userQueries.js";
 import { validReleaseSettings } from "../util/releases/releaseStatus.js";
 import { validShareTop } from "../util/shelf/shareTop.js";
+import { newResetToken } from "../util/resetToken.js";
+import { EMAIL_TAKEN, emailField } from "../util/email/emailField.js";
+import sendResetPasswordEmail from "../util/email/sendResetPasswordEmail.js";
+import bcrypt from "bcryptjs";
 
 const credentials = [
   body("username")
@@ -99,14 +103,23 @@ const notReserved = body("username")
   .custom((name: unknown) => typeof name !== "string" || !isReservedName(name))
   .withMessage(RESERVED_MESSAGE);
 
+// optional on signing up: the recovery email, where a password reset link
+// is sent
+const optionalEmail = emailField("email").optional({ values: "falsy" });
+
 const signup = [
   ...credentials,
   notReserved,
   newPassword,
+  optionalEmail,
   rejectInvalid,
   async (req: Request, res: Response) => {
-    const { username, password } = matchedData(req);
-    const userId = await userQueries.addUser(username, password);
+    const { username, password, email } = matchedData(req);
+    if (email && (await userQueries.getUserByEmail(email))) {
+      res.status(409).json({ error: [{ msg: EMAIL_TAKEN }] });
+      return;
+    }
+    const userId = await userQueries.addUser(username, password, email);
     if (userId === null) {
       res
         .status(409)
@@ -152,4 +165,67 @@ const updatePrefs = async (req: Request, res: Response) => {
   res.json(await userQueries.updatePrefs(req.session.userId!, patch));
 };
 
-export default { login, signup, logout, me, getPrefs, updatePrefs };
+const initiateResetPassword = [
+  emailField("email"),
+  rejectInvalid,
+  async (req: Request, res: Response, next: NextFunction) => {
+    const { email } = matchedData(req);
+    const user = await userQueries.getUserByEmail(email);
+    if (user) {
+      const token = newResetToken();
+      await userQueries.fillToken(token, user.id);
+      await sendResetPasswordEmail(token, email, user.username);
+    }
+    // the same answer whether or not the email has an account, so nobody
+    // can test which emails do (the router sends it)
+    next();
+  },
+];
+
+const resetPasswordValidator = [
+  body("newPassword")
+    .isLength({ min: NEW_PASSWORD_MIN })
+    .withMessage(`Passwords need at least ${NEW_PASSWORD_MIN} characters.`)
+    // eight spaces is no password. Signing in still takes whatever was set
+    .bail()
+    .custom((password: string) => password.trim().length > 0)
+    .withMessage("A password needs more than spaces."),
+  body("confirmPassword")
+    .isLength({ min: NEW_PASSWORD_MIN })
+    // eight spaces is no password. Signing in still takes whatever was set
+    .bail()
+    .custom((password: string) => password.trim().length > 0)
+    .custom((val, { req }) => {
+      if (req.body.confirmPassword !== req.body.newPassword) {
+        throw new Error("Both passwords don't match");
+      }
+      return true;
+    }),
+];
+
+const resetPassword = [
+  ...resetPasswordValidator,
+  rejectInvalid,
+  async (req: Request, res: Response) => {
+    if (!res.locals.resetUserId) return res.sendStatus(400);
+    const { newPassword } = matchedData(req);
+    const hashNewPassword = await bcrypt.hash(newPassword, 12);
+    const resetSuccess = await userQueries.updatePassword(
+      res.locals.resetUserId,
+      hashNewPassword,
+    );
+    if (!resetSuccess) return res.sendStatus(500);
+    return res.sendStatus(200);
+  },
+];
+
+export default {
+  login,
+  signup,
+  logout,
+  me,
+  getPrefs,
+  updatePrefs,
+  resetPassword,
+  initiateResetPassword,
+};

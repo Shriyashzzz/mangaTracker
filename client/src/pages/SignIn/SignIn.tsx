@@ -47,7 +47,7 @@ export default function SignInPage() {
       } else if (result.status === 401) {
         setError("Incorrect username or password. Try again.");
       } else {
-        // there's no password reset, so never let an outage look like a lost account
+        // never let an outage look like a lost account
         setError(
           "We couldn't reach your shelf. Your account is fine, try again in a minute.",
         );
@@ -103,6 +103,13 @@ export default function SignInPage() {
                 name="password"
                 autoComplete="current-password"
               />
+              <NavLink
+                to="/forgot-password"
+                viewTransition
+                className={styles.forgot}
+              >
+                Forgot password?
+              </NavLink>
             </div>
 
             {error && (

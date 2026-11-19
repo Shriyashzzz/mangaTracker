@@ -105,7 +105,8 @@ export function AccountTab({ account }: { account: Account }) {
             onChange={(e) => setEmail(e.target.value)}
           />
           <p className={styles.body}>
-            Not used yet. When password resets arrive, they'll be sent here.
+            A password reset link is sent here. Without one, a forgotten
+            password can't be reset.
           </p>
           <div className={styles.actions}>
             <button type="submit" className="btn btn-secondary">

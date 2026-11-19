@@ -5,6 +5,7 @@ import { directionMarksOff } from "../util/directionMarks.js";
 import { body, matchedData, param } from "express-validator";
 import { sendError } from "../middlewares/errorHandler.js";
 import { rejectInvalid } from "../middlewares/validate.js";
+import { EMAIL_TAKEN, emailField } from "../util/email/emailField.js";
 import priceQueries, {
   countryOf,
   type Country,
@@ -85,13 +86,7 @@ const update = [
     .custom((name: string) => !isReservedName(name))
     .withMessage(RESERVED_MESSAGE),
   body("avatar").optional({ values: "null" }).isIn(AVATARS),
-  body("recoveryEmail")
-    .optional({ values: "null" })
-    .isString()
-    .trim()
-    .isLength({ max: 254 })
-    .isEmail()
-    .withMessage("That doesn't look like an email address."),
+  emailField("recoveryEmail").optional({ values: "null" }),
   body("shareEnabled").optional().isBoolean({ strict: true }),
   body("shareNotes").optional().isBoolean({ strict: true }),
   body("shareRatings").optional().isBoolean({ strict: true }),
@@ -108,6 +103,12 @@ const update = [
     }
     // a blank name is no name
     if (data.displayName === "") data.displayName = null;
+    // an email belongs to one account
+    if (data.recoveryEmail) {
+      const owner = await userQueries.getUserByEmail(data.recoveryEmail);
+      if (owner && owner.id !== req.session.userId)
+        return sendError(res, 409, EMAIL_TAKEN);
+    }
     res.json(
       withNames(
         req.session.userId!,

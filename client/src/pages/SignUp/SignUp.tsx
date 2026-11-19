@@ -7,13 +7,10 @@ import { Navigate, NavLink, useNavigate, useSearchParams } from "react-router";
 import PasswordInput from "../../components/passwordInput/PasswordInput";
 import AuthArt from "../../components/authArt/AuthArt";
 import { apiFetch, afterSignIn, errorMessages } from "../../lib/api";
+import { NEW_PASSWORD_MIN } from "../../lib/passwordRule";
 import { offerTour } from "../../lib/tourOffer";
 import { usePrivatePage } from "../../lib/seo";
 import { useAuth } from "../../store/auth";
-
-// the server's rule for a new account's password (authController.ts); a
-// server test fails if the two differ
-const NEW_PASSWORD_MIN = 8;
 
 export default function SignUp() {
   usePrivatePage("Create account");
@@ -21,6 +18,7 @@ export default function SignUp() {
   const [params] = useSearchParams();
   const userNameRef = useRef<HTMLInputElement>(null);
   const passRef = useRef<HTMLInputElement>(null);
+  const emailRef = useRef<HTMLInputElement>(null);
   const signedIn = useAuth((s) => s.signedIn);
   const [loading, setLoading] = useState(false);
   // already signed in when they got here: this page has nothing for them
@@ -40,6 +38,8 @@ export default function SignUp() {
 
     const username = (userNameRef.current?.value ?? "").trim();
     const password = passRef.current?.value ?? "";
+    // optional: left blank, the account has no recovery email
+    const email = (emailRef.current?.value ?? "").trim();
 
     if (!username || !password) {
       setErrors([{ msg: "Username and password are required." }]);
@@ -72,7 +72,7 @@ export default function SignUp() {
     try {
       const result = await apiFetch("/api/auth/signup", {
         method: "POST",
-        body: { username, password },
+        body: { username, password, ...(email ? { email } : {}) },
       });
 
       if (result.ok) {
@@ -103,7 +103,7 @@ export default function SignUp() {
         <AuthArt
           sfx="A new series begins!"
           chapter="1"
-          line="Just a username and a password. No email, no newsletter."
+          line="Just a username and a password. Email is optional."
         />
 
         <div className={styles.card}>
@@ -156,6 +156,24 @@ export default function SignUp() {
                 role={passwordShort ? "alert" : undefined}
               >
                 At least {NEW_PASSWORD_MIN} characters.
+              </span>
+            </div>
+
+            <div className={styles.field}>
+              <label htmlFor="email">Email (optional)</label>
+              <input
+                className={styles.input}
+                id="email"
+                ref={emailRef}
+                type="email"
+                name="email"
+                placeholder="you@example.com"
+                autoComplete="email"
+                aria-invalid={hasError(/email/i)}
+                aria-describedby={describedBy("email-hint")}
+              />
+              <span id="email-hint" className={styles.hint}>
+                Handy if you forget passwords.
               </span>
             </div>
 
