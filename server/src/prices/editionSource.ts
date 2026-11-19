@@ -246,14 +246,26 @@ export async function editionLinesOf(
       // an hour. A whole answer saved before is better than a half one: it
       // stays, and is asked about again in an hour too
       const everyoneAnswered = answered.openLibrary && answered.google;
+      // the lines saved are a whole answer: none marked, or the marker says
+      // a whole one was kept (written below)
+      const keptWhole = (half?.volumes as unknown as { whole?: boolean }[])?.[0]
+        ?.whole;
       const hadWhole =
-        !failed && Boolean(lines?.length) && !half && saved !== null;
+        !failed &&
+        Boolean(lines?.length) &&
+        saved !== null &&
+        (!half || Boolean(keptWhole));
       if (!everyoneAnswered) {
         if (!hadWhole)
           await priceQueries
             .saveSeriesVolumes(key, built as unknown as CatalogBook[])
             .catch(() => {});
-        await priceQueries.saveSeriesVolumes(halfKey, []).catch(() => {});
+        // the marker: ask again in an hour, and whether what's saved is
+        // the half answer or a whole one kept over it
+        const marker = hadWhole ? [{ whole: true }] : [];
+        await priceQueries
+          .saveSeriesVolumes(halfKey, marker as unknown as CatalogBook[])
+          .catch(() => {});
         return hadWhole ? (lines as EditionLine[]) : built;
       }
       await priceQueries

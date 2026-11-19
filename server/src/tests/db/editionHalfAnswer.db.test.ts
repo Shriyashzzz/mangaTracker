@@ -122,6 +122,13 @@ test("a whole answer saved before is never replaced by a half one", async () => 
   expect(booksIn(kept)).toBe(3);
   // and it's asked about again in an hour
   expect(await saved(halfAnswerKey(NAME))).not.toBeNull();
+  // an hour on, still down: the whole answer is still kept
+  await age(halfAnswerKey(NAME), HOUR + 60_000);
+  expect(booksIn(await editionLinesOf(NAME, []))).toBe(3);
+  const still = (await saved(editionsKey(NAME)))?.volumes as {
+    books: unknown[];
+  }[];
+  expect(booksIn(still)).toBe(3);
 });
 
 test("the daily job picks up a half answer an hour on", async () => {
