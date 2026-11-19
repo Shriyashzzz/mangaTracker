@@ -203,3 +203,32 @@ test("a new address has to be confirmed again, and the old links stop", async ()
     .send({ recoveryEmail: null });
   expect(removed.body).toMatchObject({ weeklyEmail: false });
 });
+
+test("at most so many a run, and each reader once a week", async () => {
+  // two confirmed readers, both with news
+  const ids: number[] = [];
+  for (const name of ["first", "second"]) {
+    const id = (await userQueries.addUser(name, "a long password"))!;
+    await userQueries.updateAccount(id, {
+      recoveryEmail: `${name}@example.com`,
+    });
+    await userQueries.setWeeklyEmail(id, true);
+    await prisma.user.update({ where: { id }, data: { emailConfirmed: true } });
+    await prisma.manga.create({
+      data: { userId: id, name: SERIES, volumesOwned: 2 },
+    });
+    ids.push(id);
+  }
+  // one a run: the other waits for the next
+  expect(await sendDueDigests(now, 1)).toMatchObject({ due: 2, sent: 1 });
+  expect(await sendDueDigests(now, 1)).toMatchObject({ due: 1, sent: 1 });
+  expect(sent).toHaveLength(2);
+  // three days on: neither is due; eight days on, both are again
+  forgetLooked();
+  expect(
+    await sendDueDigests(new Date(now.getTime() + 3 * DAY), 10),
+  ).toMatchObject({ due: 0 });
+  forgetLooked();
+  const nextWeek = await sendDueDigests(new Date(now.getTime() + 8 * DAY), 10);
+  expect(nextWeek.due).toBe(2);
+});

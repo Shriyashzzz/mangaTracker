@@ -15,14 +15,17 @@
 import { create } from "zustand";
 import { apiFetch } from "./api";
 import { isOffline } from "./offline";
-import { ownedVolumes } from "./ownedVolumes";
-import type { Manga } from "./types";
+import {
+  combinedOwned,
+  combinedPlace,
+  sentNote,
+  toSend,
+  type OfflineChange,
+  type PlaceKind,
+} from "./offlineChangeRules";
 
-export type PlaceKind = "bookmark" | "readVolume";
-export type OfflineChange = { key: string; mangaId: number; at: number } & (
-  | { kind: "owned"; started: number[]; ended: number[] }
-  | { kind: PlaceKind; from: number | null; to: number | null }
-);
+// the rules themselves, for the pages that show changes
+export { withChanges, type OfflineChange } from "./offlineChangeRules";
 
 // ---------- the browser's database. Kept in step with public/sw.js ----------
 const DB_NAME = "manga-tracker";
@@ -101,16 +104,8 @@ export async function keepOwnedChange(
   started: number[],
   ended: number[],
 ) {
-  const key = `${mangaId}:owned`;
-  const had = await changeOf(key).catch(() => undefined);
-  await keep({
-    key,
-    mangaId,
-    kind: "owned",
-    started: had?.kind === "owned" ? had.started : started,
-    ended,
-    at: Date.now(),
-  });
+  const had = await changeOf(`${mangaId}:owned`).catch(() => undefined);
+  await keep(combinedOwned(had, mangaId, started, ended, Date.now()));
   await recount();
   sendWhenBack();
 }
@@ -122,16 +117,8 @@ export async function keepPlaceChange(
   from: number | null,
   to: number | null,
 ) {
-  const key = `${mangaId}:${kind}`;
-  const had = await changeOf(key).catch(() => undefined);
-  await keep({
-    key,
-    mangaId,
-    kind,
-    from: had && had.kind === kind ? had.from : from,
-    to,
-    at: Date.now(),
-  });
+  const had = await changeOf(`${mangaId}:${kind}`).catch(() => undefined);
+  await keep(combinedPlace(had, mangaId, kind, from, to, Date.now()));
   await recount();
   sendWhenBack();
 }
@@ -141,42 +128,12 @@ export async function keepPlaceChange(
 // the changes not sent yet, for drawing a series as it is on this device
 export const waitingChanges = allChanges;
 
-// a series with its waiting changes on it
-export function withChanges(manga: Manga, changes: OfflineChange[]): Manga {
-  let shown = manga;
-  for (const change of changes) {
-    if (change.mangaId !== manga.id) continue;
-    if (change.kind === "owned")
-      shown = { ...shown, ...ownedVolumes(null, change.ended) };
-    else if (change.kind === "bookmark")
-      shown = { ...shown, bookmark: change.to };
-    else shown = { ...shown, readVolume: change.to };
-  }
-  return shown;
-}
-
 // ---------- sending them ----------
 
 // what the app does when they've been sent: the shelf asked for again
 export const CHANGES_SENT = "offlinechangessent";
 
 type Answer = { saved: true } | { saved: false; reason: string };
-
-// a change as the server takes it: what's kept only on this device left off
-const toSend = (change: OfflineChange) =>
-  change.kind === "owned"
-    ? {
-        kind: change.kind,
-        mangaId: change.mangaId,
-        started: change.started,
-        ended: change.ended,
-      }
-    : {
-        kind: change.kind,
-        mangaId: change.mangaId,
-        from: change.from,
-        to: change.to,
-      };
 
 export async function sendChanges() {
   if (useOfflineChanges.getState().sending || isOffline()) return;
@@ -207,15 +164,6 @@ export async function sendChanges() {
     useOfflineChanges.setState({ sending: false });
     await recount();
   }
-}
-
-// "Saved 3 changes made offline." A refused one can never save: its series
-// was deleted on another device, or the chapter is past the newest out
-function sentNote(saved: number, refused: number) {
-  const many = (n: number) => (n === 1 ? "1 change" : `${n} changes`);
-  if (!refused) return `Saved ${many(saved)} made offline.`;
-  const not = `${many(refused)} made offline couldn't be saved.`;
-  return saved ? `Saved ${many(saved)}. ${not}` : not;
 }
 
 // as the app starts: anything waiting goes, and goes whenever the signal's
