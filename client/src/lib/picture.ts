@@ -3,6 +3,9 @@
 // (pages/Year/yearPicture.ts). Their shared pieces: the dotted paper,
 // lettering made to fit, and handing the picture over.
 
+import { coverChoices } from "./coverSizes";
+import { coverSrc } from "./prices";
+
 export const INK = "#1d1a16";
 export const ACCENT = "#b14a3c";
 export const CARD = "#fbf8f0";
@@ -66,3 +69,23 @@ export const pictureOf = (canvas: HTMLCanvasElement) =>
       resolve(null);
     }
   });
+
+// A cover, loaded so the canvas may read it back as a file: through our own
+// cover routes (a series' name finds one when the saved address is another
+// site's). The narrowest at least `wide` across; null when it won't load
+export function loadPictureCover(
+  url: string | null,
+  wide: number,
+  series?: string,
+): Promise<HTMLImageElement | null> {
+  const choices = coverChoices(url, series ? { name: series } : undefined);
+  const sized = choices.find((c) => c.width >= wide) ?? choices.at(-1);
+  if (!sized) return Promise.resolve(null);
+  return new Promise((resolve) => {
+    const image = new Image();
+    image.crossOrigin = "anonymous";
+    image.onload = () => resolve(image);
+    image.onerror = () => resolve(null);
+    image.src = coverSrc(sized.url)!;
+  });
+}

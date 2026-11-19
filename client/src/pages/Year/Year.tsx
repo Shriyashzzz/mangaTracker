@@ -1,11 +1,14 @@
 // Your year in manga: the year added up from the shelf's history (server
-// history/yearRules.ts) as a page of manga panels: an inked opening panel,
-// then one card per number, each in a stamp ink, the covers of what was
-// read most and rated highest fanned on theirs, and the picture to post
-// last (yearPicture.ts). Two to a row on a laptop, one on a phone. Cards
-// with nothing in them are left out; a year with nothing yet says how it
-// fills in.
-import { useEffect, useState, type ReactNode } from "react";
+// history/yearRules.ts) as manga panels. An inked opening, the title the
+// year gives them, then one card per number in the stamp inks, Kenji
+// reacting on each, the covers of what was read most and rated highest, the
+// year's highlights, and the picture to post last (yearPicture.ts).
+//
+// A laptop sees them as a comic page, two to a row. A phone swipes through
+// them like stories, one card at a time with dots under them: the page is a
+// screen, not eight. Cards with nothing in them are left out; a year with
+// nothing yet says how it fills in.
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { NavLink, useParams } from "react-router";
 import SeriesPicture from "../../components/cover/SeriesPicture";
 import Mascot from "../../components/mascot/Mascot";
@@ -16,22 +19,22 @@ import { formatCents } from "../../lib/prices";
 import { usePrivatePage } from "../../lib/seo";
 import {
   counted,
+  dayText,
   emptyYear,
+  kenjiSays,
   many,
   monthName,
+  shelfLength,
   sinceText,
   type YearInManga,
 } from "../../lib/year";
 import { drawYearPicture } from "./yearPicture";
 import { yearStyles as styles } from "./styles";
 
-// the stamp inks the cards take in turn (index.css --stamp-*)
-const INKS = [
-  "var(--stamp-market)",
-  "var(--stamp-new)",
-  "var(--stamp-ebook)",
-  "var(--stamp-get)",
-];
+// the stamp inks the cards take in turn, as the light theme has them
+// (index.css --stamp-*): a card is a printed page in every theme, so Kenji
+// and his bubble read on it in dark mode too
+const INKS = ["#f8d46b", "#bfe6c8", "#cdd6fb", "#f2c9bf"];
 
 function Card({
   ink,
@@ -47,9 +50,22 @@ function Card({
       className={wide ? styles.cardWide : styles.card}
       style={{ background: INKS[ink % INKS.length] }}
       data-tilt={ink % 2 ? "right" : "left"}
+      data-card
     >
       {children}
     </section>
+  );
+}
+
+// Kenji, small, with what he makes of it in a speech bubble
+function Kenji({ says }: { says: string }) {
+  return (
+    <p className={styles.kenji}>
+      <span className={styles.kenjiFace} aria-hidden>
+        <Mascot mood="happy" />
+      </span>
+      <span className={styles.bubble}>{says}</span>
+    </p>
   );
 }
 
@@ -71,7 +87,6 @@ function Covers({
 }
 
 function ShareCard({ year, ink }: { year: YearInManga; ink: number }) {
-  // the last card, across the page: it closes the page, not a half row
   const [state, setState] = useState<"" | "making" | "failed">("");
   const share = async () => {
     setState("making");
@@ -83,8 +98,10 @@ function ShareCard({ year, ink }: { year: YearInManga; ink: number }) {
   return (
     <Card ink={ink} wide>
       <h2 className={styles.heading}>Post your year</h2>
-      <p className={styles.small}>One picture of it, sized for a story.</p>
-      <div className="mt-4 flex flex-wrap items-center gap-3">
+      <p className={styles.small}>
+        Your year as a manga magazine cover, sized for a story.
+      </p>
+      <div className="mt-3 flex flex-wrap items-center gap-3">
         <button
           type="button"
           className="btn btn-primary"
@@ -94,7 +111,7 @@ function ShareCard({ year, ink }: { year: YearInManga; ink: number }) {
           {state === "making" ? "Making it…" : "Share my year"}
         </button>
         {state === "failed" && (
-          <span className="font-medium text-[var(--accent-ink)]" role="alert">
+          <span className="font-medium" role="alert">
             Couldn't make the picture. Try again.
           </span>
         )}
@@ -103,10 +120,24 @@ function ShareCard({ year, ink }: { year: YearInManga; ink: number }) {
   );
 }
 
+// the dots under a phone's cards: which one is showing
+function Dots({ count, at }: { count: number; at: number }) {
+  return (
+    <div className={styles.dots} aria-hidden>
+      {Array.from({ length: count }, (_, i) => (
+        <span key={i} className={styles.dot} data-on={i === at || undefined} />
+      ))}
+    </div>
+  );
+}
+
 export default function Year() {
   const params = useParams();
   const [year, setYear] = useState<YearInManga | null>(null);
   const [failed, setFailed] = useState("");
+  const [showing, setShowing] = useState(0);
+  const [cards, setCards] = useState(0);
+  const deck = useRef<HTMLDivElement>(null);
   usePrivatePage("Your year in manga");
 
   useEffect(() => {
@@ -115,6 +146,20 @@ export default function Year() {
       .then(setYear)
       .catch(() => setFailed(orOffline("Your year didn't load. Try again.")));
   }, [params.year]);
+
+  // on a phone the cards scroll sideways: which one is in view
+  useEffect(() => {
+    const row = deck.current;
+    if (!row) return;
+    const all = row.querySelectorAll("[data-card]");
+    setCards(all.length);
+    const look = () => {
+      const step = (all[0] as HTMLElement | undefined)?.offsetWidth ?? 1;
+      setShowing(Math.round(row.scrollLeft / step));
+    };
+    row.addEventListener("scroll", look, { passive: true });
+    return () => row.removeEventListener("scroll", look);
+  }, [year]);
 
   if (failed)
     return <p className={`${styles.page} py-16 text-accent`}>{failed}</p>;
@@ -126,28 +171,47 @@ export default function Year() {
   const next = () => ink++;
   const read = year.chaptersRead > 0 || year.volumesRead > 0;
   const spent = year.booksBought > 0 && year.spentCents > 0;
+  const length = shelfLength(year.shelf.volumes);
+  const highlights = [
+    year.biggestDay && {
+      label: "Biggest day",
+      text: `${dayText(year.biggestDay.day)}: ${many(year.biggestDay.chapters, "chapter")}, mostly ${year.biggestDay.series}`,
+    },
+    year.longestStreak > 1 && {
+      label: "Longest streak",
+      text: `${year.longestStreak} days in a row`,
+    },
+    year.firstVolume && {
+      label: "First volume of the year",
+      text: `${year.firstVolume.series} vol. ${year.firstVolume.volume}, ${dayText(year.firstVolume.day)}`,
+    },
+    year.lastFinished && {
+      label: "Last one you finished",
+      text: `${year.lastFinished.series}, ${dayText(year.lastFinished.day)}`,
+    },
+  ].filter((h): h is { label: string; text: string } => Boolean(h));
 
   return (
     <article className={`${styles.page} fade-in`}>
-      <div className={styles.grid}>
-        <section className={styles.opening}>
-          <span className="printed mascot-spot m-0! shrink-0" aria-hidden>
-            <Mascot mood="happy" />
-          </span>
-          <div>
-            <h1 className={styles.title}>
-              Your {year.year}
-              <br />
-              <span className={styles.titleHit}>in manga</span>
-            </h1>
-            {since && (
-              <p className={styles.openingSmall}>
-                {since}, when your history began.
-              </p>
-            )}
-          </div>
-        </section>
+      <section className={styles.opening}>
+        <span className="printed mascot-spot m-0! shrink-0" aria-hidden>
+          <Mascot mood="happy" />
+        </span>
+        <div>
+          <h1 className={styles.title}>
+            Your {year.year}
+            <br />
+            <span className={styles.titleHit}>in manga</span>
+          </h1>
+          {since && (
+            <p className={styles.openingSmall}>
+              {since}, when your history began.
+            </p>
+          )}
+        </div>
+      </section>
 
+      <div className={styles.grid} ref={deck}>
         {emptyYear(year) ? (
           <Card ink={next()} wide>
             <h2 className={styles.heading}>It fills in as you go</h2>
@@ -162,8 +226,15 @@ export default function Year() {
           </Card>
         ) : (
           <>
+            {/* who the year says they are: the headline of the page */}
+            <section className={styles.titleCard} data-card>
+              <p className={styles.titleKicker}>This year you were</p>
+              <h2 className={styles.titleName}>{year.title.name}</h2>
+              <p className={styles.titleLine}>{year.title.line}</p>
+            </section>
             {year.volumesAdded > 0 && (
               <Card ink={next()}>
+                <Kenji says={kenjiSays.volumes(year.volumesAdded)} />
                 <p className={styles.big}>+{counted(year.volumesAdded)}</p>
                 <p className={styles.say}>
                   {year.volumesAdded === 1 ? "volume" : "volumes"} added to your
@@ -179,8 +250,10 @@ export default function Year() {
             )}
             {read && (
               <Card ink={next()}>
-                {year.topSeries.length > 0 && (
+                {year.topSeries.length > 0 ? (
                   <Covers series={year.topSeries} />
+                ) : (
+                  <Kenji says={kenjiSays.chapters(year.chaptersRead)} />
                 )}
                 <p className={styles.big}>
                   {counted(year.chaptersRead || year.volumesRead)}
@@ -207,12 +280,14 @@ export default function Year() {
             )}
             {year.seriesFinished > 0 && (
               <Card ink={next()}>
+                <Kenji says={kenjiSays.finished(year.seriesFinished)} />
                 <p className={styles.big}>{counted(year.seriesFinished)}</p>
                 <p className={styles.say}>series finished</p>
               </Card>
             )}
             {spent && (
               <Card ink={next()}>
+                <Kenji says={kenjiSays.spent()} />
                 <p className={styles.big}>{formatCents(year.spentCents)}</p>
                 <p className={styles.say}>
                   spent on {many(year.booksBought, "book")}
@@ -220,24 +295,46 @@ export default function Year() {
                 <p className={styles.small}>From what you entered as paid.</p>
               </Card>
             )}
-            {year.busiestMonth && (
+            {highlights.length > 0 && (
               <Card ink={next()}>
-                <p className={styles.big}>{monthName(year.busiestMonth)}</p>
-                <p className={styles.say}>was your busiest month</p>
+                <h2 className={styles.heading}>Highlights</h2>
+                <dl className={styles.highlights}>
+                  {highlights.map((h) => (
+                    <div key={h.label}>
+                      <dt className={styles.highlightLabel}>{h.label}</dt>
+                      <dd className={styles.highlightText}>{h.text}</dd>
+                    </div>
+                  ))}
+                  {year.busiestMonth && (
+                    <div>
+                      <dt className={styles.highlightLabel}>Busiest month</dt>
+                      <dd className={styles.highlightText}>
+                        {monthName(year.busiestMonth)}
+                      </dd>
+                    </div>
+                  )}
+                </dl>
               </Card>
             )}
           </>
         )}
 
         <Card ink={next()}>
-          {year.shelf.fiveStars.length > 0 && (
+          {year.shelf.fiveStars.length > 0 ? (
             <Covers series={year.shelf.fiveStars} />
+          ) : (
+            <Kenji says={kenjiSays.shelf()} />
           )}
           <h2 className={styles.heading}>Your shelf now</h2>
           <p className={styles.say}>
             {many(year.shelf.series, "series", "series")} ·{" "}
             {many(year.shelf.volumes, "volume")}
           </p>
+          {length && (
+            <p className={styles.small}>
+              About {length.metres} m of spines: {length.picture}.
+            </p>
+          )}
           {year.shelf.topGenre && (
             <p className={styles.small}>Mostly {year.shelf.topGenre}.</p>
           )}
@@ -253,6 +350,7 @@ export default function Year() {
 
         {!emptyYear(year) && <ShareCard year={year} ink={next()} />}
       </div>
+      {cards > 1 && <Dots count={cards} at={showing} />}
     </article>
   );
 }

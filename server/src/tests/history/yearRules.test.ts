@@ -1,5 +1,9 @@
 // A reader's year in manga, added up (src/history/yearRules.ts)
-import { yearInManga, type YearEvent } from "../../history/yearRules.js";
+import {
+  titleOf,
+  yearInManga,
+  type YearEvent,
+} from "../../history/yearRules.js";
 
 const on = (iso: string) => new Date(`${iso}T12:00:00Z`);
 const ev = (
@@ -42,6 +46,15 @@ test("a year adds up from its history, books and reviews", () => {
   );
   expect(year).toEqual({
     year: 2026,
+    // 30 chapters in one day is a binge
+    title: {
+      name: "The Binge Reader",
+      line: "You treat 'one more chapter' as a lifestyle.",
+    },
+    biggestDay: { day: "2026-05-01", chapters: 30, series: "Blue Box" },
+    longestStreak: 2,
+    firstVolume: { series: "Blue Box", volume: 0, day: "2026-04-20" },
+    lastFinished: { series: "Vagabond", day: "2026-05-11" },
     since: "2026-03-01",
     // the import isn't counted: 2 with Blue Box, and 1 ticked
     volumesAdded: 3,
@@ -84,4 +97,63 @@ test("a year with nothing in it says so, and never goes below 0", () => {
   });
   expect(yearInManga(2026, [], [], [], []).busiestMonth).toBeNull();
   expect(yearInManga(2026, [], [], [], []).since).toBeNull();
+});
+
+test("the highlights: biggest day, longest run, first volume", () => {
+  const year = yearInManga(
+    2026,
+    [
+      { ...ev("A", "chapters", 5, "2026-03-01") },
+      { ...ev("A", "chapters", 7, "2026-03-02") },
+      { ...ev("B", "chapters", 20, "2026-03-03") },
+      { ...ev("A", "chapters", 4, "2026-03-03") },
+      { ...ev("A", "volumes", 1, "2026-03-10") },
+      { ...ev("A", "owned", 1, "2026-02-02"), volume: 7 },
+    ],
+    [],
+    [],
+    [],
+  );
+  expect(year.biggestDay).toEqual({
+    day: "2026-03-03",
+    chapters: 24,
+    series: "B",
+  });
+  expect(year.longestStreak).toBe(3);
+  expect(year.firstVolume).toEqual({
+    series: "A",
+    volume: 7,
+    day: "2026-02-02",
+  });
+  expect(year.lastFinished).toBeNull();
+});
+
+test("the title: the first that fits", () => {
+  const base = yearInManga(2026, [], [], [], []);
+  expect(titleOf(base, 3).name).toBe("The Deluxe Hunter");
+  expect(titleOf({ ...base, chaptersRead: 320 }, 0).name).toBe(
+    "The Binge Reader",
+  );
+  expect(titleOf({ ...base, seriesFinished: 3 }, 0).name).toBe(
+    "The Completionist",
+  );
+  expect(
+    titleOf(
+      {
+        ...base,
+        chaptersRead: 100,
+        topSeries: [
+          { name: "Blue Box", chapters: 60, volumes: 0, image: null },
+        ],
+      },
+      0,
+    ),
+  ).toEqual({
+    name: "The Loyalist",
+    line: "One series had your heart: Blue Box.",
+  });
+  expect(titleOf({ ...base, volumesAdded: 40 }, 0).name).toBe(
+    "The Shelf Builder",
+  );
+  expect(titleOf(base, 0).name).toBe("The Collector");
 });

@@ -8,8 +8,6 @@
 //
 // The link's own preview picture is a different one, made by the server
 // (server util/shelf/shelfCard.ts): wide, covers only.
-import { coverChoices } from "../../lib/coverSizes";
-import { coverSrc } from "../../lib/prices";
 import type { GenreShare } from "./shelfNumbers";
 import {
   ACCENT,
@@ -17,6 +15,7 @@ import {
   drawPaper,
   fitText,
   INK,
+  loadPictureCover,
   pictureOf,
 } from "../../lib/picture";
 
@@ -60,20 +59,7 @@ export type ShelfPicture = {
   covers: string[];
 };
 
-// a cover, loaded so the canvas may read it back as a file (it comes from
-// our own cover routes). Null when it won't load
-function loadCover(url: string): Promise<HTMLImageElement | null> {
-  const choices = coverChoices(url);
-  const sized =
-    choices.find((choice) => choice.width >= COVER_ASKED) ?? choices.at(-1)!;
-  return new Promise((resolve) => {
-    const image = new Image();
-    image.crossOrigin = "anonymous";
-    image.onload = () => resolve(image);
-    image.onerror = () => resolve(null);
-    image.src = coverSrc(sized.url)!;
-  });
-}
+const loadCover = (url: string) => loadPictureCover(url, COVER_ASKED);
 
 // the covers in a row across the middle, each overlapping the one before,
 // tilted, edged in ink with a hard shadow

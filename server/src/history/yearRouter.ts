@@ -27,10 +27,16 @@ historyRouter.get(
       const userId = req.session.userId!;
       const from = new Date(Date.UTC(year, 0, 1));
       const to = new Date(Date.UTC(year + 1, 0, 1));
-      const [events, books, reviews, shelf] = await Promise.all([
+      const [events, books, reviews, shelf, editionBooks] = await Promise.all([
         prisma.shelfEvent.findMany({
           where: { userId, at: { gte: from, lt: to } },
-          select: { series: true, kind: true, amount: true, at: true },
+          select: {
+            series: true,
+            kind: true,
+            amount: true,
+            at: true,
+            volume: true,
+          },
         }),
         prisma.ownedBook.findMany({
           where: { manga: { userId }, boughtOn: { gte: from, lt: to } },
@@ -51,6 +57,10 @@ historyRouter.get(
             ownedList: true,
           },
         }),
+        // omnibus, deluxe and box set books, for the title
+        prisma.ownedBook.count({
+          where: { manga: { userId }, edition: { not: "single" } },
+        }),
       ]);
       res.json(
         yearInManga(
@@ -65,6 +75,7 @@ historyRouter.get(
             image: m.image,
             owned: ownedSet(m).size,
           })),
+          editionBooks,
         ),
       );
     } catch (e) {

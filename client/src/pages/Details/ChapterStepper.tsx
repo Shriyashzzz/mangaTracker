@@ -64,6 +64,19 @@ const savePlace = async (
     }),
   );
 
+// "vols. 34–36": the number kept whole, so a narrow column breaks it after
+// "vols." and never at its dash
+function Inside({ text }: { text: string }) {
+  const at = text.indexOf(" ");
+  if (at < 0) return <>{text}</>;
+  return (
+    <>
+      {text.slice(0, at)}{" "}
+      <span className="whitespace-nowrap">{text.slice(at + 1)}</span>
+    </>
+  );
+}
+
 export default function ChapterStepper({
   mangaId,
   value,
@@ -244,6 +257,9 @@ export default function ChapterStepper({
         className={
           note === "failed" || problem ? styles.saveFailed : styles.saveDone
         }
+        // what's inside the book shown ("vols. 1–3"): short, so a phone
+        // has it beside the counter; anything longer goes under it
+        data-inside={(!problem && !note && Boolean(books)) || undefined}
         role="status"
       >
         {problem}
@@ -252,7 +268,7 @@ export default function ChapterStepper({
           note === "kept" &&
           "Kept on this device. It saves when you're back."}
         {!problem && note === "failed" && "That didn't save. Try again."}
-        {!problem && !note && books?.inside(current)}
+        {!problem && !note && books && <Inside text={books.inside(current)} />}
       </span>
     </span>
   );

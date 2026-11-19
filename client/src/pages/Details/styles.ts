@@ -81,18 +81,18 @@ export const detailsStyles = {
   // the chapter they've read up to, stepped right here. Inked like a panel, and big
   // enough for a thumb
   stepperWrap:
-    "relative inline-flex flex-wrap items-center gap-x-3 gap-y-1 align-middle",
+    "relative inline-flex flex-wrap items-center gap-x-3 gap-y-1 align-middle upto-720:flex-nowrap upto-720:gap-x-2",
   stepper:
     "inline-flex items-stretch rounded-ink border-[2.5px] border-line bg-card not-italic",
   stepperBtn:
-    "grid size-11 place-items-center text-ink transition-colors duration-120 ease-[ease] hover:enabled:bg-accent-wash hover:enabled:text-accent disabled:cursor-default disabled:opacity-40 [&_svg]:size-4 [&_svg]:fill-none [&_svg]:stroke-current [&_svg]:stroke-[2.5] [&_svg]:[stroke-linecap:round]",
+    "grid size-11 place-items-center upto-720:w-10 text-ink transition-colors duration-120 ease-[ease] hover:enabled:bg-accent-wash hover:enabled:text-accent disabled:cursor-default disabled:opacity-40 [&_svg]:size-4 [&_svg]:fill-none [&_svg]:stroke-current [&_svg]:stroke-[2.5] [&_svg]:[stroke-linecap:round]",
   stepperInput:
-    "min-w-14 border-x-[2.5px] border-line bg-transparent text-center font-brand text-[1.5rem] leading-none tracking-[0.02em] text-ink tabular-nums [appearance:textfield] focus:bg-accent-wash focus:outline-none focus-visible:outline-2 focus-visible:-outline-offset-4 focus-visible:outline-accent focus-visible:outline-dashed [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none",
+    "min-w-14 upto-720:min-w-12 border-x-[2.5px] border-line bg-transparent text-center font-brand text-[1.5rem] leading-none tracking-[0.02em] text-ink tabular-nums [appearance:textfield] focus:bg-accent-wash focus:outline-none focus-visible:outline-2 focus-visible:-outline-offset-4 focus-visible:outline-accent focus-visible:outline-dashed [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none",
   // "Saved", beside the counter (under its right end on a phone). Out of
   // the flow: taking up room, it pushed the counter onto a new line the
   // moment it appeared, out from under the thumb that pressed it
   saveDone:
-    "absolute top-1/2 left-full ml-3 -translate-y-1/2 font-mono text-[0.8rem] leading-none whitespace-nowrap text-ink-soft not-italic empty:hidden upto-720:top-full upto-720:right-0 upto-720:left-auto upto-720:mt-[2px] upto-720:ml-0 upto-720:translate-y-0 upto-720:text-[0.7rem]",
+    "absolute top-1/2 left-full ml-3 -translate-y-1/2 font-mono text-[0.8rem] leading-none whitespace-nowrap text-ink-soft not-italic empty:hidden upto-720:top-full upto-720:right-0 upto-720:left-auto upto-720:mt-[2px] upto-720:ml-0 upto-720:translate-y-0 upto-720:text-[0.7rem] upto-720:data-[inside]:static upto-720:data-[inside]:mt-0 upto-720:data-[inside]:max-w-[3.2rem] upto-720:data-[inside]:leading-[1.2] upto-720:data-[inside]:whitespace-normal",
   saveFailed: "text-[0.9rem] font-medium text-accent not-italic empty:hidden",
   // a line under the control it's about: a failed save, or an undo
   actionNote: "w-full text-[0.9rem] text-ink-soft empty:hidden",
@@ -158,7 +158,8 @@ export const detailsStyles = {
   // one counter to a line, when the chapter and the volume are both kept
   // "You've read up to ch." and its counter, with room between them, side by
   // side or (on a narrow screen) one above the other
-  placeLine: "flex flex-wrap items-center gap-x-3 gap-y-2 [&+&]:mt-2",
+  placeLine:
+    "flex flex-wrap items-center gap-x-3 gap-y-2 [&+&]:mt-2 upto-720:gap-x-2 upto-720:text-[1.05rem]",
   // "Keep my place by [Chapter] [Volume]": under what they own, for a
   // series with no place saved. Small plain words, then the two buttons
   pickPlace:
@@ -286,12 +287,13 @@ export const detailsStyles = {
   buy: "min-w-0 border-2 border-line bg-card p-3 shadow-ink-lg upto-720:order-5 upto-720:col-span-full upto-720:border-0 upto-720:border-t-[1.5px] upto-720:border-dashed upto-720:border-line-soft upto-720:bg-transparent upto-720:px-0 upto-720:pt-4 upto-720:pb-0 upto-720:shadow-none",
   buyList: "flex flex-col gap-2",
   // "I own Deluxe 7", quiet under the ticket it records
-  // the line under a Next ticket: "Got it? I own it · I ordered it", in the
-  // same quiet underline as the gaps' chips
-  buyActions:
-    "mt-1 flex flex-wrap items-center gap-x-2 text-[0.85rem] text-ink-soft",
-  buyAction:
-    "tap inline-flex min-h-9 items-center font-semibold text-ink underline decoration-line-soft underline-offset-3 hover:text-accent hover:decoration-accent disabled:opacity-50 upto-720:min-h-11",
+  // a Next ticket with pills: a row kept for them at its foot
+  buyNextRoom: "pb-10",
+  // "Own it", "Ordered": small pills in the ticket's bottom right corner,
+  // lettered like its "Next for you"
+  ticketPills: "absolute right-2.5 bottom-2 flex gap-1.5",
+  ticketPill:
+    "tap inline-flex min-h-8 items-center rounded-full border-[1.5px] border-accent bg-card px-2.5 font-mono text-[0.68rem] font-medium tracking-[0.06em] text-accent-ink uppercase transition-colors duration-120 hover:bg-accent hover:text-on-accent disabled:opacity-50",
   buyOwnFailed: "ml-3 text-[0.8rem] text-accent",
   buyLink: `${ticket} grid min-h-11 grid-cols-[minmax(0,1fr)_auto] border-dashed border-line bg-paper font-semibold transition-[background-color,border-color] duration-120 ease-[ease] hover:border-accent hover:bg-accent-wash focus-visible:border-accent focus-visible:bg-accent-wash upto-720:grid-cols-[minmax(0,1fr)_auto_auto] upto-720:border-solid upto-720:bg-card`,
   // the one they need next stands out: inked solid in red on a red wash,

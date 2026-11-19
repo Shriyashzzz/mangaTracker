@@ -265,9 +265,9 @@ export default function BuyStrip({
       {line && plan ? (
         <ul className={styles.buyList}>
           {plan.next && (
-            <li>
+            <li className="relative">
               <NavLink
-                className={styles.buyNext}
+                className={`${styles.buyNext} ${onOrdered || onOwnBook ? styles.buyNextRoom : ""}`}
                 to={bookPath(plan.next, line.label, seriesName)}
                 viewTransition
                 {...offlineLink(offline)}
@@ -289,13 +289,13 @@ export default function BuyStrip({
                 </em>
               </NavLink>
               {/* bought it, or ordered it: one tap each, for the book and all
-                  its volumes */}
-              <span className={styles.buyActions}>
-                <span>Got it?</span>
+                  its volumes. Pills in the ticket's corner (beside the link,
+                  never inside it: a button can't sit in a link) */}
+              <span className={styles.ticketPills}>
                 {onOwnBook && (
                   <button
                     type="button"
-                    className={styles.buyAction}
+                    className={styles.ticketPill}
                     disabled={owning}
                     aria-label={`I own ${editionBookLabel(line, plan.next)}`}
                     onClick={() => {
@@ -306,20 +306,19 @@ export default function BuyStrip({
                         .finally(() => setOwning(false));
                     }}
                   >
-                    {owning ? "Saving…" : "I own it"}
+                    {owning ? "Saving…" : "Own it"}
                   </button>
                 )}
-                {onOwnBook && onOrdered && <span aria-hidden>·</span>}
                 {onOrdered && (
                   <button
                     type="button"
-                    className={styles.buyAction}
+                    className={styles.ticketPill}
                     disabled={ordering}
                     aria-label={`I ordered ${editionBookLabel(line, plan.next)}`}
                     onClick={() => order(plan.next!.volumes, true)}
                     {...offlineLink(offline)}
                   >
-                    {ordering ? "Saving…" : "I ordered it"}
+                    {ordering ? "Saving…" : "Ordered"}
                   </button>
                 )}
               </span>
@@ -373,9 +372,9 @@ export default function BuyStrip({
       ) : (
         <ul className={styles.buyList}>
           {next && !hideNext && (
-            <li>
+            <li className="relative">
               <NavLink
-                className={styles.buyNext}
+                className={`${styles.buyNext} ${onOrdered ? styles.buyNextRoom : ""}`}
                 to={volumePath(next.isbn13, next.title)}
                 viewTransition
                 {...offlineLink(offline)}
@@ -396,23 +395,22 @@ export default function BuyStrip({
               </NavLink>
               {/* bought it somewhere and it's on its way: Next moves past it */}
               {onOrdered && (
-                <span className={styles.buyActions}>
-                  <span>Bought it already?</span>
+                <span className={styles.ticketPills}>
                   <button
                     type="button"
-                    className={styles.buyAction}
+                    className={styles.ticketPill}
                     disabled={ordering}
                     aria-label={`I ordered vol. ${next.volume}`}
                     onClick={() => order([next.volume], true)}
                     {...offlineLink(offline)}
                   >
-                    {ordering ? "Saving…" : "I ordered it"}
+                    {ordering ? "Saving…" : "Ordered"}
                   </button>
-                  {orderFailed && (
-                    <span className={styles.buyOwnFailed} role="alert">
-                      {orOffline("That didn't save. Try again.")}
-                    </span>
-                  )}
+                </span>
+              )}
+              {orderFailed && (
+                <span className={styles.buyOwnFailed} role="alert">
+                  {orOffline("That didn't save. Try again.")}
                 </span>
               )}
             </li>
