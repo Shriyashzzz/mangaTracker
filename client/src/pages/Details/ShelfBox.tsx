@@ -6,6 +6,7 @@
 // edition's: 12 VIZBIGs, not 37 volumes. What they own is still saved as
 // volumes; lib/editionShelf.ts turns one into the other, both ways.
 import { useEffect, useRef, useState, type CSSProperties } from "react";
+import { shortEditionName } from "../../lib/editionShort";
 import VolumeShelf from "../../components/volumeShelf/VolumeShelf";
 import {
   ownedCaption,
@@ -186,6 +187,13 @@ export default function ShelfBox({
             slots={{
               bookWidth: EDITION_BOOK,
               spine: (n) => spineOf(slots[n - 1]!),
+              // a long edition name is cut short to fit over a spine
+              runName: (n) =>
+                slots[n - 1]?.book
+                  ? edition.line.label.length > 10
+                    ? shortEditionName(edition.line.label)
+                    : edition.line.label
+                  : "Singles",
               name: (n) => slotName(edition.line, slots[n - 1]!, owned),
               share: (n) => shareOwned(slots, owned, n),
               isSingle: (n) => !slots[n - 1]!.book,

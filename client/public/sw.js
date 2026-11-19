@@ -21,7 +21,7 @@
 // signal's back, even with the app closed.
 //
 // A change to how this works: raise VERSION, and old caches are cleared.
-const VERSION = 4;
+const VERSION = 5;
 const SHELL = `shell-v${VERSION}`;
 const ASSETS = `assets-v${VERSION}`;
 // kept in step with client lib/offline.ts OFFLINE_DATA_CACHE
@@ -29,7 +29,13 @@ const DATA = "data-v1";
 const OFFLINE = "/offline.html";
 // the app's page, kept from the last visit, for opening it offline
 const APP = "/app-page";
-const SHELL_FILES = [OFFLINE, "/favicon.svg"];
+const SHELL_FILES = [
+  OFFLINE,
+  "/favicon.svg",
+  // the offline page's lettering
+  "/fonts/bangers-latin.woff2",
+  "/fonts/comic-neue-700-latin.woff2",
+];
 // the answers kept for the shelf: who's signed in, their shelf, a series,
 // its books, their settings, account and To buy list
 const KEPT =

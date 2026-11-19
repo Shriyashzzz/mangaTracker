@@ -146,6 +146,12 @@ export default function EmailLink({
       >
         {stage === "asking" ? "Unsubscribing…" : "Unsubscribe"}
       </button>
+      <p className={styles.switchRow}>
+        Changed your mind?{" "}
+        <NavLink to="/shelf" viewTransition>
+          Keep getting it
+        </NavLink>
+      </p>
     </Spread>
   );
 }

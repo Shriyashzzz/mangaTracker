@@ -26,7 +26,7 @@ const SHORT: Record<string, string> = {
 };
 
 // a label the table doesn't know yet: "Edition" off, and a long word cut
-function shortLabel(label: string) {
+export function shortEditionName(label: string) {
   if (SHORT[label]) return SHORT[label];
   const plain = label.replace(/\s+edition$/i, "");
   return plain.length <= 6 ? plain : `${plain.slice(0, 4)}.`;
@@ -37,4 +37,4 @@ function shortLabel(label: string) {
 export const shortBookName = (label: string, number: number) =>
   /-in-1$/i.test(label)
     ? `${label} #${number}`
-    : `${shortLabel(label)} ${number}`;
+    : `${shortEditionName(label)} ${number}`;

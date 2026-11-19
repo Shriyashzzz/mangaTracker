@@ -114,12 +114,20 @@ test("the offline bar", () => {
   ).toEqual({
     tone: "offline",
     lead: "Offline.",
-    text: "Your shelf as of 2:14 PM. 2 changes will save when you're back.",
+    text: "Your shelf as of 2:14 PM. 2 changes waiting: they save when you're back.",
   });
   // offline, nothing kept yet
   expect(offlineBarText({ ...base, online: false }, now)?.text).toBe(
     "Chapters and volumes you change save when you're back.",
   );
+  // offline, nothing kept, one change: said once, not twice
+  expect(
+    offlineBarText({ ...base, online: false, waiting: 1 }, now)?.text,
+  ).toBe("1 change waiting: it saves when you're back.");
+  // a kept shelf, nothing waiting: just how old it is
+  expect(
+    offlineBarText({ ...base, online: false, savedAt: at }, now)?.text,
+  ).toBe("Your shelf as of 2:14 PM.");
   // a kept copy on screen though the browser says online (the signal's bad)
   expect(offlineBarText({ ...base, savedAt: at }, now)?.tone).toBe("offline");
   // back: sending, then how it went

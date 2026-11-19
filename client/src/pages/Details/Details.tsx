@@ -469,6 +469,7 @@ export default function Details() {
                 folded
                 options={buyOptions}
                 hideNext={hideNextTicket}
+                barSells={release?.sellsIsbn ?? null}
                 editions={editions}
                 // only when the book offered is the one their next chapter is in
                 nextChapters={
@@ -618,6 +619,7 @@ export default function Details() {
               ownsNone={owned.length === 0}
               options={buyOptions}
               hideNext={hideNextTicket}
+              barSells={release?.sellsIsbn ?? null}
               editions={editions}
               // only when the book offered is the one their next chapter is in
               nextChapters={

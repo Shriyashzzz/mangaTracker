@@ -921,6 +921,33 @@
 .vshelf-book[data-apart] {
   margin-left: 7px;
 }
+/* an edition's shelf: each run's name over its first spine ("Definitive",
+   "Singles"), in room kept above the books for it */
+.vshelf[data-runs]:not(.vshelf-paged) {
+  height: 84px;
+}
+.vshelf-paged[data-runs] .vshelf-page,
+.vshelf-paged[data-runs] .vshelf-nav {
+  height: 84px;
+}
+.vshelf-paged[data-runs] .vshelf-book {
+  height: 66px;
+}
+.vshelf-book[data-run] {
+  position: relative;
+}
+.vshelf-book[data-run]::before {
+  content: attr(data-run);
+  position: absolute;
+  top: -15px;
+  left: 1px;
+  font: 400 0.78rem/1 var(--font-brand);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  color: var(--ink-soft);
+  pointer-events: none;
+}
 /* a paged shelf (touch, long series): full-size books between ‹ › */
 .vshelf-paged {
   display: flex;

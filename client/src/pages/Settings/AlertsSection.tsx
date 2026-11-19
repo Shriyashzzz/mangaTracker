@@ -67,10 +67,20 @@ export function AlertsSection() {
         <p className={styles.body}>This browser can't show alerts.</p>
       )}
       {way === "blocked" && (
-        <p className={styles.body}>
-          Alerts are blocked for this site. Allow them in your browser's site
-          settings, then come back here.
-        </p>
+        <>
+          <p className={styles.body}>
+            Alerts are blocked for this site. To allow them:
+          </p>
+          <ul className={styles.plainList}>
+            <li>
+              Chrome or Edge: the icon left of the address, then Notifications,
+              Allow.
+            </li>
+            <li>Safari on a Mac: Settings, Websites, Notifications.</li>
+            <li>The app on iPhone: Settings, Notifications, Manga Tracker.</li>
+          </ul>
+          <p className={styles.body}>Then come back here.</p>
+        </>
       )}
       {(way === "on" || way === "off") && (
         <>

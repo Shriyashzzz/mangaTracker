@@ -1,11 +1,6 @@
 // A release date for reading, worked out when it's shown so it's never stale
 // and is in the reader's own timezone: "Tomorrow", "In 3 days", "16th Nov 2026".
 // null if there's no real date.
-const ordinal = (day: number) => {
-  if (day > 3 && day < 21) return `${day}th`;
-  return `${day}${["th", "st", "nd", "rd"][day % 10] ?? "th"}`;
-};
-
 const startOfDay = (date: Date) =>
   new Date(date.getFullYear(), date.getMonth(), date.getDate()).getTime();
 
@@ -26,6 +21,12 @@ export function formatReleaseDate(
   if (days > 1 && days <= 7) return `In ${days} days`;
   if (days < -1 && days >= -7) return `${-days} days ago`;
 
-  const month = date.toLocaleString("en-US", { month: "short" });
-  return `${ordinal(date.getDate())} ${month} ${date.getFullYear()}`;
+  // "Dec 29", with the year only when it isn't this one ("Jan 12, 2027"),
+  // as dates are written everywhere else in the app
+  const sameYear = date.getFullYear() === now.getFullYear();
+  return date.toLocaleDateString("en-US", {
+    month: "short",
+    day: "numeric",
+    ...(sameYear ? {} : { year: "numeric" }),
+  });
 }

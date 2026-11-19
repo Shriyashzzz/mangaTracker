@@ -31,13 +31,16 @@ export function keptText(savedAt: number, now = Date.now()) {
 export function offlineBarText(state: BarState, now = Date.now()): BarText {
   const { online, savedAt, waiting, sending, note } = state;
   if (!online || savedAt != null) {
-    const shelf = savedAt
-      ? `Your shelf as of ${keptText(savedAt, now)}.`
-      : "Chapters and volumes you change save when you're back.";
-    const changes = waiting
-      ? ` ${changesText(waiting)} will save when you're back.`
-      : "";
-    return { tone: "offline", lead: "Offline.", text: `${shelf}${changes}` };
+    // how old the shelf on screen is, and what's waiting: each said once
+    const shelf = savedAt ? `Your shelf as of ${keptText(savedAt, now)}.` : "";
+    let changes = "";
+    if (waiting === 1) changes = "1 change waiting: it saves when you're back.";
+    else if (waiting > 1)
+      changes = `${waiting} changes waiting: they save when you're back.`;
+    else if (!savedAt)
+      changes = "Chapters and volumes you change save when you're back.";
+    const text = [shelf, changes].filter(Boolean).join(" ");
+    return { tone: "offline", lead: "Offline.", text };
   }
   if (sending)
     return {

@@ -59,6 +59,9 @@ type Props = {
     // starts after books (or books after singles) there's a gap; within a
     // run there's none
     isSingle: (slot: number) => boolean;
+    // the name over a run's first spine: the edition's ("Definitive"), or
+    // "Singles". Said again over the first spine of a phone's page
+    runName?: (slot: number) => string;
   };
 };
 
@@ -82,11 +85,13 @@ export default function VolumeShelf({
   const nameOf = (v: number) => slots?.name(v) ?? `Vol. ${v}`;
   // what a slot that differs from a plain volume carries: how far a
   // part-owned book is filled, and whether it starts a run set apart
-  const slotMarks = (v: number, theirs: boolean) => {
+  const slotMarks = (v: number, theirs: boolean, firstShown = 1) => {
     const share = !theirs && slots ? slots.share(v) : 0;
+    const named = v === 1 || v === firstShown || startsRun(v);
     return {
       "data-part": share > 0 || undefined,
       "data-apart": startsRun(v) || undefined,
+      "data-run": (named && slots?.runName?.(v)) || undefined,
       // never so far down that its number sits on ink
       style: share > 0 ? { "--part": `${20 + share * 35}%` } : undefined,
     };
@@ -377,6 +382,7 @@ export default function VolumeShelf({
       <div className="vshelf-box" ref={box}>
         <div
           className="vshelf vshelf-paged"
+          data-runs={slots?.runName ? true : undefined}
           role="group"
           aria-label={`Your volumes of ${name}, vols. ${from} to ${to} of ${total}`}
           onPointerDown={(e) => {
@@ -406,7 +412,7 @@ export default function VolumeShelf({
                 type="button"
                 data-vol={v}
                 className="vshelf-book"
-                {...slotMarks(v, yours.has(v))}
+                {...slotMarks(v, yours.has(v), page[0])}
                 style={{ width: FULL, ...slotMarks(v, yours.has(v)).style }}
                 aria-pressed={yours.has(v)}
                 aria-label={nameOf(v)}
@@ -450,6 +456,7 @@ export default function VolumeShelf({
       <div
         ref={shelf}
         className="vshelf"
+        data-runs={slots?.runName ? true : undefined}
         data-live={live || undefined}
         role="group"
         tabIndex={0}

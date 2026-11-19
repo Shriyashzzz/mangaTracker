@@ -23,13 +23,21 @@
     />
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
     <title>You're offline · Manga Tracker</title>
-    <!-- the site's lettering, if the phone kept a copy from an earlier visit;
-         offline it fails at once and the fallbacks below are used -->
-    <link
-      rel="stylesheet"
-      href="https://fonts.googleapis.com/css2?family=Bangers&family=Comic+Neue:wght@700&family=IBM+Plex+Sans:wght@400;600&display=swap"
-    />
+
     <style>
+      /* the site's own lettering, kept with this page by the service worker
+         (public/sw.js), so it shows with no signal */
+      @font-face {
+        font-family: Bangers;
+        src: url(/fonts/bangers-latin.woff2) format("woff2");
+        font-display: swap;
+      }
+      @font-face {
+        font-family: "Comic Neue";
+        font-weight: 700;
+        src: url(/fonts/comic-neue-700-latin.woff2) format("woff2");
+        font-display: swap;
+      }
       :root {
         --paper: #f3eee2;
         --card: #fbf8f0;

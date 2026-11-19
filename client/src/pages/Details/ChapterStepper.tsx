@@ -253,7 +253,9 @@ export default function ChapterStepper({
       >
         {problem}
         {!problem && note === "saved" && "Saved"}
-        {!problem && note === "kept" && "Saved here. Syncs when you're online."}
+        {!problem &&
+          note === "kept" &&
+          "Kept on this device. It saves when you're back."}
         {!problem && note === "failed" && "That didn't save. Try again."}
         {!problem && !note && books?.inside(current)}
       </span>

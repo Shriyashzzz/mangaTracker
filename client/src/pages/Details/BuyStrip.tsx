@@ -28,6 +28,9 @@ type Props = {
   options: BuyOptions;
   // the red bar is already selling the next volume
   hideNext: boolean;
+  // the book the red bar sells, if any: an edition's next book sold there
+  // isn't priced again here (the bar's button has the price)
+  barSells?: string | null;
   // the series' omnibus and deluxe lines, and the one they collect
   editions: Editions;
   // "singles" or a line's key
@@ -66,6 +69,7 @@ const GAPS_SHOWN = 6;
 export default function BuyStrip({
   options,
   hideNext,
+  barSells = null,
   editions,
   onCollect,
   nextChapters = null,
@@ -120,6 +124,10 @@ export default function BuyStrip({
   // else the newest. Never a volume they own: caught up says so. A price
   // only when one is known (never "check price" there)
   const firstNext = line && plan?.next;
+  // the red bar sells this very book: named here, priced only there
+  const nextOnBar = Boolean(
+    barSells && plan?.next?.isbn13 && plan.next.isbn13 === barSells,
+  );
   const withPrice = (book: string, cents: number | null | undefined) =>
     cents != null ? `${book} · ${formatCents(cents)}` : book;
   const firstGap = gaps[0];
@@ -127,7 +135,10 @@ export default function BuyStrip({
     (v) => v.volume === firstGap?.volume,
   )?.knownPriceCents;
   const summary = firstNext
-    ? withPrice(editionBookLabel(line, firstNext), firstNext.knownPriceCents)
+    ? withPrice(
+        editionBookLabel(line, firstNext),
+        nextOnBar ? null : firstNext.knownPriceCents,
+      )
     : next && !hideNext
       ? withPrice(`Vol. ${next.volume}`, next.knownPriceCents)
       : firstGap
@@ -184,11 +195,13 @@ export default function BuyStrip({
               >
                 <span className={styles.buyNextKind}>{nextLabel}</span>
                 <span>{editionBookLabel(line, plan.next)}</span>
-                <span className={styles.buyPrice}>
-                  {ownsNone
-                    ? knownOnly(plan.next.knownPriceCents)
-                    : bookPrice(plan.next)}
-                </span>
+                {!nextOnBar && (
+                  <span className={styles.buyPrice}>
+                    {ownsNone
+                      ? knownOnly(plan.next.knownPriceCents)
+                      : bookPrice(plan.next)}
+                  </span>
+                )}
                 {/* what's inside it, on its own line under the ticket's row */}
                 <em className={styles.buyInside}>
                   {insideText(plan.next)}
