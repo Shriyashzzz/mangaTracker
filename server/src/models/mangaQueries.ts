@@ -108,14 +108,33 @@ export async function restoreManga(
     },
     select: { id: true },
   });
+  // brought back, not new: nothing for its history (shelf_events)
+  await prisma.shelfEvent.deleteMany({ where: { mangaId: id, kind: "added" } });
   return id;
 }
 
 // new ones from an import, or a Select's undo (RestoredManga is a MangaInput
-// with more kept)
-export const addManyManga = (userId: number, inputs: MangaInput[]) =>
-  prisma.manga.createMany({
-    data: inputs.map((input) => ({ ...input, userId })),
+// with more kept). The database writes "added" in their history
+// (shelf_events); an import says "imported" instead, so a year in manga
+// doesn't count a library brought over as bought that year, and an undo
+// writes nothing, since nothing new came. One transaction: its rows all
+// carry the same time
+export const addManyManga = (
+  userId: number,
+  inputs: MangaInput[],
+  { from = "added" }: { from?: "added" | "import" | "undo" } = {},
+) =>
+  prisma.$transaction(async (tx) => {
+    const made = await tx.manga.createMany({
+      data: inputs.map((input) => ({ ...input, userId })),
+    });
+    if (from === "import")
+      await tx.$executeRaw`UPDATE shelf_events SET kind = 'imported'
+        WHERE user_id = ${userId} AND kind = 'added' AND at = now()`;
+    if (from === "undo")
+      await tx.$executeRaw`DELETE FROM shelf_events
+        WHERE user_id = ${userId} AND kind = 'added' AND at = now()`;
+    return made;
   });
 
 // an edit leaves the bookmark and genre alone when the form sends none

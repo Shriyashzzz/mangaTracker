@@ -60,6 +60,7 @@ model User {
   digestSentAt       DateTime?          @map("digest_sent_at") @db.Timestamptz(6)
   digestItems        DigestItem[]
   pushSubscriptions  PushSubscription[]
+  shelfEvents        ShelfEvent[]
 
   @@map("users")
 }
@@ -144,6 +145,8 @@ model Manga {
   releaseAnswer ReleaseAnswer?
   // the books behind the volumes they own (OwnedBook)
   books         OwnedBook[]
+  // its dated history (ShelfEvent), written by the database
+  events        ShelfEvent[]
 
   @@index([userId])
   @@map("manga")
@@ -562,4 +565,23 @@ model ReviewFlag {
 
   @@unique([reviewId, userId, kind])
   @@map("review_flags")
+}
+
+// A shelf's dated history, for the year in manga: written by a database
+// trigger whenever a series' volumes, chapter, volume read or finished
+// changes (migration 20261209000000_shelf_history, which lists the kinds)
+model ShelfEvent {
+  id      BigInt   @id @default(autoincrement())
+  userId  Int      @map("user_id")
+  mangaId Int?     @map("manga_id")
+  series  String   @db.VarChar(200)
+  kind    String   @db.VarChar(20)
+  volume  Float?
+  amount  Int      @default(1)
+  at      DateTime @default(now()) @db.Timestamptz(6)
+  user    User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  manga   Manga?   @relation(fields: [mangaId], references: [id], onDelete: SetNull)
+
+  @@index([userId, at])
+  @@map("shelf_events")
 }

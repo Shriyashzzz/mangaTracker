@@ -63,6 +63,10 @@ const KEPT: Entry[] = [
     body: "The series you add, the volumes you own, where you are, ratings, notes, your To buy list, what you paid for books, and your settings.",
   },
   {
+    name: "Your shelf's history",
+    body: "When you add a series, tick a volume, read on or finish one, with the date. It's what your year in manga is made from, and it's only shown to you.",
+  },
+  {
     name: "Your reviews",
     body: "Volume reviews you write, and reports you make about other reviews.",
   },

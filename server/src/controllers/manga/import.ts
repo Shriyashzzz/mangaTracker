@@ -168,7 +168,8 @@ export const importList = [
           });
         if (!input.image) noCover++;
       }
-      if (inputs.length) await mangaQueries.addManyManga(userId, inputs);
+      if (inputs.length)
+        await mangaQueries.addManyManga(userId, inputs, { from: "import" });
       // the new ones have ids now: their books and the complete sets go by
       // name
       const completeSets: number[] = [];

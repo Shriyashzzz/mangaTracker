@@ -172,7 +172,8 @@ export const restoreMany = [
       );
       // one with books goes in on its own: they're made along with it
       const plain = fresh.filter((m) => !m.books?.length);
-      if (plain.length) await mangaQueries.addManyManga(userId, plain);
+      if (plain.length)
+        await mangaQueries.addManyManga(userId, plain, { from: "undo" });
       for (const withBooks of fresh.filter((m) => m.books?.length))
         await mangaQueries.restoreManga(userId, withBooks);
       res.json({
