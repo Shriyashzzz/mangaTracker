@@ -29,8 +29,6 @@ export const NEEDS_CONNECTION = "needsconnection";
 type Tap = {
   preventDefault: () => void;
   stopPropagation: () => void;
-  clientX: number;
-  clientY: number;
   currentTarget: EventTarget;
 };
 export const offlineLink = (offline: boolean) =>
@@ -42,15 +40,10 @@ export const offlineLink = (offline: boolean) =>
         onClick: (e: Tap) => {
           e.preventDefault();
           e.stopPropagation();
-          // a key press has no finger: the note sits by the control
+          // the note centres on the control (a tap or a key press alike)
           const box = (e.currentTarget as Element).getBoundingClientRect();
-          const keyed = e.clientX === 0 && e.clientY === 0;
           window.dispatchEvent(
-            new CustomEvent(NEEDS_CONNECTION, {
-              detail: keyed
-                ? { x: box.left + box.width / 2, y: box.top }
-                : { x: e.clientX, y: e.clientY },
-            }),
+            new CustomEvent(NEEDS_CONNECTION, { detail: box }),
           );
         },
       }
