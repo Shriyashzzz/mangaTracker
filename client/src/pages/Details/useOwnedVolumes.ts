@@ -16,6 +16,7 @@ export function useOwnedVolumes({
   setManga,
   onTick,
   onFailed,
+  onSaved,
 }: {
   manga: Manga | null;
   setManga: Dispatch<SetStateAction<Manga | null>>;
@@ -23,6 +24,9 @@ export function useOwnedVolumes({
   onTick: () => void;
   // the last save failed and the shelf went back
   onFailed: () => void;
+  // what they own is saved: anything that waits on it can go ahead (a book
+  // is only recorded once its volumes are theirs)
+  onSaved?: (mangaId: number) => void;
 }) {
   const queues = useRef(new Map<number, Queue>());
 
@@ -48,6 +52,7 @@ export function useOwnedVolumes({
     } else {
       // the shelf's cards say what they own too
       void useShelf.getState().load();
+      onSaved?.(mangaId);
     }
   };
 

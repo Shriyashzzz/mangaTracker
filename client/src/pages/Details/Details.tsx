@@ -14,8 +14,15 @@ import type { ShelfVolume } from "../../lib/reviews";
 import { useEffect, useRef, useState } from "react";
 import { NavLink, useNavigate, useParams, useSearchParams } from "react-router";
 import { apiFetch } from "../../lib/api";
-import { getBooks, ownEditionBook } from "../../lib/booksApi";
-import type { EditionBook, EditionLine } from "../../lib/editions";
+import { addBooks, getBooks, ownEditionBook } from "../../lib/booksApi";
+import {
+  asOwnedBook,
+  isSameBook,
+  type EditionBook,
+  type EditionLine,
+} from "../../lib/editions";
+import { slotsOf } from "../../lib/editionShelf";
+import { SortMenu } from "../Home/ShelfBar";
 import { ownedOf } from "../../lib/ownedVolumes";
 import { useReleaseChecksOn, useTrackBy } from "../../lib/prefs";
 import { priceName } from "../../lib/prices";
@@ -320,8 +327,51 @@ export default function Details() {
     }
   };
 
+  // Books of the edition they collect that a tap on the shelf made wholly
+  // theirs: recorded under "Your books" once their volumes are saved (the
+  // server keeps no book whose volumes aren't all owned). By book number
+  const booksToRecord = useRef(new Map<number, EditionBook>());
+  // the line and what they own, as they are when the save lands
+  const latest = useRef<{ line: EditionLine | null; owned: number[] }>({
+    line: null,
+    owned: [],
+  });
+  useEffect(() => {
+    latest.current = {
+      line: editions.line,
+      owned: mangaData ? ownedOf(mangaData) : [],
+    };
+  });
+  const recordBooks = async (mangaId: number) => {
+    const { line, owned } = latest.current;
+    const waiting = [...booksToRecord.current.values()];
+    booksToRecord.current.clear();
+    if (!line || !waiting.length) return;
+    try {
+      const had = await getBooks(mangaId);
+      const mine = new Set(owned);
+      // still theirs (not unticked since), and not recorded already
+      const fresh = waiting.filter(
+        (book) =>
+          book.volumes.every((v) => mine.has(v)) &&
+          !had.some((one) => isSameBook(one, line, book)),
+      );
+      if (!fresh.length) return;
+      await addBooks(
+        mangaId,
+        fresh.map((book) => asOwnedBook(line, book)),
+      );
+      setBooksChanged((n) => n + 1);
+    } catch (e) {
+      // their volumes are saved either way; the book can still be added
+      // under "Your books"
+      console.error(e);
+    }
+  };
+
   // the volume shelf's ticks, saved one at a time in the background
   const ownedVolumes = useOwnedVolumes({
+    onSaved: (mangaId) => void recordBooks(mangaId),
     manga: mangaData,
     setManga: setMangaData,
     onTick: () => {
@@ -370,6 +420,17 @@ export default function Details() {
       isUpcomingClosed(mangaData.id, kind, number),
   });
 
+  // The shelf as the edition they collect, when they collect one: its books
+  // in place of single volumes, here and in the read counter. Only once we
+  // know how many volumes are out (a guess could leave a book off)
+  const editionShelf =
+    editions.line && shelfTotal.isKnown
+      ? {
+          line: editions.line,
+          slots: slotsOf(editions.line, shelfTotal.size),
+        }
+      : null;
+
   let statusWord = "Reading";
   if (mangaStatus) statusWord = "Finished";
   else if (planned) statusWord = "To read";
@@ -397,6 +458,28 @@ export default function Details() {
                   <li className={styles.metaGenre}>Light novel</li>
                 )}
                 {genre && <li className={styles.metaGenre}>{genre}</li>}
+                {/* how they collect it, when the series comes in more than
+                    single volumes: the shelf, the counter and Buy next all
+                    follow it. The same choice as Buy next's "as" */}
+                {editions.lines.length > 0 && (
+                  <li className={styles.metaEdition}>
+                    <SortMenu
+                      lead=""
+                      menuLabel="Collected as"
+                      alignLeft="auto"
+                      wordy
+                      sortBy={editions.line?.key ?? "singles"}
+                      onSort={(edition) => saveReading({ edition })}
+                      options={[
+                        { value: "singles", label: "Single volumes" },
+                        ...editions.lines.map((l) => ({
+                          value: l.key,
+                          label: l.label,
+                        })),
+                      ]}
+                    />
+                  </li>
+                )}
               </ul>
             </header>
             {/* phones: Buy it here, above the spines, folded under one line
@@ -428,6 +511,13 @@ export default function Details() {
               totalKnown={shelfTotal.isKnown}
               ownedVolumes={ownedVolumes}
               place={shelfPlace}
+              edition={editionShelf}
+              onBooks={(gained, lost) => {
+                for (const book of gained)
+                  booksToRecord.current.set(book.number, book);
+                for (const book of lost)
+                  booksToRecord.current.delete(book.number);
+              }}
             />
           </div>
 
@@ -439,6 +529,7 @@ export default function Details() {
             owned={owned}
             highestOwned={highestOwned}
             volumeSets={volumeSets}
+            edition={editionShelf}
             newestChapter={releaseStatus?.latestChapter ?? null}
             onStart={startReading}
             onChange={saveReading}

@@ -5,6 +5,12 @@
 //   otherwise         the chapter counter, the volume counter, or both
 // Which counters show is decided by lib/reading.ts tracksOf.
 import { useState } from "react";
+import {
+  insideOf,
+  slotsRead,
+  volumeReadAfter,
+  type EditionShelf,
+} from "../../lib/editionShelf";
 import { rangesText } from "../../lib/ownedVolumes";
 import { tracksOf, type TrackBy } from "../../lib/reading";
 import type { Manga } from "../../lib/types";
@@ -36,6 +42,9 @@ type Props = {
   onChange: (change: ReadingChange) => void;
   // a counter saved a new chapter or volume
   onPlaceSaved: (place: { bookmark?: number; readVolume?: number }) => void;
+  // the shelf seen through the edition they collect: the volume counter
+  // then counts its books (lib/editionShelf.ts). Null for single volumes
+  edition?: EditionShelf | null;
 };
 
 export default function ReadingPlace({
@@ -50,9 +59,14 @@ export default function ReadingPlace({
   onStart,
   onChange,
   onPlaceSaved,
+  edition = null,
 }: Props) {
   // a collector of the books who asked for the chapter counter after all
   const [chaptersShown, setChaptersShown] = useState(false);
+  // how many of the edition's books they've read, and the last of them
+  const booksRead = edition
+    ? slotsRead(edition.slots, manga.readVolume ?? null)
+    : 0;
 
   if (finished)
     return <p className={styles.progress}>Read all the way through.</p>;
@@ -127,7 +141,7 @@ export default function ReadingPlace({
           />
         </span>
       )}
-      {tracks.volumes && (
+      {tracks.volumes && !edition && (
         // their place by the volume: read is apart from owned
         <span className={styles.placeLine}>
           You've read up to vol.{" "}
@@ -137,6 +151,32 @@ export default function ReadingPlace({
             unit="volume"
             value={manga.readVolume ?? null}
             onSaved={(volume) => onPlaceSaved({ readVolume: volume })}
+          />
+        </span>
+      )}
+      {tracks.volumes && edition && (
+        // the same place, counted in the edition's books: "VIZBIG 4" is
+        // saved as the last volume that book holds
+        <span className={styles.placeLine}>
+          You've read up to {edition.line.label}{" "}
+          <ChapterStepper
+            key={`${manga.id}-${edition.line.key}-${volumeSets}`}
+            mangaId={manga.id}
+            unit="volume"
+            value={booksRead}
+            books={{
+              count: edition.slots.length,
+              volumeAfter: (count) => volumeReadAfter(edition.slots, count),
+              inside: (count) => {
+                const book = edition.slots[count - 1];
+                return book ? insideOf(book) : "";
+              },
+            }}
+            onSaved={(count) =>
+              onPlaceSaved({
+                readVolume: volumeReadAfter(edition.slots, count),
+              })
+            }
           />
         </span>
       )}

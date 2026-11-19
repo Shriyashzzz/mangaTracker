@@ -291,6 +291,10 @@ const LAYOUTS = [
 // "Show as"). The app's one dropdown: anywhere something is picked from a
 // short list uses it, with its own `lead` words ("Collecting") and `wordy`,
 // which keeps the words on phones where the shelf's shrinks to an icon
+// the room a list needs to open from its button's left edge (it's about
+// 15rem wide)
+const MENU_ROOM = 250;
+
 export function SortMenu<T extends string>({
   sortBy,
   onSort,
@@ -315,8 +319,10 @@ export function SortMenu<T extends string>({
   // for a <label htmlFor>, so pressing the label opens it
   id?: string;
   // the list opens from the button's left edge: for one that sits at the
-  // left of its box, where opening from the right would run off the screen
-  alignLeft?: boolean;
+  // left of its box, where opening from the right would run off the screen.
+  // "auto" for a button that can be anywhere along a line (a tag that
+  // wraps): from the left when the list fits that way, else from the right
+  alignLeft?: boolean | "auto";
   // the words before the choice, and what the open list is called
   lead?: string;
   menuLabel?: string;
@@ -331,6 +337,9 @@ export function SortMenu<T extends string>({
   const { open, setOpen, ref } = useMenu();
   // a boxed list opens upward when there's no room for it below
   const [opensUp, setOpensUp] = useState(false);
+  // for alignLeft "auto": whether the list fits opening from the left
+  const [fitsFromLeft, setFitsFromLeft] = useState(true);
+  const fromLeft = alignLeft === "auto" ? fitsFromLeft : alignLeft;
   const picked = options.find((o) => o.value === sortBy) ?? options[0]!;
   // a name keeps its capital ("Deluxe"); a sort reads on from "Sorted by"
   const pickedText = wordy ? picked.label : lowerFirst(picked.label);
@@ -397,7 +406,11 @@ export function SortMenu<T extends string>({
         aria-expanded={open}
         aria-haspopup="true"
         aria-label={`${wordy ? menuLabel : lead} ${pickedText}. Change`}
-        onClick={() => setOpen(!open)}
+        onClick={(e) => {
+          const left = e.currentTarget.getBoundingClientRect().left;
+          setFitsFromLeft(left + MENU_ROOM <= innerWidth);
+          setOpen(!open);
+        }}
       >
         <span className={wordy ? styles.pickWords : styles.sortWords}>
           {lead} <span className={styles.sortPicked}>{pickedText}</span>
@@ -412,7 +425,7 @@ export function SortMenu<T extends string>({
         )}
       </button>
       {open && (
-        <Menu label={menuLabel} alignRight={!alignLeft}>
+        <Menu label={menuLabel} alignRight={!fromLeft}>
           {optionRows}
           {/* how the shelf lists them, right where it's sorted, not only in
               Settings */}

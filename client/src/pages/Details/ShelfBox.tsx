@@ -2,8 +2,25 @@
 // they own it, with a line under it saying how many. A slide across several
 // books at once can be undone for a few seconds (a swipe meant to scroll, on
 // a phone, would otherwise tick a row of them).
+// For someone collecting an edition (`edition`), the books are that
+// edition's: 12 VIZBIGs, not 37 volumes. What they own is still saved as
+// volumes; lib/editionShelf.ts turns one into the other, both ways.
 import { useEffect, useRef, useState, type CSSProperties } from "react";
 import VolumeShelf from "../../components/volumeShelf/VolumeShelf";
+import type { EditionBook } from "../../lib/editions";
+import {
+  booksGained,
+  ownedCaption,
+  placeInSlots,
+  shareOwned,
+  slotName,
+  slotsIn,
+  spineOf,
+  stateOf,
+  toggleSlot,
+  volumesAfterPaint,
+  type EditionShelf,
+} from "../../lib/editionShelf";
 import { rangesText } from "../../lib/ownedVolumes";
 import { readLocal, writeLocal } from "../../lib/prefs";
 import { BOOK } from "../../lib/volumeShelf";
@@ -14,6 +31,8 @@ import type { useOwnedVolumes } from "./useOwnedVolumes";
 const SHELF_MIN = 208;
 // and its most: 28 volumes keep books 20px wide, room for a readable number
 const SHELF_MAX = 560;
+// an edition's book on the shelf: thicker than a single volume's 22px
+const EDITION_BOOK = 30;
 // remembered in the browser once they've ticked a book
 const SHELF_HINT_KEY = "shelfHint";
 // how long Undo stays
@@ -36,6 +55,12 @@ type Props = {
   // where they are, marked on the shelf and said in the caption: the volume
   // their chapter is in ("reading"), or the one they've read up to
   place?: { volume: number; kind: "reading" | "read up to" } | null;
+  // the edition they collect, and its books on this shelf; null for single
+  // volumes
+  edition?: EditionShelf | null;
+  // books of the edition that a tap or slide just made wholly theirs (and
+  // any it took away again), for the page to record under "Your books"
+  onBooks?: (gained: EditionBook[], lost: EditionBook[]) => void;
 };
 
 export default function ShelfBox({
@@ -46,7 +71,11 @@ export default function ShelfBox({
   totalKnown,
   ownedVolumes,
   place = null,
+  edition = null,
+  onBooks,
 }: Props) {
+  // the part-owned book they tapped: asked about before it's completed
+  const [asking, setAsking] = useState<number | null>(null);
   // "Tap a book to mark it yours": said until they've done it once on this
   // device. Nothing else on the page says the books can be pressed
   const [knowsTheShelf, setKnowsTheShelf] = useState(
@@ -70,7 +99,12 @@ export default function ShelfBox({
 
   // one slide is many paints close together: what they owned before the
   // first is what Undo gives back
-  const paint = (next: number[]) => {
+  const paint = (
+    next: number[],
+    // whether this was a slide across several, which Undo is for. An
+    // edition's shelf says (one tap there is several volumes)
+    wasSlide?: boolean,
+  ) => {
     usedTheShelf();
     slideStart.current ??= owned;
     const before = slideStart.current;
@@ -83,15 +117,58 @@ export default function ShelfBox({
     ownedVolumes.paint(next);
     const added = next.filter((v) => !before.includes(v)).length;
     const removed = before.filter((v) => !next.includes(v)).length;
-    setUndoTo(added + removed > 1 ? before : null);
+    setUndoTo((wasSlide ?? added + removed > 1) ? before : null);
   };
 
   // halves and specials (10.5, vol. 0) aren't books on the shelf: said instead
   const offShelf = owned.filter((v) => !Number.isInteger(v) || v < 1);
   const onShelf = owned.length - offShelf.length;
+
+  // ---------- seen through an edition ----------
+  const slots = edition?.slots ?? [];
+  // what they own after a tap or slide, saved; the books it gave or took
+  // are passed up to be recorded
+  const ownNow = (next: number[], save: (owned: number[]) => void) => {
+    onBooks?.(booksGained(slots, owned, next), booksGained(slots, next, owned));
+    save(next);
+  };
+  const tapSlot = (number: number) => {
+    const slot = slots[number - 1];
+    if (!slot) return;
+    usedTheShelf();
+    setUndoTo(null);
+    // one volume of a book they tapped: completing it is asked, not assumed
+    if (stateOf(slot, owned) === "part") return setAsking(number);
+    setAsking(null);
+    ownNow(toggleSlot(slot, owned), ownedVolumes.paint);
+  };
+  // A slide (and a mouse's click, which the shelf treats as a short slide)
+  // left exactly these slots standing. One that only stood up a book they
+  // own part of is the same question as a tap on it
+  const paintSlots = (standing: number[]) => {
+    const before = slotsIn(slots, owned, "all");
+    const stoodUp = standing.filter((n) => !before.includes(n));
+    const laidDown = before.filter((n) => !standing.includes(n));
+    const only = stoodUp.length === 1 && !laidDown.length ? stoodUp[0]! : null;
+    if (only && stateOf(slots[only - 1]!, owned) === "part") {
+      usedTheShelf();
+      return setAsking(only);
+    }
+    setAsking(null);
+    // one book stood up or laid down is a tap, not a slide to undo
+    const wasSlide = stoodUp.length + laidDown.length > 1;
+    ownNow(volumesAfterPaint(slots, owned, standing), (next) =>
+      paint(next, wasSlide || slideStart.current != null),
+    );
+  };
+  const askedSlot = asking ? slots[asking - 1] : null;
+  const placeInEdition = edition ? placeInSlots(slots, place) : null;
+
+  const books = edition ? slots.length : total;
+  const bookWidth = edition ? EDITION_BOOK : BOOK;
   // the room a short series' books need, but never so little that the
   // caption under them breaks a word to a line
-  const width = Math.min(SHELF_MAX, Math.max(total * BOOK, SHELF_MIN));
+  const width = Math.min(SHELF_MAX, Math.max(books * bookWidth, SHELF_MIN));
 
   return (
     <div
@@ -99,39 +176,102 @@ export default function ShelfBox({
       style={{ "--shelf-w": `${width}px` } as CSSProperties}
     >
       {/* the books keep to their own width; the caption gets the room */}
-      <div style={{ maxWidth: total * BOOK }} data-tour="spines">
-        <VolumeShelf
-          key={mangaId}
-          total={total}
-          owned={owned}
-          onToggle={(volume) => {
-            usedTheShelf();
-            setUndoTo(null);
-            ownedVolumes.toggle(volume);
-          }}
-          onPaint={paint}
-          name={name}
-          here={place?.volume ?? null}
-        />
+      <div style={{ maxWidth: books * bookWidth }} data-tour="spines">
+        {edition ? (
+          <VolumeShelf
+            // a different shelf for each edition: the slide and the page it
+            // was on belong to the one they were looking at
+            key={`${mangaId}-${edition.line.key}`}
+            total={slots.length}
+            owned={slotsIn(slots, owned, "all")}
+            onToggle={tapSlot}
+            onPaint={paintSlots}
+            name={name}
+            here={placeInEdition?.slot ?? null}
+            slots={{
+              bookWidth: EDITION_BOOK,
+              spine: (n) => spineOf(slots[n - 1]!),
+              name: (n) => slotName(edition.line, slots[n - 1]!, owned),
+              share: (n) => shareOwned(slots, owned, n),
+              isSingle: (n) => !slots[n - 1]!.book,
+            }}
+          />
+        ) : (
+          <VolumeShelf
+            key={mangaId}
+            total={total}
+            owned={owned}
+            onToggle={(volume) => {
+              usedTheShelf();
+              setUndoTo(null);
+              ownedVolumes.toggle(volume);
+            }}
+            onPaint={paint}
+            name={name}
+            here={place?.volume ?? null}
+          />
+        )}
       </div>
       {/* what the shelf says, in words: how many of how many, and any halves
           or specials it has no book for */}
       <p className={styles.shelfCaption}>
-        <span>
-          {/* where they are first, in the marker's red: "Read up to vol. 2" */}
-          {place && (
-            <span className={styles.shelfPlace}>
-              {place.kind === "reading" ? "Reading" : "Read up to"} vol.{" "}
-              {place.volume} ·{" "}
+        {edition ? (
+          <span>
+            {/* "Read up to book 4 · You own 4 of 12" */}
+            {placeInEdition && (
+              <span className={styles.shelfPlace}>
+                {placeInEdition.text} ·{" "}
+              </span>
+            )}
+            {ownedCaption(slots, owned)}
+          </span>
+        ) : (
+          <span>
+            {/* where they are first, in the marker's red: "Read up to vol. 2" */}
+            {place && (
+              <span className={styles.shelfPlace}>
+                {place.kind === "reading" ? "Reading" : "Read up to"} vol.{" "}
+                {place.volume} ·{" "}
+              </span>
+            )}
+            You own {onShelf}
+            {totalKnown
+              ? ` of ${total} volumes`
+              : ` volume${onShelf === 1 ? "" : "s"}`}
+            {offShelf.length > 0 &&
+              `, plus vol${offShelf.length > 1 ? "s" : ""}. ${rangesText(offShelf)}`}
+          </span>
+        )}
+        {/* they tapped a book they own part of: what they have of it, and
+            the question, before anything changes */}
+        {edition && askedSlot && (
+          <span
+            className={styles.shelfAsk}
+            role="group"
+            aria-label="Own the whole book?"
+          >
+            <span>
+              {slotName(edition.line, askedSlot, owned)}. Own the whole book?
             </span>
-          )}
-          You own {onShelf}
-          {totalKnown
-            ? ` of ${total} volumes`
-            : ` volume${onShelf === 1 ? "" : "s"}`}
-          {offShelf.length > 0 &&
-            `, plus vol${offShelf.length > 1 ? "s" : ""}. ${rangesText(offShelf)}`}
-        </span>
+            <button
+              type="button"
+              className={styles.chaptersToo}
+              onClick={() => {
+                setAsking(null);
+                ownNow(toggleSlot(askedSlot, owned), ownedVolumes.paint);
+              }}
+            >
+              Yes, all of it
+            </button>
+            <button
+              type="button"
+              className={styles.chaptersToo}
+              onClick={() => setAsking(null)}
+            >
+              No
+            </button>
+          </span>
+        )}
         {!knowsTheShelf && (
           <span className={styles.shelfHint}>Tap a book to mark it yours.</span>
         )}

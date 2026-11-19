@@ -1,11 +1,7 @@
 // Reading and saving a series' books (lib/books.ts says what one is).
 import { apiFetch, getJson } from "./api";
 import type { NewBook, OwnedBook } from "./books";
-import {
-  editionBookLabel,
-  type EditionBook,
-  type EditionLine,
-} from "./editions";
+import { asOwnedBook, type EditionBook, type EditionLine } from "./editions";
 import { ownedVolumes } from "./ownedVolumes";
 import { setVolumesOwned } from "./shelf";
 
@@ -75,14 +71,8 @@ export async function ownEditionBook(
     mangaId,
     ownedVolumes(null, [...owned, ...book.volumes]),
   );
-  const books = await addBooks(mangaId, [
-    {
-      edition: line.kind,
-      number: book.number,
-      title: book.title ?? editionBookLabel(line, book),
-      isbn13: book.isbn13,
-      volumes: book.volumes,
-    },
-  ]).catch(() => null);
+  const books = await addBooks(mangaId, [asOwnedBook(line, book)]).catch(
+    () => null,
+  );
   return { owned: now, books };
 }

@@ -38,7 +38,10 @@ export function bookWidths(
   total: number,
   width: number,
   aimed: number | null,
+  // a book at full size: an edition's books are thicker than a volume
+  full = BOOK,
 ): number[] {
+  const BOOK = full;
   const base = Math.min(BOOK, width / total);
   if (aimed == null || base >= BOOK) return Array(total).fill(base);
   const grown = Array.from(
@@ -68,8 +71,8 @@ export function bookWidths(
 }
 
 // the pointer's x on the shelf, in resting books
-export const aimAt = (x: number, total: number, width: number) =>
-  Math.min(total - 0.001, Math.max(0, x / Math.min(BOOK, width / total)));
+export const aimAt = (x: number, total: number, width: number, full = BOOK) =>
+  Math.min(total - 0.001, Math.max(0, x / Math.min(full, width / total)));
 
 // the book (1 to total) at x on the shelf, as laid out; null past the end
 export function bookAt(widths: number[], x: number): number | null {

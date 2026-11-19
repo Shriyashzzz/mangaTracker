@@ -23,7 +23,7 @@ import { looseBook, rowsOf, type BookRow as Row } from "./yourBooksRows";
 import {
   editionBookLabel,
   insideText,
-  type EditionBook,
+  isSameBook,
   type EditionLine,
 } from "../../lib/editions";
 import { SortMenu } from "../Home/ShelfBar";
@@ -32,14 +32,6 @@ import { SortMenu } from "../Home/ShelfBar";
 // worked out from the series' volumes and may not be out
 const lastListedIndex = (line: EditionLine) =>
   line.books.reduce((last, book, i) => (book.listed ? i : last), -1);
-
-// an edition book they've recorded already: the same ISBN, or without one
-// the same kind of edition holding the same volumes (Deluxe 3 and a Perfect
-// Edition 3 hold different volumes, so they're never mixed up)
-const isSameBook = (had: OwnedBook, line: EditionLine, book: EditionBook) =>
-  had.isbn13 && book.isbn13
-    ? had.isbn13 === book.isbn13
-    : had.edition === line.kind && had.volumes.join() === book.volumes.join();
 
 type Props = {
   mangaId: number;

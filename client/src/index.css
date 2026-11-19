@@ -899,6 +899,23 @@
 .vshelf-box .vshelf-book[data-here][data-own] i {
   height: 54px;
 }
+/* An edition's shelf (lib/editionShelf.ts). A book they own only some
+   volumes of is inked part of the way down, never as far as its number.
+   A single volume the edition has no book for stands a little apart, and
+   thinner, since it is */
+.vshelf-box .vshelf-book[data-part]:not([data-own]):not([data-here]) i {
+  border-style: solid;
+  border-color: var(--ink);
+  background: linear-gradient(
+    to bottom,
+    var(--ink) var(--part),
+    var(--paper) var(--part)
+  );
+  color: var(--ink);
+}
+.vshelf-book[data-apart] {
+  padding-left: 7px;
+}
 /* a paged shelf (touch, long series): full-size books between ‹ › */
 .vshelf-paged {
   display: flex;

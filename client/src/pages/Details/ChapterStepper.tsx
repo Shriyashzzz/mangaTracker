@@ -27,6 +27,16 @@ type Props = {
   newest?: number | null;
   // it's been saved, so anything worked out from the old chapter is stale
   onSaved: (chapter: number) => void;
+  // Counting an edition's books instead ("read up to VIZBIG 4"): how many
+  // there are, and the volume that reading so many comes to, which is what
+  // gets saved (lib/editionShelf.ts). The number shown stays the book's
+  books?: {
+    count: number;
+    volumeAfter: (books: number) => number;
+    // what the book they're on holds ("vols. 10–12"), said beside the
+    // counter where "Saved" shows
+    inside: (books: number) => string;
+  };
 };
 
 // how far past the newest we know of a chapter may be and still be saved
@@ -48,8 +58,18 @@ export default function ChapterStepper({
   unit = "chapter",
   newest = null,
   onSaved,
+  books,
 }: Props) {
-  const MAX_CHAPTER = UNITS[unit].max;
+  const MAX_CHAPTER = books ? books.count : UNITS[unit].max;
+  // what it counts, in words
+  const counted = books ? "book" : unit;
+  // what's sent for the number shown
+  const toSave = (shown: number) => (books ? books.volumeAfter(shown) : shown);
+  // (as it is now, for the save sent as they leave the page)
+  const toSaveNow = useRef(toSave);
+  useEffect(() => {
+    toSaveNow.current = toSave;
+  });
   const [draft, setDraft] = useState(String(value ?? 0));
   const [note, setNote] = useState<"saved" | "failed" | null>(null);
   // why what's typed isn't being saved, said beside the box
@@ -68,7 +88,9 @@ export default function ChapterStepper({
   // put the older chapter back
   const queue = useRef<Promise<unknown>>(Promise.resolve());
   const inOrder = (chapter: number) => {
-    const save = queue.current.then(() => savePlace(mangaId, unit, chapter));
+    const save = queue.current.then(() =>
+      savePlace(mangaId, unit, toSave(chapter)),
+    );
     queue.current = save.catch(() => {});
     return save;
   };
@@ -104,14 +126,15 @@ export default function ChapterStepper({
     if (!Number.isInteger(chapter) || chapter < 0) {
       setProblem(
         Number.isFinite(chapter) && chapter > 0
-          ? `Whole ${unit}s only. Try ${Math.floor(chapter)}.`
-          : `That isn't a ${unit} number.`,
+          ? `Whole ${counted}s only. Try ${Math.floor(chapter)}.`
+          : `That isn't a ${counted} number.`,
       );
       return;
     }
     if (chapter > MAX_CHAPTER) {
+      const many = { chapter: "Chapters", volume: "Volumes", book: "Books" };
       setProblem(
-        `${unit === "volume" ? "Volumes" : "Chapters"} go up to ${MAX_CHAPTER.toLocaleString("en-US")}.`,
+        `${many[counted]} go up to ${MAX_CHAPTER.toLocaleString("en-US")}.`,
       );
       return;
     }
@@ -133,7 +156,7 @@ export default function ChapterStepper({
       if (chapter != null && chapter !== saved.current) {
         // and the shelf they're going back to shows it
         queue.current
-          .then(() => savePlace(mangaId, unit, chapter))
+          .then(() => savePlace(mangaId, unit, toSaveNow.current(chapter)))
           .then(() => useShelf.getState().load())
           .catch(() => {});
       }
@@ -149,7 +172,7 @@ export default function ChapterStepper({
         <button
           type="button"
           className={styles.stepperBtn}
-          aria-label={`One ${unit} back`}
+          aria-label={`One ${counted} back`}
           disabled={current <= 0}
           onClick={() => change(String(current - 1))}
         >
@@ -166,7 +189,8 @@ export default function ChapterStepper({
           max={MAX_CHAPTER}
           step="1"
           aria-label={
-            unit === "volume" ? "Volume read up to" : "Chapter read up to"
+            { chapter: "Chapter", volume: "Volume", book: "Book" }[counted] +
+            " read up to"
           }
           value={draft}
           onChange={(e) => change(e.target.value)}
@@ -181,7 +205,7 @@ export default function ChapterStepper({
         <button
           type="button"
           className={styles.stepperBtn}
-          aria-label={`One ${unit} on`}
+          aria-label={`One ${counted} on`}
           data-tour="chapter-up"
           disabled={current >= MAX_CHAPTER}
           onClick={() => change(String(current + 1))}
@@ -200,6 +224,7 @@ export default function ChapterStepper({
         {problem}
         {!problem && note === "saved" && "Saved"}
         {!problem && note === "failed" && "That didn't save. Try again."}
+        {!problem && !note && books?.inside(current)}
       </span>
     </span>
   );

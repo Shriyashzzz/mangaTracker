@@ -44,6 +44,20 @@ type Props = {
   // the volume they're in (or have read up to): drawn in red, the rest as
   // usual. Null when we can't tell
   here?: number | null;
+  // The shelf seen through an edition (lib/editionShelf.ts): each "volume"
+  // here is then a slot, a book of the edition or a volume it has no book
+  // for. The shelf works the same; these say how a slot differs
+  slots?: {
+    // a book at full size: thicker than a single volume
+    bookWidth: number;
+    // what's lettered on its spine, and its name for hovering and reading out
+    spine: (slot: number) => string;
+    name: (slot: number) => string;
+    // how much of it is theirs when not all, 0 to 1: drawn filled that far
+    share: (slot: number) => number;
+    // a single volume among an edition's books: drawn thinner, set apart
+    isSingle: (slot: number) => boolean;
+  };
 };
 
 // room for the ‹ › on a paged shelf
@@ -56,7 +70,22 @@ export default function VolumeShelf({
   onPaint,
   name,
   here = null,
+  slots,
 }: Props) {
+  const FULL = slots?.bookWidth ?? BOOK;
+  const spineOf = (v: number) => slots?.spine(v) ?? String(v);
+  const nameOf = (v: number) => slots?.name(v) ?? `Vol. ${v}`;
+  // what a slot that differs from a plain volume carries: how far a
+  // part-owned book is filled, and whether it's a single set apart
+  const slotMarks = (v: number, theirs: boolean) => {
+    const share = !theirs && slots ? slots.share(v) : 0;
+    return {
+      "data-part": share > 0 || undefined,
+      "data-apart": slots?.isSingle(v) || undefined,
+      // never so far down that its number sits on ink
+      style: share > 0 ? { "--part": `${20 + share * 35}%` } : undefined,
+    };
+  };
   const box = useRef<HTMLDivElement>(null);
   const shelf = useRef<HTMLDivElement>(null);
   // a finger, not a mouse: thin books get a page of full-size ones instead
@@ -112,7 +141,7 @@ export default function VolumeShelf({
   );
 
   const yours = new Set(owned);
-  const widths = width ? bookWidths(total, width, aimed) : [];
+  const widths = width ? bookWidths(total, width, aimed, FULL) : [];
   const lit = aimed == null ? null : Math.min(total, Math.floor(aimed) + 1);
   const oneTap = width / total >= (coarse ? FINGER_TAPPABLE : TAPPABLE);
   const paged = coarse && width > 0 && !oneTap;
@@ -124,7 +153,7 @@ export default function VolumeShelf({
     cancelAnimationFrame(frame.current);
     frame.current = requestAnimationFrame(() => {
       setLive(true);
-      setAimed(aimAt(x, total, width));
+      setAimed(aimAt(x, total, width, FULL));
     });
   };
   const rest = () => {
@@ -141,7 +170,7 @@ export default function VolumeShelf({
     onToggle(volume);
   };
   const say = (volume: number, theirs: boolean) =>
-    setSaid(`Vol. ${volume}, ${theirs ? "yours" : "not yours yet"}`);
+    setSaid(`${nameOf(volume)}, ${theirs ? "yours" : "not yours yet"}`);
 
   // sliding to tick, as VolumePicker does: the books carry data-vol
   const volumeAt = (x: number, y: number) => {
@@ -312,7 +341,7 @@ export default function VolumeShelf({
   };
 
   if (paged) {
-    const perPage = Math.max(5, Math.floor((width - 2 * NAV) / BOOK));
+    const perPage = Math.max(5, Math.floor((width - 2 * NAV) / FULL));
     const lastStart = Math.max(1, total - perPage + 1);
     // near the volume they're in, when it's marked; else near the one after
     // the furthest they own (what Buy it calls next); a couple before it
@@ -363,9 +392,11 @@ export default function VolumeShelf({
                 type="button"
                 data-vol={v}
                 className="vshelf-book"
-                style={{ width: BOOK }}
+                {...slotMarks(v, yours.has(v))}
+                style={{ width: FULL, ...slotMarks(v, yours.has(v)).style }}
                 aria-pressed={yours.has(v)}
-                aria-label={`Vol. ${v}`}
+                aria-label={nameOf(v)}
+                title={slots ? nameOf(v) : undefined}
                 data-own={yours.has(v) || undefined}
                 data-here={here === v || undefined}
                 data-size="wide"
@@ -379,7 +410,7 @@ export default function VolumeShelf({
                   say(v, !yours.has(v));
                 }}
               >
-                <i aria-hidden>{v}</i>
+                <i aria-hidden>{spineOf(v)}</i>
               </button>
             ))}
           </div>
@@ -449,7 +480,9 @@ export default function VolumeShelf({
                 key={v}
                 data-vol={v}
                 className="vshelf-book"
-                style={{ width: w }}
+                {...slotMarks(v, yours.has(v))}
+                style={{ width: w, ...slotMarks(v, yours.has(v)).style }}
+                title={slots ? nameOf(v) : undefined}
                 data-own={yours.has(v) || undefined}
                 data-here={here === v || undefined}
                 data-size={
@@ -461,7 +494,7 @@ export default function VolumeShelf({
               >
                 {/* the group's label and the status line say the volume;
                     the drawn numbers would read out 1 to 113 */}
-                <i aria-hidden>{v}</i>
+                <i aria-hidden>{spineOf(v)}</i>
               </span>
             );
           })}

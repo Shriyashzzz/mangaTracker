@@ -2,7 +2,7 @@
 // "Deluxe 3 (vols. 7–9)" and not three paperbacks. The lines come from the
 // server (prices/editionLines.ts); everything here is worked out from a line
 // and the volumes they own, however they came to own them.
-import type { OwnedBook } from "./books";
+import type { NewBook, OwnedBook } from "./books";
 import { bookName } from "./bookName";
 import { rangesText } from "./ownedVolumes";
 
@@ -27,6 +27,27 @@ export const editionBookLabel = (line: EditionLine, book: EditionBook) =>
   bookName(line.label, book.number);
 export const insideText = (book: EditionBook) =>
   `${book.volumes.length === 1 ? "vol." : "vols."} ${rangesText(book.volumes)}`;
+
+// an edition book they've recorded already: the same ISBN, or without one
+// the same kind of edition holding the same volumes (Deluxe 3 and a Perfect
+// Edition 3 hold different volumes, so they're never mixed up)
+export const isSameBook = (
+  had: Pick<OwnedBook, "isbn13" | "edition" | "volumes">,
+  line: EditionLine,
+  book: EditionBook,
+) =>
+  had.isbn13 && book.isbn13
+    ? had.isbn13 === book.isbn13
+    : had.edition === line.kind && had.volumes.join() === book.volumes.join();
+
+// an edition's book as "Your books" records it
+export const asOwnedBook = (line: EditionLine, book: EditionBook): NewBook => ({
+  edition: line.kind,
+  number: book.number,
+  title: book.title ?? editionBookLabel(line, book),
+  isbn13: book.isbn13,
+  volumes: book.volumes,
+});
 
 // a book of the line beside what they own of it
 type PlannedBook = EditionBook & {

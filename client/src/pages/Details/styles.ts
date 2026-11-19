@@ -48,6 +48,10 @@ export const detailsStyles = {
   shelfPlace: "text-accent",
   shelfCaption:
     "mt-1.5 flex flex-wrap justify-center gap-x-4 text-center font-mono text-[0.8rem] text-muted",
+  // "VIZBIG 5: you have vol. 13 of 13–15. Own the whole book?" and its two
+  // answers, on a line of their own under the count
+  shelfAsk:
+    "flex basis-full flex-wrap items-baseline justify-center gap-x-3 gap-y-1 text-ink-soft",
   // "Tap a book to mark it yours.", until they have
   shelfHint: "basis-full text-muted",
   shelf:
@@ -61,6 +65,9 @@ export const detailsStyles = {
     "text-[clamp(2.2rem,4.6vw,3.4rem)] leading-[1.02] font-medium tracking-[-0.025em] text-balance wrap-anywhere upto-720:text-[clamp(1.6rem,7vw,2.2rem)]",
   meta: "flex flex-wrap gap-[0.4rem]",
   metaGenre: `${tag} border-line-soft text-ink-soft`,
+  // the edition they collect, a menu among the tags
+  // (the menu's own button is sized for a line of text; here it's a tag)
+  metaEdition: `${tag} border-line-soft text-ink-soft [&_button]:min-h-0 [&_button]:text-[0.8rem] [&_button_span_span]:no-underline`,
   metaReading: `${tag} border-accent text-accent`,
   metaDone: `${tag} border-ok text-ok`,
   // the "Buy it" heading
