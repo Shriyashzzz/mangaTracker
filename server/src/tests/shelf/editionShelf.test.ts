@@ -42,6 +42,26 @@ test("37 volumes as VIZBIG: twelve books, then vol. 37 on its own", () => {
   expect(slots.map(spineOf).slice(-2)).toEqual(["12", "37"]);
 });
 
+test("a book the line only worked out, past the last one listed, isn't one", () => {
+  // as Vagabond's line is saved: twelve listed, and a 13th worked out for
+  // vol. 37 that was never printed
+  const saved = lineOf(12);
+  saved.books.push({
+    number: 13,
+    volumes: [37],
+    isbn13: null,
+    title: null,
+    listed: false,
+  });
+  const shelf = slotsOf(saved, 37);
+  expect(shelf).toHaveLength(13);
+  expect(shelf[12]).toEqual({ volumes: [37], book: null });
+  // one worked out between listed books is real: the catalog just lacks it
+  const hole = lineOf(12);
+  hole.books[5]!.listed = false;
+  expect(slotsOf(hole, 36).every((slot) => slot.book)).toBe(true);
+});
+
 test("a book that isn't out yet is left off", () => {
   // 13 books worked out for a series with 30 volumes out: 10 are real
   expect(slotsOf(lineOf(13), 30)).toHaveLength(10);

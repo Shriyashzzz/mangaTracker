@@ -28,11 +28,20 @@ export type EditionShelf = { line: EditionLine; slots: Slot[] };
 // how much of a slot is theirs
 export type SlotState = "all" | "part" | "none";
 
-// The slots of a series with `total` volumes out, seen as `line`. A book of
-// the line that starts past the last volume out isn't published yet, and is
-// left off
+// The slots of a series with `total` volumes out, seen as `line`.
+//
+// Which of the line's books are real: the ones up to the last the catalog
+// lists (as editionPlan counts them, lib/editions.ts). The line works out
+// books past that so it has no holes, but they may not exist: Vagabond's
+// line reaches a "VIZBIG 13" for vol. 37, which was never printed. Those
+// volumes are shown as the singles they're sold as. A line with no listed
+// book at all keeps what it has (nothing says where it ends), less any book
+// that starts past the last volume out
 export function slotsOf(line: EditionLine, total: number): Slot[] {
-  const books = line.books.filter(
+  const lastListed = line.books.map((book) => book.listed).lastIndexOf(true);
+  const real =
+    lastListed < 0 ? line.books : line.books.slice(0, lastListed + 1);
+  const books = real.filter(
     (book) => book.volumes.length > 0 && Math.min(...book.volumes) <= total,
   );
   const inABook = new Set(books.flatMap((book) => book.volumes));

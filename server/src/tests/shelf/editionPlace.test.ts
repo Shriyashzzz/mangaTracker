@@ -34,3 +34,18 @@ test("the books they own, only when every volume is in a whole book", () => {
   expect(editionPlaceOf(VIZBIG, null, upTo(37)).owned).toBeNull();
   expect(editionPlaceOf(VIZBIG, null, []).owned).toBeNull();
 });
+
+test("a book the line only worked out past its last listed one isn't one", () => {
+  // Vagabond's line as it's saved: a 13th VIZBIG worked out for vol. 37
+  const saved = {
+    label: "VIZBIG",
+    books: [
+      ...VIZBIG.books.map((book) => ({ ...book, listed: true })),
+      { number: 13, volumes: [37], listed: false },
+    ],
+  };
+  expect(editionPlaceOf(saved, 37, []).read).toBeNull();
+  expect(editionPlaceOf(saved, 36, upTo(36)).read).toBe(12);
+  // owning vol. 37 too is said in volumes, not as a 13th book
+  expect(editionPlaceOf(saved, null, upTo(37)).owned).toBeNull();
+});
