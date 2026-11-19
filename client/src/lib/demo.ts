@@ -1178,6 +1178,21 @@ export async function demoResponse(
       writeShelf(shelf.map((m) => (m.id === id ? { ...m, ...owned } : m)));
       return json(owned);
     }
+    // ordered, on their way, as the server keeps them (owned ones drop off)
+    if (part === "ordered") {
+      const volumes = (body.volumes as number[] | undefined) ?? [];
+      const owned = new Set(ownedOf(manga));
+      const others = (manga.orderedList ?? []).filter(
+        (v) => !volumes.includes(v),
+      );
+      const orderedList = (
+        body.ordered ? [...new Set([...others, ...volumes])] : others
+      )
+        .filter((v) => !owned.has(v))
+        .sort((x, y) => x - y);
+      writeShelf(shelf.map((m) => (m.id === id ? { ...m, orderedList } : m)));
+      return json({ orderedList });
+    }
     if (part === "releases")
       return json(
         collector

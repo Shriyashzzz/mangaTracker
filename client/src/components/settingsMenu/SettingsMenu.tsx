@@ -5,7 +5,6 @@ import {
   ChevronRightIcon,
   CoffeeIcon,
   ImportIcon,
-  InfoIcon,
   InstallIcon,
   MoonIcon,
   SettingsIcon,
@@ -32,6 +31,7 @@ import { useAccount } from "../../store/account";
 import { openInstallBox, useInstallWay } from "../../lib/install";
 import InstallSheet from "../installApp/InstallSheet";
 import { offlineLink, useIsOffline } from "../../lib/offline";
+import { useHasYear } from "../../lib/year";
 
 // one row of the menu: a button or link
 const item =
@@ -79,6 +79,7 @@ type Props = {
 };
 
 export default function SettingsMenu({ isSignedIn, onLogOut }: Props) {
+  const hasYear = useHasYear(Boolean(isSignedIn));
   const offline = useIsOffline();
   const avatar = useAccount((s) => s.account?.avatar);
   // the name they chose, else their username: the reader name made up for
@@ -257,12 +258,15 @@ export default function SettingsMenu({ isSignedIn, onLogOut }: Props) {
                   Share my list
                 </NavLink>
               </li>
-              <li>
-                <NavLink to="/year" className={item} viewTransition>
-                  <StarIcon />
-                  Your year in manga
-                </NavLink>
-              </li>
+              {/* only with something in it (lib/year.ts useHasYear) */}
+              {hasYear && (
+                <li>
+                  <NavLink to="/year" className={item} viewTransition>
+                    <StarIcon />
+                    Your year in manga
+                  </NavLink>
+                </li>
+              )}
               <li>
                 <NavLink to="/friends" className={item} viewTransition>
                   <LinkIcon />
@@ -315,12 +319,6 @@ export default function SettingsMenu({ isSignedIn, onLogOut }: Props) {
             </button>
           </li>
           {divider}
-          <li>
-            <NavLink to="/faq" className={item} viewTransition>
-              <InfoIcon />
-              FAQ
-            </NavLink>
-          </li>
           {installWay && (
             <li>
               <button

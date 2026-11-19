@@ -67,6 +67,9 @@ export const shareStyles = {
     "flex flex-wrap items-center justify-between gap-x-5 gap-y-1 border-[1.5px] border-dashed border-line-soft px-3.5 py-2 text-[0.92rem] text-ink-soft",
   ownerLinks:
     "flex flex-wrap items-center gap-x-4 gap-y-1 [&_a]:tap [&_a]:font-medium [&_a]:text-ink [&_a]:underline [&_a]:decoration-accent [&_a]:decoration-2 [&_a]:underline-offset-3",
+  // "Save a picture" and its two stamps, Post and Story
+  pictureGroup: "flex flex-wrap items-center gap-x-2.5 gap-y-1 text-ink-soft",
+  pictureStamp: "tap stamp-button",
   ownerAction:
     "tap font-medium text-ink underline decoration-accent decoration-2 underline-offset-3 disabled:opacity-50",
 

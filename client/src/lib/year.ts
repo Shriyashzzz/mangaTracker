@@ -1,3 +1,6 @@
+import { useEffect, useState } from "react";
+import { getJson } from "./api";
+import { isDemo } from "./demo";
 // A reader's year in manga, as the server adds it up
 // (server/src/history/yearRules.ts YearInManga)
 export type YearInManga = {
@@ -11,13 +14,18 @@ export type YearInManga = {
   booksBought: number;
   spentCents: number;
   reviews: number;
-  topSeries: { name: string; chapters: number; volumes: number }[];
+  topSeries: {
+    name: string;
+    chapters: number;
+    volumes: number;
+    image: string | null;
+  }[];
   busiestMonth: number | null;
   shelf: {
     series: number;
     volumes: number;
     topGenre: string | null;
-    fiveStars: string[];
+    fiveStars: { name: string; image: string | null }[];
   };
 };
 
@@ -48,3 +56,25 @@ export const emptyYear = (y: YearInManga) =>
   !y.volumesRead &&
   !y.seriesFinished &&
   !y.booksBought;
+
+// whether this year has anything to show yet, asked once a visit (the menu
+// shows "Your year in manga" only then). Never on the tour's practice shelf
+let asked: Promise<boolean> | null = null;
+export function useHasYear(signedIn: boolean) {
+  const [has, setHas] = useState(false);
+  useEffect(() => {
+    if (!signedIn || isDemo()) return;
+    asked ??= getJson<YearInManga>("/api/history/year")
+      .then((y) => !emptyYear(y))
+      .catch(() => {
+        asked = null;
+        return false;
+      });
+    let live = true;
+    void asked.then((yes) => live && setHas(yes));
+    return () => {
+      live = false;
+    };
+  }, [signedIn]);
+  return has;
+}

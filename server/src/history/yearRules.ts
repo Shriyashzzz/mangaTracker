@@ -23,6 +23,8 @@ export type ShelfNow = {
   genre: string | null;
   owned: number;
   rating: number | null;
+  // its cover, for the cards
+  image: string | null;
 };
 
 export type YearInManga = {
@@ -39,7 +41,12 @@ export type YearInManga = {
   spentCents: number;
   reviews: number;
   // the series read most that year, most first (chapters, then volumes)
-  topSeries: { name: string; chapters: number; volumes: number }[];
+  topSeries: {
+    name: string;
+    chapters: number;
+    volumes: number;
+    image: string | null;
+  }[];
   // the month with the most going on, 1 to 12; null with nothing that year
   busiestMonth: number | null;
   // the shelf as it is now
@@ -47,7 +54,7 @@ export type YearInManga = {
     series: number;
     volumes: number;
     topGenre: string | null;
-    fiveStars: string[];
+    fiveStars: { name: string; image: string | null }[];
   };
 };
 
@@ -75,11 +82,13 @@ export function yearInManga(
     had[e.kind] += e.amount;
     read.set(e.series, had);
   }
+  const coverOf = new Map(shelf.map((s) => [s.name, s.image]));
   const topSeries = [...read.entries()]
     .map(([name, r]) => ({
       name,
       chapters: atLeast0(r.chapters),
       volumes: atLeast0(r.volumes),
+      image: coverOf.get(name) ?? null,
     }))
     .filter((s) => s.chapters + s.volumes > 0)
     .sort((a, b) => b.chapters - a.chapters || b.volumes - a.volumes)
@@ -121,7 +130,7 @@ export function yearInManga(
       topGenre,
       fiveStars: shelf
         .filter((s) => s.rating === 5)
-        .map((s) => s.name)
+        .map((s) => ({ name: s.name, image: s.image }))
         .slice(0, MOST_FIVE_STARS),
     },
   };

@@ -133,7 +133,8 @@ export default function Details() {
     mangaData && !mangaData.lightNovel ? priceName(mangaData) : null,
     mangaData?.id ?? null,
     mangaData?.edition,
-    mangaData ? ownedOf(mangaData) : [],
+    // ordered counts as theirs here too: the next book is the one after
+    mangaData ? [...ownedOf(mangaData), ...ordered] : [],
     buyOptions.volumes.map((v) => v.isbn13),
     releaseStatus?.nextChapterVolume ?? null,
   );
@@ -308,8 +309,8 @@ export default function Details() {
   };
 
   // "I ordered it", or not after all: saved, then the list as saved
-  const orderVolume = async (volume: number, on: boolean) => {
-    const orderedList = await setOrdered(Number(id), volume, on);
+  const orderVolumes = async (volumes: number[], on: boolean) => {
+    const orderedList = await setOrdered(Number(id), volumes, on);
     setMangaData((m) => (m ? { ...m, orderedList } : m));
   };
 
@@ -542,7 +543,7 @@ export default function Details() {
                 onCollect={(edition) => saveReading({ edition })}
                 onOwnBook={ownBook}
                 ordered={ordered}
-                onOrdered={orderVolume}
+                onOrdered={orderVolumes}
               />
             </div>
             <ShelfBox
@@ -695,7 +696,7 @@ export default function Details() {
               onCollect={(edition) => saveReading({ edition })}
               onOwnBook={ownBook}
               ordered={ordered}
-              onOrdered={orderVolume}
+              onOrdered={orderVolumes}
             />
           </div>
         </div>

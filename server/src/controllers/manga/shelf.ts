@@ -363,17 +363,24 @@ export const setNotes = [
 
 // "I ordered it": a volume ordered and on its way, or taken off that list.
 // Owning it later takes it off by itself (the database: manga_arrived)
+// (an edition's book is all its volumes at once)
 export const setOrdered = [
-  body("volume").isFloat({ min: 0, max: 999 }).toFloat(),
+  body("volumes").isArray({ min: 1, max: 200 }),
+  body("volumes.*").isFloat({ min: 0, max: 999 }).toFloat(),
   body("ordered").isBoolean().toBoolean(),
   rejectInvalid,
   async (req: Request, res: Response) => {
-    const { volume, ordered } = matchedData(req);
+    const { volumes, ordered } = matchedData(req) as {
+      volumes: number[];
+      ordered: boolean;
+    };
     const manga = res.locals.manga as Manga;
-    const others = manga.orderedList.filter((v) => v !== volume);
+    const others = manga.orderedList.filter((v) => !volumes.includes(v));
     const saved = await mangaQueries.setOrdered(
       manga.id,
-      ordered ? [...others, volume].sort((a, b) => a - b) : others,
+      ordered
+        ? [...new Set([...others, ...volumes])].sort((a, b) => a - b)
+        : others,
     );
     res.json(saved);
   },

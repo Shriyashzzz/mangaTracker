@@ -286,8 +286,8 @@ export const detailsStyles = {
   buy: "min-w-0 border-2 border-line bg-card p-3 shadow-ink-lg upto-720:order-5 upto-720:col-span-full upto-720:border-0 upto-720:border-t-[1.5px] upto-720:border-dashed upto-720:border-line-soft upto-720:bg-transparent upto-720:px-0 upto-720:pt-4 upto-720:pb-0 upto-720:shadow-none",
   buyList: "flex flex-col gap-2",
   // "I own Deluxe 7", quiet under the ticket it records
-  buyOwn:
-    "tap mt-1.5 min-h-11 text-[0.85rem] font-medium text-ink-soft underline decoration-line-soft underline-offset-3 hover:text-ink hover:decoration-current disabled:opacity-60",
+  // the stamps under a Next ticket: "I own it", "I ordered it"
+  buyActions: "mt-2 flex flex-wrap items-center gap-2",
   buyOwnFailed: "ml-3 text-[0.8rem] text-accent",
   buyLink: `${ticket} grid min-h-11 grid-cols-[minmax(0,1fr)_auto] border-dashed border-line bg-paper font-semibold transition-[background-color,border-color] duration-120 ease-[ease] hover:border-accent hover:bg-accent-wash focus-visible:border-accent focus-visible:bg-accent-wash upto-720:grid-cols-[minmax(0,1fr)_auto_auto] upto-720:border-solid upto-720:bg-card`,
   // the one they need next stands out: inked solid in red on a red wash,

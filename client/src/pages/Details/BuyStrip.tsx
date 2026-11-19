@@ -26,9 +26,10 @@ type Props = {
   folded?: boolean;
   // they've bought an edition's next book: record it and its volumes
   onOwnBook?: (line: EditionLine, book: EditionBook) => Promise<void>;
-  // single volumes ordered and on their way, and saying one is (or isn't)
+  // volumes ordered and on their way, and saying some are (or aren't): one
+  // volume, or an edition's book's volumes
   ordered?: number[];
-  onOrdered?: (volume: number, ordered: boolean) => Promise<void>;
+  onOrdered?: (volumes: number[], ordered: boolean) => Promise<void>;
   options: BuyOptions;
   // the red bar is already selling the next volume
   hideNext: boolean;
@@ -67,6 +68,18 @@ function bookPrice(book: EditionBook) {
 const price = (v: SeriesVolume) =>
   v.knownPriceCents != null ? formatCents(v.knownPriceCents) : "check price";
 
+// whole volumes in a row, together: [7, 8, 9, 12] is [7, 8, 9] and [12]
+// (an edition's book ordered reads as one "Vols. 7–9")
+function runsOf(volumes: number[]) {
+  const runs: number[][] = [];
+  for (const v of [...volumes].sort((a, b) => a - b)) {
+    const last = runs.at(-1);
+    if (last && v === last.at(-1)! + 1) last.push(v);
+    else runs.push([v]);
+  }
+  return runs;
+}
+
 // gaps listed by name; past this, the series page's "Not on your shelf"
 const GAPS_SHOWN = 6;
 
@@ -104,11 +117,11 @@ export default function BuyStrip({
   // "I ordered it" saving, and whether it failed
   const [ordering, setOrdering] = useState(false);
   const [orderFailed, setOrderFailed] = useState(false);
-  const order = (volume: number, on: boolean) => {
+  const order = (volumes: number[], on: boolean) => {
     if (!onOrdered) return;
     setOrdering(true);
     setOrderFailed(false);
-    onOrdered(volume, on)
+    onOrdered(volumes, on)
       .catch(() => setOrderFailed(true))
       .finally(() => setOrdering(false));
   };
@@ -166,6 +179,36 @@ export default function BuyStrip({
           : caughtUp
             ? "Caught up"
             : withPrice(`Vol. ${latest.volume}`, latest.knownPriceCents);
+
+  // what's ordered and on its way, each run with a way to take it back
+  // (both layouts: single volumes and an edition's books)
+  const orderedLine = ordered.length > 0 && (
+    <li className={styles.buyGaps}>
+      <span className={styles.buyKind}>Ordered</span>
+      <span className={styles.buyGapList}>
+        {runsOf(ordered).map((run) => {
+          const said =
+            run.length === 1
+              ? `Vol. ${run[0]}`
+              : `Vols. ${run[0]}–${run.at(-1)}`;
+          return (
+            <button
+              key={run[0]}
+              type="button"
+              className={`${styles.buyGap} inline-flex items-center gap-1`}
+              aria-label={`${said}: not ordered after all`}
+              disabled={ordering}
+              onClick={() => order(run, false)}
+              {...offlineLink(offline)}
+            >
+              {said}
+              <InkCrossIcon className="size-[0.7rem]" />
+            </button>
+          );
+        })}
+      </span>
+    </li>
+  );
 
   const box = (
     <section
@@ -228,32 +271,47 @@ export default function BuyStrip({
                     `, you have ${plan.next.have} of ${plan.next.volumes.length}`}
                 </em>
               </NavLink>
-              {/* bought it: one tap records the book and its volumes */}
-              {onOwnBook && (
-                <button
-                  type="button"
-                  className={styles.buyOwn}
-                  disabled={owning}
-                  onClick={() => {
-                    setOwning(true);
-                    setOwnFailed(false);
-                    onOwnBook(line, plan.next!)
-                      .catch(() => setOwnFailed(true))
-                      .finally(() => setOwning(false));
-                  }}
-                >
-                  {owning
-                    ? "Saving…"
-                    : `I own ${editionBookLabel(line, plan.next)}`}
-                </button>
-              )}
-              {ownFailed && (
+              {/* bought it, or ordered it: one tap each, for the book and all
+                  its volumes */}
+              <span className={styles.buyActions}>
+                {onOwnBook && (
+                  <button
+                    type="button"
+                    className="tap stamp-button"
+                    disabled={owning}
+                    aria-label={`I own ${editionBookLabel(line, plan.next)}`}
+                    onClick={() => {
+                      setOwning(true);
+                      setOwnFailed(false);
+                      onOwnBook(line, plan.next!)
+                        .catch(() => setOwnFailed(true))
+                        .finally(() => setOwning(false));
+                    }}
+                  >
+                    {owning ? "Saving…" : "I own it"}
+                  </button>
+                )}
+                {onOrdered && (
+                  <button
+                    type="button"
+                    className="tap stamp-button"
+                    disabled={ordering}
+                    aria-label={`I ordered ${editionBookLabel(line, plan.next)}`}
+                    onClick={() => order(plan.next!.volumes, true)}
+                    {...offlineLink(offline)}
+                  >
+                    {ordering ? "Saving…" : "I ordered it"}
+                  </button>
+                )}
+              </span>
+              {(ownFailed || orderFailed) && (
                 <span className={styles.buyOwnFailed} role="alert">
-                  That didn't save. Try again.
+                  {orOffline("That didn't save. Try again.")}
                 </span>
               )}
             </li>
           )}
+          {orderedLine}
           {plan.gaps.length > 0 && (
             <li className={styles.buyGaps}>
               <span className={styles.buyKind}>Not on your shelf</span>
@@ -317,48 +375,29 @@ export default function BuyStrip({
                   {ownsNone ? knownOnly(next.knownPriceCents) : price(next)}
                 </span>
               </NavLink>
-            </li>
-          )}
-          {/* bought it somewhere and it's on its way: Next moves past it */}
-          {next && !hideNext && onOrdered && (
-            <li>
-              <button
-                type="button"
-                className={styles.buyOwn}
-                disabled={ordering}
-                onClick={() => order(next.volume, true)}
-                {...offlineLink(offline)}
-              >
-                {ordering ? "Saving…" : `I ordered vol. ${next.volume}`}
-              </button>
-              {orderFailed && (
-                <span className={styles.buyOwnFailed} role="alert">
-                  {orOffline("That didn't save. Try again.")}
+              {/* bought it somewhere and it's on its way: Next moves past it */}
+              {onOrdered && (
+                <span className={styles.buyActions}>
+                  <button
+                    type="button"
+                    className="tap stamp-button"
+                    disabled={ordering}
+                    aria-label={`I ordered vol. ${next.volume}`}
+                    onClick={() => order([next.volume], true)}
+                    {...offlineLink(offline)}
+                  >
+                    {ordering ? "Saving…" : "I ordered it"}
+                  </button>
+                  {orderFailed && (
+                    <span className={styles.buyOwnFailed} role="alert">
+                      {orOffline("That didn't save. Try again.")}
+                    </span>
+                  )}
                 </span>
               )}
             </li>
           )}
-          {ordered.length > 0 && (
-            <li className={styles.buyGaps}>
-              <span className={styles.buyKind}>Ordered</span>
-              <span className={styles.buyGapList}>
-                {ordered.map((v) => (
-                  <button
-                    key={v}
-                    type="button"
-                    className={`${styles.buyGap} inline-flex items-center gap-1`}
-                    aria-label={`Vol. ${v}: not ordered after all`}
-                    disabled={ordering}
-                    onClick={() => order(v, false)}
-                    {...offlineLink(offline)}
-                  >
-                    Vol. {v}
-                    <InkCrossIcon className="size-[0.7rem]" />
-                  </button>
-                ))}
-              </span>
-            </li>
-          )}
+          {orderedLine}
           {/* the gaps behind them: Next goes past these, a collector filling
             the run wants each one */}
           {gaps.length > 0 && (

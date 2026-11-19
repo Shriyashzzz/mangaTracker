@@ -10,9 +10,9 @@ const ev = (
 ): YearEvent => ({ series, kind, amount, at: on(iso) });
 
 const shelf = [
-  { name: "Berserk", genre: "Action", owned: 41, rating: 5 },
-  { name: "Blue Box", genre: "Romance", owned: 3, rating: 4 },
-  { name: "Vagabond", genre: "Action", owned: 37, rating: 5 },
+  { name: "Berserk", genre: "Action", owned: 41, rating: 5, image: "b.jpg" },
+  { name: "Blue Box", genre: "Romance", owned: 3, rating: 4, image: null },
+  { name: "Vagabond", genre: "Action", owned: 37, rating: 5, image: "v.jpg" },
 ];
 
 test("a year adds up from its history, books and reviews", () => {
@@ -53,15 +53,18 @@ test("a year adds up from its history, books and reviews", () => {
     spentCents: 1299,
     reviews: 1,
     topSeries: [
-      { name: "Blue Box", chapters: 30, volumes: 0 },
-      { name: "Vagabond", chapters: 0, volumes: 3 },
+      { name: "Blue Box", chapters: 30, volumes: 0, image: null },
+      { name: "Vagabond", chapters: 0, volumes: 3, image: "v.jpg" },
     ],
     busiestMonth: 5,
     shelf: {
       series: 3,
       volumes: 81,
       topGenre: "Action",
-      fiveStars: ["Berserk", "Vagabond"],
+      fiveStars: [
+        { name: "Berserk", image: "b.jpg" },
+        { name: "Vagabond", image: "v.jpg" },
+      ],
     },
   });
 });

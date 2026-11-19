@@ -930,6 +930,47 @@ body {
   filter: grayscale(1);
   cursor: not-allowed;
 }
+/* a small stamp of a button, for a side action beside a bigger one ("Save a
+   picture: Post, Story"; under Buy next's ticket: "I own it", "I ordered
+   it") */
+@utility stamp-button {
+  display: inline-flex;
+  align-items: center;
+  min-height: 2.25rem;
+  padding: 0.15rem 0.65rem;
+  border: 1.5px solid var(--line);
+  background: var(--card);
+  color: var(--ink);
+  font-size: 0.82rem;
+  font-weight: 600;
+  box-shadow: 2px 2px 0 var(--hard-shadow);
+  transition:
+    translate 150ms var(--ease-ink),
+    box-shadow 150ms var(--ease-ink);
+  &:hover:not(:disabled) {
+    translate: -1px -1px;
+    box-shadow: 3px 3px 0 var(--hard-shadow);
+  }
+  &:disabled {
+    opacity: 0.5;
+  }
+}
+
+/* Your year in manga's opening panel: speed lines from behind Kenji */
+.year-rays::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: repeating-conic-gradient(
+    from 0deg at 12% 50%,
+    rgb(255 255 255 / 0.07) 0deg 1.4deg,
+    transparent 1.4deg 7deg
+  );
+  pointer-events: none;
+}
+.year-rays > * {
+  position: relative;
+}
 /* ordered, on its way: hatched in the spot colour (VolumeShelf ordered) */
 .vshelf-book[data-ordered] {
   border-style: solid;
