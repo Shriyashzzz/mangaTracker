@@ -901,8 +901,9 @@
 }
 /* An edition's shelf (lib/editionShelf.ts). A book they own only some
    volumes of is inked part of the way down, never as far as its number.
-   A single volume the edition has no book for stands a little apart, and
-   thinner, since it is */
+   Where the edition's books give way to single volumes it has no book for
+   (and where books start again) there is a gap, before the first of the
+   run only */
 .vshelf-box .vshelf-book[data-part]:not([data-own]):not([data-here]) i {
   border-style: solid;
   border-color: var(--ink);
@@ -914,7 +915,7 @@
   color: var(--ink);
 }
 .vshelf-book[data-apart] {
-  padding-left: 7px;
+  margin-left: 7px;
 }
 /* a paged shelf (touch, long series): full-size books between ‹ › */
 .vshelf-paged {

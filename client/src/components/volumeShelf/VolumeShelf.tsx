@@ -55,13 +55,18 @@ type Props = {
     name: (slot: number) => string;
     // how much of it is theirs when not all, 0 to 1: drawn filled that far
     share: (slot: number) => number;
-    // a single volume among an edition's books: drawn thinner, set apart
+    // a single volume among an edition's books. Where a run of singles
+    // starts after books (or books after singles) there's a gap; within a
+    // run there's none
     isSingle: (slot: number) => boolean;
   };
 };
 
 // room for the ‹ › on a paged shelf
 const NAV = 36;
+// the gap where an edition's books give way to single volumes (index.css,
+// .vshelf-book[data-apart]): room is kept for it, so no spine gets thinner
+const APART = 7;
 
 export default function VolumeShelf({
   total,
@@ -76,12 +81,12 @@ export default function VolumeShelf({
   const spineOf = (v: number) => slots?.spine(v) ?? String(v);
   const nameOf = (v: number) => slots?.name(v) ?? `Vol. ${v}`;
   // what a slot that differs from a plain volume carries: how far a
-  // part-owned book is filled, and whether it's a single set apart
+  // part-owned book is filled, and whether it starts a run set apart
   const slotMarks = (v: number, theirs: boolean) => {
     const share = !theirs && slots ? slots.share(v) : 0;
     return {
       "data-part": share > 0 || undefined,
-      "data-apart": slots?.isSingle(v) || undefined,
+      "data-apart": startsRun(v) || undefined,
       // never so far down that its number sits on ink
       style: share > 0 ? { "--part": `${20 + share * 35}%` } : undefined,
     };
@@ -141,7 +146,14 @@ export default function VolumeShelf({
   );
 
   const yours = new Set(owned);
-  const widths = width ? bookWidths(total, width, aimed, FULL) : [];
+  // the first of a run: a single after a book, or a book after a single
+  const startsRun = (v: number) =>
+    Boolean(slots && v > 1 && slots.isSingle(v) !== slots.isSingle(v - 1));
+  let gaps = 0;
+  for (let v = 2; v <= total; v++) if (startsRun(v)) gaps++;
+  // the books share what's left once the gaps have their room
+  const room = Math.max(0, width - gaps * APART);
+  const widths = width ? bookWidths(total, room, aimed, FULL) : [];
   const lit = aimed == null ? null : Math.min(total, Math.floor(aimed) + 1);
   const oneTap = width / total >= (coarse ? FINGER_TAPPABLE : TAPPABLE);
   const paged = coarse && width > 0 && !oneTap;
@@ -341,7 +353,9 @@ export default function VolumeShelf({
   };
 
   if (paged) {
-    const perPage = Math.max(5, Math.floor((width - 2 * NAV) / FULL));
+    // (a page may hold a gap: room for one)
+    const pageRoom = width - 2 * NAV - (gaps ? APART : 0);
+    const perPage = Math.max(5, Math.floor(pageRoom / FULL));
     const lastStart = Math.max(1, total - perPage + 1);
     // near the volume they're in, when it's marked; else near the one after
     // the furthest they own (what Buy it calls next); a couple before it
