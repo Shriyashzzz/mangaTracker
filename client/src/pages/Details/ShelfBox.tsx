@@ -7,9 +7,7 @@
 // volumes; lib/editionShelf.ts turns one into the other, both ways.
 import { useEffect, useRef, useState, type CSSProperties } from "react";
 import VolumeShelf from "../../components/volumeShelf/VolumeShelf";
-import type { EditionBook } from "../../lib/editions";
 import {
-  booksGained,
   ownedCaption,
   placeInSlots,
   shareOwned,
@@ -58,9 +56,6 @@ type Props = {
   // the edition they collect, and its books on this shelf; null for single
   // volumes
   edition?: EditionShelf | null;
-  // books of the edition that a tap or slide just made wholly theirs (and
-  // any it took away again), for the page to record under "Your books"
-  onBooks?: (gained: EditionBook[], lost: EditionBook[]) => void;
 };
 
 export default function ShelfBox({
@@ -72,7 +67,6 @@ export default function ShelfBox({
   ownedVolumes,
   place = null,
   edition = null,
-  onBooks,
 }: Props) {
   // the part-owned book they tapped: asked about before it's completed
   // (with the edition it's a book of: the question goes if they switch)
@@ -132,12 +126,6 @@ export default function ShelfBox({
 
   // ---------- seen through an edition ----------
   const slots = edition?.slots ?? [];
-  // what they own after a tap or slide, saved; the books it gave or took
-  // are passed up to be recorded
-  const ownNow = (next: number[], save: (owned: number[]) => void) => {
-    onBooks?.(booksGained(slots, owned, next), booksGained(slots, next, owned));
-    save(next);
-  };
   const tapSlot = (number: number) => {
     const slot = slots[number - 1];
     if (!slot) return;
@@ -146,7 +134,7 @@ export default function ShelfBox({
     // one volume of a book they tapped: completing it is asked, not assumed
     if (stateOf(slot, owned) === "part") return setAsking(number);
     setAsking(null);
-    ownNow(toggleSlot(slot, owned), ownedVolumes.paint);
+    ownedVolumes.paint(toggleSlot(slot, owned));
   };
   // A slide (and a mouse's click, which the shelf treats as a short slide)
   // left exactly these slots standing. One that only stood up a book they
@@ -163,8 +151,9 @@ export default function ShelfBox({
     setAsking(null);
     // one book stood up or laid down is a tap, not a slide to undo
     const wasSlide = stoodUp.length + laidDown.length > 1;
-    ownNow(volumesAfterPaint(slots, owned, standing), (next) =>
-      paint(next, wasSlide || slideStart.current != null),
+    paint(
+      volumesAfterPaint(slots, owned, standing),
+      wasSlide || slideStart.current != null,
     );
   };
   const askedSlot = asking ? slots[asking - 1] : null;
@@ -266,7 +255,7 @@ export default function ShelfBox({
               className={styles.chaptersToo}
               onClick={() => {
                 setAsking(null);
-                ownNow(toggleSlot(askedSlot, owned), ownedVolumes.paint);
+                ownedVolumes.paint(toggleSlot(askedSlot, owned));
               }}
             >
               Yes, all of it

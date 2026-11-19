@@ -16,10 +16,16 @@ import {
 } from "../../lib/booksApi";
 import { formatPaid } from "../../lib/prices";
 import { setVolumesOwned } from "../../lib/shelf";
-import { ownedVolumes, toggleVolume } from "../../lib/ownedVolumes";
+import { ownedVolumes } from "../../lib/ownedVolumes";
+import type { EditionShelf } from "../../lib/editionShelf";
 import BookRow, { type Purchase } from "./BookRow";
 import { detailsStyles as styles } from "./styles";
-import { looseBook, rowsOf, type BookRow as Row } from "./yourBooksRows";
+import {
+  newBookOf,
+  rowsOf,
+  volumesOf,
+  type BookRow as Row,
+} from "./yourBooksRows";
 import {
   editionBookLabel,
   insideText,
@@ -44,6 +50,9 @@ type Props = {
   }) => void;
   // the series' omnibus and deluxe lines: their books can be added here
   lines: EditionLine[];
+  // the edition they collect, as the shelf shows it: hand-ticked volumes
+  // that fill one of its books are one row (yourBooksRows.ts)
+  collects: EditionShelf | null;
   // a book added put its volumes on the shelf
   onAdded: (owned: {
     volumesOwned: number | null;
@@ -65,6 +74,7 @@ export default function YourBooks({
   owned,
   onRemoved,
   lines,
+  collects,
   onAdded,
   booksChanged,
 }: Props) {
@@ -95,6 +105,12 @@ export default function YourBooks({
     return () => controller.abort();
   }, [mangaId, ownedKey, booksChanged]);
 
+  const rows = rowsOf(books, owned, collects);
+  const shownFromTicks = new Set(
+    rows.flatMap(({ ofEdition: e }) =>
+      e ? [`${e.line.key}:${e.book.number}`] : [],
+    ),
+  );
   // the edition books not recorded yet, to pick one they own: "Deluxe 7
   // (vols. 19–21)"
   const toAdd = lines.flatMap((line) =>
@@ -103,6 +119,8 @@ export default function YourBooks({
       // out but not published yet), and not ones already recorded
       .filter((_, i) => i <= lastListedIndex(line))
       .filter((book) => !books.some((b) => isSameBook(b, line, book)))
+      // nor one the list shows already from their hand-ticked volumes
+      .filter((book) => !shownFromTicks.has(`${line.key}:${book.number}`))
       .map((book) => ({
         key: `${line.key}:${book.number}`,
         label: `${editionBookLabel(line, book)} (${insideText(book)})`,
@@ -141,7 +159,6 @@ export default function YourBooks({
 
   if (!owned.length && !toAdd.length) return null;
 
-  const rows = rowsOf(books, owned);
   // a recorded book can be removed here; a hand-ticked volume can't
   // every row: a book, or a volume ticked by hand
   const canRemove = rows.length > 0;
@@ -166,7 +183,7 @@ export default function YourBooks({
       // a hand-ticked volume has no book to keep it on: only a value makes one
       const hasValue = change.paidCents != null || Boolean(change.boughtOn);
       if (!hasValue) return;
-      const made = { ...looseBook(row.volume!), ...change };
+      const made = { ...newBookOf(row), ...change };
       setBooks(await addBooks(mangaId, [made]));
     } catch {
       failed();
@@ -186,7 +203,7 @@ export default function YourBooks({
       }
       const newBooks = unpriced
         .filter((row) => !row.book)
-        .map((row) => ({ ...looseBook(row.volume!), paidCents: cents }));
+        .map((row) => ({ ...newBookOf(row), paidCents: cents }));
       for (let start = 0; start < newBooks.length; start += MOST_AT_ONCE)
         await addBooks(mangaId, newBooks.slice(start, start + MOST_AT_ONCE));
       setBooks(await getBooks(mangaId));
@@ -207,9 +224,11 @@ export default function YourBooks({
       if (book) {
         onRemoved(await removeBook(mangaId, book.id));
         setBooks((list) => list.filter((b) => b.id !== book.id));
-      } else if (row.volume != null) {
-        const after = toggleVolume(ownedVolumes(null, owned), row.volume);
-        onRemoved(await setVolumesOwned(mangaId, after));
+      } else {
+        // every volume the row holds: three for a book of their edition
+        const gone = new Set(volumesOf(row));
+        const left = owned.filter((volume) => !gone.has(volume));
+        onRemoved(await setVolumesOwned(mangaId, ownedVolumes(null, left)));
       }
     } catch {
       failed();

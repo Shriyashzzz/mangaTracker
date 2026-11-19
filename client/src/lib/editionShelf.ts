@@ -136,17 +136,6 @@ export function volumesAfterPaint(
   return sorted(next);
 }
 
-// the books that became wholly theirs between two lists of owned volumes:
-// each is recorded under "Your books"
-export const booksGained = (slots: Slot[], before: number[], after: number[]) =>
-  slots.flatMap((slot) =>
-    slot.book &&
-    stateOf(slot, before) !== "all" &&
-    stateOf(slot, after) === "all"
-      ? [slot.book]
-      : [],
-  );
-
 // ---------- their place, counted in slots ----------
 
 // the slot (from 1) a volume is in; null when it's in none

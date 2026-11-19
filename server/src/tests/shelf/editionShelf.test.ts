@@ -1,7 +1,6 @@
 // A series' shelf seen through an edition (client/src/lib/editionShelf.ts):
 // Vagabond's 37 volumes as 12 VIZBIG books and one volume left over.
 import {
-  booksGained,
   ownedCaption,
   placeInSlots,
   readPastTheBooks,
@@ -98,13 +97,6 @@ test("a slide owns what it passes, but never completes a part-owned book", () =>
   expect(after).toContain(10.5);
   // sliding back off everything: the part stays, the whole books go
   expect(volumesAfterPaint(slots, owned, [])).toEqual([10.5, 13]);
-});
-
-test("the books a tap or slide made wholly theirs, to record", () => {
-  const gained = booksGained(slots, [1, 2, 3], upTo(9));
-  expect(gained.map((book) => book.number)).toEqual([2, 3]);
-  // the single volume is no book
-  expect(booksGained(slots, upTo(36), upTo(37))).toEqual([]);
 });
 
 test("their place, counted in books", () => {
