@@ -37,9 +37,18 @@ export function watchConnection() {
 // one means the copy on screen is current again
 export function noteAnswer(res: Response) {
   const savedAt = Number(res.headers.get(SAVED_AT_HEADER));
-  if (savedAt) useOffline.setState({ savedAt });
-  else if (res.ok) useOffline.setState({ savedAt: null });
+  if (savedAt) return useOffline.setState({ savedAt });
+  if (!res.ok) return;
+  // the server answering again after a spell of kept copies: the signal's
+  // back even if the browser never said so (a weak one never goes
+  // "offline"), so changes made meanwhile can go (lib/offlineChanges.ts)
+  const wasKept = useOffline.getState().savedAt != null;
+  useOffline.setState({ savedAt: null });
+  if (wasKept) window.dispatchEvent(new Event(CONNECTION_BACK));
 }
+
+// said when the server answers fresh after kept copies
+export const CONNECTION_BACK = "connectionback";
 
 // what a change gets when there's no connection to send it on (the few
 // that can wait, lib/offlineChanges.ts, never come here)

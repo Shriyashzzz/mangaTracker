@@ -47,9 +47,12 @@ export const useAuth = create<AuthState>()((set) => ({
   },
 
   signedIn: () => {
-    // what another account kept here, offline (lib/offline.ts)
+    // what another account kept here for offline goes (lib/offline.ts).
+    // Changes made offline are sent, not dropped: a session that ran out
+    // offline is the same reader signing in again, and the server refuses
+    // any change to a series that isn't the signed-in account's
     void forgetKeptShelf();
-    void forgetChanges();
+    void sendChanges();
     useShelf.getState().reset();
     useToBuy.getState().reset();
     // someone else's import, if they shared the browser

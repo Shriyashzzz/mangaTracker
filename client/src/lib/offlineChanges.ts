@@ -14,7 +14,7 @@
 // they're sent when the app is next open with a connection.
 import { create } from "zustand";
 import { apiFetch } from "./api";
-import { isOffline } from "./offline";
+import { CONNECTION_BACK, isOffline } from "./offline";
 import {
   combinedOwned,
   combinedPlace,
@@ -170,6 +170,7 @@ export async function sendChanges() {
 // back. The service worker says when it sent them itself
 export function startSendingChanges() {
   window.addEventListener("online", () => void sendChanges());
+  window.addEventListener(CONNECTION_BACK, () => void sendChanges());
   navigator.serviceWorker?.addEventListener("message", (e) => {
     if (e.data !== "changes-sent") return;
     void recount();
@@ -179,7 +180,7 @@ export function startSendingChanges() {
   void sendChanges();
 }
 
-// all of them, gone: before someone else signs in on this browser
+// all of them, gone: once they've signed out (after trying to send them)
 export async function forgetChanges() {
   await inStore("readwrite", (s) => s.clear()).catch(() => undefined);
   useOfflineChanges.setState({ waiting: 0, note: null });
