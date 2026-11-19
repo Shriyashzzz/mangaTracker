@@ -3,6 +3,7 @@ import {
   mergeNotes,
   mergeOwned,
   mergePlace,
+  mergeState,
   mergeValue,
   readChange,
 } from "../../offline/offlineRules.js";
@@ -37,12 +38,19 @@ test("a place moved on another device meanwhile: the furthest wins", () => {
   expect(mergePlace(mergePlace(52, 52, 55), 52, 55)).toBe(55);
 });
 
-test("finished, To read and the rating: theirs unless changed elsewhere", () => {
-  // marked finished offline, nothing else touched it
-  expect(mergeValue(false, false, true)).toBe(true);
-  // un-finished on the laptop meanwhile... the laptop's newer choice stays
-  expect(mergeValue(true, false, true)).toBe(true);
-  expect(mergeValue(false, true, false)).toBe(false);
+test("finished and To read: one state, theirs unless changed elsewhere", () => {
+  const toRead = { status: false, planned: true };
+  const reading = { status: false, planned: false };
+  const finished = { status: true, planned: false };
+  // finished offline, nothing else touched it
+  expect(mergeState(toRead, toRead, finished)).toEqual(finished);
+  // started on the laptop meanwhile: the laptop's stays
+  expect(mergeState(reading, toRead, finished)).toEqual(reading);
+  // finished then back to reading offline: off To read, as online
+  expect(mergeState(toRead, toRead, reading)).toEqual(reading);
+});
+
+test("the rating: theirs unless changed elsewhere", () => {
   // rated 4 offline; the laptop gave it 2 meanwhile: 2 stays
   expect(mergeValue(3, 3, 4)).toBe(4);
   expect(mergeValue(2, 3, 4)).toBe(2);
@@ -68,9 +76,14 @@ test("notes written offline are never lost", () => {
 });
 
 test("a change is checked by its kind before it's used", () => {
-  expect(
-    readChange({ kind: "status", mangaId: 3, from: false, to: true }),
-  ).toEqual({ kind: "status", mangaId: 3, from: false, to: true });
+  const s = { status: false, planned: true };
+  const t = { status: true, planned: false };
+  expect(readChange({ kind: "state", mangaId: 3, from: s, to: t })).toEqual({
+    kind: "state",
+    mangaId: 3,
+    from: s,
+    to: t,
+  });
   // no rating is 0 stars
   expect(readChange({ kind: "rating", mangaId: 3, from: null, to: 4 })).toEqual(
     {
@@ -90,7 +103,11 @@ test("a change is checked by its kind before it's used", () => {
   // refused: wrong kind, wrong types, too big, no series
   expect(readChange({ kind: "delete", mangaId: 3 })).toBeNull();
   expect(
-    readChange({ kind: "status", mangaId: 3, from: "no", to: true }),
+    readChange({ kind: "state", mangaId: 3, from: s, to: { status: true } }),
+  ).toBeNull();
+  // the two kinds from before they were one
+  expect(
+    readChange({ kind: "status", mangaId: 3, from: false, to: true }),
   ).toBeNull();
   expect(readChange({ kind: "rating", mangaId: 3, from: 0, to: 6 })).toBeNull();
   expect(

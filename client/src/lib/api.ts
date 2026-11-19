@@ -47,7 +47,10 @@ export function apiFetch(
       // never reached the server: said in words a reader can act on, still a
       // TypeError so the changes that wait (isNetworkError) know it
       if (e instanceof TypeError)
-        throw new TypeError(orOffline("Couldn't reach the server. Try again."));
+        throw new TypeError(
+          orOffline("Couldn't reach the server. Try again."),
+          { cause: e },
+        );
       throw e;
     },
   );

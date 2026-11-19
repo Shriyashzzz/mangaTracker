@@ -7,12 +7,24 @@ import { Link } from "react-router";
 import Mascot from "../mascot/Mascot";
 import { useOffline } from "../../lib/offline";
 
-// keyed by the page's address (App.tsx), so each page decides on arrival
-export function OnlineOnly({ children }: { children: ReactNode }) {
+// each page decides on arrival (`path`, the page's address). Not a key: a
+// key would draw the page afresh on every move between two series' prices
+export function OnlineOnly({
+  path,
+  children,
+}: {
+  path: string;
+  children: ReactNode;
+}) {
   // no connection as the browser knows it (a kept copy on screen with a
   // weak signal still lets the page try)
   const offline = useOffline((s) => !s.online);
   const [blocked, setBlocked] = useState(offline);
+  const [arrivedAt, setArrivedAt] = useState(path);
+  if (arrivedAt !== path) {
+    setArrivedAt(path);
+    setBlocked(offline);
+  }
   // back online: the page itself, from then on
   if (blocked && !offline) setBlocked(false);
   return blocked ? <NeedsConnection /> : children;

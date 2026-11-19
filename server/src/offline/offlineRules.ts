@@ -10,8 +10,10 @@
 //   read               moved it since: theirs is saved, back or forward.
 //                      Somebody did: the furthest of the two wins, as when
 //                      two shelf entries are merged (mangaQueries merge)
-//   finished, To read, sent with what it was before. Nobody else changed it
-//   rating             since: theirs is saved. Somebody did: the other
+//   finished and       one change, both together, since each moves the
+//   To read (state),   other (finishing takes a series off To read). Sent
+//   rating             with what it was before. Nobody else changed it
+//                      since: theirs is saved. Somebody did: the other
 //                      device's newer choice stays
 //   notes              the same, except both edited: neither is lost. The
 //                      other device's note stays, with this one under it
@@ -23,7 +25,9 @@ const MOST_NOTES = 450;
 const MOST_CHAPTER = 100000;
 const MOST_VOLUME = 999;
 
-export type ValueKind = "status" | "planned" | "rating" | "notes";
+export type ValueKind = "state" | "rating" | "notes";
+// a series' place on the shelf: finished or not, on To read or not
+export type ShelfState = { status: boolean; planned: boolean };
 export type Change =
   | { kind: "owned"; mangaId: number; started: number[]; ended: number[] }
   | { kind: "bookmark"; mangaId: number; from: number | null; to: number }
@@ -33,8 +37,7 @@ export type Change =
       from: number | null;
       to: number | null;
     }
-  | { kind: "status"; mangaId: number; from: boolean; to: boolean }
-  | { kind: "planned"; mangaId: number; from: boolean; to: boolean }
+  | { kind: "state"; mangaId: number; from: ShelfState; to: ShelfState }
   | { kind: "rating"; mangaId: number; from: number; to: number }
   | {
       kind: "notes";
@@ -60,6 +63,13 @@ const noteOf = (v: unknown) => {
   const note = v.trim();
   if (note.length > MOST_NOTES) return undefined;
   return note || null;
+};
+
+const stateOf = (v: unknown): ShelfState | null => {
+  const s = v as Partial<ShelfState> | null;
+  return s && typeof s.status === "boolean" && typeof s.planned === "boolean"
+    ? { status: s.status, planned: s.planned }
+    : null;
 };
 
 // a change as sent, checked; null when it isn't one
@@ -90,12 +100,11 @@ export function readChange(raw: unknown): Change | null {
         ? { kind: "readVolume", mangaId: id, from, to }
         : null;
     }
-    case "status":
-    case "planned":
-      if (typeof c.from !== "boolean" || typeof c.to !== "boolean") return null;
-      return c.kind === "status"
-        ? { kind: "status", mangaId: id, from: c.from, to: c.to }
-        : { kind: "planned", mangaId: id, from: c.from, to: c.to };
+    case "state": {
+      const from = stateOf(c.from);
+      const to = stateOf(c.to);
+      return from && to ? { kind: "state", mangaId: id, from, to } : null;
+    }
     case "rating": {
       // no rating is 0 stars, as the stars show it
       const from = wholeOrNull(c.from, 5);
@@ -154,3 +163,13 @@ export function mergeNotes(
   if (!to || to === from || now.includes(to)) return now;
   return `${now}\n\n${to} (written offline)`;
 }
+
+// finished and To read, together: theirs, unless another device changed
+// either since
+export const sameState = (a: ShelfState, b: ShelfState) =>
+  a.status === b.status && a.planned === b.planned;
+export const mergeState = (
+  now: ShelfState,
+  from: ShelfState,
+  to: ShelfState,
+): ShelfState => (sameState(now, from) ? to : now);

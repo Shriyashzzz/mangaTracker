@@ -3,8 +3,7 @@
 // itself a moment after the last tap, so five taps are one request.
 import { useEffect, useRef, useState } from "react";
 import { apiFetch } from "../../lib/api";
-import { isNetworkError, isOffline } from "../../lib/offline";
-import { keepChange } from "../../lib/offlineChanges";
+import { saveOrKeep } from "../../lib/offlineChanges";
 import { useShelf } from "../../store/shelf";
 import { detailsStyles as styles } from "./styles";
 
@@ -56,26 +55,14 @@ const savePlace = async (
   unit: Unit,
   place: number,
   from: number,
-): Promise<"saved" | "kept"> => {
-  const keepIt = async () => {
-    await keepChange(mangaId, UNITS[unit].field, from, place);
-    return "kept" as const;
-  };
-  if (isOffline()) return keepIt();
-  let res: Response;
-  try {
-    res = await apiFetch(`/api/manga/${mangaId}/${UNITS[unit].path}`, {
+) =>
+  saveOrKeep(mangaId, UNITS[unit].field, from, place, () =>
+    apiFetch(`/api/manga/${mangaId}/${UNITS[unit].path}`, {
       method: "PATCH",
       body: { [UNITS[unit].field]: place },
       keepalive: true,
-    });
-  } catch (e) {
-    if (isNetworkError(e)) return keepIt();
-    throw e;
-  }
-  if (!res.ok) throw new Error(`Couldn't save the ${unit}`);
-  return "saved";
-};
+    }),
+  );
 
 export default function ChapterStepper({
   mangaId,

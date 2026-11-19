@@ -170,6 +170,31 @@ export const setPlanned = (id: number, planned: boolean) =>
     },
   });
 
+// finished and To read in one go (a change made offline): as setStatus and
+// setPlanned do it. Off To read and onto Reading starts at chapter 1, unless
+// it's past that already
+export const setShelfState = (
+  manga: {
+    id: number;
+    status: boolean;
+    planned: boolean;
+    bookmark: number | null;
+  },
+  to: { status: boolean; planned: boolean },
+) =>
+  prisma.manga.update({
+    where: { id: manga.id },
+    data: {
+      status: to.status,
+      planned: to.planned,
+      ...(manga.status && !to.status ? { readVolumeAt: null } : {}),
+      ...(manga.planned && !to.planned && !to.status
+        ? { bookmark: Math.max(manga.bookmark ?? 0, 1) }
+        : {}),
+      ...changedNow(),
+    },
+  });
+
 export const setRating = (id: number, rating: number) =>
   prisma.manga.update({ where: { id }, data: { rating, ...changedNow() } });
 
@@ -438,6 +463,7 @@ export default {
   clearReleaseMarks,
   setStatus,
   setPlanned,
+  setShelfState,
   setRating,
   addManyManga,
   setBookmark,

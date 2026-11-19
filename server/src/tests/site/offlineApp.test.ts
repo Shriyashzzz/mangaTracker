@@ -128,14 +128,16 @@ test("finished, To read, rating and notes are shown as the server will save them
     ...series,
     status: false,
     planned: true,
+    bookmark: 0,
     rating: 3,
     description: "old",
   } as Manga;
-  // started reading, then finished, rated and noted, in that order
+  const toRead = { status: false, planned: true };
+  const reading = { status: false, planned: false };
+  const finished = { status: true, planned: false };
   const changes = [
     combinedChange(undefined, 7, "rating", 3, 5, 30),
-    combinedChange(undefined, 7, "status", false, true, 20),
-    combinedChange(undefined, 7, "planned", true, false, 10),
+    combinedChange(undefined, 7, "state", toRead, finished, 20),
     combinedChange(undefined, 7, "notes", "old", "on a train", 40),
   ];
   expect(withChanges(base, changes)).toMatchObject({
@@ -143,23 +145,27 @@ test("finished, To read, rating and notes are shown as the server will save them
     status: true,
     rating: 5,
     description: "on a train",
-    // starting a series puts its chapter at 1, as the server does
-    bookmark: 1,
   });
   // sent in the order made, whatever order they were kept in
   expect(inOrder(changes).map((c) => c.kind)).toEqual([
-    "planned",
-    "status",
+    "state",
     "rating",
     "notes",
   ]);
-  // finished, then put back on To read: To read wins, as on the server
+  // started reading: off To read, at chapter 1
   expect(
     withChanges(base, [
-      combinedChange(undefined, 7, "status", false, true, 1),
-      combinedChange(undefined, 7, "planned", false, true, 2),
+      combinedChange(undefined, 7, "state", toRead, reading, 1),
     ]),
-  ).toMatchObject({ status: false, planned: true });
+  ).toMatchObject({ planned: false, status: false, bookmark: 1 });
+  // finished, then back to reading: one change, off To read as online
+  const once = combinedChange(undefined, 7, "state", toRead, finished, 1);
+  const twice = combinedChange(once, 7, "state", finished, reading, 2);
+  expect(twice).toMatchObject({ from: toRead, to: reading });
+  expect(changesNothing(twice)).toBe(false);
+  // finished, then Undo back onto To read: nothing to send
+  const undone = combinedChange(once, 7, "state", finished, toRead, 2);
+  expect(changesNothing(undone)).toBe(true);
 });
 
 test("a change taken back is nothing to send", () => {

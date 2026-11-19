@@ -1,7 +1,7 @@
 // Changes made on the installed app with no connection, sent when it's back
 // (client lib/offlineChanges.ts keeps them): the volumes ticked on a series'
-// shelf, the chapter or volume read, finished or not, To read, the rating
-// and the notes. Each is put together with what the
+// shelf, the chapter or volume read, finished or not and To read (one
+// change, the series' state), the rating and the notes. Each is put together with what the
 // server has now by offlineRules.ts, so another device's changes since are
 // never undone. One answer for each change, in order.
 import { body, matchedData } from "express-validator";
@@ -18,7 +18,9 @@ import {
   mergeNotes,
   mergeOwned,
   mergePlace,
+  mergeState,
   mergeValue,
+  sameState,
   readChange,
   type Change,
 } from "./offlineRules.js";
@@ -76,18 +78,15 @@ async function applyOne(userId: number, change: Change): Promise<ChangeAnswer> {
     await mangaQueries.setBookmark(manga.id, to);
     return { saved: true };
   }
-  if (change.kind === "status") {
-    const to = mergeValue(manga.status, change.from, change.to);
-    if (to !== manga.status) {
-      await mangaQueries.setStatus(manga.id, to);
+  if (change.kind === "state") {
+    const now = { status: manga.status, planned: manga.planned };
+    const to = mergeState(now, change.from, change.to);
+    if (!sameState(to, now)) {
+      await mangaQueries.setShelfState(manga, to);
       // finishing the series is finishing its last volume, as online
-      if (to) await askAboutFinishedVolume(userId, manga.id);
+      if (to.status && !now.status)
+        await askAboutFinishedVolume(userId, manga.id);
     }
-    return { saved: true };
-  }
-  if (change.kind === "planned") {
-    const to = mergeValue(manga.planned, change.from, change.to);
-    if (to !== manga.planned) await mangaQueries.setPlanned(manga.id, to);
     return { saved: true };
   }
   if (change.kind === "rating") {
@@ -97,7 +96,9 @@ async function applyOne(userId: number, change: Change): Promise<ChangeAnswer> {
     return { saved: true };
   }
   if (change.kind === "notes") {
-    const to = mergeNotes(manga.description, change.from, change.to);
+    // compared as sent: trimmed, empty as none (offlineRules.ts readChange)
+    const now = manga.description?.trim() || null;
+    const to = mergeNotes(now, change.from, change.to);
     if (to !== manga.description) await mangaQueries.setNotes(manga.id, to);
     return { saved: true };
   }

@@ -92,7 +92,7 @@ export default function App() {
         {/* a new country means new prices: the page is drawn again and asks
             for them in that country (lib/country.ts) */}
         {needsConnection(pathname) ? (
-          <OnlineOnly key={pathname}>
+          <OnlineOnly path={pathname}>
             <Outlet key={country} />
           </OnlineOnly>
         ) : (

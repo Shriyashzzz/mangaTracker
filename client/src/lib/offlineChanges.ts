@@ -155,6 +155,13 @@ export async function saveOrKeep(
     throw e;
   }
   if (!res.ok) throw new Error(`answered ${res.status}`);
+  // saved over one still waiting from offline: that one's out of date now,
+  // and sent later it would undo this
+  const key = `${mangaId}:${kind}`;
+  if (await changeOf(key).catch(() => undefined)) {
+    await drop(key).catch(() => undefined);
+    await recount();
+  }
   return "saved";
 }
 

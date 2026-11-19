@@ -262,23 +262,29 @@ export default function Details() {
     setActionNote("");
     setCanUndoStatus(false);
     try {
-      // with no connection it's kept on this device and goes when it's back
-      // (lib/offlineChanges.ts)
-      const how = await saveOrKeep(Number(id), "status", !next, next, () =>
-        apiFetch(`/api/manga/${id}/status`, {
-          method: "PATCH",
-          body: { status: next },
-        }),
-      );
-      if (isUndo && finishedFromPlanned.current) {
-        const back = await saveOrKeep(Number(id), "planned", false, true, () =>
-          apiFetch(`/api/manga/${id}/planned`, {
+      // finished and To read go as one change (each moves the other); with
+      // no connection it's kept on this device and goes when it's back
+      // (lib/offlineChanges.ts). Undo puts it back on To read if finishing
+      // took it off
+      const backOnToRead = isUndo && finishedFromPlanned.current;
+      const how = await saveOrKeep(
+        Number(id),
+        "state",
+        { status: !next, planned: wasPlanned },
+        { status: next, planned: backOnToRead },
+        async () => {
+          const res = await apiFetch(`/api/manga/${id}/status`, {
+            method: "PATCH",
+            body: { status: next },
+          });
+          if (!res.ok || !backOnToRead) return res;
+          return apiFetch(`/api/manga/${id}/planned`, {
             method: "PATCH",
             body: { planned: true },
-          }),
-        ).catch(() => null);
-        if (back) setPlanned(true);
-      }
+          });
+        },
+      );
+      if (backOnToRead) setPlanned(true);
       finishedFromPlanned.current = !isUndo && next && wasPlanned;
       if (!isUndo) {
         const done = next ? "Marked as finished." : "Back to reading.";
@@ -364,11 +370,16 @@ export default function Details() {
     setPlanned(false);
     setActionNote("");
     try {
-      const how = await saveOrKeep(Number(id), "planned", true, false, () =>
-        apiFetch(`/api/manga/${id}/planned`, {
-          method: "PATCH",
-          body: { planned: false },
-        }),
+      const how = await saveOrKeep(
+        Number(id),
+        "state",
+        { status: false, planned: true },
+        { status: false, planned: false },
+        () =>
+          apiFetch(`/api/manga/${id}/planned`, {
+            method: "PATCH",
+            body: { planned: false },
+          }),
       );
       setMangaData((m) => (m ? { ...m, planned: false, bookmark: 1 } : m));
       const started =

@@ -10,10 +10,12 @@ import { ownedVolumes } from "./ownedVolumes";
 import type { Manga } from "./types";
 
 export type PlaceKind = "bookmark" | "readVolume";
-// what else can wait: finished or not, To read, the rating and the notes
-export type ValueKind = "status" | "planned" | "rating" | "notes";
+// what else can wait: finished and To read (one change, the series' state,
+// since each moves the other), the rating and the notes
+export type ValueKind = "state" | "rating" | "notes";
 export type ChangeKind = PlaceKind | ValueKind;
-export type ChangeValue = number | boolean | string | null;
+export type ShelfState = { status: boolean; planned: boolean };
+export type ChangeValue = number | string | null | ShelfState;
 export type OfflineChange = { key: string; mangaId: number; at: number } & (
   | { kind: "owned"; started: number[]; ended: number[] }
   | { kind: ChangeKind; from: ChangeValue; to: ChangeValue }
@@ -59,9 +61,14 @@ export function combinedChange(
   };
 }
 
+const sameValue = (a: ChangeValue, b: ChangeValue) =>
+  a !== null && b !== null && typeof a === "object" && typeof b === "object"
+    ? a.status === b.status && a.planned === b.planned
+    : a === b;
+
 // a change with nothing in it: back where it started
 export const changesNothing = (change: OfflineChange) =>
-  change.kind !== "owned" && change.from === change.to;
+  change.kind !== "owned" && sameValue(change.from, change.to);
 
 // in the order they were made, which is how the server applies them
 // (finishing a series takes it off To read, so the order matters)
@@ -83,13 +90,17 @@ export function withChanges(manga: Manga, changes: OfflineChange[]): Manga {
       shown = { ...shown, bookmark: to as number };
     else if (change.kind === "readVolume")
       shown = { ...shown, readVolume: to as number | null };
-    else if (change.kind === "status")
-      shown = { ...shown, status: Boolean(to), planned: false };
-    else if (change.kind === "planned")
-      shown = to
-        ? { ...shown, planned: true, status: false }
-        : { ...shown, planned: false, bookmark: 1 };
-    else if (change.kind === "rating")
+    else if (change.kind === "state") {
+      const { status, planned } = to as ShelfState;
+      // off To read and onto Reading starts at chapter 1, as on the server
+      const started = shown.planned && !planned && !status;
+      shown = {
+        ...shown,
+        status,
+        planned,
+        ...(started ? { bookmark: Math.max(shown.bookmark ?? 0, 1) } : {}),
+      };
+    } else if (change.kind === "rating")
       shown = { ...shown, rating: (to as number) || null };
     else shown = { ...shown, description: (to as string | null) || null };
   }
