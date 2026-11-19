@@ -19,6 +19,15 @@ export type EditionPlace = {
   // the books they own, when every volume they own is in a book they own
   // all of; null when it isn't so (or they own nothing)
   owned: number[] | null;
+  // For the New tab, counted in the edition's books. A book is "had" when
+  // they own all of it or have read all of it.
+  //   next    the first book past the furthest they have; null when they
+  //           have them all (as far as the catalog lists)
+  //   behind  how many of the edition's books they don't have, gaps too
+  //   upTo    the furthest book they have; null for none
+  next: number | null;
+  behind: number;
+  upTo: number | null;
 };
 
 export function editionPlaceOf(
@@ -44,9 +53,19 @@ export function editionPlaceOf(
   const allInBooks =
     owned.length > 0 && owned.every((v) => inWholeBooks.has(v));
 
+  // had: owned whole, or read to its end
+  const lastOf = (book: Book) => Math.max(...book.volumes);
+  const had = (book: Book) =>
+    whole.includes(book) || lastOf(book) <= (readVolume ?? 0);
+  const furthest = books.map(had).lastIndexOf(true);
+  const next = books.slice(furthest + 1).find((book) => !had(book)) ?? null;
+
   return {
     label: line.label,
     read,
     owned: allInBooks ? whole.map((book) => book.number) : null,
+    next: next?.number ?? null,
+    behind: books.filter((book) => !had(book)).length,
+    upTo: furthest < 0 ? null : books[furthest]!.number,
   };
 }

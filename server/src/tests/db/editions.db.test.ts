@@ -305,6 +305,9 @@ test("the shelf says where they are in the edition they collect", async () => {
       label: "VIZBIG",
       read: 4,
       owned: [1, 2, 3, 4],
+      next: 5,
+      behind: 8,
+      upTo: 4,
     });
     // single volumes: nothing to say
     expect(

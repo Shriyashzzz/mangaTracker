@@ -16,6 +16,7 @@ import { isDemo } from "../../lib/demo";
 import { readLocal, useReleaseChecksOn } from "../../lib/prefs";
 import { LAST_NEW_COUNT_KEY } from "../../lib/shelf";
 import { shownNewCount } from "../../lib/releaseMath";
+import { editionReleases } from "../../lib/editionNews";
 import {
   forgetAllSpots,
   forgetSpot,
@@ -71,7 +72,8 @@ export default function Header() {
     return (
       shownNewCount(
         manga ?? [],
-        releases,
+        // (a series collected as an edition is read in its books)
+        editionReleases(manga ?? [], releases),
         outcomes,
         saved ? Number(saved) : null,
       ) ?? 0

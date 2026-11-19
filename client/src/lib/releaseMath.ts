@@ -17,7 +17,9 @@ export function behindOf(
   found: ReleaseStatus | null | undefined,
   kind: "volumes" | "chapters" | "japan",
 ) {
-  const gaps = kind === "volumes" ? (found?.gapVolumes?.length ?? 0) : 0;
+  // (an edition's count has its gaps in it already)
+  const countsGaps = kind === "volumes" && !found?.editionBooks;
+  const gaps = countsGaps ? (found?.gapVolumes?.length ?? 0) : 0;
   return behindPastTheirs(found, kind) + gaps;
 }
 
@@ -27,6 +29,9 @@ function behindPastTheirs(
   kind: "volumes" | "chapters" | "japan",
 ) {
   if (!found) return 1;
+  // collected as an edition: the books of it they don't have
+  if (kind === "volumes" && found.editionBooks)
+    return Math.max(1, found.editionBooks.behind);
   if (kind === "japan") return Math.max(1, found.outJapanVolumes.length);
   if (kind === "chapters")
     return found.latestChapter != null && found.nextChapter != null
@@ -143,6 +148,9 @@ export function nextVolumeNumber(found: ReleaseStatus | null | undefined) {
 // what to call their next volume: "Vol. 15", or the book it's sold in,
 // "Book 8", when it isn't sold on its own
 export function nextVolumeName(found: ReleaseStatus | null | undefined) {
+  // collected as an edition: its next book, "VIZBIG 5"
+  if (found?.editionBooks)
+    return `${found.editionBooks.label} ${found.editionBooks.next}`;
   const inBook = knowsNextVolume(found) ? found?.nextVolumeInBook : null;
   if (inBook) return `Book ${inBook.book}`;
   return `Vol. ${nextVolumeNumber(found) ?? found?.latestVolume ?? ""}`;

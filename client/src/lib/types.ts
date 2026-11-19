@@ -36,6 +36,11 @@ export type Manga = {
     label: string;
     read: number | null;
     owned: number[] | null;
+    // for the New tab, in the edition's books: the next one, how many they
+    // don't have, and the furthest they do
+    next?: number | null;
+    behind?: number;
+    upTo?: number | null;
   } | null;
   // the series it's an entry of, edition or not: two entries with the same
   // key are one series ("Vagabond" and "Vagabond VIZBIG Edition"), and the
@@ -92,6 +97,10 @@ export type ReleaseData = {
 
 // what's new in English for this reader
 export type ReleaseStatus = {
+  // Never sent by the server: put on by lib/editionNews.ts for a series
+  // collected as an edition that has a book still to get. The New tab then
+  // counts and names in that edition's books ("VIZBIG 5", 8 to get)
+  editionBooks?: { label: string; next: number; behind: number };
   hasNewVolume: boolean;
   hasNewChapter: boolean;
   // out in Japan past what they own and what's in English; a blank on the shelf

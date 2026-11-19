@@ -2,6 +2,7 @@
 // names them, what each side of the New tab is called, which series a view
 // shows and in what order, the counts on the tabs, and what a New card says.
 // Pure, so server/src/tests/shelf/shelfViews.test.ts can test it.
+import { editionNews } from "../../lib/editionNews";
 import {
   ownedCount,
   ownedOf,
@@ -167,7 +168,9 @@ export const opensAList = (
   kind === "chapters"
     ? // the books holding their next chapter, or word of where it is
       found?.nextChapter != null
-    : kind === "volumes" && behindOf(found, kind) > 1;
+    : // (an edition's books to get are on the series' page, not a list of
+      // single volumes)
+      kind === "volumes" && !found?.editionBooks && behindOf(found, kind) > 1;
 
 // what "Hide" on its card hides up to: the one it shows
 export const newestOf = (
@@ -337,6 +340,15 @@ export function newsFor(
         : undefined,
     };
   }
+  // collected as an edition: what's next is one of its books, "VIZBIG 5
+  // next" (lib/editionNews.ts)
+  const inBooks = editionNews(m);
+  if (inBooks)
+    return {
+      text: inBooks.text,
+      behind: inBooks.behind,
+      yours: inBooks.yours ?? volumeYours,
+    };
   // nothing past theirs known to be out: only how far behind they are
   const next = nextVolumeNumber(found);
   if (found && next == null)

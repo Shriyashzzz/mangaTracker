@@ -49,3 +49,21 @@ test("a book the line only worked out past its last listed one isn't one", () =>
   // owning vol. 37 too is said in volumes, not as a 13th book
   expect(editionPlaceOf(saved, null, upTo(37)).owned).toBeNull();
 });
+
+test("for the New tab: the next book, how many behind, and how far they are", () => {
+  // owns VIZBIG 1 to 4 of 12
+  const four = editionPlaceOf(VIZBIG, null, upTo(12));
+  expect([four.next, four.behind, four.upTo]).toEqual([5, 8, 4]);
+  // reads them without owning any: read up to vol. 12 is the same place
+  const read = editionPlaceOf(VIZBIG, 12, []);
+  expect([read.next, read.behind, read.upTo]).toEqual([5, 8, 4]);
+  // a gap behind their furthest counts, and the next is past the furthest
+  const gap = editionPlaceOf(VIZBIG, null, [1, 2, 3, 7, 8, 9]);
+  expect([gap.next, gap.behind, gap.upTo]).toEqual([4, 10, 3]);
+  // every book: nothing next, none behind
+  const all = editionPlaceOf(VIZBIG, null, upTo(36));
+  expect([all.next, all.behind, all.upTo]).toEqual([null, 0, 12]);
+  // none yet
+  const none = editionPlaceOf(VIZBIG, null, []);
+  expect([none.next, none.behind, none.upTo]).toEqual([1, 12, null]);
+});

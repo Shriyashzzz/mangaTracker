@@ -30,6 +30,7 @@ import {
 } from "../../lib/prefs";
 import { SORT_OPTIONS, type ShelfSort } from "../../lib/shelf";
 import { shownNewCount, withGapFirst } from "../../lib/releaseMath";
+import { editionReleases } from "../../lib/editionNews";
 import { ownsAny } from "../../lib/ownedVolumes";
 import { isDemo } from "../../lib/demo";
 import { fillCovers } from "../../lib/coverFill";
@@ -116,7 +117,13 @@ function Library() {
   const nextFor = useNextFor();
   const mangaData = useShelf((s) => s.manga);
   const loadError = useShelf((s) => s.loadFailed);
-  const releases = useShelf((s) => s.releases);
+  // each series' release answer as its reader hears it: one collected as
+  // an edition is read in that edition's books (lib/editionNews.ts)
+  const answers = useShelf((s) => s.releases);
+  const releases = useMemo(
+    () => editionReleases(mangaData ?? [], answers),
+    [mangaData, answers],
+  );
   const outcomes = useShelf((s) => s.outcomes);
   const loadShelf = useShelf((s) => s.load);
   const recheckReleases = useShelf((s) => s.recheckReleases);
@@ -454,17 +461,21 @@ function Library() {
     // their first gap as the next, for a reader who chose that
     const found = withGapFirst(releases[m.id], nextFor);
     const detailsTo = `/details/${m.id}${detailsSearchFor(releaseKind) ?? ""}`;
-    const opensList = !viewingHidden && opensAList(found, releaseKind);
+    // collected as an edition: its next book is on the series' own page
+    // (Buy next), not a single volume's price page or a list of volumes
+    const inBooks = releaseKind === "volumes" && Boolean(found?.editionBooks);
+    const opensList =
+      !viewingHidden && !inBooks && opensAList(found, releaseKind);
     // Japan being ahead isn't them being behind: no "3 behind" there
     const behind =
       releaseKind === "japan" ? 0 : volumesBehind(found, releaseKind);
     return {
-      to: buyLinkFor(found, releaseKind) ?? detailsTo,
+      to: inBooks ? detailsTo : (buyLinkFor(found, releaseKind) ?? detailsTo),
       onOpen: opensList ? () => setOpenList(m.id) : undefined,
       stamp: stampFor(found, releaseKind),
       behind: behind > 0 ? behind : undefined,
       // "Book 7" on the stamp, volumes in the count: said so
-      ...(releaseKind === "volumes" && found?.nextVolumeInBook
+      ...(releaseKind === "volumes" && found?.nextVolumeInBook && !inBooks
         ? { countWord: "vols" }
         : {}),
     };
