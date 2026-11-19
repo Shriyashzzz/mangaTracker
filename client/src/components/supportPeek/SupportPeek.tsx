@@ -9,6 +9,7 @@ import { Fingers, Head } from "../kenji/Kenji";
 import {
   SUPPORT_URL,
   markPeekShown,
+  noteVisit,
   readyToPeek,
   stopAsking,
 } from "../../lib/support";
@@ -24,6 +25,10 @@ export default function SupportPeek() {
   const [leaving, setLeaving] = useState(false);
   const { pathname } = useLocation();
   const leaveTimer = useRef<number | undefined>(undefined);
+
+  // this browser's first visit goes on record as the site opens, so he
+  // never asks on someone's first day (lib/supportRule.ts)
+  useEffect(noteVisit, []);
 
   // when they come back from the store, or move to another page
   useEffect(() => {
