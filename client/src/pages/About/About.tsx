@@ -75,20 +75,25 @@ export function AboutPage() {
             <span className={styles.hit}>never lose</span> your place again.
           </h1>
           <p className={styles.lead}>
-            Hi, I'm Shriyash. I start way too many manga at once and drop them
-            the moment I lose my place.{" "}
-            <NavLink to="/shelf" viewTransition>
-              Shelf
-            </NavLink>{" "}
-            fixes that: it remembers the last chapter you read, in one tap.
+            Hello, I'm Shriyash. I am an solo devloper behind this site, I like
+            to collect physical mangas. Keeping track of your booksmarks when
+            you read multiple series concurrently can be difficult.
+            <br />
+            It's also hard to keep track when new volumes release come out for
+            your favourite series. You can use sign up for shelf so you never
+            have to manually look that up for every series you own.
           </p>
           <p className={styles.lead}>
-            I'm also a broke college student who loves physical manga.{" "}
+            I'm also an broke college, and this hobby can be expensive. You can
+            use{" "}
             <NavLink to="/" viewTransition>
               Price check
             </NavLink>{" "}
-            lets you know if it's a deal before you hit buy, across US and
-            Canadian stores.
+            to find cheapest deals across US and Canadian stores.
+          </p>
+          <p>
+            One of my favourite series is Vagabond. It has very much changed my
+            life.
           </p>
         </div>
       </header>
