@@ -281,6 +281,46 @@ test("the novel called exactly that, not AniList's first guess", async () => {
   );
 });
 
+// what AniList really answers for these three names (2026-11-18)
+test("the series most readers mean, not a lesser one also known by the name", async () => {
+  const { pickNamed } = await import("../../prices/sources/anilist.js");
+  const entry = (
+    english: string | null,
+    romaji: string,
+    popularity: number,
+    synonyms: string[] = [],
+  ) => ({ title: { english, romaji }, synonyms, popularity });
+
+  // a dropped 24-chapter version comes first, with the name as another name
+  const overgeared = [
+    entry(null, "Temppal", 2319, ["Overgeared"]),
+    entry("Overgeared", "Temppal", 41185),
+  ];
+  expect(pickNamed("Overgeared", overgeared)?.popularity).toBe(41185);
+
+  // an unknown comic also called Monster, ahead of Urasawa's
+  const monster = [
+    entry(null, "Tong Lei", 433, ["Monster"]),
+    entry("Monster", "MONSTER", 109383),
+  ];
+  expect(pickNamed("Monster", monster)?.popularity).toBe(109383);
+
+  // two with the very same title: the one more readers list
+  const orange = [
+    entry("ORANGE", "ORANGE", 20),
+    entry("orange", "orange", 39701),
+  ];
+  expect(pickNamed("Orange", orange)?.popularity).toBe(39701);
+
+  // only known by the name as another name: still found
+  const nickname = [
+    entry("Other", "Other", 900),
+    entry(null, "Temppal", 50, ["Overgeared"]),
+  ];
+  expect(pickNamed("Overgeared", nickname)?.popularity).toBe(50);
+  expect(pickNamed("Overgeared", [])).toBeNull();
+});
+
 test("a long manhwa marked (comic) is never taken for a novel", () => {
   const work = {
     key: "/works/OL2W",

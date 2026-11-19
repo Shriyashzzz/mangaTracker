@@ -34,6 +34,8 @@ type Media = {
   averageScore: number | null;
   genres: string[] | null;
   synonyms: string[] | null;
+  // how many AniList readers list it
+  popularity?: number | null;
   title: {
     english: string | null;
     romaji: string | null;
@@ -245,27 +247,15 @@ const plainText = (html: string | null) =>
     .trim()
     .slice(0, 1500);
 
-// manga, or for a light novel series (lightNovel.ts) the novel
+// A name's top five, manga or light novels (lightNovel.ts), for pickNamed to
+// choose from. AniList's first guess is often not the series meant: for
+// "86—EIGHTY-SIX" it's the spin-off 86—EIGHTY-SIX Alter, and for
+// "Overgeared" a dropped 24-chapter version with that as another name
 const SERIES_QUERY = `
   query ($search: String, $format: MediaFormat) {
-    Media(search: $search, type: MANGA, format: $format, sort: SEARCH_MATCH) {
-      id siteUrl status volumes averageScore genres synonyms
-      title { english romaji native }
-      coverImage { large }
-      description(asHtml: false)
-      rankings { rank type allTime }
-      staff(sort: RELEVANCE, perPage: 8) { edges { role node { name { full } } } }
-    }
-  }
-`;
-
-// a light novel's top five: AniList's first guess for "86—EIGHTY-SIX" is the
-// spin-off 86—EIGHTY-SIX Alter, so the one called exactly that is picked
-const NOVEL_SERIES_QUERY = `
-  query ($search: String) {
     Page(perPage: 5) {
-      media(search: $search, type: MANGA, format: NOVEL, sort: SEARCH_MATCH) {
-        id siteUrl status volumes averageScore genres synonyms
+      media(search: $search, type: MANGA, format: $format, sort: SEARCH_MATCH) {
+        id siteUrl status volumes averageScore genres synonyms popularity
         title { english romaji native }
         coverImage { large }
         description(asHtml: false)
@@ -276,17 +266,30 @@ const NOVEL_SERIES_QUERY = `
   }
 `;
 const sameName = (a: string) => a.toLowerCase().replace(/[^\p{L}\p{N}]+/gu, "");
-export const pickNamed = <M extends Pick<Media, "title" | "synonyms">>(
-  search: string,
-  media: M[],
-) =>
-  media.find((m) =>
-    [m.title.english, m.title.romaji, ...(m.synonyms ?? [])].some(
-      (n) => n && sameName(n) === sameName(search),
-    ),
-  ) ??
-  media[0] ??
-  null;
+
+// Which of AniList's guesses a name means, in this order:
+//   1. one whose own title is exactly the name ("Overgeared")
+//   2. one that has the name as another name of its
+//   3. AniList's first guess
+// Where several fit, the one most readers list: "Monster" is Urasawa's, not
+// an unknown comic also known by that word
+export function pickNamed<
+  M extends Pick<Media, "title" | "synonyms" | "popularity">,
+>(search: string, media: M[]): M | null {
+  const isName = (name: string | null) =>
+    Boolean(name) && sameName(name!) === sameName(search);
+  // (sort keeps AniList's order between two as popular as each other)
+  const mostRead = (found: M[]) =>
+    [...found].sort((a, b) => (b.popularity ?? 0) - (a.popularity ?? 0))[0];
+
+  const titled = media.filter(
+    (m) => isName(m.title.english) || isName(m.title.romaji),
+  );
+  if (titled.length) return mostRead(titled) ?? null;
+  const alsoCalled = media.filter((m) => (m.synonyms ?? []).some(isName));
+  if (alsoCalled.length) return mostRead(alsoCalled) ?? null;
+  return media[0] ?? null;
+}
 
 // who wrote and drew it, in English letters ("Eiichiro Oda"): AniList's staff
 // in the story and art roles, never assistants, translators or letterers
@@ -415,21 +418,18 @@ function savedAnswerStands(saved: SavedInfo, name: string) {
 }
 
 // AniList's answer for a series: a manga by its name, a light novel by its
-// base name among the novels found. Null when it knows none
+// base name, each picked from the top five found (pickNamed). Null when it
+// knows none
 async function askAniList(name: string): Promise<SeriesInfo | null> {
-  if (isNovelName(name)) {
-    const answer = await query<{ Page: { media: Media[] } }>(
-      NOVEL_SERIES_QUERY,
-      { search: baseName(name) },
-    );
-    const found = pickNamed(baseName(name), answer.Page.media);
-    return found ? asNovel(toInfo(found)) : null;
-  }
-  const answer = await query<{ Media: Media | null }>(SERIES_QUERY, {
-    search: name,
-    format: "MANGA",
+  const novel = isNovelName(name);
+  const search = novel ? baseName(name) : name;
+  const answer = await query<{ Page: { media: Media[] } }>(SERIES_QUERY, {
+    search,
+    format: novel ? "NOVEL" : "MANGA",
   });
-  return answer.Media ? toInfo(answer.Media) : null;
+  const found = pickNamed(search, answer.Page.media);
+  if (!found) return null;
+  return novel ? asNovel(toInfo(found)) : toInfo(found);
 }
 
 // keeps an answer, "there's none" included
