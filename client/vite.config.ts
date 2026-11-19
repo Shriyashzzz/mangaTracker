@@ -43,5 +43,8 @@ export default defineConfig(({ mode }) => {
   return {
     plugins: [react(), tailwindcss(), robots(env.VITE_API_URL)],
     envDir: "./",
+    // every built file, listed: the service worker keeps them all, so the
+    // installed app opens any page offline (public/sw.js keepAllAssets)
+    build: { manifest: "asset-manifest.json" },
   };
 });

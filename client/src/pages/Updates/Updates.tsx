@@ -9,6 +9,10 @@ import { updatesStyles as styles } from "./styles";
 // the big features only, a line each. Add new ones here when they ship
 const UPDATES = [
   {
+    name: "The app on your phone",
+    body: "Install Manga Tracker from the menu. It opens on your shelf even with no signal, and the chapters and volumes you change offline save when you're back.",
+  },
+  {
     name: "A weekly email",
     body: "Switch it on in Settings for one email a week: volumes for your shelf that just came out or are due soon, and price drops on your To buy list. Quiet weeks, no email.",
   },
@@ -86,7 +90,7 @@ export function UpdatesPage() {
   usePageMeta({
     title: "What's new",
     description:
-      "New on Manga Tracker: a weekly email for your shelf, shelves that count in deluxe and omnibus books, new English volumes and next chapter dates.",
+      "New on Manga Tracker: an app for your phone that works offline, a weekly email for your shelf, shelves that count in deluxe and omnibus books, and new English volumes.",
     path: "/updates",
   });
   const isSignedIn = useAuth((s) => s.isSignedIn);
@@ -154,11 +158,11 @@ export function UpdatesPage() {
           Soon!
         </span>
         <h2 id="updates-soon" className={styles.soonTitle}>
-          The app on your phone
+          Alerts on your phone
         </h2>
         <p className={styles.itemBody}>
-          Put Manga Tracker on your home screen, and get a release-day alert on
-          your phone.
+          A release-day alert from the app, the moment a volume for your shelf
+          is out.
         </p>
       </section>
     </article>

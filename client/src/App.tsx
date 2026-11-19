@@ -13,6 +13,16 @@ import TourOffer from "./components/tour/TourOffer";
 import { isDemo } from "./lib/demo";
 import { useCountry } from "./lib/prefs";
 import { useAuth } from "./store/auth";
+import OfflineBar from "./components/offlineBar/OfflineBar";
+import { CHANGES_SENT, startSendingChanges } from "./lib/offlineChanges";
+import { watchConnection } from "./lib/offline";
+import { useShelf } from "./store/shelf";
+
+// whether there's a connection, and changes made offline sent once there is
+watchConnection();
+if (!isDemo()) startSendingChanges();
+// sent: the shelf is asked for again, so it's the server's from now on
+window.addEventListener(CHANGES_SENT, () => void useShelf.getState().load());
 
 // The page a tab opened on, for ScrollRestoration below: a key of its own,
 // kept in that history entry, so Back to it restores even after a reload of
@@ -59,6 +69,7 @@ export default function App() {
         Skip to content
       </a>
       <Header />
+      <OfflineBar />
       <main id="main" ref={main} tabIndex={-1} className="outline-none">
         {/* a new country means new prices: the page is drawn again and asks
             for them in that country (lib/country.ts) */}

@@ -98,7 +98,7 @@ export const detail = (_req: Request, res: Response) => {
 // how far past the newest chapter we know a place can be: the list can lag a
 // little behind what's out. The chapter box says the same
 // (client pages/Details/ChapterStepper.tsx PAST_THE_NEWEST)
-const PAST_THE_NEWEST = 100;
+export const PAST_THE_NEWEST = 100;
 
 // a chapter far past the newest out (5000 on a 220-chapter series) is a slip,
 // whichever way it's sent. A series with no newest known keeps 100,000

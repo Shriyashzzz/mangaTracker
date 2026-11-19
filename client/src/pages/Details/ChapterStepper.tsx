@@ -3,6 +3,8 @@
 // itself a moment after the last tap, so five taps are one request.
 import { useEffect, useRef, useState } from "react";
 import { apiFetch } from "../../lib/api";
+import { isNetworkError, isOffline } from "../../lib/offline";
+import { keepPlaceChange } from "../../lib/offlineChanges";
 import { useShelf } from "../../store/shelf";
 import { detailsStyles as styles } from "./styles";
 
@@ -42,14 +44,34 @@ type Props = {
 // how far past the newest we know of a chapter may be and still be saved
 const PAST_THE_NEWEST = 100;
 
-// keepalive: a save sent as they close the tab still arrives
-const savePlace = async (mangaId: number, unit: Unit, place: number) => {
-  const res = await apiFetch(`/api/manga/${mangaId}/${UNITS[unit].path}`, {
-    method: "PATCH",
-    body: { [UNITS[unit].field]: place },
-    keepalive: true,
-  });
+// keepalive: a save sent as they close the tab still arrives. With no
+// connection it's kept on this device and sent when it's back ("kept");
+// `from` is what it was moved from, so another device's move meanwhile
+// isn't undone (lib/offlineChanges.ts)
+const savePlace = async (
+  mangaId: number,
+  unit: Unit,
+  place: number,
+  from: number,
+): Promise<"saved" | "kept"> => {
+  const keepIt = async () => {
+    await keepPlaceChange(mangaId, UNITS[unit].field, from, place);
+    return "kept" as const;
+  };
+  if (isOffline()) return keepIt();
+  let res: Response;
+  try {
+    res = await apiFetch(`/api/manga/${mangaId}/${UNITS[unit].path}`, {
+      method: "PATCH",
+      body: { [UNITS[unit].field]: place },
+      keepalive: true,
+    });
+  } catch (e) {
+    if (isNetworkError(e)) return keepIt();
+    throw e;
+  }
   if (!res.ok) throw new Error(`Couldn't save the ${unit}`);
+  return "saved";
 };
 
 export default function ChapterStepper({
@@ -71,11 +93,12 @@ export default function ChapterStepper({
     toSaveNow.current = toSave;
   });
   const [draft, setDraft] = useState(String(value ?? 0));
-  const [note, setNote] = useState<"saved" | "failed" | null>(null);
+  // "kept": saved on this device, to go when there's a connection
+  const [note, setNote] = useState<"saved" | "kept" | "failed" | null>(null);
   // why what's typed isn't being saved, said beside the box
   const [problem, setProblem] = useState<string | null>(null);
   useEffect(() => {
-    if (note !== "saved") return;
+    if (note !== "saved" && note !== "kept") return;
     const hide = setTimeout(() => setNote(null), SAVED_SHOWN_MS);
     return () => clearTimeout(hide);
   }, [note]);
@@ -89,7 +112,7 @@ export default function ChapterStepper({
   const queue = useRef<Promise<unknown>>(Promise.resolve());
   const inOrder = (chapter: number) => {
     const save = queue.current.then(() =>
-      savePlace(mangaId, unit, toSave(chapter)),
+      savePlace(mangaId, unit, toSave(chapter), toSave(saved.current)),
     );
     queue.current = save.catch(() => {});
     return save;
@@ -100,9 +123,9 @@ export default function ChapterStepper({
     pending.current = null;
     if (chapter == null || chapter === saved.current) return;
     try {
-      await inOrder(chapter);
+      const how = await inOrder(chapter);
       saved.current = chapter;
-      setNote("saved");
+      setNote(how);
       onSaved(chapter);
     } catch {
       // a newer tap is waiting: that one decides what's shown
@@ -156,7 +179,14 @@ export default function ChapterStepper({
       if (chapter != null && chapter !== saved.current) {
         // and the shelf they're going back to shows it
         queue.current
-          .then(() => savePlace(mangaId, unit, toSaveNow.current(chapter)))
+          .then(() =>
+            savePlace(
+              mangaId,
+              unit,
+              toSaveNow.current(chapter),
+              toSaveNow.current(saved.current),
+            ),
+          )
           .then(() => useShelf.getState().load())
           .catch(() => {});
       }
@@ -223,6 +253,7 @@ export default function ChapterStepper({
       >
         {problem}
         {!problem && note === "saved" && "Saved"}
+        {!problem && note === "kept" && "Saved here. Syncs when you're online."}
         {!problem && note === "failed" && "That didn't save. Try again."}
         {!problem && !note && books?.inside(current)}
       </span>

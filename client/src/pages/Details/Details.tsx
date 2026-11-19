@@ -15,6 +15,7 @@ import { useEffect, useRef, useState } from "react";
 import { NavLink, useNavigate, useParams, useSearchParams } from "react-router";
 import { apiFetch } from "../../lib/api";
 import { getBooks, ownEditionBook } from "../../lib/booksApi";
+import { waitingChanges, withChanges } from "../../lib/offlineChanges";
 import { type EditionBook, type EditionLine } from "../../lib/editions";
 import { slotsOf } from "../../lib/editionShelf";
 import { todayOf } from "../../lib/editionNews";
@@ -147,8 +148,10 @@ export default function Details() {
         }
         if (!response.ok) throw new Error(response.statusText);
         const data = await response.json();
-        const thisManga = (data as { manga?: Manga }).manga;
-        if (!thisManga) throw new Error("Not found");
+        const fromServer = (data as { manga?: Manga }).manga;
+        if (!fromServer) throw new Error("Not found");
+        // as it is on this device: with what was changed offline, not sent
+        const thisManga = withChanges(fromServer, await waitingChanges());
         setMangaData(thisManga);
         setMangaStatus(thisManga.status);
         setPlanned(Boolean(thisManga.planned));

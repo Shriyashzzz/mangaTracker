@@ -3,6 +3,7 @@ import { Router } from "express";
 import manga from "../controllers/mangaController.js";
 import { requireOwner, requireSignIn } from "../middlewares/auth.js";
 import { rateLimit } from "../middlewares/rateLimit.js";
+import { applyOfflineChanges } from "../offline/offlineChanges.js";
 
 export const mangaRouter = Router();
 mangaRouter.use(requireSignIn);
@@ -65,6 +66,12 @@ mangaRouter.get("/books", manga.allBooks);
 mangaRouter.get("/match", manga.match);
 // what they say a book holds, when the app can't work it out
 mangaRouter.post("/book-volumes", manga.bookVolumes);
+// changes made on the app with no connection, sent once it's back
+mangaRouter.post(
+  "/offline-changes",
+  rateLimit({ max: 60, windowMs: 60_000 }),
+  applyOfflineChanges,
+);
 
 // requireOwner: the manga exists and belongs to whoever is signed in
 mangaRouter.get("/:id", requireOwner, manga.detail);

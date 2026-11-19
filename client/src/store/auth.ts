@@ -5,6 +5,8 @@
 //                       so they don't flash the guest view)
 //               true / false once it has answered
 import { create } from "zustand";
+import { forgetKeptShelf } from "../lib/offline";
+import { forgetChanges, sendChanges } from "../lib/offlineChanges";
 import { apiFetch } from "../lib/api";
 import { useShelf } from "./shelf";
 import { useToBuy } from "./toBuy";
@@ -45,6 +47,9 @@ export const useAuth = create<AuthState>()((set) => ({
   },
 
   signedIn: () => {
+    // what another account kept here, offline (lib/offline.ts)
+    void forgetKeptShelf();
+    void forgetChanges();
     useShelf.getState().reset();
     useToBuy.getState().reset();
     // someone else's import, if they shared the browser
@@ -55,8 +60,12 @@ export const useAuth = create<AuthState>()((set) => ({
   },
 
   logOut: async () => {
+    // anything changed offline goes first, while they're still signed in
+    await sendChanges();
     const res = await apiFetch("/api/auth/logout", { method: "POST" });
     if (res.ok) {
+      void forgetKeptShelf();
+      void forgetChanges();
       useShelf.getState().reset();
       useToBuy.getState().reset();
       useBookImport.getState().clear();

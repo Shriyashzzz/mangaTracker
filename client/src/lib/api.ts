@@ -4,6 +4,7 @@
 // /api on the site itself is passed on to the API (see client/server.ts)
 import { withCountry } from "./country";
 import { demoResponse, isDemo } from "./demo";
+import { isOffline, noteAnswer, offlineAnswer } from "./offline";
 import type { ApiError } from "./types";
 
 export const API_URL: string = import.meta.env.VITE_API_URL ?? "";
@@ -24,6 +25,10 @@ export function apiFetch(
       body !== undefined ? JSON.stringify(body) : undefined,
     );
   }
+  // No connection: a change can't go, and is told so at once. The few that
+  // wait to be sent are kept before they get here (lib/offlineChanges.ts)
+  const method = (options.method ?? "GET").toUpperCase();
+  if (method !== "GET" && isOffline()) return Promise.resolve(offlineAnswer());
   return fetch(`${API_URL}${path}`, {
     credentials: "include",
     ...options,
@@ -32,6 +37,10 @@ export function apiFetch(
         ? { "Content-Type": "application/json", ...headers }
         : headers,
     body: body !== undefined ? JSON.stringify(body) : undefined,
+  }).then((res) => {
+    // the copy the service worker kept, or a fresh answer (lib/offline.ts)
+    noteAnswer(res);
+    return res;
   });
 }
 

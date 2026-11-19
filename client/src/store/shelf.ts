@@ -4,6 +4,7 @@
 import { restorable, restorePieces } from "../lib/restorePieces";
 import { create } from "zustand";
 import { apiFetch } from "../lib/api";
+import { waitingChanges, withChanges } from "../lib/offlineChanges";
 import {
   getReleases,
   getSavedReleases,
@@ -313,7 +314,10 @@ export const useShelf = create<ShelfState>()((set, get) => ({
     try {
       const res = await apiFetch("/api/manga");
       if (!res.ok) throw new Error(res.statusText);
-      const { manga } = (await res.json()) as { manga: Manga[] };
+      const { manga: fromServer } = (await res.json()) as { manga: Manga[] };
+      // as it is on this device: with what was changed offline and not sent
+      const changes = await waitingChanges();
+      const manga = fromServer.map((m) => withChanges(m, changes));
       if (asked !== generation) return;
 
       // an answer depends on the title, what they own, where they've read to

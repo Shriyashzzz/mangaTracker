@@ -4,7 +4,9 @@
 // if one is waiting (it has the failed tick in it too); only when the last
 // one fails does the shelf go back to what the server last said.
 import { useRef, type Dispatch, type SetStateAction } from "react";
-import { ownedVolumes, toggleVolume } from "../../lib/ownedVolumes";
+import { ownedOf, ownedVolumes, toggleVolume } from "../../lib/ownedVolumes";
+import { isNetworkError, isOffline } from "../../lib/offline";
+import { keepOwnedChange } from "../../lib/offlineChanges";
 import { setVolumesOwned, type Owned } from "../../lib/shelf";
 import type { Manga } from "../../lib/types";
 import { useShelf } from "../../store/shelf";
@@ -35,10 +37,21 @@ export function useOwnedVolumes({
       const sending = queue.next;
       queue.next = null;
       try {
+        if (isOffline()) throw new TypeError("offline");
         queue.saved = await setVolumesOwned(mangaId, sending);
         failed = false;
-      } catch {
-        failed = true;
+      } catch (e) {
+        // no connection: kept on this device, and sent when it's back
+        // (lib/offlineChanges.ts). It shows as theirs meanwhile
+        if (isOffline() || isNetworkError(e)) {
+          await keepOwnedChange(
+            mangaId,
+            ownedOf(queue.saved),
+            ownedOf(sending),
+          );
+          queue.saved = sending;
+          failed = false;
+        } else failed = true;
       }
     }
     queue.saving = false;
