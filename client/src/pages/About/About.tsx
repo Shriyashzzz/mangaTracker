@@ -75,21 +75,21 @@ export function AboutPage() {
             <span className={styles.hit}>never lose</span> your place again.
           </h1>
           <p className={styles.lead}>
-            Hello, I'm Shriyash. I am an solo devloper behind this site, I like
-            to collect physical mangas. Keeping track of your booksmarks when
-            you read multiple series concurrently can be difficult.
+            Hello, I'm Shriyash. I am a solo developer behind this site, I like
+            to collect physical mangas. Keeping track of your bookmarks when you
+            read multiple series concurrently can be difficult.
             <br />
-            It's also hard to keep track when new volumes release come out for
-            your favourite series. You can use sign up for shelf so you never
-            have to manually look that up for every series you own.
+            It's also hard to keep track when new volumes come out for your
+            favourite series. You can sign up for Shelf so you never have to
+            manually look that up for every series you own.
           </p>
           <p className={styles.lead}>
-            I'm also an broke college, and this hobby can be expensive. You can
-            use{" "}
+            I'm also a broke college student, and this hobby can be expensive.
+            You can use{" "}
             <NavLink to="/" viewTransition>
               Price check
             </NavLink>{" "}
-            to find cheapest deals across US and Canadian stores.
+            to find the cheapest deals across US and Canadian stores.
           </p>
           <p>
             One of my favourite series is Vagabond. It has very much changed my
