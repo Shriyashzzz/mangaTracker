@@ -88,7 +88,8 @@ html .backdrop {
 }
 
 /* 3. a desk of grainy paper with the page on top of a second, askew sheet */
-[data-bg="pages"] body {
+/* (on html, the canvas: a colour on body would cover the backdrop) */
+html[data-bg="pages"] {
   background-color: var(--paper-2);
 }
 

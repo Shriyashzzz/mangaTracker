@@ -264,20 +264,24 @@
 
 /* ---------- 3. base ---------- */
 @layer base {
+  /* The paper is painted on html, never on body. index.html gives html a
+     colour of its own for the first paint, and once html has one, a colour
+     on body is drawn as body's own box: over the backdrop behind the page
+     (styles/backdrop.css, z-index -1), hiding every background. On html it
+     is the canvas, and the backdrop shows on it */
   html {
     -webkit-text-size-adjust: 100%;
+    background-color: var(--paper);
+    transition: background-color 0.2s ease;
   }
 
   body {
-    background-color: var(--paper);
     color: var(--ink);
     font-family: var(--font-body);
     font-size: 16px;
     line-height: 1.6;
     -webkit-font-smoothing: antialiased;
-    transition:
-      background-color 0.2s ease,
-      color 0.2s ease;
+    transition: color 0.2s ease;
   }
 
   #root {
