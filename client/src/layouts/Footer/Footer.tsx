@@ -61,13 +61,26 @@ export default function Footer() {
             <NavLink to="/about" className={footerLink}>
               About
             </NavLink>
+            {/* phones have it on the line under the quote: this one sits
+                beside the heading, with no room for it */}
+            <span aria-hidden className="upto-760:hidden">
+              ·
+            </span>
+            <NavLink to="/privacy" className={`${footerLink} upto-760:hidden`}>
+              Privacy
+            </NavLink>
           </p>
           <p className="flex gap-[0.6rem] opacity-80 upto-760:col-span-full upto-760:row-start-3 upto-760:gap-[0.45rem] upto-760:justify-self-end">
             <span>Vol. 2, {new Date().getFullYear()}</span>
             <span aria-hidden>·</span>
             <span>© {new Date().getFullYear()} Manga Tracker</span>
-            <span aria-hidden>·</span>
-            <NavLink to="/privacy" className={footerLink}>
+            <span aria-hidden className="hidden upto-760:inline">
+              ·
+            </span>
+            <NavLink
+              to="/privacy"
+              className={`${footerLink} hidden upto-760:inline`}
+            >
               Privacy
             </NavLink>
           </p>
