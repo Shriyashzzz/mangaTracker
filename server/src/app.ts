@@ -15,6 +15,7 @@ import {
   emailRouter,
   shareRouter,
 } from "./routes/accountRouter.js";
+import { pushRouter } from "./push/pushRoutes.js";
 import { mangaRouter } from "./routes/mangaRouter.js";
 import { pricesRouter } from "./routes/pricesRouter.js";
 import { afterAnimeRouter } from "./routes/afterAnimeRouter.js";
@@ -73,6 +74,7 @@ app.use("/api/prefs", prefsRouter);
 app.use("/api/account", accountRouter);
 app.use("/api/share", shareRouter);
 app.use("/api/email", emailRouter);
+app.use("/api/push", pushRouter);
 app.use("/api/manga", mangaRouter);
 app.use("/api/prices", pricesRouter);
 app.use("/api/after-anime", afterAnimeRouter);

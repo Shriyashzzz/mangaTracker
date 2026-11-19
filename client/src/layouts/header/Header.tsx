@@ -17,6 +17,7 @@ import { readLocal, useReleaseChecksOn } from "../../lib/prefs";
 import { LAST_NEW_COUNT_KEY } from "../../lib/shelf";
 import { shownNewCount } from "../../lib/releaseMath";
 import { editionReleases } from "../../lib/editionNews";
+import { showOnIcon } from "../../lib/alerts";
 import {
   forgetAllSpots,
   forgetSpot,
@@ -79,6 +80,10 @@ export default function Header() {
       ) ?? 0
     );
   }, [manga, releases, outcomes]);
+  // the installed app's icon says it too (lib/alerts.ts)
+  useEffect(() => {
+    if (isSignedIn && !isDemo()) showOnIcon(newCount);
+  }, [newCount, isSignedIn]);
   // the To buy list's link and count: signed-in readers only (the practice
   // tour has no list)
   const showToBuy = Boolean(isSignedIn) && !isDemo();

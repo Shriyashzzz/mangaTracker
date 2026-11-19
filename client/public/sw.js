@@ -21,7 +21,7 @@
 // signal's back, even with the app closed.
 //
 // A change to how this works: raise VERSION, and old caches are cleared.
-const VERSION = 3;
+const VERSION = 4;
 const SHELL = `shell-v${VERSION}`;
 const ASSETS = `assets-v${VERSION}`;
 // kept in step with client lib/offline.ts OFFLINE_DATA_CACHE
@@ -176,6 +176,54 @@ async function keptAnswer(request, url) {
     );
   }
 }
+
+// ---------- alerts (server src/push/, client lib/alerts.ts) ----------
+
+// an alert from the server: shown as the phone's own notification, with
+// the page it opens
+self.addEventListener("push", (event) => {
+  let alert = {};
+  try {
+    alert = event.data ? event.data.json() : {};
+  } catch {
+    alert = { title: event.data?.text() };
+  }
+  event.waitUntil(
+    self.registration.showNotification(alert.title || "Manga Tracker", {
+      body: alert.body || "",
+      icon: "/icon-192.png",
+      badge: "/icon-192.png",
+      tag: alert.tag,
+      data: { url: alert.url || "/shelf" },
+    }),
+  );
+});
+
+// tapped: the app, on that page. An open window of ours is used if there's
+// one; a link from elsewhere is never followed
+self.addEventListener("notificationclick", (event) => {
+  event.notification.close();
+  const asked = new URL(
+    event.notification.data?.url || "/shelf",
+    self.location.origin,
+  );
+  const url =
+    asked.origin === self.location.origin
+      ? asked.href
+      : `${self.location.origin}/shelf`;
+  event.waitUntil(
+    self.clients
+      .matchAll({ type: "window", includeUncontrolled: true })
+      .then((open) => {
+        const ours = open.find(
+          (client) => new URL(client.url).origin === self.location.origin,
+        );
+        if (ours)
+          return ours.navigate(url).then((client) => (client ?? ours).focus());
+        return self.clients.openWindow(url);
+      }),
+  );
+});
 
 // ---------- changes made offline (client lib/offlineChanges.ts) ----------
 

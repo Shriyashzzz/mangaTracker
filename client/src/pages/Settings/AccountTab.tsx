@@ -10,6 +10,7 @@ import type { Manga } from "../../lib/types";
 import { useAccount } from "../../store/account";
 import { useAuth } from "../../store/auth";
 import { settingsStyles as styles } from "./styles";
+import { AlertsSection } from "./AlertsSection";
 
 // said when the confirm link was meant to go and didn't
 const LINK_NOT_SENT = "We couldn't send the link. Try again in a minute.";
@@ -218,6 +219,8 @@ export function AccountTab({ account }: { account: Account }) {
           <p className={styles.body}>Save an email above to switch it on.</p>
         )}
       </section>
+
+      <AlertsSection />
 
       <section
         className={styles.section}

@@ -7,6 +7,7 @@
 import { create } from "zustand";
 import { forgetKeptShelf } from "../lib/offline";
 import { forgetChanges, sendChanges } from "../lib/offlineChanges";
+import { switchAlertsOff } from "../lib/alerts";
 import { apiFetch } from "../lib/api";
 import { useShelf } from "./shelf";
 import { useToBuy } from "./toBuy";
@@ -63,8 +64,11 @@ export const useAuth = create<AuthState>()((set) => ({
   },
 
   logOut: async () => {
-    // anything changed offline goes first, while they're still signed in
+    // anything changed offline goes first, while they're still signed in,
+    // and this device's alerts are switched off, so the next reader on it
+    // never gets this one's (lib/alerts.ts)
     await sendChanges();
+    await switchAlertsOff();
     const res = await apiFetch("/api/auth/logout", { method: "POST" });
     if (res.ok) {
       void forgetKeptShelf();

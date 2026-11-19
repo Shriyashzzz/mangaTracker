@@ -7,6 +7,7 @@ import { startNewPriceFiller } from "./collector/newPriceFiller.js";
 import { startAnimeFiller } from "./collector/animeFiller.js";
 import { startEditionFiller } from "./collector/editionFiller.js";
 import { startDigestSender } from "./digest/digestSender.js";
+import { startAlertSender } from "./push/pushSender.js";
 import { startSeriesFiller } from "./prices/seriesFiller.js";
 import { startSweep } from "./collector/sweep.js";
 import { startScoreFiller } from "./collector/scoreFiller.js";
@@ -20,6 +21,7 @@ app.listen(config.PORT, () => {
   startAnimeFiller();
   startEditionFiller();
   startDigestSender();
+  startAlertSender();
   // background volume lists for series nobody has opened yet (same switch)
   startSeriesFiller();
   // MyAnimeList's scores and AniList's means for every known series

@@ -142,6 +142,19 @@ const schema = z.object({
     z.coerce.number().int().nonnegative().default(20),
   ),
   API_URL: optional,
+  // Alerts on readers' phones (src/push/). The key pair is made once
+  // (npx web-push generate-vapid-keys, or the app's own generateVAPIDKeys)
+  // and never changed: changing it ends every device's alerts. The subject
+  // is how push services can reach us: the site's address will do. No pair:
+  // no alerts, and the setting doesn't show. PUSH_ALERTS=off stops sending
+  VAPID_PUBLIC_KEY: optional,
+  VAPID_PRIVATE_KEY: optional,
+  VAPID_SUBJECT: optional,
+  PUSH_ALERTS: optional,
+  PUSH_PER_RUN: z.preprocess(
+    blankToUndefined,
+    z.coerce.number().int().nonnegative().default(100),
+  ),
 });
 
 const parsed = schema.safeParse(process.env);

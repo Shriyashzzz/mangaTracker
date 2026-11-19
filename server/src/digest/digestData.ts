@@ -72,15 +72,19 @@ async function toBuyOf(
   });
 }
 
-export async function digestFor(
+// A reader's news as it stands, before what they've been told is taken off,
+// and what they've been told (by email, and as alerts on their phone: an
+// alert's items start "push:"). The weekly email and the alerts both start
+// from this
+export async function newsFor(
   user: { id: number; prefs: unknown },
   now = new Date(),
-): Promise<Digest> {
+) {
   const prefs = (user.prefs ?? {}) as Prefs;
   const today = now.toISOString().slice(0, 10);
-  // release checks switched off in settings: no release news by email either
+  // release checks switched off in settings: no release news this way either
   const wantsReleases = prefs.releaseChecks !== "off";
-  const [shelf, toBuy, sent] = await Promise.all([
+  const [shelf, toBuy, told] = await Promise.all([
     wantsReleases ? shelfOf(user.id) : [],
     toBuyOf(user.id, prefs.country === "ca" ? "ca" : "us"),
     prisma.digestItem.findMany({
@@ -88,9 +92,25 @@ export async function digestFor(
       select: { item: true, sentAt: true },
     }),
   ]);
-  const digest = {
+  const news: Digest = {
     ...releaseNews(shelf, today),
     drops: priceDrops(toBuy, now),
   };
-  return withoutSent(digest, sent, now);
+  return { news, told };
 }
+
+// what the weekly email would say: their news less what it's already said
+export async function digestFor(
+  user: { id: number; prefs: unknown },
+  now = new Date(),
+): Promise<Digest> {
+  const { news, told } = await newsFor(user, now);
+  return withoutSent(
+    news,
+    told.filter((t) => !t.item.startsWith(PUSH_PREFIX)),
+    now,
+  );
+}
+
+// an alert's item in digest_items: "push:out:812:15"
+export const PUSH_PREFIX = "push:";
