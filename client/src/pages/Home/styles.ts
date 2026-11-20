@@ -199,6 +199,19 @@ export const homeStyles = {
   skeletonTitle: "mb-10 h-[46px] w-60",
 
   // ---------- empty states ----------
+  // the empty shelf (ShelfStates EmptyShelf): a new collector's first look.
+  // A page of the paper with an ink border, the ways to fill it best first
+  emptyShelf:
+    "mx-auto my-10 flex max-w-[480px] flex-col items-center border-3 border-line bg-paper px-8 py-9 text-center shadow-ink upto-720:mx-1 upto-720:my-6 upto-720:px-5 upto-720:py-7",
+  emptyShelfTitle:
+    "mt-3 font-brand text-[clamp(2.1rem,6vw,2.8rem)] leading-none tracking-[0.02em] uppercase",
+  emptyShelfLead: "mt-3 text-ink-soft",
+  emptyWays: "mt-7 flex w-full max-w-[340px] flex-col gap-5",
+  emptyWay: "flex flex-col items-stretch gap-1.5",
+  emptyHint: "font-mono text-[0.78rem] leading-snug text-muted",
+  emptyTour:
+    "mt-8 flex w-full max-w-[340px] flex-col items-center gap-2 border-t border-dashed border-line-soft pt-6",
+  emptyTourAsk: "font-display text-[1.05rem] font-semibold",
   emptyState:
     "mx-auto my-12 max-w-[440px] rounded-ink border-[1.5px] border-dashed border-line-soft px-8 py-9 text-center",
   emptyTitle: "font-display text-[1.6rem] font-semibold",

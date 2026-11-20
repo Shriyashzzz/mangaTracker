@@ -5,6 +5,8 @@ import type { ReactNode } from "react";
 import { NavLink } from "react-router";
 import { EmptyShelfUndo } from "../../components/deletedNote/DeletedNote";
 import Mascot from "../../components/mascot/Mascot";
+import TakeTourButton from "../../components/tour/TakeTourButton";
+import { hasBottomBar } from "../../lib/bottomBar";
 import { homeStyles as styles } from "./styles";
 
 type Mood = "panic" | "happy" | "confused";
@@ -47,6 +49,9 @@ export function ShelfUnreachable({ onRetry }: { onRetry: () => void }) {
   );
 }
 
+// A new collector's first look: the ways to bring in what they own, the
+// fastest first for the device (a phone scans, a laptop imports), and the
+// tour for anyone not ready to start. The scan sheet opens over it
 export function EmptyShelf({
   onAdd,
   onScan,
@@ -60,35 +65,81 @@ export function EmptyShelf({
   // the scan sheet, once it's open
   children?: ReactNode;
 }) {
-  return (
-    <ShelfMessage mood="happy" title="Nothing on the shelf yet." fadeIn>
-      <EmptyShelfUndo />
-      <p className={styles.emptyBody}>
-        Add whatever you're reading right now, and the last chapter you read.
-        That's all it takes.
-      </p>
-      <button className="btn btn-primary btn-lg" onClick={onAdd}>
-        Add your first manga
-      </button>
-      <NavLink
-        to="/import"
-        className={`${styles.importLink} mx-auto mt-4 block w-fit`}
-        viewTransition
-      >
-        Or import your list
-      </NavLink>
-      {/* a stack of volumes by the hand: the shelf's own Scan button and the
-          phone's + aren't here yet, so it's offered from the start */}
+  const scan = (main: boolean) => (
+    <li key="scan" className={styles.emptyWay}>
       <button
         type="button"
-        className={`${styles.importLink} mx-auto mt-2 block w-fit`}
+        className={`btn ${main ? "btn-primary" : "btn-secondary"} btn-lg`}
         onClick={onScan}
         onPointerEnter={onScanHover}
       >
-        Or scan their barcodes
+        Scan barcodes
       </button>
+      <span className={styles.emptyHint}>
+        Point your camera at the back of each volume.
+      </span>
+    </li>
+  );
+  const importList = (main: boolean) => (
+    <li key="import" className={styles.emptyWay}>
+      <NavLink
+        to="/import"
+        className={`btn ${main ? "btn-primary" : "btn-secondary"} btn-lg`}
+        viewTransition
+      >
+        Import a list
+      </NavLink>
+      <span className={styles.emptyHint}>
+        MyAnimeList, AniList, Kitsu, Goodreads or a spreadsheet.
+      </span>
+    </li>
+  );
+  const byName = (
+    <li key="add" className={styles.emptyWay}>
+      <button
+        type="button"
+        className="btn btn-secondary btn-lg"
+        onClick={onAdd}
+      >
+        Add by name
+      </button>
+      <span className={styles.emptyHint}>
+        Search for a series and tick what you own.
+      </span>
+    </li>
+  );
+  // a phone has its camera to hand; a laptop has the list in another tab
+  const ways = hasBottomBar()
+    ? [scan(true), importList(false), byName]
+    : [importList(true), byName, scan(false)];
+
+  return (
+    <section
+      className={`${styles.emptyShelf} fade-in`}
+      aria-labelledby="empty-shelf-title"
+    >
+      <EmptyShelfUndo />
+      <span className="printed mascot-spot" aria-hidden>
+        <Mascot mood="happy" />
+      </span>
+      <h2 id="empty-shelf-title" className={styles.emptyShelfTitle}>
+        Start your shelf
+      </h2>
+      <p className={styles.emptyShelfLead}>
+        Bring in the volumes you own. Pick the fastest way.
+      </p>
+      <ol className={styles.emptyWays}>{ways}</ol>
+      <div className={styles.emptyTour}>
+        <p className={styles.emptyTourAsk}>Not ready yet?</p>
+        <TakeTourButton className="btn btn-ghost">
+          Take the tour with Kenji
+        </TakeTourButton>
+        <p className={styles.emptyHint}>
+          A practice shelf of 40 series. Nothing there touches your account.
+        </p>
+      </div>
       {children}
-    </ShelfMessage>
+    </section>
   );
 }
 
