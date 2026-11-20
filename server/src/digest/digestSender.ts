@@ -11,7 +11,7 @@ import sendEmail from "../util/email/sendEmail.js";
 import { digestFor } from "./digestData.js";
 import { confirmMail, digestMail, type Mail } from "./digestEmail.js";
 import { isEmpty, keysOf } from "./digestRules.js";
-import type { Prefs } from "../models/userQueries.js";
+import userQueries, { type Prefs } from "../models/userQueries.js";
 
 const FROM = "updates@mangatracker.xyz";
 const WEEK_MS = 7 * DAY_MS;
@@ -27,6 +27,26 @@ export const sendConfirmMail = (reader: {
   username: string;
   code: string;
 }) => send(reader.to, confirmMail(reader));
+
+// Switches the weekly email on for an account and mails its confirm link,
+// if its address still needs one (sign-up with an address, and Settings).
+// False when the mail didn't go: the setting is saved either way, and the
+// page can say the link wasn't sent, so nobody waits for it
+export async function mailConfirmLink(userId: number) {
+  const user = await userQueries.setWeeklyEmail(userId, true);
+  if (!user?.recoveryEmail || !user.emailCode || user.emailConfirmed)
+    return true;
+  return sendConfirmMail({
+    to: user.recoveryEmail,
+    username: user.username,
+    code: user.emailCode,
+  })
+    .then(() => true)
+    .catch((e: Error) => {
+      console.error("confirm email failed:", e.message);
+      return false;
+    });
+}
 
 export const digestSwitchOn = () =>
   config.EMAIL_DIGEST !== "off" &&

@@ -186,7 +186,7 @@ export function AccountTab({ account }: { account: Account }) {
             </label>
             {waitingToConfirm && (
               <p className={styles.body}>
-                Almost there: confirm it's yours from the email to{" "}
+                Almost there: press Start my weekly email in the email to{" "}
                 <strong>{account.recoveryEmail}</strong>. No email? Send the
                 link again.
               </p>

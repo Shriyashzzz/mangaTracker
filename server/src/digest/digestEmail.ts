@@ -261,24 +261,25 @@ function unsubscribeHeaders(code: string): Record<string, string> | undefined {
   };
 }
 
-// "Is this your address?": sent when the weekly email is switched on, and
-// again when the address changes. Nothing weekly goes out until its link
-// is pressed
+// "Start your weekly email": sent when an address is added (the weekly
+// email is on from then), when it's switched on, and again when the address
+// changes. Nothing weekly goes out until its button is pressed: that press
+// is their yes
 export function confirmMail(reader: { username: string; code: string }): Mail {
   const url = `${site()}/email/confirm/${reader.code}`;
-  const subject = "Confirm your email for Manga Tracker";
+  const subject = "Start your weekly email from Manga Tracker";
   const card = [
-    heading("Confirm your email"),
+    heading("Your weekly email is ready"),
     paragraph(
-      `Hi ${esc(reader.username)}, you switched on the weekly email. Press the button so we know this address is yours.`,
+      `Hi ${esc(reader.username)}, once a week we can email you what's new for your shelf: volumes out, release days coming up, and price drops on your To buy list. Press the button to start it.`,
     ),
-    button("Yes, send it here", url),
+    button("Start my weekly email", url),
     `              <p style="margin:18px 0 6px 0; ${FONT} font-size:13px; line-height:1.5; color:${FAINT};">Button not working? Copy this into your browser:</p>
               <p style="margin:0 0 20px 0; font-family:'Courier New', Courier, monospace; font-size:13px; line-height:1.5; word-break:break-all;"><a href="${url}" target="_blank" style="color:${RED}; text-decoration:underline;">${url}</a></p>
               <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
                 <tr>
                   <td style="border-top:1px dashed #d6ccb7; padding-top:16px; ${FONT} font-size:14px; line-height:1.55; color:${SOFT};">
-                    Didn't ask for this? Ignore this email and nothing more will come.
+                    Not interested? Ignore this email and nothing more will come. You can switch it off any time in Settings.
                   </td>
                 </tr>
               </table>`,
@@ -288,16 +289,16 @@ export function confirmMail(reader: { username: string; code: string }): Mail {
     subject,
     html: page(
       subject,
-      "One press, and your weekly email is on.",
+      "One press starts it. Ignore it and nothing more comes.",
       card,
       footer,
     ),
     text: [
-      `Hi ${reader.username}, you switched on the weekly email.`,
-      "Open this link so we know this address is yours:",
+      `Hi ${reader.username}, once a week we can email you what's new for your shelf: volumes out, release days coming up, and price drops on your To buy list.`,
+      "Open this link to start it:",
       url,
       "",
-      "Didn't ask for this? Ignore this email and nothing more will come.",
+      "Not interested? Ignore this email and nothing more will come. You can switch it off any time in Settings.",
     ].join("\n"),
   };
 }

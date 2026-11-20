@@ -93,7 +93,7 @@ test("switching it on mails a confirm link, and nothing weekly until it's presse
   expect(res.status).toBe(200);
   expect(res.body).toMatchObject({ weeklyEmail: true, emailConfirmed: false });
   expect(sent.map((m) => [m.to, m.subject])).toEqual([
-    [EMAIL, "Confirm your email for Manga Tracker"],
+    [EMAIL, "Start your weekly email from Manga Tracker"],
   ]);
 
   // not confirmed: the weekly job passes them by
@@ -260,4 +260,65 @@ test("a confirm link that couldn't be sent is said so, and can be sent again", a
   const again = await switchOn(agent);
   expect(again.body.confirmNotSent).toBeUndefined();
   expect(sent.map((m) => m.to)).toEqual(["new@example.com"]);
+});
+
+// On by default for an address, waiting for the press on its link
+const SUBJECT = "Start your weekly email from Manga Tracker";
+const settle = () => new Promise((resolve) => setTimeout(resolve, 300));
+
+test("signing up with an email: the weekly email is on, its link is mailed, and nothing weekly until it's pressed", async () => {
+  const agent = request.agent(app);
+  const res = await agent.post("/api/auth/signup").send({
+    username: "newreader",
+    password: "a long password",
+    email: "newreader@example.com",
+  });
+  expect(res.status).toBe(201);
+  // mailed without holding up the sign-up
+  await settle();
+  expect(sent.map((m) => [m.to, m.subject])).toEqual([
+    ["newreader@example.com", SUBJECT],
+  ]);
+  const account = await agent.get("/api/account");
+  expect(account.body).toMatchObject({
+    weeklyEmail: true,
+    emailConfirmed: false,
+  });
+  expect(await sendDueDigests(now)).toMatchObject({ due: 0, sent: 0 });
+});
+
+test("signing up without an email: no weekly email and nothing mailed", async () => {
+  const agent = request.agent(app);
+  await agent
+    .post("/api/auth/signup")
+    .send({ username: "noemail", password: "a long password" });
+  await settle();
+  expect(sent).toEqual([]);
+  const account = await agent.get("/api/account");
+  expect(account.body).toMatchObject({ weeklyEmail: false });
+});
+
+test("a first address added in Settings turns it on and mails the link", async () => {
+  const { agent } = await signedIn(null);
+  const added = await agent
+    .patch("/api/account")
+    .send({ recoveryEmail: "later@example.com" });
+  expect(added.body).toMatchObject({
+    weeklyEmail: true,
+    emailConfirmed: false,
+  });
+  expect(sent.map((m) => [m.to, m.subject])).toEqual([
+    ["later@example.com", SUBJECT],
+  ]);
+});
+
+test("switched off, a changed address keeps it off and mails nothing", async () => {
+  const { agent } = await signedIn();
+  await switchOn(agent, false);
+  sent.length = 0;
+  const changed = await agent
+    .patch("/api/account")
+    .send({ recoveryEmail: "moved@example.com" });
+  expect(changed.body).toMatchObject({ weeklyEmail: false });
+  expect(sent).toEqual([]);
 });

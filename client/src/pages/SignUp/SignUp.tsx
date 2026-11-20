@@ -173,7 +173,8 @@ export default function SignUp() {
                 aria-describedby={describedBy("email-hint")}
               />
               <span id="email-hint" className={styles.hint}>
-                Handy if you forget passwords.
+                Handy if you forget passwords. We'll also send one link to start
+                a weekly email for your shelf.
               </span>
             </div>
 

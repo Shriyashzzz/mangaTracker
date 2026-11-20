@@ -111,6 +111,9 @@ export async function addUser(
         username,
         password: hashed,
         recoveryEmail: recoveryEmail ?? null,
+        // signing up with an address: the weekly email is on, waiting for
+        // the press on its confirm link (authController signup mails it)
+        weeklyEmail: Boolean(recoveryEmail),
       },
       select: { id: true },
     });
@@ -203,6 +206,10 @@ export async function updateAccount(id: number, patch: AccountPatch) {
     data.emailConfirmed = false;
     data.emailCode = patch.recoveryEmail ? newEmailCode() : null;
     if (!patch.recoveryEmail) data.weeklyEmail = false;
+    // their first address: the weekly email is on, waiting for the press on
+    // its confirm link (nothing weekly goes out before). A changed address
+    // keeps what they chose
+    else if (!current?.recoveryEmail) data.weeklyEmail = true;
   }
   return prisma.user.update({ where: { id }, data, select: ACCOUNT_FIELDS });
 }

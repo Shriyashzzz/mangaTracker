@@ -11,7 +11,7 @@ import priceQueries, {
   type Country,
 } from "../models/priceQueries.js";
 import userQueries, { type AccountPatch } from "../models/userQueries.js";
-import { sendConfirmMail } from "../digest/digestSender.js";
+import { mailConfirmLink } from "../digest/digestSender.js";
 import { AVATARS } from "../util/shelf/avatars.js";
 import { defaultReaderName, READER_NAMES } from "../util/shelf/readerNames.js";
 import { shelfSeries } from "../collector/shelfSeries.js";
@@ -130,25 +130,6 @@ const update = [
     });
   },
 ];
-
-// Mails the account its confirm link, if its address still needs one.
-// False when the mail didn't go: the setting is saved either way, and the
-// page says the link wasn't sent (confirmNotSent), so nobody waits for it
-async function mailConfirmLink(userId: number) {
-  const user = await userQueries.setWeeklyEmail(userId, true);
-  if (!user?.recoveryEmail || !user.emailCode || user.emailConfirmed)
-    return true;
-  return sendConfirmMail({
-    to: user.recoveryEmail,
-    username: user.username,
-    code: user.emailCode,
-  })
-    .then(() => true)
-    .catch((e: Error) => {
-      console.error("confirm email failed:", e.message);
-      return false;
-    });
-}
 
 // the weekly email's switch in settings. On needs an address saved, and
 // mails a confirm link until that address has been confirmed

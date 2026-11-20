@@ -15,6 +15,7 @@ import { validShareTop } from "../util/shelf/shareTop.js";
 import { newResetToken } from "../util/resetToken.js";
 import { EMAIL_TAKEN, emailField } from "../util/email/emailField.js";
 import sendResetPasswordEmail from "../util/email/sendResetPasswordEmail.js";
+import { mailConfirmLink } from "../digest/digestSender.js";
 import bcrypt from "bcryptjs";
 
 const credentials = [
@@ -127,6 +128,9 @@ const signup = [
       return;
     }
     await startSession(req, userId);
+    // with an address, its confirm link for the weekly email: not waited
+    // for, so a slow mail never holds up the new account
+    if (email) void mailConfirmLink(userId);
     res.sendStatus(201);
   },
 ];
