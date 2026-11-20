@@ -9,6 +9,7 @@ import {
   AVATARS_SHOWN_FIRST,
   DEFAULT_AVATAR,
 } from "../../lib/content/avatars";
+import { hasBottomBar } from "../../lib/bottomBar";
 import { useAccount } from "../../store/account";
 import { settingsStyles as styles } from "./styles";
 
@@ -85,8 +86,21 @@ export default function ProfileTab({ account }: { account: Account }) {
         ];
   const morePictures = AVATARS.length - AVATARS_SHOWN_FIRST;
 
+  // on a phone (the phone layout, with a share sheet): straight to the
+  // phone's share sheet, so it goes to Messages or Discord in one tap.
+  // Elsewhere the link is copied
+  const sharesBySheet = hasBottomBar() && "share" in navigator;
+  let linkButtonText = copied ? "Copied" : "Copy link";
+  if (sharesBySheet) linkButtonText = "Share link";
   const copyLink = async () => {
     if (!account.shareCode) return;
+    if (sharesBySheet) {
+      // closing the sheet without picking anything is fine: nothing to say
+      await navigator
+        .share({ url: shareUrl(account.shareCode) })
+        .catch(() => {});
+      return;
+    }
     try {
       await navigator.clipboard.writeText(shareUrl(account.shareCode));
       setCopied(true);
@@ -287,7 +301,7 @@ export default function ProfileTab({ account }: { account: Account }) {
               className="btn btn-secondary"
               onClick={copyLink}
             >
-              {copied ? "Copied" : "Copy link"}
+              {linkButtonText}
             </button>
             <NavLink
               to={`/u/${account.shareCode}`}
