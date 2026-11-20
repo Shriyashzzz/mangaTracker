@@ -295,7 +295,7 @@ function booksOfLine(line: LineKind, found: Found[], total: number | null) {
   const size = sizeOfLine(line, [...byNumber.values()]);
   const lastFound = Math.max(...byNumber.keys());
   // through the last book found, then on to the series' end when the line's
-  // size is known: an unlisted book is still the next one to look for
+  // size is known: an unlisted full book is still the next one to look for
   const lastOfSeries = size && total ? Math.ceil(total / size) : 0;
   const lastNumber = Math.min(Math.max(lastFound, lastOfSeries), MOST_BOOKS);
 
@@ -312,6 +312,15 @@ function booksOfLine(line: LineKind, found: Found[], total: number | null) {
     // no book holds a volume past the series' last
     const withinSeries = total ? volumes.filter((v) => v <= total) : volumes;
     if (!withinSeries.length) continue;
+    // past the last book found, a worked-out book short of a full one is a
+    // guess at how the edition ends: Vagabond's 12 VIZBIGs end at 36 and
+    // vol. 37 is sold on its own, so there's no VIZBIG 13 holding it
+    const isPartialGuess =
+      !record &&
+      number > lastFound &&
+      size !== null &&
+      withinSeries.length < size;
+    if (isPartialGuess) break;
     books.push({
       number,
       volumes: withinSeries,

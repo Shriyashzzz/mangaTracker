@@ -29,10 +29,10 @@ const TIMEOUT_MS = 8000;
 // when the rules for building lines last changed (the one list of editions,
 // Definitive and the rest; own titles for Japanese-filed books): a list saved
 // before then is built again, whatever its age
-// (2026-11-19: Google Books beside Open Library, and the hand table as a
-// source of its own). Always a moment already past: a time still to come
+// (2026-11-20: no guessed short book past the last one found, so Vagabond's
+// VIZBIGs end at 12). Always a moment already past: a time still to come
 // would make every save old the instant it's made, and ask without end
-const RULES_FROM = Date.UTC(2026, 10, 19, 11);
+const RULES_FROM = Date.UTC(2026, 10, 20, 4);
 export const editionsKey = (name: string) => volumesKey(name) + ":editions";
 // Saved beside a series' lines when they were built while a catalog wasn't
 // answering (Google's day used up): the lines are used, by the series' page

@@ -323,3 +323,50 @@ test("a 979-8 book nobody vouches for is not taken", () => {
   );
   expect(named[0]!.books[0]!.listed).toBe(true);
 });
+
+test("past the last book found, no partial book is guessed: Vagabond has 12 VIZBIGs and vol. 37 alone", () => {
+  const docs = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map((b) =>
+    doc(`Vagabond VIZBIG Edition, Vol. ${b}`, isbn()),
+  );
+  const [line] = buildEditionLines("Vagabond", docs, 37);
+  expect(line!.books).toHaveLength(12);
+  expect(line!.books.at(-1)).toMatchObject({
+    number: 12,
+    volumes: [34, 35, 36],
+    listed: true,
+  });
+});
+
+test("past the last book found, full books are still worked out, and a short last one is not", () => {
+  // a made-up series, so the hand-kept table has nothing to say
+  const [line] = buildEditionLines(
+    "Harbor Lights",
+    [
+      doc(
+        "Harbor Lights (3-in-1 Edition), Vol. 1: Includes vols. 1, 2 & 3",
+        isbn(),
+      ),
+      doc(
+        "Harbor Lights (3-in-1 Edition), Vol. 2: Includes vols. 4, 5 & 6",
+        isbn(),
+      ),
+    ],
+    74,
+  );
+  // 24 books of three reach 72: book 25 would hold only 73 and 74
+  expect(line!.books).toHaveLength(24);
+  expect(line!.books.at(-1)).toMatchObject({
+    number: 24,
+    volumes: [70, 71, 72],
+    listed: false,
+  });
+});
+
+test("a short last book the catalog lists stays", () => {
+  const docs = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13].map((b) =>
+    doc(`Vagabond VIZBIG Edition, Vol. ${b}`, isbn()),
+  );
+  const [line] = buildEditionLines("Vagabond", docs, 37);
+  expect(line!.books).toHaveLength(13);
+  expect(line!.books.at(-1)).toMatchObject({ volumes: [37], listed: true });
+});

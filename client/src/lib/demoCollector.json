@@ -390,13 +390,6 @@
             "listed": false,
             "number": 37,
             "volumes": [109, 110, 111]
-          },
-          {
-            "title": null,
-            "isbn13": null,
-            "listed": false,
-            "number": 38,
-            "volumes": [112, 113]
           }
         ],
         "label": "Omnibus"
@@ -591,13 +584,6 @@
             "listed": true,
             "number": 14,
             "volumes": [40, 41]
-          },
-          {
-            "title": null,
-            "isbn13": null,
-            "listed": false,
-            "number": 15,
-            "volumes": [42, 43]
           }
         ],
         "label": "Deluxe"
@@ -1334,13 +1320,6 @@
             "listed": true,
             "number": 12,
             "volumes": [34, 35, 36]
-          },
-          {
-            "title": null,
-            "isbn13": null,
-            "listed": false,
-            "number": 13,
-            "volumes": [37]
           }
         ],
         "label": "VIZBIG"
