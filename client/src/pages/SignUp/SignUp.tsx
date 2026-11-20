@@ -104,7 +104,7 @@ export default function SignUp() {
         <AuthArt
           sfx="A new series begins!"
           chapter="1"
-          line="Start with Google, or just a username."
+          line="Volume 1 of your shelf starts here."
         />
 
         <div className={styles.card}>
