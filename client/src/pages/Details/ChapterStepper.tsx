@@ -244,9 +244,9 @@ export default function ChapterStepper({
         className={
           note === "failed" || problem ? styles.saveFailed : styles.saveDone
         }
-        // what's inside the book shown ("vols. 1–3"), never broken. On a phone
-        // it's in italic beside the counter, and when there's no room there
-        // the counter and it move under the words together
+        // what's inside the book shown ("vols. 1–3"): one italic line beside
+        // the counter at every size. On a phone with no room there, the
+        // counter and it move under the words together
         data-inside={(!problem && !note && Boolean(books)) || undefined}
         role="status"
       >

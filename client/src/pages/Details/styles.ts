@@ -92,7 +92,7 @@ export const detailsStyles = {
   // the flow: taking up room, it pushed the counter onto a new line the
   // moment it appeared, out from under the thumb that pressed it
   saveDone:
-    "absolute top-1/2 left-full ml-3 -translate-y-1/2 font-mono text-[0.8rem] leading-none whitespace-nowrap text-ink-soft not-italic empty:hidden upto-720:top-full upto-720:right-0 upto-720:left-auto upto-720:mt-[2px] upto-720:ml-0 upto-720:translate-y-0 upto-720:text-[0.7rem] upto-720:data-[inside]:static upto-720:data-[inside]:mt-0 upto-720:data-[inside]:font-display upto-720:data-[inside]:text-[0.8rem] upto-720:data-[inside]:italic",
+    "absolute top-1/2 left-full ml-3 -translate-y-1/2 font-mono text-[0.8rem] leading-none whitespace-nowrap text-ink-soft not-italic empty:hidden upto-720:top-full upto-720:right-0 upto-720:left-auto upto-720:mt-[2px] upto-720:ml-0 upto-720:translate-y-0 upto-720:text-[0.7rem] data-[inside]:font-display data-[inside]:text-[0.95rem] data-[inside]:italic upto-720:data-[inside]:static upto-720:data-[inside]:mt-0 upto-720:data-[inside]:text-[0.8rem]",
   saveFailed: "text-[0.9rem] font-medium text-accent not-italic empty:hidden",
   // a line under the control it's about: a failed save, or an undo
   actionNote: "w-full text-[0.9rem] text-ink-soft empty:hidden",
