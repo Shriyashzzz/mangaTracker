@@ -67,7 +67,9 @@ export default function RateVolume({ volume, onWrite }: Props) {
             on. Once it's rated the filled stars say it, so the words go */}
         <div className={styles.rateTicketTop}>
           {!rating && (
-            <span className={styles.rateTicketLabel}>How was it?</span>
+            <span className={styles.rateTicketLabel}>
+              How was vol. {asked.volume}?
+            </span>
           )}
           <WaysOn
             volume={volume}
