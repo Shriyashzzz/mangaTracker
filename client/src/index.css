@@ -518,9 +518,12 @@
       background-color 0.15s ease;
   }
 
-  .btn:hover:not(:disabled) {
-    transform: translate(-1px, -1px);
-    box-shadow: 4px 4px 0 var(--hard-shadow);
+  /* only with a real pointer: on a phone a tap leaves hover stuck on */
+  @media (hover: hover) {
+    .btn:hover:not(:disabled) {
+      transform: translate(-1px, -1px);
+      box-shadow: 4px 4px 0 var(--hard-shadow);
+    }
   }
 
   .btn:active:not(:disabled) {
@@ -544,8 +547,10 @@
     color: var(--on-accent);
   }
 
-  .btn-primary:hover:not(:disabled) {
-    background: var(--accent-hover);
+  @media (hover: hover) {
+    .btn-primary:hover:not(:disabled) {
+      background: var(--accent-hover);
+    }
   }
 
   .btn-secondary {
@@ -563,11 +568,13 @@
     text-underline-offset: 4px;
   }
 
-  .btn-ghost:hover:not(:disabled) {
-    transform: none;
-    box-shadow: none;
-    color: var(--ink);
-    text-decoration-color: currentColor;
+  @media (hover: hover) {
+    .btn-ghost:hover:not(:disabled) {
+      transform: none;
+      box-shadow: none;
+      color: var(--ink);
+      text-decoration-color: currentColor;
+    }
   }
 
   .btn-ghost:active:not(:disabled) {
@@ -1065,9 +1072,11 @@ body {
   transition:
     translate 150ms var(--ease-ink),
     box-shadow 150ms var(--ease-ink);
-  &:hover:not(:disabled) {
-    translate: -1px -1px;
-    box-shadow: 3px 3px 0 var(--hard-shadow);
+  @media (hover: hover) {
+    &:hover:not(:disabled) {
+      translate: -1px -1px;
+      box-shadow: 3px 3px 0 var(--hard-shadow);
+    }
   }
   &:disabled {
     opacity: 0.5;
@@ -1545,6 +1554,27 @@ body {
    links read as buttons, without the website's underline */
 html.in-app {
   overscroll-behavior-y: none;
+  /* the ripple below answers a tap, not the browser's grey flash */
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Android's ink ripple (lib/ripple.ts): a layer inside what was tapped,
+   clipped to its shape, the ink in a wash of its own text colour */
+.ripple-host {
+  position: relative;
+}
+.ripple {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  border-radius: inherit;
+  pointer-events: none;
+}
+.ripple > span {
+  position: absolute;
+  border-radius: 50%;
+  background: currentColor;
+  opacity: 0.12;
 }
 html.in-app nav[aria-label="Breadcrumb"],
 html.in-app .web-back {
@@ -1558,6 +1588,11 @@ html.in-app main :is(a, button):is(.underline, [class*="underline-offset"]) {
   text-decoration-line: none;
   font-weight: 600;
   color: var(--accent-ink);
+  /* room around the words for the tap's ripple, as Android's text buttons
+     have; the margin takes it back, so nothing around them moves */
+  padding: 4px 8px;
+  margin: -4px -8px;
+  border-radius: var(--radius);
 }
 
 /* Kenji's longer line about carrying on in the background */
