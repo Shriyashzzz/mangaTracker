@@ -11,6 +11,8 @@ import { hasBottomBar } from "../../lib/bottomBar";
 import { markTourDone, shouldOfferTour } from "../../lib/tourOffer";
 import { claimNote } from "../../lib/notes";
 import { useAuth } from "../../store/auth";
+import { useAccount } from "../../store/account";
+import { askedOnThisDevice, weeklyAskDue } from "../../lib/weeklyAsk";
 import { Fingers, Head } from "../kenji/Kenji";
 import TakeTourButton from "./TakeTourButton";
 
@@ -28,9 +30,14 @@ export default function TourOffer() {
   // ducked away unanswered on this visit to the shelf
   const [ducked, setDucked] = useState(false);
   const leaveTimer = useRef<number | undefined>(undefined);
+  // once the account is loaded: a Google reader's weekly email question,
+  // asked once a device, goes first (WeeklyEmailPeek), the tour another visit
+  const account = useAccount((s) => s.account);
+  const weeklyFirst = weeklyAskDue(account, askedOnThisDevice());
 
   useEffect(() => {
     if (shown || ducked || !signedIn || !onShelf || !shouldOfferTour()) return;
+    if (!account || weeklyFirst) return;
     const timer = window.setTimeout(() => {
       // not on top of another note in that corner
       if (document.querySelector("[data-over-add-button], .support-peek"))
@@ -39,7 +46,7 @@ export default function TourOffer() {
       setShown(true);
     }, SHOW_AFTER_MS);
     return () => clearTimeout(timer);
-  }, [shown, ducked, signedIn, onShelf]);
+  }, [shown, ducked, signedIn, onShelf, account, weeklyFirst]);
 
   const leave = () => {
     clearTimeout(leaveTimer.current);

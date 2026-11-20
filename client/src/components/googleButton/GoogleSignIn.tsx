@@ -5,7 +5,6 @@ import { useNavigate, useSearchParams } from "react-router";
 import { afterSignIn, errorMessages } from "../../lib/api";
 import { signInWithGoogle } from "../../lib/googleSignIn";
 import { orOffline } from "../../lib/offline";
-import { markWeeklyAsk } from "../../lib/weeklyAsk";
 import { useAuth } from "../../store/auth";
 import GoogleButton from "./GoogleButton";
 
@@ -27,9 +26,6 @@ export default function GoogleSignIn({ onError, onBusy }: Props) {
     try {
       const result = await signInWithGoogle(credential);
       if (result.ok) {
-        // a new account (201) with Google's email: asked once, on the shelf,
-        // if they'd like the weekly email
-        if (result.status === 201) markWeeklyAsk();
         signedIn();
         navigate(afterSignIn(params), { viewTransition: true });
         return;

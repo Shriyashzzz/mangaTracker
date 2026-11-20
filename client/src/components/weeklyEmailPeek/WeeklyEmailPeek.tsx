@@ -1,15 +1,19 @@
-// Kenji peeks in on the shelf, once, to ask a new Google reader if they'd
-// like the weekly email (lib/weeklyAsk.ts). "Yes, send it" switches it on at
-// once: Google confirmed their address, so no link to press. The cross, or
-// leaving him be, is a no; Settings still has the switch. Drawn like the
-// compact rows question (ViewPeek)
+// Kenji peeks in on the shelf to ask a Google reader if they'd like the
+// weekly email, once a device (lib/weeklyAsk.ts). "Yes, send it" switches it
+// on at once: Google confirmed their address, so no link to press. The
+// cross is a no for this device; left alone he asks another visit. Settings
+// always has the switch. Drawn like the compact rows question (ViewPeek)
 import { useEffect, useRef, useState } from "react";
 import { CloseIcon } from "../icons/Icons";
 import { Fingers, Head } from "../kenji/Kenji";
 import { isDemo } from "../../lib/demo";
 import { claimNote, noteFree } from "../../lib/notes";
 import { useSwipeAway } from "../../lib/useSwipeAway";
-import { weeklyAskDone, weeklyAskWaiting } from "../../lib/weeklyAsk";
+import {
+  askedOnThisDevice,
+  markAsked,
+  weeklyAskDue,
+} from "../../lib/weeklyAsk";
 import { useAccount } from "../../store/account";
 
 const SHOW_AFTER_MS = 2000;
@@ -30,27 +34,17 @@ export default function WeeklyEmailPeek({ blocked }: Props) {
   const [leaving, setLeaving] = useState(false);
   const leaveTimer = useRef<number | undefined>(undefined);
 
-  // an address Google confirmed, and the weekly email not on yet
-  const canAsk = Boolean(
-    account?.recoveryEmail && account.emailConfirmed && !account.weeklyEmail,
-  );
-
-  // a question that can never be asked (no email Google vouched for, or
-  // it's on already) is let go, so the compact rows one isn't kept waiting
-  useEffect(() => {
-    if (account && !canAsk) weeklyAskDone();
-  }, [account, canAsk]);
+  const canAsk = weeklyAskDue(account, askedOnThisDevice());
 
   useEffect(() => {
     if (note || blocked || isDemo() || !canAsk) return;
     const timer = window.setTimeout(() => {
-      if (!weeklyAskWaiting() || document.hidden) return;
+      if (document.hidden) return;
       // not on top of another note down there, and Kenji's turn
       if (document.querySelector("[data-over-add-button], .support-peek"))
         return;
       if (!noteFree("weekly")) return;
       claimNote("weekly");
-      weeklyAskDone();
       setNote("ask");
     }, SHOW_AFTER_MS);
     return () => clearTimeout(timer);
@@ -80,6 +74,7 @@ export default function WeeklyEmailPeek({ blocked }: Props) {
   if (!note) return null;
 
   const yes = async () => {
+    markAsked();
     try {
       await switchWeekly(true);
       setNote("yes");
@@ -142,7 +137,10 @@ export default function WeeklyEmailPeek({ blocked }: Props) {
           type="button"
           className="tap support-peek-close"
           aria-label={note === "ask" ? "No thanks" : "Close"}
-          onClick={leave}
+          onClick={() => {
+            markAsked();
+            leave();
+          }}
         >
           <CloseIcon />
         </button>

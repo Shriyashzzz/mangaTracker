@@ -17,7 +17,10 @@ const shownThisVisit = () => {
 };
 
 export const noteFree = (name: NoteName) => {
-  if (name !== "tour" && shouldOfferTour()) return false;
+  // The weekly email question is only for Google readers, who are never
+  // offered the tour: one on offer is left over from another account here
+  const waitsForTour = name !== "tour" && name !== "weekly";
+  if (waitsForTour && shouldOfferTour()) return false;
   const shown = shownThisVisit();
   return !shown || shown === name;
 };
