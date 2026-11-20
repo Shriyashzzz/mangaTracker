@@ -52,11 +52,11 @@ function Section({
 const KEPT: Entry[] = [
   {
     name: "Your account",
-    body: "Your username and your password, stored only as a secure hash. If you sign in with Google, your Google account's ID number, and your Google name once, to make your username.",
+    body: "Your username and your password, stored only as a secure hash. If you sign in with Google, your Google account's ID number and the email Google has verified. Your Google name is used once, to make your username.",
   },
   {
     name: "Your email, if you add one",
-    body: "Used for password reset links, and the weekly email once you press Start in the email we send you. Never shown to anyone else.",
+    body: "Added by you, or from Google if you sign in with it. Used for password reset links, and the weekly email once you say yes to it. Never shown to anyone else.",
   },
   {
     name: "Your shelf",
@@ -110,7 +110,7 @@ const OTHERS: Entry[] = [
   },
   {
     name: "Google sign-in",
-    body: "If you choose Continue with Google, Google confirms it's you and tells us your Google account's ID. Google sees that you signed in to Manga Tracker.",
+    body: "If you choose Continue with Google, Google confirms it's you and tells us your Google account's ID, name and email. Google sees that you signed in to Manga Tracker.",
   },
   {
     name: "Google Fonts",

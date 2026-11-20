@@ -134,12 +134,19 @@ async function freeGoogleUsername(name: string | null) {
 }
 
 // A new account for a Google account: no password (they can set one in
-// Settings), no email (theirs to add), their Google name as its username.
-// Signing in twice at once makes one account: the second finds the first
-export async function addGoogleUser(
-  googleId: string,
-  name: string | null,
-): Promise<number> {
+// Settings), their Google name as its username, and Google's verified email
+// as its email, confirmed already (Google checked it). The weekly email stays
+// off until they say yes on the site. An email another account has stays
+// with that account. Signing in twice at once makes one account: the second
+// finds the first
+export async function addGoogleUser(google: {
+  googleId: string;
+  name: string | null;
+  email: string | null;
+}): Promise<number> {
+  const { googleId, name } = google;
+  let email =
+    google.email && !(await getUserByEmail(google.email)) ? google.email : null;
   for (let tries = 0; tries < 5; tries++) {
     try {
       const user = await prisma.user.create({
@@ -147,6 +154,11 @@ export async function addGoogleUser(
           username: await freeGoogleUsername(name),
           password: null,
           googleId,
+          recoveryEmail: email,
+          emailConfirmed: Boolean(email),
+          // for the unsubscribe links in the weekly email
+          emailCode: email ? newEmailCode() : null,
+          weeklyEmail: false,
         },
         select: { id: true },
       });
@@ -158,7 +170,9 @@ export async function addGoogleUser(
       // their Google account already has one: that's the one
       const theirs = await getUserByGoogleId(googleId);
       if (theirs) return theirs.id;
-      // else the username was taken a moment ago: another
+      // else the username, or the email, was taken a moment ago: again, with
+      // another username and without the email
+      email = null;
     }
   }
   throw new Error("No free username for a Google sign-up");

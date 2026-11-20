@@ -6,6 +6,7 @@ import request from "supertest";
 import { app } from "../../app.js";
 import { googleSignIn } from "../../auth/googleSignIn.js";
 import userQueries from "../../models/userQueries.js";
+import transporter from "../../config/smtp.js";
 import { closeDb, emptyDb, prisma } from "./testDb.js";
 
 const NAMES: Record<string, string> = {
@@ -15,10 +16,28 @@ const NAMES: Record<string, string> = {
   sato: "佐藤",
   admin: "Admin",
 };
+// the emails Google says are verified; the rest have none it vouches for
+const EMAILS: Record<string, string> = {
+  sarah: "sarah.lee@example.com",
+  dana: "dana@example.com",
+};
 googleSignIn.accountOf = async (token: string) => {
   const who = token.match(/^token-for-(\w+)-/)?.[1];
-  return who ? { googleId: who, name: NAMES[who] ?? null } : null;
+  return who
+    ? { googleId: who, name: NAMES[who] ?? null, email: EMAILS[who] ?? null }
+    : null;
 };
+// nothing is really mailed: what would have gone out is kept
+const sent: { to: string; subject: string }[] = [];
+(transporter as { sendMail: unknown }).sendMail = async (mail: {
+  to: string;
+  subject: string;
+}) => {
+  sent.push(mail);
+};
+beforeEach(() => {
+  sent.length = 0;
+});
 const tokenFor = (who: string) => `token-for-${who}-${"x".repeat(30)}`;
 
 beforeEach(emptyDb);
@@ -199,4 +218,42 @@ test("a username taken in other capitals counts as taken", async () => {
   const agent = request.agent(app);
   await withGoogle(agent, "sarah");
   expect((await agent.get("/api/account")).body.username).toBe("sarahlee2");
+});
+
+test("Google's verified email is saved, confirmed, with the weekly email off and nothing mailed", async () => {
+  const agent = request.agent(app);
+  await withGoogle(agent, "sarah");
+  const account = (await agent.get("/api/account")).body;
+  expect(account).toMatchObject({
+    recoveryEmail: "sarah.lee@example.com",
+    emailConfirmed: true,
+    weeklyEmail: false,
+  });
+  expect(sent).toEqual([]);
+});
+
+test("an email Google doesn't vouch for isn't saved", async () => {
+  const agent = request.agent(app);
+  await withGoogle(agent, "zoe");
+  expect((await agent.get("/api/account")).body.recoveryEmail).toBeNull();
+});
+
+test("an email another account has stays with that account", async () => {
+  const id = (await userQueries.addUser("danaold", "a long password"))!;
+  await userQueries.updateAccount(id, { recoveryEmail: "dana@example.com" });
+  sent.length = 0;
+  const agent = request.agent(app);
+  expect((await withGoogle(agent, "dana")).status).toBe(201);
+  expect((await agent.get("/api/account")).body.recoveryEmail).toBeNull();
+  const other = await prisma.user.findUnique({ where: { id } });
+  expect(other?.recoveryEmail).toBe("dana@example.com");
+});
+
+test("Yes on the site starts the weekly email at once, with no link to press", async () => {
+  const agent = request.agent(app);
+  await withGoogle(agent, "sarah");
+  const yes = await agent.post("/api/account/weekly-email").send({ on: true });
+  expect(yes.status).toBe(200);
+  expect(yes.body).toMatchObject({ weeklyEmail: true, emailConfirmed: true });
+  expect(sent).toEqual([]);
 });

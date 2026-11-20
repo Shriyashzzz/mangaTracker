@@ -9,6 +9,7 @@ import { claimNote, noteFree } from "../../lib/notes";
 import { readLocal, writeLocal } from "../../lib/prefs";
 import { hasBottomBar } from "../../lib/bottomBar";
 import { useSwipeAway } from "../../lib/useSwipeAway";
+import { weeklyAskWaiting } from "../../lib/weeklyAsk";
 import {
   VIEW_PEEK_KEY,
   VIEW_PEEK_LEAVE_MS,
@@ -53,8 +54,9 @@ export default function ViewPeek({ series, rows, blocked, onChoose }: Props) {
       if (document.hidden || typing) return;
       if (document.querySelector("[data-over-add-button], .support-peek"))
         return;
-      // the tour first, and one note a visit
-      if (!noteFree("view")) return;
+      // the tour first, then a new Google reader's weekly email question
+      // (WeeklyEmailPeek), and one note a visit
+      if (weeklyAskWaiting() || !noteFree("view")) return;
       claimNote("view");
       save({ lastShownAt: Date.now() });
       setNote("ask");

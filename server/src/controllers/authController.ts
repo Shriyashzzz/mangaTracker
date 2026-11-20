@@ -147,9 +147,7 @@ const google = [
     if (!google)
       return sendError(res, 401, "Google didn't confirm that. Try again.");
     const found = await userQueries.getUserByGoogleId(google.googleId);
-    const userId =
-      found?.id ??
-      (await userQueries.addGoogleUser(google.googleId, google.name));
+    const userId = found?.id ?? (await userQueries.addGoogleUser(google));
     await startSession(req, userId);
     res.sendStatus(found ? 200 : 201);
   },
