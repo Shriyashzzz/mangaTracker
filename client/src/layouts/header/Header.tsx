@@ -48,9 +48,10 @@ const barClass = (active: boolean) =>
 const barCount =
   "rounded-[3px] bg-accent px-1.5 font-mono text-[0.78rem] leading-[1.35] tracking-normal text-on-accent tabular-nums group-data-on:bg-on-accent group-data-on:text-accent";
 
-// the To buy list's count, beside its link in the top bar
+// the To buy list's count, beside its link in the top bar: green, To buy's
+// colour, a tally of the list. Red stays New's: something new to look at
 const topCount =
-  "ml-1.5 rounded-[3px] bg-accent px-1.5 font-mono text-[0.78rem] leading-[1.35] text-on-accent tabular-nums";
+  "ml-1.5 rounded-[3px] bg-ok px-1.5 font-mono text-[0.78rem] leading-[1.35] text-paper tabular-nums";
 
 export default function Header() {
   const navigate = useNavigate();
