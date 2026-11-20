@@ -20,6 +20,7 @@ import {
   type KeyboardEvent,
   type PointerEvent,
 } from "react";
+import { tick as tickUnderThumb } from "../../lib/haptics";
 import { ChevronLeftIcon, ChevronRightIcon } from "../icons/Icons";
 import {
   BOOK,
@@ -202,6 +203,7 @@ export default function VolumeShelf({
       clearTimeout(popTimer.current);
       popTimer.current = window.setTimeout(() => setPopped(null), 400);
     }
+    tickUnderThumb();
     onToggle(volume);
   };
   const say = (volume: number, theirs: boolean) =>

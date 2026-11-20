@@ -4,6 +4,7 @@
 import { useEffect, useRef, useState } from "react";
 import { apiFetch } from "../../lib/api";
 import { saveOrKeep } from "../../lib/offlineChanges";
+import { tick } from "../../lib/haptics";
 import { useShelf } from "../../store/shelf";
 import { detailsStyles as styles } from "./styles";
 
@@ -199,7 +200,10 @@ export default function ChapterStepper({
           className={styles.stepperBtn}
           aria-label={`One ${counted} back`}
           disabled={current <= 0}
-          onClick={() => change(String(current - 1))}
+          onClick={() => {
+            tick();
+            change(String(current - 1));
+          }}
         >
           <svg viewBox="0 0 16 16" aria-hidden>
             <path d="M3 8h10" />
@@ -233,7 +237,10 @@ export default function ChapterStepper({
           aria-label={`One ${counted} on`}
           data-tour="chapter-up"
           disabled={current >= MAX_CHAPTER}
-          onClick={() => change(String(current + 1))}
+          onClick={() => {
+            tick();
+            change(String(current + 1));
+          }}
         >
           <svg viewBox="0 0 16 16" aria-hidden>
             <path d="M3 8h10M8 3v10" />

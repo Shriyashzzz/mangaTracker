@@ -18,6 +18,7 @@ import ScanEdit from "./ScanEdit";
 import { useShelf } from "../../store/shelf";
 import { useBarcodeReader } from "./useBarcodeReader";
 import { scanStyles as styles } from "./styles";
+import { buzz } from "../../lib/haptics";
 import { orOffline } from "../../lib/offline";
 
 // one scanned book: looking it up until result arrives
@@ -147,11 +148,7 @@ export default function ScanSheet({
       timers.current.push(window.setTimeout(fn, ms));
     setJustRead(true);
     later(() => setJustRead(false), 350);
-    try {
-      navigator.vibrate?.(40);
-    } catch {
-      /* no buzz on this device */
-    }
+    buzz(40);
     // the same book twice in one sitting does nothing new, but says so
     if (handled.current.has(isbn)) {
       setNotice("Already scanned");
