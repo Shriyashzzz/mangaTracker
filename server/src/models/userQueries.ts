@@ -105,7 +105,7 @@ const readerUsername = () =>
 // the letters and numbers usernames allow, at most 36 so a number fits
 // after it. Null when that leaves under 4 (佐藤, "Al") or a name kept for
 // the site (util/reservedNames.ts)
-export function usernameFromName(name: string | null) {
+function usernameFromName(name: string | null) {
   const plain = (name ?? "")
     .normalize("NFKD")
     .replace(/[\u0300-\u036f]/g, "")

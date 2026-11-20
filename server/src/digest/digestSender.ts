@@ -22,7 +22,7 @@ const FIRST_HOUR_UTC = 14;
 
 const send = (to: string, mail: Mail) => sendEmail({ from: FROM, to, ...mail });
 
-export const sendConfirmMail = (reader: {
+const sendConfirmMail = (reader: {
   to: string;
   username: string;
   code: string;

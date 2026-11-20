@@ -14,7 +14,7 @@ import config from "../config/config.js";
 
 const client = new OAuth2Client();
 
-export type GoogleAccount = {
+type GoogleAccount = {
   googleId: string;
   name: string | null;
   // only when Google says it's verified, in lowercase as every email is kept

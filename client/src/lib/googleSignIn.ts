@@ -11,7 +11,7 @@ export const GOOGLE_CLIENT_ID =
   "552457597915-mqhe0847l0rs50bfhk27bclo3f76ir4v.apps.googleusercontent.com";
 
 // the parts of Google's script used here
-export type GoogleId = {
+type GoogleId = {
   initialize: (options: {
     client_id: string;
     callback: (answer: { credential: string }) => void;

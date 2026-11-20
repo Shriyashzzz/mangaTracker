@@ -198,7 +198,7 @@ export function digestMail(
   const pricesNote = digest.drops.length
     ? " · Prices were checked in the last few days and can change."
     : "";
-  const footer = `              You get this because you switched on the weekly email in your Manga Tracker settings. It only comes when there's news.<br>
+  const footer = `              You get this because you said yes to the weekly email on Manga Tracker. It only comes when there's news.<br>
               <a href="${unsubscribeUrl}" target="_blank" style="color:${FAINT}; text-decoration:underline;">Unsubscribe</a>${pricesNote}`;
 
   const lines = [
@@ -225,7 +225,7 @@ export function digestMail(
     "",
     `Your shelf: ${home}/shelf`,
     "",
-    "You get this because you switched on the weekly email in your Manga Tracker settings.",
+    "You get this because you said yes to the weekly email on Manga Tracker.",
     `Unsubscribe: ${unsubscribeUrl}`,
   ];
 
