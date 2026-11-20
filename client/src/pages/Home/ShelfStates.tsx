@@ -49,9 +49,11 @@ export function ShelfUnreachable({ onRetry }: { onRetry: () => void }) {
   );
 }
 
-// A new collector's first look: the ways to bring in what they own, the
-// fastest first for the device (a phone scans, a laptop imports), and the
-// tour for anyone not ready to start. The scan sheet opens over it
+// A new collector's first look: the ways to bring in what they own, all
+// drawn alike so none hides the others (Add by name was missed under a red
+// Import button), in the order that suits the device: a phone scans first, a
+// laptop adds by name. Then the tour for anyone not ready to start. The scan
+// sheet opens over it
 export function EmptyShelf({
   onAdd,
   onScan,
@@ -65,11 +67,11 @@ export function EmptyShelf({
   // the scan sheet, once it's open
   children?: ReactNode;
 }) {
-  const scan = (main: boolean) => (
+  const scan = (
     <li key="scan" className={styles.emptyWay}>
       <button
         type="button"
-        className={`btn ${main ? "btn-primary" : "btn-secondary"} btn-lg`}
+        className="btn btn-secondary btn-lg"
         onClick={onScan}
         onPointerEnter={onScanHover}
       >
@@ -80,13 +82,9 @@ export function EmptyShelf({
       </span>
     </li>
   );
-  const importList = (main: boolean) => (
+  const importList = (
     <li key="import" className={styles.emptyWay}>
-      <NavLink
-        to="/import"
-        className={`btn ${main ? "btn-primary" : "btn-secondary"} btn-lg`}
-        viewTransition
-      >
+      <NavLink to="/import" className="btn btn-secondary btn-lg" viewTransition>
         Import a list
       </NavLink>
       <span className={styles.emptyHint}>
@@ -108,10 +106,10 @@ export function EmptyShelf({
       </span>
     </li>
   );
-  // a phone has its camera to hand; a laptop has the list in another tab
+  // a phone has its camera to hand; adding by name before importing, on both
   const ways = hasBottomBar()
-    ? [scan(true), importList(false), byName]
-    : [importList(true), byName, scan(false)];
+    ? [scan, byName, importList]
+    : [byName, importList, scan];
 
   return (
     <section
@@ -125,18 +123,12 @@ export function EmptyShelf({
       <h2 id="empty-shelf-title" className={styles.emptyShelfTitle}>
         Start your shelf
       </h2>
-      <p className={styles.emptyShelfLead}>
-        Bring in the volumes you own. Pick the fastest way.
-      </p>
       <ol className={styles.emptyWays}>{ways}</ol>
       <div className={styles.emptyTour}>
         <p className={styles.emptyTourAsk}>Not ready yet?</p>
         <TakeTourButton className="btn btn-ghost">
           Take the tour with Kenji
         </TakeTourButton>
-        <p className={styles.emptyHint}>
-          A practice shelf of 40 series. Nothing there touches your account.
-        </p>
       </div>
       {children}
     </section>

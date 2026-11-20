@@ -205,7 +205,6 @@ export const homeStyles = {
     "mx-auto my-10 flex max-w-[480px] flex-col items-center border-3 border-line bg-paper px-8 py-9 text-center shadow-ink upto-720:mx-1 upto-720:my-6 upto-720:px-5 upto-720:py-7",
   emptyShelfTitle:
     "mt-3 font-brand text-[clamp(2.1rem,6vw,2.8rem)] leading-none tracking-[0.02em] uppercase",
-  emptyShelfLead: "mt-3 text-ink-soft",
   emptyWays: "mt-7 flex w-full max-w-[340px] flex-col gap-5",
   emptyWay: "flex flex-col items-stretch gap-1.5",
   emptyHint: "font-mono text-[0.78rem] leading-snug text-muted",
