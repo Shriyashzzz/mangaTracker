@@ -382,7 +382,9 @@ function collectorReleases(m: Manga, known: [number, string][]) {
       nextVolumeBook: next ? book(next) : null,
       outVolumes: out.map(book),
       outJapanVolumes: [],
-      latestChapter: m.bookmark,
+      // no real count of chapters out: none, so a row says "ch. 20" and
+      // never a made-up "ch. 20 of 20", as a real shelf does without one
+      latestChapter: null,
       latestJapaneseVolume: null,
     },
     complete: true,
@@ -400,7 +402,8 @@ function releasesFor(m: Manga, kind: DemoKind) {
   const volumeOut = reader && m.id === 1 && (m.seenVolume ?? 0) < NEW_VOLUME;
   const chapterOut = reader && m.id === 3 && (m.seenChapter ?? 0) < 123;
   const nextVolume = reader && m.id === 1 ? NEW_VOLUME : null;
-  const latestChapter = reader && m.id === 3 ? 123 : m.bookmark;
+  // Chainsaw Man's is known; the rest have no count, as in collectorReleases
+  const latestChapter = reader && m.id === 3 ? 123 : null;
   return {
     releaseData:
       reader && m.id === 1
