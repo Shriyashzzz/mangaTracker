@@ -14,12 +14,13 @@ export const settingsStyles = {
     "tap flex min-h-11 items-center rounded-ink border-2 border-line bg-card px-3 font-semibold text-ink upto-760:min-h-9 upto-760:justify-center upto-760:border-[1.5px] upto-760:px-1 upto-760:text-center upto-760:text-[0.85rem]",
   panel: "min-w-0",
   tabBody: "flex flex-col gap-5",
-  // a tab of choices (Appearance, Your shelf, Prices): a faint dashed line
-  // after each group but the last, never under the title. It sits in the
-  // gap that was there, 12px each side of it. At the bottom of the group
-  // above, because a line on a group's top would run through its legend
+  // a tab of choices (Appearance, Your shelf, Prices): the same solid line
+  // as between sections, after each group but the last, never under the
+  // title. It sits in the gap that was there, 12px each side of it. At the
+  // bottom of the group above, because a line on a group's top would run
+  // through its legend
   choicesBody:
-    "flex flex-col gap-5 [&>*:not(h2):not(:last-child)]:-mb-2 [&>*:not(h2):not(:last-child)]:border-b [&>*:not(h2):not(:last-child)]:border-dashed [&>*:not(h2):not(:last-child)]:border-line-soft [&>*:not(h2):not(:last-child)]:pb-3",
+    "flex flex-col gap-5 [&>*:not(h2):not(:last-child)]:-mb-2 [&>*:not(h2):not(:last-child)]:border-b-[1.5px] [&>*:not(h2):not(:last-child)]:border-line [&>*:not(h2):not(:last-child)]:pb-3",
   tabTitle:
     "font-brand text-[clamp(1.9rem,4.5vw,2.6rem)] leading-[1] font-normal tracking-[0.02em] uppercase",
   title:
