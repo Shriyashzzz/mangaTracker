@@ -52,7 +52,7 @@ function Section({
 const KEPT: Entry[] = [
   {
     name: "Your account",
-    body: "Your username and your password, stored only as a secure hash. If you sign in with Google, your Google account's ID number, and your Google name once, to make your username. A display name and picture if you choose them.",
+    body: "Your username and your password, stored only as a secure hash. If you sign in with Google, your Google account's ID number, and your Google name once, to make your username.",
   },
   {
     name: "Your email, if you add one",
