@@ -1,8 +1,8 @@
-// The site opened inside its Google Play app (client/src/lib/playApp.ts)
+// The site opened inside its Google Play app (client/src/lib/playAppReferrer.ts)
 import {
   openedFromPlayApp,
   PLAY_PACKAGE,
-} from "../../../../client/src/lib/playApp.js";
+} from "../../../../client/src/lib/playAppReferrer.js";
 
 test("only the Play app's own address counts", () => {
   expect(openedFromPlayApp(`android-app://${PLAY_PACKAGE}/`)).toBe(true);

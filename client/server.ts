@@ -20,6 +20,7 @@ import { visitorIp } from "./visitorIp.ts";
 import { ENOUGH_PRICED } from "./src/lib/enoughPriced.ts";
 import { ratingMarkup, type MarkedReview } from "./src/lib/reviewMarkup.ts";
 import { WHY_COLLECTORS } from "./src/lib/whyCollectors.ts";
+import { openedFromPlayApp } from "./src/lib/playAppReferrer.ts";
 import { FAQ, FAQ_DESCRIPTION, faqJsonLd } from "./src/lib/content/faq.ts";
 import {
   NEW_RELEASES_DESCRIPTION,
@@ -1082,7 +1083,7 @@ const robots = readFileSync(`${DIST}robots.txt`, "utf8").replace(
   /^Sitemap:.*$/m,
   "",
 );
-// Digital Asset Links: says the Google Play app (lib/playApp.ts
+// Digital Asset Links: says the Google Play app (lib/playAppReferrer.ts
 // PLAY_PACKAGE) may show this site full screen, without an address bar.
 // ANDROID_CERT_SHA256 holds the SHA-256 fingerprints of the keys the app is
 // signed with, comma-separated: your own upload key, and Google Play's app
@@ -1151,9 +1152,14 @@ const withTags =
         return;
       }
       if (tags === "missing") res.status(404);
+      // the Play app opening: no crawler text flashing before the app starts
+      // (lib/playAppReferrer.ts), only the splash colour. Its tags stay
+      const fromApp = openedFromPlayApp(req.get("referer") ?? "");
       sendPage(
         res,
-        tags && tags !== "missing" ? render(tags, origin) : template,
+        tags && tags !== "missing"
+          ? render(fromApp ? { ...tags, body: undefined } : tags, origin)
+          : template,
       );
     } catch (e) {
       console.error(

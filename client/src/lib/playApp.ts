@@ -5,15 +5,11 @@
 // Store links are fine: books are physical goods.
 //
 // The app opens the site with its own address as the referrer
-// ("android-app://xyz.mangatracker.app/"), only on the first page: it's
-// remembered for the rest of the visit.
+// (lib/playAppReferrer.ts), only on the first page: it's remembered for the
+// rest of the visit.
+import { openedFromPlayApp } from "./playAppReferrer";
 
-// the Play app's package name (android/twa-manifest.json)
-export const PLAY_PACKAGE = "xyz.mangatracker.app";
 const KEY = "inPlayApp";
-
-export const openedFromPlayApp = (referrer: string) =>
-  referrer.startsWith(`android-app://${PLAY_PACKAGE}`);
 
 // called once as the site starts
 export function notePlayApp() {
