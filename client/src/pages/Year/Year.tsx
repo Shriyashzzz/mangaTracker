@@ -27,6 +27,7 @@ import {
   shelfLength,
   sinceText,
   type YearInManga,
+  yearSeason,
 } from "../../lib/year";
 import { drawYearPicture } from "./yearPicture";
 import { yearStyles as styles } from "./styles";
@@ -140,12 +141,16 @@ export default function Year() {
   const deck = useRef<HTMLDivElement>(null);
   usePrivatePage("Your year in manga");
 
+  // out of season (lib/year.ts yearSeason): not shown, whatever the link
+  const season = yearSeason();
+
   useEffect(() => {
-    const asked = params.year ? `?year=${encodeURIComponent(params.year)}` : "";
-    getJson<YearInManga>(`/api/history/year${asked}`)
+    if (season === null) return;
+    const which = params.year ?? String(season);
+    getJson<YearInManga>(`/api/history/year?year=${encodeURIComponent(which)}`)
       .then(setYear)
       .catch(() => setFailed(orOffline("Your year didn't load. Try again.")));
-  }, [params.year]);
+  }, [params.year, season]);
 
   // on a phone the cards scroll sideways: which one is in view
   useEffect(() => {
@@ -161,6 +166,15 @@ export default function Year() {
     return () => row.removeEventListener("scroll", look);
   }, [year]);
 
+  if (season === null)
+    return (
+      <p className={`${styles.page} py-16 text-ink-soft`}>
+        Your year in manga comes back on Nov 25.{" "}
+        <NavLink to="/" className="underline underline-offset-3" viewTransition>
+          Back to your shelf
+        </NavLink>
+      </p>
+    );
   if (failed)
     return <p className={`${styles.page} py-16 text-accent`}>{failed}</p>;
   if (!year) return <div className="min-h-[70dvh]" aria-busy />;

@@ -63,14 +63,29 @@ export const emptyYear = (y: YearInManga) =>
   !y.seriesFinished &&
   !y.booksBought;
 
-// whether this year has anything to show yet, asked once a visit (the menu
-// shows "Your year in manga" only then). Never on the tour's practice shelf
+// Year in manga is a season: from Nov 25 to Feb 15, by the reader's own
+// date. Until Dec 31 it's this year's; from Jan 1 to Feb 15 the year that
+// just ended (in January 2027 they see their 2026). null: out of season, the
+// menu row is gone and /year says when it's back
+export function yearSeason(now = new Date()): number | null {
+  const month = now.getMonth(); // 0 is January
+  const day = now.getDate();
+  const year = now.getFullYear();
+  if ((month === 10 && day >= 25) || month === 11) return year;
+  if (month === 0 || (month === 1 && day <= 15)) return year - 1;
+  return null;
+}
+
+// whether this season's year has anything to show, asked once a visit (the
+// menu shows "Your year in manga" only then). Never out of season, nor on
+// the tour's practice shelf
 let asked: Promise<boolean> | null = null;
 export function useHasYear(signedIn: boolean) {
   const [has, setHas] = useState(false);
   useEffect(() => {
-    if (!signedIn || isDemo()) return;
-    asked ??= getJson<YearInManga>("/api/history/year")
+    const season = yearSeason();
+    if (!signedIn || isDemo() || season === null) return;
+    asked ??= getJson<YearInManga>(`/api/history/year?year=${season}`)
       .then((y) => !emptyYear(y))
       .catch(() => {
         asked = null;
