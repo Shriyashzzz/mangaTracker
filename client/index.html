@@ -98,6 +98,11 @@
       html[data-theme="dark"] {
         background: #16140f;
       }
+      /* on the way to the shelf (the script below): the price page's text
+         for search engines never shows */
+      html.shelf-start .crawl-page {
+        display: none;
+      }
     </style>
     <!-- the background sound effect's font, only its two glyphs (ド, ン:
          Dela Gothic One, SIL Open Font License), inlined so ドン is drawn
@@ -113,6 +118,29 @@
         unicode-range: U+3099, U+30C8-30C9, U+30F3;
       }
     </style>
+    <script>
+      // someone who has signed in on this device and opens "/" came for
+      // their shelf: go there before anything is drawn, so neither the
+      // search engines' price text nor the Prices tab shows first. The note
+      // is store/auth.ts's; without it pages/Prices/FrontDoor.tsx decides
+      // once the sign-in check answers. A shared search (?q=) keeps its search
+      try {
+        if (
+          location.pathname === "/" &&
+          !new URLSearchParams(location.search).has("q") &&
+          localStorage.getItem("signedInBefore") === "yes"
+        ) {
+          history.replaceState(
+            history.state,
+            "",
+            "/shelf" + location.search + location.hash,
+          );
+          document.documentElement.classList.add("shelf-start");
+        }
+      } catch {
+        /* storage unavailable: FrontDoor decides */
+      }
+    </script>
     <script>
       // apply the saved theme and background before first paint so there is no flash
       document.documentElement.dataset.bg = "sfx";
