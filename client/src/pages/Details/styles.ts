@@ -194,9 +194,10 @@ export const detailsStyles = {
   releaseClose: `${cornerCross} text-on-accent hover:opacity-80 focus-visible:outline-on-accent`,
   label: "mb-[0.3rem] block font-mono text-[0.75rem] text-muted",
   // the series' rating and, beside it, the latest volume's: two of a
-  // kind, a label over five stars. Stacked on a phone
+  // kind, a label over five stars. Stacked on a phone. The line above
+  // parts it from where they're up to, on a phone too
   ratings:
-    "grid grid-cols-[auto_minmax(0,1fr)] gap-x-[clamp(1.5rem,5vw,3.5rem)] gap-y-3 border-t-[1.5px] border-line pt-4 upto-720:grid-cols-1 upto-720:border-t-0 upto-720:pt-0",
+    "grid grid-cols-[auto_minmax(0,1fr)] gap-x-[clamp(1.5rem,5vw,3.5rem)] gap-y-3 border-t-[1.5px] border-line pt-4 upto-720:grid-cols-1",
   rating: "min-w-0",
   // The volume's rating beside the series': a ticket like the ones in "Buy
   // it" (dashed, on card paper), its number on an inked stub like a cover's

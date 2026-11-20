@@ -29,7 +29,7 @@ export function ShelfSettingsTab() {
   const nextFor = useNextFor();
   const [offerAdd, setOfferAdd] = useState(offerAddNow);
   return (
-    <div className={styles.tabBody}>
+    <div className={styles.choicesBody}>
       <h2 className={styles.tabTitle}>Your shelf</h2>
       <fieldset className={styles.group}>
         <legend className={styles.legend}>Show manga as</legend>

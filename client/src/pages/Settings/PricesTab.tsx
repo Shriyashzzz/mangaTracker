@@ -11,7 +11,7 @@ export function PricesTab() {
   );
   const country = useCountry();
   return (
-    <div className={styles.tabBody}>
+    <div className={styles.choicesBody}>
       <h2 className={styles.tabTitle}>Prices</h2>
       <label className={styles.row}>
         <input

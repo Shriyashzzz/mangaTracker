@@ -23,7 +23,7 @@ export function AppearanceTab() {
   const [theme, setTheme] = useState(() => readLocal("theme") ?? "system");
   const [background, setBackground] = useState(currentBackground);
   return (
-    <div className={styles.tabBody}>
+    <div className={styles.choicesBody}>
       <h2 className={styles.tabTitle}>Appearance</h2>
       <fieldset className={styles.group}>
         <legend className={styles.legend}>Theme</legend>

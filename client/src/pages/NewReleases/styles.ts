@@ -121,7 +121,10 @@ export const newReleasesStyles = {
   // the controls
   panel:
     "printed flex flex-col gap-6 border-3 border-line bg-paper p-[clamp(1.25rem,3vw,1.75rem)] text-ink",
-  group: "flex flex-col gap-1 border-0 p-0",
+  // Volumes, then Chapters: a faint dashed line between the two, in the gap
+  // that was there (on the group above: one on top would cut its legend)
+  group:
+    "flex flex-col gap-1 border-0 p-0 not-last:-mb-3 not-last:border-b not-last:border-dashed not-last:border-line-soft not-last:pb-3",
   legend:
     "mb-1 font-brand text-[1.3rem] leading-[1.1] tracking-[0.02em] uppercase",
   groupNote: "mb-1 text-[0.9rem] text-ink-soft",
