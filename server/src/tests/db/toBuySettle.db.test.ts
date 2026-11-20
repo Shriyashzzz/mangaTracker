@@ -289,3 +289,54 @@ test("a light novel bought never ticks the manga of the same name", async () => 
   expect(res.body).toMatchObject({ done: null, shelf: null });
   expect((await mangaQueries.getManga(manga))!.volumesOwned).toBe(1);
 });
+
+test("the volumes ticked come too; an edition's book sets the edition; a place when reading", async () => {
+  const { agent } = await reader();
+  await book("9781999996417", "Zzadd Harbor, Vol. 3");
+  await book("9781999996418", "Zzadd Summit Deluxe Edition, Vol. 2");
+  await book("9781999996419", "Zzadd Garden, Vol. 4");
+  const bought = await addSeries(agent, "9781999996417", {
+    name: "Zzadd Harbor",
+    planned: false,
+    how: "owned",
+    owned: [1, 2],
+    bookmark: 30,
+  });
+  const harbor = (await mangaQueries.getManga(bought.body.id))!;
+  expect(harbor.volumesOwned).toBe(3);
+  expect(harbor.ownedList).toEqual([]);
+  expect(harbor.bookmark).toBe(30);
+  expect(harbor.planned).toBe(false);
+
+  const deluxe = await addSeries(agent, "9781999996418", {
+    name: "Zzadd Summit",
+    planned: true,
+    how: "owned",
+  });
+  expect((await mangaQueries.getManga(deluxe.body.id))!.edition).toBe("deluxe");
+
+  // ordered: the book on order, the ticked ones owned; To read keeps no place
+  const ordered = await addSeries(agent, "9781999996419", {
+    name: "Zzadd Garden",
+    planned: true,
+    how: "ordered",
+    owned: [1],
+    bookmark: 99,
+  });
+  const garden = (await mangaQueries.getManga(ordered.body.id))!;
+  expect(garden.volumesOwned).toBe(1);
+  expect(garden.orderedList).toEqual([4]);
+  expect(garden.bookmark).toBe(0);
+
+  // a volume that isn't one is refused
+  expect(
+    (
+      await addSeries(agent, "9781999996417", {
+        name: "Zzadd Harbor",
+        planned: true,
+        how: "owned",
+        owned: [1000],
+      })
+    ).status,
+  ).toBe(400);
+});

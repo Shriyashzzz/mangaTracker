@@ -91,6 +91,13 @@ const addSeries = [
   nameField(),
   body("planned").isBoolean().toBoolean(),
   body("how").isIn(["owned", "ordered"]),
+  // the other volumes they ticked on the modal's shelf
+  body("owned").optional().isArray({ max: 999 }),
+  body("owned.*").isFloat({ min: 0, max: 999 }).toFloat(),
+  body("bookmark")
+    .optional({ values: "null" })
+    .isInt({ min: 0, max: 100000 })
+    .toInt(),
   rejectInvalid,
   async (req: Request, res: Response) => {
     const d = matchedData(req);
@@ -98,6 +105,8 @@ const addSeries = [
       name: d.name,
       planned: d.planned,
       how: d.how,
+      owned: d.owned,
+      bookmark: d.bookmark,
     });
     if (added === "gone")
       return void sendError(res, 404, "We couldn't find that book.");

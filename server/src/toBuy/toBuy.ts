@@ -322,12 +322,29 @@ export type AddedFromToBuy = {
 export async function addFromToBuy(
   userId: number,
   isbn13: string,
-  asked: { name: string; planned: boolean; how: "owned" | "ordered" },
+  asked: {
+    name: string;
+    planned: boolean;
+    how: "owned" | "ordered";
+    // the other volumes they ticked on the modal's shelf: theirs already
+    owned?: number[];
+    // the chapter they've read up to, when they're reading it
+    bookmark?: number | null;
+  },
 ): Promise<AddedFromToBuy | "gone"> {
   const book = await prisma.book.findUnique({ where: { isbn13 } });
   if (!book) return "gone";
   const lightNovel = isNovelBook(book.title);
   const volumes = volumesOf(book.title);
+  // an edition's book collects the series as that edition (Deluxe, VIZBIG)
+  const edition = editionOfTitle(book.title)?.key ?? null;
+  // what's theirs: what they ticked, and the book when it's bought
+  const theirs = [
+    ...new Set([
+      ...(asked.owned ?? []),
+      ...(volumes && asked.how === "owned" ? volumes : []),
+    ]),
+  ];
   const name = lightNovel
     ? asked.name
     : canonicalTitle(
@@ -339,7 +356,11 @@ export async function addFromToBuy(
     const there = onShelfAs(name, shelf, undefined, lightNovel);
     if (there) {
       const entry = (await mangaQueries.getManga(there.id))!;
-      if (volumes) await putOnShelf(entry, volumes, asked.how);
+      if (theirs.length) await putOnShelf(entry, theirs, "owned");
+      if (volumes && asked.how === "ordered") {
+        const now = (await mangaQueries.getManga(there.id))!;
+        await putOnShelf(now, volumes, "ordered");
+      }
       return {
         added: false,
         id: entry.id,
@@ -353,10 +374,16 @@ export async function addFromToBuy(
       status: false,
       planned: asked.planned,
       lightNovel,
-      ...(volumes && asked.how === "owned" ? ownedVolumes(null, volumes) : {}),
+      ...(edition ? { edition } : {}),
+      // a place only for one they're reading
+      ...(!asked.planned && asked.bookmark ? { bookmark: asked.bookmark } : {}),
+      ...(theirs.length ? ownedVolumes(null, theirs) : {}),
     });
     if (volumes && asked.how === "ordered")
-      await mangaQueries.setOrdered(id, volumes);
+      await mangaQueries.setOrdered(
+        id,
+        volumes.filter((v) => !theirs.includes(v)),
+      );
     return {
       added: true,
       id,

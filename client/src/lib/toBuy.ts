@@ -49,7 +49,15 @@ export type AddedFromToBuy = {
 
 export async function addSeriesFromToBuy(
   isbn13: string,
-  asked: { name: string; planned: boolean; how: "owned" | "ordered" },
+  asked: {
+    name: string;
+    planned: boolean;
+    how: "owned" | "ordered";
+    // the other volumes they ticked: theirs already
+    owned?: number[];
+    // the chapter they've read up to, when reading
+    bookmark?: number | null;
+  },
 ) {
   const res = await apiFetch(`/api/to-buy/${isbn13}/add-series`, {
     method: "POST",

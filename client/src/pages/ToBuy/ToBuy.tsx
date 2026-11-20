@@ -91,14 +91,30 @@ const nameOf = (item: ToBuyItem) =>
     ? `${novelParts(item.series).title}, Vol. ${item.volume}`
     : novelParts(item.title).title;
 
+// 1, 2, 3, 5 -> "1–3, 5"
+function runsText(volumes: number[]) {
+  const runs: string[] = [];
+  for (let i = 0; i < volumes.length;) {
+    let j = i;
+    while (volumes[j + 1] === volumes[j]! + 1) j++;
+    runs.push(i === j ? `${volumes[i]}` : `${volumes[i]}–${volumes[j]}`);
+    i = j + 1;
+  }
+  return runs.join(", ");
+}
+
 // What adding it did, for the toast: "Added vol. 2 of Blue Box to your
 // shelf", "Blue Box was on your shelf already: vol. 2 is there now"
-function addedText(a: AddedFromToBuy) {
-  const which = !a.volumes?.length
+function addedText(a: AddedFromToBuy, ticked: number[] = []) {
+  const all =
+    a.done === "owned"
+      ? [...new Set([...(a.volumes ?? []), ...ticked])].sort((x, y) => x - y)
+      : (a.volumes ?? []);
+  const which = !all.length
     ? null
-    : a.volumes.length === 1
-      ? `vol. ${a.volumes[0]}`
-      : `vols. ${a.volumes[0]}–${a.volumes.at(-1)}`;
+    : all.length === 1
+      ? `vol. ${all[0]}`
+      : `vols. ${runsText(all)}`;
   if (a.added) {
     if (!which || !a.done)
       return `Added ${a.name} to your shelf. Tick the volumes it holds there.`;
@@ -187,7 +203,9 @@ export default function ToBuy() {
     settled: Settled;
     how: "owned" | "ordered";
   } | null>(null);
-  const [added, setAdded] = useState<AddedFromToBuy | null>(null);
+  const [added, setAdded] = useState<
+    (AddedFromToBuy & { ticked: number[] }) | null
+  >(null);
   const forgetAdded = useCallback(() => setAdded(null), []);
   // "Clear list" asks once more, in a dialog, before it empties the list
   const [asking, setAsking] = useState(false);
@@ -303,19 +321,19 @@ export default function ToBuy() {
           settled={addAsking.settled}
           how={addAsking.how}
           bookName={nameOf(addAsking.item)}
-          onDone={(result) => {
+          onDone={(result, ticked) => {
             const { item, settled } = addAsking;
             setAddAsking(null);
             if (!result) return setNote(settledNote(item, settled));
             setNote("");
-            setAdded(result);
+            setAdded({ ...result, ticked });
             void useShelf.getState().load();
           }}
         />
       )}
       {added && (
         <Toast onGone={forgetAdded}>
-          <span className="min-w-0">{addedText(added)}</span>
+          <span className="min-w-0">{addedText(added, added.ticked)}</span>
           <NavLink
             to={`/details/${added.id}`}
             className={toastAction}
