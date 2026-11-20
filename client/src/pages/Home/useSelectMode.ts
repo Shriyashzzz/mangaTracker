@@ -1,8 +1,10 @@
 // The shelf's Select: tick cards, then move them to another tab or delete them
 // together, with an undo for the move. Only what the view shows counts as
 // ticked, so nothing hidden by a tab or search is ever moved or deleted.
-// Escape leaves (the Move to menu closes first); a tap outside closes the menu.
+// Android's back or Escape leaves (the Move to menu closes first); a tap
+// outside closes the menu.
 import { useEffect, useRef, useState } from "react";
+import { useCloseOnBack } from "../../lib/closeOnBack";
 import type { Manga } from "../../lib/types";
 import { useShelf, type ShelfMove, type ShelfPlace } from "../../store/shelf";
 import { useLingeringNote } from "./useLingeringNote";
@@ -41,32 +43,13 @@ export function useSelectMode({
     setPicked(new Set());
   };
 
-  useEffect(() => {
-    if (!selectOn) return;
-    const leave = (e: KeyboardEvent) => {
-      if (e.key !== "Escape") return;
-      // the confirm dialog's own Escape closes just the dialog, and the
-      // search's clears the search
-      if (document.querySelector("dialog[open]")) return;
-      // the Move to menu closes first
-      if (moveOpen) {
-        setMoveOpen(false);
-        moveMenu.current?.querySelector("button")?.focus();
-        return;
-      }
-      // a ticked card's box still leaves; a text box keeps its Escape
-      if (
-        (e.target as Element | null)?.closest(
-          "input:not([type=checkbox]), textarea, select",
-        )
-      )
-        return;
-      setSelecting(false);
-      setPicked(new Set());
-    };
-    window.addEventListener("keydown", leave);
-    return () => window.removeEventListener("keydown", leave);
-  }, [selectOn, moveOpen]);
+  // Android's back, or Escape: the newest open closes first, so the Move to
+  // menu (and the confirm dialog, a native one) before Select itself
+  useCloseOnBack(selectOn, stop);
+  useCloseOnBack(moveOpen, () => {
+    setMoveOpen(false);
+    moveMenu.current?.querySelector("button")?.focus();
+  });
 
   // a tap anywhere else closes the menu
   useEffect(() => {

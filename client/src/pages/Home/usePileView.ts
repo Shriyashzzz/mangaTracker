@@ -8,7 +8,7 @@
 // (Volumes, or Chapters for a reader who owns no volumes), a pile's link
 // means one pile only, and Back still returns to the side they were on.
 import { useState } from "react";
-import { useSearchParams } from "react-router";
+import { useLocation, useNavigate, useSearchParams } from "react-router";
 import {
   isPileView,
   PILE_SORTS,
@@ -37,6 +37,13 @@ export function usePileView(
   fallbackSide: ReleaseKind = "volumes",
 ) {
   const [searchParams, setSearchParams] = useSearchParams();
+  const location = useLocation();
+  const navigate = useNavigate();
+  // how many pile pages were opened, one after another, since the piles: each
+  // history step carries its count, so the page's Back to New can go back
+  // that far rather than add a step Android's back would reopen
+  const pileSteps =
+    (location.state as { pileSteps?: number } | null)?.pileSteps ?? 0;
   // what the address says, a pile or not
   const pileParam = searchParams.get("pile");
   // the pile whose page is open ("all" for everything at once); null on the
@@ -78,7 +85,18 @@ export function usePileView(
     else next.delete("pile");
     // from the piles, up to the top of the pile's page (the router's own
     // reset); between piles (the chips) the page stays where it is
-    setSearchParams(next, { preventScrollReset: Boolean(pileView && view) });
+    setSearchParams(next, {
+      preventScrollReset: Boolean(pileView && view),
+      state: view ? { pileSteps: pileView ? pileSteps + 1 : 1 } : null,
+    });
+  };
+
+  // the page's Back to New: back through the history to the piles when they
+  // came from there, else (a link straight to a pile) a step to the piles
+  const backToPiles = () => {
+    if (pileSteps < 1) return openPile(null);
+    setPileLeft(pileView && pileView !== "all" ? pileView : null);
+    navigate(-pileSteps);
   };
 
   // back to the piles without a step in the history: for a pile that's been
@@ -98,7 +116,12 @@ export function usePileView(
     const next = new URLSearchParams(searchParams);
     if (mangaId) next.set("list", String(mangaId));
     else next.delete("list");
-    setSearchParams(next, { replace: true, preventScrollReset: true });
+    // keeps the step's pile count (backToPiles)
+    setSearchParams(next, {
+      replace: true,
+      preventScrollReset: true,
+      state: location.state,
+    });
   };
 
   return {
@@ -112,6 +135,7 @@ export function usePileView(
     setPileSort,
     pileLeft,
     openPile,
+    backToPiles,
     closePile,
   };
 }

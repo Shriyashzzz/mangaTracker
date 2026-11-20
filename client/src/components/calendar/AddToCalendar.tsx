@@ -3,6 +3,7 @@
 //   Google, one release:   opens with the event filled in
 //   Google, several:       saves the .ics file and opens Google's import page
 //   Apple, Outlook, others: the .ics file, which they open themselves
+import { useCloseOnBack } from "../../lib/closeOnBack";
 import { useEffect, useId, useRef, useState } from "react";
 import { CalendarPlusIcon } from "../icons/Icons";
 import {
@@ -45,24 +46,19 @@ export default function AddToCalendar({
   const dated = volumes.filter(hasDay);
   const one = dated.length === 1 ? dated[0]! : null;
 
-  // a click anywhere else or Escape closes it
+  // a click anywhere else closes it (and Android's back or Escape, below)
   useEffect(() => {
     if (!open) return;
     const away = (e: PointerEvent) => {
       if (!box.current?.contains(e.target as Node)) setOpen(false);
     };
-    const key = (e: KeyboardEvent) => {
-      if (e.key !== "Escape") return;
-      setOpen(false);
-      box.current?.querySelector("button")?.focus();
-    };
     document.addEventListener("pointerdown", away);
-    document.addEventListener("keydown", key);
-    return () => {
-      document.removeEventListener("pointerdown", away);
-      document.removeEventListener("keydown", key);
-    };
+    return () => document.removeEventListener("pointerdown", away);
   }, [open]);
+  useCloseOnBack(open, () => {
+    setOpen(false);
+    box.current?.querySelector("button")?.focus();
+  });
 
   // only a month to go on: no day to put it on yet
   if (!dated.length)

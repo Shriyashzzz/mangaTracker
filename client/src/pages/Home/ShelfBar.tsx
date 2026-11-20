@@ -6,6 +6,7 @@
 // of the row and never grows, so nothing moves when you click it; on phones it
 // waits behind a magnifier and takes the title's place while open. Sorting is
 // a menu: "Sorted by last updated" on laptops, a sort button on phones.
+import { useCloseOnBack } from "../../lib/closeOnBack";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import {
   CheckIcon,
@@ -36,18 +37,14 @@ function useMenu() {
     const away = (e: PointerEvent) => {
       if (!ref.current?.contains(e.target as Node)) setOpen(false);
     };
-    const escape = (e: KeyboardEvent) => {
-      if (e.key !== "Escape") return;
-      setOpen(false);
-      ref.current?.querySelector<HTMLButtonElement>("button")?.focus();
-    };
     document.addEventListener("pointerdown", away);
-    document.addEventListener("keydown", escape);
-    return () => {
-      document.removeEventListener("pointerdown", away);
-      document.removeEventListener("keydown", escape);
-    };
+    return () => document.removeEventListener("pointerdown", away);
   }, [open]);
+  // Android's back, or Escape
+  useCloseOnBack(open, () => {
+    setOpen(false);
+    ref.current?.querySelector<HTMLButtonElement>("button")?.focus();
+  });
   return { open, setOpen, ref };
 }
 
@@ -107,6 +104,11 @@ export default function ShelfBar({
   useEffect(() => {
     if (searchOpen) input.current?.focus();
   }, [searchOpen]);
+  // Android's back, or Escape, clears and closes it before leaving the shelf
+  useCloseOnBack(searching, () => {
+    onQuery("");
+    setSearchOpen(false);
+  });
 
   return (
     <div className={styles.bar} data-shelf-bar>
@@ -167,6 +169,8 @@ export default function ShelfBar({
           onBlur={(e) => {
             if (!e.target.value.trim()) setSearchOpen(false);
           }}
+          // the search box takes Escape for itself (it clears it), so it
+          // never reaches useCloseOnBack: close it here too
           onKeyDown={(e) => {
             if (e.key === "Escape") {
               onQuery("");

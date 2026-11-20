@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { useCloseOnBack } from "../../lib/closeOnBack";
 import { NavLink, useLocation } from "react-router";
 import { inApp } from "../../lib/inApp";
 import {
@@ -122,7 +123,7 @@ export default function SettingsMenu({ isSignedIn, onLogOut }: Props) {
     setOpenOn(open ? null : pathname);
   };
 
-  // close on a click outside or Escape
+  // close on a click outside (and on Android's back or Escape, below)
   useEffect(() => {
     if (!open) return;
     const onPointer = (e: PointerEvent) => {
@@ -133,19 +134,13 @@ export default function SettingsMenu({ isSignedIn, onLogOut }: Props) {
       );
       if (!onTour && !wrapRef.current?.contains(e.target as Node)) close();
     };
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") {
-        close();
-        buttonRef.current?.focus();
-      }
-    };
     document.addEventListener("pointerdown", onPointer);
-    document.addEventListener("keydown", onKey);
-    return () => {
-      document.removeEventListener("pointerdown", onPointer);
-      document.removeEventListener("keydown", onKey);
-    };
+    return () => document.removeEventListener("pointerdown", onPointer);
   }, [open]);
+  useCloseOnBack(open, () => {
+    close();
+    buttonRef.current?.focus();
+  });
 
   const pickBackground = (id: Background) => {
     setBackground(id);

@@ -161,6 +161,7 @@ function Library() {
     setPileSort,
     pileLeft,
     openPile,
+    backToPiles,
     closePile,
   } = usePileView(showingNew, newOpensOn);
   // set in settings; Kenji's compact-rows offer (ViewPeek) can change it
@@ -763,7 +764,7 @@ function Library() {
           view={pileView}
           piles={piles}
           onPick={openPile}
-          onBack={() => openPile(null)}
+          onBack={backToPiles}
           viewingHidden={viewingHidden}
           extra={pileExtra}
           sort={pileSort}
