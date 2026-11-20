@@ -263,6 +263,8 @@ export type Prefs = {
   // what "Next for you" names when there are gaps: the volume after their
   // furthest ("after", unless chosen) or their first gap
   nextFor?: "after" | "gap";
+  // To buy offers to add a series not on the shelf; "off": never asks
+  offerAdd?: "on" | "off";
 };
 export type Background = "sfx" | "ink" | "pages" | "panels";
 export type Theme = "light" | "dark";

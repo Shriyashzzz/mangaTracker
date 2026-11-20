@@ -14,5 +14,7 @@ toBuyRouter.put("/:isbn", perMinute(60), toBuy.add);
 toBuyRouter.delete("/:isbn", perMinute(60), toBuy.remove);
 // "I bought it", "I ordered it": off the list, and on the shelf when certain
 toBuyRouter.post("/:isbn/settle", perMinute(60), toBuy.settle);
+// "Add it to your shelf?" for a series that isn't on it
+toBuyRouter.post("/:isbn/add-series", perMinute(30), toBuy.addSeries);
 // the whole list at once: asked for on purpose, twice (the page confirms)
 toBuyRouter.delete("/", perMinute(10), toBuy.clear);

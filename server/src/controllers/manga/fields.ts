@@ -34,7 +34,8 @@ export const chapterMessage = (value: unknown) => {
 };
 
 // ---------- validation shared by add and edit ----------
-export const mangaFields = [
+// a series' name, wherever one is given (also To buy's "add it": toBuy/)
+export const nameField = () =>
   body("name")
     // the invisible characters that turn text around ("right-to-left
     // override"): kept, they showed the title scrambled
@@ -44,7 +45,10 @@ export const mangaFields = [
     .withMessage("Manga title cannot be empty luv <3")
     // short titles are real ("86", "K"), and imports bring them in
     .isLength({ max: 150 })
-    .withMessage("Titles can be up to 150 characters long! <3"),
+    .withMessage("Titles can be up to 150 characters long! <3");
+
+export const mangaFields = [
+  nameField(),
   body("bookmark")
     .optional({ values: "falsy" })
     .isInt({ min: 0, max: 100000 })

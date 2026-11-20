@@ -10,7 +10,13 @@
 // isn't out yet says when it is, and can only be ordered. One the shelf
 // already has, or has on order, says so. Stored prices only: nothing here
 // asks a store.
-import { useEffect, useMemo, useState, type ReactNode } from "react";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+  type ReactNode,
+} from "react";
 import { NavLink, useNavigate, useSearchParams } from "react-router";
 import Cover from "../../components/cover/Cover";
 import Mascot from "../../components/mascot/Mascot";
@@ -23,6 +29,7 @@ import {
   settleToBuy,
   sortToBuy,
   TO_BUY_SORTS,
+  type AddedFromToBuy,
   type Settled,
   type ToBuyItem,
   type ToBuyList,
@@ -33,6 +40,12 @@ import { useAuth } from "../../store/auth";
 import { useToBuy } from "../../store/toBuy";
 import { pricesStyles } from "../Prices/styles";
 import ClearListModal from "./ClearListModal";
+import AddSeriesModal from "./AddSeriesModal";
+import Toast from "../../components/toast/Toast";
+import { toastAction } from "../../components/toast/toastStyles";
+import { offerAddNow } from "../../lib/prefs";
+import { isDemo } from "../../lib/demo";
+import { useShelf } from "../../store/shelf";
 import { SortMenu } from "../Home/ShelfBar";
 import { volumesStyles } from "../Home/volumesStyles";
 import { CoverFallback } from "../Prices/VolumeCard";
@@ -77,6 +90,27 @@ const nameOf = (item: ToBuyItem) =>
   item.volume != null && !item.edition
     ? `${novelParts(item.series).title}, Vol. ${item.volume}`
     : novelParts(item.title).title;
+
+// What adding it did, for the toast: "Added vol. 2 of Blue Box to your
+// shelf", "Blue Box was on your shelf already: vol. 2 is there now"
+function addedText(a: AddedFromToBuy) {
+  const which = !a.volumes?.length
+    ? null
+    : a.volumes.length === 1
+      ? `vol. ${a.volumes[0]}`
+      : `vols. ${a.volumes[0]}–${a.volumes.at(-1)}`;
+  if (a.added) {
+    if (!which || !a.done)
+      return `Added ${a.name} to your shelf. Tick the volumes it holds there.`;
+    return a.done === "owned"
+      ? `Added ${which} of ${a.name} to your shelf.`
+      : `Added ${a.name} to your shelf, ${which} ordered.`;
+  }
+  if (!which || !a.done) return `${a.name} was on your shelf already.`;
+  return a.done === "owned"
+    ? `${a.name} was on your shelf already: ${which} is yours there now.`
+    : `${a.name} was on your shelf already: ${which} is ordered there now.`;
+}
 
 // What a tap did, in words: on the shelf, or what to do now
 function settledNote(item: ToBuyItem, settled: Settled): ReactNode {
@@ -147,6 +181,14 @@ export default function ToBuy() {
   // the volume a tap is saving, and how the last one went
   const [busy, setBusy] = useState<string | null>(null);
   const [note, setNote] = useState<ReactNode>("");
+  // "Add it to your shelf?", for a series not on it; then what was added
+  const [addAsking, setAddAsking] = useState<{
+    item: ToBuyItem;
+    settled: Settled;
+    how: "owned" | "ordered";
+  } | null>(null);
+  const [added, setAdded] = useState<AddedFromToBuy | null>(null);
+  const forgetAdded = useCallback(() => setAdded(null), []);
   // "Clear list" asks once more, in a dialog, before it empties the list
   const [asking, setAsking] = useState(false);
   const clearAll = async () => {
@@ -173,7 +215,11 @@ export default function ToBuy() {
     try {
       const settled = await settleToBuy(item.isbn13, how);
       await load();
-      setNote(settledNote(item, settled));
+      // its series isn't on the shelf: asked whether to add it (unless
+      // they've said not to), else said in the note as before
+      if (!settled.shelf && offerAddNow() && !isDemo())
+        setAddAsking({ item, settled, how });
+      else setNote(settledNote(item, settled));
     } catch (e) {
       setNote((e as Error).message);
     } finally {
@@ -251,6 +297,34 @@ export default function ToBuy() {
       <p className={styles.note} role="status">
         {note}
       </p>
+      {addAsking && (
+        <AddSeriesModal
+          item={addAsking.item}
+          settled={addAsking.settled}
+          how={addAsking.how}
+          bookName={nameOf(addAsking.item)}
+          onDone={(result) => {
+            const { item, settled } = addAsking;
+            setAddAsking(null);
+            if (!result) return setNote(settledNote(item, settled));
+            setNote("");
+            setAdded(result);
+            void useShelf.getState().load();
+          }}
+        />
+      )}
+      {added && (
+        <Toast onGone={forgetAdded}>
+          <span className="min-w-0">{addedText(added)}</span>
+          <NavLink
+            to={`/details/${added.id}`}
+            className={toastAction}
+            viewTransition
+          >
+            See it
+          </NavLink>
+        </Toast>
+      )}
 
       {items && items.length > 0 && list && (
         <>

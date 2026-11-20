@@ -11,9 +11,11 @@ import {
   clearToBuy,
   MOST_TO_BUY,
   removeToBuy,
+  addFromToBuy,
   settleToBuy,
   toBuyList,
 } from "../toBuy/toBuy.js";
+import { nameField } from "./manga/fields.js";
 
 // :isbn may be ISBN-10 or -13 with dashes; handlers always get an ISBN-13
 const isbnParam = param("isbn")
@@ -80,6 +82,31 @@ const settle = [
   },
 ];
 
+// POST /:isbn/add-series {name, planned, how}  "Add it to your shelf?":
+// the series added with the book's volumes owned or ordered (when certain),
+// or, one by that name already there, the volumes put on it
+const addSeries = [
+  requireSignIn,
+  isbnParam,
+  nameField(),
+  body("planned").isBoolean().toBoolean(),
+  body("how").isIn(["owned", "ordered"]),
+  rejectInvalid,
+  async (req: Request, res: Response) => {
+    const d = matchedData(req);
+    const added = await addFromToBuy(req.session.userId!, d.isbn, {
+      name: d.name,
+      planned: d.planned,
+      how: d.how,
+    });
+    if (added === "gone")
+      return void sendError(res, 404, "We couldn't find that book.");
+    own(res)
+      .status(added.added ? 201 : 200)
+      .json(added);
+  },
+];
+
 // DELETE /  empties the list
 const clear = [
   requireSignIn,
@@ -89,4 +116,4 @@ const clear = [
   },
 ];
 
-export default { list, add, remove, clear, settle };
+export default { list, add, remove, clear, settle, addSeries };

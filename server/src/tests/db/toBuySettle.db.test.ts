@@ -157,3 +157,135 @@ test("the list says what's already owned or on order; not on the list: 404", asy
   expect((await settle(agent, "9781999996499", "owned")).status).toBe(404);
   expect((await settle(agent, "9781999996406", "maybe")).status).toBe(400);
 });
+
+// ---------- "Add it to your shelf?" (addFromToBuy) ----------
+const addSeries = (
+  agent: ReturnType<typeof request.agent>,
+  isbn: string,
+  body: object,
+) => agent.post(`/api/to-buy/${isbn}/add-series`).send(body);
+
+test("adding the series: To read, with the bought volume, once", async () => {
+  const { agent, id } = await reader();
+  await book("9781999996410", "Zzadd Chronicle, Vol. 2");
+  const res = await addSeries(agent, "9781999996410", {
+    name: "Zzadd Chronicle",
+    planned: true,
+    how: "owned",
+  });
+  expect(res.status).toBe(201);
+  expect(res.body).toMatchObject({ added: true, done: "owned", volumes: [2] });
+  const made = (await mangaQueries.getManga(res.body.id))!;
+  expect(made).toMatchObject({ userId: id, planned: true, status: false });
+  // vol. 2 alone, not 1 to 2
+  expect(made.ownedList).toEqual([2]);
+
+  // asked again (a second tap, another tab): not added twice
+  const again = await addSeries(agent, "9781999996410", {
+    name: "zzadd chronicle",
+    planned: true,
+    how: "owned",
+  });
+  expect(again.status).toBe(200);
+  expect(again.body).toMatchObject({ added: false, id: res.body.id });
+  expect(await prisma.manga.count({ where: { userId: id } })).toBe(1);
+});
+
+test("two at the same moment add one series", async () => {
+  const { agent, id } = await reader();
+  await book("9781999996411", "Zzadd Twins, Vol. 1");
+  const body = { name: "Zzadd Twins", planned: true, how: "owned" };
+  const [a, b] = await Promise.all([
+    addSeries(agent, "9781999996411", body),
+    addSeries(agent, "9781999996411", body),
+  ]);
+  expect([a.body.added, b.body.added].sort()).toEqual([false, true]);
+  expect(await prisma.manga.count({ where: { userId: id } })).toBe(1);
+});
+
+test("ordered: on order, not owned; an edition's book: no volumes guessed", async () => {
+  const { agent } = await reader();
+  await book("9781999996412", "Zzadd Voyage, Vol. 5");
+  await book("9781999996413", "Zzadd Epic Deluxe Edition, Vol. 3");
+  const ordered = await addSeries(agent, "9781999996412", {
+    name: "Zzadd Voyage",
+    planned: true,
+    how: "ordered",
+  });
+  const voyage = (await mangaQueries.getManga(ordered.body.id))!;
+  expect(voyage.orderedList).toEqual([5]);
+  expect(voyage.ownedList).toEqual([]);
+  expect(voyage.volumesOwned).toBeNull();
+
+  const deluxe = await addSeries(agent, "9781999996413", {
+    name: "Zzadd Epic",
+    planned: false,
+    how: "owned",
+  });
+  expect(deluxe.body).toMatchObject({ added: true, done: null, volumes: null });
+  const epic = (await mangaQueries.getManga(deluxe.body.id))!;
+  expect(epic.volumesOwned).toBeNull();
+  expect(epic.planned).toBe(false);
+});
+
+test("a light novel is added as one, beside the manga of the same name", async () => {
+  const { agent, id } = await reader();
+  await mangaQueries.addManga(id, { name: "Zzadd Academy", status: false });
+  await book("9781999996414", "Zzadd Academy (Light Novel) Vol. 2");
+  const res = await addSeries(agent, "9781999996414", {
+    name: "Zzadd Academy",
+    planned: true,
+    how: "owned",
+  });
+  expect(res.body.added).toBe(true);
+  expect((await mangaQueries.getManga(res.body.id))!.lightNovel).toBe(true);
+  expect(await prisma.manga.count({ where: { userId: id } })).toBe(2);
+});
+
+test("a bad name, an unknown book, or signed out: refused, nothing added", async () => {
+  const { agent, id } = await reader();
+  await book("9781999996415", "Zzadd Quiet, Vol. 1");
+  const ok = { planned: true, how: "owned" };
+  expect(
+    (await addSeries(agent, "9781999996415", { ...ok, name: "   " })).status,
+  ).toBe(400);
+  expect(
+    (await addSeries(agent, "9781999996415", { ...ok, name: "x".repeat(151) }))
+      .status,
+  ).toBe(400);
+  expect(
+    (
+      await addSeries(agent, "9781999996415", {
+        ...ok,
+        name: "Zzadd",
+        how: "both",
+      })
+    ).status,
+  ).toBe(400);
+  expect(
+    (await addSeries(agent, "9781999996499", { ...ok, name: "Zzadd Quiet" }))
+      .status,
+  ).toBe(404);
+  expect(
+    (
+      await request(app)
+        .post("/api/to-buy/9781999996415/add-series")
+        .send({ ...ok, name: "Zzadd Quiet" })
+    ).status,
+  ).toBe(401);
+  expect(await prisma.manga.count({ where: { userId: id } })).toBe(0);
+});
+
+test("a light novel bought never ticks the manga of the same name", async () => {
+  const { agent, id } = await reader();
+  const manga = await mangaQueries.addManga(id, {
+    name: "Zzadd Lantern",
+    status: false,
+    volumesOwned: 1,
+  });
+  await book("9781999996416", "Zzadd Lantern (Light Novel) Vol. 2");
+  await agent.put("/api/to-buy/9781999996416");
+  const res = await settle(agent, "9781999996416", "owned");
+  expect(res.body).toMatchObject({ done: null, shelf: null });
+  expect((await mangaQueries.getManga(manga))!.volumesOwned).toBe(1);
+});

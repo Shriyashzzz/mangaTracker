@@ -10,6 +10,7 @@ import {
   savePrefs,
   useNextFor,
   useTrackBy,
+  offerAddNow,
 } from "../../lib/prefs";
 import type { ShelfTab } from "../../lib/types";
 import { useAuth } from "../../store/auth";
@@ -26,6 +27,7 @@ export function ShelfSettingsTab() {
   const [shelfView, setShelfView] = useState(() => shelfViewNow());
   const trackBy = useTrackBy();
   const nextFor = useNextFor();
+  const [offerAdd, setOfferAdd] = useState(offerAddNow);
   return (
     <div className={styles.tabBody}>
       <h2 className={styles.tabTitle}>Your shelf</h2>
@@ -71,6 +73,24 @@ export function ShelfSettingsTab() {
             {label}
           </label>
         ))}
+      </fieldset>
+      {/* To buy's "Add it to your shelf?" (said "Don't ask again" to it) */}
+      <fieldset className={styles.group}>
+        <legend className={styles.legend}>To buy</legend>
+        <label className={styles.row}>
+          <input
+            type="checkbox"
+            checked={offerAdd}
+            onChange={(e) => {
+              setOfferAdd(e.target.checked);
+              savePrefs(
+                { offerAdd: e.target.checked ? "on" : "off" },
+                isSignedIn,
+              );
+            }}
+          />
+          Offer to add a series when I mark a book On my shelf or Ordered
+        </label>
       </fieldset>
       {/* the next volume to collect, on New and a series' Buy next, when
           there are gaps */}

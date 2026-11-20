@@ -35,6 +35,9 @@ export const PREF_VALUES = {
   // what "Next for you" names for a series with gaps: the volume after the
   // furthest they own ("after", the default) or their first gap ("gap")
   nextFor: ["after", "gap"],
+  // To buy offers to add a series not on the shelf when a book of it is
+  // marked On my shelf or Ordered; "off": it only takes the book off
+  offerAdd: ["on", "off"],
 } as const;
 export type StringPref = keyof typeof PREF_VALUES;
 

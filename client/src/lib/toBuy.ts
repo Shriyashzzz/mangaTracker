@@ -37,6 +37,33 @@ export type Settled = {
   volumes: number[] | null;
 };
 
+// "Add it to your shelf?" (server toBuy.ts addFromToBuy): the series added,
+// or the one by that name already there, with the book's volumes when certain
+export type AddedFromToBuy = {
+  added: boolean;
+  id: number;
+  name: string;
+  done: "owned" | "ordered" | null;
+  volumes: number[] | null;
+};
+
+export async function addSeriesFromToBuy(
+  isbn13: string,
+  asked: { name: string; planned: boolean; how: "owned" | "ordered" },
+) {
+  const res = await apiFetch(`/api/to-buy/${isbn13}/add-series`, {
+    method: "POST",
+    body: asked,
+  });
+  const data = (await res.json().catch(() => null)) as
+    (AddedFromToBuy & { error?: { msg?: string }[] }) | null;
+  if (!res.ok || !data)
+    throw new Error(
+      data?.error?.[0]?.msg ?? orOffline("That didn't save. Try again."),
+    );
+  return data;
+}
+
 // "I bought it" or "I ordered it": off the list, and on the shelf when the
 // server's certain which series and volumes
 export async function settleToBuy(isbn13: string, how: "owned" | "ordered") {

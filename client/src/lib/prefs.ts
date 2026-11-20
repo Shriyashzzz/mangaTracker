@@ -78,7 +78,9 @@ const applyPrefs = ({
   country,
   trackBy,
   nextFor,
+  offerAdd,
 }: Prefs = {}) => {
+  if (offerAdd) writeLocal("offerAdd", offerAdd);
   if (nextFor && nextFor !== readLocal("nextFor")) {
     writeLocal("nextFor", nextFor);
     nextForListeners.forEach((listener) => listener());
@@ -167,6 +169,10 @@ export const useNextFor = () =>
     return () => nextForListeners.delete(listener);
   }, nextForNow);
 
+// To buy offers to add a series not on the shelf (On my shelf, Ordered);
+// on unless they said not to ask again (Settings, Your shelf, turns it back on)
+export const offerAddNow = () => readLocal("offerAdd") !== "off";
+
 // applies a change right away, and keeps it on the account when signed in
 export const savePrefs = (patch: Prefs, isSignedIn: boolean | null) => {
   applyPrefs(patch);
@@ -190,6 +196,7 @@ export const syncPrefs = async () => {
       releaseChecks: "on",
       trackBy: "series",
       nextFor: "after",
+      offerAdd: "on",
       ...stored,
     });
     const missing: Prefs = {};
