@@ -359,6 +359,8 @@ type ShowMeta = {
   jsonLd?: Record<string, unknown>;
   // the title as it is, without " | Manga Tracker" after it
   fullTitle?: boolean;
+  // the app's top bar (lib/seo.ts PageMeta)
+  screen?: string;
 };
 
 // about what a search result shows of a description before cutting it
@@ -368,6 +370,7 @@ const WHAT_ELSE = "Every season's last chapter and the volume to buy next.";
 
 export const INDEX_META = {
   title: "Where does the anime leave off in the manga?",
+  screen: "After the anime",
   description:
     "Finished a season? Look up the anime and see which manga chapter and volume to start from, with the cheapest price for that volume.",
   path: "/after-the-anime",
@@ -523,7 +526,8 @@ export function showMeta(
   if (!show) return null;
   const title = showQuestion(show.name);
   const path = `/after-the-anime/${show.slug}`;
-  if (!show.stops.length) return { title, path, noindex: true };
+  const screen = show.name;
+  if (!show.stops.length) return { title, screen, path, noindex: true };
   // the answer itself, so it can be read off the search result; what else
   // the page has only when both fit
   const latest = latestStop(show.stops)!;
@@ -536,6 +540,7 @@ export function showMeta(
   const fits = (text: string) => text !== "" && text.length <= DESCRIPTION_FITS;
   return {
     title,
+    screen,
     // the question is the whole title: with the site's name after it, a
     // search result cuts the question short
     fullTitle: true,

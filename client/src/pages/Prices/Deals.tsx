@@ -43,6 +43,7 @@ export default function Deals() {
   usePageMeta({
     // as the site server's (client/server.ts dealsTags)
     title: "Manga deals: volumes under their usual price",
+    screen: "Deals",
     description:
       "English manga volumes selling for less than they usually do right now, from the prices Manga Tracker checks across US stores. Biggest discounts first.",
     path: "/deals",

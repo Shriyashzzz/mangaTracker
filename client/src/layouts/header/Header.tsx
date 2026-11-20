@@ -166,7 +166,7 @@ export default function Header() {
   // above the page and its floating add button, so the menu hanging off it
   // never ends up underneath them
   return (
-    <header className="relative z-30 border-b-[3px] border-double border-line bg-paper">
+    <header className="masthead relative z-30 border-b-[3px] border-double border-line bg-paper">
       <div className="px-gutter mx-auto flex h-[62px] max-w-page items-center gap-4">
         {/* in the app, a screen below the tabs: back and its name */}
         {inApp() && !isTabScreen(pathname) ? (

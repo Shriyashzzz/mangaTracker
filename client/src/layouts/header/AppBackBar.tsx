@@ -1,6 +1,7 @@
 // In the app (lib/inApp.ts), a screen below the bottom bar's tabs shows a back
 // arrow and its name where the website shows the logo, as an Android app's
-// top bar does. The name is the page's own title, without " | Manga Tracker".
+// top bar does. The name is the page's short screen name when it gives one
+// (lib/seo.ts PageMeta.screen), else its title without " | Manga Tracker".
 // Back goes back in the app's history, or with none (opened from a link) to
 // the screen's tab
 import { useEffect, useState } from "react";
@@ -8,7 +9,9 @@ import { useLocation, useNavigate } from "react-router";
 import { ChevronLeftIcon } from "../../components/icons/Icons";
 import { TAB_HOME, tabOf } from "../../lib/tabMemory";
 
-const screenName = () => document.title.replace(/\s*\|\s*Manga Tracker$/, "");
+const screenName = () =>
+  document.documentElement.dataset.screen ||
+  document.title.replace(/\s*\|\s*Manga Tracker$/, "");
 
 // the page's title as it changes (each page sets its own)
 function useScreenName() {

@@ -206,7 +206,8 @@ export function UpdateManga() {
         <div>
           <NavLink
             to={`/details/${id}`}
-            className={styles.backLink}
+            // the app's top bar has its own back arrow (index.css web-back)
+            className={`${styles.backLink} web-back`}
             viewTransition
           >
             ← back to the series

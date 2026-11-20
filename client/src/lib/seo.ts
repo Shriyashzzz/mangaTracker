@@ -21,6 +21,10 @@ export type PageMeta = {
   // the title as it is, without " | Manga Tracker" after it (as the site
   // server's Tags.fullTitle)
   fullTitle?: boolean;
+  // a short name for the app's top bar (layouts/header/AppBackBar.tsx), when
+  // the title is written for search results ("Deals", not "Manga deals:
+  // volumes under their usual price")
+  screen?: string;
 };
 
 const headTag = (tag: string, key: string, value: string) => {
@@ -51,12 +55,16 @@ function apply({
   noindex,
   jsonLd,
   fullTitle: asIs,
+  screen,
 }: PageMeta) {
   const withSiteName = asIs ? title : `${title} | ${SITE_NAME}`;
   const fullTitle = title ? withSiteName! : DEFAULT_TITLE;
   const desc = description || DEFAULT_DESCRIPTION;
   const url = new URL(path ?? location.pathname, location.origin).href;
 
+  // set before the title: the top bar reads both when the title changes
+  if (screen) document.documentElement.dataset.screen = screen;
+  else delete document.documentElement.dataset.screen;
   document.title = fullTitle;
   setMeta("name", "description", desc);
   headTag("link", "rel", "canonical").setAttribute("href", url);

@@ -306,7 +306,8 @@ export function AddManga() {
           <h1 className={styles.captionTitle}>Add a manga</h1>
           <NavLink
             to="/shelf"
-            className={styles.captionBack}
+            // the app's top bar has its own back arrow (index.css web-back)
+            className={`${styles.captionBack} web-back`}
             aria-label="Back to the shelf"
             viewTransition
           >

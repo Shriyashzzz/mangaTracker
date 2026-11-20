@@ -124,6 +124,7 @@ export function volumeMeta(
 
   return {
     title: `${name} price comparison`,
+    screen: name,
     // a book we don't know as a manga (no series, no volume): not one of
     // the site's pages to search engines
     ...(isUnknownBook({ series, volume }) ? { noindex: true } : {}),
@@ -178,6 +179,7 @@ export function seriesMeta({ name, info, volumes }: Series): PageMeta {
     title: count
       ? `${label} manga prices, all ${count} volumes`
       : `${label} manga prices`,
+    screen: label,
     description,
     path,
     image: info?.coverUrl,
