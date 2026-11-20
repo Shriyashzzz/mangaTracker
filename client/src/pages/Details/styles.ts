@@ -45,7 +45,9 @@ export const detailsStyles = {
   // under the shelf: "9 of 113", halves and specials, and how it works
   // until they've tried it
   // "· reading vol. 12" in the caption, in the shelf marker's red
-  shelfPlace: "text-accent",
+  // where they are, before the count: on a phone the red spine and the
+  // counter below already say it, so it's only read out there
+  shelfPlace: "text-accent upto-720:sr-only",
   shelfCaption:
     "mt-1.5 flex flex-wrap justify-center gap-x-4 text-center font-mono text-[0.8rem] text-muted",
   // "VIZBIG 5: you have vol. 13 of 13–15. Own the whole book?" and its two

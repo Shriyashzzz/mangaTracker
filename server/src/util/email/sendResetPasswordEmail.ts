@@ -25,5 +25,4 @@ const sendResetPasswordEmail = async (
     return false;
   }
 };
-
 export default sendResetPasswordEmail;
