@@ -199,18 +199,28 @@ export default function BuyStrip({
     </li>
   );
 
-  // the series' page, with how many are out ("All 43 volumes")
+  // the series' page, with how many are out ("All 43 volumes"). Collecting
+  // an edition: that edition's books, opened there ("All 12 VIZBIG books")
+  const singlesText =
+    outCount <= 1 && !coming
+      ? "The series"
+      : `All ${outCount} volumes${coming ? ` + ${coming} coming` : ""}`;
   const seriesLink = (className: string) => (
     <NavLink
       className={className}
-      to={seriesPath(seriesName)}
+      to={
+        line
+          ? `${seriesPath(seriesName)}&${new URLSearchParams({ edition: line.key })}`
+          : seriesPath(seriesName)
+      }
       viewTransition
       {...offlineLink(offline)}
     >
       {/* out now, as the shelf's "of 15" counts them; preorders apart */}
-      {outCount <= 1 && !coming
-        ? "The series"
-        : `All ${outCount} volumes${coming ? ` + ${coming} coming` : ""}`}{" "}
+      {/* an edition's books out, as "You have all 12 VIZBIG books" counts them */}
+      {line && plan && plan.outBooks > 1
+        ? `All ${plan.outBooks} ${line.label} books`
+        : singlesText}{" "}
       →
     </NavLink>
   );
