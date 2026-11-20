@@ -238,7 +238,7 @@ export const shareStyles = {
     // the page took it away, which showed as a flash without its backdrop.
     // On a phone it's one height whatever it holds: sized to its content,
     // it grew a moment after opening, when the synopsis arrived)
-    "fixed m-0 mt-auto ml-auto max-h-none w-[min(30rem,100vw)] flex-col border-l-[2.5px] open:flex border-line bg-card text-ink shadow-ink-lg backdrop:bg-[rgba(20,14,8,0.55)] open:animate-sheet-in min-[721px]:h-dvh upto-720:h-[88dvh] upto-720:w-screen upto-720:max-w-none upto-720:border-t-[2.5px] upto-720:border-l-0 upto-720:open:animate-sheet-up",
+    "fixed m-0 mt-auto ml-auto max-h-none w-[min(30rem,100vw)] flex-col border-l-[2.5px] open:flex border-line bg-card text-ink shadow-ink-lg backdrop:bg-[rgba(20,14,8,0.55)] open:animate-sheet-in from-721:h-dvh upto-720:h-[88dvh] upto-720:w-screen upto-720:max-w-none upto-720:border-t-[2.5px] upto-720:border-l-0 upto-720:open:animate-sheet-up",
   sheetHead:
     "flex items-start justify-between gap-4 border-b-[1.5px] border-line bg-(--tone) bg-[radial-gradient(var(--dots-strong)_1px,transparent_1.2px)] bg-size-[6px_6px] px-5 pt-5 pb-4 text-(--stamp-ink)",
   sheetTitle:

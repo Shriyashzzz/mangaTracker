@@ -6,7 +6,7 @@ const card =
   "absolute top-[calc(100%+10px)] z-30 rounded-ink border-[2.5px] border-line bg-card p-1.5 shadow-[0_14px_30px_-14px_rgba(20,14,8,0.45)] animate-drop motion-reduce:animate-none";
 // phones only: wider screens have the tab row instead
 const lead =
-  "flex min-w-0 shrink-0 items-center gap-3 upto-520:gap-2 min-[721px]:hidden";
+  "flex min-w-0 shrink-0 items-center gap-3 upto-520:gap-2 from-721:hidden";
 const search =
   "min-h-11 min-w-0 flex-1 items-center gap-2 border-b-[1.5px] border-dashed border-line-soft py-1 text-muted transition-[border-color] duration-200 focus-within:border-solid focus-within:border-accent [&_svg]:size-4 [&_svg]:shrink-0 [&_input]:min-w-0 [&_input]:flex-1 [&_input]:border-none [&_input]:bg-transparent [&_input]:text-[0.95rem] [&_input]:text-ink [&_input]:outline-none [&_input]:placeholder:text-muted upto-760:[&_input]:text-[1rem]";
 
@@ -17,7 +17,7 @@ export const shelfBarStyles = {
   leadSearching: `${lead} upto-520:hidden`,
 
   // the views, side by side: the one you're on inked and underlined
-  tabs: "mr-auto hidden min-w-0 flex-wrap items-baseline gap-x-6 gap-y-1 min-[721px]:flex",
+  tabs: "mr-auto hidden min-w-0 flex-wrap items-baseline gap-x-6 gap-y-1 from-721:flex",
   tab: "tap group flex items-baseline gap-1.5 pt-1 pb-1.5 text-ink-soft shadow-[inset_0_-3px_0_transparent] transition-[color,box-shadow] duration-150 ease-ink hover:text-ink aria-[current=page]:text-ink aria-[current=page]:shadow-[inset_0_-3px_0_var(--accent)]",
   tabWord: "font-brand text-[1.5rem] leading-none tracking-[0.03em] uppercase",
 
@@ -37,10 +37,10 @@ export const shelfBarStyles = {
     "tap inline-flex shrink-0 -rotate-[4deg] items-center gap-0.5 border-[1.5px] border-line bg-card py-[0.15rem] pr-2 pl-1 font-brand text-[1rem] leading-none tracking-[0.04em] text-ink uppercase shadow-ink transition-transform duration-150 ease-ink hover:rotate-0",
   backArrow: "size-4 shrink-0",
 
-  search: `hidden ${search} min-[521px]:flex min-[721px]:min-w-40`,
-  searchOpen: `flex ${search} min-[721px]:min-w-40`,
+  search: `hidden ${search} min-[521px]:flex from-721:min-w-40`,
+  searchOpen: `flex ${search} from-721:min-w-40`,
   searchKey:
-    "hidden shrink-0 rounded-[3px] border-[1.5px] border-line-soft px-1.5 font-mono text-[0.75rem] leading-[1.4] text-muted min-[721px]:inline",
+    "hidden shrink-0 rounded-[3px] border-[1.5px] border-line-soft px-1.5 font-mono text-[0.75rem] leading-[1.4] text-muted from-721:inline",
   searchClose:
     "tap grid size-8 shrink-0 place-items-center text-muted hover:text-ink [&_svg]:size-4",
   magnifier:

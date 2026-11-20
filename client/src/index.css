@@ -20,7 +20,12 @@
 @custom-variant upto-980 (@media (max-width: 980px));
 @custom-variant upto-860 (@media (max-width: 860px));
 @custom-variant upto-760 (@media (max-width: 760px));
-@custom-variant upto-720 (@media (max-width: 720px));
+/* the phone layout, bottom bar and all: phones, and touch screens up to
+   1366px (every iPad and Android tablet, either way round). Laptops, touch
+   ones too (their pointer is a trackpad or mouse), keep the top links.
+   from-721 is its opposite. Also in lib/bottomBar.ts */
+@custom-variant upto-720 (@media (max-width: 720px) or ((pointer: coarse) and (max-width: 1366px)));
+@custom-variant from-721 (@media not ((max-width: 720px) or ((pointer: coarse) and (max-width: 1366px))));
 @custom-variant upto-560 (@media (max-width: 560px));
 @custom-variant upto-520 (@media (max-width: 520px));
 @custom-variant upto-480 (@media (max-width: 480px));
@@ -772,7 +777,7 @@
 }
 
 /* tabbing never lands on something hidden behind the phones' bottom bar */
-@media (max-width: 720px) {
+@media (max-width: 720px) or ((pointer: coarse) and (max-width: 1366px)) {
   html {
     scroll-padding-bottom: 4.5rem;
   }
@@ -1099,7 +1104,7 @@ body {
   display: flex;
   align-items: flex-end;
 }
-@media (max-width: 720px) {
+@media (max-width: 720px) or ((pointer: coarse) and (max-width: 1366px)) {
   /* the bottom bar: its links, its double rule and the phone's home area */
   .support-peek {
     bottom: calc(59px + env(safe-area-inset-bottom));
@@ -1306,7 +1311,7 @@ body {
   box-shadow: 0 10px 20px -14px rgba(20, 14, 8, 0.55);
   animation: support-peek-say 0.26s cubic-bezier(0.3, 1.4, 0.6, 1) both;
 }
-@media (max-width: 720px) {
+@media (max-width: 720px) or ((pointer: coarse) and (max-width: 1366px)) {
   .import-badge {
     bottom: calc(59px + 10px + env(safe-area-inset-bottom));
   }
@@ -1668,7 +1673,7 @@ body {
   stroke-linecap: round;
   stroke-linejoin: round;
 }
-@media (min-width: 721px) {
+@media not ((max-width: 720px) or ((pointer: coarse) and (max-width: 1366px))) {
   .tour-dock {
     right: auto;
     left: 24px;
