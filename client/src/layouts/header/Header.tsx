@@ -8,6 +8,8 @@ import clsx from "clsx";
 import logo from "../../assets/logo.svg";
 import { BagIcon } from "../../components/icons/Icons";
 import SettingsMenu from "../../components/settingsMenu/SettingsMenu";
+import { inApp, isTabScreen } from "../../lib/inApp";
+import AppBackBar from "./AppBackBar";
 import { useFromShelf } from "../../lib/fromShelf";
 import { probablySignedIn, useAuth } from "../../store/auth";
 import { useShelf } from "../../store/shelf";
@@ -166,20 +168,25 @@ export default function Header() {
   return (
     <header className="relative z-30 border-b-[3px] border-double border-line bg-paper">
       <div className="px-gutter mx-auto flex h-[62px] max-w-page items-center gap-4">
-        {/* the shelf, signed in or not (signed out, it's what the site is
-            for, with the way to start one): "Prices" is the price search */}
-        <NavLink
-          to="/shelf"
-          viewTransition
-          className="tap group mr-auto flex items-center gap-[0.55rem] font-brand text-[1.6rem] leading-none tracking-[1px]"
-        >
-          <img
-            src={logo}
-            alt=""
-            className="size-[30px] transition-transform duration-250 ease-ink group-hover:-rotate-10"
-          />
-          <span>Manga Tracker</span>
-        </NavLink>
+        {/* in the app, a screen below the tabs: back and its name */}
+        {inApp() && !isTabScreen(pathname) ? (
+          <AppBackBar />
+        ) : (
+          // the shelf, signed in or not (signed out, it's what the site is
+          // for, with the way to start one): "Prices" is the price search
+          <NavLink
+            to="/shelf"
+            viewTransition
+            className="tap group mr-auto flex items-center gap-[0.55rem] font-brand text-[1.6rem] leading-none tracking-[1px]"
+          >
+            <img
+              src={logo}
+              alt=""
+              className="size-[30px] transition-transform duration-250 ease-ink group-hover:-rotate-10"
+            />
+            <span>Manga Tracker</span>
+          </NavLink>
+        )}
 
         {/* phones have it at the bottom, within reach of a thumb */}
         <nav

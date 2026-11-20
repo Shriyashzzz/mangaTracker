@@ -2,6 +2,7 @@
 // says which way). The browser offers its install box once, early, as an
 // event: listenForInstall keeps it until a button asks for it.
 import { create } from "zustand";
+import { inPlayApp } from "./playApp";
 import { installWayOf, isAppleMobile, type InstallWay } from "./installWay";
 
 // Chrome's own event; not in TypeScript's list of events yet
@@ -41,7 +42,8 @@ export function listenForInstall() {
 export function useInstallWay(): InstallWay {
   const { prompt, installed } = useInstallState();
   return installWayOf({
-    runsAsApp: installed || runsAsApp(),
+    // the Google Play app is the app already (lib/playApp.ts)
+    runsAsApp: installed || runsAsApp() || inPlayApp(),
     hasPrompt: Boolean(prompt),
     appleMobile: isAppleMobile(navigator.userAgent, navigator.maxTouchPoints),
   });

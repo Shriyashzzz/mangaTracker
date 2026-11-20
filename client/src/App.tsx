@@ -5,6 +5,7 @@ import { Outlet, ScrollRestoration, useLocation } from "react-router";
 import "./index.css";
 import Header from "./layouts/header/Header";
 import Footer from "./layouts/Footer/Footer";
+import { inApp } from "./lib/inApp";
 import DeletedNote from "./components/deletedNote/DeletedNote";
 import SupportPeek from "./components/supportPeek/SupportPeek";
 import ImportPeek from "./components/importPeek/ImportPeek";
@@ -104,7 +105,8 @@ export default function App() {
           <Outlet key={country} />
         )}
       </main>
-      <Footer />
+      {/* a website's footer; the app has its pages in the menu */}
+      {!inApp() && <Footer />}
       <DeletedNote />
       {/* (no coffee asks inside the Google Play app: lib/playApp.ts) */}
       {isDemo() ? <Tour /> : !inPlayApp() && <SupportPeek />}

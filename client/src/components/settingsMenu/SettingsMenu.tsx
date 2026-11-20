@@ -1,11 +1,14 @@
 import { useEffect, useRef, useState } from "react";
 import { NavLink, useLocation } from "react-router";
+import { inApp } from "../../lib/inApp";
 import {
   CheckIcon,
   ChevronRightIcon,
   CoffeeIcon,
   ImportIcon,
   InstallIcon,
+  EyeIcon,
+  InfoIcon,
   MoonIcon,
   SettingsIcon,
   ShareIcon,
@@ -318,7 +321,38 @@ export default function SettingsMenu({ isSignedIn, onLogOut }: Props) {
               )}
             </button>
           </li>
-          {divider}
+          {/* in the app there's no website footer: its pages are here */}
+          {inApp() && (
+            <>
+              {divider}
+              <li>
+                <NavLink to="/updates" className={item} viewTransition>
+                  <StarIcon />
+                  What's new
+                </NavLink>
+              </li>
+              <li>
+                <NavLink to="/faq" className={item} viewTransition>
+                  <InfoIcon />
+                  FAQ
+                </NavLink>
+              </li>
+              <li>
+                <NavLink to="/about" className={item} viewTransition>
+                  <InfoIcon />
+                  About
+                </NavLink>
+              </li>
+              <li>
+                <NavLink to="/privacy" className={item} viewTransition>
+                  <EyeIcon />
+                  Privacy
+                </NavLink>
+              </li>
+            </>
+          )}
+          {/* only above something: in the Play app both below are hidden */}
+          {(installWay || !inPlayApp()) && divider}
           {installWay && (
             <li>
               <button

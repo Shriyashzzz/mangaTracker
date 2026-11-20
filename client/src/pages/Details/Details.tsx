@@ -62,7 +62,6 @@ import { savedLatestVolume } from "../../lib/releaseCache";
 const DIDNT_SAVE = "That didn't save. Try again.";
 
 export default function Details() {
-  usePrivatePage("Manga details");
   const { id } = useParams();
   const navigate = useNavigate();
   const trackBy = useTrackBy();
@@ -85,6 +84,8 @@ export default function Details() {
   const [releaseStatus, setReleaseStatus] = useState<ReleaseStatus | null>(
     null,
   );
+  // the series' name once it's in: the tab's title, and the app's top bar
+  usePrivatePage(mangaData?.name ?? "Manga details");
 
   // ---------- what they can change here ----------
   // finished, and on the To read list (not started, so no release news yet).
@@ -491,7 +492,11 @@ export default function Details() {
 
   return (
     <div className="fade-in">
-      <NavLink to="/shelf" className={styles.backLink} viewTransition>
+      <NavLink
+        to="/shelf"
+        className={`${styles.backLink} web-back`}
+        viewTransition
+      >
         ← back to the shelf
       </NavLink>
 

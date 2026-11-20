@@ -88,7 +88,11 @@ export default function CalendarPage() {
         <h1 className={styles.title}>
           Upcoming <span className={styles.hit}>Releases</span>
         </h1>
-        <NavLink to="/shelf?tab=new" className={styles.back} viewTransition>
+        <NavLink
+          to="/shelf?tab=new"
+          className={`${styles.back} web-back`}
+          viewTransition
+        >
           Back to New
         </NavLink>
       </header>

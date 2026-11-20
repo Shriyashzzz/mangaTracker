@@ -119,7 +119,11 @@ export function ImportPage() {
   return (
     <div className={`${styles.page} fade-in`}>
       <div>
-        <NavLink to="/shelf" className={styles.back} viewTransition>
+        <NavLink
+          to="/shelf"
+          className={`${styles.back} web-back`}
+          viewTransition
+        >
           ← back to the shelf
         </NavLink>
         <h1 className={styles.title}>Import your list</h1>

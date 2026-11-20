@@ -10,7 +10,7 @@ export default function BackToNew() {
   return (
     <NavLink
       to="/shelf"
-      className={styles.backToNew}
+      className={`${styles.backToNew} web-back`}
       onClick={(e) => {
         e.preventDefault();
         navigate(-1);

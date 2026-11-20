@@ -68,6 +68,8 @@ import AddChoice from "../../components/scanSheet/AddChoice";
 // the camera and its barcode library load only when someone scans
 const ScanSheet = lazy(() => import("../../components/scanSheet/ScanSheet"));
 import LibrarySkeleton from "./LibrarySkeleton";
+import ShowMoreButton from "./ShowMoreButton";
+import { inApp } from "../../lib/inApp";
 import GuestHero from "./GuestHero";
 import {
   BIG_SHELF,
@@ -304,8 +306,9 @@ function Library() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pileEmptied]);
   // a pile's page on a phone grows by "Show 20 more" (or 60) instead of turning
-  // pages: one fewer row of controls on a small screen
-  const growing = Boolean(pileView) && hasBottomBar();
+  // pages: one fewer row of controls on a small screen. In the app the whole
+  // shelf does, and scrolling near the end shows more by itself
+  const growing = (Boolean(pileView) || inApp()) && hasBottomBar();
   const pageSize = shelfPageSize(mangaData?.length ?? 0);
   const shelfPage = visibleManga.slice(
     growing ? 0 : pageIndex * pageSize,
@@ -585,10 +588,10 @@ function Library() {
         {growing
           ? shelfPage.length < visibleManga.length && (
               <div className={styles.pagerBottom}>
-                <button
-                  type="button"
+                <ShowMoreButton
                   className={styles.showMore}
-                  onClick={() => changePage(pageIndex + 1, false)}
+                  bySelf={inApp()}
+                  onShowMore={() => changePage(pageIndex + 1, false)}
                 >
                   Show{" "}
                   {Math.min(pageSize, visibleManga.length - shelfPage.length)}{" "}
@@ -596,7 +599,7 @@ function Library() {
                   <span className={styles.showMoreCount}>
                     {shelfPage.length} of {visibleManga.length}
                   </span>
-                </button>
+                </ShowMoreButton>
               </div>
             )
           : visibleManga.length > pageSize && (
