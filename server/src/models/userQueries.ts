@@ -90,6 +90,62 @@ export async function checkCredentials(
   return user && matches ? { userId: user.id } : null;
 }
 
+// ---------- signing in with Google (src/auth/googleSignIn.ts) ----------
+
+// the account a Google account signs in to, or null
+export const getUserByGoogleId = (googleId: string) =>
+  prisma.user.findUnique({ where: { googleId }, select: { id: true } });
+
+// "reader482913": letters and numbers, as every username is. They can change
+// how they're shown (their display name) in Settings
+const googleUsername = () =>
+  `reader${String(randomBytes(4).readUInt32BE() % 1_000_000).padStart(6, "0")}`;
+
+// A new account for a Google account: no password (they can set one in
+// Settings), no email (theirs to add), a username made up for them. Signing
+// in twice at once makes one account: the second finds the first
+export async function addGoogleUser(googleId: string): Promise<number> {
+  for (let tries = 0; tries < 5; tries++) {
+    try {
+      const user = await prisma.user.create({
+        data: { username: googleUsername(), password: null, googleId },
+        select: { id: true },
+      });
+      return user.id;
+    } catch (e) {
+      const taken =
+        e instanceof Prisma.PrismaClientKnownRequestError && e.code === "P2002";
+      if (!taken) throw e;
+      // their Google account already has one: that's the one
+      const theirs = await getUserByGoogleId(googleId);
+      if (theirs) return theirs.id;
+      // else the made-up username was taken: another
+    }
+  }
+  throw new Error("No free username for a Google sign-up");
+}
+
+// A signed-in account starts signing in with Google too. False when that
+// Google account already signs in to another account
+export async function linkGoogle(id: number, googleId: string) {
+  const owner = await getUserByGoogleId(googleId);
+  if (owner) return owner.id === id;
+  await prisma.user.update({ where: { id }, data: { googleId } });
+  return true;
+}
+
+// An account made with Google sets its first password, so the username works
+// to sign in too. False when it has one already: changing a password goes
+// through the reset email, as it always has
+export async function setFirstPassword(id: number, password: string) {
+  const hashed = await bcrypt.hash(password, 12);
+  const { count } = await prisma.user.updateMany({
+    where: { id, password: null },
+    data: { password: hashed },
+  });
+  return count > 0;
+}
+
 // the new account's id, or null when the username is already taken
 export async function addUser(
   username: string,
@@ -167,8 +223,26 @@ const ACCOUNT_FIELDS = {
   emailConfirmed: true,
 } as const;
 
-export const getAccount = (id: number) =>
-  prisma.user.findUnique({ where: { id }, select: ACCOUNT_FIELDS });
+// how they sign in, said as yes or no: never the password's hash, never the
+// Google ID itself
+const SIGN_IN_FIELDS = { password: true, googleId: true } as const;
+const withSignIn = <T>({
+  password,
+  googleId,
+  ...account
+}: T & { password: string | null; googleId: string | null }) => ({
+  ...account,
+  hasPassword: password != null,
+  google: googleId != null,
+});
+
+export async function getAccount(id: number) {
+  const user = await prisma.user.findUnique({
+    where: { id },
+    select: { ...ACCOUNT_FIELDS, ...SIGN_IN_FIELDS },
+  });
+  return user && withSignIn(user);
+}
 
 export type AccountPatch = Partial<{
   displayName: string | null;
@@ -211,7 +285,13 @@ export async function updateAccount(id: number, patch: AccountPatch) {
     // keeps what they chose
     else if (!current?.recoveryEmail) data.weeklyEmail = true;
   }
-  return prisma.user.update({ where: { id }, data, select: ACCOUNT_FIELDS });
+  return withSignIn(
+    await prisma.user.update({
+      where: { id },
+      data,
+      select: { ...ACCOUNT_FIELDS, ...SIGN_IN_FIELDS },
+    }),
+  );
 }
 
 // ---------- the weekly email (src/digest/) ----------
@@ -260,14 +340,23 @@ export async function unsubscribeByCode(code: string) {
   return count > 0;
 }
 
-// false when the password is wrong. Their manga go with them, and so does every
-// session they're signed in on, so no other device is left pointing at nothing
-export async function deleteAccount(id: number, password: string) {
+// false when what they typed doesn't prove it's them: their password, or for
+// an account with none (made with Google) their username. Their manga go with
+// them, and so does every session they're signed in on, so no other device
+// is left pointing at nothing
+export async function deleteAccount(
+  id: number,
+  proof: { password?: string; username?: string },
+) {
   const user = await prisma.user.findUnique({
     where: { id },
-    select: { password: true },
+    select: { password: true, username: true },
   });
-  if (!user || !(await bcrypt.compare(password, user.password))) return false;
+  if (!user) return false;
+  const proven = user.password
+    ? await bcrypt.compare(proof.password ?? "", user.password)
+    : proof.username?.toLowerCase() === user.username.toLowerCase();
+  if (!proven) return false;
   await prisma.user.delete({ where: { id } });
   await prisma.$executeRaw`DELETE FROM session WHERE (sess->>'userId')::int = ${id}`;
   return true;
@@ -370,6 +459,10 @@ export default {
   confirmEmailByCode,
   unsubscribeByCode,
   deleteAccount,
+  getUserByGoogleId,
+  addGoogleUser,
+  linkGoogle,
+  setFirstPassword,
   getSharedShelf,
   getUserByEmail,
   fillToken,

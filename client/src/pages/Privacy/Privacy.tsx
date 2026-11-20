@@ -52,11 +52,11 @@ function Section({
 const KEPT: Entry[] = [
   {
     name: "Your account",
-    body: "Your username and your password, stored only as a secure hash. A display name and picture if you choose them.",
+    body: "Your username and your password, stored only as a secure hash. If you sign in with Google, only your Google account's ID number, never its email or name. A display name and picture if you choose them.",
   },
   {
     name: "Your email, if you add one",
-    body: "Used for password reset links, and the weekly email if you switch it on. Never shown to anyone else.",
+    body: "Used for password reset links, and the weekly email once you press Start in the email we send you. Never shown to anyone else.",
   },
   {
     name: "Your shelf",
@@ -107,6 +107,10 @@ const OTHERS: Entry[] = [
   {
     name: "Resend",
     body: "Sends the site's emails (password resets, confirm links, the weekly email). It sees your email address and the email.",
+  },
+  {
+    name: "Google sign-in",
+    body: "If you choose Continue with Google, Google confirms it's you and tells us your Google account's ID. Google sees that you signed in to Manga Tracker.",
   },
   {
     name: "Google Fonts",

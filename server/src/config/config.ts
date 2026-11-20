@@ -142,6 +142,19 @@ const schema = z.object({
     z.coerce.number().int().nonnegative().default(20),
   ),
   API_URL: optional,
+  // Signing in with Google (src/auth/googleSignIn.ts): the OAuth client ID
+  // made in Google Cloud (Google Auth Platform, Clients, a Web application).
+  // Not a secret: every page with a Google button shows it. Its client
+  // secret is never needed here
+  GOOGLE_CLIENT_ID: z.preprocess(
+    blankToUndefined,
+    z
+      .string()
+      .trim()
+      .default(
+        "552457597915-mqhe0847l0rs50bfhk27bclo3f76ir4v.apps.googleusercontent.com",
+      ),
+  ),
   // Alerts on readers' phones (src/push/). The key pair is made once
   // (npx web-push generate-vapid-keys, or the app's own generateVAPIDKeys)
   // and never changed: changing it ends every device's alerts. The subject

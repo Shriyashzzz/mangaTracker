@@ -12,6 +12,8 @@ import priceQueries, {
 } from "../models/priceQueries.js";
 import userQueries, { type AccountPatch } from "../models/userQueries.js";
 import { mailConfirmLink } from "../digest/digestSender.js";
+import { googleSignIn } from "../auth/googleSignIn.js";
+import { newPassword } from "./authController.js";
 import { AVATARS } from "../util/shelf/avatars.js";
 import { defaultReaderName, READER_NAMES } from "../util/shelf/readerNames.js";
 import { shelfSeries } from "../collector/shelfSeries.js";
@@ -174,17 +176,66 @@ const unsubscribe = [
   },
 ];
 
+// Deleting the account: proven with their password, or for an account made
+// with Google (no password) by typing their username
 const remove = [
-  body("password").isString().notEmpty().withMessage("Enter your password."),
+  body("password").optional().isString(),
+  body("username").optional().isString(),
   rejectInvalid,
   async (req: Request, res: Response) => {
-    const { password } = matchedData(req);
-    const deleted = await userQueries.deleteAccount(
-      req.session.userId!,
+    const { password, username } = matchedData(req);
+    const deleted = await userQueries.deleteAccount(req.session.userId!, {
       password,
-    );
-    if (!deleted) return sendError(res, 401, "That password isn't right.");
+      username,
+    });
+    if (!deleted) {
+      const account = await userQueries.getAccount(req.session.userId!);
+      return sendError(
+        res,
+        401,
+        account?.hasPassword
+          ? "That password isn't right."
+          : "That isn't your username.",
+      );
+    }
     req.session.destroy(() => res.sendStatus(204));
+  },
+];
+
+// Settings, Account: this account signs in with Google too. The token from
+// Google's button, checked as at sign-in
+const linkGoogle = [
+  body("credential").isString().isLength({ min: 20, max: 8192 }),
+  rejectInvalid,
+  async (req: Request, res: Response) => {
+    const userId = req.session.userId!;
+    const googleId = await googleSignIn.googleIdOf(matchedData(req).credential);
+    if (!googleId)
+      return sendError(res, 401, "Google didn't confirm that. Try again.");
+    if (!(await userQueries.linkGoogle(userId, googleId)))
+      return sendError(
+        res,
+        409,
+        "That Google account already signs in to another shelf.",
+      );
+    res.json(withNames(userId, await userQueries.getAccount(userId)));
+  },
+];
+
+// Settings, Account: an account made with Google sets a password, so its
+// username signs in too. Only a first one: changing it is the reset email
+const setPassword = [
+  newPassword,
+  rejectInvalid,
+  async (req: Request, res: Response) => {
+    const userId = req.session.userId!;
+    const set = await userQueries.setFirstPassword(
+      userId,
+      matchedData(req).password,
+    );
+    if (!set)
+      return sendError(res, 409, "This account has a password already.");
+    res.json(withNames(userId, await userQueries.getAccount(userId)));
   },
 ];
 
@@ -212,6 +263,8 @@ export default {
   get,
   update,
   remove,
+  linkGoogle,
+  setPassword,
   shared,
   weeklyEmail,
   confirmEmail,

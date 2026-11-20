@@ -16,6 +16,7 @@ import { newResetToken } from "../util/resetToken.js";
 import { EMAIL_TAKEN, emailField } from "../util/email/emailField.js";
 import sendResetPasswordEmail from "../util/email/sendResetPasswordEmail.js";
 import { mailConfirmLink } from "../digest/digestSender.js";
+import { googleSignIn } from "../auth/googleSignIn.js";
 import bcrypt from "bcryptjs";
 
 const credentials = [
@@ -91,7 +92,7 @@ const login = [
 // too (client SignUp.tsx); tests/site/passwordRule.test.ts fails if the
 // two differ
 export const NEW_PASSWORD_MIN = 8;
-const newPassword = body("password")
+export const newPassword = body("password")
   .isLength({ min: NEW_PASSWORD_MIN })
   .withMessage(`Passwords need at least ${NEW_PASSWORD_MIN} characters.`)
   // eight spaces is no password. Signing in still takes whatever was set
@@ -132,6 +133,23 @@ const signup = [
     // for, so a slow mail never holds up the new account
     if (email) void mailConfirmLink(userId);
     res.sendStatus(201);
+  },
+];
+
+// Signing in with Google: the token from Google's button, checked with Google
+// (src/auth/googleSignIn.ts). An account it signs in to: signed in (200).
+// None yet: one is made for it (201), with no password and no email
+const google = [
+  body("credential").isString().isLength({ min: 20, max: 8192 }),
+  rejectInvalid,
+  async (req: Request, res: Response) => {
+    const googleId = await googleSignIn.googleIdOf(matchedData(req).credential);
+    if (!googleId)
+      return sendError(res, 401, "Google didn't confirm that. Try again.");
+    const found = await userQueries.getUserByGoogleId(googleId);
+    const userId = found?.id ?? (await userQueries.addGoogleUser(googleId));
+    await startSession(req, userId);
+    res.sendStatus(found ? 200 : 201);
   },
 ];
 
@@ -226,6 +244,7 @@ const resetPassword = [
 export default {
   login,
   signup,
+  google,
   logout,
   me,
   getPrefs,

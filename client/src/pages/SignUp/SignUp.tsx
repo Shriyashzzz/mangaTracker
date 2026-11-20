@@ -11,6 +11,7 @@ import { NEW_PASSWORD_MIN } from "../../lib/passwordRule";
 import { offerTour } from "../../lib/tourOffer";
 import { usePrivatePage } from "../../lib/seo";
 import { useAuth } from "../../store/auth";
+import GoogleSignIn from "../../components/googleButton/GoogleSignIn";
 
 export default function SignUp() {
   usePrivatePage("Create account");
@@ -108,6 +109,11 @@ export default function SignUp() {
 
         <div className={styles.card}>
           <h1 className={styles.title}>Start a shelf</h1>
+
+          <GoogleSignIn
+            onError={(message) => setErrors(message ? [{ msg: message }] : [])}
+            onBusy={setLoading}
+          />
 
           <form
             onSubmit={handleFormSubmit}

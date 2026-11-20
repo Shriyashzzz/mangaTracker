@@ -16,7 +16,11 @@ datasource db {
 model User {
   id                 Int                @id @default(autoincrement())
   username           String             @unique @db.VarChar(40)
-  password           String
+  // missing for an account made with Google, until they set one in Settings
+  password           String?
+  // the Google account they sign in with (Google's "sub"): never its email
+  // or name, which aren't kept
+  googleId           String?            @unique @map("google_id") @db.VarChar(64)
   // display preferences: { background, theme }
   prefs              Json               @default("{}")
   // what others see if they share their list; the username stays private

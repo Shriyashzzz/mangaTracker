@@ -16,6 +16,19 @@ accountRouter.delete(
   account.remove,
 );
 
+// signing in with Google too, and an account made with Google setting its
+// password: both prove who they are, so as few tries as deleting
+accountRouter.post(
+  "/google",
+  rateLimit({ max: 10, windowMs: 60_000 }),
+  account.linkGoogle,
+);
+accountRouter.post(
+  "/password",
+  rateLimit({ max: 10, windowMs: 60_000 }),
+  account.setPassword,
+);
+
 // the weekly email's switch. Switching it on mails a confirm link, so it's
 // counted: enough for a mistyped address or two, not for filling an inbox
 accountRouter.post(

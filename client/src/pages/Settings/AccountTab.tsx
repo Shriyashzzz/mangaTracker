@@ -1,6 +1,7 @@
-// Settings, Account: the email, the weekly email sent to it, a backup of the
-// shelf to download, signing out, and deleting the account (which asks for
-// the password).
+// Settings, Account: how they sign in (SignInSection), the email, the weekly
+// email sent to it, a backup of the shelf to download, signing out, and
+// deleting the account (which asks for the password, or for an account made
+// with Google and no password, the username).
 import type { OwnedBook } from "../../lib/books";
 import { useState, type FormEvent } from "react";
 import { useNavigate } from "react-router";
@@ -11,6 +12,7 @@ import { useAccount } from "../../store/account";
 import { useAuth } from "../../store/auth";
 import { settingsStyles as styles } from "./styles";
 import { AlertsSection } from "./AlertsSection";
+import { SignInSection } from "./SignInSection";
 import { orOffline } from "../../lib/offline";
 
 // said when the confirm link was meant to go and didn't
@@ -103,7 +105,10 @@ export function AccountTab({ account }: { account: Account }) {
     setDeleteError("");
     setDeleting(true);
     try {
-      await deleteAccount(password);
+      // what proves it's them: the password, or with none their username
+      await deleteAccount(
+        account.hasPassword ? { password } : { username: password },
+      );
       // the session's gone already, so this only tidies up on this device
       await logOut();
       // the home page says it's done, so it doesn't end in silence
@@ -124,6 +129,8 @@ export function AccountTab({ account }: { account: Account }) {
       <p className={styles.body}>
         Signed in as <strong>{account.username}</strong>.
       </p>
+
+      <SignInSection account={account} />
 
       <section className={styles.section} aria-labelledby="set-email">
         <h3 id="set-email" className={styles.heading}>
@@ -260,14 +267,16 @@ export function AccountTab({ account }: { account: Account }) {
         {confirming ? (
           <form className={styles.field} onSubmit={confirmDelete}>
             <label htmlFor="delete-password">
-              Enter your password to confirm
+              {account.hasPassword
+                ? "Enter your password to confirm"
+                : `Type your username, ${account.username}, to confirm`}
             </label>
             <input
               id="delete-password"
-              type="password"
+              type={account.hasPassword ? "password" : "text"}
               className={styles.input}
               value={password}
-              autoComplete="current-password"
+              autoComplete={account.hasPassword ? "current-password" : "off"}
               autoFocus
               aria-invalid={Boolean(deleteError)}
               aria-describedby={deleteError ? "delete-error" : undefined}

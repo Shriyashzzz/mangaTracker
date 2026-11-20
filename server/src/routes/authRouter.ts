@@ -36,6 +36,9 @@ const resetLinkTries = rateLimit({
 export const authRouter = Router();
 authRouter.post("/login", signInLimit, auth.login);
 authRouter.post("/signup", signUpTries, signUpAccounts, auth.signup);
+// Google's button: signs in, or makes the account (201), so it's counted as
+// both a sign-in and, when it makes one, an account
+authRouter.post("/google", signInLimit, signUpAccounts, auth.google);
 authRouter.post("/logout", auth.logout);
 authRouter.get("/me", auth.me);
 //*****************reset password**************

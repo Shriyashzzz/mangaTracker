@@ -21,6 +21,10 @@ export type Account = {
   // the confirm link was meant to go just now and didn't: said on the page
   // instead of "press the link we sent". Only on that one answer
   confirmNotSent?: boolean;
+  // how they sign in: with Google too, and whether they have a password
+  // (an account made with Google has none until they set one)
+  google: boolean;
+  hasPassword: boolean;
   // what they show as until they pick a name, and ideas for one
   defaultName: string;
   nameIdeas: string[];
@@ -107,10 +111,41 @@ export async function setWeeklyEmail(on: boolean) {
   return (await res.json()) as Account;
 }
 
-export async function deleteAccount(password: string) {
+// signs in with Google too: the token from Google's button
+export async function linkGoogle(credential: string) {
+  const res = await apiFetch("/api/account/google", {
+    method: "POST",
+    body: { credential },
+  });
+  if (!res.ok)
+    throw new Error(
+      (await errorMessages(res))[0] ?? orOffline("That didn't work."),
+    );
+  return (await res.json()) as Account;
+}
+
+// an account made with Google sets its first password
+export async function setFirstPassword(password: string) {
+  const res = await apiFetch("/api/account/password", {
+    method: "POST",
+    body: { password },
+  });
+  if (!res.ok)
+    throw new Error(
+      (await errorMessages(res))[0] ?? orOffline("That didn't save."),
+    );
+  return (await res.json()) as Account;
+}
+
+// proven with their password, or with no password (made with Google) their
+// username
+export async function deleteAccount(proof: {
+  password?: string;
+  username?: string;
+}) {
   const res = await apiFetch("/api/account", {
     method: "DELETE",
-    body: { password },
+    body: proof,
   });
   if (!res.ok)
     throw new Error(

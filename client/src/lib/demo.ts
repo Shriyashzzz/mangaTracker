@@ -709,6 +709,9 @@ const STARTING_ACCOUNT = {
   shareCode: "practice" as string | null,
   weeklyEmail: false,
   emailConfirmed: false,
+  // a practice account signs in with a password, never Google
+  hasPassword: true,
+  google: false,
   defaultName: "Chapter Goblin",
   nameIdeas: ["Chapter Goblin", "Volume Hoarder", "Panel Hopper"],
 };

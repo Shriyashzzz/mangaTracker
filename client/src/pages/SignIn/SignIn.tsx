@@ -9,6 +9,7 @@ import { useAuth } from "../../store/auth";
 import { isMobile } from "react-device-detect";
 import { hasBottomBar } from "../../lib/bottomBar";
 import { orOffline } from "../../lib/offline";
+import GoogleSignIn from "../../components/googleButton/GoogleSignIn";
 
 export default function SignInPage() {
   usePrivatePage("Sign in");
@@ -75,6 +76,8 @@ export default function SignInPage() {
 
         <div className={styles.card}>
           <h1 className={styles.title}>Sign in</h1>
+
+          <GoogleSignIn onError={setError} onBusy={setLoading} />
 
           <form
             onSubmit={handleFormSubmit}
