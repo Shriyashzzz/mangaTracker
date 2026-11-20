@@ -1153,7 +1153,8 @@ body {
 .support-peek-eyes {
   transform-box: fill-box;
   transform-origin: center;
-  animation: support-peek-blink 0.2s ease-in-out 1.15s;
+  /* a blink as he arrives, then one every few seconds while he waits */
+  animation: support-peek-blink 3.5s ease-in-out 1.15s infinite;
 }
 .support-peek-line {
   position: relative;
@@ -1268,8 +1269,14 @@ body {
     transform: translateY(12px);
   }
 }
+/* one blink (about 0.2s) at the start of each 3.5s turn */
 @keyframes support-peek-blink {
-  50% {
+  0%,
+  6%,
+  100% {
+    transform: scaleY(1);
+  }
+  3% {
     transform: scaleY(0.1);
   }
 }

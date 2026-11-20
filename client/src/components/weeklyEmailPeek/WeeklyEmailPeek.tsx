@@ -87,7 +87,7 @@ export default function WeeklyEmailPeek({ blocked }: Props) {
     <>
       <p>Want a weekly email for your shelf?</p>
       <p className="support-peek-more">
-        New volumes and price drops, sent to {account?.recoveryEmail}.
+        New volumes and price drops, sent to your email.
       </p>
       <button type="button" onClick={yes}>
         Yes, send it
