@@ -11,7 +11,7 @@
 //   BuyStrip        the cover's side: what to buy next
 import SeriesPicture from "../../components/cover/SeriesPicture";
 import type { ShelfVolume } from "../../lib/reviews";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { NavLink, useNavigate, useParams, useSearchParams } from "react-router";
 import { apiFetch } from "../../lib/api";
 import { getBooks, ownEditionBook } from "../../lib/booksApi";
@@ -56,7 +56,8 @@ import { useBuyOptions } from "./useBuyOptions";
 import { useEditions } from "./useEditions";
 import { useOwnedVolumes } from "./useOwnedVolumes";
 import YourBooks from "./YourBooks";
-import { orOffline } from "../../lib/offline";
+import { orOffline, useIsOffline } from "../../lib/offline";
+import { savedLatestVolume } from "../../lib/releaseCache";
 
 const DIDNT_SAVE = "That didn't save. Try again.";
 
@@ -66,6 +67,12 @@ export default function Details() {
   const navigate = useNavigate();
   const trackBy = useTrackBy();
   const checksOn = useReleaseChecksOn();
+  const offline = useIsOffline();
+  // with no release answer of its own (most often no signal): the latest
+  // volume the New tab found, kept on this device, so the shelf still knows
+  // what's out. Read once per series
+  const seriesId = Number(id);
+  const savedLatest = useMemo(() => savedLatestVolume(seriesId), [seriesId]);
   const [searchParams] = useSearchParams();
   // English unless they came from the shelf's In Japan tab
   const inJapan = searchParams.get("edition") === "japan";
@@ -439,7 +446,11 @@ export default function Details() {
     mangaData.genre && mangaData.genre !== "unlabled" ? mangaData.genre : null;
   const owned = ownedOf(mangaData);
   const highestOwned = Math.floor(Math.max(0, ...owned));
-  const shelfTotal = shelfSize(highestOwned, releaseStatus, buyOptions);
+  const shelfTotal = shelfSize(
+    highestOwned,
+    releaseStatus?.latestVolume ?? savedLatest,
+    buyOptions,
+  );
   const shelfPlace = placeOnShelf(
     mangaData,
     tracksOf(mangaData, trackBy),
@@ -470,6 +481,9 @@ export default function Details() {
           slots: slotsOf(editions.line, shelfTotal.size, todayOf()),
         }
       : null;
+  // offline, a series they collect in an edition that can't be drawn yet
+  // (its books were never kept here) isn't drawn as single volumes instead
+  const editionWaits = offline && editions.collects && !editionShelf;
 
   let statusWord = "Reading";
   if (mangaStatus) statusWord = "Finished";
@@ -546,17 +560,30 @@ export default function Details() {
                 onOrdered={orderVolumes}
               />
             </div>
-            <ShelfBox
-              mangaId={mangaData.id}
-              name={mangaData.name}
-              owned={owned}
-              total={shelfTotal.size}
-              totalKnown={shelfTotal.isKnown}
-              ownedVolumes={ownedVolumes}
-              place={shelfPlace}
-              edition={editionShelf}
-              ordered={ordered}
-            />
+            {editionWaits ? (
+              // where the shelf goes, at its width
+              <div className={styles.shelf}>
+                <p className={styles.shelfCaption}>
+                  Your{" "}
+                  {editions.line
+                    ? `${editions.line.label} books`
+                    : "edition's books"}{" "}
+                  show once you're back online.
+                </p>
+              </div>
+            ) : (
+              <ShelfBox
+                mangaId={mangaData.id}
+                name={mangaData.name}
+                owned={owned}
+                total={shelfTotal.size}
+                totalKnown={shelfTotal.isKnown}
+                ownedVolumes={ownedVolumes}
+                place={shelfPlace}
+                edition={editionShelf}
+                ordered={ordered}
+              />
+            )}
           </div>
 
           <ReadingPlace

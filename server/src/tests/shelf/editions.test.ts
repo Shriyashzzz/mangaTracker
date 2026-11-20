@@ -2,6 +2,7 @@ import {
   editionPlan,
   guessEdition,
   type EditionLine,
+  mostlyInEditionBooks,
 } from "../../../../client/src/lib/editions.js";
 
 // threes from vol. 1; the last `unlisted` books aren't in the catalog
@@ -239,4 +240,23 @@ test("owning none, a chapter reader starts at the book with their next chapter",
   expect(editionPlan(line(5), run(1, 3), 8).next?.number).toBe(2);
   // nothing known about where they read: Book 1
   expect(editionPlan(line(5), [], null).next?.number).toBe(1);
+});
+
+test("collecting an edition, from recorded books alone: at least half of what they own", () => {
+  const deluxe = (volumes: number[]) => ({
+    edition: "deluxe" as const,
+    volumes,
+  });
+  const single = (v: number) => ({ edition: "single" as const, volumes: [v] });
+  const upTo = (n: number) => Array.from({ length: n }, (_, i) => i + 1);
+  // six Definitive books of three: all eighteen volumes in edition books
+  const books = [1, 4, 7, 10, 13, 16].map((v) => deluxe([v, v + 1, v + 2]));
+  expect(mostlyInEditionBooks(books, upTo(18))).toBe(true);
+  // one deluxe among forty singles isn't collecting the edition
+  const mostlySingles = [deluxe([1, 2, 3]), ...upTo(40).slice(3).map(single)];
+  expect(mostlyInEditionBooks(mostlySingles, upTo(40))).toBe(false);
+  // exactly half counts, as guessEdition has it
+  expect(mostlyInEditionBooks([deluxe([1, 2, 3])], upTo(6))).toBe(true);
+  // nothing owned: not collecting anything
+  expect(mostlyInEditionBooks(books, [])).toBe(false);
 });

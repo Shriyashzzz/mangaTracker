@@ -31,7 +31,8 @@ const MOST_BOOKS = 999;
 // `isKnown` is false: a number to draw with, not one to tell them
 export function shelfSize(
   highestOwned: number,
-  releaseStatus: ReleaseStatus | null,
+  // the latest volume out, as the release check found it
+  latestOut: number | null,
   buyOptions: BuyOptions,
 ) {
   // as the shelf's finish math counts it: a volume known to be coming means
@@ -42,7 +43,7 @@ export function shelfSize(
   const firstComing = Math.min(...coming.map((v) => v.volume));
   const knownOut = Math.floor(
     Math.max(
-      releaseStatus?.latestVolume ?? 0,
+      latestOut ?? 0,
       buyOptions.latest?.volume ?? 0,
       coming.length ? firstComing - 1 : 0,
     ),

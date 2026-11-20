@@ -13,8 +13,14 @@
 //                network first and a copy kept, given back with no network,
 //                marked with when they were kept. Cleared by the app when
 //                someone signs out (client lib/offline.ts)
-//   the rest     left alone: prices, sign-in, every change. Nothing else of
-//                the API is ever kept
+//   a series     what its page needs to draw its shelf right with no signal
+//                (KEPT_BY_ADDRESS below): its edition's books, its volumes
+//                and what's out. Kept the same way, but one copy per series
+//                (they're asked by name), so a Definitive collector's shelf
+//                never falls back to single volumes offline. At most
+//                MOST_BY_ADDRESS of them; the oldest go first
+//   the rest     left alone: price searches, sign-in, every change. Nothing
+//                else of the API is ever kept
 //
 // Changes made offline wait in the browser's database (client
 // lib/offlineChanges.ts); on Android "send-changes" sends them when the
@@ -40,6 +46,19 @@ const SHELL_FILES = [
 // its books, their settings, account and To buy list
 const KEPT =
   /^\/api\/(auth\/me|manga|manga\/\d+|manga\/\d+\/books|prefs|account|to-buy)$/;
+// what a series' page needs to draw its shelf: the edition's books and the
+// series' volumes, asked by name (?name=Vagabond), and what's out. Each is
+// kept under its whole address, one copy per series
+const KEPT_BY_ADDRESS = /^\/api\/prices\/(editions|series)$/;
+// a series' release check only as its own page asks it (no ?lane=): the New
+// tab asks about every series on the shelf, and those aren't kept
+const keepsReleases = (url) =>
+  /^\/api\/manga\/\d+\/releases$/.test(url.pathname) && !url.search;
+const keptByAddress = (url) =>
+  KEPT_BY_ADDRESS.test(url.pathname) || keepsReleases(url);
+// the most series' answers kept, so browsing price pages can't fill the
+// phone. The shelf's own answers (KEPT) are never counted or let go
+const MOST_BY_ADDRESS = 300;
 // the header on a kept answer: when it was kept (client lib/offline.ts)
 const SAVED_AT = "x-saved-at";
 
@@ -80,7 +99,7 @@ self.addEventListener("fetch", (event) => {
     event.respondWith(page(request, url));
   } else if (url.pathname.startsWith("/assets/")) {
     event.respondWith(fromCacheFirst(request));
-  } else if (KEPT.test(url.pathname)) {
+  } else if (KEPT.test(url.pathname) || keptByAddress(url)) {
     event.respondWith(keptAnswer(request, url));
   }
 });
@@ -151,10 +170,30 @@ async function keepAllAssets() {
 
 // ---------- the shelf's answers ----------
 
+// past MOST_BY_ADDRESS series' answers, the oldest kept go (by when each was
+// kept, SAVED_AT)
+async function trimByAddress(cache) {
+  const series = (await cache.keys()).filter((request) =>
+    keptByAddress(new URL(request.url)),
+  );
+  if (series.length <= MOST_BY_ADDRESS) return;
+  const dated = await Promise.all(
+    series.map(async (request) => {
+      const kept = await cache.match(request);
+      return [request, Number(kept?.headers.get(SAVED_AT) ?? 0)];
+    }),
+  );
+  dated.sort((a, b) => a[1] - b[1]);
+  for (const [request] of dated.slice(0, dated.length - MOST_BY_ADDRESS))
+    await cache.delete(request);
+}
+
 async function keptAnswer(request, url) {
   const cache = await caches.open(DATA);
-  // one copy of each, whatever country it was asked for
-  const key = url.pathname;
+  // one copy of each, whatever country it was asked for; a series' answers
+  // one per series (keptByAddress)
+  const byAddress = keptByAddress(url);
+  const key = byAddress ? url.pathname + url.search : url.pathname;
   try {
     const response = await fetch(request);
     if (response.ok) {
@@ -165,6 +204,7 @@ async function keptAnswer(request, url) {
         headers,
       });
       await cache.put(key, copy);
+      if (byAddress) await trimByAddress(cache);
     } else if (response.status === 401) {
       // signed out (on another device, or the session ran out): their
       // shelf isn't kept here any more

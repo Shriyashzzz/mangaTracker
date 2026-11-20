@@ -95,6 +95,15 @@ export function loadAnswers(manga: Manga[], now = Date.now()) {
   return { releases, outcomes, checkedAt, settings: saved?.settings ?? null };
 }
 
+// the latest volume out, as the New tab last found it for this series
+// within the week, whatever they own now: what's out doesn't change when they
+// tick a book. A series' page uses it with no answer of its own (no signal)
+export function savedLatestVolume(id: number, now = Date.now()) {
+  const entry = read()?.entries[id];
+  if (!entry || now - entry.at > KEEP_MS) return null;
+  return entry.s?.latestVolume ?? null;
+}
+
 // the shelf's answers as they stand. Failed ones aren't worth keeping, nor
 // partial ones (skip: a source didn't answer), which are asked again next visit
 export function saveAnswers(

@@ -7,6 +7,7 @@ import {
   loadAnswers,
   mergeSaved,
   saveAnswers,
+  savedLatestVolume,
   STALE_MS,
 } from "../../../../client/src/lib/releaseCache.js";
 import type { Manga, ReleaseStatus } from "../../../../client/src/lib/types.js";
@@ -241,4 +242,19 @@ test("a 2000 series shelf fits comfortably in the browser's storage", () => {
   );
   // every series 40 volumes behind: far more than a real shelf
   expect(store.get("releaseAnswers")!.length).toBeLessThan(5_000_000);
+});
+
+test("the latest volume out stays known after they tick a book, for a week", () => {
+  const now = Date.now();
+  const found = { ...status(13), latestVolume: 12 } as ReleaseStatus;
+  saveAnswers([m(1)], { 1: found }, { 1: "news" }, { 1: now - HOUR });
+  // they own one more now: the New tab's answer is checked again...
+  expect(
+    loadAnswers([m(1, { volumesOwned: 4 })], now).releases[1],
+  ).toBeUndefined();
+  // ...but what's out hasn't changed
+  expect(savedLatestVolume(1, now)).toBe(12);
+  // never checked, or checked over a week ago: nothing to go on
+  expect(savedLatestVolume(2, now)).toBeNull();
+  expect(savedLatestVolume(1, now + 8 * 24 * HOUR)).toBeNull();
 });

@@ -169,6 +169,21 @@ export function guessEdition(
   return atLeastHalf ? bestKey : null;
 }
 
+// Their recorded deluxe or omnibus books hold at least half of what they
+// own: guessEdition's rule, for when the lines themselves aren't to hand
+// (offline). One such book among forty singles isn't collecting an edition
+export function mostlyInEditionBooks(books: RecordedBook[], owned: number[]) {
+  if (!owned.length) return false;
+  const mine = new Set(owned);
+  const held = new Set(
+    books
+      .filter((b) => b.edition === "omnibus" || b.edition === "deluxe")
+      .flatMap((b) => b.volumes)
+      .filter((v) => mine.has(v)),
+  );
+  return held.size * 2 >= owned.length;
+}
+
 // A series with no single volumes in English: the catalog lists its
 // volumes under the books that hold them (Vinland Saga's vols 1 and 2 are
 // both Kodansha's 2-in-1 book 1). When volumes share ISBNs like that and

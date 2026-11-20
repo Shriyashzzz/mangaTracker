@@ -6,6 +6,7 @@ import { getBooks } from "../../lib/booksApi";
 import {
   editionPlan,
   guessEdition,
+  mostlyInEditionBooks,
   onlyLineInEnglish,
   type EditionLine,
 } from "../../lib/editions";
@@ -57,6 +58,13 @@ export function useEditions(
   return {
     lines,
     line,
+    // they collect an edition, known even before its line is (offline, it
+    // may be missing): picked, or their recorded edition books hold at least
+    // half of what they own, as guessEdition decides it
+    collects:
+      chosen != null
+        ? chosen !== "singles"
+        : mostlyInEditionBooks(state.books, owned),
     // picked for them from their books, until they choose
     guessed: Boolean(line && guessed),
     plan: line ? editionPlan(line, owned, readingFrom) : null,
