@@ -4,27 +4,32 @@
 // and that it was made for this site (our client ID): a token made for any
 // other app is turned away.
 //
-// All that's kept is the Google account's ID ("sub"), the same for that
-// account for good. Its email and name are in the token too, but they're
-// never saved: the account's email stays one its reader chooses to add.
+// Kept: the Google account's ID ("sub"), the same for that account for
+// good. Its name is used once, to make a new account's username ("Sarah Lee"
+// signs up as sarahlee), and isn't kept as a name. Its email is never read:
+// the account's email stays one its reader chooses to add.
 import { OAuth2Client } from "google-auth-library";
 import config from "../config/config.js";
 
 const client = new OAuth2Client();
 
-// the Google account's ID, or null for a token that isn't good (forged,
-// expired, or made for another app)
-async function googleIdOf(token: string): Promise<string | null> {
+export type GoogleAccount = { googleId: string; name: string | null };
+
+// the Google account, or null for a token that isn't good (forged, expired,
+// or made for another app)
+async function accountOf(token: string): Promise<GoogleAccount | null> {
   try {
     const ticket = await client.verifyIdToken({
       idToken: token,
       audience: config.GOOGLE_CLIENT_ID,
     });
-    return ticket.getPayload()?.sub ?? null;
+    const payload = ticket.getPayload();
+    if (!payload?.sub) return null;
+    return { googleId: payload.sub, name: payload.name ?? null };
   } catch {
     return null;
   }
 }
 
 // one object, so the tests can put a stand-in in place of Google
-export const googleSignIn = { googleIdOf };
+export const googleSignIn = { accountOf };

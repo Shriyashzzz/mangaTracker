@@ -209,10 +209,10 @@ const linkGoogle = [
   rejectInvalid,
   async (req: Request, res: Response) => {
     const userId = req.session.userId!;
-    const googleId = await googleSignIn.googleIdOf(matchedData(req).credential);
-    if (!googleId)
+    const google = await googleSignIn.accountOf(matchedData(req).credential);
+    if (!google)
       return sendError(res, 401, "Google didn't confirm that. Try again.");
-    if (!(await userQueries.linkGoogle(userId, googleId)))
+    if (!(await userQueries.linkGoogle(userId, google.googleId)))
       return sendError(
         res,
         409,

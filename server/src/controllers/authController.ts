@@ -143,11 +143,13 @@ const google = [
   body("credential").isString().isLength({ min: 20, max: 8192 }),
   rejectInvalid,
   async (req: Request, res: Response) => {
-    const googleId = await googleSignIn.googleIdOf(matchedData(req).credential);
-    if (!googleId)
+    const google = await googleSignIn.accountOf(matchedData(req).credential);
+    if (!google)
       return sendError(res, 401, "Google didn't confirm that. Try again.");
-    const found = await userQueries.getUserByGoogleId(googleId);
-    const userId = found?.id ?? (await userQueries.addGoogleUser(googleId));
+    const found = await userQueries.getUserByGoogleId(google.googleId);
+    const userId =
+      found?.id ??
+      (await userQueries.addGoogleUser(google.googleId, google.name));
     await startSession(req, userId);
     res.sendStatus(found ? 200 : 201);
   },

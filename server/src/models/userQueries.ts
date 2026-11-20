@@ -5,6 +5,7 @@ import { prisma } from "../config/prisma.js";
 import { Prisma } from "../../generated/prisma/client.js";
 import type { ReleaseSettings } from "../util/releases/releaseStatus.js";
 import { hashOfResetToken, RESET_LINK_MINUTES } from "../util/resetToken.js";
+import { isReservedName } from "../util/reservedNames.js";
 
 // the values each display preference may take; anything else is ignored when
 // saving (authController's updatePrefs). The Prefs type is made from it
@@ -96,19 +97,57 @@ export async function checkCredentials(
 export const getUserByGoogleId = (googleId: string) =>
   prisma.user.findUnique({ where: { googleId }, select: { id: true } });
 
-// "reader482913": letters and numbers, as every username is. They can change
-// how they're shown (their display name) in Settings
-const googleUsername = () =>
+// "reader482913": for a Google name that can't make a username
+const readerUsername = () =>
   `reader${String(randomBytes(4).readUInt32BE() % 1_000_000).padStart(6, "0")}`;
 
+// A Google name as a username: "Sarah Lee" is sarahlee, "Zoë" is zoe. Only
+// the letters and numbers usernames allow, at most 36 so a number fits
+// after it. Null when that leaves under 4 (佐藤, "Al") or a name kept for
+// the site (util/reservedNames.ts)
+export function usernameFromName(name: string | null) {
+  const plain = (name ?? "")
+    .normalize("NFKD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]/g, "")
+    .slice(0, 36);
+  if (plain.length < 4 || isReservedName(plain)) return null;
+  return plain;
+}
+
+// the username a new Google account gets: their name, or their name with a
+// number when it's taken (sarahlee2), in any mix of capitals, as sign-up
+// counts them. A name that can't be one: reader482913
+async function freeGoogleUsername(name: string | null) {
+  const base = usernameFromName(name);
+  if (!base) return readerUsername();
+  for (let n = 1; n <= 50; n++) {
+    const candidate = n === 1 ? base : `${base}${n}`;
+    const alike = await prisma.user.findFirst({
+      where: { username: { equals: candidate, mode: "insensitive" } },
+      select: { id: true },
+    });
+    if (!alike) return candidate;
+  }
+  return readerUsername();
+}
+
 // A new account for a Google account: no password (they can set one in
-// Settings), no email (theirs to add), a username made up for them. Signing
-// in twice at once makes one account: the second finds the first
-export async function addGoogleUser(googleId: string): Promise<number> {
+// Settings), no email (theirs to add), their Google name as its username.
+// Signing in twice at once makes one account: the second finds the first
+export async function addGoogleUser(
+  googleId: string,
+  name: string | null,
+): Promise<number> {
   for (let tries = 0; tries < 5; tries++) {
     try {
       const user = await prisma.user.create({
-        data: { username: googleUsername(), password: null, googleId },
+        data: {
+          username: await freeGoogleUsername(name),
+          password: null,
+          googleId,
+        },
         select: { id: true },
       });
       return user.id;
@@ -119,7 +158,7 @@ export async function addGoogleUser(googleId: string): Promise<number> {
       // their Google account already has one: that's the one
       const theirs = await getUserByGoogleId(googleId);
       if (theirs) return theirs.id;
-      // else the made-up username was taken: another
+      // else the username was taken a moment ago: another
     }
   }
   throw new Error("No free username for a Google sign-up");

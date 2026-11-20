@@ -1,14 +1,24 @@
 // Signing in with Google, with a real database. Google itself is stood in
 // for: a token "token-for-<who>-..." is a good one for that Google account,
-// anything else is turned away, as a forged or expired one would be
+// whose name is in NAMES (none for the rest); anything else is turned away,
+// as a forged or expired one would be
 import request from "supertest";
 import { app } from "../../app.js";
 import { googleSignIn } from "../../auth/googleSignIn.js";
 import userQueries from "../../models/userQueries.js";
 import { closeDb, emptyDb, prisma } from "./testDb.js";
 
-googleSignIn.googleIdOf = async (token: string) =>
-  token.match(/^token-for-(\w+)-/)?.[1] ?? null;
+const NAMES: Record<string, string> = {
+  sarah: "Sarah Lee",
+  sarah2: "Sarah Lee",
+  zoe: "Zoë Brontë",
+  sato: "佐藤",
+  admin: "Admin",
+};
+googleSignIn.accountOf = async (token: string) => {
+  const who = token.match(/^token-for-(\w+)-/)?.[1];
+  return who ? { googleId: who, name: NAMES[who] ?? null } : null;
+};
 const tokenFor = (who: string) => `token-for-${who}-${"x".repeat(30)}`;
 
 beforeEach(emptyDb);
@@ -35,6 +45,7 @@ test("a new Google account gets a shelf: no password, no email, a username made 
     recoveryEmail: null,
     weeklyEmail: false,
   });
+  // no name from Google: a username made up
   expect(account.body.username).toMatch(/^reader\d{6}$/);
   // neither the hash nor the Google ID is ever sent
   expect(account.body).not.toHaveProperty("password");
@@ -165,4 +176,27 @@ test("making Google accounts from one place is limited like signing up", async (
     made.push(res.status);
   }
   expect(made).toEqual([201, 201, 201, 201, 201, 429]);
+});
+
+test("a Google name becomes the username, with a number when it's taken", async () => {
+  const usernameAfter = async (who: string) => {
+    const agent = request.agent(app);
+    await withGoogle(agent, who);
+    return (await agent.get("/api/account")).body.username as string;
+  };
+  expect(await usernameAfter("sarah")).toBe("sarahlee");
+  // another Sarah Lee's Google account
+  expect(await usernameAfter("sarah2")).toBe("sarahlee2");
+  // accents dropped
+  expect(await usernameAfter("zoe")).toBe("zoebronte");
+  // nothing usable, or a name kept for the site: made up
+  expect(await usernameAfter("sato")).toMatch(/^reader\d{6}$/);
+  expect(await usernameAfter("admin")).toMatch(/^reader\d{6}$/);
+});
+
+test("a username taken in other capitals counts as taken", async () => {
+  await userQueries.addUser("SarahLee", "a long password");
+  const agent = request.agent(app);
+  await withGoogle(agent, "sarah");
+  expect((await agent.get("/api/account")).body.username).toBe("sarahlee2");
 });
