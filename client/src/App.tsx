@@ -9,7 +9,6 @@ import DeletedNote from "./components/deletedNote/DeletedNote";
 import SupportPeek from "./components/supportPeek/SupportPeek";
 import ImportPeek from "./components/importPeek/ImportPeek";
 import Tour from "./components/tour/Tour";
-import TourOffer from "./components/tour/TourOffer";
 import { isDemo } from "./lib/demo";
 import { inPlayApp } from "./lib/playApp";
 import { useCountry } from "./lib/prefs";
@@ -110,7 +109,6 @@ export default function App() {
       {/* (no coffee asks inside the Google Play app: lib/playApp.ts) */}
       {isDemo() ? <Tour /> : !inPlayApp() && <SupportPeek />}
       {!isDemo() && <ImportPeek />}
-      {!isDemo() && <TourOffer />}
       {/* the page this tab opened on (typed, a link from outside, a reload)
           has the key "default", the same for every page, so it opened at an
           old page's scroll position. It gets a key of this visit's own: it

@@ -8,7 +8,6 @@ import PasswordInput from "../../components/passwordInput/PasswordInput";
 import AuthArt from "../../components/authArt/AuthArt";
 import { apiFetch, afterSignIn, errorMessages } from "../../lib/api";
 import { NEW_PASSWORD_MIN } from "../../lib/passwordRule";
-import { offerTour } from "../../lib/tourOffer";
 import { usePrivatePage } from "../../lib/seo";
 import { useAuth } from "../../store/auth";
 import GoogleSignIn from "../../components/googleButton/GoogleSignIn";
@@ -77,8 +76,6 @@ export default function SignUp() {
       });
 
       if (result.ok) {
-        // a new account: Kenji offers the tour on their shelf
-        offerTour();
         setJustJoined(true);
         // series they marked "I have this" on someone's shared shelf are
         // the start of their own (lib/sharePicks.ts)

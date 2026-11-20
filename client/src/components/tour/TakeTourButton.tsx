@@ -1,6 +1,5 @@
 import type { ReactNode } from "react";
 import { startDemo, type DemoKind } from "../../lib/demo";
-import { markTourDone } from "../../lib/tourOffer";
 import { useAuth } from "../../store/auth";
 
 // starts Kenji's tour. It never starts on its own
@@ -29,8 +28,6 @@ export default function TakeTourButton({
         `btn btn-secondary ${large ? "btn-lg" : small ? "btn-sm" : "upto-720:btn-lg p-3"}`
       }
       onClick={() => {
-        // taken: Kenji needn't offer it (lib/tourOffer.ts)
-        markTourDone();
         startDemo(Boolean(isSignedIn), kind);
       }}
     >
