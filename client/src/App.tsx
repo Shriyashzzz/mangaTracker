@@ -88,7 +88,13 @@ export default function App() {
       <Header />
       <OfflineBar />
       <OfflineNudge />
-      <main id="main" ref={main} tabIndex={-1} className="outline-none">
+      <main
+        id="main"
+        ref={main}
+        tabIndex={-1}
+        // a wide tablet: the phone layout in a centred column (index.css)
+        className="outline-none tablet-wide:mx-auto tablet-wide:w-full tablet-wide:max-w-[50rem]"
+      >
         {/* a new country means new prices: the page is drawn again and asks
             for them in that country (lib/country.ts) */}
         {needsConnection(pathname) ? (

@@ -23,6 +23,7 @@ import {
 import { ChevronLeftIcon, ChevronRightIcon } from "../icons/Icons";
 import {
   BOOK,
+  pageScale,
   NUMBERED,
   SPACED,
   FINGER_TAPPABLE,
@@ -69,6 +70,7 @@ type Props = {
 
 // room for the ‹ › on a paged shelf
 const NAV = 36;
+
 // the gap where an edition's books give way to single volumes (index.css,
 // .vshelf-book[data-apart]): room is kept for it, so no spine gets thinner
 const APART = 7;
@@ -84,7 +86,8 @@ export default function VolumeShelf({
   slots,
 }: Props) {
   const onTheWay = new Set(ordered);
-  const FULL = slots?.bookWidth ?? BOOK;
+  // a tablet's page is drawn bigger (index.css): its books are too
+  const FULL = (slots?.bookWidth ?? BOOK) * pageScale();
   const spineOf = (v: number) => slots?.spine(v) ?? String(v);
   const nameOf = (v: number) =>
     `${slots?.name(v) ?? `Vol. ${v}`}${onTheWay.has(v) ? ", ordered" : ""}`;
@@ -374,7 +377,7 @@ export default function VolumeShelf({
 
   if (paged) {
     // (a page may hold a gap: room for one)
-    const pageRoom = width - 2 * NAV - (gaps ? APART : 0);
+    const pageRoom = width - 2 * NAV * pageScale() - (gaps ? APART : 0);
     const perPage = Math.max(5, Math.floor(pageRoom / FULL));
     const lastStart = Math.max(1, total - perPage + 1);
     // near the volume they're in, when it's marked; else near the one after

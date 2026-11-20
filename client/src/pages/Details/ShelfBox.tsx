@@ -22,7 +22,7 @@ import {
 } from "../../lib/editionShelf";
 import { rangesText } from "../../lib/ownedVolumes";
 import { readLocal, writeLocal } from "../../lib/prefs";
-import { BOOK } from "../../lib/volumeShelf";
+import { BOOK, pageScale } from "../../lib/volumeShelf";
 import { detailsStyles as styles } from "./styles";
 import type { useOwnedVolumes } from "./useOwnedVolumes";
 
@@ -164,10 +164,15 @@ export default function ShelfBox({
   const placeInEdition = edition ? placeInSlots(slots, place) : null;
 
   const books = edition ? slots.length : total;
-  const bookWidth = edition ? EDITION_BOOK : BOOK;
+  // a tablet's page is drawn bigger (index.css): its books and room too
+  const scale = pageScale();
+  const bookWidth = (edition ? EDITION_BOOK : BOOK) * scale;
   // the room a short series' books need, but never so little that the
   // caption under them breaks a word to a line
-  const width = Math.min(SHELF_MAX, Math.max(books * bookWidth, SHELF_MIN));
+  const width = Math.min(
+    SHELF_MAX * scale,
+    Math.max(books * bookWidth, SHELF_MIN * scale),
+  );
 
   return (
     <div

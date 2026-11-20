@@ -55,7 +55,7 @@ export const detailsStyles = {
   // "Tap a book to mark it yours.", until they have
   shelfHint: "basis-full text-muted",
   shelf:
-    "min-w-0 flex-[0_1_auto] w-[min(100%,var(--shelf-w))] max-[1099px]:w-full upto-720:order-1 upto-720:col-span-full",
+    "min-w-0 flex-[0_1_auto] w-[min(100%,var(--shelf-w))] max-[1099px]:w-full upto-720:order-1 upto-720:w-full upto-720:col-span-full",
   // room for a word of the title before the spine strip beside it takes any
   // ("Berser / k" when it could shrink to nothing). A word wider than that
   // breaks inside itself (title: wrap-anywhere) rather than push the strip

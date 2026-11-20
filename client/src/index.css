@@ -21,11 +21,14 @@
 @custom-variant upto-860 (@media (max-width: 860px));
 @custom-variant upto-760 (@media (max-width: 760px));
 /* the phone layout, bottom bar and all: phones, and touch screens up to
-   1366px (every iPad and Android tablet, either way round). Laptops, touch
+   1400px (every iPad and Android tablet, either way round). Laptops, touch
    ones too (their pointer is a trackpad or mouse), keep the top links.
    from-721 is its opposite. Also in lib/bottomBar.ts */
-@custom-variant upto-720 (@media (max-width: 720px) or ((pointer: coarse) and (max-width: 1366px)));
-@custom-variant from-721 (@media not ((max-width: 720px) or ((pointer: coarse) and (max-width: 1366px))));
+@custom-variant upto-720 (@media (max-width: 720px) or ((pointer: coarse) and (max-width: 1400px)));
+/* a tablet wide enough that the phone layout would hug the left edge (an
+   11-inch on its side, a 13-inch either way): the page in a centred column */
+@custom-variant tablet-wide (@media (pointer: coarse) and (min-width: 1000px) and (max-width: 1400px));
+@custom-variant from-721 (@media not ((max-width: 720px) or ((pointer: coarse) and (max-width: 1400px))));
 @custom-variant upto-560 (@media (max-width: 560px));
 @custom-variant upto-520 (@media (max-width: 520px));
 @custom-variant upto-480 (@media (max-width: 480px));
@@ -280,10 +283,25 @@
     transition: background-color 0.2s ease;
   }
 
+  /* Tablets read from further away than a phone: the whole page (nearly
+     every size is in rem) a step bigger on a touch screen wider than a
+     phone, two steps on a 13-inch (about 1000px both ways, either way
+     round). Phones and laptops keep 16px */
+  @media (pointer: coarse) and (min-width: 721px) and (max-width: 1400px) {
+    html {
+      font-size: 112.5%;
+    }
+  }
+  @media (pointer: coarse) and (min-width: 1000px) and (min-height: 1000px) and (max-width: 1400px) {
+    html {
+      font-size: 125%;
+    }
+  }
+
   body {
     color: var(--ink);
     font-family: var(--font-body);
-    font-size: 16px;
+    font-size: 1rem;
     line-height: 1.6;
     -webkit-font-smoothing: antialiased;
     transition: color 0.2s ease;
@@ -777,7 +795,7 @@
 }
 
 /* tabbing never lands on something hidden behind the phones' bottom bar */
-@media (max-width: 720px) or ((pointer: coarse) and (max-width: 1366px)) {
+@media (max-width: 720px) or ((pointer: coarse) and (max-width: 1400px)) {
   html {
     scroll-padding-bottom: 4.5rem;
   }
@@ -805,7 +823,7 @@
 }
 .vshelf {
   position: relative;
-  height: 68px;
+  height: 4.25rem;
   overflow: hidden;
   border-bottom: 3px double var(--line);
   cursor: pointer;
@@ -826,7 +844,7 @@
   bottom: 2px;
   display: flex;
   align-items: flex-end;
-  height: 66px;
+  height: 4.125rem;
 }
 .vshelf-book {
   flex: none;
@@ -852,7 +870,7 @@
   align-items: flex-end;
   justify-content: center;
   width: 100%;
-  height: 30px;
+  height: 1.875rem;
   padding-bottom: 3px;
   overflow: hidden;
   background: var(--line-soft);
@@ -873,32 +891,32 @@
   letter-spacing: -0.05em;
 }
 .vshelf-book[data-own] i {
-  height: 54px;
+  height: 3.375rem;
   background: var(--ink);
 }
 .vshelf-book[data-size="wide"] i {
   color: var(--paper);
 }
 .vshelf-book[data-size="wide"]:not([data-own]) i {
-  height: 42px;
+  height: 2.625rem;
   background: var(--paper);
   border: 1.5px dashed var(--muted);
   color: var(--muted);
 }
 .vshelf-book[data-lit]:not([data-own]) i {
-  height: 46px;
+  height: 2.875rem;
   border-style: solid;
   border-color: var(--ink);
   color: var(--ink);
 }
 .vshelf-book[data-lit][data-own] i {
-  height: 60px;
+  height: 3.75rem;
 }
 /* the volume they're in, or have read up to (the caption says which). Led
    by .vshelf-box so it wins over the rules for a book that isn't theirs,
    on the full-size page of books too */
 .vshelf-box .vshelf-book[data-here] i {
-  height: 50px;
+  height: 3.125rem;
   background: var(--accent);
   border: 1.5px solid var(--accent);
   color: var(--on-accent);
@@ -906,7 +924,7 @@
   outline-offset: 1px;
 }
 .vshelf-box .vshelf-book[data-here][data-own] i {
-  height: 54px;
+  height: 3.375rem;
 }
 /* An edition's shelf (lib/editionShelf.ts). A book they own only some
    volumes of is inked part of the way down, never as far as its number.
@@ -1002,14 +1020,14 @@ body {
 /* an edition's shelf: each run's name over its first spine ("Definitive",
    "Singles"), in room kept above the books for it */
 .vshelf[data-runs]:not(.vshelf-paged) {
-  height: 84px;
+  height: 5.25rem;
 }
 .vshelf-paged[data-runs] .vshelf-page,
 .vshelf-paged[data-runs] .vshelf-nav {
-  height: 84px;
+  height: 5.25rem;
 }
 .vshelf-paged[data-runs] .vshelf-book {
-  height: 66px;
+  height: 4.125rem;
 }
 .vshelf-book[data-run] {
   position: relative;
@@ -1043,7 +1061,7 @@ body {
   flex: 1;
   align-items: flex-end;
   justify-content: center;
-  height: 66px;
+  height: 4.125rem;
   padding-bottom: 2px;
 }
 .vshelf-page .vshelf-book {
@@ -1058,8 +1076,9 @@ body {
 }
 .vshelf-nav {
   display: grid;
-  width: 36px;
-  height: 66px;
+  /* NAV in VolumeShelf.tsx, scaled the same */
+  width: 2.25rem;
+  height: 4.125rem;
   flex: none;
   place-items: center;
   color: var(--ink);
@@ -1068,8 +1087,8 @@ body {
   color: var(--line-soft);
 }
 .vshelf-nav svg {
-  width: 18px;
-  height: 18px;
+  width: 1.125rem;
+  height: 1.125rem;
 }
 /* just ticked: it stands up */
 .vshelf-book[data-pop] i {
@@ -1104,7 +1123,7 @@ body {
   display: flex;
   align-items: flex-end;
 }
-@media (max-width: 720px) or ((pointer: coarse) and (max-width: 1366px)) {
+@media (max-width: 720px) or ((pointer: coarse) and (max-width: 1400px)) {
   /* the bottom bar: its links, its double rule and the phone's home area */
   .support-peek {
     bottom: calc(59px + env(safe-area-inset-bottom));
@@ -1311,7 +1330,7 @@ body {
   box-shadow: 0 10px 20px -14px rgba(20, 14, 8, 0.55);
   animation: support-peek-say 0.26s cubic-bezier(0.3, 1.4, 0.6, 1) both;
 }
-@media (max-width: 720px) or ((pointer: coarse) and (max-width: 1366px)) {
+@media (max-width: 720px) or ((pointer: coarse) and (max-width: 1400px)) {
   .import-badge {
     bottom: calc(59px + 10px + env(safe-area-inset-bottom));
   }
@@ -1673,7 +1692,7 @@ body {
   stroke-linecap: round;
   stroke-linejoin: round;
 }
-@media not ((max-width: 720px) or ((pointer: coarse) and (max-width: 1366px))) {
+@media not ((max-width: 720px) or ((pointer: coarse) and (max-width: 1400px))) {
   .tour-dock {
     right: auto;
     left: 24px;

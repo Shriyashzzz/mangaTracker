@@ -7,6 +7,11 @@
 
 // a book at full size, as on the add form's picker
 export const BOOK = 22;
+
+// how much bigger than 16px the page's text is: 1 on phones and laptops,
+// 1.125 or 1.25 on tablets (index.css), where the books grow with it
+export const pageScale = () =>
+  parseFloat(getComputedStyle(document.documentElement).fontSize) / 16 || 1;
 // how many neighbours grow with it
 const SPREAD = 2.6;
 // a mouse hits a book this wide without help: one click ticks it
