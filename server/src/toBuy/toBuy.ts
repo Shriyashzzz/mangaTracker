@@ -244,6 +244,9 @@ export type Settled = {
   shelf: { id: number; name: string } | null;
   // the volumes it holds, when certain
   volumes: number[] | null;
+  // a light novel's book (from its whole title: the series' name may have
+  // lost the words), so "Add it to your shelf?" looks up the novel
+  lightNovel: boolean;
 };
 
 export async function settleToBuy(
@@ -275,6 +278,7 @@ export async function settleToBuy(
       series,
       shelf: entry ? { id: entry.id, name: entry.shelfName } : null,
       volumes,
+      lightNovel: isNovelBook(book.title),
     };
   });
 }

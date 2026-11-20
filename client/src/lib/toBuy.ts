@@ -35,6 +35,8 @@ export type Settled = {
   series: string;
   shelf: { id: number; name: string } | null;
   volumes: number[] | null;
+  // a light novel's book: the novel is looked up, never the manga
+  lightNovel: boolean;
 };
 
 // "Add it to your shelf?" (server toBuy.ts addFromToBuy): the series added,

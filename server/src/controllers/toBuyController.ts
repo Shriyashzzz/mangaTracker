@@ -15,7 +15,7 @@ import {
   settleToBuy,
   toBuyList,
 } from "../toBuy/toBuy.js";
-import { nameField } from "./manga/fields.js";
+import { chapterMessage, nameField, ownedListFields } from "./manga/fields.js";
 
 // :isbn may be ISBN-10 or -13 with dashes; handlers always get an ISBN-13
 const isbnParam = param("isbn")
@@ -91,12 +91,13 @@ const addSeries = [
   nameField(),
   body("planned").isBoolean().toBoolean(),
   body("how").isIn(["owned", "ordered"]),
-  // the other volumes they ticked on the modal's shelf
-  body("owned").optional().isArray({ max: 999 }),
-  body("owned.*").isFloat({ min: 0, max: 999 }).toFloat(),
+  // the other volumes they ticked, and where they've read up to: the same
+  // rules as Add manga's
+  ...ownedListFields("owned"),
   body("bookmark")
     .optional({ values: "null" })
     .isInt({ min: 0, max: 100000 })
+    .withMessage(chapterMessage)
     .toInt(),
   rejectInvalid,
   async (req: Request, res: Response) => {

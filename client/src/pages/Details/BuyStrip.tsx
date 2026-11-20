@@ -4,6 +4,7 @@ import { ChevronDownIcon, InkCrossIcon } from "../../components/icons/Icons";
 import { chaptersText, type ChapterRange } from "../../lib/chapterWords";
 import { formatCents, seriesPath, volumePath } from "../../lib/prices";
 import { onSale } from "../../lib/releaseDate";
+import { runsOf } from "../../lib/volumeRuns";
 import { detailsStyles as styles } from "./styles";
 import type { SeriesVolume } from "../../lib/types";
 import type { BuyOptions } from "./useBuyOptions";
@@ -67,18 +68,6 @@ function bookPrice(book: EditionBook) {
 
 const price = (v: SeriesVolume) =>
   v.knownPriceCents != null ? formatCents(v.knownPriceCents) : "check price";
-
-// whole volumes in a row, together: [7, 8, 9, 12] is [7, 8, 9] and [12]
-// (an edition's book ordered reads as one "Vols. 7–9")
-function runsOf(volumes: number[]) {
-  const runs: number[][] = [];
-  for (const v of [...volumes].sort((a, b) => a - b)) {
-    const last = runs.at(-1);
-    if (last && v === last.at(-1)! + 1) last.push(v);
-    else runs.push([v]);
-  }
-  return runs;
-}
 
 // gaps listed by name; past this, the series page's "Not on your shelf"
 const GAPS_SHOWN = 6;

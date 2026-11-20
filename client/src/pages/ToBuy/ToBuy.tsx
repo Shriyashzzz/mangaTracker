@@ -41,6 +41,7 @@ import { useToBuy } from "../../store/toBuy";
 import { pricesStyles } from "../Prices/styles";
 import ClearListModal from "./ClearListModal";
 import AddSeriesModal from "./AddSeriesModal";
+import { runsText } from "../../lib/volumeRuns";
 import Toast from "../../components/toast/Toast";
 import { toastAction } from "../../components/toast/toastStyles";
 import { offerAddNow } from "../../lib/prefs";
@@ -90,18 +91,6 @@ const nameOf = (item: ToBuyItem) =>
   item.volume != null && !item.edition
     ? `${novelParts(item.series).title}, Vol. ${item.volume}`
     : novelParts(item.title).title;
-
-// 1, 2, 3, 5 -> "1–3, 5"
-function runsText(volumes: number[]) {
-  const runs: string[] = [];
-  for (let i = 0; i < volumes.length;) {
-    let j = i;
-    while (volumes[j + 1] === volumes[j]! + 1) j++;
-    runs.push(i === j ? `${volumes[i]}` : `${volumes[i]}–${volumes[j]}`);
-    i = j + 1;
-  }
-  return runs.join(", ");
-}
 
 // What adding it did, for the toast: "Added vol. 2 of Blue Box to your
 // shelf", "Blue Box was on your shelf already: vol. 2 is there now"
@@ -332,7 +321,7 @@ export default function ToBuy() {
         />
       )}
       {added && (
-        <Toast onGone={forgetAdded}>
+        <Toast key={`${added.id}:${added.ticked.join()}`} onGone={forgetAdded}>
           <span className="min-w-0">{addedText(added, added.ticked)}</span>
           <NavLink
             to={`/details/${added.id}`}

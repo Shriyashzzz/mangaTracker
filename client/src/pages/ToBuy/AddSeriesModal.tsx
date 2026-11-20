@@ -55,17 +55,34 @@ export default function AddSeriesModal({
   const [name, setName] = useState(() => novelParts(settled.series).title);
   const [planned, setPlanned] = useState(true);
   // the series as the price pages know it: its cover and volumes out.
+  // Looked up by the name in the box (again when they correct it), strictly:
+  // a near miss would show another series' cover over their name.
   // undefined while it's asked; null when it couldn't be found
-  const [series, setSeries] = useState<Series | null | undefined>(undefined);
+  const [lookedUp, setLookedUp] = useState(name);
+  const [found, setFound] = useState<{
+    name: string;
+    series: Series | null;
+  } | null>(null);
+  const plain = lookedUp.trim();
+  const series = !plain
+    ? null
+    : found?.name === plain
+      ? found.series
+      : undefined;
   useEffect(() => {
+    if (!plain) return;
     const asked = new AbortController();
-    getSeries(settled.series, asked.signal)
-      .then(setSeries)
+    getSeries(
+      settled.lightNovel ? `${plain} Light Novel` : plain,
+      asked.signal,
+      true,
+    )
+      .then((s) => setFound({ name: plain, series: s }))
       .catch((e: Error) => {
-        if (e.name !== "AbortError") setSeries(null);
+        if (e.name !== "AbortError") setFound({ name: plain, series: null });
       });
     return () => asked.abort();
-  }, [settled.series]);
+  }, [plain, settled.lightNovel]);
   // the book's volumes, owned when bought; the others they tick
   const book = settled.volumes ?? [];
   const [owned, setOwned] = useState<number[]>(how === "owned" ? book : []);
@@ -170,6 +187,7 @@ export default function AddSeriesModal({
             value={name}
             maxLength={150}
             onChange={(e) => setName(e.target.value)}
+            onBlur={() => setLookedUp(name)}
             disabled={saving}
           />
         </label>

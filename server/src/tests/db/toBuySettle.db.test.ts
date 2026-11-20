@@ -128,6 +128,7 @@ test("a series not on the shelf: off the list, nothing added", async () => {
     series: "Zzelsewhere Tales",
     shelf: null,
     volumes: [2],
+    lightNovel: false,
   });
   expect(await prisma.manga.count({ where: { userId: id } })).toBe(0);
   expect((await agent.get("/api/to-buy")).body.items).toEqual([]);
@@ -286,7 +287,8 @@ test("a light novel bought never ticks the manga of the same name", async () => 
   await book("9781999996416", "Zzadd Lantern (Light Novel) Vol. 2");
   await agent.put("/api/to-buy/9781999996416");
   const res = await settle(agent, "9781999996416", "owned");
-  expect(res.body).toMatchObject({ done: null, shelf: null });
+  // the page is told it's a light novel, to look up the novel, not the manga
+  expect(res.body).toMatchObject({ done: null, shelf: null, lightNovel: true });
   expect((await mangaQueries.getManga(manga))!.volumesOwned).toBe(1);
 });
 
