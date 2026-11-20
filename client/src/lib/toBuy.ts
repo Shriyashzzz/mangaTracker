@@ -20,7 +20,33 @@ export type ToBuyItem = {
   // its release date while it isn't out yet (a preorder); null once it's out
   outOn: string | null;
   addedAt: string;
+  // the series' volumes it certainly holds; null when that isn't certain (an
+  // edition's book whose title doesn't say, a box set). Never a guess
+  volumes: number[] | null;
+  // an edition's book (Deluxe, VIZBIG), not one volume
+  edition: boolean;
+  // its series on their shelf, and whether it's all theirs or on order
+  shelf: { id: number; name: string; state: "owned" | "ordered" | null } | null;
 };
+
+// what "I bought it" or "I ordered it" did (server toBuy.ts Settled)
+export type Settled = {
+  done: "owned" | "ordered" | null;
+  series: string;
+  shelf: { id: number; name: string } | null;
+  volumes: number[] | null;
+};
+
+// "I bought it" or "I ordered it": off the list, and on the shelf when the
+// server's certain which series and volumes
+export async function settleToBuy(isbn13: string, how: "owned" | "ordered") {
+  const res = await apiFetch(`/api/to-buy/${isbn13}/settle`, {
+    method: "POST",
+    body: { how },
+  });
+  if (!res.ok) throw new Error(orOffline("That didn't save. Try again."));
+  return (await res.json()) as Settled;
+}
 
 // each kind added up over the volumes that have a price of that kind
 type ToBuySum = { cents: number; volumes: number };

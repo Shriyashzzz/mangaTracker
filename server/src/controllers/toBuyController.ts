@@ -1,6 +1,6 @@
 // /api/to-buy/*  a signed-in reader's To buy list (toBuy/toBuy.ts)
 import type { Request, Response } from "express";
-import { matchedData, param } from "express-validator";
+import { body, matchedData, param } from "express-validator";
 import { requireSignIn } from "../middlewares/auth.js";
 import { sendError } from "../middlewares/errorHandler.js";
 import { rejectInvalid } from "../middlewares/validate.js";
@@ -11,6 +11,7 @@ import {
   clearToBuy,
   MOST_TO_BUY,
   removeToBuy,
+  settleToBuy,
   toBuyList,
 } from "../toBuy/toBuy.js";
 
@@ -63,6 +64,22 @@ const remove = [
   },
 ];
 
+// POST /:isbn/settle {how: "owned" | "ordered"}  "I bought it" or "I
+// ordered it": off the list, and on the shelf when that's certain
+const settle = [
+  requireSignIn,
+  isbnParam,
+  body("how").isIn(["owned", "ordered"]),
+  rejectInvalid,
+  async (req: Request, res: Response) => {
+    const d = matchedData(req);
+    const settled = await settleToBuy(req.session.userId!, d.isbn, d.how);
+    if (settled === "gone")
+      return void sendError(res, 404, "That's not on your list any more.");
+    own(res).json(settled);
+  },
+];
+
 // DELETE /  empties the list
 const clear = [
   requireSignIn,
@@ -72,4 +89,4 @@ const clear = [
   },
 ];
 
-export default { list, add, remove, clear };
+export default { list, add, remove, clear, settle };

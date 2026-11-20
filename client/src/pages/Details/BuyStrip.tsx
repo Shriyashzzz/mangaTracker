@@ -184,7 +184,7 @@ export default function BuyStrip({
   // (both layouts: single volumes and an edition's books)
   const orderedLine = ordered.length > 0 && (
     <li className={styles.buyOrdered}>
-      <span className={styles.buyOrderedLabel}>On order:</span>
+      <span className={styles.buyOrderedLabel}>Ordered:</span>
       <span className={styles.buyGapList}>
         {runsOf(ordered).map((run) => {
           const said =
@@ -297,7 +297,7 @@ export default function BuyStrip({
                     type="button"
                     className={styles.ticketPill}
                     disabled={owning}
-                    aria-label={`I own ${editionBookLabel(line, plan.next)}`}
+                    aria-label={`${editionBookLabel(line, plan.next)}: on my shelf`}
                     onClick={() => {
                       setOwning(true);
                       setOwnFailed(false);
@@ -306,7 +306,7 @@ export default function BuyStrip({
                         .finally(() => setOwning(false));
                     }}
                   >
-                    {owning ? "Saving…" : "Own it"}
+                    {owning ? "Saving…" : "On my shelf"}
                   </button>
                 )}
                 {onOrdered && (
@@ -314,7 +314,7 @@ export default function BuyStrip({
                     type="button"
                     className={styles.ticketPill}
                     disabled={ordering}
-                    aria-label={`I ordered ${editionBookLabel(line, plan.next)}`}
+                    aria-label={`${editionBookLabel(line, plan.next)}: ordered`}
                     onClick={() => order(plan.next!.volumes, true)}
                     {...offlineLink(offline)}
                   >
@@ -401,7 +401,7 @@ export default function BuyStrip({
                     type="button"
                     className={styles.ticketPill}
                     disabled={ordering}
-                    aria-label={`I ordered vol. ${next.volume}`}
+                    aria-label={`Vol. ${next.volume}: ordered`}
                     onClick={() => order([next.volume], true)}
                     {...offlineLink(offline)}
                   >

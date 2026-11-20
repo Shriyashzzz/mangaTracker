@@ -289,7 +289,7 @@ export const detailsStyles = {
   // "I own Deluxe 7", quiet under the ticket it records
   // a Next ticket with pills: a row kept for them at its foot
   buyNextRoom: "pb-10",
-  // "Own it", "Ordered": small pills in the ticket's bottom right corner,
+  // "On my shelf", "Ordered": small pills in the ticket's bottom right corner,
   // lettered like its "Next for you"
   ticketPills: "absolute right-2.5 bottom-2 flex gap-1.5",
   ticketPill:
@@ -344,7 +344,7 @@ export const detailsStyles = {
     "tap mt-2.5 block py-1 text-right text-[0.85rem] font-medium text-ink-soft underline decoration-line-soft underline-offset-3 transition-colors duration-120 ease-[ease] hover:text-accent hover:decoration-accent",
   // (on the narrowest phones a long label takes two lines rather than
   // running into what's beside it)
-  // "On order: Vols. 7–12": one quiet line under the tickets, not a box
+  // "Ordered: Vols. 7–12": one quiet line under the tickets, not a box
   buyOrdered:
     "flex flex-wrap items-baseline gap-x-2 px-1 text-[0.88rem] text-ink-soft",
   buyOrderedLabel:

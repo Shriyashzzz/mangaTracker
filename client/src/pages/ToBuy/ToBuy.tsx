@@ -2,24 +2,28 @@
 // each with its cheapest new and used copy now, and what the lot costs
 // (above the list, so it's there without scrolling). 20 to a page, in the
 // order they pick; both live in the address (?sort=, ?page=).
-// "I bought it" takes one off and, when its series is on their shelf, marks
-// the volume as owned there. A volume that isn't out yet says when it is,
-// and its button is "I preordered it": off the list, but not on the shelf
-// as owned, since they don't have it yet. Stored prices only: nothing here asks a store.
-import { useEffect, useMemo, useState } from "react";
+// "On my shelf" (bought, theirs) and "Ordered" take one off and, when its series is on
+// their shelf and the volumes it holds are certain, make them owned or on
+// order there (server toBuy.ts settleToBuy). Nothing is guessed or added: a
+// series not on the shelf, or an edition's book whose volumes aren't
+// certain, is only taken off, and the note says what to do. A volume that
+// isn't out yet says when it is, and can only be ordered. One the shelf
+// already has, or has on order, says so. Stored prices only: nothing here
+// asks a store.
+import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { NavLink, useNavigate, useSearchParams } from "react-router";
 import Cover from "../../components/cover/Cover";
 import Mascot from "../../components/mascot/Mascot";
 import RangePager from "../../components/rangePager/RangePager";
 import { useUrlPages } from "../../components/rangePager/useUrlPages";
 import { signInPath } from "../../lib/api";
-import { withVolume } from "../../lib/ownedVolumes";
 import { formatCents, novelParts, volumePath } from "../../lib/prices";
 import { usePageMeta } from "../../lib/seo";
-import { findOnShelf, setVolumesOwned } from "../../lib/shelf";
 import {
+  settleToBuy,
   sortToBuy,
   TO_BUY_SORTS,
+  type Settled,
   type ToBuyItem,
   type ToBuyList,
   type ToBuyPrice,
@@ -56,16 +60,57 @@ const styles = {
   // on a phone: a pair the same width across the row, 38px tall (44 read
   // as too big here; smaller than 38 is hard to hit)
   actions:
-    "flex items-center gap-2 upto-720:col-span-2 upto-720:grid upto-720:grid-cols-2 upto-720:[&_.btn]:h-[38px]",
+    "flex items-center gap-x-3 gap-y-2 upto-720:col-span-2 upto-720:flex-wrap upto-720:[&_.btn]:h-[38px]",
+  // Remove: quiet, it's the least wanted of the three
+  removeBtn:
+    "tap text-[0.88rem] text-ink-soft underline decoration-line-soft underline-offset-3 hover:text-ink hover:decoration-accent disabled:opacity-50",
+  // "Already yours", "On order": under its name
+  shelfTag:
+    "self-start font-mono text-[0.7rem] tracking-[0.06em] text-ok uppercase",
   // how the last tap went; takes no room until there's something to say
   note: "text-[0.9rem] text-ink-soft empty:hidden",
 };
 
-// "Chainsaw Man, Vol. 3", or the book's own title when it isn't one volume
+// "Chainsaw Man, Vol. 3", or the book's own title when it isn't one plain
+// volume (an edition's book: "Berserk Deluxe Edition, Vol. 3" is no vol. 3)
 const nameOf = (item: ToBuyItem) =>
-  item.volume != null
+  item.volume != null && !item.edition
     ? `${novelParts(item.series).title}, Vol. ${item.volume}`
     : novelParts(item.title).title;
+
+// What a tap did, in words: on the shelf, or what to do now
+function settledNote(item: ToBuyItem, settled: Settled): ReactNode {
+  const name = nameOf(item);
+  const link = (to: string, words: string) => (
+    <NavLink to={to} className="font-medium text-ink underline" viewTransition>
+      {words}
+    </NavLink>
+  );
+  if (settled.done && settled.shelf)
+    return (
+      <>
+        {name} is off the list, and{" "}
+        {settled.done === "owned" ? "yours" : "ordered"} on{" "}
+        {link(`/details/${settled.shelf.id}`, settled.shelf.name)}.
+      </>
+    );
+  if (settled.shelf)
+    return (
+      <>
+        {name} is off the list. Tick the volumes it holds on{" "}
+        {link(`/details/${settled.shelf.id}`, settled.shelf.name)}.
+      </>
+    );
+  const single = settled.volumes?.length === 1 ? settled.volumes[0] : null;
+  const add = new URLSearchParams({ title: settled.series });
+  if (single && settled.done === null) add.set("ownedVolume", String(single));
+  return (
+    <>
+      {name} is off the list. {settled.series} isn't on your shelf yet:{" "}
+      {link(`/add?${add}`, "add it")}.
+    </>
+  );
+}
 
 function Price({ label, price }: { label: string; price: ToBuyPrice }) {
   if (!price) return null;
@@ -101,7 +146,7 @@ export default function ToBuy() {
   const { list, loadFailed, load, remove, clear } = useToBuy();
   // the volume a tap is saving, and how the last one went
   const [busy, setBusy] = useState<string | null>(null);
-  const [note, setNote] = useState("");
+  const [note, setNote] = useState<ReactNode>("");
   // "Clear list" asks once more, in a dialog, before it empties the list
   const [asking, setAsking] = useState(false);
   const clearAll = async () => {
@@ -121,25 +166,26 @@ export default function ToBuy() {
     if (isSignedIn) void load();
   }, [isSignedIn, navigate, load]);
 
-  const takeOff = async (item: ToBuyItem, bought: boolean) => {
+  // "On my shelf", "Ordered" (the server settles it), or Remove
+  const settle = async (item: ToBuyItem, how: "owned" | "ordered") => {
     setBusy(item.isbn13);
     setNote("");
     try {
-      let onShelf = false;
-      // a preorder isn't theirs until it ships
-      if (bought && item.volume != null && !item.outOn) {
-        const manga = await findOnShelf(item.series).catch(() => null);
-        if (manga) {
-          await setVolumesOwned(manga.id, withVolume(manga, item.volume));
-          onShelf = true;
-        }
-      }
+      const settled = await settleToBuy(item.isbn13, how);
+      await load();
+      setNote(settledNote(item, settled));
+    } catch (e) {
+      setNote((e as Error).message);
+    } finally {
+      setBusy(null);
+    }
+  };
+  const takeOff = async (item: ToBuyItem) => {
+    setBusy(item.isbn13);
+    setNote("");
+    try {
       await remove(item.isbn13);
-      setNote(
-        onShelf
-          ? `${nameOf(item)} is off the list, and yours on your shelf.`
-          : `${nameOf(item)} is off the list.`,
-      );
+      setNote(`${nameOf(item)} is off the list.`);
     } catch {
       setNote(orOffline("That didn't save. Try again."));
     } finally {
@@ -256,16 +302,16 @@ export default function ToBuy() {
                 >
                   {/* the cover its price page shows, over the same stand-in */}
                   <CoverFallback
-                    number={item.volume}
+                    number={item.edition ? null : item.volume}
                     seriesCoverUrl={item.seriesCoverUrl}
                     seriesName={item.series}
-                    numbered={item.volume != null}
+                    numbered={item.volume != null && !item.edition}
                     small
                   />
                   <Cover url={item.coverUrl} sizes="60px" />
                   {/* its number on the corner, as a series page's covers
                       carry it (the small tile's stamp, from the shelf) */}
-                  {item.volume != null && (
+                  {item.volume != null && !item.edition && (
                     <span className={volumesStyles.vol} aria-hidden>
                       {item.volume}
                     </span>
@@ -279,6 +325,14 @@ export default function ToBuy() {
                   >
                     {nameOf(item)}
                   </NavLink>
+                  {/* the shelf already has it, or has it on order */}
+                  {item.shelf?.state && (
+                    <span className={styles.shelfTag}>
+                      {item.shelf.state === "owned"
+                        ? "Already yours"
+                        : "Ordered"}
+                    </span>
+                  )}
                   <p className={styles.prices}>
                     <Price label="New" price={item.new} />
                     <Price label="Used" price={item.used} />
@@ -294,23 +348,33 @@ export default function ToBuy() {
                   </p>
                 </div>
                 <div className={styles.actions}>
+                  {/* out now: bought or ordered; a preorder can only be
+                      ordered; a box set or guide, only bought */}
+                  {!item.outOn && (
+                    <button
+                      type="button"
+                      className="btn btn-primary btn-sm"
+                      disabled={busy !== null}
+                      onClick={() => void settle(item, "owned")}
+                    >
+                      {busy === item.isbn13 ? "Saving…" : "On my shelf"}
+                    </button>
+                  )}
+                  {(item.outOn || item.volumes || item.edition) && (
+                    <button
+                      type="button"
+                      className="btn btn-secondary btn-sm"
+                      disabled={busy !== null}
+                      onClick={() => void settle(item, "ordered")}
+                    >
+                      Ordered
+                    </button>
+                  )}
                   <button
                     type="button"
-                    className="btn btn-primary btn-sm"
+                    className={styles.removeBtn}
                     disabled={busy !== null}
-                    onClick={() => void takeOff(item, true)}
-                  >
-                    {busy === item.isbn13
-                      ? "Saving…"
-                      : item.outOn
-                        ? "I preordered it"
-                        : "I bought it"}
-                  </button>
-                  <button
-                    type="button"
-                    className="btn btn-secondary btn-sm"
-                    disabled={busy !== null}
-                    onClick={() => void takeOff(item, false)}
+                    onClick={() => void takeOff(item)}
                   >
                     Remove
                   </button>

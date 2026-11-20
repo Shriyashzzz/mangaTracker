@@ -9,7 +9,17 @@ import type { CheapestCopy } from "../models/priceHistory.js";
 import { notOutYet } from "../prices/preorder.js";
 import { getOrCreateBook } from "../prices/service.js";
 import { getSeriesInfo } from "../prices/sources/anilist.js";
-import { seriesOfBook } from "../prices/stores/match.js";
+import {
+  editionOfTitle,
+  omnibusVolumes,
+  seriesOfBook,
+} from "../prices/stores/match.js";
+import { findOnShelf } from "../prices/shelfService.js";
+import { isNovelName, priceName } from "../prices/lightNovel.js";
+import mangaQueries from "../models/mangaQueries.js";
+import { ownedSet } from "../collector/shelfMath.js";
+import { ownedVolumes } from "../util/shelf/ownedList.js";
+import { oneAtATime } from "../util/shelf/oneAtATime.js";
 import { shopName, titleVolume } from "../prices/volumeNames.js";
 
 // plenty for a shopping list, and it keeps one account's list a quick read
@@ -24,6 +34,15 @@ export type ToBuyItem = {
   series: string;
   // null for a book that isn't one numbered volume (a box set, a guide)
   volume: number | null;
+  // the series' volumes it certainly holds (volumesOf): what "I bought it"
+  // and "I ordered it" act on. null: not known for sure, so they act on none
+  volumes: number[] | null;
+  // an edition's book (Deluxe, VIZBIG), not one volume
+  edition: boolean;
+  // the series on their shelf it belongs to, and whether they have all it
+  // holds already, or have it on order (said on the list; never acted on
+  // without them)
+  shelf: { id: number; name: string; state: "owned" | "ordered" | null } | null;
   // its cover as its own price page has it (none for an edition known to
   // have no picture), and its series' cover to stand in behind it
   coverUrl: string | null;
@@ -54,6 +73,48 @@ export function toBuyTotals(items: Pick<ToBuyItem, "new" | "used">[]) {
     };
   };
   return { volumes: items.length, new: sum("new"), used: sum("used") };
+}
+
+// The series' volumes a book certainly holds: a plain volume, itself; an
+// edition's book, the ones its title lists ("Includes vols. 19, 20 & 21").
+// null when that isn't certain: an edition's book whose title doesn't say,
+// a box set, a guide. Never a guess: Deluxe 3 isn't vol. 3, and people buy
+// by what this says
+export function volumesOf(title: string): number[] | null {
+  if (editionOfTitle(title)) {
+    const listed = omnibusVolumes(title);
+    return listed?.length ? listed : null;
+  }
+  const volume = titleVolume(title);
+  return volume == null ? null : [volume];
+}
+
+// the reader's shelf, as the series matcher reads it (manga's /match)
+async function shelfOf(userId: number) {
+  return (await mangaQueries.getShelf(userId)).map((m) => ({
+    ...m,
+    shelfName: m.name,
+    name: priceName(m),
+  }));
+}
+type ShelfEntry = Awaited<ReturnType<typeof shelfOf>>[number];
+
+// the shelf entry a book's series is, light novel or manga as it says
+const entryFor = (shelf: ShelfEntry[], series: string) =>
+  findOnShelf(
+    shelf.filter((m) => Boolean(m.lightNovel) === isNovelName(series)),
+    series,
+  );
+
+// all it holds owned, or all it lacks on order
+function stateOf(entry: ShelfEntry, volumes: number[] | null) {
+  if (!volumes) return null;
+  const owned = ownedSet(entry);
+  const missing = volumes.filter((v) => !owned.has(v));
+  if (!missing.length) return "owned" as const;
+  return missing.every((v) => entry.orderedList.includes(v))
+    ? ("ordered" as const)
+    : null;
 }
 
 const priceOf = (copy: CheapestCopy | null | undefined): Price =>
@@ -94,6 +155,15 @@ export async function toBuyList(userId: number, country: Country = "us") {
       ),
     ),
   );
+  // where each sits on their shelf, matched once a series
+  const shelf = await shelfOf(userId);
+  const entryOf = new Map(
+    await Promise.all(
+      seriesNames.map(
+        async (name) => [name, await entryFor(shelf, name)] as const,
+      ),
+    ),
+  );
   const items: ToBuyItem[] = rows.flatMap((row) => {
     const isbn13 = row.isbn13.trim();
     const book = bookOf.get(isbn13);
@@ -105,6 +175,9 @@ export async function toBuyList(userId: number, country: Country = "us") {
       title,
       series: seriesOfBook(title),
       volume: titleVolume(title),
+      volumes: volumesOf(title),
+      edition: Boolean(editionOfTitle(title)),
+      shelf: shelfLine(entryOf.get(seriesOfBook(title)), volumesOf(title)),
       coverUrl: hasNoCover(coverRowOf.get(isbn13)) ? null : book.coverUrl,
       seriesCoverUrl: seriesCovers.get(seriesOfBook(title)) ?? null,
       new: priceOf(copies.get(isbn13)?.new),
@@ -138,5 +211,71 @@ export const clearToBuy = (userId: number) =>
   prisma.toBuy.deleteMany({ where: { userId } });
 
 // takes a volume off; one that wasn't there is fine
+const shelfLine = (
+  entry: ShelfEntry | null | undefined,
+  volumes: number[] | null,
+): ToBuyItem["shelf"] =>
+  entry
+    ? { id: entry.id, name: entry.shelfName, state: stateOf(entry, volumes) }
+    : null;
+
+// "I bought it" or "I ordered it": the book comes off the list and, when its
+// series is on their shelf and the volumes it holds are certain, they're
+// owned or on order there. Nothing is guessed or added: a series not on the
+// shelf, or a book whose volumes aren't certain, is only taken off the list,
+// and the answer says which, so the page can say what to do. Under the
+// reader's lock, as every shelf save is
+export type Settled = {
+  // what was done on the shelf: "owned", "ordered", or nothing
+  done: "owned" | "ordered" | null;
+  series: string;
+  shelf: { id: number; name: string } | null;
+  // the volumes it holds, when certain
+  volumes: number[] | null;
+};
+
+export async function settleToBuy(
+  userId: number,
+  isbn13: string,
+  how: "owned" | "ordered",
+): Promise<Settled | "gone"> {
+  return oneAtATime(userId, async () => {
+    const book = await prisma.book.findUnique({ where: { isbn13 } });
+    const onList = await prisma.toBuy.findUnique({
+      where: { userId_isbn13: { userId, isbn13 } },
+    });
+    if (!book || !onList) return "gone" as const;
+    const series = seriesOfBook(book.title);
+    const volumes = volumesOf(book.title);
+    const entry = await entryFor(await shelfOf(userId), series);
+    let done: Settled["done"] = null;
+    if (entry && volumes) {
+      const owned = ownedSet(entry);
+      if (how === "owned") {
+        await mangaQueries.setVolumesOwned(
+          entry.id,
+          ownedVolumes(null, [...owned, ...volumes]),
+        );
+      } else {
+        const missing = volumes.filter((v) => !owned.has(v));
+        await mangaQueries.setOrdered(
+          entry.id,
+          [...new Set([...entry.orderedList, ...missing])].sort(
+            (a, b) => a - b,
+          ),
+        );
+      }
+      done = how;
+    }
+    await removeToBuy(userId, isbn13);
+    return {
+      done,
+      series,
+      shelf: entry ? { id: entry.id, name: entry.shelfName } : null,
+      volumes,
+    };
+  });
+}
+
 export const removeToBuy = (userId: number, isbn13: string) =>
   prisma.toBuy.deleteMany({ where: { userId, isbn13 } });
