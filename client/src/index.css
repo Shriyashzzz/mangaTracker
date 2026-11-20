@@ -503,7 +503,8 @@
 
   /* ---------- loading ---------- */
   .skeleton {
-    background: var(--paper-2);
+    /* a light wash of the ink: easy to see on the paper, light or dark */
+    background: color-mix(in srgb, var(--ink) 10%, var(--paper));
     border-radius: var(--radius);
     animation: breathe 1.6s ease-in-out infinite;
   }

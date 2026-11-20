@@ -197,6 +197,11 @@ export const homeStyles = {
   nothingNewTitle:
     "font-brand text-[1.9rem] leading-[1.1] tracking-[1px] text-balance",
   skeletonTitle: "mb-10 h-[46px] w-60",
+  // the shelf's bar (its filter, search, sort and Select) and its pages,
+  // while it loads (LibrarySkeleton)
+  skeletonBar:
+    "mb-5 flex items-center justify-between border-b-[1.5px] border-line pb-4",
+  skeletonPager: "mb-6 flex gap-2",
 
   // ---------- empty states ----------
   // the empty shelf (ShelfStates EmptyShelf): a new collector's first look.

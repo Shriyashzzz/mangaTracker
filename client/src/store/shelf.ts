@@ -40,6 +40,8 @@ type ShelfState = {
   // when each answer was checked (kept between visits: lib/releaseCache.ts)
   checkedAt: Record<number, number>;
   load: () => Promise<void>;
+  // load's request itself; call load, which shares it
+  fetchShelf: () => Promise<void>;
   checkReleases: () => Promise<void>;
   // forget the answers and check every title again
   recheckReleases: () => void;
@@ -87,6 +89,10 @@ const SEEN = {
 let run: AbortController | null = null;
 // bumped on reset, so a shelf still on its way can't come back afterwards
 let generation = 0;
+// the shelf's request on its way, shared by whoever asks meanwhile (signing
+// in starts it, the shelf page asks again as it opens), and only within the
+// same generation: one from before a reset is never handed out
+let loading: { promise: Promise<void>; generation: number } | null = null;
 // a source didn't answer for these. A slow answer finishes on the server and is
 // saved, so they get one more try after the rest, and again on the next visit
 const incomplete = new Set<number>();
@@ -308,7 +314,20 @@ export const useShelf = create<ShelfState>()((set, get) => ({
   },
 
   // refreshes in the background: whatever's on screen stays until this answers
-  load: async () => {
+  load: () => {
+    if (loading?.generation !== generation) {
+      const promise = get()
+        .fetchShelf()
+        .finally(() => {
+          if (loading?.promise === promise) loading = null;
+        });
+      loading = { promise, generation };
+    }
+    return loading.promise;
+  },
+
+  // asks the server for the shelf: through load, which shares one request
+  fetchShelf: async () => {
     const asked = generation;
     retried.clear();
     try {

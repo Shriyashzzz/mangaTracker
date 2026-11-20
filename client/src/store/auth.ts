@@ -55,6 +55,9 @@ export const useAuth = create<AuthState>()((set) => ({
     void forgetKeptShelf();
     void sendChanges();
     useShelf.getState().reset();
+    // their shelf, asked for now rather than once the shelf page has opened
+    // and its code has loaded: it's there sooner, or at once
+    void useShelf.getState().load();
     useToBuy.getState().reset();
     // someone else's import, if they shared the browser
     useBookImport.getState().clear();
