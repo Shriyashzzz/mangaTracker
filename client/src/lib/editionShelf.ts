@@ -172,10 +172,10 @@ export const spineOf = (slot: Slot) =>
   String(slot.book ? slot.book.number : slot.volumes[0]);
 
 // a slot by name, for hovering and for screen readers: "VIZBIG 2, vols.
-// 4–6", "Vol. 37, sold on its own". A part-owned book says which of its
+// 4–6", "Vol. 37, single volume". A part-owned book says which of its
 // volumes they have
 export function slotName(line: EditionLine, slot: Slot, owned: number[] = []) {
-  if (!slot.book) return `Vol. ${slot.volumes[0]}, sold on its own`;
+  if (!slot.book) return `Vol. ${slot.volumes[0]}, single volume`;
   const name = `${line.label} ${slot.book.number}`;
   if (stateOf(slot, owned) !== "part") return `${name}, ${insideOf(slot)}`;
   const have = slot.volumes.filter((v) => owned.includes(v));
@@ -202,9 +202,16 @@ export function placeInSlots(
   };
 }
 
-// The line under the shelf: how many of the edition's books are theirs.
-// Only once every book is theirs does it mention the volumes the edition
-// has no book for, which are all that's left to get
+// every one of the edition's books is theirs
+export const ownsEveryBook = (slots: Slot[], owned: number[]) =>
+  slots
+    .filter((slot) => slot.book)
+    .every((slot) => stateOf(slot, owned) === "all");
+
+// The line under the shelf: how many of the edition's books are theirs. Once
+// they're all theirs, the volumes the edition has no book for are named only
+// when those are theirs too. It never says they're "sold singly": an edition
+// still coming out (Vagabond Definitive, 6 of 13 books) has more on the way
 export function ownedCaption(slots: Slot[], owned: number[]) {
   const books = slots.filter((slot) => slot.book);
   const singles = slots.filter((slot) => !slot.book);
@@ -213,11 +220,9 @@ export function ownedCaption(slots: Slot[], owned: number[]) {
     return `You own ${booksOwned} of ${books.length}`;
 
   const all = `All ${books.length} yours`;
-  if (!singles.length) return all;
+  const theirsToo =
+    singles.length > 0 && singles.every((s) => stateOf(s, owned) === "all");
+  if (!theirsToo) return all;
   const volumes = singles.flatMap((slot) => slot.volumes);
-  const vols = `${volumes.length === 1 ? "vol." : "vols."} ${rangesText(volumes)}`;
-  const theirsToo = singles.every((s) => stateOf(s, owned) === "all");
-  if (theirsToo) return `${all}, and ${vols}`;
-  const sold = volumes.length === 1 ? "is sold on its own" : "are sold singly";
-  return `${all} · ${vols} ${sold}`;
+  return `${all}, and ${volumes.length === 1 ? "vol." : "vols."} ${rangesText(volumes)}`;
 }

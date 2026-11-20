@@ -10,6 +10,7 @@ import { shortEditionName } from "../../lib/editionShort";
 import VolumeShelf from "../../components/volumeShelf/VolumeShelf";
 import {
   ownedCaption,
+  ownsEveryBook,
   placeInSlots,
   shareOwned,
   slotName,
@@ -162,6 +163,8 @@ export default function ShelfBox({
   };
   const askedSlot = asking ? slots[asking - 1] : null;
   const placeInEdition = edition ? placeInSlots(slots, place) : null;
+  // the count goes once every book is theirs, unless it's all the line has
+  const showCount = !ownsEveryBook(slots, owned) || !placeInEdition;
 
   const books = edition ? slots.length : total;
   // a tablet's page is drawn bigger (index.css): its books and room too
@@ -241,13 +244,15 @@ export default function ShelfBox({
       <p className={styles.shelfCaption}>
         {edition ? (
           <span>
-            {/* "Read up to book 4 · You own 4 of 12" */}
+            {/* "Read up to book 4 · You own 4 of 12". Once every book is
+                theirs, only where they are: "Read up to book 12" */}
             {placeInEdition && (
               <span className={styles.shelfPlace}>
-                {placeInEdition.text} ·{" "}
+                {placeInEdition.text}
+                {showCount && " · "}
               </span>
             )}
-            {ownedCaption(slots, owned)}
+            {showCount && ownedCaption(slots, owned)}
             {offShelf.length > 0 &&
               `, plus vol${offShelf.length > 1 ? "s" : ""}. ${rangesText(offShelf)}`}
           </span>

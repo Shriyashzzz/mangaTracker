@@ -2,6 +2,7 @@
 // Vagabond's 37 volumes as 12 VIZBIG books and one volume left over.
 import {
   ownedCaption,
+  ownsEveryBook,
   placeInSlots,
   readPastTheBooks,
   shareOwned,
@@ -125,18 +126,20 @@ test("the caption's place: read up to a book, or partway through one", () => {
   expect(placeInSlots(slots, null)).toBeNull();
 });
 
-test("the caption's count, and the leftover volume only at the end", () => {
+test("the caption's count, and the leftover volumes only once they're theirs", () => {
   expect(ownedCaption(slots, upTo(12))).toBe("You own 4 of 12");
-  expect(ownedCaption(slots, upTo(36))).toBe(
-    "All 12 yours · vol. 37 is sold on its own",
-  );
+  // never "sold singly": an edition still coming out has more books on the way
+  expect(ownedCaption(slots, upTo(36))).toBe("All 12 yours");
   expect(ownedCaption(slots, upTo(37))).toBe("All 12 yours, and vol. 37");
   // an edition that covers the whole series
   expect(ownedCaption(slotsOf(VIZBIG, 36), upTo(36))).toBe("All 12 yours");
-  // two volumes left over
-  expect(ownedCaption(slotsOf(VIZBIG, 38), upTo(36))).toBe(
-    "All 12 yours · vols. 37–38 are sold singly",
-  );
+  // two volumes left over, not theirs
+  expect(ownedCaption(slotsOf(VIZBIG, 38), upTo(36))).toBe("All 12 yours");
+});
+
+test("every book theirs, or not", () => {
+  expect(ownsEveryBook(slots, upTo(12))).toBe(false);
+  expect(ownsEveryBook(slots, upTo(36))).toBe(true);
 });
 
 test("a slot by name, for hovering", () => {
@@ -144,7 +147,7 @@ test("a slot by name, for hovering", () => {
   expect(slotName(VIZBIG, slots[4]!, [13])).toBe(
     "VIZBIG 5: you have vol. 13 of 13–15",
   );
-  expect(slotName(VIZBIG, slots[12]!)).toBe("Vol. 37, sold on its own");
+  expect(slotName(VIZBIG, slots[12]!)).toBe("Vol. 37, single volume");
 });
 
 test("reading past an edition's last book is said in volumes", () => {
