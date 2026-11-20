@@ -3,6 +3,7 @@
 // Safari, alerts only work in the installed app, so it says that, with the
 // way to install. Nothing at all where alerts aren't set up (lib/alerts.ts).
 import { useEffect, useState } from "react";
+import { inApp } from "../../lib/inApp";
 import InstallAppButton from "../../components/installApp/InstallAppButton";
 import { alertsWay, switchAlertsOff, switchAlertsOn } from "../../lib/alerts";
 import type { AlertsWay } from "../../lib/alertsWay";
@@ -73,16 +74,25 @@ export function AlertsSection() {
       {way === "blocked" && (
         <>
           <p className={styles.body}>
-            Alerts are blocked for this site. To allow them:
+            Alerts are blocked for Manga Tracker. To allow them:
           </p>
-          <ul className={styles.plainList}>
-            <li>
-              Chrome or Edge: the icon left of the address, then Notifications,
-              Allow.
-            </li>
-            <li>Safari on a Mac: Settings, Websites, Notifications.</li>
-            <li>The app on iPhone: Settings, Notifications, Manga Tracker.</li>
-          </ul>
+          {inApp() ? (
+            <ul className={styles.plainList}>
+              <li>Android: Settings, Apps, Manga Tracker, Notifications.</li>
+              <li>iPhone: Settings, Notifications, Manga Tracker.</li>
+            </ul>
+          ) : (
+            <ul className={styles.plainList}>
+              <li>
+                Chrome or Edge: the icon left of the address, then
+                Notifications, Allow.
+              </li>
+              <li>Safari on a Mac: Settings, Websites, Notifications.</li>
+              <li>
+                The app on iPhone: Settings, Notifications, Manga Tracker.
+              </li>
+            </ul>
+          )}
           <p className={styles.body}>Then come back here.</p>
         </>
       )}

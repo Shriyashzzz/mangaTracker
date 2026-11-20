@@ -76,9 +76,9 @@ export function AboutPage() {
             <span className={styles.hit}>never lose</span> your place again.
           </h1>
           <p className={styles.lead}>
-            Hello, I'm Shriyash. I am a solo developer behind this site, I like
-            to collect physical mangas. Keeping track of your bookmarks when you
-            read multiple series concurrently can be difficult.
+            Hello, I'm Shriyash. I am the solo developer behind Manga Tracker, I
+            like to collect physical mangas. Keeping track of your bookmarks
+            when you read multiple series concurrently can be difficult.
             <br />
             It's also hard to keep track when new volumes come out for your
             favourite series. You can sign up for Shelf so you never have to

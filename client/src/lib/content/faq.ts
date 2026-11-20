@@ -14,11 +14,11 @@ export const FAQ: FaqGroup[] = [
     questions: [
       {
         q: "What is Manga Tracker?",
-        a: "A free site for manga readers and collectors. Compare what US and Canadian stores charge for each volume, keep track of what you own and how far you've read, and see when new volumes come out.",
+        a: "A free app for manga readers and collectors, on the web and on Android. Compare what US and Canadian stores charge for each volume, keep track of what you own and how far you've read, and see when new volumes come out.",
       },
       {
         q: "Is it free?",
-        a: "Yes, all of it. Some links to stores are affiliate links: if you buy through one, the store pays us a small cut at no cost to you. That's what keeps the site running.",
+        a: "Yes, all of it. Some links to stores are affiliate links: if you buy through one, the store pays us a small cut at no cost to you. That's what keeps Manga Tracker running.",
       },
       {
         q: "Do I need an account?",

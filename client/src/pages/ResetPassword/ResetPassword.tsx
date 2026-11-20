@@ -138,8 +138,8 @@ export default function ResetPassword() {
         title="Couldn't check"
       >
         <p className={styles.lead}>
-          We couldn't reach the site to check your link. Your password hasn't
-          changed.
+          We couldn't reach Manga Tracker to check your link. Your password
+          hasn't changed.
         </p>
         <button
           type="button"

@@ -132,7 +132,9 @@ export default function SupportPeek() {
           <CloseIcon />
         </button>
         <p>
-          {way === "side" ? "Psst! Found a good deal?" : "Enjoying the site?"}
+          {way === "side"
+            ? "Psst! Found a good deal?"
+            : "Enjoying Manga Tracker?"}
         </p>
         <p className="support-peek-more">
           {way === "side"

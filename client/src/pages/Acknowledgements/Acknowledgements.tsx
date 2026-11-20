@@ -164,8 +164,8 @@ export function AcknowledgementsPage() {
           Affiliate links
         </h2>
         <p className={styles.body}>
-          Some store links are affiliate links: buying through one pays the site
-          a small commission, at no extra cost to you.
+          Some store links are affiliate links: buying through one pays Manga
+          Tracker a small commission, at no extra cost to you.
         </p>
         <p className={styles.body}>
           As an Amazon Associate I earn from qualifying purchases.

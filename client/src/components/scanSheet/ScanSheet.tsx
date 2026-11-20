@@ -19,6 +19,7 @@ import { useShelf } from "../../store/shelf";
 import { useBarcodeReader } from "./useBarcodeReader";
 import { scanStyles as styles } from "./styles";
 import { buzz } from "../../lib/haptics";
+import { inApp } from "../../lib/inApp";
 import { orOffline } from "../../lib/offline";
 
 // one scanned book: looking it up until result arrives
@@ -322,9 +323,11 @@ export default function ScanSheet({
           <div className={styles.blocked}>
             <BarcodeIcon className="mx-auto size-10" />
             <p className="m-0">
-              {camera.state === "blocked"
-                ? "The camera's off for this site. Allow it in the browser's site settings, or type the 13 digits under the barcode."
-                : "Type the 13 digits under the barcode."}
+              {camera.state !== "blocked"
+                ? "Type the 13 digits under the barcode."
+                : inApp()
+                  ? "The camera's off. Allow it for Manga Tracker in your phone's settings, or type the 13 digits under the barcode."
+                  : "The camera's off for Manga Tracker. Allow it in the browser's site settings, or type the 13 digits under the barcode."}
             </p>
             {camera.state === "blocked" && (
               <button

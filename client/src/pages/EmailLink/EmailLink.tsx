@@ -76,7 +76,7 @@ export default function EmailLink({
         title="Couldn't reach us"
       >
         <p className={styles.lead}>
-          We couldn't reach the site. Nothing has changed yet.
+          We couldn't reach Manga Tracker. Nothing has changed yet.
         </p>
         <button
           type="button"

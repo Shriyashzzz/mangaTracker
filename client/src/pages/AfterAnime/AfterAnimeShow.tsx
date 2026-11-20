@@ -416,7 +416,7 @@ export default function AfterAnimeShow() {
             {anAffiliateLink && (
               <li>
                 Some store links are affiliate links. They cost you nothing and
-                help keep the site running.
+                keep Manga Tracker running.
               </li>
             )}
           </ul>

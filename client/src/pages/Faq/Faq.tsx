@@ -44,7 +44,7 @@ export function FaqPage() {
       ))}
 
       <p className={styles.more}>
-        Want the story behind the site?{" "}
+        Want the story behind Manga Tracker?{" "}
         <NavLink to="/about" viewTransition>
           Read about Manga Tracker
         </NavLink>

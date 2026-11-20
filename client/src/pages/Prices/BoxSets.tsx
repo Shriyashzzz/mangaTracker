@@ -45,8 +45,8 @@ export function BoxSetSearch({ links }: { links: StoreLink[] }) {
       </ul>
       {links.some((l) => l.affiliate) && (
         <p className={styles.setDisclosure}>
-          Some store links are affiliate links, which help keep the site running
-          at no cost to you.
+          Some store links are affiliate links, which help keep Manga Tracker
+          running at no cost to you.
         </p>
       )}
     </section>
@@ -124,8 +124,8 @@ export default function BoxSets({
       </ul>
       {affiliate && (
         <p className={styles.setDisclosure}>
-          Some store links are affiliate links, which help keep the site running
-          at no cost to you.
+          Some store links are affiliate links, which help keep Manga Tracker
+          running at no cost to you.
         </p>
       )}
     </>

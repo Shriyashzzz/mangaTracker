@@ -102,23 +102,19 @@ const ON_DEVICE: Entry[] = [
 const OTHERS: Entry[] = [
   {
     name: "Railway and Cloudflare",
-    body: "Host the site and its database, and pass its traffic. Like any web host, they see your IP address.",
+    body: "Host Manga Tracker and its database, and pass its traffic. Like any web host, they see your IP address.",
   },
   {
     name: "Resend",
-    body: "Sends the site's emails (password resets, confirm links, the weekly email). It sees your email address and the email.",
+    body: "Sends Manga Tracker's emails (password resets, confirm links, the weekly email). It sees your email address and the email.",
   },
   {
     name: "Google sign-in",
     body: "If you choose Continue with Google, Google confirms it's you and tells us your Google account's ID, name and email. Google sees that you signed in to Manga Tracker.",
   },
   {
-    name: "Google Fonts",
-    body: "Serves the site's lettering, so Google sees a request from your browser.",
-  },
-  {
     name: "Impact",
-    body: "A script from the affiliate network Impact loads on the site, to turn some store links into affiliate links and count them. It may set its own cookies.",
+    body: "A script from the affiliate network Impact loads in Manga Tracker, to turn some store links into affiliate links and count them. It may set its own cookies.",
   },
   {
     name: "Stores, when you follow a link",
@@ -151,7 +147,7 @@ export function PrivacyPage() {
       <header>
         <h1 className={styles.title}>Privacy policy</h1>
         <p className={styles.lead}>
-          Your shelf is yours. No ads, nothing sold, and only what the site
+          Your shelf is yours. No ads, nothing sold, and only what Manga Tracker
           needs to work. This covers the website and the Android app, which
           shows the same site.
         </p>

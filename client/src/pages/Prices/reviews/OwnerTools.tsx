@@ -97,7 +97,7 @@ export default function OwnerTools() {
       </h2>
       <div className={styles.toolsGroups}>
         <div>
-          <h3 className={styles.toolsHead}>On the site</h3>
+          <h3 className={styles.toolsHead}>On Manga Tracker</h3>
           <ul className={styles.toolsList}>
             {PAGES.map((p) => (
               <li key={p.to}>
