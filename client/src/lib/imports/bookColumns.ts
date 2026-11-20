@@ -5,6 +5,7 @@ import { importDate } from "./importDate";
 import { booksFromCell, centsOf, newBook, type NewBook } from "../books";
 import { parseVolumes, rangesText } from "../ownedVolumes";
 import { type Book } from "./bookTypes";
+import { novelPublisherField } from "./novelPublisher";
 import { boxSetOf, oneBookHolds, unsureWithoutBinding } from "./bookVolumes";
 import {
   namesAPartOf,
@@ -93,6 +94,7 @@ export function goodreadsBook(h: string[], row: string[]): Book | null {
     planned: shelf === "to-read" && !owned && !read,
     lightNovel: titleSaysLightNovel(title),
     ...bindingOf(cell(row, header(h, /^Binding$/))),
+    ...novelPublisherField(title, cell(row, header(h, /^Publisher$/))),
     // the day they read it, or else the day they added it
     changedOn:
       importDate(cell(row, header(h, /^Date Read$/))) ??
@@ -127,6 +129,7 @@ export function bookCatalogueBook(h: string[], row: string[]): Book | null {
   const fromDetails = seriesFromDetails(details);
   return {
     title,
+    ...novelPublisherField(title, cell(row, header(h, /^publisher$/i))),
     ...withColumn(
       fromDetails,
       fromTitle,
@@ -168,6 +171,7 @@ export function bookshelfAppBook(h: string[], row: string[]): Book | null {
     !wishlist && count(cell(row, header(h, /^Number of copies$/))) > 0;
   return {
     title,
+    ...novelPublisherField(title, cell(row, header(h, /^publisher$/i))),
     ...withColumn(fromColumn, fromTitle),
     ...(Number.isFinite(volume) && volume > 0
       ? { volume, guessed: undefined }
@@ -359,6 +363,7 @@ export function csvBook(h: string[], row: string[]): Book | null {
     ...(bought ? { boughtOn: bought } : {}),
     ...(readAt < 0 ? { noReadStatus: true } : {}),
     ...bindingOf(cell(row, header(h, /^(format|binding)$/i))),
+    ...novelPublisherField(title, cell(row, header(h, /^publisher$/i))),
     title,
     ...withColumn(fromColumn, fromTitle),
     ...(Number.isFinite(volumeColumn)

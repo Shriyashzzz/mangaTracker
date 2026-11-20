@@ -50,6 +50,9 @@ export function matchLine(
   if (match === undefined) return "Matching…";
   if (match === "failed") return "Couldn't check AniList";
   if (match === null) return notOnAniList(s, apart, saidNotOnAniList);
+  // ticked off: the novel, most likely (lib/imports/novelPublisher.ts)
+  if (s.novelPublisher)
+    return `Published by ${s.novelPublisher}, so probably the novel. Tick it if it's the manga`;
   const kind = s.lightNovel ? "Light novel · " : "";
   return kind + whatTheyHave(s);
 }

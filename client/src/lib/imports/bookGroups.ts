@@ -140,6 +140,9 @@ export function groupBooks(everyBook: Book[]): BookSeries[] {
       lightNovel,
       ...(spares.size ? { spares: [...spares].sort((a, b) => a - b) } : {}),
       ...(list.every((b) => b.noReadStatus) ? { readingUnknown: true } : {}),
+      ...(list.every((b) => b.novelPublisher)
+        ? { novelPublisher: list[0]!.novelPublisher }
+        : {}),
       ...(list.some((b) => b.omnibus || b.check)
         ? {
             omnibus: true,

@@ -241,7 +241,11 @@ export default function BookImport({ source }: { source: BookSource }) {
     // the ones AniList doesn't know and the ones on To read too
     if (s.restore) return true;
     const match = matchOf(s);
-    return Boolean(match && match !== "failed") && !s.planned;
+    // every book from a novel publisher: the novel AniList has a manga of
+    // by the same name (lib/imports/novelPublisher.ts)
+    return (
+      Boolean(match && match !== "failed") && !s.planned && !s.novelPublisher
+    );
   };
   // rows AniList says are one series, as one
   const rows = found

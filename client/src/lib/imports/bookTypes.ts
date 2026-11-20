@@ -61,6 +61,9 @@ export type Book = {
   // how the book is bound, when a column says ("Hardcover"): an edition the
   // title doesn't name (JoJo Part 3's hardcovers are titled "Vol. 1")
   binding?: string;
+  // from a novel or classics publisher (lib/imports/novelPublisher.ts): its
+  // name, so a match by the same name isn't ticked as manga
+  novelPublisher?: string;
   // a backup's own record of the series' books, on its first row
   ownBooks?: NewBook[];
   // when the file says it was last changed (read, or added): ISO text
@@ -100,6 +103,9 @@ export type BookSeries = {
   spares?: number[];
   // none of its books' files says anything about reading (Book.noReadStatus)
   readingUnknown?: boolean;
+  // every book of it is from a novel publisher (Book.novelPublisher): left
+  // unticked, the row says by whom
+  novelPublisher?: string;
   // from Manga Tracker's own export: finished, the chapter they're on, notes
   restore?: boolean;
   finished?: boolean;
