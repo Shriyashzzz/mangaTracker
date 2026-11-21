@@ -13,17 +13,21 @@ const HOLD_MS = 500;
 const SLOP = 10;
 
 // the click the lifted finger sends after a hold: by then the card may be
-// Select's tick box, which it would untick. Stopped once, or forgotten soon
+// Select's tick box, which it would untick. Only that click: when Chrome
+// took the hold as its own long press, lifting sends none, so the next
+// press (a new tap, like Select's ✕) drops this and works as ever
 function swallowLiftingClick() {
   const stop = (e: Event) => {
     e.preventDefault();
     e.stopPropagation();
+    forget();
   };
-  document.addEventListener("click", stop, { capture: true, once: true });
-  window.setTimeout(
-    () => document.removeEventListener("click", stop, { capture: true }),
-    1500,
-  );
+  const forget = () => {
+    document.removeEventListener("click", stop, { capture: true });
+    document.removeEventListener("pointerdown", forget, { capture: true });
+  };
+  document.addEventListener("click", stop, { capture: true });
+  document.addEventListener("pointerdown", forget, { capture: true });
 }
 
 export function useLongPress(onLongPress: (() => void) | undefined) {
