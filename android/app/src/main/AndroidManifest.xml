@@ -193,6 +193,21 @@
 
         
             <activity android:name="com.google.androidbrowserhelper.trusted.NotificationPermissionRequestActivity" />
+
+        <!-- what the site asks of the phone (AppLinkActivity.java):
+             mangatracker://notifications, app-settings, review -->
+        <activity
+            android:name=".AppLinkActivity"
+            android:exported="true"
+            android:excludeFromRecents="true"
+            android:theme="@android:style/Theme.Translucent.NoTitleBar">
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="mangatracker" />
+            </intent-filter>
+        </activity>
         
 
         

@@ -46,9 +46,16 @@ public class LauncherActivity
     protected Uri getLaunchingUrl() {
         // Get the original launch Url.
         Uri uri = super.getLaunchingUrl();
-
-        
-
+        // which release opened the site: it offers only what this app can do
+        // (AppLinkActivity), and nothing at all to an older one
+        try {
+            long version = Build.VERSION.SDK_INT >= 28
+                    ? getPackageManager().getPackageInfo(getPackageName(), 0).getLongVersionCode()
+                    : getPackageManager().getPackageInfo(getPackageName(), 0).versionCode;
+            uri = uri.buildUpon().appendQueryParameter("appVersion", String.valueOf(version)).build();
+        } catch (Exception ignored) {
+            // the site treats it as the first release
+        }
         return uri;
     }
 }
