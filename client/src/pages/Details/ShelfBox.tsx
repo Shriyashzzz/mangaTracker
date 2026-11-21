@@ -182,6 +182,8 @@ export default function ShelfBox({
       className={styles.shelf}
       style={{ "--shelf-w": `${width}px` } as CSSProperties}
     >
+      {/* the app's section heading (index.css .app-section-title) */}
+      <h2 className="app-only app-section-title">Your shelf</h2>
       {/* the books keep to their own width, centred over the caption,
           which gets the room: the same space either side */}
       <div

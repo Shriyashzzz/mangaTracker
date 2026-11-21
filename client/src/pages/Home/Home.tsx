@@ -840,7 +840,7 @@ function Library() {
 
         {/* how fresh it all is, at the foot, for whoever wonders */}
         {showingNew && !checking && Number.isFinite(oldestCheck) && (
-          <p className={styles.checkedFoot}>
+          <p className={`${styles.checkedFoot} app-checked-foot`}>
             Checked {checkedAgo(oldestCheck)}
           </p>
         )}

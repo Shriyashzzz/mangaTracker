@@ -93,7 +93,7 @@ export default function NotesField({
   return (
     <div className={styles.notes}>
       <div className={styles.notesHead}>
-        <label htmlFor="manga-notes" className={styles.label}>
+        <label htmlFor="manga-notes" className={`${styles.label} app-label`}>
           Your notes
         </label>
         <span

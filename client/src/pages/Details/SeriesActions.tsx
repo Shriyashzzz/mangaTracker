@@ -6,6 +6,7 @@
 import { useState } from "react";
 import type { Manga } from "../../lib/types";
 import DeleteManyModal from "../Home/DeleteManyModal";
+import AppBarMenu from "../../components/appBarMenu/AppBarMenu";
 import { detailsStyles as styles } from "./styles";
 import { offlineLink, useIsOffline } from "../../lib/offline";
 
@@ -42,9 +43,23 @@ export default function SeriesActions({
   const [asking, setAsking] = useState(false);
 
   return (
-    <div className={styles.actions}>
+    <div className={`${styles.actions} app-series-actions`}>
+      {/* in the app, Edit details and Delete live in the top bar's ⋮ menu,
+          and Mark as finished has the row to itself */}
+      <AppBarMenu
+        label={manga.name}
+        items={[
+          { label: "Edit details", onSelect: onEdit, disabled: offline },
+          {
+            label: "Delete series",
+            onSelect: () => setAsking(true),
+            danger: true,
+            disabled: deleting || offline,
+          },
+        ]}
+      />
       <button
-        className="btn btn-secondary"
+        className="btn btn-secondary app-web-only"
         onClick={onEdit}
         {...offlineLink(offline)}
       >
@@ -55,7 +70,7 @@ export default function SeriesActions({
       </button>
 
       <button
-        className={`btn btn-ghost ${styles.deleteBtn}`}
+        className={`btn btn-ghost app-web-only ${styles.deleteBtn}`}
         onClick={() => setAsking(true)}
         disabled={deleting}
         {...offlineLink(offline)}

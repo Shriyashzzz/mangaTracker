@@ -16,6 +16,7 @@ import {
 import SettingsMenu from "../../components/settingsMenu/SettingsMenu";
 import { inApp, isTabScreen } from "../../lib/inApp";
 import AppBackBar from "./AppBackBar";
+import { APP_BAR_SPOT } from "../../components/appBarMenu/AppBarMenu";
 import { useFromShelf } from "../../lib/fromShelf";
 import { probablySignedIn, useAuth } from "../../store/auth";
 import { useShelf } from "../../store/shelf";
@@ -261,6 +262,9 @@ export default function Header() {
           </Link>
         )}
         <SettingsMenu isSignedIn={isSignedIn} onLogOut={handleLogOut} />
+        {/* a screen's ⋮ menu, at the far right as on Android
+            (components/appBarMenu/AppBarMenu.tsx); empty most of the time */}
+        <div id={APP_BAR_SPOT} className="contents" />
       </div>
 
       {/* out of the way while the keyboard is up */}

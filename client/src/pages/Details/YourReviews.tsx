@@ -24,9 +24,12 @@ export default function YourReviews({
   const left = written.length - rows.length;
 
   return (
-    <details className={styles.books}>
+    <details className={`${styles.books} app-row-fold`}>
       <summary className={styles.booksSummary}>
         Your reviews <span className={styles.booksCount}>{written.length}</span>
+        <span className="app-only app-row-chevron" aria-hidden>
+          ›
+        </span>
       </summary>
       <ul className={styles.booksList}>
         {rows.map((one) => (

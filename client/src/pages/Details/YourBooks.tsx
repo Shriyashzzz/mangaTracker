@@ -345,9 +345,12 @@ export default function YourBooks({
 
   const hidden = rows.length - shown;
   return (
-    <details className={styles.books} data-tour="your-books">
+    <details className={`${styles.books} app-row-fold`} data-tour="your-books">
       <summary className={styles.booksSummary}>
         Your books <span className={styles.booksCount}>{rows.length}</span>
+        <span className="app-only app-row-chevron" aria-hidden>
+          ›
+        </span>
         {spent.books > 0 && (
           <span className={styles.booksSpent}>
             {formatPaid(spent.cents)} paid

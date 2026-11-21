@@ -616,6 +616,10 @@ export default function Details() {
             )}
           </div>
 
+          {/* in the reading counter's place on a phone, just above it */}
+          <h2 className="app-only app-section-title upto-720:order-3 upto-720:col-span-full">
+            Reading
+          </h2>
           <ReadingPlace
             manga={mangaData}
             finished={mangaStatus}
@@ -644,6 +648,7 @@ export default function Details() {
           )}
 
           <div className={styles.body}>
+            <h2 className="app-only app-section-title">Your take</h2>
             {/* the series' rating, and a volume's beside it unless the
                 banner under them is asking about one just finished */}
             <div className={styles.ratings}>

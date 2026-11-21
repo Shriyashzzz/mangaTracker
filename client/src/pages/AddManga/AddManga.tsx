@@ -323,7 +323,7 @@ export function AddManga() {
   return (
     <div className={`${styles.addPage} fade-in`}>
       <form
-        className={`${styles.addSheet} ${styles.sheetCaptioned}`}
+        className={`${styles.addSheet} ${styles.sheetCaptioned} app-plain-sheet`}
         onSubmit={handleFormSubmit}
         noValidate
       >

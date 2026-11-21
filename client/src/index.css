@@ -2495,6 +2495,99 @@ html.in-app .app-chips > :is([aria-pressed="true"], [aria-current="true"]) {
 html.in-app .app-only {
   display: block;
 }
+/* the website's own, gone in the app: a series' Edit and Delete buttons,
+   which the app keeps in the top bar's ⋮ menu (AppBarMenu) */
+html.in-app .app-web-only {
+  display: none;
+}
+
+/* a series' page in the app, in three sections with their own headings
+   (Details.tsx, ShelfBox.tsx): Your shelf, Reading, Your take */
+html.in-app .app-section-title {
+  margin: 22px 0 10px;
+  font-family: var(--font-brand);
+  font-size: 1.15rem;
+  font-weight: 400;
+  letter-spacing: 0.06em;
+  line-height: 1;
+  text-transform: uppercase;
+  color: var(--ink);
+}
+/* their small labels ("Rate the series", "Your notes") in the body's own
+   type, not a form's tiny monospace */
+/* a heading starts its section: the old dividing rule under it goes */
+html.in-app .app-section-title + div {
+  border-top: none;
+  padding-top: 0;
+}
+html.in-app .app-label {
+  font-family: var(--font-body);
+  font-size: 0.9rem;
+  letter-spacing: 0;
+  text-transform: none;
+  color: var(--ink-soft);
+}
+/* Your books and Your reviews as Android list rows: a 56px row with its
+   count and a chevron, opening in place as before */
+html.in-app details.app-row-fold {
+  border-top: 1px solid var(--line-soft);
+  padding-top: 0;
+  margin-top: 0;
+}
+html.in-app details.app-row-fold + details.app-row-fold {
+  border-top: 1px solid var(--line-soft);
+}
+html.in-app details.app-row-fold > summary {
+  display: flex;
+  align-items: center;
+  min-height: 56px;
+  font-size: 1rem;
+  list-style: none;
+}
+html.in-app details.app-row-fold > summary::-webkit-details-marker {
+  display: none;
+}
+html.in-app details.app-row-fold .app-row-chevron {
+  display: inline-block;
+  margin-left: auto;
+  font-size: 1.4rem;
+  line-height: 1;
+  color: var(--muted);
+  transition: rotate 0.2s cubic-bezier(0.2, 0, 0, 1);
+}
+html.in-app details.app-row-fold[open] .app-row-chevron {
+  rotate: 90deg;
+}
+/* one main action at the end: Mark as finished, the width of the page */
+html.in-app .app-series-actions {
+  border-top: 1px solid var(--line-soft);
+  padding-top: 16px;
+}
+html.in-app .app-series-actions > .btn:not(.app-web-only) {
+  width: 100%;
+  min-height: 48px;
+}
+/* the spine strip's arrow when there's nothing that way: its room kept, so
+   the strip doesn't shift, but not drawn */
+html.in-app .vshelf-nav:disabled {
+  visibility: hidden;
+}
+/* the New tab's "Checked 2 h ago": a quiet line under the list, not a
+   lone word floating mid-screen */
+html.in-app .app-checked-foot {
+  margin-top: 14px;
+  text-align: left;
+  font-family: var(--font-body);
+}
+/* Add manga in the app: the form on the page, not in a boxed panel above
+   an empty screen */
+html.in-app .app-plain-sheet {
+  border: none;
+  box-shadow: none;
+  background: transparent;
+  padding-left: 0;
+  padding-right: 0;
+}
 html.in-app .app-sheet-title {
   margin: 0 12px 8px;
   font-size: 0.9rem;
