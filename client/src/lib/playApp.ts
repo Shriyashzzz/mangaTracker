@@ -7,15 +7,33 @@
 // The app opens the site with its own address as the referrer
 // (lib/playAppReferrer.ts), only on the first page: it's remembered for the
 // rest of the visit.
-import { openedFromPlayApp } from "./playAppReferrer";
+import { openedFromPlayApp, PLAY_PACKAGE } from "./playAppReferrer";
 
 const KEY = "inPlayApp";
+// which app it is: the Play app, or a test build of it (xyz.mangatracker.app.dev)
+const PACKAGE_KEY = "playAppPackage";
+// which release of it: the app adds ?appVersion= to the first page
+// (android/…/LauncherActivity.java). The first release didn't: 1
+const VERSION_KEY = "playAppVersion";
 
 // called once as the site starts
 export function notePlayApp() {
   try {
-    if (openedFromPlayApp(document.referrer))
+    const address = new URL(window.location.href);
+    const version = address.searchParams.get("appVersion");
+    if (version) {
+      sessionStorage.setItem(VERSION_KEY, version);
+      // kept out of the address bar, links and shares
+      address.searchParams.delete("appVersion");
+      window.history.replaceState(window.history.state, "", address);
+    }
+    if (openedFromPlayApp(document.referrer)) {
       sessionStorage.setItem(KEY, "yes");
+      sessionStorage.setItem(
+        PACKAGE_KEY,
+        new URL(document.referrer).hostname || PLAY_PACKAGE,
+      );
+    }
   } catch {
     // storage blocked: the asks show, as on the website
   }
@@ -28,3 +46,39 @@ export const inPlayApp = () => {
     return false;
   }
 };
+
+// what the installed app can do for the site (android/…/AppLinkActivity.java),
+// by the release that added it. Nothing for the website, nor an older app
+const APP_CAN = {
+  // Android's "Allow notifications?", or the app's notification settings
+  notifications: 2,
+  // the app's page in Android's settings
+  "app-settings": 2,
+  // Google Play's rating sheet
+  review: 2,
+} as const;
+export type AppAction = keyof typeof APP_CAN;
+
+const appVersion = () => {
+  try {
+    return Number(sessionStorage.getItem(VERSION_KEY)) || 1;
+  } catch {
+    return 1;
+  }
+};
+const appPackage = () => {
+  try {
+    return sessionStorage.getItem(PACKAGE_KEY) || PLAY_PACKAGE;
+  } catch {
+    return PLAY_PACKAGE;
+  }
+};
+
+export const appCan = (action: AppAction) =>
+  inPlayApp() && appVersion() >= APP_CAN[action];
+
+// asks the app to do it; if somehow it can't, the page stays as it is
+export function askApp(action: AppAction) {
+  const stay = encodeURIComponent(window.location.href);
+  window.location.href = `intent://${action}#Intent;scheme=mangatracker;package=${appPackage()};S.browser_fallback_url=${stay};end`;
+}

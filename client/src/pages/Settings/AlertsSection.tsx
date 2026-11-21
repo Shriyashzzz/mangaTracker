@@ -4,6 +4,7 @@
 // way to install. Nothing at all where alerts aren't set up (lib/alerts.ts).
 import { useEffect, useRef, useState } from "react";
 import { inApp } from "../../lib/inApp";
+import { appCan, askApp } from "../../lib/playApp";
 import InstallAppButton from "../../components/installApp/InstallAppButton";
 import { alertsWay, switchAlertsOff, switchAlertsOn } from "../../lib/alerts";
 import { markChoseAlertsOff } from "../../lib/alertsAsk";
@@ -104,10 +105,20 @@ export function AlertsSection() {
       )}
       {way === "blocked" && (
         <>
-          <p className={styles.body}>
-            Alerts are blocked for Manga Tracker. To allow them:
-          </p>
-          {inApp() ? (
+          <p className={styles.body}>Alerts are blocked for Manga Tracker.</p>
+          {appCan("notifications") ? (
+            // the app shows Android's question, or its notification switch;
+            // back here, it's checked again and switched on
+            <div className={styles.actions}>
+              <button
+                type="button"
+                className="btn btn-secondary"
+                onClick={() => askApp("notifications")}
+              >
+                Turn on notifications
+              </button>
+            </div>
+          ) : inApp() ? (
             <ul className={styles.plainList}>
               <li>Android: Settings, Apps, Manga Tracker, Notifications.</li>
               <li>iPhone: Settings, Notifications, Manga Tracker.</li>
@@ -124,7 +135,9 @@ export function AlertsSection() {
               </li>
             </ul>
           )}
-          <p className={styles.body}>Then come back here.</p>
+          {!appCan("notifications") && (
+            <p className={styles.body}>Then come back here.</p>
+          )}
         </>
       )}
       {(way === "on" || way === "off") && (

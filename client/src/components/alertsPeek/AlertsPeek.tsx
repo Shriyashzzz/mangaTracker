@@ -17,7 +17,7 @@ import {
 } from "../../lib/alertsAsk";
 import { isDemo } from "../../lib/demo";
 import { claimNote, noteFree } from "../../lib/notes";
-import { inPlayApp } from "../../lib/playApp";
+import { appCan, askApp, inPlayApp } from "../../lib/playApp";
 import { useSwipeAway } from "../../lib/useSwipeAway";
 
 const SHOW_AFTER_MS = 2500;
@@ -89,10 +89,25 @@ export default function AlertsPeek({ hasSeries, blocked }: Props) {
   };
   const holdOn = () => clearTimeout(leaveTimer.current);
   useEffect(() => {
-    if (note === "ask") waitToLeave(WAIT_MS);
+    if (note === "ask" || note === "blocked") waitToLeave(WAIT_MS);
     else if (note) waitToLeave(SAID_MS);
     return holdOn;
     // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [note]);
+
+  // back from Android's question or its settings: allowed now means on
+  useEffect(() => {
+    if (note !== "blocked") return;
+    const check = async () => {
+      if (document.hidden || Notification.permission !== "granted") return;
+      if ((await switchAlertsOn()) === "on") setNote("on");
+    };
+    document.addEventListener("visibilitychange", check);
+    window.addEventListener("focus", check);
+    return () => {
+      document.removeEventListener("visibilitychange", check);
+      window.removeEventListener("focus", check);
+    };
   }, [note]);
 
   if (!note) return null;
@@ -131,9 +146,16 @@ export default function AlertsPeek({ hasSeries, blocked }: Props) {
     words = (
       <>
         <p>Notifications are off for Manga Tracker.</p>
-        <p className="support-peek-more">
-          Turn them on in your phone's Settings › Apps › Manga Tracker.
-        </p>
+        {appCan("notifications") ? (
+          // the app shows Android's question, or its notification switch
+          <button type="button" onClick={() => askApp("notifications")}>
+            Turn on notifications
+          </button>
+        ) : (
+          <p className="support-peek-more">
+            Turn them on in your phone's Settings › Apps › Manga Tracker.
+          </p>
+        )}
       </>
     );
   if (note === "failed")

@@ -1,15 +1,14 @@
 // Browser entry point: mount the router into #root.
+// first, before the router reads the address (lib/appLaunch.ts)
+import "./lib/appLaunch";
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import { RouterProvider } from "react-router";
 import router from "./pages/routes";
 import { listenForInstall } from "./lib/install";
-import { notePlayApp } from "./lib/playApp";
 import { markInApp } from "./lib/inApp";
 import { startRipples } from "./lib/ripple";
 
-// opened inside the Google Play app: remembered for the visit (lib/playApp.ts)
-notePlayApp();
 // running as an app (that, or added to a home screen): marked for the
 // styles and the parts that behave like an app there (lib/inApp.ts)
 markInApp();
