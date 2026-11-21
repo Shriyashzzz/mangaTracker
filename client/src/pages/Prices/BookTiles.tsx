@@ -3,7 +3,7 @@
 // book whose volumes they own every one of is inked in, as on the shelf
 import clsx from "clsx";
 import { rangesText } from "../../lib/ownedVolumes";
-import type { LookupLine } from "../../lib/editionLookup";
+import { shownBooks, type LookupLine } from "../../lib/editionLookup";
 import { editionsStyles as styles } from "./editionsStyles";
 
 export default function BookTiles({
@@ -17,11 +17,14 @@ export default function BookTiles({
   owned?: number[];
 }) {
   const mine = new Set(owned);
-  const anyOwned = line.books.some((b) => b.volumes.every((v) => mine.has(v)));
+  // out, or confirmed and coming (dashed); none nobody lists yet
+  const books = shownBooks(line);
+  const anyOwned = books.some((b) => b.volumes.every((v) => mine.has(v)));
+  const anyComing = books.some((b) => b.coming);
   return (
     <>
       <ol className={styles.tiles} aria-label={`${line.label} books`}>
-        {line.books.map((book) => {
+        {books.map((book) => {
           const ownsAll = book.volumes.every((v) => mine.has(v));
           return (
             <li
@@ -29,11 +32,12 @@ export default function BookTiles({
               className={clsx(
                 styles.tile,
                 ownsAll && styles.tileOwned,
+                book.coming && styles.tileComing,
                 volume != null &&
                   book.volumes.includes(volume) &&
                   styles.tileAnswer,
               )}
-              aria-label={`${line.label} ${book.number}: ${book.volumes.length === 1 ? "vol." : "vols."} ${rangesText(book.volumes)}${ownsAll ? ", on your shelf" : ""}`}
+              aria-label={`${line.label} ${book.number}: ${book.volumes.length === 1 ? "vol." : "vols."} ${rangesText(book.volumes)}${ownsAll ? ", on your shelf" : ""}${book.coming ? `, out ${book.coming}` : ""}`}
             >
               <span className={styles.tileNumber} aria-hidden>
                 {book.number}
@@ -41,11 +45,25 @@ export default function BookTiles({
               <small className={styles.tileInside} aria-hidden>
                 {rangesText(book.volumes)}
               </small>
+              {book.coming && (
+                <small className={styles.tileDate} aria-hidden>
+                  {book.coming.replace(/ \d+,/, "")}
+                </small>
+              )}
             </li>
           );
         })}
       </ol>
-      {anyOwned && <p className={styles.tilesKey}>Inked in: on your shelf</p>}
+      {(anyOwned || anyComing) && (
+        <p className={styles.tilesKey}>
+          {[
+            anyOwned && "Inked in: on your shelf",
+            anyComing && "Dashed: coming",
+          ]
+            .filter(Boolean)
+            .join(" · ")}
+        </p>
+      )}
     </>
   );
 }

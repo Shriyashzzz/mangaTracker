@@ -16,8 +16,14 @@ export type EditionsEntry = {
     // the volumes the line holds, first and last
     from: number;
     to: number;
-    // each book in order, with the volumes it holds
-    spans: { number: number; from: number; to: number }[];
+    // each book in order, with the volumes it holds and its release date:
+    // listed books only, out or confirmed and coming
+    spans: {
+      number: number;
+      from: number;
+      to: number;
+      published: string | null;
+    }[];
   }[];
 };
 

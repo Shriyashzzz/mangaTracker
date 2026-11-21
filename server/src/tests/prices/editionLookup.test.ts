@@ -27,8 +27,8 @@ const definitive: LookupLine = {
 test("a volume is answered in every line at once", () => {
   const answers = lookUpVolume([vizbig, definitive], 23);
   expect(answers.map((a) => a.book)).toEqual([
-    { name: "VIZBIG 8", inside: "vols. 22–24" },
-    { name: "Definitive 8", inside: "vols. 22–24" },
+    { name: "VIZBIG 8", inside: "vols. 22–24", coming: null },
+    { name: "Definitive 8", inside: "vols. 22–24", coming: null },
   ]);
 });
 
@@ -37,6 +37,7 @@ test("a book of one volume says vol., and a line without it says what it runs", 
   expect(inDefinitive!.book).toEqual({
     name: "Definitive 13",
     inside: "vol. 37",
+    coming: null,
   });
   expect(inVizbig!.book).toBeNull();
   expect(inVizbig!.runs).toBe("vols. 1–3, 22–24");
@@ -47,4 +48,27 @@ test("their next volume: the one after the furthest they own, while a line holds
   // past every line's end: nothing to start at
   expect(nextVolumeFor([vizbig], [1, 2, 24])).toBeNull();
   expect(nextVolumeFor([vizbig], [])).toBeNull();
+});
+
+test("only books a catalog lists show; one with a date ahead is coming", () => {
+  const now = new Date(2026, 10, 21);
+  const line: LookupLine = {
+    key: "definitive",
+    label: "Definitive",
+    books: [
+      { number: 7, volumes: [19, 20, 21], published: "2026-10-20" },
+      { number: 8, volumes: [22, 23, 24], published: "2027-01" },
+      // worked out from the pattern, nobody lists it yet
+      { number: 9, volumes: [25, 26, 27], listed: false },
+    ],
+  };
+  const [coming] = lookUpVolume([line], 23, now);
+  expect(coming!.book).toEqual({
+    name: "Definitive 8",
+    inside: "vols. 22–24",
+    coming: "Jan 2027",
+  });
+  const [notListed] = lookUpVolume([line], 26, now);
+  expect(notListed!.book).toBeNull();
+  expect(notListed!.runs).toBe("vols. 19–24");
 });

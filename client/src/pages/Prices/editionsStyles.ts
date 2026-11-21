@@ -17,6 +17,8 @@ export const editionsStyles = {
   answerBook: "font-semibold text-accent",
   answerInside: "font-mono text-[0.85rem] text-ink-soft",
   answerNone: "text-[0.95rem] text-ink-soft",
+  // a book confirmed but not out yet
+  answerComing: "font-mono text-[0.8rem] text-muted",
   // a line's books as tiles: the number big, what it holds under it
   lineHead:
     "mb-2 flex flex-wrap items-baseline justify-between gap-x-3 gap-y-0.5",
@@ -29,6 +31,9 @@ export const editionsStyles = {
   tileAnswer: "outline-2 outline-offset-2 outline-accent",
   // a book whose volumes they own every one of: inked in
   tileOwned: "bg-ink text-paper [&_small]:text-paper/80",
+  // confirmed and coming: dashed, flat, with its date
+  tileComing: "border-dashed bg-transparent shadow-none",
+  tileDate: "mt-0.5 font-mono text-[0.62rem] whitespace-nowrap text-muted",
   tileNumber: "font-brand text-[1.45rem] leading-none",
   tileInside: "mt-0.5 font-mono text-[0.68rem] whitespace-nowrap text-ink-soft",
   tilesKey: "mt-2 font-mono text-[0.72rem] text-muted",

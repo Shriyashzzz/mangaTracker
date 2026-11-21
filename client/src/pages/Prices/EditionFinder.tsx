@@ -57,6 +57,11 @@ export default function EditionFinder({
                 <>
                   <span className={styles.answerBook}>{book.name}</span>
                   <span className={styles.answerInside}>{book.inside}</span>
+                  {book.coming && (
+                    <span className={styles.answerComing}>
+                      out {book.coming}
+                    </span>
+                  )}
                 </>
               ) : (
                 <span className={styles.answerNone}>

@@ -74,9 +74,14 @@ type EditionsEntryLine = {
   // the series' volumes the line's books hold, first and last
   from: number;
   to: number;
-  // each book's number and its first and last volume, in order: the page
-  // draws the line as its books side by side, each as wide as it holds
-  spans: { number: number; from: number; to: number }[];
+  // each book's number, its first and last volume and its release date, in
+  // order. Listed books only (a catalog has it): out, or confirmed and coming
+  spans: {
+    number: number;
+    from: number;
+    to: number;
+    published: string | null;
+  }[];
 };
 
 // every series with an omnibus or deluxe line saved (editionSource.ts, beside
@@ -112,19 +117,23 @@ async function readEditionsIndex() {
     if (!Array.isArray(saved)) continue;
     const lines: EditionsEntryLine[] = [];
     for (const line of saved) {
-      const held = (line.books ?? []).flatMap((book) => book.volumes ?? []);
+      // books a catalog lists: one worked out from the line's pattern that
+      // nobody lists yet isn't said to exist (client lib/editionLookup.ts)
+      const listed = (line.books ?? []).filter(
+        (book) => book.listed && book.volumes?.length,
+      );
+      const held = listed.flatMap((book) => book.volumes);
       if (!held.length) continue;
-      const spans = line.books
-        .filter((book) => book.volumes?.length)
-        .map((book) => ({
-          number: book.number,
-          from: Math.min(...book.volumes),
-          to: Math.max(...book.volumes),
-        }));
+      const spans = listed.map((book) => ({
+        number: book.number,
+        from: Math.min(...book.volumes),
+        to: Math.max(...book.volumes),
+        published: book.published ?? null,
+      }));
       lines.push({
         key: line.key,
         label: line.label,
-        books: line.books.length,
+        books: listed.length,
         from: Math.min(...held),
         to: Math.max(...held),
         spans,
@@ -324,8 +333,9 @@ export async function getSeriesSummary(asked: string) {
     .map((line) => ({
       key: line.key,
       label: line.label,
+      // listed ones only, as the editions page shows them
       books: (line.books ?? [])
-        .filter((book) => book.volumes?.length)
+        .filter((book) => book.listed && book.volumes?.length)
         .map((book) => ({ number: book.number, volumes: book.volumes })),
     }))
     .filter((line) => line.books.length);

@@ -14,6 +14,7 @@ import SlowLoadQuote from "../../components/slowLoadQuote/SlowLoadQuote";
 import {
   booksFromSpans,
   nextVolumeFor,
+  shownBooks,
   type LookupLine,
 } from "../../lib/editionLookup";
 import { getEditionsIndex, type EditionsEntry } from "../../lib/editionsIndex";
@@ -34,6 +35,12 @@ const linesOf = (entry: EditionsEntry): LookupLine[] =>
     label: line.label,
     books: booksFromSpans(line.spans),
   }));
+
+// "7 books · 1 coming · vols. 1–24": the books shown, out or coming
+function lineFacts(line: LookupLine, span: EditionsEntry["lines"][number]) {
+  const coming = shownBooks(line).filter((b) => b.coming).length;
+  return `${span.books} books${coming ? ` · ${coming} coming` : ""} · vols. ${span.from}–${span.to}`;
+}
 
 // the letter a series files under, as /series files it
 const letterOf = (name: string) => {
@@ -215,8 +222,7 @@ function PickedLines({
             <div className={styles.lineHead}>
               <span className={styles.lineName}>{line.label}</span>
               <span className={styles.lineFacts}>
-                {entry.lines[i]!.books} books · vols. {entry.lines[i]!.from}–
-                {entry.lines[i]!.to}
+                {lineFacts(line, entry.lines[i]!)}
               </span>
             </div>
             <BookTiles line={line} volume={volume} owned={owned} />
@@ -288,8 +294,7 @@ function SeriesFold({ entry }: { entry: EditionsEntry }) {
             <div className={styles.lineHead}>
               <span className={styles.lineName}>{line.label}</span>
               <span className={styles.lineFacts}>
-                {entry.lines[i]!.books} books · vols. {entry.lines[i]!.from}–
-                {entry.lines[i]!.to}
+                {lineFacts(line, entry.lines[i]!)}
               </span>
             </div>
             <BookTiles line={line} owned={owned} />
