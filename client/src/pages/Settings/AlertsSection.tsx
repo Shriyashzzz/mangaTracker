@@ -68,6 +68,13 @@ export function AlertsSection() {
     setNote(null);
     // their own choice here: Kenji never asks again or switches it back on
     markChoseAlertsOff(!on);
+    // in the app, on goes through the app: it sees Android's own setting and
+    // shows its question or switch, then opens this page again with alerts on
+    if (on && appCan("notifications")) {
+      askApp("notifications");
+      setBusy(false);
+      return;
+    }
     if (on) {
       const now = await switchAlertsOn();
       if (now === "failed") {

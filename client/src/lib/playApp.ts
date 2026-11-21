@@ -15,16 +15,24 @@ const PACKAGE_KEY = "playAppPackage";
 // which release of it: the app adds ?appVersion= to the first page
 // (android/…/LauncherActivity.java). The first release didn't: 1
 const VERSION_KEY = "playAppVersion";
+// whether Android lets the app notify, as the app said when it opened the
+// page (?notifications=on|off): Chrome doesn't hear of a change made in
+// Android's settings, the app reads it fresh every time
+const NOTIFY_KEY = "playAppNotifications";
 
 // called once as the site starts
 export function notePlayApp() {
   try {
     const address = new URL(window.location.href);
     const version = address.searchParams.get("appVersion");
-    if (version) {
-      sessionStorage.setItem(VERSION_KEY, version);
+    const notify = address.searchParams.get("notifications");
+    if (version) sessionStorage.setItem(VERSION_KEY, version);
+    if (notify === "on" || notify === "off")
+      sessionStorage.setItem(NOTIFY_KEY, notify);
+    if (version || notify) {
       // kept out of the address bar, links and shares
       address.searchParams.delete("appVersion");
+      address.searchParams.delete("notifications");
       window.history.replaceState(window.history.state, "", address);
     }
     if (openedFromPlayApp(document.referrer)) {
@@ -101,3 +109,14 @@ export function askedApp(action: AppAction) {
     return false;
   }
 }
+
+// Android has the app's notifications off, as the app said on opening
+export const appNotificationsOff = () => {
+  try {
+    return (
+      appCan("notifications") && sessionStorage.getItem(NOTIFY_KEY) === "off"
+    );
+  } catch {
+    return false;
+  }
+};

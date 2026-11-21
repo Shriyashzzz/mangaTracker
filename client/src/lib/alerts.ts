@@ -7,7 +7,7 @@ import { apiFetch, getJson } from "./api";
 import { alertsWayOf, keyBytes, type AlertsWay } from "./alertsWay";
 import { runsAsApp } from "./install";
 import { isAppleMobile } from "./installWay";
-import { askedApp } from "./playApp";
+import { appNotificationsOff, askedApp } from "./playApp";
 
 const hasPush = () =>
   "serviceWorker" in navigator &&
@@ -28,6 +28,9 @@ const serverKey = () =>
     .catch(() => null);
 
 export async function alertsWay(): Promise<AlertsWay> {
+  // the app knows better than Chrome: off in Android's settings is blocked,
+  // whatever Chrome still remembers (its button asks the app)
+  if (appNotificationsOff() && (await serverKey())) return "blocked";
   const [key, subscription] = await Promise.all([
     serverKey(),
     currentSubscription().catch(() => null),
@@ -97,8 +100,7 @@ export function showOnIcon(count: number) {
 // on, without the switch (the app reopens the page that asked). null when
 // there's nothing to finish
 export async function finishTurningOn(): Promise<AlertsWay | "failed" | null> {
-  if (!("Notification" in window) || Notification.permission !== "granted")
-    return null;
+  if (!("Notification" in window) || appNotificationsOff()) return null;
   if (!askedApp("notifications")) return null;
   return switchAlertsOn();
 }

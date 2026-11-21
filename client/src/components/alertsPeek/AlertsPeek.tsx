@@ -122,6 +122,12 @@ export default function AlertsPeek({ hasSeries, blocked }: Props) {
 
   const yes = async () => {
     markAlertsAsked();
+    // in the app, through the app: Android's own question, then the shelf
+    // again with alerts on (finishTurningOn above)
+    if (appCan("notifications")) {
+      askApp("notifications");
+      return;
+    }
     const now = await switchAlertsOn();
     if (now === "on") setNote("on");
     else if (now === "blocked") setNote("blocked");
