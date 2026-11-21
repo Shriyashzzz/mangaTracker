@@ -5,14 +5,31 @@
 //
 // Kept in this tab's sessionStorage under the history entry's position and
 // the page's path, not React Router's own key, which changes whenever the
-// page rewrites its address (?edition=) without leaving it.
+// page rewrites its address (?edition=) without leaving it. Only for a
+// while: back after more than KEEP_MS away, the page opens fresh, as an app
+// left in the background a long time does (the time they left is noted by
+// lib/RestoreOnBack.tsx).
 import { useState } from "react";
 import { useLocation, useNavigationType } from "react-router";
 
-const entry = () => (window.history.state as { idx?: number } | null)?.idx ?? 0;
+// how long a page's place is kept after they leave it
+export const KEEP_MS = 5 * 60 * 1000;
 
-export const visitKey = (pathname: string, name: string) =>
-  `visit:${entry()}:${pathname}:${name}`;
+export const historyEntry = () =>
+  (window.history.state as { idx?: number } | null)?.idx ?? 0;
+
+export const visitKey = (
+  pathname: string,
+  name: string,
+  entry = historyEntry(),
+) => `visit:${entry}:${pathname}:${name}`;
+
+// whether this page's place is still worth putting back: left less than
+// KEEP_MS ago (no time noted, as after a reload: yes)
+export function stillFresh(pathname: string) {
+  const left = readVisit<number>(visitKey(pathname, "leftAt"));
+  return left == null || Date.now() - left <= KEEP_MS;
+}
 
 export function readVisit<T>(key: string): T | undefined {
   try {
@@ -38,7 +55,7 @@ export function useVisitState<T>(name: string, initial: T) {
   const back = useNavigationType() === "POP";
   const [key] = useState(() => visitKey(pathname, name));
   const [value, setValue] = useState<T>(() => {
-    const kept = back ? readVisit<T>(key) : undefined;
+    const kept = back && stillFresh(pathname) ? readVisit<T>(key) : undefined;
     return kept === undefined ? initial : kept;
   });
   const set = (next: T | ((now: T) => T)) =>

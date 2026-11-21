@@ -8,7 +8,13 @@
 // a few seconds
 import { useEffect } from "react";
 import { useLocation, useNavigationType } from "react-router";
-import { readVisit, visitKey, writeVisit } from "./visitState";
+import {
+  historyEntry,
+  readVisit,
+  stillFresh,
+  visitKey,
+  writeVisit,
+} from "./visitState";
 
 const GIVE_UP_MS = 5000;
 
@@ -55,8 +61,28 @@ export default function RestoreOnBack() {
     return () => document.removeEventListener("toggle", note, true);
   }, [pathname]);
 
+  // the time they leave this page, for its place's 5 minutes (visitState.ts)
+  useEffect(() => {
+    const entry = historyEntry();
+    const leave = () =>
+      writeVisit(visitKey(pathname, "leftAt", entry), Date.now());
+    window.addEventListener("pagehide", leave);
+    return () => {
+      window.removeEventListener("pagehide", leave);
+      leave();
+    };
+    // once per arrival
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [location.key]);
+
   useEffect(() => {
     if (!back) return;
+    // away too long: the page as if opened fresh, at its top (React Router
+    // would still put back its own idea of the place)
+    if (!stillFresh(pathname)) {
+      window.scrollTo(0, 0);
+      return;
+    }
     const y = readVisit<number>(visitKey(pathname, "scroll")) ?? 0;
     const open = readVisit<number[]>(visitKey(pathname, "folds")) ?? [];
     if (!y && !open.length) return;
