@@ -278,6 +278,9 @@ export async function getCanadaPrices(
 ): Promise<CanadaPrices> {
   if (!refresh) return saved(isbn13);
   const preorder = await upcomingReleaseOf(isbn13);
+  // a preorder's eBay.ca look only through eBay's own free API: without it
+  // the look is a paid search (askEbay), so what's saved is all it gets
+  if (preorder && !ebayApiEnabled()) return saved(isbn13);
   // its series' eBay.ca box sets, if nobody has looked for them yet
   if (!preorder) void scanCanadaSetsOnce(isbn13);
   const status = await checkCanada(isbn13, preorder ? ["ebay"] : GROUPS);
