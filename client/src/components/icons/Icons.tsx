@@ -247,3 +247,33 @@ export const PersonIcon = (props: IconProps) => (
     <path d="M4.5 20.5a7.5 7.5 0 0 1 15 0" />
   </svg>
 );
+
+// a row's own menu: three dots standing up
+export const MoreIcon = (props: IconProps) => (
+  <svg {...base} {...props}>
+    <circle cx="12" cy="5" r="1" />
+    <circle cx="12" cy="12" r="1" />
+    <circle cx="12" cy="19" r="1" />
+  </svg>
+);
+
+export const TrashIcon = (props: IconProps) => (
+  <svg {...base} {...props}>
+    <path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3" />
+  </svg>
+);
+
+// a book coming back: an arrow turning home
+export const ReturnIcon = (props: IconProps) => (
+  <svg {...base} {...props}>
+    <path d="M9 14 4 9l5-5" />
+    <path d="M4 9h11a5 5 0 0 1 0 10h-2" />
+  </svg>
+);
+
+// handing a book over
+export const HandIcon = (props: IconProps) => (
+  <svg {...base} {...props}>
+    <path d="M7 11V7a2 2 0 0 1 4 0v4M11 10V5a2 2 0 0 1 4 0v6M15 9a2 2 0 0 1 4 0v5a7 7 0 0 1-7 7h-1a7 7 0 0 1-6-3l-2-3a2 2 0 0 1 3-2l1 1" />
+  </svg>
+);

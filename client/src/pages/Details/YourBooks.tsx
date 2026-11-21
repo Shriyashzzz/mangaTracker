@@ -19,9 +19,14 @@ import { setVolumesOwned } from "../../lib/shelf";
 import { ownedVolumes } from "../../lib/ownedVolumes";
 import type { EditionShelf } from "../../lib/editionShelf";
 import BookRow, { type Purchase } from "./BookRow";
+import { LendDialog, RemoveBooksDialog } from "./BookActions";
+import { CloseIcon } from "../../components/icons/Icons";
+import { useCloseOnBack } from "../../lib/closeOnBack";
+import { rangesText } from "../../lib/ownedVolumes";
 import { detailsStyles as styles } from "./styles";
 import {
   newBookOf,
+  rowName,
   rowsOf,
   volumesOf,
   type BookRow as Row,
@@ -92,6 +97,25 @@ export default function YourBooks({
   // the edition book picked to add, by its key; null: the first there is
   const [adding, setAdding] = useState<string | null>(null);
   const [addingNow, setAddingNow] = useState(false);
+  // selecting several (Select, or a long press in the app): the rows picked,
+  // by key
+  const [selecting, setSelecting] = useState(false);
+  const [selected, setSelected] = useState<Set<string>>(() => new Set());
+  // the question open: who has these rows, or whether to remove them
+  const [lending, setLending] = useState<Row[] | null>(null);
+  const [removing, setRemoving] = useState<Row[] | null>(null);
+  const stopSelecting = () => {
+    setSelecting(false);
+    setSelected(new Set());
+  };
+  useCloseOnBack(selecting, stopSelecting);
+  const toggle = (key: string) =>
+    setSelected((now) => {
+      const next = new Set(now);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
 
   // the books are asked for again whenever the owned volumes change
   const ownedKey = owned.join();
@@ -254,6 +278,71 @@ export default function YourBooks({
     }
   };
 
+  // several at once: books go with their volumes, hand-ticked volumes are
+  // unticked together in one save. Says whether it all went
+  const removeMany = async (gone: Row[]) => {
+    setNote("");
+    try {
+      for (const row of gone)
+        if (row.book) onRemoved(await removeBook(mangaId, row.book.id));
+      const goneBooks = new Set(gone.flatMap((row) => row.book?.id ?? []));
+      setBooks((list) => list.filter((b) => !goneBooks.has(b.id)));
+      const loose = new Set(
+        gone.filter((row) => !row.book).flatMap((row) => volumesOf(row)),
+      );
+      if (loose.size)
+        onRemoved(
+          await setVolumesOwned(
+            mangaId,
+            ownedVolumes(
+              null,
+              owned.filter((volume) => !loose.has(volume)),
+            ),
+          ),
+        );
+      stopSelecting();
+      return true;
+    } catch {
+      return false;
+    }
+  };
+
+  // one name for every row asked about. Says whether it all saved
+  const lendAll = async (rowsLent: Row[], name: string) => {
+    try {
+      for (const row of rowsLent) await save(row, { lentTo: name });
+      stopSelecting();
+      return true;
+    } catch {
+      return false;
+    }
+  };
+
+  // names they've lent this series' books to, newest first, for a tap
+  const pastNames = [
+    ...new Set(
+      [...books]
+        .sort((a, b) => (b.lentOn ?? "").localeCompare(a.lentOn ?? ""))
+        .flatMap((b) => (b.lentTo ? [b.lentTo] : [])),
+    ),
+  ].slice(0, 4);
+  const pickedRows = rows.filter((row) => selected.has(row.key));
+  // a row's name without its volumes, said apart in the questions:
+  // "Omnibus 12", not "Omnibus 12 (vols. 34–36)"
+  const shortName = (row: Row) =>
+    rowName(row).replace(/\s*\(vols?\.[^)]*\)$/, "");
+  // "Omnibus 10, 11 and 12" and "vols. 28–36", for the question
+  const namesOf = (list: Row[]) => {
+    const names = list.map(shortName);
+    return names.length <= 1
+      ? (names[0] ?? "")
+      : `${names.slice(0, -1).join(", ")} and ${names.at(-1)}`;
+  };
+  const volumesText = (list: Row[]) => {
+    const all = list.flatMap((row) => volumesOf(row)).sort((a, b) => a - b);
+    return `${all.length === 1 ? "vol." : "vols."} ${rangesText(all)}`;
+  };
+
   const hidden = rows.length - shown;
   return (
     <details className={styles.books} data-tour="your-books">
@@ -266,6 +355,55 @@ export default function YourBooks({
           </span>
         )}
       </summary>
+      {selecting ? (
+        // what to do with the picked rows, the shelf's own kind of bar
+        <div
+          className={styles.booksBar}
+          role="toolbar"
+          aria-label="Selected books"
+        >
+          <button
+            type="button"
+            className={styles.booksBarClose}
+            aria-label="Done selecting"
+            onClick={stopSelecting}
+          >
+            <CloseIcon className="size-5" />
+          </button>
+          <span className={styles.booksBarCount} role="status">
+            {selected.size} selected
+          </span>
+          <button
+            type="button"
+            className={styles.booksBarAction}
+            disabled={!selected.size}
+            onClick={() => setLending(pickedRows)}
+          >
+            Lend
+          </button>
+          <button
+            type="button"
+            className={styles.booksBarDanger}
+            disabled={!selected.size}
+            onClick={() => setRemoving(pickedRows)}
+          >
+            Remove
+          </button>
+        </div>
+      ) : (
+        canRemove &&
+        rows.length > 1 && (
+          <div className={styles.booksTools}>
+            <button
+              type="button"
+              className={styles.booksSelect}
+              onClick={() => setSelecting(true)}
+            >
+              Select
+            </button>
+          </div>
+        )
+      )}
       <ul className={styles.booksList}>
         {rows.slice(0, shown).map((row) => (
           <BookRow
@@ -273,10 +411,43 @@ export default function YourBooks({
             row={row}
             onSave={save}
             onRemove={remove}
-            removeColumn={canRemove}
+            onLend={(one) => setLending([one])}
+            select={
+              selecting
+                ? {
+                    picked: selected.has(row.key),
+                    onToggle: () => toggle(row.key),
+                  }
+                : undefined
+            }
+            onLongPress={() => {
+              setSelecting(true);
+              setSelected(new Set([row.key]));
+            }}
           />
         ))}
       </ul>
+      {lending && (
+        <LendDialog
+          what={
+            lending.length === 1
+              ? shortName(lending[0]!)
+              : `these ${lending.length} books`
+          }
+          pastNames={pastNames}
+          onLend={(name) => lendAll(lending, name)}
+          onClose={() => setLending(null)}
+        />
+      )}
+      {removing && (
+        <RemoveBooksDialog
+          count={removing.length}
+          names={namesOf(removing)}
+          volumes={volumesText(removing)}
+          onRemove={() => removeMany(removing)}
+          onClose={() => setRemoving(null)}
+        />
+      )}
       {/* five more at a time, or the whole list at once (One Piece's 101
           books would be twenty clicks) */}
       {hidden > 0 && (

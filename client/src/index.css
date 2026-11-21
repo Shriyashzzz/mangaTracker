@@ -2079,7 +2079,7 @@ html.in-app dialog.app-dialog .btn {
   font-weight: 600;
   text-decoration: none;
 }
-html.in-app dialog.app-dialog .btn-danger {
+html.in-app dialog.app-dialog :is(.btn-danger, .btn-primary) {
   color: var(--accent-ink);
 }
 

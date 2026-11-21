@@ -109,26 +109,56 @@ export const detailsStyles = {
   // "$143.88 paid": what the series has cost them, beside the count
   booksSpent: "ml-3 font-mono text-[0.8rem] font-normal text-accent",
   booksList: "mt-2 flex flex-col",
-  // a book: its name, then what was paid, the day, and Remove; the three
-  // drop under the name on a phone
+  // a book: its name (and who has it), then what was paid and the day; its
+  // ⋮ menu (BookActions.tsx) at the end, or a tick box while selecting
   bookRow:
-    "grid grid-cols-[minmax(0,1fr)_auto_auto_4rem] items-center gap-x-3 gap-y-1.5 border-b border-dashed border-line-soft py-2 text-[0.92rem] upto-560:grid-cols-[auto_auto_minmax(0,1fr)]",
-  bookName: "min-w-0 font-medium text-ink upto-560:col-span-full",
+    "flex items-start gap-3 border-b border-dashed border-line-soft py-2.5 text-[0.92rem] data-picked:-mx-2 data-picked:bg-accent-wash data-picked:px-2",
+  bookMain: "min-w-0 flex-1",
+  bookName: "min-w-0 font-medium text-ink",
   bookIsbn: "ml-2 font-mono text-[0.74rem] font-normal text-ink-soft",
+  bookFields: "mt-2 flex flex-wrap items-center gap-2.5",
   bookPaid:
     "inline-flex h-9 items-center gap-1 rounded-[2px] border-[1.5px] border-line-soft bg-paper px-2 font-mono text-[0.85rem] upto-720:h-11 text-ink-soft focus-within:border-line has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-accent has-[:focus-visible]:outline-dashed",
   bookPaidInput:
     "h-full w-[4.2rem] cursor-text bg-transparent text-ink tabular-nums placeholder:text-muted focus:outline-none",
   bookDate:
     "h-9 rounded-[2px] border-[1.5px] border-line-soft bg-paper px-2 font-mono text-[0.8rem] text-ink upto-720:h-11 focus:border-line focus:outline-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent focus-visible:outline-dashed",
-  bookRemove:
-    "tap justify-self-end text-[0.85rem] font-medium text-ink-soft underline decoration-line-soft underline-offset-3 hover:text-accent hover:decoration-current",
+  // "● Lent to Sam · since Nov 3", under the name; a tap offers it back
+  lentChip:
+    "tap mt-1.5 inline-flex items-center gap-1.5 rounded-full border-[1.5px] border-[color-mix(in_srgb,var(--accent)_45%,transparent)] px-2.5 py-0.5 text-[0.78rem] font-semibold text-accent-ink hover:border-accent",
+  // the row's ⋮, and the menu it opens (a bottom sheet in the app)
+  bookMore:
+    "tap -mt-1.5 -mr-2 grid size-11 shrink-0 place-items-center rounded-full text-ink-soft hover:bg-accent-wash hover:text-ink",
+  bookMenu:
+    "absolute top-full right-0 z-30 mt-1 w-64 rounded-ink border-[2.5px] border-line bg-card p-1.5 shadow-[0_14px_30px_-14px_rgba(20,14,8,0.45)] animate-drop motion-reduce:animate-none",
+  bookMenuHead: "px-2.5 pt-1 pb-1.5 text-[0.82rem] font-semibold text-ink-soft",
+  bookMenuItem:
+    "tap flex min-h-11 w-full items-center gap-3 rounded-[2px] px-2.5 text-left font-medium text-ink hover:bg-accent-wash",
+  bookMenuDanger:
+    "tap flex min-h-11 w-full items-center gap-3 rounded-[2px] px-2.5 text-left font-medium text-accent-ink hover:bg-accent-wash",
+  bookMenuIcon: "grid size-5 shrink-0 place-items-center [&_svg]:size-5",
+  // while selecting: the row's tick box, where its ⋮ was
+  bookCheck: "mt-0.5 size-5 shrink-0 cursor-pointer accent-(--accent)",
   // under the row: what's typed in "paid" isn't an amount
-  bookPaidWrong: "col-span-full text-[0.82rem] font-medium text-accent-ink",
-  // the same row when nothing in the list can be removed: no column kept
-  // empty for a button
-  bookRowPlain:
-    "grid grid-cols-[minmax(0,1fr)_auto_auto] items-center gap-x-3 gap-y-1.5 border-b border-dashed border-line-soft py-2 text-[0.92rem] upto-560:grid-cols-[auto_minmax(0,1fr)]",
+  bookPaidWrong: "mt-1 text-[0.82rem] font-medium text-accent-ink",
+  // "Who has Omnibus 12?": the name, and the names lent to before
+  lendInput:
+    "mt-3 h-11 w-full rounded-[2px] border-[1.5px] border-line bg-paper px-3 text-ink placeholder:text-muted focus:outline-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent",
+  lendNames: "mt-3 flex flex-wrap gap-2",
+  lendName:
+    "tap min-h-9 rounded-[6px] border-[1.5px] border-line-soft px-3 text-[0.9rem] font-semibold text-ink hover:border-line",
+  // above the list: Select; while selecting, the bar that acts on them
+  booksTools: "mt-2 flex justify-end",
+  booksSelect:
+    "tap min-h-9 px-1 text-[0.85rem] font-semibold text-ink-soft underline decoration-line-soft underline-offset-3 hover:text-ink",
+  booksBar:
+    "sticky top-0 z-10 mt-2 flex min-h-12 items-center gap-2 border-b-[1.5px] border-line-soft bg-card pr-1 pl-2",
+  booksBarClose: "tap grid size-11 place-items-center text-ink",
+  booksBarCount: "flex-1 font-semibold text-ink",
+  booksBarAction:
+    "tap min-h-11 px-2.5 font-semibold text-ink disabled:text-muted",
+  booksBarDanger:
+    "tap min-h-11 px-2.5 font-semibold text-accent-ink disabled:text-muted",
   // "Paid the same for the 12 without a price? $[ ] Set them"
   // "Add a book you own: [Deluxe 7 (vols. 19–21)] [Add]"
   booksAdd:

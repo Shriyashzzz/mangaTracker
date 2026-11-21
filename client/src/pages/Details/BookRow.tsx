@@ -1,8 +1,12 @@
-// One row of "Your books": the book's name, what they paid, the day they
-// bought it, and Remove. The price is saved when they leave the box. Under
-// the name: who it's lent to, or a way to say so.
+// One row of "Your books": the book's name, who it's lent to (a chip), what
+// they paid and the day they bought it. Lend, Got it back and Remove are in
+// its ⋮ menu (BookActions.tsx). While selecting several, a tick box takes
+// the ⋮'s place; in the app a long press on the row starts selecting. The
+// price is saved when they leave the box.
 import { useState } from "react";
 import { centsOf, dayOf } from "../../lib/books";
+import { useLongPress } from "../../lib/useLongPress";
+import { BookMenu } from "./BookActions";
 import { detailsStyles as styles } from "./styles";
 import { moneyText, rowName, type BookRow as Row } from "./yourBooksRows";
 
@@ -25,91 +29,35 @@ const sinceText = (day: string) => {
   });
 };
 
-// who has it, or a way to say someone does
-function Lending({
-  name,
-  lentTo,
-  lentOn,
-  onSave,
-}: {
-  name: string;
-  lentTo: string | null;
-  lentOn: string | null;
-  onSave: (lentTo: string | null) => void;
-}) {
-  const [asking, setAsking] = useState(false);
-  const [who, setWho] = useState("");
-  const link =
-    "tap text-[0.78rem] font-medium text-ink-soft underline decoration-line-soft underline-offset-3 hover:decoration-current";
-  if (lentTo)
-    return (
-      <span className="mt-1 flex flex-wrap items-baseline gap-x-2 text-[0.8rem] text-accent-ink">
-        Lent to {lentTo}
-        {lentOn && ` since ${sinceText(lentOn)}`}
-        <button type="button" className={link} onClick={() => onSave(null)}>
-          Got it back
-        </button>
-      </span>
-    );
-  if (!asking)
-    return (
-      <button
-        type="button"
-        className={`${link} mt-1 block`}
-        onClick={() => setAsking(true)}
-      >
-        Lend
-      </button>
-    );
-  const save = () => {
-    const name = who.trim();
-    setAsking(false);
-    setWho("");
-    if (name) onSave(name);
-  };
-  return (
-    <span className="mt-1 flex items-center gap-2">
-      <input
-        className="w-36 border-b-[1.5px] border-line-soft bg-transparent text-[0.85rem] focus:border-line focus:outline-none"
-        placeholder="Who has it?"
-        aria-label={`Who you lent ${name} to`}
-        maxLength={40}
-        autoFocus
-        value={who}
-        onChange={(e) => setWho(e.target.value)}
-        onKeyDown={(e) => {
-          if (e.key === "Enter") save();
-          if (e.key === "Escape") setAsking(false);
-        }}
-      />
-      <button type="button" className={link} onClick={save}>
-        Save
-      </button>
-    </span>
-  );
-}
-
 type Props = {
   row: Row;
   onSave: (row: Row, change: Purchase) => void;
   onRemove: (row: Row) => void;
-  // the list has a Remove column (every row has one now; kept so a row
-  // can still line up without it)
-  removeColumn: boolean;
+  // "Lend…" from its menu: the list asks who (LendDialog)
+  onLend: (row: Row) => void;
+  // while selecting: whether it's picked, and the tap that picks it
+  select?: { picked: boolean; onToggle: () => void };
+  // a long press (in the app): selecting starts, with this row picked
+  onLongPress?: () => void;
 };
 
 export default function BookRow({
   row,
   onSave,
   onRemove,
-  removeColumn,
+  onLend,
+  select,
+  onLongPress,
 }: Props) {
   // what's typed in the price box, until it's saved; null: showing the saved one
   const [draft, setDraft] = useState<string | null>(null);
   // what was typed isn't an amount: it stays in the box, and the row says so
   const [notAnAmount, setNotAnAmount] = useState(false);
+  const hold = useLongPress(select ? undefined : onLongPress);
   const name = rowName(row);
   const savedCents = row.book?.paidCents ?? null;
+  const lentTo = row.book?.lentTo ?? null;
+  const lentOn = row.book?.lentOn ?? null;
 
   // the text is read from the box itself, so a quick tab away never saves a
   // letter behind
@@ -129,61 +77,77 @@ export default function BookRow({
   };
 
   return (
-    <li className={removeColumn ? styles.bookRow : styles.bookRowPlain}>
-      <span className={styles.bookName}>
-        {name}
-        {row.book?.isbn13 && (
-          <span className={styles.bookIsbn}>ISBN {row.book.isbn13}</span>
+    <li
+      className={styles.bookRow}
+      data-picked={select?.picked || undefined}
+      {...hold}
+    >
+      <div className={styles.bookMain}>
+        <div className={styles.bookName}>
+          {name}
+          {row.book?.isbn13 && (
+            <span className={styles.bookIsbn}>ISBN {row.book.isbn13}</span>
+          )}
+        </div>
+        {lentTo && (
+          <button
+            type="button"
+            className={styles.lentChip}
+            aria-label={`Lent to ${lentTo}. Got it back?`}
+            onClick={() => onSave(row, { lentTo: null })}
+          >
+            <span aria-hidden>●</span> Lent to {lentTo}
+            {lentOn && ` · since ${sinceText(lentOn)}`}
+          </button>
         )}
-        <Lending
-          name={name}
-          lentTo={row.book?.lentTo ?? null}
-          lentOn={row.book?.lentOn ?? null}
-          onSave={(lentTo) => onSave(row, { lentTo })}
-        />
-      </span>
-      <label className={styles.bookPaid}>
-        <span aria-hidden>$</span>
+        <div className={styles.bookFields}>
+          <label className={styles.bookPaid}>
+            <span aria-hidden>$</span>
+            <input
+              className={styles.bookPaidInput}
+              inputMode="decimal"
+              placeholder="paid"
+              aria-label={`What you paid for ${name}`}
+              aria-invalid={notAnAmount || undefined}
+              value={draft ?? moneyText(savedCents)}
+              onChange={(e) => setDraft(e.target.value)}
+              onBlur={(e) => savePrice(e.currentTarget.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") e.currentTarget.blur();
+              }}
+            />
+          </label>
+          <input
+            type="date"
+            className={styles.bookDate}
+            aria-label={`The day you bought ${name}`}
+            value={dayOf(row.book?.boughtOn) ?? ""}
+            max="2099-12-31"
+            onChange={(e) => onSave(row, { boughtOn: e.target.value || null })}
+          />
+        </div>
+        {notAnAmount && (
+          <p className={styles.bookPaidWrong} role="alert">
+            Type an amount, like 12.99
+          </p>
+        )}
+      </div>
+      {select ? (
         <input
-          className={styles.bookPaidInput}
-          inputMode="decimal"
-          placeholder="paid"
-          aria-label={`What you paid for ${name}`}
-          aria-invalid={notAnAmount || undefined}
-          value={draft ?? moneyText(savedCents)}
-          onChange={(e) => setDraft(e.target.value)}
-          onBlur={(e) => savePrice(e.currentTarget.value)}
-          onKeyDown={(e) => {
-            if (e.key === "Enter") e.currentTarget.blur();
-          }}
+          type="checkbox"
+          className={styles.bookCheck}
+          aria-label={`Select ${name}`}
+          checked={select.picked}
+          onChange={select.onToggle}
         />
-      </label>
-      <input
-        type="date"
-        className={styles.bookDate}
-        aria-label={`The day you bought ${name}`}
-        value={dayOf(row.book?.boughtOn) ?? ""}
-        max="2099-12-31"
-        onChange={(e) => onSave(row, { boughtOn: e.target.value || null })}
-      />
-      {removeColumn ? (
-        <button
-          type="button"
-          className={styles.bookRemove}
-          aria-label={
-            row.book
-              ? `Remove ${name} and its volumes`
-              : `Remove ${name} from your shelf`
-          }
-          onClick={() => onRemove(row)}
-        >
-          Remove
-        </button>
-      ) : null}
-      {notAnAmount && (
-        <span className={styles.bookPaidWrong} role="alert">
-          Type an amount, like 12.99
-        </span>
+      ) : (
+        <BookMenu
+          name={name}
+          lentTo={lentTo}
+          onLend={() => onLend(row)}
+          onBack={() => onSave(row, { lentTo: null })}
+          onRemove={() => onRemove(row)}
+        />
       )}
     </li>
   );
