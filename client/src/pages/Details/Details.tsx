@@ -32,7 +32,12 @@ import { priceName } from "../../lib/prices";
 import { tracksOf } from "../../lib/reading";
 import { placeOnShelf } from "../../lib/chapterVolumes";
 import { usePrivatePage } from "../../lib/seo";
-import { getReleases, saveSeen, setOrdered } from "../../lib/shelf";
+import {
+  getReleases,
+  saveSeen,
+  setOrdered,
+  setVolumesOwned,
+} from "../../lib/shelf";
 import { closeUpcoming, isUpcomingClosed } from "./upcomingClosed";
 import type { Manga, ReleaseData, ReleaseStatus } from "../../lib/types";
 import { restoredAs, useShelf } from "../../store/shelf";
@@ -368,6 +373,19 @@ export default function Details() {
     if (!books) throw new Error("The book didn't save");
   };
 
+  // "On my shelf" on Buy next's single volume: that volume theirs, as
+  // tapping its spine does
+  const ownVolume = async (volume: number) => {
+    if (!mangaData) return;
+    const owned = await setVolumesOwned(
+      mangaData.id,
+      ownedFrom(null, [...ownedOf(mangaData), volume]),
+    );
+    setMangaData((now) => now && { ...now, ...owned });
+    setBooksChanged((n) => n + 1);
+    void useShelf.getState().load();
+  };
+
   const saveReading = async (change: ReadingChange) => {
     if (!mangaData) return;
     const was = mangaData;
@@ -563,6 +581,7 @@ export default function Details() {
                 }
                 onCollect={(edition) => saveReading({ edition })}
                 onOwnBook={ownBook}
+                onOwnVolume={ownVolume}
                 ordered={ordered}
                 onOrdered={orderVolumes}
               />
@@ -729,6 +748,7 @@ export default function Details() {
               }
               onCollect={(edition) => saveReading({ edition })}
               onOwnBook={ownBook}
+              onOwnVolume={ownVolume}
               ordered={ordered}
               onOrdered={orderVolumes}
             />

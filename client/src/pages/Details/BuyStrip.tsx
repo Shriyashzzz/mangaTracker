@@ -27,6 +27,8 @@ type Props = {
   folded?: boolean;
   // they've bought an edition's next book: record it and its volumes
   onOwnBook?: (line: EditionLine, book: EditionBook) => Promise<void>;
+  // "On my shelf" on a single volume's ticket: that volume theirs
+  onOwnVolume?: (volume: number) => Promise<void>;
   // volumes ordered and on their way, and saying some are (or aren't): one
   // volume, or an edition's book's volumes
   ordered?: number[];
@@ -83,6 +85,7 @@ export default function BuyStrip({
   shelfTotal = 0,
   folded = false,
   onOwnBook,
+  onOwnVolume,
   ordered = [],
   onOrdered,
   ownsNone = false,
@@ -402,6 +405,23 @@ export default function BuyStrip({
               </div>
               {onOrdered && (
                 <span className={styles.ticketPills}>
+                  {onOwnVolume && (
+                    <button
+                      type="button"
+                      className={styles.ticketPill}
+                      disabled={owning}
+                      aria-label={`Vol. ${unlisted}: on my shelf`}
+                      onClick={() => {
+                        setOwning(true);
+                        setOwnFailed(false);
+                        onOwnVolume(unlisted)
+                          .catch(() => setOwnFailed(true))
+                          .finally(() => setOwning(false));
+                      }}
+                    >
+                      {owning ? "Saving…" : "On my shelf"}
+                    </button>
+                  )}
                   <button
                     type="button"
                     className={styles.ticketPill}
@@ -441,6 +461,23 @@ export default function BuyStrip({
               {/* bought it somewhere and it's on its way: Next moves past it */}
               {onOrdered && (
                 <span className={styles.ticketPills}>
+                  {onOwnVolume && (
+                    <button
+                      type="button"
+                      className={styles.ticketPill}
+                      disabled={owning}
+                      aria-label={`Vol. ${next.volume}: on my shelf`}
+                      onClick={() => {
+                        setOwning(true);
+                        setOwnFailed(false);
+                        onOwnVolume(next.volume)
+                          .catch(() => setOwnFailed(true))
+                          .finally(() => setOwning(false));
+                      }}
+                    >
+                      {owning ? "Saving…" : "On my shelf"}
+                    </button>
+                  )}
                   <button
                     type="button"
                     className={styles.ticketPill}
@@ -453,7 +490,7 @@ export default function BuyStrip({
                   </button>
                 </span>
               )}
-              {orderFailed && (
+              {(ownFailed || orderFailed) && (
                 <span className={styles.buyOwnFailed} role="alert">
                   {orOffline("That didn't save. Try again.")}
                 </span>
