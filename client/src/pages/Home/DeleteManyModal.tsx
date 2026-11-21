@@ -77,7 +77,7 @@ export default function DeleteManyModal({ manga, onDelete, onClose }: Props) {
           <p className={styles.confirmBody}>
             {one
               ? "It comes off your shelf with its volumes and books, rating, reading progress and notes."
-              : "They come off your shelf with their volumes, ratings and reading progress. You can undo it straight after."}
+              : "They come off your shelf with their volumes, ratings and reading progress."}
           </p>
         </div>
         {failed && (
