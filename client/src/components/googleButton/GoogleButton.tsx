@@ -1,24 +1,47 @@
 // Google's own button (lib/googleSignIn.ts): Google draws it, in its own
 // colours and words, as its rules for the button ask. Picking an account
 // hands `onCredential` a token for the server to check. When Google's script
-// can't be had (no signal, or a blocker) it says so in a line instead
-import { useEffect, useRef, useState } from "react";
+// can't be had (no signal, or a blocker) it says so in a line instead.
+// Drawn at its own size, just around "G Continue with Google". Google only
+// lets it be white, blue or black: white on the light paper, black on the
+// dark, where white would glare
+import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { GOOGLE_CLIENT_ID, loadGoogle } from "../../lib/googleSignIn";
+import { currentTheme } from "../../lib/prefs";
 
 type Props = {
   // "Continue with Google" on the sign-in pages, "Sign in with Google" when
   // linking it in Settings
   text: "continue_with" | "signin_with";
   onCredential: (credential: string) => void;
+  // centred on the sign-in cards; at the start of the line in Settings,
+  // under its words
+  align?: "center" | "start";
 };
 
-// Google's button is drawn at a set width: as wide as its box, within
-// Google's 200 to 400 pixels
-const widthOf = (box: HTMLElement) =>
-  Math.round(Math.min(400, Math.max(200, box.offsetWidth || 320)));
+// the theme as it changes: a pick in Settings (<html data-theme>) or the
+// device's own setting
+function onThemeChange(changed: () => void) {
+  const watcher = new MutationObserver(changed);
+  watcher.observe(document.documentElement, {
+    attributes: true,
+    attributeFilter: ["data-theme"],
+  });
+  const device = window.matchMedia("(prefers-color-scheme: dark)");
+  device.addEventListener("change", changed);
+  return () => {
+    watcher.disconnect();
+    device.removeEventListener("change", changed);
+  };
+}
 
-export default function GoogleButton({ text, onCredential }: Props) {
+export default function GoogleButton({
+  text,
+  onCredential,
+  align = "center",
+}: Props) {
   const box = useRef<HTMLDivElement>(null);
+  const theme = useSyncExternalStore(onThemeChange, currentTheme);
   const [failed, setFailed] = useState(false);
   // the newest handler, for a button drawn once
   const latest = useRef(onCredential);
@@ -36,14 +59,15 @@ export default function GoogleButton({ text, onCredential }: Props) {
           callback: (answer) => latest.current(answer.credential),
           ux_mode: "popup",
         });
+        // drawn again for a new theme: the old one goes first
+        box.current.replaceChildren();
         google.renderButton(box.current, {
           type: "standard",
-          theme: "outline",
+          theme: theme === "dark" ? "filled_black" : "outline",
           size: "large",
           shape: "rectangular",
-          logo_alignment: "center",
+          logo_alignment: "left",
           text,
-          width: widthOf(box.current),
         });
       })
       .catch(() => {
@@ -52,7 +76,7 @@ export default function GoogleButton({ text, onCredential }: Props) {
     return () => {
       gone = true;
     };
-  }, [text]);
+  }, [text, theme]);
 
   if (failed)
     return (
@@ -61,5 +85,10 @@ export default function GoogleButton({ text, onCredential }: Props) {
       </p>
     );
   // the height of Google's large button, so nothing jumps when it arrives
-  return <div ref={box} className="flex min-h-11 w-full justify-center" />;
+  return (
+    <div
+      ref={box}
+      className={`flex min-h-11 w-full ${align === "start" ? "justify-start" : "justify-center"}`}
+    />
+  );
 }

@@ -60,9 +60,7 @@ export function SignInSection({ account }: { account: Account }) {
           <p className={styles.body}>
             Sign in with Google next time, in one tap.
           </p>
-          <div className="max-w-[400px]">
-            <GoogleButton text="signin_with" onCredential={link} />
-          </div>
+          <GoogleButton text="signin_with" onCredential={link} align="start" />
         </>
       )}
       {googleNote && (
