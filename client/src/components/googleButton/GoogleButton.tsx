@@ -2,7 +2,10 @@
 // colours and words, as its rules for the button ask. Picking an account
 // hands `onCredential` a token for the server to check. When Google's script
 // can't be had (no signal, or a blocker) it says so in a line instead.
-// Drawn at its own size, just around "G Continue with Google". Google only
+// Drawn at one width (BUTTON_WIDTH): Google first draws "Continue with
+// Google", then, for someone signed in to Google on the device (the Android
+// app), a wider "Continue as <name>" with their picture, and a button sized
+// to its words would grow the box as it switches. Google only
 // lets it be white, blue or black: white on the light paper, black on the
 // dark, where white would glare
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
@@ -18,6 +21,11 @@ type Props = {
   // under its words
   align?: "center" | "start";
 };
+
+// Google's button at 300px, or the box's width on a narrower one (Google
+// draws it 200 to 400 wide)
+const BUTTON_WIDTH = 300;
+const MIN_WIDTH = 200;
 
 // the theme as it changes: a pick in Settings (<html data-theme>) or the
 // device's own setting
@@ -61,8 +69,13 @@ export default function GoogleButton({
         });
         // drawn again for a new theme: the old one goes first
         box.current.replaceChildren();
+        const width = Math.max(
+          MIN_WIDTH,
+          Math.min(BUTTON_WIDTH, Math.floor(box.current.clientWidth)),
+        );
         google.renderButton(box.current, {
           type: "standard",
+          width,
           theme: theme === "dark" ? "filled_black" : "outline",
           size: "large",
           shape: "rectangular",
