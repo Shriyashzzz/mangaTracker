@@ -1,3 +1,5 @@
+import { newBook } from "../../lib/books";
+import { saveBooks } from "../../lib/booksApi";
 import WatchedAnime from "../AfterAnime/WatchedAnime";
 import { SortMenu } from "../Home/ShelfBar";
 import { NavLink, useNavigate, useSearchParams } from "react-router";
@@ -140,10 +142,26 @@ export function AddManga() {
   const fromVolume = Number(searchParams.get("ownedVolume")) || null;
   const volumesFromLink =
     fromVolume ?? (Number(searchParams.get("volumesOwned")) || null);
+  // from an edition's book (VIZBIG 1, Deluxe 3): every volume it holds is
+  // theirs, and the book is recorded once the series is added, so the shelf
+  // knows its edition (pages/Prices/ShelfAction.tsx)
+  const bookVolumes = (searchParams.get("ownedVolumes") ?? "")
+    .split(",")
+    .map(Number)
+    .filter((v) => Number.isInteger(v) && v > 0)
+    .slice(0, 60);
+  const fromBook = bookVolumes.length
+    ? {
+        title: (searchParams.get("bookTitle") ?? "").slice(0, 200),
+        isbn13: (searchParams.get("bookIsbn") ?? "").slice(0, 13),
+      }
+    : null;
   // open when a link brought volumes along, so they see them; else as
   // they left it
   const [moreOpen, setMoreOpen] = useState(
-    () => Boolean(volumesFromLink) || localStorage.getItem(MORE_KEY) === "1",
+    () =>
+      Boolean(volumesFromLink || bookVolumes.length) ||
+      localStorage.getItem(MORE_KEY) === "1",
   );
   // once they've picked a series, how many volumes are out, so the picker
   // stops there and says "of 113"
@@ -153,8 +171,12 @@ export function AddManga() {
   );
   const volumes = useVolumePicker(
     {
-      volumesOwned: volumesFromLink,
-      ownedList: fromVolume ? [fromVolume] : [],
+      volumesOwned: bookVolumes.length ? null : volumesFromLink,
+      ownedList: bookVolumes.length
+        ? bookVolumes
+        : fromVolume
+          ? [fromVolume]
+          : [],
     },
     series.latest?.volume ?? null,
   );
@@ -270,6 +292,12 @@ export function AddManga() {
       });
       if (response.ok) {
         const { id } = (await response.json()) as { id: number };
+        // an edition's book they own: recorded now its volumes are theirs.
+        // Untick one and the server drops the book (bookQueries.booksOf)
+        if (fromBook)
+          await saveBooks(id, [
+            newBook(fromBook.title, bookVolumes, fromBook.isbn13 || undefined),
+          ]).catch(() => {});
         navigate(`/details/${id}`, { viewTransition: true, replace: true });
       } else {
         const messages = await errorMessages(response);

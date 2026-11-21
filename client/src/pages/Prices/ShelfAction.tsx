@@ -19,6 +19,21 @@ import { useShelf } from "../../store/shelf";
 import ToBuyButton from "../../components/toBuy/ToBuyButton";
 import { orOffline } from "../../lib/offline";
 
+// the add form's address for an edition's book (pages/AddManga/AddManga.tsx
+// reads ownedVolumes, bookTitle and bookIsbn)
+const editionParams = (
+  series: string,
+  holds: number[],
+  bookTitle: string,
+  isbn13: string,
+) =>
+  new URLSearchParams({
+    title: series,
+    ownedVolumes: holds.join(","),
+    bookTitle,
+    bookIsbn: isbn13,
+  });
+
 const UNDO_MS = 6000;
 
 // The volume page's shelf button, which knows what's already there:
@@ -142,6 +157,18 @@ export default function ShelfAction({
             I own Vol. {volume}
           </NavLink>
         )}
+        {/* a book of an edition (VIZBIG 1, Deluxe 3): the add form with its
+            series, every volume it holds owned, and the book recorded so the
+            shelf knows the edition. Only when its line says what it holds */}
+        {editionBook?.holds?.length ? (
+          <NavLink
+            to={`/add?${editionParams(title, editionBook.holds, editionBook.title, isbn13)}`}
+            className="btn btn-secondary btn-sm"
+            viewTransition
+          >
+            I own {editionBook.name}
+          </NavLink>
+        ) : null}
         <ToBuyButton isbn13={isbn13} />
       </div>
     );
