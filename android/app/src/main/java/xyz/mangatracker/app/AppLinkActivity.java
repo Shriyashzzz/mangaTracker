@@ -25,7 +25,9 @@ import com.google.android.play.core.review.ReviewManagerFactory;
  *
  *   mangatracker://notifications  Android's "Allow notifications?", or the
  *                                 app's notification settings when Android
- *                                 won't ask again (said no twice)
+ *                                 won't ask again (said no twice). Allowed,
+ *                                 the app opens again on ?back= (the page it
+ *                                 came from), so Chrome reads the new answer
  *   mangatracker://app-settings   the app's page in Android's settings
  *                                 (permissions, storage, notifications)
  *   mangatracker://review         Google Play's own rating sheet; Play
@@ -36,12 +38,23 @@ public class AppLinkActivity extends Activity {
     // an answer this fast means Android never showed its question
     private static final long NO_QUESTION_MS = 400;
     private long askedAt;
+    // the page to open again once notifications are allowed (?back=)
+    private Uri back;
+    // the notification settings are open: checked again on coming back
+    private boolean inSettings;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         Uri link = getIntent().getData();
         String action = link == null ? "" : String.valueOf(link.getHost());
+        String backText = link == null ? null : link.getQueryParameter("back");
+        // only a page of the app's own site, never anywhere else
+        if (backText != null) {
+            Uri asked = Uri.parse(backText);
+            Uri home = Uri.parse(getString(R.string.launchUrl));
+            if (String.valueOf(asked.getAuthority()).equals(home.getAuthority())) back = asked;
+        }
         switch (action) {
             case "notifications":
                 notifications();
@@ -66,8 +79,7 @@ public class AppLinkActivity extends Activity {
             return;
         }
         // allowed, or before Android 13: only a switch turned off by hand is left
-        NotificationManager manager = getSystemService(NotificationManager.class);
-        if (manager != null && manager.areNotificationsEnabled()) finish();
+        if (notificationsOn()) reopen();
         else openSettings(true);
     }
 
@@ -77,6 +89,37 @@ public class AppLinkActivity extends Activity {
         boolean allowed = results.length > 0 && results[0] == PackageManager.PERMISSION_GRANTED;
         boolean noQuestion = SystemClock.elapsedRealtime() - askedAt < NO_QUESTION_MS;
         if (!allowed && noQuestion) openSettings(true);
+        else if (allowed) reopen();
+        else finish();
+    }
+
+    private boolean notificationsOn() {
+        NotificationManager manager = getSystemService(NotificationManager.class);
+        return manager != null && manager.areNotificationsEnabled();
+    }
+
+    // the app again, on the page that asked: Chrome reads the new answer as
+    // it opens, and the page switches alerts on (client lib/playApp.ts)
+    private void reopen() {
+        if (back != null) {
+            Intent again = new Intent(Intent.ACTION_VIEW, back, this, LauncherActivity.class)
+                    .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP);
+            try {
+                startActivity(again);
+            } catch (Exception ignored) {
+                // the page checks again when it's back on screen anyway
+            }
+        }
+        finish();
+    }
+
+    @Override
+    protected void onRestart() {
+        super.onRestart();
+        // back from the notification settings: on now means the page again
+        if (!inSettings) return;
+        inSettings = false;
+        if (notificationsOn()) reopen();
         else finish();
     }
 
@@ -95,9 +138,13 @@ public class AppLinkActivity extends Activity {
                 startActivity(details);
             } catch (Exception ignored) {
                 // no settings screen to open
+                finish();
+                return;
             }
         }
-        finish();
+        // waiting for them to come back (onRestart), for notifications only
+        if (notifications) inSettings = true;
+        else finish();
     }
 
     private void review() {
