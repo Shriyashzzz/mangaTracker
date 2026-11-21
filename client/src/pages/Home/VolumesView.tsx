@@ -219,18 +219,10 @@ function SeriesRow({
           </span>
           <span className={styles.which}>
             {owned.length === 1 ? "vol." : "vols."} {rangesText(owned)}
-            {finish && (
-              <span className={styles.toGo}>
-                <span className="upto-520:hidden"> · </span>
-                {finish.missing.length}
-                {finish.edition &&
-                  ` ${finish.edition} book${finish.missing.length === 1 ? "" : "s"}`}{" "}
-                not on your shelf
-              </span>
-            )}
           </span>
         </span>
-        {/* how many they own, and under it what those would fetch */}
+        {/* how many they own on the name's line, and on the line under it
+            what those would fetch (each the height of its neighbour) */}
         <span className={styles.side}>
           <span className={styles.count}>{owned.length}</span>
           {worth && <span className={styles.rowWorth}>worth {worth}</span>}

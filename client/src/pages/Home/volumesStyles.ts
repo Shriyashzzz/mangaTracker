@@ -23,7 +23,6 @@ export const volumesStyles = {
     "font-brand text-[1.6rem] leading-none tracking-[0.02em] tabular-nums",
   totalNote: "font-mono text-[0.75rem] text-muted tabular-nums",
   // "· 3 to go · about $31" after the owned volumes
-  toGo: "text-muted upto-520:block upto-520:truncate",
   pagerBottom: "mt-8",
   // on paper, so the background art never sits behind a row's words
   list: "border-t-[1.5px] border-line-soft bg-paper",
@@ -32,15 +31,15 @@ export const volumesStyles = {
   thumb:
     "cover-lines relative block h-[54px] w-9 shrink-0 overflow-hidden border-[1.5px] border-line bg-paper-2 [&>img]:size-full [&>img]:object-cover",
   rowText: "flex min-w-0 flex-1 flex-col",
-  name: "flex min-w-0 items-baseline gap-2 truncate font-medium",
+  name: "flex h-6 min-w-0 items-baseline gap-2 truncate leading-6 font-medium",
   tag: "shrink-0 text-[0.75rem] font-medium text-muted uppercase tracking-[0.06em]",
-  which: "truncate font-mono text-[0.82rem] text-ink-soft",
+  which: "h-5 truncate font-mono text-[0.82rem] leading-5 text-ink-soft",
   // the right of a row: the count, and what those volumes would fetch
-  side: "flex shrink-0 flex-col items-end gap-1",
+  side: "flex shrink-0 flex-col items-end",
   count:
-    "shrink-0 font-brand text-[1.35rem] leading-none tracking-[0.02em] tabular-nums",
+    "h-6 shrink-0 font-brand text-[1.35rem] leading-6 tracking-[0.02em] tabular-nums",
   rowWorth:
-    "font-mono text-[0.72rem] leading-none whitespace-nowrap text-muted",
+    "h-5 font-mono text-[0.72rem] leading-5 whitespace-nowrap text-muted",
   chevron:
     "size-4 shrink-0 text-muted transition-transform duration-150 group-aria-expanded:rotate-180",
 
