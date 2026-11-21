@@ -63,14 +63,14 @@ export const homeStyles = {
     "tap mt-2 inline-flex shrink-0 items-center gap-1 py-1 upto-720:mt-0 upto-720:min-w-16 upto-720:justify-center upto-720:px-2 text-[0.85rem] font-medium text-ink-soft underline decoration-line-soft underline-offset-3 transition-colors duration-120 ease-[ease] hover:text-accent hover:decoration-accent [&_svg]:size-3.5",
   // above the phones' bottom bar
   seenNote:
-    "fixed inset-x-0 bottom-6 z-15 mx-auto flex w-fit max-w-[min(30rem,calc(100vw-2rem))] animate-drop items-center gap-4 rounded-ink border-[2.5px] border-line bg-card px-4 py-3 text-[0.95rem] text-ink shadow-ink motion-reduce:animate-none upto-720:bottom-[calc(4.5rem+env(safe-area-inset-bottom))]",
+    "app-above-bar fixed inset-x-0 bottom-6 z-15 mx-auto flex w-fit max-w-[min(30rem,calc(100vw-2rem))] animate-drop items-center gap-4 rounded-ink border-[2.5px] border-line bg-card px-4 py-3 text-[0.95rem] text-ink shadow-ink motion-reduce:animate-none upto-720:bottom-[calc(4.5rem+env(safe-area-inset-bottom))]",
   seenName: "min-w-0 truncate",
   // Select: a slim row over the cards, and the bar that acts on what's ticked
   gridTools:
     "mb-5 flex min-w-0 items-center gap-4 empty:hidden [&>nav]:my-0 [&>nav]:flex-1",
   // the select bar, with the "Moved… · Undo" note stacked above it
   selectDock:
-    "fixed inset-x-0 bottom-6 z-15 mx-auto flex w-fit max-w-[calc(100vw-1.5rem)] flex-col items-center gap-2.5 upto-720:bottom-[calc(4.5rem+env(safe-area-inset-bottom))]",
+    "app-above-bar fixed inset-x-0 bottom-6 z-15 mx-auto flex w-fit max-w-[calc(100vw-1.5rem)] flex-col items-center gap-2.5 upto-720:bottom-[calc(4.5rem+env(safe-area-inset-bottom))]",
   selectBar:
     "flex w-full animate-drop flex-wrap items-center gap-x-4 gap-y-2 upto-520:gap-x-3 upto-520:px-3 [@media(max-width:360px)]:gap-x-2.5 rounded-ink border-[2.5px] border-line bg-card px-4 py-3 text-[0.95rem] text-ink shadow-ink motion-reduce:animate-none",
   // the note in the dock: the seen note's look, without its own spot

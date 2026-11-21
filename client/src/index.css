@@ -1724,14 +1724,34 @@ html.in-app main :is(a, button):is(.underline, [class*="underline-offset"]) {
   }
 }
 
+/* the app's pages end above its bottom bar (80px and its 3px rule; there's
+   no footer to make the room), and what's pinned over the page (an undo, a
+   note, the import's badge) sits a little above the bar, as Android's
+   snackbars do */
+@media (max-width: 720px) or ((pointer: coarse) and (max-width: 1400px)) {
+  html.in-app main#main {
+    padding-bottom: calc(99px + env(safe-area-inset-bottom));
+  }
+  html.in-app .app-above-bar {
+    bottom: calc(95px + env(safe-area-inset-bottom));
+  }
+  html.in-app .import-badge {
+    bottom: calc(95px + env(safe-area-inset-bottom));
+  }
+}
+
 /* the bottom bar as Android's navigation bar (layouts/header/Header.tsx): an
    icon over each label, a soft pill behind the open one's icon in place of
    the website's solid block, New's count a badge on its bell */
 html.in-app .bottom-bar > a {
   flex-direction: column;
+  justify-content: flex-start;
   gap: 4px;
-  min-height: 72px;
-  padding: 10px 0 12px;
+  /* Android's 80px bar: 12 + the 32px pill + 4 + a 16px label + 16 */
+  height: 80px;
+  min-height: 80px;
+  padding: 12px 0 16px;
+  line-height: 16px;
   background: transparent;
   color: var(--ink-soft);
   font-size: 0.95rem;
