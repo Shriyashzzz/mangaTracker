@@ -48,9 +48,10 @@ export const editionsStyles = {
   seriesBody: "flex flex-col gap-5 pb-5 pl-14 upto-520:pl-0",
   seriesLinks: "flex flex-wrap gap-x-5 gap-y-1 text-[0.9rem] font-medium",
   // one series opened from the search
-  pickedHead: "flex items-center gap-4",
+  // the cover beside the lookup
+  pickedHead: "flex items-start gap-4 upto-520:gap-3",
   pickedCover:
-    "relative aspect-[2/3] w-16 shrink-0 overflow-hidden border-[1.5px] border-line bg-paper-2 shadow-ink",
+    "relative aspect-[2/3] w-24 shrink-0 overflow-hidden border-[1.5px] border-line bg-paper-2 shadow-ink upto-520:w-16",
   pickedName: "font-display text-[1.6rem] leading-tight font-semibold",
   pickedLines: "flex flex-col gap-6",
   textLink:

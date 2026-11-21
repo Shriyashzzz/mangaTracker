@@ -166,12 +166,7 @@ function Picked({
       className="flex flex-col gap-6"
       aria-label={`${entry.name} editions`}
     >
-      <div className={styles.pickedHead}>
-        <span className={styles.pickedCover} aria-hidden>
-          <SeriesPicture name={entry.name} url={entry.coverUrl} sizes="64px" />
-        </span>
-        <h2 className={styles.pickedName}>{entry.name}</h2>
-      </div>
+      <h2 className={styles.pickedName}>{entry.name}</h2>
       {/* drawn again once their shelf is in: it starts at their next one */}
       <PickedLines
         key={`${entry.slug}:${startAt ?? ""}`}
@@ -205,7 +200,15 @@ function PickedLines({
   const page = seriesCanonicalPath(entry.name);
   return (
     <>
-      <EditionFinder lines={lines} startAt={startAt} onVolume={setVolume} />
+      {/* the series' cover beside the lookup, under its name */}
+      <div className={styles.pickedHead}>
+        <span className={styles.pickedCover} aria-hidden>
+          <SeriesPicture name={entry.name} url={entry.coverUrl} sizes="96px" />
+        </span>
+        <div className="min-w-0 flex-1">
+          <EditionFinder lines={lines} startAt={startAt} onVolume={setVolume} />
+        </div>
+      </div>
       <div className={styles.pickedLines}>
         {lines.map((line, i) => (
           <div key={line.key}>
