@@ -200,7 +200,9 @@ export default function ScanSheet({
     });
   }, []);
   const camera = useBarcodeReader(video, read, !typing, attempt, otherBarcode);
-  // back from Chrome's settings for the site ("Allow camera"): tried again
+  // the camera allowed again ("Allow camera", Chrome's settings for the
+  // site): tried again at once. Chrome says when its permission changes;
+  // coming back into view or focus is the fallback
   const blocked = camera.state === "blocked";
   useEffect(() => {
     if (!blocked) return;
@@ -209,8 +211,24 @@ export default function ScanSheet({
       setTyping(false);
       setAttempt((n) => n + 1);
     };
+    let status: PermissionStatus | null = null;
+    const changed = () => {
+      if (status?.state === "granted") again();
+    };
+    void navigator.permissions
+      ?.query({ name: "camera" as PermissionName })
+      .then((now) => {
+        status = now;
+        now.addEventListener("change", changed);
+      })
+      .catch(() => {});
     document.addEventListener("visibilitychange", again);
-    return () => document.removeEventListener("visibilitychange", again);
+    window.addEventListener("focus", again);
+    return () => {
+      status?.removeEventListener("change", changed);
+      document.removeEventListener("visibilitychange", again);
+      window.removeEventListener("focus", again);
+    };
   }, [blocked]);
   const showTyping = typing || camera.state === "blocked";
 
