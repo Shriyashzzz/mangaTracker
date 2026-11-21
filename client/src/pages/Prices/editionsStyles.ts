@@ -23,8 +23,9 @@ export const editionsStyles = {
   lineHead:
     "mb-2 flex flex-wrap items-baseline justify-between gap-x-3 gap-y-0.5",
   lineName:
-    "font-brand text-[1.15rem] leading-none tracking-[0.04em] text-ink uppercase",
-  lineFacts: "font-mono text-[0.76rem] text-ink-soft",
+    "font-brand text-[1.15rem] leading-none tracking-[0.04em] text-accent uppercase",
+  // the line's facts, the main data: in the accent too
+  lineFacts: "font-mono text-[0.76rem] text-accent",
   tiles: "grid grid-cols-[repeat(auto-fill,minmax(3.6rem,1fr))] gap-2",
   tile: "flex flex-col items-center border-[1.5px] border-line bg-card px-1 pt-1.5 pb-1 text-center shadow-ink",
   // the book the lookup answered with: the accent's frame
@@ -49,7 +50,7 @@ export const editionsStyles = {
   seriesName:
     "min-w-0 flex-1 font-display text-[1.15rem] leading-tight font-semibold",
   seriesLines:
-    "shrink-0 text-right font-mono text-[0.74rem] leading-snug text-ink-soft",
+    "shrink-0 text-right font-mono text-[0.74rem] leading-snug text-accent",
   seriesBody: "flex flex-col gap-5 pb-5 pl-14 upto-520:pl-0",
   seriesLinks: "flex flex-wrap gap-x-5 gap-y-1 text-[0.9rem] font-medium",
   // one series opened from the search
