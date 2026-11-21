@@ -1316,6 +1316,11 @@ body {
     display: none;
   }
 }
+/* in the app the bottom bar is Android's, 80px and its 3px rule: Kenji
+   stands on top of it instead of behind it (e9f2044d gave the bar its size) */
+html.in-app .support-peek {
+  bottom: calc(83px + env(safe-area-inset-bottom));
+}
 .support-peek-kenji {
   flex: none;
   width: 92px;
