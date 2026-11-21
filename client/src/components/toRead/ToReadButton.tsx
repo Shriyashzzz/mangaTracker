@@ -41,9 +41,11 @@ export default function ToReadButton({
   if (!isSignedIn) {
     return isSignedIn === false ? (
       <p className={line}>
+        {/* the same button signed in or out: signed out it goes to sign in
+            first, then back here */}
         <NavLink
           to={signInPath(pathname)}
-          className={link}
+          className="btn btn-secondary btn-sm"
           rel="nofollow"
           viewTransition
         >
