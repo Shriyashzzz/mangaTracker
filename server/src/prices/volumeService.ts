@@ -35,7 +35,7 @@ import { type Offer, type Provider } from "./types.js";
 import { notOutYet } from "./preorder.js";
 import { publisherOf } from "./publishers.js";
 import { getSeriesWithVolumes } from "./seriesService.js";
-import { bookInLine, restOfLine } from "./editionBooks.js";
+import { bookInLine, restOfLine, type BookInLine } from "./editionBooks.js";
 import {
   onlyBookOf,
   volumesByName,
@@ -378,17 +378,36 @@ export async function volumeExists(isbn13: string): Promise<boolean> {
   }
 }
 
-// a volume's release date while it's still to come, as its series page has it
-// (dates found under other names and catalogs included). For the Canada
-// prices, which have only the ISBN: a preorder spends no paid searches there
-// either
+// THE preorder rule, for every kind of book: its release date while it's
+// still to come. A single's date is its series' (dates found under other
+// names and catalogs included); an edition's book the singles don't list
+// (Definitive 9) has its edition line's, the date the editions page draws it
+// dashed by. `inLine`: its edition book when already looked up
+async function preorderOf(
+  series: {
+    name: string;
+    volumes: { isbn13: string; published?: string | null }[];
+  },
+  isbn13: string,
+  inLine?: BookInLine | null,
+) {
+  const single = series.volumes.find((v) => v.isbn13.trim() === isbn13);
+  if (single?.published) return notOutYet(single.published);
+  const book =
+    inLine ?? (await bookInLine(series, isbn13, false).catch(() => null));
+  return notOutYet(book?.book.published);
+}
+
+// a book's release date while it's still to come (preorderOf). For the
+// Canada prices, which have only the ISBN: a preorder spends no paid
+// searches there either
 export async function upcomingReleaseOf(isbn13: string) {
   const book = await priceQueries.getBook(isbn13).catch(() => null);
   if (!book) return null;
   const series = await getSeriesWithVolumes(seriesOfBook(book.title)).catch(
     () => null,
   );
-  return notOutYet(series?.volumes.find((v) => v.isbn13 === isbn13)?.published);
+  return series ? preorderOf(series, isbn13) : null;
 }
 
 // when a volume's prices were checked: the oldest of its source checks (as
@@ -466,8 +485,12 @@ export async function getVolumePrices(
   // (a box set too: "Claymore Complete Box Set" is Claymore's)
   const series = await getSeriesWithVolumes(seriesOfBook(book.title), country);
   // which book of the edition it is, from the series' edition lines (only
-  // what's saved for a crawler, which never sets off a search)
-  const inLine = edition ? await bookInLine(series, isbn13, refresh) : null;
+  // what's saved for a crawler, which never sets off a search). A book the
+  // catalog titles plainly ("Vagabond, Vol. 8" is Definitive 8) that isn't
+  // one of the singles is looked for by its ISBN in what's saved
+  const inSingles = series.volumes.some((v) => v.isbn13.trim() === isbn13);
+  let inLine = edition ? await bookInLine(series, isbn13, refresh) : null;
+  if (!edition && !inSingles) inLine = await bookInLine(series, isbn13, false);
   // a person's first look at it (what's stored, shown at once): the lines
   // are looked up behind the page, so the next look has its edition's books
   if (edition && !inLine && report && !refresh)
@@ -498,10 +521,9 @@ export async function getVolumePrices(
     (Boolean(series.info) || isNovelName(series.name)) &&
     (series.volumes.some((v) => v.isbn13.trim() === isbn13) ||
       editionOfKnownSeries);
-  // not out yet: no paid search, the page offers the preorder links instead
-  const preorder = notOutYet(
-    series.volumes.find((v) => v.isbn13 === book.isbn13)?.published,
-  );
+  // not out yet (preorderOf): no paid search, its free stores' prices and
+  // the preorder links instead
+  const preorder = await preorderOf(series, isbn13, inLine);
   // a box set of a series we know: its prices are worth a look too, at the
   // free stores only (eBay, Books-A-Million, Better World Books). Never a
   // paid search: those stay for volumes
@@ -510,7 +532,8 @@ export async function getVolumePrices(
     // its series' box sets, if nobody has looked for them yet
     void scanIfNeverScanned(series.name, series.volumes);
     await refreshIfStale(isbn13, book);
-  } else if (refresh && boxSet) {
+  } else if (refresh && (boxSet || (known && preorder))) {
+    // a preorder's live prices: the free stores only, never a paid search
     await refreshIfStale(isbn13, book, true);
   }
 
@@ -523,8 +546,8 @@ export async function getVolumePrices(
   const refreshable =
     report &&
     (known || boxSet) &&
-    !preorder &&
-    (await dueProviders(isbn13, !known)).length > 0;
+    // a preorder is checked at the free stores only, as a box set is
+    (await dueProviders(isbn13, !known || Boolean(preorder))).length > 0;
   const [stored, usual] = await Promise.all([
     priceQueries.getCurrentOffers(isbn13),
     priceQueries.getNewPriceMedian(isbn13),

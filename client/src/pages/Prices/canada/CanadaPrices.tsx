@@ -86,28 +86,40 @@ export default function CanadaPrices({
       </div>
 
       {preorder ? (
-        <div id="preorder" className={styles.preorder}>
-          <p className="m-0">
-            Not out until <b>{preorder}</b>. Preorder it now and it ships on
-            release day; prices show here once it's out.
-          </p>
-          {preorderAt.length > 0 && (
-            <div className={styles.preorderButtons}>
-              {preorderAt.map((s, i) => (
-                <a
-                  key={s.store}
-                  href={s.url}
-                  target="_blank"
-                  rel={s.affiliate ? "sponsored noreferrer" : "noreferrer"}
-                  onClick={noteStoreClick}
-                  onAuxClick={noteStoreClick}
-                  className={`btn ${i === 0 ? "btn-primary" : "btn-secondary"}`}
-                  aria-label={`Preorder on ${s.store}. Opens the store in a new tab`}
-                >
-                  {i === 0 ? `Preorder on ${s.store}` : s.store}
-                </a>
-              ))}
-            </div>
+        <div className="flex flex-col gap-4">
+          <div id="preorder" className={styles.preorder}>
+            <p className="m-0">
+              <b>Preorder</b>: out <b>{preorder}</b>. Order it now and it ships
+              on release day.
+            </p>
+            {preorderAt.length > 0 && (
+              <div className={styles.preorderButtons}>
+                {preorderAt.map((s, i) => (
+                  <a
+                    key={s.store}
+                    href={s.url}
+                    target="_blank"
+                    rel={s.affiliate ? "sponsored noreferrer" : "noreferrer"}
+                    onClick={noteStoreClick}
+                    onAuxClick={noteStoreClick}
+                    className={`btn ${i === 0 ? "btn-primary" : "btn-secondary"}`}
+                    aria-label={`Preorder on ${s.store}. Opens the store in a new tab`}
+                  >
+                    {i === 0 ? `Preorder on ${s.store}` : s.store}
+                  </a>
+                ))}
+              </div>
+            )}
+          </div>
+          {/* eBay.ca's live prices for it, each said to be a preorder */}
+          {offers.length > 0 && (
+            <OfferList
+              key={isbn}
+              offers={offers}
+              formatPrice={formatCents}
+              volume={volume}
+              preorder
+            />
           )}
         </div>
       ) : !data ? (

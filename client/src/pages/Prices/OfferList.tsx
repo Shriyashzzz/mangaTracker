@@ -40,8 +40,11 @@ export default function OfferList({
   formatPrice,
   tourTarget,
   volume = null,
+  preorder = false,
 }: {
   offers: Offer[];
+  // not out yet: a new copy's price is a preorder's
+  preorder?: boolean;
   // this page's volume number, for "Vol. 3 + more" on box sets
   volume?: number | null;
   formatPrice: (cents: number) => string;
@@ -122,6 +125,7 @@ export default function OfferList({
               </span>
               <span className={styles.offerTags}>
                 {condition}
+                {preorder && o.condition === "new" && " · preorder"}
                 {isCollection(o) &&
                   (volume != null
                     ? ` · Vol. ${volume} + more`

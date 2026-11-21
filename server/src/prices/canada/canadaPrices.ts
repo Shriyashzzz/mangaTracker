@@ -270,16 +270,17 @@ async function scanCanadaSetsOnce(isbn13: string) {
 }
 
 // What a Canadian volume page shows. refresh false: saved prices only, for
-// crawlers, which never spend searches. Not out yet: nothing worth a paid
-// search, just the store links
+// crawlers, which never spend searches. Not out yet (a preorder): eBay.ca
+// only, never a paid search
 export async function getCanadaPrices(
   isbn13: string,
   { refresh = true } = {},
 ): Promise<CanadaPrices> {
-  if (!refresh || (await upcomingReleaseOf(isbn13))) return saved(isbn13);
+  if (!refresh) return saved(isbn13);
+  const preorder = await upcomingReleaseOf(isbn13);
   // its series' eBay.ca box sets, if nobody has looked for them yet
-  void scanCanadaSetsOnce(isbn13);
-  const status = await checkCanada(isbn13);
+  if (!preorder) void scanCanadaSetsOnce(isbn13);
+  const status = await checkCanada(isbn13, preorder ? ["ebay"] : GROUPS);
   const now = await saved(isbn13);
   // what's saved is shown whatever the check said; the status only explains
   // an empty list

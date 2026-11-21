@@ -83,7 +83,6 @@ export default function PriceVolume() {
   // the history all show these, never the US ones
   const canada = useCanadaPrices(
     country === "ca" ? (loadedBook?.isbn13 ?? null) : null,
-    Boolean(page.data?.preorder),
   );
   // readers' reviews of it: the section below, and the rating in the tags
   const reviews = useVolumeReviews(loadedBook?.isbn13 ?? null);
@@ -247,6 +246,12 @@ export default function PriceVolume() {
           <p className={styles.isbn}>
             {/* the title says the number already: on a phone the room
                 goes to the prices, so they show before any scrolling */}
+            {/* not out yet: said first, before anything else about it */}
+            {preorder && (
+              <span className={`${styles.tag} border-accent! text-accent`}>
+                Preorder · out {releaseDay(preorder)}
+              </span>
+            )}
             {volume != null && (
               <span className={`${styles.tag} upto-720:hidden`}>
                 Vol. {volume}
@@ -271,7 +276,8 @@ export default function PriceVolume() {
           {/* the country's own numbers: Canadian ones with Canada picked */}
           {best && (
             <p className={styles.bestLine}>
-              New from <strong>{formatCents(best.priceCents)}</strong> at{" "}
+              {preorder ? "Preorder from" : "New from"}{" "}
+              <strong>{formatCents(best.priceCents)}</strong> at{" "}
               {shopName(best.store)}
               {knownBest && (
                 <>
@@ -366,29 +372,41 @@ export default function PriceVolume() {
               </div>
 
               {preorder ? (
-                // not out yet: no prices to compare, just where to order it
-                <div id="preorder" className={styles.preorder}>
-                  <p className="m-0">
-                    Not out until <b>{releaseDay(preorder)}</b>. Preorder it now
-                    and it ships on release day; prices show here once it's out.
-                  </p>
-                  {preorderAt.length > 0 && (
-                    <div className={styles.preorderButtons}>
-                      {preorderAt.map((s, i) => (
-                        <a
-                          key={s.store}
-                          href={s.url}
-                          target="_blank"
-                          rel={linkRel(s)}
-                          onClick={noteStoreClick}
-                          onAuxClick={noteStoreClick}
-                          className={`btn ${i === 0 ? "btn-primary" : "btn-secondary"}`}
-                          aria-label={`Preorder on ${s.store}. Opens the store in a new tab`}
-                        >
-                          {i === 0 ? `Preorder on ${s.store}` : s.store}
-                        </a>
-                      ))}
-                    </div>
+                // not out yet: where to order it, then what the stores ask
+                <div className="flex flex-col gap-4">
+                  <div id="preorder" className={styles.preorder}>
+                    <p className="m-0">
+                      <b>Preorder</b>: out <b>{releaseDay(preorder)}</b>. Order
+                      it now and it ships on release day.
+                    </p>
+                    {preorderAt.length > 0 && (
+                      <div className={styles.preorderButtons}>
+                        {preorderAt.map((s, i) => (
+                          <a
+                            key={s.store}
+                            href={s.url}
+                            target="_blank"
+                            rel={linkRel(s)}
+                            onClick={noteStoreClick}
+                            onAuxClick={noteStoreClick}
+                            className={`btn ${i === 0 ? "btn-primary" : "btn-secondary"}`}
+                            aria-label={`Preorder on ${s.store}. Opens the store in a new tab`}
+                          >
+                            {i === 0 ? `Preorder on ${s.store}` : s.store}
+                          </a>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                  {/* the stores' live prices for it, each said to be a preorder */}
+                  {offers.length > 0 && (
+                    <OfferList
+                      key={isbn}
+                      offers={offers}
+                      formatPrice={formatCents}
+                      volume={volume}
+                      preorder
+                    />
                   )}
                 </div>
               ) : offers.length > 0 ? (

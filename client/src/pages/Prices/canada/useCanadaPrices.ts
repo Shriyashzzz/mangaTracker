@@ -2,7 +2,7 @@
 // headline under the title and the price history all read this one answer.
 // What's saved shows at once, as the US prices do; then a live check (with
 // its Turnstile token, which can take a few seconds) replaces it. A preorder
-// gets no live check, so the first answer is the only one. Asks nothing
+// is checked too, at eBay.ca only (the server's getCanadaPrices). Asks nothing
 // while `isbn` is null (US picked, or the page still loading)
 import { useEffect, useState } from "react";
 import { getJson } from "../../../lib/api";
@@ -18,7 +18,7 @@ export type CanadaAnswer = {
   usualCents?: number | null;
 };
 
-export function useCanadaPrices(isbn: string | null, preorder: boolean) {
+export function useCanadaPrices(isbn: string | null) {
   const [answer, setAnswer] = useState<{
     isbn: string;
     data: CanadaAnswer;
@@ -44,13 +44,12 @@ export function useCanadaPrices(isbn: string | null, preorder: boolean) {
     ask("")
       .then((data) => setAnswer({ isbn, data }))
       .catch(failed);
-    if (!preorder)
-      humanQuery("?", controller.signal)
-        .then((human) => (human ? ask(human) : null))
-        .then((data) => data && setAnswer({ isbn, data }))
-        .catch(failed);
+    humanQuery("?", controller.signal)
+      .then((human) => (human ? ask(human) : null))
+      .then((data) => data && setAnswer({ isbn, data }))
+      .catch(failed);
     return () => controller.abort();
-  }, [isbn, preorder]);
+  }, [isbn]);
 
   return answer && answer.isbn === isbn ? answer.data : null;
 }
