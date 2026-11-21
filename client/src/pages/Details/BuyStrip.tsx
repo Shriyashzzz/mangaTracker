@@ -69,8 +69,9 @@ function bookPrice(book: EditionBook) {
 const price = (v: SeriesVolume) =>
   v.knownPriceCents != null ? formatCents(v.knownPriceCents) : "check price";
 
-// gaps listed by name; past this, the series page's "Not on your shelf"
-const GAPS_SHOWN = 6;
+// gaps listed by name; past this, a "Not on your shelf" link to the series
+// page with that list on, never a count of the rest
+const GAPS_SHOWN = 2;
 
 export default function BuyStrip({
   options,
@@ -458,7 +459,7 @@ export default function BuyStrip({
                     viewTransition
                     {...offlineLink(offline)}
                   >
-                    +{gaps.length - GAPS_SHOWN} more
+                    Not on your shelf →
                   </NavLink>
                 )}
               </span>
