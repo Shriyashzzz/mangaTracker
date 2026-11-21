@@ -268,6 +268,16 @@ export default function Header() {
         <nav
           className="bottom-bar fixed inset-x-0 bottom-0 z-20 hidden border-t-[3px] border-double border-line bg-paper pb-[env(safe-area-inset-bottom)] upto-720:flex [body:has(input:focus,textarea:focus,select:focus)_&]:hidden!"
           aria-label="Main"
+          // the tab of the screen already open: back to its top, as an
+          // Android app's bar does, rather than the same screen again
+          onClickCapture={(e) => {
+            const link = (e.target as Element).closest("a");
+            if (!link) return;
+            const to = new URL(link.href);
+            if (to.pathname + to.search !== pathname + search) return;
+            e.preventDefault();
+            window.scrollTo({ top: 0, behavior: "smooth" });
+          }}
         >
           <Link
             {...shelfLink}

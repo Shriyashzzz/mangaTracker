@@ -10,6 +10,7 @@
 // isn't out yet says when it is, and can only be ordered. One the shelf
 // already has, or has on order, says so. Stored prices only: nothing here
 // asks a store.
+import PullPage from "../../components/pullRefresh/PullPage";
 import {
   useCallback,
   useEffect,
@@ -263,7 +264,8 @@ export default function ToBuy() {
   const sorted = useMemo(() => sortToBuy(items ?? [], sort), [items, sort]);
   const { pageItems, pager } = useUrlPages(sorted, "to-buy-list");
   return (
-    <div className={`${pricesStyles.page} fade-in`}>
+    // pulled down in the app: the list and its prices asked again
+    <PullPage className={`${pricesStyles.page} fade-in`} refresh={load}>
       <header className={pricesStyles.sectionHead}>
         <h1 className={pricesStyles.title}>To buy</h1>
       </header>
@@ -473,6 +475,6 @@ export default function ToBuy() {
           onClose={() => setAsking(false)}
         />
       )}
-    </div>
+    </PullPage>
   );
 }

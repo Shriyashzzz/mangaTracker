@@ -3,6 +3,7 @@
 // its ⋮ menu (BookActions.tsx). While selecting several, a tick box takes
 // the ⋮'s place; in the app a long press on the row starts selecting. The
 // price is saved when they leave the box.
+import clsx from "clsx";
 import { useState } from "react";
 import { centsOf, dayOf } from "../../lib/books";
 import { useLongPress } from "../../lib/useLongPress";
@@ -58,6 +59,7 @@ export default function BookRow({
   const savedCents = row.book?.paidCents ?? null;
   const lentTo = row.book?.lentTo ?? null;
   const lentOn = row.book?.lentOn ?? null;
+  const boughtOn = dayOf(row.book?.boughtOn);
 
   // the text is read from the box itself, so a quick tab away never saves a
   // letter behind
@@ -117,14 +119,26 @@ export default function BookRow({
               }}
             />
           </label>
-          <input
-            type="date"
-            className={styles.bookDate}
-            aria-label={`The day you bought ${name}`}
-            value={dayOf(row.book?.boughtOn) ?? ""}
-            max="2099-12-31"
-            onChange={(e) => onSave(row, { boughtOn: e.target.value || null })}
-          />
+          <label className={styles.bookDateWrap}>
+            <input
+              type="date"
+              className={clsx(
+                styles.bookDate,
+                !boughtOn && styles.bookDateBlank,
+              )}
+              aria-label={`The day you bought ${name}`}
+              value={boughtOn ?? ""}
+              max="2099-12-31"
+              onChange={(e) =>
+                onSave(row, { boughtOn: e.target.value || null })
+              }
+            />
+            {!boughtOn && (
+              <span className={styles.bookDateEmpty} aria-hidden>
+                Bought on
+              </span>
+            )}
+          </label>
         </div>
         {notAnAmount && (
           <p className={styles.bookPaidWrong} role="alert">

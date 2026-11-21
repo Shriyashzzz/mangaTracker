@@ -102,9 +102,9 @@ export const detailsStyles = {
   // a To read manga: "Not started yet" with its button beside it
   startRow: "inline-flex flex-wrap items-center gap-3",
   // "Your books": the physical books behind the owned volumes, folded away
-  books: "border-t border-line-soft pt-3 not-italic",
+  books: "relative border-t border-line-soft pt-3 not-italic",
   booksSummary:
-    "tap cursor-pointer font-sans text-[0.95rem] font-medium text-ink marker:text-ink-soft",
+    "tap cursor-pointer pr-20 font-sans text-[0.95rem] font-medium text-ink marker:text-ink-soft",
   booksCount: "ml-1 font-mono text-[0.8rem] text-ink-soft",
   // "$143.88 paid": what the series has cost them, beside the count
   booksSpent: "ml-3 font-mono text-[0.8rem] font-normal text-accent",
@@ -123,6 +123,14 @@ export const detailsStyles = {
     "h-full w-[4.2rem] cursor-text bg-transparent text-ink tabular-nums placeholder:text-muted focus:outline-none",
   bookDate:
     "h-9 rounded-[2px] border-[1.5px] border-line-soft bg-paper px-2 font-mono text-[0.8rem] text-ink upto-720:h-11 focus:border-line focus:outline-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent focus-visible:outline-dashed",
+  // the day bought, unset: "Bought on" in the box until a day is picked, so it
+  // never reads as a blank field. The box's own date text is hidden behind it
+  // (and comes back while typing one on a keyboard)
+  bookDateWrap: "relative inline-flex",
+  bookDateBlank:
+    "peer text-transparent focus:text-ink [&:not(:focus)::-webkit-datetime-edit]:opacity-0",
+  bookDateEmpty:
+    "pointer-events-none absolute inset-y-0 left-2 flex items-center font-mono text-[0.8rem] text-muted peer-focus:hidden",
   // "● Lent to Sam · since Nov 3", under the name; a tap offers it back
   lentChip:
     "tap mt-1.5 inline-flex items-center gap-1.5 rounded-full border-[1.5px] border-[color-mix(in_srgb,var(--accent)_45%,transparent)] px-2.5 py-0.5 text-[0.78rem] font-semibold text-accent-ink hover:border-accent",
@@ -148,7 +156,9 @@ export const detailsStyles = {
   lendName:
     "tap min-h-9 rounded-[6px] border-[1.5px] border-line-soft px-3 text-[0.9rem] font-semibold text-ink hover:border-line",
   // above the list: Select; while selecting, the bar that acts on them
-  booksTools: "mt-2 flex justify-end",
+  // Select, at the right end of the heading's line while the fold is open:
+  // beside the heading, not in it, so a tap never also folds it shut
+  booksTools: "absolute top-3 right-0 flex",
   booksSelect:
     "tap min-h-9 px-1 text-[0.85rem] font-semibold text-ink-soft underline decoration-line-soft underline-offset-3 hover:text-ink",
   booksBar:

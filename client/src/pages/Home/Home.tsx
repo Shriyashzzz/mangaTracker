@@ -14,8 +14,7 @@
 //   ShelfCard.tsx        one series' card, with Hide on the New tab
 //   ShelfStates.tsx      empty, unreachable, no matches, still checking
 //   SelectDock.tsx, NewTabParts.tsx, AddButton.tsx: what those draw
-import PullRefresh from "../../components/pullRefresh/PullRefresh";
-import { pickLook, type Look } from "../../components/pullRefresh/pullLook";
+import { useSwipeTabs } from "../../lib/useSwipeTabs";
 import { lazy, Suspense, useEffect, useMemo, useState } from "react";
 import { NavLink, useNavigate } from "react-router";
 import { BarcodeIcon } from "../../components/icons/Icons";
@@ -106,7 +105,7 @@ import {
   ShelfUnreachable,
 } from "./ShelfStates";
 import { homeStyles as styles } from "./styles";
-import { usePullToRefresh } from "../../lib/usePullToRefresh";
+import PullPage from "../../components/pullRefresh/PullPage";
 import { offlineLink, useIsOffline } from "../../lib/offline";
 
 export default function Home() {
@@ -119,17 +118,14 @@ export default function Home() {
   return isSignedIn ? <Library /> : <GuestHero />;
 }
 
+// the app's swipe to refresh: the shelf, and what's new on it, asked again
+const refreshShelf = () =>
+  Promise.all([
+    useShelf.getState().load(),
+    useShelf.getState().checkReleases(),
+  ]);
+
 function Library() {
-  // the app's swipe to refresh: the shelf, and what's new on it, asked again
-  const [pullLook, setPullLook] = useState<Look>("kenji");
-  const refreshing = usePullToRefresh(
-    () =>
-      Promise.all([
-        useShelf.getState().load(),
-        useShelf.getState().checkReleases(),
-      ]),
-    () => setPullLook(pickLook()),
-  );
   const offline = useIsOffline();
   // what "Next for you" names for a series with gaps (Settings)
   const nextFor = useNextFor();
@@ -369,6 +365,28 @@ function Library() {
       label="Shelf pages"
       labelFor={(start, end) => `${start + 1}–${end + 1}`}
     />
+  );
+
+  // a tab picked from the bar, or swiped to (in the app)
+  const switchTab = (value: string) => {
+    pickTab(value);
+    // a new tab starts with Select off, so it never comes back by itself
+    select.stop();
+    if (wantHidden || pileParam) navigator("/shelf", { replace: true });
+  };
+  // in the tabs' order (tabs, below); not while selecting or searching
+  useSwipeTabs(
+    [
+      "all",
+      "ongoing",
+      "finished",
+      "planned",
+      "volumes",
+      ...(checksOn ? ["new"] : []),
+    ],
+    tab,
+    switchTab,
+    !select.selectOn && !query.trim(),
   );
 
   if (loadError) return <ShelfUnreachable onRetry={loadShelf} />;
@@ -635,27 +653,10 @@ function Library() {
 
   return (
     <>
-      {/* outside the shelf it pulls down: inside, its fixed place would
-          move with the shelf */}
-      <PullRefresh
-        pull={refreshing.pull}
-        busy={refreshing.busy}
-        ready={refreshing.ready}
-        look={pullLook}
-      />
-      <div
+      <PullPage
         className={`fade-in ${styles.library}`}
-        // the shelf moves down after the finger, and springs back once let go
-        style={
-          refreshing.pull > 0
-            ? {
-                transform: `translateY(${refreshing.pull}px)`,
-                transition: refreshing.dragging
-                  ? "none"
-                  : "transform 260ms cubic-bezier(0.2, 0, 0, 1)",
-              }
-            : undefined
-        }
+        // the app's swipe to refresh: the shelf, and what's new on it, asked again
+        refresh={refreshShelf}
       >
         <div className={styles.pageHead}>
           <h1 className={styles.pageTitle}>Your shelf</h1>
@@ -698,12 +699,7 @@ function Library() {
         <ShelfBar
           views={tabs}
           current={tab}
-          onPick={(value) => {
-            pickTab(value);
-            // a new tab starts with Select off, so it never comes back by itself
-            select.stop();
-            if (wantHidden || pileParam) navigator("/shelf", { replace: true });
-          }}
+          onPick={switchTab}
           query={query}
           onQuery={setQuery}
           sortBy={sortBy}
@@ -904,7 +900,7 @@ function Library() {
           }
           onChoose={(view) => savePrefs({ shelfView: view }, true)}
         />
-      </div>
+      </PullPage>
     </>
   );
 }

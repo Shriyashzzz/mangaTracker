@@ -3,7 +3,7 @@ import { useEffect, useId, useRef, useState, type KeyboardEvent } from "react";
 import type { SeriesHit } from "../../lib/types";
 import { useNavigate } from "react-router";
 import SeriesPicture from "../../components/cover/SeriesPicture";
-import { SearchIcon } from "../../components/icons/Icons";
+import { ChevronLeftIcon, SearchIcon } from "../../components/icons/Icons";
 import { asIsbn, findSeries, novelParts, seriesPath } from "../../lib/prices";
 import { DID_YOU_MEAN } from "../../lib/nearMatches";
 import { starsOf } from "./reviews/reviewText";
@@ -11,6 +11,9 @@ import { pricesStyles as styles } from "./styles";
 import { isMobile } from "react-device-detect";
 import { hasBottomBar } from "../../lib/bottomBar";
 import { keepFocus, onMouseHover } from "../../lib/keepFocus";
+import { inApp } from "../../lib/inApp";
+import { useCloseOnBack } from "../../lib/closeOnBack";
+import { recentSearches, rememberSearch } from "../../lib/recentSearches";
 
 const SHOWN = 5;
 const DEBOUNCE_MS = 250;
@@ -39,6 +42,10 @@ export default function SeriesSearchBox({
   const rootRef = useRef<HTMLFormElement>(null);
   const [text, setText] = useState(initialQuery);
   const [open, setOpen] = useState(false);
+  // in the app, searching takes the whole screen, as Android's search does:
+  // a back arrow, the results below, the last picks while the box is empty
+  const [full, setFull] = useState(false);
+  const inputRef = useRef<HTMLInputElement>(null);
   const [active, setActive] = useState(-1);
   // suggestions are kept with the text they answer, so a slow reply for an
   // older word never replaces a newer one
@@ -103,7 +110,15 @@ export default function SeriesSearchBox({
   const close = () => {
     setOpen(false);
     setActive(-1);
+    setFull(false);
   };
+  // the back arrow, Android's Back or Escape: the page as it was
+  const leaveFull = () => {
+    close();
+    inputRef.current?.blur();
+  };
+  useCloseOnBack(full, leaveFull);
+  const recent = full && q.length < 2 ? recentSearches() : [];
   const seeAll = () => {
     if (goTo) {
       // no results page of its own: the first match, once there is one
@@ -122,8 +137,9 @@ export default function SeriesSearchBox({
       );
     }
   };
-  const pick = (series: SeriesHit) => {
+  const pick = (series: Pick<SeriesHit, "name">) => {
     close();
+    rememberSearch(series.name);
     if (goTo) {
       navigate(goTo(series.name), { viewTransition: true });
       return;
@@ -165,18 +181,31 @@ export default function SeriesSearchBox({
       ref={rootRef}
       className={styles.searchForm}
       role="search"
+      data-full={full || undefined}
       onSubmit={(e) => {
         e.preventDefault();
         seeAll();
       }}
     >
       <div className={styles.comboWrap}>
+        {full && (
+          <button
+            type="button"
+            className="app-search-back"
+            aria-label="Close search"
+            {...keepFocus}
+            onClick={leaveFull}
+          >
+            <ChevronLeftIcon className="size-6" aria-hidden />
+          </button>
+        )}
         <label className={styles.searchBox}>
           <SearchIcon />
           <span className="sr-only">
             {goTo ? "Anime or manga name" : "Series name or ISBN"}
           </span>
           <input
+            ref={inputRef}
             type="search"
             role="combobox"
             aria-expanded={wantsSuggestions}
@@ -191,7 +220,10 @@ export default function SeriesSearchBox({
               setOpen(true);
               setActive(-1);
             }}
-            onFocus={() => setOpen(true)}
+            onFocus={() => {
+              setOpen(true);
+              if (inApp()) setFull(true);
+            }}
             onKeyDown={onKeyDown}
             placeholder={placeholder ?? ownPlaceholder}
             maxLength={100}
@@ -200,6 +232,25 @@ export default function SeriesSearchBox({
           />
         </label>
 
+        {recent.length > 0 && (
+          <ul className={styles.suggestions} aria-label="Recent searches">
+            {recent.map((name) => (
+              <li
+                key={name}
+                className={styles.suggestion}
+                {...keepFocus}
+                onClick={() => pick({ name })}
+              >
+                <span className="app-recent-mark" aria-hidden>
+                  ↺
+                </span>
+                <span className={styles.suggestName}>
+                  {novelParts(name).title}
+                </span>
+              </li>
+            ))}
+          </ul>
+        )}
         {wantsSuggestions && (
           <ul id={listId} role="listbox" className={styles.suggestions}>
             {!fresh && (

@@ -6,6 +6,8 @@
 // unchanged. Marked on <html> as "in-app" so styles can follow it too
 import { runsAsApp } from "./install";
 import { inPlayApp } from "./playApp";
+import { showIconTooltips } from "./iconTooltips";
+import { setKeyboardKeys } from "./keyboardKeys";
 import { swipeSheetsDown } from "./sheetSwipe";
 
 export const inApp = () => runsAsApp() || inPlayApp();
@@ -16,6 +18,10 @@ export function markInApp() {
   document.documentElement.classList.add("in-app");
   hideTheBrowser();
   swipeSheetsDown();
+  setKeyboardKeys();
+  markScrolled();
+  markNavDirection();
+  showIconTooltips();
 }
 
 // where words are typed: their own menu (paste) and selection stay
@@ -53,7 +59,10 @@ function hideTheBrowser() {
   if (viewport)
     viewport.setAttribute(
       "content",
-      "width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover",
+      // the keyboard shrinks the screen above it, as in Android's own apps,
+      // rather than sliding over it: a sheet with a field (Lend, a review)
+      // then sits on top of the keyboard instead of under it
+      "width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover, interactive-widget=resizes-content",
     );
 }
 
@@ -89,5 +98,46 @@ export function swallowClosingTap(pressed: EventTarget | null) {
         once: true,
       }),
     0,
+  );
+}
+
+// the page scrolled under the app's top bar: it lifts with a shadow
+// (index.css html.in-app[data-scrolled])
+function markScrolled() {
+  const root = document.documentElement;
+  let frame = 0;
+  const note = () => {
+    cancelAnimationFrame(frame);
+    frame = requestAnimationFrame(() => {
+      if (window.scrollY > 4) root.dataset.scrolled = "";
+      else delete root.dataset.scrolled;
+    });
+  };
+  window.addEventListener("scroll", note, { passive: true });
+  note();
+}
+
+// which way the next page change goes, for its motion (index.css
+// html.in-app[data-nav]): a new screen slides in from the right, Back slides
+// it away, a bottom tab fades through as Android's top-level screens do
+function markNavDirection() {
+  const root = document.documentElement;
+  let timer = 0;
+  const mark = (way: "forward" | "back" | "tab") => {
+    root.dataset.nav = way;
+    window.clearTimeout(timer);
+    timer = window.setTimeout(() => delete root.dataset.nav, 800);
+  };
+  window.addEventListener("popstate", () => mark("back"));
+  document.addEventListener(
+    "click",
+    (e) => {
+      const link = (e.target as Element | null)?.closest?.("a[href]");
+      if (!(link instanceof HTMLAnchorElement)) return;
+      if (link.origin !== window.location.origin || link.target === "_blank")
+        return;
+      mark(link.closest(".bottom-bar") ? "tab" : "forward");
+    },
+    { capture: true },
   );
 }

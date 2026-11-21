@@ -3,6 +3,7 @@
 // notes, a way to keep it on their own shelf (AddToShelf), a link to this
 // series on this shelf, and the way to its prices. A native dialog brings the
 // focus trap, Escape and the backdrop
+import { hasBottomBar } from "../../lib/bottomBar";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { NavLink } from "react-router";
 import SeriesPicture from "../../components/cover/SeriesPicture";
@@ -68,7 +69,14 @@ export function SeriesCover({
 // the page's address already names the series (?series=): that's the link
 function CopySeriesLink() {
   const [copied, setCopied] = useState(false);
+  // on a phone, the phone's own share sheet, as Settings' Share link does
+  const sharesBySheet = hasBottomBar() && "share" in navigator;
   const copy = async () => {
+    if (sharesBySheet) {
+      // closing the sheet without picking anything is fine
+      await navigator.share({ url: window.location.href }).catch(() => {});
+      return;
+    }
     try {
       await navigator.clipboard.writeText(window.location.href);
       setCopied(true);
@@ -84,7 +92,9 @@ function CopySeriesLink() {
       onClick={copy}
     >
       {copied ? <CheckIcon /> : <LinkIcon />}
-      <span aria-live="polite">{copied ? "Copied" : "Copy link"}</span>
+      <span aria-live="polite">
+        {sharesBySheet ? "Share link" : copied ? "Copied" : "Copy link"}
+      </span>
     </button>
   );
 }
