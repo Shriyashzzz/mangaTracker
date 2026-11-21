@@ -205,7 +205,7 @@ export default function ReadingPlace({
         {trackBy === "series" && (
           <button
             type="button"
-            className={styles.chaptersToo}
+            className={styles.trackSwitch}
             onClick={() => onChange({ byVolume: !manga.byVolume })}
           >
             {manga.byVolume

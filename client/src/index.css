@@ -1676,7 +1676,8 @@ html.in-app :is(input, textarea) {
 html.in-app main :is(a, button):is(.underline, [class*="underline-offset"]) {
   text-decoration-line: none;
   font-weight: 600;
-  color: var(--accent-ink);
+  /* no colour of its own: each keeps the website's (ink, or red where the
+     site has it red). Red on every link turned whole pages red in the app */
   /* room around the words for the tap's ripple, as Android's text buttons
      have; the margin takes it back, so nothing around them moves */
   padding: 4px 8px;

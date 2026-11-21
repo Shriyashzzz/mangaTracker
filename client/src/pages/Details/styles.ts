@@ -170,6 +170,10 @@ export const detailsStyles = {
   // "Track chapters too": a quiet way to the counter
   chaptersToo:
     "tap font-sans text-[0.9rem] font-medium text-ink-soft underline decoration-line-soft underline-offset-3 hover:text-ink hover:decoration-current",
+  // "Track volumes instead" / "Track chapters instead": in the accent, on the
+  // site and in the app alike
+  trackSwitch:
+    "tap font-sans text-[0.9rem] font-medium text-accent-ink underline decoration-line-soft underline-offset-3 hover:text-accent-hover hover:decoration-current",
 
   // rating, notes and the buttons
   body: "flex min-w-0 flex-col gap-4 upto-720:order-4 upto-720:col-span-full",
