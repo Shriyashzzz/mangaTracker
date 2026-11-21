@@ -65,6 +65,7 @@ const checksListeners = new Set<() => void>();
 const countryListeners = new Set<() => void>();
 const trackListeners = new Set<() => void>();
 const nextForListeners = new Set<() => void>();
+const shelfViewListeners = new Set<() => void>();
 
 // puts preferences on the page and remembers them in this browser
 const applyPrefs = ({
@@ -109,7 +110,10 @@ const applyPrefs = ({
   if (hideEbooks) writeLocal("hideEbooks", hideEbooks);
   if (shelfTab) writeLocal("shelfTab", shelfTab);
   if (shelfSort !== undefined) writeLocal("shelfSort", shelfSort);
-  if (shelfView) writeLocal("shelfView", shelfView);
+  if (shelfView && shelfView !== readLocal("shelfView")) {
+    writeLocal("shelfView", shelfView);
+    shelfViewListeners.forEach((listener) => listener());
+  }
   if (country && country !== readLocal("country")) {
     writeLocal("country", country);
     countryListeners.forEach((listener) => listener());
@@ -128,6 +132,14 @@ export const shelfViewNow = (): "rows" | "covers" => {
   if (chosen === "rows" || chosen === "covers") return chosen;
   return hasBottomBar() ? "rows" : "covers";
 };
+// the same, for the shelf and Kenji's compact-rows offer: the account's
+// choice can arrive after the shelf has drawn, or change from the sort menu,
+// Kenji or settings, and both follow it at once
+export const useShelfView = () =>
+  useSyncExternalStore((listener) => {
+    shelfViewListeners.add(listener);
+    return () => shelfViewListeners.delete(listener);
+  }, shelfViewNow);
 
 export const releaseChecksOn = () => readLocal("releaseChecks") !== "off";
 

@@ -26,7 +26,7 @@ import { usePrivatePage } from "../../lib/seo";
 import {
   readLocal,
   savePrefs,
-  shelfViewNow,
+  useShelfView,
   useNextFor,
 } from "../../lib/prefs";
 import { SORT_OPTIONS, type ShelfSort } from "../../lib/shelf";
@@ -165,9 +165,10 @@ function Library() {
     backToPiles,
     closePile,
   } = usePileView(showingNew, newOpensOn);
-  // set in settings; Kenji's compact-rows offer (ViewPeek) can change it
-  // while they're here
-  const [rowsChosen, setRowsChosen] = useState(() => shelfViewNow() === "rows");
+  // compact rows or covers: the account's choice as it is now, so the
+  // shelf and Kenji's compact-rows offer (ViewPeek) follow one arriving
+  // after the shelf has drawn, or a change from the sort menu or Kenji
+  const rowsChosen = useShelfView() === "rows";
   const hiddenCount = (mangaData ?? []).filter((m) =>
     isHiddenAs(releases[m.id], releaseKind),
   ).length;
@@ -672,10 +673,7 @@ function Library() {
         }}
         // the Volumes tab is rows only: no choice of layout there
         layout={tab === "volumes" ? undefined : rowsChosen ? "rows" : "covers"}
-        onLayout={(view) => {
-          setRowsChosen(view === "rows");
-          savePrefs({ shelfView: view }, true);
-        }}
+        onLayout={(view) => savePrefs({ shelfView: view }, true)}
         // while selecting, the select bar's Done (or Escape) is the way out
         onSelect={
           !showingNew && tab !== "volumes" && !select.selectOn
@@ -853,18 +851,17 @@ function Library() {
       <ViewPeek
         series={mangaData.length}
         rows={rowsChosen}
-        // not on New, where it sat over the piles' covers
+        // not on New, where it sat over the piles' covers, nor on Volumes,
+        // which is a list of rows whatever the shelf's view is
         blocked={
           showingNew ||
+          tab === "volumes" ||
           select.selecting ||
           undoShowing ||
           Boolean(hideActions.hidden) ||
           select.movedShowing
         }
-        onChoose={(view) => {
-          setRowsChosen(view === "rows");
-          savePrefs({ shelfView: view }, true);
-        }}
+        onChoose={(view) => savePrefs({ shelfView: view }, true)}
       />
     </div>
   );
