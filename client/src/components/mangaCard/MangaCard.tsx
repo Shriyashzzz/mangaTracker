@@ -1,3 +1,4 @@
+import { useLongPress } from "../../lib/useLongPress";
 import {
   placeText as placeOf,
   tracksOf,
@@ -44,6 +45,9 @@ type Props = {
   linkTo?: string;
   // opens something in place, rather than following the link
   onOpen?: () => void;
+  // a long press in the app (lib/useLongPress.ts): the shelf starts
+  // selecting with this one picked
+  onLongPress?: () => void;
   // position on the shelf, for the staggered entrance
   index?: number;
   // a row with a small cover at every screen size, chosen in settings
@@ -155,6 +159,7 @@ export default function MangaCard({
   detailsSearch = "",
   linkTo,
   onOpen,
+  onLongPress,
   index = 0,
   compact = false,
   latestChapter,
@@ -162,6 +167,7 @@ export default function MangaCard({
   trackBy,
   select,
 }: Props) {
+  const hold = useLongPress(onLongPress);
   // a cover that wouldn't load, so the drawn one shows instead
   let shape: Shape = "cover";
   if (compact) shape = "small";
@@ -368,6 +374,7 @@ export default function MangaCard({
       viewTransition
       // says where it came from, so the page it opens can lead back
       state={linkTo ? { fromShelf: true } : undefined}
+      {...hold}
       {...(onOpen && {
         "aria-haspopup": "dialog" as const,
         onClick: (e) => {

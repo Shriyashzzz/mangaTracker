@@ -104,6 +104,7 @@ import {
   ShelfUnreachable,
 } from "./ShelfStates";
 import { homeStyles as styles } from "./styles";
+import { usePullToRefresh } from "../../lib/usePullToRefresh";
 import { offlineLink, useIsOffline } from "../../lib/offline";
 
 export default function Home() {
@@ -117,6 +118,13 @@ export default function Home() {
 }
 
 function Library() {
+  // the app's swipe to refresh: the shelf, and what's new on it, asked again
+  const refreshing = usePullToRefresh(() =>
+    Promise.all([
+      useShelf.getState().load(),
+      useShelf.getState().checkReleases(),
+    ]),
+  );
   const offline = useIsOffline();
   // what "Next for you" names for a series with gaps (Settings)
   const nextFor = useNextFor();
@@ -506,6 +514,15 @@ function Library() {
           : undefined
       }
       onOpenReleases={() => setOpenList(manga.id)}
+      // the app's long press: Select, with this one picked
+      onLongPress={
+        select.selectOn || showingNew
+          ? undefined
+          : () => {
+              select.start();
+              select.toggle(manga.id);
+            }
+      }
       onHide={() => hideActions.hide(manga)}
     />
   );
@@ -613,6 +630,21 @@ function Library() {
 
   return (
     <div className={`fade-in ${styles.library}`}>
+      {(refreshing.pull > 0 || refreshing.busy) && (
+        <div
+          className="pull-refresh"
+          data-ready={refreshing.ready || undefined}
+          data-busy={refreshing.busy || undefined}
+          style={{ transform: `translate(-50%, ${refreshing.pull}px)` }}
+          role={refreshing.busy ? "status" : undefined}
+          aria-label={refreshing.busy ? "Refreshing your shelf" : undefined}
+        >
+          <span
+            className="pull-refresh-arc"
+            style={{ rotate: `${refreshing.pull * 4}deg` }}
+          />
+        </div>
+      )}
       <div className={styles.pageHead}>
         <h1 className={styles.pageTitle}>Your shelf</h1>
         <div className={styles.pageActions}>

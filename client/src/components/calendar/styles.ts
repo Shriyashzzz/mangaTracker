@@ -14,7 +14,7 @@ export const calendarParts = {
     "font-brand text-[1.25rem] leading-none font-normal tracking-[0.04em] uppercase",
   monthCount: "font-mono text-[0.72rem]",
   grid: "grid grid-cols-7 gap-0.5 px-2 pt-1.5 pb-2.5",
-  dow: "py-1 text-center font-mono text-[0.62rem] font-semibold text-muted",
+  dow: "app-min-text py-1 text-center font-mono text-[0.62rem] font-semibold text-muted",
   day: "relative grid aspect-square place-items-center font-mono text-[0.8rem] text-ink-soft",
   dayOut:
     "relative grid aspect-square place-items-center font-mono text-[0.8rem] text-line-soft",
@@ -61,7 +61,7 @@ export const calendarParts = {
 
   // Add to calendar: a quiet word under the date
   addBox: "relative shrink-0",
-  add: "tap relative -mx-1 inline-flex h-6 items-center after:absolute after:-inset-y-2 after:inset-x-0 after:content-[''] gap-1 px-1 text-[0.76rem] font-medium whitespace-nowrap text-ink-soft underline decoration-line-soft underline-offset-3 hover:text-ink hover:decoration-current focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-accent focus-visible:outline-dashed aria-expanded:text-ink aria-expanded:decoration-current",
+  add: "tap relative -mx-1 inline-flex h-6 items-center after:absolute after:-inset-y-3 after:inset-x-0 after:content-[''] gap-1 px-1 text-[0.76rem] font-medium whitespace-nowrap text-ink-soft underline decoration-line-soft underline-offset-3 hover:text-ink hover:decoration-current focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-accent focus-visible:outline-dashed aria-expanded:text-ink aria-expanded:decoration-current",
   addAll:
     "tap inline-flex items-center gap-2 border-2 border-line bg-card px-3.5 py-2 text-[0.88rem] font-semibold whitespace-nowrap shadow-ink transition-[translate] duration-150 ease-ink hover:-translate-px focus-visible:outline-2 focus-visible:outline-offset-3 focus-visible:outline-accent focus-visible:outline-dashed aria-expanded:bg-accent-wash",
   addWord: "",

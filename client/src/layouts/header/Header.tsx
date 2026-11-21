@@ -6,7 +6,13 @@ import { Link, NavLink, useLocation, useNavigate } from "react-router";
 import clsx from "clsx";
 // same mark as the favicon: a manga volume in an inked panel
 import logo from "../../assets/logo.svg";
-import { BagIcon } from "../../components/icons/Icons";
+import {
+  BagIcon,
+  BellIcon,
+  PersonIcon,
+  ShelfIcon,
+  TagIcon,
+} from "../../components/icons/Icons";
 import SettingsMenu from "../../components/settingsMenu/SettingsMenu";
 import { inApp, isTabScreen } from "../../lib/inApp";
 import AppBackBar from "./AppBackBar";
@@ -260,7 +266,7 @@ export default function Header() {
       {/* out of the way while the keyboard is up */}
       {!onSomeonesShelf && (
         <nav
-          className="fixed inset-x-0 bottom-0 z-20 hidden border-t-[3px] border-double border-line bg-paper pb-[env(safe-area-inset-bottom)] upto-720:flex [body:has(input:focus,textarea:focus,select:focus)_&]:hidden!"
+          className="bottom-bar fixed inset-x-0 bottom-0 z-20 hidden border-t-[3px] border-double border-line bg-paper pb-[env(safe-area-inset-bottom)] upto-720:flex [body:has(input:focus,textarea:focus,select:focus)_&]:hidden!"
           aria-label="Main"
         >
           <Link
@@ -269,7 +275,10 @@ export default function Header() {
             aria-current={currentTab === "shelf" && !onNew ? "page" : undefined}
             viewTransition
           >
-            My shelf
+            <span className="bar-icon hidden">
+              <ShelfIcon />
+            </span>
+            <span className="bar-label">My shelf</span>
           </Link>
           {isSignedIn && checksOn && (
             <Link
@@ -283,8 +292,14 @@ export default function Header() {
               viewTransition
               {...offlineLink(offline)}
             >
-              New
-              {newCount > 0 && <span className={barCount}>{newCount}</span>}
+              <span className="bar-icon hidden">
+                <BellIcon />
+                {newCount > 0 && <span className="bar-badge">{newCount}</span>}
+              </span>
+              <span className="bar-label">New</span>
+              {newCount > 0 && (
+                <span className={`${barCount} bar-count`}>{newCount}</span>
+              )}
             </Link>
           )}
           <Link
@@ -294,7 +309,10 @@ export default function Header() {
             viewTransition
             {...offlineLink(offline)}
           >
-            Prices
+            <span className="bar-icon hidden">
+              <TagIcon />
+            </span>
+            <span className="bar-label">Prices</span>
           </Link>
           {isSignedIn === false && (
             <NavLink
@@ -302,7 +320,10 @@ export default function Header() {
               className={({ isActive }) => barClass(isActive)}
               viewTransition
             >
-              Sign in
+              <span className="bar-icon hidden">
+                <PersonIcon />
+              </span>
+              <span className="bar-label">Sign in</span>
             </NavLink>
           )}
         </nav>

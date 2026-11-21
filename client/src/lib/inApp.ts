@@ -18,3 +18,33 @@ export function markInApp() {
 // other screen has a back arrow and its name (layouts/header/AppBackBar.tsx)
 const TAB_SCREENS = new Set(["/", "/shelf", "/prices", "/to-buy"]);
 export const isTabScreen = (pathname: string) => TAB_SCREENS.has(pathname);
+
+// In the app a menu opens as a bottom sheet over a dimmed screen
+// (index.css .app-sheet): the tap on the dimmed part that closes it only
+// closes it, never also opening the card under the finger. Only that tap's
+// own click is stopped (the same thing pressed), and only until the next
+// press: a later tap anywhere works as ever
+export function swallowClosingTap(pressed: EventTarget | null) {
+  if (!inApp() || !(pressed instanceof Node)) return;
+  const stop = (e: Event) => {
+    if (e.target instanceof Node && pressed.contains(e.target)) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+    forget();
+  };
+  const forget = () => {
+    document.removeEventListener("click", stop, { capture: true });
+    document.removeEventListener("pointerdown", forget, { capture: true });
+  };
+  document.addEventListener("click", stop, { capture: true });
+  // the next press is a new tap: nothing of this one is stopped then
+  window.setTimeout(
+    () =>
+      document.addEventListener("pointerdown", forget, {
+        capture: true,
+        once: true,
+      }),
+    0,
+  );
+}

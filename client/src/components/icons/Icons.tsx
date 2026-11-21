@@ -223,3 +223,27 @@ export const CalendarPlusIcon = (props: IconProps) => (
     <path d="M3.5 9.5h17M8 3v4M16 3v4M12 12.5v5M9.5 15h5" />
   </svg>
 );
+
+// the bottom bar's own (Android app only: layouts/header/Header.tsx)
+// books standing on a shelf
+export const ShelfIcon = (props: IconProps) => (
+  <svg {...base} {...props}>
+    <path d="M3 20h18" />
+    <path d="M5 20V6h3v14M10 20V4h3v16" />
+    <path d="m15.5 7.2 2.9-.8 3 13.2-2.9.7Z" />
+  </svg>
+);
+
+export const BellIcon = (props: IconProps) => (
+  <svg {...base} {...props}>
+    <path d="M6 16V11a6 6 0 0 1 12 0v5l1.5 2h-15Z" />
+    <path d="M10 20.5a2 2 0 0 0 4 0" />
+  </svg>
+);
+
+export const PersonIcon = (props: IconProps) => (
+  <svg {...base} {...props}>
+    <circle cx="12" cy="8" r="4" />
+    <path d="M4.5 20.5a7.5 7.5 0 0 1 15 0" />
+  </svg>
+);

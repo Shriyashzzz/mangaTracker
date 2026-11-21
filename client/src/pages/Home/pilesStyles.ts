@@ -27,7 +27,7 @@ export const pilesStyles = {
   // the cover; on a phone's narrower covers it's a line under the cover,
   // where a bare number on the art read as a volume number
   behind:
-    "absolute bottom-1 left-1/2 -translate-x-1/2 border border-line-soft bg-card px-1 font-mono text-[0.6rem] leading-[1.5] whitespace-nowrap text-ink-soft upto-520:static upto-520:-mx-1.5 upto-520:mt-1 upto-520:block upto-520:translate-x-0 upto-520:border-0 upto-520:bg-transparent upto-520:px-0 upto-520:text-center upto-520:font-sans upto-520:text-[0.64rem] upto-520:leading-[1.2]",
+    "app-min-text absolute bottom-1 left-1/2 -translate-x-1/2 border border-line-soft bg-card px-1 font-mono text-[0.6rem] leading-[1.5] whitespace-nowrap text-ink-soft upto-520:static upto-520:-mx-1.5 upto-520:mt-1 upto-520:block upto-520:translate-x-0 upto-520:border-0 upto-520:bg-transparent upto-520:px-0 upto-520:text-center upto-520:font-sans upto-520:text-[0.64rem] upto-520:leading-[1.2]",
   // a light novel's cover, marked so it isn't taken for the manga of the
   // same name beside it (Overlord's two)
   novel:

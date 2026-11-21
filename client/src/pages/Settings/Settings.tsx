@@ -1,7 +1,7 @@
 // Everything about the account in one place, a tab at a time: tabs down the left
 // on laptops, across the top on phones. Each tab has its own address, so the back
 // gesture steps between them.
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { Navigate, NavLink, useNavigate, useParams } from "react-router";
 import { signInPath } from "../../lib/api";
 import { usePrivatePage } from "../../lib/seo";
@@ -40,6 +40,15 @@ export default function SettingsPage() {
     if (isSignedIn) load();
   }, [isSignedIn, navigate, tab, load]);
 
+  // in the app the tabs are one row that slides sideways (index.css
+  // .settings-tabs): the open one is brought into view
+  const tabsRow = useRef<HTMLElement>(null);
+  useEffect(() => {
+    tabsRow.current
+      ?.querySelector('[aria-current="page"]')
+      ?.scrollIntoView({ inline: "center", block: "nearest" });
+  }, [tab, isSignedIn]);
+
   if (!TABS.some((t) => t.id === tab))
     return <Navigate to="/settings" replace />;
 
@@ -59,7 +68,11 @@ export default function SettingsPage() {
     <article className={`${styles.page} fade-in`}>
       <h1 className={styles.title}>Settings</h1>
       <div className={styles.layout}>
-        <nav className={styles.tabs} aria-label="Settings">
+        <nav
+          className={`${styles.tabs} settings-tabs`}
+          aria-label="Settings"
+          ref={tabsRow}
+        >
           {TABS.map((t) => (
             <NavLink
               key={t.id}

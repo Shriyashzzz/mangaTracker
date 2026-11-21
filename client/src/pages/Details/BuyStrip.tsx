@@ -348,6 +348,8 @@ export default function BuyStrip({
                     to={bookPath(g, line.label, seriesName)}
                     className={styles.buyGap}
                     title={`${insideText(g)}${g.have ? `, you have ${g.have} of ${g.volumes.length}` : ""}`}
+                    // the same for TalkBack, which never sees a tooltip
+                    aria-label={`${editionBookLabel(line, g)}: ${insideText(g)}${g.have ? `, you have ${g.have} of ${g.volumes.length}` : ""}`}
                     viewTransition
                     {...offlineLink(offline)}
                   >

@@ -6,6 +6,7 @@
 // of the row and never grows, so nothing moves when you click it; on phones it
 // waits behind a magnifier and takes the title's place while open. Sorting is
 // a menu: "Sorted by last updated" on laptops, a sort button on phones.
+import { swallowClosingTap } from "../../lib/inApp";
 import { useCloseOnBack } from "../../lib/closeOnBack";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import {
@@ -36,7 +37,9 @@ function useMenu() {
   useEffect(() => {
     if (!open) return;
     const away = (e: PointerEvent) => {
-      if (!ref.current?.contains(e.target as Node)) setOpen(false);
+      if (ref.current?.contains(e.target as Node)) return;
+      swallowClosingTap(e.target);
+      setOpen(false);
     };
     document.addEventListener("pointerdown", away);
     return () => document.removeEventListener("pointerdown", away);
@@ -397,7 +400,7 @@ export function SortMenu<T extends string>({
         </button>
         {open && (
           <ul
-            className={`${styles.menuBox} ${opensUp ? styles.menuBoxUp : ""}`}
+            className={`${styles.menuBox} ${opensUp ? styles.menuBoxUp : ""} app-sheet`}
             aria-label={menuLabel}
           >
             {optionRows}
@@ -493,7 +496,7 @@ const Menu = ({
   children: ReactNode;
 }) => (
   <ul
-    className={alignRight ? styles.menuRight : styles.menu}
+    className={`${alignRight ? styles.menuRight : styles.menu} app-sheet`}
     aria-label={label}
   >
     <li className={styles.menuHead} aria-hidden>

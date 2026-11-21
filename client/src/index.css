@@ -1685,6 +1685,228 @@ html.in-app main :is(a, button):is(.underline, [class*="underline-offset"]) {
   border-radius: var(--radius);
 }
 
+/* Android's touch targets: every control answers a tap at least 48px each
+   way, while it's drawn at its own size. An invisible layer centred on it
+   takes the tap, so nothing on the screen moves. Not where the control
+   already has its own (an after: utility, the nav's squiggle), nor in a dense
+   row whose neighbours would steal each other's taps (the shelf's spines,
+   the rating stars). In the base layer, under Tailwind's utilities: a
+   control placed absolutely or fixed by a class (the + button, a card's
+   close button) keeps its place, since unlayered CSS would beat any class */
+@layer base {
+  :where(
+    html.in-app
+      :is(a[href], button, summary, [role="tab"], [role="button"]):not(
+        [class*="after:"],
+        .squiggle,
+        .vshelf *,
+        [role="radiogroup"] *
+      )
+  ) {
+    position: relative;
+  }
+  :where(
+    html.in-app
+      :is(a[href], button, summary, [role="tab"], [role="button"]):not(
+        [class*="after:"],
+        .squiggle,
+        .vshelf *,
+        [role="radiogroup"] *
+      )
+  )::after {
+    content: "";
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: max(100%, 48px);
+    height: max(100%, 48px);
+    transform: translate(-50%, -50%);
+  }
+}
+
+/* the bottom bar as Android's navigation bar (layouts/header/Header.tsx): an
+   icon over each label, a soft pill behind the open one's icon in place of
+   the website's solid block, New's count a badge on its bell */
+html.in-app .bottom-bar > a {
+  flex-direction: column;
+  gap: 4px;
+  min-height: 72px;
+  padding: 10px 0 12px;
+  background: transparent;
+  color: var(--ink-soft);
+  font-size: 0.95rem;
+}
+html.in-app .bottom-bar > a[aria-current="page"] {
+  color: var(--ink);
+}
+html.in-app .bottom-bar .bar-icon {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 64px;
+  height: 32px;
+  border-radius: 16px;
+  transition: background-color 200ms cubic-bezier(0.2, 0, 0, 1);
+}
+html.in-app .bottom-bar [aria-current="page"] .bar-icon {
+  background: color-mix(in srgb, var(--accent) 22%, transparent);
+  color: var(--accent-ink);
+}
+html.in-app .bottom-bar .bar-count {
+  display: none;
+}
+html.in-app .bottom-bar .bar-badge {
+  position: absolute;
+  top: -3px;
+  left: 38px;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  border-radius: 9px;
+  background: var(--accent);
+  color: var(--on-accent);
+  font: 600 11px/18px var(--font-sans);
+  letter-spacing: 0;
+  text-align: center;
+}
+
+/* Settings' sections as Android's scrollable tabs on a phone (the website's
+   3 by 2 grid of boxes): one row that slides sideways, the open section
+   underlined in the accent (pages/Settings/Settings.tsx) */
+@media (max-width: 760px) {
+  html.in-app .settings-tabs {
+    display: flex;
+    flex-direction: row;
+    flex-wrap: nowrap;
+    gap: 0;
+    margin-inline: -1rem;
+    padding-inline: 0.5rem;
+    overflow-x: auto;
+    border-bottom: 1px solid var(--line-soft);
+    scrollbar-width: none;
+  }
+  html.in-app .settings-tabs::-webkit-scrollbar {
+    display: none;
+  }
+  html.in-app .settings-tabs > a {
+    flex: none;
+    min-height: 48px;
+    padding-inline: 1rem;
+    border: none;
+    border-bottom: 3px solid transparent;
+    border-radius: 0;
+    background: transparent;
+    font-size: 0.95rem;
+  }
+  html.in-app .settings-tabs > a[aria-current="page"] {
+    border-bottom-color: var(--accent);
+    color: var(--ink);
+  }
+}
+
+/* menus as Android's bottom sheets in the app: the account menu and every
+   pick-one list (pages/Home/ShelfBar.tsx SortMenu, components/settingsMenu).
+   Up from the bottom over a dimmed screen, rounded on top with a handle,
+   each choice a full 48px row. A tap on the dimmed part only closes it
+   (lib/inApp.ts swallowClosingTap) */
+html.in-app .app-sheet {
+  position: fixed;
+  inset: auto 0 0;
+  z-index: 60;
+  width: auto;
+  min-width: 0;
+  max-height: 75dvh;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 0 12px calc(12px + env(safe-area-inset-bottom));
+  border: none;
+  border-radius: 28px 28px 0 0;
+  box-shadow: 0 0 0 100vmax rgba(20, 14, 8, 0.45);
+  transform-origin: bottom center;
+  animation: sheet-up 260ms cubic-bezier(0.2, 0, 0, 1);
+}
+/* over the bottom bar and the + button, as Android's sheets are */
+html.in-app body:has(.app-sheet) :is(.bottom-bar, [aria-label="Add manga"]) {
+  visibility: hidden;
+}
+html.in-app .app-sheet::before {
+  content: "";
+  display: block;
+  width: 32px;
+  height: 4px;
+  margin: 12px auto 14px;
+  border-radius: 2px;
+  background: var(--line-soft);
+}
+html.in-app .app-sheet :is(a, button):not(.app-sheet ul ul *) {
+  min-height: 48px;
+}
+@keyframes sheet-up {
+  from {
+    transform: translateY(100%);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  html.in-app .app-sheet {
+    animation: none;
+  }
+}
+
+/* the app's smallest words at Android's smallest label size: the calendar's
+   weekday letters and the piles' "2 to get" (.app-min-text) */
+html.in-app .app-min-text {
+  font-size: 12px;
+}
+
+/* the shelf's swipe to refresh (lib/usePullToRefresh.ts): Android's round
+   spinner, pulled down under the top bar after the finger, its arc filling
+   until letting go would refresh, then turning while the shelf comes */
+.pull-refresh {
+  position: fixed;
+  top: 56px;
+  left: 50%;
+  z-index: 40;
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  margin-top: -40px;
+  border-radius: 50%;
+  background: var(--card);
+  box-shadow:
+    0 1px 3px rgba(0, 0, 0, 0.3),
+    0 4px 8px 3px rgba(0, 0, 0, 0.15);
+  opacity: 0.6;
+}
+.pull-refresh[data-ready],
+.pull-refresh[data-busy] {
+  opacity: 1;
+}
+.pull-refresh-arc {
+  width: 20px;
+  height: 20px;
+  border: 2.5px solid var(--accent);
+  border-right-color: transparent;
+  border-radius: 50%;
+}
+.pull-refresh[data-busy] .pull-refresh-arc {
+  animation: pull-spin 800ms linear infinite;
+}
+@keyframes pull-spin {
+  to {
+    rotate: 360deg;
+  }
+}
+
+/* a held card starts Select (lib/useLongPress.ts), never Chrome's own menu
+   or a text selection */
+html.in-app [data-tour="card"] {
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
 /* a dialog in the app, drawn as Android's own (Material): a rounded sheet
    with no ink outline, the title in the reading face, plain words for its
    answers at the end, each a wide tap target. Colours stay the website's */

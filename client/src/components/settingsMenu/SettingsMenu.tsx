@@ -1,3 +1,4 @@
+import { swallowClosingTap } from "../../lib/inApp";
 import { useEffect, useRef, useState } from "react";
 import { useCloseOnBack } from "../../lib/closeOnBack";
 import { NavLink, useLocation } from "react-router";
@@ -132,7 +133,10 @@ export default function SettingsMenu({ isSignedIn, onLogOut }: Props) {
       const onTour = (e.target as Element | null)?.closest?.(
         ".tour-bubble, .tour-dock",
       );
-      if (!onTour && !wrapRef.current?.contains(e.target as Node)) close();
+      if (!onTour && !wrapRef.current?.contains(e.target as Node)) {
+        swallowClosingTap(e.target);
+        close();
+      }
     };
     document.addEventListener("pointerdown", onPointer);
     return () => document.removeEventListener("pointerdown", onPointer);
@@ -191,7 +195,7 @@ export default function SettingsMenu({ isSignedIn, onLogOut }: Props) {
               close();
             }
           }}
-          className="absolute top-[calc(100%+12px)] right-0 z-30 w-[236px] origin-top-right rounded-ink border-[2.5px] border-line bg-card p-[0.4rem] shadow-[0_14px_30px_-14px_rgba(20,14,8,0.45)] animate-drop motion-reduce:animate-none"
+          className="app-sheet absolute top-[calc(100%+12px)] right-0 z-30 w-[236px] origin-top-right rounded-ink border-[2.5px] border-line bg-card p-[0.4rem] shadow-[0_14px_30px_-14px_rgba(20,14,8,0.45)] animate-drop motion-reduce:animate-none"
         >
           {/* signed in, this lives on the settings page with everything else */}
           {!isSignedIn && (

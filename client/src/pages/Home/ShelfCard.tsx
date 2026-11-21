@@ -26,6 +26,8 @@ type Props = {
   select?: { checked: boolean; onToggle: () => void };
   // opens the list of everything out for a series with several at once
   onOpenReleases: () => void;
+  // a long press in the app: Select, with this one picked
+  onLongPress?: () => void;
   onHide: () => void;
 };
 
@@ -39,6 +41,7 @@ export default function ShelfCard({
   viewingHidden,
   select,
   onOpenReleases,
+  onLongPress,
   onHide,
 }: Props) {
   // more than one volume out past theirs: the card opens their list
@@ -67,6 +70,7 @@ export default function ShelfCard({
         latestChapter={found?.latestChapter ?? manga.latestChapter}
         latestVolume={found?.latestVolume}
         select={select}
+        onLongPress={onLongPress}
       />
       {showingNew && (
         <button
