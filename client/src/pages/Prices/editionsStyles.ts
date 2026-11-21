@@ -31,7 +31,10 @@ export const editionsStyles = {
   // one edition, a line between it and the next
   lineBlock: "[&+&]:border-t [&+&]:border-line-soft [&+&]:pt-5",
   tiles: "grid grid-cols-[repeat(auto-fill,minmax(3.6rem,1fr))] gap-2",
-  tile: "flex flex-col items-center border-[1.5px] border-line bg-card px-1 pt-1.5 pb-1 text-center shadow-ink",
+  tile: "flex w-full flex-col items-center border-[1.5px] border-line bg-card px-1 pt-1.5 pb-1 text-center shadow-ink",
+  // one that opens its price page: pressed in under the pointer
+  tileLink:
+    "tap transition-[translate,box-shadow] duration-120 hover:translate-x-px hover:translate-y-px hover:shadow-none",
   // the book the lookup answered with: the accent's frame
   tileAnswer: "outline-2 outline-offset-2 outline-accent",
   // a book whose volumes they own every one of: inked in

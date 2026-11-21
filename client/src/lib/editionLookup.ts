@@ -13,6 +13,7 @@
 import { bookName } from "./bookName";
 import { insideText } from "./editions";
 import { realBooksOf } from "./editionShelf";
+import { volumePath } from "./pricePaths";
 import { notOutYet } from "./releaseDate";
 
 export type LookupBook = {
@@ -24,7 +25,15 @@ export type LookupBook = {
   sure?: boolean;
   // its release date ("2027-01-26", "2027-01"), when a catalog says
   published?: string | null;
+  // its own price page's (bookPath), when a catalog has it
+  isbn13?: string | null;
+  title?: string | null;
 };
+
+// a book's own price page ("/prices/9781506727547/berserk-deluxe-volume-10"),
+// or null for one no catalog has an ISBN for
+export const bookPath = (book: Pick<LookupBook, "isbn13" | "title">) =>
+  book.isbn13 ? volumePath(book.isbn13, book.title) : null;
 
 // a line as the lookup needs it: the series page's EditionLine fits as it is
 export type LookupLine = { key: string; label: string; books: LookupBook[] };
@@ -58,7 +67,13 @@ export type LookupAnswer = {
   line: LookupLine;
   // the book holding the volume: "VIZBIG 8", what it holds, and its date when
   // it's still coming; null when no book of this line out or confirmed does
-  book: { name: string; inside: string; coming: string | null } | null;
+  // and its price page (null without an ISBN)
+  book: {
+    name: string;
+    inside: string;
+    coming: string | null;
+    path: string | null;
+  } | null;
   // what the line's shown books run, for a volume none holds: "vols. 1–21"
   runs: string;
 };
@@ -80,6 +95,7 @@ export function lookUpVolume(
             name: bookName(line.label, book.number),
             inside: insideText(book),
             coming: book.coming,
+            path: bookPath(book),
           }
         : null,
       runs: insideText({ volumes: books.flatMap((b) => b.volumes) }),
@@ -109,6 +125,8 @@ export const booksFromSpans = (
     listed?: boolean;
     sure?: boolean;
     published?: string | null;
+    isbn13?: string | null;
+    title?: string | null;
   }[],
 ): LookupBook[] =>
   spans.map((s) => ({
@@ -117,6 +135,8 @@ export const booksFromSpans = (
     listed: s.listed,
     sure: s.sure,
     published: s.published ?? null,
+    isbn13: s.isbn13 ?? null,
+    title: s.title ?? null,
   }));
 
 // what a line shows, for its facts: "9 books · 2 coming · vols. 1–27"

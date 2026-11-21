@@ -1,6 +1,7 @@
 // "Which book has my volume?" (client lib/editionLookup.ts): every edition a
 // series has answers at once, in the app's own words
 import {
+  bookPath,
   booksFromSpans,
   lookUpVolume,
   nextVolumeFor,
@@ -27,8 +28,8 @@ const definitive: LookupLine = {
 test("a volume is answered in every line at once", () => {
   const answers = lookUpVolume([vizbig, definitive], 23);
   expect(answers.map((a) => a.book)).toEqual([
-    { name: "VIZBIG 8", inside: "vols. 22–24", coming: null },
-    { name: "Definitive 8", inside: "vols. 22–24", coming: null },
+    { name: "VIZBIG 8", inside: "vols. 22–24", coming: null, path: null },
+    { name: "Definitive 8", inside: "vols. 22–24", coming: null, path: null },
   ]);
 });
 
@@ -38,6 +39,7 @@ test("a book of one volume says vol., and a line without it says what it runs", 
     name: "Definitive 13",
     inside: "vol. 37",
     coming: null,
+    path: null,
   });
   expect(inVizbig!.book).toBeNull();
   expect(inVizbig!.runs).toBe("vols. 1–3, 22–24");
@@ -72,8 +74,33 @@ test("only books a catalog lists show; one with a date ahead is coming", () => {
     name: "Definitive 8",
     inside: "vols. 22–24",
     coming: "Jan 2027",
+    path: null,
   });
   const [notListed] = lookUpVolume([line], 26, now);
   expect(notListed!.book).toBeNull();
   expect(notListed!.runs).toBe("vols. 19–24");
+});
+
+test("a book with an ISBN opens its own price page", () => {
+  const line = {
+    key: "deluxe",
+    label: "Deluxe",
+    books: [
+      {
+        number: 1,
+        volumes: [1, 2, 3],
+        listed: true,
+        isbn13: "9781506711980",
+        title: "Berserk Deluxe Volume 1",
+      },
+      { number: 2, volumes: [4, 5, 6], listed: true },
+    ],
+  };
+  expect(lookUpVolume([line], 2)[0]!.book!.path).toBe(
+    "/prices/9781506711980/berserk-deluxe-volume-1",
+  );
+  expect(lookUpVolume([line], 5)[0]!.book!.path).toBeNull();
+  expect(bookPath({ isbn13: "9781506727547", title: null })).toBe(
+    "/prices/9781506727547",
+  );
 });

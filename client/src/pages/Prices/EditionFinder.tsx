@@ -3,6 +3,7 @@
 // page and in a series page's Other editions. Started at the reader's next
 // volume when the series is on their shelf
 import { useId, useState } from "react";
+import { NavLink } from "react-router";
 import { lookUpVolume, type LookupLine } from "../../lib/editionLookup";
 import { editionsStyles as styles } from "./editionsStyles";
 
@@ -55,7 +56,17 @@ export default function EditionFinder({
             <li key={line.key} className={styles.answer}>
               {book ? (
                 <>
-                  <span className={styles.answerBook}>{book.name}</span>
+                  {book.path ? (
+                    <NavLink
+                      to={book.path}
+                      className={`${styles.answerBook} ${styles.textLink}`}
+                      viewTransition
+                    >
+                      {book.name}
+                    </NavLink>
+                  ) : (
+                    <span className={styles.answerBook}>{book.name}</span>
+                  )}
                   <span className={styles.answerInside}>{book.inside}</span>
                   {book.coming && (
                     <span className={styles.answerComing}>

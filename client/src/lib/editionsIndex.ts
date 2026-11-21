@@ -23,6 +23,9 @@ export type EditionsEntry = {
       listed: boolean;
       sure: boolean;
       published: string | null;
+      // its own price page, when a catalog has it
+      isbn13: string | null;
+      title: string | null;
     }[];
   }[];
 };

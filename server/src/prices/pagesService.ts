@@ -85,6 +85,9 @@ type EditionsEntryLine = {
     listed: boolean;
     sure: boolean;
     published: string | null;
+    // its own price page (/prices/<isbn13>/<title>), when a catalog has it
+    isbn13: string | null;
+    title: string | null;
   }[];
 };
 
@@ -146,6 +149,8 @@ async function readEditionsIndex() {
           listed: Boolean(book.listed),
           sure: Boolean(book.sure),
           published: book.published ?? null,
+          isbn13: book.isbn13 ?? null,
+          title: book.title ?? null,
         })),
       });
     }
