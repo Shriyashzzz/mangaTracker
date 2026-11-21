@@ -5,6 +5,12 @@
 // instead: above it, it pushed the form's button below the bottom bar, and
 // the form looked like it had none.
 
+// "Don't have an account? Sign up": quiet words, the link inked and
+// underlined in red. The signed-out shelf's "Already have a shelf? Sign in"
+// reads the same (pages/Home/GuestHero.tsx)
+const switchText =
+  "text-[0.925rem] text-ink-soft [&_a]:font-semibold [&_a]:text-ink [&_a]:underline [&_a]:decoration-accent [&_a]:underline-offset-3";
+
 export const authStyles = {
   // the page: centers the spread
   container: "grid place-items-center py-[clamp(0.5rem,3vw,2rem)]",
@@ -67,6 +73,6 @@ export const authStyles = {
   errorList:
     "flex -rotate-[0.6deg] flex-col gap-1 border-2 border-accent bg-accent-wash px-[0.9rem] py-[0.65rem] text-[0.9rem] font-medium text-accent",
   submit: "mt-2",
-  switchRow:
-    "mt-6 border-t-2 border-dashed border-line-soft pt-5 text-[0.925rem] text-ink-soft [&_a]:font-semibold [&_a]:text-ink [&_a]:underline [&_a]:decoration-accent [&_a]:underline-offset-3",
+  switchRow: `mt-6 border-t-2 border-dashed border-line-soft pt-5 ${switchText}`,
+  switchText,
 } as const;

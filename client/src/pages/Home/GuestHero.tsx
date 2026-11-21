@@ -1,6 +1,7 @@
 import { NavLink } from "react-router";
 import { StarIcon } from "../../components/icons/Icons";
 import TakeTourButton from "../../components/tour/TakeTourButton";
+import { authStyles } from "../../styles/auth";
 import { homeStyles as styles } from "./styles";
 
 // the shelf for someone not signed in: what it does, as a page of manga panels
@@ -18,19 +19,16 @@ export default function GuestHero() {
             when the next one's out and what it costs.
           </p>
           <div className={styles.guestActions}>
-            <NavLink
-              to="/signup"
-              className="btn btn-primary upto-720: p-3 "
-              viewTransition
-            >
+            <NavLink to="/signup" className="btn btn-primary" viewTransition>
               Start your shelf
             </NavLink>
             <TakeTourButton>Try the demo first →</TakeTourButton>
           </div>
-          {/* the demo is short on purpose; a big collection gets its own */}
-          <p className={styles.guestCollector}>
-            <NavLink to="/signin" className={styles.guestCollectorLink}>
-              Sign In ?
+          {/* back for their shelf: the sign-in card's own words, turned round */}
+          <p className={`${styles.guestSignIn} ${authStyles.switchText}`}>
+            Already have a shelf?{" "}
+            <NavLink to="/signin" className="tap" viewTransition>
+              Sign in
             </NavLink>
           </p>
         </div>
