@@ -422,7 +422,6 @@ export const pricesStyles = {
   setsOther:
     "tap flex min-h-9 w-full items-baseline justify-between gap-3 text-left text-[0.9rem] font-medium text-ink-soft transition-colors duration-120 ease-[ease] hover:text-accent upto-720:min-h-11",
   setsOtherName: "underline decoration-line-soft underline-offset-3",
-  setsOtherFrom: "font-mono text-[0.8rem] font-normal text-muted",
   setsList:
     "flex flex-col gap-2 upto-980:flex-row upto-980:overflow-x-auto upto-980:pb-1 upto-980:[scrollbar-width:none] upto-560:flex-col upto-560:overflow-visible",
   setTicket:

@@ -41,12 +41,6 @@ export function pickedOf(
   return options[0]?.value ?? null;
 }
 
-// the lowest of the prices known, or null when none is
-export function cheapestOf(cents: (number | null | undefined)[]) {
-  const known = cents.filter((c): c is number => typeof c === "number");
-  return known.length ? Math.min(...known) : null;
-}
-
 // ---------- remembered per series, on this device ----------
 
 // the most series a device remembers a pick for: the oldest go first

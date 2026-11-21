@@ -7,11 +7,10 @@
 // Box sets show first whenever one is priced. A menu picks another (your
 // shelf's SortMenu: a box of its own on a laptop, beside the title on a
 // phone, as "Buy next · as 3-in-1" does), and the editions not showing stay at
-// the bottom, each with its cheapest price, a tap away. The pick is
+// the bottom, each a tap away. The pick is
 // remembered for that series on this device. setsBoxRules.ts has the rules.
 import { useState } from "react";
 import { SortMenu } from "../Home/ShelfBar";
-import { formatCents } from "../../lib/prices";
 import { readLocal, writeLocal } from "../../lib/prefs";
 import {
   editionTitle,
@@ -24,7 +23,6 @@ import EditionsBox from "./EditionsBox";
 import { setsTitle, shownSets } from "./boxSetRules";
 import {
   BOX_SETS,
-  cheapestOf,
   pickedOf,
   readPicks,
   setsOptions,
@@ -79,13 +77,6 @@ export default function SetsBox({
   if (alone) title = line ? editionTitle(line) : setsTitle(sets);
   else if (sets.length) title = "Box sets & editions";
 
-  // the cheapest way into each of the others
-  const fromOf = (value: string) =>
-    cheapestOf(
-      showable
-        .find((l) => l.key === value)!
-        .books.map((b) => b.knownPriceCents),
-    );
   // the editions not showing, each a row at the bottom. Box sets have no
   // row there: they're the first thing in the menu, and the box opens on
   // them whenever there is one
@@ -129,7 +120,6 @@ export default function SetsBox({
       {others.length > 0 && (
         <ul className={styles.setsOthers} aria-label="Also for this series">
           {others.map((o) => {
-            const cents = fromOf(o.value);
             return (
               <li key={o.value}>
                 <button
@@ -138,11 +128,6 @@ export default function SetsBox({
                   onClick={() => pick(o.value)}
                 >
                   <span className={styles.setsOtherName}>{o.label}</span>
-                  <span className={styles.setsOtherFrom}>
-                    {cents !== null
-                      ? `from ${formatCents(cents)}`
-                      : "check price"}
-                  </span>
                 </button>
               </li>
             );

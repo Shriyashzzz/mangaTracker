@@ -3,10 +3,7 @@
 // and under AniList's official one, and Google Books' (which has the dates of
 // new and upcoming volumes). Database only: a series nobody has opened yet
 // just has no list, and is left out rather than looked up
-import {
-  countedBooks,
-  withCountedBooks,
-} from "../util/shelf/editionReports.js";
+import { countedBooks, shownLines } from "../util/shelf/editionReports.js";
 import { prisma } from "../config/prisma.js";
 import type { Manga } from "../../generated/prisma/client.js";
 import { priceName } from "../prices/lightNovel.js";
@@ -110,7 +107,7 @@ export async function shelfEditionLines(
   const counted = await countedBooks().catch(() => new Map());
   return new Map(
     collecting.flatMap((m, i) => {
-      const lines = withCountedBooks(
+      const lines = shownLines(
         counted,
         names[i]!,
         keysOf(names[i]!)

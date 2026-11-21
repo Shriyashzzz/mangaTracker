@@ -4,7 +4,6 @@
 import {
   BOX_SETS,
   MOST_REMEMBERED,
-  cheapestOf,
   pickedOf,
   readPicks,
   setsOptions,
@@ -53,12 +52,6 @@ test("their own pick for the series comes before box sets", () => {
 
 test("nothing to show: no pick at all", () => {
   expect(pickedOf([], "definitive", "definitive")).toBe(null);
-});
-
-test("the cheapest of the prices known, or none", () => {
-  expect(cheapestOf([3499, null, 3299, undefined])).toBe(3299);
-  expect(cheapestOf([null, undefined])).toBe(null);
-  expect(cheapestOf([])).toBe(null);
 });
 
 test("picks are remembered per series, the newest last, the oldest let go", () => {

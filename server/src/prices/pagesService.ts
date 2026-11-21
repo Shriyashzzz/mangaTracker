@@ -22,11 +22,10 @@ import { seriesName, seriesOfBook, slugify } from "./stores/match.js";
 import { dropUnlikelyNew } from "./stores/retailers.js";
 import { volumesKey } from "./volumesKey.js";
 import { editionsKey } from "./editionSource.js";
-import { realBooks } from "../util/shelf/realBooks.js";
 import {
   countedBooks,
   reportChanges,
-  withCountedBooks,
+  shownLines,
 } from "../util/shelf/editionReports.js";
 import type { EditionLine } from "./editionLines.js";
 import { isCollection, type SeriesHit } from "./types.js";
@@ -131,14 +130,13 @@ async function readEditionsIndex() {
   for (const info of series) {
     const stored = linesByKey.get(editionsKey(info.name));
     if (!Array.isArray(stored)) continue;
-    // with the books readers' reports or the owner made count
-    const saved = withCountedBooks(counted, info.name, stored);
+    // as every page shows them (util/shelf/editionReports.ts shownLines)
+    const saved = shownLines(counted, info.name, stored);
     const lines: EditionsEntryLine[] = [];
     for (const line of saved) {
-      // the real books (util/shelf/realBooks.ts), as the series page has
-      // them; a line nothing lists or vouches for isn't shown at all
-      if (!line.books?.some((book) => book.listed || book.sure)) continue;
-      const books = realBooks(line.books);
+      // a line nothing lists or vouches for isn't shown at all
+      if (!line.books.some((book) => book.listed || book.sure)) continue;
+      const books = line.books;
       lines.push({
         key: line.key,
         label: line.label,
@@ -340,7 +338,8 @@ export async function getSeriesSummary(asked: string) {
       select: { volumes: true },
     })
     .catch(() => null);
-  const editions = withCountedBooks(
+  // as every page shows them (util/shelf/editionReports.ts shownLines)
+  const editions = shownLines(
     await countedBooks().catch(() => new Map()),
     info.name,
     Array.isArray(savedLines?.volumes)
@@ -350,8 +349,7 @@ export async function getSeriesSummary(asked: string) {
     .map((line) => ({
       key: line.key,
       label: line.label,
-      // the real books (util/shelf/realBooks.ts), as the series page has them
-      books: realBooks(line.books ?? []).map((book) => ({
+      books: line.books.map((book) => ({
         number: book.number,
         volumes: book.volumes,
         listed: Boolean(book.listed),

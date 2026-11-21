@@ -10,6 +10,7 @@ import { prisma } from "../../config/prisma.js";
 import type { EditionLine } from "../../prices/editionLines.js";
 import { volumesKey } from "../../prices/volumesKey.js";
 import { AGREE_TO_SHARE } from "./bookVolumeAnswers.js";
+import { realBooks } from "./realBooks.js";
 
 export type BookReport = {
   name: string;
@@ -74,6 +75,23 @@ export async function countedBooks(now = Date.now()): Promise<Counted> {
   }
   kept = { at: now, counted };
   return counted;
+}
+
+// THE edition books every page shows: a series' saved lines with the books
+// readers' reports or the owner made count, then only its real books
+// (realBooks.ts: up to the last one listed or vouched for, gaps included).
+// Every reader of saved lines goes through here (editionLinesOf,
+// shelfEditionLines, the /editions index and the series summary), so no
+// page counts or offers a book another page doesn't
+export function shownLines(
+  counted: Counted,
+  name: string,
+  lines: EditionLine[],
+): EditionLine[] {
+  return withCountedBooks(counted, name, lines).map((line) => ({
+    ...line,
+    books: realBooks(line.books ?? []),
+  }));
 }
 
 // a series' lines with the books that count added or vouched for: a book the

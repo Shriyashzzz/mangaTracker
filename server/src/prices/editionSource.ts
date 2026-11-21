@@ -3,10 +3,7 @@
 // own volume list already knows hold several (CatalogBook.inBook). Saved
 // beside the series' other lists (series_volumes, ":editions") for a week;
 // "has none" is an answer too.
-import {
-  countedBooks,
-  withCountedBooks,
-} from "../util/shelf/editionReports.js";
+import { countedBooks, shownLines } from "../util/shelf/editionReports.js";
 import { prisma } from "../config/prisma.js";
 import priceQueries from "../models/priceQueries.js";
 import { slugify } from "./stores/match.js";
@@ -219,7 +216,7 @@ export async function editionLinesOf(
     savedOrBuiltLines(name, volumes, lookUp, askTheStore),
     countedBooks().catch(() => new Map()),
   ]);
-  return withCountedBooks(counted, name, lines);
+  return shownLines(counted, name, lines);
 }
 
 async function savedOrBuiltLines(
