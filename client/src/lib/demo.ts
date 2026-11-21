@@ -180,6 +180,18 @@ function practiceShelfTools(
       unlisted: 0,
       estimateCents: owned * 650,
     },
+    // each series alone, at the same made-up price
+    seriesWorth: owners.map((m) => {
+      const count = ownedOf(m).length;
+      return {
+        mangaId: m.id,
+        cents: count * 650,
+        priced: count,
+        volumes: count,
+        unlisted: 0,
+        estimateCents: count * 650,
+      };
+    }),
     finish,
     finishCents: finish.reduce((sum, f) => sum + f.cents, 0),
     finishPriced: finish.reduce((sum, f) => sum + f.priced, 0),
@@ -1009,18 +1021,6 @@ export async function demoResponse(
     const books = shelf.flatMap((m) => booksOf(seriesOf(m), m));
     return json(
       practiceShelfTools(shelf, (m) => new Map(knownOf(m)), spentOn(books)),
-    );
-  }
-  // one series' worth: the same made-up maths, on that series alone
-  const worthOf = route.match(/^\/api\/collector\/series\/(\d+)$/);
-  if (worthOf) {
-    const manga = shelf.find((m) => m.id === Number(worthOf[1]));
-    if (!manga) return json({ error: "Not on the shelf" }, 404);
-    return json(
-      practiceShelfTools([manga], (m) => new Map(knownOf(m)), {
-        cents: 0,
-        books: 0,
-      }).value,
     );
   }
   if (route === "/api/collector/calendar")

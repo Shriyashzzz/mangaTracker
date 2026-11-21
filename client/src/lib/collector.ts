@@ -31,6 +31,8 @@ export type FinishRow = {
 export type ShelfTools = {
   // what they've said they paid, added up, and for how many books
   spent?: { cents: number; books: number };
+  // each series' own worth, by the same rule (its row on the Volumes tab)
+  seriesWorth: ({ mangaId: number } & ShelfTools["value"])[];
   value: {
     cents: number;
     priced: number;
@@ -73,10 +75,6 @@ export type Deal = {
 
 export const getShelfTools = (signal?: AbortSignal) =>
   getJson<ShelfTools>("/api/collector/shelf", signal);
-// one series of theirs: what its owned volumes would fetch used, by the
-// shelf total's own rule
-export const getSeriesWorth = (mangaId: number, signal?: AbortSignal) =>
-  getJson<ShelfTools["value"]>(`/api/collector/series/${mangaId}`, signal);
 export const getCalendar = (signal?: AbortSignal) =>
   getJson<{ months: CalendarMonth[] }>("/api/collector/calendar", signal).then(
     (r) => r.months,

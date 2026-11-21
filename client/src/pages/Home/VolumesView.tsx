@@ -11,9 +11,9 @@ import { NavLink } from "react-router";
 import { CheckIcon, ChevronDownIcon } from "../../components/icons/Icons";
 import Mascot from "../../components/mascot/Mascot";
 import { ownedCount, ownedOf, rangesText } from "../../lib/ownedVolumes";
-import { getSeries, priceName, volumePath } from "../../lib/prices";
+import { getSeries, priceName, volumePath, wholeMoney } from "../../lib/prices";
 import type { Manga, SeriesVolume } from "../../lib/types";
-import { type FinishRow } from "../../lib/collector";
+import { totalText, type FinishRow } from "../../lib/collector";
 import { CoverFallback } from "../Prices/VolumeCard";
 import FinishList from "./FinishList";
 import ShelfTotals from "./ShelfTotals";
@@ -57,6 +57,15 @@ export default function VolumesView({
   // what the shelf is worth and what finishing each series costs
   const tools = useShelfTools();
   const finishOf = new Map(tools?.finish.map((f) => [f.mangaId, f]));
+  // each series' worth: said or not by the shelf total's rule (totalText),
+  // in whole dollars, a row being a glance ("worth $728", "worth about $50")
+  const worthOf = new Map(
+    (tools?.seriesWorth ?? []).map((w) => {
+      const all = w.volumes + w.unlisted;
+      const text = totalText(w.cents, w.priced, all, w.estimateCents);
+      return [w.mangaId, text && w.priced >= all ? wholeMoney(w.cents) : text];
+    }),
+  );
   const lastPage = Math.max(0, Math.ceil(manga.length / PAGE_SIZE) - 1);
   const pageIndex = page.key === resetKey ? Math.min(page.index, lastPage) : 0;
   const shown = manga.slice(pageIndex * PAGE_SIZE, (pageIndex + 1) * PAGE_SIZE);
@@ -146,6 +155,7 @@ export default function VolumesView({
             manga={m}
             tourTarget={m.id === firstWithGaps}
             finish={finishOf.get(m.id)}
+            worth={worthOf.get(m.id) ?? null}
             open={open === m.id}
             onToggle={() => toggle(m.id)}
           />
@@ -162,12 +172,16 @@ function SeriesRow({
   manga,
   tourTarget,
   finish,
+  worth,
   open,
   onToggle,
 }: {
   manga: Manga;
   tourTarget: boolean;
   finish?: FinishRow;
+  // what the series would fetch used ("about $50"), as the shelf's total
+  // works it out; null until enough of it is priced
+  worth: string | null;
   open: boolean;
   onToggle: () => void;
 }) {
@@ -211,7 +225,11 @@ function SeriesRow({
             )}
           </span>
         </span>
-        <span className={styles.count}>{owned.length}</span>
+        {/* how many they own, and under it what those would fetch */}
+        <span className={styles.side}>
+          <span className={styles.count}>{owned.length}</span>
+          {worth && <span className={styles.rowWorth}>worth {worth}</span>}
+        </span>
         <ChevronDownIcon className={styles.chevron} />
       </button>
       {open && (

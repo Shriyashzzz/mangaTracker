@@ -35,8 +35,12 @@ export const volumesStyles = {
   name: "flex min-w-0 items-baseline gap-2 truncate font-medium",
   tag: "shrink-0 text-[0.75rem] font-medium text-muted uppercase tracking-[0.06em]",
   which: "truncate font-mono text-[0.82rem] text-ink-soft",
+  // the right of a row: the count, and what those volumes would fetch
+  side: "flex shrink-0 flex-col items-end gap-1",
   count:
     "shrink-0 font-brand text-[1.35rem] leading-none tracking-[0.02em] tabular-nums",
+  rowWorth:
+    "font-mono text-[0.72rem] leading-none whitespace-nowrap text-muted",
   chevron:
     "size-4 shrink-0 text-muted transition-transform duration-150 group-aria-expanded:rotate-180",
 

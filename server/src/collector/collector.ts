@@ -35,6 +35,8 @@ export type FinishRow = {
 
 export type ShelfTools = {
   value: ShelfValue;
+  // each series' own worth, by the same rule (its row on the Volumes tab)
+  seriesWorth: ({ mangaId: number } & ShelfValue)[];
   // what they've said they paid, added up, and for how many books
   spent: { cents: number; books: number };
   // series they own some of, with volumes out they don't own yet
@@ -143,8 +145,21 @@ export async function getShelfTools(
   const spent = await bookQueries
     .shelfSpent(userId)
     .catch(() => ({ cents: 0, books: 0 }));
+  // each series' worth alone: the shelf's rule (shelfValue) on that series,
+  // so a row and the total can't disagree about a volume
+  const seriesWorth = series.flatMap((s, i) =>
+    ownedSet(s.manga).size
+      ? [
+          {
+            mangaId: s.manga.id,
+            ...withEnoughPriced(shelfValue([ownedBySeries[i]!], recorded)),
+          },
+        ]
+      : [],
+  );
   return {
     value: withEnoughPriced(shelfValue(ownedBySeries, recorded, unlisted)),
+    seriesWorth,
     spent,
     finish,
     finishCents: sum(finish.map((row) => row.cents)),
@@ -155,35 +170,6 @@ export async function getShelfTools(
       : null,
     finishUncosted: finish.length - costed.length,
   };
-}
-
-// one series' worth, for its page's "Your books": the shelf's own rule
-// (shelfValue) on that series alone, so the page and the shelf's total can't
-// disagree about a volume. Null when it isn't theirs
-export async function getSeriesWorth(
-  userId: number,
-  mangaId: number,
-  country: Country = "us",
-): Promise<ShelfValue | null> {
-  const manga = (await mangaQueries.getShelf(userId)).find(
-    (m) => m.id === mangaId,
-  );
-  if (!manga) return null;
-  const [listed] = await shelfSeries([manga]);
-  // a series with no saved list: what they own, counted but not priced
-  if (!listed)
-    return withEnoughPriced(shelfValue([], new Map(), ownedSet(manga).size));
-  const recorded = await priceQueries.getRecordedMedians(
-    listed.volumes.map((v) => v.isbn13),
-    country,
-  );
-  const owned = {
-    volumesOwned: manga.volumesOwned,
-    ownedList: manga.ownedList,
-  };
-  return withEnoughPriced(
-    shelfValue([{ owned, volumes: listed.volumes }], recorded),
-  );
 }
 
 type CalendarEntry = ReturnType<typeof upcoming>[number] & {

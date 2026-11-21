@@ -15,7 +15,6 @@ import {
   savePurchase,
 } from "../../lib/booksApi";
 import { formatPaid } from "../../lib/prices";
-import { getSeriesWorth, totalText } from "../../lib/collector";
 import { setVolumesOwned } from "../../lib/shelf";
 import { ownedVolumes } from "../../lib/ownedVolumes";
 import type { EditionShelf } from "../../lib/editionShelf";
@@ -106,37 +105,6 @@ export default function YourBooks({
       .catch(() => {});
     return () => controller.abort();
   }, [mangaId, ownedKey, booksChanged]);
-
-  // what what they own of it would fetch used, as the shelf's total says
-  // it (lib/collector.ts totalText): nothing until enough is priced
-  const [worth, setWorth] = useState<{ key: string; text: string | null }>({
-    key: "",
-    text: null,
-  });
-  const worthKey = `${mangaId}:${ownedKey}`;
-  useEffect(() => {
-    if (!owned.length) return;
-    const controller = new AbortController();
-    getSeriesWorth(mangaId, controller.signal)
-      .then((value) =>
-        setWorth({
-          key: worthKey,
-          text: totalText(
-            value.cents,
-            value.priced,
-            value.volumes + value.unlisted,
-            value.estimateCents,
-          ),
-        }),
-      )
-      .catch(() => {
-        // switched off or unreachable: the line as it was
-      });
-    return () => controller.abort();
-    // the key stands for the series and what's owned of it
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [worthKey]);
-  const worthText = worth.key === worthKey ? worth.text : null;
 
   const rows = rowsOf(books, owned, collects);
   const shownFromTicks = new Set(
@@ -291,19 +259,10 @@ export default function YourBooks({
     <details className={styles.books} data-tour="your-books">
       <summary className={styles.booksSummary}>
         Your books <span className={styles.booksCount}>{rows.length}</span>
-        {/* what it cost and what it would fetch: beside the count, or on
-            a phone a line of their own under it */}
-        {(spent.books > 0 || worthText) && (
-          <span className={styles.booksMoney}>
-            {spent.books > 0 && (
-              <span className={styles.booksSpent}>
-                {formatPaid(spent.cents)} paid
-                {spent.books < rows.length && ` for ${spent.books}`}
-              </span>
-            )}
-            {worthText && (
-              <span className={styles.booksWorth}>worth {worthText} used</span>
-            )}
+        {spent.books > 0 && (
+          <span className={styles.booksSpent}>
+            {formatPaid(spent.cents)} paid
+            {spent.books < rows.length && ` for ${spent.books}`}
           </span>
         )}
       </summary>

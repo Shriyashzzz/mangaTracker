@@ -5,7 +5,7 @@ import { Router, type RequestHandler } from "express";
 import config from "../config/config.js";
 import { requireSignIn } from "../middlewares/auth.js";
 import { rateLimit } from "../middlewares/rateLimit.js";
-import { getCalendar, getSeriesWorth, getShelfTools } from "./collector.js";
+import { getCalendar, getShelfTools } from "./collector.js";
 import { dealLink, liveDeals } from "./deals.js";
 
 const perMinute = (max: number) => rateLimit({ max, windowMs: 60_000 });
@@ -38,33 +38,6 @@ collectorRouter.get(
       res.json(
         await getShelfTools(req.session.userId!, countryOf(req.query.country)),
       );
-    } catch (e) {
-      next(e);
-    }
-  },
-);
-// one series of theirs: what its owned volumes would fetch used
-collectorRouter.get(
-  "/series/:id",
-  requireSignIn,
-  perMinute(60),
-  async (req, res, next) => {
-    try {
-      const mangaId = Number(req.params.id);
-      if (!Number.isInteger(mangaId) || mangaId < 1) {
-        res.sendStatus(404);
-        return;
-      }
-      const worth = await getSeriesWorth(
-        req.session.userId!,
-        mangaId,
-        countryOf(req.query.country),
-      );
-      if (!worth) {
-        res.sendStatus(404);
-        return;
-      }
-      res.json(worth);
     } catch (e) {
       next(e);
     }
