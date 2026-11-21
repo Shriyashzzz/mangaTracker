@@ -32,6 +32,10 @@ import com.google.android.play.core.review.ReviewManagerFactory;
  *                                 (permissions, storage, notifications)
  *   mangatracker://review         Google Play's own rating sheet; Play
  *                                 decides whether it shows (a few a year)
+ *   mangatracker://check?said=on  silent: the page says what it was told;
+ *                                 if Android's notification setting changed
+ *                                 since, the page opens again with the new
+ *                                 one, else nothing at all happens
  */
 public class AppLinkActivity extends Activity {
     private static final int ASK = 1;
@@ -65,9 +69,26 @@ public class AppLinkActivity extends Activity {
             case "review":
                 review();
                 break;
+            case "check":
+                check(link.getQueryParameter("said"));
+                break;
             default:
                 finish();
         }
+    }
+
+    // no animation in or out: a check that finds nothing changed is unseen
+    @Override
+    public void finish() {
+        super.finish();
+        overridePendingTransition(0, 0);
+    }
+
+    private void check(String said) {
+        overridePendingTransition(0, 0);
+        String now = notificationsOn() ? "on" : "off";
+        if (now.equals(said)) finish();
+        else reopen();
     }
 
     private void notifications() {
