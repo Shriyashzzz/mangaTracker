@@ -7,6 +7,7 @@
 //   SeriesPageParts.tsx  one card of the list, loading and not-found
 //   SetsBox (BoxSets, EditionsBox), OtherEditions, SeriesCostBox, SeriesFacts
 //   AfterAnime/AfterAnimeBar    the way to where the anime leaves off
+import { useVisitState } from "../../lib/visitState";
 import Cover from "../../components/cover/Cover";
 import { SeriesScoreBadge } from "./SeriesScore";
 import { useRef, useState } from "react";
@@ -72,17 +73,18 @@ export default function PriceSeries() {
   const mine = useShelfMatch(name);
   const scannedSets = useBoxSetScan(name, series.key, Boolean(series.data));
 
-  // which block of volumes is showing; resets when the series changes
-  const [page, setPage] = useState({ name, index: 0 });
+  // which block of volumes is showing; resets when the series changes, and
+  // comes back with Back (lib/visitState.ts)
+  const [page, setPage] = useVisitState("volumes-block", { name, index: 0 });
   const pageIndex = page.name === name ? page.index : 0;
   // "Not on your shelf" on or off, and which of its pages, for this series
   // only: another series starts afresh. ?toget=1 (the details page's Buy it
   // card) opens on it
-  const [filter, setFilter] = useState<{
+  const [filter, setFilter] = useVisitState<{
     name: string;
     on: boolean;
     page: number;
-  } | null>(null);
+  } | null>("not-on-your-shelf", null);
   const filterIsForThisSeries = filter?.name === name;
   const toGetOnly = filterIsForThisSeries
     ? filter.on

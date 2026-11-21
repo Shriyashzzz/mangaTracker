@@ -1,5 +1,6 @@
 // The page frame every route shares: backdrop, header, the page, footer.
 // Asks the server once whether someone is signed in (store/auth.ts).
+import RestoreOnBack from "./lib/RestoreOnBack";
 import { useEffect, useRef } from "react";
 import { Outlet, ScrollRestoration, useLocation } from "react-router";
 import "./index.css";
@@ -55,6 +56,10 @@ const FIRST_PAGE_KEY = (() => {
 const firstPageKey = () =>
   (window.history.state as { firstKey?: string } | null)?.firstKey ??
   FIRST_PAGE_KEY;
+
+// the key a page's scroll is kept under, for both restorers below
+const scrollKey = (location: { key: string }) =>
+  location.key === "default" ? firstPageKey() : location.key;
 
 export default function App() {
   const check = useAuth((s) => s.check);
@@ -115,11 +120,9 @@ export default function App() {
           has the key "default", the same for every page, so it opened at an
           old page's scroll position. It gets a key of this visit's own: it
           opens at the top, and Back to it still restores where they were */}
-      <ScrollRestoration
-        getKey={(location) =>
-          location.key === "default" ? firstPageKey() : location.key
-        }
-      />
+      <ScrollRestoration getKey={scrollKey} />
+      {/* and once the page's content has come: lib/RestoreOnBack.tsx */}
+      <RestoreOnBack />
     </>
   );
 }

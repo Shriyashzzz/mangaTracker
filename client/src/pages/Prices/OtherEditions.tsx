@@ -2,6 +2,7 @@
 // books, each with the volumes inside and its last known price. One with an
 // ISBN opens its own price page; one the catalog doesn't list is still named,
 // so the run has no holes.
+import { useVisitState } from "../../lib/visitState";
 import { useEffect, useRef, useState } from "react";
 import { NavLink, useSearchParams } from "react-router";
 import { getJson } from "../../lib/api";
@@ -47,11 +48,11 @@ export default function OtherEditions({
     lines: [],
   });
   // the page of the edition they're on, for this series and edition only
-  const [paging, setPaging] = useState<{
+  const [paging, setPaging] = useVisitState<{
     name: string;
     key: string;
     page: number;
-  } | null>(null);
+  } | null>("editions-page", null);
   const section = useRef<HTMLElement>(null);
   const [, setParams] = useSearchParams();
   // a tab tapped here: already in view, so no scroll to the section

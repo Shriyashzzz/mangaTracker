@@ -3,6 +3,7 @@
 // as covers, theirs inked in and the rest faded as "Not on your shelf", each one a
 // link to its prices. The covers come from the price checker's series list,
 // asked only when a row is opened.
+import { useVisitState } from "../../lib/visitState";
 import Cover from "../../components/cover/Cover";
 import SeriesPicture from "../../components/cover/SeriesPicture";
 import { useEffect, useRef, useState } from "react";
@@ -53,7 +54,11 @@ export default function VolumesView({
     setOpenNow(next);
     writeSession(OPEN_KEY, next == null ? "" : String(next));
   };
-  const [page, setPage] = useState({ key: resetKey, index: 0 });
+  // which page of series, back as it was with Back (lib/visitState.ts)
+  const [page, setPage] = useVisitState("volumes-tab-page", {
+    key: resetKey,
+    index: 0,
+  });
   // what the shelf is worth and what finishing each series costs
   const tools = useShelfTools();
   const finishOf = new Map(tools?.finish.map((f) => [f.mangaId, f]));
@@ -263,7 +268,10 @@ function SeriesVolumes({
   // undefined while asking; null if the list couldn't be had
   const [list, setList] = useState<SeriesVolume[] | null | undefined>();
   // only the volumes not on the shelf, as the series page's own filter
-  const [toGetOnly, setToGetOnly] = useState(false);
+  const [toGetOnly, setToGetOnly] = useVisitState(
+    `volumes-not-on-shelf-${manga.id}`,
+    false,
+  );
   // the series the price checker knows it as: a light novel's is its own
   const series = priceName(manga);
   useEffect(() => {
