@@ -69,8 +69,8 @@ function bookPrice(book: EditionBook) {
 const price = (v: SeriesVolume) =>
   v.knownPriceCents != null ? formatCents(v.knownPriceCents) : "check price";
 
-// gaps listed by name; past this, a "Not on your shelf" link to the series
-// page with that list on, never a count of the rest
+// gaps listed by name; past this, "+N more" and a "Not on your shelf" link
+// to the series page with that list on
 const GAPS_SHOWN = 2;
 
 export default function BuyStrip({
@@ -352,6 +352,12 @@ export default function BuyStrip({
                   </NavLink>
                 ))}
                 {/* the rest: the series page with "Not on your shelf" on */}
+                {/* the third: how many more, then the way to all of them */}
+                {plan.gaps.length > GAPS_SHOWN && (
+                  <span className={styles.buyAside}>
+                    +{plan.gaps.length - GAPS_SHOWN} more
+                  </span>
+                )}
                 {plan.gaps.length > GAPS_SHOWN && (
                   <NavLink
                     // seriesPath already has its ?name=, so this joins with &
@@ -451,6 +457,12 @@ export default function BuyStrip({
                     Vol. {g.volume}
                   </NavLink>
                 ))}
+                {/* the third: how many more, then the way to all of them */}
+                {gaps.length > GAPS_SHOWN && (
+                  <span className={styles.buyAside}>
+                    +{gaps.length - GAPS_SHOWN} more
+                  </span>
+                )}
                 {gaps.length > GAPS_SHOWN && (
                   <NavLink
                     // seriesPath already has its ?name=, so this joins with &
