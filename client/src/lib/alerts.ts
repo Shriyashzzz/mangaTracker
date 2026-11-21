@@ -7,6 +7,7 @@ import { apiFetch, getJson } from "./api";
 import { alertsWayOf, keyBytes, type AlertsWay } from "./alertsWay";
 import { runsAsApp } from "./install";
 import { isAppleMobile } from "./installWay";
+import { askedApp } from "./playApp";
 
 const hasPush = () =>
   "serviceWorker" in navigator &&
@@ -90,4 +91,14 @@ export function showOnIcon(count: number) {
   };
   if (count > 0) void badge.setAppBadge?.(count).catch(() => {});
   else void badge.clearAppBadge?.().catch(() => {});
+}
+
+// "Turn on notifications" asked the app, and Android now allows them: alerts
+// on, without the switch (the app reopens the page that asked). null when
+// there's nothing to finish
+export async function finishTurningOn(): Promise<AlertsWay | "failed" | null> {
+  if (!("Notification" in window) || Notification.permission !== "granted")
+    return null;
+  if (!askedApp("notifications")) return null;
+  return switchAlertsOn();
 }

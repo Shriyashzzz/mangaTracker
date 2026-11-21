@@ -9,7 +9,7 @@
 import { useEffect, useRef, useState } from "react";
 import { CloseIcon } from "../icons/Icons";
 import { Fingers, Head } from "../kenji/Kenji";
-import { alertsWay, switchAlertsOn } from "../../lib/alerts";
+import { alertsWay, finishTurningOn, switchAlertsOn } from "../../lib/alerts";
 import {
   alertsAskDue,
   choseAlertsOff,
@@ -41,6 +41,14 @@ export default function AlertsPeek({ hasSeries, blocked }: Props) {
   // worked out once a page load: whether to ask at all
   const decided = useRef(false);
   const [due, setDue] = useState(false);
+
+  // back from "Turn on notifications" (the app reopens the shelf), allowed:
+  // alerts on, and Kenji says so
+  useEffect(() => {
+    void finishTurningOn().then((done) => {
+      if (done === "on") setNote("on");
+    });
+  }, []);
 
   useEffect(() => {
     if (decided.current || !hasSeries) return;

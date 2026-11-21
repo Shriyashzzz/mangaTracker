@@ -6,7 +6,12 @@ import { useEffect, useRef, useState } from "react";
 import { inApp } from "../../lib/inApp";
 import { appCan, askApp } from "../../lib/playApp";
 import InstallAppButton from "../../components/installApp/InstallAppButton";
-import { alertsWay, switchAlertsOff, switchAlertsOn } from "../../lib/alerts";
+import {
+  alertsWay,
+  finishTurningOn,
+  switchAlertsOff,
+  switchAlertsOn,
+} from "../../lib/alerts";
 import { markChoseAlertsOff } from "../../lib/alertsAsk";
 import type { AlertsWay } from "../../lib/alertsWay";
 import { settingsStyles as styles } from "./styles";
@@ -29,7 +34,12 @@ export function AlertsSection() {
     null,
   );
   useEffect(() => {
-    void alertsWay().then(setWay);
+    // back from "Turn on notifications", allowed: on, as they meant
+    void finishTurningOn().then((done) => {
+      if (done !== "on") return void alertsWay().then(setWay);
+      setWay("on");
+      setNote({ text: "On for this device." });
+    });
     // back from the phone's own settings ("Then come back here"): asked
     // again, and allowed there means on here, which is why they went
     const check = async () => {

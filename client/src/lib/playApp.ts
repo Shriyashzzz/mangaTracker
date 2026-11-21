@@ -77,8 +77,27 @@ const appPackage = () => {
 export const appCan = (action: AppAction) =>
   inPlayApp() && appVersion() >= APP_CAN[action];
 
-// asks the app to do it; if somehow it can't, the page stays as it is
+// asks the app to do it; if somehow it can't, the page stays as it is. The
+// app may open this page again when it's done (?back=): notifications,
+// allowed, reopen it so Chrome reads Android's new answer
+const ASKED_KEY = "askedAppFor";
 export function askApp(action: AppAction) {
-  const stay = encodeURIComponent(window.location.href);
-  window.location.href = `intent://${action}#Intent;scheme=mangatracker;package=${appPackage()};S.browser_fallback_url=${stay};end`;
+  try {
+    sessionStorage.setItem(ASKED_KEY, action);
+  } catch {
+    // the page just won't switch alerts on by itself
+  }
+  const here = encodeURIComponent(window.location.href);
+  window.location.href = `intent://${action}?back=${here}#Intent;scheme=mangatracker;package=${appPackage()};S.browser_fallback_url=${here};end`;
+}
+
+// the app was asked for this on this visit: true once, then forgotten
+export function askedApp(action: AppAction) {
+  try {
+    if (sessionStorage.getItem(ASKED_KEY) !== action) return false;
+    sessionStorage.removeItem(ASKED_KEY);
+    return true;
+  } catch {
+    return false;
+  }
 }
