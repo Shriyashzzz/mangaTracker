@@ -339,8 +339,7 @@ export default function PriceSeries() {
         {unlisted.length > 0 && (
           <p className={styles.sectionNote} role="status">
             {unlisted.length === 1 ? "Vol." : "Vols."} {rangesText(unlisted)}{" "}
-            {unlisted.length === 1 ? "is" : "are"} missing from our list. The
-            cost above leaves {unlisted.length === 1 ? "it" : "them"} out.
+            {unlisted.length === 1 ? "is" : "are"} missing from our list.
           </p>
         )}
         {/* what's left of their series, and what it costs at stored prices */}
