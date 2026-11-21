@@ -9,15 +9,21 @@
 //   series' later volumes: a reissue, not the single. A vol. 8 dated 2027
 //   when vols. 9 to 37 were out by 2014 isn't the 2004 book. Like
 //   preorder.ts withoutReprintDates, for the book rather than its date.
+import { editionOfTitle } from "./stores/match.js";
 import type { CatalogBook } from "./types.js";
 
-// the ISBNs a series' saved edition lines hold (series_volumes, editionsKey)
+// the ISBNs a series' saved edition lines hold (series_volumes, editionsKey),
+// of books whose own title names their edition ("Vagabond Definitive
+// Edition, Vol. 8"). The lines are built from catalog answers, so a plain
+// "Vagabond, Vol. 8" filed in one by mistake never takes a single away
 export function editionIsbnsOf(saved: unknown): Set<string> {
   const lines = Array.isArray(saved) ? saved : [];
   const isbns = new Set<string>();
-  for (const line of lines as { books?: { isbn13?: string | null }[] }[])
+  type SavedBook = { isbn13?: string | null; title?: string | null };
+  for (const line of lines as { books?: SavedBook[] }[])
     for (const book of line?.books ?? [])
-      if (book?.isbn13) isbns.add(book.isbn13.trim());
+      if (book?.isbn13 && book.title && editionOfTitle(book.title))
+        isbns.add(book.isbn13.trim());
   return isbns;
 }
 

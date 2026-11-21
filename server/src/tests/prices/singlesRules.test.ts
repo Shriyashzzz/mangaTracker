@@ -10,15 +10,32 @@ test("a book an edition line holds is known by its ISBN, whatever its title", ()
     {
       key: "definitive",
       books: [
-        { number: 8, isbn13: "9781974763023 " },
-        { number: 9, isbn13: null },
+        {
+          number: 8,
+          isbn13: "9781974763023 ",
+          title: "Vagabond Definitive Edition, Vol. 8",
+        },
+        { number: 9, isbn13: null, title: null },
+        // a plain volume filed in a line by mistake: never taken off the
+        // singles
+        { number: 10, isbn13: "9781591163404", title: "Vagabond, Vol. 10" },
       ],
     },
-    { key: "vizbig", books: [{ number: 1, isbn13: "9781421522203" }] },
+    {
+      key: "vizbig",
+      books: [
+        {
+          number: 1,
+          isbn13: "9781421522203",
+          title: "Vagabond (VIZBIG Edition), Vol. 1",
+        },
+      ],
+    },
   ];
   const isbns = editionIsbnsOf(saved);
   expect(isbns.has("9781974763023")).toBe(true);
   expect(isbns.has("9781421522203")).toBe(true);
+  expect(isbns.has("9781591163404")).toBe(false);
   expect(isbns.size).toBe(2);
   // nothing saved, or saved as a failure: none
   expect(editionIsbnsOf(null).size).toBe(0);
