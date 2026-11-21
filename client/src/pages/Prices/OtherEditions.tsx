@@ -3,7 +3,7 @@
 // ISBN opens its own price page; one the catalog doesn't list is still named,
 // so the run has no holes.
 import { useEffect, useRef, useState } from "react";
-import { NavLink } from "react-router";
+import { NavLink, useSearchParams } from "react-router";
 import { getJson } from "../../lib/api";
 import {
   editionBookLabel,
@@ -21,7 +21,8 @@ import { pricesStyles as styles } from "./styles";
 type Props = {
   // the series as the price pages name it
   name: string;
-  // the edition the address asks for (?edition=deluxe), from a search
+  // the edition shown, from the address (?edition=deluxe): a search, the
+  // box's "See all" and the tabs here all set it, so they never disagree
   asked: string | null;
   // the volumes they own, when the series is on their shelf
   owned: number[];
@@ -45,14 +46,27 @@ export default function OtherEditions({
     name: "",
     lines: [],
   });
-  // the edition they tapped and the page of it they're on, for this series
-  // only
-  const [picked, setPicked] = useState<{
+  // the page of the edition they're on, for this series and edition only
+  const [paging, setPaging] = useState<{
     name: string;
     key: string;
     page: number;
   } | null>(null);
   const section = useRef<HTMLElement>(null);
+  const [, setParams] = useSearchParams();
+  // a tab tapped here: already in view, so no scroll to the section
+  const fromTab = useRef(false);
+  const showEdition = (key: string) => {
+    fromTab.current = true;
+    setParams(
+      (now) => {
+        const next = new URLSearchParams(now);
+        next.set("edition", key);
+        return next;
+      },
+      { replace: true, preventScrollReset: true },
+    );
+  };
 
   useEffect(() => {
     const controller = new AbortController();
@@ -75,17 +89,15 @@ export default function OtherEditions({
   // asked for by name: brought into view once it's there
   const wantedKey = wanted?.key;
   useEffect(() => {
-    if (wantedKey) section.current?.scrollIntoView({ block: "start" });
+    if (fromTab.current) fromTab.current = false;
+    else if (wantedKey) section.current?.scrollIntoView({ block: "start" });
   }, [wantedKey]);
 
   if (!lines.length) return null;
-  const line =
-    lines.find((l) => picked?.name === name && l.key === picked.key) ??
-    wanted ??
-    lines[0]!;
+  const line = wanted ?? lines[0]!;
   const mine = new Set(owned);
   const page =
-    picked?.name === name && picked.key === line.key ? picked.page : 0;
+    paging?.name === name && paging.key === line.key ? paging.page : 0;
   const shown = line.books.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
   const inside = line.books.flatMap((b) => b.volumes);
 
@@ -122,7 +134,7 @@ export default function OtherEditions({
               type="button"
               className={styles.editionTab}
               aria-pressed={l.key === line.key}
-              onClick={() => setPicked({ name, key: l.key, page: 0 })}
+              onClick={() => showEdition(l.key)}
             >
               {l.label}
               <span className={styles.editionTabCount}>{l.books.length}</span>
@@ -168,7 +180,7 @@ export default function OtherEditions({
           pageSize={PAGE_SIZE}
           page={page}
           onChange={(index) => {
-            setPicked({ name, key: line.key, page: index });
+            setPaging({ name, key: line.key, page: index });
             section.current?.scrollIntoView({
               behavior: "smooth",
               block: "start",

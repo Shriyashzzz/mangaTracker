@@ -6,7 +6,7 @@
 // Only books that can be opened: one the catalog has no ISBN for has no
 // price and no page, so it isn't offered. When the book to lead with is one
 // of those, there's no box at all (the list below still names every book).
-import { NavLink } from "react-router";
+import { NavLink, useSearchParams } from "react-router";
 import {
   editionBookLabel,
   insideText,
@@ -35,6 +35,7 @@ export default function EditionsBox({
   // holds box sets and editions together (SetsBox.tsx)
   bare?: boolean;
 }) {
+  const [, setParams] = useSearchParams();
   const leading = leadBooksOf(line, owned);
   if (!leading) return null;
   const { theirs, shown } = leading;
@@ -73,8 +74,26 @@ export default function EditionsBox({
           );
         })}
       </ul>
-      {/* the way down to every book of it: a line of its own, so it's seen */}
-      <a href="#editions-title" className={styles.editionsBoxAll}>
+      {/* the way down to every book of it: a line of its own, so it's seen.
+          Other editions below opens on this same edition (?edition=) */}
+      <a
+        href="#editions-title"
+        className={styles.editionsBoxAll}
+        onClick={(e) => {
+          e.preventDefault();
+          setParams(
+            (now) => {
+              const next = new URLSearchParams(now);
+              next.set("edition", line.key);
+              return next;
+            },
+            { replace: true, preventScrollReset: true },
+          );
+          document
+            .getElementById("editions-title")
+            ?.scrollIntoView({ behavior: "smooth", block: "start" });
+        }}
+      >
         See all {line.books.length} books <span aria-hidden>↓</span>
       </a>
     </>
