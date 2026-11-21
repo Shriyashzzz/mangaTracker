@@ -3,6 +3,7 @@
 // stays open for a whole stack; what each scan came to stacks up below, within
 // thumb reach, each with its undo. No camera, or it's refused: type the ISBN.
 // A native dialog, so focus stays inside and Escape closes it.
+import { appCan, askApp } from "../../lib/playApp";
 import {
   useCallback,
   useEffect,
@@ -199,6 +200,18 @@ export default function ScanSheet({
     });
   }, []);
   const camera = useBarcodeReader(video, read, !typing, attempt, otherBarcode);
+  // back from Chrome's settings for the site ("Allow camera"): tried again
+  const blocked = camera.state === "blocked";
+  useEffect(() => {
+    if (!blocked) return;
+    const again = () => {
+      if (document.hidden) return;
+      setTyping(false);
+      setAttempt((n) => n + 1);
+    };
+    document.addEventListener("visibilitychange", again);
+    return () => document.removeEventListener("visibilitychange", again);
+  }, [blocked]);
   const showTyping = typing || camera.state === "blocked";
 
   // typing opens with the box ready
@@ -325,11 +338,24 @@ export default function ScanSheet({
             <p className="m-0">
               {camera.state !== "blocked"
                 ? "Type the 13 digits under the barcode."
-                : inApp()
-                  ? "The camera's off. Allow it for Manga Tracker in your phone's settings, or type the 13 digits under the barcode."
-                  : "The camera's off for Manga Tracker. Allow it in the browser's site settings, or type the 13 digits under the barcode."}
+                : appCan("site-settings")
+                  ? "The camera's off for Manga Tracker. Allow it, or type the 13 digits under the barcode."
+                  : inApp()
+                    ? "The camera's off. Allow it for Manga Tracker in your phone's settings, or type the 13 digits under the barcode."
+                    : "The camera's off for Manga Tracker. Allow it in the browser's site settings, or type the 13 digits under the barcode."}
             </p>
-            {camera.state === "blocked" && (
+            {camera.state === "blocked" && appCan("site-settings") && (
+              // the app opens Chrome's settings for the site, at its camera
+              // switch; back here, the camera is tried again (below)
+              <button
+                type="button"
+                className={styles.retry}
+                onClick={() => askApp("site-settings")}
+              >
+                Allow camera
+              </button>
+            )}
+            {camera.state === "blocked" && !appCan("site-settings") && (
               <button
                 type="button"
                 className={styles.retry}

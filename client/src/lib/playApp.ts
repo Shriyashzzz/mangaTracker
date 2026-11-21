@@ -66,6 +66,8 @@ const APP_CAN = {
   review: 2,
   // silent: has Android's notification setting changed since the app said?
   check: 2,
+  // Chrome's settings for the site: its camera switch (the camera is Chrome's)
+  "site-settings": 2,
 } as const;
 export type AppAction = keyof typeof APP_CAN;
 
