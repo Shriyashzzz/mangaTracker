@@ -8,6 +8,7 @@
 import AnswerWords from "./AnswerWords";
 import {
   buyVolume,
+  type AnimeStop,
   keepNumbers,
   latestAnswer,
   latestStop,
@@ -31,7 +32,12 @@ import {
   type VolumeOffers,
 } from "../../lib/afterAnime";
 import { HttpError, signInPath } from "../../lib/api";
-import { formatCents, seriesCanonicalPath, timeAgo } from "../../lib/prices";
+import {
+  formatCents,
+  seriesCanonicalPath,
+  slugify,
+  timeAgo,
+} from "../../lib/prices";
 import type { SeriesVolume } from "../../lib/types";
 import { linkRel } from "../Prices/offerLabels";
 import { usePageMeta } from "../../lib/seo";
@@ -99,23 +105,43 @@ function useBuyOffers(show: AfterAnime | null, volumes: SeriesVolume[] | null) {
           .map((volume) => bookFor(volumes, volume)?.isbn13.trim())
           .filter((isbn): isbn is string => Boolean(isbn))
       : [];
+  // the answer brought its seasons' links already: only others are asked
+  // for, so most pages never ask at all
+  const sent = show?.offers ?? {};
   // one string, so the effect runs again only when the volumes change
-  const wanted = [...new Set(isbns)].sort().join(",");
-  const [found, setFound] = useState<{
-    wanted: string;
-    offers: Record<string, VolumeOffers>;
-  }>({ wanted: "", offers: {} });
+  const wanted = [...new Set(isbns)]
+    .filter((isbn) => !(isbn in sent))
+    .sort()
+    .join(",");
+  // by ISBN, so links found for the answer's books still count once the
+  // series' own list is in: a box never loses its price and redraws
+  const [offers, setOffers] = useState<Record<string, VolumeOffers>>({});
   useEffect(() => {
     if (!wanted) return;
     const controller = new AbortController();
     getBuyOffers(wanted.split(","), controller.signal)
-      .then((offers) => setFound({ wanted, offers }))
+      .then((found) => setOffers((had) => ({ ...had, ...found })))
       .catch(() => {
         // no buy links: every button opens its volume's page
       });
     return () => controller.abort();
   }, [wanted]);
-  return found.wanted === wanted ? found.offers : {};
+  return { ...sent, ...offers };
+}
+
+// the answer's own books (every volume out, with its ISBN), drawn at once
+// as the series' volumes until its own list is in: the same cover and the
+// same price, so nothing changes when it arrives. A series whose list takes
+// the server a while to build no longer holds the page's answer up
+function booksFromAnswer(show: AfterAnime | null): SeriesVolume[] {
+  if (!show) return [];
+  return show.books.map((book) => ({
+    isbn13: book.isbn13,
+    title: `${show.name}, Vol. ${book.volume}`,
+    volume: book.volume,
+    coverUrl: `/api/prices/cover/${book.isbn13}`,
+    knownPriceCents: book.cents,
+  }));
 }
 
 export default function AfterAnimeShow() {
@@ -125,11 +151,31 @@ export default function AfterAnimeShow() {
   // the link carries the real name; a bare slug still finds a series we know
   const asked = params.get("name") ?? slug.replace(/-/g, " ");
   const { loading, show, problem } = useAfterAnime(asked);
-  // its English volumes and their prices, once we know its real name
-  const series = useSeriesLoad(show?.name ?? "");
+  // its English volumes and their prices: asked for at once, beside the
+  // answer, by the name in the address. Asked again by the answer's name
+  // only when that turns out to be another series
+  const early = useSeriesLoad(asked);
+  const earlyFits = Boolean(
+    show && early.data && slugify(early.data.name) === slugify(show.name),
+  );
+  const late = useSeriesLoad(
+    show && !early.loading && !earlyFits ? show.name : "",
+  );
+  const series = !show || earlyFits || early.loading ? early : late;
   const volumes = show && !series.loading ? (series.data?.volumes ?? []) : null;
+  // until then, a season's box is drawn from the answer's own books, when
+  // they have its volume: one that isn't there may not be out in English,
+  // which only the series' list can say
+  const fromAnswer = booksFromAnswer(show);
+  const volumesFor = (stop: AnimeStop) => {
+    if (volumes) return volumes;
+    const toBuy = buyVolume(stop);
+    return toBuy !== null && fromAnswer.some((b) => b.volume === toBuy)
+      ? fromAnswer
+      : null;
+  };
 
-  const offers = useBuyOffers(show, volumes);
+  const offers = useBuyOffers(show, volumes ?? fromAnswer);
 
   usePageMeta(showMeta(show, problem !== "", location.origin));
 
@@ -210,7 +256,7 @@ export default function AfterAnimeShow() {
             <SeasonBuy
               stop={latest}
               seriesName={show.name}
-              volumes={volumes}
+              volumes={volumesFor(latest)}
               offers={offers}
               seriesCoverUrl={show.coverUrl}
               lead
@@ -340,7 +386,7 @@ export default function AfterAnimeShow() {
                     key={stop.label}
                     stop={stop}
                     seriesName={show.name}
-                    volumes={volumes}
+                    volumes={volumesFor(stop)}
                     offers={offers}
                     seriesCoverUrl={show.coverUrl}
                   />

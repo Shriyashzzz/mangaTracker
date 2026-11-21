@@ -34,13 +34,23 @@ const show = [
   ...seriesName,
   async (req: Request, res: Response) => {
     const mayAsk = !isCrawler(req.get("user-agent"));
-    const data = await getAfterAnime(
-      matchedData(req).name,
-      mayAsk,
-      countryOf(req.query.country),
-    );
+    const country = countryOf(req.query.country);
+    const data = await getAfterAnime(matchedData(req).name, mayAsk, country);
     if (!data) throw new NotFoundError("We couldn't find that series.");
-    res.json(data);
+    // each season's box volume with its store links, sent with the answer
+    // so the box is drawn once, price and all, rather than growing when a
+    // second request brings them. Its volume is the client's buyVolume
+    // (lib/afterAnimeText.ts): the next one, or the last the season covers
+    const boxVolumes = new Set(
+      data.stops.flatMap((stop) =>
+        stop.coversAll ? [] : [stop.nextVolume ?? stop.endVolume],
+      ),
+    );
+    const isbns = data.books
+      .filter((book) => boxVolumes.has(book.volume))
+      .map((book) => book.isbn13);
+    const offers = isbns.length ? await buyOffers(isbns, country) : {};
+    res.json({ ...data, offers });
   },
 ];
 

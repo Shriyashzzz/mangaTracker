@@ -42,18 +42,27 @@ const RETRY_MS = 7 * DAY_MS;
 
 const tried = new Map<string, number>();
 
-// the series with no volumes known, most popular first; ones tried lately
-// wait their turn
+// the series with no volumes known: ones with an "after the anime" page
+// first (its buy box waits on the list, and building one takes the catalogs
+// 10 to 20 seconds), then the most popular. Ones tried lately wait their turn
 async function nextSeries(now = Date.now()): Promise<string | null> {
-  const [series, bySeries] = await Promise.all([
+  const [series, bySeries, shows] = await Promise.all([
     knownSeries(),
     knownVolumesBySeries(),
+    prisma.animeStops.findMany({
+      where: { endLine: { not: null } },
+      select: { slug: true },
+    }),
   ]);
+  const hasShowPage = new Set(shows.map((show) => show.slug));
+  const showFirst = (s: { name: string }) =>
+    hasShowPage.has(slugify(s.name)) ? 0 : 1;
   const missing = series
     .filter((s) => !bySeries.get(slugify(s.name))?.size)
     .filter((s) => now - (tried.get(s.name) ?? -Infinity) >= RETRY_MS)
     .sort(
       (a, b) =>
+        showFirst(a) - showFirst(b) ||
         (a.popularityRank ?? Infinity) - (b.popularityRank ?? Infinity) ||
         (b.score ?? 0) - (a.score ?? 0),
     );

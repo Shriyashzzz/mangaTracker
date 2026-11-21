@@ -347,6 +347,7 @@ const daysBack = (days: number) =>
 // checked four days ago
 const priced = (volume: number, cents: number | null = 959): SavedBook => ({
   volume,
+  isbn13: `97819747${String(volume).padStart(5, "0")}`,
   cents,
   store: cents === null ? null : "Books-A-Million",
   checkedAt: cents === null ? null : daysBack(4),

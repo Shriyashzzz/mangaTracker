@@ -241,6 +241,9 @@ export function latestAnswerText(stop: AnimeStop) {
 // readers know (the server's savedBooks.ts). No price saved: nulls
 export type SavedBook = {
   volume: number;
+  // its ISBN: the page draws its buy box from it before the series' list
+  // is in (AfterAnimeShow.tsx booksFromAnswer)
+  isbn13: string;
   cents: number | null;
   store: string | null;
   checkedAt: string | null;

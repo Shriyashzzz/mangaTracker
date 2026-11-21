@@ -22,6 +22,9 @@ export type AfterAnime = {
   // for what's left after the anime and what it costs (afterAnimeText.ts)
   manga: MangaFacts;
   books: SavedBook[];
+  // each season's box volume's store links, by ISBN, sent with the answer
+  // (the server's show route); missing from an older API
+  offers?: Record<string, VolumeOffers>;
   // why there's no answer, when there's none (noAnswerLine)
   anime: AnimeState | null;
 };
