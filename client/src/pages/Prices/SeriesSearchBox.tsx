@@ -112,6 +112,12 @@ export default function SeriesSearchBox({
     setActive(-1);
     setFull(false);
   };
+  // the full-screen search left for a page (a series, or every result): the
+  // keyboard goes down with it, and the next tap on the box opens it again
+  const leaveForPage = () => {
+    close();
+    inputRef.current?.blur();
+  };
   // the back arrow, Android's Back or Escape: the page as it was
   const leaveFull = () => {
     close();
@@ -125,7 +131,7 @@ export default function SeriesSearchBox({
       if (shown[0]) pick(shown[0]);
       return;
     }
-    close();
+    leaveForPage();
     if (isbn) navigate(`/prices/${isbn}`, { viewTransition: true });
     else if (q.length >= 2) {
       // "berserk deluxe": the results are Berserk's, and each opens on its
@@ -138,7 +144,7 @@ export default function SeriesSearchBox({
     }
   };
   const pick = (series: Pick<SeriesHit, "name">) => {
-    close();
+    leaveForPage();
     rememberSearch(series.name);
     if (goTo) {
       navigate(goTo(series.name), { viewTransition: true });
@@ -223,6 +229,13 @@ export default function SeriesSearchBox({
             onFocus={() => {
               setOpen(true);
               if (inApp()) setFull(true);
+            }}
+            // a tap while it still has focus (back on a results page) opens
+            // the full screen as the first tap did
+            onClick={() => {
+              if (!inApp() || full) return;
+              setOpen(true);
+              setFull(true);
             }}
             onKeyDown={onKeyDown}
             placeholder={placeholder ?? ownPlaceholder}
