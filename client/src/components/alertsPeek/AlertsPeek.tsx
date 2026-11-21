@@ -1,6 +1,6 @@
 // Kenji asks in the Play app whether to send alerts on this phone: a volume
 // out on the day it's out, and To buy price drops (lib/alerts.ts). Android
-// asks its own "Allow notifications?" after "Yes, tell me", so the reader
+// asks its own "Allow notifications?" after "Yes, notify me", so the reader
 // knows why before Android does. Once there's a series on the shelf, and
 // never again after Settings says off (lib/alertsAsk.ts). Where Android
 // already lets the app notify (Android 12 and earlier), alerts go on
@@ -109,12 +109,12 @@ export default function AlertsPeek({ hasSeries, blocked }: Props) {
 
   let words = (
     <>
-      <p>Want a heads-up when your next volume is out?</p>
+      <p>Get notified when your next volume is out?</p>
       <p className="support-peek-more">
-        On this phone, and price drops on your To buy list.
+        We'll also tell you when a book on your To buy list gets cheaper.
       </p>
       <button type="button" onClick={yes}>
-        Yes, tell me
+        Yes, notify me
       </button>
     </>
   );
@@ -122,15 +122,17 @@ export default function AlertsPeek({ hasSeries, blocked }: Props) {
     words = (
       <>
         <p>You're set!</p>
-        <p className="support-peek-more">Settings can switch them off.</p>
+        <p className="support-peek-more">
+          You can turn them off in Settings anytime.
+        </p>
       </>
     );
   if (note === "blocked")
     words = (
       <>
-        <p>Notifications are off for the app.</p>
+        <p>Notifications are off for Manga Tracker.</p>
         <p className="support-peek-more">
-          Android's Settings, Apps, Manga Tracker can allow them.
+          Turn them on in your phone's Settings › Apps › Manga Tracker.
         </p>
       </>
     );
@@ -138,7 +140,7 @@ export default function AlertsPeek({ hasSeries, blocked }: Props) {
     words = (
       <>
         <p>That didn't work.</p>
-        <p className="support-peek-more">Try in Settings, Alerts.</p>
+        <p className="support-peek-more">Try again in Settings › Alerts.</p>
       </>
     );
 
