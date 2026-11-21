@@ -6,9 +6,12 @@
 // series' lines shows it (lib/editionShelf.ts realBooksOf and its server
 // copy util/shelf/realBooks.ts), the series page's shelf and Buy next too.
 // Never from one reader alone, and never learning that a book doesn't exist.
+// A reader's report counts toward the three only once their account is a
+// week old and the series is on their shelf: three accounts made for it
+// can't put a book in front of everyone.
 import { prisma } from "../../config/prisma.js";
 import type { EditionLine } from "../../prices/editionLines.js";
-import { volumesKey } from "../../prices/volumesKey.js";
+import { seriesOf } from "../../prices/stores/match.js";
 import { AGREE_TO_SHARE } from "./bookVolumeAnswers.js";
 import { realBooks } from "./realBooks.js";
 
@@ -32,6 +35,13 @@ const forget = () => {
   changes++;
 };
 
+// a series as reports and decisions are kept: its compared name, with no
+// list version, so a new version of the saved lists never leaves them behind
+export const reportKey = (name: string) => seriesOf(name);
+
+// how old an account is before its reports count
+const WEEK_MS = 7 * 24 * 60 * 60 * 1000;
+
 const volumesText = (volumes: number[]) =>
   [...volumes].sort((a, b) => a - b).join(",");
 
@@ -41,10 +51,22 @@ export async function countedBooks(now = Date.now()): Promise<Counted> {
   if (kept && now - kept.at < KEEP_MS) return kept.counted;
   const [reports, decisions] = await Promise.all([
     prisma.editionReport.findMany({
-      select: { series: true, edition: true, number: true, volumes: true },
+      select: {
+        series: true,
+        edition: true,
+        number: true,
+        volumes: true,
+        user: {
+          select: { createdAt: true, manga: { select: { name: true } } },
+        },
+      },
     }),
     prisma.editionDecision.findMany(),
   ]);
+  // a week-old account, with the series on its shelf
+  const counts = (r: (typeof reports)[number]) =>
+    now - r.user.createdAt.getTime() >= WEEK_MS &&
+    r.user.manga.some((m) => reportKey(m.name) === r.series);
   const counted: Counted = new Map();
   const put = (
     series: string,
@@ -64,6 +86,7 @@ export async function countedBooks(now = Date.now()): Promise<Counted> {
   // readers agreeing on a book and what it holds
   const agreeing = new Map<string, number>();
   for (const r of reports) {
+    if (!counts(r)) continue;
     const key = `${r.series}|${r.edition}|${r.number}|${volumesText(r.volumes)}`;
     agreeing.set(key, (agreeing.get(key) ?? 0) + 1);
   }
@@ -101,7 +124,7 @@ export function withCountedBooks(
   name: string,
   lines: EditionLine[],
 ): EditionLine[] {
-  const of = counted.get(volumesKey(name));
+  const of = counted.get(reportKey(name));
   if (!of?.size) return lines;
   return lines.map((line) => {
     const books = [...line.books];
@@ -131,7 +154,7 @@ export function withCountedBooks(
 // a signed-in reader's report; one per reader per book (a second one
 // replaces the first)
 export async function reportBook(userId: number, report: BookReport) {
-  const series = volumesKey(report.name);
+  const series = reportKey(report.name);
   const volumes = [...new Set(report.volumes)].sort((a, b) => a - b);
   await prisma.editionReport.upsert({
     where: {

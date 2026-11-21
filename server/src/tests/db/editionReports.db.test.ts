@@ -4,18 +4,18 @@
 import request from "supertest";
 import { app } from "../../app.js";
 import userQueries from "../../models/userQueries.js";
-import { volumesKey } from "../../prices/volumesKey.js";
 import type { EditionLine } from "../../prices/editionLines.js";
 import {
   countedBooks,
   decideBook,
   reportBook,
+  reportKey,
   withCountedBooks,
 } from "../../util/shelf/editionReports.js";
 import { closeDb, prisma } from "./testDb.js";
 
 const SERIES = "Zzedition Report Series";
-const KEY = volumesKey(SERIES);
+const KEY = reportKey(SERIES);
 // a minute on, past what's kept in memory
 const later = () => Date.now() + 61_000;
 
@@ -48,10 +48,25 @@ afterAll(async () => {
   await closeDb();
 });
 
-const readers = async (count: number) => {
+const DAY_MS = 24 * 60 * 60 * 1000;
+// readers whose reports count: accounts over a week old with the series on
+// their shelf. `fresh`: made today; `noShelf`: without the series
+const readers = async (
+  count: number,
+  { fresh = false, noShelf = false } = {},
+) => {
   const ids: number[] = [];
-  for (let i = 1; i <= count; i++)
-    ids.push((await userQueries.addUser(`zzreader${i}`, "a good password"))!);
+  for (let i = 1; i <= count; i++) {
+    const id = (await userQueries.addUser(`zzreader${i}`, "a good password"))!;
+    if (!fresh)
+      await prisma.user.update({
+        where: { id },
+        data: { createdAt: new Date(Date.now() - 8 * DAY_MS) },
+      });
+    if (!noShelf)
+      await prisma.manga.create({ data: { userId: id, name: SERIES } });
+    ids.push(id);
+  }
   return ids;
 };
 const omnibus3 = {
@@ -76,6 +91,18 @@ test("a book counts once three readers agree on what it holds", async () => {
     sure: true,
     listed: false,
   });
+});
+
+test("new accounts, or readers without the series, don't count", async () => {
+  const [a, b, c] = await readers(3, { fresh: true });
+  for (const id of [a, b, c]) await reportBook(id!, omnibus3);
+  expect(await bookOf(3)).toBeUndefined();
+  await prisma.user.deleteMany({
+    where: { username: { startsWith: "zzreader" } },
+  });
+  const [d, e, f] = await readers(3, { noShelf: true });
+  for (const id of [d, e, f]) await reportBook(id!, omnibus3);
+  expect(await bookOf(3)).toBeUndefined();
 });
 
 test("readers who disagree on the volumes don't add up", async () => {

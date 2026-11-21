@@ -16,6 +16,10 @@ datasource db {
 model User {
   id                 Int                @id @default(autoincrement())
   username           String             @unique @db.VarChar(40)
+  // when the account was made: a reader's reports of missing edition books
+  // count only once it's a week old (util/shelf/editionReports.ts). Accounts
+  // made before this was kept carry the day it was added
+  createdAt          DateTime           @default(now()) @map("created_at") @db.Timestamptz(6)
   // missing for an account made with Google, until they set one in Settings
   password           String?
   // the Google account they sign in with (Google's "sub"): never its email
@@ -621,7 +625,8 @@ model EditionReport {
   id        Int      @id @default(autoincrement())
   userId    Int      @map("user_id")
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  // the series as its saved lists are keyed (volumesKey), and its name
+  // the series, as its name compares (stores/match.ts seriesOf, with no
+  // list version: util/shelf/editionReports.ts reportKey), and its name
   series    String   @db.VarChar(200)
   name      String   @db.VarChar(300)
   // the line's key ("vizbig", "deluxe") and the book's number in it
