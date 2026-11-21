@@ -89,8 +89,10 @@ export default function VolumeCard({
   rating,
   plainStandIn = false,
   titleOnCover = false,
+  bookNumber = null,
 }: {
-  isbn13: string;
+  // none for a book no catalog lists yet: it's drawn, but opens nothing
+  isbn13: string | null;
   title: string;
   fullTitle?: string;
   volume?: number | null;
@@ -116,16 +118,14 @@ export default function VolumeCard({
   // the title only says what the cover's own "Vol. 13" badge says: in the
   // app it's left to screen readers (index.css .app-said-above)
   titleOnCover?: boolean;
+  // a book holding several volumes: the number its stand-in cover shows
+  // (VIZBIG 4 is "4"), its badge saying the volumes
+  bookNumber?: number | null;
 }) {
   const fromShelf = useFromShelf();
   const shown = novelParts(title);
-  return (
-    <NavLink
-      to={volumePath(isbn13, fullTitle ?? title)}
-      className={styles.card}
-      viewTransition
-      {...stayInTrip(fromShelf)}
-    >
+  const inner = (
+    <>
       <span className={holds ? styles.stack : "contents"}>
         {holds &&
           Array.from({ length: holds.to - holds.from }, (_, i) => (
@@ -143,7 +143,7 @@ export default function VolumeCard({
           ))}
         <span className={styles.cover}>
           <CoverFallback
-            number={volume}
+            number={volume ?? bookNumber}
             seriesCoverUrl={seriesCoverUrl}
             seriesName={seriesName}
             numbered={volume != null}
@@ -211,6 +211,18 @@ export default function VolumeCard({
           )}
         </span>
       )}
+    </>
+  );
+  // a book no catalog lists yet (an edition's): drawn the same, opening nothing
+  if (!isbn13) return <div className={styles.card}>{inner}</div>;
+  return (
+    <NavLink
+      to={volumePath(isbn13, fullTitle ?? title)}
+      className={styles.card}
+      viewTransition
+      {...stayInTrip(fromShelf)}
+    >
+      {inner}
     </NavLink>
   );
 }

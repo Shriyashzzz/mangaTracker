@@ -12,7 +12,7 @@ import { inApp } from "../../lib/inApp";
 import { useVisitState } from "../../lib/visitState";
 import Cover from "../../components/cover/Cover";
 import { SeriesScoreBadge } from "./SeriesScore";
-import { useRef, useState } from "react";
+import { useRef, useState, useEffect } from "react";
 import { NavLink, useParams, useSearchParams } from "react-router";
 import DealsStrip from "../../components/deals/DealsStrip";
 import RangePager from "../../components/rangePager/RangePager";
@@ -79,6 +79,27 @@ export default function PriceSeries() {
   // comes back with Back (lib/visitState.ts)
   const [page, setPage] = useVisitState("volumes-block", { name, index: 0 });
   const pageIndex = page.name === name ? page.index : 0;
+  // in the app, a series with other editions shows them on a tab of their
+  // own beside its volumes, so a long run never pushes them out of reach;
+  // the tab comes back with Back
+  const [seriesTab, setSeriesTab] = useVisitState("series-tab", {
+    name,
+    tab: "volumes" as "volumes" | "editions",
+  });
+  // an edition asked for ("See all 12 books", a search for "berserk
+  // deluxe"): its tab, and the top of it
+  const askedEdition = params.get("edition");
+  useEffect(() => {
+    if (!askedEdition || !inApp()) return;
+    setSeriesTab({ name, tab: "editions" });
+    requestAnimationFrame(() =>
+      document
+        .getElementById("series-tabs")
+        ?.scrollIntoView({ behavior: "smooth", block: "start" }),
+    );
+    // setSeriesTab is a fresh function each render; the asked edition decides
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [askedEdition, name]);
   // in the app: no pages, one list that grows as its end comes into view;
   // how far it has grown comes back with Back, so the place can too
   const [grown, setGrown] = useVisitState("volumes-grown", {
@@ -190,6 +211,9 @@ export default function PriceSeries() {
     Math.max(0, Math.ceil(toGet.length / PAGE_SIZE) - 1),
   );
   const app = inApp();
+  const tabbed = app && editionLines.length > 0;
+  const onEditions =
+    tabbed && seriesTab.name === name && seriesTab.tab === "editions";
   const grownKey = `${name}|${toGetShown}`;
   const grownCount = grown.key === grownKey ? grown.count : PAGE_SIZE;
   const appList = toGetShown ? toGet : volumes;
@@ -274,7 +298,33 @@ export default function PriceSeries() {
         />
       )}
 
-      <section aria-labelledby="volumes-title">
+      {tabbed && (
+        <div
+          id="series-tabs"
+          className="app-tabs"
+          role="tablist"
+          aria-label="Show"
+        >
+          {(
+            [
+              ["volumes", "Volumes"],
+              ["editions", "Editions"],
+            ] as const
+          ).map(([value, label]) => (
+            <button
+              key={value}
+              type="button"
+              role="tab"
+              aria-selected={(value === "editions") === onEditions}
+              onClick={() => setSeriesTab({ name, tab: value })}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+      )}
+
+      <section aria-labelledby="volumes-title" hidden={onEditions}>
         <div className={styles.sectionHeadRow}>
           <h2 id="volumes-title" className={styles.sectionTitle}>
             Volumes
@@ -411,15 +461,22 @@ export default function PriceSeries() {
         )}
       </section>
 
-      <OtherEditions
-        name={name}
-        asked={params.get("edition")}
-        owned={mine ? ownedOf(mine) : []}
-        onLines={(lines) => setEditions({ name, lines })}
-        singles={singles}
-      />
+      {/* on the app's Volumes tab it's there, unseen: it fetches the lines
+          the tabs and the header box need */}
+      <div hidden={tabbed && !onEditions}>
+        <OtherEditions
+          name={name}
+          asked={params.get("edition")}
+          owned={mine ? ownedOf(mine) : []}
+          onLines={(lines) => setEditions({ name, lines })}
+          singles={singles}
+          seriesCoverUrl={info?.coverUrl ?? null}
+        />
+      </div>
       {/* no set priced: where to look for one */}
-      {!hasSets && <BoxSetSearch links={data.boxSetLinks ?? []} />}
+      {!hasSets && !onEditions && (
+        <BoxSetSearch links={data.boxSetLinks ?? []} />
+      )}
     </div>
   );
 }

@@ -2,6 +2,8 @@
 // books, each with the volumes inside and its last known price. One with an
 // ISBN opens its own price page; one the catalog doesn't list is still named,
 // so the run has no holes.
+import { inApp } from "../../lib/inApp";
+import VolumeCard from "./VolumeCard";
 import { useVisitState } from "../../lib/visitState";
 import { useEffect, useRef, useState } from "react";
 import { NavLink, useSearchParams } from "react-router";
@@ -31,6 +33,8 @@ type Props = {
   onLines: (lines: EditionLine[]) => void;
   // what all its singles out now cost new, beside what a line's books do
   singles: SeriesCost | null;
+  // the series' own cover, for a book with no cover of its own
+  seriesCoverUrl?: string | null;
 };
 
 // a page of books: four rows of three on a laptop
@@ -42,6 +46,7 @@ export default function OtherEditions({
   owned,
   onLines,
   singles,
+  seriesCoverUrl = null,
 }: Props) {
   const [state, setState] = useState<{ name: string; lines: EditionLine[] }>({
     name: "",
@@ -101,6 +106,7 @@ export default function OtherEditions({
     paging?.name === name && paging.key === line.key ? paging.page : 0;
   const shown = line.books.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
   const inside = line.books.flatMap((b) => b.volumes);
+  const app = inApp();
 
   return (
     <section
@@ -143,39 +149,80 @@ export default function OtherEditions({
           ))}
         </div>
       )}
-      <ul className={styles.editionList}>
-        {shown.map((book) => {
-          const have = book.volumes.filter((v) => mine.has(v)).length;
-          const label = editionBookLabel(line, book);
-          return (
-            <li key={book.number} className={styles.editionRow}>
-              <span className={styles.editionName}>{label}</span>
-              <span className={styles.editionInside}>
-                {insideText(book)}
-                {have > 0 &&
-                  (have === book.volumes.length
-                    ? " · on your shelf"
-                    : ` · you have ${have} of ${book.volumes.length}`)}
-              </span>
-              {book.isbn13 ? (
-                <NavLink
-                  to={volumePath(book.isbn13, book.title ?? label)}
-                  className={styles.editionPrice}
-                  viewTransition
-                >
-                  {book.knownPriceCents != null
-                    ? formatCents(book.knownPriceCents)
-                    : "check price"}{" "}
-                  →
-                </NavLink>
-              ) : (
-                <span className={styles.editionUnlisted}>not listed yet</span>
-              )}
-            </li>
-          );
-        })}
-      </ul>
-      {line.books.length > PAGE_SIZE && (
+      {app ? (
+        // in the app: the books as covers, four to a row like the volumes
+        // beside them, every one (no pages)
+        <ul className={`${styles.grid} app-cover-grid`}>
+          {line.books.map((book) => {
+            const have = book.volumes.filter((v) => mine.has(v)).length;
+            const label = editionBookLabel(line, book);
+            const first = Math.min(...book.volumes);
+            const last = Math.max(...book.volumes);
+            return (
+              <li key={book.number}>
+                <VolumeCard
+                  isbn13={book.isbn13}
+                  title={label}
+                  fullTitle={book.title ?? label}
+                  // one volume inside: "Vol. 5" on it, else "Vols. 1–3"
+                  volume={first === last ? first : null}
+                  bookNumber={book.number}
+                  holds={first === last ? undefined : { from: first, to: last }}
+                  coverUrl={
+                    book.isbn13 ? `/api/prices/cover/${book.isbn13}` : null
+                  }
+                  seriesCoverUrl={seriesCoverUrl}
+                  seriesName={name}
+                  priceCents={book.knownPriceCents ?? null}
+                  mark={have === book.volumes.length ? "yours" : undefined}
+                  subtitle={
+                    !book.isbn13
+                      ? "not listed yet"
+                      : have > 0 && have < book.volumes.length
+                        ? `you have ${have} of ${book.volumes.length}`
+                        : undefined
+                  }
+                  plainStandIn
+                />
+              </li>
+            );
+          })}
+        </ul>
+      ) : (
+        <ul className={styles.editionList}>
+          {shown.map((book) => {
+            const have = book.volumes.filter((v) => mine.has(v)).length;
+            const label = editionBookLabel(line, book);
+            return (
+              <li key={book.number} className={styles.editionRow}>
+                <span className={styles.editionName}>{label}</span>
+                <span className={styles.editionInside}>
+                  {insideText(book)}
+                  {have > 0 &&
+                    (have === book.volumes.length
+                      ? " · on your shelf"
+                      : ` · you have ${have} of ${book.volumes.length}`)}
+                </span>
+                {book.isbn13 ? (
+                  <NavLink
+                    to={volumePath(book.isbn13, book.title ?? label)}
+                    className={styles.editionPrice}
+                    viewTransition
+                  >
+                    {book.knownPriceCents != null
+                      ? formatCents(book.knownPriceCents)
+                      : "check price"}{" "}
+                    →
+                  </NavLink>
+                ) : (
+                  <span className={styles.editionUnlisted}>not listed yet</span>
+                )}
+              </li>
+            );
+          })}
+        </ul>
+      )}
+      {!app && line.books.length > PAGE_SIZE && (
         <RangePager
           total={line.books.length}
           pageSize={PAGE_SIZE}
