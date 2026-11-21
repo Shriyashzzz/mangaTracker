@@ -11,7 +11,48 @@ export const inApp = () => runsAsApp() || inPlayApp();
 
 // called once as the page starts, after the Play app's referrer is noted
 export function markInApp() {
-  if (inApp()) document.documentElement.classList.add("in-app");
+  if (!inApp()) return;
+  document.documentElement.classList.add("in-app");
+  hideTheBrowser();
+}
+
+// where words are typed: their own menu (paste) and selection stay
+const TYPING = 'input, textarea, [contenteditable="true"]';
+const typing = (target: EventTarget | null) =>
+  target instanceof Element && Boolean(target.closest(TYPING));
+
+// Nothing that says it's a web page inside Chrome (index.css html.in-app
+// has the rest: no text selection, no picture dragging): no long-press menu
+// on a link or picture ("Open in new tab", "Download image"), no offer to
+// translate the page (the Japanese titles can set it off), and no pinch to
+// zoom, as no Android app zooms (Android's own Magnification still does)
+function hideTheBrowser() {
+  document.addEventListener(
+    "contextmenu",
+    (e) => {
+      if (!typing(e.target)) e.preventDefault();
+    },
+    { capture: true },
+  );
+  document.addEventListener(
+    "dragstart",
+    (e) => {
+      if (!typing(e.target)) e.preventDefault();
+    },
+    { capture: true },
+  );
+  const root = document.documentElement;
+  root.setAttribute("translate", "no");
+  const noTranslate = document.createElement("meta");
+  noTranslate.name = "google";
+  noTranslate.content = "notranslate";
+  document.head.append(noTranslate);
+  const viewport = document.querySelector('meta[name="viewport"]');
+  if (viewport)
+    viewport.setAttribute(
+      "content",
+      "width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover",
+    );
 }
 
 // the bottom bar's tabs' own screens, where the app keeps the logo; any

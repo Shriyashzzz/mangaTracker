@@ -1907,6 +1907,28 @@ html.in-app [data-tour="card"] {
   user-select: none;
 }
 
+/* nothing that says it's a web page in Chrome (lib/inApp.ts has the rest):
+   no word selected by a long press, with its handles and Copy bar, no
+   "Touch to search", no long-press menu, no picture following a drag. Where
+   words are typed keeps its selection and paste */
+html.in-app,
+html.in-app * {
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-user-drag: none;
+}
+html.in-app :is(input, textarea, [contenteditable="true"]),
+html.in-app [contenteditable="true"] * {
+  -webkit-touch-callout: default;
+  -webkit-user-select: text;
+  user-select: text;
+}
+/* no pinch to zoom: panning either way only */
+html.in-app {
+  touch-action: pan-x pan-y;
+}
+
 /* a dialog in the app, drawn as Android's own (Material): a rounded sheet
    with no ink outline, the title in the reading face, plain words for its
    answers at the end, each a wide tap target. Colours stay the website's */
