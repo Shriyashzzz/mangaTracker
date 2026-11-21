@@ -155,7 +155,6 @@ export default function PriceSeries() {
 
   const data = series.data;
   const { info, volumes, incomplete } = data;
-  const priced = volumes.filter((v) => v.knownPriceCents != null).length;
   const unlisted = unlistedNumbers(volumes);
   // ranges go by volume number, so gaps in the catalog don't skew them
   const lastNumber = Math.max(
@@ -333,7 +332,6 @@ export default function PriceSeries() {
             <span className={styles.checked}>
               {volumes.length} {volumes.length === 1 ? "volume" : "volumes"} in
               English
-              {priced < volumes.length && " · Tap one to see its price"}
             </span>
           )}
         </div>
