@@ -131,7 +131,7 @@ export default function VolumeCard({
           Array.from({ length: holds.to - holds.from }, (_, i) => (
             <span
               key={i}
-              className={`${styles.stackBack} group-hover:translate-x-1`}
+              className={`card-stack-back ${styles.stackBack} group-hover:translate-x-1`}
               style={{
                 rotate: `calc(${5 * (holds.to - holds.from - i)}deg * var(--fan) * var(--fan-dir))`,
                 translate: `calc(${8 * (holds.to - holds.from - i)}px * var(--fan) * var(--fan-dir)) calc(${-4 * (holds.to - holds.from - i)}px * var(--fan))`,

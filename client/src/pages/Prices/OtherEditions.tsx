@@ -107,6 +107,7 @@ export default function OtherEditions({
   const shown = line.books.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
   const inside = line.books.flatMap((b) => b.volumes);
   const app = inApp();
+  const piled = /omnibus|in-1/i.test(line.label);
 
   return (
     <section
@@ -159,7 +160,10 @@ export default function OtherEditions({
             const first = Math.min(...book.volumes);
             const last = Math.max(...book.volumes);
             return (
-              <li key={book.number}>
+              // its look (index.css): a plain omnibus ("Omnibus 3", "3-in-1")
+              // a small neat pile; a named edition (VIZBIG, Definitive,
+              // Deluxe) is one big book, one flat cover
+              <li key={book.number} data-pile={piled || undefined}>
                 <VolumeCard
                   isbn13={book.isbn13}
                   title={label}
@@ -176,7 +180,7 @@ export default function OtherEditions({
                   priceCents={book.knownPriceCents ?? null}
                   mark={have === book.volumes.length ? "yours" : undefined}
                   subtitle={
-                    !book.isbn13
+                    !book.isbn13 && book.knownPriceCents == null
                       ? "not listed yet"
                       : have > 0 && have < book.volumes.length
                         ? `you have ${have} of ${book.volumes.length}`
