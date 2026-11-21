@@ -18,9 +18,12 @@ const FILL_IN = "The rest fill in over a few days.";
 // what the shelf's worth is: what it would fetch, not what it cost
 const SOLD_USED = "If sold used, at today's prices";
 
-// "4 of 5 priced so far. The rest fill in over a few days."
-const pricedSoFar = (priced: number, of: number) =>
-  `${priced.toLocaleString()} of ${of.toLocaleString()} priced so far. ${FILL_IN}`;
+// "4 of 5 priced so far." then "The rest fill in over a few days.": two
+// lines, one idea each
+const pricedSoFar = (priced: number, of: number) => [
+  `${priced.toLocaleString()} of ${of.toLocaleString()} priced so far.`,
+  FILL_IN,
+];
 
 // under "To finish your series", one sentence a line: what the total is
 // for, any series left out of it, and how far the pricing has got.
@@ -39,7 +42,7 @@ function finishNote(tools: ShelfTools, hasTotal: boolean) {
       `${plural(tools.finishUncosted, "series", "series")} not counted yet.`,
     );
   if (!allPriced)
-    lines.push(pricedSoFar(tools.finishPriced, tools.finishMissing));
+    lines.push(...pricedSoFar(tools.finishPriced, tools.finishMissing));
   return lines;
 }
 
@@ -120,11 +123,12 @@ export default function ShelfTotals({
                 </dd>
               </>
             )}
-            {!worth && (
-              <dd className={styles.totalNote}>
-                {pricedSoFar(value.priced, ownedVolumes)}
-              </dd>
-            )}
+            {!worth &&
+              pricedSoFar(value.priced, ownedVolumes).map((line) => (
+                <dd key={line} className={styles.totalNote}>
+                  {line}
+                </dd>
+              ))}
           </div>
         )}
         {tools.finishMissing > 0 && (

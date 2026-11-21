@@ -82,6 +82,13 @@ export default function App() {
     }
   }, [pathname]);
 
+  // the comic lettering behind the page (styles/backdrop.css) is the price
+  // pages' alone: everywhere else it sat behind words people need to read
+  useEffect(() => {
+    const prices = pathname === "/" || pathname.startsWith("/prices");
+    document.documentElement.toggleAttribute("data-prices", prices);
+  }, [pathname]);
+
   return (
     <>
       <a

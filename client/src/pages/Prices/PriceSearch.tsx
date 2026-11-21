@@ -1,9 +1,15 @@
 import { isbnFromTyped } from "../../lib/barcode";
+import { askedEdition } from "../../lib/editions";
 import { inCanada } from "../../lib/country";
 import CountrySwitch from "./canada/CountrySwitch";
 import { useCountry } from "../../lib/prefs";
 import { useEffect, useState } from "react";
-import { NavLink, useLocation, useSearchParams } from "react-router";
+import {
+  NavLink,
+  useLocation,
+  useNavigate,
+  useSearchParams,
+} from "react-router";
 import type { Highlights as HighlightsData, SeriesHit } from "../../lib/types";
 import { probablySignedIn, useAuth } from "../../store/auth";
 import { findSeries, getHighlights, seriesPath } from "../../lib/prices";
@@ -42,7 +48,8 @@ export default function PriceSearch() {
   const [params] = useSearchParams();
   // US or Canada: the volume pages follow whatever's picked here
   const country = useCountry();
-  const query = (params.get("q") ?? "").trim();
+  // as much as the server searches (a link can carry more than the box takes)
+  const query = (params.get("q") ?? "").trim().slice(0, 100).trim();
   // an edition named in the search ("berserk deluxe"): each result opens on
   // that line's books (the series page's Other editions)
   const edition = params.get("edition");
@@ -68,6 +75,31 @@ export default function PriceSearch() {
       ? { title: `"${query}" manga prices`, path: "/", noindex: true }
       : { path: "/" },
   );
+
+  // a search that came by link rather than the box, as the box would take
+  // it: an ISBN (dashes and all) opens its volume, and "berserk deluxe" is
+  // Berserk shown on its Deluxe books (SeriesSearchBox does the same)
+  const navigate = useNavigate();
+  const linkIsbn = isbnFromTyped(query);
+  const linkEdition = askedEdition(query);
+  const askedEditionAlready = params.get("edition");
+  useEffect(() => {
+    if (linkIsbn) {
+      navigate(`/prices/${linkIsbn}`, { replace: true });
+      return;
+    }
+    if (linkEdition.edition && !askedEditionAlready)
+      navigate(
+        `/?${new URLSearchParams({ q: linkEdition.series, edition: linkEdition.edition })}`,
+        { replace: true },
+      );
+  }, [
+    linkIsbn,
+    linkEdition.edition,
+    linkEdition.series,
+    askedEditionAlready,
+    navigate,
+  ]);
 
   useEffect(() => {
     if (query.length < 2) return;

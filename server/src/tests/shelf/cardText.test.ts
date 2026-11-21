@@ -27,34 +27,20 @@ test("a card says the edition's book, not the volume, for its collector", async 
   expect(ownedTextOf([], vizbig)).toBeNull();
 });
 
-// A row's progress for an edition's collector counts in its books, the same
-// books as "own Definitive 1–2": "book 1 of 9", never "vol. 3 of 37"
-test("an edition collector's row progress counts in books", async () => {
+// A row's progress counts the story's volumes, whatever edition they hold:
+// "vol. 3 of 37", the same on a shelf of Deluxe books and singles together
+test("an edition collector's row progress counts the story's volumes", async () => {
   const { progressOf } =
     await import("../../../../client/src/components/mangaCard/cardText.js");
   const tracks = { chapters: false, volumes: true };
-  const definitive = {
-    label: "Definitive",
-    read: 1,
-    owned: [1, 2],
-    total: 9,
-  };
+  const definitive = { label: "Definitive", read: 1, owned: [1, 2] };
   const manga = { bookmark: null, readVolume: 3, editionPlace: definitive };
   expect(progressOf(manga as never, tracks, null, 37)).toMatchObject({
-    unit: "book",
-    reading: 1,
-    knownTotal: 9,
+    unit: "vol.",
+    reading: 3,
+    knownTotal: 37,
   });
-  // single volumes, or an older server without the count: by the volume
   expect(
     progressOf({ ...manga, editionPlace: null } as never, tracks, null, 37),
   ).toMatchObject({ unit: "vol.", reading: 3, knownTotal: 37 });
-  expect(
-    progressOf(
-      { ...manga, editionPlace: { ...definitive, total: undefined } } as never,
-      tracks,
-      null,
-      37,
-    ),
-  ).toMatchObject({ unit: "vol.", reading: 3 });
 });

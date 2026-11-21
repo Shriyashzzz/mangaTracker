@@ -71,11 +71,13 @@ function atTheEdge({
   };
 }
 
-// "If vol. 30 is a new release:", "If ch. 250 is the latest released
-// chapter:"
+// "If vol. 30 is the newest out:", "If ch. 250 is the latest released
+// chapter:". The newest out, not "a new release": the rows under it go far
+// behind ("Own up to vol. 5: New shows vol. 6"), which a new release
+// alone wouldn't explain
 const newestLine = (word: "vol." | "ch.", latest: number) =>
   word === "vol."
-    ? `If vol. ${latest} is a new release:`
+    ? `If vol. ${latest} is the newest out:`
     : `If ch. ${latest} is the latest released chapter:`;
 
 // The words for each kind. `closest` is what the slider's first stop is
@@ -112,7 +114,7 @@ const KINDS = {
   },
   chapters: {
     title: "Chapters",
-    note: "English only, since nobody tracks Japanese chapters.",
+    note: "Chapters are English only.",
     one: "chapter",
     many: "chapters",
     newest: "latest",

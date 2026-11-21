@@ -12,7 +12,7 @@ import type { Background, Prefs, Theme } from "./types";
 
 // the page backgrounds, drawn in styles/backdrop.css on the markup in index.html
 export const BACKGROUNDS: { id: Background; label: string }[] = [
-  { id: "sfx", label: "Comic lettering" },
+  { id: "sfx", label: "Comic lettering (price pages)" },
   { id: "ink", label: "Ink brush" },
   { id: "pages", label: "Stack of pages" },
   { id: "panels", label: "Panels" },

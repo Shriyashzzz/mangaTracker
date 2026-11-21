@@ -40,9 +40,9 @@ const lowerFirst = (text: string) =>
 const Count = ({ view }: { view: ShelfView }) => {
   if (view.count == null) return null;
   if (view.value !== "new")
-    return <span className={styles.count}>{view.count}</span>;
+    return <span className={styles.count}>{view.count.toLocaleString()}</span>;
   return view.count > 0 ? (
-    <span className={styles.countNew}>{view.count}</span>
+    <span className={styles.countNew}>{view.count.toLocaleString()}</span>
   ) : null;
 };
 
@@ -239,7 +239,7 @@ function ViewMenu({
         data-tour={tourTarget}
         aria-expanded={open}
         aria-haspopup="true"
-        aria-label={`Showing ${shown.label}${shown.count ? `, ${shown.count}` : ""}. Change what's shown`}
+        aria-label={`Showing ${shown.label}${shown.count ? `, ${shown.count.toLocaleString()}` : ""}. Change what's shown`}
         onClick={() => setOpen(!open)}
       >
         <span className={styles.titleWord}>{shown.label}</span>

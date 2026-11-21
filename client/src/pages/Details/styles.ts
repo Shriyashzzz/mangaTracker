@@ -231,9 +231,11 @@ export const detailsStyles = {
     "pointer-events-none absolute -top-5 right-9 z-1 upto-720:-top-4 rotate-6 rounded-[4px] border-2 border-accent bg-paper px-[0.35rem] font-brand text-[0.92rem] tracking-[1.5px] text-accent",
   releaseHeadline:
     "m-0 min-w-0 flex-1 font-brand text-[1.32rem] leading-tight tracking-[1px]",
-  // white in both themes: the one light spot on the red
+  // white in both themes: the one light spot on the red. Its words are the
+  // light theme's deep red in both too (--accent-ink there): dark mode's
+  // lighter red on white was too faint to read (3.1:1; this is 7:1)
   releaseBuy:
-    "tap ml-auto inline-flex min-h-8 items-center rounded-[3px] border-[1.5px] border-line bg-white px-2.5 text-[0.86rem] font-semibold whitespace-nowrap text-accent transition-colors duration-120 ease-[ease] hover:bg-white/90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-on-accent",
+    "tap ml-auto inline-flex min-h-8 items-center rounded-[3px] border-[1.5px] border-line bg-white px-2.5 text-[0.86rem] font-semibold whitespace-nowrap text-[#963d31] transition-colors duration-120 ease-[ease] hover:bg-white/90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-on-accent",
   // the rating ticket's cross, in white on the red, right of the stamp
   releaseClose: `${cornerCross} text-on-accent hover:opacity-80 focus-visible:outline-on-accent`,
   label: "mb-[0.3rem] block font-mono text-[0.75rem] text-muted",
@@ -339,9 +341,13 @@ export const detailsStyles = {
   // "On my shelf", "Ordered": small pills in the ticket's bottom right corner,
   // lettered like its "Next for you"
   ticketPills: "absolute right-2.5 bottom-2 flex gap-1.5",
-  // the website's one "Got it", at the ticket's left, in line with its
-  // words: the ticket's 12px padding and 2px border
-  gotItSpot: "absolute bottom-1.5 left-[14px] flex",
+  // the website's one "Got it", in the ticket's bottom right corner: the
+  // ticket's 12px padding and 2px border
+  gotItSpot: "absolute right-[14px] bottom-1 flex",
+  // an edition's ticket on the website: Got it shares the "vols. 7–9" line,
+  // so no row is kept for it, only room at that line's end
+  buyNextBeside: "pb-2.5",
+  buyInsideBeside: "self-center pr-[5.5rem]",
   ticketPill:
     "tap inline-flex min-h-8 items-center rounded-full border-[1.5px] border-accent bg-card px-2.5 font-mono text-[0.68rem] font-medium tracking-[0.06em] text-accent-ink uppercase transition-colors duration-120 hover:bg-accent hover:text-on-accent disabled:opacity-50",
   buyOwnFailed: "ml-3 text-[0.8rem] text-accent",

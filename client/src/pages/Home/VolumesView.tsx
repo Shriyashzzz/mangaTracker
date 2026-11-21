@@ -1,38 +1,51 @@
 // The shelf's Volumes tab: what they own, series by series. Each is a compact
-// row ("One Piece · 2 · vols. 1, 4"); opening it shows the series' volumes
-// as covers, theirs inked in and the rest faded as "Not on your shelf", each one a
-// link to its prices. The covers come from the price checker's series list,
-// asked only when a row is opened.
+// row with a bar of what's theirs, a break wherever a volume or book isn't
+// (components/ownedBar). Opening it shows the series page's own shelf
+// (Details/ShelfBox.tsx), where a tap marks a book theirs and a slide across
+// several can be undone, opened at their first gap; a tap on the bar moves
+// it along. Under it, what finishing the series costs (FinishList.tsx).
 import { useVisitState } from "../../lib/visitState";
-import Cover from "../../components/cover/Cover";
 import SeriesPicture from "../../components/cover/SeriesPicture";
-import { useEffect, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import RangePager from "../../components/rangePager/RangePager";
 import { NavLink } from "react-router";
 import { ChevronDownIcon } from "../../components/icons/Icons";
 import Mascot from "../../components/mascot/Mascot";
+import OwnedBar from "../../components/ownedBar/OwnedBar";
 import { ownedCount, ownedOf, rangesText } from "../../lib/ownedVolumes";
-import { getSeries, priceName, volumePath, wholeMoney } from "../../lib/prices";
-import type { Manga, SeriesVolume } from "../../lib/types";
+import { priceName, wholeMoney } from "../../lib/prices";
+import type { Manga } from "../../lib/types";
 import { totalText, type FinishRow } from "../../lib/collector";
-import { CoverFallback } from "../Prices/VolumeCard";
+import { slotsOf } from "../../lib/editionShelf";
+import { todayOf } from "../../lib/editionNews";
+import { useTrackBy } from "../../lib/prefs";
+import { tracksOf } from "../../lib/reading";
+import { placeOnShelf } from "../../lib/chapterVolumes";
+import { savedLatestVolume } from "../../lib/releaseCache";
+import { useShelf } from "../../store/shelf";
+import ShelfBox from "../Details/ShelfBox";
+import { shelfSize } from "../Details/releaseNews";
+import { useBuyOptions } from "../Details/useBuyOptions";
+import { useEditions } from "../Details/useEditions";
+import { useOwnedVolumes } from "../Details/useOwnedVolumes";
 import FinishList from "./FinishList";
+import ShowMoreButton from "./ShowMoreButton";
+import { homeStyles } from "./styles";
+import { inApp } from "../../lib/inApp";
+import { hasBottomBar } from "../../lib/bottomBar";
 import ShelfTotals from "./ShelfTotals";
 import { useShelfTools } from "./useShelfTools";
 import { volumesStyles as styles } from "./volumesStyles";
-import { pricesStyles } from "../Prices/styles";
 import { readSession, writeSession } from "./shelfViews";
+import { VOLUMES_OPEN_KEY } from "../../lib/shelfTabKey";
 
 const plural = (n: number, one: string, many = `${one}s`) =>
   `${n.toLocaleString()} ${n === 1 ? one : many}`;
 
-const OPEN_KEY = "volumesOpen";
+const OPEN_KEY = VOLUMES_OPEN_KEY;
 
 // series a page, as the shelf's
 const PAGE_SIZE = 20;
-
-// how wide a volume's tile is drawn, for its Cover to pick a size by
-const TILE_COVER = "70px";
 
 export default function VolumesView({
   manga,
@@ -73,28 +86,15 @@ export default function VolumesView({
   );
   const lastPage = Math.max(0, Math.ceil(manga.length / PAGE_SIZE) - 1);
   const pageIndex = page.key === resetKey ? Math.min(page.index, lastPage) : 0;
-  const shown = manga.slice(pageIndex * PAGE_SIZE, (pageIndex + 1) * PAGE_SIZE);
+  // in the app on a phone the list grows as they scroll, as the shelf's
+  // other tabs do (Home.tsx `growing`); elsewhere it turns pages
+  const growing = inApp() && hasBottomBar();
+  const shown = manga.slice(
+    growing ? 0 : pageIndex * PAGE_SIZE,
+    (pageIndex + 1) * PAGE_SIZE,
+  );
   const listRef = useRef<HTMLUListElement>(null);
-  // opening a series: its row goes to the top, just under the shelf's sticky
-  // bar. Otherwise the one closing above it pulls the page, and the opened
-  // series lands somewhere else
-  const toggle = (id: number) => {
-    const opening = open !== id;
-    setOpen(opening ? id : null);
-    if (!opening) return;
-    requestAnimationFrame(() =>
-      requestAnimationFrame(() => {
-        const row = document.getElementById(`series-${id}`);
-        const bar = document.querySelector("[data-shelf-bar]");
-        if (!row) return;
-        const under = (bar?.getBoundingClientRect().bottom ?? 0) + 8;
-        window.scrollBy({
-          top: row.getBoundingClientRect().top - under,
-          behavior: "smooth",
-        });
-      }),
-    );
-  };
+  const toggle = (id: number) => setOpen(open === id ? null : id);
   // the bottom one takes them up to the new page; the top one is already there
   const pager = (scrollUp: boolean) => (
     <RangePager
@@ -152,7 +152,7 @@ export default function VolumesView({
         {plural(manga.length, "series", "series")}
       </p>
       {tools && !searching && <ShelfTotals tools={tools} owned={volumes} />}
-      {pager(false)}
+      {!growing && pager(false)}
       <ul ref={listRef} className={styles.list}>
         {shown.map((m) => (
           <SeriesRow
@@ -166,15 +166,49 @@ export default function VolumesView({
           />
         ))}
       </ul>
-      {manga.length > PAGE_SIZE && (
-        <div className={styles.pagerBottom}>{pager(true)}</div>
-      )}
+      {growing
+        ? shown.length < manga.length && (
+            <div className={styles.pagerBottom}>
+              <ShowMoreButton
+                className={homeStyles.showMore}
+                bySelf
+                onShowMore={() =>
+                  setPage({ key: resetKey, index: pageIndex + 1 })
+                }
+              >
+                Show {Math.min(PAGE_SIZE, manga.length - shown.length)} more
+                <span className={homeStyles.showMoreCount}>
+                  {shown.length.toLocaleString()} of{" "}
+                  {manga.length.toLocaleString()}
+                </span>
+              </ShowMoreButton>
+            </div>
+          )
+        : manga.length > PAGE_SIZE && (
+            <div className={styles.pagerBottom}>{pager(true)}</div>
+          )}
     </section>
   );
 }
 
+// "48, 55–56 +2 more": a long list of gaps never fills the line
+function shortRanges(volumes: number[]) {
+  const runs = rangesText(volumes).split(", ");
+  const more = runs.length > 2 ? ` +${runs.length - 2} more` : "";
+  return runs.slice(0, 2).join(", ") + more;
+}
+
+// the volumes missing before the furthest they own, in order
+const gapsOf = (owned: number[]) => {
+  const mine = new Set(owned);
+  const furthest = Math.floor(Math.max(0, ...owned));
+  return Array.from({ length: furthest }, (_, i) => i + 1).filter(
+    (v) => !mine.has(v),
+  );
+};
+
 function SeriesRow({
-  manga,
+  manga: shelfManga,
   tourTarget,
   finish,
   worth,
@@ -190,10 +224,35 @@ function SeriesRow({
   open: boolean;
   onToggle: () => void;
 }) {
-  const owned = ownedOf(manga);
-  const panelId = `volumes-${manga.id}`;
+  // ticked on the open shelf: shown at once, row and shelf alike, before
+  // the shelf's list comes back with it saved. A new list from the shelf
+  // starts it again
+  const [kept, setKept] = useState({ from: shelfManga, manga: shelfManga });
+  if (kept.from !== shelfManga)
+    setKept({ from: shelfManga, manga: shelfManga });
+  const manga = kept.from === shelfManga ? kept.manga : shelfManga;
+  const setManga: React.Dispatch<React.SetStateAction<Manga | null>> = (next) =>
+    setKept((k) => {
+      const value = typeof next === "function" ? next(k.manga) : next;
+      return { ...k, manga: value ?? k.manga };
+    });
+  const m = manga;
+  // a tap on the bar: the shelf under it opens there
+  const [jump, setJump] = useState<{ at: number; n: number } | null>(null);
+  const owned = ownedOf(m);
+  // the newest out, as the release check last found it
+  const release = useShelf((s) => s.releases[m.id]);
+  const latest = release?.latestVolume ?? savedLatestVolume(m.id);
+  const furthest = Math.floor(Math.max(0, ...owned));
+  const missingTop = Math.max(
+    0,
+    ...(finish?.edition ? [] : (finish?.missing ?? []).map((v) => v.volume)),
+  );
+  const total = Math.max(furthest, latest ?? 0, missingTop);
+  const books = m.editionPlace?.books ?? null;
+  const panelId = `volumes-${m.id}`;
   return (
-    <li id={`series-${manga.id}`} className={styles.item}>
+    <li id={`series-${m.id}`} className={styles.item}>
       <button
         type="button"
         className={styles.row}
@@ -204,229 +263,152 @@ function SeriesRow({
       >
         <span className={styles.thumb} aria-hidden>
           <SeriesPicture
-            name={manga.name}
-            lightNovel={manga.lightNovel}
-            url={manga.image}
+            name={m.name}
+            lightNovel={m.lightNovel}
+            url={m.image}
             sizes="36px"
           />
         </span>
         <span className={styles.rowText}>
-          <span className={styles.name}>
-            {manga.name}
-            {manga.lightNovel && (
-              <span className={styles.tag}>Light novel</span>
-            )}
+          {/* the name, then what those volumes would fetch and how many */}
+          <span className={styles.rowTop}>
+            <span className={styles.name}>
+              {/* a long title ends in "…": the worth and count keep their room */}
+              <span className={styles.nameText}>{m.name}</span>
+              {m.lightNovel && <span className={styles.tag}>Light novel</span>}
+            </span>
+            {worth && <span className={styles.rowWorth}>worth {worth}</span>}
+            <span className={styles.count}>{owned.length}</span>
           </span>
-          <span className={styles.which}>
+          {/* what they own, a break where a volume or book isn't; said in
+              words for screen readers */}
+          <span className="sr-only">
             {owned.length === 1 ? "vol." : "vols."} {rangesText(owned)}
           </span>
-        </span>
-        {/* how many they own on the name's line, and on the line under it
-            what those would fetch (each the height of its neighbour) */}
-        <span className={styles.side}>
-          <span className={styles.count}>{owned.length}</span>
-          {worth && <span className={styles.rowWorth}>worth {worth}</span>}
+          <OwnedBar
+            owned={owned}
+            total={total}
+            books={books}
+            onPick={
+              open ? (at) => setJump({ at, n: (jump?.n ?? 0) + 1 }) : undefined
+            }
+          />
         </span>
         <ChevronDownIcon className={styles.chevron} />
       </button>
       {open && (
-        <SeriesVolumes
-          tourTarget={tourTarget}
+        <SeriesShelf
           id={panelId}
-          manga={manga}
-          owned={owned}
+          manga={m}
+          setManga={setManga}
+          latest={latest}
+          jump={jump}
           finish={finish}
+          tourTarget={tourTarget}
         />
       )}
     </li>
   );
 }
 
-type Tile = { volume: number; book?: SeriesVolume; yours: boolean };
-
-function SeriesVolumes({
-  tourTarget,
+// an opened series: the series page's own shelf, and what's left to buy
+function SeriesShelf({
   id,
   manga,
-  owned,
+  setManga,
+  latest,
+  jump,
   finish,
+  tourTarget,
 }: {
-  tourTarget: boolean;
   id: string;
   manga: Manga;
-  owned: number[];
+  setManga: React.Dispatch<React.SetStateAction<Manga | null>>;
+  latest: number | null;
+  jump: { at: number; n: number } | null;
   finish?: FinishRow;
+  tourTarget: boolean;
 }) {
-  // undefined while asking; null if the list couldn't be had
-  const [list, setList] = useState<SeriesVolume[] | null | undefined>();
-  // only the volumes not on the shelf, as the series page's own filter
-  const [toGetOnly, setToGetOnly] = useVisitState(
-    `volumes-not-on-shelf-${manga.id}`,
-    false,
+  const owned = ownedOf(manga);
+  const trackBy = useTrackBy();
+  const [failed, setFailed] = useState(false);
+  // as the series page asks: what's out, and the edition they collect
+  const buyOptions = useBuyOptions(priceName(manga), {
+    volumesOwned: manga.volumesOwned ?? null,
+    ownedList: manga.ownedList,
+  });
+  const editions = useEditions(
+    manga.lightNovel ? null : priceName(manga),
+    manga.id,
+    manga.edition,
+    owned,
+    buyOptions.volumes.map((v) => v.isbn13),
   );
-  // the series the price checker knows it as: a light novel's is its own
-  const series = priceName(manga);
-  useEffect(() => {
-    const controller = new AbortController();
-    getSeries(series, controller.signal)
-      .then((s) => setList(s.volumes))
-      .catch(() => {
-        if (!controller.signal.aborted) setList(null);
-      });
-    return () => controller.abort();
-  }, [series]);
-
-  // every volume up to the furthest one known: on sale or theirs
-  const byNumber = new Map((list ?? []).map((b) => [b.volume, b]));
-  const top = Math.max(0, ...owned, ...(list ?? []).map((b) => b.volume));
-  const numbers = [
-    ...new Set([
-      ...Array.from({ length: Math.floor(top) }, (_, i) => i + 1),
-      ...owned,
-      ...(list ?? []).map((b) => b.volume),
-    ]),
-  ].sort((a, b) => a - b);
-  const tiles: Tile[] = numbers.map((volume) => ({
-    volume,
-    book: byNumber.get(volume),
-    yours: owned.includes(volume),
-  }));
-  const toGet = tiles.filter((t) => !t.yours).length;
-  // the tour points at the first one not on the shelf
-  const firstToGet = tourTarget ? tiles.find((t) => !t.yours)?.volume : null;
-  // the line above the tiles: still loading, what's missing, or all of it
-  let summary = `You own all ${plural(owned.length, "volume")} we know of`;
-  // the series' list can take a moment: what they own is known already, and
-  // the tiles show it meanwhile
-  if (list === undefined) summary = `You own ${plural(owned.length, "volume")}`;
-  // with the "Not on your shelf (10)" button beside it, the count of those
-  // is the button's: said once, and the two fit side by side on a phone
-  else if (toGet && toGet < tiles.length)
-    summary = `You own ${owned.length} of ${tiles.length}`;
-  else if (toGet)
-    summary = `You own ${owned.length} of ${tiles.length} · ${toGet} not on your shelf`;
-
+  const ownedVolumes = useOwnedVolumes({
+    manga,
+    setManga,
+    onTick: () => setFailed(false),
+    onFailed: () => setFailed(true),
+  });
+  const furthest = Math.floor(Math.max(0, ...owned));
+  const shelfTotal = shelfSize(furthest, latest, buyOptions);
+  const edition =
+    editions.line && shelfTotal.isKnown
+      ? {
+          line: editions.line,
+          slots: slotsOf(editions.line, shelfTotal.size, todayOf()),
+        }
+      : null;
+  const gaps = gapsOf(owned);
+  // a phone's page of books opens at their first gap, or where the bar was
+  // tapped
+  const opensAt = jump?.at ?? gaps[0] ?? null;
   return (
-    <div id={id} className={styles.panel}>
+    // the tour's gaps step lights the whole of it: the shelf and what the
+    // gaps cost, its bubble kept off both
+    <div
+      id={id}
+      className={styles.panel}
+      data-tour={tourTarget ? "gaps-open" : undefined}
+    >
       <div className={styles.panelHead}>
-        <div className={styles.panelSummaryRow}>
-          <p className={styles.panelSummary}>{summary}</p>
-          {/* a long run with a few holes: just the holes (the series page's
-              own "Not on your shelf" button) */}
-          {list !== undefined && toGet > 0 && toGet < tiles.length && (
-            <button
-              type="button"
-              className={pricesStyles.toGet}
-              aria-pressed={toGetOnly}
-              onClick={() => setToGetOnly(!toGetOnly)}
-            >
-              Not on your shelf ({toGet})
-            </button>
-          )}
-        </div>
+        {gaps.length > 0 && !edition && (
+          <p className={styles.panelSummary}>
+            Not on your shelf: {shortRanges(gaps)}
+          </p>
+        )}
         <NavLink
-          to={`/update/${manga.id}`}
-          className={styles.edit}
+          to={`/details/${manga.id}`}
+          className={`${styles.edit} ml-auto`}
           viewTransition
         >
-          Edit volumes you own
+          Open series
         </NavLink>
       </div>
-      {list === null && (
-        <p className={styles.note}>
-          Couldn't get its covers right now, so here are the numbers.
+      <div>
+        <ShelfBox
+          // a tap on the bar starts the shelf again at that spot
+          key={jump?.n ?? 0}
+          mangaId={manga.id}
+          name={manga.name}
+          owned={owned}
+          total={shelfTotal.size}
+          totalKnown={shelfTotal.isKnown}
+          ownedVolumes={ownedVolumes}
+          place={placeOnShelf(manga, tracksOf(manga, trackBy), [])}
+          edition={edition}
+          heading={false}
+          opensAt={opensAt}
+        />
+      </div>
+      {failed && (
+        <p className={styles.note} role="alert">
+          That didn't save. Try again.
         </p>
       )}
-      <ul className={styles.tiles}>
-        {(list === undefined
-          ? owned.map((volume) => ({ volume, yours: true }))
-          : tiles.filter((t) => !toGetOnly || !t.yours)
-        ).map((t: Tile) => (
-          <li key={t.volume}>
-            <VolumeTile
-              tile={t}
-              tourTarget={list !== undefined && t.volume === firstToGet}
-              // not while the list is on its way: the real covers are about
-              // to arrive, and a stand-in would flash before them
-              fallbackCover={list === undefined ? null : manga.image}
-              seriesName={priceName(manga)}
-            />
-          </li>
-        ))}
-      </ul>
-      {finish && <FinishList row={finish} series={series} />}
+      {finish && (
+        <FinishList row={finish} series={priceName(manga)} owned={owned} />
+      )}
     </div>
-  );
-}
-
-function VolumeTile({
-  tile,
-  tourTarget,
-  fallbackCover,
-  seriesName,
-}: {
-  tile: Tile;
-  tourTarget: boolean;
-  // the series' cover, to stand in for a volume with none of its own
-  fallbackCover: string | null;
-  seriesName: string;
-}) {
-  // A cover of its own, or vol. 1 showing the series' as it is: a picture
-  // at full strength, which a volume not on the shelf fades. A stand-in is
-  // washed out already
-  const hasPicture = Boolean(
-    tile.book?.coverUrl || (fallbackCover && tile.volume <= 1),
-  );
-  const inner = (
-    <>
-      <span className={tile.yours ? styles.cover : styles.coverToGet}>
-        {/* behind the volume's own cover: the series' cover standing in,
-            washed out, as on the price pages */}
-        <CoverFallback
-          number={tile.volume}
-          seriesCoverUrl={fallbackCover}
-          seriesName={seriesName}
-          numbered
-          small
-          // theirs, with no cover of its own: the series' cover as it is,
-          // not washed out (that reads as not owned); the corner stamp says
-          // which volume
-          plain={tile.yours}
-        />
-        <Cover url={tile.book?.coverUrl} sizes={TILE_COVER} />
-        {!tile.yours && hasPicture && (
-          <span className={styles.veil} aria-hidden />
-        )}
-        <span className={styles.vol} aria-hidden>
-          {tile.volume}
-        </span>
-      </span>
-      <span className={tile.yours ? styles.label : styles.labelToGet}>
-        {tile.yours ? <>Yours</> : "Not on your shelf"}
-      </span>
-    </>
-  );
-  const name = `Vol. ${tile.volume}, ${tile.yours ? "yours" : "not on your shelf"}`;
-  // a volume on sale links to its prices; one we know nothing about is just
-  // its number
-  return tile.book ? (
-    <NavLink
-      to={volumePath(tile.book.isbn13, tile.book.title)}
-      className={styles.tile}
-      data-tour={tourTarget ? "gaps-open" : undefined}
-      aria-label={`${name}: see prices`}
-      viewTransition
-    >
-      {inner}
-    </NavLink>
-  ) : (
-    <span
-      className={styles.tile}
-      data-tour={tourTarget ? "gaps-open" : undefined}
-      aria-label={name}
-      role="img"
-    >
-      {inner}
-    </span>
   );
 }

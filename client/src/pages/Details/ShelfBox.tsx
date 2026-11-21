@@ -5,7 +5,9 @@
 // For someone collecting an edition (`edition`), the books are that
 // edition's: 12 VIZBIGs, not 37 volumes. What they own is still saved as
 // volumes; lib/editionShelf.ts turns one into the other, both ways.
-import { useEffect, useRef, useState, type CSSProperties } from "react";
+import { useCallback, useRef, useState, type CSSProperties } from "react";
+import Toast from "../../components/toast/Toast";
+import { toastAction } from "../../components/toast/toastStyles";
 import { shortEditionName } from "../../lib/editionShort";
 import VolumeShelf from "../../components/volumeShelf/VolumeShelf";
 import {
@@ -14,6 +16,7 @@ import {
   placeInSlots,
   shareOwned,
   slotName,
+  slotOfVolume,
   slotsIn,
   spineOf,
   stateOf,
@@ -35,10 +38,19 @@ const SHELF_MAX = 560;
 const EDITION_BOOK = 30;
 // remembered in the browser once they've ticked a book
 const SHELF_HINT_KEY = "shelfHint";
-// how long Undo stays
-const UNDO_MS = 12_000;
 // paints this close together are one slide
 const SLIDE_GAP_MS = 1200;
+
+// what a slide across the books did, for its Undo note: "6 volumes marked
+// yours", "3 volumes taken off your shelf"
+function slideText(before: number[], now: number[]) {
+  const added = now.filter((v) => !before.includes(v)).length;
+  const removed = before.filter((v) => !now.includes(v)).length;
+  const volumes = (n: number) => `${n} ${n === 1 ? "volume" : "volumes"}`;
+  if (added && !removed) return `${volumes(added)} marked yours`;
+  if (removed && !added) return `${volumes(removed)} taken off your shelf`;
+  return `${volumes(added + removed)} changed`;
+}
 
 type Props = {
   mangaId: number;
@@ -60,6 +72,11 @@ type Props = {
   edition?: EditionShelf | null;
   // single volumes ordered and on their way: drawn as such
   ordered?: number[];
+  // the app's "Your shelf" heading; the Volumes tab's rows have their own
+  heading?: boolean;
+  // a phone's page of books opens near this volume (the Volumes tab: their
+  // first gap, or where its bar was tapped)
+  opensAt?: number | null;
 };
 
 export default function ShelfBox({
@@ -72,6 +89,8 @@ export default function ShelfBox({
   place = null,
   edition = null,
   ordered = [],
+  heading = true,
+  opensAt = null,
 }: Props) {
   // the part-owned book they tapped: asked about before it's completed
   // (with the edition it's a book of: the question goes if they switch)
@@ -94,13 +113,10 @@ export default function ShelfBox({
   // what they owned before the slide going on now
   const slideStart = useRef<number[] | null>(null);
   const slideEndTimer = useRef(0);
-  // what Undo would put back; null when there's nothing to undo
+  // what Undo would put back; null when there's nothing to undo. Offered in
+  // the app's own note at the foot of the screen (Toast), which goes by itself
   const [undoTo, setUndoTo] = useState<number[] | null>(null);
-  useEffect(() => {
-    if (!undoTo) return;
-    const gone = window.setTimeout(() => setUndoTo(null), UNDO_MS);
-    return () => clearTimeout(gone);
-  }, [undoTo]);
+  const dropUndo = useCallback(() => setUndoTo(null), []);
 
   // one slide is many paints close together: what they owned before the
   // first is what Undo gives back
@@ -165,6 +181,13 @@ export default function ShelfBox({
   const placeInEdition = edition ? placeInSlots(slots, place) : null;
   // the count goes once every book is theirs, unless it's all the line has
   const showCount = !ownsEveryBook(slots, owned) || !placeInEdition;
+  // "You own 2 of 7": in the app it stands beside the section's heading, and
+  // the caption keeps the rest (where they are, any extras)
+  const singlesCount = `You own ${onShelf}${
+    totalKnown ? ` of ${total} volumes` : ` volume${onShelf === 1 ? "" : "s"}`
+  }`;
+  const editionCount = edition && showCount ? ownedCaption(slots, owned) : null;
+  const ownCount = edition ? editionCount : singlesCount;
 
   const books = edition ? slots.length : total;
   // a tablet's page is drawn bigger (index.css): its books and room too
@@ -183,7 +206,12 @@ export default function ShelfBox({
       style={{ "--shelf-w": `${width}px` } as CSSProperties}
     >
       {/* the app's section heading (index.css .app-section-title) */}
-      <h2 className="app-only app-section-title">Your shelf</h2>
+      {heading && (
+        <h2 className="app-only app-section-title app-shelf-head">
+          <span>Your shelf</span>
+          {ownCount && <span className="app-shelf-count">{ownCount}</span>}
+        </h2>
+      )}
       {/* the books keep to their own width, centred over the caption,
           which gets the room: the same space either side */}
       <div
@@ -209,6 +237,7 @@ export default function ShelfBox({
             onPaint={paintSlots}
             name={name}
             here={placeInEdition?.slot ?? null}
+            opensAt={opensAt == null ? null : slotOfVolume(slots, opensAt)}
             slots={{
               bookWidth: EDITION_BOOK,
               spine: (n) => spineOf(slots[n - 1]!),
@@ -238,6 +267,7 @@ export default function ShelfBox({
             name={name}
             here={place?.volume ?? null}
             ordered={ordered}
+            opensAt={opensAt}
           />
         )}
       </div>
@@ -249,12 +279,18 @@ export default function ShelfBox({
             {/* "Read up to book 4 · You own 4 of 12". Once every book is
                 theirs, only where they are: "Read up to book 12" */}
             {placeInEdition && (
-              <span className={styles.shelfPlace}>
-                {placeInEdition.text}
-                {showCount && " · "}
+              <span className={styles.shelfPlace}>{placeInEdition.text}</span>
+            )}
+            {/* said beside the heading in the app (ownCount) */}
+            {showCount && (
+              <span className={heading ? "app-web-only" : undefined}>
+                {placeInEdition && (
+                  // hidden with the place on a phone
+                  <span className="upto-720:hidden"> · </span>
+                )}
+                {ownedCaption(slots, owned)}
               </span>
             )}
-            {showCount && ownedCaption(slots, owned)}
             {offShelf.length > 0 &&
               `, plus vol${offShelf.length > 1 ? "s" : ""}. ${rangesText(offShelf)}`}
           </span>
@@ -264,13 +300,17 @@ export default function ShelfBox({
             {place && (
               <span className={styles.shelfPlace}>
                 {place.kind === "reading" ? "Reading" : "Read up to"} vol.{" "}
-                {place.volume} ·{" "}
+                {place.volume}
               </span>
             )}
-            You own {onShelf}
-            {totalKnown
-              ? ` of ${total} volumes`
-              : ` volume${onShelf === 1 ? "" : "s"}`}
+            {/* said beside the heading in the app (ownCount) */}
+            <span className={heading ? "app-web-only" : undefined}>
+              {place && (
+                // hidden with the place on a phone
+                <span className="upto-720:hidden"> · </span>
+              )}
+              {ownCount}
+            </span>
             {offShelf.length > 0 &&
               `, plus vol${offShelf.length > 1 ? "s" : ""}. ${rangesText(offShelf)}`}
           </span>
@@ -308,19 +348,23 @@ export default function ShelfBox({
         {!knowsTheShelf && (
           <span className={styles.shelfHint}>Tap a book to mark it yours.</span>
         )}
-        {undoTo && (
+      </p>
+      {undoTo && (
+        // one note a slide: a new slide starts it again
+        <Toast key={undoTo.join()} onGone={dropUndo}>
+          <span className="min-w-0">{slideText(undoTo, owned)}</span>
           <button
             type="button"
-            className={styles.chaptersToo}
+            className={toastAction}
             onClick={() => {
               ownedVolumes.paint(undoTo);
               setUndoTo(null);
             }}
           >
-            Undo that slide
+            Undo
           </button>
-        )}
-      </p>
+        </Toast>
+      )}
     </div>
   );
 }

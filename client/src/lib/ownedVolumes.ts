@@ -59,6 +59,27 @@ export function nextToGet(m: Owned, out: number[]): number | null {
   );
 }
 
+// THE volume to buy next, for every page that says one (Buy next, the price
+// pages): the next after the furthest they own; when they have that (or
+// nothing past it is out), their first gap. A reader who chose "my gaps
+// first" (Settings, Next in line) gets the gap first. Of the ones out only.
+// Null when there's nothing of it out to buy
+export function buyNextOf(
+  m: Owned,
+  out: number[],
+  gapsFirst: boolean,
+): number | null {
+  const after = nextToGet(m, out);
+  const highest = highestOwned(m);
+  const firstGap =
+    out
+      .filter(
+        (v) => Number.isInteger(v) && v >= 1 && v < highest && !owns(m, v),
+      )
+      .sort((a, b) => a - b)[0] ?? null;
+  return gapsFirst ? (firstGap ?? after) : (after ?? firstGap);
+}
+
 export const owns = (m: Owned, volume: number) =>
   m.ownedList?.length
     ? m.ownedList.includes(volume)

@@ -17,6 +17,7 @@ import {
   type EditionBook,
   type EditionLine,
 } from "../../lib/editions";
+import { inApp } from "../../lib/inApp";
 import { offlineLink, orOffline, useIsOffline } from "../../lib/offline";
 
 // where to buy more of this manga: the next volume they need, the newest in the
@@ -64,6 +65,7 @@ const bookPath = (book: EditionBook, label: string, seriesName: string) =>
     : seriesPath(seriesName);
 // what a book's ticket says where its price goes: the price we know, a
 // nudge to check it, or (the catalog has no ISBN for it) to look for it
+// no saved price yet: a way to its page, for every reader
 function bookPrice(book: EditionBook) {
   if (book.knownPriceCents != null) return formatCents(book.knownPriceCents);
   return book.isbn13 ? "check price" : "find it";
@@ -101,10 +103,6 @@ export default function BuyStrip({
     : nextChapters
       ? "Your next chapters are in"
       : "Next volume";
-  // its price: for that reader, only one we know, never a "check price"
-  // nudge
-  const knownOnly = (cents: number | null | undefined) =>
-    cents != null ? formatCents(cents) : null;
   // "I own Deluxe 7" saving, and whether it failed
   const [owning, setOwning] = useState(false);
   const [ownFailed, setOwnFailed] = useState(false);
@@ -247,7 +245,7 @@ export default function BuyStrip({
         </h2>
         {editions.lines.length > 0 && (
           // the tour's "single, deluxe or omnibus" step points here
-          <span data-tour="edition">
+          <span>
             <SortMenu
               lead="as"
               menuLabel="Buy next as"
@@ -280,7 +278,7 @@ export default function BuyStrip({
           {plan.next && (
             <li className="relative">
               <NavLink
-                className={`${styles.buyNext} ${onOrdered || onOwnBook ? styles.buyNextRoom : ""}`}
+                className={`${styles.buyNext} ${onOrdered || onOwnBook ? (inApp() ? styles.buyNextRoom : styles.buyNextBeside) : ""}`}
                 to={bookPath(plan.next, line.label, seriesName)}
                 viewTransition
                 {...offlineLink(offline)}
@@ -289,13 +287,13 @@ export default function BuyStrip({
                 <span>{editionBookLabel(line, plan.next)}</span>
                 {!nextOnBar && (
                   <span className={styles.buyPrice}>
-                    {ownsNone
-                      ? knownOnly(plan.next.knownPriceCents)
-                      : bookPrice(plan.next)}
+                    {bookPrice(plan.next)}
                   </span>
                 )}
                 {/* what's inside it, on its own line under the ticket's row */}
-                <em className={styles.buyInside}>
+                <em
+                  className={`${styles.buyInside} ${(onOrdered || onOwnBook) && !inApp() ? styles.buyInsideBeside : ""}`}
+                >
                   {insideText(plan.next)}
                   {plan.next.have > 0 &&
                     `, you have ${plan.next.have} of ${plan.next.volumes.length}`}
@@ -427,9 +425,7 @@ export default function BuyStrip({
                     </span>
                   )}
                 </span>
-                <span className={styles.buyPrice}>
-                  {ownsNone ? knownOnly(next.knownPriceCents) : price(next)}
-                </span>
+                <span className={styles.buyPrice}>{price(next)}</span>
               </NavLink>
               {/* bought it somewhere and it's on its way: Next moves past it */}
               {onOrdered && (
@@ -514,11 +510,7 @@ export default function BuyStrip({
                 >
                   <span className={styles.buyKind}>Newest</span>
                   <span>Vol. {latest.volume}</span>
-                  <span className={styles.buyPrice}>
-                    {ownsNone
-                      ? knownOnly(latest.knownPriceCents)
-                      : price(latest)}
-                  </span>
+                  <span className={styles.buyPrice}>{price(latest)}</span>
                 </NavLink>
               </li>
             )

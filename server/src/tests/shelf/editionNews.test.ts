@@ -204,8 +204,8 @@ test("a New card for an edition opens its next book's price page", async () => {
   expect(buyLinkFor(read, "volumes")).toBe(
     "/prices/9781974752669/vagabond-definitive-edition-vol-3",
   );
-  // the stamp on its cover, cut to fit
-  expect(stampFor(read, "volumes")).toBe("Def. 3");
+  // the stamp on its cover: the book, never a cut name ("Def. 3")
+  expect(stampFor(read, "volumes")).toBe("Book 3");
   // and its card's words, the edition named in full (never "Def.")
   const news = editionNews({ editionPlace: definitive });
   expect(news).toMatchObject({ text: "Definitive 3 next" });

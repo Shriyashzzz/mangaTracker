@@ -116,3 +116,12 @@ test("an edition's book keeps its own title through the backup; older cells stil
     volumes: [1, 2],
   });
 });
+
+// a mistyped ISBN (its check digit wrong) is not one: dropped, the book kept
+test("isbn13Ok checks the last digit", async () => {
+  const { isbn13Ok } = await import("../../prices/sources/catalog.js");
+  expect(isbn13Ok("9781974725762")).toBe(true);
+  expect(isbn13Ok("9781974725763")).toBe(false);
+  expect(isbn13Ok("hello")).toBe(false);
+  expect(isbn13Ok(null)).toBe(false);
+});

@@ -5,6 +5,7 @@
 // right on the page. Where the news comes from is folded under "More about New".
 import { NavLink } from "react-router";
 import Mascot from "../../components/mascot/Mascot";
+import { BellIcon } from "../../components/icons/Icons";
 import {
   NEW_RELEASES_DESCRIPTION,
   NEW_RELEASES_TITLE,
@@ -128,8 +129,10 @@ const QUESTIONS = [
       <>
         Tap <b>Hide</b>.
         <span className={styles.nextLine}>
-          It leaves the list until something newer is out, and waits under{" "}
-          <b>Hidden</b>.
+          It leaves the list until something newer is out.
+        </span>
+        <span className={styles.nextLine}>
+          Find it again under <b>Hidden</b>, at the top of New.
         </span>
       </>
     ),
@@ -164,22 +167,15 @@ export default function NewReleasesPage() {
           <h1 className={styles.title}>
             How <span className={styles.hit}>new</span> works
           </h1>
-          {/* who it's for, said small under the title */}
+          {/* what New does, said first: the one line to take away */}
           <p className={styles.tagline}>
-            Made for collectors: fill the gaps in your collection, and see
-            what's new and what's coming.
+            New shows the next volume of each series you collect.
           </p>
         </div>
         <span className={styles.kenji} aria-hidden>
           <Mascot mood="happy" />
         </span>
       </header>
-
-      <div className={styles.intro}>
-        <p className={styles.lead}>
-          The New tab on your shelf shows the next volume to collect.
-        </p>
-      </div>
 
       {/* the strip, with the one change most want just above it */}
       <div className={styles.stripGroup}>
@@ -215,8 +211,15 @@ export default function NewReleasesPage() {
           <li className={styles.panelBox}>
             <span className={styles.panelNumber}>3</span>
             <span className={styles.panelArt} aria-hidden>
-              <span className={styles.newTab}>
+              {/* the New the reader knows: the website's tab, or the app's
+                  bell in the bottom bar with its count */}
+              <span className={`${styles.newTab} app-web-only`}>
                 New <small>1</small>
+              </span>
+              <span className="app-only">
+                <span className={styles.newTab}>
+                  <BellIcon className="size-7" /> <small>1</small>
+                </span>
               </span>
               <span className={styles.news}>Vol. 15 next</span>
             </span>
@@ -269,9 +272,6 @@ export default function NewReleasesPage() {
             <li>
               <b>In Japan:</b> the newest volume out in Japan, once you're
               caught up with English.
-              <span className={styles.nextLine}>
-                It shows what's already out there, waiting to be translated.
-              </span>
             </li>
           </ul>
         </div>

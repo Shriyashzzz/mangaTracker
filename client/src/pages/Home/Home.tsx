@@ -16,7 +16,8 @@
 //   SelectDock.tsx, NewTabParts.tsx, AddButton.tsx: what those draw
 import { useSwipeTabs } from "../../lib/useSwipeTabs";
 import { lazy, Suspense, useEffect, useMemo, useState } from "react";
-import { NavLink, useNavigate } from "react-router";
+import { NavLink, useLocation, useNavigate } from "react-router";
+import { shelfResets } from "../../lib/shelfTabKey";
 import { BarcodeIcon } from "../../components/icons/Icons";
 import RangePager from "../../components/rangePager/RangePager";
 import ReleaseTip from "../../components/whatsNew/ReleaseTip";
@@ -109,7 +110,15 @@ import { homeStyles as styles } from "./styles";
 import PullPage from "../../components/pullRefresh/PullPage";
 import { offlineLink, useIsOffline } from "../../lib/offline";
 
+// My shelf tapped while on the shelf (layouts/header/Header.tsx,
+// forgetShelfPlace): the page starts afresh, its search, page and Select
+// gone. It's drawn again with each new address, and reads the count then
 export default function Home() {
+  useLocation();
+  return <ShelfPage key={shelfResets()} />;
+}
+
+function ShelfPage() {
   usePrivatePage("Your shelf");
   const isSignedIn = useAuth((s) => s.isSignedIn);
 

@@ -17,7 +17,6 @@ import {
   ownedTextOf,
   progressOf,
   rowKindLine,
-  rowPlaceLine,
 } from "./cardText";
 
 // what's come out for it on the New tab
@@ -77,9 +76,12 @@ const STAMP_SHORT =
 function EditionStamp({
   stamp,
   shape,
+  named = false,
 }: {
   stamp: NonNullable<Manga["editionStamp"]>;
   shape: Shape;
+  // the card's words already say the edition, in full
+  named?: boolean;
 }) {
   const more =
     stamp.more > 0
@@ -103,7 +105,7 @@ function EditionStamp({
           </span>
         </span>
       )}
-      {shape !== "cover" && (
+      {shape !== "cover" && !named && (
         <span className={short} title={said}>
           <span className="sr-only">{said}</span>
           <span aria-hidden>{stamp.short}</span>
@@ -147,6 +149,9 @@ const ROOT_CLASS: Record<Shape, string> = {
   news: "group flex animate-card-in flex-col gap-[0.7rem] upto-720:flex-row upto-720:items-center upto-720:gap-3 upto-720:py-1.5",
   cover: "group flex animate-card-in flex-col gap-[0.7rem]",
 };
+// how many cards from the top come in with a fade
+const FADES_IN = 12;
+
 // a shelf row (small, and not news) lines up in three columns: cover, text,
 // and the stars with the progress bar
 const ROW_COLUMNS_CLASS =
@@ -190,13 +195,24 @@ export default function MangaCard({
   const ownedText = ownedTextOf(owned, currentManga.editionPlace);
   // where they are: the chapter they're on, the volume they've read, or both
   const placeText = placeOf(currentManga, trackingBy);
+  // a row's second line (asColumns)
+  const rowLine = progressSaysPlace
+    ? null
+    : currentManga.planned
+      ? "to read"
+      : placeText;
   const genre = genreOf(currentManga);
   const kindLine = rowKindLine(currentManga);
 
   const rootClass = asColumns ? ROW_COLUMNS_CLASS : ROOT_CLASS[shape];
   let newsGenreHidden = "";
   if (news) newsGenreHidden = compact ? " hidden" : " upto-720:hidden";
-  const delay = { animationDelay: `${Math.min(index, 12) * 35}ms` };
+  // the first screenful comes in one after another; cards added further
+  // down as a long shelf grows show at once, never fading in mid-scroll
+  const delay =
+    index < FADES_IN
+      ? { animationDelay: `${index * 35}ms` }
+      : { animation: "none" };
 
   const body = (
     <>
@@ -222,7 +238,18 @@ export default function MangaCard({
           </span>
         )}
         {currentManga.editionStamp && (
-          <EditionStamp stamp={currentManga.editionStamp} shape={shape} />
+          <EditionStamp
+            stamp={currentManga.editionStamp}
+            shape={shape}
+            // the card's own words name the edition already ("own
+            // Definitive 1–2", "Definitive 3 next"): no cut-short stamp
+            // ("Def.") too
+            named={
+              Boolean(news?.text.includes(currentManga.editionStamp.label)) ||
+              (!asColumns &&
+                Boolean(ownedText?.includes(currentManga.editionStamp.label)))
+            }
+          />
         )}
         {/* hanko-style stamp for finished series */}
         {currentManga.status && !compact && (
@@ -243,35 +270,26 @@ export default function MangaCard({
         {/* a row gives the chapter its own line: it's what they came to see */}
         {asColumns ? (
           <>
-            {/* their place, or, when the right side already says it ("ch.
-                135 of 135"), what they own instead: never the chapter twice */}
-            {progressSaysPlace ? (
-              ownedText && (
-                <p className="truncate font-mono text-[0.85rem] font-medium text-ink-soft">
-                  {ownedText}
-                </p>
-              )
-            ) : (
+            {/* a phone has no room for the stars' own column (below): a
+                rating they've given gets a line of its own under the name */}
+            {Number(currentManga.rating) > 0 && (
+              <span className="hidden upto-720:flex">
+                <StarRating value={Number(currentManga.rating)} size="sm" />
+              </span>
+            )}
+            {/* their place, when the right side doesn't say it already
+                ("ch. 245" with no total known), or "to read". What they own
+                is the Volumes tab's (VolumesView.tsx), never a row's here */}
+            {rowLine && (
               <p className="truncate font-mono text-[0.85rem] font-medium text-ink-soft">
-                {/* the right side already says when it's finished */}
-                {rowPlaceLine(currentManga, placeText, ownedText)}
+                {rowLine}
               </p>
             )}
-            {/* one line for the rest, so every row is the same height */}
-            <div className="flex min-h-[1.2rem] min-w-0 items-center gap-3">
-              {kindLine && (
-                <p className="truncate font-mono text-[0.78rem] text-muted">
-                  {kindLine}
-                </p>
-              )}
-              {/* a phone has no room for the stars' own column (below), so
-                  a rating they've given sits here */}
-              {Number(currentManga.rating) > 0 && (
-                <span className="hidden flex-none upto-720:flex">
-                  <StarRating value={Number(currentManga.rating)} size="sm" />
-                </span>
-              )}
-            </div>
+            {kindLine && (
+              <p className="truncate font-mono text-[0.78rem] text-muted">
+                {kindLine}
+              </p>
+            )}
           </>
         ) : (
           <p
@@ -316,7 +334,7 @@ export default function MangaCard({
             {/* unrated ones show empty stars, so the column always reads the same */}
             <StarRating value={Number(currentManga.rating) || 0} size="sm" />
           </span>
-          <span className="flex w-36 shrink-0 flex-col justify-center gap-1 pr-2.5 text-right font-mono text-[0.82rem] text-ink-soft upto-720:w-[7.5rem] upto-720:text-[0.75rem] upto-720:pr-2">
+          <span className="flex w-36 shrink-0 flex-col justify-center gap-1 pr-2.5 text-right font-mono text-[0.82rem] text-ink-soft upto-720:w-[min(7.5rem,32vw)] upto-720:text-[0.75rem] upto-720:pr-2">
             <RowProgress
               finished={currentManga.status}
               ownedCount={owned.length}
@@ -377,8 +395,8 @@ function RowProgress({
 }: {
   finished: boolean;
   ownedCount: number;
-  // what the numbers count: "ch.", "vol.", or an edition's "book"
-  unit: "ch." | "vol." | "book";
+  // what the numbers count: "ch." or "vol."
+  unit: "ch." | "vol.";
   reading: number;
   knownTotal: number | null;
 }) {
@@ -394,7 +412,10 @@ function RowProgress({
   const percent = knownTotal ? Math.min((reading / knownTotal) * 100, 100) : 0;
   return (
     <>
-      <span className="whitespace-nowrap">
+      {/* one line at the usual sizes; at a phone's largest text the column
+          keeps its share of the row and this wraps, leaving the series'
+          own words their room */}
+      <span className="[text-wrap:balance]">
         {/* "ch. 50 of 101", "vol. 5 of 12", "book 3 of 9" */}
         {unit} {reading} of {knownTotal}
       </span>

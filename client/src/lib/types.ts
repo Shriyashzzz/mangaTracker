@@ -35,9 +35,6 @@ export type Manga = {
   editionPlace?: {
     label: string;
     read: number | null;
-    // how many real books the line has ("book 3 of 9"); missing from an
-    // older server
-    total?: number;
     owned: number[] | null;
     // for the New tab, in the edition's books: the next one, how many they
     // don't have, and the furthest they do
@@ -51,6 +48,9 @@ export type Manga = {
     nextTitle?: string | null;
     // the books out that they don't have, for the New tab's list
     toGet?: EditionBookToGet[];
+    // the volumes in each of its books that are out, in order (the Volumes
+    // tab's bar); missing from an older server
+    books?: number[][];
   } | null;
   // the series it's an entry of, edition or not: two entries with the same
   // key are one series ("Vagabond" and "Vagabond VIZBIG Edition"), and the

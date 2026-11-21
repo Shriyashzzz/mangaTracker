@@ -1,7 +1,10 @@
 // Under an opened series on the Volumes tab: what finishing it comes to, the
-// first couple of missing volumes we know a price for (cheapest new copy, and
-// where), and the series' page for the rest. Prices are the ones already
-// saved: a volume is priced once someone opens its page.
+// first couple to get (cheapest new copy, and where), and the series' page
+// for the rest. In the order Buy next takes them: the next after theirs,
+// then their gaps, unless they chose gaps first (Settings, Next in line). A
+// long run of gaps is one line, never a shopping list of each. Prices are the
+// ones already saved: a volume is priced once someone opens its page; one
+// that isn't yet says "check price", a link to its page.
 import { NavLink } from "react-router";
 import {
   money,
@@ -10,13 +13,14 @@ import {
   type MissingVolume,
 } from "../../lib/collector";
 import { rangesText } from "../../lib/ownedVolumes";
+import { useNextFor } from "../../lib/prefs";
+import { toGetLines } from "../../lib/toGetLines";
 import { seriesPath, volumePath, shopName } from "../../lib/prices";
 import { noteStoreClick } from "../../lib/support";
 import { volumesStyles as styles } from "./volumesStyles";
 
 // the next ones to buy; the series page has them all
 const FIRST_SHOWN = 2;
-
 // our affiliate tags, as the price pages mark them: paid links
 const isAffiliate = (url: string) =>
   /[?&](tag|campid)=|bookshop\.org\/a\//.test(url);
@@ -24,15 +28,22 @@ const isAffiliate = (url: string) =>
 export default function FinishList({
   row,
   series,
+  owned,
 }: {
   row: FinishRow;
   // the series as the price pages know it (a light novel's own name)
   series: string;
+  // what they own: what's a gap and what comes after
+  owned: number[];
 }) {
-  const priced = row.missing.filter((m) => m.cheapest);
   const unpriced = row.missing.filter((m) => !m.cheapest);
-  const shown = priced.slice(0, FIRST_SHOWN);
-  const rest = row.missing.length - shown.length;
+  const lines = toGetLines(row.missing, owned, useNextFor() === "gap");
+  const shown = lines.slice(0, FIRST_SHOWN);
+  const shownCount = shown.reduce(
+    (n, l) => n + (l.kind === "run" ? l.volumes.length : 1),
+    0,
+  );
+  const rest = row.missing.length - shownCount;
   // a deluxe or omnibus line is counted in books
   const unit = row.edition ? "book" : "volume";
   const total = totalText(
@@ -49,9 +60,12 @@ export default function FinishList({
       </h2>
       {/* too few priced for a total: said, so the missing number isn't a puzzle */}
       {unpriced.length > 0 && row.estimateCents === null && (
+        // one idea a line: where it stands, then what happens next
         <p className={styles.finishNote}>
           {row.priced} of {row.missing.length} priced: not enough yet for a
-          total. Prices fill in as volumes are checked.
+          total.
+          <br />
+          Prices fill in as volumes are checked.
         </p>
       )}
       {unpriced.length > 0 && row.estimateCents !== null && (
@@ -62,21 +76,32 @@ export default function FinishList({
         </p>
       )}
       <ul className={styles.finishList}>
-        {shown.map((m) => (
-          <li key={`${m.volume}-${m.isbn13}`} className={styles.finishRow}>
-            <span
-              className={styles.finishVol}
-              title={
-                m.inside
-                  ? `${m.inside.length === 1 ? "vol." : "vols."} ${rangesText(m.inside)}`
-                  : undefined
-              }
+        {shown.map((line) =>
+          line.kind === "run" ? (
+            <GapRun
+              key={`run-${line.volumes[0]!.volume}`}
+              volumes={line.volumes}
+              series={series}
+            />
+          ) : (
+            <li
+              key={`${line.volume.volume}-${line.volume.isbn13}`}
+              className={styles.finishRow}
             >
-              {m.label ?? `Vol. ${m.volume}`}
-            </span>
-            <Where volume={m} />
-          </li>
-        ))}
+              <span
+                className={styles.finishVol}
+                title={
+                  line.volume.inside
+                    ? `${line.volume.inside.length === 1 ? "vol." : "vols."} ${rangesText(line.volume.inside)}`
+                    : undefined
+                }
+              >
+                {line.volume.label ?? `Vol. ${line.volume.volume}`}
+              </span>
+              <Where volume={line.volume} />
+            </li>
+          ),
+        )}
         {/* the rest, as the list's last row: the series page has every one */}
         {rest > 0 && (
           <li className={`${styles.finishRow} ${styles.finishRestRow}`}>
@@ -99,8 +124,57 @@ export default function FinishList({
   );
 }
 
+// a long run of gaps, as one line: "Vols. 6–59 · 54 volumes", its total
+// when enough of it is priced, and the series page for each one's price
+function GapRun({
+  volumes,
+  series,
+}: {
+  volumes: MissingVolume[];
+  series: string;
+}) {
+  const priced = volumes.filter((v) => v.cheapest);
+  const cents = priced.reduce((n, v) => n + v.cheapest!.cents, 0);
+  // the same rule as the list's total: all priced, or none said
+  const total = priced.length === volumes.length ? money(cents) : null;
+  const first = volumes[0]!.volume;
+  const last = volumes[volumes.length - 1]!.volume;
+  return (
+    <li className={styles.finishRow}>
+      <span className={styles.finishVol}>
+        Vols. {first}–{last}
+        <span className="ml-2 font-normal text-muted">
+          {volumes.length} volumes
+        </span>
+      </span>
+      <NavLink
+        to={seriesPath(series)}
+        className={styles.finishLink}
+        viewTransition
+      >
+        {total ? (
+          <span className={styles.finishPrice}>{total}</span>
+        ) : (
+          "check prices"
+        )}
+      </NavLink>
+    </li>
+  );
+}
+
 function Where({ volume }: { volume: MissingVolume }) {
-  const cheapest = volume.cheapest!;
+  const cheapest = volume.cheapest;
+  // no price saved yet: its page checks
+  if (!cheapest)
+    return (
+      <NavLink
+        to={volumePath(volume.isbn13, volume.title)}
+        className={styles.finishLink}
+        viewTransition
+      >
+        check price
+      </NavLink>
+    );
   const label = (
     <>
       <span className={styles.finishPrice}>{money(cheapest.cents)}</span> at{" "}

@@ -12,7 +12,6 @@ import {
   volumeReadAfter,
   type EditionShelf,
 } from "../../lib/editionShelf";
-import { rangesText } from "../../lib/ownedVolumes";
 import { tracksOf, type TrackBy } from "../../lib/reading";
 import type { Manga } from "../../lib/types";
 import ChapterStepper from "./ChapterStepper";
@@ -31,8 +30,6 @@ type Props = {
   planned: boolean;
   // the Settings choice: each series its own way, or one way for all
   trackBy: TrackBy;
-  // the volumes they own
-  owned: number[];
   highestOwned: number;
   // changes when the read volume is set from outside its counter, so the
   // counter starts over from the saved number
@@ -53,7 +50,6 @@ export default function ReadingPlace({
   finished,
   planned,
   trackBy,
-  owned,
   highestOwned,
   volumeSets,
   newestChapter = null,
@@ -93,18 +89,13 @@ export default function ReadingPlace({
       </p>
     );
 
-  // no place saved yet: they pick what to count. What they own says where a
-  // collector is, never "chapter 0"
+  // no place saved yet: they pick what to count (what they own is the shelf's
+  // to say, just above, never repeated here as a list of ranges)
   const nothingSaved =
     trackBy === "series" && !manga.byVolume && !manga.bookmark;
   if (nothingSaved && !chaptersShown)
     return (
       <p className={styles.progress}>
-        {owned.length > 0 && (
-          <span className={styles.placeLine}>
-            You own {owned.length === 1 ? "vol." : "vols."} {rangesText(owned)}.
-          </span>
-        )}
         {/* on its own line: one question, two buttons */}
         <span className={styles.pickPlace}>
           Keep my place by

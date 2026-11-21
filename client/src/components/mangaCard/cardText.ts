@@ -22,20 +22,6 @@ export function ownedTextOf(
 export const genreOf = (manga: Manga) =>
   manga.genre && manga.genre !== "unlabled" ? manga.genre : null;
 
-// a row's own line for their place: it's what they came to see. "Finished"
-// isn't said here: the row's right side already says it
-export function rowPlaceLine(
-  manga: Manga,
-  placeText: string | null,
-  ownedText: string | null,
-) {
-  if (manga.planned) return "to read";
-  if (placeText) return placeText;
-  if (ownedText) return ownedText;
-  // finished with no place kept: they read it, which is all there is to say
-  return manga.status ? "read to the end" : "not started";
-}
-
 // a cover card's one line: their place ("ch. 38", or "vol. 5" for one read
 // by the volume), else what they own ("own vols. 1–10"), or "to read" for
 // one they haven't started, after "light novel" for one. The name and the
@@ -70,16 +56,6 @@ export function progressOf(
   latestVolume: number | null | undefined,
 ) {
   const byChapter = tracks.chapters && Boolean(manga.bookmark);
-  // collected as an edition and read by volume: counted in its books, as
-  // the row's "own Definitive 1–2" is ("book 1 of 9", not "vol. 3 of 37")
-  const place = manga.editionPlace;
-  if (!byChapter && tracks.volumes && place?.read && place.total)
-    return {
-      byChapter,
-      unit: "book" as const,
-      reading: place.read,
-      knownTotal: place.total >= place.read ? place.total : null,
-    };
   let reading = 0;
   if (byChapter) reading = manga.bookmark ?? 0;
   else if (tracks.volumes) reading = manga.readVolume ?? 0;

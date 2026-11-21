@@ -1,7 +1,6 @@
 // Where a card on the New tab leads, and what its cover is stamped with.
 // Worked out from what the release check found for the series; pure, no state.
 import { volumePath } from "../../lib/pricePaths";
-import { shortBookName } from "../../lib/editionShort";
 import {
   knowsNextVolume,
   nextVolumeName,
@@ -46,9 +45,9 @@ export function stampFor(found: Found, kind: ReleaseKind) {
     return `Ch. ${found?.nextChapter ?? found?.latestChapter ?? ""}`;
   if (kind === "japan")
     return `Vol. ${found?.outJapanVolumes[0] ?? found?.latestJapaneseVolume ?? ""}`;
-  // an edition's book, cut short to fit the stamp: "Def. 3"
-  if (found?.editionBooks)
-    return shortBookName(found.editionBooks.label, found.editionBooks.next);
+  // an edition's book: "Book 3", never a cut name like "Def. 3" (the card's
+  // words say which edition, in full)
+  if (found?.editionBooks) return `Book ${found.editionBooks.next}`;
   // no stamp when we can't say which volume is next
   if (found && nextVolumeNumber(found) == null) return "";
   return nextVolumeName(found);

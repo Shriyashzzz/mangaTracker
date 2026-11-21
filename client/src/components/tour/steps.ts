@@ -220,16 +220,16 @@ const COLLECTOR: { name: string; lines: Line[] }[] = [
         tab: "all",
         say: "Bring it all over: MyAnimeList, AniList, Kitsu, Goodreads, Book Catalogue or a spreadsheet. Deluxe and 3-in-1 editions are understood.",
         phoneSay:
-          "Bring it all over with Import your list, here in the menu: MyAnimeList, AniList, Kitsu, Goodreads, Book Catalogue or a spreadsheet.",
+          "Bring it all over with Import your list, under your avatar at the top right: MyAnimeList, AniList, Kitsu, Goodreads, Book Catalogue or a spreadsheet.",
         opening: {
           hello:
             "Hi, I'm Kenji! This practice shelf is a real collection of forty series. Yours comes over in one go from MyAnimeList, AniList, Kitsu, Goodreads, Book Catalogue or a spreadsheet.",
           welcome:
             "Welcome to the collector's side! Forty real series here, and yours comes over in one go from MyAnimeList, AniList, Kitsu, Goodreads, Book Catalogue or a spreadsheet.",
           phoneHello:
-            "Hi, I'm Kenji! This practice shelf is a real collection of forty series. Import your list, here in the menu, brings yours over in one go.",
+            "Hi, I'm Kenji! This practice shelf is a real collection of forty series. Import your list, under your avatar at the top right, brings yours over in one go.",
           phoneWelcome:
-            "Welcome to the collector's side! Forty real series here. Import your list, here in the menu, brings yours over in one go.",
+            "Welcome to the collector's side! Forty real series here. Import your list, under your avatar at the top right, brings yours over in one go.",
         },
         inMenuOnPhone: true,
       },
@@ -259,9 +259,8 @@ const COLLECTOR: { name: string; lines: Line[] }[] = [
       {
         path: DELUXE,
         exact: true,
+        // the "Collected as" picker under the title
         target: "edition",
-        // inside Buy it, folded on phones: opened first
-        unfold: "buy",
         say: "Collect a different edition? Pick it here: Single, Deluxe, or whatever the series comes in.",
       },
       {
@@ -282,14 +281,16 @@ const COLLECTOR: { name: string; lines: Line[] }[] = [
         target: "gaps",
         tap: true,
         opensNext: true,
-        say: "Now the gaps across your shelf. Every series says which volumes you own and how many you're missing. Haikyu!! is missing two: open it.",
+        say: "Now the gaps across your shelf. Each bar is a series you own. A break in it is a volume you don't have. Haikyu!! has one: open it.",
       },
       {
         path: "/shelf",
         tab: "volumes",
         target: "gaps-open",
         needsLastStep: true,
-        say: "Vol. 31 and 32 are the faded ones. Tap one to see what it costs.",
+        // above the shelf and its prices, never over what it points to
+        onTop: true,
+        say: "Vol. 31 and 32 are the empty spines. What they cost is right under the shelf. Tap a spine once it's yours.",
       },
       {
         path: "/prices/series/",

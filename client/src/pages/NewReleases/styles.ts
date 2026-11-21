@@ -16,9 +16,6 @@ export const newReleasesStyles = {
   // ink on paper in every theme; the dark theme would otherwise turn his face black
   kenji:
     "printed block aspect-square w-[110px] shrink-0 overflow-hidden rounded-full border-[2.5px] border-line bg-card px-2.5 pt-2.5 upto-760:w-[76px] upto-760:px-1.5 upto-760:pt-1.5",
-  // the lead, close under the title
-  intro: "-mt-2 flex flex-col gap-2",
-  lead: "max-w-[50ch] text-[clamp(1.15rem,3vw,1.35rem)] leading-[1.45] text-ink",
   sub: "max-w-[55ch] text-[1.02rem] leading-[1.5] text-ink-soft",
   // each section is a panel of its own, inked like the strip's
   section:

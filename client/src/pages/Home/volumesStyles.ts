@@ -30,16 +30,17 @@ export const volumesStyles = {
   row: "tap group flex w-full items-center gap-3 py-2.5 pr-1 text-left hover:bg-accent-wash/40 aria-expanded:bg-accent-wash/40 focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-accent focus-visible:outline-dashed",
   thumb:
     "cover-lines relative block h-[54px] w-9 shrink-0 overflow-hidden border-[1.5px] border-line bg-paper-2 [&>img]:size-full [&>img]:object-cover",
-  rowText: "flex min-w-0 flex-1 flex-col",
-  name: "flex h-6 min-w-0 items-baseline gap-2 truncate leading-6 font-medium",
+  rowText: "flex min-w-0 flex-1 flex-col gap-1.5",
+  // the name, the worth and the count on one line; the bar the row's width
+  // under them, so every row's bar lines up
+  rowTop: "flex min-w-0 items-baseline gap-3",
+  name: "flex h-6 min-w-0 flex-1 items-baseline gap-2 leading-6 font-medium",
+  nameText: "min-w-0 truncate",
   tag: "shrink-0 text-[0.75rem] font-medium text-muted uppercase tracking-[0.06em]",
-  which: "h-5 truncate font-mono text-[0.82rem] leading-5 text-ink-soft",
   // the right of a row: the count, and what those volumes would fetch
-  side: "flex shrink-0 flex-col items-end",
   count:
     "h-6 shrink-0 font-brand text-[1.35rem] leading-6 tracking-[0.02em] tabular-nums",
-  rowWorth:
-    "h-5 font-mono text-[0.72rem] leading-5 whitespace-nowrap text-muted",
+  rowWorth: "shrink-0 font-mono text-[0.72rem] whitespace-nowrap text-muted",
   chevron:
     "size-4 shrink-0 text-muted transition-transform duration-150 group-aria-expanded:rotate-180",
 
@@ -47,25 +48,9 @@ export const volumesStyles = {
   panelHead:
     "mb-3 flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1",
   panelSummary: "text-[0.9rem] font-semibold",
-  // the summary and its "Not on your shelf" button, side by side
-  panelSummaryRow: "flex flex-wrap items-center gap-x-3 gap-y-1.5",
   edit: "tap text-[0.84rem] font-medium text-ink-soft underline decoration-line-soft underline-offset-3 hover:text-ink hover:decoration-current",
   note: "mb-3 text-[0.84rem] text-ink-soft",
-  tiles:
-    "grid grid-cols-[repeat(auto-fill,minmax(88px,1fr))] gap-x-3 gap-y-4 upto-520:grid-cols-[repeat(auto-fill,minmax(72px,1fr))]",
-  tile: "group flex flex-col gap-1 focus-visible:outline-none",
-  cover:
-    "relative block aspect-2/3 overflow-hidden border-[1.5px] border-line bg-paper-2 shadow-ink transition-[translate,box-shadow] duration-200 ease-ink group-hover:-translate-y-0.5 group-focus-visible:outline-2 group-focus-visible:outline-offset-3 group-focus-visible:outline-accent group-focus-visible:outline-dashed [&>img]:relative [&>img]:size-full [&>img]:object-cover",
-  // not theirs yet: there, but faded and without its colour. The cover stays
-  // solid (so the drawn number behind it only shows if it fails) under a
-  // paper-coloured veil, which follows the theme
-  coverToGet:
-    "relative block aspect-2/3 overflow-hidden border-[1.5px] border-dashed border-line-soft bg-paper-2 transition-transform duration-200 ease-ink group-hover:-translate-y-0.5 group-focus-visible:outline-2 group-focus-visible:outline-offset-3 group-focus-visible:outline-accent group-focus-visible:outline-dashed [&>img]:relative [&>img]:size-full [&>img]:object-cover [&_img]:grayscale",
-  veil: "absolute inset-0 bg-paper/60 transition-opacity duration-200 group-hover:opacity-40",
   vol: "absolute top-0 left-0 bg-ink pt-[0.15rem] pr-[0.6rem] pb-[0.05rem] pl-1.5 font-brand text-[1.05rem] leading-none tracking-[0.02em] text-paper [clip-path:polygon(0_0,100%_0,calc(100%-6px)_100%,0_100%)]",
-  label: "flex items-center gap-1 text-[0.8rem] font-medium",
-  // can wrap to two lines under a narrow phone cover
-  labelToGet: "text-[0.8rem] leading-tight text-balance text-muted",
 
   // under an opened series: what's left to buy and where
   finish: "mt-6 border-t border-dashed border-line-soft pt-4",

@@ -2,7 +2,7 @@
 // on laptops, across the top on phones. Each tab has its own address, so the back
 // gesture steps between them.
 import { useEffect, useRef } from "react";
-import { Navigate, NavLink, useNavigate, useParams } from "react-router";
+import { Link, Navigate, useNavigate, useParams } from "react-router";
 import { signInPath } from "../../lib/api";
 import { usePrivatePage } from "../../lib/seo";
 import { useAccount } from "../../store/account";
@@ -73,15 +73,18 @@ export default function SettingsPage() {
           aria-label="Settings"
           ref={tabsRow}
         >
+          {/* plain links: the page says which is open (Profile at a bare
+              /settings too), where a NavLink would only mark one whose
+              address matches, and leave Profile's underline off */}
           {TABS.map((t) => (
-            <NavLink
+            <Link
               key={t.id}
               to={`/settings/${t.id}`}
               className={t.id === tab ? styles.tabActive : styles.tab}
               aria-current={t.id === tab ? "page" : undefined}
             >
               {t.label}
-            </NavLink>
+            </Link>
           ))}
         </nav>
 

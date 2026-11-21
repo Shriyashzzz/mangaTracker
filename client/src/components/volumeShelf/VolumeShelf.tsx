@@ -48,6 +48,9 @@ type Props = {
   here?: number | null;
   // ordered and on their way: drawn hatched, said in its name
   ordered?: number[];
+  // a paged shelf's first page: near this one, rather than where they are
+  // (the Volumes tab opens at their first gap)
+  opensAt?: number | null;
   // The shelf seen through an edition (lib/editionShelf.ts): each "volume"
   // here is then a slot, a book of the edition or a volume it has no book
   // for. The shelf works the same; these say how a slot differs
@@ -84,6 +87,7 @@ export default function VolumeShelf({
   name,
   here = null,
   ordered = [],
+  opensAt: asked = null,
   slots,
 }: Props) {
   const onTheWay = new Set(ordered);
@@ -141,6 +145,8 @@ export default function VolumeShelf({
     to: number;
     // a mouse: which way it slides decides, not the book it started on
     byDirection?: boolean;
+    // it has been off the book it started on
+    left: boolean;
   }>(null);
 
   useEffect(() => {
@@ -220,6 +226,15 @@ export default function VolumeShelf({
     const slide = painting.current;
     if (!slide || slide.to === to) return;
     slide.to = to;
+    // a tick for each book the slide reaches, as a tap gives one
+    tickUnderThumb();
+    // back on the book it started on after leaving it: the whole slide taken
+    // back, that book too (11 → 13 → 11 leaves 11 as it was, not ticked)
+    if (to === slide.from && slide.left) {
+      onPaint(slide.before);
+      return;
+    }
+    if (to !== slide.from) slide.left = true;
     const next = new Set(slide.before);
     // a mouse sliding on (to the right) owns what it passes, sliding back
     // disowns it; back on the book it started on, that one is as the click
@@ -239,7 +254,9 @@ export default function VolumeShelf({
       before: owned,
       to: v,
       byDirection,
+      left: false,
     };
+    tickUnderThumb();
     onPaint(
       yours.has(v)
         ? owned.filter((x) => x !== v)
@@ -385,7 +402,7 @@ export default function VolumeShelf({
     // near the volume they're in, when it's marked; else near the one after
     // the furthest they own (what Buy it calls next); a couple before it
     const nextUp = Math.floor(Math.max(0, ...owned)) + 1;
-    const opensAt = here ?? nextUp;
+    const opensAt = asked ?? here ?? nextUp;
     const from = Math.min(
       lastStart,
       Math.max(1, pageStart ?? Math.min(opensAt, total) - 2),

@@ -167,7 +167,9 @@ export default function VolumeCard({
             </span>
           )}
           {holds ? (
-            <span className={`card-vol ${styles.vol}`}>
+            // data-range: a book's "Vols. 34–36", which needs a wider cover
+            // than a volume's number (index.css .app-cover-grid)
+            <span className={`card-vol ${styles.vol}`} data-range>
               <small>Vols.</small>
               {holds.from}–{holds.to}
             </span>

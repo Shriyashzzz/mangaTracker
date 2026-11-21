@@ -57,6 +57,16 @@ const ENGLISH_ISBN = /^(9780|9781|9798)\d{9}$/;
 
 export const isIsbn13 = (value: string) => /^97[89]\d{10}$/.test(value);
 
+// an ISBN-13 whose last digit checks out: a typo in one digit fails it, so a
+// book saved with it would never match a real book or its price
+export function isbn13Ok(value: string | null | undefined): boolean {
+  if (!value || !isIsbn13(value)) return false;
+  const sum = [...value]
+    .slice(0, 12)
+    .reduce((acc, d, i) => acc + Number(d) * (i % 2 ? 3 : 1), 0);
+  return (10 - (sum % 10)) % 10 === Number(value[12]);
+}
+
 // accepts an ISBN-10 or ISBN-13 (dashes and spaces ignored) and returns
 // the ISBN-13, or null when it isn't one
 export function toIsbn13(raw: unknown): string | null {

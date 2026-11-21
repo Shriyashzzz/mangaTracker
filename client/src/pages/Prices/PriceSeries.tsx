@@ -26,7 +26,8 @@ import {
   usedCopies,
 } from "../../lib/finishCost";
 import { useFromShelf } from "../../lib/fromShelf";
-import { nextToGet, ownedOf, rangesText } from "../../lib/ownedVolumes";
+import { useNextFor } from "../../lib/prefs";
+import { buyNextOf, ownedOf, rangesText } from "../../lib/ownedVolumes";
 import { formatCents, novelParts } from "../../lib/prices";
 import { onSale } from "../../lib/releaseDate";
 import { usePageMeta } from "../../lib/seo";
@@ -73,6 +74,8 @@ export default function PriceSeries() {
   const series = useSeriesLoad(name, !params.get("name"));
   // the series on their shelf, if it is: which volumes are theirs
   const mine = useShelfMatch(name);
+  // which they buy first, the next or their gaps (Settings, Next in line)
+  const nextFor = useNextFor();
   const scannedSets = useBoxSetScan(name, series.key, Boolean(series.data));
 
   // which block of volumes is showing; resets when the series changes, and
@@ -168,12 +171,13 @@ export default function PriceSeries() {
   const boxSets = scannedSets ?? data.boxSets ?? [];
   const hasSets = shownSets(boxSets, editionLines.length > 0).length > 0;
   const headline = headlineLine(editionLines);
-  // the first whole volume out after the furthest they own (as Buy it says)
-  // a preorder isn't next to buy, nor part of what finishing costs
+  // the one to buy next, by Buy next's own rule (buyNextOf). A preorder
+  // isn't next to buy, nor part of what finishing costs
   const next = mine
-    ? (nextToGet(
+    ? (buyNextOf(
         mine,
         onSale(volumes).map((v) => v.volume),
+        nextFor === "gap",
       ) ?? undefined)
     : undefined;
   const toGet = mine ? stillToGet(volumes, mine) : volumes;

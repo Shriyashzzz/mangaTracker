@@ -1756,10 +1756,12 @@ html.in-app .bottom-bar > a {
   flex-direction: column;
   justify-content: flex-start;
   gap: 4px;
-  /* Android's 80px bar: 12 + the 32px pill + 4 + a 16px label + 16 */
+  /* Android's 80px bar: 8 + the 32px pill + 4 + the label's 22px + 14. The
+     room under the label keeps its letters clear of the phone's own swipe
+     strip, which cut their feet off flat when they sat lower */
   height: 80px;
   min-height: 80px;
-  padding: 12px 0 16px;
+  padding: 8px 0 14px;
   line-height: 16px;
   background: transparent;
   color: var(--ink-soft);
@@ -1767,6 +1769,13 @@ html.in-app .bottom-bar > a {
 }
 html.in-app .bottom-bar > a[aria-current="page"] {
   color: var(--ink);
+}
+/* the label's own room, a little more than its letters: Bangers' slanted
+   feet hang below its line, and a 16px line cut them off flat */
+html.in-app .bottom-bar .bar-label {
+  display: block;
+  line-height: 20px;
+  padding-bottom: 2px;
 }
 html.in-app .bottom-bar .bar-icon {
   position: relative;
@@ -2167,6 +2176,13 @@ html.in-app .app-cover-grid {
   column-gap: 10px;
   row-gap: 18px;
 }
+/* books holding several volumes ("Vols. 34–36") need wider covers: three a
+   row on a phone narrower than 400px, so the range is never cut short */
+@media (max-width: 399px) {
+  html.in-app .app-cover-grid:has([data-range]) {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
 /* a page's own tabs in the app (a series' Volumes and Editions): Android's
    tabs, equal parts of the width, the picked one in the accent over a bar */
 html.in-app .app-tabs {
@@ -2198,7 +2214,8 @@ html.in-app .app-cover-grid .card-mark {
   bottom: 4px;
   left: 4px;
   right: auto;
-  font-size: 0.68rem;
+  /* 11px: never smaller, or it can't be read */
+  font-size: 0.6875rem;
   padding: 0 4px;
 }
 html.in-app .app-cover-grid .card-vol {
@@ -2228,12 +2245,13 @@ html.in-app
 html.in-app .app-cover-grid li[data-pile] .card-stack-back ~ .card-stack-back {
   translate: 4px -4px !important;
 }
-/* a book's "Vols. 34–36" stays one line on a small cover */
+/* a book's "Vols. 34–36" stays one line on a small cover, its "Vols." never
+   under 11px (smaller can't be read) */
 html.in-app .app-cover-grid .card-vol {
   white-space: nowrap;
 }
 html.in-app .app-cover-grid .card-vol small {
-  font-size: 0.55rem;
+  font-size: 0.6875rem;
 }
 /* under a page's tabs, the tab's content starts close under them */
 html.in-app .app-tabs ~ div > section {
@@ -2515,6 +2533,20 @@ html.in-app .app-section-title {
 }
 /* their small labels ("Rate the series", "Your notes") in the body's own
    type, not a form's tiny monospace */
+/* Your shelf's heading, with what they own on its right ("You own 2 of 7") */
+html.in-app .app-shelf-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+}
+html.in-app .app-shelf-count {
+  font-family: var(--font-body);
+  font-size: 0.85rem;
+  letter-spacing: 0;
+  text-transform: none;
+  color: var(--ink-soft);
+}
 /* a heading starts its section: the old dividing rule under it goes */
 html.in-app .app-section-title + div {
   border-top: none;

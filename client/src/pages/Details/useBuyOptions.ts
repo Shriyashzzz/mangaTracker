@@ -2,7 +2,7 @@ import { onSale } from "../../lib/releaseDate";
 import { useEffect, useState } from "react";
 import { getSeries } from "../../lib/prices";
 import type { Series, SeriesVolume } from "../../lib/types";
-import { nextToGet, owns } from "../../lib/ownedVolumes";
+import { buyNextOf, nextToGet, owns } from "../../lib/ownedVolumes";
 import { useNextFor } from "../../lib/prefs";
 
 // a volume we know the number of
@@ -53,16 +53,22 @@ export function useBuyOptions(
   // the first one on sale after the furthest they own (only 2 -> vol. 3);
   // owning none, the one their next chapter is in, or the first after it
   const onSaleNumbers = out.map((v) => v.volume);
+  // the next after theirs, else their first gap (buyNextOf, the one rule);
+  // owning none, the one their next chapter is in, or the first after it
   const nextNumber =
     highest === 0 && readingFrom
       ? (onSaleNumbers
           .filter((v) => Number.isInteger(v) && v >= readingFrom)
           .sort((a, b) => a - b)[0] ?? null)
-      : nextToGet(owned, onSaleNumbers);
+      : buyNextOf(owned, onSaleNumbers, nextFor === "gap");
   const missing =
     nextNumber == null
       ? null
       : (out.find((v) => v.volume === nextNumber) ?? null);
+  // what Next settled on is one of their gaps
+  const nextIsGap = missing != null && missing.volume < highest;
+  // something out past the furthest they own
+  const newerOut = nextToGet(owned, onSaleNumbers) != null;
 
   // the gaps before the furthest they own: "Next for you" goes past them (a
   // gap was read some other way, as a rule), but a collector filling a run
@@ -82,20 +88,12 @@ export function useBuyOptions(
     );
   }
 
-  // their first gap's book, for a reader who fills gaps first. A gap the
-  // catalog has no book for can't be a ticket: the next after theirs then
-  const firstGap = gaps[0];
-  const gapBook =
-    nextFor === "gap" && firstGap?.isbn13
-      ? (out.find((v) => v.volume === firstGap.volume) ?? null)
-      : null;
-
   // the volume after their furthest when the catalogs list no book for it
   // (Hunter x Hunter's 15: only knock-off reprints, prices/singlesRules.ts):
   // still the one they need, never skipped for the next one that has a book
   const after = highest + 1;
   const unlisted =
-    !gapBook &&
+    !(nextIsGap && nextFor === "gap") &&
     highest > 0 &&
     latest &&
     after <= latest.volume &&
@@ -109,11 +107,11 @@ export function useBuyOptions(
     latest,
     gaps,
     // the one they need next, once we know what they own
-    next: unlisted != null ? null : (gapBook ?? missing),
+    next: unlisted != null ? null : missing,
     // the next one's number when no book of it is listed
     unlisted,
-    // nothing on sale after the furthest they own
-    caughtUp: Boolean(latest && highest > 0 && !missing && unlisted == null),
+    // nothing on sale after the furthest they own (gaps or not)
+    caughtUp: Boolean(latest && highest > 0 && !newerOut && unlisted == null),
     seriesName: state.data?.info?.name ?? state.data?.name ?? name ?? "",
   };
 }

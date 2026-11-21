@@ -23,6 +23,7 @@ import { useShelf } from "../../store/shelf";
 import { loadToBuyOnce, useToBuy } from "../../store/toBuy";
 import { isDemo } from "../../lib/demo";
 import { readLocal, useReleaseChecksOn } from "../../lib/prefs";
+import { forgetShelfPlace } from "../../lib/shelfTabKey";
 import { LAST_NEW_COUNT_KEY } from "../../lib/shelf";
 import { shownNewCount } from "../../lib/releaseMath";
 import { editionReleases } from "../../lib/editionNews";
@@ -152,16 +153,29 @@ export default function Header() {
     onClick: () => leaveTabFor(tab, currentTab, here),
   });
 
-  // My shelf in the phones' bar. From New, or back to a shelf last left on
-  // New, it's the shelf itself (All), opened at its top
+  // My shelf in the phones' bar (the app's and a small screen's). Tapped
+  // while on the shelf already, a tab, New or a series opened from it: the
+  // shelf as it opens at first, on their start tab, at its top, nothing
+  // open, as an Android app's bar does. From Prices, back where they were;
+  // to a shelf last left on New, the shelf itself (All), at its top
   const remembered = barLink("shelf");
   const toAll = onNew || /[?&]tab=new/.test(remembered.to);
-  const shelfLink = toAll
-    ? {
-        to: "/shelf?tab=all",
-        onClick: () => leaveTabForTop("shelf", currentTab, here),
-      }
-    : remembered;
+  const shelfLink =
+    currentTab === "shelf"
+      ? {
+          to: "/shelf",
+          "data-shelf-reset": true,
+          onClick: () => {
+            forgetShelfPlace();
+            leaveTabForTop("shelf", currentTab, here);
+          },
+        }
+      : toAll
+        ? {
+            to: "/shelf?tab=all",
+            onClick: () => leaveTabForTop("shelf", currentTab, here),
+          }
+        : remembered;
 
   const handleLogOut = async () => {
     if (await logOut()) {
@@ -191,7 +205,8 @@ export default function Header() {
               alt=""
               className="size-[30px] transition-transform duration-250 ease-ink group-hover:-rotate-10"
             />
-            <span>Manga Tracker</span>
+            {/* one line, even at a phone's largest font size */}
+            <span className="whitespace-nowrap">Manga Tracker</span>
           </NavLink>
         )}
 
@@ -277,6 +292,8 @@ export default function Header() {
           onClickCapture={(e) => {
             const link = (e.target as Element).closest("a");
             if (!link) return;
+            // My shelf from the shelf: always the shelf afresh (shelfLink)
+            if (link.hasAttribute("data-shelf-reset")) return;
             const to = new URL(link.href);
             if (to.pathname + to.search !== pathname + search) return;
             e.preventDefault();

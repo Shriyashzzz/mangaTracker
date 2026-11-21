@@ -72,6 +72,11 @@ html .backdrop {
   transform: translateY(-50%) rotate(-7deg);
 }
 
+/* the lettering is the price pages' alone (App.tsx sets data-prices there) */
+[data-bg="sfx"]:not([data-prices]) .backdrop-sfx {
+  display: none;
+}
+
 /* 2. a single dry-brush ensō, half off the left edge of the screen */
 [data-bg="ink"] .backdrop::before {
   content: "";

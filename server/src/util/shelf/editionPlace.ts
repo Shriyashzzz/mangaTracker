@@ -24,9 +24,6 @@ export type EditionPlace = {
   label: string;
   // the book their read volume is in; null when it's in none, or none read
   read: number | null;
-  // how many real books the line has: a card says "book 3 of 9", counting
-  // in the same books as "own Definitive 1–2"
-  total: number;
   // the books they own, when every volume they own is in a book they own
   // all of; null when it isn't so (or they own nothing)
   owned: number[] | null;
@@ -50,6 +47,9 @@ export type EditionPlace = {
   // every book out that they don't have, in order, for the New tab's list
   // ("Definitive 3, 4, 5, 6"): what `behind` counts
   toGet: { number: number; isbn13: string | null; title: string | null }[];
+  // the volumes in each of the line's books that are out, in order: the
+  // Volumes tab draws a row's bar in them (books, then any singles after)
+  books: number[][];
 };
 
 export function editionPlaceOf(
@@ -101,7 +101,6 @@ export function editionPlaceOf(
   return {
     label: line.label,
     read,
-    total: books.length,
     owned: allInBooks ? whole.map((book) => book.number) : null,
     next: next?.number ?? null,
     nextPublished: next?.published ?? null,
@@ -115,5 +114,6 @@ export function editionPlaceOf(
       title: book.title ?? null,
     })),
     upTo: furthest < 0 ? null : books[furthest]!.number,
+    books: books.filter((book) => !comesLater(book)).map((b) => b.volumes),
   };
 }

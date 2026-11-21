@@ -71,8 +71,10 @@ const isbnParam = [
 const searchQuery = [
   query("q")
     .trim()
-    .isLength({ min: 2, max: 100 })
-    .withMessage("Search for at least 2 characters"),
+    .isLength({ min: 2 })
+    .withMessage("Search for at least 2 characters")
+    .isLength({ max: 100 })
+    .withMessage("Searches can be up to 100 characters"),
   rejectInvalid,
 ];
 

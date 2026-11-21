@@ -75,15 +75,19 @@ export async function withNearMatches<T>(
   const hits = await search(query, false);
   if (hits.length) return { hits, guessed: false };
   for (const word of wordsToTry(query)) {
-    const near = (await search(word, true)).filter((hit) =>
-      closeEnough(query, titleOf(hit)),
+    // one letter, or one emoji, isn't a search of its own (the server turns
+    // it down); and a word's retry that fails is just no match, never the
+    // whole search failing
+    if ([...word].length < 2) continue;
+    const near = (await search(word, true).catch(() => [] as T[])).filter(
+      (hit) => closeEnough(query, titleOf(hit)),
     );
     if (near.length) return { hits: near, guessed: true };
   }
   const names = await knownNear(query);
   for (const name of names.slice(0, NAMES_TRIED)) {
-    const found = (await search(name, false)).filter((hit) =>
-      closeEnough(name, titleOf(hit)),
+    const found = (await search(name, false).catch(() => [] as T[])).filter(
+      (hit) => closeEnough(name, titleOf(hit)),
     );
     if (found.length) return { hits: found, guessed: true };
   }

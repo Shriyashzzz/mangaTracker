@@ -18,6 +18,20 @@ startRipples();
 // the "Install the app" button
 listenForInstall();
 
+// a page change's slide (a link's viewTransition) cut short when the screen
+// changes size under it, as the keyboard opening does: the browser drops the
+// animation and the page still changes, so its "Transition was aborted" is
+// no error. Only that one; every other stays an error
+window.addEventListener("unhandledrejection", (e) => {
+  const reason: unknown = e.reason;
+  if (
+    reason instanceof DOMException &&
+    (reason.name === "InvalidStateError" || reason.name === "AbortError") &&
+    /transition/i.test(reason.message)
+  )
+    e.preventDefault();
+});
+
 // a deploy replaced the page code an open tab still asks for: load the new
 // version, once (a second failure in a minute shows the error page instead)
 window.addEventListener("vite:preloadError", (e) => {

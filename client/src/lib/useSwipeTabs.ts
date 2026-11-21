@@ -1,8 +1,9 @@
 // Swiping left or right across the shelf moves to the next or previous tab
 // (All, Reading, Finished…), as tabs do in Android's own apps. In the app
 // only (lib/inApp.ts), and never when the finger starts on something that
-// moves sideways itself (a row of chips, a slider, a field), on an open
-// sheet, or at the screen's edge, where Android's own Back swipe is
+// moves sideways itself (a row of chips, a slider, a field, the shelf of
+// spines a slide ticks: the Volumes tab has one), on an open sheet, or at
+// the screen's edge, where Android's own Back swipe is
 import { useEffect, useRef } from "react";
 import { inApp } from "./inApp";
 import { tick } from "./haptics";
@@ -17,7 +18,9 @@ const EDGE_PX = 24;
 function movesSideways(target: EventTarget | null) {
   let el = target instanceof Element ? target : null;
   if (
-    el?.closest('input, textarea, select, dialog, .app-sheet, [role="slider"]')
+    el?.closest(
+      'input, textarea, select, dialog, .app-sheet, [role="slider"], .vshelf-box',
+    )
   )
     return true;
   for (; el && el !== document.body; el = el.parentElement) {

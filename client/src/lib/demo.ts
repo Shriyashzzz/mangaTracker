@@ -1032,9 +1032,24 @@ export async function demoResponse(
     return json({ trending: [], deals: [], recent: [] });
   }
   if (route === "/api/prices/series-index") return json([]);
-  if (route === "/api/prices/series-search" || route === "/api/prices/search") {
-    return json({ results: [] });
-  }
+  // looking things up isn't the account's: the real public answers, as any
+  // visitor gets them (nothing of the account goes with them)
+  if (
+    route === "/api/prices/series-search" ||
+    route === "/api/prices/search" ||
+    route === "/api/prices/editions-index"
+  )
+    return fetch(`${import.meta.env.VITE_API_URL ?? ""}${path}`);
+  // the practice account's To buy list starts empty, as a new account's does
+  if (route === "/api/to-buy" && method === "GET")
+    return json({
+      items: [],
+      totals: {
+        volumes: 0,
+        new: { cents: 0, volumes: 0 },
+        used: { cents: 0, volumes: 0 },
+      },
+    });
   const volume = route.match(/^\/api\/prices\/(\d{13})$/);
   if (volume) return json(volumePage(volume[1]!, shelf, collector));
 

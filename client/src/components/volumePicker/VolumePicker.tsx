@@ -13,6 +13,7 @@
 // edition's books instead, as the details page's shelf does: tap a book to
 // own every volume in it (lib/editionShelf.ts). What the form sends is still
 // volumes.
+import { tick } from "../../lib/haptics";
 import {
   useId,
   useRef,
@@ -101,6 +102,10 @@ export function useVolumePicker(
     // a mouse: which way it drags decides, not the spine it started on (as
     // on the details page's shelf)
     byDirection?: boolean;
+    // the spine it's over now: a tick each time that changes
+    at: number | null;
+    // it has been off the spine it started on
+    left: boolean;
   }>(null);
   // the last spine touched, for shift-click
   const anchor = useRef<number | null>(null);
@@ -135,6 +140,16 @@ export function useVolumePicker(
   const paintTo = (to: number) => {
     const drag = painting.current;
     if (!drag) return;
+    // a tick for each spine the drag reaches, as on the series page's shelf
+    if (drag.at !== to) tick();
+    drag.at = to;
+    // back on the spine it started on after leaving it: the whole drag taken
+    // back, that spine too (11 → 13 → 11 leaves 11 as it was)
+    if (to === drag.from && drag.left) {
+      setOwned(drag.before);
+      return;
+    }
+    if (to !== drag.from) drag.left = true;
     const next = new Set(drag.before);
     // a mouse dragging on (to later volumes) stands up what it passes,
     // dragging back lays it down; back on the spine it started on, that one
@@ -152,6 +167,8 @@ export function useVolumePicker(
       up: !owned.includes(v),
       before: owned,
       byDirection,
+      at: null,
+      left: false,
     };
     paintTo(v);
     anchor.current = v;

@@ -1,6 +1,7 @@
 // The books behind a shelf entry's owned volumes (owned_books). The volumes on
 // manga stay the truth for everything else; a book is the record of which
 // physical book put them there.
+import { isbn13Ok } from "../prices/sources/catalog.js";
 import { prisma } from "../config/prisma.js";
 import { ownedVolumes } from "../util/shelf/ownedList.js";
 import { ownedSet } from "../collector/shelfMath.js";
@@ -116,6 +117,9 @@ export async function addBooks(mangaId: number, books: BookInput[]) {
   for (const book of books) {
     const tidy = {
       ...book,
+      // a mistyped ISBN is dropped, the book kept: it would never match a
+      // real book or its price (one typo shouldn't refuse a whole import)
+      isbn13: isbn13Ok(book.isbn13) ? book.isbn13 : null,
       volumes: [...new Set(book.volumes)].sort((a, b) => a - b),
     };
     const at = unmatched.findIndex((h) => sameBook(h, tidy));

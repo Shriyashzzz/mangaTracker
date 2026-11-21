@@ -545,7 +545,8 @@ export default function Details() {
                     single volumes: the shelf, the counter and Buy next all
                     follow it. The same choice as Buy next's "as" */}
                 {editions.lines.length > 0 && (
-                  <li className={styles.metaEdition}>
+                  // the tour's "Collect a different edition?" points here
+                  <li className={styles.metaEdition} data-tour="edition">
                     <SortMenu
                       lead=""
                       menuLabel="Collected as"
@@ -625,7 +626,6 @@ export default function Details() {
             finished={mangaStatus}
             planned={planned}
             trackBy={trackBy}
-            owned={owned}
             highestOwned={highestOwned}
             volumeSets={volumeSets}
             edition={editionShelf}
