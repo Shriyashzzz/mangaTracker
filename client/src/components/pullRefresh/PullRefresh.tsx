@@ -47,12 +47,17 @@ export default function PullRefresh({
       data-stage={stage}
       style={{ top, height }}
       role={busy ? "status" : undefined}
-      aria-label={busy ? "Refreshing your shelf" : undefined}
+      aria-label={busy ? "Refreshing" : undefined}
     >
       {look === "kenji" ? (
         <>
           <span className="pull-rope" style={{ height: rope }} />
-          <span className="pull-kenji" style={{ top: rope, width: kenji }}>
+          {/* Kenji as he's drawn, light whatever the theme, as everywhere else
+              he appears (index.css .printed) */}
+          <span
+            className="printed pull-kenji"
+            style={{ top: rope, width: kenji }}
+          >
             <Mascot
               mood={
                 stage === "busy"
