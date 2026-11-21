@@ -84,11 +84,13 @@ export default function GoogleButton({
         Google sign-in isn't available right now.
       </p>
     );
-  // the height of Google's large button, so nothing jumps when it arrives
+  // the height of Google's large button, so nothing jumps when it arrives.
+  // Light whatever the theme: Google's frame is a light page, and Android's
+  // Chrome paints a white box behind a light frame set in a dark page
   return (
     <div
       ref={box}
-      className={`flex min-h-11 w-full ${align === "start" ? "justify-start" : "justify-center"}`}
+      className={`flex min-h-11 w-full [color-scheme:light] ${align === "start" ? "justify-start" : "justify-center"}`}
     />
   );
 }
