@@ -4,7 +4,12 @@
 // if one is waiting (it has the failed tick in it too); only when the last
 // one fails does the shelf go back to what the server last said.
 import { useRef, type Dispatch, type SetStateAction } from "react";
-import { ownedOf, ownedVolumes, toggleVolume } from "../../lib/ownedVolumes";
+import {
+  ownedOf,
+  ownedVolumes,
+  toggleVolume,
+  withOwned,
+} from "../../lib/ownedVolumes";
 import { isNetworkError, isOffline } from "../../lib/offline";
 import { keepOwnedChange } from "../../lib/offlineChanges";
 import { setVolumesOwned, type Owned } from "../../lib/shelf";
@@ -76,7 +81,7 @@ export function useOwnedVolumes({
         next: null,
         saving: false,
       });
-    setManga({ ...manga, ...next });
+    setManga(withOwned(manga, next));
     onTick();
     queues.current.get(manga.id)!.next = next;
     void save(manga.id);

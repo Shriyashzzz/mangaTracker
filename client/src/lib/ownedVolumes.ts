@@ -132,3 +132,19 @@ export function ownedPhrase(m: Owned, longest = 24): string | null {
       : `${comma > 0 ? text.slice(0, comma) : text.slice(0, longest)}…`;
   return `${m.ownedList.length === 1 ? "vol." : "vols."} ${cut}`;
 }
+
+// a series with what it owns changed: and a volume owned now is no longer
+// "ordered", as the database does the moment it's saved (its manga_arrived
+// trigger). Every place that changes what's owned goes through here, so the
+// page never shows a volume ordered that the server has already let go
+export function withOwned<M extends Owned & { orderedList?: number[] }>(
+  manga: M,
+  owned: Owned,
+): M {
+  const next = { ...manga, ...owned };
+  const have = new Set(ownedOf(next));
+  return {
+    ...next,
+    orderedList: (manga.orderedList ?? []).filter((v) => !have.has(v)),
+  };
+}

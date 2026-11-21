@@ -26,7 +26,11 @@ import { type EditionBook, type EditionLine } from "../../lib/editions";
 import { slotsOf } from "../../lib/editionShelf";
 import { todayOf } from "../../lib/editionNews";
 import { SortMenu } from "../Home/ShelfBar";
-import { ownedOf, ownedVolumes as ownedFrom } from "../../lib/ownedVolumes";
+import {
+  ownedOf,
+  ownedVolumes as ownedFrom,
+  withOwned,
+} from "../../lib/ownedVolumes";
 import { useReleaseChecksOn, useTrackBy } from "../../lib/prefs";
 import { priceName } from "../../lib/prices";
 import { tracksOf } from "../../lib/reading";
@@ -367,7 +371,7 @@ export default function Details() {
       book,
     );
     // onto the page as it is now, not as it was when the tap started
-    setMangaData((now) => now && { ...now, ...owned });
+    setMangaData((now) => now && withOwned(now, owned));
     setBooksChanged((n) => n + 1);
     void useShelf.getState().load();
     if (!books) throw new Error("The book didn't save");
@@ -381,7 +385,7 @@ export default function Details() {
       mangaData.id,
       ownedFrom(null, [...ownedOf(mangaData), volume]),
     );
-    setMangaData((now) => now && { ...now, ...owned });
+    setMangaData((now) => now && withOwned(now, owned));
     setBooksChanged((n) => n + 1);
     void useShelf.getState().load();
   };
@@ -688,11 +692,11 @@ export default function Details() {
             <YourBooks
               mangaId={mangaData.id}
               owned={owned}
-              onRemoved={(left) => setMangaData({ ...mangaData, ...left })}
+              onRemoved={(left) => setMangaData(withOwned(mangaData, left))}
               lines={editions.lines}
               collects={editionShelf}
               onAdded={(owned) =>
-                setMangaData((now) => now && { ...now, ...owned })
+                setMangaData((now) => now && withOwned(now, owned))
               }
               booksChanged={booksChanged}
             />
