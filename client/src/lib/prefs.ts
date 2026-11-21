@@ -222,3 +222,16 @@ export const syncPrefs = async () => {
     // keep the local preferences
   }
 };
+
+// the shelf tab picked this visit (pages/Home/useShelfTab.ts), in this
+// browser tab's sessionStorage: forgotten when they sign in or out, so a
+// sign-in opens their "First tab to open", never the tab the last reader of
+// this browser tab left open
+export const SHELF_TAB_KEY = "libraryStatus";
+export const forgetShelfTab = () => {
+  try {
+    sessionStorage.removeItem(SHELF_TAB_KEY);
+  } catch {
+    /* ignore */
+  }
+};

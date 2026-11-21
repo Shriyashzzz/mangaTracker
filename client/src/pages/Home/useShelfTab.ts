@@ -5,7 +5,7 @@
 // before the account's choice does waits on All until checks turn on.
 import { useEffect, useState } from "react";
 import { useSearchParams } from "react-router";
-import { readLocal, useReleaseChecksOn } from "../../lib/prefs";
+import { readLocal, SHELF_TAB_KEY, useReleaseChecksOn } from "../../lib/prefs";
 import {
   readSession,
   TAB_FROM_URL,
@@ -24,7 +24,7 @@ export function useShelfTab() {
     // a link to a view (/shelf?tab=reading) wins over where they were last
     const linked = TAB_FROM_URL[searchParams.get("tab") ?? ""];
     const saved =
-      linked ?? readSession("libraryStatus", readLocal("shelfTab") ?? "all");
+      linked ?? readSession(SHELF_TAB_KEY, readLocal("shelfTab") ?? "all");
     // no New tab with release checks off
     return saved === "new" && !checksOn ? "all" : saved;
   });
@@ -65,7 +65,7 @@ export function useShelfTab() {
   // picked by them: remembered for this visit
   const pickTab = (value: string) => {
     setTab(value);
-    writeSession("libraryStatus", value);
+    writeSession(SHELF_TAB_KEY, value);
   };
 
   return { tab, pickTab, wantHidden, checksOn };

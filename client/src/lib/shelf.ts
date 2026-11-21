@@ -4,6 +4,7 @@ import { apiFetch, getJson } from "./api";
 import type { ReleaseData, ReleaseStatus, ShelfMatch } from "./types";
 import type { ReleaseOutcome, SeenKind } from "./releaseMath";
 import { orOffline } from "./offline";
+import { SHELF_TAB_KEY } from "./prefs";
 
 // release dates and what's new in English for one manga on the shelf
 // the shelf says which lane it waits in (lib/releaseOrder.ts); the details
@@ -80,7 +81,7 @@ export const LAST_NEW_COUNT_KEY = "releasesLastNewCount";
 // makes the shelf open on its New tab; call just before going to /shelf
 export const openReleasesOnShelf = () => {
   try {
-    sessionStorage.setItem("libraryStatus", "new");
+    sessionStorage.setItem(SHELF_TAB_KEY, "new");
   } catch {
     // storage can be blocked; the shelf just opens on its usual tab
   }

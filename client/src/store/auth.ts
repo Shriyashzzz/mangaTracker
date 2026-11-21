@@ -12,7 +12,7 @@ import { apiFetch } from "../lib/api";
 import { useShelf } from "./shelf";
 import { useToBuy } from "./toBuy";
 import { useBookImport } from "./bookImport";
-import { readLocal, syncPrefs, writeLocal } from "../lib/prefs";
+import { forgetShelfTab, readLocal, syncPrefs, writeLocal } from "../lib/prefs";
 
 // were they signed in last time? Lets the front page wait for the answer rather
 // than flash the price search at someone about to go to their shelf. Only a hint:
@@ -61,6 +61,7 @@ export const useAuth = create<AuthState>()((set) => ({
     useToBuy.getState().reset();
     // someone else's import, if they shared the browser
     useBookImport.getState().clear();
+    forgetShelfTab();
     set({ isSignedIn: true });
     remember(true);
     syncPrefs();
@@ -79,6 +80,7 @@ export const useAuth = create<AuthState>()((set) => ({
       useShelf.getState().reset();
       useToBuy.getState().reset();
       useBookImport.getState().clear();
+      forgetShelfTab();
       set({ isSignedIn: false });
       remember(false);
     }

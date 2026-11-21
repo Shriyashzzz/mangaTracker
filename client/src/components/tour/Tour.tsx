@@ -23,6 +23,7 @@ import {
 import { createPortal } from "react-dom";
 import { useLocation, useNavigate } from "react-router";
 import { hasBottomBar } from "../../lib/bottomBar";
+import { SHELF_TAB_KEY } from "../../lib/prefs";
 import {
   demoKind,
   endDemo,
@@ -273,7 +274,7 @@ function Guide({ onClose }: { onClose: () => void }) {
     try {
       sessionStorage.setItem(STEP_KEY, String(next));
       if (TOUR_STEPS[next]?.tab === "all")
-        sessionStorage.setItem("libraryStatus", "all");
+        sessionStorage.setItem(SHELF_TAB_KEY, "all");
     } catch {
       /* it just won't survive a refresh */
     }
