@@ -48,6 +48,7 @@ import {
   getPricedCount,
   getSeries,
   getSeriesIndex,
+  getEditionsIndex,
   getSeriesSummary,
   getVolumePrices,
   getVolumeSummary,
@@ -346,6 +347,12 @@ const deals = async (_req: Request, res: Response) => {
 // GET /series-index  the /series page
 const seriesIndex = async (_req: Request, res: Response) => {
   res.set("Cache-Control", CACHE_10_MIN).json(await getSeriesIndex());
+};
+
+// GET /editions-index  the /editions page: every series with an omnibus or
+// deluxe line, and what each line holds
+const editionsIndex = async (_req: Request, res: Response) => {
+  res.set("Cache-Control", CACHE_10_MIN).json(await getEditionsIndex());
 };
 
 // GET /cover/:isbn?w=330  the edition's cover image. With a width (one of
@@ -648,6 +655,7 @@ export default {
   highlights,
   deals,
   seriesIndex,
+  editionsIndex,
   cover,
   seriesCover,
   shelfCardImage,

@@ -140,6 +140,17 @@ export type SeriesCost = {
   enough: boolean;
 };
 
+// what a run costs, as the pages say it: to the cent when every book is
+// priced, else an estimate to the nearest $10 ("About $480"), since cents
+// would claim a precision it lacks. Null when too little is priced to say
+// (SeriesCostBox's "Collect every volume", OtherEditions' line beside it)
+export function runTotal(cost: SeriesCost | null) {
+  if (!cost || cost.estimateCents == null || !cost.enough) return null;
+  return cost.complete
+    ? { cents: cost.estimateCents, exact: true }
+    : { cents: Math.round(cost.estimateCents / 1000) * 1000, exact: false };
+}
+
 // the used copies found for a series, added up: how many of its volumes
 // have one, and what those cost together. No estimate for the rest: a volume
 // with no used copy on sale can't be bought used, so there's no total to

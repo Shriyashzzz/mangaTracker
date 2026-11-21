@@ -198,6 +198,10 @@ export default function SeriesIndex() {
           {all?.length ? ` (${all.length})` : ""}. Pick one to compare its
           volumes across US stores.
         </p>
+        {/* the omnibus and deluxe lines, which volumes each book holds */}
+        <NavLink to="/editions" className={styles.editionsMore} viewTransition>
+          Omnibus and deluxe editions →
+        </NavLink>
 
         <div className={styles.indexControls}>
           <div className={styles.segmented} role="group" aria-label="Sort">

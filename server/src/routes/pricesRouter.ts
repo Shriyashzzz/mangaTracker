@@ -20,6 +20,7 @@ pricesRouter.get("/highlights", perMinute(60), prices.highlights);
 pricesRouter.get("/stats", perMinute(60), prices.stats);
 pricesRouter.get("/deals", perMinute(60), prices.deals);
 pricesRouter.get("/series-index", perMinute(60), prices.seriesIndex);
+pricesRouter.get("/editions-index", perMinute(60), prices.editionsIndex);
 pricesRouter.get("/series", perMinute(40), prices.series);
 // a look for its box sets at the free sources, when the saved answer is old
 pricesRouter.get("/series-sets", perMinute(20), prices.seriesSets);

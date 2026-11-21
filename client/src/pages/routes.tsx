@@ -16,6 +16,7 @@ import { AcknowledgementsPage } from "./Acknowledgements/Acknowledgements";
 import { PrivacyPage } from "./Privacy/Privacy";
 import SharedShelfPage from "./SharedShelf/SharedShelf";
 import SeriesIndex from "./Prices/SeriesIndex";
+import EditionsIndex from "./Prices/EditionsIndex";
 import Deals from "./Prices/Deals";
 import PriceSeries from "./Prices/PriceSeries";
 import PriceVolume from "./Prices/PriceVolume";
@@ -122,6 +123,7 @@ export const routes = [
         element: <EmailLink action="unsubscribe" />,
       },
       { path: "/series", element: <SeriesIndex /> },
+      { path: "/editions", element: <EditionsIndex /> },
       {
         path: "/to-buy",
         lazy: page(

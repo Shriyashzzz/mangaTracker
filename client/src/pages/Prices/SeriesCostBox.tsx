@@ -5,7 +5,7 @@
 // so this is for deciding. Never asks for a price (lib/finishCost.ts)
 import { NavLink, useLocation } from "react-router";
 import { formatCents, wholeMoney } from "../../lib/prices";
-import type { SeriesCost } from "../../lib/finishCost";
+import { runTotal, type SeriesCost } from "../../lib/finishCost";
 import { pricesStyles as styles } from "./styles";
 
 export default function SeriesCostBox({
@@ -22,12 +22,11 @@ export default function SeriesCostBox({
   // volumes listed but not out yet: "all 9 out now" beside a title saying 12
   comingSoon: boolean;
 }) {
-  const all = cost.complete;
   // too few priced to say what the lot costs: how many are priced so far,
   // never a guess (the FAQ promises the same)
-  const sayTotal = cost.estimateCents != null && cost.enough;
-  if (!sayTotal && !used) return null;
-  if (cost.estimateCents == null || !sayTotal)
+  const run = runTotal(cost);
+  if (!run && !used) return null;
+  if (!run)
     return (
       <aside
         className={styles.costBox}
@@ -47,10 +46,8 @@ export default function SeriesCostBox({
         {isSignedIn === false && <TrackButton />}
       </aside>
     );
-  // an estimate to the nearest $10: cents would claim a precision it lacks
-  const total = all
-    ? cost.estimateCents
-    : Math.round(cost.estimateCents / 1000) * 1000;
+  const all = run.exact;
+  const total = run.cents;
   return (
     <aside
       className={styles.costBox}

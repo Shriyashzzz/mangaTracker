@@ -134,6 +134,12 @@ export const pricesStyles = {
   editionTab:
     "tap inline-flex min-h-9 items-center gap-2 rounded-[2px] border-[1.5px] border-line-soft bg-paper px-3 text-[0.88rem] font-medium text-ink-soft transition-[color,border-color,background-color] duration-120 ease-[ease] hover:border-line hover:text-ink aria-pressed:border-line aria-pressed:bg-ink aria-pressed:text-paper",
   editionTabCount: "font-mono text-[0.72rem] opacity-70",
+  // under a line's books: the whole run new, its books and the singles
+  editionCosts:
+    "mt-4 flex flex-col gap-0.5 font-mono text-[0.82rem] text-ink-soft [&_strong]:font-semibold [&_strong]:text-ink",
+  // the way to every series with editions
+  editionsMore:
+    "tap mt-3 inline-block w-fit text-[0.9rem] font-medium text-ink-soft underline decoration-line-soft underline-offset-3 hover:text-ink hover:decoration-current",
   editionList:
     "mb-4 grid grid-cols-[repeat(auto-fill,minmax(17rem,1fr))] gap-x-8 border-t-[1.5px] border-line",
   editionRow:

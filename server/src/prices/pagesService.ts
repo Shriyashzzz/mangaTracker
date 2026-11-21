@@ -21,6 +21,8 @@ import {
 import { seriesName, seriesOfBook, slugify } from "./stores/match.js";
 import { dropUnlikelyNew } from "./stores/retailers.js";
 import { volumesKey } from "./volumesKey.js";
+import { editionsKey } from "./editionSource.js";
+import type { EditionLine } from "./editionLines.js";
 import { isCollection, type SeriesHit } from "./types.js";
 import { publisherOf } from "./publishers.js";
 import { isRebind, getSeries } from "./seriesService.js";
@@ -60,6 +62,88 @@ export async function getSeriesIndex() {
       knownVolumes: volumesKnown(info.name),
     }))
     .filter((entry) => entry.knownVolumes > 0);
+}
+
+// ---------- editions index ----------
+
+// one edition line of a series, as the /editions page lists it
+type EditionsEntryLine = {
+  key: string;
+  label: string;
+  books: number;
+  // the series' volumes the line's books hold, first and last
+  from: number;
+  to: number;
+  // each book's number and its first and last volume, in order: the page
+  // draws the line as its books side by side, each as wide as it holds
+  spans: { number: number; from: number; to: number }[];
+};
+
+// every series with an omnibus or deluxe line saved (editionSource.ts, beside
+// its other lists), most popular first: the /editions page, its crawler text
+// and the sitemap. Database and memory only, never a catalog
+const EDITIONS_INDEX_MS = 10 * 60_000;
+let editionsIndexKept: {
+  at: number;
+  entries: Awaited<ReturnType<typeof readEditionsIndex>>;
+} | null = null;
+export async function getEditionsIndex(now = Date.now()) {
+  if (editionsIndexKept && now - editionsIndexKept.at < EDITIONS_INDEX_MS)
+    return editionsIndexKept.entries;
+  const entries = await readEditionsIndex();
+  editionsIndexKept = { at: now, entries };
+  return entries;
+}
+
+async function readEditionsIndex() {
+  const [rows, series] = await Promise.all([
+    prisma.seriesVolumes.findMany({
+      where: { key: { endsWith: ":editions" } },
+      select: { key: true, volumes: true },
+    }),
+    listKnownSeries(),
+  ]);
+  const linesByKey = new Map(
+    rows.map((row) => [row.key, row.volumes as unknown as EditionLine[]]),
+  );
+  const entries = [];
+  for (const info of series) {
+    const saved = linesByKey.get(editionsKey(info.name));
+    if (!Array.isArray(saved)) continue;
+    const lines: EditionsEntryLine[] = [];
+    for (const line of saved) {
+      const held = (line.books ?? []).flatMap((book) => book.volumes ?? []);
+      if (!held.length) continue;
+      const spans = line.books
+        .filter((book) => book.volumes?.length)
+        .map((book) => ({
+          number: book.number,
+          from: Math.min(...book.volumes),
+          to: Math.max(...book.volumes),
+        }));
+      lines.push({
+        key: line.key,
+        label: line.label,
+        books: line.books.length,
+        from: Math.min(...held),
+        to: Math.max(...held),
+        spans,
+      });
+    }
+    if (!lines.length) continue;
+    entries.push({
+      name: info.name,
+      slug: slugify(info.name),
+      coverUrl: info.coverUrl,
+      popularityRank: info.popularityRank,
+      lines,
+    });
+  }
+  return entries.sort(
+    (a, b) =>
+      (a.popularityRank ?? Infinity) - (b.popularityRank ?? Infinity) ||
+      a.name.localeCompare(b.name),
+  );
 }
 
 // ---------- link previews ----------
@@ -224,8 +308,30 @@ export async function getSeriesSummary(asked: string) {
     .sort(([a], [b]) => a - b)
     .map(([, v]) => v)
     .slice(0, SUMMARY_VOLUMES);
+  // its omnibus and deluxe lines as saved, book by book: which volumes each
+  // holds, for the crawler text's "Other editions" (database only)
+  const savedLines = await prisma.seriesVolumes
+    .findUnique({
+      where: { key: editionsKey(info.name) },
+      select: { volumes: true },
+    })
+    .catch(() => null);
+  const editions = (
+    Array.isArray(savedLines?.volumes)
+      ? (savedLines.volumes as unknown as EditionLine[])
+      : []
+  )
+    .map((line) => ({
+      key: line.key,
+      label: line.label,
+      books: (line.books ?? [])
+        .filter((book) => book.volumes?.length)
+        .map((book) => ({ number: book.number, volumes: book.volumes })),
+    }))
+    .filter((line) => line.books.length);
   return {
     name: info.name,
+    editions,
     description: info.description,
     coverUrl: info.coverUrl,
     genres: info.genres,

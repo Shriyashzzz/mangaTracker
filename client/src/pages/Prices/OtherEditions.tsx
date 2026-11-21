@@ -11,7 +11,8 @@ import {
   lineFor,
   type EditionLine,
 } from "../../lib/editions";
-import { formatCents, volumePath } from "../../lib/prices";
+import { formatCents, volumePath, wholeMoney } from "../../lib/prices";
+import { runTotal, seriesCost, type SeriesCost } from "../../lib/finishCost";
 import RangePager from "../../components/rangePager/RangePager";
 import { pricesStyles as styles } from "./styles";
 
@@ -24,12 +25,20 @@ type Props = {
   owned: number[];
   // the series' lines, once they're known: the page's heading shows one
   onLines: (lines: EditionLine[]) => void;
+  // what all its singles out now cost new, beside what a line's books do
+  singles: SeriesCost | null;
 };
 
 // a page of books: four rows of three on a laptop
 const PAGE_SIZE = 12;
 
-export default function OtherEditions({ name, asked, owned, onLines }: Props) {
+export default function OtherEditions({
+  name,
+  asked,
+  owned,
+  onLines,
+  singles,
+}: Props) {
   const [state, setState] = useState<{ name: string; lines: EditionLine[] }>({
     name: "",
     lines: [],
@@ -161,6 +170,47 @@ export default function OtherEditions({ name, asked, owned, onLines }: Props) {
           }
         />
       )}
+      <RunCosts line={line} singles={singles} />
+      <NavLink to="/editions" className={styles.editionsMore} viewTransition>
+        Every series with other editions →
+      </NavLink>
     </section>
+  );
+}
+
+// the whole run new, this line's books and the singles, one a line, each
+// said only when enough of it is priced (lib/finishCost.ts runTotal): the
+// question a collector weighing the two asks
+function RunCosts({
+  line,
+  singles,
+}: {
+  line: EditionLine;
+  singles: SeriesCost | null;
+}) {
+  const books = runTotal(
+    seriesCost(
+      line.books.map((book) => ({
+        knownPriceCents: book.knownPriceCents ?? null,
+        isbn13: book.isbn13 ?? undefined,
+      })),
+    ),
+  );
+  const loose = runTotal(singles);
+  if (!books) return null;
+  const said = (run: { cents: number; exact: boolean }) =>
+    run.exact ? formatCents(run.cents) : `about ${wholeMoney(run.cents)}`;
+  return (
+    <ul className={styles.editionCosts}>
+      <li>
+        All {line.books.length} {line.label} books:{" "}
+        <strong>{said(books)}</strong> new
+      </li>
+      {loose && singles && (
+        <li>
+          All {singles.volumes} singles: <strong>{said(loose)}</strong> new
+        </li>
+      )}
+    </ul>
   );
 }

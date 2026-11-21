@@ -21,6 +21,10 @@ import { ENOUGH_PRICED } from "./src/lib/enoughPriced.ts";
 import { ratingMarkup, type MarkedReview } from "./src/lib/reviewMarkup.ts";
 import { WHY_COLLECTORS } from "./src/lib/whyCollectors.ts";
 import { openedFromPlayApp } from "./src/lib/playAppReferrer.ts";
+import {
+  EDITIONS_TITLE,
+  editionsDescription,
+} from "./src/lib/editionsWords.ts";
 import { FAQ, FAQ_DESCRIPTION, faqJsonLd } from "./src/lib/content/faq.ts";
 import {
   NEW_RELEASES_DESCRIPTION,
@@ -164,6 +168,12 @@ type SeriesSummary = {
     fromCents: number | null;
     volume?: number | null;
     published?: string | null;
+  }[];
+  // its omnibus and deluxe lines, book by book; missing from an older API
+  editions?: {
+    key: string;
+    label: string;
+    books: { number: number; volumes: number[] }[];
   }[];
 };
 // what the API's /api/share/:code returns, as far as a preview needs it
@@ -376,7 +386,34 @@ function seriesBody(s: SeriesSummary) {
       <ul>${volumes.map((v) => `<li><a href="${escapeHtml(volumePath(v.isbn13, v.title))}">${escapeHtml(v.volume != null ? `${s.name}, Vol. ${v.volume}` : v.title)}</a>${v.fromCents != null ? ` from ${usd(v.fromCents)}` : ""}</li>`).join("")}</ul>`
           : ""
       }
+      ${editionsBody(s)}
     </main>`;
+}
+
+// "vols. 7–9", or "vol. 7" for a book of one
+const heldText = (volumes: number[]) => {
+  const first = Math.min(...volumes);
+  const last = Math.max(...volumes);
+  return first === last ? `vol. ${first}` : `vols. ${first}–${last}`;
+};
+
+// which volumes are in each of a series' omnibus or deluxe books, the
+// question people search for ("Vagabond VIZBIG volumes"). Each line opens
+// on the series page (?edition=, which scrolls to it)
+function editionsBody(s: SeriesSummary) {
+  const lines = s.editions ?? [];
+  if (!lines.length) return "";
+  const path = seriesPath(s.name);
+  return `<h2>Other editions</h2>
+      ${lines
+        .map(
+          (
+            line,
+          ) => `<h3><a href="${escapeHtml(`${path}?edition=${encodeURIComponent(line.key)}`)}">${escapeHtml(`${s.name} ${line.label}: which volumes are in each book`)}</a></h3>
+      <ul>${line.books.map((book) => `<li>${escapeHtml(`${line.label} ${book.number}: ${heldText(book.volumes)}`)}</li>`).join("")}</ul>`,
+        )
+        .join("\n      ")}
+      <p><a href="/editions">Every series with omnibus and deluxe editions</a></p>`;
 }
 
 // the stores readers know by name, then how many others: "at Walmart, eBay
@@ -520,6 +557,7 @@ const linkList = (links: [href: string, label: string][]) =>
 
 const SITE_LINKS: [string, string][] = [
   ["/series", "All manga series"],
+  ["/editions", "Omnibus and deluxe editions"],
   ["/deals", "Manga deals"],
   ["/after-the-anime", "Where does the anime leave off?"],
   ["/faq", "Questions and answers"],
@@ -573,6 +611,44 @@ function seriesIndexTags(all: SeriesIndexEntry[]): Tags {
       <h1>All series</h1>
       <p>Every manga series on Manga Tracker, A to Z. Each one lists its English volumes with what US stores charge for them.</p>
       ${linkList(sorted.map((s) => [seriesPath(s.name), s.name]))}
+    </main>`,
+  };
+}
+
+// /editions: every series with an omnibus or deluxe line, each line said as
+// the question it answers and linked to the series page open on it. Title and
+// description as the app's own (pages/Prices/EditionsIndex.tsx)
+type EditionsEntry = {
+  name: string;
+  lines: {
+    key: string;
+    label: string;
+    books: number;
+    from: number;
+    to: number;
+  }[];
+};
+function editionsIndexTags(all: EditionsEntry[]): Tags {
+  return {
+    title: EDITIONS_TITLE,
+    description: editionsDescription(all.length),
+    path: "/editions",
+    image: null,
+    body: `<main class="crawl-page">
+      ${crumbs([
+        ["/", SITE_NAME],
+        ["/series", "Series"],
+      ])}
+      <h1>${escapeHtml(EDITIONS_TITLE)}</h1>
+      <p>Which volumes are in each book, series by series. Each opens the series' page, with every book and its price.</p>
+      ${linkList(
+        all.flatMap((s) =>
+          s.lines.map((line): [string, string] => [
+            `${seriesPath(s.name)}?edition=${encodeURIComponent(line.key)}`,
+            `${s.name} ${line.label}: ${line.books} books, vols. ${line.from}–${line.to}`,
+          ]),
+        ),
+      )}
     </main>`,
   };
 }
@@ -1057,7 +1133,7 @@ async function fetchSitemap() {
 const basicSitemap = (origin: string) =>
   `<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-${["/", "/series", "/deals", "/faq", "/new-releases", "/about", "/updates"].map((path) => `  <url><loc>${origin}${path}</loc></url>`).join("\n")}
+${["/", "/series", "/editions", "/deals", "/faq", "/new-releases", "/about", "/updates"].map((path) => `  <url><loc>${origin}${path}</loc></url>`).join("\n")}
 </urlset>
 `;
 
@@ -1269,6 +1345,17 @@ app.get(
       ipOf(req),
     );
     return Array.isArray(data) ? seriesIndexTags(data) : null;
+  }),
+);
+
+app.get(
+  "/editions",
+  withTags(async (req) => {
+    const { data } = await summary<EditionsEntry[]>(
+      "/api/prices/editions-index",
+      ipOf(req),
+    );
+    return Array.isArray(data) ? editionsIndexTags(data) : null;
   }),
 );
 

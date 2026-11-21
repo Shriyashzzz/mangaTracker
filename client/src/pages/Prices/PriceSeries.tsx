@@ -152,13 +152,10 @@ export default function PriceSeries() {
   // not on their shelf: what collecting all of it costs, to help decide.
   // Whole volumes out now only, a vol. 0 prequel included (a .5 extra or a
   // preorder isn't the run)
-  const cost = mine
-    ? null
-    : seriesCost(
-        onSale(volumes).filter(
-          (v) => v.volume >= 0 && Number.isInteger(v.volume),
-        ),
-      );
+  const singles = seriesCost(
+    onSale(volumes).filter((v) => v.volume >= 0 && Number.isInteger(v.volume)),
+  );
+  const cost = mine ? null : singles;
   // and the used copies found for those same volumes, added up
   const used = cost
     ? usedCopies(
@@ -393,6 +390,7 @@ export default function PriceSeries() {
         asked={params.get("edition")}
         owned={mine ? ownedOf(mine) : []}
         onLines={(lines) => setEditions({ name, lines })}
+        singles={singles}
       />
       {/* no set priced: where to look for one */}
       {!hasSets && <BoxSetSearch links={data.boxSetLinks ?? []} />}

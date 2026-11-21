@@ -59,6 +59,7 @@ const sitemap = async (_req: Request, res: Response) => {
     entry("/acknowledgements"),
     entry("/privacy"),
     entry("/series"),
+    entry("/editions"),
     entry("/deals"),
     entry("/after-the-anime"),
     ...animeShows
