@@ -7,18 +7,28 @@ import { useEffect, useRef, useState } from "react";
 import { inApp } from "./inApp";
 
 // how far the spinner follows a pull, and where letting go refreshes
-const MOST = 96;
+const MOST = 120;
 const MARK = 64;
+// how far the page stays down while it refreshes: room for the indicator
+const HOLD = 92;
 // the spinner moves at half the finger's speed, as Android's does
 const DRAG = 0.5;
 
-export function usePullToRefresh(refresh: () => Promise<unknown>) {
+export function usePullToRefresh(
+  refresh: () => Promise<unknown>,
+  // a pull beginning: the indicator picks its look then
+  onStart?: () => void,
+) {
   const [pull, setPull] = useState(0);
   const [busy, setBusy] = useState(false);
+  // a finger on the screen pulling: the page follows it with no easing
+  const [dragging, setDragging] = useState(false);
   // the newest refresh, for listeners set up once
   const latest = useRef(refresh);
+  const starting = useRef(onStart);
   useEffect(() => {
     latest.current = refresh;
+    starting.current = onStart;
   });
   const running = useRef(false);
 
@@ -39,19 +49,24 @@ export function usePullToRefresh(refresh: () => Promise<unknown>) {
       if (startY == null) return;
       if (window.scrollY > 0) {
         startY = null;
+        setDragging(false);
         setPull(0);
         return;
       }
+      const was = pulled;
       pulled = Math.max(0, (e.touches[0]?.clientY ?? startY) - startY) * DRAG;
+      if (was <= 0 && pulled > 0) starting.current?.();
+      setDragging(pulled > 0);
       setPull(Math.min(pulled, MOST));
     };
     const end = () => {
       if (startY == null) return;
       startY = null;
+      setDragging(false);
       if (pulled < MARK) return setPull(0);
       running.current = true;
       setBusy(true);
-      setPull(MARK);
+      setPull(HOLD);
       latest
         .current()
         .catch(() => {})
@@ -73,5 +88,5 @@ export function usePullToRefresh(refresh: () => Promise<unknown>) {
     };
   }, []);
 
-  return { pull, busy, ready: pull >= MARK };
+  return { pull, busy, dragging, ready: pull >= MARK };
 }

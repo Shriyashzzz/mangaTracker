@@ -14,6 +14,8 @@
 //   ShelfCard.tsx        one series' card, with Hide on the New tab
 //   ShelfStates.tsx      empty, unreachable, no matches, still checking
 //   SelectDock.tsx, NewTabParts.tsx, AddButton.tsx: what those draw
+import PullRefresh from "../../components/pullRefresh/PullRefresh";
+import { pickLook, type Look } from "../../components/pullRefresh/pullLook";
 import { lazy, Suspense, useEffect, useMemo, useState } from "react";
 import { NavLink, useNavigate } from "react-router";
 import { BarcodeIcon } from "../../components/icons/Icons";
@@ -119,11 +121,14 @@ export default function Home() {
 
 function Library() {
   // the app's swipe to refresh: the shelf, and what's new on it, asked again
-  const refreshing = usePullToRefresh(() =>
-    Promise.all([
-      useShelf.getState().load(),
-      useShelf.getState().checkReleases(),
-    ]),
+  const [pullLook, setPullLook] = useState<Look>("kenji");
+  const refreshing = usePullToRefresh(
+    () =>
+      Promise.all([
+        useShelf.getState().load(),
+        useShelf.getState().checkReleases(),
+      ]),
+    () => setPullLook(pickLook()),
   );
   const offline = useIsOffline();
   // what "Next for you" names for a series with gaps (Settings)
@@ -629,263 +634,277 @@ function Library() {
   };
 
   return (
-    <div className={`fade-in ${styles.library}`}>
-      {(refreshing.pull > 0 || refreshing.busy) && (
-        <div
-          className="pull-refresh"
-          data-ready={refreshing.ready || undefined}
-          data-busy={refreshing.busy || undefined}
-          style={{ transform: `translate(-50%, ${refreshing.pull}px)` }}
-          role={refreshing.busy ? "status" : undefined}
-          aria-label={refreshing.busy ? "Refreshing your shelf" : undefined}
-        >
-          <span
-            className="pull-refresh-arc"
-            style={{ rotate: `${refreshing.pull * 4}deg` }}
-          />
-        </div>
-      )}
-      <div className={styles.pageHead}>
-        <h1 className={styles.pageTitle}>Your shelf</h1>
-        <div className={styles.pageActions}>
-          <NavLink
-            to="/import"
-            data-tour="import-link"
-            className={styles.importLink}
-            viewTransition
-            {...offlineLink(offline)}
-          >
-            Import your list
-          </NavLink>
-          {/* the other way to add: a stack of volumes, by their barcodes. Big
-              screens only; on phones the round + offers it */}
-          <button
-            type="button"
-            className="btn btn-secondary"
-            data-tour="scan"
-            onClick={addFlow.scan}
-            // its code starts loading on the way to a click
-            onPointerEnter={loadScanner}
-            onFocus={loadScanner}
-            {...offlineLink(offline)}
-          >
-            <BarcodeIcon className="size-5" />
-            Scan a barcode
-          </button>
-          <button
-            className="btn btn-primary"
-            data-tour="add"
-            onClick={goToAdd}
-            {...offlineLink(offline)}
-          >
-            + Add manga
-          </button>
-        </div>
-      </div>
-
-      <ShelfBar
-        views={tabs}
-        current={tab}
-        onPick={(value) => {
-          pickTab(value);
-          // a new tab starts with Select off, so it never comes back by itself
-          select.stop();
-          if (wantHidden || pileParam) navigator("/shelf", { replace: true });
-        }}
-        query={query}
-        onQuery={setQuery}
-        sortBy={sortBy}
-        onSort={(value) => {
-          setSortBy(value);
-          writeSession("librarySort", value);
-          // kept on their account, like the layout beside it: the shelf
-          // opens this way on their other devices too
-          savePrefs({ shelfSort: value as ShelfSort }, true);
-        }}
-        // the Volumes tab is rows only: no choice of layout there
-        layout={tab === "volumes" ? undefined : rowsChosen ? "rows" : "covers"}
-        onLayout={(view) => savePrefs({ shelfView: view }, true)}
-        // while selecting, the select bar's Done (or Escape) is the way out
-        onSelect={
-          !showingNew && tab !== "volumes" && !select.selectOn
-            ? select.start
+    <>
+      {/* outside the shelf it pulls down: inside, its fixed place would
+          move with the shelf */}
+      <PullRefresh
+        pull={refreshing.pull}
+        busy={refreshing.busy}
+        ready={refreshing.ready}
+        look={pullLook}
+      />
+      <div
+        className={`fade-in ${styles.library}`}
+        // the shelf moves down after the finger, and springs back once let go
+        style={
+          refreshing.pull > 0
+            ? {
+                transform: `translateY(${refreshing.pull}px)`,
+                transition: refreshing.dragging
+                  ? "none"
+                  : "transform 260ms cubic-bezier(0.2, 0, 0, 1)",
+              }
             : undefined
         }
-      />
-
-      {/* entries that are one series under different names: on the shelf's
-          own tabs, never over a search, Select or the New tab */}
-      {!showingNew &&
-        tab !== "volumes" &&
-        !select.selectOn &&
-        !query.trim() &&
-        mangaData && <MergeOffer shelf={mangaData} />}
-
-      <HiddenNote
-        show={showingNew}
-        hidden={hideActions.hidden}
-        failed={hideActions.failed}
-        noteRef={hideActions.note}
-        onUndo={hideActions.undo}
-        onAway={hideActions.dismiss}
-      />
-
-      {select.selectOn ? (
-        <SelectDock
-          select={select}
-          shown={visibleManga}
-          page={shelfPage}
-          tab={tab}
-          raised={undoShowing}
-          noteRef={movedNote}
-          menuRef={moveMenu}
-        />
-      ) : (
-        <MovedNote select={select} noteRef={movedNote} />
-      )}
-      {select.confirmingDelete && select.pickedShown.length > 0 && (
-        <DeleteManyModal
-          manga={select.pickedShown}
-          onDelete={select.deletePicked}
-          onClose={() => select.setConfirmingDelete(false)}
-        />
-      )}
-
-      {/* sighted readers see the cards change; this says so to everyone else */}
-      <p className="sr-only" role="status">
-        {mangaData.length ? `${visibleManga.length} shown` : ""}
-      </p>
-
-      {/* what's coming, folded until asked (not on the hidden list) */}
-      {/* a thin line at the top once there are cards, staying full once the
-          check's done. With no cards yet it sits in the middle of the page,
-          where the cards will be */}
-      {/* the bar only while answers are missing; an old answer being
-          checked again quietly never brings it back */}
-      {/* only while answers are missing: nothing to say once they're in,
-          and an old answer checked again quietly never brings it back */}
-      {showingNew && checking && visibleManga.length > 0 && (
-        <div className={styles.checkInline}>
-          {progress}
-          <p className={styles.checkText} aria-live="polite">
-            {`Checking ${checked} of ${total}`}
-            {bigShelfNote && ` · ${bigShelfNote}`}
-          </p>
-        </div>
-      )}
-      {showingNew && !viewingHidden && !pileView && <UpcomingReleases />}
-      {showingNew && (
-        <ReleaseTools
-          kind={releaseKind}
-          onKind={pickKind}
-          counts={{
-            volumes: counts.newVolumes,
-            chapters: counts.newChapters,
-            japan: counts.newInJapan,
-          }}
-          showCounts={!allFailed}
-          viewingHidden={viewingHidden}
-          hiddenCount={hiddenCount}
-        />
-      )}
-      {pileView && (
-        <PileHead
-          kind={releaseKind}
-          view={pileView}
-          piles={piles}
-          onPick={openPile}
-          onBack={backToPiles}
-          viewingHidden={viewingHidden}
-          extra={pileExtra}
-          sort={pileSort}
-          onSort={setPileSort}
-        />
-      )}
-
-      {showingNew && (
-        <ReleaseLinks
-          viewingHidden={viewingHidden}
-          hiddenCount={hiddenCount}
-          onOpenHidden={() => navigator("/shelf?view=hidden")}
-          onUnhideAll={hideActions.unhideAll}
-          onBack={() => navigator("/shelf", { replace: true })}
-          hideAllCount={visibleManga.length}
-          onHideAll={hideActions.hideAll}
-        />
-      )}
-
-      {body()}
-
-      {/* a list their setting has shortened says so, under it */}
-      {showingNew &&
-        !viewingHidden &&
-        !pileView &&
-        heldBack > 0 &&
-        visibleManga.length > 0 && (
-          <div className="mt-6 text-center">
-            <HeldBack count={heldBack} />
+      >
+        <div className={styles.pageHead}>
+          <h1 className={styles.pageTitle}>Your shelf</h1>
+          <div className={styles.pageActions}>
+            <NavLink
+              to="/import"
+              data-tour="import-link"
+              className={styles.importLink}
+              viewTransition
+              {...offlineLink(offline)}
+            >
+              Import your list
+            </NavLink>
+            {/* the other way to add: a stack of volumes, by their barcodes. Big
+              screens only; on phones the round + offers it */}
+            <button
+              type="button"
+              className="btn btn-secondary"
+              data-tour="scan"
+              onClick={addFlow.scan}
+              // its code starts loading on the way to a click
+              onPointerEnter={loadScanner}
+              onFocus={loadScanner}
+              {...offlineLink(offline)}
+            >
+              <BarcodeIcon className="size-5" />
+              Scan a barcode
+            </button>
+            <button
+              className="btn btn-primary"
+              data-tour="add"
+              onClick={goToAdd}
+              {...offlineLink(offline)}
+            >
+              + Add manga
+            </button>
           </div>
+        </div>
+
+        <ShelfBar
+          views={tabs}
+          current={tab}
+          onPick={(value) => {
+            pickTab(value);
+            // a new tab starts with Select off, so it never comes back by itself
+            select.stop();
+            if (wantHidden || pileParam) navigator("/shelf", { replace: true });
+          }}
+          query={query}
+          onQuery={setQuery}
+          sortBy={sortBy}
+          onSort={(value) => {
+            setSortBy(value);
+            writeSession("librarySort", value);
+            // kept on their account, like the layout beside it: the shelf
+            // opens this way on their other devices too
+            savePrefs({ shelfSort: value as ShelfSort }, true);
+          }}
+          // the Volumes tab is rows only: no choice of layout there
+          layout={
+            tab === "volumes" ? undefined : rowsChosen ? "rows" : "covers"
+          }
+          onLayout={(view) => savePrefs({ shelfView: view }, true)}
+          // while selecting, the select bar's Done (or Escape) is the way out
+          onSelect={
+            !showingNew && tab !== "volumes" && !select.selectOn
+              ? select.start
+              : undefined
+          }
+        />
+
+        {/* entries that are one series under different names: on the shelf's
+          own tabs, never over a search, Select or the New tab */}
+        {!showingNew &&
+          tab !== "volumes" &&
+          !select.selectOn &&
+          !query.trim() &&
+          mangaData && <MergeOffer shelf={mangaData} />}
+
+        <HiddenNote
+          show={showingNew}
+          hidden={hideActions.hidden}
+          failed={hideActions.failed}
+          noteRef={hideActions.note}
+          onUndo={hideActions.undo}
+          onAway={hideActions.dismiss}
+        />
+
+        {select.selectOn ? (
+          <SelectDock
+            select={select}
+            shown={visibleManga}
+            page={shelfPage}
+            tab={tab}
+            raised={undoShowing}
+            noteRef={movedNote}
+            menuRef={moveMenu}
+          />
+        ) : (
+          <MovedNote select={select} noteRef={movedNote} />
+        )}
+        {select.confirmingDelete && select.pickedShown.length > 0 && (
+          <DeleteManyModal
+            manga={select.pickedShown}
+            onDelete={select.deletePicked}
+            onClose={() => select.setConfirmingDelete(false)}
+          />
         )}
 
-      {/* how fresh it all is, at the foot, for whoever wonders */}
-      {showingNew && !checking && Number.isFinite(oldestCheck) && (
-        <p className={styles.checkedFoot}>Checked {checkedAgo(oldestCheck)}</p>
-      )}
+        {/* sighted readers see the cards change; this says so to everyone else */}
+        <p className="sr-only" role="status">
+          {mangaData.length ? `${visibleManga.length} shown` : ""}
+        </p>
 
-      {showingNew && openManga && releases[openManga.id] && (
-        <ReleaseModal
-          manga={openManga}
-          found={releases[openManga.id]!}
-          yours={newsFor(openManga, releases[openManga.id], releaseKind).yours}
-          kind={releaseKind === "chapters" ? "chapters" : "volumes"}
-          onClose={() => setOpenList(null)}
+        {/* what's coming, folded until asked (not on the hidden list) */}
+        {/* a thin line at the top once there are cards, staying full once the
+          check's done. With no cards yet it sits in the middle of the page,
+          where the cards will be */}
+        {/* the bar only while answers are missing; an old answer being
+          checked again quietly never brings it back */}
+        {/* only while answers are missing: nothing to say once they're in,
+          and an old answer checked again quietly never brings it back */}
+        {showingNew && checking && visibleManga.length > 0 && (
+          <div className={styles.checkInline}>
+            {progress}
+            <p className={styles.checkText} aria-live="polite">
+              {`Checking ${checked} of ${total}`}
+              {bigShelfNote && ` · ${bigShelfNote}`}
+            </p>
+          </div>
+        )}
+        {showingNew && !viewingHidden && !pileView && <UpcomingReleases />}
+        {showingNew && (
+          <ReleaseTools
+            kind={releaseKind}
+            onKind={pickKind}
+            counts={{
+              volumes: counts.newVolumes,
+              chapters: counts.newChapters,
+              japan: counts.newInJapan,
+            }}
+            showCounts={!allFailed}
+            viewingHidden={viewingHidden}
+            hiddenCount={hiddenCount}
+          />
+        )}
+        {pileView && (
+          <PileHead
+            kind={releaseKind}
+            view={pileView}
+            piles={piles}
+            onPick={openPile}
+            onBack={backToPiles}
+            viewingHidden={viewingHidden}
+            extra={pileExtra}
+            sort={pileSort}
+            onSort={setPileSort}
+          />
+        )}
+
+        {showingNew && (
+          <ReleaseLinks
+            viewingHidden={viewingHidden}
+            hiddenCount={hiddenCount}
+            onOpenHidden={() => navigator("/shelf?view=hidden")}
+            onUnhideAll={hideActions.unhideAll}
+            onBack={() => navigator("/shelf", { replace: true })}
+            hideAllCount={visibleManga.length}
+            onHideAll={hideActions.hideAll}
+          />
+        )}
+
+        {body()}
+
+        {/* a list their setting has shortened says so, under it */}
+        {showingNew &&
+          !viewingHidden &&
+          !pileView &&
+          heldBack > 0 &&
+          visibleManga.length > 0 && (
+            <div className="mt-6 text-center">
+              <HeldBack count={heldBack} />
+            </div>
+          )}
+
+        {/* how fresh it all is, at the foot, for whoever wonders */}
+        {showingNew && !checking && Number.isFinite(oldestCheck) && (
+          <p className={styles.checkedFoot}>
+            Checked {checkedAgo(oldestCheck)}
+          </p>
+        )}
+
+        {showingNew && openManga && releases[openManga.id] && (
+          <ReleaseModal
+            manga={openManga}
+            found={releases[openManga.id]!}
+            yours={
+              newsFor(openManga, releases[openManga.id], releaseKind).yours
+            }
+            kind={releaseKind === "chapters" ? "chapters" : "volumes"}
+            onClose={() => setOpenList(null)}
+          />
+        )}
+
+        {/* not on New, nor on Volumes, where it sat over each row's count */}
+        {!showingNew && tab !== "volumes" && (
+          <AddButton onClick={addFlow.choose} />
+        )}
+        {addFlow.adding === "choosing" && (
+          <AddChoice
+            onType={goToAdd}
+            onScan={addFlow.scan}
+            onClose={addFlow.closeChoice}
+          />
+        )}
+        {scanSheet}
+
+        <ReleaseTip
+          // not over the select bar or the undo note, which share its spot
+          enabled={hasManga && !showingNew && !select.selecting && !undoShowing}
+          onCheck={() => pickTab("new")}
         />
-      )}
 
-      {/* not on New, nor on Volumes, where it sat over each row's count */}
-      {!showingNew && tab !== "volumes" && (
-        <AddButton onClick={addFlow.choose} />
-      )}
-      {addFlow.adding === "choosing" && (
-        <AddChoice
-          onType={goToAdd}
-          onScan={addFlow.scan}
-          onClose={addFlow.closeChoice}
+        <WeeklyEmailPeek
+          blocked={
+            showingNew ||
+            select.selecting ||
+            undoShowing ||
+            Boolean(hideActions.hidden) ||
+            select.movedShowing
+          }
         />
-      )}
-      {scanSheet}
 
-      <ReleaseTip
-        // not over the select bar or the undo note, which share its spot
-        enabled={hasManga && !showingNew && !select.selecting && !undoShowing}
-        onCheck={() => pickTab("new")}
-      />
-
-      <WeeklyEmailPeek
-        blocked={
-          showingNew ||
-          select.selecting ||
-          undoShowing ||
-          Boolean(hideActions.hidden) ||
-          select.movedShowing
-        }
-      />
-
-      <ViewPeek
-        series={mangaData.length}
-        rows={rowsChosen}
-        // not on New, where it sat over the piles' covers, nor on Volumes,
-        // which is a list of rows whatever the shelf's view is
-        blocked={
-          showingNew ||
-          tab === "volumes" ||
-          select.selecting ||
-          undoShowing ||
-          Boolean(hideActions.hidden) ||
-          select.movedShowing
-        }
-        onChoose={(view) => savePrefs({ shelfView: view }, true)}
-      />
-    </div>
+        <ViewPeek
+          series={mangaData.length}
+          rows={rowsChosen}
+          // not on New, where it sat over the piles' covers, nor on Volumes,
+          // which is a list of rows whatever the shelf's view is
+          blocked={
+            showingNew ||
+            tab === "volumes" ||
+            select.selecting ||
+            undoShowing ||
+            Boolean(hideActions.hidden) ||
+            select.movedShowing
+          }
+          onChoose={(view) => savePrefs({ shelfView: view }, true)}
+        />
+      </div>
+    </>
   );
 }

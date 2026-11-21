@@ -1879,43 +1879,136 @@ html.in-app .app-min-text {
   font-size: 12px;
 }
 
-/* the shelf's swipe to refresh (lib/usePullToRefresh.ts): Android's round
-   spinner, pulled down under the top bar after the finger, its arc filling
-   until letting go would refresh, then turning while the shelf comes */
-.pull-refresh {
+/* the shelf's swipe to refresh (components/pullRefresh/PullRefresh.tsx):
+   the gap the shelf leaves as it's pulled down, Kenji on his rope or the
+   comic burst in it */
+.pull-zone {
   position: fixed;
-  top: 56px;
-  left: 50%;
-  z-index: 40;
+  left: 0;
+  right: 0;
+  z-index: 25;
   display: grid;
   place-items: center;
-  width: 40px;
-  height: 40px;
-  margin-top: -40px;
-  border-radius: 50%;
+  overflow: hidden;
+  pointer-events: none;
+  background: repeating-linear-gradient(
+    135deg,
+    transparent 0 9px,
+    color-mix(in srgb, var(--line) 5%, transparent) 9px 10px
+  );
+}
+.pull-rope {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  width: 2.5px;
+  translate: -50% 0;
+  background: var(--line);
+}
+.pull-kenji {
+  position: absolute;
+  left: 50%;
+  translate: -50% 0;
+  transform-origin: 50% 0;
+}
+.pull-zone[data-stage="ready"] .pull-kenji {
+  animation: pull-pop 220ms cubic-bezier(0.3, 1.6, 0.6, 1);
+}
+.pull-zone[data-stage="busy"] .pull-kenji {
+  animation: pull-sway 1.6s ease-in-out infinite;
+}
+.pull-pages {
+  position: absolute;
+  bottom: 10px;
+  left: 50%;
+  display: flex;
+  gap: 3px;
+  translate: 22px 0;
+}
+.pull-pages i {
+  width: 9px;
+  height: 13px;
+  border: 1.5px solid var(--line);
+  border-radius: 1px 4px 4px 1px;
   background: var(--card);
-  box-shadow:
-    0 1px 3px rgba(0, 0, 0, 0.3),
-    0 4px 8px 3px rgba(0, 0, 0, 0.15);
-  opacity: 0.6;
+  transform: skewY(-12deg);
+  animation: pull-page 900ms ease-in-out infinite;
 }
-.pull-refresh[data-ready],
-.pull-refresh[data-busy] {
-  opacity: 1;
+.pull-pages i:nth-child(2) {
+  animation-delay: 150ms;
 }
-.pull-refresh-arc {
-  width: 20px;
-  height: 20px;
-  border: 2.5px solid var(--accent);
-  border-right-color: transparent;
-  border-radius: 50%;
+.pull-pages i:nth-child(3) {
+  animation-delay: 300ms;
 }
-.pull-refresh[data-busy] .pull-refresh-arc {
-  animation: pull-spin 800ms linear infinite;
+.pull-burst {
+  position: absolute;
+  overflow: visible;
+}
+.pull-burst polygon {
+  fill: var(--card);
+  stroke: var(--line);
+  stroke-width: 2.5;
+  stroke-linejoin: round;
+  transition: fill 150ms;
+}
+.pull-zone:is([data-stage="ready"], [data-stage="busy"]) .pull-burst polygon {
+  fill: var(--accent);
+}
+.pull-zone[data-stage="ready"] .pull-burst {
+  animation: pull-pop 220ms cubic-bezier(0.3, 1.6, 0.6, 1);
+}
+.pull-zone[data-stage="busy"] .pull-burst {
+  animation: pull-spin 2.4s linear infinite;
+}
+.pull-sfx {
+  position: relative;
+  font-family: "Noto Sans JP", "Hiragino Sans", sans-serif;
+  font-size: 20px;
+  font-weight: 900;
+  letter-spacing: -1px;
+  color: var(--ink);
+}
+.pull-zone:is([data-stage="ready"], [data-stage="busy"]) .pull-sfx {
+  font-size: 30px;
+  color: var(--card);
+  -webkit-text-stroke: 1.5px var(--line);
+  paint-order: stroke fill;
+}
+.pull-lines {
+  position: absolute;
+  inset: 0;
+  background: repeating-conic-gradient(
+    from 0deg at 50% 50%,
+    color-mix(in srgb, var(--line) 18%, transparent) 0 2deg,
+    transparent 2deg 12deg
+  );
+  -webkit-mask: radial-gradient(circle, transparent 44px, #000 46px);
+  mask: radial-gradient(circle, transparent 44px, #000 46px);
+}
+@keyframes pull-pop {
+  from {
+    scale: 0.8;
+  }
+}
+@keyframes pull-sway {
+  50% {
+    rotate: 4deg;
+  }
+}
+@keyframes pull-page {
+  50% {
+    transform: skewY(-12deg) scaleX(0.2);
+    opacity: 0.4;
+  }
 }
 @keyframes pull-spin {
   to {
     rotate: 360deg;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .pull-zone * {
+    animation: none !important;
   }
 }
 

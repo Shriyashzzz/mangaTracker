@@ -1,7 +1,8 @@
 // Kenji, the app's chibi reader: a shonen-style boy in a hoodie with his
 // nose in a manga (an original character, drawn here so it themes with the
 // page). `mood` swaps the face and the little extras.
-// moods: confused | panic | happy
+// moods: confused | panic | happy | curious | reading (the app's swipe to
+// refresh: components/pullRefresh/PullRefresh.tsx)
 // the ink styles of each part of the drawing; colors follow the theme tokens
 const S = {
   skin: "fill-card stroke-line stroke-3 [stroke-linejoin:round]",
@@ -21,7 +22,7 @@ const S = {
   sfx: "fill-accent stroke-line stroke-[1.5] font-brand text-[34px] [paint-order:stroke_fill]",
 };
 
-type Mood = "confused" | "panic" | "happy";
+type Mood = "confused" | "panic" | "happy" | "curious" | "reading";
 
 export default function Mascot({
   mood = "happy",
@@ -100,6 +101,30 @@ export default function Mascot({
           <text className={S.sfx} x="10" y="40">
             !?
           </text>
+        </g>
+      )}
+
+      {mood === "curious" && (
+        <g>
+          {/* brows up, two round wide eyes, a small "oh" */}
+          <path className={S.brow} d="M45 60q9-8 18-2" />
+          <path className={S.brow} d="M78 60q9-8 18-2" />
+          <ellipse className={S.eye} cx="54" cy="78" rx="6" ry="8" />
+          <ellipse className={S.eye} cx="86" cy="78" rx="6" ry="8" />
+          <circle className={S.shine} cx="56" cy="74" r="2.2" />
+          <circle className={S.shine} cx="88" cy="74" r="2.2" />
+          <path className={S.line} d="M64 100q6 4 12 0" />
+        </g>
+      )}
+
+      {mood === "reading" && (
+        <g>
+          {/* calm brows, eyes down on the book, a content little smile */}
+          <path className={S.brow} d="M45 62q9-4 18 0" />
+          <path className={S.brow} d="M77 62q9-4 18 0" />
+          <path className={S.line} d="M47 84h14" />
+          <path className={S.line} d="M79 84h14" />
+          <path className={S.line} d="M64 100q6 3 12 0" />
         </g>
       )}
 
