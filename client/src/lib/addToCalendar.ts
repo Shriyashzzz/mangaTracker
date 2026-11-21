@@ -86,20 +86,3 @@ export function buildIcs(
 }
 
 // saved as a file; opening it offers to add the events
-export function downloadIcs(
-  volumes: CalendarVolume[],
-  fileName: string,
-  pageFor: PageFor,
-) {
-  const blob = new Blob([buildIcs(volumes, pageFor)], {
-    type: "text/calendar;charset=utf-8",
-  });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = fileName;
-  document.body.append(a);
-  a.click();
-  a.remove();
-  setTimeout(() => URL.revokeObjectURL(url), 1000);
-}

@@ -8,11 +8,8 @@ import { useCloseOnBack } from "../../lib/closeOnBack";
 import { swallowClosingTap } from "../../lib/inApp";
 import { useEffect, useId, useRef, useState } from "react";
 import { CalendarPlusIcon } from "../icons/Icons";
-import {
-  downloadIcs,
-  googleCalendarLink,
-  hasDay,
-} from "../../lib/addToCalendar";
+import { googleCalendarLink, hasDay } from "../../lib/addToCalendar";
+import { downloadIcs } from "../../lib/calendarFile";
 import type { CalendarVolume } from "../../lib/collector";
 import { volumePath } from "../../lib/prices";
 import { calendarParts as styles } from "./styles";
