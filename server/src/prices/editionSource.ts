@@ -14,7 +14,7 @@ import {
   googleLookupsPaused,
 } from "./sources/googleBooksCatalog.js";
 import { isJapaneseTitle, ownTitleOf } from "./sources/catalog.js";
-import { volumesKey } from "./volumesKey.js";
+import { editionsKey } from "./volumesKey.js";
 import {
   buildEditionLines,
   TRADE_ISBN,
@@ -34,7 +34,8 @@ const TIMEOUT_MS = 8000;
 // VIZBIGs end at 12). Always a moment already past: a time still to come
 // would make every save old the instant it's made, and ask without end
 const RULES_FROM = Date.UTC(2026, 10, 20, 4);
-export const editionsKey = (name: string) => volumesKey(name) + ":editions";
+// the key now lives beside volumesKey (volumesKey.ts); kept here for its readers
+export { editionsKey };
 // Saved beside a series' lines when they were built while a catalog wasn't
 // answering (Google's day used up): the lines are used, by the series' page
 // and the shelf alike, but asked about again an hour on. Gone once a whole

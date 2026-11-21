@@ -491,6 +491,11 @@ export async function getVolumePrices(
   const inSingles = series.volumes.some((v) => v.isbn13.trim() === isbn13);
   let inLine = edition ? await bookInLine(series, isbn13, refresh) : null;
   if (!edition && !inSingles) inLine = await bookInLine(series, isbn13, false);
+  // such a book goes by its edition line's own title ("Vagabond Definitive
+  // Edition, Vol. 8"): its heading and edition say what it is
+  const ownTitle =
+    !edition && inLine?.book.title ? inLine.book.title : book.title;
+  const itsEdition = edition ?? (inLine ? editionOfTitle(ownTitle) : null);
   // a person's first look at it (what's stored, shown at once): the lines
   // are looked up behind the page, so the next look has its edition's books
   if (edition && !inLine && report && !refresh)
@@ -564,11 +569,7 @@ export async function getVolumePrices(
   const listed = series.volumes.find((v) => v.isbn13.trim() === book.isbn13);
   return {
     refreshable,
-    heading: volumeHeading(
-      book.title,
-      series.info?.name ?? series.name,
-      listed,
-    ),
+    heading: volumeHeading(ownTitle, series.info?.name ?? series.name, listed),
     series: { name: series.name, slug: series.slug, info: series.info },
     volume: inBook ? null : titleVolume(book.title),
     inBook,
@@ -584,12 +585,12 @@ export async function getVolumePrices(
     // the edition it's a book of, and the volumes of the series it holds
     // (named as its own title names it: a Black Edition's line may be filed
     // under "2-in-1")
-    edition: edition
+    edition: itsEdition
       ? {
-          label: edition.label,
+          label: itsEdition.label,
           volumes:
             inLine?.book.volumes ??
-            heldByItsOwnWord(ownName, book.title, edition) ??
+            heldByItsOwnWord(ownName, ownTitle, itsEdition) ??
             // what three readers agreed it holds, when nothing else says
             (await answeredVolumes(isbn13).catch(() => null)),
         }

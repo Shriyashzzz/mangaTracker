@@ -10,3 +10,7 @@ import { seriesOf } from "./stores/match.js";
 export const VOLUMES_KEY_VERSION = "v10:";
 export const volumesKey = (name: string) =>
   VOLUMES_KEY_VERSION + seriesOf(name);
+// a series' saved edition lines (editionSource.ts), beside its other lists:
+// here so the singles list (seriesService.ts) can read them without
+// importing the editions code
+export const editionsKey = (name: string) => volumesKey(name) + ":editions";

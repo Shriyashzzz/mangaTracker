@@ -1,6 +1,11 @@
 // A series' list of volumes: asked of the catalogs, merged into one list,
 // saved, and read back for the series page. Part of the price service
 // (service.ts lists the parts).
+import {
+  editionIsbnsOf,
+  editionsOwn,
+  reissueOfOldVolume,
+} from "./singlesRules.js";
 import { runsPastItsEnd, withoutTheNovels } from "./novelsOnMangaPage.js";
 import { editionSoldToday } from "./reissue.js";
 import { titleVolume } from "./volumeNames.js";
@@ -28,7 +33,7 @@ import {
 } from "./stores/storeLinks.js";
 import { editionCoverId } from "./sources/covers.js";
 import { baseName, isNovelName, novelName } from "./lightNovel.js";
-import { volumesKey } from "./volumesKey.js";
+import { editionsKey, volumesKey } from "./volumesKey.js";
 import { type CatalogBook, type SeriesInfo } from "./types.js";
 import {
   googleSeriesVolumes,
@@ -562,6 +567,11 @@ async function mergeIntoOneList(
   main: VolumeList,
   others: VolumeList[],
 ): Promise<NumberedBook[]> {
+  // a book one of its edition lines holds is never a single (singlesRules.ts)
+  const editionIsbns = editionIsbnsOf(
+    (await priceQueries.getSeriesVolumes(editionsKey(name)).catch(() => null))
+      ?.volumes,
+  );
   const byNumber = new Map<number | null, CatalogBook>(
     main.volumes.map((v) => [v.volume, v]),
   );
@@ -571,7 +581,8 @@ async function mergeIntoOneList(
 
   // a 3-in-1 omnibus numbered like a volume isn't one, from any list (a
   // light novel may run long)
-  const isOneVolume = (v: CatalogBook) => isNovelName(name) || !isOmnibus(v);
+  const isOneVolume = (v: CatalogBook) =>
+    (isNovelName(name) || !isOmnibus(v)) && !editionsOwn(editionIsbns, v);
   for (const [number, v] of byNumber)
     if (!isOneVolume(v)) byNumber.delete(number);
   for (const list of others) {
@@ -583,7 +594,10 @@ async function mergeIntoOneList(
   // (saved a week, a few a series, under a daily cap)
   if (!books.size) {
     const found = await gapVolumes(info?.name || name, byNumber);
-    for (const v of found) addVolume(byNumber, v, books, datedElsewhere);
+    // never an edition's book, nor a reissue dated after the later volumes
+    for (const v of found)
+      if (isOneVolume(v) && !reissueOfOldVolume(v, byNumber))
+        addVolume(byNumber, v, books, datedElsewhere);
   }
   adoptUpcomingDates(byNumber, datedElsewhere);
 
