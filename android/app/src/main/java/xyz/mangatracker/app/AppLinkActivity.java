@@ -32,6 +32,9 @@ import com.google.android.play.core.review.ReviewManagerFactory;
  *                                 (permissions, storage, notifications)
  *   mangatracker://review         Google Play's own rating sheet; Play
  *                                 decides whether it shows (a few a year)
+ *   mangatracker://site-settings  Chrome's own settings for the site: its
+ *                                 camera switch (the camera is Chrome's, not
+ *                                 the app's, so the app can't ask for it)
  *   mangatracker://check?said=on  silent: the page says what it was told;
  *                                 if Android's notification setting changed
  *                                 since, the page opens again with the new
@@ -69,6 +72,9 @@ public class AppLinkActivity extends Activity {
             case "review":
                 review();
                 break;
+            case "site-settings":
+                siteSettings();
+                break;
             case "check":
                 check(link.getQueryParameter("said"));
                 break;
@@ -89,6 +95,19 @@ public class AppLinkActivity extends Activity {
         String now = notificationsOn() ? "on" : "off";
         if (now.equals(said)) finish();
         else reopen();
+    }
+
+    // Google's helper opens Chrome's page for the site the app shows (the
+    // "Manage space" screen of the app's Android settings)
+    private void siteSettings() {
+        try {
+            startActivity(new Intent(this,
+                    com.google.androidbrowserhelper.trusted.ManageDataLauncherActivity.class));
+        } catch (Exception e) {
+            openSettings(false);
+            return;
+        }
+        finish();
     }
 
     private void notifications() {
