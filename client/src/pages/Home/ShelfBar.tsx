@@ -6,9 +6,8 @@
 // of the row and never grows, so nothing moves when you click it; on phones it
 // waits behind a magnifier and takes the title's place while open. Sorting is
 // a menu: "Sorted by last updated" on laptops, a sort button on phones.
-import { swallowClosingTap } from "../../lib/inApp";
 import { useCloseOnBack } from "../../lib/closeOnBack";
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   CheckIcon,
   ChevronDownIcon,
@@ -20,6 +19,8 @@ import {
 import { SORT_OPTIONS } from "../../lib/shelf";
 import { NavLink } from "react-router";
 import { shelfBarStyles as styles } from "./shelfBarStyles";
+import { useMenu } from "./useMenu";
+import { Menu } from "./Menu";
 import { keepFocus } from "../../lib/keepFocus";
 import { offlineLink, useIsOffline } from "../../lib/offline";
 
@@ -28,29 +29,6 @@ type ShelfView = {
   label: string;
   count: number | null;
 };
-
-// open, and closed again by a click elsewhere or Escape (focus back on its
-// button)
-function useMenu() {
-  const [open, setOpen] = useState(false);
-  const ref = useRef<HTMLDivElement>(null);
-  useEffect(() => {
-    if (!open) return;
-    const away = (e: PointerEvent) => {
-      if (ref.current?.contains(e.target as Node)) return;
-      swallowClosingTap(e.target);
-      setOpen(false);
-    };
-    document.addEventListener("pointerdown", away);
-    return () => document.removeEventListener("pointerdown", away);
-  }, [open]);
-  // Android's back, or Escape
-  useCloseOnBack(open, () => {
-    setOpen(false);
-    ref.current?.querySelector<HTMLButtonElement>("button")?.focus();
-  });
-  return { open, setOpen, ref };
-}
 
 // "Title, A to Z" reads "title, A to Z" after "Sorted by"
 const lowerFirst = (text: string) =>
@@ -485,23 +463,3 @@ export function SortMenu<T extends string>({
     </div>
   );
 }
-
-const Menu = ({
-  label,
-  alignRight,
-  children,
-}: {
-  label: string;
-  alignRight?: boolean;
-  children: ReactNode;
-}) => (
-  <ul
-    className={`${alignRight ? styles.menuRight : styles.menu} app-sheet`}
-    aria-label={label}
-  >
-    <li className={styles.menuHead} aria-hidden>
-      {label}
-    </li>
-    {children}
-  </ul>
-);

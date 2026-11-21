@@ -10,6 +10,7 @@ import type { SeriesVolume } from "../../lib/types";
 import type { BuyOptions } from "./useBuyOptions";
 import type { Editions } from "./useEditions";
 import { SortMenu } from "../Home/ShelfBar";
+import GotIt from "./GotIt";
 import {
   editionBookLabel,
   insideText,
@@ -303,37 +304,22 @@ export default function BuyStrip({
               {/* bought it, or ordered it: one tap each, for the book and all
                   its volumes. Pills in the ticket's corner (beside the link,
                   never inside it: a button can't sit in a link) */}
-              <span className={styles.ticketPills}>
-                {onOwnBook && (
-                  <button
-                    type="button"
-                    className={styles.ticketPill}
-                    disabled={owning}
-                    aria-label={`${editionBookLabel(line, plan.next)}: on my shelf`}
-                    onClick={() => {
-                      setOwning(true);
-                      setOwnFailed(false);
-                      onOwnBook(line, plan.next!)
-                        .catch(() => setOwnFailed(true))
-                        .finally(() => setOwning(false));
-                    }}
-                  >
-                    {owning ? "Saving…" : "On my shelf"}
-                  </button>
-                )}
-                {onOrdered && (
-                  <button
-                    type="button"
-                    className={styles.ticketPill}
-                    disabled={ordering}
-                    aria-label={`${editionBookLabel(line, plan.next)}: ordered`}
-                    onClick={() => order(plan.next!.volumes, true)}
-                    {...offlineLink(offline)}
-                  >
-                    {ordering ? "Saving…" : "Ordered"}
-                  </button>
-                )}
-              </span>
+              <GotIt
+                name={editionBookLabel(line, plan.next)}
+                onShelf={
+                  onOwnBook &&
+                  (() => {
+                    setOwning(true);
+                    setOwnFailed(false);
+                    onOwnBook(line, plan.next!)
+                      .catch(() => setOwnFailed(true))
+                      .finally(() => setOwning(false));
+                  })
+                }
+                onOrdered={onOrdered && (() => order(plan.next!.volumes, true))}
+                owning={owning}
+                ordering={ordering}
+              />
               {(ownFailed || orderFailed) && (
                 <span className={styles.buyOwnFailed} role="alert">
                   {orOffline("That didn't save. Try again.")}
@@ -404,35 +390,22 @@ export default function BuyStrip({
                 <span className={styles.buyPrice}>not listed yet</span>
               </div>
               {onOrdered && (
-                <span className={styles.ticketPills}>
-                  {onOwnVolume && (
-                    <button
-                      type="button"
-                      className={styles.ticketPill}
-                      disabled={owning}
-                      aria-label={`Vol. ${unlisted}: on my shelf`}
-                      onClick={() => {
-                        setOwning(true);
-                        setOwnFailed(false);
-                        onOwnVolume(unlisted)
-                          .catch(() => setOwnFailed(true))
-                          .finally(() => setOwning(false));
-                      }}
-                    >
-                      {owning ? "Saving…" : "On my shelf"}
-                    </button>
-                  )}
-                  <button
-                    type="button"
-                    className={styles.ticketPill}
-                    disabled={ordering}
-                    aria-label={`Vol. ${unlisted}: ordered`}
-                    onClick={() => order([unlisted], true)}
-                    {...offlineLink(offline)}
-                  >
-                    {ordering ? "Saving…" : "Ordered"}
-                  </button>
-                </span>
+                <GotIt
+                  name={`Vol. ${unlisted}`}
+                  onShelf={
+                    onOwnVolume &&
+                    (() => {
+                      setOwning(true);
+                      setOwnFailed(false);
+                      onOwnVolume(unlisted)
+                        .catch(() => setOwnFailed(true))
+                        .finally(() => setOwning(false));
+                    })
+                  }
+                  onOrdered={() => order([unlisted], true)}
+                  owning={owning}
+                  ordering={ordering}
+                />
               )}
             </li>
           )}
@@ -460,35 +433,22 @@ export default function BuyStrip({
               </NavLink>
               {/* bought it somewhere and it's on its way: Next moves past it */}
               {onOrdered && (
-                <span className={styles.ticketPills}>
-                  {onOwnVolume && (
-                    <button
-                      type="button"
-                      className={styles.ticketPill}
-                      disabled={owning}
-                      aria-label={`Vol. ${next.volume}: on my shelf`}
-                      onClick={() => {
-                        setOwning(true);
-                        setOwnFailed(false);
-                        onOwnVolume(next.volume)
-                          .catch(() => setOwnFailed(true))
-                          .finally(() => setOwning(false));
-                      }}
-                    >
-                      {owning ? "Saving…" : "On my shelf"}
-                    </button>
-                  )}
-                  <button
-                    type="button"
-                    className={styles.ticketPill}
-                    disabled={ordering}
-                    aria-label={`Vol. ${next.volume}: ordered`}
-                    onClick={() => order([next.volume], true)}
-                    {...offlineLink(offline)}
-                  >
-                    {ordering ? "Saving…" : "Ordered"}
-                  </button>
-                </span>
+                <GotIt
+                  name={`Vol. ${next.volume}`}
+                  onShelf={
+                    onOwnVolume &&
+                    (() => {
+                      setOwning(true);
+                      setOwnFailed(false);
+                      onOwnVolume(next.volume)
+                        .catch(() => setOwnFailed(true))
+                        .finally(() => setOwning(false));
+                    })
+                  }
+                  onOrdered={() => order([next.volume], true)}
+                  owning={owning}
+                  ordering={ordering}
+                />
               )}
               {(ownFailed || orderFailed) && (
                 <span className={styles.buyOwnFailed} role="alert">
