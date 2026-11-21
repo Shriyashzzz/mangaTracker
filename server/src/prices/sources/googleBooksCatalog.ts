@@ -212,6 +212,55 @@ async function searchEditionWords(
   return { books: [...found.values()], whole };
 }
 
+// Edition books of any series: one search by an edition's name, and its
+// publisher when given ('intitle:"VIZBIG" inpublisher:"VIZ Media"'), a page
+// of up to 40. For finding series whose editions we don't know yet
+// (prices/editionDiscovery.ts); null when it failed, the day was used up or
+// there's no key
+export async function googleEditionSearch(
+  words: string,
+  publisher: string | null,
+  page = 0,
+  timeoutMs = 8000,
+): Promise<GoogleEditionBook[] | null> {
+  const key = config.GOOGLE_BOOKS_API_KEY;
+  if (!key || Date.now() < backOffUntil) return null;
+  const params = new URLSearchParams({
+    q: `intitle:"${words}"${publisher ? ` inpublisher:"${publisher}"` : ""}`,
+    printType: "books",
+    langRestrict: "en",
+    maxResults: String(PAGE),
+    startIndex: String(page * PAGE),
+    key,
+  });
+  void noteCall("gbooks");
+  try {
+    const res = await fetch(`${URL}?${params}`, {
+      signal: AbortSignal.timeout(timeoutMs),
+    });
+    if (res.status === 429) backOffUntil = Date.now() + BACK_OFF_MS;
+    if (!res.ok) return null;
+    const items = ((await res.json()) as { items?: Item[] }).items ?? [];
+    return items.flatMap(({ volumeInfo: info }) => {
+      const isbn13 = info?.industryIdentifiers?.find(
+        (i) => i.type === "ISBN_13",
+      )?.identifier;
+      if (!info?.title || !isbn13 || info.language !== "en") return [];
+      return [
+        {
+          title: [info.title, info.subtitle].filter(Boolean).join(": "),
+          isbn13,
+          publishers: info.publisher ? [info.publisher] : [],
+          pages: info.pageCount ?? null,
+          published: info.publishedDate ?? null,
+        },
+      ];
+    });
+  } catch {
+    return null;
+  }
+}
+
 // A book's title by its ISBN, as its publisher gave it to Google: "Rurouni
 // Kenshin (3-in-1 Edition), Vol. 1", where Open Library has only "Rurouni
 // Kenshin, Vol. 1". The second catalog for a book's edition, asked only when
