@@ -317,6 +317,8 @@ export const detailsStyles = {
   buyGapList: "flex flex-wrap gap-x-3",
   buyGap:
     "inline-flex min-h-8 items-center font-semibold underline decoration-line-soft underline-offset-3 hover:text-accent hover:decoration-accent upto-720:min-h-11",
+  // "+106 more" between the gaps and "See all →": on their line, quieter
+  buyMore: "inline-flex min-h-8 items-center text-ink-soft upto-720:min-h-11",
   // the same series twice on the shelf: said above the page, with the fix
   twiceNote:
     "mb-4 flex flex-wrap items-center gap-x-3 gap-y-1 rounded-ink border-2 border-line bg-accent-wash px-3 py-2 shadow-ink text-[0.92rem] text-ink",

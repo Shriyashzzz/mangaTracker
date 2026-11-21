@@ -69,8 +69,8 @@ function bookPrice(book: EditionBook) {
 const price = (v: SeriesVolume) =>
   v.knownPriceCents != null ? formatCents(v.knownPriceCents) : "check price";
 
-// gaps listed by name; past this, "+N more" and a "Not on your shelf" link
-// to the series page with that list on
+// gaps listed by name; past this, "+N more" and "See all →": the series
+// page with its "Not on your shelf" list on
 const GAPS_SHOWN = 2;
 
 export default function BuyStrip({
@@ -351,10 +351,9 @@ export default function BuyStrip({
                     {editionBookLabel(line, g)}
                   </NavLink>
                 ))}
-                {/* the rest: the series page with "Not on your shelf" on */}
                 {/* the third: how many more, then the way to all of them */}
                 {plan.gaps.length > GAPS_SHOWN && (
-                  <span className={styles.buyAside}>
+                  <span className={styles.buyMore}>
                     +{plan.gaps.length - GAPS_SHOWN} more
                   </span>
                 )}
@@ -366,7 +365,7 @@ export default function BuyStrip({
                     viewTransition
                     {...offlineLink(offline)}
                   >
-                    Not on your shelf →
+                    See all →
                   </NavLink>
                 )}
               </span>
@@ -459,7 +458,7 @@ export default function BuyStrip({
                 ))}
                 {/* the third: how many more, then the way to all of them */}
                 {gaps.length > GAPS_SHOWN && (
-                  <span className={styles.buyAside}>
+                  <span className={styles.buyMore}>
                     +{gaps.length - GAPS_SHOWN} more
                   </span>
                 )}
@@ -471,7 +470,7 @@ export default function BuyStrip({
                     viewTransition
                     {...offlineLink(offline)}
                   >
-                    Not on your shelf →
+                    See all →
                   </NavLink>
                 )}
               </span>
