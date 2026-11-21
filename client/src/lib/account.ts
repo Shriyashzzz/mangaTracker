@@ -2,6 +2,7 @@
 import { apiFetch, errorMessages, getJson } from "./api";
 import { SORT_OPTIONS } from "./shelf";
 import { orOffline } from "./offline";
+import { siteOrigin } from "./siteOrigin";
 
 export type Account = {
   username: string;
@@ -166,7 +167,7 @@ export async function saveShareTop(names: string[]) {
   return Boolean(res?.ok);
 }
 
-export const shareUrl = (code: string) => `${window.location.origin}/u/${code}`;
+export const shareUrl = (code: string) => `${siteOrigin()}/u/${code}`;
 
 // the shelf as a backup file: lib/shelfCsv.ts (no network code there, so it
 // can be tested)
