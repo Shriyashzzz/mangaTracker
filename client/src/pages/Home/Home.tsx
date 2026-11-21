@@ -21,6 +21,7 @@ import { BarcodeIcon } from "../../components/icons/Icons";
 import RangePager from "../../components/rangePager/RangePager";
 import ReleaseTip from "../../components/whatsNew/ReleaseTip";
 import WeeklyEmailPeek from "../../components/weeklyEmailPeek/WeeklyEmailPeek";
+import AlertsPeek from "../../components/alertsPeek/AlertsPeek";
 import ViewPeek from "../../components/viewPeek/ViewPeek";
 import MergeOffer from "./MergeOffer";
 import { usePrivatePage } from "../../lib/seo";
@@ -873,6 +874,18 @@ function Library() {
           // not over the select bar or the undo note, which share its spot
           enabled={hasManga && !showingNew && !select.selecting && !undoShowing}
           onCheck={() => pickTab("new")}
+        />
+
+        {/* the Play app's question about alerts on this phone */}
+        <AlertsPeek
+          hasSeries={mangaData.length > 0}
+          blocked={
+            showingNew ||
+            select.selecting ||
+            undoShowing ||
+            Boolean(hideActions.hidden) ||
+            select.movedShowing
+          }
         />
 
         <WeeklyEmailPeek

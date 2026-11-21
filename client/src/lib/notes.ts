@@ -4,7 +4,7 @@
 
 const KEY = "noteThisVisit";
 
-type NoteName = "release" | "view" | "support" | "weekly";
+type NoteName = "release" | "view" | "support" | "weekly" | "alerts";
 
 const shownThisVisit = () => {
   try {
