@@ -218,7 +218,7 @@ function PickedLines({
       </div>
       <div className={styles.pickedLines}>
         {lines.map((line, i) => (
-          <div key={line.key}>
+          <div key={line.key} className={styles.lineBlock}>
             <div className={styles.lineHead}>
               <span className={styles.lineName}>{line.label}</span>
               <span className={styles.lineFacts}>
@@ -290,7 +290,7 @@ function SeriesFold({ entry }: { entry: EditionsEntry }) {
       </summary>
       <div className={styles.seriesBody}>
         {lines.map((line, i) => (
-          <div key={line.key}>
+          <div key={line.key} className={styles.lineBlock}>
             <div className={styles.lineHead}>
               <span className={styles.lineName}>{line.label}</span>
               <span className={styles.lineFacts}>

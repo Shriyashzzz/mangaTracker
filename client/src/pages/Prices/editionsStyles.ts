@@ -15,7 +15,7 @@ export const editionsStyles = {
   answers: "flex flex-col gap-1.5",
   answer: "flex flex-wrap items-baseline gap-x-2 text-[1rem]",
   answerBook: "font-semibold text-accent",
-  answerInside: "font-mono text-[0.85rem] text-ink-soft",
+  answerInside: "font-mono text-[0.85rem] text-accent",
   answerNone: "text-[0.95rem] text-ink-soft",
   // a book confirmed but not out yet
   answerComing: "font-mono text-[0.8rem] text-muted",
@@ -24,10 +24,12 @@ export const editionsStyles = {
     "mb-2 flex flex-wrap items-baseline justify-between gap-x-3 gap-y-0.5",
   lineName:
     "font-brand text-[1.15rem] leading-none tracking-[0.04em] text-accent uppercase",
-  // the line's facts, the main data: in the accent too, and a size and a
-  // weight up on a wide screen, where the phone's size reads thin
+  // the line's facts, in ink: the red is for each book's volumes. A size and
+  // a weight up on a wide screen, where the phone's size reads thin
   lineFacts:
-    "font-mono text-[0.76rem] text-accent md:text-[0.88rem] md:font-medium",
+    "font-mono text-[0.76rem] text-ink md:text-[0.88rem] md:font-medium",
+  // one edition, a line between it and the next
+  lineBlock: "[&+&]:border-t [&+&]:border-line-soft [&+&]:pt-5",
   tiles: "grid grid-cols-[repeat(auto-fill,minmax(3.6rem,1fr))] gap-2",
   tile: "flex flex-col items-center border-[1.5px] border-line bg-card px-1 pt-1.5 pb-1 text-center shadow-ink",
   // the book the lookup answered with: the accent's frame
@@ -38,7 +40,7 @@ export const editionsStyles = {
   tileComing: "border-dashed bg-transparent shadow-none",
   tileDate: "mt-0.5 font-mono text-[0.62rem] whitespace-nowrap text-muted",
   tileNumber: "font-brand text-[1.45rem] leading-none",
-  tileInside: "mt-0.5 font-mono text-[0.68rem] whitespace-nowrap text-ink-soft",
+  tileInside: "mt-0.5 font-mono text-[0.68rem] whitespace-nowrap text-accent",
   tilesKey: "mt-2 font-mono text-[0.72rem] text-muted",
   // the page
   list: "flex flex-col",
