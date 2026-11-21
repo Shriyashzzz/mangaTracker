@@ -76,7 +76,7 @@ export function SignInSection({ account }: { account: Account }) {
       {!account.hasPassword && (
         <form className={styles.field} onSubmit={savePassword} noValidate>
           <label htmlFor="first-password">
-            Add a password, so {account.username} signs in too
+            Add a password to sign in without Google
           </label>
           <PasswordInput
             id="first-password"
