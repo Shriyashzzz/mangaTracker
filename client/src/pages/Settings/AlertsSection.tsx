@@ -4,7 +4,7 @@
 // way to install. Nothing at all where alerts aren't set up (lib/alerts.ts).
 import { useEffect, useRef, useState } from "react";
 import { inApp } from "../../lib/inApp";
-import { appCan, askApp } from "../../lib/playApp";
+import { appCan, askApp, checkAppNotifications } from "../../lib/playApp";
 import InstallAppButton from "../../components/installApp/InstallAppButton";
 import {
   alertsWay,
@@ -53,10 +53,17 @@ export function AlertsSection() {
       setWay("on");
       setNote({ text: "On for this device." });
     };
+    // the app knows if Android's setting changed while away: asked only on
+    // coming back into view (Settings only: nowhere else opens anything)
+    const askTheApp = () => {
+      if (!document.hidden) checkAppNotifications();
+    };
     document.addEventListener("visibilitychange", check);
+    document.addEventListener("visibilitychange", askTheApp);
     window.addEventListener("focus", check);
     return () => {
       document.removeEventListener("visibilitychange", check);
+      document.removeEventListener("visibilitychange", askTheApp);
       window.removeEventListener("focus", check);
     };
   }, []);
