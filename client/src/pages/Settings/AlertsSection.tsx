@@ -2,23 +2,52 @@
 // browser asks its own question only after it's tapped. On an iPhone in
 // Safari, alerts only work in the installed app, so it says that, with the
 // way to install. Nothing at all where alerts aren't set up (lib/alerts.ts).
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { inApp } from "../../lib/inApp";
 import InstallAppButton from "../../components/installApp/InstallAppButton";
 import { alertsWay, switchAlertsOff, switchAlertsOn } from "../../lib/alerts";
+import { markChoseAlertsOff } from "../../lib/alertsAsk";
 import type { AlertsWay } from "../../lib/alertsWay";
 import { settingsStyles as styles } from "./styles";
 import { orOffline } from "../../lib/offline";
+
+// the phone or browser lets this site notify now
+const canNotify = () =>
+  "Notification" in window && Notification.permission === "granted";
 
 export function AlertsSection() {
   // null while it's being worked out
   const [way, setWay] = useState<AlertsWay | null>(null);
   const [busy, setBusy] = useState(false);
+  // what's showing, for the check on coming back
+  const shown = useRef<AlertsWay | null>(null);
+  useEffect(() => {
+    shown.current = way;
+  });
   const [note, setNote] = useState<{ text: string; failed?: boolean } | null>(
     null,
   );
   useEffect(() => {
     void alertsWay().then(setWay);
+    // back from the phone's own settings ("Then come back here"): asked
+    // again, and allowed there means on here, which is why they went
+    const check = async () => {
+      if (document.hidden) return;
+      const was = shown.current;
+      const now = await alertsWay();
+      setWay(now);
+      if (was !== "blocked" || now !== "off" || !canNotify()) return;
+      if ((await switchAlertsOn()) !== "on") return;
+      markChoseAlertsOff(false);
+      setWay("on");
+      setNote({ text: "On for this device." });
+    };
+    document.addEventListener("visibilitychange", check);
+    window.addEventListener("focus", check);
+    return () => {
+      document.removeEventListener("visibilitychange", check);
+      window.removeEventListener("focus", check);
+    };
   }, []);
 
   if (!way || way === "hidden") return null;
@@ -26,6 +55,8 @@ export function AlertsSection() {
   const flip = async (on: boolean) => {
     setBusy(true);
     setNote(null);
+    // their own choice here: Kenji never asks again or switches it back on
+    markChoseAlertsOff(!on);
     if (on) {
       const now = await switchAlertsOn();
       if (now === "failed") {
