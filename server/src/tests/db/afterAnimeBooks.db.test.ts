@@ -5,6 +5,7 @@
 import priceQueries from "../../models/priceQueries.js";
 import { savedBooksOf } from "../../prices/afterAnime/savedBooks.js";
 import { volumesKey } from "../../prices/volumesKey.js";
+import { finalKey } from "../../prices/seriesCache.js";
 import { closeDb, prisma } from "./testDb.js";
 
 const SERIES = "Zzafter Anime Series";
@@ -32,7 +33,9 @@ const listed = (n: number, published?: string) => ({
 });
 
 const clean = async () => {
-  await prisma.seriesVolumes.deleteMany({ where: { key: volumesKey(SERIES) } });
+  await prisma.seriesVolumes.deleteMany({
+    where: { key: { in: [volumesKey(SERIES), finalKey(SERIES)] } },
+  });
   await prisma.book.deleteMany({
     where: { isbn13: { in: [1, 2, 3, 4].map(ISBN) } },
   });
@@ -86,6 +89,21 @@ test("the volumes that are out, each with its cheapest saved new price", async (
     [3, null, null],
   ]);
   expect(books[0]!.checkedAt).toBeInstanceOf(Date);
+});
+
+test("the series page's list wins over the raw catalog list, which can miss a volume", async () => {
+  // the raw list missed vol. 2; the series page's merged list has it
+  await priceQueries.saveSeriesVolumes(volumesKey(SERIES), [
+    listed(1),
+    listed(3),
+  ]);
+  await priceQueries.saveSeriesVolumes(finalKey(SERIES), [
+    listed(1),
+    listed(2),
+    listed(3),
+  ]);
+  const books = await savedBooksOf(SERIES);
+  expect(books.map((b) => b.volume)).toEqual([1, 2, 3]);
 });
 
 test("a series with no saved list has nothing to say", async () => {

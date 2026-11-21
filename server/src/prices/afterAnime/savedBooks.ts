@@ -9,6 +9,7 @@ import priceQueries, { type Country } from "../../models/priceQueries.js";
 import { notOutYet } from "../preorder.js";
 import { isWellKnown, shopName } from "../volumeNames.js";
 import { volumesKey } from "../volumesKey.js";
+import { finalKey } from "../seriesCache.js";
 
 // one volume that's out. Its price is null when none is saved
 export type SavedBook = {
@@ -23,7 +24,14 @@ export async function savedBooksOf(
   seriesName: string,
   country: Country = "us",
 ): Promise<SavedBook[]> {
-  const saved = await priceQueries.getSeriesVolumes(volumesKey(seriesName));
+  // the series page's careful list (every catalog merged, gaps filled), as
+  // the shelf, sitemap and series page read it; the raw catalog list only
+  // for a series whose page hasn't been built yet. The raw one can miss
+  // volumes (Attack on Titan's had no vols. 20 and 23), and a season's buy
+  // box then waited for the whole series list
+  const saved =
+    (await priceQueries.getSeriesVolumes(finalKey(seriesName))) ??
+    (await priceQueries.getSeriesVolumes(volumesKey(seriesName)));
   // whole volumes that are out, each once (the first listed is the one the
   // series page shows)
   const out = new Map<number, string>();
