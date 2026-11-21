@@ -56,6 +56,12 @@ public class LauncherActivity
         } catch (Exception ignored) {
             // the site treats it as the first release
         }
+        // whether Android lets the app notify right now: the site can't see a
+        // change made in Android's settings, so it's told on every opening
+        android.app.NotificationManager manager =
+                getSystemService(android.app.NotificationManager.class);
+        boolean on = manager != null && manager.areNotificationsEnabled();
+        uri = uri.buildUpon().appendQueryParameter("notifications", on ? "on" : "off").build();
         return uri;
     }
 }

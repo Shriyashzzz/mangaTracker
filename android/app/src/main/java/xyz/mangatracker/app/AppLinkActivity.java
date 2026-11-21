@@ -102,6 +102,7 @@ public class AppLinkActivity extends Activity {
     // it opens, and the page switches alerts on (client lib/playApp.ts)
     private void reopen() {
         if (back != null) {
+            // LauncherActivity adds whether notifications are on now
             Intent again = new Intent(Intent.ACTION_VIEW, back, this, LauncherActivity.class)
                     .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP);
             try {
