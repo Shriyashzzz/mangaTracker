@@ -14,6 +14,8 @@ import {
 import { formatCents, volumePath, wholeMoney } from "../../lib/prices";
 import { runTotal, seriesCost, type SeriesCost } from "../../lib/finishCost";
 import RangePager from "../../components/rangePager/RangePager";
+import { nextVolumeFor } from "../../lib/editionLookup";
+import EditionFinder from "./EditionFinder";
 import { pricesStyles as styles } from "./styles";
 
 type Props = {
@@ -102,6 +104,15 @@ export default function OtherEditions({
           {Math.min(...inside)}–{Math.max(...inside)} · Prices load when you
           open one
         </span>
+      </div>
+      {/* which book holds a volume, in every line at once: the same lookup
+          as /editions, started at their next volume when it's theirs */}
+      <div className="mb-5">
+        <EditionFinder
+          key={`${name}:${nextVolumeFor(lines, owned) ?? ""}`}
+          lines={lines}
+          startAt={nextVolumeFor(lines, owned)}
+        />
       </div>
       {lines.length > 1 && (
         <div className={styles.editionTabs} role="group" aria-label="Edition">

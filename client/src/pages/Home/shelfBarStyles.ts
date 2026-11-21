@@ -97,4 +97,8 @@ export const shelfBarStyles = {
   sortOption:
     "tap flex w-full items-center justify-between gap-3 rounded-[2px] px-2.5 py-2 text-left text-ink hover:bg-accent-wash aria-[current=true]:font-semibold",
   tick: "size-4 text-accent",
+  // a way on under a menu's options, apart from them
+  menuFoot: "mt-1 border-t border-dashed border-line-soft pt-1",
+  menuFootLink:
+    "tap block rounded-[2px] px-2.5 py-2 text-[0.88rem] font-medium text-ink-soft underline decoration-line-soft underline-offset-3 hover:bg-accent-wash hover:text-ink",
 } as const;

@@ -44,6 +44,9 @@ export default function PriceSearch() {
   // US or Canada: the volume pages follow whatever's picked here
   const country = useCountry();
   const query = (params.get("q") ?? "").trim();
+  // an edition named in the search ("berserk deluxe"): each result opens on
+  // that line's books (the series page's Other editions)
+  const edition = params.get("edition");
   // results are kept with the query they belong to, so a stale answer
   // never shows under a newer search
   const [result, setResult] = useState<{
@@ -294,7 +297,14 @@ export default function PriceSearch() {
           <ul className={styles.grid}>
             {pageItems.map((s) => (
               <li key={s.slug}>
-                <SeriesCard series={s} />
+                <SeriesCard
+                  series={s}
+                  to={
+                    edition
+                      ? `${seriesPath(s.name)}&${new URLSearchParams({ edition })}`
+                      : undefined
+                  }
+                />
               </li>
             ))}
           </ul>

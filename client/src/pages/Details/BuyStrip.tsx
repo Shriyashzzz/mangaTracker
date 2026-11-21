@@ -249,6 +249,12 @@ export default function BuyStrip({
               wordy
               sortBy={line?.key ?? "singles"}
               onSort={onCollect}
+              // what each book of its lines holds: the series page's
+              // editions, with the lookup
+              footer={{
+                to: `${seriesPath(seriesName)}&${new URLSearchParams({ edition: line?.key ?? editions.lines[0]!.key })}`,
+                label: "Which volumes are in each book →",
+              }}
               options={[
                 { value: "singles", label: "Single" },
                 ...editions.lines.map((l) => ({

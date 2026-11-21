@@ -112,10 +112,15 @@ export default function SeriesSearchBox({
     }
     close();
     if (isbn) navigate(`/prices/${isbn}`, { viewTransition: true });
-    else if (q.length >= 2)
-      navigate(`/?${new URLSearchParams({ q: askedEdition(q).series })}`, {
-        viewTransition: true,
-      });
+    else if (q.length >= 2) {
+      // "berserk deluxe": the results are Berserk's, and each opens on its
+      // Deluxe books (PriceSearch)
+      const { series, edition } = askedEdition(q);
+      navigate(
+        `/?${new URLSearchParams({ q: series, ...(edition ? { edition } : {}) })}`,
+        { viewTransition: true },
+      );
+    }
   };
   const pick = (series: SeriesHit) => {
     close();

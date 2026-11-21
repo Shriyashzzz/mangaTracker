@@ -29,7 +29,7 @@ export type EditionLine = {
 // "Deluxe 3", "2-in-1 Book 1"
 export const editionBookLabel = (line: EditionLine, book: EditionBook) =>
   bookName(line.label, book.number);
-export const insideText = (book: EditionBook) =>
+export const insideText = (book: Pick<EditionBook, "volumes">) =>
   `${book.volumes.length === 1 ? "vol." : "vols."} ${rangesText(book.volumes)}`;
 
 // an edition book they've recorded already: the same ISBN, or without one

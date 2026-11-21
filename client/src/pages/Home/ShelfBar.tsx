@@ -17,6 +17,7 @@ import {
   SortIcon,
 } from "../../components/icons/Icons";
 import { SORT_OPTIONS } from "../../lib/shelf";
+import { NavLink } from "react-router";
 import { shelfBarStyles as styles } from "./shelfBarStyles";
 import { keepFocus } from "../../lib/keepFocus";
 import { offlineLink, useIsOffline } from "../../lib/offline";
@@ -316,7 +317,11 @@ export function SortMenu<T extends string>({
   box = false,
   compact = false,
   id,
+  footer,
 }: {
+  // a way on, under the options: "Which volumes are in each book →" under
+  // the Buy next edition picker
+  footer?: { to: string; label: string };
   // a box sized like a list's own small boxes (36px, 44px on a phone):
   // inside "Your books", beside the paid and date boxes
   compact?: boolean;
@@ -460,6 +465,18 @@ export function SortMenu<T extends string>({
                 </button>
               </li>
             ))}
+          {footer && (
+            <li className={styles.menuFoot}>
+              <NavLink
+                to={footer.to}
+                className={styles.menuFootLink}
+                onClick={() => setOpen(false)}
+                viewTransition
+              >
+                {footer.label}
+              </NavLink>
+            </li>
+          )}
         </Menu>
       )}
     </div>
