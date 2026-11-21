@@ -3,9 +3,10 @@
 // bookmarked, shared and linked to. A link wins over where they were last;
 // with release checks off there's no New, and a link to New that arrives
 // before the account's choice does waits on All until checks turn on.
+import { SHELF_TAB_KEY } from "../../lib/shelfTabKey";
 import { useEffect, useState } from "react";
 import { useSearchParams } from "react-router";
-import { readLocal, SHELF_TAB_KEY, useReleaseChecksOn } from "../../lib/prefs";
+import { readLocal, useReleaseChecksOn } from "../../lib/prefs";
 import {
   readSession,
   TAB_FROM_URL,

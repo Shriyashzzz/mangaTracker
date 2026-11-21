@@ -23,7 +23,7 @@ import {
 import { createPortal } from "react-dom";
 import { useLocation, useNavigate } from "react-router";
 import { hasBottomBar } from "../../lib/bottomBar";
-import { SHELF_TAB_KEY } from "../../lib/prefs";
+import { SHELF_TAB_KEY } from "../../lib/shelfTabKey";
 import {
   demoKind,
   endDemo,

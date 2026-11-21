@@ -2,6 +2,7 @@
 // <html data-bg data-theme>, remembered in localStorage, and kept on the
 // account when signed in. index.html applies the stored ones before first
 // paint so there's no flash.
+import { SHELF_TAB_KEY } from "./shelfTabKey";
 import { isDemo } from "./demo";
 import { useSyncExternalStore } from "react";
 import { readTrackBy } from "./reading";
@@ -227,7 +228,6 @@ export const syncPrefs = async () => {
 // browser tab's sessionStorage: forgotten when they sign in or out, so a
 // sign-in opens their "First tab to open", never the tab the last reader of
 // this browser tab left open
-export const SHELF_TAB_KEY = "libraryStatus";
 export const forgetShelfTab = () => {
   try {
     sessionStorage.removeItem(SHELF_TAB_KEY);

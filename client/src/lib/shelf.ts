@@ -4,7 +4,7 @@ import { apiFetch, getJson } from "./api";
 import type { ReleaseData, ReleaseStatus, ShelfMatch } from "./types";
 import type { ReleaseOutcome, SeenKind } from "./releaseMath";
 import { orOffline } from "./offline";
-import { SHELF_TAB_KEY } from "./prefs";
+import { SHELF_TAB_KEY } from "./shelfTabKey";
 
 // release dates and what's new in English for one manga on the shelf
 // the shelf says which lane it waits in (lib/releaseOrder.ts); the details
