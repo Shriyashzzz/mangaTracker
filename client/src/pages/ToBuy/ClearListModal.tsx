@@ -38,7 +38,7 @@ export default function ClearListModal({ count, onClear, onClose }: Props) {
   return (
     <dialog
       ref={dialog}
-      className={styles.confirm}
+      className={`${styles.confirm} app-dialog`}
       aria-labelledby="clear-list-title"
       aria-describedby="clear-list-body"
       onClose={onClose}

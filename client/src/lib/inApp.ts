@@ -6,6 +6,7 @@
 // unchanged. Marked on <html> as "in-app" so styles can follow it too
 import { runsAsApp } from "./install";
 import { inPlayApp } from "./playApp";
+import { swipeSheetsDown } from "./sheetSwipe";
 
 export const inApp = () => runsAsApp() || inPlayApp();
 
@@ -14,6 +15,7 @@ export function markInApp() {
   if (!inApp()) return;
   document.documentElement.classList.add("in-app");
   hideTheBrowser();
+  swipeSheetsDown();
 }
 
 // where words are typed: their own menu (paste) and selection stay

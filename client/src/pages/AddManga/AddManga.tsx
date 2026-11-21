@@ -330,7 +330,9 @@ export function AddManga() {
         {/* the page's title set into the box's top edge, like a manga
             panel's caption, with the way back in the other corner: one row
             instead of a header above the form */}
-        <div className={styles.caption}>
+        {/* in the app the top bar already says it: kept for screen readers
+            only (index.css .app-said-above) */}
+        <div className={`${styles.caption} app-said-above`}>
           <h1 className={styles.captionTitle}>Add a manga</h1>
           <NavLink
             to="/shelf"

@@ -101,6 +101,8 @@ export function AlertsSection() {
           <label className={styles.row}>
             <input
               type="checkbox"
+              // an on/off setting: Android's switch in the app (index.css)
+              className="app-switch"
               checked={way === "on"}
               disabled={busy}
               onChange={(e) => void flip(e.target.checked)}

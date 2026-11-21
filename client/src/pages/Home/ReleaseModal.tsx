@@ -99,7 +99,7 @@ export default function ReleaseModal({
   return (
     <dialog
       ref={dialog}
-      className={styles.modal}
+      className={`${styles.modal} app-sheet-dialog`}
       aria-labelledby="release-title"
       onClose={close}
       // the backdrop counts as the dialog itself; its contents are all children

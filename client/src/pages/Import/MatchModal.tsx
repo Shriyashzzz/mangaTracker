@@ -167,7 +167,7 @@ export default function MatchModal({
   return (
     <dialog
       ref={dialog}
-      className={styles.modal}
+      className={`${styles.modal} app-full-dialog`}
       aria-labelledby={`${ids}-title`}
       onClose={onClose}
       // the backdrop counts as the dialog itself; its contents are all children

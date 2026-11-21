@@ -63,7 +63,7 @@ export const homeStyles = {
     "tap mt-2 inline-flex shrink-0 items-center gap-1 py-1 upto-720:mt-0 upto-720:min-w-16 upto-720:justify-center upto-720:px-2 text-[0.85rem] font-medium text-ink-soft underline decoration-line-soft underline-offset-3 transition-colors duration-120 ease-[ease] hover:text-accent hover:decoration-accent [&_svg]:size-3.5",
   // above the phones' bottom bar
   seenNote:
-    "app-above-bar fixed inset-x-0 bottom-6 z-15 mx-auto flex w-fit max-w-[min(30rem,calc(100vw-2rem))] animate-drop items-center gap-4 rounded-ink border-[2.5px] border-line bg-card px-4 py-3 text-[0.95rem] text-ink shadow-ink motion-reduce:animate-none upto-720:bottom-[calc(4.5rem+env(safe-area-inset-bottom))]",
+    "app-above-bar app-snackbar fixed inset-x-0 bottom-6 z-15 mx-auto flex w-fit max-w-[min(30rem,calc(100vw-2rem))] animate-drop items-center gap-4 rounded-ink border-[2.5px] border-line bg-card px-4 py-3 text-[0.95rem] text-ink shadow-ink motion-reduce:animate-none upto-720:bottom-[calc(4.5rem+env(safe-area-inset-bottom))]",
   seenName: "min-w-0 truncate",
   // Select: a slim row over the cards, and the bar that acts on what's ticked
   gridTools:

@@ -221,6 +221,8 @@ export default function ProfileTab({ account }: { account: Account }) {
         <label className={styles.row}>
           <input
             type="checkbox"
+            // an on/off setting: Android's switch in the app (index.css)
+            className="app-switch"
             checked={account.shareEnabled}
             onChange={(e) => {
               setCopied(false);
@@ -240,6 +242,8 @@ export default function ProfileTab({ account }: { account: Account }) {
           <label className={styles.row}>
             <input
               type="checkbox"
+              // an on/off setting: Android's switch in the app (index.css)
+              className="app-switch"
               checked={account.shareNotes}
               onChange={(e) =>
                 save(
@@ -258,6 +262,8 @@ export default function ProfileTab({ account }: { account: Account }) {
           <label className={styles.row}>
             <input
               type="checkbox"
+              // an on/off setting: Android's switch in the app (index.css)
+              className="app-switch"
               checked={account.shareRatings}
               onChange={(e) =>
                 save(
@@ -276,6 +282,8 @@ export default function ProfileTab({ account }: { account: Account }) {
           <label className={styles.row}>
             <input
               type="checkbox"
+              // an on/off setting: Android's switch in the app (index.css)
+              className="app-switch"
               checked={account.shareProgress}
               onChange={(e) =>
                 save(

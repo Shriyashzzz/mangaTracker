@@ -2,6 +2,7 @@
 // catalog lists yet (the edition, its number, the volumes it holds). It shows
 // everywhere once three readers say the same, or the site's owner approves it
 // (server util/shelf/editionReports.ts). Signed out, it asks them to sign in.
+import AppFold from "../../components/appFold/AppFold";
 import { useState, type FormEvent } from "react";
 import { NavLink, useLocation } from "react-router";
 import { signInPath } from "../../lib/api";
@@ -58,8 +59,11 @@ export default function ReportBook({
 
   if (!lines.length) return null;
   return (
-    <details className={formStyles.fix}>
-      <summary className={formStyles.fixSummary}>Missing a book?</summary>
+    <AppFold
+      className={formStyles.fix}
+      summaryClass={formStyles.fixSummary}
+      summary="Missing a book?"
+    >
       {!isSignedIn ? (
         <p className={formStyles.fixThanks}>
           <NavLink
@@ -138,6 +142,6 @@ export default function ReportBook({
           </div>
         </form>
       )}
-    </details>
+    </AppFold>
   );
 }

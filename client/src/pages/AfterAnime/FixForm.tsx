@@ -1,6 +1,7 @@
 // "Suggest a fix" under a season: the last chapter it covers, the volume to
 // start from, and where they read it. Kept for review (server: fixStore.ts);
 // nothing on the page changes until it's accepted.
+import AppFold from "../../components/appFold/AppFold";
 import { useId, useState, type FormEvent } from "react";
 import { sendFix } from "../../lib/afterAnime";
 import { afterAnimeStyles as styles } from "./styles";
@@ -51,12 +52,16 @@ export default function FixForm({
   if (state === "sending") sendLabel = "Sending…";
 
   return (
-    <details className={styles.fix} open={open}>
-      <summary className={styles.fixSummary}>
-        {season
+    <AppFold
+      className={styles.fix}
+      summaryClass={styles.fixSummary}
+      open={open}
+      summary={
+        season
           ? "Is this wrong? Suggest a fix"
-          : "Know where it leaves off? Tell us"}
-      </summary>
+          : "Know where it leaves off? Tell us"
+      }
+    >
       {state === "sent" ? (
         <p className={styles.fixThanks} role="status">
           Thanks. It will show here once it's been checked against your link.
@@ -140,6 +145,6 @@ export default function FixForm({
           </div>
         </form>
       )}
-    </details>
+    </AppFold>
   );
 }

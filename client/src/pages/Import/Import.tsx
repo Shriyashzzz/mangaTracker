@@ -130,7 +130,8 @@ export function ImportPage() {
       </div>
 
       <div
-        className={styles.sources}
+        // choice chips in one sliding row in the app (index.css .app-chips)
+        className={`${styles.sources} app-chips`}
         role="group"
         aria-label="Where your list is"
       >

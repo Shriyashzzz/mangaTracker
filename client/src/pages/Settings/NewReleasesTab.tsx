@@ -15,6 +15,8 @@ export function NewReleasesTab() {
       <label className={styles.row}>
         <input
           type="checkbox"
+          // an on/off setting: Android's switch in the app (index.css)
+          className="app-switch"
           checked={checksOn}
           onChange={(e) =>
             savePrefs(

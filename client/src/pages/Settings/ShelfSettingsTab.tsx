@@ -80,6 +80,8 @@ export function ShelfSettingsTab() {
         <label className={styles.row}>
           <input
             type="checkbox"
+            // an on/off setting: Android's switch in the app (index.css)
+            className="app-switch"
             checked={offerAdd}
             onChange={(e) => {
               setOfferAdd(e.target.checked);

@@ -56,7 +56,7 @@ export default function ReviewDialog({
   return (
     <dialog
       ref={dialog}
-      className={styles.reviewDialog}
+      className={`${styles.reviewDialog} app-sheet-dialog`}
       aria-labelledby="review-dialog-title"
       onClose={onClose}
       // the backdrop counts as the dialog itself. Its padding is on the

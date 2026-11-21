@@ -1,9 +1,11 @@
 // "Add to calendar": a small menu with the reader's choice of calendar, for
 // one release or for all of them on the calendar page.
 //   Google, one release:   opens with the event filled in
-//   Google, several:       saves the .ics file and opens Google's import page
+//   Google, several:       saves the .ics file and opens Google's import
+//                          page
 //   Apple, Outlook, others: the .ics file, which they open themselves
 import { useCloseOnBack } from "../../lib/closeOnBack";
+import { swallowClosingTap } from "../../lib/inApp";
 import { useEffect, useId, useRef, useState } from "react";
 import { CalendarPlusIcon } from "../icons/Icons";
 import {
@@ -50,7 +52,9 @@ export default function AddToCalendar({
   useEffect(() => {
     if (!open) return;
     const away = (e: PointerEvent) => {
-      if (!box.current?.contains(e.target as Node)) setOpen(false);
+      if (box.current?.contains(e.target as Node)) return;
+      swallowClosingTap(e.target);
+      setOpen(false);
     };
     document.addEventListener("pointerdown", away);
     return () => document.removeEventListener("pointerdown", away);
@@ -88,7 +92,11 @@ export default function AddToCalendar({
         <span className={big ? undefined : styles.addWord}>{word}</span>
       </button>
       {open && (
-        <div id={menuId} className={styles.addMenu}>
+        // a bottom sheet in the app (index.css .app-sheet)
+        <div id={menuId} className={`${styles.addMenu} app-sheet`}>
+          <p className="app-only app-sheet-title">
+            {label ?? "Add to your calendar"}
+          </p>
           {one ? (
             // one release: Google opens with the event filled in
             <a

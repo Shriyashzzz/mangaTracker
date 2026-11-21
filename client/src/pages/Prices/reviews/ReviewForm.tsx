@@ -76,6 +76,8 @@ export default function ReviewForm({
         <label className={styles.tick}>
           <input
             type="checkbox"
+            // an on/off setting: Android's switch in the app (index.css)
+            className="app-switch"
             checked={spoiler}
             onChange={(e) => setSpoiler(e.target.checked)}
           />

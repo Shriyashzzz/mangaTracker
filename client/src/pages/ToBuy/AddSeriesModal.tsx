@@ -137,7 +137,7 @@ export default function AddSeriesModal({
   return (
     <dialog
       ref={dialog}
-      className={styles.confirm}
+      className={`${styles.confirm} app-sheet-dialog`}
       aria-labelledby="add-series-title"
       onClose={() => onDone(result.current, owned)}
       onCancel={(e) => {

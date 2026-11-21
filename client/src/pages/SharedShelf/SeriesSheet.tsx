@@ -116,7 +116,7 @@ export default function SeriesSheet({
   return (
     <dialog
       ref={dialog}
-      className={styles.sheet}
+      className={`${styles.sheet} app-sheet-dialog`}
       style={toneOf(m)}
       aria-labelledby="series-sheet-title"
       onClose={onClose}
