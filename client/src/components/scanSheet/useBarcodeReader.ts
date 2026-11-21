@@ -55,6 +55,15 @@ export function useBarcodeReader(
   onOther?: () => void,
 ) {
   const [state, setState] = useState<CameraState>("starting");
+  // a new try ("Try the camera again", "Allow camera"): starting again at
+  // once, so the scanner puts its picture back before the camera is asked
+  // for. While blocked there is no picture, and a try with nowhere to show
+  // the camera gave up at once and stayed blocked
+  const [triedAt, setTriedAt] = useState(attempt);
+  if (attempt !== triedAt) {
+    setTriedAt(attempt);
+    setState("starting");
+  }
   const [torch, setTorch] = useState<{ can: boolean; on: boolean }>({
     can: false,
     on: false,
