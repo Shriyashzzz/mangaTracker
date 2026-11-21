@@ -121,8 +121,7 @@ export default function OtherEditions({
         </h2>
         <span className={styles.checked}>
           {line.books.length} {line.label} books hold vols.{" "}
-          {Math.min(...inside)}–{Math.max(...inside)} · Prices load when you
-          open one
+          {Math.min(...inside)}–{Math.max(...inside)}
         </span>
       </div>
       {/* which book holds a volume, in every line at once: the same lookup
