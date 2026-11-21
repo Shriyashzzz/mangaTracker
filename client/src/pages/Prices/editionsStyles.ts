@@ -46,7 +46,8 @@ export const editionsStyles = {
   list: "flex flex-col",
   letter:
     "mt-6 border-b-[3px] border-double border-line pb-1 font-brand text-[1.8rem] leading-none text-accent first:mt-0",
-  series: "border-b border-dashed border-line-soft",
+  // a line between series, none under a letter's last (or only) one
+  series: "border-b border-dashed border-line-soft last:border-b-0",
   seriesSummary:
     "tap flex cursor-pointer list-none items-center gap-3 py-3 [&::-webkit-details-marker]:hidden",
   cover:
