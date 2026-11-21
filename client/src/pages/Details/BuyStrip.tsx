@@ -350,10 +350,17 @@ export default function BuyStrip({
                     {editionBookLabel(line, g)}
                   </NavLink>
                 ))}
+                {/* the rest: the series page with "Not on your shelf" on */}
                 {plan.gaps.length > GAPS_SHOWN && (
-                  <span className={styles.buyAside}>
-                    +{plan.gaps.length - GAPS_SHOWN} more
-                  </span>
+                  <NavLink
+                    // seriesPath already has its ?name=, so this joins with &
+                    to={`${seriesPath(seriesName)}&toget=1`}
+                    className={styles.buyGap}
+                    viewTransition
+                    {...offlineLink(offline)}
+                  >
+                    Not on your shelf →
+                  </NavLink>
                 )}
               </span>
             </li>
