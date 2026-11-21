@@ -157,6 +157,35 @@ export async function getShelfTools(
   };
 }
 
+// one series' worth, for its page's "Your books": the shelf's own rule
+// (shelfValue) on that series alone, so the page and the shelf's total can't
+// disagree about a volume. Null when it isn't theirs
+export async function getSeriesWorth(
+  userId: number,
+  mangaId: number,
+  country: Country = "us",
+): Promise<ShelfValue | null> {
+  const manga = (await mangaQueries.getShelf(userId)).find(
+    (m) => m.id === mangaId,
+  );
+  if (!manga) return null;
+  const [listed] = await shelfSeries([manga]);
+  // a series with no saved list: what they own, counted but not priced
+  if (!listed)
+    return withEnoughPriced(shelfValue([], new Map(), ownedSet(manga).size));
+  const recorded = await priceQueries.getRecordedMedians(
+    listed.volumes.map((v) => v.isbn13),
+    country,
+  );
+  const owned = {
+    volumesOwned: manga.volumesOwned,
+    ownedList: manga.ownedList,
+  };
+  return withEnoughPriced(
+    shelfValue([{ owned, volumes: listed.volumes }], recorded),
+  );
+}
+
 type CalendarEntry = ReturnType<typeof upcoming>[number] & {
   mangaId: number;
   name: string;

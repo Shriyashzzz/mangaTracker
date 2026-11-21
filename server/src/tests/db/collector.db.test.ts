@@ -168,6 +168,25 @@ test("the calendar lists the volume still to come", async () => {
   ]);
 });
 
+test("one series' worth is the shelf's rule on that series, and only theirs", async () => {
+  const agent = await reader("collector", 1);
+  const [own] = await prisma.manga.findMany({
+    where: { name: SERIES, user: { username: "collector" } },
+  });
+  const res = await agent.get(`/api/collector/series/${own!.id}`).expect(200);
+  // owns vol 1: its used price, as the shelf's total counts it
+  expect(res.body).toMatchObject({ cents: 600, priced: 1, volumes: 1 });
+  // another reader can't ask about it, and a made-up one isn't there
+  const other = await reader("someone", null);
+  expect((await other.get(`/api/collector/series/${own!.id}`)).status).toBe(
+    404,
+  );
+  expect((await agent.get("/api/collector/series/0")).status).toBe(404);
+  expect(
+    (await request(app).get(`/api/collector/series/${own!.id}`)).status,
+  ).toBe(401);
+});
+
 test("each reader sees their own shelf only", async () => {
   await reader("owner", 1);
   const other = await reader("someone", null);

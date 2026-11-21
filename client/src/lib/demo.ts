@@ -1011,6 +1011,18 @@ export async function demoResponse(
       practiceShelfTools(shelf, (m) => new Map(knownOf(m)), spentOn(books)),
     );
   }
+  // one series' worth: the same made-up maths, on that series alone
+  const worthOf = route.match(/^\/api\/collector\/series\/(\d+)$/);
+  if (worthOf) {
+    const manga = shelf.find((m) => m.id === Number(worthOf[1]));
+    if (!manga) return json({ error: "Not on the shelf" }, 404);
+    return json(
+      practiceShelfTools([manga], (m) => new Map(knownOf(m)), {
+        cents: 0,
+        books: 0,
+      }).value,
+    );
+  }
   if (route === "/api/collector/calendar")
     return json({ months: practiceCalendar(shelf, knownOf) });
   if (route === "/api/collector/deals") return json({ deals: [] });

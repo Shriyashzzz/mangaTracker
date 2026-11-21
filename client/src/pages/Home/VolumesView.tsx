@@ -5,7 +5,6 @@
 // asked only when a row is opened.
 import Cover from "../../components/cover/Cover";
 import SeriesPicture from "../../components/cover/SeriesPicture";
-import { formatPaid } from "../../lib/prices";
 import { useEffect, useRef, useState } from "react";
 import RangePager from "../../components/rangePager/RangePager";
 import { NavLink } from "react-router";
@@ -14,14 +13,11 @@ import Mascot from "../../components/mascot/Mascot";
 import { ownedCount, ownedOf, rangesText } from "../../lib/ownedVolumes";
 import { getSeries, priceName, volumePath } from "../../lib/prices";
 import type { Manga, SeriesVolume } from "../../lib/types";
-import {
-  getShelfTools,
-  totalText,
-  type FinishRow,
-  type ShelfTools,
-} from "../../lib/collector";
+import { type FinishRow } from "../../lib/collector";
 import { CoverFallback } from "../Prices/VolumeCard";
 import FinishList from "./FinishList";
+import ShelfTotals from "./ShelfTotals";
+import { useShelfTools } from "./useShelfTools";
 import { volumesStyles as styles } from "./volumesStyles";
 import { pricesStyles } from "../Prices/styles";
 import { readSession, writeSession } from "./shelfViews";
@@ -58,18 +54,8 @@ export default function VolumesView({
     writeSession(OPEN_KEY, next == null ? "" : String(next));
   };
   const [page, setPage] = useState({ key: resetKey, index: 0 });
-  // what the shelf is worth and what finishing each series costs, from
-  // prices already saved; left out (as before) when it can't be had
-  const [tools, setTools] = useState<ShelfTools | null>(null);
-  useEffect(() => {
-    const controller = new AbortController();
-    getShelfTools(controller.signal)
-      .then(setTools)
-      .catch(() => {
-        // switched off or unreachable: the tab as it always was
-      });
-    return () => controller.abort();
-  }, []);
+  // what the shelf is worth and what finishing each series costs
+  const tools = useShelfTools();
   const finishOf = new Map(tools?.finish.map((f) => [f.mangaId, f]));
   const lastPage = Math.max(0, Math.ceil(manga.length / PAGE_SIZE) - 1);
   const pageIndex = page.key === resetKey ? Math.min(page.index, lastPage) : 0;
@@ -169,126 +155,6 @@ export default function VolumesView({
         <div className={styles.pagerBottom}>{pager(true)}</div>
       )}
     </section>
-  );
-}
-
-// the whole shelf: what it would fetch used, and what finishing every series
-// comes to. An estimate says so, with how much of it is real prices
-// said under a total that isn't of every volume yet: prices for the rest
-// are found in the background (server collector/filler.ts, usedFiller.ts)
-const FILL_IN = "The rest fill in over a few days.";
-// what the shelf's worth is: what it would fetch, not what it cost
-const SOLD_USED = "If sold used, at today's prices";
-
-// "4 of 5 priced so far. The rest fill in over a few days."
-const pricedSoFar = (priced: number, of: number) =>
-  `${priced.toLocaleString()} of ${of.toLocaleString()} priced so far. ${FILL_IN}`;
-
-// under "To finish your series", one sentence a line: what the total is
-// for, any series left out of it, and how far the pricing has got.
-//   For the 133 volumes you don't have yet.
-//   5 of 133 priced so far. The rest fill in over a few days.
-function finishNote(tools: ShelfTools, hasTotal: boolean) {
-  // a series collected as its deluxe books counts in books
-  const unit = tools.finish.some((f) => f.edition) ? "book" : "volume";
-  const allPriced = tools.finishPriced >= tools.finishMissing;
-  const lines = [
-    `For the ${plural(tools.finishMissing, unit)} you don't have yet.`,
-  ];
-  // the total is of the series priced enough to say
-  if (tools.finishUncosted && hasTotal)
-    lines.push(
-      `${plural(tools.finishUncosted, "series", "series")} not counted yet.`,
-    );
-  if (!allPriced)
-    lines.push(pricedSoFar(tools.finishPriced, tools.finishMissing));
-  return lines;
-}
-
-function ShelfTotals({ tools, owned }: { tools: ShelfTools; owned: number }) {
-  const { value } = tools;
-  // every owned volume, as the line above counts them (the server's count
-  // leaves out specials and volumes no list has yet): a total is exact only
-  // when all of them are priced
-  const ownedVolumes = Math.max(owned, value.volumes + value.unlisted);
-  const worth = totalText(
-    value.cents,
-    value.priced,
-    ownedVolumes,
-    value.estimateCents,
-  );
-  const finish = totalText(
-    tools.finishCents,
-    tools.finishPriced,
-    tools.finishMissing,
-    tools.finishEstimateCents,
-  );
-  const spent = tools.spent?.books ? tools.spent : null;
-  if (!ownedVolumes && !tools.finishMissing && !spent) return null;
-  // folded until asked: a question to open, not two numbers in the way
-  return (
-    <details className={styles.worth} data-tour="worth">
-      <summary className={styles.worthSummary}>
-        How much is my shelf worth?
-        <ChevronDownIcon className={styles.worthChevron} />
-      </summary>
-      <dl className={styles.totals}>
-        {/* what they've said they paid, on each series' page ("Your books") */}
-        {spent && (
-          <div className={styles.total}>
-            <dt className={styles.totalLabel}>You've spent</dt>
-            <dd className={styles.totalValue}>{formatPaid(spent.cents)}</dd>
-            <dd className={styles.totalNote}>
-              on the {plural(spent.books, "book")} you added a price to
-            </dd>
-          </div>
-        )}
-        {ownedVolumes > 0 && (
-          <div className={styles.total}>
-            <dt className={styles.totalLabel}>Your shelf is worth</dt>
-            {/* no money until enough is priced (the server's
-                enoughToEstimate), as "To finish" below */}
-            <dd className={styles.totalValue}>{worth ?? "no total yet"}</dd>
-            {/* what "worth" means: resale, not what they paid */}
-            {worth && value.priced >= ownedVolumes && (
-              <dd className={styles.totalNote}>{SOLD_USED}.</dd>
-            )}
-            {worth && value.priced < ownedVolumes && (
-              // the total is of every volume, worked out from the ones
-              // priced; the background jobs price the rest over a few days
-              // said plainly: it's the whole shelf, not only what's priced
-              <>
-                <dd className={styles.totalNote}>
-                  An estimate for all {plural(ownedVolumes, "volume")}, if sold
-                  used at today's prices.
-                </dd>
-                <dd className={styles.totalNote}>
-                  {value.priced.toLocaleString()} priced so far, the rest at
-                  their series' usual price.
-                </dd>
-              </>
-            )}
-            {!worth && (
-              <dd className={styles.totalNote}>
-                {pricedSoFar(value.priced, ownedVolumes)}
-              </dd>
-            )}
-          </div>
-        )}
-        {tools.finishMissing > 0 && (
-          <div className={styles.total}>
-            <dt className={styles.totalLabel}>To finish your series</dt>
-            {/* no money until enough is priced: the count is still true */}
-            <dd className={styles.totalValue}>{finish ?? "no total yet"}</dd>
-            {finishNote(tools, Boolean(finish)).map((line) => (
-              <dd key={line} className={styles.totalNote}>
-                {line}
-              </dd>
-            ))}
-          </div>
-        )}
-      </dl>
-    </details>
   );
 }
 

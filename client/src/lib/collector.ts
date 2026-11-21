@@ -73,6 +73,10 @@ export type Deal = {
 
 export const getShelfTools = (signal?: AbortSignal) =>
   getJson<ShelfTools>("/api/collector/shelf", signal);
+// one series of theirs: what its owned volumes would fetch used, by the
+// shelf total's own rule
+export const getSeriesWorth = (mangaId: number, signal?: AbortSignal) =>
+  getJson<ShelfTools["value"]>(`/api/collector/series/${mangaId}`, signal);
 export const getCalendar = (signal?: AbortSignal) =>
   getJson<{ months: CalendarMonth[] }>("/api/collector/calendar", signal).then(
     (r) => r.months,

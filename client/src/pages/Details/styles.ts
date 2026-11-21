@@ -107,7 +107,14 @@ export const detailsStyles = {
     "tap cursor-pointer font-sans text-[0.95rem] font-medium text-ink marker:text-ink-soft",
   booksCount: "ml-1 font-mono text-[0.8rem] text-ink-soft",
   // "$143.88 paid": what the series has cost them, beside the count
-  booksSpent: "ml-3 font-mono text-[0.8rem] font-normal text-accent",
+  // "$143.88 paid · worth about $140 used": beside the count, or on a phone
+  // a line of their own, lined up under "Your books"
+  booksMoney:
+    "ml-3 inline-flex flex-wrap gap-x-2 font-mono text-[0.8rem] font-normal upto-560:mt-0.5 upto-560:ml-0 upto-560:flex upto-560:pl-4",
+  booksSpent: "text-accent",
+  // what it would fetch, quieter than what it cost
+  booksWorth:
+    "text-ink-soft [&:not(:first-child)]:before:mr-2 [&:not(:first-child)]:before:content-['·']",
   booksList: "mt-2 flex flex-col",
   // a book: its name, then what was paid, the day, and Remove; the three
   // drop under the name on a phone

@@ -39,6 +39,7 @@ import { useAuth } from "../../store/auth";
 import { useShelf } from "../../store/shelf";
 import ShelfBar from "./ShelfBar";
 import VolumesView from "./VolumesView";
+import { ShelfWorth } from "./ShelfTotals";
 import ReleaseModal from "./ReleaseModal";
 import DeleteManyModal from "./DeleteManyModal";
 import SelectDock, { MovedNote } from "./SelectDock";
@@ -690,6 +691,14 @@ function Library() {
         !select.selectOn &&
         !query.trim() &&
         mangaData && <MergeOffer shelf={mangaData} />}
+
+      {/* what the shelf is worth, folded under one line, on All: the whole
+          shelf, never part of it (a search or Select) */}
+      {tab === "all" &&
+        !showingNew &&
+        !select.selectOn &&
+        !query.trim() &&
+        mangaData && <ShelfWorth shelf={mangaData} />}
 
       <HiddenNote
         show={showingNew}
