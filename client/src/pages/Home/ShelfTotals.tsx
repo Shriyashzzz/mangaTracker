@@ -1,13 +1,10 @@
 // "How much is my shelf worth?": what they've spent, what the shelf would
 // fetch used, and what finishing every series comes to, folded under one
-// line that says the worth itself once it's known. On the shelf's All tab
-// and its Volumes tab (the numbers: server collector/, useShelfTools.ts)
+// line that says the worth itself once it's known. On the shelf's Volumes
+// tab (the numbers: server collector/, useShelfTools.ts)
 import { ChevronDownIcon } from "../../components/icons/Icons";
 import { totalText, type ShelfTools } from "../../lib/collector";
-import { ownedCount } from "../../lib/ownedVolumes";
 import { formatPaid } from "../../lib/prices";
-import type { Manga } from "../../lib/types";
-import { useShelfTools } from "./useShelfTools";
 import { volumesStyles as styles } from "./volumesStyles";
 
 const plural = (n: number, one: string, many = `${one}s`) =>
@@ -145,12 +142,4 @@ export default function ShelfTotals({
       </dl>
     </details>
   );
-}
-
-// the same, for the whole shelf on its All tab: asked for on its own, shown
-// once it's in
-export function ShelfWorth({ shelf }: { shelf: Manga[] }) {
-  const tools = useShelfTools();
-  const owned = shelf.reduce((sum, m) => sum + ownedCount(m), 0);
-  return tools ? <ShelfTotals tools={tools} owned={owned} /> : null;
 }
