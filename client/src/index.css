@@ -2151,6 +2151,38 @@ html.in-app[data-nav="tab"]::view-transition-new(root) {
   }
 }
 
+/* a series page's volumes in the app: four covers a row, as Android's
+   book shelves are, so the run reads at a glance (pages/Prices/PriceSeries) */
+html.in-app .app-cover-grid {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  column-gap: 10px;
+  row-gap: 18px;
+}
+/* the smaller covers' stamps: "Yours" on the bottom edge, clear of the
+   stand-in's big number, and the "Vol." badge a size down */
+html.in-app .app-cover-grid .card-mark {
+  top: auto;
+  bottom: 4px;
+  left: 4px;
+  right: auto;
+  font-size: 0.68rem;
+  padding: 0 4px;
+}
+html.in-app .app-cover-grid .card-vol {
+  font-size: 1.1rem;
+  padding: 2px 10px 1px 6px;
+}
+
+/* the app's search box before it's tapped: the whole width, 56px tall, its
+   square inked edge kept, and no Search button: a tap opens the full-screen
+   search, and the keyboard's own Search key searches */
+html.in-app form[role="search"]:not([data-full]) > .btn {
+  display: none;
+}
+html.in-app form[role="search"] label {
+  height: 56px;
+}
+
 /* the app's search, full screen while typing (pages/Prices/SeriesSearchBox):
    the box under a back arrow at the top, the results filling the screen
    below it, as Android's search does. The Search button goes: the
@@ -2210,6 +2242,31 @@ html.in-app:has(:is(.app-sheet, dialog[open])) {
   overflow: hidden;
 }
 
+/* a pick-one switch across the whole width, each choice an equal part
+   (the stores' All, New, Used): it always fills its row */
+html.in-app .app-full-segmented {
+  display: grid;
+  grid-auto-columns: 1fr;
+  grid-auto-flow: column;
+  width: 100%;
+  margin-bottom: 12px;
+}
+html.in-app .app-full-segmented > button {
+  min-height: 48px;
+}
+
+/* a list in a sheet, one 48px row each with a quiet line between, as
+   Android's lists are (PriceAges) */
+html.in-app .app-fold-body .app-rows {
+  gap: 0;
+}
+html.in-app .app-fold-body .app-rows > li {
+  min-height: 48px;
+  align-items: center;
+  border-bottom: 1px solid var(--line-soft);
+  font-size: 1rem;
+}
+
 /* a folded form as a sheet (components/appFold/AppFold.tsx) */
 html.in-app .app-fold-body {
   padding: 4px 20px 24px;
@@ -2267,15 +2324,12 @@ html.in-app .app-snackbar :is(button, a) {
   letter-spacing: 0.04em;
 }
 
-/* a link inside a sentence stays a link: red and underlined, as Android
-   marks them (a link standing alone keeps the plain button look above) */
-html.in-app main :is(p, dd) a:not(.btn) {
-  color: var(--accent-ink);
+/* a link inside a sentence ("How this works", "change it right here") keeps
+   the underline the website gives it, in the website's own colours; the rule
+   above takes it off links standing alone. Only links the site underlines:
+   a row of names ("Try One Piece Frieren…") is no sentence */
+html.in-app main :is(p, dd) a:is(.underline, [class*="underline-offset"]) {
   text-decoration-line: underline;
-  text-decoration-thickness: 1.5px;
-  text-underline-offset: 3px;
-  padding: 0;
-  margin: 0;
 }
 
 /* on/off settings as Android's switches (an .app-switch checkbox) */

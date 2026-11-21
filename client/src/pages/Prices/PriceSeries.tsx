@@ -7,6 +7,8 @@
 //   SeriesPageParts.tsx  one card of the list, loading and not-found
 //   SetsBox (BoxSets, EditionsBox), OtherEditions, SeriesCostBox, SeriesFacts
 //   AfterAnime/AfterAnimeBar    the way to where the anime leaves off
+import GrowOnSight from "../../components/growOnSight/GrowOnSight";
+import { inApp } from "../../lib/inApp";
 import { useVisitState } from "../../lib/visitState";
 import Cover from "../../components/cover/Cover";
 import { SeriesScoreBadge } from "./SeriesScore";
@@ -77,6 +79,12 @@ export default function PriceSeries() {
   // comes back with Back (lib/visitState.ts)
   const [page, setPage] = useVisitState("volumes-block", { name, index: 0 });
   const pageIndex = page.name === name ? page.index : 0;
+  // in the app: no pages, one list that grows as its end comes into view;
+  // how far it has grown comes back with Back, so the place can too
+  const [grown, setGrown] = useVisitState("volumes-grown", {
+    key: "",
+    count: PAGE_SIZE,
+  });
   // "Not on your shelf" on or off, and which of its pages, for this series
   // only: another series starts afresh. ?toget=1 (the details page's Buy it
   // card) opens on it
@@ -181,9 +189,14 @@ export default function PriceSeries() {
     toGetPageIndex,
     Math.max(0, Math.ceil(toGet.length / PAGE_SIZE) - 1),
   );
-  const shown = toGetShown
+  const app = inApp();
+  const grownKey = `${name}|${toGetShown}`;
+  const grownCount = grown.key === grownKey ? grown.count : PAGE_SIZE;
+  const appList = toGetShown ? toGet : volumes;
+  let shown = toGetShown
     ? toGet.slice(toGetPage * PAGE_SIZE, (toGetPage + 1) * PAGE_SIZE)
     : volumesOnPage(volumes, pageIndex);
+  if (app) shown = appList.slice(0, grownCount);
   const changePage = (index: number) => {
     setPage({ name, index });
     scrollToVolumes();
@@ -308,7 +321,7 @@ export default function PriceSeries() {
             )}
           </div>
         )}
-        {toGetShown ? (
+        {app ? null : toGetShown ? (
           <RangePager
             total={toGet.length}
             pageSize={PAGE_SIZE}
@@ -334,7 +347,7 @@ export default function PriceSeries() {
             labelFor={(start, end) => `${start + 1}–${end + 1}`}
           />
         )}
-        {!toGetShown && volumes.length > 0 && shown.length === 0 && (
+        {!app && !toGetShown && volumes.length > 0 && shown.length === 0 && (
           <p className={styles.note}>
             The catalog doesn't have volumes {rangeStart}–
             {Math.min(rangeEnd, lastNumber)} in English yet. Search a volume by
@@ -342,25 +355,36 @@ export default function PriceSeries() {
           </p>
         )}
         {volumes.length ? (
-          <ul
-            ref={grid}
-            className={styles.grid}
-            style={
-              toGetShown && heldHeight?.name === name
-                ? { minHeight: heldHeight.height }
-                : undefined
-            }
-          >
-            {cardsOf(shown).map((card) => (
-              <SeriesVolumeCard
-                key={card[0]!.volume}
-                card={card}
-                mark={markOf(card, mine, next)}
-                seriesCoverUrl={info?.coverUrl ?? null}
-                seriesName={info?.name ?? data.name}
+          <>
+            <ul
+              ref={grid}
+              // four to a row in the app (index.css .app-cover-grid)
+              className={`${styles.grid} app-cover-grid`}
+              style={
+                toGetShown && heldHeight?.name === name
+                  ? { minHeight: heldHeight.height }
+                  : undefined
+              }
+            >
+              {cardsOf(shown).map((card) => (
+                <SeriesVolumeCard
+                  key={card[0]!.volume}
+                  card={card}
+                  mark={markOf(card, mine, next)}
+                  seriesCoverUrl={info?.coverUrl ?? null}
+                  seriesName={info?.name ?? data.name}
+                />
+              ))}
+            </ul>
+            {app && grownCount < appList.length && (
+              <GrowOnSight
+                key={grownCount}
+                onSight={() =>
+                  setGrown({ key: grownKey, count: grownCount + PAGE_SIZE })
+                }
               />
-            ))}
-          </ul>
+            )}
+          </>
         ) : incomplete ? (
           <div className={styles.note} role="alert">
             <p>

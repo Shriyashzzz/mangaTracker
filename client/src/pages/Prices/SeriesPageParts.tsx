@@ -29,6 +29,7 @@ export function SeriesVolumeCard({
           plainStandIn
           {...first}
           title={`Vol. ${first.volume}`}
+          titleOnCover
           fullTitle={first.title}
           priceCents={first.knownPriceCents}
           subtitle={oneVolumeSubtitle(first)}

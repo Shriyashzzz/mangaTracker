@@ -6,6 +6,8 @@
 // The stores are looked at on their own timers (eBay, Books-A-Million and
 // Better World Books every few days, the rest every few weeks:
 // server prices/volumeService.ts freshForMs), so one date can't say it all.
+import AppFold from "../../components/appFold/AppFold";
+import { inApp } from "../../lib/inApp";
 import { useEffect, useRef, useState } from "react";
 import { shopName, timeAgo } from "../../lib/prices";
 import type { Offer } from "../../lib/types";
@@ -63,6 +65,28 @@ export default function PriceAges({
   // one store, or none: there's nothing more to say than the one date
   if (ages.length < 2)
     return <span className={styles.checked}>checked {timeAgo(newest)}</span>;
+  const list = (
+    <ul className={`${styles.agesList} app-rows`}>
+      {ages.map(({ store, at }) => (
+        <li key={store} className={styles.agesRow}>
+          <span>{store}</span>
+          <span className={styles.agesWhen}>{timeAgo(at)}</span>
+        </li>
+      ))}
+    </ul>
+  );
+  // in the app, the line opens a sheet, as Android shows more about a thing
+  if (inApp())
+    return (
+      <AppFold
+        className={styles.ages}
+        summaryClass={styles.agesToggle}
+        summary={`checked ${timeAgo(newest)}`}
+        title="Each store, last checked"
+      >
+        {list}
+      </AppFold>
+    );
   return (
     <details
       ref={box}
@@ -72,14 +96,7 @@ export default function PriceAges({
       <summary className={styles.agesToggle}>checked {timeAgo(newest)}</summary>
       <div className={styles.agesBox}>
         <p className={styles.agesTitle}>Each store, last checked</p>
-        <ul className={styles.agesList}>
-          {ages.map(({ store, at }) => (
-            <li key={store} className={styles.agesRow}>
-              <span>{store}</span>
-              <span className={styles.agesWhen}>{timeAgo(at)}</span>
-            </li>
-          ))}
-        </ul>
+        {list}
       </div>
     </details>
   );

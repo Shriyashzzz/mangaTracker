@@ -88,6 +88,7 @@ export default function VolumeCard({
   holds,
   rating,
   plainStandIn = false,
+  titleOnCover = false,
 }: {
   isbn13: string;
   title: string;
@@ -112,6 +113,9 @@ export default function VolumeCard({
   rating?: number | null;
   // a missing cover shows the series' plainly, not washed out (CoverFallback)
   plainStandIn?: boolean;
+  // the title only says what the cover's own "Vol. 13" badge says: in the
+  // app it's left to screen readers (index.css .app-said-above)
+  titleOnCover?: boolean;
 }) {
   const fromShelf = useFromShelf();
   const shown = novelParts(title);
@@ -148,7 +152,7 @@ export default function VolumeCard({
           <Cover url={coverUrl} sizes={CARD_COVER} />
           {mark && (
             <span
-              className={mark === "next" ? styles.markNext : styles.markYours}
+              className={`card-mark ${mark === "next" ? styles.markNext : styles.markYours}`}
             >
               {mark === "next" ? "Next" : "Yours"}
             </span>
@@ -163,13 +167,13 @@ export default function VolumeCard({
             </span>
           )}
           {holds ? (
-            <span className={styles.vol}>
+            <span className={`card-vol ${styles.vol}`}>
               <small>Vols.</small>
               {holds.from}–{holds.to}
             </span>
           ) : (
             volume != null && (
-              <span className={styles.vol}>
+              <span className={`card-vol ${styles.vol}`}>
                 <small>Vol.</small>
                 {volume}
               </span>
@@ -177,7 +181,11 @@ export default function VolumeCard({
           )}
         </span>
       </span>
-      <span className={styles.cardTitle}>{shown.title}</span>
+      <span
+        className={`${styles.cardTitle} ${titleOnCover ? "app-said-above" : ""}`}
+      >
+        {shown.title}
+      </span>
       {/* said where it's named in full (deals, recently checked), where manga
           and novels sit together; a series page's "Vol. 3" is the page's */}
       {(subtitle || shown.lightNovel) && (
