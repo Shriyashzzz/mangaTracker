@@ -90,15 +90,30 @@ export function useBuyOptions(
       ? (out.find((v) => v.volume === firstGap.volume) ?? null)
       : null;
 
+  // the volume after their furthest when the catalogs list no book for it
+  // (Hunter x Hunter's 15: only knock-off reprints, prices/singlesRules.ts):
+  // still the one they need, never skipped for the next one that has a book
+  const after = highest + 1;
+  const unlisted =
+    !gapBook &&
+    highest > 0 &&
+    latest &&
+    after <= latest.volume &&
+    !bookOf.has(after)
+      ? after
+      : null;
+
   return {
     loading,
     volumes,
     latest,
     gaps,
     // the one they need next, once we know what they own
-    next: gapBook ?? missing,
+    next: unlisted != null ? null : (gapBook ?? missing),
+    // the next one's number when no book of it is listed
+    unlisted,
     // nothing on sale after the furthest they own
-    caughtUp: Boolean(latest && highest > 0 && !missing),
+    caughtUp: Boolean(latest && highest > 0 && !missing && unlisted == null),
     seriesName: state.data?.info?.name ?? state.data?.name ?? name ?? "",
   };
 }

@@ -116,7 +116,8 @@ export default function BuyStrip({
       .finally(() => setOrdering(false));
   };
   const { line, plan } = editions;
-  const { loading, volumes, latest, next, caughtUp, seriesName } = options;
+  const { loading, volumes, latest, next, unlisted, caughtUp, seriesName } =
+    options;
   // the gaps under "Not on your shelf": not the one "Next for you" already
   // names (their first gap, when they've chosen that)
   const gaps = options.gaps.filter((g) => g.volume !== next?.volume);
@@ -160,15 +161,17 @@ export default function BuyStrip({
         editionBookLabel(line, firstNext),
         nextOnBar ? null : firstNext.knownPriceCents,
       )
-    : next && !hideNext
-      ? withPrice(`Vol. ${next.volume}`, next.knownPriceCents)
-      : firstGap
-        ? withPrice(`Vol. ${firstGap.volume}`, gapCents)
-        : next
-          ? withPrice(`Vol. ${next.volume}`, next.knownPriceCents)
-          : caughtUp
-            ? "Caught up"
-            : withPrice(`Vol. ${latest.volume}`, latest.knownPriceCents);
+    : unlisted != null && !hideNext
+      ? `Vol. ${unlisted}`
+      : next && !hideNext
+        ? withPrice(`Vol. ${next.volume}`, next.knownPriceCents)
+        : firstGap
+          ? withPrice(`Vol. ${firstGap.volume}`, gapCents)
+          : next
+            ? withPrice(`Vol. ${next.volume}`, next.knownPriceCents)
+            : caughtUp
+              ? "Caught up"
+              : withPrice(`Vol. ${latest.volume}`, latest.knownPriceCents);
 
   // what's ordered and on its way, each run with a way to take it back
   // (both layouts: single volumes and an edition's books)
@@ -385,6 +388,32 @@ export default function BuyStrip({
         </ul>
       ) : (
         <ul className={styles.buyList}>
+          {/* the next one with no book listed: said, never skipped */}
+          {unlisted != null && !hideNext && (
+            <li className="relative">
+              <div
+                className={`${styles.buyNext} ${onOrdered ? styles.buyNextRoom : ""}`}
+              >
+                <span className={styles.buyNextKind}>{nextLabel}</span>
+                <span>Vol. {unlisted}</span>
+                <span className={styles.buyPrice}>not listed yet</span>
+              </div>
+              {onOrdered && (
+                <span className={styles.ticketPills}>
+                  <button
+                    type="button"
+                    className={styles.ticketPill}
+                    disabled={ordering}
+                    aria-label={`Vol. ${unlisted}: ordered`}
+                    onClick={() => order([unlisted], true)}
+                    {...offlineLink(offline)}
+                  >
+                    {ordering ? "Saving…" : "Ordered"}
+                  </button>
+                </span>
+              )}
+            </li>
+          )}
           {next && !hideNext && (
             <li className="relative">
               <NavLink
