@@ -15,6 +15,8 @@ const PAGES = [
   /^\/after-the-anime(\/review)?\/?$/i,
   // the owner's list of reported reviews
   /^\/reviews\/reported\/?$/i,
+  // the owner's list of books readers reported missing from an edition
+  /^\/editions\/review\/?$/i,
 ];
 
 export const isAppPage = (path: string) =>

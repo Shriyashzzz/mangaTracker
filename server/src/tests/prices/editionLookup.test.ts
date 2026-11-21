@@ -11,16 +11,16 @@ const vizbig: LookupLine = {
   key: "vizbig",
   label: "VIZBIG",
   books: booksFromSpans([
-    { number: 1, from: 1, to: 3 },
-    { number: 8, from: 22, to: 24 },
+    { number: 1, from: 1, to: 3, listed: true },
+    { number: 8, from: 22, to: 24, listed: true },
   ]),
 };
 const definitive: LookupLine = {
   key: "definitive",
   label: "Definitive",
   books: booksFromSpans([
-    { number: 8, from: 22, to: 24 },
-    { number: 13, from: 37, to: 37 },
+    { number: 8, from: 22, to: 24, listed: true },
+    { number: 13, from: 37, to: 37, listed: true },
   ]),
 };
 
@@ -56,8 +56,13 @@ test("only books a catalog lists show; one with a date ahead is coming", () => {
     key: "definitive",
     label: "Definitive",
     books: [
-      { number: 7, volumes: [19, 20, 21], published: "2026-10-20" },
-      { number: 8, volumes: [22, 23, 24], published: "2027-01" },
+      {
+        number: 7,
+        volumes: [19, 20, 21],
+        listed: true,
+        published: "2026-10-20",
+      },
+      { number: 8, volumes: [22, 23, 24], listed: true, published: "2027-01" },
       // worked out from the pattern, nobody lists it yet
       { number: 9, volumes: [25, 26, 27], listed: false },
     ],

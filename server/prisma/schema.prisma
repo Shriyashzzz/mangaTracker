@@ -46,6 +46,7 @@ model User {
   // (reviews/reviews.ts askAboutFinishedVolume); it's asked rarely
   rateAskedAt        DateTime?          @map("rate_asked_at") @db.Timestamptz(6)
   manga              Manga[]
+  editionReports     EditionReport[]
   reviews            VolumeReview[]
   reviewFlags        ReviewFlag[]
   importPicks        ImportPick[]
@@ -611,4 +612,41 @@ model ShelfFollow {
   @@id([followerId, ownerId])
   @@index([ownerId])
   @@map("shelf_follows")
+}
+
+// a reader saying an omnibus or deluxe book exists that no catalog lists
+// ("Missing a book?" on the editions page). It counts once three readers say
+// the same, or the site's owner approves it (util/shelf/editionReports.ts)
+model EditionReport {
+  id        Int      @id @default(autoincrement())
+  userId    Int      @map("user_id")
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  // the series as its saved lists are keyed (volumesKey), and its name
+  series    String   @db.VarChar(200)
+  name      String   @db.VarChar(300)
+  // the line's key ("vizbig", "deluxe") and the book's number in it
+  edition   String   @db.VarChar(20)
+  number    Int
+  // the series' volumes they say it holds
+  volumes   Int[]
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  @@unique([userId, series, edition, number])
+  @@index([series])
+  @@map("edition_reports")
+}
+
+// the site's owner on a reported book: "approved" makes it count at once,
+// "rejected" keeps it out however many readers report it
+model EditionDecision {
+  series    String   @db.VarChar(200)
+  edition   String   @db.VarChar(20)
+  number    Int
+  status    String   @db.VarChar(10)
+  // the volumes it holds, as approved
+  volumes   Int[]
+  decidedAt DateTime @default(now()) @map("decided_at") @db.Timestamptz(6)
+
+  @@id([series, edition, number])
+  @@map("edition_decisions")
 }

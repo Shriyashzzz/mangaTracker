@@ -32,7 +32,9 @@ export type SlotState = "all" | "part" | "none";
 // hand table vouches for (`sure`: Naruto 3-in-1 24, which no catalog lists).
 // A volume is in one book: should a catalog ever put one in two, the earlier
 // book keeps it and the later one is left off, so nothing is counted twice
-export function realBooksOf(line: EditionLine): EditionBook[] {
+export function realBooksOf<
+  T extends Pick<EditionBook, "volumes"> & { listed?: boolean; sure?: boolean },
+>(line: { books: T[] }): T[] {
   const last = line.books
     .map((book) => Boolean(book.listed || book.sure))
     .lastIndexOf(true);

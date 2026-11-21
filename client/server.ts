@@ -170,10 +170,17 @@ type SeriesSummary = {
     published?: string | null;
   }[];
   // its omnibus and deluxe lines, book by book; missing from an older API
+  // the real books only (the API's util/shelf/realBooks.ts)
   editions?: {
     key: string;
     label: string;
-    books: { number: number; volumes: number[] }[];
+    books: {
+      number: number;
+      volumes: number[];
+      listed?: boolean;
+      sure?: boolean;
+      published?: string | null;
+    }[];
   }[];
 };
 // what the API's /api/share/:code returns, as far as a preview needs it
@@ -410,7 +417,12 @@ function editionsBody(s: SeriesSummary) {
           (
             line,
           ) => `<h3><a href="${escapeHtml(`${path}?edition=${encodeURIComponent(line.key)}`)}">${escapeHtml(`${s.name} ${line.label}: which volumes are in each book`)}</a></h3>
-      <ul>${line.books.map((book) => `<li>${escapeHtml(`${line.label} ${book.number}: ${heldText(book.volumes)}`)}</li>`).join("")}</ul>`,
+      <ul>${line.books
+        .map(
+          (book) =>
+            `<li>${escapeHtml(`${line.label} ${book.number}: ${heldText(book.volumes)}`)}</li>`,
+        )
+        .join("")}</ul>`,
         )
         .join("\n      ")}
       <p><a href="/editions">Every series with omnibus and deluxe editions</a></p>`;
@@ -620,14 +632,16 @@ function seriesIndexTags(all: SeriesIndexEntry[]): Tags {
 // description as the app's own (pages/Prices/EditionsIndex.tsx)
 type EditionsEntry = {
   name: string;
+  // the real books only (the API's util/shelf/realBooks.ts)
   lines: {
     key: string;
     label: string;
-    books: number;
-    from: number;
-    to: number;
+    spans: { number: number; from: number; to: number }[];
   }[];
 };
+// "9 books, vols. 1–27": what the page shows of a line
+const editionsCountText = (line: EditionsEntry["lines"][number]) =>
+  `${line.spans.length} books, vols. ${Math.min(...line.spans.map((s) => s.from))}–${Math.max(...line.spans.map((s) => s.to))}`;
 function editionsIndexTags(all: EditionsEntry[]): Tags {
   return {
     title: EDITIONS_TITLE,
@@ -645,7 +659,7 @@ function editionsIndexTags(all: EditionsEntry[]): Tags {
         all.flatMap((s) =>
           s.lines.map((line): [string, string] => [
             `${seriesPath(s.name)}?edition=${encodeURIComponent(line.key)}`,
-            `${s.name} ${line.label}: ${line.books} books, vols. ${line.from}–${line.to}`,
+            `${s.name} ${line.label}: ${editionsCountText(line)}`,
           ]),
         ),
       )}

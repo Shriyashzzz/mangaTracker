@@ -14,7 +14,7 @@ import SlowLoadQuote from "../../components/slowLoadQuote/SlowLoadQuote";
 import {
   booksFromSpans,
   nextVolumeFor,
-  shownBooks,
+  lineFacts,
   type LookupLine,
 } from "../../lib/editionLookup";
 import { getEditionsIndex, type EditionsEntry } from "../../lib/editionsIndex";
@@ -24,6 +24,7 @@ import { seriesCanonicalPath, slugify } from "../../lib/prices";
 import { usePageMeta } from "../../lib/seo";
 import { useShelf } from "../../store/shelf";
 import BookTiles from "./BookTiles";
+import ReportBook from "./ReportBook";
 import EditionFinder from "./EditionFinder";
 import { editionsStyles as styles } from "./editionsStyles";
 import SeriesSearchBox from "./SeriesSearchBox";
@@ -37,9 +38,9 @@ const linesOf = (entry: EditionsEntry): LookupLine[] =>
   }));
 
 // "7 books · 1 coming · vols. 1–24": the books shown, out or coming
-function lineFacts(line: LookupLine, span: EditionsEntry["lines"][number]) {
-  const coming = shownBooks(line).filter((b) => b.coming).length;
-  return `${span.books} books${coming ? ` · ${coming} coming` : ""} · vols. ${span.from}–${span.to}`;
+function factsText(line: LookupLine) {
+  const f = lineFacts(line);
+  return `${f.books} books${f.coming ? ` · ${f.coming} coming` : ""} · vols. ${f.from}–${f.to}`;
 }
 
 // the letter a series files under, as /series files it
@@ -217,13 +218,11 @@ function PickedLines({
         </div>
       </div>
       <div className={styles.pickedLines}>
-        {lines.map((line, i) => (
+        {lines.map((line) => (
           <div key={line.key} className={styles.lineBlock}>
             <div className={styles.lineHead}>
               <span className={styles.lineName}>{line.label}</span>
-              <span className={styles.lineFacts}>
-                {lineFacts(line, entry.lines[i]!)}
-              </span>
+              <span className={styles.lineFacts}>{factsText(line)}</span>
             </div>
             <BookTiles line={line} volume={volume} owned={owned} />
             <p className="mt-3 text-[0.9rem] font-medium">
@@ -237,6 +236,10 @@ function PickedLines({
             </p>
           </div>
         ))}
+      </div>
+      {/* a block of its own: the form's style is made for a grid's foot */}
+      <div>
+        <ReportBook seriesName={entry.name} lines={lines} />
       </div>
     </>
   );
@@ -281,21 +284,19 @@ function SeriesFold({ entry }: { entry: EditionsEntry }) {
         </span>
         <span className={styles.seriesName}>{entry.name}</span>
         <span className={styles.seriesLines}>
-          {entry.lines.map((line) => (
+          {lines.map((line) => (
             <span key={line.key} className="block">
-              {line.label} · {line.books}
+              {line.label} · {lineFacts(line).books}
             </span>
           ))}
         </span>
       </summary>
       <div className={styles.seriesBody}>
-        {lines.map((line, i) => (
+        {lines.map((line) => (
           <div key={line.key} className={styles.lineBlock}>
             <div className={styles.lineHead}>
               <span className={styles.lineName}>{line.label}</span>
-              <span className={styles.lineFacts}>
-                {lineFacts(line, entry.lines[i]!)}
-              </span>
+              <span className={styles.lineFacts}>{factsText(line)}</span>
             </div>
             <BookTiles line={line} owned={owned} />
           </div>

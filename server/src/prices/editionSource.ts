@@ -3,6 +3,10 @@
 // own volume list already knows hold several (CatalogBook.inBook). Saved
 // beside the series' other lists (series_volumes, ":editions") for a week;
 // "has none" is an answer too.
+import {
+  countedBooks,
+  withCountedBooks,
+} from "../util/shelf/editionReports.js";
 import { prisma } from "../config/prisma.js";
 import priceQueries from "../models/priceQueries.js";
 import { slugify } from "./stores/match.js";
@@ -203,7 +207,22 @@ const inFlight = new Map<string, Promise<EditionLine[]>>();
 
 // a series' edition lines. `volumes`: its own list (getSeries), for the last
 // volume out and the books it already knows hold several
+// with the books readers' reports or the owner made count
+// (util/shelf/editionReports.ts), whatever the lines came from
 export async function editionLinesOf(
+  name: string,
+  volumes: CatalogBook[],
+  lookUp = true,
+  askTheStore = false,
+): Promise<EditionLine[]> {
+  const [lines, counted] = await Promise.all([
+    savedOrBuiltLines(name, volumes, lookUp, askTheStore),
+    countedBooks().catch(() => new Map()),
+  ]);
+  return withCountedBooks(counted, name, lines);
+}
+
+async function savedOrBuiltLines(
   name: string,
   volumes: CatalogBook[],
   // false: only what's saved, never a search (a crawler's visit)

@@ -22,6 +22,12 @@ import { seriesName, seriesOfBook, slugify } from "./stores/match.js";
 import { dropUnlikelyNew } from "./stores/retailers.js";
 import { volumesKey } from "./volumesKey.js";
 import { editionsKey } from "./editionSource.js";
+import { realBooks } from "../util/shelf/realBooks.js";
+import {
+  countedBooks,
+  reportChanges,
+  withCountedBooks,
+} from "../util/shelf/editionReports.js";
 import type { EditionLine } from "./editionLines.js";
 import { isCollection, type SeriesHit } from "./types.js";
 import { publisherOf } from "./publishers.js";
@@ -66,20 +72,18 @@ export async function getSeriesIndex() {
 
 // ---------- editions index ----------
 
-// one edition line of a series, as the /editions page lists it
+// one edition line of a series, as the /editions page lists it: its real
+// books (util/shelf/realBooks.ts, the series page's own rule) with what each
+// holds, whether a catalog lists it or it's vouched for, and its date
 type EditionsEntryLine = {
   key: string;
   label: string;
-  books: number;
-  // the series' volumes the line's books hold, first and last
-  from: number;
-  to: number;
-  // each book's number, its first and last volume and its release date, in
-  // order. Listed books only (a catalog has it): out, or confirmed and coming
   spans: {
     number: number;
     from: number;
     to: number;
+    listed: boolean;
+    sure: boolean;
     published: string | null;
   }[];
 };
@@ -90,53 +94,59 @@ type EditionsEntryLine = {
 const EDITIONS_INDEX_MS = 10 * 60_000;
 let editionsIndexKept: {
   at: number;
+  // readers' reports and the owner's decisions as they stood: a new one
+  // shows at once (util/shelf/editionReports.ts)
+  changes: number;
   entries: Awaited<ReturnType<typeof readEditionsIndex>>;
 } | null = null;
 export async function getEditionsIndex(now = Date.now()) {
-  if (editionsIndexKept && now - editionsIndexKept.at < EDITIONS_INDEX_MS)
+  if (
+    editionsIndexKept &&
+    now - editionsIndexKept.at < EDITIONS_INDEX_MS &&
+    editionsIndexKept.changes === reportChanges()
+  )
     return editionsIndexKept.entries;
+  const changes = reportChanges();
   const entries = await readEditionsIndex();
-  editionsIndexKept = { at: now, entries };
+  editionsIndexKept = { at: now, changes, entries };
   return entries;
 }
 
 async function readEditionsIndex() {
-  const [rows, series] = await Promise.all([
+  const [rows, series, counted] = await Promise.all([
     prisma.seriesVolumes.findMany({
       where: { key: { endsWith: ":editions" } },
       select: { key: true, volumes: true },
     }),
     listKnownSeries(),
+    countedBooks().catch(() => new Map()),
   ]);
   const linesByKey = new Map(
     rows.map((row) => [row.key, row.volumes as unknown as EditionLine[]]),
   );
   const entries = [];
   for (const info of series) {
-    const saved = linesByKey.get(editionsKey(info.name));
-    if (!Array.isArray(saved)) continue;
+    const stored = linesByKey.get(editionsKey(info.name));
+    if (!Array.isArray(stored)) continue;
+    // with the books readers' reports or the owner made count
+    const saved = withCountedBooks(counted, info.name, stored);
     const lines: EditionsEntryLine[] = [];
     for (const line of saved) {
-      // books a catalog lists: one worked out from the line's pattern that
-      // nobody lists yet isn't said to exist (client lib/editionLookup.ts)
-      const listed = (line.books ?? []).filter(
-        (book) => book.listed && book.volumes?.length,
-      );
-      const held = listed.flatMap((book) => book.volumes);
-      if (!held.length) continue;
-      const spans = listed.map((book) => ({
-        number: book.number,
-        from: Math.min(...book.volumes),
-        to: Math.max(...book.volumes),
-        published: book.published ?? null,
-      }));
+      // the real books (util/shelf/realBooks.ts), as the series page has
+      // them; a line nothing lists or vouches for isn't shown at all
+      if (!line.books?.some((book) => book.listed || book.sure)) continue;
+      const books = realBooks(line.books);
       lines.push({
         key: line.key,
         label: line.label,
-        books: listed.length,
-        from: Math.min(...held),
-        to: Math.max(...held),
-        spans,
+        spans: books.map((book) => ({
+          number: book.number,
+          from: Math.min(...book.volumes),
+          to: Math.max(...book.volumes),
+          listed: Boolean(book.listed),
+          sure: Boolean(book.sure),
+          published: book.published ?? null,
+        })),
       });
     }
     if (!lines.length) continue;
@@ -325,18 +335,24 @@ export async function getSeriesSummary(asked: string) {
       select: { volumes: true },
     })
     .catch(() => null);
-  const editions = (
+  const editions = withCountedBooks(
+    await countedBooks().catch(() => new Map()),
+    info.name,
     Array.isArray(savedLines?.volumes)
       ? (savedLines.volumes as unknown as EditionLine[])
-      : []
+      : [],
   )
     .map((line) => ({
       key: line.key,
       label: line.label,
-      // listed ones only, as the editions page shows them
-      books: (line.books ?? [])
-        .filter((book) => book.listed && book.volumes?.length)
-        .map((book) => ({ number: book.number, volumes: book.volumes })),
+      // the real books (util/shelf/realBooks.ts), as the series page has them
+      books: realBooks(line.books ?? []).map((book) => ({
+        number: book.number,
+        volumes: book.volumes,
+        listed: Boolean(book.listed),
+        sure: Boolean(book.sure),
+        published: book.published ?? null,
+      })),
     }))
     .filter((line) => line.books.length);
   return {

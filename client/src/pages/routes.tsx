@@ -163,6 +163,14 @@ export const routes = [
       },
       {
         // for the site's owner; anyone else gets the not-found page
+        path: "/editions/review",
+        lazy: page(
+          () => import("./Prices/ReviewBooks"),
+          (m) => m.default,
+        ),
+      },
+      {
+        // for the site's owner; anyone else gets the not-found page
         path: "/after-the-anime/review",
         lazy: page(
           () => import("./AfterAnime/ReviewFixes"),
