@@ -1,6 +1,5 @@
 // One series on the shelf, as the list draws it: its card, and on the New tab
 // a Hide (or Unhide) button beside it.
-import { CheckIcon } from "../../components/icons/Icons";
 import MangaCard from "../../components/mangaCard/MangaCard";
 import type { Manga, ReleaseStatus } from "../../lib/types";
 import { useNextFor } from "../../lib/prefs";
@@ -80,7 +79,6 @@ export default function ShelfCard({
           data-seen-id={manga.id}
           onClick={onHide}
         >
-          {!viewingHidden && <CheckIcon />}
           {hideLabel}
         </button>
       )}

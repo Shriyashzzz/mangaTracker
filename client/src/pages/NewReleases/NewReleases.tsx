@@ -4,7 +4,6 @@
 // sorted into drawn as the tab draws them, and the settings themselves,
 // right on the page. Where the news comes from is folded under "More about New".
 import { NavLink } from "react-router";
-import { CheckIcon } from "../../components/icons/Icons";
 import Mascot from "../../components/mascot/Mascot";
 import {
   NEW_RELEASES_DESCRIPTION,
@@ -197,10 +196,7 @@ export default function NewReleasesPage() {
             <span className={styles.panelNumber}>1</span>
             <span className={styles.panelArt} aria-hidden>
               <span className={styles.book}>14</span>
-              <span className={styles.yours}>
-                <CheckIcon className="size-3.5" />
-                Yours
-              </span>
+              <span className={styles.yours}>Yours</span>
             </span>
             <p>You own vol. 14.</p>
           </li>

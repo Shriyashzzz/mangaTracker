@@ -13,7 +13,6 @@ import SeriesCard from "./SeriesCard";
 import { pricesStyles as styles } from "./styles";
 import Mascot from "../../components/mascot/Mascot";
 import { DID_YOU_MEAN } from "../../lib/nearMatches";
-import { CheckIcon } from "../../components/icons/Icons";
 import SlowLoadQuote from "../../components/slowLoadQuote/SlowLoadQuote";
 import { usePageMeta } from "../../lib/seo";
 import WhatsNew from "../../components/whatsNew/WhatsNew";
@@ -142,10 +141,7 @@ export default function PriceSearch() {
                   "Get notified when new volumes come out",
                   "Find out how much the next volume costs",
                 ].map((line) => (
-                  <li key={line}>
-                    <CheckIcon className={styles.trackGetsTick} aria-hidden />
-                    {line}
-                  </li>
+                  <li key={line}>{line}</li>
                 ))}
               </ul>
               <div className={styles.halfActions}>

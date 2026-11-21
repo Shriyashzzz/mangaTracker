@@ -3,7 +3,6 @@
 // how far behind, and where they are. Drawn in the site's own shapes;
 // nothing in it can be pressed. A chapter card can carry the line its list
 // opens with (Home/ReleaseModal.tsx)
-import { CheckIcon } from "../../components/icons/Icons";
 import { newReleasesStyles as styles } from "./styles";
 
 type Props = {
@@ -41,10 +40,7 @@ export default function CardSketch({
           </span>
           <span className={styles.sketchYours}>{yours}</span>
         </span>
-        <span className={styles.picHide}>
-          <CheckIcon className="size-3.5" aria-hidden />
-          Hide
-        </span>
+        <span className={styles.picHide}>Hide</span>
       </span>
       {opens && <span className={styles.sketchOpens}>{opens}</span>}
     </span>

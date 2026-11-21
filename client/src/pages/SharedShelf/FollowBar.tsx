@@ -2,7 +2,6 @@
 // and it's then in Friends. (How it sits beside theirs is said further down,
 // in the compare box.) Drawn like the owner's note, in the same spot.
 import { useState } from "react";
-import { CheckIcon } from "../../components/icons/Icons";
 import { setFollowing } from "../../lib/friends";
 import { offlineLink, useIsOffline } from "../../lib/offline";
 import { shareStyles as styles } from "./styles";
@@ -52,7 +51,6 @@ export default function FollowBar({ code, name, following }: Props) {
           onClick={flip}
           {...offlineLink(offline)}
         >
-          {on && <CheckIcon />}
           {on ? "Following" : "Follow"}
         </button>
         {failed && (

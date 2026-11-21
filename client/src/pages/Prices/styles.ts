@@ -55,7 +55,6 @@ export const pricesStyles = {
   // the card has no empty space to fill)
   trackGets:
     "mt-auto grid gap-1.5 border-t border-dashed border-line-soft pt-4 text-[0.95rem] text-ink-soft upto-860:hidden [&>li]:flex [&>li]:items-center [&>li]:gap-2",
-  trackGetsTick: "size-4 flex-none text-accent",
   halfButton:
     "half-button min-w-0 px-[0.75rem] upto-720:h-11 upto-720:px-[0.7rem] upto-720:text-[0.875rem]",
   searchHead:

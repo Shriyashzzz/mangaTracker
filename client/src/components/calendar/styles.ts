@@ -48,7 +48,6 @@ export const calendarParts = {
   name: "truncate font-semibold",
   vol: "truncate font-mono text-[0.78rem] text-ink-soft",
   mine: "flex items-center gap-1 text-[0.75rem] font-semibold text-ok upto-520:col-start-2 upto-520:-mt-1",
-  check: "size-3.5",
   // Preorder, at the right, level with the row
   preorderBox: "self-center pr-1",
   // to the stores on its price page: the row's main action, in red; on

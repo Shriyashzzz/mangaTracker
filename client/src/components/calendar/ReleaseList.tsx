@@ -6,7 +6,6 @@
 import Cover from "../cover/Cover";
 import { useState } from "react";
 import { NavLink } from "react-router";
-import { CheckIcon } from "../icons/Icons";
 import { dayName, type CalendarVolume } from "../../lib/collector";
 import { volumePath } from "../../lib/prices";
 import AddToCalendar from "./AddToCalendar";
@@ -123,12 +122,7 @@ function ReleaseRow({
             {v.volume !== null ? `Vol. ${v.volume}` : v.title}
           </span>
         </span>
-        {v.owned && (
-          <span className={styles.mine}>
-            <CheckIcon className={styles.check} />
-            preordered
-          </span>
-        )}
+        {v.owned && <span className={styles.mine}>preordered</span>}
       </NavLink>
       {/* one on the shelf already has nothing to preorder */}
       {v.owned ? (

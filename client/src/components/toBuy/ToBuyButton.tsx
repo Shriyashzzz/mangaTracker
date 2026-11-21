@@ -62,8 +62,8 @@ export default function ToBuyButton({
         {onList ? (
           // the short words on a phone, where it shares a row
           <>
-            <span className="upto-720:hidden">✓ On your To buy list</span>
-            <span className="hidden upto-720:inline">✓ To buy</span>
+            <span className="upto-720:hidden">On your To buy list</span>
+            <span className="hidden upto-720:inline">On To buy</span>
           </>
         ) : (
           "+ To buy"

@@ -241,7 +241,7 @@ export default function ShelfAction({
           className={`btn btn-secondary ${styles.shelfButton}`}
           viewTransition
         >
-          ✓ {ownsThis && thing ? `You own ${thing}` : "On your shelf"}
+          {ownsThis && thing ? `You own ${thing}` : "On your shelf"}
         </NavLink>
       )}
       {/* not for a volume that's already theirs */}

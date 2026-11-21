@@ -66,7 +66,6 @@ export const volumesStyles = {
   label: "flex items-center gap-1 text-[0.8rem] font-medium",
   // can wrap to two lines under a narrow phone cover
   labelToGet: "text-[0.8rem] leading-tight text-balance text-muted",
-  check: "size-3.5 text-accent",
 
   // under an opened series: what's left to buy and where
   finish: "mt-6 border-t border-dashed border-line-soft pt-4",

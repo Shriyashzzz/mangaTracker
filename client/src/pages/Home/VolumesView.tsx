@@ -9,7 +9,7 @@ import SeriesPicture from "../../components/cover/SeriesPicture";
 import { useEffect, useRef, useState } from "react";
 import RangePager from "../../components/rangePager/RangePager";
 import { NavLink } from "react-router";
-import { CheckIcon, ChevronDownIcon } from "../../components/icons/Icons";
+import { ChevronDownIcon } from "../../components/icons/Icons";
 import Mascot from "../../components/mascot/Mascot";
 import { ownedCount, ownedOf, rangesText } from "../../lib/ownedVolumes";
 import { getSeries, priceName, volumePath, wholeMoney } from "../../lib/prices";
@@ -402,14 +402,7 @@ function VolumeTile({
         </span>
       </span>
       <span className={tile.yours ? styles.label : styles.labelToGet}>
-        {tile.yours ? (
-          <>
-            <CheckIcon className={styles.check} />
-            Yours
-          </>
-        ) : (
-          "Not on your shelf"
-        )}
+        {tile.yours ? <>Yours</> : "Not on your shelf"}
       </span>
     </>
   );
