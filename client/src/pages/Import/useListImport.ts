@@ -4,10 +4,10 @@
 import { useState } from "react";
 import type { AccountSource } from "../../lib/imports/accountImport";
 import { readAniList, readKitsu } from "../../lib/imports/accountImport";
+import { readMalExport, type MalFile } from "../../lib/imports/malFile";
 import {
   ImportFileError,
   MAL_LISTS,
-  readMalExport,
   sendToShelf,
   type ImportTotals,
   type MalItem,
@@ -89,7 +89,7 @@ export function useListImport() {
   };
 
   // MyAnimeList: the export file they downloaded
-  const openFile = async (file: File | undefined) => {
+  const openFile = async (file: MalFile | undefined) => {
     if (!file) return;
     clear();
     setFileName(file.name);
