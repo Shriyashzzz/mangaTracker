@@ -206,11 +206,10 @@ test("a New card for an edition opens its next book's price page", async () => {
   );
   // the stamp on its cover, cut to fit
   expect(stampFor(read, "volumes")).toBe("Def. 3");
-  // and its card's words, whole and short
-  expect(editionNews({ editionPlace: definitive })).toMatchObject({
-    text: "Definitive 3 next",
-    short: "Def. 3 next",
-  });
+  // and its card's words, the edition named in full (never "Def.")
+  const news = editionNews({ editionPlace: definitive });
+  expect(news).toMatchObject({ text: "Definitive 3 next" });
+  expect(news).not.toHaveProperty("short");
   // four books behind: the card opens their list, not a page
   const { opensAList } =
     await import("../../../../client/src/pages/Home/shelfViews.js");

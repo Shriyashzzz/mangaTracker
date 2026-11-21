@@ -351,7 +351,6 @@ export function newsFor(
   if (inBooks)
     return {
       text: inBooks.text,
-      short: inBooks.short,
       behind: inBooks.behind,
       yours: inBooks.yours ?? volumeYours,
     };

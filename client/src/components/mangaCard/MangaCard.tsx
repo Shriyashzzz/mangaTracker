@@ -176,7 +176,7 @@ export default function MangaCard({
 
   const ownTrackBy = useTrackBy();
   const trackingBy = trackBy ?? ownTrackBy;
-  const { byChapter, reading, knownTotal } = progressOf(
+  const { unit, reading, knownTotal } = progressOf(
     currentManga,
     tracksOf(currentManga, trackingBy),
     latestChapter,
@@ -287,33 +287,11 @@ export default function MangaCard({
           <p
             className={`font-brand text-[1.05rem] tracking-[1px] ${news.behind ? "text-ink-soft" : "text-accent"}`}
           >
-            {news.short ? (
-              <>
-                <span className={compact ? "sr-only" : "upto-720:sr-only"}>
-                  {news.text}
-                </span>
-                <span
-                  className={compact ? "" : "hidden upto-720:inline"}
-                  title={news.text}
-                  aria-hidden
-                >
-                  {news.short}
-                </span>
-              </>
-            ) : (
-              news.text
-            )}
-            {/* on a cover card it has a line of its own (the card is
-                narrow, and the words broke in two); on a phone's row it
-                follows on the same line */}
+            {/* the edition's name in full ("Definitive 3 next", never "Def."),
+                and how far behind on a line of its own under it */}
+            {news.text}
             {news.behind && (
-              <span className="block text-[0.92rem] upto-720:inline upto-720:text-[1.05rem]">
-                {/* (alone when we can't say which volume is next) */}
-                {news.text && (
-                  <span className="hidden upto-720:inline"> · </span>
-                )}
-                {news.behind}
-              </span>
+              <span className="block text-[0.92rem]">{news.behind}</span>
             )}
           </p>
         )}
@@ -342,7 +320,7 @@ export default function MangaCard({
             <RowProgress
               finished={currentManga.status}
               ownedCount={owned.length}
-              byChapter={byChapter}
+              unit={unit}
               reading={reading}
               knownTotal={knownTotal}
             />
@@ -393,13 +371,14 @@ export default function MangaCard({
 function RowProgress({
   finished,
   ownedCount,
-  byChapter,
+  unit,
   reading,
   knownTotal,
 }: {
   finished: boolean;
   ownedCount: number;
-  byChapter: boolean;
+  // what the numbers count: "ch.", "vol.", or an edition's "book"
+  unit: "ch." | "vol." | "book";
   reading: number;
   knownTotal: number | null;
 }) {
@@ -416,9 +395,8 @@ function RowProgress({
   return (
     <>
       <span className="whitespace-nowrap">
-        {/* "ch. 50 of 101", "vol. 5 of 12": which the numbers count */}
-        {byChapter ? "ch. " : "vol. "}
-        {reading} of {knownTotal}
+        {/* "ch. 50 of 101", "vol. 5 of 12", "book 3 of 9" */}
+        {unit} {reading} of {knownTotal}
       </span>
       <span
         className="block h-1.5 overflow-hidden rounded-full border border-line bg-card"

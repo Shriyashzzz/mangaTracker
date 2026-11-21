@@ -35,6 +35,9 @@ export type Manga = {
   editionPlace?: {
     label: string;
     read: number | null;
+    // how many real books the line has ("book 3 of 9"); missing from an
+    // older server
+    total?: number;
     owned: number[] | null;
     // for the New tab, in the edition's books: the next one, how many they
     // don't have, and the furthest they do

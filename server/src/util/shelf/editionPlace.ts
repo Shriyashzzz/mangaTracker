@@ -24,6 +24,9 @@ export type EditionPlace = {
   label: string;
   // the book their read volume is in; null when it's in none, or none read
   read: number | null;
+  // how many real books the line has: a card says "book 3 of 9", counting
+  // in the same books as "own Definitive 1–2"
+  total: number;
   // the books they own, when every volume they own is in a book they own
   // all of; null when it isn't so (or they own nothing)
   owned: number[] | null;
@@ -98,6 +101,7 @@ export function editionPlaceOf(
   return {
     label: line.label,
     read,
+    total: books.length,
     owned: allInBooks ? whole.map((book) => book.number) : null,
     next: next?.number ?? null,
     nextPublished: next?.published ?? null,

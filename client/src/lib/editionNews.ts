@@ -9,7 +9,6 @@
 // them, to the day). Nothing is said about a day the catalogs don't give in
 // full: a year alone isn't news.
 import { realBooksOf } from "./editionShelf";
-import { shortBookName } from "./editionShort";
 import { rangesText } from "./ownedVolumes";
 import type { EditionBook, EditionLine } from "./editions";
 import type { Manga, ReleaseStatus } from "./types";
@@ -124,12 +123,8 @@ export function editionNews(m: Pick<Manga, "editionPlace">) {
   if (!place || place.next == null) return null;
   const behind = place.behind ?? 0;
   const text = `${place.label} ${place.next} next`;
-  const short = `${shortBookName(place.label, place.next)} next`;
   return {
     text,
-    // where the whole name won't fit, when it's any shorter: a phone's row,
-    // "Def. 3 next" (VIZBIG is short already)
-    short: short === text ? undefined : short,
     // one behind is just the next one: that's news, never "behind"
     behind: behind > 1 ? `${behind} books behind` : undefined,
     yours: yoursIn(place),
