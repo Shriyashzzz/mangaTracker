@@ -69,8 +69,8 @@ function bookPrice(book: EditionBook) {
 const price = (v: SeriesVolume) =>
   v.knownPriceCents != null ? formatCents(v.knownPriceCents) : "check price";
 
-// gaps listed by name; past this, "+N more" and "See all →": the series
-// page with its "Not on your shelf" list on
+// gaps listed by name; past this, "+N more", a link to the series page with
+// its "Not on your shelf" list on
 const GAPS_SHOWN = 2;
 
 export default function BuyStrip({
@@ -351,21 +351,16 @@ export default function BuyStrip({
                     {editionBookLabel(line, g)}
                   </NavLink>
                 ))}
-                {/* the third: how many more, then the way to all of them */}
-                {plan.gaps.length > GAPS_SHOWN && (
-                  <span className={styles.buyMore}>
-                    +{plan.gaps.length - GAPS_SHOWN} more
-                  </span>
-                )}
+                {/* the rest: the series page with "Not on your shelf" on */}
                 {plan.gaps.length > GAPS_SHOWN && (
                   <NavLink
                     // seriesPath already has its ?name=, so this joins with &
                     to={`${seriesPath(seriesName)}&toget=1`}
-                    className={styles.buyGap}
+                    className={`${styles.buyGap} italic`}
                     viewTransition
                     {...offlineLink(offline)}
                   >
-                    See all →
+                    +{plan.gaps.length - GAPS_SHOWN} more
                   </NavLink>
                 )}
               </span>
@@ -456,21 +451,16 @@ export default function BuyStrip({
                     Vol. {g.volume}
                   </NavLink>
                 ))}
-                {/* the third: how many more, then the way to all of them */}
-                {gaps.length > GAPS_SHOWN && (
-                  <span className={styles.buyMore}>
-                    +{gaps.length - GAPS_SHOWN} more
-                  </span>
-                )}
+                {/* the rest: the series page with "Not on your shelf" on */}
                 {gaps.length > GAPS_SHOWN && (
                   <NavLink
                     // seriesPath already has its ?name=, so this joins with &
                     to={`${seriesPath(seriesName)}&toget=1`}
-                    className={styles.buyGap}
+                    className={`${styles.buyGap} italic`}
                     viewTransition
                     {...offlineLink(offline)}
                   >
-                    See all →
+                    +{gaps.length - GAPS_SHOWN} more
                   </NavLink>
                 )}
               </span>
