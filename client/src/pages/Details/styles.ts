@@ -339,6 +339,9 @@ export const detailsStyles = {
   // "On my shelf", "Ordered": small pills in the ticket's bottom right corner,
   // lettered like its "Next for you"
   ticketPills: "absolute right-2.5 bottom-2 flex gap-1.5",
+  // the website's one "Got it", at the ticket's left, in line with its
+  // words: the ticket's 12px padding and 2px border
+  gotItSpot: "absolute bottom-1.5 left-[14px] flex",
   ticketPill:
     "tap inline-flex min-h-8 items-center rounded-full border-[1.5px] border-accent bg-card px-2.5 font-mono text-[0.68rem] font-medium tracking-[0.06em] text-accent-ink uppercase transition-colors duration-120 hover:bg-accent hover:text-on-accent disabled:opacity-50",
   buyOwnFailed: "ml-3 text-[0.8rem] text-accent",

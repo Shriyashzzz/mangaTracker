@@ -69,7 +69,7 @@ export default function GotIt({
 
   const busy = owning || ordering;
   return (
-    <span className={styles.ticketPills}>
+    <span className={styles.gotItSpot}>
       <div ref={ref} className={menuStyles.sortWrap}>
         <button
           type="button"
@@ -86,7 +86,7 @@ export default function GotIt({
           <ChevronDownIcon className={menuStyles.pickChevron} />
         </button>
         {open && (
-          <Menu label="Got it" alignRight>
+          <Menu label="Got it">
             {choices.map((c) => (
               <li key={c.said}>
                 <button
