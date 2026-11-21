@@ -1685,6 +1685,40 @@ html.in-app main :is(a, button):is(.underline, [class*="underline-offset"]) {
   border-radius: var(--radius);
 }
 
+/* a dialog in the app, drawn as Android's own (Material): a rounded sheet
+   with no ink outline, the title in the reading face, plain words for its
+   answers at the end, each a wide tap target. Colours stay the website's */
+html.in-app dialog.app-dialog {
+  border: none;
+  border-radius: 28px;
+  box-shadow:
+    0 4px 8px 3px rgba(0, 0, 0, 0.15),
+    0 1px 3px rgba(0, 0, 0, 0.3);
+}
+html.in-app dialog.app-dialog > div {
+  padding: 24px;
+}
+html.in-app dialog.app-dialog h2 {
+  font-family: var(--font-sans);
+  font-size: 1.5rem;
+  line-height: 1.3;
+  text-transform: none;
+  letter-spacing: 0;
+}
+html.in-app dialog.app-dialog .btn {
+  min-height: 48px;
+  border: none;
+  border-radius: 20px;
+  background: transparent;
+  box-shadow: none;
+  padding: 0 14px;
+  font-weight: 600;
+  text-decoration: none;
+}
+html.in-app dialog.app-dialog .btn-danger {
+  color: var(--accent-ink);
+}
+
 /* Kenji's longer line about carrying on in the background */
 .import-peek .support-peek-line {
   width: 188px;

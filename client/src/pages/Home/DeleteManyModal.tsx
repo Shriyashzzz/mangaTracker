@@ -1,5 +1,7 @@
-// "Delete 12 series?", for the shelf's Select. A native dialog: it brings its
-// own focus trap, Escape and backdrop.
+// "Delete 12 series?", for the shelf's Select, and "Delete Vagabond?", for a
+// series' own page on a phone (Details/SeriesActions.tsx). A native dialog:
+// it brings its own focus trap, Escape and backdrop. In the Android app it's
+// drawn as Android's own dialog (index.css .app-dialog)
 import { useEffect, useRef, useState } from "react";
 import type { Manga } from "../../lib/types";
 import { homeStyles as styles } from "./styles";
@@ -20,7 +22,9 @@ export default function DeleteManyModal({ manga, onDelete, onClose }: Props) {
   const [deleting, setDeleting] = useState(false);
   const [failed, setFailed] = useState(false);
   const count = manga.length;
-  const series = `${count} series`;
+  // one series: said by its name, with no list of names
+  const one = count === 1 ? manga[0]! : null;
+  const series = one ? one.name : `${count} series`;
 
   useEffect(() => {
     if (dialog.current && !dialog.current.open) dialog.current.showModal();
@@ -39,7 +43,7 @@ export default function DeleteManyModal({ manga, onDelete, onClose }: Props) {
   return (
     <dialog
       ref={dialog}
-      className={styles.confirm}
+      className={`${styles.confirm} app-dialog`}
       aria-labelledby="delete-many-title"
       aria-describedby="delete-many-body"
       onClose={onClose}
@@ -58,24 +62,31 @@ export default function DeleteManyModal({ manga, onDelete, onClose }: Props) {
           Delete {series}?
         </h2>
         <div id="delete-many-body">
-          <ul className={styles.confirmNames}>
-            {manga.slice(0, NAMED).map((m) => (
-              <li key={m.id} className={styles.confirmName}>
-                {m.name}
-              </li>
-            ))}
-            {count > NAMED && (
-              <li className={styles.confirmMore}>and {count - NAMED} more</li>
-            )}
-          </ul>
+          {!one && (
+            <ul className={styles.confirmNames}>
+              {manga.slice(0, NAMED).map((m) => (
+                <li key={m.id} className={styles.confirmName}>
+                  {m.name}
+                </li>
+              ))}
+              {count > NAMED && (
+                <li className={styles.confirmMore}>and {count - NAMED} more</li>
+              )}
+            </ul>
+          )}
           <p className={styles.confirmBody}>
-            They come off your shelf with their volumes, ratings and reading
-            progress. You can undo it straight after.
+            {one
+              ? "It comes off your shelf with its volumes and books, rating, reading progress and notes."
+              : "They come off your shelf with their volumes, ratings and reading progress. You can undo it straight after."}
           </p>
         </div>
         {failed && (
           <p className={styles.confirmError} role="alert">
-            {orOffline("That didn't delete them. Try again.")}
+            {orOffline(
+              one
+                ? "That didn't delete it. Try again."
+                : "That didn't delete them. Try again.",
+            )}
           </p>
         )}
         <div className={styles.confirmActions}>
@@ -93,7 +104,7 @@ export default function DeleteManyModal({ manga, onDelete, onClose }: Props) {
             disabled={deleting}
             onClick={remove}
           >
-            {deleting ? "Deleting…" : `Delete ${series}`}
+            {deleting ? "Deleting…" : one ? "Delete it" : `Delete ${series}`}
           </button>
         </div>
       </div>

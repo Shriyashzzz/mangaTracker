@@ -1,12 +1,17 @@
 // The buttons under a series: Edit details, Mark as finished (or reading),
-// and Delete, which asks first. Under them, a line for what just happened:
-// a failed save, or "Marked as finished." with an Undo.
-import { useEffect, useRef, useState } from "react";
+// and Delete, which asks first in the shelf's own delete dialog
+// (Home/DeleteManyModal.tsx). On a phone Delete sits last, on a line of its
+// own. Under them, a line for what just
+// happened: a failed save, or "Marked as finished." with an Undo.
+import { useState } from "react";
+import type { Manga } from "../../lib/types";
+import DeleteManyModal from "../Home/DeleteManyModal";
 import { detailsStyles as styles } from "./styles";
 import { offlineLink, useIsOffline } from "../../lib/offline";
 
 type Props = {
-  name: string;
+  // the series, for the dialog that asks first
+  manga: Manga;
   finished: boolean;
   // a delete is on its way to the server
   deleting: boolean;
@@ -17,11 +22,12 @@ type Props = {
   onEdit: () => void;
   onToggleFinished: () => void;
   onUndoFinished: () => void;
-  onDelete: () => void;
+  // says whether it worked
+  onDelete: () => Promise<boolean>;
 };
 
 export default function SeriesActions({
-  name,
+  manga,
   finished,
   deleting,
   note,
@@ -32,20 +38,8 @@ export default function SeriesActions({
   onDelete,
 }: Props) {
   const offline = useIsOffline();
-  const [confirming, setConfirming] = useState(false);
-  const deleteButton = useRef<HTMLButtonElement>(null);
-  const keepButton = useRef<HTMLButtonElement>(null);
-  // the Delete button is about to vanish from under the keyboard: put focus
-  // on the safe answer, and back again when they keep it
-  const hasAsked = useRef(false);
-  useEffect(() => {
-    if (confirming) {
-      hasAsked.current = true;
-      keepButton.current?.focus();
-    } else if (hasAsked.current) {
-      deleteButton.current?.focus();
-    }
-  }, [confirming]);
+  // the dialog asking first is open
+  const [asking, setAsking] = useState(false);
 
   return (
     <div className={styles.actions}>
@@ -60,35 +54,21 @@ export default function SeriesActions({
         {finished ? "Mark as reading" : "Mark as finished"}
       </button>
 
-      {confirming ? (
-        <span className={styles.confirm} role="alert">
-          Delete {name} from your shelf? Your chapter, rating and notes go with
-          it!
-          <button
-            className={styles.confirmYes}
-            onClick={onDelete}
-            disabled={deleting}
-          >
-            {deleting ? "deleting…" : "yes, delete it"}
-          </button>
-          <button
-            className={styles.confirmNo}
-            ref={keepButton}
-            onClick={() => setConfirming(false)}
-            disabled={deleting}
-          >
-            keep it
-          </button>
-        </span>
-      ) : (
-        <button
-          ref={deleteButton}
-          className={`btn btn-ghost ${styles.deleteBtn}`}
-          onClick={() => setConfirming(true)}
-          {...offlineLink(offline)}
-        >
-          Delete
-        </button>
+      <button
+        className={`btn btn-ghost ${styles.deleteBtn}`}
+        onClick={() => setAsking(true)}
+        disabled={deleting}
+        {...offlineLink(offline)}
+      >
+        Delete
+      </button>
+
+      {asking && (
+        <DeleteManyModal
+          manga={[manga]}
+          onDelete={onDelete}
+          onClose={() => setAsking(false)}
+        />
       )}
 
       <p className={styles.actionNote} role="status">

@@ -262,10 +262,12 @@ export default function Details() {
       useShelf.getState().remove(Number(id));
       useShelf.getState().setLastDeleted({ ...(latest ?? mangaData!), books });
       navigate("/shelf", { viewTransition: true });
+      return true;
     } catch (e) {
       console.error(e);
       setActionNote("That didn't delete. Try again.");
       setDeleting(false);
+      return false;
     }
   };
 
@@ -679,7 +681,7 @@ export default function Details() {
             <YourReviews written={reviews.written} onEdit={setReviewing} />
 
             <SeriesActions
-              name={mangaData.name}
+              manga={mangaData}
               finished={mangaStatus}
               deleting={deleting}
               note={actionNote}

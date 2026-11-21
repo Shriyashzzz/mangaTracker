@@ -370,13 +370,9 @@ export const detailsStyles = {
   actions:
     "flex flex-wrap items-center gap-[0.85rem] upto-720:[&>.btn-primary]:flex-1 upto-720:[&>.btn-secondary]:flex-1",
   // apart from the everyday actions, so a thumb can't catch it by accident
-  deleteBtn: "ml-auto hover:enabled:text-accent upto-720:ml-0 upto-720:px-0",
-  confirm:
-    "ml-auto inline-flex flex-wrap items-center gap-x-4 text-[0.9rem] text-ink-soft upto-720:ml-0",
-  confirmYes:
-    "min-h-11 text-[0.9rem] font-semibold text-accent underline underline-offset-3",
-  confirmNo:
-    "min-h-11 text-[0.9rem] text-ink-soft underline underline-offset-3",
+  // on a phone: last, on a line of its own under a quiet dashed rule
+  deleteBtn:
+    "ml-auto hover:enabled:text-accent upto-720:order-last upto-720:ml-0 upto-720:basis-full upto-720:justify-start upto-720:rounded-none upto-720:border-x-0 upto-720:border-b-0 upto-720:border-t upto-720:border-dashed upto-720:border-line-soft upto-720:px-0 upto-720:pt-3",
 
   errorState:
     "mx-auto my-12 max-w-[440px] text-center [&_h1]:mb-2 [&_h1]:text-[2rem] [&_h1]:font-medium [&_p]:text-ink-soft",
