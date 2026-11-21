@@ -253,7 +253,7 @@ export default function BuyStrip({
               // the lookup
               footer={{
                 to: `/editions?${new URLSearchParams({ series: seriesName })}`,
-                label: "Which volumes are in each book →",
+                label: "See all editions →",
               }}
               options={[
                 { value: "singles", label: "Single" },

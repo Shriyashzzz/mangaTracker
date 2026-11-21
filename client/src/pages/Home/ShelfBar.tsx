@@ -319,7 +319,7 @@ export function SortMenu<T extends string>({
   id,
   footer,
 }: {
-  // a way on, under the options: "Which volumes are in each book →" under
+  // a way on, under the options: "See all editions →" under
   // the Buy next edition picker
   footer?: { to: string; label: string };
   // a box sized like a list's own small boxes (36px, 44px on a phone):
