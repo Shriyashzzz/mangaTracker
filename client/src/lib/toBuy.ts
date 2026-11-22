@@ -4,7 +4,13 @@ import { apiFetch, getJson } from "./api";
 import { orOffline } from "./offline";
 
 // a price on the list: how much, and where
-export type ToBuyPrice = { cents: number; store: string } | null;
+// `url`: the way to that copy at its store; null when there's no link (and
+// missing from a server that doesn't send it yet)
+export type ToBuyPrice = {
+  cents: number;
+  store: string;
+  url?: string | null;
+} | null;
 
 export type ToBuyItem = {
   isbn13: string;

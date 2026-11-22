@@ -6,6 +6,7 @@ import { hasNoCover } from "../models/coversAndSitemap.js";
 import priceQueries from "../models/priceQueries.js";
 import type { Country } from "../models/priceTables.js";
 import type { CheapestCopy } from "../models/priceHistory.js";
+import { linkFor } from "../prices/canada/canadaLinks.js";
 import { notOutYet } from "../prices/preorder.js";
 import { getOrCreateBook } from "../prices/service.js";
 import { getSeriesInfo } from "../prices/sources/anilist.js";
@@ -28,7 +29,7 @@ import { shopName, titleVolume } from "../prices/volumeNames.js";
 export const MOST_TO_BUY = 200;
 
 // a price on the list: how much, and where
-type Price = { cents: number; store: string } | null;
+type Price = { cents: number; store: string; url: string | null } | null;
 
 export type ToBuyItem = {
   isbn13: string;
@@ -73,7 +74,9 @@ const preorderDate = async (isbn13: string) => {
 
 // what the list would cost: each kind added up over the volumes that have a
 // price of that kind, with how many that is, so the page can say "3 of 5"
-export function toBuyTotals(items: Pick<ToBuyItem, "new" | "used">[]) {
+// (only each copy's price is read)
+type Priced = { cents: number } | null;
+export function toBuyTotals(items: { new: Priced; used: Priced }[]) {
   const sum = (kind: "new" | "used") => {
     const priced = items.flatMap((item) => item[kind] ?? []);
     return {
@@ -133,8 +136,22 @@ function stateOf(entry: ShelfEntry, volumes: number[] | null) {
     : null;
 }
 
-const priceOf = (copy: CheapestCopy | null | undefined): Price =>
-  copy ? { cents: copy.cents, store: shopName(copy.store) } : null;
+// a copy as the list shows it: its price, its store's name, and the way
+// to it at that store (our link where we have a tag; null when there's none)
+const priceOf = (
+  copy: CheapestCopy | null | undefined,
+  condition: "new" | "used",
+  isbn13: string,
+  country: Country,
+): Price => {
+  if (!copy) return null;
+  const { url } = linkFor(
+    country,
+    { ...copy, format: "print", condition },
+    isbn13,
+  );
+  return { cents: copy.cents, store: shopName(copy.store), url: url ?? null };
+};
 
 // the list, newest first, with its totals
 export async function toBuyList(userId: number, country: Country = "us") {
@@ -199,8 +216,8 @@ export async function toBuyList(userId: number, country: Country = "us") {
       shelf: shelfLine(entryOf.get(keyOf(title)), volumesOf(title)),
       coverUrl: hasNoCover(coverRowOf.get(isbn13)) ? null : book.coverUrl,
       seriesCoverUrl: seriesCovers.get(seriesOfBook(title)) ?? null,
-      new: priceOf(copies.get(isbn13)?.new),
-      used: priceOf(copies.get(isbn13)?.used),
+      new: priceOf(copies.get(isbn13)?.new, "new", isbn13, country),
+      used: priceOf(copies.get(isbn13)?.used, "used", isbn13, country),
       outOn: outOn.get(isbn13) ?? null,
       addedAt: row.addedAt,
       note: row.note,
