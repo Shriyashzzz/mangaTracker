@@ -1,12 +1,10 @@
-// The MyAnimeList export reader: a gzipped export's fields, with CDATA and
+// The MyAnimeList export reader (client/src/lib/imports/malImport.ts): an
+// export's fields, with CDATA and
 // entities, and the two files that aren't a manga list
-import { gzipSync, strToU8 } from "fflate";
-import { describe, expect, it } from "vitest";
 import {
   ImportFileError,
   malItemsFromXml,
-  unpackMalExport,
-} from "./malImport";
+} from "../../../../client/src/lib/imports/malXml.js";
 
 const EXPORT = `<?xml version="1.0" encoding="UTF-8" ?>
 <myanimelist>
@@ -36,8 +34,8 @@ const EXPORT = `<?xml version="1.0" encoding="UTF-8" ?>
 </myanimelist>`;
 
 describe("malItemsFromXml", () => {
-  it("reads each manga's fields, from a gzipped export", () => {
-    const items = malItemsFromXml(unpackMalExport(gzipSync(strToU8(EXPORT))));
+  it("reads each manga's fields", () => {
+    const items = malItemsFromXml(EXPORT);
     expect(items).toEqual([
       {
         status: "Reading",
