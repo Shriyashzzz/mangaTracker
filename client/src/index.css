@@ -1204,7 +1204,7 @@ body {
 /* an edition's shelf: each run's name over its first spine ("Definitive",
    "Singles"), in room kept above the books for it */
 .vshelf[data-runs]:not(.vshelf-paged) {
-  height: 5.25rem;
+  height: 5.5rem;
 }
 .vshelf-paged[data-runs] .vshelf-page,
 .vshelf-paged[data-runs] .vshelf-nav {
@@ -2522,7 +2522,6 @@ html.in-app .app-web-only {
 /* a series' page in the app, in three sections with their own headings
    (Details.tsx, ShelfBox.tsx): Your shelf, Reading, Your take */
 html.in-app .app-section-title {
-  margin: 22px 0 10px;
   font-family: var(--font-brand);
   font-size: 1.15rem;
   font-weight: 400;
