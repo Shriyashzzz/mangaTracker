@@ -25,6 +25,8 @@ export type AnimeStop = {
   corrected: boolean;
   // it adapts the manga to its last chapter
   coversAll: boolean;
+  // the chapters in the volume to buy, when the saved volume starts are sure
+  buyChapters?: { from: number; to: number } | null;
 };
 
 // "chapter 181", "volume 21" and "final chapter, 431" stay on one line: a
@@ -95,6 +97,16 @@ export function whyThisVolume(stop: AnimeStop) {
     return `Chapter ${stop.nextChapter} is in this volume.`;
   if (stop.nextVolume !== null) return "Start here.";
   return "The anime ends in this volume, so you miss nothing.";
+}
+
+// the chapters the volume to buy holds, for the foot of its box; null when
+// the server couldn't say for certain
+export function chaptersInVolume(stop: AnimeStop) {
+  const range = stop.buyChapters;
+  if (!range) return null;
+  return range.from === range.to
+    ? `Chapter ${range.from} is in this volume.`
+    : `Chapters ${range.from}–${range.to} are in this volume.`;
 }
 
 // where the season stops, as one sentence. Its volume is said only when it's

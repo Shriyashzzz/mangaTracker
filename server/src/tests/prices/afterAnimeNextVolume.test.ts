@@ -1,6 +1,9 @@
 // The volume a season's next chapter is in, from the saved volume starts,
 // when MangaUpdates doesn't say (prices/afterAnime/nextVolume.ts)
-import { withNextVolumes } from "../../prices/afterAnime/nextVolume.js";
+import {
+  buyChaptersOf,
+  withNextVolumes,
+} from "../../prices/afterAnime/nextVolume.js";
 
 // Vinland Saga: vol. 14 starts at chapter 94, vol. 15 at 101, vol. 16 at 108
 const starts = [
@@ -34,4 +37,23 @@ test("only an answer that agrees with where the season ends is taken", () => {
   expect(
     withNextVolumes([{ ...season2, nextVolume: 14 }], starts)[0]!.nextVolume,
   ).toBe(14);
+});
+
+test("the volume to buy says the chapters in it", () => {
+  // vol. 15 runs from chapter 101 to the one before vol. 16 opens
+  expect(buyChaptersOf({ ...season2, nextVolume: 15 }, starts)).toEqual({
+    from: 101,
+    to: 107,
+  });
+});
+
+test("no range when the next volume's start isn't saved", () => {
+  expect(buyChaptersOf({ ...season2, nextVolume: 16 }, starts)).toBeNull();
+});
+
+test("no range when the starts number the chapters another way", () => {
+  // chapter 150 isn't in vol. 15 by these starts: nothing is said
+  expect(
+    buyChaptersOf({ ...season2, nextVolume: 15, nextChapter: 150 }, starts),
+  ).toBeNull();
 });

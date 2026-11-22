@@ -15,14 +15,22 @@ import { withFixes, type ShownStop } from "./animeFixes.js";
 import { reachesTheEnd, readAnimeStops, type MangaEnd } from "./animeLines.js";
 import { animeLinesFor } from "./animeSource.js";
 import { acceptedFixes, slugsWithFixes } from "./fixStore.js";
-import { withNextVolumes } from "./nextVolume.js";
+import {
+  buyChaptersOf,
+  withNextVolumes,
+  type BuyChapters,
+} from "./nextVolume.js";
 import { storedVolumeStarts } from "../../util/releases/releaseCache.js";
 import type { Country } from "../../models/priceQueries.js";
 import { savedBooksOf } from "./savedBooks.js";
 
 // a season as it's sent: `coversAll` when it adapts the manga to its end, so
 // there's nothing left to read (reachesTheEnd)
-export type SentStop = ShownStop & { coversAll: boolean };
+export type SentStop = ShownStop & {
+  coversAll: boolean;
+  // the chapters in the volume to buy, when the saved starts are sure
+  buyChapters: BuyChapters | null;
+};
 
 const sameName = (a: string, b: string) =>
   a.trim().toLowerCase() === b.trim().toLowerCase();
@@ -84,6 +92,7 @@ export async function getAfterAnime(
     stops: stops.map((stop): SentStop => ({
       ...stop,
       coversAll: reachesTheEnd(stop, stops, manga),
+      buyChapters: buyChaptersOf(stop, starts),
     })),
     // MangaUpdates' page for the series, for the credit; null when the
     // answer isn't theirs
