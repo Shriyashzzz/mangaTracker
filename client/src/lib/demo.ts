@@ -369,7 +369,10 @@ const days = (n: number) => new Date(Date.now() + n * 86_400_000).toISOString();
 function collectorReleases(m: Manga, known: [number, string][]) {
   const newestOwned = Math.max(0, ...ownedOf(m));
   const out = known.filter(([volume]) => volume > newestOwned);
-  const newest = known.length ? known[known.length - 1]![0] : null;
+  // (a shelf that goes past the list we have still gets its bar: the
+  // newest volume is then the newest one they own)
+  const listed = known.length ? known[known.length - 1]![0] : 0;
+  const newest = Math.max(listed, newestOwned) || null;
   const next = out[0];
   const book = ([volume, isbn13]: [number, string]) => ({
     volume,
@@ -409,13 +412,25 @@ const FRIEREN_VOLUME_STARTS = [
   1, 8, 18, 28, 38, 48, 58, 68, 78, 88, 98, 108, 118, 128, 138,
 ].map((firstChapter, i) => ({ volume: i + 1, firstChapter }));
 
+// The newest chapter out for each series of the reader's practice shelf, by
+// its id there. Copied from the site's own saved answers (November 2026);
+// Frieren's is the last chapter of vol. 15, and Chainsaw Man's is set just
+// past where they are so New has a chapter to show
+const READER_CHAPTERS_OUT: Record<number, number> = {
+  1: 147,
+  2: 1199,
+  3: 123,
+  4: 144,
+  5: 92,
+};
+
 function releasesFor(m: Manga, kind: DemoKind) {
   const reader = kind === "reader";
   const volumeOut = reader && m.id === 1 && (m.seenVolume ?? 0) < NEW_VOLUME;
   const chapterOut = reader && m.id === 3 && (m.seenChapter ?? 0) < 123;
   const nextVolume = reader && m.id === 1 ? NEW_VOLUME : null;
-  // Chainsaw Man's is known; the rest have no count, as in collectorReleases
-  const latestChapter = reader && m.id === 3 ? 123 : null;
+  // how many chapters are out, so every row has its bar ("ch. 72 of 144")
+  const latestChapter = reader ? (READER_CHAPTERS_OUT[m.id] ?? null) : null;
   return {
     releaseData:
       reader && m.id === 1
