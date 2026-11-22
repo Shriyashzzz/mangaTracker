@@ -8,6 +8,7 @@ import { requireSignIn } from "../middlewares/auth.js";
 import { rateLimit } from "../middlewares/rateLimit.js";
 import { sendError } from "../middlewares/errorHandler.js";
 import { rejectInvalid } from "../middlewares/validate.js";
+import { isExpoToken } from "./expoPush.js";
 import { pushKeysSet } from "./pushSender.js";
 import { isPushService } from "./pushRules.js";
 
@@ -68,6 +69,50 @@ pushRouter.post(
     const { endpoint } = matchedData(req) as { endpoint: string };
     await prisma.pushSubscription.deleteMany({
       where: { endpoint, userId: req.session.userId! },
+    });
+    res.sendStatus(204);
+  },
+);
+
+// ---------- the phone app ----------
+// its Expo push token, kept as a device like a browser's address
+const phone = [
+  body("token")
+    .isString()
+    .custom((token: string) => isExpoToken(token))
+    .withMessage("That isn't a phone's push token."),
+];
+
+// this phone, on: saved for the signed-in reader (a phone that was another
+// reader's becomes theirs)
+pushRouter.post(
+  "/device",
+  requireSignIn,
+  rateLimit({ max: 30, windowMs: 60 * 60_000 }),
+  ...phone,
+  rejectInvalid,
+  async (req: Request, res: Response) => {
+    const { token } = matchedData(req) as { token: string };
+    const data = { userId: req.session.userId!, p256dh: "", auth: "" };
+    await prisma.pushSubscription.upsert({
+      where: { endpoint: token },
+      create: { endpoint: token, ...data },
+      update: data,
+    });
+    res.sendStatus(204);
+  },
+);
+
+// this phone, off (the switch, or signing out): only ever their own
+pushRouter.post(
+  "/device/forget",
+  requireSignIn,
+  ...phone,
+  rejectInvalid,
+  async (req: Request, res: Response) => {
+    const { token } = matchedData(req) as { token: string };
+    await prisma.pushSubscription.deleteMany({
+      where: { endpoint: token, userId: req.session.userId! },
     });
     res.sendStatus(204);
   },

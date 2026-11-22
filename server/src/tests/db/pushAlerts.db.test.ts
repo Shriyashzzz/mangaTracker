@@ -192,3 +192,58 @@ test("an account deleted takes its devices with it", async () => {
   await prisma.user.delete({ where: { id } });
   expect(await prisma.pushSubscription.count()).toBe(0);
 });
+
+// ---------- the phone app (push/expoPush.ts) ----------
+const PHONE = "ExponentPushToken[abcdefghijklmnopqrstuv]";
+
+test("the app's phone gets the alert through Expo, with no browser keys set", async () => {
+  // no VAPID pair: browsers get nothing, the phone still does
+  Object.assign(config, {
+    VAPID_PUBLIC_KEY: undefined,
+    VAPID_PRIVATE_KEY: undefined,
+  });
+  const { agent } = await reader();
+  expect(
+    (await agent.post("/api/push/device").send({ token: PHONE })).status,
+  ).toBe(204);
+  const told: { token: string; title: string; url: string }[] = [];
+  const result = await sendDueAlerts(
+    now,
+    50,
+    fakeSend,
+    async (token, alert) => {
+      told.push({ token, title: alert.title, url: alert.url });
+      return "sent";
+    },
+  );
+  expect(result).toMatchObject({ sent: 1, gone: 0, failed: 0 });
+  expect(told).toHaveLength(1);
+  expect(told[0]).toMatchObject({
+    token: PHONE,
+    title: `${SERIES} Vol. 3 is out`,
+  });
+  // nothing went to the browsers' push service
+  expect(delivered).toHaveLength(0);
+});
+
+test("a phone whose app is gone is forgotten", async () => {
+  const { agent } = await reader();
+  await agent.post("/api/push/device").send({ token: PHONE });
+  const result = await sendDueAlerts(now, 50, fakeSend, async () => "gone");
+  expect(result).toMatchObject({ sent: 0, gone: 1 });
+  expect(await prisma.pushSubscription.count()).toBe(0);
+});
+
+test("only a real phone token is taken, and only its reader forgets it", async () => {
+  const { agent } = await reader();
+  for (const token of ["hello", "ExponentPushToken[]", "https://example.com"])
+    expect((await agent.post("/api/push/device").send({ token })).status).toBe(
+      400,
+    );
+  await agent.post("/api/push/device").send({ token: PHONE });
+  const other = await reader("other");
+  await other.agent.post("/api/push/device/forget").send({ token: PHONE });
+  expect(await prisma.pushSubscription.count()).toBe(1);
+  await agent.post("/api/push/device/forget").send({ token: PHONE });
+  expect(await prisma.pushSubscription.count()).toBe(0);
+});

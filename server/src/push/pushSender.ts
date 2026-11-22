@@ -4,7 +4,8 @@
 // items go in digest_items, as the weekly email's do.
 //
 // Runs on the live site only, unless PUSH_ALERTS=on; PUSH_ALERTS=off stops
-// it anywhere; and never without the VAPID key pair (config.ts).
+// it anywhere. Browsers are sent to only with the VAPID key pair
+// (config.ts); the phone app's devices go through Expo (expoPush.ts).
 import * as webPush from "web-push";
 import config from "../config/config.js";
 import { prisma } from "../config/prisma.js";
@@ -12,6 +13,7 @@ import { startEvery, triedLately } from "../collector/fillShared.js";
 import { newsFor, PUSH_PREFIX } from "../digest/digestData.js";
 import { withoutSent } from "../digest/digestRules.js";
 import type { Prefs } from "../models/userQueries.js";
+import { isExpoToken, sendToExpo, type ExpoSend } from "./expoPush.js";
 import { alertsFrom, payloadOf } from "./pushRules.js";
 
 const HOUR_MS = 60 * 60_000;
@@ -44,8 +46,8 @@ export function pushKeysSet() {
   return keysGood;
 }
 
+// the key pair is only the browsers': the phone app's alerts go without it
 export const pushSwitchOn = () =>
-  pushKeysSet() &&
   config.PUSH_ALERTS !== "off" &&
   (config.PUSH_ALERTS === "on" || config.ENV === "PROD");
 
@@ -63,12 +65,17 @@ export async function sendDueAlerts(
   now = new Date(),
   most = config.PUSH_PER_RUN,
   send: Send = realSend,
+  // the phone app's devices (expoPush.ts)
+  sendExpo: ExpoSend = sendToExpo,
 ) {
-  if (!pushKeysSet()) return { readers: 0, sent: 0, gone: 0, failed: 0 };
-  const devices = await prisma.pushSubscription.findMany({
-    orderBy: { id: "asc" },
-    include: { user: { select: { id: true, prefs: true } } },
-  });
+  // browsers need the key pair; without it only the app's phones are sent to
+  const webReady = pushKeysSet();
+  const devices = (
+    await prisma.pushSubscription.findMany({
+      orderBy: { id: "asc" },
+      include: { user: { select: { id: true, prefs: true } } },
+    })
+  ).filter((device) => webReady || isExpoToken(device.endpoint));
   const byUser = new Map<number, typeof devices>();
   for (const device of devices)
     byUser.set(device.userId, [...(byUser.get(device.userId) ?? []), device]);
@@ -108,7 +115,22 @@ export async function sendDueAlerts(
         }
         let reached = false;
         for (const device of [...theirs]) {
+          // gone: the address is no good, and the device is forgotten (not
+          // sent the rest of this run's alerts either)
+          const forget = async () => {
+            await prisma.pushSubscription
+              .delete({ where: { id: device.id } })
+              .catch(() => {});
+            theirs.splice(theirs.indexOf(device), 1);
+            gone++;
+          };
           try {
+            if (isExpoToken(device.endpoint)) {
+              if ((await sendExpo(device.endpoint, alert)) === "gone")
+                await forget();
+              else reached = true;
+              continue;
+            }
             await send(
               {
                 endpoint: device.endpoint,
@@ -123,12 +145,7 @@ export async function sendDueAlerts(
             // the device switched alerts off, or the app was removed: its
             // address is no good, and goes
             if (status === 404 || status === 410) {
-              await prisma.pushSubscription
-                .delete({ where: { id: device.id } })
-                .catch(() => {});
-              // not sent the rest of this run's alerts either
-              theirs.splice(theirs.indexOf(device), 1);
-              gone++;
+              await forget();
             } else {
               failed++;
               console.error(`alert for user ${user.id} failed:`, status ?? e);
