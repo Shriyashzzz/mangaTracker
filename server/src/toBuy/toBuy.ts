@@ -65,11 +65,25 @@ export type ToBuyItem = {
   alertCents: number | null;
 };
 
-// the release date of a volume that isn't out yet, from its series' saved
-// list; null for one that's out, or whose date nobody knows
+// The release date of a volume that isn't out yet, from its series' saved
+// list; null for one that's out, or whose date nobody knows. Every volume
+// on the list is asked about (a preorder can have a price already), so the
+// answer is remembered a while: a day still to come for an hour, since it
+// can move, one that's out for six
+const HOUR_MS = 60 * 60_000;
+const askedAbout = new Map<string, { day: string | null; until: number }>();
+export const forgetPreorderDates = () => askedAbout.clear();
 const preorderDate = async (isbn13: string) => {
+  const now = Date.now();
+  const known = askedAbout.get(isbn13);
+  if (known && known.until > now) return known.day;
   const saved = await priceQueries.getSavedVolume(isbn13).catch(() => null);
-  return notOutYet(saved?.published);
+  const day = notOutYet(saved?.published);
+  // a volume no saved list has yet is asked about again next time: its
+  // list, and its day, can turn up any minute
+  if (saved)
+    askedAbout.set(isbn13, { day, until: now + (day ? 1 : 6) * HOUR_MS });
+  return day;
 };
 
 // what the list would cost: each kind added up over the volumes that have a
@@ -177,13 +191,11 @@ export async function toBuyList(userId: number, country: Country = "us") {
       }),
     ),
   );
-  // only a volume with no price can be a preorder: the rest aren't asked about
-  const unpriced = isbns.filter(
-    (isbn13) => !copies.get(isbn13)?.new && !copies.get(isbn13)?.used,
-  );
+  // a preorder can have a price already (stores list them early): every
+  // volume is asked about, priced or not
   const outOn = new Map(
     await Promise.all(
-      unpriced.map(
+      isbns.map(
         async (isbn13) => [isbn13, await preorderDate(isbn13)] as const,
       ),
     ),
