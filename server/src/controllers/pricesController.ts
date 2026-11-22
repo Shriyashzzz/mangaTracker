@@ -32,6 +32,7 @@ import {
 import {
   COVER_WIDTHS,
   allowedWidth,
+  isBlankPage,
   isCoverShaped,
   resizeCover,
   type CoverWidth,
@@ -397,7 +398,18 @@ const cover = [
       // the image itself, from this site: no chain of redirects for search
       // engines to give up on, and the covers count as this site's in image
       // search. Cloudflare keeps it (a Cache Rule on /api/prices/cover/)
-      await sendImage(res, coverSource(id, fallback, width), width);
+      const sent = await sendImage(
+        res,
+        coverSource(id, fallback, width),
+        width,
+        { mustNotBeBlank: true },
+      );
+      // a blank page for a cover: none, as far as the page is concerned (its
+      // stand-in shows). Kept a day, as any "no cover" is
+      if (!sent) {
+        res.set("Cache-Control", "public, max-age=86400");
+        sendError(res, 404, "This edition has no cover.");
+      }
     } catch (e) {
       if (!(e instanceof CoverLookupPaused)) {
         console.error("cover lookup failed:", (e as Error).message);
@@ -593,10 +605,18 @@ async function sendImage(
   {
     kept = "public, max-age=2592000",
     mustBeCoverShaped = false,
-  }: { kept?: string; mustBeCoverShaped?: boolean } = {},
+    mustNotBeBlank = false,
+  }: {
+    kept?: string;
+    mustBeCoverShaped?: boolean;
+    mustNotBeBlank?: boolean;
+  } = {},
 ) {
   const { image, type } = await fetchImage(url);
   if (mustBeCoverShaped && !(await isCoverShaped(image))) return false;
+  // a blank page isn't a cover (a picture sharp can't read is let through)
+  if (mustNotBeBlank && (await isBlankPage(image).catch(() => false)))
+    return false;
   // a picture that can't be resized still goes out, as it came
   const resized = width
     ? await resizeCover(image, width).catch((e: Error) => {

@@ -46,3 +46,17 @@ export async function isCoverShaped(image: Buffer) {
   const { width, height } = await sharp(image).metadata();
   return Boolean(width && height && width < height * 0.95);
 }
+
+// Whether the picture is a blank page: white all over, or as good as. Google
+// Books sometimes hands back a book's empty first page as its "cover"
+// (Bleach 13 and 18 had one), which loads fine and is the right shape, so
+// only what's on it tells. A real cover never averages this close to white
+// with this little on it
+const BLANK_FROM_MEAN = 250;
+const BLANK_UP_TO_SPREAD = 6;
+export async function isBlankPage(image: Buffer) {
+  const { channels } = await sharp(image).stats();
+  return channels.every(
+    (c) => c.mean >= BLANK_FROM_MEAN && c.stdev <= BLANK_UP_TO_SPREAD,
+  );
+}

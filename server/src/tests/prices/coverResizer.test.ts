@@ -9,6 +9,7 @@ import {
 import {
   COVER_WIDTHS,
   allowedWidth,
+  isBlankPage,
   isCoverShaped,
   resizeCover,
 } from "../../prices/sources/coverResizer.js";
@@ -151,4 +152,27 @@ test("a series' cover is asked for by name, so the English one can be sent", () 
   ).toBe("/api/prices/cover/9781569319017?w=120");
   // nothing to ask for at all
   expect(coverChoices(null)).toEqual([]);
+});
+
+test("a blank white page is not a cover; a cover with white on it is", async () => {
+  const white = (overlay?: { input: Buffer; top: number; left: number }) =>
+    sharp({
+      create: { width: 300, height: 450, channels: 3, background: "#ffffff" },
+    })
+      .composite(overlay ? [overlay] : [])
+      .jpeg()
+      .toBuffer();
+  // Google's empty first page: white all over
+  expect(await isBlankPage(await white())).toBe(true);
+  // a mostly white cover with art on it
+  const art = await sharp({
+    create: { width: 200, height: 200, channels: 3, background: "#1d1a16" },
+  })
+    .png()
+    .toBuffer();
+  expect(
+    await isBlankPage(await white({ input: art, top: 60, left: 50 })),
+  ).toBe(false);
+  // and any ordinary picture
+  expect(await isBlankPage(await picture(300, 450))).toBe(false);
 });
