@@ -5,6 +5,7 @@
 //   POST   /api/share/:code/follow   follow it (signed in, not your own)
 //   DELETE /api/share/:code/follow   stop
 //   GET    /api/friends              the shelves you follow, still shared
+import { readerName } from "../util/shelf/readerNames.js";
 import { Router, type Request, type Response } from "express";
 import { param, matchedData } from "express-validator";
 import { prisma } from "../config/prisma.js";
@@ -73,6 +74,7 @@ const list = async (req: Request, res: Response) => {
     select: {
       owner: {
         select: {
+          id: true,
           displayName: true,
           avatar: true,
           shareCode: true,
@@ -86,7 +88,9 @@ const list = async (req: Request, res: Response) => {
       .filter((r) => r.owner.shareCode)
       .map(({ owner }) => ({
         code: owner.shareCode!,
-        name: owner.displayName ?? "A collector",
+        // the name their shelf goes by: their own, or the one every reader
+        // without one is given (readerNames.ts), never a different stand-in
+        name: readerName(owner),
         avatar: owner.avatar,
         series: owner.manga.length,
         volumes: owner.manga.reduce((n, m) => n + ownedSet(m).size, 0),
