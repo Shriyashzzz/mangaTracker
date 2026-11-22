@@ -1,4 +1,8 @@
-import { buildEditionLines } from "../../prices/editionLines.js";
+import {
+  buildEditionLines,
+  withoutBundles,
+  type EditionLine,
+} from "../../prices/editionLines.js";
 
 const doc = (title: string, isbn13: string, pages?: number) => ({
   title,
@@ -388,5 +392,44 @@ test("several of a line's books sold together are never one of its books", () =>
   expect(whole!.books.find((b) => b.number === 11)).toMatchObject({
     isbn13: eleven.isbn13,
     listed: true,
+  });
+});
+
+test("a bundle saved as a book before the rule knew it loses its ISBN, not its place", () => {
+  const saved = [
+    {
+      key: "deluxe",
+      kind: "deluxe",
+      label: "Deluxe",
+      books: [
+        {
+          number: 10,
+          volumes: [28, 29, 30],
+          isbn13: "9781506727547",
+          title: "Berserk Deluxe Volume 10",
+          listed: true,
+        },
+        {
+          number: 11,
+          volumes: [31, 32, 33],
+          isbn13: "9781338727807",
+          title: "Berserk Deluxe Books 1-11",
+          listed: true,
+          sure: true,
+        },
+      ],
+    },
+  ] as unknown as EditionLine[];
+  const [line] = withoutBundles(saved);
+  expect(line!.books[0]).toMatchObject({
+    isbn13: "9781506727547",
+    listed: true,
+  });
+  expect(line!.books[1]).toMatchObject({
+    number: 11,
+    volumes: [31, 32, 33],
+    isbn13: null,
+    title: null,
+    listed: false,
   });
 });

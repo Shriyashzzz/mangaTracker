@@ -70,6 +70,22 @@ export const bookName = (label: string, number: number) =>
 // and no price
 const NOT_ONE_BOOK =
   /\b(box(ed)?\s*set|books?\s+collection|collection\s+set|bundle|lot|notebook|colou?ring|journal|planner|calendar|art\s*book|guide)\b|\bbooks\s+\d{1,3}\s*[‐\-–]\s*\d{1,3}\b/i;
+// Lines as they were saved, read by today's rules: a book that turns out
+// to be a bundle or the like (saved before a rule knew of it) keeps its
+// place in the line, but not the wrong ISBN and title. A saved list can
+// outlive a rule change by a while (a whole answer is kept over a half one
+// while a catalog is out), and until it's built again it must not go on
+// showing "Berserk Deluxe Books 1-11" as Deluxe 11
+export const withoutBundles = (lines: EditionLine[]): EditionLine[] =>
+  lines.map((line) => ({
+    ...line,
+    books: line.books.map((book) =>
+      book.title && NOT_ONE_BOOK.test(book.title)
+        ? { ...book, isbn13: null, title: null, listed: false }
+        : book,
+    ),
+  }));
+
 const SELF_PUBLISHED = /^(independently published|createspace|lulu)/i;
 // US trade ISBNs; 979-8 is where print-on-demand copies live
 // 978-0 and 978-1, and 979-8: the prefix US publishers have been given

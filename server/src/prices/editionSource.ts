@@ -20,6 +20,7 @@ import {
   TRADE_ISBN,
   type EditionDoc,
   type EditionLine,
+  withoutBundles,
 } from "./editionLines.js";
 import type { CatalogBook } from "./types.js";
 
@@ -219,7 +220,8 @@ export async function editionLinesOf(
     savedOrBuiltLines(name, volumes, lookUp, askTheStore),
     countedBooks().catch(() => new Map()),
   ]);
-  return shownLines(counted, name, lines);
+  // (saved lines are read by today's rules: editionLines.ts withoutBundles)
+  return shownLines(counted, name, withoutBundles(lines));
 }
 
 async function savedOrBuiltLines(
