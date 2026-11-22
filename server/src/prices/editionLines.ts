@@ -64,9 +64,12 @@ const LINES = EDITION_NAMES;
 export const bookName = (label: string, number: number) =>
   /-in-1$/i.test(label) ? `${label} Book ${number}` : `${label} ${number}`;
 
-// third-party bundles and rebinds borrow a line's name: never the publisher's
+// third-party bundles and rebinds borrow a line's name: never the publisher's.
+// And several of the line's own books sold together: "Berserk Deluxe Books
+// 1-11" is eleven books, and was read as book 11, with the bundle's ISBN
+// and no price
 const NOT_ONE_BOOK =
-  /\b(box(ed)?\s*set|books?\s+collection|collection\s+set|bundle|lot|notebook|colou?ring|journal|planner|calendar|art\s*book|guide)\b/i;
+  /\b(box(ed)?\s*set|books?\s+collection|collection\s+set|bundle|lot|notebook|colou?ring|journal|planner|calendar|art\s*book|guide)\b|\bbooks\s+\d{1,3}\s*[‐\-–]\s*\d{1,3}\b/i;
 const SELF_PUBLISHED = /^(independently published|createspace|lulu)/i;
 // US trade ISBNs; 979-8 is where print-on-demand copies live
 // 978-0 and 978-1, and 979-8: the prefix US publishers have been given

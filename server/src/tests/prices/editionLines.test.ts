@@ -370,3 +370,23 @@ test("a short last book the catalog lists stays", () => {
   expect(line!.books).toHaveLength(13);
   expect(line!.books.at(-1)).toMatchObject({ volumes: [37], listed: true });
 });
+
+test("several of a line's books sold together are never one of its books", () => {
+  // every Deluxe book but the eleventh, and a bundle of the first eleven
+  const real = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 12, 13, 14].map((b) =>
+    doc(`Berserk Deluxe Volume ${b}`, isbn()),
+  );
+  const bundle = doc("Berserk Deluxe Books 1-11", "9781338727807");
+  const [line] = buildEditionLines("Berserk", [...real, bundle], 41);
+  const eleventh = line!.books.find((b) => b.number === 11);
+  // the eleventh is known of (the table has it) but has no book of its own
+  expect(eleventh?.isbn13 ?? null).toBeNull();
+  expect(line!.books.some((b) => b.isbn13 === bundle.isbn13)).toBe(false);
+  // with the real one found too, it's the real one
+  const eleven = doc("Berserk Deluxe Volume 11", "9781506727554");
+  const [whole] = buildEditionLines("Berserk", [...real, bundle, eleven], 41);
+  expect(whole!.books.find((b) => b.number === 11)).toMatchObject({
+    isbn13: eleven.isbn13,
+    listed: true,
+  });
+});
