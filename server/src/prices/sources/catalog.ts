@@ -1,5 +1,6 @@
 // Open Library: free, no key. Finds volumes and their ISBNs.
 // https://openlibrary.org/dev/docs/api/search
+import { isRebind } from "../rebinds.js";
 import { saysMoreThan, titleOfRecord, withEditionOf } from "./editionTitle.js";
 import { editionNameOf } from "../../util/shelf/editionNames.js";
 import { googleRecordOf } from "./googleBooksCatalog.js";
@@ -74,12 +75,38 @@ const ebookIsbnsOf = (doc: Doc) => {
 };
 export function isbnToListUnder(doc: Doc) {
   const english = (doc.isbn ?? []).filter((i) => ENGLISH_ISBN.test(i));
+  // never a library rebind's while the work has another (rebinds.ts)
+  const firstOwn = english.find((i) => !isRebind(i)) ?? english[0];
   const ebook = ebookIsbnsOf(doc);
   // the matched edition is the eBook: another English ISBN of the work is
   // the book's (the eBook's own only when the work has no other)
-  if (ebook) return english.find((i) => !ebook.has(i)) ?? english[0];
+  if (ebook)
+    return english.find((i) => !ebook.has(i) && !isRebind(i)) ?? firstOwn;
   const matched = doc.editions?.docs?.[0];
-  return (matched?.isbn ?? []).find((i) => ENGLISH_ISBN.test(i)) ?? english[0];
+  return (
+    (matched?.isbn ?? []).find((i) => ENGLISH_ISBN.test(i) && !isRebind(i)) ??
+    firstOwn
+  );
+}
+// The same for a whole search's works at once. Open Library sometimes
+// files one volume's edition under another volume's work, so two works
+// can both come out with the same ISBN (Bleach 9 and 11 did), and only one
+// can be right. An ISBN more than one work lays claim to is trusted for
+// none of them: each takes another English ISBN of its own, and keeps the
+// shared one only when it has no other
+export function isbnsToListUnder(docs: Doc[]) {
+  const preferred = docs.map(isbnToListUnder);
+  const claims = new Map<string, number>();
+  for (const isbn of preferred)
+    if (isbn) claims.set(isbn, (claims.get(isbn) ?? 0) + 1);
+  return docs.map((doc, i) => {
+    const isbn = preferred[i];
+    if (!isbn || claims.get(isbn) === 1) return isbn;
+    const others = (doc.isbn ?? []).filter(
+      (other) => ENGLISH_ISBN.test(other) && other !== isbn,
+    );
+    return others.find((other) => !isRebind(other)) ?? others[0] ?? isbn;
+  });
 }
 // whether the ISBN a work was listed under is its eBook's after all
 export const listedAsEbook = (doc: Doc, isbn13: string | undefined) =>
@@ -690,9 +717,10 @@ export async function searchVolumesDetailed(
     )
   ).filter((doc) => isbn || !isSelfPublished(doc.publisher));
 
+  const listUnder = isbnsToListUnder(docs);
   const candidates = await Promise.all(
-    docs.map((doc) =>
-      toBook(doc, isbnToListUnder(doc)).then((made) =>
+    docs.map((doc, i) =>
+      toBook(doc, listUnder[i]).then((made) =>
         // only its eBook to go on: marked, so a printed copy found any
         // other way takes its place
         made.book && listedAsEbook(doc, made.book.isbn13)
@@ -701,14 +729,22 @@ export async function searchVolumesDetailed(
       ),
     ),
   );
-  const seen = new Set<string>();
+  // one book an ISBN. Two works can land on the same one (a work gathering
+  // the whole series, matched by the edition that is its volume 10, and
+  // volume 10's own work): the one that says which volume it is stays
+  const at = new Map<string, number>();
   const books: CatalogBook[] = [];
   let degraded = false;
   for (const { book, degraded: d } of candidates) {
     degraded ||= Boolean(d);
-    if (!book || seen.has(book.isbn13)) continue;
-    seen.add(book.isbn13);
-    books.push(book);
+    if (!book) continue;
+    const had = at.get(book.isbn13);
+    if (had === undefined) {
+      at.set(book.isbn13, books.length);
+      books.push(book);
+    } else if (books[had]!.volume === null && book.volume !== null) {
+      books[had] = book;
+    }
   }
 
   if (seriesName) {

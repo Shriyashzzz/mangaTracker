@@ -1,6 +1,7 @@
 // A series' list of volumes: asked of the catalogs, merged into one list,
 // saved, and read back for the series page. Part of the price service
 // (service.ts lists the parts).
+import { isRebind } from "./rebinds.js";
 import { coverlessOf } from "../models/coversAndSitemap.js";
 import {
   editionIsbnsOf,
@@ -92,16 +93,9 @@ export const mergeVolumes = (known: CatalogBook[], found: CatalogBook[]) => {
 
 // ---------- one list from several answers ----------
 
-// library rebinds of a publisher's paperback: Turtleback (978-1-417,
-// 978-0-606) and Tandem Library (978-0-613). Same pages in a hard library
-// cover at three times the price, and often another edition's cover image
-// (One Piece 8, 10 and 17 were listed under these). The publisher's own
-// edition of a volume always wins over one
-// Gollancz's UK printing (978-0-575, Detective Conan 3, 6, 8 and 9) is the
-// same: the US publisher's own wins when a catalog has it, and it counts as
-// a volume to look up again (gapVolumes)
-const REBIND = /^(9781417|9780606|9780613|9780575)/;
-export const isRebind = (isbn13: string) => REBIND.test(isbn13.trim());
+// library rebinds and the like, which the publisher's own edition always
+// beats (rebinds.ts has the list)
+export { isRebind };
 // A series' volumes nearly all come from one publisher, so nearly all their
 // ISBNs start alike (Hunter x Hunter's: 978-1-4215 and 978-1-5911, VIZ's).
 // One whose ISBN starts like no other volume's is most likely not the

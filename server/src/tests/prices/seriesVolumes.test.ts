@@ -7,7 +7,11 @@ import {
 } from "../../prices/seriesService.js";
 import { pool } from "../../config/prisma.js";
 import { mergeVolumes, needsGoogleShopping } from "../../prices/service.js";
-import { isbnToListUnder, saysComic } from "../../prices/sources/catalog.js";
+import {
+  isbnsToListUnder,
+  isbnToListUnder,
+  saysComic,
+} from "../../prices/sources/catalog.js";
 import { seriesOf } from "../../prices/stores/match.js";
 import type { CatalogBook, SeriesInfo } from "../../prices/types.js";
 
@@ -294,4 +298,40 @@ test("a work is listed under its printed book's ISBN, not its eBook's", () => {
   expect(isbnToListUnder({ isbn, editions: { docs: [brazil] } })).toBe(
     "9781421554129",
   );
+});
+
+test("a work is never listed under a library rebind's ISBN while it has another", () => {
+  // Sgt. Frog 1: the search matched the school rebind
+  const isbn = ["9780329405762", "9781591827030"];
+  const rebind = { isbn: ["9780329405762"], format: ["Library Binding"] };
+  expect(isbnToListUnder({ isbn, editions: { docs: [rebind] } })).toBe(
+    "9781591827030",
+  );
+  // with no matched edition either
+  expect(isbnToListUnder({ isbn })).toBe("9781591827030");
+  // a rebind is all there is: it still fills the place
+  expect(isbnToListUnder({ isbn: ["9780329405762"] })).toBe("9780329405762");
+});
+
+test("an ISBN two works both claim is trusted for neither", () => {
+  // Bleach 9 and 11: the search matched volume 11's edition for both
+  const shared = { isbn: ["9781591169246"], format: ["Paperback"] };
+  const nine = {
+    isbn: ["9781591169246", "9781421500812"],
+    editions: { docs: [shared] },
+  };
+  const eleven = {
+    isbn: ["9781415638644", "9781421502717", "9781591169246"],
+    editions: { docs: [shared] },
+  };
+  const alone = { isbn: ["9781421506111"] };
+  expect(isbnsToListUnder([nine, eleven, alone])).toEqual([
+    // each its own other edition, and never the rebind while there's another
+    "9781421500812",
+    "9781421502717",
+    "9781421506111",
+  ]);
+  // with no other edition to its name, a work keeps the shared one
+  const onlyThat = { isbn: ["9781591169246"], editions: { docs: [shared] } };
+  expect(isbnsToListUnder([onlyThat, eleven])[0]).toBe("9781591169246");
 });
