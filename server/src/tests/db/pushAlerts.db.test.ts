@@ -374,3 +374,27 @@ test("the price to be told at is theirs to set and to take off", async () => {
   ).toBe(200);
   expect((await row()).alertCents).toBeNull();
 });
+
+test("alerts switched on in the phone app take the place of the same reader's Chrome ones", async () => {
+  const { agent } = await reader();
+  // Chrome (ENDPOINT) and Safari (OTHER), then the app
+  await on(agent);
+  await on(agent, OTHER);
+  const endpoints = async () =>
+    (await prisma.pushSubscription.findMany()).map((s) => s.endpoint).sort();
+  // the token given again as the app starts changes nothing
+  await agent.post("/api/push/device").send({ token: PHONE });
+  expect(await endpoints()).toEqual([PHONE, ENDPOINT, OTHER].sort());
+  // switched on by hand: Chrome's goes, Safari's stays
+  await agent
+    .post("/api/push/device")
+    .send({ token: PHONE, replaceChrome: true });
+  expect(await endpoints()).toEqual([PHONE, OTHER].sort());
+  // another reader's Chrome is never touched
+  const other = await reader("another");
+  await on(other.agent);
+  await agent
+    .post("/api/push/device")
+    .send({ token: PHONE, replaceChrome: true });
+  expect(await endpoints()).toEqual([PHONE, ENDPOINT, OTHER].sort());
+});

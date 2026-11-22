@@ -14,6 +14,9 @@ import { isPushService } from "./pushRules.js";
 
 export const pushRouter = Router();
 
+// where Chrome's alerts are sent, on Android and on a computer alike
+const CHROME_PUSH = "https://fcm.googleapis.com/";
+
 // the public half of the key pair: none means alerts aren't set up here,
 // and the page doesn't offer them
 pushRouter.get("/key", (_req: Request, res: Response) => {
@@ -90,6 +93,7 @@ pushRouter.post(
   requireSignIn,
   rateLimit({ max: 30, windowMs: 60 * 60_000 }),
   ...phone,
+  body("replaceChrome").optional().isBoolean(),
   rejectInvalid,
   async (req: Request, res: Response) => {
     const { token } = matchedData(req) as { token: string };
@@ -99,6 +103,19 @@ pushRouter.post(
       create: { endpoint: token, ...data },
       update: data,
     });
+    // Switched on in the phone app (not the token given again as the app
+    // starts): the same reader's Chrome alerts go. The website's Android
+    // app is Chrome, on the same phone as likely as not, and both would
+    // ring for every alert. Chrome's address looks the same on a phone and
+    // a computer, so a computer's Chrome alerts go too, and are switched
+    // on again there if wanted
+    if (req.body.replaceChrome === true)
+      await prisma.pushSubscription.deleteMany({
+        where: {
+          userId: req.session.userId!,
+          endpoint: { startsWith: CHROME_PUSH },
+        },
+      });
     res.sendStatus(204);
   },
 );
