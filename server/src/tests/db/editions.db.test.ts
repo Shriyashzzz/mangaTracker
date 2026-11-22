@@ -318,6 +318,12 @@ test("the shelf says where they are in the edition they collect", async () => {
         isbn13: null,
         title: null,
       })),
+      // each book's volumes, for the Volumes tab's bar: twelve books of three
+      books: Array.from({ length: 12 }, (_, i) => [
+        i * 3 + 1,
+        i * 3 + 2,
+        i * 3 + 3,
+      ]),
     });
     // single volumes: nothing to say
     expect(
