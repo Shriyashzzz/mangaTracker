@@ -1,5 +1,5 @@
-// Settings, Account: how they sign in (SignInSection), the email, the weekly
-// email sent to it, a backup of the shelf to download, signing out, and
+// Settings, Account: how they sign in (SignInSection), the email, a backup
+// of the shelf to download, signing out, and
 // deleting the account (which asks for the password, or for an account made
 // with Google and no password, the username).
 import type { OwnedBook } from "../../lib/books";
@@ -11,7 +11,6 @@ import type { Manga } from "../../lib/types";
 import { useAccount } from "../../store/account";
 import { useAuth } from "../../store/auth";
 import { settingsStyles as styles } from "./styles";
-import { AlertsSection } from "./AlertsSection";
 import { SignInSection } from "./SignInSection";
 import { orOffline } from "../../lib/offline";
 
@@ -21,32 +20,6 @@ const LINK_NOT_SENT = "We couldn't send the link. Try again in a minute.";
 export function AccountTab({ account }: { account: Account }) {
   const logOut = useAuth((s) => s.logOut);
   const saveAccount = useAccount((s) => s.save);
-  const setWeeklyEmail = useAccount((s) => s.weeklyEmail);
-  const [weeklyNote, setWeeklyNote] = useState<{
-    text: string;
-    failed?: boolean;
-  } | null>(null);
-  const [weeklySaving, setWeeklySaving] = useState(false);
-  // on, off, or on again to mail the confirm link once more
-  const switchWeekly = async (on: boolean, said: string) => {
-    setWeeklyNote(null);
-    setWeeklySaving(true);
-    try {
-      await setWeeklyEmail(on);
-      // on, but the confirm link didn't go: said, never "check your inbox"
-      if (useAccount.getState().account?.confirmNotSent)
-        setWeeklyNote({ text: LINK_NOT_SENT, failed: true });
-      else setWeeklyNote({ text: said });
-    } catch (error) {
-      setWeeklyNote({ text: (error as Error).message, failed: true });
-    } finally {
-      setWeeklySaving(false);
-    }
-  };
-  // waiting for the address to be confirmed. Just now the link didn't go:
-  // the note says that instead (the button to send it again stays)
-  const waitingToConfirm =
-    account.weeklyEmail && !account.emailConfirmed && !account.confirmNotSent;
   const navigate = useNavigate();
   const [email, setEmail] = useState(account.recoveryEmail ?? "");
   const [emailNote, setEmailNote] = useState<{
@@ -67,7 +40,7 @@ export function AccountTab({ account }: { account: Account }) {
       setEmailNote({ text: email.trim() ? "Saved." : "Removed." });
       // a new address with the weekly email on: its confirm link didn't go
       if (useAccount.getState().account?.confirmNotSent)
-        setWeeklyNote({ text: LINK_NOT_SENT, failed: true });
+        setEmailNote({ text: LINK_NOT_SENT, failed: true });
     } catch (error) {
       setEmailNote({ text: (error as Error).message, failed: true });
     }
@@ -147,7 +120,7 @@ export function AccountTab({ account }: { account: Account }) {
             onChange={(e) => setEmail(e.target.value)}
           />
           <p className={styles.body}>
-            For password resets and the weekly email.
+            For password resets and the weekly email (Settings, New releases).
           </p>
           <div className={styles.actions}>
             <button type="submit" className="btn btn-secondary">
@@ -162,74 +135,6 @@ export function AccountTab({ account }: { account: Account }) {
           </div>
         </form>
       </section>
-
-      <section className={styles.section} aria-labelledby="set-weekly">
-        <h3 id="set-weekly" className={styles.heading}>
-          Weekly email
-        </h3>
-        <p className={styles.body}>
-          New volumes for your shelf, and price drops on your To buy list. Only
-          sent when there's news.
-        </p>
-        {account.recoveryEmail ? (
-          <>
-            <label className={styles.row}>
-              <input
-                type="checkbox"
-                // an on/off setting: Android's switch in the app (index.css)
-                className="app-switch"
-                checked={account.weeklyEmail}
-                disabled={weeklySaving}
-                onChange={(e) =>
-                  switchWeekly(
-                    e.target.checked,
-                    e.target.checked
-                      ? account.emailConfirmed
-                        ? "It's on."
-                        : "Check your inbox."
-                      : "It's off.",
-                  )
-                }
-              />
-              Send me the weekly email
-            </label>
-            {waitingToConfirm && (
-              <p className={styles.body}>
-                Almost there: press Start my weekly email in the email to{" "}
-                <strong>{account.recoveryEmail}</strong>. No email? Send the
-                link again.
-              </p>
-            )}
-            {account.weeklyEmail && account.emailConfirmed && (
-              <p className={styles.body}>
-                Sent to <strong>{account.recoveryEmail}</strong>.
-              </p>
-            )}
-            <div className={styles.actions}>
-              {account.weeklyEmail && !account.emailConfirmed && (
-                <button
-                  type="button"
-                  className="btn btn-secondary"
-                  disabled={weeklySaving}
-                  onClick={() => switchWeekly(true, "Sent again.")}
-                >
-                  Send the link again
-                </button>
-              )}
-              <span
-                className={weeklyNote?.failed ? styles.failed : styles.saved}
-                role="status"
-              >
-                {weeklyNote?.text}
-              </span>
-            </div>
-          </>
-        ) : (
-          <p className={styles.body}>Save an email above to switch it on.</p>
-        )}
-      </section>
-
-      <AlertsSection />
 
       <section
         className={styles.section}

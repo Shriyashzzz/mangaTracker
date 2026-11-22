@@ -170,7 +170,7 @@ const ToTheShelf = () => (
 const ToSettings = ({ primary = false }: { primary?: boolean }) =>
   primary ? (
     <NavLink
-      to="/settings/account"
+      to="/settings/new-releases"
       viewTransition
       className="btn btn-primary btn-lg btn-block"
     >
@@ -179,7 +179,7 @@ const ToSettings = ({ primary = false }: { primary?: boolean }) =>
   ) : (
     <p className={styles.switchRow}>
       Changed your mind? Switch it back on in{" "}
-      <NavLink to="/settings/account" viewTransition>
+      <NavLink to="/settings/new-releases" viewTransition>
         Settings
       </NavLink>
     </p>

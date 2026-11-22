@@ -1,4 +1,4 @@
-// Settings, Account: alerts on this device. One switch, per device: the
+// Settings, New releases: alerts on this device. One switch, per device: the
 // browser asks its own question only after it's tapped. On an iPhone in
 // Safari, alerts only work in the installed app, so it says that, with the
 // way to install. Nothing at all where alerts aren't set up (lib/alerts.ts).
@@ -108,8 +108,8 @@ export function AlertsSection() {
         Alerts on this device
       </h3>
       <p className={styles.body}>
-        A volume for your shelf the day it's out, and price drops on your To buy
-        list.
+        A volume for your shelf the day it's out or a week before, and price
+        drops on your To buy list.
       </p>
       {way === "installFirst" && (
         <>
