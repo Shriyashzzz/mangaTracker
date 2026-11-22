@@ -57,7 +57,11 @@ test("notes stay private unless they choose to share them", () => {
 
 test("no display name means a fun stand-in that stays the same, never the username", () => {
   const first = toSharedShelf({ ...source, displayName: null }).displayName;
-  expect(READER_NAMES).toContain(first);
+  // a listed name and the account's number: "Spoiler Dodger #4821"
+  expect(first).toMatch(/ #\d{4}$/);
+  expect(READER_NAMES.map((name) => name.replace(/ #\d+$/, ""))).toContain(
+    first.replace(/ #\d{4}$/, ""),
+  );
   expect(toSharedShelf({ ...source, displayName: null }).displayName).toBe(
     first,
   );

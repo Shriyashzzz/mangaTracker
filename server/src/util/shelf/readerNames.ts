@@ -1,6 +1,7 @@
 import { withoutDirectionMarks } from "../directionMarks.js";
 // Names for anyone who hasn't picked their own. Each account always gets the same
-// one until they do, and the profile page offers them all through "Surprise me".
+// one (with a number, below) until they do, and the profile page offers them
+// all through "Surprise me".
 export const READER_NAMES = [
   "Chapter Goblin",
   "Cliffhanger Survivor",
@@ -34,8 +35,27 @@ export const READER_NAMES = [
   "Unnamed Background Girl",
 ];
 
-export const defaultReaderName = (userId: number) =>
-  READER_NAMES[userId % READER_NAMES.length]!;
+// The stand-in name: one of the names above and a four-digit number,
+// "Spoiler Dodger #4821", so two readers without a name of their own are
+// told apart (30 names alone repeated every 30th account). Both come from
+// the account's number, so it's always the same for one account and
+// nothing is stored; they're stepped by primes, so accounts made one after
+// another get names and numbers that look unrelated, and no two of the
+// first 30,000 accounts share both
+const NAME_STEP = 17;
+const NUMBER_STEP = 7919;
+const NUMBER_START = 1234;
+const NUMBERS = 10_000;
+
+export function defaultReaderName(userId: number) {
+  const name = READER_NAMES[(userId * NAME_STEP) % READER_NAMES.length]!;
+  const number = (userId * NUMBER_STEP + NUMBER_START) % NUMBERS;
+  const digits = String(number).padStart(4, "0");
+  // "Side Character #7" carries a number already: it takes this one
+  return /#\d+$/.test(name)
+    ? name.replace(/#\d+$/, `#${digits}`)
+    : `${name} #${digits}`;
+}
 
 // the name others see for a reader: theirs, cleaned of characters that
 // would turn it around (directionMarks.ts), or else the one picked for them
