@@ -3,9 +3,9 @@
 //
 // The weekly email's news (digest/digestRules.ts), sooner and shorter: a
 // volume or book out today or in the last two days, for a series they're
-// caught up on, and a To buy volume clearly under its usual price. Never
-// something coming (that's the email's), never one they've said "Seen it"
-// to, and each once (a price again after a month, as the email).
+// caught up on, one coming within a week, and a To buy volume clearly
+// under its usual price. Never one they've said "Seen it" to, and each
+// once (a price again after a month, as the email).
 import type { Digest, DropItem, ReleaseItem } from "../digest/digestRules.js";
 
 const DAY_MS = 24 * 60 * 60 * 1000;
@@ -77,7 +77,31 @@ function dropAlert(item: DropItem, country: "us" | "ca"): Alert {
   };
 }
 
-// a reader's alerts, from their news less what's been sent before
+// a book due in this many days is worth an alert of its own
+export const SOON_WITHIN_DAYS = 7;
+
+const DAY_WORDS = new Intl.DateTimeFormat("en-US", {
+  weekday: "long",
+  month: "short",
+  day: "numeric",
+  timeZone: "UTC",
+});
+
+function comingAlert(item: ReleaseItem, today: string): Alert {
+  const days = -daysAgo(item.day, today);
+  const when = days === 1 ? "tomorrow" : `in ${days} days`;
+  return {
+    keys: [`push:${item.key}`],
+    title: `${item.series} ${item.book} comes out ${when}`,
+    body: `${DAY_WORDS.format(new Date(`${item.day}T00:00:00Z`))}. Tap to see where to buy it.`,
+    url: `/details/${item.mangaId}`,
+    tag: `soon-${item.mangaId}`,
+  };
+}
+
+// a reader's alerts, from their news less what's been sent before: what's
+// out, what's coming within a week, and a price they're tracking (a volume
+// on their To buy list) clearly down
 export function alertsFrom(
   news: Digest,
   today: string,
@@ -86,8 +110,13 @@ export function alertsFrom(
   const out = news.out.filter(
     (item) => daysAgo(item.day, today) <= OUT_WITHIN_DAYS,
   );
+  const soon = news.soon.filter((item) => {
+    const days = -daysAgo(item.day, today);
+    return days >= 1 && days <= SOON_WITHIN_DAYS;
+  });
   const alerts = [
     ...out.map((item) => releaseAlert(item, today)),
+    ...soon.map((item) => comingAlert(item, today)),
     ...news.drops.map((item) => dropAlert(item, country)),
   ];
   if (alerts.length <= MOST_AT_ONCE) return alerts;
@@ -99,7 +128,7 @@ export function alertsFrom(
     {
       keys: rest.flatMap((alert) => alert.keys),
       title: `${rest.length} more for your shelf`,
-      body: "New volumes and lower prices. Tap to see them.",
+      body: "New and upcoming volumes, and lower prices. Tap to see them.",
       url: "/new-releases",
       tag: "more",
     },

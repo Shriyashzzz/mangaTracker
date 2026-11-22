@@ -50,7 +50,7 @@ test("only the browsers' own push services are ever sent to", () => {
   expect(isPushService("not a url")).toBe(false);
 });
 
-test("a release out today or lately is an alert; an older one, or one coming, isn't", () => {
+test("a release out today or lately is an alert; an older one, or one far off, isn't", () => {
   const alerts = alertsFrom(
     {
       ...empty,
@@ -66,6 +66,7 @@ test("a release out today or lately is an alert; an older one, or one coming, is
         // a week old: the email's, not an alert
         out({ key: "out:9:2", mangaId: 9, day: "2026-11-12" }),
       ],
+      // twelve days off: not yet
       soon: [out({ key: "soon:7:4", kind: "soon", day: "2026-12-01" })],
     },
     today,
@@ -117,4 +118,35 @@ test("what the phone is sent", () => {
     url: "/details/7",
     tag: "out-7",
   });
+});
+
+test("a volume coming within a week is an alert, once it's near", () => {
+  const alerts = alertsFrom(
+    {
+      ...empty,
+      soon: [
+        out({
+          key: "soon:7:4",
+          kind: "soon",
+          book: "Vol. 4",
+          day: "2026-11-24",
+        }),
+        out({ key: "soon:8:10", kind: "soon", mangaId: 8, day: "2026-11-20" }),
+        // a month off: not yet
+        out({ key: "soon:9:3", kind: "soon", mangaId: 9, day: "2026-12-20" }),
+      ],
+    },
+    today,
+  );
+  expect(alerts.map((a) => [a.title, a.body])).toEqual([
+    [
+      "Blue Box Vol. 4 comes out in 5 days",
+      "Tuesday, Nov 24. Tap to see where to buy it.",
+    ],
+    [
+      "Blue Box Vol. 3 comes out tomorrow",
+      "Friday, Nov 20. Tap to see where to buy it.",
+    ],
+  ]);
+  expect(alerts[0]!.keys).toEqual(["push:soon:7:4"]);
 });
