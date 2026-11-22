@@ -211,7 +211,11 @@ function listKey(name: string, searchAs: string | undefined, google: boolean) {
 }
 export async function seriesVolumes(
   name: string,
-  { searchAs, google = false }: { searchAs?: string; google?: boolean } = {},
+  {
+    searchAs,
+    google = false,
+    alsoTitled = [],
+  }: { searchAs?: string; google?: boolean; alsoTitled?: string[] } = {},
 ): Promise<{ volumes: CatalogBook[]; incomplete: boolean }> {
   const key = listKey(name, searchAs, google);
   const freshFor = google ? GOOGLE_VOLUMES_FRESH_MS : SERIES_VOLUMES_FRESH_MS;
@@ -234,7 +238,13 @@ export async function seriesVolumes(
     if (!rebuilding.has(key)) {
       rebuilding.set(
         key,
-        lookUpSeriesVolumes(name, { searchAs, google }, key, hit, freshFor)
+        lookUpSeriesVolumes(
+          name,
+          { searchAs, google, alsoTitled },
+          key,
+          hit,
+          freshFor,
+        )
           .catch((e: Error) =>
             console.error("series volume rebuild failed:", e.message),
           )
@@ -246,7 +256,13 @@ export async function seriesVolumes(
       incomplete: false,
     };
   }
-  return lookUpSeriesVolumes(name, { searchAs, google }, key, hit, freshFor);
+  return lookUpSeriesVolumes(
+    name,
+    { searchAs, google, alsoTitled },
+    key,
+    hit,
+    freshFor,
+  );
 }
 
 // series lists being looked up again in the background, one at a time each
@@ -309,15 +325,39 @@ async function askCatalog(name: string, queries: string[], google: boolean) {
   return { books, anyFailed, untranslated };
 }
 
+// A publisher can put both of a series' names in a title at once: Seven
+// Seas' Chinese novels and comics are "Grandmaster of Demonic Cultivation:
+// Mo Dao Zu Shi (Novel) Vol. 1". Read plainly that's a series called
+// "Grandmaster of Demonic Cultivation: Mo Dao Zu Shi", which nobody's shelf
+// has, so its books were all left out. These are the names such a title
+// would give: the English name, a colon, and another of its names (the
+// romanised one first). A novel's are the novel's
+export function joinedNamesOf(name: string, info: SeriesInfo | null) {
+  if (!info) return [];
+  const english = [baseName(name), baseName(info.name ?? "")].filter(Boolean);
+  const others = info.altNames.slice(0, 3).map(baseName).filter(Boolean);
+  const joined = english.flatMap((first) =>
+    others
+      .filter((other) => seriesOf(other) !== seriesOf(first))
+      .map((other) => `${first}: ${other}`),
+  );
+  return [...new Set(joined)].map((title) =>
+    isNovelName(name) ? novelName(title) : title,
+  );
+}
+
 // the books that are single volumes of this series, one for each number
-function volumesOfSeries(
+export function volumesOfSeries(
   found: CatalogBook[],
   name: string,
   // the manga's series has a light novel too
   hasNovel: boolean,
+  // other names a book of this series can carry in its title (joinedNamesOf)
+  alsoTitled: string[] = [],
 ) {
   const isNovel = isNovelName(name);
   const series = seriesOf(name);
+  const alsoSeries = new Set(alsoTitled.map(seriesOf));
   const baseSeries = seriesOf(baseName(name));
 
   const byNumber = new Map<number | null, CatalogBook>();
@@ -333,6 +373,9 @@ function volumesOfSeries(
     if (isNovel && isUnmarkedNovel)
       v = { ...v, title: `${name}, Vol. ${v.volume}` };
     if (!isNovel && hasNovel && isUnmarkedNovel) continue;
+    // titled by both its names at once: this series' book, under its name
+    if (v.volume !== null && alsoSeries.has(seriesOf(v.title)))
+      v = { ...v, title: `${name}, Vol. ${v.volume}` };
 
     if (seriesOf(v.title) !== series || v.volume === null) continue;
     // "Kaiju No. 8" alone is the series, not its eighth volume
@@ -355,7 +398,11 @@ function volumesOfSeries(
 // incomplete
 async function lookUpSeriesVolumes(
   name: string,
-  { searchAs, google = false }: { searchAs?: string; google?: boolean },
+  {
+    searchAs,
+    google = false,
+    alsoTitled = [],
+  }: { searchAs?: string; google?: boolean; alsoTitled?: string[] },
   key: string,
   saved: SavedList | null,
   freshFor: number,
@@ -366,13 +413,18 @@ async function lookUpSeriesVolumes(
     // a manga whose series has a novel too: its long books are the novel's
     isNovel ? Promise.resolve(true) : hasLightNovel(name),
   ]);
-  // lists saved before the omnibus rule lose theirs too
-  const savedVolumes = (saved?.volumes ?? []).filter(
-    (v) => isNovel || !isOmnibus(v),
+  // lists saved before the omnibus rule lose theirs too. And a novel's list
+  // loses any book the catalog now says is a comic: saved from before
+  // "(The Comic / Manhua)" was read as one (catalog.ts saysComic)
+  const comics = new Set(
+    answer.books.filter((b) => b.comic).map((b) => b.isbn13),
+  );
+  const savedVolumes = (saved?.volumes ?? []).filter((v) =>
+    isNovel ? !comics.has(v.isbn13) : !isOmnibus(v),
   );
   const volumes = mergeVolumes(
     savedVolumes,
-    volumesOfSeries(answer.books, name, hasNovel),
+    volumesOfSeries(answer.books, name, hasNovel, alsoTitled),
   );
 
   const catalogHadTrouble = answer.anyFailed || answer.untranslated;
@@ -518,6 +570,39 @@ function saveFinalList(name: string, volumes: CatalogBook[]) {
     .catch(() => finalSaved.delete(key));
 }
 
+// A novel AniList doesn't list (most Chinese and Korean ones) still goes by
+// its comic's names: "Grandmaster of Demonic Cultivation Light Novel" is
+// sold as "Grandmaster of Demonic Cultivation: Mo Dao Zu Shi (Novel)", the
+// comic's full name. So its comic's names, as a novel's, are where its
+// volumes are looked for. Only for finding volumes: the page shows no
+// AniList details that are really the comic's. The comic has to be this
+// series by name (its name, another of its names, or its name, a colon and
+// more), never AniList's loose first guess
+export function novelNamesFromComic(
+  name: string,
+  comic: SeriesInfo | null,
+): SeriesInfo | null {
+  if (!comic || !isNovelName(name)) return null;
+  const base = baseName(name);
+  // "its name and more" only after a colon: "Blue" is not "Blue Lock"
+  const withMore = `${base.toLowerCase()}:`;
+  const isIt = [comic.name, ...comic.altNames].some(
+    (n) =>
+      seriesOf(n) === seriesOf(base) || n.toLowerCase().startsWith(withMore),
+  );
+  if (!isIt) return null;
+  return {
+    ...comic,
+    name: novelName(comic.name),
+    altNames: comic.altNames.map(novelName),
+  };
+}
+async function namesToSearch(name: string, info: SeriesInfo | null) {
+  if (info || !isNovelName(name)) return info;
+  const comic = await getSeriesInfo(baseName(name)).catch(() => null);
+  return novelNamesFromComic(name, comic);
+}
+
 type VolumeList = Awaited<ReturnType<typeof seriesVolumes>>;
 type NumberedBook = CatalogBook & { volume: number };
 
@@ -527,7 +612,8 @@ async function askEveryCatalog(name: string) {
   const infoLookup = getSeriesInfo(name);
   // the other names only need AniList's answer, so they're searched while
   // the main name's catalog search is still running
-  const otherNamesLookup = infoLookup.then((info) => {
+  const namesLookup = infoLookup.then((info) => namesToSearch(name, info));
+  const otherNamesLookup = namesLookup.then((info) => {
     const lookups = otherNamesFor(name, info).map((other) =>
       seriesVolumes(other),
     );
@@ -543,8 +629,13 @@ async function askEveryCatalog(name: string) {
   });
   // Google Books, once, under AniList's official English name (it knows
   // Frieren by its full one): new and upcoming volumes Open Library lacks
-  const googleLookup = infoLookup.then((info) =>
-    seriesVolumes(info?.name || name, { google: true }),
+  // (and with the names a title carrying two of them would give: Google
+  // is where Seven Seas' Chinese novels are, titled that way)
+  const googleLookup = namesLookup.then((info) =>
+    seriesVolumes(info?.name || name, {
+      google: true,
+      alsoTitled: joinedNamesOf(info?.name || name, info),
+    }),
   );
   const [info, main, underOtherNames, fromGoogle] = await Promise.all([
     infoLookup,

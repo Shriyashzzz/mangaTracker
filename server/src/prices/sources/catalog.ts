@@ -135,9 +135,13 @@ export const isNovelEdition = (
 // a subject like "series:나 혼자만 레벨업 (comic)". A manhwa in full colour runs
 // 300+ pages, as long as a novel, so length never makes one of these a novel
 const COMIC_SUBJECT = /\(\s*(comic|manga|manhwa|manhua)\s*\)\s*$/i;
-const saysComic = (title: string, subjects: string[] = []) =>
+// Or says so among other words in its brackets: Seven Seas' Chinese comics
+// are "(The Comic / Manhua)" and "(The Comic)". Missed, their volumes of
+// 230 pages and up were taken for the novel's
+const COMIC_IN_BRACKETS = /\([^)]*\b(comic|manga|manhwa|manhua)\b[^)]*\)/i;
+export const saysComic = (title: string, subjects: string[] = []) =>
   new RegExp(FORMAT_TAG.source, "i").test(title) ||
-  /\(\s*(manhwa|manhua)\s*\)/i.test(title) ||
+  COMIC_IN_BRACKETS.test(title) ||
   subjects.some((s) => COMIC_SUBJECT.test(s.trim()));
 
 // Open Library mostly writes the number before the volume's own subtitle:
