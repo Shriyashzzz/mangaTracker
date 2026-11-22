@@ -27,6 +27,8 @@ type Item = {
     language?: string;
     industryIdentifiers?: { type: string; identifier: string }[];
   };
+  // whether this record is the digital edition, sold to read on a screen
+  saleInfo?: { isEbook?: boolean };
 };
 
 // "Frieren: Beyond Journey's End" -> "intitle:Frieren intitle:Beyond …"
@@ -299,6 +301,9 @@ export async function googleVolume(
   name: string,
   volume: number,
   timeoutMs = 8000,
+  // editions to pass over (a rebind, another publisher's copy): the next
+  // answer is tried in place of one
+  passOver: (isbn13: string) => boolean = () => false,
 ): Promise<CatalogBook | null> {
   const key = config.GOOGLE_BOOKS_API_KEY;
   if (!key) return null;
@@ -318,12 +323,15 @@ export async function googleVolume(
   if (res.status === 429) backOffUntil = Date.now() + BACK_OFF_MS;
   if (!res.ok) throw new Error(`Google Books responded ${res.status}`);
   const { items = [] } = (await res.json()) as { items?: Item[] };
-  for (const { volumeInfo: info } of items) {
+  for (const { volumeInfo: info, saleInfo } of items) {
     const isbn13 = info?.industryIdentifiers?.find(
       (i) => i.type === "ISBN_13",
     )?.identifier;
     if (!info?.title || !isbn13 || (info.language && info.language !== "en"))
       continue;
+    // never the digital edition: its ISBN isn't the printed book's, so no
+    // store's shelf price is found under it
+    if (saleInfo?.isEbook) continue;
     const book = await bookFromListing({
       isbn13,
       title: titleOf(info),
@@ -333,7 +341,7 @@ export async function googleVolume(
       pages: info.pageCount ?? null,
       published: info.publishedDate ?? null,
     });
-    if (book?.volume === volume) return book;
+    if (book?.volume === volume && !passOver(book.isbn13)) return book;
   }
   return null;
 }

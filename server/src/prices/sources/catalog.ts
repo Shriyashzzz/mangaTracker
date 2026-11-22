@@ -17,8 +17,10 @@ import { baseName, isNovelName, novelName } from "../lightNovel.js";
 import type { CatalogBook } from "../types.js";
 
 const SEARCH_URL = "https://openlibrary.org/search.json";
+// (editions: the one edition of the work the search matched, with its own
+// ISBNs and format, for telling the printed book from the eBook)
 const FIELDS =
-  "key,title,isbn,cover_i,author_name,publisher,first_publish_year,subject,number_of_pages_median";
+  "key,title,isbn,cover_i,author_name,publisher,first_publish_year,subject,number_of_pages_median,editions,editions.isbn,editions.format";
 const TIMEOUT_MS = 8000;
 
 // the author names in English letters: a Japanese work lists both
@@ -46,6 +48,8 @@ type Doc = {
   first_publish_year?: number;
   subject?: string[];
   number_of_pages_median?: number;
+  // the edition the search matched: its ISBNs, and "Paperback" or "eBook"
+  editions?: { docs?: { isbn?: string[]; format?: string[] }[] };
 };
 
 // a converted title, or null; `degraded` = couldn't be translated right now
@@ -54,6 +58,32 @@ type TitleResult = { title: string | null; degraded?: boolean };
 // Open Library lists every language edition of a work together. US English
 // editions use the 978-0, 978-1 and 979-8 ISBN ranges, so we keep those
 const ENGLISH_ISBN = /^(9780|9781|9798)\d{9}$/;
+
+// The ISBN a work is listed under. A work's own list mixes every edition's,
+// the eBook's among them, and its first English one was often the eBook's
+// (Hunter x Hunter 13 and 27), which no store prices. So the edition the
+// search matched is asked first: its ISBN when it's a printed book, and the
+// work's first English one only when that says nothing
+const SAYS_EBOOK = /e-?book/i;
+// the edition the search matched, when it's the eBook: its ISBNs
+const ebookIsbnsOf = (doc: Doc) => {
+  const matched = doc.editions?.docs?.[0];
+  return (matched?.format ?? []).some((f) => SAYS_EBOOK.test(f))
+    ? new Set(matched?.isbn ?? [])
+    : null;
+};
+export function isbnToListUnder(doc: Doc) {
+  const english = (doc.isbn ?? []).filter((i) => ENGLISH_ISBN.test(i));
+  const ebook = ebookIsbnsOf(doc);
+  // the matched edition is the eBook: another English ISBN of the work is
+  // the book's (the eBook's own only when the work has no other)
+  if (ebook) return english.find((i) => !ebook.has(i)) ?? english[0];
+  const matched = doc.editions?.docs?.[0];
+  return (matched?.isbn ?? []).find((i) => ENGLISH_ISBN.test(i)) ?? english[0];
+}
+// whether the ISBN a work was listed under is its eBook's after all
+export const listedAsEbook = (doc: Doc, isbn13: string | undefined) =>
+  Boolean(isbn13 && ebookIsbnsOf(doc)?.has(isbn13));
 
 export const isIsbn13 = (value: string) => /^97[89]\d{10}$/.test(value);
 
@@ -582,6 +612,7 @@ function volumeFromEdition(
     coverUrl: coverPath(isbn13),
     pages: edition.number_of_pages ?? null,
     ...(saysComic(tagged, doc.subject) ? { comic: true } : {}),
+    ...(/e-?book/i.test(edition.physical_format ?? "") ? { ebook: true } : {}),
   };
 }
 
@@ -596,10 +627,23 @@ export function booksFromEditions(
     !isNovelName(seriesName) && doc.title ? volumeRange(doc.title) : null;
   if (range) return volumesOfOneBook(editions, doc, seriesName, range);
 
+  // The printed book of each volume, and its digital edition only when
+  // there's no printed one here: a work's editions list both, and the
+  // eBook's ISBN isn't the one any store prices (Hunter x Hunter 13 and 27
+  // were listed under theirs)
+  const isEbook = (edition: Edition) =>
+    /e-?book/i.test(edition.physical_format ?? "");
   const books: CatalogBook[] = [];
-  for (const edition of editions) {
+  const printed = new Set<number | null>();
+  for (const edition of editions.filter((e) => !isEbook(e))) {
     const book = volumeFromEdition(edition, doc, seriesName);
-    if (book) books.push(book);
+    if (!book) continue;
+    books.push(book);
+    printed.add(book.volume);
+  }
+  for (const edition of editions.filter(isEbook)) {
+    const book = volumeFromEdition(edition, doc, seriesName);
+    if (book && !printed.has(book.volume)) books.push(book);
   }
   return books;
 }
@@ -648,9 +692,12 @@ export async function searchVolumesDetailed(
 
   const candidates = await Promise.all(
     docs.map((doc) =>
-      toBook(
-        doc,
-        (doc.isbn ?? []).find((i) => ENGLISH_ISBN.test(i)),
+      toBook(doc, isbnToListUnder(doc)).then((made) =>
+        // only its eBook to go on: marked, so a printed copy found any
+        // other way takes its place
+        made.book && listedAsEbook(doc, made.book.isbn13)
+          ? { ...made, book: { ...made.book, ebook: true as const } }
+          : made,
       ),
     ),
   );

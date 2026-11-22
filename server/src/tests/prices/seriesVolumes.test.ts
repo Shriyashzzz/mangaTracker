@@ -2,11 +2,13 @@ import {
   isSequelName,
   joinedNamesOf,
   novelNamesFromComic,
+  publisherCheck,
   volumesOfSeries,
 } from "../../prices/seriesService.js";
 import { pool } from "../../config/prisma.js";
 import { mergeVolumes, needsGoogleShopping } from "../../prices/service.js";
-import { saysComic } from "../../prices/sources/catalog.js";
+import { isbnToListUnder, saysComic } from "../../prices/sources/catalog.js";
+import { seriesOf } from "../../prices/stores/match.js";
 import type { CatalogBook, SeriesInfo } from "../../prices/types.js";
 
 afterAll(() => pool.end());
@@ -184,4 +186,112 @@ test("a novel AniList doesn't list is looked for under its comic's names", () =>
   // nor for a manga, or with no comic known
   expect(novelNamesFromComic(MDZS, comic)).toBeNull();
   expect(novelNamesFromComic(`${MDZS} Light Novel`, null)).toBeNull();
+});
+
+// ---------- the odd one out by publisher ----------
+// a volume under a publisher's ISBN start: 978 1 4215 is VIZ's
+const under = (start: string, volume: number) => ({
+  volume,
+  isbn13: `${start}${String(100000 + volume).slice(1)}0`,
+});
+const viz = (volume: number) => under("9781421", volume);
+
+test("a volume whose ISBN starts like no other is another publisher's", () => {
+  // Hunter x Hunter as the catalogs had it: 13 a print-on-demand copy, 14 a
+  // library rebind, 27 another book altogether
+  const volumes = Array.from({ length: 30 }, (_, i) => viz(i + 1));
+  volumes[12] = under("9798897", 13);
+  volumes[13] = under("9781435", 14);
+  volumes[26] = under("9780451", 27);
+  const check = publisherCheck(volumes);
+  expect([...check.odd].sort()).toEqual(
+    [volumes[12]!, volumes[13]!, volumes[26]!].map((v) => v.isbn13).sort(),
+  );
+  // only the publisher's own edition may take an odd one's place
+  expect(check.fits(viz(27).isbn13)).toBe(true);
+  expect(check.fits(under("9780451", 27).isbn13)).toBe(false);
+});
+
+test("a publisher's change of ISBNs is never taken for an odd one out", () => {
+  // the newest volume alone under a new start: the first of the new run
+  const newRun = [
+    ...Array.from({ length: 12 }, (_, i) => viz(i + 1)),
+    under("9781974", 13),
+  ];
+  expect(publisherCheck(newRun).odd.size).toBe(0);
+  // two starts, each with volumes of its own
+  const both = Array.from({ length: 20 }, (_, i) =>
+    i < 10 ? viz(i + 1) : under("9781974", i + 1),
+  );
+  expect(publisherCheck(both).odd.size).toBe(0);
+});
+
+test("with no clear publisher, nothing is called odd and anything fits", () => {
+  // a short series
+  const short = [viz(1), viz(2), under("9780451", 3)];
+  expect(publisherCheck(short).odd.size).toBe(0);
+  expect(publisherCheck(short).fits("9780451000000")).toBe(true);
+  // a long one that's all over the place
+  const starts = ["9781421", "9781974", "9780451", "9781435", "9780316"];
+  const mixed = Array.from({ length: 10 }, (_, i) =>
+    under(starts[i % 5]!, i + 1),
+  );
+  expect(publisherCheck(mixed).odd.size).toBe(0);
+});
+
+test("a multiplication sign in a title is the letter x", () => {
+  // Open Library's spelling of the publisher's own volumes
+  for (const title of [
+    "Hunter × Hunter, Volume 27",
+    "HUNTER×HUNTER, Vol. 27",
+    "Hunter x Hunter, Vol. 27",
+  ])
+    expect(seriesOf(title)).toBe("hunter x hunter");
+  expect(seriesOf("SPY×FAMILY, Vol. 3")).toBe(seriesOf("Spy x Family, Vol. 3"));
+});
+
+test("the printed book of a volume is listed, never its digital edition", () => {
+  const print = { ...book(13, "9781421510699") };
+  const digital = { ...book(13, "9781421554129"), ebook: true as const };
+  // found together, in either order
+  expect(mergeVolumes([], [digital, print]).map((v) => v.isbn13)).toEqual([
+    print.isbn13,
+  ]);
+  expect(mergeVolumes([], [print, digital]).map((v) => v.isbn13)).toEqual([
+    print.isbn13,
+  ]);
+  // a digital one saved before gives way; a printed one saved never does
+  expect(mergeVolumes([digital], [print])[0]!.isbn13).toBe(print.isbn13);
+  expect(mergeVolumes([print], [digital])[0]!.isbn13).toBe(print.isbn13);
+  // with no printed book found, the digital one still fills the place
+  expect(mergeVolumes([], [digital])[0]!.isbn13).toBe(digital.isbn13);
+});
+
+test("a work is listed under its printed book's ISBN, not its eBook's", () => {
+  // the work's own list, eBook first, as Open Library sent Hunter x Hunter 13
+  const isbn = ["8577871509", "9781421554129", "9781421510699"];
+  const paperback = {
+    isbn: ["9781421510699", "1421510693"],
+    format: ["Paperback"],
+  };
+  expect(isbnToListUnder({ isbn, editions: { docs: [paperback] } })).toBe(
+    "9781421510699",
+  );
+  // the matched edition is the eBook: the work's other English ISBN, the
+  // book's (Hunter x Hunter 27)
+  const ebook = { isbn: ["9781421554129"], format: ["eBook"] };
+  expect(isbnToListUnder({ isbn, editions: { docs: [ebook] } })).toBe(
+    "9781421510699",
+  );
+  // the eBook's own only when the work has no other
+  expect(
+    isbnToListUnder({ isbn: ["9781421554129"], editions: { docs: [ebook] } }),
+  ).toBe("9781421554129");
+  // no matched edition: the work's first English ISBN, as before
+  expect(isbnToListUnder({ isbn })).toBe("9781421554129");
+  // an edition in another language says nothing either
+  const brazil = { isbn: ["9788577871506"], format: ["Paperback"] };
+  expect(isbnToListUnder({ isbn, editions: { docs: [brazil] } })).toBe(
+    "9781421554129",
+  );
 });

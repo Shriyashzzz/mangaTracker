@@ -41,6 +41,18 @@ export const hasNoCover = (
   row: { coverId: number | null; fallbackUrl: string | null } | undefined,
 ) => Boolean(row) && row!.coverId === null && !row!.fallbackUrl;
 
+// of these editions, the ones looked for and found to have no cover at
+// all (neither Open Library's nor a fallback). One never looked for isn't
+// in it: nothing is known of it yet
+export async function coverlessOf(isbns: string[]) {
+  if (!isbns.length) return new Set<string>();
+  const rows = await prisma.editionCover.findMany({
+    where: { isbn13: { in: isbns } },
+    select: { isbn13: true, coverId: true, fallbackUrl: true },
+  });
+  return new Set(rows.filter(hasNoCover).map((row) => row.isbn13.trim()));
+}
+
 export async function saveCoverIds(found: [string, number | null][]) {
   const checkedAt = new Date();
   await prisma.$transaction(

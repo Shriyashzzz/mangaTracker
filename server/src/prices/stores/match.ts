@@ -8,9 +8,14 @@ import {
 } from "../../util/shelf/editionNames.js";
 
 // accents and apostrophes go first, so "Café" is "cafe" and "Cat's" is
-// "cats", however a listing writes them
+// "cats", however a listing writes them. And a multiplication sign is the
+// letter x: Open Library files "Hunter × Hunter" and "SPY×FAMILY" that way,
+// and dropped as punctuation they read "hunter hunter", which matched no
+// series, so the publisher's own volumes were passed over for whatever
+// else carried the number (a set, a library rebind, another book)
 export const normalize = (s: string) =>
   s
+    .replace(/×/g, " x ")
     .normalize("NFKD")
     .replace(/[\u0300-\u036f]/g, "")
     .replace(/['’‘`]/g, "")

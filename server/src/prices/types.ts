@@ -50,6 +50,9 @@ export type CatalogBook = {
   pages?: number | null;
   // the record says it's a comic ("(comic)", "(manga)"): never a novel
   comic?: boolean;
+  // the catalog files this ISBN as the digital edition (an eBook): the
+  // printed book of the same volume is always listed in its place
+  ebook?: true;
   // this volume comes inside a book holding several ("Vinland Saga, Book 9"
   // is vols 17 and 18): every volume it holds is listed with the book's ISBN
   inBook?: { book: number; from: number; to: number };

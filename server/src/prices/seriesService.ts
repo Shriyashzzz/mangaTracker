@@ -1,6 +1,7 @@
 // A series' list of volumes: asked of the catalogs, merged into one list,
 // saved, and read back for the series page. Part of the price service
 // (service.ts lists the parts).
+import { coverlessOf } from "../models/coversAndSitemap.js";
 import {
   editionIsbnsOf,
   editionsOwn,
@@ -74,6 +75,8 @@ export const mergeVolumes = (known: CatalogBook[], found: CatalogBook[]) => {
     // nor the publisher's edition for a library rebind
     if (v.inBook && had && !had.inBook) continue;
     if (had && isRebind(v.isbn13) && !isRebind(had.isbn13)) continue;
+    // nor the printed book for its digital edition
+    if (had && v.ebook && !had.ebook) continue;
     // a release date already known isn't lost to an answer without one
     byNumber.set(
       v.volume,
@@ -99,11 +102,64 @@ export const mergeVolumes = (known: CatalogBook[], found: CatalogBook[]) => {
 // a volume to look up again (gapVolumes)
 const REBIND = /^(9781417|9780606|9780613|9780575)/;
 export const isRebind = (isbn13: string) => REBIND.test(isbn13.trim());
+// A series' volumes nearly all come from one publisher, so nearly all their
+// ISBNs start alike (Hunter x Hunter's: 978-1-4215 and 978-1-5911, VIZ's).
+// One whose ISBN starts like no other volume's is most likely not the
+// publisher's book at all: a print-on-demand copy, a library rebind whose
+// prefix isn't in REBIND, or a different book a catalog filed under the
+// series' name (Hunter x Hunter 13, 14 and 27 were those three, with no
+// cover and, for 27, no price). Such a volume is treated as a rebind is:
+// another edition of it is preferred, and it's looked up again.
+//
+// Only said when the series clearly has a publisher: eight volumes or more,
+// four in five of them under prefixes that at least three volumes share.
+// The newest volume is never odd: a publisher's new prefix starts there.
+// A volume wrongly called odd costs a lookup and keeps its place; nothing
+// is dropped on this rule alone
+const ODD_FROM_VOLUMES = 8;
+const HOUSE_FROM_VOLUMES = 3;
+const HOUSE_SHARE = 0.8;
+// the start of an ISBN, as far as tells publishers apart: 978 and four more
+const startOf = (isbn13: string) => isbn13.trim().slice(0, 7);
+export function publisherCheck(
+  volumes: Pick<CatalogBook, "isbn13" | "volume">[],
+) {
+  const counts = new Map<string, number>();
+  for (const v of volumes)
+    counts.set(startOf(v.isbn13), (counts.get(startOf(v.isbn13)) ?? 0) + 1);
+  const house = new Set(
+    [...counts].filter(([, n]) => n >= HOUSE_FROM_VOLUMES).map(([p]) => p),
+  );
+  const inHouse = volumes.filter((v) => house.has(startOf(v.isbn13))).length;
+  const clear =
+    volumes.length >= ODD_FROM_VOLUMES &&
+    inHouse / volumes.length >= HOUSE_SHARE;
+  const newest = Math.max(...volumes.map((v) => v.volume ?? 0));
+  const odd = new Set(
+    clear
+      ? volumes
+          .filter(
+            (v) => counts.get(startOf(v.isbn13)) === 1 && v.volume !== newest,
+          )
+          .map((v) => v.isbn13.trim())
+      : [],
+  );
+  return {
+    // the volumes that look like another publisher's
+    odd,
+    // whether an edition is one of the series' publisher's (always, for a
+    // series with no clear publisher)
+    fits: (isbn13: string) => !clear || house.has(startOf(isbn13)),
+  };
+}
+
 // the edition a volume should be listed under: a lone volume over a book
-// holding it, the publisher's over a rebind
+// holding it, the publisher's over a rebind, the printed over the digital
 const betterEdition = (had: CatalogBook, v: CatalogBook) =>
   (had.inBook && !v.inBook) ||
-  (isRebind(had.isbn13) && !isRebind(v.isbn13) && !v.inBook);
+  (isRebind(had.isbn13) && !isRebind(v.isbn13) && !v.inBook) ||
+  // the printed book over the digital edition of the same volume
+  (Boolean(had.ebook) && !v.ebook && !v.inBook && !isRebind(v.isbn13));
 
 // the ISBNs of books holding several volumes ("Vinland Saga, Book 6")
 const bookIsbns = (volumes: CatalogBook[]) =>
@@ -501,6 +557,8 @@ const gapDay = () => new Date().toISOString().slice(0, 10);
 async function gapVolumes(
   name: string,
   byNumber: Map<number | null, CatalogBook>,
+  // the series' publisher, as its volumes show it (publisherCheck)
+  publisher: ReturnType<typeof publisherCheck>,
 ): Promise<CatalogBook[]> {
   const key = `${volumesKey(name)}:gaps`;
   const saved = await priceQueries.getSeriesVolumes(key).catch(() => null);
@@ -515,7 +573,13 @@ async function gapVolumes(
   const gaps: number[] = [];
   for (let n = 1; n <= highest; n++) {
     const was = byNumber.get(n);
-    if ((!was || isRebind(was.isbn13)) && !known.has(n)) gaps.push(n);
+    // a rebind, a digital edition, or another publisher's by the look of it
+    const isSuspect =
+      was &&
+      (isRebind(was.isbn13) ||
+        Boolean(was.ebook) ||
+        publisher.odd.has(was.isbn13.trim()));
+    if ((!was || isSuspect) && !known.has(n)) gaps.push(n);
   }
   if (!gaps.length) return had;
   // a few a day, in turn, so a long series with many gaps (Detective Conan)
@@ -534,7 +598,13 @@ async function gapVolumes(
       .catch(() => false);
     // the day's share used: what was found so far, asked again another day
     if (!allowed) break;
-    const book = await googleVolume(name, n).catch(() => null);
+    // never a rebind, nor a copy from another publisher than the series'
+    const book = await googleVolume(
+      name,
+      n,
+      undefined,
+      (isbn13) => isRebind(isbn13) || !publisher.fits(isbn13),
+    ).catch(() => null);
     if (book && !isRebind(book.isbn13) && !isOmnibus(book))
       found.push({ ...book, title: `${name}, Vol. ${n}` });
   }
@@ -681,14 +751,39 @@ async function mergeIntoOneList(
       if (isOneVolume(v)) addVolume(byNumber, v, books, datedElsewhere);
   }
 
-  // still a gap, or only a library rebind: those volumes asked for one by one
-  // (saved a week, a few a series, under a daily cap)
+  // A volume that looks like another publisher's (publisherCheck): any
+  // catalog's edition of it that is the series' publisher's takes its place
+  // Only the odd ones that also have no cover: that's what a wrong edition
+  // looks like on the page, and it leaves alone a real volume that just
+  // has an older ISBN (a publisher's first volumes often do)
+  const check = publisherCheck([...byNumber.values()]);
+  const coverless = await coverlessOf([...check.odd]).catch(
+    () => new Set<string>(),
+  );
+  const publisher = {
+    ...check,
+    odd: new Set([...check.odd].filter((isbn13) => coverless.has(isbn13))),
+  };
+  const takeTheirs = (v: CatalogBook) => {
+    const had = byNumber.get(v.volume);
+    if (!had || !publisher.odd.has(had.isbn13.trim())) return;
+    if (publisher.odd.has(v.isbn13.trim()) || !publisher.fits(v.isbn13)) return;
+    if (isRebind(v.isbn13) || v.inBook || !isOneVolume(v)) return;
+    byNumber.set(v.volume, v);
+  };
+  everyVolume.forEach(takeTheirs);
+
+  // still a gap, only a library rebind, or still an odd one out: those
+  // volumes asked for one by one (saved a week, a few a series, under a
+  // daily cap)
   if (!books.size) {
-    const found = await gapVolumes(info?.name || name, byNumber);
+    const found = await gapVolumes(info?.name || name, byNumber, publisher);
     // never an edition's book, nor a reissue dated after the later volumes
     for (const v of found)
-      if (isOneVolume(v) && !reissueOfOldVolume(v, byNumber))
+      if (isOneVolume(v) && !reissueOfOldVolume(v, byNumber)) {
         addVolume(byNumber, v, books, datedElsewhere);
+        takeTheirs(v);
+      }
   }
   adoptUpcomingDates(byNumber, datedElsewhere);
 
