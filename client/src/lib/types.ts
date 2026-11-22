@@ -289,6 +289,9 @@ export type SeriesInfo = {
   status: string | null;
   volumes: number | null;
   altNames: string[];
+  // the country it's from, as AniList has it ("JP", "KR", "CN", "TW");
+  // missing when the server hasn't been told yet
+  origin?: string | null;
 };
 
 export type SeriesHit = {

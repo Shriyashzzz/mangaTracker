@@ -253,3 +253,25 @@ export const novelParts = (title: string) => ({
   title: title.replace(NOVEL, ""),
   lightNovel: NOVEL.test(title),
 });
+
+// ---------- where a series is from ----------
+// What a comic is called where it's from, for a series' page: a Korean one
+// is a manhwa, a Chinese or Taiwanese one a manhua. Null for Japan's (a
+// manga, which nothing needs to say) and when the country isn't known
+export const comicKind = (origin: string | null | undefined) =>
+  origin === "KR"
+    ? "Manhwa"
+    : origin === "CN" || origin === "TW"
+      ? "Manhua"
+      : null;
+
+// "12 volumes in Korea": the country its own volumes are counted in. Japan
+// when it isn't known, as most of the catalog is
+const PLACES: Record<string, string> = {
+  JP: "Japan",
+  KR: "Korea",
+  CN: "China",
+  TW: "Taiwan",
+};
+export const originPlace = (origin: string | null | undefined) =>
+  PLACES[origin ?? ""] ?? "Japan";

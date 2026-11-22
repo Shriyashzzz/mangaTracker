@@ -42,6 +42,8 @@ type Media = {
   synonyms: string[] | null;
   // how many AniList readers list it
   popularity?: number | null;
+  // where it's from: "JP", "KR", "CN", "TW"
+  countryOfOrigin?: string | null;
   title: {
     english: string | null;
     romaji: string | null;
@@ -264,6 +266,7 @@ const SERIES_QUERY = `
     Page(perPage: 5) {
       media(search: $search, type: MANGA, format_in: $formats, sort: SEARCH_MATCH) {
         id siteUrl status volumes averageScore genres synonyms popularity
+        countryOfOrigin
         relations { edges { relationType node { type status episodes } } }
         title { english romaji native }
         coverImage { large }
@@ -379,6 +382,10 @@ const toInfo = (m: Media): SeriesInfo => ({
   // saved with the rest; rows from before it was asked for get it on a later
   // visit, a few a minute (see mayAskForNative)
   nativeName: m.title.native ?? null,
+  // where it's from, for calling a Korean comic a manhwa and a Chinese one
+  // a manhua. Always set (null when AniList doesn't say), so a row without
+  // it is one saved before it was asked for, and is asked for again
+  origin: m.countryOfOrigin ?? null,
   // the same, for rows saved before authors were asked for
   authors: creatorsOf(m),
   // and the same again, for its anime
@@ -446,6 +453,8 @@ export const lacksAuthors = (info: unknown) =>
   info != null && !("authors" in (info as object));
 export const lacksAnime = (info: unknown) =>
   info != null && !("anime" in (info as object));
+export const lacksOrigin = (info: unknown) =>
+  info != null && !("origin" in (info as object));
 const mayAskForNative = () => {
   const minute = Math.floor(Date.now() / 60_000);
   if (nativeAsks.minute !== minute) nativeAsks = { minute, count: 0 };
@@ -463,7 +472,8 @@ type SavedInfo = { info: unknown; fetchedAt: Date } | null;
 // whether a saved answer can be used as it is. Not when it's old or
 // incomplete, nor when it's a novel's row saved before novels were looked up
 // as novels (it holds the manga's answer). A row missing its Japanese name,
-// its authors or its anime is asked for again too, a few a minute
+// its authors, its anime or its country is asked for again too, a few a
+// minute
 // (mayAskForNative)
 function savedAnswerStands(saved: SavedInfo, name: string) {
   if (!saved) return false;
@@ -477,7 +487,8 @@ function savedAnswerStands(saved: SavedInfo, name: string) {
   const lacksSomething =
     lacksNativeName(saved.info) ||
     lacksAuthors(saved.info) ||
-    lacksAnime(saved.info);
+    lacksAnime(saved.info) ||
+    lacksOrigin(saved.info);
   // only counted against the minute's allowance when it would be used
   if (lacksSomething && mayAskForNative()) return false;
   return true;
