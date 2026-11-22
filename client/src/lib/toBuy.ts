@@ -20,6 +20,10 @@ export type ToBuyItem = {
   // its release date while it isn't out yet (a preorder); null once it's out
   outOn: string | null;
   addedAt: string;
+  // their own note on it, and its place in their own order; null until
+  // they've set one (the app's To buy page; the website doesn't set them)
+  note?: string | null;
+  position?: number | null;
   // the series' volumes it certainly holds; null when that isn't certain (an
   // edition's book whose title doesn't say, a box set). Never a guess
   volumes: number[] | null;
@@ -118,6 +122,34 @@ export const removeToBuy = (isbn13: string) => change("DELETE", isbn13);
 // ---------- the order the list is shown in ----------
 
 // the ways to order the list; the first is the one with no ?sort= in the URL
+// their note on one item; empty takes it off
+export async function saveToBuyNote(isbn13: string, note: string) {
+  const res = await apiFetch(`/api/to-buy/${isbn13}`, {
+    method: "PATCH",
+    body: { note },
+  });
+  if (!res.ok) throw new Error("That didn't save. Try again.");
+}
+
+// their own order for the list, first to last
+export async function saveToBuyOrder(isbns: string[]) {
+  const res = await apiFetch("/api/to-buy/order", {
+    method: "PUT",
+    body: { isbns },
+  });
+  if (!res.ok) throw new Error("That didn't save. Try again.");
+}
+
+// the list in their own order: the ones they've placed first, as placed,
+// then the rest as the server sends them (newest added first)
+export function inOwnOrder(items: ToBuyItem[]) {
+  return [...items].sort(
+    (a, b) =>
+      Number(a.position == null) - Number(b.position == null) ||
+      (a.position ?? 0) - (b.position ?? 0),
+  );
+}
+
 export const TO_BUY_SORTS = [
   { value: "added", label: "Newest added" },
   { value: "series", label: "Series, A to Z" },
