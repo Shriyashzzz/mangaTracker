@@ -74,22 +74,21 @@ export function volumesToGet(found: ReleaseStatus) {
   return list;
 }
 
-// Is it news: the one thing out is the newest, so they're caught up but
-// for it. (The tab's "Next for you" pile.) Anything further back is a
-// backlog: listed on the tab, not counted on its badge
-const isNews = (found: ReleaseStatus | null | undefined) =>
-  Boolean(
-    (found?.hasNewVolume && behindPastTheirs(found, "volumes") === 1) ||
-    (found?.hasNewChapter && behindPastTheirs(found, "chapters") === 1),
-  );
-
-// The number on New's red badge: the series with news, for any they've
-// started. Not the length of the tab's list, which has the backlog too (a
-// big shelf's badge read 71)
+// The number New shows, on its badge and beside its heading: the series the
+// tab lists, for any they've started. What the tab lists is their own
+// choice (Settings, New releases: every series, or only the ones they're
+// nearly caught up on), and the flags here already follow it, so the badge
+// and the page always say the same number. A volume or a chapter counts;
+// Japan's volumes have their own count on the tab
 export const countNew = (
   manga: Manga[],
   releases: Record<number, ReleaseStatus | null>,
-) => manga.filter((m) => !m.planned && isNews(releases[m.id])).length;
+) =>
+  manga.filter(
+    (m) =>
+      !m.planned &&
+      Boolean(releases[m.id]?.hasNewVolume || releases[m.id]?.hasNewChapter),
+  ).length;
 
 // the count New shows, wherever it shows (the shelf's tab, the phones' bar):
 // this visit's once every series is checked, until then what the last full

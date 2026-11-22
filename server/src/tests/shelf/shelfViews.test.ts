@@ -277,21 +277,22 @@ test("a card opens its list: volumes when more than one is out, chapters when on
   ).toBe(false);
 });
 
-test("the badge counts news, not the backlog the tab also lists", () => {
+test("the badge counts every series the tab lists, so the two always agree", () => {
   const out = (...volumes: number[]) =>
     volumes.map((volume) => ({ volume })) as ReleaseStatus["outVolumes"];
   const list = [manga(1), manga(2), manga(4)];
   const releases: Releases = {
     // caught up but for the newest: news
     1: found({ hasNewVolume: true, outVolumes: out(5) }),
-    // three out past theirs: listed, not counted
+    // three out past theirs: listed, so counted (what's listed is their
+    // own setting: every series, or only the ones nearly caught up on)
     2: found({ hasNewVolume: true, outVolumes: out(5, 6, 7) }),
     // one chapter out past theirs: news
     4: found({ hasNewChapter: true, nextChapter: 31, latestChapter: 31 }),
   };
   const counts = shelfCounts(list, releases);
   expect(counts.newVolumes).toBe(2);
-  expect(counts.new).toBe(2);
+  expect(counts.new).toBe(3);
 });
 
 test("behind is the newest volume's number less theirs, holes in the catalog or not", async () => {
