@@ -59,7 +59,9 @@ export function progressOf(
   let reading = 0;
   if (byChapter) reading = manga.bookmark ?? 0;
   else if (tracks.volumes) reading = manga.readVolume ?? 0;
-  const latest = byChapter ? latestChapter : latestVolume;
+  // a half chapter (74.5) is never the total: whole ones, rounded down
+  const newest = byChapter ? latestChapter : latestVolume;
+  const latest = newest == null ? null : Math.floor(newest);
   // a count that's behind where they are says nothing, so it isn't shown
   const knownTotal = latest != null && latest >= reading ? latest : null;
   const unit = byChapter ? ("ch." as const) : ("vol." as const);
