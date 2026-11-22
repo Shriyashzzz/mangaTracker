@@ -9,8 +9,13 @@ export const toBuyRouter = Router();
 
 // asked once per visit, and again after each change
 toBuyRouter.get("/", perMinute(120), toBuy.list);
+// their own order for the list (before /:isbn, which would take "order"
+// for an ISBN and refuse it)
+toBuyRouter.put("/order", perMinute(60), toBuy.order);
 // one tap each, like owning a volume
 toBuyRouter.put("/:isbn", perMinute(60), toBuy.add);
+// their own note on one
+toBuyRouter.patch("/:isbn", perMinute(60), toBuy.note);
 toBuyRouter.delete("/:isbn", perMinute(60), toBuy.remove);
 // "I bought it", "I ordered it": off the list, and on the shelf when certain
 toBuyRouter.post("/:isbn/settle", perMinute(60), toBuy.settle);

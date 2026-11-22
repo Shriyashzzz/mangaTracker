@@ -382,6 +382,10 @@ model ToBuy {
   userId  Int      @map("user_id")
   isbn13  String   @db.Char(13)
   addedAt DateTime @default(now()) @map("added_at") @db.Timestamptz(6)
+  // their own note on it, and where it sits in their own order (null until
+  // they first move one; migration 20261215000000_to_buy_note_and_order)
+  note     String?  @db.VarChar(140)
+  position Int?
   user    User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@id([userId, isbn13])

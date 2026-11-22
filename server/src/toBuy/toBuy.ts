@@ -55,6 +55,10 @@ export type ToBuyItem = {
   // yet: a preorder, which is why it has no price
   outOn: string | null;
   addedAt: Date;
+  // their own note on it ("wait for a sale"), and its place in their own
+  // order; null until they've set one
+  note: string | null;
+  position: number | null;
 };
 
 // the release date of a volume that isn't out yet, from its series' saved
@@ -196,6 +200,8 @@ export async function toBuyList(userId: number, country: Country = "us") {
       used: priceOf(copies.get(isbn13)?.used),
       outOn: outOn.get(isbn13) ?? null,
       addedAt: row.addedAt,
+      note: row.note,
+      position: row.position,
     };
   });
   return { items, totals: toBuyTotals(items) };
@@ -397,6 +403,27 @@ export async function addFromToBuy(
     };
   });
 }
+
+// their note on one item: empty takes it off. Nothing when it isn't on
+// their list
+export const TO_BUY_NOTE_MAX = 140;
+export const setToBuyNote = (userId: number, isbn13: string, note: string) =>
+  prisma.toBuy.updateMany({
+    where: { userId, isbn13 },
+    data: { note: note.trim().slice(0, TO_BUY_NOTE_MAX) || null },
+  });
+
+// their own order: each listed item takes its place in the list given.
+// Only ever their own rows; an ISBN that isn't on their list changes nothing
+export const setToBuyOrder = (userId: number, isbns: string[]) =>
+  prisma.$transaction(
+    isbns.map((isbn13, position) =>
+      prisma.toBuy.updateMany({
+        where: { userId, isbn13 },
+        data: { position },
+      }),
+    ),
+  );
 
 export const removeToBuy = (userId: number, isbn13: string) =>
   prisma.toBuy.deleteMany({ where: { userId, isbn13 } });

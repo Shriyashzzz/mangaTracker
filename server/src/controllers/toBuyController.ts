@@ -13,6 +13,9 @@ import {
   removeToBuy,
   addFromToBuy,
   settleToBuy,
+  setToBuyNote,
+  setToBuyOrder,
+  TO_BUY_NOTE_MAX,
   toBuyList,
 } from "../toBuy/toBuy.js";
 import { chapterMessage, nameField, ownedListFields } from "./manga/fields.js";
@@ -126,4 +129,35 @@ const clear = [
   },
 ];
 
-export default { list, add, remove, clear, settle, addSeries };
+// PATCH /:isbn {note}  their own note on it; empty takes it off
+const note = [
+  requireSignIn,
+  isbnParam,
+  body("note").isString().isLength({ max: TO_BUY_NOTE_MAX }),
+  rejectInvalid,
+  async (req: Request, res: Response) => {
+    const { isbn, note: text } = matchedData(req) as {
+      isbn: string;
+      note: string;
+    };
+    await setToBuyNote(req.session.userId!, isbn, text);
+    own(res).json({ ok: true });
+  },
+];
+
+// PUT /order {isbns}  their own order for the list, first to last
+const order = [
+  requireSignIn,
+  body("isbns").isArray({ max: MOST_TO_BUY }),
+  body("isbns.*")
+    .customSanitizer(toIsbn13)
+    .custom((isbn) => isbn !== null),
+  rejectInvalid,
+  async (req: Request, res: Response) => {
+    const { isbns } = matchedData(req) as { isbns: string[] };
+    await setToBuyOrder(req.session.userId!, isbns);
+    own(res).json({ ok: true });
+  },
+];
+
+export default { list, add, remove, clear, settle, addSeries, note, order };
