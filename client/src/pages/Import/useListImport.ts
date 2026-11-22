@@ -39,6 +39,9 @@ export function useListImport() {
   const [finding, setFinding] = useState(false);
   // the sub-lists (by status) that won't be added
   const [unticked, setUnticked] = useState<Set<string>>(new Set());
+  // single series left out, by their place in the list: for the one or two
+  // they don't want out of a sub-list they do
+  const [left, setLeft] = useState<Set<number>>(new Set());
   // how many have gone to the shelf; null when nothing is being added
   const [progress, setProgress] = useState<number | null>(null);
   // waiting because the server asked it to slow down (a very long list)
@@ -63,6 +66,7 @@ export function useListImport() {
     }
     setItems(found);
     setUnticked(untickedByDefault());
+    setLeft(new Set());
   };
 
   // AniList or Kitsu: their public list, by username
@@ -117,7 +121,42 @@ export function useListImport() {
 
   const countOf = (status: string) =>
     (items ?? []).filter((item) => item.status === status).length;
-  const chosen = (items ?? []).filter((item) => !unticked.has(item.status));
+  const chosen = (items ?? []).filter(
+    (item, at) => !unticked.has(item.status) && !left.has(at),
+  );
+  // one series in or out
+  const toggleOne = (at: number) => {
+    const next = new Set(left);
+    if (!next.delete(at)) next.add(at);
+    setLeft(next);
+  };
+  // a series whose name on their list isn't the one it's found under: it
+  // goes by the name they picked (and that pick's cover), and keeps the
+  // list's own name as another it's known by, so it still matches one
+  // already on the shelf. Its MyAnimeList id goes, as it names the wrong one
+  const rename = (at: number, name: string, cover?: string) =>
+    setItems(
+      (now) =>
+        now?.map((item, i) =>
+          i === at
+            ? {
+                ...item,
+                entry: {
+                  ...item.entry,
+                  malId: undefined,
+                  title: name,
+                  ...(cover ? { cover } : {}),
+                  otherNames: [
+                    ...new Set([
+                      ...(item.entry.otherNames ?? []),
+                      item.entry.title,
+                    ]),
+                  ],
+                },
+              }
+            : item,
+        ) ?? null,
+    );
 
   // the ticked ones go to the shelf, a piece at a time
   const start = async () => {
@@ -161,6 +200,9 @@ export function useListImport() {
     finished,
     chosen,
     countOf,
+    left,
+    toggleOne,
+    rename,
     // another place to import from: what was found for the last one goes
     reset: () => {
       clear();
