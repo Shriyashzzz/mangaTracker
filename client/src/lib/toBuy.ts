@@ -38,6 +38,9 @@ export type ToBuyItem = {
   volumes: number[] | null;
   // an edition's book (Deluxe, VIZBIG), not one volume
   edition: boolean;
+  // that edition in a few letters, for the stamp on its cover ("DLX" 10);
+  // null for a plain volume (and missing from a server not sending it yet)
+  editionShort?: string | null;
   // its series on their shelf, and whether it's all theirs or on order
   shelf: { id: number; name: string; state: "owned" | "ordered" | null } | null;
 };

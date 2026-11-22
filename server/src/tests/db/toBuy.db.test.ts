@@ -2,6 +2,7 @@
 // taking off volumes, the list with its stored prices and totals, each
 // reader's list their own, and the list going with a deleted account. No
 // store or catalog is called: the books and prices are saved here.
+import { forgetPreorderDates } from "../../toBuy/toBuy.js";
 import request from "supertest";
 import { app } from "../../app.js";
 import priceQueries from "../../models/priceQueries.js";
@@ -61,6 +62,8 @@ const signedIn = async (username = "reader") => {
 beforeEach(async () => {
   await emptyDb();
   await clean();
+  // release days are remembered a while: not from one test to the next
+  forgetPreorderDates();
   await saveVolume(1, [offer("new", 999, "eBay"), offer("used", 500, "eBay")]);
   await saveVolume(2, [offer("new", 1199, "eBay")]);
   await saveVolume(3, []);

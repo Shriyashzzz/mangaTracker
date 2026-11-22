@@ -7,8 +7,10 @@ import priceQueries from "../models/priceQueries.js";
 import type { Country } from "../models/priceTables.js";
 import type { CheapestCopy } from "../models/priceHistory.js";
 import { linkFor } from "../prices/canada/canadaLinks.js";
-import { notOutYet } from "../prices/preorder.js";
 import { getOrCreateBook } from "../prices/service.js";
+import { notOutYet } from "../prices/preorder.js";
+import { bookInLine } from "../prices/editionBooks.js";
+import { volumesKey } from "../prices/volumesKey.js";
 import { getSeriesInfo } from "../prices/sources/anilist.js";
 import {
   editionOfTitle,
@@ -42,6 +44,9 @@ export type ToBuyItem = {
   volumes: number[] | null;
   // an edition's book (Deluxe, VIZBIG), not one volume
   edition: boolean;
+  // that edition in a few letters, for the stamp on its cover ("DLX" 10,
+  // "DEF" 9); null for a plain volume
+  editionShort: string | null;
   // the series on their shelf it belongs to, and whether they have all it
   // holds already, or have it on order (said on the list; never acted on
   // without them)
@@ -65,24 +70,40 @@ export type ToBuyItem = {
   alertCents: number | null;
 };
 
-// The release date of a volume that isn't out yet, from its series' saved
-// list; null for one that's out, or whose date nobody knows. Every volume
-// on the list is asked about (a preorder can have a price already), so the
-// answer is remembered a while: a day still to come for an hour, since it
-// can move, one that's out for six
-const HOUR_MS = 60 * 60_000;
+// The release date of a volume that isn't out yet; null for one that's
+// out, or whose date nobody knows. The price page's rule (volumeService
+// preorderOf), from what's already saved: a list load never waits on a
+// catalog. A single volume's day is in its series' saved list; an edition's
+// book the singles don't list (Definitive 9) has its edition line's.
+// Every volume on the list is asked about (a preorder can have a price
+// already), so the answer is remembered a while: a day still to come for an
+// hour, since it can move; "out, or not known" for ten minutes, since a
+// day can turn up
+const MINUTE_MS = 60_000;
 const askedAbout = new Map<string, { day: string | null; until: number }>();
 export const forgetPreorderDates = () => askedAbout.clear();
-const preorderDate = async (isbn13: string) => {
+async function savedReleaseDay(isbn13: string, title: string) {
+  const single = await priceQueries.getSavedVolume(isbn13).catch(() => null);
+  if (single?.published) return notOutYet(single.published);
+  if (!editionOfTitle(title)) return null;
+  // an edition's book: the series' saved list, and its lines as saved
+  const name = seriesOfBook(title);
+  const saved = await priceQueries
+    .getSeriesVolumes(volumesKey(name))
+    .catch(() => null);
+  const inLine = await bookInLine(
+    { name, volumes: saved?.volumes ?? [] },
+    isbn13,
+    false,
+  ).catch(() => null);
+  return notOutYet(inLine?.book.published);
+}
+const preorderDate = async (isbn13: string, title: string) => {
   const now = Date.now();
   const known = askedAbout.get(isbn13);
   if (known && known.until > now) return known.day;
-  const saved = await priceQueries.getSavedVolume(isbn13).catch(() => null);
-  const day = notOutYet(saved?.published);
-  // a volume no saved list has yet is asked about again next time: its
-  // list, and its day, can turn up any minute
-  if (saved)
-    askedAbout.set(isbn13, { day, until: now + (day ? 1 : 6) * HOUR_MS });
+  const day = await savedReleaseDay(isbn13, title);
+  askedAbout.set(isbn13, { day, until: now + (day ? 60 : 10) * MINUTE_MS });
   return day;
 };
 
@@ -196,7 +217,11 @@ export async function toBuyList(userId: number, country: Country = "us") {
   const outOn = new Map(
     await Promise.all(
       isbns.map(
-        async (isbn13) => [isbn13, await preorderDate(isbn13)] as const,
+        async (isbn13) =>
+          [
+            isbn13,
+            await preorderDate(isbn13, bookOf.get(isbn13)?.title ?? ""),
+          ] as const,
       ),
     ),
   );
@@ -225,6 +250,7 @@ export async function toBuyList(userId: number, country: Country = "us") {
       volume: titleVolume(title),
       volumes: volumesOf(title),
       edition: Boolean(editionOfTitle(title)),
+      editionShort: editionOfTitle(title)?.short ?? null,
       shelf: shelfLine(entryOf.get(keyOf(title)), volumesOf(title)),
       coverUrl: hasNoCover(coverRowOf.get(isbn13)) ? null : book.coverUrl,
       seriesCoverUrl: seriesCovers.get(seriesOfBook(title)) ?? null,
