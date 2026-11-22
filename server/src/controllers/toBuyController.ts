@@ -13,7 +13,9 @@ import {
   removeToBuy,
   addFromToBuy,
   settleToBuy,
+  setToBuyAlert,
   setToBuyNote,
+  TO_BUY_ALERT_MOST_CENTS,
   setToBuyOrder,
   TO_BUY_NOTE_MAX,
   toBuyList,
@@ -129,18 +131,33 @@ const clear = [
   },
 ];
 
-// PATCH /:isbn {note}  their own note on it; empty takes it off
+// PATCH /:isbn {note?, alertCents?}  their own note on it (empty takes it
+// off), and the price they want an alert at (null takes it off). Either
+// alone, or both
 const note = [
   requireSignIn,
   isbnParam,
-  body("note").isString().isLength({ max: TO_BUY_NOTE_MAX }),
+  body("note").optional().isString().isLength({ max: TO_BUY_NOTE_MAX }),
+  body("alertCents")
+    .optional({ values: "undefined" })
+    .custom(
+      (cents: unknown) =>
+        cents === null ||
+        (Number.isInteger(cents) &&
+          (cents as number) >= 1 &&
+          (cents as number) <= TO_BUY_ALERT_MOST_CENTS),
+    )
+    .withMessage("That isn't a price we can watch for."),
   rejectInvalid,
   async (req: Request, res: Response) => {
-    const { isbn, note: text } = matchedData(req) as {
-      isbn: string;
-      note: string;
+    const { isbn } = matchedData(req) as { isbn: string };
+    const { note: text, alertCents } = req.body as {
+      note?: string;
+      alertCents?: number | null;
     };
-    await setToBuyNote(req.session.userId!, isbn, text);
+    const userId = req.session.userId!;
+    if (text !== undefined) await setToBuyNote(userId, isbn, text);
+    if (alertCents !== undefined) await setToBuyAlert(userId, isbn, alertCents);
     own(res).json({ ok: true });
   },
 ];

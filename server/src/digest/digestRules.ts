@@ -60,6 +60,9 @@ export type ReleaseItem = {
   book: string;
   // the day it came out or comes out, "2026-11-24"
   day: string;
+  // the book itself, when the saved list names it (a To buy alert about
+  // the same book is then not sent as well: push/pushRules.ts)
+  isbn13?: string | null;
 };
 
 export type DropItem = {
@@ -85,25 +88,31 @@ const daysBetween = (from: string, to: string) =>
   Math.round((Date.parse(to) - Date.parse(from)) / DAY_MS);
 
 // out lately, or due soon, or neither (null): by its day alone
-function whenOf(day: string, today: string): "out" | "soon" | null {
+function whenOf(
+  day: string,
+  today: string,
+  soonWithin: number,
+): "out" | "soon" | null {
   if (day <= today)
     return daysBetween(day, today) <= NEW_FOR_DAYS ? "out" : null;
-  return daysBetween(today, day) <= SOON_WITHIN_DAYS ? "soon" : null;
+  return daysBetween(today, day) <= soonWithin ? "soon" : null;
 }
 
 // a series collected in single volumes: the volume after their furthest
 function singleVolumeNews(
   series: DigestSeries,
   today: string,
+  soonWithin: number,
 ): ReleaseItem | null {
   const whole = series.owned.filter((v) => Number.isInteger(v) && v >= 1);
   const furthest = Math.max(0, series.readVolume ?? 0, ...whole);
   // nothing of it yet: it isn't theirs to hear about
   if (furthest < 1) return null;
   const numbered = (n: number) => series.volumes.find((v) => v.volume === n);
-  const day = fullDay(numbered(furthest + 1)?.published);
+  const next = numbered(furthest + 1);
+  const day = fullDay(next?.published);
   if (!day) return null;
-  const kind = whenOf(day, today);
+  const kind = whenOf(day, today, soonWithin);
   if (!kind) return null;
   // out, and the one after it is out too: they're behind, which isn't news.
   // (One after it with no day may be out as well, so nothing is claimed)
@@ -121,6 +130,7 @@ function singleVolumeNews(
     series: series.name,
     book: `Vol. ${volume}`,
     day,
+    isbn13: next?.isbn13?.trim() || null,
   };
 }
 
@@ -129,11 +139,12 @@ function editionNews(
   series: DigestSeries,
   line: EditionLine,
   today: string,
+  soonWithin: number,
 ): ReleaseItem | null {
   const place = editionPlaceOf(line, series.readVolume, series.owned, today);
   const day = fullDay(place.nextPublished);
   if (place.upTo == null || place.next == null || !day) return null;
-  const kind = whenOf(day, today);
+  const kind = whenOf(day, today, soonWithin);
   if (!kind) return null;
   // out and the only one they lack; or coming, with every book out theirs
   if (place.behind !== (kind === "out" ? 1 : 0)) return null;
@@ -148,14 +159,22 @@ function editionNews(
     series: series.name,
     book: bookName(line.label, place.next),
     day,
+    isbn13: book?.isbn13?.trim() || null,
   };
 }
 
-export function releaseNews(shelf: DigestSeries[], today: string) {
+// `soonWithin`: how far ahead a coming book still counts. The email's 60
+// days by default; the phone alerts ask for every one with a day, however
+// far (a book going up for preorder is their news: push/pushRules.ts)
+export function releaseNews(
+  shelf: DigestSeries[],
+  today: string,
+  soonWithin = SOON_WITHIN_DAYS,
+) {
   const items = shelf.flatMap((series) => {
     const item = series.line
-      ? editionNews(series, series.line, today)
-      : singleVolumeNews(series, today);
+      ? editionNews(series, series.line, today, soonWithin)
+      : singleVolumeNews(series, today, soonWithin);
     return item ? [item] : [];
   });
   const byDay = (a: ReleaseItem, b: ReleaseItem) => a.day.localeCompare(b.day);

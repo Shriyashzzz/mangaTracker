@@ -24,6 +24,9 @@ export type ToBuyItem = {
   // they've set one (the app's To buy page; the website doesn't set them)
   note?: string | null;
   position?: number | null;
+  // the price they asked to be told at, in cents (an alert on their phone
+  // when a copy is at or under it); null when none is named
+  alertCents?: number | null;
   // the series' volumes it certainly holds; null when that isn't certain (an
   // edition's book whose title doesn't say, a box set). Never a guess
   volumes: number[] | null;
@@ -127,6 +130,18 @@ export async function saveToBuyNote(isbn13: string, note: string) {
   const res = await apiFetch(`/api/to-buy/${isbn13}`, {
     method: "PATCH",
     body: { note },
+  });
+  if (!res.ok) throw new Error("That didn't save. Try again.");
+}
+
+// the price they want an alert at, in cents; null takes it off
+export async function saveToBuyAlert(
+  isbn13: string,
+  alertCents: number | null,
+) {
+  const res = await apiFetch(`/api/to-buy/${isbn13}`, {
+    method: "PATCH",
+    body: { alertCents },
   });
   if (!res.ok) throw new Error("That didn't save. Try again.");
 }

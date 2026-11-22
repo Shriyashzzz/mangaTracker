@@ -44,6 +44,7 @@ test("the next volume, out this month, is news for someone caught up", () => {
   const got = news(series([day(-400), day(-200), day(-5)], { owned: [1, 2] }));
   expect(got.out).toEqual([
     {
+      isbn13: "9780000000002",
       key: "out:7:3",
       kind: "out",
       mangaId: 7,
@@ -121,6 +122,7 @@ test("an edition collector hears about books, not volumes", () => {
   const out = news(series([], { owned: upTo(6), line, name: "Vagabond" }));
   expect(out.out).toEqual([
     {
+      isbn13: "9781111111112",
       key: "out:7:vizbig3",
       kind: "out",
       mangaId: 7,

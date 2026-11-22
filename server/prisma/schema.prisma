@@ -386,6 +386,8 @@ model ToBuy {
   // they first move one; migration 20261215000000_to_buy_note_and_order)
   note     String?  @db.VarChar(140)
   position Int?
+  // the price they asked to be told at (an alert when a copy is at or under it)
+  alertCents Int?  @map("alert_cents")
   user    User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@id([userId, isbn13])

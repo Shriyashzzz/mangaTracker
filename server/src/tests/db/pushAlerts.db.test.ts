@@ -15,6 +15,14 @@ const DAY = 24 * 60 * 60 * 1000;
 const now = new Date();
 const day = (offset: number) =>
   new Date(now.getTime() + offset * DAY).toISOString().slice(0, 10);
+// the series' saved list: one volume for each day given (days from now)
+const listOf = (offsets: number[]) =>
+  offsets.map((offset, i) => ({
+    volume: i + 1,
+    isbn13: `979000000010${i}`,
+    title: `${SERIES}, Vol. ${i + 1}`,
+    published: day(offset),
+  }));
 const ENDPOINT = "https://fcm.googleapis.com/fcm/send/device-one";
 const OTHER = "https://web.push.apple.com/device-two";
 const keys = { p256dh: "B".repeat(87), auth: "a".repeat(22) };
@@ -49,23 +57,19 @@ beforeEach(async () => {
     VAPID_PUBLIC_KEY: pair.publicKey,
     VAPID_PRIVATE_KEY: pair.privateKey,
   });
+  // the series as every test starts: three volumes, the third out today
+  // (a test that changes the list doesn't leave it changed for the next)
+  const volumes = listOf([-400, -200, 0]);
   await prisma.seriesVolumes.upsert({
     where: { key: volumesKey(SERIES) },
-    update: {},
-    create: {
-      key: volumesKey(SERIES),
-      volumes: [-400, -200, 0].map((offset, i) => ({
-        volume: i + 1,
-        isbn13: `979000000010${i}`,
-        title: `${SERIES}, Vol. ${i + 1}`,
-        published: day(offset),
-      })),
-    },
+    update: { volumes },
+    create: { key: volumesKey(SERIES), volumes },
   });
 });
 afterAll(async () => {
   Object.assign(config, savedConfig);
   await prisma.seriesVolumes.deleteMany({ where: { key: volumesKey(SERIES) } });
+  await prisma.book.deleteMany({ where: { isbn13: "9790000001009" } });
   await closeDb();
 });
 
@@ -182,7 +186,12 @@ test("a device that's gone is let go; one that fails stays, and is tried again",
     sent: 0,
     failed: 1,
   });
-  expect(await prisma.digestItem.count()).toBe(0);
+  // (but for the mark that their preorders have been looked at)
+  expect(
+    await prisma.digestItem.count({
+      where: { item: { not: "push:preorder:seen" } },
+    }),
+  ).toBe(0);
   expect(await prisma.pushSubscription.count()).toBe(1);
 });
 
@@ -246,4 +255,122 @@ test("only a real phone token is taken, and only its reader forgets it", async (
   expect(await prisma.pushSubscription.count()).toBe(1);
   await agent.post("/api/push/device/forget").send({ token: PHONE });
   expect(await prisma.pushSubscription.count()).toBe(0);
+});
+
+// ---------- no spam ----------
+const FAR = 40;
+// volume 4 is given a day: far off, up for preorder
+const announce = (offset: number) =>
+  prisma.seriesVolumes.update({
+    where: { key: volumesKey(SERIES) },
+    data: { volumes: listOf([-400, -200, -30, offset]) },
+  });
+const tomorrow = new Date(now.getTime() + DAY);
+const titles = () =>
+  delivered.map((d) => JSON.parse(d.payload).title as string);
+
+test("a preorder known before their first look is never sent; one that turns up after is, once", async () => {
+  const { agent, id } = await reader();
+  // they have all three, and volume 4 already has its day
+  await prisma.manga.updateMany({
+    where: { userId: id, name: SERIES },
+    data: { volumesOwned: 3 },
+  });
+  await announce(FAR);
+  await on(agent);
+  expect(await sendDueAlerts(now, 50, fakeSend)).toMatchObject({ sent: 0 });
+  expect(delivered).toEqual([]);
+  // later, volume 4 is theirs and volume 5 gets a day
+  await prisma.manga.updateMany({
+    where: { userId: id, name: SERIES },
+    data: { volumesOwned: 4 },
+  });
+  await prisma.seriesVolumes.update({
+    where: { key: volumesKey(SERIES) },
+    data: { volumes: listOf([-400, -200, -100, -30, FAR]) },
+  });
+  forgetLookedForAlerts();
+  expect(await sendDueAlerts(now, 50, fakeSend)).toMatchObject({ sent: 1 });
+  expect(titles()).toEqual([`${SERIES} Vol. 5 is up for preorder`]);
+  // and never again
+  forgetLookedForAlerts();
+  delivered = [];
+  expect(await sendDueAlerts(tomorrow, 50, fakeSend)).toMatchObject({
+    sent: 0,
+  });
+});
+
+test("one batch a day: more news the same day waits for tomorrow", async () => {
+  const { agent, id } = await reader();
+  await on(agent);
+  expect(await sendDueAlerts(now, 50, fakeSend)).toMatchObject({ sent: 1 });
+  // an hour later they have volume 3, and volume 4 is given a day
+  await prisma.manga.updateMany({
+    where: { userId: id, name: SERIES },
+    data: { volumesOwned: 3 },
+  });
+  await announce(FAR);
+  forgetLookedForAlerts();
+  delivered = [];
+  expect(await sendDueAlerts(now, 50, fakeSend)).toMatchObject({ sent: 0 });
+  expect(delivered).toEqual([]);
+  // tomorrow it goes
+  forgetLookedForAlerts();
+  expect(await sendDueAlerts(tomorrow, 50, fakeSend)).toMatchObject({
+    sent: 1,
+  });
+  expect(titles()).toEqual([`${SERIES} Vol. 4 is up for preorder`]);
+});
+
+test("a phone Expo later says is gone is forgotten before anything is sent to it", async () => {
+  const { agent } = await reader();
+  await agent.post("/api/push/device").send({ token: PHONE });
+  const reached: string[] = [];
+  const result = await sendDueAlerts(
+    now,
+    50,
+    fakeSend,
+    async (token) => {
+      reached.push(token);
+      return "sent";
+    },
+    async () => [PHONE],
+  );
+  expect(result).toMatchObject({ sent: 0, gone: 1 });
+  expect(reached).toEqual([]);
+  expect(await prisma.pushSubscription.count()).toBe(0);
+  // nothing counted as told: it goes when they switch alerts on again
+  expect(await prisma.digestItem.count()).toBe(0);
+});
+
+test("the price to be told at is theirs to set and to take off", async () => {
+  const { agent, id } = await reader();
+  const isbn13 = "9790000001009";
+  // (books outlast a test: made once, and taken away at the end)
+  await prisma.book.upsert({
+    where: { isbn13 },
+    update: {},
+    create: { isbn13, title: "Zzpush Other, Vol. 9" },
+  });
+  await prisma.toBuy.create({ data: { userId: id, isbn13, note: "a gift" } });
+  const set = (alertCents: unknown) =>
+    agent.patch(`/api/to-buy/${isbn13}`).send({ alertCents });
+  expect((await set(2500)).status).toBe(200);
+  const row = () =>
+    prisma.toBuy.findUniqueOrThrow({
+      where: { userId_isbn13: { userId: id, isbn13 } },
+    });
+  // the note is left alone
+  expect(await row()).toMatchObject({ alertCents: 2500, note: "a gift" });
+  for (const bad of [0, -5, 12.5, "cheap", 10_000_000])
+    expect((await set(bad)).status).toBe(400);
+  expect((await set(null)).status).toBe(200);
+  expect((await row()).alertCents).toBeNull();
+  // someone else's list isn't touched
+  const other = await reader("another");
+  expect(
+    (await other.agent.patch(`/api/to-buy/${isbn13}`).send({ alertCents: 100 }))
+      .status,
+  ).toBe(200);
+  expect((await row()).alertCents).toBeNull();
 });

@@ -11,10 +11,22 @@ import config from "../config/config.js";
 import { prisma } from "../config/prisma.js";
 import { startEvery, triedLately } from "../collector/fillShared.js";
 import { newsFor, PUSH_PREFIX } from "../digest/digestData.js";
-import { withoutSent } from "../digest/digestRules.js";
 import type { Prefs } from "../models/userQueries.js";
-import { isExpoToken, sendToExpo, type ExpoSend } from "./expoPush.js";
-import { alertsFrom, payloadOf } from "./pushRules.js";
+import {
+  expoTokensGone,
+  isExpoToken,
+  sendToExpo,
+  type ExpoGone,
+  type ExpoSend,
+} from "./expoPush.js";
+import {
+  alertedToday,
+  alertsFrom,
+  payloadOf,
+  preorderKey,
+  PREORDERS_SEEN,
+  withoutTold,
+} from "./pushRules.js";
 
 const HOUR_MS = 60 * 60_000;
 // 9am Eastern to 4pm Pacific, as the weekly email
@@ -67,7 +79,23 @@ export async function sendDueAlerts(
   send: Send = realSend,
   // the phone app's devices (expoPush.ts)
   sendExpo: ExpoSend = sendToExpo,
+  // phones Expo has since said are gone
+  expoGone: ExpoGone = expoTokensGone,
 ) {
+  // phones whose app is gone, learned from earlier sends: forgotten before
+  // anything is counted as reaching them
+  let gone = 0;
+  try {
+    const tokens = await expoGone(now);
+    if (tokens.length)
+      gone += (
+        await prisma.pushSubscription.deleteMany({
+          where: { endpoint: { in: tokens } },
+        })
+      ).count;
+  } catch (e) {
+    console.error("Expo receipts failed:", (e as Error).message);
+  }
   // browsers need the key pair; without it only the app's phones are sent to
   const webReady = pushKeysSet();
   const devices = (
@@ -82,7 +110,6 @@ export async function sendDueAlerts(
 
   const today = now.toISOString().slice(0, 10);
   let sent = 0;
-  let gone = 0;
   let failed = 0;
   for (const theirs of byUser.values()) {
     if (sent >= most) break;
@@ -94,18 +121,35 @@ export async function sendDueAlerts(
     // one reader's trouble (a database error gathering their news) is
     // logged, and the run goes on to the next reader
     try {
-      const { news, told } = await newsFor(user, now);
+      const { alertNews, told } = await newsFor(user, now, true);
       // what alerts have told them, without the "push:" in front
       const toldByAlert = told
         .filter((t) => t.item.startsWith(PUSH_PREFIX))
         .map((t) => ({ ...t, item: t.item.slice(PUSH_PREFIX.length) }));
+      // one batch a day: told something today, they hear no more until
+      // tomorrow
+      if (alertedToday(toldByAlert, today)) continue;
+      let news = withoutTold(alertNews, toldByAlert, now);
+      // the first look at their preorders: every one already known is
+      // marked as told and none is sent, so nobody opens the app to a pile
+      // of old news the day this starts (or the day they switch alerts on)
+      if (!toldByAlert.some((t) => t.item === PREORDERS_SEEN)) {
+        await prisma.digestItem.createMany({
+          data: [PREORDERS_SEEN, ...news.ahead.map(preorderKey)].map(
+            (item) => ({
+              userId: user.id,
+              item: `${PUSH_PREFIX}${item}`,
+              // long ago: it never counts as today's batch
+              sentAt: new Date(0),
+            }),
+          ),
+          skipDuplicates: true,
+        });
+        news = { ...news, ahead: [] };
+      }
       const country =
         (user.prefs as Prefs | null)?.country === "ca" ? "ca" : "us";
-      const alerts = alertsFrom(
-        withoutSent(news, toldByAlert, now),
-        today,
-        country,
-      );
+      const alerts = alertsFrom(news, today, country);
 
       for (const alert of alerts) {
         // the cap reached partway: the rest of theirs go next run, not in 3 hours

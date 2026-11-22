@@ -59,6 +59,9 @@ export type ToBuyItem = {
   // order; null until they've set one
   note: string | null;
   position: number | null;
+  // the price they asked to be told at: an alert goes to their phone when
+  // a copy is at or under it. Null: none named
+  alertCents: number | null;
 };
 
 // the release date of a volume that isn't out yet, from its series' saved
@@ -202,6 +205,7 @@ export async function toBuyList(userId: number, country: Country = "us") {
       addedAt: row.addedAt,
       note: row.note,
       position: row.position,
+      alertCents: row.alertCents,
     };
   });
   return { items, totals: toBuyTotals(items) };
@@ -411,6 +415,19 @@ export const setToBuyNote = (userId: number, isbn13: string, note: string) =>
   prisma.toBuy.updateMany({
     where: { userId, isbn13 },
     data: { note: note.trim().slice(0, TO_BUY_NOTE_MAX) || null },
+  });
+
+// the price they want to be told at, in cents; null takes it off. Nothing
+// when it isn't on their list
+export const TO_BUY_ALERT_MOST_CENTS = 100_000;
+export const setToBuyAlert = (
+  userId: number,
+  isbn13: string,
+  alertCents: number | null,
+) =>
+  prisma.toBuy.updateMany({
+    where: { userId, isbn13 },
+    data: { alertCents },
   });
 
 // their own order: each listed item takes its place in the list given.

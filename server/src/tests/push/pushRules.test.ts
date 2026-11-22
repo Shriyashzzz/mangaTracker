@@ -1,11 +1,17 @@
 // What becomes an alert on a phone (src/push/pushRules.ts)
 import {
+  alertedToday,
   alertsFrom,
+  arrivedBooks,
   isPushService,
   MOST_AT_ONCE,
   payloadOf,
+  targetHits,
+  withoutTold,
+  type PushNews,
+  type ToBuyBook,
 } from "../../push/pushRules.js";
-import type { Digest, ReleaseItem } from "../../digest/digestRules.js";
+import type { ReleaseItem } from "../../digest/digestRules.js";
 
 const today = "2026-11-19";
 const out = (over: Partial<ReleaseItem>): ReleaseItem => ({
@@ -26,7 +32,14 @@ const drop = {
   usualCents: 1499,
   store: "Books-A-Million",
 };
-const empty: Digest = { out: [], soon: [], drops: [] };
+const empty: PushNews = {
+  out: [],
+  soon: [],
+  drops: [],
+  ahead: [],
+  arrived: [],
+  targets: [],
+};
 
 test("only the browsers' own push services are ever sent to", () => {
   expect(isPushService("https://fcm.googleapis.com/fcm/send/abc")).toBe(true);
@@ -148,5 +161,180 @@ test("a volume coming within a week is an alert, once it's near", () => {
       "Friday, Nov 20. Tap to see where to buy it.",
     ],
   ]);
-  expect(alerts[0]!.keys).toEqual(["push:soon:7:4"]);
+  // "up for preorder" counts as told by it too
+  expect(alerts[0]!.keys).toEqual(["push:soon:7:4", "push:preorder:7:4"]);
+});
+
+// ---------- the alerts that are only alerts ----------
+const DAY_MS = 24 * 60 * 60 * 1000;
+const dayFrom = (offset: number) =>
+  new Date(Date.parse(today) + offset * DAY_MS).toISOString().slice(0, 10);
+const coming = (
+  days: number,
+  over: Partial<ReleaseItem> = {},
+): ReleaseItem => ({
+  key: "soon:7:4",
+  kind: "soon",
+  mangaId: 7,
+  series: "Blue Box",
+  book: "Vol. 4",
+  day: dayFrom(days),
+  ...over,
+});
+const noon = new Date(`${today}T12:00:00Z`);
+const book = (over: Partial<ToBuyBook>): ToBuyBook => ({
+  isbn13: "9781421520544",
+  title: "Vagabond, Vol. 12",
+  addedAt: new Date(Date.parse(today) - 30 * DAY_MS),
+  published: null,
+  alertCents: null,
+  new: null,
+  used: null,
+  ...over,
+});
+const copy = (cents: number, daysOld = 0) => ({
+  cents,
+  store: "eBay",
+  checkedAt: new Date(noon.getTime() - daysOld * DAY_MS),
+});
+
+test("a next book with a day far off is up for preorder, once", () => {
+  const news = { ...empty, ahead: [coming(40)] };
+  const [alert, ...rest] = alertsFrom(news, today);
+  expect(rest).toEqual([]);
+  expect(alert).toMatchObject({
+    keys: ["push:preorder:7:4"],
+    title: "Blue Box Vol. 4 is up for preorder",
+    url: "/details/7",
+  });
+  // told: not again, however long it stays ahead
+  const told = [{ item: "preorder:7:4", sentAt: noon }];
+  expect(alertsFrom(withoutTold(news, told, noon), today)).toEqual([]);
+});
+
+test("a book a week off is one alert, not a preorder alert as well", () => {
+  const near = coming(3);
+  const alerts = alertsFrom({ ...empty, soon: [near], ahead: [near] }, today);
+  expect(alerts).toHaveLength(1);
+  expect(alerts[0]!.title).toBe("Blue Box Vol. 4 comes out in 3 days");
+  // and it counts as the preorder told, so that never follows
+  expect(alerts[0]!.keys).toEqual(["push:soon:7:4", "push:preorder:7:4"]);
+});
+
+test("a copy at or under the price they named is an alert, new or used", () => {
+  const hits = targetHits(
+    [
+      book({ alertCents: 1000, new: copy(1499), used: copy(900) }),
+      // not down to their price
+      book({ isbn13: "9781421520551", alertCents: 500, new: copy(1499) }),
+      // a price nobody has checked lately isn't quoted
+      book({ isbn13: "9781421520568", alertCents: 2000, new: copy(1499, 9) }),
+      // no price named
+      book({ isbn13: "9781421520575", new: copy(100) }),
+    ],
+    noon,
+  );
+  expect(hits).toEqual([
+    {
+      key: "target:9781421520544:1000",
+      isbn13: "9781421520544",
+      title: "Vagabond, Vol. 12",
+      cents: 900,
+      targetCents: 1000,
+      store: "eBay",
+      used: true,
+    },
+  ]);
+  const [alert] = alertsFrom({ ...empty, targets: hits }, today);
+  expect(alert).toMatchObject({
+    title: "Vagabond, Vol. 12: $9.00",
+    body: "Used, at eBay. Under your $10.00.",
+    url: "/prices/9781421520544",
+  });
+});
+
+test("their price beats the plain drop: one alert for the book, and the drop counts as told", () => {
+  const targets = targetHits(
+    [book({ alertCents: 1200, new: copy(1099) })],
+    noon,
+  );
+  const alerts = alertsFrom({ ...empty, drops: [drop], targets }, today);
+  expect(alerts).toHaveLength(1);
+  expect(alerts[0]!.keys).toEqual([
+    "push:target:9781421520544:1200",
+    "push:drop:9781421520544",
+  ]);
+  // told at this price: silent, until they name another
+  const told = [{ item: "target:9781421520544:1200", sentAt: noon }];
+  expect(withoutTold({ ...empty, targets }, told, noon).targets).toEqual([]);
+  // a month on, the same price is news again
+  const nextMonth = new Date(noon.getTime() + 29 * DAY_MS);
+  expect(
+    withoutTold({ ...empty, targets }, told, nextMonth).targets,
+  ).toHaveLength(1);
+  const lower = targetHits([book({ alertCents: 1150, new: copy(1099) })], noon);
+  expect(
+    withoutTold({ ...empty, targets: lower }, told, noon).targets,
+  ).toHaveLength(1);
+});
+
+test("a To buy volume they were waiting on, out now", () => {
+  const waited = book({ published: today });
+  expect(arrivedBooks([waited], today)).toEqual([
+    {
+      key: "arrived:9781421520544",
+      isbn13: "9781421520544",
+      title: "Vagabond, Vol. 12",
+      day: today,
+    },
+  ]);
+  const [alert] = alertsFrom(
+    { ...empty, arrived: arrivedBooks([waited], today) },
+    today,
+  );
+  expect(alert).toMatchObject({
+    title: "Vagabond, Vol. 12 is out",
+    body: "Out today. It's on your To buy list.",
+  });
+  // put on the list after it came out, out long ago, still to come, or
+  // with no day in full: nothing to tell
+  expect(
+    arrivedBooks(
+      [
+        book({ published: dayFrom(-1), addedAt: noon }),
+        book({ published: dayFrom(-10) }),
+        book({ published: dayFrom(5) }),
+        book({ published: today.slice(0, 7) }),
+      ],
+      today,
+    ),
+  ).toEqual([]);
+});
+
+test("a book on both the shelf and To buy is told once, as the shelf's", () => {
+  const arrived = arrivedBooks([book({ published: today })], today);
+  const alerts = alertsFrom(
+    { ...empty, out: [out({ isbn13: "9781421520544" })], arrived },
+    today,
+  );
+  expect(alerts).toHaveLength(1);
+  expect(alerts[0]!.title).toBe("Blue Box Vol. 3 is out");
+  expect(alerts[0]!.keys).toEqual([
+    "push:out:7:3",
+    "push:arrived:9781421520544",
+  ]);
+});
+
+test("one batch a day", () => {
+  const earlier = new Date(`${today}T14:05:00Z`);
+  expect(alertedToday([{ item: "out:7:3", sentAt: earlier }], today)).toBe(
+    true,
+  );
+  expect(alertedToday([{ item: "out:7:3", sentAt: earlier }], dayFrom(1))).toBe(
+    false,
+  );
+  // what was marked on the first look at their preorders never counts
+  expect(
+    alertedToday([{ item: "preorder:seen", sentAt: new Date(0) }], today),
+  ).toBe(false);
 });

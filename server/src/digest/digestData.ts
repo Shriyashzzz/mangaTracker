@@ -6,8 +6,15 @@ import { prisma } from "../config/prisma.js";
 import { ownedSet } from "../collector/shelfMath.js";
 import { shelfEditionLines, shelfSeries } from "../collector/shelfSeries.js";
 import { getCheapestCopies, newMedians } from "../models/priceHistory.js";
+import { getSavedVolume } from "../models/savedVolumes.js";
 import type { Prefs } from "../models/userQueries.js";
 import { shopName } from "../prices/volumeNames.js";
+import {
+  arrivedBooks,
+  targetHits,
+  type PushNews,
+  type ToBuyBook,
+} from "../push/pushRules.js";
 import {
   priceDrops,
   releaseNews,
@@ -37,39 +44,92 @@ async function shelfOf(userId: number): Promise<DigestSeries[]> {
   }));
 }
 
-// their To buy list's volumes that have a new copy on file, each with its
-// usual price
-async function toBuyOf(
+// A volume's release day never changes once it's out, so it's asked of the
+// saved lists once and remembered; one still to come (or unknown) is asked
+// again, since its day can be set or moved
+const cameOut = new Map<string, string>();
+async function publishedOf(isbn13: string, today: string) {
+  const known = cameOut.get(isbn13);
+  if (known) return known;
+  const saved = await getSavedVolume(isbn13).catch(() => null);
+  const published = saved?.published ?? null;
+  if (published && /^\d{4}-\d{2}-\d{2}$/.test(published) && published <= today)
+    cameOut.set(isbn13, published);
+  return published;
+}
+
+// their To buy list, each volume with its cheapest copies on file and the
+// price they named. `withDays`: with each one's release day too, which only
+// the phone alerts need (a volume they were waiting on, out now)
+async function toBuyBooksOf(
   userId: number,
   country: "us" | "ca",
-): Promise<PricedVolume[]> {
+  withDays: string | null,
+): Promise<ToBuyBook[]> {
   const rows = await prisma.toBuy.findMany({
     where: { userId },
-    select: { isbn13: true },
+    select: { isbn13: true, addedAt: true, alertCents: true },
   });
   const isbns = rows.map((row) => row.isbn13.trim());
   if (!isbns.length) return [];
-  const [books, copies, usual] = await Promise.all([
+  const [books, copies] = await Promise.all([
     prisma.book.findMany({
       where: { isbn13: { in: isbns } },
       select: { isbn13: true, title: true },
     }),
     getCheapestCopies(isbns, undefined, country),
-    newMedians(isbns, country),
   ]);
-  return books.flatMap((book) => {
-    const isbn13 = book.isbn13.trim();
-    const copy = copies.get(isbn13)?.new;
-    if (!copy) return [];
-    return {
-      isbn13,
-      title: book.title,
-      cents: copy.cents,
-      store: shopName(copy.store),
-      checkedAt: copy.checkedAt,
-      usualCents: usual.get(isbn13) ?? null,
-    };
-  });
+  const titleOf = new Map(books.map((b) => [b.isbn13.trim(), b.title]));
+  const copyOf = (
+    copy: { cents: number; store: string; checkedAt: Date } | null,
+  ) =>
+    copy
+      ? {
+          cents: copy.cents,
+          store: shopName(copy.store),
+          checkedAt: copy.checkedAt,
+        }
+      : null;
+  return Promise.all(
+    rows.flatMap((row) => {
+      const isbn13 = row.isbn13.trim();
+      const title = titleOf.get(isbn13);
+      if (!title) return [];
+      return [
+        (async () => ({
+          isbn13,
+          title,
+          addedAt: row.addedAt,
+          published: withDays ? await publishedOf(isbn13, withDays) : null,
+          alertCents: row.alertCents,
+          new: copyOf(copies.get(isbn13)?.new ?? null),
+          used: copyOf(copies.get(isbn13)?.used ?? null),
+        }))(),
+      ];
+    }),
+  );
+}
+
+// the ones with a new copy on file, each with its usual price (what a
+// plain price drop is measured against)
+async function pricedVolumes(
+  books: ToBuyBook[],
+  country: "us" | "ca",
+): Promise<PricedVolume[]> {
+  const priced = books.filter((book) => book.new);
+  if (!priced.length) return [];
+  const usual = await newMedians(
+    priced.map((book) => book.isbn13),
+    country,
+  );
+  return priced.map((book) => ({
+    isbn13: book.isbn13,
+    title: book.title,
+    cents: book.new!.cents,
+    store: book.new!.store,
+    checkedAt: book.new!.checkedAt,
+    usualCents: usual.get(book.isbn13) ?? null,
+  }));
 }
 
 // A reader's news as it stands, before what they've been told is taken off,
@@ -79,14 +139,17 @@ async function toBuyOf(
 export async function newsFor(
   user: { id: number; prefs: unknown },
   now = new Date(),
+  // the phone alerts' own three kinds as well (push/pushRules.ts)
+  forAlerts = false,
 ) {
   const prefs = (user.prefs ?? {}) as Prefs;
   const today = now.toISOString().slice(0, 10);
+  const country = prefs.country === "ca" ? "ca" : "us";
   // release checks switched off in settings: no release news this way either
   const wantsReleases = prefs.releaseChecks !== "off";
   const [shelf, toBuy, told] = await Promise.all([
     wantsReleases ? shelfOf(user.id) : [],
-    toBuyOf(user.id, prefs.country === "ca" ? "ca" : "us"),
+    toBuyBooksOf(user.id, country, forAlerts ? today : null),
     prisma.digestItem.findMany({
       where: { userId: user.id },
       select: { item: true, sentAt: true },
@@ -94,9 +157,16 @@ export async function newsFor(
   ]);
   const news: Digest = {
     ...releaseNews(shelf, today),
-    drops: priceDrops(toBuy, now),
+    drops: priceDrops(await pricedVolumes(toBuy, country), now),
   };
-  return { news, told };
+  const alertNews: PushNews = {
+    ...news,
+    // every next book with a day, however far off
+    ahead: forAlerts ? releaseNews(shelf, today, Infinity).soon : [],
+    arrived: forAlerts ? arrivedBooks(toBuy, today) : [],
+    targets: forAlerts ? targetHits(toBuy, now) : [],
+  };
+  return { news, alertNews, told };
 }
 
 // what the weekly email would say: their news less what it's already said

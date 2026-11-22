@@ -22,8 +22,58 @@ export type ExpoSend = (
 
 type Ticket = {
   status?: string;
+  // what to ask Expo's receipts for later
+  id?: string;
   message?: string;
   details?: { error?: string };
+};
+
+// Expo answers a send in two steps: a ticket at once, and a receipt some
+// minutes later saying whether Google or Apple took it. "This phone no
+// longer has the app" mostly comes in the receipt, so each ticket is kept
+// (in memory: a restart only puts the answer off to the next alert) and
+// asked about on a later run
+const EXPO_RECEIPTS = "https://exp.host/--/api/v2/push/getReceipts";
+// receipts are ready after about this long, and Expo keeps them a day
+const RECEIPT_READY_MS = 15 * 60_000;
+const RECEIPT_KEPT_MS = 24 * 60 * 60_000;
+const MOST_PER_ASK = 300;
+const tickets = new Map<string, { token: string; at: number }>();
+export const forgetExpoTickets = () => tickets.clear();
+export const noteExpoTicket = (id: string, token: string, at: number) =>
+  tickets.set(id, { token, at });
+
+type Receipt = { status?: string; details?: { error?: string } };
+export type ExpoGone = (now?: Date) => Promise<string[]>;
+
+// the phones whose receipts say the app is gone: their tokens, to forget.
+// A ticket asked about is done with either way
+export const expoTokensGone: ExpoGone = async (now = new Date()) => {
+  const at = now.getTime();
+  for (const [id, ticket] of tickets)
+    if (at - ticket.at > RECEIPT_KEPT_MS) tickets.delete(id);
+  const ready = [...tickets]
+    .filter(([, ticket]) => at - ticket.at >= RECEIPT_READY_MS)
+    .slice(0, MOST_PER_ASK);
+  if (!ready.length) return [];
+  const res = await fetch(EXPO_RECEIPTS, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Accept: "application/json" },
+    body: JSON.stringify({ ids: ready.map(([id]) => id) }),
+    signal: AbortSignal.timeout(10_000),
+  });
+  if (!res.ok) throw new Error(`Expo receipts answered ${res.status}`);
+  const { data } = (await res.json()) as { data?: Record<string, Receipt> };
+  const gone: string[] = [];
+  for (const [id, ticket] of ready) {
+    const receipt = data?.[id];
+    // not ready yet: asked again next run
+    if (!receipt) continue;
+    tickets.delete(id);
+    if (receipt.details?.error === "DeviceNotRegistered")
+      gone.push(ticket.token);
+  }
+  return [...new Set(gone)];
 };
 
 export const sendToExpo: ExpoSend = async (token, alert) => {
@@ -46,7 +96,10 @@ export const sendToExpo: ExpoSend = async (token, alert) => {
   if (!res.ok) throw new Error(`Expo push answered ${res.status}`);
   const { data } = (await res.json()) as { data?: Ticket | Ticket[] };
   const ticket = Array.isArray(data) ? data[0] : data;
-  if (ticket?.status === "ok") return "sent";
+  if (ticket?.status === "ok") {
+    if (ticket.id) noteExpoTicket(ticket.id, token, Date.now());
+    return "sent";
+  }
   if (ticket?.details?.error === "DeviceNotRegistered") return "gone";
   throw new Error(ticket?.message ?? "Expo push failed");
 };
