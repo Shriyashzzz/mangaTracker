@@ -72,7 +72,7 @@ const KEPT: Entry[] = [
   },
   {
     name: "Your plan",
-    body: "Free, Collector, or an early member's. If you buy Collector in the iPhone app: which plan, when it renews or ends, and the subscription's ID that Apple confirms. Apple takes the payment; your card never reaches Manga Tracker.",
+    body: "Free, Premium, or an early member's. If you buy Premium in the iPhone app: which plan, when it renews or ends, and the subscription's ID that Apple confirms. Apple takes the payment; your card never reaches Manga Tracker.",
   },
   {
     name: "Alerts on your phone",
@@ -118,7 +118,7 @@ const OTHERS: Entry[] = [
   },
   {
     name: "Apple",
-    body: "If you choose Sign in with Apple, Apple confirms it's you and tells us your Apple account's ID, and your name and email if you share them. In the iPhone app, Apple takes Collector payments and tells us when a subscription starts, renews, ends or is refunded.",
+    body: "If you choose Sign in with Apple, Apple confirms it's you and tells us your Apple account's ID, and your name and email if you share them. In the iPhone app, Apple takes Premium payments and tells us when a subscription starts, renews, ends or is refunded.",
   },
   {
     name: "Impact",

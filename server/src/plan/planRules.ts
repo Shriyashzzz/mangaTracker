@@ -69,7 +69,7 @@ export const hasRoom = (plan: Entitlements, what: Counted, adding = 1) =>
 
 // what's said when there's no room, by what was being added
 export const FULL: Record<Counted, string> = {
-  series: `A free shelf holds ${LIMITS.series} series. Collector has no limit.`,
-  scans: `You've scanned ${LIMITS.scans} books, all a free account has. Collector has no limit.`,
-  priceAlerts: `A free account watches ${LIMITS.priceAlerts} prices. Collector watches them all.`,
+  series: `A free shelf holds ${LIMITS.series} series. Premium has no limit.`,
+  scans: `You've scanned ${LIMITS.scans} books, all a free account has. Premium has no limit.`,
+  priceAlerts: `A free account watches ${LIMITS.priceAlerts} prices. Premium watches them all.`,
 };
