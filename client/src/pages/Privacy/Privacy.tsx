@@ -8,7 +8,7 @@ import { usePageMeta } from "../../lib/seo";
 import { acknowledgementsStyles as styles } from "../Acknowledgements/styles";
 
 // the day this page last changed in what it says
-const UPDATED = "November 19, 2026";
+const UPDATED = "November 22, 2026";
 
 type Entry = { name: string; body: string };
 
@@ -72,11 +72,11 @@ const KEPT: Entry[] = [
   },
   {
     name: "Alerts on your phone",
-    body: "If you switch them on: the address your browser gives for sending alerts to that device. Nothing else about the device.",
+    body: "If you switch them on: the address your browser, or the Android app, is given for sending alerts to that device. Nothing else about the device.",
   },
   {
     name: "Signing in",
-    body: "One cookie keeps you signed in for a week. There are no advertising or analytics cookies.",
+    body: "One cookie keeps you signed in for a week, in your browser or inside the Android app. There are no advertising or analytics cookies.",
   },
 ];
 
@@ -114,7 +114,7 @@ const OTHERS: Entry[] = [
   },
   {
     name: "Impact",
-    body: "A script from the affiliate network Impact loads in Manga Tracker, to turn some store links into affiliate links and count them. It may set its own cookies.",
+    body: "On the website, a script from the affiliate network Impact loads, to turn some store links into affiliate links and count them. It may set its own cookies. The Android app doesn't load it.",
   },
   {
     name: "Stores, when you follow a link",
@@ -126,11 +126,11 @@ const OTHERS: Entry[] = [
   },
   {
     name: "Imports",
-    body: "Importing from AniList or Kitsu asks them for that account's list. A file you import is read in your browser.",
+    body: "Importing from AniList or Kitsu asks them for that account's list. A file you import is read on your own device, in your browser or in the app.",
   },
   {
     name: "Push services",
-    body: "Phone alerts are delivered by your browser's own service (Google, Apple or Mozilla). They carry the alert, not your shelf.",
+    body: "On the website, phone alerts are delivered by your browser's own service (Google, Apple or Mozilla). In the Android app they go through Expo and Google's Firebase Cloud Messaging. They carry the alert, not your shelf.",
   },
 ];
 
