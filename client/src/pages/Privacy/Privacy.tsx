@@ -56,7 +56,7 @@ const KEPT: Entry[] = [
   },
   {
     name: "Your email, if you add one",
-    body: "Added by you, or from Google if you sign in with it. Used for password reset links, and the weekly email once you say yes to it. Never shown to anyone else.",
+    body: "Added by you, or from Google if you sign in with it. Used for password reset links and the weekly email. Signing up with Google turns the weekly email on; switch it off any time in Settings or from a link in any email. Never shown to anyone else.",
   },
   {
     name: "Your shelf",

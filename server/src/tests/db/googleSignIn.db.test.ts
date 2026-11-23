@@ -197,16 +197,17 @@ test("making Google accounts from one place is limited like signing up", async (
   expect(made).toEqual([201, 201, 201, 201, 201, 429]);
 });
 
-test("a Google name becomes the username, with a number when it's taken", async () => {
+test("a Google first name becomes the username, with a number when it's taken", async () => {
   const usernameAfter = async (who: string) => {
     const agent = request.agent(app);
     await withGoogle(agent, who);
     return (await agent.get("/api/account")).body.username as string;
   };
-  expect(await usernameAfter("sarah")).toBe("sarahlee");
-  // another Sarah Lee's Google account
-  expect(await usernameAfter("sarah2")).toBe("sarahlee2");
-  // accents dropped
+  expect(await usernameAfter("sarah")).toBe("sarah");
+  // another Sarah's Google account
+  expect(await usernameAfter("sarah2")).toBe("sarah2");
+  // accents dropped; a first name too short to be a username takes the
+  // whole name
   expect(await usernameAfter("zoe")).toBe("zoebronte");
   // nothing usable, or a name kept for the site: made up
   expect(await usernameAfter("sato")).toMatch(/^reader\d{6}$/);
@@ -214,20 +215,20 @@ test("a Google name becomes the username, with a number when it's taken", async 
 });
 
 test("a username taken in other capitals counts as taken", async () => {
-  await userQueries.addUser("SarahLee", "a long password");
+  await userQueries.addUser("Sarah", "a long password");
   const agent = request.agent(app);
   await withGoogle(agent, "sarah");
-  expect((await agent.get("/api/account")).body.username).toBe("sarahlee2");
+  expect((await agent.get("/api/account")).body.username).toBe("sarah2");
 });
 
-test("Google's verified email is saved, confirmed, with the weekly email off and nothing mailed", async () => {
+test("Google's verified email is saved, confirmed, with the weekly email on and nothing mailed", async () => {
   const agent = request.agent(app);
   await withGoogle(agent, "sarah");
   const account = (await agent.get("/api/account")).body;
   expect(account).toMatchObject({
     recoveryEmail: "sarah.lee@example.com",
     emailConfirmed: true,
-    weeklyEmail: false,
+    weeklyEmail: true,
   });
   expect(sent).toEqual([]);
 });

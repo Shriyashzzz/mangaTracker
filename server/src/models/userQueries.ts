@@ -101,23 +101,34 @@ export const getUserByGoogleId = (googleId: string) =>
 const readerUsername = () =>
   `reader${String(randomBytes(4).readUInt32BE() % 1_000_000).padStart(6, "0")}`;
 
-// A Google name as a username: "Sarah Lee" is sarahlee, "Zoë" is zoe. Only
-// the letters and numbers usernames allow, at most 36 so a number fits
-// after it. Null when that leaves under 4 (佐藤, "Al") or a name kept for
-// the site (util/reservedNames.ts)
-function usernameFromName(name: string | null) {
-  const plain = (name ?? "")
+// a name in only the letters and numbers usernames allow, at most 36 so a
+// number fits after it: "Zoë" is zoe
+const plainName = (name: string) =>
+  name
     .normalize("NFKD")
     .replace(/[\u0300-\u036f]/g, "")
     .toLowerCase()
     .replace(/[^a-z0-9]/g, "")
     .slice(0, 36);
-  if (plain.length < 4 || isReservedName(plain)) return null;
-  return plain;
+
+// whether that can be a username: long enough, and not kept for the site
+// (util/reservedNames.ts)
+const canBeUsername = (plain: string) =>
+  plain.length >= 4 && !isReservedName(plain);
+
+// A Google name as a username: the first name alone ("Sarah Lee" is sarah).
+// A first name too short to be one ("Al Green") takes the whole name
+// (algreen). Null when neither can be a username (佐藤, "Al")
+function usernameFromName(name: string | null) {
+  const whole = (name ?? "").trim();
+  const first = plainName(whole.split(/\s+/)[0] ?? "");
+  if (canBeUsername(first)) return first;
+  const all = plainName(whole);
+  return canBeUsername(all) ? all : null;
 }
 
-// the username a new Google account gets: their name, or their name with a
-// number when it's taken (sarahlee2), in any mix of capitals, as sign-up
+// the username a new Google account gets: their first name, or it with a
+// number when it's taken (sarah2), in any mix of capitals, as sign-up
 // counts them. A name that can't be one: reader482913
 async function freeGoogleUsername(name: string | null) {
   const base = usernameFromName(name);
@@ -135,9 +146,11 @@ async function freeGoogleUsername(name: string | null) {
 
 // A new account for a Google account: no password (they can set one in
 // Settings), their Google name as its username, and Google's verified email
-// as its email, confirmed already (Google checked it). The weekly email stays
-// off until they say yes on the site. An email another account has stays
-// with that account. Signing in twice at once makes one account: the second
+// as its email, confirmed already (Google checked it). With an email, the
+// weekly email is on from the start (the owner's choice, 2026-11-22): it is
+// only ever sent when there's news for their shelf, every one has an
+// unsubscribe link, and Settings has the switch. An email another account
+// has stays with that account. Signing in twice at once makes one account: the second
 // finds the first
 export async function addGoogleUser(google: {
   googleId: string;
@@ -158,7 +171,7 @@ export async function addGoogleUser(google: {
           emailConfirmed: Boolean(email),
           // for the unsubscribe links in the weekly email
           emailCode: email ? newEmailCode() : null,
-          weeklyEmail: false,
+          weeklyEmail: Boolean(email),
         },
         select: { id: true },
       });

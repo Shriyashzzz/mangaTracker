@@ -1,7 +1,7 @@
-// Asking a Google reader if they'd like the weekly email. Their Google email
-// is saved, confirmed, with the weekly email off: a tap on "Yes, send it"
-// is their yes (Canada's CASL and the EU want one before it's sent), so
-// nothing weekly goes out without it.
+// Asking a Google reader if they'd like the weekly email, when theirs is
+// off: an account made before 2026-11-22 (new Google accounts start with it
+// on: server models/userQueries.ts addGoogleUser), or one that switched it
+// off. A tap on "Yes, send it" turns it on.
 //
 // Decided by the account, not by the moment it was made, so every device
 // they use asks: a Google reader with an email and the weekly email off.
