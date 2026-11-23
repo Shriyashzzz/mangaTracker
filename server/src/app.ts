@@ -3,6 +3,7 @@
 //
 //   request ─> helmet ─> cors ─> session ─> body parsers ─> router ─> errorHandler
 import express from "express";
+import { appleRouter } from "./plan/appleRouter.js";
 import cors from "cors";
 import helmet from "helmet";
 import session from "express-session";
@@ -87,6 +88,7 @@ app.use("/api/editions", editionsRouter);
 app.use("/api/reviews", reviewsRouter);
 app.use("/api/to-buy", toBuyRouter);
 app.use("/api/collector", collectorRouter);
+app.use("/api/apple", appleRouter);
 app.use("/api/history", historyRouter);
 app.use("/", seoRouter);
 

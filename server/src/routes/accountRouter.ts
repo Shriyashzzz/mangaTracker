@@ -10,6 +10,8 @@ accountRouter.use(requireSignIn);
 accountRouter.get("/", account.get);
 // their plan on this device: limits, what's used of them, the extras
 accountRouter.get("/plan", account.plan);
+// Collector bought or restored in the iPhone app: Apple's signed transaction
+accountRouter.post("/plan/apple", account.applePurchase);
 accountRouter.patch("/", account.update);
 // checks a password, so not as many tries as anything else
 accountRouter.delete(

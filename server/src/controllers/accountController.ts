@@ -1,5 +1,6 @@
 // The account's own details: profile, optional recovery email, list sharing and
 // deleting it all. Plus the public view of a shared list.
+import { applePurchases } from "../plan/applePurchases.js";
 import { planFor, platformOf } from "../plan/plan.js";
 import type { Request, Response } from "express";
 import { directionMarksOff } from "../util/directionMarks.js";
@@ -80,6 +81,23 @@ const plan = async (req: Request, res: Response) => {
   const found = await planFor(req.session.userId!, platformOf(req));
   if (!found) return sendError(res, 404, "No account found.");
   res.json(found);
+};
+
+// POST /plan/apple {signedTransaction}  Collector bought or restored in the
+// iPhone app. Apple's signature is checked before the plan changes
+// (src/plan/applePurchases.ts); then the plan as it is now
+const applePurchase = async (req: Request, res: Response) => {
+  const signed = (req.body as { signedTransaction?: unknown })
+    ?.signedTransaction;
+  if (
+    typeof signed !== "string" ||
+    signed.length < 20 ||
+    signed.length > 20_000
+  )
+    return sendError(res, 400, "That purchase couldn't be read.");
+  const until = await applePurchases.applyPurchase(req.session.userId!, signed);
+  if (!until) return sendError(res, 400, "Apple didn't confirm that purchase.");
+  res.json(await planFor(req.session.userId!, platformOf(req)));
 };
 
 const update = [
@@ -268,6 +286,7 @@ const shared = [
 ];
 
 export default {
+  applePurchase,
   plan,
   get,
   update,

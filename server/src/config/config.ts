@@ -127,6 +127,12 @@ const schema = z.object({
   // list of "ios", "android", "web". Empty (the default): nowhere, and
   // every account has everything. "ios" alone is the iPhone-first launch
   COLLECTOR_LIMITS_ON: optional,
+  // the app's Apple ID number (App Store Connect, App Information): needed
+  // to check purchases made in the live App Store
+  APPLE_APP_ID: z.preprocess(
+    blankToUndefined,
+    z.coerce.number().int().positive().optional(),
+  ),
 
   // affiliate programs
   AMAZON_ASSOCIATE_TAG: optional,

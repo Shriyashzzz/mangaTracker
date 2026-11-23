@@ -52,6 +52,9 @@ model User {
   plan               String             @default("free") @db.VarChar(12)
   planUntil          DateTime?          @map("plan_until") @db.Timestamptz(6)
   scansUsed          Int                @default(0) @map("scans_used")
+  // the App Store subscription behind a Collector plan (its original
+  // transaction ID): renewals and refunds Apple sends find the account by it
+  appleSubscription  String?            @unique @map("apple_subscription") @db.VarChar(64)
   // SerpApi searches their visits have spent (prices/spender.ts)
   serpapiSearches    Int                @default(0) @map("serpapi_searches")
   // when they were last asked out loud about a volume they'd just finished
