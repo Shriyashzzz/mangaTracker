@@ -1,4 +1,6 @@
 // /api/to-buy/*  a signed-in reader's To buy list (toBuy/toBuy.ts)
+import { roomFor } from "../plan/plan.js";
+import { prisma } from "../config/prisma.js";
 import type { Request, Response } from "express";
 import { body, matchedData, param } from "express-validator";
 import { requireSignIn } from "../middlewares/auth.js";
@@ -156,6 +158,13 @@ const note = [
       alertCents?: number | null;
     };
     const userId = req.session.userId!;
+    if (alertCents != null) {
+      const had = await prisma.toBuy.findFirst({
+        where: { userId, isbn13: isbn, alertCents: { not: null } },
+        select: { isbn13: true },
+      });
+      if (!had && !(await roomFor(req, res, "priceAlerts"))) return;
+    }
     if (text !== undefined) await setToBuyNote(userId, isbn, text);
     if (alertCents !== undefined) await setToBuyAlert(userId, isbn, alertCents);
     own(res).json({ ok: true });

@@ -1,5 +1,6 @@
 // The account's own details: profile, optional recovery email, list sharing and
 // deleting it all. Plus the public view of a shared list.
+import { planFor, platformOf } from "../plan/plan.js";
 import type { Request, Response } from "express";
 import { directionMarksOff } from "../util/directionMarks.js";
 import { body, matchedData, param } from "express-validator";
@@ -72,6 +73,13 @@ const get = async (req: Request, res: Response) => {
   const account = await userQueries.getAccount(req.session.userId!);
   if (!account) return sendError(res, 404, "No account found.");
   res.json(withNames(req.session.userId!, account));
+};
+
+// GET /plan  what their plan allows on the device asking (src/plan/)
+const plan = async (req: Request, res: Response) => {
+  const found = await planFor(req.session.userId!, platformOf(req));
+  if (!found) return sendError(res, 404, "No account found.");
+  res.json(found);
 };
 
 const update = [
@@ -260,6 +268,7 @@ const shared = [
 ];
 
 export default {
+  plan,
   get,
   update,
   remove,

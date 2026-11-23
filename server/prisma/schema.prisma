@@ -44,6 +44,12 @@ model User {
   // series on their shelf, kept right by a database trigger on manga
   // (migration 20261113000000_search_tracking); never written from code
   mangaCount         Int                @default(0) @map("manga_count")
+  // The Collector tier (src/plan/planRules.ts). "free"; "collector", paid
+  // for until planUntil; or "early", an account made before the tier
+  // existed, which is never limited. scansUsed: barcodes they've scanned
+  plan               String             @default("free") @db.VarChar(12)
+  planUntil          DateTime?          @map("plan_until") @db.Timestamptz(6)
+  scansUsed          Int                @default(0) @map("scans_used")
   // SerpApi searches their visits have spent (prices/spender.ts)
   serpapiSearches    Int                @default(0) @map("serpapi_searches")
   // when they were last asked out loud about a volume they'd just finished

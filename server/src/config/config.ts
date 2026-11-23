@@ -116,6 +116,11 @@ const schema = z.object({
   // the one account that may review readers' corrections (after the anime)
   ADMIN_USERNAME: optional,
 
+  // The Collector tier (src/plan/): where its limits are switched on, as a
+  // list of "ios", "android", "web". Empty (the default): nowhere, and
+  // every account has everything. "ios" alone is the iPhone-first launch
+  COLLECTOR_LIMITS_ON: optional,
+
   // affiliate programs
   AMAZON_ASSOCIATE_TAG: optional,
   BOOKSHOP_AFFILIATE_ID: optional,

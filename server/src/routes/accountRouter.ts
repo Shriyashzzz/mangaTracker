@@ -8,6 +8,8 @@ import { isProd } from "../config/config.js";
 export const accountRouter = Router();
 accountRouter.use(requireSignIn);
 accountRouter.get("/", account.get);
+// their plan on this device: limits, what's used of them, the extras
+accountRouter.get("/plan", account.plan);
 accountRouter.patch("/", account.update);
 // checks a password, so not as many tries as anything else
 accountRouter.delete(

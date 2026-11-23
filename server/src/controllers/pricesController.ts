@@ -1,6 +1,7 @@
 // Public price checker endpoints: no account needed. Upstream failures
 // (Open Library, AniList, stores) become 502s with a friendly message, so
 // pages can show "try again" instead of a blank error.
+import { countScan, roomFor } from "../plan/plan.js";
 import { nearSeriesNames } from "../prices/seriesNames.js";
 import { slugify } from "../prices/stores/match.js";
 import { closeEnough } from "../util/shelf/spelling.js";
@@ -196,6 +197,9 @@ const volume = [
 const scan = [
   ...isbnParam,
   async (req: Request, res: Response) => {
+    // a signed-in reader's scans are counted; a free account has so many
+    const userId = req.session.userId;
+    if (userId && !(await roomFor(req, res, "scans"))) return;
     const book = await upstream(
       "barcode lookup",
       "The book catalog didn't answer. Try again in a moment.",
@@ -204,6 +208,7 @@ const scan = [
       () => lookupScannedIsbn(matchedData(req).isbn, req.session.userId),
     );
     if (!book) throw new NotFoundError("We couldn't find that book.");
+    if (userId) await countScan(userId);
     res.json(book);
   },
 ];

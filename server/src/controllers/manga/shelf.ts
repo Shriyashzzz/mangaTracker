@@ -2,6 +2,7 @@
 // inline updates (status, to read, rating, chapter, hidden releases, cover,
 // notes, volumes owned). Every :id route runs requireOwner first, which loads
 // the manga onto res.locals.manga.
+import { roomFor } from "../../plan/plan.js";
 import { isShown } from "../../models/bookQueries.js";
 import { ownedSet } from "../../collector/shelfMath.js";
 import { editionStamp } from "../../util/shelf/editionStamp.js";
@@ -70,6 +71,8 @@ export const add = [
   ...mangaFields,
   rejectInvalid,
   async (req: Request, res: Response) => {
+    // a free shelf has room for so many (src/plan/); what's on it stays
+    if (!(await roomFor(req, res, "series"))) return;
     const input = toInput(req);
     // named the way AniList names it, if AniList lists it. If AniList can't be
     // reached the title they typed is fine. Not a light novel: that lookup finds
