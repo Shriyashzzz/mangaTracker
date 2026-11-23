@@ -55,6 +55,12 @@ model User {
   // the App Store subscription behind a Collector plan (its original
   // transaction ID): renewals and refunds Apple sends find the account by it
   appleSubscription  String?            @unique @map("apple_subscription") @db.VarChar(64)
+  // for the member card: when they first became a Collector, the product
+  // they pay for (collector.yearly or collector.monthly), and whether Apple
+  // will renew it (false once they cancel; the plan still runs to planUntil)
+  collectorSince     DateTime?          @map("collector_since") @db.Timestamptz(6)
+  appleProduct       String?            @map("apple_product") @db.VarChar(64)
+  planRenews         Boolean?           @map("plan_renews")
   // SerpApi searches their visits have spent (prices/spender.ts)
   serpapiSearches    Int                @default(0) @map("serpapi_searches")
   // when they were last asked out loud about a volume they'd just finished

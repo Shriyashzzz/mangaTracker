@@ -27,9 +27,18 @@ appleSignatures.transaction = async (s: string) =>
         Buffer.from(s.slice(7), "base64url").toString(),
       ) as JWSTransactionDecodedPayload)
     : null;
-appleSignatures.notification = async (s: string) =>
-  s.startsWith("note-")
-    ? ({ data: { signedTransactionInfo: s.slice(5) } } as never)
+// "note-<transaction>", or "note-<transaction>~renew-0" when Apple says
+// it won't renew (cancelled) and "~renew-1" when it will
+appleSignatures.notification = async (s: string) => {
+  if (!s.startsWith("note-")) return null;
+  const [transaction, renewal] = s.slice(5).split("~");
+  return {
+    data: { signedTransactionInfo: transaction, signedRenewalInfo: renewal },
+  } as never;
+};
+appleSignatures.renewal = async (s: string) =>
+  s.startsWith("renew-")
+    ? ({ autoRenewStatus: Number(s.slice(6)) } as never)
     : null;
 
 async function reader(name = "reader", plan = "free") {
@@ -140,4 +149,63 @@ test("a notification nobody signed is answered and ignored", async () => {
     .post("/api/apple/notifications")
     .send({ signedPayload: "x".repeat(40) })
     .expect(200);
+});
+
+test("the member card: since when, yearly, renewing, then ended once cancelled", async () => {
+  const { userId, agent } = await reader();
+  await agent
+    .post("/api/account/plan/apple")
+    .send({ signedTransaction: signed(yearly()) })
+    .expect(200);
+  let member = (await agent.get("/api/account/plan").expect(200)).body.member;
+  expect(member).toMatchObject({
+    sinceKind: "collector",
+    period: "year",
+    renews: true,
+    caughtOnSale: 0,
+  });
+  const since = member.since;
+  // cancelled in Apple's settings: still a Collector until it runs out
+  await request(app)
+    .post("/api/apple/notifications")
+    .send({ signedPayload: `note-${signed(yearly())}~renew-0` })
+    .expect(200);
+  member = (await agent.get("/api/account/plan").expect(200)).body.member;
+  expect(member).toMatchObject({ renews: false, since });
+  // restored later: a cancelled one stays cancelled, and since doesn't move
+  await agent
+    .post("/api/account/plan/apple")
+    .send({ signedTransaction: signed(yearly()) })
+    .expect(200);
+  member = (await agent.get("/api/account/plan").expect(200)).body.member;
+  expect(member).toMatchObject({ renews: false, since });
+  const user = await prisma.user.findUnique({ where: { id: userId } });
+  expect(user?.collectorSince?.toISOString()).toBe(since);
+});
+
+test("the member card counts each book caught on sale once, by email or push", async () => {
+  const { userId, agent } = await reader("early", "early");
+  await prisma.digestItem.createMany({
+    data: [
+      "drop:9781974700001",
+      "push:drop:9781974700001",
+      "push:drop:9781974700002",
+      "arrived:9781974700003",
+      "push:target:9781974700004:900",
+    ].map((item) => ({ userId, item })),
+  });
+  const member = (await agent.get("/api/account/plan").expect(200)).body.member;
+  expect(member).toMatchObject({
+    sinceKind: "account",
+    period: null,
+    until: null,
+    renews: null,
+    caughtOnSale: 2,
+  });
+});
+
+test("a free account has no member card", async () => {
+  const { agent } = await reader();
+  const plan = (await agent.get("/api/account/plan").expect(200)).body;
+  expect(plan.member).toBeNull();
 });

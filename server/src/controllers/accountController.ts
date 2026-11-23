@@ -2,6 +2,7 @@
 // deleting it all. Plus the public view of a shared list.
 import { applePurchases } from "../plan/applePurchases.js";
 import { planFor, platformOf } from "../plan/plan.js";
+import { membershipFor } from "../plan/membership.js";
 import type { Request, Response } from "express";
 import { directionMarksOff } from "../util/directionMarks.js";
 import { body, matchedData, param } from "express-validator";
@@ -80,7 +81,7 @@ const get = async (req: Request, res: Response) => {
 const plan = async (req: Request, res: Response) => {
   const found = await planFor(req.session.userId!, platformOf(req));
   if (!found) return sendError(res, 404, "No account found.");
-  res.json(found);
+  res.json({ ...found, member: await membershipFor(req.session.userId!) });
 };
 
 // POST /plan/apple {signedTransaction}  Collector bought or restored in the
@@ -97,7 +98,10 @@ const applePurchase = async (req: Request, res: Response) => {
     return sendError(res, 400, "That purchase couldn't be read.");
   const until = await applePurchases.applyPurchase(req.session.userId!, signed);
   if (!until) return sendError(res, 400, "Apple didn't confirm that purchase.");
-  res.json(await planFor(req.session.userId!, platformOf(req)));
+  res.json({
+    ...(await planFor(req.session.userId!, platformOf(req))),
+    member: await membershipFor(req.session.userId!),
+  });
 };
 
 const update = [

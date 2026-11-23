@@ -61,6 +61,8 @@ export const appleSignatures = {
     appleDecoded((v) => v.verifyAndDecodeTransaction(signed)),
   notification: (signed: string) =>
     appleDecoded((v) => v.verifyAndDecodeNotification(signed)),
+  renewal: (signed: string) =>
+    appleDecoded((v) => v.verifyAndDecodeRenewalInfo(signed)),
 };
 
 // what a transaction means for the plan: paid until when, or not ours
@@ -74,15 +76,25 @@ export function planFrom(t: JWSTransactionDecodedPayload) {
       ? new Date(t.expiresDate)
       : null;
   if (!until) return null;
-  return { subscription: t.originalTransactionId, until };
+  return {
+    subscription: t.originalTransactionId,
+    until,
+    product: t.productId,
+  };
 }
+type Paid = NonNullable<ReturnType<typeof planFrom>>;
 
 // the plan's new end, written to an account. The subscription follows the
 // Apple ID that pays: restored on another of our accounts, it moves there
-async function setPlan(
-  userId: number,
-  plan: { subscription: string; until: Date },
-) {
+async function setPlan(userId: number, plan: Paid, renews?: boolean) {
+  // whether it renews, when Apple didn't say: as it was for this
+  // subscription (a restore keeps a cancelled one cancelled), or a new
+  // purchase, which renews
+  const known = await prisma.user.findUnique({
+    where: { appleSubscription: plan.subscription },
+    select: { planRenews: true },
+  });
+  const willRenew = renews ?? known?.planRenews ?? true;
   await prisma.$transaction([
     prisma.user.updateMany({
       where: { appleSubscription: plan.subscription, id: { not: userId } },
@@ -94,7 +106,14 @@ async function setPlan(
         appleSubscription: plan.subscription,
         // an early member stays one: they never lose what they had
         planUntil: plan.until,
+        appleProduct: plan.product,
+        planRenews: willRenew,
       },
+    }),
+    // the day they first became a Collector, kept from then on
+    prisma.user.updateMany({
+      where: { id: userId, collectorSince: null },
+      data: { collectorSince: new Date() },
     }),
     prisma.user.updateMany({
       where: { id: userId, plan: { not: "early" } },
@@ -119,6 +138,15 @@ export async function applyNotification(signedPayload: string) {
   const notification = await appleSignatures.notification(signedPayload);
   const signedTransaction = notification?.data?.signedTransactionInfo;
   if (!signedTransaction) return false;
+  // whether it will renew (turned off when they cancel), when Apple says
+  const signedRenewal = notification?.data?.signedRenewalInfo;
+  const renewal = signedRenewal
+    ? await appleSignatures.renewal(signedRenewal)
+    : null;
+  const renews =
+    renewal?.autoRenewStatus === undefined
+      ? undefined
+      : renewal.autoRenewStatus === 1;
   const transaction = await appleSignatures.transaction(signedTransaction);
   const plan = transaction && planFrom(transaction);
   if (!plan) return false;
@@ -127,7 +155,7 @@ export async function applyNotification(signedPayload: string) {
     select: { id: true },
   });
   if (!user) return false;
-  await setPlan(user.id, plan);
+  await setPlan(user.id, plan, renews);
   return true;
 }
 
