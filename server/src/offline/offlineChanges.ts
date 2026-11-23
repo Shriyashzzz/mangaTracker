@@ -9,6 +9,7 @@ import type { Request, Response } from "express";
 import { prisma } from "../config/prisma.js";
 import { rejectInvalid } from "../middlewares/validate.js";
 import mangaQueries from "../models/mangaQueries.js";
+import { recordTickedBooks } from "../util/shelf/tickedBooks.js";
 import { ownedSet } from "../collector/shelfMath.js";
 import { ownedVolumes } from "../util/shelf/ownedList.js";
 import { askAboutFinishedVolume } from "../reviews/reviews.js";
@@ -67,6 +68,8 @@ async function applyOne(userId: number, change: Change): Promise<ChangeAnswer> {
     const now = [...ownedSet(manga)];
     const merged = mergeOwned(now, change.started ?? [], change.ended ?? []);
     await mangaQueries.setVolumesOwned(manga.id, ownedVolumes(null, merged));
+    // (as a tick saved online does: util/shelf/tickedBooks.ts)
+    await recordTickedBooks(manga, now, merged).catch((e) => console.error(e));
     return { saved: true };
   }
   if (change.kind === "bookmark") {

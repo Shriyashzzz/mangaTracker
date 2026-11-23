@@ -146,6 +146,9 @@ export default function Details() {
         },
     releaseStatus?.nextChapterVolume ?? null,
   );
+  // goes up when their recorded books may have changed (a book added, a
+  // spine ticked): Your books and the shelf's names read them again
+  const [booksChanged, setBooksChanged] = useState(0);
   const editions = useEditions(
     mangaData && !mangaData.lightNovel ? priceName(mangaData) : null,
     mangaData?.id ?? null,
@@ -154,6 +157,7 @@ export default function Details() {
     mangaData ? [...ownedOf(mangaData), ...ordered] : [],
     buyOptions.volumes.map((v) => v.isbn13),
     releaseStatus?.nextChapterVolume ?? null,
+    booksChanged,
   );
 
   // ---------- loading ----------
@@ -361,7 +365,6 @@ export default function Details() {
 
   // a coming release's notice just closed: the page draws again without it
   const [, setUpcomingClosedAt] = useState(0);
-  const [booksChanged, setBooksChanged] = useState(0);
   const ownBook = async (line: EditionLine, book: EditionBook) => {
     if (!mangaData) return;
     const { owned, books } = await ownEditionBook(
@@ -453,6 +456,8 @@ export default function Details() {
       setActionNote(orOffline(DIDNT_SAVE));
       setCanUndoStatus(false);
     },
+    // a tick that completed a book of their edition recorded it
+    onSaved: () => setBooksChanged((n) => n + 1),
   });
 
   if (loadError)
@@ -612,6 +617,7 @@ export default function Details() {
                 ownedVolumes={ownedVolumes}
                 place={shelfPlace}
                 edition={editionShelf}
+                recorded={editions.books}
                 ordered={ordered}
               />
             )}

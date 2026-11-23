@@ -168,8 +168,14 @@ export default function VolumeShelf({
 
   const yours = new Set(owned);
   // the first of a run: a single after a book, or a book after a single
+  // (or a book of another edition: a Definitive beside a VIZBIG)
   const startsRun = (v: number) =>
-    Boolean(slots && v > 1 && slots.isSingle(v) !== slots.isSingle(v - 1));
+    Boolean(
+      slots &&
+      v > 1 &&
+      (slots.isSingle(v) !== slots.isSingle(v - 1) ||
+        (slots.runName?.(v) ?? "") !== (slots.runName?.(v - 1) ?? "")),
+    );
   let gaps = 0;
   for (let v = 2; v <= total; v++) if (startsRun(v)) gaps++;
   // the books share what's left once the gaps have their room

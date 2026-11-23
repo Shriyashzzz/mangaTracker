@@ -22,6 +22,7 @@ import { askAboutFinishedVolume } from "../../reviews/reviews.js";
 import { newestChapterKnown } from "../../util/releases/releaseAnswers.js";
 import { sendError } from "../../middlewares/errorHandler.js";
 import { oneAtATime } from "../../util/shelf/oneAtATime.js";
+import { recordTickedBooks } from "../../util/shelf/tickedBooks.js";
 import { keepSavedList, ownedVolumes } from "../../util/shelf/ownedList.js";
 import {
   chapterMessage,
@@ -401,8 +402,8 @@ export const setOwned = [
     const manga = res.locals.manga as Manga;
     // under the reader's lock, as offline changes are (offline/
     // offlineChanges.ts): neither lands in the middle of the other
-    const saved = await oneAtATime(req.session.userId!, () =>
-      mangaQueries.setVolumesOwned(
+    const saved = await oneAtATime(req.session.userId!, async () => {
+      const now = await mangaQueries.setVolumesOwned(
         manga.id,
         d.ownedList === undefined
           ? keepSavedList(
@@ -411,8 +412,17 @@ export const setOwned = [
               "add one",
             )
           : ownedVolumes(d.volumesOwned ?? null, d.ownedList),
-      ),
-    );
+      );
+      // a book of the edition they collect that this completed is theirs
+      // by name from now on (util/shelf/tickedBooks.ts). The volumes are
+      // saved either way
+      await recordTickedBooks(
+        manga,
+        ownedSet(manga),
+        ownedSet({ ...manga, ...now }),
+      ).catch((e) => console.error(e));
+      return now;
+    });
     res.json(saved);
   },
 ];

@@ -23,6 +23,7 @@ import {
   toggleSlot,
   volumesAfterPaint,
   type EditionShelf,
+  runLabelOf,
 } from "../../lib/editionShelf";
 import { rangesText } from "../../lib/ownedVolumes";
 import { readLocal, writeLocal } from "../../lib/prefs";
@@ -70,6 +71,9 @@ type Props = {
   // the edition they collect, and its books on this shelf; null for single
   // volumes
   edition?: EditionShelf | null;
+  // the books they've recorded: a spine is named by the edition its book
+  // really is
+  recorded?: { label?: string | null; volumes: number[] }[];
   // single volumes ordered and on their way: drawn as such
   ordered?: number[];
   // the app's "Your shelf" heading; the Volumes tab's rows have their own
@@ -88,6 +92,7 @@ export default function ShelfBox({
   ownedVolumes,
   place = null,
   edition = null,
+  recorded = [],
   ordered = [],
   heading = true,
   opensAt = null,
@@ -242,12 +247,10 @@ export default function ShelfBox({
               bookWidth: EDITION_BOOK,
               spine: (n) => spineOf(slots[n - 1]!),
               // a long edition name is cut short to fit over a spine
-              runName: (n) =>
-                slots[n - 1]?.book
-                  ? edition.line.label.length > 10
-                    ? shortEditionName(edition.line.label)
-                    : edition.line.label
-                  : "Singles",
+              runName: (n) => {
+                const label = runLabelOf(slots[n - 1]!, edition.line, recorded);
+                return label.length > 10 ? shortEditionName(label) : label;
+              },
               name: (n) => slotName(edition.line, slots[n - 1]!, owned),
               share: (n) => shareOwned(slots, owned, n),
               isSingle: (n) => !slots[n - 1]!.book,

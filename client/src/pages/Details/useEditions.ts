@@ -24,6 +24,8 @@ export function useEditions(
   listedIsbns: (string | null)[] = [],
   // with none owned: the volume their next chapter is in (editionPlan)
   readingFrom: number | null = null,
+  // goes up when their recorded books may have changed: read again
+  booksChanged = 0,
 ) {
   const [state, setState] = useState<{
     name: string | null;
@@ -46,6 +48,18 @@ export function useEditions(
     });
     return () => controller.abort();
   }, [name, mangaId]);
+  // their recorded books alone, after a change to them (a spine ticked, a
+  // book added or removed): the lines don't need asking for again
+  useEffect(() => {
+    if (!name || !mangaId || !booksChanged) return;
+    const controller = new AbortController();
+    getBooks(mangaId, controller.signal)
+      .then((books) =>
+        setState((now) => (now.name === name ? { ...now, books } : now)),
+      )
+      .catch(() => {});
+    return () => controller.abort();
+  }, [name, mangaId, booksChanged]);
 
   const lines = state.name === name ? state.lines : [];
   const guessed =
@@ -58,6 +72,8 @@ export function useEditions(
   return {
     lines,
     line,
+    // the books they've recorded, for the names over the shelf's spines
+    books: state.name === name ? state.books : [],
     // they collect an edition, known even before its line is (offline, it
     // may be missing): picked, or their recorded edition books hold at least
     // half of what they own, as guessEdition decides it

@@ -228,3 +228,35 @@ export function ownedCaption(slots: Slot[], owned: number[]) {
   const volumes = singles.flatMap((slot) => slot.volumes);
   return `${all}, and ${volumes.length === 1 ? "vol." : "vols."} ${rangesText(volumes)}`;
 }
+
+// A book's spine on the shelf: the edition it really is when they've
+// recorded it ("Definitive", though the shelf is being looked at as VIZBIG),
+// or else the edition picked. A single volume is "Singles". Its kind says
+// how thick the spine is drawn: a deluxe book the thickest, an omnibus a
+// little less, a single volume thin.
+// One rule, so the shelf and "Your books" can't call a book two things
+export type RunKind = "single" | "omnibus" | "deluxe";
+type Recorded = {
+  label?: string | null;
+  edition?: string | null;
+  volumes: number[];
+};
+export const runOf = (
+  slot: Slot,
+  line: EditionLine,
+  recorded: Recorded[],
+): { label: string; kind: RunKind } => {
+  if (!slot.book) return { label: "Singles", kind: "single" };
+  const same = slot.volumes.join();
+  const book = recorded.find((b) => b.volumes.join() === same);
+  const kind =
+    book?.edition === "deluxe" || book?.edition === "omnibus"
+      ? book.edition
+      : line.kind;
+  return { label: book?.label ?? line.label, kind };
+};
+export const runLabelOf = (
+  slot: Slot,
+  line: EditionLine,
+  recorded: Recorded[],
+) => runOf(slot, line, recorded).label;
