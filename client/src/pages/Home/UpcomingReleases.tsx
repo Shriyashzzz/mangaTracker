@@ -25,14 +25,29 @@ const SHOWN = 6;
 
 export default function UpcomingReleases() {
   const [months, setMonths] = useState<CalendarMonth[] | null>(null);
+  // Asked as the page opens, and again whenever the tab or app comes back
+  // into view: a page left open for days (the installed Android app keeps
+  // it so) kept a release announced since out of the list
   useEffect(() => {
-    const controller = new AbortController();
-    getCalendar(controller.signal)
-      .then(setMonths)
-      .catch(() => {
-        // switched off or unreachable: the New tab as it was
-      });
-    return () => controller.abort();
+    let controller = new AbortController();
+    const ask = () => {
+      controller.abort();
+      controller = new AbortController();
+      getCalendar(controller.signal)
+        .then(setMonths)
+        .catch(() => {
+          // switched off or unreachable: the New tab as it was
+        });
+    };
+    ask();
+    const back = () => {
+      if (document.visibilityState === "visible") ask();
+    };
+    document.addEventListener("visibilitychange", back);
+    return () => {
+      document.removeEventListener("visibilitychange", back);
+      controller.abort();
+    };
   }, []);
   // Back from a release's page: the panel open again, and the scroll
   useReturnSpot(Boolean(months));
