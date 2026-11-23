@@ -165,7 +165,7 @@ export function PrivacyPage() {
         id="pv-use"
         title="What it's used for"
         lines={[
-          "Only to run Manga Tracker: showing your shelf, checking for new volumes and prices, and sending the emails and alerts you ask for.",
+          "Only to run Manga Tracker: showing your shelf, checking for new volumes and prices, and sending its emails and alerts (each can be switched off in Settings).",
           "It's never sold, never used for ads, and never shared with anyone except the services below, for the job each one does.",
         ]}
       />
