@@ -8,7 +8,7 @@ import { usePageMeta } from "../../lib/seo";
 import { acknowledgementsStyles as styles } from "../Acknowledgements/styles";
 
 // the day this page last changed in what it says
-const UPDATED = "November 22, 2026";
+const UPDATED = "November 23, 2026";
 
 type Entry = { name: string; body: string };
 
@@ -52,11 +52,11 @@ function Section({
 const KEPT: Entry[] = [
   {
     name: "Your account",
-    body: "Your username and your password, stored only as a secure hash. If you sign in with Google, your Google account's ID number and the email Google has verified. Your Google name is used once, to make your username.",
+    body: "Your username and your password, stored only as a secure hash. If you sign in with Google, your Google account's ID number and the email Google has verified; with Apple, your Apple account's ID number and the email Apple gives (which can be Apple's private relay address). A Google or Apple name is used once, to make your username.",
   },
   {
     name: "Your email, if you add one",
-    body: "Added by you, or from Google if you sign in with it. Used for password reset links and the weekly email. Signing up with Google turns the weekly email on; switch it off any time in Settings or from a link in any email. Never shown to anyone else.",
+    body: "Added by you, or from Google or Apple if you sign in with them. Used for password reset links and the weekly email. Signing up with Google turns the weekly email on; switch it off any time in Settings or from a link in any email. Never shown to anyone else.",
   },
   {
     name: "Your shelf",
@@ -71,12 +71,16 @@ const KEPT: Entry[] = [
     body: "Volume reviews you write, and reports you make about other reviews.",
   },
   {
+    name: "Your plan",
+    body: "Free, Collector, or an early member's. If you buy Collector in the iPhone app: which plan, when it renews or ends, and the subscription's ID that Apple confirms. Apple takes the payment; your card never reaches Manga Tracker.",
+  },
+  {
     name: "Alerts on your phone",
-    body: "If you switch them on: the address your browser, or the Android app, is given for sending alerts to that device. Nothing else about the device.",
+    body: "If you switch them on: the address your browser, or the Android or iPhone app, is given for sending alerts to that device. Nothing else about the device.",
   },
   {
     name: "Signing in",
-    body: "One cookie keeps you signed in for a week, in your browser or inside the Android app. There are no advertising or analytics cookies.",
+    body: "One cookie keeps you signed in for a week, in your browser or inside the Android or iPhone app. There are no advertising or analytics cookies.",
   },
 ];
 
@@ -113,8 +117,12 @@ const OTHERS: Entry[] = [
     body: "If you choose Continue with Google, Google confirms it's you and tells us your Google account's ID, name and email. Google sees that you signed in to Manga Tracker.",
   },
   {
+    name: "Apple",
+    body: "If you choose Sign in with Apple, Apple confirms it's you and tells us your Apple account's ID, and your name and email if you share them. In the iPhone app, Apple takes Collector payments and tells us when a subscription starts, renews, ends or is refunded.",
+  },
+  {
     name: "Impact",
-    body: "On the website, a script from the affiliate network Impact loads, to turn some store links into affiliate links and count them. It may set its own cookies. The Android app doesn't load it.",
+    body: "On the website, a script from the affiliate network Impact loads, to turn some store links into affiliate links and count them. It may set its own cookies. The Android and iPhone apps don't load it.",
   },
   {
     name: "Stores, when you follow a link",
@@ -130,7 +138,7 @@ const OTHERS: Entry[] = [
   },
   {
     name: "Push services",
-    body: "On the website, phone alerts are delivered by your browser's own service (Google, Apple or Mozilla). In the Android app they go through Expo and Google's Firebase Cloud Messaging. They carry the alert, not your shelf.",
+    body: "On the website, phone alerts are delivered by your browser's own service (Google, Apple or Mozilla). In the Android app they go through Expo and Google's Firebase Cloud Messaging, and in the iPhone app through Expo and Apple's push service. They carry the alert, not your shelf.",
   },
 ];
 
@@ -148,8 +156,8 @@ export function PrivacyPage() {
         <h1 className={styles.title}>Privacy policy</h1>
         <p className={styles.lead}>
           Your shelf is yours. No ads, nothing sold, and only what Manga Tracker
-          needs to work. This covers the website and the Android app, which
-          shows the same site.
+          needs to work. This covers the website and the Android and iPhone
+          apps.
         </p>
         <p className={`${styles.body} mt-2`}>Last updated {UPDATED}.</p>
       </header>
