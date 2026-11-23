@@ -116,6 +116,13 @@ const schema = z.object({
   // the one account that may review readers' corrections (after the anime)
   ADMIN_USERNAME: optional,
 
+  // Signing in with Apple (src/auth/appleSignIn.ts): the iPhone app's
+  // bundle IDs an identity token may be made out to, comma-separated
+  APPLE_BUNDLE_IDS: z.preprocess(
+    blankToUndefined,
+    z.string().default("xyz.mangatracker.app,xyz.mangatracker.app.rn"),
+  ),
+
   // The Collector tier (src/plan/): where its limits are switched on, as a
   // list of "ios", "android", "web". Empty (the default): nowhere, and
   // every account has everything. "ios" alone is the iPhone-first launch

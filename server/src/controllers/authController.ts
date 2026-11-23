@@ -1,5 +1,6 @@
 // Sign in, sign up, sign out, "am I signed in?" and display preferences.
 // Sessions live in Postgres (connect-pg-simple); the cookie only holds its id.
+import { appleSignIn } from "../auth/appleSignIn.js";
 import type { NextFunction, Request, Response } from "express";
 import { body, matchedData } from "express-validator";
 import { rejectInvalid } from "../middlewares/validate.js";
@@ -153,6 +154,28 @@ const google = [
   },
 ];
 
+// POST /apple {identityToken, name?}  signing in with Apple from the iPhone
+// app (src/auth/appleSignIn.ts). An account it signs in to: 200. None yet:
+// one is made for it (201). `name` is the first name Apple gave the app,
+// said only the first time someone signs in
+const apple = [
+  body("identityToken").isString().isLength({ min: 20, max: 8192 }),
+  body("name").optional({ values: "null" }).isString().isLength({ max: 80 }),
+  rejectInvalid,
+  async (req: Request, res: Response) => {
+    const { identityToken, name } = matchedData(req);
+    const found = await appleSignIn.accountOf(identityToken);
+    if (!found)
+      return sendError(res, 401, "Apple didn't confirm that. Try again.");
+    const existing = await userQueries.getUserByAppleId(found.appleId);
+    const userId =
+      existing?.id ??
+      (await userQueries.addAppleUser({ ...found, name: name ?? null }));
+    await startSession(req, userId);
+    res.sendStatus(existing ? 200 : 201);
+  },
+];
+
 const logout = (req: Request, res: Response) => {
   req.session.destroy((err) => {
     if (err) sendError(res, 500, "Couldn't sign you out. Try again.");
@@ -242,6 +265,7 @@ const resetPassword = [
 ];
 
 export default {
+  apple,
   login,
   signup,
   google,

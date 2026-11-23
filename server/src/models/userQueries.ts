@@ -191,6 +191,47 @@ export async function addGoogleUser(google: {
   throw new Error("No free username for a Google sign-up");
 }
 
+export const getUserByAppleId = (appleId: string) =>
+  prisma.user.findUnique({ where: { appleId }, select: { id: true } });
+
+// A new account for an Apple account, as for a Google one (addGoogleUser):
+// no password, their first name as its username when Apple gave one, and
+// Apple's email, confirmed, with the weekly email on
+export async function addAppleUser(apple: {
+  appleId: string;
+  name: string | null;
+  email: string | null;
+}): Promise<number> {
+  const { appleId, name } = apple;
+  let email =
+    apple.email && !(await getUserByEmail(apple.email)) ? apple.email : null;
+  for (let tries = 0; tries < 5; tries++) {
+    try {
+      const user = await prisma.user.create({
+        data: {
+          username: await freeGoogleUsername(name),
+          password: null,
+          appleId,
+          recoveryEmail: email,
+          emailConfirmed: Boolean(email),
+          emailCode: email ? newEmailCode() : null,
+          weeklyEmail: Boolean(email),
+        },
+        select: { id: true },
+      });
+      return user.id;
+    } catch (e) {
+      const taken =
+        e instanceof Prisma.PrismaClientKnownRequestError && e.code === "P2002";
+      if (!taken) throw e;
+      const theirs = await getUserByAppleId(appleId);
+      if (theirs) return theirs.id;
+      email = null;
+    }
+  }
+  throw new Error("No free username for an Apple sign-up");
+}
+
 // A signed-in account starts signing in with Google too. False when that
 // Google account already signs in to another account
 export async function linkGoogle(id: number, googleId: string) {
@@ -527,6 +568,8 @@ export default {
   deleteAccount,
   getUserByGoogleId,
   addGoogleUser,
+  getUserByAppleId,
+  addAppleUser,
   linkGoogle,
   setFirstPassword,
   getSharedShelf,

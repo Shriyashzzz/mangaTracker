@@ -25,6 +25,8 @@ model User {
   // the Google account they sign in with (Google's "sub"): never its email
   // or name, which aren't kept
   googleId           String?            @unique @map("google_id") @db.VarChar(64)
+  // the Apple account they sign in with (Apple's "sub" for this app)
+  appleId            String?            @unique @map("apple_id") @db.VarChar(64)
   // display preferences: { background, theme }
   prefs              Json               @default("{}")
   // what others see if they share their list; the username stays private
