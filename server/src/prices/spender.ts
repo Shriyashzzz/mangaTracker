@@ -11,6 +11,7 @@ import { AsyncLocalStorage } from "node:async_hooks";
 import { createHash } from "node:crypto";
 import type { Request } from "express";
 import config from "../config/config.js";
+import { clientIp } from "../util/clientIp.js";
 
 export type Spender =
   { userId: number } | { visitor: string; userAgent: string | null };
@@ -29,7 +30,7 @@ export function spenderOf(req: Request): Spender {
   if (req.session.userId) return { userId: req.session.userId };
   const userAgent = req.get("user-agent") ?? "";
   return {
-    visitor: visitorId(req.ip ?? "", userAgent, config.SECRET),
+    visitor: visitorId(clientIp(req), userAgent, config.SECRET),
     userAgent: userAgent.slice(0, 300) || null,
   };
 }

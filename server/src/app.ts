@@ -33,7 +33,8 @@ import { errorHandler } from "./middlewares/errorHandler.js";
 export const app = express();
 
 app.disable("x-powered-by");
-// Railway's proxy terminates https; trust it so secure cookies and req.ip work
+// Railway's proxy terminates https; trust it so secure cookies work. (The
+// reader's own address, behind Cloudflare too, is util/clientIp.ts)
 app.set("trust proxy", 1);
 
 // the site loads cover images from this API on another subdomain

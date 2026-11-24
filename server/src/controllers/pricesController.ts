@@ -58,6 +58,7 @@ import {
   searchSeries,
   volumeExists,
 } from "../prices/service.js";
+import { clientIp } from "../util/clientIp.js";
 
 // ---------- shared rules ----------
 
@@ -167,7 +168,7 @@ const volume = [
     const live =
       !crawler &&
       req.query.stored !== "1" &&
-      (await isHuman(req.query.human, req.ip));
+      (await isHuman(req.query.human, clientIp(req)));
     const data = await upstream(
       "price lookup",
       "Prices couldn't be loaded. Try again in a moment.",
@@ -220,7 +221,7 @@ const canadaVolume = [
   async (req: Request, res: Response) => {
     const live =
       !isCrawler(req.get("user-agent")) &&
-      (await isHuman(req.query.human, req.ip));
+      (await isHuman(req.query.human, clientIp(req)));
     res.json(
       await upstream(
         "Canadian price lookup",
@@ -317,7 +318,7 @@ const seriesSets = [
     const country = countryOf(req.query.country);
     const allowed =
       !isCrawler(req.get("user-agent")) &&
-      (await isHuman(req.query.human, req.ip));
+      (await isHuman(req.query.human, clientIp(req)));
     const data = allowed
       ? await getSeries(name, country).catch(() => null)
       : null;

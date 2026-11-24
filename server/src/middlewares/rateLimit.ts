@@ -1,4 +1,5 @@
 import type { RequestHandler } from "express";
+import { clientIp } from "../util/clientIp.js";
 
 // tiny per-visitor limiter so one client can't burn through the free API
 // quotas. In memory, so it resets on restart; good enough for one server
@@ -17,7 +18,7 @@ export function rateLimit({
   const hits = new Map<string, number[]>();
   return (req, res, next) => {
     const now = Date.now();
-    const key = req.ip ?? "unknown";
+    const key = clientIp(req);
     const recent = (hits.get(key) ?? []).filter((t) => now - t < windowMs);
     if (recent.length >= max) {
       res.set("Retry-After", String(Math.ceil(windowMs / 1000)));
