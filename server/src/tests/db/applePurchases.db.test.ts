@@ -39,7 +39,13 @@ appleSignatures.notification = async (s: string) => {
 appleSignatures.renewal = async (s: string) =>
   s.startsWith("renew-")
     ? ({ autoRenewStatus: Number(s.slice(6)) } as never)
-    : null;
+    : // "grace-<ms>": renewing, in the billing grace period until then
+      s.startsWith("grace-")
+      ? ({
+          autoRenewStatus: 1,
+          gracePeriodExpiresDate: Number(s.slice(6)),
+        } as never)
+      : null;
 
 async function reader(name = "reader", plan = "free") {
   const userId = (await userQueries.addUser(name, PASSWORD))!;
@@ -208,4 +214,61 @@ test("a free account has no member card", async () => {
   const { agent } = await reader();
   const plan = (await agent.get("/api/account/plan").expect(200)).body;
   expect(plan.member).toBeNull();
+});
+
+test("in Apple's billing grace period, Premium lasts until the grace ends", async () => {
+  const { userId, agent } = await reader();
+  // the year that is running out
+  await agent
+    .post("/api/account/plan/apple")
+    .send({
+      signedTransaction: signed(yearly({ expiresDate: Date.now() - day })),
+    })
+    .expect(200);
+  // the card failed: the period ran out yesterday, Apple keeps trying for 10 days
+  const graceEnds = Date.now() + 10 * day;
+  await request(app)
+    .post("/api/apple/notifications")
+    .send({
+      signedPayload: `note-${signed(yearly({ expiresDate: Date.now() - day }))}~grace-${graceEnds}`,
+    })
+    .expect(200);
+  const user = await prisma.user.findUnique({ where: { id: userId } });
+  expect(user?.planUntil?.getTime()).toBe(graceEnds);
+  expect((await agent.get("/api/account/plan").expect(200)).body.plan).toBe(
+    "collector",
+  );
+  // a refund during it still ends it now
+  await request(app)
+    .post("/api/apple/notifications")
+    .send({
+      signedPayload: `note-${signed(yearly({ revocationDate: Date.now() - 1000 }))}~grace-${graceEnds}`,
+    })
+    .expect(200);
+  const after = await prisma.user.findUnique({ where: { id: userId } });
+  expect(after!.planUntil!.getTime()).toBeLessThan(Date.now());
+});
+
+test("an older transaction never takes back time a renewal gave", async () => {
+  const { userId, agent } = await reader();
+  await agent
+    .post("/api/account/plan/apple")
+    .send({
+      signedTransaction: signed(yearly({ expiresDate: Date.now() + day })),
+    })
+    .expect(200);
+  const renewed = Date.now() + 400 * day;
+  await request(app)
+    .post("/api/apple/notifications")
+    .send({ signedPayload: `note-${signed(yearly({ expiresDate: renewed }))}` })
+    .expect(200);
+  // a restore from the app sends the first purchase again, ending tomorrow
+  await agent
+    .post("/api/account/plan/apple")
+    .send({
+      signedTransaction: signed(yearly({ expiresDate: Date.now() + day })),
+    })
+    .expect(200);
+  const user = await prisma.user.findUnique({ where: { id: userId } });
+  expect(user?.planUntil?.getTime()).toBe(renewed);
 });

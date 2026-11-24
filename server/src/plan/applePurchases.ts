@@ -80,6 +80,8 @@ export function planFrom(t: JWSTransactionDecodedPayload) {
     subscription: t.originalTransactionId,
     until,
     product: t.productId,
+    // a refund: the one end that may come earlier than the one kept
+    refunded: Boolean(t.revocationDate),
   };
 }
 type Paid = NonNullable<ReturnType<typeof planFrom>>;
@@ -92,9 +94,14 @@ async function setPlan(userId: number, plan: Paid, renews?: boolean) {
   // purchase, which renews
   const known = await prisma.user.findUnique({
     where: { appleSubscription: plan.subscription },
-    select: { planRenews: true },
+    select: { id: true, planRenews: true, planUntil: true },
   });
   const willRenew = renews ?? known?.planRenews ?? true;
+  // the end only moves on: an older transaction (a restore of the first
+  // purchase, a notification that arrives late) never takes back time a
+  // renewal or a grace period gave. A refund ends it all the same
+  const kept = known?.id === userId ? known.planUntil : null;
+  const until = !plan.refunded && kept && kept > plan.until ? kept : plan.until;
   await prisma.$transaction([
     prisma.user.updateMany({
       where: { appleSubscription: plan.subscription, id: { not: userId } },
@@ -105,7 +112,7 @@ async function setPlan(userId: number, plan: Paid, renews?: boolean) {
       data: {
         appleSubscription: plan.subscription,
         // an early member stays one: they never lose what they had
-        planUntil: plan.until,
+        planUntil: until,
         appleProduct: plan.product,
         planRenews: willRenew,
       },
@@ -148,8 +155,17 @@ export async function applyNotification(signedPayload: string) {
       ? undefined
       : renewal.autoRenewStatus === 1;
   const transaction = await appleSignatures.transaction(signedTransaction);
-  const plan = transaction && planFrom(transaction);
-  if (!plan) return false;
+  const found = transaction && planFrom(transaction);
+  if (!found) return false;
+  // in Apple's billing grace period (a card that failed, being tried again):
+  // Premium stays theirs until the grace ends, as Apple keeps it for them.
+  // Never past a refund, which ends it now
+  const grace = renewal?.gracePeriodExpiresDate;
+  const graceEnds = grace ? new Date(grace) : null;
+  const plan =
+    graceEnds && !transaction.revocationDate && graceEnds > found.until
+      ? { ...found, until: graceEnds }
+      : found;
   const user = await prisma.user.findUnique({
     where: { appleSubscription: plan.subscription },
     select: { id: true },
