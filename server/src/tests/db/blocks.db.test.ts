@@ -3,6 +3,7 @@ import request from "supertest";
 import { app } from "../../app.js";
 import userQueries from "../../models/userQueries.js";
 import { closeDb, emptyDb, prisma } from "./testDb.js";
+import { MOST_BLOCKS } from "../../blocks/blocks.js";
 
 beforeEach(emptyDb);
 afterAll(closeDb);
@@ -102,4 +103,48 @@ test("only your own blocks: yourself, nobody, someone else's, signed out", async
   await me.agent.delete(`/api/blocks/${samsBlock.id}`);
   expect(await prisma.userBlock.count()).toBe(1);
   expect((await request(app).get("/api/blocks")).status).toBe(401);
+});
+
+test("a big block list: capped at the most, listed newest first, reviews still quick", async () => {
+  const me = await reader("reader");
+  // a thousand readers, all blocked, straight into the tables
+  await prisma.user.createMany({
+    data: Array.from({ length: MOST_BLOCKS }, (_, i) => ({
+      username: `blocked${i}`,
+      password: "x",
+    })),
+  });
+  const others = await prisma.user.findMany({
+    where: { username: { startsWith: "blocked" } },
+    select: { id: true },
+  });
+  await prisma.userBlock.createMany({
+    data: others.map((o) => ({ blockerId: me.id, blockedId: o.id })),
+  });
+
+  // at the most: one more is refused, and says why
+  const sam = await reader("samuel");
+  const theirs = await review(sam.id, ISBN, "Loved it");
+  const refused = await me.agent
+    .post("/api/blocks")
+    .send({ reviewId: theirs.id });
+  expect(refused.status).toBe(409);
+  expect(refused.body.error[0].msg).toMatch(/1,000/);
+
+  // the first few for Settings, with how many in all
+  const few = (await me.agent.get("/api/blocks?limit=3")).body;
+  expect(few.total).toBe(MOST_BLOCKS);
+  expect(few.blocks).toHaveLength(3);
+  // and the whole list for its own page
+  const all = (await me.agent.get("/api/blocks")).body;
+  expect(all.blocks).toHaveLength(MOST_BLOCKS);
+
+  // a volume's reviews still load quickly with all of them to leave out
+  const started = Date.now();
+  const page = await me.agent.get(`/api/reviews/volume/${ISBN}`);
+  expect(page.status).toBe(200);
+  expect(page.body.reviews.map((r: { text: string }) => r.text)).toEqual([
+    "Loved it",
+  ]);
+  expect(Date.now() - started).toBeLessThan(1500);
 });

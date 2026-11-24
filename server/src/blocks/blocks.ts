@@ -2,7 +2,8 @@
 // users wherever other readers' words or shelves are shown). A block is one
 // reader's own: the blocked reader is never told.
 //
-//   GET    /api/blocks        the readers you've blocked
+//   GET    /api/blocks        the readers you've blocked, newest first, and
+//                            how many in all (?limit= for the first few)
 //   POST   /api/blocks        { reviewId } or { shareCode }: block its writer
 //                            or the shelf's owner
 //   DELETE /api/blocks/:id    unblock
@@ -13,13 +14,17 @@
 //   - neither can follow, or open, the other's shared shelf, and any follow
 //     between them ends (friends/friends.ts, accountController shared)
 import { Router, type Request, type Response } from "express";
-import { body, matchedData, param } from "express-validator";
+import { body, matchedData, param, query } from "express-validator";
 import { prisma } from "../config/prisma.js";
 import { requireSignIn } from "../middlewares/auth.js";
 import { rateLimit } from "../middlewares/rateLimit.js";
 import { rejectInvalid } from "../middlewares/validate.js";
 import { sendError } from "../middlewares/errorHandler.js";
 import { readerName } from "../util/shelf/readerNames.js";
+
+// the most one reader can block: far past anyone's real need, and it keeps
+// the list (and every review check) small
+export const MOST_BLOCKS = 1000;
 
 // the readers this reader has blocked (whose reviews they don't see)
 export async function blockedBy(viewerId: number | null | undefined) {
@@ -84,6 +89,20 @@ const block = [
     if (blockedId == null) return sendError(res, 404, "That reader is gone.");
     const blockerId = req.session.userId!;
     if (blockedId === blockerId) return sendError(res, 400, "That's you.");
+    // at the most already: refused, unless this one is already blocked
+    const [count, already] = await Promise.all([
+      prisma.userBlock.count({ where: { blockerId } }),
+      prisma.userBlock.findUnique({
+        where: { blockerId_blockedId: { blockerId, blockedId } },
+        select: { id: true },
+      }),
+    ]);
+    if (!already && count >= MOST_BLOCKS)
+      return sendError(
+        res,
+        409,
+        `You've blocked ${MOST_BLOCKS.toLocaleString("en-US")} readers, the most there can be. Unblock someone first.`,
+      );
     await prisma.$transaction([
       prisma.userBlock.upsert({
         where: { blockerId_blockedId: { blockerId, blockedId } },
@@ -104,24 +123,35 @@ const block = [
   },
 ];
 
-const list = async (req: Request, res: Response) => {
-  const rows = await prisma.userBlock.findMany({
-    where: { blockerId: req.session.userId! },
-    orderBy: { createdAt: "desc" },
-    select: {
-      id: true,
-      blocked: { select: { id: true, displayName: true, avatar: true } },
-    },
-  });
-  res.set("Cache-Control", "private, no-store").json({
-    blocks: rows.map((row) => ({
-      id: row.id,
-      // the name they go by to other readers, never their username
-      name: readerName(row.blocked),
-      avatar: row.blocked.avatar,
-    })),
-  });
-};
+const list = [
+  query("limit").optional().isInt({ min: 1, max: MOST_BLOCKS }).toInt(),
+  rejectInvalid,
+  async (req: Request, res: Response) => {
+    const blockerId = req.session.userId!;
+    const { limit } = matchedData(req) as { limit?: number };
+    const [rows, total] = await Promise.all([
+      prisma.userBlock.findMany({
+        where: { blockerId },
+        orderBy: [{ createdAt: "desc" }, { id: "desc" }],
+        take: limit,
+        select: {
+          id: true,
+          blocked: { select: { id: true, displayName: true, avatar: true } },
+        },
+      }),
+      prisma.userBlock.count({ where: { blockerId } }),
+    ]);
+    res.set("Cache-Control", "private, no-store").json({
+      total,
+      blocks: rows.map((row) => ({
+        id: row.id,
+        // the name they go by to other readers, never their username
+        name: readerName(row.blocked),
+        avatar: row.blocked.avatar,
+      })),
+    });
+  },
+];
 
 const unblock = [
   param("id").isInt({ min: 1 }).toInt(),
@@ -139,6 +169,6 @@ const perMinute = (max: number) => rateLimit({ max, windowMs: 60_000 });
 
 export const blocksRouter = Router();
 blocksRouter.use(requireSignIn);
-blocksRouter.get("/", perMinute(60), list);
+blocksRouter.get("/", perMinute(60), ...list);
 blocksRouter.post("/", perMinute(30), ...block);
 blocksRouter.delete("/:id", perMinute(30), ...unblock);

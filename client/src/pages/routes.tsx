@@ -133,6 +133,13 @@ export const routes = [
       },
       { path: "/deals", element: <Deals /> },
       {
+        path: "/blocked",
+        lazy: page(
+          () => import("./Blocked/Blocked"),
+          (m) => m.default,
+        ),
+      },
+      {
         path: "/friends",
         lazy: page(
           () => import("./Friends/Friends"),
