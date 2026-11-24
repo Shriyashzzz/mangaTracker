@@ -225,6 +225,7 @@ export default function VolumeReviews({
                     review={review}
                     hasRead={hasRead}
                     mayFlag={mayWrite !== "sign-in"}
+                    onBlocked={() => void reload()}
                   />
                 ))}
               </ul>

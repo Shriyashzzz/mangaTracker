@@ -1,11 +1,12 @@
 // One reader's review in a volume's list: who, their stars, their words (a
 // spoiler stays inked out until tapped), and for a signed-in reader the two
-// flags, "Spoiler?" and "Report".
+// flags, "Spoiler?" and "Report", and Block (their reviews go for good).
 import { useState } from "react";
 import Avatar from "../../../components/avatar/Avatar";
 import StarRating from "../../../components/starRating/StarRating";
 import { timeAgo } from "../../../lib/prices";
 import { flagReview, type Review } from "../../../lib/reviews";
+import { BLOCK_TITLE, BLOCK_WHAT, blockReader } from "../../../lib/blocks";
 import { writtenText } from "./reviewText";
 import { reviewStyles as styles } from "./reviewStyles";
 
@@ -15,10 +16,13 @@ export default function ReviewItem({
   hasRead,
   // only a signed-in reader can flag
   mayFlag,
+  // once its writer is blocked: the list is asked again, without them
+  onBlocked,
 }: {
   review: Review;
   hasRead: boolean;
   mayFlag: boolean;
+  onBlocked: () => void;
 }) {
   const [revealed, setRevealed] = useState(false);
   // the flags this reader has sent from here, and one that didn't go
@@ -30,6 +34,17 @@ export default function ReviewItem({
     const ok = await flagReview(review.id, kind);
     if (ok) setSent((before) => ({ ...before, [kind]: true }));
     else setFailed(true);
+  };
+
+  const block = async () => {
+    if (!window.confirm(`${BLOCK_TITLE} ${BLOCK_WHAT}`)) return;
+    setFailed(false);
+    try {
+      await blockReader({ reviewId: review.id });
+      onBlocked();
+    } catch {
+      setFailed(true);
+    }
   };
 
   const inkedOut = review.spoiler && !hasRead && !revealed;
@@ -87,6 +102,9 @@ export default function ReviewItem({
               Report
             </button>
           )}
+          <button type="button" className={styles.link} onClick={block}>
+            Block
+          </button>
           {failed && (
             <span className={styles.said} role="status">
               That didn't send. Try again.

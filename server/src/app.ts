@@ -27,6 +27,7 @@ import { seoRouter } from "./routes/seoRouter.js";
 import { collectorRouter } from "./collector/router.js";
 import { historyRouter } from "./history/yearRouter.js";
 import { followRoutes, friendsRouter } from "./friends/friends.js";
+import { blocksRouter } from "./blocks/blocks.js";
 import { errorHandler } from "./middlewares/errorHandler.js";
 
 export const app = express();
@@ -79,6 +80,7 @@ app.use("/api/account", accountRouter);
 app.use("/api/share", followRoutes);
 app.use("/api/share", shareRouter);
 app.use("/api/friends", friendsRouter);
+app.use("/api/blocks", blocksRouter);
 app.use("/api/email", emailRouter);
 app.use("/api/push", pushRouter);
 app.use("/api/manga", mangaRouter);

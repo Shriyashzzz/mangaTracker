@@ -14,6 +14,7 @@ import { rateLimit } from "../middlewares/rateLimit.js";
 import { rejectInvalid } from "../middlewares/validate.js";
 import { sendError } from "../middlewares/errorHandler.js";
 import { ownedSet } from "../collector/shelfMath.js";
+import { eitherBlocked } from "../blocks/blocks.js";
 
 const codeParam = [param("code").matches(/^[\w-]{4,16}$/), rejectInvalid];
 
@@ -44,6 +45,9 @@ const follow = [
     const followerId = req.session.userId!;
     if (owner.id === followerId)
       return sendError(res, 400, "That's your own shelf.");
+    // either has blocked the other: as if it weren't shared
+    if (await eitherBlocked(followerId, owner.id))
+      return sendError(res, 404, "This shelf isn't shared.");
     await prisma.shelfFollow.upsert({
       where: { followerId_ownerId: { followerId, ownerId: owner.id } },
       create: { followerId, ownerId: owner.id },
@@ -69,6 +73,8 @@ const unfollow = [
 
 const list = async (req: Request, res: Response) => {
   const rows = await prisma.shelfFollow.findMany({
+    // (a block ends the following between them, so a blocked reader's shelf
+    // is never here)
     where: { followerId: req.session.userId!, owner: { shareEnabled: true } },
     orderBy: { createdAt: "desc" },
     select: {

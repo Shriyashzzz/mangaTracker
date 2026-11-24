@@ -25,6 +25,7 @@ import { toSharedShelf } from "../util/shelf/sharedShelf.js";
 import { volumeFacts } from "../util/shelf/sharedVolumes.js";
 import { isReservedName, RESERVED_MESSAGE } from "../util/reservedNames.js";
 import { follows } from "../friends/friends.js";
+import { eitherBlocked } from "../blocks/blocks.js";
 
 // the name they show as until they pick one, and the ideas to pick from
 const withNames = <T>(userId: number, account: T) => ({
@@ -274,7 +275,9 @@ const shared = [
   rejectInvalid,
   async (req: Request, res: Response) => {
     const user = await userQueries.getSharedShelf(matchedData(req).code);
-    if (!user) return sendError(res, 404, "This shelf isn't shared.");
+    // either has blocked the other: closed to them, as if it weren't shared
+    if (!user || (await eitherBlocked(req.session.userId, user.id)))
+      return sendError(res, 404, "This shelf isn't shared.");
     res.json({
       ...toSharedShelf({
         ...user,

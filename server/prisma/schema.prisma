@@ -90,6 +90,9 @@ model User {
   // shared shelves they follow, and who follows theirs (ShelfFollow)
   following          ShelfFollow[]      @relation("follower")
   followers          ShelfFollow[]      @relation("followed")
+  // readers they've blocked, and who has blocked them (UserBlock)
+  blocking           UserBlock[]        @relation("blocker")
+  blockedBy          UserBlock[]        @relation("blocked")
 
   @@map("users")
 }
@@ -396,16 +399,16 @@ model BookVolumeAnswer {
 // a volume on a reader's To buy list: one they looked up and mean to buy
 // (toBuy/toBuy.ts). Its prices are read from what's stored, never kept here
 model ToBuy {
-  userId  Int      @map("user_id")
-  isbn13  String   @db.Char(13)
-  addedAt DateTime @default(now()) @map("added_at") @db.Timestamptz(6)
+  userId     Int      @map("user_id")
+  isbn13     String   @db.Char(13)
+  addedAt    DateTime @default(now()) @map("added_at") @db.Timestamptz(6)
   // their own note on it, and where it sits in their own order (null until
   // they first move one; migration 20261215000000_to_buy_note_and_order)
-  note     String?  @db.VarChar(140)
-  position Int?
+  note       String?  @db.VarChar(140)
+  position   Int?
   // the price they asked to be told at (an alert when a copy is at or under it)
-  alertCents Int?  @map("alert_cents")
-  user    User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  alertCents Int?     @map("alert_cents")
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@id([userId, isbn13])
   @@map("to_buy")
@@ -639,6 +642,22 @@ model ShelfFollow {
   @@id([followerId, ownerId])
   @@index([ownerId])
   @@map("shelf_follows")
+}
+
+// One reader blocking another: the blocked reader's reviews aren't shown to
+// them, and neither can follow or open the other's shared shelf
+// (src/blocks/blocks.ts). Only the blocker sees it, in Settings
+model UserBlock {
+  id        Int      @id @default(autoincrement())
+  blockerId Int      @map("blocker_id")
+  blockedId Int      @map("blocked_id")
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  blocker   User     @relation("blocker", fields: [blockerId], references: [id], onDelete: Cascade)
+  blocked   User     @relation("blocked", fields: [blockedId], references: [id], onDelete: Cascade)
+
+  @@unique([blockerId, blockedId])
+  @@index([blockedId])
+  @@map("user_blocks")
 }
 
 // a reader saying an omnibus or deluxe book exists that no catalog lists

@@ -1,7 +1,10 @@
 // For someone signed in, looking at another reader's shared shelf: Follow,
 // and it's then in Friends. (How it sits beside theirs is said further down,
-// in the compare box.) Drawn like the owner's note, in the same spot.
+// in the compare box.) Drawn like the owner's note, in the same spot. Block
+// is beside it: the shelf closes to them both, and they're taken to Friends.
 import { useState } from "react";
+import { useNavigate } from "react-router";
+import { BLOCK_TITLE, BLOCK_WHAT, blockReader } from "../../lib/blocks";
 import { setFollowing } from "../../lib/friends";
 import { offlineLink, useIsOffline } from "../../lib/offline";
 import { shareStyles as styles } from "./styles";
@@ -18,6 +21,17 @@ export default function FollowBar({ code, name, following }: Props) {
   const [saving, setSaving] = useState(false);
   const [failed, setFailed] = useState("");
   const offline = useIsOffline();
+  const navigate = useNavigate();
+  const block = async () => {
+    if (!window.confirm(`${BLOCK_TITLE} ${BLOCK_WHAT}`)) return;
+    setFailed("");
+    try {
+      await blockReader({ shareCode: code });
+      navigate("/friends", { replace: true });
+    } catch (e) {
+      setFailed((e as Error).message);
+    }
+  };
   const flip = async () => {
     setSaving(true);
     setFailed("");
@@ -52,6 +66,14 @@ export default function FollowBar({ code, name, following }: Props) {
           {...offlineLink(offline)}
         >
           {on ? "Following" : "Follow"}
+        </button>
+        <button
+          type="button"
+          className="btn btn-ghost btn-sm"
+          onClick={block}
+          {...offlineLink(offline)}
+        >
+          Block
         </button>
         {failed && (
           <span className="text-accent" role="alert">

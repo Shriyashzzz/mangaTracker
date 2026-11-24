@@ -31,6 +31,7 @@ import {
 import * as store from "./reviewStore.js";
 import { storedVolumeStarts } from "../util/releases/releaseCache.js";
 import { volumeOfChapter } from "../util/releases/volumeStarts.js";
+import { blockedBy } from "../blocks/blocks.js";
 
 type StoredReview = Awaited<ReturnType<typeof store.reviewsOfVolume>>[number];
 
@@ -84,9 +85,10 @@ async function mayWrite(userId: number | null, isbn13: string) {
 
 // a volume's reviews for one viewer (null: nobody signed in)
 export async function volumeReviews(isbn13: string, viewerId: number | null) {
-  const [stored, allowed] = await Promise.all([
+  const [stored, allowed, blocked] = await Promise.all([
     store.reviewsOfVolume(isbn13, viewerId),
     mayWrite(viewerId, isbn13),
+    blockedBy(viewerId),
   ]);
   const shown = stored.filter((review) => review.status === "shown");
   const yours = stored.find((review) => review.userId === viewerId);
@@ -95,8 +97,10 @@ export async function volumeReviews(isbn13: string, viewerId: number | null) {
     ...ratingSummary(shown.map((review) => review.rating)),
     // how many gave 1 star, 2 … 5, for the page's bars
     spread: ratingSpread(shown.map((review) => review.rating)),
+    // the words of readers they've blocked aren't shown to them (their stars
+    // still count above, as everyone's do)
     reviews: shown
-      .filter((review) => review.body)
+      .filter((review) => review.body && !blocked.has(review.userId))
       .map((review) => sent(review, viewerId)),
     yours: yours ? sent(yours, viewerId) : null,
     mayWrite: allowed,

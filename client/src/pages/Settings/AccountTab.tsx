@@ -12,6 +12,7 @@ import { useAccount } from "../../store/account";
 import { useAuth } from "../../store/auth";
 import { settingsStyles as styles } from "./styles";
 import { SignInSection } from "./SignInSection";
+import { BlockedSection } from "./BlockedSection";
 import { orOffline } from "../../lib/offline";
 
 // said when the confirm link was meant to go and didn't
@@ -162,6 +163,8 @@ export function AccountTab({ account }: { account: Account }) {
           )}
         </div>
       </section>
+
+      <BlockedSection />
 
       <section className={styles.section} aria-labelledby="set-delete">
         <h3 id="set-delete" className={styles.heading}>
