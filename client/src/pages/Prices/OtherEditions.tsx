@@ -253,8 +253,8 @@ export default function OtherEditions({
 }
 
 // the whole run new, this line's books and the singles, one a line, each
-// said only when enough of it is priced (lib/finishCost.ts runTotal): the
-// question a collector weighing the two asks
+// said once any of it is priced (lib/finishCost.ts runTotal): the question a
+// collector weighing the two asks
 function RunCosts({
   line,
   singles,

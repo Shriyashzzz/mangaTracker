@@ -33,7 +33,6 @@ test("adds up the priced ones and estimates the rest", () => {
     priced: 2,
     left: 2,
     estimateCents: 2298,
-    enough: true,
   });
   // one priced: the other counted at its price
   expect(finishCost([vol(3, 1099), vol(4, null)])).toEqual({
@@ -41,8 +40,6 @@ test("adds up the priced ones and estimates the rest", () => {
     priced: 1,
     left: 2,
     estimateCents: 2198,
-    // half the series priced: not enough to say a total
-    enough: false,
   });
   // none of what's left priced, but owned ones are: estimated from those
   expect(
@@ -52,16 +49,10 @@ test("adds up the priced ones and estimates the rest", () => {
 
 test("says it plainly: exact when all are priced, about otherwise", () => {
   expect(
-    finishText(
-      { cents: 2298, priced: 2, left: 2, estimateCents: 2298, enough: true },
-      money,
-    ),
+    finishText({ cents: 2298, priced: 2, left: 2, estimateCents: 2298 }, money),
   ).toBe("Finish the series: $22.98");
   expect(
-    finishText(
-      { cents: 1099, priced: 1, left: 3, estimateCents: 3297, enough: true },
-      money,
-    ),
+    finishText({ cents: 1099, priced: 1, left: 3, estimateCents: 3297 }, money),
   ).toBe("Finish the series: about $30");
 });
 
@@ -77,7 +68,6 @@ test("two volumes in one book are paid for once", () => {
     priced: 3,
     left: 3,
     estimateCents: 4098,
-    enough: true,
   });
 });
 
@@ -89,15 +79,13 @@ test("collecting a whole series: exact, or estimated from what's priced", () => 
     complete: true,
     estimateCents: 2200,
   });
-  // one of three priced: the other two at its price, but that's too few
-  // of the series to say the total out loud
+  // one of three priced: the other two at its price
   expect(seriesCost([vol(1, 1000), vol(2, null), vol(3, null)])).toMatchObject({
     priced: 1,
     complete: false,
     estimateCents: 3000,
-    enough: false,
   });
-  // most of it priced (3 of 5): the estimate is said
+  // three of five priced: the other two at their middle price
   expect(
     seriesCost([
       vol(1, 1000),
@@ -106,22 +94,14 @@ test("collecting a whole series: exact, or estimated from what's priced", () => 
       vol(4, null),
       vol(5, null),
     ]),
-  ).toMatchObject({ priced: 3, estimateCents: 5000, enough: true });
+  ).toMatchObject({ priced: 3, estimateCents: 5000 });
 });
 
-test("a total is said only with most of the series priced, and an old price still counts", () => {
+test("any price is enough to estimate the rest, and an old price still counts", () => {
   const series = [1, 2, 3, 4, 5].map((n) => vol(n, n <= 2 ? 1000 : null));
-  // 2 of 5 priced: a count, no money
+  // 2 of 5 priced: the three to get at their $10
   const few = finishCost(series.slice(2), series)!;
-  expect(few.enough).toBe(false);
-  expect(finishText(few, money)).toBe("Finish the series: check prices");
-  // 3 of 5 is 60%
-  const more = finishCost(series.slice(3), [
-    ...series.slice(0, 2),
-    vol(3, 1000),
-    ...series.slice(3),
-  ])!;
-  expect(more.enough).toBe(true);
+  expect(finishText(few, money)).toBe("Finish the series: about $30");
   // no store has it today, but it has sold for $12 before: still priced
   const recorded = [1, 2, 3].map((n) => ({
     volume: n,
@@ -131,18 +111,23 @@ test("a total is said only with most of the series priced, and an old price stil
   expect(finishCost(recorded.slice(1), recorded)).toMatchObject({
     cents: 2400,
     priced: 2,
-    enough: true,
   });
 });
 
-test("used copies: only the ones on sale are added up, never a guess for the rest", () => {
+test("used copies: the ones on sale added up, the rest at their middle price", () => {
   const volumes = [
     { isbn13: "1", usedCents: 596 },
     { isbn13: "2", usedCents: null },
     { isbn13: "3", usedCents: 724 },
     { isbn13: "4" },
   ];
-  expect(usedCopies(volumes)).toEqual({ volumes: 2, cents: 1320 });
+  expect(usedCopies(volumes)).toEqual({
+    volumes: 2,
+    cents: 1320,
+    // two more books at $6.60
+    estimateCents: 1320 + 2 * 660,
+    complete: false,
+  });
   // none on sale used: nothing to say
   expect(usedCopies([{ isbn13: "1", usedCents: null }])).toBeNull();
   expect(usedCopies([])).toBeNull();
@@ -155,5 +140,10 @@ test("used copies: a book holding two volumes is bought once", () => {
     { isbn13: "book-5", usedCents: 900 },
     { isbn13: "single", usedCents: 500 },
   ];
-  expect(usedCopies(volumes)).toEqual({ volumes: 3, cents: 1400 });
+  expect(usedCopies(volumes)).toEqual({
+    volumes: 3,
+    cents: 1400,
+    estimateCents: 1400,
+    complete: true,
+  });
 });

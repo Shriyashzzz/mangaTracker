@@ -17,7 +17,6 @@ import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { isAppPage } from "./pagePaths.ts";
 import { visitorIp } from "./visitorIp.ts";
-import { ENOUGH_PRICED } from "./src/lib/enoughPriced.ts";
 import { ratingMarkup, type MarkedReview } from "./src/lib/reviewMarkup.ts";
 import { WHY_COLLECTORS } from "./src/lib/whyCollectors.ts";
 import { openedFromPlayApp } from "./src/lib/playAppReferrer.ts";
@@ -357,9 +356,8 @@ function seriesCostLine(s: SeriesSummary) {
   const priced = volumes.flatMap((v) =>
     v.fromCents != null ? [v.fromCents] : [],
   );
-  // only once most of it is priced, like the page's own box
-  // (ENOUGH_PRICED in src/lib/finishCost.ts)
-  if (priced.length < volumes.length * ENOUGH_PRICED) return null;
+  // with nothing priced there's nothing to go by, like the page's own box
+  if (!priced.length) return null;
   const sorted = [...priced].sort((a, b) => a - b);
   const mid = Math.floor(sorted.length / 2);
   const usual =

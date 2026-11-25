@@ -160,10 +160,9 @@ export function seriesMeta({ name, info, volumes }: Series): PageMeta {
       v.volume >= 0 && Number.isInteger(v.volume) && !notOutYet(v.published),
   );
   const cost = seriesCost(out);
-  // only once most of it is priced, as the page's box and the site server
-  // (client/server.ts) say it
+  // as the page's box and the site server (client/server.ts) say it
   const costLine =
-    cost?.estimateCents != null && cost.enough
+    cost?.estimateCents != null
       ? `Every ${label} volume new: ${cost.complete ? "" : "about "}${total(cost.estimateCents, cost.complete)} for all ${cost.volumes}${out.length < volumes.length ? " out now" : ""}.`
       : "";
 

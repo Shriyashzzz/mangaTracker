@@ -2,7 +2,6 @@
 // the prices already stored (a volume is priced the first time someone opens
 // its page). Never asks for a price, so it never spends a paid search; a
 // volume nobody has opened yet is counted as not priced.
-import { ENOUGH_PRICED } from "./enoughPriced";
 import { wholeMoney } from "./country";
 import { owns } from "./ownedVolumes";
 import type { Manga } from "./types";
@@ -23,9 +22,6 @@ type FinishCost = {
   // all of them: the priced ones plus the rest at the series' usual new
   // price (the middle of every priced volume, owned ones too)
   estimateCents: number;
-  // enough of the series is priced to say a total: with fewer, a few
-  // volumes' prices would stand in for the whole run
-  enough: boolean;
 };
 
 type Priced = {
@@ -90,16 +86,11 @@ export function finishCost(
   const booksToGet = oneOfEachBook(toGet);
   const cents = sum(pricesOf(booksToGet));
   const unpricedBooks = booksToGet.filter((v) => !hasPrice(v)).length;
-
-  // of the whole series, each book once: is enough of it priced to say?
-  const allBooks = oneOfEachBook(series);
-  const pricedBooks = allBooks.filter(hasPrice).length;
   return {
     cents,
     priced: toGet.filter(hasPrice).length,
     left: toGet.length,
     estimateCents: cents + unpricedBooks * usual,
-    enough: pricedBooks >= allBooks.length * ENOUGH_PRICED,
   };
 }
 
@@ -109,7 +100,6 @@ export function finishMoney(
   cost: FinishCost,
   money: (cents: number) => string,
 ) {
-  if (!cost.enough) return "check prices";
   if (cost.priced === cost.left) return money(cost.cents);
   const nearestTen = Math.round(cost.estimateCents / 1000) * 10;
   return "about " + wholeMoney(nearestTen * 100);
@@ -135,45 +125,47 @@ export type SeriesCost = {
   usualCents: number | null;
   // every book priced: the total is exact, not an estimate
   complete: boolean;
-  // most of it priced (ENOUGH_PRICED): the estimate is worth saying. With
-  // fewer, three prices would be passed off as the cost of thirty
-  enough: boolean;
 };
 
 // what a run costs, as the pages say it: to the cent when every book is
 // priced, else an estimate to the nearest $10 ("About $480"), since cents
-// would claim a precision it lacks. Null when too little is priced to say
+// would claim a precision it lacks. Null with nothing priced at all
 // (SeriesCostBox's "Collect every volume", OtherEditions' line beside it)
 export function runTotal(cost: SeriesCost | null) {
-  if (!cost || cost.estimateCents == null || !cost.enough) return null;
+  if (!cost || cost.estimateCents == null) return null;
   return cost.complete
     ? { cents: cost.estimateCents, exact: true }
     : { cents: Math.round(cost.estimateCents / 1000) * 1000, exact: false };
 }
 
-// the used copies found for a series, added up: how many of its volumes
-// have one, and what those cost together. No estimate for the rest: a volume
-// with no used copy on sale can't be bought used, so there's no total to
-// guess at. Null when none has one
+// the used copies found for a series, added up, and what all of it would
+// come to used: the ones with no copy on sale at the middle of those found.
+// Null when none has one
 export function usedCopies(
   volumes: { usedCents?: number | null; isbn13?: string }[],
 ) {
+  const books = oneOfEachBook(volumes);
   const prices: number[] = [];
   // a book holding two volumes is one copy to buy
-  for (const book of oneOfEachBook(volumes))
+  for (const book of books)
     if (book.usedCents != null) prices.push(book.usedCents);
-  if (!prices.length) return null;
+  const usual = median(prices);
+  if (usual === null) return null;
+  const cents = sum(prices);
+  const unpricedBooks = books.length - prices.length;
   return {
     // counted in volumes, like the box's own "all 30"
     volumes: volumes.filter((volume) => volume.usedCents != null).length,
-    cents: sum(prices),
+    cents,
+    estimateCents: cents + unpricedBooks * usual,
+    // every book has a used copy on sale: the total is exact
+    complete: unpricedBooks === 0,
   };
 }
 
 // what buying a whole series new costs, at stored prices: for anyone
-// weighing up a series before buying it. Null with nothing priced. The
-// estimate is worked out from any priced volume, but only said when most of
-// the series is priced (`enough`), like "Finish the series"
+// weighing up a series before buying it. Null with nothing priced; else an
+// estimate of all of it, the unpriced at the priced ones' middle price
 // a price checked over a week ago still shows, with its age, but a total
 // counting one is "About", not exact (the server's models/priceAge.ts)
 const WEEK_MS = 7 * 24 * 60 * 60 * 1000;
@@ -210,6 +202,5 @@ export function seriesCost(
     usualCents: usual,
     // every one priced, and every price under a week old
     complete: unpricedBooks === 0 && !anyOld,
-    enough: prices.length >= books.length * ENOUGH_PRICED,
   };
 }

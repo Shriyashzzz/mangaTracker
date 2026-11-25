@@ -357,9 +357,7 @@ export default function PriceSeries() {
                 Not on your shelf ({toGet.length})
               </button>
             )}
-            {/* only once most of the series is priced: a few volumes'
-                prices aren't the run's */}
-            {finish?.enough && (
+            {finish && (
               <span
                 className={styles.finishCost}
                 title="At the last checked prices. A volume gets a price once someone opens its page"
