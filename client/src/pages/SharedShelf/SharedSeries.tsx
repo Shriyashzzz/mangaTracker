@@ -135,7 +135,6 @@ export function SeriesCard({
           {!m.status &&
             placeText(m, "both", true) &&
             ` · ${placeText(m, "both", true)}`}
-          {m.lightNovel && " · novel"}
         </span>
         {m.rating ? <StarRating value={m.rating} size="sm" /> : null}
         {mine === "have" && <span className={styles.onYours}>On yours</span>}
@@ -166,10 +165,7 @@ export function SeriesRow({
   onOpen: () => void;
 }) {
   const owned = ownedVolumesOf(m);
-  const more = [
-    !m.status && placeText(m, "both", true),
-    m.lightNovel && "light novel",
-  ].filter(Boolean);
+  const more = [!m.status && placeText(m, "both", true)].filter(Boolean);
   return (
     <li className={styles.row}>
       <button

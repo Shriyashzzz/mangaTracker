@@ -301,7 +301,6 @@ export default function SeriesSearchBox({
                   </span>
                   <span className={styles.suggestMeta}>
                     {[
-                      s.lightNovel && "Light novel",
                       s.year,
                       s.volumes &&
                         `${s.volumes} volume${s.volumes === 1 ? "" : "s"}`,

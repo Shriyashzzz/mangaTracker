@@ -15,11 +15,14 @@ export function SeriesVolumeCard({
   mark,
   seriesCoverUrl,
   seriesName,
+  lightNovel,
 }: {
   card: Card;
   mark: "yours" | "next" | undefined;
   seriesCoverUrl: string | null;
   seriesName: string;
+  // a light novel series: each cover says so (its "Vol. 3" title can't)
+  lightNovel: boolean;
 }) {
   const first = card[0]!;
   if (card.length === 1)
@@ -36,6 +39,7 @@ export function SeriesVolumeCard({
           mark={mark}
           seriesCoverUrl={seriesCoverUrl}
           seriesName={seriesName}
+          lightNovel={lightNovel}
         />
       </li>
     );
@@ -58,6 +62,7 @@ export function SeriesVolumeCard({
         priceCents={first.knownPriceCents}
         subtitle={bookSubtitle(card)}
         mark={mark}
+        lightNovel={lightNovel}
       />
     </li>
   );

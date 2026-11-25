@@ -9,9 +9,10 @@
 import { volumesStyles } from "../Home/volumesStyles";
 import clsx from "clsx";
 import Cover from "../../components/cover/Cover";
+import LightNovelBand from "../../components/cover/LightNovelBand";
 import { NavLink } from "react-router";
 import type { BuyOffer, UsedOffer } from "../../lib/afterAnime";
-import { formatCents, timeAgo, volumePath } from "../../lib/prices";
+import { formatCents, novelParts, timeAgo, volumePath } from "../../lib/prices";
 import type { SeriesVolume } from "../../lib/types";
 import { linkRel } from "../Prices/offerLabels";
 import { CoverFallback } from "../Prices/VolumeCard";
@@ -72,6 +73,7 @@ export default function BuyRow({
           numbered
         />
         <Cover url={book.coverUrl} sizes="80px" />
+        {novelParts(book.title).lightNovel && <LightNovelBand />}
         {/* its number on the corner, as a series page's covers carry it
             (the small tile's stamp, from the shelf) */}
         <span className={`${volumesStyles.vol} text-[1.05rem]!`}>{volume}</span>

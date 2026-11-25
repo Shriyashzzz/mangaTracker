@@ -275,7 +275,6 @@ function SeriesRow({
             <span className={styles.name}>
               {/* a long title ends in "…": the worth and count keep their room */}
               <span className={styles.nameText}>{m.name}</span>
-              {m.lightNovel && <span className={styles.tag}>Light novel</span>}
             </span>
             {worth && <span className={styles.rowWorth}>worth {worth}</span>}
             <span className={styles.count}>{owned.length}</span>

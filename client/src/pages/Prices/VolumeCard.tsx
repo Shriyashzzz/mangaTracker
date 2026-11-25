@@ -2,6 +2,7 @@ import { StarIcon } from "../../components/icons/Icons";
 import { scoreText } from "./reviews/reviewText";
 import { NavLink } from "react-router";
 import Cover from "../../components/cover/Cover";
+import LightNovelBand from "../../components/cover/LightNovelBand";
 import { formatCents, novelParts, volumePath } from "../../lib/prices";
 import { stayInTrip, useFromShelf } from "../../lib/fromShelf";
 import { pricesStyles as styles } from "./styles";
@@ -90,6 +91,7 @@ export default function VolumeCard({
   plainStandIn = false,
   titleOnCover = false,
   bookNumber = null,
+  lightNovel = false,
 }: {
   // none for a book no catalog lists yet: it's drawn, but opens nothing
   isbn13: string | null;
@@ -121,6 +123,9 @@ export default function VolumeCard({
   // a book holding several volumes: the number its stand-in cover shows
   // (VIZBIG 4 is "4"), its badge saying the volumes
   bookNumber?: number | null;
+  // a light novel's volume, when the page knows it and the title doesn't
+  // say ("Vol. 3" on a novel series' page): the band goes on its cover
+  lightNovel?: boolean;
 }) {
   const fromShelf = useFromShelf();
   const shown = novelParts(title);
@@ -150,6 +155,7 @@ export default function VolumeCard({
             plain={plainStandIn}
           />
           <Cover url={coverUrl} sizes={CARD_COVER} />
+          {(lightNovel || shown.lightNovel) && <LightNovelBand />}
           {mark && (
             <span
               className={`card-mark ${mark === "next" ? styles.markNext : styles.markYours}`}
@@ -188,17 +194,9 @@ export default function VolumeCard({
       >
         {shown.title}
       </span>
-      {/* said where it's named in full (deals, recently checked), where manga
-          and novels sit together; a series page's "Vol. 3" is the page's */}
-      {(subtitle || shown.lightNovel) && (
-        <span className={styles.cardMeta}>
-          {[
-            shown.lightNovel && "Light novel",
-            subtitle && novelParts(subtitle).title,
-          ]
-            .filter(Boolean)
-            .join(" · ")}
-        </span>
+      {/* (a novel says so on its cover's band, not in words) */}
+      {subtitle && (
+        <span className={styles.cardMeta}>{novelParts(subtitle).title}</span>
       )}
       {priceCents != null && (
         <span className={styles.cardPrice}>

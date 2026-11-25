@@ -12,11 +12,13 @@
 // pasted a link to is theirs and is shown as it is. The server chooses
 // between 1 and 2 (lib/coverSizes.ts says how it's asked).
 //
-// Fills its box: the box around it must be `relative` and have a size.
+// Fills its box: the box around it must be `relative` and have a size. A
+// light novel's cover says so across its foot (LightNovelBand).
 import { useState } from "react";
 import { novelParts, priceName } from "../../lib/prices";
 import DrawnCover from "../drawnCover/DrawnCover";
 import Cover from "./Cover";
+import LightNovelBand from "./LightNovelBand";
 
 type Props = {
   // the series' name: what the English cover is found by, and what the
@@ -50,20 +52,28 @@ export default function SeriesPicture({
   // which picture turned out not to exist, so a new one gets its own try
   const wanted = `${name}\n${url ?? ""}`;
   const [failed, setFailed] = useState<string | null>(null);
+  const band =
+    lightNovel || novelParts(name).lightNovel ? <LightNovelBand /> : null;
   if (failed === wanted)
     return (
-      <DrawnCover title={novelParts(name).title} className={drawnClassName} />
+      <>
+        <DrawnCover title={novelParts(name).title} className={drawnClassName} />
+        {band}
+      </>
     );
   return (
-    <Cover
-      url={url}
-      series={priceName({ name, lightNovel })}
-      japanFirst={japanFirst}
-      sizes={sizes}
-      alt={alt}
-      eager={eager}
-      className="absolute inset-0 size-full object-cover"
-      onFail={() => setFailed(wanted)}
-    />
+    <>
+      <Cover
+        url={url}
+        series={priceName({ name, lightNovel })}
+        japanFirst={japanFirst}
+        sizes={sizes}
+        alt={alt}
+        eager={eager}
+        className="absolute inset-0 size-full object-cover"
+        onFail={() => setFailed(wanted)}
+      />
+      {band}
+    </>
   );
 }

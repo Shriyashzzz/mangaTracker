@@ -4,10 +4,11 @@
 // under the date, and Preorder goes straight to the stores on its page. A
 // long month shows its first `limit`, the rest on asking
 import Cover from "../cover/Cover";
+import LightNovelBand from "../cover/LightNovelBand";
 import { useState } from "react";
 import { NavLink } from "react-router";
 import { dayName, type CalendarVolume } from "../../lib/collector";
-import { volumePath } from "../../lib/prices";
+import { novelParts, volumePath } from "../../lib/prices";
 import AddToCalendar from "./AddToCalendar";
 import { rememberSpot, useWasShowingAll } from "../../lib/returnSpot";
 import { calendarParts as styles } from "./styles";
@@ -28,6 +29,8 @@ export function VolumeCover({
       {/* the series' cover underneath, the volume's own on top if it has one */}
       <Cover url={volume.seriesCover} series={volume.name} sizes={slot} />
       <Cover url={volume.coverUrl} sizes={slot} />
+      {(novelParts(volume.title).lightNovel ||
+        novelParts(volume.name).lightNovel) && <LightNovelBand />}
     </span>
   );
 }

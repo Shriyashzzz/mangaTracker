@@ -20,6 +20,7 @@ import {
 } from "react";
 import { NavLink, useNavigate, useSearchParams } from "react-router";
 import Cover from "../../components/cover/Cover";
+import LightNovelBand from "../../components/cover/LightNovelBand";
 import Mascot from "../../components/mascot/Mascot";
 import RangePager from "../../components/rangePager/RangePager";
 import { useUrlPages } from "../../components/rangePager/useUrlPages";
@@ -392,6 +393,8 @@ export default function ToBuy() {
                     small
                   />
                   <Cover url={item.coverUrl} sizes="60px" />
+                  {(novelParts(item.title).lightNovel ||
+                    novelParts(item.series).lightNovel) && <LightNovelBand />}
                   {/* its number on the corner, as a series page's covers
                       carry it (the small tile's stamp, from the shelf) */}
                   {item.volume != null && !item.edition && (

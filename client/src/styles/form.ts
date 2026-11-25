@@ -56,8 +56,6 @@ export const formStyles = {
   titleList:
     "absolute inset-x-0 top-[calc(100%+6px)] z-15 flex max-h-[min(22rem,55dvh)] flex-col border-[1.5px] border-line bg-card shadow-[4px_4px_0_var(--hard-shadow)] [&>ul]:min-h-0 [&>ul]:overflow-y-auto [&>ul]:p-[0.35rem] [&>ul]:[scrollbar-color:var(--line-soft)_transparent] [&>ul]:[scrollbar-width:thin]",
   titleOption: "min-h-12 cursor-pointer",
-  titleTag:
-    "ml-2 border border-line-soft px-1 text-[0.68rem] whitespace-nowrap text-ink-soft",
   titleListFoot:
     "flex items-center justify-between gap-3 border-t-[1.5px] border-line-soft px-3",
   titleTyped:

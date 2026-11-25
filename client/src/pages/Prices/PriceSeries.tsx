@@ -11,6 +11,7 @@ import GrowOnSight from "../../components/growOnSight/GrowOnSight";
 import { inApp } from "../../lib/inApp";
 import { useVisitState } from "../../lib/visitState";
 import Cover from "../../components/cover/Cover";
+import LightNovelBand from "../../components/cover/LightNovelBand";
 import { SeriesScoreBadge } from "./SeriesScore";
 import { useRef, useState, useEffect } from "react";
 import { NavLink, useParams, useSearchParams } from "react-router";
@@ -256,17 +257,13 @@ export default function PriceSeries() {
               sizes="(max-width: 720px) 94px, 178px"
               eager
             />
+            {named.lightNovel && <LightNovelBand />}
             {/* its score as stars, hung on the cover's corner */}
             <SeriesScoreBadge percent={info?.score} />
           </span>
         )}
         <div className={styles.seriesCopy}>
           <h1 className={styles.volumeTitle}>{named.title}</h1>
-          {named.lightNovel && (
-            <p className={styles.isbn}>
-              <span className={styles.tag}>Light novel</span>
-            </p>
-          )}
           {info && <SeriesFacts info={info} />}
           <ToReadButton
             name={info?.name ?? data.name}
@@ -424,6 +421,7 @@ export default function PriceSeries() {
                   mark={markOf(card, mine, next)}
                   seriesCoverUrl={info?.coverUrl ?? null}
                   seriesName={info?.name ?? data.name}
+                  lightNovel={named.lightNovel}
                 />
               ))}
             </ul>

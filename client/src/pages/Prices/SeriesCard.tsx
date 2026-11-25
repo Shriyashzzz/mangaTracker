@@ -66,12 +66,7 @@ export default function SeriesCard({
       </span>
       <span className={styles.cardTitle}>{shown.title}</span>
       <span className={styles.cardMeta}>
-        {[
-          shown.lightNovel && "Light novel",
-          series.year,
-          volumesText(series, shown.lightNovel),
-          series.genre,
-        ]
+        {[series.year, volumesText(series, shown.lightNovel), series.genre]
           .filter(Boolean)
           .join(" · ")}
       </span>

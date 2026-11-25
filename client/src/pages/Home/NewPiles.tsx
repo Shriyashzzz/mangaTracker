@@ -114,11 +114,6 @@ function Fan({
                 japanFirst={japanFirst}
               />
             </span>
-            {m.lightNovel && (
-              <span className={styles.novel} aria-hidden>
-                Novel
-              </span>
-            )}
             {link.stamp && (
               <span className={styles.stamp} aria-hidden>
                 {link.stamp}

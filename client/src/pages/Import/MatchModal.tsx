@@ -14,6 +14,7 @@ import { gapsIn, type BookSeries } from "../../lib/imports/bookImport";
 import { ownedVolumes, parseVolumes, rangesText } from "../../lib/ownedVolumes";
 import type { Edit, Match } from "../../store/bookImport";
 import { importStyles as styles } from "./styles";
+import LightNovelBand from "../../components/cover/LightNovelBand";
 
 // a search per pause in typing, not per letter, and never sooner than AniList's
 // pace allows: the import's own matching shares its 30 or so a minute
@@ -268,16 +269,19 @@ export default function MatchModal({
                   className={styles.modalHit}
                   onClick={() => setPicked(hit)}
                 >
-                  {hit.cover ? (
-                    <img
-                      src={hit.cover}
-                      alt=""
-                      loading="lazy"
-                      className={styles.modalCover}
-                    />
-                  ) : (
-                    <span className={styles.modalCover} aria-hidden />
-                  )}
+                  <span
+                    className={`relative block overflow-hidden ${styles.modalCover}`}
+                  >
+                    {hit.cover && (
+                      <img
+                        src={hit.cover}
+                        alt=""
+                        loading="lazy"
+                        className="size-full object-cover"
+                      />
+                    )}
+                    {hit.format === "NOVEL" && <LightNovelBand />}
+                  </span>
                   <span className="min-w-0 flex-1">
                     <span className={styles.modalHitName}>{hit.name}</span>
                     {hit.otherName && (
@@ -288,7 +292,10 @@ export default function MatchModal({
                     <span className={styles.modalHitMeta}>
                       {[
                         hit.year,
-                        hit.format ? (FORMATS[hit.format] ?? "Other") : null,
+                        // (a novel is said by the band on its cover)
+                        hit.format && hit.format !== "NOVEL"
+                          ? (FORMATS[hit.format] ?? "Other")
+                          : null,
                         hit.adult ? "18+" : null,
                       ]
                         .filter(Boolean)

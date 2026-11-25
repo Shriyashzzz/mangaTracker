@@ -542,9 +542,6 @@ export default function Details() {
                 >
                   {statusWord}
                 </li>
-                {mangaData.lightNovel && (
-                  <li className={styles.metaGenre}>Light novel</li>
-                )}
                 {genre && <li className={styles.metaGenre}>{genre}</li>}
                 {/* how they collect it, when the series comes in more than
                     single volumes: the shelf, the counter and Buy next all

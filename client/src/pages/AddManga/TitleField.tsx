@@ -10,6 +10,7 @@ import {
   MIN_QUERY,
   type SearchStatus,
 } from "../../components/coverPicker/useCoverSearch";
+import LightNovelBand from "../../components/cover/LightNovelBand";
 
 type Props = {
   value: string;
@@ -168,16 +169,12 @@ export default function TitleField({
               >
                 <span className={list.suggestThumb}>
                   <img src={hit.cover} alt="" loading="lazy" />
+                  {hit.lightNovel && <LightNovelBand />}
                 </span>
                 <span className={list.suggestText}>
                   <span className={list.suggestName}>{hit.title}</span>
-                  {(hit.year || hit.lightNovel) && (
-                    <span className={list.suggestMeta}>
-                      {hit.year}
-                      {hit.lightNovel && (
-                        <span className={styles.titleTag}>Light novel</span>
-                      )}
-                    </span>
+                  {hit.year && (
+                    <span className={list.suggestMeta}>{hit.year}</span>
                   )}
                 </span>
               </li>

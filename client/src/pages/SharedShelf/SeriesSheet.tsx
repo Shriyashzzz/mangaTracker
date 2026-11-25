@@ -188,12 +188,6 @@ export default function SeriesSheet({
                 <dd>{m.genre}</dd>
               </>
             )}
-            {m.lightNovel && (
-              <>
-                <dt>Kind</dt>
-                <dd>Light novel</dd>
-              </>
-            )}
           </dl>
         </div>
         <Synopsis m={m} />

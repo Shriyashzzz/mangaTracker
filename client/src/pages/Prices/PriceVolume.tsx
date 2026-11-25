@@ -7,6 +7,7 @@
 //   OfferList, ShelfAction, BoxSetNote, canada/ (the Canadian prices)
 import { bookName } from "../../lib/bookName";
 import Cover from "../../components/cover/Cover";
+import LightNovelBand from "../../components/cover/LightNovelBand";
 import { isCollection } from "../../lib/types";
 import CanadaPrices from "./canada/CanadaPrices";
 import { useCanadaPrices } from "./canada/useCanadaPrices";
@@ -234,6 +235,7 @@ export default function PriceVolume() {
             alt={book.title}
             eager
           />
+          {shownBook.lightNovel && <LightNovelBand />}
         </figure>
 
         <header className={styles.volumeHead}>
@@ -261,9 +263,6 @@ export default function PriceVolume() {
               <span className={styles.tag}>
                 Vols. {inBook.from}–{inBook.to} in one book
               </span>
-            )}
-            {shownBook.lightNovel && (
-              <span className={styles.tag}>Light novel</span>
             )}
             <span className={styles.tag}>ISBN-13 {book.isbn13}</span>
           </p>
