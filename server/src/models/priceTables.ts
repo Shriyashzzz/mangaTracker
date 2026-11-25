@@ -26,3 +26,11 @@ export const tablesOf = (country: Country) => TABLES[country];
 // what a request asked for: Canada only when it says so
 export const countryOf = (asked: unknown): Country =>
   asked === "ca" ? "ca" : "us";
+
+// eBay prices saved before this had shipping added; from it on they're the
+// book's own. A volume's usual price leaves the older ones out, or every new
+// eBay price would look a few dollars under it (a deal, an alert) for no
+// reason. Their history stays, and is still shown
+export const EBAY_OWN_PRICES_SINCE = new Date("2026-11-25T22:50:00Z");
+export const withoutEbayShipping = Prisma.sql`
+  NOT (store IN ('eBay', 'eBay.ca') AND fetched_at < ${EBAY_OWN_PRICES_SINCE})`;

@@ -24,7 +24,6 @@ const item = (title: string, price: string): ItemSummary => ({
   title,
   conditionId: "1000",
   price: { value: price, currency: "USD" },
-  shippingOptions: [{ shippingCost: { value: "0.00", currency: "USD" } }],
   itemWebUrl: `https://www.ebay.com/itm/${encodeURIComponent(title)}`,
 });
 

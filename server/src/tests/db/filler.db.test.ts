@@ -50,7 +50,6 @@ const fakeEbay = () => {
             title: `${SERIES}, Vol. ${Number(q.slice(-1))}`,
             conditionId: "3000",
             price: { value: "6.00", currency: "USD" },
-            shippingOptions: [{ shippingCost: { value: "0.00" } }],
             itemWebUrl: `https://www.ebay.com/itm/${q}`,
           },
         ]

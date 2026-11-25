@@ -20,15 +20,3 @@ export const cheapestOfEach = (offers: Offer[]) => {
   }
   return [...best.values()];
 };
-
-// eBay's shipping: a number, "Free shipping", or unknown (null)
-export const shippingCents = (
-  shipping: string | { extracted?: number } | undefined,
-) => {
-  if (typeof shipping === "object") {
-    return shipping.extracted === undefined
-      ? null
-      : toCents(shipping.extracted);
-  }
-  return /free/i.test(shipping ?? "") ? 0 : null;
-};

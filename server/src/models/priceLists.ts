@@ -3,6 +3,7 @@
 // queries (priceQueries.ts lists the parts).
 import { prisma } from "../config/prisma.js";
 import { type RecentPrice } from "./priceHistory.js";
+import { withoutEbayShipping } from "./priceTables.js";
 
 // recently checked volumes with their latest best price and their average,
 // so the price home page can show deals and recent checks for free
@@ -29,7 +30,7 @@ async function queryRecentBestPrices(limit: number): Promise<RecentPrice[]> {
       SELECT isbn13, fetched_at, MIN(price_cents) AS p,
              bool_or(source IS NULL OR source NOT IN ('ebay', 'books-a-million', 'better-world-books')) AS full_check
       FROM price_samples
-      WHERE condition = 'new' AND format = 'print'
+      WHERE condition = 'new' AND format = 'print' AND ${withoutEbayShipping}
       GROUP BY isbn13, fetched_at
     ),
     -- each volume's cheapest new print copy among its prices now (each
@@ -101,7 +102,7 @@ async function queryDeals(limit: number): Promise<RecentPrice[]> {
       SELECT isbn13, fetched_at, MIN(price_cents) AS p,
              bool_or(source IS NULL OR source NOT IN ('ebay', 'books-a-million', 'better-world-books')) AS full_check
       FROM price_samples
-      WHERE condition = 'new' AND format = 'print'
+      WHERE condition = 'new' AND format = 'print' AND ${withoutEbayShipping}
       GROUP BY isbn13, fetched_at
     ),
     latest AS (

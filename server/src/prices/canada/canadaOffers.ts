@@ -14,13 +14,7 @@ import {
   plausiblePrice,
 } from "../stores/retailers.js";
 import type { Offer } from "../types.js";
-import {
-  DIGITAL,
-  USED,
-  cheapestOfEach,
-  shippingCents,
-  toCents,
-} from "../offerHelpers.js";
+import { DIGITAL, USED, cheapestOfEach, toCents } from "../offerHelpers.js";
 
 export type CaShoppingResult = {
   title?: string;
@@ -36,7 +30,6 @@ export type CaEbayResult = {
   link?: string;
   product_id?: string;
   condition?: string;
-  shipping?: string | { extracted?: number };
   price?: { extracted?: number; from?: unknown };
 };
 
@@ -74,20 +67,19 @@ export function shoppingOffers(
   return cheapestOfEach(offers);
 }
 
-// eBay.ca by ISBN: anything that ships to Canada, priced with shipping
+// eBay.ca by ISBN: anything that ships to Canada, at the book's own price
 export function ebayCaOffers(results: CaEbayResult[], title: string): Offer[] {
   const offers: Offer[] = [];
   for (const item of results) {
     const name = item.title ?? "";
     const price = item.price?.extracted;
-    const shipping = shippingCents(item.shipping);
     const url = item.product_id
       ? `https://www.ebay.ca/itm/${item.product_id}`
       : (item.link ?? null);
-    if (!price || item.price?.from || shipping === null || !url) continue;
+    if (!price || item.price?.from || !url) continue;
     if (!isSingleVolume(name) || namesOtherVolume(name, title)) continue;
     if (JAPANESE_EDITION.test(name) || /\bimport\b/i.test(name)) continue;
-    const priceCents = toCents(price) + shipping;
+    const priceCents = toCents(price);
     if (!plausiblePrice(priceCents, CAD_SCALE)) continue;
     offers.push({
       store: "eBay.ca",

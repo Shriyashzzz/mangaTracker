@@ -11,14 +11,13 @@ const item = (over: Partial<ItemSummary>): ItemSummary => ({
   title: "Jujutsu Kaisen, Vol. 1",
   conditionId: "1000",
   price: { value: "9.99", currency: "USD" },
-  shippingOptions: [{ shippingCost: { value: "4.00" } }],
   itemWebUrl: "https://www.ebay.com/itm/1",
   ...over,
 });
 
 const title = "Jujutsu Kaisen, Vol. 1";
 
-test("price includes shipping, and the cheapest new and used are kept", () => {
+test("a price is the book's own, and the cheapest new and used are kept", () => {
   const offers = browseOffers(
     [
       item({}),
@@ -30,19 +29,18 @@ test("price includes shipping, and the cheapest new and used are kept", () => {
   );
   expect(offers.map((o) => [o.condition, o.priceCents])).toEqual(
     expect.arrayContaining([
-      ["new", 1150],
-      ["used", 700],
+      ["new", 750],
+      ["used", 300],
     ]),
   );
   expect(offers).toHaveLength(2);
 });
 
-test("other volumes, Japanese editions and unknown shipping are left out", () => {
+test("other volumes, Japanese editions and listings without a link are left out", () => {
   const offers = browseOffers(
     [
       item({ title: "Jujutsu Kaisen, Vol. 2" }),
       item({ title: "呪術廻戦 1 Japanese edition" }),
-      item({ shippingOptions: [] }),
       item({ itemWebUrl: undefined }),
     ],
     title,
@@ -67,7 +65,7 @@ test("eBay.ca listings are in Canadian dollars, and US-dollar ones are skipped",
   expect(ca[0]).toMatchObject({
     store: "eBay.ca",
     currency: "CAD",
-    priceCents: 1800,
+    priceCents: 1400,
   });
   // Canada's tracking is added where the link is shown, not here
   expect(ca[0]!.url).toBe("https://www.ebay.ca/itm/2");
@@ -87,7 +85,6 @@ test("a box set holding this volume is kept as a set, never as this volume", () 
           title:
             "That Time I Got Reincarnated as a Slime Manga Vol 1-6 Box Set",
           price: usd("46.60"),
-          shippingOptions: [{ shippingCost: { value: "0" } }],
         }),
       ],
       "That Time I Got Reincarnated as a Slime, Vol. 4",
@@ -120,7 +117,6 @@ test("one volume sold from a listing naming the whole run is left out", () => {
         item({
           title: "Chainsaw Man Box Set: Includes volumes 1-11Tatsuki Fujimoto",
           price: usd("7.20"),
-          shippingOptions: [{ shippingCost: { value: "0" } }],
         }),
         item({
           title:
@@ -163,7 +159,7 @@ test("a title search keeps only listings that name the series, the volume and th
         price: usd("196.76"),
       }),
     );
-  expect(formats(listings, manga, "title")).toEqual(["print 1399"]);
+  expect(formats(listings, manga, "title")).toEqual(["print 999"]);
   expect(
     browseOffers(listings, novel, "US", "title")
       .map((o) => o.format)
@@ -229,7 +225,7 @@ test("a numbered box set naming no range, or a choose-one listing, is left out",
       "Bleach, Vol. 8",
       "isbn",
     ),
-  ).toEqual(["set 25400"]);
+  ).toEqual(["set 25000"]);
 });
 
 test("a manga copy needn't say manga, unless the series' novels are in the results", () => {
@@ -238,7 +234,7 @@ test("a manga copy needn't say manga, unless the series' novels are in the resul
     price: usd("5.44"),
   });
   expect(formats([plain], "One Piece, Vol. 12", "title")).toEqual([
-    "print 944",
+    "print 544",
   ]);
   expect(
     formats(
@@ -263,10 +259,10 @@ test("an omnibus holding this volume is an omnibus, not a box set", () => {
     price: usd("10.99"),
   });
   expect(formats([listing], "Attack on Titan, Vol. 34", "title")).toEqual([
-    "omnibus 1499",
+    "omnibus 1099",
   ]);
   expect(formats([listing], "Attack on Titan, Vol. 33", "isbn")).toEqual([
-    "omnibus 1499",
+    "omnibus 1099",
   ]);
   // one that doesn't hold it, or doesn't say which volumes it holds
   expect(formats([listing], "Attack on Titan, Vol. 12", "title")).toEqual([]);
@@ -284,7 +280,7 @@ test("an omnibus holding this volume is an omnibus, not a box set", () => {
       "One Piece, Vol. 2",
       "title",
     ),
-  ).toEqual(["omnibus 1399"]);
+  ).toEqual(["omnibus 999"]);
 });
 
 test("on an omnibus's own page, its listings are the book itself", () => {
@@ -296,14 +292,14 @@ test("on an omnibus's own page, its listings are the book itself", () => {
       page,
       "isbn",
     ),
-  ).toEqual(["print 1399"]);
+  ).toEqual(["print 999"]);
   expect(
     formats(
       [item({ title: "One Piece Omnibus Edition Vol 1 (Vols 1-3) Manga" })],
       page,
       "title",
     ),
-  ).toEqual(["print 1399"]);
+  ).toEqual(["print 999"]);
   // a plain Vol. 1 from the title search isn't that book
   expect(
     formats([item({ title: "One Piece, Vol. 1 Manga" })], page, "title"),
@@ -314,14 +310,14 @@ test("on an omnibus's own page, its listings are the book itself", () => {
       "Fushigi yûgi (VIZBIG Edition), Vol. 6",
       "isbn",
     ),
-  ).toEqual(["print 1399"]);
+  ).toEqual(["print 999"]);
 });
 
 test("a set has to call itself a box set, and a seller's lot isn't one", () => {
   const book = "Bleach, Vol. 9";
   const sets = (titles: string[]) =>
     formats(
-      titles.map((t) => item({ title: t, price: usd("60.00") })),
+      titles.map((t) => item({ title: t, price: usd("64.00") })),
       book,
       "title",
     );
@@ -349,7 +345,7 @@ test("a set has to call itself a box set, and a seller's lot isn't one", () => {
       book,
       "title",
     ),
-  ).toEqual(["set 40400"]);
+  ).toEqual(["set 40000"]);
 });
 
 test("an omnibus sold under its own name is the omnibus page's book, and an omnibus elsewhere", () => {
@@ -360,14 +356,14 @@ test("an omnibus sold under its own name is the omnibus page's book, and an omni
       "One Piece, Vol. 1 (Romance Dawn / Buggy the Clown / Don't Get Fooled Again)",
       "isbn",
     ),
-  ).toEqual(["print 1399"]);
+  ).toEqual(["print 999"]);
   expect(
     formats(
       [item({ title: "One Piece: East Blue 1-2-3 Manga" })],
       "One Piece, Vol. 2",
       "title",
     ),
-  ).toEqual(["omnibus 1399"]);
+  ).toEqual(["omnibus 999"]);
 });
 
 // ---------- found across the library (Nov 2026) ----------
@@ -384,7 +380,7 @@ test("a word in the series' own name doesn't trip a filter", () => {
       "Is It Wrong to Try to Pick up Girls in a Dungeon?, Vol. 10",
       "isbn",
     ),
-  ).toEqual(["print 1399"]);
+  ).toEqual(["print 999"]);
   // "#9" is the name, 7 the volume
   expect(
     formats(
@@ -392,7 +388,7 @@ test("a word in the series' own name doesn't trip a filter", () => {
       "Musashi # 9 Vol. 7",
       "isbn",
     ),
-  ).toEqual(["print 1399"]);
+  ).toEqual(["print 999"]);
 });
 
 test("accents, apostrophes and a cut-off format don't decide a match", () => {
@@ -406,7 +402,7 @@ test("accents, apostrophes and a cut-off format don't decide a match", () => {
       "The Savior's Book Cafe Story in Another World Vol. 5",
       "title",
     ),
-  ).toEqual(["print 1399"]);
+  ).toEqual(["print 999"]);
   const book =
     "The White Cat's Revenge as Plotted from the Dragon King's Lap, Vol. 1";
   expect(
@@ -420,7 +416,7 @@ test("accents, apostrophes and a cut-off format don't decide a match", () => {
       book,
       "title",
     ),
-  ).toEqual(["print 1399"]);
+  ).toEqual(["print 999"]);
   expect(
     formats(
       [
@@ -441,7 +437,6 @@ test("an out-of-print used copy found by its ISBN keeps its price; a new one or 
       title: "xxxHolic, Vol. 19 - paperback CLAMP",
       conditionId,
       price: usd("91.06"),
-      shippingOptions: [{ shippingCost: { value: "0" } }],
     });
   expect(formats([rare("3000")], "xxxHOLiC 19", "isbn")).toEqual([
     "print 9106",
@@ -450,20 +445,21 @@ test("an out-of-print used copy found by its ISBN keeps its price; a new one or 
   expect(formats([rare("3000")], "xxxHOLiC 19", "title")).toEqual([]);
 });
 
-test("a listing whose shipping eBay calculates at checkout is left out", () => {
-  expect(
-    browseOffers(
-      [
-        item({
-          title: "Blood Sucker Volume 7",
-          shippingOptions: [{ shippingCostType: "CALCULATED" } as never],
-        }),
-      ],
-      "Blood Sucker Volume 7",
-      "US",
-      "isbn",
-    ),
-  ).toEqual([]);
+test("a listing whose shipping eBay works out at checkout is kept at its own price", () => {
+  const offers = browseOffers(
+    [
+      item({
+        title: "Blood Sucker Volume 7",
+        shippingOptions: [{ shippingCostType: "CALCULATED" }],
+      } as ItemSummary),
+    ],
+    "Blood Sucker Volume 7",
+    "US",
+    "isbn",
+  );
+  expect(offers.map((o) => [o.condition, o.priceCents])).toEqual([
+    ["new", 999],
+  ]);
 });
 
 test("a sequel's box set, a lot read as 1-2-3, or a code isn't kept", () => {
@@ -492,7 +488,7 @@ test("a sequel's box set, a lot read as 1-2-3, or a code isn't kept", () => {
       "Tokyo Ghoul, Vol. 1",
       "title",
     ),
-  ).toEqual(["set 12899"]);
+  ).toEqual(["set 12499"]);
   expect(
     formats(
       [
@@ -541,27 +537,27 @@ test("titles starting with lot, single-volume wording and book words aren't drop
       "Naruto, Vol. 12",
       "isbn",
     ),
-  ).toEqual(["print 1399"]);
+  ).toEqual(["print 999"]);
   expect(
     formats(
       [item({ title: "Naruto, Vol. 12 (C: 1-0-0) VIZ" })],
       "Naruto, Vol. 12",
       "isbn",
     ),
-  ).toEqual(["print 1399"]);
+  ).toEqual(["print 999"]);
   expect(
     formats(
       [item({ title: "Naruto Vol. 12 - 9781421502427" })],
       "Naruto, Vol. 12",
       "isbn",
     ),
-  ).toEqual(["print 1399"]);
+  ).toEqual(["print 999"]);
   for (const t of [
     "Naruto, Vol. 12 Manga First Print",
     "Naruto, Vol. 12 Manga w/ Promo Card",
   ])
     expect(formats([item({ title: t })], "Naruto, Vol. 12", "title")).toEqual([
-      "print 1399",
+      "print 999",
     ]);
 });
 
@@ -573,7 +569,7 @@ test("a series whose name ends in a number is searched and matched with it", () 
       "Kaiju No. 8, Vol. 3",
       "title",
     ),
-  ).toEqual(["print 1399"]);
+  ).toEqual(["print 999"]);
   // a plain trailing number is still the volume
   expect(titleQueries("Blue Lock 4").volume).toBe("Blue Lock vol 4");
 });
@@ -590,7 +586,7 @@ test("an omnibus page matches box sets by the volumes it holds", () => {
       price: usd("130.00"),
     }),
   ];
-  expect(formats(sets, page, "title")).toEqual(["set 13400"]);
+  expect(formats(sets, page, "title")).toEqual(["set 13000"]);
 });
 
 test("7-8-9 and Vols. 10, 11 & 12 hold all three volumes", () => {
@@ -598,13 +594,13 @@ test("7-8-9 and Vols. 10, 11 & 12 hold all three volumes", () => {
     formats([item({ title: t })], book, "title");
   expect(
     on("One Piece, Vol. 9", "One Piece East Blue 7-8-9 Omnibus Manga"),
-  ).toEqual(["omnibus 1399"]);
+  ).toEqual(["omnibus 999"]);
   expect(
     on("Bleach, Vol. 12", "Bleach 3-in-1 Edition Vol. 4 (10-11-12) Manga"),
-  ).toEqual(["omnibus 1399"]);
+  ).toEqual(["omnibus 999"]);
   expect(
     on("Bleach, Vol. 12", "Bleach Omnibus Includes Vols. 10, 11 & 12 Manga"),
-  ).toEqual(["omnibus 1399"]);
+  ).toEqual(["omnibus 999"]);
 });
 
 test("a season box set of the series is kept, and a manga box set needn't say manga", () => {
@@ -619,7 +615,7 @@ test("a season box set of the series is kept, and a manga box set needn't say ma
       "Attack on Titan, Vol. 3",
       "title",
     ),
-  ).toEqual(["set 10400"]);
+  ).toEqual(["set 10000"]);
   expect(
     formats(
       [
@@ -635,7 +631,7 @@ test("a season box set of the series is kept, and a manga box set needn't say ma
       "One Piece, Vol. 5",
       "title",
     ),
-  ).toEqual(["set 12400"]);
+  ).toEqual(["set 12000"]);
 });
 
 // ---------- from the fresh-data review (Nov 2026, 150 web-sourced volumes) ----------
@@ -669,7 +665,7 @@ test("another book ending in the series name, or a spin-off, isn't this series",
   // seller words first are fine
   expect(
     on("Battle Royale, Vol. 1", ["NEW Battle Royale Vol. 1 Manga"]),
-  ).toEqual(["print 1399"]);
+  ).toEqual(["print 999"]);
 });
 
 test("a partial run called complete is a lot, not a box set", () => {
@@ -690,7 +686,7 @@ test("a partial run called complete is a lot, not a box set", () => {
       "title",
       "133.00",
     ),
-  ).toEqual(["set 13700"]);
+  ).toEqual(["set 13300"]);
 });
 
 test("comma lists and repeated Vol words are several volumes", () => {
@@ -729,7 +725,7 @@ test("junk that happens to say novels doesn't make manga copies say manga", () =
       ".hack//Legend of the Twilight Vol. 3",
       "Assorted Anime Manga/Novels Lot",
     ]),
-  ).toEqual(["print 1399"]);
+  ).toEqual(["print 999"]);
 });
 
 test("an omnibus page keeps only its own book", () => {
@@ -741,7 +737,7 @@ test("an omnibus page keeps only its own book", () => {
     ]),
   ).not.toContainEqual(expect.stringMatching(/^print/));
   expect(on(page, ["Dragon Ball (3-in-1 Edition), Vol. 1 Manga"])).toEqual([
-    "print 1399",
+    "print 999",
   ]);
   expect(
     on(
@@ -762,15 +758,15 @@ test("another edition isn't this volume on a title search", () => {
 });
 
 test("real copies worded loosely are kept", () => {
-  expect(on("Sailor Moon, Vol. 1", ["Sailor Moon 1"])).toEqual(["print 1399"]);
+  expect(on("Sailor Moon, Vol. 1", ["Sailor Moon 1"])).toEqual(["print 999"]);
   expect(on("Hellsing, Vol. 10", ["Hellsing 10 by Hirano"])).toEqual([
-    "print 1399",
+    "print 999",
   ]);
   expect(on("Naruto, Vol. 20", ["Naruto English Manga Vol. 20"])).toEqual([
-    "print 1399",
+    "print 999",
   ]);
   expect(on("Chainsaw Man, Vol. 16", ["CHAINSAW MAN V16"])).toEqual([
-    "print 1399",
+    "print 999",
   ]);
   expect(
     on(
@@ -778,14 +774,14 @@ test("real copies worded loosely are kept", () => {
       ["Fruits Basket, Vol. 23 Volume 23 - 1st Printing"],
       "isbn",
     ),
-  ).toEqual(["print 1399"]);
+  ).toEqual(["print 999"]);
 });
 
 test("a Kodansha omnibus page goes by its omnibus number", () => {
   const page = "Attack on Titan Omnibus 9 (Vol. 25-27)";
   expect(titleQueries(page).volume).toBe("Attack on Titan Omnibus vol 9");
   expect(on(page, ["Attack on Titan Omnibus Vol. 9"], "isbn")).toEqual([
-    "print 1399",
+    "print 999",
   ]);
   expect(
     on(
@@ -793,7 +789,7 @@ test("a Kodansha omnibus page goes by its omnibus number", () => {
       ["Death Note Black Edition Manga 5 V Contains Volumes 9 & 10"],
       "isbn",
     ),
-  ).toEqual(["print 1399"]);
+  ).toEqual(["print 999"]);
 });
 
 test("a box set written with v. counts as books", () => {
@@ -804,7 +800,7 @@ test("a box set written with v. counts as books", () => {
       "title",
       "40.00",
     ),
-  ).toEqual(["set 4400"]);
+  ).toEqual(["set 4000"]);
 });
 
 test("a set of the page's own edition, and contents cut short, are read right", () => {
@@ -815,14 +811,14 @@ test("a set of the page's own edition, and contents cut short, are read right", 
       "isbn",
       "100.00",
     ),
-  ).toEqual(["set 10400"]);
+  ).toEqual(["set 10000"]);
   expect(
     on(
       "Fullmetal Alchemist (3-in-1 Edition), Vol. 1",
       ["Fullmetal Alchemist 3-In-1 Edition, Vol. 1 : Includes Vols. 1, 2"],
       "isbn",
     ),
-  ).toEqual(["print 1399"]);
+  ).toEqual(["print 999"]);
   // two books' contents aren't one book's
   expect(
     on(
@@ -859,7 +855,7 @@ test("a printing, edition, page or book count after a comma isn't another volume
   ).toBe(true);
   expect(
     on("Naruto, Vol. 24", ["Naruto, Vol. 24, 2nd Printing"], "isbn"),
-  ).toEqual(["print 1399"]);
+  ).toEqual(["print 999"]);
   // a real list still is several
   expect(isSingleVolume("Death Note Volume 1, 8, 9")).toBe(false);
 });
@@ -871,32 +867,32 @@ test("edition pages whose name holds the edition find their own book by title", 
     "Death Note Black Edition, Vol. 3 Paperback",
     "Death Note Black Edition 3 Viz",
   ])
-    expect(on(de, [t])).toEqual(["print 1399"]);
+    expect(on(de, [t])).toEqual(["print 999"]);
   const aot = "Attack on Titan Omnibus 9 (Vol. 25-27)";
   expect(on(aot, ["Attack on Titan Omnibus 9 Kodansha"])).toEqual([
-    "print 1399",
+    "print 999",
   ]);
   expect(on(aot, ["Attack on Titan Omnibus 9 Vol 25-27 Kodansha"])).toEqual([
-    "print 1399",
+    "print 999",
   ]);
 });
 
 test("publishers and formats first, a missing The, and English words aren't foreign", () => {
   expect(
     on("Chainsaw Man, Vol. 5", ["Square Enix Manga Chainsaw Man Vol 5"]),
-  ).toEqual(["print 1399"]);
+  ).toEqual(["print 999"]);
   expect(on("Chainsaw Man, Vol. 5", ["Paperback Chainsaw Man Vol. 5"])).toEqual(
-    ["print 1399"],
+    ["print 999"],
   );
   expect(
     on("Vinland Saga, Vol. 5", ["Vertical Comics Vinland Saga Vol 5"]),
-  ).toEqual(["print 1399"]);
+  ).toEqual(["print 999"]);
   expect(
     on("The Promised Neverland, Vol. 3", ["Promised Neverland Vol 3 Manga"]),
-  ).toEqual(["print 1399"]);
+  ).toEqual(["print 999"]);
   expect(
     on("Frieren, Vol. 3", ["Frieren Vol 3 French Kiss Variant"], "isbn"),
-  ).toEqual(["print 1399"]);
+  ).toEqual(["print 999"]);
   expect(
     on("Frieren, Vol. 3", ["Frieren Vol 3 French Edition"], "isbn"),
   ).toEqual([]);
@@ -904,7 +900,7 @@ test("publishers and formats first, a missing The, and English words aren't fore
     on("Fullmetal Alchemist (Fullmetal Edition), Vol. 3", [
       "Fullmetal Alchemist Fullmetal Edition Vol 3",
     ]),
-  ).toEqual(["print 1399"]);
+  ).toEqual(["print 999"]);
 });
 
 test("a named edition the page doesn't have, or a Japanese book, isn't kept by title", () => {
@@ -921,5 +917,5 @@ test("a named edition the page doesn't have, or a Japanese book, isn't kept by t
   // plain edition words don't count
   expect(
     on("Naruto, Vol. 20", ["Naruto Vol. 20 English Edition Manga"]),
-  ).toEqual(["print 1399"]);
+  ).toEqual(["print 999"]);
 });

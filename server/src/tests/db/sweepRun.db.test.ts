@@ -86,7 +86,6 @@ const fakeEbay = () => {
             title: titleOf.get(q),
             conditionId: "3000",
             price: { value: "6.00", currency: "USD" },
-            shippingOptions: [{ shippingCost: { value: "0.00" } }],
             itemWebUrl: `https://www.ebay.com/itm/${q}`,
           },
         ]

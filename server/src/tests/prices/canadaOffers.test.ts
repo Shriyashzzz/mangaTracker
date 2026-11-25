@@ -56,7 +56,7 @@ describe("Google Shopping, Canada", () => {
 });
 
 describe("eBay.ca", () => {
-  test("adds shipping and drops listings with no shipping price", () => {
+  test("a price is the book's own: shipping is never added", () => {
     const offers = ebayCaOffers(
       [
         {
@@ -64,26 +64,24 @@ describe("eBay.ca", () => {
           product_id: "1",
           condition: "Pre-Owned",
           price: { extracted: 10.35 },
-          shipping: { extracted: 5 },
         },
         {
           title: "Chainsaw Man, Vol. 1",
           product_id: "2",
           condition: "Brand New",
           price: { extracted: 12 },
-          shipping: "Free shipping",
         },
         {
           title: "Chainsaw Man, Vol. 1",
           product_id: "3",
-          price: { extracted: 9 },
+          price: { extracted: 11 },
         },
       ],
       TITLE,
     );
     expect(offers.map((o) => [o.condition, o.priceCents, o.url])).toEqual(
       expect.arrayContaining([
-        ["used", 1535, "https://www.ebay.ca/itm/1"],
+        ["used", 1035, "https://www.ebay.ca/itm/1"],
         ["new", 1200, "https://www.ebay.ca/itm/2"],
       ]),
     );

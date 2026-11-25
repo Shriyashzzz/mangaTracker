@@ -21,24 +21,23 @@ const listing = (over: object) => ({
   link: "https://www.ebay.com/itm/406889406962?_skw=9781974720712&hash=abc",
   condition: "Pre-Owned",
   location: US,
-  shipping: "Free delivery",
   price: { raw: "$6.35", extracted: 6.35 },
   ...over,
 });
 
-test("eBay keeps the cheapest new and used copy, with shipping added", async () => {
+test("eBay keeps the cheapest new and used copy, at the book's own price", async () => {
   const { ebayOffers } = await load();
   const offers = ebayOffers(
     [
       listing({ price: { extracted: 7.03 } }),
-      listing({ price: { extracted: 2.25 }, shipping: { extracted: 5.99 } }),
+      listing({ price: { extracted: 2.25 } }),
       listing({ condition: "Brand New", price: { extracted: 11 } }),
       listing({ condition: "New (Other)", price: { extracted: 9 } }),
     ],
     "Chainsaw Man, Vol. 6",
   );
   expect(offers.map((o) => [o.condition, o.priceCents])).toEqual([
-    ["used", 703],
+    ["used", 225],
     ["new", 1100],
   ]);
   expect(offers.every((o) => o.store === "eBay")).toBe(true);
@@ -57,7 +56,6 @@ test("eBay titles can be worded any way, but not say they're something else", as
   expect(kept("Chainsaw Man", { location: "Located in India" })).toBe(0);
   expect(kept("Chainsaw Man", { price: { extracted: 900 } })).toBe(0);
   expect(kept("Chainsaw Man", { price: { from: { extracted: 6 } } })).toBe(0);
-  expect(kept("Chainsaw Man", { shipping: "Shipping unknown" })).toBe(0);
 });
 
 test("eBay rows open the exact listing with our campaign", async () => {

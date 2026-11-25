@@ -19,7 +19,7 @@ import {
   lookedAt,
   groupBy,
 } from "./priceBooks.js";
-import { tablesOf, type Country } from "./priceTables.js";
+import { tablesOf, withoutEbayShipping, type Country } from "./priceTables.js";
 import { SHOWN_FOR_MS, stillShown } from "./priceAge.js";
 
 // samples saved before a rule changed, that it would have kept out: each is judged
@@ -108,6 +108,7 @@ export async function getNewPriceMedian(
     SELECT ROUND(percentile_cont(0.5) WITHIN GROUP (ORDER BY price_cents))::int AS "median"
     FROM ${tablesOf(country).samples}
     WHERE isbn13 = ${isbn13} AND in_stock AND condition = 'new' AND format = 'print'
+      AND ${withoutEbayShipping}
   `;
   return rows[0]?.median ?? null;
 }
@@ -121,6 +122,7 @@ export async function newMedians(isbns: string[], country: Country) {
     FROM ${tablesOf(country).samples}
     WHERE isbn13 = ANY(${isbns}::text[])
       AND in_stock AND condition = 'new' AND format = 'print'
+      AND ${withoutEbayShipping}
     GROUP BY isbn13
   `;
   return new Map(rows.map((u) => [u.isbn13.trim(), u.median]));

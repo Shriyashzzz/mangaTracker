@@ -202,9 +202,6 @@ export type ItemSummary = {
   title?: string;
   conditionId?: string;
   price?: { value: string; currency: string };
-  shippingOptions?: {
-    shippingCost?: { value: string; currency?: string };
-  }[];
   itemWebUrl?: string;
   itemAffiliateWebUrl?: string;
 };
@@ -224,8 +221,8 @@ type EbayMarket = keyof typeof MARKETS;
 //   format too: a light novel's listing says it's a novel, a manga's doesn't
 // Either way, a box set (or a run of volumes) holding this volume is kept as
 // format "set": shown and labelled, never counted as this volume's price.
-// Prices include shipping; a listing with no shipping price (calculated at
-// checkout, or pickup only) is left out, since its real cost isn't known
+// A price is the book's own: shipping is never added, and a listing whose
+// shipping is worked out at checkout is kept like any other
 // what a search was for, as its listings are judged
 type Asked = {
   // the volume's title, as its page has it
@@ -354,11 +351,8 @@ export function browseOffers(
       rest: withoutSeriesName(name, title),
     };
     const { rest } = listing;
-    // a listing with "calculated" shipping has no shipping price in a search
-    // (eBay works it out per buyer), so its real cost isn't known: left out
-    const shippingValue = item.shippingOptions?.[0]?.shippingCost?.value;
     if (!item.price || item.price.currency !== currency) continue;
-    if (shippingValue === undefined || !item.itemWebUrl) continue;
+    if (!item.itemWebUrl) continue;
     if (isNotThisBook(listing, by)) continue;
 
     // which of three things it is. On an edition page the edition's word is
@@ -383,9 +377,7 @@ export function browseOffers(
     else fits = singleFits(listing, asked);
     if (!fits) continue;
 
-    // prices include shipping
-    const priceCents =
-      toCents(Number(item.price.value)) + toCents(Number(shippingValue));
+    const priceCents = toCents(Number(item.price.value));
     const condition = item.conditionId === "1000" ? "new" : "used";
     const scale = market === "CA" ? CAD_SCALE : 1;
     if (!priceIsPlausible(priceCents, condition, isSet, rest, by, scale))

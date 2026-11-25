@@ -15,7 +15,7 @@ import type { Offer, Provider } from "../types.js";
 import ebayApi from "./ebay.js";
 import keepa from "./keepa.js";
 import { searchSerpApi, serpApiEnabled } from "./serpapiClient.js";
-import { cheapestOfEach, shippingCents, toCents } from "../offerHelpers.js";
+import { cheapestOfEach, toCents } from "../offerHelpers.js";
 
 // ---------- eBay ----------
 
@@ -25,7 +25,6 @@ type EbayResult = {
   product_id?: string;
   condition?: string;
   location?: string;
-  shipping?: string | { extracted?: number };
   // a range ({ from, to }) means several variants, so no one price to show
   price?: { extracted?: number; from?: unknown };
 };
@@ -51,14 +50,13 @@ export function ebayOffers(results: EbayResult[], title: string): Offer[] {
   for (const item of results) {
     const name = item.title ?? "";
     const price = item.price?.extracted;
-    const shipping = shippingCents(item.shipping);
     const url = ebayItemUrl(item);
-    if (!price || item.price?.from || shipping === null || !url) continue;
+    if (!price || item.price?.from || !url) continue;
     if (!/united states/i.test(item.location ?? "")) continue;
     if (!isSingleVolume(name) || namesOtherVolume(name, title)) continue;
     if (JAPANESE_EDITION.test(name) || /\bimport\b/i.test(name)) continue;
 
-    const priceCents = toCents(price) + shipping;
+    const priceCents = toCents(price);
     if (!plausiblePrice(priceCents)) continue;
     offers.push({
       store: "eBay",
@@ -87,7 +85,7 @@ export const ebaySearch: Provider = {
       {
         engine: "ebay",
         _nkw: isbn13,
-        _sop: "15", // price + shipping, lowest first
+        _sop: "15", // cheapest first (eBay sorts by price plus shipping)
         buying_format: "BIN", // no auctions: their price isn't the final one
       },
       signal,
