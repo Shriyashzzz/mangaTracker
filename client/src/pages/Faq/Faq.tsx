@@ -4,6 +4,7 @@ import { NavLink } from "react-router";
 import { FAQ, FAQ_DESCRIPTION, faqJsonLd } from "../../lib/content/faq";
 import { usePageMeta } from "../../lib/seo";
 import { faqStyles as styles } from "./styles";
+import ContactSection from "../About/ContactSection";
 
 export function FaqPage() {
   usePageMeta({
@@ -42,6 +43,8 @@ export function FaqPage() {
           </div>
         </section>
       ))}
+
+      <ContactSection />
 
       <p className={styles.more}>
         Want the story behind Manga Tracker?{" "}

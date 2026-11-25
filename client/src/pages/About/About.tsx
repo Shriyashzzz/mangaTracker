@@ -5,13 +5,10 @@ import TakeTourButton from "../../components/tour/TakeTourButton";
 import Mascot from "../../components/mascot/Mascot";
 
 import { aboutStyles as styles } from "./styles";
+import ContactSection from "./ContactSection";
 import { usePageMeta } from "../../lib/seo";
-import { CoffeeIcon } from "../../components/icons/Icons";
-import { SUPPORT_URL, stopAsking } from "../../lib/support";
-import { inPlayApp } from "../../lib/playApp";
 import { useAuth } from "../../store/auth";
 import InstallAppButton from "../../components/installApp/InstallAppButton";
-import { CONTACT_EMAIL } from "../../lib/contact";
 
 // the three problems the app fixes and the payoff, told as a four-panel strip
 const STRIP = [
@@ -185,48 +182,7 @@ export function AboutPage() {
         </InstallAppButton>
       </p>
 
-      <section className={styles.contact} aria-labelledby="contact-title">
-        <h2 id="contact-title" className={styles.contactTitle}>
-          Feedback or questions?
-        </h2>
-        <p className={styles.contactBody}>
-          Found a bug, want a feature or just want to say hi? Send me an email.
-        </p>
-        {/* no coffee asks inside the Google Play app (lib/playApp.ts) */}
-        {!inPlayApp() && (
-          <p className={styles.contactBody}>
-            Made by a collector, for collectors. A coffee keeps it free.
-          </p>
-        )}
-        <div className={styles.contactButtons}>
-          <a href={`mailto:${CONTACT_EMAIL}`} className="btn btn-secondary">
-            Contact me
-          </a>
-          {!inPlayApp() && (
-            <a
-              href={SUPPORT_URL}
-              target="_blank"
-              rel="noreferrer"
-              className="btn btn-secondary"
-              onClick={stopAsking}
-            >
-              <CoffeeIcon />
-              Buy me a coffee
-            </a>
-          )}
-        </div>
-        <p className={styles.contactAddress}>{CONTACT_EMAIL}</p>
-        <NavLink
-          to="/acknowledgements"
-          className={styles.credits}
-          viewTransition
-        >
-          Acknowledgements
-        </NavLink>
-        <NavLink to="/privacy" className={styles.credits} viewTransition>
-          Privacy policy
-        </NavLink>
-      </section>
+      <ContactSection />
     </article>
   );
 }
