@@ -474,10 +474,11 @@ async function browse(
     headers: {
       Authorization: `Bearer ${token}`,
       "X-EBAY-C-MARKETPLACE-ID": id,
-      // asks eBay to include affiliate links in US results
+      // asks eBay to include affiliate links in US results, labelled
+      // "listing" (the customid) as ebayAffiliateUrl labels its own
       ...(campaignId &&
         market === "US" && {
-          "X-EBAY-C-ENDUSERCTX": `affiliateCampaignId=${campaignId}`,
+          "X-EBAY-C-ENDUSERCTX": `affiliateCampaignId=${campaignId},affiliateReferenceId=listing`,
         }),
     },
     signal,
