@@ -34,6 +34,7 @@ import SeriesFacts from "./SeriesFacts";
 import BackToNew from "./BackToNew";
 import VolumeCard, { CoverFallback } from "./VolumeCard";
 import PriceAges from "./PriceAges";
+import HumanCheck from "../../components/humanCheck/HumanCheck";
 import { pricesStyles as styles } from "./styles";
 import OfferList from "./OfferList";
 import { knownStoreLow } from "./offerLabels";
@@ -340,6 +341,8 @@ export default function PriceVolume() {
         </header>
 
         <div className={styles.volumeBody}>
+          {/* Cloudflare's question, if it asks before a live check */}
+          <HumanCheck />
           {/* one country's prices at a time */}
           {inCanada && (
             <CanadaPrices

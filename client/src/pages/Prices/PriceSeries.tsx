@@ -36,6 +36,7 @@ import { useAuth } from "../../store/auth";
 import AfterAnimeBar from "../AfterAnime/AfterAnimeBar";
 import BackToNew from "./BackToNew";
 import { BoxSetSearch } from "./BoxSets";
+import HumanCheck from "../../components/humanCheck/HumanCheck";
 import SetsBox from "./SetsBox";
 import { shownSets } from "./boxSetRules";
 import OtherEditions from "./OtherEditions";
@@ -285,6 +286,9 @@ export default function PriceSeries() {
           owned={mine ? ownedOf(mine) : []}
         />
       </header>
+
+      {/* Cloudflare's question, if it asks before looking for box sets */}
+      <HumanCheck />
 
       {/* for someone coming from the anime, before what collecting costs */}
       {info && data.hasAnimeAnswer && <AfterAnimeBar seriesName={info.name} />}

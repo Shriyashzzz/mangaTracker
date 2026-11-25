@@ -1,8 +1,10 @@
 // Cloudflare Turnstile: a live price check spends paid searches, so the page
 // first gets a token proving a person is here, and the server checks it
 // (server/src/prices/human.ts). Invisible for almost everyone; it only shows
-// a box, in the corner, when Cloudflare wants to ask. Without a site key, or
-// if it can't load, there's no token and the page gets the stored prices.
+// a box when Cloudflare wants to ask: in the page's own place for it
+// (components/humanCheck), under "Tap to get today's prices", or in the corner
+// on a page without one. Without a site key, or if it can't load, there's no
+// token and the page gets the stored prices.
 const SITE_KEY = import.meta.env.VITE_TURNSTILE_SITE_KEY;
 const SCRIPT =
   "https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit";
@@ -16,11 +18,34 @@ type Turnstile = {
       sitekey: string;
       appearance?: "always" | "execute" | "interaction-only";
       callback: (token: string) => void;
+      "before-interactive-callback"?: () => void;
       "error-callback"?: () => void;
       "expired-callback"?: () => void;
     },
   ) => string;
   remove: (id: string) => void;
+};
+
+// the page's place for the box (HumanCheck), while it's on screen
+let slot: HTMLElement | null = null;
+export const setHumanCheckSlot = (el: HTMLElement | null) => {
+  slot = el;
+};
+
+// whether Cloudflare is asking right now: HumanCheck shows its words then
+let asking = false;
+const listeners = new Set<() => void>();
+const setAsking = (now: boolean) => {
+  if (asking === now) return;
+  asking = now;
+  listeners.forEach((listen) => listen());
+};
+export const humanCheckAsking = () => asking;
+export const onHumanCheckAsking = (listen: () => void) => {
+  listeners.add(listen);
+  return () => {
+    listeners.delete(listen);
+  };
 };
 
 let loading: Promise<Turnstile | null> | null = null;
@@ -48,14 +73,18 @@ async function humanToken(signal?: AbortSignal): Promise<string | null> {
   if (!turnstile || signal?.aborted) return null;
   return new Promise((resolve) => {
     const box = document.createElement("div");
-    box.style.cssText = "position:fixed;right:12px;bottom:84px;z-index:60";
-    document.body.append(box);
+    if (slot) slot.append(box);
+    else {
+      box.style.cssText = "position:fixed;right:12px;bottom:84px;z-index:60";
+      document.body.append(box);
+    }
     let id = "";
     let done = false;
     const finish = (token: string | null) => {
       if (done) return;
       done = true;
       clearTimeout(timer);
+      setAsking(false);
       resolve(token);
       // after its own callback has returned
       setTimeout(() => {
@@ -73,6 +102,7 @@ async function humanToken(signal?: AbortSignal): Promise<string | null> {
       sitekey: SITE_KEY,
       appearance: "interaction-only",
       callback: (token) => finish(token),
+      "before-interactive-callback": () => setAsking(true),
       "error-callback": () => finish(null),
       "expired-callback": () => finish(null),
     });
