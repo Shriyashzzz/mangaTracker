@@ -476,10 +476,16 @@ export default function PriceVolume() {
                   </ul>
                 </div>
               )}
+              {/* one note under the links. The Amazon sentence is the
+                  wording the Amazon Associates agreement requires */}
               {storeLinks.some((s) => s.affiliate) && (
                 <p className={styles.disclosure}>
                   Some store links are affiliate links, which help keep Manga
                   Tracker running at no cost to you.
+                  {storeLinks.some(
+                    (s) => s.store === "Amazon" && s.affiliate,
+                  ) &&
+                    " As an Amazon Associate I earn from qualifying purchases."}
                 </p>
               )}
             </section>
@@ -590,14 +596,6 @@ export default function PriceVolume() {
             ))}
           </ul>
         </section>
-      )}
-
-      {/* wording required by the Amazon Associates agreement, kept on the
-          page that carries the store links */}
-      {storeLinks.some((s) => s.store === "Amazon" && s.affiliate) && (
-        <p className={styles.amazonDisclosure}>
-          As an Amazon Associate I earn from qualifying purchases.
-        </p>
       )}
     </div>
   );

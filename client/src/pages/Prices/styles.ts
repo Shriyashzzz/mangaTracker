@@ -344,7 +344,6 @@ export const pricesStyles = {
   storeLinks: storeButtons,
   disclosure:
     "mt-3 max-w-[62ch] text-[0.78rem] leading-normal text-muted italic",
-  amazonDisclosure: "mt-10 text-right text-[0.75rem] text-muted",
   volumeActions: "mt-1 flex flex-wrap items-center gap-[0.85rem]",
   // stores with no price, tucked under the list they belong with
   otherStores: "mt-3",
@@ -395,7 +394,8 @@ export const pricesStyles = {
   genres:
     "flex flex-wrap gap-[0.35rem] [&_li]:rounded-[2px] [&_li]:border-[1.5px] [&_li]:border-line-soft [&_li]:px-2 [&_li]:py-[0.05rem] [&_li]:text-[0.78rem] [&_li]:text-ink-soft",
   blurb:
-    "max-w-[68ch] text-[0.95rem] leading-[1.6] whitespace-pre-line text-ink-soft",
+    // about 75 letters a line: "ch" is the width of a 0, wider than most
+    "max-w-[60ch] text-[0.95rem] leading-[1.6] whitespace-pre-line text-ink-soft",
   clamped: "line-clamp-3",
 
   // ---------- series page ----------

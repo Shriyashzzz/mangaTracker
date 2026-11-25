@@ -18,9 +18,18 @@ export default function SeriesFacts({ info }: { info: SeriesInfo }) {
             Rated <strong>★ {starsOf(info.score)}</strong>
           </li>
         )}
+        {/* with a rank, its "AniList" is the link; without one, the link
+            stands alone at the end */}
         {info.popularityRank != null && (
           <li>
-            <strong>#{info.popularityRank}</strong> most popular on AniList
+            <strong>#{info.popularityRank}</strong> most popular on{" "}
+            {info.siteUrl ? (
+              <a href={info.siteUrl} target="_blank" rel="noreferrer">
+                AniList
+              </a>
+            ) : (
+              "AniList"
+            )}
           </li>
         )}
         {info.volumes != null && (
@@ -32,7 +41,7 @@ export default function SeriesFacts({ info }: { info: SeriesInfo }) {
             {info.status === "FINISHED" ? ", finished" : ""}
           </li>
         )}
-        {info.siteUrl && (
+        {info.siteUrl && info.popularityRank == null && (
           <li>
             <a href={info.siteUrl} target="_blank" rel="noreferrer">
               AniList

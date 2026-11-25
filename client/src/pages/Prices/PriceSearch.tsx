@@ -375,6 +375,9 @@ function Highlights() {
       </div>
     );
   }
+  // just checked, less what the deals row above already shows
+  const inDeals = new Set(data.deals.map((d) => d.isbn13));
+  const recent = data.recent.filter((r) => !inDeals.has(r.isbn13));
 
   return (
     <>
@@ -431,13 +434,13 @@ function Highlights() {
         </section>
       )}
 
-      {!canada && data.recent.length > 0 && (
+      {!canada && recent.length > 0 && (
         <section aria-labelledby="recent-title">
           <h2 id="recent-title" className={styles.sectionTitle}>
             Prices just checked
           </h2>
           <ul className={styles.row}>
-            {data.recent.map((r) => (
+            {recent.map((r) => (
               <li key={r.isbn13}>
                 <VolumeCard {...r} priceCents={r.priceCents} />
               </li>
