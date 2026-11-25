@@ -10,7 +10,7 @@ import { knownNamesNear } from "./knownNames";
 import type {
   CatalogBook,
   Highlights,
-  PriceCard,
+  DealCard,
   Series,
   SeriesHit,
   SeriesIndexEntry,
@@ -105,7 +105,13 @@ export const getPricedCount = (signal?: AbortSignal) =>
 
 // the /deals page: volumes now well under their usual price
 export const getDeals = (signal?: AbortSignal) =>
-  getJson<{ deals: PriceCard[] }>("/api/prices/deals", signal);
+  getJson<{ deals: DealCard[] }>("/api/prices/deals", signal);
+
+// which deals are of series on the signed-in reader's shelf, by ISBN
+export const getDealsOnShelf = (signal?: AbortSignal) =>
+  getJson<{ isbns: string[] }>("/api/prices/deals/shelf", signal).then(
+    (r) => r.isbns,
+  );
 
 // ---------- addresses ----------
 

@@ -454,6 +454,10 @@ export type PriceCard = {
   checkedAt: string;
 };
 
+// a deal on the /deals page: a card with its series (for the genre filter
+// and "On my shelf") and that series' genres, as far as they're known
+export type DealCard = PriceCard & { series: string; genres: string[] };
+
 export type Highlights = {
   trending: SeriesHit[];
   deals: PriceCard[];
