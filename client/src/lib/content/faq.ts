@@ -22,7 +22,7 @@ export const FAQ: FaqGroup[] = [
       },
       {
         q: "Do I need an account?",
-        a: "Not to check prices. You need one to keep a shelf. It takes a username and a password, and no email address.",
+        a: "Not to check prices. You need one to keep a shelf. It takes a username and a password. An email address is optional: it's for password resets and the weekly email.",
       },
     ],
   },
@@ -114,7 +114,7 @@ export const FAQ: FaqGroup[] = [
       },
       {
         q: "Do you send email alerts?",
-        a: "Not yet. For now the New tab and the calendar are where new releases show.",
+        a: "Yes, once a week if you ask for it: volumes out for your shelf, release days coming up, and price drops on your To buy list. No news, no email. Add your email in Settings, Account, then turn it on in Settings, New releases. In the app, phone alerts can tell you too, once a day at most.",
       },
     ],
   },
