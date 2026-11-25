@@ -15,6 +15,7 @@ import { englishAuthors } from "./sources/catalog.js";
 import {
   getSeriesInfo,
   getTrending,
+  savedSeriesInfos,
   knownSeriesName,
   listKnownSeries,
 } from "./sources/anilist.js";
@@ -28,10 +29,15 @@ import {
   shownLines,
 } from "../util/shelf/editionReports.js";
 import type { EditionLine } from "./editionLines.js";
-import { isCollection, type SeriesHit } from "./types.js";
+import { isCollection, type SeriesHit, type SeriesInfo } from "./types.js";
 import { publisherOf } from "./publishers.js";
 import { isRebind, getSeries } from "./seriesService.js";
-import { type KnownVolume, knownVolumesBySeries } from "./shelfService.js";
+import {
+  type KnownVolume,
+  findOnShelf,
+  knownVolumesBySeries,
+} from "./shelfService.js";
+import { isNovelName, priceName } from "./lightNovel.js";
 
 // ---------- series index ----------
 
@@ -429,9 +435,40 @@ async function withEnglishBooks(hits: SeriesHit[]) {
 
 // the /deals page: volumes now well under their usual new price, the same
 // believable price each volume's page shows (a fake one never headlines),
-// each with its series' cover for one without its own
-export async function getDealsPage() {
-  const rows = await priceQueries.getDeals(DEALS_SHOWN * 2);
+// each with its series (for the page's genre filter, and for which are on a
+// reader's shelf) and its series' cover for one without its own. Worked out
+// at most every few minutes, as the prices under it are (priceLists.ts)
+const DEALS_MOST = 240;
+const DEALS_MS = 5 * 60 * 1000;
+// series with nothing saved about them yet, looked up after answering a few
+// at a time, so their genre and cover are there next time
+const DEAL_LOOKUPS_PER_VISIT = 6;
+const lookingUpDeals = new Set<string>();
+let dealsPage: { at: number; deals: Promise<DealCard[]> } | null = null;
+
+export type DealCard = {
+  isbn13: string;
+  title: string;
+  volume: number | null;
+  series: string;
+  genres: string[];
+  coverUrl: string | null;
+  seriesCoverUrl: string | null;
+  priceCents: number;
+  avgCents: number;
+  checkedAt: Date;
+};
+
+export function getDealsPage(): Promise<DealCard[]> {
+  if (dealsPage && Date.now() - dealsPage.at < DEALS_MS) return dealsPage.deals;
+  const deals = workOutDeals();
+  dealsPage = { at: Date.now(), deals };
+  deals.catch(() => (dealsPage = null));
+  return deals;
+}
+
+async function workOutDeals(): Promise<DealCard[]> {
+  const rows = await priceQueries.getDeals(DEALS_MOST * 2);
   const known = await priceQueries.getKnownPrices(
     rows.map((r) => r.isbn13.trim()),
   );
@@ -443,24 +480,65 @@ export async function getDealsPage() {
         : [];
     })
     .sort((a, b) => a.priceCents / a.avgCents - b.priceCents / b.avgCents)
-    .slice(0, DEALS_SHOWN);
+    .slice(0, DEALS_MOST);
   const names = [...new Set(deals.map((r) => seriesOfBook(r.title)))];
-  const infos = await Promise.all(
-    names.map((name) => getSeriesInfo(name).catch(() => null)),
+  const infos = await savedSeriesInfos(names).catch(
+    () => new Map<string, SeriesInfo>(),
   );
-  const covers = new Map(names.map((n, i) => [n, infos[i]?.coverUrl ?? null]));
-  return deals.map((r) => ({
-    isbn13: r.isbn13.trim(),
-    title: r.title,
-    volume: titleVolume(r.title),
-    coverUrl: r.coverUrl,
-    seriesCoverUrl: covers.get(seriesOfBook(r.title)) ?? null,
-    priceCents: r.priceCents,
-    avgCents: r.avgCents,
-    checkedAt: r.fetchedAt,
-  }));
+  lookUpLater(names.filter((n) => !infos.has(n)));
+  return deals.map((r) => {
+    const series = seriesOfBook(r.title);
+    const info = infos.get(series);
+    return {
+      isbn13: r.isbn13.trim(),
+      title: r.title,
+      volume: titleVolume(r.title),
+      series,
+      genres: info?.genres ?? [],
+      coverUrl: r.coverUrl,
+      seriesCoverUrl: info?.coverUrl ?? null,
+      priceCents: r.priceCents,
+      avgCents: r.avgCents,
+      checkedAt: r.fetchedAt,
+    };
+  });
 }
-const DEALS_SHOWN = 48;
+
+function lookUpLater(names: string[]) {
+  const next = names
+    .filter((n) => !lookingUpDeals.has(n))
+    .slice(0, DEAL_LOOKUPS_PER_VISIT);
+  void (async () => {
+    for (const name of next) {
+      lookingUpDeals.add(name);
+      await getSeriesInfo(name).catch(() => null);
+      lookingUpDeals.delete(name);
+    }
+  })();
+}
+
+// the deals whose series is on this reader's shelf (the /deals page's "On my
+// shelf"), found as a volume's page finds its series there (/api/manga/match):
+// a light novel only finds the novel, the manga only the manga
+export async function dealsOnShelf(
+  shelf: Parameters<typeof priceName>[0][],
+): Promise<string[]> {
+  const deals = await getDealsPage();
+  const names = [...new Set(deals.map((d) => d.series))];
+  const named = shelf.map((m) => ({ ...m, name: priceName(m) }));
+  const onShelf = new Set<string>();
+  await Promise.all(
+    names.map(async (name) => {
+      const mine = named.filter(
+        (m) => Boolean(m.lightNovel) === isNovelName(name),
+      );
+      if (await findOnShelf(mine, name).catch(() => null)) onShelf.add(name);
+    }),
+  );
+  return deals.filter((d) => onShelf.has(d.series)).map((d) => d.isbn13);
+}
+
+const HOME_DEALS = 8;
 
 export async function getHighlights() {
   const [trending, latest] = await Promise.all([
@@ -476,16 +554,14 @@ export async function getHighlights() {
     const price = known.get(r.isbn13.trim());
     return price ? [{ ...r, priceCents: price.priceCents }] : [];
   });
-  const dealRows = recent
-    .filter((r) => r.samples >= 2 && r.priceCents < r.avgCents * 0.95)
-    .sort((a, b) => a.priceCents / a.avgCents - b.priceCents / b.avgCents)
-    .slice(0, 8);
+  // the deals row is the top of the deals page, so the two always agree
+  const dealRows = (await getDealsPage().catch(() => [])).slice(0, HOME_DEALS);
   const recentRows = recent.slice(0, 12);
 
   // each series' AniList cover, shown when a volume has no US cover of its
   // own. Cached a week, and a series AniList can't find just goes without
   const names = [
-    ...new Set([...dealRows, ...recentRows].map((r) => seriesOfBook(r.title))),
+    ...new Set(recentRows.map((r) => seriesOfBook(r.title))),
   ];
   const infos = await Promise.all(
     names.map((name) => getSeriesInfo(name).catch(() => null)),
@@ -506,7 +582,7 @@ export async function getHighlights() {
   });
   return {
     trending,
-    deals: dealRows.map(toCard),
+    deals: dealRows,
     recent: recentRows.map(toCard),
   };
 }

@@ -46,6 +46,7 @@ import { asSpender, spenderOf } from "../prices/spender.js";
 import { getCanadaPrices } from "../prices/canada/canadaPrices.js";
 import {
   getDealsPage,
+  dealsOnShelf,
   getHighlights,
   getPricedCount,
   getSeries,
@@ -58,6 +59,7 @@ import {
   searchSeries,
   volumeExists,
 } from "../prices/service.js";
+import mangaQueries from "../models/mangaQueries.js";
 import { clientIp } from "../util/clientIp.js";
 
 // ---------- shared rules ----------
@@ -350,6 +352,17 @@ const highlights = async (_req: Request, res: Response) => {
 const deals = async (_req: Request, res: Response) => {
   res.set("Cache-Control", "public, max-age=300").json({
     deals: await upstream("deals", "Couldn't load deals.", getDealsPage),
+  });
+};
+
+// GET /deals/shelf  which of the deals are of series on this reader's
+// shelf, for the /deals page's "On my shelf". Theirs alone, so never cached
+const dealsMine = async (req: Request, res: Response) => {
+  const shelf = await mangaQueries.getShelf(req.session.userId!);
+  res.set("Cache-Control", "private, no-store").json({
+    isbns: await upstream("deals on shelf", "Couldn't load deals.", () =>
+      dealsOnShelf(shelf),
+    ),
   });
 };
 
@@ -682,6 +695,7 @@ export default {
   series,
   highlights,
   deals,
+  dealsMine,
   seriesIndex,
   editionsIndex,
   cover,

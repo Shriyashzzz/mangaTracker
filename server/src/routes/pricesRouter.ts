@@ -3,6 +3,7 @@
 // it's used and how much it can cost us upstream
 import { Router, type RequestHandler } from "express";
 import prices from "../controllers/pricesController.js";
+import { requireSignIn } from "../middlewares/auth.js";
 import { rateLimit } from "../middlewares/rateLimit.js";
 
 const perMinute = (max: number) => rateLimit({ max, windowMs: 60_000 });
@@ -19,6 +20,7 @@ pricesRouter.get("/highlights", perMinute(60), prices.highlights);
 // the About page's "volumes priced" count, worked out hourly
 pricesRouter.get("/stats", perMinute(60), prices.stats);
 pricesRouter.get("/deals", perMinute(60), prices.deals);
+pricesRouter.get("/deals/shelf", requireSignIn, perMinute(30), prices.dealsMine);
 pricesRouter.get("/series-index", perMinute(60), prices.seriesIndex);
 pricesRouter.get("/editions-index", perMinute(60), prices.editionsIndex);
 pricesRouter.get("/series", perMinute(40), prices.series);

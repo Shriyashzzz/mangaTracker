@@ -530,6 +530,27 @@ export async function getSeriesInfo(name: string): Promise<SeriesInfo | null> {
   return info ? (await withShownScore([info]))[0]! : null;
 }
 
+// what's saved for each of these series, from the database only (never
+// AniList): for a long list, such as the deals page's genres and covers,
+// where asking AniList for each would run into its limits. A series with
+// nothing saved is left out
+export async function savedSeriesInfos(
+  names: string[],
+): Promise<Map<string, SeriesInfo>> {
+  const slugOf = new Map(names.map((n) => [n, slugify(n)]));
+  const slugs = [...new Set([...slugOf.values()].filter(Boolean))];
+  const rows = slugs.length
+    ? await prisma.seriesInfo.findMany({ where: { slug: { in: slugs } } })
+    : [];
+  const bySlug = new Map(rows.map((r) => [r.slug, r.info as SeriesInfo | null]));
+  const found = new Map<string, SeriesInfo>();
+  for (const [name, slug] of slugOf) {
+    const info = bySlug.get(slug);
+    if (info) found.set(name, tidy(info));
+  }
+  return found;
+}
+
 async function savedOrAskedInfo(name: string): Promise<SeriesInfo | null> {
   const slug = slugify(name);
   if (!slug) return null;
