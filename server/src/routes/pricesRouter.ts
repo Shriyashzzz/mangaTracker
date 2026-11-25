@@ -20,7 +20,12 @@ pricesRouter.get("/highlights", perMinute(60), prices.highlights);
 // the About page's "volumes priced" count, worked out hourly
 pricesRouter.get("/stats", perMinute(60), prices.stats);
 pricesRouter.get("/deals", perMinute(60), prices.deals);
-pricesRouter.get("/deals/shelf", requireSignIn, perMinute(30), prices.dealsMine);
+pricesRouter.get(
+  "/deals/shelf",
+  requireSignIn,
+  perMinute(30),
+  prices.dealsMine,
+);
 pricesRouter.get("/series-index", perMinute(60), prices.seriesIndex);
 pricesRouter.get("/editions-index", perMinute(60), prices.editionsIndex);
 pricesRouter.get("/series", perMinute(40), prices.series);

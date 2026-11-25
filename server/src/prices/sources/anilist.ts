@@ -542,7 +542,9 @@ export async function savedSeriesInfos(
   const rows = slugs.length
     ? await prisma.seriesInfo.findMany({ where: { slug: { in: slugs } } })
     : [];
-  const bySlug = new Map(rows.map((r) => [r.slug, r.info as SeriesInfo | null]));
+  const bySlug = new Map(
+    rows.map((r) => [r.slug, r.info as SeriesInfo | null]),
+  );
   const found = new Map<string, SeriesInfo>();
   for (const [name, slug] of slugOf) {
     const info = bySlug.get(slug);

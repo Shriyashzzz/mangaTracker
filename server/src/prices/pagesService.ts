@@ -560,9 +560,7 @@ export async function getHighlights() {
 
   // each series' AniList cover, shown when a volume has no US cover of its
   // own. Cached a week, and a series AniList can't find just goes without
-  const names = [
-    ...new Set(recentRows.map((r) => seriesOfBook(r.title))),
-  ];
+  const names = [...new Set(recentRows.map((r) => seriesOfBook(r.title)))];
   const infos = await Promise.all(
     names.map((name) => getSeriesInfo(name).catch(() => null)),
   );
