@@ -14,7 +14,6 @@ import {
   finishSeries,
   finishEdition,
   shelfValue,
-  enoughToEstimate,
   sum,
   upcoming,
   type MissingVolume,
@@ -64,15 +63,6 @@ function tagged(missing: MissingVolume, country: Country): MissingVolume {
 }
 
 // in the country they shop in: Canadian prices for Canada, never US ones
-// the shelf's worth as the page shows it: the estimate only once enough of
-// the shelf is priced to say (enoughToEstimate), else just what's priced
-function withEnoughPriced(value: ShelfValue): ShelfValue {
-  const all = value.volumes + value.unlisted;
-  return enoughToEstimate(value.priced, all)
-    ? value
-    : { ...value, estimateCents: null };
-}
-
 export async function getShelfTools(
   userId: number,
   country: Country = "us",
@@ -139,8 +129,8 @@ export async function getShelfTools(
     });
   }
 
-  // only the series priced enough to say a total: the rest are counted, not
-  // costed
+  // every series with something to go by: one with no price at all, on a
+  // shelf with none either, is counted, not costed
   const costed = finish.filter((row) => row.estimateCents !== null);
   const spent = await bookQueries
     .shelfSpent(userId)
@@ -152,13 +142,13 @@ export async function getShelfTools(
       ? [
           {
             mangaId: s.manga.id,
-            ...withEnoughPriced(shelfValue([ownedBySeries[i]!], recorded)),
+            ...shelfValue([ownedBySeries[i]!], recorded),
           },
         ]
       : [],
   );
   return {
-    value: withEnoughPriced(shelfValue(ownedBySeries, recorded, unlisted)),
+    value: shelfValue(ownedBySeries, recorded, unlisted),
     seriesWorth,
     spent,
     finish,

@@ -98,17 +98,6 @@ export type ShelfValue = {
   estimateCents: number | null;
 };
 
-// Enough of a shelf priced to say what the rest is worth: a tenth of it, and
-// never fewer than 3. With less, one price would be passed off as what 200
-// volumes fetch (a shelf whose prices are only starting, in Canada say). In
-// both countries, so the rule is one rule. shelfValue still works the
-// estimate out; the shelf tools only show it once this says so
-// (collector.ts)
-const WORTH_PRICED_SHARE = 0.1;
-const WORTH_PRICED_LEAST = 3;
-export const enoughToEstimate = (priced: number, all: number) =>
-  priced >= Math.max(WORTH_PRICED_LEAST, Math.ceil(all * WORTH_PRICED_SHARE));
-
 // what the owned volumes would fetch used: each one's recorded used price
 // (the median of every one seen, the last year's first: it never goes stale,
 // see getRecordedMedians). A volume never seen used is estimated; `priced`
@@ -193,17 +182,11 @@ type FinishSeries = {
   // the priced ones added up (a book holding two missing volumes, once)
   cents: number;
   priced: number;
-  // plus an estimate for the rest: each at the series' usual new price.
-  // Null when too little of the series is priced to say (ENOUGH_PRICED)
+  // plus an estimate for the rest: each at its own recorded price, else the
+  // series' usual new price, else the shelf's. Null only when there's
+  // nothing at all to go by
   estimateCents: number | null;
 };
-
-// a total is said only when this much of a series has a price: with fewer,
-// a volume or two would stand in for the whole run (the price pages hold to
-// the same share: client/src/lib/enoughPriced.ts)
-export const ENOUGH_PRICED = 0.6;
-const enoughPriced = (priced: number, all: number) =>
-  all > 0 && priced >= all * ENOUGH_PRICED;
 
 type NewPrices = Map<string, Pick<RecordedPrice, "new">>;
 
@@ -269,18 +252,17 @@ function missingVolumes(
 }
 
 // what finishing comes to, from the missing books and a price for each
-// unpriced one. No estimate when too little is priced to say (`enough`), or
-// when an unpriced book has nothing at all to go by
+// unpriced one: every book in it, however few are priced yet (the total says
+// "about" until all are). No estimate only when an unpriced book has nothing
+// at all to go by, not even the shelf's usual price
 function finishTotal(
   missing: MissingVolume[],
   // one book once, where two missing volumes share an ISBN
   pricedBooks: MissingVolume[],
   unpricedGuesses: number[],
-  enough: boolean,
 ): FinishSeries {
   const cents = sum(pricedBooks.map((m) => m.cheapest!.cents));
-  const everyGuessIsAPrice = unpricedGuesses.every((guess) => guess > 0);
-  const canEstimate = enough && (everyGuessIsAPrice || pricedBooks.length > 0);
+  const canEstimate = unpricedGuesses.every((guess) => guess > 0);
   return {
     missing,
     cents,
@@ -321,19 +303,10 @@ export function finishSeries(
     (m) => (m.isbn13 && recordedNew(m.isbn13)) || usual,
   );
 
-  // of every book out, the ones with a price today or one ever recorded
-  const booksOut = onceEach(
-    volumes.filter(isMainVolume).filter((v) => isOut(v, now)),
-  );
-  const booksWithAPrice = booksOut.filter(
-    (v) => newToday(v.isbn13) || recordedNew(v.isbn13) !== undefined,
-  );
-
   return finishTotal(
     missing,
     onceEach(missing.filter((m) => m.cheapest)),
     unpricedGuesses,
-    enoughPriced(booksWithAPrice.length, booksOut.length),
   );
 }
 
@@ -395,7 +368,6 @@ export function finishEdition(
     missing,
     missing.filter((m) => m.cheapest),
     unpricedGuesses,
-    enoughPriced(linePrices.length, booksOut.length),
   );
 }
 
