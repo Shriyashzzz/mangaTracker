@@ -94,6 +94,12 @@ export const isRetailer = (store: string) =>
 // an unknown seller's new copy below this share of the yardstick isn't
 // believed
 const MIN_SHARE = 0.6;
+// eBay's prices are the book's own, without the shipping its sellers often
+// make their money on, so a new copy there can go far lower (owner's call,
+// 2026-11-25)
+const EBAY_MIN_SHARE = 0.25;
+const minShareOf = (store: string) =>
+  /^ebay(\.ca)?$/i.test(store) ? EBAY_MIN_SHARE : MIN_SHARE;
 // the yardstick with no big store and no history: English volumes list at
 // $9.99 and up, and real discounts stop well above this
 const MIN_UNKNOWN_CENTS = 600;
@@ -126,11 +132,10 @@ export function unlikelyNewTest(offers: Offer[], usualCents?: number | null) {
   const bigStore = offers
     .filter((o) => isNewPrint(o) && isRetailer(o.store))
     .map((o) => o.priceCents);
-  const floor = bigStore.length
-    ? Math.min(...bigStore) * MIN_SHARE
-    : usualCents
-      ? usualCents * MIN_SHARE
-      : MIN_UNKNOWN_CENTS * scale;
+  // the price a new copy is judged against, and the lowest it may go
+  const yardstick = bigStore.length ? Math.min(...bigStore) : usualCents;
+  const floor = (o: Offer) =>
+    yardstick ? yardstick * minShareOf(o.store) : MIN_UNKNOWN_CENTS * scale;
   const tooDear = (o: Offer) => {
     if (bigStore.length)
       return o.priceCents > Math.min(...bigStore) * MAX_TIMES;
@@ -147,7 +152,7 @@ export function unlikelyNewTest(offers: Offer[], usualCents?: number | null) {
   return (o: Offer) =>
     isNewPrint(o) &&
     !isRetailer(o.store) &&
-    (o.priceCents < floor || tooDear(o));
+    (o.priceCents < floor(o) || tooDear(o));
 }
 
 // the lowest new print copy in one check that we believe

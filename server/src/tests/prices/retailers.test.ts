@@ -91,6 +91,26 @@ describe("dropUnlikelyNew", () => {
     expect(dropUnlikelyNew(offers, 1199)).toEqual(offers);
   });
 
+  test("a new eBay copy may go as low as a quarter of the big stores", () => {
+    // its price is the book's own, without shipping
+    const check = (cents: number, store = "eBay") =>
+      stores(dropUnlikelyNew([offer("Amazon", 1200), offer(store, cents)]));
+    expect(check(400)).toEqual(["Amazon", "eBay"]);
+    expect(check(300)).toEqual(["Amazon", "eBay"]);
+    expect(check(299)).toEqual(["Amazon"]);
+    // another seller keeps the 60% floor
+    expect(check(400, "Some Shop")).toEqual(["Amazon"]);
+  });
+
+  test("with no big store, a new eBay copy is judged by a quarter of the usual price", () => {
+    const offers = [offer("eBay", 350)];
+    expect(dropUnlikelyNew(offers, 1199)).toEqual(offers);
+    expect(dropUnlikelyNew([offer("eBay", 250)], 1199)).toEqual([]);
+    // eBay.ca, in Canadian dollars, the same
+    const ca = [offer("eBay.ca", 500, { currency: "CAD" })];
+    expect(dropUnlikelyNew(ca, 1699)).toEqual(ca);
+  });
+
   test("cheap used and marketplace copies are never judged", () => {
     const offers = [
       offer("eBay", 300, { condition: "marketplace" }),
