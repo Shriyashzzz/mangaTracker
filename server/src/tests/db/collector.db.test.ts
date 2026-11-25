@@ -125,8 +125,9 @@ test("the shelf's worth, and what finishing the series costs", async () => {
     cents: 1099,
     store: "Kinokuniya",
   });
-  // one of the series priced: too few for a total, the priced one still counts
-  expect(row).toMatchObject({ cents: 1099, priced: 1, estimateCents: null });
+  // one of the two priced: vol 3 is estimated at the series' usual price, so
+  // there's a total however few are priced
+  expect(row).toMatchObject({ cents: 1099, priced: 1, estimateCents: 2198 });
   expect(res.body).toMatchObject({ finishCents: 1099, finishMissing: 2 });
 });
 
