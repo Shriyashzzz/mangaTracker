@@ -3,7 +3,7 @@
 // engine. Gives back the page's items and everything a RangePager needs:
 //
 //   const { pageItems, pager } = useUrlPages(deals, "deals-list");
-//   (20 to a page, or a third argument for another size)
+//   (24 to a page, or a third argument for another size)
 //   <div id="deals-list" /> ...the list of pageItems... <RangePager {...pager} />
 //
 // Changing page scrolls to the element with `listId`, the top of the list.
@@ -12,7 +12,8 @@
 import { useEffect, useRef } from "react";
 import { useLocation, useSearchParams } from "react-router";
 
-const PAGE_SIZE = 20;
+// 24: a whole number of rows at 2, 3, 4, 6 or 8 to a row
+const PAGE_SIZE = 24;
 
 export function useUrlPages<T>(
   items: T[],

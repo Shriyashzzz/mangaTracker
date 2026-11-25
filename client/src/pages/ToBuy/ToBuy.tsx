@@ -1,6 +1,6 @@
 // /to-buy  The reader's To buy list: the volumes they kept from price pages,
 // each with its cheapest new and used copy now, and what the lot costs
-// (above the list, so it's there without scrolling). 20 to a page, in the
+// (above the list, so it's there without scrolling). 24 to a page, in the
 // order they pick; both live in the address (?sort=, ?page=).
 // "On my shelf" (bought, theirs) and "Ordered" take one off and, when its series is on
 // their shelf and the volumes it holds are certain, make them owned or on

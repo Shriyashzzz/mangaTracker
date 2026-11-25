@@ -1,5 +1,5 @@
 // /after-the-anime  Look a show up by name, or pick one from the series we
-// already have an answer for (most popular first), 20 to a page.
+// already have an answer for (most popular first), 24 to a page.
 import { INDEX_META } from "../../lib/afterAnimeText";
 import { useEffect, useState } from "react";
 import RangePager from "../../components/rangePager/RangePager";

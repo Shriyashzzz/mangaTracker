@@ -15,7 +15,7 @@ import SlowLoadQuote from "../../components/slowLoadQuote/SlowLoadQuote";
 import RangePager from "../../components/rangePager/RangePager";
 import { pricesStyles as styles } from "./styles";
 
-const PAGE_SIZE = 20;
+const PAGE_SIZE = 24;
 
 // the letter a series files under: "The Apothecary Diaries" under A, and
 // anything not starting with a letter under #
@@ -126,7 +126,7 @@ export default function SeriesIndex() {
     setParams(next, { replace: true });
   };
 
-  // 20 at a time, the page in the URL so it can be shared
+  // 24 at a time, the page in the URL so it can be shared
   const pages = Math.max(1, Math.ceil(shown.length / PAGE_SIZE));
   const page =
     Math.min(Math.max(Number(params.get("page")) || 1, 1), pages) - 1;

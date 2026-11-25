@@ -45,7 +45,7 @@ const plural = (n: number, one: string, many = `${one}s`) =>
 const OPEN_KEY = VOLUMES_OPEN_KEY;
 
 // series a page, as the shelf's
-const PAGE_SIZE = 20;
+const PAGE_SIZE = 24;
 
 export default function VolumesView({
   manga,

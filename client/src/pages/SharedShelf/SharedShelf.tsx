@@ -65,7 +65,7 @@ import { SeriesCard, SeriesRow } from "./SharedSeries";
 import { CoverFan, ShareButtons } from "./SharedShelfHead";
 
 // how many series a list shows at first, and adds with each "Show more"
-const PAGE = 20;
+const PAGE = 24;
 
 // kept on the device once a visitor has opened a series on a shared shelf
 const TAPPED_KEY = "shareTapped";

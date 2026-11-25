@@ -3,7 +3,7 @@
 // so it never sets off a check; each card goes to the volume's page, where
 // every store's price is. Sorted, and narrowed by genre, by manga or light
 // novel, and (signed in) to series on the reader's shelf; the choices live
-// in the address, as on All series. 20 to a page (useUrlPages)
+// in the address, as on All series. 24 to a page (useUrlPages)
 import { useEffect, useMemo, useState } from "react";
 import { NavLink, useSearchParams } from "react-router";
 import Mascot from "../../components/mascot/Mascot";
@@ -39,7 +39,7 @@ const ORDER: Record<Sort, (a: DealCard, b: DealCard) => number> = {
     (a.volume ?? 0) - (b.volume ?? 0),
 };
 const KINDS = [
-  { value: "", label: "Manga and light novels" },
+  { value: "", label: "All books" },
   { value: "manga", label: "Manga" },
   { value: "novel", label: "Light novels" },
 ];
@@ -304,7 +304,7 @@ export default function Deals() {
                   {...d}
                   priceCents={d.priceCents}
                   wasCents={d.avgCents}
-                  subtitle={`${percentOff(d)}% under its usual price`}
+                  subtitle={`${percentOff(d)}% off`}
                 />
               </li>
             ))}

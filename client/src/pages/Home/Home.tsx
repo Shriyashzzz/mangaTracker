@@ -326,7 +326,7 @@ function Library() {
     // only when the pile empties: closePile is made anew on every render
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pileEmptied]);
-  // a pile's page on a phone grows by "Show 20 more" (or 60) instead of turning
+  // a pile's page on a phone grows by "Show 24 more" (or 60) instead of turning
   // pages: one fewer row of controls on a small screen. In the app the whole
   // shelf does, and scrolling near the end shows more by itself
   const growing = (Boolean(pileView) || inApp()) && hasBottomBar();

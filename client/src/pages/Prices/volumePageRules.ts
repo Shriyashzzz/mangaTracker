@@ -88,9 +88,11 @@ export function shownHistory(
   };
 }
 
-// the series' other volumes to list under this one: the next ones first,
-// then the ones before, nearest first. A book holding several counts as its
-// last volume
+// the series' other volumes to list under this one, in the series' own
+// order: the three before it, then the next ones (33, 34, 35, 37, 38 around
+// vol. 36), so the row opens on its neighbours. A book holding several
+// counts as its last volume
+const BEFORE_SHOWN = 3;
 export function nearbyVolumes(
   siblings: SeriesVolume[],
   volume: number | null,
@@ -100,8 +102,8 @@ export function nearbyVolumes(
   const after = siblings.filter((v) => here == null || (v.volume ?? 0) > here);
   const before = siblings
     .filter((v) => here != null && (v.volume ?? 0) < here)
-    .reverse();
-  return [...after, ...before].slice(0, SIBLINGS_SHOWN);
+    .slice(-BEFORE_SHOWN);
+  return [...before, ...after].slice(0, SIBLINGS_SHOWN);
 }
 
 // one store's name inside the other's ("Amazon" and "Amazon.com")

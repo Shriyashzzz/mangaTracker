@@ -4,7 +4,7 @@
 // turns a page's first and last item into the chip text. Renders nothing
 // when everything fits on one page. On phones the chips scroll sideways
 // instead of wrapping into a wall.
-import { useEffect, useRef, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import clsx from "clsx";
 import { ChevronLeftIcon, ChevronRightIcon } from "../icons/Icons";
 
@@ -88,6 +88,15 @@ function PageControl({
   );
 }
 
+// the fade at a scrolling row's cut-off edges, or none when it all fits
+const FADE = "1.75rem";
+function fadeMask(before: boolean, after: boolean) {
+  if (!before && !after) return null;
+  const start = before ? `transparent, black ${FADE}` : "black";
+  const end = after ? `black calc(100% - ${FADE}), transparent` : "black";
+  return `linear-gradient(to right, ${start}, ${end})`;
+}
+
 export default function RangePager({
   total,
   pageSize = 30,
@@ -111,6 +120,31 @@ export default function RangePager({
     if (left < box.left) chips.scrollLeft -= box.left - left;
     else if (right > box.right) chips.scrollLeft += right - box.right;
   }, [page]);
+
+  // chips past an edge fade out there, so a row cut off at "91–11" reads as
+  // one that scrolls
+  const [hidden, setHidden] = useState({ before: false, after: false });
+  useEffect(() => {
+    const chips = chipsRef.current;
+    if (!chips) return;
+    const look = () => {
+      const before = chips.scrollLeft > 1;
+      const after =
+        chips.scrollLeft + chips.clientWidth < chips.scrollWidth - 1;
+      setHidden((was) =>
+        was.before === before && was.after === after ? was : { before, after },
+      );
+    };
+    look();
+    chips.addEventListener("scroll", look, { passive: true });
+    const resized = new ResizeObserver(look);
+    resized.observe(chips);
+    return () => {
+      chips.removeEventListener("scroll", look);
+      resized.disconnect();
+    };
+  }, [pages]);
+  const fade = fadeMask(hidden.before, hidden.after);
 
   if (pages <= 1) return null;
 
@@ -149,6 +183,7 @@ export default function RangePager({
       </PageControl>
       <ul
         className="flex min-w-0 gap-[0.4rem] overflow-x-auto p-0.5 [scrollbar-color:var(--line-soft)_transparent] [scrollbar-width:thin]"
+        style={fade ? { maskImage: fade, WebkitMaskImage: fade } : undefined}
         ref={chipsRef}
       >
         {Array.from({ length: pages }, (_, p) => {

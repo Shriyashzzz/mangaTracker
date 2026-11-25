@@ -36,11 +36,12 @@ export type CardNews = {
   behind?: string;
 };
 
-// series a page of the shelf shows: 20, or 60 on a shelf of over 200, so a
+// series a page of the shelf shows: 24 (whole rows at 2, 3, 4, 6 or 8
+// across), or 60 on a shelf of over 200, so a
 // big collection isn't twenty pages. Sized by the whole shelf, so it's the
 // same on every tab
 export const shelfPageSize = (shelfCount: number) =>
-  shelfCount > 200 ? 60 : 20;
+  shelfCount > 200 ? 60 : 24;
 // shelves this size get a heads-up that their first release check is slow
 export const BIG_SHELF = 10;
 // after this many checks with nothing new, the big "Checking" box gives way

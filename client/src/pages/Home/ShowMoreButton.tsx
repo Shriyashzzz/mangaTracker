@@ -1,4 +1,4 @@
-// "Show 20 more" under a shelf that grows rather than turning pages. With
+// "Show 24 more" under a shelf that grows rather than turning pages. With
 // `bySelf` (in the app, lib/inApp.ts) it presses itself as it scrolls into
 // view, so the shelf reads as one long list; it's still there to tap
 import { useEffect, useRef, type ReactNode } from "react";

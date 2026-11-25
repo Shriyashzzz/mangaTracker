@@ -14,11 +14,12 @@ const suggestionRow = "flex cursor-pointer items-center gap-3 rounded-[2px]";
 const softLink = "underline decoration-line-soft underline-offset-3";
 
 // a row of store names to tap ("More places to look", "Looking for a box
-// set?"). On a laptop they sit in a line, each as wide as its name. On a
-// phone that left a ragged edge and a gap on the right, so there they're an
-// even grid of two, a full finger tall; an odd one out takes the whole row
+// set?"). On a laptop they sit in a line, each at least as wide as its name
+// and stretched so every row reaches the right edge (one left over on a
+// second row takes it all). On a phone they're an even grid of two, a full
+// finger tall; an odd one out takes the whole row
 const storeButtons =
-  "flex flex-wrap gap-2 upto-720:grid upto-720:grid-cols-2 upto-720:[&>li:last-child:nth-child(odd)]:col-span-2 [&_a]:tap [&_a]:inline-block [&_a]:rounded-[2px] [&_a]:border-[1.5px] [&_a]:border-line [&_a]:bg-card [&_a]:px-[0.8rem] [&_a]:py-[0.35rem] [&_a]:text-[0.88rem] [&_a]:font-medium [&_a]:transition-[background-color,color] [&_a]:duration-120 [&_a]:ease-[ease] [&_a]:hover:bg-ink [&_a]:hover:text-paper upto-720:[&_a]:flex upto-720:[&_a]:min-h-11 upto-720:[&_a]:items-center upto-720:[&_a]:justify-center upto-720:[&_a]:text-center";
+  "flex flex-wrap gap-2 [&>li]:grow [&_a]:w-full [&_a]:text-center upto-720:grid upto-720:grid-cols-2 upto-720:[&>li:last-child:nth-child(odd)]:col-span-2 [&_a]:tap [&_a]:inline-block [&_a]:rounded-[2px] [&_a]:border-[1.5px] [&_a]:border-line [&_a]:bg-card [&_a]:px-[0.8rem] [&_a]:py-[0.35rem] [&_a]:text-[0.88rem] [&_a]:font-medium [&_a]:transition-[background-color,color] [&_a]:duration-120 [&_a]:ease-[ease] [&_a]:hover:bg-ink [&_a]:hover:text-paper upto-720:[&_a]:flex upto-720:[&_a]:min-h-11 upto-720:[&_a]:items-center upto-720:[&_a]:justify-center upto-720:[&_a]:text-center";
 
 export const pricesStyles = {
   // ---------- price home + search ----------
