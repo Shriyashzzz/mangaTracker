@@ -93,18 +93,26 @@ const FRESH_FOR_PROVIDER_MS: Record<string, number> = {
   "books-a-million": 3 * DAY_MS,
   "better-world-books": 3 * DAY_MS,
 };
-export const freshForMs = (provider: Pick<Provider, "id">) =>
-  FRESH_FOR_PROVIDER_MS[provider.id] ?? FRESH_FOR_MS;
-
 // the stores asked for nothing: the ones a background check asks too
 // (collector/filler.ts)
 const FREE_STORES = new Set(["ebay", "books-a-million", "better-world-books"]);
 
+// a volume with no live price at all (out of print, sold out): the free
+// stores look again an hour after, when someone opens its page, since a
+// copy can be listed any time. Paid searches keep to their 20 days
+const UNPRICED_FRESH_FOR_MS = 60 * 60 * 1000;
+
+// `priced`: whether the volume's page shows any price now
+export const freshForMs = (provider: Pick<Provider, "id">, priced = true) => {
+  if (!priced && FREE_STORES.has(provider.id)) return UNPRICED_FRESH_FOR_MS;
+  return FRESH_FOR_PROVIDER_MS[provider.id] ?? FRESH_FOR_MS;
+};
+
 const isPaid = (provider: Pick<Provider, "id">) =>
   provider.id.startsWith("serpapi");
 
-// the enabled providers whose group's last look at this volume is old enough,
-// or never happened. Paid ones only while a search is left this month, and
+// the enabled providers whose group's last look at this volume is old enough
+// (sooner for the free stores while it has no price), or never happened. Paid ones only while a search is left this month, and
 // eBay's own only while today's calls last: without them they'd only fail,
 // and the volume would look due forever
 // `freeOnly`: never a paid search, whatever is due (a box set's page)
@@ -112,12 +120,14 @@ async function dueProviders(
   isbn13: string,
   freeOnly = false,
 ): Promise<Provider[]> {
-  const [checks, searchesLeft, ebayLeft, cjLeft] = await Promise.all([
+  const [checks, shown, searchesLeft, ebayLeft, cjLeft] = await Promise.all([
     priceQueries.getSourceChecks(isbn13),
+    priceQueries.getCurrentOffers(isbn13),
     serpApiSearchesLeft().catch(() => true),
     ebayCallsLeft().catch(() => true),
     cjCallsLeft().catch(() => true),
   ]);
+  const priced = shown.length > 0;
   const now = Date.now();
   return enabledProviders().filter((p) => {
     if (freeOnly && !FREE_STORES.has(p.id)) return false;
@@ -127,7 +137,7 @@ async function dueProviders(
     if (p.id === "books-a-million" && !cjLeft) return false;
     if (failedRecently(isbn13, p)) return false;
     const at = checks.get(groupOf(p));
-    return !at || now - at.getTime() >= freshForMs(p);
+    return !at || now - at.getTime() >= freshForMs(p, priced);
   });
 }
 

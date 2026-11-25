@@ -167,6 +167,20 @@ test("eBay's free API looks again after 3 days, every paid search after 20", () 
   expect(freshForMs({ id: "serpapi-amazon" })).toBe(20 * DAY);
 });
 
+test("with no live price, the free stores look again after an hour", () => {
+  const HOUR = 60 * 60 * 1000;
+  const DAY = 24 * HOUR;
+  const unpriced = false;
+  expect(freshForMs({ id: "ebay" }, unpriced)).toBe(HOUR);
+  expect(freshForMs({ id: "books-a-million" }, unpriced)).toBe(HOUR);
+  expect(freshForMs({ id: "better-world-books" }, unpriced)).toBe(HOUR);
+  // paid searches keep their 20 days, so a sold-out book can't spend them
+  expect(freshForMs({ id: "serpapi" }, unpriced)).toBe(20 * DAY);
+  expect(freshForMs({ id: "serpapi-ebay" }, unpriced)).toBe(20 * DAY);
+  // a volume with prices keeps the usual wait
+  expect(freshForMs({ id: "ebay" }, true)).toBe(3 * DAY);
+});
+
 // ---------- a live check, with stand-in sources (no network) ----------
 
 const source = (id: string, offers: Offer[] | Error): Provider => ({
