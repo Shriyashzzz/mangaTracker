@@ -1,6 +1,7 @@
 // The pages that aren't one volume or one series: the series index, link
 // previews and crawler summaries, the deals page and the price home. Reads
 // only what's stored. Part of the price service (service.ts lists the parts).
+import { notShownYet } from "./stores/affiliates.js";
 import { publicReviews } from "../reviews/reviews.js";
 import { volumeAbout } from "./volumeDetails.js";
 import {
@@ -186,7 +187,10 @@ export async function getVolumeSummary(isbn13: string) {
     priceQueries.getCurrentOffers(isbn13),
     priceQueries.getNewPriceMedian(isbn13),
   ]);
-  const offers = dropUnlikelyNew(stored, usual);
+  // (a store not shown yet, Walmart, saved before it was left out: not shown)
+  const offers = dropUnlikelyNew(stored, usual).filter(
+    (o) => !notShownYet(o.store),
+  );
   // box sets and omnibuses are listed on the page, but aren't this volume's price
   const inStock = offers.filter((o) => o.inStock && !isCollection(o));
   const newPrint = inStock.filter(

@@ -4,6 +4,7 @@
 // counts against that key's monthly plan, so a key stops at SERPAPI_MONTHLY_LIMIT
 // (default 250, the free plan) for the calendar month and the next takes over.
 // https://serpapi.com/google-shopping-api
+import { notShownYet } from "../stores/affiliates.js";
 import {
   JAPANESE_EDITION,
   listingMatches,
@@ -77,7 +78,7 @@ const serpapi: Provider = {
         " ",
       );
       if (JAPANESE_EDITION.test(`${text} ${item.source}`)) continue;
-      if (isNotABook(item.source)) continue;
+      if (isNotABook(item.source) || notShownYet(item.source)) continue;
       const condition = isResaleSite(item.source)
         ? "marketplace"
         : USED.test(text)

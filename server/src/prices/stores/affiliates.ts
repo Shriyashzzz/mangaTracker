@@ -14,6 +14,13 @@ export const amazonTag = () => config.AMAZON_ASSOCIATE_TAG ?? null;
 export const bookshopId = () => config.BOOKSHOP_AFFILIATE_ID ?? null;
 export const ebayCampaignId = () => config.EBAY_CAMPAIGN_ID ?? null;
 export const walmartAffiliate = () => config.WALMART_AFFILIATE === "on";
+
+// A store we don't show until it's ours to link to: Walmart (its rows in
+// Google Shopping's results, and its button among the store links) waits
+// for its affiliate approval (WALMART_AFFILIATE). Keepa and Walmart's own
+// API only run with their keys, none of which are set (owner, 2026-11-25)
+export const notShownYet = (store: string) =>
+  /\bwalmart\b/i.test(store) && !walmartAffiliate();
 export const cjWebsiteId = () => config.CJ_WEBSITE_ID ?? null;
 
 // a Books-A-Million page through CJ's deep link, so the click is ours: CJ

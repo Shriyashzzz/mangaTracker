@@ -17,6 +17,7 @@ import {
   ebayCampaignId,
   impactKeysSet,
   walmartAffiliate,
+  notShownYet,
 } from "./affiliates.js";
 import type { Offer } from "../types.js";
 
@@ -266,7 +267,9 @@ export const boxSetLinks = (series: string): StoreLink[] => {
   ];
 };
 
-export const storeLinks = (isbn13: string): StoreLink[] => [
+export const storeLinks = (isbn13: string): StoreLink[] =>
+  everyStoreLink(isbn13).filter((link) => !notShownYet(link.store));
+const everyStoreLink = (isbn13: string): StoreLink[] => [
   { store: "Amazon", url: amazonUrl(isbn13), affiliate: Boolean(amazonTag()) },
   {
     store: "Barnes & Noble",
