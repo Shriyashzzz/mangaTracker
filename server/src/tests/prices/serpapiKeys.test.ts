@@ -39,7 +39,7 @@ test("SerpApi's answers are told apart", () => {
   expect(readAnswer(429, "Your account has run out of searches.")).toBe(
     "out-of-searches",
   );
-  expect(readAnswer(429, "exceeds the hourly throughput limit")).toBe("skip");
+  expect(readAnswer(429, "exceeds the hourly throughput limit")).toBe("slow");
   expect(readAnswer(401, "Invalid API key")).toBe("skip");
   expect(readAnswer(500, "boom")).toBe("error");
   expect(readAnswer(200, "Google hasn't returned any results")).toBe("ok");
@@ -89,10 +89,11 @@ test("when SerpApi says a key is out, it's marked spent and the next takes over"
 });
 
 test("a rate limited or bad key is skipped for now, not written off", async () => {
-  const r = run({ a: "skip", b: "ok" });
-  expect(await r.result).toBe("from b");
+  const r = run({ a: "slow", b: "skip", c: "ok" });
+  expect(await r.result).toBe("from c");
   expect(r.spent).toEqual([]);
-  // it searched nothing, so its search is given back; the one used isn't
+  // too many just now: given back. A key SerpApi won't take keeps its
+  // claim, so a revoked one reaches its cap and stops being tried
   expect(r.givenBack).toEqual(["a"]);
 });
 

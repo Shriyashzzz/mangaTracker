@@ -81,7 +81,7 @@ export const FAQ: FaqGroup[] = [
     questions: [
       {
         q: "Where do the prices come from?",
-        a: "From store listings for the exact book, such as Amazon, eBay, Books-A-Million and Walmart. A volume's prices are checked when someone opens its page, and each price says when it was last checked.",
+        a: "From store listings for the exact book, such as Amazon, eBay, Books-A-Million and Better World Books. A volume's prices are checked when someone opens its page, and each price says when it was last checked.",
       },
       {
         q: "Why does a volume say Check price?",

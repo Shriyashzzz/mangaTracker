@@ -36,7 +36,11 @@ export type KeyAnswer =
   | "ok"
   // nothing left on it until the month turns over
   | "out-of-searches"
-  // not usable for now, though it may be later: rate limited, or a bad key
+  // too many searches just now (429): this one wasn't spent, so it's given
+  // back, and the next key tries
+  | "slow"
+  // a key SerpApi won't take (401, 403): passed over, its claim kept, so a
+  // revoked key reaches its cap and stops being tried before every search
   | "skip"
   | "error";
 
@@ -44,7 +48,8 @@ export function readAnswer(status: number, error?: string): KeyAnswer {
   if (/run out of searches/i.test(error ?? "")) return "out-of-searches";
   // nothing found is an answer, not a failure
   if (/hasn.t returned any results/i.test(error ?? "")) return "ok";
-  if (status === 401 || status === 403 || status === 429) return "skip";
+  if (status === 429) return "slow";
+  if (status === 401 || status === 403) return "skip";
   return status >= 200 && status < 300 && !error ? "ok" : "error";
 }
 
@@ -52,7 +57,7 @@ type Rotation<T> = {
   keys: string[];
   // takes one search from this key's allowance; false if it has none left
   claim: (key: string) => Promise<boolean>;
-  // gives it back: the key was refused (401, 403, 429), so nothing was spent
+  // gives it back: SerpApi said too many just now (429), nothing was spent
   unclaim?: (key: string) => Promise<void>;
   // SerpApi says it's out, whatever our own count thinks
   markSpent: (key: string) => Promise<void>;
@@ -74,8 +79,8 @@ export async function searchWithKeys<T>({
     if (!(await claim(key))) continue;
     const { answer, data, error } = await search(key);
     if (answer === "ok") return data;
-    // refused before searching: not one of this month's searches
-    if (answer === "skip") await unclaim?.(key).catch(() => {});
+    // too many just now: not one of this month's searches
+    if (answer === "slow") await unclaim?.(key).catch(() => {});
     if (answer === "error")
       throw new Error(`SerpApi: ${error ?? "unknown error"}`);
     if (answer === "out-of-searches") await markSpent(key);

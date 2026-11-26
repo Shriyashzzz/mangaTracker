@@ -2,7 +2,6 @@
 // what they say, and the page's data (offers, history, series, siblings).
 // Only this file can spend a paid search, and at most once per volume every
 // FRESH_FOR_MS. Part of the price service (service.ts lists the parts).
-import { notShownYet } from "./stores/affiliates.js";
 import { volumeHeading, titleVolume, isWellKnown } from "./volumeNames.js";
 import { trustedCatalogBook } from "./trustedBooks.js";
 import { volumeAbout } from "./volumeDetails.js";
@@ -613,10 +612,7 @@ export async function getVolumePrices(
       : null,
   ]);
   // checks saved before a rule changed still get held to it
-  // (a store not shown yet, Walmart, saved before it was left out: not shown)
-  const offers = dropUnlikelyNew(stored, usual).filter(
-    (o) => !notShownYet(o.store),
-  );
+  const offers = dropUnlikelyNew(stored, usual);
 
   // a book holding several volumes says which, rather than a volume number
   const inBook =

@@ -11,6 +11,7 @@ import {
   preferDirectRows,
   storeName,
 } from "../prices/stores/storeLinks.js";
+import { notShownYet } from "../prices/stores/affiliates.js";
 import type { Offer } from "../prices/types.js";
 import { tablesOf, type Country } from "./priceTables.js";
 import { shownOnItsPage } from "./priceAge.js";
@@ -199,6 +200,9 @@ export const currentOf = (
       (looked.has("better-world-books") && BETTER_WORLD_BOOKS.test(row.store)));
   for (const found of preferDirectRows(rows)) {
     if (ownWord(found)) continue;
+    // a store not shown yet (Walmart), saved before it was left out: not
+    // shown anywhere, so every page agrees on a volume's price
+    if (notShownYet(found.store)) continue;
     // one store, one name: Google Shopping's spellings as the store links'
     const row = { ...found, store: storeName(found.store) };
     const key = `${row.store}|${row.format}|${row.condition}`;

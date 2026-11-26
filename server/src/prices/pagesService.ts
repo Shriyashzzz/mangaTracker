@@ -1,7 +1,6 @@
 // The pages that aren't one volume or one series: the series index, link
 // previews and crawler summaries, the deals page and the price home. Reads
 // only what's stored. Part of the price service (service.ts lists the parts).
-import { notShownYet } from "./stores/affiliates.js";
 import { publicReviews } from "../reviews/reviews.js";
 import { volumeAbout } from "./volumeDetails.js";
 import {
@@ -187,10 +186,7 @@ export async function getVolumeSummary(isbn13: string) {
     priceQueries.getCurrentOffers(isbn13),
     priceQueries.getNewPriceMedian(isbn13),
   ]);
-  // (a store not shown yet, Walmart, saved before it was left out: not shown)
-  const offers = dropUnlikelyNew(stored, usual).filter(
-    (o) => !notShownYet(o.store),
-  );
+  const offers = dropUnlikelyNew(stored, usual);
   // box sets and omnibuses are listed on the page, but aren't this volume's price
   const inStock = offers.filter((o) => o.inStock && !isCollection(o));
   const newPrint = inStock.filter(
@@ -472,7 +468,10 @@ export function getDealsPage(): Promise<DealCard[]> {
   if (dealsPage && Date.now() - dealsPage.at < DEALS_MS) return dealsPage.deals;
   const deals = workOutDeals();
   dealsPage = { at: Date.now(), deals };
-  deals.catch(() => (dealsPage = null));
+  // a failed one is dropped, unless a newer one has taken its place
+  deals.catch(() => {
+    if (dealsPage?.deals === deals) dealsPage = null;
+  });
   return deals;
 }
 
@@ -569,7 +568,10 @@ export function getHighlights() {
     return highlightsPage.rows;
   const rows = workOutHighlights();
   highlightsPage = { at: Date.now(), rows };
-  rows.catch(() => (highlightsPage = null));
+  // a failed one is dropped, unless a newer one has taken its place
+  rows.catch(() => {
+    if (highlightsPage?.rows === rows) highlightsPage = null;
+  });
   return rows;
 }
 
@@ -579,17 +581,18 @@ export function getHighlights() {
 // ready, so a visitor always finds one waiting
 const WARM_EVERY_MS = 4 * 60 * 1000;
 export function startPageWarmer() {
+  const failed = (e: Error) =>
+    console.error("warming the price pages:", e.message);
+  const warmHighlights = () => {
+    const rows = workOutHighlights();
+    return rows.then(() => {
+      highlightsPage = { at: Date.now(), rows };
+    });
+  };
+  // the deals first (the home page's deals row is their top), then the
+  // home page's rows, even when the deals failed
   const run = () => {
-    rewarmDeals()
-      .then(() => {
-        const rows = workOutHighlights();
-        return rows.then(() => {
-          highlightsPage = { at: Date.now(), rows };
-        });
-      })
-      .catch((e: Error) =>
-        console.error("warming the price pages:", e.message),
-      );
+    rewarmDeals().catch(failed).then(warmHighlights).catch(failed);
   };
   setTimeout(run, 30_000).unref();
   setInterval(run, WARM_EVERY_MS).unref();

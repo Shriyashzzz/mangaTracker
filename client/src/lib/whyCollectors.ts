@@ -11,7 +11,7 @@ export const WHY_COLLECTORS = [
   },
   {
     title: "Every store on one page",
-    body: "eBay, Books-A-Million, Amazon, Walmart and more, new and used, in the US and Canada.",
+    body: "eBay, Books-A-Million, Amazon, Better World Books and more, new and used, in the US and Canada.",
     link: "/series",
     label: "Browse series",
   },

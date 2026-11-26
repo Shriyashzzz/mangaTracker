@@ -457,8 +457,10 @@ async function nextFor(country: Country, now: number) {
 async function usedPart(now: number) {
   if (!(await impactRoom(now))) return 0;
   const ordered = await seriesInOrder(new Date(now));
+  // (ranked series only, as the sweep's popular part)
   const waiting = await neverLooked(
     ordered
+      .filter((s) => s.ranked)
       .slice(0, POPULAR_SERIES)
       .flatMap((s) => s.volumes.map((v) => v.isbn13)),
     "better-world-books",

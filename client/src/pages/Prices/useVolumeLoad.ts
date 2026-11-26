@@ -27,7 +27,8 @@ export function useVolumeLoad(isbn: string, country: string) {
     // never checked live
     const asking = new AbortController();
     controller.signal.addEventListener("abort", () => asking.abort());
-    const human = country === "ca" ? null : humanQuery("?", asking.signal);
+    const human =
+      country === "ca" ? null : humanQuery("?", asking.signal, true);
     getVolume(isbn, controller.signal, true)
       .then((data) => {
         setState({ isbn, data, error: "" });
@@ -47,6 +48,8 @@ export function useVolumeLoad(isbn: string, country: string) {
           });
       })
       .catch((e) => {
+        // no stored prices, so no live check: the person check is called off
+        asking.abort();
         if ((e as Error).name !== "AbortError") {
           setState({ isbn, data: null, error: (e as Error).message });
         }

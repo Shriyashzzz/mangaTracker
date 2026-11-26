@@ -21,6 +21,8 @@ import {
   searchEbay,
 } from "../providers/ebay.js";
 import { searchSerpApi, serpApiEnabled } from "../providers/serpapiClient.js";
+import { SearchesUsedUp } from "../providers/serpapiKeys.js";
+import { mayPay } from "../spender.js";
 import { shoppingQuery } from "../stores/match.js";
 import { dropUnlikelyNew } from "../stores/retailers.js";
 import { isWellKnown } from "../volumeNames.js";
@@ -104,6 +106,8 @@ type Searched<T> = { data: T } | "budget" | "failed";
 const search = async <T extends { error?: string }>(
   params: Record<string, string>,
 ): Promise<Searched<T>> => {
+  // a visit that may not pay (spender.ts) takes nothing from Canada's share
+  if (!(await mayPay())) return "budget";
   if (
     !(await priceQueries.claimApiCall(BUDGET_LABEL, config.CANADA_SEARCH_LIMIT))
   ) {
@@ -117,6 +121,12 @@ const search = async <T extends { error?: string }>(
       ),
     };
   } catch (e) {
+    // refused before searching (every key used up, or the visit may not
+    // pay): the share it took is given back
+    if (e instanceof SearchesUsedUp) {
+      await priceQueries.releaseApiCall(BUDGET_LABEL).catch(() => {});
+      return "budget";
+    }
     console.warn("Canadian price search failed:", (e as Error).message);
     return "failed";
   }

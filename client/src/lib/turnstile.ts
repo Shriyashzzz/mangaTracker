@@ -28,9 +28,32 @@ type Turnstile = {
 
 // the page's place for the box (HumanCheck), while it's on screen
 let slot: HTMLElement | null = null;
+// checks waiting for that place to appear (whenSlot)
+let waitingForSlot: (() => void)[] = [];
 export const setHumanCheckSlot = (el: HTMLElement | null) => {
   slot = el;
+  if (!el) return;
+  const waiting = waitingForSlot;
+  waitingForSlot = [];
+  waiting.forEach((go) => go());
 };
+
+// A check started before its page is drawn (a volume page starts it with
+// the stored prices: useVolumeLoad) waits for the page's place, so a box
+// Cloudflare wants tapped shows under its words, not in a corner. Gives up
+// after a while (the box then goes in the corner) or when called off
+const SLOT_WAIT_MS = 10_000;
+const whenSlot = (signal?: AbortSignal) =>
+  new Promise<void>((resolve) => {
+    if (slot || signal?.aborted) return resolve();
+    const go = () => {
+      clearTimeout(timer);
+      resolve();
+    };
+    const timer = setTimeout(go, SLOT_WAIT_MS);
+    waitingForSlot.push(go);
+    signal?.addEventListener("abort", go, { once: true });
+  });
 
 // whether Cloudflare is asking right now: HumanCheck shows its words then
 let asking = false;
@@ -67,9 +90,15 @@ const load = () =>
 
 // a fresh token, one per live check (each can be used once), or null.
 // `signal`: the page was left, so stop waiting and take the widget away
-async function humanToken(signal?: AbortSignal): Promise<string | null> {
+// `inItsPlace`: started before its page is drawn, so it waits for the page's
+// place for the box (whenSlot); Cloudflare's script loads meanwhile
+async function humanToken(
+  signal?: AbortSignal,
+  inItsPlace = false,
+): Promise<string | null> {
   if (!SITE_KEY || signal?.aborted) return null;
   const turnstile = await load();
+  if (inItsPlace) await whenSlot(signal);
   if (!turnstile || signal?.aborted) return null;
   return new Promise((resolve) => {
     const box = document.createElement("div");
@@ -113,7 +142,8 @@ async function humanToken(signal?: AbortSignal): Promise<string | null> {
 export const humanQuery = async (
   joiner: "?" | "&" = "?",
   signal?: AbortSignal,
+  inItsPlace = false,
 ) => {
-  const token = await humanToken(signal);
+  const token = await humanToken(signal, inItsPlace);
   return token ? `${joiner}human=${encodeURIComponent(token)}` : "";
 };

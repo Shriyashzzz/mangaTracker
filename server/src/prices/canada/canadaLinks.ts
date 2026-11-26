@@ -2,6 +2,7 @@
 // with eBay Canada's tracking, and each store's own search. Kept apart from
 // the checks, so any page showing a Canadian price can link it the same way
 // without pulling in the checking code.
+import { notShownYet } from "../stores/affiliates.js";
 import config from "../../config/config.js";
 import {
   EBAY_CA,
@@ -23,7 +24,9 @@ const amazonCa = (isbn13: string) => {
   return `https://www.amazon.ca/s?k=${isbn13}${tag ? `&tag=${encodeURIComponent(tag)}` : ""}`;
 };
 
-export const canadaStoreLinks = (isbn13: string) => [
+export const canadaStoreLinks = (isbn13: string) =>
+  everyCanadaLink(isbn13).filter((link) => !notShownYet(link.store));
+const everyCanadaLink = (isbn13: string) => [
   {
     store: "Amazon.ca",
     url: amazonCa(isbn13),
