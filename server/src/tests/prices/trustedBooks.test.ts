@@ -214,6 +214,18 @@ describe("applyTrusted", () => {
     expect(fresh.volumes.map((v) => v.isbn13)).toContain("9781421549958");
   });
 
+  test("a replacement keeps to a publisher's block the list already has", () => {
+    // a Chinese ISBN mistyped onto a collector's list: never put in
+    const { volumes, swaps } = applyTrusted(
+      "Vagabond",
+      [listed(3, "9781421519135"), listed(4, "9781421519142")],
+      [row(3, "9781421519135"), row(4, "9787156931853")],
+      new Set(),
+    );
+    expect(isbns(volumes)).toEqual(["9781421519135", "9781421519142"]);
+    expect(swaps).toEqual([]);
+  });
+
   test("an ISBN already in the list under another number isn't used twice", () => {
     const { volumes } = applyTrusted(
       "Tropical Fish",

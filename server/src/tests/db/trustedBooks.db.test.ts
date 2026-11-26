@@ -194,8 +194,13 @@ test("a series list gets its trusted books, and a priced ISBN stays", async () =
   await prisma.book.create({
     data: { isbn13: OLD, title: "Zz Trusted Series, Vol. 1" },
   });
+  // eBay's price doesn't prove it: its title search saves under any ISBN
   await prisma.priceSample.create({
     data: { isbn13: OLD, store: "eBay", priceCents: 999, source: "ebay" },
+  });
+  expect(await pricedIsbns([OLD])).toEqual(new Set());
+  await prisma.priceSample.create({
+    data: { isbn13: OLD, store: "Amazon", priceCents: 999, source: "amazon" },
   });
   expect(await pricedIsbns([OLD, NEW])).toEqual(new Set([OLD]));
   const priced = await withTrustedBooks("Zz Trusted Series", null, [

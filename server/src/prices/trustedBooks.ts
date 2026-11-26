@@ -7,9 +7,10 @@
 // Fish Yearns for Snow, 2 eBay listings against 27 for the printed book).
 // So when a series' list is built, a trusted book of the same volume:
 //   - fills a number the catalogs had no book for
-//   - takes the place of the listed ISBN, but only when no store has ever
-//     priced that one (new or used, US or Canada). A priced ISBN is a real
-//     book someone sells, and stays, whatever the trusted list says
+//   - takes the place of the listed ISBN, but only when no store looking
+//     books up by ISBN has priced that one as a print copy (US or Canada;
+//     pricedIsbns). Such an ISBN is a real book someone sells, and stays,
+//     whatever the trusted list says
 // and nothing else changes. Never on a series with a hand-set reissue
 // (reissue.ts), a series sold as books holding several volumes, or another
 // publisher's run (the list's ISBNs and the trusted ones must share a
@@ -132,8 +133,15 @@ export function applyTrusted(
       byNumber.set(n, withDetails(ours, same));
       continue;
     }
+    // only a book from a publisher's block the list already has (an empty
+    // list has none to keep to): never a stray book, even a trusted list's
+    // (a Chinese 978-7 ISBN in one collector's Vagabond 4)
     const choice = pick(
-      here.filter((r) => !listedIsbns.has(r.isbn13)),
+      here.filter(
+        (r) =>
+          !listedIsbns.has(r.isbn13) &&
+          (!listed.length || listedBlocks.has(blockOf(r.isbn13))),
+      ),
       listedBlocks,
     );
     if (!choice) continue;
@@ -238,14 +246,23 @@ export async function trustedBooksFor(
   return [...named, ...extra];
 }
 
-// the ISBNs some store has ever priced, in either country
+// The ISBNs a store has priced as this very printed book, in either
+// country: a print copy found by looking the ISBN up. eBay's don't count:
+// its title search ("Nisekoi vol 9") finds the printed book's listings and
+// they're saved under whatever ISBN the list gives, an ebook's too
+// (Nisekoi 9's ebook ISBN had eBay prices and no listing of its own)
+const BY_TITLE_TOO = ["eBay", "eBay.ca"];
 export async function pricedIsbns(isbns: string[]): Promise<Set<string>> {
   const list = isbns.map((i) => i.trim());
   if (!list.length) return new Set();
   const rows = await prisma.$queryRaw<{ isbn13: string }[]>`
-    SELECT DISTINCT isbn13 FROM price_samples WHERE isbn13 = ANY(${list}::text[])
+    SELECT DISTINCT isbn13 FROM price_samples
+    WHERE isbn13 = ANY(${list}::text[]) AND format = 'print'
+      AND store <> ALL(${BY_TITLE_TOO}::text[])
     UNION
-    SELECT DISTINCT isbn13 FROM ca_price_samples WHERE isbn13 = ANY(${list}::text[])
+    SELECT DISTINCT isbn13 FROM ca_price_samples
+    WHERE isbn13 = ANY(${list}::text[]) AND format = 'print'
+      AND store <> ALL(${BY_TITLE_TOO}::text[])
   `;
   return new Set(rows.map((r) => r.isbn13.trim()));
 }

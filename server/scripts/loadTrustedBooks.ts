@@ -113,7 +113,13 @@ type Row = {
   listCents: number | null;
 };
 
-function rowsOf(path: string): { rows: Row[]; skipped: string[] } {
+const ENGLISH_ISBN = /^(9780|9781|9798)/;
+
+function rowsOf(path: string): {
+  rows: Row[];
+  skipped: string[];
+  foreign: string[];
+} {
   const [headers = [], ...body] = readCsv(fs.readFileSync(path, "utf8"));
   const at = {
     isbn13: column(
@@ -143,12 +149,19 @@ function rowsOf(path: string): { rows: Row[]; skipped: string[] } {
   const cell = (r: string[], i: number) => (i >= 0 ? (r[i] ?? "").trim() : "");
   const rows: Row[] = [];
   const skipped: string[] = [];
+  const foreign: string[] = [];
   const seen = new Set<string>();
   for (const r of body) {
     const isbn13 = cell(r, at.isbn13).replace(/[^0-9]/g, "");
     const title = cell(r, at.title);
     if (!/^97[89]\d{10}$/.test(isbn13) || !title) {
       skipped.push(`${cell(r, at.isbn13) || "(no ISBN)"}\t${title}`);
+      continue;
+    }
+    // an English edition's ISBN starts 978-0, 978-1 or 979-8; any other is
+    // a book from somewhere else (a 978-7 is Chinese), mistyped onto the list
+    if (!ENGLISH_ISBN.test(isbn13)) {
+      foreign.push(`${isbn13}\t${title}`);
       continue;
     }
     if (seen.has(isbn13)) continue;
@@ -168,7 +181,7 @@ function rowsOf(path: string): { rows: Row[]; skipped: string[] } {
       listCents: price > 0 && price < 1000 ? Math.round(price * 100) : null,
     });
   }
-  return { rows, skipped };
+  return { rows, skipped, foreign };
 }
 
 // ---------- removing a source ----------
@@ -186,7 +199,7 @@ if (remove) {
 
 // ---------- loading ----------
 
-const { rows, skipped } = rowsOf(file!);
+const { rows, skipped, foreign } = rowsOf(file!);
 const kinds = new Map<Kind, number>();
 for (const r of rows) kinds.set(r.read.kind, (kinds.get(r.read.kind) ?? 0) + 1);
 const seriesCount = new Set(
@@ -200,6 +213,10 @@ console.log(
 console.log(
   `  ${[...kinds].map(([k, n]) => `${n} ${k}`).join(", ")}; ${seriesCount} series with numbered volumes`,
 );
+if (foreign.length) {
+  console.log(`  ${foreign.length} left out: not an English edition's ISBN`);
+  for (const f of foreign.slice(0, 20)) console.log(`    ${f}`);
+}
 
 const existing = new Map(
   (
@@ -282,6 +299,12 @@ if (apply) {
     });
   }
   console.log(`  loaded ${loadable.length}`);
+  // what an earlier load of this source let in that isn't an English book
+  const gone = await prisma.$executeRaw`
+    DELETE FROM trusted_books
+    WHERE source = ${source} AND isbn13 !~ '^(9780|9781|9798)'`;
+  if (gone)
+    console.log(`  removed ${gone} non-English books an earlier load had`);
 }
 
 // ---------- edition books that say what they hold ----------
