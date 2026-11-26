@@ -9,7 +9,12 @@ import {
   reissueOfOldVolume,
 } from "./singlesRules.js";
 import { runsPastItsEnd, withoutTheNovels } from "./novelsOnMangaPage.js";
-import { editionSoldToday } from "./reissue.js";
+import { editionSoldToday, hasReissue } from "./reissue.js";
+import {
+  recordSwaps,
+  trustedSeriesKey,
+  withTrustedBooks,
+} from "./trustedBooks.js";
 import { titleVolume } from "./volumeNames.js";
 import { hasAnimeAnswer } from "./afterAnime/afterAnime.js";
 import { attachNoBookReviews, seriesReviews } from "../reviews/reviews.js";
@@ -910,11 +915,25 @@ export async function getSeriesWithVolumes(
   const novelIsbns = runsPastItsEnd(ofTheEdition, finishedWith)
     ? await novelIsbnsOf(name)
     : new Set<string>();
-  const volumes = withoutStraysPastTheEnd(
+  const catalogVolumes = withoutStraysPastTheEnd(
     withoutTheNovels(ofTheEdition, finishedWith, novelIsbns),
     info,
     name,
   );
+  // the books a collector's list (or another trusted source) knows for
+  // certain: a volume the catalogs had none for, or gave an ISBN no store
+  // ever priced (trustedBooks.ts). A reissue's list is left as it is
+  const trusted = hasReissue([name, info?.name])
+    ? { volumes: catalogVolumes, swaps: [] }
+    : await withTrustedBooks(name, info, catalogVolumes).catch(() => ({
+        volumes: catalogVolumes,
+        swaps: [],
+      }));
+  const volumes = trusted.volumes;
+  if (trusted.swaps.length)
+    recordSwaps(trustedSeriesKey(info?.name ?? name), trusted.swaps).catch(
+      (e: Error) => console.error("trusted book swaps:", e.message),
+    );
 
   // start finding every cover now, in one batch, so they're ready by the
   // time the browser asks for them (failures are retried when it asks)

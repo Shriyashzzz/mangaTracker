@@ -38,6 +38,11 @@ const REISSUES: Reissue[] = [
 const reissueOf = (name: string) =>
   REISSUES.find((r) => r.names.some((n) => slugify(n) === slugify(name)));
 
+// whether one of a series' names has a hand-set reissue here: its list is
+// then the edition sold today, and nothing else may change it
+export const hasReissue = (names: (string | null | undefined)[]) =>
+  names.some((name) => Boolean(name && reissueOf(name)));
+
 const isLoneVolume = (book: CatalogBook) =>
   !book.inBook &&
   book.volume != null &&

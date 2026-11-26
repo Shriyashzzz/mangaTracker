@@ -3,6 +3,7 @@
 // Only this file can spend a paid search, and at most once per volume every
 // FRESH_FOR_MS. Part of the price service (service.ts lists the parts).
 import { volumeHeading, titleVolume, isWellKnown } from "./volumeNames.js";
+import { trustedCatalogBook } from "./trustedBooks.js";
 import { hasNoCover } from "../models/coversAndSitemap.js";
 import priceQueries, {
   shownOnItsPage,
@@ -304,10 +305,18 @@ async function refreshIfStale(isbn13: string, book: Book, freeOnly = false) {
 // the novel from the manga by length. A book stored under the other format is
 // renamed to match
 // where a volume page finds its book first: stored, or in a series list
+// the stored book, and how a series' saved list (or, for a book no list
+// has, a trusted source such as a collector's list) describes it
 const storedOrSaved = (isbn13: string) =>
   Promise.all([
     priceQueries.getBook(isbn13),
-    priceQueries.getSavedVolume(isbn13).catch(() => null),
+    priceQueries
+      .getSavedVolume(isbn13)
+      .catch(() => null)
+      .then(
+        async (saved) =>
+          saved ?? (await trustedCatalogBook(isbn13).catch(() => null)),
+      ),
   ]);
 
 export async function getOrCreateBook(isbn13: string) {

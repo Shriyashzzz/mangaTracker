@@ -697,3 +697,55 @@ model EditionDecision {
   @@id([series, edition, number])
   @@map("edition_decisions")
 }
+
+// ---------- trusted books ----------
+
+// Books we know for certain are the printed English book they say, from a
+// source better than the free catalogs: a collector's hand-kept list first
+// (scripts/loadTrustedBooks.ts loads any such file). A series' list takes a
+// volume from here where the catalogs had none, or gave an ISBN no store
+// has ever priced (prices/trustedBooks.ts); a scan of one is known at once
+model TrustedBook {
+  isbn13      String   @id @db.Char(13)
+  isbn10      String?  @db.Char(10)
+  // where it came from ("collector-viz"), so a source can be taken out
+  // whole, and how far it's trusted: 3 a hand-checked list, 2 three readers
+  // agreeing, 1 found automatically. A lower one never replaces a higher
+  source      String   @db.VarChar(40)
+  trust       Int      @db.SmallInt
+  // the series, as the source names it and as names compare (stores/match.ts
+  // seriesOf), and what kind of book: single, edition, novel or oneshot
+  series      String   @db.VarChar(200)
+  seriesKey   String   @map("series_key") @db.VarChar(200)
+  kind        String   @db.VarChar(10)
+  // its volume number (single, novel), or the volumes an edition book holds
+  volume      Float?
+  holds       Int[]    @default([])
+  title       String   @db.VarChar(300)
+  publisher   String?  @db.VarChar(120)
+  // its English release date ("2013-03-12"), page count, the publisher's
+  // description, and its list price, when the source says
+  published   String?  @db.VarChar(10)
+  pages       Int?
+  description String?
+  listCents   Int?     @map("list_cents")
+  addedAt     DateTime @default(now()) @map("added_at") @db.Timestamptz(6)
+
+  @@index([seriesKey])
+  @@map("trusted_books")
+}
+
+// An ISBN a series' list gave before a trusted book took its place: kept so
+// an old address, a To buy item or a review on it follows to the new one
+// (prices/trustedBooks.ts recordSwaps)
+model IsbnSwap {
+  fromIsbn  String   @id @map("from_isbn") @db.Char(13)
+  toIsbn    String   @map("to_isbn") @db.Char(13)
+  seriesKey String   @map("series_key") @db.VarChar(200)
+  volume    Float
+  source    String   @db.VarChar(40)
+  swappedAt DateTime @default(now()) @map("swapped_at") @db.Timestamptz(6)
+
+  @@index([toIsbn])
+  @@map("isbn_swaps")
+}

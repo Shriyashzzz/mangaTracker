@@ -2,6 +2,7 @@
 // (Open Library, AniList, stores) become 502s with a friendly message, so
 // pages can show "try again" instead of a blank error.
 import { countScan, roomFor } from "../plan/plan.js";
+import { currentIsbn } from "../prices/trustedBooks.js";
 import { nearSeriesNames } from "../prices/seriesNames.js";
 import { slugify } from "../prices/stores/match.js";
 import { closeEnough } from "../util/shelf/spelling.js";
@@ -64,10 +65,13 @@ import { clientIp } from "../util/clientIp.js";
 
 // ---------- shared rules ----------
 
-// :isbn may be ISBN-10 or -13 with dashes; handlers always get an ISBN-13
+// :isbn may be ISBN-10 or -13 with dashes; handlers always get an ISBN-13,
+// the one the volume goes by now
 const isbnParam = [
   param("isbn")
     .customSanitizer(toIsbn13)
+    // an ISBN a trusted book took the place of: the volume as it is now
+    .customSanitizer(currentIsbn)
     .custom((v) => v !== null)
     .withMessage("That isn't a valid ISBN"),
   rejectInvalid,

@@ -1,6 +1,7 @@
 // Several series at once: the shelf's Select (delete and move many) and every
 // undo (restore one, restore many, put many back where they were).
 import type { Request, Response } from "express";
+import { currentIsbn } from "../../prices/trustedBooks.js";
 import { body, matchedData, validationResult } from "express-validator";
 import { ROW_ID, rejectInvalid } from "../../middlewares/validate.js";
 import { sendError } from "../../middlewares/errorHandler.js";
@@ -189,7 +190,10 @@ export const restoreMany = [
 // edition the app couldn't work out (util/shelf/bookVolumeAnswers.ts). Theirs
 // at once, everyone's once three readers agree
 export const bookVolumes = [
-  body("isbn13").matches(/^97[89]\d{10}$/),
+  body("isbn13")
+    .matches(/^97[89]\d{10}$/)
+    // an ISBN a trusted book took the place of: the volume as it is now
+    .customSanitizer(currentIsbn),
   // (a box set's worth: the page's MOST_IN_A_BOOK, lib/barcode.ts)
   body("volumes").isArray({ min: 1, max: 100 }),
   body("volumes.*").isInt({ min: 1, max: 999 }).toInt(),

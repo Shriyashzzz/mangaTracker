@@ -12,9 +12,15 @@ import { startAlertSender } from "./push/pushSender.js";
 import { startSeriesFiller } from "./prices/seriesFiller.js";
 import { startSweep } from "./collector/sweep.js";
 import { startScoreFiller } from "./collector/scoreFiller.js";
+import { loadSwaps } from "./prices/trustedBooks.js";
 
 app.listen(config.PORT, () => {
   console.log(`API running on http://localhost:${config.PORT}`);
+  // ISBNs a trusted book took the place of, so an old address finds its
+  // volume from the first request (prices/trustedBooks.ts)
+  loadSwaps().catch((e: Error) =>
+    console.error("loading ISBN swaps:", e.message),
+  );
   // background pricing of shelf volumes (production unless PRICE_FILL=on)
   startFiller();
   startUsedFiller();

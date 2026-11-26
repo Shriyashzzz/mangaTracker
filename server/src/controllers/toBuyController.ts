@@ -8,6 +8,7 @@ import { sendError } from "../middlewares/errorHandler.js";
 import { rejectInvalid } from "../middlewares/validate.js";
 import { countryOf } from "../models/priceTables.js";
 import { toIsbn13 } from "../prices/sources/catalog.js";
+import { currentIsbn } from "../prices/trustedBooks.js";
 import {
   addToBuy,
   clearToBuy,
@@ -24,9 +25,12 @@ import {
 } from "../toBuy/toBuy.js";
 import { chapterMessage, nameField, ownedListFields } from "./manga/fields.js";
 
-// :isbn may be ISBN-10 or -13 with dashes; handlers always get an ISBN-13
+// :isbn may be ISBN-10 or -13 with dashes; handlers always get an ISBN-13,
+// the one the volume goes by now
 const isbnParam = param("isbn")
   .customSanitizer(toIsbn13)
+  // an ISBN a trusted book took the place of: the volume as it is now
+  .customSanitizer(currentIsbn)
   .custom((isbn) => isbn !== null)
   .withMessage("That isn't a valid ISBN");
 
@@ -177,6 +181,8 @@ const order = [
   body("isbns").isArray({ max: MOST_TO_BUY }),
   body("isbns.*")
     .customSanitizer(toIsbn13)
+    // an ISBN a trusted book took the place of: the volume as it is now
+    .customSanitizer(currentIsbn)
     .custom((isbn) => isbn !== null),
   rejectInvalid,
   async (req: Request, res: Response) => {

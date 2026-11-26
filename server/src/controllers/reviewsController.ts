@@ -8,6 +8,7 @@ import { requireSignIn } from "../middlewares/auth.js";
 import { requireOwnerOfSite } from "../middlewares/ownerOfSite.js";
 import { ROW_ID, rejectInvalid } from "../middlewares/validate.js";
 import { toIsbn13 } from "../prices/sources/catalog.js";
+import { currentIsbn } from "../prices/trustedBooks.js";
 import { MOST_WORDS } from "../reviews/reviewRules.js";
 import { siteStats } from "../models/siteStats.js";
 import {
@@ -22,9 +23,12 @@ import {
   writeShelfReview,
 } from "../reviews/reviews.js";
 
-// :isbn may be ISBN-10 or -13 with dashes; handlers always get an ISBN-13
+// :isbn may be ISBN-10 or -13 with dashes; handlers always get an ISBN-13,
+// the one the volume goes by now
 const isbnParam = param("isbn")
   .customSanitizer(toIsbn13)
+  // an ISBN a trusted book took the place of: the volume as it is now
+  .customSanitizer(currentIsbn)
   .custom((isbn) => isbn !== null)
   .withMessage("That isn't a valid ISBN");
 const idParam = param("id").isInt(ROW_ID).toInt();
