@@ -3,6 +3,7 @@
 // notes, volumes owned). Every :id route runs requireOwner first, which loads
 // the manga onto res.locals.manga.
 import { roomFor } from "../../plan/plan.js";
+import { noteReaderBooks } from "../../prices/readerBooks.js";
 import { isShown } from "../../models/bookQueries.js";
 import { ownedSet } from "../../collector/shelfMath.js";
 import { editionStamp } from "../../util/shelf/editionStamp.js";
@@ -268,9 +269,15 @@ export const addBooks = [
   ...bookFields("books", 50),
   rejectInvalid,
   async (req: Request, res: Response) => {
-    const id = (res.locals.manga as Manga).id;
-    await bookQueries.addBooks(id, matchedData(req).books ?? []);
-    res.json({ books: await bookQueries.booksOf(id) });
+    const manga = res.locals.manga as Manga;
+    const books = matchedData(req).books ?? [];
+    await bookQueries.addBooks(manga.id, books);
+    res.json({ books: await bookQueries.booksOf(manga.id) });
+    // a scanned barcode says which volume its ISBN is, toward readers
+    // agreeing on it (prices/readerBooks.ts); after the answer
+    noteReaderBooks(req.session.userId!, manga, books, "scan").catch(
+      (e: Error) => console.error("noting scanned books:", e.message),
+    );
   },
 ];
 

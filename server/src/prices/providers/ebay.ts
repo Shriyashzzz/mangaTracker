@@ -199,6 +199,7 @@ async function appToken(signal: AbortSignal) {
 }
 
 export type ItemSummary = {
+  itemId?: string;
   title?: string;
   conditionId?: string;
   price?: { value: string; currency: string };
@@ -437,6 +438,9 @@ async function browse(
   market: EbayMarket,
   signal: AbortSignal,
   category?: string,
+  // a search that isn't a page's own price check (a script's): kept under
+  // the 80% a title search is, so the site's checks keep their reserve
+  keepReserve = false,
 ): Promise<ItemSummary[]> {
   await syncWithEbay(signal);
   // the token first: a failed one isn't a search, so it takes no call
@@ -445,7 +449,7 @@ async function browse(
   if (
     !(await priceQueries.claimApiCall(
       budgetLabel(day),
-      category ? titleLimit() : dailyLimit(),
+      category || keepReserve ? titleLimit() : dailyLimit(),
       monthOf(day),
     ))
   )
@@ -525,6 +529,64 @@ export async function searchEbay(
     ...isbnOffers.filter(isCollection),
     ...titleOffers.filter(isCollection),
   ]);
+}
+
+// ---------- for finding a volume's printed book (wrongIsbns.ts) ----------
+
+// eBay US's fixed-price listings for a search: by an ISBN, or (with the
+// Books category) by a title. One call from the day's count, as any search,
+// and only while it's under 80%: the rest is the site's own price checks
+export const ebayListings = (q: string, signal: AbortSignal, byTitle = false) =>
+  browse(q, "US", signal, byTitle ? BOOKS_CATEGORY : undefined, true);
+
+// the ISBN-13 a listing's seller gave, from its own page (gtin, or its ISBN
+// item specific). One call from the day's count; null when it has none
+export async function ebayItemIsbn(
+  itemId: string,
+  signal: AbortSignal,
+): Promise<string | null> {
+  const token = await appToken(signal);
+  const day = today();
+  if (
+    !(await priceQueries.claimApiCall(
+      budgetLabel(day),
+      titleLimit(),
+      monthOf(day),
+    ))
+  )
+    throw new SearchesUsedUp(`eBay calls used up for ${day}`);
+  void noteCall("ebay");
+  const res = await fetch(
+    `https://api.ebay.com/buy/browse/v1/item/${encodeURIComponent(itemId)}`,
+    {
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "X-EBAY-C-MARKETPLACE-ID": MARKETS.US.id,
+      },
+      signal,
+    },
+  );
+  if (res.status === 429) {
+    lastRefusedAt = Date.now();
+    // as a search's 429 (browse): eBay's own count, or the day closed
+    if (!(await syncWithEbay(signal, true)))
+      await markDayUsed(day, dailyLimit());
+    throw new SearchesUsedUp("eBay answered 429: too many calls");
+  }
+  if (!res.ok) return null;
+  const item = (await res.json()) as {
+    gtin?: string;
+    localizedAspects?: { name?: string; value?: string }[];
+  };
+  const isbn = [
+    item.gtin,
+    ...(item.localizedAspects ?? [])
+      .filter((a) => /^(isbn|ean)/i.test(a.name ?? ""))
+      .map((a) => a.value),
+  ]
+    .map((v) => (v ?? "").replace(/[^0-9]/g, ""))
+    .find((v) => /^97[89]\d{10}$/.test(v));
+  return isbn ?? null;
 }
 
 // a series' box sets, looked for by its name alone: one search ("Naruto box

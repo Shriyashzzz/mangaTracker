@@ -73,6 +73,7 @@ model User {
   importPicks        ImportPick[]
   toBuy              ToBuy[]
   bookVolumes        BookVolumeAnswer[]
+  isbnSightings      IsbnSighting[]
   // a password reset link's token, as its hash (util/resetToken.ts)
   reset_token        String?            @unique
   reset_token_expiry BigInt? // in milliseconds
@@ -729,6 +730,9 @@ model TrustedBook {
   pages       Int?
   description String?
   listCents   Int?     @map("list_cents")
+  // the source marks it the series' last volume in English ("(Complete)",
+  // "(Final)"): "Complete in English" when the list ends there too
+  ends        Boolean  @default(false)
   addedAt     DateTime @default(now()) @map("added_at") @db.Timestamptz(6)
 
   @@index([seriesKey])
@@ -748,4 +752,26 @@ model IsbnSwap {
 
   @@index([toIsbn])
   @@map("isbn_swaps")
+}
+
+// A reader's book that says which volume an ISBN is: a barcode they scanned
+// onto a series, or a file they imported. Once three readers' accounts (a
+// week old or more) agree, and one of them scanned it, the ISBN becomes a
+// trusted book (source "readers", trust 2): prices/readerBooks.ts. An
+// import alone never does it, since a file's ISBN can be an ebook's
+model IsbnSighting {
+  userId    Int      @map("user_id")
+  isbn13    String   @db.Char(13)
+  seriesKey String   @map("series_key") @db.VarChar(200)
+  series    String   @db.VarChar(200)
+  kind      String   @db.VarChar(10)
+  volume    Float
+  // "scan" or "import"
+  how       String   @db.VarChar(10)
+  seenAt    DateTime @default(now()) @map("seen_at") @db.Timestamptz(6)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([userId, isbn13])
+  @@index([isbn13])
+  @@map("isbn_sightings")
 }

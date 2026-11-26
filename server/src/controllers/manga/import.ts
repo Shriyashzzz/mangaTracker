@@ -1,5 +1,6 @@
 // Bringing a list in: the import itself, finding a title on the shelf, and the
 // import matches readers share so the next import of the same title is quicker.
+import { noteImportedBooks } from "../../prices/readerBooks.js";
 import type { Request, Response } from "express";
 import { body, matchedData, query } from "express-validator";
 import { ROW_ID, rejectInvalid } from "../../middlewares/validate.js";
@@ -194,6 +195,9 @@ export const importList = [
         await mangaQueries.fillFromBackup(id, fill);
       // after the volumes: a book shows only where its volumes are owned
       for (const [id, list] of books) await bookQueries.addBooks(id, list);
+      // what their books' ISBNs say, toward readers agreeing on them
+      // (prices/readerBooks.ts); after the answer, never holding it up
+      void noteImportedBooks(userId, books);
       res.json({
         added: inputs.length,
         alreadyThere,

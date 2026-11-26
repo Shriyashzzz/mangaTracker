@@ -13,6 +13,7 @@ import { startSeriesFiller } from "./prices/seriesFiller.js";
 import { startSweep } from "./collector/sweep.js";
 import { startScoreFiller } from "./collector/scoreFiller.js";
 import { loadSwaps } from "./prices/trustedBooks.js";
+import { startReaderBooks } from "./prices/readerBooks.js";
 
 app.listen(config.PORT, () => {
   console.log(`API running on http://localhost:${config.PORT}`);
@@ -21,6 +22,8 @@ app.listen(config.PORT, () => {
   loadSwaps().catch((e: Error) =>
     console.error("loading ISBN swaps:", e.message),
   );
+  // readers agreeing on an ISBN's volume, made trusted books once a day
+  startReaderBooks();
   // background pricing of shelf volumes (production unless PRICE_FILL=on)
   startFiller();
   startUsedFiller();
