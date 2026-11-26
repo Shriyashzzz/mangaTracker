@@ -15,6 +15,7 @@
 // A light novel has no manga edition lines. What it shares with the other
 // jobs is in fillShared.ts.
 import { prisma } from "../config/prisma.js";
+import { googleBackgroundLeft } from "../prices/callLog.js";
 import priceQueries from "../models/priceQueries.js";
 import {
   editionLinesFresh,
@@ -77,6 +78,9 @@ export async function fillOneEdition(
   now = Date.now(),
 ): Promise<"off" | "nothing" | { asked: string }> {
   if (!fillSwitchOn()) return "off";
+  // its lines are mostly Google's: with the background's share of the day
+  // used, the next series waits for tomorrow (not marked as tried)
+  if (!(await googleBackgroundLeft())) return "nothing";
   const waiting = await editionQueue(now);
   const series = waiting.find((one) => tried.isDue(editionsKey(one.name), now));
   if (!series) return "nothing";

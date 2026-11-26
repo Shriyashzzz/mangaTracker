@@ -12,7 +12,7 @@
 //
 // https://openlibrary.org/dev/docs/api/books
 // https://openlibrary.org/dev/docs/api/covers
-import { noteCall } from "../callLog.js";
+import { mayCallGoogle } from "../callLog.js";
 import { openLibraryFetch } from "./openLibrary.js";
 import config from "../../config/config.js";
 import { prisma } from "../../config/prisma.js";
@@ -260,7 +260,8 @@ export function fallbackCover(
     url.searchParams.set("fields", "items(volumeInfo/imageLinks/thumbnail)");
     if (config.GOOGLE_BOOKS_API_KEY)
       url.searchParams.set("key", config.GOOGLE_BOOKS_API_KEY);
-    void noteCall("gbooks");
+    // the background's share of Google used up: asked another day
+    if (!(await mayCallGoogle())) return undefined;
     const res = await fetch(url, { signal: AbortSignal.timeout(8000) });
     // out of quota or down: nothing saved, so it's asked another time
     if (!res.ok) return undefined;

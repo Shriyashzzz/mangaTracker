@@ -233,7 +233,7 @@ export function startEvery(
 ) {
   // its calls count as the background's, apart from visitors' (callLog.ts)
   const safely = () =>
-    asBackground(run).catch((e: Error) =>
+    asBackground(run, name).catch((e: Error) =>
       console.error(`${name} failed:`, e.message),
     );
   setTimeout(safely, firstAfterMs).unref();

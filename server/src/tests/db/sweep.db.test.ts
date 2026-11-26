@@ -1,6 +1,7 @@
 // The nightly sweep's limits (collector/sweep.ts) with a real database: what
 // it may spend of eBay's day, when it's its time, when it stands aside for
 // visitors, and its US/Canada split. No API is called.
+import { jest } from "@jest/globals";
 import config from "../../config/config.js";
 import {
   LIMITS,
@@ -13,6 +14,7 @@ import {
   shouldBackOff,
   sweepCeiling,
   usersWillNeed,
+  sayWhy,
 } from "../../collector/sweep.js";
 import { spareCalls } from "../../collector/visitorPace.js";
 import { noteCall } from "../../prices/callLog.js";
@@ -134,4 +136,21 @@ test("visitors' calls are counted once: they're kept everything over the ceiling
   // a steady 100 an hour, 1.5 hours left: 150, well within the 900 kept
   await noteCall("ebay", 100, NIGHT - 40 * 60_000);
   expect(await ebayRoom(NIGHT)).toBe("ok");
+});
+
+test("a night that prices nothing says why, once until it changes", async () => {
+  const log = jest.spyOn(console, "log").mockImplementation(() => {});
+  sayWhy("waiting");
+  sayWhy("spent");
+  sayWhy("spent");
+  sayWhy("busy");
+  sayWhy({ priced: 4 });
+  sayWhy("spent");
+  expect(log.mock.calls.map((c) => c[0])).toEqual([
+    "Nightly price sweep: stopped, tonight's share of eBay's day is used up",
+    "Nightly price sweep: paused 15 minutes, visitors are busy",
+    "Nightly price sweep: priced 4 volumes",
+    "Nightly price sweep: stopped, tonight's share of eBay's day is used up",
+  ]);
+  log.mockRestore();
 });

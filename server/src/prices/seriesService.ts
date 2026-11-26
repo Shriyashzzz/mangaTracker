@@ -290,7 +290,7 @@ export async function seriesVolumes(
   // A rebuild takes the catalogs 10 to 20 seconds, which a visitor (or a
   // search engine) shouldn't sit through twice a day per series
   if (hit?.volumes.length) {
-    if (!rebuilding.has(key)) {
+    if (!rebuilding.has(key) && !failedLately(key)) {
       rebuilding.set(
         key,
         lookUpSeriesVolumes(
@@ -300,6 +300,7 @@ export async function seriesVolumes(
           hit,
           freshFor,
         )
+          .then((result) => remember(key, result))
           .catch((e: Error) =>
             console.error("series volume rebuild failed:", e.message),
           )
@@ -311,13 +312,46 @@ export async function seriesVolumes(
       incomplete: false,
     };
   }
-  return lookUpSeriesVolumes(
-    name,
-    { searchAs, google, alsoTitled },
+  // one that came back incomplete a moment ago: that answer again, rather
+  // than another 10 to 20 seconds that would end the same way
+  const failed = failedLately(key);
+  if (failed) return failed;
+  return remember(
     key,
-    hit,
-    freshFor,
+    await lookUpSeriesVolumes(
+      name,
+      { searchAs, google, alsoTitled },
+      key,
+      hit,
+      freshFor,
+    ),
   );
+}
+
+// A lookup that came back incomplete (a catalog refused, or Google's day
+// ran out) isn't saved, so every visit used to look it up again: Blue
+// Period was asked 11 times in a row while Google was out. Its answer is
+// kept for half an hour instead, and no rebuild starts meanwhile
+const RETRY_INCOMPLETE_MS = 30 * 60 * 1000;
+const incompleteLately = new Map<
+  string,
+  { at: number; result: { volumes: CatalogBook[]; incomplete: boolean } }
+>();
+const failedLately = (key: string, now = Date.now()) => {
+  const kept = incompleteLately.get(key);
+  return kept && now - kept.at < RETRY_INCOMPLETE_MS ? kept.result : null;
+};
+function remember(
+  key: string,
+  result: { volumes: CatalogBook[]; incomplete: boolean },
+) {
+  if (!result.incomplete) incompleteLately.delete(key);
+  else {
+    incompleteLately.set(key, { at: Date.now(), result });
+    if (incompleteLately.size > 2000)
+      incompleteLately.delete(incompleteLately.keys().next().value!);
+  }
+  return result;
 }
 
 // series lists being looked up again in the background, one at a time each

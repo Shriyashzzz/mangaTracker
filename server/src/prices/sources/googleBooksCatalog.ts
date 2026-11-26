@@ -5,7 +5,7 @@
 // series Open Library doesn't know yet. Needs GOOGLE_BOOKS_API_KEY (1,000
 // free lookups a day; series lists are saved, so it's asked rarely). Without
 // one it finds nothing
-import { noteCall } from "../callLog.js";
+import { mayCallGoogle } from "../callLog.js";
 import config from "../../config/config.js";
 import { baseName } from "../lightNovel.js";
 import { bookFromListing } from "./catalog.js";
@@ -86,7 +86,8 @@ export async function googleSeriesVolumes(
     });
     if (Date.now() < backOffUntil)
       throw new Error("Google Books lookups used up for now");
-    void noteCall("gbooks");
+    if (!(await mayCallGoogle()))
+      throw new Error("Google Books background share used up for today");
     const res = await fetch(`${URL}?${params}`, {
       signal: AbortSignal.timeout(timeoutMs),
     });
@@ -151,7 +152,7 @@ export async function googleDetailsOf(
       "items(volumeInfo(description,pageCount,publishedDate,industryIdentifiers))",
     key,
   });
-  void noteCall("gbooks");
+  if (!(await mayCallGoogle())) return null;
   const res = await fetch(`${URL}?${params}`, {
     signal: AbortSignal.timeout(timeoutMs),
   });
@@ -235,7 +236,10 @@ async function searchEditionWords(
         startIndex: String(page * PAGE),
         key,
       });
-      void noteCall("gbooks");
+      if (!(await mayCallGoogle())) {
+        whole = false;
+        return;
+      }
       let items: Item[];
       try {
         const res = await fetch(`${URL}?${params}`, {
@@ -295,7 +299,7 @@ export async function googleEditionSearch(
     startIndex: String(page * PAGE),
     key,
   });
-  void noteCall("gbooks");
+  if (!(await mayCallGoogle())) return null;
   try {
     const res = await fetch(`${URL}?${params}`, {
       signal: AbortSignal.timeout(timeoutMs),
@@ -336,7 +340,7 @@ export async function googleRecordOf(isbn13: string, timeoutMs = 6000) {
     maxResults: "1",
     key,
   });
-  void noteCall("gbooks");
+  if (!(await mayCallGoogle())) return null;
   const res = await fetch(`${URL}?${params}`, {
     signal: AbortSignal.timeout(timeoutMs),
   });
@@ -383,7 +387,8 @@ export async function googleVolume(
     maxResults: "10",
     key,
   });
-  void noteCall("gbooks");
+  if (!(await mayCallGoogle()))
+    throw new Error("Google Books background share used up for today");
   const res = await fetch(`${URL}?${params}`, {
     signal: AbortSignal.timeout(timeoutMs),
   });

@@ -544,16 +544,40 @@ const lockedRun = () =>
 
 let timer: ReturnType<typeof setInterval> | null = null;
 
+// Why a run during the night priced nothing, said in the log once each time
+// it changes (runs come every two minutes): a night that priced little
+// says why. Before 8pm it's simply waiting, and says nothing
+const WHY_NOT: Partial<Record<string, string>> = {
+  spent: "stopped, tonight's share of eBay's day is used up",
+  busy: "paused 15 minutes, visitors are busy",
+  refused: "paused 15 minutes, eBay said too many calls",
+  locked: "skipped, another server is sweeping",
+  nothing: "nothing left to price for now",
+};
+let lastSaid = "";
+export function sayWhy(result: Awaited<ReturnType<typeof lockedRun>>) {
+  if (typeof result === "object" && result.priced) {
+    console.log(`Nightly price sweep: priced ${result.priced} volumes`);
+    lastSaid = "";
+    return;
+  }
+  // the day's sweep hasn't begun (or it's off): the next night says again
+  if (result === "waiting" || result === "off") {
+    lastSaid = "";
+    return;
+  }
+  const why = WHY_NOT[typeof result === "object" ? "nothing" : result];
+  if (!why || why === lastSaid) return;
+  lastSaid = why;
+  console.log(`Nightly price sweep: ${why}`);
+}
+
 // started by server.ts, never by the tests
 export function startSweep() {
   if (timer || !sweepOn()) return;
   timer = startEvery(
     "Nightly price sweep",
-    async () => {
-      const result = await lockedRun();
-      if (typeof result === "object" && result.priced)
-        console.log(`Nightly price sweep: priced ${result.priced} volumes`);
-    },
+    async () => sayWhy(await lockedRun()),
     { everyMs: EVERY_MS, firstAfterMs: 120_000 },
   );
   console.log(

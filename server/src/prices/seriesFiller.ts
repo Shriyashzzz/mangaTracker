@@ -19,7 +19,7 @@
 // Runs where the price filler runs (collector/filler.ts: production, or
 // PRICE_FILL=on; PRICE_FILL=off stops both)
 import { prisma } from "../config/prisma.js";
-import { asBackground } from "./callLog.js";
+import { asBackground, googleBackgroundLeft } from "./callLog.js";
 import { priceName } from "./lightNovel.js";
 import {
   forgetKnownVolumes,
@@ -187,7 +187,8 @@ export async function refreshSeries(now = Date.now()) {
 // other has nothing to do. Nothing at all while Google Books has no calls
 // to spare
 export async function seriesTurn(now = Date.now()) {
-  if (!(await gbooksRoom(now))) return "no room" as const;
+  if (!(await gbooksRoom(now)) || !(await googleBackgroundLeft()))
+    return "no room" as const;
   const refreshFirst = turns++ % 2 === 1;
   if (refreshFirst) return (await refreshSeries(now)) ?? fillSeries(now);
   return (await fillSeries(now)) ?? refreshSeries(now);
@@ -200,7 +201,7 @@ export function startSeriesFiller() {
   if (timer || !fillerOn()) return;
   // its calls count as the background's (callLog.ts)
   const run = () =>
-    asBackground(() => seriesTurn()).catch((e: Error) =>
+    asBackground(() => seriesTurn(), "series lists").catch((e: Error) =>
       console.error("Background series lists failed:", e.message),
     );
   setTimeout(run, 90_000).unref();
