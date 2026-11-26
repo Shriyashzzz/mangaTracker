@@ -62,6 +62,22 @@ export const currentTheme = (): Theme => {
     : "light";
 };
 
+// the theme as it changes: a pick in Settings (<html data-theme>) or the
+// device's own setting
+export function onThemeChange(changed: () => void) {
+  const watcher = new MutationObserver(changed);
+  watcher.observe(document.documentElement, {
+    attributes: true,
+    attributeFilter: ["data-theme"],
+  });
+  const device = window.matchMedia("(prefers-color-scheme: dark)");
+  device.addEventListener("change", changed);
+  return () => {
+    watcher.disconnect();
+    device.removeEventListener("change", changed);
+  };
+}
+
 const checksListeners = new Set<() => void>();
 const countryListeners = new Set<() => void>();
 const trackListeners = new Set<() => void>();

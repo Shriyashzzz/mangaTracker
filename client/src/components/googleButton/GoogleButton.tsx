@@ -10,7 +10,7 @@
 // dark, where white would glare
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { GOOGLE_CLIENT_ID, loadGoogle } from "../../lib/googleSignIn";
-import { currentTheme } from "../../lib/prefs";
+import { currentTheme, onThemeChange } from "../../lib/prefs";
 
 type Props = {
   // "Continue with Google" on the sign-in pages, "Sign in with Google" when
@@ -26,22 +26,6 @@ type Props = {
 // draws it 200 to 400 wide)
 const BUTTON_WIDTH = 300;
 const MIN_WIDTH = 200;
-
-// the theme as it changes: a pick in Settings (<html data-theme>) or the
-// device's own setting
-function onThemeChange(changed: () => void) {
-  const watcher = new MutationObserver(changed);
-  watcher.observe(document.documentElement, {
-    attributes: true,
-    attributeFilter: ["data-theme"],
-  });
-  const device = window.matchMedia("(prefers-color-scheme: dark)");
-  device.addEventListener("change", changed);
-  return () => {
-    watcher.disconnect();
-    device.removeEventListener("change", changed);
-  };
-}
 
 export default function GoogleButton({
   text,

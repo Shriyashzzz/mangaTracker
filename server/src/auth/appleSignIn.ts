@@ -1,8 +1,9 @@
-// Signing in with Apple, from the iPhone app: Apple's sheet hands the app an
-// identity token Apple signed, and it's checked here before anyone is let
-// in. Its signature against Apple's published keys, that it came from Apple,
-// hasn't run out, and was made for this app (our bundle IDs): a token made
-// for any other app is turned away.
+// Signing in with Apple, from the iPhone app or the website: Apple hands
+// over an identity token it signed, and it's checked here before anyone is
+// let in. Its signature against Apple's published keys, that it came from
+// Apple, hasn't run out, and was made for us: the app's bundle IDs, or for
+// the website its Services ID and the one-time number (nonce) the visit
+// started with. A token made for anyone else is turned away.
 //
 // Kept: the Apple account's ID ("sub"), the same for that person in this
 // app for good. Apple says someone's name only the first time they sign in,
@@ -21,14 +22,23 @@ type AppleAccount = {
   email: string | null;
 };
 
-// the Apple account, or null for a token that isn't good
-async function accountOf(token: string): Promise<AppleAccount | null> {
+// the Apple account, or null for a token that isn't good. `webNonce`: the
+// token came back to the website, which asked with that nonce
+async function accountOf(
+  token: string,
+  webNonce?: string,
+): Promise<AppleAccount | null> {
   try {
     const { payload } = await jwtVerify(token, keys, {
       issuer: APPLE,
-      audience: config.APPLE_BUNDLE_IDS.split(",").map((id) => id.trim()),
+      audience:
+        webNonce === undefined
+          ? config.APPLE_BUNDLE_IDS.split(",").map((id) => id.trim())
+          : config.APPLE_WEB_ID,
     });
     if (!payload.sub) return null;
+    if (webNonce !== undefined && (!webNonce || payload.nonce !== webNonce))
+      return null;
     const email =
       typeof payload.email === "string" &&
       (payload.email_verified === true || payload.email_verified === "true")

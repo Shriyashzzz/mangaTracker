@@ -122,6 +122,12 @@ const schema = z.object({
     blankToUndefined,
     z.string().default("xyz.mangatracker.app,xyz.mangatracker.app.rn"),
   ),
+  // the website's Services ID (Apple Developer, Identifiers), the only one a
+  // token from the website's "Continue with Apple" may be made out to
+  APPLE_WEB_ID: z.preprocess(
+    blankToUndefined,
+    z.string().default("xyz.mangatracker.web"),
+  ),
 
   // The Collector tier (src/plan/): where its limits are switched on, as a
   // list of "ios", "android", "web". Empty (the default): nowhere, and

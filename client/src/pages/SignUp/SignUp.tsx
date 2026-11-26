@@ -10,7 +10,7 @@ import { apiFetch, afterSignIn, errorMessages } from "../../lib/api";
 import { NEW_PASSWORD_MIN } from "../../lib/passwordRule";
 import { usePrivatePage } from "../../lib/seo";
 import { useAuth } from "../../store/auth";
-import GoogleSignIn from "../../components/googleButton/GoogleSignIn";
+import SignInWith from "../../components/googleButton/SignInWith";
 
 export default function SignUp() {
   usePrivatePage("Create account");
@@ -107,7 +107,7 @@ export default function SignUp() {
         <div className={styles.card}>
           <h1 className={styles.title}>Start a shelf</h1>
 
-          <GoogleSignIn
+          <SignInWith
             onError={(message) => setErrors(message ? [{ msg: message }] : [])}
             onBusy={setLoading}
           />

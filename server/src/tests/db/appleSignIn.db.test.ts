@@ -9,8 +9,11 @@ const EMAILS: Record<string, string> = {
   mia: "mia@example.com",
   relay: "abc123@privaterelay.appleid.com",
 };
-appleSignIn.accountOf = async (token: string) => {
+// a website token carries the nonce it was asked with: "...-nonce-<n>"
+appleSignIn.accountOf = async (token: string, webNonce?: string) => {
   const who = token.match(/^apple-token-for-(\w+)-/)?.[1];
+  if (webNonce !== undefined && !token.endsWith(`-nonce-${webNonce}`))
+    return null;
   return who ? { appleId: `apple.${who}`, email: EMAILS[who] ?? null } : null;
 };
 const tokenFor = (who: string) => `apple-token-for-${who}-${"x".repeat(30)}`;
@@ -76,4 +79,67 @@ test("a token Apple doesn't confirm lets nobody in", async () => {
     .send({ identityToken: "not-a-real-token-from-apple-at-all" })
     .expect(401);
   expect(await prisma.user.count()).toBe(0);
+});
+
+// the website's: Apple's page posts a form back to /apple/return
+const webToken = (who: string, nonce: string) =>
+  `${tokenFor(who)}-nonce-${nonce}`;
+
+test("the website: back from Apple, signed in and on to where they were going", async () => {
+  const agent = request.agent(app);
+  const answer = await agent
+    .post("/api/auth/apple/return")
+    .set("Cookie", "apple_nonce=n123")
+    .type("form")
+    .send({
+      id_token: webToken("mia", "n123"),
+      state: "/prices/series/vagabond",
+      user: JSON.stringify({ name: { firstName: "Miabelle" } }),
+    })
+    .expect(303);
+  expect(answer.headers.location).toBe("/prices/series/vagabond");
+  const account = (await agent.get("/api/account").expect(200)).body;
+  expect(account.username).toBe("miabelle");
+});
+
+test("the website: a token asked for with another nonce lets nobody in", async () => {
+  const answer = await request(app)
+    .post("/api/auth/apple/return")
+    .set("Cookie", "apple_nonce=mine")
+    .type("form")
+    .send({ id_token: webToken("mia", "theirs"), state: "/shelf" })
+    .expect(303);
+  expect(answer.headers.location).toBe("/signin?apple=failed");
+  // and none at all, without the cookie
+  await request(app)
+    .post("/api/auth/apple/return")
+    .type("form")
+    .send({ id_token: webToken("mia", "theirs") })
+    .expect(303);
+  expect(await prisma.user.count()).toBe(0);
+});
+
+test("the website: only a path on this site is followed after", async () => {
+  for (const state of [
+    "//evil.example",
+    "/\\evil.example",
+    "https://evil.example",
+  ]) {
+    const answer = await request(app)
+      .post("/api/auth/apple/return")
+      .set("Cookie", "apple_nonce=n1")
+      .type("form")
+      .send({ id_token: webToken("relay", "n1"), state })
+      .expect(303);
+    expect(answer.headers.location).toBe("/shelf");
+  }
+});
+
+test("the website: Cancel on Apple's page goes back to sign in", async () => {
+  const answer = await request(app)
+    .post("/api/auth/apple/return")
+    .type("form")
+    .send({ error: "user_cancelled_authorize" })
+    .expect(303);
+  expect(answer.headers.location).toBe("/signin");
 });

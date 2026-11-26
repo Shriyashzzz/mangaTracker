@@ -167,14 +167,75 @@ const apple = [
     const found = await appleSignIn.accountOf(identityToken);
     if (!found)
       return sendError(res, 401, "Apple didn't confirm that. Try again.");
-    const existing = await userQueries.getUserByAppleId(found.appleId);
-    const userId =
-      existing?.id ??
-      (await userQueries.addAppleUser({ ...found, name: name ?? null }));
-    await startSession(req, userId);
-    res.sendStatus(existing ? 200 : 201);
+    const made = await signInApple(req, found, name ?? null);
+    res.sendStatus(made ? 201 : 200);
   },
 ];
+
+// the Apple account's own account, made the first time, signed in to. True
+// when it was just made
+async function signInApple(
+  req: Request,
+  found: { appleId: string; email: string | null },
+  name: string | null,
+) {
+  const existing = await userQueries.getUserByAppleId(found.appleId);
+  const userId =
+    existing?.id ?? (await userQueries.addAppleUser({ ...found, name }));
+  await startSession(req, userId);
+  return !existing;
+}
+
+// the cookie the website's "Continue with Apple" leaves before going to
+// Apple (client lib/appleSignIn.ts), holding the visit's nonce
+export const APPLE_NONCE_COOKIE = "apple_nonce";
+
+const cookieOf = (req: Request, name: string) =>
+  (req.headers.cookie ?? "")
+    .split(";")
+    .map((part) => part.trim().split("="))
+    .find(([key]) => key === name)?.[1] ?? "";
+
+// where to go after: a path on this site, or the shelf
+const localPath = (path: unknown) =>
+  typeof path === "string" && /^\/(?![/\\])/.test(path) && !/\s/.test(path)
+    ? path
+    : "/shelf";
+
+// POST /apple/return  the website's sign-in with Apple: Apple's page sends
+// the browser back here with a form (id_token, state: where they were going,
+// user: their name, said only the first time). Signed in, on to where they
+// were going; otherwise back to sign in, saying it didn't work. The nonce in
+// the token must be the one this browser left in its cookie, so nobody can
+// sign someone in with a token of their own
+const appleReturn = async (req: Request, res: Response) => {
+  const form = (req.body ?? {}) as Record<string, unknown>;
+  res.clearCookie(APPLE_NONCE_COOKIE, { path: "/api/auth/apple" });
+  // they pressed Cancel on Apple's page
+  if (form.error) return res.redirect(303, "/signin");
+  const found =
+    typeof form.id_token === "string" && form.id_token.length <= 8192
+      ? await appleSignIn.accountOf(
+          form.id_token,
+          cookieOf(req, APPLE_NONCE_COOKIE),
+        )
+      : null;
+  if (!found) return res.redirect(303, "/signin?apple=failed");
+  await signInApple(req, found, firstNameOf(form.user));
+  res.redirect(303, localPath(form.state));
+};
+
+// the first name in Apple's "user" field: {"name":{"firstName":"Mia"}}
+function firstNameOf(user: unknown) {
+  if (typeof user !== "string") return null;
+  try {
+    const name = (JSON.parse(user) as { name?: { firstName?: unknown } }).name
+      ?.firstName;
+    return typeof name === "string" ? name.trim().slice(0, 80) || null : null;
+  } catch {
+    return null;
+  }
+}
 
 const logout = (req: Request, res: Response) => {
   req.session.destroy((err) => {
@@ -266,6 +327,7 @@ const resetPassword = [
 
 export default {
   apple,
+  appleReturn,
   login,
   signup,
   google,

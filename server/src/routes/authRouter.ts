@@ -1,5 +1,5 @@
 // /api/auth/*  and  /api/prefs
-import { Router } from "express";
+import express, { Router } from "express";
 import { isProd } from "../config/config.js";
 import auth from "../controllers/authController.js";
 import { requireSignIn } from "../middlewares/auth.js";
@@ -40,6 +40,13 @@ authRouter.post("/signup", signUpTries, signUpAccounts, auth.signup);
 // both a sign-in and, when it makes one, an account
 authRouter.post("/google", signInLimit, signUpAccounts, auth.google);
 authRouter.post("/apple", signInLimit, signUpAccounts, auth.apple);
+// the website's: Apple's page posts a form back here (authController.ts)
+authRouter.post(
+  "/apple/return",
+  signInLimit,
+  express.urlencoded({ extended: false, limit: "16kb" }),
+  auth.appleReturn,
+);
 authRouter.post("/logout", auth.logout);
 authRouter.get("/me", auth.me);
 //*****************reset password**************
