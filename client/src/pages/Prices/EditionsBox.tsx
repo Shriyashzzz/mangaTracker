@@ -1,12 +1,12 @@
 // Beside a series' title when no box set is priced for it: its deluxe (or
 // omnibus) edition, the other way to own the run in fewer, bigger books. The
 // next book for someone who has some of the series, the first for anyone
-// else, and a way down to the whole list ("Other editions").
+// else. Every book of it is on the page's Editions tab.
 //
 // Only books that can be opened: one the catalog has no ISBN for has no
 // price and no page, so it isn't offered. When the book to lead with is one
 // of those, there's no box at all (the list below still names every book).
-import { NavLink, useSearchParams } from "react-router";
+import { NavLink } from "react-router";
 import {
   editionBookLabel,
   insideText,
@@ -35,68 +35,41 @@ export default function EditionsBox({
   // holds box sets and editions together (SetsBox.tsx)
   bare?: boolean;
 }) {
-  const [, setParams] = useSearchParams();
   const leading = leadBooksOf(line, owned);
   if (!leading) return null;
   const { theirs, shown } = leading;
   const books = (
-    <>
-      <ul className={styles.editionsBoxList}>
-        {shown.map((book, at) => {
-          const label = editionBookLabel(line, book);
-          const first = at === 0;
-          const body = (
-            <>
-              <span className={first ? styles.setKindFirst : styles.setKind}>
-                {first ? (theirs ? "Next for you" : "Starts with") : "Then"}
-              </span>
-              <span className={styles.setStore}>{label}</span>
-              <span className={styles.setPrice}>{priceText(book)}</span>
-              {/* the volumes inside, under the book's name */}
-              <span className={styles.editionsBoxInside}>
-                {insideText(book)}
-              </span>
-            </>
-          );
-          const ticket = first
-            ? styles.editionsBoxTicket
-            : styles.editionsBoxTicketPlain;
-          return (
-            <li key={book.number} className="min-w-0 upto-980:flex-1">
-              <NavLink
-                className={ticket}
-                to={volumePath(book.isbn13!, book.title ?? label)}
-                viewTransition
-              >
-                {body}
-              </NavLink>
-            </li>
-          );
-        })}
-      </ul>
-      {/* the way down to every book of it: a line of its own, so it's seen.
-          Other editions below opens on this same edition (?edition=) */}
-      <a
-        href="#editions-title"
-        className={styles.editionsBoxAll}
-        onClick={(e) => {
-          e.preventDefault();
-          setParams(
-            (now) => {
-              const next = new URLSearchParams(now);
-              next.set("edition", line.key);
-              return next;
-            },
-            { replace: true, preventScrollReset: true },
-          );
-          document
-            .getElementById("editions-title")
-            ?.scrollIntoView({ behavior: "smooth", block: "start" });
-        }}
-      >
-        See all {line.books.length} books <span aria-hidden>↓</span>
-      </a>
-    </>
+    <ul className={styles.editionsBoxList}>
+      {shown.map((book, at) => {
+        const label = editionBookLabel(line, book);
+        const first = at === 0;
+        const body = (
+          <>
+            <span className={first ? styles.setKindFirst : styles.setKind}>
+              {first ? (theirs ? "Next for you" : "Starts with") : "Then"}
+            </span>
+            <span className={styles.setStore}>{label}</span>
+            <span className={styles.setPrice}>{priceText(book)}</span>
+            {/* the volumes inside, under the book's name */}
+            <span className={styles.editionsBoxInside}>{insideText(book)}</span>
+          </>
+        );
+        const ticket = first
+          ? styles.editionsBoxTicket
+          : styles.editionsBoxTicketPlain;
+        return (
+          <li key={book.number} className="min-w-0 upto-980:flex-1">
+            <NavLink
+              className={ticket}
+              to={volumePath(book.isbn13!, book.title ?? label)}
+              viewTransition
+            >
+              {body}
+            </NavLink>
+          </li>
+        );
+      })}
+    </ul>
   );
   if (bare) return books;
   return (

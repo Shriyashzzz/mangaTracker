@@ -6,9 +6,9 @@
 //
 // Box sets show first whenever one is priced. A menu picks another (your
 // shelf's SortMenu: a box of its own on a laptop, beside the title on a
-// phone, as "Buy next · as 3-in-1" does), and the editions not showing stay at
-// the bottom, each a tap away. The pick is
-// remembered for that series on this device. setsBoxRules.ts has the rules.
+// phone, as "Buy next · as 3-in-1" does). The pick is remembered for that
+// series on this device. setsBoxRules.ts has the rules. Every book of an
+// edition is on the page's Editions tab.
 import { useState } from "react";
 import { SortMenu } from "../Home/ShelfBar";
 import { readLocal, writeLocal } from "../../lib/prefs";
@@ -21,13 +21,7 @@ import type { BoxSet, StoreLink } from "../../lib/types";
 import BoxSets from "./BoxSets";
 import EditionsBox from "./EditionsBox";
 import { setsTitle, shownSets } from "./boxSetRules";
-import {
-  BOX_SETS,
-  pickedOf,
-  readPicks,
-  setsOptions,
-  withPick,
-} from "./setsBoxRules";
+import { pickedOf, readPicks, setsOptions, withPick } from "./setsBoxRules";
 import { pricesStyles as styles } from "./styles";
 
 const PICKS_KEY = "setsPicks";
@@ -77,12 +71,6 @@ export default function SetsBox({
   if (alone) title = line ? editionTitle(line) : setsTitle(sets);
   else if (sets.length) title = "Box sets & editions";
 
-  // the editions not showing, each a row at the bottom. Box sets have no
-  // row there: they're the first thing in the menu, and the box opens on
-  // them whenever there is one
-  const others = options.filter(
-    (o) => o.value !== picked && o.value !== BOX_SETS,
-  );
   const menu = (inline: boolean) => (
     <SortMenu
       {...(inline ? { lead: "showing" } : { box: true, compact: true })}
@@ -115,24 +103,6 @@ export default function SetsBox({
           links={links}
           editionsListed={lines.length > 0}
         />
-      )}
-
-      {others.length > 0 && (
-        <ul className={styles.setsOthers} aria-label="Also for this series">
-          {others.map((o) => {
-            return (
-              <li key={o.value}>
-                <button
-                  type="button"
-                  className={styles.setsOther}
-                  onClick={() => pick(o.value)}
-                >
-                  <span className={styles.setsOtherName}>{o.label}</span>
-                </button>
-              </li>
-            );
-          })}
-        </ul>
       )}
     </aside>
   );

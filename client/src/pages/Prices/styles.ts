@@ -116,7 +116,9 @@ export const pricesStyles = {
   // as wide as what's in it: the tour's ring goes round just that
   toGetRow:
     "mb-3 flex w-fit max-w-full flex-wrap items-center gap-x-3 gap-y-1.5",
-  finishCost: "text-[0.9rem] font-medium text-ink tabular-nums",
+  // "Finish the series: about $580", the money in the prices' red
+  finishCost: "text-[0.95rem] font-semibold text-ink tabular-nums",
+  finishMoney: "font-mono text-[1.05rem] font-bold text-accent",
   // the home page's four panels for someone new: laid out like a page of
   // manga panels, gutters and all; four across, two on a tablet, one on a
   // phone
@@ -133,7 +135,8 @@ export const pricesStyles = {
   // a series' box sets, under its volumes
   boxSets: "mt-10 flex flex-col gap-3",
   // "Other editions": the deluxe and omnibus books, a row each
-  editions: "mt-10 scroll-mt-24",
+  // on its own tab, so close under the tabs
+  editions: "scroll-mt-24",
   editionTabs: "mb-3 flex flex-wrap gap-2",
   editionTab:
     "tap inline-flex min-h-9 items-center gap-2 rounded-[2px] border-[1.5px] border-line-soft bg-paper px-3 text-[0.88rem] font-medium text-ink-soft transition-[color,border-color,background-color] duration-120 ease-[ease] hover:border-line hover:text-ink aria-pressed:border-line aria-pressed:bg-ink aria-pressed:text-paper",
@@ -144,16 +147,6 @@ export const pricesStyles = {
   // the way to every series with editions
   editionsMore:
     "tap mt-3 inline-block w-fit text-[0.9rem] font-medium text-ink-soft underline decoration-line-soft underline-offset-3 hover:text-ink hover:decoration-current",
-  editionList:
-    "mb-4 grid grid-cols-[repeat(auto-fill,minmax(17rem,1fr))] gap-x-8 border-t-[1.5px] border-line",
-  editionRow:
-    "grid grid-cols-[minmax(0,1fr)_auto] items-baseline gap-x-3 border-b border-dashed border-line-soft py-2.5",
-  editionName: "font-semibold text-ink",
-  editionPrice:
-    "tap row-span-2 self-center text-right font-mono text-[0.85rem] font-medium text-accent underline decoration-transparent underline-offset-3 hover:decoration-current",
-  editionInside: "col-start-1 font-mono text-[0.78rem] text-ink-soft",
-  editionUnlisted:
-    "row-span-2 self-center text-right font-mono text-[0.78rem] text-muted",
   // signed out on a volume page: the button and what tracking gets them
   // on a phone the button is as wide as the column it sits in
   trackPitch:
@@ -262,6 +255,13 @@ export const pricesStyles = {
     "mb-[0.6rem] inline-block bg-[linear-gradient(var(--accent),var(--accent))] bg-size-[1.8em_3px] bg-left-bottom bg-no-repeat pb-[0.2rem] font-brand text-[1.45rem] font-normal tracking-[0.03em] uppercase [.prices-promo_&]:mb-1",
   sectionHead: "mb-3 flex flex-col items-start justify-between gap-4",
   // the heading with something small across from it
+  // a series' Volumes / Editions on the website: folder tabs on an ink
+  // line, the open one joined to the list below it, the other dashed
+  folderTabs:
+    // the page's gap-8 drawn in: the tab's content starts close under it
+    "-mb-3 flex scroll-mt-20 items-end gap-1 border-b-[1.5px] border-ink",
+  folderTab:
+    "tap -mb-[1.5px] min-h-11 cursor-pointer rounded-t-[3px] border-[1.5px] border-b-0 border-dashed border-line px-5 pt-2 pb-1.5 font-brand text-[1.2rem] tracking-[0.03em] text-muted uppercase transition-colors duration-120 ease-[ease] hover:text-ink aria-selected:border-solid aria-selected:border-ink aria-selected:border-b-[1.5px] aria-selected:border-b-paper aria-selected:bg-paper aria-selected:text-ink",
   sectionHeadRow:
     "mb-3 flex flex-wrap items-baseline justify-between gap-x-4 [&_h2]:mb-0",
   sectionNote:
@@ -405,9 +405,9 @@ export const pricesStyles = {
   // a folded blurb, and its "Read more" at the end of the third line, over
   // the cut-off words (FoldedBlurb)
   blurbWrap: "relative max-w-[60ch]",
+  // right after the last word shown, in the text's own line
   readMore:
-    // the cut-off words fade into it over a word's width, not chopped
-    "tap absolute right-0 bottom-0 bg-[linear-gradient(to_right,transparent,var(--paper)_1.6rem)] pl-8 text-[0.95rem] leading-[1.6] text-ink [&_u]:decoration-line-soft [&_u]:underline-offset-3 hover:[&_u]:decoration-current",
+    "tap inline text-[0.95rem] leading-[1.6] text-ink [&_u]:decoration-line-soft [&_u]:underline-offset-3 hover:[&_u]:decoration-current",
 
   // ---------- series page ----------
   // cover, words, and (when the series has any) its box sets at the right;
@@ -428,11 +428,6 @@ export const pricesStyles = {
   setsPickInline: "hidden upto-980:inline-flex",
   // on a laptop the pick is a box of its own under the title
   setsPickBox: "mb-2.5 upto-980:hidden",
-  // the ones not showing: a quiet row each, with its cheapest price
-  setsOthers: "mt-3 border-t-[1.5px] border-dashed border-line-soft pt-1.5",
-  setsOther:
-    "tap flex min-h-9 w-full items-baseline justify-between gap-3 text-left text-[0.9rem] font-medium text-ink-soft transition-colors duration-120 ease-[ease] hover:text-accent upto-720:min-h-11",
-  setsOtherName: "underline decoration-line-soft underline-offset-3",
   setsList:
     "flex flex-col gap-2 upto-980:flex-row upto-980:overflow-x-auto upto-980:pb-1 upto-980:[scrollbar-width:none] upto-560:flex-col upto-560:overflow-visible",
   setTicket:
@@ -476,10 +471,6 @@ export const pricesStyles = {
   // "vols. 7–9" under a book's name
   editionsBoxInside:
     "col-span-full font-mono text-[0.78rem] font-normal text-ink-soft",
-  // the app's strong text link (ink, a red underline), on a line of its own
-  // at the box's right; a full thumb's height on a phone
-  editionsBoxAll:
-    "tap mt-2 flex min-h-9 items-center justify-end gap-1 text-[0.92rem] font-semibold text-ink underline decoration-accent decoration-2 underline-offset-3 transition-colors duration-120 ease-[ease] hover:text-accent upto-980:justify-start upto-720:min-h-11",
   // "Looking for a box set? Try [stores]": a quiet row at the foot of the page
   setSearch: "mt-10",
   setSearchTitle: "mb-2 font-body text-[0.92rem] font-normal text-ink-soft",

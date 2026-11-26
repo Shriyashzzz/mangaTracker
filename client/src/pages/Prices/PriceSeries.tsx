@@ -21,7 +21,7 @@ import ToReadButton from "../../components/toRead/ToReadButton";
 import { headlineLine, type EditionLine } from "../../lib/editions";
 import {
   finishCost,
-  finishText,
+  finishMoney,
   seriesCost,
   stillToGet,
   usedCopies,
@@ -84,9 +84,9 @@ export default function PriceSeries() {
   // comes back with Back (lib/visitState.ts)
   const [page, setPage] = useVisitState("volumes-block", { name, index: 0 });
   const pageIndex = page.name === name ? page.index : 0;
-  // in the app, a series with other editions shows them on a tab of their
-  // own beside its volumes, so a long run never pushes them out of reach;
-  // the tab comes back with Back
+  // a series with other editions shows them on a tab of their own beside
+  // its volumes, so a long run never pushes them out of reach; the tab
+  // comes back with Back
   const [seriesTab, setSeriesTab] = useVisitState("series-tab", {
     name,
     tab: "volumes" as "volumes" | "editions",
@@ -95,7 +95,7 @@ export default function PriceSeries() {
   // deluxe"): its tab, and the top of it
   const askedEdition = params.get("edition");
   useEffect(() => {
-    if (!askedEdition || !inApp()) return;
+    if (!askedEdition) return;
     setSeriesTab({ name, tab: "editions" });
     requestAnimationFrame(() =>
       document
@@ -216,7 +216,17 @@ export default function PriceSeries() {
     Math.max(0, Math.ceil(toGet.length / PAGE_SIZE) - 1),
   );
   const app = inApp();
-  const tabbed = app && editionLines.length > 0;
+  const tabbed = editionLines.length > 0;
+  // the website's tabs name the lists themselves, so the count of volumes
+  // shares the "Not on your shelf" line when there is one
+  const folderTabs = tabbed && !app;
+  const toGetRow = Boolean(finish || (mine && toGet.length < volumes.length));
+  const countInRow = folderTabs && toGetRow;
+  const volumeCount = volumes.length > 0 && (
+    <span className={styles.checked}>
+      {volumes.length} {volumes.length === 1 ? "volume" : "volumes"} in English
+    </span>
+  );
   const onEditions =
     tabbed && seriesTab.name === name && seriesTab.tab === "editions";
   const grownKey = `${name}|${toGetShown}`;
@@ -308,9 +318,11 @@ export default function PriceSeries() {
       )}
 
       {tabbed && (
+        // in the app Android's tabs (index.css .app-tabs); on the website
+        // folder tabs, the open one joined to the list under it
         <div
           id="series-tabs"
-          className="app-tabs"
+          className={app ? "app-tabs" : styles.folderTabs}
           role="tablist"
           aria-label="Show"
         >
@@ -325,6 +337,7 @@ export default function PriceSeries() {
               type="button"
               role="tab"
               aria-selected={(value === "editions") === onEditions}
+              className={app ? undefined : styles.folderTab}
               onClick={() => setSeriesTab({ name, tab: value })}
             >
               {label}
@@ -334,17 +347,24 @@ export default function PriceSeries() {
       )}
 
       <section aria-labelledby="volumes-title" hidden={onEditions}>
-        <div className={styles.sectionHeadRow}>
-          <h2 id="volumes-title" className={styles.sectionTitle}>
+        {countInRow ? (
+          <h2 id="volumes-title" className="sr-only">
             Volumes
           </h2>
-          {volumes.length > 0 && (
-            <span className={styles.checked}>
-              {volumes.length} {volumes.length === 1 ? "volume" : "volumes"} in
-              English
-            </span>
-          )}
-        </div>
+        ) : (
+          <div
+            className={`${styles.sectionHeadRow} ${folderTabs ? "justify-end!" : ""}`}
+          >
+            {/* on the website with tabs, the Volumes tab names it */}
+            <h2
+              id="volumes-title"
+              className={folderTabs ? "sr-only" : styles.sectionTitle}
+            >
+              Volumes
+            </h2>
+            {volumeCount}
+          </div>
+        )}
         {/* said before the covers, so a gap in the numbers isn't a puzzle */}
         {unlisted.length > 0 && (
           <p className={styles.sectionNote} role="status">
@@ -353,9 +373,12 @@ export default function PriceSeries() {
           </p>
         )}
         {/* what's left of their series, and what it costs at stored prices */}
-        {(finish || (mine && toGet.length < volumes.length)) && (
+        {toGetRow && (
           // the tour's "what the series costs" step, for one on the shelf
-          <div className={styles.toGetRow} data-tour="series-cost">
+          <div
+            className={`${styles.toGetRow} ${countInRow ? "w-full!" : ""}`}
+            data-tour="series-cost"
+          >
             {mine && toGet.length < volumes.length && (
               <button
                 type="button"
@@ -371,9 +394,13 @@ export default function PriceSeries() {
                 className={styles.finishCost}
                 title="At the last checked prices. A volume gets a price once someone opens its page"
               >
-                {finishText(finish, formatCents)}
+                Finish the series:{" "}
+                <strong className={styles.finishMoney}>
+                  {finishMoney(finish, formatCents)}
+                </strong>
               </span>
             )}
+            {countInRow && <span className="ml-auto">{volumeCount}</span>}
           </div>
         )}
         {app ? null : toGetShown ? (
@@ -467,8 +494,8 @@ export default function PriceSeries() {
         )}
       </section>
 
-      {/* on the app's Volumes tab it's there, unseen: it fetches the lines
-          the tabs and the header box need */}
+      {/* on the Volumes tab it's there, unseen: it fetches the lines the
+          tabs and the header box need */}
       <div hidden={tabbed && !onEditions}>
         <OtherEditions
           name={name}

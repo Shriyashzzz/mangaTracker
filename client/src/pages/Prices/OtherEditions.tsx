@@ -1,22 +1,21 @@
-// A series' other editions on its price page: the deluxe, omnibus or 3-in-1
-// books, each with the volumes inside and its last known price. One with an
-// ISBN opens its own price page; one the catalog doesn't list is still named,
-// so the run has no holes.
+// A series' other editions, on its price page's Editions tab: "Which book
+// has volume…?" for the edition picked, its books as covers like the
+// volumes (each with the volumes inside and its last known price), then what
+// the whole run costs in them and in singles. One with an ISBN opens its own
+// price page; one the catalog doesn't list is still shown, so the run has no
+// holes.
 import { inApp } from "../../lib/inApp";
 import VolumeCard from "./VolumeCard";
-import { useVisitState } from "../../lib/visitState";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { NavLink, useSearchParams } from "react-router";
 import { getJson } from "../../lib/api";
 import {
   editionBookLabel,
-  insideText,
   lineFor,
   type EditionLine,
 } from "../../lib/editions";
-import { formatCents, volumePath, wholeMoney } from "../../lib/prices";
+import { formatCents, wholeMoney } from "../../lib/prices";
 import { runTotal, seriesCost, type SeriesCost } from "../../lib/finishCost";
-import RangePager from "../../components/rangePager/RangePager";
 import { nextVolumeFor } from "../../lib/editionLookup";
 import EditionFinder from "./EditionFinder";
 import { pricesStyles as styles } from "./styles";
@@ -24,8 +23,8 @@ import { pricesStyles as styles } from "./styles";
 type Props = {
   // the series as the price pages name it
   name: string;
-  // the edition shown, from the address (?edition=deluxe): a search, the
-  // box's "See all" and the tabs here all set it, so they never disagree
+  // the edition shown, from the address (?edition=deluxe): a search and the
+  // edition buttons here both set it, so they never disagree
   asked: string | null;
   // the volumes they own, when the series is on their shelf
   owned: number[];
@@ -36,9 +35,6 @@ type Props = {
   // the series' own cover, for a book with no cover of its own
   seriesCoverUrl?: string | null;
 };
-
-// a page of books: four rows of three on a laptop
-const PAGE_SIZE = 12;
 
 export default function OtherEditions({
   name,
@@ -52,18 +48,8 @@ export default function OtherEditions({
     name: "",
     lines: [],
   });
-  // the page of the edition they're on, for this series and edition only
-  const [paging, setPaging] = useVisitState<{
-    name: string;
-    key: string;
-    page: number;
-  } | null>("editions-page", null);
-  const section = useRef<HTMLElement>(null);
   const [, setParams] = useSearchParams();
-  // a tab tapped here: already in view, so no scroll to the section
-  const fromTab = useRef(false);
   const showEdition = (key: string) => {
-    fromTab.current = true;
     setParams(
       (now) => {
         const next = new URLSearchParams(now);
@@ -92,31 +78,21 @@ export default function OtherEditions({
 
   const lines = state.name === name ? state.lines : [];
   const wanted = lineFor(lines, asked);
-  // asked for by name: brought into view once it's there
-  const wantedKey = wanted?.key;
-  useEffect(() => {
-    if (fromTab.current) fromTab.current = false;
-    else if (wantedKey) section.current?.scrollIntoView({ block: "start" });
-  }, [wantedKey]);
-
   if (!lines.length) return null;
   const line = wanted ?? lines[0]!;
   const mine = new Set(owned);
-  const page =
-    paging?.name === name && paging.key === line.key ? paging.page : 0;
-  const shown = line.books.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
   const inside = line.books.flatMap((b) => b.volumes);
   const app = inApp();
   const piled = /omnibus|in-1/i.test(line.label);
 
   return (
-    <section
-      ref={section}
-      className={styles.editions}
-      aria-labelledby="editions-title"
-    >
-      <div className={styles.sectionHeadRow}>
-        <h2 id="editions-title" className={styles.sectionTitle}>
+    <section className={styles.editions} aria-labelledby="editions-title">
+      <div className={`${styles.sectionHeadRow} ${app ? "" : "justify-end!"}`}>
+        {/* on the website the Editions tab above names it */}
+        <h2
+          id="editions-title"
+          className={app ? styles.sectionTitle : "sr-only"}
+        >
           Other editions
         </h2>
         <span className={styles.checked}>
@@ -124,12 +100,13 @@ export default function OtherEditions({
           {Math.min(...inside)}–{Math.max(...inside)}
         </span>
       </div>
-      {/* which book holds a volume, in every line at once: the same lookup
-          as /editions, started at their next volume when it's theirs */}
+      {/* which of the picked edition's books holds a volume: the same lookup
+          as /editions, started at their next volume when it's theirs. The
+          volume typed stays when another edition is picked */}
       <div className="mb-5">
         <EditionFinder
           key={`${name}:${nextVolumeFor(lines, owned) ?? ""}`}
-          lines={lines}
+          lines={[line]}
           startAt={nextVolumeFor(lines, owned)}
         />
       </div>
@@ -149,105 +126,51 @@ export default function OtherEditions({
           ))}
         </div>
       )}
-      {app ? (
-        // in the app: the books as covers, four to a row like the volumes
-        // beside them, every one (no pages)
-        <ul className={`${styles.grid} app-cover-grid`}>
-          {line.books.map((book) => {
-            const have = book.volumes.filter((v) => mine.has(v)).length;
-            const label = editionBookLabel(line, book);
-            const first = Math.min(...book.volumes);
-            const last = Math.max(...book.volumes);
-            return (
-              // its look (index.css): a plain omnibus ("Omnibus 3", "3-in-1")
-              // a small neat pile; a named edition (VIZBIG, Definitive,
-              // Deluxe) is one big book, one flat cover
-              <li key={book.number} data-pile={piled || undefined}>
-                <VolumeCard
-                  isbn13={book.isbn13}
-                  title={label}
-                  fullTitle={book.title ?? label}
-                  // one volume inside: "Vol. 5" on it, else "Vols. 1–3"
-                  volume={first === last ? first : null}
-                  bookNumber={book.number}
-                  holds={first === last ? undefined : { from: first, to: last }}
-                  coverUrl={
-                    book.isbn13 ? `/api/prices/cover/${book.isbn13}` : null
-                  }
-                  seriesCoverUrl={seriesCoverUrl}
-                  seriesName={name}
-                  priceCents={book.knownPriceCents ?? null}
-                  mark={have === book.volumes.length ? "yours" : undefined}
-                  subtitle={
-                    !book.isbn13 && book.knownPriceCents == null
-                      ? "not listed yet"
-                      : have > 0 && have < book.volumes.length
-                        ? `you have ${have} of ${book.volumes.length}`
-                        : undefined
-                  }
-                  plainStandIn
-                />
-              </li>
-            );
-          })}
-        </ul>
-      ) : (
-        <ul className={styles.editionList}>
-          {shown.map((book) => {
-            const have = book.volumes.filter((v) => mine.has(v)).length;
-            const label = editionBookLabel(line, book);
-            return (
-              <li key={book.number} className={styles.editionRow}>
-                <span className={styles.editionName}>{label}</span>
-                <span className={styles.editionInside}>
-                  {insideText(book)}
-                  {have > 0 &&
-                    (have === book.volumes.length
-                      ? " · on your shelf"
-                      : ` · you have ${have} of ${book.volumes.length}`)}
-                </span>
-                {book.isbn13 ? (
-                  <NavLink
-                    to={volumePath(book.isbn13, book.title ?? label)}
-                    className={styles.editionPrice}
-                    viewTransition
-                  >
-                    {book.knownPriceCents != null
-                      ? formatCents(book.knownPriceCents)
-                      : "check price"}{" "}
-                    →
-                  </NavLink>
-                ) : (
-                  <span className={styles.editionUnlisted}>not listed yet</span>
-                )}
-              </li>
-            );
-          })}
-        </ul>
-      )}
-      {!app && line.books.length > PAGE_SIZE && (
-        <RangePager
-          total={line.books.length}
-          pageSize={PAGE_SIZE}
-          page={page}
-          onChange={(index) => {
-            setPaging({ name, key: line.key, page: index });
-            section.current?.scrollIntoView({
-              behavior: "smooth",
-              block: "start",
-            });
-          }}
-          label={`${line.label} books`}
-          // by the books each page holds: "13–24"
-          labelFor={(start, end) =>
-            `${line.books[start]?.number}–${line.books[end]?.number}`
-          }
-        />
-      )}
-      <RunCosts line={line} singles={singles} />
+      {/* the books as covers, like the volumes on the other tab (in the
+          app four to a row, index.css .app-cover-grid), every one */}
+      <ul className={`${styles.grid} app-cover-grid edition-cover-grid`}>
+        {line.books.map((book) => {
+          const have = book.volumes.filter((v) => mine.has(v)).length;
+          const label = editionBookLabel(line, book);
+          const first = Math.min(...book.volumes);
+          const last = Math.max(...book.volumes);
+          return (
+            // its look (index.css): a plain omnibus ("Omnibus 3", "3-in-1")
+            // a small neat pile; a named edition (VIZBIG, Definitive,
+            // Deluxe) is one big book, one flat cover
+            <li key={book.number} data-pile={piled || undefined}>
+              <VolumeCard
+                isbn13={book.isbn13}
+                title={label}
+                fullTitle={book.title ?? label}
+                // one volume inside: "Vol. 5" on it, else "Vols. 1–3"
+                volume={first === last ? first : null}
+                bookNumber={book.number}
+                holds={first === last ? undefined : { from: first, to: last }}
+                coverUrl={
+                  book.isbn13 ? `/api/prices/cover/${book.isbn13}` : null
+                }
+                seriesCoverUrl={seriesCoverUrl}
+                seriesName={name}
+                priceCents={book.knownPriceCents ?? null}
+                mark={have === book.volumes.length ? "yours" : undefined}
+                subtitle={
+                  !book.isbn13 && book.knownPriceCents == null
+                    ? "not listed yet"
+                    : have > 0 && have < book.volumes.length
+                      ? `you have ${have} of ${book.volumes.length}`
+                      : undefined
+                }
+                plainStandIn
+              />
+            </li>
+          );
+        })}
+      </ul>
       <NavLink to="/editions" className={styles.editionsMore} viewTransition>
         Every series with other editions →
       </NavLink>
+      <RunCosts line={line} singles={singles} />
     </section>
   );
 }
