@@ -1,5 +1,7 @@
 // Classes for the review section of a volume's page (VolumeReviews and its
 // parts). The same ink-and-paper pieces as the rest of the price pages.
+import { stamp } from "../styles";
+
 const softLink =
   "tap text-[0.84rem] text-ink-soft underline decoration-line-soft underline-offset-3 hover:text-ink hover:decoration-current disabled:opacity-60";
 const smallCaps =
@@ -45,7 +47,7 @@ export const reviewStyles = {
 
   // the viewer's own review, and what stands in for the form
   yours: `${dashedBox} mb-4 bg-card`,
-  chip: "border-[1.5px] border-line bg-paper px-[0.4rem] pt-[0.22rem] pb-[0.16rem] font-mono text-[0.7rem] font-medium tracking-[0.06em] uppercase",
+  chip: stamp,
   nudge: `${dashedBox} mb-4 flex flex-wrap items-center justify-between gap-x-4 gap-y-2 [&_b]:font-semibold`,
   empty: `${dashedBox} [&_b]:font-semibold`,
   emptyNote: "mt-1 mb-3 text-[0.84rem] text-muted",

@@ -265,7 +265,12 @@ export default function PriceSeries() {
         )}
         <div className={styles.seriesCopy}>
           <h1 className={styles.volumeTitle}>{named.title}</h1>
-          {info && <SeriesFacts info={info} />}
+          {info && (
+            <SeriesFacts
+              info={info}
+              completeInEnglish={data.completeInEnglish}
+            />
+          )}
           <ToReadButton
             name={info?.name ?? data.name}
             altNames={info?.altNames}

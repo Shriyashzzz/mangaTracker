@@ -1,15 +1,19 @@
 import type { SeriesInfo } from "../../lib/types";
-import { useState } from "react";
 import { novelParts } from "../../lib/prices";
 import { starsOf } from "./reviews/reviewText";
+import FoldedBlurb from "./FoldedBlurb";
 import { pricesStyles as styles } from "./styles";
 
 // AniList's take on a series: score, popularity, genres and the blurb,
-// collapsed to a few lines until you ask for more
-export default function SeriesFacts({ info }: { info: SeriesInfo }) {
-  const [expanded, setExpanded] = useState(false);
-  const long = (info.description?.length ?? 0) > 320;
-
+// collapsed to a few lines until you ask for more. `completeInEnglish`: its
+// last volume in English, when a trusted source marks it (Series)
+export default function SeriesFacts({
+  info,
+  completeInEnglish = null,
+}: {
+  info: SeriesInfo;
+  completeInEnglish?: number | null;
+}) {
   return (
     <div className={styles.facts}>
       <ul className={styles.factRow}>
@@ -19,7 +23,14 @@ export default function SeriesFacts({ info }: { info: SeriesInfo }) {
           </li>
         )}
         {/* with a rank, its "AniList" is the link; without one, the link
-            stands alone at the end */}
+            stands beside the rating it comes from */}
+        {info.siteUrl && info.popularityRank == null && (
+          <li>
+            <a href={info.siteUrl} target="_blank" rel="noreferrer">
+              AniList
+            </a>
+          </li>
+        )}
         {info.popularityRank != null && (
           <li>
             <strong>#{info.popularityRank}</strong> most popular on{" "}
@@ -41,11 +52,10 @@ export default function SeriesFacts({ info }: { info: SeriesInfo }) {
             {info.status === "FINISHED" ? ", finished" : ""}
           </li>
         )}
-        {info.siteUrl && info.popularityRank == null && (
+        {completeInEnglish != null && (
           <li>
-            <a href={info.siteUrl} target="_blank" rel="noreferrer">
-              AniList
-            </a>
+            Complete in English, <strong>{completeInEnglish}</strong>{" "}
+            {completeInEnglish === 1 ? "volume" : "volumes"}
           </li>
         )}
       </ul>
@@ -53,30 +63,14 @@ export default function SeriesFacts({ info }: { info: SeriesInfo }) {
       {info.genres.length > 0 && (
         <ul className={styles.genres}>
           {info.genres.map((g: string) => (
-            <li key={g}>{g}</li>
+            <li key={g} className={styles.genre}>
+              {g}
+            </li>
           ))}
         </ul>
       )}
 
-      {info.description && (
-        <div>
-          <p
-            className={`${styles.blurb} ${long && !expanded ? styles.clamped : ""}`}
-          >
-            {info.description}
-          </p>
-          {long && (
-            <button
-              type="button"
-              className={styles.textBtn}
-              aria-expanded={expanded}
-              onClick={() => setExpanded((e) => !e)}
-            >
-              {expanded ? "Show less" : "Read more"}
-            </button>
-          )}
-        </div>
-      )}
+      {info.description && <FoldedBlurb text={info.description} />}
     </div>
   );
 }

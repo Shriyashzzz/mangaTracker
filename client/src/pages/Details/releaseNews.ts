@@ -12,7 +12,7 @@
 //            expected Dec 3")
 // Never Japan's. Its × marks that one release seen, so the next brings the
 // bar back. Volume news comes first when there's both
-import { onSale } from "../../lib/releaseDate";
+import { onSale, outLongAgo } from "../../lib/releaseDate";
 import { formatReleaseDate } from "../../lib/releaseDates";
 import { formatCents, volumePath } from "../../lib/prices";
 import { editionRelease, todayOf } from "../../lib/editionNews";
@@ -198,7 +198,8 @@ function volumeNews(asked: Asked): Release | null {
   if (!newest) return null;
 
   if (place === newest.volume - 1) {
-    if (seen >= newest.volume) return null;
+    // out long ago (a list that only now has it): one to get, not news
+    if (seen >= newest.volume || outLongAgo(newest.published)) return null;
     return {
       headline: `Vol. ${newest.volume} is out!`,
       link: buyLink(newest),

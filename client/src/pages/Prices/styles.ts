@@ -12,6 +12,10 @@ const suggestionRow = "flex cursor-pointer items-center gap-3 rounded-[2px]";
 
 // underlined text link look used across the pages
 const softLink = "underline decoration-line-soft underline-offset-3";
+// a small label printed in a box, like a stamp: a review's "Hidden for
+// now" (reviews/reviewStyles.ts), a series' genres
+export const stamp =
+  "border-[1.5px] border-line bg-paper px-[0.4rem] pt-[0.22rem] pb-[0.16rem] font-mono text-[0.7rem] font-medium tracking-[0.06em] uppercase";
 
 // a row of store names to tap ("More places to look", "Looking for a box
 // set?"). On a laptop they sit in a line, each at least as wide as its name
@@ -391,12 +395,19 @@ export const pricesStyles = {
   facts: "flex flex-col gap-[0.6rem]",
   factRow:
     "flex flex-wrap gap-x-5 gap-y-[0.35rem] text-[0.88rem] text-ink-soft [&_strong]:font-semibold [&_strong]:text-ink [&_a]:underline [&_a]:decoration-line-soft [&_a]:underline-offset-3",
-  genres:
-    "flex flex-wrap gap-[0.35rem] [&_li]:rounded-[2px] [&_li]:border-[1.5px] [&_li]:border-line-soft [&_li]:px-2 [&_li]:py-[0.05rem] [&_li]:text-[0.78rem] [&_li]:text-ink-soft",
+  // genre stamps, each row filling the width
+  genres: "flex flex-wrap gap-[0.35rem]",
+  genre: `${stamp} grow text-center text-ink`,
   blurb:
     // about 75 letters a line: "ch" is the width of a 0, wider than most
     "max-w-[60ch] text-[0.95rem] leading-[1.6] whitespace-pre-line text-ink-soft",
   clamped: "line-clamp-3",
+  // a folded blurb, and its "Read more" at the end of the third line, over
+  // the cut-off words (FoldedBlurb)
+  blurbWrap: "relative max-w-[60ch]",
+  readMore:
+    // the cut-off words fade into it over a word's width, not chopped
+    "tap absolute right-0 bottom-0 bg-[linear-gradient(to_right,transparent,var(--paper)_1.6rem)] pl-8 text-[0.95rem] leading-[1.6] text-ink [&_u]:decoration-line-soft [&_u]:underline-offset-3 hover:[&_u]:decoration-current",
 
   // ---------- series page ----------
   // cover, words, and (when the series has any) its box sets at the right;

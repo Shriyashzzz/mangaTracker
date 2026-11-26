@@ -355,6 +355,16 @@ export type Series = {
   boxSetLinks?: StoreLink[];
   // "after the anime" has a page for this series
   hasAnimeAnswer?: boolean;
+  // its last volume in English, when a trusted source marks it and the list
+  // ends there too: "Complete in English, 17 volumes"
+  completeInEnglish?: number | null;
+};
+
+export type VolumeAbout = {
+  published: string | null;
+  pages: number | null;
+  description: string | null;
+  listCents: number | null;
 };
 
 export type BoxSet = {
@@ -424,6 +434,10 @@ export type VolumePrices = {
   // its release date ("2027-03-30") when it isn't out yet: no prices are
   // checked, the page offers preorder links
   preorder: string | null;
+  // what's known of the book itself (a collector's list first, then Google
+  // Books): its English release date once out, pages, the publisher's
+  // description and its list price. Missing or null when nothing is
+  about?: VolumeAbout | null;
   siblings: SeriesVolume[];
   // a book of an edition ("VIZBIG"): which, and the series' volumes it
   // holds when its line says. Its siblings are then that edition's books

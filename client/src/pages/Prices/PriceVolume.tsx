@@ -31,6 +31,7 @@ import {
   shopName,
 } from "../../lib/prices";
 import SeriesFacts from "./SeriesFacts";
+import VolumeFacts from "./VolumeFacts";
 import BackToNew from "./BackToNew";
 import VolumeCard, { CoverFallback } from "./VolumeCard";
 import PriceAges from "./PriceAges";
@@ -542,6 +543,15 @@ export default function PriceVolume() {
                 {history.checks > 1 && ` to ${shortDate(history.lastSeen)}`}
               </p>
             </details>
+          )}
+
+          {page.data.about && (
+            <section aria-labelledby="volume-about">
+              <h2 id="volume-about" className={styles.sectionTitle}>
+                About this volume
+              </h2>
+              <VolumeFacts about={page.data.about} />
+            </section>
           )}
 
           {series.info && (

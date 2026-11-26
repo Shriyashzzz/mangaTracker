@@ -149,6 +149,9 @@ type VolumeSummary = {
     shown: MarkedReview[];
   } | null;
   seriesDescription?: string | null;
+  // the publisher's description of this volume, when a trusted source has
+  // it (a collector's list)
+  description?: string | null;
   prev?: NearbyVolume | null;
   next?: NearbyVolume | null;
   nearby?: NearbyVolume[];
@@ -326,6 +329,12 @@ function volumeBody(v: VolumeSummary, image: string | null | undefined) {
             ]
               .filter(Boolean)
               .join(" · ")}</p>`
+          : ""
+      }
+      ${
+        v.description
+          ? `<h2>About this volume</h2>
+      <p>${escapeHtml(clip(plainText(v.description), 600))}</p>`
           : ""
       }
       ${

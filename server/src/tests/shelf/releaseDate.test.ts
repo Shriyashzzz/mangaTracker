@@ -1,5 +1,9 @@
 // A volume not out yet isn't on sale (client/src/lib/releaseDate.ts)
-import { notOutYet, onSale } from "../../../../client/src/lib/releaseDate.js";
+import {
+  notOutYet,
+  onSale,
+  outLongAgo,
+} from "../../../../client/src/lib/releaseDate.js";
 
 const today = new Date(2026, 10, 7);
 
@@ -17,4 +21,16 @@ test("on sale: everything but the preorders", () => {
     { volume: 13, published: "2020-01-01" },
   ];
   expect(onSale(volumes).map((v) => v.volume)).toEqual([14, 13]);
+});
+
+test("out long ago: over 45 days, and only by a full release day", () => {
+  // an old volume a collector's list only now added isn't news
+  expect(outLongAgo("2008-03-11", today)).toBe(true);
+  expect(outLongAgo("2026-10-30", today)).toBe(false);
+  expect(outLongAgo("2026-09-20", today)).toBe(true);
+  // a month alone, or no date, isn't known to be old
+  expect(outLongAgo("2008-03", today)).toBe(false);
+  expect(outLongAgo(undefined, today)).toBe(false);
+  // a preorder isn't out at all
+  expect(outLongAgo("2027-01-05", today)).toBe(false);
 });
