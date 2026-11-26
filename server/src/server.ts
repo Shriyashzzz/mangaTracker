@@ -14,6 +14,7 @@ import { startSweep } from "./collector/sweep.js";
 import { startScoreFiller } from "./collector/scoreFiller.js";
 import { loadSwaps } from "./prices/trustedBooks.js";
 import { startReaderBooks } from "./prices/readerBooks.js";
+import { startDetailsFill } from "./prices/volumeDetails.js";
 
 app.listen(config.PORT, () => {
   console.log(`API running on http://localhost:${config.PORT}`);
@@ -24,6 +25,9 @@ app.listen(config.PORT, () => {
   );
   // readers agreeing on an ISBN's volume, made trusted books once a day
   startReaderBooks();
+  // descriptions, pages and release dates for volume pages, a few Google
+  // lookups a day (same switch as the fills)
+  startDetailsFill();
   // background pricing of shelf volumes (production unless PRICE_FILL=on)
   startFiller();
   startUsedFiller();

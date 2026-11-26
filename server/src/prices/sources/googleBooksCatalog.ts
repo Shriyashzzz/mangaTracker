@@ -10,6 +10,10 @@ import config from "../../config/config.js";
 import { baseName } from "../lightNovel.js";
 import { bookFromListing } from "./catalog.js";
 import type { CatalogBook } from "../types.js";
+import {
+  saveVolumeDetails,
+  type VolumeDetails,
+} from "../../models/volumeDetails.js";
 
 const URL = "https://www.googleapis.com/books/v1/volumes";
 const PAGE = 40;
@@ -25,6 +29,8 @@ type Item = {
     publishedDate?: string;
     pageCount?: number;
     language?: string;
+    // the publisher's description, as HTML
+    description?: string;
     industryIdentifiers?: { type: string; identifier: string }[];
   };
   // whether this record is the digital edition, sold to read on a screen
@@ -64,6 +70,9 @@ export async function googleSeriesVolumes(
   const key = config.GOOGLE_BOOKS_API_KEY;
   if (!key) return [];
   const books: CatalogBook[] = [];
+  // what Google says of each book it found, kept for their pages: no
+  // lookup of its own (models/volumeDetails.ts)
+  const details: VolumeDetails[] = [];
   for (let page = 0; page < PAGES; page++) {
     const params = new URLSearchParams({
       // each word on its own, punctuation dropped: Google spells "Journey’s"
@@ -102,11 +111,62 @@ export async function googleSeriesVolumes(
         pages: info.pageCount ?? null,
         published: info.publishedDate ?? null,
       });
-      if (book) books.push(book);
+      if (!book) continue;
+      books.push(book);
+      details.push(detailsOf(isbn13, info));
     }
     if ((page + 1) * PAGE >= totalItems) break;
   }
+  saveVolumeDetails(details).catch((e: Error) =>
+    console.error("saving volume details:", e.message),
+  );
   return books;
+}
+
+// what a Google record says of its own book, for its page
+const detailsOf = (
+  isbn13: string,
+  info: NonNullable<Item["volumeInfo"]>,
+): VolumeDetails => ({
+  isbn13,
+  description: info.description ?? null,
+  pages: info.pageCount ?? null,
+  published: info.publishedDate ?? null,
+});
+
+// One book's description, page count and release date, asked of Google by
+// its ISBN, for the slow fill (prices/volumeDetails.ts). An empty answer
+// when Google has no such book; null when it couldn't be asked (no key, the
+// day's lookups used up, or a failure), so it's tried again another day
+export async function googleDetailsOf(
+  isbn13: string,
+  timeoutMs = 6000,
+): Promise<VolumeDetails | null> {
+  const key = config.GOOGLE_BOOKS_API_KEY;
+  if (!key || Date.now() < backOffUntil) return null;
+  const params = new URLSearchParams({
+    q: `isbn:${isbn13}`,
+    maxResults: "1",
+    fields:
+      "items(volumeInfo(description,pageCount,publishedDate,industryIdentifiers))",
+    key,
+  });
+  void noteCall("gbooks");
+  const res = await fetch(`${URL}?${params}`, {
+    signal: AbortSignal.timeout(timeoutMs),
+  });
+  if (res.status === 429) backOffUntil = Date.now() + BACK_OFF_MS;
+  if (!res.ok) return null;
+  const { items = [] } = (await res.json()) as { items?: Item[] };
+  // only the book itself: Google's search can answer with a near match
+  const info = items.find((item) =>
+    item.volumeInfo?.industryIdentifiers?.some(
+      (i) => i.type === "ISBN_13" && i.identifier === isbn13,
+    ),
+  )?.volumeInfo;
+  return info
+    ? detailsOf(isbn13, info)
+    : { isbn13, description: null, pages: null, published: null };
 }
 
 // The words an edition's book has in its title, one search each: "Naruto
@@ -284,6 +344,13 @@ export async function googleRecordOf(isbn13: string, timeoutMs = 6000) {
   if (!res.ok) return null;
   const { items = [] } = (await res.json()) as { items?: Item[] };
   const info = items[0]?.volumeInfo;
+  // kept for the book's page, when it's this very book
+  if (
+    info?.industryIdentifiers?.some(
+      (i) => i.type === "ISBN_13" && i.identifier === isbn13,
+    )
+  )
+    saveVolumeDetails([detailsOf(isbn13, info)]).catch(() => {});
   return info?.title
     ? {
         title: info.title,
