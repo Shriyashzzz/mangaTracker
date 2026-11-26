@@ -52,6 +52,8 @@ type Rotation<T> = {
   keys: string[];
   // takes one search from this key's allowance; false if it has none left
   claim: (key: string) => Promise<boolean>;
+  // gives it back: the key was refused (401, 403, 429), so nothing was spent
+  unclaim?: (key: string) => Promise<void>;
   // SerpApi says it's out, whatever our own count thinks
   markSpent: (key: string) => Promise<void>;
   search: (
@@ -64,6 +66,7 @@ type Rotation<T> = {
 export async function searchWithKeys<T>({
   keys,
   claim,
+  unclaim,
   markSpent,
   search,
 }: Rotation<T>): Promise<T | null> {
@@ -71,6 +74,8 @@ export async function searchWithKeys<T>({
     if (!(await claim(key))) continue;
     const { answer, data, error } = await search(key);
     if (answer === "ok") return data;
+    // refused before searching: not one of this month's searches
+    if (answer === "skip") await unclaim?.(key).catch(() => {});
     if (answer === "error")
       throw new Error(`SerpApi: ${error ?? "unknown error"}`);
     if (answer === "out-of-searches") await markSpent(key);

@@ -39,6 +39,7 @@ export async function searchSerpApi<T extends { error?: string }>(
     // claim a search from this month's budget before spending it
     claim: (key) =>
       priceQueries.claimApiCall(labelOf(key), config.SERPAPI_MONTHLY_LIMIT),
+    unclaim: (key) => priceQueries.releaseApiCall(labelOf(key)),
     markSpent: async (key) => {
       console.warn(`SerpApi key ${labelOf(key)} is out of searches this month`);
       await priceQueries.markApiSpent(

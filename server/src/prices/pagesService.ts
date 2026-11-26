@@ -476,6 +476,14 @@ export function getDealsPage(): Promise<DealCard[]> {
   return deals;
 }
 
+// worked out again in the background, put in place once ready, so nobody
+// waits on it (startPageWarmer)
+function rewarmDeals() {
+  const deals = workOutDeals();
+  deals.then(() => (dealsPage = { at: Date.now(), deals })).catch(() => {});
+  return deals;
+}
+
 async function workOutDeals(): Promise<DealCard[]> {
   const rows = await priceQueries.getDeals(DEALS_MOST * 2);
   const known = await priceQueries.getKnownPrices(
@@ -549,7 +557,45 @@ export async function dealsOnShelf(
 
 const HOME_DEALS = 8;
 
-export async function getHighlights() {
+// the home page's rows, kept 5 minutes like the deals (and worked out again
+// in the background before then: startPageWarmer)
+const HIGHLIGHTS_MS = 5 * 60 * 1000;
+let highlightsPage: {
+  at: number;
+  rows: ReturnType<typeof workOutHighlights>;
+} | null = null;
+export function getHighlights() {
+  if (highlightsPage && Date.now() - highlightsPage.at < HIGHLIGHTS_MS)
+    return highlightsPage.rows;
+  const rows = workOutHighlights();
+  highlightsPage = { at: Date.now(), rows };
+  rows.catch(() => (highlightsPage = null));
+  return rows;
+}
+
+// The deals page and the home page's rows took over a second to work out
+// when nobody had asked in five minutes (1.7s and 1.2s against 0.1s). They're
+// worked out again every 4 minutes, the new answer put in place once it's
+// ready, so a visitor always finds one waiting
+const WARM_EVERY_MS = 4 * 60 * 1000;
+export function startPageWarmer() {
+  const run = () => {
+    rewarmDeals()
+      .then(() => {
+        const rows = workOutHighlights();
+        return rows.then(() => {
+          highlightsPage = { at: Date.now(), rows };
+        });
+      })
+      .catch((e: Error) =>
+        console.error("warming the price pages:", e.message),
+      );
+  };
+  setTimeout(run, 30_000).unref();
+  setInterval(run, WARM_EVERY_MS).unref();
+}
+
+async function workOutHighlights() {
   const [trending, latest] = await Promise.all([
     getTrending().then(withEnglishBooks),
     priceQueries.getRecentBestPrices(40),

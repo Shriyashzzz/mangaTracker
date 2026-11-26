@@ -52,12 +52,15 @@ const run = (
 ) => {
   const searched: string[] = [];
   const spent: string[] = [];
+  const givenBack: string[] = [];
   return {
     searched,
     spent,
+    givenBack,
     result: searchWithKeys({
       keys: Object.keys(answers),
       claim: async (key) => allowance[key] ?? true,
+      unclaim: async (key) => void givenBack.push(key),
       markSpent: async (key) => void spent.push(key),
       search: async (key) => {
         searched.push(key);
@@ -89,6 +92,8 @@ test("a rate limited or bad key is skipped for now, not written off", async () =
   const r = run({ a: "skip", b: "ok" });
   expect(await r.result).toBe("from b");
   expect(r.spent).toEqual([]);
+  // it searched nothing, so its search is given back; the one used isn't
+  expect(r.givenBack).toEqual(["a"]);
 });
 
 test("with every key used up there's simply no answer", async () => {

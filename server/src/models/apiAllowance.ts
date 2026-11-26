@@ -29,6 +29,16 @@ export async function claimApiCall(
   return changed === 1;
 }
 
+// gives back one call claimed but never spent (a search the API refused
+// without counting it), never below none
+export async function releaseApiCall(provider: string, month?: string) {
+  await prisma.$executeRaw`
+    UPDATE api_usage SET calls = GREATEST(calls - 1, 0)
+    WHERE provider = ${provider}
+      AND month = COALESCE(${month ?? null}::date, date_trunc('month', now())::date)
+  `;
+}
+
 // whether any of these providers still has searches this month, without
 // claiming one
 export async function anyCallsLeft(

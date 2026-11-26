@@ -16,6 +16,7 @@ import { loadSwaps } from "./prices/trustedBooks.js";
 import { startReaderBooks } from "./prices/readerBooks.js";
 import { startDetailsFill } from "./prices/volumeDetails.js";
 import { startGoogleBooksReport } from "./prices/callLog.js";
+import { startPageWarmer } from "./prices/pagesService.js";
 
 app.listen(config.PORT, () => {
   console.log(`API running on http://localhost:${config.PORT}`);
@@ -31,6 +32,8 @@ app.listen(config.PORT, () => {
   startDetailsFill();
   // yesterday's Google Books calls by job, in the log: where its quota went
   startGoogleBooksReport();
+  // the deals page and the price home's rows, ready before anyone asks
+  startPageWarmer();
   // background pricing of shelf volumes (production unless PRICE_FILL=on)
   startFiller();
   startUsedFiller();

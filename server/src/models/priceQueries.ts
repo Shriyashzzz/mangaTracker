@@ -44,6 +44,7 @@ import {
 import { getRecentBestPrices, getDeals } from "./priceLists.js";
 import {
   claimApiCall,
+  releaseApiCall,
   anyCallsLeft,
   markApiSpent,
   recordSearch,
@@ -72,6 +73,7 @@ import {
 export default {
   noteOpened,
   claimApiCall,
+  releaseApiCall,
   anyCallsLeft,
   markApiSpent,
   recordSearch,
