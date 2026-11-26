@@ -15,6 +15,7 @@ import {
   sweepCeiling,
   usersWillNeed,
   sayWhy,
+  explorationOrder,
 } from "../../collector/sweep.js";
 import { spareCalls } from "../../collector/visitorPace.js";
 import { noteCall } from "../../prices/callLog.js";
@@ -157,4 +158,21 @@ test("a night that prices nothing says why, once until it changes", async () => 
     "Nightly price sweep: nothing left to price for now",
   ]);
   log.mockRestore();
+});
+
+test("unranked series are explored too, after the ranked, best rated first", () => {
+  const order = explorationOrder([
+    { name: "Kekkaishi", popularityRank: null, score: 75 },
+    { name: "One Piece", popularityRank: 2, score: 88 },
+    { name: "Zz Unrated", popularityRank: null, score: null },
+    { name: "Naruto", popularityRank: 1, score: 80 },
+    { name: "Ultimo", popularityRank: null, score: 61 },
+  ]);
+  expect(order.map((s) => s.name)).toEqual([
+    "Naruto",
+    "One Piece",
+    "Kekkaishi",
+    "Ultimo",
+    "Zz Unrated",
+  ]);
 });

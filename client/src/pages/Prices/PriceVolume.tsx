@@ -47,6 +47,7 @@ import { isUnknownBook, volumeMeta } from "./pageMeta";
 import { useVolumeReviews } from "./reviews/useVolumeReviews";
 import VolumeReviews from "./reviews/VolumeReviews";
 import ShelfAction from "./ShelfAction";
+import { PRICE_FRESH_DAYS } from "../../lib/priceAge";
 import { useVolumeLoad } from "./useVolumeLoad";
 import { NotAnIsbn, VolumeNotOpened, VolumeSkeleton } from "./VolumePageStates";
 import { isbnFromTyped } from "../../lib/barcode";
@@ -196,9 +197,12 @@ export default function PriceVolume() {
   if (preorder) otherStoresTitle = "Or preorder at:";
   // (eBay is among them even with a price above: that row is one seller)
   else if (offers.length > 0) otherStoresTitle = "More places to look:";
-  // an old price, said beside it: that price's own age, not the page's
+  // an old price (past the site's fresh week), said beside it: that price's
+  // own age, not the page's
   const stale =
-    best && olderThanDays(best.fetchedAt, 3) ? timeAgo(best.fetchedAt) : null;
+    best && olderThanDays(best.fetchedAt, PRICE_FRESH_DAYS)
+      ? timeAgo(best.fetchedAt)
+      : null;
 
   return (
     <div className="fade-in">

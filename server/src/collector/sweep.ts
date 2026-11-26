@@ -244,18 +244,42 @@ function pricedVolumesOf(
 const POPULAR_SERIES = 150;
 const MOST_IN_A_QUEUE = 400;
 
-// the series in popularity order, each with the volumes the site prices
+// The order series are explored in: AniList's popularity ranking first,
+// then the series it doesn't rank, the best rated first (then by name, so
+// the order holds from night to night). Unranked series used to be left
+// out, so they had no prices until a visitor opened a volume (Kekkaishi:
+// 31 volumes, none priced)
+export function explorationOrder<
+  S extends {
+    name: string;
+    popularityRank: number | null;
+    score: number | null;
+  },
+>(series: S[]): S[] {
+  const ranked = series
+    .filter((s) => s.popularityRank != null)
+    .sort((a, b) => a.popularityRank! - b.popularityRank!);
+  const unranked = series
+    .filter((s) => s.popularityRank == null)
+    .sort(
+      (a, b) =>
+        (b.score ?? -1) - (a.score ?? -1) || a.name.localeCompare(b.name),
+    );
+  return [...ranked, ...unranked];
+}
+
+// the series in the order they're explored, each with the volumes the site
+// prices
 async function seriesInOrder(now: Date) {
   const [series, bySeries] = await Promise.all([
     knownSeries(),
     knownVolumesBySeries(),
   ]);
   const today = now.toISOString().slice(0, 10);
-  return series
-    .filter((s) => s.popularityRank != null)
-    .sort((a, b) => a.popularityRank! - b.popularityRank!)
+  return explorationOrder(series)
     .map((s) => ({
       name: s.name,
+      ranked: s.popularityRank != null,
       volumes: pricedVolumesOf(
         [...(bySeries.get(slugify(s.name))?.values() ?? [])],
         today,
@@ -294,7 +318,9 @@ export async function sweepQueue(
     shelfVolumes(now),
   ]);
   const shelf = [...wanted, ...owned, ...missing].filter(isEnglishIsbn);
+  // the most popular, kept fresh: ranked series only
   const popular = ordered
+    .filter((s) => s.ranked)
     .slice(0, POPULAR_SERIES)
     .flatMap((s) => s.volumes.map((v) => v.isbn13));
   const [staleShelf, stalePopular] = await Promise.all([

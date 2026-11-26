@@ -27,11 +27,10 @@ import priceQueries, {
   type Country,
 } from "../models/priceQueries.js";
 import { monthOf } from "../models/apiAllowance.js";
-import betterWorldBooks from "../prices/providers/betterWorldBooks.js";
-import booksAMillion from "../prices/providers/booksAMillion.js";
-import ebay, { ebayApiEnabled, ebayDay } from "../prices/providers/ebay.js";
+import { ebayApiEnabled, ebayDay } from "../prices/providers/ebay.js";
 import {
   checkAlone,
+  dueProviders,
   fetchProviders,
   getOrCreateBook,
 } from "../prices/service.js";
@@ -186,15 +185,6 @@ export async function pricingQueue(
   return [...new Set([...never, ...popular, ...stale])];
 }
 
-// the free sources a background check asks: eBay's API, and when their keys
-// are set Books-A-Million (it keeps to its own daily count) and Better World
-// Books. So a used price found once (usedFiller.ts) is looked at again
-// whenever eBay's is, and a copy that sold months ago doesn't stay up
-const freeProviders = () =>
-  [ebay, booksAMillion, betterWorldBooks].filter((provider) =>
-    provider.enabled(),
-  );
-
 class ShareUsed extends Error {}
 
 // one volume, if one is waiting and there are calls to spare. What happened,
@@ -224,6 +214,15 @@ export async function fillOne(
           });
           // looked at since the queue was built (or lately enough): skipped
           if (looked && now - looked.checkedAt.getTime() < STALE_MS) return;
+          // a book no catalog knows can't be priced: no share spent on it
+          // (it waits a day like any volume tried)
+          const book = await getOrCreateBook(isbn13);
+          if (!book) return;
+          // the free stores due for it, as a page visit asks them: Books-A-
+          // Million and Better World Books aren't asked again when another
+          // job priced it lately (newPriceFiller.ts, usedFiller.ts)
+          const due = await dueProviders(isbn13, true);
+          if (!due.length) return;
           // today's share of volumes, taken before looking
           const day = ebayDay();
           const claimed = await priceQueries.claimApiCall(
@@ -232,11 +231,7 @@ export async function fillOne(
             monthOf(day),
           );
           if (!claimed) throw new ShareUsed();
-          const book = await getOrCreateBook(isbn13);
-          if (book)
-            await fetchProviders(isbn13, book, freeProviders(), {
-              background: true,
-            });
+          await fetchProviders(isbn13, book, due, { background: true });
         },
         // the lock lasts the check: eBay's three searches, a few seconds
         { timeout: 60_000, maxWait: 10_000 },
@@ -277,6 +272,10 @@ export async function fillCanadaOne(
   );
   if (!isbn13) return "nothing";
   triedInCanada.mark(isbn13, now);
+  // the Canadian check prices only a book that's stored (canadaPrices.ts
+  // runCheck): made first, as the sweep does, and no share spent on one no
+  // catalog knows
+  if (!(await getOrCreateBook(isbn13).catch(() => null))) return { isbn13 };
   const day = ebayDay();
   const claimed = await priceQueries.claimApiCall(
     fillCanadaLabel(day),

@@ -3,6 +3,7 @@
 // its page). Never asks for a price, so it never spends a paid search; a
 // volume nobody has opened yet is counted as not priced.
 import { wholeMoney } from "./country";
+import { PRICE_FRESH_DAYS } from "./priceAge";
 import { owns } from "./ownedVolumes";
 import type { Manga } from "./types";
 
@@ -168,7 +169,7 @@ export function usedCopies(
 // estimate of all of it, the unpriced at the priced ones' middle price
 // a price checked over a week ago still shows, with its age, but a total
 // counting one is "About", not exact (the server's models/priceAge.ts)
-const WEEK_MS = 7 * 24 * 60 * 60 * 1000;
+const WEEK_MS = PRICE_FRESH_DAYS * 24 * 60 * 60 * 1000;
 const isFresh = (checkedAt: string | null | undefined, now: number) =>
   !checkedAt || now - new Date(checkedAt).getTime() <= WEEK_MS;
 

@@ -29,13 +29,16 @@ export const searchVolumes = (q: string, signal?: AbortSignal) =>
 // looking at Canadian prices instead
 // a live check (paid searches) carries a Turnstile token (lib/turnstile.ts);
 // stored prices don't need one
+// `human`: the person check already asked for (useVolumeLoad starts it with
+// the stored prices, so the live check needn't wait for it after)
 export const getVolume = async (
   isbn: string,
   signal?: AbortSignal,
   storedOnly = false,
+  human?: Promise<string>,
 ) =>
   getJson<VolumePrices>(
-    `/api/prices/${encodeURIComponent(isbn)}${storedOnly ? "?stored=1" : await humanQuery("?", signal)}`,
+    `/api/prices/${encodeURIComponent(isbn)}${storedOnly ? "?stored=1" : await (human ?? humanQuery("?", signal))}`,
     signal,
   );
 

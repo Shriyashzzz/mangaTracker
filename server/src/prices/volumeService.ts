@@ -2,6 +2,7 @@
 // what they say, and the page's data (offers, history, series, siblings).
 // Only this file can spend a paid search, and at most once per volume every
 // FRESH_FOR_MS. Part of the price service (service.ts lists the parts).
+import { notShownYet } from "./stores/affiliates.js";
 import { volumeHeading, titleVolume, isWellKnown } from "./volumeNames.js";
 import { trustedCatalogBook } from "./trustedBooks.js";
 import { volumeAbout } from "./volumeDetails.js";
@@ -118,7 +119,7 @@ const isPaid = (provider: Pick<Provider, "id">) =>
 // eBay's own only while today's calls last: without them they'd only fail,
 // and the volume would look due forever
 // `freeOnly`: never a paid search, whatever is due (a box set's page)
-async function dueProviders(
+export async function dueProviders(
   isbn13: string,
   freeOnly = false,
 ): Promise<Provider[]> {
@@ -143,21 +144,34 @@ async function dueProviders(
   });
 }
 
-// A provider that failed for a volume (timed out, an error) waits a while
-// before trying it again, so a source that keeps failing for one ISBN can't
-// run (and maybe spend a paid search) on every page view. In memory: a
-// restart only means one more try
+// A provider that failed for a volume waits a while before trying it again,
+// so a source that keeps failing for one ISBN can't run (and maybe spend a
+// paid search) on every page view: a day after an error, an hour after it
+// only took too long (a slow store today isn't a broken one, and a day's
+// wait left the volume without that store's price). In memory: a restart
+// only means one more try
 const FAILED_WAIT_MS = DAY_MS;
+const SLOW_WAIT_MS = 60 * 60 * 1000;
+// when each provider may be asked about each volume again
 const failures = new Map<string, number>();
 const failureKey = (isbn13: string, p: Pick<Provider, "id">) =>
   `${isbn13}|${p.id}`;
-const failedRecently = (isbn13: string, p: Pick<Provider, "id">) => {
-  const at = failures.get(failureKey(isbn13, p));
-  return at !== undefined && Date.now() - at < FAILED_WAIT_MS;
-};
-const noteFailure = (isbn13: string, p: Pick<Provider, "id">) => {
+export const failedRecently = (
+  isbn13: string,
+  p: Pick<Provider, "id">,
+  now = Date.now(),
+) => (failures.get(failureKey(isbn13, p)) ?? 0) > now;
+export const noteFailure = (
+  isbn13: string,
+  p: Pick<Provider, "id">,
+  slow = false,
+  now = Date.now(),
+) => {
   failures.delete(failureKey(isbn13, p));
-  failures.set(failureKey(isbn13, p), Date.now());
+  failures.set(
+    failureKey(isbn13, p),
+    now + (slow ? SLOW_WAIT_MS : FAILED_WAIT_MS),
+  );
   if (failures.size > 10_000) failures.delete(failures.keys().next().value!);
 };
 
@@ -202,9 +216,10 @@ export async function fetchProviders(
         const group = groupOf(provider);
         groups.set(group, [...(groups.get(group) ?? []), ...r.value]);
       } else if (!(r.reason instanceof SearchesUsedUp)) {
-        noteFailure(isbn13, provider);
+        const slow = (r.reason as Error)?.name === "TimeoutError";
+        noteFailure(isbn13, provider, slow);
         // a store that's slow today: one line, not a stack trace each time
-        if ((r.reason as Error)?.name === "TimeoutError")
+        if (slow)
           console.error(`price provider ${provider.id} took too long, skipped`);
         else console.error(`price provider ${provider.id} failed:`, r.reason);
       }
@@ -212,11 +227,14 @@ export async function fetchProviders(
   };
   await ask(first);
 
-  // what's still current from the groups not answering this round
-  const current = await priceQueries.getCurrentRows(isbn13);
+  // what's still current from the groups not answering this round, and
+  // this volume's usual new price for judging what's found (read once):
+  // read together
+  const [current, usual] = await Promise.all([
+    priceQueries.getCurrentRows(isbn13),
+    priceQueries.getNewPriceMedian(isbn13),
+  ]);
   const kept = current.filter((o) => !groups.has(o.source));
-  // this volume's usual new price, for judging what's found (read once)
-  const usual = await priceQueries.getNewPriceMedian(isbn13);
   if (shopping) {
     // only print copies someone could buy and that we'd show count: an
     // out-of-stock one, or a "new" price we'd drop, doesn't make it not needed
@@ -562,25 +580,43 @@ export async function getVolumePrices(
     await refreshIfStale(isbn13, book, true);
   }
 
-  const [checkedAt, [coverRow]] = await Promise.all([
+  // what's stored now, read at once (none of these waits on another).
+  // `stillDue`: whether a live check (with Turnstile) would look again: the
+  // page shows these stored prices first and only asks for one when it would
+  // (a preorder is checked at the free stores only, as a box set is)
+  const askable = report && (known || boxSet);
+  const [checkedAt, [coverRow], stillDue, stored, usual] = await Promise.all([
     pricesCheckedAt(isbn13),
     priceQueries.getCoverIds([isbn13]).catch(() => []),
-  ]);
-  // whether a live check (with Turnstile) would look again: the page shows
-  // these stored prices first and only asks for one when it would
-  const refreshable =
-    report &&
-    (known || boxSet) &&
-    // a preorder is checked at the free stores only, as a box set is
-    (await dueProviders(isbn13, !known || Boolean(preorder))).length > 0;
-  const [stored, usual] = await Promise.all([
+    askable
+      ? dueProviders(isbn13, !known || Boolean(preorder))
+      : Promise.resolve([]),
     priceQueries.getCurrentOffers(isbn13),
     priceQueries.getNewPriceMedian(isbn13),
   ]);
-  // the median once, not again inside the history
-  const history = await priceQueries.getPriceHistory(isbn13, usual);
+  const refreshable = askable && stillDue.length > 0;
+  // then what needs those, and the rest of the page, at once too: the
+  // history (the median once, not again inside it), what's known of the
+  // book, its series' other books, and what readers say an edition's book
+  // holds when nothing else does
+  const heldByWord = itsEdition
+    ? (inLine?.book.volumes ?? heldByItsOwnWord(ownName, ownTitle, itsEdition))
+    : null;
+  const [history, about, siblings, answered] = await Promise.all([
+    priceQueries.getPriceHistory(isbn13, usual),
+    volumeAbout(book.isbn13.trim()).catch(() => null),
+    inLine
+      ? restOfLine(series.info?.name ?? series.name, inLine, country)
+      : otherBooksOf(series.volumes, book.isbn13),
+    itsEdition && !heldByWord
+      ? answeredVolumes(isbn13).catch(() => null)
+      : null,
+  ]);
   // checks saved before a rule changed still get held to it
-  const offers = dropUnlikelyNew(stored, usual);
+  // (a store not shown yet, Walmart, saved before it was left out: not shown)
+  const offers = dropUnlikelyNew(stored, usual).filter(
+    (o) => !notShownYet(o.store),
+  );
 
   // a book holding several volumes says which, rather than a volume number
   const inBook =
@@ -598,25 +634,21 @@ export async function getVolumePrices(
     // what's known of the book itself: its English release date, pages,
     // description and list price (a collector's list first, then Google's:
     // volumeDetails.ts)
-    about: await volumeAbout(book.isbn13.trim()).catch(() => null),
+    about,
     // the rest of the series, for the "from the same series" row: each book
     // once, though it holds two volumes
     // (an edition's book: the other books of its edition, so "next" is the
     // next Deluxe, not the next paperback)
-    siblings: inLine
-      ? await restOfLine(series.info?.name ?? series.name, inLine, country)
-      : otherBooksOf(series.volumes, book.isbn13),
+    siblings,
     // the edition it's a book of, and the volumes of the series it holds
     // (named as its own title names it: a Black Edition's line may be filed
     // under "2-in-1")
     edition: itsEdition
       ? {
           label: itsEdition.label,
-          volumes:
-            inLine?.book.volumes ??
-            heldByItsOwnWord(ownName, ownTitle, itsEdition) ??
-            // what three readers agreed it holds, when nothing else says
-            (await answeredVolumes(isbn13).catch(() => null)),
+          // its line's word, its own title's, or what three readers agreed
+          // it holds when nothing else says
+          volumes: heldByWord ?? answered,
         }
       : null,
     book: {

@@ -1,9 +1,12 @@
 // A volume's prices, in two steps. The stored prices come first, straight
 // away: they need no Turnstile, so the page (and what search engines see)
 // never waits on it. Then a live check, only when the server says it would
-// look again; until that answers, the stored prices stay on the page.
+// look again; until that answers, the stored prices stay on the page. The
+// person check (Turnstile) starts with the stored prices, so the live check
+// goes out as soon as they're in; when none is needed it's called off
 import { useEffect, useState } from "react";
 import { getVolume } from "../../lib/prices";
+import { humanQuery } from "../../lib/turnstile";
 import type { VolumePrices } from "../../lib/types";
 
 export function useVolumeLoad(isbn: string, country: string) {
@@ -20,13 +23,21 @@ export function useVolumeLoad(isbn: string, country: string) {
 
   useEffect(() => {
     const controller = new AbortController();
+    // Canadian prices are their own; these US ones are only for show, and
+    // never checked live
+    const asking = new AbortController();
+    controller.signal.addEventListener("abort", () => asking.abort());
+    const human = country === "ca" ? null : humanQuery("?", asking.signal);
     getVolume(isbn, controller.signal, true)
       .then((data) => {
         setState({ isbn, data, error: "" });
-        // Canadian prices are their own; these US ones are only for show
-        if (country === "ca" || !data.refreshable) return;
+        // nothing due: the person check is called off (its widget goes)
+        if (!human || !data.refreshable) {
+          asking.abort();
+          return;
+        }
         setRefreshing(isbn);
-        return getVolume(isbn, controller.signal, false)
+        return getVolume(isbn, controller.signal, false, human)
           .then((fresh) => setState({ isbn, data: fresh, error: "" }))
           .catch(() => {
             // a failed or refused live check leaves the stored prices

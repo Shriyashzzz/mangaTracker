@@ -80,6 +80,10 @@ export async function fillNewPrices(
   for (const isbn13 of waiting) {
     // CJ's day is used up (page visits come first): nothing to ask with
     if (!(await cjCallsLeft().catch(() => false))) break;
+    tried.mark(isbn13, at);
+    // a book no catalog knows can't be priced: no share spent on it
+    const book = await getOrCreateBook(isbn13).catch(() => null);
+    if (!book) continue;
     // today's share of volumes, taken before looking
     const day = cjDay();
     const claimed = await priceQueries.claimApiCall(
@@ -87,15 +91,15 @@ export async function fillNewPrices(
       config.BAM_FILL_DAILY,
       monthOf(day),
     );
-    if (!claimed) break;
-    tried.mark(isbn13, at);
+    if (!claimed) {
+      tried.unmark(isbn13);
+      break;
+    }
     // the same check a page visit runs, Books-A-Million alone, and none
     // while a visit is pricing this volume
-    await checkAlone(isbn13, async () => {
-      const book = await getOrCreateBook(isbn13);
-      if (!book) return;
-      await fetchProviders(isbn13, book, [booksAMillion], { background: true });
-    });
+    await checkAlone(isbn13, () =>
+      fetchProviders(isbn13, book, [booksAMillion], { background: true }),
+    );
     asked++;
   }
   return { asked };
