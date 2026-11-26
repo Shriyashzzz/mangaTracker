@@ -47,6 +47,7 @@ import {
   googleVolume,
 } from "./sources/googleBooksCatalog.js";
 import { notOutYet } from "./preorder.js";
+import { inBackground } from "./callLog.js";
 import {
   finalKey,
   forgetKnownVolumes,
@@ -331,7 +332,9 @@ export async function seriesVolumes(
 // A lookup that came back incomplete (a catalog refused, or Google's day
 // ran out) isn't saved, so every visit used to look it up again: Blue
 // Period was asked 11 times in a row while Google was out. Its answer is
-// kept for half an hour instead, and no rebuild starts meanwhile
+// kept for half an hour instead, and no rebuild starts meanwhile. Only a
+// visitor's: a background job's can be short only because the background's
+// share of Google is used up, and visitors may still ask
 const RETRY_INCOMPLETE_MS = 30 * 60 * 1000;
 const incompleteLately = new Map<
   string,
@@ -346,7 +349,7 @@ function remember(
   result: { volumes: CatalogBook[]; incomplete: boolean },
 ) {
   if (!result.incomplete) incompleteLately.delete(key);
-  else {
+  else if (!inBackground()) {
     incompleteLately.set(key, { at: Date.now(), result });
     if (incompleteLately.size > 2000)
       incompleteLately.delete(incompleteLately.keys().next().value!);

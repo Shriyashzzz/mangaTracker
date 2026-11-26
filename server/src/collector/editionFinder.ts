@@ -16,6 +16,7 @@ import {
   type EditionSearch,
 } from "../prices/editionDiscovery.js";
 import { googleEditionSearch } from "../prices/sources/googleBooksCatalog.js";
+import { googleBackgroundLeft } from "../prices/callLog.js";
 import { getSeriesInfo } from "../prices/sources/anilist.js";
 import { normalize } from "../prices/stores/match.js";
 import {
@@ -54,6 +55,8 @@ export async function findEditionSeries(
   search: EditionSearch = searchInTurn(Math.floor(now / EVERY_MS)),
 ): Promise<"off" | "day used up" | { search: string; added: string[] }> {
   if (!fillSwitchOn()) return "off";
+  // the background's share of Google used up: this job's own isn't taken
+  if (!(await googleBackgroundLeft())) return "day used up";
   const day = new Date(now).toISOString().slice(0, 10);
   const titles: string[] = [];
   for (let page = 0; page < PAGES; page++) {

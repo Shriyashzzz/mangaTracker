@@ -160,8 +160,9 @@ let reportedDay = "";
 export async function googleBooksReport(now = new Date()) {
   const yesterday = gbooksDay(new Date(now.getTime() - 24 * 60 * 60_000));
   if (reportedDay === yesterday) return;
-  reportedDay = yesterday;
+  // marked once read: a failed read is tried again the next hour
   const byWho = await gbooksByWho(yesterday);
+  reportedDay = yesterday;
   if (!byWho.length) return;
   const total = byWho.reduce((sum, r) => sum + r.calls, 0);
   console.log(

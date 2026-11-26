@@ -858,7 +858,7 @@ export async function lookupIsbn(isbn13: string): Promise<CatalogBook | null> {
   const named = worthKeeping(recordTitle)
     ? recordTitle
     : publisher !== null
-      ? await googleTitleOf(isbn13)
+      ? await googleTitleOf(isbn13, true)
       : null;
   if (!worthKeeping(named)) {
     // a Japanese title that couldn't be translated right now (AniList
@@ -887,9 +887,15 @@ const namesItsVolume = (title: string) =>
   namesAVolume(title.replace(/\s*\(.*\)\s*$/, ""));
 
 // its title as its publisher listed it on Google Books; null when Google
-// has nothing in English (or no key, or the day's lookups are used up)
-async function googleTitleOf(isbn13: string) {
-  const listed = await googleRecordOf(isbn13).catch(() => null);
+// has nothing in English (or there's no key). Google not answering right
+// now: null too, unless `decides` (the title is what makes the book count),
+// then thrown as an outage, so the book is looked up again rather than
+// remembered as not a manga
+async function googleTitleOf(isbn13: string, decides = false) {
+  const listed = await googleRecordOf(isbn13).catch((e: Error) => {
+    if (decides) throw new Error(`catalog degraded: ${e.message}`);
+    return null;
+  });
   const said = listed ? titleOfRecord(listed) : null;
   return said && !JAPANESE.test(said) ? withBookDigits(said) : null;
 }

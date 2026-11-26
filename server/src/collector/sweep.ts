@@ -34,7 +34,7 @@ import { prisma } from "../config/prisma.js";
 import priceQueries, { type Country } from "../models/priceQueries.js";
 import { monthOf } from "../models/apiAllowance.js";
 import { checkCanada } from "../prices/canada/canadaPrices.js";
-import { callsSince } from "../prices/callLog.js";
+import { callsSince, googleBackgroundLeft } from "../prices/callLog.js";
 import betterWorldBooks from "../prices/providers/betterWorldBooks.js";
 import booksAMillion, {
   cjBudgetLabel,
@@ -451,6 +451,7 @@ export async function sweepOnce(
   | "refused"
   | "waiting"
   | "spent"
+  | "nothing"
   | { priced: number }
 > {
   if (!sweepOn()) return "off";
@@ -493,7 +494,8 @@ export async function sweepOnce(
       if (
         !builtAList &&
         timeLeft() > LIST_MS &&
-        (await gbooksRoom(runTime()))
+        (await gbooksRoom(runTime())) &&
+        (await googleBackgroundLeft())
       ) {
         builtAList = true;
         await fillSeries().catch(() => null);
@@ -521,6 +523,8 @@ export async function sweepOnce(
     if (await ebaySavedSince(isbn, country, before)) priced++;
     await sleep(LIMITS.gapMs);
   }
+  // every queue empty (not just out of time): said apart, for the log
+  if (!priced && nothingLeft.size === 2) return "nothing";
   return { priced };
 }
 
@@ -566,7 +570,9 @@ export function sayWhy(result: Awaited<ReturnType<typeof lockedRun>>) {
     lastSaid = "";
     return;
   }
-  const why = WHY_NOT[typeof result === "object" ? "nothing" : result];
+  // a run that priced none but wasn't stopped (out of time) says nothing
+  if (typeof result === "object") return;
+  const why = WHY_NOT[result];
   if (!why || why === lastSaid) return;
   lastSaid = why;
   console.log(`Nightly price sweep: ${why}`);

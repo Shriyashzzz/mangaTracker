@@ -57,6 +57,9 @@ const titleOf = (info: NonNullable<Item["volumeInfo"]>) =>
 // a while rather than asked again by every page
 const BACK_OFF_MS = 6 * 60 * 60 * 1000;
 let backOffUntil = 0;
+// what a lookup throws when Google couldn't be asked, so a caller can tell
+// "couldn't ask" from "Google has no such book"
+export const GOOGLE_UNAVAILABLE = "Google Books can't be asked right now";
 // whether Google is being left alone just now, its day's lookups used up:
 // a lookup then finds nothing, which isn't the same as there being nothing.
 // (With no key at all it's simply not one of our catalogs: never "paused")
@@ -86,8 +89,13 @@ export async function googleSeriesVolumes(
     });
     if (Date.now() < backOffUntil)
       throw new Error("Google Books lookups used up for now");
-    if (!(await mayCallGoogle()))
+    if (!(await mayCallGoogle())) {
+      // the pages already asked for are paid for: their details are kept
+      saveVolumeDetails(details).catch((e: Error) =>
+        console.error("saving volume details:", e.message),
+      );
       throw new Error("Google Books background share used up for today");
+    }
     const res = await fetch(`${URL}?${params}`, {
       signal: AbortSignal.timeout(timeoutMs),
     });
@@ -331,21 +339,25 @@ export async function googleEditionSearch(
 // Kenshin (3-in-1 Edition), Vol. 1", where Open Library has only "Rurouni
 // Kenshin, Vol. 1". The second catalog for a book's edition, asked only when
 // Open Library's own record doesn't say (catalog.ts lookupIsbn). One of the
-// day's lookups; null with no key, no such book, or the day used up
+// day's lookups; null with no key or no such book. Google not answering
+// (the day or the background's share used up, or failing): thrown
 export async function googleRecordOf(isbn13: string, timeoutMs = 6000) {
   const key = config.GOOGLE_BOOKS_API_KEY;
-  if (!key || Date.now() < backOffUntil) return null;
+  if (!key) return null;
+  // couldn't ask (the day's lookups used up, or the background's share of
+  // them, or Google failing): thrown, never read as "no such book"
+  if (Date.now() < backOffUntil || !(await mayCallGoogle()))
+    throw new Error(GOOGLE_UNAVAILABLE);
   const params = new URLSearchParams({
     q: `isbn:${isbn13}`,
     maxResults: "1",
     key,
   });
-  if (!(await mayCallGoogle())) return null;
   const res = await fetch(`${URL}?${params}`, {
     signal: AbortSignal.timeout(timeoutMs),
   });
   if (res.status === 429) backOffUntil = Date.now() + BACK_OFF_MS;
-  if (!res.ok) return null;
+  if (!res.ok) throw new Error(GOOGLE_UNAVAILABLE);
   const { items = [] } = (await res.json()) as { items?: Item[] };
   const info = items[0]?.volumeInfo;
   // kept for the book's page, when it's this very book

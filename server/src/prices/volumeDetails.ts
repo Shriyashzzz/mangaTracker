@@ -10,6 +10,7 @@
 // pages people opened first. A book asked about is never asked again
 import config from "../config/config.js";
 import { claimApiCall } from "../models/apiAllowance.js";
+import { googleBackgroundLeft } from "./callLog.js";
 import {
   saveVolumeDetails,
   volumeDetailsOf,
@@ -60,6 +61,8 @@ const budgetLabel = () =>
 // is tried again another day); returns how many were asked
 export async function fillDetails(howMany = PER_RUN) {
   if (!config.GOOGLE_BOOKS_API_KEY) return 0;
+  // the background's share of Google used up: none of this fill's own taken
+  if (!(await googleBackgroundLeft())) return 0;
   let asked = 0;
   for (const isbn13 of await volumesWithoutDetails(howMany)) {
     if (!(await claimApiCall(budgetLabel(), DAILY_LOOKUPS))) break;

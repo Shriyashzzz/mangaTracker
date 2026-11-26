@@ -146,11 +146,15 @@ test("a night that prices nothing says why, once until it changes", async () => 
   sayWhy("busy");
   sayWhy({ priced: 4 });
   sayWhy("spent");
+  // a run that ran out of time pricing none says nothing; an empty queue does
+  sayWhy({ priced: 0 });
+  sayWhy("nothing");
   expect(log.mock.calls.map((c) => c[0])).toEqual([
     "Nightly price sweep: stopped, tonight's share of eBay's day is used up",
     "Nightly price sweep: paused 15 minutes, visitors are busy",
     "Nightly price sweep: priced 4 volumes",
     "Nightly price sweep: stopped, tonight's share of eBay's day is used up",
+    "Nightly price sweep: nothing left to price for now",
   ]);
   log.mockRestore();
 });
