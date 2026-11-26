@@ -2,23 +2,27 @@
 // book fills a volume the catalogs had none for, or takes the place of an
 // ISBN no store ever priced, and nothing else. A wrong swap would put a book
 // nobody sells on a series page; a missed one leaves a volume with no price
-import { applyTrusted, type TrustedRow } from "../../prices/trustedBooks.js";
+import {
+  applyTrusted,
+  lastInEnglish,
+  type TrustedRow,
+} from "../../prices/trustedBooks.js";
 import { readTitle } from "../../prices/trustedTitles.js";
 import type { CatalogBook } from "../../prices/types.js";
 
 const listed = (
   volume: number,
   isbn13: string,
-  extra: Partial<CatalogBook> = {},
+  extra: Partial<Omit<CatalogBook, "volume">> = {},
 ) => ({
   isbn13,
   title: `Tropical Fish, Vol. ${volume}`,
   authors: null,
   publisher: "VIZ Media",
   year: 2020,
-  volume,
   coverUrl: `/api/prices/cover/${isbn13}`,
   ...extra,
+  volume,
 });
 
 const row = (
@@ -110,7 +114,7 @@ describe("applyTrusted", () => {
 
   test("another publisher's run is left alone", () => {
     // Kodansha's Cardcaptor Sakura on the page, Tokyopop's in the list
-    const { volumes, swaps } = applyTrusted(
+    const { volumes, swaps, used } = applyTrusted(
       "Cardcaptor Sakura",
       [listed(1, "9781632364784"), listed(2, "9781632364791")],
       [row(1, "9781892213259"), row(3, "9781892213273")],
@@ -118,6 +122,8 @@ describe("applyTrusted", () => {
     );
     expect(isbns(volumes)).toEqual(["9781632364784", "9781632364791"]);
     expect(swaps).toEqual([]);
+    // so nothing they say of the series ("Complete in English") counts
+    expect(used).toBe(false);
   });
 
   test("a series sold as books holding several volumes takes no lone ones", () => {
@@ -282,6 +288,17 @@ describe("readTitle", () => {
     );
   });
 
+  test("a last volume is marked", () => {
+    expect(readTitle("07-Ghost, Vol. 17 (Complete)").ends).toBe(true);
+    expect(readTitle("Strobe Edge, Vol. 10 (Final)").ends).toBe(true);
+    expect(
+      readTitle("Ranma 1/2, Vol. 37 & 38 (2-in-1 Vol. 19) [Final]").ends,
+    ).toBe(true);
+    expect(readTitle("07-Ghost, Vol. 16").ends).toBe(false);
+    // "Complete" in a box set's name isn't a last volume
+    expect(readTitle("Naruto Complete Box Set, Vol. 1").ends).toBe(false);
+  });
+
   test("a last volume's note and repeated numbers don't change the volume", () => {
     expect(readTitle("07-Ghost, Vol. 17 (Complete)")).toMatchObject({
       series: "07-Ghost",
@@ -292,5 +309,27 @@ describe("readTitle", () => {
     ).toMatchObject({
       volume: 16,
     });
+  });
+});
+
+describe("lastInEnglish", () => {
+  test("the volume a source marks as the last, of the page's kind", () => {
+    const rows = [
+      row(16, "9781421577784"),
+      row(17, "9781421577944", { ends: true }),
+    ];
+    expect(lastInEnglish("07-Ghost", rows)).toBe(17);
+    // a manga's last volume isn't its light novel's
+    expect(lastInEnglish("07-Ghost Light Novel", rows)).toBeNull();
+    expect(lastInEnglish("07-Ghost", [row(16, "9781421577784")])).toBeNull();
+  });
+
+  test("two sources naming different last volumes say nothing", () => {
+    expect(
+      lastInEnglish("07-Ghost", [
+        row(17, "9781421577944", { ends: true }),
+        row(18, "9781421599990", { ends: true, source: "readers" }),
+      ]),
+    ).toBeNull();
   });
 });

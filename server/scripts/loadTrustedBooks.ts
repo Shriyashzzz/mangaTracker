@@ -273,6 +273,7 @@ if (apply) {
       pages: r.pages,
       description: r.description,
       listCents: r.listCents,
+      ends: r.read.ends,
     };
     await prisma.trustedBook.upsert({
       where: { isbn13: r.isbn13 },

@@ -2,6 +2,7 @@
 // previews and crawler summaries, the deals page and the price home. Reads
 // only what's stored. Part of the price service (service.ts lists the parts).
 import { publicReviews } from "../reviews/reviews.js";
+import { trustedAbout } from "./trustedBooks.js";
 import {
   volumeHeading,
   titleVolume,
@@ -194,10 +195,11 @@ export async function getVolumeSummary(isbn13: string) {
   const bestNew = inStock.find(
     (o) => o.condition === "new" && o.format === "print",
   );
-  const [series, saved, [coverRow]] = await Promise.all([
+  const [series, saved, [coverRow], about] = await Promise.all([
     getSeriesInfo(seriesOfBook(book.title)).catch(() => null),
     priceQueries.getSavedVolume(isbn13).catch(() => null),
     priceQueries.getCoverIds([isbn13]).catch(() => []),
+    trustedAbout(isbn13).catch(() => null),
   ]);
   const seriesLabel = series?.name ?? seriesOfBook(book.title);
   return {
@@ -245,8 +247,11 @@ export async function getVolumeSummary(isbn13: string) {
           known: isWellKnown(bestNew.store) ? shopName(bestNew.store) : null,
         }
       : null,
-    published: saved?.published ?? null,
-    pages: saved?.pages ?? null,
+    published: saved?.published ?? about?.published ?? null,
+    pages: saved?.pages ?? about?.pages ?? null,
+    // the publisher's description of this volume, when a trusted source has
+    // it: the crawler text's own words, not only the series'
+    description: about?.description ?? null,
     // readers' rating, and the reviews anyone may be shown (never a spoiler)
     reviews: await publicReviews(book.isbn13.trim()).catch(() => null),
     seriesDescription: series?.description ?? null,

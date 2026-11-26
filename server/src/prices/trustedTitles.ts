@@ -21,7 +21,11 @@ export type ReadTitle = {
   title: string;
   // an edition book's line and number in it ("2in1", 19)
   edition?: { key: string; number: number };
+  // the list marks it the series' last volume ("(Complete)", "(Final)")
+  ends: boolean;
 };
+
+const LAST = /[([](complete|final)[)\]]/i;
 
 const NOVEL = /\bthe novel\b|\(novel\)|\blight novel\b/i;
 const NOVEL_WORDS = /\s*[:,-]?\s*(\bthe novel\b|\(novel\)|\blight novel\b)/i;
@@ -32,6 +36,10 @@ const NOVEL_WORDS = /\s*[:,-]?\s*(\bthe novel\b|\(novel\)|\blight novel\b)/i;
 //   "A Devil and Her Love Song" as "Devil and Her Love Song, A -")
 //   "Rizelmine (v. 1)"                        a number only in "(v. N)"
 export function readTitle(raw: string): ReadTitle {
+  return { ...readBook(raw), ends: LAST.test(raw) };
+}
+
+function readBook(raw: string): Omit<ReadTitle, "ends"> {
   let t = raw
     .replace(/^(.+?),\s*(The|An|A)\s*-\s*(?=Vol)/i, "$2 $1, ")
     .replace(/\s+/g, " ")

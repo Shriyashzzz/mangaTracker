@@ -3,7 +3,7 @@
 // Only this file can spend a paid search, and at most once per volume every
 // FRESH_FOR_MS. Part of the price service (service.ts lists the parts).
 import { volumeHeading, titleVolume, isWellKnown } from "./volumeNames.js";
-import { trustedCatalogBook } from "./trustedBooks.js";
+import { trustedAbout, trustedCatalogBook } from "./trustedBooks.js";
 import { hasNoCover } from "../models/coversAndSitemap.js";
 import priceQueries, {
   shownOnItsPage,
@@ -594,6 +594,9 @@ export async function getVolumePrices(
     inBook,
     // its release date, when it isn't out yet
     preorder,
+    // what a trusted source (a collector's list) says of this book: its
+    // English release date, pages, description and list price
+    about: await trustedAbout(book.isbn13.trim()).catch(() => null),
     // the rest of the series, for the "from the same series" row: each book
     // once, though it holds two volumes
     // (an edition's book: the other books of its edition, so "next" is the

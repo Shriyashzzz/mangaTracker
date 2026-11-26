@@ -923,12 +923,10 @@ export async function getSeriesWithVolumes(
   // the books a collector's list (or another trusted source) knows for
   // certain: a volume the catalogs had none for, or gave an ISBN no store
   // ever priced (trustedBooks.ts). A reissue's list is left as it is
+  const untouched = { volumes: catalogVolumes, swaps: [], endsAt: null };
   const trusted = hasReissue([name, info?.name])
-    ? { volumes: catalogVolumes, swaps: [] }
-    : await withTrustedBooks(name, info, catalogVolumes).catch(() => ({
-        volumes: catalogVolumes,
-        swaps: [],
-      }));
+    ? untouched
+    : await withTrustedBooks(name, info, catalogVolumes).catch(() => untouched);
   const volumes = trusted.volumes;
   if (trusted.swaps.length)
     recordSwaps(trustedSeriesKey(info?.name ?? name), trusted.swaps).catch(
@@ -1011,6 +1009,12 @@ export async function getSeriesWithVolumes(
         ? canadaBoxSetLinks(info?.name ?? name)
         : boxSetLinks(info?.name ?? name),
     hasAnimeAnswer: animeAnswer,
+    // a trusted source's last volume in English, when the list ends there
+    // too: "Complete in English, 17 volumes"
+    completeInEnglish:
+      trusted.endsAt != null && volumes.at(-1)?.volume === trusted.endsAt
+        ? trusted.endsAt
+        : null,
     volumes: volumes.map((v) => ({
       isbn13: v.isbn13,
       title: v.title,

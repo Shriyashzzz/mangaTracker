@@ -39,6 +39,7 @@ export type TrustedRow = {
   publisher: string | null;
   published: string | null;
   pages: number | null;
+  ends?: boolean;
 };
 
 export type Swap = { from: string; to: string; volume: number; source: string };
@@ -85,7 +86,13 @@ export function applyTrusted(
   trusted: TrustedRow[],
   priced: Set<string>,
   lastVolume: number | null = null,
-): { volumes: ListedBook[]; swaps: Swap[] } {
+): {
+  volumes: ListedBook[];
+  swaps: Swap[];
+  // whether the list took its trusted books at all (the same publisher's
+  // run, lone volumes): what they say of the series counts only then
+  used: boolean;
+} {
   const kind = isNovelName(name) ? "novel" : "single";
   const rows = trusted.filter(
     (r) =>
@@ -94,9 +101,10 @@ export function applyTrusted(
       Number.isInteger(r.volume) &&
       r.volume >= 1,
   );
-  if (!rows.length) return { volumes: listed, swaps: [] };
+  if (!rows.length) return { volumes: listed, swaps: [], used: false };
   // a series sold as books holding several volumes takes no lone ones
-  if (listed.some((v) => v.inBook)) return { volumes: listed, swaps: [] };
+  if (listed.some((v) => v.inBook))
+    return { volumes: listed, swaps: [], used: false };
 
   // the same publisher's run: the list has a book in a block the trusted
   // books use too (an empty list has nothing to disagree with)
@@ -104,7 +112,7 @@ export function applyTrusted(
   const trustedBlocks = new Set(rows.map((r) => blockOf(r.isbn13)));
   const sameRun =
     !listed.length || [...trustedBlocks].some((b) => listedBlocks.has(b));
-  if (!sameRun) return { volumes: listed, swaps: [] };
+  if (!sameRun) return { volumes: listed, swaps: [], used: false };
 
   const trustedIsbns = new Set(trusted.map((r) => r.isbn13));
   const listedIsbns = new Set(listed.map((v) => v.isbn13.trim()));
@@ -154,7 +162,7 @@ export function applyTrusted(
     });
   }
   const volumes = [...byNumber.values()].sort((a, b) => a.volume - b.volume);
-  return { volumes, swaps };
+  return { volumes, swaps, used: true };
 }
 
 // a listed book with the release date and page count it lacked
@@ -193,6 +201,7 @@ const ROW_FIELDS = {
   publisher: true,
   published: true,
   pages: true,
+  ends: true,
 } as const;
 
 // A series' trusted books: those under one of its names, and those of any
@@ -247,7 +256,7 @@ export async function withTrustedBooks(
   name: string,
   info: SeriesInfo | null,
   volumes: ListedBook[],
-): Promise<{ volumes: ListedBook[]; swaps: Swap[] }> {
+): Promise<{ volumes: ListedBook[]; swaps: Swap[]; endsAt: number | null }> {
   const isbns = volumes.map((v) => v.isbn13);
   const [trusted, priced] = await Promise.all([
     trustedBooksFor(seriesKeysOf(name, info), isbns),
@@ -255,7 +264,30 @@ export async function withTrustedBooks(
   ]);
   const lastVolume =
     info?.status === "FINISHED" && info.volumes ? info.volumes : null;
-  return applyTrusted(name, volumes, trusted, priced, lastVolume);
+  const applied = applyTrusted(name, volumes, trusted, priced, lastVolume);
+  return {
+    volumes: applied.volumes,
+    swaps: applied.swaps,
+    // only from books the list took: another publisher's run ending at the
+    // same number isn't "complete"
+    endsAt: applied.used ? lastInEnglish(name, trusted) : null,
+  };
+}
+
+// The volume a trusted source marks as the series' last in English
+// ("07-Ghost, Vol. 17 (Complete)"), of the page's kind. Two sources naming
+// different last volumes: none, since they don't agree
+export function lastInEnglish(
+  name: string,
+  trusted: Pick<TrustedRow, "kind" | "volume" | "ends">[],
+): number | null {
+  const kind = isNovelName(name) ? "novel" : "single";
+  const last = new Set(
+    trusted
+      .filter((r) => r.ends && r.kind === kind && r.volume != null)
+      .map((r) => r.volume!),
+  );
+  return last.size === 1 ? [...last][0]! : null;
 }
 
 // ---------- swaps ----------
@@ -355,4 +387,24 @@ export async function trustedCatalogBook(
     pages: row.pages,
     ...(row.published ? { published: row.published } : {}),
   };
+}
+
+// What a trusted source says about one book, for its page: its English
+// release date, page count, the publisher's description and list price.
+// Null when no trusted source has it
+export async function trustedAbout(isbn13: string) {
+  const row = await prisma.trustedBook.findUnique({
+    where: { isbn13 },
+    select: {
+      published: true,
+      pages: true,
+      description: true,
+      listCents: true,
+    },
+  });
+  if (!row) return null;
+  const { published, pages, description, listCents } = row;
+  if (!published && pages == null && !description && listCents == null)
+    return null;
+  return { published, pages, description, listCents };
 }
