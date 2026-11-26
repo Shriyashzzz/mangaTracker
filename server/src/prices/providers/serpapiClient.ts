@@ -9,7 +9,7 @@ import {
   serpApiKeys,
   usageLabel,
 } from "./serpapiKeys.js";
-import { currentSpender } from "../spender.js";
+import { currentSpender, mayPay, notePaid } from "../spender.js";
 
 const SEARCH_URL = "https://serpapi.com/search.json";
 
@@ -30,6 +30,10 @@ export async function searchSerpApi<T extends { error?: string }>(
   params: Record<string, string>,
   signal: AbortSignal,
 ): Promise<T> {
+  // a visit that may not pay (not clearly a person's, or its visitor's
+  // searches for today spent): the free stores' prices only (spender.ts)
+  if (!(await mayPay()))
+    throw new SearchesUsedUp("No paid searches for this visit");
   const data = await searchWithKeys<T>({
     keys: KEYS,
     // claim a search from this month's budget before spending it
@@ -59,6 +63,7 @@ export async function searchSerpApi<T extends { error?: string }>(
     await priceQueries
       .recordSearch(spender)
       .catch((e: Error) => console.error("search count failed:", e.message));
+    await notePaid();
   }
   return data;
 }

@@ -42,7 +42,7 @@ import {
 import { englishCoverIsbn } from "../prices/sources/englishCover.js";
 import { isCrawler } from "../prices/crawlers.js";
 import { learnAnimeAnswer } from "../prices/afterAnime/afterAnime.js";
-import { isHuman } from "../prices/human.js";
+import { humanCheck, isHuman } from "../prices/human.js";
 import { asSpender, spenderOf } from "../prices/spender.js";
 import { getCanadaPrices } from "../prices/canada/canadaPrices.js";
 import {
@@ -169,26 +169,31 @@ const seriesSearch = [
 const volume = [
   ...isbnParam,
   async (req: Request, res: Response) => {
-    // a live check (paid searches) only for a page that passed Turnstile
+    // a live check only for a page that passed Turnstile; paid searches
+    // only when it clearly did (human.ts)
     const crawler = isCrawler(req.get("user-agent"));
-    const live =
-      !crawler &&
-      req.query.stored !== "1" &&
-      (await isHuman(req.query.human, clientIp(req)));
+    const human =
+      crawler || req.query.stored === "1"
+        ? "no"
+        : await humanCheck(req.query.human, clientIp(req));
+    const live = human !== "no";
     const data = await upstream(
       "price lookup",
       "Prices couldn't be loaded. Try again in a moment.",
       // any search it spends goes on this visitor's count
       () =>
-        asSpender(spenderOf(req), () =>
-          getVolumePrices(matchedData(req).isbn, {
-            // ?stored=1: what's stored, never a refresh. Every volume page asks
-            // this first (and it's all a Canadian viewer gets)
-            refresh: live,
-            report: !crawler,
-            // the rest of the series' prices, in their country
-            country: countryOf(req.query.country),
-          }),
+        asSpender(
+          spenderOf(req),
+          () =>
+            getVolumePrices(matchedData(req).isbn, {
+              // ?stored=1: what's stored, never a refresh. Every volume page
+              // asks this first (and it's all a Canadian viewer gets)
+              refresh: live,
+              report: !crawler,
+              // the rest of the series' prices, in their country
+              country: countryOf(req.query.country),
+            }),
+          human === "yes",
         ),
     );
     if (!data) throw new NotFoundError("We couldn't find that volume.");
@@ -225,18 +230,21 @@ const scan = [
 const canadaVolume = [
   ...isbnParam,
   async (req: Request, res: Response) => {
-    const live =
-      !isCrawler(req.get("user-agent")) &&
-      (await isHuman(req.query.human, clientIp(req)));
+    const human = isCrawler(req.get("user-agent"))
+      ? "no"
+      : await humanCheck(req.query.human, clientIp(req));
     res.json(
       await upstream(
         "Canadian price lookup",
         "Canadian prices couldn't be loaded. Try again in a moment.",
         () =>
-          asSpender(spenderOf(req), () =>
-            getCanadaPrices(matchedData(req).isbn, {
-              refresh: live,
-            }),
+          asSpender(
+            spenderOf(req),
+            () =>
+              getCanadaPrices(matchedData(req).isbn, {
+                refresh: human !== "no",
+              }),
+            human === "yes",
           ),
       ),
     );

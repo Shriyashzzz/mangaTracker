@@ -129,6 +129,13 @@ function forgetOldSlots(now: number) {
     WHERE provider ~ '^(ebay|cj|gbooks|impact):(user|bg):'
       AND split_part(provider, ':', 3) || ':' || split_part(provider, ':', 4) < ${cutoff}
   `.catch(() => {});
+  // each visitor's paid searches a day (spender.ts paidLabel): only today's
+  // is read, so three days is plenty
+  const threeDaysAgo = cutoff.slice(0, 10);
+  prisma.$executeRaw`
+    DELETE FROM api_usage
+    WHERE provider LIKE 'pd:%' AND split_part(provider, ':', 3) < ${threeDaysAgo}
+  `.catch(() => {});
   // the daily Google Books counts by who: a month is plenty
   const monthAgo = new Date(now - 30 * 24 * 60 * 60_000)
     .toISOString()
