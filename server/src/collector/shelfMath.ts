@@ -15,6 +15,10 @@ export type ListedVolume = {
   published?: string | null;
 };
 
+// a book they've said they own in a bigger edition (VIZBIG 2, Deluxe 1, a
+// box set): its ISBN, and the series' volumes it holds
+export type OwnedEditionBook = { isbn13: string; volumes: number[] };
+
 // what someone owns of a series: "up to" N, or the exact list when it has gaps
 // (util/shelf/ownedList.ts: an empty list means 1 to volumesOwned)
 export type Owned = { volumesOwned: number | null; ownedList: number[] };
@@ -98,19 +102,29 @@ export type ShelfValue = {
   estimateCents: number | null;
 };
 
-// what the owned volumes would fetch used: each one's recorded used price
+// what the owned books would fetch used: each one's recorded used price
 // (the median of every one seen, the last year's first: it never goes stale,
-// see getRecordedMedians). A volume never seen used is estimated; `priced`
-// says how many are real, so a part total never reads as the whole
+// see getRecordedMedians). A book never seen used is estimated; `priced`
+// says how many are real, so a part total never reads as the whole.
+//
+// A book they've said is a bigger edition's (`editionBooks`: VIZBIG 2 holds
+// vols. 4-6) is worth what that book fetches, not what its volumes would as
+// singles: it counts once, at its own price, and its volumes aren't counted
+// again as singles. Unpriced, it's its volumes at the series' usual used
+// price of a single. Every other owned volume is a single, as before
 export function shelfValue(
-  series: { owned: Owned; volumes: ListedVolume[] }[],
+  series: {
+    owned: Owned;
+    volumes: ListedVolume[];
+    editionBooks?: OwnedEditionBook[];
+  }[],
   recorded: Map<string, Pick<RecordedPrice, "used">>,
   unlisted = 0,
 ): ShelfValue {
-  const usedPrice = (book: ListedVolume) =>
+  const usedPrice = (book: { isbn13: string }) =>
     recorded.get(book.isbn13)?.used ?? undefined;
   // the used prices we have, for some books
-  const knownPrices = (books: ListedVolume[]) => {
+  const knownPrices = (books: { isbn13: string }[]) => {
     const prices: number[] = [];
     for (const book of books) {
       const cents = usedPrice(book);
@@ -119,45 +133,67 @@ export function shelfValue(
     return prices;
   };
 
-  // each series' owned books, in order. A book holding two volumes (one
-  // ISBN) is counted once, across the whole shelf
+  // each series' owned books, in order: its edition books, then its
+  // singles. A book holding two volumes (one ISBN) is counted once, across
+  // the whole shelf
   const counted = new Set<string>();
   // owned volumes their series' list has no book for
   let notInALists = 0;
-  const booksBySeries = series.map(({ owned, volumes }) => {
+  const bySeries = series.map(({ owned, volumes, editionBooks = [] }) => {
     const mine = ownedSet(owned);
-    const books: ListedVolume[] = [];
+    // the edition books they still have (every volume inside still ticked),
+    // and the volumes those hold
+    const inEditions = new Set<number>();
+    const editions: OwnedEditionBook[] = [];
+    for (const book of editionBooks) {
+      if (!book.volumes.length || !book.volumes.every((v) => mine.has(v)))
+        continue;
+      for (const v of book.volumes) inEditions.add(v);
+      if (counted.has(book.isbn13)) continue;
+      counted.add(book.isbn13);
+      editions.push(book);
+    }
+    const singles: ListedVolume[] = [];
     const ownedAndListed = new Set<number>();
     for (const v of volumes) {
-      if (!isMainVolume(v) || !mine.has(v.volume)) continue;
+      if (!isMainVolume(v) || !mine.has(v.volume) || inEditions.has(v.volume))
+        continue;
       ownedAndListed.add(v.volume);
       if (counted.has(v.isbn13)) continue;
       counted.add(v.isbn13);
-      books.push(v);
+      singles.push(v);
     }
-    notInALists += mine.size - ownedAndListed.size;
-    return books;
+    notInALists += mine.size - inEditions.size - ownedAndListed.size;
+    // what a single of this series usually fetches used, from every one of
+    // its volumes seen (owned or not): for pricing an edition book unseen
+    const singlesSeen = knownPrices(volumes.filter(isMainVolume));
+    return { singles, editions, singleUsual: median(singlesSeen) };
   });
   const withoutABook = unlisted + notInALists;
-  const allBooks = booksBySeries.flat();
+  const allSingles = bySeries.flatMap((s) => s.singles);
+  const allEditions = bySeries.flatMap((s) => s.editions);
 
-  const prices = knownPrices(allBooks);
-  const shelfUsual = median(prices);
+  const prices = knownPrices([...allSingles, ...allEditions]);
+  const shelfUsual = median(knownPrices(allSingles));
 
-  // the estimate: a priced book at its price, an unpriced one at its series'
-  // usual price, or the shelf's when the series has no price at all
+  // the estimate: a priced book at its price; an unpriced single at its
+  // series' usual price, or the shelf's when the series has none; an
+  // unpriced edition book as its volumes, each at a single's usual price
   let estimate = 0;
-  for (const books of booksBySeries) {
-    const seriesPrices = knownPrices(books);
+  for (const { singles, editions, singleUsual } of bySeries) {
+    const seriesPrices = knownPrices(singles);
     const seriesUsual = seriesPrices.length ? median(seriesPrices) : shelfUsual;
-    for (const book of books) estimate += usedPrice(book) ?? seriesUsual;
+    for (const book of singles) estimate += usedPrice(book) ?? seriesUsual;
+    for (const book of editions)
+      estimate +=
+        usedPrice(book) ?? book.volumes.length * (singleUsual || seriesUsual);
   }
   estimate += withoutABook * shelfUsual;
 
   return {
     cents: sum(prices),
     priced: prices.length,
-    volumes: allBooks.length,
+    volumes: allSingles.length + allEditions.length,
     unlisted: withoutABook,
     estimateCents: prices.length ? estimate : null,
   };

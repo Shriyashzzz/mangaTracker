@@ -68,18 +68,24 @@ export async function getShelfTools(
   country: Country = "us",
 ): Promise<ShelfTools> {
   const shelf = await mangaQueries.getShelf(userId);
-  const [series, lines] = await Promise.all([
+  const [series, lines, editionBooks] = await Promise.all([
     // each series with its saved list of volumes
     shelfSeries(shelf),
     // the edition each series is collected in, where one is chosen
     shelfEditionLines(shelf),
+    // the bigger edition's books they've said they own, each worth its own
+    // price rather than its volumes' as singles
+    bookQueries.editionBooksOf(shelf.map((m) => m.id)),
   ]);
 
-  // every book whose price matters: each series' volumes and edition books
+  // every book whose price matters: each series' volumes, edition books,
+  // and the edition books they own
   const isbns = new Set<string>();
   for (const s of series) for (const v of s.volumes) isbns.add(v.isbn13);
   for (const line of lines.values())
     for (const book of line.books) if (book.isbn13) isbns.add(book.isbn13);
+  for (const books of editionBooks.values())
+    for (const book of books) isbns.add(book.isbn13);
   const [copies, recorded] = await Promise.all([
     priceQueries.getCheapestCopies([...isbns], undefined, country),
     priceQueries.getRecordedMedians([...isbns], country),
@@ -95,6 +101,7 @@ export async function getShelfTools(
   const ownedBySeries = series.map((s) => ({
     owned: { volumesOwned: s.manga.volumesOwned, ownedList: s.manga.ownedList },
     volumes: s.volumes,
+    editionBooks: editionBooks.get(s.manga.id) ?? [],
   }));
 
   // the shelf's usual new price, for a series with none of its own priced

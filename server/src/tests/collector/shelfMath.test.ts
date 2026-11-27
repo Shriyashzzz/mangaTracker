@@ -273,3 +273,130 @@ test("an unpriced missing volume is estimated at its own recorded price first", 
   // vol 2 priced now at 10.00; vol 3 at what it has gone for, 15.00
   expect(f.estimateCents).toBe(1000 + 1500);
 });
+
+// ---------- books of a bigger edition they own ----------
+
+// VIZBIG 1 holds vols. 1-3, and so on
+const big = (n: number, from: number, to: number) => ({
+  isbn13: `97811111${String(n).padStart(5, "0")}`,
+  volumes: Array.from({ length: to - from + 1 }, (_, i) => from + i),
+});
+const prices = (entries: [{ isbn13: string }, number][]) =>
+  new Map(entries.map(([b, cents]) => [b.isbn13, { used: cents, new: null }]));
+
+test("a series owned only in VIZBIGs is worth its VIZBIGs, not its singles", () => {
+  const singles = [1, 2, 3, 4, 5, 6].map((n) => vol(n));
+  const books = [big(1, 1, 3), big(2, 4, 6)];
+  const value = shelfValue(
+    [
+      {
+        owned: { volumesOwned: 6, ownedList: [] },
+        volumes: singles,
+        editionBooks: books,
+      },
+    ],
+    prices([
+      // the singles would fetch far more: never counted, none is owned
+      ...singles.map((v) => [v, 3000] as [ListedVolume, number]),
+      [books[0]!, 1500],
+      [books[1]!, 1700],
+    ]),
+  );
+  expect(value).toEqual({
+    cents: 3200,
+    priced: 2,
+    volumes: 2,
+    unlisted: 0,
+    estimateCents: 3200,
+  });
+});
+
+test("VIZBIGs and Definitives of one series both count, each at its own price", () => {
+  const singles = [1, 2, 3, 4, 5, 6, 7, 8, 9].map((n) => vol(n));
+  const vizbig = big(1, 1, 3);
+  const definitive = big(50, 4, 9);
+  const value = shelfValue(
+    [
+      {
+        owned: { volumesOwned: 9, ownedList: [] },
+        volumes: singles,
+        editionBooks: [vizbig, definitive],
+      },
+    ],
+    prices([
+      [vizbig, 1500],
+      [definitive, 4000],
+    ]),
+  );
+  expect(value.cents).toBe(5500);
+  expect(value.volumes).toBe(2);
+  expect(value.estimateCents).toBe(5500);
+});
+
+test("singles and an omnibus: the omnibus's volumes aren't counted twice", () => {
+  const singles = [1, 2, 3, 4, 5].map((n) => vol(n));
+  const omnibus = big(3, 1, 3);
+  const value = shelfValue(
+    [
+      {
+        owned: { volumesOwned: 5, ownedList: [] },
+        volumes: singles,
+        editionBooks: [omnibus],
+      },
+    ],
+    prices([
+      [omnibus, 1200],
+      [singles[3]!, 600],
+      [singles[4]!, 800],
+    ]),
+  );
+  // the omnibus, then vols. 4 and 5 as singles
+  expect(value.cents).toBe(2600);
+  expect(value.volumes).toBe(3);
+});
+
+test("an edition book never seen used is its volumes at a single's usual price", () => {
+  const singles = [1, 2, 3, 4].map((n) => vol(n));
+  const deluxe = big(4, 1, 2);
+  const value = shelfValue(
+    [
+      {
+        owned: { volumesOwned: 4, ownedList: [] },
+        volumes: singles,
+        editionBooks: [deluxe],
+      },
+    ],
+    // the series' singles go for 500 used; vols. 3 and 4 are theirs as singles
+    prices([
+      [singles[0]!, 500],
+      [singles[2]!, 500],
+      [singles[3]!, 500],
+    ]),
+  );
+  expect(value.cents).toBe(1000);
+  expect(value.priced).toBe(2);
+  expect(value.volumes).toBe(3);
+  // the Deluxe as two volumes at 500 each
+  expect(value.estimateCents).toBe(1000 + 1000);
+});
+
+test("an edition book whose volumes aren't all ticked any more isn't counted", () => {
+  const singles = [1, 2, 3].map((n) => vol(n));
+  const omnibus = big(5, 1, 3);
+  const value = shelfValue(
+    [
+      {
+        // vol. 3 unticked: the omnibus is gone, vols. 1 and 2 are singles
+        owned: { volumesOwned: 2, ownedList: [] },
+        volumes: singles,
+        editionBooks: [omnibus],
+      },
+    ],
+    prices([
+      [omnibus, 9000],
+      [singles[0]!, 500],
+      [singles[1]!, 500],
+    ]),
+  );
+  expect(value.cents).toBe(1000);
+});

@@ -238,8 +238,34 @@ export async function shelfBooks(userId: number) {
   return books.filter((b) => isShown(b, b.manga)).map(withoutManga);
 }
 
+// each series' books of a bigger edition (VIZBIG, Deluxe, an omnibus, a
+// box set) they've said they own, with an ISBN: the shelf's worth counts
+// each at its own price (collector/shelfMath.ts shelfValue). One whose
+// volumes aren't all ticked any more is passed over there
+export async function editionBooksOf(mangaIds: number[]) {
+  const rows = mangaIds.length
+    ? await prisma.ownedBook.findMany({
+        where: {
+          mangaId: { in: mangaIds },
+          edition: { not: "single" },
+          isbn13: { not: null },
+        },
+        select: { mangaId: true, isbn13: true, volumes: true },
+      })
+    : [];
+  const byManga = new Map<number, { isbn13: string; volumes: number[] }[]>();
+  for (const { mangaId, isbn13, volumes } of rows) {
+    if (!isbn13) continue;
+    const books = byManga.get(mangaId) ?? [];
+    books.push({ isbn13, volumes });
+    byManga.set(mangaId, books);
+  }
+  return byManga;
+}
+
 export default {
   booksOf,
+  editionBooksOf,
   addBooks,
   removeBook,
   shelfBooks,
