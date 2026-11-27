@@ -62,6 +62,9 @@ function tagged(missing: MissingVolume, country: Country): MissingVolume {
   return { ...missing, cheapest: { ...cheapest, url } };
 }
 
+const sameVolumes = (a: number[], b: number[]) =>
+  a.length === b.length && a.every((v, i) => v === b[i]);
+
 // in the country they shop in: Canadian prices for Canada, never US ones
 export async function getShelfTools(
   userId: number,
@@ -84,8 +87,18 @@ export async function getShelfTools(
   for (const s of series) for (const v of s.volumes) isbns.add(v.isbn13);
   for (const line of lines.values())
     for (const book of line.books) if (book.isbn13) isbns.add(book.isbn13);
-  for (const books of editionBooks.values())
-    for (const book of books) isbns.add(book.isbn13);
+  // a book recorded with no ISBN ("not listed yet" when it was ticked)
+  // takes the one its edition's list has found since, matched by the
+  // volumes it holds: its real price then stands in for the estimate
+  for (const [mangaId, books] of editionBooks) {
+    const line = lines.get(mangaId);
+    for (const book of books) {
+      book.isbn13 ??=
+        line?.books.find((b) => sameVolumes(b.volumes, book.volumes))?.isbn13 ??
+        null;
+      if (book.isbn13) isbns.add(book.isbn13);
+    }
+  }
   const [copies, recorded] = await Promise.all([
     priceQueries.getCheapestCopies([...isbns], undefined, country),
     priceQueries.getRecordedMedians([...isbns], country),

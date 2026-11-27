@@ -277,8 +277,14 @@ test("an unpriced missing volume is estimated at its own recorded price first", 
 // ---------- books of a bigger edition they own ----------
 
 // VIZBIG 1 holds vols. 1-3, and so on
-const big = (n: number, from: number, to: number) => ({
+const big = (
+  n: number,
+  from: number,
+  to: number,
+  edition = "omnibus",
+): { isbn13: string; edition: string; volumes: number[] } => ({
   isbn13: `97811111${String(n).padStart(5, "0")}`,
+  edition,
   volumes: Array.from({ length: to - from + 1 }, (_, i) => from + i),
 });
 const prices = (entries: [{ isbn13: string }, number][]) =>
@@ -399,4 +405,51 @@ test("an edition book whose volumes aren't all ticked any more isn't counted", (
     ]),
   );
   expect(value.cents).toBe(1000);
+});
+
+test("a book with no ISBN is estimated from their priced books of its kind", () => {
+  const singles = [1, 2, 3, 4, 5, 6, 7, 8, 9].map((n) => vol(n));
+  const one = big(1, 1, 3, "deluxe");
+  const two = big(2, 4, 6, "deluxe");
+  // Definitive 3: "not listed yet" when ticked, so no ISBN
+  const three = { ...big(3, 7, 9, "deluxe"), isbn13: null };
+  const value = shelfValue(
+    [
+      {
+        owned: { volumesOwned: 9, ownedList: [] },
+        volumes: singles,
+        editionBooks: [one, two, three],
+      },
+    ],
+    prices([
+      // a volume inside them goes for 600 and 700: 650 the middle
+      [one, 1800],
+      [two, 2100],
+      // the singles go for far less: not what a Definitive is worth
+      ...singles.map((v) => [v, 300] as [ListedVolume, number]),
+    ]),
+  );
+  expect(value.cents).toBe(3900);
+  expect(value.priced).toBe(2);
+  expect(value.volumes).toBe(3);
+  expect(value.estimateCents).toBe(3900 + 3 * 650);
+});
+
+test("a book with no ISBN and no priced sibling: its volumes as singles go", () => {
+  const singles = [1, 2, 3, 4].map((n) => vol(n));
+  const lone = { ...big(1, 1, 2, "deluxe"), isbn13: null };
+  const value = shelfValue(
+    [
+      {
+        owned: { volumesOwned: 4, ownedList: [] },
+        volumes: singles,
+        editionBooks: [lone],
+      },
+    ],
+    prices(singles.map((v) => [v, 500] as [ListedVolume, number])),
+  );
+  // vols. 3 and 4 as singles; the Deluxe as two volumes at 500
+  expect(value.cents).toBe(1000);
+  expect(value.volumes).toBe(3);
+  expect(value.estimateCents).toBe(1000 + 1000);
 });

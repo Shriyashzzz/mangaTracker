@@ -16,8 +16,14 @@ export type ListedVolume = {
 };
 
 // a book they've said they own in a bigger edition (VIZBIG 2, Deluxe 1, a
-// box set): its ISBN, and the series' volumes it holds
-export type OwnedEditionBook = { isbn13: string; volumes: number[] };
+// box set): its kind ("omnibus", "deluxe", "boxset"), the series' volumes
+// it holds, and its ISBN when the catalog knows it (a book the edition's
+// list has as "not listed yet" has none)
+export type OwnedEditionBook = {
+  isbn13: string | null;
+  edition: string;
+  volumes: number[];
+};
 
 // what someone owns of a series: "up to" N, or the exact list when it has gaps
 // (util/shelf/ownedList.ts: an empty list means 1 to volumesOwned)
@@ -110,8 +116,10 @@ export type ShelfValue = {
 // A book they've said is a bigger edition's (`editionBooks`: VIZBIG 2 holds
 // vols. 4-6) is worth what that book fetches, not what its volumes would as
 // singles: it counts once, at its own price, and its volumes aren't counted
-// again as singles. Unpriced, it's its volumes at the series' usual used
-// price of a single. Every other owned volume is a single, as before
+// again as singles. Unpriced (never seen used, or no ISBN to look it up
+// by), it's estimated from their priced books of the same kind in that
+// series, by the volumes each holds; with none, its volumes at the series'
+// usual used price of a single. Every other owned volume is a single
 export function shelfValue(
   series: {
     owned: Owned;
@@ -121,10 +129,10 @@ export function shelfValue(
   recorded: Map<string, Pick<RecordedPrice, "used">>,
   unlisted = 0,
 ): ShelfValue {
-  const usedPrice = (book: { isbn13: string }) =>
-    recorded.get(book.isbn13)?.used ?? undefined;
+  const usedPrice = (book: { isbn13: string | null }) =>
+    book.isbn13 ? (recorded.get(book.isbn13)?.used ?? undefined) : undefined;
   // the used prices we have, for some books
-  const knownPrices = (books: { isbn13: string }[]) => {
+  const knownPrices = (books: { isbn13: string | null }[]) => {
     const prices: number[] = [];
     for (const book of books) {
       const cents = usedPrice(book);
@@ -149,8 +157,10 @@ export function shelfValue(
       if (!book.volumes.length || !book.volumes.every((v) => mine.has(v)))
         continue;
       for (const v of book.volumes) inEditions.add(v);
-      if (counted.has(book.isbn13)) continue;
-      counted.add(book.isbn13);
+      if (book.isbn13) {
+        if (counted.has(book.isbn13)) continue;
+        counted.add(book.isbn13);
+      }
       editions.push(book);
     }
     const singles: ListedVolume[] = [];
@@ -178,15 +188,20 @@ export function shelfValue(
 
   // the estimate: a priced book at its price; an unpriced single at its
   // series' usual price, or the shelf's when the series has none; an
-  // unpriced edition book as its volumes, each at a single's usual price
+  // unpriced edition book at what a volume of its priced siblings goes for,
+  // or as its volumes, each at a single's usual price
   let estimate = 0;
   for (const { singles, editions, singleUsual } of bySeries) {
     const seriesPrices = knownPrices(singles);
     const seriesUsual = seriesPrices.length ? median(seriesPrices) : shelfUsual;
     for (const book of singles) estimate += usedPrice(book) ?? seriesUsual;
-    for (const book of editions)
-      estimate +=
-        usedPrice(book) ?? book.volumes.length * (singleUsual || seriesUsual);
+    for (const book of editions) {
+      const perVolume =
+        perVolumeOf(editions, book.edition, usedPrice) ||
+        singleUsual ||
+        seriesUsual;
+      estimate += usedPrice(book) ?? book.volumes.length * perVolume;
+    }
   }
   estimate += withoutABook * shelfUsual;
 
@@ -197,6 +212,22 @@ export function shelfValue(
     unlisted: withoutABook,
     estimateCents: prices.length ? estimate : null,
   };
+}
+
+// what a volume goes for used inside their priced books of one kind
+// ("deluxe"): each book's price over the volumes it holds, the middle of
+// those. 0 when none of that kind is priced
+function perVolumeOf(
+  books: OwnedEditionBook[],
+  edition: string,
+  usedPrice: (book: OwnedEditionBook) => number | undefined,
+) {
+  const rates: number[] = [];
+  for (const book of books) {
+    const cents = book.edition === edition ? usedPrice(book) : undefined;
+    if (cents !== undefined) rates.push(cents / book.volumes.length);
+  }
+  return Math.round(median(rates));
 }
 
 // ---------- finishing each series ----------

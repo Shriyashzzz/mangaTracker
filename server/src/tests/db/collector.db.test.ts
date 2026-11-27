@@ -13,6 +13,8 @@ import { closeDb, emptyDb, prisma } from "./testDb.js";
 
 const SERIES = "Zzcollector Test Series";
 const ISBN = (n: number) => `978199999000${n}`;
+// a 3-in-1 holding vols. 1 to 3
+const OMNIBUS = "9781999990099";
 const KEYS = [
   volumesKey(SERIES),
   `${volumesKey(SERIES)}:google`,
@@ -42,7 +44,7 @@ const offer = (over: Partial<Offer>): Offer => ({
 const clean = async () => {
   await prisma.seriesVolumes.deleteMany({ where: { key: { in: KEYS } } });
   await prisma.book.deleteMany({
-    where: { isbn13: { in: [1, 2, 3, 4].map(ISBN) } },
+    where: { isbn13: { in: [...[1, 2, 3, 4].map(ISBN), OMNIBUS] } },
   });
 };
 
@@ -180,6 +182,46 @@ test("each series' worth is the shelf's rule on that series alone", async () => 
     volumes: 1,
   });
   expect(typeof res.body.seriesWorth[0].mangaId).toBe("number");
+});
+
+test("an omnibus they've recorded is worth its own price, not its volumes", async () => {
+  const agent = await reader("collector", 3);
+  const manga = await prisma.manga.findFirstOrThrow({
+    where: { name: SERIES },
+  });
+  await prisma.book.create({
+    data: { isbn13: OMNIBUS, title: `${SERIES} 3-in-1` },
+  });
+  await prisma.ownedBook.create({
+    data: {
+      mangaId: manga.id,
+      isbn13: OMNIBUS,
+      edition: "omnibus",
+      number: 1,
+      volumes: [1, 2, 3],
+    },
+  });
+  await priceQueries.saveCheck(
+    OMNIBUS,
+    ["ebay"],
+    new Map([
+      [
+        "ebay",
+        [
+          offer({
+            store: "eBay",
+            condition: "used",
+            priceCents: 900,
+            url: "https://www.ebay.com/itm/9",
+          }),
+        ],
+      ],
+    ]),
+  );
+  const res = await agent.get("/api/collector/shelf").expect(200);
+  // vol. 1's $6 as a single isn't counted: the omnibus holds it
+  expect(res.body.value).toMatchObject({ cents: 900, priced: 1, volumes: 1 });
+  expect(res.body.seriesWorth[0]).toMatchObject({ cents: 900, volumes: 1 });
 });
 
 test("each reader sees their own shelf only", async () => {

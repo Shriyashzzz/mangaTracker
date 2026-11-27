@@ -4,7 +4,7 @@
 import { isbn13Ok } from "../prices/sources/catalog.js";
 import { prisma } from "../config/prisma.js";
 import { ownedVolumes } from "../util/shelf/ownedList.js";
-import { ownedSet } from "../collector/shelfMath.js";
+import { ownedSet, type OwnedEditionBook } from "../collector/shelfMath.js";
 import { editionOfBook } from "../util/shelf/editionStamp.js";
 
 export type BookInput = {
@@ -239,25 +239,24 @@ export async function shelfBooks(userId: number) {
 }
 
 // each series' books of a bigger edition (VIZBIG, Deluxe, an omnibus, a
-// box set) they've said they own, with an ISBN: the shelf's worth counts
-// each at its own price (collector/shelfMath.ts shelfValue). One whose
-// volumes aren't all ticked any more is passed over there
+// box set) they've said they own: the shelf's worth counts each as the book
+// it is, at its own price, or estimated when it has none or no ISBN
+// (collector/shelfMath.ts shelfValue). One whose volumes aren't all ticked
+// any more is passed over there
 export async function editionBooksOf(mangaIds: number[]) {
   const rows = mangaIds.length
     ? await prisma.ownedBook.findMany({
         where: {
           mangaId: { in: mangaIds },
           edition: { not: "single" },
-          isbn13: { not: null },
         },
-        select: { mangaId: true, isbn13: true, volumes: true },
+        select: { mangaId: true, isbn13: true, edition: true, volumes: true },
       })
     : [];
-  const byManga = new Map<number, { isbn13: string; volumes: number[] }[]>();
-  for (const { mangaId, isbn13, volumes } of rows) {
-    if (!isbn13) continue;
+  const byManga = new Map<number, OwnedEditionBook[]>();
+  for (const { mangaId, isbn13, edition, volumes } of rows) {
     const books = byManga.get(mangaId) ?? [];
-    books.push({ isbn13, volumes });
+    books.push({ isbn13, edition, volumes });
     byManga.set(mangaId, books);
   }
   return byManga;
