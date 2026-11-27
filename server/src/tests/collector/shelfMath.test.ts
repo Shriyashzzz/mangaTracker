@@ -127,7 +127,8 @@ test("one book holding two volumes is worth something once; specials never count
     [{ owned: { volumesOwned: 3, ownedList: [] }, volumes: v }],
     usedPrices([[v[0]!, 900]]),
   );
-  expect(value).toMatchObject({ cents: 900, volumes: 1 });
+  // vols. 1 and 2 are known, and priced, in the one book; vol. 3 has none
+  expect(value).toMatchObject({ cents: 900, priced: 2, volumes: 2 });
 });
 
 test("finishing a series: the volumes out they don't own, each with its cheapest new copy", () => {
@@ -308,10 +309,11 @@ test("a series owned only in VIZBIGs is worth its VIZBIGs, not its singles", () 
       [books[1]!, 1700],
     ]),
   );
+  // counted in volumes: all six priced, so the total is exact
   expect(value).toEqual({
     cents: 3200,
-    priced: 2,
-    volumes: 2,
+    priced: 6,
+    volumes: 6,
     unlisted: 0,
     estimateCents: 3200,
   });
@@ -335,7 +337,8 @@ test("VIZBIGs and Definitives of one series both count, each at its own price", 
     ]),
   );
   expect(value.cents).toBe(5500);
-  expect(value.volumes).toBe(2);
+  expect(value.volumes).toBe(9);
+  expect(value.priced).toBe(9);
   expect(value.estimateCents).toBe(5500);
 });
 
@@ -358,7 +361,8 @@ test("singles and an omnibus: the omnibus's volumes aren't counted twice", () =>
   );
   // the omnibus, then vols. 4 and 5 as singles
   expect(value.cents).toBe(2600);
-  expect(value.volumes).toBe(3);
+  expect(value.volumes).toBe(5);
+  expect(value.priced).toBe(5);
 });
 
 test("an edition book never seen used is its volumes at a single's usual price", () => {
@@ -380,8 +384,9 @@ test("an edition book never seen used is its volumes at a single's usual price",
     ]),
   );
   expect(value.cents).toBe(1000);
+  // vols. 3 and 4 priced; the Deluxe's 1 and 2 not
   expect(value.priced).toBe(2);
-  expect(value.volumes).toBe(3);
+  expect(value.volumes).toBe(4);
   // the Deluxe as two volumes at 500 each
   expect(value.estimateCents).toBe(1000 + 1000);
 });
@@ -430,8 +435,8 @@ test("a book with no ISBN is estimated from their priced books of its kind", () 
     ]),
   );
   expect(value.cents).toBe(3900);
-  expect(value.priced).toBe(2);
-  expect(value.volumes).toBe(3);
+  expect(value.priced).toBe(6);
+  expect(value.volumes).toBe(9);
   expect(value.estimateCents).toBe(3900 + 3 * 650);
 });
 
@@ -450,6 +455,26 @@ test("a book with no ISBN and no priced sibling: its volumes as singles go", () 
   );
   // vols. 3 and 4 as singles; the Deluxe as two volumes at 500
   expect(value.cents).toBe(1000);
-  expect(value.volumes).toBe(3);
+  expect(value.priced).toBe(2);
+  expect(value.volumes).toBe(4);
   expect(value.estimateCents).toBe(1000 + 1000);
+});
+
+test("a shelf priced only through edition books still estimates the rest", () => {
+  // VIZBIGs priced; another series has no saved list at all (4 volumes)
+  const singles = [1, 2, 3].map((n) => vol(n));
+  const vizbig = big(1, 1, 3);
+  const value = shelfValue(
+    [
+      {
+        owned: { volumesOwned: 3, ownedList: [] },
+        volumes: singles,
+        editionBooks: [vizbig],
+      },
+    ],
+    prices([[vizbig, 1500]]),
+    4,
+  );
+  // the four unlisted volumes at a VIZBIG volume's share: 500 each, not 0
+  expect(value.estimateCents).toBe(1500 + 4 * 500);
 });

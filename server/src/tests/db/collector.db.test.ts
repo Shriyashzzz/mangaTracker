@@ -220,8 +220,9 @@ test("an omnibus they've recorded is worth its own price, not its volumes", asyn
   );
   const res = await agent.get("/api/collector/shelf").expect(200);
   // vol. 1's $6 as a single isn't counted: the omnibus holds it
-  expect(res.body.value).toMatchObject({ cents: 900, priced: 1, volumes: 1 });
-  expect(res.body.seriesWorth[0]).toMatchObject({ cents: 900, volumes: 1 });
+  // all three volumes inside it, priced: an exact total
+  expect(res.body.value).toMatchObject({ cents: 900, priced: 3, volumes: 3 });
+  expect(res.body.seriesWorth[0]).toMatchObject({ cents: 900, volumes: 3 });
 });
 
 test("each reader sees their own shelf only", async () => {

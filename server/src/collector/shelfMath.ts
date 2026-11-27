@@ -92,8 +92,11 @@ const lastIndexWhere = <T>(list: T[], passes: (item: T) => boolean) => {
 // ---------- what the shelf is worth ----------
 
 export type ShelfValue = {
-  // the cheapest used copy of each owned volume we have a price for, added up
+  // the used prices of the owned books we have one for, added up (a book
+  // holding several volumes, once)
   cents: number;
+  // owned volumes inside those priced books: counted in volumes, as the
+  // pages count what's owned, so all of it priced reads as an exact total
   priced: number;
   // owned volumes we know the book of
   volumes: number;
@@ -165,10 +168,16 @@ export function shelfValue(
     }
     const singles: ListedVolume[] = [];
     const ownedAndListed = new Set<number>();
+    // the owned volumes inside a priced book, each once
+    const pricedVolumes = new Set<number>();
+    for (const book of editions)
+      if (usedPrice(book) !== undefined)
+        for (const v of book.volumes) pricedVolumes.add(v);
     for (const v of volumes) {
       if (!isMainVolume(v) || !mine.has(v.volume) || inEditions.has(v.volume))
         continue;
       ownedAndListed.add(v.volume);
+      if (usedPrice(v) !== undefined) pricedVolumes.add(v.volume);
       if (counted.has(v.isbn13)) continue;
       counted.add(v.isbn13);
       singles.push(v);
@@ -177,14 +186,24 @@ export function shelfValue(
     // what a single of this series usually fetches used, from every one of
     // its volumes seen (owned or not): for pricing an edition book unseen
     const singlesSeen = knownPrices(volumes.filter(isMainVolume));
-    return { singles, editions, singleUsual: median(singlesSeen) };
+    return {
+      singles,
+      editions,
+      singleUsual: median(singlesSeen),
+      known: inEditions.size + ownedAndListed.size,
+      priced: pricedVolumes.size,
+    };
   });
   const withoutABook = unlisted + notInALists;
   const allSingles = bySeries.flatMap((s) => s.singles);
   const allEditions = bySeries.flatMap((s) => s.editions);
 
   const prices = knownPrices([...allSingles, ...allEditions]);
-  const shelfUsual = median(knownPrices(allSingles));
+  // what a volume usually goes for used on this shelf: a single's price, or,
+  // on a shelf whose only prices are edition books', a volume's share of one
+  const shelfUsual =
+    median(knownPrices(allSingles)) ||
+    perVolumeOf(allEditions, null, usedPrice);
 
   // the estimate: a priced book at its price; an unpriced single at its
   // series' usual price, or the shelf's when the series has none; an
@@ -207,24 +226,25 @@ export function shelfValue(
 
   return {
     cents: sum(prices),
-    priced: prices.length,
-    volumes: allSingles.length + allEditions.length,
+    priced: sum(bySeries.map((s) => s.priced)),
+    volumes: sum(bySeries.map((s) => s.known)),
     unlisted: withoutABook,
     estimateCents: prices.length ? estimate : null,
   };
 }
 
 // what a volume goes for used inside their priced books of one kind
-// ("deluxe"): each book's price over the volumes it holds, the middle of
-// those. 0 when none of that kind is priced
+// ("deluxe"), or of any kind (null): each book's price over the volumes it
+// holds, the middle of those. 0 when none is priced
 function perVolumeOf(
   books: OwnedEditionBook[],
-  edition: string,
+  edition: string | null,
   usedPrice: (book: OwnedEditionBook) => number | undefined,
 ) {
   const rates: number[] = [];
   for (const book of books) {
-    const cents = book.edition === edition ? usedPrice(book) : undefined;
+    const sameKind = edition === null || book.edition === edition;
+    const cents = sameKind ? usedPrice(book) : undefined;
     if (cents !== undefined) rates.push(cents / book.volumes.length);
   }
   return Math.round(median(rates));

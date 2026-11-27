@@ -101,13 +101,13 @@ export default function OtherEditions({
         </span>
       </div>
       {/* which of the picked edition's books holds a volume: the same lookup
-          as /editions, started at their next volume when it's theirs. The
-          volume typed stays when another edition is picked */}
+          as /editions, started at their next volume of that edition when
+          it's theirs */}
       <div className="mb-5">
         <EditionFinder
-          key={`${name}:${nextVolumeFor(lines, owned) ?? ""}`}
+          key={`${name}:${line.key}:${nextVolumeFor([line], owned) ?? ""}`}
           lines={[line]}
-          startAt={nextVolumeFor(lines, owned)}
+          startAt={nextVolumeFor([line], owned)}
         />
       </div>
       {lines.length > 1 && (

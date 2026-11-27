@@ -89,13 +89,16 @@ export async function getShelfTools(
     for (const book of line.books) if (book.isbn13) isbns.add(book.isbn13);
   // a book recorded with no ISBN ("not listed yet" when it was ticked)
   // takes the one its edition's list has found since, matched by the
-  // volumes it holds: its real price then stands in for the estimate
+  // volumes it holds: its real price then stands in for the estimate. Only
+  // from a list of its own kind: a Deluxe holding the same volumes as their
+  // omnibus is another book
   for (const [mangaId, books] of editionBooks) {
     const line = lines.get(mangaId);
     for (const book of books) {
-      book.isbn13 ??=
-        line?.books.find((b) => sameVolumes(b.volumes, book.volumes))?.isbn13 ??
-        null;
+      if (line?.kind === book.edition)
+        book.isbn13 ??=
+          line.books.find((b) => sameVolumes(b.volumes, book.volumes))
+            ?.isbn13 ?? null;
       if (book.isbn13) isbns.add(book.isbn13);
     }
   }
