@@ -37,7 +37,9 @@ type Item = {
   saleInfo?: { isEbook?: boolean };
 };
 
-// "Frieren: Beyond Journey's End" -> "intitle:Frieren intitle:Beyond …"
+// "Frieren: Beyond Journey's End" -> "intitle:Frieren intitle:Beyond …".
+// Words of one letter are left out, so a title of nothing else ("X") gives
+// "": see searchableTitle
 const titleWords = (name: string) =>
   name
     .normalize("NFKD")
@@ -46,6 +48,13 @@ const titleWords = (name: string) =>
     .filter((w) => w.length > 1)
     .map((w) => `intitle:${w}`)
     .join(" ");
+
+// a series' name as every search here asks Google for it; "" for one with
+// no word longer than a letter ("X"). Google isn't asked about one of those:
+// with nothing to say which series it is, a search would find any book at
+// all (a 400 for an empty one, anything with a 5 in it for volume 5, every
+// VIZBIG for its editions). The other catalogs still look it up
+export const searchableTitle = (name: string) => titleWords(baseName(name));
 
 // "(Light Novel)" or a volume number sometimes sits in the subtitle
 const titleOf = (info: NonNullable<Item["volumeInfo"]>) =>
@@ -71,7 +80,8 @@ export async function googleSeriesVolumes(
   timeoutMs = 10000,
 ): Promise<CatalogBook[]> {
   const key = config.GOOGLE_BOOKS_API_KEY;
-  if (!key) return [];
+  const title = searchableTitle(name);
+  if (!key || !title) return [];
   const books: CatalogBook[] = [];
   // what Google says of each book it found, kept for their pages: no
   // lookup of its own (models/volumeDetails.ts)
@@ -80,7 +90,7 @@ export async function googleSeriesVolumes(
     const params = new URLSearchParams({
       // each word on its own, punctuation dropped: Google spells "Journey’s"
       // with a curly apostrophe, and an exact phrase can then match nothing
-      q: titleWords(baseName(name)),
+      q: title,
       printType: "books",
       langRestrict: "en",
       maxResults: String(PAGE),
@@ -206,7 +216,7 @@ export async function googleEditionBooks(
   timeoutMs = 8000,
 ): Promise<{ books: GoogleEditionBook[]; whole: boolean }> {
   const key = config.GOOGLE_BOOKS_API_KEY;
-  if (!key) return { books: [], whole: true };
+  if (!key || !searchableTitle(name)) return { books: [], whole: true };
   // by family name, the last word: Google files "Urasawa, Naoki" too
   const familyName = authors[0]?.trim().split(/\s+/).at(-1);
   const byThem = familyName ? ` inauthor:${familyName}` : "";
@@ -237,7 +247,7 @@ async function searchEditionWords(
         return;
       }
       const params = new URLSearchParams({
-        q: `${titleWords(baseName(name))} intitle:${word}${byThem}`,
+        q: `${searchableTitle(name)} intitle:${word}${byThem}`,
         printType: "books",
         langRestrict: "en",
         maxResults: String(PAGE),
@@ -389,11 +399,12 @@ export async function googleVolume(
   passOver: (isbn13: string) => boolean = () => false,
 ): Promise<CatalogBook | null> {
   const key = config.GOOGLE_BOOKS_API_KEY;
-  if (!key) return null;
+  const title = searchableTitle(name);
+  if (!key || !title) return null;
   if (Date.now() < backOffUntil)
     throw new Error("Google Books lookups used up for now");
   const params = new URLSearchParams({
-    q: `${titleWords(baseName(name))} ${volume}`,
+    q: `${title} ${volume}`,
     printType: "books",
     langRestrict: "en",
     maxResults: "10",
