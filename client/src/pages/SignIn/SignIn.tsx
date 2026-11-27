@@ -1,4 +1,4 @@
-import { useRef, useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 import { authStyles as styles } from "../../styles/auth";
 import { Navigate, NavLink, useNavigate, useSearchParams } from "react-router";
 import PasswordInput from "../../components/passwordInput/PasswordInput";
@@ -60,6 +60,19 @@ export default function SignInPage() {
       setLoading(false);
     }
   };
+
+  // back from Apple's page, signed in by the server (?apple=done): what any
+  // sign-in does here (store/auth.ts signedIn: another account's kept
+  // shelf and import go), then on to where they were going
+  const appleDone = params.get("apple") === "done";
+  useEffect(() => {
+    if (!appleDone) return;
+    signedIn();
+    navigater(afterSignIn(params), { replace: true, viewTransition: true });
+    // once, on arriving; the address decides
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [appleDone]);
+  if (appleDone) return null;
 
   // already signed in: on to where signing in would take them
   if (isSignedIn && !loading)

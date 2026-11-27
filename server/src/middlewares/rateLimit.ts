@@ -4,16 +4,20 @@ import { clientIp } from "../util/clientIp.js";
 // tiny per-visitor limiter so one client can't burn through the free API
 // quotas. In memory, so it resets on restart; good enough for one server
 // `counts`: which finished requests count toward the limit, by their status
-// (sign-up counts only accounts made, so typos don't lock anyone out).
-// Without it every request counts
+// and what the route noted in res.locals (sign-up counts only accounts made,
+// so typos don't lock anyone out). Without it every request counts.
+// `refuse`: how to say no; a JSON 429 unless given (a page the browser was
+// sent to, such as Apple's return, says it with a redirect)
 export function rateLimit({
   max,
   windowMs,
   counts,
+  refuse,
 }: {
   max: number;
   windowMs: number;
-  counts?: (status: number) => boolean;
+  counts?: (status: number, locals: Record<string, unknown>) => boolean;
+  refuse?: RequestHandler;
 }): RequestHandler {
   const hits = new Map<string, number[]>();
   return (req, res, next) => {
@@ -22,6 +26,10 @@ export function rateLimit({
     const recent = (hits.get(key) ?? []).filter((t) => now - t < windowMs);
     if (recent.length >= max) {
       res.set("Retry-After", String(Math.ceil(windowMs / 1000)));
+      if (refuse) {
+        refuse(req, res, next);
+        return;
+      }
       res
         .status(429)
         .json({ error: [{ msg: "Slow down a little, then try again." }] });
@@ -34,7 +42,7 @@ export function rateLimit({
     hits.set(key, recent);
     if (counts)
       res.on("finish", () => {
-        if (counts(res.statusCode)) return;
+        if (counts(res.statusCode, res.locals)) return;
         const times = hits.get(key);
         const at = times?.indexOf(now) ?? -1;
         if (at >= 0) times!.splice(at, 1);

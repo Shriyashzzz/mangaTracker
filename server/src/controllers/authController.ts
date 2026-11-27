@@ -204,25 +204,42 @@ const localPath = (path: unknown) =>
 
 // POST /apple/return  the website's sign-in with Apple: Apple's page sends
 // the browser back here with a form (id_token, state: where they were going,
-// user: their name, said only the first time). Signed in, on to where they
-// were going; otherwise back to sign in, saying it didn't work. The nonce in
-// the token must be the one this browser left in its cookie, so nobody can
-// sign someone in with a token of their own
+// user: their name, said only the first time). Signed in, back to the sign-in
+// page (?apple=done), which does what any sign-in does on the website (clears
+// what another account left in this browser) and moves on to where they were
+// going; otherwise back to sign in, saying it didn't work. The nonce in the
+// token must be the one this browser left in its cookie, so nobody can sign
+// someone in with a token of their own. A page the browser was sent to, so
+// every answer is a redirect, a failure included
 const appleReturn = async (req: Request, res: Response) => {
   const form = (req.body ?? {}) as Record<string, unknown>;
   res.clearCookie(APPLE_NONCE_COOKIE, { path: "/api/auth/apple" });
   // they pressed Cancel on Apple's page
   if (form.error) return res.redirect(303, "/signin");
-  const found =
-    typeof form.id_token === "string" && form.id_token.length <= 8192
-      ? await appleSignIn.accountOf(
-          form.id_token,
-          cookieOf(req, APPLE_NONCE_COOKIE),
-        )
-      : null;
-  if (!found) return res.redirect(303, "/signin?apple=failed");
-  await signInApple(req, found, firstNameOf(form.user));
-  res.redirect(303, localPath(form.state));
+  try {
+    const found =
+      typeof form.id_token === "string" && form.id_token.length <= 8192
+        ? await appleSignIn.accountOf(
+            form.id_token,
+            cookieOf(req, APPLE_NONCE_COOKIE),
+          )
+        : null;
+    if (!found) return res.redirect(303, "/signin?apple=failed");
+    // counted toward the accounts one place may make (authRouter.ts)
+    res.locals.accountMade = await signInApple(
+      req,
+      found,
+      firstNameOf(form.user),
+    );
+    const next = new URLSearchParams({
+      apple: "done",
+      next: localPath(form.state),
+    });
+    res.redirect(303, `/signin?${next}`);
+  } catch (e) {
+    console.error("Apple sign-in on the website failed:", (e as Error).message);
+    res.redirect(303, "/signin?apple=failed");
+  }
 };
 
 // the first name in Apple's "user" field: {"name":{"firstName":"Mia"}}

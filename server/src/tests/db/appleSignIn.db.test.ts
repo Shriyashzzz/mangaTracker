@@ -97,7 +97,10 @@ test("the website: back from Apple, signed in and on to where they were going", 
       user: JSON.stringify({ name: { firstName: "Miabelle" } }),
     })
     .expect(303);
-  expect(answer.headers.location).toBe("/prices/series/vagabond");
+  // to the sign-in page, which finishes signing in there and moves on
+  expect(answer.headers.location).toBe(
+    "/signin?apple=done&next=%2Fprices%2Fseries%2Fvagabond",
+  );
   const account = (await agent.get("/api/account").expect(200)).body;
   expect(account.username).toBe("miabelle");
 });
@@ -131,7 +134,7 @@ test("the website: only a path on this site is followed after", async () => {
       .type("form")
       .send({ id_token: webToken("relay", "n1"), state })
       .expect(303);
-    expect(answer.headers.location).toBe("/shelf");
+    expect(answer.headers.location).toBe("/signin?apple=done&next=%2Fshelf");
   }
 });
 
@@ -142,4 +145,43 @@ test("the website: Cancel on Apple's page goes back to sign in", async () => {
     .send({ error: "user_cancelled_authorize" })
     .expect(303);
   expect(answer.headers.location).toBe("/signin");
+});
+
+test("the website: one place makes at most 5 accounts an hour, then back to sign in", async () => {
+  const made: string[] = [];
+  for (let n = 0; n < 6; n++) {
+    const answer = await request(app)
+      .post("/api/auth/apple/return")
+      .set("Cookie", `apple_nonce=cap${n}`)
+      .type("form")
+      .send({ id_token: webToken(`cap${n}`, `cap${n}`) });
+    made.push(answer.headers.location as string);
+  }
+  // (the cap is kept in memory for the hour, so accounts the tests above
+  // made here count too): a few made, then every one after turned back
+  const done = made.filter((to) => to.includes("apple=done")).length;
+  expect(done).toBeGreaterThan(0);
+  expect(done).toBeLessThan(5);
+  expect(made.slice(done).every((to) => to === "/signin?apple=failed")).toBe(
+    true,
+  );
+  expect(await prisma.user.count()).toBe(done);
+});
+
+test("the website: a failure on our side still goes back to sign in", async () => {
+  const real = appleSignIn.accountOf;
+  appleSignIn.accountOf = async () => {
+    throw new Error("the database is down");
+  };
+  try {
+    const answer = await request(app)
+      .post("/api/auth/apple/return")
+      .set("Cookie", "apple_nonce=n9")
+      .type("form")
+      .send({ id_token: webToken("mia", "n9") })
+      .expect(303);
+    expect(answer.headers.location).toBe("/signin?apple=failed");
+  } finally {
+    appleSignIn.accountOf = real;
+  }
 });

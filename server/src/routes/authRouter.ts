@@ -5,7 +5,7 @@ import auth from "../controllers/authController.js";
 import { requireSignIn } from "../middlewares/auth.js";
 import { rateLimit } from "../middlewares/rateLimit.js";
 import { verifyResetPasswordToken } from "../middlewares/verifyToken.js";
-import type { Response, Request } from "express";
+import type { Response, Request, RequestHandler } from "express";
 
 // Enough for typos and a forgotten password, not for guessing one. Off the
 // live site (ENV isn't PROD) it's far higher: UI checks run by script sign
@@ -41,9 +41,26 @@ authRouter.post("/signup", signUpTries, signUpAccounts, auth.signup);
 authRouter.post("/google", signInLimit, signUpAccounts, auth.google);
 authRouter.post("/apple", signInLimit, signUpAccounts, auth.apple);
 // the website's: Apple's page posts a form back here (authController.ts)
+// The browser is sent here by Apple's page, so a "no" is said by sending it
+// back to sign in, never a JSON answer. Counted apart from the others, with
+// the same caps: sign-ins, and accounts made (res.locals.accountMade)
+const backToSignIn: RequestHandler = (_req, res) =>
+  res.redirect(303, "/signin?apple=failed");
+const appleWebSignIns = rateLimit({
+  max: SIGN_INS,
+  windowMs: 5 * 60_000,
+  refuse: backToSignIn,
+});
+const appleWebAccounts = rateLimit({
+  max: 5,
+  windowMs: 60 * 60_000,
+  counts: (_status, locals) => locals.accountMade === true,
+  refuse: backToSignIn,
+});
 authRouter.post(
   "/apple/return",
-  signInLimit,
+  appleWebSignIns,
+  appleWebAccounts,
   express.urlencoded({ extended: false, limit: "16kb" }),
   auth.appleReturn,
 );
