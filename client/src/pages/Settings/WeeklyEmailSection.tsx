@@ -1,6 +1,7 @@
 // Settings, New releases: the weekly email, on or off. Sent to the account's
-// email (Settings, Account) once the link mailed to it is pressed
-import { useState } from "react";
+// email (Settings, Account) once the link mailed to it is pressed. With no
+// email saved yet, the address is typed here and one button starts it all
+import { useState, type FormEvent } from "react";
 import type { Account } from "../../lib/account";
 import { useAccount } from "../../store/account";
 import { settingsStyles as styles } from "./styles";
@@ -8,12 +9,11 @@ import { settingsStyles as styles } from "./styles";
 // said when the confirm link was meant to go and didn't
 const LINK_NOT_SENT = "We couldn't send the link. Try again in a minute.";
 
+type WeeklyNote = { text: string; failed?: boolean } | null;
+
 export function WeeklyEmailSection({ account }: { account: Account }) {
   const setWeeklyEmail = useAccount((s) => s.weeklyEmail);
-  const [weeklyNote, setWeeklyNote] = useState<{
-    text: string;
-    failed?: boolean;
-  } | null>(null);
+  const [weeklyNote, setWeeklyNote] = useState<WeeklyNote>(null);
   const [weeklySaving, setWeeklySaving] = useState(false);
   // on, off, or on again to mail the confirm link once more
   const switchWeekly = async (on: boolean, said: string) => {
@@ -99,10 +99,73 @@ export function WeeklyEmailSection({ account }: { account: Account }) {
           </div>
         </>
       ) : (
-        <p className={styles.body}>
-          Save an email under Account to switch it on.
-        </p>
+        <StartWeekly note={weeklyNote} onNote={setWeeklyNote} />
       )}
     </section>
+  );
+}
+
+// no email saved yet: typed here, and one button saves it, switches the
+// weekly email on and mails the confirm link. The note is the section's, so
+// what happened is still said once the switch has taken this one's place
+function StartWeekly({
+  note,
+  onNote,
+}: {
+  note: WeeklyNote;
+  onNote: (note: WeeklyNote) => void;
+}) {
+  const startWeeklyEmail = useAccount((s) => s.startWeeklyEmail);
+  const [email, setEmail] = useState("");
+  const [saving, setSaving] = useState(false);
+
+  const start = async (e: FormEvent) => {
+    e.preventDefault();
+    const address = email.trim();
+    if (!address) {
+      onNote({ text: "Type your email first.", failed: true });
+      return;
+    }
+    onNote(null);
+    setSaving(true);
+    try {
+      await startWeeklyEmail(address);
+      if (useAccount.getState().account?.confirmNotSent)
+        onNote({ text: LINK_NOT_SENT, failed: true });
+    } catch (error) {
+      onNote({ text: (error as Error).message, failed: true });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <form className={styles.field} onSubmit={start} noValidate>
+      <label htmlFor="weekly-email">Your email</label>
+      <input
+        id="weekly-email"
+        type="email"
+        className={styles.input}
+        value={email}
+        autoComplete="email"
+        placeholder="you@example.com"
+        aria-invalid={note?.failed || undefined}
+        onChange={(e) => setEmail(e.target.value)}
+      />
+      <p className={styles.body}>
+        We'll send a link to check it's yours. Press it and the email starts.
+      </p>
+      <div className={styles.actions}>
+        <button type="submit" className="btn btn-primary" disabled={saving}>
+          Start my weekly email
+        </button>
+        <span
+          className={note?.failed ? styles.failed : styles.saved}
+          role="status"
+        >
+          {note?.text}
+        </span>
+      </div>
+    </form>
   );
 }

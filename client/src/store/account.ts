@@ -18,6 +18,9 @@ type AccountState = {
   save: (patch: Parameters<typeof saveAccount>[0]) => Promise<void>;
   // the weekly email's switch; throws the same way
   weeklyEmail: (on: boolean) => Promise<void>;
+  // the weekly email with no address saved yet: saves it, then switches the
+  // email on, which mails the confirm link. Throws the same way
+  startWeeklyEmail: (email: string) => Promise<void>;
   // signing in with Google too, and a Google account's first password;
   // both throw the same way
   linkGoogle: (credential: string) => Promise<void>;
@@ -40,6 +43,10 @@ export const useAccount = create<AccountState>()((set) => ({
   },
   weeklyEmail: async (on) => {
     set({ account: await setWeeklyEmail(on) });
+  },
+  startWeeklyEmail: async (email) => {
+    set({ account: await saveAccount({ recoveryEmail: email }) });
+    set({ account: await setWeeklyEmail(true) });
   },
   linkGoogle: async (credential) => {
     set({ account: await linkGoogle(credential) });
