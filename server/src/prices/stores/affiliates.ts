@@ -3,7 +3,8 @@
 //   BOOKSHOP_AFFILIATE_ID  Bookshop.org affiliate ID (a number)
 //   EBAY_CAMPAIGN_ID       eBay Partner Network campaign ID (10 digits)
 //   WALMART_AFFILIATE      set to "on" once Impact has approved the Walmart
-//                          program. The Impact script in client/index.html
+//                          program, and put the Impact script back in
+//                          client/index.html (taken out until then): it
 //                          turns Walmart links into affiliate links in the
 //                          browser; this only says whether that earns
 //   CJ_WEBSITE_ID          our CJ website ID (PID): Books-A-Million links go

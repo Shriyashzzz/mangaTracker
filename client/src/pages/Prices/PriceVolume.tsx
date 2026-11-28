@@ -62,7 +62,8 @@ import {
   usualWhenWellBelow,
 } from "./volumePageRules";
 
-// the Impact script (index.html) that turns Walmart links into affiliate links
+// the Impact script that turns Walmart links into affiliate links: out of
+// index.html until Walmart approves us, so this does nothing for now
 declare global {
   interface Window {
     impactStat?: (command: string) => void;
