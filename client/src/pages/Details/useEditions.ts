@@ -2,7 +2,7 @@
 // the one they picked, or else the one their recorded books point to.
 import { useEffect, useState } from "react";
 import { getJson } from "../../lib/api";
-import { getBooks } from "../../lib/booksApi";
+import { getRecordedBooks } from "../../lib/booksApi";
 import {
   editionPlan,
   guessEdition,
@@ -31,7 +31,11 @@ export function useEditions(
     name: string | null;
     lines: EditionLine[];
     books: OwnedBook[];
-  }>({ name: null, lines: [], books: [] });
+    // the books shown since the page opened, by id
+    seen: number[];
+    // of those, the ones they've since unticked a volume of (keptWhole)
+    unticked: OwnedBook[];
+  }>({ name: null, lines: [], books: [], seen: [], unticked: [] });
 
   useEffect(() => {
     if (!name || !mangaId) return;
@@ -41,10 +45,18 @@ export function useEditions(
         `/api/prices/editions?${new URLSearchParams({ name })}`,
         controller.signal,
       ).catch(() => ({ lines: [] })),
-      getBooks(mangaId, controller.signal).catch(() => []),
-    ]).then(([{ lines }, books]) => {
+      getRecordedBooks(mangaId, controller.signal).catch(() => ({
+        books: [],
+      })),
+    ]).then(([{ lines }, { books }]) => {
       if (!controller.signal.aborted)
-        setState({ name, lines: lines ?? [], books });
+        setState({
+          name,
+          lines: lines ?? [],
+          books,
+          seen: books.map((b) => b.id),
+          unticked: [],
+        });
     });
     return () => controller.abort();
   }, [name, mangaId]);
@@ -53,9 +65,18 @@ export function useEditions(
   useEffect(() => {
     if (!name || !mangaId || !booksChanged) return;
     const controller = new AbortController();
-    getBooks(mangaId, controller.signal)
-      .then((books) =>
-        setState((now) => (now.name === name ? { ...now, books } : now)),
+    getRecordedBooks(mangaId, controller.signal)
+      .then(({ books, unticked }) =>
+        setState((now) => {
+          if (now.name !== name) return now;
+          const seen = [...new Set([...now.seen, ...books.map((b) => b.id)])];
+          return {
+            ...now,
+            books,
+            seen,
+            unticked: unticked.filter((b) => seen.includes(b.id)),
+          };
+        }),
       )
       .catch(() => {});
     return () => controller.abort();
@@ -74,6 +95,12 @@ export function useEditions(
     line,
     // the books they've recorded, for the names over the shelf's spines
     books: state.name === name ? state.books : [],
+    // what the shelf is drawn from (slotsOf): their books, and any shown
+    // since the page opened that they've unticked a volume of. Unticking
+    // VIZBIG 7 on a Definitive shelf leaves it one empty book, so a tap
+    // ticks it back, rather than three volumes to tick one by one. Open the
+    // page again and it's those three volumes
+    keptWhole: state.name === name ? [...state.books, ...state.unticked] : [],
     // they collect an edition, known even before its line is (offline, it
     // may be missing): picked, or their recorded edition books hold at least
     // half of what they own, as guessEdition decides it

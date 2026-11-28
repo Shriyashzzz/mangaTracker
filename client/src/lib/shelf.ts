@@ -3,6 +3,7 @@
 import { apiFetch, getJson } from "./api";
 import type { ReleaseData, ReleaseStatus, ShelfMatch } from "./types";
 import type { ReleaseOutcome, SeenKind } from "./releaseMath";
+import { todayOf } from "./editionNews";
 import { orOffline } from "./offline";
 import { SHELF_TAB_KEY } from "./shelfTabKey";
 
@@ -121,7 +122,9 @@ export async function setOrdered(
 export async function setVolumesOwned(id: number, owned: Owned) {
   const res = await apiFetch(`/api/manga/${id}/owned`, {
     method: "PUT",
-    body: owned,
+    // with their own day: a book ticked is recorded by the day the shelf is
+    // drawn by (server util/shelf/tickedBooks.ts readersDay)
+    body: { ...owned, today: todayOf() },
   });
   if (!res.ok) throw new Error("Couldn't update the shelf");
   return (await res.json()) as Owned;

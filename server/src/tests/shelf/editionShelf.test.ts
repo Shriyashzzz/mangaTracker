@@ -14,6 +14,7 @@ import {
   slotsOf,
   slotsRead,
   spineOf,
+  stateOf,
   toggleSlot,
   volumeReadAfter,
   volumesAfterPaint,
@@ -221,10 +222,27 @@ describe("their own books where the edition has none", () => {
     expect(ownedCaption(shelf, owned)).toBe("All 6 yours");
   });
 
-  test("ticking one off takes its three volumes", () => {
-    expect(toggleSlot(shelf[6]!, owned)).toEqual(
-      owned.filter((v) => ![19, 20, 21].includes(v)),
+  test("ticking one off takes its three volumes, and one tap brings it back", () => {
+    const without = owned.filter((v) => ![19, 20, 21].includes(v));
+    expect(toggleSlot(shelf[6]!, owned)).toEqual(without);
+    // the page keeps VIZBIG 7 whole once unticked (useEditions keptWhole):
+    // still one book, now not theirs
+    expect(shelf[6]!.volumes).toEqual([19, 20, 21]);
+    expect(stateOf(shelf[6]!, without)).toBe("none");
+    expect(toggleSlot(shelf[6]!, without)).toEqual(owned);
+  });
+
+  test("where they are is said by the book's own name", () => {
+    expect(placeInSlots(shelf, { volume: 20, kind: "reading" })?.text).toBe(
+      "Reading VIZBIG 7",
     );
+    expect(placeInSlots(shelf, { volume: 31, kind: "reading" })?.text).toBe(
+      "Reading vol. 31",
+    );
+  });
+
+  test("the caption names the volumes left over, not their VIZBIGs again", () => {
+    expect(ownedCaption(shelf, upTo(37))).toBe("All 6 yours, and vols. 31–37");
   });
 
   test("a single volume, a box set, or a book past what's out isn't one", () => {

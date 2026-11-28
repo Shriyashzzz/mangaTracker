@@ -10,6 +10,19 @@ export const getBooks = async (mangaId: number, signal?: AbortSignal) =>
   (await getJson<{ books: OwnedBook[] }>(`/api/manga/${mangaId}/books`, signal))
     .books ?? [];
 
+// their books, and the ones they recorded and then unticked a volume of
+// (server models/bookQueries.ts recordedBooksOf)
+export const getRecordedBooks = async (
+  mangaId: number,
+  signal?: AbortSignal,
+) => {
+  const got = await getJson<{ books: OwnedBook[]; unticked?: OwnedBook[] }>(
+    `/api/manga/${mangaId}/books`,
+    signal,
+  );
+  return { books: got.books ?? [], unticked: got.unticked ?? [] };
+};
+
 // recorded after its volumes are marked: only a book whose volumes are owned
 // is kept. A failure costs the record, never the scan
 export const saveBooks = async (mangaId: number, books: NewBook[]) => {

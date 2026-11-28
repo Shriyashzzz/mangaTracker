@@ -9,7 +9,7 @@ import type { Request, Response } from "express";
 import { prisma } from "../config/prisma.js";
 import { rejectInvalid } from "../middlewares/validate.js";
 import mangaQueries from "../models/mangaQueries.js";
-import { recordTickedBooks } from "../util/shelf/tickedBooks.js";
+import { readersDay, recordTickedBooks } from "../util/shelf/tickedBooks.js";
 import { ownedSet } from "../collector/shelfMath.js";
 import { ownedVolumes } from "../util/shelf/ownedList.js";
 import { askAboutFinishedVolume } from "../reviews/reviews.js";
@@ -42,23 +42,34 @@ export const applyOfflineChanges = [
     .customSanitizer(readChange)
     .custom((change) => change !== null)
     .withMessage("That isn't a change."),
+  // their own day, "2026-11-19" (util/shelf/tickedBooks.ts readersDay)
+  body("today").optional().isString(),
   rejectInvalid,
   async (req: Request, res: Response) => {
     const userId = req.session.userId!;
-    const { changes } = matchedData(req) as { changes: Change[] };
+    const { changes, today } = matchedData(req) as {
+      changes: Change[];
+      today?: string;
+    };
+    const day = readersDay(today);
     const answers: ChangeAnswer[] = [];
     // one at a time, in the order they were made, and under the reader's
     // lock (util/shelf/oneAtATime.ts): owned volumes are read, merged and
     // written, so a tick saved from another device mid-way can't be lost
     await oneAtATime(userId, async () => {
       for (const change of changes)
-        answers.push(await applyOne(userId, change));
+        answers.push(await applyOne(userId, change, day));
     });
     res.json({ answers });
   },
 ];
 
-async function applyOne(userId: number, change: Change): Promise<ChangeAnswer> {
+async function applyOne(
+  userId: number,
+  change: Change,
+  // the reader's day (readersDay)
+  day: string,
+): Promise<ChangeAnswer> {
   const manga = await prisma.manga.findFirst({
     where: { id: change.mangaId, userId },
   });
@@ -69,7 +80,9 @@ async function applyOne(userId: number, change: Change): Promise<ChangeAnswer> {
     const merged = mergeOwned(now, change.started ?? [], change.ended ?? []);
     await mangaQueries.setVolumesOwned(manga.id, ownedVolumes(null, merged));
     // (as a tick saved online does: util/shelf/tickedBooks.ts)
-    await recordTickedBooks(manga, now, merged).catch((e) => console.error(e));
+    await recordTickedBooks(manga, now, merged, day).catch((e) =>
+      console.error(e),
+    );
     return { saved: true };
   }
   if (change.kind === "bookmark") {

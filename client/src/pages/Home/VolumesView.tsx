@@ -359,7 +359,7 @@ function SeriesShelf({
             editions.line,
             shelfTotal.size,
             todayOf(),
-            editions.books,
+            editions.keptWhole,
           ),
         }
       : null;

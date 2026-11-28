@@ -15,6 +15,7 @@
 // they're sent when the app is next open with a connection.
 import { create } from "zustand";
 import { apiFetch } from "./api";
+import { todayOf } from "./editionNews";
 import { CONNECTION_BACK, isNetworkError, isOffline } from "./offline";
 import {
   changesNothing,
@@ -194,7 +195,8 @@ export async function sendChanges(): Promise<void> {
   try {
     const res = await apiFetch("/api/manga/offline-changes", {
       method: "POST",
-      body: { changes: changes.map(toSend) },
+      // with their own day, as a tick saved online is (lib/shelf.ts)
+      body: { changes: changes.map(toSend), today: todayOf() },
     });
     // signed out since (the session ran out): kept for when they sign in
     if (!res.ok) return;

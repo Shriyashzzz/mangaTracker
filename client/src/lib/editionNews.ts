@@ -8,15 +8,11 @@
 // A book's release day comes from the catalogs (Google Books has most of
 // them, to the day). Nothing is said about a day the catalogs don't give in
 // full: a year alone isn't news.
-import { realBooksOf } from "./editionShelf";
+import { fullDayOf, realBooksOf } from "./editionShelf";
 import { rangesText } from "./ownedVolumes";
 import type { EditionBook, EditionLine } from "./editions";
 import type { Manga, ReleaseStatus } from "./types";
 
-// a day given in full, "2026-03-04": the only kind that's ever said
-const FULL_DAY = /^\d{4}-\d{2}-\d{2}$/;
-export const fullDayOf = (published?: string | null) =>
-  published && FULL_DAY.test(published) ? published : null;
 // today as the reader's own calendar has it, "2026-11-19"
 export function todayOf(now = new Date()) {
   const two = (n: number) => String(n).padStart(2, "0");

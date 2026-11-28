@@ -24,7 +24,7 @@ import { askAboutFinishedVolume } from "../../reviews/reviews.js";
 import { newestChapterKnown } from "../../util/releases/releaseAnswers.js";
 import { sendError } from "../../middlewares/errorHandler.js";
 import { oneAtATime } from "../../util/shelf/oneAtATime.js";
-import { recordTickedBooks } from "../../util/shelf/tickedBooks.js";
+import { readersDay, recordTickedBooks } from "../../util/shelf/tickedBooks.js";
 import { keepSavedList, ownedVolumes } from "../../util/shelf/ownedList.js";
 import {
   chapterMessage,
@@ -259,8 +259,12 @@ export const allBooks = async (req: Request, res: Response) => {
   res.json({ books: await bookQueries.shelfBooks(req.session.userId!) });
 };
 
+// their books, and the ones they unticked a volume of (recordedBooksOf)
 export const books = async (_req: Request, res: Response) => {
-  res.json({ books: await bookQueries.booksOf(res.locals.manga.id) });
+  const { shown, unticked } = await bookQueries.recordedBooksOf(
+    res.locals.manga.id,
+  );
+  res.json({ books: shown, unticked });
 };
 
 // a scanned book, recorded on its series. Only one whose volumes are owned
@@ -406,6 +410,8 @@ export const setOwned = [
     .withMessage("That isn't a volume number.")
     .toInt(),
   ...ownedListFields("ownedList"),
+  // their own day, "2026-11-19" (util/shelf/tickedBooks.ts readersDay)
+  body("today").optional().isString(),
   rejectInvalid,
   async (req: Request, res: Response) => {
     const d = matchedData(req);
@@ -430,6 +436,7 @@ export const setOwned = [
         manga,
         ownedSet(manga),
         ownedSet({ ...manga, ...now }),
+        readersDay(d.today),
       ).catch((e) => console.error(e));
       return now;
     });

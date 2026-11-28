@@ -40,26 +40,35 @@ export const isShown = (
   return book.volumes.every((v) => owned.has(v));
 };
 
-// a series' books, lowest volume first: those whose volumes are all owned
-export async function booksOf(mangaId: number) {
+// A series' recorded books, lowest volume first, each with its edition as
+// the page names it ("Definitive", "VIZBIG"), read from its own title (null
+// for a single volume). `shown`: those whose volumes are all owned.
+// `unticked`: those they unticked a volume of, kept so ticking it again
+// brings the book back with what was paid. They're on no list; the series
+// page only uses them to keep a book it just showed in one piece (client
+// pages/Details/useEditions.ts)
+export async function recordedBooksOf(mangaId: number) {
   const manga = await prisma.manga.findUnique({
     where: { id: mangaId },
     select: { volumesOwned: true, ownedList: true, books: true },
   });
-  if (!manga) return [];
-  return (
-    manga.books
-      .filter((b) => isShown(b, manga))
-      .sort(
-        (a, b) =>
-          Math.min(...a.volumes, 1e6) - Math.min(...b.volumes, 1e6) ||
-          a.id - b.id,
-      )
-      // its edition as the page names it ("Definitive", "VIZBIG"), read from
-      // its own title; null for a single volume
-      .map((b) => ({ ...b, label: editionOfBook(b)?.label ?? null }))
-  );
+  if (!manga) return { shown: [], unticked: [] };
+  const books = manga.books
+    .sort(
+      (a, b) =>
+        Math.min(...a.volumes, 1e6) - Math.min(...b.volumes, 1e6) ||
+        a.id - b.id,
+    )
+    .map((b) => ({ ...b, label: editionOfBook(b)?.label ?? null }));
+  return {
+    shown: books.filter((b) => isShown(b, manga)),
+    unticked: books.filter((b) => !isShown(b, manga)),
+  };
 }
+
+// a series' books, lowest volume first: those whose volumes are all owned
+export const booksOf = async (mangaId: number) =>
+  (await recordedBooksOf(mangaId)).shown;
 
 // every book on a shelf they still have, by the series it's on: for the
 // edition stamps on the shelf's cards (util/shelf/editionStamp.ts)
@@ -264,6 +273,7 @@ export async function editionBooksOf(mangaIds: number[]) {
 
 export default {
   booksOf,
+  recordedBooksOf,
   editionBooksOf,
   addBooks,
   removeBook,

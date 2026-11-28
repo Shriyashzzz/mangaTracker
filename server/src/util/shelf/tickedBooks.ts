@@ -28,14 +28,29 @@ const plain = (label: string | null | undefined) =>
     .replace(/\s+edition$/, "")
     .trim();
 
+// The reader's own day, "2026-11-19", as their page sent it with the save.
+// The shelf is drawn by that day (client lib/editionNews.ts todayOf), so
+// ticking goes by it too: on release day in Japan the server's UTC day is
+// still the day before. Anything that isn't a day, or is more than a day
+// off the server's (no time zone is), falls back to the server's own
+const DAY = 24 * 60 * 60 * 1000;
+export function readersDay(sent: unknown, now = new Date()) {
+  const serverDay = now.toISOString().slice(0, 10);
+  if (typeof sent !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(sent))
+    return serverDay;
+  const apart = Math.abs(Date.parse(sent) - Date.parse(serverDay));
+  return apart <= DAY ? sent : serverDay;
+}
+
 export async function recordTickedBooks(
   manga: Manga,
   // the volumes owned before this save, and after it
   before: Iterable<number>,
   after: Iterable<number>,
-  // the day, "2026-11-19": a book still to come isn't on the shelf, and
-  // ticking its volumes doesn't record it (realBooks.ts shelfBooks)
-  today = new Date().toISOString().slice(0, 10),
+  // the reader's day, "2026-11-19" (readersDay): a book still to come isn't
+  // on the shelf, and ticking its volumes doesn't record it (realBooks.ts
+  // shelfBooks)
+  today = readersDay(null),
 ) {
   if (!manga.edition || manga.edition === "singles" || manga.lightNovel)
     return 0;

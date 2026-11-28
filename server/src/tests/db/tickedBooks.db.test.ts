@@ -57,17 +57,22 @@ async function collecting(edition: string | null, lines = LINES) {
   const manga = await prisma.manga.create({
     data: { userId, name: NAME, edition },
   });
-  const own = (ownedList: number[]) =>
+  const own = (ownedList: number[], today?: string) =>
     agent
       .put(`/api/manga/${manga.id}/owned`)
-      .send({ volumesOwned: null, ownedList })
+      .send({ volumesOwned: null, ownedList, today })
       .expect(200);
   const books = async () =>
     (
       (await agent.get(`/api/manga/${manga.id}/books`).expect(200)).body
         .books as Listed[]
     ).map((b) => `${b.label} ${b.number}: ${b.volumes.join(",")}`);
-  return { manga, own, books };
+  const unticked = async () =>
+    (
+      (await agent.get(`/api/manga/${manga.id}/books`).expect(200)).body
+        .unticked as Listed[]
+    ).map((b) => `${b.label} ${b.number}: ${b.volumes.join(",")}`);
+  return { manga, own, books, unticked };
 }
 
 beforeEach(emptyDb);
@@ -171,4 +176,34 @@ test("a book still to come isn't recorded: ticking keeps their own book", async 
   await own([7, 8]);
   await own([7, 8, 9]);
   expect(await books()).toEqual(["VIZBIG 3: 7,8,9"]);
+});
+
+test("a book ticked on its release day in their time zone is recorded", async () => {
+  // Definitive 3 is out tomorrow by the server's clock, and today where
+  // they are (Japan's morning)
+  const tomorrow = new Date(Date.now() + 864e5).toISOString().slice(0, 10);
+  const lines = LINES.map((line) =>
+    line.key !== "definitive"
+      ? line
+      : {
+          ...line,
+          books: line.books.map((b) =>
+            b.number === 3 ? { ...b, published: tomorrow } : b,
+          ),
+        },
+  );
+  const { own, books } = await collecting("definitive", lines);
+  await own([7, 8, 9], tomorrow);
+  expect(await books()).toEqual(["Definitive 3: 7,8,9"]);
+});
+
+test("a book they unticked a volume of is sent apart, not with their books", async () => {
+  const { own, books, unticked } = await collecting("vizbig");
+  await own([1, 2, 3, 4, 5, 6]);
+  await own([1, 2, 3, 4, 5]);
+  expect(await books()).toEqual(["VIZBIG 1: 1,2,3"]);
+  expect(await unticked()).toEqual(["VIZBIG 2: 4,5,6"]);
+  // ticked again: back with their books
+  await own([1, 2, 3, 4, 5, 6]);
+  expect(await unticked()).toEqual([]);
 });

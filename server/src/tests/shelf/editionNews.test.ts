@@ -105,8 +105,10 @@ test("the New tab counts and names an edition's books", async () => {
 
 // ---------- the day an edition's next book comes out ----------
 test("an edition's next book is news when it's just out, or has a day", async () => {
-  const { editionRelease, fullDayOf } =
+  const { editionRelease } =
     await import("../../../../client/src/lib/editionNews.js");
+  const { fullDayOf } =
+    await import("../../../../client/src/lib/editionShelf.js");
   const three = (book: number) => [book * 3 - 2, book * 3 - 1, book * 3];
   // four VIZBIGs: three out, the fourth with a day
   const lineOf = (days: (string | null)[]) => ({

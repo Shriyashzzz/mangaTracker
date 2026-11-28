@@ -82,7 +82,7 @@ export function UpdateManga() {
     editions.line && out
       ? {
           line: editions.line,
-          slots: slotsOf(editions.line, out, todayOf(), editions.books),
+          slots: slotsOf(editions.line, out, todayOf(), editions.keptWhole),
         }
       : null,
   );

@@ -512,7 +512,7 @@ export default function Details() {
             editions.line,
             shelfTotal.size,
             todayOf(),
-            editions.books,
+            editions.keptWhole,
           ),
         }
       : null;
