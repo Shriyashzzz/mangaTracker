@@ -1,10 +1,12 @@
 // A series' shelf seen through an edition (client/src/lib/editionShelf.ts):
 // Vagabond's 37 volumes as 12 VIZBIG books and one volume left over.
 import {
+  isSingleSlot,
   ownedCaption,
   ownsEveryBook,
   placeInSlots,
   readPastTheBooks,
+  runOf,
   shareOwned,
   slotName,
   slotOfVolume,
@@ -175,4 +177,64 @@ test("a book with a day still to come isn't on the shelf yet", () => {
   // out by then, or no day said: a book like any other
   expect(slotsOf(line, 9, "2999-06-01")).toHaveLength(3);
   expect(slotsOf(line, 9)).toHaveLength(3);
+});
+
+// Vagabond seen as Definitive (six books, vols. 1-18) by someone with
+// Definitive 1-4 and VIZBIG 5-10, as the server sends their books
+describe("their own books where the edition has none", () => {
+  const definitive = lineOf(6, "Definitive");
+  const mine = (label: string, number: number, edition = "omnibus") => ({
+    label,
+    edition,
+    number,
+    volumes: three(number),
+  });
+  const recorded = [
+    ...[1, 2, 3, 4].map((n) => mine("Definitive", n, "deluxe")),
+    ...[5, 6, 7, 8, 9, 10].map((n) => mine("VIZBIG", n)),
+  ];
+  const shelf = slotsOf(definitive, 37, undefined, recorded);
+  const owned = upTo(30);
+
+  test("VIZBIG 7 to 10 stand as books, not as twelve singles", () => {
+    // six Definitive, four VIZBIG, then vols. 31-37
+    expect(shelf).toHaveLength(17);
+    expect(shelf[6]!.volumes).toEqual([19, 20, 21]);
+    expect(shelf.slice(6, 10).map(spineOf)).toEqual(["7", "8", "9", "10"]);
+    expect(isSingleSlot(shelf[6]!)).toBe(false);
+    expect(isSingleSlot(shelf[10]!)).toBe(true);
+    expect(slotName(definitive, shelf[6]!, owned)).toBe(
+      "VIZBIG 7, vols. 19–21",
+    );
+    expect(runOf(shelf[6]!, definitive, recorded)).toEqual({
+      label: "VIZBIG",
+      kind: "omnibus",
+    });
+    expect(runOf(shelf[10]!, definitive, recorded).label).toBe("Singles");
+  });
+
+  test("where the edition has the book, the shelf keeps it", () => {
+    // VIZBIG 5 and 6 hold what Definitive 5 and 6 do: the edition's books,
+    // named by what they really are
+    expect(shelf[4]!.book?.number).toBe(5);
+    expect(runOf(shelf[4]!, definitive, recorded).label).toBe("VIZBIG");
+    expect(ownedCaption(shelf, owned)).toBe("All 6 yours");
+  });
+
+  test("ticking one off takes its three volumes", () => {
+    expect(toggleSlot(shelf[6]!, owned)).toEqual(
+      owned.filter((v) => ![19, 20, 21].includes(v)),
+    );
+  });
+
+  test("a single volume, a box set, or a book past what's out isn't one", () => {
+    const others = [
+      { label: null, edition: "single", number: 19, volumes: [19] },
+      { label: "Box set", edition: "boxset", number: 1, volumes: [19, 20, 21] },
+      mine("VIZBIG", 13),
+    ];
+    const plain = slotsOf(definitive, 37, undefined, others);
+    expect(plain).toHaveLength(6 + 19);
+    expect(plain.slice(6).every(isSingleSlot)).toBe(true);
+  });
 });

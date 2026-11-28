@@ -10,9 +10,13 @@
 //   a book    one of the edition's books, holding several volumes
 //   a single  a volume the edition has no book for (Vagabond's VIZBIGs end
 //             at vol. 36; vol. 37 is only sold on its own)
+//   theirs    a book of another edition they recorded, where this edition
+//             has no book: their VIZBIG 7 on a shelf seen as Definitive,
+//             whose six books end at vol. 18
 // Slots are counted from 1, like volumes, so the shelf component draws them
 // the same way. Pure, so the server's Jest can test it.
 import type { EditionBook, EditionLine } from "./editions";
+import { EDITION_WORDS } from "./books";
 import { rangesText } from "./ownedVolumes";
 
 export type Slot = {
@@ -20,6 +24,22 @@ export type Slot = {
   volumes: number[];
   // the edition's book it is; null for a single volume
   book: EditionBook | null;
+  // a book of another edition they recorded, where this edition has no
+  // book: their VIZBIG 7 (vols. 19-21) on a shelf seen as Definitive
+  theirs?: TheirBook;
+};
+export type TheirBook = {
+  label: string;
+  number: number | null;
+  kind: "omnibus" | "deluxe";
+};
+
+// a book they recorded: what's read off it to name and place it
+type Recorded = {
+  label?: string | null;
+  edition?: string | null;
+  number?: number | null;
+  volumes: number[];
 };
 
 // a series' shelf seen as one edition: what the details page passes around
@@ -48,6 +68,59 @@ export function realBooksOf<
   });
 }
 
+// THE books of a line that are on the shelf: its real books that are out.
+// A book with a day still to come isn't, and can't be ticked: its volumes
+// are the singles that are out. `today` is "2026-11-19"; left out, every
+// book counts. The server's ticking reads the same rule (its copy, util/
+// shelf/realBooks.ts shelfBooks, kept in step by tests/shelf/rulesInStep),
+// so a tick never records a book the shelf doesn't show
+export function shelfBooksOf<T extends EditionBook>(
+  line: { books: T[] },
+  today?: string,
+): T[] {
+  const comesLater = (book: T) =>
+    Boolean(today) &&
+    /^\d{4}-\d{2}-\d{2}$/.test(book.published ?? "") &&
+    book.published! > today!;
+  return realBooksOf(line).filter((book) => !comesLater(book));
+}
+
+const sorted = (volumes: Iterable<number>) =>
+  [...new Set(volumes)].sort((a, b) => a - b);
+
+// The books they recorded of another edition that stand where `line` has
+// no book: all their volumes are out (up to `total`) and in no book of the
+// line. Vagabond seen as Definitive (books end at vol. 18) with VIZBIG 7
+// recorded: VIZBIG 7 stands for vols. 19-21. A single volume or a box set
+// isn't one (a box set is single volumes in a box), nor is a book that
+// shares a volume with one of the line's or with another of theirs
+function theirBooksOutside(
+  recorded: Recorded[],
+  inABook: Set<number>,
+  total: number,
+): { volumes: number[]; theirs: TheirBook }[] {
+  const taken = new Set(inABook);
+  const found: { volumes: number[]; theirs: TheirBook }[] = [];
+  const byFirstVolume = [...recorded].sort(
+    (a, b) => Math.min(...a.volumes) - Math.min(...b.volumes),
+  );
+  for (const book of byFirstVolume) {
+    if (book.edition !== "omnibus" && book.edition !== "deluxe") continue;
+    if (book.volumes.length < 2) continue;
+    if (book.volumes.some((v) => v > total || taken.has(v))) continue;
+    for (const v of book.volumes) taken.add(v);
+    found.push({
+      volumes: sorted(book.volumes),
+      theirs: {
+        label: book.label ?? EDITION_WORDS[book.edition],
+        number: book.number ?? null,
+        kind: book.edition,
+      },
+    });
+  }
+  return found;
+}
+
 // The slots of a series with `total` volumes out, seen as `line`.
 //
 // Which of the line's books are real: the ones up to the last the catalog
@@ -56,29 +129,34 @@ export function realBooksOf<
 // line reaches a "VIZBIG 13" for vol. 37, which was never printed. Those
 // volumes are shown as the singles they're sold as. A line with no listed
 // book at all keeps what it has (nothing says where it ends), less any book
-// that starts past the last volume out
+// that starts past the last volume out.
+// Where the line has no book, a book of another edition they recorded
+// stands as itself (theirBooksOutside), and the rest are single volumes
 export function slotsOf(
   line: EditionLine,
   total: number,
-  // the day, "2026-11-19": a book with a day still to come isn't out, and
-  // isn't on the shelf to be ticked (its volumes show as the singles that
-  // are). Left out, every book counts
+  // the day, "2026-11-19": a book with a day still to come isn't out
+  // (shelfBooksOf). Left out, every book counts
   today?: string,
+  // the books they've recorded (useEditions' books)
+  recorded: Recorded[] = [],
 ): Slot[] {
-  const comesLater = (book: EditionBook) =>
-    Boolean(today) &&
-    /^\d{4}-\d{2}-\d{2}$/.test(book.published ?? "") &&
-    book.published! > today!;
-  const books = realBooksOf(line).filter(
-    (book) => Math.min(...book.volumes) <= total && !comesLater(book),
+  const books = shelfBooksOf(line, today).filter(
+    (book) => Math.min(...book.volumes) <= total,
   );
   const inABook = new Set(books.flatMap((book) => book.volumes));
+  const theirs = theirBooksOutside(recorded, inABook, total);
+  const placed = new Set([
+    ...inABook,
+    ...theirs.flatMap((book) => book.volumes),
+  ]);
   const singles: Slot[] = [];
   for (let volume = 1; volume <= total; volume++) {
-    if (!inABook.has(volume)) singles.push({ volumes: [volume], book: null });
+    if (!placed.has(volume)) singles.push({ volumes: [volume], book: null });
   }
   const slots: Slot[] = [
     ...books.map((book) => ({ volumes: book.volumes, book })),
+    ...theirs.map((book) => ({ ...book, book: null })),
     ...singles,
   ];
   const firstVolume = (slot: Slot) => Math.min(...slot.volumes);
@@ -103,9 +181,6 @@ export function shareOwned(slots: Slot[], owned: number[], number: number) {
   const have = slot.volumes.filter((v) => owned.includes(v)).length;
   return have / slot.volumes.length;
 }
-
-const sorted = (volumes: Iterable<number>) =>
-  [...new Set(volumes)].sort((a, b) => a - b);
 
 // What they own after tapping a slot: all of it, or none of it. A part-owned
 // slot is the caller's to ask about first (this would complete it)
@@ -169,16 +244,24 @@ export const volumeReadAfter = (slots: Slot[], count: number) =>
 export const insideOf = (slot: Slot) =>
   `${slot.volumes.length === 1 ? "vol." : "vols."} ${rangesText(slot.volumes)}`;
 
+// a single volume, drawn thin: not the edition's book, nor one of theirs
+export const isSingleSlot = (slot: Slot) => !slot.book && !slot.theirs;
+
 // what a spine says: the book's own number, or the volume's
-export const spineOf = (slot: Slot) =>
-  String(slot.book ? slot.book.number : slot.volumes[0]);
+export function spineOf(slot: Slot) {
+  if (slot.book) return String(slot.book.number);
+  if (slot.theirs?.number != null) return String(slot.theirs.number);
+  return String(slot.volumes[0]);
+}
 
 // a slot by name, for hovering and for screen readers: "VIZBIG 2, vols.
 // 4–6", "Vol. 37, single volume". A part-owned book says which of its
 // volumes they have
 export function slotName(line: EditionLine, slot: Slot, owned: number[] = []) {
-  if (!slot.book) return `Vol. ${slot.volumes[0]}, single volume`;
-  const name = `${line.label} ${slot.book.number}`;
+  if (isSingleSlot(slot)) return `Vol. ${slot.volumes[0]}, single volume`;
+  const name = slot.book
+    ? `${line.label} ${slot.book.number}`
+    : [slot.theirs!.label, slot.theirs!.number].filter(Boolean).join(" ");
   if (stateOf(slot, owned) !== "part") return `${name}, ${insideOf(slot)}`;
   const have = slot.volumes.filter((v) => owned.includes(v));
   const haveText = `${have.length === 1 ? "vol." : "vols."} ${rangesText(have)}`;
@@ -236,16 +319,12 @@ export function ownedCaption(slots: Slot[], owned: number[]) {
 // little less, a single volume thin.
 // One rule, so the shelf and "Your books" can't call a book two things
 export type RunKind = "single" | "omnibus" | "deluxe";
-type Recorded = {
-  label?: string | null;
-  edition?: string | null;
-  volumes: number[];
-};
 export const runOf = (
   slot: Slot,
   line: EditionLine,
   recorded: Recorded[],
 ): { label: string; kind: RunKind } => {
+  if (slot.theirs) return { label: slot.theirs.label, kind: slot.theirs.kind };
   if (!slot.book) return { label: "Singles", kind: "single" };
   const same = slot.volumes.join();
   const book = recorded.find((b) => b.volumes.join() === same);

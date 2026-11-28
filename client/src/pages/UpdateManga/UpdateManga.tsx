@@ -80,7 +80,10 @@ export function UpdateManga() {
     { volumesOwned: null },
     out,
     editions.line && out
-      ? { line: editions.line, slots: slotsOf(editions.line, out, todayOf()) }
+      ? {
+          line: editions.line,
+          slots: slotsOf(editions.line, out, todayOf(), editions.books),
+        }
       : null,
   );
   const { reset: resetVolumes } = volumes;

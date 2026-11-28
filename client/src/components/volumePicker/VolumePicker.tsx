@@ -22,6 +22,7 @@ import {
   type ReactNode,
 } from "react";
 import {
+  isSingleSlot,
   ownedCaption,
   shareOwned,
   slotName,
@@ -507,7 +508,7 @@ export function useVolumePicker(
               label: spineOf(slot),
               name: slotName(edition.line, slot, owned),
               share: shareOwned(slots, owned, i + 1),
-              single: !slot.book,
+              single: isSingleSlot(slot),
               onTap: () => tapSlot(i + 1),
             }}
           />

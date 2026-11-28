@@ -19,6 +19,7 @@ import { shelfEditionLines } from "../../collector/shelfSeries.js";
 import { addBooks } from "../../models/bookQueries.js";
 import { bookName } from "../../prices/editionLines.js";
 import { editionOfBook } from "./editionStamp.js";
+import { shelfBooks } from "./realBooks.js";
 
 // an edition's name for comparing: "Definitive Edition" is "definitive"
 const plain = (label: string | null | undefined) =>
@@ -32,6 +33,9 @@ export async function recordTickedBooks(
   // the volumes owned before this save, and after it
   before: Iterable<number>,
   after: Iterable<number>,
+  // the day, "2026-11-19": a book still to come isn't on the shelf, and
+  // ticking its volumes doesn't record it (realBooks.ts shelfBooks)
+  today = new Date().toISOString().slice(0, 10),
 ) {
   if (!manga.edition || manga.edition === "singles" || manga.lightNovel)
     return 0;
@@ -39,7 +43,7 @@ export async function recordTickedBooks(
   const has = new Set(after);
   const line = (await shelfEditionLines([manga])).get(manga.id);
   if (!line) return 0;
-  const completed = line.books.filter(
+  const completed = shelfBooks(line.books, today).filter(
     (book) =>
       book.volumes.length > 0 &&
       book.volumes.every((v) => has.has(v)) &&

@@ -18,3 +18,21 @@ export function realBooks<
     return true;
   });
 }
+
+// THE books of a line that are on the shelf: its real books that are out.
+// A book with a day still to come isn't, and ticking its volumes doesn't
+// record it. `today` is "2026-11-19". Kept in step with client/src/lib/
+// editionShelf.ts shelfBooksOf (tests/shelf/rulesInStep.test.ts), so a tick
+// never records a book the shelf doesn't show
+export function shelfBooks<
+  T extends {
+    volumes: number[];
+    listed?: boolean;
+    sure?: boolean;
+    published?: string | null;
+  },
+>(books: T[], today: string): T[] {
+  const comesLater = (book: T) =>
+    /^\d{4}-\d{2}-\d{2}$/.test(book.published ?? "") && book.published! > today;
+  return realBooks(books).filter((book) => !comesLater(book));
+}

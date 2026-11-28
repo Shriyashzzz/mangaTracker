@@ -508,7 +508,12 @@ export default function Details() {
     editions.line && shelfTotal.isKnown
       ? {
           line: editions.line,
-          slots: slotsOf(editions.line, shelfTotal.size, todayOf()),
+          slots: slotsOf(
+            editions.line,
+            shelfTotal.size,
+            todayOf(),
+            editions.books,
+          ),
         }
       : null;
   // offline, a series they collect in an edition that can't be drawn yet

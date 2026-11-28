@@ -355,7 +355,12 @@ function SeriesShelf({
     editions.line && shelfTotal.isKnown
       ? {
           line: editions.line,
-          slots: slotsOf(editions.line, shelfTotal.size, todayOf()),
+          slots: slotsOf(
+            editions.line,
+            shelfTotal.size,
+            todayOf(),
+            editions.books,
+          ),
         }
       : null;
   const gaps = gapsOf(owned);

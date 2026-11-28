@@ -11,6 +11,7 @@ import { toastAction } from "../../components/toast/toastStyles";
 import { shortEditionName } from "../../lib/editionShort";
 import VolumeShelf from "../../components/volumeShelf/VolumeShelf";
 import {
+  isSingleSlot,
   ownedCaption,
   ownsEveryBook,
   placeInSlots,
@@ -253,7 +254,7 @@ export default function ShelfBox({
               },
               name: (n) => slotName(edition.line, slots[n - 1]!, owned),
               share: (n) => shareOwned(slots, owned, n),
-              isSingle: (n) => !slots[n - 1]!.book,
+              isSingle: (n) => isSingleSlot(slots[n - 1]!),
             }}
           />
         ) : (

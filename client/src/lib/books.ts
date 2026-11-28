@@ -82,7 +82,7 @@ export const newBook = (
   };
 };
 
-const EDITION_WORDS: Record<EditionKind, string> = {
+export const EDITION_WORDS: Record<EditionKind, string> = {
   single: "Vol.",
   omnibus: "Omnibus",
   deluxe: "Deluxe",

@@ -41,7 +41,7 @@ type Listed = {
   volumes: number[];
 };
 
-async function collecting(edition: string | null) {
+async function collecting(edition: string | null, lines = LINES) {
   const userId = (await userQueries.addUser("collector", PASSWORD))!;
   const agent = request.agent(app);
   await agent
@@ -51,8 +51,8 @@ async function collecting(edition: string | null) {
   // (the saved lists outlive a test's clean-up: written over, not added)
   await prisma.seriesVolumes.upsert({
     where: { key: editionsKey(NAME) },
-    create: { key: editionsKey(NAME), volumes: LINES },
-    update: { volumes: LINES, fetchedAt: new Date() },
+    create: { key: editionsKey(NAME), volumes: lines },
+    update: { volumes: lines, fetchedAt: new Date() },
   });
   const manga = await prisma.manga.create({
     data: { userId, name: NAME, edition },
@@ -143,4 +143,32 @@ test("collecting single volumes records nothing", async () => {
   const { own, books } = await collecting("singles");
   await own([1, 2, 3]);
   expect(await books()).toEqual([]);
+});
+
+test("a book still to come isn't recorded: ticking keeps their own book", async () => {
+  // Definitive 3 is listed, but out a year from now
+  const nextYear = new Date(Date.now() + 365 * 864e5)
+    .toISOString()
+    .slice(0, 10);
+  const lines = LINES.map((line) =>
+    line.key !== "definitive"
+      ? line
+      : {
+          ...line,
+          books: line.books.map((b) =>
+            b.number === 3 ? { ...b, published: nextYear } : b,
+          ),
+        },
+  );
+  const { manga, own, books } = await collecting("vizbig", lines);
+  await own([7, 8, 9]);
+  expect(await books()).toEqual(["VIZBIG 3: 7,8,9"]);
+  // seen as Definitive, unticked and ticked again: still their VIZBIG 3
+  await prisma.manga.update({
+    where: { id: manga.id },
+    data: { edition: "definitive" },
+  });
+  await own([7, 8]);
+  await own([7, 8, 9]);
+  expect(await books()).toEqual(["VIZBIG 3: 7,8,9"]);
 });

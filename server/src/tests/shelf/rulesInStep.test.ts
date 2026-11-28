@@ -8,8 +8,11 @@ import { bookName as pageBookName } from "../../../../client/src/lib/bookName.js
 import { bookName } from "../../prices/editionLines.js";
 import { readTrackBy, tracksOf } from "../../util/releases/releaseStatus.js";
 import { MOST_TOP } from "../../util/shelf/shareTop.js";
-import { realBooks } from "../../util/shelf/realBooks.js";
-import { realBooksOf } from "../../../../client/src/lib/editionShelf.js";
+import { realBooks, shelfBooks } from "../../util/shelf/realBooks.js";
+import {
+  realBooksOf,
+  shelfBooksOf,
+} from "../../../../client/src/lib/editionShelf.js";
 
 test("which counters a series shows: chapters, volumes or both", () => {
   for (const setting of [
@@ -79,4 +82,28 @@ test("an edition line's real books: the server's copy and the page's agree", () 
       realBooksOf({ books }).map((b) => b.number),
     );
   expect(realBooks(lines[0]!).map((b) => b.number)).toEqual([1, 2, 3, 4, 5]);
+});
+
+test("the books on the shelf: the server's copy and the page's agree", () => {
+  const book = (number: number, published?: string | null) => ({
+    number,
+    volumes: [number * 3 - 2, number * 3 - 1, number * 3],
+    isbn13: null,
+    title: null,
+    listed: true,
+    published,
+  });
+  // out, out today, a day still to come, no day, only a year
+  const books = [
+    book(1, "2026-01-05"),
+    book(2, "2026-11-19"),
+    book(3, "2026-11-20"),
+    book(4, null),
+    book(5, "2027"),
+  ];
+  const today = "2026-11-19";
+  expect(shelfBooks(books, today).map((b) => b.number)).toEqual(
+    shelfBooksOf({ books }, today).map((b) => b.number),
+  );
+  expect(shelfBooks(books, today).map((b) => b.number)).toEqual([1, 2, 4, 5]);
 });
