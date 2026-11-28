@@ -111,10 +111,10 @@ test("a series total waits for half its books to be priced", () => {
   // two volumes in one book count as one book priced
   expect(
     seriesCost([
-      { volume: 1, knownPriceCents: 2000, isbn13: "a" },
-      { volume: 2, knownPriceCents: 2000, isbn13: "a" },
-      { volume: 3, knownPriceCents: null, isbn13: "b" },
-      { volume: 4, knownPriceCents: null, isbn13: "c" },
+      { knownPriceCents: 2000, isbn13: "a" },
+      { knownPriceCents: 2000, isbn13: "a" },
+      { knownPriceCents: null, isbn13: "b" },
+      { knownPriceCents: null, isbn13: "c" },
     ])?.estimateCents,
   ).toBeNull();
   expect(
