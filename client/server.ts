@@ -19,6 +19,7 @@ import { isAppPage } from "./pagePaths.ts";
 import { visitorIp } from "./visitorIp.ts";
 import { ratingMarkup, type MarkedReview } from "./src/lib/reviewMarkup.ts";
 import { WHY_COLLECTORS } from "./src/lib/whyCollectors.ts";
+import { enoughPriced } from "./src/lib/enoughPriced.ts";
 import { openedFromPlayApp } from "./src/lib/playAppReferrer.ts";
 import {
   EDITIONS_TITLE,
@@ -354,7 +355,7 @@ function volumeBody(v: VolumeSummary, image: string | null | undefined) {
 }
 
 // what buying every volume new costs, as the series page's box says it: the
-// priced ones plus the rest at their middle price, with one priced or more;
+// priced ones plus the rest at their middle price, with half priced or more;
 // "about", to the nearest $10, unless every one is priced
 function seriesCostLine(s: SeriesSummary) {
   // out now only, as the page counts them: a preorder isn't bought yet
@@ -365,8 +366,8 @@ function seriesCostLine(s: SeriesSummary) {
   const priced = volumes.flatMap((v) =>
     v.fromCents != null ? [v.fromCents] : [],
   );
-  // with nothing priced there's nothing to go by, like the page's own box
-  if (!priced.length) return null;
+  // too few priced to go by, like the page's own box (src/lib/enoughPriced.ts)
+  if (!enoughPriced(priced.length, volumes.length)) return null;
   const sorted = [...priced].sort((a, b) => a - b);
   const mid = Math.floor(sorted.length / 2);
   const usual =

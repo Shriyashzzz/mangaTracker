@@ -4,6 +4,7 @@
 // volume nobody has opened yet is counted as not priced.
 import { wholeMoney } from "./country";
 import { PRICE_FRESH_DAYS } from "./priceAge";
+import { enoughPriced } from "./enoughPriced";
 import { owns } from "./ownedVolumes";
 import type { Manga } from "./types";
 
@@ -141,7 +142,7 @@ export function runTotal(cost: SeriesCost | null) {
 
 // the used copies found for a series, added up, and what all of it would
 // come to used: the ones with no copy on sale at the middle of those found.
-// Null when none has one
+// Null when fewer than half the books have one
 export function usedCopies(
   volumes: { usedCents?: number | null; isbn13?: string }[],
 ) {
@@ -151,7 +152,8 @@ export function usedCopies(
   for (const book of books)
     if (book.usedCents != null) prices.push(book.usedCents);
   const usual = median(prices);
-  if (usual === null) return null;
+  // too few on sale used to say what all of it comes to (lib/enoughPriced.ts)
+  if (usual === null || !enoughPriced(prices.length, books.length)) return null;
   const cents = sum(prices);
   const unpricedBooks = books.length - prices.length;
   return {
@@ -166,7 +168,8 @@ export function usedCopies(
 
 // what buying a whole series new costs, at stored prices: for anyone
 // weighing up a series before buying it. Null with nothing priced; else an
-// estimate of all of it, the unpriced at the priced ones' middle price
+// estimate of all of it, the unpriced at the priced ones' middle price, once
+// at least half the books are priced (estimateCents null before that)
 // a price checked over a week ago still shows, with its age, but a total
 // counting one is "About", not exact (the server's models/priceAge.ts)
 const WEEK_MS = PRICE_FRESH_DAYS * 24 * 60 * 60 * 1000;
@@ -199,7 +202,10 @@ export function seriesCost(
     cents,
     // counted in volumes, like `volumes`, for "8 of 113 priced"
     priced: volumes.filter((v) => v.knownPriceCents != null).length,
-    estimateCents: cents + unpricedBooks * usual,
+    // too few priced for a total worth saying (lib/enoughPriced.ts)
+    estimateCents: enoughPriced(prices.length, books.length)
+      ? cents + unpricedBooks * usual
+      : null,
     usualCents: usual,
     // every one priced, and every price under a week old
     complete: unpricedBooks === 0 && !anyOld,

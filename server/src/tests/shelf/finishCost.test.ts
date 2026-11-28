@@ -4,6 +4,7 @@
 import {
   finishCost,
   finishText,
+  runTotal,
   seriesCost,
   stillToGet,
   usedCopies,
@@ -79,11 +80,11 @@ test("collecting a whole series: exact, or estimated from what's priced", () => 
     complete: true,
     estimateCents: 2200,
   });
-  // one of three priced: the other two at its price
-  expect(seriesCost([vol(1, 1000), vol(2, null), vol(3, null)])).toMatchObject({
-    priced: 1,
+  // two of three priced: the third at their middle price
+  expect(seriesCost([vol(1, 1000), vol(2, 1200), vol(3, null)])).toMatchObject({
+    priced: 2,
     complete: false,
-    estimateCents: 3000,
+    estimateCents: 3300,
   });
   // three of five priced: the other two at their middle price
   expect(
@@ -97,7 +98,39 @@ test("collecting a whole series: exact, or estimated from what's priced", () => 
   ).toMatchObject({ priced: 3, estimateCents: 5000 });
 });
 
-test("any price is enough to estimate the rest, and an old price still counts", () => {
+test("a series total waits for half its books to be priced", () => {
+  // one of three: mostly a guess, so no total (the box and descriptions skip it)
+  expect(seriesCost([vol(1, 1000), vol(2, null), vol(3, null)])).toMatchObject({
+    priced: 1,
+    estimateCents: null,
+  });
+  // two of four is half: enough
+  expect(
+    seriesCost([vol(1, 1000), vol(2, 1000), vol(3, null), vol(4, null)]),
+  ).toMatchObject({ estimateCents: 4000 });
+  // two volumes in one book count as one book priced
+  expect(
+    seriesCost([
+      { volume: 1, knownPriceCents: 2000, isbn13: "a" },
+      { volume: 2, knownPriceCents: 2000, isbn13: "a" },
+      { volume: 3, knownPriceCents: null, isbn13: "b" },
+      { volume: 4, knownPriceCents: null, isbn13: "c" },
+    ])?.estimateCents,
+  ).toBeNull();
+  expect(
+    runTotal(seriesCost([vol(1, 1000), vol(2, null), vol(3, null)])),
+  ).toBeNull();
+  // used copies the same way: one of three on sale used says nothing
+  expect(
+    usedCopies([
+      { isbn13: "1", usedCents: 500 },
+      { isbn13: "2", usedCents: null },
+      { isbn13: "3", usedCents: null },
+    ]),
+  ).toBeNull();
+});
+
+test("finishing their own series: any price is enough to estimate the rest, and an old price still counts", () => {
   const series = [1, 2, 3, 4, 5].map((n) => vol(n, n <= 2 ? 1000 : null));
   // 2 of 5 priced: the three to get at their $10
   const few = finishCost(series.slice(2), series)!;
