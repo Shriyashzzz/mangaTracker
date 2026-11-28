@@ -24,6 +24,11 @@ export const seriesPath = (name: string) => {
 export const seriesCanonicalPath = (name: string) =>
   `/prices/series/${slugify(name)}`;
 
+// an edition's own page: its series' address and the edition's key
+// (/prices/series/vagabond/vizbig). Keys are plain words ("vizbig", "3in1")
+export const editionCanonicalPath = (seriesName: string, key: string) =>
+  `${seriesCanonicalPath(seriesName)}/${encodeURIComponent(key)}`;
+
 // a volume's address: the ISBN finds it, the title is there to be read
 export const volumePath = (isbn13: string, title?: string | null) => {
   const slug = title ? slugify(title) : "";

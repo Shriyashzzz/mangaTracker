@@ -211,3 +211,15 @@ export function seriesCost(
     complete: unpricedBooks === 0 && !anyOld,
   };
 }
+
+// what an edition's books all cost new, by the same rule as a series'
+// singles (OtherEditions' lines, an edition's own page)
+export const lineCost = (
+  books: { knownPriceCents?: number | null; isbn13?: string | null }[],
+) =>
+  seriesCost(
+    books.map((book) => ({
+      knownPriceCents: book.knownPriceCents ?? null,
+      isbn13: book.isbn13 ?? undefined,
+    })),
+  );

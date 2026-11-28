@@ -20,7 +20,11 @@ import {
 import { getEditionsIndex, type EditionsEntry } from "../../lib/editionsIndex";
 import { EDITIONS_TITLE, editionsDescription } from "../../lib/editionsWords";
 import { ownedOf } from "../../lib/ownedVolumes";
-import { seriesCanonicalPath, slugify } from "../../lib/prices";
+import {
+  editionCanonicalPath,
+  seriesCanonicalPath,
+  slugify,
+} from "../../lib/prices";
 import { usePageMeta } from "../../lib/seo";
 import { useShelf } from "../../store/shelf";
 import BookTiles from "./BookTiles";
@@ -205,7 +209,6 @@ function PickedLines({
   startAt: number | null;
 }) {
   const [volume, setVolume] = useState<number | null>(startAt);
-  const page = seriesCanonicalPath(entry.name);
   return (
     <>
       {/* the series' cover beside the lookup, under its name */}
@@ -227,7 +230,7 @@ function PickedLines({
             <BookTiles line={line} volume={volume} owned={owned} />
             <p className="mt-3 text-[0.9rem] font-medium">
               <NavLink
-                to={`${page}?edition=${encodeURIComponent(line.key)}`}
+                to={editionCanonicalPath(entry.name, line.key)}
                 className={styles.textLink}
                 viewTransition
               >

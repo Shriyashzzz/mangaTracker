@@ -23,6 +23,8 @@ import { enoughPriced } from "./src/lib/enoughPriced.ts";
 import { openedFromPlayApp } from "./src/lib/playAppReferrer.ts";
 import {
   EDITIONS_TITLE,
+  editionPageDescription,
+  editionPageTitle,
   editionsDescription,
 } from "./src/lib/editionsWords.ts";
 import { FAQ, FAQ_DESCRIPTION, faqJsonLd } from "./src/lib/content/faq.ts";
@@ -107,6 +109,9 @@ const volumePath = (isbn13: string, title: string) => {
   return slug ? `/prices/${isbn13}/${slug}` : `/prices/${isbn13}`;
 };
 const seriesPath = (name: string) => `/prices/series/${slugify(name)}`;
+// an edition's own page (src/lib/pricePaths.ts editionCanonicalPath)
+const editionPath = (name: string, key: string) =>
+  `${seriesPath(name)}/${encodeURIComponent(key)}`;
 
 // what the API's /summary routes return (server/src/prices/service.ts)
 type VolumeSummary = {
@@ -354,20 +359,13 @@ function volumeBody(v: VolumeSummary, image: string | null | undefined) {
     </main>`;
 }
 
-// what buying every volume new costs, as the series page's box says it: the
-// priced ones plus the rest at their middle price, with half priced or more;
-// "about", to the nearest $10, unless every one is priced
-function seriesCostLine(s: SeriesSummary) {
-  // out now only, as the page counts them: a preorder isn't bought yet
-  const today = new Date().toISOString().slice(0, 10);
-  const volumes = (s.volumes ?? []).filter(
-    (v) => !v.published || v.published.slice(0, 10) <= today,
-  );
-  const priced = volumes.flatMap((v) =>
-    v.fromCents != null ? [v.fromCents] : [],
-  );
-  // too few priced to go by, like the page's own box (src/lib/enoughPriced.ts)
-  if (!enoughPriced(priced.length, volumes.length)) return null;
+// what some books all cost new, as the pages' boxes say it: exact when
+// every one is priced, else the priced ones plus the rest at their middle
+// price, "about" and to the nearest $10. Null with fewer than half priced
+// (src/lib/enoughPriced.ts)
+function costText(prices: (number | null | undefined)[]) {
+  const priced = prices.filter((c): c is number => c != null);
+  if (!enoughPriced(priced.length, prices.length)) return null;
   const sorted = [...priced].sort((a, b) => a - b);
   const mid = Math.floor(sorted.length / 2);
   const usual =
@@ -376,10 +374,22 @@ function seriesCostLine(s: SeriesSummary) {
       : Math.round((sorted[mid - 1]! + sorted[mid]!) / 2);
   const total =
     priced.reduce((sum, c) => sum + c, 0) +
-    (volumes.length - priced.length) * usual;
-  const exact = priced.length === volumes.length;
+    (prices.length - priced.length) * usual;
+  const exact = priced.length === prices.length;
+  return `${exact ? "" : "about "}${usdTotal(exact ? total : Math.round(total / 1000) * 1000, exact)}`;
+}
+
+// what buying every volume new costs, as the series page's box says it
+function seriesCostLine(s: SeriesSummary) {
+  // out now only, as the page counts them: a preorder isn't bought yet
+  const today = new Date().toISOString().slice(0, 10);
+  const volumes = (s.volumes ?? []).filter(
+    (v) => !v.published || v.published.slice(0, 10) <= today,
+  );
+  const cost = costText(volumes.map((v) => v.fromCents));
+  if (!cost) return null;
   const outNow = volumes.length < (s.volumes ?? []).length ? " out now" : "";
-  return `Every ${s.name} volume new: ${exact ? "" : "about "}${usdTotal(exact ? total : Math.round(total / 1000) * 1000, exact)} for all ${volumes.length}${outNow}.`;
+  return `Every ${s.name} volume new: ${cost} for all ${volumes.length}${outNow}.`;
 }
 
 function seriesBody(s: SeriesSummary) {
@@ -413,18 +423,17 @@ const heldText = (volumes: number[]) => {
 };
 
 // which volumes are in each of a series' omnibus or deluxe books, the
-// question people search for ("Vagabond VIZBIG volumes"). Each line opens
-// on the series page (?edition=, which scrolls to it)
+// question people search for ("Vagabond VIZBIG volumes"). Each line links
+// its own page (/prices/series/vagabond/vizbig)
 function editionsBody(s: SeriesSummary) {
   const lines = s.editions ?? [];
   if (!lines.length) return "";
-  const path = seriesPath(s.name);
   return `<h2>Other editions</h2>
       ${lines
         .map(
           (
             line,
-          ) => `<h3><a href="${escapeHtml(`${path}?edition=${encodeURIComponent(line.key)}`)}">${escapeHtml(`${s.name} ${line.label}: which volumes are in each book`)}</a></h3>
+          ) => `<h3><a href="${escapeHtml(editionPath(s.name, line.key))}">${escapeHtml(`${s.name} ${line.label}: which volumes are in each book`)}</a></h3>
       <ul>${line.books
         .map(
           (book) =>
@@ -561,6 +570,81 @@ function seriesTags(s: SeriesSummary, origin: string): Tags {
   };
 }
 
+// a line as the API's /api/prices/editions gives it, as far as its page
+// needs: each book, the volumes in it and its price where one is stored
+type EditionLineSummary = {
+  key: string;
+  label: string;
+  books: {
+    number: number;
+    volumes: number[];
+    isbn13: string | null;
+    title: string | null;
+    knownPriceCents?: number | null;
+  }[];
+};
+
+// an edition's own page (/prices/series/vagabond/vizbig): named for the
+// edition, its books with what each holds and costs, and what all of them
+// come to. Title and description as the app's own (src/pages/Prices/
+// pageMeta.ts editionMeta, both from src/lib/editionsWords.ts)
+function editionTags(
+  s: SeriesSummary,
+  line: EditionLineSummary,
+  origin: string,
+): Tags {
+  const path = editionPath(s.name, line.key);
+  const books = line.books.length;
+  const cost = costText(line.books.map((b) => b.knownPriceCents));
+  return {
+    title: editionPageTitle(s.name, line.label, books),
+    description: clip(editionPageDescription(s.name, line.label, books, cost)),
+    path,
+    image: s.coverUrl,
+    jsonLd: [
+      {
+        "@context": "https://schema.org",
+        "@type": "BookSeries",
+        name: `${s.name} ${line.label}`,
+        url: origin + path,
+        ...(s.coverUrl && { image: s.coverUrl }),
+      },
+      breadcrumbLd(origin, [
+        ["/", SITE_NAME],
+        ["/series", "Series"],
+        [seriesPath(s.name), s.name],
+        [path, line.label],
+      ]),
+    ],
+    body: `<main class="crawl-page">
+      ${crumbs([
+        ["/", SITE_NAME],
+        ["/series", "Series"],
+        [seriesPath(s.name), s.name],
+      ])}
+      <h1>${escapeHtml(`${s.name} ${line.label}`)}</h1>
+      <p>${escapeHtml(editionPageDescription(s.name, line.label, books, cost))}</p>
+      <h2>${escapeHtml(`Which volumes are in each ${line.label} book`)}</h2>
+      <ul>${line.books
+        .map((book) => {
+          const name = `${line.label} ${book.number}: ${heldText(book.volumes)}`;
+          const price =
+            book.knownPriceCents != null
+              ? ` from ${usd(book.knownPriceCents)}`
+              : "";
+          return `<li>${
+            book.isbn13
+              ? `<a href="${escapeHtml(volumePath(book.isbn13, book.title ?? ""))}">${escapeHtml(name)}</a>`
+              : escapeHtml(name)
+          }${price}</li>`;
+        })
+        .join("")}</ul>
+      <p><a href="${escapeHtml(seriesPath(s.name))}">${escapeHtml(`Every ${s.name} volume and its prices`)}</a></p>
+      <p><a href="/editions">Every series with omnibus and deluxe editions</a></p>
+    </main>`,
+  };
+}
+
 // ---------- the app's own pages ----------
 
 // the home page's title and description, as index.html has them
@@ -666,7 +750,7 @@ function editionsIndexTags(all: EditionsEntry[]): Tags {
       ${linkList(
         all.flatMap((s) =>
           s.lines.map((line): [string, string] => [
-            `${seriesPath(s.name)}?edition=${encodeURIComponent(line.key)}`,
+            editionPath(s.name, line.key),
             `${s.name} ${line.label}: ${editionsCountText(line)}`,
           ]),
         ),
@@ -1268,48 +1352,68 @@ const withTags =
     }
   };
 
+// the series a /prices/series/... address names, as the API has it stored
+async function seriesSummaryOf(req: Request) {
+  const name =
+    (typeof req.query.name === "string" && req.query.name) ||
+    String(req.params.slug).replace(/-/g, " ");
+  // a bare address is held to the series' own names, as the page is
+  const strict: Record<string, string> =
+    typeof req.query.name === "string" ? {} : { strict: "true" };
+  return summary<SeriesSummary>(
+    `/api/prices/summary/series?${new URLSearchParams({ name, ...strict })}`,
+    ipOf(req),
+  );
+}
+
+// nothing stored to describe it: a made-up name, or a series nobody has
+// opened yet. Not indexed, so a made-up one never counts as a page (a "soft
+// 404"); a real one gets its tags once someone opens it
+const unknownSeriesTags = (req: Request): Tags => ({
+  title: "Manga prices",
+  description: HOME_DESCRIPTION.replace(/&#39;/g, "'").replace(/&amp;/g, "&"),
+  path: req.path,
+  image: null,
+  noindex: true,
+});
+
 app.get(
   "/prices/series/:slug",
   withTags(async (req, origin) => {
-    const name =
-      (typeof req.query.name === "string" && req.query.name) ||
-      String(req.params.slug).replace(/-/g, " ");
-    // a bare address is held to the series' own names, as the page is
-    const strict: Record<string, string> =
-      typeof req.query.name === "string" ? {} : { strict: "true" };
-    const { data, missing } = await summary<SeriesSummary>(
-      `/api/prices/summary/series?${new URLSearchParams({ name, ...strict })}`,
-      ipOf(req),
-    );
+    const { data, missing } = await seriesSummaryOf(req);
     if (missing) return "missing";
-    if (data) {
-      const tags = seriesTags(data, origin);
-      // a series whose anime we can answer for links to that page
-      const anime = await summary<AfterAnime>(
-        `/api/after-anime?${new URLSearchParams({ name: data.name })}`,
-        ipOf(req),
-      ).catch(() => ({ data: null }));
-      if (anime.data?.stops.length && tags.body)
-        tags.body = tags.body.replace(
-          "</main>",
-          () =>
-            `<p><a href="${escapeHtml(afterAnimeShowPath(data.name))}">${escapeHtml(showQuestion(data.name))}</a></p></main>`,
-        );
-      return tags;
-    }
-    // nothing stored to describe it: a made-up name, or a series nobody has
-    // opened yet. Not indexed, so a made-up one never counts as a page (a
-    // "soft 404"); a real one gets its tags once someone opens it
-    return {
-      title: "Manga prices",
-      description: HOME_DESCRIPTION.replace(/&#39;/g, "'").replace(
-        /&amp;/g,
-        "&",
-      ),
-      path: req.path,
-      image: null,
-      noindex: true,
-    };
+    if (!data) return unknownSeriesTags(req);
+    const tags = seriesTags(data, origin);
+    // a series whose anime we can answer for links to that page
+    const anime = await summary<AfterAnime>(
+      `/api/after-anime?${new URLSearchParams({ name: data.name })}`,
+      ipOf(req),
+    ).catch(() => ({ data: null }));
+    if (anime.data?.stops.length && tags.body)
+      tags.body = tags.body.replace(
+        "</main>",
+        () =>
+          `<p><a href="${escapeHtml(afterAnimeShowPath(data.name))}">${escapeHtml(showQuestion(data.name))}</a></p></main>`,
+      );
+    return tags;
+  }),
+);
+
+// an edition's own page. An edition the series doesn't have gets the series
+// page's tags, which name the series' own address as the one to index
+app.get(
+  "/prices/series/:slug/:edition",
+  withTags(async (req, origin) => {
+    const { data, missing } = await seriesSummaryOf(req);
+    if (missing) return "missing";
+    if (!data) return unknownSeriesTags(req);
+    const editions = await summary<{ lines: EditionLineSummary[] }>(
+      `/api/prices/editions?${new URLSearchParams({ name: data.name })}`,
+      ipOf(req),
+    ).catch(() => ({ data: null }));
+    const key = String(req.params.edition);
+    const line = editions.data?.lines?.find((l) => l.key === key);
+    return line ? editionTags(data, line, origin) : seriesTags(data, origin);
   }),
 );
 

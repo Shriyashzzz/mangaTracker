@@ -37,6 +37,8 @@ export default function SeriesCostBox({
   used,
   isSignedIn,
   comingSoon,
+  title,
+  also = null,
 }: {
   cost: SeriesCost;
   // what all of it comes to used (lib/finishCost.ts usedCopies); null when
@@ -45,6 +47,10 @@ export default function SeriesCostBox({
   isSignedIn: boolean | null;
   // volumes listed but not out yet: "all 9 out now" beside a title saying 12
   comingSoon: boolean;
+  // an edition's own page: "Collect all 12 VIZBIG books", and what the
+  // singles come to under it ("Singles: about $880 for all 37")
+  title?: string;
+  also?: string | null;
 }) {
   const run = runTotal(cost);
   if (!run && !used) return null;
@@ -56,13 +62,18 @@ export default function SeriesCostBox({
     >
       <div className={styles.costText}>
         <h2 id="series-cost-title" className={styles.costLabel}>
-          Collect all {cost.volumes}
-          {comingSoon && " out now"}
+          {title ?? (
+            <>
+              Collect all {cost.volumes}
+              {comingSoon && " out now"}
+            </>
+          )}
         </h2>
         {run && <Total cents={run.cents} exact={run.exact} kind="new" />}
         {used && (
           <Total cents={used.estimateCents} exact={used.complete} kind="used" />
         )}
+        {also && <p className="mt-1 text-ink-soft">{also}</p>}
       </div>
       {isSignedIn === false && <TrackButton />}
     </aside>

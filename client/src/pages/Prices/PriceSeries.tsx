@@ -14,7 +14,13 @@ import Cover from "../../components/cover/Cover";
 import LightNovelBand from "../../components/cover/LightNovelBand";
 import { SeriesScoreBadge } from "./SeriesScore";
 import { useRef, useState, useEffect } from "react";
-import { NavLink, useParams, useSearchParams } from "react-router";
+import {
+  NavLink,
+  useLocation,
+  useNavigate,
+  useParams,
+  useSearchParams,
+} from "react-router";
 import DealsStrip from "../../components/deals/DealsStrip";
 import RangePager from "../../components/rangePager/RangePager";
 import ToReadButton from "../../components/toRead/ToReadButton";
@@ -22,14 +28,22 @@ import { headlineLine, type EditionLine } from "../../lib/editions";
 import {
   finishCost,
   finishMoney,
+  lineCost,
+  runTotal,
   seriesCost,
   stillToGet,
   usedCopies,
+  type SeriesCost,
 } from "../../lib/finishCost";
 import { useFromShelf } from "../../lib/fromShelf";
 import { useNextFor } from "../../lib/prefs";
 import { buyNextOf, ownedOf, rangesText } from "../../lib/ownedVolumes";
-import { formatCents, novelParts } from "../../lib/prices";
+import {
+  formatCents,
+  novelParts,
+  seriesPath,
+  wholeMoney,
+} from "../../lib/prices";
 import { onSale } from "../../lib/releaseDate";
 import { usePageMeta } from "../../lib/seo";
 import { useAuth } from "../../store/auth";
@@ -40,7 +54,7 @@ import HumanCheck from "../../components/humanCheck/HumanCheck";
 import SetsBox from "./SetsBox";
 import { shownSets } from "./boxSetRules";
 import OtherEditions from "./OtherEditions";
-import { seriesMeta } from "./pageMeta";
+import { editionMeta, seriesMeta } from "./pageMeta";
 import SeriesCostBox from "./SeriesCostBox";
 import SeriesFacts from "./SeriesFacts";
 import {
@@ -66,9 +80,13 @@ const scrollToVolumes = () =>
 
 export default function PriceSeries() {
   const fromShelf = useFromShelf();
-  // the route always has a :slug
-  const slug = useParams().slug!;
+  // the route always has a :slug; an edition's own page adds its key
+  // (/prices/series/vagabond/vizbig)
+  const { slug: routeSlug, edition: pathEdition } = useParams();
+  const slug = routeSlug!;
   const [params] = useSearchParams();
+  const { search } = useLocation();
+  const navigate = useNavigate();
   // the link carries the real name; a bare slug still works as a search
   const name = params.get("name") ?? slug.replace(/-/g, " ");
   const isSignedIn = useAuth((s) => s.isSignedIn);
@@ -91,12 +109,14 @@ export default function PriceSeries() {
     name,
     tab: "volumes" as "volumes" | "editions",
   });
-  // an edition asked for ("See all 12 books", a search for "berserk
-  // deluxe"): its tab, and the top of it
-  const askedEdition = params.get("edition");
+  // an edition asked for: its tab. On the series page (?edition=, from "See
+  // all 12 books" or a search for "berserk deluxe") the top of that tab
+  // too; an edition's own page opens at its top, named for it
+  const askedEdition = pathEdition ?? params.get("edition");
   useEffect(() => {
     if (!askedEdition) return;
     setSeriesTab({ name, tab: "editions" });
+    if (pathEdition) return;
     requestAnimationFrame(() =>
       document
         .getElementById("series-tabs")
@@ -144,12 +164,24 @@ export default function PriceSeries() {
     lines: EditionLine[];
   }>({ name: "", lines: [] });
 
+  // an edition's own page, once the series' lines are in: the line its
+  // address names, by its key exactly, as the site server finds it. Any
+  // other word leaves the plain series page
+  const linesKnown = editions.name === name;
+  const editionPage =
+    (pathEdition &&
+      linesKnown &&
+      editions.lines.find((line) => line.key === pathEdition)) ||
+    null;
+
   // couldn't open it (made up, or the lookup failed): never indexed, as the
   // site server already says
   let meta: Parameters<typeof usePageMeta>[0] = null;
   if (!series.loading)
     meta = series.data
-      ? seriesMeta(series.data)
+      ? editionPage
+        ? editionMeta(series.data, editionPage)
+        : seriesMeta(series.data)
       : { title: "Series not found", noindex: true };
   usePageMeta(meta);
 
@@ -191,15 +223,25 @@ export default function PriceSeries() {
   const singles = seriesCost(
     onSale(volumes).filter((v) => v.volume >= 0 && Number.isInteger(v.volume)),
   );
-  const cost = mine ? null : singles;
-  // and the used copies found for those same volumes, added up
-  const used = cost
-    ? usedCopies(
-        onSale(volumes).filter(
-          (v) => v.volume >= 0 && Number.isInteger(v.volume),
-        ),
-      )
-    : null;
+  // on an edition's own page, what its books cost instead (none until its
+  // lines are in, so the singles' box never shows first)
+  const waitingForLine = Boolean(pathEdition) && !linesKnown;
+  const cost =
+    mine || waitingForLine
+      ? null
+      : editionPage
+        ? lineCost(editionPage.books)
+        : singles;
+  // and the used copies found for those same volumes, added up (the series'
+  // singles only: an edition's books have no used prices here)
+  const used =
+    cost && !editionPage
+      ? usedCopies(
+          onSale(volumes).filter(
+            (v) => v.volume >= 0 && Number.isInteger(v.volume),
+          ),
+        )
+      : null;
   // "Not on your shelf" pages through just those, 30 at a time, in place of
   // the volume ranges, so the controls keep their shape
   // the catalog was slow, but is the list missing anything? Only a gap in
@@ -251,7 +293,21 @@ export default function PriceSeries() {
           Price check
         </NavLink>
         <span aria-hidden>/</span>
-        <span aria-current="page">{named.title}</span>
+        {editionPage ? (
+          <>
+            <NavLink
+              to={seriesPath(info?.name ?? data.name)}
+              className="tap"
+              viewTransition
+            >
+              {named.title}
+            </NavLink>
+            <span aria-hidden>/</span>
+            <span aria-current="page">{editionPage.label}</span>
+          </>
+        ) : (
+          <span aria-current="page">{named.title}</span>
+        )}
       </nav>
       <DealsStrip />
 
@@ -274,7 +330,15 @@ export default function PriceSeries() {
           </span>
         )}
         <div className={styles.seriesCopy}>
-          <h1 className={styles.volumeTitle}>{named.title}</h1>
+          <h1 className={styles.volumeTitle}>
+            {named.title}
+            {editionPage && (
+              <>
+                {" "}
+                <span className="whitespace-nowrap">{editionPage.label}</span>
+              </>
+            )}
+          </h1>
           {info && (
             <SeriesFacts
               info={info}
@@ -313,7 +377,11 @@ export default function PriceSeries() {
           cost={cost}
           used={used}
           isSignedIn={isSignedIn}
-          comingSoon={onSale(volumes).length < volumes.length}
+          comingSoon={!editionPage && onSale(volumes).length < volumes.length}
+          {...(editionPage && {
+            title: `Collect all ${editionPage.books.length} ${editionPage.label} books`,
+            also: singlesLine(singles),
+          })}
         />
       )}
 
@@ -338,7 +406,16 @@ export default function PriceSeries() {
               role="tab"
               aria-selected={(value === "editions") === onEditions}
               className={app ? undefined : styles.folderTab}
-              onClick={() => setSeriesTab({ name, tab: value })}
+              onClick={() => {
+                setSeriesTab({ name, tab: value });
+                // the volumes are the series page's: an edition's own
+                // address goes back to the series' own
+                if (value === "volumes" && pathEdition)
+                  navigate(`/prices/series/${slug}${search}`, {
+                    replace: true,
+                    preventScrollReset: true,
+                  });
+              }}
             >
               {label}
             </button>
@@ -499,7 +576,7 @@ export default function PriceSeries() {
       <div hidden={tabbed && !onEditions}>
         <OtherEditions
           name={name}
-          asked={params.get("edition")}
+          asked={askedEdition}
           owned={mine ? ownedOf(mine) : []}
           onLines={(lines) => setEditions({ name, lines })}
           singles={singles}
@@ -512,4 +589,15 @@ export default function PriceSeries() {
       )}
     </div>
   );
+}
+
+// beside an edition's total, what the singles come to, for weighing the
+// two: "Singles: about $880 for all 37". Null with too few priced
+function singlesLine(singles: SeriesCost | null) {
+  const run = runTotal(singles);
+  if (!run || !singles) return null;
+  const money = run.exact
+    ? formatCents(run.cents)
+    : `about ${wholeMoney(run.cents)}`;
+  return `Singles: ${money} for all ${singles.volumes}`;
 }

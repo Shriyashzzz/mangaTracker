@@ -192,7 +192,10 @@ export const routes = [
         ),
       },
       { path: "/prices", element: <ToPriceHome /> },
-      { path: "/prices/series/:slug", element: <PriceSeries /> },
+      // an edition's own page is the series page named for it
+      // (/prices/series/vagabond/vizbig): one route, so switching between
+      // them never reloads the page
+      { path: "/prices/series/:slug/:edition?", element: <PriceSeries /> },
       // the title part is optional, so ISBN-only links keep working
       { path: "/prices/:isbn/:slug?", element: <PriceVolume /> },
       // an unknown address keeps the header and footer, so there's a way on

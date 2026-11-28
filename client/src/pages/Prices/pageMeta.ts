@@ -7,11 +7,17 @@ import {
   formatUsd,
   wholeMoney,
   seriesCanonicalPath,
+  editionCanonicalPath,
   volumePath,
 } from "../../lib/prices";
 import type { PageMeta } from "../../lib/seo";
 import { isCollection, type Series, type VolumePrices } from "../../lib/types";
-import { seriesCost } from "../../lib/finishCost";
+import { lineCost, runTotal, seriesCost } from "../../lib/finishCost";
+import type { EditionLine } from "../../lib/editions";
+import {
+  editionPageDescription,
+  editionPageTitle,
+} from "../../lib/editionsWords";
 import { notOutYet } from "../../lib/releaseDate";
 
 // what search engines and link previews see for the price pages
@@ -205,6 +211,56 @@ export function seriesMeta({ name, info, volumes }: Series): PageMeta {
         breadcrumbs([
           ["Price check", "/"],
           [label, path],
+        ]),
+      ],
+    },
+  };
+}
+
+// an edition's own page (/prices/series/vagabond/vizbig): named for the
+// edition, its own address, and what all its books cost when enough are
+// priced (lib/enoughPriced.ts). Words shared with the site server
+// (lib/editionsWords.ts)
+export function editionMeta(
+  { name, info }: Pick<Series, "name" | "info">,
+  line: EditionLine,
+): PageMeta {
+  const label = info?.name ?? name;
+  const seriesPage = seriesCanonicalPath(label);
+  const path = editionCanonicalPath(label, line.key);
+  const run = runTotal(lineCost(line.books));
+  const cost = run
+    ? `${run.exact ? "" : "about "}${total(run.cents, run.exact)}`
+    : null;
+  const books = line.books.length;
+  return {
+    title: editionPageTitle(label, line.label, books),
+    screen: `${label} ${line.label}`,
+    description: clip(editionPageDescription(label, line.label, books, cost)),
+    path,
+    image: info?.coverUrl,
+    jsonLd: {
+      "@context": "https://schema.org",
+      "@graph": [
+        {
+          "@type": "BookSeries",
+          name: `${label} ${line.label}`,
+          url: absolute(path),
+          ...(info?.coverUrl && { image: info.coverUrl }),
+          hasPart: line.books
+            .filter((book) => book.isbn13)
+            .map((book) => ({
+              "@type": "Book",
+              name: book.title ?? `${label} ${line.label} ${book.number}`,
+              isbn: book.isbn13,
+              url: absolute(volumePath(book.isbn13!, book.title)),
+              position: book.number,
+            })),
+        },
+        breadcrumbs([
+          ["Price check", "/"],
+          [label, seriesPage],
+          [line.label, path],
         ]),
       ],
     },

@@ -9,6 +9,7 @@ import { slugify } from "../prices/stores/match.js";
 import { sendError } from "../middlewares/errorHandler.js";
 import { knownVolumesBySeries } from "../prices/service.js";
 import { getAfterAnimeIndex } from "../prices/afterAnime/afterAnime.js";
+import { getEditionsIndex } from "../prices/pagesService.js";
 
 const site = () => config.CLIENT_URL?.replace(/\/+$/, "");
 
@@ -24,6 +25,9 @@ const escapeXml = (text: string) =>
 
 // the same addresses the pages name as their canonical ones
 const seriesPath = (name: string) => `/prices/series/${slugify(name)}`;
+// an edition's own page (client/src/lib/pricePaths.ts editionCanonicalPath)
+const editionPath = (name: string, key: string) =>
+  `${seriesPath(name)}/${encodeURIComponent(key)}`;
 const volumePath = (isbn13: string, title: string) => {
   const slug = title ? slugify(title) : "";
   return slug ? `/prices/${isbn13}/${slug}` : `/prices/${isbn13}`;
@@ -41,12 +45,15 @@ const sitemap = async (_req: Request, res: Response) => {
     sendError(res, 503, "CLIENT_URL isn't set");
     return;
   }
-  const [{ volumes, series }, bySeries, animeShows] = await Promise.all([
-    priceQueries.getSitemapEntries(),
-    knownVolumesBySeries(),
-    // only shows with an answer: one without is a near-empty page
-    getAfterAnimeIndex().catch(() => []),
-  ]);
+  const [{ volumes, series }, bySeries, animeShows, editions] =
+    await Promise.all([
+      priceQueries.getSitemapEntries(),
+      knownVolumesBySeries(),
+      // only shows with an answer: one without is a near-empty page
+      getAfterAnimeIndex().catch(() => []),
+      // every omnibus and deluxe line saved, each its own page
+      getEditionsIndex().catch(() => []),
+    ]);
   // a series with no volumes known yet is a near-empty page: it joins once
   // its list is built (by a visit, or prices/seriesFiller.ts)
   const withVolumes = series.filter((s) => bySeries.get(slugify(s.name))?.size);
@@ -66,6 +73,9 @@ const sitemap = async (_req: Request, res: Response) => {
       .filter((show) => show.seasons > 0)
       .map((show) => entry(`/after-the-anime/${show.slug}`, show.checkedAt)),
     ...withVolumes.map((s) => entry(seriesPath(s.name), s.fetchedAt)),
+    ...editions.flatMap((s) =>
+      s.lines.map((line) => entry(editionPath(s.name, line.key))),
+    ),
     ...volumes.map((v) =>
       entry(volumePath(v.isbn13.trim(), v.title), v.updated),
     ),

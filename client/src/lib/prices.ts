@@ -128,6 +128,7 @@ export {
   slugify,
   seriesPath,
   seriesCanonicalPath,
+  editionCanonicalPath,
   volumePath,
 } from "./pricePaths";
 

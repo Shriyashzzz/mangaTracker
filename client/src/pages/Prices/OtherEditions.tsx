@@ -7,7 +7,13 @@
 import { inApp } from "../../lib/inApp";
 import VolumeCard from "./VolumeCard";
 import { useEffect, useState } from "react";
-import { NavLink, useSearchParams } from "react-router";
+import {
+  NavLink,
+  useLocation,
+  useNavigate,
+  useParams,
+  useSearchParams,
+} from "react-router";
 import { getJson } from "../../lib/api";
 import {
   editionBookLabel,
@@ -15,7 +21,7 @@ import {
   type EditionLine,
 } from "../../lib/editions";
 import { formatCents, wholeMoney } from "../../lib/prices";
-import { runTotal, seriesCost, type SeriesCost } from "../../lib/finishCost";
+import { lineCost, runTotal, type SeriesCost } from "../../lib/finishCost";
 import { nextVolumeFor } from "../../lib/editionLookup";
 import EditionFinder from "./EditionFinder";
 import { pricesStyles as styles } from "./styles";
@@ -49,7 +55,19 @@ export default function OtherEditions({
     lines: [],
   });
   const [, setParams] = useSearchParams();
+  // on an edition's own page another edition is its own page too; on the
+  // series page it's ?edition=, so the page stays the series'
+  const { slug, edition: pathEdition } = useParams();
+  const { search } = useLocation();
+  const navigate = useNavigate();
   const showEdition = (key: string) => {
+    if (pathEdition) {
+      navigate(`/prices/series/${slug}/${encodeURIComponent(key)}${search}`, {
+        replace: true,
+        preventScrollReset: true,
+      });
+      return;
+    }
     setParams(
       (now) => {
         const next = new URLSearchParams(now);
@@ -185,14 +203,7 @@ function RunCosts({
   line: EditionLine;
   singles: SeriesCost | null;
 }) {
-  const books = runTotal(
-    seriesCost(
-      line.books.map((book) => ({
-        knownPriceCents: book.knownPriceCents ?? null,
-        isbn13: book.isbn13 ?? undefined,
-      })),
-    ),
-  );
+  const books = runTotal(lineCost(line.books));
   const loose = runTotal(singles);
   if (!books) return null;
   const said = (run: { cents: number; exact: boolean }) =>
