@@ -176,8 +176,10 @@ export default function PriceSeries() {
 
   // couldn't open it (made up, or the lookup failed): never indexed, as the
   // site server already says
+  // an edition's own page waiting for its lines says nothing yet, so the
+  // tags the site server gave it (its own title and address) stay
   let meta: Parameters<typeof usePageMeta>[0] = null;
-  if (!series.loading)
+  if (!series.loading && !(pathEdition && !linesKnown))
     meta = series.data
       ? editionPage
         ? editionMeta(series.data, editionPage)

@@ -1399,21 +1399,40 @@ app.get(
   }),
 );
 
-// an edition's own page. An edition the series doesn't have gets the series
-// page's tags, which name the series' own address as the one to index
+// an edition's own page. Whether the series has it, and its books, come
+// from the stored summary, so a slow catalog never costs the page its own
+// title and address; the books' prices are added when the editions answer
+// in time. An edition the series doesn't have gets the series page's tags,
+// which name the series' own address as the one to index
 app.get(
   "/prices/series/:slug/:edition",
   withTags(async (req, origin) => {
     const { data, missing } = await seriesSummaryOf(req);
     if (missing) return "missing";
     if (!data) return unknownSeriesTags(req);
-    const editions = await summary<{ lines: EditionLineSummary[] }>(
+    const key = String(req.params.edition);
+    const stored = data.editions?.find((l) => l.key === key);
+    if (!stored) return seriesTags(data, origin);
+    const priced = await summary<{ lines: EditionLineSummary[] }>(
       `/api/prices/editions?${new URLSearchParams({ name: data.name })}`,
       ipOf(req),
     ).catch(() => ({ data: null }));
-    const key = String(req.params.edition);
-    const line = editions.data?.lines?.find((l) => l.key === key);
-    return line ? editionTags(data, line, origin) : seriesTags(data, origin);
+    const pricedLine = priced.data?.lines?.find((l) => l.key === key);
+    const line: EditionLineSummary = {
+      key: stored.key,
+      label: stored.label,
+      books: stored.books.map((book) => {
+        const found = pricedLine?.books.find((b) => b.number === book.number);
+        return {
+          number: book.number,
+          volumes: book.volumes,
+          isbn13: found?.isbn13 ?? null,
+          title: found?.title ?? null,
+          knownPriceCents: found?.knownPriceCents ?? null,
+        };
+      }),
+    };
+    return editionTags(data, line, origin);
   }),
 );
 

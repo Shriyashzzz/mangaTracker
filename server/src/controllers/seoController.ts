@@ -57,6 +57,7 @@ const sitemap = async (_req: Request, res: Response) => {
   // a series with no volumes known yet is a near-empty page: it joins once
   // its list is built (by a visit, or prices/seriesFiller.ts)
   const withVolumes = series.filter((s) => bySeries.get(slugify(s.name))?.size);
+  const listed = new Set(withVolumes.map((s) => slugify(s.name)));
   const urls = [
     entry("/"),
     entry("/faq"),
@@ -73,9 +74,13 @@ const sitemap = async (_req: Request, res: Response) => {
       .filter((show) => show.seasons > 0)
       .map((show) => entry(`/after-the-anime/${show.slug}`, show.checkedAt)),
     ...withVolumes.map((s) => entry(seriesPath(s.name), s.fetchedAt)),
-    ...editions.flatMap((s) =>
-      s.lines.map((line) => entry(editionPath(s.name, line.key))),
-    ),
+    // only for series the sitemap lists: an edition page is its series'
+    // page named for it, as near-empty without the volumes
+    ...editions
+      .filter((s) => listed.has(slugify(s.name)))
+      .flatMap((s) =>
+        s.lines.map((line) => entry(editionPath(s.name, line.key))),
+      ),
     ...volumes.map((v) =>
       entry(volumePath(v.isbn13.trim(), v.title), v.updated),
     ),
